@@ -35,6 +35,14 @@ type Options struct {
 	// writers wait until this handle closes. It also starts no watcher
 	// goroutine outside the database's own lifetime.
 	SingleProcess bool
+	// Deltas makes a background checkpoint write the overlay as a delta, a
+	// small tree beside the index, instead of rewriting the index, and
+	// merges deltas into the index in bounded steps between commits. A
+	// checkpoint then costs what the commits since the last one wrote, not
+	// the index size. It takes effect only with SingleProcess. Files with
+	// deltas need a reader that knows them; any handle folds them in once it
+	// checkpoints without this option.
+	Deltas bool
 	// Families are key prefixes whose values Flows counts apart. A key
 	// counts under the first family it starts with.
 	Families [][]byte

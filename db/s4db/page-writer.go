@@ -40,6 +40,36 @@ type pageWriter struct {
 
 // add writes d to the next page and returns the page.
 func (w *pageWriter) add(d *draft) (uint64, error) {
+	// Encode the page and cache an inner page's decoded copy.
+	page, err := w.claim()
+	if err != nil {
+		return 0, err
+	}
+	w.buf = d.encode(w.buf)
+	if !d.leaf {
+		n, err := decodeNode(bytes.Clone(w.buf[len(w.buf)-pageSize:]))
+		if err != nil {
+			return 0, err
+		}
+		w.cache.put(page, n)
+	}
+	return page, w.flushFull()
+}
+
+// addRaw writes the encoded page b, which is not a tree page, to the next
+// page and returns the page.
+func (w *pageWriter) addRaw(b []byte) (uint64, error) {
+	page, err := w.claim()
+	if err != nil {
+		return 0, err
+	}
+	w.buf = append(w.buf, b...)
+	return page, w.flushFull()
+}
+
+// claim returns the next page, reserving more pages when the last run is
+// used up.
+func (w *pageWriter) claim() (uint64, error) {
 	// Reserve more pages when the last run is used up.
 	if l := len(w.runs); l == 0 || w.next == w.runs[l-1].end() {
 		if err := w.flush(); err != nil {
@@ -59,26 +89,18 @@ func (w *pageWriter) add(d *draft) (uint64, error) {
 	page := w.next
 	w.next++
 	w.count++
-
-	// Encode the page and cache an inner page's decoded copy.
 	if w.buf == nil {
 		w.buf = make([]byte, 0, placeBatch*pageSize)
 	}
-	w.buf = d.encode(w.buf)
-	if !d.leaf {
-		n, err := decodeNode(bytes.Clone(w.buf[len(w.buf)-pageSize:]))
-		if err != nil {
-			return 0, err
-		}
-		w.cache.put(page, n)
-	}
+	return page, nil
+}
 
-	// Write a full batch.
-	var err error
+// flushFull writes a full batch.
+func (w *pageWriter) flushFull() error {
 	if len(w.buf) == cap(w.buf) {
-		err = w.flush()
+		return w.flush()
 	}
-	return page, err
+	return nil
 }
 
 // flush writes the pages in buf.

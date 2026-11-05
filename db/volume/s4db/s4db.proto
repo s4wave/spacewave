@@ -47,4 +47,10 @@ message Config {
   // first after a start on a cold index, at the cost of overlay memory and
   // log replay at open.
   int64 commit_wait_bytes = 12;
+  // Deltas makes a checkpoint write the overlay as a small tree beside the
+  // index and merge it in bounded steps, so a checkpoint costs what the
+  // commits since the last one wrote rather than the index size. It takes
+  // effect only with SingleProcess. Turning it off folds the deltas back into
+  // the index at the next checkpoint.
+  bool deltas = 13;
 }

@@ -185,6 +185,15 @@ func checkSpace(t *testing.T, db *DB) {
 	if st.root != 0 {
 		walk(st.root)
 	}
+	for _, d := range st.deltas {
+		pages, err := db.p.deltaPages(nil, d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, p := range pages {
+			claim(p, "delta", false)
+		}
+	}
 	for _, c := range sp.chunks {
 		for _, p := range pageRange(c.start, c.n) {
 			claim(p, "log", false)

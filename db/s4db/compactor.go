@@ -279,14 +279,18 @@ func (c *compactor) scan(ctx context.Context, st *state) (refs []move, wrapped b
 		}
 
 		// Take the key's value from st, not the index: a commit since the
-		// checkpoint may have changed or deleted it, and freed the space the
-		// index's value lies in.
-		if (m.page != 0 || m.val.isRef) && st.filter.has(cur.key()) {
-			if it, ok := st.overlay.Get(overlayProbe(cur.key())); ok {
-				if it.e.del {
-					continue
-				}
-				m.val = it.e.val
+		// tree's last change, in the overlay or a delta, may have changed or
+		// deleted it, and freed the space the index's value lies in.
+		if m.page != 0 || m.val.isRef {
+			v, ok, err := c.db.above(st, cur.key())
+			if err != nil {
+				return nil, false, err
+			}
+			if ok && v.del {
+				continue
+			}
+			if ok {
+				m.val = v
 			}
 		}
 		if m.page != 0 || m.val.isRef {

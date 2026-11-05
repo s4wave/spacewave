@@ -32,7 +32,7 @@ func (db *DB) Sizes(ctx context.Context) (Sizes, error) {
 		return Sizes{}, err
 	}
 	s := Sizes{FileBytes: pageOff(db.w.sp.end), ValueBytes: db.w.sp.liveBytes}
-	treePages := db.cur.Load().sb.treePages
+	treePages := db.cur.Load().sb.indexPages()
 	db.w.unlock(nil)
 
 	// A commit waits for the checkpoint once the log passes twice the

@@ -5,6 +5,7 @@ import (
 	"context"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -136,6 +137,11 @@ func open(s storage, opts Options) (*DB, error) {
 		db.compactor.SetRoutine((&compactor{db: db}).run)
 		db.compactor.SetContext(context.Background(), false)
 	}
+
+	// Resume the merge round a restart interrupted.
+	if !opts.ReadOnly {
+		db.w.kick()
+	}
 	return db, nil
 }
 
@@ -203,7 +209,11 @@ func (db *DB) load() error {
 		return err
 	}
 	db.recent = newCommitLog(sb.seq)
-	st, torn, err := db.tail(newState(sb, db.opts.checkpointLimit(sb)), true)
+	deltas, err := db.p.loadDeltas(sb.deltas, nil)
+	if err != nil {
+		return err
+	}
+	st, torn, err := db.tail(newState(sb, deltas, db.opts.checkpointLimit(sb)), true)
 	if err != nil {
 		return err
 	}
@@ -294,13 +304,20 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 		db.p.cache.clear()
 	}
 	next := st
-	switch {
-	case sb.gen <= st.gen:
-	case sb.seq > st.seq:
-		next = newState(sb, db.opts.checkpointLimit(sb))
-		db.recent.jump(sb.seq)
-	default:
-		next = st.rebase(sb, db.opts.checkpointLimit(sb))
+	if sb.gen > st.gen {
+		deltas, err := db.p.loadDeltas(sb.deltas, st.deltas)
+		if err != nil {
+			return nil, false, err
+		}
+		switch {
+		case sb.seq > st.seq:
+			next = newState(sb, deltas, db.opts.checkpointLimit(sb))
+			db.recent.jump(sb.seq)
+		case sb.seq == st.ckpt:
+			next = st.under(sb, deltas)
+		default:
+			next = st.rebase(sb, deltas, db.opts.checkpointLimit(sb))
+		}
 	}
 
 	// Read the records after the state and where each one ends.
@@ -604,23 +621,45 @@ func (db *DB) minPin() (pin, error) {
 
 // lookup returns the value of key in st.
 func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
-	if st.filter.has(key) {
-		if it, ok := st.overlay.Get(overlayProbe(key)); ok {
-			return it.e.val, !it.e.del, nil
-		}
+	if v, ok, err := db.above(st, key); ok || err != nil {
+		return v, ok && !v.del, err
 	}
 	return db.p.get(st.root, key)
 }
 
+// above returns the entry of key in st's overlay or deltas, the newest
+// first, and whether one holds it. A delete returns a tombstone.
+func (db *DB) above(st *state, key []byte) (value, bool, error) {
+	// Ask the overlay, then each delta whose filter may hold the key.
+	if st.filter.has(key) {
+		if it, ok := st.overlay.Get(overlayProbe(key)); ok {
+			v := it.e.val
+			v.del = it.e.del
+			return v, true, nil
+		}
+	}
+	for _, d := range st.deltas {
+		if !d.has(key) {
+			continue
+		}
+		if v, ok, err := db.p.get(d.root, key); ok || err != nil {
+			return v, ok, err
+		}
+	}
+	return value{}, false, nil
+}
+
 // lookupBatch returns the values of the sorted keys in st and whether each is
 // present, aligned with keys. The overlay answers the keys it holds; the rest,
-// including the filter's false positives, are resolved in one descent of the
-// tree, so a cold batch costs one round of reads per level.
+// including the filter's false positives, are resolved in one descent of each
+// delta whose filter may hold them, newest first, then of the tree, so a cold
+// batch costs one round of reads per level.
 func (db *DB) lookupBatch(ctx context.Context, st *state, keys [][]byte) ([]value, []bool, error) {
-	// Answer from the overlay, listing the keys left for the tree.
+	// Answer from the overlay, listing the keys left for the deltas and the
+	// tree.
 	vals := make([]value, len(keys))
 	found := make([]bool, len(keys))
-	var tree [][]byte
+	var rest [][]byte
 	var at []int
 	for i, key := range keys {
 		if st.filter.has(key) {
@@ -629,12 +668,47 @@ func (db *DB) lookupBatch(ctx context.Context, st *state, keys [][]byte) ([]valu
 				continue
 			}
 		}
-		tree = append(tree, key)
+		rest = append(rest, key)
 		at = append(at, i)
 	}
 
+	// Resolve in each delta the keys its filter may hold, keeping the rest.
+	for _, d := range st.deltas {
+		var in [][]byte
+		var inAt []int
+		keep := 0
+		for j, key := range rest {
+			if d.has(key) {
+				in, inAt = append(in, key), append(inAt, at[j])
+				continue
+			}
+			rest[keep], at[keep] = key, at[j]
+			keep++
+		}
+		rest, at = rest[:keep], at[:keep]
+		if len(in) == 0 {
+			continue
+		}
+		dv, df, err := db.p.getBatch(ctx, d.root, in)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Keep the keys the delta does not hold for the next, in order.
+		var miss [][]byte
+		var missAt []int
+		for j, i := range inAt {
+			if df[j] {
+				vals[i], found[i] = dv[j], !dv[j].del
+				continue
+			}
+			miss, missAt = append(miss, in[j]), append(missAt, i)
+		}
+		rest, at = mergeKeys(rest, at, miss, missAt)
+	}
+
 	// Resolve the rest in the tree.
-	tv, tf, err := db.p.getBatch(ctx, st.root, tree)
+	tv, tf, err := db.p.getBatch(ctx, st.root, rest)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -642,6 +716,39 @@ func (db *DB) lookupBatch(ctx context.Context, st *state, keys [][]byte) ([]valu
 		vals[i], found[i] = tv[j], tf[j]
 	}
 	return vals, found, nil
+}
+
+// mergeKeys merges two lists of sorted keys, each with the index of every
+// key, into one sorted list.
+func mergeKeys(a [][]byte, aAt []int, b [][]byte, bAt []int) ([][]byte, []int) {
+	// An empty list leaves the other as it is.
+	if len(b) == 0 {
+		return a, aAt
+	}
+
+	// Take the key with the lower index from either list until both end.
+	keys := make([][]byte, 0, len(a)+len(b))
+	at := make([]int, 0, len(a)+len(b))
+	for len(a) != 0 || len(b) != 0 {
+		if len(b) == 0 || (len(a) != 0 && aAt[0] < bAt[0]) {
+			keys, at, a, aAt = append(keys, a[0]), append(at, aAt[0]), a[1:], aAt[1:]
+			continue
+		}
+		keys, at, b, bAt = append(keys, b[0]), append(at, bAt[0]), b[1:], bAt[1:]
+	}
+	return keys, at
+}
+
+// prefetch reads into the cache the pages on the paths to each of the sorted
+// keys in st's tree, and in each delta whose filter may hold it.
+func (db *DB) prefetch(ctx context.Context, st *state, keys [][]byte) error {
+	for _, d := range st.deltas {
+		in := slices.DeleteFunc(slices.Clone(keys), func(k []byte) bool { return !d.has(k) })
+		if err := db.p.prefetch(ctx, d.root, in); err != nil {
+			return err
+		}
+	}
+	return db.p.prefetch(ctx, st.root, keys)
 }
 
 // NewTransaction opens a transaction. A write transaction holds the writer

@@ -1,11 +1,28 @@
 package s4db
 
 import (
+	"bytes"
 	"encoding/binary"
 )
 
-// superSize is the encoded length of a superblock.
+// superSize is the encoded length of a superblock without deltas.
 const superSize = 88
+
+// A superblock naming deltas extends the first superSize bytes with the
+// delta list and ends its page with a checksum of the page. Its first
+// checksum is xored with superDeltaMark, so a reader that knows no deltas
+// takes it for a torn copy instead of a tree without them.
+const (
+	// superDeltaMark marks a superblock with deltas.
+	superDeltaMark = 0x44454c54
+	// superDeltasAt is the offset of the delta count, the round, and the
+	// cursor length, two bytes each.
+	superDeltasAt = superSize
+	// noCursor is the cursor length of a round no step has merged into.
+	noCursor = 0xffff
+	// deltaRefSize is the encoded length of a delta ref.
+	deltaRefSize = 24
+)
 
 // superblock names the last checkpoint. Two copies alternate so a torn write
 // leaves the previous one intact.
@@ -33,6 +50,14 @@ type superblock struct {
 	// logCrc is the checksum of record seq, which the record at logPos
 	// continues.
 	logCrc uint32
+	// deltas names the deltas above the tree, newest first.
+	deltas []deltaRef
+	// round is the number of oldest deltas a merge is folding into the
+	// tree, or zero.
+	round int
+	// cursor is the last key the round has merged, nil before its first
+	// step.
+	cursor []byte
 }
 
 // extentRef locates checksummed bytes in the file.
@@ -45,11 +70,13 @@ type extentRef struct {
 	crc uint32
 }
 
-// decodeSuperblock reads a superblock, reporting false when it is torn or
-// was never written.
+// decodeSuperblock reads a superblock from its page, reporting false when it
+// is torn or was never written.
 func decodeSuperblock(b []byte) (superblock, bool) {
-	// Reject a torn record.
-	if checksum(b[:superSize-4]) != binary.LittleEndian.Uint32(b[superSize-4:]) {
+	// Reject a torn record, checking the whole page of one with deltas.
+	sum, stored := checksum(b[:superSize-4]), binary.LittleEndian.Uint32(b[superSize-4:])
+	withDeltas := sum^superDeltaMark == stored
+	if sum != stored && (!withDeltas || checksum(b[:pageSize-4]) != binary.LittleEndian.Uint32(b[pageSize-4:])) {
 		return superblock{}, false
 	}
 
@@ -71,6 +98,33 @@ func decodeSuperblock(b []byte) (superblock, bool) {
 		logEnd:   u(8),
 		logCrc:   binary.LittleEndian.Uint32(b[80:]),
 	}
+	if !withDeltas {
+		return s, s.gen != 0
+	}
+
+	// Decode the deltas, the round, and its cursor.
+	u16 := func(at int) int { return int(binary.LittleEndian.Uint16(b[at:])) }
+	n, at := u16(superDeltasAt), superDeltasAt+6
+	s.round = u16(superDeltasAt + 2)
+	if cl := u16(superDeltasAt + 4); cl != noCursor {
+		if cl > MaxKeySize {
+			return superblock{}, false
+		}
+		s.cursor = bytes.Clone(b[at : at+cl])
+		at += cl
+	}
+	if n > maxDeltas || s.round > n {
+		return superblock{}, false
+	}
+	s.deltas = make([]deltaRef, n)
+	for i := range s.deltas {
+		s.deltas[i] = deltaRef{
+			root:  binary.LittleEndian.Uint64(b[at:]),
+			head:  binary.LittleEndian.Uint64(b[at+8:]),
+			pages: binary.LittleEndian.Uint64(b[at+16:]),
+		}
+		at += deltaRefSize
+	}
 	return s, s.gen != 0
 }
 
@@ -90,6 +144,41 @@ func (s *superblock) encode() []byte {
 	binary.LittleEndian.PutUint32(b[72:], s.space.n)
 	binary.LittleEndian.PutUint32(b[76:], s.space.crc)
 	binary.LittleEndian.PutUint32(b[80:], s.logCrc)
-	binary.LittleEndian.PutUint32(b[superSize-4:], checksum(b[:superSize-4]))
+	sum := checksum(b[:superSize-4])
+	if len(s.deltas) == 0 {
+		binary.LittleEndian.PutUint32(b[superSize-4:], sum)
+		return b
+	}
+
+	// Mark the copy as one with deltas, and write their count, the round
+	// and its cursor.
+	binary.LittleEndian.PutUint32(b[superSize-4:], sum^superDeltaMark)
+	binary.LittleEndian.PutUint16(b[superDeltasAt:], uint16(len(s.deltas))) // #nosec G115 -- at most maxDeltas.
+	binary.LittleEndian.PutUint16(b[superDeltasAt+2:], uint16(s.round))     // #nosec G115 -- the round is at most maxDeltas.
+	at := superDeltasAt + 6
+	cl := noCursor
+	if s.cursor != nil {
+		cl = len(s.cursor)
+		at += copy(b[at:], s.cursor)
+	}
+	binary.LittleEndian.PutUint16(b[superDeltasAt+4:], uint16(cl)) // #nosec G115 -- keys are at most MaxKeySize.
+
+	// Write the refs and check the page.
+	for _, d := range s.deltas {
+		binary.LittleEndian.PutUint64(b[at:], d.root)
+		binary.LittleEndian.PutUint64(b[at+8:], d.head)
+		binary.LittleEndian.PutUint64(b[at+16:], d.pages)
+		at += deltaRefSize
+	}
+	binary.LittleEndian.PutUint32(b[pageSize-4:], checksum(b[:pageSize-4]))
 	return b
+}
+
+// indexPages returns the pages of the tree and its deltas.
+func (s *superblock) indexPages() uint64 {
+	n := s.treePages
+	for _, d := range s.deltas {
+		n += d.pages
+	}
+	return n
 }

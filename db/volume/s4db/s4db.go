@@ -67,6 +67,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		CheckpointMax: conf.GetCheckpointMaxBytes(),
 		CommitWaitMax: conf.GetCommitWaitBytes(),
 		SingleProcess: conf.GetSingleProcess(),
+		Deltas:        conf.GetDeltas(),
 		Families:      prefixes,
 	})
 	if err != nil {

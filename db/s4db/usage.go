@@ -46,7 +46,7 @@ func (db *DB) Usage(ctx context.Context) (Usage, error) {
 	u := db.w.sp.usage()
 	sb := db.cur.Load().sb
 	u.IndexKeys = int64(sb.count) // #nosec G115 -- key counts fit in int64.
-	u.IndexBytes = pageOff(sb.treePages)
+	u.IndexBytes = pageOff(sb.indexPages())
 	db.w.unlock(nil)
 
 	// Read the cache counters, which need no lock.

@@ -78,6 +78,14 @@ export interface Config {
    * log replay at open.
    */
   commitWaitBytes?: bigint
+  /**
+   * Deltas makes a checkpoint write the overlay as a small tree beside the
+   * index and merge it in bounded steps, so a checkpoint costs what the
+   * commits since the last one wrote rather than the index size. It takes
+   * effect only with SingleProcess. Turning it off folds the deltas back into
+   * the index at the next checkpoint.
+   */
+  deltas?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -94,4 +102,5 @@ export const Config: MessageType<Config> =
     [10, 'single_process', 8],
     [11, 'reserve_bytes', 3],
     [12, 'commit_wait_bytes', 3],
+    [13, 'deltas', 8],
   ])

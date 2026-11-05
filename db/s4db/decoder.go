@@ -100,6 +100,8 @@ func (d *decoder) value(kind byte) value {
 		return value{inline: d.bytes()}
 	case valueRef:
 		return value{isRef: true, ref: extentRef{off: d.u64(), n: d.u32(), crc: d.u32()}}
+	case valueDeleted:
+		return value{del: true}
 	}
 	d.fail()
 	return value{}

@@ -176,7 +176,7 @@ func (t *Tx) Prefetch(ctx context.Context, keys [][]byte) error {
 	// Descend to the sorted keys together.
 	sorted := slices.Clone(keys)
 	slices.SortFunc(sorted, bytes.Compare)
-	return t.db.p.prefetch(ctx, t.st.root, sorted)
+	return t.db.prefetch(ctx, t.st, sorted)
 }
 
 // Exists reports whether key is present.
@@ -420,7 +420,7 @@ func (t *Tx) lockValidated(ctx context.Context) error {
 		keys = append(keys, c.key)
 		return true
 	})
-	_ = db.p.prefetch(ctx, t.st.root, keys)
+	_ = db.prefetch(ctx, t.st, keys)
 
 	// Take the lock and the state it caught up to, in place of the
 	// snapshot.

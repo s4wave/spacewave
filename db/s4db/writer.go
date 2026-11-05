@@ -95,6 +95,9 @@ type writer struct {
 	// spaceLen is the length of the last space record before padding, which
 	// sizes the next one, or zero before the first.
 	spaceLen int
+	// mergeFreed counts the pages merge steps freed since the last
+	// checkpoint, which wait for the next one.
+	mergeFreed uint64
 	// saveLive is the live counts array of the last space copy a checkpoint
 	// encoded, reused by the next copy. A copy being encoded holds it, so a
 	// checkpoint that starts meanwhile allocates its own.
@@ -695,6 +698,9 @@ func (w *writer) checkpoint(ctx context.Context) error {
 	// Build and write the tree, reserving its pages as it goes, and save
 	// it.
 	t := w.newTree(st)
+	if w.deltaMode() && len(st.deltas) < maxDeltas {
+		t.kind = treeDelta
+	}
 	t.b.out.reserve = func(n uint64) (run, error) {
 		return w.reserve(t, n)
 	}
@@ -739,21 +745,96 @@ func (w *writer) startCheckpoint() {
 	w.changed = nil
 	st, stripe := w.db.acquire()
 
-	// Skip a state no commit follows since its checkpoint, as checkpoint
-	// does. Its tree would free pages under the checkpoint that snapshots
-	// of the state pin, so a release would hand them out while they read.
-	if st.seq == st.ckpt {
+	// Skip a state with nothing to build.
+	kind, ok := w.plan(st)
+	if !ok {
 		w.db.release(st, stripe)
 		w.unlockBuild()
 		w.endBuild()
 		return
 	}
 
-	// Build, then save and release under the writer lock.
+	// Build, then save and release under the writer lock, and go on with
+	// the next build the deltas need.
+	t := w.newTree(st)
+	t.kind = kind
 	w.builds.Go(func() {
-		w.runCheckpoint(st, stripe)
+		w.runCheckpoint(t, stripe)
 		w.endBuild()
+		w.chain()
 	})
+}
+
+// deltaMode reports whether checkpoints write deltas and merge them.
+func (w *writer) deltaMode() bool {
+	return w.db.opts.Deltas && w.db.opts.SingleProcess
+}
+
+// plan chooses the tree a background build of st writes, and reports false
+// when none is due. A state no commit follows since its checkpoint gets no
+// checkpoint: its tree would free pages under the checkpoint that snapshots
+// of the state pin, so a release would hand them out while they read. A
+// merge step tags what it frees past the checkpoint instead. The caller
+// holds the writer lock.
+func (w *writer) plan(st *state) (treeKind, bool) {
+	// Without deltas every checkpoint rewrites the tree.
+	pending := st.seq != st.ckpt
+	if !w.deltaMode() {
+		return treeWhole, pending
+	}
+
+	// Write a delta when the overlay is full, or when merge steps freed
+	// enough that a checkpoint should let them go; else merge while a round
+	// is open or due. Below the delta bound, a merge waits for a commit to
+	// checkpoint behind it once its frees pass their bound.
+	limit := w.db.opts.checkpointLimit(st.sb)
+	full := st.overlayBytes > limit || st.logBytes > 2*limit
+	freed := w.mergeFreed > mergeFreedMax
+	room := len(st.deltas) < maxDeltas
+	switch {
+	case pending && (full || freed) && room:
+		return treeDelta, true
+	case !mergeDue(st.sb):
+		return treeDelta, false
+	case freed && room:
+		return treeMerge, false
+	}
+	return treeMerge, true
+}
+
+// mergeDue reports whether sb has a merge round open, or deltas enough to
+// start one: mergeDeltas of them, or an eighth of the tree's pages.
+func mergeDue(sb superblock) bool {
+	return sb.round > 0 || len(sb.deltas) >= mergeDeltas || 8*(sb.indexPages()-sb.treePages) >= max(sb.treePages, 1)
+}
+
+// chain starts the next background build after one ends, so a merge round
+// goes on step by step, with deltas written between steps when the overlay
+// fills. A failed build stops the chain until the next commit reports it.
+func (w *writer) chain() {
+	if !w.deltaMode() || w.closing.Load() {
+		return
+	}
+	if err := w.lockFirst(context.Background()); err != nil {
+		return
+	}
+	if w.ckptErr == nil {
+		w.startCheckpoint()
+	}
+	w.unlock(nil)
+}
+
+// kick starts the build a loaded state needs, such as a merge round a
+// restart interrupted.
+func (w *writer) kick() {
+	if !w.deltaMode() {
+		return
+	}
+	if err := w.lock(context.Background()); err != nil {
+		return
+	}
+	w.startCheckpoint()
+	w.unlock(nil)
 }
 
 // endBuild ends the claim on the build and wakes the writers waiting for it.
@@ -793,10 +874,11 @@ func (w *writer) waitBuild(ctx context.Context) error {
 	return err
 }
 
-// runCheckpoint builds the tree of st, which the snapshot in stripe keeps,
+// runCheckpoint builds t from its state, which the snapshot in stripe keeps,
 // and writes its pages, holding the writer lock only to reserve pages, to
-// write them to a shared file, and to save the tree. The next commit reports a failure.
-func (w *writer) runCheckpoint(st *state, stripe int) {
+// write them to a shared file, and to save the tree. The next commit reports
+// a failure.
+func (w *writer) runCheckpoint(t *tree, stripe int) {
 	// Count the checkpoint's time once it ends.
 	start := time.Now()
 	defer func() {
@@ -806,7 +888,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 
 	// Reserve the tree's pages under the writer lock as it builds.
 	ctx := context.Background()
-	t := w.newTree(st)
+	st := t.st
 	out := t.b.out
 	out.reserve = func(n uint64) (run, error) {
 		if err := w.lockFirst(ctx); err != nil {
@@ -855,7 +937,7 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	if err == nil {
 		_, err = w.db.s.flushBarrier()
 	}
-	if err == nil {
+	if err == nil && t.kind != treeMerge {
 		err = w.carryOver(ctx, t)
 	}
 
@@ -910,10 +992,37 @@ func (w *writer) unlockBuild() {
 	}
 }
 
+// treeKind is what a checkpoint tree writes.
+type treeKind int
+
+// Tree kinds.
+const (
+	// treeWhole rewrites the tree under the overlay and every delta.
+	treeWhole treeKind = iota
+	// treeDelta writes the overlay as a new delta, folding in the newest
+	// delta when it is small and outside the merge round.
+	treeDelta
+	// treeMerge folds the round's next keys into the tree.
+	treeMerge
+)
+
 // tree is a checkpoint tree built from a published state.
 type tree struct {
 	// st is the state whose overlay the tree includes.
 	st *state
+	// kind is what the tree writes.
+	kind treeKind
+	// delta is the delta a treeDelta wrote, nil when it wrote none.
+	delta *delta
+	// dropDeltas is the number of the state's deltas the tree replaces:
+	// the newest ones for a treeDelta, the oldest for a treeMerge.
+	dropDeltas int
+	// dropped lists the pages of the replaced deltas.
+	dropped []uint64
+	// round is the round a treeMerge folds in.
+	round int
+	// cursor is the last key a treeMerge folded in.
+	cursor []byte
 	// b writes the new pages and lists the pages they replace.
 	b *builder
 	// top is the new root, nil when the tree is empty.
@@ -982,11 +1091,21 @@ func (w *writer) newTree(st *state) *tree {
 	return &tree{st: st, b: &builder{p: w.db.p, out: out}}
 }
 
-// build applies the overlay of t's state to its tree and writes the new
-// pages. It reads only the state and the pages its tree holds, so it needs
-// no writer lock while a snapshot keeps the state.
+// build writes the new pages of t from its state. It reads only the state
+// and the pages it names, so it needs no writer lock while a snapshot keeps
+// the state.
 func (t *tree) build() error {
-	// Collect the overlay in key order and apply it.
+	switch t.kind {
+	case treeDelta:
+		return t.buildDelta()
+	case treeMerge:
+		return t.buildMerge()
+	}
+	return t.buildWhole()
+}
+
+// overlayChanges returns the overlay of t's state in key order.
+func (t *tree) overlayChanges() []change {
 	st := t.st
 	changes := make([]change, 0, st.overlay.Len())
 	st.overlay.Scan(func(it overlayItem) bool {
@@ -994,7 +1113,130 @@ func (t *tree) build() error {
 		changes = append(changes, change{key: e.key, del: e.del, val: e.val})
 		return true
 	})
-	top, err := t.b.build(st.root, changes)
+	return changes
+}
+
+// buildWhole applies the overlay and every delta of t's state to its tree,
+// dropping the deltas.
+func (t *tree) buildWhole() error {
+	// Fold the deltas under the overlay.
+	st, p := t.st, t.b.p
+	changes := t.overlayChanges()
+	if len(st.deltas) != 0 {
+		under, _, err := p.scanDeltas(st.deltas, nil, math.MaxInt)
+		if err != nil {
+			return err
+		}
+		changes = overChanges(changes, under)
+		if err := t.drop(st.deltas); err != nil {
+			return err
+		}
+	}
+
+	// Apply them to the tree.
+	return t.apply(changes)
+}
+
+// buildDelta writes the overlay of t's state as a delta, deletes as
+// tombstones. A small newest delta outside the merge round folds in under
+// the overlay, so checkpoints that merges call for do not pile up deltas.
+func (t *tree) buildDelta() error {
+	// Fold in the newest delta when it is small and outside the round.
+	st, p := t.st, t.b.p
+	changes := t.overlayChanges()
+	if n := len(st.deltas); n != 0 && st.sb.round < n && st.deltas[0].pages < st.sb.treePages/64 {
+		under, _, err := p.scanDeltas(st.deltas[:1], nil, math.MaxInt)
+		if err != nil {
+			return err
+		}
+		changes = overChanges(changes, under)
+		if err := t.drop(st.deltas[:1]); err != nil {
+			return err
+		}
+	}
+	if len(changes) == 0 {
+		return t.b.out.flush()
+	}
+
+	// Write the changes as a new tree, keeping deletes, with a filter
+	// over their keys.
+	words := newDeltaFilter(len(changes))
+	for i, c := range changes {
+		addDeltaFilter(words, c.key)
+		if c.del {
+			changes[i] = change{key: c.key, val: value{del: true}}
+		}
+	}
+	top, err := t.b.build(0, changes)
+	if err != nil {
+		return err
+	}
+	if err := t.b.place(top); err != nil {
+		return err
+	}
+	if t.delta, err = writeDelta(t.b.out, top.page, words); err != nil {
+		return err
+	}
+	t.delta.pages = uint64(t.b.out.count) // #nosec G115 -- page counts are not negative.
+	return t.b.out.flush()
+}
+
+// buildMerge folds the next keys of the merge round into the tree of t's
+// state, starting a round over every delta when none is open. The step that
+// reaches the round's last key drops its deltas.
+func (t *tree) buildMerge() error {
+	// Take the round's next keys after the cursor.
+	st, p := t.st, t.b.p
+	t.round, t.cursor = st.sb.round, st.sb.cursor
+	if t.round == 0 {
+		t.round, t.cursor = len(st.deltas), nil
+	}
+	round := st.deltas[len(st.deltas)-t.round:]
+	changes, done, err := p.scanDeltas(round, t.cursor, mergeStepKeys)
+	if err != nil {
+		return err
+	}
+	if len(changes) != 0 {
+		t.cursor = bytes.Clone(changes[len(changes)-1].key)
+	}
+	if done {
+		t.dropDeltas = t.round
+		if err := t.drop(round); err != nil {
+			return err
+		}
+	}
+
+	// Apply them to the tree.
+	return t.apply(changes)
+}
+
+// drop lists the pages of ds, which the tree replaces.
+func (t *tree) drop(ds []*delta) error {
+	for _, d := range ds {
+		var err error
+		if t.dropped, err = t.b.p.deltaPages(t.dropped, d); err != nil {
+			return err
+		}
+	}
+	if t.kind == treeDelta {
+		t.dropDeltas = len(ds)
+	}
+	return nil
+}
+
+// apply applies sorted changes to the tree of t's state and writes the new
+// pages. No changes leave the tree as it is.
+func (t *tree) apply(changes []change) error {
+	// Keep the root when nothing changes.
+	if len(changes) == 0 {
+		if root := t.st.root; root != 0 {
+			t.top = &child{page: root}
+		}
+		return t.b.out.flush()
+	}
+
+	// Build the new pages and place them.
+	top, err := t.b.build(t.st.root, changes)
 	if err != nil {
 		return err
 	}
@@ -1141,10 +1383,20 @@ func (s *space) retire(t *tree, old extentRef) error {
 	s.reserved = dropRuns(s.reserved, out.runs)
 	s.addFree(out.unused())
 
-	// Queue the replaced pages, the old space record, and the old log
-	// chunks.
-	s.freePages(t.b.freed, st.seq)
-	s.pend(&s.pages, pending{run: run{start: old.off / pageSize, n: pagesFor(int(old.n))}, tag: st.seq})
+	// Queue the replaced pages and the old space record. A merge step
+	// leaves the checkpoint where it is, so what it frees waits for the
+	// next checkpoint; it keeps the log.
+	tag := st.seq
+	if t.kind == treeMerge {
+		tag = st.ckpt + 1
+	}
+	s.freePages(slices.Concat(t.b.freed, t.dropped), tag)
+	s.pend(&s.pages, pending{run: run{start: old.off / pageSize, n: pagesFor(int(old.n))}, tag: tag})
+	if t.kind == treeMerge {
+		return nil
+	}
+
+	// Queue the old log chunks.
 	keep := slices.IndexFunc(s.chunks, func(c run) bool { return c.end()*pageSize == st.end })
 	if keep < 0 {
 		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
@@ -1241,9 +1493,38 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 		logEnd:    st.end,
 		logCrc:    st.crc,
 	}
+	deltas := t.deltas()
+	sb.deltas = deltaRefs(deltas)
+	switch t.kind {
+	case treeDelta:
+		sb.root, sb.treePages, sb.round, sb.cursor = cur.sb.root, cur.sb.treePages, cur.sb.round, cur.sb.cursor
+	case treeMerge:
+		sb.seq, sb.count, sb.logPos, sb.logEnd, sb.logCrc = cur.sb.seq, cur.sb.count, cur.sb.logPos, cur.sb.logEnd, cur.sb.logCrc
+		if t.dropDeltas == 0 {
+			sb.round, sb.cursor = t.round, t.cursor
+		}
+	}
 	db.ownGen.Store(sb.gen)
-	if _, err := db.s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
+	if err := w.writeSuper(sb, len(cur.sb.deltas) == 0); err != nil {
 		return err
+	}
+
+	// Count what merge steps freed for the next checkpoint, which a delta
+	// or a whole tree is.
+	if t.kind == treeMerge {
+		w.mergeFreed += uint64(len(b.freed) + len(t.dropped))
+	} else {
+		w.mergeFreed = 0
+	}
+
+	// A merge step keeps the overlay and the log.
+	if t.kind == treeMerge {
+		w.changed = nil
+		if err := db.publish(ctx, cur.under(sb, deltas)); err != nil {
+			return err
+		}
+		w.spGen = sb.gen
+		return w.punch()
 	}
 
 	// Publish the tree under the commits after it: those carried over
@@ -1254,11 +1535,52 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 	}
 	t.fold(w.changed)
 	w.changed = nil
-	if err := db.publish(ctx, cur.onto(sb, t.carried, cur.logBytes-st.logBytes)); err != nil {
+	if err := db.publish(ctx, cur.onto(sb, deltas, t.carried, cur.logBytes-st.logBytes)); err != nil {
 		return err
 	}
 	w.spGen = sb.gen
 	return w.punch()
+}
+
+// deltas returns the deltas the superblock saving t names: none after a
+// whole tree; the new delta above those it kept after a delta; and after a
+// merge step, all of them, or the newer ones once the round is done.
+func (t *tree) deltas() []*delta {
+	ds := t.st.deltas
+	switch t.kind {
+	case treeWhole:
+		return nil
+	case treeDelta:
+		kept := ds[t.dropDeltas:]
+		if t.delta == nil {
+			return kept
+		}
+		return append([]*delta{t.delta}, kept...)
+	}
+	return ds[:len(ds)-t.dropDeltas]
+}
+
+// writeSuper writes sb to its page. The first superblock naming deltas
+// after one without also replaces the other copy, once sb is ordered before
+// it: a reader that knows no deltas takes sb for a torn copy, and must not
+// fall back to the older copy, whose log the checkpoint may free.
+func (w *writer) writeSuper(sb superblock, first bool) error {
+	// Write sb to its page.
+	s, enc := w.db.s, sb.encode()
+	if _, err := s.WriteAt(enc, sb.page()*pageSize); err != nil {
+		return err
+	}
+	if len(sb.deltas) == 0 || !first {
+		return nil
+	}
+
+	// Replace the other copy after it.
+	if _, err := s.flushBarrier(); err != nil {
+		return err
+	}
+	other := superblock{gen: sb.gen + 1}
+	_, err := s.WriteAt(enc, other.page()*pageSize)
+	return err
 }
 
 // pageRange lists n pages from start.

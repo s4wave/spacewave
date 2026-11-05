@@ -59,6 +59,12 @@ type Config struct {
 	// first after a start on a cold index, at the cost of overlay memory and
 	// log replay at open.
 	CommitWaitBytes int64 `protobuf:"varint,12,opt,name=commit_wait_bytes,json=commitWaitBytes,proto3" json:"commitWaitBytes,omitempty"`
+	// Deltas makes a checkpoint write the overlay as a small tree beside the
+	// index and merge it in bounded steps, so a checkpoint costs what the
+	// commits since the last one wrote rather than the index size. It takes
+	// effect only with SingleProcess. Turning it off folds the deltas back into
+	// the index at the next checkpoint.
+	Deltas bool `protobuf:"varint,13,opt,name=deltas,proto3" json:"deltas,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -151,6 +157,13 @@ func (x *Config) GetCommitWaitBytes() int64 {
 	return 0
 }
 
+func (x *Config) GetDeltas() bool {
+	if x != nil {
+		return x.Deltas
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -165,6 +178,7 @@ func (m *Config) CloneVT() *Config {
 	r.SingleProcess = m.SingleProcess
 	r.ReserveBytes = m.ReserveBytes
 	r.CommitWaitBytes = m.CommitWaitBytes
+	r.Deltas = m.Deltas
 	r.KvKeyOpts = protobuf_go_lite.CloneVTValue(m.KvKeyOpts)
 	r.VolumeConfig = protobuf_go_lite.CloneVTValue(m.VolumeConfig)
 	r.StoreConfig = protobuf_go_lite.CloneVTValue(m.StoreConfig)
@@ -218,6 +232,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.CommitWaitBytes != that.CommitWaitBytes {
+		return false
+	}
+	if this.Deltas != that.Deltas {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -299,6 +316,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("commitWaitBytes")
 		s.WriteInt64(x.CommitWaitBytes)
 	}
+	if x.Deltas || s.HasField("deltas") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deltas")
+		s.WriteBool(x.Deltas)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -364,6 +386,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "commit_wait_bytes", "commitWaitBytes":
 			s.AddField("commit_wait_bytes")
 			x.CommitWaitBytes = s.ReadInt64()
+		case "deltas":
+			s.AddField("deltas")
+			x.Deltas = s.ReadBool()
 		}
 	})
 }
@@ -401,6 +426,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Deltas {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Deltas)
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.CommitWaitBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CommitWaitBytes))
@@ -507,6 +537,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SingleProcess)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CommitWaitBytes)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Deltas)
 	n += len(m.unknownFields)
 	return n
 }
@@ -561,6 +592,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.CommitWaitBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "commit_wait_bytes")
 		protobuf_go_lite.TextWriteInt(&sb, x.CommitWaitBytes)
+	}
+	if x.Deltas != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deltas")
+		protobuf_go_lite.TextWriteBool(&sb, x.Deltas)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -720,6 +755,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deltas", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Deltas = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

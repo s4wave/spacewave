@@ -12,6 +12,9 @@ type state struct {
 	sb superblock
 	// root is the tree root page.
 	root uint64
+	// deltas are the deltas sb names, read between the overlay and the
+	// tree.
+	deltas []*delta
 	// count is the number of keys.
 	count int64
 	// overlay holds changes after ckpt.
@@ -38,15 +41,17 @@ type state struct {
 	refs *refCount
 }
 
-// newState returns the state of checkpoint sb with no later records, its
-// filter sized for an overlay of limit bytes.
-func newState(sb superblock, limit int64) *state {
+// newState returns the state of checkpoint sb, whose deltas are loaded in
+// deltas, with no later records, its filter sized for an overlay of limit
+// bytes.
+func newState(sb superblock, deltas []*delta, limit int64) *state {
 	return &state{
 		seq:     sb.seq,
 		ckpt:    sb.seq,
 		gen:     sb.gen,
 		sb:      sb,
 		root:    sb.root,
+		deltas:  deltas,
 		count:   int64(sb.count), // #nosec G115 -- a file holds under 1<<63 keys.
 		overlay: newOverlay(),
 		filter:  newFilter(limit),
@@ -57,24 +62,33 @@ func newState(sb superblock, limit int64) *state {
 	}
 }
 
-// rebase returns st moved onto the later checkpoint sb, keeping the overlay
-// entries after it. The sizes of the carried records are unknown, so the
-// log count restarts.
-func (st *state) rebase(sb superblock, limit int64) *state {
+// rebase returns st moved onto the later checkpoint sb with deltas, keeping
+// the overlay entries after it. The sizes of the carried records are
+// unknown, so the log count restarts.
+func (st *state) rebase(sb superblock, deltas []*delta, limit int64) *state {
 	c := newCarried(sb.seq, limit)
 	st.overlay.Scan(c.add)
-	return st.onto(sb, c, 0)
+	return st.onto(sb, deltas, c, 0)
 }
 
-// onto returns st moved onto the later checkpoint sb under the overlay
-// entries c carried over, followed by logBytes of log records.
-func (st *state) onto(sb superblock, c *carried, logBytes int64) *state {
+// onto returns st moved onto the later checkpoint sb with deltas under the
+// overlay entries c carried over, followed by logBytes of log records.
+func (st *state) onto(sb superblock, deltas []*delta, c *carried, logBytes int64) *state {
 	// Copy the state under the new tree and the carried changes.
-	next := *st
-	next.ckpt, next.gen, next.sb, next.root = sb.seq, sb.gen, sb, sb.root
+	next := st.under(sb, deltas)
+	next.ckpt = sb.seq
 	next.logged = max(next.logged, sb.seq)
 	next.overlay, next.filter, next.overlayBytes = c.overlay, c.filter, c.bytes
 	next.logBytes = logBytes
+	return next
+}
+
+// under returns a copy of st under the superblock sb with deltas, which
+// names the same checkpoint or a later one, keeping its overlay.
+func (st *state) under(sb superblock, deltas []*delta) *state {
+	next := *st
+	next.gen, next.sb, next.root, next.deltas = sb.gen, sb, sb.root, deltas
+	next.refs = nil
 	return &next
 }
 

@@ -34,8 +34,8 @@ type mentry struct {
 	buffered bool
 }
 
-// Iterator merges buffered changes, the overlay, and the index tree. The
-// first layer holding a key decides its entry.
+// Iterator merges buffered changes, the overlay, the deltas, and the index
+// tree. The first layer holding a key decides its entry.
 type Iterator struct {
 	// p reads values.
 	p *pager
@@ -43,6 +43,8 @@ type Iterator struct {
 	layers []layer
 	// tree is the index tree layer.
 	tree *pageIter
+	// pages holds the delta layers, newest first, then the tree layer.
+	pages []*pageIter
 	// st is the state the overlay and tree layers read.
 	st *state
 	// prefix bounds the keys.
@@ -74,17 +76,22 @@ func newIterator(p *pager, st *state, changes *btree.BTreeG[tentry], prefix []by
 		})
 	}
 
-	// The overlay's live entries shadow the tree. settle hides the tree keys
-	// the overlay deletes.
-	it.layers = append(it.layers,
-		&treeIter[overlayItem]{
-			it:    st.overlay.live.Iter(),
-			keyOf: func(it overlayItem) []byte { return it.key },
-			probe: overlayProbe,
-			conv:  func(it overlayItem) mentry { return mentry{val: it.e.val} },
-		},
-		it.tree,
-	)
+	// The overlay's live entries shadow the deltas and the tree, and each
+	// delta those below it. settle hides the keys below the overlay that it
+	// deletes.
+	it.layers = append(it.layers, &treeIter[overlayItem]{
+		it:    st.overlay.live.Iter(),
+		keyOf: func(it overlayItem) []byte { return it.key },
+		probe: overlayProbe,
+		conv:  func(it overlayItem) mentry { return mentry{val: it.e.val} },
+	})
+	for _, d := range st.deltas {
+		it.pages = append(it.pages, &pageIter{cursor{p: p, root: d.root}})
+	}
+	it.pages = append(it.pages, it.tree)
+	for _, l := range it.pages {
+		it.layers = append(it.layers, l)
+	}
 	return it
 }
 
@@ -196,9 +203,9 @@ func (it *Iterator) stepPast(key []byte) {
 // positions.
 func (it *Iterator) settle() {
 	for {
-		// Stop at a tree read error or when every layer is done.
+		// Stop at a page read error or when every layer is done.
 		best := it.front()
-		it.err = it.tree.err
+		it.err = it.pageErr()
 		if best == nil || it.err != nil {
 			it.ok = false
 			return
@@ -216,9 +223,10 @@ func (it *Iterator) settle() {
 			continue
 		}
 
-		// Skip deleted keys: a buffered delete, or a tree key the overlay
-		// deletes. A layer before the tree on the same key comes first.
-		if best == layer(it.tree) && it.overlayDeletes(key) {
+		// Skip deleted keys: a buffered delete, a tombstone, or a delta or
+		// tree key the overlay deletes. A layer before them on the same key
+		// comes first.
+		if _, page := best.(*pageIter); page && it.overlayDeletes(key) {
 			it.stepPast(key)
 			continue
 		}
@@ -230,6 +238,16 @@ func (it *Iterator) settle() {
 		it.ok, it.key, it.cur = true, key, e
 		return
 	}
+}
+
+// pageErr returns the first read error of the delta and tree layers.
+func (it *Iterator) pageErr() error {
+	for _, l := range it.pages {
+		if l.err != nil {
+			return l.err
+		}
+	}
+	return nil
 }
 
 // overlayDeletes reports whether the overlay holds a delete of key.

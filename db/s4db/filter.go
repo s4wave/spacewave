@@ -28,15 +28,21 @@ func newFilter(limit int64) *filter {
 
 // probe returns the word for key and the bits key sets in it.
 func (f *filter) probe(key []byte) (*atomic.Uint64, uint64) {
-	// The high half of the hash picks the word, the low bits the bits.
-	h := maphash.Bytes(f.seed, key)
-	w := &f.words[(h>>32)*uint64(len(f.words))>>32]
+	i, mask := blockProbe(maphash.Bytes(f.seed, key), len(f.words))
+	return &f.words[i], mask
+}
+
+// blockProbe returns the word of a blocked Bloom filter of n words that a
+// key hashing to h sets, and the bits it sets there: the high half of the
+// hash picks the word, the low bits the bits.
+func blockProbe(h uint64, n int) (int, uint64) {
+	i := int((h >> 32) * uint64(n) >> 32) // #nosec G115 -- the product's high half is below n.
 	var mask uint64
 	for range filterBits {
 		mask |= 1 << (h & 63)
 		h >>= 6
 	}
-	return w, mask
+	return i, mask
 }
 
 // add records key. Concurrent readers may see its bits before the commit

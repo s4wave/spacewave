@@ -1,13 +1,14 @@
 package s4db
 
-// pageIter iterates the index tree as a merge layer.
+// pageIter iterates the index tree or a delta as a merge layer.
 type pageIter struct {
 	cursor
 }
 
 // entry returns the current entry.
 func (l *pageIter) entry() mentry {
-	return mentry{val: l.value()}
+	v := l.value()
+	return mentry{del: v.del, val: v}
 }
 
 // _ is a type assertion
