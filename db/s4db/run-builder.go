@@ -70,9 +70,11 @@ type partition struct {
 }
 
 // newRunBuilder returns a builder writing into chunks, asking more for
-// another chunk when they run out.
+// another chunk when they run out. The builder clips chunks, so a chunk it
+// appends never overwrites the caller's array past them, such as the
+// manifest chunks reserved after a job's run chunks.
 func newRunBuilder(s storage, chunks []uint64, more func() (uint64, error)) *runBuilder {
-	return &runBuilder{s: s, chunks: chunks, more: more, buf: make([]byte, 0, chunkSize)}
+	return &runBuilder{s: s, chunks: slices.Clip(chunks), more: more, buf: make([]byte, 0, chunkSize)}
 }
 
 // add appends key with value v. Keys arrive in ascending order; the first
