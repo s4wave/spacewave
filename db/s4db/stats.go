@@ -38,6 +38,9 @@ type Stats struct {
 	// background work: a background step's hold of the writer lock while the
 	// commit waited for it, or a wait at the memtable ceiling.
 	BackgroundWaitMax time.Duration
+	// Flushes is the number of shared flushes to the drive this handle made
+	// for commits, ordered ones included once their deadline passed.
+	Flushes uint64
 	// Slots lists the live reader slots and their pins.
 	Slots []SlotPin
 	// Families is the flow of each of Options.Families in order, then of the
@@ -60,6 +63,7 @@ func (db *DB) Stats(ctx context.Context) (Stats, error) {
 		Written:           db.written.Load(),
 		UserBytes:         db.userBytes.Load(),
 		BackgroundWaitMax: time.Duration(db.waitMax.Load()),
+		Flushes:           db.flush.flushes.Load(),
 		CollectBytes:      4*db.budget + runTarget*(1+levelRatio) + 4*chunkSize,
 	}
 	for c, e := range st.m.table.entries {

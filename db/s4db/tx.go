@@ -210,7 +210,7 @@ func (t *Tx) writable(key []byte) error {
 // ScanPrefix calls cb with each key and value under prefix in key order.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	// Hold an iterator over the snapshot and buffered changes.
-	it := t.Iterate(ctx, prefix, true, false)
+	it := t.iterate(prefix, false)
 	defer it.Close()
 
 	// Deliver the prefix's key and value pairs in key order.
@@ -229,7 +229,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 // ScanPrefixKeys calls cb with each key under prefix in key order.
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	// Hold an iterator over the snapshot and buffered changes.
-	it := t.Iterate(ctx, prefix, true, false)
+	it := t.iterate(prefix, false)
 	defer it.Close()
 
 	// Deliver the prefix's keys in key order.
@@ -241,8 +241,31 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 	return it.Err()
 }
 
+// ScanPrefixLens calls cb with each key under prefix and its value's length in
+// key order. It reads only the index, never a value chunk, so a scan of a
+// large file costs its index rather than its values.
+func (t *Tx) ScanPrefixLens(ctx context.Context, prefix []byte, cb func(key []byte, n int) error) error {
+	// Hold an iterator over the snapshot and buffered changes.
+	it := t.iterate(prefix, false)
+	defer it.Close()
+
+	// Deliver the prefix's keys and value lengths in key order.
+	for it.Next() {
+		if err := cb(it.Key(), it.ValueLen()); err != nil {
+			return err
+		}
+	}
+	return it.Err()
+}
+
 // Iterate returns an iterator over keys under prefix, always in key order.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	return t.iterate(prefix, reverse)
+}
+
+// iterate returns an iterator over keys under prefix, failing at once when
+// the transaction is done.
+func (t *Tx) iterate(prefix []byte, reverse bool) *Iterator {
 	it := newIterator(t.db, t.st, t.changes, prefix, reverse)
 	if t.done {
 		it.err = kvtx.ErrDiscarded
@@ -250,9 +273,10 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	return it
 }
 
-// Commit writes the changes and returns once they are durable.
+// Commit writes the changes and returns once they are durable, or commits
+// them ordered when ctx carries kvtx.WithOrderedCommitContext.
 func (t *Tx) Commit(ctx context.Context) error {
-	return t.commit(ctx, false)
+	return t.commit(ctx, kvtx.IsOrderedCommitContext(ctx))
 }
 
 // CommitOrdered writes the changes ordered after earlier commits without
