@@ -149,7 +149,6 @@ Next ==
   \/ Commit \/ ReadSlots \/ Release \/ Zero \/ Load \/ PinLoaded \/ Publish
   \/ PinCompute \/ PinWrite
   \/ \E r \in Readers : Take(r) \/ Count(r) \/ Check(r) \/ Done(r)
-  \/ UNCHANGED vars
 
 \* Every step that moves a pending entry toward free runs eventually, and a
 \* snapshot that reads eventually ends.
