@@ -17,7 +17,7 @@ import (
 // main runs the command the arguments name.
 func main() {
 	// Describe the commands.
-	args := &Args{}
+	args, sample := &Args{}, &sampleArgs{}
 	app := cli.NewApp()
 	app.Name = "spacewave-pack-copy"
 	app.Usage = "copy what a set of roots reaches into a clean pack store"
@@ -27,6 +27,12 @@ func main() {
 			Usage:  "run one pass, writing what no source could serve to the holes list",
 			Flags:  append(args.storeFlags(), args.copyFlags()...),
 			Action: args.runCopy,
+		},
+		{
+			Name:   "sample",
+			Usage:  "time block-sized reads at random places in the source's packs, writing nothing",
+			Flags:  args.sampleFlags(sample),
+			Action: func(*cli.Context) error { return args.runSample(sample) },
 		},
 	}
 

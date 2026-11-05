@@ -179,6 +179,11 @@ func TestCommandRunThrough(t *testing.T) {
 		Uploads:      2,
 	}
 
+	// A sample reads the source's one pack through its read-only index.
+	if err := args.runSample(&sampleArgs{count: 4, bytes: 16, reads: 2}); err != nil {
+		t.Fatal(err)
+	}
+
 	// Run a pass. The root is a hole, listed for block-export, and nothing
 	// under it is reached.
 	if err := args.runCopy(nil); err != nil {
