@@ -18,6 +18,16 @@ type SQLiteDriverConfig interface {
 	SyncWAL(path string) error
 }
 
+// SQLiteReadOnlyDSN is a driver that opens a database read-only, as
+// Pragmas.ReadOnly needs. Such a connection cannot write the file, so it never
+// changes the journal mode or checkpoints the log, even as the last connection
+// to close.
+type SQLiteReadOnlyDSN interface {
+	// OpenReadOnlyDSN returns the DSN that opens the database at path
+	// read-only.
+	OpenReadOnlyDSN(path string) string
+}
+
 // SQLiteDriverPoolConfigurator optionally constrains the sql.DB pool created by
 // common.Open. Drivers with connection-bound semantics can use this to align
 // database/sql pooling with the underlying engine.

@@ -205,8 +205,16 @@ func walBound(pragmas Pragmas) int64 {
 // background, and the WAL bound, to which SQLite truncates the log whenever it
 // restarts it.
 func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas) (*sql.DB, error) {
-	// Find the driver registered under the config's name.
+	// Find the driver registered under the config's name, opening a reader
+	// through its read-only DSN.
 	dsn := config.OpenDSN(path)
+	if pragmas.ReadOnly {
+		ro, ok := any(config).(SQLiteReadOnlyDSN)
+		if !ok {
+			return nil, errors.New("sqlite: the driver cannot open a database read-only")
+		}
+		dsn = ro.OpenReadOnlyDSN(path)
+	}
 	probe, err := sql.Open(config.DriverName(), dsn)
 	if err != nil {
 		return nil, err

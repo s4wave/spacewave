@@ -45,6 +45,8 @@ var (
 	proofsPrefix = []byte("proof/")
 	// meterKey holds the bytes read from the source, across runs.
 	meterKey = []byte("meter/used")
+	// targetKey holds the target the proofs describe.
+	targetKey = []byte("target")
 )
 
 // Args configures the commands.
@@ -183,6 +185,9 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 	}()
 	var err error
 	if r.scratch, err = s4db.Open(a.Scratch, s4db.Options{}); err != nil {
+		return nil, err
+	}
+	if err := bindTarget(r.scratch, a.Bucket+"\x00"+a.TargetPrefix+"\x00"+a.StoreID); err != nil {
 		return nil, err
 	}
 
@@ -425,6 +430,35 @@ func resultFields(r *packcopy.Result) logrus.Fields {
 		fields["holes-"+reason] = count
 	}
 	return fields
+}
+
+// bindTarget records the target the scratch file's proofs describe on its
+// first run, and refuses another: a proof says a block is durable in one
+// target, so trusting it for another would skip every block it covers.
+func bindTarget(store kvtx.Store, target string) error {
+	// Open a write.
+	ctx := context.Background()
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Compare the recorded target, or record this one.
+	data, found, err := tx.Get(ctx, targetKey)
+	if err != nil {
+		return err
+	}
+	if found {
+		if string(data) != target {
+			return errors.New("--scratch holds proofs for another bucket, prefix or store id; use a new scratch file")
+		}
+		return nil
+	}
+	if err := tx.Set(ctx, targetKey, []byte(target)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // readUsed returns the bytes earlier runs read from the source.
