@@ -1,0 +1,168 @@
+//go:build !js && !wasip1
+
+package world_block
+
+import (
+	"testing"
+
+	"github.com/s4wave/spacewave/db/block"
+)
+
+// pendingTree builds blocks bottom up for a PendingStore test, each naming
+// the children given.
+type pendingTree map[string]*block.PutBatchEntry
+
+// add builds the block name over children and returns it.
+func (tr pendingTree) add(t *testing.T, name string, children ...string) *block.PutBatchEntry {
+	t.Helper()
+	data := []byte("pending " + name)
+	refs := make([]*block.BlockRef, 0, len(children))
+	for _, c := range children {
+		refs = append(refs, tr[c].Ref)
+		data = append(data, tr[c].Ref.MarshalString()...)
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true}
+	tr[name] = e
+	return e
+}
+
+// ref returns the reference of the block name.
+func (tr pendingTree) ref(name string) *block.BlockRef {
+	return tr[name].Ref
+}
+
+// TestPendingStoreRunThrough checks on a Volume that frees with a 1ns grace
+// that a PendingStore stores only the trees a root moves onto: a replaced
+// tree never reaches the Volume, a root move stores its tree in the move, a
+// pin stores the tree it pins, a sweep forgets what no live root reaches, and
+// a tree that outgrows the bound is held under its writer's stage until its
+// root lands. Collection between every step frees no block a root or pin
+// reaches.
+func TestPendingStoreRunThrough(t *testing.T) {
+	f := newVolumeFixture(t)
+	ctx := t.Context()
+	ps := block.NewPendingStore(f.store, 1<<20)
+	tr := pendingTree{}
+	put := func(store block.StoreOps, names ...string) {
+		t.Helper()
+		entries := make([]*block.PutBatchEntry, len(names))
+		for i, name := range names {
+			entries[i] = tr[name]
+		}
+		if _, err := store.PutBlockBatch(ctx, entries); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stored := func(want bool, names ...string) {
+		t.Helper()
+		for _, name := range names {
+			if got := f.stored(t, tr.ref(name)); got != want {
+				t.Fatalf("block %s stored=%v, want %v", name, got, want)
+			}
+		}
+	}
+
+	// Two Worlds that share E stay in memory and readable.
+	tr.add(t, "E")
+	tr.add(t, "C1", "E")
+	tr.add(t, "R1", "C1")
+	tr.add(t, "C2", "E")
+	tr.add(t, "R2", "C2")
+	put(ps, "E", "C1", "R1", "C2", "R2")
+	stored(false, "E", "C1", "R1", "C2", "R2")
+	if _, found, err := ps.GetBlock(ctx, tr.ref("R1")); err != nil || !found {
+		t.Fatalf("a kept block read %v %v", found, err)
+	}
+
+	// A root on the second stores its tree in the move; the replaced first
+	// never reaches the Volume, and collection keeps the held tree.
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-test", Ref: tr.ref("R2")}}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(true, "E", "C2", "R2")
+	stored(false, "C1", "R1")
+
+	// A sweep from the live root forgets the replaced tree.
+	ps.Sweep([]*block.BlockRef{tr.ref("R2")})
+	if n := ps.KeptBytes(); n != 0 {
+		t.Fatalf("sweep kept %d bytes, want 0", n)
+	}
+
+	// A pin on a kept World stores its tree, which collection keeps while
+	// the pin holds and frees once it lets go.
+	tr.add(t, "C3", "E")
+	tr.add(t, "R3", "C3")
+	put(ps, "C3", "R3")
+	release, err := ps.PinRoot(ctx, tr.ref("R3"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(true, "C3", "R3", "E")
+	release()
+	f.collect(t)
+	stored(false, "C3", "R3")
+	stored(true, "E")
+
+	// A root on a new entry naming kept trees, as a block naming several
+	// payload roots is, stores the trees with the entry.
+	tr.add(t, "P1")
+	tr.add(t, "P2", "E")
+	held := tr.add(t, "H", "P1", "P2")
+	put(ps, "P1", "P2")
+	if err := ps.SetRoots(ctx, []*block.PutBatchEntry{held}, []block.NamedRoot{{Name: "pending-held", Ref: held.Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(true, "H", "P1", "P2", "E")
+	if n := ps.KeptBytes(); n != 0 {
+		t.Fatalf("a root move kept %d bytes, want 0", n)
+	}
+
+	// A tree past the bound puts the kept blocks under its overflowing
+	// parent with it, under the writer's stage, which holds them across a
+	// collection until the root lands; the root then holds them after the
+	// stage ends.
+	small := block.NewPendingStore(f.store, len(tr.add(t, "X").Data))
+	tr.add(t, "C4", "X")
+	tr.add(t, "R4", "C4")
+	stage, releaseStage, err := small.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(stage, "X", "C4", "R4")
+	stored(true, "X", "C4", "R4")
+	f.collect(t)
+	stored(true, "X", "C4", "R4")
+	if err := small.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-overflow", Ref: tr.ref("R4")}}); err != nil {
+		t.Fatal(err)
+	}
+	releaseStage()
+	f.collect(t)
+	stored(true, "X", "C4", "R4")
+
+	// Releasing the roots frees both trees, and the audit finds nothing at
+	// risk.
+	err = f.store.SetRoots(ctx, nil, []block.NamedRoot{
+		{Name: "pending-test", Previous: tr.ref("R2")},
+		{Name: "pending-overflow", Previous: tr.ref("R4")},
+		{Name: "pending-held", Previous: tr.ref("H")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(false, "E", "C2", "R2", "X", "C4", "R4", "H", "P1", "P2")
+	audit, err := f.volume.Audit(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if audit.LiveQueued != 0 || audit.Undercount != 0 {
+		t.Fatalf("audit found live blocks at risk: queued=%d undercount=%d", audit.LiveQueued, audit.Undercount)
+	}
+}
