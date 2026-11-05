@@ -160,7 +160,7 @@ func TestSharingWalkDeadlistRenames(t *testing.T) {
 				break
 			}
 		}
-		if err := v.SetBucketRoots(ctx, "bucket", nil, due); err != nil {
+		if err := overwriteBucketRoots(ctx, v, "bucket", nil, due); err != nil {
 			t.Fatal(err)
 		}
 		if err := v.walkSharing(ctx); err != nil {

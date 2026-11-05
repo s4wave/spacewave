@@ -33,6 +33,21 @@ type copyDestination struct {
 	batchProbes atomic.Int64
 }
 
+// GetRoot reads the root from the inner store.
+func (d *copyDestination) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return d.inner.GetRoot(ctx, name)
+}
+
+// ListRoots lists the inner store's roots.
+func (d *copyDestination) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return d.inner.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the inner store.
+func (d *copyDestination) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return d.inner.SetRoots(ctx, entries, roots)
+}
+
 // GetBlockExists counts individual destination probes.
 func (d *copyDestination) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	d.singleProbes.Add(1)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/tx"
 )
 
 // bucketRootVolume is a volume that owns named roots, reader pins and stages
@@ -14,8 +15,14 @@ type bucketRootVolume interface {
 	SupportsAtomicPublication() bool
 	// KeepsHoldCounts reports whether the volume keeps shared counts.
 	KeepsHoldCounts() bool
+	// GetBucketRoot returns the block a bucket's root name holds, or nil.
+	GetBucketRoot(context.Context, string, string) (*block.BlockRef, error)
+	// ListBucketRoots calls the func with each root of a bucket whose name
+	// starts with the prefix.
+	ListBucketRoots(context.Context, string, string, func(block.NamedRoot) error) error
 	// SetBucketRoots writes entries a bucket owns and moves its named roots in
-	// one transaction.
+	// one transaction, refusing the change with block.ErrRootMoved when a root
+	// does not hold its Previous.
 	SetBucketRoots(context.Context, string, []*block.PutBatchEntry, []block.NamedRoot) error
 	// PinBucketRoot protects a reader's root until the returned release.
 	PinBucketRoot(context.Context, *block.BlockRef) (func(), error)
@@ -61,11 +68,32 @@ func (b *bucketHandle) KeepsHoldCounts() bool {
 	return b.SupportsRootRetention() && b.v.(bucketRootVolume).KeepsHoldCounts()
 }
 
-// SetRetainedRoots writes entries owned by this bucket and replaces its named
-// durable roots in one volume transaction.
-func (b *bucketHandle) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+// GetRoot returns the block the bucket's root name holds, or nil. A bucket
+// whose volume holds no roots reports none.
+func (b *bucketHandle) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	if !b.SupportsRootRetention() {
+		return nil, nil
+	}
+	return b.v.(bucketRootVolume).GetBucketRoot(ctx, b.t.bucketID, name)
+}
+
+// ListRoots lists the bucket's roots whose name starts with prefix.
+func (b *bucketHandle) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
 	if !b.SupportsRootRetention() {
 		return nil
+	}
+	return b.v.(bucketRootVolume).ListBucketRoots(ctx, b.t.bucketID, prefix, fn)
+}
+
+// SetRoots writes entries owned by this bucket and moves its named roots in one
+// volume transaction. A bucket whose volume holds no roots stores the entries
+// and drops the roots.
+func (b *bucketHandle) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if b.readOps != nil {
+		return tx.ErrNotWrite
+	}
+	if !b.SupportsRootRetention() {
+		return block.SetRootsUnheld(ctx, b, entries)
 	}
 	return b.v.(bucketRootVolume).SetBucketRoots(ctx, b.t.bucketID, entries, roots)
 }

@@ -18,13 +18,22 @@ func (m *MarkingStore) SupportsRootRetention() bool {
 // KeepsHoldCounts reports whether the inner store keeps shared counts.
 func (m *MarkingStore) KeepsHoldCounts() bool { return block.KeepsHoldCounts(m.store) }
 
-// SetRetainedRoots forwards durable root ownership to the inner store and
-// marks the blocks it wrote.
-func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+// GetRoot reads the root from the inner store.
+func (m *MarkingStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
+	return m.store.GetRoot(ctx, name)
+}
+
+// ListRoots lists the roots of the inner store.
+func (m *MarkingStore) ListRoots(ctx context.Context, prefix string, fn func(block.NamedRoot) error) error {
+	return m.store.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the inner store and marks the blocks it wrote.
+func (m *MarkingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	// Mark in the storing transaction.
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
-		if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
+		if err := m.store.SetRoots(ctx, entries, roots); err != nil {
 			return err
 		}
 		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
@@ -34,7 +43,7 @@ func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.Pu
 		return nil
 	}
 
-	if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
+	if err := m.store.SetRoots(ctx, entries, roots); err != nil {
 		return err
 	}
 	return m.markEntries(ctx, entries)

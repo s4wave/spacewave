@@ -451,6 +451,18 @@ func (o *StoreOverlay) RmBlock(ctx context.Context, ref *BlockRef) error {
 	}
 }
 
+// GetRoot reports that no name is held: the overlay layers stores and holds no
+// roots of its own.
+func (o *StoreOverlay) GetRoot(context.Context, string) (*BlockRef, error) { return nil, nil }
+
+// ListRoots reports no roots.
+func (o *StoreOverlay) ListRoots(context.Context, string, func(NamedRoot) error) error { return nil }
+
+// SetRoots stores the entries and drops the roots.
+func (o *StoreOverlay) SetRoots(ctx context.Context, entries []*PutBatchEntry, _ []NamedRoot) error {
+	return SetRootsUnheld(ctx, o, entries)
+}
+
 // Sync fences both overlay stores; it reports fenced only when both did.
 func (o *StoreOverlay) Sync(ctx context.Context) (bool, error) {
 	upperFenced, err := o.upper.Sync(ctx)

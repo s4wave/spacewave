@@ -2,11 +2,9 @@ package block
 
 import "context"
 
-// RootRetainer owns durable named roots, temporary reader pins, stages, and the
-// staging ownership of roots written outside them. Replacing a named root
-// releases its predecessor; immutable descendants remain protected by their own
-// edges, other named roots, and reader pins. Unsupported stores keep their
-// existing retention policy.
+// RootRetainer owns temporary reader pins, stages, and the staging ownership of
+// roots written outside them; named roots are RootOps. Unsupported stores keep
+// their existing retention policy.
 type RootRetainer interface {
 	// SupportsRootRetention reports whether the store owns roots. The other
 	// methods require it.
@@ -16,9 +14,6 @@ type RootRetainer interface {
 	// stored, and one per page a named deadlist record lists as held. It
 	// requires SupportsRootRetention.
 	KeepsHoldCounts() bool
-	// SetRetainedRoots writes the entries and moves every named root as one
-	// change. A root may hold a block the entries write.
-	SetRetainedRoots(context.Context, []*PutBatchEntry, []NamedRoot) error
 	// PinRoot protects a root until the returned release is called.
 	PinRoot(context.Context, *BlockRef) (func(), error)
 	// OpenStage returns a store whose writes a new stage owns until release.
@@ -120,32 +115,6 @@ func SupportsRootRetention(store StoreOps) bool {
 func KeepsHoldCounts(store StoreOps) bool {
 	r, ok := store.(RootRetainer)
 	return ok && r.SupportsRootRetention() && r.KeepsHoldCounts()
-}
-
-// NamedRoot is a durable named root and the block it holds. An empty Ref
-// releases the name.
-type NamedRoot struct {
-	// Name is the root name, unique within the store's bucket.
-	Name string
-	// Ref is the block the name holds, or empty to release the name.
-	Ref *BlockRef
-}
-
-// SetRetainedRoot advances a named root when the store supports root ownership.
-// The caller serializes this operation with publication of the corresponding head.
-func SetRetainedRoot(ctx context.Context, store StoreOps, name string, ref *BlockRef) error {
-	return SetRetainedRoots(ctx, store, nil, []NamedRoot{{Name: name, Ref: ref}})
-}
-
-// SetRetainedRoots writes entries and advances every named root in roots as
-// one change when the store supports root ownership. A root may hold a block
-// entries writes. The caller serializes this operation with publication of the
-// corresponding heads. A store without root ownership writes nothing.
-func SetRetainedRoots(ctx context.Context, store StoreOps, entries []*PutBatchEntry, roots []NamedRoot) error {
-	if len(roots) == 0 || !SupportsRootRetention(store) {
-		return nil
-	}
-	return store.(RootRetainer).SetRetainedRoots(ctx, entries, roots)
 }
 
 // PinRoot protects a root until release. The caller must already hold a live

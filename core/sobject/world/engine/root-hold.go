@@ -225,5 +225,5 @@ func (h *rootHold) add(o *rootHold) {
 
 // apply writes the gathered blocks and moves every gathered root at once.
 func (h *rootHold) apply(ctx context.Context) error {
-	return block.SetRetainedRoots(ctx, h.store, h.entries, h.roots)
+	return block.OverwriteRoots(ctx, h.store, h.entries, h.roots)
 }

@@ -3,13 +3,13 @@ package kvtx
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/util/ulid"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/coord"
@@ -254,10 +254,28 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 		}
 	}
 
+	// Refuse a change that names one root twice, since its second move would
+	// check against a state the first move replaced.
+	if err := requireDistinctRoots(roots); err != nil {
+		return err
+	}
+
 	// Write the entries and move the roots in one transaction.
 	v.noteUnknownRefsBatch(putRoots, entries)
 	var existed []bool
 	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
+		// Refuse the change before writing anything when a root no longer
+		// holds the reference its writer expected.
+		for _, root := range roots {
+			held, err := rg.GetOutgoingRefs(ctx, RootOwnerIRI(bucketID, root.Name))
+			if err != nil {
+				return err
+			}
+			if !holdsOnly(held, root.Previous) {
+				return block.RootMoved(root.Name)
+			}
+		}
+
 		// Write the entries under the bucket's ownership.
 		if len(entries) != 0 {
 			bucket := block_gc.BucketIRI(bucketID)
@@ -279,7 +297,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 
 		// Move each named root.
 		for _, root := range roots {
-			if err := v.setBucketRoot(ctx, blocks, rg, bucketID, root.Name, root.Ref); err != nil {
+			if err := v.setBucketRoot(ctx, blocks, rg, bucketID, root); err != nil {
 				return err
 			}
 		}
@@ -294,9 +312,13 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 	return err
 }
 
-// setBucketRoot requires a shared physical transaction for bytes and graph.
-func (v *Volume) setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, bucketID, name string, ref *block.BlockRef) error {
+// setBucketRoot moves one named root to root.Ref, whatever it holds now. It
+// requires a shared physical transaction for bytes and graph; SetBucketRoots
+// checks root.Previous before it, and a publication's head comparison guards
+// its writer instead.
+func (v *Volume) setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, bucketID string, root block.NamedRoot) error {
 	// Read the root the owner node holds now.
+	name, ref := root.Name, root.Ref
 	owner := RootOwnerIRI(bucketID, name)
 	bucket := block_gc.BucketIRI(bucketID)
 	old, err := rg.GetOutgoingRefs(ctx, owner)
@@ -346,6 +368,27 @@ func (v *Volume) setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *b
 		return err
 	}
 	return v.addDeadlistHolds(ctx, blocks, rg, ref)
+}
+
+// requireDistinctRoots refuses roots that name one root twice.
+func requireDistinctRoots(roots []block.NamedRoot) error {
+	for i, root := range roots {
+		for _, prior := range roots[:i] {
+			if prior.Name == root.Name {
+				return errors.Errorf("root %q moves twice in one change", root.Name)
+			}
+		}
+	}
+	return nil
+}
+
+// holdsOnly reports whether the owner node's outgoing references are exactly
+// previous, or none when previous is empty.
+func holdsOnly(held []string, previous *block.BlockRef) bool {
+	if previous.GetEmpty() {
+		return len(held) == 0
+	}
+	return len(held) == 1 && held[0] == block_gc.BlockIRI(previous)
 }
 
 // heldCounted reports whether naming the block next under the root name of

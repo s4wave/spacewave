@@ -84,7 +84,7 @@ func TestIntervalPutsCountSharedPages(t *testing.T) {
 		}
 		entries = append(entries, &block.PutBatchEntry{Ref: hold, Data: data, Refs: []*block.BlockRef{entries[0].Ref}, RefsKnown: true, HoldsRoots: true})
 		roots := []block.NamedRoot{{Name: "head", Ref: entries[0].Ref}}
-		if err := v.SetBucketRoots(ctx, "bucket", entries, roots); err != nil {
+		if err := overwriteBucketRoots(ctx, v, "bucket", entries, roots); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -108,7 +108,7 @@ func TestIntervalPutsCountSharedPages(t *testing.T) {
 	// it again: q is not original, so its found put counts the new edge.
 	q := scratchLeaf(t, scratch, world("q"))
 	other := []*block.PutBatchEntry{scratchEntry(t, scratch, q)}
-	if err := v.SetBucketRoots(ctx, "other", other, []block.NamedRoot{{Name: "head", Ref: q}}); err != nil {
+	if err := overwriteBucketRoots(ctx, v, "other", other, []block.NamedRoot{{Name: "head", Ref: q}}); err != nil {
 		t.Fatal(err)
 	}
 	name(interval(old, "q", "r", "q"))
@@ -120,7 +120,7 @@ func TestIntervalPutsCountSharedPages(t *testing.T) {
 	// parents of s afresh and finds s, all Netted: s gains one count, which
 	// holds it until the record is named, and none per parent.
 	s := scratchLeaf(t, scratch, world("s"))
-	if err := v.SetBucketRoots(ctx, "other", []*block.PutBatchEntry{scratchEntry(t, scratch, s)}, []block.NamedRoot{{Name: "s", Ref: s}}); err != nil {
+	if err := overwriteBucketRoots(ctx, v, "other", []*block.PutBatchEntry{scratchEntry(t, scratch, s)}, []block.NamedRoot{{Name: "s", Ref: s}}); err != nil {
 		t.Fatal(err)
 	}
 	parent := func(msg string) *block.PutBatchEntry {
@@ -134,7 +134,7 @@ func TestIntervalPutsCountSharedPages(t *testing.T) {
 	leaf := scratchEntry(t, scratch, s)
 	leaf.Netted = true
 	overflow := []*block.PutBatchEntry{parent("a over s"), parent("b over s"), leaf}
-	if err := v.SetBucketRoots(ctx, "bucket", overflow, nil); err != nil {
+	if err := overwriteBucketRoots(ctx, v, "bucket", overflow, nil); err != nil {
 		t.Fatal(err)
 	}
 	if n := readHolds(t, v, s); n != 1 {
@@ -148,7 +148,7 @@ func TestIntervalPutsCountSharedPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := v.SetBucketRoots(ctx, "bucket", record, []block.NamedRoot{{Name: block.DeadlistRootName(1), Ref: first}}); err != nil {
+	if err := overwriteBucketRoots(ctx, v, "bucket", record, []block.NamedRoot{{Name: block.DeadlistRootName(1), Ref: first}}); err != nil {
 		t.Fatal(err)
 	}
 	if n := readHolds(t, v, s); n != 2 {

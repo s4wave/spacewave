@@ -327,7 +327,7 @@ buildWorldEngine:
 			if err := c.writeHeadState(ctx, stateStore, baseRef, nref); err != nil {
 				return err
 			}
-			return block.SetRetainedRoot(ctx, cursor.GetBucket(), world_block.RetainedRootName(stateCoordScope.ObjectStoreID, c.objectStoreHeadKeyPrefix()), nref.GetRootRef())
+			return block.OverwriteRoots(ctx, cursor.GetBucket(), nil, []block.NamedRoot{{Name: world_block.RetainedRootName(stateCoordScope.ObjectStoreID, c.objectStoreHeadKeyPrefix()), Ref: nref.GetRootRef()}})
 		}
 		return nil
 	}

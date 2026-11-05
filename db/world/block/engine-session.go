@@ -321,7 +321,7 @@ func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublicat
 			err = e.commitFn(ctx, base, p.root.Clone())
 		}
 		if err == nil {
-			err = block.SetRetainedRoot(ctx, e.writeBlockStore, e.retainedRootName(), p.root.GetRootRef())
+			err = block.OverwriteRoots(ctx, e.writeBlockStore, nil, []block.NamedRoot{{Name: e.retainedRootName(), Ref: p.root.GetRootRef()}})
 		}
 		locked.Unlock()
 	}

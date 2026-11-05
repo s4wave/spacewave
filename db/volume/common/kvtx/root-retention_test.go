@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strconv"
 	"sync"
@@ -68,7 +69,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	}
 
 	// Remove one named owner and verify the other retains the root.
-	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head"}}); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head", Previous: root}}); err != nil {
 		t.Fatal(err)
 	}
 	collect(true)
@@ -84,7 +85,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	}
 
 	// Verify releasing one reader leaves the other reader retaining the root.
-	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "fork"}}); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "fork", Previous: root}}); err != nil {
 		t.Fatal(err)
 	}
 	one()
@@ -112,7 +113,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	}
 
 	// Drop the named root and simulate loss of the reader process lease.
-	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head"}}); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head", Previous: root}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := v.rootPinLease.Release(ctx); err != nil {
@@ -217,7 +218,7 @@ func TestRootRetentionConcurrentPins(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: data, Ref: root}}); err != nil {
 			t.Fatal(err)
 		}
-		if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: data}}); err != nil {
+		if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: data, Previous: root}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -452,7 +453,8 @@ func TestHoldStageCompleteRootsKeepsProvedGraph(t *testing.T) {
 }
 
 // TestSetBucketRootsHoldsWrittenEntries checks that named roots hold blocks
-// written by the same call, after their staging ownership is released.
+// written by the same call, after their staging ownership is released, and
+// that a root moves only from the reference its writer expected.
 func TestSetBucketRootsHoldsWrittenEntries(t *testing.T) {
 	// Prepare a child the bucket stages.
 	v, _ := newPublicationTestVolume(t)
@@ -491,12 +493,54 @@ func TestSetBucketRootsHoldsWrittenEntries(t *testing.T) {
 	}
 	collect(true)
 
+	// A second writer that read head before it moved loses the race: its
+	// change is refused whole, its entry is not stored and head still holds
+	// root.
+	lateData := []byte("late root")
+	late, err := block.BuildBlockRef(lateData, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lateEntries := []*block.PutBatchEntry{{Ref: late, Data: lateData, RefsKnown: true}}
+	lateRoots := []block.NamedRoot{{Name: "span", Ref: late, Previous: root}, {Name: "head", Ref: late}}
+	if err := v.SetBucketRoots(ctx, "bucket", lateEntries, lateRoots); !errors.Is(err, block.ErrRootMoved) {
+		t.Fatalf("stale move = %v; want ErrRootMoved", err)
+	}
+	if found, err := v.GetBlockExists(ctx, late); err != nil || found {
+		t.Fatalf("refused entry found=%v err=%v; want not stored", found, err)
+	}
+	for _, name := range []string{"head", "span"} {
+		if held, err := v.GetBucketRoot(ctx, "bucket", name); err != nil || !held.EqualsRef(root) {
+			t.Fatalf("%s holds %v err=%v; want the first writer's root", name, held, err)
+		}
+	}
+
+	// A change that moves one name twice is refused.
+	twice := []block.NamedRoot{{Name: "head", Ref: late, Previous: root}, {Name: "head", Previous: late}}
+	if err := v.SetBucketRoots(ctx, "bucket", nil, twice); err == nil {
+		t.Fatal("moving one root twice in one change succeeded")
+	}
+
 	// Release both names in one call and check the graph is collected.
-	release := []block.NamedRoot{{Name: "head"}, {Name: "span"}}
+	release := []block.NamedRoot{{Name: "head", Previous: root}, {Name: "span", Previous: root}}
 	if err := v.SetBucketRoots(ctx, "bucket", nil, release); err != nil {
 		t.Fatal(err)
 	}
 	collect(false)
+}
+
+// overwriteBucketRoots moves roots of bucketID to their Ref whatever they hold
+// now, for a test whose subject is not the compare-and-swap.
+func overwriteBucketRoots(ctx context.Context, v *Volume, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	moves := slices.Clone(roots)
+	for i := range moves {
+		held, err := v.GetBucketRoot(ctx, bucketID, moves[i].Name)
+		if err != nil {
+			return err
+		}
+		moves[i].Previous = held
+	}
+	return v.SetBucketRoots(ctx, bucketID, entries, moves)
 }
 
 // prepareProofRoots prepares n distinct owned roots.
@@ -677,14 +721,14 @@ func TestDueDeadlistCheckedAgainstMark(t *testing.T) {
 
 	// Name it again, then move it due: the shared page keeps one count.
 	pending := []block.NamedRoot{{Name: block.DeadlistRootName(1), Ref: recordRef}}
-	if err := v.SetBucketRoots(ctx, "bucket", nil, pending); err != nil {
+	if err := overwriteBucketRoots(ctx, v, "bucket", nil, pending); err != nil {
 		t.Fatal(err)
 	}
 	due := []block.NamedRoot{
 		{Name: block.DeadlistDueRootName(1), Ref: recordRef},
 		{Name: block.DeadlistRootName(1)},
 	}
-	if err := v.SetBucketRoots(ctx, "bucket", nil, due); err != nil {
+	if err := overwriteBucketRoots(ctx, v, "bucket", nil, due); err != nil {
 		t.Fatal(err)
 	}
 	holds := func(ref *block.BlockRef) uint64 {
@@ -738,7 +782,7 @@ func TestDueDeadlistCheckedAgainstMark(t *testing.T) {
 	// its writer counted the holder already.
 	for _, counted := range []bool{true, false} {
 		entry := &block.PutBatchEntry{Ref: live, Data: []byte("live page"), RefsKnown: true, Counted: counted}
-		if err := v.SetBucketRoots(ctx, "bucket", []*block.PutBatchEntry{entry}, []block.NamedRoot{{Name: "again", Ref: live}}); err != nil {
+		if err := overwriteBucketRoots(ctx, v, "bucket", []*block.PutBatchEntry{entry}, []block.NamedRoot{{Name: "again", Ref: live}}); err != nil {
 			t.Fatal(err)
 		}
 	}

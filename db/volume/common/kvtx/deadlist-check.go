@@ -79,7 +79,7 @@ func (v *Volume) checkDueDeadlists(ctx context.Context, mark *block_gc.BlockMark
 
 		// Release its name.
 		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
-			return v.setBucketRoot(ctx, blocks, rg, rec.bucketID, rec.name, nil)
+			return v.setBucketRoot(ctx, blocks, rg, rec.bucketID, block.NamedRoot{Name: rec.name})
 		})
 		if err != nil {
 			return err

@@ -5,9 +5,20 @@ import "context"
 // SupportsRootRetention reports the underlying ownership capability.
 func (b *StoreRW) SupportsRootRetention() bool { return SupportsRootRetention(b.writeHandle) }
 
-// SetRetainedRoots forwards durable root ownership to the underlying store.
-func (b *StoreRW) SetRetainedRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
-	return SetRetainedRoots(ctx, b.writeHandle, entries, roots)
+// GetRoot reads the root from the write handle, the store that moves it, so a
+// Previous read here is the reference SetRoots compares against.
+func (b *StoreRW) GetRoot(ctx context.Context, name string) (*BlockRef, error) {
+	return b.writeHandle.GetRoot(ctx, name)
+}
+
+// ListRoots lists the roots of the write handle.
+func (b *StoreRW) ListRoots(ctx context.Context, prefix string, fn func(NamedRoot) error) error {
+	return b.writeHandle.ListRoots(ctx, prefix, fn)
+}
+
+// SetRoots moves the roots on the write handle.
+func (b *StoreRW) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
+	return b.writeHandle.SetRoots(ctx, entries, roots)
 }
 
 // KeepsHoldCounts reports whether the underlying store keeps shared counts.
