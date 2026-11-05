@@ -135,7 +135,7 @@ func newSharedElectronDaemon(t *testing.T, app sharedElectronApp, opts sharedEle
 
 	// Acquire an isolated writable state lease.
 	statePath := t.TempDir()
-	lease, err := acquireStatePathLease(ctx, statePath, false)
+	lease, err := acquireStatePathLease(ctx, logrus.NewEntry(logrus.New()), statePath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
