@@ -24,10 +24,10 @@ type NamedRoot struct {
 	// with ErrRootMoved, so two writers never both move one root.
 	Previous *BlockRef
 	// Expires is when the store releases the root itself, or the zero time
-	// for a root held until released. A holder renews a leased root by setting it again with the
-	// same Ref and Previous and a later Expires, so a reader pins a snapshot
-	// by holding a root it renews, and a holder that dies releases it by
-	// silence.
+	// for a root held until released. A holder renews a leased root by
+	// setting it again with the same Ref and Previous and a later Expires, so
+	// a reader pins a snapshot by holding a root it renews, and a holder that
+	// dies releases it by silence.
 	Expires time.Time
 }
 

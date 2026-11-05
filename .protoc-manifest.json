@@ -1632,7 +1632,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block": {
-      "hash": "2aecb8fc69df2600a9186b7b3216cdbaf378cc7dcc3145a40e1c0326c8018653",
+      "hash": "4fff3aee68a25751342a6c8947fa1ac5920fcac6f62ba67786fd502cc9561c2c",
       "generatedFiles": [
         "db/block/block.pb.go",
         "db/block/block.pb.ts"
@@ -1682,7 +1682,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/gc": {
-      "hash": "7ea857b322a23460aecfe0833fec5d043a0f32038234b31803ceb3ac79f1b2c2",
+      "hash": "f5b496abd320136b04084629132dab5c8bd9a594818c518126e2a92e7501e89a",
       "generatedFiles": [
         "db/block/gc/liveness.pb.go",
         "db/block/gc/liveness.pb.ts"

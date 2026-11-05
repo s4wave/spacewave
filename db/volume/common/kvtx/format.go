@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
-	"fmt"
 	"strings"
 
 	b58 "github.com/mr-tron/base58/base58"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -67,7 +67,7 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		return version, nil
 	}
 	if version > store_kvkey.FormatVersion {
-		return 0, volume.Permanent(fmt.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
+		return 0, volume.Permanent(errors.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
 	}
 
 	// Start an empty store adopted at the current format.
@@ -84,13 +84,13 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// the graph formats 1 and 2 kept outside the liveness prefix.
 	if version == 0 {
 		if err := migrateBase58BlockKeys(ctx, store, keys); err != nil {
-			return 0, fmt.Errorf("migrate store format version 0 block keys: %w", err)
+			return 0, errors.Wrap(err, "migrate store format version 0 block keys")
 		}
 	}
 	if version < 3 {
 		for _, prefix := range legacyGraphPrefixes {
 			if err := deletePrefix(ctx, store, prefix); err != nil {
-				return 0, fmt.Errorf("delete the reference graph of store format version %d: %w", version, err)
+				return 0, errors.Wrapf(err, "delete the reference graph of store format version %d", version)
 			}
 		}
 	}
@@ -98,7 +98,7 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// Carry the named roots of a format 5 or 6 graph into the root table.
 	if version >= 5 {
 		if err := carryLegacyRoots(ctx, store); err != nil {
-			return 0, fmt.Errorf("carry the named roots of store format version %d: %w", version, err)
+			return 0, errors.Wrapf(err, "carry the named roots of store format version %d", version)
 		}
 	}
 
@@ -154,38 +154,29 @@ func storeEmpty(ctx context.Context, store kvtx.Store) (bool, error) {
 // owner node to a block. Each batch of entries commits on its own and is
 // written again by a rerun, so the carry is safe to repeat.
 func carryLegacyRoots(ctx context.Context, store kvtx.Store) error {
-	// Read the root owner edges in one snapshot.
-	type legacyRoot struct {
-		bucketID, name string
-		ref            *block.BlockRef
-	}
-	var roots []legacyRoot
-	tx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		return err
-	}
+	// Scan the text node forward edges in runs, each read in its own short
+	// snapshot after the last key the run before it reached, and write the
+	// root owner edges each run finds before reading the next.
 	prefix := append(bytes.Clone(livenessPrefix), legacyForwardKind, legacyTextNode)
-	err = tx.ScanPrefix(ctx, prefix, func(key, _ []byte) error {
-		bucketID, name, ref, ok := parseLegacyRootEdge(key[len(prefix)-1:])
-		if ok {
-			roots = append(roots, legacyRoot{bucketID: bucketID, name: name, ref: ref})
+	var after []byte
+	for {
+		// Read the next run of edges.
+		roots, last, err := readLegacyRoots(ctx, store, prefix, after, legacyRootRun)
+		if err != nil || last == nil {
+			return err
 		}
-		return nil
-	})
-	tx.Discard()
-	if err != nil {
-		return err
-	}
+		after = last
 
-	// Write them in bounded batches.
-	for len(roots) != 0 {
-		n := min(len(roots), 4096)
+		// Write the roots it found.
+		if len(roots) == 0 {
+			continue
+		}
 		wtx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
 		}
 		rec := block_gc.NewRecords(wtx, livenessPrefix)
-		for _, root := range roots[:n] {
+		for _, root := range roots {
 			if err := rec.SetRoot(ctx, root.bucketID, root.name, &block_gc.RootEntry{Ref: block_gc.BlockKey(root.ref)}); err != nil {
 				wtx.Discard()
 				return err
@@ -196,9 +187,48 @@ func carryLegacyRoots(ctx context.Context, store kvtx.Store) error {
 		if err != nil {
 			return err
 		}
-		roots = roots[n:]
 	}
-	return nil
+}
+
+// legacyRootRun bounds the forward edges one read of carryLegacyRoots scans.
+const legacyRootRun = 4096
+
+// legacyRoot is a named root an old graph's root owner edge holds.
+type legacyRoot struct {
+	// bucketID and name name the root.
+	bucketID, name string
+	// ref is the block it holds.
+	ref *block.BlockRef
+}
+
+// readLegacyRoots reads up to limit forward edge keys under prefix after the
+// key after, nil for the first, in one snapshot, and returns the root owner
+// edges among them and the last key it read, nil when none remain.
+func readLegacyRoots(ctx context.Context, store kvtx.Store, prefix, after []byte, limit int) ([]legacyRoot, []byte, error) {
+	// Position a sorted iterator past after.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Discard()
+	it := tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+	if err := seekPastKey(it, after); err != nil {
+		return nil, nil, err
+	}
+
+	// Collect the root owner edges of the run.
+	var roots []legacyRoot
+	var last []byte
+	for n := 0; it.Valid() && n < limit; it.Next() {
+		key := it.Key()
+		last = bytes.Clone(key)
+		n++
+		if bucketID, name, ref, ok := parseLegacyRootEdge(key[len(prefix)-1:]); ok {
+			roots = append(roots, legacyRoot{bucketID: bucketID, name: name, ref: ref})
+		}
+	}
+	return roots, last, it.Err()
 }
 
 // parseLegacyRootEdge parses the subject and object of a forward edge record
@@ -310,7 +340,7 @@ func migrateBase58BlockKeyBatch(
 	for _, m := range moves {
 		ref, err := b58.Decode(string(m.key[len(prefix):]))
 		if err != nil {
-			return nil, fmt.Errorf("decode block key %q: %w", m.key, err)
+			return nil, errors.Wrapf(err, "decode block key %q", m.key)
 		}
 		if err := tx.Set(ctx, keys.GetBlockKey(ref), m.value); err != nil {
 			return nil, err
@@ -353,12 +383,14 @@ func collectMoves(ctx context.Context, tx kvtx.Tx, prefix, start []byte) ([]keyV
 // deletePrefix deletes every key under prefix, a bounded batch per durable
 // commit, so a rerun resumes with the keys left.
 func deletePrefix(ctx context.Context, store kvtx.Store, prefix []byte) error {
+	var after []byte
 	for {
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
 		}
-		n, err := deletePrefixBatch(ctx, tx, prefix, legacySweepKeys)
+		var n int
+		n, after, err = deletePrefixBatch(ctx, tx, prefix, after, legacySweepKeys)
 		if err == nil && n != 0 {
 			err = kvtx.CommitOrdered(ctx, tx)
 		}
@@ -367,6 +399,16 @@ func deletePrefix(ctx context.Context, store kvtx.Store, prefix []byte) error {
 			return err
 		}
 	}
+}
+
+// seekPastKey positions it at its first key when after is nil, and otherwise
+// at the first key after after.
+func seekPastKey(it kvtx.Iterator, after []byte) error {
+	if after == nil {
+		it.Next()
+		return nil
+	}
+	return it.Seek(keyAfter(after))
 }
 
 // keyAfter returns the least key after key.

@@ -2,8 +2,8 @@ package kvtx
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
@@ -97,7 +97,7 @@ func (v *Volume) recordRootProofs(ctx context.Context, roots []*block.BlockRef) 
 				return err
 			}
 			if !found {
-				return fmt.Errorf("root proof: %w", block.NotFoundError(root))
+				return errors.Wrap(block.NotFoundError(root), "root proof")
 			}
 		}
 

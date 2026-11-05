@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -164,7 +165,7 @@ func (v *Volume) prepareCacheFills(ctx context.Context, _ string, fills []*cache
 	// writer unless one marks its block.
 	err := direct(ctx, func(p *physicalTx) error {
 		for i, fill := range fills {
-			existed, err := v.land(kvtx.WithBlockMarkRequest(ctx, fill.mark), p, "", entries[i:i+1], nil)
+			existed, err := block_gc.LandFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p.rec, p.blocks, entries[i:i+1])
 			if err != nil {
 				return err
 			}

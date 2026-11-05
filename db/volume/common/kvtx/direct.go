@@ -87,9 +87,9 @@ func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physic
 // it again. After repeated conflicts, or while kvtx.OptimisticEnv is "off", it
 // holds the writer throughout as withDirectAtomic does.
 //
-// A fill never commits a journal record a later record overtook: every record
-// reads and advances the journal position in the state record, so a commit
-// after the fill's snapshot that appended a record conflicts with the fill.
+// A fill lands through block_gc.LandFill, which journals nothing and reads no
+// liveness state, so it conflicts only with a commit that stores or frees one
+// of its blocks.
 //
 // It carries no deferred edits: they reserve in-memory pins once per
 // transaction, and the writers holding the store's writer carry them. fn runs
@@ -175,7 +175,13 @@ func (d *directTx) settle() {
 // land stores entries and moves roots of bucketID in p, as block_gc.Land
 // describes, at the Volume's clock.
 func (v *Volume) land(ctx context.Context, p *physicalTx, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) ([]bool, error) {
-	return block_gc.Land(ctx, p.rec, p.blocks, v.now(), bucketID, entries, roots)
+	return v.landMoves(ctx, p, entries, block_gc.BucketRoots{BucketID: bucketID, Roots: roots})
+}
+
+// landMoves stores entries and moves the roots of each bucket in p in one
+// Land, as block_gc.Land describes, at the Volume's clock.
+func (v *Volume) landMoves(ctx context.Context, p *physicalTx, entries []*block.PutBatchEntry, moves ...block_gc.BucketRoots) ([]bool, error) {
+	return block_gc.Land(ctx, p.rec, p.blocks, v.now(), entries, moves...)
 }
 
 // now returns the Volume's clock.
@@ -276,11 +282,4 @@ func putEntry(data []byte, opts *block.PutOpts, hashType hash.HashType) (*block.
 		}
 	}
 	return &block.PutBatchEntry{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: opts.GetRefsKnown()}, nil
-}
-
-// writersWaiting reports whether another writer queues for the store, so a
-// background transaction commits early and lets it in.
-func (v *Volume) writersWaiting() bool {
-	q, ok := v.kvtxStore.(kvtx.WriterQueueStore)
-	return ok && q.WritersWaiting()
 }

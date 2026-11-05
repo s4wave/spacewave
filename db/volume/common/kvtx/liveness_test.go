@@ -7,6 +7,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -139,8 +140,9 @@ func requireAudit(t *testing.T, v *Volume, leaked uint64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.LiveQueued != 0 || res.Leaked != leaked {
-		t.Fatalf("audit live queued %d (sample %v) leaked %d, want 0 and %d", res.LiveQueued, res.LiveQueuedSample, res.Leaked, leaked)
+	if res.LiveQueued != 0 || res.Leaked != leaked || res.Undercount != 0 || res.Unlisted != 0 {
+		t.Fatalf("audit live queued %d (sample %v) leaked %d undercount %d (sample %v) unlisted %d, want 0, %d, 0 and 0",
+			res.LiveQueued, res.LiveQueuedSample, res.Leaked, res.Undercount, res.UndercountSample, res.Unlisted, leaked)
 	}
 }
 
@@ -207,12 +209,15 @@ func TestLivenessRunThrough(t *testing.T) {
 	requireAudit(t, v, 1)
 }
 
-// punchHole loses ref from the store with its child list, as damage to the
-// store or a partial copy does.
+// punchHole loses ref from the store with its child list and count, as
+// damage to the store or a partial copy does.
 func punchHole(t *testing.T, v *Volume, ref *block.BlockRef) {
 	t.Helper()
 	err := v.withDirectAtomic(t.Context(), func(p *physicalTx) error {
 		if err := p.rec.DeleteChildren(t.Context(), ref); err != nil {
+			return err
+		}
+		if err := p.rec.SetCount(t.Context(), ref, 0); err != nil {
 			return err
 		}
 		return p.blocks.RmBlock(t.Context(), ref)
@@ -266,8 +271,8 @@ func TestLivenessAdversarial(t *testing.T) {
 	})
 
 	t.Run("lapsed lease", func(t *testing.T) {
-		// A pin whose holder stops renewing it lapses; the collector releases
-		// it, and frees the old tree only a grace period later.
+		// A pin whose process died lapses; the collector releases it, and
+		// frees the old tree only a grace period later.
 		v, clk := newLivenessVolume(t, true)
 		ctx := t.Context()
 		tr := testTree{}
@@ -281,6 +286,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r1}}); err != nil {
 			t.Fatal(err)
 		}
+		forgetPins(t, v)
 		clk.Add(rootLease + time.Second)
 		if res := collectAll(t, v); res.Lapsed != 1 || res.Freed != 0 {
 			t.Fatalf("lapsed %d freed %d, want 1 and 0", res.Lapsed, res.Freed)
@@ -504,6 +510,238 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("stage lease lapses while open", func(t *testing.T) {
+		// A stage holds T, and its process stalls past the lease: a collector
+		// that does not renew, as another process's does, releases the
+		// stage's root. The next renewal holds it again, so after the grace
+		// period a parent the stage's writer puts still finds T.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		stage, release, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tr := testTree{}
+		tr.add(t, "T")
+		if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("T")); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(rootLease + time.Second)
+		if res, err := v.collector.Collect(ctx); err != nil || res.Lapsed != 1 {
+			t.Fatalf("stalled pass lapsed %d err %v, want the stage root", res.Lapsed, err)
+		}
+		if err := v.renewRoots(ctx); err != nil {
+			t.Fatal(err)
+		}
+		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "T")
+
+		// The parent names T under main, the stage lets it go, and T stays.
+		p := tr.add(t, "P", "T")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+		release()
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P", "T")
+		requireAudit(t, v, 0)
+	})
+
+	for _, renew := range []bool{false, true} {
+		t.Run("stage stalled past the grace period renew="+strconv.FormatBool(renew), func(t *testing.T) {
+			// A stage holds T, and its process stalls past the lease and
+			// the grace period: a collector that does not renew releases
+			// the stage's root and frees T. The stage's next put names T,
+			// and it is refused, as is any put after a renewal that finds T
+			// gone, rather than landing S over a freed block.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			stage, release, err := v.OpenStage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer release()
+			tr := testTree{}
+			tr.add(t, "T")
+			if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("T")); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(rootLease + time.Second)
+			if _, err := v.collector.Collect(ctx); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			for range 3 {
+				if _, err := v.collector.Collect(ctx); err != nil {
+					t.Fatal(err)
+				}
+			}
+			requireStored(t, v, tr, false, "T")
+			if renew {
+				if err := v.renewRoots(ctx); err != nil {
+					t.Fatal(err)
+				}
+			}
+			tr.add(t, "S", "T")
+			if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("S")); !errors.Is(err, block.ErrStageReleased) {
+				t.Fatalf("put over a freed stage top = %v, want the stage lost", err)
+			}
+			requireStored(t, v, tr, false, "S")
+		})
+	}
+
+	for _, audited := range []bool{true, false} {
+		t.Run("hole refilled by a stage audited="+strconv.FormatBool(audited), func(t *testing.T) {
+			// main -> R -> H, and the store loses H with its child list. A
+			// stage then puts H again and drops it. Once an audit recorded
+			// the hole, the put counts H as stored under R, so H stays.
+			// Refilled before any audit, H counts as a new block under the
+			// stage alone, and the audit reports the undercount.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			h := tr.add(t, "H")
+			r := tr.add(t, "R", "H")
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("H", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+				t.Fatal(err)
+			}
+			punchHole(t, v, h)
+			if audited {
+				if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+					t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+				}
+			}
+			stage, release, err := v.OpenStage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("H")); err != nil {
+				t.Fatal(err)
+			}
+			release()
+			if err := v.withDirectAtomic(ctx, nil); err != nil {
+				t.Fatal(err)
+			}
+			if !audited {
+				if res, err := v.Audit(ctx); err != nil || res.Undercount != 1 {
+					t.Fatalf("audit of an unrecorded refill found %d undercounts err %v, want 1", res.Undercount, err)
+				}
+				return
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+			requireStored(t, v, tr, true, "R", "H")
+			requireAudit(t, v, 0)
+		})
+	}
+
+	t.Run("cache fill during an adoption", func(t *testing.T) {
+		// main holds C on an unadopted Volume. While an adoption settles its
+		// counts, after it counted the child lists, a cache fill stores F
+		// naming C and journals no holder for C. The adoption queues F, which
+		// nothing holds, and freeing F must not release C, whose count never
+		// included F.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, clk := openLivenessVolume(t, store, true)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), []block.NamedRoot{{Name: "main", Ref: c}}); err != nil {
+			t.Fatal(err)
+		}
+		tr.add(t, "F", "C")
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptSettle: func() {
+				if _, _, err := v.PrepareOwnedBlock(ctx, "", tr["F"].Data, &block.PutOpts{Refs: tr["F"].Refs, RefsKnown: true, CacheFill: true}); err != nil {
+					t.Error(err)
+				}
+			},
+		}}
+		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "F")
+		requireStored(t, v, tr, true, "C")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("record larger than a slice", func(t *testing.T) {
+		// A under root a names 5000 leaves. B, born under root b, names the
+		// same stored leaves, so its one record carries more up pairs than a
+		// net slice applies and splits across slices. Releasing a frees only
+		// A; releasing b frees B and every leaf.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		leaves := make([]string, 5000)
+		for i := range leaves {
+			leaves[i] = "leaf " + strconv.Itoa(i)
+			tr.add(t, leaves[i])
+		}
+		a := tr.add(t, "A", leaves...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "A")...), []block.NamedRoot{{Name: "a", Ref: a}}); err != nil {
+			t.Fatal(err)
+		}
+		b := tr.add(t, "B", leaves...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("B"), []block.NamedRoot{{Name: "b", Ref: b}, {Name: "a", Previous: a}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "A")
+		requireStored(t, v, tr, true, append(slices.Clone(leaves), "B")...)
+		requireAudit(t, v, 0)
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "b", Previous: b}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, append(slices.Clone(leaves), "B")...)
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("child named twice", func(t *testing.T) {
+		// P names the stored C twice and an empty ref. Its list keeps C once,
+		// so releasing P frees both, and the audit finds nothing.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		c := tr.add(t, "C")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), []block.NamedRoot{{Name: "c", Ref: c}}); err != nil {
+			t.Fatal(err)
+		}
+		p := tr.add(t, "P", "C", "C")
+		tr["P"].Refs = append(tr["P"].Refs, &block.BlockRef{})
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "p", Ref: p}, {Name: "c", Previous: c}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "p", Previous: p}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "P", "C")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("bytes without a list", func(t *testing.T) {
+		// Bytes stored below the Volume's liveness, without a child list,
+		// are garbage nothing frees; the audit reports them.
+		v, _ := newLivenessVolume(t, true)
+		ctx := t.Context()
+		if _, _, err := v.Store.PutBlock(ctx, []byte("stored without a list"), &block.PutOpts{RefsKnown: true}); err != nil {
+			t.Fatal(err)
+		}
+		if res, err := v.Audit(ctx); err != nil || res.Unlisted != 1 {
+			t.Fatalf("audit found %d unlisted blocks err %v, want 1", res.Unlisted, err)
+		}
+	})
+
 	t.Run("frees off", func(t *testing.T) {
 		// With frees off the collector nets and frees nothing.
 		v, clk := newLivenessVolume(t, false)
@@ -676,6 +914,67 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, "R", "X")
 	})
 
+	t.Run("adoption claimed by another", func(t *testing.T) {
+		// main -> R -> X on an unadopted Volume. Adoption A clears, then B,
+		// another process, starts while the Volume is still unadopted. A
+		// marks the Volume adopting and counts the roots; B clears A's
+		// counts and dies before it marks. A must not settle the cleared
+		// counts: B's claim superseded it, and nothing main reaches is freed.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, clk := openLivenessVolume(t, store, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+
+		// B claims, waits before its first clear, clears on release, and dies
+		// before it marks.
+		claimed, cleared, release := make(chan struct{}), make(chan struct{}), make(chan struct{})
+		releaseB := sync.OnceFunc(func() { close(release) })
+		defer releaseB()
+		bCtx, bCancel := context.WithCancel(ctx)
+		defer bCancel()
+		probeB := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptClearCounts: func() { close(claimed); <-release },
+			adoptMark:        bCancel,
+		}}
+		go func() {
+			defer close(cleared)
+			_, _ = block_gc.Adopt(bCtx, probeB)
+		}()
+
+		// A starts B before its mark and lets B clear before it settles.
+		probeA := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptMark: func() { <-claimed },
+			adoptSettle: func() {
+				releaseB()
+				<-cleared
+			},
+		}}
+		_, err := block_gc.Adopt(ctx, probeA)
+		releaseB()
+		<-cleared
+		if !errors.Is(err, block_gc.ErrAdoptSuperseded) {
+			t.Fatalf("claimed adoption = %v, want superseded", err)
+		}
+
+		// Nothing is freed, and a clean adoption keeps main's tree.
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X")
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("overlapping adoptions", func(t *testing.T) {
 		// main -> R -> X on an unadopted Volume. Adoption A counts the
 		// holders, and before it settles them a second adoption B runs to
@@ -714,6 +1013,10 @@ func TestLivenessAdversarial(t *testing.T) {
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
 // each fit in one slice.
 const (
+	// adoptClearCounts clears the count records an earlier run left.
+	adoptClearCounts = 2
+	// adoptMark marks the Volume adopting.
+	adoptMark = 6
 	// adoptCountRoots counts the roots.
 	adoptCountRoots = 7
 	// adoptCountChildren counts the child lists' holders.
@@ -810,6 +1113,18 @@ func livenessRecords(t *testing.T, store *store_kvtx_inmem.Store, kinds ...byte)
 		}
 	}
 	return out
+}
+
+// forgetPins drops this process's record of its reader pins, as a process
+// that died leaves them: nothing renews or releases their roots.
+func forgetPins(t *testing.T, v *Volume) {
+	t.Helper()
+	unlock, err := v.rootPinMu.Lock(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	clear(v.rootPins)
+	unlock()
 }
 
 // advanceRenewing moves the clock forward by d in steps shorter than the

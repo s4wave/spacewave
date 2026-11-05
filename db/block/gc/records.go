@@ -39,6 +39,21 @@ const (
 	kindProof byte = 'P'
 	// kindState is the one LivenessState record.
 	kindState byte = 'S'
+	// kindLease keys a leased root by its big-endian expiry in Unix
+	// milliseconds, then its bucket and name, so the collector seeks to the
+	// lapsed ones. It holds no value, and SetRoot and DeleteRoot keep it with
+	// the root.
+	kindLease byte = 'E'
+	// kindHole keys a hole the audit found under a live root, by the block: a
+	// block the store lost together with its child list, whose parents' lists
+	// still name it. It holds no value. A put of the block counts it as
+	// stored, as Land describes, and deletes the record.
+	kindHole byte = 'O'
+	// kindFill keys a block a cache fill gave birth to, by the block. It holds
+	// no value. The fill journaled no holder for the children its list names,
+	// so freeing the block releases none, and an adoption that counts the list
+	// deletes the mark.
+	kindFill byte = 'F'
 	// kindAdoptBorn keys a block Land gave birth to while the Volume adopts,
 	// by the block. It holds no value and lasts until the adoption ends.
 	kindAdoptBorn byte = 'B'
@@ -193,6 +208,27 @@ func EncodeChildren(children []*block.BlockRef) []byte {
 	return value
 }
 
+// normalizeChildren returns the distinct, non-empty children in block key
+// order, the list EncodeChildren stores, so a count of the list's holders
+// matches the list.
+func normalizeChildren(children []*block.BlockRef) []*block.BlockRef {
+	// Drop the empty refs and sort by block key.
+	out := make([]*block.BlockRef, 0, len(children))
+	for _, child := range children {
+		if !child.GetEmpty() {
+			out = append(out, child)
+		}
+	}
+	slices.SortFunc(out, func(a, b *block.BlockRef) int {
+		return bytes.Compare(BlockKey(a), BlockKey(b))
+	})
+
+	// Drop the duplicates.
+	return slices.CompactFunc(out, func(a, b *block.BlockRef) bool {
+		return bytes.Equal(BlockKey(a), BlockKey(b))
+	})
+}
+
 // DecodeChildren decodes a child list value.
 func DecodeChildren(value []byte) ([]*block.BlockRef, error) {
 	var children []*block.BlockRef
@@ -265,8 +301,15 @@ func (r *Records) GetRoot(ctx context.Context, bucketID, name string) (*RootEntr
 	return entry, entry.UnmarshalVT(value)
 }
 
-// SetRoot writes the entry of the root named name in bucketID.
+// SetRoot writes the entry of the root named name in bucketID, and moves its
+// lease index record to the entry's expiry.
 func (r *Records) SetRoot(ctx context.Context, bucketID, name string, entry *RootEntry) error {
+	// Move the lease index record.
+	if err := r.moveLease(ctx, bucketID, name, entry.GetExpiresUnixMilli()); err != nil {
+		return err
+	}
+
+	// Write the entry.
 	value, err := entry.MarshalVT()
 	if err != nil {
 		return err
@@ -274,8 +317,12 @@ func (r *Records) SetRoot(ctx context.Context, bucketID, name string, entry *Roo
 	return r.tx.Set(ctx, r.rootKey(bucketID, name), value)
 }
 
-// DeleteRoot frees the root named name in bucketID.
+// DeleteRoot frees the root named name in bucketID, with its lease index
+// record.
 func (r *Records) DeleteRoot(ctx context.Context, bucketID, name string) error {
+	if err := r.moveLease(ctx, bucketID, name, 0); err != nil {
+		return err
+	}
 	return r.tx.Delete(ctx, r.rootKey(bucketID, name))
 }
 

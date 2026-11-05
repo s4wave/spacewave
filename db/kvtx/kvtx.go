@@ -197,7 +197,11 @@ type AtomicCommitStore interface {
 
 // WriterQueueStore is a store whose write transactions exclude each other and
 // that reports when writers queue. A write transaction doing deferrable work,
-// such as garbage collection, commits early when one waits.
+// such as garbage collection, commits early when one waits. It admits a
+// waiting writer before a write transaction that asks later, by arrival order
+// or by holding a WithBackgroundWriteContext transaction behind the others,
+// so background work that ends a transaction and begins the next queues
+// behind the writer that waited.
 type WriterQueueStore interface {
 	Store
 	// WritersWaiting reports whether a write transaction waits to begin.
