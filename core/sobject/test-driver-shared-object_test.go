@@ -18,5 +18,10 @@ func (s *testDriverSharedObject) GetPeerID() peer.ID {
 	return s.peerID
 }
 
+// GetSharedObjectID returns the mock shared object ID.
+func (s *testDriverSharedObject) GetSharedObjectID() string {
+	return mockSharedObjectID
+}
+
 // _ is a type assertion
 var _ SharedObject = (*testDriverSharedObject)(nil)

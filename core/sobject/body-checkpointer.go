@@ -1,0 +1,69 @@
+package sobject
+
+import (
+	"bytes"
+	"context"
+	"slices"
+
+	"github.com/pkg/errors"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/sirupsen/logrus"
+)
+
+// errCheckpointStale reports that the held state moved past the stable point
+// a checkpoint was built for.
+var errCheckpointStale = errors.New("held state moved past the stable point")
+
+// bodyCheckpointer signs a BodyDriver's checkpoints through the state host.
+type bodyCheckpointer struct {
+	// host holds the state.
+	host *SOHost
+	// privKey signs as the checkpointer.
+	privKey crypto.PrivKey
+	// sfs builds the key epoch transforms.
+	sfs *block_transform.StepFactorySet
+}
+
+// adopt signs the checkpoint covering prefix with the body state data after
+// it, encrypted with state's current key epoch, and adopts it into state. It
+// returns errCheckpointStale when state no longer holds the checkpoint at
+// height or prefix is no longer its stable prefix.
+func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so SharedObject, state *SOState, prefix [][]byte, data []byte, height uint64) error {
+	// The held checkpoint is unchanged and prefix is still stable.
+	current, err := state.GetCheckpointInner()
+	if err != nil {
+		return err
+	}
+	if current.GetHeight() != height {
+		return errCheckpointStale
+	}
+	soID := so.GetSharedObjectID()
+	held, err := state.OperationSet(soID)
+	if err != nil {
+		return err
+	}
+	stable := held.StablePoint(state.GetConfig().TrimRoster())
+	if len(stable) < len(prefix) || !slices.EqualFunc(stable[:len(prefix)], prefix, bytes.Equal) {
+		return errCheckpointStale
+	}
+
+	// Encrypt the state data with the current key epoch.
+	handle := NewSOStateParticipantHandle(le, c.sfs, soID, state, c.privKey, so.GetPeerID()).
+		WithGrantKeyring(c.host.GetGrantKeyring())
+	xfrm, err := handle.GetTransformer(ctx)
+	if err != nil {
+		return err
+	}
+	dataEnc, err := xfrm.EncodeBlock(data)
+	if err != nil {
+		return err
+	}
+
+	// Sign and adopt the checkpoint.
+	checkpoint, err := state.BuildStableCheckpoint(soID, c.privKey, prefix, dataEnc)
+	if err != nil {
+		return err
+	}
+	return state.AdoptCheckpoint(soID, checkpoint)
+}

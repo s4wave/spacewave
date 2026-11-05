@@ -253,3 +253,71 @@ func TestBodyDriverRunThrough(t *testing.T) {
 		t.Fatalf("applies %v state %q; want every operation over other", body.applies, body.stateAt(len(body.states)))
 	}
 }
+
+// TestBodyDriverCheckpoints checks that an owner's driver signs a checkpoint
+// over the stable prefix once MinCheckpointOperations operations are stable,
+// with the state the body's Root holds, and that the next step installs it
+// keeping nothing to apply again.
+func TestBodyDriverCheckpoints(t *testing.T) {
+	// Host a Space whose only writer is the owner.
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	g := newGroupHost(t.Context(), state)
+	body := &testBody{}
+	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
+	le := logrus.New().WithField("test", t.Name())
+	d := NewBodyDriver(le, so, body, nil)
+	d.SetCheckpointer(g.host, keys[0], testStepFactorySet())
+
+	// Below the threshold the driver signs nothing.
+	held := g.ctr.GetValue().Clone()
+	for range MinCheckpointOperations - 1 {
+		writeTestOp(t, held, keys[0], "x")
+	}
+	g.ctr.SetValue(held)
+	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+		t.Fatal(err)
+	}
+	if h := mustHeight(t, g.ctr.GetValue()); h != 0 {
+		t.Fatalf("checkpointed below the threshold at height %d", h)
+	}
+
+	// At the threshold it signs one over every stable operation, carrying
+	// the body's state there.
+	held = g.ctr.GetValue().Clone()
+	writeTestOp(t, held, keys[0], "y")
+	g.ctr.SetValue(held)
+	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+		t.Fatal(err)
+	}
+	if h := mustHeight(t, g.ctr.GetValue()); h != 1 {
+		t.Fatalf("checkpoint height %d; want 1", h)
+	}
+	if n := len(g.ctr.GetValue().GetOps()); n != 0 {
+		t.Fatalf("the checkpoint left %d operations", n)
+	}
+
+	// The next step installs it: the body reached its state, so nothing is
+	// applied again.
+	body.applies = nil
+	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+		t.Fatal(err)
+	}
+	if got := body.installs[len(body.installs)-1]; got != MinCheckpointOperations {
+		t.Fatalf("installed covering %d; want %d", got, MinCheckpointOperations)
+	}
+	if len(body.applies) != 0 || body.base != strings.Repeat("x", MinCheckpointOperations-1)+"y" {
+		t.Fatalf("applies %v base %q after the checkpoint", body.applies, body.base)
+	}
+}
+
+// mustHeight returns the height of state's checkpoint.
+func mustHeight(t *testing.T, state *SOState) uint64 {
+	t.Helper()
+	inner, err := state.GetCheckpointInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return inner.GetHeight()
+}
