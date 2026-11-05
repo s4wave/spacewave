@@ -13,8 +13,6 @@ type bucketRootVolume interface {
 	// SupportsAtomicPublication reports whether bytes and ownership share one
 	// physical transaction. The other methods require it.
 	SupportsAtomicPublication() bool
-	// KeepsHoldCounts reports whether the volume keeps shared counts.
-	KeepsHoldCounts() bool
 	// GetBucketRoot returns the block a bucket's root name holds, or nil.
 	GetBucketRoot(context.Context, string, string) (*block.BlockRef, error)
 	// ListBucketRoots calls the func with each root of a bucket whose name
@@ -59,11 +57,6 @@ func (b *bucketHandle) RootsComplete(ctx context.Context, refs []*block.BlockRef
 func (b *bucketHandle) SupportsRootRetention() bool {
 	v, ok := b.v.(bucketRootVolume)
 	return ok && b.readOps == nil && v.SupportsAtomicPublication()
-}
-
-// KeepsHoldCounts reports whether the volume keeps shared counts.
-func (b *bucketHandle) KeepsHoldCounts() bool {
-	return b.SupportsRootRetention() && b.v.(bucketRootVolume).KeepsHoldCounts()
 }
 
 // GetRoot returns the block the bucket's root name holds, or nil. A bucket

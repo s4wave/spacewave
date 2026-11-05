@@ -76,9 +76,6 @@ type Transaction struct {
 	// writeBuffer is borrowed by sub-transactions that must add blocks to a
 	// transaction-level staging store without draining it themselves.
 	writeBuffer *BufferedStore
-	// replacements records the stored pages writes replace, or nil when the
-	// transaction does not record them.
-	replacements *ReplacementLog
 }
 
 // NewTransaction builds a new transaction with a root cursor. The transformer,
@@ -535,26 +532,12 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 								return
 							}
 						}
-						// A page encoded back to the stored page it was
-						// loaded from is already stored: putting it again
-						// would look like a new holder to a store that
-						// counts shared pages.
-						switch {
-						case bn.base != nil && bn.base.ref.EqualsRef(blkRef):
-						case writeQueue == nil:
+						if writeQueue == nil {
 							put()
-						default:
+						} else {
 							writeQueue.Enqueue(put)
 						}
 					}
-				}
-				if log := t.replacements; log != nil && !bn.isSubBlock {
-					var page *pageBase
-					if blkRef != nil {
-						page = &pageBase{ref: blkRef, refs: CloneBlockRefs(blkRefs)}
-					}
-					log.recordWrite(bn.base, page)
-					bn.base = page
 				}
 				bn.ref = blkRef
 			}

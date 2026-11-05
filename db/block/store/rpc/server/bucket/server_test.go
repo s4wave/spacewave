@@ -120,14 +120,15 @@ func TestBlockStoreBucketRPCServer(t *testing.T) {
 		t.Fatal("expected sample block existed")
 	}
 
-	// Remove the sample block through the RPC client.
+	// Release the sample block through the RPC client.
 	err = st.RmBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Exercise the block-store contract through the bucket RPC service.
-	err = block_store_test.TestAll(ctx, st, 0)
+	// Exercise the block-store contract through the bucket RPC service. A
+	// bucket's RmBlock releases its hold, so the Volume may keep the blocks.
+	err = block_store_test.TestAllReleasing(ctx, st, 0)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

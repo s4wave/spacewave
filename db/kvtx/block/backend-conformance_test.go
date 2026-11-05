@@ -290,12 +290,10 @@ func testBackendWriteDeleteCommitChurn(t *testing.T, impl KVImplType) {
 	}
 }
 
-// backendConformanceRoot is a saved KV root whose writes record the pages
-// they replace, checked at each commit against the diff of the two roots.
+// backendConformanceRoot is a saved KV root that each commit advances.
 type backendConformanceRoot struct {
 	store   block.StoreOps
 	rootRef *block.BlockRef
-	log     *block.ReplacementLog
 }
 
 func backendConformanceImpls() []KVImplType {
@@ -316,7 +314,7 @@ func newBackendConformanceRoot(t *testing.T, ctx context.Context, impl KVImplTyp
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &backendConformanceRoot{store: store, rootRef: rootRef, log: block.NewReplacementLog(rootRef)}
+	return &backendConformanceRoot{store: store, rootRef: rootRef}
 }
 
 func (r *backendConformanceRoot) newReadTx(t *testing.T, ctx context.Context) kvtx.BlockTx {
@@ -334,10 +332,9 @@ func (r *backendConformanceRoot) newWriteTx(
 	t *testing.T,
 	ctx context.Context,
 ) (*block.Cursor, *block.Transaction, kvtx.BlockTx) {
-	// Open a KV writer against the saved root, recording what it replaces.
+	// Open a KV writer against the saved root.
 	t.Helper()
 	btx, rootCursor := block.NewTransaction(r.store, nil, r.rootRef, nil)
-	btx.RecordReplacements(r.log)
 	tx, err := BuildKvTransaction(ctx, rootCursor, true)
 	if err != nil {
 		t.Fatal(err)
@@ -359,12 +356,6 @@ func (r *backendConformanceRoot) commit(
 	}
 	tx.Discard()
 	rootRef, _, err := btx.Write(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Check the record of the commit against the diff of the roots.
-	err = block_mock.CheckReplacements(ctx, r.store, r.rootRef, rootRef, r.log.Take(rootRef).Net(nil))
 	if err != nil {
 		t.Fatal(err)
 	}

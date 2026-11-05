@@ -898,7 +898,6 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) 
 		return false, err
 	}
 	pages, save := e.replay.pages.split(hold.entries)
-	entries, pages := e.replay.netted(hold.entries, pages)
 
 	// Claim replay capacity without waiting under this writer.
 	claim, ready, err := e.prepareReplayPublication(ctx, hold.entries)
@@ -913,7 +912,7 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) 
 	// Submit the prepared save with its independent capacity claim.
 	head := publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
 	receipt, err := store.SubmitAtomic(ctx, &block.AtomicPublication{
-		Entries: entries,
+		Entries: hold.entries,
 		Heads:   []*block.AtomicHeadUpdate{countHead(head, WriteKindReplay)},
 		Roots:   hold.roots,
 		Recount: hold.recount,
@@ -931,7 +930,6 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) 
 		return false, err
 	}
 	countPublication(nil, pages, save)
-	e.replay.addWorldPut(receipt, entries, pages)
 	e.admit(receipt, e.retained, seqno)
 	go receipt.Release()
 	return true, nil

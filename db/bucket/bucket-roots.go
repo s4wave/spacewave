@@ -24,9 +24,6 @@ func (b *bucketRW) SetRoots(ctx context.Context, entries []*block.PutBatchEntry,
 	return b.store.SetRoots(ctx, entries, roots)
 }
 
-// KeepsHoldCounts reports whether the underlying store keeps shared counts.
-func (b *bucketRW) KeepsHoldCounts() bool { return block.KeepsHoldCounts(b.store) }
-
 // PinRoot forwards a reader pin to the underlying store.
 func (b *bucketRW) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, b.store, ref)

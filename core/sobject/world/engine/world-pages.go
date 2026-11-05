@@ -385,11 +385,6 @@ func (w *worldPages) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(w.inner)
 }
 
-// KeepsHoldCounts reports whether the store keeps shared counts.
-func (w *worldPages) KeepsHoldCounts() bool {
-	return block.KeepsHoldCounts(w.inner)
-}
-
 // GetRoot reads the root from the store.
 func (w *worldPages) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
 	return w.inner.GetRoot(ctx, name)

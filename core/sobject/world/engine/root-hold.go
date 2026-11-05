@@ -3,7 +3,6 @@ package sobject_world_engine
 import (
 	"context"
 	fmt "fmt"
-	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -106,7 +105,7 @@ func (h *rootHold) worlds(ctx context.Context, name string, pages *worldPages, r
 	if err != nil {
 		return err
 	}
-	return h.refBlock(ctx, name, data, roots, true)
+	return h.refBlock(ctx, name, data, roots)
 }
 
 // spans holds the span chains at spans under name, or releases name when
@@ -120,14 +119,12 @@ func (h *rootHold) spans(ctx context.Context, name string, spans []*block.BlockR
 	if err != nil {
 		return err
 	}
-	return h.refBlock(ctx, name, data, spans, false)
+	return h.refBlock(ctx, name, data, spans)
 }
 
 // refBlock holds data as a block whose outgoing refs are refs under name, so
-// the store keeps every block refs reach. holdsRoots marks the block
-// HoldsRoots when refs are World roots their lineage holds, which the hold may
-// be the first to store.
-func (h *rootHold) refBlock(ctx context.Context, name string, data []byte, refs []*block.BlockRef, holdsRoots bool) error {
+// the store keeps every block refs reach.
+func (h *rootHold) refBlock(ctx context.Context, name string, data []byte, refs []*block.BlockRef) error {
 	// Gather nothing for a store without root ownership.
 	if h.skip {
 		return nil
@@ -138,53 +135,9 @@ func (h *rootHold) refBlock(ctx context.Context, name string, data []byte, refs 
 	if err != nil {
 		return err
 	}
-	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true, HoldsRoots: holdsRoots}
-	if h.entries, err = carryNamed(ctx, h.store, append(h.entries, entry), nil, refs); err != nil {
-		return err
-	}
+	h.entries = append(h.entries, &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true})
 	h.roots = append(h.roots, block.NamedRoot{Name: name, Ref: ref})
 	return nil
-}
-
-// carryNamed appends to entries a put of each block refs names that store
-// holds and neither entries nor carried put. A store that keeps shared counts
-// counts a new block as a holder only of the stored blocks its batch carries,
-// since no record lists a hold block's children, so a batch putting a new block
-// that names stored ones carries them. carried are the other entries of the
-// same publication, such as its unpublished candidate blocks: the batch already
-// carries them, and the store cannot serve them before the publication writes
-// them, so reading one would ask peers for a block that exists nowhere yet. A
-// block the store lacks needs nothing: a later put stores it afresh under its
-// holders. It reads one block per carried ref, and nothing from a store
-// without counts.
-func carryNamed(ctx context.Context, store block.StoreOps, entries, carried []*block.PutBatchEntry, refs []*block.BlockRef) ([]*block.PutBatchEntry, error) {
-	// Skip a store without counts.
-	if !block.KeepsHoldCounts(store) {
-		return entries, nil
-	}
-
-	// Note the blocks the publication already puts.
-	put := make(map[string]struct{}, len(entries)+len(carried)+len(refs))
-	for _, e := range slices.Concat(entries, carried) {
-		put[e.Ref.MarshalString()] = struct{}{}
-	}
-
-	// Put each other stored block again with its refs.
-	for _, ref := range refs {
-		key := ref.MarshalString()
-		if _, ok := put[key]; ok || ref.GetEmpty() {
-			continue
-		}
-		put[key] = struct{}{}
-		stored, err := store.GetStoredBlock(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		if stored != nil && stored.RefsKnown {
-			entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
-		}
-	}
-	return entries, nil
 }
 
 // rootSet holds the World graph of each root under name, or releases name
@@ -207,7 +160,7 @@ func (h *rootHold) rootSet(ctx context.Context, name string, roots []*RetainedRo
 	if err != nil {
 		return err
 	}
-	return h.refBlock(ctx, name, data, refs, false)
+	return h.refBlock(ctx, name, data, refs)
 }
 
 // release releases name.

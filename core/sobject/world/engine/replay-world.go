@@ -26,8 +26,6 @@ type replayWorld struct {
 	ws *blkEngine
 	// head is the World ws serves.
 	head *bucket.ObjectRef
-	// opts are the options each engine is built with.
-	opts []world_block.EngineOption
 }
 
 // newReplayWorld constructs a replay World over the blocks of store.
@@ -47,7 +45,7 @@ func (w *replayWorld) bind(ctx context.Context, head *bucket.ObjectRef) (*blkEng
 	if err := w.close(ctx); err != nil {
 		return nil, err
 	}
-	ws, err := w.c.buildBlkEngine(ctx, w.c.le, w.store, head, head.GetTransformConf(), append(w.opts, world_block.WithDeferredDurability())...)
+	ws, err := w.c.buildBlkEngine(ctx, w.c.le, w.store, head, head.GetTransformConf(), world_block.WithDeferredDurability())
 	if err != nil {
 		return nil, err
 	}

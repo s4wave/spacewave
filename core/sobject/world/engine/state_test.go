@@ -21,53 +21,9 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	alpha_testbed "github.com/s4wave/spacewave/testbed"
 )
-
-// TestDeadlistEncodingWakesIdleReplay finishes a record while the shared object
-// stays unchanged, then consumes it through the state watcher's normal input.
-func TestDeadlistEncodingWakesIdleReplay(t *testing.T) {
-	// Bound the wait and build the named World root.
-	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
-	defer cancel()
-	root, err := block.BuildBlockRef([]byte("named World"), &block.PutOpts{HashType: hash.HashType_HashType_SHA256})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Start an encoding whose naming publication already settled.
-	net := &pendingNet{}
-	net.seal(nil)
-	var ledger deadlistLedger
-	ledger.name(nil, root, net)
-	if _, err := ledger.resolve(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Observe completion before subscribing, so the wake must be retained.
-	select {
-	case <-net.encoded:
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	}
-	snap := &testSharedObjectSnapshot{}
-	state := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](snap)
-	if _, err := (&Controller{}).waitReplayInput(ctx, nil, state, snap, replayGap{}, nil, ledger.encoded); err != nil {
-		t.Fatalf("idle replay missed the completed encoding: %v", err)
-	}
-
-	// The resumed pass consumes the record so its next save can name it.
-	resolved, err := ledger.resolve()
-	if err != nil || !resolved {
-		t.Fatalf("resolve completed encoding: resolved=%v error=%v", resolved, err)
-	}
-	_, roots := ledger.carry()
-	if len(roots) != 1 || roots[0].Ref.GetEmpty() {
-		t.Fatalf("resumed save carried %v, want the encoded record", roots)
-	}
-}
 
 // TestWaitReadableSnapshotWaitsForReadmission keeps waiting while the
 // participant is removed and returns once it is readmitted.

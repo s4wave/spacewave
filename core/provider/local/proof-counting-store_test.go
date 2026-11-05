@@ -21,11 +21,6 @@ func (s *proofCountingStore) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(s.Store)
 }
 
-// KeepsHoldCounts reports whether the underlying store keeps shared counts.
-func (s *proofCountingStore) KeepsHoldCounts() bool {
-	return block.KeepsHoldCounts(s.Store)
-}
-
 // PinRoot forwards a reader pin to the underlying store.
 func (s *proofCountingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, s.Store, ref)

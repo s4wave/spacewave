@@ -52,8 +52,6 @@ type WorldState struct {
 	// A buffer over a staged session store leaves them to the publication,
 	// since releasing through that store would publish it early.
 	releaseOwned bool
-	// transitions receives each commit's transition, or is nil.
-	transitions TransitionSink
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -329,10 +327,6 @@ func (t *WorldState) setCursorStore(ctx context.Context, cursor *bucket_lookup.C
 	}
 	if !t.write {
 		setReadOnlyCursor(ctx, cursor)
-		return
-	}
-	if log := t.btx.GetReplacementLog(); log != nil {
-		cursor.SetReplacementLog(log)
 	}
 }
 
@@ -636,11 +630,6 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		return fmt.Errorf("world state rebuild: %w", err)
 	}
 
-	// Hand the commit's transition to the sink.
-	if log := t.btx.GetReplacementLog(); log != nil && t.transitions != nil {
-		to := t.GetRootRef()
-		t.transitions(log.From(), to, log.Take(to))
-	}
 	return nil
 }
 

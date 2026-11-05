@@ -15,9 +15,6 @@ func (m *MarkingStore) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(m.store)
 }
 
-// KeepsHoldCounts reports whether the inner store keeps shared counts.
-func (m *MarkingStore) KeepsHoldCounts() bool { return block.KeepsHoldCounts(m.store) }
-
 // GetRoot reads the root from the inner store.
 func (m *MarkingStore) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
 	return m.store.GetRoot(ctx, name)

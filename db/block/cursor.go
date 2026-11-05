@@ -250,12 +250,10 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
 		}
 	}
 
-	// Replace the position reference and invalidate changed block data. The
-	// position no longer holds the stored page it was loaded from.
+	// Replace the position reference and invalidate changed block data.
 	dirty := c.pos.ref != ref
 	c.pos.ref = ref
 	if dirty {
-		c.pos.base = nil
 		if clearBlock {
 			c.pos.blk = nil
 			c.pos.shared = false
@@ -834,31 +832,12 @@ func (c *Cursor) setUnmarshaledBlock(b Block, shared bool) (Block, error) {
 		b, err = CastToBlock(c.pos.blk)
 	} else {
 		c.pos.blk, c.pos.shared = b, shared
-		err = c.recordBase()
 	}
 	if c.t != nil {
 		c.t.mtx.Unlock()
 	}
 
 	return b, err
-}
-
-// recordBase records the stored page a recording transaction loaded at the
-// position, before any writer changes the block. Assumes c.t.mtx is locked.
-func (c *Cursor) recordBase() error {
-	// Only a recording transaction's first load of a stored page has a base.
-	if c.t == nil || c.t.replacements == nil || c.pos.isSubBlock ||
-		c.pos.base != nil || c.pos.ref.GetEmpty() {
-		return nil
-	}
-
-	// Copy the refs, since a writer may change the block's refs in place.
-	refs, err := ExtractBlockRefs(c.pos.blk)
-	if err != nil {
-		return err
-	}
-	c.pos.base = &pageBase{ref: c.pos.ref.Clone(), refs: CloneBlockRefs(refs)}
-	return nil
 }
 
 // GetRef returns the current cursor reference.
@@ -925,17 +904,12 @@ func (c *Cursor) SetBlock(b any, dirty bool) {
 	c.pos.blk, c.pos.shared = b, false
 	c.pos.blkPreWrite = nil
 	if b == nil {
-		c.pos.ref, c.pos.base = nil, nil
+		c.pos.ref = nil
 	}
 
-	// Propagate the changed block state to its ancestors. A clean block is the
-	// stored page at the position, so a recording transaction takes it as the
-	// base, as a load does. A block whose refs cannot be read gets no base, and
-	// its replacement leaks rather than being reported.
+	// Propagate the changed block state to its ancestors.
 	if dirty {
 		c.markDirty()
-	} else if b != nil {
-		_ = c.recordBase()
 	}
 }
 

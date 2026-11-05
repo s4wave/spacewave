@@ -17,9 +17,6 @@ type pinStore struct {
 
 func (s *pinStore) SupportsRootRetention() bool { return true }
 
-// KeepsHoldCounts reports that the test store does not count shared holds.
-func (s *pinStore) KeepsHoldCounts() bool { return false }
-
 func (s *pinStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	if found, err := s.GetBlockExists(ctx, ref); err != nil || !found {
 		return nil, ErrNotFound

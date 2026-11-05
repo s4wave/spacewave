@@ -10,8 +10,21 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// TestAll tests all tests for a block store.
+// TestAll tests all tests for a block store whose RmBlock deletes the block.
 func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration) error {
+	return testAll(ctx, client, putDelay, true)
+}
+
+// TestAllReleasing tests a block store whose RmBlock releases the caller's
+// hold, such as a bucket of a Volume that keeps liveness: the block may stay
+// for other holders until the Volume's collector frees it.
+func TestAllReleasing(ctx context.Context, client block.StoreOps, putDelay time.Duration) error {
+	return testAll(ctx, client, putDelay, false)
+}
+
+// testAll runs the tests, checking that RmBlock deleted the blocks when
+// deletes is set.
+func testAll(ctx context.Context, client block.StoreOps, putDelay time.Duration, deletes bool) error {
 	// Bound propagation waits after mutations to the block store.
 	waitAfterPut := func() {
 		if putDelay != 0 {
@@ -121,6 +134,11 @@ func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration)
 	err = client.RmBlock(ctx, sampleBlockRef)
 	if err != nil {
 		return err
+	}
+
+	// A store whose RmBlock only releases may keep the blocks.
+	if !deletes {
+		return nil
 	}
 
 	// Allow both deletions to propagate before checking block absence.

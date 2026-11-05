@@ -21,14 +21,12 @@ func (c *Controller) executeWatchSOState(
 	var snap sobject.SharedObjectStateSnapshot
 	var gap replayGap
 	var settled <-chan struct{}
-	var encoded <-chan struct{}
 
-	// Follow every state, receipt and encoding notification.
+	// Follow every state and receipt notification.
 	for {
 		// Wait for the state to change, the input replay stopped for to
-		// arrive, the oldest pending receipt to resolve, or a deadlist encoding
-		// to finish after the previous pass.
-		_, err := c.waitReplayInput(ctx, soEngine.so, soStateCtr, snap, gap, settled, encoded)
+		// arrive, or the oldest pending receipt to resolve.
+		_, err := c.waitReplayInput(ctx, soEngine.so, soStateCtr, snap, gap, settled)
 		if err != nil {
 			return err
 		}
@@ -56,7 +54,6 @@ func (c *Controller) executeWatchSOState(
 		}
 		gap = soEngine.replay.gap
 		settled = soEngine.settled()
-		encoded = soEngine.replay.ledger.encoded
 
 		// Be sure to unlock the writeMtx right away.
 		holdTask.End()
@@ -72,7 +69,7 @@ func (c *Controller) executeWatchSOState(
 // waitReplayInput waits for the state to change from snap and returns the new
 // state. When gap is set, it also returns the current state once the input it
 // names arrives, since replay stopped for it. It also returns the current
-// state once settled closes or encoded receives a completed deadlist encoding.
+// state once settled closes.
 func (c *Controller) waitReplayInput(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -80,24 +77,21 @@ func (c *Controller) waitReplayInput(
 	snap sobject.SharedObjectStateSnapshot,
 	gap replayGap,
 	settled <-chan struct{},
-	encoded <-chan struct{},
 ) (sobject.SharedObjectStateSnapshot, error) {
 	// Without another input only a state change resumes replay.
-	if gap.empty() && settled == nil && encoded == nil {
+	if gap.empty() && settled == nil {
 		return soStateCtr.WaitValueChange(ctx, snap, nil)
 	}
 
-	// End the state wait once a receipt settles or an encoding completes.
+	// End the state wait once a receipt settles.
 	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	notified := make(chan struct{})
-	if settled != nil || encoded != nil {
+	if settled != nil {
 		go func() {
 			defer close(notified)
 			select {
 			case <-settled:
-				cancel()
-			case <-encoded:
 				cancel()
 			case <-waitCtx.Done():
 			}

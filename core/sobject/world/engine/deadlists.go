@@ -7,10 +7,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// maxPendingDeadlists bounds the pending records. Past it the oldest is
-// orphaned and leaks.
-const maxPendingDeadlists = 64
-
 // deadlistState is where a deadlist record is in its life.
 type deadlistState uint8
 
@@ -36,15 +32,8 @@ type deadlistEntry struct {
 	// to is the root of the named World the interval ends at.
 	to *block.BlockRef
 	// record is the record's first block, or nil when the interval forfeited
-	// and nothing is named, or while net waits.
+	// and nothing is named.
 	record *block.BlockRef
-	// net is the interval waiting for its puts before the record is encoded,
-	// or nil once it is or when the interval forfeited.
-	net *pendingNet
-	// spans are the replay span chains the replay dropped before net
-	// resolved. They name payloads the interval's pages may name, whose
-	// edges from those pages only the record counts.
-	spans []*block.BlockRef
 	// puts are the record's blocks until a durable save stores them.
 	puts []*block.PutBatchEntry
 	// state is where the record is.
@@ -55,11 +44,6 @@ type deadlistEntry struct {
 	// carried is the save generation that carries state, or 0 when no save
 	// does yet.
 	carried uint64
-}
-
-// forfeited reports whether the entry names no record and waits for none.
-func (e *deadlistEntry) forfeited() bool {
-	return e.record == nil && e.net == nil
 }
 
 // deadlistLedger tracks an engine's deadlist records from naming to due. A
@@ -74,9 +58,6 @@ func (e *deadlistEntry) forfeited() bool {
 // them to be carried again. Every name a save sets carries the record's blocks
 // unless a durable save stored them, so no save names a missing block.
 type deadlistLedger struct {
-	// encoded coalesces completed encodings for the state watcher. It is
-	// created by resolve and captured by each worker before the ledger changes.
-	encoded chan struct{}
 	// entries are the records in sequence order: pending ones, and due and
 	// orphaned ones until a durable save carries them.
 	entries []deadlistEntry
@@ -87,9 +68,8 @@ type deadlistLedger struct {
 	adopted uint64
 	// gen is the last save generation.
 	gen uint64
-	// dropped are the span chains the replay dropped that no named interval
-	// waiting for its puts holds yet: pages of the open interval may name
-	// their payloads, so the next interval named with a net takes them.
+	// dropped are the span chains the replay dropped: pages of the open
+	// interval may name their payloads, so the base hold keeps naming them.
 	dropped []*block.BlockRef
 	// recount is set while the ledger lost the counts of an interval that
 	// names no record, until a durable save asks the store to recount.
@@ -115,58 +95,6 @@ func (l *deadlistLedger) carryRecount() bool {
 	return l.recount && l.recountGen == 0
 }
 
-// name adds the entry of the named World at to, whose interval from the named
-// World at from waits on net before its record is encoded. net is nil when the
-// interval forfeited; the entry then names no record but keeps its place in
-// the chain.
-func (l *deadlistLedger) name(from, to *block.BlockRef, net *pendingNet) {
-	// Orphan the oldest pending record when the ledger is full, counting it
-	// as stalled when it still waits on its puts.
-	entry := deadlistEntry{seq: max(l.next, 1), from: from, to: to, net: net}
-	if net != nil {
-		entry.spans, l.dropped = l.dropped, nil
-	}
-	l.next = entry.seq + 1
-	pending := l.pending()
-	if len(pending) >= maxPendingDeadlists {
-		if l.entries[pending[0]].net != nil {
-			writeFlows.stalled.Add(1)
-		}
-		l.move(pending[0], deadlistOrphan)
-	}
-	l.entries = append(l.entries, entry)
-	if net == nil {
-		countDeaths(nil, false)
-		l.lost()
-	}
-}
-
-// resolve takes the record of each pending entry whose encoding finished,
-// starting the encoding of each whose puts resolved, and reports whether it
-// took any, so a save carries it.
-func (l *deadlistLedger) resolve() (bool, error) {
-	// Give encoding workers one nonblocking wake for the state watcher.
-	if l.encoded == nil {
-		l.encoded = make(chan struct{}, 1)
-	}
-
-	// Consume completed records and start the encodings whose receipts settled.
-	resolved := false
-	for i := range l.entries {
-		e := &l.entries[i]
-		if e.net == nil || !e.net.poll(e.seq, e.from, e.to, l.recounts, l.recount, l.encoded) {
-			continue
-		}
-		if e.net.err != nil {
-			return resolved, e.net.err
-		}
-		countDeaths(e.net.dead, true)
-		e.record, e.puts, e.net = e.net.record, e.net.blocks, nil
-		resolved = true
-	}
-	return resolved, nil
-}
-
 // pending returns the indexes of the pending entries.
 func (l *deadlistLedger) pending() []int {
 	var out []int
@@ -178,34 +106,17 @@ func (l *deadlistLedger) pending() []int {
 	return out
 }
 
-// waiting returns the root each pending record still waiting for its puts
-// starts at, and the span chains the replay dropped before it resolved or
-// before any interval took them. The base hold keeps naming them until a save
-// names the record, which then holds the root and the pages the interval
-// attached, so no shared count the record keeps falls between the two.
-func (l *deadlistLedger) waiting() (worlds, spans []*block.BlockRef) {
-	spans = slices.Clone(l.dropped)
-	for _, e := range l.entries {
-		if e.state == deadlistPending && e.net != nil {
-			worlds = append(worlds, e.from)
-			spans = append(spans, e.spans...)
-		}
-	}
-	return worlds, spans
+// droppedSpans returns the span chains the replay dropped, which the base
+// hold keeps naming.
+func (l *deadlistLedger) droppedSpans() []*block.BlockRef {
+	return slices.Clone(l.dropped)
 }
 
-// dropSpan records that the replay drops the span chain at span. The chain
-// stays named until the records of the intervals waiting for their puts and of
-// the open interval name the pages that took its payloads over.
+// dropSpan records that the replay drops the span chain at span, which stays
+// named.
 func (l *deadlistLedger) dropSpan(span *block.BlockRef) {
-	if span.GetEmpty() {
-		return
-	}
-	l.dropped = append(l.dropped, span)
-	for i := range l.entries {
-		if e := &l.entries[i]; e.state == deadlistPending && e.net != nil {
-			e.spans = append(e.spans, span)
-		}
+	if !span.GetEmpty() {
+		l.dropped = append(l.dropped, span)
 	}
 }
 
@@ -214,11 +125,6 @@ func (l *deadlistLedger) dropSpan(span *block.BlockRef) {
 func (l *deadlistLedger) move(i int, state deadlistState) {
 	e := &l.entries[i]
 	if state == deadlistOrphan {
-		if e.net != nil {
-			l.dropped = append(l.dropped, e.spans...)
-			l.lost()
-		}
-		e.net, e.spans = nil, nil
 		if !e.stored && e.carried == 0 {
 			if e.record != nil {
 				l.lost()
@@ -255,7 +161,7 @@ func (l *deadlistLedger) adopt(root *block.BlockRef) {
 	start := j
 	for start > 0 {
 		next, prev := l.entries[pending[start]], l.entries[pending[start-1]]
-		if next.forfeited() || next.from == nil || !next.from.EqualsRef(prev.to) {
+		if next.record == nil || next.from == nil || !next.from.EqualsRef(prev.to) {
 			break
 		}
 		start--
@@ -284,7 +190,7 @@ func (l *deadlistLedger) advance(oldestPin uint64, pinned bool) bool {
 	// Move the pending records it passes.
 	moved := false
 	for _, i := range l.pending() {
-		if l.entries[i].seq > watermark || l.entries[i].net != nil {
+		if l.entries[i].seq > watermark {
 			break
 		}
 		l.move(i, deadlistDue)
@@ -323,7 +229,7 @@ func (l *deadlistLedger) carry() ([]*block.PutBatchEntry, []block.NamedRoot) {
 }
 
 // saved marks what carry returned as carried by a new save generation, which
-// it returns. An entry waiting for its puts carried nothing.
+// it returns.
 func (l *deadlistLedger) saved() uint64 {
 	l.gen++
 	if l.carryRecount() {
@@ -331,7 +237,7 @@ func (l *deadlistLedger) saved() uint64 {
 		l.recounts++
 	}
 	for i := range l.entries {
-		if l.entries[i].carried == 0 && l.entries[i].net == nil {
+		if l.entries[i].carried == 0 {
 			l.entries[i].carried = l.gen
 		}
 	}

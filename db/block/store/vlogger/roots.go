@@ -25,9 +25,6 @@ func (s *VLoggerStore) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 	return s.st.SetRoots(ctx, entries, roots)
 }
 
-// KeepsHoldCounts reports whether the underlying store keeps shared counts.
-func (s *VLoggerStore) KeepsHoldCounts() bool { return block.KeepsHoldCounts(s.st) }
-
 // PinRoot forwards a reader pin to the underlying store.
 func (s *VLoggerStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, s.st, ref)
