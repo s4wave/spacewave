@@ -20,7 +20,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -146,7 +145,6 @@ func (l *load) measure(ctx context.Context) (*Report, error) {
 	cache0 := cache.Snapshot()
 	var mem0 runtime.MemStats
 	runtime.ReadMemStats(&mem0)
-	pub0 := l.publicationStats()
 	if err := writeAllocProfile(l.conf.AllocProfilePath, ".start"); err != nil {
 		return nil, err
 	}
@@ -173,7 +171,6 @@ func (l *load) measure(ctx context.Context) (*Report, error) {
 	cache1 := cache.Snapshot()
 	var mem1 runtime.MemStats
 	runtime.ReadMemStats(&mem1)
-	pub1 := l.publicationStats()
 	if werr != nil {
 		return nil, werr
 	}
@@ -209,7 +206,6 @@ func (l *load) measure(ctx context.Context) (*Report, error) {
 		Cpu:           cpu,
 		WritesDropped: l.dropped.Load(),
 		Writers:       uint32(max(l.conf.Writers, 1)), // #nosec G115 -- a flag bounds the count.
-		Publications:  publicationDelta(pub0, pub1),
 	}
 	return report, nil
 }
@@ -439,28 +435,6 @@ func cacheStats(a, b block.DecodedBlockCacheSnapshot) *CacheStats {
 	}
 	if lookups := out.Hits + out.Misses; lookups > 0 {
 		out.HitRate = float64(out.Hits) / float64(lookups)
-	}
-	return out
-}
-
-// publicationStats returns the account volume's publication counters, or
-// zero when the volume does not publish.
-func (l *load) publicationStats() volume_kvtx.PublicationStats {
-	vol, ok := l.vol.(*volume_kvtx.Volume)
-	if !ok {
-		return volume_kvtx.PublicationStats{}
-	}
-	return vol.GetPublicationStats()
-}
-
-// publicationDelta returns the publication queue change from a to b.
-func publicationDelta(a, b volume_kvtx.PublicationStats) *PublicationStats {
-	out := &PublicationStats{
-		Accepted:        b.Accepted - a.Accepted,
-		PhysicalCommits: b.PhysicalCommits - a.PhysicalCommits,
-	}
-	if out.PhysicalCommits > 0 {
-		out.PerCommit = float64(out.Accepted) / float64(out.PhysicalCommits)
 	}
 	return out
 }
