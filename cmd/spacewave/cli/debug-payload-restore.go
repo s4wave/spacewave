@@ -378,6 +378,14 @@ func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 		vol.Close()
 		return nil, err
 	}
+
+	// Record the holes a live root reaches before writing, so a restored
+	// block those roots name counts as stored rather than as a new block
+	// the collector frees once its put ages past the grace period.
+	if _, err := vol.Audit(ctx); err != nil {
+		vol.Close()
+		return nil, errors.Wrap(err, "record the holes to restore")
+	}
 	return rv, nil
 }
 

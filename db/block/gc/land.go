@@ -31,9 +31,10 @@ type BucketRoots struct {
 // that moves onto it. Every further holder is an up pair in the journal
 // record: a child of a born block that the batch does not store, a root moving
 // onto a block stored before, and the second and later holders of a born
-// block. Every root moving off a block is a down pair. A born block that no
-// holder in the batch names keeps its implied holder until the audit finds it,
-// so a put outside a batch that names it leaks and never frees.
+// block. Every root moving off a block is a down pair, and so is the implied
+// holder of a born block no holder in the batch names: such a put is garbage
+// once its record ages past the grace period, unless a later Land holds the
+// block first, which a writer must do within the grace period.
 //
 // A root's Previous must match the block the name holds, or Land writes
 // nothing and returns block.ErrRootMoved. A root must name a block the store
@@ -53,8 +54,11 @@ type BucketRoots struct {
 // restores its count from the holders it found, and a put of a recorded hole
 // counts it as stored too: Land writes its list back, and its children gain no
 // holder. The one gap is a block lost with its list and put again before any
-// audit records it: the put counts it as a new block with one implied holder,
-// fewer than its parents give it, and the next audit reports the undercount.
+// audit records it: the put counts it as a new block the batch gives no
+// holder, which the collector frees once the put ages past the grace period
+// while its parents still name it, and an audit before then reports the
+// undercount. A restore of lost blocks therefore audits first, as the payload
+// restore does.
 //
 // A Volume that is not adopted keeps no journal: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
@@ -423,7 +427,10 @@ func (l *lander) appendJournal(ctx context.Context, state *LivenessState, now ti
 
 	// Count each born block's holders beyond its implied one. A block whose
 	// bytes were stored without a child list may have holders the store
-	// cannot see, so it keeps one more and never frees on a guess.
+	// cannot see, so it keeps one more and never frees on a guess. A block
+	// the batch gives no holder takes its implied one back with a down pair,
+	// so an unheld put is garbage once the record ages past the grace period,
+	// unless a parent or a root holds it first.
 	for _, b := range l.order {
 		extra := b.holders - 1
 		if b.reput {
@@ -431,6 +438,9 @@ func (l *lander) appendJournal(ctx context.Context, state *LivenessState, now ti
 		}
 		for range max(extra, 0) {
 			l.up = append(l.up, BlockKey(b.ref))
+		}
+		if extra < 0 {
+			l.down = append(l.down, BlockKey(b.ref))
 		}
 	}
 

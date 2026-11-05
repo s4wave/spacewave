@@ -1343,12 +1343,32 @@ func (e *Engine) StageWorldState(ctx context.Context) (world.WorldStage, error) 
 		return nil, ErrEngineClosed
 	}
 
+	// Pin the head the stage builds over, so a long session whose base main
+	// moves off keeps the base pages its puts name, until the stage releases.
+	unpin, err := block.PinRoot(ctx, e.writeBlockStore, e.GetRootRef().GetRootRef())
+	if err != nil {
+		return nil, err
+	}
+	var stage world.WorldStage = &pinnedStage{WorldStage: world.NewStorageStage(engineStorage{e: e}), unpin: unpin}
+
 	// Durable-on-write commits reference the build before they return.
-	stage := world.NewStorageStage(engineStorage{e: e})
 	if !e.deferredDurability() {
 		return stage, nil
 	}
 	return &deferredStage{WorldStage: stage, e: e}, nil
+}
+
+// pinnedStage releases the pin on its base head after the stage.
+type pinnedStage struct {
+	world.WorldStage
+	// unpin releases the base head's pin.
+	unpin func()
+}
+
+// Release releases the stage, then its base head's pin.
+func (s *pinnedStage) Release() {
+	s.WorldStage.Release()
+	s.unpin()
 }
 
 // deferredStage flushes the engine's buffered blocks before it releases.
