@@ -29,9 +29,27 @@ func ReadIndex(ra io.ReaderAt, size uint64) ([]*kvfile.IndexEntry, error) {
 }
 
 // IndexTailFirstRead is the length of the first read from the end of a
-// packfile for its index tail. It covers the whole tail of a typical pack, so
-// one read usually suffices.
+// packfile for its index tail when its block count is unknown. It covers the
+// whole tail of a typical pack, so one read usually suffices.
 const IndexTailFirstRead = 812 << 10
+
+// indexEntryReadBytes bounds one block's index entry for a first read sized
+// from the block count: a go-kvfile entry of a packfile block key takes about
+// 53 bytes.
+const indexEntryReadBytes = 64
+
+// indexTrailerReadBytes covers the kvfile trailer beyond the entries.
+const indexTrailerReadBytes = 4 << 10
+
+// IndexTailReadSize returns the length of the first read for the index tail
+// of a packfile of blockCount blocks: enough for the tail, so one read of
+// about its size suffices, or IndexTailFirstRead when the count is unknown.
+func IndexTailReadSize(blockCount uint64) uint64 {
+	if blockCount == 0 || blockCount > (IndexTailFirstRead-indexTrailerReadBytes)/indexEntryReadBytes {
+		return IndexTailFirstRead
+	}
+	return blockCount*indexEntryReadBytes + indexTrailerReadBytes
+}
 
 // maxIndexEntrySize is the largest index entry go-kvfile writes. A read that
 // reaches this far below the first entry's length varint covers the entry.
@@ -39,18 +57,19 @@ const maxIndexEntrySize = 2048
 
 // ReadIndexTail returns the index tail of a packfile of size bytes, reading
 // backwards from its end with read, which returns exactly length bytes at off.
-// The first read takes the last IndexTailFirstRead bytes. When the tail starts
-// below what was read, each further read takes only the missing prefix, sized
-// by the kvfile trailer, so a tail costs at most three reads and at most
-// maxIndexEntrySize bytes beyond the tail and the first read.
-func ReadIndexTail(ctx context.Context, size uint64, read func(ctx context.Context, off int64, length int) ([]byte, error)) ([]byte, error) {
+// The first read takes the last firstRead bytes, such as IndexTailReadSize of
+// the block count. When the tail starts below what was read, each further
+// read takes only the missing prefix, sized by the kvfile trailer, so a tail
+// costs at most three reads and at most maxIndexEntrySize bytes beyond the
+// tail and the first read.
+func ReadIndexTail(ctx context.Context, size, firstRead uint64, read func(ctx context.Context, off int64, length int) ([]byte, error)) ([]byte, error) {
 	// Offsets into the packfile are int64.
 	if size > math.MaxInt64 {
 		return nil, errors.Errorf("packfile size %d overflows int64", size)
 	}
 
 	// Read the end of the packfile, then each missing prefix the trailer asks for.
-	base := size - min(size, IndexTailFirstRead)
+	base := size - min(size, max(firstRead, 1))
 	suffix, err := readIndexRange(ctx, read, base, size)
 	if err != nil {
 		return nil, err

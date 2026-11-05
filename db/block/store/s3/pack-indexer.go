@@ -88,7 +88,7 @@ func (s *PackStore) indexPack(ctx context.Context, entry *packfile.PackfileEntry
 	id := entry.GetId()
 	size := entry.GetSizeBytes()
 	var read uint64
-	tail, err := packfile.ReadIndexTail(ctx, size, func(ctx context.Context, off int64, length int) ([]byte, error) {
+	tail, err := packfile.ReadIndexTail(ctx, size, packfile.IndexTailReadSize(entry.GetBlockCount()), func(ctx context.Context, off int64, length int) ([]byte, error) {
 		read += uint64(length) //nolint:gosec // length is a nonnegative read length.
 		return s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, length)
 	})
