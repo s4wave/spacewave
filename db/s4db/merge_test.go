@@ -30,15 +30,16 @@ func waitMerged(t *testing.T, db *DB) {
 // TestMerge fills past the flush budget many times so level 0 passes its
 // trigger and the merger combines runs into level 1, then checks every key
 // and scan against the model, reopens, and checks that the merged inputs'
-// chunks were freed.
+// chunks were freed. The cache holds only a few blocks, so the merger reads
+// its inputs around it, into buffers it reuses.
 func TestMerge(t *testing.T) {
 	// Open a file with a small budget and fill it through many flushes.
 	path := filepath.Join(t.TempDir(), "merge.s4wave")
-	opts := Options{CacheBytes: 4 << 20, memtable: 64 << 10}
+	opts := Options{CacheBytes: 64 << 10, memtable: 128 << 10}
 	db := openTest(t, path, opts)
 	r := rand.New(rand.NewPCG(5, 6))
 	m := make(model)
-	for range 40 {
+	for range 80 {
 		for range 6 {
 			randomCommit(t, r, db, m, 8000)
 		}
