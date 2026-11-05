@@ -20,7 +20,9 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
+	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/packfile"
+	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -104,15 +106,20 @@ func buildRef(t *testing.T, data []byte) *block.BlockRef {
 	return ref
 }
 
-// TestCommandRunThrough runs the command's passes on one real scratch file: an
-// index, a pass that finds a hole, and a pass that fills it from a frame file.
+// TestCommandRunThrough runs the command's passes on one real scratch file. The
+// source finds its blocks through a copy of its pack index file and holds the
+// root with its refs unknown, so the first pass lists the root as a hole and
+// reaches nothing under it. The second pass takes the root's refs and the
+// missing child from a frame file, and a store opened on the target's pack
+// index file then places both blocks without reading any pack.
 func TestCommandRunThrough(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 	dir := t.TempDir()
 
-	// Fill the source over SFTP with a root whose child is missing.
+	// Fill the source over SFTP with a root packed without its refs, whose
+	// child is missing, indexing it in the source's pack index file.
 	addr, hostKey := startSFTP(t)
 	sourceDir := filepath.Join(dir, "source")
 	root, child := []byte("root"), []byte("child")
@@ -121,12 +128,22 @@ func TestCommandRunThrough(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seed := block_store_s3.NewPackStore(le, client, sourceDir, "world/", &block_store_s3.PackStoreOptions{KeepPacks: true})
-	entry := &block.PutBatchEntry{Ref: rootRef, Data: root, Refs: []*block.BlockRef{childRef}, RefsKnown: true}
+	const storeID = "p/local/acc/blk/so"
+	sourceIndex := filepath.Join(dir, "source-index.db")
+	seedIndex, err := store_kvtx_sqlite.OpenWithPragmas(ctx, sourceIndex, defaultIndexTable, store_kvtx_sqlite.Pragmas{WithoutRowID: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed := block_store_s3.NewPackStore(le, client, sourceDir, "world/", &block_store_s3.PackStoreOptions{
+		KeepPacks: true,
+		Index:     kvtx_prefixer.NewPrefixer(seedIndex, block_store_s3.PackIndexPrefix(storeID)),
+	})
+	entry := &block.PutBatchEntry{Ref: rootRef, Data: root}
 	if _, err := seed.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		t.Fatal(err)
 	}
 	seed.Close()
+	_ = seedIndex.Close()
 	client.Close()
 
 	// Point the command at the source and a bucket.
@@ -137,6 +154,9 @@ func TestCommandRunThrough(t *testing.T) {
 	holes := filepath.Join(dir, "holes.txt")
 	args := &Args{
 		Scratch:      filepath.Join(dir, "scratch"),
+		StoreID:      storeID,
+		SourceIndex:  sourceIndex,
+		TargetIndex:  filepath.Join(dir, "target-index.db"),
 		Width:        2,
 		SFTPAddr:     addr,
 		SFTPUser:     "user",
@@ -154,32 +174,24 @@ func TestCommandRunThrough(t *testing.T) {
 		Uploads:      2,
 	}
 
-	// Index, then run a pass. The child is a hole, listed for block-export.
-	if err := args.runIndex(nil); err != nil {
-		t.Fatal(err)
-	}
+	// Run a pass. The root is a hole, listed for block-export, and nothing
+	// under it is reached.
 	if err := args.runCopy(nil); err != nil {
 		t.Fatal(err)
 	}
-	key := hex.EncodeToString(packfile.BlockKey(childRef.GetHash()))
+	key := hex.EncodeToString(packfile.BlockKey(rootRef.GetHash()))
 	list, err := os.ReadFile(holes)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(list) != "hyperline-world "+key+" missing\n" {
+	if string(list) != "hyperline-world "+key+" refs-unknown\n" {
 		t.Fatalf("holes list: %q", list)
 	}
 
-	// Run a pass with the pulled block, and the list empties.
-	frame := binary.AppendUvarint(nil, uint64(len(packfile.BlockKey(childRef.GetHash()))))
-	frame = append(frame, packfile.BlockKey(childRef.GetHash())...)
-	frame = binary.AppendUvarint(frame, 1)
-	object, err := block.EncodeBlockObject(child, nil, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	frame = binary.AppendUvarint(frame, uint64(len(object)))
-	frame = append(frame, object...)
+	// Run a pass with the pulled root, refs known, and child, and the list
+	// empties.
+	frame := appendFrame(t, nil, rootRef, root, []*block.BlockRef{childRef})
+	frame = appendFrame(t, frame, childRef, child, nil)
 	frames := filepath.Join(dir, "frames")
 	if err := os.WriteFile(frames, frame, 0o600); err != nil {
 		t.Fatal(err)
@@ -192,16 +204,50 @@ func TestCommandRunThrough(t *testing.T) {
 		t.Fatalf("holes list after the pull: %q, %v", list, err)
 	}
 
-	// The clean store serves both blocks, and the graph stream sits beside it.
-	target := block_store_s3.NewPackStore(le, objects, s3test.BucketName, "world/v2/", &block_store_s3.PackStoreOptions{KeepPacks: true})
+	// A store on the target's pack index file places both blocks from the
+	// index and serves them, the root with its child ref, and the graph stream
+	// sits beside it.
+	targetIndex, err := store_kvtx_sqlite.OpenWithPragmas(ctx, args.TargetIndex, defaultIndexTable, store_kvtx_sqlite.Pragmas{WithoutRowID: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer targetIndex.Close()
+	target := block_store_s3.NewPackStore(le, objects, s3test.BucketName, "world/v2/", &block_store_s3.PackStoreOptions{
+		KeepPacks:  true,
+		Index:      kvtx_prefixer.NewPrefixer(targetIndex, block_store_s3.PackIndexPrefix(storeID)),
+		SoleWriter: true,
+	})
 	defer target.Close()
+	located, err := target.LocateBlocks(ctx, []*block.BlockRef{rootRef, childRef})
+	if err != nil || !located[0] || !located[1] {
+		t.Fatalf("target index places %v, %v; want both blocks", located, err)
+	}
 	for _, ref := range []*block.BlockRef{rootRef, childRef} {
 		stored, err := target.GetStoredBlock(ctx, ref)
-		if err != nil || stored == nil {
+		if err != nil || stored == nil || !stored.RefsKnown {
 			t.Fatalf("read %s: %v, %v", ref.MarshalString(), stored, err)
 		}
+	}
+	if stored, _ := target.GetStoredBlock(ctx, rootRef); len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(childRef) {
+		t.Fatalf("root refs = %v; want its child", stored.Refs)
 	}
 	if len(bucket.Keys("world/v2/graph/")) == 0 {
 		t.Fatal("no graph stream: " + strings.Join(bucket.Keys(""), " "))
 	}
+}
+
+// appendFrame appends a block-export frame holding the block with its refs
+// known.
+func appendFrame(t *testing.T, frame []byte, ref *block.BlockRef, data []byte, refs []*block.BlockRef) []byte {
+	t.Helper()
+	key := packfile.BlockKey(ref.GetHash())
+	frame = binary.AppendUvarint(frame, uint64(len(key)))
+	frame = append(frame, key...)
+	frame = binary.AppendUvarint(frame, 1)
+	object, err := block.EncodeBlockObject(data, refs, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	frame = binary.AppendUvarint(frame, uint64(len(object)))
+	return append(frame, object...)
 }

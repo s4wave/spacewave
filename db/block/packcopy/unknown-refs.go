@@ -13,9 +13,9 @@ import (
 )
 
 // UnknownRefs is a source that withholds the refs of listed blocks. A pack
-// cannot say a block's refs are unknown, so one written with empty refs reads
-// as a leaf; the list marks those blocks and the copy then takes them only
-// from a source that knows their refs.
+// written before packs could mark refs unknown stored such a block with empty
+// refs, so it reads as a leaf; the list marks those blocks and the copy then
+// takes them only from a source that knows their refs.
 type UnknownRefs struct {
 	Source
 	// listed holds the listed blocks by pack index key.
