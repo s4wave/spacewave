@@ -33,9 +33,10 @@ func (NopStoreOps) GetRoot(context.Context, string) (*BlockRef, error) { return 
 // ListRoots reports no roots.
 func (NopStoreOps) ListRoots(context.Context, string, func(NamedRoot) error) error { return nil }
 
-// SetRoots stores the entries and drops the roots.
-func (n NopStoreOps) SetRoots(ctx context.Context, entries []*PutBatchEntry, _ []NamedRoot) error {
-	return SetRootsUnheld(ctx, n, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (n NopStoreOps) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
+	return SetRootsUnheld(ctx, n, entries, roots)
 }
 
 // PutBlock returns ErrBlockStoreUnavailable.

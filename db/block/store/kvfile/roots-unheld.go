@@ -14,7 +14,8 @@ func (k *KvfileBlock) ListRoots(context.Context, string, func(block.NamedRoot) e
 	return nil
 }
 
-// SetRoots stores the entries and drops the roots.
-func (k *KvfileBlock) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, _ []block.NamedRoot) error {
-	return block.SetRootsUnheld(ctx, k, entries)
+// SetRoots stores the entries and refuses a root that would hold a block:
+// this store holds no roots.
+func (k *KvfileBlock) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRootsUnheld(ctx, k, entries, roots)
 }

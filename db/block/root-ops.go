@@ -12,6 +12,11 @@ import (
 // caller reads the root again and decides whether its change still applies.
 var ErrRootMoved = errors.New("named root moved")
 
+// ErrRootsUnheld is returned by SetRoots on a store that holds no roots for a
+// root that would hold a block, so a caller that needs the hold, such as a
+// World whose head is a root, fails at once instead of losing the hold.
+var ErrRootsUnheld = errors.New("store holds no named roots")
+
 // NamedRoot moves one named root of a store.
 type NamedRoot struct {
 	// Name is the root name, unique within the store's bucket.
@@ -33,9 +38,10 @@ type NamedRoot struct {
 
 // RootOps is the part of StoreOps that holds roots. A block is live while a
 // held root reaches it through child lists, and the store decides that alone.
-// A store that never frees by liveness holds no roots: it reports none and
-// SetRoots only stores the entries, as SetRootsUnheld does. Dropping a root
-// there loses nothing, since such a store keeps every block it stores.
+// A store that never frees by liveness may hold no roots: it reports none,
+// and SetRoots refuses a root that would hold a block, as SetRootsUnheld
+// does. Its blocks need no hold, since it keeps every block it stores, but a
+// caller that reads a root back needs the store to keep it.
 type RootOps interface {
 	// GetRoot returns the block the name holds, or nil when the name is free.
 	GetRoot(ctx context.Context, name string) (*BlockRef, error)
@@ -51,10 +57,24 @@ type RootOps interface {
 	SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error
 }
 
-// SetRootsUnheld implements SetRoots for a store that holds no roots: it
-// stores the entries and drops the roots. Such a store never frees a block by
+// SetRootsUnheld implements SetRoots for a store that holds no roots. It
+// refuses a root that would hold a block with ErrRootsUnheld, and a root
+// whose Previous names a block with ErrRootMoved, since every name is free
+// there; otherwise it stores the entries. Such a store never frees a block by
 // liveness, so every block written to it stays stored.
-func SetRootsUnheld(ctx context.Context, store StoreOps, entries []*PutBatchEntry) error {
+func SetRootsUnheld(ctx context.Context, store StoreOps, entries []*PutBatchEntry, roots []NamedRoot) error {
+	// Refuse a hold the store cannot keep, and a swap from a block no name
+	// holds.
+	for _, root := range roots {
+		switch {
+		case !root.Ref.GetEmpty():
+			return errors.Wrap(ErrRootsUnheld, root.Name)
+		case !root.Previous.GetEmpty():
+			return RootMoved(root.Name)
+		}
+	}
+
+	// Store the entries.
 	if len(entries) == 0 {
 		return nil
 	}
@@ -72,9 +92,9 @@ func RootMoved(name string) error {
 // copy of their references. It reads the roots and swaps them, again if
 // another writer moved one between the two. It replaces any Previous in roots.
 //
-// It exists only for five callers that never tracked their root: the account
-// World copy, the legacy World publication, the World engine controller, the
-// storage reclaim fence and the replay root hold. It is deleted when they are.
+// It exists only for three callers that never tracked their root: the account
+// World copy, the storage reclaim fence and the replay root hold. It is
+// deleted when they are.
 func OverwriteRoots(ctx context.Context, store StoreOps, entries []*PutBatchEntry, roots []NamedRoot) error {
 	checked := make([]NamedRoot, len(roots))
 	for {

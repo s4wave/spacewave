@@ -84,7 +84,7 @@ func (b *bucketHandle) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 		return tx.ErrNotWrite
 	}
 	if !b.SupportsRootRetention() {
-		return block.SetRootsUnheld(ctx, b, entries)
+		return block.SetRootsUnheld(ctx, b, entries, roots)
 	}
 	return b.v.(bucketRootVolume).SetBucketRoots(ctx, b.t.bucketID, entries, roots)
 }

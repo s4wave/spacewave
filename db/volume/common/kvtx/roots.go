@@ -123,9 +123,10 @@ func (v *Volume) ListBucketRoots(ctx context.Context, bucketID, prefix string, f
 // return volume.ErrReserve while the volume is in the reserve state; moving
 // roots alone writes no new data and continues.
 func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	// Require atomic publication and refuse new data below the disk reserve.
+	// A Volume without atomic commits holds no roots, and refuses new data
+	// below the disk reserve.
 	if !v.SupportsAtomicPublication() {
-		return block.ErrAtomicPublicationUnsupported
+		return block.SetRootsUnheld(ctx, v, entries, roots)
 	}
 	if len(entries) != 0 && !onlyTombstones(entries) {
 		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
@@ -259,7 +260,7 @@ func (v *Volume) ListRoots(ctx context.Context, prefix string, fn func(block.Nam
 // holds no roots: it stores the entries and never frees by liveness.
 func (v *Volume) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	if !v.SupportsAtomicPublication() {
-		return block.SetRootsUnheld(ctx, v, entries)
+		return block.SetRootsUnheld(ctx, v, entries, roots)
 	}
 	return v.SetBucketRoots(ctx, "", entries, roots)
 }
