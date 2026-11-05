@@ -604,6 +604,27 @@ func (x *ReplayPayloads) GetPayloads() []*block1.BlockRef {
 	return nil
 }
 
+// BackfillRoots is the block the backfill root holds: the installed World
+// and the retained roots a backfill copied. Its outgoing refs are the roots.
+type BackfillRoots struct {
+	unknownFields []byte
+	// Roots are the copied roots.
+	Roots []*block1.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
+}
+
+func (x *BackfillRoots) Reset() {
+	*x = BackfillRoots{}
+}
+
+func (*BackfillRoots) ProtoMessage() {}
+
+func (x *BackfillRoots) GetRoots() []*block1.BlockRef {
+	if x != nil {
+		return x.Roots
+	}
+	return nil
+}
+
 // ReplayCursor is the replay a Space engine last saved on this device, so a
 // remount resumes after it instead of replaying from the checkpoint. It names
 // a head World only once the replay cursor root holds that World.
@@ -1126,6 +1147,22 @@ func (m *ReplayPayloads) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *BackfillRoots) CloneVT() *BackfillRoots {
+	if m == nil {
+		return (*BackfillRoots)(nil)
+	}
+	r := new(BackfillRoots)
+	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BackfillRoots) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ReplayCursor) CloneVT() *ReplayCursor {
 	if m == nil {
 		return (*ReplayCursor)(nil)
@@ -1641,6 +1678,26 @@ func (this *ReplayPayloads) EqualVT(that *ReplayPayloads) bool {
 
 func (this *ReplayPayloads) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReplayPayloads)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BackfillRoots) EqualVT(that *BackfillRoots) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block1.BlockRef { return &block1.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BackfillRoots) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BackfillRoots)
 	if !ok {
 		return false
 	}
@@ -2834,6 +2891,69 @@ func (x *ReplayPayloads) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the BackfillRoots message to JSON.
+func (x *BackfillRoots) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Roots) > 0 || s.HasField("roots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Roots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("roots"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BackfillRoots to JSON.
+func (x *BackfillRoots) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BackfillRoots message from JSON.
+func (x *BackfillRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "roots":
+			s.AddField("roots")
+			if s.ReadNil() {
+				x.Roots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Roots = append(x.Roots, nil)
+					return
+				}
+				v := &block1.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Roots = append(x.Roots, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BackfillRoots from JSON.
+func (x *BackfillRoots) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ReplayCursor message to JSON.
 func (x *ReplayCursor) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -4012,6 +4132,50 @@ func (m *ReplayPayloads) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *BackfillRoots) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BackfillRoots) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BackfillRoots) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Roots) > 0 {
+		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ReplayCursor) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4539,6 +4703,20 @@ func (m *ReplayPayloads) SizeVT() (n int) {
 	return n
 }
 
+func (m *BackfillRoots) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Roots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ReplayCursor) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5002,6 +5180,28 @@ func (x *ReplayPayloads) MarshalProtoText() string {
 }
 
 func (x *ReplayPayloads) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BackfillRoots) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BackfillRoots")
+	if len(x.Roots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roots")
+		for i, v := range x.Roots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block1.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BackfillRoots) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6291,6 +6491,62 @@ func (m *ReplayPayloads) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Payloads = append(m.Payloads, &block1.BlockRef{})
 			if err := m.Payloads[len(m.Payloads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BackfillRoots) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BackfillRoots: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BackfillRoots: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Roots = append(m.Roots, &block1.BlockRef{})
+			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

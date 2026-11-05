@@ -181,6 +181,13 @@ message ReplayPayloads {
   repeated .block.BlockRef payloads = 1;
 }
 
+// BackfillRoots is the block the backfill root holds: the installed World
+// and the retained roots a backfill copied. Its outgoing refs are the roots.
+message BackfillRoots {
+  // Roots are the copied roots.
+  repeated .block.BlockRef roots = 1;
+}
+
 // ReplayCursor is the replay a Space engine last saved on this device, so a
 // remount resumes after it instead of replaying from the checkpoint. It names
 // a head World only once the replay cursor root holds that World.
