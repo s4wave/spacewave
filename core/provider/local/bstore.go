@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -80,6 +81,9 @@ type placementState struct {
 	sqlPrimary bool
 	// fallbackFills runs and counts the fills of the SQL read fallback.
 	fallbackFills fallbackFills
+	// cache is the fill cache that takes the blocks read from the backend, or nil
+	// when they fill the local store. A store mounted without a backend has none.
+	cache *block_store_fillcache.Cache
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the volume
@@ -470,6 +474,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// blocks and reclaims backend storage.
 	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
 	placement.tracker, _ = t.a.vol.(childListReader)
+	if backend != nil {
+		placement.cache = t.fillCache()
+	}
 	t.setPlacementBackend(placement, backend)
 	if err := placement.reads.load(ctx, wb); err != nil {
 		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")
