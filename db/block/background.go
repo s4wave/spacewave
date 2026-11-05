@@ -7,9 +7,13 @@ import "context"
 type ReadClass uint8
 
 const (
+	// ReadUrgent is a read made while holding something every write waits
+	// for, such as a World write body under the writer lock. Each such read
+	// delays every queued write, so it goes before every other class.
+	ReadUrgent ReadClass = iota
 	// ReadInteractive is a read a person or a write waits for, such as a
 	// request's own reads. It is the class of an untagged context.
-	ReadInteractive ReadClass = iota
+	ReadInteractive
 	// ReadRefill is a read that brings a view already shown up to date. Its
 	// viewer sees the older state meanwhile, so it yields to interactive reads
 	// but not to background work.
@@ -41,10 +45,20 @@ func WithRaise(ctx context.Context, raised <-chan struct{}) context.Context {
 	return context.WithValue(ctx, readClassKey{}, readDemand{class: ReadClassOf(ctx), raised: raised})
 }
 
-// ReadClassOf returns the class of the reads of ctx.
+// ReadClassOf returns the class of the reads of ctx, ReadInteractive when
+// ctx carries none.
 func ReadClassOf(ctx context.Context) ReadClass {
-	demand, _ := ctx.Value(readClassKey{}).(readDemand)
+	demand, ok := ctx.Value(readClassKey{}).(readDemand)
+	if !ok {
+		return ReadInteractive
+	}
 	return demand.class
+}
+
+// Foreground reports whether someone waits on a read of class c now: an
+// urgent or interactive read, as opposed to a refill or background read.
+func (c ReadClass) Foreground() bool {
+	return c <= ReadInteractive
 }
 
 // Raised returns the channel that raises the reads of ctx to interactive, or

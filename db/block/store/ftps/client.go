@@ -20,8 +20,14 @@ import (
 
 	"github.com/jlaffaye/ftp"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/store/lanes"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 )
+
+// interactiveReserve is how many slots refill and background calls leave for
+// urgent and interactive calls, so a request never waits behind a pool full
+// of them.
+const interactiveReserve = 2
 
 // DefaultMaxSessions is the default most sessions open at once from this
 // client, spares included: the limit of ten sessions per client host that
@@ -50,7 +56,7 @@ const tempPrefix = ".tmp-"
 // takes one control connection from a pool of Config.Conns, so that many calls
 // run in parallel, and a call whose connection dropped redials once. The pool
 // serves calls by the read class of their context (block.ReadClassOf), as
-// slotPool describes.
+// lanes.Pool describes.
 //
 // The FTP commands do not take a context: ctx bounds the wait for a
 // connection, and a started command runs until the server answers or the
@@ -63,7 +69,7 @@ type Client struct {
 	tlsConf *tls.Config
 	// pool holds the slots: each slot is bound to one login and holds a
 	// logged in session, or none when it must dial before use.
-	pool *slotPool
+	pool *lanes.Pool[*slot]
 	// total holds one token for each session open or being dialed, spares
 	// included, which bounds the sessions from this client.
 	total chan struct{}
@@ -84,9 +90,8 @@ type slot struct {
 	// its session early, or nil when none is being dialed. It receives nil
 	// when the dial failed.
 	spare chan *ftp.ServerConn
-	// capped is whether the call holding the slot counts against the pool's
-	// cap on refill and background calls. The pool sets it.
-	capped bool
+	// lease is the pool's grant of the slot to the call holding it.
+	lease *lanes.Lease[*slot]
 }
 
 // NewClient builds a Client. It connects lazily, on the first call. It
@@ -129,7 +134,7 @@ func NewClient(conf Config) *Client {
 	for i := range slots {
 		slots[i] = &slot{login: i % len(conf.Logins)}
 	}
-	c := &Client{conf: conf, tlsConf: tlsConf, pool: newSlotPool(slots), total: make(chan struct{}, maxSessions)}
+	c := &Client{conf: conf, tlsConf: tlsConf, pool: lanes.New(slots, interactiveReserve), total: make(chan struct{}, maxSessions)}
 	for range conf.Logins {
 		c.tokens = append(c.tokens, make(chan struct{}, limit))
 	}
@@ -139,20 +144,20 @@ func NewClient(conf Config) *Client {
 // Conns returns the number of pooled sessions, the concurrency the pool can
 // serve.
 func (c *Client) Conns() int {
-	return c.pool.n
+	return c.pool.Len()
 }
 
 // Close waits for running calls and logs out every session. A later call
 // dials again.
 func (c *Client) Close() {
-	held := make([]*slot, 0, c.pool.n)
-	for range c.pool.n {
-		s, _ := c.pool.take(context.Background())
+	held := make([]*slot, 0, c.pool.Len())
+	for range c.pool.Len() {
+		s, _ := c.takeSlot(context.Background())
 		c.drop(s)
 		held = append(held, s)
 	}
 	for _, s := range held {
-		c.pool.put(s)
+		c.pool.Put(s.lease)
 	}
 }
 
@@ -378,11 +383,21 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 	return err
 }
 
+// takeSlot waits for a slot in the read class of ctx and records its lease.
+func (c *Client) takeSlot(ctx context.Context) (*slot, error) {
+	l, err := c.pool.Take(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	l.Lane.lease = l
+	return l.Lane, nil
+}
+
 // acquire takes a slot and gives it a connection: the spare dialed for it, or
 // a new dial. On error the slot is already back in the pool.
 func (c *Client) acquire(ctx context.Context) (*slot, error) {
 	// Wait for a slot the call's read class may take.
-	s, err := c.pool.take(ctx)
+	s, err := c.takeSlot(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +414,7 @@ func (c *Client) acquire(ctx context.Context) (*slot, error) {
 				c.free(s.login)
 			}
 		case <-ctx.Done():
-			c.pool.put(s)
+			c.pool.Put(s.lease)
 			return nil, context.Cause(ctx)
 		}
 		if s.conn != nil {
@@ -409,13 +424,13 @@ func (c *Client) acquire(ctx context.Context) (*slot, error) {
 
 	// Dial the empty slot under a token of its login.
 	if err := c.take(ctx, s.login); err != nil {
-		c.pool.put(s)
+		c.pool.Put(s.lease)
 		return nil, err
 	}
 	conn, err := c.dial(ctx, s.login)
 	if err != nil {
 		c.free(s.login)
-		c.pool.put(s)
+		c.pool.Put(s.lease)
 		return nil, err
 	}
 	s.conn = conn
@@ -435,7 +450,7 @@ func (c *Client) release(s *slot, err error) {
 		go c.discard(s.login, s.spare)
 		s.spare = nil
 	}
-	c.pool.put(s)
+	c.pool.Put(s.lease)
 }
 
 // startSpare dials a replacement for the slot's session in the background,
@@ -446,7 +461,7 @@ func (c *Client) release(s *slot, err error) {
 func (c *Client) startSpare(ctx context.Context, s *slot) {
 	// Dial one spare per slot, for an interactive call, while the login
 	// has a session to spare.
-	if s.spare != nil || s.capped {
+	if s.spare != nil || s.lease.Capped {
 		return
 	}
 	if !c.tryTake(s.login) {

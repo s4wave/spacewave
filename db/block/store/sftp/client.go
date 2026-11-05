@@ -20,11 +20,11 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
+	"github.com/s4wave/spacewave/db/block/store/lanes"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"golang.org/x/crypto/ssh"
 )
@@ -59,8 +59,22 @@ const (
 const idleTimeout = time.Minute
 
 // maxOpenFiles is the most files kept open on one connection. Past it, the
-// least recently used unused file is closed to make room.
-const maxOpenFiles = 64
+// least recently used unused file is closed to make room. A store of many
+// small packs touches a new pack on most reads, so each handle kept open
+// saves an open and a close on the next read of its pack; OpenSSH's
+// sftp-server keeps each handle as one descriptor of its own process.
+const maxOpenFiles = 256
+
+// requestsPerConn is how many calls one connection runs at once. OpenSSH's
+// sftp-server answers a session's requests one at a time, so calls past the
+// first two only queue at the server, in arrival order, where no read class
+// can reach them. Two keep the server busy across the round trip between
+// answers; the rest wait in the client's lanes, most urgent first.
+const requestsPerConn = 2
+
+// interactiveReserve is how many lanes refill and background calls leave for
+// urgent and interactive calls.
+const interactiveReserve = requestsPerConn
 
 // tempPrefix starts the name of an object being written. ListObjects skips
 // such names.
@@ -69,10 +83,13 @@ const tempPrefix = ".tmp-"
 // Client is a block_store_s3.ObjectStore on an SFTP server.
 //
 // A bucket is a directory relative to the login directory, and a key is a
-// slash path below it; missing directories are created on write. Calls are
-// spread across the connections in turn. A call whose connection failed
-// closes it and runs once more on a fresh one, and the next call on the slot
-// finds the new connection ready.
+// slash path below it; missing directories are created on write. Each call
+// takes a lane, one of requestsPerConn on each connection, in the read class
+// of its context as lanes.Pool describes, and keeps it until the server
+// answers, even when its caller stopped waiting. A range read prefers the
+// connection that already has its object open. A call whose connection
+// failed closes it and runs once more on a fresh one, and the next call on
+// the slot finds the new connection ready.
 //
 // The SFTP requests do not take a context: ctx ends the wait for the result,
 // and a request already sent runs until the server answers or the connection
@@ -84,8 +101,8 @@ type Client struct {
 	sshConf *ssh.ClientConfig
 	// slots holds one entry per SSH connection.
 	slots []*slot
-	// next counts calls, to pick the slot of the next.
-	next atomic.Uint32
+	// lanes admits the calls, requestsPerConn per slot.
+	lanes *lanes.Pool[*slot]
 	// dials holds a token for each handshake in progress.
 	dials chan struct{}
 }
@@ -160,6 +177,11 @@ func NewClient(conf Config) (*Client, error) {
 	for range conf.Conns {
 		c.slots = append(c.slots, &slot{c: c})
 	}
+	var all []*slot
+	for range requestsPerConn {
+		all = append(all, c.slots...)
+	}
+	c.lanes = lanes.New(all, interactiveReserve)
 	return c, nil
 }
 
@@ -263,7 +285,7 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 	// Read the range on one connection.
 	name := path.Join(bucket, key)
 	var out []byte
-	err := c.do(ctx, func(cn *conn) error {
+	err := c.doOn(ctx, name, func(cn *conn) error {
 		// Take the open file, and read exactly length bytes from it.
 		of, err := cn.acquire(name)
 		if err != nil {
@@ -362,19 +384,56 @@ func (c *Client) forget(name string) {
 	}
 }
 
-// do runs fn on the connection of the next slot, dialing it when the slot has
-// none. When fn fails on the connection itself, rather than with a server
-// reply, the connection is closed and fn runs once more on a fresh one, since
-// an idle connection the server closed fails only on first use.
+// do runs fn on a lane of any connection; see doOn.
 func (c *Client) do(ctx context.Context, fn func(cn *conn) error) error {
-	s := c.slots[c.next.Add(1)%uint32(len(c.slots))] //nolint:gosec // the slot count is small.
+	return c.doOn(ctx, "", fn)
+}
+
+// doOn waits for a lane in the read class of ctx, preferring a connection
+// with the file name open, and runs fn on the lane's connection, dialing it
+// when the slot has none. It returns fn's result, or the context's cause
+// when ctx ends first; fn then runs on and holds its lane until the server
+// answers, so the lanes count every request the server holds.
+func (c *Client) doOn(ctx context.Context, name string, fn func(cn *conn) error) error {
+	// Wait for a lane.
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	var prefer func(*slot) bool
+	if name != "" {
+		prefer = func(s *slot) bool { return s.hasOpen(name) }
+	}
+	l, err := c.lanes.Take(ctx, prefer)
+	if err != nil {
+		return err
+	}
+
+	// Run fn under the lane, returning early when ctx ends.
+	done := make(chan error, 1)
+	go func() {
+		defer c.lanes.Put(l)
+		done <- l.Lane.run(ctx, fn)
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
+}
+
+// run runs fn on the slot's connection, dialing it when the slot has none.
+// When fn fails on the connection itself, rather than with a server reply,
+// the connection is closed and fn runs once more on a fresh one, since an
+// idle connection the server closed fails only on first use.
+func (s *slot) run(ctx context.Context, fn func(cn *conn) error) error {
 	var err error
 	for range 2 {
 		var cn *conn
 		if cn, err = s.connect(ctx); err != nil {
 			return err
 		}
-		if err = call(ctx, func() error { return fn(cn) }); err == nil || isReply(err) || ctx.Err() != nil {
+		if err = fn(cn); err == nil || isReply(err) || ctx.Err() != nil {
 			return err
 		}
 		s.reset(cn)
@@ -382,20 +441,15 @@ func (c *Client) do(ctx context.Context, fn func(cn *conn) error) error {
 	return err
 }
 
-// call runs fn and returns its result, or the context's cause when ctx ends
-// first. The request fn made keeps running in that case.
-func call(ctx context.Context, fn func() error) error {
-	if ctx.Err() != nil {
-		return context.Cause(ctx)
+// hasOpen reports whether the slot's connection has the file name open or
+// opening. It never waits: a slot busy dialing reports false. It runs under
+// the lanes' lock, which the slot's lock never waits for.
+func (s *slot) hasOpen(name string) bool {
+	if !s.mu.TryLock() {
+		return false
 	}
-	done := make(chan error, 1)
-	go func() { done <- fn() }()
-	select {
-	case err := <-done:
-		return err
-	case <-ctx.Done():
-		return context.Cause(ctx)
-	}
+	defer s.mu.Unlock()
+	return s.conn != nil && s.conn.files[name] != nil
 }
 
 // connect returns the slot's connection, dialing it first when it has none.
@@ -564,10 +618,9 @@ func (cn *conn) acquire(name string) (*openFile, error) {
 	cn.arm()
 	s.mu.Unlock()
 
-	// Close the evicted files, then open this one without holding the slot.
-	for _, f := range closing {
-		_ = f.Close()
-	}
+	// Close the evicted files without waiting for their answers, and open
+	// this one without holding the slot.
+	closeFiles(closing)
 	of.f, of.err = cn.sftp.Open(name)
 
 	// Publish the result to the reads waiting on the open.
@@ -602,8 +655,25 @@ func (cn *conn) release(name string, of *openFile, err error) {
 
 	// Close a dropped file the last read left.
 	if closing != nil {
-		_ = closing.Close()
+		closeFiles([]*sftp.File{closing})
 	}
+}
+
+// closeFiles closes files in the background. The server answers a session's
+// requests in order, so a close sent ahead of an open delays it by the
+// close's own work, but the caller no longer waits a round trip for each
+// answer. A close that fails leaves only a handle the session's end frees.
+func closeFiles(files []*sftp.File) {
+	if len(files) == 0 {
+		return
+	}
+	go func() {
+		for _, f := range files {
+			if f != nil {
+				_ = f.Close()
+			}
+		}
+	}()
 }
 
 // unlink removes the file from the cache and marks it dropped. The caller
@@ -679,9 +749,7 @@ func (cn *conn) sweep() {
 	s.mu.Unlock()
 
 	// Close them outside the slot.
-	for _, f := range closing {
-		_ = f.Close()
-	}
+	closeFiles(closing)
 }
 
 // isReply reports whether err is an answer of the server, which leaves the

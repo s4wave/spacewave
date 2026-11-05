@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -103,6 +104,8 @@ func (q *Queue) take() []*queuedWrite {
 
 // drain forks a batch for the pending writes until none remain. A batch
 // transaction outlives any one writer, so it runs under no writer's context.
+// Every queued write waits while a batch runs, so its block reads are urgent
+// (block.ReadUrgent) and go ahead of every other read on a bounded link.
 func (q *Queue) drain() {
 	// Return a prepared claim even when every waiting writer left.
 	var preparation world.AdmissionPreparation
@@ -111,7 +114,7 @@ func (q *Queue) drain() {
 			preparation.Release()
 		}
 	}()
-	ctx := q.ctx
+	ctx := block.WithReadClass(q.ctx, block.ReadUrgent)
 	for {
 		// Stop when no write waits.
 		q.mtx.Lock()

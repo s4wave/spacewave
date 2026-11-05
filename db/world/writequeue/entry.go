@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -98,8 +99,9 @@ func (w *queuedWrite) run(q *Queue, tx Transaction, spans *bodySpans) (bool, err
 		return false, context.Cause(w.ctx)
 	}
 
-	// Authorize and apply the body in the attempt's auxiliary context.
-	ctx := spans.attach(context.WithValue(tx.BodyContext(w.ctx), batchedWriteKey{}, q))
+	// Authorize and apply the body in the attempt's auxiliary context. The
+	// body runs under the writer lock, so its reads are urgent.
+	ctx := spans.attach(block.WithReadClass(context.WithValue(tx.BodyContext(w.ctx), batchedWriteKey{}, q), block.ReadUrgent))
 	for _, check := range w.checks {
 		if err := check(ctx, tx); err != nil {
 			return false, err

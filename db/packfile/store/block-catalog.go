@@ -64,7 +64,7 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		return nil
 	}
 	if started {
-		e.startIndexLoad(cache, parsed)
+		e.startIndexLoad(indexLoadContext(e.ctx, ctx), cache, parsed)
 	}
 
 	// Wait for the load to finish, the caller to cancel, or the reader to close.
@@ -84,9 +84,22 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 	return err
 }
 
+// indexLoadContext returns the context an index load started by a read under
+// demand runs in: the reader's lifetime, urgent when the read is. A load
+// started by a less urgent read keeps the interactive class of the untagged
+// lifetime, since a later interactive reader may join it and no raise reaches
+// a load once it started.
+func indexLoadContext(lifetime, demand context.Context) context.Context {
+	if block.ReadClassOf(demand) == block.ReadUrgent {
+		return block.WithReadClass(lifetime, block.ReadUrgent)
+	}
+	return lifetime
+}
+
 // startIndexLoad loads and publishes the pack index under the PackReader
-// lifetime. parsed selects the parsed index layout over the in-place one.
-func (e *PackReader) startIndexLoad(cache IndexCache, parsed bool) {
+// lifetime, in the read class of ctx, a context derived from that lifetime.
+// parsed selects the parsed index layout over the in-place one.
+func (e *PackReader) startIndexLoad(ctx context.Context, cache IndexCache, parsed bool) {
 	startOwnerWork(func() {
 		// Hold the reader open until this job finishes.
 		defer e.finishOwnerWork()
@@ -96,7 +109,7 @@ func (e *PackReader) startIndexLoad(cache IndexCache, parsed bool) {
 		var index blockIndex
 		var err error
 		if cache != nil {
-			cached, ok, cacheErr := cache.Get(e.ctx, e.packID)
+			cached, ok, cacheErr := cache.Get(ctx, e.packID)
 			if cacheErr != nil {
 				e.recordIndexCacheReadError()
 			} else if ok {
@@ -115,10 +128,10 @@ func (e *PackReader) startIndexLoad(cache IndexCache, parsed bool) {
 		// Load and cache the remote index tail when cached entries are unavailable.
 		if index == nil {
 			before := e.snapshotFetchedBytes()
-			tail, index, err = e.readIndex(e.ctx, parsed)
+			tail, index, err = e.readIndex(ctx, parsed)
 			e.recordRemoteIndexLoad(e.snapshotFetchedBytes() - before)
 			if err == nil && cache != nil {
-				if cacheErr := cache.Set(e.ctx, e.packID, tail); cacheErr != nil {
+				if cacheErr := cache.Set(ctx, e.packID, tail); cacheErr != nil {
 					e.recordIndexCacheWriteError()
 				}
 			}

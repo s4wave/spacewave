@@ -257,9 +257,7 @@ func TestClientPool(t *testing.T) {
 		})
 	}
 	for {
-		five.pool.mu.Lock()
-		held, queued := five.pool.cappedHeld, len(five.pool.other)
-		five.pool.mu.Unlock()
+		held, queued := five.pool.Held()
 		if held > 3 {
 			t.Fatalf("refills hold %d slots; want at most 3", held)
 		}

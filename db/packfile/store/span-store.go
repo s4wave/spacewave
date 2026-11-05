@@ -94,7 +94,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64) (*span,
 			e.loading = make(map[fetchKey]*fetchLoad)
 		}
 		load = &fetchLoad{done: make(chan struct{}), class: block.ReadClassOf(ctx)}
-		if load.class != block.ReadInteractive {
+		if !load.class.Foreground() {
 			load.promote = make(chan struct{})
 			promote = load.promote
 		}
