@@ -284,7 +284,7 @@ func (t *bstoreTracker) openBackendStore(
 	if location := backend.GetSql(); location != nil {
 		return buildSQLBlockStore(ctx, le, location, t.id, creds)
 	}
-	return buildS3BlockStore(le, backend.GetS3(), t.id, creds)
+	return buildS3BlockStore(le, backend.GetS3(), t.id, creds, t.packIndexStore())
 }
 
 // openFallbackStore opens the SQL backend the store reads after its own
@@ -340,16 +340,16 @@ func SetSQLMaxConns(n int) {
 }
 
 // packIndexStores maps the storage volume ID of an account to the store its
-// FTPS pack indexes live in, as SetPackIndexStore registered it.
+// pack indexes live in, as SetPackIndexStore registered it.
 var packIndexStores sync.Map
 
-// SetPackIndexStore keeps the pack indexes of the FTPS placed block stores of
-// the account providerID/accountID in store instead of the account volume. It
-// must be called before the account starts, since the account mounts its
-// placed block stores as it starts. Each index keeps its block store's key
-// prefix, so the keys match the ones the volume would hold and a copy moves
-// them unchanged. A nil store returns the account to its volume. The caller
-// keeps store open while the account runs.
+// SetPackIndexStore keeps the pack indexes of the FTPS and S3 placed block
+// stores of the account providerID/accountID in store instead of the account
+// volume. It must be called before the account starts, since the account
+// mounts its placed block stores as it starts. Each index keeps its block
+// store's key prefix, so the keys match the ones the volume would hold and a
+// copy moves them unchanged. A nil store returns the account to its volume.
+// The caller keeps store open while the account runs.
 func SetPackIndexStore(providerID, accountID string, store kvtx.Store) {
 	id := StorageVolumeID(providerID, accountID)
 	if store == nil {
@@ -360,8 +360,8 @@ func SetPackIndexStore(providerID, accountID string, store kvtx.Store) {
 }
 
 // packIndexStore returns the key space for the pack index of the block store's
-// FTPS packs: the account's registered pack index store when it has one, else
-// the account volume's, or nil when the volume has no key/value store.
+// packs: the account's registered pack index store when it has one, else the
+// account volume's, or nil when the volume has no key/value store.
 func (t *bstoreTracker) packIndexStore() kvtx.Store {
 	prefix := block_store_s3.PackIndexPrefix(t.id)
 	id := StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID())

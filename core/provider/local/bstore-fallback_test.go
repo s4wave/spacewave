@@ -243,7 +243,7 @@ func (f *fallbackTest) openPacks() backendStore {
 		Bucket:     "spaces",
 		DisableSsl: true,
 		KeepPacks:  true,
-	}, "world", &block_store_s3.Credentials{AccessKeyId: "key", SecretAccessKey: "secret"})
+	}, "world", &block_store_s3.Credentials{AccessKeyId: "key", SecretAccessKey: "secret"}, nil)
 	if err != nil {
 		f.t.Fatal(err)
 	}
