@@ -80,6 +80,9 @@ type placementState struct {
 	// cache is the fill cache that takes the blocks read from the backend, or nil
 	// when they fill the local store. A store mounted without a backend has none.
 	cache *block_store_fillcache.Cache
+	// front is read after the local store misses and before the fill cache
+	// and the backend, or nil.
+	front block.StoreOps
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the
@@ -482,6 +485,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
 	if backend != nil {
 		placement.cache = t.fillCache()
+		placement.front = t.packFront()
 	}
 	t.setPlacementBackend(placement, backend)
 	if err := placement.reads.load(ctx, wb); err != nil {

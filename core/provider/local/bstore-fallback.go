@@ -92,6 +92,31 @@ func (p *placementState) readChains(
 // cache is read between the two. Without one, a backend hit fills the local
 // store.
 func (p *placementState) packReads(recorded block.StoreOps, remote block_store.StoreSource) block.StoreOps {
+	// Read the front store, when registered, before the cache and the packs.
+	if p.front != nil {
+		front, lower := p.front, p.cacheReads(recorded, remote)
+		return block_store.NewStoreReadThrough(
+			func() block.StoreOps { return recorded },
+			func() block.StoreOps {
+				return block_store.NewStoreReadThrough(func() block.StoreOps { return front }, lower, nil)
+			},
+			nil,
+		)
+	}
+	return p.packReadsBehind(recorded, remote)
+}
+
+// cacheReads returns the source below the local store: the fill cache over
+// the backend, or the backend alone.
+func (p *placementState) cacheReads(recorded block.StoreOps, remote block_store.StoreSource) block_store.StoreSource {
+	if p.cache == nil {
+		return remote
+	}
+	return p.cache.Reads(remote)
+}
+
+// packReadsBehind is packReads without a front store.
+func (p *placementState) packReadsBehind(recorded block.StoreOps, remote block_store.StoreSource) block.StoreOps {
 	if p.cache == nil {
 		return block_store.NewStoreReadThrough(
 			func() block.StoreOps { return recorded },
