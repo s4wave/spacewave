@@ -53,8 +53,8 @@ func (l *logReader) next() (*record, bool) {
 	return r, true
 }
 
-// window returns the bytes from pos to the chunk end, reading ahead at least
-// logWindow bytes.
+// window returns the bytes from pos that the buffer holds, at least the
+// record at pos, reading ahead by a window that doubles up to logWindow.
 func (l *logReader) window() []byte {
 	// Serve a record that the buffer already holds whole.
 	if l.pos >= l.off && l.pos+recordHeader <= l.off+uint64(len(l.buf)) {
@@ -75,8 +75,10 @@ func (l *logReader) window() []byte {
 		return nil
 	}
 
-	// Refill from pos, reading at least the next record when it is large.
-	want := max(logWindow, uint64(binary.LittleEndian.Uint32(hdr[:])))
+	// Refill from pos with at least the next record. The window starts at
+	// that record and doubles with each refill up to logWindow, so a tail
+	// that finds one record reads only it, and a long replay reads ahead.
+	want := max(min(logWindow, 2*uint64(len(l.buf))), uint64(binary.LittleEndian.Uint32(hdr[:])))
 	want = min(want, l.end-l.pos)
 	l.buf = make([]byte, want)
 	n, _ := l.r.ReadAt(l.buf, fileOff(l.pos))
