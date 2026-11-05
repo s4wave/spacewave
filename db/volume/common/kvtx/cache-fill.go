@@ -48,8 +48,10 @@ type fillQueue struct {
 // few commits, and a publication waits behind one bounded batch at most.
 //
 // The first fill queued with no drain running starts one, which writes batches
-// until the queue is empty, so no caller works through the fills of others. A
-// caller whose context ends stops waiting; its fill is still written.
+// until the queue is empty, so no caller works through the fills of others.
+// The drain waits behind every foreground writer, since a fill is a copy the
+// next read can redo. A caller whose context ends stops waiting; its fill is
+// still written.
 func (v *Volume) prepareCacheFill(ctx context.Context, owner string, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Queue the fill, and drain the queue if no caller is.
 	fill := &cacheFill{owner: owner, data: data, opts: opts, mark: kvtx.GetBlockMarkRequest(ctx), done: make(chan struct{})}
@@ -60,7 +62,7 @@ func (v *Volume) prepareCacheFill(ctx context.Context, owner string, data []byte
 	q.draining = true
 	q.mu.Unlock()
 	if drain {
-		go v.drainCacheFills(kvtx.WithBlockMarkRequest(context.WithoutCancel(ctx), nil))
+		go v.drainCacheFills(kvtx.WithBackgroundWriteContext(kvtx.WithBlockMarkRequest(context.WithoutCancel(ctx), nil)))
 	}
 
 	// Wait for the batch holding the fill.

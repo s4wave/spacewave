@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -14,7 +15,8 @@ import (
 // error ends the pass after the batches it let through. The next passes walk
 // the rest over several batches, each resuming where the last stopped: every
 // entry is evicted or kept exactly once, and a kept entry waits for the pass
-// after.
+// after. Reading every block back refills them in batched steps, and the next
+// pass evicts them again.
 func TestEvictAdmitPacesBatches(t *testing.T) {
 	// Open a placed store.
 	ctx := t.Context()
@@ -24,6 +26,7 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 	const total = 3*evictBatchBlocks + 10
 	var size int64
 	kept := make(map[string]bool)
+	var refs []*block.BlockRef
 	for i := range total {
 		data := fmt.Appendf(nil, "block-%05d", i)
 		size = int64(len(data))
@@ -31,6 +34,7 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		refs = append(refs, ref)
 		if i%3 == 0 {
 			kept[ref.GetHash().MarshalString()] = true
 		}
@@ -101,5 +105,37 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 	}
 	if result.Evicted != requeued || result.Requeued != 0 {
 		t.Fatalf("third pass = %+v, want %d evicted", result, requeued)
+	}
+
+	// Read every block back from the remote in one burst: the fills commit in
+	// a few batched steps, restoring the values and the queue's bytes.
+	status, _ := s.GetStatus()
+	before := status.EvictableBytes
+	for _, ref := range refs {
+		stored, err := remote.GetStoredBlock(ctx, ref)
+		if err != nil || stored == nil {
+			t.Fatalf("remote read %s: %v", ref.MarshalString(), err)
+		}
+		s.Refill(ref, stored)
+	}
+	waitStatus(t, s, func(st Status) bool { return st.Refills == int64(len(refs)) })
+	held, err := s.values.GetBlockExistsBatch(ctx, refs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, ok := range held {
+		if !ok {
+			t.Fatalf("refill %s not stored", refs[i].MarshalString())
+		}
+	}
+	status, _ = s.GetStatus()
+	if want := before + int64(len(refs))*size; status.EvictableBytes != want || status.DroppedFills != 0 {
+		t.Fatalf("after refills evictable=%d dropped=%d, want %d and 0", status.EvictableBytes, status.DroppedFills, want)
+	}
+
+	// The refilled blocks are queued for eviction again.
+	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result.Evicted != len(refs) {
+		t.Fatalf("pass after the refills = %+v, %v, want %d evicted", result, err, len(refs))
 	}
 }

@@ -5,11 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // TestWriterLockOrder walks a handle's writer lock through a queue: a
-// checkpoint step goes before a writer that arrived earlier, the waiting
-// check sees both, and the lock is free after the last release.
+// checkpoint step goes before a writer that arrived earlier, a background
+// writer goes after both, the waiting check sees only the foreground ones,
+// and the lock is free after the last release.
 func TestWriterLockOrder(t *testing.T) {
 	// Hold the lock, without the background compactor.
 	ctx := context.Background()
@@ -29,11 +32,15 @@ func TestWriterLockOrder(t *testing.T) {
 		t.Fatal("a writer waits on an uncontended lock")
 	}
 
-	// Queue a writer, then a checkpoint step.
-	order := make(chan string, 2)
-	wait := func(name string, first bool, prio int) {
+	// Queue a background writer, a writer, then a checkpoint step.
+	order := make(chan string, 3)
+	wait := func(name string, wctx context.Context, prio int) {
 		go func() {
-			if err := w.lockAs(ctx, first); err != nil {
+			lock := w.lock
+			if prio == prioCheckpoint {
+				lock = w.lockFirst
+			}
+			if err := lock(wctx); err != nil {
 				t.Error(err)
 				return
 			}
@@ -43,14 +50,18 @@ func TestWriterLockOrder(t *testing.T) {
 			time.Sleep(time.Millisecond)
 		}
 	}
-	wait("writer", false, prioWriter)
+	wait("background", kvtx.WithBackgroundWriteContext(ctx), prioBackground)
+	if db.WritersWaiting() {
+		t.Fatal("a waiting background writer is reported as a writer")
+	}
+	wait("writer", ctx, prioWriter)
 	if !db.WritersWaiting() {
 		t.Fatal("the waiting writer is not reported")
 	}
-	wait("checkpoint", true, prioCheckpoint)
+	wait("checkpoint", ctx, prioCheckpoint)
 
 	// Each release grants exactly the next waiter.
-	for _, want := range []string{"checkpoint", "writer"} {
+	for _, want := range []string{"checkpoint", "writer", "background"} {
 		w.unlock(nil)
 		if got := <-order; got != want {
 			t.Fatalf("granted %q, want %q", got, want)

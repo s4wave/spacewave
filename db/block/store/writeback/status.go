@@ -38,6 +38,10 @@ type Status struct {
 	// Refills is the number of evicted blocks read back from the remote since
 	// the store opened. Each one was a read that waited on the remote.
 	Refills int64
+	// DroppedFills is the number of blocks read from the remote that were
+	// not stored locally since the store opened, because the fill queue was
+	// full or its write failed. The next read of each reads the remote again.
+	DroppedFills int64
 	// Copy reports the latest copy of the stored blocks to a remote.
 	Copy CopyStatus
 }

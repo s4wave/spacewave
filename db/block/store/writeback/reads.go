@@ -74,7 +74,8 @@ func (s *Store) SaveReads(ctx context.Context, generation time.Time, keys []byte
 	key = append(key, '/')
 	key = appendReadsStamp(key, time.Now())
 
-	// Write the chunk.
+	// Write the chunk behind every foreground writer.
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 	return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		return tx.Set(ctx, key, bytes.Clone(keys))
 	})
@@ -109,7 +110,9 @@ func (s *Store) LoadReads(ctx context.Context) ([]ReadChunk, error) {
 // DropReadsBefore deletes the saved reads of the generations started before
 // generation.
 func (s *Store) DropReadsBefore(ctx context.Context, generation time.Time) error {
-	// Delete the older chunks in one transaction.
+	// Delete the older chunks in one transaction, behind every foreground
+	// writer.
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 	return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Collect the keys of the older generations, then delete them.
 		var drop [][]byte

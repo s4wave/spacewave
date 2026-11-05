@@ -89,6 +89,8 @@ type Store struct {
 	lowered uint64
 	// reads bounds the upload's local reads in flight by the disk's load.
 	reads *readGate
+	// fills queues blocks read from the remote for their local writes.
+	fills fillQueue
 }
 
 // GetStoreParts returns the local store that holds every block.
@@ -450,6 +452,12 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // write changed the queue entry's value, and the block is on the local store
 // alone.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
+	// Read what the clear reads before taking any lock, so the reads under
+	// the writer lock find their pages cached. A writer that queues a marker
+	// takes the same locks, so the clear runs at writer priority, and the
+	// warm reads bound how long it holds them.
+	s.prefetchClear(ctx, batch)
+
 	// Serialize uploaded marker removal with queue status updates.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
@@ -543,6 +551,34 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		broadcast()
 	})
 	return nil
+}
+
+// prefetchClear reads the keys clear reads, in a read transaction that holds
+// no lock. It only warms the store's cache, so a failure is ignored and leaves
+// clear to read the pages itself.
+func (s *Store) prefetchClear(ctx context.Context, batch []pendingBlock) {
+	_ = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read the epoch and each pending block's queue and evict keys.
+		epoch, err := readEpoch(ctx, tx)
+		if err != nil {
+			return err
+		}
+		for _, pending := range batch {
+			if _, _, err := tx.Get(ctx, pending.queueKey); err != nil {
+				return err
+			}
+			if _, err := tx.Exists(ctx, evictKey(epoch, pending.ref.GetHash())); err != nil {
+				return err
+			}
+		}
+
+		// Read the resident count and the head of the queue.
+		if _, err := readEvictableBytes(ctx, tx); err != nil {
+			return err
+		}
+		floor, _ := s.readFloor()
+		return scanQueue(ctx, tx, floor, func(queueItem) error { return errScanDone })
+	})
 }
 
 // SetError records an upload failure in the status, such as a remote store

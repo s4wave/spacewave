@@ -168,14 +168,13 @@ func (s Status) EvictBytes() int64 {
 // deltas commute, so concurrent transactions project in any order. A change
 // of nothing wakes no watcher, so a budget watcher whose pass changed nothing
 // waits for the next write.
-func (s *Store) addEvictStatus(evictable, evicted, refills int64) {
-	if evictable == 0 && evicted == 0 && refills == 0 {
+func (s *Store) addEvictStatus(evictable, evicted int64) {
+	if evictable == 0 && evicted == 0 {
 		return
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.status.EvictableBytes += evictable
 		s.status.EvictedBytes += evicted
-		s.status.Refills += refills
 		broadcast()
 	})
 }
@@ -187,65 +186,6 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 		return 0, err
 	}
 	return strconv.ParseUint(string(value), 10, 64)
-}
-
-// Refill writes a block read back from the remote store into the local
-// values and queues it for eviction at the current epoch. It changes no
-// ownership, so call it only for a block the reference graph still tracks.
-func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
-	// Commit ordered: the remote holds the block, so a crash that loses the
-	// refill loses nothing, and a refill per read must not each wait on a
-	// flush to the drive that other writes share.
-	ctx = kvtx.WithOrderedCommitContext(ctx)
-
-	// Write the value below the ownership layer.
-	if _, _, err := s.values.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
-		return errors.Wrap(err, "refill block")
-	}
-	return s.queueRefill(ctx, ref, int64(len(stored.Data)), 1)
-}
-
-// CacheFill stores a remotely read block with its child refs but no ownership,
-// then accounts for its local value and queues it for eviction. It creates no
-// upload marker; eviction must verify the placement's remote holds the value
-// before dropping it, including when this read came from a peer.
-func (s *Store) CacheFill(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
-	// Preserve the child refs of a block the local graph does not yet track.
-	// Cache values are disposable, so their commits need not wait for a flush.
-	ctx = kvtx.WithOrderedCommitContext(ctx)
-	opts := stored.PutOpts(ref)
-	opts.CacheFill = true
-	if _, _, err := s.local.PutBlock(ctx, stored.Data, opts); err != nil {
-		return errors.Wrap(err, "cache remote block")
-	}
-	return s.queueRefill(ctx, ref, int64(len(stored.Data)), 0)
-}
-
-// queueRefill accounts for a cached local value; eviction verifies its remote
-// copy before dropping it. refills counts reads of previously evicted values,
-// excluding first-time cache fills of blocks the graph did not track.
-func (s *Store) queueRefill(ctx context.Context, ref *block.BlockRef, size, refills int64) error {
-	// Queue the refilled block for eviction.
-	var added int64
-	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		// Queue the entry at the current epoch and count its bytes.
-		epoch, err := readEpoch(ctx, tx)
-		if err != nil {
-			return err
-		}
-		added, err = queueEvict(ctx, tx, epoch, ref.GetHash(), size)
-		if err != nil {
-			return err
-		}
-		return addEvictableBytes(ctx, tx, added)
-	})
-	if err != nil {
-		return errors.Wrap(err, "queue refilled block")
-	}
-
-	// Publish the committed resident bytes and refill count to watchers.
-	s.addEvictStatus(added, 0, refills)
-	return nil
 }
 
 // Evict runs one eviction pass, one at a time: it advances the epoch, then walks the queue
@@ -275,7 +215,8 @@ func (s *Store) Evict(
 	// Commit the pass ordered: it drops only values the remote holds, so a
 	// crash that loses its commits leaves values the next pass drops again,
 	// and its writes must not each wait on a flush that other writes share.
-	ctx = kvtx.WithOrderedCommitContext(ctx)
+	// Its writes wait behind every foreground writer.
+	ctx = kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(ctx))
 
 	// Serialize the pass with other passes.
 	var result EvictResult
@@ -443,7 +384,7 @@ func (s *Store) evictBatch(
 	}
 
 	// Report the batch.
-	s.addEvictStatus(delta, evictedBytes, 0)
+	s.addEvictStatus(delta, evictedBytes)
 	result.EvictedBytes += evictedBytes
 	result.Requeued += len(requeue)
 	return next, done, nil

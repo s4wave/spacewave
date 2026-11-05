@@ -129,14 +129,12 @@ func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *
 		// Account for every cached value, including a block whose graph was
 		// omitted during migration. An untracked fill also records child refs
 		// without taking ownership; eviction checks the target before dropping
-		// either value, including a fill served by a peer.
+		// either value, including a fill served by a peer. Both queue behind
+		// the volume's writers.
 		if tracked[0] {
-			err = p.wb.Refill(ctx, ref, stored)
+			p.wb.Refill(ref, stored)
 		} else {
-			err = p.wb.CacheFill(ctx, ref, stored)
-		}
-		if err != nil {
-			return err
+			p.wb.CacheFill(ref, stored)
 		}
 
 		// Keep a remote hit hot for the same interval as a local hit.

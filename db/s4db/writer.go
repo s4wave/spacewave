@@ -11,13 +11,17 @@ import (
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // Priorities of the writer lock.
 const (
+	// prioBackground is the priority of write transactions opened with
+	// kvtx.WithBackgroundWriteContext, which wait behind every writer.
+	prioBackground = iota - 1
 	// prioWriter is the priority of write transactions and other foreground
 	// holders.
-	prioWriter = iota
+	prioWriter
 	// prioCheckpoint is the priority of background checkpoint steps.
 	prioCheckpoint
 )
@@ -98,26 +102,27 @@ type writer struct {
 }
 
 // lock takes the writer lock and brings the writer up to date with records
-// other processes appended. Waiting for another process cannot be
+// other processes appended, behind every writer when ctx carries
+// kvtx.WithBackgroundWriteContext. Waiting for another process cannot be
 // canceled; ctx bounds the wait for this handle's writers.
 func (w *writer) lock(ctx context.Context) error {
-	return w.lockAs(ctx, false)
+	if kvtx.IsBackgroundWriteContext(ctx) {
+		return w.lockAs(ctx, prioBackground)
+	}
+	return w.lockAs(ctx, prioWriter)
 }
 
 // lockFirst takes the writer lock as lock does, ahead of queued writers. A
 // background checkpoint step uses it, so the build waits out one transaction
 // rather than the queue, and holds the lock only briefly.
 func (w *writer) lockFirst(ctx context.Context) error {
-	return w.lockAs(ctx, true)
+	return w.lockAs(ctx, prioCheckpoint)
 }
 
-// lockAs takes the writer lock, ahead of queued writers when first is set.
-func (w *writer) lockAs(ctx context.Context, first bool) error {
+// lockAs takes the writer lock at prio, ahead of queued holders of a lower
+// prio.
+func (w *writer) lockAs(ctx context.Context, prio int) error {
 	// Exclude this handle's writers, then other processes.
-	prio := prioWriter
-	if first {
-		prio = prioCheckpoint
-	}
 	release, err := w.mtx.Lock(ctx, prio)
 	if err != nil {
 		return err
