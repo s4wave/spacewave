@@ -12,7 +12,6 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/sirupsen/logrus"
@@ -41,14 +40,14 @@ func (staticAccess) Release() {}
 // lookup and its handle.
 type archive struct {
 	le       *logrus.Entry
-	db       *s4db.DB
+	db       kvtx.Store
 	keys     *store_kvkey.KVKey
 	bucketID string
 }
 
 // GetControllerInfo returns the controller info.
 func (a *archive) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("archive-peer/lookup", controller.MustParseVersion("0.0.1"), "serves a stopped s4db file's blocks")
+	return controller.NewInfo("archive-peer/lookup", controller.MustParseVersion("0.0.1"), "serves a stopped file's blocks")
 }
 
 // Execute does nothing: the archive answers directives.
