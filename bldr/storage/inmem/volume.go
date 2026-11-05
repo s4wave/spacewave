@@ -133,7 +133,7 @@ func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (vol
 		VolumeControllerID,
 		kvkey,
 		store,
-		nil,
+		st.storeConf,
 		false,
 		false,
 		nil,

@@ -92,6 +92,10 @@ type Adapter struct {
 	// payloads are the payload roots the replay payloads root holds. Guarded
 	// by rootMtx.
 	payloads []*block.BlockRef
+	// cursorWorlds, pendingWorlds and checkpointWorlds are the Worlds the
+	// replay cursor, pending and checkpoint roots hold, each until a
+	// checkpoint covers them.
+	cursorWorlds, pendingWorlds, checkpointWorlds worldHistory
 	// watchMtx serializes the head watchers' callbacks.
 	watchMtx sync.Mutex
 
@@ -171,6 +175,10 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		unmatched: make(map[string]spacePosition),
 		fences:    make(map[string]*spaceFence),
 		held:      make(map[string]*block.BlockRef),
+
+		cursorWorlds:     worldHistory{name: RootReplayCursor},
+		pendingWorlds:    worldHistory{name: RootPending},
+		checkpointWorlds: worldHistory{name: RootCheckpoint},
 	}
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
@@ -380,12 +388,18 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 		state = a.headState
 	})
 
+	// Choose the engine's options.
+	engineOpts := []world_block.EngineOption{world_block.WithRecordedOperations()}
+	if a.opts.ReaderPinDelay != nil {
+		engineOpts = append(engineOpts, world_block.WithReaderPinDelay(*a.opts.ReaderPinDelay))
+	}
+
 	// Open the engine there and publish it.
 	cursor, err := a.newCursor(ctx, state.GetHeadRef())
 	if err != nil {
 		return nil, err
 	}
-	bengine, err := world_block.NewEngine(ctx, a.le, cursor, a.lookupOp, a, a.opts.Verbose, world_block.WithRecordedOperations())
+	bengine, err := world_block.NewEngine(ctx, a.le, cursor, a.lookupOp, a, a.opts.Verbose, engineOpts...)
 	if err != nil {
 		cursor.Release()
 		return nil, err
@@ -552,8 +566,15 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, error) {
 	}
 	state, _ := r.stateBefore(n)
 
-	// Hold it, then return it.
-	if err := a.moveRoots(ctx, nil, block.NamedRoot{Name: RootCheckpoint, Ref: state.GetHeadRef().GetRootRef()}); err != nil {
+	// Hold it beside every World returned since the last install, then
+	// return it.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = a.addHistory(ctx, &a.checkpointWorlds, state.GetHeadRef().GetRootRef())
+	release()
+	if err != nil {
 		return nil, err
 	}
 	return state.MarshalVT()
@@ -630,10 +651,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 
 	// Hold it as the replay base, releasing the checkpoint root.
 	baseRoot := base.GetHeadRef().GetRootRef()
-	if err := a.moveRoots(ctx, nil,
-		block.NamedRoot{Name: RootReplayBase, Ref: baseRoot},
-		block.NamedRoot{Name: RootCheckpoint},
-	); err != nil {
+	if err := a.holdBase(ctx, baseRoot); err != nil {
 		return false, err
 	}
 	seqno, err := r.seqno(ctx, base)
@@ -658,6 +676,11 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		r.restored = nil
 	}
 
+	// Trim the Worlds the checkpoint covers from the histories.
+	if err := a.trimHistories(ctx); err != nil {
+		return false, err
+	}
+
 	// Record the install and drop the pages no live World reaches.
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.installed = true
@@ -670,6 +693,55 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		}
 	}
 	return kept, nil
+}
+
+// holdBase moves the replay base onto root and releases the checkpoint root
+// in one change.
+func (a *Adapter) holdBase(ctx context.Context, root *block.BlockRef) error {
+	// Take the root lock.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Move both roots, and forget the checkpoint Worlds.
+	err = a.moveRootsLocked(ctx, nil,
+		block.NamedRoot{Name: RootReplayBase, Ref: root},
+		block.NamedRoot{Name: RootCheckpoint},
+	)
+	if err == nil {
+		a.checkpointWorlds.roots = nil
+	}
+	return err
+}
+
+// trimHistories releases from the cursor and pending histories every World
+// that no kept position, pending candidate or the installed head still is.
+func (a *Adapter) trimHistories(ctx context.Context) error {
+	// Gather the Worlds still kept.
+	var live []*block.BlockRef
+	for _, pos := range a.replay.positions {
+		live = append(live, pos.state.GetHeadRef().GetRootRef())
+	}
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		live = append(live, a.head.Root)
+		for _, adm := range a.pending {
+			live = append(live, adm.candidate.Root)
+		}
+	})
+	keep := func(root *block.BlockRef) bool { return slices.ContainsFunc(live, root.EqualsRef) }
+
+	// Trim both histories.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if err := a.trimHistory(ctx, &a.cursorWorlds, keep); err != nil {
+		return err
+	}
+	return a.trimHistory(ctx, &a.pendingWorlds, keep)
 }
 
 // missAbove notes as missing every applied position whose operation is still
@@ -728,11 +800,16 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 		}
 	}
 
-	// Hold an outgrown candidate.
+	// Hold an outgrown candidate beside the earlier ones.
 	if !a.pages.Full() || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
-	return a.moveRoots(ctx, nil, block.NamedRoot{Name: RootPending, Ref: adm.candidate.Root})
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	return a.addHistory(ctx, &a.pendingWorlds, adm.candidate.Root)
 }
 
 // match returns this device's pending admission of op, or nil: the one the
@@ -998,7 +1075,7 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 	}
 	defer release()
 
-	// Read each root, and the payloads its block names.
+	// Read each root, and the payloads and Worlds their blocks name.
 	for _, name := range heldRootNames {
 		ref, err := a.pages.GetRoot(ctx, name)
 		if err != nil {
@@ -1006,6 +1083,11 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 		}
 		if !ref.GetEmpty() {
 			a.held[name] = ref
+		}
+	}
+	for _, h := range []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
+		if err := a.readHistory(ctx, h); err != nil {
+			return err
 		}
 	}
 	return a.readPayloads(ctx)

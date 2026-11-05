@@ -24,6 +24,9 @@ type InmemStorage struct {
 	mtx sync.Mutex
 	// volumes holds the store behind each volume id.
 	volumes map[string]*inmemVolume
+	// storeConf configures each volume's store, such as its collector, or is
+	// nil for the defaults.
+	storeConf *store_kvtx.Config
 }
 
 // inmemVolume is the store behind one volume id.
@@ -41,6 +44,15 @@ func NewInmemStorage(storageID string) *InmemStorage {
 		storageID: storageID,
 		volumes:   make(map[string]*inmemVolume),
 	}
+}
+
+// NewInmemStorageWithStoreConfig constructs in-memory storage registered as
+// storageID whose volumes open their stores with conf, such as a collector
+// that frees.
+func NewInmemStorageWithStoreConfig(storageID string, conf *store_kvtx.Config) *InmemStorage {
+	s := NewInmemStorage(storageID)
+	s.storeConf = conf
+	return s
 }
 
 // GetStorageInfo returns StorageInfo.

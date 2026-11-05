@@ -7,11 +7,13 @@ const (
 	// RootReplayBase holds the World of the adopted checkpoint, which every
 	// replay starts from.
 	RootReplayBase = "replay-base"
-	// RootCheckpoint holds the World a new checkpoint names from before the
-	// SharedObject adopts it until Install moves the replay base onto it.
+	// RootCheckpoint holds the HeldRoots block of every World Root returned
+	// since the last Install, so the one a checkpoint adopts stays held until
+	// Install moves the replay base onto it.
 	RootCheckpoint = "checkpoint"
-	// RootReplayCursor holds the World after the positions the saved replay
-	// cursor records.
+	// RootReplayCursor holds the HeldRoots block of every World the replay
+	// cursor was saved at since a checkpoint covered them, the last one the
+	// World after the positions the saved cursor records.
 	RootReplayCursor = "replay-cursor"
 	// RootReplayPayloads holds the HeldRoots block naming the payload
 	// roots of the operations above the checkpoint, and of the local
@@ -20,8 +22,9 @@ const (
 	// RootRetained holds the RetainedRootSet block of the installed head's
 	// retained roots.
 	RootRetained = "retained"
-	// RootPending holds the last local candidate whose pages outgrew memory,
-	// so the pages its writer's stage held stay held once the turn ends.
+	// RootPending holds the HeldRoots block of every local candidate whose
+	// pages outgrew memory since a checkpoint covered them, so the pages its
+	// writer's stage held stay held once the turn ends.
 	RootPending = "pending"
 	// RootBackfill holds what this device's backfill copied while its
 	// backfill choice is on.

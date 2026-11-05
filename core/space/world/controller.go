@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"math"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -61,14 +62,20 @@ func (c *Controller) Execute(rctx context.Context) error {
 	defer soRef.Release()
 
 	// Build the adapter.
+	pinDelay, err := c.conf.ParseReaderPinDelay()
+	if err != nil {
+		return err
+	}
 	a, err := NewAdapter(c.le, so, AdapterOptions{
-		Bus:            c.bus,
-		StepFactorySet: c.sfs,
-		EngineID:       c.conf.GetEngineId(),
-		OpTypes:        c.opTypes,
-		DisableLookup:  c.conf.GetDisableLookup(),
-		InitWorldOp:    c.conf.GetInitWorldOp(),
-		Verbose:        c.conf.GetVerbose(),
+		ReaderPinDelay:  pinDelay,
+		MaxPendingBytes: int(min(c.conf.GetMaxPendingBytes(), uint64(math.MaxInt32))), // #nosec G115 -- bounded above.
+		Bus:             c.bus,
+		StepFactorySet:  c.sfs,
+		EngineID:        c.conf.GetEngineId(),
+		OpTypes:         c.opTypes,
+		DisableLookup:   c.conf.GetDisableLookup(),
+		InitWorldOp:     c.conf.GetInitWorldOp(),
+		Verbose:         c.conf.GetVerbose(),
 	})
 	if err != nil {
 		return err

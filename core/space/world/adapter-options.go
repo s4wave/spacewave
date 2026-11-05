@@ -35,6 +35,9 @@ type AdapterOptions struct {
 	FenceTimeout time.Duration
 	// Verbose logs every operation's outcome.
 	Verbose bool
+	// ReaderPinDelay sets how long a replaced head a reader still holds
+	// waits before the engine pins it, or is nil for the engine's default.
+	ReaderPinDelay *time.Duration
 
 	// transient replays without holding roots or saving the cursor, for a
 	// one-off replay beside the Space's own adapter.

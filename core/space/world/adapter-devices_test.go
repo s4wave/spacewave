@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
@@ -69,7 +71,7 @@ func createOp(t *testing.T, key string) []byte {
 func (d *testDevice) write(t *testing.T, so sobject.SharedObject, data []byte, concurrent, first bool) {
 	t.Helper()
 	err := so.(sobject.InviteHost).GetSOHost().UpdateSOState(t.Context(), func(state *sobject.SOState) error {
-		return d.addOp(t, so, state, data, concurrent, first)
+		return d.addOp(t, so, state, data, concurrent, first, 0)
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -79,11 +81,24 @@ func (d *testDevice) write(t *testing.T, so sobject.SharedObject, data []byte, c
 // add adds the device's next operation with data to state, as write does,
 // for a caller holding the state lock.
 func (d *testDevice) add(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent bool) error {
-	return d.addOp(t, so, state, data, concurrent, false)
+	return d.addOp(t, so, state, data, concurrent, false, 0)
 }
 
-// addOp signs and adds the device's next operation to state.
-func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent, first bool) error {
+// writeAfter adds the device's next operation with data after the first n
+// operations above the checkpoint only, so it acknowledges that prefix.
+func (d *testDevice) writeAfter(t *testing.T, so sobject.SharedObject, data []byte, n int) {
+	t.Helper()
+	err := so.(sobject.InviteHost).GetSOHost().UpdateSOState(t.Context(), func(state *sobject.SOState) error {
+		return d.addOp(t, so, state, data, false, false, n)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// addOp signs and adds the device's next operation to state. after, when
+// set, names only the operation at that position of the order as a parent.
+func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent, first bool, after int) error {
 	// Place the operation in the device's chain.
 	ctx := t.Context()
 	host := so.(sobject.InviteHost)
@@ -95,6 +110,9 @@ func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject
 	link := state.NextOperationLink(set, d.id.String())
 	if concurrent {
 		link.Parents = nil
+	}
+	if after != 0 {
+		link.Parents = prefixHeads(set, after)
 	}
 
 	// Encrypt it with the current key, as the device holds it.
@@ -132,6 +150,55 @@ func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject
 	}
 }
 
+// prefixHeads returns the operations of the first n of set's order that no
+// other operation of that prefix names, so an operation naming them follows
+// exactly that prefix.
+func prefixHeads(set *sobject.SOOperationSet, n int) []*sobject.SOOperationPosition {
+	// Mark each hash the prefix names.
+	prefix := set.Order()[:n]
+	named := make(map[string]struct{}, n)
+	for _, h := range prefix {
+		inner := set.Get(h)
+		named[string(inner.GetPrevOpHash())] = struct{}{}
+		for _, parent := range inner.GetParents() {
+			named[string(parent.GetOpHash())] = struct{}{}
+		}
+	}
+
+	// Name the rest.
+	var heads []*sobject.SOOperationPosition
+	for _, h := range prefix {
+		if _, ok := named[string(h)]; ok {
+			continue
+		}
+		inner := set.Get(h)
+		heads = append(heads, &sobject.SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: h})
+	}
+	return heads
+}
+
+// requireComplete fails the test unless every block of the World the named
+// root holds is readable from so's block store.
+func requireComplete(ctx context.Context, t *testing.T, so sobject.SharedObject, name string) {
+	t.Helper()
+	store := so.GetBlockStore()
+	root, err := store.GetRoot(ctx, name)
+	if err != nil || root.GetEmpty() {
+		t.Fatalf("root %s = %v, %v", name, root, err)
+	}
+	var holes int
+	err = block.CopyGraph(ctx, store, block_mock.NewMockStore(0), root, &block.GraphCopyOptions{
+		Forget: true,
+		Missing: func(context.Context, *block.BlockRef) error {
+			holes++
+			return nil
+		},
+	})
+	if err != nil || holes != 0 {
+		t.Fatalf("World under %s has %d missing blocks: %v", name, holes, err)
+	}
+}
+
 // waitObjects waits until eng reads every key.
 func waitObjects(ctx context.Context, t *testing.T, eng world.Engine, keys ...string) {
 	t.Helper()
@@ -153,6 +220,26 @@ func waitObjects(ctx context.Context, t *testing.T, eng world.Engine, keys ...st
 // waitCheckpoint waits for a checkpoint above genesis on so.
 func waitCheckpoint(ctx context.Context, t *testing.T, so sobject.SharedObject) {
 	t.Helper()
+	waitCheckpointAbove(ctx, t, so, 0)
+}
+
+// checkpointHeight returns the height of so's checkpoint.
+func checkpointHeight(ctx context.Context, t *testing.T, so sobject.SharedObject) uint64 {
+	t.Helper()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkpoint, err := snap.GetCheckpoint(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return checkpoint.GetHeight()
+}
+
+// waitCheckpointAbove waits for a checkpoint above height on so.
+func waitCheckpointAbove(ctx context.Context, t *testing.T, so sobject.SharedObject, height uint64) {
+	t.Helper()
 	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -163,7 +250,7 @@ func waitCheckpoint(ctx context.Context, t *testing.T, so sobject.SharedObject) 
 			return false, nil
 		}
 		checkpoint, err := snap.GetCheckpoint(ctx)
-		return err == nil && checkpoint.GetHeight() > 0, err
+		return err == nil && checkpoint.GetHeight() > height, err
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -173,13 +260,28 @@ func waitCheckpoint(ctx context.Context, t *testing.T, so sobject.SharedObject) 
 // TestAdapterFollowsDevices serves a Space with two other writer devices:
 // the engine follows another device's commit; a device that never builds on
 // the others' edits freezes the stable point, so the replay cursor bounds a
-// restart; a late operation that sorts ahead of every replayed position
-// replays the World from the checkpoint while local writes keep committing;
-// and a remount resumes from the saved cursor with every object.
+// restart and moves several times; once both devices acknowledge a prefix
+// between two cursor saves, the checkpoint of that prefix lands complete; a
+// late operation that sorts ahead of every replayed position replays the
+// World from the checkpoint while local writes keep committing; and a
+// remount resumes from the saved cursor with every object. The frees variant
+// collects between the steps on a Volume that frees at once, so a page a
+// kept World names and no root holds is lost.
 func TestAdapterFollowsDevices(t *testing.T) {
+	t.Run("local", func(t *testing.T) { runFollowsDevices(t, newAdapterFixture(t)) })
+	t.Run("frees", func(t *testing.T) {
+		f := newAdapterFixtureOn(t, fixtureOpts{frees: true})
+		runFollowsDevices(t, f)
+		if f.freed == 0 {
+			t.Fatal("the collections freed nothing, so the run-through checked no hold")
+		}
+	})
+}
+
+// runFollowsDevices walks TestAdapterFollowsDevices on f.
+func runFollowsDevices(t *testing.T, f *adapterFixture) {
 	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
 	defer cancel()
-	f := newAdapterFixture(t)
 	eng, engRef := f.start(t)
 	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
 	create := func(key string) {
@@ -237,15 +339,43 @@ func TestAdapterFollowsDevices(t *testing.T) {
 		}
 	}
 	waitRoot(space_world.RootReplayCursor)
+	f.collect(t)
 
-	// A late operation sorting ahead of every position replays the World
-	// while a local write commits.
-	late.write(t, so, createOp(t, "late-0"), true, true)
+	// More writes move the cursor again. The later ones land beside the
+	// early objects, so they replace pages the first cursor World stored
+	// that the World of the acknowledged prefix below still names.
+	for i := range 40 {
+		key := "more-" + strconv.Itoa(i)
+		if i >= 9 {
+			key = "early-z-" + strconv.Itoa(i)
+		}
+		keys = append(keys, key)
+		create(key)
+	}
+	f.collect(t)
+
+	// Both devices acknowledge a prefix between the cursor saves, and its
+	// checkpoint lands with every object of the World it names.
+	height := checkpointHeight(ctx, t, so)
+	remote.writeAfter(t, so, createOp(t, "remote-ack"), 50)
+	late.writeAfter(t, so, createOp(t, "late-ack"), 50)
+	keys = append(keys, "remote-ack", "late-ack")
+	waitCheckpointAbove(ctx, t, so, height)
+	f.collect(t)
+	waitObjects(ctx, t, busEngine, keys...)
+	requireComplete(ctx, t, so, space_world.RootReplayBase)
+
+	// A late operation of a device that joined after the checkpoint sorts
+	// ahead of every position and replays the World while a local write
+	// commits.
+	later := addDevice(t, so)
+	later.write(t, so, createOp(t, "late-0"), true, true)
 	create("local-during")
 	keys = append(keys, "late-0", "local-during")
 	waitObjects(ctx, t, busEngine, keys...)
 
-	// A remount resumes and reads every object.
+	// A remount resumes and reads every object after a collection.
+	f.collect(t)
 	engRef.Release()
 	_ = eng
 	eng, engRef = f.start(t)
