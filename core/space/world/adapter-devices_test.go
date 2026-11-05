@@ -68,56 +68,67 @@ func createOp(t *testing.T, key string) []byte {
 // sorts first in the order, ahead of every operation above the checkpoint.
 func (d *testDevice) write(t *testing.T, so sobject.SharedObject, data []byte, concurrent, first bool) {
 	t.Helper()
-	ctx := t.Context()
-	host := so.(sobject.StateHost)
-	soID := so.GetSharedObjectID()
-	err := host.GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
-		// Place the operation in the device's chain.
-		set, err := state.OperationSet(soID)
-		if err != nil {
-			return err
-		}
-		link := state.NextOperationLink(set, d.id.String())
-		if concurrent {
-			link.Parents = nil
-		}
-
-		// Encrypt it with the current key, as the device holds it.
-		handle := sobject.NewSOStateParticipantHandle(nil, transform_all.BuildFactorySet(), soID, state, host.GetPrivKey(), so.GetPeerID())
-		xfrm, err := handle.GetTransformer(ctx)
-		if err != nil {
-			return err
-		}
-		enc, err := xfrm.EncodeBlock(data)
-		if err != nil {
-			return err
-		}
-
-		// Sign it, retrying for a hash that sorts first when asked.
-		for {
-			op, err := sobject.BuildSOOperation(soID, d.priv, enc, link, sobject.NewSOOperationLocalID())
-			if err != nil {
-				return err
-			}
-			if first {
-				trial := state.Clone()
-				if _, err := trial.AddOperation(soID, op); err != nil {
-					return err
-				}
-				order, err := trial.OperationSet(soID)
-				if err != nil {
-					return err
-				}
-				if !bytes.Equal(order.Order()[0], op.Hash()) {
-					continue
-				}
-			}
-			_, err = state.AddOperation(soID, op)
-			return err
-		}
+	err := so.(sobject.StateHost).GetSOHost().UpdateSOState(t.Context(), func(state *sobject.SOState) error {
+		return d.addOp(t, so, state, data, concurrent, first)
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// add adds the device's next operation with data to state, as write does,
+// for a caller holding the state lock.
+func (d *testDevice) add(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent bool) error {
+	return d.addOp(t, so, state, data, concurrent, false)
+}
+
+// addOp signs and adds the device's next operation to state.
+func (d *testDevice) addOp(t *testing.T, so sobject.SharedObject, state *sobject.SOState, data []byte, concurrent, first bool) error {
+	// Place the operation in the device's chain.
+	ctx := t.Context()
+	host := so.(sobject.StateHost)
+	soID := so.GetSharedObjectID()
+	set, err := state.OperationSet(soID)
+	if err != nil {
+		return err
+	}
+	link := state.NextOperationLink(set, d.id.String())
+	if concurrent {
+		link.Parents = nil
+	}
+
+	// Encrypt it with the current key, as the device holds it.
+	handle := sobject.NewSOStateParticipantHandle(nil, transform_all.BuildFactorySet(), soID, state, host.GetPrivKey(), so.GetPeerID())
+	xfrm, err := handle.GetTransformer(ctx)
+	if err != nil {
+		return err
+	}
+	enc, err := xfrm.EncodeBlock(data)
+	if err != nil {
+		return err
+	}
+
+	// Sign it, retrying for a hash that sorts first when asked.
+	for {
+		op, err := sobject.BuildSOOperation(soID, d.priv, enc, link, sobject.NewSOOperationLocalID())
+		if err != nil {
+			return err
+		}
+		if first {
+			trial := state.Clone()
+			if _, err := trial.AddOperation(soID, op); err != nil {
+				return err
+			}
+			order, err := trial.OperationSet(soID)
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(order.Order()[0], op.Hash()) {
+				continue
+			}
+		}
+		_, err = state.AddOperation(soID, op)
+		return err
 	}
 }
 
@@ -243,4 +254,67 @@ func TestAdapterFollowsDevices(t *testing.T) {
 	if err := ctx.Err(); err != nil {
 		t.Fatal(errors.Wrap(err, "run-through timed out"))
 	}
+}
+
+// TestAdapterSupersedes checks that a local write whose operation replay
+// places after another device's conflicting operation, which the writer did
+// not build on, is superseded and runs again on the head that holds the other
+// operation.
+func TestAdapterSupersedes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	_, engRef := f.start(t)
+	defer engRef.Release()
+	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
+	if err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "base", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	so := f.space(t)
+	remote := addDevice(t, so)
+
+	// Hold the state lock while a local write builds on the head without the
+	// other device's operation, then add that operation, so the local one
+	// queues after it.
+	host := so.(sobject.StateHost).GetSOHost()
+	var attempts int
+	built := make(chan struct{})
+	done := make(chan error, 1)
+	err := host.UpdateSOState(ctx, func(state *sobject.SOState) error {
+		// Build the local write.
+		go func() {
+			done <- world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+				attempts++
+				if attempts == 1 {
+					defer close(built)
+				}
+				obj, err := ws.CreateObject(ctx, "contested", nil)
+				world.ReleaseObjectState(obj)
+				return err
+			})
+		}()
+		select {
+		case <-built:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+
+		// Add the other device's conflicting operation.
+		return remote.add(t, so, state, createOp(t, "contested"), false)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The first attempt is superseded; the second sees the other device's
+	// object.
+	err = <-done
+	if attempts != 2 || err == nil || errors.Is(err, sobject.ErrRejectedOp) {
+		t.Fatalf("write after %d attempts returned %v; want a second attempt that finds the object", attempts, err)
+	}
+	waitObjects(ctx, t, busEngine, "base", "contested")
 }
