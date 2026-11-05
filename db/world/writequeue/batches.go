@@ -177,10 +177,11 @@ func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (
 		if err != nil {
 			return -1, 0, err
 		}
+		var spans bodySpans
 		appliedBefore, bodyStarted := q.applied(w.ctx), time.Now()
-		checked, err := w.run(q, tx)
+		checked, err := w.run(q, tx, &spans)
 		if elapsed := time.Since(bodyStarted); elapsed >= slowBodyWarn {
-			logrus.WithFields(logrus.Fields{
+			logrus.WithFields(spans.fields(elapsed)).WithFields(logrus.Fields{
 				"op":      q.name(w.ctx),
 				"ops":     q.applied(w.ctx) - appliedBefore,
 				"actor":   w.actor,

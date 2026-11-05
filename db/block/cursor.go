@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime/trace"
+	"time"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -604,14 +605,22 @@ func (c *Cursor) fetch(ctx context.Context, verify bool) ([]byte, int, bool, err
 		return nil, 0, false, nil
 	}
 
-	// Read the stored block, recording the read on the context.
+	// Find the store to read from.
 	bkt := c.readStore(ctx)
 	if bkt == nil {
 		return nil, 0, false, ErrBlockStoreUnavailable
 	}
+
+	// Read the stored block, recording the read and its time on the
+	// context's counter.
+	counter := ContextReadCounter(ctx)
+	var started time.Time
+	if counter != nil {
+		started = time.Now()
+	}
 	data, found, err := bkt.GetBlock(withoutReadOperationStore(ctx), c.pos.ref)
 	if err == nil {
-		recordReadCounter(ctx, found, len(data))
+		counter.recordRead(found, len(data), time.Since(started))
 	}
 	if err != nil || !found {
 		if err == nil {

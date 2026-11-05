@@ -1,5 +1,7 @@
 package block
 
+import "time"
+
 // ReadCounterSnapshot is a point-in-time copy of block read counters.
 type ReadCounterSnapshot struct {
 	// BlockReadCount is the number of block reads that returned without store error.
@@ -8,6 +10,8 @@ type ReadCounterSnapshot struct {
 	BlockReadBytes uint64
 	// BlockReadMissCount is the number of block reads that returned not found without store error.
 	BlockReadMissCount uint64
+	// BlockReadTime is the time spent in the reads BlockReadCount counts.
+	BlockReadTime time.Duration
 	// ResourceGetBlockCount is the number of Resource SDK GetBlock calls.
 	ResourceGetBlockCount uint64
 	// ResourceGetBlockRefCount is the number of non-empty refs passed to Resource SDK GetBlock.

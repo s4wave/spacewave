@@ -85,10 +85,11 @@ func (q *Queue) endsClean(ctx context.Context, tx world.Tx, before uint64, check
 	return after == before, nil
 }
 
-// run applies w's checks and body to tx, a transaction of q. A writer that
-// left during its body fails it, so its partial work never commits. It
-// reports whether the checks passed, so the body ran.
-func (w *queuedWrite) run(q *Queue, tx Transaction) (bool, error) {
+// run applies w's checks and body to tx, a transaction of q, recording
+// where they spend their time in spans. A writer that left during its body
+// fails it, so its partial work never commits. It reports whether the
+// checks passed, so the body ran.
+func (w *queuedWrite) run(q *Queue, tx Transaction, spans *bodySpans) (bool, error) {
 	// Run only a write whose writer still waits; a writer that leaves
 	// mid-body waits here for the body to return.
 	w.runMtx.Lock()
@@ -98,7 +99,7 @@ func (w *queuedWrite) run(q *Queue, tx Transaction) (bool, error) {
 	}
 
 	// Authorize and apply the body in the attempt's auxiliary context.
-	ctx := context.WithValue(tx.BodyContext(w.ctx), batchedWriteKey{}, q)
+	ctx := spans.attach(context.WithValue(tx.BodyContext(w.ctx), batchedWriteKey{}, q))
 	for _, check := range w.checks {
 		if err := check(ctx, tx); err != nil {
 			return false, err

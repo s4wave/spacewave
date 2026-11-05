@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 	"sync/atomic"
+	"time"
 )
 
 type readCounterContextKey struct{}
@@ -15,6 +16,8 @@ type ReadCounter struct {
 	bytes atomic.Uint64
 	// misses is the number of block reads that returned not found without store error.
 	misses atomic.Uint64
+	// nanos is the time spent in the store reads counted by count.
+	nanos atomic.Int64
 	// resourceGetBlockCount is the number of Resource SDK GetBlock calls.
 	resourceGetBlockCount atomic.Uint64
 	// resourceGetBlockRefs is the number of non-empty Resource SDK GetBlock refs.
@@ -58,6 +61,13 @@ func WithReadCounter(ctx context.Context) (context.Context, *ReadCounter) {
 	return context.WithValue(ctx, readCounterContextKey{}, counter), counter
 }
 
+// ContextReadCounter returns the read counter WithReadCounter attached to
+// ctx, or nil.
+func ContextReadCounter(ctx context.Context) *ReadCounter {
+	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	return counter
+}
+
 // Snapshot returns the current counter values.
 func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 	if c == nil {
@@ -67,6 +77,7 @@ func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 		BlockReadCount:                 c.count.Load(),
 		BlockReadBytes:                 c.bytes.Load(),
 		BlockReadMissCount:             c.misses.Load(),
+		BlockReadTime:                  time.Duration(c.nanos.Load()),
 		ResourceGetBlockCount:          c.resourceGetBlockCount.Load(),
 		ResourceGetBlockRefCount:       c.resourceGetBlockRefs.Load(),
 		ResourceGetBlockBytes:          c.resourceGetBlockBytes.Load(),
@@ -86,28 +97,28 @@ func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 	}
 }
 
-// recordReadCounter records a block read and whether it was found in the
-// store.
-func recordReadCounter(ctx context.Context, found bool, bytes int) {
-	// Find the operation read counter before recording the store result.
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
-	if counter == nil {
+// recordRead records a block read that took elapsed and whether it was
+// found in the store. A nil counter records nothing.
+func (c *ReadCounter) recordRead(found bool, bytes int, elapsed time.Duration) {
+	// Skip a context with no counter.
+	if c == nil {
 		return
 	}
 
-	// Count the store read and its result.
-	counter.count.Add(1)
+	// Count the store read, its time and its result.
+	c.count.Add(1)
+	c.nanos.Add(int64(elapsed))
 	if found {
-		counter.bytes.Add(nonNegativeReadBytes(bytes))
+		c.bytes.Add(nonNegativeReadBytes(bytes))
 		return
 	}
-	counter.misses.Add(1)
+	c.misses.Add(1)
 }
 
 // RecordResourceGetBlock records a Resource SDK GetBlock call.
 func RecordResourceGetBlock(ctx context.Context, ref *BlockRef, found bool, bytes int) {
 	// Find the operation read counter before recording the Resource SDK result.
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -127,7 +138,7 @@ func RecordResourceGetBlock(ctx context.Context, ref *BlockRef, found bool, byte
 // recordDecodedBlockUnmarshal records a decoded block unmarshal and its
 // size.
 func recordDecodedBlockUnmarshal(ctx context.Context, bytes int) {
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -145,7 +156,7 @@ func nonNegativeReadBytes(value int) uint64 {
 // recordDecodedBlockCacheMiss records a decoded block cache attempt that
 // missed.
 func recordDecodedBlockCacheMiss(ctx context.Context) {
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -156,7 +167,7 @@ func recordDecodedBlockCacheMiss(ctx context.Context) {
 // RecordDecodedBlockCacheHit records a clone-safe decoded-block cache hit.
 func RecordDecodedBlockCacheHit(ctx context.Context, cloned bool) {
 	// Find the operation read counter before recording the cache hit.
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -171,7 +182,7 @@ func RecordDecodedBlockCacheHit(ctx context.Context, cloned bool) {
 
 // RecordDecodedBlockUncloneable records a decoded-block cache candidate that cannot be cloned.
 func RecordDecodedBlockUncloneable(ctx context.Context) {
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -180,7 +191,7 @@ func RecordDecodedBlockUncloneable(ctx context.Context) {
 
 // RecordDecodedBlockUncacheable records a decoded-block cache bypass without an exact key.
 func RecordDecodedBlockUncacheable(ctx context.Context) {
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -191,7 +202,7 @@ func RecordDecodedBlockUncacheable(ctx context.Context) {
 // was accepted, and its cost.
 func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64) {
 	// Find the operation read counter before recording the cache submission.
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
@@ -209,7 +220,7 @@ func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64
 // recordDecodedBlockCacheRejected records a block rejected as
 // uncacheable.
 func recordDecodedBlockCacheRejected(ctx context.Context) {
-	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
+	counter := ContextReadCounter(ctx)
 	if counter == nil {
 		return
 	}
