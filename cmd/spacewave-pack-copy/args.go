@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"encoding/binary"
 	"encoding/hex"
@@ -21,6 +22,7 @@ import (
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/s4db"
+	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,14 +35,12 @@ const (
 	keyEnv = "PACK_COPY_KEY"
 	// graphDir holds the graph stream under the target prefix.
 	graphDir = "graph/"
+	// defaultIndexTable is the table of a pack index file.
+	defaultIndexTable = "pack_index"
 )
 
 // Scratch file prefixes. Each view owns every key under its prefix.
 var (
-	// sourceIndexPrefix holds the source's pack index.
-	sourceIndexPrefix = []byte("src/")
-	// targetIndexPrefix holds the target's pack index.
-	targetIndexPrefix = []byte("dst/")
 	// proofsPrefix holds the proofs.
 	proofsPrefix = []byte("proof/")
 	// meterKey holds the bytes read from the source, across runs.
@@ -51,7 +51,18 @@ var (
 type Args struct {
 	// Scratch is the scratch file.
 	Scratch string
-	// Width is the packs indexed at once.
+	// StoreID is the block store whose pack index the index files hold. The
+	// clean store keeps the source's block store id under a new prefix.
+	StoreID string
+	// SourceIndex is a copy of the source's pack index file, which the source
+	// store reads and may add rows to.
+	SourceIndex string
+	// TargetIndex is the clean store's pack index file, created if missing,
+	// which an owner of the clean store opens as it is.
+	TargetIndex string
+	// IndexTable is the table of both index files.
+	IndexTable string
+	// Width is the target packs indexed at once.
 	Width int
 	// BudgetBytes is the bytes the source may serve across runs, zero for no
 	// limit.
@@ -101,8 +112,12 @@ type Args struct {
 // storeFlags binds the flags both commands share.
 func (a *Args) storeFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "scratch", Usage: "scratch file holding the indexes, proofs and byte count", Destination: &a.Scratch, Required: true},
-		&cli.IntFlag{Name: "width", Usage: "packs indexed at once", Value: 2, Destination: &a.Width},
+		&cli.StringFlag{Name: "scratch", Usage: "scratch file holding the proofs and byte count", Destination: &a.Scratch, Required: true},
+		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index files hold", Destination: &a.StoreID, Required: true},
+		&cli.StringFlag{Name: "source-index", Usage: "copy of the source's pack index file; the source store may add rows", Destination: &a.SourceIndex, Required: true},
+		&cli.StringFlag{Name: "target-index", Usage: "the clean store's pack index file, created if missing", Destination: &a.TargetIndex, Required: true},
+		&cli.StringFlag{Name: "index-table", Usage: "table of both pack index files", Value: defaultIndexTable, Destination: &a.IndexTable},
+		&cli.IntFlag{Name: "width", Usage: "target packs indexed at once", Value: 2, Destination: &a.Width},
 		&cli.Uint64Flag{Name: "budget-bytes", Usage: "bytes the source may serve across runs; zero has no limit", Destination: &a.BudgetBytes},
 		&cli.StringFlag{Name: "sftp-addr", Usage: "source server's host:port", Destination: &a.SFTPAddr, Required: true},
 		&cli.StringFlag{Name: "sftp-user", Usage: "source login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
@@ -136,6 +151,10 @@ type run struct {
 	le *logrus.Entry
 	// scratch is the scratch file.
 	scratch *s4db.DB
+	// sourceIndex is the source's pack index file.
+	sourceIndex store_kvtx_sqlite.Store
+	// targetIndex is the target's pack index file.
+	targetIndex store_kvtx_sqlite.Store
 	// meter counts the source's bytes.
 	meter *packcopy.Meter
 	// sftp reaches the source.
@@ -148,9 +167,9 @@ type run struct {
 	target *block_store_s3.PackStore
 }
 
-// open opens the scratch file and both stores.
-func (a *Args) open() (_ *run, rerr error) {
-	// Open the scratch file.
+// open opens the scratch file, both index files and both stores.
+func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
+	// Open the scratch file, closing what opened on a failure.
 	r := &run{le: logrus.NewEntry(logrus.StandardLogger())}
 	defer func() {
 		if rerr != nil {
@@ -161,6 +180,20 @@ func (a *Args) open() (_ *run, rerr error) {
 	if r.scratch, err = s4db.Open(a.Scratch, s4db.Options{}); err != nil {
 		return nil, err
 	}
+
+	// Open the index files. A row of the target index commits after its pack
+	// is durable; a lost one is rebuilt from the pack.
+	if _, err := os.Stat(a.SourceIndex); err != nil {
+		return nil, errors.Wrap(err, "--source-index")
+	}
+	table := cmp.Or(a.IndexTable, defaultIndexTable)
+	if r.sourceIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.SourceIndex, table, store_kvtx_sqlite.Pragmas{WithoutRowID: true}); err != nil {
+		return nil, errors.Wrap(err, "open --source-index")
+	}
+	if r.targetIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.TargetIndex, table, store_kvtx_sqlite.Pragmas{FullSync: true, WithoutRowID: true}); err != nil {
+		return nil, errors.Wrap(err, "open --target-index")
+	}
+	indexPrefix := block_store_s3.PackIndexPrefix(a.StoreID)
 
 	// Reach the source within its connection cap and byte budget.
 	r.sftp, err = block_store_sftp.NewClient(block_store_sftp.Config{
@@ -178,9 +211,14 @@ func (a *Args) open() (_ *run, rerr error) {
 		return nil, err
 	}
 	r.meter = packcopy.NewMeter(r.sftp, a.BudgetBytes, used)
+
+	// The source reads its blocks from the index alone: a listing of every
+	// pack over two connections would cost hours, and each pass takes a fresh
+	// copy of the index, which names the packs written since the last.
 	r.source = block_store_s3.NewPackStore(r.le, r.meter, a.SFTPRoot, a.SourcePrefix, &block_store_s3.PackStoreOptions{
-		KeepPacks: true,
-		Index:     kvtx_prefixer.NewPrefixer(r.scratch, sourceIndexPrefix),
+		KeepPacks:  true,
+		Index:      kvtx_prefixer.NewPrefixer(r.sourceIndex, indexPrefix),
+		SoleWriter: true,
 		// A read over SFTP pays for bytes, not requests: fetch only the block.
 		ExactReads: true,
 	})
@@ -202,14 +240,16 @@ func (a *Args) open() (_ *run, rerr error) {
 		return nil, err
 	}
 	r.target = block_store_s3.NewPackStore(r.le, r.objects, a.Bucket, a.TargetPrefix, &block_store_s3.PackStoreOptions{
-		KeepPacks: true,
-		Index:     kvtx_prefixer.NewPrefixer(r.scratch, targetIndexPrefix),
+		KeepPacks:  true,
+		Index:      kvtx_prefixer.NewPrefixer(r.targetIndex, indexPrefix),
+		SoleWriter: true,
 	})
 	return r, nil
 }
 
 // close releases what open opened, saving the byte count.
 func (r *run) close() {
+	// Close the stores, then their connections and index files.
 	if r.target != nil {
 		r.target.Close()
 	}
@@ -219,6 +259,13 @@ func (r *run) close() {
 	if r.sftp != nil {
 		r.sftp.Close()
 	}
+	for _, index := range []store_kvtx_sqlite.Store{r.targetIndex, r.sourceIndex} {
+		if index != nil {
+			_ = index.Close()
+		}
+	}
+
+	// Save the byte count and close the scratch file.
 	if r.scratch != nil {
 		if r.meter != nil {
 			if err := writeUsed(r.scratch, r.meter.Used()); err != nil {
@@ -229,38 +276,15 @@ func (r *run) close() {
 	}
 }
 
-// buildIndexes brings both stores' indexes up to date.
-func (a *Args) buildIndexes(ctx context.Context, r *run) error {
-	// Index the source, logging about once a second.
+// indexTarget indexes the target packs its index lacks, such as the last
+// pack of a run killed before its rows committed.
+func (a *Args) indexTarget(ctx context.Context, r *run) error {
 	start := time.Now()
-	report := func(p block_store_s3.IndexProgress) {
-		r.le.WithFields(logrus.Fields{"packs": p.Packs, "keys": p.Keys, "bytes": p.Bytes, "used": r.meter.Used()}).Info("indexing")
-	}
-	if err := r.source.BuildIndex(ctx, a.Width, report); err != nil {
-		return errors.Wrap(err, "index source")
-	}
-
-	// Index the target, which holds the packs of earlier runs.
 	if err := r.target.BuildIndex(ctx, a.Width, nil); err != nil {
 		return errors.Wrap(err, "index target")
 	}
-	r.le.WithField("took", time.Since(start).String()).Info("indexes current")
+	r.le.WithField("took", time.Since(start).String()).Info("target index current")
 	return nil
-}
-
-// runIndex builds the scratch index.
-func (a *Args) runIndex(*cli.Context) error {
-	// Stop on a signal.
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
-
-	// Open the stores and index them.
-	r, err := a.open()
-	if err != nil {
-		return err
-	}
-	defer r.close()
-	return a.buildIndexes(ctx, r)
 }
 
 // runCopy runs one pass.
@@ -268,12 +292,12 @@ func (a *Args) runCopy(*cli.Context) error {
 	// Stop on a signal. The walk drains and its last pack still lands.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	r, err := a.open()
+	r, err := a.open(ctx)
 	if err != nil {
 		return err
 	}
 	defer r.close()
-	if err := a.buildIndexes(ctx, r); err != nil {
+	if err := a.indexTarget(ctx, r); err != nil {
 		return err
 	}
 
@@ -355,19 +379,15 @@ func (a *Args) openSources(ctx context.Context, r *run) ([]packcopy.Source, func
 	}
 	sources = append(sources, frames)
 
-	// Add the archive peer, which answers last.
-	closeArchive := func() {}
-	if a.Archive.enabled() {
-		archive, release, err := a.Archive.open(ctx, r.le)
-		if err != nil {
-			frames.Close()
-			return nil, nil, err
-		}
-		sources = append(sources, archive)
-		closeArchive = release
+	// Add the archive peers, which answer last.
+	archives, closeArchives, err := a.Archive.open(ctx, r.le)
+	if err != nil {
+		frames.Close()
+		return nil, nil, err
 	}
+	sources = append(sources, archives...)
 	return sources, func() {
-		closeArchive()
+		closeArchives()
 		frames.Close()
 	}, nil
 }
