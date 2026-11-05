@@ -246,6 +246,13 @@ func TestCommandRunThrough(t *testing.T) {
 		t.Fatal("no graph stream: " + strings.Join(bucket.Keys(""), " "))
 	}
 
+	// The scratch file's proofs refuse another target.
+	other := *args
+	other.TargetPrefix = "world/v3/"
+	if err := other.runCopy(nil); err == nil {
+		t.Fatal("copy to another prefix ran on the same scratch file")
+	}
+
 	// Write a parent and its child to a Volume file through its reference
 	// graph, and keep the writer open.
 	volumeFile := filepath.Join(dir, "volume.db")

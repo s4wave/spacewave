@@ -553,12 +553,15 @@ func (s *slot) connect(ctx context.Context, dial bool) (*conn, error) {
 // reset closes cn, the failed connection of the slot, unless the slot already
 // replaced it.
 func (s *slot) reset(cn *conn) {
+	// Close before the slot frees, so its next dial never overlaps this
+	// connection and the client stays within its connection count. A call
+	// that takes cn in between fails on it and resets it again.
+	cn.close()
 	s.mu.Lock()
 	if s.conn == cn {
 		s.conn = nil
 	}
 	s.mu.Unlock()
-	cn.close()
 }
 
 // dial connects, runs the SSH handshake and logs in, then starts the SFTP

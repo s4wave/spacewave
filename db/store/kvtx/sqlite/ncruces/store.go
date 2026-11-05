@@ -35,6 +35,11 @@ func (c SqliteWasmConfig) OpenDSN(path string) string {
 		"?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)"
 }
 
+// OpenReadOnlyDSN returns the DSN that opens the database at path read-only.
+func (c SqliteWasmConfig) OpenReadOnlyDSN(path string) string {
+	return "file:" + filepath.ToSlash(path) + "?mode=ro&_pragma=busy_timeout(5000)"
+}
+
 // Description returns a description for pure Go SQLite.
 func (c SqliteWasmConfig) Description() string {
 	return "SQLite database key-value store using SQLite to wasm to pure Go driver"

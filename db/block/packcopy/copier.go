@@ -413,8 +413,8 @@ func (c *copier) handle(ctx context.Context, res readResult) error {
 // addBlock appends a block to the batch, first sending the batch when the
 // block would overfill it.
 func (c *copier) addBlock(ref *block.BlockRef, stored *block.StoredBlock) {
-	// Send a full batch.
-	size := len(stored.Data)
+	// Send a full batch, counting the refs a pack stores beside the data.
+	size := entryBytes(stored)
 	if len(c.batch) != 0 && (int64(c.batchBytes+size) > c.limits.Bytes || (c.limits.Blocks != 0 && len(c.batch) >= c.limits.Blocks)) {
 		c.flushes <- c.takeFlush()
 	}
@@ -422,6 +422,20 @@ func (c *copier) addBlock(ref *block.BlockRef, stored *block.StoredBlock) {
 	// Hold the block for the next pack.
 	c.batch = append(c.batch, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
 	c.batchBytes += size
+}
+
+// entryOverhead bounds the bytes a pack spends on one block besides its data
+// and refs: its index entry and the encoding around it.
+const entryOverhead = 64
+
+// entryBytes returns the bytes a block takes in a pack: its data, its refs and
+// the entry around them.
+func entryBytes(stored *block.StoredBlock) int {
+	size := len(stored.Data) + entryOverhead
+	for _, ref := range stored.Refs {
+		size += ref.SizeVT()
+	}
+	return size
 }
 
 // takeFlush returns the batch and the proofs so far. Every block under a proof
