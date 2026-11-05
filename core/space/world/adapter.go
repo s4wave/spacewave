@@ -117,8 +117,11 @@ type Adapter struct {
 	// bcast.
 	headHeight    uint64
 	headPositions int
-	// engine is the serving engine once built. Guarded by bcast.
+	// engine is the serving engine once built, until it retires. Guarded by
+	// bcast.
 	engine *Engine
+	// holders counts the AcquireEngine holds on engine. Guarded by bcast.
+	holders int
 	// ownership is the ownership last derived, for config head ownershipHead.
 	// Guarded by bcast.
 	ownership     *sobject.SOOwnership
@@ -187,11 +190,15 @@ func (a *Adapter) Execute(ctx context.Context) error {
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
+		// Build and publish the engine.
 		engine, err := a.serve(ctx)
 		if err != nil {
 			return err
 		}
+
+		// Retire it when the run ends, then close it.
 		<-ctx.Done()
+		a.retire()
 		return engine.close()
 	})
 	err := g.Wait()
@@ -215,6 +222,79 @@ func (a *Adapter) WaitEngine(ctx context.Context) (*Engine, error) {
 			return nil, context.Canceled
 		case <-waitCh:
 		}
+	}
+}
+
+// AcquireEngine waits for the serving engine and holds it open until release
+// is called. The adapter retires the engine before it closes it, and waits
+// for every hold first, so a holder never sees it close.
+func (a *Adapter) AcquireEngine(ctx context.Context) (*Engine, func(), error) {
+	for {
+		// Hold the engine when one serves.
+		var engine *Engine
+		var waitCh <-chan struct{}
+		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			engine, waitCh = a.engine, getWaitCh()
+			if engine != nil {
+				a.holders++
+			}
+		})
+		if engine != nil {
+			return engine, a.releaseEngine, nil
+		}
+
+		// Wait for one.
+		select {
+		case <-ctx.Done():
+			return nil, nil, context.Canceled
+		case <-waitCh:
+		}
+	}
+}
+
+// releaseEngine drops one AcquireEngine hold.
+func (a *Adapter) releaseEngine() {
+	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		a.holders--
+		broadcast()
+	})
+}
+
+// WaitEngineReplaced waits until engine no longer serves.
+func (a *Adapter) WaitEngineReplaced(ctx context.Context, engine *Engine) error {
+	for {
+		var serving bool
+		var waitCh <-chan struct{}
+		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			serving, waitCh = a.engine == engine, getWaitCh()
+		})
+		if !serving {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-waitCh:
+		}
+	}
+}
+
+// retire stops serving the engine and waits for every hold on it.
+func (a *Adapter) retire() {
+	for {
+		var waitCh <-chan struct{}
+		var held bool
+		a.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if a.engine != nil {
+				a.engine = nil
+				broadcast()
+			}
+			held, waitCh = a.holders != 0, getWaitCh()
+		})
+		if !held {
+			return
+		}
+		<-waitCh
 	}
 }
 

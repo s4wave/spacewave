@@ -11,7 +11,6 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 // Controller serves the World engine of a Space on the bus: it mounts the
@@ -29,19 +28,19 @@ type Controller struct {
 	sfs *block_transform.StepFactorySet
 	// opTypes resolves the operation types before the bus.
 	opTypes OpTypes
-	// engineCtr holds the served engine while it serves.
-	engineCtr *ccontainer.CContainer[*Engine]
+	// adapterCtr holds the adapter of the running execution.
+	adapterCtr *ccontainer.CContainer[*Adapter]
 }
 
 // NewController returns the controller of conf's Space World.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config, sfs *block_transform.StepFactorySet, opTypes OpTypes) *Controller {
 	return &Controller{
-		le:        le.WithField("engine-id", conf.GetEngineId()),
-		bus:       b,
-		conf:      conf,
-		sfs:       sfs,
-		opTypes:   opTypes,
-		engineCtr: ccontainer.NewCContainer[*Engine](nil),
+		le:         le.WithField("engine-id", conf.GetEngineId()),
+		bus:        b,
+		conf:       conf,
+		sfs:        sfs,
+		opTypes:    opTypes,
+		adapterCtr: ccontainer.NewCContainer[*Adapter](nil),
 	}
 }
 
@@ -92,26 +91,10 @@ func (c *Controller) Execute(rctx context.Context) error {
 		background("ordering edits as the main device", func() error { return sobject.Sequence(ctx, so, mainDevice.SequenceOperations) })
 	}
 
-	// Serve the adapter.
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error { return a.Execute(ctx) })
-
-	// Publish the engine while it serves.
-	g.Go(func() error {
-		// Wait for the engine.
-		engine, err := a.WaitEngine(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Serve it until the run ends.
-		c.le.Info("space world engine ready")
-		c.engineCtr.SetValue(engine)
-		<-ctx.Done()
-		c.engineCtr.SetValue(nil)
-		return nil
-	})
-	err = g.Wait()
+	// Serve the adapter, publishing it for the engine lookups.
+	c.adapterCtr.SetValue(a)
+	defer c.adapterCtr.SetValue(nil)
+	err = a.Execute(ctx)
 	if rctx.Err() != nil {
 		return nil
 	}
@@ -134,11 +117,39 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 // GetWorldEngine waits for the served engine.
 func (c *Controller) GetWorldEngine(ctx context.Context) (world.Engine, error) {
-	engine, err := c.engineCtr.WaitValue(ctx, nil)
+	eng, release, err := c.AcquireWorldEngine(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return engine, nil
+	release()
+	return eng, nil
+}
+
+// AcquireWorldEngine waits for the served engine and holds it open until
+// release is called.
+func (c *Controller) AcquireWorldEngine(ctx context.Context) (world.Engine, func(), error) {
+	// Wait for the running adapter.
+	a, err := c.adapterCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Hold its engine.
+	engine, release, err := a.AcquireEngine(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return engine, release, nil
+}
+
+// WaitWorldEngineReplaced waits until eng no longer serves.
+func (c *Controller) WaitWorldEngineReplaced(ctx context.Context, eng world.Engine) error {
+	a, err := c.adapterCtr.WaitValue(ctx, nil)
+	if err != nil {
+		return err
+	}
+	engine, _ := eng.(*Engine)
+	return a.WaitEngineReplaced(ctx, engine)
 }
 
 // Close releases the controller's resources.
@@ -147,4 +158,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ world.Controller = (*Controller)(nil)
+var _ world.ReplacingController = (*Controller)(nil)
