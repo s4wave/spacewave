@@ -5,7 +5,9 @@ package store_kvtx_sqlite
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -291,5 +293,82 @@ func TestSQLiteReadHandle(t *testing.T) {
 	// Verify a committed read handle rejects subsequent reads.
 	if _, _, err := readTx.Get(ctx, []byte("k")); err != kvtx.ErrDiscarded {
 		t.Fatalf("expected ErrDiscarded after read commit, got %v", err)
+	}
+}
+
+// TestSQLiteWALBound writes far past a small write-ahead log bound while a
+// reader keeps reading, and checks that the checkpointer brings the log back
+// near the bound instead of letting it grow with the writes.
+func TestSQLiteWALBound(t *testing.T) {
+	// Open a database whose log is bounded at 64 KiB.
+	ctx := context.Background()
+	tp := newTempDBPath(t, "hydra-test-sqlite-wal-*.sqlite")
+	const bound = 64 << 10
+	db, err := OpenWithPragmas(ctx, tp, "test_wal", Pragmas{WALCheckpointBytes: bound})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	// Read constantly while the writes run, as lookups do.
+	stop := make(chan struct{})
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if tx, err := db.NewTransaction(ctx, false); err == nil {
+				_, _, _ = tx.Get(ctx, []byte("key-0"))
+				tx.Discard()
+			}
+		}
+	}()
+
+	// Write 2,000 rows of 1 KiB, each in its own transaction.
+	value := make([]byte, 1024)
+	for i := range 2000 {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := tx.Set(ctx, []byte("key-"+strconv.Itoa(i)), value); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	close(stop)
+	<-readDone
+
+	// The log comes back near its bound once a commit lets the checkpointer
+	// run with no reader left.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := tx.Set(ctx, []byte("tick"), value); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+		info, err := os.Stat(tp + "-wal")
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if info.Size() <= 4*bound {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("write-ahead log is %d bytes, want at most %d", info.Size(), 4*bound)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }

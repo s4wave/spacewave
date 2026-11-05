@@ -43,6 +43,8 @@ type Store[T SQLiteDriverConfig] struct {
 	config T
 	// withoutRowID creates a missing table as WITHOUT ROWID.
 	withoutRowID bool
+	// wal is the write-ahead log's checkpointer, nil without a bound.
+	wal *walCheckpointer
 }
 
 // NewStore constructs a new key-value store from a SQLite database.
@@ -126,8 +128,23 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 		}
 	}
 
+	// Bound the write-ahead log when the caller asked to.
+	if pragmas.WALCheckpointBytes > 0 {
+		if _, err := db.ExecContext(ctx, "PRAGMA journal_size_limit="+strconv.FormatInt(pragmas.WALCheckpointBytes, 10)); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+
 	// Initialize the table through the same path used by injected SQL pools.
-	return openDB(ctx, db, table, pragmas.WithoutRowID, config)
+	store, err := openDB(ctx, db, table, pragmas.WithoutRowID, config)
+	if err != nil {
+		return nil, err
+	}
+	if pragmas.WALCheckpointBytes > 0 {
+		store.wal = &walCheckpointer{db: db, path: path + "-wal", limit: pragmas.WALCheckpointBytes}
+	}
+	return store, nil
 }
 
 // OpenDB takes ownership of an already configured SQL pool and opens its KV table.
@@ -288,7 +305,11 @@ func (s *Store[T]) tryNewTransaction(ctx context.Context, write bool) (kvtx.Tx, 
 		_, err = txn.ExecContext(ctx, "DELETE FROM "+s.table+" WHERE 1=0") //nolint:gosec
 		if err == nil {
 			// Success: RESERVED acquired, proceed.
-			return NewTx(txn, s.table, write), nil
+			tx := NewTx(txn, s.table, write)
+			if s.wal != nil {
+				tx.afterCommit = s.wal.afterCommit
+			}
+			return tx, nil
 		}
 
 		// Rollback on failure.

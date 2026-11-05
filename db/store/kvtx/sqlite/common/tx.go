@@ -32,6 +32,8 @@ type Tx struct {
 	closed       bool
 	finalizeMu   sync.RWMutex
 	finalizeOnce atomic.Bool
+	// afterCommit runs after a write commits, nil for none.
+	afterCommit func()
 
 	// Precomputed queries
 	getQuery                 string
@@ -264,6 +266,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 	}
 	if err != nil {
 		return err
+	}
+	if t.afterCommit != nil {
+		t.afterCommit()
 	}
 	return nil
 }
