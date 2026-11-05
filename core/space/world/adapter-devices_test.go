@@ -199,21 +199,29 @@ func requireComplete(ctx context.Context, t *testing.T, so sobject.SharedObject,
 	}
 }
 
-// waitObjects waits until eng reads every key.
+// waitObjects waits until eng reads every key, checking again after each
+// World revision.
 func waitObjects(ctx context.Context, t *testing.T, eng world.Engine, keys ...string) {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	ws := world.NewEngineWorldState(eng, false)
 	for {
-		err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
-			return hasObjects(ctx, eng, keys...)
-		})
+		// Read the revision, then the keys.
+		seqno, err := ws.GetSeqno(ctx)
+		if err == nil {
+			err = world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+				return hasObjects(ctx, eng, keys...)
+			})
+		}
 		if err == nil {
 			return
 		}
-		if time.Now().After(deadline) {
+
+		// Wait for the next revision.
+		if _, werr := ws.WaitSeqno(ctx, seqno+1); werr != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(20 * time.Millisecond)
 	}
 }
 

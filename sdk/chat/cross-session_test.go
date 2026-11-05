@@ -126,10 +126,11 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	head, err := space_world.ReplayWorld(ctx, tb.Logger, tb.Bus, tb.StepFactorySet, ownerObject, "", space_world_engine.OpTypes, snapshot)
+	head, releaseHead, err := space_world.ReplayWorld(ctx, tb.Logger, tb.Bus, tb.StepFactorySet, ownerObject, "", space_world_engine.OpTypes, snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer releaseHead()
 	if err := block.CopyGraph(ctx, ownerObject.GetBlockStore(), writerObject.GetBlockStore(), head.GetHeadRef().GetRootRef(), nil); err != nil {
 		t.Fatal(err)
 	}

@@ -20,8 +20,9 @@ type TransferSource interface {
 	GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error)
 	// ReplaySharedObject returns the World of a Space after its last
 	// operation. Replay writes the blocks it creates to the Space's block
-	// store, so it runs before the blocks are copied.
-	ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, error)
+	// store and holds them until release, so the blocks are copied before
+	// release.
+	ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, func(), error)
 	// GetBlockStore returns the block store ops for a shared object's block store.
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
 	// GetBlockRefs returns all block refs tracked for a shared object's block store.
@@ -46,23 +47,38 @@ func replaySharedObject(
 	sfs *block_transform.StepFactorySet,
 	provider sobject.SharedObjectProvider,
 	ref *sobject.SharedObjectRef,
-) (*space_world.InnerState, error) {
-	// Mount the shared object.
+) (*space_world.InnerState, func(), error) {
+	// Mount the shared object until release.
 	so, relSO, err := provider.MountSharedObject(ctx, ref, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "mount shared object")
+		return nil, nil, errors.Wrap(err, "mount shared object")
 	}
-	defer relSO()
+	held := false
+	defer func() {
+		if !held {
+			relSO()
+		}
+	}()
 
-	// Replay its World from the current snapshot.
+	// Read the current snapshot.
 	snapCtr, relSnap, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer relSnap()
 	snap, err := snapCtr.WaitValue(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return space_world.ReplayWorld(ctx, le, b, sfs, so, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
+
+	// Replay its World, held with the mount until release.
+	state, releaseWorld, err := space_world.ReplayWorld(ctx, le, b, sfs, so, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
+	if err != nil {
+		return nil, nil, err
+	}
+	held = true
+	return state, func() {
+		releaseWorld()
+		relSO()
+	}, nil
 }

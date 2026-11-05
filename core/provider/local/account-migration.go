@@ -208,10 +208,12 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 	// Checkpoint and copy a Space.
 	if entry.GetMeta().GetBodyType() == "space" {
 		var world *space_world.InnerState
-		state, world, err = provider_migration.Checkpoint(ctx, a.le, a.t.p.b, a.t.p.sfs, entry.GetRef(), object, state)
+		var releaseWorld func()
+		state, world, releaseWorld, err = provider_migration.Checkpoint(ctx, a.le, a.t.p.b, a.t.p.sfs, entry.GetRef(), object, state)
 		if err != nil {
 			return err
 		}
+		defer releaseWorld()
 		if err := provider_migration.CopyWorld(ctx, object, world, blocks); err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 )
 
@@ -42,4 +43,7 @@ type AdapterOptions struct {
 	// transient replays without holding roots or saving the cursor, for a
 	// one-off replay beside the Space's own adapter.
 	transient bool
+	// pagesStore is the store the kept pages land in past the bound, such as
+	// a transient replay's stage, or nil for the SharedObject's block store.
+	pagesStore block.StoreOps
 }

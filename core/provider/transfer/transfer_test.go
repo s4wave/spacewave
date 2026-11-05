@@ -32,8 +32,8 @@ func (s *orderTestSource) GetSharedObjectList(context.Context) (*sobject.SharedO
 	return s.list, nil
 }
 
-func (s *orderTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*space_world.InnerState, error) {
-	return &space_world.InnerState{}, nil
+func (s *orderTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*space_world.InnerState, func(), error) {
+	return &space_world.InnerState{}, func() {}, nil
 }
 
 func (s *orderTestSource) GetBlockStore(context.Context, *sobject.SharedObjectRef) (block.StoreOps, func(), error) {

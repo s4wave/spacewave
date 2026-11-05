@@ -193,17 +193,20 @@ func (t *Transfer) Execute(ctx context.Context) error {
 
 		t.setSpacePhase(i, TransferPhase_TransferPhase_COPYING_BLOCKS)
 		le.Debug("replaying space")
-		world, err := t.source.ReplaySharedObject(ctx, le, soRef)
+		world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
 		if err != nil {
 			return t.fail(errors.Wrapf(err, "replay: %s", soID))
 		}
 		worlds[i], err = world.MarshalVT()
 		if err != nil {
+			releaseWorld()
 			return t.fail(err)
 		}
 
 		le.Debug("copying blocks for space")
-		if err := t.copyBlocksForSpace(ctx, i, soRef); err != nil {
+		err = t.copyBlocksForSpace(ctx, i, soRef)
+		releaseWorld()
+		if err != nil {
 			return t.fail(errors.Wrapf(err, "copy blocks: %s", soID))
 		}
 

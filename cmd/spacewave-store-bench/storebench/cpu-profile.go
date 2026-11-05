@@ -23,13 +23,13 @@ type cpuPath struct {
 // cpuPaths are the code paths the report attributes CPU to.
 var cpuPaths = []cpuPath{
 	{name: "load-write", funcs: []string{"storebench.(*load).commitWrite"}},
-	{name: "world-commit", funcs: []string{"sobject/world/engine.(*soEngineWriteTx).Commit"}},
+	{name: "world-commit", funcs: []string{"world/block.(*EngineTx).Commit", "space/world.(*spaceTurn).Admit"}},
 	{name: "s4db-commit", funcs: []string{"s4db.(*writer).commit"}},
 	{name: "watch-view", funcs: []string{"world.WatchViewWith"}},
 	{name: "read-set-touched", funcs: []string{"world.(*ReadSet).Touched"}},
 	{name: "decode", funcs: []string{".UnmarshalVT"}},
 	{name: "okra", funcs: []string{"/okra."}},
-	{name: "refgraph-mark", funcs: []string{"(*RefGraph).markScan"}},
+	{name: "collect", funcs: []string{"gc.(*Collector).Collect"}},
 	{name: "gc", funcs: []string{"runtime.gcBgMarkWorker", "runtime.gcAssistAlloc"}},
 }
 

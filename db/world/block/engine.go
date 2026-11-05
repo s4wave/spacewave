@@ -53,6 +53,11 @@ type Engine struct {
 	baseRoot *bucket_lookup.Cursor
 	// head pairs the root cursor with its shared read transaction.
 	head *engineHead
+	// liveMu guards live.
+	liveMu sync.Mutex
+	// live are the published heads some holder still holds, the current one
+	// and each replaced one a reader holds, for ReadRoots.
+	live map[*publishedHead]struct{}
 	// closing is canceled when Close begins, which ends each commit's wait
 	// for its Authority's decision with world.ErrDurabilityUnknown.
 	closing context.Context
@@ -216,6 +221,7 @@ func NewEngine(
 		verbose:        verbose,
 		snapshotTxs:    make(map[*EngineTx]struct{}),
 		snapChanged:    make(chan struct{}),
+		live:           make(map[*publishedHead]struct{}),
 		watchedHeads:   make([]*watchedHead, 0, changeWatchHeads),
 		readerPinDelay: defaultReaderPinDelay,
 	}
@@ -536,7 +542,16 @@ func (e *Engine) publishHeadLocked(ctx context.Context, seqno uint64) *published
 	if err != nil {
 		rootBlock = nil
 	}
-	return e.pub.Swap(newPublishedHead(e.head.root, rootBlock, seqno))
+	p := newPublishedHead(e.head.root, rootBlock, seqno)
+	e.liveMu.Lock()
+	e.live[p] = struct{}{}
+	e.liveMu.Unlock()
+	p.gone = func() {
+		e.liveMu.Lock()
+		delete(e.live, p)
+		e.liveMu.Unlock()
+	}
+	return e.pub.Swap(p)
 }
 
 // acquireHead holds the published head without the Engine lock, or returns

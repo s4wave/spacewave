@@ -56,10 +56,12 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	// Checkpoint a Space so the destination needs only the blocks of its World.
 	var world *space_world.InnerState
 	if entry.GetMeta().GetBodyType() == "space" {
-		state, world, err = provider_migration.Checkpoint(ctx, a.le, a.p.b, a.p.sfs, entry.GetRef(), object, state)
+		var releaseWorld func()
+		state, world, releaseWorld, err = provider_migration.Checkpoint(ctx, a.le, a.p.b, a.p.sfs, entry.GetRef(), object, state)
 		if err != nil {
 			return err
 		}
+		defer releaseWorld()
 	}
 
 	// Encode the latest config change with its key epoch, invites, and

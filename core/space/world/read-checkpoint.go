@@ -19,7 +19,8 @@ import (
 // OpenReadCheckpoint serves the World of snap, the state this participant held
 // when its read access ended, without a live adapter. It replays the operation
 // set as the Space World engine engineID would, keeping the replayed pages in
-// memory, and serves the World read-only. Release closes the engine.
+// memory and the overflow under a stage, and serves the World read-only.
+// Release closes the engine and the stage.
 func OpenReadCheckpoint(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -31,28 +32,33 @@ func OpenReadCheckpoint(
 ) (world.Engine, func(), error) {
 	// Replay the held operations onto the checkpoint's World in memory.
 	sfs := transform_all.BuildFactorySet()
-	a, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, defaultMaxPendingBytes)
+	a, releaseStage, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, defaultMaxPendingBytes)
 	if err != nil {
 		return nil, nil, err
 	}
 	state, _ := a.replay.head()
 	if state.GetHeadRef().GetEmpty() {
+		releaseStage()
 		return nil, nil, errors.New("read checkpoint holds no World")
 	}
 
-	// Serve it read-only over the kept pages.
+	// Serve it read-only over the kept pages, holding the stage until the
+	// engine closes.
 	cursor, err := a.newCursor(ctx, state.GetHeadRef())
 	if err != nil {
+		releaseStage()
 		return nil, nil, err
 	}
 	engine, err := world_block.NewEngine(ctx, le, cursor, a.lookupOp, nil, false)
 	if err != nil {
 		cursor.Release()
+		releaseStage()
 		return nil, nil, err
 	}
 	release := func() {
 		_ = engine.Close()
 		cursor.Release()
+		releaseStage()
 	}
 	return &readCheckpointEngine{Engine: engine, bus: b, le: le}, release, nil
 }

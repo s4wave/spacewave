@@ -16,7 +16,8 @@ import (
 
 // Checkpoint advances the accepted state of the Space object mounted at ref to
 // a checkpoint, signed by the source owner, whose World is the replayed World. The receiver of the
-// returned state needs only the blocks of that World.
+// returned state needs only the blocks of that World, which stay held until
+// release.
 func Checkpoint(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -25,10 +26,10 @@ func Checkpoint(
 	ref *sobject.SharedObjectRef,
 	object sobject.SharedObject,
 	accepted *sobject.SOState,
-) (*sobject.SOState, *space_world.InnerState, error) {
+) (*sobject.SOState, *space_world.InnerState, func(), error) {
 	host, ok := object.(sobject.InviteHost)
 	if !ok {
-		return nil, nil, errors.New("source cannot sign its migration checkpoint")
+		return nil, nil, nil, errors.New("source cannot sign its migration checkpoint")
 	}
 	return space_world.CheckpointWorld(ctx, le, b, factories, object, space.SpaceEngineId(ref), space_world_engine.OpTypes, host.GetPrivKey(), accepted)
 }
