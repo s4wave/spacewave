@@ -41,7 +41,7 @@ func (db *DB) reader(m runMeta) (*runReader, error) {
 	}
 
 	// Read and decode the footer.
-	b, err := db.readChecked(m.footer)
+	b, err := db.readChecked(m.footer, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "run %d footer", m.id)
 	}
@@ -70,9 +70,20 @@ func (db *DB) forgetRun(id uint64) {
 	db.cache.drop(id)
 }
 
-// readChecked reads the bytes at r and checks them.
-func (db *DB) readChecked(r ref) ([]byte, error) {
-	b := make([]byte, r.n)
+// readChecked reads the bytes at r into buf and checks them. With no buf the
+// read gets a buffer of its exact size; a reused buf too small is replaced by
+// one a quarter larger than r, so it settles at the largest block it holds.
+func (db *DB) readChecked(r ref, buf []byte) ([]byte, error) {
+	// Choose the buffer, then read and check.
+	var b []byte
+	switch n := int(r.n); {
+	case buf == nil:
+		b = make([]byte, n)
+	case cap(buf) < n:
+		b = make([]byte, n, n+n/4)
+	default:
+		b = buf[:n]
+	}
 	if _, err := db.s.ReadAt(b, fileOff(r.off)); err != nil {
 		return nil, err
 	}
@@ -82,20 +93,30 @@ func (db *DB) readChecked(r ref) ([]byte, error) {
 	return b, nil
 }
 
-// block returns the bytes at r through the cache; cache false reads around
-// it, for a background pass.
-func (rr *runReader) block(r ref, cache bool) ([]byte, error) {
-	// Serve the cache, else read and maybe keep.
+// block returns the bytes at r through the cache. A nil scratch keeps a read
+// the cache missed. Otherwise the read lands in *scratch and the cache is left
+// alone, for a background pass; those bytes last until the caller's next read
+// into the same scratch.
+func (rr *runReader) block(r ref, scratch *[]byte) ([]byte, error) {
+	// Serve the cache.
 	k := cacheKey{run: rr.meta.id, off: r.off}
 	if b := rr.db.cache.get(k); b != nil {
 		return b, nil
 	}
-	b, err := rr.db.readChecked(r)
+
+	// Read, then keep the block or the buffer.
+	var buf []byte
+	if scratch != nil {
+		buf = *scratch
+	}
+	b, err := rr.db.readChecked(r, buf)
 	if err != nil {
 		return nil, err
 	}
-	if cache {
+	if scratch == nil {
 		rr.db.cache.put(k, b)
+	} else {
+		*scratch = b
 	}
 	return b, nil
 }
@@ -108,9 +129,10 @@ func (rr *runReader) partitionFor(key []byte) int {
 	return i - 1
 }
 
-// index returns index partition i, read in place.
-func (rr *runReader) index(i int, cache bool) (fenceIndex, error) {
-	b, err := rr.block(rr.footer.parts[i].index, cache)
+// index returns index partition i, read in place, through scratch as block
+// describes.
+func (rr *runReader) index(i int, scratch *[]byte) (fenceIndex, error) {
+	b, err := rr.block(rr.footer.parts[i].index, scratch)
 	if err != nil {
 		return fenceIndex{}, err
 	}
@@ -127,7 +149,7 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	if i < 0 {
 		return value{}, false, nil
 	}
-	fb, err := rr.block(rr.footer.parts[i].filter, true)
+	fb, err := rr.block(rr.footer.parts[i].filter, nil)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -136,7 +158,7 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	}
 
 	// Find the block by its fence.
-	x, err := rr.index(i, true)
+	x, err := rr.index(i, nil)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -150,7 +172,7 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	}
 
 	// Search the block.
-	bb, err := rr.block(f.at, true)
+	bb, err := rr.block(f.at, nil)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -232,8 +254,13 @@ type runIter struct {
 	// meta describes the run.
 	meta runMeta
 	// cache reads through the block cache. Scans do; background jobs do not,
-	// so a merge never displaces the blocks foreground reads use.
+	// so a merge never displaces the blocks foreground reads use, and read
+	// into indexBuf and blockBuf instead, which each load reuses. An entry
+	// of such a layer lasts only until its next step.
 	cache bool
+	// indexBuf and blockBuf hold the index partition and block read around
+	// the cache.
+	indexBuf, blockBuf []byte
 	// rr is the run's reader, set on first use.
 	rr *runReader
 	// part is the current partition and index its index partition, empty
@@ -266,13 +293,21 @@ func (it *runIter) open() bool {
 	return it.err == nil
 }
 
+// scratch returns buf for a read around the cache, or nil to read through it.
+func (it *runIter) scratch(buf *[]byte) *[]byte {
+	if it.cache {
+		return nil
+	}
+	return buf
+}
+
 // loadIndex loads the index partition of partition p.
 func (it *runIter) loadIndex(p int) bool {
 	// Keep the loaded index, else read the partition's.
 	if it.index.len() != 0 && it.part == p {
 		return true
 	}
-	x, err := it.rr.index(p, it.cache)
+	x, err := it.rr.index(p, it.scratch(&it.indexBuf))
 	if err != nil {
 		it.err = err
 		return false
@@ -295,7 +330,7 @@ func (it *runIter) loadBlock(p, j int, reverse bool) bool {
 	}
 
 	// Read the block.
-	b, err := it.rr.block(f.at, it.cache)
+	b, err := it.rr.block(f.at, it.scratch(&it.blockBuf))
 	if err != nil {
 		it.err = err
 		return false

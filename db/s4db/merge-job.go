@@ -259,8 +259,10 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 	}
 
 	// Write entries in order into runs of runTarget each; each run takes the
-	// chunks the one before it left. key holds the current key past the step
-	// that may reload its layer's block; the run builder copies what it keeps.
+	// chunks the one before it left. A layer's entry lasts until its step may
+	// reload the block it sits in, so the entry is written before the step,
+	// and key holds the current key past it; the run builder copies what it
+	// keeps.
 	var outputs []runMeta
 	var rb *runBuilder
 	var key []byte
@@ -280,6 +282,28 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 			break
 		}
 		key = append(key[:0], best...)
+
+		// Drop a tombstone at the bottom; write the rest.
+		if !ent.del || !pick.bottom {
+			if rb == nil {
+				rb = newRunBuilder(j.db.s, chunks, more)
+			}
+			if err := rb.add(key, ent.val); err != nil {
+				return nil, nil, err
+			}
+			if rb.written+int64(len(rb.buf)) >= runTarget {
+				meta, err := rb.finish()
+				if err != nil {
+					return nil, nil, err
+				}
+				outputs = append(outputs, meta)
+				chunks = rb.unused()
+				j.db.written.Add(rb.written)
+				rb = nil
+			}
+		}
+
+		// Step every layer past the key.
 		for _, l := range layers {
 			if l.valid() && bytes.Equal(l.key(), key) {
 				l.step(false)
@@ -287,27 +311,6 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 		}
 		if err := j.checkLayers(layers); err != nil {
 			return nil, nil, err
-		}
-
-		// Drop a tombstone at the bottom; write the rest.
-		if ent.del && pick.bottom {
-			continue
-		}
-		if rb == nil {
-			rb = newRunBuilder(j.db.s, chunks, more)
-		}
-		if err := rb.add(key, ent.val); err != nil {
-			return nil, nil, err
-		}
-		if rb.written+int64(len(rb.buf)) >= runTarget {
-			meta, err := rb.finish()
-			if err != nil {
-				return nil, nil, err
-			}
-			outputs = append(outputs, meta)
-			chunks = rb.unused()
-			j.db.written.Add(rb.written)
-			rb = nil
 		}
 	}
 

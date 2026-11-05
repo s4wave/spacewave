@@ -198,7 +198,7 @@ func (bb *blockBuilder) finish() []byte {
 	// Append the trailer of restart offsets.
 	b := appendOffsets(bb.buf, bb.restarts)
 
-	// Reset for the next block.
-	*bb = blockBuilder{buf: make([]byte, 0, blockSize+blockSize/8), last: bb.last[:0]}
+	// Reset for the next block, which reuses the buffers.
+	*bb = blockBuilder{buf: b[:0], restarts: bb.restarts[:0], last: bb.last[:0]}
 	return b
 }
