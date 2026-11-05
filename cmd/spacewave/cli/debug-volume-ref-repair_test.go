@@ -248,7 +248,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
-	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.written != 0 {
+	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.rebuild.Verified != 0 {
 		t.Fatalf("dry run: %+v", dry)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || dry.untyped["object type "+unixfs_world.FSNodeTypeID] != 0 {
@@ -311,13 +311,15 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("dry run wrote child lists: %+v then %+v", dry, again)
 	}
 
-	// Applying writes every missing child list.
+	// Applying writes every missing child list, those of the leaves the dry
+	// run only checks for presence too, verifies every walked block's list,
+	// and clears the volume's unverified lists mark.
 	applied, err := repairVolumeRefs(ctx, le, path, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applied.written != dry.lacking {
-		t.Fatalf("applied %d child lists, expected %d", applied.written, dry.lacking)
+	if applied.rebuild.Rewritten < dry.lacking || applied.rebuild.Verified != dry.blocks || applied.rebuild.Unverified != 0 || !applied.rebuild.Cleared {
+		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and the mark cleared", applied.rebuild, dry.lacking, dry.blocks)
 	}
 
 	// Nothing is missing afterward.

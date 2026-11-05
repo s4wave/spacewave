@@ -1031,6 +1031,70 @@ func TestLivenessAdversarial(t *testing.T) {
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "R", "X")
+
+		// A rebuild that decodes X but not R leaves R's list unverified,
+		// reports it, and Adopt keeps refusing.
+		rebuild := func(names ...string) block_gc.ListRebuildResult {
+			t.Helper()
+			rb, err := v.OpenListRebuild(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range names {
+				if err := rb.Verify(ctx, tr[name].Ref, tr[name].Refs); err != nil {
+					t.Fatal(err)
+				}
+			}
+			res, err := rb.Finish(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return res
+		}
+		if res := rebuild("X"); res.Unverified != 1 || !res.UnverifiedSample[0].EqualsRef(r) || res.Cleared {
+			t.Fatalf("rebuild without R = %+v, want R unverified", res)
+		}
+		if _, err := v.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnverified) {
+			t.Fatalf("adopt after a partial rebuild = %v, want ErrAdoptUnverified", err)
+		}
+
+		// A rerun that decodes R rewrites its list and skips X, which the
+		// first run verified, but its walk from the roots is interrupted
+		// after its first pass marked what it reached.
+		probeCtx, cancel := context.WithCancel(ctx)
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){rebuildSecondPass: cancel}}
+		rb, err := block_gc.OpenListRebuild(probeCtx, probe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range []string{"X", "R"} {
+			if err := rb.Verify(probeCtx, tr[name].Ref, tr[name].Refs); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if res, err := rb.Finish(probeCtx); !errors.Is(err, context.Canceled) || res.Verified != 1 || res.Rewritten != 1 {
+			t.Fatalf("interrupted rebuild = %+v err %v, want R rewritten and the walk canceled", res, err)
+		}
+		reached := append(slices.Clone(livenessPrefix), 'K')
+		if countPrefix(t, store, reached) == 0 {
+			t.Fatal("interrupted walk left no reached marks")
+		}
+
+		// Running it again deletes the interrupted walk's marks, verifies
+		// nothing more, and clears the mark: Adopt succeeds and X stays.
+		if res := rebuild(); res.Verified != 0 || res.Unverified != 0 || !res.Cleared {
+			t.Fatalf("rerun rebuild = %+v, want the mark cleared", res)
+		}
+		if n := countPrefix(t, store, reached); n != 0 {
+			t.Fatalf("finished walk left %d reached marks", n)
+		}
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X")
+		requireAudit(t, v, 0)
 	})
 
 	t.Run("adoption claimed by another", func(t *testing.T) {
@@ -1128,6 +1192,11 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 }
+
+// rebuildSecondPass is the transaction of a list rebuild's Finish, on a
+// Volume whose records fit in one slice, that starts the walk's second pass:
+// after the flush, the clear of earlier marks and the first pass.
+const rebuildSecondPass = 4
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
 // each fit in one slice.

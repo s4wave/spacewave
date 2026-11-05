@@ -54,6 +54,14 @@ const (
 	// so freeing the block releases none, and an adoption that counts the list
 	// deletes the mark.
 	kindFill byte = 'F'
+	// kindVerified keys a block whose child list a list rebuild verified
+	// against the block's decoded refs, by the block. It holds no value and
+	// lasts until the rebuild clears the Volume's unverified lists mark.
+	kindVerified byte = 'V'
+	// kindReached keys a block a streaming walk from the roots reached, by the
+	// block. It holds no value; the walk deletes every one when it starts and
+	// when it ends.
+	kindReached byte = 'K'
 	// kindAdoptBorn keys a block Land gave birth to while the Volume adopts,
 	// by the block. It holds no value and lasts until the adoption ends.
 	kindAdoptBorn byte = 'B'
