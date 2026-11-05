@@ -125,16 +125,11 @@ func (e *PackReader) startIndexLoad(ctx context.Context, cache IndexCache, parse
 			}
 		}
 
-		// Load and cache the remote index tail when cached entries are unavailable.
+		// Load the remote index tail when cached entries are unavailable.
 		if index == nil {
 			before := e.snapshotFetchedBytes()
 			tail, index, err = e.readIndex(ctx, parsed)
 			e.recordRemoteIndexLoad(e.snapshotFetchedBytes() - before)
-			if err == nil && cache != nil {
-				if cacheErr := cache.Set(ctx, e.packID, tail); cacheErr != nil {
-					e.recordIndexCacheWriteError()
-				}
-			}
 		}
 
 		// Publish the loaded index unless the reader closed during the load.
@@ -163,6 +158,15 @@ func (e *PackReader) startIndexLoad(ctx context.Context, cache IndexCache, parse
 		})
 		if writeback != nil {
 			startOwnerWork(writeback)
+		}
+
+		// Cache the remote tail after publishing it, so the readers waiting on
+		// the load never wait for the cache's commit. The row only saves a
+		// later load its remote read, so a failed write costs nothing else.
+		if err == nil && tail != nil && cache != nil {
+			if cacheErr := cache.Set(ctx, e.packID, tail); cacheErr != nil {
+				e.recordIndexCacheWriteError()
+			}
 		}
 
 		// Drop cold indexes above the shared byte limit.

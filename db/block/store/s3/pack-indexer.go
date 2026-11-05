@@ -81,8 +81,8 @@ func (s *PackStore) indexPending(ctx context.Context, width int, pack, batch tim
 }
 
 // indexPack reads the index tail of a pack backwards from the end of the
-// object, and writes its block keys to the index. It returns the keys written
-// and the bytes read.
+// object, writes its block keys to the index, and keeps the tail for the
+// pack's readers. It returns the keys written and the bytes read.
 func (s *PackStore) indexPack(ctx context.Context, entry *packfile.PackfileEntry, batch time.Duration) (uint64, uint64, error) {
 	// Read the index tail, counting the bytes fetched.
 	id := entry.GetId()
@@ -102,6 +102,9 @@ func (s *PackStore) indexPack(ctx context.Context, entry *packfile.PackfileEntry
 			return yield(ie.GetKey())
 		})
 	}, func(ctx context.Context) error { return sleep(ctx, batch) })
+	if err == nil && keys != 0 {
+		s.index.cacheTail(ctx, id, tail)
+	}
 	return keys, read, err
 }
 

@@ -631,6 +631,15 @@ func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
 	return tx.Commit(ctx)
 }
 
+// cacheTail stores the index tail of a pack that its writer or the indexer
+// already holds, so the pack's first reader skips the remote tail read. The
+// row is a cache: a failed write only leaves that read in place. A pack
+// removed meanwhile may keep the row; pack ids are never reused, so no reader
+// finds it.
+func (x *packIndex) cacheTail(ctx context.Context, packID string, tail []byte) {
+	_ = x.Set(ctx, packID, tail)
+}
+
 // Locate returns the pack that holds a block key. A row that names a removed
 // pack reports found with an empty id: the block may sit in an older pack the
 // row shadowed, so the lookup must test every filter rather than end.

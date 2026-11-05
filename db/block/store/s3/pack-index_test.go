@@ -91,6 +91,9 @@ func TestPackStoreIndex(t *testing.T) {
 	}
 	waitFor(t, "cold start indexes the packs", func() bool { return len(store.index.pendingIDs()) == 0 })
 
+	// The indexer keeps each pack's index tail, though only one pack was read.
+	waitFor(t, "the indexer keeps the tails", func() bool { return rowCount(t, kv, indexTailPrefix) == 3 })
+
 	// A lookup finds the pack through the index, without a bloom filter.
 	for _, ref := range refs {
 		id, found, err := store.index.Locate(ctx, hashKey(ref))
@@ -290,6 +293,20 @@ func TestPackStoreIndex(t *testing.T) {
 	}
 	if id, found, err := store.index.Locate(ctx, hashKey(duplicates[1])); err != nil || !found || id != "" {
 		t.Fatalf("removed pack's row after restart = %q, %v, %v", id, found, err)
+	}
+
+	// A pack the indexed store writes keeps its tail as it is indexed.
+	tails := rowCount(t, kv, indexTailPrefix)
+	own := []byte("written by the indexed store")
+	ownRef, err := block.BuildBlockRef(own, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ownRef, Data: own}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := rowCount(t, kv, indexTailPrefix); got != tails+1 {
+		t.Fatalf("index holds %d tails after a write, want %d", got, tails+1)
 	}
 }
 

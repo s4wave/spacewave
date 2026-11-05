@@ -448,10 +448,19 @@ func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*
 		return nil, errors.Wrap(err, "write packfile entry")
 	}
 
-	// Index the keys with the entry, so the pack is found at once.
+	// Index the keys with the entry, so the pack is found at once, and keep
+	// its index tail, so its first read from the remote reads no tail.
 	if s.index != nil {
 		if err := s.index.addWritten(ctx, entry, keys); err != nil {
 			return nil, errors.Wrap(err, "index packfile")
+		}
+		data := buf.Bytes()
+		size := uint64(len(data))
+		tail, err := packfile.ReadIndexTail(ctx, size, size, func(_ context.Context, off int64, length int) ([]byte, error) {
+			return data[off : off+int64(length)], nil
+		})
+		if err == nil {
+			s.index.cacheTail(ctx, id, tail)
 		}
 	}
 	return entry, nil
