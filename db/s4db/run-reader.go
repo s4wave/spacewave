@@ -216,27 +216,39 @@ func (db *DB) runLayers(st *state, prefix []byte) []layer {
 		if bytes.Compare(m.largest, prefix) < 0 || (end != nil && bytes.Compare(m.smallest, end) >= 0) {
 			continue
 		}
-		layers = append(layers, &runIter{db: db, meta: m})
+		layers = append(layers, &runIter{db: db, meta: m, cache: true})
 	}
 	return layers
 }
 
-// runIter iterates one run as a merge layer, one decoded block at a time.
+// runIter iterates one run as a merge layer, one block at a time. It steps in
+// the direction of its last seek. Forward, it decodes a block's entries as it
+// steps, from the restart point its seek starts at, so a short scan decodes a
+// few entries rather than every block it touches; in reverse it decodes each
+// block whole, since stepping back needs the entries before.
 type runIter struct {
 	// db reads the run.
 	db *DB
 	// meta describes the run.
 	meta runMeta
+	// cache reads through the block cache. Scans do; background jobs do not,
+	// so a merge never displaces the blocks foreground reads use.
+	cache bool
 	// rr is the run's reader, set on first use.
 	rr *runReader
 	// part is the current partition and index its index partition, empty
 	// before the first.
 	part  int
 	index fenceIndex
-	// blk is the current block's index among the fences, and entries its
-	// decoded entries.
-	blk     int
+	// blk is the current block's index among the fences and data the block.
+	blk  int
+	data dataBlock
+	// entries holds the block's decoded entries from where decoding started,
+	// keys their keys, reused by the next block, and more the offset of the
+	// first entry not yet decoded.
 	entries []blockEntry
+	keys    []byte
+	more    int
 	// i indexes the current entry in entries; -1 before the first.
 	i int
 	// ok reports whether the layer is on an entry.
@@ -260,7 +272,7 @@ func (it *runIter) loadIndex(p int) bool {
 	if it.index.len() != 0 && it.part == p {
 		return true
 	}
-	x, err := it.rr.index(p, false)
+	x, err := it.rr.index(p, it.cache)
 	if err != nil {
 		it.err = err
 		return false
@@ -269,8 +281,9 @@ func (it *runIter) loadIndex(p int) bool {
 	return true
 }
 
-// loadBlock decodes block j of partition p into entries.
-func (it *runIter) loadBlock(p, j int) bool {
+// loadBlock reads block j of partition p and decodes its first entry, or
+// every entry in reverse, reporting whether it holds one.
+func (it *runIter) loadBlock(p, j int, reverse bool) bool {
 	// Find the block's fence in the partition's index.
 	if !it.loadIndex(p) || j < 0 || j >= it.index.len() {
 		return false
@@ -282,7 +295,7 @@ func (it *runIter) loadBlock(p, j int) bool {
 	}
 
 	// Read the block.
-	b, err := it.rr.block(f.at, false)
+	b, err := it.rr.block(f.at, it.cache)
 	if err != nil {
 		it.err = err
 		return false
@@ -293,20 +306,64 @@ func (it *runIter) loadBlock(p, j int) bool {
 		return false
 	}
 
-	// Decode every entry.
-	it.entries = it.entries[:0]
-	var prev []byte
-	for off := 0; off < len(blk.data); {
-		e, ok := blk.entryAt(off, prev)
-		if !ok {
-			it.err = errors.Wrap(ErrCorrupt, "block entry")
-			return false
-		}
-		it.entries = append(it.entries, e)
-		prev, off = e.key, e.next
+	// Decode from its start.
+	it.blk, it.data = j, blk
+	it.entries, it.keys, it.more = it.entries[:0], it.keys[:0], 0
+	if !it.decode() {
+		return false
 	}
-	it.blk = j
-	return len(it.entries) != 0
+	for reverse && it.decode() {
+	}
+	return it.err == nil
+}
+
+// decode appends the entry at more to entries, reporting whether the block
+// held one. more is the block's start, a restart point, or the entry after
+// the last decoded one.
+func (it *runIter) decode() bool {
+	// Stop at the block's end; an entry after the first shares its prefix
+	// with the one before.
+	if it.more >= len(it.data.data) {
+		return false
+	}
+	var prev []byte
+	if n := len(it.entries); n != 0 {
+		prev = it.entries[n-1].key
+	}
+	e, keys, ok := it.data.entryAt(it.more, prev, it.keys)
+	if !ok {
+		it.err = errors.Wrap(ErrCorrupt, "block entry")
+		return false
+	}
+	it.keys, it.more = keys, e.next
+	it.entries = append(it.entries, e)
+	return true
+}
+
+// seekBlock positions a forward layer at the first key at or after k in the
+// current block, decoding from the last restart point at or before k, or at
+// the next block's first key when this block holds none.
+func (it *runIter) seekBlock(k []byte) {
+	// Restart decoding at the restart point.
+	off, keys, ok := it.data.restart(k, it.keys[:0])
+	if !ok {
+		it.err = errors.Wrap(ErrCorrupt, "block restart")
+		return
+	}
+	it.entries, it.keys, it.more = it.entries[:0], keys[:0], off
+
+	// Decode up to the first key at or after k.
+	for it.decode() {
+		if bytes.Compare(it.entries[len(it.entries)-1].key, k) >= 0 {
+			it.i, it.ok = len(it.entries)-1, true
+			return
+		}
+	}
+	if it.err != nil || len(it.entries) == 0 {
+		return
+	}
+	it.i, it.ok = len(it.entries)-1, true
+	it.step(false)
 }
 
 // valid reports whether the layer is on an entry.
@@ -358,7 +415,7 @@ func (it *runIter) seek(k []byte, reverse bool) {
 		}
 		j = max(fj, 0)
 	}
-	if !it.loadBlock(p, j) {
+	if !it.loadBlock(p, j, reverse) {
 		return
 	}
 
@@ -371,34 +428,27 @@ func (it *runIter) seek(k []byte, reverse bool) {
 		it.ok = true
 		return
 	}
+	if !reverse {
+		it.seekBlock(k)
+		return
+	}
 	it.i = sort.Search(len(it.entries), func(i int) bool { return bytes.Compare(it.entries[i].key, k) >= 0 })
-	if reverse {
-		if it.i < len(it.entries) && bytes.Equal(it.entries[it.i].key, k) {
-			it.ok = true
-			return
-		}
-		it.i--
-		if it.i < 0 {
-			it.ok = true
-			it.i = 0
-			it.step(true)
-			return
-		}
+	if it.i < len(it.entries) && bytes.Equal(it.entries[it.i].key, k) {
 		it.ok = true
 		return
 	}
-	if it.i >= len(it.entries) {
-		it.ok = true
-		it.i = len(it.entries) - 1
-		it.step(false)
-		return
-	}
+	it.i--
 	it.ok = true
+	if it.i < 0 {
+		it.i = 0
+		it.step(true)
+	}
 }
 
 // step moves to the next key in the direction, crossing blocks and
 // partitions.
 func (it *runIter) step(reverse bool) {
+	// Back up through decoded entries, then whole blocks before.
 	if !it.ok {
 		return
 	}
@@ -413,23 +463,26 @@ func (it *runIter) step(reverse bool) {
 		}
 		return
 	}
+
+	// Step forward, decoding the next entry, then into the next block.
 	it.i++
-	for it.i >= len(it.entries) {
-		if !it.nextBlock() {
-			it.ok = false
-			return
-		}
-		it.i = 0
+	if it.i < len(it.entries) || it.decode() {
+		return
 	}
+	if it.err != nil || !it.nextBlock() {
+		it.ok = false
+		return
+	}
+	it.i = 0
 }
 
 // nextBlock loads the block after the current one.
 func (it *runIter) nextBlock() bool {
 	if it.blk+1 < it.index.len() {
-		return it.loadBlock(it.part, it.blk+1)
+		return it.loadBlock(it.part, it.blk+1, false)
 	}
 	if it.part+1 < len(it.rr.footer.parts) {
-		return it.loadBlock(it.part+1, 0)
+		return it.loadBlock(it.part+1, 0, false)
 	}
 	return false
 }
@@ -437,13 +490,13 @@ func (it *runIter) nextBlock() bool {
 // prevBlock loads the block before the current one.
 func (it *runIter) prevBlock() bool {
 	if it.blk > 0 {
-		return it.loadBlock(it.part, it.blk-1)
+		return it.loadBlock(it.part, it.blk-1, true)
 	}
 	if it.part > 0 {
 		if !it.loadIndex(it.part - 1) {
 			return false
 		}
-		return it.loadBlock(it.part, it.index.len()-1)
+		return it.loadBlock(it.part, it.index.len()-1, true)
 	}
 	return false
 }

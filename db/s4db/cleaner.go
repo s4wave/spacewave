@@ -31,7 +31,7 @@ type cleaner struct {
 // slack returns the live bytes and the slack: free chunks plus dead bytes in
 // value chunks.
 func (m *manifest) slack() (live, slack int64) {
-	for c, e := range m.table.entries {
+	for c, e := range m.table.all() {
 		if c == 0 {
 			continue
 		}
@@ -70,14 +70,14 @@ func (c *cleaner) topVictim(m *manifest) (uint64, bool) {
 	// The last chunk must be a value chunk with a free chunk below.
 	t := m.table
 	end := t.end()
-	if end <= firstChunk || t.entries[end-1].kind != chunkValue {
+	if end <= firstChunk || t.get(end-1).kind != chunkValue {
 		return 0, false
 	}
-	if seq, stuck := c.stuck[end-1]; stuck && seq == t.entries[end-1].seq {
+	if seq, stuck := c.stuck[end-1]; stuck && seq == t.get(end-1).seq {
 		return 0, false
 	}
 	for ch := uint64(firstChunk); ch < end-1; ch++ {
-		if t.entries[ch].kind == chunkFree {
+		if t.get(ch).kind == chunkFree {
 			return end - 1, true
 		}
 	}
@@ -97,11 +97,11 @@ func (c *cleaner) victim(m *manifest) (uint64, bool) {
 	// records since the chunk was last written.
 	best, bestScore := uint64(0), -1.0
 	now := float64(m.version)
-	for ch, e := range m.table.entries {
-		if e.kind != chunkValue || uint64(ch) == m.hot || uint64(ch) == m.cold || e.used == 0 { // #nosec G115 -- a table index.
+	for ch, e := range m.table.all() {
+		if e.kind != chunkValue || ch == m.hot || ch == m.cold || e.used == 0 {
 			continue
 		}
-		if seq, stuck := c.stuck[uint64(ch)]; stuck && seq == e.seq { // #nosec G115 -- a table index.
+		if seq, stuck := c.stuck[ch]; stuck && seq == e.seq {
 			continue
 		}
 		u := float64(e.live) / float64(e.used)
@@ -110,7 +110,7 @@ func (c *cleaner) victim(m *manifest) (uint64, bool) {
 			score = math.Inf(1)
 		}
 		if score > bestScore {
-			best, bestScore = uint64(ch), score // #nosec G115 -- a table index.
+			best, bestScore = ch, score
 		}
 	}
 	return best, bestScore > 0
@@ -131,7 +131,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 		db.release(st, stripe)
 		return false, nil
 	}
-	e := *st.m.table.at(victim)
+	e := st.m.table.get(victim)
 
 	// A chunk with no live entry is sealed without a scan.
 	if e.live == 0 {
@@ -186,7 +186,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 	}
 
 	// Seal the victim when its live count reached zero.
-	if db.cur.Load().m.table.at(victim).live == 0 {
+	if db.cur.Load().m.table.get(victim).live == 0 {
 		return true, c.seal(ctx, victim)
 	}
 	return true, nil
@@ -223,7 +223,7 @@ func (c *cleaner) batch(live []tentry) (batch, rest []tentry) {
 func (c *cleaner) seal(ctx context.Context, victim uint64) error {
 	db := c.db
 	err := db.w.locked(ctx, func() error {
-		if e := db.cur.Load().m.table.at(victim); e.kind != chunkValue || e.live != 0 {
+		if e := db.cur.Load().m.table.get(victim); e.kind != chunkValue || e.live != 0 {
 			return nil
 		}
 		_, err := db.w.appendRecord(ctx, &record{kind: kindSealed, chunks: []uint64{victim}})
