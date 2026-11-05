@@ -3,6 +3,7 @@ package dex_solicit
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -92,5 +93,22 @@ func TestStoreReadWaitsForSolicitation(t *testing.T) {
 	}
 	if !bytes.Equal(got, data) {
 		t.Fatalf("read data = %q, want %q", got, data)
+	}
+}
+
+// TestWaitSessionsReportsDeadline proves a wait for peer sessions that runs
+// out its deadline reports the deadline. A peer read bounded by a deadline
+// maps it to an unavailable block; reporting it as a cancellation made graph
+// copies, listings and pushes fail as if their caller had canceled them.
+func TestWaitSessionsReportsDeadline(t *testing.T) {
+	// Wait on a controller whose solicitation never settles.
+	c := &Controller{}
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+	_, err := c.waitSessions(ctx, nil, true)
+
+	// The wait reports the deadline, not a cancellation.
+	if !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		t.Fatalf("waitSessions after its deadline = %v; want context.DeadlineExceeded", err)
 	}
 }
