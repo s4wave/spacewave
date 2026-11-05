@@ -23,8 +23,12 @@ func (s *PackStore) ScanBlocks(ctx context.Context, fn func(ref *block.BlockRef,
 	}
 	defer release()
 
-	// List the packfiles in the bucket.
+	// List the packfiles in the bucket, and publish every one the index
+	// holds.
 	if err := s.listEntries(ctx, s.listings.Load()); err != nil {
+		return err
+	}
+	if err := s.loadAll(ctx); err != nil {
 		return err
 	}
 	var ids []string

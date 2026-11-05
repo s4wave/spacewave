@@ -67,7 +67,7 @@ func TestMergePackIndex(t *testing.T) {
 		t.Fatalf("merged %d packs and %d keys, want 3 and 9000", p.Packs, p.Keys)
 	}
 	got := newPackIndex(dst.store)
-	if _, err := got.load(ctx); err != nil {
+	if _, _, err := got.load(ctx); err != nil {
 		t.Fatal(err)
 	}
 

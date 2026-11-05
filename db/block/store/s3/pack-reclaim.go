@@ -219,8 +219,11 @@ func (s *PackStore) judgeListed(
 	ctx context.Context,
 	live func(context.Context, []*block.BlockRef) ([]bool, error),
 ) ([]*packJudgment, error) {
-	// Snapshot the listed packfiles.
+	// Snapshot the listed packfiles, with every one the index holds.
 	if err := s.listEntries(ctx, s.listings.Load()); err != nil {
+		return nil, err
+	}
+	if err := s.loadAll(ctx); err != nil {
 		return nil, err
 	}
 	var listed []*packfile.PackfileEntry
