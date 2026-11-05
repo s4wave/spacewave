@@ -4,18 +4,25 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"maps"
 	"math/rand/v2"
 	"path/filepath"
 	"slices"
-	"strings"
-	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
+	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 )
+
+// openTest opens the database at path, failing the test on error.
+func openTest(t *testing.T, path string, opts Options) *DB {
+	t.Helper()
+	db, err := Open(path, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return db
+}
 
 // model is the expected contents of a database.
 type model map[string][]byte
@@ -52,17 +59,80 @@ func (m model) check(t *testing.T, db *DB) {
 		t.Fatalf("scan returned %d keys, want %d", len(scanned), len(keys))
 	}
 
-	// A reverse scan returns them backward, and Size counts them.
+	// A reverse scan returns them backward, each key unchanged after the
+	// iterator moves past its block, and Size counts them.
 	it := tx.Iterate(ctx, nil, true, true)
+	var prev []byte
 	for i, key := range slices.Backward(keys) {
 		if !it.Next() || string(it.Key()) != key {
-			t.Fatalf("reverse scan diverged at %d: %v", i, it.Err())
+			t.Fatalf("reverse scan diverged at %d: got %q, %v", i, it.Key(), it.Err())
+		}
+		if prev != nil && string(prev) != keys[i+1] {
+			t.Fatalf("key %d changed to %q after Next", i+1, prev)
+		}
+		prev = it.Key()
+	}
+	it.Close()
+
+	// A forward seek just past a key lands on the next one, wherever in its
+	// block the key sits.
+	it = tx.Iterate(ctx, nil, true, false)
+	for i := 0; i < len(keys); i += 7 {
+		if err := it.Seek(append([]byte(keys[i]), 0)); err != nil {
+			t.Fatal(err)
+		}
+		if i+1 < len(keys) && (!it.Valid() || string(it.Key()) != keys[i+1]) {
+			t.Fatalf("seek past %q landed on %q, want %q", keys[i], it.Key(), keys[i+1])
+		}
+		if i+1 == len(keys) && it.Valid() {
+			t.Fatalf("seek past the last key landed on %q", it.Key())
 		}
 	}
 	it.Close()
 	if n, err := tx.Size(ctx); err != nil || n != uint64(len(m)) {
 		t.Fatalf("size %d err %v, want %d", n, err, len(m))
 	}
+
+	// The table's tally matches a walk of its entries.
+	checkTally(t, db.cur.Load().m.table)
+}
+
+// checkTally recomputes the tally of table from its entries and compares.
+func checkTally(t *testing.T, table *chunkTable) {
+	// Walk the entries.
+	t.Helper()
+	var want chunkTable
+	for c, e := range table.all() {
+		want.tally(e, 1)
+		if e.kind == chunkFree && c != 0 && c < table.lowFree {
+			t.Fatalf("chunk %d is free below the free hint %d", c, table.lowFree)
+		}
+	}
+
+	// Compare the counters.
+	if want.kinds != table.kinds || want.live != table.live || want.used != table.used {
+		t.Fatalf("tally kinds %v live %d used %d, walk gives %v live %d used %d", table.kinds, table.live, table.used, want.kinds, want.live, want.used)
+	}
+}
+
+// contents reads every key of db into a model.
+func contents(t *testing.T, db *DB) model {
+	// Scan every key in one read transaction.
+	t.Helper()
+	ctx := context.Background()
+	tx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	m := make(model)
+	if err := tx.ScanPrefix(ctx, nil, func(k, v []byte) error {
+		m[string(k)] = bytes.Clone(v)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return m
 }
 
 // randomCommit applies a random batch to db and m.
@@ -112,401 +182,83 @@ func commitRandom(r *rand.Rand, db *DB, m model, keys int) (bool, error) {
 	return true, tx.Commit(ctx)
 }
 
-// checkSpace fails when two uses claim one page: a live value, a tree
-// page, a log chunk, or the saved space against each other or against a
-// free or pending run. It also fails when a page below the end is none of
-// these, reserved, or in the open extent, which leaks it.
-func checkSpace(t *testing.T, db *DB) {
-	// Hold the writer lock so the space is stable.
-	t.Helper()
-	if err := db.w.lock(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	defer db.w.unlock(nil)
-	sp, st := db.w.sp, db.cur.Load()
-	owner := make(map[uint64]string)
-	claim := func(p uint64, who string, shared bool) {
-		if prev, ok := owner[p]; ok && (!shared || prev != who) {
-			t.Fatalf("page %d claimed by %s and %s", p, prev, who)
-		}
-		owner[p] = who
-	}
-
-	// Claim the pages under every stored value, counting their live bytes.
-	live := make(map[uint64]uint16)
-	it := newIterator(db.p, st, nil, nil, false)
-	for it.Next() {
-		if v := it.cur.val; v.isRef {
-			spans(v.ref.off, int(v.ref.n), func(p uint64, b uint16) {
-				claim(p, "value", true)
-				live[p] += b
-			})
-		}
-	}
-
-	// The space counts the same live bytes.
-	counted := make(map[uint64]uint16)
-	for p, b := range sp.live {
-		if b != 0 {
-			counted[uint64(p)] = b
-		}
-	}
-	if !maps.Equal(live, counted) || sp.livePages != int64(len(counted)) {
-		for p, b := range live {
-			if counted[p] != b {
-				t.Errorf("value page %d holds %d live bytes, space counts %d", p, b, counted[p])
-			}
-		}
-		for p, b := range counted {
-			if _, ok := live[p]; !ok {
-				t.Errorf("space counts %d live bytes on page %d, which holds none", b, p)
-			}
-		}
-		if sp.livePages != int64(len(counted)) {
-			t.Errorf("space counts %d live pages, %d hold live bytes", sp.livePages, len(counted))
-		}
-		t.FailNow()
-	}
-
-	// Claim the tree, the log chunks, and the saved space.
-	var walk func(p uint64)
-	walk = func(p uint64) {
-		claim(p, "tree", false)
-		n, err := db.p.node(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !n.leaf {
-			for i := range n.count() {
-				walk(n.kid(i))
-			}
-		}
-	}
-	if st.root != 0 {
-		walk(st.root)
-	}
-	for _, d := range st.deltas {
-		pages, err := db.p.deltaPages(nil, d)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, p := range pages {
-			claim(p, "delta", false)
-		}
-	}
-	for _, c := range sp.chunks {
-		for _, p := range pageRange(c.start, c.n) {
-			claim(p, "log", false)
-		}
-	}
-	for _, p := range pageRange(st.sb.space.off/pageSize, pagesFor(int(st.sb.space.n))) {
-		claim(p, "space", false)
-	}
-
-	// No claimed page may be free, pending, or past the end.
-	for p, who := range owner {
-		if p >= sp.end {
-			t.Fatalf("%s page %d past the end %d", who, p, sp.end)
-		}
-		if r, ok := sp.before(p + 1); ok && p < r.end() {
-			t.Fatalf("%s page %d in free run %+v", who, p, r)
-		}
-		for _, x := range slices.Concat(sp.values, sp.pages) {
-			if p >= x.start && p < x.end() {
-				t.Fatalf("%s page %d awaits release in %+v", who, p, x)
-			}
-		}
-	}
-
-	// Mark the pages free, awaiting release, or reserved.
-	held := make([]bool, sp.end)
-	mark := func(r run) {
-		for p := r.start; p < r.end() && p < sp.end; p++ {
-			held[p] = true
-		}
-	}
-	sp.free.Scan(func(start, n uint64) bool {
-		mark(run{start: start, n: n})
-		return true
-	})
-	for _, x := range slices.Concat(sp.values, sp.pages) {
-		mark(x.run)
-	}
-	for _, r := range sp.reserved {
-		mark(r)
-	}
-
-	// Every other page past the superblocks is claimed or in the open
-	// extent.
-	var leaked []uint64
-	for p := uint64(firstPage); p < sp.end; p++ {
-		if _, ok := owner[p]; !ok && !held[p] && !sp.inOpen(p) {
-			leaked = append(leaked, p)
-		}
-	}
-	if len(leaked) != 0 {
-		t.Fatalf("pages %v are neither used, free, pending, nor reserved", leaked)
-	}
-}
-
-// TestDeepTreeGets reads every key after each commit to a tree whose long
-// shared key prefix makes inner pages narrow and deep. Checkpoints rewrite
-// inner pages often, and each must route a key equal to a separator to the
-// child that holds it.
-func TestDeepTreeGets(t *testing.T) {
-	// Open a database that checkpoints every few commits.
-	ctx := context.Background()
-	db := openTest(t, filepath.Join(t.TempDir(), "a.s4wave"), Options{CheckpointMin: 32 << 10, CheckpointMax: 64 << 10})
-	r := rand.New(rand.NewPCG(1, 2))
-	prefix := strings.Repeat("p", 120)
-	m := make(model)
-	for n := range 300 {
-		// Set or delete a random batch.
-		tx, err := db.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for range 1 + r.IntN(150) {
-			k := fmt.Sprintf("%s/%07d", prefix, r.IntN(30000))
-			if r.IntN(3) == 0 {
-				delete(m, k)
-				err = tx.Delete(ctx, []byte(k))
-			} else {
-				m[k] = []byte(k[len(prefix):])
-				err = tx.Set(ctx, []byte(k), m[k])
-			}
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-		if err := tx.Commit(ctx); err != nil {
-			t.Fatal(err)
-		}
-
-		// Read every key back.
-		rtx, err := db.NewTransaction(ctx, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for k := range m {
-			if _, ok, err := rtx.Get(ctx, []byte(k)); err != nil || !ok {
-				t.Fatalf("commit %d: get %s: found %v err %v", n, k[len(prefix):], ok, err)
-			}
-		}
-		rtx.Discard()
-	}
-}
-
-// TestGetBatchPrefetch checks that a cold GetBatch answers present and absent
-// keys and leaves every page on each key's path cached.
-func TestGetBatchPrefetch(t *testing.T) {
-	// Build a deep tree across checkpoints.
-	ctx := context.Background()
-	db := openTest(t, filepath.Join(t.TempDir(), "a.s4wave"), Options{CheckpointMin: 32 << 10, CheckpointMax: 64 << 10})
+// TestKvtx runs the shared store conformance suite.
+func TestKvtx(t *testing.T) {
+	db := openTest(t, filepath.Join(t.TempDir(), "kv.s4wave"), Options{})
 	defer db.Close()
-	prefix := strings.Repeat("p", 120)
-	for n := range 40 {
-		tx, err := db.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i := range 200 {
-			k := fmt.Sprintf("%s/%07d", prefix, 2*(n*200+i))
-			if err := tx.Set(ctx, []byte(k), []byte(k[len(prefix):])); err != nil {
-				t.Fatal(err)
-			}
-		}
-		if err := tx.Commit(ctx); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// List even keys, which are present, and odd keys, which are absent.
-	var keys [][]byte
-	for i := 0; i < 16000; i += 37 {
-		keys = append(keys, fmt.Appendf(nil, "%s/%07d", prefix, i))
-	}
-
-	// Read them from a cold cache.
-	db.p.cache.clear()
-	tx, err := db.NewTransaction(ctx, false)
-	if err != nil {
+	if err := kvtest.TestAll(context.Background(), db); err != nil {
 		t.Fatal(err)
-	}
-	defer tx.Discard()
-	values, found, err := tx.(kvtx.BatchTxOps).GetBatch(ctx, keys)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i, key := range keys {
-		want := i*37%2 == 0
-		if found[i] != want || (want && !bytes.Equal(values[i], key[len(prefix):])) {
-			t.Fatalf("key %s: found %v value %q", key[len(prefix):], found[i], values[i])
-		}
-	}
-
-	// Prefetch the keys through a second pager with a cold cache, whose
-	// reads each take long enough to overlap with the reads beside them.
-	root := tx.(*Tx).st.root
-	if root == 0 {
-		t.Fatal("no checkpointed tree")
-	}
-	r := &overlapReader{r: db.s}
-	p := &pager{r: r, cache: newCache(64 << 20)}
-	if err := p.prefetch(ctx, root, keys); err != nil {
-		t.Fatal(err)
-	}
-	if r.most.Load() < 2 {
-		t.Fatalf("prefetch kept at most %d reads in flight", r.most.Load())
-	}
-
-	// Descend to each key through the cache alone.
-	for _, key := range keys {
-		for page := root; ; {
-			n := p.cache.get(page)
-			if n == nil {
-				t.Fatalf("key %s: page %d not cached", key[len(prefix):], page)
-			}
-			if n.leaf {
-				break
-			}
-			page = n.kid(n.childIndex(key))
-		}
 	}
 }
 
-// TestCommitPrefetch checks that a commit on a cold cache reads the index
-// paths of its changes together instead of one path at a time, and reads each
-// page once even when the cache cannot hold the paths and the overlay filter
-// claims every key, so the lookups under the writer lock read nothing more.
-func TestCommitPrefetch(t *testing.T) {
-	// Build a deep tree across checkpoints.
-	ctx := context.Background()
-	path := filepath.Join(t.TempDir(), "a.s4wave")
-	opts := Options{CheckpointMin: 32 << 10, CheckpointMax: 64 << 10, RelocateBudget: -1}
+// TestModel commits random batches of small and large values, checks every
+// key and scan against the model after each round, and reopens the file to
+// check that the log replays to the same contents.
+func TestModel(t *testing.T) {
+	// Open the file and commit random rounds.
+	path := filepath.Join(t.TempDir(), "model.s4wave")
+	opts := Options{CacheBytes: 64 << 20}
 	db := openTest(t, path, opts)
-	prefix := strings.Repeat("p", 120)
-	for n := range 40 {
-		tx, err := db.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
+	r := rand.New(rand.NewPCG(1, 2))
+	m := make(model)
+	for round := range 6 {
+		for range 25 {
+			randomCommit(t, r, db, m, 3000)
 		}
-		for i := range 200 {
-			k := fmt.Sprintf("%s/%07d", prefix, n*200+i)
-			if err := tx.Set(ctx, []byte(k), []byte(k[len(prefix):])); err != nil {
-				t.Fatal(err)
-			}
+		m.check(t, db)
+
+		// Reopen and check the replayed contents.
+		if err := db.Close(); err != nil {
+			t.Fatalf("round %d: close: %v", round, err)
 		}
-		if err := tx.Commit(ctx); err != nil {
-			t.Fatal(err)
+		db = openTest(t, path, opts)
+		m.check(t, db)
+		if got := contents(t, db); !maps.EqualFunc(got, m, bytes.Equal) {
+			t.Fatalf("round %d: reopened contents differ: %d keys, want %d", round, len(got), len(m))
 		}
 	}
-
-	// Fold the whole log into the tree, since the background checkpoints
-	// can leave the last commits in the log, which the reopen below would
-	// keep in its overlay instead.
-	for st := db.cur.Load(); st.seq != st.ckpt; st = db.cur.Load() {
-		if err := db.w.lock(ctx); err != nil {
-			t.Fatal(err)
-		}
-		db.w.startCheckpoint()
-		db.w.unlock(nil)
-		db.w.builds.Wait()
-	}
-
-	// Reopen it so its index is on disk, with no checkpoint to read pages
-	// after the commit, and let the warm-up finish before the test empties
-	// the cache.
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
-	db = openTest(t, path, Options{CheckpointMin: 1 << 30, CheckpointMax: 1 << 30, RelocateBudget: -1})
+}
+
+// TestStats checks that the table's live and dead bytes follow the values
+// written and replaced.
+func TestStats(t *testing.T) {
+	// Open a file counting family a apart.
+	ctx := context.Background()
+	db := openTest(t, filepath.Join(t.TempDir(), "stats.s4wave"), Options{Families: [][]byte{[]byte("a/")}})
 	defer db.Close()
-	if wait, _ := db.warmer.SetRoutine(nil); wait != nil {
-		<-wait
-	}
 
-	// Count the distinct pages on the paths of scattered keys, as a
-	// prefetch through a cold cache reads each once.
-	var keys [][]byte
-	for i := 0; i < 8000; i += 97 {
-		keys = append(keys, fmt.Appendf(nil, "%s/%07d", prefix, i))
-	}
-	st := db.cur.Load()
-	paths := &pager{r: db.s, cache: newCache(64 << 20)}
-	if err := paths.prefetch(ctx, st.root, keys); err != nil {
-		t.Fatal(err)
-	}
-	if paths.reads.Load() <= int64(len(keys)) {
-		t.Fatalf("paths hold %d pages for %d keys, want a deeper tree", paths.reads.Load(), len(keys))
-	}
-
-	// Delete and replace the keys through a cache of one page per shard,
-	// whose reads each take long enough to overlap with the reads beside
-	// them, with every key in the overlay filter.
-	r := &overlapReader{r: db.s}
-	db.p.r = r
-	db.p.cache = newCache(pageSize)
-	for _, k := range keys {
-		st.filter.add(k)
-	}
-	tx, err := db.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for j, k := range keys {
-		if j%2 == 0 {
-			err = tx.Delete(ctx, k)
-		} else {
-			err = tx.Set(ctx, k, []byte("new"))
-		}
+	// Write two large values, then replace one.
+	v := bytes.Repeat([]byte("x"), 4096)
+	for _, k := range []string{"a/1", "b/1", "a/1"} {
+		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)
 		}
-	}
-	reads := db.p.reads.Load()
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if r.most.Load() < 2 {
-		t.Fatalf("commit kept at most %d reads in flight", r.most.Load())
-	}
-	if got, want := db.p.reads.Load()-reads, paths.reads.Load(); got > want {
-		t.Fatalf("commit read %d pages, want at most the %d on its paths", got, want)
+		if err := tx.Set(ctx, []byte(k), v); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	// Check the commit's result.
-	rtx, err := db.NewTransaction(ctx, false)
+	// Two entries live, one dead, headers included; three values written and
+	// one freed in family a.
+	s, err := db.Stats(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rtx.Discard()
-	for j, k := range keys {
-		v, found, err := rtx.Get(ctx, k)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if found != (j%2 != 0) || (found && string(v) != "new") {
-			t.Fatalf("key %s: found %v value %q", k[len(prefix):], found, v)
-		}
+	entry := int64(valueEntryHeaderLen(3, 4096) + 4096)
+	if s.KeyCount != 2 || s.LiveBytes != 2*entry || s.DeadBytes != entry {
+		t.Fatalf("stats keys %d live %d dead %d", s.KeyCount, s.LiveBytes, s.DeadBytes)
 	}
-}
-
-// overlapReader records the most reads in flight at once.
-type overlapReader struct {
-	r          io.ReaderAt
-	open, most atomic.Int32
-}
-
-// ReadAt reads from the underlying file and holds the read open briefly.
-func (o *overlapReader) ReadAt(b []byte, off int64) (int, error) {
-	// Count the read in flight and raise the most seen.
-	n := o.open.Add(1)
-	defer o.open.Add(-1)
-	for m := o.most.Load(); n > m && !o.most.CompareAndSwap(m, n); m = o.most.Load() {
+	if s.Families[0] != (Flow{Written: 2 * 4096, Freed: 4096}) || s.Families[1] != (Flow{Written: 4096}) {
+		t.Fatalf("flows %+v", s.Families)
 	}
-
-	// Hold the read open so concurrent reads overlap it.
-	time.Sleep(time.Millisecond)
-	return o.r.ReadAt(b, off)
+	if len(s.Slots) != 1 || !s.Slots[0].Own {
+		t.Fatalf("slots %+v", s.Slots)
+	}
 }

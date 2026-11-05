@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,8 +46,10 @@ func newDebugVolumeCopyCommand() *cli.Command {
 		Usage:     "copy a stopped volume file into a new file at the current store format",
 		ArgsUsage: "<volume-file> [new-file]",
 		Description: "Copies every key of a stopped s4db volume into a new file, converting a Cayley reference graph " +
-			"to edge records on the way, so the source is never rewritten in place. The new file is written in key order " +
-			"with compaction off and records the format version last; a copy that stops early lacks it and should be deleted. " +
+			"to edge records on the way, so the source is never rewritten in place. The new file records the format " +
+			"version last; a copy that stops early lacks it and should be deleted. A source in the previous database " +
+			"format is converted to the current one instead: every pair is read back from the new file before the copy " +
+			"succeeds, and the graph is left for the Volume to convert when it opens the copy. " +
 			"The source is left unchanged. Replace the source with the new file only after checking it. " +
 			"With --reachable, the source must be at store format 3 or later, and the copy keeps only the blocks " +
 			"and graph records reachable from the graph root, as a complete collection would. Check its count of " +
@@ -127,9 +130,15 @@ func newDebugVolumeCopyCommand() *cli.Command {
 // holds when drop is set, writing progress lines to w. It removes dst when
 // the copy fails.
 func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, drop *sqlDrop, w io.Writer) (err error) {
-	// Open the source read-only, which never creates or writes it, and refuse
-	// a file a daemon has open.
+	// Open the source read-only, which never creates it and writes only its
+	// reader slot, and refuse a file a daemon has open.
 	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
+	if errors.Is(err, s4db.ErrPreviousFormat) {
+		if reachable != nil || drop != nil {
+			return fmt.Errorf("%s is in the previous format: copy it without --reachable or --drop-sql-blocks first, then copy that file", src)
+		}
+		return copyPreviousFormat(ctx, src, dst, w)
+	}
 	if err != nil {
 		return err
 	}
@@ -142,12 +151,11 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		return fmt.Errorf("%s is open in another process; stop the daemon first", src)
 	}
 
-	// Create the destination, which must not exist. Its keys arrive in order
-	// and never move, so compaction has nothing to do.
+	// Create the destination, which must not exist.
 	if _, err := os.Stat(dst); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%s already exists", dst)
 	}
-	ddb, err := s4db.Open(dst, s4db.Options{RelocateBudget: -1})
+	ddb, err := s4db.Open(dst, s4db.Options{})
 	if err != nil {
 		return err
 	}
@@ -192,6 +200,36 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		return err
 	}
 	fmt.Fprintf(w, "copied %s to %s in %s: %s\n", src, dst, time.Since(start).Round(time.Second), formatCopyProgress(counts))
+	return nil
+}
+
+// copyPreviousFormat copies the stopped previous-format volume at src into
+// the new file dst through the conversion's reader and builder, writing
+// progress lines to w. The copy holds every key of the source and no graph
+// conversion, which the Volume runs when it opens the copy.
+func copyPreviousFormat(ctx context.Context, src, dst string, w io.Writer) error {
+	// Create the destination, which must not exist, and report progress at
+	// most once per interval.
+	if _, err := os.Stat(dst); !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("%s already exists", dst)
+	}
+	start := time.Now()
+	var last time.Time
+	var keys, bytes int64
+	progress := func(k, b int64) {
+		keys, bytes = k, b
+		if time.Since(last) < copyReportInterval {
+			return
+		}
+		last = time.Now()
+		fmt.Fprintf(w, "%s: %d keys, %s\n", time.Since(start).Round(time.Second), keys, humanize.IBytes(uint64(bytes))) // #nosec G115 -- bytes are not negative.
+	}
+
+	// Copy and verify.
+	if err := volume_s4db.CopyPreviousFormat(ctx, src, dst, progress); err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "copied %s to %s in %s: %d keys, %s; the source is in the previous format and is unchanged\n", src, dst, time.Since(start).Round(time.Second), keys, humanize.IBytes(uint64(bytes))) // #nosec G115 -- bytes are not negative.
 	return nil
 }
 

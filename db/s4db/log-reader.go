@@ -20,6 +20,8 @@ type logReader struct {
 	seq uint64
 	// crc is the checksum of the previous record.
 	crc uint32
+	// writer is the writer identity of the previous record.
+	writer uint64
 	// buf holds file bytes from off.
 	buf []byte
 	// off is the file offset of buf.
@@ -27,32 +29,32 @@ type logReader struct {
 }
 
 // newLogReader returns a reader of the records after seq, whose checksum is
-// crc, starting at pos in the chunk ending at end.
-func newLogReader(r io.ReaderAt, pos, end, seq uint64, crc uint32) *logReader {
-	return &logReader{r: r, pos: pos, end: end, seq: seq + 1, crc: crc}
+// crc and whose writer is writer, starting at pos in the chunk ending at end.
+func newLogReader(r io.ReaderAt, pos, end, seq uint64, crc uint32, writer uint64) *logReader {
+	return &logReader{r: r, pos: pos, end: end, seq: seq + 1, crc: crc, writer: writer}
 }
 
 // next returns the next record, following links, or false at the end of the
 // valid log.
 func (l *logReader) next() (*record, bool) {
 	// Decode the record at pos.
-	r, ok := decodeRecord(l.window(), l.seq, l.crc)
+	r, ok := decodeRecord(l.window(), l.seq, l.crc, l.writer)
 	if !ok {
 		return nil, false
 	}
 
 	// Advance past it, moving to the next chunk after a link.
 	l.pos += uint64(r.size) // #nosec G115 -- record sizes are not negative.
-	l.seq, l.crc = l.seq+1, r.crc
+	l.seq, l.crc, l.writer = l.seq+1, r.crc, r.writer
 	if r.kind == kindLink {
-		l.pos, l.end = r.next.start*pageSize, (r.next.start+r.next.n)*pageSize
+		l.pos, l.end = chunkStart(r.next), chunkStart(r.next+r.span)
 		l.buf = nil
 	}
 	return r, true
 }
 
-// window returns the bytes from pos to the chunk end, reading ahead at least
-// logWindow bytes.
+// window returns the bytes from pos that the buffer holds, at least the
+// record at pos, reading ahead by a window that doubles up to logWindow.
 func (l *logReader) window() []byte {
 	// Serve a record that the buffer already holds whole.
 	if l.pos >= l.off && l.pos+recordHeader <= l.off+uint64(len(l.buf)) {
@@ -73,8 +75,10 @@ func (l *logReader) window() []byte {
 		return nil
 	}
 
-	// Refill from pos, reading at least the next record when it is large.
-	want := max(logWindow, uint64(binary.LittleEndian.Uint32(hdr[:])))
+	// Refill from pos with at least the next record. The window starts at
+	// that record and doubles with each refill up to logWindow, so a tail
+	// that finds one record reads only it, and a long replay reads ahead.
+	want := max(min(logWindow, 2*uint64(len(l.buf))), uint64(binary.LittleEndian.Uint32(hdr[:])))
 	want = min(want, l.end-l.pos)
 	l.buf = make([]byte, want)
 	n, _ := l.r.ReadAt(l.buf, fileOff(l.pos))

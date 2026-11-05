@@ -1,0 +1,530 @@
+---
+title: "A backed log spare admits bounded full-disk reclamation"
+---
+stateDiagram-v2
+  s0: owner 1: free, end 5, log 1, spare 2, disk available, tail room
+  s1: owner 2: free, end 5, log 1, spare 2, disk available, tail room
+  s2: owner 1: free, end 5, log 1, spare 2, disk available, tail full
+  s3: owner 2: free, end 5, log 1, spare 2, disk available, tail full
+  s4: owner 1: free, end 5, log 1, spare 2, disk full, tail room
+  s5: owner 2: free, end 5, log 1, spare 2, disk full, tail room
+  s6: owner 1: reserved, end 5, log 1, spare 2, disk available, tail room
+  s7: owner 2: reserved, end 5, log 1, spare 2, disk available, tail room
+  s8: owner 1: free, end 5, log 1, spare 2, disk full, tail full
+  s9: owner 2: free, end 5, log 1, spare 2, disk full, tail full
+  s10: owner 1: live, end 5, log 1, spare 2, disk available, tail room
+  s11: owner 2: live, end 5, log 1, spare 2, disk available, tail room
+  s12: owner 1: reserved, end 5, log 1, spare 2, disk available, tail full
+  s13: owner 2: reserved, end 5, log 1, spare 2, disk available, tail full
+  s14: owner 1: reserved, end 5, log 1, spare 2, disk full, tail room
+  s15: owner 2: reserved, end 5, log 1, spare 2, disk full, tail room
+  s16: owner 1: free, end 5, log 2, spare 4, disk available, tail room
+  s17: owner 2: free, end 5, log 2, spare 4, disk available, tail room
+  s18: owner 1: free, end 5, log 2, spare 0, disk available, tail room
+  s19: owner 2: free, end 5, log 2, spare 0, disk available, tail room
+  s20: owner 1: live, end 5, log 1, spare 2, disk available, tail full
+  s21: owner 2: live, end 5, log 1, spare 2, disk available, tail full
+  s22: owner 1: live, end 5, log 1, spare 2, disk full, tail room
+  s23: owner 2: live, end 5, log 1, spare 2, disk full, tail room
+  s24: owner 1: reserved, end 5, log 1, spare 2, disk full, tail full
+  s25: owner 2: reserved, end 5, log 1, spare 2, disk full, tail full
+  s26: owner 1: free, end 5, log 2, spare 4, disk available, tail full
+  s27: owner 2: free, end 5, log 2, spare 4, disk available, tail full
+  s28: owner 1: free, end 5, log 2, spare 4, disk full, tail room
+  s29: owner 2: free, end 5, log 2, spare 4, disk full, tail room
+  s30: owner 1: free, end 5, log 2, spare 0, disk available, tail full
+  s31: owner 2: free, end 5, log 2, spare 0, disk available, tail full
+  s32: owner 1: free, end 5, log 2, spare 0, disk full, tail room
+  s33: owner 2: free, end 5, log 2, spare 0, disk full, tail room
+  s34: owner 1: free, end 5, log 2, spare 3, disk available, tail room
+  s35: owner 2: free, end 5, log 2, spare 3, disk available, tail room
+  s36: owner 1: free, end 3, log 2, spare 0, disk available, tail room
+  s37: owner 2: free, end 3, log 2, spare 0, disk available, tail room
+  s38: owner 1: reserved, end 5, log 2, spare 0, disk available, tail room
+  s39: owner 2: reserved, end 5, log 2, spare 0, disk available, tail room
+  s40: owner 1: live, end 5, log 1, spare 2, disk full, tail full
+  s41: owner 2: live, end 5, log 1, spare 2, disk full, tail full
+  s42: owner 1: free, end 5, log 2, spare 4, disk full, tail full
+  s43: owner 2: free, end 5, log 2, spare 4, disk full, tail full
+  s44: owner 1: free, end 5, log 2, spare 0, disk full, tail full
+  s45: owner 2: free, end 5, log 2, spare 0, disk full, tail full
+  s46: owner 1: free, end 5, log 2, spare 3, disk available, tail full
+  s47: owner 2: free, end 5, log 2, spare 3, disk available, tail full
+  s48: owner 1: free, end 5, log 2, spare 3, disk full, tail room
+  s49: owner 2: free, end 5, log 2, spare 3, disk full, tail room
+  s50: owner 1: free, end 3, log 2, spare 0, disk available, tail full
+  s51: owner 2: free, end 3, log 2, spare 0, disk available, tail full
+  s52: owner 1: free, end 3, log 2, spare 0, disk full, tail room
+  s53: owner 2: free, end 3, log 2, spare 0, disk full, tail room
+  s54: owner 1: live, end 5, log 2, spare 0, disk available, tail room
+  s55: owner 2: live, end 5, log 2, spare 0, disk available, tail room
+  s56: owner 1: reserved, end 5, log 2, spare 0, disk available, tail full
+  s57: owner 2: reserved, end 5, log 2, spare 0, disk available, tail full
+  s58: owner 1: reserved, end 5, log 2, spare 0, disk full, tail room
+  s59: owner 2: reserved, end 5, log 2, spare 0, disk full, tail room
+  s60: owner 1: reserved, end 5, log 2, spare 3, disk available, tail room
+  s61: owner 2: reserved, end 5, log 2, spare 3, disk available, tail room
+  s62: owner 1: reserved, end 3, log 2, spare 0, disk available, tail room
+  s63: owner 2: reserved, end 3, log 2, spare 0, disk available, tail room
+  s64: owner 1: free, end 4, log 3, spare 0, disk available, tail room
+  s65: owner 2: free, end 4, log 3, spare 0, disk available, tail room
+  s66: owner 1: free, end 5, log 4, spare 0, disk available, tail room
+  s67: owner 2: free, end 5, log 4, spare 0, disk available, tail room
+  s68: owner 1: free, end 5, log 2, spare 3, disk full, tail full
+  s69: owner 2: free, end 5, log 2, spare 3, disk full, tail full
+  s70: owner 1: free, end 3, log 2, spare 0, disk full, tail full
+  s71: owner 2: free, end 3, log 2, spare 0, disk full, tail full
+  s72: owner 1: live, end 5, log 2, spare 0, disk available, tail full
+  s73: owner 2: live, end 5, log 2, spare 0, disk available, tail full
+  s74: owner 1: live, end 5, log 2, spare 0, disk full, tail room
+  s75: owner 2: live, end 5, log 2, spare 0, disk full, tail room
+  s76: owner 1: reserved, end 5, log 2, spare 0, disk full, tail full
+  s77: owner 2: reserved, end 5, log 2, spare 0, disk full, tail full
+  s78: owner 1: live, end 5, log 2, spare 3, disk available, tail room
+  s79: owner 2: live, end 5, log 2, spare 3, disk available, tail room
+  s80: owner 1: reserved, end 5, log 2, spare 3, disk available, tail full
+  s81: owner 2: reserved, end 5, log 2, spare 3, disk available, tail full
+  s82: owner 1: reserved, end 5, log 2, spare 3, disk full, tail room
+  s83: owner 2: reserved, end 5, log 2, spare 3, disk full, tail room
+  s84: owner 1: live, end 3, log 2, spare 0, disk available, tail room
+  s85: owner 2: live, end 3, log 2, spare 0, disk available, tail room
+  s86: owner 1: reserved, end 3, log 2, spare 0, disk available, tail full
+  s87: owner 2: reserved, end 3, log 2, spare 0, disk available, tail full
+  s88: owner 1: reserved, end 3, log 2, spare 0, disk full, tail room
+  s89: owner 2: reserved, end 3, log 2, spare 0, disk full, tail room
+  s90: owner 1: free, end 5, log 3, spare 4, disk available, tail room
+  s91: owner 2: free, end 5, log 3, spare 4, disk available, tail room
+  s92: owner 1: free, end 4, log 3, spare 0, disk available, tail full
+  s93: owner 2: free, end 4, log 3, spare 0, disk available, tail full
+  s94: owner 1: free, end 4, log 3, spare 0, disk full, tail room
+  s95: owner 2: free, end 4, log 3, spare 0, disk full, tail room
+  s96: owner 1: reserved, end 4, log 3, spare 0, disk available, tail room
+  s97: owner 2: reserved, end 4, log 3, spare 0, disk available, tail room
+  s98: owner 1: free, end 5, log 4, spare 0, disk available, tail full
+  s99: owner 2: free, end 5, log 4, spare 0, disk available, tail full
+  s100: owner 1: free, end 5, log 4, spare 0, disk full, tail room
+  s101: owner 2: free, end 5, log 4, spare 0, disk full, tail room
+  s102: owner 1: free, end 5, log 4, spare 3, disk available, tail room
+  s103: owner 2: free, end 5, log 4, spare 3, disk available, tail room
+  s104: owner 1: live, end 5, log 2, spare 0, disk full, tail full
+  s105: owner 2: live, end 5, log 2, spare 0, disk full, tail full
+  s106: owner 1: live, end 5, log 2, spare 3, disk available, tail full
+  s107: owner 2: live, end 5, log 2, spare 3, disk available, tail full
+  s108: owner 1: live, end 5, log 2, spare 3, disk full, tail room
+  s109: owner 2: live, end 5, log 2, spare 3, disk full, tail room
+  s110: owner 1: reserved, end 5, log 2, spare 3, disk full, tail full
+  s111: owner 2: reserved, end 5, log 2, spare 3, disk full, tail full
+  s112: owner 1: live, end 3, log 2, spare 0, disk available, tail full
+  s113: owner 2: live, end 3, log 2, spare 0, disk available, tail full
+  s114: owner 1: live, end 3, log 2, spare 0, disk full, tail room
+  s115: owner 2: live, end 3, log 2, spare 0, disk full, tail room
+  s116: owner 1: reserved, end 3, log 2, spare 0, disk full, tail full
+  s117: owner 2: reserved, end 3, log 2, spare 0, disk full, tail full
+  s118: owner 1: free, end 5, log 3, spare 4, disk available, tail full
+  s119: owner 1: free, end 5, log 3, spare 0, disk available, tail room
+  s120: owner 2: free, end 5, log 3, spare 4, disk available, tail full
+  s121: owner 2: free, end 5, log 3, spare 0, disk available, tail room
+  s122: owner 1: free, end 5, log 3, spare 4, disk full, tail room
+  s123: owner 2: free, end 5, log 3, spare 4, disk full, tail room
+  s124: owner 1: free, end 4, log 3, spare 0, disk full, tail full
+  s125: owner 2: free, end 4, log 3, spare 0, disk full, tail full
+  s126: owner 1: live, end 4, log 3, spare 0, disk available, tail room
+  s127: owner 2: live, end 4, log 3, spare 0, disk available, tail room
+  s128: owner 1: reserved, end 4, log 3, spare 0, disk available, tail full
+  s129: owner 2: reserved, end 4, log 3, spare 0, disk available, tail full
+  s130: owner 1: reserved, end 4, log 3, spare 0, disk full, tail room
+  s131: owner 2: reserved, end 4, log 3, spare 0, disk full, tail room
+  s132: owner 1: free, end 5, log 4, spare 0, disk full, tail full
+  s133: owner 2: free, end 5, log 4, spare 0, disk full, tail full
+  s134: owner 1: free, end 5, log 4, spare 3, disk available, tail full
+  s135: owner 2: free, end 5, log 4, spare 3, disk available, tail full
+  s136: owner 1: free, end 5, log 4, spare 3, disk full, tail room
+  s137: owner 2: free, end 5, log 4, spare 3, disk full, tail room
+  s138: owner 1: live, end 5, log 2, spare 3, disk full, tail full
+  s139: owner 2: live, end 5, log 2, spare 3, disk full, tail full
+  s140: owner 1: live, end 3, log 2, spare 0, disk full, tail full
+  s141: owner 2: live, end 3, log 2, spare 0, disk full, tail full
+  s142: owner 1: free, end 5, log 3, spare 0, disk available, tail full
+  s143: owner 2: free, end 5, log 3, spare 0, disk available, tail full
+  s144: owner 1: free, end 5, log 3, spare 4, disk full, tail full
+  s145: owner 1: free, end 5, log 3, spare 0, disk full, tail room
+  s146: owner 2: free, end 5, log 3, spare 4, disk full, tail full
+  s147: owner 2: free, end 5, log 3, spare 0, disk full, tail room
+  s148: owner 1: live, end 4, log 3, spare 0, disk available, tail full
+  s149: owner 2: live, end 4, log 3, spare 0, disk available, tail full
+  s150: owner 1: live, end 4, log 3, spare 0, disk full, tail room
+  s151: owner 2: live, end 4, log 3, spare 0, disk full, tail room
+  s152: owner 1: reserved, end 4, log 3, spare 0, disk full, tail full
+  s153: owner 2: reserved, end 4, log 3, spare 0, disk full, tail full
+  s154: owner 1: free, end 5, log 4, spare 3, disk full, tail full
+  s155: owner 2: free, end 5, log 4, spare 3, disk full, tail full
+  s156: owner 1: free, end 5, log 3, spare 0, disk full, tail full
+  s157: owner 2: free, end 5, log 3, spare 0, disk full, tail full
+  s158: owner 1: live, end 4, log 3, spare 0, disk full, tail full
+  s159: owner 2: live, end 4, log 3, spare 0, disk full, tail full
+  [*] --> s0
+  [*] --> s1
+  s0 --> s2: FillLog
+  s0 --> s4: FillDisk
+  s0 --> s6: ReserveOutput
+  s1 --> s3: FillLog
+  s1 --> s5: FillDisk
+  s1 --> s7: ReserveOutput
+  s2 --> s8: FillDisk
+  s2 --> s12: ReserveOutput
+  s2 --> s16: OrdinaryRoll
+  s2 --> s18: FreeRecord
+  s3 --> s9: FillDisk
+  s3 --> s13: ReserveOutput
+  s3 --> s17: OrdinaryRoll
+  s3 --> s19: FreeRecord
+  s4 --> s8: FillLog
+  s4 --> s14: ReserveOutput
+  s5 --> s9: FillLog
+  s5 --> s15: ReserveOutput
+  s6 --> s0: CleanupOutput
+  s6 --> s10: PublishOutput
+  s6 --> s12: FillLog
+  s6 --> s14: FillDisk
+  s7 --> s11: PublishOutput
+  s7 --> s13: FillLog
+  s7 --> s15: FillDisk
+  s2 --> s34: OrdinaryRoll
+  s2 --> s36: TruncateRecord
+  s3 --> s35: OrdinaryRoll
+  s3 --> s37: TruncateRecord
+  s8 --> s24: ReserveOutput
+  s8 --> s32: FreeRecord
+  s9 --> s25: ReserveOutput
+  s9 --> s33: FreeRecord
+  s10 --> s20: FillLog
+  s10 --> s22: FillDisk
+  s11 --> s21: FillLog
+  s11 --> s23: FillDisk
+  s12 --> s2: CleanupOutput
+  s12 --> s20: PublishOutput
+  s12 --> s24: FillDisk
+  s12 --> s38: FreeRecord
+  s13 --> s21: PublishOutput
+  s13 --> s25: FillDisk
+  s13 --> s39: FreeRecord
+  s14 --> s4: CleanupOutput
+  s14 --> s22: PublishOutput
+  s14 --> s24: FillLog
+  s15 --> s23: PublishOutput
+  s15 --> s25: FillLog
+  s16 --> s26: FillLog
+  s16 --> s28: FillDisk
+  s17 --> s27: FillLog
+  s17 --> s29: FillDisk
+  s18 --> s30: FillLog
+  s18 --> s32: FillDisk
+  s18 --> s34: Replenish
+  s18 --> s38: ReserveOutput
+  s19 --> s31: FillLog
+  s19 --> s33: FillDisk
+  s19 --> s35: Replenish
+  s19 --> s39: ReserveOutput
+  s8 --> s52: TruncateRecord
+  s9 --> s53: TruncateRecord
+  s12 --> s60: OrdinaryRoll
+  s12 --> s62: TruncateRecord
+  s13 --> s61: OrdinaryRoll
+  s13 --> s63: TruncateRecord
+  s20 --> s40: FillDisk
+  s20 --> s54: FreeRecord
+  s21 --> s41: FillDisk
+  s21 --> s55: FreeRecord
+  s22 --> s40: FillLog
+  s23 --> s41: FillLog
+  s24 --> s8: CleanupOutput
+  s24 --> s40: PublishOutput
+  s24 --> s58: FreeRecord
+  s25 --> s41: PublishOutput
+  s25 --> s59: FreeRecord
+  s26 --> s42: FillDisk
+  s26 --> s66: FreeRecord or TruncateRecord
+  s27 --> s43: FillDisk
+  s27 --> s67: FreeRecord or TruncateRecord
+  s28 --> s42: FillLog
+  s29 --> s43: FillLog
+  s30 --> s44: FillDisk
+  s30 --> s46: Replenish
+  s30 --> s56: ReserveOutput
+  s30 --> s64: TruncateRecord
+  s30 --> s66: TruncateRecord
+  s31 --> s45: FillDisk
+  s31 --> s47: Replenish
+  s31 --> s57: ReserveOutput
+  s31 --> s65: TruncateRecord
+  s31 --> s67: TruncateRecord
+  s32 --> s44: FillLog
+  s32 --> s48: Replenish
+  s32 --> s58: ReserveOutput
+  s33 --> s45: FillLog
+  s33 --> s49: Replenish
+  s33 --> s59: ReserveOutput
+  s34 --> s46: FillLog
+  s34 --> s48: FillDisk
+  s34 --> s60: ReserveOutput
+  s35 --> s47: FillLog
+  s35 --> s49: FillDisk
+  s35 --> s61: ReserveOutput
+  s36 --> s50: FillLog
+  s36 --> s52: FillDisk
+  s37 --> s51: FillLog
+  s37 --> s53: FillDisk
+  s38 --> s18: CleanupOutput
+  s38 --> s54: PublishOutput
+  s38 --> s56: FillLog
+  s38 --> s58: FillDisk
+  s38 --> s60: Replenish
+  s39 --> s55: PublishOutput
+  s39 --> s57: FillLog
+  s39 --> s59: FillDisk
+  s39 --> s61: Replenish
+  s20 --> s78: OrdinaryRoll
+  s20 --> s84: TruncateRecord
+  s21 --> s79: OrdinaryRoll
+  s21 --> s85: TruncateRecord
+  s24 --> s88: TruncateRecord
+  s25 --> s89: TruncateRecord
+  s40 --> s74: FreeRecord
+  s41 --> s75: FreeRecord
+  s26 --> s102: OrdinaryRoll
+  s27 --> s103: OrdinaryRoll
+  s42 --> s100: FreeRecord or TruncateRecord
+  s43 --> s101: FreeRecord or TruncateRecord
+  s44 --> s68: Replenish
+  s44 --> s76: ReserveOutput
+  s44 --> s94: TruncateRecord
+  s45 --> s69: Replenish
+  s45 --> s77: ReserveOutput
+  s45 --> s95: TruncateRecord
+  s46 --> s64: TruncateRecord
+  s46 --> s68: FillDisk
+  s46 --> s80: ReserveOutput
+  s46 --> s90: OrdinaryRoll
+  s47 --> s65: TruncateRecord
+  s47 --> s69: FillDisk
+  s47 --> s81: ReserveOutput
+  s47 --> s91: OrdinaryRoll
+  s48 --> s68: FillLog
+  s48 --> s82: ReserveOutput
+  s49 --> s69: FillLog
+  s49 --> s83: ReserveOutput
+  s50 --> s70: FillDisk
+  s51 --> s71: FillDisk
+  s52 --> s70: FillLog
+  s53 --> s71: FillLog
+  s54 --> s72: FillLog
+  s54 --> s74: FillDisk
+  s54 --> s78: Replenish
+  s55 --> s73: FillLog
+  s55 --> s75: FillDisk
+  s55 --> s79: Replenish
+  s56 --> s30: CleanupOutput
+  s56 --> s72: PublishOutput
+  s56 --> s76: FillDisk
+  s56 --> s80: Replenish
+  s56 --> s96: TruncateRecord
+  s57 --> s73: PublishOutput
+  s57 --> s77: FillDisk
+  s57 --> s81: Replenish
+  s57 --> s97: TruncateRecord
+  s58 --> s32: CleanupOutput
+  s58 --> s74: PublishOutput
+  s58 --> s76: FillLog
+  s58 --> s82: Replenish
+  s59 --> s75: PublishOutput
+  s59 --> s77: FillLog
+  s59 --> s83: Replenish
+  s60 --> s34: CleanupOutput
+  s60 --> s78: PublishOutput
+  s60 --> s80: FillLog
+  s60 --> s82: FillDisk
+  s61 --> s79: PublishOutput
+  s61 --> s81: FillLog
+  s61 --> s83: FillDisk
+  s62 --> s36: CleanupOutput
+  s62 --> s84: PublishOutput
+  s62 --> s86: FillLog
+  s62 --> s88: FillDisk
+  s63 --> s85: PublishOutput
+  s63 --> s87: FillLog
+  s63 --> s89: FillDisk
+  s64 --> s92: FillLog
+  s64 --> s94: FillDisk
+  s65 --> s93: FillLog
+  s65 --> s95: FillDisk
+  s66 --> s98: FillLog
+  s66 --> s100: FillDisk
+  s66 --> s102: Replenish
+  s67 --> s99: FillLog
+  s67 --> s101: FillDisk
+  s67 --> s103: Replenish
+  s40 --> s114: TruncateRecord
+  s41 --> s115: TruncateRecord
+  s68 --> s94: TruncateRecord
+  s68 --> s110: ReserveOutput
+  s69 --> s95: TruncateRecord
+  s69 --> s111: ReserveOutput
+  s72 --> s104: FillDisk
+  s72 --> s106: Replenish
+  s72 --> s126: TruncateRecord
+  s73 --> s105: FillDisk
+  s73 --> s107: Replenish
+  s73 --> s127: TruncateRecord
+  s74 --> s104: FillLog
+  s74 --> s108: Replenish
+  s75 --> s105: FillLog
+  s75 --> s109: Replenish
+  s76 --> s44: CleanupOutput
+  s76 --> s104: PublishOutput
+  s76 --> s110: Replenish
+  s76 --> s130: TruncateRecord
+  s77 --> s105: PublishOutput
+  s77 --> s111: Replenish
+  s77 --> s131: TruncateRecord
+  s78 --> s106: FillLog
+  s78 --> s108: FillDisk
+  s79 --> s107: FillLog
+  s79 --> s109: FillDisk
+  s80 --> s96: TruncateRecord
+  s80 --> s46: CleanupOutput
+  s80 --> s106: PublishOutput
+  s80 --> s110: FillDisk
+  s81 --> s97: TruncateRecord
+  s81 --> s107: PublishOutput
+  s81 --> s111: FillDisk
+  s82 --> s48: CleanupOutput
+  s82 --> s108: PublishOutput
+  s82 --> s110: FillLog
+  s83 --> s109: PublishOutput
+  s83 --> s111: FillLog
+  s36 --> s62: ReserveOutput
+  s84 --> s112: FillLog
+  s84 --> s114: FillDisk
+  s85 --> s113: FillLog
+  s85 --> s115: FillDisk
+  s86 --> s50: CleanupOutput
+  s86 --> s112: PublishOutput
+  s86 --> s116: FillDisk
+  s87 --> s113: PublishOutput
+  s87 --> s117: FillDisk
+  s88 --> s52: CleanupOutput
+  s88 --> s114: PublishOutput
+  s88 --> s116: FillLog
+  s89 --> s115: PublishOutput
+  s89 --> s117: FillLog
+  s90 --> s118: FillLog
+  s90 --> s122: FillDisk
+  s91 --> s120: FillLog
+  s91 --> s123: FillDisk
+  s92 --> s124: FillDisk
+  s93 --> s125: FillDisk
+  s94 --> s124: FillLog
+  s95 --> s125: FillLog
+  s96 --> s64: CleanupOutput
+  s96 --> s126: PublishOutput
+  s96 --> s128: FillLog
+  s96 --> s130: FillDisk
+  s97 --> s127: PublishOutput
+  s97 --> s129: FillLog
+  s97 --> s131: FillDisk
+  s98 --> s119: TruncateRecord
+  s98 --> s132: FillDisk
+  s98 --> s134: Replenish
+  s99 --> s121: TruncateRecord
+  s99 --> s133: FillDisk
+  s99 --> s135: Replenish
+  s100 --> s132: FillLog
+  s100 --> s136: Replenish
+  s101 --> s133: FillLog
+  s101 --> s137: Replenish
+  s102 --> s134: FillLog
+  s102 --> s136: FillDisk
+  s103 --> s135: FillLog
+  s103 --> s137: FillDisk
+  s104 --> s138: Replenish
+  s104 --> s150: TruncateRecord
+  s105 --> s139: Replenish
+  s105 --> s151: TruncateRecord
+  s106 --> s126: TruncateRecord
+  s106 --> s138: FillDisk
+  s107 --> s127: TruncateRecord
+  s107 --> s139: FillDisk
+  s108 --> s138: FillLog
+  s109 --> s139: FillLog
+  s110 --> s130: TruncateRecord
+  s110 --> s68: CleanupOutput
+  s110 --> s138: PublishOutput
+  s111 --> s131: TruncateRecord
+  s111 --> s139: PublishOutput
+  s50 --> s86: ReserveOutput
+  s50 --> s66: TruncateRecord
+  s52 --> s88: ReserveOutput
+  s112 --> s140: FillDisk
+  s113 --> s141: FillDisk
+  s114 --> s140: FillLog
+  s115 --> s141: FillLog
+  s116 --> s70: CleanupOutput
+  s116 --> s140: PublishOutput
+  s117 --> s141: PublishOutput
+  s118 --> s144: FillDisk
+  s118 --> s66: TruncateRecord
+  s119 --> s142: FillLog
+  s119 --> s145: FillDisk
+  s120 --> s146: FillDisk
+  s120 --> s67: TruncateRecord
+  s121 --> s143: FillLog
+  s121 --> s147: FillDisk
+  s122 --> s144: FillLog
+  s123 --> s146: FillLog
+  s64 --> s96: ReserveOutput
+  s126 --> s148: FillLog
+  s126 --> s150: FillDisk
+  s127 --> s149: FillLog
+  s127 --> s151: FillDisk
+  s128 --> s92: CleanupOutput
+  s128 --> s148: PublishOutput
+  s128 --> s152: FillDisk
+  s129 --> s149: PublishOutput
+  s129 --> s153: FillDisk
+  s130 --> s94: CleanupOutput
+  s130 --> s150: PublishOutput
+  s130 --> s152: FillLog
+  s131 --> s151: PublishOutput
+  s131 --> s153: FillLog
+  s132 --> s145: TruncateRecord
+  s132 --> s154: Replenish
+  s133 --> s147: TruncateRecord
+  s133 --> s155: Replenish
+  s134 --> s119: TruncateRecord
+  s134 --> s154: FillDisk
+  s135 --> s121: TruncateRecord
+  s135 --> s155: FillDisk
+  s136 --> s154: FillLog
+  s137 --> s155: FillLog
+  s138 --> s150: TruncateRecord
+  s139 --> s151: TruncateRecord
+  s70 --> s116: ReserveOutput
+  s142 --> s156: FillDisk
+  s143 --> s157: FillDisk
+  s144 --> s100: TruncateRecord
+  s145 --> s156: FillLog
+  s146 --> s101: TruncateRecord
+  s147 --> s157: FillLog
+  s92 --> s128: ReserveOutput
+  s92 --> s66: TruncateRecord
+  s94 --> s130: ReserveOutput
+  s148 --> s158: FillDisk
+  s149 --> s159: FillDisk
+  s150 --> s158: FillLog
+  s151 --> s159: FillLog
+  s152 --> s124: CleanupOutput
+  s152 --> s158: PublishOutput
+  s153 --> s159: PublishOutput
+  s154 --> s145: TruncateRecord
+  s155 --> s147: TruncateRecord
+  s124 --> s152: ReserveOutput

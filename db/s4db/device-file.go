@@ -46,29 +46,10 @@ func (f deviceFile) flushDurable() error {
 	return f.Sync()
 }
 
-// flushOrdered issues the collected writes without a flush, so a later flush
-// through any handle on the device makes them durable. A crash may keep any
-// subset of them, so ordered commits rely on record checksums: recovery keeps
-// the longest valid prefix of the log.
-func (f deviceFile) flushOrdered() error {
+// writeback sends all the collected writes without a flush, so a job's bytes
+// leave memory and a commit's flush finds few of them ahead of it.
+func (f deviceFile) writeback([]uint64) error {
 	return f.Issue()
-}
-
-// flushBarrier makes earlier writes durable; a device has no cheaper
-// ordering.
-func (f deviceFile) flushBarrier() (bool, error) {
-	return true, f.flushDurable()
-}
-
-// writeBack does nothing: a device issues its writes at the next flush.
-func (deviceFile) writeBack(_, _, _, _ int64) error {
-	return nil
-}
-
-// punch does nothing: a device cannot deallocate within a file, so space
-// returns only when the file's tail is truncated.
-func (deviceFile) punch(_, _ int64) error {
-	return nil
 }
 
 // lock takes the uncontended lock at off.

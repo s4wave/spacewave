@@ -29,7 +29,7 @@ func TestOrderedStateWriteWaitsForDurable(t *testing.T) {
 	if err := host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), touch); err != nil {
 		t.Fatal(err)
 	}
-	if got := w.db.Stats().Flushes; got != before {
+	if got := dbFlushes(t, w); got != before {
 		t.Fatalf("the ordered state write flushed: %d flushes, want %d", got, before)
 	}
 
@@ -37,7 +37,7 @@ func TestOrderedStateWriteWaitsForDurable(t *testing.T) {
 	if err := host.WaitDurable(ctx); err != nil {
 		t.Fatal(err)
 	}
-	durable := w.db.Stats().Flushes
+	durable := dbFlushes(t, w)
 	if durable == before {
 		t.Fatal("WaitDurable returned before a flush covered the ordered state write")
 	}
@@ -46,7 +46,7 @@ func TestOrderedStateWriteWaitsForDurable(t *testing.T) {
 	if err := host.UpdateSOState(ctx, touch); err != nil {
 		t.Fatal(err)
 	}
-	if got := w.db.Stats().Flushes; got == durable {
+	if got := dbFlushes(t, w); got == durable {
 		t.Fatal("the state write returned without a flush")
 	}
 }
@@ -58,16 +58,27 @@ func quietFlushes(t *testing.T, w *localWorld) uint64 {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	last, since := w.db.Stats().Flushes, time.Now()
+	last, since := dbFlushes(t, w), time.Now()
 	for time.Since(since) < 1500*time.Millisecond {
 		select {
 		case <-ctx.Done():
 			t.Fatal("the account volume kept flushing")
 		case <-time.After(100 * time.Millisecond):
 		}
-		if n := w.db.Stats().Flushes; n != last {
+		if n := dbFlushes(t, w); n != last {
 			last, since = n, time.Now()
 		}
 	}
 	return last
+}
+
+// dbFlushes returns the account volume's count of flushes to the drive.
+func dbFlushes(t *testing.T, w *localWorld) uint64 {
+	// Read the volume's stats.
+	t.Helper()
+	st, err := w.db.Stats(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return st.Flushes
 }

@@ -7,9 +7,10 @@
 \* first, the abandoned lock keeps the claim until the system grants it, then
 \* unlocks and drops the claim. Release unlocks and drops the claim together.
 \*
-\* Callers a and b run in process P1, c in P2. Not modeled: Close, which
-\* drops the process's locks, and two names sharing one byte, which only
-\* excludes them from each other.
+\* Callers a and b run in process P1, c in P2. Process death drops the process's locks and outstanding claims (Die).
+\* Not modeled: a successful Close waiting for in-flight lock goroutines,
+\* refresh failures after acquire, and two names sharing one byte, which
+\* only excludes them from each other.
 
 Callers == {"a", "b", "c"}
 Proc == [g \in Callers |-> IF g = "c" THEN "P2" ELSE "P1"]
@@ -68,7 +69,14 @@ Release(g) ==
   /\ owner' = "none" /\ claimed' = claimed \ {Proc[g]}
   /\ pc' = [pc EXCEPT ![g] = "idle"]
 
+\* The OS releases a dead process's byte locks; its callers retain nothing.
+Die(p) ==
+  /\ owner' = IF owner = p THEN "none" ELSE owner
+  /\ claimed' = claimed \ {p}
+  /\ pc' = [g \in Callers |-> IF Proc[g] = p THEN "idle" ELSE pc[g]]
+
 Next ==
+  \/ \E p \in Procs : Die(p)
   \/ \E g \in Callers :
        Claim(g) \/ Try(g) \/ Grant(g) \/ Abandon(g) \/ AbandonedGrant(g)
        \/ AbandonedRelease(g) \/ Release(g)

@@ -303,8 +303,6 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.6.4-0.20261103154353-f819deaaeb9e h1:YF6dgPTKCnA3LB3SUm+LMPFP2ikjCt/EnPq20BhpDS4=
-github.com/s4wave/goscript v0.6.4-0.20261103154353-f819deaaeb9e/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/s4wave/goscript v0.6.4 h1:16hXQ/UXZH9Ag9Ztc6VjkAPMskWe9cKAMqtLYU3d6kA=
 github.com/s4wave/goscript v0.6.4/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=

@@ -1,0 +1,24 @@
+---
+title: "Bounded release batches retain their continuation"
+---
+stateDiagram-v2
+  s0: 3 batches, queued, writer free
+  s1: 2 batches, queued, writer free
+  s2: 3 batches, queued, writer waiting
+  s3: 1 batches, queued, writer free
+  s4: 2 batches, queued, writer waiting
+  s5: 0 batches, idle, writer free
+  s6: 1 batches, queued, writer waiting
+  s7: 0 batches, idle, writer waiting
+  [*] --> s0
+  s0 --> s1: Batch
+  s0 --> s2: Request
+  s1 --> s3: Batch
+  s1 --> s4: Request
+  s2 --> s0: Finish
+  s3 --> s5: Batch
+  s3 --> s6: Request
+  s4 --> s1: Finish
+  s5 --> s7: Request
+  s6 --> s3: Finish
+  s7 --> s5: Finish

@@ -93,20 +93,6 @@ func (d *decoder) kind() byte {
 	return k
 }
 
-// value reads the encoding of a value after its kind byte.
-func (d *decoder) value(kind byte) value {
-	switch kind {
-	case valueInline:
-		return value{inline: d.bytes()}
-	case valueRef:
-		return value{isRef: true, ref: extentRef{off: d.u64(), n: d.u32(), crc: d.u32()}}
-	case valueDeleted:
-		return value{del: true}
-	}
-	d.fail()
-	return value{}
-}
-
 // fail records truncated input.
 func (d *decoder) fail() {
 	if d.err == nil {

@@ -1,0 +1,24 @@
+---
+title: "Convert an old database while keeping its original"
+---
+stateDiagram-v2
+  s0: open
+  s1: build
+  s2: verify
+  s3: marker
+  s4: link
+  s5: rename
+  s6: Installed current copy
+  [*] --> s0
+  s0 --> s1: Open
+  s1 --> s0: Crash
+  s1 --> s2: Build
+  s2 --> s0: Crash
+  s2 --> s3: Verify
+  s3 --> s0: Crash
+  s3 --> s4: Marker
+  s4 --> s0: Crash
+  s4 --> s5: Link
+  s0 --> s4: Open
+  s5 --> s0: Crash
+  s5 --> s6: Rename

@@ -1,48 +1,23 @@
 package s4db
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
-// superSize is the encoded length of a superblock without deltas.
-const superSize = 88
+// superSize is the encoded length of a superblock.
+const superSize = 136
 
-// A superblock naming deltas extends the first superSize bytes with the
-// delta list and ends its page with a checksum of the page. Its first
-// checksum is xored with superDeltaMark, so a reader that knows no deltas
-// takes it for a torn copy instead of a tree without them.
-const (
-	// superDeltaMark marks a superblock with deltas.
-	superDeltaMark = 0x44454c54
-	// superDeltasAt is the offset of the delta count, the round, and the
-	// cursor length, two bytes each.
-	superDeltasAt = superSize
-	// noCursor is the cursor length of a round no step has merged into.
-	noCursor = 0xffff
-	// deltaRefSize is the encoded length of a delta ref.
-	deltaRefSize = 24
-)
-
-// superblock names the last checkpoint. Two copies alternate so a torn write
-// leaves the previous one intact.
+// superblock points at a manifest version and the log after it. Two copies
+// alternate by generation so a torn write leaves the previous one intact.
 type superblock struct {
-	// gen increases with every checkpoint and selects the newer copy.
+	// gen increases with every superblock written and selects the newer copy.
 	gen uint64
-	// seq is the last commit record the checkpoint includes.
+	// version is the manifest version this superblock describes.
+	version uint64
+	// manifest locates the encoded manifest.
+	manifest ref
+	// seq is the last commit the manifest's runs and table include.
 	seq uint64
-	// root is the root page of the tree, zero when empty.
-	root uint64
-	// count is the number of keys in the tree.
-	count uint64
-	// treePages is the number of pages in the tree.
-	treePages uint64
-	// space locates the encoded allocator state.
-	space extentRef
-	// spaceSeq is the last record the saved space includes. A checkpoint
-	// built while commits continued saves the space after them, so it can
-	// be later than seq.
-	spaceSeq uint64
 	// logPos is the file offset of the first record after seq.
 	logPos uint64
 	// logEnd is the end of the log chunk holding logPos.
@@ -50,18 +25,25 @@ type superblock struct {
 	// logCrc is the checksum of record seq, which the record at logPos
 	// continues.
 	logCrc uint32
-	// deltas names the deltas above the tree, newest first.
-	deltas []deltaRef
-	// round is the number of oldest deltas a merge is folding into the
-	// tree, or zero.
-	round int
-	// cursor is the last key the round has merged, nil before its first
-	// step.
-	cursor []byte
+	// logWriter is the writer identity of record seq, which the record at
+	// logPos names as its predecessor.
+	logWriter uint64
+	// through is the last commit the runs hold. The commits after it up to
+	// seq are in the log before logPos and rebuild the memtable at open; the
+	// manifest already holds their effect on the table.
+	through uint64
+	// memPos, memEnd, memCrc and memWriter locate the first record after
+	// through, as logPos, logEnd, logCrc and logWriter locate the first after
+	// seq.
+	memPos, memEnd uint64
+	memCrc         uint32
+	memWriter      uint64
+	// memSpare is the standby chunk at the replay point.
+	memSpare uint64
 }
 
-// extentRef locates checksummed bytes in the file.
-type extentRef struct {
+// ref locates checksummed bytes in the file.
+type ref struct {
 	// off is the file offset.
 	off uint64
 	// n is the length.
@@ -70,60 +52,35 @@ type extentRef struct {
 	crc uint32
 }
 
-// decodeSuperblock reads a superblock from its page, reporting false when it
-// is torn or was never written.
+// decodeSuperblock reads a superblock, reporting false when it is torn or
+// was never written.
 func decodeSuperblock(b []byte) (superblock, bool) {
-	// Reject a torn record, checking the whole page of one with deltas.
-	sum, stored := checksum(b[:superSize-4]), binary.LittleEndian.Uint32(b[superSize-4:])
-	withDeltas := sum^superDeltaMark == stored
-	if sum != stored && (!withDeltas || checksum(b[:pageSize-4]) != binary.LittleEndian.Uint32(b[pageSize-4:])) {
+	// Reject a torn record.
+	if checksum(b[:superSize-4]) != binary.LittleEndian.Uint32(b[superSize-4:]) {
 		return superblock{}, false
 	}
 
 	// Decode the fields; generation zero marks a never written copy.
 	u := func(i int) uint64 { return binary.LittleEndian.Uint64(b[i*8:]) }
 	s := superblock{
-		gen:       u(0),
-		seq:       u(1),
-		root:      u(2),
-		count:     u(3),
-		treePages: u(4),
-		space: extentRef{
-			off: u(5),
-			n:   binary.LittleEndian.Uint32(b[72:]),
-			crc: binary.LittleEndian.Uint32(b[76:]),
+		gen:     u(0),
+		version: u(1),
+		manifest: ref{
+			off: u(2),
+			n:   binary.LittleEndian.Uint32(b[24:]),
+			crc: binary.LittleEndian.Uint32(b[28:]),
 		},
-		spaceSeq: u(6),
-		logPos:   u(7),
-		logEnd:   u(8),
-		logCrc:   binary.LittleEndian.Uint32(b[80:]),
-	}
-	if !withDeltas {
-		return s, s.gen != 0
-	}
-
-	// Decode the deltas, the round, and its cursor.
-	u16 := func(at int) int { return int(binary.LittleEndian.Uint16(b[at:])) }
-	n, at := u16(superDeltasAt), superDeltasAt+6
-	s.round = u16(superDeltasAt + 2)
-	if cl := u16(superDeltasAt + 4); cl != noCursor {
-		if cl > MaxKeySize {
-			return superblock{}, false
-		}
-		s.cursor = bytes.Clone(b[at : at+cl])
-		at += cl
-	}
-	if n > maxDeltas || s.round > n {
-		return superblock{}, false
-	}
-	s.deltas = make([]deltaRef, n)
-	for i := range s.deltas {
-		s.deltas[i] = deltaRef{
-			root:  binary.LittleEndian.Uint64(b[at:]),
-			head:  binary.LittleEndian.Uint64(b[at+8:]),
-			pages: binary.LittleEndian.Uint64(b[at+16:]),
-		}
-		at += deltaRefSize
+		seq:       u(4),
+		logPos:    u(5),
+		logEnd:    u(6),
+		logCrc:    binary.LittleEndian.Uint32(b[56:]),
+		logWriter: u(8),
+		through:   u(9),
+		memPos:    u(10),
+		memEnd:    u(11),
+		memCrc:    binary.LittleEndian.Uint32(b[96:]),
+		memWriter: u(13),
+		memSpare:  u(15),
 	}
 	return s, s.gen != 0
 }
@@ -135,50 +92,31 @@ func (s *superblock) page() int64 {
 
 // encode writes s into a page.
 func (s *superblock) encode() []byte {
-	// Write the fields, then the checksum over them.
+	// Write the generation, version and manifest location.
 	b := make([]byte, pageSize)
-	fields := []uint64{s.gen, s.seq, s.root, s.count, s.treePages, s.space.off, s.spaceSeq, s.logPos, s.logEnd}
-	for i, v := range fields {
-		binary.LittleEndian.PutUint64(b[i*8:], v)
-	}
-	binary.LittleEndian.PutUint32(b[72:], s.space.n)
-	binary.LittleEndian.PutUint32(b[76:], s.space.crc)
-	binary.LittleEndian.PutUint32(b[80:], s.logCrc)
-	sum := checksum(b[:superSize-4])
-	if len(s.deltas) == 0 {
-		binary.LittleEndian.PutUint32(b[superSize-4:], sum)
-		return b
-	}
+	binary.LittleEndian.PutUint64(b[0:], s.gen)
+	binary.LittleEndian.PutUint64(b[8:], s.version)
+	binary.LittleEndian.PutUint64(b[16:], s.manifest.off)
+	binary.LittleEndian.PutUint32(b[24:], s.manifest.n)
+	binary.LittleEndian.PutUint32(b[28:], s.manifest.crc)
 
-	// Mark the copy as one with deltas, and write their count, the round
-	// and its cursor.
-	binary.LittleEndian.PutUint32(b[superSize-4:], sum^superDeltaMark)
-	binary.LittleEndian.PutUint16(b[superDeltasAt:], uint16(len(s.deltas))) // #nosec G115 -- at most maxDeltas.
-	binary.LittleEndian.PutUint16(b[superDeltasAt+2:], uint16(s.round))     // #nosec G115 -- the round is at most maxDeltas.
-	at := superDeltasAt + 6
-	cl := noCursor
-	if s.cursor != nil {
-		cl = len(s.cursor)
-		at += copy(b[at:], s.cursor)
-	}
-	binary.LittleEndian.PutUint16(b[superDeltasAt+4:], uint16(cl)) // #nosec G115 -- keys are at most MaxKeySize.
+	// Write the log position, then the checksum over the fields.
+	binary.LittleEndian.PutUint64(b[32:], s.seq)
+	binary.LittleEndian.PutUint64(b[40:], s.logPos)
+	binary.LittleEndian.PutUint64(b[48:], s.logEnd)
+	binary.LittleEndian.PutUint32(b[56:], s.logCrc)
+	binary.LittleEndian.PutUint64(b[64:], s.logWriter)
 
-	// Write the refs and check the page.
-	for _, d := range s.deltas {
-		binary.LittleEndian.PutUint64(b[at:], d.root)
-		binary.LittleEndian.PutUint64(b[at+8:], d.head)
-		binary.LittleEndian.PutUint64(b[at+16:], d.pages)
-		at += deltaRefSize
-	}
-	binary.LittleEndian.PutUint32(b[pageSize-4:], checksum(b[:pageSize-4]))
+	// Write the memtable replay position.
+	binary.LittleEndian.PutUint64(b[72:], s.through)
+	binary.LittleEndian.PutUint64(b[80:], s.memPos)
+	binary.LittleEndian.PutUint64(b[88:], s.memEnd)
+	binary.LittleEndian.PutUint32(b[96:], s.memCrc)
+	binary.LittleEndian.PutUint64(b[104:], s.memWriter)
+
+	// Retain the replay standby and seal the checkpoint. The current standby
+	// is reconstructed from the replayed records, rather than stored twice.
+	binary.LittleEndian.PutUint64(b[120:], s.memSpare)
+	binary.LittleEndian.PutUint32(b[superSize-4:], checksum(b[:superSize-4]))
 	return b
-}
-
-// indexPages returns the pages of the tree and its deltas.
-func (s *superblock) indexPages() uint64 {
-	n := s.treePages
-	for _, d := range s.deltas {
-		n += d.pages
-	}
-	return n
 }

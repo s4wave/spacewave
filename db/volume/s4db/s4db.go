@@ -62,14 +62,13 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	for i, f := range families {
 		prefixes[i] = f.Prefix
 	}
-	db, err := s4db.Open(path, s4db.Options{
-		CacheBytes:    int(conf.GetCacheBytes()),
-		CheckpointMax: conf.GetCheckpointMaxBytes(),
-		CommitWaitMax: conf.GetCommitWaitBytes(),
-		SingleProcess: conf.GetSingleProcess(),
-		Deltas:        conf.GetDeltas(),
-		Families:      prefixes,
-	})
+	opts := s4db.Options{
+		CacheBytes: int(conf.GetCacheBytes()),
+		Families:   prefixes,
+	}
+
+	// Open it, converting a file the previous engine wrote in place first.
+	db, err := Open(ctx, le, path, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -107,15 +106,18 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 
 	// Coordinate writers across processes through the database file, log
 	// puts without references, measure the file and its disk for the volume's
-	// health, report the values each key family wrote and freed and the
-	// time background commits waited for a checkpoint, and release what
-	// collection frees while the volume refuses writes at its reserve.
+	// health, and report the values each key family wrote and freed and the
+	// longest a commit waited behind a background step. The database returns
+	// what collection frees on its own, so the reserve state needs no release.
 	vol.Coordinator = coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(vol.GetID()))
 	vol.SetLogger(le)
-	vol.SetReserveRelease(db.Release)
 	vol.SetStorageFlows(func(f *volume.VolumeFlows) {
-		f.Values = valueFlows(families, db.Flows())
-		f.BuildWait = db.BuildWait()
+		st, err := db.Stats(context.Background())
+		if err != nil {
+			return
+		}
+		f.Values = valueFlows(families, st.Families)
+		f.BackgroundWaitMax = st.BackgroundWaitMax
 	})
 	vol.SetHealthSizes(func(ctx context.Context) (volume_kvtx.HealthSizes, error) {
 		return healthSizes(ctx, db, path, conf.GetReserveBytes())
@@ -179,8 +181,8 @@ func storageStats(ctx context.Context, db *s4db.DB, path string) (*volume.Storag
 // positive, none when negative, and otherwise the disk one collection needs
 // before it frees any.
 func healthSizes(ctx context.Context, db *s4db.DB, path string, reserveBytes int64) (volume_kvtx.HealthSizes, error) {
-	// Read the file's sizes as of the latest commit.
-	sz, err := db.Sizes(ctx)
+	// Read the file's sizes as of the published state.
+	st, err := db.Stats(ctx)
 	if err != nil {
 		return volume_kvtx.HealthSizes{}, err
 	}
@@ -193,11 +195,11 @@ func healthSizes(ctx context.Context, db *s4db.DB, path string, reserveBytes int
 
 	// Choose the reserve.
 	if reserveBytes == 0 {
-		reserveBytes = sz.CollectBytes
+		reserveBytes = st.CollectBytes
 	}
 	return volume_kvtx.HealthSizes{
-		FileBytes:      uint64(sz.FileBytes),  //nolint:gosec
-		LiveValueBytes: uint64(sz.ValueBytes), //nolint:gosec
+		FileBytes:      uint64(st.FileBytes), //nolint:gosec
+		LiveValueBytes: uint64(st.LiveBytes), //nolint:gosec
 		FreeDiskBytes:  freeBytes,
 		ReserveBytes:   uint64(max(reserveBytes, 0)), //nolint:gosec
 	}, nil

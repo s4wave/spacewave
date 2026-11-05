@@ -19,12 +19,6 @@ import (
 // VolumeExt is the file extension of a native Volume.
 const VolumeExt = ".s4wave"
 
-// cacheBytes bounds the decoded index page cache of each Volume. A host
-// Volume's index can reach gigabytes, and a cache that holds its inner pages
-// and the hot leaves halves the page reads of a random lookup. The bound is
-// not allocated up front, so a small Volume uses only what its index needs.
-const cacheBytes = 1 << 30
-
 // S4db stores each Volume in one s4db file under a root directory.
 type S4db struct {
 	// verbose logs every store operation.
@@ -68,7 +62,6 @@ func (s *S4db) BuildVolumeConfig(id string, baseVolCtrlConf *volume_controller.C
 		Path:         path,
 		Verbose:      s.verbose,
 		VolumeConfig: baseVolCtrlConf,
-		CacheBytes:   cacheBytes,
 	}, nil
 }
 

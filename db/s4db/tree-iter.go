@@ -17,7 +17,7 @@ type treeIter[T any] struct {
 	// probe returns an item with key k for seeking.
 	probe func(k []byte) T
 	// conv converts an item to a merged entry.
-	conv func(T) mentry
+	conv func(T) ientry
 }
 
 // valid reports whether the layer is on an entry.
@@ -31,7 +31,7 @@ func (l *treeIter[T]) key() []byte {
 }
 
 // entry returns the current entry.
-func (l *treeIter[T]) entry() mentry {
+func (l *treeIter[T]) entry() ientry {
 	return l.conv(l.it.Item())
 }
 
@@ -64,6 +64,11 @@ func (l *treeIter[T]) step(reverse bool) {
 		return
 	}
 	l.ok = l.it.Next()
+}
+
+// failure returns nil: a tree in memory does not fail.
+func (l *treeIter[T]) failure() error {
+	return nil
 }
 
 // _ is a type assertion
