@@ -97,6 +97,13 @@ func TestSyncControllerReclaimTrashesAndRetires(t *testing.T) {
 		return []*block.BlockRef{root.ref}, nil
 	}
 
+	// While the switch is off, a pass fences nothing and trashes nothing.
+	if _, err := s.ReclaimStorage(ctx, fence); err != nil || fences != 0 || len(cloud.trash) != 0 {
+		t.Fatalf("a pass with reclaim off: err %v, %d fences, %d trashed", err, fences, len(cloud.trash))
+	}
+	SetPackReclaim(true)
+	t.Cleanup(func() { SetPackReclaim(false) })
+
 	// The first pass trashes both dead-heavy packs.
 	next, err := s.ReclaimStorage(ctx, fence)
 	if err != nil {
@@ -162,6 +169,8 @@ func TestSyncControllerReclaimMissingBlock(t *testing.T) {
 	fence := func(context.Context, bool) ([]*block.BlockRef, error) {
 		return []*block.BlockRef{missing.ref}, nil
 	}
+	SetPackReclaim(true)
+	t.Cleanup(func() { SetPackReclaim(false) })
 
 	// The pass fails before judging any pack.
 	if _, err := s.ReclaimStorage(t.Context(), fence); err == nil || len(cloud.trash) != 0 {
