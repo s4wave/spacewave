@@ -71,6 +71,8 @@ type Adapter struct {
 	pages *block.PendingStore
 	// queue queues admitted operations, in admission order.
 	queue *opQueue
+	// backfill keeps a local copy of the World while this device chose it.
+	backfill *spaceBackfill
 	// replay holds the positions above the installed checkpoint. The driver
 	// goroutine owns it.
 	replay *spaceReplay
@@ -164,6 +166,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	}
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
+	a.backfill = newSpaceBackfill(a)
 	return a, nil
 }
 
@@ -177,6 +180,9 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	}
 	if err := a.loadCursor(ctx); err != nil {
 		a.le.WithError(err).Warn("saved replay cursor is not readable, replaying from the checkpoint")
+	}
+	if err := a.backfill.start(ctx); err != nil {
+		return err
 	}
 
 	// Run the queue and the driver.

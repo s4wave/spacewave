@@ -3,6 +3,7 @@ package space_world
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -144,6 +145,33 @@ func (e *Engine) StepGraphSettings(ctx context.Context, target *world_block.Grap
 	}})
 }
 
+// GetBackfill watches this device's backfill choice.
+func (e *Engine) GetBackfill() ccontainer.Watchable[bool] {
+	return e.a.backfill.choice
+}
+
+// GetBackfillState watches the outcome of the last finished copy.
+func (e *Engine) GetBackfillState() ccontainer.Watchable[*BackfillState] {
+	return e.a.backfill.state
+}
+
+// GetHead returns the installed World root and its seqno.
+func (e *Engine) GetHead(ctx context.Context) (*block.BlockRef, uint64, error) {
+	head, err := e.a.Head(ctx)
+	return head.Root, head.Seqno, err
+}
+
+// SetBackfill stores this device's backfill choice and starts or stops the
+// copy.
+func (e *Engine) SetBackfill(ctx context.Context, enabled bool) error {
+	return e.a.backfill.set(ctx, enabled)
+}
+
+// RecheckBackfill restarts the copy as a recheck.
+func (e *Engine) RecheckBackfill(context.Context) error {
+	return e.a.backfill.recheckNow()
+}
+
 // close closes the engine and releases its cursor.
 func (e *Engine) close() error {
 	err := e.Close()
@@ -222,4 +250,5 @@ func normalizeGraphSettings(target *world_block.GraphSettings) (*world_block.Gra
 var (
 	_ world.Engine                     = (*Engine)(nil)
 	_ world_block.GraphSettingsStepper = (*Engine)(nil)
+	_ BackfillEngine                   = (*Engine)(nil)
 )
