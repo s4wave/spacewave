@@ -20,6 +20,7 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/sirupsen/logrus"
 )
 
 // sqlPasswordEnv names the variable holding the SQL block store's password.
@@ -125,18 +126,16 @@ func newDebugVolumeCopyCommand() *cli.Command {
 }
 
 // copyVolumeFile copies the stopped volume at src into the new file dst,
-// only its reachable part when reachable is set, writing progress lines to w.
-// It removes dst when the copy fails.
-func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, w io.Writer) (err error) {
-	// Open the source, refusing a missing file, which the open would create,
-	// and a file a daemon has open.
-	if _, err := os.Stat(src); err != nil {
-		return err
-	}
-	sdb, err := s4db.Open(src, s4db.Options{})
+// only its reachable part when reachable is set, or without the blocks SQL
+// holds when drop is set, writing progress lines to w. It removes dst when
+// the copy fails.
+func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, drop *sqlDrop, w io.Writer) (err error) {
+	// Open the source read-only, which never creates it and writes only its
+	// reader slot, and refuse a file a daemon has open.
+	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
 	if errors.Is(err, s4db.ErrPreviousFormat) {
-		if reachable != nil {
-			return fmt.Errorf("%s is in the previous format: copy it without --reachable first, then copy that file with --reachable", src)
+		if reachable != nil || drop != nil {
+			return fmt.Errorf("%s is in the previous format: copy it without --reachable or --drop-sql-blocks first, then copy that file", src)
 		}
 		return copyPreviousFormat(ctx, src, dst, w)
 	}

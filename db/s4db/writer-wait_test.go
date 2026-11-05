@@ -38,6 +38,20 @@ func runAdmission(t *testing.T, path string) {
 	if command == "exit\n" {
 		return
 	}
+	if command == "lease\n" {
+		// End the controlled request before testing the parent's lease.
+		db.w.endWait()
+
+		// A rejected alias probe must retain its owner's native lock.
+		lease, ok, err := db.TryLease("source-claim")
+		if lease != nil {
+			lease.Release()
+		}
+		if err != nil || ok {
+			t.Fatalf("duplicate probe dropped the parent's lease: %t %v", ok, err)
+		}
+		return
+	}
 
 	// Finish the foreground protocol and publish a value before any background
 	// callback proceeds. Exiting above leaves the OS to drop the intent instead.
@@ -99,13 +113,34 @@ func TestWriterAdmission(t *testing.T) {
 	defer cancel()
 
 	// Foreground intent excludes a closing mark and runs before background work.
-	for _, command := range []string{"write", "exit"} {
+	for _, command := range []string{"write", "exit", "lease"} {
 		t.Run(command, func(t *testing.T) {
 			// Wait for a child to announce its request on its own slot byte.
 			path := filepath.Join(t.TempDir(), "admission.s4wave")
 			db := openTest(t, path, Options{})
 			defer db.Close()
 			db.sched.stop()
+
+			// A rejected duplicate must preserve the parent's process-scoped lease.
+			if command == "lease" {
+				// Retain a native lock while rejecting a second descriptor.
+				lease, ok, err := db.TryLease("source-claim")
+				if err != nil || !ok {
+					t.Fatalf("parent lease: %t %v", ok, err)
+				}
+				defer lease.Release()
+
+				// The child will verify that refusing this alias kept the lock.
+				alias := path + ".alias"
+				if err := os.Link(path, alias); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := Open(alias, Options{}); !errors.Is(err, ErrOpenInProcess) {
+					t.Fatalf("duplicate probe: %v", err)
+				}
+			}
+
+			// Start a contender only after the source-ownership probe completes.
 			cmd, in := startAdmission(t, ctx, path)
 
 			// Optional background work must not pass that announced intent.
@@ -121,7 +156,7 @@ func TestWriterAdmission(t *testing.T) {
 			done := make(chan error, 1)
 			go func() {
 				done <- db.w.locked(ctx, func() error {
-					if command == "exit" {
+					if command != "write" {
 						return nil
 					}
 					v, found, err := db.lookup(db.cur.Load(), []byte("admitted"))

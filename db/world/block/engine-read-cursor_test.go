@@ -25,7 +25,7 @@ func setupReadCursorWorld(tb testing.TB, impl kvblock.KVImplType) (*Engine, func
 	tb.Helper()
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	bed, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volumes4db.Config{Path: filepath.Join(tb.TempDir(), "world.s4wave"), SingleProcess: true, ReserveBytes: -1}))
+	bed, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volumes4db.Config{Path: filepath.Join(tb.TempDir(), "world.s4wave"), ReserveBytes: -1}))
 	if err != nil {
 		tb.Fatal(err)
 	}
