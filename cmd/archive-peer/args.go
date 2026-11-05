@@ -7,7 +7,9 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
+	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -16,8 +18,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/transport"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/link"
@@ -27,8 +31,10 @@ import (
 
 // Args configures the archive peer.
 type Args struct {
-	// File is the stopped s4db file to serve.
+	// File is the stopped s4db or bolt file to serve.
 	File string
+	// Format is the file's format: formatS4db or formatBolt.
+	Format string
 	// Key is the PEM private key of this peer.
 	Key string
 	// GenKey creates Key, prints its peer id, and exits.
@@ -47,7 +53,8 @@ type Args struct {
 // BuildFlags binds the archive peer's flags.
 func (a *Args) BuildFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "file", Usage: "stopped s4db file to serve", Destination: &a.File},
+		&cli.StringFlag{Name: "file", Usage: "stopped s4db or bolt file to serve", Destination: &a.File},
+		&cli.StringFlag{Name: "format", Usage: "the file's format: " + formatS4db + " or " + formatBolt, Value: formatS4db, Destination: &a.Format},
 		&cli.StringFlag{Name: "key", Usage: "PEM private key of this peer", Destination: &a.Key, Required: true},
 		&cli.BoolFlag{Name: "gen-key", Usage: "create --key, print its peer id, and exit", Destination: &a.GenKey},
 		&cli.StringFlag{Name: "listen", Usage: "UDP host:port to listen on", Value: ":4102", Destination: &a.Listen},
@@ -103,21 +110,11 @@ func (a *Args) serve(ctx context.Context, le *logrus.Entry) error {
 	}
 
 	// Open only the existing file, read-only, and refuse one another process holds.
-	if _, err := os.Stat(a.File); err != nil {
-		return err
-	}
-	db, err := s4db.Open(a.File, s4db.Options{ReadOnly: true})
+	db, closeDB, err := a.openFile()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
-	shared, err := db.Shared()
-	if err != nil {
-		return err
-	}
-	if shared {
-		return errors.New("refusing a file open in another process")
-	}
+	defer closeDB()
 
 	// Answer the bucket lookup for the served bucket from the file.
 	parent, _, err := cbc.NewCoreBus(ctx, le)
@@ -225,4 +222,49 @@ func createKey(path string) (peer.ID, error) {
 		return "", err
 	}
 	return peer.IDFromPrivateKey(priv)
+}
+
+// File formats archive-peer serves.
+const (
+	// formatS4db is an s4db file.
+	formatS4db = "s4db"
+	// formatBolt is a bolt Volume's file, whose keys live in its hydra bucket.
+	formatBolt = "bolt"
+)
+
+// boltBucket is the bucket a bolt Volume keeps its keys in.
+var boltBucket = []byte("hydra")
+
+// openFile opens the existing file read-only, refusing one another process has
+// open, and returns it with the function that closes it.
+func (a *Args) openFile() (kvtx.Store, func(), error) {
+	if _, err := os.Stat(a.File); err != nil {
+		return nil, nil, err
+	}
+	switch a.Format {
+	case formatS4db:
+		db, err := s4db.Open(a.File, s4db.Options{ReadOnly: true})
+		if err != nil {
+			return nil, nil, err
+		}
+		shared, err := db.Shared()
+		if err == nil && shared {
+			err = errors.New("refusing a file open in another process")
+		}
+		if err != nil {
+			_ = db.Close()
+			return nil, nil, err
+		}
+		return db, func() { _ = db.Close() }, nil
+	case formatBolt:
+		// Every other open takes a shared lock, so an exclusive one fails while
+		// another process has the file and keeps one from opening it meanwhile.
+		store, err := store_kvtx_bolt.Open(a.File, 0o644, &bdb.Options{ReadOnly: true, Exclusive: true, Timeout: time.Second}, boltBucket)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "open the bolt file; is another process using it")
+		}
+		return store, func() { _ = store.Close() }, nil
+	default:
+		return nil, nil, errors.Errorf("--format must be %s or %s", formatS4db, formatBolt)
+	}
 }
