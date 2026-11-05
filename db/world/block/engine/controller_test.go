@@ -313,6 +313,67 @@ func TestControllerAdoptsLegacyHead(t *testing.T) {
 	}
 }
 
+// TestControllerEphemeralWorldStartsEmpty checks that an ephemeral World
+// persists no head: a second open finds nothing the first committed.
+func TestControllerEphemeralWorldStartsEmpty(t *testing.T) {
+	// Prepare a testbed and the ephemeral World's config.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+	conf := NewConfig("test-world-engine-ephemeral", tb.Volume.GetID(), tb.BucketId, "", &bucket.ObjectRef{BucketId: tb.BucketId}, nil, true)
+	conf.Ephemeral = true
+
+	// open runs a controller on conf and returns its World with its stop.
+	open := func() (Engine, func()) {
+		t.Helper()
+		ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		execCtx, execCancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_ = ctrl.Execute(execCtx)
+		}()
+		getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer getCancel()
+		eng, err := ctrl.GetWorldEngine(getCtx)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return eng, func() {
+			execCancel()
+			<-done
+			_ = ctrl.Close()
+		}
+	}
+
+	// Commit an object in the first open.
+	eng, stop := open()
+	ws := world.NewEngineWorldState(eng, true)
+	obj, err := ws.CreateObject(ctx, "first-open", nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	stop()
+
+	// The second open starts empty.
+	eng, stop = open()
+	defer stop()
+	if found, err := world.NewEngineWorldState(eng, false).HasObject(ctx, "first-open"); err != nil || found {
+		t.Fatalf("second open found the first open's object: %v %v", found, err)
+	}
+	if root := controllerTestWorldRoot(t, ctx, tb, "test-world-engine-ephemeral"); root != nil {
+		t.Fatalf("an ephemeral World holds a head root %v", root)
+	}
+}
+
 // TestControllerEngineSurvivesExecuteRestartUntilClose checks retained handles keep their storage through execution restarts.
 func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	// Prepare the context and logger for controller restart checks.

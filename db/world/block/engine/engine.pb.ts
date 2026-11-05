@@ -34,28 +34,31 @@ export interface Config {
    */
   volumeId?: string
   /**
-   * ObjectStoreId is the hydra object store to open to store the HEAD ref.
-   * If unset, init_head_ref must be set, and the db will be read-only.
+   * ObjectStoreId is the object store an older engine kept the head in, and
+   * whose Volume coordinates the World's writers. The head is the
+   * world:<engine_id> root of the bucket; an open adopts the head the object
+   * store kept once and deletes its record.
+   * If unset with an init_head_ref root, the World is read-only at that root.
    */
   objectStoreId?: string
   /**
-   * ObjectStorePrefix is the prefix to use for all object store ops.
+   * ObjectStorePrefix is the prefix of the older engine's head record.
    */
   objectStorePrefix?: string
   /**
-   * ObjectStoreHeadKey is the key to use in the object store for HEAD ref.
+   * ObjectStoreHeadKey is the key of the older engine's head record.
    *
    * Defaults to "world-head"
    */
   objectStoreHeadKey?: string
   /**
    * InitHeadRef is the reference to the initial HEAD state of the database.
-   * If the object store is empty, uses this reference to initialize it.
+   * A writable World with no head starts at it.
    * BucketId is overridden by BucketId field if it is set.
    */
   initHeadRef?: ObjectRef
   /**
-   * StateTransformConf transforms the HEAD ref before storing it in storage.
+   * StateTransformConf is the transform of the older engine's head record.
    * NOTE: this does not transform the entire world state.
    * To transform the world state, add the transform config to InitHeadRef.
    */
@@ -87,6 +90,12 @@ export interface Config {
    */
   disableApplyObjectOp?: boolean
   /**
+   * Ephemeral opens a World that persists no head: it starts at
+   * init_head_ref's root, or empty, on every open, and its commits stay in
+   * memory, for scratch work such as a bundle build.
+   */
+  ephemeral?: boolean
+  /**
    * RecoverMissingPersistedHead replaces a persisted head that cannot be
    * resolved because one of its blocks is missing with InitHeadRef. An empty
    * InitHeadRef creates a new World. Enable only for reconstructible state.
@@ -115,10 +124,12 @@ export const Config: MessageType<Config> =
     [13, 'disable_changelog', 8],
     [14, 'recover_missing_persisted_head', 8],
     [15, 'graph_settings', 11, 0, GraphSettings.codec],
+    [16, 'ephemeral', 8],
   ])
 
 /**
- * HeadState contains the head state in the object storage.
+ * HeadState is the record an older engine kept the head in. An open reads it
+ * once to adopt the head into the World root, then deletes it.
  *
  * @generated from message world.block.engine.HeadState
  */
