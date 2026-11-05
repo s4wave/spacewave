@@ -9,13 +9,10 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// fillQueueBlocks bounds the fills awaiting the drain. A fill past it is
-// dropped: the block stays readable from the remote, and the next read of it
-// fills it again.
-const fillQueueBlocks = 4096
-
-// fillQueueBytes bounds the block bytes awaiting the drain.
-const fillQueueBytes = 64 << 20
+// defaultFillQueueBytes bounds the block bytes awaiting the drain when the
+// policy sets no bound. A fill past it is dropped: the block stays readable
+// from the remote, and the next read of it fills it again.
+const defaultFillQueueBytes = 1 << 30
 
 // fillBatchBlocks bounds the fills one drain step commits, so a writer queued
 // behind the step waits for a bounded write.
@@ -42,14 +39,31 @@ type fillQueue struct {
 	pending []fill
 	// bytes is the summed block size of pending.
 	bytes int
+	// limit bounds bytes; zero uses defaultFillQueueBytes.
+	limit int64
+	// queued holds the hash of each block pending or being written, so a block
+	// read again before its write lands is not queued twice.
+	queued map[string]struct{}
 	// draining records that a drain goroutine runs.
 	draining bool
+}
+
+// setLimit sets the byte bound of the queue; zero uses defaultFillQueueBytes.
+func (q *fillQueue) setLimit(limit int64) {
+	q.mu.Lock()
+	q.limit = max(limit, 0)
+	q.mu.Unlock()
+}
+
+// fillKey keys a fill's block in queued.
+func fillKey(ref *block.BlockRef) string {
+	return string(ref.GetHash().GetHash())
 }
 
 // Refill queues a block read back from the remote store for its local value
 // and its eviction queue entry. It changes no ownership, so call it only for
 // a block the reference graph still tracks. It returns before the write, and
-// drops the block when the queue is full, as fillQueueBlocks describes.
+// drops the block when the queue is full, as defaultFillQueueBytes describes.
 func (s *Store) Refill(ref *block.BlockRef, stored *block.StoredBlock) {
 	s.queueFill(fill{ref: ref, stored: stored, refill: true})
 }
@@ -65,14 +79,29 @@ func (s *Store) CacheFill(ref *block.BlockRef, stored *block.StoredBlock) {
 
 // queueFill queues f, starting a drain when none runs.
 func (s *Store) queueFill(f fill) {
-	// Drop the fill past the bounds, otherwise queue it.
+	// Skip a block already queued, and drop a fill past the byte bound.
 	q := &s.fills
+	key := fillKey(f.ref)
 	q.mu.Lock()
-	if len(q.pending) >= fillQueueBlocks || q.bytes+len(f.stored.Data) > fillQueueBytes {
+	if _, ok := q.queued[key]; ok {
+		q.mu.Unlock()
+		return
+	}
+	limit := q.limit
+	if limit == 0 {
+		limit = defaultFillQueueBytes
+	}
+	if int64(q.bytes+len(f.stored.Data)) > limit {
 		q.mu.Unlock()
 		s.addFillStatus(0, 0, 1)
 		return
 	}
+
+	// Queue it.
+	if q.queued == nil {
+		q.queued = make(map[string]struct{})
+	}
+	q.queued[key] = struct{}{}
 	q.pending = append(q.pending, f)
 	q.bytes += len(f.stored.Data)
 	drain := !q.draining
@@ -117,6 +146,13 @@ func (s *Store) drainFills() {
 		if err := s.writeFills(ctx, batch); err != nil {
 			s.addFillStatus(0, 0, int64(len(batch)))
 		}
+
+		// Let the step's blocks queue again, now that their write ended.
+		q.mu.Lock()
+		for _, f := range batch {
+			delete(q.queued, fillKey(f.ref))
+		}
+		q.mu.Unlock()
 	}
 }
 

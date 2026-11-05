@@ -24,6 +24,9 @@ type Policy struct {
 	// UploadReadSlow is the least read time the upload counts as the disk
 	// being loaded. Zero uses defaultReadSlow.
 	UploadReadSlow time.Duration
+	// FillQueueBytes bounds the bytes of blocks read from the remote that await
+	// their local write. Zero uses defaultFillQueueBytes.
+	FillQueueBytes int64
 }
 
 // overLimit reports whether pending bytes exceed the policy's limits.

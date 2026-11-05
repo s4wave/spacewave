@@ -626,6 +626,10 @@ type BlockStoreCache struct {
 	// UploadReadSlowMillis is the least local read time the upload counts as
 	// the disk being loaded. Zero uses 5.
 	UploadReadSlowMillis uint32 `protobuf:"varint,7,opt,name=upload_read_slow_millis,json=uploadReadSlowMillis,proto3" json:"uploadReadSlowMillis,omitempty"`
+	// FillQueueBytes bounds the bytes of blocks read from the bucket that await
+	// their local write. A block already queued is not queued again, and a fill
+	// past the bound is dropped, to be filled by a later read. Zero uses 1 GiB.
+	FillQueueBytes uint64 `protobuf:"varint,8,opt,name=fill_queue_bytes,json=fillQueueBytes,proto3" json:"fillQueueBytes,omitempty"`
 }
 
 func (x *BlockStoreCache) Reset() {
@@ -679,6 +683,13 @@ func (x *BlockStoreCache) GetMaxUploadReads() uint32 {
 func (x *BlockStoreCache) GetUploadReadSlowMillis() uint32 {
 	if x != nil {
 		return x.UploadReadSlowMillis
+	}
+	return 0
+}
+
+func (x *BlockStoreCache) GetFillQueueBytes() uint64 {
+	if x != nil {
+		return x.FillQueueBytes
 	}
 	return 0
 }
@@ -1546,6 +1557,7 @@ func (m *BlockStoreCache) CloneVT() *BlockStoreCache {
 	r.SkipBackfill = m.SkipBackfill
 	r.MaxUploadReads = m.MaxUploadReads
 	r.UploadReadSlowMillis = m.UploadReadSlowMillis
+	r.FillQueueBytes = m.FillQueueBytes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2332,6 +2344,9 @@ func (this *BlockStoreCache) EqualVT(that *BlockStoreCache) bool {
 		return false
 	}
 	if this.UploadReadSlowMillis != that.UploadReadSlowMillis {
+		return false
+	}
+	if this.FillQueueBytes != that.FillQueueBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3885,6 +3900,11 @@ func (x *BlockStoreCache) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("uploadReadSlowMillis")
 		s.WriteUint32(x.UploadReadSlowMillis)
 	}
+	if x.FillQueueBytes != 0 || s.HasField("fillQueueBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fillQueueBytes")
+		s.WriteUint64(x.FillQueueBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3923,6 +3943,9 @@ func (x *BlockStoreCache) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "upload_read_slow_millis", "uploadReadSlowMillis":
 			s.AddField("upload_read_slow_millis")
 			x.UploadReadSlowMillis = s.ReadUint32()
+		case "fill_queue_bytes", "fillQueueBytes":
+			s.AddField("fill_queue_bytes")
+			x.FillQueueBytes = s.ReadUint64()
 		}
 	})
 }
@@ -5468,6 +5491,11 @@ func (m *BlockStoreCache) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.FillQueueBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FillQueueBytes))
+		i--
+		dAtA[i] = 0x40
+	}
 	if m.UploadReadSlowMillis != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UploadReadSlowMillis))
 		i--
@@ -6782,6 +6810,7 @@ func (m *BlockStoreCache) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SkipBackfill)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxUploadReads)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UploadReadSlowMillis)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.FillQueueBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7630,6 +7659,10 @@ func (x *BlockStoreCache) MarshalProtoText() string {
 	if x.UploadReadSlowMillis != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_read_slow_millis")
 		protobuf_go_lite.TextWriteUint(&sb, x.UploadReadSlowMillis)
+	}
+	if x.FillQueueBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fill_queue_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.FillQueueBytes)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8924,6 +8957,15 @@ func (m *BlockStoreCache) UnmarshalVT(dAtA []byte) error {
 			}
 			m.UploadReadSlowMillis = 0
 			m.UploadReadSlowMillis, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FillQueueBytes", wireType)
+			}
+			m.FillQueueBytes = 0
+			m.FillQueueBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

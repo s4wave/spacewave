@@ -182,6 +182,7 @@ func NewStore(
 // Upload and budget watchers to apply it.
 func (s *Store) SetPolicy(policy Policy) {
 	s.reads.setPolicy(policy.MaxUploadReads, policy.UploadReadSlow)
+	s.fills.setLimit(policy.FillQueueBytes)
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if s.status.Policy != policy {
 			s.status.Policy = policy

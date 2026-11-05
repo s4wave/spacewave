@@ -139,3 +139,62 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 		t.Fatalf("pass after the refills = %+v, %v, want %d evicted", result, err, len(refs))
 	}
 }
+
+// TestFillQueueBoundsAndDedupes checks that a block read twice before its
+// write queues once, that a fill past the policy's byte bound is dropped and
+// counted, and that the drain writes every queued block and lets them queue
+// again.
+func TestFillQueueBoundsAndDedupes(t *testing.T) {
+	// Open a placed store whose fill queue holds three blocks of eight bytes,
+	// and hold the drain off so the queue keeps what it takes.
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	s.SetPolicy(Policy{FillQueueBytes: 3 * 8})
+	s.fills.draining = true
+
+	// Read four distinct blocks from the remote, the first one twice.
+	remote := newInmemBlockStore()
+	var refs []*block.BlockRef
+	for i := range 4 {
+		ref, _, err := remote.PutBlock(ctx, fmt.Appendf(nil, "fill-%03d", i), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	fillRef := func(ref *block.BlockRef) {
+		stored, err := remote.GetStoredBlock(ctx, ref)
+		if err != nil || stored == nil {
+			t.Fatalf("remote read %s: %v", ref.MarshalString(), err)
+		}
+		s.CacheFill(ref, stored)
+	}
+	fillRef(refs[0])
+	fillRef(refs[0])
+	for _, ref := range refs[1:] {
+		fillRef(ref)
+	}
+
+	// The duplicate queued nothing, and the fourth block passed the bound.
+	if n := len(s.fills.pending); n != 3 {
+		t.Fatalf("queued %d fills, want 3", n)
+	}
+	if status, _ := s.GetStatus(); status.DroppedFills != 1 {
+		t.Fatalf("dropped %d fills, want 1", status.DroppedFills)
+	}
+
+	// The drain writes the three queued blocks and empties the queue.
+	s.drainFills()
+	held, err := s.local.GetBlockExistsBatch(ctx, refs[:3])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, ok := range held {
+		if !ok {
+			t.Fatalf("fill %s not stored", refs[i].MarshalString())
+		}
+	}
+	if n := len(s.fills.queued); n != 0 || s.fills.draining {
+		t.Fatalf("after the drain %d blocks are queued, draining=%v; want none", n, s.fills.draining)
+	}
+}

@@ -222,6 +222,10 @@ message BlockStoreCache {
   // UploadReadSlowMillis is the least local read time the upload counts as
   // the disk being loaded. Zero uses 5.
   uint32 upload_read_slow_millis = 7;
+  // FillQueueBytes bounds the bytes of blocks read from the bucket that await
+  // their local write. A block already queued is not queued again, and a fill
+  // past the bound is dropped, to be filled by a later read. Zero uses 1 GiB.
+  uint64 fill_queue_bytes = 8;
 }
 
 // AccountSession is an approved account replica, distinct from a managed Device.

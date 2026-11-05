@@ -459,6 +459,12 @@ export interface BlockStoreCache {
    * the disk being loaded. Zero uses 5.
    */
   uploadReadSlowMillis?: number
+  /**
+   * FillQueueBytes bounds the bytes of blocks read from the bucket that await
+   * their local write. A block already queued is not queued again, and a fill
+   * past the bound is dropped, to be filled by a later read. Zero uses 1 GiB.
+   */
+  fillQueueBytes?: bigint
 }
 
 export const BlockStoreCache: MessageType<BlockStoreCache> =
@@ -472,6 +478,7 @@ export const BlockStoreCache: MessageType<BlockStoreCache> =
       [5, 'skip_backfill', 8],
       [6, 'max_upload_reads', 13],
       [7, 'upload_read_slow_millis', 13],
+      [8, 'fill_queue_bytes', 4],
     ],
   )
 
