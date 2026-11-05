@@ -37,8 +37,8 @@ type BlockIterator func() (h *hash.Hash, blk *block.StoredBlock, err error)
 
 // PackBlocks packs blocks from the iterator into a kvfile and computes a bloom
 // filter sized to the packed block count. Each value is the encoded
-// block.BlockObject of the block's bytes and refs, so every block must carry
-// known refs.
+// block.BlockObject of the block's bytes and refs; a block without known refs
+// is stored marked so, and reads back with its refs unknown.
 func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 	// Hash the pack bytes while writing the kvfile.
 	packHash := sha256.New()
@@ -56,10 +56,7 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 		}
 
 		key := packfile.BlockKey(h)
-		if !blk.GetRefsKnown() {
-			return nil, errors.Wrapf(block.ErrRefsUnknown, "packing block %s", h.MarshalString())
-		}
-		value, err := block.EncodeBlockObject(blk.Data, blk.Refs)
+		value, err := block.EncodeBlockObject(blk.Data, blk.Refs, blk.GetRefsKnown())
 		if err != nil {
 			return nil, errors.Wrap(err, "encoding block value")
 		}

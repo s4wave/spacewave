@@ -82,7 +82,7 @@ func (s *PackStore) mergeTail(ctx context.Context, batch []*block.PutBatchEntry)
 		if _, ok := values[key]; ok && !entry.RefsKnown {
 			continue
 		}
-		value, err := block.EncodeBlockObject(entry.Data, entry.Refs)
+		value, err := block.EncodeBlockObject(entry.Data, entry.Refs, entry.RefsKnown)
 		if err != nil {
 			return false, errors.Wrap(err, "encode block")
 		}

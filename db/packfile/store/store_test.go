@@ -2383,7 +2383,7 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 			if err != nil {
 				t.Fatal(err)
 			}
-			value, err := block.EncodeBlockObject(data, nil)
+			value, err := block.EncodeBlockObject(data, nil, true)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -194,8 +194,12 @@ type BlockObject struct {
 	unknownFields []byte
 	// Data is the encoded block.
 	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	// Refs are the block's outgoing refs. Empty means a leaf.
+	// Refs are the block's outgoing refs. Empty means a leaf unless
+	// refs_unknown is set.
 	Refs []*BlockRef `protobuf:"bytes,2,rep,name=refs,proto3" json:"refs,omitempty"`
+	// RefsUnknown marks a block stored without its refs, which a reader must
+	// not take for a leaf.
+	RefsUnknown bool `protobuf:"varint,3,opt,name=refs_unknown,json=refsUnknown,proto3" json:"refsUnknown,omitempty"`
 }
 
 func (x *BlockObject) Reset() {
@@ -216,6 +220,13 @@ func (x *BlockObject) GetRefs() []*BlockRef {
 		return x.Refs
 	}
 	return nil
+}
+
+func (x *BlockObject) GetRefsUnknown() bool {
+	if x != nil {
+		return x.RefsUnknown
+	}
+	return false
 }
 
 // AccessLog lists the blocks an operation read, once each, in the order of
@@ -504,6 +515,7 @@ func (m *BlockObject) CloneVT() *BlockObject {
 		return (*BlockObject)(nil)
 	}
 	r := new(BlockObject)
+	r.RefsUnknown = m.RefsUnknown
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
 	if len(m.unknownFields) > 0 {
@@ -627,6 +639,9 @@ func (this *BlockObject) EqualVT(that *BlockObject) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Refs, that.Refs, func() *BlockRef { return &BlockRef{} }) {
+		return false
+	}
+	if this.RefsUnknown != that.RefsUnknown {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -875,6 +890,11 @@ func (x *BlockObject) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.RefsUnknown || s.HasField("refsUnknown") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refsUnknown")
+		s.WriteBool(x.RefsUnknown)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -913,6 +933,9 @@ func (x *BlockObject) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Refs = append(x.Refs, v)
 			})
+		case "refs_unknown", "refsUnknown":
+			s.AddField("refs_unknown")
+			x.RefsUnknown = s.ReadBool()
 		}
 	})
 }
@@ -1224,6 +1247,11 @@ func (m *BlockObject) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RefsUnknown {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RefsUnknown)
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.Refs) > 0 {
 		for iNdEx := len(m.Refs) - 1; iNdEx >= 0; iNdEx-- {
@@ -1593,6 +1621,7 @@ func (m *BlockObject) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefsUnknown)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1740,6 +1769,10 @@ func (x *BlockObject) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.RefsUnknown != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refs_unknown")
+		protobuf_go_lite.TextWriteBool(&sb, x.RefsUnknown)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2051,6 +2084,16 @@ func (m *BlockObject) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RefsUnknown", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RefsUnknown = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

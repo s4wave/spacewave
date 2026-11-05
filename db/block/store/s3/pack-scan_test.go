@@ -25,7 +25,7 @@ func TestPackStoreScanBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = writer.PutBlockBatch(ctx, []*block.PutBatchEntry{
-		{Ref: rootRef, Data: []byte("root"), Refs: []*block.BlockRef{child}},
+		{Ref: rootRef, Data: []byte("root"), Refs: []*block.BlockRef{child}, RefsKnown: true},
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -489,8 +489,20 @@ func TestDroppedBlockWrittenAgainKeepsMarker(t *testing.T) {
 	}
 }
 
-// TestUploadUntrackedBlock checks that a block held without its refs fails the
-// upload and stays queued, since the remote would keep it as a leaf.
+// recordingStore records the batch entries it stores.
+type recordingStore struct {
+	block.StoreOps
+	got []*block.PutBatchEntry
+}
+
+// PutBlockBatch records the entries and stores them.
+func (r *recordingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	r.got = append(r.got, entries...)
+	return r.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+// TestUploadUntrackedBlock checks that a block held without its refs uploads
+// with its refs unknown, so the remote does not keep it as a leaf.
 func TestUploadUntrackedBlock(t *testing.T) {
 	// Queue a block that the local store holds without its refs.
 	ctx := t.Context()
@@ -504,18 +516,11 @@ func TestUploadUntrackedBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The upload fails naming the block, and nothing reaches the remote.
-	remote := newInmemBlockStore()
-	err = s.Upload(ctx, remote)
-	if !errors.Is(err, block.ErrRefsUnknown) || !strings.Contains(err.Error(), ref.MarshalString()) {
-		t.Fatalf("upload = %v, want ErrRefsUnknown naming %s", err, ref.MarshalString())
-	}
-	found, err := remote.GetBlockExists(ctx, ref)
-	if err != nil || found {
-		t.Fatalf("remote = %v/%v, want absent", found, err)
-	}
-	if status, _ := s.GetStatus(); status.Pending != 1 || !errors.Is(status.Err, block.ErrRefsUnknown) {
-		t.Fatalf("status = %+v, want one pending block and ErrRefsUnknown", status)
+	// The upload drains, and the remote receives the block marked unknown.
+	remote := &recordingStore{StoreOps: newInmemBlockStore()}
+	drain(t, s, remote)
+	if len(remote.got) != 1 || !remote.got[0].Ref.EqualsRef(ref) || remote.got[0].RefsKnown {
+		t.Fatalf("remote got %+v, want the block with its refs unknown", remote.got)
 	}
 }
 
