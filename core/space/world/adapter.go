@@ -106,6 +106,9 @@ type Adapter struct {
 	// pending are the admissions not yet decided, in admission order.
 	// Guarded by bcast.
 	pending []*spaceAdmission
+	// fences are the storage fences the driver applied, by hash, with their
+	// answers. Guarded by bcast.
+	fences map[string]*spaceFence
 	// unmatched are this device's refused operations no admission matched,
 	// by local ID, until a checkpoint covers them. Guarded by bcast.
 	unmatched map[string]spacePosition
@@ -162,6 +165,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		queue:     &opQueue{so: so},
 		missing:   make(map[string]struct{}),
 		unmatched: make(map[string]spacePosition),
+		fences:    make(map[string]*spaceFence),
 		held:      make(map[string]*block.BlockRef),
 	}
 	a.lookupOp = a.buildLookupOp()
@@ -193,6 +197,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		driver.SetCheckpointer(host.GetSOHost(), host.GetPrivKey(), a.opts.StepFactorySet)
 	}
 	g.Go(func() error { return driver.Execute(ctx) })
+	g.Go(func() error { return a.executeStorageReclaim(ctx) })
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
@@ -577,6 +582,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		a.place(adm, pos, adopt == nil)
 	} else {
 		a.noteUnmatched(op, pos)
+	}
+	if err := a.noteFence(ctx, op, pos); err != nil {
+		return "", err
 	}
 	if len(a.missing) == 0 {
 		if err := a.installHead(ctx); err != nil {

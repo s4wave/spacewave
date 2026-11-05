@@ -227,6 +227,8 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 		next, reason = applySetTransformConf(body.SetTransformConf, prev)
 	case *WorldOp_GraphSettingsStep:
 		next, reason, err = r.applyGraphSettingsStep(ctx, body.GraphSettingsStep, prev)
+	case *WorldOp_Fence, *WorldOp_RootSet:
+		next = prev
 	default:
 		reason = "unknown operation type"
 	}
