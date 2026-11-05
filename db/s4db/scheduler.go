@@ -27,6 +27,9 @@ type scheduler struct {
 	// releaseCursor resumes bounded free batches without rescanning their prefix.
 	// mtx guards it with the other release state.
 	releaseCursor int
+	// marked is the published seq after the last mark step; a quiet file
+	// marks again only once a record follows it. The loop alone uses it.
+	marked uint64
 	// releaseRemaining counts the entries left in a bounded release pass.
 	// mtx guards it; a positive count schedules the next batch immediately.
 	releaseRemaining int
@@ -124,9 +127,17 @@ func (s *scheduler) run() {
 			}
 		}
 
-		// Mark a quiet file whose pending chunks wait.
+		// Mark a quiet file whose pending chunks wait. A mark helps only the
+		// chunks recorded since the last one, so with no record since, the
+		// release step alone frees those whose pins have ended, without a
+		// mark record and its two flushes every quiet second.
 		if time.Since(quietAt) >= quietMark && s.hasPending(st) {
-			_ = s.markStep(s.ctx)
+			if st.seq > s.marked {
+				_ = s.markStep(s.ctx)
+				s.marked = s.db.cur.Load().seq
+			} else {
+				_ = s.releaseStep(s.ctx)
+			}
 			quietAt = time.Now()
 			continue
 		}
