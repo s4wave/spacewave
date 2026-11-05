@@ -1,4 +1,4 @@
-package world_block_tx
+package world_block_tx_test
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	dbtx "github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -71,7 +72,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	// Fork the state through the transaction wrapper.
-	forkedTx, err := ForkWorldState(ctx, ws, true)
+	forkedTx, err := world_block_tx.ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -124,8 +125,8 @@ func TestWorldState(t *testing.T) {
 
 	// Verify the recorded transaction type and sender.
 	tx := txBatch.GetTxs()[0]
-	if tt := tx.GetTxType(); tt != TxType_TxType_APPLY_WORLD_OP {
-		t.Fatalf("expected %s but got %s", TxType_TxType_APPLY_WORLD_OP.String(), tt.String())
+	if tt := tx.GetTxType(); tt != world_block_tx.TxType_TxType_APPLY_WORLD_OP {
+		t.Fatalf("expected %s but got %s", world_block_tx.TxType_TxType_APPLY_WORLD_OP.String(), tt.String())
 	}
 	if got := tx.GetTxApplyWorldOp().GetOpSender(); got != sender.String() {
 		t.Fatalf("expected world op sender %q, got %q", sender.String(), got)
@@ -167,7 +168,7 @@ func TestWorldState(t *testing.T) {
 	checkRev(obj, 2)
 
 	// Fork the state again and apply an object-level op.
-	objectTx, err := ForkWorldState(ctx, ws, true)
+	objectTx, err := world_block_tx.ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -187,8 +188,8 @@ func TestWorldState(t *testing.T) {
 		t.Fatalf("expected 1 object tx but got %d", l)
 	}
 	tx = txBatch.GetTxs()[0]
-	if tt := tx.GetTxType(); tt != TxType_TxType_APPLY_OBJECT_OP {
-		t.Fatalf("expected %s but got %s", TxType_TxType_APPLY_OBJECT_OP.String(), tt.String())
+	if tt := tx.GetTxType(); tt != world_block_tx.TxType_TxType_APPLY_OBJECT_OP {
+		t.Fatalf("expected %s but got %s", world_block_tx.TxType_TxType_APPLY_OBJECT_OP.String(), tt.String())
 	}
 	if got := tx.GetTxApplyObjectOp().GetOpSender(); got != sender.String() {
 		t.Fatalf("expected object op sender %q, got %q", sender.String(), got)
@@ -220,7 +221,7 @@ func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	txState, err := ForkWorldState(ctx, ws, true)
+	txState, err := world_block_tx.ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

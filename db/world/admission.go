@@ -11,6 +11,11 @@ type Admission interface {
 	Seqno() uint64
 	// Head returns the head the Authority held when it decided, so a
 	// superseded writer learns what to rebase onto.
+	// For an accepted candidate it is the head that holds the candidate's
+	// change, which the engine publishes: the candidate's Root, or a root an
+	// Authority that replays operations rebased onto ones the writer did not
+	// build on. Such an Authority reports that head through WatchHead before
+	// WaitDecided returns.
 	// Before WaitDecided returns a decision, it returns the zero Head.
 	Head() Head
 	// WaitDecided waits until the Authority accepts, supersedes or rejects

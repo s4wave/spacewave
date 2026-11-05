@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -32,6 +33,13 @@ type EngineTx struct {
 	writeTx *Tx
 	// baseHeadRef is the head the write transaction builds on.
 	baseHeadRef *bucket.ObjectRef
+	// privateBase is the cursor at a base the engine has not published, such
+	// as an admitted candidate's root, owned by the transaction until it
+	// retires. Nil when the transaction builds on the published head.
+	privateBase *bucket_lookup.Cursor
+	// operation is the encoded World operation batch a recording
+	// transaction proposes as its Candidate's Operation, set before Commit.
+	operation []byte
 	// turn is the Authority's write turn, held from the open until the commit
 	// is decided or the transaction is discarded. Moved out under the Engine
 	// lock.
@@ -74,9 +82,12 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 //
 // The commit runs the World's commit state machine over the Authority. Open
 // is the transaction itself. Sealing its blocks and proposing them as a
-// Candidate moves it to Admitted; the Authority's decision moves it to
-// Superseded, which returns world.ErrSuperseded so the writer rebases, or on
-// to Durable, when the engine publishes the head to readers. The local
+// Candidate moves it to Admitted, which ends the turn and the writer slot, so
+// the next writer begins on the candidate while this one waits. The
+// Authority's decision moves it to Superseded, which returns
+// world.ErrSuperseded so the writer rebases, or on to Durable, when the
+// engine publishes the head the Admission reports, which a Space's Authority
+// may have rebased onto operations the writer did not build on. The local
 // Authority decides and makes the head durable within Admit, in one Volume
 // transaction.
 func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, error) {
@@ -114,39 +125,77 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	if adm != nil {
 		defer adm.Release()
 	}
-
-	// Wait for the head to become durable, then publish it, while the turn
-	// still holds every other writer off the head. A head the Authority
-	// moved past the candidate is published in its place.
-	if err == nil && adm != nil {
-		var published *bucket.ObjectRef
-		published, err = e.waitDurable(ctx, adm, nextRootRef)
-		if err == nil && !published.EqualsRef(nextRootRef) {
-			rootBlock = nil
-		}
-		if published != nil {
-			nextRootRef = published
-		}
+	if e.engine.authority == nil {
+		return e.publishCallerHead(ctx, turn, nextRootRef, rootBlock, err)
 	}
 
-	// A durable commit stays a success when the engine closed meanwhile: the
-	// Authority holds its head, and the next open serves it. Only an engine
-	// without an Authority, whose caller replaced the head, discards it.
-	var retirement engineRetirement
+	// Record the published head at admission, and the candidate the next
+	// writer may build on.
 	locked = e.engine.bcast.Lock()
-	detached := e.engine.writeTx != e
-	if err == nil && detached && (adm == nil || e.engine.authority == nil) {
-		err = tx.ErrDiscarded
+	admittedAt := e.engine.pub.Load()
+	if err == nil && adm != nil {
+		e.engine.admitted = &admittedHead{root: nextRootRef.GetRootRef(), world: rootBlock}
 	}
-	if err == nil && adm != nil && !detached && !e.engine.closed {
-		// The head is durable, so a failed install is not a failed commit:
-		// the Authority holds the head, and the head watch or the next
-		// writer's turn installs it.
+
+	// End the turn and the writer slot now that the Authority holds the
+	// candidate.
+	var writer engineRetirement
+	if e.engine.writeTx == e {
+		writer = e.detachLocked()
+	}
+	writer.turn = turn
+	retirement := e.engine.beginRetirementLocked(writer)
+	locked.Unlock()
+	e.engine.drainRetirement(ctx, retirement)
+	if err != nil || adm == nil {
+		return nextRootRef, err
+	}
+
+	// Wait for the decision and for the head to be durable, outside the turn.
+	published, err := e.waitDurable(ctx, adm, nextRootRef)
+	if err != nil {
+		return nil, err
+	}
+	if !published.EqualsRef(nextRootRef) {
+		rootBlock = nil
+	}
+
+	// Publish the head, unless a head was published since the admission: the
+	// next writer's durable base or a head the watch reported, which holds
+	// this candidate's change or a later one. A durable commit stays a
+	// success when the engine closed meanwhile, or the install failed: the
+	// Authority holds its head, and the head watch or the next open installs
+	// it.
+	locked = e.engine.bcast.Lock()
+	retirement = engineRetirement{}
+	if !e.engine.closed && e.engine.pub.Load() == admittedAt {
 		var installErr error
-		retirement, installErr = e.engine.installRootRefLocked(ctx, nextRootRef, false, rootBlock)
+		retirement, installErr = e.engine.installRootRefLocked(ctx, published, false, rootBlock)
 		if installErr != nil {
 			e.engine.le.WithError(installErr).Warn("unable to publish a durable World head; the authority holds it")
+		} else if p := e.engine.pub.Load(); p != nil {
+			e.engine.direct = &world.Head{Root: published.GetRootRef().Clone(), Seqno: p.seqno, Durable: true}
 		}
+	}
+	locked.Unlock()
+	e.engine.drainRetirement(ctx, retirement)
+	return published, nil
+}
+
+// publishCallerHead finishes the commit of an engine without an Authority,
+// whose caller owns the head and may replace it while the commit runs: the
+// writer keeps its slot until its head is published, and a commit whose
+// writer the caller detached is discarded.
+func (e *EngineTx) publishCallerHead(ctx context.Context, turn world.Turn, next *bucket.ObjectRef, rootBlock *World, err error) (*bucket.ObjectRef, error) {
+	// Publish the head unless the caller replaced it.
+	var retirement engineRetirement
+	locked := e.engine.bcast.Lock()
+	detached := e.engine.writeTx != e
+	if err == nil && detached {
+		err = tx.ErrDiscarded
+	}
+	if err == nil && !e.engine.closed && !next.EqualsRef(e.baseHeadRef) {
+		retirement, err = e.engine.installRootRefLocked(ctx, next, false, rootBlock)
 	}
 
 	// Detach this writer even when the commit failed, and end its turn
@@ -160,14 +209,14 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		retirement = e.engine.beginRetirementLocked(writer)
 	} else {
 		retirement.readTx, retirement.readHead, retirement.writeTx = writer.readTx, writer.readHead, writer.writeTx
-		retirement.turn, retirement.writeTxRel = writer.turn, writer.writeTxRel
+		retirement.turn, retirement.base, retirement.writeTxRel = writer.turn, writer.base, writer.writeTxRel
 	}
 	locked.Unlock()
 	e.engine.drainRetirement(ctx, retirement)
 	if err != nil {
 		return nil, err
 	}
-	return nextRootRef, nil
+	return next, nil
 }
 
 // admit seals the transaction's blocks under its new root and proposes them
@@ -217,10 +266,11 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	// Propose the candidate. Admit takes the entries: once it returns, the
 	// buffer's copy is no longer needed.
 	adm, err := turn.Admit(ctx, world.Candidate{
-		Base:    base.Clone(),
-		Root:    nroot.Clone(),
-		Seqno:   seqno,
-		Entries: batch.Entries,
+		Base:      base.Clone(),
+		Root:      nroot.Clone(),
+		Seqno:     seqno,
+		Entries:   batch.Entries,
+		Operation: e.operation,
 	})
 	batch.Complete(err)
 	if err != nil {
@@ -255,8 +305,14 @@ func (e *EngineTx) waitDurable(ctx context.Context, adm world.Admission, next *b
 		return nil, err
 	}
 
-	// Wait for the record that makes the head durable.
+	// Wait for the record that makes the head durable, and publish the head
+	// the Admission reports, which holds the candidate's change.
 	if _, err = adm.WaitDurable(ctx); err == nil || e.engine.authority == nil {
+		if head := adm.Head(); err == nil && !head.Root.GetEmpty() && !head.Root.EqualsRef(next.GetRootRef()) {
+			published := next.Clone()
+			published.RootRef = head.Root.Clone()
+			return published, nil
+		}
 		return next, err
 	}
 
@@ -322,8 +378,10 @@ func (e *EngineTx) detachLocked() engineRetirement {
 		readHead: e.readHead.Swap(nil),
 		writeTx:  e.writeTx,
 		turn:     e.turn,
+		base:     e.privateBase,
 	}
 	e.turn = nil
+	e.privateBase = nil
 
 	// Move Engine.writeTxRel into the retirement, which releases the serialized
 	// write turn after the Engine lock drops.

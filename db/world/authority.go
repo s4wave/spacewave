@@ -6,7 +6,10 @@ import (
 
 // Turn is one writer's chance to propose the next head.
 // An Authority that orders writers across processes holds them off for the
-// turn, so the base a writer reads stays the head until it proposes.
+// turn, so the base a writer reads stays the head until it proposes. The
+// engine releases a turn as soon as Admit returns, so an Authority that
+// pipelines gives the next turn the admitted candidate as its Base, not yet
+// durable, and the engine builds on it without publishing it.
 type Turn interface {
 	// Base returns the head the authority held when the turn began.
 	Base() Head

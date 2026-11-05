@@ -117,6 +117,28 @@ type Engine struct {
 	watchedFloor uint64
 	// closed rejects new operations while Close drains resources.
 	closed bool
+	// direct is the head the engine last published itself, from a commit or
+	// a turn's base, until the Authority's head watch reports it. Until then
+	// a watched head is installed only when it is newer than direct, so a
+	// late report of an older head never rolls the published head back.
+	// Nil while the published head is the watch's. Guarded by bcast.
+	direct *world.Head
+	// admitted is the root of the last candidate this engine admitted, with
+	// its decoded World root, so a turn whose base is that candidate builds
+	// on it without reading the root block. Guarded by bcast.
+	admitted *admittedHead
+	// recordOps makes write transactions record their World operations, so
+	// a commit's Candidate carries them as its Operation.
+	recordOps bool
+}
+
+// admittedHead is a candidate root an Authority admitted and its decoded World
+// root.
+type admittedHead struct {
+	// root is the candidate's World root.
+	root *block.BlockRef
+	// world is the decoded World root block.
+	world *World
 }
 
 // OperationAuthor returns no signer for a standalone block World.
@@ -133,6 +155,17 @@ type EngineOption func(*Engine)
 func WithDeferredDurability() EngineOption {
 	return func(e *Engine) {
 		e.deferDurability = true
+	}
+}
+
+// WithRecordedOperations makes write transactions record the World
+// operations they apply, so a commit proposes them to the Authority as the
+// Candidate's Operation: the encoded world_block_tx batch, with the engine's
+// own bucket ID cleared from its object roots. An Authority that replays
+// operations, such as a Space's, needs it; the local Authority does not.
+func WithRecordedOperations() EngineOption {
+	return func(e *Engine) {
+		e.recordOps = true
 	}
 }
 
@@ -207,6 +240,7 @@ func NewEngine(
 	}
 	e.durableSeqno = e.headSeqnoLocked()
 	e.publishHeadLocked(ctx, e.durableSeqno)
+	e.direct = &world.Head{Root: e.head.root.GetRef().GetRootRef().Clone(), Seqno: e.durableSeqno, Durable: true}
 
 	// Follow the heads other writers commit for the engine's lifetime.
 	// Constructor cancellation does not end it.
@@ -336,40 +370,64 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	return err
 }
 
-// followHead installs a head the Authority's watch reports, in the order the
-// Authority decides them: a head past the published seqno, or one at the
-// published seqno with another root, such as a settings change that added no
-// change log entry. A report at the published seqno is checked against the
-// Authority's current head first, one indexed root read, so a late report of
-// an older head at that seqno never rolls the head back. A local writer holds
-// the turn meanwhile, so no other writer moves the head, and the writer's
-// commit installs its own.
+// followHead installs a head the Authority's watch reports. The watch reports
+// heads in the order the Authority decides them, so a report is installed as
+// it comes, unless the engine published a head itself since the watch's last
+// report: a commit's head or a turn's base. Until the watch reports that head,
+// a report is installed only when its seqno is past it, or at its seqno with
+// another root that is still the Authority's head (one indexed root read), so
+// a late report of an older head never rolls the head back. A report while a
+// local writer holds a turn is installed without ending the writer: the
+// writer's candidate goes to the Authority on its own base, and the Authority
+// decides it against the head it holds.
 func (e *Engine) followHead(head world.Head) {
-	// Skip a head that is not newer than the published one.
+	// Skip an empty head and the published one, which ends a direct head the
+	// watch now reports.
 	ctx := context.Background()
-	p := e.pub.Load()
-	if p == nil || head.Root.GetEmpty() || head.Root.EqualsRef(p.ref.GetRootRef()) || head.Seqno < p.seqno {
+	if head.Root.GetEmpty() {
 		return
 	}
+	locked := e.bcast.Lock()
+	p := e.pub.Load()
+	direct := e.direct
+	if direct != nil && head.Root.EqualsRef(direct.Root) {
+		e.direct = nil
+		direct = nil
+	}
+	if e.closed || p == nil || head.Root.EqualsRef(p.ref.GetRootRef()) {
+		locked.Unlock()
+		return
+	}
+	locked.Unlock()
 
-	// Confirm a head at the published seqno is still the Authority's.
-	if head.Seqno == p.seqno {
-		current, err := e.authority.Head(ctx)
-		if err != nil || !current.Root.EqualsRef(head.Root) {
+	// Order the report against a head the engine published itself.
+	if direct != nil {
+		switch {
+		case head.Seqno > direct.Seqno:
+		case head.Seqno == direct.Seqno:
+			current, err := e.authority.Head(ctx)
+			if err != nil || !current.Root.EqualsRef(head.Root) {
+				return
+			}
+		default:
 			return
 		}
 	}
 
-	// Install the head unless the published head moved meanwhile or a local
-	// writer holds the turn, then drain what it replaced.
-	locked := e.bcast.Lock()
-	if e.closed || e.writeTx != nil || e.pub.Load() != p {
+	// Hold the engine unless the published head moved meanwhile.
+	locked = e.bcast.Lock()
+	if e.closed || e.pub.Load() != p {
 		locked.Unlock()
 		return
 	}
+
+	// Install the head, keeping a local writer, then drain what it replaced.
 	ref := e.head.root.GetRef().Clone()
 	ref.RootRef = head.Root.Clone()
-	retirement, err := e.setRootRefLocked(ctx, ref)
+	retirement, err := e.installRootRefLocked(ctx, ref, false, nil)
+	if err == nil {
+		e.direct = nil
+	}
 	locked.Unlock()
 	e.drainRetirement(ctx, retirement)
 	if err != nil {
@@ -550,6 +608,9 @@ func (e *Engine) drainRetirement(ctx context.Context, retirement engineRetiremen
 	for _, h := range retirement.watched {
 		h.root.Release()
 	}
+	if retirement.base != nil {
+		retirement.base.Release()
+	}
 
 	// End the writer's Authority turn, then its local writer slot.
 	if retirement.turn != nil {
@@ -578,8 +639,17 @@ func (e *Engine) finishCommit() {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 // Check GetReadOnly, might not return a write tx if write=true.
+// An engine that records operations wraps a write transaction in a recorder
+// whose commit proposes the operations it applied.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
-	return e.NewBlockEngineTransaction(ctx, write)
+	etx, err := e.NewBlockEngineTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	if !write || !e.recordOps {
+		return etx, nil
+	}
+	return newRecordedTx(ctx, etx)
 }
 
 // NewBlockEngineTransaction returns the world-block specific EngineTx type.
@@ -610,11 +680,13 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	}
 	base := turn.Base()
 
-	// Install the turn's base when another writer moved the head. A failure
-	// releases the base's replacement, the turn and the writer slot.
+	// Trace building the write state under the engine lock.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction/build-world-state")
 	defer subtask.End()
 	locked := e.bcast.Lock()
+
+	// A failure releases the base's replacement, the turn and the writer
+	// slot.
 	fail := func(retirement engineRetirement, err error) (*EngineTx, error) {
 		// Release what the open took, newest first.
 		locked.Unlock()
@@ -632,24 +704,46 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		return fail(engineRetirement{}, ErrEngineClosed)
 	}
 	var retirement engineRetirement
+	root, rootBlock := e.head.root, (*World)(nil)
+	var private *bucket_lookup.Cursor
 	if !base.Root.GetEmpty() && !base.Root.EqualsRef(e.head.root.GetRef().GetRootRef()) {
 		ref := e.head.root.GetRef().Clone()
 		ref.RootRef = base.Root.Clone()
-		if retirement, err = e.setRootRefLocked(taskCtx, ref); err != nil {
-			return fail(retirement, err)
+		switch {
+		case base.Durable && base.Seqno >= e.headSeqnoLocked():
+			// Publish a newer durable base another writer committed.
+			if retirement, err = e.setRootRefLocked(taskCtx, ref); err != nil {
+				return fail(retirement, err)
+			}
+			e.direct = &world.Head{Root: base.Root.Clone(), Seqno: base.Seqno, Durable: true}
+			root = e.head.root
+		default:
+			// Build on a base readers do not see yet, such as a candidate
+			// admitted and not yet durable, without publishing it.
+			if private, err = e.baseRoot.FollowRef(taskCtx, ref); err != nil {
+				return fail(retirement, err)
+			}
+			root = private
+			if a := e.admitted; a != nil && a.root.EqualsRef(base.Root) {
+				rootBlock = a.world
+			}
 		}
 	}
 
 	// Build the write state on the base.
-	baseHeadRef := e.head.root.GetRef().Clone()
-	world, err := e.buildWriteState(taskCtx, e.head.root)
+	baseHeadRef := root.GetRef().Clone()
+	world, err := e.buildWriteState(taskCtx, root, rootBlock)
 	if err != nil {
+		if private != nil {
+			private.Release()
+		}
 		return fail(retirement, err)
 	}
 
 	// Register the writer only once it carries its base and turn.
 	engTx := newEngineTx(e, NewTx(world))
 	engTx.baseHeadRef = baseHeadRef
+	engTx.privateBase = private
 	engTx.turn = turn
 	e.writeTx = engTx
 	e.writeTxRel = relLock
@@ -1116,6 +1210,7 @@ func (e *Engine) Close() error {
 		retirement.readTx = writeRetirement.readTx
 		retirement.writeTx = writeRetirement.writeTx
 		retirement.turn = writeRetirement.turn
+		retirement.base = writeRetirement.base
 		retirement.writeTxRel = writeRetirement.writeTxRel
 	}
 	if !retirement.empty() {
@@ -1216,7 +1311,9 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 // otherwise leave its early drains unheld. A stage that writes nothing costs
 // no Volume transaction.
 // The caller must hold bcast after construction.
-func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor) (*WorldState, error) {
+// rootBlock, when set, is the decoded World root at root, which a writer
+// building on an admitted candidate's root takes from the engine.
+func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor, rootBlock *World) (*WorldState, error) {
 	// Open the stage the early drains write under.
 	staged, releaseStage, err := block.OpenStage(ctx, e.writeBlockStore)
 	if err != nil {
@@ -1227,7 +1324,12 @@ func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor
 	writes := block.NewBufferedStoreWithSettings(ctx, staged, &block.BufferedStoreSettings{RecordWrites: true})
 
 	// Build the state and give it the buffer and the stage.
-	ws, err := e.buildWorldStateForRoot(ctx, false, root, writes)
+	var ws *WorldState
+	if rootBlock != nil {
+		ws, err = e.newWorldState(ctx, false, root, writes, func() {}, rootBlock)
+	} else {
+		ws, err = e.buildWorldStateForRoot(ctx, false, root, writes)
+	}
 	if err != nil {
 		releaseStage()
 		return nil, err
