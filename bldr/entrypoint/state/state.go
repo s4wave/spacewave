@@ -31,6 +31,12 @@ func NewVolumeConfig(storageID string) *storage_volume.Config {
 	}
 }
 
+// EngineID names the application World of a project, the one World every
+// renderer of the project opens.
+func EngineID(projectID string) string {
+	return "entrypoint/" + projectID
+}
+
 // NewWorldConfig opens the same durable application World for every renderer.
 func NewWorldConfig(projectID, volumeID string) (*world_block_engine.Config, error) {
 	// Use one block encoding for native CLI and distribution entrypoints.
@@ -40,7 +46,7 @@ func NewWorldConfig(projectID, volumeID string) (*world_block_engine.Config, err
 	}
 
 	// Store the project World head beside its blocks in the shared volume.
-	engineID := "entrypoint/" + projectID
+	engineID := EngineID(projectID)
 	return world_block_engine.NewConfig(
 		engineID, volumeID, engineID, engineID,
 		&bucket.ObjectRef{BucketId: engineID, TransformConf: transformConf},

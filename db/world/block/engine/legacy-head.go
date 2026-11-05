@@ -21,15 +21,22 @@ func retainedRootName(objectStoreID string, key []byte) string {
 	return "world/" + base64.RawURLEncoding.EncodeToString([]byte(objectStoreID)) + "/" + base64.RawURLEncoding.EncodeToString(key)
 }
 
+// LegacyRootName returns the name of the root an older engine held a World's
+// head under, for a World opened outside this controller that adopts the
+// head the same way: objectStoreID and key name the old head record.
+func LegacyRootName(objectStoreID, key string) string {
+	return retainedRootName(objectStoreID, []byte(key))
+}
+
 // legacyHead is where an older engine kept a World's head before the head
 // moved to the World's root: a HeadState record in an object store, and a
-// root of the same bucket named by RetainedRootName.
+// root of the same bucket named by retainedRootName.
 type legacyHead struct {
 	// store is the object store, or nil when the World had none.
 	store object.ObjectStore
 	// key is the HeadState record's key in store.
 	key []byte
-	// rootName is the name of the old root.
+	// rootName is the name of the old root, from retainedRootName.
 	rootName string
 }
 

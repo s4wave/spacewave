@@ -139,7 +139,7 @@ func loadLocalCDNSigner(stateDir string) (crypto.PrivKey, error) {
 // live, so a returning visitor can still read the release it cached.
 func exportLocalCDN(ctx context.Context, le *logrus.Entry, stateDir, distDir string, key crypto.PrivKey) error {
 	// Mount only the dedicated fixture database and stage its current manifests.
-	w, err := publisher.OpenLocalWorld(ctx, le, filepath.Join(stateDir, "publication", "release.s4wave"), "spacewave-release-world", "spacewave-release")
+	w, err := publisher.OpenLocalWorld(ctx, le, filepath.Join(stateDir, "publication", "release.s4wave"), release.WorldEngineID, "spacewave-release")
 	if err != nil {
 		return err
 	}

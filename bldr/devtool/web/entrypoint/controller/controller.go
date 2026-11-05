@@ -230,7 +230,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	defer pluginBrowserHostRel()
 
 	// run a hydra world for storing plugin host state and manifests
-	engineID := "bldr/dev-plugin-host"
+	engineID := DevPluginHostEngineID
 	engineBucketID := engineID
 	engineObjStoreID := engineBucketID
 	pluginHostObjKey := "dev-plugin-host"

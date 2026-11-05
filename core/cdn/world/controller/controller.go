@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
+	spacewave_release "github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/world"
@@ -30,7 +31,7 @@ var Version = controller.MustParseVersion("0.0.1")
 const unreachableAfterFailures = 2
 
 // releaseWorldEngineID selects the shared Release World block-store authority.
-const releaseWorldEngineID = "spacewave-release-world"
+const releaseWorldEngineID = spacewave_release.WorldEngineID
 
 // ReleaseBlockStoreID identifies the block store shared by Release World
 // metadata reads and release-manifest bucket reads.

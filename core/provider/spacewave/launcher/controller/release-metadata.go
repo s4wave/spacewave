@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	releaseWorldEngineID              = "spacewave-release-world"
+	releaseWorldEngineID              = spacewave_release.WorldEngineID
 	releaseMetadataDirectoryObjectKey = "release/metadata"
 	nativeEntrypointManifestID        = "spacewave-dist"
 	cliEntrypointManifestID           = "spacewave-cli"

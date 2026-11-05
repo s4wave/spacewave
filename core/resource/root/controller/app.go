@@ -52,7 +52,9 @@ import (
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 )
 
-const appBackingEngineID = "app-backing-world"
+// AppBackingEngineID names the app backing World, the one World every app
+// opener and lookup uses.
+const AppBackingEngineID = "app-backing-world"
 
 // newAppRegistry shares one runtime among live attachments to the same binding.
 // The enclosing controller's context owns all runtime construction and shutdown.
@@ -238,7 +240,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 			if _, _, _, err := backing.ApplyBucketConfig(ctx, &bucket.Config{Id: bucketID, Rev: 1}); err != nil {
 				return nil, err
 			}
-			if _, err := start(world_block_engine.NewConfig(appBackingEngineID, backing.GetID(), bucketID,
+			if _, err := start(world_block_engine.NewConfig(AppBackingEngineID, backing.GetID(), bucketID,
 				"app-backing-head", &bucket.ObjectRef{BucketId: bucketID}, nil, true)); err != nil {
 				return nil, err
 			}
@@ -247,7 +249,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		if prefix == "" {
 			prefix = "app"
 		}
-		supplied, err = storage_world.NewStorage(ctx, child, appBackingEngineID, prefix)
+		supplied, err = storage_world.NewStorage(ctx, child, AppBackingEngineID, prefix)
 		if err != nil {
 			return nil, err
 		}
@@ -335,7 +337,7 @@ func (c *appWorldController) GetControllerInfo() *controller.Info {
 func (c *appWorldController) Execute(context.Context) error { return nil }
 func (c *appWorldController) Close() error                  { return nil }
 func (c *appWorldController) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	if lookup, ok := di.GetDirective().(world.LookupWorldEngine); ok && lookup.LookupWorldEngineID() == appBackingEngineID {
+	if lookup, ok := di.GetDirective().(world.LookupWorldEngine); ok && lookup.LookupWorldEngineID() == AppBackingEngineID {
 		return directive.R(directive.NewValueResolver([]world.Engine{c.engine}), nil)
 	}
 	return nil, nil

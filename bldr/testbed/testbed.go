@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/go-git/go-billy/v6"
 	"github.com/s4wave/spacewave/bldr/core"
+	devtool_store "github.com/s4wave/spacewave/bldr/devtool/store"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
@@ -174,9 +175,9 @@ func BuildTestbedWithSchedulerConfig(
 	rels = append(rels, nodeCtrlRef.Release)
 
 	// start devtool world
-	engineBucketID := "bldr/devtool"
-	engineObjStoreID := engineBucketID
-	engineID := "bldr"
+	engineBucketID := devtool_store.BucketID
+	engineObjStoreID := devtool_store.ObjectStoreID
+	engineID := devtool_store.EngineID
 
 	// create bucket if it doesn't exist
 	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)

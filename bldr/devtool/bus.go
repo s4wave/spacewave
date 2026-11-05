@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/core"
 	core_devtool "github.com/s4wave/spacewave/bldr/core/devtool"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
+	devtool_store "github.com/s4wave/spacewave/bldr/devtool/store"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
@@ -233,9 +234,9 @@ func BuildDevtoolBus(
 	rels = append(rels, nodeCtrlRef.Release)
 
 	// Select the devtool World storage identifiers.
-	engineBucketID := "bldr/devtool"
-	engineObjStoreID := engineBucketID
-	engineID := "bldr"
+	engineBucketID := devtool_store.BucketID
+	engineObjStoreID := devtool_store.ObjectStoreID
+	engineID := devtool_store.EngineID
 
 	// Create the World engine bucket if it does not exist.
 	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
