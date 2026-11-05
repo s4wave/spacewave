@@ -99,6 +99,9 @@ type ProviderAccount struct {
 	// evictAdmit paces the eviction passes of the placed block stores, or
 	// holds nil.
 	evictAdmit atomic.Pointer[block_store_writeback.EvictAdmit]
+	// uploadAdmit paces the upload rounds of the placed block stores, or
+	// holds nil.
+	uploadAdmit atomic.Pointer[block_store_writeback.UploadAdmit]
 	// sqlPrimary makes a block store placed on an SQL backend write to that
 	// backend and read the local bucket, read only, before it.
 	sqlPrimary atomic.Bool

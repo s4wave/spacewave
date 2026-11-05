@@ -66,14 +66,39 @@ func batchLimitsOf(remote block.StoreOps) block.BatchLimits {
 // Returns the first upload failure, which stays in the status until the next
 // successful batch. The caller retries with its own backoff.
 func (s *Store) Upload(ctx context.Context, remote block.StoreOps) error {
+	return s.UploadPaced(ctx, remote, nil)
+}
+
+// UploadAdmit is called before each upload round with the bytes the previous
+// round uploaded, zero before the first, and returns once the round may
+// start or with ctx's error. It paces the upload, which is background work,
+// against the foreground load it competes with: the round's local reads, its
+// marker clears and its remote writes. A nil UploadAdmit admits each round at
+// once.
+type UploadAdmit func(ctx context.Context, lastBytes int64) error
+
+// UploadPaced is Upload with each round admitted by admit. Pacing delays the
+// upload only: the blocks stay queued, and the local store keeps them, until
+// a round uploads them.
+func (s *Store) UploadPaced(ctx context.Context, remote block.StoreOps, admit UploadAdmit) error {
 	limits := batchLimitsOf(remote)
 	var head *queueHead
+	var lastBytes int64
 	for {
 		var round uploadRound
 		var err error
 		round, head, err = s.nextRound(ctx, limits, head)
 		if err != nil {
 			return err
+		}
+		if admit != nil {
+			if err := admit(ctx, lastBytes); err != nil {
+				return err
+			}
+		}
+		lastBytes = 0
+		for _, entry := range round.entries {
+			lastBytes += entry.size
 		}
 		if err := s.uploadRound(ctx, remote, round, limits.Workers); err != nil {
 			if ctx.Err() == nil {

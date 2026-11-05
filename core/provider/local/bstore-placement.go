@@ -251,8 +251,14 @@ func (t *bstoreTracker) runUpload(
 		}
 	}
 
-	// Upload the queued blocks, closing the store when the context ends.
-	err := wb.Upload(ctx, remote.store)
+	// Upload the queued blocks, paced by the account's admit, closing the
+	// store when the context ends.
+	err := wb.UploadPaced(ctx, remote.store, func(ctx context.Context, lastBytes int64) error {
+		if fn := t.a.uploadAdmit.Load(); fn != nil {
+			return (*fn)(ctx, lastBytes)
+		}
+		return nil
+	})
 	if ctx.Err() != nil {
 		t.swapRemote(nil)
 	}
