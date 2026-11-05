@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -31,6 +32,12 @@ type Bucket struct {
 	// failPut, when set, decides whether to refuse a PUT of the key with a
 	// server error before it is stored.
 	failPut func(key string) bool
+	// url is where the bucket serves.
+	url string
+	// uploads counts the multipart uploads begun.
+	uploads int
+	// parts holds each open multipart upload's parts by number.
+	parts map[string]map[int][]byte
 }
 
 // New serves an empty bucket until the test ends and returns it with a client
@@ -38,9 +45,10 @@ type Bucket struct {
 func New(t *testing.T) (*Bucket, *block_store_s3.Client) {
 	// Serve the bucket on a loopback port.
 	t.Helper()
-	b := &Bucket{objects: make(map[string][]byte)}
+	b := &Bucket{objects: make(map[string][]byte), parts: make(map[string]map[int][]byte)}
 	srv := httptest.NewServer(b)
 	t.Cleanup(srv.Close)
+	b.url = srv.URL
 	client, err := block_store_s3.BuildClient(&block_store_s3.ClientConfig{
 		Endpoint:    strings.TrimPrefix(srv.URL, "http://"),
 		DisableSsl:  true,
@@ -50,6 +58,18 @@ func New(t *testing.T) (*Bucket, *block_store_s3.Client) {
 		t.Fatal(err)
 	}
 	return b, client
+}
+
+// URL returns the endpoint the bucket serves on.
+func (b *Bucket) URL() string {
+	return b.url
+}
+
+// OpenUploads returns the multipart uploads neither completed nor aborted.
+func (b *Bucket) OpenUploads() int {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	return len(b.parts)
 }
 
 // FailPut makes the bucket refuse every PUT of a key fail returns true for,
@@ -118,6 +138,32 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		_ = xml.NewEncoder(w).Encode(result)
+	case r.Method == http.MethodPost && query.Has("uploads"):
+		b.uploads++
+		id := strconv.Itoa(b.uploads)
+		b.parts[id] = make(map[int][]byte)
+		_, _ = io.WriteString(w, "<InitiateMultipartUploadResult><UploadId>"+id+"</UploadId></InitiateMultipartUploadResult>")
+	case r.Method == http.MethodPut && query.Has("uploadId"):
+		if b.failPut != nil && b.failPut(key) {
+			http.Error(w, "<Error><Code>InternalError</Code></Error>", http.StatusInternalServerError)
+			return
+		}
+		number, _ := strconv.Atoi(query.Get("partNumber"))
+		body, _ := io.ReadAll(r.Body)
+		b.parts[query.Get("uploadId")][number] = body
+		w.Header().Set("ETag", `"`+query.Get("partNumber")+`"`)
+	case r.Method == http.MethodPost && query.Has("uploadId"):
+		parts := b.parts[query.Get("uploadId")]
+		var object []byte
+		for _, number := range slices.Sorted(maps.Keys(parts)) {
+			object = append(object, parts[number]...)
+		}
+		b.objects[key] = object
+		delete(b.parts, query.Get("uploadId"))
+		_, _ = io.WriteString(w, "<CompleteMultipartUploadResult/>")
+	case r.Method == http.MethodDelete && query.Has("uploadId"):
+		delete(b.parts, query.Get("uploadId"))
+		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodPut:
 		if b.failPut != nil && b.failPut(key) {
 			http.Error(w, "<Error><Code>InternalError</Code></Error>", http.StatusInternalServerError)
