@@ -59,11 +59,33 @@ func (m model) check(t *testing.T, db *DB) {
 		t.Fatalf("scan returned %d keys, want %d", len(scanned), len(keys))
 	}
 
-	// A reverse scan returns them backward, and Size counts them.
+	// A reverse scan returns them backward, each key unchanged after the
+	// iterator moves past its block, and Size counts them.
 	it := tx.Iterate(ctx, nil, true, true)
+	var prev []byte
 	for i, key := range slices.Backward(keys) {
 		if !it.Next() || string(it.Key()) != key {
 			t.Fatalf("reverse scan diverged at %d: got %q, %v", i, it.Key(), it.Err())
+		}
+		if prev != nil && string(prev) != keys[i+1] {
+			t.Fatalf("key %d changed to %q after Next", i+1, prev)
+		}
+		prev = it.Key()
+	}
+	it.Close()
+
+	// A forward seek just past a key lands on the next one, wherever in its
+	// block the key sits.
+	it = tx.Iterate(ctx, nil, true, false)
+	for i := 0; i < len(keys); i += 7 {
+		if err := it.Seek(append([]byte(keys[i]), 0)); err != nil {
+			t.Fatal(err)
+		}
+		if i+1 < len(keys) && (!it.Valid() || string(it.Key()) != keys[i+1]) {
+			t.Fatalf("seek past %q landed on %q, want %q", keys[i], it.Key(), keys[i+1])
+		}
+		if i+1 == len(keys) && it.Valid() {
+			t.Fatalf("seek past the last key landed on %q", it.Key())
 		}
 	}
 	it.Close()

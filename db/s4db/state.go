@@ -141,7 +141,7 @@ func (st *state) apply(r *record, budget int64) {
 	// The standby belongs to the log even before a link consumes it. Historical
 	// replay must not overwrite the newer manifest's chunk ownership.
 	if r.spare != 0 {
-		*m.table.at(r.spare) = chunkEntry{kind: chunkLog}
+		m.table.set(r.spare, chunkEntry{kind: chunkLog})
 	}
 
 	// Apply the record's kind to the manifest, table and memtable.
@@ -149,7 +149,7 @@ func (st *state) apply(r *record, budget int64) {
 	case kindLink:
 		// The log continues in new chunks.
 		for c := r.next; c < r.next+r.span; c++ {
-			*m.table.at(c) = chunkEntry{kind: chunkLog}
+			m.table.set(c, chunkEntry{kind: chunkLog})
 		}
 		st.link(r)
 	case kindCommit:
@@ -158,7 +158,7 @@ func (st *state) apply(r *record, budget int64) {
 		// The job's chunks are reserved until its record, its free, or a
 		// reclaim once its handle is gone.
 		for _, c := range r.chunks {
-			*m.table.at(c) = chunkEntry{kind: chunkReserved, owner: r.writer}
+			m.table.set(c, chunkEntry{kind: chunkReserved, owner: r.writer})
 		}
 	case kindFlush:
 		// The run holds the memtable through r.through; the old manifest and
@@ -168,9 +168,9 @@ func (st *state) apply(r *record, budget int64) {
 	case kindMerge:
 		// The outputs replace the inputs, whose chunks are pending.
 		for _, id := range r.removed {
-			for c := range m.table.entries {
-				if e := &m.table.entries[c]; e.kind == chunkRun && e.owner == id {
-					*e = chunkEntry{kind: chunkPending, owner: chunkRun, seq: r.seq}
+			for c, e := range m.table.all() {
+				if e.kind == chunkRun && e.owner == id {
+					m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkRun, seq: r.seq})
 				}
 			}
 		}
@@ -180,7 +180,7 @@ func (st *state) apply(r *record, budget int64) {
 		// The value chunks are pending from this record, and an open one
 		// closes.
 		for _, c := range r.chunks {
-			*m.table.at(c) = chunkEntry{kind: chunkPending, owner: chunkValue, seq: r.seq}
+			m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkValue, seq: r.seq})
 			if c == m.hot {
 				m.hot = 0
 			}
@@ -192,13 +192,13 @@ func (st *state) apply(r *record, budget int64) {
 		// The chunks are free: the writer established that no slot pins a
 		// state that reads them and recovery no longer can.
 		for _, c := range r.chunks {
-			*m.table.at(c) = chunkEntry{}
+			m.table.set(c, chunkEntry{})
 		}
 	case kindTruncate:
 		// The table ends at r.next; the writer truncated the file in the
 		// record's lock span.
 		if r.next < m.table.end() {
-			m.table.entries = m.table.entries[:r.next]
+			m.table.truncate(r.next)
 		}
 	}
 }
@@ -232,8 +232,8 @@ func (st *state) flush(r *record, budget int64, table bool) {
 		return
 	}
 	for _, c := range st.logChunks[:i] {
-		if e := st.m.table.at(c); table && e.kind == chunkLog {
-			*e = chunkEntry{kind: chunkPending, owner: chunkLog, seq: r.seq}
+		if table && st.m.table.get(c).kind == chunkLog {
+			st.m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkLog, seq: r.seq})
 		}
 	}
 	st.logChunks = slices.Delete(st.logChunks, 0, i)
@@ -248,19 +248,19 @@ func (st *state) addRuns(r *record) {
 	for i := range r.runs {
 		m.runs = append(m.runs, r.runs[i])
 		for _, c := range r.runs[i].chunks {
-			*m.table.at(c) = chunkEntry{kind: chunkRun, owner: r.runs[i].id}
+			m.table.set(c, chunkEntry{kind: chunkRun, owner: r.runs[i].id})
 		}
 	}
 	slices.SortFunc(m.runs, lookupOrder)
 
 	// Replace the manifest's chunks.
-	for c := range m.table.entries {
-		if e := &m.table.entries[c]; e.kind == chunkManifest {
-			*e = chunkEntry{kind: chunkPending, owner: chunkManifest, seq: r.seq}
+	for c, e := range m.table.all() {
+		if e.kind == chunkManifest {
+			m.table.set(c, chunkEntry{kind: chunkPending, owner: chunkManifest, seq: r.seq})
 		}
 	}
 	for _, c := range r.mchunks {
-		*m.table.at(c) = chunkEntry{kind: chunkManifest, owner: m.version}
+		m.table.set(c, chunkEntry{kind: chunkManifest, owner: m.version})
 	}
 }
 

@@ -12,8 +12,8 @@ import (
 func TestFlushKeepsReplayChunks(t *testing.T) {
 	// Start from an empty file's superblock: the log in chunk 2.
 	m := newManifest()
-	*m.table.at(1) = chunkEntry{kind: chunkManifest, owner: 1}
-	*m.table.at(2) = chunkEntry{kind: chunkLog}
+	m.table.set(1, chunkEntry{kind: chunkManifest, owner: 1})
+	m.table.set(2, chunkEntry{kind: chunkLog})
 	sb := superblock{logPos: chunkStart(2), logEnd: chunkStart(3), memPos: chunkStart(2), memEnd: chunkStart(3)}
 	st := newState(sb, m, 1<<20)
 	apply := func(r *record) {
@@ -28,7 +28,7 @@ func TestFlushKeepsReplayChunks(t *testing.T) {
 	apply(&record{seq: 2, kind: kindLink, next: 3, span: 1})
 	apply(&record{seq: 3, kind: kindCommit})
 	apply(&record{seq: 4, kind: kindFlush, through: 1, replay: replay, runs: []runMeta{{id: 16, chunks: []uint64{10}}}, mchunks: []uint64{11}})
-	if k := st.m.table.at(2).kind; k != chunkLog {
+	if k := st.m.table.get(2).kind; k != chunkLog {
 		t.Fatalf("chunk 2 is kind %d after the flush, want log", k)
 	}
 	if !slices.Equal(st.logChunks, []uint64{2, 3}) {
@@ -38,21 +38,41 @@ func TestFlushKeepsReplayChunks(t *testing.T) {
 		t.Fatalf("superblock through %d memPos %d, want 1 and %d", got.through, got.memPos, replay.pos)
 	}
 
-	// A link into chunk 4 and a flush through the commit in chunk 3: chunk 2
-	// is pending from the flush, chunks 3 and 4 stay.
+	// A link into chunk 4 and a flush through the commit in chunk 3, applied
+	// to a copy of the published state: chunk 2 is pending from the flush,
+	// chunks 3 and 4 stay, and the published state still reads chunk 2 as log.
+	published := st
+	st = st.derive()
 	replay = st.point()
 	apply(&record{seq: 5, kind: kindLink, next: 4, span: 1})
 	apply(&record{seq: 6, kind: kindFlush, through: 3, replay: replay, runs: []runMeta{{id: 96, chunks: []uint64{12}}}, mchunks: []uint64{13}})
-	if e := st.m.table.at(2); e.kind != chunkPending || e.seq != 6 {
+	if e := st.m.table.get(2); e.kind != chunkPending || e.seq != 6 {
 		t.Fatalf("chunk 2 is %+v after the second flush, want pending at 6", e)
 	}
 	for _, c := range []uint64{3, 4} {
-		if k := st.m.table.at(c).kind; k != chunkLog {
+		if k := st.m.table.get(c).kind; k != chunkLog {
 			t.Fatalf("chunk %d is kind %d, want log", c, k)
 		}
 	}
 	if !slices.Equal(st.logChunks, []uint64{3, 4}) {
 		t.Fatalf("log chunks %v, want [3 4]", st.logChunks)
+	}
+	if k := published.m.table.get(2).kind; k != chunkLog {
+		t.Fatalf("published chunk 2 is kind %d after the copy's flush, want log", k)
+	}
+
+	// A copy truncated inside a page and grown again reads free past the
+	// cut, and the table it copied keeps its entries.
+	src := st.m.table.clone()
+	src.set(chunkPageLen+1, chunkEntry{kind: chunkRun, owner: 7})
+	cut := src.clone()
+	cut.truncate(4)
+	cut.set(chunkPageLen+2, chunkEntry{kind: chunkValue})
+	if e, f := cut.get(4), cut.get(chunkPageLen+1); e.kind != chunkFree || f.kind != chunkFree {
+		t.Fatalf("regrown chunks are %+v and %+v, want free", e, f)
+	}
+	if e := src.get(chunkPageLen + 1); e.kind != chunkRun || src.get(4).kind != chunkLog {
+		t.Fatalf("source changed: chunk %d is %+v, chunk 4 kind %d", chunkPageLen+1, e, src.get(4).kind)
 	}
 }
 
@@ -68,8 +88,8 @@ func TestPick(t *testing.T) {
 		{id: 16, level: 0, chunks: []uint64{5}, smallest: []byte("a"), largest: []byte("z")},
 		{id: 32, level: 0, chunks: []uint64{7}, smallest: []byte("a"), largest: []byte("z")},
 	}
-	*m.table.at(5) = chunkEntry{kind: chunkRun, owner: 16}
-	*m.table.at(7) = chunkEntry{kind: chunkRun, owner: 32}
+	m.table.set(5, chunkEntry{kind: chunkRun, owner: 16})
+	m.table.set(7, chunkEntry{kind: chunkRun, owner: 32})
 	pick, ok := (&mergeJob{}).pick(m)
 	if !ok || len(pick.inputs) != 2 || pick.level != 1 {
 		t.Fatalf("pick %+v ok %v, want both level 0 runs into level 1", pick, ok)

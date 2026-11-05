@@ -81,40 +81,43 @@ type blockEntry struct {
 }
 
 // entryAt decodes the entry at off whose key shares prefix with the entry
-// before it; prev is that entry's key.
-func (blk *dataBlock) entryAt(off int, prev []byte) (blockEntry, bool) {
+// before it; prev is that entry's key. It appends the key to keys and returns
+// the grown buffer, so a caller decoding a whole block keeps every key in one
+// buffer; the entry's key is the appended tail.
+func (blk *dataBlock) entryAt(off int, prev, keys []byte) (blockEntry, []byte, bool) {
 	// Read the lengths and check them against the input.
 	if off > len(blk.data) {
-		return blockEntry{}, false
+		return blockEntry{}, keys, false
 	}
 	d := decoder{b: blk.data[off:]}
 	shared, unshared := d.uvarint(), d.uvarint()
 	if d.err != nil || shared > uint64(len(prev)) || unshared > uint64(len(d.b)) {
-		return blockEntry{}, false
+		return blockEntry{}, keys, false
 	}
 
 	// Build the key from the shared prefix and the suffix, then the value.
-	key := make([]byte, 0, shared+unshared)
-	key = append(key, prev[:shared]...)
-	key = append(key, d.b[:unshared]...)
+	n := len(keys)
+	keys = append(keys, prev[:shared]...)
+	keys = append(keys, d.b[:unshared]...)
+	key := keys[n:len(keys):len(keys)]
 	d.b = d.b[unshared:]
 	v := d.decodeValue(d.kind())
 	if d.err != nil {
-		return blockEntry{}, false
+		return blockEntry{}, keys, false
 	}
-	return blockEntry{key: key, val: v, next: len(blk.data) - len(d.b)}, true
+	return blockEntry{key: key, val: v, next: len(blk.data) - len(d.b)}, keys, true
 }
 
-// seek returns the first entry at or after key, reporting whether one
-// exists.
-func (blk *dataBlock) seek(key []byte) (blockEntry, bool) {
-	// Bisect the restart points to the last one at or before key.
+// restart returns the offset of the last restart point at or before key, or
+// the first, decoding the restart keys into keys, which it returns for reuse.
+func (blk *dataBlock) restart(key, keys []byte) (int, []byte, bool) {
 	lo, hi := 0, blk.restarts.len()
 	for lo+1 < hi {
 		m := int(uint(lo+hi) >> 1)
-		e, ok := blk.entryAt(blk.restarts.at(m), nil)
+		e, k, ok := blk.entryAt(blk.restarts.at(m), nil, keys[:0])
+		keys = k
 		if !ok {
-			return blockEntry{}, false
+			return 0, keys, false
 		}
 		if bytes.Compare(e.key, key) <= 0 {
 			lo = m
@@ -122,19 +125,28 @@ func (blk *dataBlock) seek(key []byte) (blockEntry, bool) {
 			hi = m
 		}
 	}
+	return blk.restarts.at(lo), keys, true
+}
 
-	// Walk forward from it.
-	off := blk.restarts.at(lo)
+// seek returns the first entry at or after key, reporting whether one
+// exists.
+func (blk *dataBlock) seek(key []byte) (blockEntry, bool) {
+	// Start at the last restart point at or before key, then walk forward.
+	off, keys, ok := blk.restart(key, nil)
+	if !ok {
+		return blockEntry{}, false
+	}
 	var prev []byte
+	keys = keys[:0]
 	for off < len(blk.data) {
-		e, ok := blk.entryAt(off, prev)
+		e, k, ok := blk.entryAt(off, prev, keys)
 		if !ok {
 			return blockEntry{}, false
 		}
 		if bytes.Compare(e.key, key) >= 0 {
 			return e, true
 		}
-		prev, off = e.key, e.next
+		keys, prev, off = k, e.key, e.next
 	}
 	return blockEntry{}, false
 }
