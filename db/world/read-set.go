@@ -42,10 +42,14 @@ type ReadSet struct {
 	// version counts the recorded reads, so Touched keeps its answer only when
 	// no read was recorded while it checked unlocked.
 	version uint64
-	// added closes when a read is recorded, or is nil when no wait took it
+	// added ends when a read is recorded, or is nil when no wait took it
 	// since the last read. Most reads come while a view evaluates, with no wait
-	// to wake, so the channel is made only for a wait.
-	added chan struct{}
+	// to wake, so the context is made only for a wait. A context rather than
+	// a channel lets a wait end its subscription on the read through
+	// context.AfterFunc, which starts no goroutine until the read comes.
+	added context.Context
+	// endAdded ends added.
+	endAdded context.CancelFunc
 }
 
 // NewReadSet constructs an empty ReadSet.
@@ -151,31 +155,26 @@ func (r *ReadSet) waitChange(ctx context.Context, w WorldWaitSeqno, afterSeqno u
 		interest := r.waitInterest(touches, shared)
 
 		// Wait in the change feed for the first touching change since
-		// afterSeqno.
+		// afterSeqno, on this goroutine: a recorded read ends the
+		// subscription through its context instead of a second goroutine
+		// selecting on the signal, since every waiting view would pay for one.
 		watchCtx, cancel := context.WithCancel(ctx)
-		done := make(chan error, 1)
+		stop := context.AfterFunc(added, cancel)
 		var seqno uint64
-		go func() {
-			done <- WatchInterestedChanges(watchCtx, w, afterSeqno, interest, func(s uint64, _ *ChangeSet) error {
-				seqno = s
-				return errReadsTouched
-			})
-		}()
+		err := WatchInterestedChanges(watchCtx, w, afterSeqno, interest, func(s uint64, _ *ChangeSet) error {
+			seqno = s
+			return errReadsTouched
+		})
+		stop()
+		cancel()
 
 		// End at the touching change, or restart from afterSeqno after a new
 		// read so the feed tests the earlier changes against it too.
-		var err error
-		select {
-		case err = <-done:
-		case <-added:
-			cancel()
-			if err = <-done; errors.Is(err, context.Canceled) && ctx.Err() == nil {
-				continue
-			}
-		}
-		cancel()
 		if errors.Is(err, errReadsTouched) {
 			return seqno, nil
+		}
+		if added.Err() != nil && ctx.Err() == nil && errors.Is(err, context.Canceled) {
+			continue
 		}
 		return 0, err
 	}
@@ -356,16 +355,16 @@ func (r *ReadSet) signalLocked() {
 	r.memoChanges = nil
 	r.version++
 	if r.added != nil {
-		close(r.added)
-		r.added = nil
+		r.endAdded()
+		r.added, r.endAdded = nil, nil
 	}
 }
 
-// addedLocked returns the channel the next recorded read closes. The caller
+// addedLocked returns the context the next recorded read ends. The caller
 // holds mtx.
-func (r *ReadSet) addedLocked() <-chan struct{} {
+func (r *ReadSet) addedLocked() context.Context {
 	if r.added == nil {
-		r.added = make(chan struct{})
+		r.added, r.endAdded = context.WithCancel(context.Background())
 	}
 	return r.added
 }
