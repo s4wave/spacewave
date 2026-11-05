@@ -147,7 +147,7 @@ func TestFoldPinsRemovedMember(t *testing.T) {
 	// The owner signs the removal from the operations it holds.
 	next := state.GetConfig().CloneVT()
 	next.Participants = next.Participants[:1]
-	if err := pinRemovedAuthors(mockSharedObjectID, state, next, []string{removedID}); err != nil {
+	if err := pinRemovedAuthors(mockSharedObjectID, state, next, []string{removedID}, nil); err != nil {
 		t.Fatal(err)
 	}
 	removal, err := BuildSOConfigChange(mockSharedObjectID, state.GetConfig(), next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
@@ -180,6 +180,82 @@ func TestFoldPinsRemovedMember(t *testing.T) {
 		if got == nil || got.Reason != tc.reason {
 			t.Fatalf("operation outcome %+v; want reason %q", got, tc.reason)
 		}
+	}
+}
+
+// TestFoldCutsRemovedMember checks a removal that admits the removed member's
+// operations only through a chosen nonce: replay rejects every later one, even
+// one the members already held, while the other members' operations apply. A
+// cut above the member's latest operation is refused, and a zero cut admits
+// none of its operations.
+func TestFoldCutsRemovedMember(t *testing.T) {
+	// The writer writes three operations, the owner one, before the removal.
+	peers := createMockPeers(t, 2)
+	keys := mustPrivKeys(t, peers)
+	removedID := peers[1].GetPeerID().String()
+	ownerID := peers[0].GetPeerID().String()
+	for _, tc := range []struct {
+		name    string
+		through uint64
+		applied []string
+	}{
+		{"mid", 1, []string{"w1"}},
+		{"zero", 0, nil},
+		{"head", 3, []string{"w1", "w2", "w3"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			state, genesis := newTestSOState(t, peers)
+			writes := map[string]*SOOperation{}
+			for _, data := range []string{"w1", "w2", "w3"} {
+				writes[data] = writeTestOp(t, state, keys[1], data)
+			}
+			kept := writeTestOp(t, state, keys[0], "kept")
+
+			// A cut above the writer's latest operation is refused.
+			above := state.GetConfig().CloneVT()
+			above.Participants = above.Participants[:1]
+			if err := pinRemovedAuthors(mockSharedObjectID, state, above, []string{removedID}, map[string]uint64{removedID: 4}); err == nil {
+				t.Fatal("cut above the writer's head was accepted")
+			}
+
+			// The owner removes the writer through the chosen nonce.
+			next := state.GetConfig().CloneVT()
+			next.Participants = next.Participants[:1]
+			if err := pinRemovedAuthors(mockSharedObjectID, state, next, []string{removedID}, map[string]uint64{removedID: tc.through}); err != nil {
+				t.Fatal(err)
+			}
+			removal, err := BuildSOConfigChange(mockSharedObjectID, state.GetConfig(), next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The writer, still offline, writes again; that one never applies.
+			writes["late"] = writeTestOp(t, state, keys[1], "late")
+			state.Config, err = VerifyConfigChange(mockSharedObjectID, state.GetConfig(), removal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := pruneRemovedParticipants(mockSharedObjectID, state, map[string]struct{}{removedID: {}}, keys[0]); err != nil {
+				t.Fatal(err)
+			}
+
+			// Replay applies the writer's operations through the cut and the
+			// owner's operation, and rejects every other write of the writer.
+			res := foldTest(t, testHandle(t, state, keys[0], genesis))
+			if got := res.Outcome(ownerID, mustInner(t, kept).GetLocalId()); got == nil || got.Reason != "" {
+				t.Fatalf("owner operation outcome %+v; want applied", got)
+			}
+			for data, op := range writes {
+				want := ReasonRemoved
+				if slices.Contains(tc.applied, data) {
+					want = ""
+				}
+				got := res.Outcome(removedID, mustInner(t, op).GetLocalId())
+				if got == nil || got.Reason != want {
+					t.Fatalf("write %s outcome %+v; want reason %q", data, got, want)
+				}
+			}
+		})
 	}
 }
 

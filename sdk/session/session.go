@@ -79,6 +79,25 @@ func (s *Session) RemoveSpaceParticipants(ctx context.Context, sharedObjectID st
 	})
 }
 
+// CutSpaceParticipants removes the participant peers from the Space in one
+// configuration change, admitting each peer admitThrough names only through
+// the given nonce. With dryRun it reports the cuts without signing the
+// removal.
+func (s *Session) CutSpaceParticipants(
+	ctx context.Context,
+	sharedObjectID string,
+	peerIDs []string,
+	admitThrough map[string]uint64,
+	dryRun bool,
+) (*RemoveSpaceParticipantsResponse, error) {
+	return s.service.RemoveSpaceParticipants(ctx, &RemoveSpaceParticipantsRequest{
+		SpaceId:      sharedObjectID,
+		PeerIds:      peerIDs,
+		AdmitThrough: admitThrough,
+		DryRun:       dryRun,
+	})
+}
+
 // DeleteAccount deletes the provider account for a session index, removing its
 // sessions and deleting the volume backing store.
 func (s *Session) DeleteAccount(ctx context.Context, sessionIdx uint32) (*DeleteAccountResponse, error) {

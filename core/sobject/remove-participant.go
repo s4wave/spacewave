@@ -24,8 +24,40 @@ func RemoveSOParticipants(
 	signerPriv crypto.PrivKey,
 	revInfo *SORevocationInfo,
 ) ([]string, error) {
+	return RemoveSOParticipantsThrough(ctx, host, targetPeerIDs, nil, signerPriv, revInfo)
+}
+
+// RemoveSOParticipantsThrough removes participants as RemoveSOParticipants
+// does, admitting the operations of each peer that admitThrough names only up
+// to the nonce it gives instead of up to the peer's latest held operation.
+//
+// It exists to recover a shared object whose author signed operations whose
+// payloads no member holds any longer, such as a device whose storage was
+// lost: replay stops at the first such operation forever, and every later
+// operation waits behind it. Every member's replay rejects the cut operations
+// as ReasonRemoved before it reads their payloads, so the object moves on
+// without them.
+//
+// Invariants:
+//   - Only operations of the named peers above their admitThrough nonce stop
+//     applying; every other author's operations, and the named peers'
+//     operations at or below the nonce, replay as before.
+//   - A nonce above the peer's latest held operation is refused: the cut
+//     would admit operations the members have not seen.
+//   - A nonce below what the checkpoint covers is refused: the checkpoint's
+//     World already holds those operations, and no removal can take them out.
+//   - The pin names the exact operation at the nonce; an equivocated nonce is
+//     refused, since it does not name one operation.
+func RemoveSOParticipantsThrough(
+	ctx context.Context,
+	host *SOHost,
+	targetPeerIDs []string,
+	admitThrough map[string]uint64,
+	signerPriv crypto.PrivKey,
+	revInfo *SORevocationInfo,
+) ([]string, error) {
 	return retryConfigChange(ctx, host, func() ([]string, error) {
-		return removeSOParticipants(ctx, host, targetPeerIDs, signerPriv, revInfo)
+		return removeSOParticipants(ctx, host, targetPeerIDs, admitThrough, signerPriv, revInfo)
 	})
 }
 
@@ -35,6 +67,7 @@ func removeSOParticipants(
 	ctx context.Context,
 	host *SOHost,
 	targetPeerIDs []string,
+	admitThrough map[string]uint64,
 	signerPriv crypto.PrivKey,
 	revInfo *SORevocationInfo,
 ) ([]string, error) {
@@ -66,6 +99,15 @@ func removeSOParticipants(
 			removed = append(removed, participant.GetPeerId())
 		}
 	}
+	present := make(map[string]struct{}, len(removed))
+	for _, peerID := range removed {
+		present[peerID] = struct{}{}
+	}
+	for peerID := range admitThrough {
+		if _, ok := present[peerID]; !ok {
+			return nil, errors.Errorf("cannot cut %s: it is not a participant", peerID)
+		}
+	}
 	if len(removed) == 0 {
 		return nil, nil
 	}
@@ -81,7 +123,7 @@ func removeSOParticipants(
 		_, ok := targets[peerID]
 		return ok
 	})
-	if err := pinRemovedAuthors(host.GetSharedObjectID(), state, nextCfg, removed); err != nil {
+	if err := pinRemovedAuthors(host.GetSharedObjectID(), state, nextCfg, removed, admitThrough); err != nil {
 		return nil, err
 	}
 	err = ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, signerPriv, revInfo, func(state *SOState) error {
@@ -107,9 +149,10 @@ func RemoveSOParticipant(
 
 // pinRemovedAuthors records in next, the config that removes peers, the last
 // operation state holds from each removed peer that its checkpoint does not
-// cover. It drops pins the checkpoint now covers and pins of peers next
-// admits again, and keeps the list sorted by peer ID.
-func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObjectConfig, peers []string) error {
+// cover, or the operation at the nonce admitThrough gives for the peer. It
+// drops pins the checkpoint now covers and pins of peers next admits again,
+// and keeps the list sorted by peer ID.
+func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObjectConfig, peers []string, admitThrough map[string]uint64) error {
 	// Read the operations held above the checkpoint.
 	set, err := state.OperationSet(sharedObjectID)
 	if err != nil {
@@ -128,6 +171,17 @@ func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObject
 	// Pin each removed peer's latest held operation above the checkpoint.
 	for _, peerID := range peers {
 		nonce, head := set.AuthorHead(peerID)
+		if through, ok := admitThrough[peerID]; ok {
+			pin, err := cutPin(set, peerID, through, nonce)
+			if err != nil {
+				return err
+			}
+			delete(pins, peerID)
+			if pin != nil {
+				pins[peerID] = pin
+			}
+			continue
+		}
 		if nonce != 0 && !set.Covers(peerID, nonce) {
 			pins[peerID] = &SOOperationPosition{PeerId: peerID, Nonce: nonce, OpHash: head}
 		}
@@ -231,4 +285,80 @@ func rewrapRemovedGrants(sharedObjectID string, epoch *SOKeyEpoch, targets map[s
 		}
 	}
 	return nil
+}
+
+// cutPin returns the pin that admits peerID's operations through nonce
+// through, given head, the nonce of its latest held operation. It returns nil
+// when the checkpoint covers through, since then no operation above the
+// checkpoint is admitted.
+func cutPin(set *SOOperationSet, peerID string, through, head uint64) (*SOOperationPosition, error) {
+	// Refuse a cut above what the members hold or below the checkpoint.
+	if through > head {
+		return nil, errors.Errorf("admit-through nonce %d of %s is above its latest operation %d", through, peerID, head)
+	}
+	if set.Covers(peerID, through+1) {
+		return nil, errors.Errorf("the checkpoint covers operations of %s above nonce %d", peerID, through)
+	}
+	if through == 0 || set.Covers(peerID, through) {
+		return nil, nil
+	}
+
+	// Name the one operation at the nonce.
+	hash, err := set.AuthorAt(peerID, through)
+	if err != nil {
+		return nil, err
+	}
+	return &SOOperationPosition{PeerId: peerID, Nonce: through, OpHash: hash}, nil
+}
+
+// ParticipantCut describes the operations a removal through a nonce stops
+// applying for one peer.
+type ParticipantCut struct {
+	// PeerID is the removed author.
+	PeerID string
+	// AdmitThrough is the last nonce of the peer's operations that applies.
+	AdmitThrough uint64
+	// HeadNonce is the nonce of the peer's latest held operation.
+	HeadNonce uint64
+	// CheckpointNonce is the nonce through which the checkpoint covers the peer.
+	CheckpointNonce uint64
+	// CutOperations is the number of the peer's held operations above
+	// AdmitThrough.
+	CutOperations int
+}
+
+// PlanParticipantCuts checks each cut admitThrough names against state as
+// RemoveSOParticipantsThrough would and returns them in peer ID order,
+// without changing the config.
+func PlanParticipantCuts(sharedObjectID string, state *SOState, admitThrough map[string]uint64) ([]ParticipantCut, error) {
+	// Read the operations held above the checkpoint.
+	set, err := state.OperationSet(sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check and describe each cut of a current participant.
+	participants := make(map[string]struct{}, len(state.GetConfig().GetParticipants()))
+	for _, p := range state.GetConfig().GetParticipants() {
+		participants[p.GetPeerId()] = struct{}{}
+	}
+	cuts := make([]ParticipantCut, 0, len(admitThrough))
+	for _, peerID := range slices.Sorted(maps.Keys(admitThrough)) {
+		if _, ok := participants[peerID]; !ok {
+			return nil, errors.Errorf("cannot cut %s: it is not a participant", peerID)
+		}
+		through := admitThrough[peerID]
+		head, _ := set.AuthorHead(peerID)
+		if _, err := cutPin(set, peerID, through, head); err != nil {
+			return nil, err
+		}
+		cuts = append(cuts, ParticipantCut{
+			PeerID:          peerID,
+			AdmitThrough:    through,
+			HeadNonce:       head,
+			CheckpointNonce: set.CoveredNonce(peerID),
+			CutOperations:   set.CountAbove(peerID, through),
+		})
+	}
+	return cuts, nil
 }

@@ -885,6 +885,14 @@ message RemoveSpaceParticipantsRequest {
   string space_id = 1;
   // PeerIds are the participant peer IDs to remove in one configuration change.
   repeated string peer_ids = 2;
+  // AdmitThrough maps a peer ID to the last of its operations every member
+  // still applies; replay rejects the peer's later operations. A peer it does
+  // not name keeps every operation the Space holds. It recovers a Space whose
+  // removed author signed operations whose payloads no member holds.
+  map<string, uint64> admit_through = 3;
+  // DryRun reports the cut for each peer AdmitThrough names without signing
+  // the removal.
+  bool dry_run = 4;
 }
 
 // RemoveSpaceParticipantsResponse reports the participant grants that existed.
@@ -894,6 +902,24 @@ message RemoveSpaceParticipantsResponse {
   // AwaitingGroup is true when the viewer agreed to the removal under group
   // control, and it applies once the group decides it.
   bool awaiting_group = 2;
+  // Cuts reports each peer AdmitThrough named, in peer ID order.
+  repeated SpaceParticipantCut cuts = 3;
+}
+
+// SpaceParticipantCut describes the operations a removal through a nonce stops
+// applying for one peer.
+message SpaceParticipantCut {
+  // PeerId is the removed author.
+  string peer_id = 1;
+  // AdmitThrough is the last nonce of the peer's operations that applies.
+  uint64 admit_through = 2;
+  // HeadNonce is the nonce of the peer's latest operation the Space holds.
+  uint64 head_nonce = 3;
+  // CheckpointNonce is the nonce through which the checkpoint covers the peer.
+  uint64 checkpoint_nonce = 4;
+  // CutOperations is the number of the peer's held operations above
+  // AdmitThrough that stop applying.
+  uint32 cut_operations = 5;
 }
 
 // RevokeSpaceInviteRequest is the request for RevokeSpaceInvite.
