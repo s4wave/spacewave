@@ -92,6 +92,24 @@ func (m model) check(t *testing.T, db *DB) {
 	if n, err := tx.Size(ctx); err != nil || n != uint64(len(m)) {
 		t.Fatalf("size %d err %v, want %d", n, err, len(m))
 	}
+
+	// The table's tally matches a walk of its entries.
+	checkTally(t, db.cur.Load().m.table)
+}
+
+// checkTally recomputes the tally of table from its entries and compares.
+func checkTally(t *testing.T, table *chunkTable) {
+	// Walk the entries.
+	t.Helper()
+	var want chunkTable
+	for _, e := range table.all() {
+		want.tally(e, 1)
+	}
+
+	// Compare the counters.
+	if want.kinds != table.kinds || want.live != table.live || want.used != table.used {
+		t.Fatalf("tally kinds %v live %d used %d, walk gives %v live %d used %d", table.kinds, table.live, table.used, want.kinds, want.live, want.used)
+	}
 }
 
 // contents reads every key of db into a model.

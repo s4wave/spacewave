@@ -140,6 +140,7 @@ func (w *writer) create() error {
 	// Write the manifest of an empty file: its own chunk and the log chunk.
 	m := newManifest()
 	m.table.set(1, chunkEntry{kind: chunkManifest, owner: m.version})
+	m.mchunks = []uint64{1}
 	m.table.set(2, chunkEntry{kind: chunkLog})
 	m.table.set(3, chunkEntry{kind: chunkLog})
 	if err := backLog(s, 2, 2); err != nil {
@@ -321,9 +322,7 @@ func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueW
 		if *open == 0 || uint64(m.table.get(*open).used)+n > chunkSize {
 			*open = m.table.alloc(1, chunkValue, 0)
 		}
-		e := m.table.at(*open)
-		off = chunkStart(*open) + uint64(e.used)
-		e.used += uint32(n) // #nosec G115 -- n fits a chunk.
+		off = m.table.appendValue(*open, uint32(n)) // #nosec G115 -- n fits a chunk.
 	}
 
 	// Record the write and the reference past the header.

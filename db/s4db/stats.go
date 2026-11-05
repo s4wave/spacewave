@@ -50,7 +50,7 @@ type Stats struct {
 
 // Stats reports the file and this handle as of the published state.
 func (db *DB) Stats(ctx context.Context) (Stats, error) {
-	// Measure the file and walk the table.
+	// Measure the file.
 	st := db.cur.Load()
 	size, err := db.s.size()
 	if err != nil {
@@ -66,31 +66,23 @@ func (db *DB) Stats(ctx context.Context) (Stats, error) {
 		Flushes:           db.flush.flushes.Load(),
 		CollectBytes:      4*db.budget + runTarget*(1+levelRatio) + 4*chunkSize,
 	}
-	for c, e := range st.m.table.all() {
-		if c == 0 {
-			continue
-		}
-		switch e.kind {
-		case chunkFree:
-			s.Chunks.Free++
-			s.FreeBytes += chunkSize
-		case chunkLog:
-			s.Chunks.Log++
-		case chunkValue:
-			s.Chunks.Value++
-			s.LiveBytes += int64(e.live)
-			s.DeadBytes += int64(e.used) - int64(e.live)
-		case chunkRun:
-			s.Chunks.Run++
-		case chunkManifest:
-			s.Chunks.Manifest++
-		case chunkReserved:
-			s.Chunks.Reserved++
-		case chunkPending:
-			s.Chunks.Pending++
-			s.PendingBytes += chunkSize
-		}
+
+	// Count the chunks from the table's tally; the header chunk, chunk 0, is
+	// a log chunk the counts leave out.
+	t := st.m.table
+	s.Chunks = ChunkCounts{
+		Free:     t.count(chunkFree),
+		Log:      t.count(chunkLog) - 1,
+		Value:    t.count(chunkValue),
+		Run:      t.count(chunkRun),
+		Manifest: t.count(chunkManifest),
+		Reserved: t.count(chunkReserved),
+		Pending:  t.count(chunkPending),
 	}
+
+	// Size the chunks, then count the runs per level.
+	s.FreeBytes, s.PendingBytes = s.Chunks.Free*chunkSize, s.Chunks.Pending*chunkSize
+	s.LiveBytes, s.DeadBytes = t.live, t.used-t.live
 	for _, r := range st.m.runs {
 		for len(s.Runs) <= int(r.level) {
 			s.Runs = append(s.Runs, 0)
