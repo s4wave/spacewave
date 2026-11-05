@@ -209,6 +209,13 @@ type Config struct {
 	DisableLookup bool `protobuf:"varint,4,opt,name=disable_lookup,json=disableLookup,proto3" json:"disableLookup,omitempty"`
 	// Verbose logs every operation's outcome.
 	Verbose bool `protobuf:"varint,7,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	// ReaderPinDelay is how long a replaced World head a reader still holds
+	// waits before the engine pins it, as a duration string. It must stay
+	// below the Volume collector's grace. Empty uses the engine's default.
+	ReaderPinDelay string `protobuf:"bytes,8,opt,name=reader_pin_delay,json=readerPinDelay,proto3" json:"readerPinDelay,omitempty"`
+	// MaxPendingBytes bounds the World pages the adapter keeps in memory
+	// before it stores them. Zero uses the adapter's default.
+	MaxPendingBytes uint64 `protobuf:"varint,9,opt,name=max_pending_bytes,json=maxPendingBytes,proto3" json:"maxPendingBytes,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -250,6 +257,20 @@ func (x *Config) GetVerbose() bool {
 		return x.Verbose
 	}
 	return false
+}
+
+func (x *Config) GetReaderPinDelay() string {
+	if x != nil {
+		return x.ReaderPinDelay
+	}
+	return ""
+}
+
+func (x *Config) GetMaxPendingBytes() uint64 {
+	if x != nil {
+		return x.MaxPendingBytes
+	}
+	return 0
 }
 
 // InnerState is the World state a Space checkpoint carries and replay
@@ -1006,6 +1027,8 @@ func (m *Config) CloneVT() *Config {
 	r.EngineId = m.EngineId
 	r.DisableLookup = m.DisableLookup
 	r.Verbose = m.Verbose
+	r.ReaderPinDelay = m.ReaderPinDelay
+	r.MaxPendingBytes = m.MaxPendingBytes
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.InitWorldOp = protobuf_go_lite.CloneVTValue(m.InitWorldOp)
 	if len(m.unknownFields) > 0 {
@@ -1526,6 +1549,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Verbose != that.Verbose {
+		return false
+	}
+	if this.ReaderPinDelay != that.ReaderPinDelay {
+		return false
+	}
+	if this.MaxPendingBytes != that.MaxPendingBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2466,6 +2495,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("verbose")
 		s.WriteBool(x.Verbose)
 	}
+	if x.ReaderPinDelay != "" || s.HasField("readerPinDelay") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readerPinDelay")
+		s.WriteString(x.ReaderPinDelay)
+	}
+	if x.MaxPendingBytes != 0 || s.HasField("maxPendingBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("maxPendingBytes")
+		s.WriteUint64(x.MaxPendingBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2506,6 +2545,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
+		case "reader_pin_delay", "readerPinDelay":
+			s.AddField("reader_pin_delay")
+			x.ReaderPinDelay = s.ReadString()
+		case "max_pending_bytes", "maxPendingBytes":
+			s.AddField("max_pending_bytes")
+			x.MaxPendingBytes = s.ReadUint64()
 		}
 	})
 }
@@ -3937,6 +3982,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.MaxPendingBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxPendingBytes))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.ReaderPinDelay) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ReaderPinDelay)
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.Verbose {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Verbose)
 		i--
@@ -5057,6 +5112,8 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableLookup)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ReaderPinDelay)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxPendingBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5602,6 +5659,14 @@ func (x *Config) MarshalProtoText() string {
 	if x.Verbose != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "verbose")
 		protobuf_go_lite.TextWriteBool(&sb, x.Verbose)
+	}
+	if x.ReaderPinDelay != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reader_pin_delay")
+		protobuf_go_lite.TextWriteString(&sb, x.ReaderPinDelay)
+	}
+	if x.MaxPendingBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_pending_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.MaxPendingBytes)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6484,6 +6549,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Verbose = bool(v)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReaderPinDelay", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReaderPinDelay = v
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxPendingBytes", wireType)
+			}
+			m.MaxPendingBytes = 0
+			m.MaxPendingBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -79,6 +79,13 @@ message Config {
   bool disable_lookup = 4;
   // Verbose logs every operation's outcome.
   bool verbose = 7;
+  // ReaderPinDelay is how long a replaced World head a reader still holds
+  // waits before the engine pins it, as a duration string. It must stay
+  // below the Volume collector's grace. Empty uses the engine's default.
+  string reader_pin_delay = 8;
+  // MaxPendingBytes bounds the World pages the adapter keeps in memory
+  // before it stores them. Zero uses the adapter's default.
+  uint64 max_pending_bytes = 9;
 }
 
 // InnerState is the World state a Space checkpoint carries and replay
