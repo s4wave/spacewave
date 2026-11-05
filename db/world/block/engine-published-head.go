@@ -45,6 +45,8 @@ type publishedHead struct {
 	// pinTimer pins the root once the head stayed held past the pin delay
 	// after it was replaced, or is nil.
 	pinTimer *time.Timer
+	// gone runs once after the last holder released the head, or is nil.
+	gone func()
 }
 
 // newPublishedHead returns a head at root holding one reference for the
@@ -99,6 +101,9 @@ func (p *publishedHead) release() {
 		unpin()
 	}
 	p.root.Release()
+	if p.gone != nil {
+		p.gone()
+	}
 }
 
 // retire drops the Engine's reference to a replaced head. When readers still

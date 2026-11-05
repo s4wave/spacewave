@@ -13,11 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ReplayWorld replays the operation set of snap from its checkpoint's World as
-// the Space World engine engineID would, resolving operations with opTypes
-// first, then through the bus, and returns the World it reaches. It holds no
-// root and saves no cursor, and writes every page it computes to so's block
-// store, so a caller copies the World from there.
+// ReplayWorld replays the operation set of snap as the Space World engine
+// engineID, and returns the World after it. The pages it computes land in a
+// stage on so's block store, which holds them until release, so the caller
+// copies the World before it releases.
 func ReplayWorld(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -27,17 +26,18 @@ func ReplayWorld(
 	engineID string,
 	opTypes OpTypes,
 	snap sobject.SharedObjectStateSnapshot,
-) (*InnerState, error) {
-	a, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, 0)
+) (*InnerState, func(), error) {
+	a, release, err := replayOnce(ctx, le, b, sfs, so, engineID, opTypes, snap, 0)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	state, _ := a.replay.head()
-	return state, nil
+	return state, release, nil
 }
 
 // replayOnce replays snap on a transient adapter whose pages stay in memory
-// up to maxPending bytes and go to so's block store past it.
+// up to maxPending bytes and go to a stage on so's block store past it. The
+// stage holds them until release.
 func replayOnce(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -48,8 +48,14 @@ func replayOnce(
 	opTypes OpTypes,
 	snap sobject.SharedObjectStateSnapshot,
 	maxPending int,
-) (*Adapter, error) {
-	// Replay through a transient adapter.
+) (*Adapter, func(), error) {
+	// Hold what the replay writes under a stage.
+	staged, release, err := block.OpenStage(ctx, so.GetBlockStore())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Replay through a transient adapter over it.
 	a, err := NewAdapter(le, so, AdapterOptions{
 		Bus:             b,
 		StepFactorySet:  sfs,
@@ -57,22 +63,26 @@ func replayOnce(
 		OpTypes:         opTypes,
 		MaxPendingBytes: maxPending,
 		transient:       true,
+		pagesStore:      staged,
 	})
 	if err != nil {
-		return nil, err
+		release()
+		return nil, nil, err
 	}
 	defer a.replay.close()
 	if err := sobject.NewBodyDriver(le, so, a, nil).Step(ctx, snap); err != nil {
-		return nil, err
+		release()
+		return nil, nil, err
 	}
-	return a, nil
+	return a, release, nil
 }
 
 // CheckpointWorld replays the operation set of state as the Space World engine
 // engineID, and returns state advanced to the checkpoint over every held
 // operation, signed as the owner of privKey, whose World is the replayed one,
 // with the World. The returned state holds no operations, so a whole-state copy
-// such as a transfer carries only the blocks of that World.
+// such as a transfer carries only the blocks of that World. The World's pages
+// stay held until release.
 func CheckpointWorld(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -83,7 +93,7 @@ func CheckpointWorld(
 	opTypes OpTypes,
 	privKey crypto.PrivKey,
 	state *sobject.SOState,
-) (*sobject.SOState, *InnerState, error) {
+) (*sobject.SOState, *InnerState, func(), error) {
 	// Replay the state as its owner.
 	soID := so.GetSharedObjectID()
 	snap := sobject.NewSOStateParticipantHandle(le, sfs, soID, state, privKey, so.GetPeerID())
@@ -91,35 +101,42 @@ func CheckpointWorld(
 		soHost := host.GetSOHost()
 		snap = snap.WithConfigHistory(soHost.ReadConfigEntry).WithOperationVerifier(soHost.GetOperationVerifier()).WithGrantKeyring(soHost.GetGrantKeyring())
 	}
-	replayed, err := ReplayWorld(ctx, le, b, sfs, so, engineID, opTypes, snap)
+	replayed, release, err := ReplayWorld(ctx, le, b, sfs, so, engineID, opTypes, snap)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	held := false
+	defer func() {
+		if !held {
+			release()
+		}
+	}()
 
 	// Encrypt the World with the current key and sign the checkpoint.
 	data, err := replayed.MarshalVT()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	xfrm, err := snap.GetTransformer(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	dataEnc, err := xfrm.EncodeBlock(data)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	checkpoint, err := state.BuildNextCheckpoint(soID, privKey, dataEnc)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Adopt it, which drops every covered operation.
 	next := state.CloneVT()
 	if err := next.AdoptCheckpoint(soID, checkpoint); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return next, replayed, nil
+	held = true
+	return next, replayed, release, nil
 }
 
 // PublishedGraph returns one root reaching every block a replay of snap reads:

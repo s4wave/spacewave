@@ -163,8 +163,15 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		opts.MaxPendingBytes = defaultMaxPendingBytes
 	}
 
-	// Front the SharedObject's block store with the kept pages.
+	// Choose the store the kept pages land in: the SharedObject's block
+	// store, or the one the options give.
 	store := so.GetBlockStore()
+	var pagesStore block.StoreOps = store
+	if opts.pagesStore != nil {
+		pagesStore = opts.pagesStore
+	}
+
+	// Front it with the kept pages and the shared decoded block cache.
 	decoded := store.GetDecodedBlockCache()
 	if decoded == nil {
 		decoded = block.NewDecodedBlockCache()
@@ -175,7 +182,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		opts:      opts,
 		bucketID:  store.GetID(),
 		decoded:   decoded,
-		pages:     block.NewPendingStore(store, opts.MaxPendingBytes),
+		pages:     block.NewPendingStore(pagesStore, opts.MaxPendingBytes),
 		queue:     &opQueue{so: so},
 		missing:   make(map[string]struct{}),
 		unmatched: make(map[string]spacePosition),

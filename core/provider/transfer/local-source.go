@@ -49,7 +49,7 @@ func (s *LocalTransferSource) GetSharedObjectList(ctx context.Context) (*sobject
 }
 
 // ReplaySharedObject returns the World of a Space after its last operation.
-func (s *LocalTransferSource) ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, error) {
+func (s *LocalTransferSource) ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, func(), error) {
 	return replaySharedObject(ctx, le, s.b, s.account.GetStepFactorySet(), s.account, ref)
 }
 
