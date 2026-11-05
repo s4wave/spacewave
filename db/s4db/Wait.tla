@@ -67,7 +67,6 @@ StepEnd ==
 Next ==
   \/ \E w \in Writers : Want(w) \/ Take(w) \/ Release(w)
   \/ StepStart \/ StepEnd
-  \/ UNCHANGED vars
 
 \* The lock is fair among writers: csync.Mutex queues them in order, and a
 \* writer that is enabled again and again gets its turn (strong fairness).
