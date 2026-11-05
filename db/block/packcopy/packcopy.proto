@@ -1,0 +1,21 @@
+syntax = "proto3";
+package packcopy;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+
+// GraphRecord is one block a copy wrote: its ref, its size and its outgoing
+// refs, so a reader learns the store's graph without reading its packs.
+message GraphRecord {
+  // Ref is the block.
+  block.BlockRef ref = 1;
+  // Size is the block's size in bytes.
+  uint64 size = 2;
+  // Refs are the block's outgoing refs. Empty means a leaf.
+  repeated block.BlockRef refs = 3;
+}
+
+// GraphRecords is one object of the graph stream: the blocks of one pack.
+message GraphRecords {
+  // Records are the pack's blocks.
+  repeated GraphRecord records = 1;
+}
