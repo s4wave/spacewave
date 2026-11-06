@@ -236,33 +236,54 @@ func newStore(
 const openCountLimit = 10_000
 
 // countRest counts the upload queue from resume, the first entry NewStore did
-// not count, in a read snapshot, and adds the result to the status. The
-// status keeps applying the writes that commit meanwhile, so the total is
-// exact but for the writes in flight as the snapshot opens; the count feeds
-// only the status and the eviction budget, which a backlog this size keeps
-// over its bound either way.
+// not count, and adds each chunk's count to the status as it goes.
+//
+// Each chunk of openCountLimit entries reads in a snapshot of its own. One
+// snapshot over a backlog of millions would stay open for the whole scan, and
+// an open snapshot keeps a WAL store from checkpointing past it, so the log
+// would grow with every write until the scan ended. The count stops at the
+// queue key of its own start time: later writes sort after it, and the
+// status counts them as they commit. An entry cleared before its chunk reads
+// leaves the total low by one; the count feeds only the status and the
+// eviction budget, which a backlog this size keeps over its bound either way.
 func (s *Store) countRest(ctx context.Context, resume []byte) {
-	// Count the entries from resume on.
-	var pending int
-	var pendingBytes int64
-	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		pending, pendingBytes = 0, 0
-		return scanQueue(ctx, tx, resume, func(item queueItem) error {
-			pending++
-			pendingBytes += item.size()
-			return nil
+	end := queueFloor(queueTime(time.Now()))
+	for resume != nil {
+		// Count one chunk from resume.
+		var pending int
+		var pendingBytes int64
+		var next []byte
+		err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+			pending, pendingBytes, next = 0, 0, nil
+			err := scanQueue(ctx, tx, resume, func(item queueItem) error {
+				if bytes.Compare(item.key, end) >= 0 {
+					return errScanDone
+				}
+				if pending == openCountLimit {
+					next = bytes.Clone(item.key)
+					return errScanDone
+				}
+				pending++
+				pendingBytes += item.size()
+				return nil
+			})
+			if errors.Is(err, errScanDone) {
+				err = nil
+			}
+			return err
 		})
-	})
-	if err != nil {
-		return
-	}
+		if err != nil {
+			return
+		}
 
-	// Add them to the status.
-	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.status.Pending += pending
-		s.status.PendingBytes += pendingBytes
-		broadcast()
-	})
+		// Add the chunk to the status.
+		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			s.status.Pending += pending
+			s.status.PendingBytes += pendingBytes
+			broadcast()
+		})
+		resume = next
+	}
 }
 
 // SetPolicy sets when queued blocks upload and the resident budget, waking
