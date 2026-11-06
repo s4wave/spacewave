@@ -2,8 +2,10 @@ package world_block_test
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -53,6 +55,9 @@ func TestNestedWorldBucketBoundary(t *testing.T) {
 
 // TestNestedWorldPublication verifies that a typed outer object retains an
 // immutable, independently readable World snapshot through a block roundtrip.
+// errStopWatch ends a watch after the change it waited for.
+var errStopWatch = errors.New("stop after the first change")
+
 func TestNestedWorldPublication(t *testing.T) {
 	// Open a testbed World.
 	ctx := t.Context()
@@ -152,6 +157,74 @@ func TestNestedWorldPublication(t *testing.T) {
 			}
 			return nil
 		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Follow the published World through a nested engine, which cannot say
+	// what changed between two roots.
+	nested := world_block.NewNestedEngine(tb.Logger, tb.Engine, tb.Engine, nil, outerKey)
+	rev, err := nested.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	watchCtx, cancelWatch := context.WithCancel(ctx)
+	defer cancelWatch()
+	changed := make(chan uint64, 1)
+	watchErr := make(chan error, 1)
+	go func() {
+		watchErr <- world.WatchChanges(watchCtx, nested, rev, func(seqno uint64, changes *world.ChangeSet) error {
+			if changes.Unknown {
+				changed <- seqno
+			}
+			return errStopWatch
+		})
+	}()
+
+	// Republish a new nested World under the same key.
+	replacement, err := world_block.ImportSnapshot(ctx, engineStage(t, tb.Engine), maps.All(map[string]block.Block{
+		"inner": block_mock.NewExample("replaced content"),
+	}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = world.ExecTransaction(ctx, tb.Engine, true, func(ctx context.Context, state world.WorldState) error {
+		_, _, err := world.AccessWorldObject(ctx, state, outerKey, true, func(cursor *block.Cursor) error {
+			republished, err := world_block.NewNestedWorld(tb.EngineBucketID, replacement, receiptRef)
+			if err != nil {
+				return err
+			}
+			cursor.SetBlock(republished, true)
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The watch reports the new revision as an unknown change, and a read
+	// opened after it sees the replacement.
+	select {
+	case seqno := <-changed:
+		if seqno <= rev {
+			t.Fatalf("nested change at seqno %d, want after %d", seqno, rev)
+		}
+	case err := <-watchErr:
+		t.Fatalf("nested watch ended before a change: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("nested engine reported no change after the republish")
+	}
+	err = world.ExecTransaction(ctx, nested, false, func(ctx context.Context, state world.WorldState) error {
+		body, err := world.LookupObjectBody[block_mock.Example](ctx, state, "inner")
+		if err != nil {
+			return err
+		}
+		if body.GetMsg() != "replaced content" {
+			t.Fatalf("nested inner body = %q, want the replacement", body.GetMsg())
+		}
+		return nil
 	})
 	if err != nil {
 		t.Fatal(err)

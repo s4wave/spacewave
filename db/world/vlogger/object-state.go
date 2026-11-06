@@ -41,7 +41,7 @@ func (o *ObjectState) GetModSeqno(ctx context.Context) (seqno uint64, err error)
 	defer func() {
 		o.le().Debugf("GetModSeqno() => seqno(%v) err(%v)", seqno, err)
 	}()
-	return world.GetObjectModSeqno(ctx, o.ObjectState)
+	return o.ObjectState.GetModSeqno(ctx)
 }
 
 // GetRootRef returns the root reference.

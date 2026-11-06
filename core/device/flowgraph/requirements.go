@@ -410,12 +410,16 @@ func (r *Reconciler) readRequirementCopies(ctx context.Context, ws world.WorldSt
 		}
 
 		// The unchanged standing grant retains the World order of its claim.
-		obj, _, err := ws.GetObject(ctx, key)
+		obj, found, err := ws.GetObject(ctx, key)
 		if err != nil {
 			world.ReleaseObjectState(obj)
 			return nil, err
 		}
-		held.seqno, err = world.GetObjectModSeqno(ctx, obj)
+		if !found {
+			copies = append(copies, held)
+			continue
+		}
+		held.seqno, err = obj.GetModSeqno(ctx)
 		world.ReleaseObjectState(obj)
 		if err != nil {
 			return nil, err

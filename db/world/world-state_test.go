@@ -650,6 +650,10 @@ func (e *staleRetryEngine) WaitSeqno(ctx context.Context, value uint64) (uint64,
 	return value, nil
 }
 
+func (e *staleRetryEngine) WatchChanges(ctx context.Context, afterSeqno uint64, _ world.ChangeFilter, cb func(uint64, *world.ChangeSet) error) error {
+	return world.WatchSeqnoChanges(ctx, e, afterSeqno, cb)
+}
+
 func (e *staleRetryEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
 	return world.WaitObjectRevBySeqno(ctx, e, key, rev, ignoreNotFound)
 }
@@ -785,6 +789,10 @@ func (txs *staleRetryTx) Discard() {}
 type staleRetryObject struct {
 	key     string
 	rootRef *bucket.ObjectRef
+}
+
+func (obj *staleRetryObject) GetModSeqno(context.Context) (uint64, error) {
+	return 0, nil
 }
 
 func (obj *staleRetryObject) GetKey() string {

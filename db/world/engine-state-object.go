@@ -53,7 +53,7 @@ func (e *engineWorldStateObject) GetModSeqno(ctx context.Context) (uint64, error
 		if err != nil {
 			return err
 		}
-		seqno, err = GetObjectModSeqno(ctx, obj)
+		seqno, err = obj.GetModSeqno(ctx)
 		return err
 	})
 	return seqno, err

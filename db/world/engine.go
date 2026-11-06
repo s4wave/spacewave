@@ -46,6 +46,10 @@ type Engine interface {
 	// WorldWaitSeqno allows waiting for the world seqno to change.
 	WorldWaitSeqno
 
+	// ChangeWatcher reports what each commit changed, so a watcher wakes only
+	// for the changes it reads. A wrapper forwards it to the engine it wraps.
+	ChangeWatcher
+
 	// WaitObjectRev waits until the object at key reaches rev and returns its
 	// revision. Returns ErrObjectNotFound if the object does not exist, unless
 	// ignoreNotFound is set, in which case it waits for the object to appear.

@@ -134,6 +134,13 @@ func (e *NestedEngine) WaitObjectRev(ctx context.Context, key string, rev uint64
 	return world.WaitObjectRevBySeqno(ctx, e, key, rev, ignoreNotFound)
 }
 
+// WatchChanges reports each outer object revision after afterSeqno as an
+// unknown change: the nested World keeps no record of what changed between
+// two of its roots, so every watcher relists.
+func (e *NestedEngine) WatchChanges(ctx context.Context, afterSeqno uint64, _ world.ChangeFilter, cb func(uint64, *world.ChangeSet) error) error {
+	return world.WatchSeqnoChanges(ctx, e, afterSeqno, cb)
+}
+
 // head reads the outer object's revision and nested World root from one outer
 // read transaction.
 func (e *NestedEngine) head(ctx context.Context) (uint64, *bucket.ObjectRef, error) {

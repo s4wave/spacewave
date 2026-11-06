@@ -1304,6 +1304,11 @@ func (e *releaseWorldTestEngine) NewTransaction(context.Context, bool) (world.Tx
 	return &releaseWorldTestTx{WorldState: e.WorldState}, nil
 }
 
+// WatchChanges forwards the fixture World's change feed.
+func (e *releaseWorldTestEngine) WatchChanges(ctx context.Context, afterSeqno uint64, touches world.ChangeFilter, cb func(uint64, *world.ChangeSet) error) error {
+	return world.WatchTouchingChanges(ctx, e.WorldState, afterSeqno, touches, cb)
+}
+
 // WaitObjectRev rereads the fixture after each revision.
 func (e *releaseWorldTestEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
 	return world.WaitObjectRevBySeqno(ctx, e, key, rev, ignoreNotFound)

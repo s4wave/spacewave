@@ -57,7 +57,7 @@ func (r *ObjectStateResource) GetRootRef(ctx context.Context, req *s4wave_world.
 // GetModSeqno returns the World seqno after the last commit that changed the
 // object, or zero when its World cannot report it.
 func (r *ObjectStateResource) GetModSeqno(ctx context.Context, _ *s4wave_world.GetModSeqnoRequest) (*s4wave_world.GetModSeqnoResponse, error) {
-	seqno, err := world.GetObjectModSeqno(ctx, r.obj)
+	seqno, err := r.obj.GetModSeqno(ctx)
 	if err != nil {
 		return nil, err
 	}

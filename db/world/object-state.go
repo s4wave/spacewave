@@ -54,25 +54,18 @@ type ObjectState interface {
 	// If ignoreNotFound is set, waits for the object to exist.
 	// Returns the new rev.
 	WaitRev(ctx context.Context, rev uint64, ignoreNotFound bool) (uint64, error)
+
+	// ObjectModSeqnoReader orders the object's changes with the rest of the
+	// World. A wrapper forwards it to the state it wraps.
+	ObjectModSeqnoReader
 }
 
-// ObjectModSeqnoReader is an ObjectState that reports the World seqno after
-// the last commit that changed its object. Rev counts the object's own
-// changes; ModSeqno orders them with every other change in the World, so a
-// reader can watch for changes after it. Wrappers forward it when the state
-// they wrap implements it.
+// ObjectModSeqnoReader reports the World seqno after the last commit that
+// changed an object. Rev counts the object's own changes; ModSeqno orders them
+// with every other change in the World, so a reader can watch for changes
+// after it.
 type ObjectModSeqnoReader interface {
 	// GetModSeqno returns the World seqno after the last commit that changed
 	// the object.
 	GetModSeqno(ctx context.Context) (uint64, error)
-}
-
-// GetObjectModSeqno returns the ModSeqno obj reports, or zero when obj does not
-// implement ObjectModSeqnoReader.
-func GetObjectModSeqno(ctx context.Context, obj ObjectState) (uint64, error) {
-	reader, ok := obj.(ObjectModSeqnoReader)
-	if !ok {
-		return 0, nil
-	}
-	return reader.GetModSeqno(ctx)
 }

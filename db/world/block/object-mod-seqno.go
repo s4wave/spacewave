@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // ModSeqnoEnv names the environment variable that turns ModSeqno stamping off
@@ -108,6 +107,3 @@ func (o *ObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
 	}
 	return root.GetModSeqno(), nil
 }
-
-// _ is a type assertion.
-var _ world.ObjectModSeqnoReader = (*ObjectState)(nil)

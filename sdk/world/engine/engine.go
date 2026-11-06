@@ -207,6 +207,5 @@ func (e *SDKEngine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef,
 
 // _ are type assertions.
 var (
-	_ world.Engine        = (*SDKEngine)(nil)
-	_ world.ChangeWatcher = (*SDKEngine)(nil)
+	_ world.Engine = (*SDKEngine)(nil)
 )

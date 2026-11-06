@@ -48,7 +48,7 @@ func (t *EngineTxObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
 	err := t.t.performOp(ctx, func(tx *Tx) error {
 		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
 			var err error
-			seqno, err = world.GetObjectModSeqno(ctx, obj)
+			seqno, err = obj.GetModSeqno(ctx)
 			return err
 		})
 	})

@@ -168,6 +168,5 @@ func (os *SDKObjectState) WaitRev(ctx context.Context, rev uint64, ignoreNotFoun
 
 // _ is a type assertion.
 var (
-	_ world.ObjectState          = (*SDKObjectState)(nil)
-	_ world.ObjectModSeqnoReader = (*SDKObjectState)(nil)
+	_ world.ObjectState = (*SDKObjectState)(nil)
 )

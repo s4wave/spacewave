@@ -218,7 +218,7 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 			t.Fatal(err)
 		}
 		defer world.ReleaseObjectState(obj)
-		mod, err := world.GetObjectModSeqno(ctx, obj)
+		mod, err := obj.GetModSeqno(ctx)
 		if err != nil || mod != s1 {
 			t.Fatalf("b mod seqno %d err %v, want %d", mod, err, s1)
 		}
