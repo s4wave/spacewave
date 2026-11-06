@@ -154,11 +154,55 @@ func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 	}
 
 	// Write the batch, then mark its blocks in this transaction.
-	existed, err := r.StoreOps.PutBlockBatch(ctx, entries)
+	existed, err := r.putStored(ctx, entries)
 	if err != nil {
 		return nil, err
 	}
 	return existed, r.marks.mark(ctx, marks)
+}
+
+// putStored writes the entries whose bytes the Volume stores and reports, for
+// each entry, whether its bytes were stored before. An external entry writes
+// nothing: its bytes stay in the caller's store, and it reports whether the
+// Volume held them anyway.
+func (r *txBlocks) putStored(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Split the external entries from the ones the store writes.
+	var stored []*block.PutBatchEntry
+	var external []*block.BlockRef
+	for _, entry := range entries {
+		if entry != nil && entry.External && !entry.Tombstone {
+			external = append(external, entry.Ref)
+			continue
+		}
+		stored = append(stored, entry)
+	}
+	if len(external) == 0 {
+		return r.StoreOps.PutBlockBatch(ctx, entries)
+	}
+
+	// Write the stored entries and read the external ones' presence.
+	storedExisted, err := r.StoreOps.PutBlockBatch(ctx, stored)
+	if err != nil {
+		return nil, err
+	}
+	externalExisted, err := r.GetBlockExistsBatch(ctx, external)
+	if err != nil {
+		return nil, err
+	}
+
+	// Report the results in the entries' order.
+	existed := make([]bool, len(entries))
+	var si, ei int
+	for i, entry := range entries {
+		if entry != nil && entry.External && !entry.Tombstone {
+			existed[i] = externalExisted[ei]
+			ei++
+			continue
+		}
+		existed[i] = storedExisted[si]
+		si++
+	}
+	return existed, nil
 }
 
 // record appends ref to the removed blocks.

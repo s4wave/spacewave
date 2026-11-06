@@ -245,6 +245,42 @@ func TestLivenessRunThrough(t *testing.T) {
 	}
 	requireStored(t, v, tr, false, names...)
 
+	// A tree whose bytes the caller keeps lands as external entries: the
+	// Volume holds its child lists and roots but not its bytes, as it holds
+	// evicted blocks, and the collector keeps what the root reaches.
+	tr.add(t, "X1")
+	x0 := tr.add(t, "X0", "X1")
+	external := tr.entries("X1", "X0")
+	for i, entry := range external {
+		copied := *entry
+		copied.External = true
+		external[i] = &copied
+	}
+	if err := v.SetBucketRoots(ctx, "b", external, []block.NamedRoot{{Name: "ext", Ref: x0}}); err != nil {
+		t.Fatal(err)
+	}
+	requireStored(t, v, tr, false, "X0", "X1")
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	if res := collectAll(t, v); res.Freed != 0 {
+		t.Fatalf("freed %d of a rooted external tree", res.Freed)
+	}
+	requireAudit(t, v, 1)
+
+	// A later put of the bytes stores them, and releasing the root frees the
+	// tree after the grace period.
+	if err := putBatch(ctx, v, tr.entries("X1", "X0")); err != nil {
+		t.Fatal(err)
+	}
+	requireStored(t, v, tr, true, "X0", "X1")
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "ext", Previous: x0}}); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	if res := collectAll(t, v); res.Freed != 2 {
+		t.Fatalf("freed %d of the released external tree, want 2", res.Freed)
+	}
+	requireStored(t, v, tr, false, "X0", "X1")
+
 	// Each entry point costs the same over 1x and 10x stored blocks: its
 	// transactions, reads, steps and writes do not grow with the Volume, as
 	// the Phase 1 path walk says.
