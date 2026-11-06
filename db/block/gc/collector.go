@@ -13,92 +13,104 @@ import (
 
 // Collector frees the blocks of a Volume that no held named root reaches. It
 // nets the journal Land appends after the fact, cascades through child lists
-// and frees through the free queue. Journal.tla models it: Collect's lease
-// sweep is Sweep, netSlice is Net(k), netFillSlice is NetFill, freeBlock is
+// as blocks cross zero holders, and frees the Dead blocks once they ripen.
+// Journal.tla models it: Collect's lease sweep is Sweep, netSlice is Net(k)
+// with the Cascade and Release steps its resolve runs, netFillSlice is
+// NetFill, the fill ups startNetting applies are ApplyFill, freeBlock is
 // Delete(b), and a block without a child list is the model's hole.
 //
 // Between two transactions a pass checks only that ctx is live. The store
 // admits a writer that waited before the pass's next transaction, as
 // kvtx.WriterQueueStore requires of a background write, so nothing sleeps.
 // Each transaction aims to hold the writer for sliceTarget: the pace sizes
-// its budgets from the time the ones before it took, and the free and
-// release loops stop at the next block once a writer waits.
+// its budgets from the time the ones before it took, and the free loop and
+// a paged cascade stop at the next block or page once a writer waits.
+//
+// A stored block is in one of four states. Live has holders, and its
+// children count it. Dying has none, and its children still count it: a
+// cascade record (down) is due. Dead has none, and its children do not count
+// it: it sits on the free queue at its ripe sequence. Holding has holders,
+// and its children do not count it: a cascade record (up) is due. Netting
+// runs a due cascade in the slice that makes it due unless the slice's
+// budget is spent, as netting describes.
 //
 // Invariants. The collector keeps every one of these, and keeps a block
 // whenever it is unsure:
 //
-//  1. It frees only a block whose netted holders are zero: it sits on the
-//     free queue and its count record is zero, both read in the transaction
-//     that frees it.
-//  2. It frees nothing while Frees is off or the Volume is not adopted. Off,
+//  1. A block with no holders holds nothing: the slice that brings a block
+//     to zero takes its holder from each child, and the slice that gives a
+//     Dead block a holder gives it back, so a born parent's up and a dead
+//     parent's down on a shared child cancel before either is read.
+//  2. It frees only a Dead block: on the free queue, with a child list and a
+//     zero record at the queue entry's ripe sequence, all read in the
+//     transaction that frees it. The free changes no count.
+//  3. It frees nothing while Frees is off or the Volume is not adopted. Off,
 //     it still releases lapsed leases and nets the journal, so the journal
 //     stays bounded and the counts stay current for the day Frees turns on.
-//  3. It nets only journal records at least Grace old, so a reader that saw a
+//  4. It nets only journal records at least Grace old, so a reader that saw a
 //     head and has not pinned it yet still finds its blocks. Grace is measured
 //     on the wall clock that stamps each record: a clock that steps forward
 //     ages the records stamped before the step early by the step, and a record
 //     stamped after the collector's clock, by a clock that has since stepped
 //     back, is restamped with the collector's clock when it reads it.
-//  4. It frees no queued block that an up pair in the journal past its cursor
-//     names: a later transaction added a holder to it, which the interval it
-//     netted did not include, such as a root moved away and back within the
-//     grace period. It indexes each record's up pairs by block once, in
-//     bounded slices from the state's Indexed, and deletes the entries as it
-//     nets the record, after all of its pairs. Each free transaction first
-//     indexes the records appended since its last look, and frees nothing
-//     until it reaches the journal's end, so nothing lands unseen between the
-//     check and the free, and the check reads one index entry per queued
-//     block rather than the journal. An entry of a record before the cursor
-//     is stale, left by a build before the index, and the check deletes it.
-//  5. A cascade decrements each child a freed block's own child list names
-//     exactly once, across transactions for a list longer than a slice
-//     releases, as continueRelease describes, and queues only a stored
-//     child, one with a child list. A child without
-//     one is a hole or not yet stored: its count drops, since the parent's
-//     Land counted it, but it is never freed, and its own children, unknown
-//     here, are untouched. The audit, not the collector, finds what a hole
-//     leaked. A block a cache fill gave birth to frees like any other: its
-//     fill record held its children.
-//  6. A count change that would go below zero is refused, and the block it
-//     names is kept with one holder: a holder vanished that the journal never
-//     added, so the counts cannot be trusted for it.
-//  7. Grace is a contract on write sessions. A block a batch gives no holder
+//  5. Ripeness. A block that reaches zero, or stays there after gaining a
+//     holder or being put again, takes the journal's end as its ripe
+//     sequence, and is freed only once the cursor passes it. Netting reached
+//     its last release only after that release aged Grace, and a writer that
+//     read the block lands within Grace of the release (invariant 8), so
+//     every holder within the contract is in a record before the ripe
+//     sequence, and nets before the free.
+//  6. The hold mark. A Land that holds a stored block the collector may have
+//     at zero, because a cascade is due or in progress or the block's own
+//     record is a zero record, sets the hold mark past its record, and
+//     nothing frees until the cursor passes it. The block's children lost
+//     its holder when it reached zero and get it back only through the
+//     re-hold that runs once the record nets, which may come after a child's
+//     own ripe sequence.
+//  7. It frees nothing while a cascade is due or in progress, so a child is
+//     never freed while a revived parent's re-hold is still due, and nothing
+//     while a fill's up pairs are unapplied: netting applies them in the
+//     first slice that finds them, whatever their age, so a fill holds its
+//     children before any free runs. A fill's down pair, for its own block's
+//     implied holder, nets once the record is Grace old.
+//  8. Grace is a contract on write sessions. A block a batch gives no holder
 //     takes back its implied holder in its record, and a put of a block
-//     already stored journals an up and a down pair, so a session that puts
-//     one tree across several batches keeps every block only while its last
-//     Land, the one that holds the tree under a root or a parent, follows
-//     its first batch within the grace period. A writer whose session can
-//     outlast the grace period writes under a stage, whose leased roots hold
-//     each block from its put. A writer that builds on a root it read holds
-//     that root for the life of its write under a leased pin, or the World
-//     engine's pending root does for it. Land does not check that a child a
-//     put names is stored, so a writer past these rules names a hole.
-//  8. It nets each fill record whole, in one transaction, once it is Grace
-//     old, before or after the journal records that name the same blocks.
-//     The holders a block reaches do not depend on that order, only the
-//     moments it passes zero do: a fill record's down netted before the up
-//     of a root that holds the filled block, or a journal down netted before
-//     the up a fill gave a child, queues a block another record holds. The
-//     tail check of invariant 4 covers both: in each free transaction it
-//     also reads the fill records not netted yet that hold the block, by
-//     their hold index, so a fill that landed after the block was queued
-//     keeps it. A fill that lands after the free names a block no stored
-//     block reached when it was freed; a read fills it again. A fill record
-//     stamped after the collector's clock is restamped with it, as a
-//     journal record is. While the Volume is unadopted the collector deletes
-//     the fill records, which the adoption's count of every child list
-//     replaces; a fill that lands while the Volume adopts has its block
-//     treated as born, so the adoption neither counts its children nor
+//     already stored names it in the record's again list, so a session that
+//     puts one tree across several batches keeps every block only while its
+//     last Land, the one that holds the tree under a root or a parent,
+//     follows its first batch within the grace period. A writer whose
+//     session can outlast the grace period writes under a stage, whose
+//     leased roots hold each block from its put. A writer that builds on a
+//     root it read holds that root for the life of its write under a leased
+//     pin, or the World engine's pending root does for it. Land does not
+//     check that a child a put names is stored, so a writer past these rules
+//     names a hole.
+//  9. A count change that would leave a block below zero is refused, and the
+//     block is kept with one holder: a holder vanished that the journal never
+//     added, so the counts cannot be trusted for it. A Dead block so kept is
+//     Holding, and its re-hold gives its children their holder back.
+//  10. A cascade reaches only a stored child, one with a child list. A child
+//     without one is a hole or not yet stored: its count moves, since the
+//     parent's Land counted it, but never below its implied holder, and its
+//     own children, unknown here, are untouched. The audit, not the
+//     collector, finds what a hole leaked. While the Volume is unadopted the
+//     collector deletes the fill records, which the adoption's count of every
+//     child list replaces; a fill that lands while the Volume adopts has its
+//     block treated as born, so the adoption neither counts its children nor
 //     settles it, and its record supplies both.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
 	// opts are the collector's options.
 	opts CollectorOptions
-	// mtx runs one pass at a time, and guards pace.
+	// mtx runs one pass at a time, and guards pace and cascadeFrom.
 	mtx sync.Mutex
 	// pace sizes each slice from the time the slices before it spent.
 	pace pace
+	// cascadeFrom is the block key after the last cascade record a netting
+	// slice loaded, where the next one starts. It orders the
+	// loads only, so a stale one costs nothing but order.
+	cascadeFrom []byte
 }
 
 // pace scales a slice's budgets by how long the slices before it took: one
@@ -314,37 +326,101 @@ func (c *Collector) net(ctx context.Context, res *CollectResult, deadline time.T
 	}
 }
 
-// netSlice nets up to slicePairs pairs of at most sliceRecords journal
-// records from the cursor, all of them at least Grace old, in one
-// transaction: it sums each block's up and down pairs, writes the count
-// records that changed, queues the stored blocks whose holders reach zero,
-// takes off the queue those that gained a holder, and deletes the records it
-// netted whole with the index entries of their up pairs. A record with more
-// pairs and entries than the slice has left is netted in part: the state's
-// net offset counts the work done, its up pairs, then its down pairs, then
-// the deletes of the entries the collector indexed, and the record stays at
-// the cursor. It reports whether it filled the slice, so more aged records
-// may remain.
+// startNetting runs the steps every netting slice takes before its own
+// records, in one transaction: it continues the paged cascade in progress,
+// loads the cascade records due, and applies the fill records' up pairs not
+// applied yet. It returns the slice and the journal budget the fill ups left,
+// and whether the slice may go on to its records: only once the cascade in
+// progress finished and every cascade record and fill up fit. A slice that
+// may not resolves what it moved and reports itself full.
+func (c *Collector) startNetting(ctx context.Context, rec *Records, state *LivenessState, res *CollectResult) (*netting, int, bool, error) {
+	// Continue the paged cascade in progress, moving one page's children
+	// while a writer waits.
+	moves := c.share(sliceReleases)
+	if c.waiting() {
+		moves = min(moves, releasePageChildren)
+	}
+	n, err := c.newNetting(rec, state, res, moves)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if err := n.continueRelease(ctx); err != nil || state.GetRelease() != nil {
+		n.full = true
+		return n, 0, false, err
+	}
+
+	// Load the cascade records due.
+	more, err := n.loadCascades(ctx, c.share(sliceRecords))
+	if err != nil || more {
+		n.full = true
+		return n, 0, false, err
+	}
+
+	// Apply the fill ups not applied yet.
+	budget := c.share(slicePairs)
+	used, more, err := n.applyFillUps(ctx, budget)
+	if err != nil || more {
+		n.full = true
+		return n, 0, false, err
+	}
+	return n, max(budget-used, 0), true, nil
+}
+
+// finishNetting resolves the slice, and writes what changed and the state
+// when it changed.
+func finishNetting(ctx context.Context, n *netting) error {
+	// Resolve and write the nodes.
+	if err := n.resolve(ctx); err != nil {
+		return err
+	}
+	if err := n.write(ctx); err != nil {
+		return err
+	}
+	state, err := n.state.MarshalVT()
+	if err != nil || bytes.Equal(state, n.start) {
+		return err
+	}
+	return n.rec.SetState(ctx, n.state)
+}
+
+// netSlice nets up to sliceRecords journal records from the cursor, all of
+// them at least Grace old, and up to slicePairs of their entries, in one
+// transaction, after the steps startNetting takes: it sums each block's up
+// and down pairs, notes the blocks the again lists name, resolves the sums
+// with the cascades they start, and deletes the records it netted whole. A
+// record with more entries than the slice has left is netted in part: the
+// state's net offset counts the entries done, its up pairs, then its down
+// pairs, then its again list, and the record stays at the cursor. It reports
+// whether it filled the slice, so more work may remain.
 func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, error) {
 	var full bool
 	err := c.update(ctx, func(rec *Records, _ block.StoreOps) error {
 		// Net only an adopted Volume.
+		full = false
 		state, err := rec.GetState(ctx)
 		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			return err
 		}
 
-		// Set the horizon of an aged record and the slice's pair budget.
+		// Take the steps before the journal.
+		n, budget, ok, err := c.startNetting(ctx, rec, state, res)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			full = true
+			return finishNetting(ctx, n)
+		}
+
+		// Bound the slice by the grace period and the record budget.
 		now := c.opts.Now().UnixMilli()
 		horizon := now - c.opts.Grace.Milliseconds()
-		budget, records, offset := c.share(slicePairs), c.share(sliceRecords), state.GetNetOffset()
+		records, offset := c.share(sliceRecords), state.GetNetOffset()
 
-		// Sum the deltas of the aged records from the cursor.
-		deltas := make(map[string]int)
+		// Sum the entries of the aged records from the cursor.
 		var netted []uint64
 		partial := false
 		future := make(map[uint64]*JournalRecord)
-		var unindex [][]byte
 		err = rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
 			// Note the records stamped in the future to restamp, netting
 			// nothing past the first.
@@ -359,20 +435,23 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 				return false, nil
 			}
 
-			// Add its pairs after the offset to the deltas, then delete the
-			// index entries of its up pairs, up to the budget.
-			ups, downs := r.GetUp(), r.GetDown()
+			// Add its entries after the offset, up to the budget.
+			ups, downs, again := r.GetUp(), r.GetDown(), r.GetAgain()
 			pairs := uint64(len(ups) + len(downs))
-			total := pairs + indexedUps(state, seq, r)
+			total := pairs + uint64(len(again))
 			end := min(total, offset+uint64(budget)) //nolint:gosec // the budget is small.
 			for i := offset; i < end; i++ {
+				var err error
 				switch {
 				case i < uint64(len(ups)):
-					deltas[string(ups[i])]++
+					err = n.add(ups[i], 1)
 				case i < pairs:
-					deltas[string(downs[i-uint64(len(ups))])]--
+					err = n.add(downs[i-uint64(len(ups))], -1)
 				default:
-					unindex = append(unindex, rec.journalUpKey(ups[i-pairs], seq))
+					err = n.visit(again[i-pairs], true)
+				}
+				if err != nil {
+					return false, err
 				}
 			}
 			budget -= int(end - offset) //nolint:gosec // at most the budget.
@@ -389,29 +468,12 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 		if err != nil {
 			return err
 		}
-		if err := clampFuture(ctx, rec, future, now); err != nil || (len(netted) == 0 && !partial) {
+		if err := clampFuture(ctx, rec, future, now); err != nil {
 			return err
 		}
 
-		// Apply each block's delta, in key order.
-		for _, key := range slices.Sorted(maps.Keys(deltas)) {
-			if deltas[key] == 0 {
-				continue
-			}
-			if err := c.applyDelta(ctx, rec, []byte(key), deltas[key], res); err != nil {
-				return err
-			}
-		}
-
-		// Delete the index entries of the records' up pairs, which every
-		// pair of their record has netted before, and the records netted
-		// whole; move the cursor past them, and keep the offset into the one
-		// netted in part.
-		for _, key := range unindex {
-			if err := rec.tx.Delete(ctx, key); err != nil {
-				return err
-			}
-		}
+		// Delete the records netted whole, move the cursor past them, and
+		// keep the offset into the one netted in part.
 		for _, seq := range netted {
 			if err := rec.DeleteJournal(ctx, seq); err != nil {
 				return err
@@ -422,8 +484,11 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 		}
 		state.NetOffset = offset
 		res.Netted += uint64(len(netted))
-		full = partial || len(netted) == records || budget == 0
-		return rec.SetState(ctx, state)
+		if err := finishNetting(ctx, n); err != nil {
+			return err
+		}
+		full = n.full || partial || len(netted) == records || budget == 0
+		return nil
 	})
 	return full, err
 }
@@ -446,18 +511,29 @@ func (c *Collector) netFills(ctx context.Context, res *CollectResult, deadline t
 	}
 }
 
-// netFillSlice nets up to sliceRecords fill records at least Grace old, and
-// up to slicePairs pairs, in one transaction, each record whole: it sums
-// their pairs, applies each block's delta as netSlice does, and deletes the
-// records with their hold index entries. It takes a first record larger than
-// the pair budget alone. It reports whether it filled the slice.
+// netFillSlice nets up to sliceRecords fill records at least Grace old in
+// one transaction, after the steps startNetting takes, which applied their
+// up pairs: it resolves the down pair of each record's own block with the
+// cascades it starts, and deletes the records with their index entries. It
+// reports whether it filled the slice.
 func (c *Collector) netFillSlice(ctx context.Context, res *CollectResult) (bool, error) {
 	var full bool
 	err := c.update(ctx, func(rec *Records, _ block.StoreOps) error {
 		// Net only an adopted Volume.
+		full = false
 		state, err := rec.GetState(ctx)
 		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			return err
+		}
+
+		// Take the steps before the records.
+		n, budget, ok, err := c.startNetting(ctx, rec, state, res)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			full = true
+			return finishNetting(ctx, n)
 		}
 
 		// Restamp the records stamped after the collector's clock, so each
@@ -477,55 +553,43 @@ func (c *Collector) netFillSlice(ctx context.Context, res *CollectResult) (bool,
 			}
 		}
 
-		// Take the aged records from the oldest, within the slice's budgets.
+		// Take the aged records from the oldest, within the slice's budgets,
+		// and add their down pairs.
 		horizon := now - c.opts.Grace.Milliseconds()
-		budget, records := c.share(slicePairs), c.share(sliceRecords)
+		records := min(c.share(sliceRecords), max(budget, 1))
 		var taken []fillRecord
 		err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
-			// Stop at an unaged record or a full slice; a first record is
-			// taken whole however large.
-			pairs := len(fr.rec.GetUp()) + len(fr.rec.GetDown())
-			switch {
-			case fr.rec.GetAtUnixMilli() > horizon:
+			// Stop at a young record or a full slice.
+			if fr.rec.GetAtUnixMilli() > horizon {
 				return false, nil
-			case len(taken) == records || (len(taken) != 0 && pairs > budget):
+			}
+			if len(taken) == records {
 				full = true
 				return false, nil
 			}
 			taken = append(taken, fr)
-			budget -= pairs
+			for _, down := range fr.rec.GetDown() {
+				if err := n.add(down, -1); err != nil {
+					return false, err
+				}
+			}
 			return true, nil
 		})
-		if err != nil || len(taken) == 0 {
+		if err != nil {
 			return err
 		}
 
-		// Sum their pairs and apply each block's delta, in key order.
-		deltas := make(map[string]int)
-		for _, fr := range taken {
-			for _, up := range fr.rec.GetUp() {
-				deltas[string(up)]++
-			}
-			for _, down := range fr.rec.GetDown() {
-				deltas[string(down)]--
-			}
-		}
-		for _, key := range slices.Sorted(maps.Keys(deltas)) {
-			if deltas[key] == 0 {
-				continue
-			}
-			if err := c.applyDelta(ctx, rec, []byte(key), deltas[key], res); err != nil {
-				return err
-			}
-		}
-
-		// Delete the records.
+		// Delete the records, and resolve.
 		for _, fr := range taken {
 			if err := rec.deleteFillRecord(ctx, fr); err != nil {
 				return err
 			}
 		}
 		res.Netted += uint64(len(taken))
+		if err := finishNetting(ctx, n); err != nil {
+			return err
+		}
+		full = full || n.full
 		return nil
 	})
 	return full, err
@@ -589,457 +653,134 @@ func clampFuture(ctx context.Context, rec *Records, future map[uint64]*JournalRe
 	return nil
 }
 
-// applyDelta adds d to the netted holders of the block at key. A block on the
-// free queue has zero holders; any other has its count record plus the one
-// its record implies.
-func (c *Collector) applyDelta(ctx context.Context, rec *Records, key []byte, d int, res *CollectResult) error {
-	// Read whether the block is queued.
-	ref, _, err := ParseBlockKey(key)
-	if err != nil {
-		return err
-	}
-	queued, err := rec.Queued(ctx, ref)
-	if err != nil {
-		return err
-	}
-
-	// Read its netted holders.
-	count, err := rec.GetCount(ctx, ref)
-	if err != nil {
-		return err
-	}
-	holders := int64(count) + 1 //nolint:gosec // counts stay far below the int64 range.
-	if queued {
-		holders = 0
-	}
-	next := holders + int64(d)
-	res.Counted++
-
-	// Refuse a change below zero: keep the block with one holder.
-	if next < 0 {
-		res.Underflows++
-		if queued {
-			if err := rec.Dequeue(ctx, ref); err != nil {
-				return err
-			}
-		}
-		return rec.SetCount(ctx, ref, 0)
-	}
-
-	// Queue a stored block that lost its last holder.
-	if next == 0 {
-		if err := rec.SetCount(ctx, ref, 0); err != nil || queued {
-			return err
-		}
-		listed, err := rec.HasChildren(ctx, ref)
-		if err != nil || !listed {
-			return err
-		}
-		res.Queued++
-		return rec.Enqueue(ctx, ref)
-	}
-
-	// Write the holders beyond the implied one, and take a block that gained
-	// one off the queue.
-	if queued {
-		if err := rec.Dequeue(ctx, ref); err != nil {
-			return err
-		}
-	}
-	return rec.SetCount(ctx, ref, uint64(next-1)) //nolint:gosec // next is positive.
-}
-
-// freePass is the state of one free phase.
-type freePass struct {
-	// low is the lowest block key a cascade of the current walk queued, or
-	// nil when it queued none.
-	low []byte
-}
-
-// queued notes that a cascade queued the block at key.
-func (p *freePass) queued(key []byte) {
-	if p.low == nil || bytes.Compare(key, p.low) < 0 {
-		p.low = key
-	}
-}
-
-// free frees the queued blocks in slices, cascading through their children,
-// until a walk of the queue queues nothing or the deadline passes, and
-// reports whether queued blocks may remain to free. A cascade queues children
-// anywhere in the queue, so the next walk starts at the lowest key the last
-// one queued, not at the queue's start.
+// free frees the ripe Dead blocks in slices until none is left or the
+// deadline passes, and reports whether ripe blocks may remain.
+//
+// Each slice resumes the queue at the last entry the slice before it
+// deleted, so a long run of frees reads each entry once rather than walking
+// the run's deleted entries again each slice. The resume lasts only this
+// call: within it, nothing adds a queue entry before the resume. The free
+// deletes entries and adds none, a writer's Land and a fill write only
+// journal and fill records, and the only path that adds an entry below the
+// cursor, a Dying block whose cascade finishes and turns it Dead at its old
+// ripe sequence, is netting, which runs between calls, never between the
+// slices of one. A cascade a slice finds due stops the call.
 func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
-	// Walk the queue from from, then again from the lowest key a walk's
-	// cascade queued.
 	defer c.phase(PhaseSweep)()
-	p := &freePass{}
 	var from []byte
 	for {
-		p.low = nil
-		for {
-			last, more, err := c.freeSlice(ctx, p, res, from)
-			if err != nil {
-				return false, err
-			}
-			if !more {
-				break
-			}
-			if last != nil {
-				from = append(last, 0)
-			}
-			if c.opts.Now().After(deadline) {
-				return true, nil
-			}
-			if err := context.Cause(ctx); err != nil {
-				return false, err
-			}
-		}
-		if p.low == nil {
-			return false, nil
+		full, err := c.freeSlice(ctx, res, &from)
+		if err != nil || !full {
+			return false, err
 		}
 		if c.opts.Now().After(deadline) {
 			return true, nil
 		}
-		from = p.low
+		if err := context.Cause(ctx); err != nil {
+			return false, err
+		}
 	}
 }
 
-// freeSlice indexes the journal records appended since the last look,
-// resumes the release in progress, then examines up to sliceFrees queued
-// blocks from the block key from in one transaction, and frees each that no
-// journal record past the cursor adds a holder to, releasing at most
-// sliceReleases children in all. A slice whose index does not reach the
-// journal's end, or whose release in progress does not finish, frees nothing
-// more and reports itself full with no last key. It returns the key of the
-// last block examined and whether the slice was full.
-func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResult, from []byte) ([]byte, bool, error) {
-	var last []byte
+// freeSlice frees up to sliceFrees ripe Dead blocks in one transaction, in
+// ripe order, stopping at the first block the cursor has not passed and at
+// the next block once a writer waits. It frees nothing while a cascade is
+// due or in progress, while a fill's up pairs are unapplied, or until the
+// cursor passes the hold mark, as Collector describes. A free deletes the
+// block's bytes, child list, queue entry, proof and count record, and
+// changes no other count: its children lost its holder when it died. It
+// starts at the queue position *from and moves *from past the entries it
+// deletes, and reports whether the slice was full.
+func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, from *[]byte) (bool, error) {
 	var full bool
+	start := *from
 	err := c.update(ctx, func(rec *Records, blocks block.StoreOps) error {
-		// Refuse to free in a Volume that is not adopted.
-		last, full = nil, false
+		// Free only in an adopted Volume with every cascade and fill up
+		// netted.
+		full, *from = false, start
 		state, err := rec.GetState(ctx)
 		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			return err
 		}
-
-		// Index the journal records appended since the last look, and free
-		// nothing until the index reaches the journal's end.
-		done, err := indexTail(ctx, rec, state, c.share(slicePairs), c.share(sliceRecords))
-		if err != nil || !done {
-			full = !done
+		settled, err := rec.settled(ctx, state)
+		if err != nil || !settled {
+			return err
+		}
+		ups, err := rec.anyKey(ctx, rec.key(kindFillUps))
+		if err != nil || ups {
 			return err
 		}
 
-		// Resume the release in progress, and free nothing more until it
-		// finishes.
-		budget := c.share(sliceReleases)
-		fresh := budget
-		if state.GetRelease() != nil {
-			n, err := c.continueRelease(ctx, rec, state, p, budget, res)
-			if err != nil {
-				return err
-			}
-			budget -= n
-			if err := rec.SetState(ctx, state); err != nil || state.GetRelease() != nil {
-				full = err == nil
-				return err
-			}
+		// Take the next ripe blocks, only one while a writer waits, noting
+		// one that waits on its ripe sequence or the hold mark.
+		type entry struct {
+			ripe uint64
+			ref  *block.BlockRef
 		}
-
-		// Take the next queued blocks.
-		var queued []*block.BlockRef
-		frees := c.share(sliceFrees)
-		err = rec.ScanQueue(ctx, from, func(ref *block.BlockRef) (bool, error) {
-			if len(queued) == frees {
+		var ripe []entry
+		cursor, frees := state.GetCursor(), c.share(sliceFrees)
+		if c.waiting() {
+			frees = 1
+		}
+		err = rec.scanQueue(ctx, start, func(seq uint64, ref *block.BlockRef) (bool, error) {
+			switch {
+			case seq > cursor || cursor < state.GetHoldMark():
+				res.Kept++
+				return false, nil
+			case len(ripe) == frees:
 				full = true
 				return false, nil
 			}
-			queued = append(queued, ref)
+			ripe = append(ripe, entry{ripe: seq, ref: ref})
 			return true, nil
 		})
 		if err != nil {
 			return err
 		}
 
-		// Free each the tail adds no holder to, until the releases fill or a
-		// writer waits. A block that does not fit waits for the next slice,
-		// which starts at it.
-		for i, ref := range queued {
-			prev := last
+		// Free each until a writer waits; the next slice resumes there.
+		for i, e := range ripe {
 			if i != 0 && c.waiting() {
 				full = true
-				break
-			}
-			last = BlockKey(ref)
-			held, err := rec.journalHeld(ctx, ref, state.GetCursor())
-			if err == nil && !held {
-				held, err = rec.fillHeld(ctx, ref)
-			}
-			if err != nil {
-				return err
-			}
-			if held {
-				res.Kept++
-				continue
-			}
-			n, fits, err := c.freeBlock(ctx, rec, blocks, p, state, ref, budget, budget == fresh, res)
-			if err != nil {
-				return err
-			}
-			if !fits {
-				last, full = prev, true
 				return nil
 			}
-			if budget -= n; budget <= 0 || state.GetRelease() != nil {
-				full = true
-				break
+			if err := c.freeBlock(ctx, rec, blocks, e.ripe, e.ref, res); err != nil {
+				return err
 			}
-		}
-
-		// Record a release the slice started.
-		if state.GetRelease() != nil {
-			return rec.SetState(ctx, state)
+			*from = queuePos(e.ripe, BlockKey(e.ref))
 		}
 		return nil
 	})
-	return last, full, err
+	return full, err
 }
 
-// indexTail indexes the up pairs of the journal records from the state's
-// Indexed and IndexOffset, or from its cursor when that is later, up to
-// records records and pairs pairs, and moves Indexed and
-// IndexOffset past them; a record larger than the budget is indexed across
-// slices. It reports whether it reached the journal's end.
-func indexTail(ctx context.Context, rec *Records, state *LivenessState, pairs, records int) (bool, error) {
-	// Resume inside the record at Indexed, or start at the cursor past it.
-	from, offset := state.GetIndexed(), state.GetIndexOffset()
-	if cursor := state.GetCursor(); cursor > from {
-		from, offset = cursor, 0
+// freeBlock frees one Dead block at ripe: its bytes, child list, queue
+// entry, proof and count record. It deletes only the queue entry when the
+// entry is stale: the block has no child list or no zero record at ripe.
+func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, ripe uint64, ref *block.BlockRef, res *CollectResult) error {
+	// Check the block is stored, Dead and at the entry's ripe sequence.
+	key := BlockKey(ref)
+	if err := rec.tx.Delete(ctx, rec.queueKey(ripe, key)); err != nil {
+		return err
 	}
-	next, nextOffset := from, offset
-	budget, n, done := uint64(pairs), 0, true //nolint:gosec // the share is at least one.
-	err := rec.ScanJournal(ctx, from, func(seq uint64, r *JournalRecord) (bool, error) {
-		// Stop at a full slice.
-		if n == records || budget == 0 {
-			done = false
-			return false, nil
-		}
-
-		// Index the up pairs after the offset, up to the budget.
-		ups := r.GetUp()
-		start := min(offset, uint64(len(ups)))
-		end := min(uint64(len(ups)), start+budget)
-		for _, up := range ups[start:end] {
-			if err := rec.tx.Set(ctx, rec.journalUpKey(up, seq), nil); err != nil {
-				return false, err
-			}
-		}
-		budget, n = budget-(end-start), n+1
-
-		// Stop inside a record the budget ends in, or move past it.
-		if end < uint64(len(ups)) {
-			next, nextOffset, done = seq, end, false
-			return false, nil
-		}
-		next, nextOffset, offset = seq+1, 0, 0
-		return true, nil
-	})
-	if err != nil {
-		return false, err
+	listed, err := rec.HasChildren(ctx, ref)
+	if err != nil || !listed {
+		return err
 	}
-
-	// Move Indexed and IndexOffset past them.
-	if next != state.GetIndexed() || nextOffset != state.GetIndexOffset() {
-		state.Indexed, state.IndexOffset = next, nextOffset
-		if err := rec.SetState(ctx, state); err != nil {
-			return false, err
-		}
-	}
-	return done, nil
-}
-
-// freeBlock frees one queued block: its bytes, child list, count and proof,
-// and decrements each child its child list names, returning how many, up to
-// budget. It keeps the block when the queue entry turns out stale: a block no
-// longer queued gained a holder, such as a child an earlier free in the same
-// slice took off the queue as an underflow, a block without a child list is
-// not stored, and one with a count record has holders.
-//
-// A block with more children than budget waits, reporting that it does not
-// fit, unless the slice is fresh, having released nothing yet, and no
-// release is in progress: then it is freed now and its list moves to release
-// pages, which later slices release from, as continueRelease describes.
-func (c *Collector) freeBlock(
-	ctx context.Context,
-	rec *Records,
-	blocks block.StoreOps,
-	p *freePass,
-	state *LivenessState,
-	ref *block.BlockRef,
-	budget int,
-	fresh bool,
-	res *CollectResult,
-) (int, bool, error) {
-	// Keep a block this transaction took off the queue since its scan.
-	queued, err := rec.Queued(ctx, ref)
-	if err != nil || !queued {
-		return 0, true, err
-	}
-
-	// Check the block is stored and has no holder.
-	children, listed, err := rec.GetChildren(ctx, ref)
-	if err != nil {
-		return 0, true, err
-	}
-	count, err := rec.GetCount(ctx, ref)
-	if err != nil {
-		return 0, true, err
-	}
-	if !listed || count != 0 {
-		return 0, true, rec.Dequeue(ctx, ref)
-	}
-
-	// Wait for a fresh slice, or for the release in progress to finish, when
-	// the children do not fit.
-	paged := len(children) > budget
-	if paged && (!fresh || state.GetRelease() != nil) {
-		return 0, false, nil
+	holders, at, err := rec.GetHolders(ctx, ref)
+	if err != nil || holders != 0 || at != ripe {
+		return err
 	}
 
 	// Free its bytes and records.
 	if err := blocks.RmBlock(ctx, ref); err != nil {
-		return 0, true, err
+		return err
 	}
-	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.Dequeue, rec.DeleteProof} {
+	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
 		if err := del(ctx, ref); err != nil {
-			return 0, true, err
+			return err
 		}
 	}
 	res.Freed++
-
-	// Take its holder from each child, or move a long list to release pages
-	// and start releasing it.
-	if !paged {
-		for _, child := range children {
-			if err := c.release(ctx, rec, p, child, res); err != nil {
-				return 0, true, err
-			}
-		}
-		return len(children), true, nil
-	}
-	if err := rec.putReleasePages(ctx, children); err != nil {
-		return 0, true, err
-	}
-	state.Release = &Release{Block: BlockKey(ref), Children: uint64(len(children))}
-	n, err := c.continueRelease(ctx, rec, state, p, budget, res)
-	return n, true, err
-}
-
-// continueRelease releases up to budget children of the release in progress,
-// from its release pages, stopping between pages once a writer waits, and
-// moves its Next past them; once the last child
-// is released it clears the state's release. It deletes each page once its
-// last child is released, and returns how many it released. The caller
-// writes the state in the same transaction.
-//
-// Invariants, which together keep every child's count exact:
-//
-//  1. Each child of a freed block loses exactly one holder: the pages hold
-//     the children not released yet from the transaction that frees the
-//     block, and Next moves in the transaction that releases the children
-//     before it, so a crash or restart resumes at the first child not
-//     released, never releasing one twice or skipping one.
-//  2. The freed block is gone from its free on: its bytes, child list, queue
-//     entry and proof are deleted then, so a put of it during its release
-//     gives birth to a new block whose holders are its own, apart from the
-//     ones the release takes back.
-//  3. A child's count runs high until its release, which only delays its
-//     free: a child re-held, or held by a second parent, keeps the holders
-//     its other records give it.
-//  4. At most one release is in progress, and a free slice finishes it
-//     before it frees another block.
-//  5. A page missing before its children are released is an error, naming
-//     the freed block, that stops every pass until a repair, so a damaged
-//     release keeps every child.
-func (c *Collector) continueRelease(ctx context.Context, rec *Records, state *LivenessState, p *freePass, budget int, res *CollectResult) (int, error) {
-	var n int
-	for r := state.GetRelease(); r != nil && n < budget && (n == 0 || !c.waiting()); r = state.GetRelease() {
-		// Read the page holding the next child.
-		page := r.GetNext() / releasePageChildren
-		children, err := rec.getReleasePage(ctx, page)
-		if err != nil {
-			return n, err
-		}
-		within := r.GetNext() % releasePageChildren
-		if within >= uint64(len(children)) {
-			return n, errReleasePageMissing(r, page)
-		}
-
-		// Release the next children on it, up to the budget.
-		end := min(uint64(len(children)), within+uint64(budget-n)) //nolint:gosec // the budget is small.
-		for _, child := range children[within:end] {
-			if err := c.release(ctx, rec, p, child, res); err != nil {
-				return n, err
-			}
-		}
-		n += int(end - within) //nolint:gosec // at most the budget.
-		r.Next += end - within
-
-		// Delete a page once released, and end the release after the last.
-		if end == uint64(len(children)) {
-			if err := rec.deleteReleasePage(ctx, page); err != nil {
-				return n, err
-			}
-		}
-		if r.GetNext() >= r.GetChildren() {
-			state.Release = nil
-		}
-	}
-	return n, nil
-}
-
-// release takes one holder from child, whose parent was freed, queueing it
-// when it was the last. A child without a child list loses the holder too,
-// since the parent's Land counted it, but is never queued: it is not stored,
-// so nothing frees it and its own children, which are unknown, are untouched.
-// One already queued keeps a holder, since a parent named it.
-func (c *Collector) release(ctx context.Context, rec *Records, p *freePass, child *block.BlockRef, res *CollectResult) error {
-	// Take the holder from a child without a list, which only its count holds.
-	listed, err := rec.HasChildren(ctx, child)
-	if err != nil {
-		return err
-	}
-	if !listed {
-		res.Leaked++
-		count, err := rec.GetCount(ctx, child)
-		if err != nil || count == 0 {
-			return err
-		}
-		res.Counted++
-		return rec.SetCount(ctx, child, count-1)
-	}
-
-	// Refuse a release from a block already at zero holders.
-	queued, err := rec.Queued(ctx, child)
-	if err != nil {
-		return err
-	}
-	if queued {
-		res.Underflows++
-		return rec.Dequeue(ctx, child)
-	}
-
-	// Take the holder.
-	count, err := rec.GetCount(ctx, child)
-	if err != nil {
-		return err
-	}
-	res.Counted++
-	if count == 0 {
-		res.Queued++
-		p.queued(BlockKey(child))
-		return rec.Enqueue(ctx, child)
-	}
-	return rec.SetCount(ctx, child, count-1)
+	return rec.SetHolders(ctx, ref, 1, 0)
 }

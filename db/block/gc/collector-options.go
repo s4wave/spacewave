@@ -6,9 +6,9 @@ import "time"
 type Phase int
 
 const (
-	// PhaseNet nets the journal into the counts and the free queue.
+	// PhaseNet nets the journal into the counts and runs the cascades.
 	PhaseNet Phase = iota
-	// PhaseSweep frees the queued blocks.
+	// PhaseSweep frees the ripe Dead blocks.
 	PhaseSweep
 )
 
@@ -34,8 +34,8 @@ type CollectorOptions struct {
 	// reports nothing.
 	Phase func(Phase) func()
 	// WritersWaiting reports that a foreground writer waits on the store, as
-	// kvtx.WriterQueueStore does; nil reports none. The free and release
-	// loops stop at the next block once one waits.
+	// kvtx.WriterQueueStore does; nil reports none. The free loop stops at the
+	// next block, and a paged cascade at the next page, once one waits.
 	WritersWaiting func() bool
 }
 
@@ -54,28 +54,35 @@ const DefaultGrace = 15 * time.Minute
 // DefaultBudget is the time budget of a Collect that sets none.
 const DefaultBudget = time.Second
 
-// sliceRecords bounds the journal records one net transaction nets.
+// sliceRecords bounds the journal records one net transaction nets, and the
+// cascade records it loads.
 const sliceRecords = 256
 
-// slicePairs bounds the pairs one net transaction applies, so one large
-// commit's record splits across slices instead of making one long one.
+// slicePairs bounds the journal entries one net transaction applies, and
+// the fill ups, so one large commit's record splits across slices instead of
+// making one long one.
 const slicePairs = 4096
 
-// sliceFrees bounds the queued blocks one free transaction examines.
+// sliceFrees bounds the Dead blocks one free transaction frees.
 const sliceFrees = 128
 
-// sliceReleases bounds the children one free transaction releases. A block
-// with more children releases them across transactions, as continueRelease
-// describes.
-const sliceReleases = 4096
+// sliceReleases bounds the children one net transaction's cascades move. A
+// block with more children moves them across transactions, through release
+// pages, as continueRelease describes. A moved child costs about five
+// operations when it reaches zero, its count, cascade and list reads and
+// its zero record and queue key, so a slice of moves is about 15,400.
+const sliceReleases = 3072
 
 // releasePageChildren is how many children one release page holds, so a
-// free transaction that resumes a release reads only the pages it releases.
-const releasePageChildren = 2048
+// net transaction that resumes a paged cascade reads only the pages it
+// moves. It is also the slice's moves while a writer waits: a cascade
+// beside a waiting writer moves one page, about 5,100 operations, per
+// transaction.
+const releasePageChildren = 1024
 
-// journalPagePairs bounds the pairs of one journal record: a Land with more
-// writes its record in pages, so a net or index slice decodes only the pages
-// it works on.
+// journalPagePairs bounds the entries of one journal record: a Land with
+// more writes its record in pages, so a net slice decodes only the pages it
+// works on.
 const journalPagePairs = 2048
 
 // sliceLeases bounds the lapsed leased roots one transaction releases.

@@ -118,8 +118,9 @@ func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 	}
 
 	// Write the later expiry of each pin and stage root. One a collector
-	// released is held again while its block is stored, and dropped
-	// otherwise: its holder stalled past the lease and the grace period.
+	// released is held again while its block is stored with holders, and
+	// dropped otherwise: its holder stalled past the lease and the grace
+	// period, and a block at zero may have released its children already.
 	base := v.now()
 	expires := base.Add(rootLease)
 	var lost []string
@@ -145,11 +146,11 @@ func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 			case !held.GetEmpty():
 				continue
 			default:
-				listed, err := p.rec.HasChildren(ctx, root.Ref)
+				held, err := p.rec.Held(ctx, root.Ref)
 				if err != nil {
 					return err
 				}
-				if !listed {
+				if !held {
 					if stage, ok := stageOf[root.Name]; ok {
 						lost = append(lost, stage)
 					}

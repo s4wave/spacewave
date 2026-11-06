@@ -27,7 +27,11 @@ import (
 // holders in a fill record instead of writing a fill mark, so a version 7
 // store opens unadopted and its adoption counts the lists format 7's fills
 // left without holders.
-const FormatVersion = 8
+// Version 9 keys are those of version 8. A block at zero keeps a zero count
+// record with its ripe sequence and a key in the ripe queue, a due cascade
+// keeps a cascade record, and the journal keeps no up index, so a version 7
+// or 8 store opens unadopted and its adoption counts in the new encoding.
+const FormatVersion = 9
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

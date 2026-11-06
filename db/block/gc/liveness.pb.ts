@@ -86,6 +86,13 @@ export interface JournalRecord {
    * Down names a block once for each named root that moved off it.
    */
   down?: Uint8Array[]
+  /**
+   * Again names each block the transaction put again while the store held
+   * it. It changes no holder, but a block still at zero holders once the
+   * record nets takes the journal's end as its ripe sequence again, so the
+   * put restarts the block's grace.
+   */
+  again?: Uint8Array[]
 }
 
 export const JournalRecord: MessageType<JournalRecord> =
@@ -95,6 +102,7 @@ export const JournalRecord: MessageType<JournalRecord> =
       [1, 'at_unix_milli', 3],
       [2, 'up', 12, 1],
       [3, 'down', 12, 1],
+      [4, 'again', 12, 1],
     ],
   )
 
@@ -139,29 +147,31 @@ export interface LivenessState {
   unverifiedLists?: boolean
   /**
    * NetOffset is how much of the record at the cursor the collector has
-   * netted: its up pairs, then its down pairs, then the deletes of the index
-   * entries of its up pairs. A slice does a bounded amount, so it splits a
-   * large record across slices.
+   * netted: its up pairs, then its down pairs, then its again entries. A
+   * slice does a bounded amount, so it splits a large record across slices.
    */
   netOffset?: bigint
   /**
-   * Indexed is the sequence number of the first journal record whose up
-   * pairs the collector has not all indexed by block. It indexes from here
-   * or from the cursor, whichever is later, so a record netted before it was
-   * indexed never is, and it deletes a record's entries as it nets it.
-   */
-  indexed?: bigint
-  /**
-   * IndexOffset is how many of the up pairs of the record at Indexed the
-   * collector has indexed: a slice indexes a bounded number, so it splits a
-   * large record across slices.
-   */
-  indexOffset?: bigint
-  /**
-   * Release is the release in progress of a freed block's children, unset
-   * when none is.
+   * Release is the paged release or re-hold in progress of one block's
+   * children, unset when none is.
    */
   release?: Release
+  /**
+   * HoldMark is one past the sequence of the last journal record of a Land
+   * that held a block at zero holders, or one whose children were released,
+   * or any block while a cascade was due: a block below it may have no
+   * holder until that record nets and the re-hold it brings runs. The
+   * collector frees nothing until its cursor reaches the mark.
+   */
+  holdMark?: bigint
+  /**
+   * Cascades counts the cascade records, the blocks whose cascade is due,
+   * so a Land and the free learn whether any is due from this record rather
+   * than a seek past the deleted ones. It is exact while the Volume is
+   * adopted: the adoption zeroes it once its clear has deleted the records
+   * an earlier run left, and counts each block it settles Dying.
+   */
+  cascades?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -175,35 +185,41 @@ export const LivenessState: MessageType<LivenessState> =
       [6, 'adoption_run', 9],
       [7, 'unverified_lists', 8],
       [8, 'net_offset', 4],
-      [9, 'indexed', 4],
-      [10, 'index_offset', 4],
       [11, 'release', 11, 0, Release.codec],
+      [12, 'hold_mark', 4],
+      [13, 'cascades', 4],
     ],
   )
 
 /**
- * Release is the release in progress of the children of a freed block whose
- * child list is longer than one free transaction releases. The free deletes
- * the block's bytes, child list, queue entry and proof, and moves the list to
- * release pages; each later free transaction releases the next children and
- * moves Next in the same transaction, and the last deletes the pages and
- * clears the release.
+ * Release is a cascade whose child list is longer than one collector slice
+ * moves: the release of the children of a block that lost its last holder,
+ * or the re-hold of the children of one that gained a holder after its
+ * release. The slice that starts it moves the list to release pages and
+ * marks the block released or held; each later slice moves the next
+ * children's holders by one and moves Next in the same transaction, and the
+ * last deletes the pages and clears the release.
  *
  * @generated from message block.gc.Release
  */
 export interface Release {
   /**
-   * Block is the freed block, as its hash type byte and digest.
+   * Block is the block, as its hash type byte and digest.
    */
   block?: Uint8Array
   /**
-   * Next is the index in the list of the first child not released yet.
+   * Next is the index in the list of the first child not moved yet.
    */
   next?: bigint
   /**
    * Children is how many children the list names.
    */
   children?: bigint
+  /**
+   * Rehold reports a re-hold: each child gains a holder rather than losing
+   * one.
+   */
+  rehold?: boolean
 }
 
 export const Release: MessageType<Release> =
@@ -211,4 +227,5 @@ export const Release: MessageType<Release> =
     [1, 'block', 12],
     [2, 'next', 4],
     [3, 'children', 4],
+    [4, 'rehold', 8],
   ])
