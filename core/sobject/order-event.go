@@ -3,7 +3,6 @@ package sobject
 import (
 	"bytes"
 	"context"
-	"slices"
 )
 
 // OrderEvent is the agreed order of a SharedObject's operations in one state:
@@ -51,15 +50,6 @@ func ReadOrder(ctx context.Context, snap SharedObjectStateSnapshot) (*OrderEvent
 		Order:      set.Order(),
 		Stable:     len(set.StablePoint(cfg.TrimRoster())),
 	}, nil
-}
-
-// SameOrder reports whether e and other hold the same checkpoint, order and
-// stable prefix, so a consumer of e has nothing new to do for other.
-func (e *OrderEvent) SameOrder(other *OrderEvent) bool {
-	return other != nil &&
-		e.Stable == other.Stable &&
-		e.Checkpoint.EqualVT(other.Checkpoint) &&
-		slices.EqualFunc(e.Order, other.Order, bytes.Equal)
 }
 
 // SharedPrefix returns how many leading hashes a and b share.
