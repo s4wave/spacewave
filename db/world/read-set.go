@@ -34,6 +34,10 @@ type ReadSet struct {
 	all bool
 	// joined are the finished sets whose reads this set holds by reference.
 	joined readSets
+	// reruns end when state outside the World that the reads depend on
+	// changes, such as a value a process keeps in memory. A wait ends when one
+	// of them, or one of a joined or shared set's, ends.
+	reruns []context.Context
 	// memoChanges and memoTouched cache Touched for the last ChangeSet it
 	// checked, so views sharing this set test each change window once. Any
 	// recorded read clears memoChanges.
@@ -128,9 +132,10 @@ func (r *ReadSet) touchedLocked(changes *ChangeSet) bool {
 }
 
 // WaitChange waits for the first change of w after afterSeqno that touches the
-// reads, and returns its seqno. Record afterSeqno before the reads. Reads may
-// continue while WaitChange runs: each one restarts the wait from afterSeqno,
-// so a change that lands before the read of what it changed still ends it.
+// reads, and returns its seqno, or for a rerun context to end, and returns
+// afterSeqno. Record afterSeqno before the reads. Reads may continue while
+// WaitChange runs: each one restarts the wait from afterSeqno, so a change
+// that lands before the read of what it changed still ends it.
 func (r *ReadSet) WaitChange(ctx context.Context, w WorldWaitSeqno, afterSeqno uint64) (uint64, error) {
 	return r.waitChange(ctx, w, afterSeqno, nil)
 }
@@ -151,6 +156,16 @@ func (r *ReadSet) waitChange(ctx context.Context, w WorldWaitSeqno, afterSeqno u
 		added := r.addedLocked()
 		r.mtx.Unlock()
 
+		// End at once when state outside the World the reads depend on
+		// changed already.
+		reruns := r.appendReruns(nil)
+		for _, set := range shared {
+			reruns = set.appendReruns(reruns)
+		}
+		if slices.ContainsFunc(reruns, ended) {
+			return afterSeqno, nil
+		}
+
 		// Name the reads for the change feed's index.
 		interest := r.waitInterest(touches, shared)
 
@@ -160,18 +175,29 @@ func (r *ReadSet) waitChange(ctx context.Context, w WorldWaitSeqno, afterSeqno u
 		// selecting on the signal, since every waiting view would pay for one.
 		watchCtx, cancel := context.WithCancel(ctx)
 		stop := context.AfterFunc(added, cancel)
+		stops := make([]func() bool, len(reruns))
+		for i, rerun := range reruns {
+			stops[i] = context.AfterFunc(rerun, cancel)
+		}
 		var seqno uint64
 		err := WatchInterestedChanges(watchCtx, w, afterSeqno, interest, func(s uint64, _ *ChangeSet) error {
 			seqno = s
 			return errReadsTouched
 		})
 		stop()
+		for _, stop := range stops {
+			stop()
+		}
 		cancel()
 
-		// End at the touching change, or restart from afterSeqno after a new
-		// read so the feed tests the earlier changes against it too.
+		// End at the touching change or an ended rerun context, or restart
+		// from afterSeqno after a new read so the feed tests the earlier
+		// changes against it too.
 		if errors.Is(err, errReadsTouched) {
 			return seqno, nil
+		}
+		if ctx.Err() == nil && slices.ContainsFunc(reruns, ended) {
+			return afterSeqno, nil
 		}
 		if added.Err() != nil && ctx.Err() == nil && errors.Is(err, context.Canceled) {
 			continue
@@ -293,6 +319,34 @@ func (r *ReadSet) markAll() {
 	r.signalLocked()
 	r.mtx.Unlock()
 }
+
+// addRerun records a context whose end changes what was read, as a changed
+// read would.
+func (r *ReadSet) addRerun(rerun context.Context) {
+	r.mtx.Lock()
+	r.reruns = append(r.reruns, rerun)
+	r.signalLocked()
+	r.mtx.Unlock()
+}
+
+// appendReruns appends the rerun contexts of r and of the sets it joined to
+// out. A set without any appends nothing and allocates nothing.
+func (r *ReadSet) appendReruns(out []context.Context) []context.Context {
+	// Take r's own contexts and its joined sets under the lock.
+	r.mtx.Lock()
+	out = append(out, r.reruns...)
+	joined := r.joined.list
+	r.mtx.Unlock()
+
+	// Add each joined set's contexts outside it.
+	for _, set := range joined {
+		out = set.appendReruns(out)
+	}
+	return out
+}
+
+// ended reports whether ctx has ended.
+func ended(ctx context.Context) bool { return ctx.Err() != nil }
 
 // join records every read of other, a finished set, by reference: a change
 // that touches other touches r. Copying the reads instead would cost each

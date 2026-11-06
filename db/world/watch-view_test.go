@@ -121,6 +121,49 @@ func TestWatchViewRerunAt(t *testing.T) {
 	}
 }
 
+// TestWatchViewRerunOn checks that a view reruns when a context it recorded
+// ends, also when it recorded the context in a shared set it joined.
+func TestWatchViewRerunOn(t *testing.T) {
+	// Bound a quiet World view.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	tb := world_testbed.MustDefault(t, ctx)
+	stop := errors.New("rerun")
+	runs := 0
+
+	// Record one context directly and one in a shared set, ending each in
+	// turn after its run returns.
+	direct, endDirect := context.WithCancel(ctx)
+	defer endDirect()
+	shared, endShared := context.WithCancel(ctx)
+	defer endShared()
+	err := world.WatchView(ctx, tb.WorldState, func(ctx context.Context, _ world.WorldState) error {
+		runs++
+		switch runs {
+		case 1:
+			world.RerunOn(ctx, direct)
+			time.AfterFunc(10*time.Millisecond, endDirect)
+		case 2:
+			set := world.NewReadSet()
+			child, finish := world.WithViewReads(ctx, set)
+			world.RerunOn(child, shared)
+			world.AddViewReads(ctx, set, finish())
+			time.AfterFunc(10*time.Millisecond, endShared)
+		default:
+			return stop
+		}
+		return nil
+	})
+
+	// Only the ended contexts, not a commit or a deadline, reran the view.
+	if !errors.Is(err, stop) {
+		t.Fatalf("WatchView = %v, want %v", err, stop)
+	}
+	if runs != 3 {
+		t.Fatalf("view ran %d times, want 3", runs)
+	}
+}
+
 // TestSendViewsSuppressesEqual checks first-nil delivery and generated equality.
 func TestSendViewsSuppressesEqual(t *testing.T) {
 	// Prepare immutable projections, including equal but distinct messages.
