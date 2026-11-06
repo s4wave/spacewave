@@ -16,6 +16,9 @@ type CountingStore struct {
 	// maxWriteOps is the most operations one write transaction made since
 	// the last ResetMax.
 	maxWriteOps atomic.Uint64
+	// maxWriteReadBytes is the most value bytes one write transaction read
+	// since the last ResetMax.
+	maxWriteReadBytes atomic.Uint64
 }
 
 // NewCountingStore returns a CountingStore over store.
@@ -26,18 +29,20 @@ func NewCountingStore(store kvtx.Store) *CountingStore {
 // Counts returns the operations counted so far.
 func (s *CountingStore) Counts() Counts {
 	return Counts{
-		Txns:        s.txns.Load(),
-		WriteTxns:   s.writeTxns.Load(),
-		Reads:       s.reads.Load(),
-		Steps:       s.steps.Load(),
-		Writes:      s.writes.Load(),
-		MaxWriteOps: s.maxWriteOps.Load(),
+		Txns:              s.txns.Load(),
+		WriteTxns:         s.writeTxns.Load(),
+		Reads:             s.reads.Load(),
+		Steps:             s.steps.Load(),
+		Writes:            s.writes.Load(),
+		MaxWriteOps:       s.maxWriteOps.Load(),
+		MaxWriteReadBytes: s.maxWriteReadBytes.Load(),
 	}
 }
 
 // ResetMax starts MaxWriteOps over, so it measures the calls made after it.
 func (s *CountingStore) ResetMax() {
 	s.maxWriteOps.Store(0)
+	s.maxWriteReadBytes.Store(0)
 }
 
 // NewTransaction opens a counted transaction.
@@ -74,6 +79,8 @@ type countingTx struct {
 	write bool
 	// ops counts the transaction's operations.
 	ops atomic.Uint64
+	// readBytes counts the value bytes the transaction read.
+	readBytes atomic.Uint64
 	// ended reports that Commit or Discard ended the transaction.
 	ended atomic.Bool
 }
@@ -96,15 +103,20 @@ func (t *countingTx) Discard() {
 	t.Tx.Discard()
 }
 
-// end raises MaxWriteOps to the operations of a write transaction, once.
+// end raises the store's maximums to a write transaction's counts, once.
 func (t *countingTx) end() {
 	if !t.write || t.ended.Swap(true) {
 		return
 	}
-	ops := t.ops.Load()
+	raise(&t.s.maxWriteOps, t.ops.Load())
+	raise(&t.s.maxWriteReadBytes, t.readBytes.Load())
+}
+
+// raise sets max to n when n is larger.
+func raise(max *atomic.Uint64, n uint64) {
 	for {
-		prev := t.s.maxWriteOps.Load()
-		if ops <= prev || t.s.maxWriteOps.CompareAndSwap(prev, ops) {
+		prev := max.Load()
+		if n <= prev || max.CompareAndSwap(prev, n) {
 			return
 		}
 	}
@@ -113,7 +125,9 @@ func (t *countingTx) end() {
 // Get counts a point read.
 func (t *countingTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	t.count(&t.s.reads)
-	return t.Tx.Get(ctx, key)
+	value, found, err := t.Tx.Get(ctx, key)
+	t.readBytes.Add(uint64(len(value)))
+	return value, found, err
 }
 
 // Exists counts a point read.
@@ -138,6 +152,7 @@ func (t *countingTx) Delete(ctx context.Context, key []byte) error {
 func (t *countingTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	return t.Tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		t.count(&t.s.steps)
+		t.readBytes.Add(uint64(len(value)))
 		return cb(key, value)
 	})
 }
@@ -165,6 +180,20 @@ type countingIterator struct {
 func (i *countingIterator) Next() bool {
 	i.t.count(&i.t.s.steps)
 	return i.Iterator.Next()
+}
+
+// Value counts the bytes of the value read.
+func (i *countingIterator) Value() ([]byte, error) {
+	value, err := i.Iterator.Value()
+	i.t.readBytes.Add(uint64(len(value)))
+	return value, err
+}
+
+// ValueCopy counts the bytes of the value copied.
+func (i *countingIterator) ValueCopy(dst []byte) ([]byte, error) {
+	value, err := i.Iterator.ValueCopy(dst)
+	i.t.readBytes.Add(uint64(len(value)))
+	return value, err
 }
 
 // Seek counts a seek.
