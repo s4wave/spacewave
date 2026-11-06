@@ -143,6 +143,13 @@ export interface LivenessState {
    * bounded number of pairs, so it splits a large record across slices.
    */
   netOffset?: bigint
+  /**
+   * Indexed is the sequence number of the first journal record whose up
+   * pairs the collector has not indexed by block. It indexes from here or
+   * from the cursor, whichever is later, so a record netted before it was
+   * indexed never is, and it deletes a record's entries with the record.
+   */
+  indexed?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -156,5 +163,6 @@ export const LivenessState: MessageType<LivenessState> =
       [6, 'adoption_run', 9],
       [7, 'unverified_lists', 8],
       [8, 'net_offset', 4],
+      [9, 'indexed', 4],
     ],
   )

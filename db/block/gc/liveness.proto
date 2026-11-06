@@ -66,4 +66,9 @@ message LivenessState {
   // pairs then its down pairs, the collector has netted: a slice nets a
   // bounded number of pairs, so it splits a large record across slices.
   uint64 net_offset = 8;
+  // Indexed is the sequence number of the first journal record whose up
+  // pairs the collector has not indexed by block. It indexes from here or
+  // from the cursor, whichever is later, so a record netted before it was
+  // indexed never is, and it deletes a record's entries with the record.
+  uint64 indexed = 9;
 }

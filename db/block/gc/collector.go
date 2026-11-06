@@ -39,9 +39,12 @@ import (
 //  4. It frees no queued block that an up pair in the journal past its cursor
 //     names: a later transaction added a holder to it, which the interval it
 //     netted did not include, such as a root moved away and back within the
-//     grace period. In each free transaction it reads the records appended
-//     since its last look, so nothing lands unseen between the check and the
-//     free.
+//     grace period. It indexes each record's up pairs by block once, from
+//     the state's Indexed, and deletes the entries with the record. Each free
+//     transaction first indexes the records appended since its last look, and
+//     frees nothing until it reaches the journal's end, so nothing lands
+//     unseen between the check and the free, and the check reads one index
+//     entry per queued block rather than the journal.
 //  5. A cascade decrements each child a freed block's own child list names,
 //     and queues only a stored child, one with a child list. A child without
 //     one is a hole or not yet stored: its count drops, since the parent's
@@ -272,7 +275,7 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 
 		// Sum the deltas of the aged records from the cursor.
 		deltas := make(map[string]int)
-		var netted []uint64
+		var netted []seqRecord
 		partial := false
 		future := make(map[uint64]*JournalRecord)
 		err = rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
@@ -307,7 +310,7 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 				offset, partial = end, true
 				return false, nil
 			}
-			netted = append(netted, seq)
+			netted = append(netted, seqRecord{seq: seq, rec: r})
 			offset = 0
 			return true, nil
 		})
@@ -330,13 +333,13 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 
 		// Delete the records netted whole, move the cursor past them, and
 		// keep the offset into the one netted in part.
-		for _, seq := range netted {
-			if err := rec.DeleteJournal(ctx, seq); err != nil {
+		for _, n := range netted {
+			if err := rec.DeleteJournal(ctx, state, n.seq, n.rec); err != nil {
 				return err
 			}
 		}
 		if len(netted) != 0 {
-			state.Cursor = netted[len(netted)-1] + 1
+			state.Cursor = netted[len(netted)-1].seq + 1
 		}
 		state.NetOffset = offset
 		res.Netted += uint64(len(netted))
@@ -344,6 +347,14 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 		return rec.SetState(ctx, state)
 	})
 	return full, err
+}
+
+// seqRecord is a journal record with its sequence number.
+type seqRecord struct {
+	// seq is the record's sequence number.
+	seq uint64
+	// rec is the record.
+	rec *JournalRecord
 }
 
 // netFills nets the aged fill records in slices until none is left or the
@@ -568,12 +579,6 @@ func (c *Collector) applyDelta(ctx context.Context, rec *Records, key []byte, d 
 
 // freePass is the state of one free phase.
 type freePass struct {
-	// tail holds the block keys the up pairs past the cursor name, as of the
-	// journal records before tailSeq.
-	tail map[string]struct{}
-	// tailSeq is the sequence number of the first record the tail has not
-	// read.
-	tailSeq uint64
 	// low is the lowest block key a cascade of the current walk queued, or
 	// nil when it queued none.
 	low []byte
@@ -592,24 +597,10 @@ func (p *freePass) queued(key []byte) {
 // anywhere in the queue, so the next walk starts at the lowest key the last
 // one queued, not at the queue's start.
 func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
-	// Start the tail from the cursor: the records past it hold the holders
-	// the netted counts do not include yet.
-	defer c.phase(PhaseSweep)()
-	p := &freePass{tail: make(map[string]struct{})}
-	err := c.store.View(ctx, func(rec *Records) error {
-		state, err := rec.GetState(ctx)
-		if err != nil {
-			return err
-		}
-		p.tailSeq = state.GetCursor()
-		return nil
-	})
-	if err != nil {
-		return false, err
-	}
-
 	// Walk the queue from from, then again from the lowest key a walk's
 	// cascade queued.
+	defer c.phase(PhaseSweep)()
+	p := &freePass{}
 	var from []byte
 	for {
 		p.low = nil
@@ -621,7 +612,9 @@ func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.
 			if !more {
 				break
 			}
-			from = append(last, 0)
+			if last != nil {
+				from = append(last, 0)
+			}
 			if c.opts.Now().After(deadline) {
 				return true, nil
 			}
@@ -639,23 +632,29 @@ func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.
 	}
 }
 
-// freeSlice examines up to sliceFrees queued blocks from the block key from
-// in one transaction, and frees each that no journal record past the cursor
-// adds a holder to, stopping after the block whose children bring the
-// releases to sliceReleases. It returns the key of the last block examined
-// and whether the slice was full.
+// freeSlice indexes the journal records appended since the last look, then
+// examines up to sliceFrees queued blocks from the block key from in one
+// transaction, and frees each that no journal record past the cursor adds a
+// holder to, stopping after the block whose children bring the releases to
+// sliceReleases. A slice whose index does not reach the journal's end frees
+// nothing and reports itself full with no last key. It returns the key of the
+// last block examined and whether the slice was full.
 func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResult, from []byte) ([]byte, bool, error) {
 	var last []byte
 	var full bool
 	err := c.store.Update(ctx, func(rec *Records, blocks block.StoreOps) error {
 		// Refuse to free in a Volume that is not adopted.
+		last, full = nil, false
 		state, err := rec.GetState(ctx)
 		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
 			return err
 		}
 
-		// Read the journal records appended since the last look.
-		if err := p.readTail(ctx, rec); err != nil {
+		// Index the journal records appended since the last look, and free
+		// nothing until the index reaches the journal's end.
+		done, err := indexTail(ctx, rec, state)
+		if err != nil || !done {
+			full = !done
 			return err
 		}
 
@@ -677,15 +676,14 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 		var released int
 		for _, ref := range queued {
 			last = BlockKey(ref)
-			if _, held := p.tail[string(last)]; held {
-				res.Kept++
-				continue
+			held, err := rec.journalHeld(ctx, ref)
+			if err == nil && !held {
+				held, err = rec.fillHeld(ctx, ref)
 			}
-			filled, err := rec.fillHeld(ctx, ref)
 			if err != nil {
 				return err
 			}
-			if filled {
+			if held {
 				res.Kept++
 				continue
 			}
@@ -703,16 +701,41 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 	return last, full, err
 }
 
-// readTail adds to the tail the blocks the up pairs of the journal records
-// since the last look name.
-func (p *freePass) readTail(ctx context.Context, rec *Records) error {
-	return rec.ScanJournal(ctx, p.tailSeq, func(seq uint64, r *JournalRecord) (bool, error) {
-		for _, up := range r.GetUp() {
-			p.tail[string(up)] = struct{}{}
+// indexTail indexes the up pairs of the journal records from the state's
+// Indexed, or its cursor when that is later, up to sliceRecords records and
+// slicePairs pairs, the first record whole however large, and moves Indexed
+// past them. It reports whether it reached the journal's end.
+func indexTail(ctx context.Context, rec *Records, state *LivenessState) (bool, error) {
+	// Index the records from the first not indexed, within the budgets.
+	from := max(state.GetIndexed(), state.GetCursor())
+	next, budget, n, done := from, slicePairs, 0, true
+	err := rec.ScanJournal(ctx, from, func(seq uint64, r *JournalRecord) (bool, error) {
+		// Stop at a full slice; a first record is taken whole.
+		ups := len(r.GetUp())
+		if n != 0 && (n == sliceRecords || ups > budget) {
+			done = false
+			return false, nil
 		}
-		p.tailSeq = seq + 1
+
+		// Index its up pairs.
+		if err := rec.indexJournal(ctx, seq, r); err != nil {
+			return false, err
+		}
+		next, budget, n = seq+1, budget-ups, n+1
 		return true, nil
 	})
+	if err != nil {
+		return false, err
+	}
+
+	// Move Indexed past them.
+	if next != state.GetIndexed() {
+		state.Indexed = next
+		if err := rec.SetState(ctx, state); err != nil {
+			return false, err
+		}
+	}
+	return done, nil
 }
 
 // freeBlock frees one queued block: its bytes, child list, count and proof,
