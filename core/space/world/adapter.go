@@ -761,8 +761,16 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads}
 	}
 
-	// Compute the position.
+	// Compute the position, waiting at an operation whose type a plugin the
+	// World installs declares until the plugin registers a handler.
 	pos, err := r.run(ctx, index, op, adopt)
+	var pending *pendingOpError
+	for !a.opts.transient && errors.As(err, &pending) {
+		if err := a.awaitOpHandler(ctx, pending); err != nil {
+			return "", err
+		}
+		pos, err = r.run(ctx, index, op, adopt)
+	}
 	if err != nil {
 		return "", err
 	}

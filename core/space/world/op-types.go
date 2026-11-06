@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -45,6 +46,45 @@ func isReplayGap(err error) bool {
 		errors.As(err, &pending) ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded)
+}
+
+// awaitOpHandler asks the holders of the Space's plugin runtime to run the
+// plugins pending names, with a LoadOpPlugins directive held while it waits,
+// and returns once a handler for pending's operation type resolves on the
+// bus. Without a bus lookup no handler can resolve, so it waits for ctx.
+func (a *Adapter) awaitOpHandler(ctx context.Context, pending *pendingOpError) error {
+	// Wait out the run when nothing can resolve the type.
+	if a.opts.DisableLookup || a.opts.Bus == nil {
+		<-ctx.Done()
+		return context.Cause(ctx)
+	}
+
+	// Ask for the declaring plugins while waiting.
+	a.le.WithField("op-type", pending.opTypeID).WithField("plugin-ids", pending.pluginIDs).Info("replay waits for an operation plugin")
+	_, loadRef, err := a.opts.Bus.AddDirective(ctx, NewLoadOpPlugins(a.opts.EngineID, pending.pluginIDs), nil)
+	if err != nil {
+		return err
+	}
+	defer loadRef.Release()
+
+	// Wait for a lookup value that resolves the type. Other values, such as
+	// the built-in operations, resolve nothing for it.
+	_, _, ref, err := bus.ExecWaitValue[world.LookupWorldOpValue](
+		ctx,
+		a.opts.Bus,
+		world.NewLookupWorldOp(pending.opTypeID, a.opts.EngineID),
+		nil,
+		nil,
+		func(lookup world.LookupWorldOpValue) (bool, error) {
+			op, err := lookup(ctx, pending.opTypeID)
+			return op != nil && err == nil, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+	ref.Release()
+	return nil
 }
 
 // declaredLookup wraps lookupOp so that an operation type it does not

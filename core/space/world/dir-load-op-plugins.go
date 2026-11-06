@@ -9,9 +9,9 @@ import (
 )
 
 // LoadOpPlugins asks the holders of a World engine's plugin runtime to run
-// the plugins its replay waits for. The engine keeps one while replay stops
-// at an operation whose type those plugins declare, and releases it once a
-// handler for the type resolves. It resolves no value.
+// the plugins its replay waits for. The Space adapter keeps one while replay
+// waits at an operation whose type those plugins declare, and releases it once
+// a handler for the type resolves. It resolves no value.
 type LoadOpPlugins interface {
 	// Directive indicates LoadOpPlugins is a directive.
 	directive.Directive
