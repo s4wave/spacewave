@@ -2,8 +2,8 @@ package block
 
 import "context"
 
-// SupportsRootRetention reports the underlying ownership capability.
-func (b *StoreRW) SupportsRootRetention() bool { return SupportsRootRetention(b.writeHandle) }
+// HoldsRoots reports whether the underlying store holds roots.
+func (b *StoreRW) HoldsRoots() bool { return HoldsRoots(b.writeHandle) }
 
 // GetRoot reads the root from the write handle, the store that moves it, so a
 // Previous read here is the reference SetRoots compares against.
@@ -57,4 +57,4 @@ func (b *StoreRW) RootsComplete(ctx context.Context, refs []*BlockRef) ([]bool, 
 }
 
 // _ is a type assertion
-var _ RootRetainer = (*StoreRW)(nil)
+var _ LeasedRoots = (*StoreRW)(nil)

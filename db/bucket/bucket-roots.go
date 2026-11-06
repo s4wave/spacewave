@@ -6,8 +6,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// SupportsRootRetention reports the underlying ownership capability.
-func (b *bucketRW) SupportsRootRetention() bool { return block.SupportsRootRetention(b.store) }
+// HoldsRoots reports whether the underlying store holds roots.
+func (b *bucketRW) HoldsRoots() bool { return block.HoldsRoots(b.store) }
 
 // GetRoot reads the root from the underlying store.
 func (b *bucketRW) GetRoot(ctx context.Context, name string) (*block.BlockRef, error) {
@@ -54,4 +54,4 @@ func (b *bucketRW) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([
 }
 
 // _ is a type assertion
-var _ block.RootRetainer = (*bucketRW)(nil)
+var _ block.LeasedRoots = (*bucketRW)(nil)

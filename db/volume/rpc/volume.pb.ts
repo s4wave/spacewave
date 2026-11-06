@@ -791,34 +791,34 @@ export const SetBucketRootsResponse: MessageType<SetBucketRootsResponse> =
   )
 
 /**
- * GetRootRetentionRequest asks whether the volume holds roots.
+ * GetHoldsRootsRequest asks whether the volume holds roots.
  *
- * @generated from message volume.rpc.GetRootRetentionRequest
+ * @generated from message volume.rpc.GetHoldsRootsRequest
  */
-export interface GetRootRetentionRequest {}
+export interface GetHoldsRootsRequest {}
 
-export const GetRootRetentionRequest: MessageType<GetRootRetentionRequest> =
-  /* @__PURE__ */ createMessageType<GetRootRetentionRequest>(
-    'volume.rpc.GetRootRetentionRequest',
+export const GetHoldsRootsRequest: MessageType<GetHoldsRootsRequest> =
+  /* @__PURE__ */ createMessageType<GetHoldsRootsRequest>(
+    'volume.rpc.GetHoldsRootsRequest',
     () => [],
   )
 
 /**
- * GetRootRetentionResponse reports whether the volume holds roots.
+ * GetHoldsRootsResponse reports whether the volume holds roots.
  *
- * @generated from message volume.rpc.GetRootRetentionResponse
+ * @generated from message volume.rpc.GetHoldsRootsResponse
  */
-export interface GetRootRetentionResponse {
+export interface GetHoldsRootsResponse {
   /**
-   * Supported reports that the volume holds roots, pins and stages.
+   * HoldsRoots reports that the volume holds roots, pins and stages.
    */
-  supported?: boolean
+  holdsRoots?: boolean
 }
 
-export const GetRootRetentionResponse: MessageType<GetRootRetentionResponse> =
-  /* @__PURE__ */ createMessageType<GetRootRetentionResponse>(
-    'volume.rpc.GetRootRetentionResponse',
-    () => [[1, 'supported', 8]],
+export const GetHoldsRootsResponse: MessageType<GetHoldsRootsResponse> =
+  /* @__PURE__ */ createMessageType<GetHoldsRootsResponse>(
+    'volume.rpc.GetHoldsRootsResponse',
+    () => [[1, 'holds_roots', 8]],
   )
 
 /**

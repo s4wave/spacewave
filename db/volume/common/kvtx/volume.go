@@ -468,7 +468,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	// keeps none.
 	var existed []bool
 	var err error
-	if v.SupportsRootRetention() {
+	if v.HoldsRoots() {
 		existed, err = v.putEntries(ctx, v.withDirectPlain, entries)
 	} else {
 		existed, err = v.reader().PutBlockBatch(ctx, entries)
@@ -512,7 +512,7 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	// keeps none.
 	var ref *block.BlockRef
 	var exists bool
-	if v.SupportsRootRetention() {
+	if v.HoldsRoots() {
 		entry, err := putEntry(data, putOpts, v.GetHashType())
 		if err != nil {
 			return nil, false, err
@@ -587,7 +587,7 @@ func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Blo
 func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	// Evict through a tombstone, or remove from a store without liveness.
 	var err error
-	if v.SupportsRootRetention() {
+	if v.HoldsRoots() {
 		_, err = v.putEntries(ctx, v.withDirectPlain, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 	} else {
 		err = v.reader().RmBlock(ctx, ref)

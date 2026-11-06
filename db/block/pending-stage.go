@@ -48,5 +48,13 @@ func (p *pendingStage) BeginReadOperation(context.Context) (StoreOps, func(), er
 	return p, func() {}, nil
 }
 
+// HoldCompleteRoots makes the inner stage hold each proved root.
+func (p *pendingStage) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	return HoldCompleteRoots(ctx, p.stage, refs)
+}
+
 // _ is a type assertion
-var _ StoreOps = (*pendingStage)(nil)
+var (
+	_ StoreOps   = (*pendingStage)(nil)
+	_ RootProofs = (*pendingStage)(nil)
+)

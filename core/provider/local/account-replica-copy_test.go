@@ -441,7 +441,7 @@ func mountSeededReplicaSource(ctx context.Context, t *testing.T) (*ProviderAccou
 }
 
 // TestSharedObjectBlockStoreRetainsRoots checks that the write-back layer
-// exposes the volume's root retention, so replacing a World head releases the
+// exposes the volume's leased roots, so replacing a World head releases the
 // superseded graph to the collector.
 func TestSharedObjectBlockStoreRetainsRoots(t *testing.T) {
 	// Start a provider account on a test volume.
@@ -461,8 +461,8 @@ func TestSharedObjectBlockStoreRetainsRoots(t *testing.T) {
 	}
 	defer releaseSO()
 
-	// Its block store must reach the volume's root retention.
-	if !block.SupportsRootRetention(so.GetBlockStore()) {
-		t.Fatal("shared object block store hides root retention")
+	// Its block store must reach the volume's leased roots.
+	if !block.HoldsRoots(so.GetBlockStore()) {
+		t.Fatal("shared object block store hides the volume's roots")
 	}
 }

@@ -104,18 +104,18 @@ func (v *ProxyVolume) SetBucketRoots(ctx context.Context, bucketID string, entri
 	return nil
 }
 
-// SupportsRootRetention reports whether the remote volume holds roots, pins
-// and stages, as it answered the first time. A volume the proxy cannot ask is
-// taken to hold them, so a hold that fails there fails loudly rather than
-// being skipped.
-func (v *ProxyVolume) SupportsRootRetention() bool {
-	return v.retention()
+// HoldsRoots reports whether the remote volume holds roots, pins and stages,
+// as it answered the first time. A volume the proxy cannot ask is taken to
+// hold them, so a hold that fails there fails loudly rather than being
+// skipped.
+func (v *ProxyVolume) HoldsRoots() bool {
+	return v.holdsRoots()
 }
 
-// loadRootRetention asks the remote volume whether it holds roots.
-func (v *ProxyVolume) loadRootRetention() bool {
-	resp, err := v.client.GetRootRetention(context.Background(), &volume_rpc.GetRootRetentionRequest{})
-	return err != nil || resp.GetSupported()
+// loadHoldsRoots asks the remote volume whether it holds roots.
+func (v *ProxyVolume) loadHoldsRoots() bool {
+	resp, err := v.client.GetHoldsRoots(context.Background(), &volume_rpc.GetHoldsRootsRequest{})
+	return err != nil || resp.GetHoldsRoots()
 }
 
 // PinBucketRoot pins a reader's root on the remote volume. The pin is a

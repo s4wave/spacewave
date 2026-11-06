@@ -102,13 +102,13 @@ func (b *bucketRW) Sync(ctx context.Context) (bool, error) {
 	return b.store.Sync(ctx)
 }
 
-// HoldCompleteRoots forwards complete-root ownership through the write store.
+// HoldCompleteRoots forwards a stage hold of proved roots through the write store.
 func (b *bucketRW) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return block.HoldCompleteRoots(ctx, b.store, refs)
 }
 
 // _ is a type assertion
 var (
-	_ Bucket                   = (*bucketRW)(nil)
-	_ block.CompleteRootHolder = (*bucketRW)(nil)
+	_ Bucket           = (*bucketRW)(nil)
+	_ block.RootProofs = (*bucketRW)(nil)
 )

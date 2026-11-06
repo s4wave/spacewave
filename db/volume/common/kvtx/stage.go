@@ -198,7 +198,7 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 	if err := v.useStage(ctx, stage); err != nil {
 		return nil, err
 	}
-	if !v.SupportsRootRetention() {
+	if !v.HoldsRoots() {
 		return nil, block.ErrAtomicCommitUnsupported
 	}
 	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {

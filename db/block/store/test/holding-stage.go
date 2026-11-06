@@ -12,14 +12,15 @@ import (
 // Only the methods a wrapper forwards in a stage chain are implemented.
 type HoldingStage struct {
 	block.StoreOps
-	block.RootRetainer
+	block.LeasedRoots
+	block.RootProofs
 
 	// Held lists the roots held, in call order.
 	Held []*block.BlockRef
 }
 
-// SupportsRootRetention reports root ownership.
-func (s *HoldingStage) SupportsRootRetention() bool { return true }
+// HoldsRoots reports that the stage holds roots.
+func (s *HoldingStage) HoldsRoots() bool { return true }
 
 // OpenStage returns the stage itself.
 func (s *HoldingStage) OpenStage(context.Context) (block.StoreOps, func(), error) {
@@ -64,4 +65,4 @@ func RequireStageHold(t testing.TB, wrap func(block.StoreOps) block.StoreOps) {
 }
 
 // _ is a type assertion
-var _ block.CompleteRootHolder = (*HoldingStage)(nil)
+var _ block.RootProofs = (*HoldingStage)(nil)

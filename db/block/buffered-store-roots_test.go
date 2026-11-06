@@ -15,7 +15,7 @@ type pinStore struct {
 	pins map[string]int
 }
 
-func (s *pinStore) SupportsRootRetention() bool { return true }
+func (s *pinStore) HoldsRoots() bool { return true }
 
 func (s *pinStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	if found, err := s.GetBlockExists(ctx, ref); err != nil || !found {
@@ -33,6 +33,10 @@ func (s *pinStore) ReleaseRoots(context.Context, []*BlockRef) error { return nil
 func (s *pinStore) MarkRootsComplete(context.Context, []*BlockRef) error { return nil }
 
 func (s *pinStore) RootsComplete(_ context.Context, refs []*BlockRef) ([]bool, error) {
+	return make([]bool, len(refs)), nil
+}
+
+func (s *pinStore) HoldCompleteRoots(_ context.Context, refs []*BlockRef) ([]bool, error) {
 	return make([]bool, len(refs)), nil
 }
 
@@ -93,5 +97,5 @@ func TestBufferedStorePinsPendingRootWithoutDraining(t *testing.T) {
 	}
 }
 
-// _ checks that the test store implements the complete retention contract.
-var _ RootRetainer = (*pinStore)(nil)
+// _ checks that the test store implements the leased roots.
+var _ LeasedRoots = (*pinStore)(nil)

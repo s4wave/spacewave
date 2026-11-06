@@ -1003,6 +1003,6 @@ func (s *BufferedStore) HoldCompleteRoots(ctx context.Context, refs []*BlockRef)
 
 // _ is a type assertion.
 var (
-	_ StoreOps           = (*BufferedStore)(nil)
-	_ CompleteRootHolder = (*BufferedStore)(nil)
+	_ StoreOps   = (*BufferedStore)(nil)
+	_ RootProofs = (*BufferedStore)(nil)
 )
