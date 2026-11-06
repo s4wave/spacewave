@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/packfile/packahead"
 )
 
 // backfillKey names the remote whose backfill completed.
@@ -115,12 +116,49 @@ func NewStore(
 	markersID string,
 	enabled bool,
 ) (*Store, error) {
-	// Connect local block writes to the durable upload markers.
-	s := &Store{local: local, values: values, markers: markers, markersID: markersID, reads: newReadGate()}
-	if publisher, ok := local.(block.AtomicPublisher); ok && publisher.SupportsAtomicPublication() {
-		s.MarkingStore = NewTxMarkingStore(local, s)
-	} else {
-		s.MarkingStore = NewMarkingStore(local, s.queue)
+	return newStore(ctx, local, values, markers, markersID, enabled, false)
+}
+
+// NewStoreWithPacks builds a Store as NewStore does that reads packs, a
+// packahead Log, before local. With divert set its new values go to packs
+// through a PackedStore: they get no marker, since a finalized pack is their
+// upload queue entry, and the Volume holds only their child lists.
+// The blocks local held before, and the cache fills, keep the marker path,
+// as every write does with divert unset. The pack drain that uploads
+// finalized packs is not built yet, so a Store placed on a remote must not
+// divert.
+func NewStoreWithPacks(
+	ctx context.Context,
+	local, values block.StoreOps,
+	markers kvtx.Store,
+	markersID string,
+	enabled bool,
+	packs *packahead.Log,
+	divert bool,
+) (*Store, error) {
+	return newStore(ctx, NewPackedStore(packs, local, divert), values, markers, markersID, enabled, divert)
+}
+
+// newStore builds the Store over writes, which marks nothing when divert is
+// set.
+func newStore(
+	ctx context.Context,
+	writes, values block.StoreOps,
+	markers kvtx.Store,
+	markersID string,
+	enabled bool,
+	divert bool,
+) (*Store, error) {
+	// Connect local block writes to the durable upload markers, or diverted
+	// values to their packs, which need none.
+	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate()}
+	switch {
+	case divert:
+		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
+	case supportsAtomicPublication(writes):
+		s.MarkingStore = NewTxMarkingStore(writes, s)
+	default:
+		s.MarkingStore = NewMarkingStore(writes, s.queue)
 	}
 
 	// Restore the pending upload counts, eviction queue size and completed
