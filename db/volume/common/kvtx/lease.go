@@ -38,17 +38,23 @@ const rootRenewForeground = rootLease / 2
 // the last renewal is older than rootRenewForeground it runs in the
 // foreground instead. A foreground writer waits at most for one renewal.
 func (v *Volume) runRootRenewal(ctx context.Context) {
-	// Tick every rootRenewInterval, counting the lease from the start.
+	// Tick every rootRenewInterval. renewed is the base of the last renewal's
+	// expiry, or, until one lands, the start, one interval before the first
+	// tick. The loop reads the clock only after a tick, since the clock may
+	// be set after the Volume opens.
 	defer close(v.renewDone)
 	ticker := time.NewTicker(rootRenewInterval)
 	defer ticker.Stop()
-	renewed := v.now()
+	var renewed time.Time
 	for {
 		// Wait for the next renewal.
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+		}
+		if renewed.IsZero() {
+			renewed = v.now().Add(-rootRenewInterval)
 		}
 
 		// Renew behind the foreground writers while the lease has time left.
@@ -57,11 +63,11 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 			renewCtx = backgroundPass(ctx)
 		}
 		renewCtx, cancel := context.WithTimeout(renewCtx, rootRenewInterval)
-		err := v.renewRoots(renewCtx)
+		base, err := v.renewRoots(renewCtx)
 		cancel()
 		switch {
 		case err == nil:
-			renewed = v.now()
+			renewed = base
 		case ctx.Err() == nil && !errors.Is(err, context.DeadlineExceeded) && v.le != nil:
 			v.le.WithError(err).Warn("renewing reader pins and stages failed")
 		}
@@ -73,13 +79,15 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 // released for a lapsed lease while this process still holds it, after a
 // stall longer than the lease, is held again while its block is stored. A
 // stage whose released root's block is gone is lost, as Journal.tla's
-// StageRenew fails it: its later writes would name a freed block.
-func (v *Volume) renewRoots(ctx context.Context) error {
+// StageRenew fails it: its later writes would name a freed block. It returns
+// the time the written leases count from, which precedes the write, or now
+// when there was nothing to renew.
+func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 	// Collect the pins with readers and the open stages' roots, noting the
 	// stage of each stage root.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	var pins []block.NamedRoot
 	for name, pin := range v.rootPins {
@@ -99,13 +107,14 @@ func (v *Volume) renewRoots(ctx context.Context) error {
 	}
 	unlock()
 	if len(pins) == 0 {
-		return nil
+		return v.now(), nil
 	}
 
 	// Write the later expiry of each pin and stage root. One a collector
 	// released is held again while its block is stored, and dropped
 	// otherwise: its holder stalled past the lease and the grace period.
-	expires := v.leaseExpiry()
+	base := v.now()
+	expires := base.Add(rootLease)
 	var lost []string
 	err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
 		// Keep only the roots this process still holds: a reader may have
@@ -151,12 +160,13 @@ func (v *Volume) renewRoots(ctx context.Context) error {
 	})
 
 	// Fail the stages that lost a root with its block.
-	if err == nil {
-		for _, stage := range lost {
-			v.loseStage(stage)
-		}
+	if err != nil {
+		return time.Time{}, err
 	}
-	return err
+	for _, stage := range lost {
+		v.loseStage(stage)
+	}
+	return base, nil
 }
 
 // stillHeld returns the roots among roots this process still holds, read
