@@ -16,6 +16,9 @@ type Counts struct {
 	// MaxWriteOps is the most reads, steps and writes one write transaction
 	// made since CountingStore.ResetMax: how long a call held the writer.
 	MaxWriteOps uint64
+	// MaxWriteReadBytes is the most value bytes one write transaction read
+	// since CountingStore.ResetMax.
+	MaxWriteReadBytes uint64
 }
 
 // Total returns the reads, steps and writes.
@@ -23,15 +26,16 @@ func (c Counts) Total() uint64 {
 	return c.Reads + c.Steps + c.Writes
 }
 
-// Sub returns the operations c counted beyond base. It keeps c's
-// MaxWriteOps, which is a maximum, not a sum.
+// Sub returns the operations c counted beyond base. It keeps c's maximums,
+// which are not sums.
 func (c Counts) Sub(base Counts) Counts {
 	return Counts{
-		Txns:        c.Txns - base.Txns,
-		WriteTxns:   c.WriteTxns - base.WriteTxns,
-		Reads:       c.Reads - base.Reads,
-		Steps:       c.Steps - base.Steps,
-		Writes:      c.Writes - base.Writes,
-		MaxWriteOps: c.MaxWriteOps,
+		Txns:              c.Txns - base.Txns,
+		WriteTxns:         c.WriteTxns - base.WriteTxns,
+		Reads:             c.Reads - base.Reads,
+		Steps:             c.Steps - base.Steps,
+		Writes:            c.Writes - base.Writes,
+		MaxWriteOps:       c.MaxWriteOps,
+		MaxWriteReadBytes: c.MaxWriteReadBytes,
 	}
 }
