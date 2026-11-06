@@ -95,17 +95,24 @@ func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 			pins = append(pins, block.NamedRoot{Name: name, Ref: pin.ref, Previous: pin.ref})
 		}
 	}
-	stageOf := make(map[string]string)
+	open := make(map[string]*openStage)
 	for stage, st := range v.stages {
-		if st.released || st.lost {
-			continue
+		if !st.released && !st.lost {
+			open[stage] = st
 		}
+	}
+	unlock()
+
+	// Read each open stage's roots under its own lock.
+	stageOf := make(map[string]string)
+	for stage, st := range open {
+		st.mu.Lock()
 		for name, ref := range st.roots {
 			pins = append(pins, block.NamedRoot{Name: name, Ref: ref, Previous: ref})
 			stageOf[name] = stage
 		}
+		st.mu.Unlock()
 	}
-	unlock()
 	if len(pins) == 0 {
 		return v.now(), nil
 	}
@@ -174,25 +181,34 @@ func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 // on the same block, or a root an open stage's record holds on the same
 // block. stageOf names the stage of each stage root.
 func (v *Volume) stillHeld(ctx context.Context, roots []block.NamedRoot, stageOf map[string]string) ([]block.NamedRoot, error) {
-	// Read the pins and stages under the pin lock.
+	// Read the pins and find the open stages under the pin lock.
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer unlock()
-
-	// Keep each root its pin or stage still holds on the same block.
-	var out []block.NamedRoot
-	for _, root := range roots {
-		var ref *block.BlockRef
+	refs := make([]*block.BlockRef, len(roots))
+	stages := make([]*openStage, len(roots))
+	for i, root := range roots {
 		if stage, ok := stageOf[root.Name]; ok {
 			if st := v.stages[stage]; st != nil && !st.released && !st.lost {
-				ref = st.roots[root.Name]
+				stages[i] = st
 			}
 		} else if pin := v.rootPins[root.Name]; pin != nil && pin.count != 0 && pin.settled == nil {
-			ref = pin.ref
+			refs[i] = pin.ref
 		}
-		if block_gc.SameRef(ref, root.Ref) && !ref.GetEmpty() {
+	}
+	unlock()
+
+	// Read each stage root under its stage's lock, and keep each root its
+	// pin or stage still holds on the same block.
+	var out []block.NamedRoot
+	for i, root := range roots {
+		if st := stages[i]; st != nil {
+			st.mu.Lock()
+			refs[i] = st.roots[root.Name]
+			st.mu.Unlock()
+		}
+		if block_gc.SameRef(refs[i], root.Ref) && !refs[i].GetEmpty() {
 			out = append(out, root)
 		}
 	}

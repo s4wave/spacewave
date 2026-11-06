@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/util/ulid"
@@ -18,6 +19,10 @@ type openStage struct {
 	// released records that the stage's release was called; the next changing
 	// direct transaction releases its roots.
 	released bool
+	// mu guards roots, apart from rootPinMu, so a staged batch's lookups never
+	// hold the lock every changing transaction takes. It is taken after
+	// rootPinMu, never before.
+	mu sync.Mutex
 	// roots are the roots the stage's committed transactions hold, by name.
 	// Renewal holds a root again from here when a collector released it for
 	// a lapsed lease while the stage was open, and a put releases a root it
@@ -32,32 +37,58 @@ type openStage struct {
 // errStageLost rejects a write through a stage that lost a root it held.
 var errStageLost = errors.Wrap(block.ErrStageReleased, "stage lost a root it held while its process stalled past the lease and grace period")
 
-// stageHeld returns the roots the stage's record holds on the entries and
-// the blocks they name, reading only those, not every root the stage holds.
-func (v *Volume) stageHeld(stage string, entries []*block.PutBatchEntry) map[string]*block.BlockRef {
-	// Find the open stage under the pin lock.
+// stageNames are the root names a staged batch touches, each encoded once
+// and outside any lock.
+type stageNames struct {
+	// put names the root that holds each entry.
+	put map[string]*block.BlockRef
+	// named names the roots on the blocks the entries name.
+	named map[string]struct{}
+}
+
+// newStageNames names the roots of entries and of the blocks they name.
+func newStageNames(stage string, entries []*block.PutBatchEntry) stageNames {
+	n := stageNames{put: make(map[string]*block.BlockRef), named: make(map[string]struct{})}
+	for _, entry := range entries {
+		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
+			continue
+		}
+		n.put[stageRootName(stage, entry.Ref)] = entry.Ref
+		for _, child := range entry.Refs {
+			n.named[stageRootName(stage, child)] = struct{}{}
+		}
+	}
+	return n
+}
+
+// openStageNamed returns the open stage named stage, or nil.
+func (v *Volume) openStageNamed(stage string) *openStage {
 	unlock, _ := v.rootPinMu.Lock(context.Background())
 	defer unlock()
-	st := v.stages[stage]
+	return v.stages[stage]
+}
+
+// stageHeld returns the roots the stage's record holds among names, reading
+// only those, not every root the stage holds, under the stage's own lock.
+func (v *Volume) stageHeld(stage string, names stageNames) map[string]*block.BlockRef {
+	// Find the open stage.
+	st := v.openStageNamed(stage)
 	if st == nil {
 		return nil
 	}
 
-	// Look up the root of each entry and each block it names.
+	// Look up each name under the stage's lock.
 	held := make(map[string]*block.BlockRef)
-	note := func(ref *block.BlockRef) {
-		name := stageRootName(stage, ref)
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	for name := range names.put {
 		if root, ok := st.roots[name]; ok {
 			held[name] = root
 		}
 	}
-	for _, entry := range entries {
-		if entry == nil || entry.Tombstone {
-			continue
-		}
-		note(entry.Ref)
-		for _, child := range entry.Refs {
-			note(child)
+	for name := range names.named {
+		if root, ok := st.roots[name]; ok {
+			held[name] = root
 		}
 	}
 	return held
@@ -73,17 +104,17 @@ func (v *Volume) loseStage(stage string) {
 }
 
 // noteStageRoots records the root moves a committed transaction of stage
-// made, under the pin lock.
+// made, under the stage's lock.
 func (v *Volume) noteStageRoots(stage string, moves []block.NamedRoot) {
-	// Find the open stage under the pin lock.
-	unlock, _ := v.rootPinMu.Lock(context.Background())
-	defer unlock()
-	st := v.stages[stage]
+	// Find the open stage.
+	st := v.openStageNamed(stage)
 	if st == nil {
 		return
 	}
 
 	// Apply each move to its record.
+	st.mu.Lock()
+	defer st.mu.Unlock()
 	for _, move := range moves {
 		if move.Ref.GetEmpty() {
 			delete(st.roots, move.Name)
@@ -244,8 +275,8 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 	// Store the entries and move the stage's roots in one transaction, then
 	// record the moves. A root the stage's record holds that the table no
 	// longer does refuses the put, and the stage is lost.
-	held := v.stageHeld(stage, entries)
-	roots := stageMoves(stage, held, entries, v.leaseExpiry())
+	names := newStageNames(stage, entries)
+	roots := stageMoves(names, v.stageHeld(stage, names), v.leaseExpiry())
 	var existed []bool
 	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
 		var err error
@@ -262,27 +293,15 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 	return existed, err
 }
 
-// stageMoves returns the root moves that hold each entry under stage and
-// release the stage's roots on the blocks the entries name. held is the
-// stage's record of its roots on those blocks: a release carries the record's block as its
-// Previous, so a root a collector took refuses the put rather than leaving the
-// parent over a freed block.
-func stageMoves(stage string, held map[string]*block.BlockRef, entries []*block.PutBatchEntry, expires time.Time) []block.NamedRoot {
-	// Find the entries and the blocks they name.
-	put := make(map[string]*block.BlockRef)
-	named := make(map[string]struct{})
-	for _, entry := range entries {
-		if entry == nil || entry.Tombstone || len(entry.Data) == 0 {
-			continue
-		}
-		put[stageRootName(stage, entry.Ref)] = entry.Ref
-		for _, child := range entry.Refs {
-			named[stageRootName(stage, child)] = struct{}{}
-		}
-	}
-
+// stageMoves returns the root moves that hold each entry of a staged batch
+// and release the stage's roots on the blocks the entries name. held is the
+// stage's record of its roots among names: a release carries the record's
+// block as its Previous, so a root a collector took refuses the put rather
+// than leaving the parent over a freed block.
+func stageMoves(names stageNames, held map[string]*block.BlockRef, expires time.Time) []block.NamedRoot {
 	// Hold each entry the stage does not hold yet, unless another entry
 	// names it.
+	put, named := names.put, names.named
 	var roots []block.NamedRoot
 	for _, name := range slices.Sorted(maps.Keys(put)) {
 		_, isNamed := named[name]
