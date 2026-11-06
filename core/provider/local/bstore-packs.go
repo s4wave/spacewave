@@ -15,8 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// packLinger rotates a store's open pack once its first batch is this old, so
-// a trickle of writes still finalizes into a pack that can upload.
+// packLinger is the default PackaheadConfig.Linger.
 const packLinger = 30 * time.Second
 
 // PackaheadConfig keeps the new values of an account's block stores in
@@ -34,6 +33,10 @@ type PackaheadConfig struct {
 	// read cache. Beyond it the oldest uploaded packs are deleted, and their
 	// blocks read from the backend. Zero keeps every pack.
 	KeepBytes int64
+	// Linger rotates a store's open pack once its first batch is this old, so
+	// a trickle of writes still finalizes into a pack that can upload. Zero
+	// uses 30 seconds.
+	Linger time.Duration
 }
 
 // packaheads maps the storage volume ID of an account to the
@@ -78,7 +81,11 @@ func (t *bstoreTracker) openPacks(ctx context.Context, le *logrus.Entry, local b
 
 	// Open the store's log in its own directory.
 	dir := filepath.Join(conf.Dir, url.PathEscape(t.id))
-	log, err := packahead.Open(ctx, dir, packahead.Options{Linger: packLinger})
+	linger := conf.Linger
+	if linger <= 0 {
+		linger = packLinger
+	}
+	log, err := packahead.Open(ctx, dir, packahead.Options{Linger: linger})
 	if err != nil {
 		return nil, errors.Wrap(err, "open packahead")
 	}

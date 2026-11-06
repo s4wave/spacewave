@@ -265,7 +265,8 @@ func (t *bstoreTracker) runUpload(
 	if drain != nil {
 		if packRemote, ok := remote.store.(packahead.Remote); ok {
 			eg.Go(func() error {
-				return drain.Run(egCtx, packRemote)
+				t.runDrain(egCtx, drain, packRemote)
+				return nil
 			})
 		} else {
 			t.a.le.WithField("bstore-id", t.id).Warn("storage backend takes no packfiles, keeping the packahead log local")
@@ -276,6 +277,27 @@ func (t *bstoreTracker) runUpload(
 		t.swapRemote(nil)
 	}
 	return err
+}
+
+// drainRetryDelay is how long a failed pack drain waits before it retries.
+const drainRetryDelay = 5 * time.Second
+
+// runDrain drains the store's packahead log to remote until ctx ends,
+// retrying after a failed step, so a pack the backend refuses never stops
+// the queued block upload beside it.
+func (t *bstoreTracker) runDrain(ctx context.Context, drain *packahead.Drain, remote packahead.Remote) {
+	for {
+		err := drain.Run(ctx, remote)
+		if ctx.Err() != nil {
+			return
+		}
+		t.a.le.WithError(err).WithField("bstore-id", t.id).Warn("packahead drain failed, retrying")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(drainRetryDelay):
+		}
+	}
 }
 
 // openBackendStore opens the backend's bucket with its credential Secret.

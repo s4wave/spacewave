@@ -19,4 +19,7 @@ type PackInfo struct {
 	// FirstAt is when the pack's first batch was written, or zero for a pack
 	// loaded at Open.
 	FirstAt time.Time
+	// Uploaded is set once MarkUploaded recorded that the remote holds the
+	// pack. It is not stored: after Open every pack starts not uploaded.
+	Uploaded bool
 }

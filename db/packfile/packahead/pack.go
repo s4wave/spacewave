@@ -65,6 +65,8 @@ type pack struct {
 	blocks int
 	// bloom is a finalized pack's serialized bloom filter.
 	bloom []byte
+	// uploaded is set once the Log's remote holds the finalized pack.
+	uploaded bool
 }
 
 // packState is a pack's place in its life.

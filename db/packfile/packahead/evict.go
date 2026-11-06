@@ -68,21 +68,32 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 	return nil
 }
 
-// HoldsBefore reports whether a pack that skip does not exclude holds a
-// value whose batch was written before at. A pack loaded at Open has no
-// write time and counts as written before any at. skip gets each pack's seq
-// and whether it is finalized.
-func (l *Log) HoldsBefore(at time.Time, skip func(seq uint64, final bool) bool) bool {
+// MarkUploaded records that the Log's remote holds finalized pack seq, so a
+// Drain may evict it. A Log drains to one remote, so the mark
+// means that remote.
+func (l *Log) MarkUploaded(seq uint64) {
+	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		for _, p := range l.packs {
+			if p.seq == seq && p.state == packFinal && !p.uploaded {
+				p.uploaded = true
+				broadcast()
+				return
+			}
+		}
+	})
+}
+
+// HoldsBefore reports whether a pack not marked uploaded holds a value whose
+// batch was written before at. A pack loaded at Open has no write time and
+// counts as written before any at.
+func (l *Log) HoldsBefore(at time.Time) bool {
 	var held bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, p := range append(slices.Clone(l.packs), l.open) {
-			if p == nil || p.state == packGone || (p.state != packFinal && len(p.entries) == 0) {
+			if p == nil || p.state == packGone || p.uploaded || (p.state != packFinal && len(p.entries) == 0) {
 				continue
 			}
 			if !p.firstAt.IsZero() && !p.firstAt.Before(at) {
-				continue
-			}
-			if skip != nil && skip(p.seq, p.state == packFinal) {
 				continue
 			}
 			held = true

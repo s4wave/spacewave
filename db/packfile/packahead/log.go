@@ -629,7 +629,7 @@ func (l *Log) GetPacks() ([]PackInfo, <-chan struct{}) {
 	l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		for _, p := range l.packs {
 			if p.state == packFinal {
-				infos = append(infos, PackInfo{Seq: p.seq, ID: p.id, Path: p.path, Size: p.written, Blocks: p.blocks, BloomFilter: p.bloom, FirstAt: p.firstAt})
+				infos = append(infos, PackInfo{Seq: p.seq, ID: p.id, Path: p.path, Size: p.written, Blocks: p.blocks, BloomFilter: p.bloom, FirstAt: p.firstAt, Uploaded: p.uploaded})
 			}
 		}
 		waitCh = getWaitCh()
