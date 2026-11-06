@@ -2,6 +2,7 @@ package block_gc
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/binary"
 	"slices"
@@ -257,14 +258,22 @@ func normalizeChildren(children []*block.BlockRef) []*block.BlockRef {
 			out = append(out, child)
 		}
 	}
-	slices.SortFunc(out, func(a, b *block.BlockRef) int {
-		return bytes.Compare(BlockKey(a), BlockKey(b))
-	})
+	slices.SortFunc(out, compareRefs)
 
 	// Drop the duplicates.
 	return slices.CompactFunc(out, func(a, b *block.BlockRef) bool {
-		return bytes.Equal(BlockKey(a), BlockKey(b))
+		return compareRefs(a, b) == 0
 	})
+}
+
+// compareRefs orders a and b as their block keys, from their hash type and
+// digest in place, without building either key.
+func compareRefs(a, b *block.BlockRef) int {
+	ha, hb := a.GetHash(), b.GetHash()
+	if c := cmp.Compare(byte(ha.GetHashType()), byte(hb.GetHashType())); c != 0 { //nolint:gosec // hash types fit in a byte.
+		return c
+	}
+	return bytes.Compare(ha.GetHash(), hb.GetHash())
 }
 
 // DecodeChildren decodes a child list value.
