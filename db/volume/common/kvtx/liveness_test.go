@@ -66,6 +66,16 @@ func openLivenessVolume(t *testing.T, store *store_kvtx_inmem.Store, frees bool)
 	return v, clk
 }
 
+// openUnadoptedVolume opens a Volume over store, which predates adoption,
+// with the collector's frees on and no background adoption, so the test
+// drives the adoption itself.
+func openUnadoptedVolume(t *testing.T, store *store_kvtx_inmem.Store) (*Volume, *testClock) {
+	t.Helper()
+	v, clk := openLivenessVolume(t, store, false)
+	v.collector = v.newCollector(true, 0)
+	return v, clk
+}
+
 // testTree is a set of blocks a test builds bottom up, each named.
 type testTree map[string]*block.PutBatchEntry
 
@@ -772,20 +782,20 @@ func TestLivenessAdversarial(t *testing.T) {
 		// main holds C on an unadopted Volume. While an adoption settles its
 		// counts, after it counted the child lists, a cache fill stores F
 		// naming C, with a fill record that holds C and takes F's implied
-		// holder back. The settle scan counts F's list too and finds F with
-		// no holder, so the fill record's down underflows and keeps F, and C
-		// gains a second holder from F: a fill during an adoption is counted
-		// twice and kept, and C is never freed under main.
+		// holder back. The adoption treats F as born and leaves it to its
+		// record. A root r then moves onto F: whichever of the journal and
+		// the fill record nets first, F stays while r holds it, and once r is
+		// released F goes and C stays under main.
 		store := store_kvtx_inmem.NewStore()
 		setUnadopted(t, store)
-		v, clk := openLivenessVolume(t, store, true)
+		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
 		tr := testTree{}
 		c := tr.add(t, "C")
 		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), []block.NamedRoot{{Name: "main", Ref: c}}); err != nil {
 			t.Fatal(err)
 		}
-		tr.add(t, "F", "C")
+		f := tr.add(t, "F", "C")
 		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
 			adoptSettle: func() {
 				if _, _, err := v.PrepareOwnedBlock(ctx, "", tr["F"].Data, &block.PutOpts{Refs: tr["F"].Refs, RefsKnown: true, CacheFill: true}); err != nil {
@@ -796,10 +806,93 @@ func TestLivenessAdversarial(t *testing.T) {
 		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
 			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
 		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "r", Ref: f}}); err != nil {
+			t.Fatal(err)
+		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "C", "F")
-		requireAudit(t, v, 1)
+		requireAudit(t, v, 0)
+
+		// Released, F goes and C stays.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "r", Previous: f}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "F")
+		requireStored(t, v, tr, true, "C")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("background adoption", func(t *testing.T) {
+		// An unadopted Volume holding main -> R -> X and an unheld G opens
+		// with frees on and adopts itself in the background: R and X stay
+		// and G goes after the grace period.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v1, _ := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		r := tr.add(t, "R", "X")
+		tr.add(t, "G")
+		if err := v1.SetBucketRoots(ctx, "b", tr.entries("X", "R"), []block.NamedRoot{{Name: "main", Ref: r}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := v1.PutBlockBatch(ctx, tr.entries("G")); err != nil {
+			t.Fatal(err)
+		}
+		if err := v1.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// Reopen with frees on and wait for the adoption.
+		v, clk := openLivenessVolume(t, store, true)
+		if v.adoptDone == nil {
+			t.Fatal("an unadopted Volume opened with frees on started no adoption")
+		}
+		<-v.adoptDone
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X")
+		requireStored(t, v, tr, false, "G")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("cache fill of a held block during an adoption", func(t *testing.T) {
+		// main holds P on an unadopted Volume, and P names B, which the
+		// Volume lacks. While an adoption runs, before it settles, a read
+		// fills B. The adoption counts P's holder of B and leaves B to its
+		// fill record, so after the grace period B keeps P's holder.
+		store := store_kvtx_inmem.NewStore()
+		setUnadopted(t, store)
+		v, clk := openUnadoptedVolume(t, store)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "B")
+		p := tr.add(t, "P", "B")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptSettle: func() {
+				err := v.withDirectFill(ctx, func(px *physicalTx) error {
+					_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("B"))
+					return err
+				})
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		}}
+		if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+			t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P", "B")
+		requireAudit(t, v, 0)
 	})
 
 	t.Run("record larger than a slice", func(t *testing.T) {
@@ -1016,7 +1109,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// A Volume that predates adoption journals and frees nothing.
 		store := store_kvtx_inmem.NewStore()
 		setUnadopted(t, store)
-		v, clk := openLivenessVolume(t, store, true)
+		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "E")
@@ -1156,7 +1249,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if err := tx.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
-		v, clk := openLivenessVolume(t, store, true)
+		v, clk := openUnadoptedVolume(t, store)
 		if _, err := v.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnverified) {
 			t.Fatalf("adopt of an incomplete list = %v, want ErrAdoptUnverified", err)
 		}
@@ -1237,7 +1330,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// counts: B's claim superseded it, and nothing main reaches is freed.
 		store := store_kvtx_inmem.NewStore()
 		setUnadopted(t, store)
-		v, clk := openLivenessVolume(t, store, true)
+		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "X")
@@ -1297,7 +1390,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// adoption stands, and nothing main reaches is freed.
 		store := store_kvtx_inmem.NewStore()
 		setUnadopted(t, store)
-		v, clk := openLivenessVolume(t, store, true)
+		v, clk := openUnadoptedVolume(t, store)
 		ctx := t.Context()
 		tr := testTree{}
 		tr.add(t, "X")
@@ -1490,7 +1583,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	writeLegacyStore(t, store, keys, tr, "R1", true, "C", "R1")
 
 	// Open it: the lists and the root carry over, and it is unadopted.
-	v, _ := openLivenessVolume(t, store, true)
+	v, _ := openUnadoptedVolume(t, store)
 	if v.legacyDone != nil {
 		<-v.legacyDone
 	}
@@ -1535,7 +1628,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	// adoption and stays unadopted.
 	store2 := store_kvtx_inmem.NewStore()
 	writeLegacyStore(t, store2, keys, tr, "R1", false)
-	v2, _ := openLivenessVolume(t, store2, true)
+	v2, _ := openUnadoptedVolume(t, store2)
 	markListsVerified(t, v2)
 	if _, err := v2.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnknown) {
 		t.Fatalf("adopt of a listless root = %v, want ErrAdoptUnknown", err)
@@ -1552,7 +1645,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	tr3.add(t, "C")
 	b := tr3.add(t, "B", "C")
 	writeFormat7Fill(t, store3, keys, tr3, b)
-	v3, clk3 := openLivenessVolume(t, store3, true)
+	v3, clk3 := openUnadoptedVolume(t, store3)
 	err = v3.readRecords(ctx, func(rec *block_gc.Records) error {
 		state, err := rec.GetState(ctx)
 		if err == nil && state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED {

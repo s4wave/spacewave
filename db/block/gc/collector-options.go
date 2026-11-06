@@ -15,7 +15,10 @@ const (
 // CollectorOptions adjusts a Collector.
 type CollectorOptions struct {
 	// Frees turns freeing on. With it off, a pass releases lapsed leases and
-	// nets the journal, and frees nothing.
+	// nets the journal, and frees nothing. A Volume whose collector frees
+	// adopts itself in the background when it opens unadopted, such as one
+	// upgraded from an older format; with Frees off it stays unadopted, since
+	// nothing reads exact counts until frees turn on.
 	Frees bool
 	// Grace is how old a journal record must be before a pass nets it. It
 	// must exceed the time a reader takes to pin a head it saw and the lease

@@ -98,8 +98,14 @@ func (r *Records) fillRecordKey(at int64, ref []byte) []byte {
 	return r.key(kindFillRecord, binary.BigEndian.AppendUint64(nil, uint64(at)), ref) //nolint:gosec // times after 1970.
 }
 
-// putFillRecord writes the fill record of ref, which names children, with the
-// hold index entry of each child.
+// fillBornKey returns the key of the fill-born index entry of the record of
+// the block at key stamped at.
+func (r *Records) fillBornKey(key []byte, at int64) []byte {
+	return r.key(kindFillBorn, key, binary.BigEndian.AppendUint64(nil, uint64(at))) //nolint:gosec // times after 1970.
+}
+
+// putFillRecord writes the fill record of ref, which names children, with its
+// fill-born index entry and the hold index entry of each child, all blind.
 func (r *Records) putFillRecord(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef, now time.Time) error {
 	// Write the record.
 	key := BlockKey(ref)
@@ -112,6 +118,9 @@ func (r *Records) putFillRecord(ctx context.Context, ref *block.BlockRef, childr
 		return err
 	}
 	if err := r.tx.Set(ctx, r.fillRecordKey(fr.GetAtUnixMilli(), key), value); err != nil {
+		return err
+	}
+	if err := r.tx.Set(ctx, r.fillBornKey(key, fr.GetAtUnixMilli()), nil); err != nil {
 		return err
 	}
 
@@ -137,11 +146,17 @@ type fillRecord struct {
 // scanFillRecords calls fn with each fill record in time order, until fn
 // returns false or an error.
 func (r *Records) scanFillRecords(ctx context.Context, fn func(fr fillRecord) (bool, error)) error {
-	// Walk the records in key order, which is time order.
+	return r.scanFillRecordsFrom(ctx, 0, fn)
+}
+
+// scanFillRecordsFrom calls fn with each fill record stamped at from or
+// later, in time order, until fn returns false or an error.
+func (r *Records) scanFillRecordsFrom(ctx context.Context, from int64, fn func(fr fillRecord) (bool, error)) error {
+	// Walk the records in key order, which is time order, from from.
 	prefix := r.key(kindFillRecord)
 	it := r.tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
-	if err := it.Seek(prefix); err != nil {
+	if err := it.Seek(r.fillRecordKey(from, nil)); err != nil {
 		return err
 	}
 	for ; it.Valid(); it.Next() {
@@ -168,15 +183,60 @@ func (r *Records) scanFillRecords(ctx context.Context, fn func(fr fillRecord) (b
 	return it.Err()
 }
 
-// deleteFillRecord deletes a fill record and the hold index entries of its
-// up pairs.
+// deleteFillRecord deletes a fill record with its fill-born index entry and
+// the hold index entries of its up pairs, so no index entry outlives its
+// record.
 func (r *Records) deleteFillRecord(ctx context.Context, fr fillRecord) error {
 	for _, up := range fr.rec.GetUp() {
 		if err := r.tx.Delete(ctx, r.key(kindFillHold, up, fr.filled)); err != nil {
 			return err
 		}
 	}
+	if err := r.tx.Delete(ctx, r.fillBornKey(fr.filled, fr.rec.GetAtUnixMilli())); err != nil {
+		return err
+	}
 	return r.tx.Delete(ctx, fr.key)
+}
+
+// restampFillRecord moves a fill record stamped after now to now, with its
+// index entries, so it ages from the time the collector first saw it.
+func (r *Records) restampFillRecord(ctx context.Context, fr fillRecord, now int64) error {
+	// Delete the record at its old time.
+	if err := r.deleteFillRecord(ctx, fr); err != nil {
+		return err
+	}
+
+	// Write it again at now.
+	moved := fr.rec.CloneVT()
+	moved.AtUnixMilli = now
+	value, err := moved.MarshalVT()
+	if err != nil {
+		return err
+	}
+	if err := r.tx.Set(ctx, r.fillRecordKey(now, fr.filled), value); err != nil {
+		return err
+	}
+	if err := r.tx.Set(ctx, r.fillBornKey(fr.filled, now), nil); err != nil {
+		return err
+	}
+	for _, up := range moved.GetUp() {
+		if err := r.tx.Set(ctx, r.key(kindFillHold, up, fr.filled), nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// fillBorn reports whether a fill record not netted yet gave birth to ref.
+func (r *Records) fillBorn(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Look for a fill-born index entry under ref.
+	prefix := r.key(kindFillBorn, BlockKey(ref))
+	it := r.tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+	if err := it.Seek(prefix); err != nil {
+		return false, err
+	}
+	return it.Valid(), it.Err()
 }
 
 // fillHeld reports whether a fill record not netted yet holds ref.

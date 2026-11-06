@@ -105,6 +105,10 @@ type Volume struct {
 	legacyCancel context.CancelFunc
 	// legacyDone closes when the legacy graph sweep has stopped.
 	legacyDone chan struct{}
+	// adoptCancel stops the background adoption, nil without one.
+	adoptCancel context.CancelFunc
+	// adoptDone closes when the background adoption has stopped.
+	adoptDone chan struct{}
 	// proofMu guards the pending root proofs and the free count. It is never
 	// held across a volume transaction.
 	proofMu sync.Mutex
@@ -209,17 +213,23 @@ func NewVolume(
 		if err != nil {
 			return nil, volume.Permanent(err)
 		}
-		v.collector = block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
-			Frees: conf.GetCollectorFrees(),
-			Grace: grace,
-			Now:   v.now,
-			Phase: v.collectorPhase,
-		})
+		v.collector = v.newCollector(conf.GetCollectorFrees(), grace)
 		if err := v.startLiveness(ctx); err != nil {
 			return nil, err
 		}
 	}
 	return v, nil
+}
+
+// newCollector returns the collector of the Volume, which frees when frees is
+// set, with grace as its grace period, zero for the default.
+func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collector {
+	return block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+		Frees: frees,
+		Grace: grace,
+		Now:   v.now,
+		Phase: v.collectorPhase,
+	})
 }
 
 // parseGrace parses the collector's grace period, zero for the default. It
@@ -267,6 +277,15 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 		if err := block_gc.ResetAdoption(ctx, collectorStore{v: v}); err != nil {
 			return err
 		}
+	}
+
+	// Adopt an unadopted Volume in the background when its collector frees,
+	// as CollectorFrees describes: frees need exact counts, and without them
+	// nothing reads the counts.
+	if v.collector.Frees() && state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED {
+		adoptCtx, cancelAdopt := context.WithCancel(context.WithoutCancel(ctx))
+		v.adoptCancel, v.adoptDone = cancelAdopt, make(chan struct{})
+		go v.runBackgroundAdopt(adoptCtx)
 	}
 
 	// Sweep an old graph's records when they remain.
@@ -682,6 +701,10 @@ func (v *Volume) Close() error {
 	if v.legacyCancel != nil {
 		v.legacyCancel()
 		<-v.legacyDone
+	}
+	if v.adoptCancel != nil {
+		v.adoptCancel()
+		<-v.adoptDone
 	}
 	if v.renewCancel != nil {
 		v.renewCancel()
