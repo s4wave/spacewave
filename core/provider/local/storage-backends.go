@@ -391,6 +391,7 @@ func watchTrackerUploadStatus(ctx context.Context, tkr *bstoreTracker, fn func(U
 func watchHandleUploadStatus(ctx context.Context, bs *BlockStore, fn func(UploadStatus) error) error {
 	for {
 		status, changed := bs.GetUploadStatus()
+		_, packsChanged := bs.GetPackStatus()
 		if err := fn(status); err != nil {
 			return err
 		}
@@ -398,6 +399,7 @@ func watchHandleUploadStatus(ctx context.Context, bs *BlockStore, fn func(Upload
 		case <-ctx.Done():
 			return context.Canceled
 		case <-changed:
+		case <-packsChanged:
 		}
 	}
 }

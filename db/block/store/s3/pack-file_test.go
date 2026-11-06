@@ -115,6 +115,9 @@ func TestPackStoreDrain(t *testing.T) {
 	if drain.UploadedBefore(written) || len(waitPacks(log, 1)) != 1 {
 		t.Fatal("failed upload reported uploaded or evicted")
 	}
+	if st, _ := drain.Status(); st.Pending != 1 || st.PendingBytes != infos[0].Size || st.LocalBytes != infos[0].Size {
+		t.Fatalf("status after a failed upload = %+v", st)
+	}
 	for _, ref := range refs {
 		if !log.Has(packfile.BlockKey(ref.GetHash())) {
 			t.Fatalf("Log lost %s after a failed upload", ref.MarshalString())
@@ -149,6 +152,9 @@ func TestPackStoreDrain(t *testing.T) {
 	<-done
 	if !drain.UploadedBefore(later) {
 		t.Fatal("drained Log not reported uploaded")
+	}
+	if st, _ := drain.Status(); st != (packahead.DrainStatus{}) {
+		t.Fatalf("status after the drain = %+v", st)
 	}
 	if got := remote.puts.Load(); got != 1 {
 		t.Fatalf("drain uploaded %d packs, want the 1 the store lacked", got)

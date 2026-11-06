@@ -27,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/packfile/packahead"
 )
 
 // backfillKey names the remote whose backfill completed.
@@ -119,24 +118,21 @@ func NewStore(
 	return newStore(ctx, local, values, markers, markersID, enabled, false)
 }
 
-// NewStoreWithPacks builds a Store as NewStore does that reads packs, a
-// packahead Log, before local. With divert set its new values go to packs
-// through a PackedStore: they get no marker, since a finalized pack is their
-// upload queue entry, and the Volume holds only their child lists.
-// The blocks local held before, and the cache fills, keep the marker path,
-// as every write does with divert unset. The pack drain that uploads
-// finalized packs is not built yet, so a Store placed on a remote must not
-// divert.
+// NewStoreWithPacks builds a Store as NewStore does over packed, which reads
+// its packahead Log before its local store. While packed diverts, its new
+// values go to the Log: they get no marker, since a finalized pack is their
+// upload queue entry, uploaded by a packahead Drain, and the Volume holds only
+// their child lists. The blocks local held before, and the cache fills, keep
+// the marker path, as every write does while packed does not divert.
 func NewStoreWithPacks(
 	ctx context.Context,
-	local, values block.StoreOps,
+	packed *PackedStore,
+	values block.StoreOps,
 	markers kvtx.Store,
 	markersID string,
 	enabled bool,
-	packs *packahead.Log,
-	divert bool,
 ) (*Store, error) {
-	return newStore(ctx, NewPackedStore(packs, local, divert), values, markers, markersID, enabled, divert)
+	return newStore(ctx, packed, values, markers, markersID, enabled, packed.divert)
 }
 
 // newStore builds the Store over writes, which marks nothing when divert is

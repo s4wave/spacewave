@@ -27,7 +27,7 @@ func TestPackedStore(t *testing.T) {
 		t.Fatal(err)
 	}
 	open := func(divert bool) *Store {
-		s, err := NewStoreWithPacks(ctx, ownedStore{env.vol}, env.vol, env.markers(t), testMarkersID, true, log, divert)
+		s, err := NewStoreWithPacks(ctx, NewPackedStore(log, ownedStore{env.vol}, divert), env.vol, env.markers(t), testMarkersID, true)
 		if err != nil {
 			t.Fatal(err)
 		}

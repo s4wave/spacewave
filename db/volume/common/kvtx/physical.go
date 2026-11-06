@@ -126,7 +126,9 @@ func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpt
 
 // PutBlockBatch refuses a batch holding a new block without its references,
 // then records the batch's tombstones, writes the batch and marks its blocks,
-// also those that existed, for a write that asked for marking.
+// also those that existed, for a write that asked for marking. An external
+// entry is not marked: its bytes stay in the caller's store, which uploads
+// them.
 func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Refuse a new block without its references.
 	if err := requireRefsKnown(ctx, r.StoreOps, entries); err != nil {
@@ -144,7 +146,7 @@ func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchE
 			r.record(entry.Ref)
 			continue
 		}
-		if asked && !entry.Ref.GetEmpty() {
+		if asked && !entry.Ref.GetEmpty() && !entry.External {
 			marks = append(marks, kvtx.BlockMark{Hash: entry.Ref.GetHash(), Size: int64(len(entry.Data))})
 		}
 	}

@@ -42,15 +42,62 @@ type Drain struct {
 	log *Log
 	// opts are the options.
 	opts DrainOptions
-	// mtx guards uploaded.
+	// mtx guards uploaded and changed.
 	mtx sync.Mutex
 	// uploaded holds the seqs of the finalized packs the remote holds.
 	uploaded map[uint64]struct{}
+	// changed closes when Run next uploads, evicts or sees the packs change.
+	changed chan struct{}
+}
+
+// DrainStatus counts a Drain's finalized local packs.
+type DrainStatus struct {
+	// Pending counts the packs not yet known uploaded.
+	Pending int
+	// PendingBytes is the size of the pending packs.
+	PendingBytes int64
+	// LocalBytes is the size of every finalized pack still local, uploaded
+	// or not.
+	LocalBytes int64
+	// Oldest is when the oldest pending pack's first batch was written, zero
+	// with none pending or for a pack loaded at Open.
+	Oldest time.Time
 }
 
 // NewDrain builds a Drain of log.
 func NewDrain(log *Log, opts DrainOptions) *Drain {
-	return &Drain{log: log, opts: opts, uploaded: make(map[uint64]struct{})}
+	return &Drain{log: log, opts: opts, uploaded: make(map[uint64]struct{}), changed: make(chan struct{})}
+}
+
+// Status reports the Drain's finalized packs, and a channel that closes when
+// Run next uploads or evicts a pack or sees the Log's packs change. Without
+// Run the channel stays open.
+func (d *Drain) Status() (DrainStatus, <-chan struct{}) {
+	// Read the packs, then sum them by whether they uploaded.
+	packs, _ := d.log.GetPacks()
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	var st DrainStatus
+	for _, p := range packs {
+		st.LocalBytes += p.Size
+		if _, ok := d.uploaded[p.Seq]; ok {
+			continue
+		}
+		if st.Pending == 0 {
+			st.Oldest = p.FirstAt
+		}
+		st.Pending++
+		st.PendingBytes += p.Size
+	}
+	return st, d.changed
+}
+
+// notify wakes the Status watchers.
+func (d *Drain) notify() {
+	d.mtx.Lock()
+	close(d.changed)
+	d.changed = make(chan struct{})
+	d.mtx.Unlock()
 }
 
 // Run uploads finalized packs to remote, oldest first, and evicts uploaded
@@ -70,12 +117,14 @@ func (d *Drain) Run(ctx context.Context, remote Remote) error {
 				return ctx.Err()
 			case <-changed:
 			}
+			d.notify()
 			continue
 		}
 		sent, err := d.upload(ctx, remote, next, last)
 		if err != nil {
 			return err
 		}
+		d.notify()
 		last = sent
 	}
 }
