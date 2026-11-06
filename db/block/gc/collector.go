@@ -74,10 +74,12 @@ import (
 //     their hold index, so a fill that landed after the block was queued
 //     keeps it. A fill that lands after the free names a block no stored
 //     block reached when it was freed; a read fills it again. A fill record
-//     stamped after the collector's clock waits until the clock passes it,
-//     since no other record queues behind it. While the Volume is unadopted
-//     the collector deletes the fill records, which the adoption's count of
-//     every child list replaces.
+//     stamped after the collector's clock is restamped with it, as a
+//     journal record is. While the Volume is unadopted the collector deletes
+//     the fill records, which the adoption's count of every child list
+//     replaces; a fill that lands while the Volume adopts has its block
+//     treated as born, so the adoption neither counts its children nor
+//     settles it, and its record supplies both.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -161,6 +163,11 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		res.More, err = c.free(ctx, &res, deadline)
 	}
 	return res, err
+}
+
+// Frees reports whether the collector frees.
+func (c *Collector) Frees() bool {
+	return c.opts.Frees
 }
 
 // phase reports the start of p and returns the func that ends it.
@@ -371,8 +378,25 @@ func (c *Collector) netFillSlice(ctx context.Context, res *CollectResult) (bool,
 			return err
 		}
 
+		// Restamp the records stamped after the collector's clock, so each
+		// ages from the time the collector first saw it.
+		now := c.opts.Now().UnixMilli()
+		var future []fillRecord
+		err = rec.scanFillRecordsFrom(ctx, now+1, func(fr fillRecord) (bool, error) {
+			future = append(future, fr)
+			return len(future) < sliceRecords, nil
+		})
+		if err != nil {
+			return err
+		}
+		for _, fr := range future {
+			if err := rec.restampFillRecord(ctx, fr, now); err != nil {
+				return err
+			}
+		}
+
 		// Take the aged records from the oldest, within the slice's budgets.
-		horizon := c.opts.Now().UnixMilli() - c.opts.Grace.Milliseconds()
+		horizon := now - c.opts.Grace.Milliseconds()
 		budget := slicePairs
 		var taken []fillRecord
 		err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {

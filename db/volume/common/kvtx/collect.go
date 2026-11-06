@@ -131,6 +131,21 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	return block_gc.Adopt(backgroundPass(ctx), collectorStore{v: v})
 }
 
+// runBackgroundAdopt adopts the Volume once, in Adopt's bounded background
+// slices, and stops at the first failure, such as unverified child lists a
+// repair must verify first, or when ctx ends. An adoption another process
+// runs supersedes it, and that one finishes the work.
+func (v *Volume) runBackgroundAdopt(ctx context.Context) {
+	defer close(v.adoptDone)
+	res, err := v.Adopt(ctx)
+	switch {
+	case err != nil && ctx.Err() == nil && v.le != nil:
+		v.le.WithError(err).Warn("background adoption of the volume failed")
+	case err == nil && v.le != nil:
+		v.le.WithField("blocks", res.Blocks).WithField("queued", res.Queued).Info("adopted the volume")
+	}
+}
+
 // Audit walks from the Volume's named roots in one snapshot and compares the
 // walk with the counts and the free queue, as block_gc.Audit describes,
 // reporting the mark phase while it runs. It frees nothing.

@@ -108,7 +108,10 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	claimed := func(state *LivenessState) bool {
 		return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 	}
-	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark, kindFillRecord, kindFillHold); err != nil {
+	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark); err != nil {
+		return res, err
+	}
+	if err := clearFills(ctx, store, claimed); err != nil {
 		return res, err
 	}
 
@@ -249,7 +252,10 @@ func abandonAdopt(ctx context.Context, store Store, run string, cause error) err
 		abandoned := func(state *LivenessState) bool {
 			return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 		}
-		err = clearKinds(ctx, store, abandoned, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark, kindFillRecord, kindFillHold)
+		err = clearKinds(ctx, store, abandoned, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark)
+		if err == nil {
+			err = clearFills(ctx, store, abandoned)
+		}
 	}
 	if err != nil {
 		return errors.Wrapf(cause, "and returning the volume to unadopted failed: %v", err)
@@ -394,14 +400,24 @@ func (a *adoption) countRoots(ctx context.Context) error {
 	}
 }
 
-// listed returns the block of a child list record and whether Land gave
-// birth to it since the adoption began.
+// listed returns the block of a child list record and whether its holders come
+// from records past the adoption's start: Land gave birth to it since the
+// adoption began, or a fill record not netted yet did, which holds its
+// children and takes its implied holder back. Either way the adoption
+// neither counts its children nor settles it.
 func (a *adoption) listed(ctx context.Context, rec *Records, r adoptRecord) (*block.BlockRef, bool, error) {
+	// Decode the block.
 	ref, rest, err := ParseBlockKey(r.key)
 	if err != nil || len(rest) != 0 {
 		return nil, false, errBadBlockKey
 	}
+
+	// Read its born mark, then its fill-born index.
 	born, err := rec.AdoptBorn(ctx, ref)
+	if err != nil || born {
+		return ref, born, err
+	}
+	born, err = rec.fillBorn(ctx, ref)
 	return ref, born, err
 }
 
@@ -518,6 +534,51 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 		}
 
 		// Let a waiting writer in.
+		if err := context.Cause(ctx); err != nil {
+			return err
+		}
+	}
+}
+
+// clearFills deletes every fill record, each with its index entries in the
+// transaction that deletes it, sliceRecords per transaction while keep
+// accepts the state. A fill that lands during the clear keeps its record,
+// which the adoption then treats as a birth.
+func clearFills(ctx context.Context, store Store, keep func(*LivenessState) bool) error {
+	for {
+		// Delete the next records while keep accepts the state.
+		var n int
+		var stop bool
+		err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+			// Stop at a state keep refuses.
+			state, err := rec.GetState(ctx)
+			if err != nil {
+				return err
+			}
+			if stop = !keep(state); stop {
+				return nil
+			}
+
+			// Take the next records and delete them.
+			var taken []fillRecord
+			err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
+				taken = append(taken, fr)
+				return len(taken) < sliceRecords, nil
+			})
+			if err != nil {
+				return err
+			}
+			n = len(taken)
+			for _, fr := range taken {
+				if err := rec.deleteFillRecord(ctx, fr); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil || stop || n < sliceRecords {
+			return err
+		}
 		if err := context.Cause(ctx); err != nil {
 			return err
 		}

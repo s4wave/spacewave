@@ -66,6 +66,12 @@ const (
 	// and lets the collector's tail check find the fill records that hold a
 	// queued block with one indexed read.
 	kindFillHold byte = 'N'
+	// kindFillBorn keys a fill record not netted yet by the block it gave
+	// birth to, then the record's big-endian time. It holds no value and
+	// lasts as long as its record. An adoption treats a block with one as
+	// born, since the record supplies its children's holders and takes its
+	// own implied holder back.
+	kindFillBorn byte = 'M'
 	// kindVerified keys a block whose child list a list rebuild verified
 	// against the block's decoded refs, by the block. It holds no value and
 	// lasts until the rebuild clears the Volume's unverified lists mark.
