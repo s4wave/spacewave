@@ -2,9 +2,11 @@ package space_world
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -222,44 +224,9 @@ func TestTrimHoldsPagesLiveWorldsName(t *testing.T) {
 // runTrimHoldsPagesLiveWorldsName runs TestTrimHoldsPagesLiveWorldsName with
 // the released World held by the root named name.
 func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
-	// Open a bucket on an in-memory Volume that frees at once.
+	// Open an adapter on an in-memory Volume that frees at once.
 	ctx := t.Context()
-	log := logrus.New()
-	log.SetLevel(logrus.ErrorLevel)
-	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
-		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
-		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
-	cursor, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(cursor.Release)
-	vol := tb.Volume.(*volume_kvtx.Volume)
-	collect := func() {
-		t.Helper()
-		for range 16 {
-			res, err := vol.Collect(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !res.More {
-				return
-			}
-		}
-	}
-	a := &Adapter{
-		le:               logrus.NewEntry(log),
-		pages:            block.NewPendingStore(cursor.GetBucket(), 1<<20),
-		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
-	}
+	a, collect := newVolumeAdapter(t, 1<<20)
 
 	// Build three pages and a saved World over them.
 	put := func(name string, children ...*block.BlockRef) *block.BlockRef {
@@ -334,6 +301,129 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 			t.Fatalf("collection freed a page a live World names: %v, %v", found, err)
 		}
 	}
+}
+
+// newVolumeAdapter returns an adapter whose PendingStore keeps at most
+// maxPending bytes over a bucket of an in-memory Volume that frees at once,
+// and a function that collects the Volume.
+func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
+	// Open the bucket.
+	ctx := t.Context()
+	log := logrus.New()
+	log.SetLevel(logrus.ErrorLevel)
+	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
+		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cursor.Release)
+
+	// Build the adapter and the collection.
+	vol := tb.Volume.(*volume_kvtx.Volume)
+	collect := func() {
+		t.Helper()
+		for range 16 {
+			res, err := vol.Collect(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !res.More {
+				return
+			}
+		}
+	}
+	a := &Adapter{
+		le:               logrus.NewEntry(log),
+		pages:            block.NewPendingStore(cursor.GetBucket(), maxPending),
+		held:             make(map[string]*block.BlockRef),
+		checkpointWorlds: worldHistory{name: RootCheckpoint},
+		cursorWorlds:     worldHistory{name: RootReplayCursor},
+		pendingWorlds:    worldHistory{name: RootPending},
+	}
+	return a, collect
+}
+
+// TestAdmitWaitsOnlyForTheRootSwap checks, at two sizes of a checkpoint's
+// kept World, that a local write's payload hold landing while the driver
+// stores that World under the checkpoint root waits only for the root swap,
+// not for the store: its longest wait stays a small part of the store's time
+// and does not grow with the World.
+func TestAdmitWaitsOnlyForTheRootSwap(t *testing.T) {
+	type result struct{ wait, store time.Duration }
+	results := make(map[int]result)
+	for _, mib := range []int{4, 32} {
+		var r result
+		for range 3 {
+			wait, store := measureAdmitWait(t, mib)
+			r.wait, r.store = max(r.wait, wait), max(r.store, store)
+		}
+		t.Logf("checkpoint of %d MiB: store %v, longest payload hold wait %v", mib, r.store, r.wait)
+		results[mib] = r
+	}
+	large := results[32]
+	if large.wait > large.store/4 {
+		t.Fatalf("a payload hold waited %v behind a %v checkpoint store", large.wait, large.store)
+	}
+}
+
+// measureAdmitWait stores a kept World of mib MiB under the checkpoint root,
+// as Root does, and returns how long a payload hold, as Admit makes it, waited
+// once it landed during the store, and how long the store took.
+func measureAdmitWait(t *testing.T, mib int) (wait, store time.Duration) {
+	// Keep a World of mib MiB of 4 KiB pages, two levels deep, and a payload.
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, (mib+8)<<20)
+	put := func(data []byte, children ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: children, RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	var nodes []*block.BlockRef
+	page := make([]byte, 4<<10)
+	for n := range mib << 8 / 256 {
+		leaves := make([]*block.BlockRef, 256)
+		for i := range leaves {
+			binary.LittleEndian.PutUint64(page, uint64(n<<8|i)) //nolint:gosec // small and positive.
+			leaves[i] = put(slices.Clone(page))
+		}
+		nodes = append(nodes, put([]byte("node "+strconv.Itoa(n)), leaves...))
+	}
+	world := put([]byte("checkpoint World"), nodes...)
+	payload := put([]byte("payload"))
+	a.replay = &spaceReplay{a: a, base: &InnerState{}}
+	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: world}}}}
+
+	// Start the checkpoint's store, then hold the payload during it.
+	stored := make(chan error, 1)
+	start := time.Now()
+	go func() {
+		_, err := a.Root(ctx, 1)
+		stored <- err
+	}()
+	time.Sleep(2 * time.Millisecond)
+	adm := &spaceAdmission{payloads: []*block.BlockRef{payload}, done: make(chan struct{})}
+	held := time.Now()
+	if err := a.holdAdmitted(ctx, adm); err != nil {
+		t.Fatal(err)
+	}
+	wait = time.Since(held)
+	if err := <-stored; err != nil {
+		t.Fatal(err)
+	}
+	return wait, time.Since(start)
 }
 
 // TestTrimKeepsRestoredWorlds checks that an install at mount, before replay

@@ -36,6 +36,9 @@ import (
 //     it is given reaches it, no open stage or pin holds it, and it was kept
 //     before the sweep's mark.
 //   - A pin on a kept block holds its kept tree in memory, with no write.
+//   - A flushed block is stored under its Flush's stage until the Flush is
+//     released, so a SetRoots that skips it still names a block the inner
+//     store holds.
 type PendingStore struct {
 	// StoreOps is the inner store. Methods PendingStore does not override
 	// pass through to it.
@@ -50,6 +53,9 @@ type PendingStore struct {
 	// keeps a held block and what it reaches: its writer has not named its
 	// root yet.
 	held map[string]int
+	// flushed counts, by key, the open Flushes that stored each kept block
+	// under their stage. SetRoots puts no flushed block again.
+	flushed map[string]int
 	// keptAt is the put sequence at which each kept block was kept. A sweep
 	// drops only blocks kept before its mark.
 	keptAt map[string]uint64
@@ -64,7 +70,14 @@ type PendingStore struct {
 // NewPendingStore returns a PendingStore over inner that keeps at most
 // maxBytes of blocks in memory.
 func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
-	return &PendingStore{StoreOps: inner, kept: make(map[string]*PutBatchEntry), held: make(map[string]int), keptAt: make(map[string]uint64), maxBytes: maxBytes}
+	return &PendingStore{
+		StoreOps: inner,
+		kept:     make(map[string]*PutBatchEntry),
+		held:     make(map[string]int),
+		flushed:  make(map[string]int),
+		keptAt:   make(map[string]uint64),
+		maxBytes: maxBytes,
+	}
 }
 
 // Full reports whether the kept blocks reached half the bound, so the writer
@@ -325,7 +338,9 @@ func (s *PendingStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 // SetRoots stores entries and every kept block a moved root or an entry
 // reaches, and moves the roots, in one inner SetRoots, then drops the stored
 // blocks from memory. A root may name an entry, such as a new block naming
-// several kept trees, so the walk starts from each entry's children too.
+// several kept trees, so the walk starts from each entry's children too. A
+// block an open Flush stored is not put again: its stage holds it until the
+// move names it.
 func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
 	// Gather the kept trees under the moved roots and the entries.
 	refs := make([]*BlockRef, 0, len(roots))
@@ -338,7 +353,7 @@ func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, r
 	tree, keys := s.reach(refs)
 
 	// Store them with the entries and move the roots.
-	if err := s.StoreOps.SetRoots(ctx, slices.Concat(entries, tree), roots); err != nil {
+	if err := s.StoreOps.SetRoots(ctx, slices.Concat(entries, s.unflushed(tree, keys)), roots); err != nil {
 		return err
 	}
 	s.drop(keys)
