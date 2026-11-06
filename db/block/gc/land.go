@@ -532,7 +532,10 @@ func (l *lander) holdsZero(ctx context.Context, state *LivenessState, held [][]b
 		return false, nil
 	}
 
-	// Mark while a cascade is due or in progress.
+	// Mark while a cascade is due or in progress. The free also waits while
+	// one is, and a block a cascade brings to zero after this record lands
+	// ripens past it, so no known path leaves this mark the only guard; it
+	// stays as defense in depth, as the model's hold mark does.
 	settled, err := l.rec.settled(ctx, state)
 	if err != nil || !settled {
 		return !settled, err

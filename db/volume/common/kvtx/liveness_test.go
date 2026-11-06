@@ -121,6 +121,7 @@ func collectAll(t *testing.T, v *Volume) block_gc.CollectResult {
 		total.Freed += res.Freed
 		total.Kept += res.Kept
 		total.Leaked += res.Leaked
+		total.Stranded += res.Stranded
 		total.Lapsed += res.Lapsed
 		total.Underflows += res.Underflows
 		if !res.More {
@@ -153,9 +154,9 @@ func requireAudit(t *testing.T, v *Volume, leaked uint64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.LiveQueued != 0 || res.Leaked != leaked || res.Undercount != 0 || res.Unlisted != 0 || res.CascadeMiscount != 0 {
-		t.Fatalf("audit live queued %d (sample %v) leaked %d undercount %d (sample %v) unlisted %d cascade miscount %d, want 0, %d, 0, 0 and 0",
-			res.LiveQueued, res.LiveQueuedSample, res.Leaked, res.Undercount, res.UndercountSample, res.Unlisted, res.CascadeMiscount, leaked)
+	if res.LiveQueued != 0 || res.Leaked != leaked || res.Undercount != 0 || res.Unlisted != 0 || res.CascadeMiscount != 0 || res.UnlistedCascades != 0 {
+		t.Fatalf("audit live queued %d (sample %v) leaked %d undercount %d (sample %v) unlisted %d cascade miscount %d unlisted cascades %d, want 0, %d, 0, 0, 0 and 0",
+			res.LiveQueued, res.LiveQueuedSample, res.Leaked, res.Undercount, res.UndercountSample, res.Unlisted, res.CascadeMiscount, res.UnlistedCascades, leaked)
 	}
 }
 
@@ -600,14 +601,17 @@ func allocated(fn func()) uint64 {
 var errMidRelease = errors.New("stopped mid-release")
 
 // stopMidRelease runs a collector's transactions until one leaves a paged
-// release in progress, or a paged re-hold when rehold is set, then fails
-// every later one, as a process that dies there.
+// release in progress, a paged re-hold when rehold is set, or a cascade
+// record due when cascade is set, then fails every later one, as a process
+// that dies there.
 type stopMidRelease struct {
 	block_gc.Store
 	// v is the Volume, whose state it reads after each transaction.
 	v *Volume
 	// rehold selects a paged re-hold instead of a release.
 	rehold bool
+	// cascade selects a due cascade record instead of a paged cascade.
+	cascade bool
 	// stopped records that a transaction left one in progress.
 	stopped bool
 }
@@ -624,8 +628,26 @@ func (s *stopMidRelease) Update(ctx context.Context, fn func(rec *block_gc.Recor
 		state, err := rec.GetState(ctx)
 		r := state.GetRelease()
 		s.stopped = r != nil && r.GetRehold() == s.rehold
+		if s.cascade {
+			s.stopped = state.GetCascades() != 0
+		}
 		return err
 	})
+}
+
+// livenessCascades returns the cascade records the state of v counts.
+func livenessCascades(t *testing.T, v *Volume) uint64 {
+	t.Helper()
+	var due uint64
+	err := v.readRecords(t.Context(), func(rec *block_gc.Records) error {
+		state, err := rec.GetState(t.Context())
+		due = state.GetCascades()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return due
 }
 
 // errPaceLimit is the failure paceProbe returns past its limit.
@@ -2004,7 +2026,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
-	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the releasing block put again", "a crash mid re-hold"} {
+	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the releasing block put again", "a crash mid re-hold", "the releasing block lost"} {
 		t.Run("release interrupted by "+mid, func(t *testing.T) {
 			// F names 6,000 leaves, more than one slice moves, and G names
 			// the first and the last of them in F's list. Root f releases
@@ -2060,6 +2082,8 @@ func TestLivenessAdversarial(t *testing.T) {
 					t.Fatal(err)
 				}
 				kept = append(slices.Clone(leaves), "F", "G")
+			case "the releasing block lost":
+				punchHole(t, v, f)
 			}
 			res := collectAll(t, v)
 			clk.Add(block_gc.DefaultGrace + time.Second)
@@ -2148,6 +2172,176 @@ func TestLivenessAdversarial(t *testing.T) {
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "P2", h)
 		requireStored(t, v, tr, false, "F", "P1", leaves[0])
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("hole under a deferred release", func(t *testing.T) {
+		// D1 names E1 and D2 names 4,000 leaves, and roots d1 and d2 let
+		// them go in records one slice nets. D1's release moves E1 first,
+		// so D2's no longer fits the slice and its cascade record stays
+		// due. The store then loses D2 with its list. The next pass drops
+		// the release that can never run, its leaves keeping D2's holder as
+		// leaked garbage, and the frees go on: G, let go after, is freed.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "E1")
+		d1 := tr.add(t, "D1", "E1")
+		leaves := make([]string, 4_000)
+		for i := range leaves {
+			leaves[i] = "leaf " + strconv.Itoa(i)
+			tr.add(t, leaves[i])
+		}
+		d2 := tr.add(t, "D2", leaves...)
+		g := tr.add(t, "G")
+		roots := []block.NamedRoot{{Name: "d1", Ref: d1}, {Name: "d2", Ref: d2}, {Name: "g", Ref: g}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "E1", "D1", "D2", "G")...), roots); err != nil {
+			t.Fatal(err)
+		}
+		for _, root := range []block.NamedRoot{{Name: "d1", Previous: d1}, {Name: "d2", Previous: d2}} {
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{root}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, cascade: true}
+		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) || livenessCascades(t, v) != 1 {
+			t.Fatalf("collect = %v with %d cascades due, want it stopped with D2's", err, livenessCascades(t, v))
+		}
+
+		// Lose D2, let G go, and collect past the grace period.
+		punchHole(t, v, d2)
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "g", Previous: g}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		res := collectAll(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		more := collectAll(t, v)
+		if res.Stranded+more.Stranded != 1 || livenessCascades(t, v) != 0 {
+			t.Fatalf("dropped %d releases with %d due, want D2's dropped", res.Stranded+more.Stranded, livenessCascades(t, v))
+		}
+		requireStored(t, v, tr, false, "D1", "E1", "G")
+		requireStored(t, v, tr, true, leaves[0], leaves[len(leaves)-1])
+		requireAudit(t, v, uint64(len(leaves)))
+	})
+
+	t.Run("hole under a deferred re-hold", func(t *testing.T) {
+		// H names 3,072 leaves, as many as a slice moves, and root h lets
+		// it go, so H and its leaves are Dead. Root h2 holds H again in a
+		// record one slice nets with root d1's release of D1, which names
+		// E1: D1's release moves E1 first, so H's re-hold no longer fits
+		// and stays due. The store then loses H with its list while its
+		// leaves are Dead and ripe. Losing a Holding block is outside the
+		// contract, and the frees wait on the re-hold rather than free the
+		// leaves under root h2; the audit reports the record, and once a
+		// put refills H the re-hold runs and the leaves stay.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "E1")
+		d1 := tr.add(t, "D1", "E1")
+		leaves := make([]string, 3_072)
+		for i := range leaves {
+			leaves[i] = "leaf " + strconv.Itoa(i)
+			tr.add(t, leaves[i])
+		}
+		h := tr.add(t, "H", leaves...)
+		roots := []block.NamedRoot{{Name: "d1", Ref: d1}, {Name: "h", Ref: h}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "E1", "D1", "H")...), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "h", Previous: h}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		nets := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Now: v.now})
+		for more := true; more; {
+			res, err := nets.Collect(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			more = res.More
+		}
+
+		// Hold H again as D1 goes, and stop with H's re-hold due.
+		for _, root := range []block.NamedRoot{{Name: "h2", Ref: h}, {Name: "d1", Previous: d1}} {
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{root}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		probe := &stopMidRelease{Store: collectorStore{v: v}, v: v, cascade: true}
+		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) || livenessCascades(t, v) != 1 {
+			t.Fatalf("collect = %v with %d cascades due, want it stopped with H's re-hold", err, livenessCascades(t, v))
+		}
+
+		// Lose H: the frees wait, and the audit reports the record.
+		punchHole(t, v, h)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Freed != 0 || res.Stranded != 0 {
+			t.Fatalf("freed %d and dropped %d under H's due re-hold", res.Freed, res.Stranded)
+		}
+		requireStored(t, v, tr, true, append(slices.Clone(leaves), "D1", "E1")...)
+		if res, err := v.Audit(ctx); err != nil || res.UnlistedCascades != 1 || res.Holes != 1 {
+			t.Fatalf("audit found %d unlisted cascades and %d holes err %v, want 1 and 1", res.UnlistedCascades, res.Holes, err)
+		}
+
+		// Refill H: the re-hold runs, and only D1 and E1 go.
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("H"), nil); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, append(slices.Clone(leaves), "H")...)
+		requireStored(t, v, tr, false, "D1", "E1")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("fill lands between the netting and the free", func(t *testing.T) {
+		// Root c lets C go. Once a pass nets that, and before it frees, a
+		// read fills P, which names C. The free waits for the fill's up,
+		// so a root that moves onto P after the grace period finds C.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		cref := tr.add(t, "C")
+		p := tr.add(t, "P", "C")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), []block.NamedRoot{{Name: "c", Ref: cref}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "c", Previous: cref}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		filled := false
+		fill := func(p block_gc.Phase) func() {
+			if p == block_gc.PhaseSweep && !filled {
+				filled = true
+				err := v.withDirectFill(ctx, func(px *physicalTx) error {
+					_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("P"))
+					return err
+				})
+				if err != nil {
+					t.Error(err)
+				}
+			}
+			return func() {}
+		}
+		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{Frees: true, Now: v.now, Phase: fill})
+		if res, err := c.Collect(ctx); err != nil || !filled || res.Freed != 0 {
+			t.Fatalf("collect freed %d err %v filled %v, want P filled and C kept", res.Freed, err, filled)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P", "C")
 		requireAudit(t, v, 0)
 	})
 

@@ -18,6 +18,10 @@ type CollectResult struct {
 	// Leaked counts the children a down cascade reached that the store
 	// lacks, whose own children the cascade cannot reach.
 	Leaked uint64
+	// Stranded counts the down cascades the pass dropped because the store
+	// lost their block with its child list: the block's children keep its
+	// holder, garbage an audit counts as leaked.
+	Stranded uint64
 	// Underflows counts the count changes that would have gone below zero,
 	// which the pass refused, keeping the block; any is an error in the
 	// journal.

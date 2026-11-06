@@ -696,7 +696,12 @@ func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, from *[]b
 	start := *from
 	err := c.update(ctx, func(rec *Records, blocks block.StoreOps) error {
 		// Free only in an adopted Volume with every cascade and fill up
-		// netted.
+		// netted. A cascade is due here although the pass's netting found
+		// no work left when an adoption marked the Volume adopted since,
+		// its zero blocks Dying, or when the store lost a Holding block,
+		// whose re-hold waits for a put to refill its list. A fill's up
+		// pairs are unapplied here when it landed after the last netting
+		// slice.
 		full, *from = false, start
 		state, err := rec.GetState(ctx)
 		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
@@ -767,6 +772,10 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 	if err != nil || !listed {
 		return err
 	}
+
+	// Check its count. The netting moves a block's queue entry whenever it
+	// changes the block's ripe sequence, so at differs from ripe only when
+	// damage left the records apart, and the block is kept.
 	holders, at, err := rec.GetHolders(ctx, ref)
 	if err != nil || holders != 0 || at != ripe {
 		return err

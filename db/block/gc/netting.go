@@ -32,15 +32,19 @@ import (
 //     only how many reads it takes, never the result. A node below zero
 //     while the walk runs counts as zero; one still below zero at the end is
 //     an underflow, kept with one holder.
-//  3. A block that ends at zero takes the journal's end as its ripe sequence
-//     whenever it could have gained a holder in the interval: it had holders
-//     first, received any up, or a put named it again. Only one that stayed
-//     at zero untouched keeps its ripe sequence.
+//  3. A block the walk reads that ends at zero takes the journal's end as
+//     its ripe sequence whenever it could have gained a holder in the
+//     interval: it had holders first, received any up, or a put named it
+//     again. A block the walk never reads keeps its records, ripe sequence
+//     included: one that stayed at zero untouched, and one whose ups and
+//     downs in the slice cancelled before the walk reached it, whose holders
+//     end where they began.
 //  4. At most one paged cascade is in progress, and while one is, no other
 //     cascade runs: a block that crosses zero meanwhile keeps its cascade
 //     record for a later slice.
 //  5. A block without a child list is never zero: its holders floor at the
-//     one its absent record implies, and no cascade reaches past it.
+//     one its absent record implies, and no cascade reaches past it. A down
+//     cascade due on one is dropped, its children keeping its holder.
 type netting struct {
 	// c is the collector, for its pace and writer queue.
 	c *Collector
@@ -101,11 +105,15 @@ type node struct {
 	// children are its child list.
 	children []*block.BlockRef
 
-	// relRead reports that rel0 holds its first rel flag.
+	// relRead reports that rel0 and dir0 hold its first rel flag and cascade
+	// record.
 	relRead bool
 	// rel0 and rel are its rel flag first and now: set when its children do
 	// not count it.
 	rel0, rel bool
+	// dir0 is the direction of its cascade record as the slice began, or
+	// zero when none was due.
+	dir0 byte
 
 	// raised reports that it received an up.
 	raised bool
@@ -309,11 +317,11 @@ func (n *netting) apply(ctx context.Context, nd *node) error {
 	}
 
 	// Read its child list and rel flag; a block without a list never
-	// cascades.
-	if err := n.readList(ctx, nd); err != nil || !nd.listed {
+	// cascades, and the write drops a down cascade due on one.
+	if err := n.readList(ctx, nd); err != nil {
 		return err
 	}
-	if err := n.readRel(ctx, nd); err != nil {
+	if err := n.readRel(ctx, nd); err != nil || !nd.listed {
 		return err
 	}
 	if (nd.holders <= 0) == nd.rel {
@@ -345,15 +353,15 @@ func (n *netting) readRel(ctx context.Context, nd *node) error {
 	}
 
 	// Find whether a cascade is due, then derive the flag from it.
-	_, due := n.cascades[string(nd.key)]
+	dir, due := n.cascades[string(nd.key)]
 	if !due && !n.cascadesKnown {
 		var err error
-		_, due, err = n.rec.getCascade(ctx, nd.key)
+		dir, due, err = n.rec.getCascade(ctx, nd.key)
 		if err != nil {
 			return err
 		}
 	}
-	nd.relRead = true
+	nd.relRead, nd.dir0 = true, dir
 	nd.rel0 = (nd.holders0 == 0) != due
 	nd.rel = nd.rel0
 	return nil
@@ -521,10 +529,22 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 		return nil
 	}
 
-	// Floor a block without a child list at its implied holder.
+	// Floor a block without a child list at its implied holder, and drop a
+	// down cascade due on one, which can never run and would keep every free
+	// waiting: its children keep the block's holder, garbage the audit counts
+	// in Leaked. An up cascade stays due, keeping the frees waiting, since
+	// losing a Holding block is outside the contract: a refill of the hole
+	// writes its list back, and the re-hold then gives its children the
+	// holder they lack.
 	listed := nd.listRead && nd.listed
 	if nd.listRead && !nd.listed {
 		n.res.Leaked += nd.cascadeDowns
+		if nd.dir0 == cascadeDown {
+			n.res.Stranded++
+			if err := n.rec.deleteCascade(ctx, n.state, nd.key); err != nil {
+				return err
+			}
+		}
 	}
 	holders := uint64(max(nd.holders, 0)) //nolint:gosec // not negative.
 	if holders == 0 && !listed {
