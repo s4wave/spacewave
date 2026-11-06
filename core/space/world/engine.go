@@ -39,18 +39,11 @@ func (e *Engine) GetAdapter() *Adapter {
 // OperationAuthor returns this device's peer and the person its participant
 // acts as: its entity, or the device for a participant without one.
 func (e *Engine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
-	// Read this device's participant.
 	participant, err := e.a.participant(ctx)
 	if err != nil {
 		return "", "", err
 	}
-
-	// Name its person.
-	person := participant.GetEntityId()
-	if person == "" {
-		person = participant.GetPeerId()
-	}
-	return e.a.so.GetPeerID(), person, nil
+	return e.a.so.GetPeerID(), operationPerson(participant), nil
 }
 
 // NewTransaction opens a read snapshot, or a write that applies authenticated
@@ -214,14 +207,11 @@ func (a *Adapter) participant(ctx context.Context) (*sobject.SOParticipantConfig
 // writeOp queues op after this device's admitted operations and waits for
 // replay to decide it.
 func (a *Adapter) writeOp(ctx context.Context, op *WorldOp) error {
-	// Encode and queue it.
-	data, err := op.MarshalVT()
+	// Queue it.
+	adm, err := a.enqueueOp(op)
 	if err != nil {
 		return err
 	}
-	adm := a.newAdmission(world.Candidate{}, data, nil)
-	a.admit(adm)
-	a.queue.push(adm)
 
 	// Wait for its decision.
 	decision, err := adm.WaitDecided(ctx)

@@ -74,13 +74,10 @@ type spaceFence struct {
 func (a *Adapter) ReclaimFence(ctx context.Context, copyRoots bool) ([]*block.BlockRef, error) {
 	// Place the fence after this device's admitted operations.
 	pass := ulid.NewULID()
-	data, err := (&WorldOp{Body: &WorldOp_Fence{Fence: &FenceOp{Pass: pass}}}).MarshalVT()
+	adm, err := a.enqueueOp(&WorldOp{Body: &WorldOp_Fence{Fence: &FenceOp{Pass: pass}}})
 	if err != nil {
 		return nil, err
 	}
-	adm := a.newAdmission(world.Candidate{}, data, nil)
-	a.admit(adm)
-	a.queue.push(adm)
 
 	// Wait for the driver to apply it, and read its hash.
 	if _, err := adm.WaitDecided(ctx); err != nil {
@@ -116,40 +113,30 @@ func (a *Adapter) ReclaimFence(ctx context.Context, copyRoots bool) ([]*block.Bl
 // waitAnswers waits until every writer the fence names answered it and
 // returns the union of their roots.
 func (a *Adapter) waitAnswers(ctx context.Context, fence []byte) ([]*block.BlockRef, error) {
-	for {
-		// Collect the answers when every writer gave one.
-		var live []*block.BlockRef
-		var complete bool
-		var waitCh <-chan struct{}
-		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			// Find the fence.
-			waitCh = getWaitCh()
-			f := a.fences[string(fence)]
-			if f == nil {
-				return
-			}
-
-			// Union each writer's answer, stopping at a missing one.
-			for _, writer := range f.writers {
-				roots, ok := f.answers[writer]
-				if !ok {
-					return
-				}
-				live = append(live, roots...)
-			}
-			complete = true
-		})
-		if complete {
-			return dedupRefs(live), nil
+	// Collect the answers once every writer gave one.
+	var live []*block.BlockRef
+	err := a.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		// Find the fence.
+		live = nil
+		f := a.fences[string(fence)]
+		if f == nil {
+			return false, nil
 		}
 
-		// Wait for the next answer.
-		select {
-		case <-ctx.Done():
-			return nil, context.Cause(ctx)
-		case <-waitCh:
+		// Union each writer's answer, stopping at a missing one.
+		for _, writer := range f.writers {
+			roots, ok := f.answers[writer]
+			if !ok {
+				return false, nil
+			}
+			live = append(live, roots...)
 		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, context.Cause(ctx)
 	}
+	return dedupRefs(live), nil
 }
 
 // holdFence copies the graph of each live root into the local store under a
@@ -254,14 +241,8 @@ func (a *Adapter) noteFenceOp(ctx context.Context, op *sobject.OrderedOperation)
 	}
 
 	// Queue it after the operations this device started.
-	data, err := (&WorldOp{Body: &WorldOp_RootSet{RootSet: &RootSetOp{Fence: op.Hash, Roots: dedupRefs(roots)}}}).MarshalVT()
-	if err != nil {
-		return err
-	}
-	answer := a.newAdmission(world.Candidate{}, data, nil)
-	a.admit(answer)
-	a.queue.push(answer)
-	return nil
+	_, err = a.enqueueOp(&WorldOp{Body: &WorldOp_RootSet{RootSet: &RootSetOp{Fence: op.Hash, Roots: dedupRefs(roots)}}})
+	return err
 }
 
 // executeStorageReclaim asks the block store for a storage reclaim pass

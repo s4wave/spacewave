@@ -58,23 +58,17 @@ func (q *opQueue) remove(adm *spaceAdmission) bool {
 // once it applies it.
 func (q *opQueue) execute(ctx context.Context, queued func(*spaceAdmission, string, error)) error {
 	for {
-		// Take the oldest waiting admission, or wait for one.
+		// Take the oldest waiting admission, waiting for one.
 		var adm *spaceAdmission
-		var waitCh <-chan struct{}
-		q.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			if len(q.waiting) != 0 {
-				adm = q.waiting[0]
-				q.waiting = q.waiting[1:]
+		err := q.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+			if len(q.waiting) == 0 {
+				return false, nil
 			}
-			waitCh = getWaitCh()
+			adm, q.waiting = q.waiting[0], q.waiting[1:]
+			return true, nil
 		})
-		if adm == nil {
-			select {
-			case <-ctx.Done():
-				return context.Canceled
-			case <-waitCh:
-			}
-			continue
+		if err != nil {
+			return context.Canceled
 		}
 
 		// Queue it.

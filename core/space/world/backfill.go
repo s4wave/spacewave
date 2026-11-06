@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // backfillStoreID is the local state store holding this device's backfill
@@ -230,39 +229,15 @@ func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, reche
 
 // read reads this device's backfill choice.
 func (b *spaceBackfill) read(ctx context.Context) (bool, error) {
-	// Open the choice's store.
-	store, release, err := b.a.so.AccessLocalStateStore(ctx, backfillStoreID, nil)
-	if err != nil {
-		return false, err
-	}
-	defer release()
-
-	// Read the choice.
-	tx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		return false, err
-	}
-	defer tx.Discard()
-	_, found, err := tx.Get(ctx, backfillKey)
+	_, found, err := b.a.readLocal(ctx, backfillStoreID, backfillKey)
 	return found, err
 }
 
 // write stores this device's backfill choice.
 func (b *spaceBackfill) write(ctx context.Context, enabled bool) error {
-	// Open the choice's store.
-	store, release, err := b.a.so.AccessLocalStateStore(ctx, backfillStoreID, nil)
-	if err != nil {
-		return err
+	var value []byte
+	if enabled {
+		value = []byte{1}
 	}
-	defer release()
-
-	// Set or delete the key.
-	return kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
-		return store.NewTransaction(ctx, true)
-	}, func(ctx context.Context, tx kvtx.Tx) error {
-		if enabled {
-			return tx.Set(ctx, backfillKey, []byte{1})
-		}
-		return tx.Delete(ctx, backfillKey)
-	})
+	return b.a.writeLocal(ctx, backfillStoreID, backfillKey, value)
 }

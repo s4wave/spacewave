@@ -403,48 +403,30 @@ func (a *Adapter) endAdmissions() {
 
 // WaitEngine waits for the engine serving the Space World.
 func (a *Adapter) WaitEngine(ctx context.Context) (*Engine, error) {
-	for {
-		var engine *Engine
-		var waitCh <-chan struct{}
-		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			engine, waitCh = a.engine, getWaitCh()
-		})
-		if engine != nil {
-			return engine, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, context.Canceled
-		case <-waitCh:
-		}
-	}
+	var engine *Engine
+	err := a.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		engine = a.engine
+		return engine != nil, nil
+	})
+	return engine, err
 }
 
 // AcquireEngine waits for the serving engine and holds it open until release
 // is called. The adapter retires the engine before it closes it, and waits
 // for every hold first, so a holder never sees it close.
 func (a *Adapter) AcquireEngine(ctx context.Context) (*Engine, func(), error) {
-	for {
-		// Hold the engine when one serves.
-		var engine *Engine
-		var waitCh <-chan struct{}
-		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			engine, waitCh = a.engine, getWaitCh()
-			if engine != nil {
-				a.holders++
-			}
-		})
-		if engine != nil {
-			return engine, a.releaseEngine, nil
+	// Hold the engine once one serves.
+	var engine *Engine
+	err := a.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		if engine = a.engine; engine != nil {
+			a.holders++
 		}
-
-		// Wait for one.
-		select {
-		case <-ctx.Done():
-			return nil, nil, context.Canceled
-		case <-waitCh:
-		}
+		return engine != nil, nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
+	return engine, a.releaseEngine, nil
 }
 
 // releaseEngine drops one AcquireEngine hold.
@@ -457,40 +439,20 @@ func (a *Adapter) releaseEngine() {
 
 // WaitEngineReplaced waits until engine no longer serves.
 func (a *Adapter) WaitEngineReplaced(ctx context.Context, engine *Engine) error {
-	for {
-		var serving bool
-		var waitCh <-chan struct{}
-		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			serving, waitCh = a.engine == engine, getWaitCh()
-		})
-		if !serving {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-waitCh:
-		}
-	}
+	return a.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return a.engine != engine, nil
+	})
 }
 
 // retire stops serving the engine and waits for every hold on it.
 func (a *Adapter) retire() {
-	for {
-		var waitCh <-chan struct{}
-		var held bool
-		a.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if a.engine != nil {
-				a.engine = nil
-				broadcast()
-			}
-			held, waitCh = a.holders != 0, getWaitCh()
-		})
-		if !held {
-			return
+	_ = a.bcast.Wait(context.Background(), func(broadcast func(), _ func() <-chan struct{}) (bool, error) {
+		if a.engine != nil {
+			a.engine = nil
+			broadcast()
 		}
-		<-waitCh
-	}
+		return a.holders == 0, nil
+	})
 }
 
 // serve waits for an initialized World, queuing its initialization once as
@@ -529,9 +491,9 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 				return nil, err
 			}
 			if init != nil {
-				adm := a.newAdmission(world.Candidate{}, init, nil)
-				a.admit(adm)
-				a.queue.push(adm)
+				if _, err := a.enqueueOp(init); err != nil {
+					return nil, err
+				}
 			}
 			queued = true
 		}
@@ -574,7 +536,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 
 // initOp returns the operation that initializes the World when this device
 // owns the Space, or nil.
-func (a *Adapter) initOp(ctx context.Context) ([]byte, error) {
+func (a *Adapter) initOp(ctx context.Context) (*WorldOp, error) {
 	// Only an owner that is not handing over initializes.
 	snap, err := a.so.GetSharedObjectState(ctx)
 	if err != nil {
@@ -588,12 +550,12 @@ func (a *Adapter) initOp(ctx context.Context) ([]byte, error) {
 		return nil, nil
 	}
 
-	// Encode it.
+	// Build it.
 	initOp, err := NewInitWorldOp(a.opts.InitWorldOp)
 	if err != nil {
 		return nil, err
 	}
-	return (&WorldOp{Body: &WorldOp_InitWorld{InitWorld: initOp}}).MarshalVT()
+	return &WorldOp{Body: &WorldOp_InitWorld{InitWorld: initOp}}, nil
 }
 
 // Head returns the installed head.
@@ -854,7 +816,11 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 
 	// Keep the positions after the covered ones when the replay reached the
 	// checkpoint's World there.
-	kept := covered >= 0 && covered <= len(r.positions) && r.stateFor(covered).EqualVT(base)
+	kept := false
+	if covered >= 0 && covered <= len(r.positions) {
+		state, _ := r.stateBefore(covered)
+		kept = state.EqualVT(base)
+	}
 	if kept {
 		r.positions = slices.Clone(r.positions[covered:])
 		r.floor, r.saved = max(0, r.floor-covered), max(0, r.saved-covered)
@@ -865,7 +831,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		r.positions, r.floor, r.saved = nil, 0, 0
 	}
 	r.base, r.baseSeqno, r.height = base, seqno, checkpoint.GetHeight()
-	if len(r.restored) != 0 && !kept && !r.restoredBase().EqualVT(base) {
+	if len(r.restored) != 0 && !kept && !r.restoredFrom.EqualVT(base) {
 		r.restored = nil
 	}
 
@@ -1091,6 +1057,25 @@ func (a *Adapter) newAdmission(candidate world.Candidate, op []byte, payloads []
 	return &spaceAdmission{a: a, candidate: candidate, op: op, payloads: payloads, done: make(chan struct{})}
 }
 
+// enqueue admits the encoded operation op, which builds no World of its own,
+// after this device's admitted operations and queues it. A nil op is an
+// acknowledgment.
+func (a *Adapter) enqueue(op []byte) *spaceAdmission {
+	adm := a.newAdmission(world.Candidate{}, op, nil)
+	a.admit(adm)
+	a.queue.push(adm)
+	return adm
+}
+
+// enqueueOp encodes op and enqueues it.
+func (a *Adapter) enqueueOp(op *WorldOp) (*spaceAdmission, error) {
+	data, err := op.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	return a.enqueue(data), nil
+}
+
 // admit records adm as pending and makes its candidate the writer head.
 func (a *Adapter) admit(adm *spaceAdmission) {
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -1233,13 +1218,9 @@ func (a *Adapter) queued(adm *spaceAdmission, localID string, err error) {
 // Acknowledge queues an acknowledgment after every operation this device
 // admitted, and returns once the SharedObject holds it.
 func (a *Adapter) Acknowledge(ctx context.Context) error {
-	// Queue it after the admitted operations.
-	adm := a.newAdmission(world.Candidate{}, nil, nil)
-	a.admit(adm)
-	a.queue.push(adm)
-
-	// Wait for the SharedObject to hold it.
-	_, err := adm.WaitDecided(ctx)
+	// Queue it after the admitted operations, and wait for the SharedObject
+	// to hold it.
+	_, err := a.enqueue(nil).WaitDecided(ctx)
 	return err
 }
 
