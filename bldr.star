@@ -12,7 +12,6 @@ CORE_GO_PKGS = [
     "./core/provider/local",
     "./core/provider/spacewave",
     "./core/space/sobject",
-    "./core/sobject/world/engine",
     "./core/space/world/optypes",
     "./core/plugin/space",
     "./core/space/http/download",
