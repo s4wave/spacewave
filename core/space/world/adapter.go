@@ -93,7 +93,10 @@ type Adapter struct {
 	// turnMtx is held from Begin to the turn's Release, so one local writer
 	// proposes at a time.
 	turnMtx csync.Mutex
-	// rootMtx serializes the named root moves, which run I/O.
+	// rootMtx serializes the named root swaps. lockRoots takes it after it
+	// stored the pages the swap reaches, so it is held only for the swap: a
+	// local writer that holds a root never waits on a store of the driver's
+	// pages.
 	rootMtx csync.Mutex
 	// held are the named roots this adapter holds, by name. Guarded by
 	// rootMtx.
@@ -613,7 +616,7 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, error) {
 
 	// Hold it beside every World returned since the last install, then
 	// return it.
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRoots(ctx, state.GetHeadRef().GetRootRef())
 	if err != nil {
 		return nil, err
 	}
@@ -775,7 +778,7 @@ func (a *Adapter) trimHistories(ctx context.Context) error {
 
 	// Leave the roots alone when the base stays and no history releases a
 	// World.
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRoots(ctx, slices.Concat(memory, candidates, []*block.BlockRef{base})...)
 	if err != nil {
 		return err
 	}
@@ -842,7 +845,9 @@ func (a *Adapter) admit(adm *spaceAdmission) {
 // holdAdmitted holds what adm's queued operation needs once it is durable:
 // its payloads under the replay payloads root, and its candidate's World under
 // the pending root when the kept pages outgrew memory, so the pages its
-// writer's stage held stay held after the turn ends.
+// writer's stage held stay held after the turn ends. Each hold is one swap
+// that stores the writer's own pages, and waits on the root lock only for
+// another swap, never for the driver's store of its pages.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
@@ -855,7 +860,7 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	if !a.pages.Full() || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRoots(ctx)
 	if err != nil {
 		return err
 	}
@@ -1081,12 +1086,54 @@ func (a *Adapter) installHead(ctx context.Context) error {
 // reference this adapter holds under its name as Previous, through the
 // PendingStore, which stores the kept pages each moved root reaches.
 func (a *Adapter) moveRoots(ctx context.Context, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
-	release, err := a.rootMtx.Lock(ctx)
+	// Store what the move reaches beyond its own entries, then swap the
+	// roots under the lock.
+	var reach []*block.BlockRef
+	inBatch := func(ref *block.BlockRef) bool {
+		return slices.ContainsFunc(entries, func(e *block.PutBatchEntry) bool { return refEqual(e.Ref, ref) })
+	}
+	for _, e := range entries {
+		reach = append(reach, slices.DeleteFunc(slices.Clone(e.Refs), inBatch)...)
+	}
+	for _, root := range roots {
+		if !inBatch(root.Ref) {
+			reach = append(reach, root.Ref)
+		}
+	}
+	release, err := a.lockRoots(ctx, reach...)
 	if err != nil {
 		return err
 	}
 	defer release()
 	return a.moveRootsLocked(ctx, entries, roots...)
+}
+
+// lockRoots stores the kept pages reach leads to under a PendingStore flush,
+// then takes rootMtx, so the lock and the store's writer are held only for
+// the root swap the caller makes under it. The release unlocks rootMtx, then
+// ends the flush. reach lists the roots the caller's swap may name; a page
+// the swap reaches beyond them is stored in the swap. A transient replay holds
+// nothing, so it flushes nothing.
+func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func(), error) {
+	// Store the pages outside the lock.
+	endFlush := func() {}
+	if !a.opts.transient && len(reach) != 0 {
+		var err error
+		if endFlush, err = a.pages.Flush(ctx, reach); err != nil {
+			return nil, err
+		}
+	}
+
+	// Take the lock for the swap.
+	unlock, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		endFlush()
+		return nil, err
+	}
+	return func() {
+		unlock()
+		endFlush()
+	}, nil
 }
 
 // moveRootsLocked is moveRoots for a caller holding rootMtx.
@@ -1219,9 +1266,11 @@ func (a *Adapter) holdPayloads(ctx context.Context, payloads []*block.BlockRef) 
 }
 
 // addPayloads holds extra beside the payloads already held, before the
-// operation that names them is queued.
+// operation that names them is queued. A local writer calls it, so the swap
+// stores the writer's own kept payload pages in its one transaction, and the
+// lock waits only for another swap.
 func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) error {
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRoots(ctx)
 	if err != nil {
 		return err
 	}
@@ -1233,29 +1282,40 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) erro
 // of the pending admissions, dropping those a checkpoint covered. The driver
 // goroutine calls it.
 func (a *Adapter) resetPayloads(ctx context.Context) error {
-	// Take the root lock before the gather, so an admission is either pending
-	// at the gather or adds its payloads after the reset.
-	release, err := a.rootMtx.Lock(ctx)
+	// Store the payloads gathered now, then take the root lock before the
+	// gather, so an admission is either pending at the gather or adds its
+	// payloads after the reset.
+	release, err := a.lockRoots(ctx, a.gatherPayloads()...)
 	if err != nil {
 		return err
 	}
 	defer release()
 
 	// Gather and hold them.
+	return a.holdPayloads(ctx, a.gatherPayloads())
+}
+
+// gatherPayloads returns the payloads of the positions above the checkpoint
+// and of the pending admissions. The driver goroutine calls it.
+func (a *Adapter) gatherPayloads() []*block.BlockRef {
 	payloads := a.replay.payloads()
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, adm := range a.pending {
 			payloads = append(payloads, adm.payloads...)
 		}
 	})
-	return a.holdPayloads(ctx, payloads)
+	return payloads
 }
 
 // holdRetained holds the retained roots under the retained root, or releases
 // it when there are none.
 func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error {
 	// Skip a set the root holds already.
-	release, err := a.rootMtx.Lock(ctx)
+	refs := make([]*block.BlockRef, len(roots))
+	for i, root := range roots {
+		refs[i] = root.GetRootRef()
+	}
+	release, err := a.lockRoots(ctx, refs...)
 	if err != nil {
 		return err
 	}
@@ -1274,10 +1334,6 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 	}
 
 	// Hold them under one block.
-	refs := make([]*block.BlockRef, len(roots))
-	for i, root := range roots {
-		refs[i] = root.GetRootRef()
-	}
 	entry, err := refsEntry(&RetainedRootSet{Roots: roots}, refs)
 	if err != nil {
 		return err

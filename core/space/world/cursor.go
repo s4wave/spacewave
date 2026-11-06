@@ -59,7 +59,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 	// payloads.
 	r := a.replay
 	head, _ := r.head()
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRoots(ctx, head.GetHeadRef().GetRootRef())
 	if err != nil {
 		return err
 	}

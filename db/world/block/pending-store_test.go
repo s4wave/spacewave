@@ -40,7 +40,8 @@ func (tr pendingTree) ref(name string) *block.BlockRef {
 // tree never reaches the Volume, a root move stores its tree in the move, a
 // pin stores the tree it pins, a sweep forgets what no live root reaches, and
 // a tree that outgrows the bound is held under its writer's stage until its
-// root lands. Collection between every step frees no block a root or pin
+// root lands, and a flush holds the tree it stores until the move that names
+// it, after which a move stores a tree whose flush ended again. Collection between every step frees no block a root or pin
 // reaches.
 func TestPendingStoreRunThrough(t *testing.T) {
 	f := newVolumeFixture(t)
@@ -189,6 +190,47 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	if n := ps.KeptBytes(); n != 0 {
 		t.Fatalf("sweep after the stage ended kept %d bytes, want 0", n)
 	}
+
+	// A flush stores a kept tree under its stage before the root move, so a
+	// collection between the two frees none of it, and the move puts none of
+	// it again and drops it from memory.
+	tr.add(t, "F1")
+	tr.add(t, "RF", "F1")
+	put(ps, "F1", "RF")
+	endFlush, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RF")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(true, "F1", "RF")
+	kept(true, "F1", "RF")
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-flush", Ref: tr.ref("RF")}}); err != nil {
+		t.Fatal(err)
+	}
+	endFlush()
+	f.collect(t)
+	stored(true, "F1", "RF")
+	if n := ps.KeptBytes(); n != 0 {
+		t.Fatalf("a flushed root move kept %d bytes, want 0", n)
+	}
+
+	// A flush released with no move leaves its tree kept and unheld, so a
+	// collection frees the stored copy, and a later move stores it again.
+	tr.add(t, "G1")
+	tr.add(t, "RG", "G1")
+	put(ps, "G1", "RG")
+	endFlush, err = ps.Flush(ctx, []*block.BlockRef{tr.ref("RG")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	endFlush()
+	f.collect(t)
+	kept(true, "G1", "RG")
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-reflush", Ref: tr.ref("RG")}}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	stored(true, "G1", "RG")
 
 	// A tree past the bound puts the kept blocks under its overflowing
 	// parent with it, under the writer's stage, and keeps them in memory for
