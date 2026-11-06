@@ -532,9 +532,17 @@ func (p *freePass) readTail(ctx context.Context, rec *Records) error {
 
 // freeBlock frees one queued block: its bytes, child list, count and proof,
 // and decrements each child its child list names, returning how many. It
-// keeps the block when the queue entry turns out stale: a block without a
-// child list is not stored, and one with a count record has holders.
+// keeps the block when the queue entry turns out stale: a block no longer
+// queued gained a holder, such as a child an earlier free in the same slice
+// took off the queue as an underflow, a block without a child list is not
+// stored, and one with a count record has holders.
 func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, p *freePass, ref *block.BlockRef, res *CollectResult) (int, error) {
+	// Keep a block this transaction took off the queue since its scan.
+	queued, err := rec.Queued(ctx, ref)
+	if err != nil || !queued {
+		return 0, err
+	}
+
 	// Check the block is stored and has no holder.
 	children, listed, err := rec.GetChildren(ctx, ref)
 	if err != nil {
