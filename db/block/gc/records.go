@@ -207,21 +207,36 @@ func (r *Records) DeleteChildren(ctx context.Context, ref *block.BlockRef) error
 	return r.tx.Delete(ctx, r.key(kindChildren, BlockKey(ref)))
 }
 
-// ScanChildren calls fn with each child list in key order.
+// ScanChildren calls fn with each child list in key order. The audit's
+// release cursor depends on that order, so this walks a sorted iterator rather
+// than ScanPrefix, whose order a store such as Redis leaves undefined.
 func (r *Records) ScanChildren(ctx context.Context, fn func(ref *block.BlockRef, children []*block.BlockRef) error) error {
+	// Walk the child lists in key order.
 	prefix := r.key(kindChildren)
-	return r.tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
+	it := r.tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+	if err := it.Seek(prefix); err != nil {
+		return err
+	}
+	for ; it.Valid(); it.Next() {
 		// Decode the block and its list.
-		ref, rest, err := ParseBlockKey(key[len(prefix):])
+		ref, rest, err := ParseBlockKey(it.Key()[len(prefix):])
 		if err != nil || len(rest) != 0 {
 			return errBadBlockKey
+		}
+		value, err := it.Value()
+		if err != nil {
+			return err
 		}
 		children, err := DecodeChildren(value)
 		if err != nil {
 			return err
 		}
-		return fn(ref, children)
-	})
+		if err := fn(ref, children); err != nil {
+			return err
+		}
+	}
+	return it.Err()
 }
 
 // EncodeChildren packs the block keys of children, sorted and distinct, as a
