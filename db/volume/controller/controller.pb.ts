@@ -2,8 +2,6 @@
 // @generated from file github.com/s4wave/spacewave/db/volume/controller/controller.proto (package volume.controller, syntax proto3)
 /* eslint-disable */
 
-import type { OverlayMode } from '../../block/block.pb.js'
-import { OverlayMode_Enum, PutOpts } from '../../block/block.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
@@ -33,28 +31,6 @@ export interface Config {
    */
   disableLookupBlockStore?: boolean
   /**
-   * BlockStoreId configures using a separate block store for blocks.
-   * uses LookupBlockStore to lookup the block store on the bus.
-   */
-  blockStoreId?: string
-  /**
-   * BlockStoreOverlayMode indicates the mode to use for the block store.
-   * The volume is the lower store, the block store is the upper store.
-   * Does nothing if block_store_id is empty.
-   */
-  blockStoreOverlayMode?: OverlayMode
-  /**
-   * BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.
-   * If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
-   * Example: 30s
-   */
-  blockStoreWritebackTimeoutDur?: string
-  /**
-   * BlockStoreWritebackPutOpts are the base put options for writing back blocks.
-   * If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
-   */
-  blockStoreWritebackPutOpts?: PutOpts
-  /**
    * GcIntervalDur is the interval between GC sweeps.
    * Default: 1m. Set to 0s to disable periodic GC.
    * Example: 1m
@@ -67,10 +43,6 @@ export const Config: MessageType<Config> =
     [1, 'disable_event_block_rm', 8],
     [2, 'volume_id_alias', 9, 1],
     [4, 'disable_peer', 8],
-    [5, 'block_store_id', 9],
-    [6, 'block_store_overlay_mode', 14, 0, OverlayMode_Enum],
     [7, 'disable_lookup_block_store', 8],
-    [8, 'block_store_writeback_timeout_dur', 9],
-    [9, 'block_store_writeback_put_opts', 11, 0, PutOpts.codec],
     [10, 'gc_interval_dur', 9],
   ])

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -145,46 +144,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		return nil
 	})
-
-	// Wrap the volume with the configured block-store overlay.
-	if blockStoreID := c.config.GetBlockStoreId(); blockStoreID != "" {
-		blkStore, _, blkStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, c.bus, blockStoreID, false, func() {
-			if ctx.Err() == nil {
-				pushErr(errors.New("block store released"))
-			}
-		})
-		if err != nil {
-			return err
-		}
-		defer blkStoreRef.Release()
-
-		overlayMode := c.config.GetBlockStoreOverlayMode()
-		if overlayMode == block.OverlayMode_LOWER_ONLY {
-			v = volume.NewVolumeBlockStore(v, blkStore)
-		} else {
-			writebackTimeoutDur, err := c.config.ParseBlockStoreWritebackTimeoutDur()
-			if err != nil {
-				le.WithError(err).Warnf(
-					"write back timeout dur is invalid, using 30s: %v",
-					c.config.GetBlockStoreWritebackTimeoutDur(),
-				)
-				writebackTimeoutDur = time.Second * 30
-			}
-			writebackPutOpts := c.config.GetBlockStoreWritebackPutOpts()
-			v = volume.NewVolumeBlockStore(
-				v,
-				block.NewOverlay(
-					ctx,
-					le,
-					v,
-					blkStore,
-					overlayMode,
-					writebackTimeoutDur,
-					writebackPutOpts,
-				))
-		}
-		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, overlayMode.String())
-	}
 
 	// Register the volume peer with the controller bus.
 	if !c.config.GetDisablePeer() {

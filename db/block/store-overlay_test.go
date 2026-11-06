@@ -96,26 +96,38 @@ func (s *overlayNilOptsTestStore) PutBlock(ctx context.Context, data []byte, opt
 }
 
 func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
-	// Create two backing stores and an overlay for batch forwarding.
 	ctx := context.Background()
-	lower := newOverlayBatchTestStore()
-	upper := newOverlayBatchTestStore()
-	overlay := block.NewOverlay(ctx, nil, lower, upper, block.OverlayMode_UPPER_CACHE, 0, nil)
-	data := []byte("hello")
-	ref := mustBuildBlockRef(t, data)
-	entries := []*block.PutBatchEntry{{Ref: ref, Data: data}}
+	for _, tt := range []struct {
+		name      string
+		mode      block.OverlayMode
+		wantUpper int
+	}{
+		{name: "upper-cache", mode: block.OverlayMode_UPPER_CACHE, wantUpper: 1},
+		{name: "upper-read-cache", mode: block.OverlayMode_UPPER_READ_CACHE},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create two backing stores and an overlay for batch forwarding.
+			lower := newOverlayBatchTestStore()
+			upper := newOverlayBatchTestStore()
+			overlay := block.NewOverlay(ctx, nil, lower, upper, tt.mode, 0, nil)
+			data := []byte("hello")
+			ref := mustBuildBlockRef(t, data)
+			entries := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
 
-	// Write the block batch through the overlay.
-	if _, err := overlay.PutBlockBatch(ctx, entries); err != nil {
-		t.Fatal(err.Error())
-	}
+			// Write the block batch through the overlay.
+			if _, err := overlay.PutBlockBatch(ctx, entries); err != nil {
+				t.Fatal(err.Error())
+			}
 
-	// Verify both backing stores used their batch APIs.
-	if lower.batchCalls != 1 || upper.batchCalls != 1 {
-		t.Fatalf("expected both stores to receive one batch call, got lower=%d upper=%d", lower.batchCalls, upper.batchCalls)
-	}
-	if lower.putCalls != 0 || upper.putCalls != 0 {
-		t.Fatalf("expected no per-entry PutBlock fallback, got lower=%d upper=%d", lower.putCalls, upper.putCalls)
+			// Verify each written store used its batch API, and a read cache
+			// wrote only the lower store.
+			if lower.batchCalls != 1 || upper.batchCalls != tt.wantUpper {
+				t.Fatalf("unexpected batch calls: lower=%d upper=%d", lower.batchCalls, upper.batchCalls)
+			}
+			if lower.putCalls != 0 || upper.putCalls != 0 {
+				t.Fatalf("expected no per-entry PutBlock fallback, got lower=%d upper=%d", lower.putCalls, upper.putCalls)
+			}
+		})
 	}
 }
 
