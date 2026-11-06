@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -51,28 +52,64 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 	return nil
 }
 
-// saveCursor adds the World after the last position to the replay cursor
-// root and holds the payloads above the checkpoint, then writes the cursor
-// record, so the record never names an unheld World.
+// saveCursor holds the payloads above the checkpoint and encodes the replay
+// cursor, then, beside the driver's apply loop, adds the World after the last
+// position to the replay cursor root and writes the cursor record, so the
+// record never names an unheld World and the driver keeps applying while the
+// World's pages store. One save runs at a time; a save due while another
+// runs waits for the next position. The driver goroutine calls it.
 func (a *Adapter) saveCursor(ctx context.Context) error {
-	// Hold the head World beside the earlier cursor Worlds, and the
-	// payloads.
+	// Skip while a save runs.
+	if !a.cursorSaving.CompareAndSwap(false, true) {
+		return nil
+	}
+	started := false
+	defer func() {
+		if !started {
+			a.cursorSaving.Store(false)
+		}
+	}()
+
+	// Hold the payloads, then encode the positions.
 	r := a.replay
-	head, _ := r.head()
-	release, err := a.lockRoots(ctx, head.GetHeadRef().GetRootRef())
-	if err != nil {
-		return err
-	}
-	err = a.addHistory(ctx, &a.cursorWorlds, head.GetHeadRef().GetRootRef())
-	release()
-	if err != nil {
-		return err
-	}
 	if err := a.resetPayloads(ctx); err != nil {
 		return err
 	}
+	root, data, err := a.encodeCursor()
+	if err != nil {
+		return err
+	}
+	r.saved = len(r.positions)
 
-	// Encode the positions.
+	// Hold the head World and write the record in the background; a run that
+	// ended saves nothing more.
+	done, ok := a.startBackground(root)
+	if !ok {
+		return nil
+	}
+	started = true
+	go func() {
+		// Write it, then let the next save start.
+		defer a.cursorSaving.Store(false)
+		ctx, cancel := a.backgroundContext(ctx)
+		defer cancel()
+		err := a.writeCursor(ctx, root, data)
+		done()
+
+		// Report a failure the next save retries.
+		if err != nil && ctx.Err() == nil {
+			a.le.WithError(err).Warn("replay cursor not saved")
+		}
+	}()
+	return nil
+}
+
+// encodeCursor returns the World after the last position and the encoded
+// replay cursor that ends there. The driver goroutine calls it.
+func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
+	// Record each position's outcome after the base.
+	r := a.replay
+	head, _ := r.head()
 	cursor := &ReplayCursor{Base: r.base, Head: head, Height: r.height}
 	prev := r.base
 	for _, pos := range r.positions {
@@ -89,26 +126,39 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		cursor.Outcomes = append(cursor.Outcomes, outcome)
 		prev = pos.state
 	}
+
+	// Encode it.
 	data, err := cursor.MarshalVT()
+	if err != nil {
+		return nil, nil, err
+	}
+	return head.GetHeadRef().GetRootRef().Clone(), data, nil
+}
+
+// writeCursor adds root to the replay cursor root, then writes data as the
+// saved cursor.
+func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []byte) error {
+	// Hold the head World beside the earlier cursor Worlds.
+	release, err := a.lockRoots(ctx, root)
+	if err != nil {
+		return err
+	}
+	err = a.addHistory(ctx, &a.cursorWorlds, root)
+	release()
 	if err != nil {
 		return err
 	}
 
-	// Write it.
-	store, release, err := a.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
+	// Write the record.
+	store, releaseStore, err := a.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
 	if err != nil {
 		return err
 	}
-	defer release()
+	defer releaseStore()
 	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, true) }
-	err = kvtx.RunTransaction(ctx, true, open, func(ctx context.Context, tx kvtx.Tx) error {
+	return kvtx.RunTransaction(ctx, true, open, func(ctx context.Context, tx kvtx.Tx) error {
 		return tx.Set(ctx, replayCursorKey, data)
 	})
-	if err != nil {
-		return err
-	}
-	r.saved = len(r.positions)
-	return nil
 }
 
 // loadCursor reads the saved cursor whose head World the replay cursor root

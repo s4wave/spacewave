@@ -5,6 +5,8 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -151,6 +153,28 @@ type Adapter struct {
 	// engine is the serving engine once built, until it retires. Guarded by
 	// bcast.
 	engine *Engine
+	// storing holds the Worlds each background store keeps live, such as a
+	// checkpoint's, a cursor save's or a trim's, under the store's own token
+	// until it returns. The sweep and the trim keep them live. Guarded by
+	// bcast.
+	storing map[uint64][]*block.BlockRef
+	// storingNext is the next background store's token. Guarded by bcast.
+	storingNext uint64
+	// stopped reports that Execute's run ended, so no background store
+	// starts. Guarded by bcast.
+	stopped bool
+	// background counts the background stores. Execute waits for them before
+	// it releases the Space, so none outlives the adapter's claim.
+	background sync.WaitGroup
+	// runCtx ends every background store when Execute's run ends.
+	runCtx context.Context
+	// cursorSaving reports that a cursor save runs in the background.
+	cursorSaving atomic.Bool
+	// trimMtx runs the background trims one at a time.
+	trimMtx csync.Mutex
+	// trimSeq numbers the trims the driver gathers; a trim older than the
+	// newest is skipped.
+	trimSeq atomic.Uint64
 	// readers is the engine whose readers the sweep and the history trim keep
 	// live, from when it serves until it closes, past its retirement. Guarded
 	// by bcast.
@@ -236,6 +260,9 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		return err
 	}
 	defer detach()
+	runCtx, stopRun := context.WithCancel(ctx)
+	defer stopRun()
+	a.runCtx = runCtx
 
 	// Read what an earlier run held, then let the driver step the body.
 	if err := a.loadRoots(ctx); err != nil {
@@ -275,8 +302,72 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		return err
 	})
 	err = g.Wait()
+
+	// Refuse new background stores, end the running ones and wait for them,
+	// so none starts or lands beside the next adapter's claim.
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.stopped = true
+	})
+	stopRun()
+	a.background.Wait()
 	a.replay.close()
 	return err
+}
+
+// errAdapterStopped is returned by a background store asked of an adapter
+// whose run ended.
+var errAdapterStopped = errors.New("space world adapter stopped")
+
+// startBackground starts a background store that keeps roots live, under its
+// own token, so a sweep keeps their pages for the store, and Execute waits for
+// the store until the returned done is called once. It reports false, and
+// starts nothing, once Execute's run ended.
+func (a *Adapter) startBackground(roots ...*block.BlockRef) (done func(), ok bool) {
+	// Count the store and keep its roots live, unless the run ended.
+	var token uint64
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Refuse a store once the run ended, before Execute waits.
+		if a.stopped {
+			return
+		}
+
+		// Register it under its token.
+		if a.storing == nil {
+			a.storing = make(map[uint64][]*block.BlockRef)
+		}
+		a.background.Add(1)
+		token, ok = a.storingNext, true
+		a.storingNext++
+		a.storing[token] = slices.Clone(roots)
+	})
+	if !ok {
+		return func() {}, false
+	}
+
+	// Drop them and the count once.
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				delete(a.storing, token)
+			})
+			a.background.Done()
+		})
+	}, true
+}
+
+// backgroundContext returns ctx, also ended when Execute's run ends, for a
+// background store.
+func (a *Adapter) backgroundContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(ctx)
+	if a.runCtx != nil {
+		stop := context.AfterFunc(a.runCtx, cancel)
+		return ctx, func() {
+			stop()
+			cancel()
+		}
+	}
+	return ctx, cancel
 }
 
 // waitOpened waits until Execute claimed the Space and read what an earlier
@@ -619,39 +710,61 @@ func (a *Adapter) ownershipOf(ctx context.Context, snap sobject.SharedObjectStat
 	return own, nil
 }
 
-// Root moves the checkpoint root onto the World after the first n positions,
-// storing its kept pages with the move, and returns its encoded InnerState.
-func (a *Adapter) Root(ctx context.Context, n int) ([]byte, error) {
+// Root returns the encoded InnerState of the World after the first n
+// positions, and the store that moves the checkpoint root onto it beside
+// every World returned since the last install. Until store returns, the World
+// is live, so a sweep keeps its pages and a trim holds it; store flushes its
+// kept pages in slices before it takes the root lock for the swap, so the
+// driver may run it beside its apply loop.
+func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context) error, error) {
 	// Wait for the claim.
 	if err := a.waitOpened(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Answer only for an applied position, readable from memory.
 	r := a.replay
 	if n > len(r.positions) {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if n != 0 && n <= r.floor {
 		// The World after n left memory unstored: compute it again.
 		if err := r.recompute(ctx, n); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	state, _ := r.stateBefore(n)
+	data, err := state.MarshalVT()
+	if err != nil {
+		return nil, nil, err
+	}
 
-	// Hold it beside every World returned since the last install, then
-	// return it.
-	release, err := a.lockRoots(ctx, state.GetHeadRef().GetRootRef())
-	if err != nil {
-		return nil, err
+	// Keep the World live until its store returns.
+	root := state.GetHeadRef().GetRootRef().Clone()
+	done, ok := a.startBackground(root)
+	if !ok {
+		return nil, nil, errAdapterStopped
 	}
-	err = a.addHistory(ctx, &a.checkpointWorlds, state.GetHeadRef().GetRootRef())
-	release()
-	if err != nil {
-		return nil, err
+	store := func(ctx context.Context) error {
+		// End with the adapter's run, and free the World's liveness after.
+		defer done()
+		ctx, cancel := a.backgroundContext(ctx)
+		defer cancel()
+
+		// Hold it beside every World returned since the last install,
+		// unless an install already made it the replay base, which holds
+		// it.
+		release, err := a.lockRoots(ctx, root)
+		if err != nil {
+			return err
+		}
+		defer release()
+		if refEqual(a.held[RootReplayBase], root) {
+			return nil
+		}
+		return a.addHistory(ctx, &a.checkpointWorlds, root)
 	}
-	return state.MarshalVT()
+	return data, store, nil
 }
 
 // Apply computes the World after op at index. An operation of this device
@@ -758,7 +871,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 
 	// Hold the checkpoint's World as the replay base, and trim the Worlds it
 	// covers from the histories, in one root move.
-	if err := a.trimHistories(ctx); err != nil {
+	if err := a.trimInBackground(ctx); err != nil {
 		return false, err
 	}
 
@@ -776,12 +889,138 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	return kept, nil
 }
 
-// trimHistories moves the replay base onto the replay's base World and
-// releases from the cursor, pending and checkpoint histories the base World,
-// which its own root holds, and every World that is not live. A World Root
-// returned past the adopted checkpoint stays held while a later position
-// still is that World, since Root stored its pages and dropped them from
-// memory.
+// trimPlan is what a trim gathered on the driver goroutine: the base, the
+// live Worlds, and the Worlds each history held then, the only ones the trim
+// may release.
+type trimPlan struct {
+	// base is the replay base's World.
+	base *block.BlockRef
+	// memory and candidates are the live Worlds the trim holds under the
+	// cursor and pending roots, without the base.
+	memory, candidates []*block.BlockRef
+	// live holds the keys of every live World.
+	live map[string]struct{}
+	// held holds the keys of the Worlds the histories held at the gather.
+	held map[string]struct{}
+	// seq numbers the plan in gather order.
+	seq uint64
+}
+
+// releases reports whether the trim releases root from a history: a World a
+// history held at the gather that is the base or not live. A World a history
+// gained since, such as a background store's, stays.
+func (p *trimPlan) releases(root *block.BlockRef) bool {
+	key := root.MarshalString()
+	if _, ok := p.held[key]; !ok {
+		return false
+	}
+	_, live := p.live[key]
+	return !live || refEqual(root, p.base)
+}
+
+// gatherTrim gathers a trim's plan. The driver goroutine calls it.
+func (a *Adapter) gatherTrim(ctx context.Context) (*trimPlan, error) {
+	// Gather the live Worlds, leaving out the base.
+	l := a.gatherLive()
+	p := &trimPlan{base: a.replay.base.GetHeadRef().GetRootRef(), seq: a.trimSeq.Add(1)}
+	isBase := func(root *block.BlockRef) bool { return refEqual(root, p.base) }
+	p.memory = slices.DeleteFunc(dedupRefs(l.memory), isBase)
+	p.candidates = slices.DeleteFunc(dedupRefs(l.candidates), isBase)
+	p.live = make(map[string]struct{}, len(p.memory)+len(p.candidates)+len(l.stored))
+	for _, root := range slices.Concat(p.memory, p.candidates, l.stored) {
+		p.live[root.MarshalString()] = struct{}{}
+	}
+
+	// Note the Worlds the histories hold now.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	p.held = make(map[string]struct{})
+	for _, h := range []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
+		for _, root := range h.roots {
+			p.held[root.MarshalString()] = struct{}{}
+		}
+	}
+	return p, nil
+}
+
+// trimBackoffMin and trimBackoffMax bound the waits between the attempts of
+// a background trim whose root move failed.
+const (
+	trimBackoffMin = 250 * time.Millisecond
+	trimBackoffMax = 30 * time.Second
+)
+
+// trimInBackground gathers a trim on the driver goroutine and runs it beside
+// the driver's apply loop, one trim at a time, so an install never waits for
+// the store of the Worlds it holds. A plan older than the newest one gathered
+// is skipped, since its base would move the replay base back, and a failed
+// trim tries again with backoff while its plan is the newest, so an adopted
+// checkpoint's World is held under replay-base soon after its install. Until
+// the trim's root move, the old base stays held under replay-base and the
+// installed checkpoint's World under the checkpoint root.
+func (a *Adapter) trimInBackground(ctx context.Context) error {
+	// Gather the plan on the driver goroutine.
+	plan, err := a.gatherTrim(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Run it beside the apply loop, keeping the Worlds it holds and its base
+	// live until it returns, so a sweep keeps their pages for its flush. A
+	// run that ended trims nothing more; the next mount does.
+	done, ok := a.startBackground(slices.Concat(plan.memory, plan.candidates, []*block.BlockRef{plan.base})...)
+	if !ok {
+		return nil
+	}
+	go func() {
+		defer done()
+		ctx, cancel := a.backgroundContext(ctx)
+		defer cancel()
+		a.runTrimNewest(ctx, plan)
+	}()
+	return nil
+}
+
+// runTrimNewest runs plan under the trim turn while it is the newest plan
+// gathered, trying again with backoff after a failure until ctx ends.
+func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
+	delay := trimBackoffMin
+	for {
+		// Run it under the trim turn unless a newer plan was gathered.
+		release, err := a.trimMtx.Lock(ctx)
+		if err != nil {
+			return
+		}
+		if plan.seq < a.trimSeq.Load() {
+			release()
+			return
+		}
+		err = a.runTrim(ctx, plan)
+		release()
+		if err == nil || ctx.Err() != nil {
+			return
+		}
+
+		// Wait out the backoff, then try again.
+		a.le.WithError(err).Warn("histories not trimmed after the install, trying again")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(delay):
+		}
+		delay = min(2*delay, trimBackoffMax)
+	}
+}
+
+// runTrim runs the trim plan gathered: it moves the replay base onto the
+// plan's base World and releases from the cursor, pending and checkpoint
+// histories the base World, which its own root holds, and every World the
+// plan held that is not live. A World Root returned past the adopted
+// checkpoint stays held while a later position still is that World, since
+// Root stored its pages and dropped them from memory.
 //
 // A live World kept in memory may name stored pages that only the old base or
 // an earlier history World holds, so when the base moves or any history
@@ -794,44 +1033,28 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 //
 // Cost per install: one pass over the live Worlds, keyed by ref, and one
 // root move that stores the kept pages of the live Worlds.
-func (a *Adapter) trimHistories(ctx context.Context) error {
-	// Gather the live Worlds, leaving out the base.
-	l := a.gatherLive()
-	base := a.replay.base.GetHeadRef().GetRootRef()
-	isBase := func(root *block.BlockRef) bool { return refEqual(root, base) }
-	memory := slices.DeleteFunc(dedupRefs(l.memory), isBase)
-	candidates := slices.DeleteFunc(dedupRefs(l.candidates), isBase)
-
-	// Keep the Worlds any of them is, but the base.
-	live := make(map[string]struct{}, len(memory)+len(candidates)+len(l.stored))
-	for _, root := range slices.Concat(memory, candidates, l.stored) {
-		live[root.MarshalString()] = struct{}{}
-	}
-	keep := func(root *block.BlockRef) bool {
-		_, ok := live[root.MarshalString()]
-		return ok && !isBase(root)
-	}
-
+func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 	// Leave the roots alone when the base stays and no history releases a
 	// World.
-	release, err := a.lockRoots(ctx, slices.Concat(memory, candidates, []*block.BlockRef{base})...)
+	keep := func(root *block.BlockRef) bool { return !p.releases(root) }
+	release, err := a.lockRoots(ctx, slices.Concat(p.memory, p.candidates, []*block.BlockRef{p.base})...)
 	if err != nil {
 		return err
 	}
 	defer release()
 	histories := []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds}
-	moved := !refEqual(a.held[RootReplayBase], base)
+	moved := !refEqual(a.held[RootReplayBase], p.base)
 	if !moved && !slices.ContainsFunc(histories, func(h *worldHistory) bool { return h.releases(keep) }) {
 		return nil
 	}
 
 	// Hold the live Worlds, release the rest and move the base together.
 	next := [][]*block.BlockRef{
-		a.cursorWorlds.held(keep, memory),
-		a.pendingWorlds.held(keep, candidates),
+		a.cursorWorlds.held(keep, p.memory),
+		a.pendingWorlds.held(keep, p.candidates),
 		a.checkpointWorlds.held(keep, nil),
 	}
-	return a.setHistories(ctx, histories, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: base})
+	return a.setHistories(ctx, histories, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
 }
 
 // missAbove notes as missing every applied position whose operation is still

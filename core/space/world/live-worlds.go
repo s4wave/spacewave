@@ -15,9 +15,10 @@ type worldReaders interface {
 // what is live.
 type liveWorlds struct {
 	// memory are the Worlds whose pages may be kept in memory: the positions'
-	// above the floor, the installed head, the writer head and the Worlds the
-	// served engine's readers may still read. A trim holds them under the
-	// replay cursor root, and a sweep keeps their pages.
+	// above the floor, the installed head, the writer head, the Worlds a
+	// checkpoint is storing and the Worlds the served engine's readers may
+	// still read. A trim holds them under the replay cursor root, and a sweep
+	// keeps their pages.
 	memory []*block.BlockRef
 	// candidates are the pending candidates' Worlds. A trim holds them under
 	// the pending root, and a sweep keeps their pages.
@@ -55,6 +56,9 @@ func (a *Adapter) gatherLive() liveWorlds {
 	// Add the heads, the candidates and the retained roots.
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		l.memory = append(l.memory, a.head.Root, a.writer.Root)
+		for _, roots := range a.storing {
+			l.memory = append(l.memory, roots...)
+		}
 		for _, adm := range a.pending {
 			l.candidates = append(l.candidates, adm.candidate.Root)
 			l.payloads = append(l.payloads, adm.payloads...)

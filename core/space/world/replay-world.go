@@ -37,7 +37,8 @@ func ReplayWorld(
 
 // replayOnce replays snap on a transient adapter whose pages stay in memory
 // up to maxPending bytes and go to a stage on so's block store past it. The
-// stage holds them until release.
+// stage holds them until release. It waits for the trims its installs
+// start.
 func replayOnce(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -70,7 +71,9 @@ func replayOnce(
 		return nil, nil, err
 	}
 	defer a.replay.close()
-	if err := sobject.NewBodyDriver(le, so, a, nil).Step(ctx, snap); err != nil {
+	err = sobject.NewBodyDriver(le, so, a, nil).Step(ctx, snap)
+	a.background.Wait()
+	if err != nil {
 		release()
 		return nil, nil, err
 	}

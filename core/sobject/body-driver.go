@@ -54,6 +54,8 @@ type BodyDriver struct {
 	// checkpointer signs this device's checkpoints, or is nil for a device
 	// that signs none.
 	checkpointer *bodyCheckpointer
+	// wake asks Execute to step again without a state change.
+	wake chan error
 
 	// mtx serializes the body's calls and guards the fields below.
 	mtx sync.Mutex
@@ -71,6 +73,9 @@ type BodyDriver struct {
 	mismatch *SOCheckpointMismatch
 	// shown is the report last sent to report.
 	shown *BodyReport
+	// storing reports that a checkpoint's store and signature run in the
+	// background, so a step signs no other.
+	storing bool
 }
 
 // NewBodyDriver returns the driver of body on so. report receives what the
@@ -82,6 +87,7 @@ func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*Bo
 		body:    body,
 		report:  report,
 		applied: make(map[string]struct{}),
+		wake:    make(chan error, 1),
 	}
 }
 
@@ -106,7 +112,7 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	defer rel()
 
 	// Wake a failed step after a backoff.
-	wake := make(chan error, 1)
+	wake := d.wake
 	delay := bodyRetryMin
 	var timer *time.Timer
 	defer func() {
@@ -199,15 +205,20 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 	return d.checkpoint(ctx, ev)
 }
 
-// checkpoint signs and adopts the checkpoint over ev's stable prefix when this
-// device owes it and the body applied the prefix. A state that moved past the
-// prefix meanwhile skips it; the next step checkpoints again.
+// checkpoint starts the checkpoint over ev's stable prefix when this device
+// owes it, the body applied the prefix and no checkpoint is storing: it takes
+// the body's state there, then stores, signs and adopts it in the background,
+// so the driver keeps applying and deciding operations meanwhile. The next
+// step installs the checkpoint once it is adopted. A state that moved past
+// the prefix meanwhile skips it, and the driver steps again to checkpoint
+// anew.
 func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	// Only the checkpointer of an owner-controlled Space signs, and not while
-	// handing over. Group control decides checkpoints by vote.
+	// handing over or while another checkpoint stores. Group control decides
+	// checkpoints by vote.
 	c := d.checkpointer
 	self := d.so.GetPeerID().String()
-	if c == nil || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
+	if c == nil || d.storing || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
 		return nil
 	}
 	own, err := ev.Snapshot.GetOwnership(ctx)
@@ -225,21 +236,42 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	if ev.Stable < minStable || len(d.positions) < ev.Stable {
 		return nil
 	}
-	data, err := d.body.Root(ctx, ev.Stable)
+	data, store, err := d.body.Root(ctx, ev.Stable)
 	if err != nil || data == nil {
 		return err
 	}
 
-	// Sign and adopt it on the held state.
+	// Store, sign and adopt it in the background.
+	d.storing = true
 	prefix := ev.Order[:ev.Stable]
 	height := ev.Checkpoint.GetHeight()
-	err = c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
-		return c.adopt(ctx, d.le, d.so, state, prefix, data, height)
-	})
-	if errors.Is(err, errCheckpointStale) {
-		return nil
+	go d.storeCheckpoint(ctx, c, store, prefix, data, height)
+	return nil
+}
+
+// storeCheckpoint stores the body's state for the checkpoint over prefix,
+// then signs and adopts it on the held state, and wakes the driver to step
+// again. It runs beside the driver's apply loop.
+func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, store func(context.Context) error, prefix [][]byte, data []byte, height uint64) {
+	// Store the state, then sign and adopt the checkpoint.
+	err := store(ctx)
+	if err == nil {
+		err = c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
+			return c.adopt(ctx, d.le, d.so, state, prefix, data, height)
+		})
 	}
-	return err
+	if err != nil && !errors.Is(err, errCheckpointStale) && ctx.Err() == nil {
+		d.le.WithError(err).Warn("checkpoint stopped before it was adopted")
+	}
+
+	// Let the next step checkpoint again.
+	d.mtx.Lock()
+	d.storing = false
+	d.mtx.Unlock()
+	select {
+	case d.wake <- errBodyRetry:
+	default:
+	}
 }
 
 // ProposeCheckpoint returns the checkpoint after the one state holds over its
@@ -261,9 +293,13 @@ func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SO
 		return nil, err
 	}
 
-	// Encrypt the body's state after it into the checkpoint body.
-	data, err := d.body.Root(ctx, len(prefix))
+	// Hold the body's state after it, and encrypt it into the checkpoint
+	// body.
+	data, store, err := d.body.Root(ctx, len(prefix))
 	if err != nil || data == nil {
+		return nil, err
+	}
+	if err := store(ctx); err != nil {
 		return nil, err
 	}
 	dataEnc, err := d.checkpointer.encrypt(ctx, d.le, d.so, state, data)
@@ -308,8 +344,11 @@ func (d *BodyDriver) JudgeCheckpoint(ctx context.Context, state *SOState, inner 
 	if err != nil {
 		return false, true, nil
 	}
-	data, err := d.body.Root(ctx, n)
+	data, store, err := d.body.Root(ctx, n)
 	if err != nil || data == nil {
+		return false, false, err
+	}
+	if err := store(ctx); err != nil {
 		return false, false, err
 	}
 	return bytes.Equal(data, decoded.GetStateData()), true, nil

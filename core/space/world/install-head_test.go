@@ -2,11 +2,10 @@ package space_world
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"maps"
 	"slices"
-	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,35 +22,70 @@ import (
 )
 
 // flakyRootStore holds named roots in memory and fails the next fail root
-// moves, and every move of the root named failOn.
+// moves, and every move of the root named failOn. It is safe for a background
+// trim and the test to use together.
 type flakyRootStore struct {
 	block.StoreOps
+	// mtx guards the fields below.
+	mtx sync.Mutex
 	// roots are the held roots by name.
 	roots map[string]*block.BlockRef
 	// fail counts the root moves left to fail.
 	fail int
 	// failOn, when set, names a root whose every move fails.
 	failOn string
+	// failed, when set, receives a value at each failed move without
+	// blocking.
+	failed chan struct{}
+	// moved records each root a move landed, as name and ref.
+	moved []string
 }
 
 // GetRoot returns the block name holds.
 func (s *flakyRootStore) GetRoot(_ context.Context, name string) (*block.BlockRef, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	return s.roots[name], nil
+}
+
+// held returns a copy of the held roots.
+func (s *flakyRootStore) held() map[string]*block.BlockRef {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return maps.Clone(s.roots)
+}
+
+// set sets failOn.
+func (s *flakyRootStore) set(failOn string) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.failOn = failOn
 }
 
 // SetRoots stores entries and moves the roots, unless a failure is due.
 func (s *flakyRootStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	if s.fail > 0 {
-		s.fail--
+	// Fail when a failure is due.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if s.fail > 0 || slices.ContainsFunc(roots, func(r block.NamedRoot) bool { return r.Name == s.failOn }) {
+		if s.fail > 0 {
+			s.fail--
+		}
+		if s.failed != nil {
+			select {
+			case s.failed <- struct{}{}:
+			default:
+			}
+		}
 		return errors.New("injected root move failure")
 	}
-	if slices.ContainsFunc(roots, func(r block.NamedRoot) bool { return r.Name == s.failOn }) {
-		return errors.New("injected root move failure")
-	}
+
+	// Store the entries and move the roots.
 	if _, err := s.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
 	for _, root := range roots {
+		s.moved = append(s.moved, root.Name+"="+root.Ref.MarshalString())
 		if root.Ref.GetEmpty() {
 			delete(s.roots, root.Name)
 			continue
@@ -59,6 +93,15 @@ func (s *flakyRootStore) SetRoots(ctx context.Context, entries []*block.PutBatch
 		s.roots[root.Name] = root.Ref
 	}
 	return nil
+}
+
+// trimNow runs a background trim of a and waits for it.
+func trimNow(t *testing.T, a *Adapter) {
+	t.Helper()
+	if err := a.trimInBackground(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	a.background.Wait()
 }
 
 // TestInstallHeadRetriesRetainedHold checks that a head whose retained-root
@@ -104,7 +147,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	if err := a.installHead(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if store.roots[RootRetained].GetEmpty() {
+	if store.held()[RootRetained].GetEmpty() {
 		t.Fatal("the retry did not hold the retained roots")
 	}
 	if len(reports) != 1 || !reports[0].Root.EqualsRef(head) || adm.state != admissionDecided {
@@ -198,15 +241,13 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	release()
 
 	// Install the earlier one as the replay base.
-	if err := a.trimHistories(ctx); err != nil {
-		t.Fatal(err)
-	}
+	trimNow(t, a)
 
 	// The checkpoint root still holds the later World, and only it.
-	if store.roots[RootCheckpoint].GetEmpty() || !a.checkpointWorlds.holds(later) || a.checkpointWorlds.holds(earlier) {
+	if store.held()[RootCheckpoint].GetEmpty() || !a.checkpointWorlds.holds(later) || a.checkpointWorlds.holds(earlier) {
 		t.Fatalf("checkpoint history after the install = %v", a.checkpointWorlds.roots)
 	}
-	if !store.roots[RootReplayBase].EqualsRef(earlier) {
+	if !store.held()[RootReplayBase].EqualsRef(earlier) {
 		t.Fatal("the install did not hold the replay base")
 	}
 }
@@ -281,9 +322,7 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 	// position.
 	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: head}}}}
-	if err := a.trimHistories(ctx); err != nil {
-		t.Fatal(err)
-	}
+	trimNow(t, a)
 
 	// The base moved, the saved World is released, the live Worlds are held,
 	// and the pages they name survive a collection.
@@ -343,8 +382,8 @@ func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
 		}
 	}
 	a := &Adapter{
-		opened:           openedNow(),
 		le:               logrus.NewEntry(log),
+		opened:           openedNow(),
 		pages:            block.NewPendingStore(cursor.GetBucket(), maxPending),
 		held:             make(map[string]*block.BlockRef),
 		checkpointWorlds: worldHistory{name: RootCheckpoint},
@@ -352,82 +391,6 @@ func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
 		pendingWorlds:    worldHistory{name: RootPending},
 	}
 	return a, collect
-}
-
-// TestAdmitWaitsOnlyForTheRootSwap checks, at two sizes of a checkpoint's
-// kept World, that a local write's payload hold landing while the driver
-// stores that World under the checkpoint root waits only for the root swap,
-// not for the store: its longest wait stays a small part of the store's time
-// and does not grow with the World.
-func TestAdmitWaitsOnlyForTheRootSwap(t *testing.T) {
-	type result struct{ wait, store time.Duration }
-	results := make(map[int]result)
-	for _, mib := range []int{4, 32} {
-		var r result
-		for range 3 {
-			wait, store := measureAdmitWait(t, mib)
-			r.wait, r.store = max(r.wait, wait), max(r.store, store)
-		}
-		t.Logf("checkpoint of %d MiB: store %v, longest payload hold wait %v", mib, r.store, r.wait)
-		results[mib] = r
-	}
-	large := results[32]
-	if large.wait > large.store/4 {
-		t.Fatalf("a payload hold waited %v behind a %v checkpoint store", large.wait, large.store)
-	}
-}
-
-// measureAdmitWait stores a kept World of mib MiB under the checkpoint root,
-// as Root does, and returns how long a payload hold, as Admit makes it, waited
-// once it landed during the store, and how long the store took.
-func measureAdmitWait(t *testing.T, mib int) (wait, store time.Duration) {
-	// Keep a World of mib MiB of 4 KiB pages, two levels deep, and a payload.
-	ctx := t.Context()
-	a, _ := newVolumeAdapter(t, (mib+8)<<20)
-	put := func(data []byte, children ...*block.BlockRef) *block.BlockRef {
-		t.Helper()
-		ref, err := block.BuildBlockRef(data, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: children, RefsKnown: true}}); err != nil {
-			t.Fatal(err)
-		}
-		return ref
-	}
-	var nodes []*block.BlockRef
-	page := make([]byte, 4<<10)
-	for n := range mib << 8 / 256 {
-		leaves := make([]*block.BlockRef, 256)
-		for i := range leaves {
-			binary.LittleEndian.PutUint64(page, uint64(n<<8|i)) //nolint:gosec // small and positive.
-			leaves[i] = put(slices.Clone(page))
-		}
-		nodes = append(nodes, put([]byte("node "+strconv.Itoa(n)), leaves...))
-	}
-	world := put([]byte("checkpoint World"), nodes...)
-	payload := put([]byte("payload"))
-	a.replay = &spaceReplay{a: a, base: &InnerState{}}
-	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: world}}}}
-
-	// Start the checkpoint's store, then hold the payload during it.
-	stored := make(chan error, 1)
-	start := time.Now()
-	go func() {
-		_, err := a.Root(ctx, 1)
-		stored <- err
-	}()
-	time.Sleep(2 * time.Millisecond)
-	adm := &spaceAdmission{payloads: []*block.BlockRef{payload}, done: make(chan struct{})}
-	held := time.Now()
-	if err := a.holdAdmitted(ctx, adm); err != nil {
-		t.Fatal(err)
-	}
-	wait = time.Since(held)
-	if err := <-stored; err != nil {
-		t.Fatal(err)
-	}
-	return wait, time.Since(start)
 }
 
 // TestTrimKeepsRestoredWorlds checks that an install at mount, before replay
@@ -468,17 +431,15 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	a.replay.restored = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: saved}}}}
 
 	// The install at mount keeps it.
-	if err := a.trimHistories(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if !a.cursorWorlds.holds(saved) || store.roots[RootReplayCursor].GetEmpty() {
+	trimNow(t, a)
+	if !a.cursorWorlds.holds(saved) || store.held()[RootReplayCursor].GetEmpty() {
 		t.Fatalf("cursor history after the install = %v, want the saved World", a.cursorWorlds.roots)
 	}
 }
 
-// TestTrimMovesRootsTogether checks that a trim moves the replay base and
-// every history in one root move: a failed move leaves every root and history
-// as it was, and the next trim lands them all.
+// TestTrimMovesRootsTogether checks that a background trim moves the replay
+// base and every history in one root move: a failed move leaves every root
+// and history as it was, and the trim tries again until it lands them all.
 func TestTrimMovesRootsTogether(t *testing.T) {
 	// Build an adapter whose cursor root holds a World the install covers,
 	// with a pending candidate and a head, over a store that fails every move
@@ -516,24 +477,141 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 	a.head, a.writer = world.Head{Root: head}, world.Head{Root: candidate}
 	a.pending = []*spaceAdmission{{candidate: world.Candidate{Root: candidate}}}
 
-	// A trim whose move of the pending root fails moves no root.
-	before := maps.Clone(store.roots)
-	store.failOn = RootPending
-	if err := a.trimHistories(ctx); err == nil {
-		t.Fatal("the trim landed through a failed root move")
-	}
-	store.failOn = ""
-	if !maps.EqualFunc(store.roots, before, refEqual) || !a.cursorWorlds.holds(covered) || len(a.pendingWorlds.roots) != 0 {
-		t.Fatalf("a failed trim moved roots: %v, cursor %v, pending %v", store.roots, a.cursorWorlds.roots, a.pendingWorlds.roots)
-	}
-
-	// The next trim lands every move.
-	if err := a.trimHistories(ctx); err != nil {
+	// A background trim whose move of the pending root fails moves no root.
+	before := store.held()
+	store.failed = make(chan struct{}, 1)
+	store.set(RootPending)
+	if err := a.trimInBackground(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if !refEqual(store.roots[RootReplayBase], base) || a.cursorWorlds.holds(covered) || !a.cursorWorlds.holds(head) || !a.pendingWorlds.holds(candidate) {
-		t.Fatalf("roots after the trim = %v, cursor %v, pending %v", store.roots, a.cursorWorlds.roots, a.pendingWorlds.roots)
+	select {
+	case <-store.failed:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
 	}
+	release, err = a.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved := !maps.EqualFunc(store.held(), before, refEqual) || !a.cursorWorlds.holds(covered) || len(a.pendingWorlds.roots) != 0
+	release()
+	if moved {
+		t.Fatalf("a failed trim moved roots: %v", store.held())
+	}
+
+	// It tries again and lands every move once the store takes them.
+	store.set("")
+	a.background.Wait()
+	if !refEqual(store.held()[RootReplayBase], base) || a.cursorWorlds.holds(covered) || !a.cursorWorlds.holds(head) || !a.pendingWorlds.holds(candidate) {
+		t.Fatalf("roots after the trim = %v, cursor %v, pending %v", store.held(), a.cursorWorlds.roots, a.pendingWorlds.roots)
+	}
+}
+
+// TestTrimKeepsItsBaseAndSkipsOlderPlans checks that a background trim keeps
+// its base live until it runs, so a sweep after a later install keeps the
+// base's pages for its flush, and that a trim gathered before a newer one is
+// skipped, so the replay base never moves back onto an older checkpoint's
+// World.
+func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
+	// Keep two checkpoint Worlds, each over a page of its own.
+	ctx := t.Context()
+	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
+	a := &Adapter{
+		opened:           openedNow(),
+		le:               logrus.NewEntry(logrus.New()),
+		pages:            block.NewPendingStore(store, 1<<20),
+		held:             make(map[string]*block.BlockRef),
+		checkpointWorlds: worldHistory{name: RootCheckpoint},
+		cursorWorlds:     worldHistory{name: RootReplayCursor},
+		pendingWorlds:    worldHistory{name: RootPending},
+	}
+	put := func(name string, children ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		data := []byte("plan " + name)
+		for _, c := range children {
+			data = append(data, c.MarshalString()...)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: children, RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	firstPage, secondPage := put("first page"), put("second page")
+	first, second := put("first World", firstPage), put("second World", secondPage)
+
+	// The first install gathers a trim onto the first World, which waits for
+	// the trim turn.
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: first}}}
+	turn, err := a.trimMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.trimInBackground(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// The second install moves the base on and sweeps; the first trim's base
+	// keeps its page.
+	a.replay.base = &InnerState{HeadRef: &bucket.ObjectRef{RootRef: second}}
+	a.sweep()
+	if _, found, err := a.pages.GetBlock(ctx, firstPage); err != nil || !found {
+		t.Fatalf("a sweep dropped the page of a waiting trim's base: %v, %v", found, err)
+	}
+
+	// The second install gathers its trim; once the turn opens, the first is
+	// skipped and the replay base moves onto the second World alone.
+	if err := a.trimInBackground(ctx); err != nil {
+		t.Fatal(err)
+	}
+	turn()
+	a.background.Wait()
+	if !refEqual(store.held()[RootReplayBase], second) {
+		t.Fatalf("replay base after both trims = %v, want the second World", store.held()[RootReplayBase])
+	}
+	if slices.Contains(store.moved, RootReplayBase+"="+first.MarshalString()) {
+		t.Fatalf("the older trim moved the replay base onto its World: %v", store.moved)
+	}
+}
+
+// TestBackgroundStoresKeepTheirOwnRoots checks that each background store
+// keeps its roots live under its own token, so one store's end leaves the
+// same root live while another store holds it, and that a run that ended
+// starts no store.
+func TestBackgroundStoresKeepTheirOwnRoots(t *testing.T) {
+	// Two stores hold the same root, as a trim's plan copies a store's.
+	a := &Adapter{}
+	a.replay = &spaceReplay{a: a, base: &InnerState{}}
+	root, err := block.BuildBlockRef([]byte("stored World"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	live := func() bool { return slices.ContainsFunc(a.gatherLive().memory, root.EqualsRef) }
+	first, _ := a.startBackground(root)
+	second, _ := a.startBackground(root)
+
+	// The second's end leaves it live for the first; the first's end does
+	// not.
+	second()
+	if !live() {
+		t.Fatal("one store's end dropped a root another store holds")
+	}
+	first()
+	if live() {
+		t.Fatal("a root stayed live after every store holding it ended")
+	}
+
+	// A run that ended starts nothing.
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.stopped = true
+	})
+	if _, ok := a.startBackground(root); ok {
+		t.Fatal("a store started after the run ended")
+	}
+	a.background.Wait()
 }
 
 // readRoots are the Worlds a test's engine readers still read.

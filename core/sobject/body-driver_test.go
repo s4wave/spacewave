@@ -29,6 +29,8 @@ type testBody struct {
 	installs []int
 	// missing makes Apply fail the "missing" operation.
 	missing bool
+	// storeGate, when set, holds each store Root returns until it closes.
+	storeGate chan struct{}
 }
 
 // stateAt returns the state after the first n operations.
@@ -40,11 +42,22 @@ func (b *testBody) stateAt(n int) string {
 }
 
 // Root returns the state after the first n operations.
-func (b *testBody) Root(_ context.Context, n int) ([]byte, error) {
+func (b *testBody) Root(_ context.Context, n int) ([]byte, func(context.Context) error, error) {
 	if n > len(b.states) {
-		return nil, nil
+		return nil, nil, nil
 	}
-	return []byte(b.stateAt(n)), nil
+	gate := b.storeGate
+	return []byte(b.stateAt(n)), func(ctx context.Context) error {
+		if gate == nil {
+			return nil
+		}
+		select {
+		case <-gate:
+			return nil
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		}
+	}, nil
 }
 
 // Apply appends the operation's data to the state before index.
@@ -280,8 +293,9 @@ func TestBodyDriverRunThrough(t *testing.T) {
 
 // TestBodyDriverCheckpoints checks that an owner's driver signs a checkpoint
 // over the stable prefix once MinCheckpointOperations operations are stable,
-// with the state the body's Root holds, and that the next step installs it
-// keeping nothing to apply again.
+// with the state the body's Root holds, once the store Root returns finished
+// in the background while the driver applied a later operation, and that the
+// next step installs it keeping nothing to apply again.
 func TestBodyDriverCheckpoints(t *testing.T) {
 	// Host a Space whose only writer is the owner.
 	peers := createMockPeers(t, 1)
@@ -307,23 +321,41 @@ func TestBodyDriverCheckpoints(t *testing.T) {
 		t.Fatalf("checkpointed below the threshold at height %d", h)
 	}
 
-	// At the threshold it signs one over every stable operation, carrying
-	// the body's state there.
+	// At the threshold it takes the body's state there and stores it in the
+	// background: while the store runs the driver applies a later operation
+	// and signs nothing, and once the store returns it signs a checkpoint
+	// over every stable operation it took, carrying that state.
+	body.storeGate = make(chan struct{})
 	held = g.ctr.GetValue().Clone()
 	writeTestOp(t, held, keys[0], "y")
 	g.ctr.SetValue(held)
 	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
 		t.Fatal(err)
 	}
-	if h := mustHeight(t, g.ctr.GetValue()); h != 1 {
-		t.Fatalf("checkpoint height %d; want 1", h)
+	held = g.ctr.GetValue().Clone()
+	writeTestOp(t, held, keys[0], "z")
+	g.ctr.SetValue(held)
+	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+		t.Fatal(err)
 	}
-	if n := len(g.ctr.GetValue().GetOps()); n != 0 {
-		t.Fatalf("the checkpoint left %d operations", n)
+	if n := len(body.states); n != MinCheckpointOperations+1 {
+		t.Fatalf("applied %d operations while the checkpoint stored; want %d", n, MinCheckpointOperations+1)
+	}
+	if h := mustHeight(t, g.ctr.GetValue()); h != 0 {
+		t.Fatalf("checkpointed at height %d before its store returned", h)
+	}
+	close(body.storeGate)
+	if _, err := g.ctr.WaitValueWithValidator(t.Context(), func(state *SOState) (bool, error) {
+		return mustHeight(t, state) == 1, nil
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if n := len(g.ctr.GetValue().GetOps()); n != 1 {
+		t.Fatalf("the checkpoint left %d operations; want the later one", n)
 	}
 
-	// The next step installs it: the body reached its state, so nothing is
-	// applied again.
+	// The next step installs it: the body reached its state, so it keeps the
+	// later operation and applies nothing again.
 	body.applies = nil
 	if err := d.Step(t.Context(), testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
 		t.Fatal(err)

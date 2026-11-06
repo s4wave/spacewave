@@ -67,13 +67,13 @@ func StartEngine(
 // AccessEngine calls cb with the engine that serves eng. When eng resolves its
 // engine on demand, as a BusEngine does, cb runs with the current engine under
 // a context canceled when that engine is replaced, and runs again with its
-// successor.
+// successor, also when cb returns world.ErrEngineRetired from a retired one.
 func AccessEngine(ctx context.Context, eng Engine, cb func(ctx context.Context, eng Engine) error) error {
 	rc, ok := eng.(*RefCountEngine)
 	if !ok {
 		return cb(ctx, eng)
 	}
-	return rc.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	return rc.access(ctx, func(ctx context.Context, val *Engine) error {
 		return AccessEngine(ctx, *val, cb)
 	})
 }
