@@ -6,13 +6,23 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
+	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	"github.com/sirupsen/logrus"
 )
 
 // TestEngineAuthorityRunThrough walks the World engine's commit through its
@@ -635,4 +645,90 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 			t.Fatal("an abandoned writer's early drain survived collection")
 		}
 	})
+
+	// A World read and a small commit grow at most with the depth of the
+	// object tree from 1x to 10x objects, as the Phase 2 path walk says: a
+	// commit stays one Volume transaction, and neither scans the World.
+	t.Run("scaling", func(t *testing.T) {
+		small, large := measureEnginePaths(t, 200), measureEnginePaths(t, 2000)
+		for name, s := range small {
+			l := large[name]
+			t.Logf("%s: %+v over 1x, %+v over 10x", name, s, l)
+			if l.Total() > 2*s.Total()+8 || l.WriteTxns > s.WriteTxns {
+				t.Errorf("%s over 10x objects cost %+v, over 1x %+v", name, l, s)
+			}
+		}
+	})
+}
+
+// measureEnginePaths opens an engine with a local authority over a kvtx
+// Volume on a counting store, writes n objects, and returns what a World read
+// of one object and a commit of one object cost. A read's blocks the decoded
+// block cache serves count as reads, so the cache does not hide work.
+func measureEnginePaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
+	// Open the Volume, the World's cursor and the engine.
+	t.Helper()
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	le.Logger.SetLevel(logrus.ErrorLevel)
+	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	vol, err := volume_kvtx.NewVolume(ctx, "test/engine-scaling", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+	bkt := volume_controller.NewBucketStore(vol, &bucket.Config{Id: "world", Rev: 1})
+	cursor := bucket_lookup.NewCursor(ctx, nil, le, nil, bkt, nil, &bucket.ObjectRef{BucketId: "world"}, &bucket.BucketOpArgs{BucketId: "world"}, nil)
+	t.Cleanup(cursor.Release)
+	authority := NewLocalAuthority(le, cursor, WorldRootName("scaling"), nil, coord.Scope{})
+	engine, err := NewEngine(ctx, le, cursor.Clone(), world_mock.LookupMockOp, authority, false, WithReaderPinDelay(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.Close() })
+
+	// Write the n objects in batches of a hundred.
+	for i := 0; i < n; i += 100 {
+		w := fixtureWriter(t, engine)
+		for j := i; j < min(i+100, n); j++ {
+			fixtureObject(t, w, "object "+strconv.Itoa(j), "data "+strconv.Itoa(j))
+		}
+		if err := w.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Measure each entry point, counting the decoded block cache's hits.
+	var hits atomic.Uint64
+	block.SetDecodedBlockHitObserver(func(*block.BlockRef) { hits.Add(1) })
+	t.Cleanup(func() { block.SetDecodedBlockHitObserver(nil) })
+	costs := make(map[string]kvtx_kvtest.Counts)
+	measure := func(name string, fn func()) {
+		t.Helper()
+		before, beforeHits := cs.Counts(), hits.Load()
+		fn()
+		c := cs.Counts().Sub(before)
+		c.Reads += hits.Load() - beforeHits
+		costs[name] = c
+	}
+	measure("read", func() {
+		tx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		obj, found, err := tx.GetObject(ctx, "object 7")
+		if err != nil || !found {
+			t.Fatalf("read object 7: found %v err %v", found, err)
+		}
+		world.ReleaseObjectState(obj)
+	})
+	measure("commit", func() {
+		w := fixtureWriter(t, engine)
+		fixtureObject(t, w, "object 7", "changed")
+		if err := w.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	})
+	return costs
 }
