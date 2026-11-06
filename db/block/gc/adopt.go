@@ -392,7 +392,7 @@ func (a *adoption) countRoots(ctx context.Context) error {
 
 		// Move past them and let a waiting writer in.
 		after = last
-		if err := yieldWriters(ctx); err != nil {
+		if err := context.Cause(ctx); err != nil {
 			return err
 		}
 	}
@@ -475,7 +475,7 @@ func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(
 
 		// Move past it and let a waiting writer in.
 		after = last
-		if err := yieldWriters(ctx); err != nil {
+		if err := context.Cause(ctx); err != nil {
 			return err
 		}
 	}
@@ -522,7 +522,7 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 		}
 
 		// Let a waiting writer in.
-		if err := yieldWriters(ctx); err != nil {
+		if err := context.Cause(ctx); err != nil {
 			return err
 		}
 	}
@@ -574,7 +574,7 @@ func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool
 			}
 
 			// Let a waiting writer in.
-			if err := yieldWriters(ctx); err != nil {
+			if err := context.Cause(ctx); err != nil {
 				return err
 			}
 		}

@@ -104,7 +104,7 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 	r.res.Verified += verified
 	r.res.Rewritten += rewritten
 	r.pending = r.pending[:0]
-	return yieldWriters(ctx)
+	return context.Cause(ctx)
 }
 
 // verifyOne writes entry's list when it is missing or differs from its refs

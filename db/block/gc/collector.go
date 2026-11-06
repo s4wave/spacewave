@@ -16,6 +16,10 @@ import (
 // sweep is Sweep, netSlice is Net(k), freeBlock is Delete(b), and a block
 // without a child list is the model's hole.
 //
+// Between two transactions a pass checks only that ctx is live. The store
+// admits a writer that waited before the pass's next transaction, as
+// kvtx.WriterQueueStore requires of a background write, so nothing sleeps.
+//
 // Invariants. The collector keeps every one of these, and keeps a block
 // whenever it is unsure:
 //
@@ -149,19 +153,6 @@ func (c *Collector) phase(p Phase) func() {
 	return c.opts.Phase(p)
 }
 
-// yield returns ctx's end between two transactions of a pass. The store admits
-// a writer that waited before the pass's next transaction, as
-// kvtx.WriterQueueStore requires of a background write, so nothing sleeps.
-func (c *Collector) yield(ctx context.Context) error {
-	return yieldWriters(ctx)
-}
-
-// yieldWriters returns ctx's end between two transactions of a background
-// pass, as yield describes.
-func yieldWriters(ctx context.Context) error {
-	return context.Cause(ctx)
-}
-
 // sweepLeases releases the leased roots whose expiry passed, sliceLeases per
 // transaction, each through Land, so the journal records their release. It
 // seeks the lease index, so a pass reads only the lapsed leases.
@@ -207,7 +198,7 @@ func (c *Collector) sweepLeases(ctx context.Context, res *CollectResult) error {
 		if released < sliceLeases {
 			return nil
 		}
-		if err := c.yield(ctx); err != nil {
+		if err := context.Cause(ctx); err != nil {
 			return err
 		}
 	}
@@ -225,7 +216,7 @@ func (c *Collector) net(ctx context.Context, res *CollectResult, deadline time.T
 		if c.opts.Now().After(deadline) {
 			return true, nil
 		}
-		if err := c.yield(ctx); err != nil {
+		if err := context.Cause(ctx); err != nil {
 			return false, err
 		}
 	}
@@ -440,7 +431,7 @@ func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.
 			if c.opts.Now().After(deadline) {
 				return true, nil
 			}
-			if err := c.yield(ctx); err != nil {
+			if err := context.Cause(ctx); err != nil {
 				return false, err
 			}
 		}
