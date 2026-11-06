@@ -86,24 +86,49 @@ jobs:
           esac
 
   # Each model checks on one core. A model that takes minutes gets its own
-  # job, named in the models job's skip list, so no job nears the timeout;
-  # every other config, including a new one, checks in the models job.
+  # job, named in the models job's skip list, so no job nears its timeout;
+  # every other config, including a new one, checks in the models job. A model
+  # that needs longer than 25 minutes sets its own timeout.
   specs:
     name: TLA+ specs (${{ matrix.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: ${{ matrix.timeout || 25 }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: models
-            skip: db/block/gc/Journal.cfg db/block/gc/Journal-writers.cfg db/block/gc/Journal-writers-staged.cfg
+            skip: >-
+              db/block/gc/Journal.cfg
+              db/block/gc/Journal-adopt.cfg
+              db/block/gc/Journal-hole.cfg
+              db/block/gc/Journal-stage.cfg
+              db/block/gc/Journal-fill-staged.cfg
+              db/block/gc/Journal-fill-writers.cfg
+              db/block/gc/Journal-writers.cfg
+              db/block/gc/Journal-writers-staged.cfg
           - name: Journal
             config: db/block/gc/Journal.cfg
+            timeout: 360
+          - name: Journal-adopt
+            config: db/block/gc/Journal-adopt.cfg
+          - name: Journal-hole
+            config: db/block/gc/Journal-hole.cfg
+          - name: Journal-stage
+            config: db/block/gc/Journal-stage.cfg
+            timeout: 60
+          - name: Journal-fill-staged
+            config: db/block/gc/Journal-fill-staged.cfg
+            timeout: 60
+          - name: Journal-fill-writers
+            config: db/block/gc/Journal-fill-writers.cfg
+            timeout: 60
           - name: Journal-writers
             config: db/block/gc/Journal-writers.cfg
+            timeout: 360
           - name: Journal-writers-staged
             config: db/block/gc/Journal-writers-staged.cfg
+            timeout: 360
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
