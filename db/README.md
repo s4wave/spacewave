@@ -63,7 +63,6 @@ Hydra assigns a persistent public/private keypair and peer ID to volumes.
 
 The following volume types are currently implemented in this repository:
 
- - [Block]: nested volume backed by a peer-to-peer block graph.
  - [BoltDB]: embedded key/value data store, using bbolt.
  - [Browser]: append-only payload log and index on OPFS or IndexedDB in the web
    browser.
@@ -79,11 +78,9 @@ Any key/value store can be used as a Volume by implementing the [kvtx] interface
 and constructing the volume controller with the [kvtx-backed Store]. [In-memory]
 key-value volume is an example of this approach.
 
-Volumes can be nested: the [Block] volume uses the [kvtx/block] key/value store
-to create a shared Volume, which can be encrypted or compressed by adding a
-[transform config]. The [World] volume stores data in a world.
+Volumes can be nested: the [World] volume stores its data in an Object of a
+shared World.
 
-[Block]: ./volume/block/volume.proto#L11
 [BoltDB]: ./volume/bolt/bolt.proto#L9
 [Browser]: ./volume/browser/browser.proto
 [In-memory]: ./volume/kvtxinmem/kvtxinmem.proto#L9
@@ -94,8 +91,6 @@ to create a shared Volume, which can be encrypted or compressed by adding a
 [World]: ./volume/world/volume.proto#L10
 [kvtx-backed Store]: ./store/kvtx
 [kvtx]: ./kvtx/kvtx.go
-[kvtx/block]: ./kvtx/block/kvtx.go
-[transform config]: ./block/transform
 [volume controller]: ./volume/controller
 
 ### OPFS Chrome Tests
