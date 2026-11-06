@@ -1384,12 +1384,13 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("record larger than an index slice", func(t *testing.T) {
 		// 20,000 leaves stay held under mids of 1000, each under its root.
-		// One commit stores a parent naming each mid's leaves, so its one
-		// record carries an up pair for every leaf, more than an index slice
-		// holds. The collector indexes the record across slices while it is
-		// young, and deletes its entries across slices as it nets it, so no
-		// collector transaction does as much work as the record has pairs,
-		// and none is left behind.
+		// One commit stores a parent naming each mid's leaves, so its record
+		// carries an up pair for every leaf, more than an index slice holds.
+		// The commit writes it in pages, the collector indexes it across
+		// slices while it is young, and deletes its entries across slices as
+		// it nets it, so no collector transaction does as much work as the
+		// record has pairs or reads half of its bytes, and no entry is left
+		// behind.
 		ctx := t.Context()
 		cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
 		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
@@ -1426,6 +1427,9 @@ func TestLivenessAdversarial(t *testing.T) {
 			collectAll(t, v)
 			if m := cs.Counts().MaxWriteOps; m >= pairs {
 				t.Fatalf("a collector transaction made %d operations over a record of %d pairs", m, pairs)
+			}
+			if b := cs.Counts().MaxWriteReadBytes; b >= pairs*33/2 {
+				t.Fatalf("a collector transaction read %d bytes of a record of %d pairs", b, pairs)
 			}
 		}
 

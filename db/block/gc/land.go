@@ -20,7 +20,8 @@ type BucketRoots struct {
 
 // Land stores entries and moves the roots of each bucket in moves in one
 // write transaction, with the liveness records in rec and the block bytes in
-// blocks, appending one journal record for all of them. It returns,
+// blocks, appending one journal record for all of them, in pages of
+// journalPagePairs pairs when it has more. It returns,
 // for each entry, whether blocks held its bytes before. It is the one write
 // path that changes holders, so Journal.tla's Land action is this function.
 //
@@ -473,12 +474,21 @@ func (l *lander) appendJournal(ctx context.Context, state *LivenessState, now ti
 		return nil
 	}
 
-	// Write the record at the next sequence number, stamped with the clock.
-	rec := &JournalRecord{AtUnixMilli: now.UnixMilli(), Up: l.up, Down: l.down}
-	if err := l.rec.PutJournal(ctx, state.GetNextSeq(), rec); err != nil {
-		return err
+	// Write the record at the next sequence numbers, stamped with the clock,
+	// in pages of at most journalPagePairs pairs, the up pairs first: the
+	// collector nets the pages in order, as it nets one record's up pairs
+	// before its down pairs, and a slice decodes only the pages it works on.
+	at := now.UnixMilli()
+	for ups, downs := l.up, l.down; len(ups)+len(downs) != 0; state.NextSeq++ {
+		page := &JournalRecord{AtUnixMilli: at}
+		n := min(len(ups), journalPagePairs)
+		page.Up, ups = ups[:n], ups[n:]
+		n = min(len(downs), journalPagePairs-len(page.Up))
+		page.Down, downs = downs[:n], downs[n:]
+		if err := l.rec.PutJournal(ctx, state.GetNextSeq(), page); err != nil {
+			return err
+		}
 	}
-	state.NextSeq++
 	return l.rec.SetState(ctx, state)
 }
 
