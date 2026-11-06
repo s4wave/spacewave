@@ -154,8 +154,9 @@ func buildDefaultTransformConf() (*block_transform.Config, error) {
 	}
 	defer scrub.Scrub(material[:])
 
-	// Derive it under the label, which names the package this came from. It
-	// stays as it is, so a rename never changes the derivation of a key.
+	// Derive it under the label, which names core/sobject/world/engine, the
+	// deleted package this came from. The label separates this derivation
+	// from others, not packages, so it keeps the old path.
 	blockenc.DeriveKeySHA256("sobject/world/engine transform-config 2026-06-08 sha256 v1.", material[:], encKey[:])
 
 	// Encrypt with it.

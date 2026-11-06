@@ -28,8 +28,8 @@ type fill struct {
 	ref *block.BlockRef
 	// stored is the block with its refs.
 	stored *block.StoredBlock
-	// refill reports a block the reference graph tracks, whose value alone
-	// was evicted; any other block is a cache fill.
+	// refill reports a block whose child list the volume keeps, whose value
+	// alone was evicted; any other block is a cache fill.
 	refill bool
 }
 
@@ -62,8 +62,8 @@ func fillKey(ref *block.BlockRef) string {
 }
 
 // Refill queues a block read back from the remote store for its local value
-// and its eviction queue entry. It changes no ownership, so call it only for
-// a block the reference graph still tracks. It returns before the write, and
+// and its eviction queue entry. It changes no holder, so call it only for a
+// block whose child list the volume still keeps. It returns before the write, and
 // drops the block when the queue is full, as defaultFillQueueBytes describes.
 func (s *Store) Refill(ref *block.BlockRef, stored *block.StoredBlock) {
 	s.queueFill(fill{ref: ref, stored: stored, refill: true})

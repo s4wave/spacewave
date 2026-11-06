@@ -56,8 +56,8 @@ type syncController struct {
 	remote func() []*packfile.PackfileEntry
 	// upper holds the local blocks awaiting upload.
 	upper block.StoreOps
-	// refGraph orders dirty blocks by reference.
-	refGraph packfile_order.ChildLists
+	// childLists orders dirty blocks by the volume's child lists.
+	childLists packfile_order.ChildLists
 	// conf is the sync configuration.
 	conf *SyncConfig
 	// telemetry receives sync telemetry when set.
@@ -641,7 +641,7 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCan
 	}
 
 	// Order their refs for locality and map them back to candidates.
-	orderedRefs, err := packfile_order.BlockRefs(ctx, s.refGraph, refs)
+	orderedRefs, err := packfile_order.BlockRefs(ctx, s.childLists, refs)
 	if err != nil {
 		return nil, err
 	}
@@ -656,7 +656,11 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCan
 }
 
 // filterDuplicateDirtyBlocks probes a stable catalog with the shared index cache.
-func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, view *packfile_store.ManifestSnapshot, blocks []dirtyCandidate) ([]dirtyCandidate, []dirtyCandidate, error) {
+func (s *syncController) filterDuplicateDirtyBlocks(
+	ctx context.Context,
+	view *packfile_store.ManifestSnapshot,
+	blocks []dirtyCandidate,
+) ([]dirtyCandidate, []dirtyCandidate, error) {
 	// Probe the catalog for every candidate.
 	refs := make([]*block.BlockRef, 0, len(blocks))
 	for _, b := range blocks {

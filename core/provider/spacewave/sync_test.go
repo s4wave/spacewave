@@ -1631,7 +1631,7 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		mfst:       mfst,
 		lower:      push.lower(t),
 		upper:      upper,
-		refGraph:   graph,
+		childLists: graph,
 	}
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)

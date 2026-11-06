@@ -27,16 +27,16 @@ type ExistsChecker interface {
 // =mirror= may be nil; in that case every src block is emitted (mirror-absent
 // degenerate case).
 func DiffBlockStores(ctx context.Context, src *kvfile.Reader, mirror ExistsChecker) (writer.BlockIterator, error) {
-	return DiffBlockStoresWithRefGraph(ctx, src, mirror, nil)
+	return DiffBlockStoresByChildLists(ctx, src, mirror, nil)
 }
 
-// DiffBlockStoresWithRefGraph returns a diff iterator ordered by GC graph
-// locality when graph is available.
-func DiffBlockStoresWithRefGraph(
+// DiffBlockStoresByChildLists returns a diff iterator ordered by the locality
+// of the volume's child lists when lists is set.
+func DiffBlockStoresByChildLists(
 	ctx context.Context,
 	src *kvfile.Reader,
 	mirror ExistsChecker,
-	graph packfile_order.ChildLists,
+	lists packfile_order.ChildLists,
 ) (writer.BlockIterator, error) {
 	// Reject a missing source pack before scanning its index.
 	if src == nil {
@@ -77,7 +77,7 @@ func DiffBlockStoresWithRefGraph(
 		return nil, errors.Wrap(err, "scan src kvfile entries")
 	}
 
-	// Reorder the collected entries by GC graph locality.
+	// Reorder the collected entries by child list locality.
 	refs := make([]*block.BlockRef, 0, len(entries))
 	byKey := make(map[string]diffEntry, len(entries))
 	for _, entry := range entries {
@@ -85,7 +85,7 @@ func DiffBlockStoresWithRefGraph(
 		refs = append(refs, block.NewBlockRef(entry.hash))
 		byKey[key] = entry
 	}
-	orderedRefs, err := packfile_order.BlockRefs(ctx, graph, refs)
+	orderedRefs, err := packfile_order.BlockRefs(ctx, lists, refs)
 	if err != nil {
 		return nil, errors.Wrap(err, "order diff block refs")
 	}

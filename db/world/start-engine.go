@@ -30,7 +30,8 @@ type EngineConfig interface {
 // lookups. Release the reference to stop the controller.
 //
 // The returned Engine implements only Engine. Assert an optional interface of
-// the served engine, such as RootRetainingEngine, inside AccessEngine.
+// the served engine, such as the Space engine's SetRetainedRoot, inside
+// AccessEngine.
 func StartEngine(
 	ctx context.Context,
 	b bus.Bus,

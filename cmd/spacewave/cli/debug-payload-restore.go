@@ -512,8 +512,8 @@ func parseReplayCursorKey(key []byte) (string, bool) {
 
 // findSpaceBucket returns the one bucket configured in buckets whose ID has
 // spaceID as a path segment, as the providers' block store buckets do. It
-// reads the bucket configs because a bucket is in the ref graph only once GC
-// tracking has rooted it.
+// reads the bucket configs, which list every configured bucket, including one
+// that holds no named root yet.
 func findSpaceBucket(ctx context.Context, buckets bucket_store.Store, spaceID string) (string, error) {
 	// List the buckets named for the Space.
 	infos, err := buckets.ListBucketInfo(ctx, regexp.MustCompile("(^|/)"+regexp.QuoteMeta(spaceID)+"(/|$)"))
