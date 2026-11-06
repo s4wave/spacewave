@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/binary"
@@ -533,6 +534,44 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, "C", "P")
 		requireStored(t, v, tr, false, "Q")
 		requireAudit(t, v, 0)
+	})
+
+	t.Run("underflow in one free slice", func(t *testing.T) {
+		// A -> B under main, with B also queued as if a holder had vanished
+		// from its count. Releasing main queues A, and one slice takes A and
+		// then B: freeing A takes B off the queue as an underflow, keeping it
+		// with one holder, and the slice must not then free B.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		for i := 0; ; i++ {
+			child := "U" + strconv.Itoa(i)
+			tr.add(t, child)
+			tr.add(t, "A", child)
+			if bytes.Compare(block_gc.BlockKey(tr["A"].Ref), block_gc.BlockKey(tr[child].Ref)) < 0 {
+				tr["B"] = tr[child]
+				break
+			}
+		}
+		a := tr["A"].Ref
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("B", "A"), []block.NamedRoot{{Name: "main", Ref: a}}); err != nil {
+			t.Fatal(err)
+		}
+		err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			return p.rec.Enqueue(ctx, tr["B"].Ref)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: a}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Underflows != 1 {
+			t.Fatalf("collection found %d underflows, want 1", res.Underflows)
+		}
+		requireStored(t, v, tr, false, "A")
+		requireStored(t, v, tr, true, "B")
 	})
 
 	t.Run("stage lease lapses while open", func(t *testing.T) {
