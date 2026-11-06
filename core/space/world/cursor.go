@@ -33,6 +33,12 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 	if len(r.positions) == 0 || (!full && len(r.positions)-r.saved < replayCursorOperations) {
 		return nil
 	}
+
+	// Wait while the last position is below the floor: its World left memory
+	// unstored, so the cursor root cannot hold it.
+	if len(r.positions) <= r.floor {
+		return nil
+	}
 	if err := a.saveCursor(ctx); err != nil {
 		return err
 	}

@@ -441,17 +441,6 @@ func (r *spaceReplay) close() {
 	r.engine, r.cursor, r.bound = nil, nil, nil
 }
 
-// liveRoots returns the World roots replay may read again: base, every
-// position's World and the retained roots of each.
-func (r *spaceReplay) liveRoots() []*block.BlockRef {
-	live := []*block.BlockRef{r.base.GetHeadRef().GetRootRef()}
-	for _, pos := range r.positions[r.floor:] {
-		live = append(live, pos.state.GetHeadRef().GetRootRef())
-		live = append(live, pos.payloads...)
-	}
-	return live
-}
-
 // payloads returns the payload roots of the positions above the checkpoint.
 func (r *spaceReplay) payloads() []*block.BlockRef {
 	var out []*block.BlockRef

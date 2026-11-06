@@ -2,6 +2,7 @@ package space_world_test
 
 import (
 	"context"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -189,6 +191,25 @@ func (f *adapterFixture) start(t *testing.T) (*world.BusEngine, directive.Refere
 	return eng, ref
 }
 
+// remount releases ref, waits for the engine eng served to close, then
+// starts the Space World engine again, so no read or write after it reaches
+// the engine the release stopped.
+func (f *adapterFixture) remount(ctx context.Context, t *testing.T, eng world.Engine, ref directive.Reference) (*world.BusEngine, directive.Reference) {
+	t.Helper()
+	var served *space_world.Engine
+	if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
+		served = eng.(*space_world.Engine)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ref.Release()
+	if _, err := served.WaitSeqno(ctx, math.MaxUint64); !errors.Is(err, world_block.ErrEngineClosed) {
+		t.Fatalf("waiting for the released engine to close: %v", err)
+	}
+	return f.start(t)
+}
+
 // space returns the Space's SharedObject.
 func (f *adapterFixture) space(t *testing.T) sobject.SharedObject {
 	t.Helper()
@@ -334,7 +355,8 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer snapshot.Discard()
+	discardSnapshot := sync.OnceFunc(snapshot.Discard)
+	defer discardSnapshot()
 
 	// Concurrent writers each commit and read their own write, and together
 	// pass the checkpoint threshold.
@@ -407,6 +429,9 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		t.Fatalf("snapshot listing after the checkpoint: %v", err)
 	}
 
+	// The reader ends, so a remount below finds no transaction open.
+	discardSnapshot()
+
 	// The replay base holds the checkpoint's World, and once the checkpoint
 	// is installed the checkpoint root no longer holds that World.
 	heldByCheckpoint := func(world *block.BlockRef) bool {
@@ -445,9 +470,7 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 
 	// A remounted engine reads every object after a collection.
 	f.collect(t)
-	engRef.Release()
-	_ = eng
-	eng, engRef = f.start(t)
+	eng, engRef = f.remount(ctx, t, eng, engRef)
 	defer engRef.Release()
 	keys := []string{"test-object", "pipe-0", "pipe-" + strconv.Itoa(sobject.MinCheckpointOperations-1)}
 	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {

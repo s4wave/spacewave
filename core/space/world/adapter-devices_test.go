@@ -225,6 +225,32 @@ func waitObjects(ctx context.Context, t *testing.T, eng world.Engine, keys ...st
 	}
 }
 
+// requireWriterAtHead fails the test unless the next local write on eng's
+// Space builds on the installed head.
+func requireWriterAtHead(ctx context.Context, t *testing.T, eng world.Engine) {
+	t.Helper()
+	var a *space_world.Adapter
+	if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
+		a = eng.(*space_world.Engine).GetAdapter()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	head, err := a.Head(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	turn, err := a.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := turn.Base()
+	turn.Release()
+	if !base.Root.EqualsRef(head.Root) || base.Seqno != head.Seqno {
+		t.Fatalf("the writer head %v is not the installed head %v", base, head)
+	}
+}
+
 // waitCheckpoint waits for a checkpoint above genesis on so.
 func waitCheckpoint(ctx context.Context, t *testing.T, so sobject.SharedObject) {
 	t.Helper()
@@ -319,6 +345,10 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 	remote.write(t, so, createOp(t, "remote-0"), false, false)
 	waitObjects(ctx, t, busEngine, "local-0", "remote-0")
 
+	// With nothing pending, the writer head moved with the installed head,
+	// so the next local write builds on the other device's commit.
+	requireWriterAtHead(ctx, t, busEngine)
+
 	// A third device that never writes freezes the stable point, so writes
 	// past the cursor bound save the cursor and checkpoint nothing.
 	late := addDevice(t, so)
@@ -384,11 +414,24 @@ func runFollowsDevices(t *testing.T, f *adapterFixture) {
 
 	// A remount resumes and reads every object after a collection.
 	f.collect(t)
-	engRef.Release()
-	_ = eng
-	eng, engRef = f.start(t)
-	defer engRef.Release()
+	eng, engRef = f.remount(ctx, t, eng, engRef)
 	waitObjects(ctx, t, eng, keys...)
+
+	// Writes that leave the saved cursor short of a whole save, then two
+	// remounts whose installs run before replay applies anything, keep the
+	// World the saved cursor ends at held through a collection, and save no
+	// cursor at a restored World that left memory.
+	for i := range 20 {
+		key := "after-mount-" + strconv.Itoa(i)
+		keys = append(keys, key)
+		create(key)
+	}
+	for range 2 {
+		eng, engRef = f.remount(ctx, t, eng, engRef)
+		f.collect(t)
+		waitObjects(ctx, t, eng, keys...)
+	}
+	defer engRef.Release()
 	if err := ctx.Err(); err != nil {
 		t.Fatal(errors.Wrap(err, "run-through timed out"))
 	}
