@@ -19,7 +19,8 @@ type AuditResult struct {
 	// Leaked counts the stored blocks no root reaches that the collector has
 	// not queued. After a pass that left nothing to do, that is garbage a
 	// hole, a put outside a batch or a lost release keeps; during a cascade
-	// it also counts the children of blocks still queued.
+	// it also counts the children of blocks still queued, and those of a
+	// freed block whose release is in progress.
 	Leaked uint64
 	// LiveQueued counts the blocks a root reaches that sit on the free queue
 	// with no journal record past the cursor adding a holder: blocks the

@@ -76,4 +76,22 @@ message LivenessState {
   // collector has indexed: a slice indexes a bounded number, so it splits a
   // large record across slices.
   uint64 index_offset = 10;
+  // Release is the release in progress of a freed block's children, unset
+  // when none is.
+  Release release = 11;
+}
+
+// Release is the release in progress of the children of a freed block whose
+// child list is longer than one free transaction releases. The free deletes
+// the block's bytes, child list, queue entry and proof, and moves the list to
+// release pages; each later free transaction releases the next children and
+// moves Next in the same transaction, and the last deletes the pages and
+// clears the release.
+message Release {
+  // Block is the freed block, as its hash type byte and digest.
+  bytes block = 1;
+  // Next is the index in the list of the first child not released yet.
+  uint64 next = 2;
+  // Children is how many children the list names.
+  uint64 children = 3;
 }

@@ -51,9 +51,14 @@ const slicePairs = 4096
 // sliceFrees bounds the queued blocks one free transaction examines.
 const sliceFrees = 128
 
-// sliceReleases bounds the children one free transaction releases: it stops
-// after the block that reaches it.
+// sliceReleases bounds the children one free transaction releases. A block
+// with more children releases them across transactions, as continueRelease
+// describes.
 const sliceReleases = 4096
+
+// releasePageChildren is how many children one release page holds, so a
+// free transaction that resumes a release reads only the pages it releases.
+const releasePageChildren = 2048
 
 // journalPagePairs bounds the pairs of one journal record: a Land with more
 // writes its record in pages, so a net or index slice decodes only the pages

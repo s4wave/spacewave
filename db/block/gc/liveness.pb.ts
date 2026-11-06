@@ -157,6 +157,11 @@ export interface LivenessState {
    * large record across slices.
    */
   indexOffset?: bigint
+  /**
+   * Release is the release in progress of a freed block's children, unset
+   * when none is.
+   */
+  release?: Release
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -172,5 +177,38 @@ export const LivenessState: MessageType<LivenessState> =
       [8, 'net_offset', 4],
       [9, 'indexed', 4],
       [10, 'index_offset', 4],
+      [11, 'release', 11, 0, Release.codec],
     ],
   )
+
+/**
+ * Release is the release in progress of the children of a freed block whose
+ * child list is longer than one free transaction releases. The free deletes
+ * the block's bytes, child list, queue entry and proof, and moves the list to
+ * release pages; each later free transaction releases the next children and
+ * moves Next in the same transaction, and the last deletes the pages and
+ * clears the release.
+ *
+ * @generated from message block.gc.Release
+ */
+export interface Release {
+  /**
+   * Block is the freed block, as its hash type byte and digest.
+   */
+  block?: Uint8Array
+  /**
+   * Next is the index in the list of the first child not released yet.
+   */
+  next?: bigint
+  /**
+   * Children is how many children the list names.
+   */
+  children?: bigint
+}
+
+export const Release: MessageType<Release> =
+  /* @__PURE__ */ createMessageType<Release>('block.gc.Release', () => [
+    [1, 'block', 12],
+    [2, 'next', 4],
+    [3, 'children', 4],
+  ])

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -47,8 +48,10 @@ import (
 //     check and the free, and the check reads one index entry per queued
 //     block rather than the journal. An entry of a record before the cursor
 //     is stale, left by a build before the index, and the check deletes it.
-//  5. A cascade decrements each child a freed block's own child list names,
-//     and queues only a stored child, one with a child list. A child without
+//  5. A cascade decrements each child a freed block's own child list names
+//     exactly once, across transactions for a list longer than a slice
+//     releases, as continueRelease describes, and queues only a stored
+//     child, one with a child list. A child without
 //     one is a hole or not yet stored: its count drops, since the parent's
 //     Land counted it, but it is never freed, and its own children, unknown
 //     here, are untouched. The audit, not the collector, finds what a hole
@@ -641,12 +644,13 @@ func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.
 	}
 }
 
-// freeSlice indexes the journal records appended since the last look, then
-// examines up to sliceFrees queued blocks from the block key from in one
-// transaction, and frees each that no journal record past the cursor adds a
-// holder to, stopping after the block whose children bring the releases to
-// sliceReleases. A slice whose index does not reach the journal's end frees
-// nothing and reports itself full with no last key. It returns the key of the
+// freeSlice indexes the journal records appended since the last look,
+// resumes the release in progress, then examines up to sliceFrees queued
+// blocks from the block key from in one transaction, and frees each that no
+// journal record past the cursor adds a holder to, releasing at most
+// sliceReleases children in all. A slice whose index does not reach the
+// journal's end, or whose release in progress does not finish, frees nothing
+// more and reports itself full with no last key. It returns the key of the
 // last block examined and whether the slice was full.
 func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResult, from []byte) ([]byte, bool, error) {
 	var last []byte
@@ -667,6 +671,21 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 			return err
 		}
 
+		// Resume the release in progress, and free nothing more until it
+		// finishes.
+		budget := sliceReleases
+		if state.GetRelease() != nil {
+			n, err := c.continueRelease(ctx, rec, state, p, budget, res)
+			if err != nil {
+				return err
+			}
+			budget -= n
+			if err := rec.SetState(ctx, state); err != nil || state.GetRelease() != nil {
+				full = err == nil
+				return err
+			}
+		}
+
 		// Take the next queued blocks.
 		var queued []*block.BlockRef
 		err = rec.ScanQueue(ctx, from, func(ref *block.BlockRef) (bool, error) {
@@ -681,9 +700,11 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 			return err
 		}
 
-		// Free each the tail adds no holder to, until the releases fill.
-		var released int
+		// Free each the tail adds no holder to, until the releases fill. A
+		// block that does not fit waits for the next slice, which starts at
+		// it.
 		for _, ref := range queued {
+			prev := last
 			last = BlockKey(ref)
 			held, err := rec.journalHeld(ctx, ref, state.GetCursor())
 			if err == nil && !held {
@@ -696,14 +717,23 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 				res.Kept++
 				continue
 			}
-			n, err := c.freeBlock(ctx, rec, blocks, p, ref, res)
+			n, fits, err := c.freeBlock(ctx, rec, blocks, p, state, ref, budget, res)
 			if err != nil {
 				return err
 			}
-			if released += n; released >= sliceReleases {
-				full = true
+			if !fits {
+				last, full = prev, true
 				return nil
 			}
+			if budget -= n; budget <= 0 || state.GetRelease() != nil {
+				full = true
+				break
+			}
+		}
+
+		// Record a release the slice started.
+		if state.GetRelease() != nil {
+			return rec.SetState(ctx, state)
 		}
 		return nil
 	})
@@ -764,49 +794,140 @@ func indexTail(ctx context.Context, rec *Records, state *LivenessState) (bool, e
 }
 
 // freeBlock frees one queued block: its bytes, child list, count and proof,
-// and decrements each child its child list names, returning how many. It
-// keeps the block when the queue entry turns out stale: a block no longer
-// queued gained a holder, such as a child an earlier free in the same slice
-// took off the queue as an underflow, a block without a child list is not
-// stored, and one with a count record has holders.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, p *freePass, ref *block.BlockRef, res *CollectResult) (int, error) {
+// and decrements each child its child list names, returning how many, up to
+// budget. It keeps the block when the queue entry turns out stale: a block no
+// longer queued gained a holder, such as a child an earlier free in the same
+// slice took off the queue as an underflow, a block without a child list is
+// not stored, and one with a count record has holders.
+//
+// A block with more children than budget waits, reporting that it does not
+// fit, unless it has more than any slice releases and no release is in
+// progress: then it is freed now and its list moves to release pages, which
+// later slices release from, as continueRelease describes.
+func (c *Collector) freeBlock(
+	ctx context.Context,
+	rec *Records,
+	blocks block.StoreOps,
+	p *freePass,
+	state *LivenessState,
+	ref *block.BlockRef,
+	budget int,
+	res *CollectResult,
+) (int, bool, error) {
 	// Keep a block this transaction took off the queue since its scan.
 	queued, err := rec.Queued(ctx, ref)
 	if err != nil || !queued {
-		return 0, err
+		return 0, true, err
 	}
 
 	// Check the block is stored and has no holder.
 	children, listed, err := rec.GetChildren(ctx, ref)
 	if err != nil {
-		return 0, err
+		return 0, true, err
 	}
 	count, err := rec.GetCount(ctx, ref)
 	if err != nil {
-		return 0, err
+		return 0, true, err
 	}
 	if !listed || count != 0 {
-		return 0, rec.Dequeue(ctx, ref)
+		return 0, true, rec.Dequeue(ctx, ref)
+	}
+
+	// Wait for a slice that fits the children, or for the release in
+	// progress to finish.
+	paged := len(children) > budget
+	if paged && ((budget < sliceReleases && len(children) <= sliceReleases) || state.GetRelease() != nil) {
+		return 0, false, nil
 	}
 
 	// Free its bytes and records.
 	if err := blocks.RmBlock(ctx, ref); err != nil {
-		return 0, err
+		return 0, true, err
 	}
 	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.Dequeue, rec.DeleteProof} {
 		if err := del(ctx, ref); err != nil {
-			return 0, err
+			return 0, true, err
 		}
 	}
 	res.Freed++
 
-	// Take its holder from each child.
-	for _, child := range children {
-		if err := c.release(ctx, rec, p, child, res); err != nil {
-			return 0, err
+	// Take its holder from each child, or move a long list to release pages
+	// and start releasing it.
+	if !paged {
+		for _, child := range children {
+			if err := c.release(ctx, rec, p, child, res); err != nil {
+				return 0, true, err
+			}
+		}
+		return len(children), true, nil
+	}
+	if err := rec.putReleasePages(ctx, children); err != nil {
+		return 0, true, err
+	}
+	state.Release = &Release{Block: BlockKey(ref), Children: uint64(len(children))}
+	n, err := c.continueRelease(ctx, rec, state, p, budget, res)
+	return n, true, err
+}
+
+// continueRelease releases up to budget children of the release in progress,
+// from its release pages, and moves its Next past them; once the last child
+// is released it clears the state's release. It deletes each page once its
+// last child is released, and returns how many it released. The caller
+// writes the state in the same transaction.
+//
+// Invariants, which together keep every child's count exact:
+//
+//  1. Each child of a freed block loses exactly one holder: the pages hold
+//     the children not released yet from the transaction that frees the
+//     block, and Next moves in the transaction that releases the children
+//     before it, so a crash or restart resumes at the first child not
+//     released, never releasing one twice or skipping one.
+//  2. The freed block is gone from its free on: its bytes, child list, queue
+//     entry and proof are deleted then, so a put of it during its release
+//     gives birth to a new block whose holders are its own, apart from the
+//     ones the release takes back.
+//  3. A child's count runs high until its release, which only delays its
+//     free: a child re-held, or held by a second parent, keeps the holders
+//     its other records give it.
+//  4. At most one release is in progress, and a free slice finishes it
+//     before it frees another block.
+//  5. A page missing before its children are released is an error that
+//     stops the pass, so a damaged release keeps every child.
+func (c *Collector) continueRelease(ctx context.Context, rec *Records, state *LivenessState, p *freePass, budget int, res *CollectResult) (int, error) {
+	var n int
+	for r := state.GetRelease(); r != nil && n < budget; r = state.GetRelease() {
+		// Read the page holding the next child.
+		page := r.GetNext() / releasePageChildren
+		children, err := rec.getReleasePage(ctx, page)
+		if err != nil {
+			return n, err
+		}
+		within := r.GetNext() % releasePageChildren
+		if within >= uint64(len(children)) {
+			return n, errors.Errorf("release page %d of %d children is missing", page, r.GetChildren())
+		}
+
+		// Release the next children on it, up to the budget.
+		end := min(uint64(len(children)), within+uint64(budget-n)) //nolint:gosec // the budget is small.
+		for _, child := range children[within:end] {
+			if err := c.release(ctx, rec, p, child, res); err != nil {
+				return n, err
+			}
+		}
+		n += int(end - within) //nolint:gosec // at most the budget.
+		r.Next += end - within
+
+		// Delete a page once released, and end the release after the last.
+		if end == uint64(len(children)) {
+			if err := rec.deleteReleasePage(ctx, page); err != nil {
+				return n, err
+			}
+		}
+		if r.GetNext() >= r.GetChildren() {
+			state.Release = nil
 		}
 	}
-	return len(children), nil
+	return n, nil
 }
 
 // release takes one holder from child, whose parent was freed, queueing it

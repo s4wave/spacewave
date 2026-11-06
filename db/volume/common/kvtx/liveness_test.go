@@ -274,6 +274,12 @@ func TestLivenessRunThrough(t *testing.T) {
 	if s, l := small.allocs["wide stage"], large.allocs["wide stage"]; l > 2*s+16<<10 {
 		t.Errorf("a put through a stage holding 10x tops allocated %d bytes, over 1x %d", l, s)
 	}
+	// Freeing a block holds the writer no longer for twice its children.
+	if s, l := measureWideFree(t, 10_000), measureWideFree(t, 20_000); !within(l, s) {
+		t.Errorf("freeing a block of 20,000 children made a transaction of %d operations, of 10,000 %d", l, s)
+	} else {
+		t.Logf("wide free: longest transaction %d operations over 10,000 children, %d over 20,000", s, l)
+	}
 	t.Logf("deferred: %v over 1x, %v over 10x", small.times["deferred"], large.times["deferred"])
 	if s, l := small.times["deferred"], large.times["deferred"]; l > 2*s+200*time.Microsecond {
 		t.Errorf("a commit beside 10x pins and stages took %v, beside 1x %v", l, s)
@@ -511,6 +517,72 @@ func allocated(fn func()) uint64 {
 	fn()
 	runtime.ReadMemStats(&after)
 	return after.TotalAlloc - before.TotalAlloc
+}
+
+// errMidRelease is the failure stopMidRelease returns.
+var errMidRelease = errors.New("stopped mid-release")
+
+// stopMidRelease runs a collector's transactions until one leaves a release
+// in progress, then fails every later one, as a process that dies there.
+type stopMidRelease struct {
+	block_gc.Store
+	// v is the Volume, whose state it reads after each transaction.
+	v *Volume
+	// stopped records that a transaction left a release in progress.
+	stopped bool
+}
+
+// Update runs the transaction unless a release is in progress.
+func (s *stopMidRelease) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
+	if s.stopped {
+		return errMidRelease
+	}
+	if err := s.Store.Update(ctx, fn); err != nil {
+		return err
+	}
+	return s.v.readRecords(ctx, func(rec *block_gc.Records) error {
+		state, err := rec.GetState(ctx)
+		s.stopped = state.GetRelease() != nil
+		return err
+	})
+}
+
+// measureWideFree stores a block naming children leaves under a root,
+// releases it, and returns the most operations one transaction of the
+// collection that frees it made.
+func measureWideFree(t *testing.T, children int) uint64 {
+	// Store the block and its leaves, then release it.
+	t.Helper()
+	ctx := t.Context()
+	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	v, err := NewVolume(ctx, "test/wide-free", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+	v.clock = clk.Now
+	t.Cleanup(func() { _ = v.Close() })
+	tr := testTree{}
+	leaves := make([]string, children)
+	for i := range leaves {
+		leaves[i] = "leaf " + strconv.Itoa(i)
+		tr.add(t, leaves[i])
+	}
+	w := tr.add(t, "W", leaves...)
+	if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "W")...), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "w", Previous: w}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Collect it all once the release ages.
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	cs.ResetMax()
+	if res := collectAll(t, v); res.Freed != uint64(children)+1 { //nolint:gosec // a test size.
+		t.Fatalf("freed %d of a block and its %d children", res.Freed, children)
+	}
+	return cs.Counts().MaxWriteOps
 }
 
 // countIndexEntries returns the number of journal index entries the Volume
@@ -1353,8 +1425,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		// The commit writes it in pages, the collector indexes it across
 		// slices while it is young, and deletes its entries across slices as
 		// it nets it, so no collector transaction does as much work as the
-		// record has pairs or reads half of its bytes, and no entry is left
-		// behind.
+		// record has pairs or reads half of its bytes, and no entry is
+		// left behind.
 		ctx := t.Context()
 		cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
 		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
@@ -1407,6 +1479,82 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("%d journal index entries remain after every record netted", n)
 		}
 	})
+
+	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the freed block put again"} {
+		t.Run("release interrupted by "+mid, func(t *testing.T) {
+			// F names 6,000 leaves, more than one free slice releases, and
+			// G names the first and the last of them in F's list. Root f
+			// releases F, and the collector stops once the transaction that
+			// frees F left its release in progress, with the first leaves
+			// released and the last not.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			leaves := make([]string, 6_000)
+			for i := range leaves {
+				leaves[i] = "leaf " + strconv.Itoa(i)
+				tr.add(t, leaves[i])
+			}
+			slices.SortFunc(leaves, func(a, b string) int {
+				return bytes.Compare(block_gc.BlockKey(tr[a].Ref), block_gc.BlockKey(tr[b].Ref))
+			})
+			first, last := leaves[0], leaves[len(leaves)-1]
+			f := tr.add(t, "F", leaves...)
+			g := tr.add(t, "G", first, last)
+			roots := []block.NamedRoot{{Name: "f", Ref: f}, {Name: "g", Ref: g}}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "F", "G")...), roots); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "f", Previous: f}}); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			probe := &stopMidRelease{Store: collectorStore{v: v}, v: v}
+			c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+			if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
+				t.Fatalf("collect = %v, want it stopped mid-release", err)
+			}
+			requireStored(t, v, tr, false, "F")
+
+			// Act while the release is in progress, then collect to the end
+			// and once more after every record ages.
+			kept := []string{"G", first, last}
+			switch mid {
+			case "children held again":
+				err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "k1", Ref: tr[leaves[1]].Ref}, {Name: "k2", Ref: tr[leaves[len(leaves)-2]].Ref}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				kept = append(kept, leaves[1], leaves[len(leaves)-2])
+			case "a second parent's release":
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "g", Previous: g}}); err != nil {
+					t.Fatal(err)
+				}
+				kept = nil
+			case "the freed block put again":
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("F"), []block.NamedRoot{{Name: "f", Ref: f}}); err != nil {
+					t.Fatal(err)
+				}
+				kept = append(slices.Clone(leaves), "F", "G")
+			}
+			res := collectAll(t, v)
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			if more := collectAll(t, v); res.Underflows+more.Underflows != 0 {
+				t.Fatalf("%d underflows releasing F", res.Underflows+more.Underflows)
+			}
+
+			// Exactly the blocks still held stay, and the counts are exact.
+			gone := make([]string, 0, len(leaves))
+			for _, name := range append(slices.Clone(leaves), "F", "G") {
+				if !slices.Contains(kept, name) {
+					gone = append(gone, name)
+				}
+			}
+			requireStored(t, v, tr, true, kept...)
+			requireStored(t, v, tr, false, gone...)
+			requireAudit(t, v, 0)
+		})
+	}
 
 	t.Run("stale index entry", func(t *testing.T) {
 		// An entry naming R1 in a record before the cursor, as a build before
