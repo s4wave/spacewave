@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
@@ -320,4 +321,41 @@ func mustHeight(t *testing.T, state *SOState) uint64 {
 		t.Fatal(err)
 	}
 	return inner.GetHeight()
+}
+
+// TestBodyHostAttachesOneBody checks that a body host attaches one body at a
+// time: a second body waits until the first is released, and a wait whose
+// context ends attaches nothing.
+func TestBodyHostAttachesOneBody(t *testing.T) {
+	// Attach a first body.
+	h := NewBodyHost(logrus.NewEntry(logrus.New()), nil, nil)
+	first, second := &testBody{}, &testBody{}
+	release, err := h.SetBody(t.Context(), first)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A second attach whose context ends while the first is attached fails.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := h.SetBody(ctx, second); !errors.Is(err, context.Canceled) {
+		t.Fatalf("attach beside an attached body = %v, want canceled", err)
+	}
+
+	// A second attach waits for the first's release, then attaches.
+	attached := make(chan func(), 1)
+	go func() {
+		rel, err := h.SetBody(t.Context(), second)
+		if err != nil {
+			t.Error(err)
+		}
+		attached <- rel
+	}()
+	select {
+	case <-attached:
+		t.Fatal("a second body attached while the first was attached")
+	case <-time.After(50 * time.Millisecond):
+	}
+	release()
+	(<-attached)()
 }

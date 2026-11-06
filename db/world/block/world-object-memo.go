@@ -2,8 +2,6 @@ package world_block
 
 import (
 	"context"
-
-	"github.com/s4wave/spacewave/db/tx"
 )
 
 // HasObject reports whether an object exists at key. It answers from the
@@ -18,8 +16,8 @@ func (t *WorldState) HasObject(ctx context.Context, key string) (bool, error) {
 	if t.objectExistsKnown(key) {
 		return true, nil
 	}
-	if t.discarded.Load() {
-		return false, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return false, err
 	}
 	k := []byte(objectKeyPrefix + key)
 	exists, err := t.objTree.Exists(ctx, k)

@@ -27,8 +27,8 @@ func (t *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 // Returns nil, false if not found.
 func (t *WorldState) getObject(ctx context.Context, key string) (*ObjectState, bool, error) {
 	// Reject a discarded transaction before accessing its object tree.
-	if t.discarded.Load() {
-		return nil, false, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, false, err
 	}
 
 	// Resolve the object's stored metadata through the existing tree cursor.
@@ -76,8 +76,8 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, err
 	}
 
 	// Reject an existing key before constructing new object metadata.
@@ -132,8 +132,8 @@ func (t *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, de
 	if !t.write {
 		return nil, tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, err
 	}
 	if oldKey == "" || newKey == "" {
 		return nil, world.ErrEmptyObjectKey
@@ -346,8 +346,8 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	if !t.write {
 		return false, tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return false, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return false, err
 	}
 
 	// Resolve the stored object, retaining its metadata until deletion is recorded.
@@ -410,8 +410,8 @@ func (t *WorldState) PurgeObject(ctx context.Context, key string) (bool, error) 
 	if !t.write {
 		return false, tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return false, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return false, err
 	}
 
 	// Find the entry in the object tree; this reads tree nodes only.

@@ -172,9 +172,10 @@ func (e *Engine) RecheckBackfill(context.Context) error {
 	return e.a.backfill.recheckNow()
 }
 
-// close closes the engine and releases its cursor.
-func (e *Engine) close() error {
-	err := e.Close()
+// retire retires the engine for the next adapter of the Space and releases
+// its cursor: the transactions open on it end with world.ErrEngineRetired.
+func (e *Engine) retire() error {
+	err := e.Retire()
 	e.cursor.Release()
 	return err
 }

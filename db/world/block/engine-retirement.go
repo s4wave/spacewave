@@ -33,6 +33,19 @@ type engineRetirement struct {
 	closing bool
 }
 
+// end records err as the error the detached transactions report once the
+// drain discards them.
+func (r engineRetirement) end(err error) {
+	for _, t := range []*Tx{r.readTx, r.writeTx} {
+		if t != nil {
+			t.state.end(err)
+		}
+	}
+	if r.head != nil && r.head.readTx != nil {
+		r.head.readTx.state.end(err)
+	}
+}
+
 // empty reports whether there are no detached resources to drain.
 func (r engineRetirement) empty() bool {
 	return r.head == nil &&

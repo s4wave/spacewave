@@ -104,14 +104,14 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	// Set rel before moving the turn out of Engine state. A commit that finds
 	// rel already set returns ErrDiscarded.
 	if e.rel.Swap(true) {
-		return nil, tx.ErrDiscarded
+		return nil, e.endedErr()
 	}
 
 	// Move the turn into commit-local state.
 	locked := e.engine.bcast.Lock()
 	if e.engine.writeTx != e {
 		locked.Unlock()
-		return nil, tx.ErrDiscarded
+		return nil, e.endedErr()
 	}
 	turn := e.turn
 	e.turn = nil
@@ -192,7 +192,7 @@ func (e *EngineTx) publishCallerHead(ctx context.Context, turn world.Turn, next 
 	locked := e.engine.bcast.Lock()
 	detached := e.engine.writeTx != e
 	if err == nil && detached {
-		err = tx.ErrDiscarded
+		err = e.endedErr()
 	}
 	if err == nil && !e.engine.closed && !next.EqualsRef(e.baseHeadRef) {
 		retirement, err = e.engine.installRootRefLocked(ctx, next, false, rootBlock)
@@ -360,6 +360,16 @@ func (e *EngineTx) Discard() {
 	retirement := e.engine.beginRetirementLocked(e.detachLocked())
 	locked.Unlock()
 	e.engine.drainRetirement(context.Background(), retirement)
+}
+
+// endedErr returns the error an operation on a transaction the engine or its
+// owner ended reports: errEngineRetired once the engine retired, and
+// tx.ErrDiscarded otherwise.
+func (e *EngineTx) endedErr() error {
+	if e.engine.retired.Load() {
+		return errEngineRetired
+	}
+	return tx.ErrDiscarded
 }
 
 // detachSnapshotLocked removes this read snapshot from Engine.snapshotTxs

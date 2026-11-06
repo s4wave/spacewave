@@ -236,7 +236,9 @@ func (s *testMountedSharedObject) AccessSharedObjectState(
 }
 
 // SetBody ignores the body: the test object replays nothing.
-func (s *testMountedSharedObject) SetBody(sobject.Body) func() { return func() {} }
+func (s *testMountedSharedObject) SetBody(context.Context, sobject.Body) (func(), error) {
+	return func() {}, nil
+}
 
 func (s *testMountedSharedObject) QueueOperation(context.Context, []byte) (string, error) {
 	return "", errors.New("not implemented")

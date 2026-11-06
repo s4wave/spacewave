@@ -465,18 +465,23 @@ func (t *WorldState) DumpObjectTree(
 // lists its outgoing refs and declares them complete. Use it to carry blocks
 // of another copy of this World, which share its transforms.
 func (t *WorldState) PutStoredBlocks(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Require an open write transaction.
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
+
+	// Require each entry's ref and data, and declare its refs complete.
 	for _, e := range entries {
 		if e.Ref.GetEmpty() || len(e.Data) == 0 || e.Tombstone {
 			return errors.New("a stored block needs its ref and data")
 		}
 		e.RefsKnown = true
 	}
+
+	// Write them through the World's store.
 	_, err := t.store.PutBlockBatch(ctx, entries)
 	return err
 }
@@ -495,8 +500,8 @@ func (t *WorldState) ReplaceObjectRecord(ctx context.Context, key string, rootRe
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
 
 	// Write the new record over whatever the tree holds at key.

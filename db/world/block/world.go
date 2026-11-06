@@ -30,12 +30,16 @@ var objectKeyPrefix = "o/"
 // Note: GetRoot, WaitSeqno are concurrency safe.
 // Note: all other calls are not concurrency safe. Use Tx if you want a mutex.
 type WorldState struct {
-	le          *logrus.Entry
-	btx         *block.Transaction
-	bcs         *block.Cursor
-	write       bool
-	verbose     bool
-	discarded   atomic.Bool
+	le        *logrus.Entry
+	btx       *block.Transaction
+	bcs       *block.Cursor
+	write     bool
+	verbose   bool
+	discarded atomic.Bool
+	// ended is the error a discarded state reports when the engine that
+	// served it ended it, such as a retired engine's; unset, it reports
+	// tx.ErrDiscarded.
+	ended       atomic.Pointer[error]
 	readRelease func()
 	// base is the root the block state was loaded from. Writes prove their
 	// root complete only when base is.
@@ -266,8 +270,8 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 		var err error
 		var seqno uint64
 		t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if t.discarded.Load() {
-				err = tx.ErrDiscarded
+			if derr := t.discardErr(); derr != nil {
+				err = derr
 				return
 			}
 
@@ -361,8 +365,8 @@ func (t *WorldState) ApplyWorldOp(
 	if op == nil {
 		return 0, false, world.ErrEmptyOp
 	}
-	if t.discarded.Load() {
-		return 0, false, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return 0, false, err
 	}
 
 	// Validate the world operation.
@@ -393,8 +397,8 @@ func (t *WorldState) ApplyWorldOp(
 // Creates a new block transaction.
 func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	// A discarded state cannot fork.
-	if t.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, err
 	}
 
 	// Apply the held graph writes, then detach a copy of the World root the
@@ -510,6 +514,25 @@ func (t *WorldState) setBlockTransaction(
 	return nil
 }
 
+// discardErr returns nil while the state is not discarded, and otherwise the
+// error its operations report: why the engine ended it, or tx.ErrDiscarded.
+func (t *WorldState) discardErr() error {
+	if !t.discarded.Load() {
+		return nil
+	}
+	if err := t.ended.Load(); err != nil {
+		return *err
+	}
+	return tx.ErrDiscarded
+}
+
+// end records err as the error the state's operations report once it is
+// discarded. The engine that serves the state calls it before it discards
+// the state.
+func (t *WorldState) end(err error) {
+	t.ended.Store(&err)
+}
+
 // Discard discards the resources in the WorldState.
 func (t *WorldState) Discard() {
 	// Discard only once.
@@ -556,8 +579,8 @@ func (t *WorldState) PrepareCommit(ctx context.Context) error {
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
 	if err := ctx.Err(); err != nil {
 		return context.Canceled

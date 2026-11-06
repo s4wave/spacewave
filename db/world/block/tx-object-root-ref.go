@@ -3,7 +3,6 @@ package world_block
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -17,8 +16,8 @@ func (t *Tx) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*worl
 	defer unlock()
 
 	// Reject a discarded transaction and read the root refs.
-	if t.state.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.state.discardErr(); err != nil {
+		return nil, err
 	}
 	return t.state.GetObjectRootRefsBatch(ctx, keys)
 }

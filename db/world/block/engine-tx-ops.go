@@ -289,7 +289,7 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	for tries := 0; tries <= maxEngineTxTries; tries++ {
 		reader := e.readTx.Load()
 		if e.rel.Load() || reader == nil {
-			return tx.ErrDiscarded
+			return e.endedErr()
 		}
 		err = cb(reader)
 		if errors.Is(err, tx.ErrDiscarded) {
@@ -311,7 +311,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error 
 	locked := e.engine.bcast.Lock()
 	if e.engine.closed || e.rel.Load() {
 		locked.Unlock()
-		return tx.ErrDiscarded
+		return e.endedErr()
 	}
 	if e.readTx.Load() != previous {
 		locked.Unlock()

@@ -5,7 +5,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -46,8 +45,8 @@ func (t *TxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint
 	defer unlock()
 
 	// Reject a discarded transaction.
-	if t.tx.state.discarded.Load() {
-		return nil, 0, tx.ErrDiscarded
+	if err := t.tx.state.discardErr(); err != nil {
+		return nil, 0, err
 	}
 
 	return t.o.GetRootRef(ctx)
@@ -62,8 +61,8 @@ func (t *TxObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 	defer unlock()
-	if t.tx.state.discarded.Load() {
-		return 0, tx.ErrDiscarded
+	if err := t.tx.state.discardErr(); err != nil {
+		return 0, err
 	}
 	return t.o.GetModSeqno(ctx)
 }

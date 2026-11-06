@@ -117,7 +117,7 @@ func (e *Engine) WaitObjectRev(ctx context.Context, key string, rev uint64, igno
 		locked := e.bcast.Lock()
 		if e.closed {
 			locked.Unlock()
-			return 0, ErrEngineClosed
+			return 0, e.closedErr()
 		}
 		if err := e.initializeHeadReadTx(ctx); err != nil {
 			locked.Unlock()
@@ -188,7 +188,7 @@ func (e *Engine) unwatchObjectKey(w *engineChangeWatch, key string, wake *object
 func (e *Engine) startChangeWatchLocked() (*engineChangeWatch, error) {
 	// Refuse new watchers once Close has begun draining.
 	if e.closed {
-		return nil, ErrEngineClosed
+		return nil, e.closedErr()
 	}
 	if w := e.changeWatch; w != nil {
 		return w, nil

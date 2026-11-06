@@ -21,8 +21,8 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
 	if err := ctx.Err(); err != nil || len(quads) == 0 {
 		return err

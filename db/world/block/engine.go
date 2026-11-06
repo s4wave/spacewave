@@ -130,6 +130,9 @@ type Engine struct {
 	watchedFloor uint64
 	// closed rejects new operations while Close drains resources.
 	closed bool
+	// retired reports that Retire closed the engine for a successor, so the
+	// engine and the transactions it ended report errEngineRetired.
+	retired atomic.Bool
 	// direct is the head the engine last published itself, from a commit or
 	// a turn's base, until the Authority's head watch reports it. Until then
 	// a watched head is installed only when it is newer than direct, so a
@@ -300,7 +303,7 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 	locked := e.bcast.Lock()
 	defer locked.Unlock()
 	if e.closed {
-		return false, ErrEngineClosed
+		return false, e.closedErr()
 	}
 	return e.syncHeadLocked(ctx)
 }
@@ -325,7 +328,7 @@ func (e *Engine) SyncThrough(ctx context.Context, seqno uint64) (uint64, error) 
 		locked := e.bcast.Lock()
 		if e.closed {
 			locked.Unlock()
-			return 0, ErrEngineClosed
+			return 0, e.closedErr()
 		}
 		if e.durableSeqno >= seqno {
 			durable := e.durableSeqno
@@ -376,7 +379,7 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	locked := e.bcast.Lock()
 	if e.closed {
 		locked.Unlock()
-		return ErrEngineClosed
+		return e.closedErr()
 	}
 	retirement, err := e.setRootRefLocked(ctx, ref)
 	locked.Unlock()
@@ -766,7 +769,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		return nil, err
 	}
 	if e.closed {
-		return fail(engineRetirement{}, ErrEngineClosed)
+		return fail(engineRetirement{}, e.closedErr())
 	}
 	var retirement engineRetirement
 	root, rootBlock := e.head.root, (*World)(nil)
@@ -838,7 +841,7 @@ func (e *Engine) openReadTx(ctx context.Context) (*EngineTx, error) {
 	e.snapMu.Lock()
 	if e.snapClosed {
 		e.snapMu.Unlock()
-		return nil, ErrEngineClosed
+		return nil, e.closedErr()
 	}
 	e.opening++
 	e.snapMu.Unlock()
@@ -847,7 +850,7 @@ func (e *Engine) openReadTx(ctx context.Context) (*EngineTx, error) {
 	// state, and build the state from it.
 	var engTx *EngineTx
 	var world *WorldState
-	err := ErrEngineClosed
+	err := e.closedErr()
 	head := e.acquireHead()
 	var root *bucket_lookup.Cursor
 	if head != nil {
@@ -884,7 +887,7 @@ func (e *Engine) openReadTx(ctx context.Context) (*EngineTx, error) {
 		head.release()
 	}
 	if err == nil {
-		err = ErrEngineClosed
+		err = e.closedErr()
 	}
 	return nil, err
 }
@@ -928,7 +931,7 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	subtask.End()
 	defer locked.Unlock()
 	if e.closed {
-		return nil, ErrEngineClosed
+		return nil, e.closedErr()
 	}
 
 	// Buffer nested and root block writes per fork so they drain in one batch
@@ -984,7 +987,7 @@ func (e *Engine) buildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 	locked := e.bcast.Lock()
 	defer locked.Unlock()
 	if e.closed {
-		return nil, ErrEngineClosed
+		return nil, e.closedErr()
 	}
 	ncs := e.baseRoot.Clone()
 	ncs.SetRootRef(nil)
@@ -1002,7 +1005,7 @@ func (e *Engine) StageWorldState(ctx context.Context) (world.WorldStage, error) 
 	closed := e.closed
 	locked.Unlock()
 	if closed {
-		return nil, ErrEngineClosed
+		return nil, e.closedErr()
 	}
 
 	// Pin the head the stage builds over, so a long session whose base main
@@ -1092,7 +1095,7 @@ func (e *Engine) accessStorage(
 	// Hold the published root for the callback.
 	head := e.acquireHead()
 	if head == nil {
-		return ErrEngineClosed
+		return e.closedErr()
 	}
 	defer head.release()
 	ncs := head.root.Clone()
@@ -1184,7 +1187,7 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 	// Read the revision of the published head without the Engine lock.
 	p := e.pub.Load()
 	if p == nil {
-		return 0, ErrEngineClosed
+		return 0, e.closedErr()
 	}
 	return p.seqno, nil
 }
@@ -1198,7 +1201,7 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 		locked := e.bcast.Lock()
 		if e.closed {
 			locked.Unlock()
-			return 0, ErrEngineClosed
+			return 0, e.closedErr()
 		}
 		if err := e.initializeHeadReadTx(ctx); err != nil {
 			locked.Unlock()
@@ -1227,6 +1230,25 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 		case <-wait:
 		}
 	}
+}
+
+// closedErr returns the error a closed engine reports: errEngineRetired once
+// Retire closed it, and ErrEngineClosed otherwise.
+func (e *Engine) closedErr() error {
+	if e.retired.Load() {
+		return errEngineRetired
+	}
+	return ErrEngineClosed
+}
+
+// Retire closes the engine for a successor that serves the same World. Unlike
+// Close, the engine and every transaction it ends report
+// world.ErrEngineRetired, a supersession, so each caller runs its change again
+// on the successor at once instead of the engine waiting for them to finish.
+// A commit already admitted still ends with world.ErrDurabilityUnknown.
+func (e *Engine) Retire() error {
+	e.retired.Store(true)
+	return e.Close()
 }
 
 // Close releases root cursors and active transaction state owned by the engine.
@@ -1300,6 +1322,9 @@ func (e *Engine) Close() error {
 		headWatchRelease()
 	}
 	for _, retirement := range retirements {
+		if e.retired.Load() {
+			retirement.end(errEngineRetired)
+		}
 		e.drainRetirement(context.Background(), retirement)
 	}
 

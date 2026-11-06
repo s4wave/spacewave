@@ -146,11 +146,12 @@ func (s *SharedObject) showReplay(r *sobject.BodyReport) {
 	})
 }
 
-// SetBody attaches the body the SharedObject agrees on until release. The
-// mount drives the body through its replay, signs the checkpoints this device
-// owes and votes in the group's decisions while the body is attached.
-func (s *SharedObject) SetBody(body sobject.Body) func() {
-	return s.body.SetBody(body)
+// SetBody waits for the previous body's release, then attaches the body the
+// SharedObject agrees on until release. The mount drives the body through its
+// replay, signs the checkpoints this device owes and votes in the group's
+// decisions while the body is attached.
+func (s *SharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), error) {
+	return s.body.SetBody(ctx, body)
 }
 
 // QueueOperation signs op as the local participant and adds it to the

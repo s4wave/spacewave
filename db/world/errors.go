@@ -2,6 +2,7 @@ package world
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/s4wave/spacewave/db/coord"
 
@@ -39,6 +40,10 @@ var (
 	// ErrSuperseded is returned for a candidate another candidate replaced as
 	// the head after its base. The writer rebases and runs its change again.
 	ErrSuperseded = errors.New("world candidate superseded")
+	// ErrEngineRetired is returned by a World engine its owner retired, and by
+	// the transactions it ended open, once a successor serves the World: the
+	// caller runs its change again on the successor. It is a supersession.
+	ErrEngineRetired = fmt.Errorf("world engine retired: %w", ErrSuperseded)
 	// ErrDurabilityUnknown is returned for a commit whose candidate may have
 	// become durable when the wait for its decision ended, such as at an
 	// unmount. It never means the commit failed: the next open reconciles
