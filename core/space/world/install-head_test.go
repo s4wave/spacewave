@@ -78,9 +78,10 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := &Adapter{
-		le:    logrus.NewEntry(logrus.New()),
-		pages: block.NewPendingStore(store, 1<<20),
-		held:  make(map[string]*block.BlockRef),
+		opened: openedNow(),
+		le:     logrus.NewEntry(logrus.New()),
+		pages:  block.NewPendingStore(store, 1<<20),
+		held:   make(map[string]*block.BlockRef),
 	}
 	a.replay = &spaceReplay{a: a, base: &InnerState{
 		HeadRef:       &bucket.ObjectRef{RootRef: head},
@@ -119,9 +120,10 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
-		le:    logrus.NewEntry(logrus.New()),
-		pages: block.NewPendingStore(store, 1<<20),
-		held:  make(map[string]*block.BlockRef),
+		opened: openedNow(),
+		le:     logrus.NewEntry(logrus.New()),
+		pages:  block.NewPendingStore(store, 1<<20),
+		held:   make(map[string]*block.BlockRef),
 	}
 	a.replay = &spaceReplay{a: a, base: &InnerState{}}
 	payload, err := block.BuildBlockRef([]byte("payload"), nil)
@@ -165,6 +167,7 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		opened:           openedNow(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -340,6 +343,7 @@ func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
 		}
 	}
 	a := &Adapter{
+		opened:           openedNow(),
 		le:               logrus.NewEntry(log),
 		pages:            block.NewPendingStore(cursor.GetBucket(), maxPending),
 		held:             make(map[string]*block.BlockRef),
@@ -436,6 +440,7 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		opened:           openedNow(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -481,6 +486,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
 	a := &Adapter{
+		opened:           openedNow(),
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
@@ -536,4 +542,13 @@ type readRoots []*block.BlockRef
 // ReadRoots returns the Worlds.
 func (r readRoots) ReadRoots() []*block.BlockRef {
 	return r
+}
+
+// openedNow returns the closed opened channel of an adapter a test builds
+// directly, as Execute leaves it once it read the held roots, so Root, Apply
+// and Install run at once.
+func openedNow() chan struct{} {
+	opened := make(chan struct{})
+	close(opened)
+	return opened
 }
