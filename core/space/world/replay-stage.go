@@ -83,7 +83,7 @@ func (s *replayStage) ReleaseRoots(context.Context, []*block.BlockRef) error {
 // ends once it lands, and whether any of them stored a page.
 func (s *replayStage) rotate(ctx context.Context) ([]*block.OverflowStage, bool, error) {
 	// Open the next epoch before the current one ends.
-	epoch, err := s.PendingStore.OpenOverflowStage(ctx)
+	epoch, err := s.OpenOverflowStage(ctx)
 	if err != nil {
 		return nil, false, err
 	}
