@@ -256,7 +256,7 @@ func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SO
 
 	// Find the stable prefix the body applied above the held checkpoint.
 	soID := d.so.GetSharedObjectID()
-	prefix, ok, err := d.stablePrefix(state, MinCheckpointOperations)
+	set, prefix, ok, err := d.stablePrefix(state, MinCheckpointOperations)
 	if err != nil || !ok {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SO
 	if err != nil {
 		return nil, err
 	}
-	return state.StableCheckpointInner(soID, prefix, dataEnc)
+	return state.stableCheckpointInner(soID, set, prefix, dataEnc)
 }
 
 // JudgeCheckpoint reports whether inner is the checkpoint after the one state
@@ -290,7 +290,7 @@ func (d *BodyDriver) JudgeCheckpoint(ctx context.Context, state *SOState, inner 
 	}
 
 	// They must be the stable prefix of state.
-	prefix, ok, err := d.stablePrefix(state, n)
+	set, prefix, ok, err := d.stablePrefix(state, n)
 	if err != nil || !ok || len(prefix) < n {
 		return false, false, err
 	}
@@ -298,7 +298,7 @@ func (d *BodyDriver) JudgeCheckpoint(ctx context.Context, state *SOState, inner 
 
 	// Compare the body this voter would build around the same state data.
 	soID := d.so.GetSharedObjectID()
-	expected, err := state.StableCheckpointInner(soID, prefix, inner.GetStateData())
+	expected, err := state.stableCheckpointInner(soID, set, prefix, inner.GetStateData())
 	if err != nil || !expected.EqualVT(inner) {
 		return false, err == nil, nil
 	}
@@ -315,26 +315,27 @@ func (d *BodyDriver) JudgeCheckpoint(ctx context.Context, state *SOState, inner 
 	return bytes.Equal(data, decoded.GetStateData()), true, nil
 }
 
-// stablePrefix returns the stable prefix of state's operations when it has at
-// least minLen operations, the body applied them first above state's
-// checkpoint, and that checkpoint is the installed one.
-func (d *BodyDriver) stablePrefix(state *SOState, minLen int) ([][]byte, bool, error) {
+// stablePrefix returns state's operations as a verified set and their stable
+// prefix when it has at least minLen operations, the body applied them first
+// above state's checkpoint, and that checkpoint is the installed one. The set
+// comes through the checkpointer's verifier, which d has.
+func (d *BodyDriver) stablePrefix(state *SOState, minLen int) (*SOOperationSet, [][]byte, bool, error) {
 	// The state's checkpoint must be the installed one.
 	held, err := state.GetCheckpointInner()
 	if err != nil || d.installed == nil || held.GetHeight() != d.installed.GetHeight() {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 
 	// Find the stable prefix, and require the body applied it.
-	set, err := state.OperationSet(d.so.GetSharedObjectID())
+	set, err := d.checkpointer.verified(state)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	prefix := set.StablePoint(state.GetConfig().TrimRoster())
 	if len(prefix) < minLen || len(d.positions) < len(prefix) {
-		return nil, false, nil
+		return nil, nil, false, nil
 	}
-	return prefix, slices.EqualFunc(d.hashes()[:len(prefix)], prefix, bytes.Equal), nil
+	return set, prefix, slices.EqualFunc(d.hashes()[:len(prefix)], prefix, bytes.Equal), nil
 }
 
 // install resets the body to ev's checkpoint, keeping the positions after the
