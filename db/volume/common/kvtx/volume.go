@@ -92,9 +92,15 @@ type Volume struct {
 	rootPinMu csync.Mutex
 	// rootPins counts the reader pins by root name.
 	rootPins map[string]*rootPin
+	// idlePins are the reader pins with no reader and no write in flight,
+	// which the next changing direct transaction releases, by root name.
+	idlePins map[string]*rootPin
 	// stages are the open stages by name, and released stages whose roots no
 	// commit has released yet.
 	stages map[string]*openStage
+	// releasedStages names the released stages whose roots no commit has
+	// released yet.
+	releasedStages map[string]struct{}
 	// rootPinsClosed records that Close released the reader pins.
 	rootPinsClosed bool
 	// renewCancel stops the renewal of leased roots, nil without one.
@@ -352,7 +358,9 @@ func initVolume(
 	// Name this process's pins and stages.
 	v.procID = ulid.NewULID()
 	v.rootPins = make(map[string]*rootPin)
+	v.idlePins = make(map[string]*rootPin)
 	v.stages = make(map[string]*openStage)
+	v.releasedStages = make(map[string]struct{})
 	return v, nil
 }
 

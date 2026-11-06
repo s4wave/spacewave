@@ -8,17 +8,15 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
-// rootProofCarryLimit bounds the pending proofs one transaction carries. Each
-// carried proof costs an existence check and a record write under the writer
-// lock, so a World commit never pays for more than this many.
-const rootProofCarryLimit = 256
+// rootProofRide bounds the pending proofs another writer's commit carries.
+// Each carried proof costs an existence check and a record write under the
+// writer lock, so a World commit, which marks its own root, rides the next
+// commit and pays for a few proofs at most.
+const rootProofRide = 16
 
-// rootProofBacklog bounds the pending proofs. A marker that leaves more than
-// one batch over it commits batches itself until the backlog fits, so a copy
-// that proves blocks faster than other writers commit waits its turn on the
-// writer instead of handing the work to their commits. The batch of slack
-// keeps a World commit, which marks one root, from paying for the copy.
-const rootProofBacklog = 4 * rootProofCarryLimit
+// rootProofSlice bounds the proofs one transaction of a marker writes, so a
+// copy's batch holds the writer in short slices.
+const rootProofSlice = 256
 
 // MarkRootsComplete records completion proofs for stored roots: the graph
 // under each is stored. A proof outlives the eviction of a block below its
@@ -26,41 +24,50 @@ const rootProofBacklog = 4 * rootProofCarryLimit
 // the writeback cache's blocks its remote holds: eviction keeps the block's
 // child list and count, so the proved graph stays whole in liveness and a
 // read refills the bytes. The World copy, the one consumer, skips and holds a
-// proved subtree on that basis. The collector deletes a proof with its block. A proof stays pending in memory until a changing
-// direct transaction carries it, so marking usually costs no write barrier of
-// its own. Past rootProofBacklog the marker carries batches itself. A crash
+// proved subtree on that basis. The collector deletes a proof with its block.
+//
+// A proof stays pending in memory until a transaction carries it. A mark of
+// one root, such as the derived proof of a World commit, leaves it for the
+// next changing direct transaction, so it costs no write barrier of its own.
+// A mark of several roots, such as a copy's batch, or one that leaves more
+// than rootProofRide pending, writes the pending proofs itself, rootProofSlice
+// per transaction, so other writers' commits never pay for a copy. A crash
 // loses only pending proofs, which a later copy recomputes.
 func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
-	// Record the proofs for the next commits to carry.
+	// Record the proofs for a transaction to carry.
 	if err := v.recordRootProofs(ctx, roots); err != nil {
 		return err
 	}
 
-	// Carry the backlog past the slack so other commits stay bounded.
-	return v.carryRootProofBacklog(ctx)
+	// Carry them here unless one rides the next commit.
+	if len(roots) <= 1 && v.pendingRootProofs() <= rootProofRide {
+		return nil
+	}
+	return v.carryPendingRootProofs(ctx)
 }
 
-// carryRootProofBacklog commits batches of pending proofs once more than
-// rootProofBacklog+rootProofCarryLimit are pending, until at most
-// rootProofBacklog remain. It stops when a batch carries nothing, which leaves
-// proofs whose roots are gone for a later carry to drop.
-func (v *Volume) carryRootProofBacklog(ctx context.Context) error {
+// carryPendingRootProofs writes the pending proofs in transactions of their
+// own, rootProofSlice per transaction, until none remain. It stops when a
+// transaction carries nothing, which leaves proofs whose roots are gone for a
+// later carry to drop.
+func (v *Volume) carryPendingRootProofs(ctx context.Context) error {
 	// Leave carrying to other writers when the store has no atomic publication.
 	if !v.HoldsRoots() {
 		return nil
 	}
 
-	// Leave a backlog within one batch of slack to other commits.
-	pending := v.pendingRootProofs()
-	if pending <= rootProofBacklog+rootProofCarryLimit {
-		return nil
-	}
-
-	// Commit batches until the backlog fits or a batch carries nothing.
-	for pending > rootProofBacklog {
-		if err := v.withDirectAtomic(ctx, nil); err != nil {
+	// Commit slices until no proof is pending or a slice carries nothing.
+	for pending := v.pendingRootProofs(); pending != 0; {
+		var keys []string
+		err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			var err error
+			keys, err = v.carryRootProofs(ctx, p, rootProofSlice)
+			return err
+		})
+		if err != nil {
 			return err
 		}
+		v.forgetRootProofs(keys)
 		next := v.pendingRootProofs()
 		if next >= pending {
 			return nil
@@ -122,15 +129,15 @@ func (v *Volume) recordRootProofs(ctx context.Context, roots []*block.BlockRef) 
 	}
 }
 
-// carryRootProofs writes into p the proofs of at most rootProofCarryLimit
-// pending roots whose bytes p still holds, and returns the keys of all it
-// took, so the commit forgets them.
-func (v *Volume) carryRootProofs(ctx context.Context, p *physicalTx) ([]string, error) {
-	// Take at most rootProofCarryLimit pending root proofs.
+// carryRootProofs writes into p the proofs of at most limit pending roots
+// whose bytes p still holds, and returns the keys of all it took, so the
+// commit forgets them.
+func (v *Volume) carryRootProofs(ctx context.Context, p *physicalTx, limit int) ([]string, error) {
+	// Take at most limit pending root proofs.
 	proofs := make(map[string]*block.BlockRef)
 	v.proofMu.Lock()
 	for key, root := range v.rootProofs {
-		if len(proofs) == rootProofCarryLimit {
+		if len(proofs) == limit {
 			break
 		}
 		proofs[key] = root

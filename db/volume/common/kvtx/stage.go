@@ -32,14 +32,35 @@ type openStage struct {
 // errStageLost rejects a write through a stage that lost a root it held.
 var errStageLost = errors.Wrap(block.ErrStageReleased, "stage lost a root it held while its process stalled past the lease and grace period")
 
-// stageRoots returns a copy of the roots the stage's record holds.
-func (v *Volume) stageRoots(stage string) map[string]*block.BlockRef {
+// stageHeld returns the roots the stage's record holds on the entries and
+// the blocks they name, reading only those, not every root the stage holds.
+func (v *Volume) stageHeld(stage string, entries []*block.PutBatchEntry) map[string]*block.BlockRef {
+	// Find the open stage under the pin lock.
 	unlock, _ := v.rootPinMu.Lock(context.Background())
 	defer unlock()
-	if st := v.stages[stage]; st != nil {
-		return maps.Clone(st.roots)
+	st := v.stages[stage]
+	if st == nil {
+		return nil
 	}
-	return nil
+
+	// Look up the root of each entry and each block it names.
+	held := make(map[string]*block.BlockRef)
+	note := func(ref *block.BlockRef) {
+		name := stageRootName(stage, ref)
+		if root, ok := st.roots[name]; ok {
+			held[name] = root
+		}
+	}
+	for _, entry := range entries {
+		if entry == nil || entry.Tombstone {
+			continue
+		}
+		note(entry.Ref)
+		for _, child := range entry.Refs {
+			note(child)
+		}
+	}
+	return held
 }
 
 // loseStage marks a stage lost, so every later write through it fails.
@@ -105,8 +126,9 @@ func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 func (v *Volume) releaseStage(stage string) {
 	unlock, _ := v.rootPinMu.Lock(context.Background())
 	defer unlock()
-	if st := v.stages[stage]; st != nil {
+	if st := v.stages[stage]; st != nil && !st.released {
 		st.released = true
+		v.releasedStages[stage] = struct{}{}
 	}
 }
 
@@ -222,7 +244,7 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 	// Store the entries and move the stage's roots in one transaction, then
 	// record the moves. A root the stage's record holds that the table no
 	// longer does refuses the put, and the stage is lost.
-	held := v.stageRoots(stage)
+	held := v.stageHeld(stage, entries)
 	roots := stageMoves(stage, held, entries, v.leaseExpiry())
 	var existed []bool
 	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
@@ -242,7 +264,7 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 
 // stageMoves returns the root moves that hold each entry under stage and
 // release the stage's roots on the blocks the entries name. held is the
-// stage's record of its roots: a release carries the record's block as its
+// stage's record of its roots on those blocks: a release carries the record's block as its
 // Previous, so a root a collector took refuses the put rather than leaving the
 // parent over a freed block.
 func stageMoves(stage string, held map[string]*block.BlockRef, entries []*block.PutBatchEntry, expires time.Time) []block.NamedRoot {
