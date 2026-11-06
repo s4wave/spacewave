@@ -317,6 +317,27 @@ func (f *fallbackTest) waitResident(want int64) {
 	}
 }
 
+// waitPending waits for the writeback status to count want blocks awaiting
+// upload. A fill stores its block before it marks it, so the block reads as
+// held before the mark lands.
+func (f *fallbackTest) waitPending(want int) {
+	// Wait on the writeback status.
+	f.t.Helper()
+	ctx, cancel := context.WithTimeout(f.ctx, 10*time.Second)
+	defer cancel()
+	for {
+		status, changed := f.wb.GetStatus()
+		if status.Pending == want {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			f.t.Fatalf("pending = %d, want %d: %+v", status.Pending, want, status)
+		case <-changed:
+		}
+	}
+}
+
 // read reads the block through the store's read chain.
 func (f *fallbackTest) read(ref *block.BlockRef, want []byte) {
 	f.t.Helper()

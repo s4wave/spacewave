@@ -256,9 +256,7 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	sqlRef := f.putSQL(sqlData)
 	f.read(sqlRef, sqlData)
 	f.waitHeld(sqlRef)
-	if status := f.status(); status.Pending != 1 {
-		t.Fatalf("pending = %d, want the fallback block", status.Pending)
-	}
+	f.waitPending(1)
 	if f.packHolds(sqlRef) {
 		t.Fatal("ftps packs hold the fallback block before its upload")
 	}
