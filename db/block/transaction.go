@@ -139,8 +139,8 @@ func (t *Transaction) GetStoreOps() StoreOps {
 	return t.store
 }
 
-// SetStoreOps replaces the transaction's store implementation.
-// Used to swap in GCStoreOps after the RefGraph is available.
+// SetStoreOps replaces the transaction's store implementation, such as a
+// stage that holds the blocks a detached write stores.
 func (t *Transaction) SetStoreOps(store StoreOps) {
 	if t == nil {
 		return

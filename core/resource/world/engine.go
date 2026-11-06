@@ -466,8 +466,8 @@ func (r *EngineResource) WatchTypedObject(req *s4wave_world.WatchTypedObjectRequ
 }
 
 // rootRetainingEngine is a Space World engine that retains named World roots
-// in its shared state. Only the SharedObject World engine implements it; the
-// Space adapter replaces it with roots chosen on the Space.
+// in its shared state. The Space adapter's engine implements it, holding each
+// as a root chosen on the Space.
 type rootRetainingEngine interface {
 	// SetRetainedRoot retains the World root ref under name, replacing the
 	// root the name held. An empty ref releases the name.

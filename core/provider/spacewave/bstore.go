@@ -393,7 +393,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		lower:      lower,
 		remote:     nil,
 		upper:      upper,
-		refGraph:   t.getRefGraph(),
+		childLists: t.getChildLists(),
 		conf:       syncConf,
 		telemetry:  t.a,
 		gateBcast:  &t.a.accountBcast,
@@ -513,9 +513,9 @@ func (t *bstoreTracker) registerPublicReadCdnRootRefresh(
 	}
 }
 
-// getRefGraph returns the volume's child lists, which order packs, when the
+// getChildLists returns the volume's child lists, which order packs, when the
 // volume keeps them.
-func (t *bstoreTracker) getRefGraph() packfile_order.ChildLists {
+func (t *bstoreTracker) getChildLists() packfile_order.ChildLists {
 	if lists, ok := t.a.vol.(packfile_order.ChildLists); ok {
 		return lists
 	}

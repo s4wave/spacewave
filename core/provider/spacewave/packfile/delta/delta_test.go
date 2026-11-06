@@ -273,12 +273,12 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 	}
 }
 
-func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
+func TestDiffBlockStoresByChildListsOrdersPhysicalPack(t *testing.T) {
 	// Run the graph-ordering case in parallel.
 	t.Parallel()
 	ctx := context.Background()
 
-	// Build a kvfile with four blocks and reference them in a graph.
+	// Build a kvfile with four blocks and list a child of one.
 	specs, reader := buildTestKvfile(t, "graph", 4, 128)
 	stray := blockRefFromKey(t, specs[0].key)
 	rootA := blockRefFromKey(t, specs[1].key)
@@ -286,12 +286,12 @@ func TestDiffBlockStoresWithRefGraphOrdersPhysicalPack(t *testing.T) {
 	childA := blockRefFromKey(t, specs[3].key)
 
 	// List child-a under root-a.
-	graph := testLists{rootA.MarshalString(): {childA}}
+	lists := testLists{rootA.MarshalString(): {childA}}
 
-	// Diff with the graph and collect the emitted chunk.
-	iter, err := DiffBlockStoresWithRefGraph(ctx, reader, nil, graph)
+	// Diff with the child lists and collect the emitted chunk.
+	iter, err := DiffBlockStoresByChildLists(ctx, reader, nil, lists)
 	if err != nil {
-		t.Fatalf("DiffBlockStoresWithRefGraph: %v", err)
+		t.Fatalf("DiffBlockStoresByChildLists: %v", err)
 	}
 
 	// Emit the ordered chunk.

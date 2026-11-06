@@ -25,8 +25,7 @@ type TransferSource interface {
 	ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, func(), error)
 	// GetBlockStore returns the block store ops for a shared object's block store.
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
-	// GetBlockRefs returns all block refs tracked for a shared object's block store.
-	// Uses the GC ref graph to enumerate blocks belonging to the bucket.
+	// GetBlockRefs returns every block ref of a shared object's block store.
 	GetBlockRefs(ctx context.Context, ref *sobject.SharedObjectRef) ([]*block.BlockRef, error)
 }
 
