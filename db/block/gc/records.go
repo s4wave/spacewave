@@ -49,11 +49,23 @@ const (
 	// still name it. It holds no value. A put of the block counts it as
 	// stored, as Land describes, and deletes the record.
 	kindHole byte = 'O'
-	// kindFill keys a block a cache fill gave birth to, by the block. It holds
-	// no value. The fill journaled no holder for the children its list names,
-	// so freeing the block releases none, and an adoption that counts the list
-	// deletes the mark.
-	kindFill byte = 'F'
+	// kindFillMark keys a fill mark store format 7 wrote on a block a cache
+	// fill gave birth to, which gave the block's children no holder. Nothing
+	// reads it: opening a format 7 Volume leaves it unadopted, and the
+	// adoption's clear deletes every one before it counts the lists.
+	kindFillMark byte = 'F'
+	// kindFillRecord keys the journal record of one cache fill by its
+	// big-endian time in Unix milliseconds, then the block it gave birth to,
+	// so a fill writes it blind, with no sequence number shared with the
+	// journal, and the collector reads the aged records first. Its value is a
+	// JournalRecord: an up pair for each child the block's list names and a
+	// down pair for the block's own implied holder.
+	kindFillRecord byte = 'L'
+	// kindFillHold keys the up pair of a fill record by the child it holds,
+	// then the filled block. It holds no value, lasts as long as its record,
+	// and lets the collector's tail check find the fill records that hold a
+	// queued block with one indexed read.
+	kindFillHold byte = 'N'
 	// kindVerified keys a block whose child list a list rebuild verified
 	// against the block's decoded refs, by the block. It holds no value and
 	// lasts until the rebuild clears the Volume's unverified lists mark.

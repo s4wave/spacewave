@@ -166,7 +166,7 @@ func (v *Volume) prepareCacheFills(ctx context.Context, _ string, fills []*cache
 	// writer unless one marks its block.
 	err := direct(ctx, func(p *physicalTx) error {
 		for i, fill := range fills {
-			existed, err := block_gc.LandFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p.rec, p.blocks, entries[i:i+1])
+			existed, err := block_gc.LandFill(kvtx.WithBlockMarkRequest(ctx, fill.mark), p.rec, p.blocks, v.now(), entries[i:i+1])
 			if err != nil {
 				return err
 			}

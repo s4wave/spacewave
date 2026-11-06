@@ -108,7 +108,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	claimed := func(state *LivenessState) bool {
 		return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 	}
-	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot); err != nil {
+	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark, kindFillRecord, kindFillHold); err != nil {
 		return res, err
 	}
 
@@ -249,7 +249,7 @@ func abandonAdopt(ctx context.Context, store Store, run string, cause error) err
 		abandoned := func(state *LivenessState) bool {
 			return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 		}
-		err = clearKinds(ctx, store, abandoned, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot)
+		err = clearKinds(ctx, store, abandoned, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark, kindFillRecord, kindFillHold)
 	}
 	if err != nil {
 		return errors.Wrapf(cause, "and returning the volume to unadopted failed: %v", err)
@@ -283,14 +283,10 @@ func (a *adoption) count(ctx context.Context) error {
 			return err
 		}
 
-		// Count a holder of each child, which also gives a list a cache fill
-		// wrote its children's holders, so its fill mark goes.
+		// Count a holder of each child.
 		children, err := DecodeChildren(r.value)
 		if err != nil {
 			return errors.Wrapf(err, "child list of %s", ref.MarshalString())
-		}
-		if _, err := rec.takeFillMark(ctx, ref); err != nil {
-			return err
 		}
 		for _, child := range children {
 			if err := a.hold(ctx, rec, blocks, BlockKey(child)); err != nil {

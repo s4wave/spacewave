@@ -200,10 +200,12 @@ func tallyHolders(ctx context.Context, rec *Records) (map[string]uint64, error) 
 	return tally, err
 }
 
-// journalTail reads the journal past the cursor: the blocks its up pairs
-// name, and each block's pairs the counts do not include yet, skipping the
-// pairs of the record at the cursor its net offset already applied.
+// journalTail reads the journal past the cursor and the fill records not
+// netted yet: the blocks their up pairs name, and each block's pairs the
+// counts do not include yet, skipping the pairs of the record at the cursor
+// its net offset already applied.
 func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[string]struct{}, map[string]int64, error) {
+	// Sum the journal records past the cursor.
 	tail := make(map[string]struct{})
 	delta := make(map[string]int64)
 	err := rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
@@ -227,6 +229,22 @@ func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[s
 				delta[string(down)]--
 			}
 			i++
+		}
+		return true, nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Add the pairs of the fill records not netted yet, which the counts do
+	// not include either.
+	err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
+		for _, up := range fr.rec.GetUp() {
+			tail[string(up)] = struct{}{}
+			delta[string(up)]++
+		}
+		for _, down := range fr.rec.GetDown() {
+			delta[string(down)]--
 		}
 		return true, nil
 	})

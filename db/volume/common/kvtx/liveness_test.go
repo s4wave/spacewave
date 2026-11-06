@@ -574,6 +574,73 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, "B")
 	})
 
+	t.Run("read fills a tree main holds", func(t *testing.T) {
+		// D is stored under old. A read fills B, which names C, which names
+		// D; main moves onto B without putting its tree; a later read fills
+		// C; old is released. D keeps the holder C's fill gave it, and the
+		// fills are garbage only once nothing holds them.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		d := tr.add(t, "D")
+		tr.add(t, "C", "D")
+		b := tr.add(t, "B", "C")
+		fill := func(name string) {
+			t.Helper()
+			err := v.withDirectFill(ctx, func(p *physicalTx) error {
+				_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries(name))
+				return err
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("D"), []block.NamedRoot{{Name: "old", Ref: d}}); err != nil {
+			t.Fatal(err)
+		}
+		fill("B")
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: b}}); err != nil {
+			t.Fatal(err)
+		}
+		fill("C")
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "old", Previous: d}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "B", "C", "D")
+		requireAudit(t, v, 0)
+
+		// Releasing main frees the whole tree.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: b}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "B", "C", "D")
+	})
+
+	t.Run("unheld fill", func(t *testing.T) {
+		// A read fills E, which nothing holds: it stays for the grace period
+		// and then goes, as an unheld put does.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "E")
+		err := v.withDirectFill(ctx, func(p *physicalTx) error {
+			_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries("E"))
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "E")
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, false, "E")
+	})
+
 	t.Run("stage lease lapses while open", func(t *testing.T) {
 		// A stage holds T, and its process stalls past the lease: a collector
 		// that does not renew, as another process's does, releases the
@@ -704,9 +771,11 @@ func TestLivenessAdversarial(t *testing.T) {
 	t.Run("cache fill during an adoption", func(t *testing.T) {
 		// main holds C on an unadopted Volume. While an adoption settles its
 		// counts, after it counted the child lists, a cache fill stores F
-		// naming C and journals no holder for C. The adoption queues F, which
-		// nothing holds, and freeing F must not release C, whose count never
-		// included F.
+		// naming C, with a fill record that holds C and takes F's implied
+		// holder back. The settle scan counts F's list too and finds F with
+		// no holder, so the fill record's down underflows and keeps F, and C
+		// gains a second holder from F: a fill during an adoption is counted
+		// twice and kept, and C is never freed under main.
 		store := store_kvtx_inmem.NewStore()
 		setUnadopted(t, store)
 		v, clk := openLivenessVolume(t, store, true)
@@ -729,9 +798,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
-		requireStored(t, v, tr, false, "F")
-		requireStored(t, v, tr, true, "C")
-		requireAudit(t, v, 0)
+		requireStored(t, v, tr, true, "C", "F")
+		requireAudit(t, v, 1)
 	})
 
 	t.Run("record larger than a slice", func(t *testing.T) {
@@ -1394,8 +1462,8 @@ func advanceRenewing(t *testing.T, v *Volume, clk *testClock, d time.Duration) {
 	}
 }
 
-// setUnadopted marks store, which must be empty, as a format 7 Volume that
-// predates adoption.
+// setUnadopted marks store, which must be empty, as a Volume of the current
+// format that predates adoption.
 func setUnadopted(t *testing.T, store *store_kvtx_inmem.Store) {
 	t.Helper()
 	keys := store_kvkey.NewDefaultKVKey()
@@ -1474,6 +1542,80 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	}
 	if res, err := v2.Collect(ctx); err != nil || res.Netted != 0 {
 		t.Fatalf("collect after a refused adoption netted %d err %v", res.Netted, err)
+	}
+
+	// An adopted format 7 store where main holds B, which a fill stored
+	// naming C with a fill mark and no holder for C, opens unadopted, and its
+	// adoption counts C under B and deletes the mark.
+	store3 := store_kvtx_inmem.NewStore()
+	tr3 := testTree{}
+	tr3.add(t, "C")
+	b := tr3.add(t, "B", "C")
+	writeFormat7Fill(t, store3, keys, tr3, b)
+	v3, clk3 := openLivenessVolume(t, store3, true)
+	err = v3.readRecords(ctx, func(rec *block_gc.Records) error {
+		state, err := rec.GetState(ctx)
+		if err == nil && state.GetAdoption() != block_gc.Adoption_ADOPTION_UNADOPTED {
+			t.Fatalf("format 7 state %v, want unadopted", state)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res, err := v3.Adopt(ctx); err != nil || res.Blocks != 2 || res.Queued != 0 {
+		t.Fatalf("adopt of format 7 = %+v err %v, want 2 blocks, none queued", res, err)
+	}
+	if n := countPrefix(t, store3, []byte{livenessPrefix[0], 'F'}); n != 0 {
+		t.Fatalf("%d fill marks remain after the adoption", n)
+	}
+	clk3.Add(block_gc.DefaultGrace + time.Second)
+	collectAll(t, v3)
+	requireStored(t, v3, tr3, true, "B", "C")
+	requireAudit(t, v3, 0)
+}
+
+// writeFormat7Fill writes an adopted format 7 store holding the blocks of tr
+// with their child lists, a named root main of bucket b on root, and a fill
+// mark on root, as a format 7 fill left a block whose children it gave no
+// holder.
+func writeFormat7Fill(t *testing.T, store *store_kvtx_inmem.Store, keys *store_kvkey.KVKey, tr testTree, root *block.BlockRef) {
+	t.Helper()
+	ctx := t.Context()
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	// Write the blocks, their lists, the root, the mark and the state.
+	rec := block_gc.NewRecords(tx, livenessPrefix)
+	for _, entry := range tr {
+		key, err := entry.Ref.MarshalKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, keys.GetBlockKey(key), entry.Data); err != nil {
+			t.Fatal(err)
+		}
+		if err := rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := rec.SetRoot(ctx, "b", "main", &block_gc.RootEntry{Ref: block_gc.BlockKey(root)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, append([]byte{livenessPrefix[0], 'F'}, block_gc.BlockKey(root)...), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_ADOPTED}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(7)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
 	}
 }
 
