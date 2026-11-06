@@ -55,22 +55,13 @@ func (v *SOOperationVerifier) OperationSet(state *SOState) (*SOOperationSet, err
 	verified := make(map[string]verifiedOperation, len(state.GetOps()))
 	hashes := make(map[*SOOperation]string, len(state.GetOps()))
 	for i, op := range state.GetOps() {
-		key, ok := v.hashes[op]
-		if !ok {
-			key = string(op.Hash())
+		key, inner, err := v.verifyLocked(op)
+		if err != nil {
+			return nil, errors.Wrapf(err, "ops[%d]", i)
 		}
-		held, ok := v.verified[key]
-		if !ok || !held.op.EqualVT(op) {
-			inner, err := op.Verify(v.sharedObjectID)
-			if err != nil {
-				return nil, errors.Wrapf(err, "ops[%d]", i)
-			}
-			held = verifiedOperation{op: op, inner: inner}
-		}
-		held.op = op
-		verified[key] = held
+		verified[key] = verifiedOperation{op: op, inner: inner}
 		hashes[op] = key
-		set.insert(key, held.inner)
+		set.insert(key, inner)
 	}
 
 	// Resolve the sequence and keep the operations of this set for the next.
@@ -78,4 +69,48 @@ func (v *SOOperationVerifier) OperationSet(state *SOState) (*SOOperationSet, err
 	v.verified = verified
 	v.hashes = hashes
 	return set, nil
+}
+
+// AdoptCheckpoint adopts next into state as SOState.AdoptCheckpoint does, and
+// rebuilds the operations above next from the ones this verifier verified for
+// the last set, checking only the signatures of held operations it has not
+// verified. The host's state took each held operation verified, so a
+// checkpoint the host adopts checks none of them again.
+func (v *SOOperationVerifier) AdoptCheckpoint(state *SOState, next *SOCheckpoint) error {
+	return state.adoptCheckpoint(v, next)
+}
+
+// keep adds each of ops to set and returns the ones set took, in order, in
+// the start of ops. An operation set covers or holds, or whose signature
+// fails, is left out. It verifies only the operations the last set did not
+// hold unchanged, and leaves what the verifier remembers as it was. Verifying
+// may suspend under GoScript, so it filters with a plain loop.
+func (v *SOOperationVerifier) keep(set *SOOperationSet, ops []*SOOperation) []*SOOperation {
+	// Keep each operation the set takes, in place.
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	kept := ops[:0]
+	for _, op := range ops {
+		key, inner, err := v.verifyLocked(op)
+		if err == nil && set.insert(key, inner) {
+			kept = append(kept, op)
+		}
+	}
+	clear(ops[len(kept):])
+	return kept
+}
+
+// verifyLocked returns the hash and verified body of op, reusing the last
+// set's body for an unchanged operation. The caller holds mtx.
+func (v *SOOperationVerifier) verifyLocked(op *SOOperation) (string, *SOOperationInner, error) {
+	// Reuse the body of an unchanged operation, else verify it.
+	key, ok := v.hashes[op]
+	if !ok {
+		key = string(op.Hash())
+	}
+	if held, ok := v.verified[key]; ok && held.op.EqualVT(op) {
+		return key, held.inner, nil
+	}
+	inner, err := op.Verify(v.sharedObjectID)
+	return key, inner, err
 }

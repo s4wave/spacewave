@@ -63,7 +63,7 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 	if err != nil {
 		return err
 	}
-	return state.AdoptCheckpoint(soID, checkpoint)
+	return c.host.GetOperationVerifier().AdoptCheckpoint(state, checkpoint)
 }
 
 // verified returns the operations state holds as a verified set, through the

@@ -2,6 +2,7 @@ package sobject
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -52,7 +53,7 @@ func Fold(ctx context.Context, snap SharedObjectStateSnapshot, process ProcessOp
 	if err != nil {
 		return nil, err
 	}
-	res := &FoldResult{StateData: checkpoint.GetStateData()}
+	res := &FoldResult{StateData: slices.Clone(checkpoint.GetStateData())}
 
 	// Apply each operation and record its outcome.
 	for _, h := range set.Order() {

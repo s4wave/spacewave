@@ -319,7 +319,7 @@ func (c *Control) decide(ctx context.Context, kind SODecisionKind, value []byte,
 		// Adopt the checkpoint the group decided.
 		checkpoint := &SOCheckpoint{Inner: value, Commit: commit}
 		return c.host.UpdateSOState(ctx, func(state *SOState) error {
-			return state.AdoptCheckpoint(c.host.GetSharedObjectID(), checkpoint)
+			return c.host.GetOperationVerifier().AdoptCheckpoint(state, checkpoint)
 		})
 	default:
 		return errors.Errorf("unknown decision kind %v", kind)

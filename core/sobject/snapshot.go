@@ -40,7 +40,8 @@ type SharedObjectStateSnapshot interface {
 	GetTransformInfo(ctx context.Context) (*TransformInfo, error)
 
 	// GetCheckpoint returns the checkpoint body with its state data decoded.
-	// Returns nil, nil before the first checkpoint.
+	// Returns nil, nil before the first checkpoint. Callers must not modify
+	// the returned body.
 	GetCheckpoint(ctx context.Context) (*SOCheckpointInner, error)
 
 	// GetOperationSet returns the verified operations above the checkpoint.
