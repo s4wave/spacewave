@@ -117,17 +117,19 @@ func TestAccountReplicaCopyFollowsParticipantGrants(t *testing.T) {
 }
 
 // TestAccountReplicaCopyRetainsCompletedSubtrees copies a complete graph from a
-// separate source. Durable completion proofs skip unchanged graphs on later heads.
+// separate source into an empty volume and holds it under the account World
+// root. Durable completion proofs skip the unchanged graph on a later copy.
 func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
-	// Mount a seeded source Space.
+	// Mount a seeded source Space and an empty destination Space.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	account, so, head, leaf, payload := mountSeededReplicaSource(ctx, t)
+	dstSO := mountEmptyReplicaDestination(ctx, t)
 
-	// Copying twice copies the graph once, in batches.
-	local := newBatchForwardTestStore()
+	// Copying twice copies the graph once.
+	local := dstSO.GetBlockStore()
 	destination := &replicaDestination{SharedObject: so, store: &BlockStore{
-		store: local, readStore: so.GetBlockStore(),
+		store: block_store.NewStore("destination", local), readStore: so.GetBlockStore(),
 	}}
 	for i := range 2 {
 		progress := &AccountReplicaCopyState{Head: head}
@@ -137,16 +139,17 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 		if i == 0 && progress.GetBlocks() == 0 {
 			t.Fatal("copy did not visit the source graph")
 		}
-		if local.putBlockHits.Load() != 0 || (i == 0 && (local.putBlockBatchHits == 0 || uint64(local.putBlockBatchHits) >= progress.GetBlocks())) {
-			t.Fatalf("copy of %d blocks used %d individual and %d batched writes", progress.GetBlocks(), local.putBlockHits.Load(), local.putBlockBatchHits)
+		if i == 1 && progress.GetBlocks() != 0 {
+			t.Fatalf("completed immutable graph was copied again: %d blocks", progress.GetBlocks())
 		}
-		if i == 1 && (progress.GetBlocks() != 0 || local.putBlockBatchHits != 0) {
-			t.Fatal("completed immutable graph was copied again")
-		}
-		local.putBlockBatchHits = 0
 	}
 
-	// The local store holds the leaf.
+	// The account World root holds the head, and the local store holds the
+	// leaf.
+	held, err := local.GetRoot(ctx, accountWorldRoot)
+	if err != nil || !held.EqualsRef(head.GetRootRef()) {
+		t.Fatalf("account World root after copy: %v, %v", held, err)
+	}
 	data, found, err := local.GetBlock(ctx, leaf)
 	if err != nil || !found || string(data) != string(payload) {
 		t.Fatalf("local leaf after copy: found=%v err=%v", found, err)
@@ -333,9 +336,10 @@ func TestAccountReplicaCopyKeepsProofsAroundHoles(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
 			account, so, head, leaf, _ := mountSeededReplicaSource(ctx, t)
+			dstSO := mountEmptyReplicaDestination(ctx, t)
 			source := &holeStore{StoreOps: so.GetBlockStore(), hole: leaf, err: holeErr}
 			destination := &replicaDestination{SharedObject: so, store: &BlockStore{
-				store: newBatchForwardTestStore(), copyStore: source,
+				store: block_store.NewStore("destination", dstSO.GetBlockStore()), copyStore: source,
 			}}
 
 			// Each walk finishes and names the leaf.

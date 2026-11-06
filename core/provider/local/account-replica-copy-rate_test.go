@@ -70,8 +70,8 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 	}
 	defer releaseReplica()
 
-	// Each run copies a fresh graph into the replica's volume the way
-	// RetainWorld does: batched writes, then a durability fence.
+	// Each run copies a fresh graph into the replica's volume the way the
+	// account World copy does: batched writes, then a durability fence.
 	measure := func(name string, src block.StoreOps, reads int) float64 {
 		// Seed a fresh graph into a buffered destination store.
 		root, blocks := seedRateGraph(ctx, t, source.GetBlockStore(), fmt.Sprintf("%s-%d", name, reads))
