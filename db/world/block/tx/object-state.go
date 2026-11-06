@@ -55,7 +55,7 @@ func (t *ObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
 	if t.w.discarded {
 		return 0, tx.ErrDiscarded
 	}
-	return world.GetObjectModSeqno(ctx, t.o)
+	return t.o.GetModSeqno(ctx)
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.

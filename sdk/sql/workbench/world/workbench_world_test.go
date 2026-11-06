@@ -96,6 +96,10 @@ type workbenchTestObjectState struct {
 	rootRef *bucket.ObjectRef
 }
 
+func (o *workbenchTestObjectState) GetModSeqno(context.Context) (uint64, error) {
+	return 0, nil
+}
+
 func (o *workbenchTestObjectState) GetKey() string {
 	return o.key
 }

@@ -192,7 +192,7 @@ func LookupObjectBodyEntry(ctx context.Context, ws WorldState, objKey string) (*
 		return nil, err
 	}
 	out.Rev, out.Exists = rev, true
-	out.ModSeqno, err = GetObjectModSeqno(ctx, obj)
+	out.ModSeqno, err = obj.GetModSeqno(ctx)
 	if err != nil {
 		return nil, err
 	}

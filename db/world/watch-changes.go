@@ -17,7 +17,8 @@ func (f ChangeFilter) Accepts(changes *ChangeSet) bool {
 	return f == nil || changes.Unknown || f(changes)
 }
 
-// ChangeWatcher is an Engine that reports what changed between seqnos.
+// ChangeWatcher reports what changed between seqnos. Every Engine is one; a
+// WorldState is one when it serves live reads rather than one revision.
 type ChangeWatcher interface {
 	// WatchChanges calls cb with each later seqno whose changes touches
 	// accepts, starting after afterSeqno, and the accepted changes since the
@@ -40,8 +41,8 @@ type IndexedChangeWatcher interface {
 }
 
 // WatchChanges calls cb with each seqno of w after afterSeqno and the changes
-// since the previous call. w is an Engine or a WorldState; one that is not a
-// ChangeWatcher reports every advance as an unknown ChangeSet.
+// since the previous call. w is an Engine or a WorldState; a WorldState that
+// is not a ChangeWatcher reports every advance as an unknown ChangeSet.
 // Returns when ctx is canceled or cb returns an error.
 func WatchChanges(
 	ctx context.Context,
@@ -68,11 +69,28 @@ func WatchTouchingChanges(
 	}
 
 	// Report each seqno advance as unknown, which every filter accepts.
+	return WatchSeqnoChanges(ctx, w, afterSeqno, cb)
+}
+
+// WatchSeqnoChanges calls cb with each seqno of w after afterSeqno and an
+// unknown ChangeSet. It is the change feed of a World that cannot say what
+// changed, such as a nested World whose seqno is its outer object's revision:
+// every watcher relists on each call. Returns when ctx is canceled or cb
+// returns an error.
+func WatchSeqnoChanges(
+	ctx context.Context,
+	w WorldWaitSeqno,
+	afterSeqno uint64,
+	cb func(seqno uint64, changes *ChangeSet) error,
+) error {
 	for {
+		// Wait for the next seqno.
 		seqno, err := w.WaitSeqno(ctx, afterSeqno+1)
 		if err != nil {
 			return err
 		}
+
+		// Report it as an unknown change.
 		if err := cb(seqno, NewUnknownChangeSet()); err != nil {
 			return err
 		}

@@ -159,6 +159,5 @@ func (os *ObjectState) WaitRev(ctx context.Context, rev uint64, ignoreNotFound b
 }
 
 var (
-	_ world.ObjectState          = (*ObjectState)(nil)
-	_ world.ObjectModSeqnoReader = (*ObjectState)(nil)
+	_ world.ObjectState = (*ObjectState)(nil)
 )

@@ -21,11 +21,6 @@ func (o *budgetObjectState) Release() {
 	world.ReleaseObjectState(o.ObjectState)
 }
 
-// GetModSeqno returns the wrapped object's ModSeqno.
-func (o *budgetObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
-	return world.GetObjectModSeqno(ctx, o.ObjectState)
-}
-
 // ApplyObjectOp applies an object operation if it fits in the budget.
 func (o *budgetObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
 	// Size the batch entry the transaction will record for the op.
