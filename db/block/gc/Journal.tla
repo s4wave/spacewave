@@ -96,7 +96,12 @@
 \* the tail is the main journal past the cursor together with every fill
 \* record not netted yet. A fill that lands after its child was queued is in
 \* that tail when the free transaction reads it; one that lands after the
-\* free names a block no stored block reached when it was freed.
+\* free names a block no stored block reached when it was freed. A fill
+\* lands whatever the adoption state. While the Volume is unadopted the
+\* collector deletes fill records, and an adoption's clear deletes each with
+\* its index entries; one that lands after the clear makes its block born to
+\* the adoption, as a Land while adopting does, so the adoption neither
+\* counts the block's children nor settles it, and the record supplies both.
 \*
 \* Mapping to Go, one action to one transaction:
 \*   Land            Volume.SetRoots(entries, roots) in db/volume/common/kvtx,
@@ -263,17 +268,21 @@
 \*              which names F, and gives F no holder; C2 is unheld and is
 \*              freed after Grace, its release takes C's holder from F, and F
 \*              is freed while main reaches it through R1 and C.
+\*   FillBorn   FALSE has the adoption count and settle a filled block as
+\*              one stored before it began. testdata/
+\*              Journal-fill-adopt-noborn.cfg: main holds R2 naming C2, which
+\*              the store lacks; while an adoption runs a read fills C2, the
+\*              adoption counts R2's holder of C2 and settle drops C2's
+\*              implied holder, the fill record's down drops it again, and C2
+\*              is freed under main.
 \*   StageCAS   FALSE releases a stage root only when the table holds it.
 \*              testdata/Journal-stage-nocas.cfg: the owner stalls past
 \*              Lease and Grace, T is freed, and its next put lands S over
 \*              the freed T.
 \*
-\* Left out: fills while a Volume is unadopted or adopting, where the
-\* adoption's clear deletes the fill records and its scan counts a filled
-\* block's children, so a fill that lands during the run counts them twice
-\* and keeps them longer; a fill of a recorded hole, which LandFill stores as
-\* a refill, journaling nothing; the format 7 upgrade (an unadopted Volume here holds every
-\* child list it names), the audit, the refusal of blocks stored without a
+\* Left out: a fill of a recorded hole, which LandFill stores as a refill,
+\* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
+\* every child list it names), the audit, the refusal of blocks stored without a
 \* child list, slices larger than one record (they are runs of one-record
 \* slices with no writer between), an abandoned run's cleanup (an unadopted
 \* Volume's counts are cleared by the next run before they are read), a
@@ -289,7 +298,7 @@ CONSTANTS Writers, MaxTxns, MaxNow, Grace, Window, Lease, MaxHoles,
           Runs, MaxOpens, RunCheck, Claim, BornMark, RootMark,
           Stage, Rehold, StageCAS,
           Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
-          FillBlocks, FillUps, Holds
+          FillBlocks, FillUps, Holds, FillBorn
 
 None == "none"
 Unmoved == "unmoved"
@@ -804,10 +813,12 @@ Delete(b) ==
 
 \* Fill stores b, a block a peer holds, with its child list, and writes its
 \* record: an up pair for each child, with FillUps, and a down pair for its
-\* own implied holder. It reads no liveness state.
+\* own implied holder. It reads no liveness state, so it lands whatever the
+\* adoption state, and its record names b, as LandFill's fill-born index
+\* entry does.
+FillRecorded(b) == \E r \in fj : r.b = b
 Fill(b) ==
   /\ b \in FillBlocks /\ b \notin stored \cup lost /\ Live
-  /\ adoption = "adopted"
   /\ stored' = stored \cup {b}
   /\ freed' = freed \ {b}
   /\ fj' = fj \cup {[b |-> b, at |-> now,
@@ -817,6 +828,15 @@ Fill(b) ==
   /\ UNCHANGED <<root, expires, lost, gcVars, jr, now, obs, seen, seenAt, holes,
                  born, moved, sheld, freedLive, adoptVars, stageVars,
                  writerVars>>
+
+\* DropFill is the collector deleting a fill record of an unadopted Volume,
+\* whose adoption counts every child list instead.
+DropFill(r) ==
+  /\ adoption = "unadopted" /\ r \in fj
+  /\ fj' = fj \ {r}
+  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jr, now, obs, seen,
+                 seenAt, txns, holes, born, moved, sheld, freed, freedLive,
+                 adoptVars, stageVars, writerVars>>
 
 \* NetFill nets one aged fill record whole, in one transaction, whenever the
 \* collector reaches it: before or after the main records naming its blocks.
@@ -879,8 +899,9 @@ AdoptStart(r) ==
           /\ UNCHANGED <<cnt, zero, landVars, pos>>
           /\ AdoptUnchanged
 
-\* AdoptClear deletes every count, queue entry and mark while r holds its
-\* claim; without Claim it deletes them whatever the state.
+\* AdoptClear deletes every count, queue entry, mark and fill record while r
+\* holds its claim; without Claim it deletes them whatever the state. Each
+\* fill record goes with its index entries in one transaction.
 AdoptClear(r) ==
   /\ pc[r] = "clear"
   /\ IF Claim /\ ~Claimed(r)
@@ -889,9 +910,12 @@ AdoptClear(r) ==
           /\ zero' = {}
           /\ born' = {}
           /\ moved' = [n \in Names |-> Unmoved]
+          /\ fj' = {}
           /\ pc' = [pc EXCEPT ![r] = "mark"]
           /\ UNCHANGED <<adoption, owner, pos>>
-          /\ AdoptUnchanged
+          /\ UNCHANGED <<root, expires, stored, lost, under, jr, now, obs, seen,
+                         seenAt, txns, holes, opens, sheld, freed, freedLive,
+                         stageVars, writerVars>>
 
 \* AdoptMark marks the Volume adopting in r at the journal's end. The
 \* collector's cursor moves there, and the records before it, which the
@@ -930,6 +954,12 @@ AdoptRoot(r) ==
                   /\ UNCHANGED <<zero, landVars, adoption, owner, pc>>
                   /\ AdoptUnchanged
 
+\* Skipped is a block whose holders the journal supplies, so the adoption
+\* neither counts its children nor settles it: one Land gave birth to while
+\* the Volume adopts, and with FillBorn one a fill record not netted yet
+\* names, which holds its children and takes its implied holder back.
+Skipped(b) == b \in born \/ (FillBorn /\ FillRecorded(b))
+
 \* AdoptList counts a holder of each child of the next child list, in key
 \* order, that no born mark names.
 AdoptList(r) ==
@@ -938,7 +968,7 @@ AdoptList(r) ==
      ELSE LET i == NextKey(BlockKeys, pos[r], stored)
               b == BlockKeys[i]
           IN IF i = 0 THEN Go(r, "settle") /\ pos' = [pos EXCEPT ![r] = 0]
-             ELSE /\ cnt' = IF b \in born THEN cnt
+             ELSE /\ cnt' = IF Skipped(b) THEN cnt
                             ELSE [c \in Blocks |->
                                     cnt[c] + IF c \in Kids(b) THEN 1 ELSE 0]
                   /\ pos' = [pos EXCEPT ![r] = i]
@@ -954,7 +984,7 @@ AdoptSettle(r) ==
      ELSE LET i == NextKey(BlockKeys, pos[r], stored)
               b == BlockKeys[i]
           IN IF i = 0 THEN Go(r, "end") /\ UNCHANGED pos
-             ELSE /\ IF b \in born THEN UNCHANGED <<cnt, zero>>
+             ELSE /\ IF Skipped(b) THEN UNCHANGED <<cnt, zero>>
                      ELSE IF cnt[b] = 0
                      THEN zero' = zero \cup {b} /\ UNCHANGED cnt
                      ELSE cnt' = [cnt EXCEPT ![b] = @ - 1] /\ UNCHANGED zero
@@ -1005,7 +1035,7 @@ Tick ==
                  txns, holes, landVars, adoptVars, stageVars, writerVars>>
 
 NetAny == \E k \in 1..Len(jr) : Net(k)
-NetFillAny == \E r \in fj : NetFill(r)
+NetFillAny == \E r \in fj : NetFill(r) \/ DropFill(r)
 DeleteAny == \E b \in Blocks : Delete(b)
 
 Next ==
