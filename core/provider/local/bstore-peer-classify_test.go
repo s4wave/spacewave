@@ -64,7 +64,7 @@ func classifiedPeerRead(t *testing.T, store backendStore) PeerServedClasses {
 
 	// Read a block a peer serves.
 	peers := &flakyPeers{blk: &block.StoredBlock{Data: []byte("served")}}
-	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, &p.peerReads)
+	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, nil, &p.peerReads)
 	if blk, err := src().GetStoredBlock(ctx, block.NewBlockRef(nil)); blk == nil || err != nil {
 		t.Fatalf("read: %v %v", blk, err)
 	}
@@ -127,7 +127,7 @@ func TestPeerClassUnclassifiedQueueFull(t *testing.T) {
 	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
 	p.peerReads.queue = make(chan *block.BlockRef)
 	peers := &flakyPeers{blk: &block.StoredBlock{Data: []byte("served")}}
-	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, &p.peerReads)
+	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, nil, &p.peerReads)
 	if blk, err := src().GetStoredBlock(context.Background(), block.NewBlockRef(nil)); blk == nil || err != nil {
 		t.Fatalf("read: %v %v", blk, err)
 	}

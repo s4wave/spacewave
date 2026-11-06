@@ -208,7 +208,7 @@ func TestBackendReadDeferred(t *testing.T) {
 func countedPeerRead(t *testing.T, peers block.StoreOps) ReadStatus {
 	t.Helper()
 	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
-	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, &p.peerReads)
+	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, nil, &p.peerReads)
 	_, _ = src().GetStoredBlock(context.Background(), block.NewBlockRef(nil))
 	return p.readStatus()
 }
@@ -259,7 +259,7 @@ func TestPeerReadRemembersUnserved(t *testing.T) {
 	refusal := fmt.Errorf("%w: no peer served block: %w", block.ErrUnavailable, fmt.Errorf("%w: tier away on the peer", dex_solicit.ErrPeerError))
 	peers := &flakyPeers{fails: 1 << 30, err: refusal}
 	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
-	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, &p.peerReads)
+	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, nil, &p.peerReads)
 	ref := block.NewBlockRef(nil)
 	if _, err := src().GetStoredBlock(context.Background(), ref); !errors.Is(err, block.ErrUnavailable) {
 		t.Fatalf("first read: %v", err)
@@ -286,7 +286,7 @@ func TestPeerReadRemembersUnserved(t *testing.T) {
 	want := &block.StoredBlock{Data: []byte("served")}
 	blip := &flakyPeers{fails: 1 << 30, blk: want}
 	q := &placementState{remote: &atomic.Pointer[openBackend]{}}
-	src = newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return blip }, &q.peerReads)
+	src = newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return blip }, nil, &q.peerReads)
 	if _, err := src().GetStoredBlock(context.Background(), ref); !errors.Is(err, block.ErrUnavailable) {
 		t.Fatalf("blip read: %v", err)
 	}
@@ -418,7 +418,7 @@ func TestPeerReadFailCauses(t *testing.T) {
 			p := &placementState{remote: &atomic.Pointer[openBackend]{}}
 			want := &block.StoredBlock{Data: []byte("served")}
 			peers := &causePeers{blk: want}
-			src := newPeerMissSource(logrus.NewEntry(logger), func() block.StoreOps { return peers }, &p.peerReads)
+			src := newPeerMissSource(logrus.NewEntry(logger), func() block.StoreOps { return peers }, nil, &p.peerReads)
 			ref, err := block.BuildBlockRef([]byte(t.Name()), nil)
 			if err != nil {
 				t.Fatal(err)

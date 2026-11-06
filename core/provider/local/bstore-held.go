@@ -484,7 +484,12 @@ func (t *bstoreTracker) peerSource(le *logrus.Entry, bucketID string, counts *pe
 	}
 
 	// One whose pushed blocks skip its disk asks the node first.
-	peers := newPeerMissSource(le, func() block.StoreOps { return t.a.getP2PStore(bucketID) }, counts)
+	peers := newPeerMissSource(
+		le,
+		func() block.StoreOps { return t.a.getP2PStore(bucketID) },
+		func(ctx context.Context) block.StoreOps { return t.a.waitP2PStore(ctx, bucketID) },
+		counts,
+	)
 	if conf != nil && conf.Durable != nil {
 		return nodeBeforePeers(peers, &t.nodeClient, conf.ReadWait)
 	}

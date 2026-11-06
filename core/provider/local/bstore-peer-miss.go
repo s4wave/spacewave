@@ -67,16 +67,58 @@ type peerMissLog struct {
 }
 
 // newPeerMissSource wraps peers so each block that reaches it is logged once.
+// After this bucket has had peers, wait lets a read ride out a restart.
 // Each peer read counts its outcome in counts, which may be nil.
-func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
+func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, wait func(context.Context) block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
 	seen, unserved := newSeenRefs(), newUnservedRefs()
+	var hadPeers atomic.Bool
 	return func() block.StoreOps {
+		// Resolve the active store or wait for the next lifecycle.
 		store := peers()
-		if store == nil {
+		switch {
+		case store != nil:
+			hadPeers.Store(true)
+		case hadPeers.Load() && wait != nil:
+			store = &returningPeers{wait: wait}
+		default:
 			return nil
 		}
+
+		// Keep the logging, read bound and deferred reads across lifecycles.
 		return &peerMissLog{StoreOps: store, le: le, seen: seen, peers: peers, counts: counts, unserved: unserved}
 	}
+}
+
+// returningPeers is the peer store while P2P sync restarts: each read waits
+// for the next lifecycle's store, then reads it. Other calls answer as an
+// empty store.
+type returningPeers struct {
+	block.NopStoreOps
+	// wait returns the next lifecycle's store, or nil when its context ends.
+	wait func(context.Context) block.StoreOps
+}
+
+// BeginReadOperation returns the store itself.
+func (p *returningPeers) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	return p, func() {}, nil
+}
+
+// GetBlock waits for the peers, then reads the block from them.
+func (p *returningPeers) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	store := p.wait(ctx)
+	if store == nil {
+		return nil, false, context.Cause(ctx)
+	}
+	return store.GetBlock(ctx, ref)
+}
+
+// GetStoredBlock waits for the peers, then reads the block and its refs.
+func (p *returningPeers) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	store := p.wait(ctx)
+	if store == nil {
+		return nil, context.Cause(ctx)
+	}
+	return store.GetStoredBlock(ctx, ref)
 }
 
 // BeginReadOperation opens a read scope on the peers that keeps the miss log
