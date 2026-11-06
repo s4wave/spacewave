@@ -62,6 +62,27 @@ type revisionEntry struct {
 	checkedOnce sync.Once
 }
 
+// detached returns a finished entry with e's value whose own reads are e's
+// merged reads, holding none of e's parts. A dropped value kept as a previous
+// value keeps no part alive: a part read by facet is replaced on every
+// catch-up, so a previous value holding its parts would keep a generation of
+// each for as long as the history reaches, which for a large part is
+// gigabytes. A value built on the detached entry then counts every change to
+// those parts as touching it, facets included, which is only more cautious.
+func (e *revisionEntry) detached() *revisionEntry {
+	return &revisionEntry{
+		name:     e.name,
+		done:     e.done,
+		at:       e.at,
+		value:    e.value,
+		reads:    e.viewReads(),
+		blocks:   e.blocks,
+		wake:     e.wake,
+		finished: true,
+		recent:   true,
+	}
+}
+
 // expired reports whether the time the value asked to rerun at has passed.
 // A value without one reads no clock.
 func (e *revisionEntry) expired() bool {

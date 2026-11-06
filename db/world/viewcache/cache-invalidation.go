@@ -249,7 +249,7 @@ func (c *Cache) dropChangedLocked(entry *revisionEntry, changes *world.ChangeSet
 		if c.previous == nil {
 			c.previous = make(map[string]previousValue)
 		}
-		c.previous[entry.name] = previousValue{entry: entry, through: from}
+		c.previous[entry.name] = previousValue{entry: entry.detached(), through: from}
 	}
 	cause := "changed"
 	if changes.Unknown {
