@@ -79,7 +79,7 @@ func walkPass(ctx context.Context, store Store, visit walkVisit) (uint64, error)
 				return reached, err
 			}
 			reached += m
-			if err := yieldWriters(ctx); err != nil {
+			if err := context.Cause(ctx); err != nil {
 				return reached, err
 			}
 		}

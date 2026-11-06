@@ -259,7 +259,7 @@ func recordHoles(ctx context.Context, store Store, absent []*block.BlockRef, tal
 		}
 
 		// Let a waiting writer in.
-		if err := yieldWriters(ctx); err != nil {
+		if err := context.Cause(ctx); err != nil {
 			return err
 		}
 	}
