@@ -316,6 +316,14 @@ func TestLivenessRunThrough(t *testing.T) {
 	} else {
 		t.Logf("wide free: longest transaction %d operations over 10,000 children, %d over 20,000", s, l)
 	}
+
+	// A staged batch's lookups keep no commit waiting, at 3 or 32 children an
+	// entry.
+	if s, l := measureStageLookupWait(t, 3), measureStageLookupWait(t, 32); l > 2*s+time.Millisecond {
+		t.Errorf("a commit beside a staged batch of 32 children an entry waited %v, of 3 %v", l, s)
+	} else {
+		t.Logf("stage lookups: longest commit %v beside 3 children an entry, %v beside 32", s, l)
+	}
 	t.Logf("deferred: %v over 1x, %v over 10x", small.times["deferred"], large.times["deferred"])
 	if s, l := small.times["deferred"], large.times["deferred"]; l > 2*s+200*time.Microsecond {
 		t.Errorf("a commit beside 10x pins and stages took %v, beside 1x %v", l, s)
@@ -619,6 +627,68 @@ func measureWideFree(t *testing.T, children int) uint64 {
 		t.Fatalf("freed %d of a block and its %d children", res.Freed, children)
 	}
 	return cs.Counts().MaxWriteOps
+}
+
+// measureStageLookupWait looks up the roots a staged batch of 4,096 entries
+// of children children each touches, again and again, and returns the
+// longest a changing commit took meanwhile.
+func measureStageLookupWait(t *testing.T, children int) time.Duration {
+	// Name a batch the stage would put.
+	t.Helper()
+	v, _ := newLivenessVolume(t, false)
+	ctx := t.Context()
+	stage, release, err := v.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	entries := make([]*block.PutBatchEntry, 4096)
+	for i := range entries {
+		refs := make([]*block.BlockRef, children)
+		for j := range refs {
+			if refs[j], err = block.BuildBlockRef([]byte("child "+strconv.Itoa(i*children+j)), nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		ref, err := block.BuildBlockRef([]byte("entry "+strconv.Itoa(i)), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries[i] = &block.PutBatchEntry{Ref: ref, Data: []byte("x"), Refs: refs, RefsKnown: true}
+	}
+
+	// Look the batch up until the commits end.
+	done := make(chan struct{})
+	looked := make(chan struct{})
+	go func() {
+		defer close(looked)
+		for {
+			select {
+			case <-done:
+				return
+			default:
+			}
+			v.stageHeld(stage, newStageNames(stage, entries))
+		}
+	}()
+
+	// Commit a root move twenty times meanwhile, timing each.
+	tr := testTree{}
+	var prev *block.BlockRef
+	var longest time.Duration
+	for i := range 20 {
+		name := "c" + strconv.Itoa(i)
+		ref := tr.add(t, name)
+		start := time.Now()
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(name), []block.NamedRoot{{Name: "c", Ref: ref, Previous: prev}}); err != nil {
+			t.Fatal(err)
+		}
+		longest = max(longest, time.Since(start))
+		prev = ref
+	}
+	close(done)
+	<-looked
+	return longest
 }
 
 // countIndexEntries returns the number of journal index entries the Volume
