@@ -79,6 +79,9 @@ const (
 	packRotated
 	// packFinal is a finalized packfile.
 	packFinal
+	// packGone is an evicted pack: its file is unlinked and the table holds
+	// none of its values.
+	packGone
 )
 
 // openName returns the file name of pack seq while it is open.
