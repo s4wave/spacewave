@@ -27,7 +27,7 @@ func (v *Volume) Collect(ctx context.Context) (block_gc.CollectResult, error) {
 	// releases of pins and stages, so the pass sees what this process
 	// released, then collect.
 	ctx = backgroundPass(ctx)
-	if err := v.renewRoots(ctx); err != nil {
+	if _, err := v.renewRoots(ctx); err != nil {
 		return block_gc.CollectResult{}, err
 	}
 	if err := v.withDirectAtomic(ctx, nil); err != nil {

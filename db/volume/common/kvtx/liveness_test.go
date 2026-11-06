@@ -555,7 +555,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		if res, err := v.collector.Collect(ctx); err != nil || res.Lapsed != 1 {
 			t.Fatalf("stalled pass lapsed %d err %v, want the stage root", res.Lapsed, err)
 		}
-		if err := v.renewRoots(ctx); err != nil {
+		if _, err := v.renewRoots(ctx); err != nil {
 			t.Fatal(err)
 		}
 		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
@@ -605,7 +605,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			}
 			requireStored(t, v, tr, false, "T")
 			if renew {
-				if err := v.renewRoots(ctx); err != nil {
+				if _, err := v.renewRoots(ctx); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -1349,7 +1349,7 @@ func advanceRenewing(t *testing.T, v *Volume, clk *testClock, d time.Duration) {
 		step := min(d, rootRenewInterval)
 		clk.Add(step)
 		d -= step
-		if err := v.renewRoots(t.Context()); err != nil {
+		if _, err := v.renewRoots(t.Context()); err != nil {
 			t.Fatal(err)
 		}
 	}
