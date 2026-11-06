@@ -902,6 +902,36 @@ func (a *ProviderAccount) setP2PSyncLocked(state *p2pSyncState) {
 	a.p2pSyncCur.Store(state)
 }
 
+// waitP2PStore waits until a P2P sync lifecycle serves bucketID and returns
+// its store, or returns nil when ctx ends first. It wakes when the account
+// changes lifecycles and when the current one publishes its stores.
+func (a *ProviderAccount) waitP2PStore(ctx context.Context, bucketID string) block.StoreOps {
+	for {
+		// Read the wakes of the next lifecycle change and store publication.
+		var accountWait, stateWait <-chan struct{}
+		var state *p2pSyncState
+		a.p2pSyncBcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+			accountWait, state = getWait(), a.p2pSync
+		})
+		if state != nil {
+			state.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+				stateWait = getWait()
+			})
+		}
+
+		// Return the store once one serves the bucket, or wait for a change.
+		if store := a.getP2PStore(bucketID); store != nil {
+			return store
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-accountWait:
+		case <-stateWait:
+		}
+	}
+}
+
 // retireP2PSyncState removes one state from the account lifecycle and releases
 // its resources. A nil state selects the current state atomically with removal.
 func (a *ProviderAccount) retireP2PSyncState(state *p2pSyncState) {
