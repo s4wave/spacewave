@@ -48,6 +48,11 @@ type AuditResult struct {
 	// while the Volume keeps the count. Any is an error in the counts: a
 	// count below its records lets a free run while a cascade is due.
 	CascadeMiscount int64
+	// UnlistedCascades counts the cascade records due on blocks without a
+	// child list, which no cascade can run. The next pass drops a down one;
+	// an up one, a Holding block the store lost, keeps every free waiting
+	// until a put refills the block.
+	UnlistedCascades uint64
 }
 
 // Audit walks from the named roots of the Volume in one snapshot and compares
@@ -106,11 +111,16 @@ func Audit(ctx context.Context, store AdoptStore) (AuditResult, error) {
 			return err
 		}
 
-		// Compare the cascade records with their count.
+		// Compare the cascade records with their count, and count those on
+		// blocks without a list.
 		var due int64
-		err = rec.scanCascades(ctx, nil, func([]byte, byte) (bool, error) {
+		err = rec.scanCascades(ctx, nil, func(key []byte, _ byte) (bool, error) {
 			due++
-			return true, nil
+			listed, err := rec.tx.Exists(ctx, rec.key(kindChildren, key))
+			if !listed {
+				res.UnlistedCascades++
+			}
+			return true, err
 		})
 		res.CascadeMiscount = due - int64(state.GetCascades()) //nolint:gosec // counts stay far below the int64 range.
 		return err

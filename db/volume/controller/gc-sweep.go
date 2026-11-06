@@ -108,6 +108,9 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		if res.Underflows != 0 {
 			c.le.WithField("underflows", res.Underflows).Warn("gc pass refused count changes below zero")
 		}
+		if res.Stranded != 0 {
+			c.le.WithField("stranded", res.Stranded).Warn("gc pass dropped the releases of blocks lost with their child lists")
+		}
 
 		// Let the storage reclaim the space of the freed blocks.
 		if res.Freed != 0 {
