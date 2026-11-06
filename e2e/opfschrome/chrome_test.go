@@ -23,7 +23,6 @@ const (
 	runEnv                          = "RUN_OPFS_CHROME_TEST"
 	profileEnv                      = "RUN_OPFS_CHROME_PROFILE"
 	tinyGoEnv                       = "RUN_OPFS_CHROME_TINYGO"
-	cacheProbeEnv                   = "RUN_OPFS_CHROME_CACHE_PROBE"
 	tinyGoProfileEnv                = "RUN_OPFS_CHROME_TINYGO_PROFILE"
 	tinyGoOptEnv                    = "RUN_OPFS_CHROME_TINYGO_OPT"
 	tinyGoGCEnv                     = "RUN_OPFS_CHROME_TINYGO_GC"
@@ -1476,11 +1475,8 @@ func buildWasm(out string) error {
 		return err
 	}
 
-	// Select the storage-focused worker when the TinyGo cache probe requests it.
-	program := "./db/opfs/chrometest/testprog"
-	if os.Getenv(cacheProbeEnv) == "1" || strings.EqualFold(os.Getenv(cacheProbeEnv), "true") {
-		program = "./db/opfs/chrometest/cachetestprog"
-	}
+	// Build the worker program.
+	program := "./e2e/opfschrome/testprog"
 
 	// Compile with TinyGo when the worker scenario requests it.
 	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
