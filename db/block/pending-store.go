@@ -45,8 +45,9 @@ type PendingStore struct {
 	StoreOps
 
 	// mtx guards kept, keptBytes, held and each open stage's keys. It is never
-	// held across I/O.
-	mtx sync.Mutex
+	// held across I/O. Reads of kept blocks and the walk SetRoots makes under
+	// a moved root share it, so a read does not wait for a walk.
+	mtx sync.RWMutex
 	// kept holds the blocks put and not yet stored, by reference.
 	kept map[string]*PutBatchEntry
 	// held counts, by key, the open stages that put each kept block. Sweep
@@ -83,15 +84,15 @@ func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
 // Full reports whether the kept blocks reached half the bound, so the writer
 // names a tree before more puts must go to the inner store.
 func (s *PendingStore) Full() bool {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	return s.keptBytes >= s.maxBytes/2
 }
 
 // KeptBytes returns the total data length of the kept blocks.
 func (s *PendingStore) KeptBytes() int {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	return s.keptBytes
 }
 
@@ -252,8 +253,8 @@ func (s *PendingStore) lookup(ref *BlockRef) *PutBatchEntry {
 	if ref.GetEmpty() {
 		return nil
 	}
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	if len(s.kept) == 0 {
 		return nil
 	}
@@ -363,12 +364,12 @@ func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, r
 // reach returns the kept blocks the roots reach, children before parents, and
 // their keys.
 func (s *PendingStore) reach(roots []*BlockRef) ([]*PutBatchEntry, []string) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	return s.reachLocked(roots)
 }
 
-// reachLocked is reach for a caller holding mtx.
+// reachLocked is reach for a caller holding mtx, shared or exclusive.
 func (s *PendingStore) reachLocked(roots []*BlockRef) ([]*PutBatchEntry, []string) {
 	// Walk the kept blocks from each root, depth first, emitting each block
 	// after its kept children.
@@ -430,8 +431,8 @@ func (s *PendingStore) drop(keys []string) {
 // of a Sweep. Blocks kept after the mark belong to roots the caller may not
 // have seen, so the Sweep keeps them.
 func (s *PendingStore) SweepMark() uint64 {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	return s.seq
 }
 
@@ -439,13 +440,13 @@ func (s *PendingStore) SweepMark() uint64 {
 // reaches, keeping every block an open stage put and what it reaches.
 func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 	// Add the held blocks to the live roots.
-	s.mtx.Lock()
+	s.mtx.RLock()
 	for key := range s.held {
 		if e := s.kept[key]; e != nil {
 			live = append(live, e.Ref)
 		}
 	}
-	s.mtx.Unlock()
+	s.mtx.RUnlock()
 
 	// Mark what the live roots reach.
 	_, keys := s.reach(live)
