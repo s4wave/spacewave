@@ -55,5 +55,10 @@ const sliceFrees = 128
 // after the block that reaches it.
 const sliceReleases = 4096
 
+// journalPagePairs bounds the pairs of one journal record: a Land with more
+// writes its record in pages, so a net or index slice decodes only the pages
+// it works on.
+const journalPagePairs = 2048
+
 // sliceLeases bounds the lapsed leased roots one transaction releases.
 const sliceLeases = 256
