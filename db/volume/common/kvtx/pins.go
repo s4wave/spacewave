@@ -243,7 +243,7 @@ func (v *Volume) closeRootPins() error {
 	clear(v.rootPins)
 	clear(v.stages)
 	unlock()
-	if (len(releases) == 0 && len(stages) == 0) || !v.SupportsRootRetention() {
+	if (len(releases) == 0 && len(stages) == 0) || !v.HoldsRoots() {
 		return nil
 	}
 

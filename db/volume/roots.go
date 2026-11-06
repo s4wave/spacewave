@@ -7,17 +7,16 @@ import (
 )
 
 // Roots is the part of a Volume that holds what keeps blocks live: the named
-// roots of its buckets, reader pins, stages and completion proofs. It is part
-// of Volume, so a wrapper forwards it rather than erasing it.
+// roots of its buckets, and the leased roots of reader pins and stages. It is
+// part of Volume, so a wrapper forwards it rather than erasing it.
 //
-// A volume without root retention, whose store cannot commit liveness with
-// the blocks, reports none: it holds no named roots, refuses a root that
-// would hold a block as block.SetRootsUnheld does, pins and stages nothing,
-// and proves nothing. Every block written to it stays stored.
+// A volume that holds no roots, because its store cannot commit liveness with
+// the blocks, reports none: it refuses a root that would hold a block as
+// block.SetRootsUnheld does, pins and stages nothing, and proves nothing.
+// Every block written to it stays stored.
 type Roots interface {
-	// SupportsRootRetention reports whether the volume holds roots, pins and
-	// stages.
-	SupportsRootRetention() bool
+	// HoldsRoots reports whether the volume holds roots, pins and stages.
+	HoldsRoots() bool
 	// GetBucketRoot returns the block a bucket's root name holds, or nil.
 	GetBucketRoot(ctx context.Context, bucketID, name string) (*block.BlockRef, error)
 	// ListBucketRoots calls fn with each root of a bucket whose name starts
@@ -39,8 +38,14 @@ type Roots interface {
 	PrepareStagedBlockBatch(ctx context.Context, stage string, entries []*block.PutBatchEntry) ([]bool, error)
 	// ReleaseStageRoots drops the stage's holds on refs.
 	ReleaseStageRoots(ctx context.Context, stage string, refs []*block.BlockRef) error
+}
+
+// RootProofs is the part of a Volume that keeps completion proofs: records
+// that the graph under a root is stored, which a graph copy reads to skip the
+// subtree. A proof holds nothing; the collector deletes it with its block.
+type RootProofs interface {
 	// HoldStageCompleteRoots reports which roots have a completion proof and
-	// makes the stage hold each of them.
+	// makes the stage hold each of them in the same transaction.
 	HoldStageCompleteRoots(ctx context.Context, stage string, refs []*block.BlockRef) ([]bool, error)
 	// MarkRootsComplete records completion proofs for stored roots.
 	MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error

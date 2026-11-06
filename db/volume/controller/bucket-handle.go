@@ -259,7 +259,7 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	// On a volume that keeps liveness a tombstone releases what the bucket's
 	// write held, and never evicts bytes another holder may reach: a stage
 	// releases its root on the block, and any other put held nothing.
-	if b.stage != "" || b.SupportsRootRetention() {
+	if b.stage != "" || b.HoldsRoots() {
 		return b.putReleasing(ctx, entries)
 	}
 	return b.v.PutBlockBatch(ctx, entries)
@@ -473,7 +473,7 @@ func (b *bucketHandle) preparesOwned() bool {
 	if b.err != nil || b.readOps != nil || b.v == nil {
 		return false
 	}
-	return block.SupportsRootRetention(b.v)
+	return block.HoldsRoots(b.v)
 }
 
 // _ asserts the bucket contracts.

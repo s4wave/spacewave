@@ -49,9 +49,9 @@ func (s *ReadOnlyStore) Sync(context.Context) (bool, error) {
 	return false, nil
 }
 
-// SupportsRootRetention reports the inner store's root ownership.
-func (s *ReadOnlyStore) SupportsRootRetention() bool {
-	return SupportsRootRetention(s.StoreOps)
+// HoldsRoots reports whether the inner store holds roots.
+func (s *ReadOnlyStore) HoldsRoots() bool {
+	return HoldsRoots(s.StoreOps)
 }
 
 // SetRoots rejects the change of a named root.
@@ -69,7 +69,7 @@ func (s *ReadOnlyStore) OpenStage(ctx context.Context) (StoreOps, func(), error)
 	return OpenStage(ctx, s.StoreOps)
 }
 
-// ReleaseRoots rejects the release of staging ownership.
+// ReleaseRoots rejects the release of a stage's holds.
 func (s *ReadOnlyStore) ReleaseRoots(context.Context, []*BlockRef) error {
 	return tx.ErrNotWrite
 }
@@ -84,14 +84,14 @@ func (s *ReadOnlyStore) RootsComplete(ctx context.Context, refs []*BlockRef) ([]
 	return RootsComplete(ctx, s.StoreOps, refs)
 }
 
-// HoldCompleteRoots forwards stage ownership of already complete roots.
+// HoldCompleteRoots forwards a stage hold of proved roots.
 func (s *ReadOnlyStore) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
 	return HoldCompleteRoots(ctx, s.StoreOps, refs)
 }
 
 // _ is a type assertion
 var (
-	_ StoreOps           = (*ReadOnlyStore)(nil)
-	_ RootRetainer       = (*ReadOnlyStore)(nil)
-	_ CompleteRootHolder = (*ReadOnlyStore)(nil)
+	_ StoreOps    = (*ReadOnlyStore)(nil)
+	_ LeasedRoots = (*ReadOnlyStore)(nil)
+	_ RootProofs  = (*ReadOnlyStore)(nil)
 )

@@ -50,9 +50,9 @@ func (v *ProxyVolume) SetBucketRoots(ctx context.Context, req *volume_rpc.SetBuc
 	return &volume_rpc.SetBucketRootsResponse{}, nil
 }
 
-// GetRootRetention reports whether the volume holds roots, pins and stages.
-func (v *ProxyVolume) GetRootRetention(context.Context, *volume_rpc.GetRootRetentionRequest) (*volume_rpc.GetRootRetentionResponse, error) {
-	return &volume_rpc.GetRootRetentionResponse{Supported: v.vol.SupportsRootRetention()}, nil
+// GetHoldsRoots reports whether the volume holds roots, pins and stages.
+func (v *ProxyVolume) GetHoldsRoots(context.Context, *volume_rpc.GetHoldsRootsRequest) (*volume_rpc.GetHoldsRootsResponse, error) {
+	return &volume_rpc.GetHoldsRootsResponse{HoldsRoots: v.vol.HoldsRoots()}, nil
 }
 
 // HoldPin pins a reader's root and holds it until the client ends the stream.

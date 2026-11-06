@@ -32,8 +32,8 @@ type ProxyVolume struct {
 	volInfo *volume.VolumeInfo
 	// volPeer is the parsed volume peer public key & id
 	volPeer peer.Peer
-	// retention caches whether the remote volume holds roots, read once.
-	retention func() bool
+	// holdsRoots caches whether the remote volume holds roots, read once.
+	holdsRoots func() bool
 }
 
 // NewProxyVolume constructs a new ProxyVolume.
@@ -50,7 +50,7 @@ func NewProxyVolume(
 		return nil, err
 	}
 
-	// Build the storage facade, asking the remote volume's root retention
+	// Build the storage facade, asking whether the remote volume holds roots
 	// once on first use.
 	v := &ProxyVolume{
 		BlockStore:  rpc_block_client.NewBlockStore(blockStoreClient, volInfo.ResolveHashType(), false),
@@ -62,7 +62,7 @@ func NewProxyVolume(
 		volInfo: volInfo,
 		volPeer: volPeer,
 	}
-	v.retention = sync.OnceValue(v.loadRootRetention)
+	v.holdsRoots = sync.OnceValue(v.loadHoldsRoots)
 	return v, nil
 }
 

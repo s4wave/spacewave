@@ -8,11 +8,11 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// SupportsRootRetention reports the inner store's root ownership capability.
+// HoldsRoots reports whether the inner store holds roots.
 // Retiring a local root lets the collector sweep superseded blocks; a marker
 // whose block was swept is dropped without upload.
-func (m *MarkingStore) SupportsRootRetention() bool {
-	return block.SupportsRootRetention(m.store)
+func (m *MarkingStore) HoldsRoots() bool {
+	return block.HoldsRoots(m.store)
 }
 
 // GetRoot reads the root from the inner store.
@@ -84,6 +84,6 @@ func (m *MarkingStore) HoldCompleteRoots(ctx context.Context, refs []*block.Bloc
 
 // _ is a type assertion
 var (
-	_ block.RootRetainer       = (*MarkingStore)(nil)
-	_ block.CompleteRootHolder = (*MarkingStore)(nil)
+	_ block.LeasedRoots = (*MarkingStore)(nil)
+	_ block.RootProofs  = (*MarkingStore)(nil)
 )

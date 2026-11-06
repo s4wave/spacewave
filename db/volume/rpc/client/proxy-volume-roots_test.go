@@ -105,8 +105,8 @@ func TestProxyVolumeHoldsStagesAndPins(t *testing.T) {
 	defer tb.Release()
 	host := tb.Volume.(*volume_kvtx.Volume)
 	proxy := newTestProxy(t, tb.Volume)
-	if !proxy.SupportsRootRetention() {
-		t.Fatal("proxy does not report the host's root retention")
+	if !proxy.HoldsRoots() {
+		t.Fatal("proxy does not report that the host holds roots")
 	}
 	collect := func() {
 		t.Helper()

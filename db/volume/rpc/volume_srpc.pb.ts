@@ -12,10 +12,10 @@ import {
   GetCoordinatorCapabilityResponse,
   GetCoordinatorSnapshotRequest,
   GetCoordinatorSnapshotResponse,
+  GetHoldsRootsRequest,
+  GetHoldsRootsResponse,
   GetPeerPrivRequest,
   GetPeerPrivResponse,
-  GetRootRetentionRequest,
-  GetRootRetentionResponse,
   GetStorageStatsRequest,
   GetStorageStatsResponse,
   GetVolumeInfoRequest,
@@ -379,14 +379,14 @@ export const ProxyVolumeDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * GetRootRetention reports whether the volume holds roots, pins and stages.
+     * GetHoldsRoots reports whether the volume holds roots, pins and stages.
      *
-     * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+     * @generated from rpc volume.rpc.ProxyVolume.GetHoldsRoots
      */
-    GetRootRetention: {
-      name: 'GetRootRetention',
-      I: GetRootRetentionRequest,
-      O: GetRootRetentionResponse,
+    GetHoldsRoots: {
+      name: 'GetHoldsRoots',
+      I: GetHoldsRootsRequest,
+      O: GetHoldsRootsResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -637,14 +637,14 @@ export interface ProxyVolume {
   ): Promise<SetBucketRootsResponse>
 
   /**
-   * GetRootRetention reports whether the volume holds roots, pins and stages.
+   * GetHoldsRoots reports whether the volume holds roots, pins and stages.
    *
-   * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+   * @generated from rpc volume.rpc.ProxyVolume.GetHoldsRoots
    */
-  GetRootRetention(
-    request: GetRootRetentionRequest,
+  GetHoldsRoots(
+    request: GetHoldsRootsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<GetRootRetentionResponse>
+  ): Promise<GetHoldsRootsResponse>
 
   /**
    * HoldPin pins a reader's root, sends one message once pinned, and holds
@@ -898,15 +898,15 @@ export interface ProxyVolumeHandler {
   ): Promise<SetBucketRootsResponse>
 
   /**
-   * GetRootRetention reports whether the volume holds roots, pins and stages.
+   * GetHoldsRoots reports whether the volume holds roots, pins and stages.
    *
-   * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+   * @generated from rpc volume.rpc.ProxyVolume.GetHoldsRoots
    */
-  GetRootRetention(
-    request: GetRootRetentionRequest,
+  GetHoldsRoots(
+    request: GetHoldsRootsRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): Promise<GetRootRetentionResponse>
+  ): Promise<GetHoldsRootsResponse>
 
   /**
    * HoldPin pins a reader's root, sends one message once pinned, and holds
@@ -1027,7 +1027,7 @@ export class ProxyVolumeClient implements ProxyVolume {
     this.GetBucketRoot = this.GetBucketRoot.bind(this)
     this.ListBucketRoots = this.ListBucketRoots.bind(this)
     this.SetBucketRoots = this.SetBucketRoots.bind(this)
-    this.GetRootRetention = this.GetRootRetention.bind(this)
+    this.GetHoldsRoots = this.GetHoldsRoots.bind(this)
     this.HoldPin = this.HoldPin.bind(this)
     this.HoldStage = this.HoldStage.bind(this)
     this.PrepareStagedBlock = this.PrepareStagedBlock.bind(this)
@@ -1310,22 +1310,22 @@ export class ProxyVolumeClient implements ProxyVolume {
   }
 
   /**
-   * GetRootRetention reports whether the volume holds roots, pins and stages.
+   * GetHoldsRoots reports whether the volume holds roots, pins and stages.
    *
-   * @generated from rpc volume.rpc.ProxyVolume.GetRootRetention
+   * @generated from rpc volume.rpc.ProxyVolume.GetHoldsRoots
    */
-  async GetRootRetention(
-    request: GetRootRetentionRequest,
+  async GetHoldsRoots(
+    request: GetHoldsRootsRequest,
     abortSignal?: AbortSignal,
-  ): Promise<GetRootRetentionResponse> {
-    const requestMsg = GetRootRetentionRequest.create(request)
+  ): Promise<GetHoldsRootsResponse> {
+    const requestMsg = GetHoldsRootsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
-      ProxyVolumeDefinition.methods.GetRootRetention.name,
-      GetRootRetentionRequest.toBinary(requestMsg),
+      ProxyVolumeDefinition.methods.GetHoldsRoots.name,
+      GetHoldsRootsRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return GetRootRetentionResponse.fromBinary(result)
+    return GetHoldsRootsResponse.fromBinary(result)
   }
 
   /**

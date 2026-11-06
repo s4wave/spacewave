@@ -16,9 +16,9 @@ type proofCountingStore struct {
 	reads atomic.Int32
 }
 
-// SupportsRootRetention reports the underlying ownership capability.
-func (s *proofCountingStore) SupportsRootRetention() bool {
-	return block.SupportsRootRetention(s.Store)
+// HoldsRoots reports whether the underlying store holds roots.
+func (s *proofCountingStore) HoldsRoots() bool {
+	return block.HoldsRoots(s.Store)
 }
 
 // PinRoot forwards a reader pin to the underlying store.
@@ -47,5 +47,13 @@ func (s *proofCountingStore) RootsComplete(ctx context.Context, refs []*block.Bl
 	return block.RootsComplete(ctx, s.Store, refs)
 }
 
+// HoldCompleteRoots forwards a stage hold of proved roots.
+func (s *proofCountingStore) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return block.HoldCompleteRoots(ctx, s.Store, refs)
+}
+
 // _ is a type assertion
-var _ block.RootRetainer = (*proofCountingStore)(nil)
+var (
+	_ block.LeasedRoots = (*proofCountingStore)(nil)
+	_ block.RootProofs  = (*proofCountingStore)(nil)
+)

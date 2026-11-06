@@ -117,7 +117,7 @@ func NewStore(
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers.
 	s := &Store{local: local, values: values, markers: markers, markersID: markersID, reads: newReadGate()}
-	if block.SupportsRootRetention(local) {
+	if block.HoldsRoots(local) {
 		s.MarkingStore = NewTxMarkingStore(local, s)
 	} else {
 		s.MarkingStore = NewMarkingStore(local, s.queue)

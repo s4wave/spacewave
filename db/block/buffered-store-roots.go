@@ -6,8 +6,8 @@ import (
 	"sync"
 )
 
-// SupportsRootRetention reports the destination's root ownership capability.
-func (s *BufferedStore) SupportsRootRetention() bool { return SupportsRootRetention(s.inner) }
+// HoldsRoots reports whether the destination holds roots.
+func (s *BufferedStore) HoldsRoots() bool { return HoldsRoots(s.inner) }
 
 // GetRoot reads the root from the destination. Roots move only through
 // SetRoots, which fences the buffer first, so the destination holds every
@@ -163,4 +163,4 @@ func (s *BufferedStore) RootsComplete(ctx context.Context, refs []*BlockRef) ([]
 }
 
 // _ is a type assertion
-var _ RootRetainer = (*BufferedStore)(nil)
+var _ LeasedRoots = (*BufferedStore)(nil)

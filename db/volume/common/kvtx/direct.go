@@ -225,7 +225,7 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 // PrepareOwnedBlock does for one block.
 func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, _ string, entries []*block.PutBatchEntry) (existed []bool, err error) {
 	// An empty batch writes nothing.
-	if len(entries) == 0 && v.SupportsRootRetention() {
+	if len(entries) == 0 && v.HoldsRoots() {
 		return nil, nil
 	}
 
@@ -249,7 +249,7 @@ func (v *Volume) putEntries(
 ) ([]bool, error) {
 	// Require atomic publication, refuse new data below the disk reserve and
 	// refuse a block without its child list.
-	if !v.SupportsRootRetention() {
+	if !v.HoldsRoots() {
 		return nil, block.ErrAtomicCommitUnsupported
 	}
 	if !onlyTombstones(entries) {

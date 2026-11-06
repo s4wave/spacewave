@@ -8,10 +8,10 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// SupportsRootRetention reports whether the underlying volume holds roots,
+// HoldsRoots reports whether the underlying volume holds roots,
 // pins and stages.
-func (v *Volume) SupportsRootRetention() bool {
-	return v.inner.SupportsRootRetention()
+func (v *Volume) HoldsRoots() bool {
+	return v.inner.HoldsRoots()
 }
 
 // GetRoot returns the block the view's own root name holds, or nil. The

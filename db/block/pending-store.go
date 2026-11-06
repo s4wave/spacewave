@@ -473,9 +473,9 @@ func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 	}
 }
 
-// SupportsRootRetention reports whether the inner store holds pins and stages.
-func (s *PendingStore) SupportsRootRetention() bool {
-	return SupportsRootRetention(s.StoreOps)
+// HoldsRoots reports whether the inner store holds pins and stages.
+func (s *PendingStore) HoldsRoots() bool {
+	return HoldsRoots(s.StoreOps)
 }
 
 // PinRoot holds ref until release. A kept ref is held in memory with the
@@ -521,22 +521,26 @@ func (s *PendingStore) ReleaseRoots(ctx context.Context, refs []*BlockRef) error
 
 // MarkRootsComplete forwards completion proofs to the inner store.
 func (s *PendingStore) MarkRootsComplete(ctx context.Context, roots []*BlockRef) error {
-	if !s.SupportsRootRetention() {
-		return nil
-	}
-	return s.StoreOps.(RootRetainer).MarkRootsComplete(ctx, roots)
+	return MarkRootsComplete(ctx, s.StoreOps, roots)
 }
 
 // RootsComplete forwards completion reads to the inner store.
 func (s *PendingStore) RootsComplete(ctx context.Context, roots []*BlockRef) ([]bool, error) {
-	if !s.SupportsRootRetention() {
+	if !s.HoldsRoots() {
 		return nil, errors.New("pending store: inner store holds no roots")
 	}
-	return s.StoreOps.(RootRetainer).RootsComplete(ctx, roots)
+	return RootsComplete(ctx, s.StoreOps, roots)
+}
+
+// HoldCompleteRoots reports no proofs: a PendingStore is not a stage. Its
+// stages hold proved roots through the inner stage.
+func (s *PendingStore) HoldCompleteRoots(_ context.Context, refs []*BlockRef) ([]bool, error) {
+	return make([]bool, len(refs)), nil
 }
 
 // _ is a type assertion
 var (
-	_ StoreOps     = (*PendingStore)(nil)
-	_ RootRetainer = (*PendingStore)(nil)
+	_ StoreOps    = (*PendingStore)(nil)
+	_ LeasedRoots = (*PendingStore)(nil)
+	_ RootProofs  = (*PendingStore)(nil)
 )

@@ -283,8 +283,8 @@ type SRPCProxyVolumeClient interface {
 	// SetBucketRoots stores blocks and moves named roots of a bucket in one
 	// transaction of the volume.
 	SetBucketRoots(ctx context.Context, in *SetBucketRootsRequest) (*SetBucketRootsResponse, error)
-	// GetRootRetention reports whether the volume holds roots, pins and stages.
-	GetRootRetention(ctx context.Context, in *GetRootRetentionRequest) (*GetRootRetentionResponse, error)
+	// GetHoldsRoots reports whether the volume holds roots, pins and stages.
+	GetHoldsRoots(ctx context.Context, in *GetHoldsRootsRequest) (*GetHoldsRootsResponse, error)
 	// HoldPin pins a reader's root, sends one message once pinned, and holds
 	// the pin until the client ends the stream.
 	HoldPin(ctx context.Context, in *HoldPinRequest) (SRPCProxyVolume_HoldPinClient, error)
@@ -546,9 +546,9 @@ func (c *srpcProxyVolumeClient) SetBucketRoots(ctx context.Context, in *SetBucke
 	return out, nil
 }
 
-func (c *srpcProxyVolumeClient) GetRootRetention(ctx context.Context, in *GetRootRetentionRequest) (*GetRootRetentionResponse, error) {
-	out := new(GetRootRetentionResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "GetRootRetention", in, out)
+func (c *srpcProxyVolumeClient) GetHoldsRoots(ctx context.Context, in *GetHoldsRootsRequest) (*GetHoldsRootsResponse, error) {
+	out := new(GetHoldsRootsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetHoldsRoots", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -706,8 +706,8 @@ type SRPCProxyVolumeServer interface {
 	// SetBucketRoots stores blocks and moves named roots of a bucket in one
 	// transaction of the volume.
 	SetBucketRoots(context.Context, *SetBucketRootsRequest) (*SetBucketRootsResponse, error)
-	// GetRootRetention reports whether the volume holds roots, pins and stages.
-	GetRootRetention(context.Context, *GetRootRetentionRequest) (*GetRootRetentionResponse, error)
+	// GetHoldsRoots reports whether the volume holds roots, pins and stages.
+	GetHoldsRoots(context.Context, *GetHoldsRootsRequest) (*GetHoldsRootsResponse, error)
 	// HoldPin pins a reader's root, sends one message once pinned, and holds
 	// the pin until the client ends the stream.
 	HoldPin(*HoldPinRequest, SRPCProxyVolume_HoldPinStream) error
@@ -769,7 +769,7 @@ func (SRPCProxyVolumeHandler) GetMethodIDs() []string {
 		"GetBucketRoot",
 		"ListBucketRoots",
 		"SetBucketRoots",
-		"GetRootRetention",
+		"GetHoldsRoots",
 		"HoldPin",
 		"HoldStage",
 		"PrepareStagedBlock",
@@ -818,8 +818,8 @@ func (d *SRPCProxyVolumeHandler) InvokeMethod(
 		return true, d.InvokeMethod_ListBucketRoots(d.impl, strm)
 	case "SetBucketRoots":
 		return true, d.InvokeMethod_SetBucketRoots(d.impl, strm)
-	case "GetRootRetention":
-		return true, d.InvokeMethod_GetRootRetention(d.impl, strm)
+	case "GetHoldsRoots":
+		return true, d.InvokeMethod_GetHoldsRoots(d.impl, strm)
 	case "HoldPin":
 		return true, d.InvokeMethod_HoldPin(d.impl, strm)
 	case "HoldStage":
@@ -997,12 +997,12 @@ func (SRPCProxyVolumeHandler) InvokeMethod_SetBucketRoots(impl SRPCProxyVolumeSe
 	return strm.MsgSend(out)
 }
 
-func (SRPCProxyVolumeHandler) InvokeMethod_GetRootRetention(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
-	req := new(GetRootRetentionRequest)
+func (SRPCProxyVolumeHandler) InvokeMethod_GetHoldsRoots(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
+	req := new(GetHoldsRootsRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.GetRootRetention(strm.Context(), req)
+	out, err := impl.GetHoldsRoots(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1271,11 +1271,11 @@ type srpcProxyVolume_SetBucketRootsStream struct {
 	srpc.Stream
 }
 
-type SRPCProxyVolume_GetRootRetentionStream interface {
+type SRPCProxyVolume_GetHoldsRootsStream interface {
 	srpc.Stream
 }
 
-type srpcProxyVolume_GetRootRetentionStream struct {
+type srpcProxyVolume_GetHoldsRootsStream struct {
 	srpc.Stream
 }
 

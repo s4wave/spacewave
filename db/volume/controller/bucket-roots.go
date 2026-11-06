@@ -7,7 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/tx"
 )
 
-// MarkRootsComplete records a fenced World in the volume ownership graph.
+// MarkRootsComplete records completion proofs on the volume.
 func (b *bucketHandle) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
 	return b.v.MarkRootsComplete(ctx, roots)
 }
@@ -17,10 +17,10 @@ func (b *bucketHandle) RootsComplete(ctx context.Context, refs []*block.BlockRef
 	return b.v.RootsComplete(ctx, refs)
 }
 
-// SupportsRootRetention reports whether the volume holds roots, pins and
+// HoldsRoots reports whether the volume holds roots, pins and
 // stages for a writable handle.
-func (b *bucketHandle) SupportsRootRetention() bool {
-	return b.readOps == nil && b.v.SupportsRootRetention()
+func (b *bucketHandle) HoldsRoots() bool {
+	return b.readOps == nil && b.v.HoldsRoots()
 }
 
 // GetRoot returns the block the bucket's root name holds, or nil. A bucket
@@ -46,7 +46,7 @@ func (b *bucketHandle) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 
 // PinRoot retains a reader's root until the returned release is called.
 func (b *bucketHandle) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
-	if !b.SupportsRootRetention() {
+	if !b.HoldsRoots() {
 		return func() {}, nil
 	}
 	return b.v.PinBucketRoot(ctx, ref)
@@ -54,8 +54,8 @@ func (b *bucketHandle) PinRoot(ctx context.Context, ref *block.BlockRef) (func()
 
 // OpenStage returns a handle whose writes a new volume stage owns.
 func (b *bucketHandle) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
-	// A volume without root retention writes through the bucket.
-	if !b.SupportsRootRetention() {
+	// A volume that holds no roots writes through the bucket.
+	if !b.HoldsRoots() {
 		return b, func() {}, nil
 	}
 
@@ -72,7 +72,7 @@ func (b *bucketHandle) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 // ReleaseRoots releases the stage's roots on refs on a staged handle. A
 // bucket's own writes hold nothing, so it releases nothing.
 func (b *bucketHandle) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
-	if !b.SupportsRootRetention() || b.stage == "" {
+	if !b.HoldsRoots() || b.stage == "" {
 		return nil
 	}
 	return b.v.ReleaseStageRoots(ctx, b.stage, refs)
@@ -82,7 +82,7 @@ func (b *bucketHandle) ReleaseRoots(ctx context.Context, refs []*block.BlockRef)
 // handle's stage own each of them in one volume transaction. A handle without a
 // stage reports no proofs.
 func (b *bucketHandle) HoldCompleteRoots(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	if b.stage == "" || !b.SupportsRootRetention() {
+	if b.stage == "" || !b.HoldsRoots() {
 		return make([]bool, len(refs)), nil
 	}
 	return b.v.HoldStageCompleteRoots(ctx, b.stage, refs)
@@ -90,6 +90,6 @@ func (b *bucketHandle) HoldCompleteRoots(ctx context.Context, refs []*block.Bloc
 
 // _ is a type assertion
 var (
-	_ block.RootRetainer       = (*bucketHandle)(nil)
-	_ block.CompleteRootHolder = (*bucketHandle)(nil)
+	_ block.LeasedRoots = (*bucketHandle)(nil)
+	_ block.RootProofs  = (*bucketHandle)(nil)
 )

@@ -122,7 +122,7 @@ func (b *StoreRW) Sync(ctx context.Context) (bool, error) {
 	return b.writeHandle.Sync(ctx)
 }
 
-// HoldCompleteRoots forwards stage ownership to the write handle, never the read handle.
+// HoldCompleteRoots forwards a stage hold of proved roots to the write handle, never the read handle.
 func (b *StoreRW) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
 	return HoldCompleteRoots(ctx, b.writeHandle, refs)
 }
@@ -131,5 +131,5 @@ func (b *StoreRW) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bo
 var (
 	_ StoreOps                   = (*StoreRW)(nil)
 	_ DecodedBlockCacheFreshener = (*StoreRW)(nil)
-	_ CompleteRootHolder         = (*StoreRW)(nil)
+	_ RootProofs                 = (*StoreRW)(nil)
 )

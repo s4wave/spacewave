@@ -964,33 +964,33 @@ func (x *SetBucketRootsResponse) GetName() string {
 	return ""
 }
 
-// GetRootRetentionRequest asks whether the volume holds roots.
-type GetRootRetentionRequest struct {
+// GetHoldsRootsRequest asks whether the volume holds roots.
+type GetHoldsRootsRequest struct {
 	unknownFields []byte
 }
 
-func (x *GetRootRetentionRequest) Reset() {
-	*x = GetRootRetentionRequest{}
+func (x *GetHoldsRootsRequest) Reset() {
+	*x = GetHoldsRootsRequest{}
 }
 
-func (*GetRootRetentionRequest) ProtoMessage() {}
+func (*GetHoldsRootsRequest) ProtoMessage() {}
 
-// GetRootRetentionResponse reports whether the volume holds roots.
-type GetRootRetentionResponse struct {
+// GetHoldsRootsResponse reports whether the volume holds roots.
+type GetHoldsRootsResponse struct {
 	unknownFields []byte
-	// Supported reports that the volume holds roots, pins and stages.
-	Supported bool `protobuf:"varint,1,opt,name=supported,proto3" json:"supported,omitempty"`
+	// HoldsRoots reports that the volume holds roots, pins and stages.
+	HoldsRoots bool `protobuf:"varint,1,opt,name=holds_roots,json=holdsRoots,proto3" json:"holdsRoots,omitempty"`
 }
 
-func (x *GetRootRetentionResponse) Reset() {
-	*x = GetRootRetentionResponse{}
+func (x *GetHoldsRootsResponse) Reset() {
+	*x = GetHoldsRootsResponse{}
 }
 
-func (*GetRootRetentionResponse) ProtoMessage() {}
+func (*GetHoldsRootsResponse) ProtoMessage() {}
 
-func (x *GetRootRetentionResponse) GetSupported() bool {
+func (x *GetHoldsRootsResponse) GetHoldsRoots() bool {
 	if x != nil {
-		return x.Supported
+		return x.HoldsRoots
 	}
 	return false
 }
@@ -1806,34 +1806,34 @@ func (m *SetBucketRootsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage 
 	return m.CloneVT()
 }
 
-func (m *GetRootRetentionRequest) CloneVT() *GetRootRetentionRequest {
+func (m *GetHoldsRootsRequest) CloneVT() *GetHoldsRootsRequest {
 	if m == nil {
-		return (*GetRootRetentionRequest)(nil)
+		return (*GetHoldsRootsRequest)(nil)
 	}
-	r := new(GetRootRetentionRequest)
+	r := new(GetHoldsRootsRequest)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
 	return r
 }
 
-func (m *GetRootRetentionRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *GetHoldsRootsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *GetRootRetentionResponse) CloneVT() *GetRootRetentionResponse {
+func (m *GetHoldsRootsResponse) CloneVT() *GetHoldsRootsResponse {
 	if m == nil {
-		return (*GetRootRetentionResponse)(nil)
+		return (*GetHoldsRootsResponse)(nil)
 	}
-	r := new(GetRootRetentionResponse)
-	r.Supported = m.Supported
+	r := new(GetHoldsRootsResponse)
+	r.HoldsRoots = m.HoldsRoots
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
 	return r
 }
 
-func (m *GetRootRetentionResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+func (m *GetHoldsRootsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2773,7 +2773,7 @@ func (this *SetBucketRootsResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *GetRootRetentionRequest) EqualVT(that *GetRootRetentionRequest) bool {
+func (this *GetHoldsRootsRequest) EqualVT(that *GetHoldsRootsRequest) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -2782,28 +2782,28 @@ func (this *GetRootRetentionRequest) EqualVT(that *GetRootRetentionRequest) bool
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *GetRootRetentionRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*GetRootRetentionRequest)
+func (this *GetHoldsRootsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetHoldsRootsRequest)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
 
-func (this *GetRootRetentionResponse) EqualVT(that *GetRootRetentionResponse) bool {
+func (this *GetHoldsRootsResponse) EqualVT(that *GetHoldsRootsResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Supported != that.Supported {
+	if this.HoldsRoots != that.HoldsRoots {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *GetRootRetentionResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*GetRootRetentionResponse)
+func (this *GetHoldsRootsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetHoldsRootsResponse)
 	if !ok {
 		return false
 	}
@@ -4791,8 +4791,8 @@ func (x *SetBucketRootsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the GetRootRetentionRequest message to JSON.
-func (x *GetRootRetentionRequest) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the GetHoldsRootsRequest message to JSON.
+func (x *GetHoldsRootsRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -4801,13 +4801,13 @@ func (x *GetRootRetentionRequest) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the GetRootRetentionRequest to JSON.
-func (x *GetRootRetentionRequest) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the GetHoldsRootsRequest to JSON.
+func (x *GetHoldsRootsRequest) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the GetRootRetentionRequest message from JSON.
-func (x *GetRootRetentionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the GetHoldsRootsRequest message from JSON.
+func (x *GetHoldsRootsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -4816,34 +4816,34 @@ func (x *GetRootRetentionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	})
 }
 
-// UnmarshalJSON unmarshals the GetRootRetentionRequest from JSON.
-func (x *GetRootRetentionRequest) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the GetHoldsRootsRequest from JSON.
+func (x *GetHoldsRootsRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the GetRootRetentionResponse message to JSON.
-func (x *GetRootRetentionResponse) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the GetHoldsRootsResponse message to JSON.
+func (x *GetHoldsRootsResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Supported || s.HasField("supported") {
+	if x.HoldsRoots || s.HasField("holdsRoots") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("supported")
-		s.WriteBool(x.Supported)
+		s.WriteObjectField("holdsRoots")
+		s.WriteBool(x.HoldsRoots)
 	}
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the GetRootRetentionResponse to JSON.
-func (x *GetRootRetentionResponse) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the GetHoldsRootsResponse to JSON.
+func (x *GetHoldsRootsResponse) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the GetRootRetentionResponse message from JSON.
-func (x *GetRootRetentionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the GetHoldsRootsResponse message from JSON.
+func (x *GetHoldsRootsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -4851,15 +4851,15 @@ func (x *GetRootRetentionResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "supported":
-			s.AddField("supported")
-			x.Supported = s.ReadBool()
+		case "holds_roots", "holdsRoots":
+			s.AddField("holds_roots")
+			x.HoldsRoots = s.ReadBool()
 		}
 	})
 }
 
-// UnmarshalJSON unmarshals the GetRootRetentionResponse from JSON.
-func (x *GetRootRetentionResponse) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the GetHoldsRootsResponse from JSON.
+func (x *GetHoldsRootsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6922,7 +6922,7 @@ func (m *SetBucketRootsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
-func (m *GetRootRetentionRequest) MarshalVT() (dAtA []byte, err error) {
+func (m *GetHoldsRootsRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -6935,12 +6935,12 @@ func (m *GetRootRetentionRequest) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *GetRootRetentionRequest) MarshalToVT(dAtA []byte) (int, error) {
+func (m *GetHoldsRootsRequest) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *GetRootRetentionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *GetHoldsRootsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -6954,7 +6954,7 @@ func (m *GetRootRetentionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
-func (m *GetRootRetentionResponse) MarshalVT() (dAtA []byte, err error) {
+func (m *GetHoldsRootsResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -6967,12 +6967,12 @@ func (m *GetRootRetentionResponse) MarshalVT() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *GetRootRetentionResponse) MarshalToVT(dAtA []byte) (int, error) {
+func (m *GetHoldsRootsResponse) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *GetRootRetentionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *GetHoldsRootsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -6983,8 +6983,8 @@ func (m *GetRootRetentionResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Supported {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Supported)
+	if m.HoldsRoots {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.HoldsRoots)
 		i--
 		dAtA[i] = 0x8
 	}
@@ -7963,7 +7963,7 @@ func (m *SetBucketRootsResponse) SizeVT() (n int) {
 	return n
 }
 
-func (m *GetRootRetentionRequest) SizeVT() (n int) {
+func (m *GetHoldsRootsRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -7973,13 +7973,13 @@ func (m *GetRootRetentionRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *GetRootRetentionResponse) SizeVT() (n int) {
+func (m *GetHoldsRootsResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Supported)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.HoldsRoots)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8730,27 +8730,27 @@ func (x *SetBucketRootsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *GetRootRetentionRequest) MarshalProtoText() string {
+func (x *GetHoldsRootsRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "GetRootRetentionRequest")
+	protobuf_go_lite.TextStartMessage(&sb, "GetHoldsRootsRequest")
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *GetRootRetentionRequest) String() string {
+func (x *GetHoldsRootsRequest) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *GetRootRetentionResponse) MarshalProtoText() string {
+func (x *GetHoldsRootsResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetRootRetentionResponse")
-	if x.Supported != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supported")
-		protobuf_go_lite.TextWriteBool(&sb, x.Supported)
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetHoldsRootsResponse")
+	if x.HoldsRoots != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "holds_roots")
+		protobuf_go_lite.TextWriteBool(&sb, x.HoldsRoots)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *GetRootRetentionResponse) String() string {
+func (x *GetHoldsRootsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -11053,7 +11053,7 @@ func (m *SetBucketRootsResponse) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *GetRootRetentionRequest) UnmarshalVT(dAtA []byte) error {
+func (m *GetHoldsRootsRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -11067,10 +11067,10 @@ func (m *GetRootRetentionRequest) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: GetRootRetentionRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetHoldsRootsRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetRootRetentionRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetHoldsRootsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -11096,7 +11096,7 @@ func (m *GetRootRetentionRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *GetRootRetentionResponse) UnmarshalVT(dAtA []byte) error {
+func (m *GetHoldsRootsResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	var err error
@@ -11110,22 +11110,22 @@ func (m *GetRootRetentionResponse) UnmarshalVT(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: GetRootRetentionResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetHoldsRootsResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetRootRetentionResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetHoldsRootsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Supported", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HoldsRoots", wireType)
 			}
 			var v bool
 			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Supported = bool(v)
+			m.HoldsRoots = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

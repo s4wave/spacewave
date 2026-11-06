@@ -429,25 +429,27 @@ func TestWatchChangesCollectedBase(t *testing.T) {
 // pinFuncStore pins roots with pin and passes everything else to the store.
 type pinFuncStore struct {
 	block.StoreOps
-	block.RootRetainer
+	block.LeasedRoots
+	block.RootProofs
 	// pin pins a root.
 	pin func(ctx context.Context, ref *block.BlockRef) (func(), error)
 }
 
-// SupportsRootRetention reports that the store pins roots.
-func (s *pinFuncStore) SupportsRootRetention() bool { return true }
+// HoldsRoots reports that the store pins roots.
+func (s *pinFuncStore) HoldsRoots() bool { return true }
 
 // PinRoot pins ref with pin.
 func (s *pinFuncStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return s.pin(ctx, ref)
 }
 
-// setPin replaces how the engine's write store pins roots, keeping its other
-// root retention.
+// setPin replaces how the engine's write store pins roots, keeping its stages
+// and proofs.
 func setPin(e *Engine, pin func(ctx context.Context, ref *block.BlockRef) (func(), error)) {
 	locked := e.bcast.Lock()
-	retainer, _ := e.writeBlockStore.(block.RootRetainer)
-	e.writeBlockStore = &pinFuncStore{StoreOps: e.writeBlockStore, RootRetainer: retainer, pin: pin}
+	leases, _ := e.writeBlockStore.(block.LeasedRoots)
+	proofs, _ := e.writeBlockStore.(block.RootProofs)
+	e.writeBlockStore = &pinFuncStore{StoreOps: e.writeBlockStore, LeasedRoots: leases, RootProofs: proofs, pin: pin}
 	locked.Unlock()
 }
 
@@ -579,7 +581,8 @@ func checkQuads(t *testing.T, got []world.GraphQuad, want ...world.GraphQuad) {
 // getFuncStore reads blocks with get and passes everything else to the store.
 type getFuncStore struct {
 	block.StoreOps
-	block.RootRetainer
+	block.LeasedRoots
+	block.RootProofs
 	// get reads a block.
 	get func(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error)
 }
@@ -695,10 +698,12 @@ func setPeerOnlyBlock(e *Engine, ref *block.BlockRef) *atomic.Bool {
 		return nil, false, context.Cause(ctx)
 	}
 
-	// Wrap the store under the publication lock, keeping its root retention.
+	// Wrap the store under the publication lock, keeping its pins, stages and
+	// proofs.
 	locked := e.bcast.Lock()
-	retainer, _ := store.(block.RootRetainer)
-	e.writeBlockStore = &getFuncStore{StoreOps: store, RootRetainer: retainer, get: get}
+	leases, _ := store.(block.LeasedRoots)
+	proofs, _ := store.(block.RootProofs)
+	e.writeBlockStore = &getFuncStore{StoreOps: store, LeasedRoots: leases, RootProofs: proofs, get: get}
 	locked.Unlock()
 	return armed
 }

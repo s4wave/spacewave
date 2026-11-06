@@ -84,8 +84,8 @@ service ProxyVolume {
   // transaction of the volume.
   rpc SetBucketRoots(SetBucketRootsRequest) returns (SetBucketRootsResponse);
 
-  // GetRootRetention reports whether the volume holds roots, pins and stages.
-  rpc GetRootRetention(GetRootRetentionRequest) returns (GetRootRetentionResponse);
+  // GetHoldsRoots reports whether the volume holds roots, pins and stages.
+  rpc GetHoldsRoots(GetHoldsRootsRequest) returns (GetHoldsRootsResponse);
 
   // HoldPin pins a reader's root, sends one message once pinned, and holds
   // the pin until the client ends the stream.
@@ -366,13 +366,13 @@ message SetBucketRootsResponse {
   string name = 2;
 }
 
-// GetRootRetentionRequest asks whether the volume holds roots.
-message GetRootRetentionRequest {}
+// GetHoldsRootsRequest asks whether the volume holds roots.
+message GetHoldsRootsRequest {}
 
-// GetRootRetentionResponse reports whether the volume holds roots.
-message GetRootRetentionResponse {
-  // Supported reports that the volume holds roots, pins and stages.
-  bool supported = 1;
+// GetHoldsRootsResponse reports whether the volume holds roots.
+message GetHoldsRootsResponse {
+  // HoldsRoots reports that the volume holds roots, pins and stages.
+  bool holds_roots = 1;
 }
 
 // HoldPinRequest pins a reader's root.

@@ -15,6 +15,12 @@ import (
 // them.
 var livenessPrefix = []byte{2}
 
+// HoldsRoots reports whether the Volume holds roots, pins and stages: it does
+// when its store commits liveness with the blocks.
+func (v *Volume) HoldsRoots() bool {
+	return v.atomic
+}
+
 // OpenRecords returns the liveness records of the Volume store whose
 // transaction is tx.
 func OpenRecords(tx kvtx.TxOps) *block_gc.Records {
@@ -35,7 +41,7 @@ func (v *Volume) readRecords(ctx context.Context, fn func(rec *block_gc.Records)
 // known. A Volume that keeps no liveness knows none.
 func (v *Volume) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*block.BlockRef, bool, error) {
 	// A Volume without liveness knows no lists.
-	if v == nil || !v.SupportsRootRetention() {
+	if v == nil || !v.HoldsRoots() {
 		return nil, false, nil
 	}
 
@@ -59,7 +65,7 @@ func (v *Volume) GetChildren(ctx context.Context, ref *block.BlockRef) ([]*block
 // snapshot.
 func (v *Volume) HasChildLists(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	listed := make([]bool, len(refs))
-	if !v.SupportsRootRetention() {
+	if !v.HoldsRoots() {
 		return listed, nil
 	}
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
@@ -125,7 +131,7 @@ func (v *Volume) ListBucketRoots(ctx context.Context, bucketID, prefix string, f
 func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	// A Volume without atomic commits holds no roots, and refuses new data
 	// below the disk reserve.
-	if !v.SupportsRootRetention() {
+	if !v.HoldsRoots() {
 		return block.SetRootsUnheld(ctx, v, entries, roots)
 	}
 	if len(entries) != 0 && !onlyTombstones(entries) {
@@ -259,7 +265,7 @@ func (v *Volume) ListRoots(ctx context.Context, prefix string, fn func(block.Nam
 // with the empty ID. A Volume that cannot commit blocks and roots atomically
 // holds no roots: it stores the entries and never frees by liveness.
 func (v *Volume) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	if !v.SupportsRootRetention() {
+	if !v.HoldsRoots() {
 		return block.SetRootsUnheld(ctx, v, entries, roots)
 	}
 	return v.SetBucketRoots(ctx, "", entries, roots)

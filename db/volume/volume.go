@@ -52,6 +52,9 @@ type Volume interface {
 	// buckets.
 	Roots
 
+	// RootProofs keeps the completion proofs a graph copy reads.
+	RootProofs
+
 	// Close closes the volume, returning any errors.
 	Close() error
 
