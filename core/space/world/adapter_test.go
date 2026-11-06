@@ -341,9 +341,7 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	var wg sync.WaitGroup
 	errs := make(chan error, sobject.MinCheckpointOperations)
 	for i := range sobject.MinCheckpointOperations {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			key := "pipe-" + strconv.Itoa(i)
 			err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
 				obj, err := ws.CreateObject(ctx, key, nil)
@@ -354,7 +352,7 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 				err = hasObjects(ctx, busEngine, key)
 			}
 			errs <- err
-		}()
+		})
 	}
 	wg.Wait()
 	close(errs)
