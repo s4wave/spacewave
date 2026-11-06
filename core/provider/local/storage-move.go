@@ -166,7 +166,13 @@ func (a *ProviderAccount) lookupSharedObjectBlockStoreID(sharedObjectID string) 
 // The fetch opens its own store on the backend's bucket, so a backend that
 // cannot be reached fails the move before the placement changes and releases
 // the bucket's objects. A block neither the bucket nor a peer holds is
-// skipped: the backend did not hold it either.
+// skipped: the backend did not hold it either. The walk stops at a block
+// without a child list, such as a hole or a block a store before format 7
+// wrote, so the fetch also checks each child a fetched block names that the
+// walk did not reach: the bucket may hold the only copy.
+//
+// Cost: one existence check per child of a fetched block, batched per chunk;
+// the walk already reached most of them, so they add only a map lookup.
 func (a *ProviderAccount) fetchPlacedBlocks(
 	ctx context.Context,
 	tkr *bstoreTracker,
@@ -196,13 +202,22 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		return errors.Wrap(err, "list blocks to fetch")
 	}
 
+	// Note the walk's blocks, so a fetched block's children it reached are
+	// not checked twice.
+	seen := make(map[string]struct{}, len(refs))
+	for _, ref := range refs {
+		seen[ref.MarshalString()] = struct{}{}
+	}
+
 	// Report fetch progress, then copy each missing chunk into local storage.
 	progress := MoveProgress{Phase: MovePhaseFetch, Total: len(refs)}
 	if err := fn(progress); err != nil {
 		return err
 	}
 	local := bs.placement.local
-	for chunk := range slices.Chunk(refs, moveProgressInterval) {
+	for len(refs) != 0 {
+		chunk := refs[:min(len(refs), moveProgressInterval)]
+		refs = refs[len(chunk):]
 		found, err := local.GetBlockExistsBatch(ctx, chunk)
 		if err != nil {
 			return errors.Wrap(err, "check local blocks")
@@ -239,6 +254,18 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		if len(entries) != 0 {
 			if _, err := local.PutBlockBatch(ctx, entries); err != nil {
 				return errors.Wrap(err, "store fetched blocks")
+			}
+		}
+
+		// Queue the children of the fetched blocks the walk did not reach.
+		for _, entry := range entries {
+			for _, child := range entry.Refs {
+				key := child.MarshalString()
+				if _, ok := seen[key]; !ok {
+					seen[key] = struct{}{}
+					refs = append(refs, child)
+					progress.Total++
+				}
 			}
 		}
 

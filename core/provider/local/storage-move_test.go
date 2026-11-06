@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 )
 
 // fakeS3 is an in-memory S3-compatible bucket serving object PUT, GET, HEAD,
@@ -259,28 +260,56 @@ func (p *placedStoreTest) checkLocalGraph(ctx context.Context, t *testing.T, bs 
 	}
 }
 
-// TestMoveSpaceStorageRoundTrip moves a Space onto a storage backend, loses
-// its local blocks, and moves it back: the blocks return from the bucket.
-func TestMoveSpaceStorageRoundTrip(t *testing.T) {
-	// Bound the round trip and move the space back to local storage.
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
-
-	// Drop the local cache, move the space home, and require the graph.
-	p := setupPlacedStore(ctx, t)
-	p.loseLocalBlocks(ctx, t)
-	p.phases = nil
-	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(p.phases, []MovePhase{MovePhaseFetch, MovePhaseDone}) {
-		t.Fatalf("phases = %v, want fetch then done", p.phases)
-	}
-	bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
+// dropRootList deletes the root's child list, as a hole or a store written
+// before format 7 leaves a block, so the move's walk stops at the root.
+func (p *placedStoreTest) dropRootList(ctx context.Context, t *testing.T) {
+	// Delete the list in one transaction of the account's volume.
+	t.Helper()
+	tx, err := p.acc.GetVolume().(volume_kvtx.KvtxVolume).GetKvtxStore().NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.checkLocalGraph(ctx, t, bs)
+	defer tx.Discard()
+	if err := volume_kvtx.OpenRecords(tx).DeleteChildren(ctx, p.rootRef); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestMoveSpaceStorageRoundTrip moves a Space onto a storage backend, loses
+// its local blocks, and moves it back: the blocks return from the bucket. When
+// the root also lost its child list, the move fetches the child the walk could
+// not reach through the root's fetched refs, before the switch releases the
+// bucket's copy.
+func TestMoveSpaceStorageRoundTrip(t *testing.T) {
+	for _, listless := range []bool{false, true} {
+		t.Run("listless="+strconv.FormatBool(listless), func(t *testing.T) {
+			// Bound the round trip and move the space back to local storage.
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			defer cancel()
+
+			// Drop the local cache, move the space home, and require the graph.
+			p := setupPlacedStore(ctx, t)
+			p.loseLocalBlocks(ctx, t)
+			if listless {
+				p.dropRootList(ctx, t)
+			}
+			p.phases = nil
+			if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(p.phases, []MovePhase{MovePhaseFetch, MovePhaseDone}) {
+				t.Fatalf("phases = %v, want fetch then done", p.phases)
+			}
+			bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p.checkLocalGraph(ctx, t, bs)
+		})
+	}
 }
 
 // TestPlacedStoreGraphCopyAfterCacheLoss loses the local blocks of a placed
