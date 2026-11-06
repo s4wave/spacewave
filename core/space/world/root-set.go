@@ -8,8 +8,9 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// rootSet is a named root that holds a list of roots as one HeldRoots block,
-// moved only through setRootSets with the block it held as Previous.
+// rootSet is a named root that holds a list of roots as a chain of HeldRoots
+// blocks, moved only through setRootSets and appendRoots with the block it
+// held as Previous.
 //
 // The cursor, pending and checkpoint roots are World histories: each holds
 // every World it was moved onto since a checkpoint last covered them, since a
@@ -45,7 +46,17 @@ type rootSet struct {
 	// roots are the roots the named root holds, oldest first. Guarded by the
 	// adapter's rootMtx.
 	roots []*block.BlockRef
+	// links is the number of blocks in the Prev chain the named root holds.
+	// Guarded by the adapter's rootMtx.
+	links int
 }
+
+// maxRootLinks bounds the Prev chain appendRoots grows. Releasing a chain
+// frees one block per link, and the collector's cascade yields to each
+// waiting writer, so a long chain keeps the roots it drops held through many
+// passes under write load. An append at the bound rewrites the set as one
+// block, which costs the whole set once per maxRootLinks appends.
+const maxRootLinks = 16
 
 // holds reports whether the set holds root. The caller holds rootMtx.
 func (h *rootSet) holds(root *block.BlockRef) bool {
@@ -107,23 +118,72 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 		return err
 	}
 	for i, h := range hs {
-		h.roots = next[i]
+		if !slices.EqualFunc(next[i], h.roots, refEqual) {
+			h.roots, h.links = next[i], min(len(next[i]), 1)
+		}
 	}
 	return nil
 }
 
-// readRootSet reads the roots h's named root holds. The caller holds rootMtx.
+// appendRoots adds extra to h in one root move whose block names extra and
+// the block h's root holds now as its Prev, so an append writes and links the
+// same however many roots h holds, until the chain reaches maxRootLinks and
+// the append rewrites the set as one block. The new block holds the earlier
+// one from the move that takes the root off it. The caller holds rootMtx.
+func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.BlockRef) error {
+	// Rewrite a set whose chain reached the bound as one block.
+	if len(extra) == 0 {
+		return nil
+	}
+	if h.links >= maxRootLinks {
+		return a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{slices.Concat(h.roots, extra)}, nil)
+	}
+
+	// Name the new roots and the block they extend.
+	prev := a.held[h.name]
+	refs := slices.Clone(extra)
+	if !prev.GetEmpty() {
+		refs = append(refs, prev)
+	}
+	entry, err := refsEntry(&HeldRoots{Roots: extra, Prev: prev}, refs)
+	if err != nil {
+		return err
+	}
+
+	// Move the root onto it, then record the roots it holds.
+	if err := a.moveRootsLocked(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: h.name, Ref: entry.Ref}); err != nil {
+		return err
+	}
+	h.roots, h.links = slices.Concat(h.roots, extra), h.links+1
+	return nil
+}
+
+// readRootSet reads the roots h's named root holds, following each block's
+// Prev to the earlier blocks an append extended. The caller holds rootMtx.
 func (a *Adapter) readRootSet(ctx context.Context, h *rootSet) error {
-	// Read the block the root holds, then decode its roots.
-	data, err := a.readHeldBlock(ctx, h.name)
-	if err != nil || data == nil {
-		return err
+	// Read each block of the chain, newest first.
+	var chain [][]*block.BlockRef
+	for ref := a.held[h.name]; !ref.GetEmpty(); {
+		data, found, err := a.pages.GetBlock(ctx, ref)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return errors.Wrapf(block.ErrNotFound, "read %s root block %s", h.name, ref.MarshalString())
+		}
+		msg := &HeldRoots{}
+		if err := msg.UnmarshalVT(data); err != nil {
+			return err
+		}
+		chain = append(chain, msg.GetRoots())
+		ref = msg.GetPrev()
 	}
-	msg := &HeldRoots{}
-	if err := msg.UnmarshalVT(data); err != nil {
-		return err
+
+	// List the roots oldest first.
+	h.roots, h.links = nil, len(chain)
+	for _, roots := range slices.Backward(chain) {
+		h.roots = append(h.roots, roots...)
 	}
-	h.roots = msg.GetRoots()
 	return nil
 }
 

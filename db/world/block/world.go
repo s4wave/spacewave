@@ -3,6 +3,7 @@ package world_block
 import (
 	"context"
 	fmt "fmt"
+	"sync"
 	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -57,7 +58,15 @@ type WorldState struct {
 	// since releasing through that store would publish it early.
 	releaseOwned bool
 
-	objTree   kvtx.BlockTx
+	objTree kvtx.BlockTx
+	// graphSettings are the loaded root's graph settings, which the graph
+	// tree opens with.
+	graphSettings *GraphSettings
+	// graphMtx guards opening the graph tree, which readers sharing a Tx's
+	// read lock may race to. graphTree, graphOps and graphHd are nil until
+	// the first graph access since the block state loaded, so an open or a
+	// commit that never touches the graph reads none of it.
+	graphMtx  sync.Mutex
 	graphTree kvtx.BlockTx
 	// graphOps holds the graph writes until Commit or Fork applies them to
 	// graphTree in one batch.
@@ -480,15 +489,8 @@ func (t *WorldState) setBlockTransaction(
 		return err
 	}
 
-	// Build the graph tree.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-graph-tree")
-	graphTree, graphOps, graphHandle, err := t.buildGraphTree(taskCtx, bcs, root.GetGraphSettings())
-	subtask.End()
-	if err != nil {
-		return err
-	}
-
-	// Swap in the rebuilt trees and drop the object memo.
+	// Swap in the rebuilt object tree and drop the graph tree, which opens on
+	// its next use, and the object memo.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/swap-handles")
 	t.btx, t.bcs, t.base = btx, bcs, bcs.GetRef().Clone()
 	if t.graphHd != nil {
@@ -500,7 +502,8 @@ func (t *WorldState) setBlockTransaction(
 	if t.objTree != nil {
 		t.objTree.Discard()
 	}
-	t.objTree, t.graphTree, t.graphOps, t.graphHd = objTree, graphTree, graphOps, graphHandle
+	t.objTree, t.graphSettings = objTree, root.GetGraphSettings()
+	t.graphTree, t.graphOps, t.graphHd = nil, nil, nil
 
 	// The rebuilt block state supersedes any transaction-local object memo.
 	t.objectExistsMemo = nil
@@ -669,6 +672,31 @@ func (t *WorldState) flushGraphWrites(ctx context.Context) error {
 		return nil
 	}
 	return t.graphOps.Flush(ctx)
+}
+
+// graph returns the graph handle, opening the graph tree on its first use
+// since the block state loaded. The tree's reads run on a context that is
+// never canceled, since the handle keeps it for its internal transactions.
+func (t *WorldState) graph(ctx context.Context) (*cayley.Handle, error) {
+	t.graphMtx.Lock()
+	defer t.graphMtx.Unlock()
+	if t.graphHd == nil {
+		tree, ops, hd, err := t.buildGraphTree(context.WithoutCancel(ctx), t.bcs, t.graphSettings)
+		if err != nil {
+			return nil, err
+		}
+		t.graphTree, t.graphOps, t.graphHd = tree, ops, hd
+	}
+	return t.graphHd, nil
+}
+
+// graphKvTx returns the graph tree's key-value transaction, opening the tree on
+// its first use.
+func (t *WorldState) graphKvTx(ctx context.Context) (kvtx.BlockTx, error) {
+	if _, err := t.graph(ctx); err != nil {
+		return nil, err
+	}
+	return t.graphTree, nil
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.

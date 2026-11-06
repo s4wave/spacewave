@@ -245,17 +245,53 @@ func hasObjects(ctx context.Context, eng world.Engine, keys ...string) error {
 	return nil
 }
 
-// waitBackfilled waits for a complete backfill of the World at or after its
-// current seqno.
-func waitBackfilled(ctx context.Context, eng *space_world.Engine) error {
+// waitBackfilled waits for a backfill outcome that covers the World the
+// replay base root holds, the installed checkpoint's, or that reaches the
+// head's seqno, whichever comes first, and fails unless it covers the
+// checkpoint World whole. A copy at each head reaches the head's seqno without
+// covering the checkpoint World while the head is above the checkpoint, so it
+// fails here rather than waiting out the context.
+func waitBackfilled(ctx context.Context, t *testing.T, eng *space_world.Engine, store block.StoreOps) {
+	t.Helper()
 	_, seqno, err := eng.GetHead(ctx)
 	if err != nil {
-		return err
+		t.Fatal(err)
 	}
-	_, err = eng.GetBackfillState().WaitValueWithValidator(ctx, func(state *space_world.BackfillState) (bool, error) {
-		return state.IsComplete() && !state.GetRoot().GetEmpty() && state.GetSeqno() >= seqno, nil
+	var base *block.BlockRef
+	state, err := eng.GetBackfillState().WaitValueWithValidator(ctx, func(state *space_world.BackfillState) (bool, error) {
+		if state == nil {
+			return false, nil
+		}
+		base, err = store.GetRoot(ctx, space_world.RootReplayBase)
+		return err != nil || state.GetRoot().EqualsRef(base) || state.GetSeqno() >= seqno, err
 	}, nil)
-	return err
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !state.GetRoot().EqualsRef(base) || !state.IsComplete() {
+		t.Fatalf("backfill covered %v at seqno %d with %d holes, want the checkpoint World %v whole", state.GetRoot(), state.GetSeqno(), state.GetHoles(), base)
+	}
+}
+
+// backfillHolds reports whether the backfill root holds root.
+func backfillHolds(ctx context.Context, t *testing.T, store block.StoreOps, root *block.BlockRef) bool {
+	t.Helper()
+	ref, err := store.GetRoot(ctx, space_world.RootBackfill)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ref.GetEmpty() {
+		return false
+	}
+	data, found, err := store.GetBlock(ctx, ref)
+	if err != nil || !found {
+		t.Fatalf("backfill root block: %v, %v", found, err)
+	}
+	held := &space_world.HeldRoots{}
+	if err := held.UnmarshalVT(data); err != nil {
+		t.Fatal(err)
+	}
+	return slices.ContainsFunc(held.GetRoots(), root.EqualsRef)
 }
 
 // TestAdapterRunThrough serves a Space World through its adapter on the
@@ -376,19 +412,25 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	}
 	f.collect(t)
 
-	// Backfill copies the installed World and holds it, follows a commit, and
-	// clears when turned off; a retained root holds the head it names.
+	// Backfill copies the installed checkpoint's World and the retained roots
+	// and holds them; a retained root holds the head it names.
+	store := f.space(t).GetBlockStore()
+	var se *space_world.Engine
+	var retained *block.BlockRef
 	err := world.AccessEngine(ctx, busEngine, func(ctx context.Context, eng world.Engine) error {
-		// Turn backfill on and wait for a copy of the current World.
-		se := eng.(*space_world.Engine)
+		// Turn backfill on and wait for its first outcome.
+		se = eng.(*space_world.Engine)
 		if err := se.SetBackfill(ctx, true); err != nil {
 			return err
 		}
-		if err := waitBackfilled(ctx, se); err != nil {
+		_, err := se.GetBackfillState().WaitValueWithValidator(ctx, func(state *space_world.BackfillState) (bool, error) {
+			return state.IsComplete(), nil
+		}, nil)
+		if err != nil {
 			return err
 		}
 
-		// Retain the head and wait for a copy that covers the next commit.
+		// Retain the head, commit past it, and wait for a copy that holds it.
 		head, _, err := se.GetHead(ctx)
 		if err != nil {
 			return err
@@ -396,6 +438,7 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		if err := se.SetRetainedRoot(ctx, "export", head); err != nil {
 			return err
 		}
+		retained = head
 		tx, err := eng.NewTransaction(ctx, true)
 		if err != nil {
 			return err
@@ -406,31 +449,16 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 			err = tx.Commit(ctx)
 		}
 		tx.Discard()
-		if err != nil {
-			return err
-		}
-		if err := waitBackfilled(ctx, se); err != nil {
-			return err
-		}
-
-		// Turn it off, which clears its state.
-		if err := se.SetBackfill(ctx, false); err != nil {
-			return err
-		}
-		if state := se.GetBackfillState().GetValue(); state != nil {
-			return errors.Errorf("backfill state after turning it off: %v", state)
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := f.space(t).GetBlockStore()
-	for name, want := range map[string]bool{space_world.RootRetained: true, space_world.RootBackfill: false} {
-		ref, err := store.GetRoot(ctx, name)
-		if err != nil || ref.GetEmpty() == want {
-			t.Fatalf("root %s = %v, %v; want held %v", name, ref, err, want)
+	for !backfillHolds(ctx, t, store, retained) {
+		if ctx.Err() != nil {
+			t.Fatal("backfill never held the retained root")
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	// A reader holds a snapshot across the writes and the checkpoint below.
@@ -547,6 +575,17 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
+	// A commit above the checkpoint leaves backfill on the checkpoint's
+	// World: it copies at checkpoints, not at each head.
+	if err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "above-checkpoint", nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	waitBackfilled(ctx, t, se, store)
+
 	// A remount ends the reader still open as superseded rather than with a
 	// missing block, and both a new engine and the bus engine the reader
 	// came from read every object after a collection.
@@ -559,12 +598,45 @@ func runAdapterThrough(t *testing.T, f *adapterFixture) {
 	if !world.IsSuperseded(err) {
 		t.Fatalf("reader read across the remount = %v, want superseded", err)
 	}
-	keys := []string{"test-object", "pipe-0", "pipe-" + strconv.Itoa(sobject.MinCheckpointOperations-1)}
+	keys := []string{"test-object", "backfill-object", "above-checkpoint", "pipe-0", "pipe-" + strconv.Itoa(sobject.MinCheckpointOperations-1)}
 	for _, eng := range []world.Engine{eng, busEngine} {
 		if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
 			return hasObjects(ctx, eng, keys...)
 		}); err != nil {
 			t.Fatal(err)
+		}
+	}
+
+	// The collections across the checkpoint advance and the remount freed
+	// nothing backfill holds: on the remounted engine, whose choice stays on,
+	// a recheck that trusts no proof finds every block of the checkpoint
+	// World and the retained root.
+	if err := world.AccessEngine(ctx, eng, func(ctx context.Context, eng world.Engine) error {
+		se = eng.(*space_world.Engine)
+		_, err := se.GetBackfill().WaitValueWithValidator(ctx, func(on bool) (bool, error) { return on, nil }, nil)
+		if err != nil {
+			return err
+		}
+		return se.RecheckBackfill(ctx)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	waitBackfilled(ctx, t, se, store)
+	if !backfillHolds(ctx, t, store, retained) {
+		t.Fatal("backfill dropped the retained root across the remount")
+	}
+
+	// Turning it off clears its state and releases what it held.
+	if err := se.SetBackfill(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	if state := se.GetBackfillState().GetValue(); state != nil {
+		t.Fatalf("backfill state after turning it off: %v", state)
+	}
+	for name, want := range map[string]bool{space_world.RootRetained: true, space_world.RootBackfill: false} {
+		ref, err := store.GetRoot(ctx, name)
+		if err != nil || ref.GetEmpty() == want {
+			t.Fatalf("root %s = %v, %v; want held %v", name, ref, err, want)
 		}
 	}
 	if f.frees {

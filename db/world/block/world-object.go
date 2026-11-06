@@ -446,7 +446,12 @@ var _ world.ObjectPurger = (*WorldState)(nil)
 
 // renameGraphObject rewrites each complete incident quad exactly once.
 func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey string) error {
-	// Capture both endpoint directions before changing any indexed relationship.
+	// Open the graph, then capture both endpoint directions before changing
+	// any indexed relationship.
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return err
+	}
 	oldValue := world.KeyToGraphValue(oldKey).String()
 	newValue := world.KeyToGraphValue(newKey).String()
 	subjQuads, err := t.LookupGraphQuads(ctx, world.NewGraphQuad(oldValue, "", "", ""), 0)
@@ -490,7 +495,7 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 		}
 
 		// Record the removal even when the rewritten relationship already exists.
-		if err := t.graphHd.RemoveQuad(ctx, prevQuad); err != nil && !graph.IsQuadNotExist(err) {
+		if err := graphHd.RemoveQuad(ctx, prevQuad); err != nil && !graph.IsQuadNotExist(err) {
 			return err
 		}
 		if _, err := t.queueWorldChange(ctx, &WorldChange{
@@ -501,14 +506,14 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 		}
 
 		// Add and record the replacement only when it is a new relationship.
-		exists, err := world.CheckQuadExists(ctx, t.graphHd, nextQuad)
+		exists, err := world.CheckQuadExists(ctx, graphHd, nextQuad)
 		if err != nil {
 			return err
 		}
 		if exists {
 			continue
 		}
-		if err := t.graphHd.AddQuad(ctx, nextQuad); err != nil {
+		if err := graphHd.AddQuad(ctx, nextQuad); err != nil {
 			return err
 		}
 		if _, err := t.queueWorldChange(ctx, &WorldChange{

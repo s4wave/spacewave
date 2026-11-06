@@ -11,6 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation checks that a
+// read-only graph lookup holds one storage read operation and a writable one
+// none, and that the graph tree opens only on its first use: an open, an
+// object read and a commit open none of it.
 func TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation(t *testing.T) {
 	// Open a background context and logger.
 	ctx := context.Background()
@@ -73,9 +77,13 @@ func TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation(t *testing.T) {
 		t.Fatalf("writable lookup opened %d read operations, want 0", got)
 	}
 
-	// Commit the write and install its root.
+	// Commit the write and install its root. The rebuilt state opens no
+	// graph tree until a graph call.
 	if err := writeWs.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
+	}
+	if writeWs.graphHd != nil {
+		t.Fatal("the commit opened the graph tree again")
 	}
 	ocs.SetRootRef(writeWs.GetRootRef())
 	writeWs.Discard()
@@ -91,6 +99,16 @@ func TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation(t *testing.T) {
 	readStore := &readOperationCountingStore{StoreOps: readWs.store}
 	readWs.store = readStore
 
+	// An object read opens no graph tree.
+	readObject, found, err := readWs.GetObject(ctx, "read-scope/a")
+	world.ReleaseObjectState(readObject)
+	if err != nil || !found {
+		t.Fatalf("read object: %v, %v", found, err)
+	}
+	if readWs.graphHd != nil {
+		t.Fatal("an object read opened the graph tree")
+	}
+
 	// Look up the edge and require one read operation.
 	quads, err = readWs.LookupGraphQuads(ctx, filter, 10)
 	if err != nil {
@@ -101,6 +119,9 @@ func TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation(t *testing.T) {
 	}
 	if got := readStore.beginReadOperations.Load(); got != 1 {
 		t.Fatalf("read-only lookup opened %d read operations, want 1", got)
+	}
+	if readWs.graphHd == nil {
+		t.Fatal("the graph lookup left the graph tree closed")
 	}
 }
 

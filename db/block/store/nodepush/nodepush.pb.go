@@ -6,10 +6,11 @@ package block_store_nodepush
 
 import (
 	fmt "fmt"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	io "io"
 	slices "slices"
+
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Message is one frame on the connection between a local store and its storage
@@ -690,6 +691,7 @@ func (this *Message) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Message_Push) EqualVT(thatIface isMessage_Body) bool {
 	that, ok := thatIface.(*Message_Push)
 	if !ok {
@@ -834,6 +836,7 @@ func (this *Push) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Block) EqualVT(that *Block) bool {
 	if this == that {
 		return true
@@ -856,6 +859,7 @@ func (this *Block) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Flushed) EqualVT(that *Flushed) bool {
 	if this == that {
 		return true
@@ -875,6 +879,7 @@ func (this *Flushed) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Refused) EqualVT(that *Refused) bool {
 	if this == that {
 		return true
@@ -897,6 +902,7 @@ func (this *Refused) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PackReport) EqualVT(that *PackReport) bool {
 	if this == that {
 		return true
@@ -922,6 +928,7 @@ func (this *PackReport) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PackApplied) EqualVT(that *PackApplied) bool {
 	if this == that {
 		return true
@@ -944,6 +951,7 @@ func (this *PackApplied) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Read) EqualVT(that *Read) bool {
 	if this == that {
 		return true
@@ -972,6 +980,7 @@ func (this *Read) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ReadData) EqualVT(that *ReadData) bool {
 	if this == that {
 		return true
@@ -1648,6 +1657,7 @@ func (m *Message_Push) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_Flushed) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1671,6 +1681,7 @@ func (m *Message_Flushed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_Refused) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1694,6 +1705,7 @@ func (m *Message_Refused) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_PackReport) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1717,6 +1729,7 @@ func (m *Message_PackReport) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_PackApplied) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1740,6 +1753,7 @@ func (m *Message_PackApplied) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_Read) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1763,6 +1777,7 @@ func (m *Message_Read) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_ReadData) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1786,6 +1801,7 @@ func (m *Message_ReadData) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Push) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2178,6 +2194,7 @@ func (m *Message_Push) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_Flushed) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2192,6 +2209,7 @@ func (m *Message_Flushed) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_Refused) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2206,6 +2224,7 @@ func (m *Message_Refused) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_PackReport) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2220,6 +2239,7 @@ func (m *Message_PackReport) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_PackApplied) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2234,6 +2254,7 @@ func (m *Message_PackApplied) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_Read) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2248,6 +2269,7 @@ func (m *Message_Read) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_ReadData) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2262,6 +2284,7 @@ func (m *Message_ReadData) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Push) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2425,6 +2448,7 @@ func (x *Message) MarshalProtoText() string {
 func (x *Message) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Push) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Push")
@@ -2454,6 +2478,7 @@ func (x *Push) MarshalProtoText() string {
 func (x *Push) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Block) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Block")
@@ -2471,6 +2496,7 @@ func (x *Block) MarshalProtoText() string {
 func (x *Block) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Flushed) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Flushed")
@@ -2484,6 +2510,7 @@ func (x *Flushed) MarshalProtoText() string {
 func (x *Flushed) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Refused) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Refused")
@@ -2501,6 +2528,7 @@ func (x *Refused) MarshalProtoText() string {
 func (x *Refused) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PackReport) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PackReport")
@@ -2526,6 +2554,7 @@ func (x *PackReport) MarshalProtoText() string {
 func (x *PackReport) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PackApplied) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PackApplied")
@@ -2543,6 +2572,7 @@ func (x *PackApplied) MarshalProtoText() string {
 func (x *PackApplied) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Read) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Read")
@@ -2568,6 +2598,7 @@ func (x *Read) MarshalProtoText() string {
 func (x *Read) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ReadData) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadData")
@@ -2589,6 +2620,7 @@ func (x *ReadData) MarshalProtoText() string {
 func (x *ReadData) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Message) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2771,6 +2803,7 @@ func (m *Message) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Push) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2843,6 +2876,7 @@ func (m *Push) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Block) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2901,6 +2935,7 @@ func (m *Block) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Flushed) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2952,6 +2987,7 @@ func (m *Flushed) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Refused) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3013,6 +3049,7 @@ func (m *Refused) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PackReport) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3083,6 +3120,7 @@ func (m *PackReport) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PackApplied) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3145,6 +3183,7 @@ func (m *PackApplied) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Read) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3224,6 +3263,7 @@ func (m *Read) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ReadData) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

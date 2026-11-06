@@ -61,9 +61,13 @@ func (t *WorldState) RepairGraphTree(
 	if err := t.flushGraphWrites(ctx); err != nil {
 		return nil, errors.Wrap(err, "graph write flush")
 	}
-	tree, ok := t.graphTree.(*kvtx_block_okra.Tx)
+	graphTree, err := t.graphKvTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tree, ok := graphTree.(*kvtx_block_okra.Tx)
 	if !ok {
-		return nil, errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
+		return nil, errors.Errorf("graph tree is %T, not an okra tree", graphTree)
 	}
 
 	// Count the readable keys and find the missing pages.
@@ -208,9 +212,13 @@ func (t *WorldState) ReindexGraphTree(ctx context.Context, apply bool) (*GraphRe
 	if err := t.flushGraphWrites(ctx); err != nil {
 		return nil, errors.Wrap(err, "graph write flush")
 	}
-	tree, ok := t.graphTree.(*kvtx_block_okra.Tx)
+	graphTree, err := t.graphKvTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tree, ok := graphTree.(*kvtx_block_okra.Tx)
 	if !ok {
-		return nil, errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
+		return nil, errors.Errorf("graph tree is %T, not an okra tree", graphTree)
 	}
 	qs, ok := t.graphHd.QuadStore.(*cayley_kv.QuadStore)
 	if !ok {
@@ -347,15 +355,20 @@ func (t *WorldState) DumpGraphTree(
 	entry func(key, value []byte) error,
 	hole func(kvtx_block_okra.SalvageHole) error,
 ) error {
-	tree, ok := t.graphTree.(*kvtx_block_okra.Tx)
+	// Open the graph tree.
+	graphTree, err := t.graphKvTx(ctx)
+	if err != nil {
+		return err
+	}
+	tree, ok := graphTree.(*kvtx_block_okra.Tx)
 	if !ok {
-		return errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
+		return errors.Errorf("graph tree is %T, not an okra tree", graphTree)
 	}
 
 	// Walk the readable entries and the holes; stop at the first error.
 	var cbErr error
 	var refKeys [][]byte
-	err := tree.Salvage(ctx, nil, nil, func(e kvtx_block_okra.BuildEntry) bool {
+	err = tree.Salvage(ctx, nil, nil, func(e kvtx_block_okra.BuildEntry) bool {
 		switch {
 		case e.ValueBlob != nil && e.ValueBlob.GetBlobType() == blob.BlobType_BlobType_RAW:
 			cbErr = entry(e.Key, e.ValueBlob.GetRawData())
@@ -565,9 +578,14 @@ func (t *WorldState) SalvageObjectRange(ctx context.Context, low, high string, e
 
 // GetGraphKey reads one raw key of the graph tree.
 func (t *WorldState) GetGraphKey(ctx context.Context, key []byte) ([]byte, bool, error) {
-	tree, ok := t.graphTree.(*kvtx_block_okra.Tx)
+	// Open the graph tree and read the key.
+	graphTree, err := t.graphKvTx(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	tree, ok := graphTree.(*kvtx_block_okra.Tx)
 	if !ok {
-		return nil, false, errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
+		return nil, false, errors.Errorf("graph tree is %T, not an okra tree", graphTree)
 	}
 	return tree.Get(ctx, key)
 }

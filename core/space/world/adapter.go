@@ -144,6 +144,10 @@ type Adapter struct {
 	// installed is set once the driver installed the first checkpoint.
 	// Guarded by bcast.
 	installed bool
+	// checkpoint and checkpointSeqno are the installed checkpoint's World and
+	// its seqno, which backfill copies. Guarded by bcast.
+	checkpoint      *InnerState
+	checkpointSeqno uint64
 	// headHeight and headPositions place the installed head: the height of
 	// its checkpoint and how many positions above it it follows. Guarded by
 	// bcast.
@@ -855,7 +859,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 
 	// Record the install and drop the pages no live World reaches.
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		a.installed = true
+		a.installed, a.checkpoint, a.checkpointSeqno = true, base, seqno
 		broadcast()
 	})
 	a.sweep()
@@ -1476,7 +1480,7 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) erro
 		return err
 	}
 	defer release()
-	return a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{slices.Concat(a.payloads.roots, extra)}, nil)
+	return a.appendRoots(ctx, &a.payloads, extra)
 }
 
 // resetPayloads holds the payloads of the positions above the checkpoint and
@@ -1511,7 +1515,20 @@ func (a *Adapter) gatherPayloads() []*block.BlockRef {
 // holdRetained holds the retained roots under the retained root, or releases
 // it when there are none.
 func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error {
-	// Skip a set the root holds already.
+	// Skip a set the root holds already, before storing any page. Only the
+	// driver goroutine changes the held set, so it stays the same after the
+	// check.
+	unlock, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	same := slices.EqualFunc(roots, a.retainedHeld, (*RetainedRoot).EqualVT)
+	unlock()
+	if same {
+		return nil
+	}
+
+	// Store the retained Worlds' kept pages, then hold them.
 	refs := make([]*block.BlockRef, len(roots))
 	for i, root := range roots {
 		refs[i] = root.GetRootRef()
@@ -1521,9 +1538,6 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 		return err
 	}
 	defer release()
-	if slices.EqualFunc(roots, a.retainedHeld, (*RetainedRoot).EqualVT) {
-		return nil
-	}
 
 	// Release the name when nothing is retained.
 	if len(roots) == 0 {

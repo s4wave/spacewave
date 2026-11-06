@@ -48,8 +48,8 @@ const (
 // block passes over to a second Device and back, with block passes running
 // throughout. Each side restarts its Session transport in each ownership
 // state. Each handover waits for the successor's proof of a complete copy,
-// every live object reads back whole on each side, and no departed owner's
-// write reaches the successor.
+// every live object reads back whole on the successor with the departed
+// owner cut off, and no departed owner's write reaches the successor.
 func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
 	// Bound the run.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
@@ -78,9 +78,12 @@ func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
 	restartBoth(ctx, t, b, bSession, a, aSession, "A handing over")
 	waitOwner(ctx, t, b, id, bPeer, aPeer)
 
-	// Stop the passes and check B's copy of the World.
+	// Stop the passes, cut A off, and check that B's copy of the World reads
+	// whole from B's volume alone.
 	stopGC()
+	cutOff(t, a)
 	checkWorld(ctx, t, tb.Bus, b, id, fix)
+	restartSession(ctx, t, a, aSession, "after the cut-off")
 
 	// B writes as the owner, and a write on A's departed copy never reaches
 	// B's state or World.
@@ -99,8 +102,10 @@ func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
 	waitOwner(ctx, t, a, id, aPeer, bPeer)
 	stopGC()
 
-	// A holds the whole World, B's writes included.
+	// A holds the whole World, B's writes included, with B cut off.
+	cutOff(t, b)
 	checkWorld(ctx, t, tb.Bus, a, id, fix)
+	restartSession(ctx, t, b, bSession, "after the cut-off")
 	stopWatch = watchDeparted(ctx, t, a, id, bPeer)
 	fix.write(ctx, t, tb.Bus, listedRef(a.GetSOListCtr().GetValue(), id), "owner-a")
 	checkDeparted(t, stopWatch())
@@ -505,6 +510,14 @@ func restartBoth(
 	t.Helper()
 	restartSession(ctx, t, first, firstSession, state)
 	restartSession(ctx, t, second, secondSession, state)
+}
+
+// cutOff stops acc's P2P sync and Session transport, so no other Device can
+// read a block from acc's volume until restartSession starts them again.
+func cutOff(t *testing.T, acc *provider_local.ProviderAccount) {
+	t.Helper()
+	acc.StopP2PSync()
+	acc.StopSessionTransport()
 }
 
 // restartSession stops acc's P2P sync and Session transport, then starts
