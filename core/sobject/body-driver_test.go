@@ -253,6 +253,29 @@ func TestBodyDriverRunThrough(t *testing.T) {
 	if got := body.stateAt(len(body.states)); len(body.applies) != len(ev.Order) || !strings.HasPrefix(got, "other") || !strings.HasSuffix(got, "c") {
 		t.Fatalf("applies %v state %q; want every operation over other", body.applies, body.stateAt(len(body.states)))
 	}
+
+	// Over 10 and 100 operations above the checkpoint, a step after one new
+	// operation applies only it and installs nothing, as the Phase 3 path
+	// walk says: the apply loop is proportional to the new positions.
+	for _, n := range []int{10, 100} {
+		state, _ := newTestSOState(t, peers)
+		body := &testBody{}
+		d := NewBodyDriver(le, so, body, nil)
+		for i := range n {
+			writeTestOp(t, state, keys[i%len(keys)], "x")
+		}
+		if err := d.Step(t.Context(), testHandle(t, state, keys[0])); err != nil {
+			t.Fatal(err)
+		}
+		body.applies, body.installs = nil, nil
+		writeTestOp(t, state, keys[0], "y")
+		if err := d.Step(t.Context(), testHandle(t, state, keys[0])); err != nil {
+			t.Fatal(err)
+		}
+		if len(body.applies) != 1 || len(body.installs) != 0 {
+			t.Fatalf("over %d operations a new one applied %v and installed %v; want one apply", n, body.applies, body.installs)
+		}
+	}
 }
 
 // TestBodyDriverCheckpoints checks that an owner's driver signs a checkpoint

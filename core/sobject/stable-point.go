@@ -228,6 +228,13 @@ func (s *SOState) StableCheckpointInner(sharedObjectID string, prefix [][]byte, 
 	if err != nil {
 		return nil, err
 	}
+	return s.stableCheckpointInner(sharedObjectID, set, prefix, stateDataEnc)
+}
+
+// stableCheckpointInner is StableCheckpointInner over set, the verified
+// operations s holds, so a caller with a verified set checks no signature
+// again.
+func (s *SOState) stableCheckpointInner(sharedObjectID string, set *SOOperationSet, prefix [][]byte, stateDataEnc []byte) (*SOCheckpointInner, error) {
 	for _, h := range prefix {
 		if set.Get(h) == nil {
 			return nil, errors.New("checkpoint covers an operation the state does not hold")

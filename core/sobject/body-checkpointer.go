@@ -39,7 +39,7 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 		return errCheckpointStale
 	}
 	soID := so.GetSharedObjectID()
-	held, err := state.OperationSet(soID)
+	held, err := c.verified(state)
 	if err != nil {
 		return err
 	}
@@ -55,11 +55,23 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 	}
 
 	// Sign and adopt the checkpoint.
-	checkpoint, err := state.BuildStableCheckpoint(soID, c.privKey, prefix, dataEnc)
+	inner, err := state.stableCheckpointInner(soID, held, prefix, dataEnc)
+	if err != nil {
+		return err
+	}
+	checkpoint, err := BuildSOCheckpoint(c.privKey, inner)
 	if err != nil {
 		return err
 	}
 	return state.AdoptCheckpoint(soID, checkpoint)
+}
+
+// verified returns the operations state holds as a verified set, through the
+// host's verifier, which checks only the signatures of operations it has not
+// verified before: the held ones were verified when the host's state took
+// them, so a checkpoint or a vote checks none of them again.
+func (c *bodyCheckpointer) verified(state *SOState) (*SOOperationSet, error) {
+	return c.host.GetOperationVerifier().OperationSet(state)
 }
 
 // handle returns the local participant's view of state.
