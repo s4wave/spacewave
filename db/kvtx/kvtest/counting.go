@@ -13,6 +13,9 @@ import (
 type CountingStore struct {
 	kvtx.Store
 	txns, writeTxns, reads, steps, writes atomic.Uint64
+	// maxWriteOps is the most operations one write transaction made since
+	// the last ResetMax.
+	maxWriteOps atomic.Uint64
 }
 
 // NewCountingStore returns a CountingStore over store.
@@ -23,12 +26,18 @@ func NewCountingStore(store kvtx.Store) *CountingStore {
 // Counts returns the operations counted so far.
 func (s *CountingStore) Counts() Counts {
 	return Counts{
-		Txns:      s.txns.Load(),
-		WriteTxns: s.writeTxns.Load(),
-		Reads:     s.reads.Load(),
-		Steps:     s.steps.Load(),
-		Writes:    s.writes.Load(),
+		Txns:        s.txns.Load(),
+		WriteTxns:   s.writeTxns.Load(),
+		Reads:       s.reads.Load(),
+		Steps:       s.steps.Load(),
+		Writes:      s.writes.Load(),
+		MaxWriteOps: s.maxWriteOps.Load(),
 	}
+}
+
+// ResetMax starts MaxWriteOps over, so it measures the calls made after it.
+func (s *CountingStore) ResetMax() {
+	s.maxWriteOps.Store(0)
 }
 
 // NewTransaction opens a counted transaction.
@@ -42,7 +51,7 @@ func (s *CountingStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx
 	if err != nil {
 		return nil, err
 	}
-	return &countingTx{Tx: tx, s: s}, nil
+	return &countingTx{Tx: tx, s: s, write: write}, nil
 }
 
 // SupportsAtomicCommit reports whether the counted store commits atomically.
@@ -61,36 +70,74 @@ func (s *CountingStore) WritersWaiting() bool {
 type countingTx struct {
 	kvtx.Tx
 	s *CountingStore
+	// write reports a write transaction, whose operations end in MaxWriteOps.
+	write bool
+	// ops counts the transaction's operations.
+	ops atomic.Uint64
+	// ended reports that Commit or Discard ended the transaction.
+	ended atomic.Bool
+}
+
+// count adds one operation to n and to the transaction.
+func (t *countingTx) count(n *atomic.Uint64) {
+	n.Add(1)
+	t.ops.Add(1)
+}
+
+// Commit ends the counted transaction and commits it.
+func (t *countingTx) Commit(ctx context.Context) error {
+	t.end()
+	return t.Tx.Commit(ctx)
+}
+
+// Discard ends the counted transaction and discards it.
+func (t *countingTx) Discard() {
+	t.end()
+	t.Tx.Discard()
+}
+
+// end raises MaxWriteOps to the operations of a write transaction, once.
+func (t *countingTx) end() {
+	if !t.write || t.ended.Swap(true) {
+		return
+	}
+	ops := t.ops.Load()
+	for {
+		prev := t.s.maxWriteOps.Load()
+		if ops <= prev || t.s.maxWriteOps.CompareAndSwap(prev, ops) {
+			return
+		}
+	}
 }
 
 // Get counts a point read.
 func (t *countingTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
-	t.s.reads.Add(1)
+	t.count(&t.s.reads)
 	return t.Tx.Get(ctx, key)
 }
 
 // Exists counts a point read.
 func (t *countingTx) Exists(ctx context.Context, key []byte) (bool, error) {
-	t.s.reads.Add(1)
+	t.count(&t.s.reads)
 	return t.Tx.Exists(ctx, key)
 }
 
 // Set counts a write.
 func (t *countingTx) Set(ctx context.Context, key, value []byte) error {
-	t.s.writes.Add(1)
+	t.count(&t.s.writes)
 	return t.Tx.Set(ctx, key, value)
 }
 
 // Delete counts a write.
 func (t *countingTx) Delete(ctx context.Context, key []byte) error {
-	t.s.writes.Add(1)
+	t.count(&t.s.writes)
 	return t.Tx.Delete(ctx, key)
 }
 
 // ScanPrefix counts each key the scan visits.
 func (t *countingTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
 	return t.Tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
-		t.s.steps.Add(1)
+		t.count(&t.s.steps)
 		return cb(key, value)
 	})
 }
@@ -98,31 +145,31 @@ func (t *countingTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key,
 // ScanPrefixKeys counts each key the scan visits.
 func (t *countingTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
 	return t.Tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
-		t.s.steps.Add(1)
+		t.count(&t.s.steps)
 		return cb(key)
 	})
 }
 
 // Iterate returns an iterator that counts its seeks and steps.
 func (t *countingTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
-	return &countingIterator{Iterator: t.Tx.Iterate(ctx, prefix, sort, reverse), s: t.s}
+	return &countingIterator{Iterator: t.Tx.Iterate(ctx, prefix, sort, reverse), t: t}
 }
 
 // countingIterator counts the seeks and steps of an iterator.
 type countingIterator struct {
 	kvtx.Iterator
-	s *CountingStore
+	t *countingTx
 }
 
 // Next counts a step.
 func (i *countingIterator) Next() bool {
-	i.s.steps.Add(1)
+	i.t.count(&i.t.s.steps)
 	return i.Iterator.Next()
 }
 
 // Seek counts a seek.
 func (i *countingIterator) Seek(k []byte) error {
-	i.s.steps.Add(1)
+	i.t.count(&i.t.s.steps)
 	return i.Iterator.Seek(k)
 }
 
