@@ -8,17 +8,20 @@ import (
 // SharedObject never reads the state. A BodyDriver replays the agreed order of
 // operations into the body, resets it to each checkpoint the SharedObject
 // adopts, and asks it for the state a new checkpoint carries. The driver calls
-// one method at a time.
+// one method at a time; only the store Root returns may run beside them.
 //
 // An index counts the operations above the checkpoint the body last
 // installed: index 0 is the first operation above it.
 type Body interface {
 	// Root returns the encoded state after the first n operations above the
-	// installed checkpoint, held so a checkpoint may carry it: once Root
-	// returns, the body keeps that state readable after a restart until an
-	// Install moves past it.
-	// Returns nil while the body has not applied n operations.
-	Root(ctx context.Context, n int) ([]byte, error)
+	// installed checkpoint, and store, which holds that state so a checkpoint
+	// may carry it: once store returns nil, the body keeps the state readable
+	// after a restart until an Install moves past it. Root returns quickly and
+	// keeps the state readable in memory until store returns, so the driver
+	// may run store beside its later calls, off its apply loop. The caller
+	// calls store once.
+	// Returns nil data while the body has not applied n operations.
+	Root(ctx context.Context, n int) (data []byte, store func(context.Context) error, err error)
 	// Apply applies op as the operation at index above the installed
 	// checkpoint, after the operations at the lower indexes.
 	// index is at most the number of operations applied so far. A lower index

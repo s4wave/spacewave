@@ -3,6 +3,7 @@
 package world_block
 
 import (
+	"context"
 	"errors"
 	"runtime"
 	"strconv"
@@ -237,6 +238,63 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	f.collect(t)
 	stored(true, "G1", "RG")
 
+	// A move that leaves out a flushed tree holds the flush's stage until it
+	// lands: the flush ending and a collection running after the move left
+	// the tree out and before it reaches the Volume free none of it.
+	leased, ok := f.store.(leasedStore)
+	if !ok {
+		t.Fatal("the Volume bucket holds no leased roots")
+	}
+	hooked := &hookedRoots{leasedStore: leased}
+	hps := block.NewPendingStore(hooked, 1<<20)
+	tr.add(t, "K1")
+	tr.add(t, "RK", "K1")
+	put(hps, "K1", "RK")
+	endFlush, err = hps.Flush(ctx, []*block.BlockRef{tr.ref("RK")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hooked.before = func() {
+		endFlush()
+		f.collect(t)
+	}
+	if err := hps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-skip", Ref: tr.ref("RK")}}); err != nil {
+		t.Fatal(err)
+	}
+	hooked.before = nil
+	f.collect(t)
+	stored(true, "K1", "RK")
+
+	// A flush that left out another flush's tree keeps that flush's stage
+	// until its own release: the first flush's move landing, its release, its
+	// root moving off and a collection free none of the tree before the
+	// second flush's move names it.
+	tr.add(t, "S1")
+	tr.add(t, "RS", "S1")
+	put(ps, "S1", "RS")
+	endFirst, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RS")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	endSecond, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("RS")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-first", Ref: tr.ref("RS")}}); err != nil {
+		t.Fatal(err)
+	}
+	endFirst()
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-first", Previous: tr.ref("RS")}}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-second", Ref: tr.ref("RS")}}); err != nil {
+		t.Fatal(err)
+	}
+	endSecond()
+	f.collect(t)
+	stored(true, "S1", "RS")
+
 	// A tree past the bound puts the kept blocks under its overflowing
 	// parent with it, under the writer's stage, and keeps them in memory for
 	// the kept Worlds that name them; the stage holds them across a
@@ -359,4 +417,26 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	if audit.LiveQueued != 0 || audit.Undercount != 0 {
 		t.Fatalf("audit found live blocks at risk: queued=%d undercount=%d", audit.LiveQueued, audit.Undercount)
 	}
+}
+
+// leasedStore is a store that holds leased roots, such as a Volume bucket.
+type leasedStore interface {
+	block.StoreOps
+	block.LeasedRoots
+}
+
+// hookedRoots runs before, when set, ahead of each root move it passes on,
+// and keeps the store's stages and pins.
+type hookedRoots struct {
+	leasedStore
+	// before runs ahead of the next root moves.
+	before func()
+}
+
+// SetRoots runs before, then moves the roots.
+func (h *hookedRoots) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if h.before != nil {
+		h.before()
+	}
+	return h.leasedStore.SetRoots(ctx, entries, roots)
 }
