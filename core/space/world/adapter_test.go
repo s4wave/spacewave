@@ -279,6 +279,81 @@ func TestAdapterRunThrough(t *testing.T) {
 		location, creds := sqlTestLocation(t)
 		runAdapterThrough(t, newAdapterFixtureOn(t, fixtureOpts{sql: location, creds: creds}))
 	})
+
+	// A local commit stores no block over 1x and 10x objects, as the Phase 4
+	// path walk says: its one Volume write is the SharedObject's state, and
+	// the World's pages wait in memory for the next stored World.
+	t.Run("scaling", func(t *testing.T) {
+		small, large := measureAdapterCommit(t, 20), measureAdapterCommit(t, 200)
+		t.Logf("a local commit stored %d blocks over 1x objects and %d over 10x", small, large)
+		if small != 0 || large != 0 {
+			t.Fatalf("a local commit stored %d blocks over 1x objects and %d over 10x, want none", small, large)
+		}
+	})
+}
+
+// measureAdapterCommit starts a Space World with n objects and returns the
+// blocks the account Volume stored during one more local commit.
+func measureAdapterCommit(t *testing.T, n int) uint64 {
+	// Start the engine and write the objects, fifty per transaction.
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixture(t)
+	_, engRef := f.start(t)
+	defer engRef.Release()
+	busEngine := world.NewBusEngine(ctx, f.tb.Bus, f.engineID)
+	create := func(keys ...string) {
+		t.Helper()
+		err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+			for _, key := range keys {
+				obj, err := ws.CreateObject(ctx, key, nil)
+				world.ReleaseObjectState(obj)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := 0; i < n; i += 50 {
+		var keys []string
+		for j := i; j < min(i+50, n); j++ {
+			keys = append(keys, "object-"+strconv.Itoa(j))
+		}
+		create(keys...)
+	}
+
+	// Count the blocks the Volume stores during one more commit.
+	stored := func() uint64 {
+		var blocks uint64
+		for _, put := range f.volume.(volume.FlowReporter).GetFlows().Puts {
+			blocks += put.Blocks
+		}
+		return blocks
+	}
+	before := stored()
+	create("probe")
+	if err := hasObjects(ctx, busEngine, "probe"); err != nil {
+		t.Fatal(err)
+	}
+	delta := stored() - before
+
+	// The count sees this Space's writes: enough commits for a checkpoint
+	// store the checkpoint's World.
+	for i := range sobject.MinCheckpointOperations {
+		create("checkpoint-" + strconv.Itoa(i))
+	}
+	for stored() == before+delta {
+		if ctx.Err() != nil {
+			t.Fatal("the checkpoint stored no block the Volume counted")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return delta
 }
 
 // runAdapterThrough walks the adapter run-through on f.
