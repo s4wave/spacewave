@@ -20,9 +20,10 @@ import (
 
 // TestCommitWaitDuringCollection measures how long a writer's commit waits
 // while the collector frees a large garbage tree on an s4db Volume, at two
-// sizes, while it indexes, nets and frees one journal record of 100,000 up
-// pairs, and while it frees one block naming 100,000 children, and logs the longest and the 99th percentile wait. It runs only
-// when KVTX_MEASURE_COLLECT is set, on the build host.
+// sizes, while it nets and frees one journal record of 100,000 up pairs, and
+// while it frees one block naming 100,000 children, and logs the longest and
+// the 99th percentile wait. It runs only when KVTX_MEASURE_COLLECT is set, on
+// the build host.
 func TestCommitWaitDuringCollection(t *testing.T) {
 	if os.Getenv("KVTX_MEASURE_COLLECT") == "" {
 		t.Skip("set KVTX_MEASURE_COLLECT to measure")
@@ -114,8 +115,8 @@ func measureCommitWait(t *testing.T, leaves int) {
 // batch a parent naming each mid's leaves and a top naming the parents under
 // a root, releasing the mids, so the batch's one journal record holds an up
 // pair for each leaf. It releases the root and logs a writer's waits while
-// the collector indexes the record, then nets it and frees the tree a grace
-// period later.
+// the collector passes over the young record, then nets it and frees the tree
+// a grace period later.
 func measureLargeRecordWait(t *testing.T, leaves int) {
 	// Store the leaves, then the parents and top in one batch.
 	ctx := t.Context()
@@ -145,7 +146,7 @@ func measureLargeRecordWait(t *testing.T, leaves int) {
 		t.Fatal(err)
 	}
 
-	// Index the young record, then net it and free the tree once it ages,
+	// Pass over the young record, then net it and free the tree once it ages,
 	// while a writer commits.
 	var freed uint64
 	elapsed, waits := measureWaits(t, v, tr, func() {
@@ -158,8 +159,9 @@ func measureLargeRecordWait(t *testing.T, leaves int) {
 
 // measureWideBlockWait stores leaves blocks under mids of 1000, then one
 // block naming them all under a root, releasing the mids, releases the root,
-// and logs a writer's waits while the collector indexes the block's record,
-// then nets it and frees the block and its children a grace period later.
+// and logs a writer's waits while the collector passes over the block's young
+// record, then nets it and frees the block and its children a grace period
+// later.
 func measureWideBlockWait(t *testing.T, leaves int) {
 	// Store the leaves, then the block naming them all.
 	ctx := t.Context()
@@ -184,7 +186,7 @@ func measureWideBlockWait(t *testing.T, leaves int) {
 		t.Fatal(err)
 	}
 
-	// Index the young record, then net it and free the block once it ages,
+	// Pass over the young record, then net it and free the block once it ages,
 	// while a writer commits.
 	var freed uint64
 	elapsed, waits := measureWaits(t, v, tr, func() {

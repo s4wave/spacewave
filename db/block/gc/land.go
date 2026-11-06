@@ -21,7 +21,7 @@ type BucketRoots struct {
 // Land stores entries and moves the roots of each bucket in moves in one
 // write transaction, with the liveness records in rec and the block bytes in
 // blocks, appending one journal record for all of them, in pages of
-// journalPagePairs pairs when it has more. It returns,
+// journalPagePairs entries when it has more. It returns,
 // for each entry, whether blocks held its bytes before. It is the one write
 // path that changes holders, so Journal.tla's Land action is this function.
 //
@@ -47,8 +47,8 @@ type BucketRoots struct {
 //
 // A block's place in the graph is its child list record, not its bytes. A
 // put that finds the list without the bytes, such as a block a cache evicted,
-// counts the block as already stored: it stores the bytes, journals the put
-// as an up and a down pair, which restarts the block's grace, and adds the
+// counts the block as already stored: it stores the bytes, names the put in
+// the record's again list, which restarts the block's grace, and adds the
 // holders the batch gives it. A block the store lost together with its list is
 // a hole whose parents' lists still name it and whose children's counts still
 // include it. The audit records each hole it finds under a live root and
@@ -74,11 +74,14 @@ type BucketRoots struct {
 // without a list in a Volume that records a hole, its hole record; per child a born block names outside
 // its batch, its child list record and, for an unlisted child, a block
 // existence read, with one up pair appended for each, a blind append on reads
-// it already makes; per moved root, its entry and its lease index record. It
+// it already makes; per moved root, its entry and its lease index record.
+// When it holds a stored block, a root moving onto one or a put of one
+// again, it also seeks the cascade records and reads each such block's count
+// record until one is at zero, to set the hold mark Collector describes. It
 // writes each born block's list, one journal record and the state record. The
 // pairs are eager, as Journal.tla models them: the collector nets each later,
-// writing the shared child's count, and decrements it again in the cascade
-// that frees the old parent.
+// and a shared child's up cancels the down its old parent's cascade gives it
+// when both net in one slice.
 func Land(
 	ctx context.Context,
 	rec *Records,
@@ -170,8 +173,12 @@ type lander struct {
 	// each list it writes verified: it writes them from the put's refs.
 	verify bool
 	// touched holds the block keys of the entries already stored, whose put
-	// the journal records as an up and a down pair.
+	// the journal record's again list names.
 	touched map[string]struct{}
+	// onStored are the block keys of the stored blocks a root moves onto.
+	// With the touched blocks, they are the blocks the Land holds that the
+	// collector may have at zero, which decide the hold mark.
+	onStored [][]byte
 	// refills are the entries that put a recorded hole, whose child lists
 	// Land writes back.
 	refills []*block.PutBatchEntry
@@ -416,6 +423,7 @@ func (l *lander) holdRoot(ctx context.Context, root block.NamedRoot) error {
 	if listed {
 		if l.journal {
 			l.up = append(l.up, BlockKey(root.Ref))
+			l.onStored = append(l.onStored, BlockKey(root.Ref))
 		}
 		return nil
 	}
@@ -462,34 +470,86 @@ func (l *lander) appendJournal(ctx context.Context, state *LivenessState, now ti
 		}
 	}
 
-	// Record each put of a block already stored as an up and a down pair. It
-	// changes no count, but the collector's tail check keeps the block until
-	// the record ages past the grace period, so a writer that puts a tree
+	// Name each put of a block already stored in the again list. It changes
+	// no holder, but a block it finds at zero takes the journal's end as its
+	// ripe sequence again once the record nets, so a writer that puts a tree
 	// across several batches restarts the grace of each block it puts again.
+	again := make([][]byte, 0, len(l.touched))
 	for _, key := range slices.Sorted(maps.Keys(l.touched)) {
-		l.up = append(l.up, []byte(key))
-		l.down = append(l.down, []byte(key))
+		again = append(again, []byte(key))
 	}
-	if len(l.up) == 0 && len(l.down) == 0 {
+	if len(l.up) == 0 && len(l.down) == 0 && len(again) == 0 {
 		return nil
 	}
 
 	// Write the record at the next sequence numbers, stamped with the clock,
-	// in pages of at most journalPagePairs pairs, the up pairs first: the
-	// collector nets the pages in order, as it nets one record's up pairs
-	// before its down pairs, and a slice decodes only the pages it works on.
+	// in pages of at most journalPagePairs entries, the up pairs first, then
+	// the down pairs, then the again list: the collector nets the pages in
+	// order, as it nets one record's entries in that order, and a slice
+	// decodes only the pages it works on.
 	at := now.UnixMilli()
-	for ups, downs := l.up, l.down; len(ups)+len(downs) != 0; state.NextSeq++ {
+	held := slices.Concat(l.onStored, again)
+	for ups, downs := l.up, l.down; len(ups)+len(downs)+len(again) != 0; state.NextSeq++ {
 		page := &JournalRecord{AtUnixMilli: at}
 		n := min(len(ups), journalPagePairs)
 		page.Up, ups = ups[:n], ups[n:]
 		n = min(len(downs), journalPagePairs-len(page.Up))
 		page.Down, downs = downs[:n], downs[n:]
+		n = min(len(again), journalPagePairs-len(page.Up)-len(page.Down))
+		page.Again, again = again[:n], again[n:]
 		if err := l.rec.PutJournal(ctx, state.GetNextSeq(), page); err != nil {
 			return err
 		}
 	}
+
+	// Set the hold mark past the record when it holds a block the collector
+	// may have at zero.
+	mark, err := l.holdsZero(ctx, state, held)
+	if err != nil {
+		return err
+	}
+	if mark {
+		state.HoldMark = state.GetNextSeq()
+	}
 	return l.rec.SetState(ctx, state)
+}
+
+// holdsZero reports whether the Land holds a stored block, of held, that the
+// collector has at zero holders, or may have through a parent: a root moves
+// onto it or the batch puts it again, and either a cascade is due or in
+// progress, so a block below a block with holders may have none, or the
+// block's own count record is a zero record. Such a block's children lost
+// its holder when it reached zero, and get it back only through the re-hold
+// that runs once this record nets, which may come after a child's own ripe
+// sequence; the hold mark makes the free wait for it.
+//
+// Cost: nothing for a Land that holds no stored block, the usual commit of
+// a born tree; otherwise one count record read per block until one is at
+// zero, since the state it already read counts the cascade records.
+func (l *lander) holdsZero(ctx context.Context, state *LivenessState, held [][]byte) (bool, error) {
+	// A Land that holds no stored block sets no mark.
+	if len(held) == 0 {
+		return false, nil
+	}
+
+	// Mark while a cascade is due or in progress.
+	settled, err := l.rec.settled(ctx, state)
+	if err != nil || !settled {
+		return !settled, err
+	}
+
+	// Mark when a held block is at zero.
+	for _, key := range held {
+		ref, _, err := ParseBlockKey(key)
+		if err != nil {
+			return false, err
+		}
+		holders, _, err := l.rec.GetHolders(ctx, ref)
+		if err != nil || holders == 0 {
+			return holders == 0, err
+		}
+	}
+	return false, nil
 }
 
 // SameRef reports whether a and b name the same block, or are both empty.

@@ -24,7 +24,10 @@ const rootProofSlice = 256
 // the writeback cache's blocks its remote holds: eviction keeps the block's
 // child list and count, so the proved graph stays whole in liveness and a
 // read refills the bytes. The World copy, the one consumer, skips and holds a
-// proved subtree on that basis. The collector deletes a proof with its block.
+// proved subtree on that basis. The collector deletes a proof when it starts
+// releasing the block's children, since it may free them before the block,
+// and with the block when it frees it; a pending proof counts only while its
+// root is held.
 //
 // A proof stays pending in memory until a transaction carries it. A mark of
 // one root, such as the derived proof of a World commit, leaves it for the
@@ -130,8 +133,8 @@ func (v *Volume) recordRootProofs(ctx context.Context, roots []*block.BlockRef) 
 }
 
 // carryRootProofs writes into p the proofs of at most limit pending roots
-// whose bytes p still holds, and returns the keys of all it took, so the
-// commit forgets them.
+// that p still holds, and returns the keys of all it took, so the commit
+// forgets them.
 func (v *Volume) carryRootProofs(ctx context.Context, p *physicalTx, limit int) ([]string, error) {
 	// Take at most limit pending root proofs.
 	proofs := make(map[string]*block.BlockRef)
@@ -144,15 +147,15 @@ func (v *Volume) carryRootProofs(ctx context.Context, p *physicalTx, limit int) 
 	}
 	v.proofMu.Unlock()
 
-	// Write the proof of each root still stored.
+	// Write the proof of each root still held.
 	keys := make([]string, 0, len(proofs))
 	for key, root := range proofs {
 		keys = append(keys, key)
-		found, err := p.blocks.GetBlockExists(ctx, root)
+		held, err := p.rec.Held(ctx, root)
 		if err != nil {
 			return keys, err
 		}
-		if found {
+		if held {
 			if err := p.rec.SetProof(ctx, root); err != nil {
 				return keys, err
 			}
@@ -189,33 +192,39 @@ func (v *Volume) forgetFreedProofs(refs []*block.BlockRef) {
 	}
 }
 
-// RootsComplete checks each root for a pending proof, then for its proof
-// record, reading the records of all roots in one snapshot.
+// RootsComplete checks each root for a pending proof whose root is held, or
+// for its proof record, reading the records of all roots in one snapshot.
 func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	// Accept the proofs still waiting for a changing transaction, and collect
-	// the roots that need their record read.
+	// Note which roots have a pending proof.
 	complete := make([]bool, len(refs))
-	var durable []int
+	pending := make([]bool, len(refs))
 	v.proofMu.Lock()
 	for i, ref := range refs {
-		if ref.GetEmpty() {
-			continue
-		}
-		if _, pending := v.rootProofs[string(block_gc.BlockKey(ref))]; pending {
-			complete[i] = true
-		} else {
-			durable = append(durable, i)
+		if !ref.GetEmpty() {
+			_, pending[i] = v.rootProofs[string(block_gc.BlockKey(ref))]
 		}
 	}
 	v.proofMu.Unlock()
-	if len(durable) == 0 || !v.HoldsRoots() {
-		return complete, nil
+
+	// Accept the pending proofs as they are without atomic publication.
+	if !v.HoldsRoots() {
+		return pending, nil
 	}
 
-	// Read the proof records in one snapshot.
+	// Read whether each pending root is held, or each other root's proof
+	// record, in one snapshot.
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
-		for _, i := range durable {
-			ok, err := rec.HasProof(ctx, refs[i])
+		for i, ref := range refs {
+			if ref.GetEmpty() {
+				continue
+			}
+			var ok bool
+			var err error
+			if pending[i] {
+				ok, err = rec.Held(ctx, ref)
+			} else {
+				ok, err = rec.HasProof(ctx, ref)
+			}
 			if err != nil {
 				return err
 			}
@@ -230,14 +239,14 @@ func (v *Volume) RootsComplete(ctx context.Context, refs []*block.BlockRef) ([]b
 }
 
 // rootCompleteTx checks a root's proof inside a direct transaction. A pending
-// proof counts while the transaction still holds the root's bytes.
+// proof counts while the transaction still holds the root.
 func (v *Volume) rootCompleteTx(ctx context.Context, p *physicalTx, ref *block.BlockRef) (bool, error) {
-	// Accept a pending proof whose root is stored.
+	// Accept a pending proof whose root is held.
 	v.proofMu.Lock()
 	_, pending := v.rootProofs[string(block_gc.BlockKey(ref))]
 	v.proofMu.Unlock()
 	if pending {
-		return p.blocks.GetBlockExists(ctx, ref)
+		return p.rec.Held(ctx, ref)
 	}
 
 	// Otherwise read the proof record.

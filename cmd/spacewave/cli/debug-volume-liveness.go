@@ -64,6 +64,7 @@ func auditFields(path string, res block_gc.AuditResult) [][2]string {
 		{"Unlisted garbage", strconv.FormatUint(res.Unlisted, 10)},
 		{"Live blocks queued to free", strconv.FormatUint(res.LiveQueued, 10)},
 		{"Undercounted blocks", strconv.FormatUint(res.Undercount, 10)},
+		{"Cascade records less their count", strconv.FormatInt(res.CascadeMiscount, 10)},
 	}
 
 	// Name a sample of the blocks behind each finding.

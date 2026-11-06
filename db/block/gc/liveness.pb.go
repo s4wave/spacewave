@@ -101,6 +101,11 @@ type JournalRecord struct {
 	Up [][]byte `protobuf:"bytes,2,rep,name=up,proto3" json:"up,omitempty"`
 	// Down names a block once for each named root that moved off it.
 	Down [][]byte `protobuf:"bytes,3,rep,name=down,proto3" json:"down,omitempty"`
+	// Again names each block the transaction put again while the store held
+	// it. It changes no holder, but a block still at zero holders once the
+	// record nets takes the journal's end as its ripe sequence again, so the
+	// put restarts the block's grace.
+	Again [][]byte `protobuf:"bytes,4,rep,name=again,proto3" json:"again,omitempty"`
 }
 
 func (x *JournalRecord) Reset() {
@@ -130,6 +135,13 @@ func (x *JournalRecord) GetDown() [][]byte {
 	return nil
 }
 
+func (x *JournalRecord) GetAgain() [][]byte {
+	if x != nil {
+		return x.Again
+	}
+	return nil
+}
+
 // LivenessState is the one record of a Volume's journal position and
 // adoption.
 type LivenessState struct {
@@ -155,22 +167,24 @@ type LivenessState struct {
 	// until a repair rebuilds them from the blocks and clears it.
 	UnverifiedLists bool `protobuf:"varint,7,opt,name=unverified_lists,json=unverifiedLists,proto3" json:"unverifiedLists,omitempty"`
 	// NetOffset is how much of the record at the cursor the collector has
-	// netted: its up pairs, then its down pairs, then the deletes of the index
-	// entries of its up pairs. A slice does a bounded amount, so it splits a
-	// large record across slices.
+	// netted: its up pairs, then its down pairs, then its again entries. A
+	// slice does a bounded amount, so it splits a large record across slices.
 	NetOffset uint64 `protobuf:"varint,8,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
-	// Indexed is the sequence number of the first journal record whose up
-	// pairs the collector has not all indexed by block. It indexes from here
-	// or from the cursor, whichever is later, so a record netted before it was
-	// indexed never is, and it deletes a record's entries as it nets it.
-	Indexed uint64 `protobuf:"varint,9,opt,name=indexed,proto3" json:"indexed,omitempty"`
-	// IndexOffset is how many of the up pairs of the record at Indexed the
-	// collector has indexed: a slice indexes a bounded number, so it splits a
-	// large record across slices.
-	IndexOffset uint64 `protobuf:"varint,10,opt,name=index_offset,json=indexOffset,proto3" json:"indexOffset,omitempty"`
-	// Release is the release in progress of a freed block's children, unset
-	// when none is.
+	// Release is the paged release or re-hold in progress of one block's
+	// children, unset when none is.
 	Release *Release `protobuf:"bytes,11,opt,name=release,proto3" json:"release,omitempty"`
+	// HoldMark is one past the sequence of the last journal record of a Land
+	// that held a block at zero holders, or one whose children were released,
+	// or any block while a cascade was due: a block below it may have no
+	// holder until that record nets and the re-hold it brings runs. The
+	// collector frees nothing until its cursor reaches the mark.
+	HoldMark uint64 `protobuf:"varint,12,opt,name=hold_mark,json=holdMark,proto3" json:"holdMark,omitempty"`
+	// Cascades counts the cascade records, the blocks whose cascade is due,
+	// so a Land and the free learn whether any is due from this record rather
+	// than a seek past the deleted ones. It is exact while the Volume is
+	// adopted: the adoption zeroes it once its clear has deleted the records
+	// an earlier run left, and counts each block it settles Dying.
+	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -228,20 +242,6 @@ func (x *LivenessState) GetNetOffset() uint64 {
 	return 0
 }
 
-func (x *LivenessState) GetIndexed() uint64 {
-	if x != nil {
-		return x.Indexed
-	}
-	return 0
-}
-
-func (x *LivenessState) GetIndexOffset() uint64 {
-	if x != nil {
-		return x.IndexOffset
-	}
-	return 0
-}
-
 func (x *LivenessState) GetRelease() *Release {
 	if x != nil {
 		return x.Release
@@ -249,20 +249,38 @@ func (x *LivenessState) GetRelease() *Release {
 	return nil
 }
 
-// Release is the release in progress of the children of a freed block whose
-// child list is longer than one free transaction releases. The free deletes
-// the block's bytes, child list, queue entry and proof, and moves the list to
-// release pages; each later free transaction releases the next children and
-// moves Next in the same transaction, and the last deletes the pages and
-// clears the release.
+func (x *LivenessState) GetHoldMark() uint64 {
+	if x != nil {
+		return x.HoldMark
+	}
+	return 0
+}
+
+func (x *LivenessState) GetCascades() uint64 {
+	if x != nil {
+		return x.Cascades
+	}
+	return 0
+}
+
+// Release is a cascade whose child list is longer than one collector slice
+// moves: the release of the children of a block that lost its last holder,
+// or the re-hold of the children of one that gained a holder after its
+// release. The slice that starts it moves the list to release pages and
+// marks the block released or held; each later slice moves the next
+// children's holders by one and moves Next in the same transaction, and the
+// last deletes the pages and clears the release.
 type Release struct {
 	unknownFields []byte
-	// Block is the freed block, as its hash type byte and digest.
+	// Block is the block, as its hash type byte and digest.
 	Block []byte `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
-	// Next is the index in the list of the first child not released yet.
+	// Next is the index in the list of the first child not moved yet.
 	Next uint64 `protobuf:"varint,2,opt,name=next,proto3" json:"next,omitempty"`
 	// Children is how many children the list names.
 	Children uint64 `protobuf:"varint,3,opt,name=children,proto3" json:"children,omitempty"`
+	// Rehold reports a re-hold: each child gains a holder rather than losing
+	// one.
+	Rehold bool `protobuf:"varint,4,opt,name=rehold,proto3" json:"rehold,omitempty"`
 }
 
 func (x *Release) Reset() {
@@ -292,6 +310,13 @@ func (x *Release) GetChildren() uint64 {
 	return 0
 }
 
+func (x *Release) GetRehold() bool {
+	if x != nil {
+		return x.Rehold
+	}
+	return false
+}
+
 func (m *RootEntry) CloneVT() *RootEntry {
 	if m == nil {
 		return (*RootEntry)(nil)
@@ -317,6 +342,7 @@ func (m *JournalRecord) CloneVT() *JournalRecord {
 	r.AtUnixMilli = m.AtUnixMilli
 	r.Up = protobuf_go_lite.CloneBytesSlice(m.Up)
 	r.Down = protobuf_go_lite.CloneBytesSlice(m.Down)
+	r.Again = protobuf_go_lite.CloneBytesSlice(m.Again)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -339,8 +365,8 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.AdoptionRun = m.AdoptionRun
 	r.UnverifiedLists = m.UnverifiedLists
 	r.NetOffset = m.NetOffset
-	r.Indexed = m.Indexed
-	r.IndexOffset = m.IndexOffset
+	r.HoldMark = m.HoldMark
+	r.Cascades = m.Cascades
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -359,6 +385,7 @@ func (m *Release) CloneVT() *Release {
 	r := new(Release)
 	r.Next = m.Next
 	r.Children = m.Children
+	r.Rehold = m.Rehold
 	r.Block = protobuf_go_lite.CloneBytes(m.Block)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -408,6 +435,9 @@ func (this *JournalRecord) EqualVT(that *JournalRecord) bool {
 	if !protobuf_go_lite.EqualBytesSlice(this.Down, that.Down) {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytesSlice(this.Again, that.Again) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -446,13 +476,13 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.NetOffset != that.NetOffset {
 		return false
 	}
-	if this.Indexed != that.Indexed {
-		return false
-	}
-	if this.IndexOffset != that.IndexOffset {
-		return false
-	}
 	if !protobuf_go_lite.IsEqualVT(this.Release, that.Release) {
+		return false
+	}
+	if this.HoldMark != that.HoldMark {
+		return false
+	}
+	if this.Cascades != that.Cascades {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -479,6 +509,9 @@ func (this *Release) EqualVT(that *Release) bool {
 		return false
 	}
 	if this.Children != that.Children {
+		return false
+	}
+	if this.Rehold != that.Rehold {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -605,6 +638,11 @@ func (x *JournalRecord) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("down")
 		s.WriteBytesArray(x.Down)
 	}
+	if len(x.Again) > 0 || s.HasField("again") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("again")
+		s.WriteBytesArray(x.Again)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -639,6 +677,13 @@ func (x *JournalRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Down = s.ReadBytesArray()
+		case "again":
+			s.AddField("again")
+			if s.ReadNil() {
+				x.Again = nil
+				return
+			}
+			x.Again = s.ReadBytesArray()
 		}
 	})
 }
@@ -691,20 +736,20 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("netOffset")
 		s.WriteUint64(x.NetOffset)
 	}
-	if x.Indexed != 0 || s.HasField("indexed") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("indexed")
-		s.WriteUint64(x.Indexed)
-	}
-	if x.IndexOffset != 0 || s.HasField("indexOffset") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("indexOffset")
-		s.WriteUint64(x.IndexOffset)
-	}
 	if x.Release != nil || s.HasField("release") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("release")
 		x.Release.MarshalProtoJSON(s.WithField("release"))
+	}
+	if x.HoldMark != 0 || s.HasField("holdMark") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("holdMark")
+		s.WriteUint64(x.HoldMark)
+	}
+	if x.Cascades != 0 || s.HasField("cascades") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cascades")
+		s.WriteUint64(x.Cascades)
 	}
 	s.WriteObjectEnd()
 }
@@ -744,12 +789,6 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "net_offset", "netOffset":
 			s.AddField("net_offset")
 			x.NetOffset = s.ReadUint64()
-		case "indexed":
-			s.AddField("indexed")
-			x.Indexed = s.ReadUint64()
-		case "index_offset", "indexOffset":
-			s.AddField("index_offset")
-			x.IndexOffset = s.ReadUint64()
 		case "release":
 			if s.ReadNil() {
 				x.Release = nil
@@ -757,6 +796,12 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Release = &Release{}
 			x.Release.UnmarshalProtoJSON(s.WithField("release", true))
+		case "hold_mark", "holdMark":
+			s.AddField("hold_mark")
+			x.HoldMark = s.ReadUint64()
+		case "cascades":
+			s.AddField("cascades")
+			x.Cascades = s.ReadUint64()
 		}
 	})
 }
@@ -789,6 +834,11 @@ func (x *Release) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("children")
 		s.WriteUint64(x.Children)
 	}
+	if x.Rehold || s.HasField("rehold") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rehold")
+		s.WriteBool(x.Rehold)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -815,6 +865,9 @@ func (x *Release) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "children":
 			s.AddField("children")
 			x.Children = s.ReadUint64()
+		case "rehold":
+			s.AddField("rehold")
+			x.Rehold = s.ReadBool()
 		}
 	})
 }
@@ -895,6 +948,13 @@ func (m *JournalRecord) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Again) > 0 {
+		for iNdEx := len(m.Again) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Again[iNdEx])
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.Down) > 0 {
 		for iNdEx := len(m.Down) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Down[iNdEx])
@@ -946,6 +1006,16 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Cascades != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cascades))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.HoldMark != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HoldMark))
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.Release != nil {
 		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -955,16 +1025,6 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x5a
-	}
-	if m.IndexOffset != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IndexOffset))
-		i--
-		dAtA[i] = 0x50
-	}
-	if m.Indexed != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Indexed))
-		i--
-		dAtA[i] = 0x48
 	}
 	if m.NetOffset != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetOffset))
@@ -1033,6 +1093,11 @@ func (m *Release) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Rehold {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Rehold)
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Children != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Children))
 		i--
@@ -1072,6 +1137,7 @@ func (m *JournalRecord) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.AtUnixMilli)
 	n += protobuf_go_lite.SizeBytesSlice(1, m.Up)
 	n += protobuf_go_lite.SizeBytesSlice(1, m.Down)
+	n += protobuf_go_lite.SizeBytesSlice(1, m.Again)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1089,12 +1155,12 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdoptionRun)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.UnverifiedLists)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Indexed)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.IndexOffset)
 	if m.Release != nil {
 		l = m.Release.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1108,6 +1174,7 @@ func (m *Release) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Block)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Next)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Children)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Rehold)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1157,6 +1224,14 @@ func (x *JournalRecord) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.Again) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "again")
+		for i, v := range x.Again {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBytes(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1195,17 +1270,17 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "net_offset")
 		protobuf_go_lite.TextWriteUint(&sb, x.NetOffset)
 	}
-	if x.Indexed != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "indexed")
-		protobuf_go_lite.TextWriteUint(&sb, x.Indexed)
-	}
-	if x.IndexOffset != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_offset")
-		protobuf_go_lite.TextWriteUint(&sb, x.IndexOffset)
-	}
 	if x.Release != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Release)
+	}
+	if x.HoldMark != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hold_mark")
+		protobuf_go_lite.TextWriteUint(&sb, x.HoldMark)
+	}
+	if x.Cascades != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cascades")
+		protobuf_go_lite.TextWriteUint(&sb, x.Cascades)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1228,6 +1303,10 @@ func (x *Release) MarshalProtoText() string {
 	if x.Children != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "children")
 		protobuf_go_lite.TextWriteUint(&sb, x.Children)
+	}
+	if x.Rehold != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rehold")
+		protobuf_go_lite.TextWriteBool(&sb, x.Rehold)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1345,6 +1424,16 @@ func (m *JournalRecord) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Down = append(m.Down, v)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Again", wireType)
+			}
+			var v []byte
+			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			if err != nil {
+				return err
+			}
+			m.Again = append(m.Again, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1456,24 +1545,6 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Indexed", wireType)
-			}
-			m.Indexed = 0
-			m.Indexed, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IndexOffset", wireType)
-			}
-			m.IndexOffset = 0
-			m.IndexOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
@@ -1489,6 +1560,24 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HoldMark", wireType)
+			}
+			m.HoldMark = 0
+			m.HoldMark, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cascades", wireType)
+			}
+			m.Cascades = 0
+			m.Cascades, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1558,6 +1647,16 @@ func (m *Release) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rehold", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Rehold = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

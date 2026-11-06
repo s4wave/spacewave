@@ -29,7 +29,8 @@ type AdoptResult struct {
 	// Counted counts the stored blocks given a count record: those with more
 	// than one holder.
 	Counted uint64
-	// Queued counts the stored blocks no holder names, put on the free queue.
+	// Queued counts the stored blocks no holder names, settled Dying, so the
+	// collector releases their children once the Volume is adopted.
 	Queued uint64
 	// Unknown counts the holders naming a block whose bytes the Volume stores
 	// without a child list. Any refuses the adoption.
@@ -108,7 +109,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	claimed := func(state *LivenessState) bool {
 		return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 	}
-	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark, kindReleasePage); err != nil {
+	if err := clearKinds(ctx, store, claimed, adoptionKinds...); err != nil {
 		return res, err
 	}
 	if err := clearFills(ctx, store, claimed); err != nil {
@@ -134,7 +135,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 		cursor = state.GetNextSeq()
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
-		state.Cursor, state.NetOffset = cursor, 0
+		state.Cursor, state.NetOffset, state.Cascades = cursor, 0, 0
 		return rec.SetState(ctx, state)
 	})
 	if err != nil {
@@ -259,7 +260,7 @@ func abandonAdopt(ctx context.Context, store Store, run string, cause error) err
 		abandoned := func(state *LivenessState) bool {
 			return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 		}
-		err = clearKinds(ctx, store, abandoned, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark)
+		err = clearKinds(ctx, store, abandoned, adoptionKinds...)
 		if err == nil {
 			err = clearFills(ctx, store, abandoned)
 		}
@@ -318,7 +319,8 @@ func (a *adoption) count(ctx context.Context) error {
 	}
 
 	// Settle each stored block: one holder is implied, and a block with none
-	// goes on the free queue.
+	// is Dying, at zero with children that count it, so the collector
+	// releases them once the Volume is adopted.
 	return forSlices(ctx, a.store, a.run, kindChildren, func(rec *Records, _ block.StoreOps, r adoptRecord) error {
 		// Skip a block born since the adoption began.
 		ref, born, err := a.listed(ctx, rec, r)
@@ -326,21 +328,32 @@ func (a *adoption) count(ctx context.Context) error {
 			return err
 		}
 
-		// Queue a block no holder names, and drop the implied holder of any
-		// other.
+		// Write the holders of a block a holder names.
 		a.res.Blocks++
-		n, err := rec.GetCount(ctx, ref)
+		n, err := rec.tally(ctx, ref)
 		if err != nil {
 			return err
 		}
-		if n == 0 {
-			a.res.Queued++
-			return rec.Enqueue(ctx, ref)
+		if n != 0 {
+			if n > 1 {
+				a.res.Counted++
+			}
+			return rec.SetHolders(ctx, ref, n, 0)
 		}
-		if n > 1 {
-			a.res.Counted++
+
+		// Settle a block no holder names Dying, ripe at the journal's end.
+		state, err := rec.GetState(ctx)
+		if err != nil {
+			return err
 		}
-		return rec.SetCount(ctx, ref, n-1)
+		a.res.Queued++
+		if err := rec.SetHolders(ctx, ref, 0, state.GetNextSeq()); err != nil {
+			return err
+		}
+		if err := rec.addCascade(ctx, state, BlockKey(ref), cascadeDown); err != nil {
+			return err
+		}
+		return rec.SetState(ctx, state)
 	})
 }
 
@@ -436,11 +449,11 @@ func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps
 	if err != nil || len(rest) != 0 {
 		return errBadBlockKey
 	}
-	n, err := rec.GetCount(ctx, ref)
+	n, err := rec.tally(ctx, ref)
 	if err != nil {
 		return err
 	}
-	if err := rec.SetCount(ctx, ref, n+1); err != nil {
+	if err := rec.setTally(ctx, ref, n+1); err != nil {
 		return err
 	}
 
@@ -590,6 +603,15 @@ func clearFills(ctx context.Context, store Store, keep func(*LivenessState) bool
 			return err
 		}
 	}
+}
+
+// adoptionKinds are the kinds of record an adoption writes or replaces, which
+// it clears before it counts the lists and after a failed run: the counts,
+// queue and cascade records, its marks, release pages, unapplied fill ups,
+// and the up index a format 8 store left.
+var adoptionKinds = []byte{
+	kindCount, kindQueue, kindCascade, kindAdoptBorn, kindAdoptRoot,
+	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex,
 }
 
 // clearKinds deletes every record of the kinds, sliceRecords per
