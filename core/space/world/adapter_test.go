@@ -59,6 +59,8 @@ type fixtureOpts struct {
 	frees bool
 	// maxPending bounds the pages the adapter keeps, zero for its default.
 	maxPending uint64
+	// opTypes resolves the operation types, or nil for the mock operations.
+	opTypes *space_world.OpTypes
 }
 
 // newAdapterFixture creates a Space on a local provider.
@@ -125,7 +127,11 @@ func newAdapterFixtureOn(t *testing.T, opts fixtureOpts) *adapterFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, space_world.OpTypes{Lookup: world_mock.LookupMockOp}))
+	opTypes := space_world.OpTypes{Lookup: world_mock.LookupMockOp}
+	if opts.opTypes != nil {
+		opTypes = *opts.opTypes
+	}
+	tb.StaticResolver.AddFactory(space_world.NewFactory(tb.Bus, opTypes))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 
 	// Start the local provider and create the Space.
@@ -275,6 +281,7 @@ func TestAdapterRunThrough(t *testing.T) {
 			t.Fatal("the collections freed nothing, so the run-through checked no hold")
 		}
 	})
+	t.Run("plugin-op", runPluginOpThrough)
 	t.Run("sql-primary", func(t *testing.T) {
 		location, creds := sqlTestLocation(t)
 		runAdapterThrough(t, newAdapterFixtureOn(t, fixtureOpts{sql: location, creds: creds}))
