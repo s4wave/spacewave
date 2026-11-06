@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -891,8 +890,9 @@ func (c *Collector) freeBlock(
 //     its other records give it.
 //  4. At most one release is in progress, and a free slice finishes it
 //     before it frees another block.
-//  5. A page missing before its children are released is an error that
-//     stops the pass, so a damaged release keeps every child.
+//  5. A page missing before its children are released is an error, naming
+//     the freed block, that stops every pass until a repair, so a damaged
+//     release keeps every child.
 func (c *Collector) continueRelease(ctx context.Context, rec *Records, state *LivenessState, p *freePass, budget int, res *CollectResult) (int, error) {
 	var n int
 	for r := state.GetRelease(); r != nil && n < budget; r = state.GetRelease() {
@@ -904,7 +904,7 @@ func (c *Collector) continueRelease(ctx context.Context, rec *Records, state *Li
 		}
 		within := r.GetNext() % releasePageChildren
 		if within >= uint64(len(children)) {
-			return n, errors.Errorf("release page %d of %d children is missing", page, r.GetChildren())
+			return n, errReleasePageMissing(r, page)
 		}
 
 		// Release the next children on it, up to the budget.

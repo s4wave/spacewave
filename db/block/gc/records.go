@@ -640,3 +640,41 @@ func (r *Records) getReleasePage(ctx context.Context, page uint64) ([]*block.Blo
 func (r *Records) deleteReleasePage(ctx context.Context, page uint64) error {
 	return r.tx.Delete(ctx, r.releasePageKey(page))
 }
+
+// scanReleasePending calls fn with each child of rel not released yet, in
+// order, from the release page holding its Next. Each still holds the count
+// the freed block's Land gave it, as continueRelease describes.
+func (r *Records) scanReleasePending(ctx context.Context, rel *Release, fn func(child *block.BlockRef) error) error {
+	for next := rel.GetNext(); next < rel.GetChildren(); {
+		// Read the page holding next.
+		page := next / releasePageChildren
+		children, err := r.getReleasePage(ctx, page)
+		if err != nil {
+			return err
+		}
+		within := next % releasePageChildren
+		if within >= uint64(len(children)) {
+			return errReleasePageMissing(rel, page)
+		}
+
+		// Hand over the children on it from next.
+		for _, child := range children[within:] {
+			if err := fn(child); err != nil {
+				return err
+			}
+		}
+		next += uint64(len(children)) - within
+	}
+	return nil
+}
+
+// errReleasePageMissing reports that release page page of rel is missing or
+// ends before the release's Next, naming the freed block, so an operator can
+// find the damaged release. Every child of the release keeps its holder.
+func errReleasePageMissing(rel *Release, page uint64) error {
+	name := "a block of unknown key"
+	if ref, _, err := ParseBlockKey(rel.GetBlock()); err == nil {
+		name = ref.MarshalString()
+	}
+	return errors.Errorf("release of %s: page %d of its %d children is missing", name, page, rel.GetChildren())
+}

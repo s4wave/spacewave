@@ -1592,6 +1592,69 @@ func TestLivenessAdversarial(t *testing.T) {
 		})
 	}
 
+	t.Run("hole under a release in progress", func(t *testing.T) {
+		// F names 6,000 leaves, and P1 and P2 name its last, H. Root f
+		// releases F, and the collector stops with F freed and its release
+		// not yet at H. The audit then counts the release among H's holders
+		// and leaks none of the leaves it has not reached. The store loses
+		// H, and the audit records the hole with F's holder in its count, so
+		// once the release reaches H, H is put again and P1 is freed, P2
+		// still holds H.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		leaves := make([]string, 6_000)
+		for i := range leaves {
+			leaves[i] = "leaf " + strconv.Itoa(i)
+			tr.add(t, leaves[i])
+		}
+		slices.SortFunc(leaves, func(a, b string) int {
+			return bytes.Compare(block_gc.BlockKey(tr[a].Ref), block_gc.BlockKey(tr[b].Ref))
+		})
+		h := leaves[len(leaves)-1]
+		f := tr.add(t, "F", leaves...)
+		p1 := tr.add(t, "P1", h)
+		p2 := tr.add(t, "P2", h)
+		roots := []block.NamedRoot{{Name: "f", Ref: f}, {Name: "p1", Ref: p1}, {Name: "p2", Ref: p2}}
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "F", "P1", "P2")...), roots); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "f", Previous: f}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		probe := &stopMidRelease{Store: collectorStore{v: v}, v: v}
+		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+		if _, err := c.Collect(ctx); !errors.Is(err, errMidRelease) {
+			t.Fatalf("collect = %v, want it stopped mid-release", err)
+		}
+		requireStored(t, v, tr, false, "F")
+		requireStored(t, v, tr, true, h)
+		requireAudit(t, v, 0)
+
+		// Lose H and audit, finish the release, and put H again.
+		punchHole(t, v, tr[h].Ref)
+		if res, err := v.Audit(ctx); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+		}
+		collectAll(t, v)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(h), nil); err != nil {
+			t.Fatal(err)
+		}
+
+		// Free P1: P2 still holds H.
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "p1", Previous: p1}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "P2", h)
+		requireStored(t, v, tr, false, "F", "P1", leaves[0])
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("stale index entry", func(t *testing.T) {
 		// An entry naming R1 in a record before the cursor, as a build before
 		// the index leaves after a downgrade, holds nothing: R1 goes once

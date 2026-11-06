@@ -108,7 +108,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	claimed := func(state *LivenessState) bool {
 		return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 	}
-	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark); err != nil {
+	if err := clearKinds(ctx, store, claimed, kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot, kindFillMark, kindReleasePage); err != nil {
 		return res, err
 	}
 	if err := clearFills(ctx, store, claimed); err != nil {
@@ -216,9 +216,11 @@ func claimAdoption(ctx context.Context, store Store, run string) (bool, error) {
 			return nil
 		}
 
-		// Claim it.
+		// Claim it, ending any release in progress: the run recounts every
+		// holder, and the claim's clear deletes the release pages.
 		state.Adoption = Adoption_ADOPTION_UNADOPTED
 		state.AdoptionRun = run
+		state.Release = nil
 		return rec.SetState(ctx, state)
 	})
 	return adopted, err

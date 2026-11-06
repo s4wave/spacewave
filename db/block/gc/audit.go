@@ -17,10 +17,10 @@ type AuditResult struct {
 	// Stored counts the stored blocks, which have a child list.
 	Stored uint64
 	// Leaked counts the stored blocks no root reaches that the collector has
-	// not queued. After a pass that left nothing to do, that is garbage a
-	// hole, a put outside a batch or a lost release keeps; during a cascade
-	// it also counts the children of blocks still queued, and those of a
-	// freed block whose release is in progress.
+	// not queued and the release in progress does not name. After a pass
+	// that left nothing to do, that is garbage a hole, a put outside a batch
+	// or a lost release keeps; during a cascade it also counts the children
+	// of blocks still queued.
 	Leaked uint64
 	// LiveQueued counts the blocks a root reaches that sit on the free queue
 	// with no journal record past the cursor adding a holder: blocks the
@@ -30,8 +30,8 @@ type AuditResult struct {
 	// LiveQueuedSample names up to auditSampleSize of them.
 	LiveQueuedSample []*block.BlockRef
 	// Undercount counts the stored blocks whose netted holders, with the
-	// journal past the cursor, are fewer than the roots and child lists that
-	// name them, such as a hole put again before an audit recorded it. Each
+	// journal past the cursor, are fewer than the roots, child lists and
+	// release in progress that name them, such as a hole put again before an audit recorded it. Each
 	// may be freed while a root still reaches it.
 	Undercount uint64
 	// UndercountSample names up to auditSampleSize of them.
@@ -58,20 +58,21 @@ func Audit(ctx context.Context, store AdoptStore) (AuditResult, error) {
 	var tally map[string]uint64
 	err := store.View(ctx, func(rec *Records) error {
 		// Walk from the roots, and count each block's holders.
+		state, err := rec.GetState(ctx)
+		if err != nil {
+			return err
+		}
 		mark, err := Reachable(ctx, rec, store.BlockStored)
 		if err != nil {
 			return err
 		}
 		res.Mark = mark
-		if tally, err = tallyHolders(ctx, rec); err != nil {
+		var releasing map[string]struct{}
+		if tally, releasing, err = tallyHolders(ctx, rec, state); err != nil {
 			return err
 		}
 
 		// Read what the journal past the cursor does to each block.
-		state, err := rec.GetState(ctx)
-		if err != nil {
-			return err
-		}
 		tail, delta, err := journalTail(ctx, rec, state)
 		if err != nil {
 			return err
@@ -84,7 +85,7 @@ func Audit(ctx context.Context, store AdoptStore) (AuditResult, error) {
 			counted = nil
 		}
 		return rec.ScanChildren(ctx, func(ref *block.BlockRef, _ []*block.BlockRef) error {
-			return res.checkStored(ctx, rec, ref, mark, counted, tail, delta)
+			return res.checkStored(ctx, rec, ref, mark, counted, releasing, tail, delta)
 		})
 	})
 	if err != nil {
@@ -127,13 +128,15 @@ func (res *AuditResult) countUnlisted(ctx context.Context, store AdoptStore) err
 }
 
 // checkStored compares one stored block with the walk, the queue and the
-// holders that name it.
+// holders that name it. A block releasing names is no leak: the release in
+// progress takes its freed parent's holder later.
 func (res *AuditResult) checkStored(
 	ctx context.Context,
 	rec *Records,
 	ref *block.BlockRef,
 	mark *Mark,
 	tally map[string]uint64,
+	releasing map[string]struct{},
 	tail map[string]struct{},
 	delta map[string]int64,
 ) error {
@@ -149,6 +152,7 @@ func (res *AuditResult) checkStored(
 		return err
 	}
 	_, held := tail[string(key)]
+	_, pending := releasing[string(key)]
 
 	// Count a live block the collector would free, and a leak.
 	switch {
@@ -157,7 +161,7 @@ func (res *AuditResult) checkStored(
 		if len(res.LiveQueuedSample) < auditSampleSize {
 			res.LiveQueuedSample = append(res.LiveQueuedSample, ref)
 		}
-	case !mark.Has(ref) && !queued:
+	case !mark.Has(ref) && !queued && !pending:
 		res.Leaked++
 	}
 
@@ -178,9 +182,13 @@ func (res *AuditResult) checkStored(
 	return nil
 }
 
-// tallyHolders counts, for each named block, the roots and the child lists
-// that name it, in rec.
-func tallyHolders(ctx context.Context, rec *Records) (map[string]uint64, error) {
+// tallyHolders counts, for each named block, the roots, the child lists and
+// the release in progress that name it, in rec, and returns the blocks that
+// release names. A child the release has not reached yet still holds the
+// freed block's count, though the block's list is gone, so leaving it out of
+// the tally would restore a hole's count one too low and free the hole while
+// a root still reaches it.
+func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[string]uint64, map[string]struct{}, error) {
 	// Count the roots.
 	tally := make(map[string]uint64)
 	err := rec.ScanRoots(ctx, func(_, _ string, entry *RootEntry) error {
@@ -188,7 +196,7 @@ func tallyHolders(ctx context.Context, rec *Records) (map[string]uint64, error) 
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Count the child lists.
@@ -198,7 +206,23 @@ func tallyHolders(ctx context.Context, rec *Records) (map[string]uint64, error) 
 		}
 		return nil
 	})
-	return tally, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Count the children the release in progress has not released.
+	rel := state.GetRelease()
+	if rel == nil {
+		return tally, nil, nil
+	}
+	releasing := make(map[string]struct{})
+	err = rec.scanReleasePending(ctx, rel, func(child *block.BlockRef) error {
+		key := string(BlockKey(child))
+		tally[key]++
+		releasing[key] = struct{}{}
+		return nil
+	})
+	return tally, releasing, err
 }
 
 // journalTail reads the journal past the cursor and the fill records not
