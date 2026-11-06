@@ -13,10 +13,8 @@ import (
 	block_store_s3_lookup "github.com/s4wave/spacewave/db/block/store/s3/lookup"
 	"github.com/s4wave/spacewave/db/core"
 	api_controller "github.com/s4wave/spacewave/db/daemon/api/controller"
-	mysql_controller "github.com/s4wave/spacewave/db/sql/mysql/controller"
 	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
 	unixfs_world_access "github.com/s4wave/spacewave/db/unixfs/world/access"
-	volume_block "github.com/s4wave/spacewave/db/volume/block"
 	volume_world "github.com/s4wave/spacewave/db/volume/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 )
@@ -33,16 +31,12 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// Register the World engine controller.
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
-	// Register both volume backends.
-	sr.AddFactory(volume_block.NewFactory(b))
+	// Register the World object volume backend.
 	sr.AddFactory(volume_world.NewFactory(b))
 
 	// Register UnixFS access controllers.
 	sr.AddFactory(unixfs_access_http.NewFactory(b))
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
-
-	// Add the MySQL controller.
-	sr.AddFactory(mysql_controller.NewFactory(b))
 
 	// Register HTTP block-store lookup and server controllers.
 	sr.AddFactory(http_lookup.NewFactory(b))

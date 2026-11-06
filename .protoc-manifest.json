@@ -2226,16 +2226,6 @@
         "db/sql/mysql/mysql.proto"
       ]
     },
-    "github.com/s4wave/spacewave/db/sql/mysql/controller": {
-      "hash": "22bda978e3b310e1bfa10f30f8e619f495134b755e18d4b5970a6b93c9925f1b",
-      "generatedFiles": [
-        "db/sql/mysql/controller/config.pb.go",
-        "db/sql/mysql/controller/config.pb.ts"
-      ],
-      "protoFiles": [
-        "db/sql/mysql/controller/config.proto"
-      ]
-    },
     "github.com/s4wave/spacewave/db/sql/rpc": {
       "hash": "6f8ab9edefab13e976576f5e6766cc8eefded6d1cfc7053e9acbbabfab276537",
       "generatedFiles": [
@@ -2431,16 +2421,6 @@
       "protoFiles": [
         "db/volume/health.proto",
         "db/volume/volume.proto"
-      ]
-    },
-    "github.com/s4wave/spacewave/db/volume/block": {
-      "hash": "c0a8e14226fe6aaf7340b1ebd95a05e08e0e101423e82edf343bc3304b37c654",
-      "generatedFiles": [
-        "db/volume/block/volume.pb.go",
-        "db/volume/block/volume.pb.ts"
-      ],
-      "protoFiles": [
-        "db/volume/block/volume.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/volume/bolt": {
