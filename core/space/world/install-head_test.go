@@ -155,26 +155,99 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	}
 }
 
-// TestResetPayloadsSeesAdmissions checks that a payload reset waiting on the
-// root lock holds the payloads of an admission that added them while it
-// waited, so a queued operation never loses its payload hold.
+// TestResetPayloadsSeesAdmissions walks the replay payloads root through a
+// Volume that frees every unheld block at once. A reset waiting on the root
+// lock holds the payloads an admission added while it waited. A reset after
+// the admission is decided releases them, and the next admission holds only
+// its own. A payload page another payload shares survives the release of the
+// set that named both. A reset that changes nothing keeps the stored root.
+// An adapter opened again over the same roots keeps the stored payloads when
+// it adds more.
 func TestResetPayloadsSeesAdmissions(t *testing.T) {
-	// Build an adapter with no replayed positions.
+	// Build an adapter with no replayed positions over the Volume.
 	ctx := t.Context()
-	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
-	a := &Adapter{
-		opened: openedNow(),
-		le:     logrus.NewEntry(logrus.New()),
-		pages:  block.NewPendingStore(store, 1<<20),
-		held:   make(map[string]*block.BlockRef),
-	}
+	a, collect := newVolumeAdapter(t, 1<<20)
 	a.replay = &spaceReplay{a: a, base: &InnerState{}}
-	payload, err := block.BuildBlockRef([]byte("payload"), nil)
-	if err != nil {
-		t.Fatal(err)
+
+	// put keeps a payload page naming children in a's pages, as a writer
+	// keeps its pages.
+	put := func(a *Adapter, name string, children ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		data := []byte("payload " + name)
+		for _, c := range children {
+			data = append(data, c.MarshalString()...)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := a.pages.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: children, RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		return ref
 	}
 
-	// Start a reset while an admission holds the root lock.
+	// stored returns the payloads the Volume's payloads root holds.
+	stored := func(a *Adapter) []*block.BlockRef {
+		t.Helper()
+		ref, err := a.pages.GetRoot(ctx, RootReplayPayloads)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !refEqual(ref, a.held[RootReplayPayloads]) {
+			t.Fatalf("payloads root = %v, the adapter holds %v", ref, a.held[RootReplayPayloads])
+		}
+		if ref.GetEmpty() {
+			return nil
+		}
+		data, found, err := a.pages.GetBlock(ctx, ref)
+		if err != nil || !found {
+			t.Fatalf("payloads block %v: found %v, %v", ref, found, err)
+		}
+		msg := &HeldRoots{}
+		if err := msg.UnmarshalVT(data); err != nil {
+			t.Fatal(err)
+		}
+		return msg.GetRoots()
+	}
+
+	// expect checks that a holds want under the payloads root, in memory and
+	// in the Volume, then collects and checks that every block of live
+	// survives.
+	expect := func(a *Adapter, step string, want []*block.BlockRef, live ...*block.BlockRef) {
+		t.Helper()
+		if !slices.EqualFunc(a.payloads.roots, want, refEqual) || !slices.EqualFunc(stored(a), want, refEqual) {
+			t.Fatalf("%s: payloads %v, stored %v, want %v", step, a.payloads.roots, stored(a), want)
+		}
+		collect()
+		for _, ref := range live {
+			if _, found, err := a.pages.GetBlock(ctx, ref); err != nil || !found {
+				t.Fatalf("%s: collection freed held payload page %v: %v, %v", step, ref, found, err)
+			}
+		}
+	}
+
+	// admit records an admission of payloads as pending, as Admit does
+	// before it holds them.
+	admit := func(a *Adapter, payloads ...*block.BlockRef) *spaceAdmission {
+		adm := &spaceAdmission{state: admissionQueued, payloads: payloads, done: make(chan struct{})}
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.pending = append(a.pending, adm)
+		})
+		return adm
+	}
+
+	// decide drops adm from the pending admissions.
+	decide := func(adm *spaceAdmission) {
+		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			a.pending = slices.DeleteFunc(a.pending, func(o *spaceAdmission) bool { return o == adm })
+		})
+	}
+
+	// Start a reset while the root lock is held, then admit a payload and
+	// hold it under that lock, as addPayloads does.
+	shared := put(a, "shared")
+	first := put(a, "first", shared)
 	release, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -182,22 +255,82 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- a.resetPayloads(ctx) }()
 	time.Sleep(50 * time.Millisecond)
-
-	// The admission is pending and holds its payloads, as Admit leaves it.
-	adm := &spaceAdmission{state: admissionQueued, payloads: []*block.BlockRef{payload}, done: make(chan struct{})}
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		a.pending = append(a.pending, adm)
-	})
-	a.payloads = append(a.payloads, payload)
+	adm := admit(a, first)
+	if err := a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{{first}}, nil); err != nil {
+		t.Fatal(err)
+	}
 	release()
 
-	// The reset holds them.
+	// The reset holds the admission's payload and the page it names.
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
-	if len(a.payloads) != 1 || !a.payloads[0].EqualsRef(payload) {
-		t.Fatalf("payloads after the reset = %v, want the admission's", a.payloads)
+	expect(a, "reset beside an admission", []*block.BlockRef{first}, first, shared)
+
+	// Once it is decided, a reset releases the name, and the collection
+	// frees the payload, so the checks below see a collector that frees.
+	decide(adm)
+	if err := a.resetPayloads(ctx); err != nil {
+		t.Fatal(err)
 	}
+	expect(a, "reset after the decision", nil)
+	if _, found, err := a.pages.GetBlock(ctx, first); err != nil || found {
+		t.Fatalf("collection kept the released payload: %v, %v", found, err)
+	}
+
+	// The next admission holds only its own payloads, which share a page.
+	shared = put(a, "shared")
+	second := put(a, "second", shared)
+	third := put(a, "third", shared)
+	adm = admit(a, second, third)
+	if err := a.addPayloads(ctx, adm.payloads); err != nil {
+		t.Fatal(err)
+	}
+	expect(a, "admission after the release", []*block.BlockRef{second, third}, second, third, shared)
+
+	// Another admission adds a payload, then is decided: the reset moves the
+	// root back to the set it left, and keeps the shared page.
+	fourth := put(a, "fourth", shared)
+	other := admit(a, fourth)
+	if err := a.addPayloads(ctx, other.payloads); err != nil {
+		t.Fatal(err)
+	}
+	if want := []*block.BlockRef{second, third, fourth}; !slices.EqualFunc(stored(a), want, refEqual) {
+		t.Fatalf("payloads stored beside an admission = %v, want %v", stored(a), want)
+	}
+	decide(other)
+	if err := a.resetPayloads(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expect(a, "reset back to the earlier set", []*block.BlockRef{second, third}, second, third, shared)
+
+	// A reset that gathers the same payloads moves nothing.
+	held := a.held[RootReplayPayloads]
+	if err := a.resetPayloads(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !refEqual(a.held[RootReplayPayloads], held) {
+		t.Fatalf("an unchanged reset moved the payloads root from %v to %v", held, a.held[RootReplayPayloads])
+	}
+	expect(a, "unchanged reset", []*block.BlockRef{second, third}, second, third, shared)
+
+	// An adapter opened again over the same roots reads the payloads the
+	// root holds, and adds a payload beside them.
+	b := &Adapter{
+		le:       a.le,
+		opened:   openedNow(),
+		pages:    block.NewPendingStore(a.pages.StoreOps, 1<<20),
+		held:     make(map[string]*block.BlockRef),
+		payloads: rootSet{name: RootReplayPayloads},
+	}
+	if err := b.loadRoots(ctx); err != nil {
+		t.Fatal(err)
+	}
+	fifth := put(b, "fifth", shared)
+	if err := b.addPayloads(ctx, admit(b, fifth).payloads); err != nil {
+		t.Fatal(err)
+	}
+	expect(b, "admission after the open", []*block.BlockRef{second, third, fifth}, second, third, fifth, shared)
 }
 
 // TestInstallKeepsLaterCheckpointWorlds checks that an install of an earlier
@@ -214,9 +347,9 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
 	}
 	earlier, err := block.BuildBlockRef([]byte("earlier World"), nil)
 	if err != nil {
@@ -232,10 +365,10 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.addHistory(ctx, &a.checkpointWorlds, earlier); err != nil {
+	if err := a.addRoot(ctx, &a.checkpointWorlds, earlier); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.addHistory(ctx, &a.checkpointWorlds, later); err != nil {
+	if err := a.addRoot(ctx, &a.checkpointWorlds, later); err != nil {
 		t.Fatal(err)
 	}
 	release()
@@ -299,9 +432,9 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 	}
 	switch name {
 	case RootReplayCursor:
-		err = a.addHistory(ctx, &a.cursorWorlds, saved)
+		err = a.addRoot(ctx, &a.cursorWorlds, saved)
 	case RootCheckpoint:
-		err = a.addHistory(ctx, &a.checkpointWorlds, saved)
+		err = a.addRoot(ctx, &a.checkpointWorlds, saved)
 	default:
 		err = a.moveRootsLocked(ctx, nil, block.NamedRoot{Name: RootReplayBase, Ref: saved})
 	}
@@ -386,9 +519,10 @@ func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
 		opened:           openedNow(),
 		pages:            block.NewPendingStore(cursor.GetBucket(), maxPending),
 		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
+		payloads:         rootSet{name: RootReplayPayloads},
 	}
 	return a, collect
 }
@@ -407,9 +541,9 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
 	}
 	base, err := block.BuildBlockRef([]byte("base World"), nil)
 	if err != nil {
@@ -423,7 +557,7 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.addHistory(ctx, &a.cursorWorlds, saved); err != nil {
+	if err := a.addRoot(ctx, &a.cursorWorlds, saved); err != nil {
 		t.Fatal(err)
 	}
 	release()
@@ -451,9 +585,9 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
 	}
 	ref := func(name string) *block.BlockRef {
 		t.Helper()
@@ -468,7 +602,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.addHistory(ctx, &a.cursorWorlds, covered); err != nil {
+	if err := a.addRoot(ctx, &a.cursorWorlds, covered); err != nil {
 		t.Fatal(err)
 	}
 	release()
@@ -521,9 +655,9 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
 	}
 	put := func(name string, children ...*block.BlockRef) *block.BlockRef {
 		t.Helper()

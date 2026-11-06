@@ -182,20 +182,12 @@ func (b *spaceBackfill) execute(ctx context.Context, _ bool) error {
 	}
 }
 
-// copy copies the graph of each root into the local store under a stage,
-// then holds them all under the backfill root, and returns the number of
-// blocks no reachable store held. A recheck reads every block again; a copy
+// copy copies the graph of each root into the local store and holds them all
+// under the backfill root, and returns the number of blocks no reachable store
+// held. A recheck reads every block again; a copy
 // skips each subtree the local store already holds.
 func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, recheck bool) (uint32, error) {
-	// Write the copy under a stage until the root holds it.
-	store := b.a.so.GetBlockStore()
-	staged, release, err := block.OpenStage(ctx, store)
-	if err != nil {
-		return 0, err
-	}
-	defer release()
-
-	// Copy each root from the kept pages and the read path.
+	// Copy and hold each root, counting the blocks no store held.
 	start := time.Now()
 	var holes uint32
 	opts := &block.GraphCopyOptions{
@@ -207,20 +199,9 @@ func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, reche
 		},
 	}
 	if !recheck {
-		opts.Known = store.GetBlockExistsBatch
+		opts.Known = b.a.so.GetBlockStore().GetBlockExistsBatch
 	}
-	for _, root := range roots {
-		if err := block.CopyGraph(ctx, b.a.pages, staged, root, opts); err != nil {
-			return 0, errors.Wrapf(err, "copy World %s", root.MarshalString())
-		}
-	}
-
-	// Hold them under one block naming every root.
-	entry, err := refsEntry(&HeldRoots{Roots: roots}, roots)
-	if err != nil {
-		return 0, err
-	}
-	if err := b.a.moveRoots(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: RootBackfill, Ref: entry.Ref}); err != nil {
+	if err := b.a.copyAndHold(ctx, RootBackfill, roots, opts); err != nil {
 		return 0, err
 	}
 	b.a.le.WithField("dur", time.Since(start).String()).WithField("holes", holes).Debug("backfilled the World")
