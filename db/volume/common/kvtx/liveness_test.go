@@ -311,10 +311,19 @@ func TestLivenessRunThrough(t *testing.T) {
 		t.Errorf("a put through a stage holding 10x tops allocated %d bytes, over 1x %d", l, s)
 	}
 	// Freeing a block holds the writer no longer for twice its children.
-	if s, l := measureWideFree(t, 10_000), measureWideFree(t, 20_000); !within(l, s) {
+	if s, l := measureWideFree(t, 10_000, false), measureWideFree(t, 20_000, false); !within(l, s) {
 		t.Errorf("freeing a block of 20,000 children made a transaction of %d operations, of 10,000 %d", l, s)
 	} else {
 		t.Logf("wide free: longest transaction %d operations over 10,000 children, %d over 20,000", s, l)
+	}
+
+	// A collector that finds a writer waiting stops at the next block or
+	// release page, whatever it frees: a page of 2,048 children is about
+	// 8,200 operations.
+	if s, l := measureWideFree(t, 5_000, true), measureWideFree(t, 10_000, true); !within(l, s) || l > 10_000 {
+		t.Errorf("beside a waiting writer, freeing a block of 10,000 children made a transaction of %d operations, of 5,000 %d", l, s)
+	} else {
+		t.Logf("wide free beside a waiting writer: longest transaction %d operations over 5,000 children, %d over 10,000", s, l)
 	}
 
 	// A staged batch's lookups keep no commit waiting, at 3 or 32 children an
@@ -591,10 +600,56 @@ func (s *stopMidRelease) Update(ctx context.Context, fn func(rec *block_gc.Recor
 	})
 }
 
+// errPaceLimit is the failure paceProbe returns past its limit.
+var errPaceLimit = errors.New("collection passed its transaction limit")
+
+// paceProbe runs a collector's transactions, calling after following each,
+// as a store whose commit costs time or a writer that commits between the
+// collector's slices, and fails every transaction past limit.
+type paceProbe struct {
+	block_gc.Store
+	// limit is how many transactions the probe runs.
+	limit int
+	// txs counts the transactions run.
+	txs int
+	// after runs after each transaction.
+	after func()
+}
+
+// Update runs the transaction and after, or fails past the limit.
+func (p *paceProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, blocks block.StoreOps) error) error {
+	if p.txs++; p.txs > p.limit {
+		return errPaceLimit
+	}
+	err := p.Store.Update(ctx, fn)
+	p.after()
+	return err
+}
+
+// collectThrough runs passes of a collector of probe until one reports no
+// more work, failing the test if the collection passes the probe's limit,
+// and returns how many blocks it freed.
+func collectThrough(t *testing.T, probe *paceProbe, opts block_gc.CollectorOptions) uint64 {
+	t.Helper()
+	c := block_gc.NewCollector(probe, opts)
+	var freed uint64
+	for {
+		res, err := c.Collect(t.Context())
+		if err != nil {
+			t.Fatalf("after %d transactions, %d blocks freed: %v", probe.txs-1, freed+res.Freed, err)
+		}
+		if freed += res.Freed; !res.More {
+			t.Logf("collected in %d transactions", probe.txs)
+			return freed
+		}
+	}
+}
+
 // measureWideFree stores a block naming children leaves under a root,
 // releases it, and returns the most operations one transaction of the
-// collection that frees it made.
-func measureWideFree(t *testing.T, children int) uint64 {
+// collection that frees it made, by the Volume's collector or, when waiting
+// is set, by one that always finds a writer waiting.
+func measureWideFree(t *testing.T, children int, waiting bool) uint64 {
 	// Store the block and its leaves, then release it.
 	t.Helper()
 	ctx := t.Context()
@@ -623,8 +678,27 @@ func measureWideFree(t *testing.T, children int) uint64 {
 	// Collect it all once the release ages.
 	clk.Add(block_gc.DefaultGrace + time.Second)
 	cs.ResetMax()
-	if res := collectAll(t, v); res.Freed != uint64(children)+1 { //nolint:gosec // a test size.
-		t.Fatalf("freed %d of a block and its %d children", res.Freed, children)
+	var freed uint64
+	if !waiting {
+		freed = collectAll(t, v).Freed
+	} else {
+		c := block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+			Frees:          true,
+			Now:            v.now,
+			WritersWaiting: func() bool { return true },
+		})
+		for {
+			res, err := c.Collect(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if freed += res.Freed; !res.More {
+				break
+			}
+		}
+	}
+	if freed != uint64(children)+1 { //nolint:gosec // a test size.
+		t.Fatalf("freed %d of a block and its %d children", freed, children)
 	}
 	return cs.Counts().MaxWriteOps
 }
@@ -1584,6 +1658,94 @@ func TestLivenessAdversarial(t *testing.T) {
 		if n := countIndexEntries(t, v); n != 0 {
 			t.Fatalf("%d journal index entries remain after every record netted", n)
 		}
+	})
+
+	t.Run("commit slower than a slice", func(t *testing.T) {
+		// W names 2,000 leaves under root w, released past the grace period.
+		// Each transaction's commit costs 3 ms the collector's own work does
+		// not, on the wall clock and on the Volume's, more than a slice aims
+		// to hold the writer. The pace counts only the collector's work, so
+		// the collection frees W and its leaves in a bounded number of
+		// transactions rather than shrinking every slice to its smallest.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		leaves := make([]string, 2000)
+		for i := range leaves {
+			leaves[i] = "leaf " + strconv.Itoa(i)
+			tr.add(t, leaves[i])
+		}
+		w := tr.add(t, "W", leaves...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "W")...), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "w", Previous: w}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		probe := &paceProbe{Store: collectorStore{v: v}, limit: 100, after: func() {
+			clk.Add(3 * time.Millisecond)
+			time.Sleep(3 * time.Millisecond)
+		}}
+		if freed := collectThrough(t, probe, block_gc.CollectorOptions{Frees: true, Now: v.now}); freed != 2001 {
+			t.Fatalf("freed %d of W and its 2000 leaves", freed)
+		}
+		requireStored(t, v, tr, false, append(slices.Clone(leaves), "W")...)
+	})
+
+	t.Run("writer always waiting", func(t *testing.T) {
+		// G names 100 leaves under root g, released past the grace period,
+		// and H names 64 others under root h. A writer waits on every
+		// collector transaction and after each commits a new root on a parent
+		// of H's leaves, an up pair for each. A waiting writer does not
+		// shrink the index and netting slices, so they reach the journal's
+		// end, and G and its leaves are freed in a bounded number of
+		// transactions while the writer's blocks stay.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		leaves := make([]string, 100)
+		for i := range leaves {
+			leaves[i] = "leaf " + strconv.Itoa(i)
+			tr.add(t, leaves[i])
+		}
+		g := tr.add(t, "G", leaves...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(leaves), "G")...), []block.NamedRoot{{Name: "g", Ref: g}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "g", Previous: g}}); err != nil {
+			t.Fatal(err)
+		}
+		shared := make([]string, 64)
+		for i := range shared {
+			shared[i] = "shared " + strconv.Itoa(i)
+			tr.add(t, shared[i])
+		}
+		h := tr.add(t, "H", shared...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(shared), "H")...), []block.NamedRoot{{Name: "h", Ref: h}}); err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		held := append(slices.Clone(shared), "H")
+		probe := &paceProbe{Store: collectorStore{v: v}, limit: 1000, after: func() {
+			root := "round " + strconv.Itoa(len(held))
+			ref := tr.add(t, root, shared...)
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(root), []block.NamedRoot{{Name: root, Ref: ref}}); err != nil {
+				t.Fatal(err)
+			}
+			held = append(held, root)
+		}}
+		freed := collectThrough(t, probe, block_gc.CollectorOptions{
+			Frees:          true,
+			Now:            v.now,
+			WritersWaiting: func() bool { return true },
+		})
+		if freed != 101 {
+			t.Fatalf("freed %d of G and its 100 leaves", freed)
+		}
+		requireStored(t, v, tr, false, append(slices.Clone(leaves), "G")...)
+		requireStored(t, v, tr, true, held...)
+		requireAudit(t, v, 0)
 	})
 
 	for _, mid := range []string{"a crash", "children held again", "a second parent's release", "the freed block put again"} {

@@ -230,12 +230,16 @@ func NewVolume(
 // newCollector returns the collector of the Volume, which frees when frees is
 // set, with grace as its grace period, zero for the default.
 func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collector {
-	return block_gc.NewCollector(collectorStore{v: v}, block_gc.CollectorOptions{
+	opts := block_gc.CollectorOptions{
 		Frees: frees,
 		Grace: grace,
 		Now:   v.now,
 		Phase: v.collectorPhase,
-	})
+	}
+	if w, ok := v.kvtxStore.(kvtx.WriterQueueStore); ok {
+		opts.WritersWaiting = w.WritersWaiting
+	}
+	return block_gc.NewCollector(collectorStore{v: v}, opts)
 }
 
 // parseGrace parses the collector's grace period, zero for the default. It
