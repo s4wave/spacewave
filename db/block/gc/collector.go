@@ -45,7 +45,8 @@ import (
 //     indexes the records appended since its last look, and frees nothing
 //     until it reaches the journal's end, so nothing lands unseen between the
 //     check and the free, and the check reads one index entry per queued
-//     block rather than the journal.
+//     block rather than the journal. An entry of a record before the cursor
+//     is stale, left by a build before the index, and the check deletes it.
 //  5. A cascade decrements each child a freed block's own child list names,
 //     and queues only a stored child, one with a child list. A child without
 //     one is a hole or not yet stored: its count drops, since the parent's
@@ -684,7 +685,7 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 		var released int
 		for _, ref := range queued {
 			last = BlockKey(ref)
-			held, err := rec.journalHeld(ctx, ref)
+			held, err := rec.journalHeld(ctx, ref, state.GetCursor())
 			if err == nil && !held {
 				held, err = rec.fillHeld(ctx, ref)
 			}

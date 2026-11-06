@@ -440,10 +440,48 @@ func indexedUps(state *LivenessState, seq uint64, rec *JournalRecord) uint64 {
 	return 0
 }
 
-// journalHeld reports whether an indexed journal record not netted whole
-// adds a holder to ref.
-func (r *Records) journalHeld(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return r.anyKey(ctx, r.key(kindJournalUp, BlockKey(ref)))
+// journalHeld reports whether an indexed journal record from cursor on adds
+// a holder to ref. An entry of a record before the cursor is stale: the
+// record was netted and deleted without its entries, as a build before the
+// index does after a downgrade. It deletes each stale entry it finds and
+// looks on.
+func (r *Records) journalHeld(ctx context.Context, ref *block.BlockRef, cursor uint64) (bool, error) {
+	// Seek the block's entries.
+	prefix := r.key(kindJournalUp, BlockKey(ref))
+	it := r.tx.Iterate(ctx, prefix, true, false)
+	err := it.Seek(prefix)
+
+	// Find the first entry from the cursor on, noting the stale ones before
+	// it, which sort first.
+	var stale [][]byte
+	held := false
+	for ; err == nil && it.Valid(); it.Next() {
+		key := it.Key()
+		if len(key) != len(prefix)+8 {
+			err = errors.New("liveness journal index key is malformed")
+			break
+		}
+		if binary.BigEndian.Uint64(key[len(prefix):]) >= cursor {
+			held = true
+			break
+		}
+		stale = append(stale, bytes.Clone(key))
+	}
+	if err == nil {
+		err = it.Err()
+	}
+	it.Close()
+	if err != nil {
+		return false, err
+	}
+
+	// Delete the stale entries.
+	for _, key := range stale {
+		if err := r.tx.Delete(ctx, key); err != nil {
+			return false, err
+		}
+	}
+	return held, nil
 }
 
 // anyKey reports whether a key begins with prefix.

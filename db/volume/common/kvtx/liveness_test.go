@@ -1404,6 +1404,40 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 	})
 
+	t.Run("stale index entry", func(t *testing.T) {
+		// An entry naming R1 in a record before the cursor, as a build before
+		// the index leaves after a downgrade, holds nothing: R1 goes once
+		// main leaves it, and the entry with it.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		r1 := tr.add(t, "R1")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("R1"), []block.NamedRoot{{Name: "main", Ref: r1}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r1}}); err != nil {
+			t.Fatal(err)
+		}
+		key := append(append(append(slices.Clone(livenessPrefix), 'U'), block_gc.BlockKey(r1)...), make([]byte, 8)...)
+		err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
+			tx, err := p.store.NewTransaction(ctx, true)
+			if err != nil {
+				return err
+			}
+			return tx.Set(ctx, key, nil)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Freed != 1 {
+			t.Fatalf("freed %d past a stale index entry, want R1", res.Freed)
+		}
+		if n := countIndexEntries(t, v); n != 0 {
+			t.Fatalf("%d journal index entries remain", n)
+		}
+	})
+
 	t.Run("child named twice", func(t *testing.T) {
 		// P names the stored C twice and an empty ref. Its list keeps C once,
 		// so releasing P frees both, and the audit finds nothing.
