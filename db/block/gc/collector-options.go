@@ -33,7 +33,20 @@ type CollectorOptions struct {
 	// Phase reports each step of a pass, returning the func that ends it; nil
 	// reports nothing.
 	Phase func(Phase) func()
+	// WritersWaiting reports that a foreground writer waits on the store, as
+	// kvtx.WriterQueueStore does; nil reports none. The free and release
+	// loops stop at the next block once one waits.
+	WritersWaiting func() bool
 }
+
+// sliceTarget is how long the collector's own work in one transaction aims
+// to take, not counting the wait for the writer or the commit. The pace
+// shrinks the next slice's budgets after one ran longer.
+const sliceTarget = 2 * time.Millisecond
+
+// paceMaxShift bounds how far the pace shrinks a slice: to 1/64 of its base
+// budgets.
+const paceMaxShift = 6
 
 // DefaultGrace is the grace period of a Collector that sets none.
 const DefaultGrace = 15 * time.Minute

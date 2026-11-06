@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -119,7 +120,7 @@ func measureLargeRecordWait(t *testing.T, leaves int) {
 	// Store the leaves, then the parents and top in one batch.
 	ctx := t.Context()
 	v := openWaitVolume(t, "")
-	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+	clk := &skewClock{}
 	v.clock = clk.Now
 	tr := testTree{}
 	mids := storeLeaves(t, v, tr, leaves)
@@ -163,7 +164,7 @@ func measureWideBlockWait(t *testing.T, leaves int) {
 	// Store the leaves, then the block naming them all.
 	ctx := t.Context()
 	v := openWaitVolume(t, "")
-	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+	clk := &skewClock{}
 	v.clock = clk.Now
 	tr := testTree{}
 	mids := storeLeaves(t, v, tr, leaves)
@@ -192,6 +193,24 @@ func measureWideBlockWait(t *testing.T, leaves int) {
 		freed = collectToEnd(t, v)
 	})
 	t.Logf("one block of %d children: freed %d in %v; %s", leaves, freed, elapsed, waits)
+}
+
+// skewClock reads the wall clock moved forward by a skew, so a measurement
+// ages records past the grace period while the collector's pace still times
+// its slices on the wall clock.
+type skewClock struct {
+	// skew is how far the clock reads ahead of the wall clock.
+	skew atomic.Int64
+}
+
+// Now returns the wall clock's time plus the skew.
+func (c *skewClock) Now() time.Time {
+	return time.Now().Add(time.Duration(c.skew.Load()))
+}
+
+// Add moves the clock forward by d.
+func (c *skewClock) Add(d time.Duration) {
+	c.skew.Add(int64(d))
 }
 
 // collectToEnd runs collection passes until one reports no more work, and
