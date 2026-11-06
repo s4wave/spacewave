@@ -1136,7 +1136,7 @@ func TestLivenessAdversarial(t *testing.T) {
 
 		// An adoption interrupted while it settles the counts, with main
 		// moving onto a new R3 naming E while it counts, leaves the Volume
-		// unadopted with no count or queue.
+		// unadopted.
 		r3 := tr.add(t, "R3", "E")
 		probe := &adoptProbe{Store: collectorStore{v: v}}
 		probeCtx, cancel := context.WithCancel(ctx)
@@ -1154,9 +1154,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		if adoption := livenessAdoption(t, v); adoption != block_gc.Adoption_ADOPTION_UNADOPTED {
 			t.Fatalf("interrupted adopt left %v, want unadopted", adoption)
 		}
-		if n := countPrefix(t, store, append(slices.Clone(livenessPrefix), 'H')) + countPrefix(t, store, append(slices.Clone(livenessPrefix), 'Q')); n != 0 {
-			t.Fatalf("interrupted adopt left %d count and queue records", n)
-		}
+		// It leaves its counts for the next claim to clear, so a Close that
+		// cancels it waits for one transaction.
 
 		// A rerun counts every holder once while main moves onto a new R4
 		// naming E before it counts the roots; a root aux moves onto R1 and
@@ -1635,6 +1634,15 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	}
 	if res, err := v2.Collect(ctx); err != nil || res.Netted != 0 {
 		t.Fatalf("collect after a refused adoption netted %d err %v", res.Netted, err)
+	}
+
+	// A format 6 store opened with frees on starts no background adoption:
+	// its lists are unverified until a repair, and an adoption would refuse.
+	store4 := store_kvtx_inmem.NewStore()
+	writeLegacyStore(t, store4, keys, tr, "R1", true, "C", "R1")
+	v4, _ := openLivenessVolume(t, store4, true)
+	if v4.adoptDone != nil {
+		t.Fatal("a Volume with unverified lists started a background adoption")
 	}
 
 	// An adopted format 7 store where main holds B, which a fill stored

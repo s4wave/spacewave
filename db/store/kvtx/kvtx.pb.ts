@@ -29,8 +29,11 @@ export interface Config {
   /**
    * CollectorFrees turns on the Volume collector's frees. Off, the collector
    * still releases lapsed leases and nets the journal, so its counts stay
-   * current, and frees nothing. It stays off until a rehearsal on a restored
-   * copy of the Volume has shown the collector frees no live block.
+   * current, and frees nothing. Turning it on also adopts an unadopted
+   * Volume, such as one upgraded from an older format, in the background at
+   * its next open. It stays off until a rehearsal on a restored copy of the
+   * Volume, covering that adoption, has shown the collector frees no live
+   * block.
    */
   collectorFrees?: boolean
   /**

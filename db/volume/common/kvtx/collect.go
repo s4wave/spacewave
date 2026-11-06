@@ -3,6 +3,7 @@ package kvtx
 import (
 	"bytes"
 	"context"
+	"errors"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -139,9 +140,12 @@ func (v *Volume) runBackgroundAdopt(ctx context.Context) {
 	defer close(v.adoptDone)
 	res, err := v.Adopt(ctx)
 	switch {
-	case err != nil && ctx.Err() == nil && v.le != nil:
+	case v.le == nil || ctx.Err() != nil:
+	case errors.Is(err, block_gc.ErrAdoptSuperseded):
+		v.le.WithError(err).Info("background adoption of the volume left to another run")
+	case err != nil:
 		v.le.WithError(err).Warn("background adoption of the volume failed")
-	case err == nil && v.le != nil:
+	default:
 		v.le.WithField("blocks", res.Blocks).WithField("queued", res.Queued).Info("adopted the volume")
 	}
 }
