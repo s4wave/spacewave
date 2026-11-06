@@ -81,8 +81,8 @@ var (
 // IsSuperseded reports whether err says another writer moved the head after
 // the write's base, so the write may run again from a new transaction. Every
 // retry site matches through it, so a change of the sentinel reaches them all.
-// The SharedObject World engine still reports a stale base as
-// coord.ErrStaleGeneration.
+// coord.ErrStaleGeneration counts too: a coordinator reports a write lease
+// that lost its generation with it.
 func IsSuperseded(err error) bool {
 	return errors.Is(err, ErrSuperseded) || errors.Is(err, coord.ErrStaleGeneration)
 }

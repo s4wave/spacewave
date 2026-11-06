@@ -31,8 +31,11 @@ type Turn interface {
 // World's named root: a turn holds the lease, and a candidate is accepted
 // and durable at once when the swap lands, or superseded when another writer
 // moved the root first. The Space Authority queues the candidate as an
-// operation, accepts it when the sequencer places it after Base, and reports
-// it durable when a checkpoint records its root.
+// operation and decides it when the SharedObject's replay applies it:
+// accepted when it applied at its position, superseded when replay refused it
+// as a conflict. An accepted candidate is durable at once, because the
+// SharedObject holds its operation durably and replay rebuilds the head from
+// it after a restart.
 type Authority interface {
 	// Head returns the current head.
 	Head(ctx context.Context) (Head, error)
