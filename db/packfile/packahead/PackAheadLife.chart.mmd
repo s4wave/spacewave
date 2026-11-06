@@ -1,0 +1,39 @@
+---
+title: "One pack: appended, finalized, uploaded, evicted"
+---
+stateDiagram-v2
+  s0: open
+  s1: open, crashed
+  s2: finalized
+  s3: object uploaded
+  s4: index written
+  s5: entry written
+  s6: registered
+  s7: index written, crashed
+  s8: evicted
+  s9: finalized, crashed
+  s10: object uploaded, crashed
+  s11: entry written, crashed
+  s12: registered, crashed
+  s13: evicted, crashed
+  [*] --> s0
+  s0 --> s1: crash
+  s1 --> s2: recover: truncate to the last good record, finalize
+  s2 --> s3: upload the file
+  s0 --> s4: write and sync the index
+  s3 --> s5: write the entry
+  s4 --> s2: rename and sync the directory
+  s4 --> s7: crash
+  s5 --> s6: register its keys
+  s2 --> s9: crash
+  s6 --> s8: unlink
+  s7 --> s2: recover: truncate to the last good record, finalize
+  s3 --> s10: crash
+  s9 --> s2: recover
+  s5 --> s11: crash
+  s10 --> s3: recover
+  s6 --> s12: crash
+  s11 --> s5: recover
+  s8 --> s13: crash
+  s12 --> s6: recover
+  s13 --> s8: recover
