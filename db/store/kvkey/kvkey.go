@@ -23,7 +23,11 @@ import (
 // Version 7 keeps liveness in child lists, named roots, count records and a
 // journal under the prefix the graph held; it keeps the graph's child lists in
 // place and carries its named roots across.
-const FormatVersion = 7
+// Version 8 keys are those of version 7. A cache fill journals its children's
+// holders in a fill record instead of writing a fill mark, so a version 7
+// store opens unadopted and its adoption counts the lists format 7's fills
+// left without holders.
+const FormatVersion = 8
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

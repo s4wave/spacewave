@@ -52,7 +52,7 @@ func TestCacheFillOptimistic(t *testing.T) {
 			entry := &block.PutBatchEntry{Data: data, Refs: refs, RefsKnown: true}
 			done <- v.withDirectFill(ctx, func(p *physicalTx) error {
 				attempts++
-				found, err := block_gc.LandFill(ctx, p.rec, p.blocks, []*block.PutBatchEntry{entry})
+				found, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), []*block.PutBatchEntry{entry})
 				if err != nil || attempts != 1 {
 					if err == nil {
 						existed = found[0]

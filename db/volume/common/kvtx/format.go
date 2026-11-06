@@ -45,7 +45,10 @@ const (
 // this binary supports fails with a permanent error, since only a newer binary
 // can open it.
 //
-// Format 7 keeps liveness in child lists, named roots and count records. An
+// Format 8 keeps liveness in child lists, named roots, count records, the
+// journal and fill records; a format 7 store opens unadopted, as
+// unadoptFormat7 describes. Format 7 kept liveness the same way, with fill
+// marks instead of fill records. An
 // empty store starts adopted. Any other store keeps the child lists format 4
 // and later wrote, in place under the liveness prefix, gains the named roots
 // its reference graph held, and is left unadopted: it keeps no journal and
@@ -80,6 +83,14 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		return version, writeFormat(ctx, store, keys, state)
 	}
 
+	// Leave a format 7 store unadopted with its records as they are: a fill
+	// there wrote a fill mark and gave its block's children no holder, so the
+	// counts hold too few, and the adoption counts every list again and
+	// clears the marks.
+	if version == 7 {
+		return version, unadoptFormat7(ctx, store, keys)
+	}
+
 	// Rekey the blocks of a store that keyed them by base58 text, and delete
 	// the graph formats 1 and 2 kept outside the liveness prefix.
 	if version == 0 {
@@ -112,6 +123,28 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		UnverifiedLists: true,
 	}
 	return version, writeFormat(ctx, store, keys, state)
+}
+
+// unadoptFormat7 returns a format 7 store's liveness state to unadopted,
+// keeping its other fields, and records the current format, in one durable
+// commit.
+func unadoptFormat7(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
+	// Read the state.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	state, err := block_gc.NewRecords(tx, livenessPrefix).GetState(ctx)
+	tx.Discard()
+	if err != nil {
+		return err
+	}
+
+	// Write it back unadopted, with no run.
+	state = state.CloneVT()
+	state.Adoption = block_gc.Adoption_ADOPTION_UNADOPTED
+	state.AdoptionRun = ""
+	return writeFormat(ctx, store, keys, state)
 }
 
 // writeFormat writes the liveness state and the current format version in one

@@ -14,8 +14,8 @@ import (
 // Collector frees the blocks of a Volume that no held named root reaches. It
 // nets the journal Land appends after the fact, cascades through child lists
 // and frees through the free queue. Journal.tla models it: Collect's lease
-// sweep is Sweep, netSlice is Net(k), freeBlock is Delete(b), and a block
-// without a child list is the model's hole.
+// sweep is Sweep, netSlice is Net(k), netFillSlice is NetFill, freeBlock is
+// Delete(b), and a block without a child list is the model's hole.
 //
 // Between two transactions a pass checks only that ctx is live. The store
 // admits a writer that waited before the pass's next transaction, as
@@ -47,7 +47,8 @@ import (
 //     one is a hole or not yet stored: its count drops, since the parent's
 //     Land counted it, but it is never freed, and its own children, unknown
 //     here, are untouched. The audit, not the collector, finds what a hole
-//     leaked.
+//     leaked. A block a cache fill gave birth to frees like any other: its
+//     fill record held its children.
 //  6. A count change that would go below zero is refused, and the block it
 //     names is kept with one holder: a holder vanished that the journal never
 //     added, so the counts cannot be trusted for it.
@@ -62,6 +63,21 @@ import (
 //     that root for the life of its write under a leased pin, or the World
 //     engine's pending root does for it. Land does not check that a child a
 //     put names is stored, so a writer past these rules names a hole.
+//  8. It nets each fill record whole, in one transaction, once it is Grace
+//     old, before or after the journal records that name the same blocks.
+//     The holders a block reaches do not depend on that order, only the
+//     moments it passes zero do: a fill record's down netted before the up
+//     of a root that holds the filled block, or a journal down netted before
+//     the up a fill gave a child, queues a block another record holds. The
+//     tail check of invariant 4 covers both: in each free transaction it
+//     also reads the fill records not netted yet that hold the block, by
+//     their hold index, so a fill that landed after the block was queued
+//     keeps it. A fill that lands after the free names a block no stored
+//     block reached when it was freed; a read fills it again. A fill record
+//     stamped after the collector's clock waits until the clock passes it,
+//     since no other record queues behind it. While the Volume is unadopted
+//     the collector deletes the fill records, which the adoption's count of
+//     every child list replaces.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -122,12 +138,19 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED
 		return err
 	})
-	if err != nil || !adopted {
+	if err != nil {
+		return res, err
+	}
+	if !adopted {
+		res.More, err = c.dropFills(ctx, deadline)
 		return res, err
 	}
 
-	// Net the aged journal records.
+	// Net the aged journal and fill records.
 	more, err := c.net(ctx, &res, deadline)
+	if err == nil && !more {
+		more, err = c.netFills(ctx, &res, deadline)
+	}
 	if err != nil || more {
 		res.More = more
 		return res, err
@@ -314,6 +337,136 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 		return rec.SetState(ctx, state)
 	})
 	return full, err
+}
+
+// netFills nets the aged fill records in slices until none is left or the
+// deadline passes, and reports whether aged records remain.
+func (c *Collector) netFills(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
+	defer c.phase(PhaseNet)()
+	for {
+		more, err := c.netFillSlice(ctx, res)
+		if err != nil || !more {
+			return false, err
+		}
+		if c.opts.Now().After(deadline) {
+			return true, nil
+		}
+		if err := context.Cause(ctx); err != nil {
+			return false, err
+		}
+	}
+}
+
+// netFillSlice nets up to sliceRecords fill records at least Grace old, and
+// up to slicePairs pairs, in one transaction, each record whole: it sums
+// their pairs, applies each block's delta as netSlice does, and deletes the
+// records with their hold index entries. It takes a first record larger than
+// the pair budget alone. It reports whether it filled the slice.
+func (c *Collector) netFillSlice(ctx context.Context, res *CollectResult) (bool, error) {
+	var full bool
+	err := c.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+		// Net only an adopted Volume.
+		state, err := rec.GetState(ctx)
+		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+			return err
+		}
+
+		// Take the aged records from the oldest, within the slice's budgets.
+		horizon := c.opts.Now().UnixMilli() - c.opts.Grace.Milliseconds()
+		budget := slicePairs
+		var taken []fillRecord
+		err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
+			// Stop at an unaged record or a full slice; a first record is
+			// taken whole however large.
+			pairs := len(fr.rec.GetUp()) + len(fr.rec.GetDown())
+			switch {
+			case fr.rec.GetAtUnixMilli() > horizon:
+				return false, nil
+			case len(taken) == sliceRecords || (len(taken) != 0 && pairs > budget):
+				full = true
+				return false, nil
+			}
+			taken = append(taken, fr)
+			budget -= pairs
+			return true, nil
+		})
+		if err != nil || len(taken) == 0 {
+			return err
+		}
+
+		// Sum their pairs and apply each block's delta, in key order.
+		deltas := make(map[string]int)
+		for _, fr := range taken {
+			for _, up := range fr.rec.GetUp() {
+				deltas[string(up)]++
+			}
+			for _, down := range fr.rec.GetDown() {
+				deltas[string(down)]--
+			}
+		}
+		for _, key := range slices.Sorted(maps.Keys(deltas)) {
+			if deltas[key] == 0 {
+				continue
+			}
+			if err := c.applyDelta(ctx, rec, []byte(key), deltas[key], res); err != nil {
+				return err
+			}
+		}
+
+		// Delete the records.
+		for _, fr := range taken {
+			if err := rec.deleteFillRecord(ctx, fr); err != nil {
+				return err
+			}
+		}
+		res.Netted += uint64(len(taken))
+		return nil
+	})
+	return full, err
+}
+
+// dropFills deletes the fill records of an unadopted Volume in slices until
+// none is left or the deadline passes, and reports whether records remain.
+// The adoption counts every child list the fills wrote, so their records only
+// grow the store until then.
+func (c *Collector) dropFills(ctx context.Context, deadline time.Time) (bool, error) {
+	for {
+		// Delete the next slice while the Volume is unadopted.
+		var n int
+		err := c.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+			// Leave the records of an adopting or adopted Volume.
+			state, err := rec.GetState(ctx)
+			if err != nil || state.GetAdoption() != Adoption_ADOPTION_UNADOPTED {
+				return err
+			}
+
+			// Take the next records and delete them.
+			var taken []fillRecord
+			err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
+				taken = append(taken, fr)
+				return len(taken) < sliceRecords, nil
+			})
+			if err != nil {
+				return err
+			}
+			n = len(taken)
+			for _, fr := range taken {
+				if err := rec.deleteFillRecord(ctx, fr); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil || n < sliceRecords {
+			return false, err
+		}
+		if c.opts.Now().After(deadline) {
+			return true, nil
+		}
+		if err := context.Cause(ctx); err != nil {
+			return false, err
+		}
+	}
 }
 
 // clampFuture restamps the journal records, stamped after now by a clock
@@ -504,6 +657,14 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 				res.Kept++
 				continue
 			}
+			filled, err := rec.fillHeld(ctx, ref)
+			if err != nil {
+				return err
+			}
+			if filled {
+				res.Kept++
+				continue
+			}
 			n, err := c.freeBlock(ctx, rec, blocks, p, ref, res)
 			if err != nil {
 				return err
@@ -567,12 +728,7 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 	}
 	res.Freed++
 
-	// Take its holder from each child, unless a cache fill gave birth to it
-	// and gave its children none.
-	filled, err := rec.takeFillMark(ctx, ref)
-	if err != nil || filled {
-		return 0, err
-	}
+	// Take its holder from each child.
 	for _, child := range children {
 		if err := c.release(ctx, rec, p, child, res); err != nil {
 			return 0, err
