@@ -370,9 +370,17 @@ func (e *Engine) syncHeadLocked(ctx context.Context) (bool, error) {
 // Can return an error to indicate validation failure.
 // An engine with an Authority refuses it: the Authority owns its head.
 func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
-	// Refuse a head the Authority did not decide.
+	// Refuse a head the Authority did not decide, and decode its World root
+	// before taking the Engine lock.
 	if e.authority != nil {
 		return ErrAuthorityHead
+	}
+	if err := ref.Validate(); err != nil {
+		return err
+	}
+	rootBlock, err := e.decodeRoot(ctx, ref)
+	if err != nil {
+		return err
 	}
 
 	// Install the head under the Engine lock.
@@ -381,7 +389,7 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 		locked.Unlock()
 		return e.closedErr()
 	}
-	retirement, err := e.setRootRefLocked(ctx, ref)
+	retirement, err := e.installRootRefLocked(ctx, ref, true, rootBlock)
 	locked.Unlock()
 
 	// Retired readers may reenter the engine during cleanup.
@@ -433,6 +441,17 @@ func (e *Engine) followHead(head world.Head) {
 		}
 	}
 
+	// Decode the head's World root before taking the Engine lock.
+	ref := p.ref.Clone()
+	ref.RootRef = head.Root.Clone()
+	rootBlock, err := e.decodeRoot(ctx, ref)
+	if err != nil {
+		if !errors.Is(err, ErrEngineClosed) {
+			e.le.WithError(err).Warn("unable to read the World head the authority reported")
+		}
+		return
+	}
+
 	// Hold the engine unless the published head moved meanwhile.
 	locked = e.bcast.Lock()
 	if e.closed || e.pub.Load() != p {
@@ -441,9 +460,7 @@ func (e *Engine) followHead(head world.Head) {
 	}
 
 	// Install the head, keeping a local writer, then drain what it replaced.
-	ref := e.head.root.GetRef().Clone()
-	ref.RootRef = head.Root.Clone()
-	retirement, err := e.installRootRefLocked(ctx, ref, false, nil)
+	retirement, err := e.installRootRefLocked(ctx, ref, false, rootBlock)
 	if err == nil {
 		e.direct = nil
 	}
@@ -454,12 +471,32 @@ func (e *Engine) followHead(head world.Head) {
 	}
 }
 
-// setRootRefLocked updates the root reference while bcast is locked.
-func (e *Engine) setRootRefLocked(
-	ctx context.Context,
-	ref *bucket.ObjectRef,
-) (engineRetirement, error) {
-	return e.installRootRefLocked(ctx, ref, true, nil)
+// decodeRoot decodes the World root ref names without the Engine lock, so an
+// install under the lock decodes nothing. Close joins it as a read open.
+func (e *Engine) decodeRoot(ctx context.Context, ref *bucket.ObjectRef) (*World, error) {
+	// Count the decode so Close joins it, unless the Engine has closed.
+	e.snapMu.Lock()
+	if e.snapClosed {
+		e.snapMu.Unlock()
+		return nil, ErrEngineClosed
+	}
+	e.opening++
+	e.snapMu.Unlock()
+	defer func() {
+		e.snapMu.Lock()
+		e.opening--
+		e.signalSnapLocked()
+		e.snapMu.Unlock()
+	}()
+
+	// Follow the ref and decode its root.
+	root, err := e.baseRoot.FollowRef(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Release()
+	_, bcs := root.BuildTransactionWithStore(nil, e.writeBlockStore)
+	return UnmarshalWorld(ctx, bcs)
 }
 
 // installRootRefLocked can preserve the active provisional successor. Durable
@@ -748,9 +785,20 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	}
 	base := turn.Base()
 
-	// Trace building the write state under the engine lock.
+	// Trace building the write state, and decode the World root of a base
+	// readers do not see yet before taking the engine lock.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction/build-world-state")
 	defer subtask.End()
+	var baseBlock *World
+	if p := e.pub.Load(); p != nil && !base.Root.GetEmpty() && !base.Root.EqualsRef(p.ref.GetRootRef()) {
+		ref := p.ref.Clone()
+		ref.RootRef = base.Root.Clone()
+		if baseBlock, err = e.decodeRoot(taskCtx, ref); err != nil {
+			turn.Release()
+			relLock()
+			return nil, err
+		}
+	}
 	locked := e.bcast.Lock()
 
 	// A failure releases the base's replacement, the turn and the writer
@@ -780,7 +828,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		switch {
 		case base.Durable && base.Seqno >= e.headSeqnoLocked():
 			// Publish a newer durable base another writer committed.
-			if retirement, err = e.setRootRefLocked(taskCtx, ref); err != nil {
+			if retirement, err = e.installRootRefLocked(taskCtx, ref, true, baseBlock); err != nil {
 				return fail(retirement, err)
 			}
 			e.direct = &world.Head{Root: base.Root.Clone(), Seqno: base.Seqno, Durable: true}
@@ -791,7 +839,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 			if private, err = e.baseRoot.FollowRef(taskCtx, ref); err != nil {
 				return fail(retirement, err)
 			}
-			root = private
+			root, rootBlock = private, baseBlock
 			if a := e.admitted; a != nil && a.root.EqualsRef(base.Root) {
 				rootBlock = a.world
 			}
