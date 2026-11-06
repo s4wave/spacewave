@@ -79,6 +79,25 @@
 \* process's own collector renews its own leases first, so it releases only
 \* those of owners that are gone, which is a subset of these behaviors.
 \*
+\* Cache fills. A fill copies a block a peer holds into the store when a read
+\* misses, and is an ordinary unheld put: it stores the block with its child
+\* list, journals an up pair for each child the list names and a down pair
+\* for the block's own implied holder, as a block born with no holder does.
+\* Its children are held from the moment it lands, and the block itself is
+\* garbage after Grace unless something holds it. A fill lands at any time,
+\* also after a root came to hold its parent without putting the block. Its
+\* record goes to a keyspace of its own, keyed by the block, as a blind write
+\* with no shared sequence number, so an optimistic fill never conflicts with
+\* a commit over the journal's bookkeeping. The collector nets each aged fill
+\* record whole and alone, before or after the main records that name the
+\* same blocks: the sums do not depend on the order, and a block a fill's
+\* down or a main down brings to zero while the other record's up is still
+\* pending stays on the free queue, where the tail check keeps it, because
+\* the tail is the main journal past the cursor together with every fill
+\* record not netted yet. A fill that lands after its child was queued is in
+\* that tail when the free transaction reads it; one that lands after the
+\* free names a block no stored block reached when it was freed.
+\*
 \* Mapping to Go, one action to one transaction:
 \*   Land            Volume.SetRoots(entries, roots) in db/volume/common/kvtx,
 \*                   which is block_gc.Land: checks each root's Previous
@@ -133,6 +152,11 @@
 \*   AdoptCrash(r)   the process running r dies, or r fails: it stops.
 \*   Open            block_gc.ResetAdoption from NewVolume, in a restarted
 \*                   process or another one on the same store.
+\*   Fill(b)         block_gc.LandFill, from a cache fill on the Volume's
+\*                   read path, with its fill record.
+\*   NetFill(r)      the collector netting one aged fill record whole.
+\*   HoldStored(w,r) a root moving onto a block the store holds without a put
+\*                   of its tree, such as a copy that finds its head stored.
 \*   Punch(b)        a hole: a block the store lost with its child list.
 \*   Tick            the clock Grace, Window and leases are read on.
 \*
@@ -234,12 +258,21 @@
 \*              testdata/Journal-stage-norehold.cfg: sT lapses and is swept,
 \*              the renewal finds nothing to renew and reports success, and T
 \*              is freed while the owner builds on it.
+\*   FillUps    FALSE journals no up pair for a fill's children, as a fill
+\*              mark did. testdata/Journal-fill-noups.cfg: a read fills C2,
+\*              which names F, and gives F no holder; C2 is unheld and is
+\*              freed after Grace, its release takes C's holder from F, and F
+\*              is freed while main reaches it through R1 and C.
 \*   StageCAS   FALSE releases a stage root only when the table holds it.
 \*              testdata/Journal-stage-nocas.cfg: the owner stalls past
 \*              Lease and Grace, T is freed, and its next put lands S over
 \*              the freed T.
 \*
-\* Left out: the format 7 upgrade (an unadopted Volume here holds every
+\* Left out: fills while a Volume is unadopted or adopting, where the
+\* adoption's clear deletes the fill records and its scan counts a filled
+\* block's children, so a fill that lands during the run counts them twice
+\* and keeps them longer; a fill of a recorded hole, which LandFill stores as
+\* a refill, journaling nothing; the format 7 upgrade (an unadopted Volume here holds every
 \* child list it names), the audit, the refusal of blocks stored without a
 \* child list, slices larger than one record (they are runs of one-record
 \* slices with no writer between), an abandoned run's cleanup (an unadopted
@@ -255,7 +288,8 @@ CONSTANTS Writers, MaxTxns, MaxNow, Grace, Window, Lease, MaxHoles,
           TailCheck, Held, HoleStop, Reput, CAS, PutPair,
           Runs, MaxOpens, RunCheck, Claim, BornMark, RootMark,
           Stage, Rehold, StageCAS,
-          Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted
+          Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
+          FillBlocks, FillUps, Holds
 
 None == "none"
 Unmoved == "unmoved"
@@ -331,15 +365,20 @@ VARIABLES
   wrote,     \* the blocks each writer's session put
   skipped,   \* the blocks each writer's session found stored and did not put
   sheld,     \* the blocks each writer's stage holds under its leased roots
-  freed      \* blocks the collector freed that no put stored again
+  freed,     \* blocks the collector freed that no put stored again
+  fj,        \* the fill records not netted yet
+  freedLive  \* the collector freed a block a held root reached through
+             \* stored blocks
 gcVars == <<cnt, zero, under>>
-landVars == <<born, moved, sheld, freed>>
+fillVars == <<fj, freedLive>>
+landVars == <<born, moved, sheld, freed, fillVars>>
 adoptVars == <<adoption, owner, pc, pos, opens>>
 stageVars == <<stage, renewed>>
 writerVars == <<tgt, began, wrote, skipped>>
 vars == <<root, expires, stored, lost, cnt, zero, jr, under, now, obs, seen,
           seenAt, txns, holes, adoption, owner, pc, pos, born, moved, opens,
-          stage, renewed, tgt, began, wrote, skipped, sheld, freed>>
+          stage, renewed, tgt, began, wrote, skipped, sheld, freed, fj,
+          freedLive>>
 
 Init ==
   /\ root = [n \in Names |->
@@ -373,6 +412,8 @@ Init ==
   /\ skipped = [w \in Writers |-> {}]
   /\ sheld = [w \in Writers |-> {}]
   /\ freed = {}
+  /\ fj = {}
+  /\ freedLive = FALSE
 
 \* The holders the netted counts give b.
 Holders(b) == IF b \in zero THEN 0 ELSE cnt[b] + 1
@@ -448,6 +489,7 @@ LandCore(batch, moves, holds, rels) ==
                  ELSE moved
      /\ freed' = freed \ batch
      /\ txns' = txns + 1
+     /\ UNCHANGED fillVars
 
 Land(batch, moves) == LandCore(batch, moves, {}, {}) /\ sheld' = sheld
 
@@ -470,6 +512,15 @@ Observe(w) ==
 Commit(w, r) ==
   /\ obs[w] # None /\ r # obs[w]
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "main", from |-> obs[w], to |-> r]})
+  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+                 stageVars, writerVars>>
+
+\* HoldStored moves main from the observed head onto r, a block the store
+\* holds, without putting its tree: r may be a filled block whose children
+\* the store lacks, which a read fills later.
+HoldStored(w, r) ==
+  /\ Holds /\ obs[w] # None /\ r # obs[w] /\ r \in stored
+  /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> r]})
   /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
                  stageVars, writerVars>>
 
@@ -696,6 +747,21 @@ StageRenew ==
 \* ---------------------------------------------------------------------------
 \* The collector.
 
+\* The up and down pairs of the fill records not netted yet that name b.
+FUps(b) == Cardinality({r \in fj : \E x \in r.up : x[2] = b})
+FDowns(b) == Cardinality({r \in fj : \E x \in r.down : x[2] = b})
+
+\* What a held root reaches through stored blocks: a block a stored block
+\* names is reached, and so are its children only while it is stored.
+RECURSIVE StoredReach(_)
+StoredReach(b) ==
+  {b} \cup IF b \in stored THEN UNION {StoredReach(k) : k \in Kids(b)} ELSE {}
+\* The blocks the writers' sessions have still to put.
+ToPutNow == UNION {IF tgt[w] = None THEN {} ELSE Unsent(w) : w \in Writers}
+StoredLive ==
+  UNION {StoredReach(b) :
+           b \in ({root[n] : n \in Names} \ {None}) \cup UNION {sheld[w] : w \in Writers}}
+
 \* Net consumes the first k records as one interval; every one has aged Grace.
 Net(k) ==
   /\ adoption = "adopted"
@@ -723,7 +789,7 @@ Decrement(b) ==
 Delete(b) ==
   /\ adoption = "adopted"
   /\ b \in zero
-  /\ TailCheck => Ups(Pending, b) = 0
+  /\ TailCheck => Ups(Pending, b) = 0 /\ FUps(b) = 0
   /\ LET d == [c \in Blocks |-> IF c \in Decrement(b) THEN -1 ELSE 0]
          s == Step(IF ReleaseUnlisted THEN (Blocks \ {b}) \ lost
                    ELSE stored \ {b}, d)
@@ -732,8 +798,42 @@ Delete(b) ==
         /\ zero' = s.zero
         /\ under' = (under \/ s.under)
   /\ freed' = freed \cup {b}
+  /\ freedLive' = (freedLive \/ b \in StoredLive \ ToPutNow)
   /\ UNCHANGED <<root, expires, lost, jr, now, obs, seen, seenAt, txns, holes,
-                 born, moved, sheld, adoptVars, stageVars, writerVars>>
+                 born, moved, sheld, fj, adoptVars, stageVars, writerVars>>
+
+\* Fill stores b, a block a peer holds, with its child list, and writes its
+\* record: an up pair for each child, with FillUps, and a down pair for its
+\* own implied holder. It reads no liveness state.
+Fill(b) ==
+  /\ b \in FillBlocks /\ b \notin stored \cup lost /\ Live
+  /\ adoption = "adopted"
+  /\ stored' = stored \cup {b}
+  /\ freed' = freed \ {b}
+  /\ fj' = fj \cup {[b |-> b, at |-> now,
+                     up |-> IF FillUps THEN {<<b, k>> : k \in Kids(b)} ELSE {},
+                     down |-> {<<"fill", b>>}]}
+  /\ txns' = txns + 1
+  /\ UNCHANGED <<root, expires, lost, gcVars, jr, now, obs, seen, seenAt, holes,
+                 born, moved, sheld, freedLive, adoptVars, stageVars,
+                 writerVars>>
+
+\* NetFill nets one aged fill record whole, in one transaction, whenever the
+\* collector reaches it: before or after the main records naming its blocks.
+NetFill(r) ==
+  /\ adoption = "adopted"
+  /\ r \in fj /\ r.at + Grace <= now
+  /\ LET d == [b \in Blocks |->
+                 Cardinality({x \in r.up : x[2] = b}) -
+                 Cardinality({x \in r.down : x[2] = b})]
+         s == Step(Blocks, d)
+     IN /\ cnt' = s.cnt
+        /\ zero' = s.zero
+        /\ under' = (under \/ s.under)
+  /\ fj' = fj \ {r}
+  /\ UNCHANGED <<root, expires, stored, lost, jr, now, obs, seen, seenAt, txns,
+                 holes, born, moved, sheld, freed, freedLive, adoptVars,
+                 stageVars, writerVars>>
 
 \* ---------------------------------------------------------------------------
 \* Adoption: runs r of block_gc.Adopt, one transaction per action.
@@ -764,7 +864,8 @@ Go(r, step) ==
 
 AdoptUnchanged ==
   UNCHANGED <<root, expires, stored, lost, under, jr, now, obs, seen, seenAt,
-              txns, holes, opens, sheld, freed, stageVars, writerVars>>
+              txns, holes, opens, sheld, freed, fillVars, stageVars,
+              writerVars>>
 
 \* AdoptStart reports an adopted Volume, and otherwise returns it to
 \* unadopted, superseding any run, and with Claim names r in it.
@@ -904,12 +1005,13 @@ Tick ==
                  txns, holes, landVars, adoptVars, stageVars, writerVars>>
 
 NetAny == \E k \in 1..Len(jr) : Net(k)
+NetFillAny == \E r \in fj : NetFill(r)
 DeleteAny == \E b \in Blocks : Delete(b)
 
 Next ==
   \/ \E w \in Writers :
        \/ Observe(w)
-       \/ \E r \in MainRoots : Commit(w, r)
+       \/ \E r \in MainRoots : Commit(w, r) \/ HoldStored(w, r)
        \/ \E r \in StageRoots : StageWrite(w, r) \/ AdoptStage(w, r)
        \/ StagePublish(w)
        \/ \E r \in MainRoots : SessionBegin(w, r)
@@ -925,12 +1027,14 @@ Next ==
        \/ AdoptList(r) \/ AdoptSettle(r) \/ AdoptEnd(r) \/ AdoptCrash(r)
   \/ Open
   \/ \E b \in Blocks : Punch(b)
+  \/ \E b \in FillBlocks : Fill(b)
+  \/ NetFillAny
   \/ Tick
   \/ NetAny
   \/ DeleteAny
 
 Spec == Init /\ [][Next]_vars /\ WF_vars(Tick) /\ WF_vars(NetAny)
-          /\ WF_vars(DeleteAny)
+          /\ WF_vars(NetFillAny) /\ WF_vars(DeleteAny)
 
 \* ---------------------------------------------------------------------------
 \* Properties.
@@ -946,8 +1050,18 @@ Adopted == adoption = "adopted"
 \* a writer skipped is not one it has to put. This covers main moved by
 \* compare and swap while a pass ran, a reader's pin, a stage, every adoption
 \* and every writer session.
-ToPut == UNION {IF tgt[w] = None THEN {} ELSE Unsent(w) : w \in Writers}
+ToPut == ToPutNow
 NoFreedRead == (LiveSet \cap freed) \subseteq ToPut
+
+\* No block a held root reached through stored blocks when it was freed was
+\* freed, but one a session has still to put. A stored block may name a
+\* child the store lacks, which a read fills, so this walk stops at a block
+\* the store does not hold, where NoFreedRead walks every child.
+NoFreedStoredRead == ~freedLive
+
+\* At most one fill record names a block, so keying the records by block
+\* loses none.
+OneFillRecord == \A r1, r2 \in fj : r1.b = r2.b => r1 = r2
 
 \* A reader that saw a head and still has time to pin it finds all of it.
 ReaderWindow ==
@@ -966,7 +1080,8 @@ TrueHolders(b) ==
   Cardinality({p \in stored : b \in Kids(p)})
 
 \* The netted holders plus the journal past the cursor.
-JournalHolders(b) == Holders(b) + Ups(Pending, b) - Downs(Pending, b)
+JournalHolders(b) ==
+  Holders(b) + Ups(Pending, b) + FUps(b) - Downs(Pending, b) - FDowns(b)
 
 \* Once adopted, the journal never counts fewer holders than a block has:
 \* fewer frees a live block. More leaks, which only a hole may cause.
@@ -980,7 +1095,7 @@ CountsExact ==
 \* A lost block's children stay stored: the cascade stopped at the hole.
 HoleKeeps == \A h \in lost : Kids(h) \subseteq stored \cup lost
 
-Quiet == Adopted /\ jr = <<>> /\ zero = {}
+Quiet == Adopted /\ jr = <<>> /\ fj = {} /\ zero = {}
 
 \* Once the journal is consumed and the free queue empty, the store holds what
 \* the roots reach and what lies below a hole: the audit's Leaked.
