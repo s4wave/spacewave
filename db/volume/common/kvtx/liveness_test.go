@@ -825,6 +825,112 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	// main holds P naming B, which the Volume lacks, on an unadopted Volume,
+	// and a read fills B at a point of an adoption: while it counts the
+	// child lists, or between its clear and its mark. Either way B keeps
+	// P's holder after the grace period. The hooks also check the probe's
+	// positions against the adoption state.
+	for _, at := range []struct {
+		name  string
+		pos   int
+		state block_gc.Adoption
+	}{
+		{"during the list scan", adoptCountChildren, block_gc.Adoption_ADOPTION_ADOPTING},
+		{"between the clear and the mark", adoptMark, block_gc.Adoption_ADOPTION_UNADOPTED},
+	} {
+		t.Run("cache fill "+at.name, func(t *testing.T) {
+			// Store P naming the missing B under main.
+			store := store_kvtx_inmem.NewStore()
+			setUnadopted(t, store)
+			v, clk := openUnadoptedVolume(t, store)
+			ctx := t.Context()
+			tr := testTree{}
+			tr.add(t, "B")
+			p := tr.add(t, "P", "B")
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+				t.Fatal(err)
+			}
+
+			// Adopt, filling B at the point.
+			probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+				at.pos: func() {
+					if got := livenessAdoption(t, v); got != at.state {
+						t.Errorf("adoption at position %d is %v, want %v", at.pos, got, at.state)
+					}
+					err := v.withDirectFill(ctx, func(px *physicalTx) error {
+						_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v.now(), tr.entries("B"))
+						return err
+					})
+					if err != nil {
+						t.Error(err)
+					}
+				},
+			}}
+			if _, err := block_gc.Adopt(ctx, probe); err != nil || len(probe.at) != 0 {
+				t.Fatalf("adopt = %v with %d fills left", err, len(probe.at))
+			}
+
+			// B keeps P's holder, and goes once main lets P go.
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+			requireStored(t, v, tr, true, "P", "B")
+			requireAudit(t, v, 0)
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: p}}); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+			requireStored(t, v, tr, false, "P", "B")
+		})
+	}
+
+	// A Volume reopens with fill records not netted yet: adopted, they net
+	// after the reopen; unadopted with frees on, the background adoption
+	// clears them and counts the lists. Either way B keeps P's holder, and
+	// the unheld fill G goes.
+	for _, adopted := range []bool{true, false} {
+		t.Run("reopen with fill records adopted="+strconv.FormatBool(adopted), func(t *testing.T) {
+			// Store P naming the missing B under main, then fill B and G.
+			store := store_kvtx_inmem.NewStore()
+			if !adopted {
+				setUnadopted(t, store)
+			}
+			v1, _ := openUnadoptedVolume(t, store)
+			ctx := t.Context()
+			tr := testTree{}
+			tr.add(t, "B")
+			tr.add(t, "G")
+			p := tr.add(t, "P", "B")
+			if err := v1.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "main", Ref: p}}); err != nil {
+				t.Fatal(err)
+			}
+			err := v1.withDirectFill(ctx, func(px *physicalTx) error {
+				_, err := block_gc.LandFill(ctx, px.rec, px.blocks, v1.now(), tr.entries("B", "G"))
+				return err
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := v1.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			// Reopen with frees on, wait for any adoption, and collect.
+			v, clk := openLivenessVolume(t, store, true)
+			if v.adoptDone != nil {
+				<-v.adoptDone
+			}
+			if got := livenessAdoption(t, v); got != block_gc.Adoption_ADOPTION_ADOPTED {
+				t.Fatalf("reopened Volume is %v, want adopted", got)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+			requireStored(t, v, tr, true, "P", "B")
+			requireStored(t, v, tr, false, "G")
+			requireAudit(t, v, 0)
+		})
+	}
+
 	t.Run("background adoption", func(t *testing.T) {
 		// An unadopted Volume holding main -> R -> X and an unheld G opens
 		// with frees on and adopts itself in the background: R and X stay
@@ -1423,18 +1529,20 @@ func TestLivenessAdversarial(t *testing.T) {
 const rebuildSecondPass = 4
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
-// each fit in one slice.
+// each fit in one slice: the claim, the clears of counts, the queue, born
+// marks, moved-root marks, old fill marks and fill records, then the mark,
+// the root count, the child list count and the settle.
 const (
 	// adoptClearCounts clears the count records an earlier run left.
 	adoptClearCounts = 2
 	// adoptMark marks the Volume adopting.
-	adoptMark = 6
+	adoptMark = 8
 	// adoptCountRoots counts the roots.
-	adoptCountRoots = 7
+	adoptCountRoots = 9
 	// adoptCountChildren counts the child lists' holders.
-	adoptCountChildren = 8
+	adoptCountChildren = 10
 	// adoptSettle settles the stored blocks' counts.
-	adoptSettle = 9
+	adoptSettle = 11
 )
 
 // adoptProbe runs an adoption's transactions, calling the func at a
