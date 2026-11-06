@@ -11,7 +11,6 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	block "github.com/s4wave/spacewave/db/block"
 )
 
 // Config configures the generic volume controller.
@@ -28,20 +27,6 @@ type Config struct {
 	// DisableLookupBlockStore disables resolving LookupBlockStore when using the
 	// volume ID for the store_id field.
 	DisableLookupBlockStore bool `protobuf:"varint,7,opt,name=disable_lookup_block_store,json=disableLookupBlockStore,proto3" json:"disableLookupBlockStore,omitempty"`
-	// BlockStoreId configures using a separate block store for blocks.
-	// uses LookupBlockStore to lookup the block store on the bus.
-	BlockStoreId string `protobuf:"bytes,5,opt,name=block_store_id,json=blockStoreId,proto3" json:"blockStoreId,omitempty"`
-	// BlockStoreOverlayMode indicates the mode to use for the block store.
-	// The volume is the lower store, the block store is the upper store.
-	// Does nothing if block_store_id is empty.
-	BlockStoreOverlayMode block.OverlayMode `protobuf:"varint,6,opt,name=block_store_overlay_mode,json=blockStoreOverlayMode,proto3" json:"blockStoreOverlayMode,omitempty"`
-	// BlockStoreWritebackTimeoutDur is the timeout for writing back blocks.
-	// If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
-	// Example: 30s
-	BlockStoreWritebackTimeoutDur string `protobuf:"bytes,8,opt,name=block_store_writeback_timeout_dur,json=blockStoreWritebackTimeoutDur,proto3" json:"blockStoreWritebackTimeoutDur,omitempty"`
-	// BlockStoreWritebackPutOpts are the base put options for writing back blocks.
-	// If block_store_id or block_store_overlay_mode do not enable writeback, this is N/A.
-	BlockStoreWritebackPutOpts *block.PutOpts `protobuf:"bytes,9,opt,name=block_store_writeback_put_opts,json=blockStoreWritebackPutOpts,proto3" json:"blockStoreWritebackPutOpts,omitempty"`
 	// GcIntervalDur is the interval between GC sweeps.
 	// Default: 1m. Set to 0s to disable periodic GC.
 	// Example: 1m
@@ -82,34 +67,6 @@ func (x *Config) GetDisableLookupBlockStore() bool {
 	return false
 }
 
-func (x *Config) GetBlockStoreId() string {
-	if x != nil {
-		return x.BlockStoreId
-	}
-	return ""
-}
-
-func (x *Config) GetBlockStoreOverlayMode() block.OverlayMode {
-	if x != nil {
-		return x.BlockStoreOverlayMode
-	}
-	return block.OverlayMode(0)
-}
-
-func (x *Config) GetBlockStoreWritebackTimeoutDur() string {
-	if x != nil {
-		return x.BlockStoreWritebackTimeoutDur
-	}
-	return ""
-}
-
-func (x *Config) GetBlockStoreWritebackPutOpts() *block.PutOpts {
-	if x != nil {
-		return x.BlockStoreWritebackPutOpts
-	}
-	return nil
-}
-
 func (x *Config) GetGcIntervalDur() string {
 	if x != nil {
 		return x.GcIntervalDur
@@ -125,12 +82,8 @@ func (m *Config) CloneVT() *Config {
 	r.DisableEventBlockRm = m.DisableEventBlockRm
 	r.DisablePeer = m.DisablePeer
 	r.DisableLookupBlockStore = m.DisableLookupBlockStore
-	r.BlockStoreId = m.BlockStoreId
-	r.BlockStoreOverlayMode = m.BlockStoreOverlayMode
-	r.BlockStoreWritebackTimeoutDur = m.BlockStoreWritebackTimeoutDur
 	r.GcIntervalDur = m.GcIntervalDur
 	r.VolumeIdAlias = protobuf_go_lite.CloneSlice(m.VolumeIdAlias)
-	r.BlockStoreWritebackPutOpts = protobuf_go_lite.CloneVTValue(m.BlockStoreWritebackPutOpts)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -156,19 +109,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.DisablePeer != that.DisablePeer {
 		return false
 	}
-	if this.BlockStoreId != that.BlockStoreId {
-		return false
-	}
-	if this.BlockStoreOverlayMode != that.BlockStoreOverlayMode {
-		return false
-	}
 	if this.DisableLookupBlockStore != that.DisableLookupBlockStore {
-		return false
-	}
-	if this.BlockStoreWritebackTimeoutDur != that.BlockStoreWritebackTimeoutDur {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.BlockStoreWritebackPutOpts, that.BlockStoreWritebackPutOpts) {
 		return false
 	}
 	if this.GcIntervalDur != that.GcIntervalDur {
@@ -208,30 +149,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disablePeer")
 		s.WriteBool(x.DisablePeer)
 	}
-	if x.BlockStoreId != "" || s.HasField("blockStoreId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("blockStoreId")
-		s.WriteString(x.BlockStoreId)
-	}
-	if x.BlockStoreOverlayMode != 0 || s.HasField("blockStoreOverlayMode") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("blockStoreOverlayMode")
-		x.BlockStoreOverlayMode.MarshalProtoJSON(s)
-	}
 	if x.DisableLookupBlockStore || s.HasField("disableLookupBlockStore") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("disableLookupBlockStore")
 		s.WriteBool(x.DisableLookupBlockStore)
-	}
-	if x.BlockStoreWritebackTimeoutDur != "" || s.HasField("blockStoreWritebackTimeoutDur") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("blockStoreWritebackTimeoutDur")
-		s.WriteString(x.BlockStoreWritebackTimeoutDur)
-	}
-	if x.BlockStoreWritebackPutOpts != nil || s.HasField("blockStoreWritebackPutOpts") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("blockStoreWritebackPutOpts")
-		x.BlockStoreWritebackPutOpts.MarshalProtoJSON(s.WithField("blockStoreWritebackPutOpts"))
 	}
 	if x.GcIntervalDur != "" || s.HasField("gcIntervalDur") {
 		s.WriteMoreIf(&wroteField)
@@ -268,25 +189,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_peer", "disablePeer":
 			s.AddField("disable_peer")
 			x.DisablePeer = s.ReadBool()
-		case "block_store_id", "blockStoreId":
-			s.AddField("block_store_id")
-			x.BlockStoreId = s.ReadString()
-		case "block_store_overlay_mode", "blockStoreOverlayMode":
-			s.AddField("block_store_overlay_mode")
-			x.BlockStoreOverlayMode.UnmarshalProtoJSON(s)
 		case "disable_lookup_block_store", "disableLookupBlockStore":
 			s.AddField("disable_lookup_block_store")
 			x.DisableLookupBlockStore = s.ReadBool()
-		case "block_store_writeback_timeout_dur", "blockStoreWritebackTimeoutDur":
-			s.AddField("block_store_writeback_timeout_dur")
-			x.BlockStoreWritebackTimeoutDur = s.ReadString()
-		case "block_store_writeback_put_opts", "blockStoreWritebackPutOpts":
-			if s.ReadNil() {
-				x.BlockStoreWritebackPutOpts = nil
-				return
-			}
-			x.BlockStoreWritebackPutOpts = &block.PutOpts{}
-			x.BlockStoreWritebackPutOpts.UnmarshalProtoJSON(s.WithField("block_store_writeback_put_opts", true))
 		case "gc_interval_dur", "gcIntervalDur":
 			s.AddField("gc_interval_dur")
 			x.GcIntervalDur = s.ReadString()
@@ -333,35 +238,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x52
 	}
-	if m.BlockStoreWritebackPutOpts != nil {
-		size, err := m.BlockStoreWritebackPutOpts.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x4a
-	}
-	if len(m.BlockStoreWritebackTimeoutDur) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.BlockStoreWritebackTimeoutDur)
-		i--
-		dAtA[i] = 0x42
-	}
 	if m.DisableLookupBlockStore {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableLookupBlockStore)
 		i--
 		dAtA[i] = 0x38
-	}
-	if m.BlockStoreOverlayMode != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockStoreOverlayMode))
-		i--
-		dAtA[i] = 0x30
-	}
-	if len(m.BlockStoreId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.BlockStoreId)
-		i--
-		dAtA[i] = 0x2a
 	}
 	if m.DisablePeer {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisablePeer)
@@ -392,14 +272,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableEventBlockRm)
 	n += protobuf_go_lite.SizeStringSlice(1, m.VolumeIdAlias)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisablePeer)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BlockStoreId)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.BlockStoreOverlayMode)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableLookupBlockStore)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BlockStoreWritebackTimeoutDur)
-	if m.BlockStoreWritebackPutOpts != nil {
-		l = m.BlockStoreWritebackPutOpts.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.GcIntervalDur)
 	n += len(m.unknownFields)
 	return n
@@ -424,25 +297,9 @@ func (x *Config) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_peer")
 		protobuf_go_lite.TextWriteBool(&sb, x.DisablePeer)
 	}
-	if x.BlockStoreId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_store_id")
-		protobuf_go_lite.TextWriteString(&sb, x.BlockStoreId)
-	}
-	if x.BlockStoreOverlayMode != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_store_overlay_mode")
-		protobuf_go_lite.TextWriteStringer(&sb, block.OverlayMode(x.BlockStoreOverlayMode))
-	}
 	if x.DisableLookupBlockStore != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_lookup_block_store")
 		protobuf_go_lite.TextWriteBool(&sb, x.DisableLookupBlockStore)
-	}
-	if x.BlockStoreWritebackTimeoutDur != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_store_writeback_timeout_dur")
-		protobuf_go_lite.TextWriteString(&sb, x.BlockStoreWritebackTimeoutDur)
-	}
-	if x.BlockStoreWritebackPutOpts != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_store_writeback_put_opts")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.BlockStoreWritebackPutOpts)
 	}
 	if x.GcIntervalDur != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gc_interval_dur")
@@ -505,27 +362,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisablePeer = bool(v)
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.BlockStoreId = v
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreOverlayMode", wireType)
-			}
-			m.BlockStoreOverlayMode = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.BlockStoreOverlayMode = block.OverlayMode(_v)
-			if err != nil {
-				return err
-			}
 		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DisableLookupBlockStore", wireType)
@@ -536,31 +372,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableLookupBlockStore = bool(v)
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreWritebackTimeoutDur", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.BlockStoreWritebackTimeoutDur = v
-		case 9:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreWritebackPutOpts", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.BlockStoreWritebackPutOpts == nil {
-				m.BlockStoreWritebackPutOpts = &block.PutOpts{}
-			}
-			if err := m.BlockStoreWritebackPutOpts.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GcIntervalDur", wireType)
