@@ -68,8 +68,9 @@ type BucketRoots struct {
 // the Volume, Land also marks each block it gives birth to and records the
 // block each root it moves held when the adoption began, as Adopt reads.
 //
-// Cost per call: the state record; per entry, its child list record and, for
-// one without a list, its hole record; per child a born block names outside
+// Cost per call: the state record and, when an entry has no list, whether the
+// Volume records any hole; per entry, its child list record and, for one
+// without a list in a Volume that records a hole, its hole record; per child a born block names outside
 // its batch, its child list record and, for an unlisted child, a block
 // existence read, with one up pair appended for each, a blind append on reads
 // it already makes; per moved root, its entry and its lease index record. It
@@ -93,6 +94,7 @@ func Land(
 	l := &lander{
 		rec:      rec,
 		blocks:   blocks,
+		holes:    holeReader{rec: rec},
 		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		verify:   state.GetUnverifiedLists(),
@@ -156,6 +158,8 @@ type lander struct {
 	rec *Records
 	// blocks stores the block bytes.
 	blocks block.StoreOps
+	// holes reads the recorded holes the entries put.
+	holes holeReader
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
 	// adopting reports that an adoption is counting the Volume, so Land marks
@@ -242,7 +246,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 
 		// A recorded hole is stored too: the put refills it.
-		hole, err := l.rec.IsHole(ctx, entry.Ref)
+		hole, err := l.holes.isHole(ctx, entry.Ref)
 		if err != nil {
 			return nil, err
 		}

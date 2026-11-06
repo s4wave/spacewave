@@ -19,14 +19,17 @@ import (
 // bytes before.
 //
 // The pairs go to a fill record of their own, not the journal, written blind
-// at now: a fill reads only the child list and hole record of each block it
-// puts, so an optimistic fill conflicts only with a commit that stores or
-// frees one of its blocks, never with the journal's sequence number.
+// at now: a fill reads only the child list of each block it puts, whether the
+// Volume records any hole and, when it does, each block's hole record, so an
+// optimistic fill conflicts only with a commit that stores or frees one of
+// its blocks or records or refills a hole, never with the journal's sequence
+// number.
 // Collector.Collect nets each aged fill record whole.
 func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time.Time, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Name each entry and find the blocks without a child list, and the
 	// recorded holes it refills.
 	born := make(map[string]*block.PutBatchEntry)
+	holes := holeReader{rec: rec}
 	var refills []*block.PutBatchEntry
 	for _, entry := range entries {
 		if entry == nil || entry.Tombstone {
@@ -56,7 +59,7 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 			}
 			continue
 		}
-		hole, err := rec.IsHole(ctx, entry.Ref)
+		hole, err := holes.isHole(ctx, entry.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -229,24 +232,10 @@ func (r *Records) restampFillRecord(ctx context.Context, fr fillRecord, now int6
 
 // fillBorn reports whether a fill record not netted yet gave birth to ref.
 func (r *Records) fillBorn(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	// Look for a fill-born index entry under ref.
-	prefix := r.key(kindFillBorn, BlockKey(ref))
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(prefix); err != nil {
-		return false, err
-	}
-	return it.Valid(), it.Err()
+	return r.anyKey(ctx, r.key(kindFillBorn, BlockKey(ref)))
 }
 
 // fillHeld reports whether a fill record not netted yet holds ref.
 func (r *Records) fillHeld(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	// Look for any hold index entry under ref.
-	prefix := r.key(kindFillHold, BlockKey(ref))
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(prefix); err != nil {
-		return false, err
-	}
-	return it.Valid(), it.Err()
+	return r.anyKey(ctx, r.key(kindFillHold, BlockKey(ref)))
 }
