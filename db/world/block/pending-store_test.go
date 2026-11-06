@@ -3,7 +3,12 @@
 package world_block
 
 import (
+	"errors"
+	"runtime"
+	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -257,6 +262,82 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	releaseStage()
 	f.collect(t)
 	stored(true, "X", "C4", "R4")
+
+	// A pin taken while a sweep walks keeps its tree: the sweep read the
+	// held set before the pin, so it must check the holds again where it
+	// drops. A long kept chain the sweep walks from its live root widens the
+	// window, and each round pins the target just after a sweep ends, as the
+	// next one starts.
+	wide := block.NewPendingStore(f.store, 64<<20)
+	chain := make([]string, 0, 5000)
+	for i := range cap(chain) {
+		name := "W" + strconv.Itoa(i)
+		if i == 0 {
+			tr.add(t, name)
+		} else {
+			tr.add(t, name, chain[i-1])
+		}
+		chain = append(chain, name)
+	}
+	put(wide, chain...)
+	tr.add(t, "PT")
+	var sweeps atomic.Uint64
+	stop := make(chan struct{})
+	swept := make(chan struct{})
+	go func() {
+		defer close(swept)
+		live := []*block.BlockRef{tr.ref(chain[len(chain)-1])}
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			wide.Sweep(live, wide.SweepMark())
+			sweeps.Add(1)
+		}
+	}()
+	waitSweeps := func(n uint64) {
+		t.Helper()
+		target := sweeps.Load() + n
+		deadline := time.Now().Add(10 * time.Second)
+		for sweeps.Load() < target {
+			if time.Now().After(deadline) {
+				t.Fatal("sweeps stalled")
+			}
+			runtime.Gosched()
+		}
+	}
+	var pinned int
+	for round := range 50 {
+		// Keep the target, and let a sweep take a mark after its put.
+		if _, found, err := wide.GetBlock(ctx, tr.ref("PT")); err != nil || !found {
+			put(wide, "PT")
+		}
+		waitSweeps(1)
+
+		// Pin it as the next sweep starts, and check it stays kept until
+		// that sweep and the one after end. A sweep that dropped it before
+		// the pin leaves nothing to pin, and the round puts it again.
+		releasePin, err := wide.PinRoot(ctx, tr.ref("PT"))
+		if errors.Is(err, block.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		pinned++
+		waitSweeps(2)
+		if _, found, err := wide.GetBlock(ctx, tr.ref("PT")); err != nil || !found {
+			t.Fatalf("round %d: a sweep dropped a pinned block: %v %v", round, found, err)
+		}
+		releasePin()
+	}
+	close(stop)
+	<-swept
+	if pinned == 0 {
+		t.Fatal("no round pinned the kept target")
+	}
 
 	// Releasing the roots frees both trees, and the audit finds nothing at
 	// risk.
