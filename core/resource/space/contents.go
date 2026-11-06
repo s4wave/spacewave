@@ -721,7 +721,10 @@ func (r *SpaceContentsResource) getAvailablePlugins(
 	if lookupManifest == nil {
 		lookupManifest = bldr_manifest_world.LookupManifest
 	}
-	availablePlugins := collectAvailablePlugins(ctx, ws, manifestRefs, lookupManifest)
+	availablePlugins, err := collectAvailablePlugins(ctx, ws, manifestRefs, lookupManifest)
+	if err != nil {
+		return nil, err
+	}
 	r.mu.Lock()
 	r.availablePluginManifestRefs = slices.Clone(manifestRefs)
 	r.availablePlugins = cloneAvailablePlugins(availablePlugins)
@@ -763,19 +766,22 @@ func collectAvailablePluginManifestRefs(
 // LookupAvailablePlugin returns the highest revision catalog entry for pluginID
 // in the Space World, or nil if the World offers no such plugin.
 func (r *SpaceResource) LookupAvailablePlugin(ctx context.Context, pluginID string) (*s4wave_space.AvailablePlugin, error) {
-	// Read the catalog from one World snapshot.
-	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
+	// Read the catalog from one World snapshot, again on the next engine when
+	// a retired one ends the snapshot.
+	var plugins []*s4wave_space.AvailablePlugin
+	err := world.ExecTransaction(ctx, r.space.GetWorldEngine(), false, func(ctx context.Context, ws world.WorldState) error {
+		manifestRefs, err := collectAvailablePluginManifestRefs(ctx, ws)
+		if err != nil {
+			return err
+		}
+		plugins, err = collectAvailablePlugins(ctx, ws, manifestRefs, bldr_manifest_world.LookupManifest)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Discard()
 
-	// Build the catalog and select the plugin.
-	manifestRefs, err := collectAvailablePluginManifestRefs(ctx, tx)
-	if err != nil {
-		return nil, err
-	}
-	plugins := collectAvailablePlugins(ctx, tx, manifestRefs, bldr_manifest_world.LookupManifest)
+	// Select the plugin.
 	idx := slices.IndexFunc(plugins, func(plugin *s4wave_space.AvailablePlugin) bool {
 		return plugin.GetPluginId() == pluginID
 	})
@@ -787,24 +793,29 @@ func (r *SpaceResource) LookupAvailablePlugin(ctx context.Context, pluginID stri
 
 // collectAvailablePlugins enumerates the manifest object content set and returns
 // the installable plugin catalog, keeping the highest revision for each manifest
-// ID. Manifests that fail to load are skipped.
+// ID. Manifests that fail to load are skipped, but a superseded read, such as
+// one a retired engine ended, returns its error: the snapshot is gone, and the
+// catalog it would build is partial.
 func collectAvailablePlugins(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestRefs []string,
 	lookupManifest func(context.Context, world.WorldState, string) (*bldr_manifest.Manifest, *bucket.ObjectRef, error),
-) []*s4wave_space.AvailablePlugin {
+) ([]*s4wave_space.AvailablePlugin, error) {
 	catalog := make(map[string]*bldr_manifest.ManifestMeta, len(manifestRefs))
 	for _, ref := range manifestRefs {
 		key, _, _ := strings.Cut(ref, "\x00")
 		m, _, err := lookupManifest(ctx, ws, key)
+		if world.IsSuperseded(err) {
+			return nil, err
+		}
 		if err != nil || m == nil {
 			continue
 		}
 		addManifestToCatalog(catalog, m.GetMeta())
 	}
 
-	return availablePluginsFromCatalog(catalog)
+	return availablePluginsFromCatalog(catalog), nil
 }
 
 // addManifestToCatalog records the manifest meta under its manifest ID, keeping

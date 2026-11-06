@@ -95,8 +95,12 @@ func (r *SpaceResource) readNodeTypePlugins(
 	for _, id := range typeIDs {
 		wanted[id] = struct{}{}
 	}
+	plugins, err := collectAvailablePlugins(ctx, wtx, manifestRefs, bldr_manifest_world.LookupManifest)
+	if err != nil {
+		return nil, 0, err
+	}
 	var pluginIDs []string
-	for _, plugin := range collectAvailablePlugins(ctx, wtx, manifestRefs, bldr_manifest_world.LookupManifest) {
+	for _, plugin := range plugins {
 		if slices.ContainsFunc(plugin.GetNodeTypeIds(), func(id string) bool { _, ok := wanted[id]; return ok }) {
 			pluginIDs = append(pluginIDs, plugin.GetPluginId())
 		}
