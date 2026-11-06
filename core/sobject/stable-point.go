@@ -39,7 +39,8 @@ func (s *SOOperationSet) Size() int {
 // roster has built on. Each later operation of a roster member descends from
 // every stable operation, so replay never places a new operation inside the
 // stable prefix and a checkpoint may cover it. An empty roster makes the whole
-// order stable.
+// order stable. StableCheckpoint.tla models the stable point and the
+// checkpointer that adopts a checkpoint over it.
 func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
 	// Stop at the sequenced prefix while the sequence is open.
 	placed := s.order()
