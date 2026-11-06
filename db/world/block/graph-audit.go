@@ -114,10 +114,18 @@ func (t *WorldState) AuditGraphLog(ctx context.Context) (*GraphLogAudit, error) 
 	if err := t.flushGraphWrites(ctx); err != nil {
 		return nil, errors.Wrap(err, "graph write flush")
 	}
-	tree, ok := t.graphTree.(*kvtx_block_okra.Tx)
-	if !ok {
-		return nil, errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
+
+	// Open the graph tree.
+	graphTree, err := t.graphKvTx(ctx)
+	if err != nil {
+		return nil, err
 	}
+	tree, ok := graphTree.(*kvtx_block_okra.Tx)
+	if !ok {
+		return nil, errors.Errorf("graph tree is %T, not an okra tree", graphTree)
+	}
+
+	// Map each posting bucket to the directions its index orders by.
 	qs, ok := t.graphHd.QuadStore.(*cayley_kv.QuadStore)
 	if !ok {
 		return nil, errors.Errorf("graph store is %T, not a kv quad store", t.graphHd.QuadStore)
@@ -127,6 +135,7 @@ func (t *WorldState) AuditGraphLog(ctx context.Context) (*GraphLogAudit, error) 
 		postings[postingBucketName(index)] = index.Dirs
 	}
 
+	// Walk the tree, then resolve the nodes the walk found.
 	a := &graphAudit{
 		tree:     tree,
 		postings: postings,

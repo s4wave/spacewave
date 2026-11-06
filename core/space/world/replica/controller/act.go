@@ -26,6 +26,19 @@ func (r *reconciler) act(ctx context.Context, step space_world_replica.ReplicaSt
 	}
 	r.c.setState(proof, invite)
 
+	// Follow the head while proving the copy, since the owner accepts only
+	// a proof of its head.
+	if r.mount != nil {
+		follow := step == space_world_replica.ReplicaStep_REPLICA_STEP_BACKFILL ||
+			step == space_world_replica.ReplicaStep_REPLICA_STEP_SERVE_PROOF
+		if err := r.mount.accessBackfill(ctx, func(be space_world.BackfillEngine) error {
+			be.SetBackfillFollowsHead(follow)
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+
 	// Take the step. The others wait, or are taken by the provider: the
 	// successor's hosting commits the departure, and the departing side
 	// follows and serves blocks on its own.

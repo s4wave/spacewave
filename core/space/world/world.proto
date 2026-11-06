@@ -209,6 +209,10 @@ message RetainedRootSet {
 message HeldRoots {
   // Roots are the held roots, in the order the holder gave them.
   repeated .block.BlockRef roots = 1;
+  // Prev is an earlier HeldRoots block whose roots, and its own earlier
+  // blocks' roots, are held before these, or empty. An append names the
+  // block it extends instead of naming every root again.
+  .block.BlockRef prev = 2;
 }
 
 // ReplaySpan is the block a Space engine before the adapter held under its
@@ -262,8 +266,8 @@ message ReplayCursorOutcome {
 // BackfillState is the outcome of the last finished backfill copy on this
 // device.
 message BackfillState {
-  // Root is the installed World root the copy covered, with the retained
-  // roots of that World.
+  // Root is the World root of the installed checkpoint the copy covered.
+  // The copy also covered the retained roots of the installed head.
   .block.BlockRef root = 1;
   // Holes counts the blocks of those roots that no reachable store held.
   // Zero means the local store holds every block of them.

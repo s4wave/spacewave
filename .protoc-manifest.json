@@ -1536,7 +1536,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/space/world": {
-      "hash": "a90cd6248f6a34703e879b24b34c4bc2ee20d6b1d88756d2a78c6846ceb41c6f",
+      "hash": "b7dffcca90f2c8c3cf253d9313cb64fdd10f927ed13ad5483c4f1fafcb84a5c0",
       "generatedFiles": [
         "core/space/world/world.pb.go",
         "core/space/world/world.pb.ts",
@@ -1791,6 +1791,16 @@
       ],
       "protoFiles": [
         "db/block/store/kvfile/http/http.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/db/block/store/nodepush": {
+      "hash": "ee17ef1424ed182ce6e030f1bd84819cbe395b9b7bcacc45bf97a493a8653f15",
+      "generatedFiles": [
+        "db/block/store/nodepush/nodepush.pb.go",
+        "db/block/store/nodepush/nodepush.pb.ts"
+      ],
+      "protoFiles": [
+        "db/block/store/nodepush/nodepush.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/overlay": {

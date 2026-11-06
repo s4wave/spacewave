@@ -72,7 +72,11 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 	}
 
 	// Apply the deltas to the graph index.
-	if err := t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return err
+	}
+	if err := graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 		return err
 	}
 

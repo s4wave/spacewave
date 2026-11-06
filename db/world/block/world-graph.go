@@ -40,7 +40,11 @@ func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(
 	}
 
 	// Direct graph mutations currently bypass the World changelog.
-	return cb(ctx, t.graphHd)
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return err
+	}
+	return cb(ctx, graphHd)
 }
 
 // lookupGraphQuadsOnWorld resolves one filter through the batch lookup path.
@@ -56,8 +60,13 @@ func (t *WorldState) lookupGraphQuadsOnWorld(ctx context.Context, filter world.G
 
 // lookupGraphQuadsBatchOnWorld shares a storage read scope for read-only Worlds.
 func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	// Hold the backing storage read operation for the entire lookup.
+	// Open the graph outside the read operation, whose store the handle must
+	// not keep, then hold the read operation for the entire lookup.
 	if err := t.discardErr(); err != nil {
+		return nil, err
+	}
+	worldGraph, err := t.graph(ctx)
+	if err != nil {
 		return nil, err
 	}
 	if !t.write && t.store != nil {
@@ -70,8 +79,8 @@ func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters [
 	}
 
 	// Reuse native single-filter collection and cache shared batch lookups.
-	var graphHd world.CayleyHandle = t.graphHd
-	collector, _ := t.graphHd.QuadStore.(graphQuadBatchCollector)
+	var graphHd world.CayleyHandle = worldGraph
+	collector, _ := worldGraph.QuadStore.(graphQuadBatchCollector)
 	if collector == nil || len(filters) != 1 {
 		graphHd = world.NewReadOperationCayleyHandle(graphHd)
 	}
@@ -119,8 +128,13 @@ func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []
 
 // queryGraphPathOnWorld retains one storage read scope for the traversal.
 func (t *WorldState) queryGraphPathOnWorld(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	// Hold the backing storage read operation for the entire traversal.
+	// Open the graph outside the read operation, then hold the read operation
+	// for the entire traversal.
 	if err := t.discardErr(); err != nil {
+		return nil, err
+	}
+	graphHd, err := t.graph(ctx)
+	if err != nil {
 		return nil, err
 	}
 	if !t.write && t.store != nil {
@@ -131,7 +145,7 @@ func (t *WorldState) queryGraphPathOnWorld(ctx context.Context, query *world.Gra
 		defer release()
 		ctx = block.WithReadOperationStore(ctx, store)
 	}
-	return t.queryGraphPath(ctx, t.graphHd, query)
+	return t.queryGraphPath(ctx, graphHd, query)
 }
 
 // queryGraphPath shares cached graph lookups throughout a bounded traversal.
@@ -210,7 +224,11 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 	}
 
 	// Remove the relationship before revising its endpoints; missing is a no-op.
-	err = t.graphHd.RemoveQuad(ctx, cq)
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return err
+	}
+	err = graphHd.RemoveQuad(ctx, cq)
 	if err != nil {
 		if graph.IsQuadNotExist(err) {
 			return nil
@@ -305,8 +323,13 @@ func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQ
 
 // ListObjectsWithType reads one bounded subject page from the existing type index.
 func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
-	// Retain one storage read scope while resolving and scanning the type index.
+	// Open the graph, then retain one storage read scope while resolving and
+	// scanning the type index.
 	if err := t.discardErr(); err != nil {
+		return nil, false, err
+	}
+	graphHd, err := t.graph(ctx)
+	if err != nil {
 		return nil, false, err
 	}
 	if !t.write && t.store != nil {
@@ -319,7 +342,7 @@ func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter
 	}
 
 	// Enumerate distinct subjects directly in the reverse index's order.
-	return world_types.ListObjectsWithTypeOnGraph(ctx, t.graphHd.QuadStore.(*cayley_kv.QuadStore), typeID, startAfter, limit)
+	return world_types.ListObjectsWithTypeOnGraph(ctx, graphHd.QuadStore.(*cayley_kv.QuadStore), typeID, startAfter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.

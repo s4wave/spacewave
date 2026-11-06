@@ -489,11 +489,18 @@ export interface HeldRoots {
    * Roots are the held roots, in the order the holder gave them.
    */
   roots?: BlockRef[]
+  /**
+   * Prev is an earlier HeldRoots block whose roots, and its own earlier
+   * blocks' roots, are held before these, or empty. An append names the
+   * block it extends instead of naming every root again.
+   */
+  prev?: BlockRef
 }
 
 export const HeldRoots: MessageType<HeldRoots> =
   /* @__PURE__ */ createMessageType<HeldRoots>('space.world.HeldRoots', () => [
     [1, 'roots', 11, 1, BlockRef.codec],
+    [2, 'prev', 11, 0, BlockRef.codec],
   ])
 
 /**
@@ -620,8 +627,8 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
  */
 export interface BackfillState {
   /**
-   * Root is the installed World root the copy covered, with the retained
-   * roots of that World.
+   * Root is the World root of the installed checkpoint the copy covered.
+   * The copy also covered the retained roots of the installed head.
    */
   root?: BlockRef
   /**

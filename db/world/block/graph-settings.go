@@ -91,7 +91,11 @@ func (t *WorldState) StepGraphSettings(ctx context.Context, target *GraphSetting
 	}
 
 	// Skip a graph that already matches.
-	qs, ok := t.graphHd.QuadStore.(*cayley_kv.QuadStore)
+	graphHd, err := t.graph(ctx)
+	if err != nil {
+		return false, false, err
+	}
+	qs, ok := graphHd.QuadStore.(*cayley_kv.QuadStore)
 	if !ok {
 		return false, false, errors.New("world graph is not a cayley kv store")
 	}

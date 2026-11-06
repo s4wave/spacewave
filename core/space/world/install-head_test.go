@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -41,6 +42,23 @@ type flakyRootStore struct {
 	failed chan struct{}
 	// moved records each root a move landed, as name and ref.
 	moved []string
+	// exists counts the GetBlockExists calls.
+	exists int
+}
+
+// GetBlockExists counts the call and asks the inner store.
+func (s *flakyRootStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	s.mtx.Lock()
+	s.exists++
+	s.mtx.Unlock()
+	return s.StoreOps.GetBlockExists(ctx, ref)
+}
+
+// existsCalls returns the GetBlockExists calls so far.
+func (s *flakyRootStore) existsCalls() int {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.exists
 }
 
 // GetRoot returns the block name holds.
@@ -107,8 +125,9 @@ func trimNow(t *testing.T, a *Adapter) {
 }
 
 // TestInstallHeadRetriesRetainedHold checks that a head whose retained-root
-// hold failed is held and reported to the watchers by the next install, and
-// that its placed candidate is decided only then.
+// hold failed is held and reported to the watchers by the next install, that
+// its placed candidate is decided only then, and that a later install of the
+// same retained set reads and moves nothing.
 func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// Build an adapter whose replay head retains a root, over a store that
 	// fails the first root move.
@@ -155,6 +174,16 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	if len(reports) != 1 || !reports[0].Root.EqualsRef(head) || adm.state != admissionDecided {
 		t.Fatalf("the retry reported %v and decided %v", reports, adm.state == admissionDecided)
 	}
+
+	// An install whose retained set the root holds already stores nothing
+	// and asks the store nothing.
+	exists, moved := store.existsCalls(), len(store.moved)
+	if err := a.installHead(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if n := store.existsCalls() - exists; n != 0 || len(store.moved) != moved {
+		t.Fatalf("an install of a held retained set asked the store %d times and moved %d roots", n, len(store.moved)-moved)
+	}
 }
 
 // TestResetPayloadsSeesAdmissions walks the replay payloads root through a
@@ -189,7 +218,8 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		return ref
 	}
 
-	// stored returns the payloads the Volume's payloads root holds.
+	// stored returns the payloads the Volume's payloads root holds, read
+	// through its chain of blocks as an open reads them.
 	stored := func(a *Adapter) []*block.BlockRef {
 		t.Helper()
 		ref, err := a.pages.GetRoot(ctx, RootReplayPayloads)
@@ -199,18 +229,11 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		if !refEqual(ref, a.held[RootReplayPayloads]) {
 			t.Fatalf("payloads root = %v, the adapter holds %v", ref, a.held[RootReplayPayloads])
 		}
-		if ref.GetEmpty() {
-			return nil
-		}
-		data, found, err := a.pages.GetBlock(ctx, ref)
-		if err != nil || !found {
-			t.Fatalf("payloads block %v: found %v, %v", ref, found, err)
-		}
-		msg := &HeldRoots{}
-		if err := msg.UnmarshalVT(data); err != nil {
+		read := rootSet{name: RootReplayPayloads}
+		if err := a.readRootSet(ctx, &read); err != nil {
 			t.Fatal(err)
 		}
-		return msg.GetRoots()
+		return read.roots
 	}
 
 	// expect checks that a holds want under the payloads root, in memory and
@@ -334,6 +357,37 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect(b, "admission after the open", []*block.BlockRef{second, third, fifth}, second, third, fifth, shared)
+
+	// Each later admission writes one block naming only its own payload and
+	// the block before, however many the root holds, and a reopen reads them
+	// all back in order.
+	want := []*block.BlockRef{second, third, fifth}
+	for i := range 8 {
+		extra := put(b, "payload "+strconv.Itoa(i))
+		prev := b.held[RootReplayPayloads]
+		if err := b.addPayloads(ctx, []*block.BlockRef{extra}); err != nil {
+			t.Fatal(err)
+		}
+		want = append(want, extra)
+		data, found, err := b.pages.GetBlock(ctx, b.held[RootReplayPayloads])
+		if err != nil || !found {
+			t.Fatalf("payload block: %v, %v", found, err)
+		}
+		held := &HeldRoots{}
+		if err := held.UnmarshalVT(data); err != nil {
+			t.Fatal(err)
+		}
+		if len(held.GetRoots()) != 1 || !held.GetRoots()[0].EqualsRef(extra) || !held.GetPrev().EqualsRef(prev) {
+			t.Fatalf("admission %d wrote %v after %v, want only its payload after the last block", i, held, prev)
+		}
+	}
+	reopened := rootSet{name: RootReplayPayloads}
+	if err := b.readRootSet(ctx, &reopened); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.EqualFunc(reopened.roots, want, refEqual) || !slices.EqualFunc(b.payloads.roots, want, refEqual) {
+		t.Fatalf("payloads read back = %v, held %v, want %v", reopened.roots, b.payloads.roots, want)
+	}
 
 	// An open that does not find the block the payloads root or a history
 	// names fails: opening on an empty set would let the next move name the

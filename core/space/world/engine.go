@@ -160,6 +160,11 @@ func (e *Engine) SetBackfill(ctx context.Context, enabled bool) error {
 	return e.a.backfill.set(ctx, enabled)
 }
 
+// SetBackfillFollowsHead chooses whether the copy follows the installed head.
+func (e *Engine) SetBackfillFollowsHead(follow bool) {
+	e.a.backfill.setFollowHead(follow)
+}
+
 // RecheckBackfill restarts the copy as a recheck.
 func (e *Engine) RecheckBackfill(context.Context) error {
 	return e.a.backfill.recheckNow()

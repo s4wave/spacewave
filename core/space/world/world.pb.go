@@ -694,6 +694,10 @@ type HeldRoots struct {
 	unknownFields []byte
 	// Roots are the held roots, in the order the holder gave them.
 	Roots []*block.BlockRef `protobuf:"bytes,1,rep,name=roots,proto3" json:"roots,omitempty"`
+	// Prev is an earlier HeldRoots block whose roots, and its own earlier
+	// blocks' roots, are held before these, or empty. An append names the
+	// block it extends instead of naming every root again.
+	Prev *block.BlockRef `protobuf:"bytes,2,opt,name=prev,proto3" json:"prev,omitempty"`
 }
 
 func (x *HeldRoots) Reset() {
@@ -705,6 +709,13 @@ func (*HeldRoots) ProtoMessage() {}
 func (x *HeldRoots) GetRoots() []*block.BlockRef {
 	if x != nil {
 		return x.Roots
+	}
+	return nil
+}
+
+func (x *HeldRoots) GetPrev() *block.BlockRef {
+	if x != nil {
+		return x.Prev
 	}
 	return nil
 }
@@ -869,8 +880,8 @@ func (x *ReplayCursorOutcome) GetSeqno() uint64 {
 // device.
 type BackfillState struct {
 	unknownFields []byte
-	// Root is the installed World root the copy covered, with the retained
-	// roots of that World.
+	// Root is the World root of the installed checkpoint the copy covered.
+	// The copy also covered the retained roots of the installed head.
 	Root *block.BlockRef `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
 	// Holes counts the blocks of those roots that no reachable store held.
 	// Zero means the local store holds every block of them.
@@ -1323,6 +1334,7 @@ func (m *HeldRoots) CloneVT() *HeldRoots {
 	}
 	r := new(HeldRoots)
 	r.Roots = protobuf_go_lite.CloneVTSlice(m.Roots)
+	r.Prev = protobuf_go_lite.CloneVTValue(m.Prev)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1942,6 +1954,9 @@ func (this *HeldRoots) EqualVT(that *HeldRoots) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Roots, that.Roots, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Prev, that.Prev) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3279,6 +3294,11 @@ func (x *HeldRoots) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Prev != nil || s.HasField("prev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prev")
+		x.Prev.MarshalProtoJSON(s.WithField("prev"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3314,6 +3334,13 @@ func (x *HeldRoots) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Roots = append(x.Roots, v)
 			})
+		case "prev":
+			if s.ReadNil() {
+				x.Prev = nil
+				return
+			}
+			x.Prev = &block.BlockRef{}
+			x.Prev.UnmarshalProtoJSON(s.WithField("prev", true))
 		}
 	})
 }
@@ -4734,6 +4761,16 @@ func (m *HeldRoots) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Prev != nil {
+		size, err := m.Prev.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.Roots) > 0 {
 		for iNdEx := len(m.Roots) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Roots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -5396,6 +5433,10 @@ func (m *HeldRoots) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Prev != nil {
+		l = m.Prev.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5942,6 +5983,10 @@ func (x *HeldRoots) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Prev != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prev")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Prev)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -7450,6 +7495,21 @@ func (m *HeldRoots) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Roots = append(m.Roots, &block.BlockRef{})
 			if err := m.Roots[len(m.Roots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prev", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Prev == nil {
+				m.Prev = &block.BlockRef{}
+			}
+			if err := m.Prev.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
