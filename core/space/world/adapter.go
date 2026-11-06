@@ -106,16 +106,15 @@ type Adapter struct {
 	// held are the named roots this adapter holds, by name. Guarded by
 	// rootMtx.
 	held map[string]*block.BlockRef
-	// payloads are the payload roots the replay payloads root holds. Guarded
-	// by rootMtx.
-	payloads []*block.BlockRef
+	// payloads are the payload roots the replay payloads root holds.
+	payloads rootSet
 	// retainedHeld are the retained roots the retained root holds. Guarded
 	// by rootMtx.
 	retainedHeld []*RetainedRoot
 	// cursorWorlds, pendingWorlds and checkpointWorlds are the Worlds the
 	// replay cursor, pending and checkpoint roots hold, each until a
 	// checkpoint covers them.
-	cursorWorlds, pendingWorlds, checkpointWorlds worldHistory
+	cursorWorlds, pendingWorlds, checkpointWorlds rootSet
 	// watchMtx serializes the head watchers' callbacks.
 	watchMtx sync.Mutex
 	// reported is the last head reported to the watchers. Guarded by
@@ -230,9 +229,10 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		fences:    make(map[string]*spaceFence),
 		held:      make(map[string]*block.BlockRef),
 
-		cursorWorlds:     worldHistory{name: RootReplayCursor},
-		pendingWorlds:    worldHistory{name: RootPending},
-		checkpointWorlds: worldHistory{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		payloads:         rootSet{name: RootReplayPayloads},
 	}
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
@@ -728,7 +728,7 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 		if refEqual(a.held[RootReplayBase], root) {
 			return nil
 		}
-		return a.addHistory(ctx, &a.checkpointWorlds, root)
+		return a.addRoot(ctx, &a.checkpointWorlds, root)
 	}
 	return data, store, nil
 }
@@ -916,7 +916,7 @@ func (a *Adapter) gatherTrim(ctx context.Context) (*trimPlan, error) {
 	}
 	defer release()
 	p.held = make(map[string]struct{})
-	for _, h := range []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
+	for _, h := range []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
 		for _, root := range h.roots {
 			p.held[root.MarshalString()] = struct{}{}
 		}
@@ -1020,9 +1020,9 @@ func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 		return err
 	}
 	defer release()
-	histories := []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds}
+	histories := []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds}
 	moved := !refEqual(a.held[RootReplayBase], p.base)
-	if !moved && !slices.ContainsFunc(histories, func(h *worldHistory) bool { return h.releases(keep) }) {
+	if !moved && !slices.ContainsFunc(histories, func(h *rootSet) bool { return h.releases(keep) }) {
 		return nil
 	}
 
@@ -1032,7 +1032,7 @@ func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
 		a.pendingWorlds.held(keep, p.candidates),
 		a.checkpointWorlds.held(keep, nil),
 	}
-	return a.setHistories(ctx, histories, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
+	return a.setRootSets(ctx, histories, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
 }
 
 // missAbove notes as missing every applied position whose operation is still
@@ -1121,7 +1121,7 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 		return err
 	}
 	defer release()
-	return a.addHistory(ctx, &a.pendingWorlds, adm.candidate.Root)
+	return a.addRoot(ctx, &a.pendingWorlds, adm.candidate.Root)
 }
 
 // match returns this device's pending admission of op, or nil: the one the
@@ -1442,15 +1442,12 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 			a.held[name] = ref
 		}
 	}
-	for _, h := range []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
-		if err := a.readHistory(ctx, h); err != nil {
+	for _, h := range []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds, &a.payloads} {
+		if err := a.readRootSet(ctx, h); err != nil {
 			return err
 		}
 	}
-	if err := a.readRetained(ctx); err != nil {
-		return err
-	}
-	return a.readPayloads(ctx)
+	return a.readRetained(ctx)
 }
 
 // readRetained reads the retained roots the retained root holds. The caller
@@ -1475,48 +1472,6 @@ func (a *Adapter) readRetained(ctx context.Context) error {
 	return nil
 }
 
-// readPayloads reads the payloads the replay payloads root holds. The caller
-// holds rootMtx.
-func (a *Adapter) readPayloads(ctx context.Context) error {
-	// Read the block the root holds.
-	ref := a.held[RootReplayPayloads]
-	if ref.GetEmpty() {
-		return nil
-	}
-	data, found, err := a.pages.GetBlock(ctx, ref)
-	if err != nil || !found {
-		return err
-	}
-
-	// Decode its payloads.
-	msg := &HeldRoots{}
-	if err := msg.UnmarshalVT(data); err != nil {
-		return err
-	}
-	a.payloads = msg.GetRoots()
-	return nil
-}
-
-// holdPayloads holds payloads under the replay payloads root, or releases
-// the name when there are none. The caller holds rootMtx.
-func (a *Adapter) holdPayloads(ctx context.Context, payloads []*block.BlockRef) error {
-	// Release the name when nothing needs it.
-	if len(payloads) == 0 {
-		return a.moveRootsLocked(ctx, nil, block.NamedRoot{Name: RootReplayPayloads})
-	}
-
-	// Hold them under one block.
-	entry, err := refsEntry(&HeldRoots{Roots: payloads}, payloads)
-	if err != nil {
-		return err
-	}
-	if err := a.moveRootsLocked(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: RootReplayPayloads, Ref: entry.Ref}); err != nil {
-		return err
-	}
-	a.payloads = payloads
-	return nil
-}
-
 // addPayloads holds extra beside the payloads already held, before the
 // operation that names them is queued. A local writer calls it, so the swap
 // stores the writer's own kept payload pages in its one transaction, and the
@@ -1527,7 +1482,7 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) erro
 		return err
 	}
 	defer release()
-	return a.holdPayloads(ctx, slices.Concat(a.payloads, extra))
+	return a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{slices.Concat(a.payloads.roots, extra)}, nil)
 }
 
 // resetPayloads holds the payloads of the positions above the checkpoint and
@@ -1544,7 +1499,7 @@ func (a *Adapter) resetPayloads(ctx context.Context) error {
 	defer release()
 
 	// Gather and hold them.
-	return a.holdPayloads(ctx, a.gatherPayloads())
+	return a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{a.gatherPayloads()}, nil)
 }
 
 // gatherPayloads returns the payloads of the positions above the checkpoint

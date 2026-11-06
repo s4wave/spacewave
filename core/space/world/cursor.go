@@ -163,7 +163,7 @@ func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []
 	if err != nil {
 		return err
 	}
-	err = a.addHistory(ctx, &a.cursorWorlds, root)
+	err = a.addRoot(ctx, &a.cursorWorlds, root)
 	release()
 	if err != nil {
 		return err
