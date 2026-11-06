@@ -116,10 +116,19 @@
 \*     StageWrite    a writer outside the World writer holding stage:<ulid>,
 \*                   a tree built over the head it observed and still holds.
 \*     SessionPut    one PutBlockBatch of a writer that puts a tree across
-\*                   several batches, BufferedStore's drain or the object
-\*                   copy; SessionFinish is its closing SetRoots. Staged, a
+\*                   several batches, BufferedStore's drain, the object
+\*                   copy, or the Space World replay, whose pages past
+\*                   memory land before the cursor save that holds their
+\*                   World; SessionFinish is its closing SetRoots. Staged, a
 \*                   session is OpenStage, PrepareStagedBlockBatch and a
-\*                   publish that releases the stage.
+\*                   publish that releases the stage. The replay can wait
+\*                   on a save past Grace, so it writes staged: one save
+\*                   epoch of its replayStage is one session, whose
+\*                   puts, each transaction's early drains among them, go
+\*                   to the epoch's one stage, and whose publish is the
+\*                   cursor save that lands. Its target is the World the
+\*                   save names; replay computes the Worlds before that
+\*                   one again, once an epoch that stored a page ends.
 \*     AdoptStage    the World writer moving main onto a stage and releasing
 \*                   the stage in one SetRoots.
 \*     ReaderPin     a reader holding the root it saw as a leased root.
@@ -560,11 +569,12 @@ AdoptStage(w, s) ==
                  stageVars, writerVars>>
 
 \* A writer session writes the tree tgt[w] over its observed head across
-\* several SetRoots, as BufferedStore's capacity drain and the object copy
-\* do: batches of puts with no root, in any order, a parent before its child
-\* or after it, then the root move with what is left. Need is what the
-\* session must store: the pages its observed head does not reach, which
-\* main holds while it names that head, as Commit's compare and swap checks.
+\* several SetRoots, as BufferedStore's capacity drain, the object copy and
+\* the Space World replay do: batches of puts with no root, in any order, a
+\* parent before its child or after it, then the root move with what is
+\* left. Need is what the session must store: the pages its observed head
+\* does not reach, which main holds while it names that head, as Commit's
+\* compare and swap checks.
 \*
 \* With Staged the session writes under a stage instead, the way a write that
 \* can outlast Grace must: it pins its observed head under the stage when it

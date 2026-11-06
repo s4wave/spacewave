@@ -131,7 +131,7 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, err := s.put(ctx, s.StoreOps, nil, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, _, err := s.put(ctx, s.StoreOps, nil, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
@@ -142,19 +142,20 @@ func (s *PendingStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 // allows, and puts the rest to the inner store. A kept entry reports whether
 // it was kept already.
 func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
-	return s.put(ctx, s.StoreOps, nil, entries)
+	existed, _, err := s.put(ctx, s.StoreOps, nil, entries)
+	return existed, err
 }
 
-// put keeps the entries it can and puts the rest to dst. Each entry kept
-// through hold, when set, is held until the hold is released. The kept
-// blocks an entry past the bound names are stored with it and stay kept, so
-// the Worlds that name them still find them here. Tombstones are refused: a
-// kept block may be reached by any kept World.
-func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, entries []*PutBatchEntry) ([]bool, error) {
+// put keeps the entries it can and puts the rest to dst, reporting whether
+// it put any. Each entry kept through hold, when set, is held until the hold
+// is released. The kept blocks an entry past the bound names are stored with
+// it and stay kept, so the Worlds that name them still find them here.
+// Tombstones are refused: a kept block may be reached by any kept World.
+func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, entries []*PutBatchEntry) ([]bool, bool, error) {
 	// Refuse tombstones before keeping anything.
 	for _, e := range entries {
 		if e.Tombstone {
-			return nil, ErrPendingTombstone
+			return nil, false, ErrPendingTombstone
 		}
 	}
 
@@ -185,7 +186,7 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 	// Gather the kept blocks the rest name: a block the inner store holds
 	// names only blocks it holds.
 	if len(rest) == 0 {
-		return out, nil
+		return out, false, nil
 	}
 	var children []*BlockRef
 	for _, e := range rest {
@@ -196,12 +197,12 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 	// Put them first, then the rest, keeping the tree.
 	found, err := dst.PutBlockBatch(ctx, slices.Concat(tree, rest))
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	for j, i := range restIdx {
 		out[i] = found[len(tree)+j]
 	}
-	return out, nil
+	return out, true, nil
 }
 
 // pendingKey returns the key of ref in kept: its hash type and digest. A read
@@ -529,6 +530,20 @@ func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) 
 		s.release(ps.hold)
 		release()
 	}, nil
+}
+
+// OpenOverflowStage opens a stage of the inner store for the puts past the
+// bound, as OpenStage does, but holds none of the kept blocks it puts
+// against Sweep. It suits a writer that passes Sweep every tree it still
+// needs and can compute the others again: a kept page it replaced leaves
+// memory at the next sweep, not at the release, and only the stored ones
+// wait for the stage.
+func (s *PendingStore) OpenOverflowStage(ctx context.Context) (*OverflowStage, error) {
+	stage, release, err := OpenStage(ctx, s.StoreOps)
+	if err != nil {
+		return nil, err
+	}
+	return &OverflowStage{pendingStage: &pendingStage{PendingStore: s, stage: stage}, release: release}, nil
 }
 
 // ReleaseRoots forwards staging release to the inner store.
