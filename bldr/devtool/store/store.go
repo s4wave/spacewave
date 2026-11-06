@@ -92,7 +92,7 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 	authority := world_block.NewLocalAuthority(le, cursor, world_block.WorldRootName(EngineID), nil, coord.Scope{})
 
 	// Read the head, adopting the head record an older build wrote.
-	head, err := openHead(ctx, vol, authority, cursor, create)
+	head, err := openHead(ctx, le, vol, authority, cursor, create)
 	if err != nil {
 		cursor.Release()
 		return nil, err
@@ -120,88 +120,40 @@ func OpenWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create 
 // when the root is free; otherwise a free root adopts the head record an older
 // build kept in the object store, releasing the root that build held it under
 // and deleting the record, as the devtool's engine controller does, or fails.
-func openHead(ctx context.Context, vol volume.Volume, authority *world_block.LocalAuthority, cursor *bucket_lookup.Cursor, create bool) (world.Head, error) {
-	// Read the head the root holds.
-	head, err := authority.Head(ctx)
-	if err != nil || !head.Root.GetEmpty() {
-		return head, err
+func openHead(
+	ctx context.Context,
+	le *logrus.Entry,
+	vol volume.Volume,
+	authority *world_block.LocalAuthority,
+	cursor *bucket_lookup.Cursor,
+	create bool,
+) (world.Head, error) {
+	// Open the object store an older build kept the head record in.
+	store, rel, err := vol.AccessObjectStore(ctx, ObjectStoreID, nil)
+	if err != nil {
+		return world.Head{}, errors.Wrap(err, "access object store")
 	}
+	defer rel()
 
 	// Adopt the older build's head, or write a new World.
-	root, err := loadLegacyHead(ctx, vol)
-	if err != nil {
-		return world.Head{}, err
+	legacy := world_block_engine.LegacyHead{
+		Store:    store,
+		Key:      []byte(headKey),
+		RootName: world_block_engine.LegacyRootName(ObjectStoreID, headKey),
 	}
-	if root.GetEmpty() {
-		if !create {
-			return world.Head{}, errors.New("devtool world is empty")
-		}
-		btx, bcs := cursor.BuildTransaction(nil)
-		bcs.ClearAllRefs()
-		bcs.SetBlock(world_block.NewWorld(false), true)
-		if root, _, err = btx.Write(ctx, true); err != nil {
-			return world.Head{}, errors.Wrap(err, "write initial world")
-		}
-	}
-	var release []block.NamedRoot
-	legacyName := world_block_engine.LegacyRootName(ObjectStoreID, headKey)
-	if old, err := cursor.GetBucket().GetRoot(ctx, legacyName); err != nil {
-		return world.Head{}, err
-	} else if !old.GetEmpty() {
-		release = append(release, block.NamedRoot{Name: legacyName, Previous: old})
-	}
-	if head, err = authority.Install(ctx, nil, root, release...); err != nil {
-		return world.Head{}, errors.Wrap(err, "install world head")
-	}
+	return world_block_engine.OpenHead(ctx, le, authority, cursor, legacy, world_block_engine.OpenHeadOptions{
+		Initial: func(ctx context.Context) (*block.BlockRef, error) {
+			// Refuse an empty World unless creating one.
+			if !create {
+				return nil, errors.New("devtool world is empty")
+			}
 
-	// Delete the older build's record.
-	return head, deleteLegacyHead(ctx, vol)
-}
-
-// loadLegacyHead reads the World root an older build recorded in the
-// volume's object store, or nil.
-func loadLegacyHead(ctx context.Context, vol volume.Volume) (*block.BlockRef, error) {
-	// Open a read transaction on the engine's object store.
-	store, rel, err := vol.AccessObjectStore(ctx, ObjectStoreID, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "access object store")
-	}
-	defer rel()
-	tx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "open object store tx")
-	}
-	defer tx.Discard()
-
-	// Read and decode the head record.
-	data, found, err := tx.Get(ctx, []byte(headKey))
-	if err != nil || !found {
-		return nil, errors.Wrap(err, "read world-head")
-	}
-	state := &world_block_engine.HeadState{}
-	if err := state.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal head state")
-	}
-	return state.GetHeadRef().GetRootRef(), nil
-}
-
-// deleteLegacyHead deletes the head record an older build kept.
-func deleteLegacyHead(ctx context.Context, vol volume.Volume) error {
-	// Open a write transaction on the engine's object store.
-	store, rel, err := vol.AccessObjectStore(ctx, ObjectStoreID, nil)
-	if err != nil {
-		return errors.Wrap(err, "access object store")
-	}
-	defer rel()
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open object store tx")
-	}
-	defer tx.Discard()
-
-	// Delete the record.
-	if err := tx.Delete(ctx, []byte(headKey)); err != nil {
-		return errors.Wrap(err, "delete world-head")
-	}
-	return tx.Commit(ctx)
+			// Write a new empty World.
+			btx, bcs := cursor.BuildTransaction(nil)
+			bcs.ClearAllRefs()
+			bcs.SetBlock(world_block.NewWorld(false), true)
+			root, _, err := btx.Write(ctx, true)
+			return root, errors.Wrap(err, "write initial world")
+		},
+	})
 }

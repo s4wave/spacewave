@@ -336,8 +336,10 @@ func (c *Controller) openWritable(
 	authority := world_block.NewLocalAuthority(c.le, cursor, name, coordinator, scope)
 
 	// Read the head, adopting or creating it when the root is free.
-	legacy := legacyHead{store: stateStore, key: c.objectStoreHeadKey(), rootName: retainedRootName(stateStoreID, c.objectStoreHeadKeyPrefix())}
-	head, err := c.openHead(ctx, authority, cursor, legacy)
+	head, err := OpenHead(ctx, c.le, authority, cursor, c.legacyHead(stateStore, stateStoreID), OpenHeadOptions{
+		Initial:        func(ctx context.Context) (*block.BlockRef, error) { return c.initialRoot(ctx, cursor) },
+		RecoverMissing: c.conf.GetRecoverMissingPersistedHead(),
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -205,7 +205,7 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(storeRef.Release)
-	if _, found, err := ctrl.loadHeadState(ctx, storeVal.GetObjectStore(), ctrl.objectStoreHeadKey()); err != nil || found {
+	if _, found, err := (LegacyHead{Store: storeVal.GetObjectStore(), Key: ctrl.objectStoreHeadKey()}).load(ctx); err != nil || found {
 		t.Fatalf("old world head record found=%v err=%v after recovery", found, err)
 	}
 	recovered := controllerTestWorldRoot(t, ctx, tb, objectStoreID)
@@ -294,7 +294,7 @@ func TestControllerAdoptsLegacyHead(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(storeRef.Release)
-	if _, found, err := ctrl.loadHeadState(ctx, storeVal.GetObjectStore(), ctrl.objectStoreHeadKey()); err != nil || found {
+	if _, found, err := (LegacyHead{Store: storeVal.GetObjectStore(), Key: ctrl.objectStoreHeadKey()}).load(ctx); err != nil || found {
 		t.Fatalf("head record found=%v err=%v after the adoption", found, err)
 	}
 
