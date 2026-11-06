@@ -290,13 +290,10 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 		return nil
 	}
 
-	// Copy the World and retain its root on success.
+	// Copy the World and hold its root on success.
 	progress = &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head.CloneVT()}
 	state.publishCopyProgress(progress)
 	err = a.copyAccountWorld(ctx, so, progress, func() { state.publishCopyProgress(progress) })
-	if err == nil {
-		err = holdAccountWorld(ctx, so.GetBlockStore(), head.GetRootRef())
-	}
 
 	// Record the outcome in the progress state.
 	if ctx.Err() != nil {
@@ -331,19 +328,13 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 	return persistErr
 }
 
-// copyAccountWorld shares durable graph retention with World publication.
-// Its private proof store belongs to the serialized account replica copy
-// routine. A missing block does not stop the walk: the walk completes, keeps
-// the proofs of every complete subtree, and returns a worldHolesError.
+// copyAccountWorld copies the World under the progress head and holds it
+// under the account World root, publishing progress while blocks copy. A
+// missing block does not stop the walk: the walk completes, keeps the proofs
+// of every complete subtree, and returns a worldHolesError without moving the
+// root.
 func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.SharedObject, progress *AccountReplicaCopyState, changed func()) error {
-	// Open the shared retention store for the copy.
-	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-retention", nil)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Retain the World head, publishing progress while blocks copy.
+	// Count the copied blocks, publishing progress at most every 250ms.
 	lastUpdate := time.Now()
 	visited := func(_ *block.BlockRef, data []byte) {
 		progress.Blocks++
@@ -353,9 +344,11 @@ func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.Share
 			lastUpdate = time.Now()
 		}
 	}
+
+	// Copy the World, collecting the blocks no source serves.
 	holes := &worldHolesError{}
 	missing := func(ref *block.BlockRef) { holes.refs = append(holes.refs, ref.CloneVT()) }
-	if err := space_world.RetainWorld(ctx, so, progress.GetHead(), local, &space_world.RetainOptions{Visited: visited, Missing: missing}); err != nil {
+	if err := copyWorldGraph(ctx, so.GetBlockStore(), progress.GetHead().GetRootRef(), visited, missing); err != nil {
 		return err
 	}
 	if len(holes.refs) != 0 {
@@ -409,24 +402,4 @@ func (a *ProviderAccount) GetAccountCopyProgress() ([]*AccountReplicaCopyState, 
 		}
 	})
 	return out, wait
-}
-
-// holdAccountWorld moves the account World root onto the copied World. The
-// copy routine is the root's only writer, so it reads the root it moves from;
-// a move that loses a race returns ErrRootMoved and the next copy tries again.
-// A store that holds no roots keeps every block it stores, so it needs no
-// hold.
-func holdAccountWorld(ctx context.Context, store block.StoreOps, root *block.BlockRef) error {
-	// Read what the root holds.
-	held, err := store.GetRoot(ctx, "account-world")
-	if err != nil {
-		return err
-	}
-
-	// Move it onto the copy.
-	err = store.SetRoots(ctx, nil, []block.NamedRoot{{Name: "account-world", Ref: root, Previous: held}})
-	if errors.Is(err, block.ErrRootsUnheld) {
-		return nil
-	}
-	return err
 }
