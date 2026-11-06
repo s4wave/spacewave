@@ -162,7 +162,8 @@ func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOpe
 // Worlds left memory unstored.
 func (r *spaceReplay) recompute(ctx context.Context, index int) error {
 	for i := range index {
-		pos, err := r.apply(ctx, spacePosition{op: r.positions[i].op, state: r.stateFor(i), seqno: r.seqnoFor(i)}, r.positions[i].op)
+		state, seqno := r.stateBefore(i)
+		pos, err := r.apply(ctx, spacePosition{op: r.positions[i].op, state: state, seqno: seqno}, r.positions[i].op)
 		if err != nil {
 			return err
 		}
@@ -170,23 +171,6 @@ func (r *spaceReplay) recompute(ctx context.Context, index int) error {
 	}
 	r.floor = 0
 	return nil
-}
-
-// restoredBase returns the World the restored positions start from.
-func (r *spaceReplay) restoredBase() *InnerState {
-	return r.restoredFrom
-}
-
-// stateFor returns the World before position i.
-func (r *spaceReplay) stateFor(i int) *InnerState {
-	state, _ := r.stateBefore(i)
-	return state
-}
-
-// seqnoFor returns the World seqno before position i.
-func (r *spaceReplay) seqnoFor(i int) uint64 {
-	_, seqno := r.stateBefore(i)
-	return seqno
 }
 
 // apply runs op on the World of pos and returns the position after it.
@@ -290,45 +274,15 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 
 // applyTx runs a World transaction as its signer on the World prev.
 func (r *spaceReplay) applyTx(ctx context.Context, txOp *ApplyTxOp, prev *InnerState, peerID peer.ID) (*InnerState, string, error) {
-	// A transaction needs a World.
-	if prev.GetHeadRef().GetEmpty() {
-		return nil, "world is not initialized", nil
-	}
-
-	// Execute the transaction on the World and commit it.
-	var next *bucket.ObjectRef
-	aerr := func() error {
-		// Decode the transaction and open a writer on the World.
+	return r.commitOn(ctx, prev, "transaction apply failed", func(btx *world_block.EngineTx) (bool, error) {
+		// Decode the transaction and run it as its signer.
 		ttx, err := txOp.GetTx().LocateTx()
 		if err != nil {
-			return err
+			return false, err
 		}
-		btx, err := r.writer(ctx, prev.GetHeadRef())
-		if err != nil {
-			return err
-		}
-		defer btx.Discard()
-
-		// Run it as its signer and commit the World.
-		if _, err := ttx.ExecuteTx(ctx, peerID, declaredLookup(r.a.lookupOp, r.a.opts.OpTypes.Declared, btx), btx); err != nil {
-			return err
-		}
-		next, err = btx.CommitBlockTransaction(ctx)
-		return err
-	}()
-
-	// A canceled read, a missing block or a pending handler stops replay:
-	// refusing the operation would split replicas.
-	if err := ctx.Err(); err != nil {
-		return nil, "", err
-	}
-	if isReplayGap(aerr) {
-		return nil, "", aerr
-	}
-	if aerr != nil {
-		return nil, "transaction apply failed: " + aerr.Error(), nil
-	}
-	return r.advance(prev, next), "", nil
+		_, err = ttx.ExecuteTx(ctx, peerID, declaredLookup(r.a.lookupOp, r.a.opts.OpTypes.Declared, btx), btx)
+		return err == nil, err
+	})
 }
 
 // applyGraphSettingsStep moves the World prev one step toward the step's
@@ -342,7 +296,26 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 		return nil, err.Error(), nil
 	}
 
-	// Step the World and commit a change.
+	// Step the World.
+	return r.commitOn(ctx, prev, "graph settings step failed", func(btx *world_block.EngineTx) (bool, error) {
+		_, changed, err := btx.StepGraphSettings(ctx, stepOp.GetTarget(), int(stepOp.GetMax()))
+		return changed, err
+	})
+}
+
+// commitOn runs change on a write transaction of the replay engine at the
+// World prev and commits it when change reports a change. It returns the World
+// after the commit, or prev when nothing changed. A failure of change refuses
+// the operation with a reason that starts with failed, but a canceled read, a
+// missing block or a pending handler stops replay instead: none is a property
+// of the operation, so refusing it would split replicas.
+func (r *spaceReplay) commitOn(ctx context.Context, prev *InnerState, failed string, change func(*world_block.EngineTx) (bool, error)) (*InnerState, string, error) {
+	// A change needs a World.
+	if prev.GetHeadRef().GetEmpty() {
+		return nil, "world is not initialized", nil
+	}
+
+	// Run the change on the World and commit it.
 	var next *bucket.ObjectRef
 	aerr := func() error {
 		// Open a writer on the World.
@@ -352,8 +325,8 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 		}
 		defer btx.Discard()
 
-		// Step it and commit a change.
-		_, changed, err := btx.StepGraphSettings(ctx, stepOp.GetTarget(), int(stepOp.GetMax()))
+		// Change it, and commit a change.
+		changed, err := change(btx)
 		if err != nil || !changed {
 			return err
 		}
@@ -361,7 +334,7 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 		return err
 	}()
 
-	// Stop for a gap, refuse a failed step, and keep an unchanged World.
+	// Stop for a gap, refuse a failed change, and keep an unchanged World.
 	if err := ctx.Err(); err != nil {
 		return nil, "", err
 	}
@@ -369,7 +342,7 @@ func (r *spaceReplay) applyGraphSettingsStep(ctx context.Context, stepOp *GraphS
 		return nil, "", aerr
 	}
 	if aerr != nil {
-		return nil, "graph settings step failed: " + aerr.Error(), nil
+		return nil, failed + ": " + aerr.Error(), nil
 	}
 	if next == nil {
 		return prev, "", nil
@@ -519,14 +492,17 @@ func withOperationAuthor(ctx context.Context, participant *sobject.SOParticipant
 	if participant == nil {
 		return ctx
 	}
-
-	// The person is the entity, or the device without one.
-	person := participant.GetEntityId()
-	if person == "" {
-		person = participant.GetPeerId()
-	}
-	ctx = world.WithOperationPerson(ctx, person)
+	ctx = world.WithOperationPerson(ctx, operationPerson(participant))
 	return world.WithOperationOwner(ctx, sobject.IsOwner(participant.GetRole()))
+}
+
+// operationPerson returns the person a participant's operations run as: its
+// entity, or the device for a participant without one.
+func operationPerson(participant *sobject.SOParticipantConfig) string {
+	if person := participant.GetEntityId(); person != "" {
+		return person
+	}
+	return participant.GetPeerId()
 }
 
 // newTransformer builds the transformer of a World transform.

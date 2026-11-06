@@ -2,10 +2,10 @@ package space_world
 
 import (
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // replayCursorStoreID is the local state store holding the saved replay.
@@ -150,15 +150,7 @@ func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []
 	}
 
 	// Write the record.
-	store, releaseStore, err := a.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
-	if err != nil {
-		return err
-	}
-	defer releaseStore()
-	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, true) }
-	return kvtx.RunTransaction(ctx, true, open, func(ctx context.Context, tx kvtx.Tx) error {
-		return tx.Set(ctx, replayCursorKey, data)
-	})
+	return a.writeLocal(ctx, replayCursorStoreID, replayCursorKey, data)
 }
 
 // loadCursor reads the saved cursor whose head World the replay cursor root
@@ -166,23 +158,12 @@ func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []
 // does not hold, or whose outcomes do not lead to its head, is ignored.
 func (a *Adapter) loadCursor(ctx context.Context) error {
 	// Read the saved cursor.
-	store, release, err := a.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
-	if err != nil {
+	data, found, err := a.readLocal(ctx, replayCursorStoreID, replayCursorKey)
+	if err != nil || !found {
 		return err
 	}
-	defer release()
-	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, false) }
 	cursor := &ReplayCursor{}
-	var found bool
-	err = kvtx.RunTransaction(ctx, false, open, func(ctx context.Context, tx kvtx.Tx) error {
-		data, ok, err := tx.Get(ctx, replayCursorKey)
-		if err != nil || !ok {
-			return err
-		}
-		found = true
-		return cursor.UnmarshalVT(data)
-	})
-	if err != nil || !found {
+	if err := cursor.UnmarshalVT(data); err != nil {
 		return err
 	}
 
@@ -238,14 +219,5 @@ func restoredState(prev, head *InnerState, outcome *ReplayCursorOutcome) *InnerS
 
 // sameRetained reports whether a and b retain the same roots.
 func sameRetained(a, b *InnerState) bool {
-	ar, br := a.GetRetainedRoots(), b.GetRetainedRoots()
-	if len(ar) != len(br) {
-		return false
-	}
-	for i := range ar {
-		if !ar[i].EqualVT(br[i]) {
-			return false
-		}
-	}
-	return true
+	return slices.EqualFunc(a.GetRetainedRoots(), b.GetRetainedRoots(), (*RetainedRoot).EqualVT)
 }
