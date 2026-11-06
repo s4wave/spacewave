@@ -34,9 +34,9 @@ const (
 	kindJournal byte = 'J'
 	// kindJournalUp keys an up pair of a journal record by the block it
 	// names, then the record's big-endian sequence number. It holds no value.
-	// The collector writes it for each record it indexes and deletes it with
-	// the record, so its tail check finds the records past the cursor that
-	// add a holder to a queued block with one indexed read.
+	// The collector writes it for each record it indexes and deletes it as it
+	// nets the record, so its tail check finds the records past the cursor
+	// that add a holder to a queued block with one indexed read.
 	kindJournalUp byte = 'U'
 	// kindQueue keys a free queue entry by the block. It holds no value.
 	kindQueue byte = 'Q'
@@ -416,18 +416,8 @@ func (r *Records) PutJournal(ctx context.Context, seq uint64, rec *JournalRecord
 	return r.tx.Set(ctx, r.journalKey(seq), value)
 }
 
-// DeleteJournal deletes the journal record seq, rec, with the index entries
-// of its up pairs when the collector indexed it: when seq is before the
-// state's Indexed.
-func (r *Records) DeleteJournal(ctx context.Context, state *LivenessState, seq uint64, rec *JournalRecord) error {
-	// Delete the index entries of an indexed record.
-	if seq < state.GetIndexed() {
-		for _, up := range distinctUps(rec) {
-			if err := r.tx.Delete(ctx, r.journalUpKey(up, seq)); err != nil {
-				return err
-			}
-		}
-	}
+// DeleteJournal deletes the journal record seq.
+func (r *Records) DeleteJournal(ctx context.Context, seq uint64) error {
 	return r.tx.Delete(ctx, r.journalKey(seq))
 }
 
@@ -437,28 +427,23 @@ func (r *Records) journalUpKey(key []byte, seq uint64) []byte {
 	return r.key(kindJournalUp, key, binary.BigEndian.AppendUint64(nil, seq))
 }
 
-// indexJournal writes the index entry of each up pair of the journal record
-// seq, rec.
-func (r *Records) indexJournal(ctx context.Context, seq uint64, rec *JournalRecord) error {
-	for _, up := range distinctUps(rec) {
-		if err := r.tx.Set(ctx, r.journalUpKey(up, seq), nil); err != nil {
-			return err
-		}
+// indexedUps returns how many of the up pairs of the journal record seq,
+// rec, the collector indexed, in record order: all of a record before the
+// state's Indexed, IndexOffset of the one at it, none after.
+func indexedUps(state *LivenessState, seq uint64, rec *JournalRecord) uint64 {
+	switch n := uint64(len(rec.GetUp())); {
+	case seq < state.GetIndexed():
+		return n
+	case seq == state.GetIndexed():
+		return min(state.GetIndexOffset(), n)
 	}
-	return nil
+	return 0
 }
 
 // journalHeld reports whether an indexed journal record not netted whole
 // adds a holder to ref.
 func (r *Records) journalHeld(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return r.anyKey(ctx, r.key(kindJournalUp, BlockKey(ref)))
-}
-
-// distinctUps returns the distinct block keys rec's up pairs name.
-func distinctUps(rec *JournalRecord) [][]byte {
-	ups := slices.Clone(rec.GetUp())
-	slices.SortFunc(ups, bytes.Compare)
-	return slices.CompactFunc(ups, bytes.Equal)
 }
 
 // anyKey reports whether a key begins with prefix.

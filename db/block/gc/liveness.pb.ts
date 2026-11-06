@@ -138,18 +138,25 @@ export interface LivenessState {
    */
   unverifiedLists?: boolean
   /**
-   * NetOffset is how many of the pairs of the record at the cursor, its up
-   * pairs then its down pairs, the collector has netted: a slice nets a
-   * bounded number of pairs, so it splits a large record across slices.
+   * NetOffset is how much of the record at the cursor the collector has
+   * netted: its up pairs, then its down pairs, then the deletes of the index
+   * entries of its up pairs. A slice does a bounded amount, so it splits a
+   * large record across slices.
    */
   netOffset?: bigint
   /**
    * Indexed is the sequence number of the first journal record whose up
-   * pairs the collector has not indexed by block. It indexes from here or
-   * from the cursor, whichever is later, so a record netted before it was
-   * indexed never is, and it deletes a record's entries with the record.
+   * pairs the collector has not all indexed by block. It indexes from here
+   * or from the cursor, whichever is later, so a record netted before it was
+   * indexed never is, and it deletes a record's entries as it nets it.
    */
   indexed?: bigint
+  /**
+   * IndexOffset is how many of the up pairs of the record at Indexed the
+   * collector has indexed: a slice indexes a bounded number, so it splits a
+   * large record across slices.
+   */
+  indexOffset?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -164,5 +171,6 @@ export const LivenessState: MessageType<LivenessState> =
       [7, 'unverified_lists', 8],
       [8, 'net_offset', 4],
       [9, 'indexed', 4],
+      [10, 'index_offset', 4],
     ],
   )

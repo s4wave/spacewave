@@ -154,15 +154,20 @@ type LivenessState struct {
 	// before 7, whose lists may lack a child the block names. Adopt refuses
 	// until a repair rebuilds them from the blocks and clears it.
 	UnverifiedLists bool `protobuf:"varint,7,opt,name=unverified_lists,json=unverifiedLists,proto3" json:"unverifiedLists,omitempty"`
-	// NetOffset is how many of the pairs of the record at the cursor, its up
-	// pairs then its down pairs, the collector has netted: a slice nets a
-	// bounded number of pairs, so it splits a large record across slices.
+	// NetOffset is how much of the record at the cursor the collector has
+	// netted: its up pairs, then its down pairs, then the deletes of the index
+	// entries of its up pairs. A slice does a bounded amount, so it splits a
+	// large record across slices.
 	NetOffset uint64 `protobuf:"varint,8,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
 	// Indexed is the sequence number of the first journal record whose up
-	// pairs the collector has not indexed by block. It indexes from here or
-	// from the cursor, whichever is later, so a record netted before it was
-	// indexed never is, and it deletes a record's entries with the record.
+	// pairs the collector has not all indexed by block. It indexes from here
+	// or from the cursor, whichever is later, so a record netted before it was
+	// indexed never is, and it deletes a record's entries as it nets it.
 	Indexed uint64 `protobuf:"varint,9,opt,name=indexed,proto3" json:"indexed,omitempty"`
+	// IndexOffset is how many of the up pairs of the record at Indexed the
+	// collector has indexed: a slice indexes a bounded number, so it splits a
+	// large record across slices.
+	IndexOffset uint64 `protobuf:"varint,10,opt,name=index_offset,json=indexOffset,proto3" json:"indexOffset,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -227,6 +232,13 @@ func (x *LivenessState) GetIndexed() uint64 {
 	return 0
 }
 
+func (x *LivenessState) GetIndexOffset() uint64 {
+	if x != nil {
+		return x.IndexOffset
+	}
+	return 0
+}
+
 func (m *RootEntry) CloneVT() *RootEntry {
 	if m == nil {
 		return (*RootEntry)(nil)
@@ -275,6 +287,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.UnverifiedLists = m.UnverifiedLists
 	r.NetOffset = m.NetOffset
 	r.Indexed = m.Indexed
+	r.IndexOffset = m.IndexOffset
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -362,6 +375,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.Indexed != that.Indexed {
+		return false
+	}
+	if this.IndexOffset != that.IndexOffset {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -579,6 +595,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("indexed")
 		s.WriteUint64(x.Indexed)
 	}
+	if x.IndexOffset != 0 || s.HasField("indexOffset") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("indexOffset")
+		s.WriteUint64(x.IndexOffset)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -620,6 +641,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "indexed":
 			s.AddField("indexed")
 			x.Indexed = s.ReadUint64()
+		case "index_offset", "indexOffset":
+			s.AddField("index_offset")
+			x.IndexOffset = s.ReadUint64()
 		}
 	})
 }
@@ -751,6 +775,11 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.IndexOffset != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IndexOffset))
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.Indexed != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Indexed))
 		i--
@@ -833,6 +862,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.UnverifiedLists)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Indexed)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.IndexOffset)
 	n += len(m.unknownFields)
 	return n
 }
@@ -923,6 +953,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.Indexed != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "indexed")
 		protobuf_go_lite.TextWriteUint(&sb, x.Indexed)
+	}
+	if x.IndexOffset != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_offset")
+		protobuf_go_lite.TextWriteUint(&sb, x.IndexOffset)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1157,6 +1191,15 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Indexed = 0
 			m.Indexed, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IndexOffset", wireType)
+			}
+			m.IndexOffset = 0
+			m.IndexOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

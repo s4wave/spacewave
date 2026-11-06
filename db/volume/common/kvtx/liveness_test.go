@@ -513,6 +513,26 @@ func allocated(fn func()) uint64 {
 	return after.TotalAlloc - before.TotalAlloc
 }
 
+// countIndexEntries returns the number of journal index entries the Volume
+// stores.
+func countIndexEntries(t *testing.T, v *Volume) int {
+	t.Helper()
+	tx, err := v.kvtxStore.NewTransaction(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	var n int
+	err = tx.ScanPrefixKeys(t.Context(), append(slices.Clone(livenessPrefix), 'U'), func([]byte) error {
+		n++
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
 // punchHole loses ref from the store with its child list and count, as
 // damage to the store or a partial copy does.
 func punchHole(t *testing.T, v *Volume, ref *block.BlockRef) {
@@ -1324,6 +1344,64 @@ func TestLivenessAdversarial(t *testing.T) {
 		collectAll(t, v)
 		requireStored(t, v, tr, false, append(slices.Clone(leaves), "B")...)
 		requireAudit(t, v, 0)
+	})
+
+	t.Run("record larger than an index slice", func(t *testing.T) {
+		// 20,000 leaves stay held under mids of 1000, each under its root.
+		// One commit stores a parent naming each mid's leaves, so its one
+		// record carries an up pair for every leaf, more than an index slice
+		// holds. The collector indexes the record across slices while it is
+		// young, and deletes its entries across slices as it nets it, so no
+		// collector transaction does as much work as the record has pairs,
+		// and none is left behind.
+		ctx := t.Context()
+		cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+		v, err := NewVolume(ctx, "test/wide", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+		v.clock = clk.Now
+		t.Cleanup(func() { _ = v.Close() })
+		tr := testTree{}
+		const pairs = 20_000
+		var parents []string
+		for m := 0; m*1000 < pairs; m++ {
+			names := make([]string, 0, 1000)
+			for i := m * 1000; i < (m+1)*1000; i++ {
+				names = append(names, "leaf "+strconv.Itoa(i))
+				tr.add(t, names[len(names)-1])
+			}
+			mid := "mid " + strconv.Itoa(m)
+			ref := tr.add(t, mid, names...)
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(append(names, mid)...), []block.NamedRoot{{Name: mid, Ref: ref}}); err != nil {
+				t.Fatal(err)
+			}
+			parents = append(parents, "parent "+strconv.Itoa(m))
+			tr.add(t, parents[m], names...)
+		}
+		top := tr.add(t, "top", parents...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(slices.Clone(parents), "top")...), []block.NamedRoot{{Name: "top", Ref: top}}); err != nil {
+			t.Fatal(err)
+		}
+		collect := func() {
+			t.Helper()
+			cs.ResetMax()
+			collectAll(t, v)
+			if m := cs.Counts().MaxWriteOps; m >= pairs {
+				t.Fatalf("a collector transaction made %d operations over a record of %d pairs", m, pairs)
+			}
+		}
+
+		// Index the young record, then net it once it ages.
+		collect()
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collect()
+		requireStored(t, v, tr, true, append(slices.Clone(parents), "top", "leaf 0", "leaf 19999")...)
+		requireAudit(t, v, 0)
+		if n := countIndexEntries(t, v); n != 0 {
+			t.Fatalf("%d journal index entries remain after every record netted", n)
+		}
 	})
 
 	t.Run("child named twice", func(t *testing.T) {

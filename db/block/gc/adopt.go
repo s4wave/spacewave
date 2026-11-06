@@ -507,30 +507,28 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 		// Delete the next records before the cursor.
 		var n int
 		err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-			// Read the records while the run holds the Volume.
-			state, err := inRun(ctx, rec, run)
-			if err != nil {
+			// Read the sequence numbers while the run holds the Volume, then
+			// delete their records.
+			if _, err := inRun(ctx, rec, run); err != nil {
 				return err
 			}
-			var taken []seqRecord
-			err = rec.ScanJournal(ctx, from, func(seq uint64, r *JournalRecord) (bool, error) {
-				if seq >= cursor || len(taken) == sliceRecords {
+			var seqs []uint64
+			err := rec.ScanJournal(ctx, from, func(seq uint64, _ *JournalRecord) (bool, error) {
+				if seq >= cursor || len(seqs) == sliceRecords {
 					return false, nil
 				}
-				taken = append(taken, seqRecord{seq: seq, rec: r})
+				seqs = append(seqs, seq)
 				return true, nil
 			})
 			if err != nil {
 				return err
 			}
-
-			// Delete them, with their index entries.
-			n = len(taken)
+			n = len(seqs)
 			if n != 0 {
-				from = taken[n-1].seq + 1
+				from = seqs[n-1] + 1
 			}
-			for _, t := range taken {
-				if err := rec.DeleteJournal(ctx, state, t.seq, t.rec); err != nil {
+			for _, seq := range seqs {
+				if err := rec.DeleteJournal(ctx, seq); err != nil {
 					return err
 				}
 			}
