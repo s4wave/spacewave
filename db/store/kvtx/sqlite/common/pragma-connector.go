@@ -33,7 +33,8 @@ func NewPragmaConnector(drv driver.Driver, dsn string, pragmas []string) (*Pragm
 	return &PragmaConnector{connector: connector, pragmas: pragmas}, nil
 }
 
-// Connect opens a connection and runs the pragmas on it.
+// Connect opens a connection, runs the pragmas on it, and keeps its prepared
+// statements for reuse.
 func (c *PragmaConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	// Open the driver connection.
 	conn, err := c.connector.Connect(ctx)
@@ -47,7 +48,7 @@ func (c *PragmaConnector) Connect(ctx context.Context) (driver.Conn, error) {
 			return nil, errors.Join(err, conn.Close())
 		}
 	}
-	return conn, nil
+	return newStmtCacheConn(conn), nil
 }
 
 // Driver returns the underlying driver.
