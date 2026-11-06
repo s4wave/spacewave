@@ -50,7 +50,7 @@ var heavyDriverSignals = []string{
 var lightAllowlist = map[string]string{
 	"e2e/harness/chromium-launch_test.go":    "tests build launch-option structs and injected recorder launch fns; never launch a browser",
 	"bldr/e2e/downstreamapp/harness_test.go": "browser tests gate on RunEnv=1 via t.Skipf; the rest are pure resolver unit tests",
-	"db/opfs/chrometest/chrome_test.go":      "TestMain and every test gate on the chrome/tinygo env vars, unset in the sweep",
+	"e2e/opfschrome/chrome_test.go":          "TestMain and every test gate on the chrome/tinygo env vars, unset in the sweep",
 }
 
 // skipDirs are directory names never worth walking for repo source.
