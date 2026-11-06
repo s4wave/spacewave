@@ -251,4 +251,5 @@ var (
 	_ world.Engine                     = (*Engine)(nil)
 	_ world_block.GraphSettingsStepper = (*Engine)(nil)
 	_ BackfillEngine                   = (*Engine)(nil)
+	_ worldReaders                     = (*Engine)(nil)
 )

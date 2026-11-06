@@ -48,12 +48,21 @@ import (
 //     every point, so a restart always finds the World replay starts from.
 //   - The replay cursor record names a World only after replay-cursor holds
 //     it.
-//   - The writer head is the installed head or a candidate admitted after it,
-//     and a candidate's base is the writer head when it was admitted.
+//   - The writer head is the last pending candidate, or the installed head
+//     when none is pending, and a candidate's base is the writer head when it
+//     was admitted.
 //   - The installed head never loses an operation an earlier installed head
 //     applied, until replay places that operation again or refuses it.
 //   - A candidate is decided only after every head watcher saw the head that
 //     holds it.
+//   - Every stored page a live World names is held, by a named root whose
+//     World reaches it through child lists. The live Worlds are the ones
+//     gatherLive returns, which the sweep and the trim share: the positions,
+//     the restored positions, the installed and writer heads, the candidates
+//     and the Worlds a reader of the served engine still reads. The replay
+//     base or a history root releases a World only in the root move that
+//     stores and holds the live Worlds in memory in its place, so a trim
+//     releases only Worlds that no held or live World reaches.
 type Adapter struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -136,9 +145,10 @@ type Adapter struct {
 	// engine is the serving engine once built, until it retires. Guarded by
 	// bcast.
 	engine *Engine
-	// readers is the engine whose readers the sweep keeps live, from when it
-	// serves until it closes, past its retirement. Guarded by bcast.
-	readers *Engine
+	// readers is the engine whose readers the sweep and the history trim keep
+	// live, from when it serves until it closes, past its retirement. Guarded
+	// by bcast.
+	readers worldReaders
 	// holders counts the AcquireEngine holds on engine. Guarded by bcast.
 	holders int
 	// ownership is the ownership last derived, for config head ownershipHead.
@@ -673,9 +683,9 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	return pos.reason, nil
 }
 
-// Install moves the replay base to checkpoint's World and releases the
-// checkpoint root, keeping the positions after the covered ones when the
-// World after them is the checkpoint's.
+// Install moves the replay base to checkpoint's World and trims the
+// histories, keeping the positions after the covered ones when the World
+// after them is the checkpoint's.
 func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointInner, covered int) (bool, error) {
 	// Decode the checkpoint's World.
 	r := a.replay
@@ -684,11 +694,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		return false, errors.Wrap(err, "checkpoint World state")
 	}
 
-	// Hold it as the replay base.
-	baseRoot := base.GetHeadRef().GetRootRef()
-	if err := a.holdBase(ctx, baseRoot); err != nil {
-		return false, err
-	}
+	// Read its seqno.
 	seqno, err := r.seqno(ctx, base)
 	if err != nil {
 		return false, err
@@ -711,7 +717,8 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		r.restored = nil
 	}
 
-	// Trim the Worlds the checkpoint covers from the histories.
+	// Hold the checkpoint's World as the replay base, and trim the Worlds it
+	// covers from the histories, in one root move.
 	if err := a.trimHistories(ctx); err != nil {
 		return false, err
 	}
@@ -730,46 +737,62 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	return kept, nil
 }
 
-// holdBase moves the replay base onto root. The checkpoint root keeps the
-// other Worlds Root returned until trimHistories finds no kept World is one.
-func (a *Adapter) holdBase(ctx context.Context, root *block.BlockRef) error {
-	return a.moveRoots(ctx, nil, block.NamedRoot{Name: RootReplayBase, Ref: root})
-}
-
-// trimHistories releases from the cursor, pending and checkpoint histories
-// the replay base's World, which its own root holds, and every World that no
-// kept position, pending candidate or the installed head still is. A World Root returned past the adopted checkpoint stays held
-// while a later position still is that World, since Root stored its pages
-// and dropped them from memory.
+// trimHistories moves the replay base onto the replay's base World and
+// releases from the cursor, pending and checkpoint histories the base World,
+// which its own root holds, and every World that is not live. A World Root
+// returned past the adopted checkpoint stays held while a later position
+// still is that World, since Root stored its pages and dropped them from
+// memory.
+//
+// A live World kept in memory may name stored pages that only the old base or
+// an earlier history World holds, so when the base moves or any history
+// releases a World, the live Worlds are stored and held in their place: the
+// Worlds in memory under the cursor root and the candidates under the pending
+// root. The Worlds whose pages left memory stay where a history holds them.
+// The base, the holds and every release are one root move, so the trim
+// releases only Worlds that no held or live World reaches through its child
+// lists, and a failed move releases nothing.
+//
+// Cost per install: one pass over the live Worlds, keyed by ref, and one
+// root move that stores the kept pages of the live Worlds.
 func (a *Adapter) trimHistories(ctx context.Context) error {
-	// Gather the Worlds still kept.
-	var live []*block.BlockRef
-	for _, pos := range a.replay.positions {
-		live = append(live, pos.state.GetHeadRef().GetRootRef())
-	}
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		live = append(live, a.head.Root)
-		for _, adm := range a.pending {
-			live = append(live, adm.candidate.Root)
-		}
-	})
+	// Gather the live Worlds, leaving out the base.
+	l := a.gatherLive()
 	base := a.replay.base.GetHeadRef().GetRootRef()
+	isBase := func(root *block.BlockRef) bool { return refEqual(root, base) }
+	memory := slices.DeleteFunc(dedupRefs(l.memory), isBase)
+	candidates := slices.DeleteFunc(dedupRefs(l.candidates), isBase)
+
+	// Keep the Worlds any of them is, but the base.
+	live := make(map[string]struct{}, len(memory)+len(candidates)+len(l.stored))
+	for _, root := range slices.Concat(memory, candidates, l.stored) {
+		live[root.MarshalString()] = struct{}{}
+	}
 	keep := func(root *block.BlockRef) bool {
-		return !root.EqualsRef(base) && slices.ContainsFunc(live, root.EqualsRef)
+		_, ok := live[root.MarshalString()]
+		return ok && !isBase(root)
 	}
 
-	// Trim both histories.
+	// Leave the roots alone when the base stays and no history releases a
+	// World.
 	release, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	for _, h := range []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds} {
-		if err := a.trimHistory(ctx, h, keep); err != nil {
-			return err
-		}
+	histories := []*worldHistory{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds}
+	moved := !refEqual(a.held[RootReplayBase], base)
+	if !moved && !slices.ContainsFunc(histories, func(h *worldHistory) bool { return h.releases(keep) }) {
+		return nil
 	}
-	return nil
+
+	// Hold the live Worlds, release the rest and move the base together.
+	next := [][]*block.BlockRef{
+		a.cursorWorlds.held(keep, memory),
+		a.pendingWorlds.held(keep, candidates),
+		a.checkpointWorlds.held(keep, nil),
+	}
+	return a.setHistories(ctx, histories, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: base})
 }
 
 // missAbove notes as missing every applied position whose operation is still
@@ -976,13 +999,7 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 			a.pending = slices.DeleteFunc(a.pending, func(o *spaceAdmission) bool { return o == adm })
 			done = append(done, adm)
 		}
-		a.writer = a.head
-		for _, adm := range slices.Backward(a.pending) {
-			if c := adm.getCandidate(); c != nil {
-				a.writer = world.Head{Root: c.Root, Seqno: c.Seqno}
-				break
-			}
-		}
+		a.writer = a.writerHeadLocked()
 	})
 
 	// Wake the waiters.
@@ -991,9 +1008,21 @@ func (a *Adapter) decide(adms []*spaceAdmission, decision world.Decision, reason
 	}
 }
 
-// installHead installs the World after the last position as the head, holds
-// its retained roots, reports it to every head watcher, then decides the
-// candidates it holds.
+// writerHeadLocked returns the head the next turn builds on: the last pending
+// candidate's World, or the installed head when none is pending. The caller
+// holds bcast.
+func (a *Adapter) writerHeadLocked() world.Head {
+	for _, adm := range slices.Backward(a.pending) {
+		if c := adm.getCandidate(); c != nil {
+			return world.Head{Root: c.Root, Seqno: c.Seqno}
+		}
+	}
+	return a.head
+}
+
+// installHead installs the World after the last position as the head, moves
+// the writer head with it, holds its retained roots, reports it to every head
+// watcher, then decides the candidates it holds.
 func (a *Adapter) installHead(ctx context.Context) error {
 	// Install the head and collect the placed candidates.
 	state, seqno := a.replay.head()
@@ -1016,6 +1045,7 @@ func (a *Adapter) installHead(ctx context.Context) error {
 		changed := !state.EqualVT(a.headState) || a.head.Seqno != seqno
 		if changed {
 			a.head, a.headState = head, state
+			a.writer = a.writerHeadLocked()
 		}
 		if changed || moved {
 			broadcast()
@@ -1259,32 +1289,17 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 	return nil
 }
 
-// sweep drops the kept pages no live World reaches: the replay's Worlds and
-// payloads, the installed head, the writer head, the pending candidates, and
-// every World the served engine's readers may still read.
+// sweep drops the kept pages no live World reaches: the replay base's, the
+// live Worlds' in memory, and their payloads and retained roots.
 func (a *Adapter) sweep() {
-	// Mark the pages kept so far, then gather the adapter's live Worlds: a
-	// page kept after the mark may belong to a candidate admitted meanwhile.
+	// Mark the pages kept so far, then gather the live Worlds: a page kept
+	// after the mark may belong to a candidate admitted meanwhile.
 	mark := a.pages.SweepMark()
-	live := a.replay.liveRoots()
-	var engine *Engine
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		engine = a.readers
-		live = append(live, a.head.Root, a.writer.Root)
-		for _, adm := range a.pending {
-			live = append(live, adm.candidate.Root)
-			live = append(live, adm.payloads...)
-		}
-		for _, root := range a.headState.GetRetainedRoots() {
-			live = append(live, root.GetRootRef())
-		}
-	})
+	l := a.gatherLive()
 
-	// Add the engine readers' Worlds, then drop the rest.
-	if engine != nil {
-		live = append(live, engine.ReadRoots()...)
-	}
-	a.pages.Sweep(live, mark)
+	// Drop the pages none of them reaches.
+	base := a.replay.base.GetHeadRef().GetRootRef()
+	a.pages.Sweep(slices.Concat([]*block.BlockRef{base}, l.memory, l.candidates, l.payloads, l.retained), mark)
 }
 
 // buildLookupOp composes the built-in operations with the bus lookup.

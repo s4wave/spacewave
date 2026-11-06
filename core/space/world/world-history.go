@@ -26,49 +26,63 @@ func (h *worldHistory) holds(root *block.BlockRef) bool {
 	return slices.ContainsFunc(h.roots, root.EqualsRef)
 }
 
+// releases reports whether the history holds a World keep does not report.
+// The caller holds rootMtx.
+func (h *worldHistory) releases(keep func(*block.BlockRef) bool) bool {
+	return slices.ContainsFunc(h.roots, func(r *block.BlockRef) bool { return !keep(r) })
+}
+
 // addHistory adds root to h and moves its root onto the history, with
 // entries stored in the same change. The caller holds rootMtx.
 func (a *Adapter) addHistory(ctx context.Context, h *worldHistory, root *block.BlockRef, entries ...*block.PutBatchEntry) error {
-	if root.GetEmpty() || h.holds(root) {
-		if len(entries) == 0 {
-			return nil
-		}
-		return a.moveRootsLocked(ctx, entries)
+	roots := h.roots
+	if !root.GetEmpty() && !h.holds(root) {
+		roots = append(slices.Clone(h.roots), root.Clone())
 	}
-	return a.setHistory(ctx, h, append(slices.Clone(h.roots), root.Clone()), entries...)
+	return a.setHistories(ctx, []*worldHistory{h}, [][]*block.BlockRef{roots}, entries)
 }
 
-// trimHistory keeps only the Worlds of h that keep reports, moving its root
-// when the set changes. The caller holds rootMtx.
-func (a *Adapter) trimHistory(ctx context.Context, h *worldHistory, keep func(*block.BlockRef) bool) error {
+// held returns the Worlds of h that keep reports, followed by the live
+// Worlds it holds in place of the ones it releases. The caller holds
+// rootMtx.
+func (h *worldHistory) held(keep func(*block.BlockRef) bool, live []*block.BlockRef) []*block.BlockRef {
 	roots := slices.DeleteFunc(slices.Clone(h.roots), func(r *block.BlockRef) bool { return !keep(r) })
-	if len(roots) == len(h.roots) {
-		return nil
+	for _, root := range live {
+		roots = append(roots, root.Clone())
 	}
-	return a.setHistory(ctx, h, roots)
+	return dedupRefs(roots)
 }
 
-// setHistory moves h's root onto a block naming roots, or releases it when
-// roots is empty. The caller holds rootMtx.
-func (a *Adapter) setHistory(ctx context.Context, h *worldHistory, roots []*block.BlockRef, entries ...*block.PutBatchEntry) error {
-	// Release the name when the history is empty.
-	if len(roots) == 0 {
-		if err := a.moveRootsLocked(ctx, entries, block.NamedRoot{Name: h.name}); err != nil {
+// setHistories moves each history of hs onto the Worlds of the same index of
+// next, and roots onto their refs, in one root move with entries, so either
+// every move lands or none does. A history whose Worlds stay is not moved.
+// The caller holds rootMtx.
+func (a *Adapter) setHistories(ctx context.Context, hs []*worldHistory, next [][]*block.BlockRef, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
+	// Encode each changed history as one block naming its Worlds, or release
+	// its name when it holds none.
+	for i, h := range hs {
+		if slices.EqualFunc(next[i], h.roots, refEqual) {
+			continue
+		}
+		if len(next[i]) == 0 {
+			roots = append(roots, block.NamedRoot{Name: h.name})
+			continue
+		}
+		entry, err := refsEntry(&HeldRoots{Roots: next[i]}, next[i])
+		if err != nil {
 			return err
 		}
-		h.roots = nil
-		return nil
+		entries = append(entries, entry)
+		roots = append(roots, block.NamedRoot{Name: h.name, Ref: entry.Ref})
 	}
 
-	// Hold every World under one block.
-	entry, err := refsEntry(&HeldRoots{Roots: roots}, roots)
-	if err != nil {
+	// Move them together, then record the Worlds each holds.
+	if err := a.moveRootsLocked(ctx, entries, roots...); err != nil {
 		return err
 	}
-	if err := a.moveRootsLocked(ctx, append(entries, entry), block.NamedRoot{Name: h.name, Ref: entry.Ref}); err != nil {
-		return err
+	for i, h := range hs {
+		h.roots = next[i]
 	}
-	h.roots = roots
 	return nil
 }
 
