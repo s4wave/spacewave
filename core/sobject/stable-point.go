@@ -40,35 +40,101 @@ func (s *SOOperationSet) Size() int {
 // every stable operation, so replay never places a new operation inside the
 // stable prefix and a checkpoint may cover it. An empty roster makes the whole
 // order stable. StableCheckpoint.tla models the stable point and the
-// checkpointer that adopts a checkpoint over it.
+// checkpointer that adopts a checkpoint over it. Callers must not modify the
+// result, which shares the set's order.
+//
+// Cost: one pass over the order and the links of each operation, with a word
+// of bits per 64 latest operations of the roster, after the order the set
+// computes once.
 func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
 	// Stop at the sequenced prefix while the sequence is open.
 	placed := s.order()
 	order := placed.order
 	if s.sequence.open {
-		return order[:placed.sequenced]
+		return order[:placed.sequenced:placed.sequenced]
 	}
-
-	// Intersect what each roster member has built on.
 	if len(roster) == 0 {
 		return order
 	}
-	stable := s.builtOn(order, roster[0])
-	for _, peerID := range roster[1:] {
-		built := s.builtOn(order, peerID)
-		maps.DeleteFunc(stable, func(key string, _ struct{}) bool {
-			_, ok := built[key]
-			return !ok
-		})
-	}
+	n := s.stableLen(order, roster)
+	return order[:n:n]
+}
 
-	// Take the longest prefix of the order inside that intersection.
+// stableLen returns the length of the longest prefix of order whose
+// operations every member of roster has built on: each is an ancestor of, or
+// is, every latest placed operation of each member, as builtOn defines them.
+// It walks order once from the end, giving each operation the set of latest
+// operations that descend from it, as bits: an operation's bits are its own and
+// those of every placed operation linking to it, and order places every link
+// before the operation that names it. A member with no placed operation has
+// built on nothing.
+func (s *SOOperationSet) stableLen(order [][]byte, roster []string) int {
+	// Find each member's placed operations and the ones a later one of the
+	// same member follows.
+	members := make(map[string]struct{}, len(roster))
+	for _, peerID := range roster {
+		members[peerID] = struct{}{}
+	}
+	index := make(map[string]int, len(order))
+	followed := make(map[string]struct{})
+	placedBy := make(map[string]int, len(members))
 	for i, h := range order {
-		if _, ok := stable[string(h)]; !ok {
-			return order[:i]
+		index[string(h)] = i
+		inner := s.ops[string(h)]
+		if _, ok := members[inner.GetPeerId()]; ok {
+			placedBy[inner.GetPeerId()]++
+			followed[string(inner.GetPrevOpHash())] = struct{}{}
 		}
 	}
-	return order
+	if len(placedBy) != len(members) {
+		return 0
+	}
+
+	// Give each latest operation of a member its own bit.
+	bit := make(map[int]int)
+	for i, h := range order {
+		_, own := members[s.ops[string(h)].GetPeerId()]
+		if _, later := followed[string(h)]; own && !later {
+			bit[i] = len(bit)
+		}
+	}
+	words := (len(bit) + 63) / 64
+	masks := make([]uint64, len(order)*words)
+
+	// Carry each operation's bits to the operations it links to, from the
+	// last placed one back.
+	for i := len(order) - 1; i >= 0; i-- {
+		mask := masks[i*words : (i+1)*words]
+		if b, ok := bit[i]; ok {
+			mask[b/64] |= 1 << (b % 64)
+		}
+		for _, link := range links(s.ops[string(order[i])]) {
+			if s.Covers(link.GetPeerId(), link.GetNonce()) {
+				continue
+			}
+			if j, ok := index[string(link.GetOpHash())]; ok {
+				for w, m := range mask {
+					masks[j*words+w] |= m
+				}
+			}
+		}
+	}
+
+	// The stable prefix ends at the first operation some latest operation
+	// does not descend from.
+	for i := range order {
+		mask := masks[i*words : (i+1)*words]
+		for w, m := range mask {
+			full := ^uint64(0)
+			if w == words-1 && len(bit)%64 != 0 {
+				full = 1<<(len(bit)%64) - 1
+			}
+			if m != full {
+				return i
+			}
+		}
+	}
+	return len(order)
 }
 
 // NeedsAcknowledgment reports whether the writer peerID should write an

@@ -231,14 +231,16 @@ func (s *SOStateParticipantHandle) GetConfigByHash(ctx context.Context, hash []b
 	return cfg, nil
 }
 
-// GetCheckpoint returns the checkpoint body with its state data decoded.
+// GetCheckpoint returns the checkpoint body with its state data decoded. The
+// snapshots that share the handle's keyring decode each checkpoint once and
+// share the body, which callers must not modify.
 func (s *SOStateParticipantHandle) GetCheckpoint(ctx context.Context) (*SOCheckpointInner, error) {
 	// A state without a checkpoint has no readable state.
-	inner, err := s.state.GetCheckpointInner()
-	if err != nil || inner == nil {
-		return nil, err
+	checkpoint := s.state.GetCheckpoint()
+	if checkpoint == nil {
+		return nil, nil
 	}
-	return s.DecodeCheckpoint(inner)
+	return s.keyring.Checkpoint(checkpoint, s.DecodeCheckpoint)
 }
 
 // DecodeCheckpoint returns a copy of a checkpoint body with its state data

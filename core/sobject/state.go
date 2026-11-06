@@ -398,9 +398,15 @@ func (q *SOSequence) UnmarshalHeight() (uint64, error) {
 // a lagging peer's state imports cleanly even after its signer left. The
 // operations next covers leave the set.
 func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) error {
+	return s.adoptCheckpoint(NewSOOperationVerifier(sharedObjectID), next)
+}
+
+// adoptCheckpoint is AdoptCheckpoint, rebuilding the operations above next
+// through v.
+func (s *SOState) adoptCheckpoint(v *SOOperationVerifier, next *SOCheckpoint) error {
 	// Keep the held checkpoint unless next is its successor. A skipped height
 	// cannot be linked and is taken on the owner's signature alone.
-	inner, _, err := next.Verify(sharedObjectID)
+	inner, _, err := next.Verify(v.sharedObjectID)
 	if err != nil {
 		return err
 	}
@@ -417,8 +423,8 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 				return errors.New("checkpoint conflicts with the held checkpoint")
 			}
 			// Take the signatures of a remaining owner when the held signer left.
-			if _, err := held.ValidateAuthority(sharedObjectID, s.GetConfig()); err != nil {
-				if _, err := next.ValidateAuthority(sharedObjectID, s.GetConfig()); err == nil {
+			if _, err := held.ValidateAuthority(v.sharedObjectID, s.GetConfig()); err != nil {
+				if _, err := next.ValidateAuthority(v.sharedObjectID, s.GetConfig()); err == nil {
 					s.Checkpoint = next.CloneVT()
 				}
 			}
@@ -429,29 +435,20 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 	}
 
 	// The held config authorizes the new checkpoint.
-	if _, err := next.ValidateAuthority(sharedObjectID, s.GetConfig()); err != nil {
+	if _, err := next.ValidateAuthority(v.sharedObjectID, s.GetConfig()); err != nil {
 		return err
 	}
 
-	// Drop the operations the new checkpoint covers. Verification may suspend
-	// under GoScript, so filter with a plain loop instead of slices.DeleteFunc.
-	set := NewSOOperationSet(sharedObjectID, inner)
+	// Drop the operations the new checkpoint covers.
 	s.Checkpoint = next.CloneVT()
-	kept := s.Ops[:0]
-	for _, op := range s.Ops {
-		if added, err := set.Add(op); err == nil && added {
-			kept = append(kept, op)
-		}
-	}
-	clear(s.Ops[len(kept):])
-	s.Ops = kept
+	s.Ops = v.keep(NewSOOperationSet(v.sharedObjectID, inner), s.Ops)
 
 	// Drop the positions it covers, and the ones the sequencer can no longer
 	// account for.
 	sequencer := s.GetConfig().GetSequencer()
 	keptSeq := s.Sequence[:0]
 	for _, record := range s.Sequence {
-		seqInner, signer, err := record.Verify(sharedObjectID)
+		seqInner, signer, err := record.Verify(v.sharedObjectID)
 		if err != nil || seqInner.GetHeight() <= inner.GetSequence().GetHeight() {
 			continue
 		}

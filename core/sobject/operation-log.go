@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -248,6 +249,12 @@ type SOOperationSet struct {
 	authors map[string]*SOOperationPosition
 	// sequence is the resolved sequence above the checkpoint.
 	sequence soSequence
+
+	// placedMtx guards placed.
+	placedMtx sync.Mutex
+	// placed is the replay order, computed once for the operations and
+	// sequence the set holds, or nil until then.
+	placed *soOrder
 }
 
 // soAuthorSeq identifies one position in one author's chain.
@@ -293,6 +300,7 @@ func NewSOOperationSet(sharedObjectID string, checkpoint *SOCheckpointInner) *SO
 // stops at them while the sequence is open.
 func (s *SOOperationSet) setSequence(sequencer *SOSequencer, records []*SOSequence) {
 	s.sequence = resolveSequence(s.sharedObjectID, s.sequence.base, sequencer, records)
+	s.placed = nil
 }
 
 // Covers reports whether the checkpoint below the set covers the operation
@@ -335,7 +343,9 @@ func (s *SOOperationSet) insert(key string, inner *SOOperationInner) bool {
 		return false
 	}
 
-	// Index it by hash and by its author position.
+	// Index it by hash and by its author position, and order it with the
+	// rest when next asked.
+	s.placed = nil
 	s.ops[key] = inner
 	pos := soAuthorSeq{author: inner.GetPeerId(), nonce: inner.GetNonce()}
 	s.byAuthorSeq[pos] = append(s.byAuthorSeq[pos], key)
@@ -448,7 +458,8 @@ func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
 // and the checkpoint does not cover waits, with its descendants, until the
 // missing operation arrives. An operation that arrives after the checkpoint
 // covered what it names, such as an edit from a device off the trimming
-// roster, is placed above the checkpoint.
+// roster, is placed above the checkpoint. The set computes the order once and
+// shares it, so callers must not modify it.
 func (s *SOOperationSet) Order() [][]byte {
 	return s.order().order
 }
@@ -465,8 +476,22 @@ type soOrder struct {
 	complete bool
 }
 
-// order computes the replay order and the sequenced prefix.
+// order returns the replay order and the sequenced prefix, computing them on
+// the first call after the set changed. The order is clipped, so a caller's
+// append copies it.
 func (s *SOOperationSet) order() soOrder {
+	s.placedMtx.Lock()
+	defer s.placedMtx.Unlock()
+	if s.placed == nil {
+		placed := s.placeOrder()
+		placed.order = slices.Clip(placed.order)
+		s.placed = &placed
+	}
+	return *s.placed
+}
+
+// placeOrder computes the replay order and the sequenced prefix.
+func (s *SOOperationSet) placeOrder() soOrder {
 	// Place the sequenced operations in sequence order, skipping covered and
 	// repeated ones, until one is missing or names an unplaced operation.
 	out := soOrder{order: make([][]byte, 0, len(s.ops)), tail: s.sequence.base, complete: true}
