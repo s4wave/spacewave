@@ -166,7 +166,7 @@ type OperationShape struct {
 }
 
 // OperationSummary groups task timing and recovered numeric log payloads under a
-// stable operation name, such as block-write or opfs-publish.
+// stable operation name, such as block-write or space-replay.
 type OperationSummary struct {
 	Name     string           `json:"name"`
 	Count    int              `json:"count,omitempty"`

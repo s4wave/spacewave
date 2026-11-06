@@ -832,10 +832,8 @@ var operationShapeOrder = []string{
 	"write-transaction",
 	"block-write",
 	"cayley-delta",
-	"gc-wal",
-	"opfs-read",
-	"opfs-publish",
-	"startup-replay",
+	"space-replay",
+	"opfs-file",
 }
 
 // operationShapeCollector aggregates trace tasks and logs by operation family.
@@ -982,8 +980,7 @@ func (s *operationShapeSummary) build() drivebench.OperationSummary {
 // operationNameForTraceTask maps known trace task paths to report families.
 func operationNameForTraceTask(typ string) string {
 	switch {
-	case typ == "alpha/so-engine/write-tx/hold-write-mtx" ||
-		strings.HasPrefix(typ, "alpha/so-engine/write-tx/"):
+	case strings.HasPrefix(typ, "hydra/world-block/engine-tx/"):
 		return "write-transaction"
 	case typ == "hydra/block/transaction/write-at-root" ||
 		strings.HasPrefix(typ, "hydra/block/transaction/write-at-root/") ||
@@ -992,20 +989,10 @@ func operationNameForTraceTask(typ string) string {
 	case typ == "cayley/kv/apply-deltas" ||
 		strings.HasPrefix(typ, "cayley/kv/apply-deltas/"):
 		return "cayley-delta"
-	case strings.HasPrefix(typ, "hydra/world-graph/"):
-		return "cayley-delta"
-	case typ == "hydra/block-gc/manager/startup-replay" ||
-		strings.HasPrefix(typ, "hydra/block-gc/manager/startup-replay/"):
-		return "startup-replay"
-	case strings.HasPrefix(typ, "hydra/block-gc/"):
-		return "gc-wal"
-	case typ == "hydra/opfs-engine/read" ||
-		strings.HasPrefix(typ, "hydra/opfs-engine/read/"):
-		return "opfs-read"
-	case strings.HasPrefix(typ, "hydra/opfs-engine/block-store/") ||
-		typ == "hydra/opfs-engine/publish" ||
-		strings.HasPrefix(typ, "hydra/opfs-engine/publish/"):
-		return "opfs-publish"
+	case strings.HasPrefix(typ, "space/world/replay/"):
+		return "space-replay"
+	case strings.HasPrefix(typ, "hydra/opfs/"):
+		return "opfs-file"
 	default:
 		return ""
 	}
@@ -1021,16 +1008,11 @@ func operationTraceLogFieldName(category, key string) string {
 	// Remove the known operation path while retaining its detailed suffix.
 	prefix := category
 	for _, base := range []string{
-		"alpha/so-engine/write-tx/",
+		"hydra/world-block/engine-tx/",
 		"hydra/block/transaction/write-at-root/",
 		"hydra/block/buffered-store/",
-		"hydra/block-gc/store/flush-pending/",
-		"hydra/block-gc/refgraph/apply-ref-batch/",
-		"hydra/block-gc/wal/",
-		"hydra/opfs-engine/read/",
-		"hydra/opfs-engine/publish/",
-		"hydra/opfs-engine/block-store/",
-		"hydra/world-graph/",
+		"space/world/replay/",
+		"hydra/opfs/",
 		"cayley/kv/apply-deltas/",
 	} {
 		if after, ok := strings.CutPrefix(category, base); ok {

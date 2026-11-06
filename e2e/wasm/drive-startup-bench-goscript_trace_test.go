@@ -26,31 +26,25 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/write-shape", "encoded_blocks=%d put_blocks=%d", 3, 2)
 	blockTask.End()
 
-	// Record a GC WAL task.
-	ctx, gcTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/wal-append")
-	trace.Logf(ctx, "hydra/block-gc/store/flush-pending/wal-append/shape", "adds=%d removes=%d", 7, 1)
-	trace.Logf(ctx, "hydra/block-gc/wal/append/file", "bytes=%d files=%d", 512, 1)
-	gcTask.End()
+	// Record a World commit task.
+	ctx, commitTask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction")
+	trace.Logf(ctx, "hydra/world-block/engine-tx/commit-block-transaction/shape", "blocks=%d roots=%d", 7, 1)
+	commitTask.End()
 
 	// Record a Cayley delta task.
 	ctx, graphTask := trace.NewTask(ctx, "cayley/kv/apply-deltas")
-	trace.Log(ctx, "hydra/world-graph/set-quad/shape", "adds=1 duplicates=0")
+	trace.Log(ctx, "cayley/kv/apply-deltas/shape", "adds=1 duplicates=0")
 	graphTask.End()
 
-	// Record an OPFS read task.
-	ctx, readTask := trace.NewTask(ctx, "hydra/opfs-engine/read")
-	trace.Log(ctx, "hydra/opfs-engine/read/shape", "bytes=65536 files=1")
-	readTask.End()
+	// Record a Space replay task.
+	ctx, replayTask := trace.NewTask(ctx, "space/world/replay/apply")
+	trace.Log(ctx, "space/world/replay/apply/shape", "ops=4 refused=1")
+	replayTask.End()
 
-	// Record an OPFS publish task.
-	ctx, publishTask := trace.NewTask(ctx, "hydra/opfs-engine/publish")
-	trace.Log(ctx, "hydra/opfs-engine/publish/shape", "files=4 bytes=512 retired=2")
-	publishTask.End()
-
-	// Record an OPFS block-batch task.
-	ctx, opfsBatchTask := trace.NewTask(ctx, "hydra/opfs-engine/block-store/put-block-batch")
-	trace.Logf(ctx, "hydra/opfs-engine/block-store/put-block-batch/shape", "entries=%d bytes=%d tombstones=%d", 6, 128, 1)
-	opfsBatchTask.End()
+	// Record an OPFS write task.
+	ctx, writeTask := trace.NewTask(ctx, "hydra/opfs/async-file/write-at")
+	trace.Logf(ctx, "hydra/opfs/async-file/write-at/shape", "bytes=%d files=%d", 65536, 1)
+	writeTask.End()
 
 	// Stop the trace.
 	trace.Stop()
@@ -60,8 +54,8 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	if tasks < 2 {
 		t.Fatalf("tasks = %d, want at least 2", tasks)
 	}
-	if logs != 7 {
-		t.Fatalf("logs = %d, want 7", logs)
+	if logs != 5 {
+		t.Fatalf("logs = %d, want 5", logs)
 	}
 	if shape == nil {
 		t.Fatal("operation shape is nil")
@@ -75,37 +69,32 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	assertOperationField(t, block, "write-shape.encoded_blocks", 3)
 	assertOperationField(t, block, "write-shape.put_blocks", 2)
 
-	// Require the GC WAL operation fields.
-	gc := findOperation(t, shape, "gc-wal")
-	if gc.Count == 0 {
-		t.Fatalf("gc-wal count = 0")
+	// Require the World commit operation fields.
+	commit := findOperation(t, shape, "write-transaction")
+	if commit.Count == 0 {
+		t.Fatalf("write-transaction count = 0")
 	}
-	assertOperationField(t, gc, "wal-append.shape.adds", 7)
-	assertOperationField(t, gc, "wal-append.shape.removes", 1)
-	assertOperationField(t, gc, "append.file.bytes", 512)
+	assertOperationField(t, commit, "commit-block-transaction.shape.blocks", 7)
+	assertOperationField(t, commit, "commit-block-transaction.shape.roots", 1)
 
-	// Require the Cayley and OPFS read operation fields.
+	// Require the Cayley, Space replay and OPFS operation fields.
 	cayley := findOperation(t, shape, "cayley-delta")
 	if cayley.Count == 0 {
 		t.Fatalf("cayley-delta count = 0")
 	}
-	assertOperationField(t, cayley, "set-quad.shape.adds", 1)
-	read := findOperation(t, shape, "opfs-read")
-	if read.Count == 0 {
-		t.Fatalf("opfs-read count = 0")
+	assertOperationField(t, cayley, "shape.adds", 1)
+	replay := findOperation(t, shape, "space-replay")
+	if replay.Count == 0 {
+		t.Fatalf("space-replay count = 0")
 	}
-	assertOperationField(t, read, "shape.bytes", 65536)
-	assertOperationField(t, read, "shape.files", 1)
-
-	// Require the OPFS publish operation fields.
-	publish := findOperation(t, shape, "opfs-publish")
-	if publish.Count == 0 {
-		t.Fatalf("opfs-publish count = 0")
+	assertOperationField(t, replay, "apply.shape.ops", 4)
+	assertOperationField(t, replay, "apply.shape.refused", 1)
+	opfs := findOperation(t, shape, "opfs-file")
+	if opfs.Count == 0 {
+		t.Fatalf("opfs-file count = 0")
 	}
-	assertOperationField(t, publish, "shape.files", 4)
-	assertOperationField(t, publish, "shape.bytes", 512)
-	assertOperationField(t, publish, "put-block-batch.shape.entries", 6)
-	assertOperationField(t, publish, "put-block-batch.shape.bytes", 128)
+	assertOperationField(t, opfs, "async-file.write-at.shape.bytes", 65536)
+	assertOperationField(t, opfs, "async-file.write-at.shape.files", 1)
 }
 
 // TestSummarizeBrowserCPUProfileBucketsSamples checks self time, inclusive time, and valid profile serialization.
