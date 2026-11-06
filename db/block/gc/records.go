@@ -651,30 +651,84 @@ func (r *Records) deleteReleasePage(ctx context.Context, page uint64) error {
 }
 
 // scanReleasePending calls fn with each child of rel not released yet, in
-// order, from the release page holding its Next. Each still holds the count
-// the freed block's Land gave it, as continueRelease describes.
+// block key order, from the release page holding its Next. Each still holds
+// the count the freed block's Land gave it, as continueRelease describes.
 func (r *Records) scanReleasePending(ctx context.Context, rel *Release, fn func(child *block.BlockRef) error) error {
-	for next := rel.GetNext(); next < rel.GetChildren(); {
-		// Read the page holding next.
-		page := next / releasePageChildren
-		children, err := r.getReleasePage(ctx, page)
-		if err != nil {
+	cur := newReleaseCursor(r, rel)
+	for {
+		child, err := cur.child(ctx)
+		if err != nil || child == nil {
 			return err
 		}
-		within := next % releasePageChildren
-		if within >= uint64(len(children)) {
-			return errReleasePageMissing(rel, page)
+		if err := fn(child); err != nil {
+			return err
 		}
-
-		// Hand over the children on it from next.
-		for _, child := range children[within:] {
-			if err := fn(child); err != nil {
-				return err
-			}
-		}
-		next += uint64(len(children)) - within
+		cur.next++
 	}
-	return nil
+}
+
+// releaseCursor walks the children of a release not released yet in block
+// key order, the order of its freed block's child list, holding one release
+// page at a time.
+type releaseCursor struct {
+	// rec are the liveness records it reads the pages from.
+	rec *Records
+	// rel is the release, nil when none is in progress.
+	rel *Release
+	// next is the position of the child at the cursor.
+	next uint64
+	// page holds the children of release page pageNo once read.
+	page []*block.BlockRef
+	// pageNo is the page page holds.
+	pageNo uint64
+}
+
+// newReleaseCursor returns a cursor at the first child of rel not released
+// yet.
+func newReleaseCursor(rec *Records, rel *Release) *releaseCursor {
+	return &releaseCursor{rec: rec, rel: rel, next: rel.GetNext()}
+}
+
+// child returns the child at the cursor, or nil past the last one.
+func (c *releaseCursor) child(ctx context.Context) (*block.BlockRef, error) {
+	// Past the last child there is none.
+	if c.next >= c.rel.GetChildren() {
+		return nil, nil
+	}
+
+	// Read the page holding it, unless the cursor holds it already.
+	no := c.next / releasePageChildren
+	if c.page == nil || c.pageNo != no {
+		page, err := c.rec.getReleasePage(ctx, no)
+		if err != nil {
+			return nil, err
+		}
+		c.page, c.pageNo = page, no
+	}
+	within := c.next % releasePageChildren
+	if within >= uint64(len(c.page)) {
+		return nil, errReleasePageMissing(c.rel, no)
+	}
+	return c.page[within], nil
+}
+
+// has reports whether the release names the block at key, moving the cursor
+// past the children below it. Calls pass keys in ascending order, as
+// ScanChildren yields them.
+func (c *releaseCursor) has(ctx context.Context, key []byte) (bool, error) {
+	for {
+		child, err := c.child(ctx)
+		if err != nil || child == nil {
+			return false, err
+		}
+		switch cmp := bytes.Compare(BlockKey(child), key); {
+		case cmp == 0:
+			return true, nil
+		case cmp > 0:
+			return false, nil
+		}
+		c.next++
+	}
 }
 
 // errReleasePageMissing reports that release page page of rel is missing or

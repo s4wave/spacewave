@@ -1887,6 +1887,76 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	for _, landed := range []bool{true, false} {
+		t.Run("holder landed after an audit's snapshot landed="+strconv.FormatBool(landed), func(t *testing.T) {
+			// P1 and P2 name H under roots p1 and p2, and the store loses H.
+			// An audit tallies P1 and P2 in its snapshot. With landed set, the
+			// counts hold both, and before the audit records the hole a
+			// writer lands P3 naming H, which the collector nets. Otherwise
+			// the up pair of H's second holder is still in the journal at the
+			// snapshot and nothing lands. Either way the audit records H with
+			// its true holders: once H is put again and P1 and P2 are freed,
+			// P3 or nothing holds H, and H stays while P3 does and is freed
+			// with it.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			h := tr.add(t, "H")
+			p1 := tr.add(t, "P1", "H")
+			p2 := tr.add(t, "P2", "H")
+			p3 := tr.add(t, "P3", "H")
+			roots := []block.NamedRoot{{Name: "p1", Ref: p1}, {Name: "p2", Ref: p2}}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("H", "P1", "P2"), roots); err != nil {
+				t.Fatal(err)
+			}
+			if landed {
+				clk.Add(block_gc.DefaultGrace + time.Second)
+				collectAll(t, v)
+			}
+			punchHole(t, v, h)
+
+			// Audit, landing P3 between the snapshot and the hole's record.
+			probe := &auditProbe{collectorStore: collectorStore{v: v}}
+			if landed {
+				probe.before = func() {
+					if err := v.SetBucketRoots(ctx, "b", tr.entries("P3"), []block.NamedRoot{{Name: "p3", Ref: p3}}); err != nil {
+						t.Error(err)
+					}
+					clk.Add(block_gc.DefaultGrace + time.Second)
+					collectAll(t, v)
+				}
+			}
+			if res, err := block_gc.Audit(ctx, probe); err != nil || res.Holes != 1 {
+				t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+			}
+
+			// Put H again and free P1 and P2.
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("H"), nil); err != nil {
+				t.Fatal(err)
+			}
+			release := func(name string, ref *block.BlockRef) {
+				t.Helper()
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: name, Previous: ref}}); err != nil {
+					t.Fatal(err)
+				}
+				for range 2 {
+					clk.Add(block_gc.DefaultGrace + time.Second)
+					collectAll(t, v)
+				}
+			}
+			release("p1", p1)
+			release("p2", p2)
+			requireStored(t, v, tr, false, "P1", "P2")
+			if landed {
+				requireStored(t, v, tr, true, "P3", "H")
+				requireAudit(t, v, 0)
+				release("p3", p3)
+			}
+			requireStored(t, v, tr, false, "P3", "H")
+			requireAudit(t, v, 0)
+		})
+	}
+
 	t.Run("stale index entry", func(t *testing.T) {
 		// An entry naming R1 in a record before the cursor, as a build before
 		// the index leaves after a downgrade, holds nothing: R1 goes once
@@ -2429,6 +2499,23 @@ const (
 	// adoptSettle settles the stored blocks' counts.
 	adoptSettle = 11
 )
+
+// auditProbe runs before, once, when an audit scans the stored bytes, which
+// it does after its snapshot and before it records the holes.
+type auditProbe struct {
+	collectorStore
+	// before runs before the scan, nil once it ran.
+	before func()
+}
+
+// ScanBlocks runs before, then scans the stored bytes.
+func (p *auditProbe) ScanBlocks(ctx context.Context, fn func(refs []*block.BlockRef) error) error {
+	if before := p.before; before != nil {
+		p.before = nil
+		before()
+	}
+	return p.collectorStore.ScanBlocks(ctx, fn)
+}
 
 // adoptProbe runs an adoption's transactions, calling the func at a
 // transaction's position, counted from one, before it runs.
