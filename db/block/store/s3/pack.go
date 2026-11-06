@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -430,44 +431,109 @@ func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*
 	// Name the packfile randomly: compaction and reclaim delete packfiles by id,
 	// so an id derived from the blocks would let a rewrite of the same blocks
 	// land on a packfile being deleted and leave its entry without a packfile.
-	id := identity.NewPackID()
 	entry := &packfile.PackfileEntry{
-		Id:                 id,
+		Id:                 identity.NewPackID(),
 		BloomFilter:        result.BloomFilter,
 		BloomFormatVersion: packfile.BloomFormatVersionV1,
 		BlockCount:         result.BlockCount,
 		SizeBytes:          result.BytesWritten,
 		CreatedAt:          timestamppb.New(time.Now().UTC()),
 	}
-	entryData, err := entry.MarshalVT()
+	if err := s.publishPack(ctx, entry, buf.Bytes(), keys); err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// PutPackFile uploads data, a finalized packfile another writer built, such
+// as a local packahead pack, as it is under id, then its entry, then indexes
+// its keys, and lists it as a packfile this store wrote. The keys and the
+// bloom filter come from the pack's own index, so the entry describes the
+// bytes uploaded. A retry after a failure writes the same objects again.
+func (s *PackStore) PutPackFile(ctx context.Context, id string, data []byte) (*packfile.PackfileEntry, error) {
+	// Check the pack's name and size, then read its keys from its index.
+	if err := identity.ValidatePackID(id); err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > writer.DefaultMaxPackBytes {
+		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", len(data), writer.DefaultMaxPackBytes)
+	}
+	index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
+	if err != nil {
+		return nil, errors.Wrap(err, "read packfile index")
+	}
+	if len(index) == 0 {
+		return nil, errors.New("packfile holds no blocks")
+	}
+
+	// Build the entry's bloom filter from the keys.
+	keys := make([][]byte, len(index))
+	bf := writer.DefaultPolicy().NewBloomFilter(uint64(len(index)))
+	for i, e := range index {
+		keys[i] = e.GetKey()
+		bf.Add(e.GetKey())
+	}
+	bloomBytes, err := bloom.NewBloom(bf).MarshalVT()
 	if err != nil {
 		return nil, err
 	}
 
-	// Upload the packfile before the entry that lists it.
-	if err := s.client.PutObject(ctx, s.bucket, s.prefix+packDir+id, buf.Bytes(), "application/octet-stream"); err != nil {
-		return nil, errors.Wrap(err, "write packfile")
-	}
-	if err := s.client.PutObject(ctx, s.bucket, s.prefix+entryDir+id, entryData, "application/octet-stream"); err != nil {
-		return nil, errors.Wrap(err, "write packfile entry")
+	// Load the pack table before numbering the pack, as PutBlockBatch does.
+	if s.index != nil {
+		if err := s.loadEntries(ctx); err != nil {
+			return nil, err
+		}
 	}
 
-	// Index the keys with the entry, so the pack is found at once, and keep
-	// its index tail, so its first read from the remote reads no tail.
-	if s.index != nil {
-		if err := s.index.addWritten(ctx, entry, keys); err != nil {
-			return nil, errors.Wrap(err, "index packfile")
-		}
-		data := buf.Bytes()
-		size := uint64(len(data))
-		tail, err := packfile.ReadIndexTail(ctx, size, size, func(_ context.Context, off int64, length int) ([]byte, error) {
-			return data[off : off+int64(length)], nil
-		})
-		if err == nil {
-			s.index.cacheTail(ctx, id, tail)
-		}
+	// Upload and index the pack, then list it.
+	entry := &packfile.PackfileEntry{
+		Id:                 id,
+		BloomFilter:        bloomBytes,
+		BloomFormatVersion: packfile.BloomFormatVersionV1,
+		BlockCount:         uint64(len(index)),
+		SizeBytes:          uint64(len(data)),
+		CreatedAt:          timestamppb.New(time.Now().UTC()),
 	}
+	if err := s.publishPack(ctx, entry, data, keys); err != nil {
+		return nil, err
+	}
+	s.published(entry)
 	return entry, nil
+}
+
+// publishPack uploads the packfile data, then its entry, so a listed entry
+// names a complete packfile, then indexes keys with the entry, so the pack is
+// found at once, and keeps its index tail, so its first read from the remote
+// reads no tail.
+func (s *PackStore) publishPack(ctx context.Context, entry *packfile.PackfileEntry, data []byte, keys [][]byte) error {
+	// Upload the packfile before the entry that lists it.
+	entryData, err := entry.MarshalVT()
+	if err != nil {
+		return err
+	}
+	id := entry.GetId()
+	if err := s.client.PutObject(ctx, s.bucket, s.prefix+packDir+id, data, "application/octet-stream"); err != nil {
+		return errors.Wrap(err, "write packfile")
+	}
+	if err := s.client.PutObject(ctx, s.bucket, s.prefix+entryDir+id, entryData, "application/octet-stream"); err != nil {
+		return errors.Wrap(err, "write packfile entry")
+	}
+
+	// Index the keys with the entry and cache the pack's index tail.
+	if s.index == nil {
+		return nil
+	}
+	if err := s.index.addWritten(ctx, entry, keys); err != nil {
+		return errors.Wrap(err, "index packfile")
+	}
+	size := uint64(len(data))
+	tail, err := packfile.ReadIndexTail(ctx, size, size, func(_ context.Context, off int64, length int) ([]byte, error) {
+		return data[off : off+int64(length)], nil
+	})
+	if err == nil {
+		s.index.cacheTail(ctx, id, tail)
+	}
+	return nil
 }
 
 // GetBlock looks up a block in the store.
