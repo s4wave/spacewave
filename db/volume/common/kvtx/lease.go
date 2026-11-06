@@ -26,20 +26,43 @@ func (v *Volume) leaseExpiry() time.Time {
 	return v.now().Add(rootLease)
 }
 
+// rootRenewForeground is the age of the last renewal past which the next
+// renewal runs as a foreground write, half the lease, so constant foreground
+// writes delay renewals but never starve one until its lease lapses.
+const rootRenewForeground = rootLease / 2
+
 // runRootRenewal renews the leased roots this process holds every
 // rootRenewInterval until ctx ends. A renewal is one changing transaction,
-// which also carries the deferred releases.
+// which also carries the deferred releases. It runs as background work, so it
+// waits behind foreground writers, and gives up after rootRenewInterval; once
+// the last renewal is older than rootRenewForeground it runs in the
+// foreground instead. A foreground writer waits at most for one renewal.
 func (v *Volume) runRootRenewal(ctx context.Context) {
+	// Tick every rootRenewInterval, counting the lease from the start.
 	defer close(v.renewDone)
 	ticker := time.NewTicker(rootRenewInterval)
 	defer ticker.Stop()
+	renewed := v.now()
 	for {
+		// Wait for the next renewal.
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
 		}
-		if err := v.renewRoots(block.WithBackground(ctx)); err != nil && ctx.Err() == nil && v.le != nil {
+
+		// Renew behind the foreground writers while the lease has time left.
+		renewCtx := block.WithBackground(ctx)
+		if v.now().Sub(renewed) < rootRenewForeground {
+			renewCtx = backgroundPass(ctx)
+		}
+		renewCtx, cancel := context.WithTimeout(renewCtx, rootRenewInterval)
+		err := v.renewRoots(renewCtx)
+		cancel()
+		switch {
+		case err == nil:
+			renewed = v.now()
+		case ctx.Err() == nil && !errors.Is(err, context.DeadlineExceeded) && v.le != nil:
 			v.le.WithError(err).Warn("renewing reader pins and stages failed")
 		}
 	}
