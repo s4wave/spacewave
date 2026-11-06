@@ -15,6 +15,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -243,6 +244,117 @@ func TestLivenessRunThrough(t *testing.T) {
 		t.Fatalf("one pass freed %d of the %d-block chain, more %v", res.Freed, len(names), res.More)
 	}
 	requireStored(t, v, tr, false, names...)
+
+	// Each entry point costs the same over 1x and 10x stored blocks: its
+	// transactions, reads, steps and writes do not grow with the Volume, as
+	// the Phase 1 path walk says.
+	small, large := measureLivenessPaths(t, 300), measureLivenessPaths(t, 3000)
+	for name, s := range small {
+		t.Logf("%s: %+v over 1x, %+v over 10x", name, s, large[name])
+		if l := large[name]; l.Total() > s.Total()+s.Total()/4+4 || l.Txns > s.Txns+1 {
+			t.Errorf("%s over 10x stored blocks cost %+v, over 1x %+v", name, l, s)
+		}
+	}
+}
+
+// measureLivenessPaths opens a Volume that frees at once over a counting
+// store holding n stored blocks under roots, and returns what each entry point
+// the Phase 1 path walk names cost on it: a commit of a small tree with its
+// root move, a read of a block and its child list, a reader pin, a staged put,
+// a cache fill, and the collection of the commit's tree once released.
+func measureLivenessPaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
+	// Open the Volume over a counting store.
+	t.Helper()
+	ctx := t.Context()
+	cs := kvtx_kvtest.NewCountingStore(store_kvtx_inmem.NewStore())
+	v, err := NewVolume(ctx, "test/scaling", store_kvkey.NewDefaultKVKey(), cs, &store_kvtx.Config{CollectorFrees: true}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+	v.clock = clk.Now
+	t.Cleanup(func() { _ = v.Close() })
+
+	// Store n leaves, a hundred under each parent and each parent under a
+	// root, and net their journal.
+	tr := testTree{}
+	for i := 0; i < n; i += 100 {
+		var names []string
+		for j := i; j < min(i+100, n); j++ {
+			names = append(names, "leaf "+strconv.Itoa(j))
+			tr.add(t, names[len(names)-1])
+		}
+		parent := "parent " + strconv.Itoa(i)
+		p := tr.add(t, parent, names...)
+		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(names, parent)...), []block.NamedRoot{{Name: parent, Ref: p}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	collectAll(t, v)
+
+	// Measure each entry point.
+	costs := make(map[string]kvtx_kvtest.Counts)
+	measure := func(name string, fn func() error) {
+		t.Helper()
+		before := cs.Counts()
+		if err := fn(); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		costs[name] = cs.Counts().Sub(before)
+	}
+	tr.add(t, "C")
+	tr.add(t, "P", "C")
+	r := tr.add(t, "R", "P")
+	measure("commit", func() error {
+		return v.SetBucketRoots(ctx, "b", tr.entries("C", "P", "R"), []block.NamedRoot{{Name: "main", Ref: r}})
+	})
+	measure("read", func() error {
+		if _, _, err := v.GetBlock(ctx, tr["leaf 0"].Ref); err != nil {
+			return err
+		}
+		_, _, err := v.GetChildren(ctx, tr["parent 0"].Ref)
+		return err
+	})
+	measure("pin", func() error {
+		unpin, err := v.PinBucketRoot(ctx, r)
+		if err != nil {
+			return err
+		}
+		unpin()
+		return v.withDirectAtomic(ctx, nil)
+	})
+	tr.add(t, "S1")
+	tr.add(t, "S2", "S1")
+	measure("stage", func() error {
+		stage, release, err := v.OpenStage(ctx)
+		if err != nil {
+			return err
+		}
+		_, err = v.PrepareStagedBlockBatch(ctx, stage, tr.entries("S1", "S2"))
+		release()
+		if err != nil {
+			return err
+		}
+		return v.withDirectAtomic(ctx, nil)
+	})
+	tr.add(t, "F")
+	measure("fill", func() error {
+		return v.withDirectFill(ctx, func(p *physicalTx) error {
+			_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries("F"))
+			return err
+		})
+	})
+	measure("collect", func() error {
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
+			return err
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		return nil
+	})
+	requireStored(t, v, tr, false, "C", "P", "R", "S1", "S2", "F")
+	return costs
 }
 
 // punchHole loses ref from the store with its child list and count, as
