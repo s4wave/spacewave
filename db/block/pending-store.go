@@ -455,11 +455,13 @@ func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 		reached[key] = struct{}{}
 	}
 
-	// Drop the rest.
+	// Drop the rest, keeping a block a stage or a pin holds now: one may
+	// have taken it since the held set was read, and a pin holds each block
+	// of its tree.
 	var forgot []*BlockRef
 	s.mtx.Lock()
 	for key, e := range s.kept {
-		if _, ok := reached[key]; !ok && s.keptAt[key] <= mark {
+		if _, ok := reached[key]; !ok && s.held[key] == 0 && s.keptAt[key] <= mark {
 			s.keptBytes -= len(e.Data)
 			delete(s.kept, key)
 			delete(s.keptAt, key)
