@@ -59,13 +59,14 @@ type SharedObject interface {
 	// durably.
 	QueueOperation(ctx context.Context, op []byte) (string, error)
 
-	// SetBody attaches the body the SharedObject agrees on, replacing any
-	// attached body, until release. The SharedObject replays its agreed order
-	// into the body through a BodyDriver while the body is attached, and a
-	// host that signs checkpoints asks the body for the state each one
-	// carries. release detaches the body only while it is still the attached
-	// one, so a body that replaced it stays attached.
-	SetBody(body Body) (release func())
+	// SetBody waits until no body is attached, then attaches body until
+	// release, so the SharedObject has one owner at a time: a body attaches
+	// only after the previous one was released, which its owner does once it
+	// stopped. The SharedObject replays its agreed order into the body through
+	// a BodyDriver while the body is attached, and a host that signs
+	// checkpoints asks the body for the state each one carries. Returns ctx's
+	// error if it ends before the body attaches.
+	SetBody(ctx context.Context, body Body) (release func(), err error)
 }
 
 // SharedObjectHealthAccessor exposes SharedObject health directly from a mounted object.

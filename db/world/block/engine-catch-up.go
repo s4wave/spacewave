@@ -43,7 +43,7 @@ func (e *Engine) catchUpSubscriber(ctx context.Context, w *engineChangeWatch, su
 		locked := e.bcast.Lock()
 		if e.closed {
 			locked.Unlock()
-			return ErrEngineClosed
+			return e.closedErr()
 		}
 		after := e.watchedHeadLocked(afterSeqno)
 		if after == nil {

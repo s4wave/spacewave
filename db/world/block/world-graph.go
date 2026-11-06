@@ -30,8 +30,8 @@ type graphPathReadOperation struct {
 // accessCayleyGraph lends the current handle for the callback's lifetime.
 func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
 	// Reject access after the World state has been discarded.
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
 
 	// Refuse graph writers before lending a handle from an immutable snapshot.
@@ -57,8 +57,8 @@ func (t *WorldState) lookupGraphQuadsOnWorld(ctx context.Context, filter world.G
 // lookupGraphQuadsBatchOnWorld shares a storage read scope for read-only Worlds.
 func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
 	// Hold the backing storage read operation for the entire lookup.
-	if t.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, err
 	}
 	if !t.write && t.store != nil {
 		store, release, err := t.store.BeginReadOperation(ctx)
@@ -120,8 +120,8 @@ func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []
 // queryGraphPathOnWorld retains one storage read scope for the traversal.
 func (t *WorldState) queryGraphPathOnWorld(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	// Hold the backing storage read operation for the entire traversal.
-	if t.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, err
 	}
 	if !t.write && t.store != nil {
 		store, release, err := t.store.BeginReadOperation(ctx)
@@ -199,8 +199,8 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
 
 	// Decode endpoint IRIs before any graph mutation.
@@ -252,8 +252,8 @@ func (t *WorldState) deleteGraphObject(ctx context.Context, objKey string) error
 	if objKey == "" {
 		return nil
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return err
 	}
 
 	// Collect outgoing and incoming relationships before deleting shared nodes.
@@ -306,8 +306,8 @@ func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQ
 // ListObjectsWithType reads one bounded subject page from the existing type index.
 func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
 	// Retain one storage read scope while resolving and scanning the type index.
-	if t.discarded.Load() {
-		return nil, false, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, false, err
 	}
 	if !t.write && t.store != nil {
 		store, release, err := t.store.BeginReadOperation(ctx)

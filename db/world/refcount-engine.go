@@ -2,6 +2,7 @@ package world
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
@@ -20,7 +21,7 @@ type RefCountEngine struct {
 func (e *RefCountEngine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
 	var device peer.ID
 	var person string
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		device, person, err = (*val).OperationAuthor(ctx)
 		return err
@@ -71,25 +72,53 @@ func (e *RefCountEngine) ClearContext() {
 // Check GetReadOnly, might not return a write tx if write=true.
 // The returned transaction retains the resolved engine until Discard.
 func (e *RefCountEngine) NewTransaction(ctx context.Context, write bool) (Tx, error) {
-	// Retain the resolved engine for the transaction's lifetime.
-	engine, ref, err := e.rc.Wait(ctx)
-	if err != nil {
-		return nil, err
-	}
+	for tries := 0; ; tries++ {
+		// Retain the resolved engine for the transaction's lifetime.
+		engine, ref, err := e.rc.Wait(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Transfer the engine reference to the transaction after construction.
-	tx, err := (*engine).NewTransaction(ctx, write)
-	if err != nil {
+		// Transfer the engine reference to the transaction after
+		// construction, or open it on the successor of a retired engine.
+		tx, err := (*engine).NewTransaction(ctx, write)
+		if err == nil {
+			return NewRefCountTx(tx, ref), nil
+		}
 		ref.Release()
-		return nil, err
+		if !e.retired(err, tries) {
+			return nil, err
+		}
 	}
-	return NewRefCountTx(tx, ref), nil
+}
+
+// access runs cb on the resolved engine, and again on its successor when the
+// engine retired, so a call made across a remount reaches the engine that
+// serves the World.
+func (e *RefCountEngine) access(ctx context.Context, cb func(ctx context.Context, val *Engine) error) error {
+	for tries := 0; ; tries++ {
+		err := e.rc.Access(ctx, cb)
+		if !e.retired(err, tries) {
+			return err
+		}
+	}
+}
+
+// retired reports whether err says the resolved engine retired, while tries
+// stays below maxEngineWorldStateTries, and then drops the engine so the next
+// call resolves its successor.
+func (e *RefCountEngine) retired(err error, tries int) bool {
+	if !errors.Is(err, ErrEngineRetired) || tries >= maxEngineWorldStateTries {
+		return false
+	}
+	e.rc.Invalidate()
+	return true
 }
 
 // Sync fences durable storage and advances the durable head via the engine.
 func (e *RefCountEngine) Sync(ctx context.Context) (bool, error) {
 	var fenced bool
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		fenced, err = (*val).Sync(ctx)
 		return err
@@ -100,7 +129,7 @@ func (e *RefCountEngine) Sync(ctx context.Context) (bool, error) {
 // SyncThrough fences durable storage through seqno via the engine.
 func (e *RefCountEngine) SyncThrough(ctx context.Context, seqno uint64) (uint64, error) {
 	var durable uint64
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		durable, err = (*val).SyncThrough(ctx, seqno)
 		return err
@@ -113,7 +142,7 @@ func (e *RefCountEngine) SyncThrough(ctx context.Context, seqno uint64) (uint64,
 // Be sure to call Release on the cursor when done.
 func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	var bls *bucket_lookup.Cursor
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		bls, err = (*val).BuildStorageCursor(ctx)
 		return err
@@ -130,19 +159,24 @@ func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 // StageWorldState opens a stage on the current engine and holds the engine
 // until the stage is released.
 func (e *RefCountEngine) StageWorldState(ctx context.Context) (WorldStage, error) {
-	// Hold the current engine for the stage lifetime.
-	engine, ref, err := e.rc.Wait(ctx)
-	if err != nil {
-		return nil, err
-	}
+	for tries := 0; ; tries++ {
+		// Hold the current engine for the stage lifetime.
+		engine, ref, err := e.rc.Wait(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Open the stage and release the engine with it.
-	stage, err := (*engine).StageWorldState(ctx)
-	if err != nil {
+		// Open the stage and release the engine with it, or open it on the
+		// successor of a retired engine.
+		stage, err := (*engine).StageWorldState(ctx)
+		if err == nil {
+			return &heldStage{WorldStage: stage, release: ref.Release}, nil
+		}
 		ref.Release()
-		return nil, err
+		if !e.retired(err, tries) {
+			return nil, err
+		}
 	}
-	return &heldStage{WorldStage: stage, release: ref.Release}, nil
 }
 
 // heldStage releases a held resource after its stage.
@@ -165,7 +199,7 @@ func (e *RefCountEngine) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
-	return e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	return e.access(ctx, func(ctx context.Context, val *Engine) error {
 		return (*val).AccessWorldState(ctx, ref, cb)
 	})
 }
@@ -175,7 +209,7 @@ func (e *RefCountEngine) AccessWorldState(
 // Initializes at 0 for initial world state.
 func (e *RefCountEngine) GetSeqno(ctx context.Context) (uint64, error) {
 	var seqno uint64
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		seqno, err = (*val).GetSeqno(ctx)
 		return err
@@ -188,7 +222,7 @@ func (e *RefCountEngine) GetSeqno(ctx context.Context) (uint64, error) {
 // If value == 0, this might return immediately unconditionally.
 func (e *RefCountEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	var seqno uint64
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		seqno, err = (*val).WaitSeqno(ctx, value)
 		return err
@@ -199,7 +233,7 @@ func (e *RefCountEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, e
 // WaitObjectRev waits until the object at key reaches rev.
 func (e *RefCountEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
 	var objRev uint64
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	err := e.access(ctx, func(ctx context.Context, val *Engine) error {
 		var err error
 		objRev, err = (*val).WaitObjectRev(ctx, key, rev, ignoreNotFound)
 		return err
@@ -227,7 +261,7 @@ func (e *RefCountEngine) WatchIndexedChanges(
 	interest *ChangeInterest,
 	cb func(seqno uint64, changes *ChangeSet) error,
 ) error {
-	return e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+	return e.access(ctx, func(ctx context.Context, val *Engine) error {
 		return WatchInterestedChanges(ctx, *val, afterSeqno, interest, func(seqno uint64, changes *ChangeSet) error {
 			if err := cb(seqno, changes); err != nil {
 				return err

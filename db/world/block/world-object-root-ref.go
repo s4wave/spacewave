@@ -3,14 +3,13 @@ package world_block
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 // GetObjectRootRefsBatch returns object root refs for object keys.
 func (t *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
-	if t.discarded.Load() {
-		return nil, tx.ErrDiscarded
+	if err := t.discardErr(); err != nil {
+		return nil, err
 	}
 	out := make([]*world.ObjectRootRef, len(keys))
 	for i, key := range keys {

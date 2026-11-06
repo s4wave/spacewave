@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -29,8 +30,8 @@ type BodyHost struct {
 	sfs *block_transform.StepFactorySet
 	// rc runs the driver of the current body.
 	rc *routine.StateRoutineContainer[Body]
-	// mtx orders attaching and detaching bodies.
-	mtx sync.Mutex
+	// bcast guards body and wakes the attaches waiting for its release.
+	bcast broadcast.Broadcast
 	// body is the attached body, or nil.
 	body Body
 }
@@ -64,28 +65,43 @@ func (h *BodyHost) ClearContext() {
 	h.rc.ClearContext()
 }
 
-// SetBody attaches body, replacing the attached body, until release, which
-// detaches it only while it is still attached. The driver of the previous
-// body stops first.
-func (h *BodyHost) SetBody(body Body) (release func()) {
-	// Attach it.
-	h.mtx.Lock()
-	h.body = body
-	h.rc.SetState(body)
-	h.mtx.Unlock()
+// SetBody waits until no body is attached, then attaches body until release,
+// so the SharedObject has one body at a time: a body attaches only once the
+// previous one was released. Returns ctx's error if it ends first.
+func (h *BodyHost) SetBody(ctx context.Context, body Body) (release func(), err error) {
+	// Wait for the previous body's release, then attach it.
+	for {
+		var attached bool
+		var wait <-chan struct{}
+		h.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if h.body == nil {
+				h.body, attached = body, true
+				h.rc.SetState(body)
+				return
+			}
+			wait = getWaitCh()
+		})
+		if attached {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil, context.Cause(ctx)
+		case <-wait:
+		}
+	}
 
-	// Detach it once, unless another body replaced it.
+	// Detach it once and wake the next attach.
 	var once sync.Once
 	return func() {
 		once.Do(func() {
-			h.mtx.Lock()
-			defer h.mtx.Unlock()
-			if h.body == body {
+			h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				h.body = nil
 				h.rc.SetState(nil)
-			}
+				broadcast()
+			})
 		})
-	}
+	}, nil
 }
 
 // execute drives body, and votes with it as the judge when the host signs.

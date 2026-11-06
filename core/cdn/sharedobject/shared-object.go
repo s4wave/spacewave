@@ -213,13 +213,16 @@ func (s *CdnSharedObject) AccessSharedObjectHealth(_ context.Context, _ func()) 
 	return s.health, func() {}, nil
 }
 
-// SetBody attaches body, which the mount installs each published checkpoint
-// into, until release. A CDN mount has no lifecycle of its own, so an
+// SetBody waits for the previous body's release, then attaches body, which
+// the mount installs each published checkpoint into, until release. A CDN mount has no lifecycle of its own, so an
 // attached body's driver runs until the body is detached.
-func (s *CdnSharedObject) SetBody(body sobject.Body) func() {
-	release := s.body.SetBody(body)
+func (s *CdnSharedObject) SetBody(ctx context.Context, body sobject.Body) (func(), error) {
+	release, err := s.body.SetBody(ctx, body)
+	if err != nil {
+		return nil, err
+	}
 	s.body.SetContext(context.Background())
-	return release
+	return release, nil
 }
 
 // QueueOperation is not supported on a read-only CDN mount.

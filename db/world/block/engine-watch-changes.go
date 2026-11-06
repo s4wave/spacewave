@@ -343,7 +343,7 @@ func (e *Engine) changeWatchErr() error {
 	locked := e.bcast.Lock()
 	defer locked.Unlock()
 	if e.closed {
-		return ErrEngineClosed
+		return e.closedErr()
 	}
 	return nil
 }

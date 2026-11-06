@@ -3,7 +3,6 @@ package world_block
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -43,8 +42,8 @@ func newTxObjectIterator(
 	defer unlock()
 
 	// Reject a discarded transaction.
-	if t.state.discarded.Load() {
-		return &txObjectIterator{err: tx.ErrDiscarded}
+	if err := t.state.discardErr(); err != nil {
+		return &txObjectIterator{err: err}
 	}
 
 	// Iterate the transaction objects.
@@ -93,8 +92,8 @@ func (t *txObjectIterator) Next() bool {
 	defer unlock()
 
 	// Reject a discarded transaction.
-	if t.t.state.discarded.Load() {
-		t.err = tx.ErrDiscarded
+	if err := t.t.state.discardErr(); err != nil {
+		t.err = err
 		t.valid = false
 		return false
 	}
@@ -129,8 +128,8 @@ func (t *txObjectIterator) Seek(k string) error {
 	defer unlock()
 
 	// Reject a discarded transaction.
-	if t.t.state.discarded.Load() {
-		t.err = tx.ErrDiscarded
+	if err := t.t.state.discardErr(); err != nil {
+		t.err = err
 		t.valid = false
 		return t.err
 	}

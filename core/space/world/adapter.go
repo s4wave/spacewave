@@ -5,7 +5,6 @@ import (
 	"context"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -66,6 +65,10 @@ import (
 type Adapter struct {
 	// le is the logger.
 	le *logrus.Entry
+	// opened closes once Execute claimed the Space and read what an earlier
+	// run held. The body methods wait for it, since the driver steps the body
+	// as soon as it attaches.
+	opened chan struct{}
 	// so is the Space's SharedObject.
 	so sobject.SharedObject
 	// opts are the adapter's options.
@@ -188,6 +191,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	}
 	a := &Adapter{
 		le:        le,
+		opened:    make(chan struct{}),
 		so:        so,
 		opts:      opts,
 		bucketID:  store.GetID(),
@@ -206,18 +210,31 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
 	a.backfill = newSpaceBackfill(a)
+
+	// A transient replay claims nothing and reads no roots, so its driver
+	// steps it at once.
+	if opts.transient {
+		close(a.opened)
+	}
 	return a, nil
 }
 
-// engineIdleTimeout bounds the wait of a retired engine for the transactions
-// open on it before it closes them.
-const engineIdleTimeout = 30 * time.Second
-
-// Execute serves the Space World until ctx ends: it reads the held roots and
-// the saved cursor, runs the operation queue and the body driver, initializes
-// an empty World as an owner, and builds the engine at the installed head.
+// Execute serves the Space World until ctx ends: it claims the Space as the
+// SharedObject's one body, reads the held roots and the saved cursor, runs the
+// operation queue and the body driver, initializes an empty World as an
+// owner, and builds the engine at the installed head.
 func (a *Adapter) Execute(ctx context.Context) error {
-	// Read what an earlier run held.
+	// Claim the Space. SetBody waits until the previous adapter of the Space
+	// released it after it stopped, so this one reads the roots only once no
+	// other adapter moves them. The release runs last, after the engine
+	// retired.
+	detach, err := a.so.SetBody(ctx, a)
+	if err != nil {
+		return err
+	}
+	defer detach()
+
+	// Read what an earlier run held, then let the driver step the body.
 	if err := a.loadRoots(ctx); err != nil {
 		return err
 	}
@@ -227,13 +244,11 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	if err := a.backfill.start(ctx); err != nil {
 		return err
 	}
+	close(a.opened)
 
-	// Run the queue, and attach the adapter to the SharedObject as its body,
-	// which the SharedObject's driver replays the agreed order into.
+	// Run the queue and the storage reclaim.
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
-	detach := a.so.SetBody(a)
-	defer detach()
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
 
 	// Serve the engine once the World is initialized.
@@ -244,26 +259,32 @@ func (a *Adapter) Execute(ctx context.Context) error {
 			return err
 		}
 
-		// End the admissions when the run ends, and retire the engine.
+		// End the admissions when the run ends, stop serving the engine, and
+		// retire it: the transactions open on it end as superseded, and their
+		// callers run again on the next adapter.
 		<-ctx.Done()
 		a.endAdmissions()
 		a.retire()
-
-		// Let the transactions open on it finish, then close it.
-		idleCtx, cancel := context.WithTimeout(context.Background(), engineIdleTimeout)
-		defer cancel()
-		if err := engine.WaitIdle(idleCtx); err != nil {
-			a.le.WithError(err).Warn("closing the World engine with transactions open")
-		}
-		err = engine.close()
+		err = engine.retire()
 		a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			a.readers = nil
 		})
 		return err
 	})
-	err := g.Wait()
+	err = g.Wait()
 	a.replay.close()
 	return err
+}
+
+// waitOpened waits until Execute claimed the Space and read what an earlier
+// run held.
+func (a *Adapter) waitOpened(ctx context.Context) error {
+	select {
+	case <-a.opened:
+		return nil
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	}
 }
 
 // endAdmissions ends every admission still undecided at unmount. One still
@@ -598,6 +619,11 @@ func (a *Adapter) ownershipOf(ctx context.Context, snap sobject.SharedObjectStat
 // Root moves the checkpoint root onto the World after the first n positions,
 // storing its kept pages with the move, and returns its encoded InnerState.
 func (a *Adapter) Root(ctx context.Context, n int) ([]byte, error) {
+	// Wait for the claim.
+	if err := a.waitOpened(ctx); err != nil {
+		return nil, err
+	}
+
 	// Answer only for an applied position, readable from memory.
 	r := a.replay
 	if n > len(r.positions) {
@@ -631,6 +657,11 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, error) {
 // positions hold every operation the installed head applied, the head after
 // the last one is installed, and the candidates it holds are decided.
 func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOperation) (string, error) {
+	// Wait for the claim.
+	if err := a.waitOpened(ctx); err != nil {
+		return "", err
+	}
+
 	// Note the applied operations a reorder put back.
 	r := a.replay
 	for _, pos := range r.positions[index:] {
@@ -687,6 +718,11 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 // histories, keeping the positions after the covered ones when the World
 // after them is the checkpoint's.
 func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointInner, covered int) (bool, error) {
+	// Wait for the claim.
+	if err := a.waitOpened(ctx); err != nil {
+		return false, err
+	}
+
 	// Decode the checkpoint's World.
 	r := a.replay
 	base := &InnerState{}
