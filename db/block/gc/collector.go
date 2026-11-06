@@ -39,12 +39,13 @@ import (
 //  4. It frees no queued block that an up pair in the journal past its cursor
 //     names: a later transaction added a holder to it, which the interval it
 //     netted did not include, such as a root moved away and back within the
-//     grace period. It indexes each record's up pairs by block once, from
-//     the state's Indexed, and deletes the entries with the record. Each free
-//     transaction first indexes the records appended since its last look, and
-//     frees nothing until it reaches the journal's end, so nothing lands
-//     unseen between the check and the free, and the check reads one index
-//     entry per queued block rather than the journal.
+//     grace period. It indexes each record's up pairs by block once, in
+//     bounded slices from the state's Indexed, and deletes the entries as it
+//     nets the record, after all of its pairs. Each free transaction first
+//     indexes the records appended since its last look, and frees nothing
+//     until it reaches the journal's end, so nothing lands unseen between the
+//     check and the free, and the check reads one index entry per queued
+//     block rather than the journal.
 //  5. A cascade decrements each child a freed block's own child list names,
 //     and queues only a stored child, one with a child list. A child without
 //     one is a hole or not yet stored: its count drops, since the parent's
@@ -255,10 +256,12 @@ func (c *Collector) net(ctx context.Context, res *CollectResult, deadline time.T
 // transaction: it sums each block's up and down pairs, writes the count
 // records that changed, queues the stored blocks whose holders reach zero,
 // takes off the queue those that gained a holder, and deletes the records it
-// netted whole. A record with more pairs than the slice has left is netted in
-// part: the state's net offset counts the pairs applied, its up pairs before
-// its down pairs, and the record stays at the cursor. It reports whether it
-// filled the slice, so more aged records may remain.
+// netted whole with the index entries of their up pairs. A record with more
+// pairs and entries than the slice has left is netted in part: the state's
+// net offset counts the work done, its up pairs, then its down pairs, then
+// the deletes of the entries the collector indexed, and the record stays at
+// the cursor. It reports whether it filled the slice, so more aged records
+// may remain.
 func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, error) {
 	var full bool
 	err := c.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
@@ -275,9 +278,10 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 
 		// Sum the deltas of the aged records from the cursor.
 		deltas := make(map[string]int)
-		var netted []seqRecord
+		var netted []uint64
 		partial := false
 		future := make(map[uint64]*JournalRecord)
+		var unindex [][]byte
 		err = rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
 			// Note the records stamped in the future to restamp, netting
 			// nothing past the first.
@@ -292,16 +296,21 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 				return false, nil
 			}
 
-			// Add its pairs after the offset to the deltas, up to the budget.
+			// Add its pairs after the offset to the deltas, then delete the
+			// index entries of its up pairs, up to the budget.
 			ups, downs := r.GetUp(), r.GetDown()
-			total := uint64(len(ups) + len(downs))
+			pairs := uint64(len(ups) + len(downs))
+			total := pairs + indexedUps(state, seq, r)
 			end := min(total, offset+uint64(budget)) //nolint:gosec // the budget is small.
 			for i := offset; i < end; i++ {
-				if i < uint64(len(ups)) {
+				switch {
+				case i < uint64(len(ups)):
 					deltas[string(ups[i])]++
-					continue
+				case i < pairs:
+					deltas[string(downs[i-uint64(len(ups))])]--
+				default:
+					unindex = append(unindex, rec.journalUpKey(ups[i-pairs], seq))
 				}
-				deltas[string(downs[i-uint64(len(ups))])]--
 			}
 			budget -= int(end - offset) //nolint:gosec // at most the budget.
 
@@ -310,7 +319,7 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 				offset, partial = end, true
 				return false, nil
 			}
-			netted = append(netted, seqRecord{seq: seq, rec: r})
+			netted = append(netted, seq)
 			offset = 0
 			return true, nil
 		})
@@ -331,15 +340,22 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 			}
 		}
 
-		// Delete the records netted whole, move the cursor past them, and
-		// keep the offset into the one netted in part.
-		for _, n := range netted {
-			if err := rec.DeleteJournal(ctx, state, n.seq, n.rec); err != nil {
+		// Delete the index entries of the records' up pairs, which every
+		// pair of their record has netted before, and the records netted
+		// whole; move the cursor past them, and keep the offset into the one
+		// netted in part.
+		for _, key := range unindex {
+			if err := rec.tx.Delete(ctx, key); err != nil {
+				return err
+			}
+		}
+		for _, seq := range netted {
+			if err := rec.DeleteJournal(ctx, seq); err != nil {
 				return err
 			}
 		}
 		if len(netted) != 0 {
-			state.Cursor = netted[len(netted)-1].seq + 1
+			state.Cursor = netted[len(netted)-1] + 1
 		}
 		state.NetOffset = offset
 		res.Netted += uint64(len(netted))
@@ -347,14 +363,6 @@ func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, err
 		return rec.SetState(ctx, state)
 	})
 	return full, err
-}
-
-// seqRecord is a journal record with its sequence number.
-type seqRecord struct {
-	// seq is the record's sequence number.
-	seq uint64
-	// rec is the record.
-	rec *JournalRecord
 }
 
 // netFills nets the aged fill records in slices until none is left or the
@@ -702,35 +710,51 @@ func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResu
 }
 
 // indexTail indexes the up pairs of the journal records from the state's
-// Indexed, or its cursor when that is later, up to sliceRecords records and
-// slicePairs pairs, the first record whole however large, and moves Indexed
-// past them. It reports whether it reached the journal's end.
+// Indexed and IndexOffset, or from its cursor when that is later, up to
+// sliceRecords records and slicePairs pairs, and moves Indexed and
+// IndexOffset past them; a record larger than the budget is indexed across
+// slices. It reports whether it reached the journal's end.
 func indexTail(ctx context.Context, rec *Records, state *LivenessState) (bool, error) {
-	// Index the records from the first not indexed, within the budgets.
-	from := max(state.GetIndexed(), state.GetCursor())
-	next, budget, n, done := from, slicePairs, 0, true
+	// Resume inside the record at Indexed, or start at the cursor past it.
+	from, offset := state.GetIndexed(), state.GetIndexOffset()
+	if cursor := state.GetCursor(); cursor > from {
+		from, offset = cursor, 0
+	}
+	next, nextOffset := from, offset
+	budget, n, done := uint64(slicePairs), 0, true
 	err := rec.ScanJournal(ctx, from, func(seq uint64, r *JournalRecord) (bool, error) {
-		// Stop at a full slice; a first record is taken whole.
-		ups := len(r.GetUp())
-		if n != 0 && (n == sliceRecords || ups > budget) {
+		// Stop at a full slice.
+		if n == sliceRecords || budget == 0 {
 			done = false
 			return false, nil
 		}
 
-		// Index its up pairs.
-		if err := rec.indexJournal(ctx, seq, r); err != nil {
-			return false, err
+		// Index the up pairs after the offset, up to the budget.
+		ups := r.GetUp()
+		start := min(offset, uint64(len(ups)))
+		end := min(uint64(len(ups)), start+budget)
+		for _, up := range ups[start:end] {
+			if err := rec.tx.Set(ctx, rec.journalUpKey(up, seq), nil); err != nil {
+				return false, err
+			}
 		}
-		next, budget, n = seq+1, budget-ups, n+1
+		budget, n = budget-(end-start), n+1
+
+		// Stop inside a record the budget ends in, or move past it.
+		if end < uint64(len(ups)) {
+			next, nextOffset, done = seq, end, false
+			return false, nil
+		}
+		next, nextOffset, offset = seq+1, 0, 0
 		return true, nil
 	})
 	if err != nil {
 		return false, err
 	}
 
-	// Move Indexed past them.
-	if next != state.GetIndexed() {
-		state.Indexed = next
+	// Move Indexed and IndexOffset past them.
+	if next != state.GetIndexed() || nextOffset != state.GetIndexOffset() {
+		state.Indexed, state.IndexOffset = next, nextOffset
 		if err := rec.SetState(ctx, state); err != nil {
 			return false, err
 		}
