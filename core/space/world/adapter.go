@@ -274,6 +274,9 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	if err := a.backfill.start(ctx); err != nil {
 		return err
 	}
+	if err := a.replay.openStage(ctx); err != nil {
+		return err
+	}
 	close(a.opened)
 
 	// Run the queue and the storage reclaim.
@@ -311,6 +314,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	stopRun()
 	a.background.Wait()
 	a.replay.close()
+	a.replay.endStage()
 	return err
 }
 
@@ -517,7 +521,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 	}
 
 	// Open the engine there and publish it.
-	cursor, err := a.newCursor(ctx, state.GetHeadRef())
+	cursor, err := a.newCursor(ctx, a.pages, state.GetHeadRef())
 	if err != nil {
 		return nil, err
 	}
@@ -1634,9 +1638,10 @@ func (a *Adapter) bucketRef(head *bucket.ObjectRef) *bucket.ObjectRef {
 	return ref
 }
 
-// newCursor builds a cursor at head over the PendingStore, with the head's
-// transform and the shared decoded block cache.
-func (a *Adapter) newCursor(ctx context.Context, head *bucket.ObjectRef) (*bucket_lookup.Cursor, error) {
+// newCursor builds a cursor at head over store, the PendingStore or a store
+// that reads it, with the head's transform and the shared decoded block
+// cache.
+func (a *Adapter) newCursor(ctx context.Context, store block.StoreOps, head *bucket.ObjectRef) (*bucket_lookup.Cursor, error) {
 	// Build the transformer of the head's transform.
 	conf := head.GetTransformConf()
 	if len(conf.GetSteps()) == 0 {
@@ -1648,7 +1653,7 @@ func (a *Adapter) newCursor(ctx context.Context, head *bucket.ObjectRef) (*bucke
 	}
 
 	// Bind the cursor to the bucket, resolving implicit references through it.
-	cursor := bucket_lookup.NewCursor(ctx, a.opts.Bus, a.le, a.opts.StepFactorySet, a.pages, xfrm, a.bucketRef(head),
+	cursor := bucket_lookup.NewCursor(ctx, a.opts.Bus, a.le, a.opts.StepFactorySet, store, xfrm, a.bucketRef(head),
 		&bucket.BucketOpArgs{BucketId: a.bucketID, VolumeId: a.bucketID}, conf)
 	cursor.SetBucketIDOverride(a.bucketID)
 	cursor.SetDecodedBlockCache(a.decoded)

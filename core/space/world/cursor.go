@@ -56,7 +56,11 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 // cursor, then, beside the driver's apply loop, adds the World after the last
 // position to the replay cursor root and writes the cursor record, so the
 // record never names an unheld World and the driver keeps applying while the
-// World's pages store. One save runs at a time; a save due while another
+// World's pages store. It starts the next epoch of the replay stage, and ends
+// the earlier ones once the record lands: until then they hold the pages of
+// the World it saves. When one of them stored a page, the Worlds before the
+// saved one may name a page only it held, so the floor moves up to the saved
+// World as the save starts. One save runs at a time; a save due while another
 // runs waits for the next position. The driver goroutine calls it.
 func (a *Adapter) saveCursor(ctx context.Context) error {
 	// Skip while a save runs.
@@ -79,14 +83,24 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	r.saved = len(r.positions)
 
-	// Hold the head World and write the record in the background; a run that
-	// ended saves nothing more.
+	// Hold the head World; a run that ended saves nothing more and opens no
+	// epoch, since it ends the stage once its background stores ended.
 	done, ok := a.startBackground(root)
 	if !ok {
 		return nil
 	}
+	epochs, stored, err := r.rotateStage(ctx)
+	if err != nil {
+		done()
+		return err
+	}
+	r.saved = len(r.positions)
+	if stored {
+		r.floor = max(r.floor, r.saved-1)
+	}
+
+	// Write the record in the background.
 	started = true
 	go func() {
 		// Write it, then let the next save start.
@@ -94,9 +108,15 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		ctx, cancel := a.backgroundContext(ctx)
 		defer cancel()
 		err := a.writeCursor(ctx, root, data)
-		done()
 
-		// Report a failure the next save retries.
+		// End the saved epochs once the cursor root holds their World, or
+		// keep them for the next save, which retries.
+		if err == nil {
+			endEpochs(epochs)
+		} else {
+			r.keepStages(epochs)
+		}
+		done()
 		if err != nil && ctx.Err() == nil {
 			a.le.WithError(err).Warn("replay cursor not saved")
 		}

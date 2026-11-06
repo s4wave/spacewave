@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"sync/atomic"
 )
 
 // pendingStage is a stage opened through a PendingStore: puts are kept in the
@@ -13,8 +14,12 @@ type pendingStage struct {
 	*PendingStore
 	// stage takes the puts past the bound.
 	stage StoreOps
-	// hold holds the kept blocks this stage put until the stage is released.
+	// hold holds the kept blocks this stage put until the stage is released,
+	// or is nil for an overflow stage, which holds none.
 	hold *pendingHold
+	// stored records that a put went to stage, including one that failed
+	// there.
+	stored atomic.Bool
 }
 
 // PutBlock keeps a block whose refs are known while the bound allows, and
@@ -22,6 +27,7 @@ type pendingStage struct {
 func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
 	// Hand a block without its child list to the stage.
 	if !opts.GetRefsKnown() || opts.GetSync() {
+		p.stored.Store(true)
 		return p.stage.PutBlock(ctx, data, opts)
 	}
 
@@ -30,7 +36,7 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 	if err != nil {
 		return nil, false, err
 	}
-	existed, err := p.put(ctx, p.stage, p.hold, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
+	existed, err := p.PutBlockBatch(ctx, []*PutBatchEntry{{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: true}})
 	if err != nil {
 		return nil, false, err
 	}
@@ -40,7 +46,11 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 // PutBlockBatch keeps the entries the bound allows and puts the rest to the
 // stage.
 func (p *pendingStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
-	return p.put(ctx, p.stage, p.hold, entries)
+	existed, stored, err := p.put(ctx, p.stage, p.hold, entries)
+	if stored {
+		p.stored.Store(true)
+	}
+	return existed, err
 }
 
 // BeginReadOperation returns the stage view itself.
@@ -53,8 +63,30 @@ func (p *pendingStage) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) 
 	return HoldCompleteRoots(ctx, p.stage, refs)
 }
 
+// OverflowStage is a stage PendingStore.OpenOverflowStage opened: it takes
+// the puts past the bound and holds none of the kept blocks.
+type OverflowStage struct {
+	// pendingStage keeps puts and stores the overflow.
+	*pendingStage
+	// release ends the inner stage.
+	release func()
+}
+
+// Stored reports whether a put went past the bound to the stage, so ending
+// the stage may free a block that only it held.
+func (s *OverflowStage) Stored() bool {
+	return s.stored.Load()
+}
+
+// Release ends the stage. A block only it held is then freed once the grace
+// period passes.
+func (s *OverflowStage) Release() {
+	s.release()
+}
+
 // _ is a type assertion
 var (
 	_ StoreOps   = (*pendingStage)(nil)
 	_ RootProofs = (*pendingStage)(nil)
+	_ StoreOps   = (*OverflowStage)(nil)
 )

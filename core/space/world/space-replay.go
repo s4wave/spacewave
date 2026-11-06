@@ -48,8 +48,9 @@ type spacePosition struct {
 
 // spaceReplay computes the Worlds of the positions above the installed
 // checkpoint on a replay engine: a db/world/block Engine with no Authority
-// over the adapter's PendingStore, bound to the World before the position it
-// applies, whose commits stay in memory. It keeps the World after every
+// over the adapter's PendingStore, through the replay stage on a serving
+// adapter, bound to the World before the position it applies, whose commits
+// stay in memory until they outgrow it. It keeps the World after every
 // position, so a reorder resumes after the longest prefix the new order
 // shares. The driver's goroutine owns it.
 type spaceReplay struct {
@@ -66,8 +67,8 @@ type spaceReplay struct {
 	// saved is how many positions the saved cursor records.
 	saved int
 	// floor is how many leading positions may have Worlds whose pages left
-	// memory unstored. Replay computes them again from base before it runs an
-	// operation on one of them.
+	// memory unstored, or lost the epoch that held them. Replay computes them
+	// again from base before it runs an operation on one of them.
 	floor int
 	// restored are the positions a saved cursor recorded, which an Apply of
 	// the same operation at the same place adopts.
@@ -80,6 +81,54 @@ type spaceReplay struct {
 	cursor *bucket_lookup.Cursor
 	// bound is the World engine serves.
 	bound *bucket.ObjectRef
+	// stage holds what a serving adapter's replay stores until a cursor save
+	// lands, or is nil for a transient replay, whose kept pages already go
+	// to a stage the caller holds.
+	stage *replayStage
+}
+
+// store returns the store the replay writes through.
+func (r *spaceReplay) store() block.StoreOps {
+	if r.stage == nil {
+		return r.a.pages
+	}
+	return r.stage
+}
+
+// openStage opens the replay stage of a serving adapter's run.
+func (r *spaceReplay) openStage(ctx context.Context) error {
+	stage, err := newReplayStage(ctx, r.a.pages)
+	if err != nil {
+		return err
+	}
+	r.stage = stage
+	return nil
+}
+
+// rotateStage starts the next epoch of the replay stage, for a save that
+// starts now, and returns the epochs the save ends once it lands, and whether
+// any of them stored a page. It returns none without a stage.
+func (r *spaceReplay) rotateStage(ctx context.Context) ([]*block.OverflowStage, bool, error) {
+	if r.stage == nil {
+		return nil, false, nil
+	}
+	return r.stage.rotate(ctx)
+}
+
+// keepStages keeps the epochs of a save that did not land for the next one.
+func (r *spaceReplay) keepStages(epochs []*block.OverflowStage) {
+	if r.stage != nil {
+		r.stage.keep(epochs)
+	}
+}
+
+// endStage releases the replay stage once the run ended and no save runs. A
+// later put through it fails, which stops replay rather than storing pages
+// nothing holds.
+func (r *spaceReplay) endStage() {
+	if r.stage != nil {
+		r.stage.end()
+	}
 }
 
 // stateBefore returns the World before the position at index and its seqno.
@@ -260,7 +309,7 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 	}
 
 	// Write it to the kept pages.
-	btx, bcs := block.NewTransaction(r.a.pages, xfrm, nil, nil)
+	btx, bcs := block.NewTransaction(r.store(), xfrm, nil, nil)
 	root := world_block.NewWorld(initOp.GetLastChangeDisable())
 	root.GraphSettings = settings.CloneVT()
 	bcs.SetBlock(root, true)
@@ -391,7 +440,7 @@ func (r *spaceReplay) bind(ctx context.Context, head *bucket.ObjectRef) (*world_
 	}
 
 	// Build an engine at head whose commits stay in memory.
-	cursor, err := r.a.newCursor(ctx, head)
+	cursor, err := r.a.newCursor(ctx, r.store(), head)
 	if err != nil {
 		return nil, err
 	}

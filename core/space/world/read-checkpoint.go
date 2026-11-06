@@ -44,7 +44,7 @@ func OpenReadCheckpoint(
 
 	// Serve it read-only over the kept pages, holding the stage until the
 	// engine closes.
-	cursor, err := a.newCursor(ctx, state.GetHeadRef())
+	cursor, err := a.newCursor(ctx, a.pages, state.GetHeadRef())
 	if err != nil {
 		releaseStage()
 		return nil, nil, err
