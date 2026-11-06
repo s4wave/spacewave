@@ -94,6 +94,12 @@ const (
 	// adoption began, empty when the name was free, and it lasts until the
 	// adoption ends.
 	kindAdoptRoot byte = 'A'
+	// kindReleasePage keys a page of the child list of the block whose
+	// release is in progress, by its big-endian page number. Its value packs
+	// up to releasePageChildren block keys, as a child list does. The pages
+	// exist from the free that starts the release until the transaction that
+	// releases their last child.
+	kindReleasePage byte = 'D'
 )
 
 // The kinds a copy of a Volume's liveness records reads.
@@ -599,4 +605,35 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 		return err
 	}
 	return r.tx.Set(ctx, r.key(kindState), value)
+}
+
+// releasePageKey returns the key of release page page.
+func (r *Records) releasePageKey(page uint64) []byte {
+	return r.key(kindReleasePage, binary.BigEndian.AppendUint64(nil, page))
+}
+
+// putReleasePages writes children, sorted and distinct as a child list
+// holds them, to release pages of releasePageChildren each.
+func (r *Records) putReleasePages(ctx context.Context, children []*block.BlockRef) error {
+	for page, chunk := range slices.Collect(slices.Chunk(children, releasePageChildren)) {
+		if err := r.tx.Set(ctx, r.releasePageKey(uint64(page)), EncodeChildren(chunk)); err != nil { //nolint:gosec // page numbers are small.
+			return err
+		}
+	}
+	return nil
+}
+
+// getReleasePage returns the children release page page holds, none when it
+// is missing.
+func (r *Records) getReleasePage(ctx context.Context, page uint64) ([]*block.BlockRef, error) {
+	value, found, err := r.tx.Get(ctx, r.releasePageKey(page))
+	if err != nil || !found {
+		return nil, err
+	}
+	return DecodeChildren(value)
+}
+
+// deleteReleasePage deletes release page page.
+func (r *Records) deleteReleasePage(ctx context.Context, page uint64) error {
+	return r.tx.Delete(ctx, r.releasePageKey(page))
 }

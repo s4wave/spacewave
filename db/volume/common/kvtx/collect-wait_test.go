@@ -19,8 +19,8 @@ import (
 
 // TestCommitWaitDuringCollection measures how long a writer's commit waits
 // while the collector frees a large garbage tree on an s4db Volume, at two
-// sizes, and while it indexes, nets and frees one journal record of 100,000
-// up pairs, and logs the longest and the 99th percentile wait. It runs only
+// sizes, while it indexes, nets and frees one journal record of 100,000 up
+// pairs, and while it frees one block naming 100,000 children, and logs the longest and the 99th percentile wait. It runs only
 // when KVTX_MEASURE_COLLECT is set, on the build host.
 func TestCommitWaitDuringCollection(t *testing.T) {
 	if os.Getenv("KVTX_MEASURE_COLLECT") == "" {
@@ -33,6 +33,9 @@ func TestCommitWaitDuringCollection(t *testing.T) {
 	}
 	t.Run("one record of 100000 ups", func(t *testing.T) {
 		measureLargeRecordWait(t, 100_000)
+	})
+	t.Run("one block of 100000 children", func(t *testing.T) {
+		measureWideBlockWait(t, 100_000)
 	})
 }
 
@@ -150,6 +153,45 @@ func measureLargeRecordWait(t *testing.T, leaves int) {
 		freed = collectToEnd(t, v)
 	})
 	t.Logf("one record of %d ups: freed %d in %v; %s", leaves, freed, elapsed, waits)
+}
+
+// measureWideBlockWait stores leaves blocks under mids of 1000, then one
+// block naming them all under a root, releasing the mids, releases the root,
+// and logs a writer's waits while the collector indexes the block's record,
+// then nets it and frees the block and its children a grace period later.
+func measureWideBlockWait(t *testing.T, leaves int) {
+	// Store the leaves, then the block naming them all.
+	ctx := t.Context()
+	v := openWaitVolume(t, "")
+	clk := &testClock{now: time.Unix(1_800_000_000, 0)}
+	v.clock = clk.Now
+	tr := testTree{}
+	mids := storeLeaves(t, v, tr, leaves)
+	names := make([]string, 0, leaves)
+	for i := range leaves {
+		names = append(names, "leaf "+strconv.Itoa(i))
+	}
+	wide := tr.add(t, "wide", names...)
+	moves := []block.NamedRoot{{Name: "wide", Ref: wide}}
+	for _, mid := range mids {
+		moves = append(moves, block.NamedRoot{Name: mid, Previous: tr[mid].Ref})
+	}
+	if err := v.SetBucketRoots(ctx, "b", tr.entries("wide"), moves); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "wide", Previous: wide}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Index the young record, then net it and free the block once it ages,
+	// while a writer commits.
+	var freed uint64
+	elapsed, waits := measureWaits(t, v, tr, func() {
+		collectToEnd(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		freed = collectToEnd(t, v)
+	})
+	t.Logf("one block of %d children: freed %d in %v; %s", leaves, freed, elapsed, waits)
 }
 
 // collectToEnd runs collection passes until one reports no more work, and

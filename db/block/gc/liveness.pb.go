@@ -168,6 +168,9 @@ type LivenessState struct {
 	// collector has indexed: a slice indexes a bounded number, so it splits a
 	// large record across slices.
 	IndexOffset uint64 `protobuf:"varint,10,opt,name=index_offset,json=indexOffset,proto3" json:"indexOffset,omitempty"`
+	// Release is the release in progress of a freed block's children, unset
+	// when none is.
+	Release *Release `protobuf:"bytes,11,opt,name=release,proto3" json:"release,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -239,6 +242,56 @@ func (x *LivenessState) GetIndexOffset() uint64 {
 	return 0
 }
 
+func (x *LivenessState) GetRelease() *Release {
+	if x != nil {
+		return x.Release
+	}
+	return nil
+}
+
+// Release is the release in progress of the children of a freed block whose
+// child list is longer than one free transaction releases. The free deletes
+// the block's bytes, child list, queue entry and proof, and moves the list to
+// release pages; each later free transaction releases the next children and
+// moves Next in the same transaction, and the last deletes the pages and
+// clears the release.
+type Release struct {
+	unknownFields []byte
+	// Block is the freed block, as its hash type byte and digest.
+	Block []byte `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	// Next is the index in the list of the first child not released yet.
+	Next uint64 `protobuf:"varint,2,opt,name=next,proto3" json:"next,omitempty"`
+	// Children is how many children the list names.
+	Children uint64 `protobuf:"varint,3,opt,name=children,proto3" json:"children,omitempty"`
+}
+
+func (x *Release) Reset() {
+	*x = Release{}
+}
+
+func (*Release) ProtoMessage() {}
+
+func (x *Release) GetBlock() []byte {
+	if x != nil {
+		return x.Block
+	}
+	return nil
+}
+
+func (x *Release) GetNext() uint64 {
+	if x != nil {
+		return x.Next
+	}
+	return 0
+}
+
+func (x *Release) GetChildren() uint64 {
+	if x != nil {
+		return x.Children
+	}
+	return 0
+}
+
 func (m *RootEntry) CloneVT() *RootEntry {
 	if m == nil {
 		return (*RootEntry)(nil)
@@ -288,6 +341,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.NetOffset = m.NetOffset
 	r.Indexed = m.Indexed
 	r.IndexOffset = m.IndexOffset
+	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -295,6 +349,24 @@ func (m *LivenessState) CloneVT() *LivenessState {
 }
 
 func (m *LivenessState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Release) CloneVT() *Release {
+	if m == nil {
+		return (*Release)(nil)
+	}
+	r := new(Release)
+	r.Next = m.Next
+	r.Children = m.Children
+	r.Block = protobuf_go_lite.CloneBytes(m.Block)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Release) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -380,11 +452,40 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.IndexOffset != that.IndexOffset {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Release, that.Release) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *LivenessState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*LivenessState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Release) EqualVT(that *Release) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Block, that.Block) {
+		return false
+	}
+	if this.Next != that.Next {
+		return false
+	}
+	if this.Children != that.Children {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Release) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Release)
 	if !ok {
 		return false
 	}
@@ -600,6 +701,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("indexOffset")
 		s.WriteUint64(x.IndexOffset)
 	}
+	if x.Release != nil || s.HasField("release") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("release")
+		x.Release.MarshalProtoJSON(s.WithField("release"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -644,12 +750,77 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "index_offset", "indexOffset":
 			s.AddField("index_offset")
 			x.IndexOffset = s.ReadUint64()
+		case "release":
+			if s.ReadNil() {
+				x.Release = nil
+				return
+			}
+			x.Release = &Release{}
+			x.Release.UnmarshalProtoJSON(s.WithField("release", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the LivenessState from JSON.
 func (x *LivenessState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Release message to JSON.
+func (x *Release) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Block) > 0 || s.HasField("block") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("block")
+		s.WriteBytes(x.Block)
+	}
+	if x.Next != 0 || s.HasField("next") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("next")
+		s.WriteUint64(x.Next)
+	}
+	if x.Children != 0 || s.HasField("children") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("children")
+		s.WriteUint64(x.Children)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Release to JSON.
+func (x *Release) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Release message from JSON.
+func (x *Release) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "block":
+			s.AddField("block")
+			x.Block = s.ReadBytes()
+		case "next":
+			s.AddField("next")
+			x.Next = s.ReadUint64()
+		case "children":
+			s.AddField("children")
+			x.Children = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Release from JSON.
+func (x *Release) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -775,6 +946,16 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Release != nil {
+		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	}
 	if m.IndexOffset != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IndexOffset))
 		i--
@@ -823,6 +1004,53 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Release) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Release) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Release) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Children != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Children))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Next != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Next))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Block) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Block)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RootEntry) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -863,6 +1091,23 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Indexed)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.IndexOffset)
+	if m.Release != nil {
+		l = m.Release.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Release) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Block)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Next)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Children)
 	n += len(m.unknownFields)
 	return n
 }
@@ -958,10 +1203,36 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_offset")
 		protobuf_go_lite.TextWriteUint(&sb, x.IndexOffset)
 	}
+	if x.Release != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Release)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *LivenessState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Release) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Release")
+	if len(x.Block) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Block)
+	}
+	if x.Next != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next")
+		protobuf_go_lite.TextWriteUint(&sb, x.Next)
+	}
+	if x.Children != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "children")
+		protobuf_go_lite.TextWriteUint(&sb, x.Children)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Release) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1200,6 +1471,90 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.IndexOffset = 0
 			m.IndexOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Release == nil {
+				m.Release = &Release{}
+			}
+			if err := m.Release.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Release) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Release: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Release: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Block", wireType)
+			}
+			m.Block, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Block, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Next", wireType)
+			}
+			m.Next = 0
+			m.Next, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Children", wireType)
+			}
+			m.Children = 0
+			m.Children, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
