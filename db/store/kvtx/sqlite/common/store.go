@@ -262,10 +262,14 @@ func openPool[T SQLiteDriverConfig](config T, path string, pragmas Pragmas) (*sq
 	return db, nil
 }
 
-// idleConns is the number of idle connections a pool keeps: twice the
-// processors, and at least 8.
+// idleConns is the number of idle connections a pool keeps: eight per
+// processor, and at least 16. A burst of views, such as every client
+// reconnecting after a restart, holds hundreds of read transactions at once;
+// a connection past the idle limit closes when its transaction ends, taking
+// its prepared statements and page cache with it, and the next burst opens
+// it again.
 func idleConns() int {
-	return max(8, 2*runtime.GOMAXPROCS(0))
+	return max(16, 8*runtime.GOMAXPROCS(0))
 }
 
 // OpenDB takes ownership of an already configured SQL pool and opens its KV table.
