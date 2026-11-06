@@ -207,6 +207,31 @@ func TestLivenessRunThrough(t *testing.T) {
 	requireStored(t, v, tr, false, "R3")
 	requireStored(t, v, tr, true, "H", "R2", "C2", "F", "G")
 	requireAudit(t, v, 1)
+
+	// A released chain frees whole in one pass, though its cascade queues
+	// children on both sides of the walk's position.
+	names := []string{"L0"}
+	tr.add(t, "L0")
+	for i := 1; i < 32; i++ {
+		names = append(names, "L"+strconv.Itoa(i))
+		tr.add(t, names[i], names[i-1])
+	}
+	top := tr[names[len(names)-1]].Ref
+	if err := v.SetBucketRoots(ctx, "b", tr.entries(names...), []block.NamedRoot{{Name: "chain", Ref: top}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "chain", Previous: top}}); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(block_gc.DefaultGrace + time.Second)
+	res, err := v.Collect(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Freed != uint64(len(names)) || res.More {
+		t.Fatalf("one pass freed %d of the %d-block chain, more %v", res.Freed, len(names), res.More)
+	}
+	requireStored(t, v, tr, false, names...)
 }
 
 // punchHole loses ref from the store with its child list and count, as

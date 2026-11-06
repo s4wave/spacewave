@@ -445,14 +445,14 @@ func (r *Records) Dequeue(ctx context.Context, ref *block.BlockRef) error {
 	return r.tx.Delete(ctx, r.key(kindQueue, BlockKey(ref)))
 }
 
-// ScanQueue calls fn with each queued block in key order, after the block
-// key after, until fn returns false or an error.
-func (r *Records) ScanQueue(ctx context.Context, after []byte, fn func(ref *block.BlockRef) (bool, error)) error {
-	// Position the sorted iterator past after.
+// ScanQueue calls fn with each queued block in key order, from the first
+// whose block key is at least from, until fn returns false or an error.
+func (r *Records) ScanQueue(ctx context.Context, from []byte, fn func(ref *block.BlockRef) (bool, error)) error {
+	// Position the sorted iterator at from.
 	prefix := r.key(kindQueue)
 	it := r.tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
-	if err := it.Seek(append(r.key(kindQueue, after), 0)); err != nil {
+	if err := it.Seek(r.key(kindQueue, from)); err != nil {
 		return err
 	}
 

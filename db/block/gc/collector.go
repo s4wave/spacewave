@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"maps"
 	"slices"
@@ -68,12 +69,6 @@ type Collector struct {
 	opts CollectorOptions
 	// mtx runs one pass at a time.
 	mtx sync.Mutex
-	// tail holds the block keys up pairs past the cursor name, as of the
-	// journal records before tailSeq. Guarded by mtx.
-	tail map[string]struct{}
-	// tailSeq is the sequence number of the first record the tail has not
-	// read. Guarded by mtx.
-	tailSeq uint64
 }
 
 // Store is the Volume a Collector runs in.
@@ -394,40 +389,62 @@ func (c *Collector) applyDelta(ctx context.Context, rec *Records, key []byte, d 
 	return rec.SetCount(ctx, ref, uint64(next-1)) //nolint:gosec // next is positive.
 }
 
+// freePass is the state of one free phase.
+type freePass struct {
+	// tail holds the block keys the up pairs past the cursor name, as of the
+	// journal records before tailSeq.
+	tail map[string]struct{}
+	// tailSeq is the sequence number of the first record the tail has not
+	// read.
+	tailSeq uint64
+	// low is the lowest block key a cascade of the current walk queued, or
+	// nil when it queued none.
+	low []byte
+}
+
+// queued notes that a cascade queued the block at key.
+func (p *freePass) queued(key []byte) {
+	if p.low == nil || bytes.Compare(key, p.low) < 0 {
+		p.low = key
+	}
+}
+
 // free frees the queued blocks in slices, cascading through their children,
-// until a pass over the queue frees nothing or the deadline passes, and
-// reports whether queued blocks may remain to free.
+// until a walk of the queue queues nothing or the deadline passes, and
+// reports whether queued blocks may remain to free. A cascade queues children
+// anywhere in the queue, so the next walk starts at the lowest key the last
+// one queued, not at the queue's start.
 func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
 	// Start the tail from the cursor: the records past it hold the holders
 	// the netted counts do not include yet.
 	defer c.phase(PhaseSweep)()
-	c.tail = make(map[string]struct{})
+	p := &freePass{tail: make(map[string]struct{})}
 	err := c.store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		c.tailSeq = state.GetCursor()
+		p.tailSeq = state.GetCursor()
 		return nil
 	})
 	if err != nil {
 		return false, err
 	}
 
-	// Walk the queue, again from its start after a walk that freed, since a
-	// cascade queues children anywhere in it.
+	// Walk the queue from from, then again from the lowest key a walk's
+	// cascade queued.
+	var from []byte
 	for {
-		freedBefore := res.Freed
-		var after []byte
+		p.low = nil
 		for {
-			next, more, err := c.freeSlice(ctx, res, after)
+			last, more, err := c.freeSlice(ctx, p, res, from)
 			if err != nil {
 				return false, err
 			}
 			if !more {
 				break
 			}
-			after = next
+			from = append(last, 0)
 			if c.opts.Now().After(deadline) {
 				return true, nil
 			}
@@ -435,21 +452,22 @@ func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.
 				return false, err
 			}
 		}
-		if res.Freed == freedBefore {
+		if p.low == nil {
 			return false, nil
 		}
 		if c.opts.Now().After(deadline) {
 			return true, nil
 		}
+		from = p.low
 	}
 }
 
-// freeSlice examines up to sliceFrees queued blocks after the block key after
+// freeSlice examines up to sliceFrees queued blocks from the block key from
 // in one transaction, and frees each that no journal record past the cursor
 // adds a holder to, stopping after the block whose children bring the
 // releases to sliceReleases. It returns the key of the last block examined
 // and whether the slice was full.
-func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, after []byte) ([]byte, bool, error) {
+func (c *Collector) freeSlice(ctx context.Context, p *freePass, res *CollectResult, from []byte) ([]byte, bool, error) {
 	var last []byte
 	var full bool
 	err := c.store.Update(ctx, func(rec *Records, blocks block.StoreOps) error {
@@ -460,13 +478,13 @@ func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, after []b
 		}
 
 		// Read the journal records appended since the last look.
-		if err := c.readTail(ctx, rec); err != nil {
+		if err := p.readTail(ctx, rec); err != nil {
 			return err
 		}
 
 		// Take the next queued blocks.
 		var queued []*block.BlockRef
-		err = rec.ScanQueue(ctx, after, func(ref *block.BlockRef) (bool, error) {
+		err = rec.ScanQueue(ctx, from, func(ref *block.BlockRef) (bool, error) {
 			if len(queued) == sliceFrees {
 				full = true
 				return false, nil
@@ -482,11 +500,11 @@ func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, after []b
 		var released int
 		for _, ref := range queued {
 			last = BlockKey(ref)
-			if _, held := c.tail[string(last)]; held {
+			if _, held := p.tail[string(last)]; held {
 				res.Kept++
 				continue
 			}
-			n, err := c.freeBlock(ctx, rec, blocks, ref, res)
+			n, err := c.freeBlock(ctx, rec, blocks, p, ref, res)
 			if err != nil {
 				return err
 			}
@@ -502,21 +520,21 @@ func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, after []b
 
 // readTail adds to the tail the blocks the up pairs of the journal records
 // since the last look name.
-func (c *Collector) readTail(ctx context.Context, rec *Records) error {
-	return rec.ScanJournal(ctx, c.tailSeq, func(seq uint64, r *JournalRecord) (bool, error) {
+func (p *freePass) readTail(ctx context.Context, rec *Records) error {
+	return rec.ScanJournal(ctx, p.tailSeq, func(seq uint64, r *JournalRecord) (bool, error) {
 		for _, up := range r.GetUp() {
-			c.tail[string(up)] = struct{}{}
+			p.tail[string(up)] = struct{}{}
 		}
-		c.tailSeq = seq + 1
+		p.tailSeq = seq + 1
 		return true, nil
 	})
 }
 
 // freeBlock frees one queued block: its bytes, child list, count and proof,
-// and decrements each child its child list names, returning how many. It keeps the block when the
-// queue entry turns out stale: a block without a child list is not stored,
-// and one with a count record has holders.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, ref *block.BlockRef, res *CollectResult) (int, error) {
+// and decrements each child its child list names, returning how many. It
+// keeps the block when the queue entry turns out stale: a block without a
+// child list is not stored, and one with a count record has holders.
+func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, p *freePass, ref *block.BlockRef, res *CollectResult) (int, error) {
 	// Check the block is stored and has no holder.
 	children, listed, err := rec.GetChildren(ctx, ref)
 	if err != nil {
@@ -548,7 +566,7 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 		return 0, err
 	}
 	for _, child := range children {
-		if err := c.release(ctx, rec, child, res); err != nil {
+		if err := c.release(ctx, rec, p, child, res); err != nil {
 			return 0, err
 		}
 	}
@@ -560,7 +578,7 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 // since the parent's Land counted it, but is never queued: it is not stored,
 // so nothing frees it and its own children, which are unknown, are untouched.
 // One already queued keeps a holder, since a parent named it.
-func (c *Collector) release(ctx context.Context, rec *Records, child *block.BlockRef, res *CollectResult) error {
+func (c *Collector) release(ctx context.Context, rec *Records, p *freePass, child *block.BlockRef, res *CollectResult) error {
 	// Take the holder from a child without a list, which only its count holds.
 	listed, err := rec.HasChildren(ctx, child)
 	if err != nil {
@@ -594,6 +612,7 @@ func (c *Collector) release(ctx context.Context, rec *Records, child *block.Bloc
 	res.Counted++
 	if count == 0 {
 		res.Queued++
+		p.queued(BlockKey(child))
 		return rec.Enqueue(ctx, child)
 	}
 	return rec.SetCount(ctx, child, count-1)
