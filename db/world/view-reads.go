@@ -49,6 +49,20 @@ func RerunAt(ctx context.Context, deadline time.Time) {
 	reads.mtx.Unlock()
 }
 
+// RerunOn asks the running WatchView or SendViews evaluation to run again when
+// rerun ends, for a view that reads state kept outside the World, such as a
+// value a process holds in memory and replaces with each change. Called in a
+// WithViewReads child, it records rerun in the child's set, so every view that
+// joins the set reruns too. It does nothing outside an evaluation. Call it
+// before the evaluation returns.
+func RerunOn(ctx context.Context, rerun context.Context) {
+	reads := getViewReads(ctx)
+	if reads == nil || rerun == nil {
+		return
+	}
+	reads.reads.addRerun(rerun)
+}
+
 // AddViewReads adds a finished read set to the running WatchView or SendViews
 // evaluation, so the view reruns when a change touches set, and asks for a
 // rerun at rerunAt like RerunAt. Use it for a value computed once on its own
