@@ -103,12 +103,12 @@ func (s *SOOperationSet) stableLen(order [][]byte, roster []string) int {
 
 	// Carry each operation's bits to the operations it links to, from the
 	// last placed one back.
-	for i := len(order) - 1; i >= 0; i-- {
+	for i, o := range slices.Backward(order) {
 		mask := masks[i*words : (i+1)*words]
 		if b, ok := bit[i]; ok {
 			mask[b/64] |= 1 << (b % 64)
 		}
-		for _, link := range links(s.ops[string(order[i])]) {
+		for _, link := range links(s.ops[string(o)]) {
 			if s.Covers(link.GetPeerId(), link.GetNonce()) {
 				continue
 			}
