@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"maps"
+	"runtime"
 	"slices"
 	"strconv"
 	"sync"
@@ -246,23 +247,58 @@ func TestLivenessRunThrough(t *testing.T) {
 	requireStored(t, v, tr, false, names...)
 
 	// Each entry point costs the same over 1x and 10x stored blocks: its
-	// transactions, reads, steps and writes do not grow with the Volume, as
-	// the Phase 1 path walk says.
+	// transactions, reads, steps and writes do not grow with the Volume, nor
+	// does the longest write transaction it holds, as the Phase 1 path walk
+	// says. The index pass reads each young journal record once, so only its
+	// longest transaction is bounded.
 	small, large := measureLivenessPaths(t, 300), measureLivenessPaths(t, 3000)
-	for name, s := range small {
-		t.Logf("%s: %+v over 1x, %+v over 10x", name, s, large[name])
-		if l := large[name]; l.Total() > s.Total()+s.Total()/4+4 || l.Txns > s.Txns+1 {
+	within := func(l, s uint64) bool { return l <= s+s/4+4 }
+	for name, s := range small.counts {
+		l := large.counts[name]
+		t.Logf("%s: %+v over 1x, %+v over 10x", name, s, l)
+		total := name == "index" || (within(l.Total(), s.Total()) && l.Txns <= s.Txns+1)
+		if !total || !within(l.MaxWriteOps, s.MaxWriteOps) {
 			t.Errorf("%s over 10x stored blocks cost %+v, over 1x %+v", name, l, s)
 		}
 	}
+
+	// A commit of three blocks reads each block's child list and bytes once,
+	// beyond the state and the root it moves.
+	if c := small.counts["commit"]; c.Reads+c.Steps > 2*3+4 {
+		t.Errorf("a commit of three blocks read %d records and stepped %d", c.Reads, c.Steps)
+	}
+
+	// A staged put copies nothing of what the stage holds, and a commit waits
+	// on no scan of the process's pins and stages.
+	t.Logf("wide stage: %d bytes over 1x, %d over 10x", small.allocs["wide stage"], large.allocs["wide stage"])
+	if s, l := small.allocs["wide stage"], large.allocs["wide stage"]; l > 2*s+16<<10 {
+		t.Errorf("a put through a stage holding 10x tops allocated %d bytes, over 1x %d", l, s)
+	}
+	t.Logf("deferred: %v over 1x, %v over 10x", small.times["deferred"], large.times["deferred"])
+	if s, l := small.times["deferred"], large.times["deferred"]; l > 2*s+200*time.Microsecond {
+		t.Errorf("a commit beside 10x pins and stages took %v, beside 1x %v", l, s)
+	}
+}
+
+// livenessCosts are what the entry points cost on one Volume.
+type livenessCosts struct {
+	// counts are the store operations of each entry point.
+	counts map[string]kvtx_kvtest.Counts
+	// allocs are the fewest bytes one call of an entry point allocated.
+	allocs map[string]uint64
+	// times are the median durations of an entry point's calls.
+	times map[string]time.Duration
 }
 
 // measureLivenessPaths opens a Volume that frees at once over a counting
 // store holding n stored blocks under roots, and returns what each entry point
 // the Phase 1 path walk names cost on it: a commit of a small tree with its
-// root move, a read of a block and its child list, a reader pin, a staged put,
-// a cache fill, and the collection of the commit's tree once released.
-func measureLivenessPaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
+// root move while proofs of n/100 roots were marked, a mark of three proofs, a
+// read of a block and its child list, a reader pin, a staged put, a cache
+// fill, a collector pass over 2n young journal records and the pass after it,
+// which collects the commit's tree, a put through a stage that holds n tops,
+// and a commit beside 10n pins and 10n open stages.
+func measureLivenessPaths(t *testing.T, n int) livenessCosts {
 	// Open the Volume over a counting store.
 	t.Helper()
 	ctx := t.Context()
@@ -278,6 +314,7 @@ func measureLivenessPaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
 	// Store n leaves, a hundred under each parent and each parent under a
 	// root, and net their journal.
 	tr := testTree{}
+	var parents []*block.BlockRef
 	for i := 0; i < n; i += 100 {
 		var names []string
 		for j := i; j < min(i+100, n); j++ {
@@ -286,6 +323,7 @@ func measureLivenessPaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
 		}
 		parent := "parent " + strconv.Itoa(i)
 		p := tr.add(t, parent, names...)
+		parents = append(parents, p)
 		if err := v.SetBucketRoots(ctx, "b", tr.entries(append(names, parent)...), []block.NamedRoot{{Name: parent, Ref: p}}); err != nil {
 			t.Fatal(err)
 		}
@@ -294,20 +332,31 @@ func measureLivenessPaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
 	collectAll(t, v)
 
 	// Measure each entry point.
-	costs := make(map[string]kvtx_kvtest.Counts)
+	costs := livenessCosts{
+		counts: make(map[string]kvtx_kvtest.Counts),
+		allocs: make(map[string]uint64),
+		times:  make(map[string]time.Duration),
+	}
 	measure := func(name string, fn func() error) {
 		t.Helper()
+		cs.ResetMax()
 		before := cs.Counts()
 		if err := fn(); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		costs[name] = cs.Counts().Sub(before)
+		costs.counts[name] = cs.Counts().Sub(before)
+	}
+	if err := v.MarkRootsComplete(ctx, parents); err != nil {
+		t.Fatal(err)
 	}
 	tr.add(t, "C")
 	tr.add(t, "P", "C")
 	r := tr.add(t, "R", "P")
 	measure("commit", func() error {
 		return v.SetBucketRoots(ctx, "b", tr.entries("C", "P", "R"), []block.NamedRoot{{Name: "main", Ref: r}})
+	})
+	measure("mark", func() error {
+		return v.MarkRootsComplete(ctx, []*block.BlockRef{tr["C"].Ref, tr["P"].Ref, r})
 	})
 	measure("read", func() error {
 		if _, _, err := v.GetBlock(ctx, tr["leaf 0"].Ref); err != nil {
@@ -345,16 +394,123 @@ func measureLivenessPaths(t *testing.T, n int) map[string]kvtx_kvtest.Counts {
 			return err
 		})
 	})
-	measure("collect", func() error {
-		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
-			return err
+
+	// Release the commit's tree, then move a root back and forth 2n times
+	// while the release ages: a pass reads each young record once, and the
+	// pass that collects the tree reads only the records since.
+	if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r}}); err != nil {
+		t.Fatal(err)
+	}
+	clk.Add(block_gc.DefaultGrace / 2)
+	churn := []*block.BlockRef{tr.add(t, "X"), tr.add(t, "Y")}
+	if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "Y"), []block.NamedRoot{{Name: "churn", Ref: churn[0]}}); err != nil {
+		t.Fatal(err)
+	}
+	moves := 0
+	move := func(k int) {
+		t.Helper()
+		for range k {
+			from, to := churn[moves%2], churn[(moves+1)%2]
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "churn", Ref: to, Previous: from}}); err != nil {
+				t.Fatal(err)
+			}
+			moves++
 		}
-		clk.Add(block_gc.DefaultGrace + time.Second)
+	}
+	move(2 * n)
+	measure("index", func() error {
+		collectAll(t, v)
+		return nil
+	})
+	clk.Add(block_gc.DefaultGrace/2 + time.Second)
+	move(4)
+	measure("collect", func() error {
 		collectAll(t, v)
 		return nil
 	})
 	requireStored(t, v, tr, false, "C", "P", "R", "S1", "S2", "F")
+
+	// Put pairs of blocks through a stage that holds n tops of its own.
+	wide, releaseWide, err := v.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseWide()
+	for i := 0; i < n; i += 300 {
+		var names []string
+		for j := i; j < min(i+300, n); j++ {
+			names = append(names, "top "+strconv.Itoa(j))
+			tr.add(t, names[len(names)-1])
+		}
+		if _, err := v.PrepareStagedBlockBatch(ctx, wide, tr.entries(names...)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := range 5 {
+		lo, hi := "W"+strconv.Itoa(i), "W top "+strconv.Itoa(i)
+		tr.add(t, lo)
+		tr.add(t, hi, lo)
+		put := func() error {
+			_, err := v.PrepareStagedBlockBatch(ctx, wide, tr.entries(lo, hi))
+			return err
+		}
+		var bytes uint64
+		if i == 0 {
+			bytes = allocated(func() { measure("wide stage", put) })
+		} else {
+			bytes = allocated(func() {
+				if err := put(); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+		if prev, ok := costs.allocs["wide stage"]; !ok || bytes < prev {
+			costs.allocs["wide stage"] = bytes
+		}
+	}
+
+	// Commit beside 10n reader pins and 10n open stages, none released.
+	for i := range 10 * n {
+		ref, err := block.BuildBlockRef([]byte("pin "+strconv.Itoa(i)), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := v.pinRoot(ctx, ref, true); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := v.OpenStage(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var prev *block.BlockRef
+	times := make([]time.Duration, 0, 15)
+	for i := range 15 {
+		name := "D" + strconv.Itoa(i)
+		ref := tr.add(t, name)
+		commit := func() error {
+			return v.SetBucketRoots(ctx, "b", tr.entries(name), []block.NamedRoot{{Name: "deferred", Ref: ref, Previous: prev}})
+		}
+		start := time.Now()
+		if i == 0 {
+			measure("deferred", commit)
+		} else if err := commit(); err != nil {
+			t.Fatal(err)
+		}
+		times = append(times, time.Since(start))
+		prev = ref
+	}
+	slices.Sort(times)
+	costs.times["deferred"] = times[len(times)/2]
 	return costs
+}
+
+// allocated returns the bytes the process allocated while fn ran.
+func allocated(fn func()) uint64 {
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	fn()
+	runtime.ReadMemStats(&after)
+	return after.TotalAlloc - before.TotalAlloc
 }
 
 // punchHole loses ref from the store with its child list and count, as
@@ -476,40 +632,62 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
-	t.Run("moved away and back", func(t *testing.T) {
-		// main moves R1 to R2 and back to R1 inside the grace period; a pass
-		// that nets only the first move must not free R1.
-		v, clk := newLivenessVolume(t, true)
-		ctx := t.Context()
-		tr := testTree{}
-		tr.add(t, "E")
-		r1 := tr.add(t, "R1", "E")
-		r2 := tr.add(t, "R2")
-		if err := v.SetBucketRoots(ctx, "b", tr.entries("E", "R1"), []block.NamedRoot{{Name: "main", Ref: r1}}); err != nil {
-			t.Fatal(err)
-		}
-		if err := v.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
-			t.Fatal(err)
-		}
-		clk.Add(block_gc.DefaultGrace / 2)
-		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: r1, Previous: r2}}); err != nil {
-			t.Fatal(err)
-		}
+	for _, behind := range []int{0, 600} {
+		t.Run("moved away and back behind "+strconv.Itoa(behind), func(t *testing.T) {
+			// main moves R1 to R2 and back to R1 inside the grace period,
+			// behind more records than one index slice holds; a pass that
+			// nets only the first move must not free R1.
+			v, clk := newLivenessVolume(t, true)
+			ctx := t.Context()
+			tr := testTree{}
+			tr.add(t, "E")
+			r1 := tr.add(t, "R1", "E")
+			r2 := tr.add(t, "R2")
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("E", "R1"), []block.NamedRoot{{Name: "main", Ref: r1}}); err != nil {
+				t.Fatal(err)
+			}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("R2"), []block.NamedRoot{{Name: "main", Ref: r2, Previous: r1}}); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace / 2)
+			churn := []*block.BlockRef{tr.add(t, "X"), tr.add(t, "Y")}
+			if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "Y"), []block.NamedRoot{{Name: "churn", Ref: churn[0]}}); err != nil {
+				t.Fatal(err)
+			}
+			for i := range behind {
+				if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "churn", Ref: churn[(i+1)%2], Previous: churn[i%2]}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: r1, Previous: r2}}); err != nil {
+				t.Fatal(err)
+			}
 
-		// Net only the first move: R1 is queued and kept by the later record.
-		clk.Add(block_gc.DefaultGrace/2 + time.Second)
-		if res := collectAll(t, v); res.Freed != 0 || res.Kept == 0 {
-			t.Fatalf("freed %d kept %d, want 0 freed and R1 kept", res.Freed, res.Kept)
-		}
-		requireStored(t, v, tr, true, "R1", "E", "R2")
+			// Net only the first move: R1 is queued and kept by the later
+			// record.
+			clk.Add(block_gc.DefaultGrace/2 + time.Second)
+			if res := collectAll(t, v); res.Freed != 0 || res.Kept == 0 {
+				t.Fatalf("freed %d kept %d, want 0 freed and R1 kept", res.Freed, res.Kept)
+			}
+			requireStored(t, v, tr, true, "R1", "E", "R2")
 
-		// Once the move back nets, R2 goes and R1's tree stays.
-		clk.Add(block_gc.DefaultGrace)
-		collectAll(t, v)
-		requireStored(t, v, tr, true, "R1", "E")
-		requireStored(t, v, tr, false, "R2")
-		requireAudit(t, v, 0)
-	})
+			// Once the move back nets, R2 goes and R1's tree stays.
+			clk.Add(block_gc.DefaultGrace)
+			collectAll(t, v)
+			requireStored(t, v, tr, true, "R1", "E")
+			requireStored(t, v, tr, false, "R2")
+			requireAudit(t, v, 0)
+
+			// The netted records took their index entries with them, so R1's
+			// tree goes once main leaves it.
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Previous: r1}}); err != nil {
+				t.Fatal(err)
+			}
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+			requireStored(t, v, tr, false, "R1", "E")
+		})
+	}
 
 	t.Run("release and birth in different intervals", func(t *testing.T) {
 		// R1 -> C -> F loses main; just inside its grace period a new R2
@@ -1756,6 +1934,7 @@ func forgetPins(t *testing.T, v *Volume) {
 		t.Fatal(err)
 	}
 	clear(v.rootPins)
+	clear(v.idlePins)
 	unlock()
 }
 
