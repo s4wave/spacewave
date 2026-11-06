@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/prng"
+	"github.com/pkg/errors"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -329,6 +330,59 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 	if after.lacking != 0 || after.edges != 0 || after.blocks != dry.blocks {
 		t.Fatalf("after repair: %+v", after)
+	}
+
+	// Adoption refuses while a stored child list names a block stored
+	// without one: the raw block only a parent's list names.
+	refused, err := adoptVolume(ctx, le, path)
+	if !errors.Is(err, block_gc.ErrAdoptUnknown) || !slices.ContainsFunc(refused.UnknownSample, listed.EqualVT) {
+		t.Fatalf("adopt with a listless child: %+v, %v", refused, err)
+	}
+
+	// Give that block its list and hold the World under a named root, as a
+	// Space's replay base holds it, then adopt; a second adoption changes
+	// nothing.
+	worldRoot := state.GetHeadRef().GetRootRef()
+	fixVol, err := openStoppedVolume(ctx, le, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeRecords(t, fixVol, func(rec *block_gc.Records) error {
+		return rec.PutChildren(ctx, listed, nil)
+	})
+	err = fixVol.SetBucketRoots(ctx, restoreTestBucket, nil, []block.NamedRoot{{Name: space_world.RootReplayBase, Ref: worldRoot}})
+	if cerr := fixVol.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	adopted, err := adoptVolume(ctx, le, path)
+	if err != nil {
+		t.Fatalf("adopt the repaired volume: %v (%+v)", err, adopted)
+	}
+	if adopted.Already || adopted.Unknown != 0 || adopted.Roots != 1 || adopted.Queued == 0 {
+		t.Fatalf("adopt: %+v", adopted)
+	}
+	if again, err := adoptVolume(ctx, le, path); err != nil || !again.Already {
+		t.Fatalf("adopt again: %+v, %v", again, err)
+	}
+
+	// The audit reaches the whole World from the root, finds no count that
+	// would free a live block, and names the orphan, which has no child list
+	// for the collector to free it by.
+	audit, err := auditVolume(ctx, le, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var auditReport bytes.Buffer
+	writeFields(&auditReport, auditFields(path, audit))
+	t.Logf("audit table:\n%s", auditReport.String())
+	if audit.LiveQueued != 0 || audit.Undercount != 0 || uint64(len(audit.Mark.Live)) != dry.blocks {
+		t.Fatalf("audit after adoption reached %d of %d blocks: %+v", len(audit.Mark.Live), dry.blocks, audit)
+	}
+	if audit.Unlisted == 0 || !strings.Contains(auditReport.String(), orphan.MarshalString()) {
+		t.Fatalf("audit does not name the orphan %s: %+v", orphan.MarshalString(), audit)
 	}
 }
 
