@@ -17,9 +17,9 @@ import (
 //
 // Every commit costs a write barrier, so a transaction fn leaves unchanged ends
 // without one. A changing transaction also carries the Volume's deferred
-// edits, the releases of reader pins and stages and pending root proofs, which
-// therefore cost no barrier of their own. A nil fn applies only the deferred
-// edits.
+// edits, the releases of reader pins and stages and up to rootProofRide
+// pending root proofs, which therefore cost no barrier of their own. A nil fn
+// applies only the deferred edits.
 //
 // It commits with write ordering when the store supports it. A direct write is
 // safe to lose in a crash as long as no earlier commit is lost: the journal

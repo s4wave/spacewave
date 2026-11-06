@@ -19,8 +19,9 @@ const pinRootPrefix = "pin:"
 const stageRootPrefix = "stage:"
 
 // rootPin counts the in-process readers of one pinned root. A root whose last
-// reader leaves keeps its pin at count zero until a changing direct
-// transaction carries the release, and a new reader meanwhile reuses it.
+// reader leaves keeps its pin at count zero, in the Volume's idle pins, until
+// a changing direct transaction carries the release, and a new reader
+// meanwhile reuses it.
 type rootPin struct {
 	// ref is the pinned block.
 	ref *block.BlockRef
@@ -77,8 +78,11 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		}
 		release := sync.OnceFunc(func() { v.unpinRoot(name) })
 
-		// A pinned root only gains a reader.
+		// A pinned root only gains a reader, and an idle one is idle no more.
 		if pin != nil {
+			if pin.count == 0 {
+				delete(v.idlePins, name)
+			}
 			pin.count++
 			unlock()
 			return name, release, nil
@@ -107,19 +111,21 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 	}
 }
 
-// unpinRoot releases one reader. The last release leaves the pin for the next
-// changing direct transaction to release, so it costs no write barrier of its
-// own.
+// unpinRoot releases one reader. The last release leaves the pin idle for the
+// next changing direct transaction to release, so it costs no write barrier
+// of its own.
 func (v *Volume) unpinRoot(name string) {
 	unlock, _ := v.rootPinMu.Lock(context.Background())
 	defer unlock()
 	if pin := v.rootPins[name]; !v.rootPinsClosed && pin != nil && pin.count != 0 {
 		pin.count--
+		v.noteIdle(name, pin)
 	}
 }
 
 // settleRootPin finishes a pin write and wakes pins waiting on it. A failed
-// write or a completed release forgets the pin.
+// write or a completed release forgets the pin; a pin whose readers all left
+// meanwhile, or whose release failed, is idle.
 func (v *Volume) settleRootPin(name string, pin *rootPin, forget bool) {
 	// Forget a failed or released pin, then wake its waiters.
 	unlock, _ := v.rootPinMu.Lock(context.Background())
@@ -129,6 +135,17 @@ func (v *Volume) settleRootPin(name string, pin *rootPin, forget bool) {
 	}
 	close(pin.settled)
 	pin.settled = nil
+	if !forget && v.rootPins[name] == pin {
+		v.noteIdle(name, pin)
+	}
+}
+
+// noteIdle adds a pin with no reader and no write in flight to the idle pins,
+// under rootPinMu.
+func (v *Volume) noteIdle(name string, pin *rootPin) {
+	if pin.count == 0 && pin.settled == nil {
+		v.idlePins[name] = pin
+	}
 }
 
 // deferredEdits are the deferred edits one direct transaction carries.
@@ -143,35 +160,34 @@ type deferredEdits struct {
 	proofs []string
 }
 
-// applyDeferred writes into p the releases of released reader pins and stages
-// and up to rootProofCarryLimit pending root proofs. A proof whose root is
+// applyDeferred writes into p the releases of the idle reader pins and the
+// released stages, reading only those, not every pin and stage of the
+// process, and up to rootProofRide pending root proofs. A proof whose root is
 // gone is dropped. The caller settles the returned edits once the transaction
 // ends, also on error.
 func (v *Volume) applyDeferred(ctx context.Context, p *physicalTx) (deferredEdits, error) {
-	// Reserve each released pin no transaction carries yet, and take the
-	// released stages.
+	// Reserve each idle pin.
 	var edits deferredEdits
 	var releases []block.NamedRoot
 	unlock, err := v.rootPinMu.Lock(ctx)
 	if err != nil {
 		return edits, err
 	}
-	for name, pin := range v.rootPins {
-		if pin.count != 0 || pin.settled != nil {
-			continue
-		}
-		if edits.unpins == nil {
-			edits.unpins = make(map[string]*rootPin)
-		}
+	if len(v.idlePins) != 0 {
+		edits.unpins = make(map[string]*rootPin, len(v.idlePins))
+	}
+	for name, pin := range v.idlePins {
 		pin.settled = make(chan struct{})
 		edits.unpins[name] = pin
 		releases = append(releases, block.NamedRoot{Name: name, Previous: pin.ref})
 	}
-	for stage, st := range v.stages {
-		if st.released {
-			edits.stages = append(edits.stages, stage)
-		}
+	clear(v.idlePins)
+
+	// Take the released stages.
+	for stage := range v.releasedStages {
+		edits.stages = append(edits.stages, stage)
 	}
+	clear(v.releasedStages)
 	unlock()
 
 	// Release every root of each released stage, and each released pin the
@@ -193,33 +209,39 @@ func (v *Volume) applyDeferred(ctx context.Context, p *physicalTx) (deferredEdit
 		}
 	}
 
-	// Write the proofs of at most rootProofCarryLimit pending roots still
-	// stored.
-	edits.proofs, err = v.carryRootProofs(ctx, p)
+	// Write the proofs of at most rootProofRide pending roots still stored.
+	edits.proofs, err = v.carryRootProofs(ctx, p, rootProofRide)
 	return edits, err
 }
 
 // settleDeferred finishes a transaction's deferred edits. A committed
 // transaction forgets its released pins, stages and pending proofs; otherwise
-// the next changing transaction carries them again.
+// the pins are idle and the stages released again, and the next changing
+// transaction carries them with the proofs.
 func (v *Volume) settleDeferred(edits deferredEdits, committed bool) {
-	// Settle the released pins, forgetting them only after a commit.
+	// Settle the released pins, forgetting them only after a commit, and
+	// forget the proofs a committed transaction wrote.
 	for name, pin := range edits.unpins {
 		v.settleRootPin(name, pin, committed)
 	}
-
-	// Forget the released stages a committed transaction released.
-	if committed && len(edits.stages) != 0 {
-		unlock, _ := v.rootPinMu.Lock(context.Background())
-		for _, stage := range edits.stages {
-			delete(v.stages, stage)
-		}
-		unlock()
-	}
-
-	// Forget the proofs a committed transaction wrote.
 	if committed {
 		v.forgetRootProofs(edits.proofs)
+	}
+
+	// Forget the released stages a committed transaction released, and hand
+	// the others back.
+	if len(edits.stages) == 0 {
+		return
+	}
+	unlock, _ := v.rootPinMu.Lock(context.Background())
+	defer unlock()
+	for _, stage := range edits.stages {
+		switch {
+		case committed:
+			delete(v.stages, stage)
+		case v.stages[stage] != nil:
+			v.releasedStages[stage] = struct{}{}
+		}
 	}
 }
 
@@ -240,8 +262,12 @@ func (v *Volume) closeRootPins() error {
 	for stage := range v.stages {
 		stages = append(stages, stage)
 	}
+
+	// Forget them all.
 	clear(v.rootPins)
+	clear(v.idlePins)
 	clear(v.stages)
+	clear(v.releasedStages)
 	unlock()
 	if (len(releases) == 0 && len(stages) == 0) || !v.HoldsRoots() {
 		return nil
