@@ -615,10 +615,13 @@ func (r *Records) releasePageKey(page uint64) []byte {
 // putReleasePages writes children, sorted and distinct as a child list
 // holds them, to release pages of releasePageChildren each.
 func (r *Records) putReleasePages(ctx context.Context, children []*block.BlockRef) error {
-	for page, chunk := range slices.Collect(slices.Chunk(children, releasePageChildren)) {
-		if err := r.tx.Set(ctx, r.releasePageKey(uint64(page)), EncodeChildren(chunk)); err != nil { //nolint:gosec // page numbers are small.
+	var page uint64
+	for start := 0; start < len(children); start += releasePageChildren {
+		end := min(start+releasePageChildren, len(children))
+		if err := r.tx.Set(ctx, r.releasePageKey(page), EncodeChildren(children[start:end])); err != nil {
 			return err
 		}
+		page++
 	}
 	return nil
 }
