@@ -158,6 +158,11 @@ type LivenessState struct {
 	// pairs then its down pairs, the collector has netted: a slice nets a
 	// bounded number of pairs, so it splits a large record across slices.
 	NetOffset uint64 `protobuf:"varint,8,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
+	// Indexed is the sequence number of the first journal record whose up
+	// pairs the collector has not indexed by block. It indexes from here or
+	// from the cursor, whichever is later, so a record netted before it was
+	// indexed never is, and it deletes a record's entries with the record.
+	Indexed uint64 `protobuf:"varint,9,opt,name=indexed,proto3" json:"indexed,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -215,6 +220,13 @@ func (x *LivenessState) GetNetOffset() uint64 {
 	return 0
 }
 
+func (x *LivenessState) GetIndexed() uint64 {
+	if x != nil {
+		return x.Indexed
+	}
+	return 0
+}
+
 func (m *RootEntry) CloneVT() *RootEntry {
 	if m == nil {
 		return (*RootEntry)(nil)
@@ -262,6 +274,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.AdoptionRun = m.AdoptionRun
 	r.UnverifiedLists = m.UnverifiedLists
 	r.NetOffset = m.NetOffset
+	r.Indexed = m.Indexed
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -346,6 +359,9 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 		return false
 	}
 	if this.NetOffset != that.NetOffset {
+		return false
+	}
+	if this.Indexed != that.Indexed {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -558,6 +574,11 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("netOffset")
 		s.WriteUint64(x.NetOffset)
 	}
+	if x.Indexed != 0 || s.HasField("indexed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("indexed")
+		s.WriteUint64(x.Indexed)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -596,6 +617,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "net_offset", "netOffset":
 			s.AddField("net_offset")
 			x.NetOffset = s.ReadUint64()
+		case "indexed":
+			s.AddField("indexed")
+			x.Indexed = s.ReadUint64()
 		}
 	})
 }
@@ -727,6 +751,11 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Indexed != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Indexed))
+		i--
+		dAtA[i] = 0x48
+	}
 	if m.NetOffset != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NetOffset))
 		i--
@@ -803,6 +832,7 @@ func (m *LivenessState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AdoptionRun)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.UnverifiedLists)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NetOffset)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Indexed)
 	n += len(m.unknownFields)
 	return n
 }
@@ -889,6 +919,10 @@ func (x *LivenessState) MarshalProtoText() string {
 	if x.NetOffset != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "net_offset")
 		protobuf_go_lite.TextWriteUint(&sb, x.NetOffset)
+	}
+	if x.Indexed != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "indexed")
+		protobuf_go_lite.TextWriteUint(&sb, x.Indexed)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1114,6 +1148,15 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.NetOffset = 0
 			m.NetOffset, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Indexed", wireType)
+			}
+			m.Indexed = 0
+			m.Indexed, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

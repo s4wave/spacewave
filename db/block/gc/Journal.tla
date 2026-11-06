@@ -171,10 +171,10 @@
 \* tail past the horizon, not in the interval the pass netted. Delete refuses a
 \* queued block that an up pair in the tail names; the block stays queued until
 \* the interval holding that record nets it back to one holder. In Go the
-\* collector reads the tail past its cursor once per pass, keeps the up pairs
-\* that name a queued block of the slice, and in each delete transaction reads
-\* the records appended since its last look, so nothing lands unseen between
-\* the check and the free. Applying the increments ahead of their interval
+\* collector indexes each record's up pairs by block once, deletes the entries
+\* with the record, and in each delete transaction first indexes the records
+\* appended since its last look, so nothing lands unseen between the check and
+\* the free, and the check reads one index entry per block. Applying the increments ahead of their interval
 \* instead would also be safe, but it writes the count of every found child
 \* twice, once up at the put's interval and once down at the release's, which
 \* is the write amplification lazy netting exists to remove.
