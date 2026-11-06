@@ -225,12 +225,17 @@ func claimAdoption(ctx context.Context, store Store, run string) (bool, error) {
 }
 
 // abandonAdopt returns the Volume to unadopted after run failed or was
-// interrupted, deletes the counts, queue and marks it wrote, and returns
-// cause. It runs after ctx ends, so an interrupted adoption still cleans up.
-// It touches nothing once another run holds the Volume: a run superseded it,
-// and the records are that run's.
+// interrupted, deletes the counts, queue, marks and fill records it wrote
+// after a failure, and returns cause. An interrupted run only returns the
+// Volume to unadopted, in one transaction, so a Close that cancels a large
+// adoption does not wait for its cleanup: nothing reads those records while
+// the Volume is unadopted, and the next run's claim clears them. It touches
+// nothing once another run holds the Volume: a run superseded it, and the
+// records are that run's.
 func abandonAdopt(ctx context.Context, store Store, run string, cause error) error {
-	// Mark the Volume unadopted, abandoned by run, while run still holds it.
+	// Mark the Volume unadopted, abandoned by run, while run still holds it,
+	// even after ctx ended.
+	interrupted := ctx.Err() != nil
 	ctx = context.WithoutCancel(ctx)
 	var ours bool
 	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
@@ -247,8 +252,8 @@ func abandonAdopt(ctx context.Context, store Store, run string, cause error) err
 		return rec.SetState(ctx, state)
 	})
 
-	// Delete what it wrote, stopping once another run starts.
-	if err == nil && ours {
+	// Delete what a failed run wrote, stopping once another run starts.
+	if err == nil && ours && !interrupted {
 		abandoned := func(state *LivenessState) bool {
 			return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
 		}
