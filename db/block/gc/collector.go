@@ -818,7 +818,7 @@ func indexTail(ctx context.Context, rec *Records, state *LivenessState, pairs, r
 		from, offset = cursor, 0
 	}
 	next, nextOffset := from, offset
-	budget, n, done := uint64(pairs), 0, true
+	budget, n, done := uint64(pairs), 0, true //nolint:gosec // the share is at least one.
 	err := rec.ScanJournal(ctx, from, func(seq uint64, r *JournalRecord) (bool, error) {
 		// Stop at a full slice.
 		if n == records || budget == 0 {

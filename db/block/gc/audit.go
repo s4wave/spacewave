@@ -320,8 +320,8 @@ func holeCounts(
 	holes := make([]holeCount, 0, len(absent))
 	for _, ref := range absent {
 		// Skip a block nothing names.
-		key := string(BlockKey(ref))
-		named := tally[key]
+		key := BlockKey(ref)
+		named := tally[string(key)]
 		if named == 0 {
 			continue
 		}
@@ -337,7 +337,7 @@ func holeCounts(
 		if err != nil {
 			return nil, err
 		}
-		missing := int64(named) - int64(holders) - delta[key] //nolint:gosec // counts stay far below the int64 range.
+		missing := int64(named) - int64(holders) - delta[string(key)] //nolint:gosec // counts stay far below the int64 range.
 		h := holeCount{ref: ref}
 		if missing > 0 {
 			h.add = uint64(missing)
