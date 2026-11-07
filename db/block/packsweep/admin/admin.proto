@@ -1,0 +1,191 @@
+syntax = "proto3";
+package block.packsweep.admin;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/packfile/packfile.proto";
+import "github.com/s4wave/spacewave/net/hash/hash.proto";
+
+// PackSweepAdmin is the backend's side of a pack sweep: it reports the packs'
+// states and the write log, places blocks, and moves packs between the sweep's
+// states. Every call is idempotent and takes a bounded batch. While the
+// backend's switch is off, every call that changes a pack's state is refused.
+service PackSweepAdmin {
+  // Status reports the switch, the packs' sweep states and the write log.
+  rpc Status(StatusRequest) returns (StatusResponse);
+  // Locate returns the registered pack the index places each block in.
+  rpc Locate(LocateRequest) returns (LocateResponse);
+  // Refs returns the child lists of blocks the backend holds, without
+  // filling a block from the remote.
+  rpc Refs(RefsRequest) returns (RefsResponse);
+  // Quarantine holds registered packs out of the reads; a read that misses
+  // falls back to them and lifts the pack that serves it.
+  rpc Quarantine(PacksRequest) returns (PacksResponse);
+  // Lift returns quarantined packs to the reads.
+  rpc Lift(PacksRequest) returns (PacksResponse);
+  // Adopt registers packs another writer uploaded.
+  rpc Adopt(AdoptRequest) returns (AdoptResponse);
+  // ReadLog returns the write log's lines after a position.
+  rpc ReadLog(ReadLogRequest) returns (ReadLogResponse);
+  // TrimLog deletes the write log's lines at or before a position.
+  rpc TrimLog(TrimLogRequest) returns (TrimLogResponse);
+}
+
+// PackState is a pack's sweep state.
+enum PackState {
+  // PACK_STATE_REGISTERED is a pack every read and locate sees.
+  PACK_STATE_REGISTERED = 0;
+  // PACK_STATE_QUARANTINED is a pack only the fallback reads, which lifts it.
+  PACK_STATE_QUARANTINED = 1;
+  // PACK_STATE_TRASHING is a pack the command is moving to the trash.
+  PACK_STATE_TRASHING = 2;
+}
+
+// StatusRequest asks for the backend's sweep state.
+message StatusRequest {
+  // PackIds names the packs to report, in order. Empty reports every pack
+  // the sweep moved.
+  repeated string pack_ids = 1;
+}
+
+// StatusResponse is the backend's sweep state.
+message StatusResponse {
+  // Enabled is set while the switch allows calls that change a pack's state.
+  bool enabled = 1;
+  // Packs are the packs' states.
+  repeated PackHold packs = 2;
+  // Log is the write log's state.
+  LogStatus log = 3;
+}
+
+// PackHold is a pack's sweep state and its last fallback read or lift.
+message PackHold {
+  // PackId is the pack.
+  string pack_id = 1;
+  // State is the pack's state.
+  PackState state = 2;
+  // SinceUnixNano is when the pack entered its state, or zero for a pack the
+  // sweep never moved.
+  int64 since_unix_nano = 3;
+  // EventUnixNano is when the last lift or miss read the pack, or zero.
+  int64 event_unix_nano = 4;
+  // Key is the block key the event read, empty for a lift by the command.
+  bytes key = 5;
+}
+
+// LogStatus is the write log's state.
+message LogStatus {
+  // On is set while an epoch is open.
+  bool on = 1;
+  // Epoch is the open epoch, or the last one.
+  string epoch = 2;
+  // Seq is the epoch's last line.
+  uint64 seq = 3;
+  // Bytes is the bytes of the log's segments.
+  int64 bytes = 4;
+  // Broken is why the last epoch ended without a close line, empty when it
+  // did not.
+  string broken = 5;
+}
+
+// LocateRequest names blocks to place.
+message LocateRequest {
+  // Refs are the blocks.
+  repeated .block.BlockRef refs = 1;
+}
+
+// LocateResponse places each block.
+message LocateResponse {
+  // PackIds are the registered pack each block is in, in order, empty for a
+  // block no registered pack holds.
+  repeated string pack_ids = 1;
+}
+
+// RefsRequest names blocks whose child lists to read.
+message RefsRequest {
+  // Refs are the blocks.
+  repeated .block.BlockRef refs = 1;
+}
+
+// RefsResponse holds each block's child list.
+message RefsResponse {
+  // Results are the blocks' child lists, in order.
+  repeated BlockRefs results = 1;
+}
+
+// BlockRefs is what the backend knows of one block's children.
+message BlockRefs {
+  // Refs are the block's children when reason is empty.
+  repeated .block.BlockRef refs = 1;
+  // Reason is why the backend cannot serve the block's refs, empty when it
+  // can.
+  string reason = 2;
+}
+
+// PacksRequest names packs to move.
+message PacksRequest {
+  // PackIds are the packs.
+  repeated string pack_ids = 1;
+}
+
+// PacksResponse reports the packs after a move.
+message PacksResponse {
+  // Packs are the packs' states after the move, in order.
+  repeated PackHold packs = 1;
+}
+
+// AdoptRequest names packs to register.
+message AdoptRequest {
+  // Packs are the packs.
+  repeated AdoptPack packs = 1;
+}
+
+// AdoptPack is one pack to register: its entry and every key it holds.
+message AdoptPack {
+  // Entry is the pack's entry.
+  .packfile.PackfileEntry entry = 1;
+  // Keys are the block keys the pack holds.
+  repeated bytes keys = 2;
+}
+
+// AdoptResponse reports an adoption.
+message AdoptResponse {}
+
+// ReadLogRequest asks for the write log's lines after a position.
+message ReadLogRequest {
+  // From is the position to read after, as epoch/seq; epoch/0 reads the
+  // epoch from its start.
+  string from = 1;
+  // Max bounds the lines returned; zero takes the backend's bound.
+  uint32 max = 2;
+}
+
+// ReadLogResponse holds the write log's lines after a position.
+message ReadLogResponse {
+  // Lines are the lines read, in order.
+  repeated LogLine lines = 1;
+  // State is why the read stopped: more, open, closed or gap.
+  string state = 2;
+  // Next is the last line read, or the position read from when none was.
+  string next = 3;
+  // Reason says what a gap found, empty for none.
+  string reason = 4;
+}
+
+// LogLine is one record of the write log.
+message LogLine {
+  // Seq numbers the line in its epoch, from one.
+  uint64 seq = 1;
+  // Kind is the line's kind: p put, r root, f fill.
+  string kind = 2;
+  // Hash is the block's hash.
+  .hash.Hash hash = 3;
+}
+
+// TrimLogRequest names the position to trim the write log to.
+message TrimLogRequest {
+  // To is the position, as epoch/seq.
+  string to = 1;
+}
+
+// TrimLogResponse reports a trim.
+message TrimLogResponse {}

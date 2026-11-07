@@ -1722,6 +1722,18 @@
         "db/block/packcopy/packcopy.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/block/packsweep/admin": {
+      "hash": "fc0166abe959dcc841a6154875bcdbcae3b342d5126163eea490e41e40416fc1",
+      "generatedFiles": [
+        "db/block/packsweep/admin/admin.pb.go",
+        "db/block/packsweep/admin/admin.pb.ts",
+        "db/block/packsweep/admin/admin_srpc.pb.go",
+        "db/block/packsweep/admin/admin_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "db/block/packsweep/admin/admin.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/block/quad": {
       "hash": "86e37f56f4809d1b7455a592370ad636db2a1b188fa10c4daa16165435938a39",
       "generatedFiles": [

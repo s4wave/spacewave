@@ -130,7 +130,7 @@ type packIndex struct {
 	// held is the state of each quarantined or trashing pack by id; a pack
 	// it lacks is registered. Changed with mtx held, and by the PackStore
 	// under its hold lock and bcast, so the manifests move with it.
-	held map[string]packState
+	held map[string]PackState
 	// heldCount is len(held), read without mtx by the fallback.
 	heldCount atomic.Int64
 }
@@ -141,7 +141,7 @@ func newPackIndex(store kvtx.Store) *packIndex {
 		rows:    make(map[string]packRow),
 		pending: make(map[string]*packfile.PackfileEntry),
 		work:    make(chan struct{}, 1),
-		held:    make(map[string]packState),
+		held:    make(map[string]PackState),
 	}
 }
 
@@ -320,7 +320,7 @@ func (x *packIndex) eachPack(fn func(id string)) {
 // reads only the table, whose rows are a few bytes each, and no entry: listing
 // the entries' keys would read every entry's pages, bloom filter included,
 // once here and again in load, and load already skips a pack with no entry.
-func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, uint32, map[string]packState, error) {
+func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, uint32, map[string]PackState, error) {
 	// Hold one read snapshot while listing the cached pack table.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
@@ -647,7 +647,7 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 		}
 		delete(x.rows, id)
 		delete(x.pending, id)
-		x.setHeldLocked(id, packRegistered)
+		x.setHeldLocked(id, PackRegistered)
 	}
 	x.forgetQueuedTailsLocked(ids)
 	next := uint32(len(x.ids)) //nolint:gosec // 2^32 packs cannot exist.

@@ -15,35 +15,35 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// packState is a pack's sweep state, as PackSweep.tla names it.
-type packState uint8
+// PackState is a pack's sweep state, as PackSweep.tla names it.
+type PackState uint8
 
 // The sweep states of a pack.
 const (
-	// packRegistered is a pack every read, locate and listing sees, the state
+	// PackRegistered is a pack every read, locate and listing sees, the state
 	// of a pack with no q/ row.
-	packRegistered packState = iota
-	// packQuarantined is a pack held out of the reads, read only by the
+	PackRegistered PackState = iota
+	// PackQuarantined is a pack held out of the reads, read only by the
 	// fallback, which lifts it.
-	packQuarantined
-	// packTrashing is a quarantined pack the command is moving to the trash:
+	PackQuarantined
+	// PackTrashing is a quarantined pack the command is moving to the trash:
 	// the fallback still reads it, and records the read as a miss.
-	packTrashing
+	PackTrashing
 )
 
 // held reports whether the state holds the pack out of the reads.
-func (s packState) held() bool {
-	return s == packQuarantined || s == packTrashing
+func (s PackState) held() bool {
+	return s == PackQuarantined || s == PackTrashing
 }
 
 // String names the state.
-func (s packState) String() string {
+func (s PackState) String() string {
 	switch s {
-	case packRegistered:
+	case PackRegistered:
 		return "registered"
-	case packQuarantined:
+	case PackQuarantined:
 		return "quarantined"
-	case packTrashing:
+	case PackTrashing:
 		return "trashing"
 	default:
 		return "unknown"
@@ -54,7 +54,7 @@ func (s packState) String() string {
 // last fallback read that lifted it or, while it is trashing, missed it.
 type packHold struct {
 	// state is the pack's state.
-	state packState
+	state PackState
 	// since is when the pack entered state, in Unix nanoseconds.
 	since int64
 	// event is when the last lift or miss read the pack, in Unix nanoseconds,
@@ -79,11 +79,11 @@ func (h packHold) marshal() []byte {
 }
 
 func unmarshalPackHold(b []byte) (packHold, error) {
-	if len(b) < holdHeader || packState(b[0]) > packTrashing {
+	if len(b) < holdHeader || PackState(b[0]) > PackTrashing {
 		return packHold{}, errors.Errorf("pack hold row of %d bytes", len(b))
 	}
 	return packHold{
-		state: packState(b[0]),
+		state: PackState(b[0]),
 		since: int64(binary.BigEndian.Uint64(b[1:])), //nolint:gosec // A time, not a size.
 		event: int64(binary.BigEndian.Uint64(b[9:])), //nolint:gosec // A time, not a size.
 		key:   append([]byte(nil), b[holdHeader:]...),
@@ -91,8 +91,8 @@ func unmarshalPackHold(b []byte) (packHold, error) {
 }
 
 // readHeld reads the state of every held pack from the q/ rows.
-func readHeld(ctx context.Context, tx kvtx.Tx) (map[string]packState, error) {
-	held := make(map[string]packState)
+func readHeld(ctx context.Context, tx kvtx.Tx) (map[string]PackState, error) {
+	held := make(map[string]PackState)
 	err := tx.ScanPrefix(ctx, []byte(indexHoldPrefix), func(key, value []byte) error {
 		hold, err := unmarshalPackHold(value)
 		if err != nil {
@@ -143,7 +143,7 @@ func (x *packIndex) readHold(ctx context.Context, id string) (packHold, bool, er
 }
 
 // setHeldLocked records the state of pack id in memory. Call with mtx held.
-func (x *packIndex) setHeldLocked(id string, state packState) {
+func (x *packIndex) setHeldLocked(id string, state PackState) {
 	if state.held() {
 		x.held[id] = state
 	} else {
@@ -172,11 +172,11 @@ func (x *packIndex) isHeld(id string) bool {
 }
 
 // heldState returns the state of pack id, and false when the table lacks it.
-func (x *packIndex) heldState(id string) (packState, bool) {
+func (x *packIndex) heldState(id string) (PackState, bool) {
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
 	if _, ok := x.rows[id]; !ok {
-		return packRegistered, false
+		return PackRegistered, false
 	}
 	return x.held[id], true
 }
@@ -243,9 +243,9 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 		switch {
 		case !ok:
 			return errors.Errorf("quarantine pack %s: the index holds no such pack", id)
-		case state == packTrashing:
+		case state == PackTrashing:
 			return errors.Errorf("quarantine pack %s: it is trashing", id)
-		case state == packRegistered && !slices.Contains(move, id):
+		case state == PackRegistered && !slices.Contains(move, id):
 			move = append(move, id)
 		}
 	}
@@ -257,12 +257,12 @@ func (s *PackStore) Quarantine(ctx context.Context, ids []string) error {
 	now := time.Now().UnixNano()
 	holds := make([]packHold, len(move))
 	for i := range holds {
-		holds[i] = packHold{state: packQuarantined, since: now}
+		holds[i] = packHold{state: PackQuarantined, since: now}
 	}
 	if err := s.index.writeHolds(ctx, move, holds); err != nil {
 		return err
 	}
-	s.setHolds(move, packQuarantined)
+	s.setHolds(move, PackQuarantined)
 	s.le.WithField("packs", len(move)).Info("quarantined packs")
 	return nil
 }
@@ -292,9 +292,9 @@ func (s *PackStore) Lift(ctx context.Context, ids []string) error {
 		switch {
 		case !ok:
 			return errors.Errorf("lift pack %s: the index holds no such pack", id)
-		case state == packTrashing:
+		case state == PackTrashing:
 			return errors.Errorf("lift pack %s: it is trashing", id)
-		case state == packQuarantined && !slices.Contains(move, id):
+		case state == PackQuarantined && !slices.Contains(move, id):
 			move = append(move, id)
 		}
 	}
@@ -306,12 +306,12 @@ func (s *PackStore) Lift(ctx context.Context, ids []string) error {
 	now := time.Now().UnixNano()
 	holds := make([]packHold, len(move))
 	for i := range holds {
-		holds[i] = packHold{state: packRegistered, since: now, event: now}
+		holds[i] = packHold{state: PackRegistered, since: now, event: now}
 	}
 	if err := s.index.writeHolds(ctx, move, holds); err != nil {
 		return err
 	}
-	s.setHolds(move, packRegistered)
+	s.setHolds(move, PackRegistered)
 	return nil
 }
 
@@ -335,13 +335,13 @@ func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.Bloc
 	// Record the read, and lift a quarantined pack.
 	now := time.Now().UnixNano()
 	key := packfile.BlockKey(ref.GetHash())
-	hold := packHold{state: packRegistered, since: now, event: now, key: key}
-	if state == packTrashing {
+	hold := packHold{state: PackRegistered, since: now, event: now, key: key}
+	if state == PackTrashing {
 		prev, _, err := s.index.readHold(ctx, id)
 		if err != nil {
 			return err
 		}
-		hold = packHold{state: packTrashing, since: prev.since, event: now, key: key}
+		hold = packHold{state: PackTrashing, since: prev.since, event: now, key: key}
 	}
 	if err := s.index.writeHolds(ctx, []string{id}, []packHold{hold}); err != nil {
 		return errors.Wrap(err, "record the fallback read of pack "+id)
@@ -349,11 +349,11 @@ func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.Bloc
 
 	// Log the miss, or publish the lift in memory and log it.
 	le := s.le.WithFields(logrus.Fields{"pack": id, "block": ref.MarshalString()})
-	if state == packTrashing {
+	if state == PackTrashing {
 		le.Warn("a read missed a trashing pack")
 		return nil
 	}
-	s.setHolds([]string{id}, packRegistered)
+	s.setHolds([]string{id}, PackRegistered)
 	le.Info("lifted a quarantined pack on a read")
 	return nil
 }
@@ -363,7 +363,7 @@ func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.Bloc
 // adding to the destination before dropping from the source, so a concurrent
 // read finds each pack in one of them. Call with holdMtx held, after the rows
 // are written.
-func (s *PackStore) setHolds(ids []string, state packState) {
+func (s *PackStore) setHolds(ids []string, state PackState) {
 	s.holdMoves.Add(1)
 	defer s.holdMoves.Add(1)
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
