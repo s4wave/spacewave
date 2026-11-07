@@ -5,10 +5,12 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -89,12 +91,31 @@ type changeSpan struct {
 	changes *world.ChangeSet
 }
 
-// objectKeyWake is the wake channel shared by the waiters of one object key.
+// objectKeyWake is the wake shared by the waiters of one object key.
 type objectKeyWake struct {
-	// ch closes when the object may have changed and is then replaced.
-	ch chan struct{}
-	// refs counts the waiters registered on the key.
+	// state is the key's last wake. It is swapped under bcast and loaded
+	// without it.
+	state atomic.Pointer[objectKeyState]
+	// refs counts the waiters registered on the key. Guarded by bcast.
 	refs int
+}
+
+// objectKeyState is one wake of an object key's waiters: the channel the
+// next wake closes and, when the change watch read it, the object's revision
+// at the head it compared, which every waiter of the key shares instead of
+// reading the object itself.
+type objectKeyState struct {
+	// ch closes when the object may have changed again.
+	ch chan struct{}
+	// known reports that rev and found hold the object at a head.
+	known bool
+	// head is the Engine's published count at the head the watch read the
+	// object at.
+	head uint64
+	// rev is the object's revision at that head.
+	rev uint64
+	// found reports that the object exists at that head.
+	found bool
 }
 
 // WaitObjectRev waits until the object at key reaches rev and returns its
@@ -111,29 +132,41 @@ func (e *Engine) WaitObjectRev(ctx context.Context, key string, rev uint64, igno
 	}
 	defer e.unwatchObjectKey(w, key, wake)
 
-	// Reread the object after each wake until its revision satisfies the wait.
+	// Read the object, then after each wake take its revision from the wake
+	// when the watch read it at the head this waiter last read or a later
+	// one, and otherwise read it again.
+	var read uint64
+	st, self := wake.state.Load(), true
 	for {
-		// Capture the wake channel together with the head it guards.
-		locked := e.bcast.Lock()
-		if e.closed {
+		var currRev uint64
+		var found bool
+		if self {
+			// Capture the wake together with the head it guards.
+			locked := e.bcast.Lock()
+			if e.closed {
+				locked.Unlock()
+				return 0, e.closedErr()
+			}
+			if err := e.initializeHeadReadTx(ctx); err != nil {
+				locked.Unlock()
+				return 0, err
+			}
+			readTx := e.head.readTx
+			read = e.published
+			st = wake.state.Load()
 			locked.Unlock()
-			return 0, e.closedErr()
-		}
-		if err := e.initializeHeadReadTx(ctx); err != nil {
-			locked.Unlock()
-			return 0, err
-		}
-		readTx := e.head.readTx
-		woken := wake.ch
-		locked.Unlock()
 
-		// Read the captured head without holding publication authority.
-		currRev, found, err := world.GetObjectRev(ctx, readTx, key)
-		if readTx.state.discarded.Load() {
-			continue
-		}
-		if err != nil {
-			return 0, err
+			// Read the captured head without holding publication authority.
+			var err error
+			currRev, found, err = world.GetObjectRev(ctx, readTx, key)
+			if readTx.state.discarded.Load() {
+				continue
+			}
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			currRev, found, read = st.rev, st.found, st.head
 		}
 
 		// Return a satisfied revision.
@@ -147,8 +180,10 @@ func (e *Engine) WaitObjectRev(ctx context.Context, key string, rev uint64, igno
 		select {
 		case <-ctx.Done():
 			return 0, ctx.Err()
-		case <-woken:
+		case <-st.ch:
 		}
+		st = wake.state.Load()
+		self = !st.known || st.head < read
 	}
 }
 
@@ -164,7 +199,8 @@ func (e *Engine) watchObjectKeyLocked(key string) (*engineChangeWatch, *objectKe
 	// Share one wake channel among the waiters of the same key.
 	wake := w.waiters[key]
 	if wake == nil {
-		wake = &objectKeyWake{ch: make(chan struct{})}
+		wake = &objectKeyWake{}
+		wake.state.Store(&objectKeyState{ch: make(chan struct{})})
 		w.waiters[key] = wake
 	}
 	wake.refs++
@@ -238,7 +274,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		// Wait for a head the watch has not compared. A wakeup without a new
 		// head reports an observation failure, which watchers must see.
 		if e.head.root.GetRef().EqualsRef(w.base.GetRef()) {
-			wait, idle := e.headChanged, w.idle
+			wait, idle := e.headSignal.Load().changed, w.idle
 			locked.Unlock()
 			select {
 			case <-wait:
@@ -250,6 +286,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		// Hold the new head while it is compared and while it is the base.
 		next, nextRelease := e.holdHeadLocked()
 		nextSeqno := e.headSeqnoLocked()
+		nextHead := e.published
 		listChanges := len(w.subs) != 0
 		locked.Unlock()
 
@@ -264,6 +301,12 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 			e.le.WithError(err).Warn("world change comparison failed; waking every watcher")
 		}
 
+		// Read the changed objects' revisions once for all their waiters.
+		var revs map[string]objectKeyState
+		if len(keys) != 0 {
+			revs = e.readWatchedRevs(compareCtx, w, next, keys)
+		}
+
 		// Wake the changed objects' waiters, or all of them when the
 		// comparison could not list the changes, record the span, and advance
 		// the base.
@@ -274,7 +317,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 		if keys == nil {
 			w.wakeAllLocked()
 		}
-		w.wakeKeysLocked(keys)
+		w.wakeKeysLocked(keys, nextHead, revs)
 		w.recordLocked(changeSpan{
 			after:    w.baseSeqno,
 			afterRef: w.base.GetRef().CloneVT(),
@@ -345,6 +388,42 @@ func (e *Engine) compareChangeWatchHeads(
 	return keys, changes, err
 }
 
+// readWatchedRevs reads, at head, the revision of each changed key some
+// waiter watches, once for all of the key's waiters. It returns nil when no
+// waiter watches a changed key or the read fails; the waiters then read the
+// object themselves.
+func (e *Engine) readWatchedRevs(ctx context.Context, w *engineChangeWatch, head *bucket_lookup.Cursor, keys []string) map[string]objectKeyState {
+	// Keep the changed keys that have waiters.
+	locked := e.bcast.Lock()
+	watched := slices.DeleteFunc(slices.Clone(keys), func(key string) bool {
+		return w.waiters[key] == nil
+	})
+	locked.Unlock()
+	if len(watched) == 0 {
+		return nil
+	}
+
+	// Read their records from the head's object tree.
+	_, bcs := head.BuildTransactionWithStore(nil, e.writeBlockStore)
+	if root, err := UnmarshalWorld(ctx, bcs); err != nil || root == nil {
+		return nil
+	}
+	tree, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), false)
+	if err != nil {
+		return nil
+	}
+	defer tree.Discard()
+	revs := make(map[string]objectKeyState, len(watched))
+	for _, key := range watched {
+		obj, err := readObjectRecord(ctx, tree, key)
+		if err != nil {
+			return nil
+		}
+		revs[key] = objectKeyState{rev: obj.GetRev(), found: obj != nil}
+	}
+	return revs
+}
+
 // recordLocked records the span the watch compared when it listed the
 // changes, and otherwise forgets every span, since a span without its
 // ChangeSet breaks the chain from the earlier ones to the base. The caller
@@ -412,12 +491,20 @@ func (w *engineChangeWatch) checkIdleLocked() {
 	}
 }
 
-// wakeKeysLocked wakes the waiters of the listed keys. The caller must hold bcast.
-func (w *engineChangeWatch) wakeKeysLocked(keys []string) {
+// wakeKeysLocked wakes the waiters of the listed keys, handing them the
+// revision read at the published head numbered head when revs holds it. The
+// caller must hold bcast.
+func (w *engineChangeWatch) wakeKeysLocked(keys []string, head uint64, revs map[string]objectKeyState) {
 	for _, key := range keys {
-		if wake := w.waiters[key]; wake != nil {
-			wake.signal()
+		wake := w.waiters[key]
+		if wake == nil {
+			continue
 		}
+		next := &objectKeyState{}
+		if r, ok := revs[key]; ok {
+			next.known, next.head, next.rev, next.found = true, head, r.rev, r.found
+		}
+		wake.publish(next)
 	}
 }
 
@@ -431,8 +518,15 @@ func (w *engineChangeWatch) wakeAllLocked() {
 	}
 }
 
-// signal wakes the key's current waiters and arms a fresh channel.
+// signal wakes the key's current waiters, which read the object themselves.
+// The caller must hold bcast.
 func (k *objectKeyWake) signal() {
-	close(k.ch)
-	k.ch = make(chan struct{})
+	k.publish(&objectKeyState{})
+}
+
+// publish wakes the key's current waiters with next and arms its channel.
+// The caller must hold bcast.
+func (k *objectKeyWake) publish(next *objectKeyState) {
+	next.ch = make(chan struct{})
+	close(k.state.Swap(next).ch)
 }
