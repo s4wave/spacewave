@@ -277,12 +277,10 @@ func NewReportingRemote(remote packahead.Remote, server *Server) *ReportingRemot
 	return &ReportingRemote{remote: remote, server: server}
 }
 
-// HasPackfile reports whether the remote holds the pack and its report exists.
-func (r *ReportingRemote) HasPackfile(ctx context.Context, id string) (bool, error) {
-	if !r.server.reported(id) {
-		return false, nil
-	}
-	return r.remote.HasPackfile(ctx, id)
+// HasPackfile reports whether the pack has a durable report, which is written
+// only after the remote took the pack. So the node never lists the remote.
+func (r *ReportingRemote) HasPackfile(_ context.Context, id string) (bool, error) {
+	return r.server.reported(id), nil
 }
 
 // PutPackFile uploads a pack, then reports it.
