@@ -12,12 +12,7 @@ type txObjectIterator struct {
 	t *Tx
 	// ctx is the context
 	ctx context.Context
-	// prefix is the prefix to filter by
-	prefix string
-	// reversed indicates if iteration is reversed
-	reversed bool
-
-	// it is the underlying iterator
+	// it is the state iterator, held open across steps
 	it world.ObjectIterator
 	// err is any error that occurred
 	err error
@@ -25,36 +20,6 @@ type txObjectIterator struct {
 	currKey string
 	// valid indicates if the iterator is valid
 	valid bool
-}
-
-// newTxObjectIterator constructs a new tx object iterator.
-func newTxObjectIterator(
-	t *Tx,
-	ctx context.Context,
-	prefix string,
-	reversed bool,
-) *txObjectIterator {
-	// Lock the transaction for the iterator.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return &txObjectIterator{err: err}
-	}
-	defer unlock()
-
-	// Reject a discarded transaction.
-	if err := t.state.discardErr(); err != nil {
-		return &txObjectIterator{err: err}
-	}
-
-	// Iterate the transaction objects.
-	it := t.state.IterateObjects(ctx, prefix, reversed)
-	return &txObjectIterator{
-		t:        t,
-		ctx:      ctx,
-		prefix:   prefix,
-		reversed: reversed,
-		it:       it,
-	}
 }
 
 // Err returns any error that has closed the iterator.
@@ -77,81 +42,41 @@ func (t *txObjectIterator) Key() string {
 
 // Next advances to the next entry and returns Valid.
 func (t *txObjectIterator) Next() bool {
-	// Stop when the iterator has already failed.
-	if t.err != nil {
-		return false
-	}
-
-	// Lock the transaction for the advance.
-	unlock, err := t.t.rmtx.Lock(t.ctx, false)
-	if err != nil {
-		t.err = err
-		t.valid = false
-		return false
-	}
-	defer unlock()
-
-	// Reject a discarded transaction.
-	if err := t.t.state.discardErr(); err != nil {
-		t.err = err
-		t.valid = false
-		return false
-	}
-
-	// Advance the inner iterator.
-	if !t.it.Next() || !t.it.Valid() {
-		t.err = t.it.Err()
-		t.valid = false
-		return false
-	}
-
-	// Store the current key.
-	t.currKey = t.it.Key()
-	t.valid = true
-	return true
+	_ = t.step(func() error {
+		t.it.Next()
+		return nil
+	})
+	return t.Valid()
 }
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (t *txObjectIterator) Seek(k string) error {
-	// Return an earlier seek error.
+	return t.step(func() error {
+		return t.it.Seek(k)
+	})
+}
+
+// step moves the inner iterator with move under the transaction's read lock
+// and records the entry it lands on. A failed or exhausted step leaves the
+// iterator invalid, and a failure ends it.
+func (t *txObjectIterator) step(move func() error) error {
+	// Stop when the iterator has already failed.
 	if t.err != nil {
 		return t.err
 	}
 
-	// Lock the transaction for the seek.
-	unlock, err := t.t.rmtx.Lock(t.ctx, false)
-	if err != nil {
-		t.err = err
-		t.valid = false
-		return err
-	}
-	defer unlock()
-
-	// Reject a discarded transaction.
-	if err := t.t.state.discardErr(); err != nil {
-		t.err = err
-		t.valid = false
-		return t.err
-	}
-
-	// Seek the inner iterator.
-	if err := t.it.Seek(k); err != nil {
-		t.err = err
-		t.valid = false
-		return err
-	}
-
-	// Require a valid entry after the seek.
-	if !t.it.Valid() {
-		t.err = t.it.Err()
-		t.valid = false
-		return t.err
-	}
-
-	// Store the current key.
-	t.currKey = t.it.Key()
-	t.valid = true
-	return nil
+	t.valid = false
+	t.err = t.t.lockedLive(t.ctx, func() error {
+		if err := move(); err != nil {
+			return err
+		}
+		if !t.it.Valid() {
+			return t.it.Err()
+		}
+		t.currKey, t.valid = t.it.Key(), true
+		return nil
+	})
+	return t.err
 }
 
 // Close releases the iterator.

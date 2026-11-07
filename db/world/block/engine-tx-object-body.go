@@ -13,19 +13,20 @@ func (e *EngineTx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, 
 }
 
 // GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
-func (e *EngineTx) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+func (e *EngineTx) GetObjectBodiesBatchPageWithSeqno(
+	ctx context.Context,
+	keys []string,
+	byteBudget int,
+) (bodies []*world.ObjectBody, consumed uint32, seqno uint64, err error) {
 	// Read one page of object bodies and the transaction seqno.
-	var bodies []*world.ObjectBody
-	var consumed uint32
-	var seqno uint64
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
+	err = e.performOp(ctx, func(tx *Tx) error {
 		bodies, consumed, seqno, err = tx.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
 		return err
 	})
 	return bodies, consumed, seqno, err
 }
 
+// _ is a type assertion
 var (
 	_ world.ObjectBodyPageBatcher      = (*EngineTx)(nil)
 	_ world.ObjectBodyPageSeqnoBatcher = (*EngineTx)(nil)

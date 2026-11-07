@@ -101,6 +101,7 @@ linters:
                 - github.com/s4wave/spacewave/db/world.ReleaseObjectState:0
                 - github.com/s4wave/spacewave/sdk/git/repofs.newRepoFSCursor:1
                 - github.com/s4wave/spacewave/db/world/block.NewTxObjectState:2
+                - github.com/s4wave/spacewave/db/world/block.newEngineTxObjectState:2
                 - github.com/s4wave/spacewave/db/world/block/tx.NewObjectState:2
                 - github.com/s4wave/spacewave/db/world/vlogger.NewObjectState:1
               success-consumers:

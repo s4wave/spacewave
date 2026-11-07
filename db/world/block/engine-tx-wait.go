@@ -12,13 +12,9 @@ import (
 // The sequence belongs to this pending writer or immutable read snapshot.
 func (e *EngineTx) GetSeqno(ctx context.Context) (uint64, error) {
 	// Read the sequence through the transaction's retained state.
-	var seqno uint64
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		seqno, berr = tx.GetSeqno(ctx)
-		return berr
+	return performOpValue(ctx, e, func(tx *Tx) (uint64, error) {
+		return tx.GetSeqno(ctx)
 	})
-	return seqno, err
 }
 
 // WaitSeqno waits for the seqno of the world state to be >= value.
@@ -28,13 +24,9 @@ func (e *EngineTx) GetSeqno(ctx context.Context) (uint64, error) {
 // advance beyond their retained sequence; Discard or cancellation ends the wait.
 func (e *EngineTx) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 	// Wait on the same transaction state that supplies GetSeqno.
-	var seqno uint64
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
-		seqno, err = tx.WaitSeqno(ctx, value)
-		return err
+	return performOpValue(ctx, e, func(tx *Tx) (uint64, error) {
+		return tx.WaitSeqno(ctx, value)
 	})
-	return seqno, err
 }
 
 // _ is a type assertion

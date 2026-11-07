@@ -8,13 +8,9 @@ import (
 
 // GetObjectRootRefsBatch returns object root refs for object keys.
 func (e *EngineTx) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
-	var refs []*world.ObjectRootRef
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		refs, berr = tx.GetObjectRootRefsBatch(ctx, keys)
-		return berr
+	return performOpValue(ctx, e, func(tx *Tx) ([]*world.ObjectRootRef, error) {
+		return tx.GetObjectRootRefsBatch(ctx, keys)
 	})
-	return refs, err
 }
 
 // _ is a type assertion

@@ -133,41 +133,33 @@ func (e *EngineTx) StepGraphSettings(ctx context.Context, target *GraphSettings,
 	if e.writeTx == nil {
 		return false, false, tx.ErrNotWrite
 	}
-	unlock, err := e.writeTx.rmtx.Lock(ctx, true)
-	if err != nil {
-		return false, false, err
-	}
-	defer unlock()
-	return e.writeTx.state.StepGraphSettings(ctx, target, max)
+	err = e.writeTx.locked(ctx, true, func() error {
+		done, changed, err = e.writeTx.state.StepGraphSettings(ctx, target, max)
+		return err
+	})
+	return done, changed, err
 }
 
 // GetGraphSettings returns the graph settings of the transaction's World, nil
 // for the default settings.
 func (t *Tx) GetGraphSettings(ctx context.Context) (*GraphSettings, error) {
 	// Read the root under the transaction's read lock.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-	r, err := t.state.GetRoot(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return r.GetGraphSettings().CloneVT(), nil
+	return lockedValue(ctx, t, false, func() (*GraphSettings, error) {
+		r, err := t.state.GetRoot(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return r.GetGraphSettings().CloneVT(), nil
+	})
 }
 
 // GetGraphSettings returns the graph settings of the transaction's World, nil
 // for the default settings.
 func (e *EngineTx) GetGraphSettings(ctx context.Context) (*GraphSettings, error) {
 	// Read through the transaction's retained state.
-	var settings *GraphSettings
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
-		settings, err = tx.GetGraphSettings(ctx)
-		return err
+	return performOpValue(ctx, e, func(tx *Tx) (*GraphSettings, error) {
+		return tx.GetGraphSettings(ctx)
 	})
-	return settings, err
 }
 
 // DefaultGraphSettingsStepMax bounds the links one graph settings step indexes

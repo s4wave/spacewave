@@ -12,8 +12,11 @@ import (
 
 // EngineTxObjectState is an ObjectState handle attached to a EngineTx.
 type EngineTxObjectState struct {
-	t   *EngineTx
+	// t is the engine transaction the handle belongs to
+	t *EngineTx
+	// key is the object key
 	key string
+	// obj is the object handle cached by a write transaction, or nil
 	obj world.ObjectState
 }
 
@@ -28,29 +31,20 @@ func (t *EngineTxObjectState) GetKey() string {
 }
 
 // GetRootRef returns the root reference of the object.
-func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
-	var rref *bucket.ObjectRef
-	var outRev uint64
-	err := t.t.performOp(ctx, func(tx *Tx) error {
-		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
-			var err error
-			rref, outRev, err = obj.GetRootRef(ctx)
-			return err
-		})
+func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (ref *bucket.ObjectRef, rev uint64, err error) {
+	err = t.withObject(ctx, func(obj world.ObjectState) error {
+		ref, rev, err = obj.GetRootRef(ctx)
+		return err
 	})
-	return rref, outRev, err
+	return ref, rev, err
 }
 
 // GetModSeqno returns the World seqno after the last commit that changed the
 // object.
-func (t *EngineTxObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
-	var seqno uint64
-	err := t.t.performOp(ctx, func(tx *Tx) error {
-		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
-			var err error
-			seqno, err = obj.GetModSeqno(ctx)
-			return err
-		})
+func (t *EngineTxObjectState) GetModSeqno(ctx context.Context) (seqno uint64, err error) {
+	err = t.withObject(ctx, func(obj world.ObjectState) error {
+		seqno, err = obj.GetModSeqno(ctx)
+		return err
 	})
 	return seqno, err
 }
@@ -75,20 +69,15 @@ func (t *EngineTxObjectState) AccessWorldState(
 }
 
 // SetRootRef changes the root reference of the object.
-func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
+func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (rev uint64, err error) {
 	if t.t.GetReadOnly() {
 		return 0, tx.ErrNotWrite
 	}
-
-	var outRev uint64
-	err := t.t.performOp(ctx, func(tx *Tx) error {
-		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
-			var err error
-			outRev, err = obj.SetRootRef(ctx, nref)
-			return err
-		})
+	err = t.withObject(ctx, func(obj world.ObjectState) error {
+		rev, err = obj.SetRootRef(ctx, nref)
+		return err
 	})
-	return outRev, err
+	return rev, err
 }
 
 // ApplyObjectOp applies a batch operation at the object level.
@@ -99,41 +88,28 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, bool, error) {
-	// Reject a read-only transaction.
+) (rev uint64, sysErr bool, err error) {
 	if t.t.GetReadOnly() {
 		return 0, false, tx.ErrNotWrite
 	}
-
-	// Apply the object operation and return its revision.
-	var outRev uint64
-	var outSysErr bool
-	err := t.t.performOp(ctx, func(tx *Tx) error {
-		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
-			var err error
-			outRev, outSysErr, err = obj.ApplyObjectOp(ctx, op, opSender)
-			return err
-		})
+	err = t.withObject(ctx, func(obj world.ObjectState) error {
+		rev, sysErr, err = obj.ApplyObjectOp(ctx, op, opSender)
+		return err
 	})
-	return outRev, outSysErr, err
+	return rev, sysErr, err
 }
 
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
-func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
+func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (rev uint64, err error) {
 	if t.t.GetReadOnly() {
 		return 0, tx.ErrNotWrite
 	}
-
-	var val uint64
-	err := t.t.performOp(ctx, func(tx *Tx) error {
-		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
-			var err error
-			val, err = obj.IncrementRev(ctx)
-			return err
-		})
+	err = t.withObject(ctx, func(obj world.ObjectState) error {
+		rev, err = obj.IncrementRev(ctx)
+		return err
 	})
-	return val, err
+	return rev, err
 }
 
 // WaitRev waits until the object rev is >= the specified.
@@ -173,31 +149,36 @@ func (t *EngineTxObjectState) WaitRev(
 	}
 }
 
-// withObject borrows the cached write handle or scopes a fresh read handle to cb.
-func (t *EngineTxObjectState) withObject(ctx context.Context, tx *Tx, cb func(world.ObjectState) error) error {
-	// Reuse the cached object while the write transaction holds it.
-	if t.obj != nil && t.t.writeTx != nil {
-		return cb(t.obj)
-	}
+// withObject runs cb on the object through the transaction's performOp. A
+// write transaction lends its cached handle, loading and caching it on first
+// use; a read snapshot loads a handle for each attempt and releases it after
+// cb.
+func (t *EngineTxObjectState) withObject(ctx context.Context, cb func(world.ObjectState) error) error {
+	return t.t.performOp(ctx, func(tx *Tx) error {
+		// Reuse the cached object while the write transaction holds it.
+		if t.obj != nil && t.t.writeTx != nil {
+			return cb(t.obj)
+		}
 
-	// Load the object and cache it on a write transaction.
-	obj, found, err := tx.GetObject(ctx, t.key)
-	if err != nil {
-		world.ReleaseObjectState(obj)
-		return err
-	}
+		// Load the object and cache it on a write transaction.
+		obj, found, err := tx.GetObject(ctx, t.key)
+		if err != nil {
+			world.ReleaseObjectState(obj)
+			return err
+		}
 
-	// note: to create a EngineTxObjectState, we previously checked
-	// if the object key exists. it must have been deleted since.
-	if !found {
-		return world.ErrObjectNotFound
-	}
-	if t.t.writeTx != nil {
-		t.obj = obj
-	} else {
-		defer world.ReleaseObjectState(obj)
-	}
-	return cb(obj)
+		// note: to create a EngineTxObjectState, we previously checked
+		// if the object key exists. it must have been deleted since.
+		if !found {
+			return world.ErrObjectNotFound
+		}
+		if t.t.writeTx != nil {
+			t.obj = obj
+		} else {
+			defer world.ReleaseObjectState(obj)
+		}
+		return cb(obj)
+	})
 }
 
 // Release releases the cached write handle owned by this wrapper.

@@ -36,35 +36,22 @@ func (t *TxObjectState) GetKey() string {
 }
 
 // GetRootRef returns the root reference of the object.
-func (t *TxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
-	// Lock the transaction for the root-ref read.
-	unlock, err := t.tx.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer unlock()
-
-	// Reject a discarded transaction.
-	if err := t.tx.state.discardErr(); err != nil {
-		return nil, 0, err
-	}
-
-	return t.o.GetRootRef(ctx)
+func (t *TxObjectState) GetRootRef(ctx context.Context) (ref *bucket.ObjectRef, rev uint64, err error) {
+	err = t.tx.lockedLive(ctx, func() error {
+		ref, rev, err = t.o.GetRootRef(ctx)
+		return err
+	})
+	return ref, rev, err
 }
 
 // GetModSeqno returns the World seqno after the last commit that changed the
 // object.
-func (t *TxObjectState) GetModSeqno(ctx context.Context) (uint64, error) {
-	// Read under the transaction lock unless the transaction is gone.
-	unlock, err := t.tx.rmtx.Lock(ctx, false)
-	if err != nil {
-		return 0, err
-	}
-	defer unlock()
-	if err := t.tx.state.discardErr(); err != nil {
-		return 0, err
-	}
-	return t.o.GetModSeqno(ctx)
+func (t *TxObjectState) GetModSeqno(ctx context.Context) (seqno uint64, err error) {
+	err = t.tx.lockedLive(ctx, func() error {
+		seqno, err = t.o.GetModSeqno(ctx)
+		return err
+	})
+	return seqno, err
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -81,39 +68,29 @@ func (t *TxObjectState) AccessWorldState(
 
 // SetRootRef changes the root reference of the object.
 func (t *TxObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
-	unlock, err := t.tx.rmtx.Lock(ctx, true)
-	if err != nil {
-		return 0, err
-	}
-	defer unlock()
-
-	return t.o.SetRootRef(ctx, nref)
+	return lockedValue(ctx, t.tx, true, func() (uint64, error) {
+		return t.o.SetRootRef(ctx, nref)
+	})
 }
 
 // ApplyObjectOp applies a batch operation at the object level.
 // The handling of the operation is operation-type specific.
 // Returns the revision following the operation execution.
 // If nil is returned for the error, implies success.
-func (t *TxObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
-	unlock, err := t.tx.rmtx.Lock(ctx, true)
-	if err != nil {
-		return 0, false, err
-	}
-	defer unlock()
-
-	return t.o.ApplyObjectOp(ctx, op, opSender)
+func (t *TxObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (rev uint64, sysErr bool, err error) {
+	err = t.tx.locked(ctx, true, func() error {
+		rev, sysErr, err = t.o.ApplyObjectOp(ctx, op, opSender)
+		return err
+	})
+	return rev, sysErr, err
 }
 
 // IncrementRev increments the revision of the object.
 // Returns the new latest revision.
 func (t *TxObjectState) IncrementRev(ctx context.Context) (uint64, error) {
-	unlock, err := t.tx.rmtx.Lock(ctx, true)
-	if err != nil {
-		return 0, err
-	}
-	defer unlock()
-
-	return t.o.IncrementRev(ctx)
+	return lockedValue(ctx, t.tx, true, func() (uint64, error) {
+		return t.o.IncrementRev(ctx)
+	})
 }
 
 // WaitRev waits until the object rev is >= the specified.
@@ -128,14 +105,7 @@ func (t *TxObjectState) WaitRev(
 	for {
 		var currSeqno uint64
 		var currObjRev uint64
-		err := func() error {
-			// Lock the transaction for the revision check.
-			unlock, err := t.tx.rmtx.Lock(ctx, false)
-			if err != nil {
-				return err
-			}
-			defer unlock()
-
+		err := t.tx.locked(ctx, false, func() error {
 			// Load the object and require that it exists.
 			obj, err := t.tx.state.mustGetObject(ctx, t.key)
 			if err != nil {
@@ -156,7 +126,7 @@ func (t *TxObjectState) WaitRev(
 			// Read the transaction seqno for the wait.
 			currSeqno, err = t.tx.state.GetSeqno(ctx)
 			return err
-		}()
+		})
 		if err != nil {
 			return 0, err
 		}

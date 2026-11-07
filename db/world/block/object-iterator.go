@@ -7,26 +7,15 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// objectIterator implements ObjectIterator for WorldState.
+// objectIterator implements ObjectIterator for WorldState over the object
+// tree, stripping the object key prefix from each key.
 type objectIterator struct {
-	w        *WorldState
-	ctx      context.Context
-	prefix   string
-	reversed bool
-	iter     kvtx.Iterator
-	err      error
-}
-
-// NewObjectIterator constructs a new object iterator.
-func NewObjectIterator(w *WorldState, ctx context.Context, prefix string, reversed bool) *objectIterator {
-	oi := &objectIterator{
-		w:        w,
-		ctx:      ctx,
-		prefix:   prefix,
-		reversed: reversed,
-	}
-	oi.iter = w.objTree.Iterate(ctx, []byte(objectKeyPrefix+prefix), true, reversed)
-	return oi
+	// prefix is the object key prefix to filter by
+	prefix string
+	// iter iterates the object tree, nil once closed
+	iter kvtx.Iterator
+	// err is any error that closed the iterator
+	err error
 }
 
 // Err returns any error that has closed the iterator.

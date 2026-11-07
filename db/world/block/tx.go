@@ -33,20 +33,13 @@ func NewTx(state *WorldState) *Tx {
 //
 // Creates a new block transaction.
 func (t *Tx) Fork(ctx context.Context) (world.WorldState, error) {
-	// Lock the transaction for the fork.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	// Fork the transaction state.
-	forkedState, err := t.state.Fork(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewTx(forkedState.(*WorldState)), nil
+	return lockedValue(ctx, t, false, func() (world.WorldState, error) {
+		forkedState, err := t.state.Fork(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return NewTx(forkedState.(*WorldState)), nil
+	})
 }
 
 // GetReadOnly returns if the tx is read-only.
@@ -75,41 +68,35 @@ func (t *Tx) TakePending(ctx context.Context) (*block.PendingBatch, error) {
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.
 func (t *Tx) GetSeqno(ctx context.Context) (uint64, error) {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return 0, err
-	}
-	defer unlock()
-
-	return t.state.GetSeqno(ctx)
+	return lockedValue(ctx, t, false, func() (uint64, error) {
+		return t.state.GetSeqno(ctx)
+	})
 }
 
 // GetObjectBodiesBatchPage returns one budgeted page from the transaction state.
-func (t *Tx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer unlock()
-
-	return t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+func (t *Tx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) (bodies []*world.ObjectBody, consumed uint32, err error) {
+	err = t.locked(ctx, false, func() error {
+		bodies, consumed, err = t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+		return err
+	})
+	return bodies, consumed, err
 }
 
 // GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
-func (t *Tx) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
-	// Lock the transaction for the body-page read.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	defer unlock()
-
-	// Read the seqno and one page of object bodies.
-	seqno, err := t.state.GetSeqno(ctx)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	bodies, consumed, err := t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+func (t *Tx) GetObjectBodiesBatchPageWithSeqno(
+	ctx context.Context,
+	keys []string,
+	byteBudget int,
+) (bodies []*world.ObjectBody, consumed uint32, seqno uint64, err error) {
+	// Read the seqno and one page of object bodies under one read lock.
+	err = t.locked(ctx, false, func() error {
+		seqno, err = t.state.GetSeqno(ctx)
+		if err != nil {
+			return err
+		}
+		bodies, consumed, err = t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+		return err
+	})
 	return bodies, consumed, seqno, err
 }
 
@@ -151,25 +138,20 @@ func (t *Tx) ApplyWorldOp(
 	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, bool, error) {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return 0, false, err
-	}
-	defer unlock()
-
-	return t.state.ApplyWorldOp(ctx, op, opSender)
+) (seqno uint64, sysErr bool, err error) {
+	err = t.locked(ctx, true, func() error {
+		seqno, sysErr, err = t.state.ApplyWorldOp(ctx, op, opSender)
+		return err
+	})
+	return seqno, sysErr, err
 }
 
 // PrepareCommit folds the pending changes into the World tree without writing
 // a block. See WorldState.PrepareCommit.
 func (t *Tx) PrepareCommit(ctx context.Context) error {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	return t.state.PrepareCommit(ctx)
+	return t.locked(ctx, true, func() error {
+		return t.state.PrepareCommit(ctx)
+	})
 }
 
 // CommitBlockTransaction implements Commit but additionally returns the updated BlockRef.
@@ -180,29 +162,22 @@ func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction")
 	defer task.End()
 
-	// Lock the transaction for the commit.
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	// Commit the transaction state.
-	{
+	// Commit the transaction state under the write lock and return its root ref.
+	return lockedValue(ctx, t, true, func() (*block.BlockRef, error) {
+		// Commit the state.
 		taskCtx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/state-commit")
-		err = t.state.Commit(taskCtx)
+		err := t.state.Commit(taskCtx)
 		task.End()
-	}
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	// Return the committed root ref.
-	taskCtx, task := trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/get-root-ref")
-	ref := t.state.GetRootRef()
-	task.End()
-	_ = taskCtx
-	return ref, nil
+		// Read the committed root ref.
+		_, task = trace.NewTask(ctx, "hydra/world-block/tx/commit-block-transaction/get-root-ref")
+		ref := t.state.GetRootRef()
+		task.End()
+		return ref, nil
+	})
 }
 
 // Commit commits the transaction to storage.
@@ -221,6 +196,40 @@ func (t *Tx) Discard() {
 	lkr.Lock()
 	t.state.Discard()
 	lkr.Unlock()
+}
+
+// locked runs fn under the read lock, or under the write lock when write is
+// set. The single-threaded state is read and changed only inside fn.
+func (t *Tx) locked(ctx context.Context, write bool, fn func() error) error {
+	unlock, err := t.rmtx.Lock(ctx, write)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return fn()
+}
+
+// lockedValue runs fn under the transaction lock, as locked does, and returns
+// its value.
+func lockedValue[T any](ctx context.Context, t *Tx, write bool, fn func() (T, error)) (T, error) {
+	var v T
+	err := t.locked(ctx, write, func() error {
+		var err error
+		v, err = fn()
+		return err
+	})
+	return v, err
+}
+
+// lockedLive runs fn under the read lock once the state is not discarded, for
+// the object handles and iterators the state does not check on its own.
+func (t *Tx) lockedLive(ctx context.Context, fn func() error) error {
+	return t.locked(ctx, false, func() error {
+		if err := t.state.discardErr(); err != nil {
+			return err
+		}
+		return fn()
+	})
 }
 
 // _ is a type assertion

@@ -8,18 +8,9 @@ import (
 
 // GetObjectRootRefsBatch returns object root refs for object keys.
 func (t *Tx) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*world.ObjectRootRef, error) {
-	// Lock the transaction for the batch read.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	// Reject a discarded transaction and read the root refs.
-	if err := t.state.discardErr(); err != nil {
-		return nil, err
-	}
-	return t.state.GetObjectRootRefsBatch(ctx, keys)
+	return lockedValue(ctx, t, false, func() ([]*world.ObjectRootRef, error) {
+		return t.state.GetObjectRootRefsBatch(ctx, keys)
+	})
 }
 
 // _ is a type assertion

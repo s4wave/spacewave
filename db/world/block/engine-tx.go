@@ -23,7 +23,9 @@ type EngineTx struct {
 
 	// readTx is read without a lock. A read snapshot replaces it under
 	// Engine.snapMu.
-	readTx   atomic.Pointer[Tx]
+	readTx atomic.Pointer[Tx]
+	// readRoot is the World root a read snapshot opened at, which a storage
+	// refresh reopens and the read-root roster retains.
 	readRoot *bucket.ObjectRef
 	// readHead holds the head a read snapshot opened at, so its object
 	// reads follow refs without the Engine lock. Swapped out under
@@ -58,13 +60,9 @@ func newEngineTx(e *Engine, writeTx *Tx) *EngineTx {
 //
 // Creates a new block transaction.
 func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
-	var fork world.WorldState
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
-		fork, err = tx.Fork(ctx)
-		return err
+	return performOpValue(ctx, e, func(tx *Tx) (world.WorldState, error) {
+		return tx.Fork(ctx)
 	})
-	return fork, err
 }
 
 // Commit commits the transaction to storage.
