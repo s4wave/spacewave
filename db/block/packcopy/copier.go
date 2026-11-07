@@ -312,34 +312,34 @@ func (c *copier) read(ctx context.Context, n *node) readResult {
 	// Read a block the target holds back from the target.
 	res := readResult{node: n, reason: ReasonMissing}
 	if n.held {
-		stored, reason, err := readFrom(ctx, c.opts.Target, n.ref)
+		stored, reason, err := ReadVerified(ctx, c.opts.Target, n.ref)
 		if err != nil {
 			return readResult{node: n, err: err}
 		}
 		if reason == "" {
 			return readResult{node: n, stored: stored, held: true}
 		}
-		res.reason = worseReason(res.reason, reason)
+		res.reason = WorseReason(res.reason, reason)
 	}
 
 	// Try each source in order.
 	for _, src := range c.opts.Sources {
-		stored, reason, err := readFrom(ctx, src, n.ref)
+		stored, reason, err := ReadVerified(ctx, src, n.ref)
 		if err != nil {
 			return readResult{node: n, err: err}
 		}
 		if reason == "" {
 			return readResult{node: n, stored: stored}
 		}
-		res.reason = worseReason(res.reason, reason)
+		res.reason = WorseReason(res.reason, reason)
 	}
 	return res
 }
 
-// readFrom reads and checks a block from one store, returning the reason the
-// store cannot serve it. An error stops the walk: the run is over, or the read
+// ReadVerified reads and checks a block from one store, returning the reason
+// the store cannot serve it. An error stops the walk: the run is over, or the read
 // went over the budget. Any other failure is that store's.
-func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.StoredBlock, string, error) {
+func ReadVerified(ctx context.Context, src Source, ref *block.BlockRef) (*block.StoredBlock, string, error) {
 	// Read the block, separating a stop from a failed read.
 	stored, err := src.GetStoredBlock(ctx, ref)
 	if ctx.Err() != nil {
@@ -368,9 +368,9 @@ func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.Stor
 	return stored, "", nil
 }
 
-// worseReason returns the reason that says more about a block no store could
+// WorseReason returns the reason that says more about a block no store could
 // serve: a store that held it outranks one that did not.
-func worseReason(a, b string) string {
+func WorseReason(a, b string) string {
 	if a == ReasonMissing {
 		return b
 	}
