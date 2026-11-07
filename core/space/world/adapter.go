@@ -278,7 +278,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	if err := a.backfill.start(ctx); err != nil {
 		return err
 	}
-	if err := a.replay.openStage(ctx); err != nil {
+	if a.replay.stage, err = newReplayStage(ctx, a.pages); err != nil {
 		return err
 	}
 	close(a.opened)
@@ -318,7 +318,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	stopRun()
 	a.background.Wait()
 	a.replay.close()
-	a.replay.endStage()
+	a.replay.stage.end()
 	return err
 }
 

@@ -80,8 +80,14 @@ func (s *replayStage) ReleaseRoots(context.Context, []*block.BlockRef) error {
 
 // rotate opens the next epoch, for the positions after a save that starts
 // now, and returns the current epoch and the unlanded ones, which the save
-// ends once it lands, and whether any of them stored a page.
+// ends once it lands, and whether any of them stored a page. A nil stage
+// returns none.
 func (s *replayStage) rotate(ctx context.Context) ([]*block.OverflowStage, bool, error) {
+	// A transient replay has no epochs.
+	if s == nil {
+		return nil, false, nil
+	}
+
 	// Open the next epoch before the current one ends.
 	epoch, err := s.OpenOverflowStage(ctx)
 	if err != nil {
@@ -100,11 +106,18 @@ func (s *replayStage) rotate(ctx context.Context) ([]*block.OverflowStage, bool,
 
 // keep returns the epochs of a save that did not land, for the next save.
 func (s *replayStage) keep(epochs []*block.OverflowStage) {
-	s.unlanded = append(s.unlanded, epochs...)
+	if s != nil {
+		s.unlanded = append(s.unlanded, epochs...)
+	}
 }
 
-// end ends every epoch once the run ended and no save runs.
+// end ends every epoch once the run ended and no save runs. A later put
+// through the stage fails, which stops replay rather than storing pages
+// nothing holds.
 func (s *replayStage) end() {
+	if s == nil {
+		return
+	}
 	endEpochs(s.unlanded)
 	s.epoch.Release()
 	s.unlanded = nil
