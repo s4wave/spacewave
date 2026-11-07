@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/core/bstore"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -166,7 +168,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// Build an adapter with no replayed positions over the Volume.
 	ctx := t.Context()
-	a, collect := newVolumeAdapter(t, 1<<20)
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	a.replay = &spaceReplay{a: a, base: &InnerState{}}
 
 	// put keeps a payload page naming children in a's pages, as a writer
@@ -474,7 +476,7 @@ func TestTrimHoldsPagesLiveWorldsName(t *testing.T) {
 func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 	// Open an adapter on an in-memory Volume that frees at once.
 	ctx := t.Context()
-	a, collect := newVolumeAdapter(t, 1<<20)
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 
 	// Build three pages and a saved World over them.
 	put := func(name string, children ...*block.BlockRef) *block.BlockRef {
@@ -550,16 +552,17 @@ func runTrimHoldsPagesLiveWorldsName(t *testing.T, name string) {
 }
 
 // newVolumeAdapter returns an adapter whose PendingStore keeps at most
-// maxPending bytes over a bucket of an in-memory Volume that frees at once,
-// and a function that collects the Volume.
-func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
+// maxPending bytes over a bucket of an in-memory Volume that frees once a
+// record is grace old, and a function that collects the Volume. The
+// SharedObject's block store is the same bucket.
+func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapter, func()) {
 	// Open the bucket.
 	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
 	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
 		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
-		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"},
+		StoreConfig:  &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: grace.String()},
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -585,10 +588,17 @@ func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
 			}
 		}
 	}
+	bkt := cursor.GetBucket()
+	roots, ok := bkt.(block.LeasedRoots)
+	proofs, pok := bkt.(block.RootProofs)
+	if !ok || !pok {
+		t.Fatal("the bucket holds no roots or proofs")
+	}
 	a := &Adapter{
 		le:               logrus.NewEntry(log),
+		so:               &bucketObject{store: &bucketStore{StoreOps: bkt, LeasedRoots: roots, RootProofs: proofs}},
 		opened:           openedNow(),
-		pages:            block.NewPendingStore(cursor.GetBucket(), maxPending),
+		pages:            block.NewPendingStore(bkt, maxPending),
 		held:             make(map[string]*block.BlockRef),
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		cursorWorlds:     rootSet{name: RootReplayCursor},
@@ -596,6 +606,35 @@ func newVolumeAdapter(t *testing.T, maxPending int) (*Adapter, func()) {
 		payloads:         rootSet{name: RootReplayPayloads},
 	}
 	return a, collect
+}
+
+// bucketObject is a SharedObject whose block store is a bucket. Only
+// GetBlockStore is implemented.
+type bucketObject struct {
+	sobject.SharedObject
+	store bstore.BlockStore
+}
+
+// GetBlockStore returns the bucket.
+func (o *bucketObject) GetBlockStore() bstore.BlockStore { return o.store }
+
+// bucketStore is a SharedObject block store over a bucket, with its roots and
+// proofs, and no storage backend.
+type bucketStore struct {
+	block.StoreOps
+	block.LeasedRoots
+	block.RootProofs
+}
+
+// GetID returns the store's ID.
+func (s *bucketStore) GetID() string { return "bucket" }
+
+// GetDecodedBlockCache returns no cache.
+func (s *bucketStore) GetDecodedBlockCache() *block.DecodedBlockCache { return nil }
+
+// ReclaimStorage reports no storage backend.
+func (s *bucketStore) ReclaimStorage(context.Context, bstore.ReclaimFence) (time.Time, error) {
+	return time.Time{}, nil
 }
 
 // TestTrimKeepsRestoredWorlds checks that an install at mount, before replay

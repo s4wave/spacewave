@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -38,7 +39,7 @@ type replayFixture struct {
 // newReplayFixture opens a replayFixture whose pages keep at most maxPending
 // bytes.
 func newReplayFixture(t *testing.T, maxPending int) *replayFixture {
-	a, collect := newVolumeAdapter(t, maxPending)
+	a, collect := newVolumeAdapter(t, maxPending, time.Nanosecond)
 	a.so = &localStateSpace{store: kvtx_inmem.NewStore()}
 	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{}}}
 	if err := a.replay.openStage(t.Context()); err != nil {
