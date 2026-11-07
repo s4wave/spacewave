@@ -74,6 +74,11 @@ type CommitCdnSpaceOp struct {
 	// Signer, when set, is the peer whose signature the checkpoint must carry
 	// in place of the recorded checkpoint's signers.
 	Signer string `protobuf:"bytes,5,opt,name=signer,proto3" json:"signer,omitempty"`
+	// Replaces are the current packs the commit's one added pack supersedes.
+	Replaces []string `protobuf:"bytes,6,rep,name=replaces,proto3" json:"replaces,omitempty"`
+	// Retires are superseded packs dropped from the pointer once the writer
+	// deleted their objects.
+	Retires []string `protobuf:"bytes,7,rep,name=retires,proto3" json:"retires,omitempty"`
 }
 
 func (x *CommitCdnSpaceOp) Reset() {
@@ -115,6 +120,20 @@ func (x *CommitCdnSpaceOp) GetSigner() string {
 		return x.Signer
 	}
 	return ""
+}
+
+func (x *CommitCdnSpaceOp) GetReplaces() []string {
+	if x != nil {
+		return x.Replaces
+	}
+	return nil
+}
+
+func (x *CommitCdnSpaceOp) GetRetires() []string {
+	if x != nil {
+		return x.Retires
+	}
+	return nil
 }
 
 func (m *CdnSpace) CloneVT() *CdnSpace {
@@ -159,6 +178,8 @@ func (m *CommitCdnSpaceOp) CloneVT() *CommitCdnSpaceOp {
 	r.Signer = m.Signer
 	r.Checkpoint = protobuf_go_lite.CloneVTValue(m.Checkpoint)
 	r.Packs = protobuf_go_lite.CloneVTSlice(m.Packs)
+	r.Replaces = protobuf_go_lite.CloneSlice(m.Replaces)
+	r.Retires = protobuf_go_lite.CloneSlice(m.Retires)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -228,6 +249,12 @@ func (this *CommitCdnSpaceOp) EqualVT(that *CommitCdnSpaceOp) bool {
 		return false
 	}
 	if this.Signer != that.Signer {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Replaces, that.Replaces) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Retires, that.Retires) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -372,6 +399,16 @@ func (x *CommitCdnSpaceOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("signer")
 		s.WriteString(x.Signer)
 	}
+	if len(x.Replaces) > 0 || s.HasField("replaces") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replaces")
+		s.WriteStringArray(x.Replaces)
+	}
+	if len(x.Retires) > 0 || s.HasField("retires") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retires")
+		s.WriteStringArray(x.Retires)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -423,6 +460,20 @@ func (x *CommitCdnSpaceOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "signer":
 			s.AddField("signer")
 			x.Signer = s.ReadString()
+		case "replaces":
+			s.AddField("replaces")
+			if s.ReadNil() {
+				x.Replaces = nil
+				return
+			}
+			x.Replaces = s.ReadStringArray()
+		case "retires":
+			s.AddField("retires")
+			if s.ReadNil() {
+				x.Retires = nil
+				return
+			}
+			x.Retires = s.ReadStringArray()
 		}
 	})
 }
@@ -545,6 +596,20 @@ func (m *CommitCdnSpaceOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Retires) > 0 {
+		for iNdEx := len(m.Retires) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Retires[iNdEx])
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.Replaces) > 0 {
+		for iNdEx := len(m.Replaces) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Replaces[iNdEx])
+			i--
+			dAtA[i] = 0x32
+		}
+	}
 	if len(m.Signer) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Signer)
 		i--
@@ -630,6 +695,8 @@ func (m *CommitCdnSpaceOp) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NowUnixMillis)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Signer)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Replaces)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Retires)
 	n += len(m.unknownFields)
 	return n
 }
@@ -692,6 +759,22 @@ func (x *CommitCdnSpaceOp) MarshalProtoText() string {
 	if x.Signer != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signer")
 		protobuf_go_lite.TextWriteString(&sb, x.Signer)
+	}
+	if len(x.Replaces) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "replaces")
+		for i, v := range x.Replaces {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Retires) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "retires")
+		for i, v := range x.Retires {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -893,6 +976,26 @@ func (m *CommitCdnSpaceOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Signer = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Replaces", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Replaces = append(m.Replaces, v)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Retires", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Retires = append(m.Retires, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

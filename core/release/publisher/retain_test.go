@@ -98,10 +98,26 @@ func storedRevs(t *testing.T, w *publisher.LocalWorld, d publisher.Deployment) m
 	return out
 }
 
+// spaceBytes returns the bytes of the Space's current packs.
+func spaceBytes(t *testing.T, r *writertest.Rig) uint64 {
+	pulled, err := r.Client(r.Owner).SyncPull(t.Context(), writertest.Space, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var total uint64
+	for _, entry := range pulled.GetEntries() {
+		if !entry.IsSuperseded() {
+			total += entry.GetSizeBytes()
+		}
+	}
+	return total
+}
+
 // TestReleaseRetainsAndReissues releases five revisions with the default
 // retention, then rolls one platform back by reissuing its oldest retained
-// revision. The release World keeps three revisions per platform, and a
-// launcher reads the reissued executable at a revision above the newest.
+// revision. The release World keeps three revisions per platform, the Space
+// supersedes the packs of the rest, and a launcher reads the reissued
+// executable at a revision above the newest.
 func TestReleaseRetainsAndReissues(t *testing.T) {
 	// Release five revisions of every platform.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
@@ -129,11 +145,17 @@ func TestReleaseRetainsAndReissues(t *testing.T) {
 		}
 	}
 
-	// The World keeps the newest three revisions of each platform.
+	// The World keeps the newest three revisions of each platform, and the
+	// Space's current packs hold about their content, not the pruned
+	// revisions'.
 	for platform, got := range storedRevs(t, w, d) {
 		if !slices.Equal(got, []uint64{5, 4, 3}) {
 			t.Fatalf("%s kept revisions %v, want [5 4 3]", platform, got)
 		}
+	}
+	retained := uint64(3 * len(apps) * exeSize)
+	if got := spaceBytes(t, r); got < retained || got >= retained+uint64(len(apps)*exeSize) {
+		t.Fatalf("the Space holds %d bytes for %d bytes of retained executables", got, retained)
 	}
 
 	// Reissue linux's oldest retained revision.

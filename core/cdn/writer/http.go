@@ -114,7 +114,7 @@ func (w *Writer) servePush(rw http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	resp, err := w.admitPack(spaceID, req, w.now())
+	resp, err := w.admitPack(r.Context(), spaceID, req, w.now())
 	writeMessage(rw, resp, err)
 }
 

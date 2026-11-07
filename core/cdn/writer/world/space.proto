@@ -43,4 +43,9 @@ message CommitCdnSpaceOp {
   // Signer, when set, is the peer whose signature the checkpoint must carry
   // in place of the recorded checkpoint's signers.
   string signer = 5;
+  // Replaces are the current packs the commit's one added pack supersedes.
+  repeated string replaces = 6;
+  // Retires are superseded packs dropped from the pointer once the writer
+  // deleted their objects.
+  repeated string retires = 7;
 }

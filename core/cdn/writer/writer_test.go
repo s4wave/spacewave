@@ -28,6 +28,7 @@ import (
 	"github.com/s4wave/spacewave/core/release/publisher"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -232,13 +233,13 @@ func TestRefusals(t *testing.T) {
 	r.Transport.SetPut(nil)
 	unchanged("a size mismatch")
 
-	// A replacing push is refused.
+	// A push replacing a pack the Space does not list is refused.
 	p = newPack(t, 512)
-	err = owner.SyncReplaceData(ctx, writertest.Space, p.id, 1, p.data, p.sum, []byte{1}, 1, []string{r.Writer.Root(writertest.Space).GetPacks()[0].GetId()})
+	err = owner.SyncReplaceData(ctx, writertest.Space, p.id, 1, p.data, p.sum, []byte{1}, 1, []string{"unlisted"})
 	if err == nil || !strings.Contains(err.Error(), clouderror.PackReplacementConflictCode) {
 		t.Fatalf("replace: %v", err)
 	}
-	unchanged("a replacing push")
+	unchanged("a push replacing an unlisted pack")
 
 	// A writer whose admission ended is refused, and one admitted now is not.
 	late := writertest.NewKey(t)
@@ -283,6 +284,78 @@ func TestRefusals(t *testing.T) {
 		t.Fatalf("stale checkpoint: %v", err)
 	}
 	unchanged("a stale checkpoint")
+}
+
+// TestReplacedPacksRetireAfterGrace supersedes a pack with a replacement,
+// keeps its object through the grace period, and has the first commit after
+// the grace period delete the object and drop the pack from the pointer.
+func TestReplacedPacksRetireAfterGrace(t *testing.T) {
+	// Push two packs, then replace the first.
+	ctx := t.Context()
+	r := writertest.NewRig(t)
+	owner := r.Client(r.Owner)
+	old, kept, repl := newPack(t, 512), newPack(t, 512), newPack(t, 512)
+	for _, p := range []testPack{old, kept} {
+		if err := push(ctx, owner, p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := owner.SyncReplaceData(ctx, writertest.Space, repl.id, 1, repl.data, repl.sum, []byte{1}, 1, []string{old.id}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The old pack is superseded but its object stays for older pointers.
+	packs := func() map[string]*packfile.PackfileEntry {
+		out := make(map[string]*packfile.PackfileEntry)
+		for _, pack := range r.Writer.Root(writertest.Space).GetPacks() {
+			out[pack.GetId()] = pack
+		}
+		return out
+	}
+	if got := packs(); got[old.id].GetSupersededBy() != repl.id || got[kept.id].IsSuperseded() || got[repl.id].IsSuperseded() {
+		t.Fatalf("after the replacement: %v", got)
+	}
+	oldKey := r.Writer.PackKey(writertest.Space, old.id)
+	if _, err := r.S3.HeadObject(ctx, s3test.BucketName, oldKey); err != nil {
+		t.Fatalf("the superseded pack's object is gone within the grace period: %v", err)
+	}
+
+	// A superseded pack is neither replaced again nor pushed again.
+	again := newPack(t, 512)
+	if err := owner.SyncReplaceData(ctx, writertest.Space, again.id, 1, again.data, again.sum, []byte{1}, 1, []string{old.id}); err == nil || !strings.Contains(err.Error(), clouderror.PackReplacementConflictCode) {
+		t.Fatalf("second replacement: %v", err)
+	}
+	if err := push(ctx, owner, old); err == nil || !strings.Contains(err.Error(), clouderror.PackReplacementConflictCode) {
+		t.Fatalf("push of a superseded pack: %v", err)
+	}
+
+	// A replacement that borrows a current pack's blocks alone has that
+	// pack's ID; it supersedes the others and the borrowed pack stays.
+	empty := newPack(t, 512)
+	if err := push(ctx, owner, empty); err != nil {
+		t.Fatal(err)
+	}
+	if err := owner.SyncReplaceData(ctx, writertest.Space, kept.id, 1, kept.data, kept.sum, []byte{1}, 1, []string{empty.id, kept.id}); err != nil {
+		t.Fatal(err)
+	}
+	if got := packs(); got[empty.id].GetSupersededBy() != kept.id || got[kept.id].IsSuperseded() {
+		t.Fatalf("after the borrowing replacement: %v", got)
+	}
+
+	// After the grace period, a restarted writer's next commit deletes the
+	// objects and drops the packs.
+	r.Grace = time.Millisecond
+	r.Restart()
+	time.Sleep(2 * time.Millisecond)
+	if err := push(ctx, r.Client(r.Owner), newPack(t, 512)); err != nil {
+		t.Fatal(err)
+	}
+	if got := packs(); got[old.id] != nil || got[empty.id] != nil || got[kept.id] == nil || got[repl.id] == nil {
+		t.Fatalf("after the grace period: %v", got)
+	}
+	if _, err := r.S3.HeadObject(ctx, s3test.BucketName, oldKey); err == nil {
+		t.Fatal("the retired pack's object remains")
+	}
 }
 
 // TestConcurrentPushesOverlap holds four uploads until all four are granted,

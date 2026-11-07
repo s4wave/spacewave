@@ -2,8 +2,9 @@
 // session API routes the publisher speaks, keeps each Space's root pointer
 // in a Store, and has writers upload packs straight to the bucket on a
 // presigned PUT. A pack joins a Space only after the bucket holds its exact
-// bytes, and packs are only ever added, so a reader holding an old pointer
-// keeps working.
+// bytes. A reclaim's replacement pack supersedes others, which stay in the
+// bucket for a grace period, so a reader holding an old pointer keeps
+// working.
 package cdn_writer
 
 import (
@@ -30,9 +31,9 @@ var (
 	// ErrCheckpointSigner refuses a checkpoint the Space's owners did not
 	// sign, which readers would refuse.
 	ErrCheckpointSigner = errors.New("checkpoint is not signed by the Space's owner")
-	// ErrPackReplaced refuses a pack that supersedes or retires another: a
-	// commit only adds packs.
-	ErrPackReplaced = errors.New("a CDN Space commit may only add packs")
+	// ErrPackReplaced refuses a replacement of a pack the Space does not list
+	// as current, and a committed entry already marked superseded.
+	ErrPackReplaced = errors.New("a CDN Space replacement may only supersede its current packs")
 	// ErrPackNotAdmitted refuses a commit of a pack no live upload admitted.
 	ErrPackNotAdmitted = errors.New("no live upload admitted this pack")
 )
@@ -52,6 +53,12 @@ type Commit struct {
 	// carry in place of the recorded checkpoint's signers, so a writer
 	// admitted at runtime moves the Space under its own key.
 	Signer string
+	// Replaces are the current packs the commit's one added pack
+	// supersedes.
+	Replaces []string
+	// Retires are superseded packs to drop from the pointer, whose objects
+	// the writer deleted.
+	Retires []string
 }
 
 // Store holds the root pointer of each Space the writer owns.
@@ -68,10 +75,12 @@ type Store interface {
 	Commit(ctx context.Context, c *Commit) (*cdn.CdnRootPointer, error)
 }
 
-// ApplyCommit applies c to root in place: it appends the packs root does not
-// list, each with the next sequence, and moves root to c.Checkpoint when set.
-// A pack root already lists is a retried commit and is skipped. It reports
-// whether root changed.
+// ApplyCommit applies c to root in place: it marks the replaced packs
+// superseded by c's one pack, drops the retired ones, appends the packs root
+// does not list, each with the next sequence, and moves root to c.Checkpoint
+// when set. A pack root already lists is a retried commit and is skipped. It
+// reports whether root changed. Entries it changes are copies, so root's
+// entries may be shared.
 func ApplyCommit(root *cdn.CdnRootPointer, c *Commit) (bool, error) {
 	// Move to the checkpoint when it follows the recorded one.
 	changed := false
@@ -81,6 +90,18 @@ func ApplyCommit(root *cdn.CdnRootPointer, c *Commit) (bool, error) {
 		}
 		root.Checkpoint = next.CloneVT()
 		changed = true
+	}
+
+	// Supersede the replaced packs and drop the retired ones.
+	if len(c.Replaces) != 0 || len(c.Retires) != 0 {
+		packs, replaced, err := replacePacks(root.GetPacks(), c)
+		if err != nil {
+			return false, err
+		}
+		if replaced {
+			root.Packs = packs
+			changed = true
+		}
 	}
 
 	// Append the packs not yet listed.
@@ -116,6 +137,64 @@ func ApplyCommit(root *cdn.CdnRootPointer, c *Commit) (bool, error) {
 		root.CreatedAtMs = c.Now.UnixMilli()
 	}
 	return changed, nil
+}
+
+// replacePacks returns packs with c's replaced packs marked superseded by
+// c's one added pack and c's retired packs dropped, on a new list, and
+// reports whether it differs. A replaced pack already superseded by c's pack
+// is a retried commit; a retired pack packs lacks was dropped already.
+func replacePacks(packs []*packfile.PackfileEntry, c *Commit) ([]*packfile.PackfileEntry, bool, error) {
+	// A replacement adds the one pack that supersedes the others.
+	var by string
+	if len(c.Replaces) != 0 {
+		if len(c.Packs) != 1 {
+			return nil, false, errors.New("a replacement commit adds exactly one pack")
+		}
+		by = c.Packs[0].GetId()
+	}
+	pending := make(map[string]bool, len(c.Replaces))
+	for _, id := range c.Replaces {
+		pending[id] = true
+	}
+	retired := make(map[string]bool, len(c.Retires))
+	for _, id := range c.Retires {
+		retired[id] = true
+	}
+
+	// Copy the list, marking and dropping as c names.
+	out := make([]*packfile.PackfileEntry, 0, len(packs))
+	changed := false
+	for _, pack := range packs {
+		id := pack.GetId()
+		switch {
+		case retired[id]:
+			if !pack.IsSuperseded() {
+				return nil, false, errors.Errorf("retired pack %s is current", id)
+			}
+			changed = true
+			continue
+		case pending[id]:
+			// The replacing pack itself stays current, as does one a retry
+			// already superseded.
+			delete(pending, id)
+			if id == by || pack.GetSupersededBy() == by {
+				break
+			}
+			if pack.IsSuperseded() || pack.IsTrash() {
+				return nil, false, errors.Wrapf(ErrPackReplaced, "pack %s is superseded", id)
+			}
+			pack = pack.CloneVT()
+			pack.SupersededBy, pack.SupersededAt = by, timestamppb.New(c.Now)
+			changed = true
+		}
+		out = append(out, pack)
+	}
+
+	// Every replaced pack must be listed.
+	for id := range pending {
+		return nil, false, errors.Wrapf(ErrPackReplaced, "pack %s is not listed", id)
+	}
+	return out, changed, nil
 }
 
 // CheckCheckpointFollows reports whether next is the checkpoint after root's,
