@@ -45,13 +45,18 @@ type LapsedRoot struct {
 	BucketID string
 	// Name is the root's name.
 	Name string
+	// Expires is the lease's expiry in Unix milliseconds.
+	Expires int64
 }
 
 // ScanLapsed returns up to limit leased roots whose lease lapsed at or before
-// now, soonest first, reading only their index records.
-func (r *Records) ScanLapsed(ctx context.Context, now int64, limit int) ([]LapsedRoot, error) {
+// now and at or after from, soonest first, reading only their index records.
+// It seeks to from, so the deleted index records of the leases a sweep
+// released or a renewal moved below from cost the scan nothing.
+func (r *Records) ScanLapsed(ctx context.Context, from, now int64, limit int) ([]LapsedRoot, error) {
 	var out []LapsedRoot
-	err := r.scan(ctx, r.key(kindLease), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+	at := binary.BigEndian.AppendUint64(nil, uint64(max(from, 0))) //nolint:gosec // clamped to zero.
+	err := r.scan(ctx, r.key(kindLease), at, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 		// Stop at the limit and at the first lease that has not lapsed.
 		if len(out) == limit {
 			return false, nil
@@ -59,14 +64,15 @@ func (r *Records) ScanLapsed(ctx context.Context, now int64, limit int) ([]Lapse
 		if len(key) < 8 {
 			return false, errors.New("liveness lease record is malformed")
 		}
-		if int64(binary.BigEndian.Uint64(key)) > now { //nolint:gosec // expiries are positive.
+		expires := int64(binary.BigEndian.Uint64(key)) //nolint:gosec // expiries are positive.
+		if expires > now {
 			return false, nil
 		}
 		bucketID, name, err := parseNamedKey(key[8:])
 		if err != nil {
 			return false, err
 		}
-		out = append(out, LapsedRoot{BucketID: bucketID, Name: name})
+		out = append(out, LapsedRoot{BucketID: bucketID, Name: name, Expires: expires})
 		return true, nil
 	})
 	return out, err

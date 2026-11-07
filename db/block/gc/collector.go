@@ -103,7 +103,8 @@ type Collector struct {
 	store Store
 	// opts are the collector's options.
 	opts CollectorOptions
-	// mtx runs one pass at a time, and guards pace and cascadeFrom.
+	// mtx runs one pass at a time, and guards pace, cascadeFrom and the
+	// lease sweep's mark.
 	mtx sync.Mutex
 	// pace sizes each slice from the time the slices before it spent.
 	pace pace
@@ -111,6 +112,16 @@ type Collector struct {
 	// slice loaded, where the next one starts. It orders the
 	// loads only, so a stale one costs nothing but order.
 	cascadeFrom []byte
+	// leaseFrom is the expiry, in Unix milliseconds, below which the last
+	// lease sweep released every lease, where the next sweep starts. A
+	// renewal moves each held lease's index record every minute, and a
+	// store such as s4db keeps the deleted records until a merge reaches
+	// its bottom level, so a sweep from the start would step over all of
+	// them each pass.
+	leaseFrom int64
+	// leaseFullAt is when the last sweep from the start of the lease index
+	// began; zero before the first.
+	leaseFullAt time.Time
 }
 
 // pace scales a slice's budgets by how long the slices before it took: one
@@ -207,13 +218,24 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	past := func() bool { return c.opts.Now().After(deadline) }
 	defer func() { res.Duration = c.opts.Now().Sub(start) }()
 
-	// Release the lapsed leases.
-	_, err = eachSlice(ctx, c.update, struct{}{}, nil, func(rec *Records, blocks block.StoreOps, _ struct{}) (struct{}, bool, error) {
-		more, err := c.sweepLeases(ctx, rec, blocks, &res)
-		return struct{}{}, more, err
+	// Release the lapsed leases, from the start of the index on the first
+	// pass, every leaseRescan, and when the clock stepped back past the mark.
+	from, full := c.leaseFrom, false
+	if c.leaseFullAt.IsZero() || start.Sub(c.leaseFullAt) >= leaseRescan || start.UnixMilli() < from {
+		from, full = 0, true
+	}
+	var reached int64
+	_, err = eachSlice(ctx, c.update, from, nil, func(rec *Records, blocks block.StoreOps, from int64) (int64, bool, error) {
+		next, more, err := c.sweepLeases(ctx, rec, blocks, &res, from)
+		reached = next
+		return next, more, err
 	})
 	if err != nil {
 		return res, err
+	}
+	c.leaseFrom = reached
+	if full {
+		c.leaseFullAt = start
 	}
 
 	// Read whether the Volume is adopted.
@@ -302,17 +324,19 @@ func (c *Collector) phase(p Phase) func() {
 	return c.opts.Phase(p)
 }
 
-// sweepLeases releases up to sliceLeases leased roots whose expiry passed,
-// in one transaction, through Land, so the journal records their release.
-// It seeks the lease index, so a pass reads only the lapsed leases. It
-// reports whether it filled the slice.
-func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult) (bool, error) {
+// sweepLeases releases up to sliceLeases leased roots whose expiry passed and
+// is at or after from, in one transaction, through Land, so the journal
+// records their release. It seeks the lease index, so a pass reads only the
+// lapsed leases. It reports whether it filled the slice, and the expiry the
+// next slice starts from: the last released lease's when it filled the slice,
+// else now, below which it released every lease from from on.
+func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from int64) (int64, bool, error) {
 	// Find the lapsed roots.
 	now := c.opts.Now()
 	limit := c.share(sliceLeases)
-	found, err := rec.ScanLapsed(ctx, now.UnixMilli(), limit)
+	found, err := rec.ScanLapsed(ctx, from, now.UnixMilli(), limit)
 	if err != nil {
-		return false, err
+		return 0, false, err
 	}
 
 	// Release each from the block it holds, by bucket.
@@ -320,11 +344,11 @@ func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.
 	for _, root := range found {
 		entry, err := rec.GetRoot(ctx, root.BucketID, root.Name)
 		if err != nil {
-			return false, err
+			return 0, false, err
 		}
 		ref, _, err := ParseBlockKey(entry.GetRef())
 		if err != nil {
-			return false, err
+			return 0, false, err
 		}
 		lapsed[root.BucketID] = append(lapsed[root.BucketID], block.NamedRoot{Name: root.Name, Previous: ref})
 	}
@@ -335,10 +359,15 @@ func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.
 		moves = append(moves, BucketRoots{BucketID: bucketID, Roots: lapsed[bucketID]})
 	}
 	if _, err := Land(ctx, rec, blocks, now, nil, moves...); err != nil {
-		return false, err
+		return 0, false, err
 	}
 	res.Lapsed += uint64(len(found)) //nolint:gosec // counts are never negative.
-	return len(found) == limit, nil
+
+	// Continue from the last released lease, or from now once none is left.
+	if len(found) == limit {
+		return found[len(found)-1].Expires, true, nil
+	}
+	return now.UnixMilli(), false, nil
 }
 
 // startNetting runs the steps every netting slice takes before its own
