@@ -26,6 +26,13 @@ import (
 // UploadExpiry is how long a presigned upload admits its pack.
 const UploadExpiry = 15 * time.Minute
 
+// DefaultSupersededGrace is how long a superseded pack stays in the bucket,
+// so a reader of an older pointer finishes with it.
+const DefaultSupersededGrace = 24 * time.Hour
+
+// maxReplaced is how many packs one replacement push may supersede.
+const maxReplaced = 32
+
 // minAdmittedSweep is the admission count below which a push never sweeps
 // expired admissions.
 const minAdmittedSweep = 1024
@@ -56,6 +63,10 @@ type Config struct {
 	// BasePath is the path the routes sit under, as the session client's
 	// endpoint names it, or empty for the origin root.
 	BasePath string
+	// SupersededGrace is how long a pack a reclaim superseded stays in the
+	// bucket before a later commit deletes it and drops it from the pointer.
+	// Zero is DefaultSupersededGrace.
+	SupersededGrace time.Duration
 	// Logger logs imports and commits. Optional.
 	Logger *logrus.Entry
 }
@@ -94,8 +105,10 @@ type ownedSpace struct {
 
 	// root is the current pointer; it is replaced, never changed.
 	root *cdn.CdnRootPointer
-	// listed holds the ID of each pack root lists.
-	listed map[string]struct{}
+	// listed holds each pack root lists by ID.
+	listed map[string]*packfile.PackfileEntry
+	// superseded counts root's superseded packs.
+	superseded int
 	// writers are the Space's fixed writers, whose checkpoints the recorded
 	// owners sign.
 	writers []peer.ID
@@ -112,6 +125,8 @@ type admittedPack struct {
 	entry *packfile.PackfileEntry
 	// sum is the SHA-256 of the pack's bytes.
 	sum []byte
+	// replaces are the current packs the pack supersedes.
+	replaces []string
 	// expires is when the upload ends.
 	expires time.Time
 }
@@ -124,6 +139,9 @@ func New(cfg Config) (*Writer, error) {
 	}
 	if cfg.SigningEnv == "" {
 		return nil, errors.New("a CDN writer needs a signing environment")
+	}
+	if cfg.SupersededGrace <= 0 {
+		cfg.SupersededGrace = DefaultSupersededGrace
 	}
 	le := cfg.Logger
 	if le == nil {
@@ -219,10 +237,7 @@ func (w *Writer) serve(spaceID string, root *cdn.CdnRootPointer, writers []peer.
 	}
 
 	// Index its packs and take its writers.
-	listed := make(map[string]struct{}, len(root.GetPacks()))
-	for _, pack := range root.GetPacks() {
-		listed[pack.GetId()] = struct{}{}
-	}
+	listed, superseded := indexPacks(root)
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	sp := w.spaces[spaceID]
@@ -230,8 +245,22 @@ func (w *Writer) serve(spaceID string, root *cdn.CdnRootPointer, writers []peer.
 		sp = &ownedSpace{admitted: make(map[peer.ID]time.Time)}
 		w.spaces[spaceID] = sp
 	}
-	sp.root, sp.listed, sp.writers = root, listed, slices.Clone(writers)
+	sp.root, sp.writers = root, slices.Clone(writers)
+	sp.listed, sp.superseded = listed, superseded
 	return nil
+}
+
+// indexPacks returns root's packs by ID and counts the superseded ones.
+func indexPacks(root *cdn.CdnRootPointer) (map[string]*packfile.PackfileEntry, int) {
+	listed := make(map[string]*packfile.PackfileEntry, len(root.GetPacks()))
+	var superseded int
+	for _, pack := range root.GetPacks() {
+		listed[pack.GetId()] = pack
+		if pack.IsSuperseded() {
+			superseded++
+		}
+	}
+	return listed, superseded
 }
 
 // space returns an owned Space.
@@ -293,30 +322,49 @@ func (w *Writer) SpacePrefix(spaceID string) string {
 
 // admitPack grants an upload of the pack req describes to spaceID, or
 // reports that the Space already lists it. The pack joins the Space when
-// commitPack finds its bytes in the bucket.
-func (w *Writer) admitPack(spaceID string, req *packfile.PushRequest, now time.Time) (*packfile.PushResponse, error) {
-	// Check the request describes a whole pack that adds to the Space.
-	if len(req.GetReplacesPackIds()) != 0 {
-		return nil, ErrPackReplaced
-	}
+// commitPack finds its bytes in the bucket, superseding the current packs
+// req replaces. A listed pack supersedes them at once: a replacement that
+// borrows a current pack's blocks alone has that pack's ID.
+func (w *Writer) admitPack(ctx context.Context, spaceID string, req *packfile.PushRequest, now time.Time) (*packfile.PushResponse, error) {
+	// Check the request describes a whole pack.
 	packID := req.GetPackId()
 	if !validPackID(packID) || req.GetSizeBytes() == 0 || req.GetBlockCount() == 0 || len(req.GetSha256()) != sha256.Size || len(req.GetBloomFilter()) == 0 || req.GetBloomFormatVersion() == 0 {
 		return nil, errors.New("a pushed pack needs an ID, a size, a block count, a SHA-256 and a Bloom filter")
 	}
+	replaces := req.GetReplacesPackIds()
+	if len(replaces) > maxReplaced {
+		return nil, errors.Errorf("a push supersedes at most %d packs", maxReplaced)
+	}
 
-	// Answer a listed pack without an upload.
+	// Each replaced pack must be current, or already superseded by this one
+	// when the push is retried.
 	resp := &packfile.PushResponse{PackId: packID, SizeBytes: req.GetSizeBytes()}
 	w.mtx.Lock()
 	sp := w.spaces[spaceID]
-	var listed bool
+	var listed *packfile.PackfileEntry
+	var current bool
 	if sp != nil {
-		_, listed = sp.listed[packID]
+		listed = sp.listed[packID]
+		current = !slices.ContainsFunc(replaces, func(id string) bool {
+			pack := sp.listed[id]
+			return pack == nil || pack.IsTrash() || (pack.IsSuperseded() && pack.GetSupersededBy() != packID)
+		})
 	}
 	w.mtx.Unlock()
-	if sp == nil {
+
+	// Answer a listed pack without an upload. A superseded pack's object is
+	// deleted after the grace period, so it is not uploaded again.
+	switch {
+	case sp == nil:
 		return nil, ErrSpaceUnknown
-	}
-	if listed {
+	case listed != nil && listed.IsSuperseded():
+		return nil, errors.Wrapf(ErrPackReplaced, "pack %s was superseded", packID)
+	case !current:
+		return nil, errors.Wrap(ErrPackReplaced, "a replaced pack is not listed as current")
+	case listed != nil && len(replaces) != 0:
+		resp.AlreadyExists = true
+		return resp, w.commit(ctx, &Commit{SpaceID: spaceID, Packs: []*packfile.PackfileEntry{listed}, Now: now, Replaces: replaces})
+	case listed != nil:
 		resp.AlreadyExists = true
 		return resp, nil
 	}
@@ -344,8 +392,9 @@ func (w *Writer) admitPack(spaceID string, req *packfile.PushRequest, now time.T
 			SizeBytes:          req.GetSizeBytes(),
 			BloomFormatVersion: req.GetBloomFormatVersion(),
 		},
-		sum:     slices.Clone(req.GetSha256()),
-		expires: expires,
+		sum:      slices.Clone(req.GetSha256()),
+		replaces: slices.Clone(replaces),
+		expires:  expires,
 	}
 	w.mtx.Unlock()
 
@@ -368,7 +417,7 @@ func (w *Writer) commitPack(ctx context.Context, spaceID, packID string, now tim
 	pack, ok := w.admitted[key]
 	var listed bool
 	if sp := w.spaces[spaceID]; sp != nil {
-		_, listed = sp.listed[packID]
+		listed = sp.listed[packID] != nil
 	}
 	w.mtx.Unlock()
 	if listed {
@@ -398,7 +447,7 @@ func (w *Writer) commitPack(ctx context.Context, spaceID, packID string, now tim
 	}
 
 	// List the pack, then forget the admission.
-	if err := w.commit(ctx, &Commit{SpaceID: spaceID, Packs: []*packfile.PackfileEntry{pack.entry}, Now: now}); err != nil {
+	if err := w.commit(ctx, &Commit{SpaceID: spaceID, Packs: []*packfile.PackfileEntry{pack.entry}, Now: now, Replaces: pack.replaces}); err != nil {
 		return err
 	}
 	w.mtx.Lock()
@@ -456,6 +505,9 @@ func (w *Writer) commit(ctx context.Context, c *Commit) error {
 	sp.commitMtx.Lock()
 	defer sp.commitMtx.Unlock()
 
+	// Retire the packs superseded before the grace period.
+	c.Retires = w.retire(ctx, sp, c.Now)
+
 	// Write the pointer durably, then serve it.
 	root, err := w.cfg.Store.Commit(ctx, c)
 	if err != nil {
@@ -467,20 +519,60 @@ func (w *Writer) commit(ctx context.Context, c *Commit) error {
 		}
 	}
 
-	// Index the added packs.
+	// Index the added packs, or every pack when some were replaced.
 	w.mtx.Lock()
 	sp.root = root
-	for _, pack := range c.Packs {
-		sp.listed[pack.GetId()] = struct{}{}
+	if len(c.Replaces) != 0 || len(c.Retires) != 0 {
+		sp.listed, sp.superseded = indexPacks(root)
+	} else {
+		for _, pack := range c.Packs {
+			sp.listed[pack.GetId()] = pack
+		}
 	}
 	w.mtx.Unlock()
 	w.le.WithFields(logrus.Fields{
 		"space":       c.SpaceID,
 		"added":       len(c.Packs),
+		"replaced":    len(c.Replaces),
+		"retired":     len(c.Retires),
 		"space-packs": len(root.GetPacks()),
 		"checkpoint":  c.Checkpoint != nil,
 	}).Debug("committed to a CDN Space")
 	return nil
+}
+
+// retire deletes the objects of sp's packs superseded at least the grace
+// period before now and returns their IDs, for the commit to drop from the
+// pointer. The caller holds sp's commit slot. A pack whose delete fails
+// stays listed and is retired by a later commit.
+func (w *Writer) retire(ctx context.Context, sp *ownedSpace, now time.Time) []string {
+	// Find the packs superseded before the grace period, scanning only a
+	// Space that has some.
+	cutoff := now.Add(-w.cfg.SupersededGrace)
+	w.mtx.Lock()
+	if sp.superseded == 0 {
+		w.mtx.Unlock()
+		return nil
+	}
+	spaceID := sp.root.GetSpaceId()
+	var due []string
+	for _, pack := range sp.root.GetPacks() {
+		if at := pack.GetSupersededAt(); at != nil && !at.AsTime().After(cutoff) {
+			due = append(due, pack.GetId())
+		}
+	}
+	w.mtx.Unlock()
+
+	// Delete each one's object; the pointer drops only the deleted ones.
+	retired := due[:0]
+	for _, id := range due {
+		if err := w.cfg.Bucket.DeleteObject(ctx, w.cfg.BucketName, w.PackKey(spaceID, id)); err != nil {
+			w.le.WithError(err).WithField("space", spaceID).WithField("pack", id).Warn("delete of a superseded pack failed")
+			continue
+		}
+		retired = append(retired, id)
+	}
+	return retired
 }
 
 // mayWrite reports whether signer writes spaceID at now.

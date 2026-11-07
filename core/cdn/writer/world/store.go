@@ -69,6 +69,8 @@ func (s *Store) Commit(ctx context.Context, c *cdn_writer.Commit) (*cdn.CdnRootP
 		Packs:         c.Packs,
 		NowUnixMillis: c.Now.UnixMilli(),
 		Signer:        c.Signer,
+		Replaces:      c.Replaces,
+		Retires:       c.Retires,
 	}}
 	if err := s.apply(ctx, op); err != nil {
 		return nil, err
@@ -178,6 +180,8 @@ func (o *CommitCdnSpaceOp) apply(ctx context.Context, ws world.WorldState) (*cdn
 		Packs:      o.GetPacks(),
 		Now:        time.UnixMilli(o.GetNowUnixMillis()),
 		Signer:     o.GetSigner(),
+		Replaces:   o.GetReplaces(),
+		Retires:    o.GetRetires(),
 	}
 	var out *cdn.CdnRootPointer
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {

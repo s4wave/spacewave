@@ -18,6 +18,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_rootserve "github.com/s4wave/spacewave/core/cdn/rootserve"
@@ -70,6 +71,9 @@ type Rig struct {
 	OwnerPem string
 	// Transport carries every client request.
 	Transport *HookTransport
+	// Grace is the writer's superseded pack grace period from the next
+	// Start, or zero for the default.
+	Grace time.Duration
 }
 
 // NewRig starts a rig with a new Space owned by a new key.
@@ -141,11 +145,12 @@ func (r *Rig) Start() {
 	// Serve the writer.
 	r.Store = &CountingStore{Store: cdn_writer_world.NewStore(w.Engine, PeerOf(t, r.Owner))}
 	r.Writer, err = cdn_writer.New(cdn_writer.Config{
-		Store:      r.Store,
-		Bucket:     r.S3,
-		BucketName: s3test.BucketName,
-		Roots:      r.Roots,
-		SigningEnv: Env,
+		Store:           r.Store,
+		Bucket:          r.S3,
+		BucketName:      s3test.BucketName,
+		Roots:           r.Roots,
+		SigningEnv:      Env,
+		SupersededGrace: r.Grace,
 	})
 	if err != nil {
 		t.Fatal(err)

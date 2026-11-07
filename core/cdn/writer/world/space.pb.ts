@@ -75,6 +75,15 @@ export interface CommitCdnSpaceOp {
    * in place of the recorded checkpoint's signers.
    */
   signer?: string
+  /**
+   * Replaces are the current packs the commit's one added pack supersedes.
+   */
+  replaces?: string[]
+  /**
+   * Retires are superseded packs dropped from the pointer once the writer
+   * deleted their objects.
+   */
+  retires?: string[]
 }
 
 export const CommitCdnSpaceOp: MessageType<CommitCdnSpaceOp> =
@@ -86,5 +95,7 @@ export const CommitCdnSpaceOp: MessageType<CommitCdnSpaceOp> =
       [3, 'packs', 11, 1, PackfileEntry.codec],
       [4, 'now_unix_millis', 3],
       [5, 'signer', 9],
+      [6, 'replaces', 9, 1],
+      [7, 'retires', 9, 1],
     ],
   )
