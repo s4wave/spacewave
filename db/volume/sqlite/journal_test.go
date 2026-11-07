@@ -41,10 +41,17 @@ func (m *memSink) Cut(context.Context, uint64, uint64) error { return nil }
 
 func (m *memSink) Trim(uint64, uint64) {}
 
-func (m *memSink) count() int {
+func (m *memSink) holds(key string) bool {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	return len(m.records)
+	for _, rec := range m.records {
+		for _, w := range rec.Writes {
+			if string(w.Key) == key {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // TestJournaledVolume opens a SQLite Volume through the journal, checks it
@@ -66,10 +73,10 @@ func TestJournaledVolume(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 
-	// A write through the Volume reaches the journal.
+	// A write through the Volume reaches the journal once it is live.
 	store := vol.GetKvtxStore()
 	deadline := time.Now().Add(10 * time.Second)
-	for sink.count() == 0 {
+	for !sink.holds("player") {
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)

@@ -110,6 +110,9 @@ type Store struct {
 	// live is the marker as durably set: commits record and may rely on the
 	// sink.
 	live bool
+	// journaled records that this run went live, so its flushes trim the
+	// sink; a run that never did sends the sink nothing.
+	journaled bool
 	// cut is the run whose records the sink must still set aside, zero for
 	// none, and cutThrough the last of its seqs the store holds.
 	cut, cutThrough uint64
@@ -282,6 +285,7 @@ func (s *Store) writeHead(ctx context.Context, live bool) error {
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		seq, was = s.seq+1, s.live
 		s.live = live
+		s.journaled = s.journaled || live
 	})
 	err = s.commitHead(ctx, tx, &Head{Epoch: s.epoch, Seq: seq, Live: live})
 	if err != nil {
@@ -402,7 +406,7 @@ func (s *Store) setLocal(seq uint64) {
 		s.local = seq
 		s.reach = max(s.reach, seq)
 		s.advanceLocked()
-		trim = true
+		trim = s.journaled
 		broadcast()
 	})
 
