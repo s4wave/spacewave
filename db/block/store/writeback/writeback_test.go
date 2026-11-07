@@ -898,14 +898,17 @@ func TestClearLocatedPassesTheBacklog(t *testing.T) {
 	remote.located[pushed.MarshalString()] = true
 
 	// Nothing clears with the switch off, on a reclaiming remote, or when the
-	// lookup fails, though the index would say yes.
+	// lookup fails, though the index would say yes. A failed lookup says so,
+	// so a caller answering for the clear knows it did not finish.
 	on.Store(false)
 	clearRefs(remote, pushed)
 	on.Store(true)
 	remote.reclaims = true
 	clearRefs(remote, pushed)
 	remote.reclaims, remote.err = false, errors.New("index unavailable")
-	clearRefs(remote, pushed)
+	if err := s.ClearLocated(ctx, remote, []*hash.Hash{pushed.GetHash()}); err == nil {
+		t.Fatal("a clear whose lookup failed returned nil")
+	}
 	remote.err = nil
 	pending(3)
 

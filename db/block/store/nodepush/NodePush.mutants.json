@@ -18,5 +18,10 @@
     "name": "a report is answered while its clear is dropped",
     "replace": [["    /\\ queued' = queued \\ {b}\n    /\\ local' = local \\ {b}\n    /\\ reported' = reported \\ {b}\n    /\\ answered'", "    /\\ reported' = reported \\ {b}\n    /\\ answered'"], ["<<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>", "<<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>"]],
     "expect": "AnsweredCleared"
+  },
+  {
+    "name": "a failed apply answers the report",
+    "replace": [["    /\\ reported' = reported \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, queued,", "    /\\ reported' = reported \\ {b}\n    /\\ answered' = answered \\cup {b}\n    /\\ UNCHANGED <<indexed, state, local, queued,"]],
+    "expect": "AnsweredCleared"
   }
 ]

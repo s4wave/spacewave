@@ -25,8 +25,10 @@ type Applier interface {
 	// ApplyPack makes report's pack readable through the local pack index,
 	// durably, and only then clears the queue entries of its blocks. It returns
 	// nil only once that clear is done, since the node never repeats a report
-	// it heard applied. A failure leaves the report unacknowledged, and the
-	// node repeats it.
+	// it heard applied. With the clear's switch off, by design, it returns nil
+	// having cleared nothing, and the local upload carries those entries. A
+	// failure, such as a failed index lookup, answers the report failed, and
+	// the node repeats it.
 	ApplyPack(ctx context.Context, report *PackReport) error
 }
 

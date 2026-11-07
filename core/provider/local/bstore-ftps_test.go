@@ -188,6 +188,16 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	tkr := &bstoreTracker{}
 	tkr.remote.Store(&openBackend{backend: backend, store: held})
 	adopter := nodeAdopter{t: tkr, p: f.p}
+
+	// A failed index lookup fails the report, which the node then repeats,
+	// and clears nothing.
+	held.fail.Store(true)
+	if err := adopter.AdoptPack(f.ctx, nil, [][]byte{keys[0]}); err == nil {
+		t.Fatal("a report whose lookup failed was answered applied")
+	}
+	if status := f.status(); status.Pending != reports+1 {
+		t.Fatalf("pending = %d after a failed lookup, want every block queued", status.Pending)
+	}
 	var answered atomic.Int32
 	applied := make(chan error, 1)
 	go func() {
@@ -347,15 +357,19 @@ func (adoptedStore) AdoptPack(context.Context, *packfile.PackfileEntry, [][]byte
 
 // heldClears is an adopted pack store whose index lookups wait for release,
 // which holds every clear of the upload queue. It signals entered once the
-// first lookup waits.
+// first lookup waits. A lookup while fail is set fails at once and clears it.
 type heldClears struct {
 	adoptedStore
+	fail    atomic.Bool
 	entered chan struct{}
 	release chan struct{}
 }
 
 // LocateBlocks waits for release, then looks the refs up.
 func (h *heldClears) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if h.fail.CompareAndSwap(true, false) {
+		return nil, errors.New("index read failed")
+	}
 	select {
 	case h.entered <- struct{}{}:
 	default:

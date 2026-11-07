@@ -125,6 +125,13 @@ ApplyReport(b) ==
     /\ answered' = answered \cup {b}
     /\ UNCHANGED <<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
+\* Or the apply fails, such as on a failed index lookup, and clears nothing.
+\* The report goes unanswered, so the node repeats it.
+ApplyFails(b) ==
+    /\ b \in reported
+    /\ reported' = reported \ {b}
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
+
 \* The local upload takes a queue entry past its deadline, whatever the node
 \* says: a flapping node then strands nothing, and this carries every degraded
 \* block and every block a node lost with its disk. Blocks are addressed by
@@ -177,7 +184,7 @@ LocalRestart ==
 Next ==
     \/ \E b \in Blocks :
         \/ Submit(b) \/ NodeFlush(b) \/ Ack(b) \/ AckDegraded(b)
-        \/ NodeUpload(b) \/ NodeReport(b) \/ IndexReport(b) \/ ApplyReport(b)
+        \/ NodeUpload(b) \/ NodeReport(b) \/ IndexReport(b) \/ ApplyReport(b) \/ ApplyFails(b)
         \/ LocalUpload(b)
     \/ NodeDown \/ NodeBack \/ NodeDiskLost \/ LocalDiskLost \/ LocalRestart
 

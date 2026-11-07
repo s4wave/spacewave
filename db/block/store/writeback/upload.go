@@ -465,11 +465,22 @@ func (s *Store) SetLocateUploaded(on *atomic.Bool) {
 // upload them all. A failed lookup uploads them: a repeated block is only
 // stored twice, and a block wrongly skipped could lose its last copy.
 func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch []pendingBlock) []bool {
+	located, err := s.locateBlocks(ctx, remote, batch)
+	if err != nil {
+		return nil
+	}
+	return located
+}
+
+// locateBlocks reports which blocks of batch the remote's index names. It
+// returns nil and no error when the switch is off or remote has no index that
+// keeps its blocks, and an error when the lookup fails.
+func (s *Store) locateBlocks(ctx context.Context, remote block.StoreOps, batch []pendingBlock) ([]bool, error) {
 	// Only a remote with an index can answer without reading the remote.
 	locator, ok := remote.(BlockLocator)
 	on := s.locate.Load()
 	if !ok || on == nil || !on.Load() || !locator.KeepsBlocks() {
-		return nil
+		return nil, nil
 	}
 
 	// Ask about the whole batch at once.
@@ -478,10 +489,13 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 		refs[i] = batch[i].ref
 	}
 	located, err := locator.LocateBlocks(ctx, refs)
-	if err != nil || len(located) != len(batch) {
-		return nil
+	if err != nil {
+		return nil, errors.Wrap(err, "locate queued blocks")
 	}
-	return located
+	if len(located) != len(batch) {
+		return nil, errors.Errorf("located %d of %d queued blocks", len(located), len(batch))
+	}
+	return located, nil
 }
 
 // ClearLocated clears the queue entries of the blocks another writer just
@@ -490,7 +504,10 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 // in uploadChunk: an entry goes only when the switch is on, remote keeps its
 // blocks and its index names the block. Anything else stays queued for Upload,
 // which is the only thing that must eventually drain the queue, so a block this
-// misses costs only its turn. A block with no entry is left alone.
+// misses costs only its turn. A block with no entry is left alone. A failed
+// lookup, or ctx ending, returns an error, so a caller that answers for the
+// clear can tell it did not finish; with the switch off it returns nil having
+// cleared nothing.
 //
 // The queue's head stays the oldest block the remote may lack, so UploadedBefore
 // keeps its meaning. Each block clears once, here or in Upload, so this adds no
@@ -511,9 +528,15 @@ func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes 
 		if err != nil {
 			return err
 		}
+		if len(batch) == 0 {
+			continue
+		}
 
 		// Keep those the remote's index names.
-		located := s.locatedBlocks(ctx, remote, batch)
+		located, err := s.locateBlocks(ctx, remote, batch)
+		if err != nil {
+			return err
+		}
 		if located == nil {
 			continue
 		}
@@ -530,7 +553,7 @@ func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes 
 			return err
 		}
 	}
-	return nil
+	return ctx.Err()
 }
 
 // queuedBlocks returns the queue entries of the hashes that have one.
