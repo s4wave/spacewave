@@ -3,7 +3,6 @@ package space_world
 import (
 	"context"
 
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -25,6 +24,8 @@ var errRetainedRootNotHead = errors.New("root is not the current World head, exp
 type Engine struct {
 	// Engine serves the Space World.
 	*world_block.Engine
+	// spaceBackfill serves the backfill methods of BackfillEngine.
+	*spaceBackfill
 	// a is the Space's adapter.
 	a *Adapter
 	// cursor is the engine's root cursor, released with it.
@@ -138,36 +139,10 @@ func (e *Engine) StepGraphSettings(ctx context.Context, target *world_block.Grap
 	}})
 }
 
-// GetBackfill watches this device's backfill choice.
-func (e *Engine) GetBackfill() ccontainer.Watchable[bool] {
-	return e.a.backfill.choice
-}
-
-// GetBackfillState watches the outcome of the last finished copy.
-func (e *Engine) GetBackfillState() ccontainer.Watchable[*BackfillState] {
-	return e.a.backfill.state
-}
-
 // GetHead returns the installed World root and its seqno.
 func (e *Engine) GetHead(ctx context.Context) (*block.BlockRef, uint64, error) {
 	head, err := e.a.Head(ctx)
 	return head.Root, head.Seqno, err
-}
-
-// SetBackfill stores this device's backfill choice and starts or stops the
-// copy.
-func (e *Engine) SetBackfill(ctx context.Context, enabled bool) error {
-	return e.a.backfill.set(ctx, enabled)
-}
-
-// SetBackfillFollowsHead chooses whether the copy follows the installed head.
-func (e *Engine) SetBackfillFollowsHead(follow bool) {
-	e.a.backfill.setFollowHead(follow)
-}
-
-// RecheckBackfill restarts the copy as a recheck.
-func (e *Engine) RecheckBackfill(context.Context) error {
-	return e.a.backfill.recheckNow()
 }
 
 // retire retires the engine for the next adapter of the Space and releases

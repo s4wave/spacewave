@@ -64,7 +64,8 @@ type BackfillEngine interface {
 
 // spaceBackfill copies a Space's installed checkpoint World and its retained
 // roots into the local store while this device's backfill choice is on, and
-// holds them under the backfill root.
+// holds them under the backfill root. It implements the backfill methods of
+// BackfillEngine, which Engine promotes.
 type spaceBackfill struct {
 	// a is the adapter.
 	a *Adapter
@@ -116,9 +117,19 @@ func (b *spaceBackfill) start(ctx context.Context) error {
 	return b.a.moveRoots(ctx, nil, block.NamedRoot{Name: RootBackfill})
 }
 
-// set stores the choice and starts or stops the copy. Stopping clears its
-// outcome.
-func (b *spaceBackfill) set(ctx context.Context, enabled bool) error {
+// GetBackfill watches this device's backfill choice.
+func (b *spaceBackfill) GetBackfill() ccontainer.Watchable[bool] {
+	return b.choice
+}
+
+// GetBackfillState watches the outcome of the last finished copy.
+func (b *spaceBackfill) GetBackfillState() ccontainer.Watchable[*BackfillState] {
+	return b.state
+}
+
+// SetBackfill stores the choice and starts or stops the copy. Stopping clears
+// its outcome.
+func (b *spaceBackfill) SetBackfill(ctx context.Context, enabled bool) error {
 	// Store the choice.
 	if err := b.write(ctx, enabled); err != nil {
 		return err
@@ -143,9 +154,9 @@ func (b *spaceBackfill) set(ctx context.Context, enabled bool) error {
 	return b.a.moveRoots(ctx, nil, block.NamedRoot{Name: RootBackfill})
 }
 
-// setFollowHead chooses whether the copy follows the installed head, and wakes
-// the copy when the choice changed.
-func (b *spaceBackfill) setFollowHead(follow bool) {
+// SetBackfillFollowsHead chooses whether the copy follows the installed head,
+// and wakes the copy when the choice changed.
+func (b *spaceBackfill) SetBackfillFollowsHead(follow bool) {
 	b.a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if b.followHead != follow {
 			b.followHead = follow
@@ -154,8 +165,8 @@ func (b *spaceBackfill) setFollowHead(follow bool) {
 	})
 }
 
-// recheckNow restarts the copy as a recheck.
-func (b *spaceBackfill) recheckNow() error {
+// RecheckBackfill restarts the copy as a recheck.
+func (b *spaceBackfill) RecheckBackfill(context.Context) error {
 	// A recheck needs backfill on.
 	if !b.choice.GetValue() {
 		return errors.New("backfill is off")

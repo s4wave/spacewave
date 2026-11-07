@@ -534,7 +534,7 @@ func (a *Adapter) serve(ctx context.Context) (*Engine, error) {
 		cursor.Release()
 		return nil, err
 	}
-	engine := &Engine{Engine: bengine, a: a, cursor: cursor}
+	engine := &Engine{Engine: bengine, spaceBackfill: a.backfill, a: a, cursor: cursor}
 	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		a.engine, a.readers = engine, engine
 		broadcast()
