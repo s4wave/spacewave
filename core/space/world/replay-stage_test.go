@@ -113,7 +113,7 @@ func (f *replayFixture) save() {
 	if err := f.a.saveCursor(f.t.Context()); err != nil {
 		f.t.Fatal(err)
 	}
-	f.a.background.Wait()
+	f.a.waitBackground()
 }
 
 // TestReplayStageHoldsUnsavedWorlds checks, on a Volume that frees at once
@@ -153,7 +153,7 @@ func TestReplayStageHoldsUnsavedWorlds(t *testing.T) {
 	}
 	third := f.put("third World", 0, page)
 	f.apply("third", third)
-	a.background.Wait()
+	a.waitBackground()
 	f.collect()
 	f.requireFound("the saved World", second, page)
 	f.requireFound("a World applied during a save", third)
