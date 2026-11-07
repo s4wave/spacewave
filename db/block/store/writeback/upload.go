@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/net/hash"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,6 +26,9 @@ const (
 	// none. A remote with a long round trip, such as a database across the
 	// internet, uploads one batch per round trip per worker.
 	uploadWorkers = 16
+	// clearLocatedBlocks bounds the queue entries one ClearLocated transaction
+	// removes, and so how long it holds the writer.
+	clearLocatedBlocks = 1024
 )
 
 // batchLimitsOf returns the batches Upload builds for remote: the remote's
@@ -423,7 +427,11 @@ func (s *Store) uploadRound(ctx context.Context, remote block.StoreOps, round up
 			}
 			// Clear under the caller's context, so a sibling's failure does
 			// not leave an uploaded batch queued.
-			return s.clear(ctx, batch)
+			if err := s.clear(ctx, batch); err != nil {
+				return err
+			}
+			s.SetError(nil)
+			return nil
 		})
 	}
 	return eg.Wait()
@@ -468,6 +476,104 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 		return nil
 	}
 	return located
+}
+
+// ClearLocated clears the queue entries of the blocks another writer just
+// uploaded, wherever they stand in the queue, so that a backlog ahead of them
+// does not keep them on the local store. It follows the same rule as the skip
+// in uploadChunk: an entry goes only when the switch is on, remote keeps its
+// blocks and its index names the block. Anything else stays queued for Upload,
+// which is the only thing that must eventually drain the queue, so a block this
+// misses costs only its turn. A block with no entry is left alone.
+//
+// The queue's head stays the oldest block the remote may lack, so UploadedBefore
+// keeps its meaning. Each block clears once, here or in Upload, so this adds no
+// marker writes to the ones its upload would have made; it only moves them
+// earlier. Clears wait behind foreground writers, and behind the count of the
+// queue after an open, as countRest describes, so the caller must not hold up
+// anything that matters on this call. A clear says nothing about the upload's
+// health, so it leaves the status's failure alone.
+func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes []*hash.Hash) error {
+	// Wait until the status counts the whole queue.
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	case <-s.counted:
+	}
+
+	for chunk := range slices.Chunk(hashes, clearLocatedBlocks) {
+		// Find the blocks still queued.
+		batch, err := s.queuedBlocks(ctx, chunk)
+		if err != nil {
+			return err
+		}
+
+		// Keep those the remote's index names.
+		located := s.locatedBlocks(ctx, remote, batch)
+		if located == nil {
+			continue
+		}
+		held := batch[:0]
+		for i := range batch {
+			if located[i] {
+				held = append(held, batch[i])
+			}
+		}
+		if len(held) == 0 {
+			continue
+		}
+		if err := s.clear(ctx, held); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// queuedBlocks returns the queue entries of the hashes that have one.
+func (s *Store) queuedBlocks(ctx context.Context, hashes []*hash.Hash) ([]pendingBlock, error) {
+	var batch []pendingBlock
+	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read each block's marker, which names its queue entry.
+		batch = batch[:0]
+		keys := make([][]byte, len(hashes))
+		for i, h := range hashes {
+			keys[i] = markedKey(h)
+		}
+		marked, found, err := kvtx.GetBatch(ctx, tx, keys)
+		if err != nil {
+			return err
+		}
+		queued := make([][]byte, 0, len(marked))
+		for i := range marked {
+			if found[i] && len(marked[i]) != 0 {
+				queued = append(queued, marked[i])
+			}
+		}
+		if len(queued) == 0 {
+			return nil
+		}
+
+		// Read the entries and decode them.
+		values, found, err := kvtx.GetBatch(ctx, tx, queued)
+		if err != nil {
+			return err
+		}
+		for i := range queued {
+			if !found[i] {
+				continue
+			}
+			entry, err := queueItem{key: queued[i], value: values[i]}.pending()
+			if err != nil {
+				return err
+			}
+			batch = append(batch, entry)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "read queued blocks")
+	}
+	return batch, nil
 }
 
 // uploadChunk writes the batch's blocks with their refs to remote. A block the

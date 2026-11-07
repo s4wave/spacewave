@@ -13,6 +13,7 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,11 +21,19 @@ import (
 // again. Publications meanwhile commit on the local store alone.
 const nodeRedial = 5 * time.Second
 
+// nodeClearQueue bounds the reported packs waiting to clear from the upload
+// queue, and so the memory their block hashes hold. A pack past it clears in
+// its turn in the upload instead.
+const nodeClearQueue = 32
+
 // NodePushConfig sends the publications of an account's block stores to a
 // storage node.
 type NodePushConfig struct {
 	// StoreID names the one block store to push: a node serves one connection,
-	// so a second store, on any account, would keep replacing the first.
+	// so a second store, on any account, would keep replacing the first. The
+	// node uploads to one backend, so the store must not move to another while
+	// the push runs: a report in flight could clear a block the new backend
+	// lacks, which only the old one would then hold.
 	StoreID string
 	// Dial connects to the node. It must return when ctx ends.
 	Dial func(ctx context.Context) (net.Conn, error)
@@ -68,13 +77,19 @@ func (l localPublisher) SubmitAtomic(ctx context.Context, p *block.AtomicPublica
 	return l.submitLocal(ctx, p)
 }
 
-// nodeAdopter adopts reported packs into the store's open backend.
+// nodeAdopter adopts reported packs into the store's open backend and hands
+// their blocks to runNodeClears.
 type nodeAdopter struct {
 	t *bstoreTracker
 	p *placementState
+	// clears takes the block hashes of each adopted pack.
+	clears chan<- []*hash.Hash
 }
 
-// AdoptPack registers the pack in the open backend.
+// AdoptPack registers the pack in the open backend. It answers without waiting
+// for the clear, which waits behind foreground writers: one goroutine applies
+// every report, and a report answered late is sent again. A pack already
+// registered clears again, so a report repeated after a restart finishes.
 func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
 	// A report that arrives before the backend opens is tried again.
 	remote, _ := a.t.readBackend(a.p)
@@ -87,7 +102,49 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 	if !ok {
 		return errors.New("storage backend adopts no packs")
 	}
-	return adopter.AdoptPack(ctx, entry, keys)
+	if err := adopter.AdoptPack(ctx, entry, keys); err != nil {
+		return err
+	}
+
+	// Name the pack's blocks for the clear. They stay queued for the upload
+	// when the clear is too far behind to take them.
+	hashes := make([]*hash.Hash, len(keys))
+	for i, key := range keys {
+		h, err := packfile.ParseBlockKey(key)
+		if err != nil {
+			return errors.Wrap(err, "parse block key")
+		}
+		hashes[i] = h
+	}
+	select {
+	case a.clears <- hashes:
+	default:
+	}
+	return nil
+}
+
+// runNodeClears clears each adopted pack's blocks from the upload queue, ahead
+// of any backlog there, until ctx ends. A pack it misses, through a failure or
+// a restart, leaves its entries for the upload, which finds them in the index.
+func (t *bstoreTracker) runNodeClears(ctx context.Context, le *logrus.Entry, p *placementState, clears <-chan []*hash.Hash) {
+	for {
+		// Take the next pack's blocks.
+		var hashes []*hash.Hash
+		select {
+		case <-ctx.Done():
+			return
+		case hashes = <-clears:
+		}
+
+		// Clear them against the backend open now.
+		remote, _ := t.readBackend(p)
+		if remote == nil {
+			continue
+		}
+		if err := p.wb.ClearLocated(ctx, remote, hashes); err != nil && ctx.Err() == nil {
+			le.WithError(err).Warn("unable to clear a reported pack from the upload queue")
+		}
+	}
 }
 
 // nodePushConfig returns this store's NodePushConfig, or nil.
@@ -132,23 +189,22 @@ func (t *bstoreTracker) startNodePush(
 	}
 
 	// Build the client and put the publisher in front of the local store.
-	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement}))
+	clears := make(chan []*hash.Hash, nodeClearQueue)
+	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement, clears: clears}))
 	handle.push = block_store_nodepush.NewPublisher(localPublisher{handle}, client, conf.Wait, conf.On, conf.Result)
 	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
-	// Keep the connection up until the store unmounts.
+	// Keep the connection and the clears up until the store unmounts.
 	runCtx, cancel := context.WithCancel(ctx)
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		_ = client.Run(runCtx, conf.Dial, nodeRedial)
-	}()
+	var running sync.WaitGroup
+	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	running.Go(func() { t.runNodeClears(runCtx, le, placement, clears) })
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()
-		<-done
+		running.Wait()
 		handle.push.Close()
 	}
 }
