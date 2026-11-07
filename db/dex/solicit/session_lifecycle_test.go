@@ -79,6 +79,46 @@ func TestControllerSamePeerSessionsSurviveEachOther(t *testing.T) {
 	c.releaseRenewals()
 }
 
+func TestControllerRenewalOffersNewIncarnationEachTime(t *testing.T) {
+	// Run the controller on a bus that holds the renewed offers.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	c := newTestDexSolicitController()
+	b, _, err := core.NewCoreBus(ctx, c.le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.b = b
+	defer c.releaseRenewals()
+
+	// Each renewal must be a new directive instance: an offer equivalent to a
+	// held one attaches to it, reusing its incarnation, and opens no stream.
+	remote := peer.ID("peer-a")
+	renewed := func() []directive.Instance {
+		var out []directive.Instance
+		for _, di := range b.GetDirectives() {
+			dir, ok := di.GetDirective().(link_solicit.SolicitProtocol)
+			if ok && dir.SolicitProtocolPeerID() == remote {
+				out = append(out, di)
+			}
+		}
+		return out
+	}
+	c.renewSolicitation(ctx, remote)
+	first := renewed()
+	if len(first) != 1 {
+		t.Fatalf("first renewal: %d offers, want 1", len(first))
+	}
+	c.renewSolicitation(ctx, remote)
+	second := renewed()
+	if len(second) != 1 {
+		t.Fatalf("second renewal: %d offers, want 1", len(second))
+	}
+	if second[0] == first[0] {
+		t.Fatal("second renewal reused the first offer's directive instance")
+	}
+}
+
 func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 	// Keep the pending request within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())

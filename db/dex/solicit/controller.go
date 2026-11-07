@@ -258,6 +258,19 @@ func (c *Controller) renewSolicitation(ctx context.Context, remotePeer peer.ID) 
 		return
 	}
 
+	// Release the previous renewal for remotePeer first. The bus attaches an
+	// equivalent directive to a live instance, so an offer added while the
+	// previous one is held would reuse its incarnation and open no stream.
+	// The released offer leaves its accepted streams running.
+	var prev directive.Reference
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		prev = c.renewals[remotePeer.String()]
+		delete(c.renewals, remotePeer.String())
+	})
+	if prev != nil {
+		prev.Release()
+	}
+
 	// Offer the protocol to remotePeer under a new incarnation.
 	_, ref, err := c.addSolicitation(ctx, remotePeer)
 	if err != nil {
@@ -265,14 +278,12 @@ func (c *Controller) renewSolicitation(ctx context.Context, remotePeer peer.ID) 
 		return
 	}
 
-	// Replace the previous renewal for remotePeer. The released offer leaves
-	// its accepted streams running.
-	var prev directive.Reference
+	// Record the renewal, releasing any renewal a concurrent end recorded.
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		prev = c.renewals[remotePeer.String()]
 		c.renewals[remotePeer.String()] = ref
 	})
-	if prev != nil {
+	if prev != nil && prev != ref {
 		prev.Release()
 	}
 }
