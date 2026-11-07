@@ -40,17 +40,20 @@ type MarkingStore struct {
 	fillsOnly bool
 	// observer sees every write that succeeded, shared with every copy.
 	observer *observerSlot
+	// ops records the open writes and read operations, shared with every
+	// copy.
+	ops *openOps
 }
 
 // NewMarkingStore wraps store, calling mark after each successful write.
 func NewMarkingStore(store block.StoreOps, mark MarkFunc) *MarkingStore {
-	return &MarkingStore{store: store, mark: mark, observer: &observerSlot{}}
+	return &MarkingStore{store: store, mark: mark, observer: &observerSlot{}, ops: newOpenOps()}
 }
 
 // NewTxMarkingStore wraps store, which marks every written block with marker
 // in the transaction that stores it.
 func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker) *MarkingStore {
-	return &MarkingStore{store: store, marker: marker, observer: &observerSlot{}}
+	return &MarkingStore{store: store, marker: marker, observer: &observerSlot{}, ops: newOpenOps()}
 }
 
 // NewFillMarkingStore wraps a packed store that diverts, marking only its
@@ -59,7 +62,7 @@ func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker) *MarkingSt
 // in the local store as a full value, and one read from a peer the backend
 // lacks uploads and stays resident only through its marker.
 func NewFillMarkingStore(m *MarkingStore) *MarkingStore {
-	return &MarkingStore{store: m.store, mark: m.mark, marker: m.marker, fillsOnly: true, observer: m.observer}
+	return &MarkingStore{store: m.store, mark: m.mark, marker: m.marker, fillsOnly: true, observer: m.observer, ops: m.ops}
 }
 
 // GetStoreParts returns the wrapped store.
@@ -77,17 +80,30 @@ func (m *MarkingStore) GetSupportedFeatures() block.StoreFeature {
 	return m.store.GetSupportedFeatures()
 }
 
-// BeginReadOperation opens a read scope on the inner store.
+// BeginReadOperation opens a read scope on the inner store, open in the
+// record from before it opens until its release.
 func (m *MarkingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Record the operation, then open the scope.
+	n := m.ops.begin(true)
 	store, release, err := m.store.BeginReadOperation(ctx)
 	if err != nil {
+		m.ops.end(n)
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, fillsOnly: m.fillsOnly, observer: m.observer}, release, nil
+	return m.copyOver(store), m.ops.releaseRead(n, release), nil
+}
+
+// copyOver wraps a scope of the inner store, sharing the marker, the fills
+// only mode, the observer and the record of open operations.
+func (m *MarkingStore) copyOver(store block.StoreOps) *MarkingStore {
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, fillsOnly: m.fillsOnly, observer: m.observer, ops: m.ops}
 }
 
 // PutBlock stores a block and marks it, even when it already existed.
 func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Hold the write open until the observer has seen it.
+	defer m.ops.end(m.ops.begin(false))
+
 	// Store a diverted value unmarked, but observed: its pack uploads later
 	// and the sweep's log must still see it.
 	if m.fillsOnly && !opts.GetCacheFill() {
@@ -124,6 +140,9 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 // PutBlockBatch marks every successful non-tombstone write.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Hold the write open until the observer has seen it.
+	defer m.ops.end(m.ops.begin(false))
+
 	// Store a diverted batch unmarked. PutBatchEntry carries no cache fill
 	// flag, so every fill comes by PutBlock; a block batched anyway diverts
 	// and uploads in its pack.

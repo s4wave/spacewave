@@ -87,6 +87,12 @@ type StatusResponse struct {
 	Packs []*PackHold `protobuf:"bytes,2,rep,name=packs,proto3" json:"packs,omitempty"`
 	// Log is the write log's state.
 	Log *LogStatus `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
+	// Operations is when the oldest open write and read operation began;
+	// absent when the backend records none, and then no pack passes a recheck.
+	Operations *OpenOperations `protobuf:"bytes,4,opt,name=operations,proto3" json:"operations,omitempty"`
+	// NowUnixNano is the backend's clock when it read the state, the clock the
+	// packs' since and the operations' starts are on.
+	NowUnixNano int64 `protobuf:"varint,5,opt,name=now_unix_nano,json=nowUnixNano,proto3" json:"nowUnixNano,omitempty"`
 }
 
 func (x *StatusResponse) Reset() {
@@ -114,6 +120,55 @@ func (x *StatusResponse) GetLog() *LogStatus {
 		return x.Log
 	}
 	return nil
+}
+
+func (x *StatusResponse) GetOperations() *OpenOperations {
+	if x != nil {
+		return x.Operations
+	}
+	return nil
+}
+
+func (x *StatusResponse) GetNowUnixNano() int64 {
+	if x != nil {
+		return x.NowUnixNano
+	}
+	return 0
+}
+
+// OpenOperations is when the oldest write and read operation still open on
+// the backend's store began. A pack passes its recheck only when each began
+// after the pack left the reads: a write begun before may log a block of the
+// pack after the command read the log, and a read begun before may hold a
+// block of the pack it read without the fallback.
+type OpenOperations struct {
+	unknownFields []byte
+	// OldestWriteUnixNano is the start of the oldest write in flight, zero for
+	// none.
+	OldestWriteUnixNano int64 `protobuf:"varint,1,opt,name=oldest_write_unix_nano,json=oldestWriteUnixNano,proto3" json:"oldestWriteUnixNano,omitempty"`
+	// OldestReadUnixNano is the start of the oldest read operation or stage not
+	// yet released, zero for none.
+	OldestReadUnixNano int64 `protobuf:"varint,2,opt,name=oldest_read_unix_nano,json=oldestReadUnixNano,proto3" json:"oldestReadUnixNano,omitempty"`
+}
+
+func (x *OpenOperations) Reset() {
+	*x = OpenOperations{}
+}
+
+func (*OpenOperations) ProtoMessage() {}
+
+func (x *OpenOperations) GetOldestWriteUnixNano() int64 {
+	if x != nil {
+		return x.OldestWriteUnixNano
+	}
+	return 0
+}
+
+func (x *OpenOperations) GetOldestReadUnixNano() int64 {
+	if x != nil {
+		return x.OldestReadUnixNano
+	}
+	return 0
 }
 
 // PackHold is a pack's sweep state and its last fallback read or lift.
@@ -690,8 +745,10 @@ func (m *StatusResponse) CloneVT() *StatusResponse {
 	}
 	r := new(StatusResponse)
 	r.Enabled = m.Enabled
+	r.NowUnixNano = m.NowUnixNano
 	r.Packs = protobuf_go_lite.CloneVTSlice(m.Packs)
 	r.Log = protobuf_go_lite.CloneVTValue(m.Log)
+	r.Operations = protobuf_go_lite.CloneVTValue(m.Operations)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -699,6 +756,23 @@ func (m *StatusResponse) CloneVT() *StatusResponse {
 }
 
 func (m *StatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OpenOperations) CloneVT() *OpenOperations {
+	if m == nil {
+		return (*OpenOperations)(nil)
+	}
+	r := new(OpenOperations)
+	r.OldestWriteUnixNano = m.OldestWriteUnixNano
+	r.OldestReadUnixNano = m.OldestReadUnixNano
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OpenOperations) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1073,11 +1147,40 @@ func (this *StatusResponse) EqualVT(that *StatusResponse) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Log, that.Log) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Operations, that.Operations) {
+		return false
+	}
+	if this.NowUnixNano != that.NowUnixNano {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *StatusResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*StatusResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OpenOperations) EqualVT(that *OpenOperations) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OldestWriteUnixNano != that.OldestWriteUnixNano {
+		return false
+	}
+	if this.OldestReadUnixNano != that.OldestReadUnixNano {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OpenOperations) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OpenOperations)
 	if !ok {
 		return false
 	}
@@ -1647,6 +1750,16 @@ func (x *StatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("log")
 		x.Log.MarshalProtoJSON(s.WithField("log"))
 	}
+	if x.Operations != nil || s.HasField("operations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("operations")
+		x.Operations.MarshalProtoJSON(s.WithField("operations"))
+	}
+	if x.NowUnixNano != 0 || s.HasField("nowUnixNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nowUnixNano")
+		s.WriteInt64(x.NowUnixNano)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1692,12 +1805,72 @@ func (x *StatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Log = &LogStatus{}
 			x.Log.UnmarshalProtoJSON(s.WithField("log", true))
+		case "operations":
+			if s.ReadNil() {
+				x.Operations = nil
+				return
+			}
+			x.Operations = &OpenOperations{}
+			x.Operations.UnmarshalProtoJSON(s.WithField("operations", true))
+		case "now_unix_nano", "nowUnixNano":
+			s.AddField("now_unix_nano")
+			x.NowUnixNano = s.ReadInt64()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the StatusResponse from JSON.
 func (x *StatusResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OpenOperations message to JSON.
+func (x *OpenOperations) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OldestWriteUnixNano != 0 || s.HasField("oldestWriteUnixNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("oldestWriteUnixNano")
+		s.WriteInt64(x.OldestWriteUnixNano)
+	}
+	if x.OldestReadUnixNano != 0 || s.HasField("oldestReadUnixNano") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("oldestReadUnixNano")
+		s.WriteInt64(x.OldestReadUnixNano)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OpenOperations to JSON.
+func (x *OpenOperations) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OpenOperations message from JSON.
+func (x *OpenOperations) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "oldest_write_unix_nano", "oldestWriteUnixNano":
+			s.AddField("oldest_write_unix_nano")
+			x.OldestWriteUnixNano = s.ReadInt64()
+		case "oldest_read_unix_nano", "oldestReadUnixNano":
+			s.AddField("oldest_read_unix_nano")
+			x.OldestReadUnixNano = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OpenOperations from JSON.
+func (x *OpenOperations) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2938,6 +3111,21 @@ func (m *StatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.NowUnixNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NowUnixNano))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Operations != nil {
+		size, err := m.Operations.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Log != nil {
 		size, err := m.Log.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2962,6 +3150,48 @@ func (m *StatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.Enabled {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OpenOperations) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OpenOperations) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpenOperations) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.OldestReadUnixNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OldestReadUnixNano))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.OldestWriteUnixNano != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OldestWriteUnixNano))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -3898,6 +4128,23 @@ func (m *StatusResponse) SizeVT() (n int) {
 		l = m.Log.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Operations != nil {
+		l = m.Operations.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NowUnixNano)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OpenOperations) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OldestWriteUnixNano)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OldestReadUnixNano)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4219,10 +4466,36 @@ func (x *StatusResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "log")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Log)
 	}
+	if x.Operations != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operations")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Operations)
+	}
+	if x.NowUnixNano != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "now_unix_nano")
+		protobuf_go_lite.TextWriteInt(&sb, x.NowUnixNano)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *StatusResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OpenOperations) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OpenOperations")
+	if x.OldestWriteUnixNano != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "oldest_write_unix_nano")
+		protobuf_go_lite.TextWriteInt(&sb, x.OldestWriteUnixNano)
+	}
+	if x.OldestReadUnixNano != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "oldest_read_unix_nano")
+		protobuf_go_lite.TextWriteInt(&sb, x.OldestReadUnixNano)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OpenOperations) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4765,6 +5038,91 @@ func (m *StatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operations", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Operations == nil {
+				m.Operations = &OpenOperations{}
+			}
+			if err := m.Operations.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NowUnixNano", wireType)
+			}
+			m.NowUnixNano = 0
+			m.NowUnixNano, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OpenOperations) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OpenOperations: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OpenOperations: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OldestWriteUnixNano", wireType)
+			}
+			m.OldestWriteUnixNano = 0
+			m.OldestWriteUnixNano, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OldestReadUnixNano", wireType)
+			}
+			m.OldestReadUnixNano = 0
+			m.OldestReadUnixNano, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
