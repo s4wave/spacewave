@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
 // SOOwnershipState names where ownership of a SharedObject stands.
@@ -100,11 +99,7 @@ func (s *SOHost) refuseDepartingSigners(ctx context.Context, entry *SOConfigChan
 
 	// Refuse a change any departing owner signs.
 	for _, sig := range entry.GetSignatures() {
-		pub, err := sig.ParsePubKey()
-		if err != nil {
-			return err
-		}
-		signer, err := peer.IDFromPublicKey(pub)
+		_, signer, err := signerOf(sig)
 		if err != nil {
 			return err
 		}

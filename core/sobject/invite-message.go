@@ -36,38 +36,24 @@ func (m *SOInviteMessage) Sign(ownerKey crypto.PrivKey) error {
 // VerifyTransportPeer verifies the owner's signature before resolving the peer
 // that receives the invitation token. Older invitations dial the owner directly.
 func (m *SOInviteMessage) VerifyTransportPeer() (peer.ID, error) {
-	// Require a signature and resolve its public key.
+	// Require a signature and encode the body it covers.
 	if m == nil || m.GetSignature() == nil {
 		return "", errors.New("invitation signature is required")
 	}
-	publicKey, err := m.GetSignature().ParsePubKey()
-	if err != nil {
-		return "", err
-	}
-	if publicKey == nil {
-		return "", errors.New("invitation signing public key is required")
-	}
-	ownerID, err := peer.IDFromPublicKey(publicKey)
-	if err != nil {
-		return "", err
-	}
-	if ownerID.String() != m.GetOwnerPeerId() {
-		return "", errors.New("invitation signature does not match owner")
-	}
-
-	// Authenticate the endpoint before disclosing the one-use token to it.
 	unsigned := m.CloneVT()
 	unsigned.Signature = nil
 	data, err := unsigned.MarshalVT()
 	if err != nil {
 		return "", err
 	}
-	valid, err := m.GetSignature().VerifyWithPublic("sobject invite", publicKey, data)
+
+	// Authenticate the owner's endpoint before disclosing the one-use token to it.
+	ownerID, err := verifySignature(m.GetSignature(), "sobject invite", data)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "invitation signature")
 	}
-	if !valid {
-		return "", errors.New("invitation signature is invalid")
+	if ownerID.String() != m.GetOwnerPeerId() {
+		return "", errors.New("invitation signature does not match owner")
 	}
 
 	// Prefer the invitation's transport peer and fall back to the owner.

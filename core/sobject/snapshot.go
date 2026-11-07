@@ -53,3 +53,34 @@ type SharedObjectStateSnapshot interface {
 	// peer holds no grant for that epoch.
 	DecodeOperation(ctx context.Context, inner *SOOperationInner) ([]byte, error)
 }
+
+// watchStates calls fn with each state of so and its config as they change,
+// as the local peer peerID. It returns when ctx ends or fn fails.
+func watchStates(ctx context.Context, so SharedObject, fn func(snap SharedObjectStateSnapshot, cfg *SharedObjectConfig, peerID string) error) error {
+	// Watch the state as the local peer.
+	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer rel()
+	peerID := so.GetPeerID().String()
+
+	// Call fn with each state and its config.
+	var snap SharedObjectStateSnapshot
+	for {
+		snap, err = ctr.WaitValueChange(ctx, snap, nil)
+		if err != nil {
+			return err
+		}
+		if snap == nil {
+			continue
+		}
+		cfg, err := snap.GetConfig(ctx)
+		if err != nil {
+			return err
+		}
+		if err := fn(snap, cfg, peerID); err != nil {
+			return err
+		}
+	}
+}

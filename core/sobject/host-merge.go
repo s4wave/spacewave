@@ -114,11 +114,10 @@ func (s *SOHost) MergePeerBranch(
 	}
 
 	// Authenticate the peer's branch from the fork.
-	forkHash, err := HashSOConfigChange(fork)
+	forkConfig, err := appliedConfig(fork)
 	if err != nil {
 		return err
 	}
-	forkConfig := configWithAppliedConfigChainHead(fork.GetConfig(), fork.GetConfigSeqno(), forkHash)
 	if err := VerifyConfigChainSuffix(s.sharedObjectID, forkConfig, target, theirs); err != nil {
 		return errors.Wrap(err, "peer branch configuration authority")
 	}

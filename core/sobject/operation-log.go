@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"cmp"
 	"crypto/sha256"
-	"encoding/binary"
 	"slices"
 	"strings"
 	"sync"
@@ -45,14 +44,7 @@ type SOOperationLink struct {
 
 // HashSOOperationInner returns the identity of an operation from its signed body.
 func HashSOOperationInner(inner []byte) []byte {
-	// Hash the domain and length-framed body without copying the body.
-	digest := sha256.New()
-	var length [8]byte
-	binary.BigEndian.PutUint64(length[:], uint64(len(inner)))
-	digest.Write([]byte(soOperationHashDomain))
-	digest.Write(length[:])
-	digest.Write(inner)
-	return digest.Sum(nil)
+	return domainHash(soOperationHashDomain, inner)
 }
 
 // Hash returns the identity of the operation.
@@ -195,30 +187,13 @@ func (op *SOOperation) Verify(sharedObjectID string) (*SOOperationInner, error) 
 		return nil, errors.New("operation is bound to another shared object")
 	}
 
-	// The signer is the author.
-	sig := op.GetSignature()
-	pubKey, err := sig.ParsePubKey()
+	// The author signed exactly the encoded body.
+	signer, err := verifySignature(op.GetSignature(), SOOperationSignatureContext, op.GetInner())
 	if err != nil {
 		return nil, err
 	}
-	if pubKey == nil {
-		return nil, errors.New("operation signature has no public key")
-	}
-	signerID, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid peer ID in signature")
-	}
-	if signerID.String() != inner.GetPeerId() {
+	if signer.String() != inner.GetPeerId() {
 		return nil, errors.New("signer peer ID does not match inner peer ID")
-	}
-
-	// The signature covers exactly the encoded body.
-	valid, err := sig.VerifyWithPublic(SOOperationSignatureContext, pubKey, op.GetInner())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to verify signature")
-	}
-	if !valid {
-		return nil, peer.ErrSignatureInvalid
 	}
 	return inner, nil
 }

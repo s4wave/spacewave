@@ -87,15 +87,10 @@ func VerifyConfigChain(sharedObjectID string, entries []*SOConfigChange) error {
 	}
 
 	// Establish the effective genesis head before verifying later transitions.
-	prevHash, err := HashSOConfigChange(genesis)
+	currentConfig, err := appliedConfig(genesis)
 	if err != nil {
 		return errors.Wrap(err, "hash genesis entry")
 	}
-	currentConfig = configWithAppliedConfigChainHead(
-		currentConfig,
-		genesis.GetConfigSeqno(),
-		prevHash,
-	)
 
 	// Verify each transition under the preceding configuration.
 	for i := 1; i < len(entries); i++ {
@@ -159,11 +154,10 @@ func linkConfigChange(sharedObjectID string, current *SharedObjectConfig, entry 
 // head, after checking it is valid.
 func configChangeResult(entry *SOConfigChange) (*SharedObjectConfig, error) {
 	// Derive the accepted head from the signed entry without changing its input.
-	entryHash, err := HashSOConfigChange(entry)
+	next, err := appliedConfig(entry)
 	if err != nil {
 		return nil, errors.Wrap(err, "hash config change entry")
 	}
-	next := configWithAppliedConfigChainHead(entry.GetConfig(), entry.GetConfigSeqno(), entryHash)
 
 	// An authorized signer still cannot produce an unusable configuration.
 	if err := next.Validate(); err != nil {
@@ -272,11 +266,10 @@ func VerifyConfigLineage(sharedObjectID string, target *SharedObjectConfig, line
 			return nil, err
 		}
 	}
-	hash, err := HashSOConfigChange(first)
+	base, err := appliedConfig(first)
 	if err != nil {
 		return nil, err
 	}
-	base := configWithAppliedConfigChainHead(first.GetConfig(), first.GetConfigSeqno(), hash)
 
 	// Advance through the remaining changes to the target.
 	current := base
@@ -290,6 +283,16 @@ func VerifyConfigLineage(sharedObjectID string, target *SharedObjectConfig, line
 		return nil, errors.New("config lineage does not lead to the target configuration")
 	}
 	return base, nil
+}
+
+// appliedConfig returns a copy of the config entry carries with entry as its
+// chain head.
+func appliedConfig(entry *SOConfigChange) (*SharedObjectConfig, error) {
+	hash, err := HashSOConfigChange(entry)
+	if err != nil {
+		return nil, err
+	}
+	return configWithAppliedConfigChainHead(entry.GetConfig(), entry.GetConfigSeqno(), hash), nil
 }
 
 // configWithAppliedConfigChainHead clones a configuration with a verified head.
@@ -412,17 +415,10 @@ func verifyConfigChangeAuthority(entry *SOConfigChange, cfg *SharedObjectConfig)
 	}
 	seen := make(map[string]struct{}, len(sigs))
 	for i, sig := range sigs {
-		// Recover the signing peer from the supplied signature.
-		sigPubKey, err := sig.ParsePubKey()
+		// Authenticate the signer over the body.
+		sigPeerID, err := verifySignature(sig, soConfigChangeSignatureContext, data)
 		if err != nil {
-			return errors.Wrapf(err, "signatures[%d]: parse public key", i)
-		}
-		if sigPubKey == nil {
-			return errors.Errorf("signatures[%d]: missing public key", i)
-		}
-		sigPeerID, err := peer.IDFromPublicKey(sigPubKey)
-		if err != nil {
-			return errors.Wrapf(err, "signatures[%d]: derive peer ID", i)
+			return errors.Wrapf(err, "signatures[%d]", i)
 		}
 		signer := sigPeerID.String()
 		if _, ok := seen[signer]; ok {
@@ -437,15 +433,6 @@ func verifyConfigChangeAuthority(entry *SOConfigChange, cfg *SharedObjectConfig)
 			}
 		} else if !isOwnerPeer(cfg, signer) {
 			return errors.Errorf("signer %s is not an OWNER in the config", signer)
-		}
-
-		// Check the signature over the body.
-		valid, err := sig.VerifyWithPublic(soConfigChangeSignatureContext, sigPubKey, data)
-		if err != nil {
-			return errors.Wrapf(err, "signatures[%d]: verify", i)
-		}
-		if !valid {
-			return errors.Errorf("signatures[%d]: invalid signature", i)
 		}
 	}
 	return nil

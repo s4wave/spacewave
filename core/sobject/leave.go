@@ -53,25 +53,16 @@ func (r *SOLeaveRequest) Verify() ([]string, error) {
 
 	// Each independently verified key authorizes only its own removal.
 	var peers []string
+	seen := make(map[string]struct{}, len(r.GetSignatures()))
 	for _, signature := range r.GetSignatures() {
-		key, err := signature.ParsePubKey()
+		id, err := verifySignature(signature, "sobject leave", data)
 		if err != nil {
 			return nil, err
 		}
-		if key == nil {
-			return nil, peer.ErrEmptyPeerID
+		if _, ok := seen[id.String()]; ok {
+			return nil, errors.New("duplicate leave proof")
 		}
-		id, err := peer.IDFromPublicKey(key)
-		if err != nil {
-			return nil, err
-		}
-		valid, err := signature.VerifyWithPublic("sobject leave", key, data)
-		if err != nil {
-			return nil, err
-		}
-		if !valid || slices.Contains(peers, id.String()) {
-			return nil, errors.New("invalid or duplicate leave proof")
-		}
+		seen[id.String()] = struct{}{}
 		peers = append(peers, id.String())
 	}
 	return peers, nil

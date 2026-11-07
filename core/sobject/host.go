@@ -47,8 +47,7 @@ func NewSOHost(ctx context.Context, watchFn SOStateWatchFunc, lockFn SOStateLock
 		h.syncFuncs = *syncFuncs[0]
 	}
 	h.soRc = refcount.NewRefCount(ctx, false, nil, nil, func(ctx context.Context, released func()) (ccontainer.Watchable[*SOState], func(), error) {
-		stateCtr, relStateCtr, err := watchFn(ctx, sharedObjectID, released)
-		return stateCtr, relStateCtr, err
+		return watchFn(ctx, sharedObjectID, released)
 	})
 	return h
 }
@@ -83,11 +82,6 @@ func (s *SOHost) GetGrantKeyring() *SOGrantKeyring {
 	return s.keyring
 }
 
-// CanWatchSOState returns true if the host can watch shared object state.
-func (s *SOHost) CanWatchSOState() bool {
-	return s.watchFn != nil
-}
-
 // GetSOStateCtr watches the shared object state with the refcount container.
 func (s *SOHost) GetSOStateCtr(ctx context.Context, released func()) (ccontainer.Watchable[*SOState], func(), error) {
 	return s.soRc.ResolveWithReleased(ctx, released)
@@ -112,9 +106,10 @@ func (s *SOHost) GetHostState(ctx context.Context) (*SOState, error) {
 }
 
 // UpdateSOState locks the SO state, clones it, calls the provided function
-// to mutate the clone, then writes the updated state.
-// fn may edit the state's fields and operation slice, but not signed operations.
-func (s *SOHost) UpdateSOState(ctx context.Context, fn func(state *SOState) error) error {
+// to mutate the clone, then writes the updated state with changes, the config
+// changes it commits. fn may edit the state's fields and operation slice, but
+// not signed operations.
+func (s *SOHost) UpdateSOState(ctx context.Context, fn func(state *SOState) error, changes ...*SOConfigChange) error {
 	// Hold the provider lock through mutation and persistence.
 	lk, err := s.lockFn(ctx, s.sharedObjectID)
 	if err != nil {
@@ -127,7 +122,7 @@ func (s *SOHost) UpdateSOState(ctx context.Context, fn func(state *SOState) erro
 	if err := fn(nextState); err != nil {
 		return err
 	}
-	return lk.WriteSOState(ctx, nextState)
+	return lk.WriteSOState(ctx, nextState, changes...)
 }
 
 // WaitDurable waits until every state write completed before the call is
@@ -520,32 +515,22 @@ func (s *SOHost) ApplyConfigChange(ctx context.Context, entry *SOConfigChange, f
 		return err
 	}
 
-	// Hold the provider lock through verification and persistence.
-	lk, err := s.lockFn(ctx, s.sharedObjectID)
-	if err != nil {
-		return err
-	}
-	defer lk.Release()
-
-	// Retain the prior state unchanged if verification or the callback fails.
-	prevState := lk.GetSOState()
-	nextState := prevState.Clone()
-
-	// Verify the transition against the configuration held under this lock.
-	nextState.Config, err = VerifyConfigChange(s.sharedObjectID, nextState.GetConfig(), entry)
-	if err != nil {
-		return err
-	}
-	nextState.pruneControlMessages()
-
-	// Include associated state changes in the same provider write.
-	if fn != nil {
-		if err := fn(nextState); err != nil {
+	// Commit the change and its associated state in one provider write.
+	return s.UpdateSOState(ctx, func(next *SOState) error {
+		// Verify the transition against the configuration held under the lock.
+		config, err := VerifyConfigChange(s.sharedObjectID, next.GetConfig(), entry)
+		if err != nil {
 			return err
 		}
-	}
+		next.Config = config
+		next.pruneControlMessages()
 
-	return lk.WriteSOState(ctx, nextState, entry)
+		// Include the caller's associated state changes.
+		if fn == nil {
+			return nil
+		}
+		return fn(next)
+	}, entry)
 }
 
 // retryConfigChange runs change, which reads the config and signs a change of

@@ -111,36 +111,11 @@ func (s *SOHost) SequenceOperations(ctx context.Context, privKey crypto.PrivKey)
 // state they sync. It watches the state and returns when ctx ends or place
 // fails.
 func Sequence(ctx context.Context, so SharedObject, place func(context.Context) error) error {
-	// Watch the state as the local peer.
-	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer rel()
-	peerID := so.GetPeerID().String()
-
-	// Place the operations of each state while appointed.
-	var snap SharedObjectStateSnapshot
-	for {
-		// Wait for the next state.
-		snap, err = ctr.WaitValueChange(ctx, snap, nil)
-		if err != nil {
-			return err
-		}
-		if snap == nil {
-			continue
-		}
-
+	return watchStates(ctx, so, func(_ SharedObjectStateSnapshot, cfg *SharedObjectConfig, peerID string) error {
 		// Only the appointed sequencer places operations.
-		cfg, err := snap.GetConfig(ctx)
-		if err != nil {
-			return err
-		}
 		if cfg.GetSequencer().GetPeerId() != peerID {
-			continue
+			return nil
 		}
-		if err := place(ctx); err != nil {
-			return err
-		}
-	}
+		return place(ctx)
+	})
 }
