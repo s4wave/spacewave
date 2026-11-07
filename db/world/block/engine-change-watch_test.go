@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -47,7 +48,7 @@ func testChangeWatchWakesOnlyChangedKeys(t *testing.T, bulk int) {
 		locked.Unlock()
 		t.Fatal(err)
 	}
-	quietCh, busyCh := quietWake.ch, busyWake.ch
+	quietCh, busyCh := quietWake.state.Load().ch, busyWake.state.Load().ch
 	locked.Unlock()
 	defer e.unwatchObjectKey(quietWatch, "watch/quiet", quietWake)
 	defer e.unwatchObjectKey(busyWatch, "watch/busy", busyWake)
@@ -140,6 +141,133 @@ func TestEngineWaitObjectRev(t *testing.T) {
 	}
 	if err := <-done; !errors.Is(err, ErrEngineClosed) {
 		t.Fatalf("WaitObjectRev after Close error = %v, want ErrEngineClosed", err)
+	}
+}
+
+// TestEngineWaitersShareTheHead checks that a head hands its seqno to the
+// seqno waiters, and a changed object's revision to all of its waiters, so a
+// head wakes them without a lock or a read each. It fails when a waiter takes
+// the engine lock to read the seqno, or when the change watch leaves each
+// object waiter to read the object itself.
+func TestEngineWaitersShareTheHead(t *testing.T) {
+	// Create the watched object on a real block Engine.
+	ctx := t.Context()
+	e := newRetirementTestEngine(t, ctx, nil)
+	ws := world.NewEngineWorldState(e, true)
+	rev := createWatchTestObject(t, ctx, ws, "watch/shared")
+
+	// A seqno wait returns while the engine lock is held.
+	seqno, err := e.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	locked := e.bcast.Lock()
+	done := make(chan error, 1)
+	go func() {
+		got, err := e.WaitSeqno(ctx, seqno)
+		if err == nil && got != seqno {
+			err = errors.Errorf("WaitSeqno = %d, want %d", got, seqno)
+		}
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		locked.Unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		locked.Unlock()
+		t.Fatal("a satisfied seqno wait took the engine lock")
+	}
+
+	// Many waiters on one object all return its next revision.
+	const waiters = 64
+	results := make(chan error, waiters)
+	for range waiters {
+		go func() {
+			got, err := e.WaitObjectRev(ctx, "watch/shared", rev+1, false)
+			if err == nil && got != rev+1 {
+				err = errors.Errorf("WaitObjectRev = %d, want %d", got, rev+1)
+			}
+			results <- err
+		}()
+	}
+	var wake *objectKeyWake
+	for refs := 0; refs != waiters; {
+		locked := e.bcast.Lock()
+		if w := e.changeWatch; w != nil {
+			wake = w.waiters["watch/shared"]
+		}
+		if wake != nil {
+			refs = wake.refs
+		}
+		locked.Unlock()
+		if refs != waiters {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	if _, _, err := ws.ApplyWorldOp(ctx, world_mock.NewMockWorldOp("watch/shared", "changed"), ""); err != nil {
+		t.Fatal(err)
+	}
+	for range waiters {
+		if err := <-results; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// The wake that ended them carried the revision the watch read once.
+	st := wake.state.Load()
+	locked = e.bcast.Lock()
+	head := e.published
+	locked.Unlock()
+	if !st.known || !st.found || st.rev != rev+1 || st.head != head {
+		t.Fatalf("the key wake holds known %v, found %v, rev %d at head %d; want rev %d at head %d", st.known, st.found, st.rev, st.head, rev+1, head)
+	}
+}
+
+// TestEngineWaitObjectRevIgnoresAnOlderHead checks that an object waiter
+// reads the object itself when a wake carries a revision from a head older
+// than the one it read, since a head's seqno can repeat or move back. It
+// fails when a waiter takes any revision a wake carries.
+func TestEngineWaitObjectRevIgnoresAnOlderHead(t *testing.T) {
+	// Wait for the next revision of an object.
+	ctx := t.Context()
+	e := newRetirementTestEngine(t, ctx, nil)
+	ws := world.NewEngineWorldState(e, true)
+	rev := createWatchTestObject(t, ctx, ws, "watch/older")
+	done := make(chan error, 1)
+	go func() {
+		_, err := e.WaitObjectRev(ctx, "watch/older", rev+1, false)
+		done <- err
+	}()
+	var wake *objectKeyWake
+	for wake == nil {
+		locked := e.bcast.Lock()
+		if w := e.changeWatch; w != nil {
+			wake = w.waiters["watch/older"]
+		}
+		locked.Unlock()
+		time.Sleep(time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	// A wake from before the waiter's head does not satisfy it.
+	locked := e.bcast.Lock()
+	wake.publish(&objectKeyState{known: true, head: e.published - 1, rev: rev + 1, found: true})
+	locked.Unlock()
+	select {
+	case err := <-done:
+		t.Fatalf("a wake from an older head ended the wait: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	// The object's next revision does.
+	if _, _, err := ws.ApplyWorldOp(ctx, world_mock.NewMockWorldOp("watch/older", "changed"), ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
 	}
 }
 

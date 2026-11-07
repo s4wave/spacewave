@@ -63,10 +63,15 @@ type Engine struct {
 	closing context.Context
 	// stopClosing cancels closing.
 	stopClosing context.CancelCauseFunc
-	// headChanged closes when the published head root changes or the Engine
-	// closes. Revision waiters wait on it instead of bcast, which also wakes
-	// on every transaction retirement. Guarded by bcast.
-	headChanged chan struct{}
+	// headSignal is the published head's seqno and the channel that closes
+	// when the head root changes or the Engine closes. Revision waiters load
+	// it without bcast, which also wakes on every transaction retirement, so a
+	// head wakes each of them without a lock or a read. Swapped under bcast.
+	headSignal atomic.Pointer[headSignal]
+	// published counts the heads published, so object waiters can tell
+	// whether a head came after the one they read; a head's seqno can repeat
+	// or move back. Guarded by bcast.
+	published uint64
 	// writeTx is the current write transaction, canceled if its head changes.
 	writeTx *EngineTx
 	// writeTxRel releases wmtx after the detached write transaction drains.
@@ -220,7 +225,6 @@ func NewEngine(
 		lookupOp:       lookupOp,
 		authority:      authority,
 		head:           &engineHead{root: root.Clone()},
-		headChanged:    make(chan struct{}),
 		verbose:        verbose,
 		snapshotTxs:    make(map[*EngineTx]struct{}),
 		snapChanged:    make(chan struct{}),
@@ -228,6 +232,7 @@ func NewEngine(
 		watchedHeads:   make([]*watchedHead, 0, changeWatchHeads),
 		readerPinDelay: defaultReaderPinDelay,
 	}
+	e.headSignal.Store(&headSignal{changed: make(chan struct{})})
 	e.snapIdle = sync.NewCond(&e.snapMu)
 	e.closing, e.stopClosing = context.WithCancelCause(context.Background())
 	for _, opt := range opts {
@@ -257,8 +262,11 @@ func NewEngine(
 		_ = e.Close()
 		return nil, err
 	}
+
+	// Publish the head to lock-free readers and revision waiters.
 	e.durableSeqno = e.headSeqnoLocked()
 	e.publishHeadLocked(ctx, e.durableSeqno)
+	e.signalHeadLocked()
 	e.direct = &world.Head{Root: e.head.root.GetRef().GetRootRef().Clone(), Seqno: e.durableSeqno, Durable: true}
 
 	// Follow the heads other writers commit for the engine's lifetime.
@@ -618,10 +626,25 @@ func (e *Engine) acquireHead() *publishedHead {
 	}
 }
 
-// signalHeadLocked wakes revision waiters. The caller must hold bcast.
+// headSignal is one published head as revision waiters see it.
+type headSignal struct {
+	// changed closes when a newer head or the Engine's close replaces this.
+	changed chan struct{}
+	// seqno is the seqno of the published head.
+	seqno uint64
+	// closed reports that the Engine closed.
+	closed bool
+}
+
+// signalHeadLocked publishes the head's seqno to revision waiters and wakes
+// them. The caller must hold bcast and publish the head first.
 func (e *Engine) signalHeadLocked() {
-	close(e.headChanged)
-	e.headChanged = make(chan struct{})
+	e.published++
+	next := &headSignal{changed: make(chan struct{}), closed: e.closed}
+	if p := e.pub.Load(); p != nil && !e.closed {
+		next.seqno = p.seqno
+	}
+	close(e.headSignal.Swap(next).changed)
 }
 
 // beginRetirementLocked registers detached resources that Close must join.
@@ -1241,38 +1264,19 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.
 func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
-	// Capture the head and its next publication event under the same lock.
+	// Each head publishes its seqno with the channel its successor closes.
 	for {
-		locked := e.bcast.Lock()
-		if e.closed {
-			locked.Unlock()
+		sig := e.headSignal.Load()
+		if sig.closed {
 			return 0, e.closedErr()
 		}
-		if err := e.initializeHeadReadTx(ctx); err != nil {
-			locked.Unlock()
-			return 0, err
-		}
-		readTx := e.head.readTx
-		wait := e.headChanged
-		locked.Unlock()
-
-		// Read the captured head without holding publication authority.
-		seqno, err := readTx.GetSeqno(ctx)
-		if readTx.state.discarded.Load() {
-			continue
-		}
-		if err != nil {
-			return 0, err
-		}
-
-		// Return a satisfied revision or wait for the next head.
-		if seqno >= value {
-			return seqno, nil
+		if sig.seqno >= value {
+			return sig.seqno, nil
 		}
 		select {
 		case <-ctx.Done():
 			return 0, ctx.Err()
-		case <-wait:
+		case <-sig.changed:
 		}
 	}
 }

@@ -194,9 +194,7 @@ func TestEngineAuthorityRunThrough(t *testing.T) {
 		}
 		want := f.engine.GetRootRef()
 		for !follower.GetRootRef().EqualsRef(want) {
-			locked := follower.bcast.Lock()
-			changed := follower.headChanged
-			locked.Unlock()
+			changed := follower.headSignal.Load().changed
 			if follower.GetRootRef().EqualsRef(want) {
 				break
 			}
