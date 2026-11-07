@@ -439,6 +439,51 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	if audit.LiveQueued != 0 || audit.Undercount != 0 {
 		t.Fatalf("audit found live blocks at risk: queued=%d undercount=%d", audit.LiveQueued, audit.Undercount)
 	}
+
+	// A pin and its release on a kept tree allocate the same over 1x and
+	// 10x kept blocks: the pin holds the root alone and walks nothing under
+	// the lock every put and lookup waits on.
+	pin1, pin10 := measureKeptPin(t, f.store, 1000), measureKeptPin(t, f.store, 10000)
+	t.Logf("kept pin: %v allocations over 1x blocks, %v over 10x", pin1, pin10)
+	if pin10 > pin1+2 {
+		t.Fatalf("a pin of a kept tree of 10x blocks made %v allocations, of 1x %v", pin10, pin1)
+	}
+}
+
+// measureKeptPin keeps a tree of n blocks, four children per block, in a
+// PendingStore over store, and returns the allocations of a pin and release
+// of its root.
+func measureKeptPin(t *testing.T, store block.StoreOps, n int) float64 {
+	// Keep the tree, built from its leaves up.
+	t.Helper()
+	ctx := t.Context()
+	ps := block.NewPendingStore(store, 64<<20)
+	entries := make([]*block.PutBatchEntry, n)
+	for i := n - 1; i >= 0; i-- {
+		var refs []*block.BlockRef
+		for c := 4*i + 1; c <= 4*i+4 && c < n; c++ {
+			refs = append(refs, entries[c].Ref)
+		}
+		data := []byte("kept pin " + strconv.Itoa(i))
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries[i] = &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true}
+	}
+	if _, err := ps.PutBlockBatch(ctx, entries); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pin and release its root.
+	root := entries[0].Ref
+	return testing.AllocsPerRun(20, func() {
+		release, err := ps.PinRoot(ctx, root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		release()
+	})
 }
 
 // leasedStore is a store that holds leased roots, such as a Volume bucket.
