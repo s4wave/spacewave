@@ -368,7 +368,7 @@ func (s *SOState) unsequenced(verifier *SOOperationVerifier, peerID string) (*SO
 
 	// A position it already signed above the tail would fork the sequence.
 	for _, record := range s.GetSequence() {
-		inner, signer, err := record.Verify(verifier.sharedObjectID)
+		inner, signer, err := verifier.verifySequence(record)
 		if err == nil && signer == peerID && inner.GetHeight() > placed.tail.GetHeight() {
 			return nil, soOrder{}, nil
 		}
@@ -441,7 +441,7 @@ func (s *SOState) adoptCheckpoint(v *SOOperationVerifier, next *SOCheckpoint) er
 	sequencer := s.GetConfig().GetSequencer()
 	keptSeq := s.Sequence[:0]
 	for _, record := range s.Sequence {
-		seqInner, signer, err := record.Verify(v.sharedObjectID)
+		seqInner, signer, err := v.verifySequence(record)
 		if err != nil || seqInner.GetHeight() <= inner.GetSequence().GetHeight() {
 			continue
 		}
