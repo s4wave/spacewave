@@ -146,6 +146,11 @@ func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 // sweeping it before the upload loses nothing. Tracked or not, the backend does
 // not hold the block, so it never takes the refill path of a backend hit.
 func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
+	// Serve mode writes nothing.
+	if p.serveOnly {
+		return nil
+	}
+
 	// Store the block with its refs and its upload marker.
 	opts := stored.PutOpts(ref)
 	opts.CacheFill = true

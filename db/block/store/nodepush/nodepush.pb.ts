@@ -257,6 +257,12 @@ export interface ReadData {
    * local store reads the remote meanwhile.
    */
   miss?: boolean
+  /**
+   * busy says the node did not look, since no read slot was free or its read
+   * failed, so miss is not an answer. It is set with miss, so a client that
+   * predates it reads a miss as before.
+   */
+  busy?: boolean
 }
 
 export const ReadData: MessageType<ReadData> =
@@ -266,6 +272,7 @@ export const ReadData: MessageType<ReadData> =
       [1, 'id', 4],
       [2, 'data', 12],
       [3, 'miss', 8],
+      [4, 'busy', 8],
     ],
   )
 

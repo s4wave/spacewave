@@ -157,6 +157,10 @@ type nodeKeyReads struct {
 	block.StoreOps
 	client *atomic.Pointer[block_store_nodepush.Client]
 	wait   time.Duration
+	// bound is how long answered misses keep the read asking:
+	// nodeKeyReadBound, or zero in serve mode, where the first answer is
+	// final and an away or silent node fails the read.
+	bound time.Duration
 }
 
 // BeginReadOperation opens a read scope of the other paths that still asks
@@ -166,7 +170,7 @@ func (r *nodeKeyReads) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	if err != nil {
 		return nil, nil, err
 	}
-	return &nodeKeyReads{StoreOps: scope, client: r.client, wait: r.wait}, release, nil
+	return &nodeKeyReads{StoreOps: scope, client: r.client, wait: r.wait, bound: r.bound}, release, nil
 }
 
 // GetStoredBlock reads the other paths, then the node. A path that ends in
@@ -191,7 +195,7 @@ func (r *nodeKeyReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 // readNode reads ref from the node's pack log by key, or returns nil and
 // whether the node failed to answer rather than missing it.
 func (r *nodeKeyReads) readNode(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, bool) {
-	return readNodeBlockAnswer(ctx, r.client, r.wait, nodeKeyReadBound, ref)
+	return readNodeBlockAnswer(ctx, r.client, r.wait, r.bound, ref)
 }
 
 // nodeBeforePeers asks the storage node by key before the peers, whose read
@@ -305,10 +309,19 @@ func readNodeBlockAnswer(ctx context.Context, client *atomic.Pointer[block_store
 		}
 
 		// Silence is not a miss: ask again with a longer try, until the
-		// silent bound. A try the node dropped mid-way costs nothing.
+		// silent bound. A try the node dropped mid-way costs nothing. A busy
+		// answer comes back before the try ends, so it pauses first.
 		if !answered {
 			if c2 := client.Load(); c2 == nil || !c2.Connected() {
 				continue
+			}
+			if took := time.Since(started); took < try {
+				select {
+				case <-ctx.Done():
+					return nil, true
+				case <-time.After(pause):
+				}
+				pause = min(pause*2, nodeKeyReadPauseMax)
 			}
 			silentLeft -= time.Since(started)
 			if silentLeft < 0 {

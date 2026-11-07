@@ -109,6 +109,10 @@ message ReadData {
   // miss says the node lacks the pack. It fills it in the background, and the
   // local store reads the remote meanwhile.
   bool miss = 3;
+  // busy says the node did not look, since no read slot was free or its read
+  // failed, so miss is not an answer. It is set with miss, so a client that
+  // predates it reads a miss as before.
+  bool busy = 4;
 }
 
 // Record is the writes of one local commit, in the order the commit made
