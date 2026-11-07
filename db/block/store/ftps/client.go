@@ -344,6 +344,44 @@ func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
 	})
 }
 
+// MoveObject renames the object to another key on the server, creating the
+// directories the new key needs; no byte passes through the client. A move
+// whose source is gone counts as done when the destination exists, so a
+// repeated move succeeds.
+func (c *Client) MoveObject(ctx context.Context, bucket, from, to string) error {
+	// Rename on one connection.
+	src, dst := path.Join(bucket, from), path.Join(bucket, to)
+	err := c.do(ctx, func(conn *ftp.ServerConn, _ *slot) error {
+		// Rename, or find why the server refused: the source gone, or the
+		// destination's directory missing.
+		err := conn.Rename(src, dst)
+		if !isReply(err) {
+			return errors.Wrap(err, "move "+src)
+		}
+		if _, serr := conn.FileSize(src); serr != nil {
+			if !unavailable(serr) {
+				return serr
+			}
+			if _, derr := conn.FileSize(dst); !unavailable(derr) {
+				return derr
+			}
+			return errors.Wrap(block_store_s3.ErrNotFound, "move "+src)
+		}
+
+		// Create the destination's directory and rename again.
+		makeDirs(conn, path.Dir(dst))
+		return errors.Wrap(conn.Rename(src, dst), "move "+src)
+	})
+
+	// Carry the known size to the new key.
+	if size, ok := c.sizes.LoadAndDelete(src); ok && err == nil {
+		c.sizes.Store(dst, size)
+	} else {
+		c.sizes.Delete(dst)
+	}
+	return err
+}
+
 // errSpent is returned by a do callback that finished its work but left the
 // connection unusable.
 var errSpent = errors.New("ftps connection spent")
@@ -616,12 +654,18 @@ func isReply(err error) bool {
 // notFound marks a permanent negative reply to a download as
 // block_store_s3.ErrNotFound.
 func notFound(err error, name string) error {
-	var reply *textproto.Error
-	if errors.As(err, &reply) && reply.Code == ftp.StatusFileUnavailable {
+	if unavailable(err) {
 		return errors.Wrap(block_store_s3.ErrNotFound, name)
 	}
 	return err
 }
 
+// unavailable reports whether err is the server's permanent answer that a file
+// is not there.
+func unavailable(err error) bool {
+	var reply *textproto.Error
+	return errors.As(err, &reply) && reply.Code == ftp.StatusFileUnavailable
+}
+
 // _ is a type assertion
-var _ block_store_s3.ObjectStore = (*Client)(nil)
+var _ block_store_s3.ObjectMover = (*Client)(nil)
