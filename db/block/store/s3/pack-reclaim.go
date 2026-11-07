@@ -482,7 +482,7 @@ func (s *PackStore) listReclaimStates(ctx context.Context) ([]string, error) {
 func (s *PackStore) readPackIndex(ctx context.Context, entry *packfile.PackfileEntry) ([]*kvfile.IndexEntry, error) {
 	// Open the packfile for ranged reads.
 	size := entry.GetSizeBytes()
-	pack, err := s.openPack(entry.GetId(), int64(size)) //nolint:gosec // a packfile is at most writer.DefaultMaxPackBytes.
+	pack, err := s.openPack(entry.GetId(), int64(size)) //nolint:gosec // a packfile is far below 2^63 bytes.
 	if err != nil {
 		return nil, err
 	}
