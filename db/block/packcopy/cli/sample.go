@@ -1,4 +1,4 @@
-package main
+package packcopy_cli
 
 import (
 	"cmp"

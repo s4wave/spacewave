@@ -1,4 +1,4 @@
-package main
+package packcopy_cli
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
+	packcopy_world "github.com/s4wave/spacewave/db/block/packcopy/world"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -71,6 +73,12 @@ type Args struct {
 	// limit.
 	BudgetBytes uint64
 
+	// NoSFTP reads no pack over SFTP: the copy reads the Volume files, the
+	// frames and the archives alone, and opens no SFTP connection.
+	NoSFTP bool
+	// ReadTarget reads a block the target holds back from the bucket when no
+	// source serves it. Off, the target is only written.
+	ReadTarget bool
 	// SFTPAddr is the source server's host:port.
 	SFTPAddr string
 	// SFTPUser is the source login.
@@ -114,6 +122,11 @@ type Args struct {
 	Volume volumeArgs
 	// Archive configures the archive peer source.
 	Archive archiveArgs
+	// WorldHead is the World head file whose types the copy decodes by.
+	WorldHead string
+
+	// hooks are what the program added, nil for none.
+	hooks *Hooks
 }
 
 // storeFlags binds the flags both commands share.
@@ -121,12 +134,12 @@ func (a *Args) storeFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "scratch", Usage: "scratch file holding the proofs and byte count", Destination: &a.Scratch, Required: true},
 		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index files hold", Destination: &a.StoreID, Required: true},
-		&cli.StringFlag{Name: "source-index", Usage: "the source's pack index file, opened read-only beside its writer", Destination: &a.SourceIndex, Required: true},
+		&cli.StringFlag{Name: "source-index", Usage: "the source's pack index file, opened read-only beside its writer", Destination: &a.SourceIndex},
 		&cli.StringFlag{Name: "target-index", Usage: "the clean store's pack index file, created if missing", Destination: &a.TargetIndex, Required: true},
 		&cli.StringFlag{Name: "index-table", Usage: "table of both pack index files", Value: defaultIndexTable, Destination: &a.IndexTable},
 		&cli.IntFlag{Name: "width", Usage: "target packs indexed at once", Value: 2, Destination: &a.Width},
 		&cli.Uint64Flag{Name: "budget-bytes", Usage: "bytes the source may serve across runs; zero has no limit", Destination: &a.BudgetBytes},
-		&cli.StringFlag{Name: "sftp-addr", Usage: "source server's host:port", Destination: &a.SFTPAddr, Required: true},
+		&cli.StringFlag{Name: "sftp-addr", Usage: "source server's host:port", Destination: &a.SFTPAddr},
 		&cli.StringFlag{Name: "sftp-user", Usage: "source login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
 		&cli.StringFlag{Name: "sftp-host-key", Usage: "source server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: true},
 		&cli.IntFlag{Name: "sftp-conns", Usage: "most SSH connections to the source at once, each carrying many reads", Value: 2, Destination: &a.SFTPConns},
@@ -143,7 +156,10 @@ func (a *Args) storeFlags() []cli.Flag {
 // copyFlags binds the flags of the copy command.
 func (a *Args) copyFlags() []cli.Flag {
 	return append([]cli.Flag{
-		&cli.StringSliceFlag{Name: "root", Usage: "block to copy, as a b58 ref; repeat for each", Destination: &a.Roots, Required: true},
+		&cli.BoolFlag{Name: "read-target", Usage: "read a block the target holds back from the bucket when no source serves it; off, the target is only written and a held block no source serves is a missing hole", Destination: &a.ReadTarget},
+		&cli.BoolFlag{Name: "no-sftp", Usage: "read no pack over SFTP, opening no connection: the Volume files, the frames and the archives serve the copy", Destination: &a.NoSFTP},
+		&cli.StringSliceFlag{Name: "root", Usage: "block to copy, as a b58 ref; repeat for each", Destination: &a.Roots},
+		&cli.StringFlag{Name: "world-head", Usage: "World head file: decode the World's blocks by type for the refs their store lacks, and copy its root", Destination: &a.WorldHead},
 		&cli.StringFlag{Name: "unknown-refs", Usage: "file listing blocks whose pack entry lacks their true refs", Destination: &a.UnknownRefs},
 		&cli.StringSliceFlag{Name: "frames", Usage: "block frame file pulled from production; repeat for each", Destination: &a.Frames},
 		&cli.StringFlag{Name: "holes", Usage: "holes list to write, which block-export takes as it is", Value: "holes.txt", Destination: &a.Holes},
@@ -192,47 +208,18 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 		return nil, err
 	}
 
-	// Open the index files. A row of the target index commits after its pack
-	// is durable; a lost one is rebuilt from the pack.
-	if _, err := os.Stat(a.SourceIndex); err != nil {
-		return nil, errors.Wrap(err, "--source-index")
-	}
+	// Open the target index file. A row commits after its pack is durable; a
+	// lost one is rebuilt from the pack.
 	table := cmp.Or(a.IndexTable, defaultIndexTable)
-	if r.sourceIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.SourceIndex, table, store_kvtx_sqlite.Pragmas{ReadOnly: true}); err != nil {
-		return nil, errors.Wrap(err, "open --source-index")
-	}
 	if r.targetIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.TargetIndex, table, store_kvtx_sqlite.Pragmas{FullSync: true, WithoutRowID: true}); err != nil {
 		return nil, errors.Wrap(err, "open --target-index")
 	}
 	indexPrefix := block_store_s3.PackIndexPrefix(a.StoreID)
-
-	// Reach the source within its connection cap and byte budget.
-	r.sftp, err = block_store_sftp.NewClient(block_store_sftp.Config{
-		Addr:     a.SFTPAddr,
-		User:     a.SFTPUser,
-		Password: os.Getenv(sftpPasswordEnv),
-		HostKey:  a.SFTPHostKey,
-		Conns:    a.SFTPConns,
-	})
-	if err != nil {
-		return nil, err
+	if !a.NoSFTP {
+		if err := a.openSource(ctx, r, table, indexPrefix); err != nil {
+			return nil, err
+		}
 	}
-	used, err := readUsed(r.scratch)
-	if err != nil {
-		return nil, err
-	}
-	r.meter = packcopy.NewMeter(r.sftp, a.BudgetBytes, used)
-
-	// The source reads its blocks from the index alone: a listing of every
-	// pack over two connections would cost hours, and the live index names
-	// the packs its writer added since the last pass.
-	r.source = block_store_s3.NewPackStore(r.le, r.meter, a.SFTPRoot, a.SourcePrefix, &block_store_s3.PackStoreOptions{
-		KeepPacks:  true,
-		Index:      kvtx_prefixer.NewPrefixer(r.sourceIndex, indexPrefix),
-		SoleWriter: true,
-		// A read over SFTP pays for bytes, not requests: fetch only the block.
-		ExactReads: true,
-	})
 
 	// Reach the target. Tail merges stay off: they delete a pack, and a proof
 	// must keep meaning its blocks are durable.
@@ -257,6 +244,60 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 		MaxPackBytes: a.PackMiB << 20,
 	})
 	return r, nil
+}
+
+// openSource opens the source's pack index file read-only and reaches its
+// packs over SFTP, within the connection cap and the byte budget.
+func (a *Args) openSource(ctx context.Context, r *run, table string, indexPrefix []byte) error {
+	// Open the source index beside its writer.
+	if _, err := os.Stat(a.SourceIndex); err != nil {
+		return errors.Wrap(err, "--source-index")
+	}
+	var err error
+	if r.sourceIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.SourceIndex, table, store_kvtx_sqlite.Pragmas{ReadOnly: true}); err != nil {
+		return errors.Wrap(err, "open --source-index")
+	}
+	if a.SFTPAddr == "" {
+		return errors.New("set --sftp-addr, or --no-sftp")
+	}
+
+	// Reach the source within its connection cap and byte budget.
+	r.sftp, err = block_store_sftp.NewClient(block_store_sftp.Config{
+		Addr:     a.SFTPAddr,
+		User:     a.SFTPUser,
+		Password: os.Getenv(sftpPasswordEnv),
+		HostKey:  a.SFTPHostKey,
+		Conns:    a.SFTPConns,
+	})
+	if err != nil {
+		return err
+	}
+	used, err := readUsed(r.scratch)
+	if err != nil {
+		return err
+	}
+	r.meter = packcopy.NewMeter(r.sftp, a.BudgetBytes, used)
+
+	// The source reads its blocks from the index alone: a listing of every
+	// pack over two connections would cost hours, and the live index names
+	// the packs its writer added since the last pass.
+	r.source = block_store_s3.NewPackStore(r.le, r.meter, a.SFTPRoot, a.SourcePrefix, &block_store_s3.PackStoreOptions{
+		KeepPacks:  true,
+		Index:      kvtx_prefixer.NewPrefixer(r.sourceIndex, indexPrefix),
+		SoleWriter: true,
+		// A read over SFTP pays for bytes, not requests: fetch only the block.
+		ExactReads: true,
+	})
+	return nil
+}
+
+// used returns the bytes the source has served across runs, zero when the
+// copy reads no pack.
+func (r *run) used() uint64 {
+	if r.meter == nil {
+		return 0
+	}
+	return r.meter.Used()
 }
 
 // close releases what open opened, saving the byte count.
@@ -329,6 +370,41 @@ func (a *Args) runCopy(*cli.Context) error {
 	}
 	defer closeSources()
 
+	// Type the World's blocks by its head, and copy its root.
+	var typer packcopy.Typer
+	if a.WorldHead != "" {
+		if a.hooks == nil || a.hooks.ReadHead == nil {
+			return errors.New("--world-head: this program does not know a World's types")
+		}
+		heads, err := a.hooks.ReadHead(a.WorldHead)
+		if err != nil {
+			return errors.Wrap(err, "read --world-head")
+		}
+		// With --read-target the listing reads the target too, which holds
+		// what earlier passes copied from frames since dropped.
+		listed := slices.Clone(sources)
+		if a.ReadTarget {
+			listed = append(listed, r.target)
+		}
+		listing := packcopy.NewSourceStore(listed)
+		wt, err := packcopy_world.New(ctx, r.le, listing, heads, a.hooks.RootTypes)
+		if err != nil {
+			return errors.Wrap(err, "type the World")
+		}
+		defer func() { r.le.WithField("untyped", wt.Untyped()).Info("refs left untyped") }()
+		typer = wt
+		// The World roots walk first: a block reached first from an untyped
+		// root stays untyped, so the typed sightings should come first.
+		worldRoots := make([]*block.BlockRef, 0, len(heads))
+		for _, h := range heads {
+			worldRoots = append(worldRoots, h.GetRootRef())
+		}
+		roots = append(worldRoots, roots...)
+	}
+	if len(roots) == 0 {
+		return errors.New("name a --root or a --world-head")
+	}
+
 	// Write the holes list afresh: it names what this pass could not serve.
 	holes, err := os.Create(a.Holes)
 	if err != nil {
@@ -344,16 +420,18 @@ func (a *Args) runCopy(*cli.Context) error {
 
 	// Run the pass, saving the byte count with each pack.
 	result, err := packcopy.Copy(ctx, &packcopy.Options{
-		Roots:   roots,
-		Target:  r.target,
-		Sources: sources,
-		Proofs:  kvtx_prefixer.NewPrefixer(r.scratch, proofsPrefix),
-		Graph:   packcopy.NewGraphStream(r.objects, a.Bucket, a.TargetPrefix+graphDir),
-		Holes:   writeHole,
-		Reads:   a.Reads,
-		Uploads: a.Uploads,
+		Roots:      roots,
+		Target:     r.target,
+		Sources:    sources,
+		Proofs:     kvtx_prefixer.NewPrefixer(r.scratch, proofsPrefix),
+		Graph:      packcopy.NewGraphStream(r.objects, a.Bucket, a.TargetPrefix+graphDir),
+		Holes:      writeHole,
+		Reads:      a.Reads,
+		Uploads:    a.Uploads,
+		Typer:      typer,
+		ReadTarget: a.ReadTarget,
 		Progress: func(p packcopy.Result) {
-			if werr := writeUsed(r.scratch, r.meter.Used()); werr != nil {
+			if werr := writeUsed(r.scratch, r.used()); werr != nil {
 				r.le.WithError(werr).Warn("save source byte count")
 			}
 			r.le.WithFields(resultFields(&p)).Info("pack written")
@@ -363,7 +441,7 @@ func (a *Args) runCopy(*cli.Context) error {
 		err = ferr
 	}
 	if result != nil {
-		r.le.WithFields(resultFields(result)).WithField("used", r.meter.Used()).Info("pass finished")
+		r.le.WithFields(resultFields(result)).WithField("used", r.used()).Info("pass finished")
 	}
 	return err
 }
@@ -377,7 +455,10 @@ func (a *Args) openSources(ctx context.Context, r *run) ([]packcopy.Source, func
 		return nil, nil, err
 	}
 
-	// Mark the listed blocks in the packs.
+	// Mark the listed blocks in the packs, when the copy reads them.
+	if r.source == nil {
+		return a.openPulled(ctx, r, sources, closeVolumes)
+	}
 	var packs packcopy.Source = r.source
 	if a.UnknownRefs != "" {
 		list, err := os.Open(a.UnknownRefs)
@@ -392,7 +473,11 @@ func (a *Args) openSources(ctx context.Context, r *run) ([]packcopy.Source, func
 		}
 	}
 	sources = append(sources, packs)
+	return a.openPulled(ctx, r, sources, closeVolumes)
+}
 
+// openPulled adds the pulled blocks, then the archive peers, to sources.
+func (a *Args) openPulled(ctx context.Context, r *run, sources []packcopy.Source, closeVolumes func()) ([]packcopy.Source, func(), error) {
 	// Add the pulled blocks.
 	frames, err := packcopy.OpenFrameStore(a.Frames.Value())
 	if err != nil {
