@@ -378,6 +378,8 @@ func NewBlockStoreRef(providerID, providerAccountID, bstoreID string) *bstore.Bl
 
 // bstoreTracker tracks a BlockStore in the ProviderAccount.
 type bstoreTracker struct {
+	// nodeClient reaches the store's storage node, nil while none is up.
+	nodeClient atomic.Pointer[block_store_nodepush.Client]
 	// a is the provider account
 	a *ProviderAccount
 	// id is the bstore id

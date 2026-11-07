@@ -1,8 +1,10 @@
 package block_store_nodepush
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -14,7 +16,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
 )
@@ -374,4 +378,121 @@ func TestReportWaitsOnNoConnection(t *testing.T) {
 	client := NewClient(logrus.NewEntry(logrus.New()), apply)
 	defer connect(ctx, t, client, server)()
 	waitFor(t, func() bool { return apply.applied.Load() == 3*maxFramesQueued })
+}
+
+// objectRemote is the remote's object store, counting range reads.
+type objectRemote struct {
+	block_store_s3.ObjectStore
+	objects map[string][]byte
+	ranges  atomic.Int32
+}
+
+// GetObject opens an object.
+func (o *objectRemote) GetObject(_ context.Context, _, key string) (io.ReadCloser, error) {
+	data, ok := o.objects[key]
+	if !ok {
+		return nil, errors.New("no such object")
+	}
+	return io.NopCloser(bytes.NewReader(data)), nil
+}
+
+// GetObjectRange reads a range, shorter at the end of the object.
+func (o *objectRemote) GetObjectRange(_ context.Context, _, key string, off int64, length int) ([]byte, error) {
+	o.ranges.Add(1)
+	data := o.objects[key]
+	return data[min(int(off), len(data)):min(int(off)+length, len(data))], nil
+}
+
+// TestReadThrough reads ranges through the node: a miss answers from the remote
+// and fills the pack, the next read comes from the node, and a node that is
+// away or distrusted costs nothing but the remote read.
+func TestReadThrough(t *testing.T) {
+	// A node with no packs, and a remote with one.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	id := identity.NewPackID()
+	remote := &objectRemote{objects: map[string][]byte{"p/packs/" + id: []byte("the pack's bytes")}}
+	dir := t.TempDir()
+	packs, err := NewPackFiles(logrus.NewEntry(logrus.New()), dir+"/packs", remote, "bucket", "p/packs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go packs.Run(ctx)
+	server, err := NewServer(nopHolder{}, dir+"/reports")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.SetPacks(packs)
+	client := NewClient(logrus.NewEntry(logrus.New()), &slowApplier{})
+	end := connect(ctx, t, client, server)
+	var on atomic.Bool
+	var reach atomic.Pointer[Client]
+	objects := NewObjects(remote, time.Second, &on, &reach)
+	reach.Store(client)
+	on.Store(true)
+	key := "p/packs/" + id
+	read := func() string {
+		t.Helper()
+		data, err := objects.GetObjectRange(ctx, "bucket", key, 4, 4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+
+	// The miss reads the remote and starts the fill.
+	if got := read(); got != "pack" || remote.ranges.Load() != 1 {
+		t.Fatalf("miss read %q, %d remote reads", got, remote.ranges.Load())
+	}
+	waitFor(t, func() bool {
+		_, ok := packs.ReadRange(id, 0, 1)
+		return ok
+	})
+
+	// The fill serves the next read, without the remote.
+	if got := read(); got != "pack" || remote.ranges.Load() != 1 {
+		t.Fatalf("hit read %q, %d remote reads", got, remote.ranges.Load())
+	}
+
+	// A range past the end comes back short, as the object store's does.
+	if data, ok := client.ReadRange(ctx, id, 12, 100); !ok || string(data) != "ytes" {
+		t.Fatalf("short read %q %v", data, ok)
+	}
+
+	// A name that leaves the directory reaches no file.
+	if _, ok := client.ReadRange(ctx, "../reports/x", 0, 4); ok {
+		t.Fatal("read outside the pack directory")
+	}
+
+	// Distrusted, reads go to the remote though the node holds the pack.
+	objects.DistrustReads()
+	if got := read(); got != "pack" || remote.ranges.Load() != 2 {
+		t.Fatalf("distrusted read %q, %d remote reads", got, remote.ranges.Load())
+	}
+	objects.distrustUntil.Store(0)
+
+	// The switch keeps reads off the node as well.
+	on.Store(false)
+	if got := read(); got != "pack" || remote.ranges.Load() != 3 {
+		t.Fatalf("switched off read %q, %d remote reads", got, remote.ranges.Load())
+	}
+	on.Store(true)
+
+	// A full disk leaves the pack unfilled, and reads carry on from the remote.
+	full := identity.NewPackID()
+	remote.objects["p/packs/"+full] = []byte("no room")
+	packs.SetRoom(func() bool { return false })
+	if err := packs.Fill(ctx, full); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := packs.ReadRange(full, 0, 1); ok {
+		t.Fatal("filled a pack with no room")
+	}
+	packs.SetRoom(nil)
+
+	// A node that goes away ends the read at once, and the remote answers.
+	end()
+	if got := read(); got != "pack" || remote.ranges.Load() != 4 {
+		t.Fatalf("read with the node away %q, %d remote reads", got, remote.ranges.Load())
+	}
 }

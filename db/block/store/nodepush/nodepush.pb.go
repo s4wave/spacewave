@@ -22,6 +22,8 @@ type Message struct {
 	//	*Message_Refused
 	//	*Message_PackReport
 	//	*Message_PackApplied
+	//	*Message_Read
+	//	*Message_ReadData
 	Body isMessage_Body `protobuf_oneof:"body"`
 }
 
@@ -73,6 +75,20 @@ func (x *Message) GetPackApplied() *PackApplied {
 	return nil
 }
 
+func (x *Message) GetRead() *Read {
+	if x, ok := x.GetBody().(*Message_Read); ok {
+		return x.Read
+	}
+	return nil
+}
+
+func (x *Message) GetReadData() *ReadData {
+	if x, ok := x.GetBody().(*Message_ReadData); ok {
+		return x.ReadData
+	}
+	return nil
+}
+
 type isMessage_Body interface {
 	isMessage_Body()
 }
@@ -103,6 +119,16 @@ type Message_PackApplied struct {
 	PackApplied *PackApplied `protobuf:"bytes,5,opt,name=pack_applied,json=packApplied,proto3,oneof"`
 }
 
+type Message_Read struct {
+	// Read asks the node for a byte range of a pack.
+	Read *Read `protobuf:"bytes,6,opt,name=read,proto3,oneof"`
+}
+
+type Message_ReadData struct {
+	// ReadData answers a Read.
+	ReadData *ReadData `protobuf:"bytes,7,opt,name=read_data,json=readData,proto3,oneof"`
+}
+
 func (*Message_Push) isMessage_Body() {}
 
 func (*Message_Flushed) isMessage_Body() {}
@@ -112,6 +138,10 @@ func (*Message_Refused) isMessage_Body() {}
 func (*Message_PackReport) isMessage_Body() {}
 
 func (*Message_PackApplied) isMessage_Body() {}
+
+func (*Message_Read) isMessage_Body() {}
+
+func (*Message_ReadData) isMessage_Body() {}
 
 // Push is the blocks of one publication.
 type Push struct {
@@ -289,6 +319,92 @@ func (x *PackApplied) GetPackId() string {
 	return ""
 }
 
+// Read asks for a byte range of a pack the node may hold on its disk.
+type Read struct {
+	unknownFields []byte
+	// id names the read on this connection.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// pack_id is the pack's name.
+	PackId string `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"packId,omitempty"`
+	// off is the offset of the range.
+	Off int64 `protobuf:"varint,3,opt,name=off,proto3" json:"off,omitempty"`
+	// length is the length of the range.
+	Length uint32 `protobuf:"varint,4,opt,name=length,proto3" json:"length,omitempty"`
+}
+
+func (x *Read) Reset() {
+	*x = Read{}
+}
+
+func (*Read) ProtoMessage() {}
+
+func (x *Read) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Read) GetPackId() string {
+	if x != nil {
+		return x.PackId
+	}
+	return ""
+}
+
+func (x *Read) GetOff() int64 {
+	if x != nil {
+		return x.Off
+	}
+	return 0
+}
+
+func (x *Read) GetLength() uint32 {
+	if x != nil {
+		return x.Length
+	}
+	return 0
+}
+
+// ReadData answers a Read.
+type ReadData struct {
+	unknownFields []byte
+	// id is the Read's id.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// data holds the range, shorter when the pack ends first.
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// miss says the node lacks the pack. It fills it in the background, and the
+	// local store reads the remote meanwhile.
+	Miss bool `protobuf:"varint,3,opt,name=miss,proto3" json:"miss,omitempty"`
+}
+
+func (x *ReadData) Reset() {
+	*x = ReadData{}
+}
+
+func (*ReadData) ProtoMessage() {}
+
+func (x *ReadData) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ReadData) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *ReadData) GetMiss() bool {
+	if x != nil {
+		return x.Miss
+	}
+	return false
+}
+
 func (m *Message) CloneVT() *Message {
 	if m == nil {
 		return (*Message)(nil)
@@ -369,6 +485,32 @@ func (m *Message_PackApplied) CloneVT() *Message_PackApplied {
 }
 
 func (m *Message_PackApplied) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_Read) CloneVT() *Message_Read {
+	if m == nil {
+		return (*Message_Read)(nil)
+	}
+	r := new(Message_Read)
+	r.Read = protobuf_go_lite.CloneVTValue(m.Read)
+	return r
+}
+
+func (m *Message_Read) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_ReadData) CloneVT() *Message_ReadData {
+	if m == nil {
+		return (*Message_ReadData)(nil)
+	}
+	r := new(Message_ReadData)
+	r.ReadData = protobuf_go_lite.CloneVTValue(m.ReadData)
+	return r
+}
+
+func (m *Message_ReadData) CloneOneofVT() isMessage_Body {
 	return m.CloneVT()
 }
 
@@ -471,6 +613,43 @@ func (m *PackApplied) CloneVT() *PackApplied {
 }
 
 func (m *PackApplied) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Read) CloneVT() *Read {
+	if m == nil {
+		return (*Read)(nil)
+	}
+	r := new(Read)
+	r.Id = m.Id
+	r.PackId = m.PackId
+	r.Off = m.Off
+	r.Length = m.Length
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Read) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadData) CloneVT() *ReadData {
+	if m == nil {
+		return (*ReadData)(nil)
+	}
+	r := new(ReadData)
+	r.Id = m.Id
+	r.Miss = m.Miss
+	r.Data = protobuf_go_lite.CloneBytes(m.Data)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadData) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -580,6 +759,40 @@ func (this *Message_PackApplied) EqualVT(thatIface isMessage_Body) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTImplicit(this.PackApplied, that.PackApplied, func() *PackApplied { return &PackApplied{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_Read) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_Read)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Read, that.Read, func() *Read { return &Read{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_ReadData) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_ReadData)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.ReadData, that.ReadData, func() *ReadData { return &ReadData{} }) {
 		return false
 	}
 	return true
@@ -717,6 +930,59 @@ func (this *PackApplied) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+func (this *Read) EqualVT(that *Read) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.PackId != that.PackId {
+		return false
+	}
+	if this.Off != that.Off {
+		return false
+	}
+	if this.Length != that.Length {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Read) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Read)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ReadData) EqualVT(that *ReadData) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Data, that.Data) {
+		return false
+	}
+	if this.Miss != that.Miss {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadData) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadData)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 
 // MarshalProtoJSON marshals the Message message to JSON.
 func (x *Message) MarshalProtoJSON(s *json.MarshalState) {
@@ -748,6 +1014,14 @@ func (x *Message) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("packApplied")
 			ov.PackApplied.MarshalProtoJSON(s.WithField("packApplied"))
+		case *Message_Read:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("read")
+			ov.Read.MarshalProtoJSON(s.WithField("read"))
+		case *Message_ReadData:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("readData")
+			ov.ReadData.MarshalProtoJSON(s.WithField("readData"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -812,6 +1086,24 @@ func (x *Message) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.PackApplied = &PackApplied{}
 			ov.PackApplied.UnmarshalProtoJSON(s.WithField("pack_applied", true))
+		case "read":
+			ov := &Message_Read{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Read = nil
+				return
+			}
+			ov.Read = &Read{}
+			ov.Read.UnmarshalProtoJSON(s.WithField("read", true))
+		case "read_data", "readData":
+			ov := &Message_ReadData{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.ReadData = nil
+				return
+			}
+			ov.ReadData = &ReadData{}
+			ov.ReadData.UnmarshalProtoJSON(s.WithField("read_data", true))
 		}
 	})
 }
@@ -1146,6 +1438,130 @@ func (x *PackApplied) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Read message to JSON.
+func (x *Read) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if x.PackId != "" || s.HasField("packId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packId")
+		s.WriteString(x.PackId)
+	}
+	if x.Off != 0 || s.HasField("off") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("off")
+		s.WriteInt64(x.Off)
+	}
+	if x.Length != 0 || s.HasField("length") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("length")
+		s.WriteUint32(x.Length)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Read to JSON.
+func (x *Read) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Read message from JSON.
+func (x *Read) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "pack_id", "packId":
+			s.AddField("pack_id")
+			x.PackId = s.ReadString()
+		case "off":
+			s.AddField("off")
+			x.Off = s.ReadInt64()
+		case "length":
+			s.AddField("length")
+			x.Length = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Read from JSON.
+func (x *Read) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadData message to JSON.
+func (x *ReadData) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if len(x.Data) > 0 || s.HasField("data") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("data")
+		s.WriteBytes(x.Data)
+	}
+	if x.Miss || s.HasField("miss") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("miss")
+		s.WriteBool(x.Miss)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadData to JSON.
+func (x *ReadData) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadData message from JSON.
+func (x *ReadData) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "data":
+			s.AddField("data")
+			x.Data = s.ReadBytes()
+		case "miss":
+			s.AddField("miss")
+			x.Miss = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadData from JSON.
+func (x *ReadData) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Message) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1299,6 +1715,52 @@ func (m *Message_PackApplied) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
 		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *Message_Read) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_Read) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Read != nil {
+		size, err := m.Read.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+func (m *Message_ReadData) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_ReadData) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ReadData != nil {
+		size, err := m.ReadData.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x3a
 	}
 	return len(dAtA) - i, nil
 }
@@ -1563,6 +2025,105 @@ func (m *PackApplied) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Read) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Read) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Read) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Length != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Length))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Off != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Off))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.PackId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadData) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadData) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadData) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Miss {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Miss)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Data) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Data)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Message) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1646,6 +2207,34 @@ func (m *Message_PackApplied) SizeVT() (n int) {
 	}
 	return n
 }
+func (m *Message_Read) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Read != nil {
+		l = m.Read.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+func (m *Message_ReadData) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ReadData != nil {
+		l = m.ReadData.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
 func (m *Push) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1721,6 +2310,33 @@ func (m *PackApplied) SizeVT() (n int) {
 	return n
 }
 
+func (m *Read) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Off)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Length)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadData) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Data)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Miss)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x *Message) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Message")
@@ -1759,6 +2375,20 @@ func (x *Message) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PackApplied{})
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.PackApplied)
+		}
+	case *Message_Read:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read")
+		if body.Read == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &Read{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Read)
+		}
+	case *Message_ReadData:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_data")
+		if body.ReadData == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReadData{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ReadData)
 		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
@@ -1881,6 +2511,52 @@ func (x *PackApplied) MarshalProtoText() string {
 func (x *PackApplied) String() string {
 	return x.MarshalProtoText()
 }
+func (x *Read) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Read")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if x.PackId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PackId)
+	}
+	if x.Off != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "off")
+		protobuf_go_lite.TextWriteInt(&sb, x.Off)
+	}
+	if x.Length != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "length")
+		protobuf_go_lite.TextWriteUint(&sb, x.Length)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Read) String() string {
+	return x.MarshalProtoText()
+}
+func (x *ReadData) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadData")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if len(x.Data) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Data)
+	}
+	if x.Miss != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "miss")
+		protobuf_go_lite.TextWriteBool(&sb, x.Miss)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadData) String() string {
+	return x.MarshalProtoText()
+}
 func (m *Message) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1999,6 +2675,46 @@ func (m *Message) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Body = &Message_PackApplied{PackApplied: v}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Read", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_Read); ok {
+				if err := oneof.Read.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &Read{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_Read{Read: v}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadData", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_ReadData); ok {
+				if err := oneof.ReadData.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ReadData{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_ReadData{ReadData: v}
 			}
 			iNdEx = postIndex
 		default:
@@ -2365,6 +3081,154 @@ func (m *PackApplied) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PackId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Read) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Read: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Read: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackId = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Off", wireType)
+			}
+			m.Off = 0
+			m.Off, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Length", wireType)
+			}
+			m.Length = 0
+			m.Length, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ReadData) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			m.Data, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Data, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Miss", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Miss = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

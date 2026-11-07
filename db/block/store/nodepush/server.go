@@ -25,6 +25,9 @@ const reportSuffix = ".report"
 // share the log's flushes.
 const maxPushesInFlight = 16
 
+// maxReadsInFlight bounds the reads one connection serves at once.
+const maxReadsInFlight = 32
+
 // reportWait is how long a report waits for its answer before the next one
 // takes its turn.
 const reportWait = 30 * time.Second
@@ -56,6 +59,8 @@ type Server struct {
 	wait time.Duration
 	// wake tells the report routine that pending changed.
 	wake chan struct{}
+	// packs serves reads, or is nil on a node that serves none.
+	packs *PackFiles
 
 	// mtx guards pending.
 	mtx sync.Mutex
@@ -96,6 +101,11 @@ func NewServer(holder Holder, dir string) (*Server, error) {
 	return s, nil
 }
 
+// SetPacks serves reads from packs. Call it before Serve.
+func (s *Server) SetPacks(packs *PackFiles) {
+	s.packs = packs
+}
+
 // Serve runs conn until it ends.
 func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 	// End the connection's work on the way out.
@@ -122,8 +132,10 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 		s.sendReports(ctx, out)
 	}()
 
-	// Take pushes, appending several at once so they share a flush.
+	// Take pushes, appending several at once so they share a flush, and
+	// reads, in their own slots so a burst of them never holds back a push.
 	slots := make(chan struct{}, maxPushesInFlight)
+	readSlots := make(chan struct{}, maxReadsInFlight)
 	r := bufio.NewReader(conn)
 	for {
 		msg, err := readMessage(r)
@@ -143,12 +155,35 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 				defer func() { <-slots }()
 				send(ctx, out, s.hold(ctx, body.Push))
 			}()
+		case *Message_Read:
+			select {
+			case readSlots <- struct{}{}:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			running.Add(1)
+			go func() {
+				defer running.Done()
+				defer func() { <-readSlots }()
+				send(ctx, out, s.read(body.Read))
+			}()
 		case *Message_PackApplied:
 			if err := s.applied(body.PackApplied.GetPackId()); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+// read answers req from the pack files.
+func (s *Server) read(req *Read) *Message {
+	answer := &ReadData{Id: req.GetId(), Miss: true}
+	if s.packs != nil {
+		if data, ok := s.packs.ReadRange(req.GetPackId(), req.GetOff(), req.GetLength()); ok {
+			answer.Data, answer.Miss = data, false
+		}
+	}
+	return &Message{Body: &Message_ReadData{ReadData: answer}}
 }
 
 // hold makes push durable and returns its answer.
@@ -392,6 +427,11 @@ func (r *ReportingRemote) PutPackFile(ctx context.Context, id string, data []byt
 	}
 	if err := r.server.report(&PackReport{PackId: id, Entry: encoded, Keys: keys}); err != nil {
 		return nil, err
+	}
+
+	// Keep the pack for reads, beyond the log's eviction of it.
+	if r.server.packs != nil {
+		r.server.packs.Keep(id, data)
 	}
 	return entry, nil
 }

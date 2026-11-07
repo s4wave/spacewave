@@ -573,12 +573,26 @@ func (s *PackStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 // GetStoredBlock returns the block with its refs. Returns nil if the block is
 // not found.
 func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Try the block's extent, which takes one range read.
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
 	if stored := s.readExtent(ctx, ref); stored != nil {
 		return stored, nil
 	}
+
+	// Otherwise read it through the pack readers.
+	stored, err := s.lookupStored(ctx, ref)
+	if errors.Is(err, hash.ErrHashMismatch) && s.distrustReads() {
+		// Bytes from a read cache failed their hash: read past the cache.
+		return s.lookupStored(ctx, ref)
+	}
+	return stored, err
+}
+
+// lookupStored reads the block through the pack readers.
+func (s *PackStore) lookupStored(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Look again when the listed packs may have changed.
 	var stored *block.StoredBlock
 	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
 		var err error
@@ -586,6 +600,26 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 		return stored == nil && placed[0], err
 	})
 	return stored, err
+}
+
+// ReadDistruster is an ObjectStore whose reads may come from a cache that can
+// be wrong. Every block a read returns is verified, so bad bytes cost a failed
+// read and never a wrong block; this lets the store read past the cache
+// instead of failing.
+type ReadDistruster interface {
+	// DistrustReads stops reading the cache for a while.
+	DistrustReads()
+}
+
+// distrustReads tells the object store that bytes it returned were wrong, and
+// reports whether a read can now see different bytes.
+func (s *PackStore) distrustReads() bool {
+	// Only a store with a cache can read differently.
+	d, ok := s.client.(ReadDistruster)
+	if ok {
+		d.DistrustReads()
+	}
+	return ok
 }
 
 // extentReadsOn turns on the extent read path of every PackStore; see
@@ -623,15 +657,20 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 
 	// Read and verify the block's bytes, once for every concurrent reader.
 	value, _, _ := s.extentReads.Do(string(key), func() (any, error) {
+		// Read the extent.
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
 		if err != nil {
 			return nil, err
 		}
+
+		// Bytes that fail their hash came from a cache that can be wrong, or a
+		// row that names the wrong pack; the pack readers then read past it.
 		stored, err := block.DecodeBlockObject(data)
 		if err != nil {
 			return nil, err
 		}
 		if err := ref.VerifyData(stored.Data, false); err != nil {
+			s.distrustReads()
 			return nil, err
 		}
 		return stored, nil

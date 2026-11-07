@@ -97,11 +97,17 @@ const ftpsMergeLinger = 5 * time.Minute
 // tail merge the location's MergeTailBytes enables, and it reads the
 // location's prefix as given. index, when not nil, is the local KV
 // that holds the store's entry cache and block location index.
-func buildFTPSBlockStore(le *logrus.Entry, location *account_settings.FtpsLocation, tlsConf *tls.Config, index kvtx.Store) (backendStore, error) {
+func buildFTPSBlockStore(le *logrus.Entry, location *account_settings.FtpsLocation, tlsConf *tls.Config, index kvtx.Store, wrap func(block_store_s3.ObjectStore) block_store_s3.ObjectStore) (backendStore, error) {
 	// Connect to the location.
 	client, err := buildFTPSClient(le, location, tlsConf)
 	if err != nil {
 		return nil, err
+	}
+
+	// Route the store's reads, for a store with a storage node.
+	var objects block_store_s3.ObjectStore = client
+	if wrap != nil {
+		objects = wrap(client)
 	}
 
 	// Wait less for a short batch when the tail merge keeps packfiles large.
@@ -112,7 +118,7 @@ func buildFTPSBlockStore(le *logrus.Entry, location *account_settings.FtpsLocati
 	}
 
 	// Open the store, keeping every packfile.
-	return block_store_s3.NewPackStore(le, client, location.GetRoot(), location.GetPrefix(), &block_store_s3.PackStoreOptions{
+	return block_store_s3.NewPackStore(le, objects, location.GetRoot(), location.GetPrefix(), &block_store_s3.PackStoreOptions{
 		KeepPacks:      true,
 		Index:          index,
 		ExactReads:     true,

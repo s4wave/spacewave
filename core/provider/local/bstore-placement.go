@@ -308,7 +308,7 @@ func (t *bstoreTracker) openBackendStore(
 	// An FTPS server logs in from its netrc file and has no credential Secret.
 	le := t.a.le.WithField("bstore-id", t.id)
 	if location := backend.GetFtps(); location != nil {
-		return buildFTPSBlockStore(le, location, nil, t.packIndexStore())
+		return buildFTPSBlockStore(le, location, nil, t.packIndexStore(), t.nodeReads())
 	}
 
 	// Open the backend's bucket with its credential Secret.

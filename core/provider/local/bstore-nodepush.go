@@ -31,6 +31,8 @@ type NodePushConfig struct {
 	// Wait is the least a commit waits for the node's flush. A slower local
 	// commit gives the node all of its time.
 	Wait time.Duration
+	// ReadWait bounds one read from the node, before the backend answers it.
+	ReadWait time.Duration
 	// On is the runtime switch for the push and for clearing queued blocks the
 	// node uploaded. Off, a store commits and uploads as it would without a
 	// node.
@@ -77,11 +79,44 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 	if remote == nil {
 		return errors.New("storage backend not open")
 	}
+
+	// Only a pack store adopts.
 	adopter, ok := remote.(block_store_nodepush.Adopter)
 	if !ok {
 		return errors.New("storage backend adopts no packs")
 	}
 	return adopter.AdoptPack(ctx, entry, keys)
+}
+
+// nodePushConfig returns this store's NodePushConfig, or nil.
+func (t *bstoreTracker) nodePushConfig() *NodePushConfig {
+	// Find the account's config.
+	value, ok := nodePushes.Load(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()))
+	if !ok {
+		return nil
+	}
+
+	// It applies only to the stores it names.
+	conf := value.(*NodePushConfig)
+	if !slices.Contains(conf.StoreIDs, t.id) {
+		return nil
+	}
+	return conf
+}
+
+// nodeReads returns the wrapper that reads this store's backend through its
+// storage node, or nil for a store without one.
+func (t *bstoreTracker) nodeReads() func(block_store_s3.ObjectStore) block_store_s3.ObjectStore {
+	// A store without a node reads its backend directly.
+	conf := t.nodePushConfig()
+	if conf == nil {
+		return nil
+	}
+
+	// Each opened backend reads through the store's one client.
+	return func(store block_store_s3.ObjectStore) block_store_s3.ObjectStore {
+		return block_store_nodepush.NewObjects(store, conf.ReadWait, conf.On, &t.nodeClient)
+	}
 }
 
 // startNodePush starts pushing handle's publications when the account names
@@ -94,12 +129,8 @@ func (t *bstoreTracker) startNodePush(
 	handle *BlockStore,
 ) func() {
 	// Push only a store the config names.
-	value, ok := nodePushes.Load(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()))
-	if !ok {
-		return func() {}
-	}
-	conf := value.(*NodePushConfig)
-	if !slices.Contains(conf.StoreIDs, t.id) {
+	conf := t.nodePushConfig()
+	if conf == nil {
 		return func() {}
 	}
 
@@ -107,6 +138,7 @@ func (t *bstoreTracker) startNodePush(
 	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement}))
 	handle.push = block_store_nodepush.NewPublisher(localPublisher{handle}, client, conf.Wait, conf.On, conf.Result)
 	wb.SetLocateUploaded(conf.On)
+	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
 	// Keep the connection up until the store unmounts.
@@ -117,6 +149,7 @@ func (t *bstoreTracker) startNodePush(
 		_ = client.Run(runCtx, conf.Dial, nodeRedial)
 	}()
 	return func() {
+		t.nodeClient.Store(nil)
 		cancel()
 		<-done
 		handle.push.Close()

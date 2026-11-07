@@ -16,6 +16,10 @@ message Message {
     // PackApplied says the local store indexed a reported pack and dropped its
     // queue entries, so the node need not report it again.
     PackApplied pack_applied = 5;
+    // Read asks the node for a byte range of a pack.
+    Read read = 6;
+    // ReadData answers a Read.
+    ReadData read_data = 7;
   }
 }
 
@@ -67,4 +71,27 @@ message PackReport {
 message PackApplied {
   // pack_id is the reported pack's name.
   string pack_id = 1;
+}
+
+// Read asks for a byte range of a pack the node may hold on its disk.
+message Read {
+  // id names the read on this connection.
+  uint64 id = 1;
+  // pack_id is the pack's name.
+  string pack_id = 2;
+  // off is the offset of the range.
+  int64 off = 3;
+  // length is the length of the range.
+  uint32 length = 4;
+}
+
+// ReadData answers a Read.
+message ReadData {
+  // id is the Read's id.
+  uint64 id = 1;
+  // data holds the range, shorter when the pack ends first.
+  bytes data = 2;
+  // miss says the node lacks the pack. It fills it in the background, and the
+  // local store reads the remote meanwhile.
+  bool miss = 3;
 }

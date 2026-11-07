@@ -42,11 +42,13 @@ type Client struct {
 	next uint64
 	// waiting holds the answer channel of each push in flight.
 	waiting map[uint64]chan error
+	// reading holds the answer channel of each read in flight.
+	reading map[uint64]chan *ReadData
 }
 
 // NewClient builds a Client that hands reported packs to applier.
 func NewClient(le *logrus.Entry, applier Applier) *Client {
-	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error)}
+	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData)}
 }
 
 // Run keeps a connection to the node up through dial until ctx ends.
@@ -123,6 +125,75 @@ func (c *Client) begin() (uint64, chan error, chan<- []byte) {
 	return c.next, answer, c.out
 }
 
+// ReadRange asks the node for a range of pack id. It reports false when the
+// node lacks the pack, is away, or ctx ends first.
+func (c *Client) ReadRange(ctx context.Context, id string, off int64, length int) ([]byte, bool) {
+	// Take a read id on the live connection.
+	req, answer, out := c.beginRead()
+	if out == nil {
+		return nil, false
+	}
+	defer c.forgetRead(req)
+
+	// Send the read.
+	frame, err := encodeMessage(&Message{Body: &Message_Read{Read: &Read{Id: req, PackId: id, Off: off, Length: uint32(max(length, 0))}}}) //nolint:gosec // a range is far below 4 GiB
+	if err != nil {
+		return nil, false
+	}
+	select {
+	case out <- frame:
+	case <-ctx.Done():
+		return nil, false
+	}
+
+	// Wait for the answer. A closed channel means the connection ended.
+	select {
+	case data, ok := <-answer:
+		if !ok || data.GetMiss() {
+			return nil, false
+		}
+		return data.GetData(), true
+	case <-ctx.Done():
+		return nil, false
+	}
+}
+
+// beginRead numbers a read on the live connection and returns its id, its
+// answer channel and the connection's frames, nil while no connection is up.
+func (c *Client) beginRead() (uint64, chan *ReadData, chan<- []byte) {
+	// Only a live connection takes a read.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if c.out == nil {
+		return 0, nil, nil
+	}
+
+	// Number it and keep its answer channel.
+	c.next++
+	answer := make(chan *ReadData, 1)
+	c.reading[c.next] = answer
+	return c.next, answer, c.out
+}
+
+// forgetRead drops read id's answer channel.
+func (c *Client) forgetRead(id uint64) {
+	// The answer may have removed it already.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	delete(c.reading, id)
+}
+
+// answerRead delivers the answer of a read, which holds one answer.
+func (c *Client) answerRead(data *ReadData) {
+	// A read that gave up has no channel left.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if answer := c.reading[data.GetId()]; answer != nil {
+		answer <- data
+		delete(c.reading, data.GetId())
+	}
+}
+
 // forget drops push id's answer channel.
 func (c *Client) forget(id uint64) {
 	c.mtx.Lock()
@@ -193,6 +264,8 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 			c.answer(body.Flushed.GetId(), nil)
 		case *Message_Refused:
 			c.answer(body.Refused.GetId(), errors.New(body.Refused.GetReason()))
+		case *Message_ReadData:
+			c.answerRead(body.ReadData)
 		case *Message_PackReport:
 			// Never block here: this loop carries the answers every commit
 			// waits for. The node sends one report at a time and repeats it,
@@ -207,12 +280,17 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 
 // disconnect marks the node away and fails the pushes in flight.
 func (c *Client) disconnect() {
+	// Take the connection down, then end everything that waits on it.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	c.out = nil
 	for id, answer := range c.waiting {
 		deliver(answer, ErrNodeAway)
 		delete(c.waiting, id)
+	}
+	for id, answer := range c.reading {
+		close(answer)
+		delete(c.reading, id)
 	}
 }
 
