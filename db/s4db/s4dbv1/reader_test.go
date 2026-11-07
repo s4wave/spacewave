@@ -31,7 +31,7 @@ func readRows(t *testing.T, path string) []row {
 		t.Fatal(err)
 	}
 	var rows []row
-	for _, line := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(b)), "\n") {
 		f := strings.Split(line, "\t")
 		var r row
 		r.key, r.hash = f[0], f[2]

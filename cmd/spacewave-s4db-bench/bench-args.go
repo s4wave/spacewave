@@ -165,10 +165,8 @@ func (a *BenchArgs) write(ctx context.Context, db *s4db.DB, start time.Time, pro
 	// Run the writers.
 	var wg sync.WaitGroup
 	for w := range a.Writers {
-		wg.Add(1)
-		go func() {
+		wg.Go(func() {
 			// Write this writer's batches and merge its commits in.
-			defer wg.Done()
 			own, err := a.writer(ctx, db, start, uint64(w), batches, prog) // #nosec G115 -- a small count.
 			mtx.Lock()
 			defer mtx.Unlock()
@@ -176,7 +174,7 @@ func (a *BenchArgs) write(ctx context.Context, db *s4db.DB, start time.Time, pro
 			if err != nil && firstErr == nil {
 				firstErr = err
 			}
-		}()
+		})
 	}
 	wg.Wait()
 
