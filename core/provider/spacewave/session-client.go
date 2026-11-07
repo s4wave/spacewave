@@ -188,12 +188,46 @@ func (c *SessionClient) syncPushDataWithProgress(
 // checked the stored size and digest. A pack the catalog already holds skips
 // the upload.
 func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *syncPushPack, body io.Reader, size int64) error {
+	uploaded, err := c.syncPushUpload(ctx, resourceID, pack, body, size)
+	if err != nil || !uploaded {
+		return err
+	}
+	return c.SyncPushCommit(ctx, resourceID, pack.packID)
+}
+
+// SyncPushUpload runs the first two steps of a push of an in-memory pack: the
+// admission and the upload. It reports whether the pack awaits SyncPushCommit;
+// a pack the catalog already holds does not. A caller that uploads several
+// packs at once commits them in the order it chooses, before the upload's
+// admission expires.
+func (c *SessionClient) SyncPushUpload(ctx context.Context, resourceID, packID string, blockCount int, packData, bodyHash, bloomFilter []byte, bloomFormatVersion uint32) (bool, error) {
+	return c.syncPushUpload(ctx, resourceID, &syncPushPack{
+		packID:             packID,
+		blockCount:         blockCount,
+		bodyHash:           bodyHash,
+		bloomFilter:        bloomFilter,
+		bloomFormatVersion: bloomFormatVersion,
+	}, bytes.NewReader(packData), int64(len(packData)))
+}
+
+// SyncPushCommit adds an uploaded pack to the catalog once the cloud has
+// checked the stored size and digest. Committing a pack the catalog holds
+// succeeds.
+func (c *SessionClient) SyncPushCommit(ctx context.Context, resourceID, packID string) error {
+	commitPath := path.Join("/api/bstore", resourceID, "sync/push", packID, "commit")
+	_, err := c.doPostBinary(ctx, commitPath, nil, nil, SeedReasonMutation)
+	return errors.Wrap(err, "sync push commit")
+}
+
+// syncPushUpload admits a pack and uploads its bytes, and reports whether the
+// pack awaits a commit.
+func (c *SessionClient) syncPushUpload(ctx context.Context, resourceID string, pack *syncPushPack, body io.Reader, size int64) (bool, error) {
 	// Require the bloom filter the catalog indexes the pack by.
 	if len(pack.bloomFilter) == 0 {
-		return errors.New("sync push bloom filter required")
+		return false, errors.New("sync push bloom filter required")
 	}
 	if pack.bloomFormatVersion == 0 {
-		return errors.New("sync push bloom_format_version required")
+		return false, errors.New("sync push bloom_format_version required")
 	}
 
 	// Admit the pack, learning whether the catalog needs its bytes.
@@ -209,21 +243,18 @@ func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *s
 	}
 	resp := &packfile.PushResponse{}
 	if err := c.postMessage(ctx, pushPath, req, resp, SeedReasonMutation); err != nil {
-		return errors.Wrap(err, "sync push")
+		return false, errors.Wrap(err, "sync push")
 	}
 	upload := resp.GetUpload()
 	if upload == nil {
-		return nil
+		return false, nil
 	}
 
 	// Upload the bytes to storage.
 	if err := c.uploadPack(ctx, upload, body, size); err != nil {
-		return errors.Wrap(err, "sync push upload")
+		return false, errors.Wrap(err, "sync push upload")
 	}
-
-	// Commit the stored pack to the catalog.
-	_, err := c.doPostBinary(ctx, path.Join(pushPath, pack.packID, "commit"), nil, nil, SeedReasonMutation)
-	return errors.Wrap(err, "sync push commit")
+	return true, nil
 }
 
 // uploadPack sends size bytes of body to the signed upload URL.

@@ -127,6 +127,83 @@ func pushPackData(ctx context.Context, opts Options, packBytes, bloomFilter []by
 	return err
 }
 
+// StagingClient is a session client that pushes a pack in two steps, so a
+// caller uploading several packs at once commits them in an order it chooses.
+type StagingClient interface {
+	SessionClient
+	// SyncPushUpload admits and uploads a pack, and reports whether it awaits
+	// SyncPushCommit.
+	SyncPushUpload(ctx context.Context, resourceID, packID string, blockCount int, packData, bodyHash, bloomFilter []byte, bloomFormatVersion uint32) (bool, error)
+	// SyncPushCommit adds an uploaded pack to the catalog.
+	SyncPushCommit(ctx context.Context, resourceID, packID string) error
+}
+
+// StagedPack is a pack uploaded to the destination and not yet committed.
+type StagedPack struct {
+	// client commits the pack.
+	client StagingClient
+	// spaceID is the destination Space.
+	spaceID string
+	// id is the pack ID.
+	id string
+	// pending is set when the pack awaits its commit.
+	pending bool
+}
+
+// StagePackData verifies and uploads a kvfile like PushPackData, leaving its
+// commit to Commit. opts.Client must be a StagingClient.
+func StagePackData(ctx context.Context, opts Options, packBytes, bloomFilter []byte) (*StagedPack, error) {
+	// Require a client that pushes in two steps.
+	client, ok := opts.Client.(StagingClient)
+	if !ok {
+		return nil, errors.New("the session client cannot stage a pack")
+	}
+
+	// Derive the pack's identity from its verified content.
+	metadata, err := BuildKVFilePushMetadata(ctx, packBytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "build kvfile metadata")
+	}
+	if len(bloomFilter) == 0 {
+		bloomFilter = metadata.BloomFilter
+	}
+	packID, err := identity.BuildPackID(opts.DstSpaceID, metadata.PackResult())
+	if err != nil {
+		return nil, errors.Wrap(err, "build pack id")
+	}
+
+	// Upload under the shared retry policy.
+	packHash := sha256.Sum256(packBytes)
+	staged := &StagedPack{client: client, spaceID: opts.DstSpaceID, id: packID}
+	err = retrySyncPush(ctx, func() error {
+		var err error
+		staged.pending, err = client.SyncPushUpload(ctx, opts.DstSpaceID, packID, metadata.BlockCount, packBytes, packHash[:], bloomFilter, packfile.BloomFormatVersionV1)
+		return err
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "sync push upload")
+	}
+	return staged, nil
+}
+
+// ID returns the pack ID.
+func (p *StagedPack) ID() string {
+	return p.id
+}
+
+// Commit adds the staged pack to the destination's catalog, under the shared
+// retry policy. A pack the catalog already held commits at once.
+func (p *StagedPack) Commit(ctx context.Context) error {
+	if !p.pending {
+		return nil
+	}
+	if err := retrySyncPush(ctx, func() error { return p.client.SyncPushCommit(ctx, p.spaceID, p.id) }); err != nil {
+		return err
+	}
+	p.pending = false
+	return nil
+}
+
 // retrySyncPush bounds transient retries of push and honors cancellation. A
 // retried replacement of a pack the catalog already committed succeeds.
 func retrySyncPush(ctx context.Context, push func() error) error {
