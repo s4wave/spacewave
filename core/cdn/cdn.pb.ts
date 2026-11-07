@@ -9,11 +9,16 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * CdnRootPointer is the top-level CDN artifact for a public_read Space.
- * The Worker writes it at cdn.spacewave.app/{spaceId}/root.packedmsg as a
- * packedmsg-encoded blob (see repos/bldr/util/packedmsg) on every successful
- * sync/push for a public_read Space. Anonymous clients fetch and decode this
- * blob to discover the current signed checkpoint and the set of packs they need to
- * reconstruct Space state; no Worker round-trip is required on the read path.
+ * Its writer serves it at {pointer base}/{spaceId}/root.packedmsg as a
+ * packedmsg-encoded blob (see repos/bldr/util/packedmsg) after every commit.
+ * The pointer base is the CDN base unless the reader is given another, as
+ * cdn_bstore.RootPointerBaseURL picks. The pointer changes on every commit and
+ * is served with no-cache and a strong ETag; the packs it lists never change
+ * and stay on the CDN host, cached for a year. Spacewave's Worker writes
+ * cdn.spacewave.app; a self-hosted writer serves the pointer from its own host
+ * with core/cdn/rootserve. Anonymous clients fetch and decode this blob to
+ * discover the current signed checkpoint and the set of packs they need to
+ * reconstruct Space state; no writer round-trip is required for the packs.
  *
  * @generated from message cdn.CdnRootPointer
  */
