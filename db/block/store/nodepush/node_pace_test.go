@@ -2,8 +2,13 @@ package block_store_nodepush
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/sirupsen/logrus"
 )
 
 // TestNodeCopiesOffAndUploadPace turns read copies off and checks that an
@@ -43,4 +48,48 @@ func TestNodeCopiesOffAndUploadPace(t *testing.T) {
 	if err := n.admitUpload(context.Background(), 1<<30); err != nil || time.Since(start) > 50*time.Millisecond {
 		t.Fatalf("unpaced upload waited %v (%v)", time.Since(start), err)
 	}
+}
+
+// TestNodeUploadOff holds the upload: pushes and journal records still
+// flush, nothing uploads, reports or leaves the log; on again, it uploads and
+// reports what it held.
+func TestNodeUploadOff(t *testing.T) {
+	// A node with its upload off.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	remote := &sftpFake{objectRemote: &objectRemote{}, uploads: map[string][]byte{}}
+	node, err := OpenNode(ctx, logrus.NewEntry(logrus.New()), NodeConfig{
+		Dir: t.TempDir(), Linger: 10 * time.Millisecond, Remote: remote, Source: remote,
+		Bucket: "bucket", Prefix: "p/packs", List: remote.list,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer node.Close()
+	node.SetUpload(false)
+	go node.Run(ctx)
+	apply := &applier{applied: map[string][][]byte{}, changed: make(chan struct{}, 1)}
+	client := NewClient(logrus.NewEntry(logrus.New()), apply)
+	defer connect(ctx, t, client, node.server)()
+
+	// Pushes and records flush.
+	for i := range 4 {
+		if err := client.Send(ctx, []*block.PutBatchEntry{entry(t, strings.Repeat("held", 20)+strconv.Itoa(i))}); err != nil {
+			t.Fatal(err)
+		}
+		if err := client.SendRecord(ctx, &Record{Epoch: 7, Seq: uint64(i + 1)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Nothing uploads or reports while packs finalize.
+	waitFor(t, func() bool { st := node.Stats(); return st.Log.Finalized >= 1 })
+	time.Sleep(100 * time.Millisecond)
+	if len(remote.uploaded()) != 0 || apply.count() != 0 {
+		t.Fatalf("upload off uploaded %d packs and reported %d", len(remote.uploaded()), apply.count())
+	}
+
+	// On again, the held packs upload and report.
+	node.SetUpload(true)
+	waitFor(t, func() bool { return len(remote.uploaded()) >= 1 && apply.count() >= 1 })
 }

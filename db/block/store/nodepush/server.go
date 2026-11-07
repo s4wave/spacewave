@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -67,6 +68,8 @@ type Server struct {
 	// journal keeps the local store's commit records, or is nil on a node
 	// that journals none.
 	journal *Journal
+	// reportsOff holds every report in line while the node's upload is off.
+	reportsOff atomic.Bool
 
 	// mtx guards pending and stop.
 	mtx sync.Mutex
@@ -267,6 +270,12 @@ func (s *Server) report(report *PackReport) error {
 	return nil
 }
 
+// SetReports sends reports, or holds them all in line, at once.
+func (s *Server) SetReports(on bool) {
+	s.reportsOff.Store(!on)
+	s.poke()
+}
+
 // poke wakes the report routine.
 func (s *Server) poke() {
 	select {
@@ -343,6 +352,11 @@ type reportTry struct {
 // nextReport returns the first report due at now, or none and how long until
 // one is due, zero with none pending.
 func (s *Server) nextReport(now time.Time) (reportTry, time.Duration) {
+	// None is due while reports are off; SetReports wakes the routine.
+	if s.reportsOff.Load() {
+		return reportTry{}, 0
+	}
+
 	// Reports are in line in the order of their turns.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()

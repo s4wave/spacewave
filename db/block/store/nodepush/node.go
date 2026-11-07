@@ -123,6 +123,10 @@ type Node struct {
 	backfillRate atomic.Int64
 	// uploadRate paces the upload in bytes a second, zero for no pace.
 	uploadRate atomic.Int64
+	// uploadOff holds the upload before its next pack, and the reports.
+	uploadOff atomic.Bool
+	// uploadWake tells a held upload its switch changed.
+	uploadWake chan struct{}
 
 	// mtx guards backfillOn and backfill.
 	mtx sync.Mutex
@@ -171,6 +175,7 @@ func OpenNode(ctx context.Context, le *logrus.Entry, conf NodeConfig) (*Node, er
 		packs:        packs,
 		drain:        nil,
 		backfillWake: make(chan struct{}, 1),
+		uploadWake:   make(chan struct{}, 1),
 	}
 	n.drain = packahead.NewDrain(log, packahead.DrainOptions{KeepBytes: conf.KeepBytes, Admit: n.admitUpload})
 	n.backfillRate.Store(defaultBackfillBytesPerSecond)
@@ -244,9 +249,33 @@ func (n *Node) SetUploadRate(bytesPerSecond int64) {
 	n.uploadRate.Store(max(bytesPerSecond, 0))
 }
 
-// admitUpload waits before an upload long enough that the one before it,
-// lastBytes, ran at the upload's pace.
+// SetUpload turns the upload and its reports on or off, at once. Off, the
+// upload starts no pack and the server sends no report: the pack log keeps
+// every pack, nothing is dropped, and the local store keeps the blocks it
+// holds until the upload is back on and their reports arrive. A pack being
+// uploaded when it goes off finishes.
+func (n *Node) SetUpload(on bool) {
+	// Flip both switches, then wake what waits on them.
+	n.uploadOff.Store(!on)
+	n.server.SetReports(on)
+	select {
+	case n.uploadWake <- struct{}{}:
+	default:
+	}
+}
+
+// admitUpload waits before an upload while the upload is off, then long
+// enough that the one before it, lastBytes, ran at the upload's pace.
 func (n *Node) admitUpload(ctx context.Context, lastBytes int64) error {
+	// Hold while off.
+	for n.uploadOff.Load() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-n.uploadWake:
+		}
+	}
+
 	// No pace, or nothing uploaded yet, waits for nothing.
 	rate := n.uploadRate.Load()
 	if rate <= 0 || lastBytes <= 0 {

@@ -59,9 +59,12 @@ type tunables struct {
 	// backfillMiBs paces the backfill in MiB a second; zero keeps 8. Its JSON
 	// key is backfill_mib_s.
 	backfillMiBs float64
-	// readCopies is "off" to keep no uploaded pack and fetch no whole pack on
-	// a read miss; anything else keeps both on. Its JSON key is read_copies.
-	readCopies string
+	// copies is "off" to keep no uploaded pack and fetch no whole pack on a
+	// read miss; anything else keeps both on. Its JSON key is copies.
+	copies string
+	// upload is "off" to upload no pack and send no report, the pack log
+	// keeping everything; anything else uploads. Its JSON key is upload.
+	upload string
 	// uploadMiBs paces the upload in MiB a second; zero uploads each pack at
 	// once. Its JSON key is upload_mib_s.
 	uploadMiBs float64
@@ -88,7 +91,7 @@ func main() {
 		&cli.Int64Flag{Name: "keep-mib", Usage: "uploaded packs the log keeps; bounds the memory its table takes", Value: 8192, Destination: &a.keepMiB},
 		&cli.Uint64Flag{Name: "min-free-gib", Usage: "keep and fill no read copies with less free disk than this", Value: 200, Destination: &a.minFree},
 		&cli.Uint64Flag{Name: "prune-free-gib", Usage: "below this free disk, prune read copies oldest first back to min-free-gib; zero never prunes", Value: 100, Destination: &a.pruneFree},
-		&cli.StringFlag{Name: "tunables", Usage: "JSON file of live knobs, reread on SIGHUP: backfill, backfill_mib_s, read_copies, upload_mib_s", Destination: &a.tunables},
+		&cli.StringFlag{Name: "tunables", Usage: "JSON file of live knobs, reread on SIGHUP: backfill, backfill_mib_s, copies, upload, upload_mib_s", Destination: &a.tunables},
 		&cli.DurationFlag{Name: "linger", Usage: "rotate a pack once its first batch is this old", Value: 30 * time.Second, Destination: &a.linger},
 	}
 	app.Action = func(*cli.Context) error {
@@ -220,7 +223,8 @@ func (a *args) applyTunables(le *logrus.Entry, node *block_store_nodepush.Node) 
 			}
 			t.backfill = string(v.GetStringBytes("backfill"))
 			t.backfillMiBs = v.GetFloat64("backfill_mib_s")
-			t.readCopies = string(v.GetStringBytes("read_copies"))
+			t.copies = string(v.GetStringBytes("copies"))
+			t.upload = string(v.GetStringBytes("upload"))
 			t.uploadMiBs = v.GetFloat64("upload_mib_s")
 		}
 	}
@@ -229,12 +233,14 @@ func (a *args) applyTunables(le *logrus.Entry, node *block_store_nodepush.Node) 
 	on := t.backfill == "on"
 	rate := int64(t.backfillMiBs * (1 << 20))
 	node.SetBackfill(on, rate)
-	node.SetCopies(t.readCopies != "off")
+	node.SetCopies(t.copies != "off")
+	node.SetUpload(t.upload != "off")
 	node.SetUploadRate(int64(t.uploadMiBs * (1 << 20)))
 	le.WithFields(logrus.Fields{
 		"backfill":       on,
 		"backfill-mib-s": t.backfillMiBs,
-		"read-copies":    t.readCopies != "off",
+		"copies":         t.copies != "off",
+		"upload":         t.upload != "off",
 		"upload-mib-s":   t.uploadMiBs,
 	}).Info("storage node tunables")
 }
