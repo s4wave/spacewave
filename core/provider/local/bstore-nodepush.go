@@ -258,6 +258,7 @@ func (t *bstoreTracker) startNodePush(
 		held := block_store_nodepush.NewHeld(conf.HeldBytes)
 		handle.push.SetDurable(conf.Durable, held, client.Connected)
 		t.held.Store(held)
+		heldSpills.Store(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()), func(ctx context.Context) error { return spillAll(ctx, held, wb) })
 		running.Go(func() { runSpill(runCtx, le, held, wb, conf.Durable, client.Connected) })
 	}
 	if conf.Drain != nil && conf.Drain.Admit != nil {
@@ -297,17 +298,9 @@ func (t *bstoreTracker) spillOnClose(le *logrus.Entry, wb *block_store_writeback
 	if held == nil {
 		return
 	}
-	ctx := context.Background()
-	for {
-		keys, values := held.HeldSince(time.Now(), heldSpillBatch)
-		if len(keys) == 0 {
-			return
-		}
-		if err := spill(ctx, wb, keys, values); err != nil {
-			le.WithError(err).Warn("unable to spill held blocks as the store unmounts; the storage node holds them")
-			return
-		}
-		held.Drop(keys)
+	heldSpills.Delete(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()))
+	if err := spillAll(context.Background(), held, wb); err != nil {
+		le.WithError(err).Warn("unable to spill held blocks as the store unmounts; the storage node holds them")
 	}
 }
 

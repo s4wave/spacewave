@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -202,6 +203,41 @@ func storedData(stored *block.StoredBlock) []byte {
 		return nil
 	}
 	return stored.Data
+}
+
+// heldSpills maps the storage volume ID of an account to the function that
+// spills its pushed store's memory set, while one is mounted durable.
+var heldSpills sync.Map
+
+// SpillNodeHeld writes every block the account's durable node push holds in
+// memory to the local disk with its upload queue entry, flushed, and returns
+// once none is left or ctx ends. Call it as the process stops, before its
+// context is cancelled: a block held only in memory and in the node's pack
+// log is otherwise readable after the restart only through the node. Turn
+// the durable switch off first, so no new publication holds a block.
+func SpillNodeHeld(ctx context.Context, providerID, accountID string) error {
+	fn, ok := heldSpills.Load(StorageVolumeID(providerID, accountID))
+	if !ok {
+		return nil
+	}
+	return fn.(func(context.Context) error)(ctx)
+}
+
+// spillAll spills every held block, in batches, until none is left.
+func spillAll(ctx context.Context, held *block_store_nodepush.Held, wb *block_store_writeback.Store) error {
+	for {
+		// Take the next batch, if any.
+		keys, values := held.HeldSince(time.Now(), heldSpillBatch)
+		if len(keys) == 0 {
+			return nil
+		}
+
+		// Write it, then let it go.
+		if err := spill(ctx, wb, keys, values); err != nil {
+			return err
+		}
+		held.Drop(keys)
+	}
 }
 
 // runSpill writes to the local disk, with queue entries, the held blocks whose
