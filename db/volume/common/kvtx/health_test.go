@@ -70,9 +70,14 @@ func TestHealthDirectWrites(t *testing.T) {
 	waitHealth(t, v, (*volume.VolumeHealth).GetSizesKnown)
 	before := calls.Load()
 
-	// A 3 MiB block through PutBlock is measured on a following poll.
+	// A 3 MiB block through PutBlock counts once and is measured on a
+	// following poll.
+	written := v.writtenBytes.Load()
 	if _, _, err := v.PutBlock(ctx, make([]byte, 3<<20), leafOpts()); err != nil {
 		t.Fatal(err)
+	}
+	if got := v.writtenBytes.Load() - written; got != 3<<20 {
+		t.Fatalf("PutBlock counted %d written bytes, want %d", got, 3<<20)
 	}
 	waitHealth(t, v, func(h *volume.VolumeHealth) bool {
 		return h.GetFileBytes() > before
