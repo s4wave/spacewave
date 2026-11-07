@@ -115,6 +115,9 @@ type PackStore struct {
 	refreshInterval time.Duration
 	// soleWriter stops the refresher: no other writer adds packfiles.
 	soleWriter bool
+	// indexOnly keeps the store to the packs its index holds; see
+	// PackStoreOptions.IndexOnly.
+	indexOnly bool
 	// exactReads makes the pack readers fetch only the bytes a miss needs.
 	exactReads bool
 	// readCache serves block extents before the bucket, or is nil.
@@ -238,6 +241,13 @@ type PackStoreOptions struct {
 	// the index's table holds a pack: the store's own writes keep its entries
 	// and index current. RefreshInterval is then unused.
 	SoleWriter bool
+	// IndexOnly makes the index the whole record of the store's packs: the
+	// store never lists the bucket, not at a start with an empty table nor
+	// after a read that finds a pack gone, so a block the index does not place
+	// costs no request. Packs under the prefix that another writer left stay
+	// invisible. It implies SoleWriter and needs Index; without Index it is
+	// ignored.
+	IndexOnly bool
 }
 
 // NewPackStore builds a packfile block store on the bucket. opts may be nil.
@@ -274,7 +284,8 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 			routine.WithRetry(compactBackoff),
 		),
 		refreshInterval: refresh,
-		soleWriter:      opts.SoleWriter,
+		soleWriter:      opts.SoleWriter || (opts.IndexOnly && opts.Index != nil),
+		indexOnly:       opts.IndexOnly && opts.Index != nil,
 		exactReads:      opts.ExactReads,
 		readCache:       opts.ReadCache,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
@@ -999,8 +1010,9 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 
 // listEntriesLocked runs listEntries' listing. Call with listMtx held.
 func (s *PackStore) listEntriesLocked(ctx context.Context) error {
-	// Start from the index's pack table when it holds any pack, and list in
-	// the background: the table holds the packs the last run knew.
+	// Start from the index's pack table when it holds any pack, or always
+	// when index-only, and list in the background: the table holds the packs
+	// the last run knew. An index-only store never lists.
 	first := !s.loaded.Load()
 	if s.index != nil && first {
 		start := time.Now()
@@ -1008,7 +1020,7 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if packs != 0 {
+		if packs != 0 || s.indexOnly {
 			s.updateEntries(unindexed, nil)
 			s.setLoaded()
 			s.le.WithFields(logrus.Fields{
@@ -1018,6 +1030,9 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 			}).Info("loaded the pack index table")
 			return nil
 		}
+	}
+	if s.indexOnly {
+		return nil
 	}
 	s.listings.Add(1)
 

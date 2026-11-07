@@ -354,6 +354,13 @@ export interface S3Location {
    * only ever add packfiles and never rewrite or delete one.
    */
   keepPacks?: boolean
+  /**
+   * IndexOnly keeps each block store to the packs its local index holds: it
+   * never lists the bucket, so a block the index does not place costs no
+   * request, and packs another writer left under the prefix stay unseen. The
+   * block store is then the prefix's only writer.
+   */
+  indexOnly?: boolean
 }
 
 export const S3Location: MessageType<S3Location> =
@@ -367,6 +374,7 @@ export const S3Location: MessageType<S3Location> =
       [5, 'disable_ssl', 8],
       [6, 'pricing', 11, 0, Pricing.codec],
       [7, 'keep_packs', 8],
+      [8, 'index_only', 8],
     ],
   )
 

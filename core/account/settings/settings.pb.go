@@ -485,6 +485,11 @@ type S3Location struct {
 	// KeepPacks stops compaction and reclaim on the bucket, so its block stores
 	// only ever add packfiles and never rewrite or delete one.
 	KeepPacks bool `protobuf:"varint,7,opt,name=keep_packs,json=keepPacks,proto3" json:"keepPacks,omitempty"`
+	// IndexOnly keeps each block store to the packs its local index holds: it
+	// never lists the bucket, so a block the index does not place costs no
+	// request, and packs another writer left under the prefix stay unseen. The
+	// block store is then the prefix's only writer.
+	IndexOnly bool `protobuf:"varint,8,opt,name=index_only,json=indexOnly,proto3" json:"indexOnly,omitempty"`
 }
 
 func (x *S3Location) Reset() {
@@ -538,6 +543,13 @@ func (x *S3Location) GetPricing() *s3.Pricing {
 func (x *S3Location) GetKeepPacks() bool {
 	if x != nil {
 		return x.KeepPacks
+	}
+	return false
+}
+
+func (x *S3Location) GetIndexOnly() bool {
+	if x != nil {
+		return x.IndexOnly
 	}
 	return false
 }
@@ -1515,6 +1527,7 @@ func (m *S3Location) CloneVT() *S3Location {
 	r.ObjectPrefix = m.ObjectPrefix
 	r.DisableSsl = m.DisableSsl
 	r.KeepPacks = m.KeepPacks
+	r.IndexOnly = m.IndexOnly
 	r.Pricing = protobuf_go_lite.CloneVTValue(m.Pricing)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2277,6 +2290,9 @@ func (this *S3Location) EqualVT(that *S3Location) bool {
 		return false
 	}
 	if this.KeepPacks != that.KeepPacks {
+		return false
+	}
+	if this.IndexOnly != that.IndexOnly {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3736,6 +3752,11 @@ func (x *S3Location) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("keepPacks")
 		s.WriteBool(x.KeepPacks)
 	}
+	if x.IndexOnly || s.HasField("indexOnly") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("indexOnly")
+		s.WriteBool(x.IndexOnly)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3778,6 +3799,9 @@ func (x *S3Location) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "keep_packs", "keepPacks":
 			s.AddField("keep_packs")
 			x.KeepPacks = s.ReadBool()
+		case "index_only", "indexOnly":
+			s.AddField("index_only")
+			x.IndexOnly = s.ReadBool()
 		}
 	})
 }
@@ -5362,6 +5386,11 @@ func (m *S3Location) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.IndexOnly {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.IndexOnly)
+		i--
+		dAtA[i] = 0x40
+	}
 	if m.KeepPacks {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.KeepPacks)
 		i--
@@ -6776,6 +6805,7 @@ func (m *S3Location) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.KeepPacks)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.IndexOnly)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7595,6 +7625,10 @@ func (x *S3Location) MarshalProtoText() string {
 	if x.KeepPacks != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "keep_packs")
 		protobuf_go_lite.TextWriteBool(&sb, x.KeepPacks)
+	}
+	if x.IndexOnly != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_only")
+		protobuf_go_lite.TextWriteBool(&sb, x.IndexOnly)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8765,6 +8799,16 @@ func (m *S3Location) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.KeepPacks = bool(v)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IndexOnly", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.IndexOnly = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

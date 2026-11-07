@@ -43,6 +43,7 @@ func buildS3BlockStore(
 		Pricing:   location.GetPricing(),
 		KeepPacks: location.GetKeepPacks(),
 		Index:     index,
+		IndexOnly: location.GetIndexOnly(),
 	}), nil
 }
 
