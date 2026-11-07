@@ -240,6 +240,20 @@ func newStore(
 // the rest in the background.
 const openCountLimit = 10_000
 
+// countRetry is how long countRest waits to read a failed chunk again.
+const countRetry = time.Second
+
+// waitCounted returns once the status counts the whole queue, as countRest
+// describes, or with ctx's error.
+func (s *Store) waitCounted(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.counted:
+		return nil
+	}
+}
+
 // countRest counts the upload queue from resume, the first entry NewStore did
 // not count, and adds each chunk's count to the status as it goes.
 //
@@ -251,10 +265,10 @@ const openCountLimit = 10_000
 // status counts them as they commit. An entry cleared before its chunk reads
 // leaves the total low by one; the count feeds only the status and the
 // eviction budget, which a backlog this size keeps over its bound either way.
-// Upload clears from the queue's head, behind the count. ClearLocated clears
-// anywhere, ahead of it, so it waits for counted: its clears would come off the
-// status without the count ever adding them, leaving Pending low enough that
-// Upload sleeps with entries queued.
+// Every clear waits for counted: one ahead of the count would come off the
+// status without the count ever adding it, leaving Pending low enough that
+// Upload sleeps with entries queued. A failed read tries its chunk again, since
+// a count that stops short leaves Pending low in the same way.
 func (s *Store) countRest(ctx context.Context, resume []byte) {
 	defer close(s.counted)
 	end := queueFloor(queueTime(time.Now()))
@@ -283,7 +297,12 @@ func (s *Store) countRest(ctx context.Context, resume []byte) {
 			return err
 		})
 		if err != nil {
-			return
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(countRetry):
+			}
+			continue
 		}
 
 		// Add the chunk to the status.
