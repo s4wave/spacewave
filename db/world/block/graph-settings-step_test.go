@@ -230,7 +230,11 @@ func (w *stepTestWriter) requireSettings(ctx context.Context, settings *GraphSet
 	if !root.GetGraphSettings().EqualVT(settings) {
 		w.t.Fatalf("root graph settings %v, want %v", root.GetGraphSettings(), settings)
 	}
-	if got := ws.graphHd.QuadStore.(*cayley_kv.QuadStore).Layout(); !cayley_kv.CompareQuadIndexes(got, layout) {
+	graphHd, err := ws.graph(ctx)
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	if got := graphHd.QuadStore.(*cayley_kv.QuadStore).Layout(); !cayley_kv.CompareQuadIndexes(got, layout) {
 		w.t.Fatalf("open graph layout %v", got)
 	}
 	if got := readStoredLayout(w.t, ctx, ws); !cayley_kv.CompareQuadIndexes(got, layout) {
