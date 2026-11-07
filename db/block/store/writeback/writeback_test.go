@@ -24,6 +24,7 @@ import (
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // testMarkersID is the ID of the object store that holds the test markers.
@@ -834,6 +835,179 @@ func TestUploadSkipsLocatedBlocks(t *testing.T) {
 	// A lookup answering for the wrong number of blocks is not trusted either.
 	if got := s.locatedBlocks(ctx, shortLocator{remote}, make([]pendingBlock, 2)); got != nil {
 		t.Fatalf("short answer trusted: %v", got)
+	}
+}
+
+// TestClearLocatedPassesTheBacklog clears a block another writer uploaded while
+// an older block waits at the head of the queue, then tries to lose either: a
+// block the index does not name, a failed lookup, the switch off and a remote
+// that reclaims all leave their entries, the head still reads as not uploaded,
+// and eviction drops only the block the remote holds.
+func TestClearLocatedPassesTheBacklog(t *testing.T) {
+	ctx := t.Context()
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+	put := func(data string) *block.BlockRef {
+		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	clearRefs := func(remote block.StoreOps, refs ...*block.BlockRef) {
+		hashes := make([]*hash.Hash, len(refs))
+		for i, ref := range refs {
+			hashes[i] = ref.GetHash()
+		}
+		if err := s.ClearLocated(ctx, remote, hashes); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pending := func(want int) {
+		t.Helper()
+		if status, _ := s.GetStatus(); status.Pending != want {
+			t.Fatalf("pending=%d, want %d", status.Pending, want)
+		}
+	}
+
+	// The head is an old block the remote lacks; the rest are newer.
+	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{}}
+	var on atomic.Bool
+	on.Store(true)
+	s.SetLocateUploaded(&on)
+	head := put("backlog head")
+	mid := time.Now()
+	pushed, unnamed := put("pushed"), put("in the report, not the index")
+	if _, _, err := remote.PutBlock(ctx, []byte("pushed"), leafOpts); err != nil {
+		t.Fatal(err)
+	}
+	remote.located[pushed.MarshalString()] = true
+
+	// Nothing clears with the switch off, on a reclaiming remote, or when the
+	// lookup fails, though the index would say yes.
+	on.Store(false)
+	clearRefs(remote, pushed)
+	on.Store(true)
+	remote.reclaims = true
+	clearRefs(remote, pushed)
+	remote.reclaims, remote.err = false, errors.New("index unavailable")
+	clearRefs(remote, pushed)
+	remote.err = nil
+	pending(3)
+
+	// Only the block the index names clears, past the head. A block with no
+	// entry changes nothing, and neither does clearing twice.
+	clearRefs(remote, head, unnamed)
+	pending(3)
+	absent, err := hash.Sum(hash.RecommendedHashType, []byte("never written"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	clearRefs(remote, pushed, pushed, block.NewBlockRef(absent))
+	pending(2)
+	if env.isMarked(t, pushed) || !env.isMarked(t, head) || !env.isMarked(t, unnamed) {
+		t.Fatal("cleared the wrong markers")
+	}
+
+	// The head still says the remote may lack what was written before mid.
+	if done, err := s.UploadedBefore(ctx, mid); err != nil || done {
+		t.Fatalf("uploaded before mid=%v err=%v with the head queued", done, err)
+	}
+
+	// A clear says nothing about the upload's health.
+	failing := errors.New("upload failing")
+	s.SetError(failing)
+	clearRefs(remote, pushed)
+	if status, _ := s.GetStatus(); status.Err != failing {
+		t.Fatalf("status error = %v after a clear", status.Err)
+	}
+	s.SetError(nil)
+
+	// Eviction drops the pushed block, whose entry the clear queued.
+	if result, err := s.Evict(ctx, remote, 1<<30, nil, nil); err != nil || result.Evicted != 1 {
+		t.Fatalf("evict = %+v, %v", result, err)
+	}
+	if held, err := s.values.GetBlockExists(ctx, pushed); err != nil || held {
+		t.Fatalf("pushed block held=%v err=%v after eviction", held, err)
+	}
+
+	// The upload takes the rest, and not the pushed block, which no longer
+	// queues.
+	remote.puts = 0
+	drain(t, s, remote)
+	if remote.puts != 2 {
+		t.Fatalf("drain wrote %d blocks, want the two still queued", remote.puts)
+	}
+	pending(0)
+}
+
+// gatedMarkers holds the first read transaction after armed, the count's, until
+// release closes.
+type gatedMarkers struct {
+	kvtx.Store
+	armed   atomic.Bool
+	reached chan struct{}
+	release chan struct{}
+}
+
+// NewTransaction holds the armed read.
+func (g *gatedMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if !write && g.armed.CompareAndSwap(true, false) {
+		close(g.reached)
+		<-g.release
+	}
+	return g.Store.NewTransaction(ctx, write)
+}
+
+// TestClearLocatedWaitsForTheCount clears a block past the count of the queue
+// after an open. Cleared early, it would come off the status without the count
+// adding it, and Upload would sleep with entries still queued.
+func TestClearLocatedWaitsForTheCount(t *testing.T) {
+	ctx := t.Context()
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+
+	// Queue past what an open counts, then reopen with the count held.
+	total := openCountLimit + 2
+	entries := make([]*block.PutBatchEntry, total)
+	for i := range total {
+		data := []byte(strconv.Itoa(i))
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries[i] = &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true}
+	}
+	if _, err := s.PutBlockBatch(ctx, entries); err != nil {
+		t.Fatal(err)
+	}
+	g := &gatedMarkers{Store: env.markers(t), reached: make(chan struct{}), release: make(chan struct{})}
+	g.armed.Store(true)
+	s, err := NewStore(ctx, ownedStore{env.vol}, env.vol, g, testMarkersID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-g.reached
+
+	// The clear waits for the count, then both land.
+	last := entries[total-1].Ref
+	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{last.MarshalString(): true}}
+	var on atomic.Bool
+	on.Store(true)
+	s.SetLocateUploaded(&on)
+	cleared := make(chan error, 1)
+	go func() { cleared <- s.ClearLocated(ctx, remote, []*hash.Hash{last.GetHash()}) }()
+	select {
+	case err := <-cleared:
+		t.Fatalf("clear returned during the count: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(g.release)
+	if err := <-cleared; err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := s.GetStatus(); status.Pending != total-1 {
+		t.Fatalf("pending=%d, want %d", status.Pending, total-1)
 	}
 }
 

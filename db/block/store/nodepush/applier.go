@@ -10,13 +10,14 @@ import (
 // Adopter registers a pack another writer uploaded: block_store_s3.PackStore
 // does, once the pack's own index shows the report is true.
 type Adopter interface {
-	// AdoptPack makes the pack's blocks readable through the local index.
+	// AdoptPack makes the pack's blocks readable through the local index. An
+	// error has the node report the pack again, so it must be safe to repeat.
 	AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error
 }
 
-// PackApplier applies reports to an Adopter. It drops no queue entry itself:
-// the upload finds each adopted block in the index and clears it, so a queue
-// entry can go only after the index holds its block.
+// PackApplier applies reports to an Adopter. It drops no queue entry itself: a
+// queue entry goes only once the index holds its block, which the upload checks
+// and so does any clear the Adopter runs after adopting.
 type PackApplier struct {
 	adopter Adopter
 }

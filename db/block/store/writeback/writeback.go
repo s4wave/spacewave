@@ -88,6 +88,9 @@ type Store struct {
 	// lowered counts the transactions that lowered floor, guarded by bcast,
 	// so clear raises it only when none lowered it since clear read it.
 	lowered uint64
+	// counted closes once the status counts the whole queue, as countRest
+	// describes.
+	counted chan struct{}
 	// locate is the switch that skips uploading the blocks the remote already
 	// holds, nil while none was set.
 	locate atomic.Pointer[atomic.Bool]
@@ -151,7 +154,7 @@ func newStore(
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers, or diverted
 	// values to their packs, which need none.
-	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate()}
+	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate(), counted: make(chan struct{})}
 	switch {
 	case divert:
 		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
@@ -222,9 +225,11 @@ func newStore(
 		Target:         string(target),
 		EvictableBytes: evictableBytes,
 	}
-	if resume != nil {
-		go s.countRest(ctx, resume)
+	if resume == nil {
+		close(s.counted)
+		return s, nil
 	}
+	go s.countRest(ctx, resume)
 	return s, nil
 }
 
@@ -246,7 +251,12 @@ const openCountLimit = 10_000
 // status counts them as they commit. An entry cleared before its chunk reads
 // leaves the total low by one; the count feeds only the status and the
 // eviction budget, which a backlog this size keeps over its bound either way.
+// Upload clears from the queue's head, behind the count. ClearLocated clears
+// anywhere, ahead of it, so it waits for counted: its clears would come off the
+// status without the count ever adding them, leaving Pending low enough that
+// Upload sleeps with entries queued.
 func (s *Store) countRest(ctx context.Context, resume []byte) {
+	defer close(s.counted)
 	end := queueFloor(queueTime(time.Now()))
 	for resume != nil {
 		// Count one chunk from resume.
@@ -590,8 +600,8 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 	})
 }
 
-// clear removes the markers of uploaded blocks, queues them for eviction at
-// the current epoch, and clears the last failure.
+// clear removes the markers of uploaded blocks and queues them for eviction at
+// the current epoch.
 //
 // A dropped block written again since the batch read it keeps its marker: the
 // write changed the queue entry's value, and the block is on the local store
@@ -693,7 +703,6 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		s.status.Uploaded += int64(uploaded)
 		s.status.UploadedBytes += uploadedBytes
 		s.status.EvictableBytes += queuedBytes
-		s.status.Err = nil
 		s.status.Oldest = oldest
 
 		// Retain a floor lowered by a writer since this clear read it.
