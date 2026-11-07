@@ -27,6 +27,9 @@ type PublicationReceipt struct {
 	// release drops optional publication ownership after durable completion.
 	release     func()
 	releaseOnce sync.Once
+	// local is the receipt of the store that applied the publication, when
+	// this receipt also waits for something beyond it.
+	local *PublicationReceipt
 }
 
 // NewPublicationReceipt constructs an unresolved completion owned by a writer.
@@ -40,6 +43,26 @@ func NewRetainedPublicationReceipt(release func()) *PublicationReceipt {
 	r := NewPublicationReceipt()
 	r.release = release
 	return r
+}
+
+// NewOuterPublicationReceipt returns a receipt its owner resolves once local
+// and whatever else it waits for are done. Releasing it releases local, and
+// Local returns local.
+func NewOuterPublicationReceipt(local *PublicationReceipt) *PublicationReceipt {
+	r := NewRetainedPublicationReceipt(local.Release)
+	r.local = local
+	return r
+}
+
+// Local returns the receipt of the store that applied the publication, which
+// is r unless r came from NewOuterPublicationReceipt. A store orders a
+// publication's After by this receipt: its identity is the store's, and a
+// later commit must not wait for what only the outer receipt waits for.
+func (r *PublicationReceipt) Local() *PublicationReceipt {
+	if r == nil || r.local == nil {
+		return r
+	}
+	return r.local
 }
 
 // Release waits for resolution and releases publication ownership once. A

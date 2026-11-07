@@ -14,10 +14,16 @@
    upload takes any queue entry past a deadline, so a lost frame, a flapping
    node or a node back with an empty disk leaves nothing stuck.
 
-   AckBeforeFlush and DropOnFlush are mutants: each must fail an invariant. *)
+   The local process never lists the remote: it knows only packs in its own
+   index. So the remote holding a block is not enough, and a report carries the
+   pack's index entry, which the local process stores before it drops the queue
+   entry.
+
+   AckBeforeFlush, DropOnFlush and DropBeforeIndex are mutants: each must fail
+   an invariant. *)
 EXTENDS FiniteSets, Naturals
 
-CONSTANTS Blocks, AckBeforeFlush, DropOnFlush
+CONSTANTS Blocks, AckBeforeFlush, DropOnFlush, DropBeforeIndex
 
 VARIABLES
     state,    \* block -> "new" | "sent" | "acked"
@@ -27,11 +33,12 @@ VARIABLES
     nodeDisk, \* blocks flushed to the node's disk
     remote,   \* blocks the remote store holds
     reported, \* blocks the node reported the remote holds, not yet applied
+    indexed,  \* blocks the local pack index can find on the remote
     nodeUp,   \* the node answers
     degraded, \* blocks acknowledged without the node's flush
     failed    \* the disk that died: "none", "node" or "local"
 
-vars == <<state, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+vars == <<state, local, queued, nodeBuf, nodeDisk, remote, reported, indexed, nodeUp, degraded, failed>>
 
 Init ==
     /\ state = [b \in Blocks |-> "new"]
@@ -41,6 +48,7 @@ Init ==
     /\ nodeDisk = {}
     /\ remote = {}
     /\ reported = {}
+    /\ indexed = {}
     /\ nodeUp = TRUE
     /\ degraded = {}
     /\ failed = "none"
@@ -53,21 +61,21 @@ Submit(b) ==
     /\ local' = local \cup {b}
     /\ queued' = queued \cup {b}
     /\ nodeBuf' = IF nodeUp THEN nodeBuf \cup {b} ELSE nodeBuf
-    /\ UNCHANGED <<nodeDisk, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, nodeDisk, remote, reported, nodeUp, degraded, failed>>
 
 NodeFlush(b) ==
     /\ nodeUp
     /\ b \in nodeBuf
     /\ nodeBuf' = nodeBuf \ {b}
     /\ nodeDisk' = nodeDisk \cup {b}
-    /\ UNCHANGED <<state, local, queued, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, local, queued, remote, reported, nodeUp, degraded, failed>>
 
 \* The receipt waits for the node's flush as well as the local commit.
 Ack(b) ==
     /\ state[b] = "sent"
     /\ b \in nodeDisk \/ AckBeforeFlush
     /\ state' = [state EXCEPT ![b] = "acked"]
-    /\ UNCHANGED <<local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
 
 \* The receipt's wait for the node times out, which can happen at any moment:
 \* the node is away, slow, or lost the frame.
@@ -75,14 +83,14 @@ AckDegraded(b) ==
     /\ state[b] = "sent"
     /\ state' = [state EXCEPT ![b] = "acked"]
     /\ degraded' = degraded \cup {b}
-    /\ UNCHANGED <<local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, failed>>
+    /\ UNCHANGED <<indexed, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, failed>>
 
 NodeUpload(b) ==
     /\ nodeUp
     /\ b \in nodeDisk
     /\ b \notin remote
     /\ remote' = remote \cup {b}
-    /\ UNCHANGED <<state, local, queued, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
 
 \* The node reports only what the remote holds, or under the mutant, what it
 \* flushed.
@@ -91,16 +99,23 @@ NodeReport(b) ==
     /\ b \in remote \/ (DropOnFlush /\ b \in nodeDisk)
     /\ b \in queued
     /\ reported' = reported \cup {b}
-    /\ UNCHANGED <<state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
-\* A report drops the queue entry. The local value may then be evicted, which
+\* A report first stores the pack's index entry, durably.
+IndexReport(b) ==
+    /\ b \in reported
+    /\ indexed' = indexed \cup {b}
+    /\ UNCHANGED <<state, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+
+\* Then it drops the queue entry. The local value may then be evicted, which
 \* is the case the invariants have to survive, so it is modeled at once.
 ApplyReport(b) ==
     /\ b \in reported
+    /\ b \in indexed \/ DropBeforeIndex
     /\ queued' = queued \ {b}
     /\ local' = local \ {b}
     /\ reported' = reported \ {b}
-    /\ UNCHANGED <<state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
 \* The local upload takes a queue entry past its deadline, whatever the node
 \* says: a flapping node then strands nothing, and this carries every degraded
@@ -111,6 +126,7 @@ LocalUpload(b) ==
     /\ b \in queued
     /\ b \in local
     /\ remote' = remote \cup {b}
+    /\ indexed' = indexed \cup {b}
     /\ queued' = queued \ {b}
     /\ UNCHANGED <<state, local, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
 
@@ -119,12 +135,12 @@ NodeDown ==
     /\ nodeUp
     /\ nodeUp' = FALSE
     /\ nodeBuf' = {}
-    /\ UNCHANGED <<state, local, queued, nodeDisk, remote, reported, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, local, queued, nodeDisk, remote, reported, degraded, failed>>
 
 NodeBack ==
     /\ ~nodeUp
     /\ nodeUp' = TRUE
-    /\ UNCHANGED <<state, local, queued, nodeBuf, nodeDisk, remote, reported, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, reported, degraded, failed>>
 
 \* The node's disk dies: everything it flushed and had not uploaded is gone.
 NodeDiskLost ==
@@ -132,7 +148,7 @@ NodeDiskLost ==
     /\ failed' = "node"
     /\ nodeBuf' = {}
     /\ nodeDisk' = {}
-    /\ UNCHANGED <<state, local, queued, remote, reported, nodeUp, degraded>>
+    /\ UNCHANGED <<indexed, state, local, queued, remote, reported, nodeUp, degraded>>
 
 \* The local disk dies, and its queue with it.
 LocalDiskLost ==
@@ -141,19 +157,20 @@ LocalDiskLost ==
     /\ local' = {}
     /\ queued' = {}
     /\ reported' = {}
-    /\ UNCHANGED <<state, nodeBuf, nodeDisk, remote, nodeUp, degraded>>
+    /\ UNCHANGED <<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded>>
 
 \* A restart of the local process keeps what is durable and forgets reports
 \* it had not applied; the node repeats them. Blocks in flight stay "sent",
 \* and the local transaction already holds them.
 LocalRestart ==
     /\ reported' = {}
-    /\ UNCHANGED <<state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
 Next ==
     \/ \E b \in Blocks :
         \/ Submit(b) \/ NodeFlush(b) \/ Ack(b) \/ AckDegraded(b)
-        \/ NodeUpload(b) \/ NodeReport(b) \/ ApplyReport(b) \/ LocalUpload(b)
+        \/ NodeUpload(b) \/ NodeReport(b) \/ IndexReport(b) \/ ApplyReport(b)
+        \/ LocalUpload(b)
     \/ NodeDown \/ NodeBack \/ NodeDiskLost \/ LocalDiskLost \/ LocalRestart
 
 Spec == Init /\ [][Next]_vars
@@ -165,13 +182,21 @@ FairSpec ==
     /\ \A b \in Blocks :
         /\ WF_vars(NodeFlush(b)) /\ WF_vars(AckDegraded(b))
         /\ WF_vars(NodeUpload(b)) /\ WF_vars(NodeReport(b))
-        /\ WF_vars(ApplyReport(b)) /\ WF_vars(LocalUpload(b))
+        /\ WF_vars(IndexReport(b)) /\ WF_vars(ApplyReport(b))
+        /\ WF_vars(LocalUpload(b))
 
 \* While the local disk lives, every acknowledged block has a copy there or on
 \* the remote. The node's disk never counts here: it can die.
 NoAckedBlockLost ==
     failed # "local" =>
         \A b \in Blocks : state[b] = "acked" => b \in local \cup remote
+
+\* The local process can read every acknowledged block: from the local store,
+\* or from the remote through its index. A block the remote holds and the index
+\* does not name is a block not found.
+AckedStaysReadable ==
+    failed # "local" =>
+        \A b \in Blocks : state[b] = "acked" => b \in local \cup indexed
 
 \* The durable commit's condition: a block acknowledged through the node
 \* survives the local disk, on the node's disk or the remote.
@@ -197,6 +222,7 @@ TypeOK ==
     /\ local \subseteq Blocks /\ queued \subseteq Blocks
     /\ nodeBuf \subseteq Blocks /\ nodeDisk \subseteq Blocks
     /\ remote \subseteq Blocks /\ reported \subseteq Blocks
+    /\ indexed \subseteq Blocks
     /\ degraded \subseteq Blocks
     /\ failed \in {"none", "node", "local"}
 =============================================================================
