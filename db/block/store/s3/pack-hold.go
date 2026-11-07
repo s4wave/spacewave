@@ -319,7 +319,9 @@ func (s *PackStore) Lift(ctx context.Context, ids []string) error {
 // quarantined pack is lifted, and a trashing pack records the miss, each in
 // the one transaction that writes its row. The read returns the block only
 // after it, so no block a reader needed is served from a pack that stays
-// removable.
+// removable. A trashing pack records its first miss only: the command asks
+// only whether one was recorded, and a reader retrying a block in the trash
+// writes nothing more.
 func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.BlockRef) error {
 	// Serialize with the other moves of the pack's state.
 	release, err := s.holdMtx.Lock(ctx)
@@ -338,7 +340,7 @@ func (s *PackStore) noteFallback(ctx context.Context, id string, ref *block.Bloc
 	hold := packHold{state: PackRegistered, since: now, event: now, key: key}
 	if state == PackTrashing {
 		prev, _, err := s.index.readHold(ctx, id)
-		if err != nil {
+		if err != nil || prev.event != 0 {
 			return err
 		}
 		hold = packHold{state: PackTrashing, since: prev.since, event: now, key: key}
