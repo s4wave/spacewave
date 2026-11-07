@@ -158,6 +158,12 @@ func testTrashRemove(t *testing.T, kind string) {
 	if err != nil || hold.state != PackTrashing || hold.event == 0 || !bytes.Equal(hold.key, hashKey(d[0])) {
 		t.Fatalf("miss record = %+v, %v", hold, err)
 	}
+	if _, _, err := s.GetBlock(ctx, d[1]); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("second read of a trashed block = %v, want not found", err)
+	}
+	if again, _, err := s.index.readHold(ctx, packD); err != nil || again.event != hold.event || !bytes.Equal(again.key, hold.key) {
+		t.Fatalf("a second miss rewrote the record: %+v, %v; first %+v", again, err, hold)
+	}
 	if err := s.Remove(ctx, []string{packD}, nil); err == nil {
 		t.Fatal("removed a pack a read missed")
 	}
