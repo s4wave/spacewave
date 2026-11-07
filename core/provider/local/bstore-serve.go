@@ -16,3 +16,18 @@ var serveOnly atomic.Bool
 func SetServeOnly(on bool) {
 	serveOnly.Store(on)
 }
+
+// peerFillsUpload is the new owner's peer fill mode of the block stores mounted
+// after it is set.
+var peerFillsUpload atomic.Bool
+
+// SetPeerFillsUpload makes the block stores mounted after the call store a
+// block read from a peer as a block only the read fallback holds: with an
+// upload marker, so it uploads to the backend, and eviction keeps it until
+// then. It is for the World's new owner, whose peer is the old owner and
+// holds the blocks the backend lacks; a peer is read only after the backend
+// missed. Off, a peer's block fills the local store as a backend hit does,
+// with no marker.
+func SetPeerFillsUpload(on bool) {
+	peerFillsUpload.Store(on)
+}

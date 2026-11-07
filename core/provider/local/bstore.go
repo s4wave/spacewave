@@ -68,6 +68,9 @@ type placementState struct {
 	done <-chan struct{}
 	// serveOnly is serve mode, as SetServeOnly describes: reads fill nothing.
 	serveOnly bool
+	// peerUpload stores peer reads with an upload marker, as
+	// SetPeerFillsUpload describes.
+	peerUpload bool
 	// reads records the blocks read since the last eviction pass.
 	reads readSet
 	// localHits counts the blocks the local store served.
@@ -554,6 +557,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
 	placement.serveOnly = serveOnly.Load()
+	placement.peerUpload = !placement.serveOnly && peerFillsUpload.Load()
 	if backend != nil {
 		if !placement.serveOnly {
 			placement.cache = t.fillCache()
