@@ -21,11 +21,6 @@ import (
 // again. Publications meanwhile commit on the local store alone.
 const nodeRedial = 5 * time.Second
 
-// nodeClearQueue bounds the reported packs waiting to clear from the upload
-// queue, and so the memory their block hashes hold. A pack past it clears in
-// its turn in the upload instead.
-const nodeClearQueue = 32
-
 // NodePushConfig sends the publications of an account's block stores to a
 // storage node.
 type NodePushConfig struct {
@@ -77,19 +72,33 @@ func (l localPublisher) SubmitAtomic(ctx context.Context, p *block.AtomicPublica
 	return l.submitLocal(ctx, p)
 }
 
-// nodeAdopter adopts reported packs into the store's open backend and hands
-// their blocks to runNodeClears.
+// nodeAdopter adopts reported packs into the store's open backend and clears
+// their blocks from the upload queue.
 type nodeAdopter struct {
 	t *bstoreTracker
 	p *placementState
-	// clears takes the block hashes of each adopted pack.
-	clears chan<- []*hash.Hash
 }
 
-// AdoptPack registers the pack in the open backend. It answers without waiting
-// for the clear, which waits behind foreground writers: one goroutine applies
-// every report, and a report answered late is sent again. A pack already
-// registered clears again, so a report repeated after a restart finishes.
+// AdoptPack registers the pack in the open backend, then clears its blocks
+// from the upload queue, and returns only once both are done. The node stops
+// reporting a pack once it hears it applied, so the answer must wait for the
+// clear: a clear dropped behind an answered report leaves its blocks queued,
+// unevictable, until the upload reaches them in its turn. Until it returns
+// the report stays unanswered on the node's disk, which sends it again, so
+// that report is the clear's durable record. A pack already registered clears
+// again, so a report repeated after a restart finishes.
+//
+// The clear keeps two invariants. A queue entry goes only after the pack's
+// index entry is stored, which the adopter's AdoptPack does before this
+// clears. And ClearLocated drops only the entries the remote's index locates,
+// so a key the pack does not hold stays queued.
+//
+// One goroutine applies the reports, so one pack's hashes are held at a time.
+// The clear waits for the count of the upload queue after an open, which can
+// take most of an hour on a large queue; meanwhile this report waits, the
+// node tries the others in turn and backs off, and the connection's read
+// loop, which carries every commit's answers, does not wait on it. The clear
+// itself runs behind foreground writers, as ClearLocated describes.
 func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
 	// A report that arrives before the backend opens is tried again.
 	remote, _ := a.t.readBackend(a.p)
@@ -106,8 +115,7 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 		return err
 	}
 
-	// Name the pack's blocks for the clear. They stay queued for the upload
-	// when the clear is too far behind to take them.
+	// Clear the pack's blocks against the backend that indexed them.
 	hashes := make([]*hash.Hash, len(keys))
 	for i, key := range keys {
 		h, err := packfile.ParseBlockKey(key)
@@ -116,35 +124,7 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 		}
 		hashes[i] = h
 	}
-	select {
-	case a.clears <- hashes:
-	default:
-	}
-	return nil
-}
-
-// runNodeClears clears each adopted pack's blocks from the upload queue, ahead
-// of any backlog there, until ctx ends. A pack it misses, through a failure or
-// a restart, leaves its entries for the upload, which finds them in the index.
-func (t *bstoreTracker) runNodeClears(ctx context.Context, le *logrus.Entry, p *placementState, clears <-chan []*hash.Hash) {
-	for {
-		// Take the next pack's blocks.
-		var hashes []*hash.Hash
-		select {
-		case <-ctx.Done():
-			return
-		case hashes = <-clears:
-		}
-
-		// Clear them against the backend open now.
-		remote, _ := t.readBackend(p)
-		if remote == nil {
-			continue
-		}
-		if err := p.wb.ClearLocated(ctx, remote, hashes); err != nil && ctx.Err() == nil {
-			le.WithError(err).Warn("unable to clear a reported pack from the upload queue")
-		}
-	}
+	return a.p.wb.ClearLocated(ctx, remote, hashes)
 }
 
 // nodePushConfig returns this store's NodePushConfig, or nil.
@@ -189,18 +169,16 @@ func (t *bstoreTracker) startNodePush(
 	}
 
 	// Build the client and put the publisher in front of the local store.
-	clears := make(chan []*hash.Hash, nodeClearQueue)
-	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement, clears: clears}))
+	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement}))
 	handle.push = block_store_nodepush.NewPublisher(localPublisher{handle}, client, conf.Wait, conf.On, conf.Result)
 	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
-	// Keep the connection and the clears up until the store unmounts.
+	// Keep the connection up until the store unmounts.
 	runCtx, cancel := context.WithCancel(ctx)
 	var running sync.WaitGroup
 	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
-	running.Go(func() { t.runNodeClears(runCtx, le, placement, clears) })
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()

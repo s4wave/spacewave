@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"math/big"
 	"net"
 	"os"
@@ -24,7 +25,6 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/packfile"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
@@ -159,45 +159,65 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 		t.Fatalf("locate = %v, %v; want the uploaded block alone", found, err)
 	}
 
-	// A reported pack clears from the upload queue past an older block the
-	// backend lacks, through the keys a report carries.
+	// Reported packs clear from the upload queue past an older block the
+	// backend lacks, through the keys a report carries. More reports arrive
+	// than the clear can take while it is held, as before the queue's count
+	// ends after a restart; each report answers only once its blocks are off
+	// the queue, so none is answered with its clear dropped.
 	var on atomic.Bool
 	on.Store(true)
 	f.wb.SetLocateUploaded(&on)
 	if _, _, err := f.wb.PutBlock(f.ctx, []byte("backlog"), &block.PutOpts{RefsKnown: true}); err != nil {
 		t.Fatal(err)
 	}
-	pushed, _, err := f.wb.PutBlock(f.ctx, []byte("pushed"), &block.PutOpts{RefsKnown: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := f.packs.PutBlock(f.ctx, []byte("pushed"), &block.PutOpts{RefsKnown: true}); err != nil {
-		t.Fatal(err)
+	const reports = 40
+	keys := make([][]byte, reports)
+	for i := range keys {
+		data := []byte(fmt.Sprintf("pushed %d", i))
+		pushed, _, err := f.wb.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := f.packs.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
+			t.Fatal(err)
+		}
+		keys[i] = packfile.BlockKey(pushed.GetHash())
 	}
 	f.p.backend.Store(backend)
+	held := &heldClears{adoptedStore: adoptedStore{f.packs.(*block_store_s3.PackStore)}, entered: make(chan struct{}, 1), release: make(chan struct{})}
 	tkr := &bstoreTracker{}
-	tkr.remote.Store(&openBackend{backend: backend, store: adoptedStore{f.packs.(*block_store_s3.PackStore)}})
-	clears := make(chan []*hash.Hash, 1)
-	adopter := nodeAdopter{t: tkr, p: f.p, clears: clears}
-	if err := adopter.AdoptPack(f.ctx, nil, [][]byte{packfile.BlockKey(pushed.GetHash())}); err != nil {
+	tkr.remote.Store(&openBackend{backend: backend, store: held})
+	adopter := nodeAdopter{t: tkr, p: f.p}
+	var answered atomic.Int32
+	applied := make(chan error, 1)
+	go func() {
+		// One goroutine applies the reports, as the node client does.
+		for _, key := range keys {
+			if err := adopter.AdoptPack(f.ctx, nil, [][]byte{key}); err != nil {
+				applied <- err
+				return
+			}
+			if status := f.status(); status.Pending > reports-int(answered.Load()) {
+				applied <- errors.Errorf("report answered with %d blocks queued", status.Pending)
+				return
+			}
+			answered.Add(1)
+		}
+		applied <- nil
+	}()
+	<-held.entered
+	if n := answered.Load(); n != 0 {
+		t.Fatalf("%d reports answered while their clear is held", n)
+	}
+	close(held.release)
+	if err := <-applied; err != nil {
 		t.Fatal(err)
 	}
-	clearCtx, stopClears := context.WithCancel(f.ctx)
-	go tkr.runNodeClears(clearCtx, logrus.NewEntry(logrus.New()), f.p, clears)
-	for {
-		status, changed := f.wb.GetStatus()
-		if status.Pending == 1 {
-			break
-		}
-		select {
-		case <-changed:
-		case <-time.After(5 * time.Second):
-			t.Fatalf("pending = %d, want the backlog block alone", status.Pending)
-		}
+	if status := f.status(); status.Pending != 1 {
+		t.Fatalf("pending = %d, want the backlog block alone", status.Pending)
 	}
-	stopClears()
 	f.upload()
-	if result := f.evict(); result.Evicted != 2 {
+	if result := f.evict(); result.Evicted != reports+1 {
 		t.Fatalf("evict = %+v, want the cleared and uploaded blocks", result)
 	}
 	f.p.backend.Store(&account_settings.StorageBackend{Id: "packs"})
@@ -323,4 +343,27 @@ type adoptedStore struct {
 // AdoptPack finds the pack registered.
 func (adoptedStore) AdoptPack(context.Context, *packfile.PackfileEntry, [][]byte) error {
 	return nil
+}
+
+// heldClears is an adopted pack store whose index lookups wait for release,
+// which holds every clear of the upload queue. It signals entered once the
+// first lookup waits.
+type heldClears struct {
+	adoptedStore
+	entered chan struct{}
+	release chan struct{}
+}
+
+// LocateBlocks waits for release, then looks the refs up.
+func (h *heldClears) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	select {
+	case h.entered <- struct{}{}:
+	default:
+	}
+	select {
+	case <-h.release:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	return h.PackStore.LocateBlocks(ctx, refs)
 }

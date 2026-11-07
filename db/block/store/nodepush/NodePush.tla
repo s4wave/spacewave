@@ -19,11 +19,15 @@
    pack's index entry, which the local process stores before it drops the queue
    entry.
 
-   AckBeforeFlush, DropOnFlush and DropBeforeIndex are mutants: each must fail
-   an invariant. *)
+   The node stops reporting a pack once it hears it applied, so the answer
+   follows the clear of its queue entries: a clear dropped after the answer
+   would leave them queued, the local copy unevictable, until the upload's
+   turn.
+
+   NodePush.mutants.json lists the guards each invariant depends on. *)
 EXTENDS FiniteSets, Naturals
 
-CONSTANTS Blocks, AckBeforeFlush, DropOnFlush, DropBeforeIndex
+CONSTANTS Blocks
 
 VARIABLES
     state,    \* block -> "new" | "sent" | "acked"
@@ -34,11 +38,12 @@ VARIABLES
     remote,   \* blocks the remote store holds
     reported, \* blocks the node reported the remote holds, not yet applied
     indexed,  \* blocks the local pack index can find on the remote
+    answered, \* blocks the node heard applied, and so reports no more
     nodeUp,   \* the node answers
     degraded, \* blocks acknowledged without the node's flush
     failed    \* the disk that died: "none", "node" or "local"
 
-vars == <<state, local, queued, nodeBuf, nodeDisk, remote, reported, indexed, nodeUp, degraded, failed>>
+vars == <<state, local, queued, nodeBuf, nodeDisk, remote, reported, indexed, answered, nodeUp, degraded, failed>>
 
 Init ==
     /\ state = [b \in Blocks |-> "new"]
@@ -49,6 +54,7 @@ Init ==
     /\ remote = {}
     /\ reported = {}
     /\ indexed = {}
+    /\ answered = {}
     /\ nodeUp = TRUE
     /\ degraded = {}
     /\ failed = "none"
@@ -61,21 +67,21 @@ Submit(b) ==
     /\ local' = local \cup {b}
     /\ queued' = queued \cup {b}
     /\ nodeBuf' = IF nodeUp THEN nodeBuf \cup {b} ELSE nodeBuf
-    /\ UNCHANGED <<indexed, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, nodeDisk, remote, reported, nodeUp, degraded, failed>>
 
 NodeFlush(b) ==
     /\ nodeUp
     /\ b \in nodeBuf
     /\ nodeBuf' = nodeBuf \ {b}
     /\ nodeDisk' = nodeDisk \cup {b}
-    /\ UNCHANGED <<indexed, state, local, queued, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, remote, reported, nodeUp, degraded, failed>>
 
 \* The receipt waits for the node's flush as well as the local commit.
 Ack(b) ==
     /\ state[b] = "sent"
-    /\ b \in nodeDisk \/ AckBeforeFlush
+    /\ b \in nodeDisk
     /\ state' = [state EXCEPT ![b] = "acked"]
-    /\ UNCHANGED <<indexed, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
 
 \* The receipt's wait for the node times out, which can happen at any moment:
 \* the node is away, slow, or lost the frame.
@@ -83,38 +89,40 @@ AckDegraded(b) ==
     /\ state[b] = "sent"
     /\ state' = [state EXCEPT ![b] = "acked"]
     /\ degraded' = degraded \cup {b}
-    /\ UNCHANGED <<indexed, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, failed>>
+    /\ UNCHANGED <<indexed, answered, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, failed>>
 
 NodeUpload(b) ==
     /\ nodeUp
     /\ b \in nodeDisk
     /\ b \notin remote
     /\ remote' = remote \cup {b}
-    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
 
-\* The node reports only what the remote holds, or under the mutant, what it
-\* flushed.
+\* The node reports only what the remote holds, until it hears it applied.
 NodeReport(b) ==
     /\ nodeUp
-    /\ b \in remote \/ (DropOnFlush /\ b \in nodeDisk)
+    /\ b \in remote
     /\ b \in queued
+    /\ b \notin answered
     /\ reported' = reported \cup {b}
-    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
 \* A report first stores the pack's index entry, durably.
 IndexReport(b) ==
     /\ b \in reported
     /\ indexed' = indexed \cup {b}
-    /\ UNCHANGED <<state, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<answered, state, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
 
-\* Then it drops the queue entry. The local value may then be evicted, which
-\* is the case the invariants have to survive, so it is modeled at once.
+\* Then it drops the queue entry, and only then answers the node. The local
+\* value may then be evicted, which is the case the invariants have to
+\* survive, so it is modeled at once.
 ApplyReport(b) ==
     /\ b \in reported
-    /\ b \in indexed \/ DropBeforeIndex
+    /\ b \in indexed
     /\ queued' = queued \ {b}
     /\ local' = local \ {b}
     /\ reported' = reported \ {b}
+    /\ answered' = answered \cup {b}
     /\ UNCHANGED <<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
 \* The local upload takes a queue entry past its deadline, whatever the node
@@ -128,19 +136,19 @@ LocalUpload(b) ==
     /\ remote' = remote \cup {b}
     /\ indexed' = indexed \cup {b}
     /\ queued' = queued \ {b}
-    /\ UNCHANGED <<state, local, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<answered, state, local, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
 
 \* The node goes away, losing what it had not flushed.
 NodeDown ==
     /\ nodeUp
     /\ nodeUp' = FALSE
     /\ nodeBuf' = {}
-    /\ UNCHANGED <<indexed, state, local, queued, nodeDisk, remote, reported, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeDisk, remote, reported, degraded, failed>>
 
 NodeBack ==
     /\ ~nodeUp
     /\ nodeUp' = TRUE
-    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, reported, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeBuf, nodeDisk, remote, reported, degraded, failed>>
 
 \* The node's disk dies: everything it flushed and had not uploaded is gone.
 NodeDiskLost ==
@@ -148,7 +156,7 @@ NodeDiskLost ==
     /\ failed' = "node"
     /\ nodeBuf' = {}
     /\ nodeDisk' = {}
-    /\ UNCHANGED <<indexed, state, local, queued, remote, reported, nodeUp, degraded>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, remote, reported, nodeUp, degraded>>
 
 \* The local disk dies, and its queue with it.
 LocalDiskLost ==
@@ -157,14 +165,14 @@ LocalDiskLost ==
     /\ local' = {}
     /\ queued' = {}
     /\ reported' = {}
-    /\ UNCHANGED <<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded>>
+    /\ UNCHANGED <<indexed, answered, state, nodeBuf, nodeDisk, remote, nodeUp, degraded>>
 
 \* A restart of the local process keeps what is durable and forgets reports
 \* it had not applied; the node repeats them. Blocks in flight stay "sent",
 \* and the local transaction already holds them.
 LocalRestart ==
     /\ reported' = {}
-    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>
 
 Next ==
     \/ \E b \in Blocks :
@@ -210,6 +218,11 @@ QueueHoldsUntilRemote ==
     failed # "local" =>
         \A b \in Blocks : state[b] # "new" => b \in queued \cup remote
 
+\* The node stops reporting a block only once its queue entry is gone, so no
+\* answered report leaves its block queued behind the upload's backlog.
+AnsweredCleared ==
+    \A b \in Blocks : b \in answered => b \notin queued
+
 \* No receipt waits forever.
 ReceiptsResolve == \A b \in Blocks : state[b] = "sent" ~> state[b] = "acked"
 
@@ -222,7 +235,7 @@ TypeOK ==
     /\ local \subseteq Blocks /\ queued \subseteq Blocks
     /\ nodeBuf \subseteq Blocks /\ nodeDisk \subseteq Blocks
     /\ remote \subseteq Blocks /\ reported \subseteq Blocks
-    /\ indexed \subseteq Blocks
+    /\ indexed \subseteq Blocks /\ answered \subseteq Blocks
     /\ degraded \subseteq Blocks
     /\ failed \in {"none", "node", "local"}
 =============================================================================

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "a receipt answers before the node's flush",
+    "replace": [["    /\\ b \\in nodeDisk\n    /\\ state' = [state EXCEPT ![b] = \"acked\"]", "    /\\ state' = [state EXCEPT ![b] = \"acked\"]"]],
+    "expect": "AckedSurvivesLocalDisk"
+  },
+  {
+    "name": "the node reports a block it only flushed",
+    "replace": [["    /\\ b \\in remote\n    /\\ b \\in queued", "    /\\ b \\in nodeDisk\n    /\\ b \\in queued"]],
+    "expect": "QueueHoldsUntilRemote"
+  },
+  {
+    "name": "a report drops the queue entry before the index entry",
+    "replace": [["    /\\ b \\in reported\n    /\\ b \\in indexed\n", "    /\\ b \\in reported\n"]],
+    "expect": "AckedStaysReadable"
+  },
+  {
+    "name": "a report is answered while its clear is dropped",
+    "replace": [["    /\\ queued' = queued \\ {b}\n    /\\ local' = local \\ {b}\n    /\\ reported' = reported \\ {b}\n    /\\ answered'", "    /\\ reported' = reported \\ {b}\n    /\\ answered'"], ["<<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>", "<<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>"]],
+    "expect": "AnsweredCleared"
+  }
+]
