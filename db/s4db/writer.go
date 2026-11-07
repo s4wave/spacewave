@@ -1,358 +1,250 @@
 package s4db
 
 import (
-	"bytes"
 	"context"
-	"math"
-	"slices"
-	"sync"
 	"sync/atomic"
-	"time"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
-	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// Priorities of the writer lock.
-const (
-	// prioBackground is the priority of write transactions opened with
-	// kvtx.WithBackgroundWriteContext, which wait behind every writer.
-	prioBackground = iota - 1
-	// prioWriter is the priority of write transactions and other foreground
-	// holders.
-	prioWriter
-	// prioCheckpoint is the priority of background checkpoint steps.
-	prioCheckpoint
-)
-
-// compactBatch bounds the value bytes Compact holds in memory and commits
-// at once.
-const compactBatch = 64 << 20
-
-// writer appends commits, checkpoints, and moves values for one handle. Its
-// fields belong to the holder of the writer lock.
+// writer appends commits and background records for one handle. Its fields
+// belong to the holder of the writer lock.
 type writer struct {
 	// db is the database.
 	db *DB
-	// mtx excludes this handle's other writers. Background checkpoint
-	// steps lock it at prioCheckpoint, ahead of writers at prioWriter: they
-	// hold it briefly, and a checkpoint that waits behind each queued
-	// transaction falls behind the commits, while the overlay and the file
-	// grow until it ends.
-	mtx csync.PrioMutex
-	// release releases mtx. It belongs to the holder.
-	release func()
-	// sp is the space state, current through spSeq and spGen. Replacing it
-	// also takes spMtx.
-	sp *space
-	// spMtx excludes replacing sp while a background checkpoint writes a
-	// page it reserved from sp, which a single-process handle does without
-	// the writer lock.
-	spMtx sync.Mutex
-	// spSeq is the commit sp reflects.
-	spSeq uint64
-	// spGen is the checkpoint generation sp reflects.
-	spGen uint64
-	// fileEnd is the file length in pages.
-	fileEnd uint64
-	// relocKey is where the next compaction pass resumes.
-	relocKey []byte
-	// ckptErr is the error of the last background checkpoint, reported by
-	// the next commit.
-	ckptErr error
+	// mtx excludes this handle's other writers.
+	mtx csync.Mutex
+	// unlockMtx releases mtx while the writer lock is held.
+	unlockMtx func()
 
 	// held is set while this handle holds the writer lock. It is safe
 	// without the writer lock.
 	held atomic.Bool
-	// building is set while a background checkpoint runs. It and builds
-	// are safe without the writer lock.
-	building atomic.Bool
-	// builds counts running background checkpoints, so Close can wait.
-	builds sync.WaitGroup
-	// stats counts the checkpoint work and the writers' waits for it.
-	stats writerStats
-	// beforeBuild, when set by a test, runs as a background checkpoint
-	// starts building its tree.
-	beforeBuild func()
-	// beforeSave, when set by a test, runs with the tree as a background
-	// checkpoint releases the writer lock to encode its space copy.
-	beforeSave func(t *tree)
-	// buildLocked is set while this handle's background checkpoint holds
-	// a shared file's build lock. It is set under the writer lock.
-	buildLocked atomic.Bool
-	// closing is set by Close, so a running background checkpoint drops
-	// its tree instead of finishing it.
-	closing atomic.Bool
-	// punching is set while a single-process handle punches released runs
-	// in the background. It and punches are safe without the writer lock.
-	punching atomic.Bool
-	// punches counts running background punches, so Close can wait.
-	punches sync.WaitGroup
-	// changed lists the commit records published since the state a
-	// background checkpoint builds.
-	changed []*record
-	// spaceLen is the length of the last space record before padding, which
-	// sizes the next one, or zero before the first.
-	spaceLen int
-	// mergeFreed counts the pages merge steps freed since the last
-	// checkpoint, which wait for the next one.
-	mergeFreed uint64
-	// saveLive is the live counts array of the last space copy a checkpoint
-	// encoded, reused by the next copy. A copy being encoded holds it, so a
-	// checkpoint that starts meanwhile allocates its own.
-	saveLive []uint16
+	// requests guards the foreground count and its slot intent lock.
+	requests broadcast.Broadcast
+
+	// waiting counts this handle's foreground writers waiting for the writer lock. It
+	// is safe without the writer lock.
+	waiting atomic.Int32
 }
 
-// lock takes the writer lock and brings the writer up to date with records
-// other processes appended, behind every writer when ctx carries
-// kvtx.WithBackgroundWriteContext. Waiting for another process cannot be
-// canceled; ctx bounds the wait for this handle's writers.
+// lock takes the writer lock and brings the handle up to date with records
+// other processes appended. Waiting for another process cannot be canceled;
+// ctx bounds the wait for this handle's writers.
 func (w *writer) lock(ctx context.Context) error {
-	if kvtx.IsBackgroundWriteContext(ctx) {
-		return w.lockAs(ctx, prioBackground)
+	// Announce this request before it can wait behind any background step.
+	if err := w.beginWait(); err != nil {
+		return err
 	}
-	return w.lockAs(ctx, prioWriter)
+	defer w.endWait()
+	return w.take(ctx)
 }
 
-// lockFirst takes the writer lock as lock does, ahead of queued writers. A
-// background checkpoint step uses it, so the build waits out one transaction
-// rather than the queue, and holds the lock only briefly.
-func (w *writer) lockFirst(ctx context.Context) error {
-	return w.lockAs(ctx, prioCheckpoint)
-}
-
-// lockAs takes the writer lock at prio, ahead of queued holders of a lower
-// prio.
-func (w *writer) lockAs(ctx context.Context, prio int) error {
-	// Exclude this handle's writers, then other processes.
-	release, err := w.mtx.Lock(ctx, prio)
+// take acquires the writer locks and refreshes the handle. Foreground callers
+// announce their request first; background callers check announcements afterward.
+func (w *writer) take(ctx context.Context) error {
+	// Exclude this handle's other writers, then the other processes.
+	release, err := w.mtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
-	if _, err := w.db.lockFile(true); err != nil {
+	_, err = w.db.s.lock(lockWriter, true)
+	if err != nil {
 		release()
 		return err
 	}
-	w.release = release
+	w.unlockMtx = release
 	w.held.Store(true)
 
-	// Apply what other processes wrote.
-	if err := w.catchUp(ctx); err != nil {
-		w.unlock(err)
+	// Apply what other processes wrote before any record is appended.
+	if err := w.db.refresh(ctx); err != nil {
+		w.unlock()
 		return err
 	}
 	return nil
 }
 
-// tryLock takes the writer lock when no writer holds it, without catching
-// up.
-func (w *writer) tryLock() (bool, error) {
+// tryLock takes the writer lock when no writer holds it, and brings the
+// handle up to date as lock does: a record appended from a stale state would
+// overwrite another process's records.
+func (w *writer) tryLock(ctx context.Context) (bool, error) {
 	// Exclude this handle's writers, then other processes, without
 	// waiting.
 	release, ok := w.mtx.TryLock()
 	if !ok {
 		return false, nil
 	}
-	ok, err := w.db.lockFile(false)
+	ok, err := w.db.s.lock(lockWriter, false)
 	if err != nil || !ok {
 		release()
 		return false, err
 	}
-	w.release = release
+	w.unlockMtx = release
 	w.held.Store(true)
+
+	// An optional closing mark yields to foreground requests in every process.
+	if slot, err := w.waitingSlot(); err != nil || slot >= 0 {
+		w.unlock()
+		return false, err
+	}
+
+	// Apply what other processes wrote.
+	if err := w.db.refresh(ctx); err != nil {
+		w.unlock()
+		return false, err
+	}
 	return true, nil
 }
 
-// waiting reports whether a writer or checkpoint step of this handle waits
-// for the writer lock. It is safe without the writer lock and costs one
-// atomic load, so a holder doing deferrable work can check it often.
-func (w *writer) waiting() bool {
-	return w.mtx.Waiting(prioWriter)
-}
-
 // unlock releases the writer lock and tells other processes the file
-// changed. err is the result of the work done under the lock: a failed
-// step may have changed the space for writes the log does not hold, so
-// the space is dropped and the next lock rebuilds it from the log.
-func (w *writer) unlock(err error) {
-	// Drop a space a failed step may have left ahead of the log.
-	if err != nil {
-		w.setSpace(nil)
-	}
-
+// changed.
+func (w *writer) unlock() {
 	// Release other processes and wake their watchers, then this handle's
 	// writers.
 	w.held.Store(false)
-	_ = w.db.unlockFile()
+	_ = w.db.s.unlock(lockWriter)
 	w.db.watch.notify()
-	release := w.release
-	w.release = nil
+	release := w.unlockMtx
+	w.unlockMtx = nil
 	release()
 }
 
-// setSpace replaces the space once no background checkpoint is writing a
-// page reserved from it. The caller holds the writer lock.
-func (w *writer) setSpace(sp *space) {
-	w.spMtx.Lock()
-	w.sp = sp
-	w.spMtx.Unlock()
-}
-
-// create writes an empty database into an empty file. The caller holds the
-// file's writer lock.
+// create writes an empty database into an empty file: the header, zero
+// slots, an empty manifest in chunk 1, a log chunk at chunk 2 and the first
+// superblock. The caller holds the file's writer lock.
 func (w *writer) create() error {
-	// Leave an existing file alone.
+	// Leave an existing file alone; recreate one a crash left without a
+	// header.
 	s := w.db.s
-	if size, err := s.size(); err != nil || size != 0 {
+	size, err := s.size()
+	if err != nil {
 		return err
+	}
+	if size != 0 {
+		hdr := make([]byte, pageSize)
+		if _, err := s.ReadAt(hdr, headerPage*pageSize); err != nil {
+			return err
+		}
+		if [8]byte(hdr[:8]) == magic || size > fileOff(chunkStart(4)) {
+			return nil
+		}
 	}
 
-	// Write the header and an empty slot table.
-	if _, err := s.WriteAt(newHeader(w.db.opts.InlineMax).encode(), headerPage*pageSize); err != nil {
-		return err
-	}
+	// Write an empty slot table; the header goes last, so a crash during
+	// creation leaves a file without one that the next open recreates.
 	if _, err := s.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
 		return err
 	}
 
-	// Allocate the first log chunk and save the space.
-	sp := newSpace()
-	chunk := sp.alloc(extentPages)
-	sp.chunks = []run{chunk}
-	ref, err := w.writeSpace(sp)
-	if err != nil {
+	// Write the manifest of an empty file: its own chunk and the log chunk.
+	m := newManifest()
+	m.table.set(1, chunkEntry{kind: chunkManifest, owner: m.version})
+	m.mchunks = []uint64{1}
+	m.table.set(2, chunkEntry{kind: chunkLog})
+	m.table.set(3, chunkEntry{kind: chunkLog})
+	if err := backLog(s, 2, 2); err != nil {
+		return err
+	}
+	mb := m.encode()
+	if _, err := s.WriteAt(mb, fileOff(chunkStart(1))); err != nil {
 		return err
 	}
 
-	// Point the first superblock at the empty log and flush.
-	sb := superblock{gen: 1, space: ref, logPos: chunk.start * pageSize, logEnd: chunk.end() * pageSize}
-	if err := s.truncate(pageOff(sp.end)); err != nil {
+	// Point the first superblock at the manifest and the empty log, size
+	// the file to its chunks, and flush.
+	sb := superblock{
+		gen:      1,
+		version:  m.version,
+		manifest: ref{off: chunkStart(1), n: uint32(len(mb)), crc: checksum(mb)}, // #nosec G115 -- an empty manifest is small.
+		logPos:   chunkStart(2),
+		logEnd:   chunkStart(3),
+		memPos:   chunkStart(2),
+		memEnd:   chunkStart(3), memSpare: 3,
+	}
+	if err := s.truncate(fileOff(chunkStart(4))); err != nil {
 		return err
 	}
 	if _, err := s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
 		return err
 	}
+	if _, err := s.WriteAt(newHeader(w.db.opts.memtable).encode(), headerPage*pageSize); err != nil {
+		return err
+	}
 	return s.flushDurable()
 }
 
-// catchUp applies new records and rebuilds the space when another process
-// wrote since this handle last did. The caller holds the writer lock.
-func (w *writer) catchUp(ctx context.Context) error {
-	// Apply the new records and keep the space when it is still current.
-	db := w.db
-	if err := db.Refresh(ctx); err != nil {
-		return err
-	}
-	st := db.cur.Load()
-	if w.sp != nil && w.spSeq == st.seq && w.spGen == st.gen {
-		return nil
-	}
-	if err := w.replaySpace(st); err != nil {
-		return err
-	}
-
-	// Flush whatever the previous writer left unflushed, so this writer's
-	// durability marks hold.
-	return db.flush.syncThrough(ctx, st.seq, st.ckpt)
-}
-
-// replaySpace loads the space of st's checkpoint and replays the records
-// after it.
-func (w *writer) replaySpace(st *state) error {
-	// Load the checkpoint's space.
-	s := w.db.s
-	ref := st.sb.space
-	b := make([]byte, ref.n)
-	if _, err := s.ReadAt(b, fileOff(ref.off)); err != nil {
-		return err
-	}
-	if checksum(b) != ref.crc {
-		return errors.Wrap(ErrCorrupt, "space checksum mismatch")
-	}
-	sp, err := decodeSpace(b)
-	if err != nil {
-		return err
-	}
-
-	// Replay the space changes of the records after it, indexing the
-	// pending runs so each claim finds the runs it overlaps. The log resumes
-	// after the tree's checkpoint, which may precede the space's.
-	sp.indexPending()
-	lr := newLogReader(s, st.sb.logPos, st.sb.logEnd, st.sb.seq, st.sb.logCrc)
-	for lr.seq <= st.seq {
-		r, ok := lr.next()
-		if !ok {
-			return errors.Wrapf(ErrCorrupt, "log ends before record %d", st.seq)
-		}
-		if r.seq <= st.sb.spaceSeq {
-			continue
-		}
-		if r.kind == kindLink {
-			sp.claim(r.next)
-			sp.chunks = append(sp.chunks, r.next)
-			continue
-		}
-
-		// Release first: the writer placed this record's values after
-		// every release its marks cover.
-		sp.release(r.released.seq, r.released.ckpt)
-		for _, o := range r.ops {
-			if o.val.isRef {
-				sp.useValue(o.val.ref.off, int(o.val.ref.n))
-			}
-		}
-		for _, fr := range r.frees {
-			sp.freeValue(fr.off, int(fr.n), r.seq)
-		}
-	}
-
-	// Adopt the space. Its writer punched what it released, except a last
-	// batch a crash cut short, whose pages stay allocated until reused.
-	sp.pendingAt = nil
-	sp.drain()
-	size, err := s.size()
-	if err != nil {
-		return err
-	}
-	w.setSpace(sp)
-	w.spSeq, w.spGen = st.seq, st.gen
-	w.fileEnd = uint64(size) / pageSize // #nosec G115 -- file sizes are not negative.
-	return nil
+// valueWrite is a value awaiting its write: its entry header and bytes at
+// off.
+type valueWrite struct {
+	// off is the file offset of the entry header.
+	off uint64
+	// data is the header followed by the value.
+	data []byte
 }
 
 // commit appends a commit record for changes on base, writes its values,
-// and publishes the new state. moves reports that changes are compaction's
-// moves, which the flows do not count. The caller holds the writer lock.
-func (w *writer) commit(ctx context.Context, base *state, changes []tentry, ordered, moves bool) error {
-	// Look the changes up together, so a cold commit reads one round per
-	// tree level instead of one path per change while it holds the writer
-	// lock.
-	db, sp := w.db, w.sp
-	keys := make([][]byte, len(changes))
-	for i, c := range changes {
-		keys[i] = c.key
-	}
-	olds, founds, err := db.lookupBatch(ctx, base, keys)
-	if err != nil {
-		return err
-	}
-
-	// Resolve each change against the base state: frees, count, value
-	// placement, and the flow of its family.
-	r := &record{kind: kindCommit}
+// and publishes the new state. moves reports that the changes are the
+// cleaner's moves, which the flows do not count. The caller holds the writer
+// lock, and base is the published state.
+func (w *writer) commit(ctx context.Context, base *state, changes []tentry, moves bool) error {
+	// Start the record on a copy of the state. Placement takes chunks from
+	// the copy's table, which the record's replay reproduces.
+	db := w.db
+	next := base.derive()
+	r := &record{kind: kindCommit, writer: db.id, prevWriter: base.writer, hot: next.m.hot, cold: next.m.cold}
 	var writes []valueWrite
+
+	// A move out of an open chunk closes it, so no later value lands in the
+	// chunk the cleaner is emptying.
+	if moves {
+		for _, c := range changes {
+			switch chunkOf(c.expect) {
+			case r.hot:
+				r.hot = 0
+			case r.cold:
+				r.cold = 0
+			}
+		}
+	}
 	var flows []Flow
 	if !moves {
 		flows = make([]Flow, len(db.flows))
 	}
+
+	// Look up each change's old value in the base state, with up to
+	// lookupInFlight reads in flight. A cleaner's moves read around the block
+	// cache, and keep only the old value's kind and reference.
+	keys := make([][]byte, len(changes))
+	for i := range changes {
+		keys[i] = changes[i].key
+	}
+	olds := make([]value, len(changes))
+	founds := make([]bool, len(changes))
+	err := db.lookupEach(base, keys, !moves, func(i int, v value, found bool) error {
+		v.inline = nil
+		olds[i], founds[i] = v, found
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Resolve each change against its old value: frees, count, value
+	// placement, and the flow of its family.
+	var userBytes int64
 	for i, c := range changes {
 		old, found := olds[i], founds[i]
 		if c.del && !found {
 			continue
 		}
-		if found && old.isRef {
-			r.frees = append(r.frees, old.ref)
+		if moves && (!found || !old.isRef() || old.ref.off != c.expect) {
+			continue
+		}
+		userBytes += int64(len(c.key) + len(c.data))
+		if found && old.isRef() {
+			hdr := uint64(valueEntryHeaderLen(len(c.key), int(old.ref.n)))                     // #nosec G115 -- a header is a few bytes.
+			r.frees = append(r.frees, ref{off: old.ref.off - hdr, n: old.ref.n + uint32(hdr)}) // #nosec G115 -- fits a chunk.
 			if flows != nil {
 				flows[db.family(c.key)].Freed += int64(old.ref.n)
 			}
@@ -360,18 +252,20 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		switch {
 		case c.del:
 			r.delta--
-			r.ops = append(r.ops, op{key: c.key, del: true})
+			r.ops = append(r.ops, op{key: c.key, val: value{kind: valueDeleted}})
 			continue
 		case !found:
 			r.delta++
 		}
-		v := value{inline: c.data}
-		if len(c.data) > int(db.hdr.inlineMax) {
-			v = value{isRef: true, ref: extentRef{n: uint32(len(c.data)), crc: checksum(c.data)}} // #nosec G115 -- Set bounds values by MaxValueSize.
-			writes = append(writes, valueWrite{op: len(r.ops), data: c.data})
+		v := value{kind: valueInline, inline: c.data}
+		if len(c.data) > inlineMax {
+			v, writes = w.place(next.m, r, c.key, c.data, writes, moves)
 			if flows != nil {
 				flows[db.family(c.key)].Written += int64(len(c.data))
 			}
+		}
+		if moves {
+			v.kind = valueMoved
 		}
 		r.ops = append(r.ops, op{key: c.key, val: v})
 	}
@@ -379,1411 +273,106 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		return nil
 	}
 
-	// Refuse a record its length field cannot hold.
-	size := r.bound() + linkSize
-	if int64(size) > maxRecord {
-		return ErrTxTooLarge
-	}
-
-	// Continue the log in a new chunk when the record may not fit.
-	bound := uint64(size) // #nosec G115 -- sizes are not negative.
-	seq := base.seq + 1
-	pos, end, prev := base.pos, base.end, base.crc
-	var link []byte
-	linkPos := pos
-	if pos+bound > end {
-		chunk := sp.alloc(max(extentPages, pagesFor(size)))
-		sp.chunks = append(sp.chunks, chunk)
-		l := newLink(seq, chunk)
-		link = l.encode(prev)
-		seq, prev = seq+1, l.crc
-		pos, end = chunk.start*pageSize, chunk.end()*pageSize
-	}
-	r.seq = seq
-	w.db.ownSeq.Store(seq)
-
-	// Place values, then free replaced ones and release what no snapshot
-	// reads.
-	for _, wr := range writes {
-		ref := &r.ops[wr.op].val.ref
-		ref.off = sp.placeValue(len(wr.data), seq)
-	}
-	for _, fr := range r.frees {
-		sp.freeValue(fr.off, int(fr.n), seq)
-	}
-	if err := w.releaseSpace(ctx, base, r); err != nil {
+	// Reserve the log and its standby before writing values or publishing.
+	r.durable, _ = db.flush.marks()
+	pos, link, err := w.placeLog(base, next, r)
+	if err != nil {
 		return err
+	}
+	linkPos, prev := base.pos, base.crc
+	if link != nil {
+		prev = next.crc
 	}
 
 	// Write the values, then the record. A tail of this handle that began
 	// before the writer lock and reads the record first publishes the same
 	// state.
-	if err := w.writeValues(r, writes); err != nil {
+	if err := w.writeValues(writes); err != nil {
 		return err
 	}
-	r.durable, _, _ = db.flush.marks()
 	rec := r.encode(prev)
-	if err := w.writeRecord(link, linkPos, rec, pos); err != nil {
-		return err
-	}
-
-	// Order an ordered commit's writes before the next commit's. A failure
-	// leaves the state unpublished; erasing the header at linkPos ends the
-	// log before the record, so a later issue of its writes cannot make it
-	// readable.
-	if ordered {
-		if err := db.s.flushOrdered(); err != nil {
-			_, _ = db.s.WriteAt(make([]byte, recordHeader), fileOff(linkPos))
+	if link != nil {
+		if _, err := db.s.WriteAt(link, fileOff(linkPos)); err != nil {
 			return err
 		}
 	}
+	if _, err := db.s.WriteAt(rec, fileOff(pos)); err != nil {
+		return err
+	}
+	db.written.Add(int64(len(link) + len(rec)))
+	db.userBytes.Add(userBytes)
 
 	// Publish the new state.
-	next := db.derive(base)
-	db.recent.add(r)
-	next.apply(r)
-	next.pos, next.end = pos+uint64(len(rec)), end
+	next.apply(r, db.budget)
 	if err := db.publish(ctx, next); err != nil {
 		return err
 	}
 	db.addFlows(flows)
-	if w.building.Load() {
-		w.changed = append(w.changed, r)
-	}
-
-	// Arm the deadline flush of an ordered commit and release space once a
-	// batch has built up. A durable commit flushes after the writer lock is
-	// released.
-	if ordered {
-		db.flush.ordered()
-	}
-	release := w.truncate
-	if w.sp.releasedPages >= punchBatchPages {
-		release = w.punch
-	}
-	if err := release(); err != nil {
-		return err
-	}
-
-	// The space now reflects the record.
-	w.spSeq = seq
 	return nil
 }
 
-// writeRecord writes a commit record at pos, after the link that leads to
-// its chunk when link is set.
-func (w *writer) writeRecord(link []byte, linkPos uint64, rec []byte, pos uint64) error {
-	if link != nil {
-		if _, err := w.db.s.WriteAt(link, fileOff(linkPos)); err != nil {
-			return err
-		}
+// place assigns data, stored under key, a position in the open hot value
+// chunk of m, or the cold chunk for a cleaner's move, taking a new chunk when
+// it does not fit and a run of chunks when it exceeds one. It records the
+// write and returns the reference.
+func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueWrite, cold bool) (value, []valueWrite) {
+	// Build the entry.
+	hdr := valueEntryHeaderLen(len(key), len(data))
+	entry := make([]byte, 0, hdr+len(data))
+	entry = appendValueEntryHeader(entry, key, data)
+	entry = append(entry, data...)
+	n := uint64(len(entry))
+
+	// Choose where it goes: its own chunks when longer than one, else the
+	// open chunk, replaced when the entry does not fit.
+	var off uint64
+	open := &r.hot
+	if cold {
+		open = &r.cold
 	}
-	_, err := w.db.s.WriteAt(rec, fileOff(pos))
-	return err
+	switch {
+	case n > chunkSize:
+		off = chunkStart(m.table.alloc(chunksFor(n), chunkValue, 0))
+	default:
+		if *open == 0 || uint64(m.table.get(*open).used)+n > chunkSize {
+			*open = m.table.alloc(1, chunkValue, 0)
+		}
+		off = m.table.appendValue(*open, uint32(n)) // #nosec G115 -- n fits a chunk.
+	}
+
+	// Record the write and the reference past the header.
+	writes = append(writes, valueWrite{off: off, data: entry})
+	v := value{kind: valueRef, ref: ref{off: off + uint64(hdr), n: uint32(len(data)), crc: checksum(data)}} // #nosec G115 -- Set bounds values by MaxValueSize.
+	return v, writes
 }
 
 // writeValues writes placed values, joining adjacent ones into one write.
-func (w *writer) writeValues(r *record, writes []valueWrite) error {
-	// Collect adjacent values in buf, starting at at.
+func (w *writer) writeValues(writes []valueWrite) error {
+	// Collect adjacent entries in buf, starting at at.
 	var buf []byte
 	var at uint64
 	flush := func() error {
+		// Write the collected entries in one call.
 		if len(buf) == 0 {
 			return nil
 		}
 		_, err := w.db.s.WriteAt(buf, fileOff(at))
+		w.db.written.Add(int64(len(buf)))
 		buf = buf[:0]
 		return err
 	}
 
-	// Write each run when the next value is not adjacent.
+	// Write each run when the next entry is not adjacent.
 	for _, wr := range writes {
-		off := r.ops[wr.op].val.ref.off
-		if len(buf) != 0 && at+uint64(len(buf)) != off {
+		if len(buf) != 0 && at+uint64(len(buf)) != wr.off {
 			if err := flush(); err != nil {
 				return err
 			}
 		}
 		if len(buf) == 0 {
-			at = off
+			at = wr.off
 		}
 		buf = append(buf, wr.data...)
 	}
 	return flush()
-}
-
-// releaseSpace returns freed runs no snapshot reads to free space and
-// records the space's release marks in r. The marks only rise, so replaying
-// any record repeats every release the writer made before it.
-func (w *writer) releaseSpace(ctx context.Context, base *state, r *record) error {
-	// Bound the release by durability and this handle's snapshots, and skip
-	// reading the slots when nothing pending falls under that bound.
-	sp := w.sp
-	defer func() { r.released = sp.marks }()
-	_, logged, ckptDurable := w.db.flush.marks()
-	local := w.db.localPin()
-	seq := min(local.seq, logged)
-	ckpt := min(local.ckpt, base.ckpt, ckptDurable)
-	if !sp.due(seq, ckpt) {
-		return nil
-	}
-
-	// Lower the bound by every other process's snapshots and release value
-	// runs and pages below it.
-	p, err := w.db.minPin()
-	if err != nil {
-		return err
-	}
-	sp.release(min(p.seq, seq), min(p.ckpt, ckpt))
-	return nil
-}
-
-// punchBatchPages is the released page count at which a commit punches.
-// Each punch is a file system call made under the writer lock, and
-// lowest-fit allocation soon takes freed runs again, so commits leave smaller
-// batches to the next checkpoint.
-const punchBatchPages = 8 << 20 / pageSize
-
-// punch deallocates released runs and shrinks the file to the space end. A
-// single-process handle punches in the background, since a hole punch can
-// wait on a busy disk for minutes and every writer would wait with it.
-func (w *writer) punch() error {
-	if w.db.opts.SingleProcess && !w.closing.Load() {
-		w.startPunch()
-		return w.truncate()
-	}
-	return w.punchNow()
-}
-
-// punchNow deallocates released runs under the writer lock and shrinks the
-// file to the space end.
-func (w *writer) punchNow() error {
-	// Deallocate released runs below the end.
-	db, sp := w.db, w.sp
-	for _, r := range sp.drain() {
-		if r.start >= sp.end {
-			continue
-		}
-		r.n = min(r.n, sp.end-r.start)
-		db.p.cache.drop(r)
-		if err := db.s.punch(pageOff(r.start), pageOff(r.n)); err != nil {
-			return err
-		}
-	}
-	return w.truncate()
-}
-
-// startPunch takes the released runs out of the free runs and punches them
-// in the background, unless a punch already runs, which leaves them queued
-// for the next. The space lists the runs as reserved, so allocation skips
-// them and a saved space frees them. Only a single-process handle punches
-// in the background: another process could allocate the runs from the space
-// it reads from the file. The caller holds the writer lock.
-func (w *writer) startPunch() {
-	// Take the released runs below the end.
-	if !w.punching.CompareAndSwap(false, true) {
-		return
-	}
-	db, sp := w.db, w.sp
-	var runs []run
-	for _, r := range sp.drain() {
-		if r.start >= sp.end {
-			continue
-		}
-		r.n = min(r.n, sp.end-r.start)
-		db.p.cache.drop(r)
-		sp.take(r)
-		sp.reserved = append(sp.reserved, r)
-		runs = append(runs, r)
-	}
-	if len(runs) == 0 {
-		w.punching.Store(false)
-		return
-	}
-
-	// Punch them without the writer lock.
-	w.punches.Add(1)
-	go w.runPunch(sp, runs)
-}
-
-// runPunch punches runs taken from sp, then returns them to its free runs
-// under the writer lock. A space reloaded meanwhile already holds them free,
-// and Close stops the punch, queuing the rest for its own.
-func (w *writer) runPunch(sp *space, runs []run) {
-	// Punch each run while the space still holds it.
-	defer w.punches.Done()
-	var err error
-	done := 0
-	for _, r := range runs {
-		if err = w.punchRun(sp, r); err != nil {
-			break
-		}
-		done++
-	}
-
-	// Return the runs, queuing those left unpunched.
-	if lerr := w.lock(context.Background()); lerr != nil {
-		w.punching.Store(false)
-		return
-	}
-	if w.sp == sp {
-		sp.reserved = dropRuns(sp.reserved, runs)
-		for _, r := range runs[:done] {
-			sp.returnFree(r)
-		}
-		for _, r := range runs[done:] {
-			sp.addFree(r)
-		}
-	}
-
-	// Report a failed punch with the next commit.
-	if err != nil && !errors.Is(err, errDropped) && w.ckptErr == nil {
-		w.ckptErr = err
-	}
-	w.punching.Store(false)
-	w.unlock(nil)
-}
-
-// dropRuns removes from reserved every run in runs, keeping the order. It
-// looks runs up in a set, since both lists can hold hundreds of thousands of
-// runs and the caller holds the writer lock: a scan of runs for each reserved
-// run held every commit for minutes.
-func dropRuns(reserved, runs []run) []run {
-	if len(runs) == 0 {
-		return reserved
-	}
-	drop := make(map[run]struct{}, len(runs))
-	for _, r := range runs {
-		drop[r] = struct{}{}
-	}
-	return slices.DeleteFunc(reserved, func(r run) bool {
-		_, ok := drop[r]
-		return ok
-	})
-}
-
-// punchRun punches r while sp is the current space, excluding its
-// replacement, whose free runs may hand r out, for the call.
-func (w *writer) punchRun(sp *space, r run) error {
-	w.spMtx.Lock()
-	defer w.spMtx.Unlock()
-	if w.sp != sp || w.closing.Load() {
-		return errDropped
-	}
-	return w.db.s.punch(pageOff(r.start), pageOff(r.n))
-}
-
-// truncate shrinks the file to the space end.
-func (w *writer) truncate() error {
-	db, sp := w.db, w.sp
-	if sp.end < w.fileEnd {
-		db.p.cache.drop(run{start: sp.end, n: w.fileEnd - sp.end})
-		if err := db.s.truncate(pageOff(sp.end)); err != nil {
-			return err
-		}
-	}
-	w.fileEnd = sp.end
-	return nil
-}
-
-// checkpoint writes the overlay into the tree and saves a superblock. The
-// caller holds the writer lock.
-func (w *writer) checkpoint(ctx context.Context) error {
-	// Skip when no commit follows the last checkpoint.
-	st := w.db.cur.Load()
-	if st.seq == st.ckpt {
-		return nil
-	}
-
-	// Build and write the tree, reserving its pages as it goes, and save
-	// it.
-	t := w.newTree(st)
-	if w.deltaMode() && len(st.deltas) < maxDeltas {
-		t.kind = treeDelta
-	}
-	t.b.out.reserve = func(n uint64) (run, error) {
-		return w.reserve(t, n)
-	}
-	if err := t.build(); err != nil {
-		return err
-	}
-	return w.saveHeld(ctx, t)
-}
-
-// saveHeld saves t without releasing the writer lock. The caller holds it.
-func (w *writer) saveHeld(ctx context.Context, t *tree) error {
-	if err := w.prepareTree(t); err != nil || t.save == nil {
-		return err
-	}
-	if err := t.encodeSpace(); err != nil {
-		return err
-	}
-	return w.saveTree(ctx, t)
-}
-
-// startCheckpoint builds the tree of the published state in the
-// background, then saves it under the writer lock, so commits continue
-// while the tree builds. At most one build runs. The caller holds the
-// writer lock.
-func (w *writer) startCheckpoint() {
-	// Claim the build and keep the state's pages readable until the tree
-	// is saved.
-	if !w.building.CompareAndSwap(false, true) {
-		return
-	}
-
-	// In a shared file, build only while no other process does. Its tree
-	// covers this handle's records too.
-	if !w.db.opts.SingleProcess {
-		ok, err := w.db.s.lock(lockBuild, false)
-		if err != nil || !ok {
-			w.building.Store(false)
-			return
-		}
-		w.buildLocked.Store(true)
-	}
-	w.changed = nil
-	st, stripe := w.db.acquire()
-
-	// Skip a state with nothing to build.
-	kind, ok := w.plan(st)
-	if !ok {
-		w.db.release(st, stripe)
-		w.unlockBuild()
-		w.endBuild()
-		return
-	}
-
-	// Build, then save and release under the writer lock, and go on with
-	// the next build the deltas need.
-	t := w.newTree(st)
-	t.kind = kind
-	w.builds.Go(func() {
-		w.runCheckpoint(t, stripe)
-		w.endBuild()
-		w.chain()
-	})
-}
-
-// deltaMode reports whether checkpoints write deltas and merge them.
-func (w *writer) deltaMode() bool {
-	return w.db.opts.Deltas && w.db.opts.SingleProcess
-}
-
-// plan chooses the tree a background build of st writes, and reports false
-// when none is due. A state no commit follows since its checkpoint gets no
-// checkpoint: its tree would free pages under the checkpoint that snapshots
-// of the state pin, so a release would hand them out while they read. A
-// merge step tags what it frees past the checkpoint instead. The caller
-// holds the writer lock.
-func (w *writer) plan(st *state) (treeKind, bool) {
-	// Without deltas every checkpoint rewrites the tree.
-	pending := st.seq != st.ckpt
-	if !w.deltaMode() {
-		return treeWhole, pending
-	}
-
-	// Write a delta when the overlay is full, or when merge steps freed
-	// enough that a checkpoint should let them go; else merge while a round
-	// is open or due. Below the delta bound, a merge waits for a commit to
-	// checkpoint behind it once its frees pass their bound.
-	limit := w.db.opts.checkpointLimit(st.sb)
-	full := st.overlayBytes > limit || st.logBytes > 2*limit
-	freed := w.mergeFreed > mergeFreedMax
-	room := len(st.deltas) < maxDeltas
-	switch {
-	case pending && (full || freed) && room:
-		return treeDelta, true
-	case !mergeDue(st.sb):
-		return treeDelta, false
-	case freed && room:
-		return treeMerge, false
-	}
-	return treeMerge, true
-}
-
-// mergeDue reports whether sb has a merge round open, or deltas enough to
-// start one: mergeDeltas of them, or an eighth of the tree's pages.
-func mergeDue(sb superblock) bool {
-	return sb.round > 0 || len(sb.deltas) >= mergeDeltas || 8*(sb.indexPages()-sb.treePages) >= max(sb.treePages, 1)
-}
-
-// chain starts the next background build after one ends, so a merge round
-// goes on step by step, with deltas written between steps when the overlay
-// fills. A failed build stops the chain until the next commit reports it.
-func (w *writer) chain() {
-	if !w.deltaMode() || w.closing.Load() {
-		return
-	}
-	if err := w.lockFirst(context.Background()); err != nil {
-		return
-	}
-	if w.ckptErr == nil {
-		w.startCheckpoint()
-	}
-	w.unlock(nil)
-}
-
-// kick starts the build a loaded state needs, such as a merge round a
-// restart interrupted.
-func (w *writer) kick() {
-	if !w.deltaMode() {
-		return
-	}
-	if err := w.lock(context.Background()); err != nil {
-		return
-	}
-	w.startCheckpoint()
-	w.unlock(nil)
-}
-
-// endBuild ends the claim on the build and wakes the writers waiting for it.
-func (w *writer) endBuild() {
-	w.building.Store(false)
-	w.db.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		broadcast()
-	})
-}
-
-// waitBuild waits while a background checkpoint runs and the published
-// overlay exceeds CommitWaitMax, or the log after the checkpoint twice it,
-// so background writers that outpace checkpoints stop until the build catches
-// up. Only a commit whose context is marked with block.WithBackground waits: a
-// user commit may hold a lock other users wait on, such as a World's writer
-// lock, so it never waits for a build. The caller does not hold the writer
-// lock, which the build needs.
-func (w *writer) waitBuild(ctx context.Context) error {
-	// Return at once while the state is within bounds.
-	db := w.db
-	limit := db.opts.CommitWaitMax
-	within := func() bool {
-		st := db.cur.Load()
-		return st.overlayBytes <= limit && st.logBytes <= 2*limit
-	}
-	if within() {
-		return nil
-	}
-
-	// Wait for the build to end or the state to come back within bounds.
-	start := time.Now()
-	err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		return !w.building.Load() || within(), nil
-	})
-	w.stats.buildWaits.Add(1)
-	w.stats.buildWaitNanos.Add(int64(time.Since(start)))
-	return err
-}
-
-// runCheckpoint builds t from its state, which the snapshot in stripe keeps,
-// and writes its pages, holding the writer lock only to reserve pages, to
-// write them to a shared file, and to save the tree. The next commit reports
-// a failure.
-func (w *writer) runCheckpoint(t *tree, stripe int) {
-	// Count the checkpoint's time once it ends.
-	start := time.Now()
-	defer func() {
-		w.stats.checkpoints.Add(1)
-		w.stats.checkpointNanos.Add(int64(time.Since(start)))
-	}()
-
-	// Reserve the tree's pages under the writer lock as it builds.
-	ctx := context.Background()
-	st := t.st
-	out := t.b.out
-	out.reserve = func(n uint64) (run, error) {
-		if err := w.lockFirst(ctx); err != nil {
-			return run{}, err
-		}
-		r, err := w.reserve(t, n)
-		w.unlock(nil)
-		return r, err
-	}
-
-	// Write each batch of pages while the space still holds their
-	// reservations. A failed commit reloads the space, and the space saved
-	// in the file does not hold the reservations, so the reloaded space
-	// may hand them out. Another process may also hand them out, so a
-	// shared file is written under the writer lock, whose catch-up reloads
-	// the space when another process wrote, and the build lock keeps other
-	// processes' checkpoints and punches off them. A single-process
-	// handle holds the file's writer lock for its lifetime and writes
-	// without waiting for this handle's writers.
-	write := out.write
-	out.write = func(buf []byte, page uint64) error {
-		// Exclude other processes' writers from a shared file.
-		if !w.db.opts.SingleProcess {
-			if err := w.lockFirst(ctx); err != nil {
-				return err
-			}
-			defer w.unlock(nil)
-		}
-
-		// Write while the space holds the reservations.
-		w.spMtx.Lock()
-		defer w.spMtx.Unlock()
-		if t.sp != w.sp || w.closing.Load() {
-			return errDropped
-		}
-		w.stats.checkpointBytes.Add(uint64(len(buf)))
-		return write(buf, page)
-	}
-
-	// Build the tree, then flush its pages without the writer lock, so the
-	// barrier under the lock flushes little.
-	if w.beforeBuild != nil {
-		w.beforeBuild()
-	}
-	err := t.build()
-	if err == nil {
-		_, err = w.db.s.flushBarrier()
-	}
-	if err == nil && t.kind != treeMerge {
-		err = w.carryOver(ctx, t)
-	}
-
-	// Take the writer lock to save the tree.
-	if lerr := w.lockFirst(ctx); lerr != nil {
-		w.db.release(st, stripe)
-		w.unlockBuild()
-		return
-	}
-
-	// Save the tree, then end the snapshot so the pages it replaced can be
-	// released. A tree dropped while it built is no failure.
-	if errors.Is(err, errDropped) {
-		t.evict()
-		err = nil
-	} else if err == nil {
-		err = w.prepareTree(t)
-	}
-
-	// Encode the saved space without the writer lock, then take the lock
-	// again to save the tree. A failed lock leaves the record's pages
-	// reserved, so the next saved space frees them.
-	if err == nil && t.save != nil {
-		w.unlock(nil)
-		if w.beforeSave != nil {
-			w.beforeSave(t)
-		}
-		err = t.encodeSpace()
-		if lerr := w.lockFirst(ctx); lerr != nil {
-			w.db.release(st, stripe)
-			w.unlockBuild()
-			return
-		}
-		if err == nil {
-			err = w.saveTree(ctx, t)
-		}
-	}
-	w.db.release(st, stripe)
-	if err == nil {
-		err = w.releaseNow(ctx)
-	}
-	w.ckptErr = err
-	w.unlockBuild()
-	w.unlock(err)
-}
-
-// unlockBuild releases the build lock this handle's background checkpoint
-// holds in a shared file.
-func (w *writer) unlockBuild() {
-	if w.buildLocked.Swap(false) {
-		_ = w.db.s.unlock(lockBuild)
-	}
-}
-
-// treeKind is what a checkpoint tree writes.
-type treeKind int
-
-// Tree kinds.
-const (
-	// treeWhole rewrites the tree under the overlay and every delta.
-	treeWhole treeKind = iota
-	// treeDelta writes the overlay as a new delta, folding in the newest
-	// delta when it is small and outside the merge round.
-	treeDelta
-	// treeMerge folds the round's next keys into the tree.
-	treeMerge
-)
-
-// tree is a checkpoint tree built from a published state.
-type tree struct {
-	// st is the state whose overlay the tree includes.
-	st *state
-	// kind is what the tree writes.
-	kind treeKind
-	// delta is the delta a treeDelta wrote, nil when it wrote none.
-	delta *delta
-	// dropDeltas is the number of the state's deltas the tree replaces:
-	// the newest ones for a treeDelta, the oldest for a treeMerge.
-	dropDeltas int
-	// dropped lists the pages of the replaced deltas.
-	dropped []uint64
-	// round is the round a treeMerge folds in.
-	round int
-	// cursor is the last key a treeMerge folded in.
-	cursor []byte
-	// b writes the new pages and lists the pages they replace.
-	b *builder
-	// top is the new root, nil when the tree is empty.
-	top *child
-	// sp is the space holding the reserved pages, nil before the first
-	// reservation.
-	sp *space
-	// carried holds the overlay entries after st through record
-	// carriedSeq; nil before carryOver.
-	carried *carried
-	// carriedSeq is the last record carried holds.
-	carriedSeq uint64
-	// save is the space record prepareTree began, nil when the tree was
-	// dropped.
-	save *spaceSave
-}
-
-// spaceSave is a space record a checkpoint encodes without the writer lock.
-type spaceSave struct {
-	// rec is the pages taken for the record.
-	rec run
-	// from is the space rec was taken from. A reloaded space does not hold
-	// it.
-	from *space
-	// seq is the last record the copied space includes.
-	seq uint64
-	// old is the space record the checkpoint replaces.
-	old extentRef
-	// sp is the copy of the space to encode, nil once encoded.
-	sp *space
-	// enc is the copy's encoding.
-	enc []byte
-	// live is the copy's live counts array, which saveTree hands back to
-	// the writer for the next copy once the encode is done with it.
-	live []uint16
-}
-
-// errDropped reports a tree abandoned while it built: either its space was
-// reloaded, which does not hold its reservations, so another process may
-// have reused them, or the database is closing. The space saved in the file
-// never holds the reservations, so the next open drops them either way.
-var errDropped = errors.New("checkpoint space reloaded")
-
-// newTree returns the tree of st, writing its pages through the database
-// file and cache. The caller sets the writer's reserve function.
-//
-// Commits flush the whole file, so pages the checkpoint left queued would hold
-// up their flushes. Each batch waits out a running flush, then starts to the
-// drive at once while the batch before it finishes, so at most two batches
-// queue ahead of a commit's flush.
-func (w *writer) newTree(st *state) *tree {
-	var doneOff, doneN int64
-	out := &pageWriter{cache: w.db.p.cache, write: func(buf []byte, page uint64) error {
-		// Write the batch behind any running flush.
-		w.db.flush.yield()
-		off, n := pageOff(page), int64(len(buf))
-		if _, err := w.db.s.WriteAt(buf, off); err != nil {
-			return err
-		}
-
-		// Start it to the drive and wait for the last one.
-		err := w.db.s.writeBack(off, n, doneOff, doneN)
-		doneOff, doneN = off, n
-		return err
-	}}
-	return &tree{st: st, b: &builder{p: w.db.p, out: out}}
-}
-
-// build writes the new pages of t from its state. It reads only the state
-// and the pages it names, so it needs no writer lock while a snapshot keeps
-// the state.
-func (t *tree) build() error {
-	switch t.kind {
-	case treeDelta:
-		return t.buildDelta()
-	case treeMerge:
-		return t.buildMerge()
-	}
-	return t.buildWhole()
-}
-
-// overlayChanges returns the overlay of t's state in key order.
-func (t *tree) overlayChanges() []change {
-	st := t.st
-	changes := make([]change, 0, st.overlay.Len())
-	st.overlay.Scan(func(it overlayItem) bool {
-		e := it.e
-		changes = append(changes, change{key: e.key, del: e.del, val: e.val})
-		return true
-	})
-	return changes
-}
-
-// buildWhole applies the overlay and every delta of t's state to its tree,
-// dropping the deltas.
-func (t *tree) buildWhole() error {
-	// Fold the deltas under the overlay.
-	st, p := t.st, t.b.p
-	changes := t.overlayChanges()
-	if len(st.deltas) != 0 {
-		under, _, err := p.scanDeltas(st.deltas, nil, math.MaxInt)
-		if err != nil {
-			return err
-		}
-		changes = overChanges(changes, under)
-		if err := t.drop(st.deltas); err != nil {
-			return err
-		}
-	}
-
-	// Apply them to the tree.
-	return t.apply(changes)
-}
-
-// buildDelta writes the overlay of t's state as a delta, deletes as
-// tombstones. A small newest delta outside the merge round folds in under
-// the overlay, so checkpoints that merges call for do not pile up deltas.
-func (t *tree) buildDelta() error {
-	// Fold in the newest delta when it is small and outside the round.
-	st, p := t.st, t.b.p
-	changes := t.overlayChanges()
-	if n := len(st.deltas); n != 0 && st.sb.round < n && st.deltas[0].pages < st.sb.treePages/64 {
-		under, _, err := p.scanDeltas(st.deltas[:1], nil, math.MaxInt)
-		if err != nil {
-			return err
-		}
-		changes = overChanges(changes, under)
-		if err := t.drop(st.deltas[:1]); err != nil {
-			return err
-		}
-	}
-	if len(changes) == 0 {
-		return t.b.out.flush()
-	}
-
-	// Write the changes as a new tree, keeping deletes, with a filter
-	// over their keys.
-	words := newDeltaFilter(len(changes))
-	for i, c := range changes {
-		addDeltaFilter(words, c.key)
-		if c.del {
-			changes[i] = change{key: c.key, val: value{del: true}}
-		}
-	}
-	top, err := t.b.build(0, changes)
-	if err != nil {
-		return err
-	}
-	if err := t.b.place(top); err != nil {
-		return err
-	}
-	if t.delta, err = writeDelta(t.b.out, top.page, words); err != nil {
-		return err
-	}
-	t.delta.pages = uint64(t.b.out.count) // #nosec G115 -- page counts are not negative.
-	return t.b.out.flush()
-}
-
-// buildMerge folds the next keys of the merge round into the tree of t's
-// state, starting a round over every delta when none is open. The step that
-// reaches the round's last key drops its deltas.
-func (t *tree) buildMerge() error {
-	// Take the round's next keys after the cursor.
-	st, p := t.st, t.b.p
-	t.round, t.cursor = st.sb.round, st.sb.cursor
-	if t.round == 0 {
-		t.round, t.cursor = len(st.deltas), nil
-	}
-	round := st.deltas[len(st.deltas)-t.round:]
-	changes, done, err := p.scanDeltas(round, t.cursor, mergeStepKeys)
-	if err != nil {
-		return err
-	}
-	if len(changes) != 0 {
-		t.cursor = bytes.Clone(changes[len(changes)-1].key)
-	}
-	if done {
-		t.dropDeltas = t.round
-		if err := t.drop(round); err != nil {
-			return err
-		}
-	}
-
-	// Apply them to the tree.
-	return t.apply(changes)
-}
-
-// drop lists the pages of ds, which the tree replaces.
-func (t *tree) drop(ds []*delta) error {
-	for _, d := range ds {
-		var err error
-		if t.dropped, err = t.b.p.deltaPages(t.dropped, d); err != nil {
-			return err
-		}
-	}
-	if t.kind == treeDelta {
-		t.dropDeltas = len(ds)
-	}
-	return nil
-}
-
-// apply applies sorted changes to the tree of t's state and writes the new
-// pages. No changes leave the tree as it is.
-func (t *tree) apply(changes []change) error {
-	// Keep the root when nothing changes.
-	if len(changes) == 0 {
-		if root := t.st.root; root != 0 {
-			t.top = &child{page: root}
-		}
-		return t.b.out.flush()
-	}
-
-	// Build the new pages and place them.
-	top, err := t.b.build(t.st.root, changes)
-	if err != nil {
-		return err
-	}
-	t.top = top
-	return t.b.place(top)
-}
-
-// evict drops t's pages from the cache when t is dropped: no reader has
-// seen them, and the space hands them out again.
-func (t *tree) evict() {
-	for _, r := range t.b.out.runs {
-		t.b.out.cache.drop(r)
-	}
-}
-
-// reserve takes up to n pages from the space for t's new pages. The caller
-// holds the writer lock.
-func (w *writer) reserve(t *tree, n uint64) (run, error) {
-	// Keep the reservations in one space.
-	sp := w.sp
-	if t.sp == nil {
-		t.sp = sp
-	}
-	if t.sp != sp || w.closing.Load() {
-		return run{}, errDropped
-	}
-
-	// Take n pages from the lowest free run holding them, else the largest
-	// free run, else from the file end. A checkpoint rewrites much of the
-	// index, so asking for a write batch would put each one at the file end
-	// once values have cut the free space into shorter runs.
-	r, ok := sp.fit(1, n)
-	if !ok {
-		r = sp.alloc(n)
-	}
-	sp.reserved = append(sp.reserved, r)
-	return r, nil
-}
-
-// carryOver collects the overlay entries that follow t's state, so
-// saveTree folds in under the writer lock only the commits published
-// during the fold. Records another process appended reload the space,
-// which drops the tree, so this handle's records are the only ones to
-// follow.
-func (w *writer) carryOver(ctx context.Context, t *tree) error {
-	// Scan the published state without the writer lock: published states
-	// do not change. The filter is sized for the current tree, which the
-	// new one replaces at about the same size.
-	pre := w.db.cur.Load()
-	t.carried, t.carriedSeq = newCarried(t.st.seq, w.db.opts.checkpointLimit(pre.sb)), pre.seq
-	pre.overlay.Scan(t.carried.add)
-
-	// Fold in the records published meanwhile, taking the writer lock only
-	// to copy their list. A record is never changed once listed. Folding
-	// again would chase a writer that commits as fast as the fold runs.
-	if err := w.lockFirst(ctx); err != nil {
-		return err
-	}
-	changed := w.changed
-	w.unlock(nil)
-	t.fold(changed)
-	return nil
-}
-
-// fold adds the changes of the records in changed after the carried ones
-// to t.carried.
-func (t *tree) fold(changed []*record) {
-	for _, r := range changed {
-		if r.seq > t.carriedSeq {
-			t.carried.addRecord(r)
-			t.carriedSeq = r.seq
-		}
-	}
-}
-
-// prepareTree begins saving t under the writer lock. It drops a tree whose
-// space was reloaded or whose checkpoint another replaced, freeing its pages
-// at once and evicting them from the cache: no reader has seen them.
-// Otherwise it closes the open value extent, takes pages for the space
-// record, and copies the space into t.save, so encodeSpace can encode it
-// without the lock. Taking the pages first lets the copy name them in use.
-func (w *writer) prepareTree(t *tree) error {
-	// Drop a tree that can no longer be saved.
-	db, sp, st := w.db, w.sp, t.st
-	cur := db.cur.Load()
-	if t.sp != nil && t.sp != sp {
-		t.evict()
-		return nil
-	}
-	if cur.gen != st.gen {
-		sp.reserved = dropRuns(sp.reserved, t.b.out.runs)
-		t.evict()
-		for _, r := range t.b.out.runs {
-			sp.addFree(r)
-		}
-		return nil
-	}
-	if !slices.ContainsFunc(sp.chunks, func(c run) bool { return c.end()*pageSize == st.end }) {
-		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
-	}
-
-	// Close the open value extent and take pages for the record, sized from
-	// the last record with room for the space to grow.
-	sp.closeOpen(cur.seq)
-	est := w.spaceLen
-	if est == 0 {
-		est = int(cur.sb.space.n)
-	}
-	rec := sp.alloc(pagesFor(est+est/8) + 1)
-
-	// Reserve the record's pages until saveTree, so a space another
-	// checkpoint saves meanwhile frees them on reopen. Copy the space for
-	// encodeSpace, lending it the last copy's live counts. The copy saves
-	// the pages as its own record, so it does not reserve them.
-	sp.reserved = append(sp.reserved, rec)
-	cp := sp.clone(w.saveLive)
-	cp.reserved = dropRuns(cp.reserved, []run{rec})
-	w.saveLive = nil
-	t.save = &spaceSave{rec: rec, from: sp, seq: cur.seq, old: cur.sb.space, sp: cp, live: cp.live}
-	return nil
-}
-
-// encodeSpace applies to the copied space what saving t frees and encodes
-// it. It reads only t and the copy, so it runs without the writer lock.
-func (t *tree) encodeSpace() error {
-	// Sort the replaced pages once for both spaces.
-	sv := t.save
-	slices.Sort(t.b.freed)
-	if err := sv.sp.retire(t, sv.old); err != nil {
-		return err
-	}
-	sv.enc, sv.sp = sv.sp.encode(), nil
-	return nil
-}
-
-// retire applies to s what saving t frees: its reservations end, the
-// reserved pages it left unused return free, and the pages it replaced,
-// the old space record, and the log chunks before the one holding the
-// tree's next record wait for release until no snapshot reads the previous
-// tree.
-func (s *space) retire(t *tree, old extentRef) error {
-	// End the reservation and return the unused pages.
-	out, st := t.b.out, t.st
-	s.reserved = dropRuns(s.reserved, out.runs)
-	s.addFree(out.unused())
-
-	// Queue the replaced pages and the old space record. A merge step
-	// leaves the checkpoint where it is, so what it frees waits for the
-	// next checkpoint; it keeps the log.
-	tag := st.seq
-	if t.kind == treeMerge {
-		tag = st.ckpt + 1
-	}
-	s.freePages(slices.Concat(t.b.freed, t.dropped), tag)
-	s.pend(&s.pages, pending{run: run{start: old.off / pageSize, n: pagesFor(int(old.n))}, tag: tag})
-	if t.kind == treeMerge {
-		return nil
-	}
-
-	// Queue the old log chunks.
-	keep := slices.IndexFunc(s.chunks, func(c run) bool { return c.end()*pageSize == st.end })
-	if keep < 0 {
-		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
-	}
-	for _, c := range s.chunks[:keep] {
-		s.pend(&s.pages, pending{run: c, tag: st.seq})
-	}
-	s.chunks = s.chunks[keep:]
-	return nil
-}
-
-// saveTree saves t and a superblock naming it, and publishes the state
-// moved onto it. Commits after t's state stay in the overlay. The space is
-// saved as encodeSpace encoded it, as of the last commit before prepareTree,
-// when the encoding fits the pages prepareTree took; else as of the last
-// commit. A tree whose space was reloaded or whose checkpoint another
-// replaced since prepareTree is dropped. The caller holds the writer lock.
-func (w *writer) saveTree(ctx context.Context, t *tree) error {
-	// Take back the copy's live counts, and drop a tree that can no longer
-	// be saved, as prepareTree does, also returning the record's pages. A
-	// space reloaded since prepareTree holds neither the record's pages nor
-	// the tree's. Otherwise the record's pages leave the reservations.
-	db, sp, b, st, sv := w.db, w.sp, t.b, t.st, t.save
-	cur := db.cur.Load()
-	w.saveLive = sv.live
-	if sv.from != sp {
-		t.evict()
-		return nil
-	}
-	sp.reserved = dropRuns(sp.reserved, []run{sv.rec})
-	out := b.out
-	if cur.gen != st.gen {
-		sp.reserved = dropRuns(sp.reserved, out.runs)
-		t.evict()
-		for _, r := range out.runs {
-			sp.addFree(r)
-		}
-		sp.addFree(sv.rec)
-		return nil
-	}
-
-	// The root is the new top page, or an existing page when nothing above
-	// it changed.
-	var root uint64
-	if t.top != nil {
-		root = t.top.page
-	}
-	fresh := out.count
-	if err := sp.retire(t, sv.old); err != nil {
-		return err
-	}
-
-	// Write the copy's encoding into the record's pages. When it outgrew
-	// them, return them and save the space as it is now.
-	var ref extentRef
-	var err error
-	spaceSeq := sv.seq
-	if pagesFor(len(sv.enc)) <= sv.rec.n {
-		ref, err = w.writeSpaceRecord(sv.rec, sv.enc)
-		w.spaceLen = len(sv.enc)
-	} else {
-		sp.addFree(sv.rec)
-		sp.closeOpen(cur.seq)
-		ref, err = w.writeSpace(sp)
-		spaceSeq, w.spaceLen = cur.seq, int(ref.n)
-	}
-	if err != nil {
-		return err
-	}
-
-	// Order the pages and space before the superblock that names them. A
-	// durable barrier also makes the records and the previous superblock
-	// durable.
-	prev := db.flush.newest()
-	durable, err := db.s.flushBarrier()
-	if err != nil {
-		return err
-	}
-	if durable {
-		db.flush.setDurable(cur, prev)
-	}
-
-	// Switch superblocks. The new one becomes durable with a later flush,
-	// which releases the pages it replaced.
-	sb := superblock{
-		gen:       cur.gen + 1,
-		seq:       st.seq,
-		root:      root,
-		count:     uint64(st.count),                                        // #nosec G115 -- key counts are not negative.
-		treePages: cur.sb.treePages + uint64(fresh) - uint64(len(b.freed)), // #nosec G115 -- counts are not negative.
-		space:     ref,
-		spaceSeq:  spaceSeq,
-		logPos:    st.pos,
-		logEnd:    st.end,
-		logCrc:    st.crc,
-	}
-	deltas := t.deltas()
-	sb.deltas = deltaRefs(deltas)
-	switch t.kind {
-	case treeDelta:
-		sb.root, sb.treePages, sb.round, sb.cursor = cur.sb.root, cur.sb.treePages, cur.sb.round, cur.sb.cursor
-	case treeMerge:
-		sb.seq, sb.count, sb.logPos, sb.logEnd, sb.logCrc = cur.sb.seq, cur.sb.count, cur.sb.logPos, cur.sb.logEnd, cur.sb.logCrc
-		if t.dropDeltas == 0 {
-			sb.round, sb.cursor = t.round, t.cursor
-		}
-	}
-	db.ownGen.Store(sb.gen)
-	if err := w.writeSuper(sb, len(cur.sb.deltas) == 0); err != nil {
-		return err
-	}
-
-	// Count what merge steps freed for the next checkpoint, which a delta
-	// or a whole tree is.
-	if t.kind == treeMerge {
-		w.mergeFreed += uint64(len(b.freed) + len(t.dropped))
-	} else {
-		w.mergeFreed = 0
-	}
-
-	// A merge step keeps the overlay and the log.
-	if t.kind == treeMerge {
-		w.changed = nil
-		if err := db.publish(ctx, cur.under(sb, deltas)); err != nil {
-			return err
-		}
-		w.spGen = sb.gen
-		return w.punch()
-	}
-
-	// Publish the tree under the commits after it: those carried over
-	// before the writer lock, then those published since.
-	if t.carried == nil {
-		t.carried, t.carriedSeq = newCarried(st.seq, db.opts.checkpointLimit(sb)), cur.seq
-		cur.overlay.Scan(t.carried.add)
-	}
-	t.fold(w.changed)
-	w.changed = nil
-	if err := db.publish(ctx, cur.onto(sb, deltas, t.carried, cur.logBytes-st.logBytes)); err != nil {
-		return err
-	}
-	w.spGen = sb.gen
-	return w.punch()
-}
-
-// deltas returns the deltas the superblock saving t names: none after a
-// whole tree; the new delta above those it kept after a delta; and after a
-// merge step, all of them, or the newer ones once the round is done.
-func (t *tree) deltas() []*delta {
-	ds := t.st.deltas
-	switch t.kind {
-	case treeWhole:
-		return nil
-	case treeDelta:
-		kept := ds[t.dropDeltas:]
-		if t.delta == nil {
-			return kept
-		}
-		return append([]*delta{t.delta}, kept...)
-	}
-	return ds[:len(ds)-t.dropDeltas]
-}
-
-// writeSuper writes sb to its page. The first superblock naming deltas
-// after one without also replaces the other copy, once sb is ordered before
-// it: a reader that knows no deltas takes sb for a torn copy, and must not
-// fall back to the older copy, whose log the checkpoint may free.
-func (w *writer) writeSuper(sb superblock, first bool) error {
-	// Write sb to its page.
-	s, enc := w.db.s, sb.encode()
-	if _, err := s.WriteAt(enc, sb.page()*pageSize); err != nil {
-		return err
-	}
-	if len(sb.deltas) == 0 || !first {
-		return nil
-	}
-
-	// Replace the other copy after it.
-	if _, err := s.flushBarrier(); err != nil {
-		return err
-	}
-	other := superblock{gen: sb.gen + 1}
-	_, err := s.WriteAt(enc, other.page()*pageSize)
-	return err
-}
-
-// pageRange lists n pages from start.
-func pageRange(start, n uint64) []uint64 {
-	pages := make([]uint64, n)
-	for i := range pages {
-		pages[i] = start + uint64(i)
-	}
-	return pages
-}
-
-// writeSpace saves sp in newly allocated pages.
-func (w *writer) writeSpace(sp *space) (extentRef, error) {
-	r, b := sp.allocRecord()
-	return w.writeSpaceRecord(r, b)
-}
-
-// writeSpaceRecord writes the space record b into r's pages, padded to fill
-// them.
-func (w *writer) writeSpaceRecord(r run, b []byte) (extentRef, error) {
-	b = append(b, make([]byte, pageOff(r.n)-int64(len(b)))...)
-	if _, err := w.db.s.WriteAt(b, pageOff(r.start)); err != nil {
-		return extentRef{}, err
-	}
-	return extentRef{off: r.start * pageSize, n: uint32(len(b)), crc: checksum(b)}, nil // #nosec G115 -- the space record is far below 4 GiB.
-}
-
-// relocate moves up to budget value bytes out of sparse pages, and out of
-// the file's last quarter when free space below would take them, reading at
-// most visits entries from where the last pass stopped. The caller holds
-// the writer lock.
-func (w *writer) relocate(ctx context.Context, budget int64, visits int) error {
-	// Start the walk at the saved key.
-	db, sp := w.db, w.sp
-	st := db.cur.Load()
-	it := newIterator(db.p, st, nil, nil, false)
-	it.tree.scan = true
-	if w.relocKey != nil {
-		_ = it.Seek(w.relocKey)
-	} else {
-		it.Next()
-	}
-
-	// Collect values in sparse pages or in the last quarter of the file.
-	tail := sp.end * 3 / 4
-	var moves []tentry
-	var moved int64
-	for ; it.Valid() && moved < budget && visits > 0; it.Next() {
-		visits--
-		v := it.cur.val
-		if !v.isRef {
-			continue
-		}
-		p := v.ref.off / pageSize
-		sparse := sp.live[p] < pageSize/2
-		if !sparse && (p < tail || !sp.lower(int(v.ref.n), p)) {
-			continue
-		}
-		data, err := db.p.readValue(v)
-		if err != nil {
-			return err
-		}
-		moves = append(moves, tentry{key: bytes.Clone(it.Key()), data: data})
-		moved += int64(len(data))
-	}
-	if err := it.Err(); err != nil {
-		return err
-	}
-
-	// Save where the next walk resumes.
-	w.relocKey = nil
-	if it.Valid() {
-		w.relocKey = bytes.Clone(it.Key())
-	}
-	if len(moves) == 0 {
-		return nil
-	}
-
-	// Rewrite the values: placement prefers the lowest free pages.
-	sp.closeOpen(st.seq)
-	return w.commit(ctx, st, moves, true, true)
-}
-
-// afterCommit runs checkpoint work. Values leave sparse pages in the
-// background compactor, outside writers' commits. The caller holds the
-// writer lock.
-func (w *writer) afterCommit(ctx context.Context) error {
-	// Report a failed background checkpoint, and start one when the
-	// overlay or the log after the last one has grown enough. Rewrites of
-	// the same keys grow the log but not the overlay.
-	db := w.db
-	if err := w.ckptErr; err != nil {
-		w.ckptErr = nil
-		return err
-	}
-	st := db.cur.Load()
-	if limit := db.opts.checkpointLimit(st.sb); st.overlayBytes > limit || st.logBytes > 2*limit {
-		w.startCheckpoint()
-	}
-	return nil
-}
-
-// compact moves every value out of sparse pages and the file's tail,
-// checkpoints, and releases freed space. The caller holds the writer lock.
-func (w *writer) compact(ctx context.Context) error {
-	// Each round moves values in one full pass of bounded batches,
-	// checkpoints to free the replaced pages, and moves the log into the
-	// space they leave. The second round fills the space the first
-	// released and frees the old log chunk.
-	for range 2 {
-		w.relocKey = nil
-		for first := true; first || w.relocKey != nil; first = false {
-			if err := w.relocate(ctx, compactBatch, math.MaxInt); err != nil {
-				return err
-			}
-		}
-		if err := w.checkpointDurable(ctx); err != nil {
-			return err
-		}
-		if err := w.releaseNow(ctx); err != nil {
-			return err
-		}
-		if err := w.moveLog(ctx); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// moveLog continues the log in the lowest free run below its current chunk,
-// so the next checkpoint frees the chunk and the file can shrink. The caller
-// holds the writer lock.
-func (w *writer) moveLog(ctx context.Context) error {
-	// Take the lowest free chunk, keeping the log where it is when the chunk
-	// lies above it.
-	db, sp := w.db, w.sp
-	st := db.cur.Load()
-	chunk, ok := sp.fit(extentPages, extentPages)
-	if !ok {
-		return nil
-	}
-	if chunk.start*pageSize > st.pos {
-		sp.addFree(chunk)
-		return nil
-	}
-
-	// Link the log to the chunk.
-	sp.chunks = append(sp.chunks, chunk)
-	link := newLink(st.seq+1, chunk)
-	if _, err := db.s.WriteAt(link.encode(st.crc), fileOff(st.pos)); err != nil {
-		return err
-	}
-	if err := db.s.flushOrdered(); err != nil {
-		return err
-	}
-
-	// Publish the state that continues in the chunk.
-	next := *st
-	next.seq, next.crc = next.seq+1, link.crc
-	next.pos, next.end = chunk.start*pageSize, chunk.end()*pageSize
-	next.refs = nil
-	if err := db.publish(ctx, &next); err != nil {
-		return err
-	}
-	w.spSeq = next.seq
-	return nil
-}
-
-// checkpointDurable checkpoints and flushes, so releaseNow can return the
-// pages the checkpoint replaced. The caller holds the writer lock.
-func (w *writer) checkpointDurable(ctx context.Context) error {
-	if err := w.checkpoint(ctx); err != nil {
-		return err
-	}
-	st := w.db.cur.Load()
-	return w.db.flush.syncThrough(ctx, st.seq, st.ckpt)
-}
-
-// releaseNow returns freed space no snapshot reads to the file system
-// without writing a record. The next commit record carries release marks at
-// least as high, so recovery repeats the release before reusing the space.
-// In a shared file, another process's background checkpoint may have
-// written pages it reserved from the released runs or past the space end,
-// and would not notice a punch that leaves no record, so the punch needs
-// the build lock: held by this handle's build, or taken here when free. The
-// caller holds the writer lock.
-func (w *writer) releaseNow(ctx context.Context) error {
-	// Release what no snapshot reads.
-	if err := w.releaseSpace(ctx, w.db.cur.Load(), &record{}); err != nil {
-		return err
-	}
-
-	// Punch when no other process's checkpoint can hold the pages.
-	if w.db.opts.SingleProcess || w.buildLocked.Load() {
-		return w.punch()
-	}
-
-	// Else take the build lock first, leaving the released runs queued
-	// for the next punch while another process builds.
-	ok, err := w.db.s.lock(lockBuild, false)
-	if err != nil || !ok {
-		return err
-	}
-	defer func() { _ = w.db.s.unlock(lockBuild) }()
-	return w.punch()
 }

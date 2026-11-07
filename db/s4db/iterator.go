@@ -14,16 +14,18 @@ type layer interface {
 	// key returns the current key.
 	key() []byte
 	// entry returns the current entry.
-	entry() mentry
+	entry() ientry
 	// seek positions at the first key at or after k, or the last at or
 	// before it when reverse; nil selects the first or last key.
 	seek(k []byte, reverse bool)
 	// step moves to the next key in the direction.
 	step(reverse bool)
+	// failure returns the first error the layer met, which ended it.
+	failure() error
 }
 
-// mentry is an entry seen through a merged iterator.
-type mentry struct {
+// ientry is an entry seen through a merged iterator.
+type ientry struct {
 	// del marks a deleted key.
 	del bool
 	// val is a stored value.
@@ -34,18 +36,15 @@ type mentry struct {
 	buffered bool
 }
 
-// Iterator merges buffered changes, the overlay, the deltas, and the index
-// tree. The first layer holding a key decides its entry.
+// Iterator merges buffered changes, the memtable, and the runs. The first
+// layer holding a key decides its entry; a tombstone hides the key.
 type Iterator struct {
-	// p reads values.
-	p *pager
-	// layers holds the sources in priority order; the last is the tree.
+	// db reads values.
+	db *DB
+	// layers holds the sources in priority order: the changes, the
+	// memtable, then the runs newest first.
 	layers []layer
-	// tree is the index tree layer.
-	tree *pageIter
-	// pages holds the delta layers, newest first, then the tree layer.
-	pages []*pageIter
-	// st is the state the overlay and tree layers read.
+	// st is the snapshot the memtable and run layers read.
 	st *state
 	// prefix bounds the keys.
 	prefix []byte
@@ -55,43 +54,37 @@ type Iterator struct {
 	started bool
 	// ok reports whether the iterator is on an entry.
 	ok bool
-	// key is the current key.
-	key []byte
-	// cur is the current entry.
-	cur mentry
+	// cur is the current key, owned by the iterator.
+	cur []byte
+	// skip holds a deleted key while settle steps past it.
+	skip []byte
+	// ent is the current entry.
+	ent ientry
 	// err is the first error.
 	err error
 }
 
 // newIterator returns an unpositioned iterator over st and changes.
-func newIterator(p *pager, st *state, changes *btree.BTreeG[tentry], prefix []byte, reverse bool) *Iterator {
+func newIterator(db *DB, st *state, changes *btree.BTreeG[tentry], prefix []byte, reverse bool) *Iterator {
 	// Buffered changes come first.
-	it := &Iterator{p: p, st: st, prefix: prefix, reverse: reverse, tree: &pageIter{cursor{p: p, root: st.root}}}
+	it := &Iterator{db: db, st: st, prefix: prefix, reverse: reverse}
 	if changes != nil {
 		it.layers = append(it.layers, &treeIter[tentry]{
 			it:    changes.Iter(),
 			keyOf: func(e tentry) []byte { return e.key },
 			probe: func(k []byte) tentry { return tentry{key: k} },
-			conv:  func(e tentry) mentry { return mentry{del: e.del, data: e.data, buffered: true} },
+			conv:  func(e tentry) ientry { return ientry{del: e.del, data: e.data, buffered: true} },
 		})
 	}
 
-	// The overlay's live entries shadow the deltas and the tree, and each
-	// delta those below it. settle hides the keys below the overlay that it
-	// deletes.
-	it.layers = append(it.layers, &treeIter[overlayItem]{
-		it:    st.overlay.live.Iter(),
-		keyOf: func(it overlayItem) []byte { return it.key },
-		probe: overlayProbe,
-		conv:  func(it overlayItem) mentry { return mentry{val: it.e.val} },
+	// The memtable shadows the runs.
+	it.layers = append(it.layers, &treeIter[mentry]{
+		it:    st.mem.tree.Iter(),
+		keyOf: func(e mentry) []byte { return e.key },
+		probe: func(k []byte) mentry { return mentry{key: k} },
+		conv:  func(e mentry) ientry { return ientry{del: e.val.kind == valueDeleted, val: e.val} },
 	})
-	for _, d := range st.deltas {
-		it.pages = append(it.pages, &pageIter{cursor{p: p, root: d.root}})
-	}
-	it.pages = append(it.pages, it.tree)
-	for _, l := range it.pages {
-		it.layers = append(it.layers, l)
-	}
+	it.layers = append(it.layers, db.runLayers(st, prefix)...)
 	return it
 }
 
@@ -110,7 +103,7 @@ func (it *Iterator) Key() []byte {
 	if !it.Valid() {
 		return nil
 	}
-	return it.key
+	return it.cur
 }
 
 // Value returns the current value.
@@ -118,39 +111,38 @@ func (it *Iterator) Value() ([]byte, error) {
 	if !it.Valid() {
 		return nil, it.err
 	}
-	if it.cur.buffered {
-		return it.cur.data, nil
+	if it.ent.buffered {
+		return it.ent.data, nil
 	}
-	return it.p.readValue(it.cur.val)
+	return it.db.readValue(it.ent.val)
 }
 
-// ValueLen returns the length of the current value from the index, without
-// reading a packed value.
+// ValueLen returns the current value's length without reading a value chunk.
 func (it *Iterator) ValueLen() int {
 	switch {
 	case !it.Valid():
 		return 0
-	case it.cur.buffered:
-		return len(it.cur.data)
-	case it.cur.val.isRef:
-		return int(it.cur.val.ref.n)
-	default:
-		return len(it.cur.val.inline)
+	case it.ent.buffered:
+		return len(it.ent.data)
+	case it.ent.val.isRef():
+		return int(it.ent.val.ref.n)
 	}
+	return len(it.ent.val.inline)
 }
 
-// ValueCopy copies the current value into b.
-func (it *Iterator) ValueCopy(b []byte) ([]byte, error) {
+// ValueCopy copies the current value into buf.
+func (it *Iterator) ValueCopy(buf []byte) ([]byte, error) {
 	v, err := it.Value()
 	if err != nil || v == nil {
 		return nil, err
 	}
-	return append(b[:0], v...), nil
+	return append(buf[:0], v...), nil
 }
 
-// Next advances the iterator.
+// Next advances to the next entry, or positions at the first when the
+// iterator has not started.
 func (it *Iterator) Next() bool {
-	// The first call positions at the start.
+	// Position at the start the first time.
 	if it.err != nil {
 		return false
 	}
@@ -158,39 +150,65 @@ func (it *Iterator) Next() bool {
 		return it.Seek(nil) == nil && it.ok
 	}
 
-	// Step past the current key.
+	// Move every layer past the current key and settle on the next.
 	if !it.ok {
 		return false
 	}
-	it.stepPast(it.key)
-	it.settle()
-	return it.Valid()
+	it.stepPast(it.cur)
+	return it.settle()
 }
 
-// Seek positions at the first key at or after k, or the last at or before it
-// when reverse. A nil k selects the first or last key under the prefix.
+// Seek positions the iterator at the first key at or after k, or at or
+// before it in reverse; nil seeks to the start or the end of the prefix.
 func (it *Iterator) Seek(k []byte) error {
-	// A nil key starts at the prefix bound.
+	// Clip the seek to the prefix.
 	if it.err != nil {
 		return it.err
 	}
 	it.started = true
-	if k == nil && len(it.prefix) != 0 {
-		k = it.prefix
-		if it.reverse {
-			k = prefixEnd(it.prefix)
+	target := k
+	if k == nil || (!it.reverse && bytes.Compare(k, it.prefix) < 0) {
+		target = it.prefix
+		if it.reverse && k == nil {
+			target = nil
 		}
 	}
+	if it.reverse && target == nil && len(it.prefix) != 0 {
+		target = prefixEnd(it.prefix)
+	}
 
-	// Seek every layer and settle on the first live key.
+	// Position every layer.
 	for _, l := range it.layers {
-		l.seek(k, it.reverse)
+		l.seek(target, it.reverse)
+	}
+
+	// A reverse seek to the prefix's end may land on the end key itself,
+	// which lies outside the prefix; step past it, then settle.
+	if it.reverse && target != nil {
+		for _, l := range it.layers {
+			for l.valid() && bytes.Compare(l.key(), target) >= 0 && !bytes.HasPrefix(l.key(), it.prefix) {
+				l.step(true)
+			}
+		}
 	}
 	it.settle()
 	return it.err
 }
 
-// stepPast steps every layer on key.
+// prefixEnd returns the smallest key above every key with prefix p, or nil
+// when none exists.
+func prefixEnd(p []byte) []byte {
+	end := bytes.Clone(p)
+	for i := len(end) - 1; i >= 0; i-- {
+		if end[i] != 0xff {
+			end[i]++
+			return end[:i+1]
+		}
+	}
+	return nil
+}
+
+// stepPast moves every layer standing on key past it.
 func (it *Iterator) stepPast(key []byte) {
 	for _, l := range it.layers {
 		if l.valid() && bytes.Equal(l.key(), key) {
@@ -199,104 +217,55 @@ func (it *Iterator) stepPast(key []byte) {
 	}
 }
 
-// settle moves to the next live key under the prefix from the layers'
-// positions.
-func (it *Iterator) settle() {
+// settle finds the next key in the direction: the smallest (or largest)
+// key any layer stands on, decided by the first layer holding it, skipping
+// deletions and stopping at the prefix's end.
+func (it *Iterator) settle() bool {
 	for {
-		// Stop at a page read error or when every layer is done.
-		best := it.front()
-		it.err = it.pageErr()
-		if best == nil || it.err != nil {
-			it.ok = false
-			return
-		}
-
-		// Skip keys before the prefix and stop at keys after it.
-		key := best.key()
-		if !bytes.HasPrefix(key, it.prefix) {
-			c := bytes.Compare(key, it.prefix)
-			if (!it.reverse && c > 0) || (it.reverse && c < 0) {
-				it.ok = false
-				return
+		// Find the frontier key and the layer that decides it.
+		it.ok = false
+		var best []byte
+		var ent ientry
+		for _, l := range it.layers {
+			if err := l.failure(); err != nil {
+				it.err = err
+				return false
 			}
-			it.stepPast(key)
-			continue
+			if !l.valid() {
+				continue
+			}
+			k := l.key()
+			c := 1
+			if best != nil {
+				c = bytes.Compare(k, best)
+				if it.reverse {
+					c = -c
+				}
+			}
+			if best == nil || c < 0 {
+				best, ent = k, l.entry()
+			}
+		}
+		if best == nil || !bytes.HasPrefix(best, it.prefix) {
+			return false
 		}
 
-		// Skip deleted keys: a buffered delete, a tombstone, or a delta or
-		// tree key the overlay deletes. A layer before them on the same key
-		// comes first.
-		if _, page := best.(*pageIter); page && it.overlayDeletes(key) {
-			it.stepPast(key)
+		// Skip a deleted key, else stand on a copy of it: a layer's key lasts
+		// only until the layer loads its next block.
+		if ent.del {
+			it.skip = append(it.skip[:0], best...)
+			it.stepPast(it.skip)
 			continue
 		}
-		e := best.entry()
-		if e.del {
-			it.stepPast(key)
-			continue
-		}
-		it.ok, it.key, it.cur = true, key, e
-		return
+		it.cur, it.ent, it.ok = bytes.Clone(best), ent, true
+		return true
 	}
-}
-
-// pageErr returns the first read error of the delta and tree layers.
-func (it *Iterator) pageErr() error {
-	for _, l := range it.pages {
-		if l.err != nil {
-			return l.err
-		}
-	}
-	return nil
-}
-
-// overlayDeletes reports whether the overlay holds a delete of key.
-func (it *Iterator) overlayDeletes(key []byte) bool {
-	if !it.st.filter.has(key) {
-		return false
-	}
-	return it.st.overlay.getDead(overlayProbe(key))
-}
-
-// front returns the layer on the next key in the direction, the first such
-// layer on a tie, or nil when every layer is done.
-func (it *Iterator) front() layer {
-	var best layer
-	for _, l := range it.layers {
-		if !l.valid() {
-			continue
-		}
-		if best == nil {
-			best = l
-			continue
-		}
-		c := bytes.Compare(l.key(), best.key())
-		if (!it.reverse && c < 0) || (it.reverse && c > 0) {
-			best = l
-		}
-	}
-	return best
 }
 
 // Close releases the iterator.
 func (it *Iterator) Close() {
+	it.layers = nil
 	it.ok = false
-	if it.err == nil {
-		it.err = kvtx.ErrDiscarded
-	}
-}
-
-// prefixEnd returns the smallest key above every key with prefix, or nil
-// when none is.
-func prefixEnd(prefix []byte) []byte {
-	end := bytes.Clone(prefix)
-	for i := len(end) - 1; i >= 0; i-- {
-		if end[i] != 0xff {
-			end[i]++
-			return end[:i+1]
-		}
-	}
-	return nil
 }
 
 // _ is a type assertion

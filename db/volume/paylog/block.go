@@ -317,14 +317,14 @@ func (b *blockStore) Sync(ctx context.Context) (bool, error) {
 
 // sync publishes every pending block write and remove in one index commit,
 // which also makes the earlier ordered commits durable. With nothing pending
-// it flushes the device instead, which costs nothing when nothing is dirty.
+// it syncs the index instead, which costs nothing when nothing is dirty.
 func (s *Store) sync(ctx context.Context) error {
-	// Flush the device when nothing is pending.
+	// Sync the index when nothing is pending.
 	s.mtx.Lock()
 	idle := len(s.pending) == 0
 	s.mtx.Unlock()
 	if idle {
-		return s.dev.Write(ctx, nil, true)
+		return s.index.Sync(ctx)
 	}
 
 	// Publish the pending writes and removes through one index commit.

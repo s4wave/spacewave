@@ -88,7 +88,7 @@ func switchVolumeFile(ctx context.Context, src, dst string, args *switchArgs, w 
 	if _, err := os.Stat(dst); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%s already exists", dst)
 	}
-	ddb, err := s4db.Open(dst, s4db.Options{RelocateBudget: -1})
+	ddb, err := s4db.Open(dst, s4db.Options{})
 	if err != nil {
 		return err
 	}

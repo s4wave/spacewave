@@ -47,8 +47,17 @@ func TestOrderedPut(t *testing.T) {
 	}
 	db := volume_s4db.GetDB(vol)
 
+	// Count the database's flushes to the drive.
+	flushes := func() uint64 {
+		st, err := db.Stats(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st.Flushes
+	}
+	before := flushes()
+
 	// Ordered writes of a block and a batch flush nothing.
-	before := db.Stats().Flushes
 	orderedCtx := kvtx.WithOrderedCommitContext(ctx)
 	if _, _, err := block.PutBlock(orderedCtx, vol, block_mock.NewExample("ordered")); err != nil {
 		t.Fatal(err)
@@ -61,7 +70,7 @@ func TestOrderedPut(t *testing.T) {
 	if _, err := vol.PutBlockBatch(orderedCtx, batch); err != nil {
 		t.Fatal(err)
 	}
-	if after := db.Stats().Flushes; after != before {
+	if after := flushes(); after != before {
 		t.Fatalf("ordered writes flushed %d times", after-before)
 	}
 
@@ -69,7 +78,7 @@ func TestOrderedPut(t *testing.T) {
 	if _, _, err := block.PutBlock(ctx, vol, block_mock.NewExample("durable")); err != nil {
 		t.Fatal(err)
 	}
-	if after := db.Stats().Flushes; after == before {
+	if after := flushes(); after == before {
 		t.Fatal("plain write did not flush")
 	}
 }

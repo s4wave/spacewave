@@ -3,8 +3,10 @@ package s4db
 import "io"
 
 // storage is the file holding a database. Reads and writes address bytes;
-// flushes, byte locks, and the watcher coordinate durability and the
-// processes sharing the file.
+// the durable flush, byte locks, and the watcher coordinate durability and
+// the processes sharing the file. The only ordering primitive is the durable
+// flush: recovery keeps the longest valid prefix of the log and verifies the
+// values of records written after the last mark, so no barrier is needed.
 type storage interface {
 	io.ReaderAt
 	io.WriterAt
@@ -15,19 +17,12 @@ type storage interface {
 	truncate(n int64) error
 	// flushDurable makes earlier writes durable on the drive.
 	flushDurable() error
-	// flushOrdered orders earlier writes before later ones without waiting
-	// for the drive to make them durable.
-	flushOrdered() error
-	// flushBarrier orders earlier writes before later ones, reporting
-	// whether it also made them durable.
-	flushBarrier() (bool, error)
-	// writeBack starts writing n bytes at off to the drive and waits for the
-	// earlier range at doneOff, of doneN bytes, to reach it, without making
-	// either durable. A checkpoint calls it after each batch of pages, so it
-	// keeps little queued ahead of the flushes commits wait on.
-	writeBack(off, n, doneOff, doneN int64) error
-	// punch deallocates n bytes at off, keeping the file length.
-	punch(off, n int64) error
+	// writeback writes chunks' dirty pages to the drive and waits for them.
+	// A background job calls it every bgDirtyMax from its idle thread with
+	// the chunks it wrote, so its bytes leave at the idle priority and a
+	// commit's durable flush never finds more than bgDirtyMax of them ahead
+	// of it. A platform with no call for a range writes the whole file.
+	writeback(chunks []uint64) error
 	// lock takes a write lock on the byte at off, waiting for other holders
 	// when wait is set. Without wait it reports false when another holder
 	// has it.

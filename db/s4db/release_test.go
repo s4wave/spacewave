@@ -2,80 +2,70 @@ package s4db
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"path/filepath"
-	"strconv"
 	"testing"
 )
 
-// TestReleaseAfterLastDelete deletes values in the last commit and checks
-// that Release returns their runs, which no later commit releases, to the
-// file system.
-func TestReleaseAfterLastDelete(t *testing.T) {
-	// Open without the background compactor, which releases on its own.
-	ctx := context.Background()
-	db := openTest(t, filepath.Join(t.TempDir(), "release.s4wave"), Options{})
-	defer db.Close()
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
-		<-wait
-	}
+// releaseEnv selects the real producer process that leaves a large reservation.
+const releaseEnv = "S4DB_TEST_RELEASE_BACKLOG"
 
-	// Write 16 values of 1 MiB, then delete them in the last commit.
-	keys := make([][]byte, 16)
-	for i := range keys {
-		keys[i] = []byte("value-" + strconv.Itoa(i))
-	}
-	commitKeys(t, db, keys, make([]byte, 1<<20))
-	commitKeys(t, db, keys, nil)
-
-	// The deleted runs wait for a commit that will not come.
-	before, err := db.SpaceReport(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if before.PendingValueRuns == 0 {
-		t.Fatal("no deleted value run is pending")
-	}
-
-	// Release returns them, and the file system no longer holds them.
-	if err := db.Release(ctx); err != nil {
-		t.Fatal(err)
-	}
-	after, err := db.SpaceReport(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if after.PendingValueRuns != 0 {
-		t.Fatalf("%d value runs pending after Release", after.PendingValueRuns)
-	}
-	if before.DiskBytes >= 0 && before.DiskBytes-after.DiskBytes < 12<<20 {
-		t.Fatalf("disk bytes went from %d to %d", before.DiskBytes, after.DiskBytes)
-	}
-}
-
-// commitKeys sets each key to val in one commit, or deletes them for a nil
-// val.
-func commitKeys(t *testing.T, db *DB, keys [][]byte, val []byte) {
-	// Write each key in one transaction.
-	t.Helper()
-	ctx := context.Background()
-	tx, err := db.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Discard()
-	for _, k := range keys {
-		if val == nil {
-			err = tx.Delete(ctx, k)
-		} else {
-			err = tx.Set(ctx, k, val)
-		}
-		if err != nil {
+// TestReleaseBacklog drains several bounded batches through the real scheduler,
+// without charging one quiet timer per batch or growing a sparse reservation.
+func TestReleaseBacklog(t *testing.T) {
+	// The producer exits with durable unused reservations under its own identity.
+	if path := os.Getenv(releaseEnv); path != "" {
+		db := openTest(t, path, Options{})
+		db.sched.stop()
+		if _, err := db.w.reserve(t.Context(), 8*freeBatch); err != nil {
 			t.Fatal(err)
 		}
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+		return
 	}
 
-	// Commit it.
-	if err := tx.Commit(ctx); err != nil {
+	// Run a real second owner; its exit makes the reservation reclaimable.
+	path := filepath.Join(t.TempDir(), "backlog.s4wave")
+	db := openTest(t, path, Options{})
+	defer db.Close()
+	ctx, cancel := context.WithTimeout(t.Context(), 3*quietMark)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestReleaseBacklog$", "-test.timeout=10s")
+	cmd.Env = append(os.Environ(), releaseEnv+"="+path)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("producer: %v\n%s", err, out)
+	}
+
+	// Start the first bounded batch. The scheduler must retain the continuation
+	// instead of making the remaining seven batches wait for quiet timers.
+	before, err := os.Stat(path)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if err := db.sched.releaseStep(ctx); err != nil {
+		t.Fatal(err)
+	}
+	err = db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		for _, e := range db.cur.Load().m.table.all() {
+			if e.kind == chunkReserved {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Fatalf("release continuation stalled: %v", err)
+	}
+
+	// Logical reservations never justified extending the physical file.
+	after, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Size() > before.Size() {
+		t.Fatal("release grew the sparse reservation")
 	}
 }

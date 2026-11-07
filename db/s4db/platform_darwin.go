@@ -4,47 +4,21 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Darwin has only process-scoped record locks: closing any descriptor of the
-// file drops every lock the process holds on it, and a process does not see
-// its own locks as conflicts. The database keeps one descriptor per file and
-// one handle per process.
-const (
-	// cmdSetLock takes a lock or fails.
-	cmdSetLock = unix.F_SETLK
-	// cmdSetLockWait takes a lock, waiting for conflicting holders.
-	cmdSetLockWait = unix.F_SETLKW
-	// cmdGetLock reports a conflicting lock.
-	cmdGetLock = unix.F_GETLK
-)
-
 // flushDurable makes earlier writes durable on the drive.
 func (f *osFile) flushDurable() error {
 	_, err := unix.FcntlInt(f.Fd(), unix.F_FULLFSYNC, 0)
 	return err
 }
 
-// flushOrdered orders earlier writes before later ones without waiting for
-// the drive to make them durable.
-func (f *osFile) flushOrdered() error {
-	_, err := unix.FcntlInt(f.Fd(), unix.F_BARRIERFSYNC, 0)
-	return err
+// writeback flushes the whole file durably: darwin has no call that writes a
+// range, and fsync would leave the pages in the drive's cache, where a
+// commit's F_FULLFSYNC would still find them.
+func (f *osFile) writeback([]uint64) error {
+	return f.flushDurable()
 }
 
-// flushBarrier orders earlier writes before later ones, reporting that it
-// did not make them durable.
-func (f *osFile) flushBarrier() (bool, error) {
-	return false, f.flushOrdered()
-}
-
-// writeBack does nothing: the platform has no call that writes a range back
-// without a flush.
-func (*osFile) writeBack(_, _, _, _ int64) error {
-	return nil
-}
-
-// punch deallocates n bytes at off, keeping the file length. struct
-// fpunchhole shares its layout with the leading fields of struct fstore,
-// flags, a reserved word, offset and length, so the fstore wrapper passes it.
-func (f *osFile) punch(off, n int64) error {
-	return unix.FcntlFstore(f.Fd(), unix.F_PUNCHHOLE, &unix.Fstore_t{Offset: off, Length: n})
+// lowerThreadPriority puts the calling thread in the background band, which
+// throttles its CPU and disk use while other work runs.
+func lowerThreadPriority() error {
+	return unix.Setpriority(unix.PRIO_DARWIN_THREAD, 0, unix.PRIO_DARWIN_BG)
 }

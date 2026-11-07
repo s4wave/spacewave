@@ -1,264 +1,254 @@
 ---- MODULE Durability ----
-\* Commits, flushes, checkpoints and the release of freed space, as the writer
-\* and flusher run them, against every state a crash can leave on the drive.
+\* Commits, the shared durable flush, a flush of the memtable into a run with
+\* its superblock, and the release of log chunks, against every state a crash
+\* can leave on the drive, as the design's commit, flush and open paths run
+\* them.
 \*
-\* One key is overwritten by each commit, which writes its value into a free
-\* run and appends a record carrying the durable mark it was written under.
-\* The value it replaced is freed at the commit and released, for reuse, once
-\* the flusher's logged mark reaches it (releaseSpace). A flush (syncThrough)
-\* makes everything written durable and raises the durable, logged and
-\* checkpoint marks from the state it claimed. A checkpoint (saveTree) writes
-\* the tree into a free page, flushes with a barrier, writes the superblock
-\* and publishes; the page the old tree used is freed at the new checkpoint
-\* and released once the checkpoint is durable.
+\* One key is overwritten by each commit, which appends its value to a value
+\* slot (an entry in the open value chunk) and then a record carrying the
+\* writer's identity, the identity of the record before it, and the durable
+\* mark (the last commit the writer knew flushed). A durable commit then
+\* flushes the file and is acknowledged; an ordered commit is acknowledged at
+\* once and flushed later. A flush of the memtable writes a run that holds the
+\* commits through some seq, flushes, appends a flush record, then writes the
+\* superblock pointing after that record; the log before the superblock's
+\* replay position, the position after the seq the run holds and not the
+\* flush record's own, is released only once the superblock is durable.
 \*
-\* A crash keeps the durable superblock or the newer written one, the flushed
-\* records and any prefix of the rest, and for each run and page either what
-\* was durable or what was written since. Recovery (load, tail with verify)
-\* reads the tree the superblock names, takes the highest durable mark among
-\* the records after it, and ends the log at the first record past that mark
-\* whose value no longer matches.
+\* The only ordering primitive is the durable flush: a crash keeps every write
+\* before the last flush and any subset of the writes after it, each torn or
+\* whole on its own, which also covers a write that failed with ENOSPC after
+\* landing part of its bytes. Recovery reads the newer intact superblock, the
+\* run it points at, and the records after its position: each must be whole,
+\* carry the next seq and name the previous record's writer as its
+\* predecessor; past the highest durable mark among them its value must match.
+\* The first record that fails ends the log.
 \*
-\* On Linux and Windows the barrier is a durable flush and raises the marks.
-\* On darwin it is F_BARRIERFSYNC, which only orders the writes before it
-\* ahead of those after, and raises none. So the drive is tracked twice: as a
-\* crash that keeps no write after the last barrier may leave it (phys,
-\* vdisk, pdisk, from sbDur), and as one that keeps a later write, which
-\* then keeps every write before the barrier (physB, vdiskB, pdiskB, from the
-\* superblock written before the barrier or the one after it).
+\* After a crash, a new handle with a fresh identity continues the log at the
+\* cut, while the stale records behind the cut stay on the drive; the
+\* predecessor check is what keeps them out.
 \*
-\* Compaction needs no action of its own: relocate rewrites values through a
-\* commit, which frees their old runs like any commit, and moveLog continues
-\* the log in a free chunk, leaving the old chunk to be freed by the next
-\* checkpoint like a tree page. Not modeled: pins and other processes
-\* (Pins.tla), the log reader's checksum chain, which ends the log at a stale
-\* record in a reused chunk, and the space record.
+\* Callers found from source: Tx.Commit and Tx.CommitOrdered (the two commit
+\* kinds), the flusher's syncThrough and deadline flush (Flush), the flush job
+\* (RunWrite, RunFlush, FlushRecord, SuperWrite), and release (ReleaseLog).
+\* Not modeled: other processes and pins (Pins.tla), merges and the cleaner,
+\* which append records the same way and free chunks under the same rule
+\* (Free.tla), the link record, and the manifest's own chunks, which follow
+\* the superblock like the run.
 
 EXTENDS Naturals, Sequences, FiniteSets
 
 MaxSeq == 3
-Slots == {1, 2, 3}
-Pages == {"p1", "p2"}
+Slots == {1, 2, 3}     \* value slots in the open value chunk; a fresh one is always free
+MaxWriters == 2        \* handle identities, a fresh one per open; one reopen reaches every case
 Empty == 9
-NoTree == [slot |-> 0, tag |-> Empty]
+\* Gone is a log position whose record is absent, released or lost.
+Gone == [seq |-> 0, mark |-> 0, slot |-> 1, writer |-> 1, prev |-> 1]
 
 VARIABLES
-  platform,    \* "linux": the barrier is durable; "darwin": it orders only
-  seq,         \* the last commit
-  live,        \* the key's value: its run and the commit that wrote it
-  log,         \* the records written: seq, the durable mark, the value's run
-  phys,        \* how many records are certainly on the drive
-  vmem,        \* each run's value as written
-  vdisk,       \* each run's values a crash may leave
-  free,        \* runs free for a commit's value
-  pend,        \* freed runs and the commit that freed them
-  durable,     \* flusher.durable: the last commit known durable
-  logged,      \* flusher.logged
-  curLogged,   \* the published state's logged mark
-  page,        \* the page holding the published tree
-  pmem,        \* each page's tree as written
-  pdisk,       \* each page's trees a crash may leave
-  pfree,       \* pages free for a checkpoint
-  ppend,       \* freed pages and the checkpoint that freed them
-  ckpt,        \* the published checkpoint
-  ckptWritten, \* flusher.ckptWritten
-  ckptDurable, \* flusher.ckptDurable
-  sbDur,       \* the superblock a crash keeps
-  sbDurB,      \* the superblock a crash keeps once it keeps a later write
-  physB,       \* phys, once a crash keeps a write after the last barrier
-  vdiskB,      \* vdisk, likewise
-  pdiskB,      \* pdisk, likewise
-  sbNew,       \* the newest superblock written
-  cpc,         \* saveTree's step: "idle", "barrier", "super", "publish"
-  cnext        \* the checkpoint saveTree builds: its seq, page and tree
-vars == <<platform, seq, live, log, phys, vmem, vdisk, free, pend, durable,
-          logged, curLogged, page, pmem, pdisk, pfree, ppend, ckpt,
-          ckptWritten, ckptDurable, sbDur, sbNew, cpc, cnext, sbDurB, physB,
-          vdiskB, pdiskB>>
+  seq,       \* the last commit appended
+  live,      \* the key's value: its slot and the commit that wrote it
+  log,       \* the record at each log position, or Gone
+  written,   \* positions written since the last flush (any subset may be lost)
+  acked,     \* commits acknowledged durable to a caller
+  ordered,   \* commits acknowledged ordered (may be lost with every later one)
+  durable,   \* the writer's durable mark
+  vmem,      \* each slot's value as written
+  vdisk,     \* each slot's values a crash may leave
+  writer,    \* the identity of the open handle
+  prev,      \* the writer identity of the last record
+  run,       \* the run written by the flush job: the seq it holds, or 0
+  runLive,   \* the key's value as the run holds it
+  runDisk,   \* the runs (by the seq they hold) a crash keeps
+  fpc,       \* the flush job: "idle", "written", "flushed", "recorded"
+  sbMem,     \* the newest superblock written: seq and log position
+  sbDisk,    \* the superblocks a crash may leave
+  released,  \* the log positions released (their chunk freed)
+  logged,    \* the highest durable mark a durable record carries
+  freedAt,   \* for each value slot, the commit that freed it; 0 for never used
+  dead,      \* records a recovery cut, which later recoveries must never revive
+  down,      \* whether the process crashed and recovery has not run
+  drive      \* the drive after a crash: what recovery would read
+vars == <<seq, live, log, written, acked, ordered, durable, vmem, vdisk, writer,
+          prev, run, runLive, runDisk, fpc, sbMem, sbDisk, released, logged,
+          freedAt, dead, down, drive>>
 
-Max(S) == CHOOSE x \in S : \A y \in S : y <= x
+Max(S) == IF S = {} THEN 0 ELSE CHOOSE x \in S : \A y \in S : y <= x
 
 Init ==
-  /\ platform \in {"linux", "darwin"}
   /\ seq = 0
   /\ live = [slot |-> 1, tag |-> 0]
-  /\ log = <<>>
-  /\ phys = 0
+  /\ log = [p \in 1..MaxSeq |-> Gone]
+  /\ written = {}
+  /\ acked = {} /\ ordered = {}
+  /\ durable = 0
   /\ vmem = [s \in Slots |-> IF s = 1 THEN 0 ELSE Empty]
   /\ vdisk = [s \in Slots |-> {vmem[s]}]
-  /\ free = Slots \ {1}
-  /\ pend = {}
-  /\ durable = 0 /\ logged = 0 /\ curLogged = 0
-  /\ page = "p1"
-  /\ pmem = [p \in Pages |-> IF p = "p1" THEN [slot |-> 1, tag |-> 0] ELSE NoTree]
-  /\ pdisk = [p \in Pages |-> {pmem[p]}]
-  /\ pfree = {"p2"}
-  /\ ppend = {}
-  /\ ckpt = 0 /\ ckptWritten = 0 /\ ckptDurable = 0
-  /\ sbDur = [seq |-> 0, page |-> "p1", tree |-> [slot |-> 1, tag |-> 0]]
-  /\ sbNew = sbDur
-  /\ sbDurB = sbDur /\ physB = 0 /\ vdiskB = vdisk /\ pdiskB = pdisk
-  /\ cpc = "idle"
-  /\ cnext = sbDur
+  /\ writer = 1 /\ prev = 1
+  /\ run = 0 /\ runDisk = {0} /\ runLive = [slot |-> 1, tag |-> 0]
+  /\ fpc = "idle"
+  /\ sbMem = [seq |-> 0, pos |-> 1, writer |-> 1, live |-> [slot |-> 1, tag |-> 0]]
+  /\ sbDisk = {sbMem}
+  /\ released = {}
+  /\ logged = 0
+  /\ freedAt = [s \in Slots |-> 0]
+  /\ dead = {}
+  /\ down = FALSE
+  /\ drive = [log |-> log, values |-> vmem, sb |-> sbMem, runOk |-> TRUE]
 
-\* A commit, under the writer lock: write the value into a free run, append
-\* the record under the current durable mark, and free the replaced value.
-Commit ==
-  /\ cpc = "idle" /\ seq < MaxSeq
-  /\ \E s \in free :
+\* A commit appends its value to a free slot and its record after it. The
+\* value write lands or tears on its own, as does the record. A slot freed at
+\* commit f is reused only once a durable record carries a mark of at least
+\* f: recovery verifies the values of records past the highest mark it finds,
+\* and the record that wrote the freed value would fail that check against
+\* the new bytes and cut the log before it.
+Commit(kind) ==
+  /\ ~down /\ seq < MaxSeq
+  /\ \E s \in Slots \ {live.slot} :
+       /\ freedAt[s] <= logged
+       /\ freedAt' = [freedAt EXCEPT ![live.slot] = seq + 1]
        /\ seq' = seq + 1
        /\ vmem' = [vmem EXCEPT ![s] = seq + 1]
        /\ vdisk' = [vdisk EXCEPT ![s] = @ \cup {seq + 1}]
-       /\ vdiskB' = [vdiskB EXCEPT ![s] = @ \cup {seq + 1}]
-       /\ free' = free \ {s}
-       /\ pend' = pend \cup {[slot |-> live.slot, at |-> seq + 1]}
        /\ live' = [slot |-> s, tag |-> seq + 1]
-       /\ log' = Append(log, [seq |-> seq + 1, dur |-> durable, slot |-> s])
-       /\ curLogged' = Max({curLogged, durable})
-  /\ UNCHANGED <<platform, phys, durable, logged, page, pmem, pdisk, pfree,
-                 ppend, ckpt, ckptWritten, ckptDurable, sbDur, sbNew, cpc, cnext,
-                 sbDurB, physB, pdiskB>>
+       /\ log' = [log EXCEPT ![seq + 1] = [seq |-> seq + 1, mark |-> durable, slot |-> s, writer |-> writer, prev |-> prev]]
+       /\ written' = written \cup {seq + 1}
+       /\ prev' = writer
+       /\ IF kind = "ordered" THEN ordered' = ordered \cup {seq + 1} /\ UNCHANGED acked
+                             ELSE UNCHANGED <<ordered, acked>>
+  /\ UNCHANGED <<durable, writer, run, runLive, runDisk, fpc, sbMem, sbDisk, released, logged, dead, down, drive>>
 
-\* releaseSpace, under the writer lock: return the values freed by commits
-\* through the logged mark.
-ReleaseValues ==
-  /\ cpc = "idle"
-  /\ \E e \in pend :
-       /\ e.at <= logged
-       /\ pend' = pend \ {e}
-       /\ free' = free \cup {e.slot}
-  /\ UNCHANGED <<platform, seq, live, log, phys, vmem, vdisk, durable, logged,
-                 curLogged, page, pmem, pdisk, pfree, ppend, ckpt, ckptWritten,
-                 ckptDurable, sbDur, sbNew, cpc, cnext, sbDurB, physB, vdiskB,
-                 pdiskB>>
-
-\* Every write so far is kept by a crash that keeps any later write.
-Order ==
-  /\ physB' = Len(log)
-  /\ vdiskB' = [s \in Slots |-> {vmem[s]}]
-  /\ pdiskB' = [p \in Pages |-> {pmem[p]}]
-  /\ sbDurB' = sbNew
-
-\* Every write so far reaches the drive.
-Persist ==
-  /\ Order
-  /\ phys' = Len(log)
-  /\ vdisk' = vdiskB'
-  /\ pdisk' = pdiskB'
-  /\ sbDur' = sbNew
-
-\* syncThrough: flush, then raise the marks from the published state and the
-\* newest superblock published.
-Flush ==
-  /\ Persist
+\* The shared durable flush: everything written reaches the drive. A durable
+\* commit is acknowledged by it; ordered commits before it become durable too.
+FlushEffects ==
+  /\ ~down
+  /\ written' = {}
+  /\ vdisk' = [s \in Slots |-> {vmem[s]}]
+  /\ runDisk' = runDisk \cup {run}
+  /\ sbDisk' = {sbMem}
   /\ durable' = seq
-  /\ logged' = Max({logged, curLogged})
-  /\ ckptDurable' = Max({ckptDurable, ckptWritten})
-  /\ UNCHANGED <<platform, seq, live, log, vmem, free, pend, curLogged, page,
-                 sbNew, pmem, pfree, ppend, ckpt, ckptWritten, cpc, cnext>>
+  /\ logged' = Max({log[p].mark : p \in 1..MaxSeq} \cup {sbMem.seq, logged})
+  /\ acked' = acked \cup (1..seq)
+  /\ UNCHANGED <<seq, live, log, ordered, vmem, writer, prev, run, runLive, sbMem, released, freedAt, dead, down, drive>>
 
-\* saveTree writes the tree of the published commit into a free page and
-\* frees the old tree's page at the new checkpoint.
-CkptWrite ==
-  /\ cpc = "idle" /\ ckpt < seq
-  /\ \E q \in pfree :
-       /\ pmem' = [pmem EXCEPT ![q] = live]
-       /\ pdisk' = [pdisk EXCEPT ![q] = @ \cup {live}]
-       /\ pdiskB' = [pdiskB EXCEPT ![q] = @ \cup {live}]
-       /\ pfree' = pfree \ {q}
-       /\ ppend' = ppend \cup {[page |-> page, at |-> seq]}
-       /\ cnext' = [seq |-> seq, page |-> q, tree |-> live]
-  /\ cpc' = "barrier"
-  /\ UNCHANGED <<platform, seq, live, log, phys, vmem, vdisk, free, pend,
-                 durable, logged, curLogged, page, ckpt, ckptWritten,
-                 ckptDurable, sbDur, sbNew, sbDurB, physB, vdiskB>>
+Flush == FlushEffects /\ UNCHANGED fpc
 
-\* flushBarrier orders the tree before the superblock. A durable barrier
-\* also raises the marks: setDurable(cur, prev).
-Barrier ==
-  /\ cpc = "barrier"
-  /\ IF platform = "linux"
-     THEN /\ Persist
-          /\ durable' = seq
-          /\ logged' = Max({logged, curLogged})
-          /\ ckptDurable' = Max({ckptDurable, ckptWritten})
-     ELSE /\ Order
-          /\ UNCHANGED <<durable, logged, ckptDurable, phys, vdisk, pdisk, sbDur>>
-  /\ cpc' = "super"
-  /\ UNCHANGED <<platform, seq, live, log, vmem, free, pend, curLogged, page,
-                 sbNew, pmem, pfree, ppend, ckpt, ckptWritten, cnext>>
+\* The flush job writes a run holding the commits through seq. A crash may
+\* lose the run until it is flushed.
+RunWrite ==
+  /\ ~down /\ fpc = "idle" /\ seq > sbMem.seq
+  /\ run' = seq /\ runLive' = live
+  /\ fpc' = "written"
+  /\ UNCHANGED <<seq, live, log, written, acked, ordered, durable, vmem, vdisk, writer, prev, runDisk, sbMem, sbDisk, released, logged, freedAt, dead>>
+  /\ UNCHANGED <<down, drive>>
 
+\* The job flushes the run durably (a Flush), then records it.
+RunFlush ==
+  /\ fpc = "written"
+  /\ FlushEffects
+  /\ fpc' = "flushed"
+
+\* The flush record is modeled as the superblock write that follows it: the
+\* superblock names the run's seq and the log position after it.
 SuperWrite ==
-  /\ cpc = "super"
-  /\ sbNew' = cnext
-  /\ cpc' = "publish"
-  /\ UNCHANGED <<platform, seq, live, log, phys, vmem, vdisk, free, pend,
-                 durable, logged, curLogged, page, pmem, pdisk, pfree, ppend,
-                 ckpt, ckptWritten, ckptDurable, sbDur, cnext, sbDurB, physB,
-                 vdiskB, pdiskB>>
+  /\ ~down /\ fpc = "flushed"
+  /\ sbMem' = [seq |-> run, pos |-> run + 1, writer |-> log[run].writer, live |-> runLive]
+  /\ sbDisk' = sbDisk \cup {sbMem'}
+  /\ fpc' = "idle"
+  /\ UNCHANGED <<seq, live, log, written, acked, ordered, durable, vmem, vdisk, writer, prev, run, runLive, runDisk, released, logged, freedAt, dead>>
+  /\ UNCHANGED <<down, drive>>
 
-\* publish the state onto the new checkpoint, then flush.written.
-Publish ==
-  /\ cpc = "publish"
-  /\ page' = cnext.page
-  /\ ckpt' = cnext.seq
-  /\ curLogged' = Max({curLogged, cnext.seq})
-  /\ ckptWritten' = Max({ckptWritten, cnext.seq})
-  /\ cpc' = "idle"
-  /\ UNCHANGED <<platform, seq, live, log, phys, vmem, vdisk, free, pend,
-                 durable, logged, pmem, pdisk, pfree, ppend, ckptDurable, sbDur,
-                 sbNew, cnext, sbDurB, physB, vdiskB, pdiskB>>
+\* The log before the durable superblock's position is released: its chunk is
+\* freed and may be overwritten, so its records are gone.
+ReleaseLog ==
+  /\ ~down
+  /\ \E p \in 1..MaxSeq :
+       /\ p \notin released /\ log[p].seq # 0
+       /\ p < sbMem.pos
+       /\ sbDisk = {sbMem}          \* the superblock is durable
+       /\ released' = released \cup {p}
+       /\ log' = [log EXCEPT ![p] = Gone]
+  /\ UNCHANGED <<seq, live, written, acked, ordered, durable, vmem, vdisk, writer, prev, run, runLive, runDisk, fpc, sbMem, sbDisk, logged, freedAt, dead>>
+  /\ UNCHANGED <<down, drive>>
 
-\* releaseSpace and punch: return the pages freed by checkpoints through the
-\* durable checkpoint.
-ReleasePages ==
-  /\ cpc = "idle"
-  /\ \E e \in ppend :
-       /\ e.at <= ckptDurable
-       /\ ppend' = ppend \ {e}
-       /\ pfree' = pfree \cup {e.page}
-  /\ UNCHANGED <<platform, seq, live, log, phys, vmem, vdisk, free, pend,
-                 durable, logged, curLogged, page, pmem, pdisk, ckpt,
-                 ckptWritten, ckptDurable, sbDur, sbNew, cpc, cnext, sbDurB,
-                 physB, vdiskB, pdiskB>>
+\* A crash: the drive keeps the flushed writes and any subset of the rest.
+Crash ==
+  /\ ~down
+  /\ \E keep \in SUBSET written, vc \in {f \in [Slots -> 0..MaxSeq \cup {Empty}] : \A s \in Slots : f[s] \in vdisk[s]},
+       sb \in sbDisk :
+       /\ down' = TRUE
+       /\ drive' = [log |-> [p \in 1..MaxSeq |-> IF p \in written /\ p \notin keep THEN Gone ELSE log[p]],
+                    values |-> vc, sb |-> sb, runOk |-> sb.seq = 0 \/ sb.seq \in runDisk]
+  /\ UNCHANGED <<seq, live, log, written, acked, ordered, durable, vmem, vdisk, writer, prev, run, runLive, runDisk, fpc, sbMem, sbDisk, released, logged, freedAt, dead>>
 
-Idle == UNCHANGED vars
+\* Recovery from a crashed drive: the records after the superblock that are
+\* whole, in sequence, chained by writer, and past the highest mark have their
+\* value. Returns the seq recovery ends at.
+RecoverFrom(d) ==
+  LET sb == d.sb
+      Ok(p, pw) == d.log[p].seq = p /\ d.log[p].prev = pw
+      RECURSIVE Walk(_, _)
+      Walk(p, pw) == IF p > MaxSeq \/ ~Ok(p, pw) THEN p - 1 ELSE Walk(p + 1, d.log[p].writer)
+      lastChained == Walk(sb.pos, sb.writer)
+      mark == Max({d.log[p].mark : p \in sb.pos..lastChained} \cup {sb.seq})
+      bad == {p \in sb.pos..lastChained : p > mark /\ d.values[d.log[p].slot] # p}
+  IN IF bad = {} THEN lastChained ELSE Max({sb.pos - 1} \cup {p \in sb.pos..lastChained : \A b \in bad : p < b})
+
+\* Recovery reads a whole run, every acknowledged commit, a prefix with no
+\* record an earlier recovery cut, and the key's recovered value is the one
+\* its last recovered commit wrote. Earlier
+\* records' values may have been reused once freed under the mark rule; replay
+\* overwrites them in the memtable and never reads them.
+Recovers(d) ==
+  LET r == RecoverFrom(d)
+  IN /\ d.runOk
+     /\ \A a \in acked : a <= r
+     /\ r >= d.sb.seq
+     /\ \A p \in d.sb.pos..r : d.log[p] \notin dead
+     /\ r > d.sb.seq => d.values[d.log[r].slot] = r
+
+\* After recovery, a new handle continues at the cut with a fresh identity.
+\* The stale records behind the cut stay; recovery from the same drive must
+\* still stop at the cut.
+Reopen ==
+  /\ down /\ writer < MaxWriters
+  /\ LET crashed == drive
+         r == RecoverFrom(crashed)
+     IN /\ seq' = r
+        /\ live' = IF r = crashed.sb.seq THEN crashed.sb.live ELSE [slot |-> crashed.log[r].slot, tag |-> r]
+        /\ log' = crashed.log
+        /\ vmem' = crashed.values
+        /\ vdisk' = [s \in Slots |-> {crashed.values[s]}]
+        /\ prev' = IF r = crashed.sb.seq THEN crashed.sb.writer ELSE crashed.log[r].writer
+        /\ sbMem' = crashed.sb /\ sbDisk' = {crashed.sb}
+        /\ run' = crashed.sb.seq /\ runLive' = crashed.sb.live /\ UNCHANGED runDisk
+        /\ acked' = {a \in acked : a <= r} /\ ordered' = {}
+        \* The records behind the cut are dead: a later recovery that read
+        \* one would revive a commit from a history the cut ended.
+        /\ dead' = dead \cup {crashed.log[p] : p \in {q \in (r + 1)..MaxSeq : crashed.log[q].seq # 0}}
+        \* The new handle knows nothing durable yet, as master's flusher
+        \* starts: its first record carries mark 0, and slots freed before
+        \* the crash wait for a flush, which raises logged past r.
+        /\ durable' = 0
+        /\ logged' = IF r = 0 THEN 0 ELSE Max({crashed.log[p].mark : p \in crashed.sb.pos..r} \cup {crashed.sb.seq})
+        /\ freedAt' = [s \in Slots |-> IF s = live'.slot THEN 0 ELSE r]
+  /\ written' = {}
+  /\ writer' = writer + 1
+  /\ fpc' = "idle"
+  /\ released' = {}
+  /\ down' = FALSE /\ UNCHANGED drive
+
+\* The run ends down once every writer has reopened the file.
+Done == down /\ writer = MaxWriters /\ UNCHANGED vars
 
 Next ==
-  \/ Commit \/ ReleaseValues \/ Flush \/ CkptWrite \/ Barrier \/ SuperWrite
-  \/ Publish \/ ReleasePages \/ Idle
+  \/ Commit("durable") \/ Commit("ordered") \/ Flush
+  \/ RunWrite \/ RunFlush \/ SuperWrite \/ ReleaseLog
+  \/ Crash \/ Reopen \/ Done
 Spec == Init /\ [][Next]_vars
 
-\* The choices a crash makes for each run or page among what it may hold.
-Choices(d) ==
-  {f \in [DOMAIN d -> UNION {d[x] : x \in DOMAIN d}] : \A x \in DOMAIN d : f[x] \in d[x]}
-
-\* Recovery from superblock sb, the first n records, and the runs and pages
-\* as vc and pc hold them: the tree is intact, the key reads back a value
-\* that matches, and no commit known durable is lost.
-Recovered(sb, n, vc, pc) ==
-  LET idx == {i \in 1..n : log[i].seq > sb.seq}
-      d == Max({log[i].dur : i \in idx} \cup {0})
-      bad == {i \in idx : log[i].seq > d /\ vc[log[i].slot] # log[i].seq}
-      kept == {i \in idx : \A j \in bad : i < j}
-      last == IF kept = {} THEN [seq |-> sb.seq, slot |-> sb.tree.slot, tag |-> sb.tree.tag]
-              ELSE [seq |-> log[Max(kept)].seq, slot |-> log[Max(kept)].slot,
-                    tag |-> log[Max(kept)].seq]
-  IN /\ pc[sb.page] = sb.tree
-     /\ last.seq >= durable
-     /\ vc[last.slot] = last.tag
-
-\* A crash that keeps no write after the last barrier recovers from the
-\* durable superblock; one that keeps a later write also keeps everything
-\* before the barrier, and recovers from the superblock written before it or
-\* the newest one.
-RecoversCommitted ==
-  /\ \A n \in phys..Len(log), vc \in Choices(vdisk), pc \in Choices(pdisk) :
-       Recovered(sbDur, n, vc, pc)
-  /\ \A sb \in {sbDurB, sbNew}, n \in physB..Len(log),
-        vc \in Choices(vdiskB), pc \in Choices(pdiskB) :
-       Recovered(sb, n, vc, pc)
-
-\* The marks never pass what was flushed.
-MarksFlushed == durable <= seq /\ logged <= durable /\ ckptDurable <= ckpt
+\* Every crash view recovers every acknowledged commit as a prefix with
+\* matching values; the marks never pass what was flushed.
+RecoversCommitted == down => Recovers(drive)
+MarksFlushed == durable <= seq
 ====

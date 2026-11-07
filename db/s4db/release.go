@@ -1,30 +1,156 @@
 package s4db
 
-import "context"
+import (
+	"context"
+)
 
-// Release returns the space the latest commits freed, which no snapshot
-// reads, to the file system, without waiting for a later commit. A commit's
-// frees are released once a later record or a durable checkpoint marks the
-// commit durable, since recovery checks the values of records past the last
-// mark. So a writer that has stopped committing, such as a volume refusing
-// writes at its disk reserve, calls Release to see the space its last deletes
-// freed. Release checkpoints when no mark covers the latest commit, which
-// writes the index pages the commits changed.
-func (db *DB) Release(ctx context.Context) error {
-	// Take the writer lock while no background checkpoint runs.
-	if err := db.lockIdle(ctx); err != nil {
-		return err
-	}
+// truncateMax bounds the chunks one release step truncates. The call runs
+// under the writer lock, and the extents it frees go into the journal a
+// commit's flush waits on: on forge's SATA drive under ext4, 32 MiB took 1 ms
+// and 344 MiB from 12 to 138 ms, stalling a flush of the same file for up to
+// 124 ms.
+const truncateMax = 32
 
-	// Mark the latest commit durable with a checkpoint when no mark does,
-	// then release.
-	var err error
-	if _, logged, _ := db.flush.marks(); logged < db.cur.Load().seq {
-		err = db.w.checkpointDurable(ctx)
+// releaseScan bounds metadata examined during one writer callback, including
+// passes where every pending chunk is still pinned.
+const releaseScan = 4 * freeBatch
+
+// releaseStep frees what may be reused: pending chunks that no slot pins and
+// recovery can no longer read, and reserved chunks whose owner is gone. It
+// appends one free record for them and truncates up to truncateMax of the
+// file's trailing free chunks, all under the writer lock; replayers apply the
+// records without repeating the slot reads and marks that justified them.
+func (s *scheduler) releaseStep(ctx context.Context) error {
+	// Advance a serialized pass under writer admission; IO failure clears its queue.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	db := s.db
+	err := db.w.locked(ctx, func() error {
+		// Read the slots: the lowest pin and the live owners.
+		st := db.cur.Load()
+		pins, readable, err := db.liveSlots()
+		if err != nil {
+			return err
+		}
+		p := db.localPin()
+		owners := map[uint64]bool{db.id: true}
+		for _, sp := range pins {
+			p = p.lower(sp)
+			owners[sp.id] = true
+		}
+
+		// Read the marks: the logged mark and the durable superblock.
+		_, logged := db.flush.marks()
+		db.superMtx.Lock()
+		superSeq := db.super.seq
+		db.superMtx.Unlock()
+
+		// Collect the chunks both conditions allow. A table whose tally
+		// counts no pending or reserved chunk has none, so its pass ends
+		// without a scan.
+		n := int(st.m.table.end()) // #nosec G115 -- a chunk count.
+		if s.releaseRemaining == 0 || s.releaseRemaining > n {
+			s.releaseRemaining = n
+		}
+		if st.m.table.count(chunkPending)+st.m.table.count(chunkReserved) == 0 {
+			s.releaseRemaining = 0
+		}
+		var free []uint64
+		for scanned := 0; s.releaseRemaining > 0 && len(free) < freeBatch && scanned < releaseScan; scanned++ {
+			s.releaseRemaining--
+			c := s.releaseCursor % n
+			s.releaseCursor = (c + 1) % n
+			e := st.m.table.get(uint64(c)) // #nosec G115 -- a table index.
+			switch e.kind {
+			case chunkPending:
+				durable := logged
+				if e.owner != chunkValue {
+					durable = superSeq
+				}
+				if p.seq >= e.seq && durable >= e.seq {
+					free = append(free, uint64(c)) // #nosec G115 -- a table index.
+				}
+			case chunkReserved:
+				if readable && !owners[e.owner] {
+					free = append(free, uint64(c)) // #nosec G115 -- a table index.
+				}
+			}
+		}
+		if len(free) != 0 {
+			if st, err = db.w.appendRecord(ctx, &record{kind: kindFree, chunks: free}); err != nil {
+				return err
+			}
+		}
+
+		// Truncate the file toward its last chunk in use, in this lock span,
+		// since the lock keeps a writer from allocating past the new end
+		// while the call runs.
+		end := st.m.table.trimEnd(truncateMax)
+		if end == st.m.table.end() {
+			return nil
+		}
+		st, err = db.w.appendRecord(ctx, &record{kind: kindTruncate, next: end})
+		if err != nil {
+			return err
+		}
+
+		// Unwritten reservations may put the table beyond the physical file.
+		// Releasing them must never grow the file toward that logical end.
+		size, err := db.s.size()
+		if err != nil {
+			return err
+		}
+		endBytes := fileOff(chunkStart(st.m.table.end()))
+		if endBytes >= size {
+			return nil
+		}
+		return db.s.truncate(endBytes)
+	})
+	if err != nil {
+		s.releaseRemaining = 0
 	}
-	if err == nil {
-		err = db.w.releaseNow(ctx)
-	}
-	db.w.unlock(err)
 	return err
+}
+
+// releaseQueued reports an unfinished bounded pass, without holding writer.
+func (s *scheduler) releaseQueued() bool {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.releaseRemaining != 0
+}
+
+// liveSlots returns the pins of the other live slots and whether every one
+// of them read whole; a slot being rewritten pins everything and blocks
+// reclaiming until it reads again.
+func (db *DB) liveSlots() ([]pin, bool, error) {
+	// Read the slots.
+	b := make([]byte, pageSize)
+	if _, err := db.s.ReadAt(b, slotPage*pageSize); err != nil {
+		return nil, false, err
+	}
+
+	// Keep each slot whose process holds its lock.
+	var pins []pin
+	readable := true
+	var empty [slotSize]byte
+	for i := range slots {
+		rec := b[i*slotSize : (i+1)*slotSize]
+		if i == db.slot || [slotSize]byte(rec) == empty {
+			continue
+		}
+		live, err := db.s.held(lockSlot + int64(i))
+		if err != nil {
+			return nil, false, err
+		}
+		if !live {
+			continue
+		}
+		sp, ok := decodePin(rec)
+		if !ok {
+			readable = false
+			sp = pin{}
+		}
+		pins = append(pins, sp)
+	}
+	return pins, readable, nil
 }

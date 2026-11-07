@@ -31,7 +31,9 @@ func leaseOff(name string) int64 {
 }
 
 // TryLease takes the lease name when no other holder has it, reporting false
-// when one does.
+// when one does. A taken lease sees every process's newest commit: the handle
+// tails the log before returning, so a transaction opened under the lease
+// reads what the previous holder wrote.
 func (db *DB) TryLease(name string) (*Lease, bool, error) {
 	// Claim the byte in this handle.
 	off := leaseOff(name)
@@ -44,19 +46,24 @@ func (db *DB) TryLease(name string) (*Lease, bool, error) {
 		return nil, false, err
 	}
 
-	// Lock it against other processes.
+	// Lock it against other processes, then catch up with their commits.
 	ok, err := db.s.lock(off, false)
 	if err != nil || !ok {
+		db.dropLease(off)
+		return nil, false, err
+	}
+	if err := db.refresh(context.Background()); err != nil {
+		_ = db.s.unlock(off)
 		db.dropLease(off)
 		return nil, false, err
 	}
 	return &Lease{db: db, off: off}, true, nil
 }
 
-// WaitLease waits until it holds the lease name. When ctx ends while another
-// process holds the name, the abandoned wait keeps the name claimed in this
-// handle until the system grants the lock, then releases it; Close waits for
-// it.
+// WaitLease waits until it holds the lease name, then tails the log as
+// TryLease does. When ctx ends while another process holds the name, the
+// abandoned wait keeps the name claimed in this handle until the system grants
+// the lock, then releases it; Close waits for it.
 func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	// Wait for this handle's holder to release the byte, then claim it.
 	off := leaseOff(name)
@@ -77,7 +84,11 @@ func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	select {
 	case err := <-locked:
 		db.lockWaits.Done()
+		if err == nil {
+			err = db.refresh(ctx)
+		}
 		if err != nil {
+			_ = db.s.unlock(off)
 			db.dropLease(off)
 			return nil, err
 		}

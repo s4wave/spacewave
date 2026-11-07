@@ -2,205 +2,191 @@ package s4db
 
 import (
 	"sync"
-	"sync/atomic"
 )
 
-// cacheShards is the number of independently locked cache shards.
-const cacheShards = 64
-
-// innerShare is the part of a shard's budget, in quarters, that inner pages
-// may hold ahead of leaves.
-const innerShare = 3
-
-// cache holds decoded pages within a memory budget, in shards that each
-// evict by CLOCK. Every lookup passes through the inner pages above its leaf,
-// so a shard evicts leaves first while its inner pages fit in innerShare of
-// its budget. Pages are never changed once written, and a page number is
-// only reused after every snapshot that could read the old page has closed.
-// Freeing drops the entry in the freeing handle; other handles clear the
-// cache when they adopt the checkpoint that may reuse it.
-type cache struct {
-	// root holds the last root page read, so lookups start without taking
-	// a shard lock.
-	root atomic.Pointer[cacheSlot]
-	// shards hold the pages by page number.
-	shards [cacheShards]cacheShard
+// cacheKey identifies a cached block: the run and the block's offset.
+type cacheKey struct {
+	// run is the run id.
+	run uint64
+	// off is the block's file offset.
+	off uint64
 }
 
-// cacheShard is one locked part of the cache. A hit takes the read lock, so
-// lookups through a page every path shares, such as the inner page under the
-// root, never wait on each other.
-type cacheShard struct {
-	// mtx guards the fields below, except the used bits of ring's slots.
-	mtx sync.RWMutex
-	// index maps page numbers to positions in ring.
-	index map[uint64]int
-	// ring holds the cached pages in clock order.
-	ring []cacheSlot
-	// free lists the empty positions in ring.
-	free []int
-	// hand is the next position the clock examines.
-	hand int
-	// bytes is the cost of the cached pages.
-	bytes int
-	// inner is the cost of the cached inner pages.
-	inner int
-	// max bounds bytes.
-	max int
+// cacheItem is one cached block.
+type cacheItem struct {
+	// key identifies the block.
+	key cacheKey
+	// data holds the block's bytes.
+	data []byte
+	// hits counts reads since insertion, capped at three; S3-FIFO promotes
+	// a small-queue item with any hits and keeps a main-queue item with some.
+	hits uint8
+	// small reports that the item waits in the small queue.
+	small bool
 }
 
-// cacheSlot is one cached page.
-type cacheSlot struct {
-	// page is the page number.
-	page uint64
-	// n is the decoded page; nil marks an empty slot.
-	n *node
-	// used is set by a hit under the read lock and cleared as the clock
-	// passes.
-	used atomic.Bool
+// blockCache holds run blocks, index partitions and filter partitions under
+// a byte budget with S3-FIFO replacement: new blocks enter a small queue and
+// move to the main queue only when read again before they leave it, so one
+// pass over the file by a merge, the cleaner or an iterator never displaces
+// the blocks lookups reuse. Evicted small-queue keys are remembered in a
+// ghost set so a block read again soon after enters the main queue directly.
+type blockCache struct {
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// budget is the byte limit, and bytes the bytes held.
+	budget, bytes int64
+	// items maps each cached run, then each block offset, to its item, so
+	// dropping a run finds its items alone.
+	items map[uint64]map[uint64]*cacheItem
+	// small and main are the two FIFO queues, oldest first. A dropped run's
+	// items stay queued without their data, and eviction passes over them.
+	small, main []*cacheItem
+	// smallBytes is the bytes in small; it is kept at a tenth of the budget.
+	smallBytes int64
+	// ghost remembers keys evicted from small, bounded to ghostMax.
+	ghost map[cacheKey]struct{}
+	// ghostOrder holds ghost keys oldest first.
+	ghostOrder []cacheKey
 }
 
-// newCache returns a cache bounded to about bytes of decoded pages.
-func newCache(bytes int) *cache {
-	c := &cache{}
-	for i := range c.shards {
-		c.shards[i] = cacheShard{index: make(map[uint64]int), max: max(pageSize, bytes/cacheShards)}
-	}
-	return c
+// ghostMax bounds the ghost set.
+const ghostMax = 4096
+
+// newBlockCache returns a cache of budget bytes.
+func newBlockCache(budget int64) *blockCache {
+	return &blockCache{budget: budget, items: make(map[uint64]map[uint64]*cacheItem), ghost: make(map[cacheKey]struct{})}
 }
 
-// shard returns the shard holding page.
-func (c *cache) shard(page uint64) *cacheShard {
-	return &c.shards[(page*0x9e3779b97f4a7c15)>>58]
-}
-
-// get returns a cached page.
-func (c *cache) get(page uint64) *node {
-	// Find the page in its shard.
-	s := c.shard(page)
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
-	i, ok := s.index[page]
-	if !ok {
+// get returns the cached block, or nil.
+func (c *blockCache) get(k cacheKey) []byte {
+	// Count the read on the item.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	it := c.items[k.run][k.off]
+	if it == nil {
 		return nil
 	}
-
-	// Mark it used so the clock passes it once. A page already marked is
-	// left unwritten, so readers of a hot page share its cache line.
-	slot := &s.ring[i]
-	if !slot.used.Load() {
-		slot.used.Store(true)
+	if it.hits < 3 {
+		it.hits++
 	}
-	return slot.n
+	return it.data
 }
 
-// size returns the cost of the cached pages.
-func (c *cache) size() int {
-	var n int
-	for i := range c.shards {
-		s := &c.shards[i]
-		s.mtx.RLock()
-		n += s.bytes
-		s.mtx.RUnlock()
-	}
-	return n
-}
-
-// put caches a page. A full shard evicts the pages the clock finds unused
-// since it last passed until the page fits, so pages read once leave before
-// pages read again.
-func (c *cache) put(page uint64, n *node) {
-	// Replace a cached page in place.
-	s := c.shard(page)
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if i, ok := s.index[page]; ok {
-		s.charge(s.ring[i].n, -1)
-		s.charge(n, 1)
-		s.ring[i].n = n
+// put caches data under k, evicting as the budget requires.
+func (c *blockCache) put(k cacheKey, data []byte) {
+	// Skip a block the cache already holds or cannot hold.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if _, ok := c.items[k.run][k.off]; ok || int64(len(data)) > c.budget/4 {
 		return
 	}
 
-	// Evict until the page fits. A page larger than the budget still
-	// enters an empty shard.
-	for s.bytes > 0 && s.bytes+n.cost > s.max {
-		s.evict()
+	// Insert into main when the ghost remembers it, else into small.
+	it := &cacheItem{key: k, data: data}
+	run := c.items[k.run]
+	if run == nil {
+		run = make(map[uint64]*cacheItem)
+		c.items[k.run] = run
 	}
-
-	// Take an empty slot or grow the ring.
-	i := len(s.ring)
-	if l := len(s.free); l != 0 {
-		i, s.free = s.free[l-1], s.free[:l-1]
+	run[k.off] = it
+	c.bytes += int64(len(data))
+	if _, ok := c.ghost[k]; ok {
+		delete(c.ghost, k)
+		c.main = append(c.main, it)
 	} else {
-		s.ring = append(s.ring, cacheSlot{})
+		it.small = true
+		c.small = append(c.small, it)
+		c.smallBytes += int64(len(data))
 	}
-	s.ring[i] = cacheSlot{page: page, n: n}
-	s.index[page] = i
-	s.charge(n, 1)
-}
 
-// drop removes freed pages.
-func (c *cache) drop(r run) {
-	if root := c.root.Load(); root != nil && root.page >= r.start && root.page < r.end() {
-		c.root.CompareAndSwap(root, nil)
-	}
-	for p := r.start; p < r.end(); p++ {
-		s := c.shard(p)
-		s.mtx.Lock()
-		if i, ok := s.index[p]; ok {
-			s.remove(i)
+	// Evict until within budget.
+	for c.bytes > c.budget {
+		if c.smallBytes > c.budget/10 && len(c.small) != 0 {
+			c.evictSmall()
+			continue
 		}
-		s.mtx.Unlock()
-	}
-}
-
-// clear removes every page. Another process's checkpoint may reuse page
-// numbers this handle never freed, so a handle adopting such a checkpoint
-// clears the cache before it reads the new tree.
-func (c *cache) clear() {
-	c.root.Store(nil)
-	for i := range c.shards {
-		s := &c.shards[i]
-		s.mtx.Lock()
-		clear(s.index)
-		s.ring, s.free, s.hand, s.bytes, s.inner = nil, nil, 0, 0, 0
-		s.mtx.Unlock()
-	}
-}
-
-// evict advances the clock to the first page unused since it last passed
-// and removes it, passing inner pages while leaves remain and the inner pages
-// fit their share. The caller holds mtx and the shard holds a page.
-func (s *cacheShard) evict() {
-	keepInner := s.inner < s.bytes && s.inner <= s.max/4*innerShare
-	for {
-		i := s.hand
-		s.hand = (s.hand + 1) % len(s.ring)
-		switch {
-		case s.ring[i].n == nil:
-		case s.ring[i].used.Load():
-			s.ring[i].used.Store(false)
-		case keepInner && !s.ring[i].n.leaf:
-		default:
-			s.remove(i)
-			return
+		if len(c.main) == 0 {
+			c.evictSmall()
+			continue
 		}
+		c.evictMain()
 	}
 }
 
-// remove empties slot i. The caller holds mtx.
-func (s *cacheShard) remove(i int) {
-	delete(s.index, s.ring[i].page)
-	s.charge(s.ring[i].n, -1)
-	s.ring[i] = cacheSlot{}
-	s.free = append(s.free, i)
+// evictSmall takes the oldest small item: promoted to main when it was read,
+// else dropped and remembered in the ghost set. The queue's vacated slot is
+// cleared, so the backing array does not keep a dropped block's bytes.
+func (c *blockCache) evictSmall() {
+	// Take the oldest, passing over a dropped run's item.
+	it := c.small[0]
+	c.small[0] = nil
+	c.small = c.small[1:]
+	if it.data == nil {
+		return
+	}
+	c.smallBytes -= int64(len(it.data))
+
+	// Promote or drop.
+	if it.hits > 0 {
+		it.hits, it.small = 0, false
+		c.main = append(c.main, it)
+		return
+	}
+	c.forget(it)
+	c.remember(it.key)
 }
 
-// charge adds sign times the cost of n to the shard's totals. The caller
-// holds mtx.
-func (s *cacheShard) charge(n *node, sign int) {
-	s.bytes += sign * n.cost
-	if !n.leaf {
-		s.inner += sign * n.cost
+// evictMain takes the oldest main item: reinserted with one fewer hit when
+// it was read, else dropped.
+func (c *blockCache) evictMain() {
+	// Take the oldest, passing over a dropped run's item and reinserting one
+	// that was read.
+	it := c.main[0]
+	c.main[0] = nil
+	c.main = c.main[1:]
+	switch {
+	case it.data == nil:
+		return
+	case it.hits > 0:
+		it.hits--
+		c.main = append(c.main, it)
+		return
 	}
+	c.forget(it)
+}
+
+// forget removes it from the items and the byte count.
+func (c *blockCache) forget(it *cacheItem) {
+	run := c.items[it.key.run]
+	delete(run, it.key.off)
+	if len(run) == 0 {
+		delete(c.items, it.key.run)
+	}
+	c.bytes -= int64(len(it.data))
+}
+
+// remember adds k to the ghost set, forgetting the oldest past ghostMax.
+func (c *blockCache) remember(k cacheKey) {
+	c.ghost[k] = struct{}{}
+	c.ghostOrder = append(c.ghostOrder, k)
+	for len(c.ghostOrder) > ghostMax {
+		delete(c.ghost, c.ghostOrder[0])
+		c.ghostOrder = c.ghostOrder[1:]
+	}
+}
+
+// drop forgets every block of run, touching only its items: each leaves its
+// queue when eviction reaches it.
+func (c *blockCache) drop(run uint64) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	for _, it := range c.items[run] {
+		c.bytes -= int64(len(it.data))
+		if it.small {
+			c.smallBytes -= int64(len(it.data))
+		}
+		it.data = nil
+	}
+	delete(c.items, run)
 }

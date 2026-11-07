@@ -12,13 +12,16 @@ import (
 // flusher flushes it.
 const syncDeadline = time.Second
 
-// flusher tracks which commits and checkpoints are durable and shares
-// flushes between the commits waiting on them.
+// flusher tracks which commits are durable and shares flushes between the
+// commits waiting on them.
 type flusher struct {
 	// s is the database file.
 	s storage
 	// cur is the published state; a flush covers every commit in it.
 	cur *atomic.Pointer[state]
+	// onFlush, when set, runs after each durable flush with the state it
+	// covered, so the writer can learn the marks without polling.
+	onFlush func(*state)
 
 	// bcast guards the fields below and wakes waiters when a flush ends.
 	bcast broadcast.Broadcast
@@ -27,15 +30,9 @@ type flusher struct {
 	// logged is the logged mark of the newest state known flushed. A record
 	// carries the durable mark it was written under, and recovery checks the
 	// values of every record past the highest mark in the log, ending the
-	// log at the first whose values are gone. A value freed by a durable
-	// commit past logged may still be checked, so it stays unreleased.
+	// log at the first whose values are gone. A value chunk freed by a
+	// commit past logged may still be checked, so it stays pending.
 	logged uint64
-	// ckptWritten is the checkpoint of the newest superblock in the file.
-	ckptWritten uint64
-	// ckptDurable is the newest checkpoint known flushed. Pages a checkpoint
-	// replaces stay unreleased until its superblock is durable, so a crash
-	// that reverts to the previous superblock finds its tree intact.
-	ckptDurable uint64
 	// flushing is set while one caller flushes for every waiting commit.
 	flushing bool
 	// deadline flushes ordered commits syncDeadline after the first one
@@ -49,10 +46,8 @@ type flusher struct {
 	// closed stops arming the deadline.
 	closed bool
 
-	// flushes and flushNanos count the shared flushes and their time. They
-	// are safe without bcast.
-	flushes    atomic.Uint64
-	flushNanos atomic.Int64
+	// flushes counts the shared flushes to the drive this flusher made.
+	flushes atomic.Uint64
 }
 
 // newFlusher returns a flusher of s whose published state is cur.
@@ -60,35 +55,21 @@ func newFlusher(s storage, cur *atomic.Pointer[state]) *flusher {
 	return &flusher{s: s, cur: cur}
 }
 
-// marks returns the durable commit, the bound for releasing the values
-// commits freed, and the durable checkpoint.
-func (f *flusher) marks() (durable, logged, ckpt uint64) {
+// marks returns the durable commit and the bound for reusing the value
+// chunks commits freed.
+func (f *flusher) marks() (durable, logged uint64) {
 	l := f.bcast.Lock()
 	defer l.Unlock()
-	return f.durable, f.logged, f.ckptDurable
+	return f.durable, f.logged
 }
 
-// newest returns the checkpoint of the newest superblock in the file.
-func (f *flusher) newest() uint64 {
-	l := f.bcast.Lock()
-	defer l.Unlock()
-	return f.ckptWritten
-}
-
-// written records that the file holds a superblock of checkpoint ckpt.
-func (f *flusher) written(ckpt uint64) {
-	l := f.bcast.Lock()
-	f.ckptWritten = max(f.ckptWritten, ckpt)
-	l.Unlock()
-}
-
-// setDurable records that the state st and checkpoint ckpt are durable.
-func (f *flusher) setDurable(st *state, ckpt uint64) {
+// setDurable records that the state st is durable: a flush through another
+// path, such as the flush job's, covered it.
+func (f *flusher) setDurable(st *state) {
 	// Raise the marks and wake the waiters.
 	l := f.bcast.Lock()
 	f.durable = max(f.durable, st.seq)
 	f.logged = max(f.logged, st.logged)
-	f.ckptDurable = max(f.ckptDurable, ckpt)
 	l.Broadcast()
 	l.Unlock()
 }
@@ -118,7 +99,7 @@ func (f *flusher) flushDeadline() {
 	l.Unlock()
 
 	// Flush, and report a failure to the waiters.
-	err := f.syncThrough(context.Background(), f.cur.Load().seq, 0)
+	err := f.syncThrough(context.Background(), f.cur.Load().seq)
 	l = f.bcast.Lock()
 	f.deadlineFlushing = false
 	if err != nil {
@@ -155,32 +136,15 @@ func (f *flusher) close() {
 	})
 }
 
-// yield waits for a running shared flush to end, so a checkpoint's writes
-// queue behind the flush commits wait on rather than ahead of it. It waits
-// for one flush at most, so back-to-back commits never starve a checkpoint.
-func (f *flusher) yield() {
-	// Pass at once when no flush runs.
-	l := f.bcast.Lock()
-	if !f.flushing {
-		l.Unlock()
-		return
-	}
-
-	// Wait for the running flush to end.
-	wait := l.WaitCh()
-	l.Unlock()
-	<-wait
-}
-
-// syncThrough returns once commit seq and checkpoint ckpt are durable.
-// Commits share flushes: one caller flushes for every commit published before
-// its flush starts, and callers arriving meanwhile wait for it, then flush the
-// next group if it did not cover them.
-func (f *flusher) syncThrough(ctx context.Context, seq, ckpt uint64) error {
+// syncThrough returns once commit seq is durable. Commits share flushes: one
+// caller flushes for every commit published before its flush starts, and
+// callers arriving meanwhile wait for it, then flush the next group if it did
+// not cover them.
+func (f *flusher) syncThrough(ctx context.Context, seq uint64) error {
 	for {
 		// Finish when covered, or wait for a running flush.
 		l := f.bcast.Lock()
-		if f.durable >= seq && f.ckptDurable >= ckpt {
+		if f.durable >= seq {
 			l.Unlock()
 			return nil
 		}
@@ -199,29 +163,28 @@ func (f *flusher) syncThrough(ctx context.Context, seq, ckpt uint64) error {
 			continue
 		}
 
-		// Claim the flush of every published commit and the newest
-		// superblock.
+		// Claim the flush of every published commit.
 		f.flushing = true
-		target, targetCkpt := f.cur.Load(), f.ckptWritten
+		target := f.cur.Load()
 		l.Unlock()
 
 		// Flush and wake the waiters.
-		start := time.Now()
 		err := f.s.flushDurable()
-		f.flushes.Add(1)
-		f.flushNanos.Add(int64(time.Since(start)))
 		l = f.bcast.Lock()
 		f.flushing = false
 		if err == nil {
+			f.flushes.Add(1)
 			f.durable = max(f.durable, target.seq)
 			f.logged = max(f.logged, target.logged)
-			f.ckptDurable = max(f.ckptDurable, targetCkpt)
 			f.err = nil
 		}
 		l.Broadcast()
 		l.Unlock()
 		if err != nil {
 			return err
+		}
+		if f.onFlush != nil {
+			f.onFlush(target)
 		}
 	}
 }

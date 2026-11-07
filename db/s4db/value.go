@@ -4,59 +4,76 @@ import (
 	"encoding/binary"
 )
 
-// Value kinds in the encoding.
+// Value kinds in the encodings of records and run entries.
 const (
-	// valueInline holds the bytes in the index.
+	// valueInline holds the bytes in the record or entry.
 	valueInline = 0
-	// valueRef locates packed bytes.
+	// valueRef locates bytes in a value chunk.
 	valueRef = 1
-	// valueDeleted marks a deleted key in a commit record or a run.
+	// valueDeleted marks a deleted key: a tombstone.
 	valueDeleted = 2
+	// valueMoved is a reference that replaces the key's current reference
+	// only while that still equals the one the cleaner read. It appears only
+	// in commit records.
+	valueMoved = 3
 )
 
 // refSize is the encoded length of a reference without its kind byte.
 const refSize = 16
 
-// value is a stored value: inline bytes, or a reference to packed bytes. In
-// a run it may be a tombstone, which hides the key from the runs and the base
-// below it.
+// value is a stored value: inline bytes, a reference to a value chunk, or a
+// tombstone.
 type value struct {
 	// inline holds a small value.
 	inline []byte
-	// ref locates a large value when isRef is set.
-	ref extentRef
-	// isRef selects ref.
-	isRef bool
-	// del marks a tombstone.
-	del bool
+	// ref locates a large value when kind is valueRef or valueMoved.
+	ref ref
+	// kind is the value kind.
+	kind byte
 }
 
-// size returns the encoded length of v.
+// isRef reports whether v points into a value chunk.
+func (v value) isRef() bool {
+	return v.kind == valueRef || v.kind == valueMoved
+}
+
+// size returns the encoded length of v including its kind byte.
 func (v value) size() int {
-	switch {
-	case v.del:
+	switch v.kind {
+	case valueInline:
+		return 1 + uvarintLen(uint64(len(v.inline))) + len(v.inline)
+	case valueDeleted:
 		return 1
-	case v.isRef:
-		return 1 + refSize
 	}
-	return 1 + uvarintLen(uint64(len(v.inline))) + len(v.inline)
+	return 1 + refSize
 }
 
 // append encodes v onto b.
 func (v value) append(b []byte) []byte {
-	// A tombstone is its tag alone; a ref is its tag and the extent.
-	if v.del {
-		return append(b, valueDeleted)
+	// Write the kind, then the payload the kind takes.
+	b = append(b, v.kind)
+	switch v.kind {
+	case valueInline:
+		b = binary.AppendUvarint(b, uint64(len(v.inline)))
+		return append(b, v.inline...)
+	case valueDeleted:
+		return b
 	}
-	if v.isRef {
-		b = append(b, valueRef)
-		b = binary.LittleEndian.AppendUint64(b, v.ref.off)
-		b = binary.LittleEndian.AppendUint32(b, v.ref.n)
-		return binary.LittleEndian.AppendUint32(b, v.ref.crc)
-	}
+	b = binary.LittleEndian.AppendUint64(b, v.ref.off)
+	b = binary.LittleEndian.AppendUint32(b, v.ref.n)
+	return binary.LittleEndian.AppendUint32(b, v.ref.crc)
+}
 
-	// An inline value is its tag, length and bytes.
-	b = append(b, valueInline)
-	b = binary.AppendUvarint(b, uint64(len(v.inline)))
-	return append(b, v.inline...)
+// decodeValue reads a value after its kind byte.
+func (d *decoder) decodeValue(kind byte) value {
+	switch kind {
+	case valueInline:
+		return value{kind: kind, inline: d.bytes()}
+	case valueDeleted:
+		return value{kind: kind}
+	case valueRef, valueMoved:
+		return value{kind: kind, ref: ref{off: d.u64(), n: d.u32(), crc: d.u32()}}
+	}
+	d.fail()
+	return value{}
 }
