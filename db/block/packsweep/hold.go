@@ -326,11 +326,13 @@ func cover(ctx context.Context, opts *CoverOptions) (*Head, string, error) {
 	return head, "", err
 }
 
-// removable reports whether no key pack id holds is in L or W. A key in L or
-// W that another registered pack holds would also do, as the rule allows, but
-// the catalog keeps only each key's tail, so the backend cannot place it; a
-// dead pack that gained a live key since its judgment is lifted instead.
-func removable(ctx context.Context, tx kvtx.TxOps, id string) (bool, error) {
+// removable reports whether every key pack id holds is outside L and W, or
+// placed in a pack a compaction adopted that the sweep has not held since,
+// which the backend's index reads it from. A live key some other pack holds
+// does not count, since the catalog keeps only each key's tail and the
+// backend cannot place it; a dead pack that gained such a key since its
+// judgment is lifted instead.
+func removable(ctx context.Context, tx kvtx.TxOps, place *placement, id string) (bool, error) {
 	// Check the pack is catalogued.
 	found, err := tx.Exists(ctx, []byte(catalogPackPrefix+id))
 	if err != nil {
@@ -340,15 +342,20 @@ func removable(ctx context.Context, tx kvtx.TxOps, id string) (bool, error) {
 		return false, errors.Errorf("pack %s is not in the catalog", id)
 	}
 
-	// Stop at the first live key.
+	// Stop at the first live key no adopted pack places.
 	errLive := errors.New("live")
 	prefix := []byte(catalogMemberPrefix + id + "/")
 	err = tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
-		live, err := isLive(ctx, tx, key[len(prefix):])
-		if err == nil && live {
-			err = errLive
+		// Pass a dead key and a placed one.
+		tail := key[len(prefix):]
+		live, err := isLive(ctx, tx, tail)
+		if err != nil || !live {
+			return err
 		}
-		return err
+		if placed, err := place.placed(ctx, tail); err != nil || placed {
+			return err
+		}
+		return errLive
 	})
 	if err == errLive {
 		return false, nil
@@ -364,9 +371,10 @@ func removablePacks(ctx context.Context, store kvtx.Store, ids []string) ([]bool
 		return nil, err
 	}
 	defer tx.Discard()
+	place := newPlacement(tx)
 	out := make([]bool, len(ids))
 	for i, id := range ids {
-		if out[i], err = removable(ctx, tx, id); err != nil {
+		if out[i], err = removable(ctx, tx, place, id); err != nil {
 			return nil, err
 		}
 	}
@@ -382,13 +390,18 @@ type QuarantineResult struct {
 	// Live is the dead packs that gained a live key since the judgment, left
 	// registered.
 	Live uint64
+	// Unplaced is the low packs holding a live key no adopted pack places,
+	// left registered for the compaction.
+	Unplaced uint64
 	// Unmoved is the packs the backend answered were not quarantined, such
 	// as one it no longer holds; their records stay for the next run.
 	Unmoved uint64
 }
 
 // Quarantine pulls the log and walks W, then quarantines through the backend
-// every pack judged dead that is still removable, a batch at a time. Each
+// every pack judged dead that is still removable, and every pack judged low
+// whose live keys a compaction placed in packs the backend adopted, a batch at
+// a time. Each
 // batch's records are written before the call and their quarantine times
 // after it, so a run killed between the two calls the backend again for the
 // same packs, which keeps each held pack's first quarantine time. Those packs
@@ -402,8 +415,8 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 		return &QuarantineResult{Blocked: blocked}, err
 	}
 
-	// Take the packs recorded and not yet answered, then the dead packs with
-	// no record.
+	// Take the packs recorded and not yet answered, then the dead and low
+	// packs with no record.
 	records, err := readPackRecords(ctx, opts.Store)
 	if err != nil {
 		return nil, err
@@ -416,10 +429,10 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 			ids = append(ids, p.ID)
 		}
 	}
-	var dead []string
+	var candidates []*Judgment
 	err = Judgments(ctx, opts.Store, func(j *Judgment) error {
-		if j.Verdict == VerdictDead && !recorded[j.ID] {
-			dead = append(dead, j.ID)
+		if (j.Verdict == VerdictDead || j.Verdict == VerdictLow) && !recorded[j.ID] {
+			candidates = append(candidates, j)
 		}
 		return nil
 	})
@@ -427,18 +440,10 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 		return nil, err
 	}
 
-	// Keep the dead packs still removable.
+	// Keep the candidates still removable.
 	res := &QuarantineResult{}
-	ok, err := removablePacks(ctx, opts.Store, dead)
-	if err != nil {
+	if ids, err = keepRemovable(ctx, opts.Store, candidates, ids, res); err != nil {
 		return nil, err
-	}
-	for i, id := range dead {
-		if ok[i] {
-			ids = append(ids, id)
-		} else {
-			res.Live++
-		}
 	}
 
 	// Quarantine a batch at a time, recording before and after each call.
@@ -448,6 +453,33 @@ func Quarantine(ctx context.Context, opts *CoverOptions) (*QuarantineResult, err
 		}
 	}
 	return res, nil
+}
+
+// keepRemovable appends to ids the candidates still removable, counting the
+// rest.
+func keepRemovable(ctx context.Context, store kvtx.Store, candidates []*Judgment, ids []string, res *QuarantineResult) ([]string, error) {
+	// Check them in one read.
+	check := make([]string, len(candidates))
+	for i, j := range candidates {
+		check[i] = j.ID
+	}
+	ok, err := removablePacks(ctx, store, check)
+	if err != nil {
+		return nil, err
+	}
+
+	// Keep the removable, and count the rest by verdict.
+	for i, j := range candidates {
+		switch {
+		case ok[i]:
+			ids = append(ids, j.ID)
+		case j.Verdict == VerdictLow:
+			res.Unplaced++
+		default:
+			res.Live++
+		}
+	}
+	return ids, nil
 }
 
 // quarantineBatch records a batch of packs, quarantines them, and records the
