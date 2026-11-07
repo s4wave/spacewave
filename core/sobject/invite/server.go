@@ -223,9 +223,15 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	if err != nil {
 		return nil, errors.Wrap(err, "enroll participant")
 	}
+
+	// The storage identity writes for the Session, which never builds on the
+	// checkpointer's edits, so the Session leaves the trimming roster.
 	if storagePeerID != responderPeerID {
 		if _, err := s.h.Enroll(ctx, result, storagePeerID, storagePubKey); err != nil {
 			return nil, errors.Wrap(err, "enroll storage participant")
+		}
+		if _, err := sobject.DropFromSORoster(ctx, result.Host, []string{responderPeerID.String()}, result.OwnerPrivKey); err != nil {
+			return nil, errors.Wrap(err, "drop session from trimming roster")
 		}
 	}
 

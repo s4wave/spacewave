@@ -143,6 +143,9 @@ func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *
 	}
 
 	// Grant each approved Session and its storage identity before the export.
+	// The storage identity writes for the Session, which never builds on the
+	// checkpointer's edits, so the Session leaves the trimming roster.
+	var sessions []string
 	for _, member := range members {
 		for _, id := range []string{member.GetPeerId(), member.GetStoragePeerId()} {
 			participant, publicKey, err := peer.ParsePeerIDWithPubKey(id)
@@ -153,6 +156,12 @@ func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *
 				return nil, err
 			}
 		}
+		if member.GetPeerId() != member.GetStoragePeerId() {
+			sessions = append(sessions, member.GetPeerId())
+		}
+	}
+	if _, err := sobject.DropFromSORoster(ctx, local.soHost, sessions, key); err != nil {
+		return nil, err
 	}
 
 	// Export the durable state and its config lineage.

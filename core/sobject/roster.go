@@ -22,6 +22,29 @@ type RosterHost interface {
 // already drops them. Under group control signer, a voter, agrees to the
 // change and it returns ErrAwaitingGroup.
 func SetSORoster(ctx context.Context, host *SOHost, dropped []string, signer crypto.PrivKey) (bool, error) {
+	return changeSORoster(ctx, host, signer, func([]string) []string {
+		return dropped
+	})
+}
+
+// DropFromSORoster signs, as the owner of signer, one configuration change
+// that adds the writers in peers to those the trimming roster drops. It keeps
+// a writer that never writes an operation, such as a Session whose storage
+// identity writes for it, from holding the stable point at zero. Peers that
+// cannot write are ignored. It reports false without a change when the roster
+// already drops them, and a concurrent local change of the config does not
+// fail it. Under group control it returns ErrAwaitingGroup.
+func DropFromSORoster(ctx context.Context, host *SOHost, peers []string, signer crypto.PrivKey) (bool, error) {
+	return retryConfigChange(ctx, host, func() (bool, error) {
+		return changeSORoster(ctx, host, signer, func(dropped []string) []string {
+			return slices.Concat(dropped, peers)
+		})
+	})
+}
+
+// changeSORoster makes one attempt to drop the writers that next returns,
+// given those the config the host holds now drops.
+func changeSORoster(ctx context.Context, host *SOHost, signer crypto.PrivKey, next func(dropped []string) []string) (bool, error) {
 	// Read the current config.
 	state, err := host.GetHostState(ctx)
 	if err != nil {
@@ -30,19 +53,22 @@ func SetSORoster(ctx context.Context, host *SOHost, dropped []string, signer cry
 	current := state.GetConfig()
 
 	// Keep the writers in peer ID order.
-	writers := current.Writers()
-	next := slices.DeleteFunc(slices.Clone(dropped), func(peerID string) bool {
-		return !slices.Contains(writers, peerID)
+	writers := make(map[string]bool)
+	for _, peerID := range current.Writers() {
+		writers[peerID] = true
+	}
+	dropped := slices.DeleteFunc(slices.Clone(next(current.GetRosterDroppedPeerIds())), func(peerID string) bool {
+		return !writers[peerID]
 	})
-	slices.Sort(next)
-	next = slices.Compact(next)
-	if slices.Equal(next, current.GetRosterDroppedPeerIds()) {
+	slices.Sort(dropped)
+	dropped = slices.Compact(dropped)
+	if slices.Equal(dropped, current.GetRosterDroppedPeerIds()) {
 		return false, nil
 	}
 
 	// Sign and apply the change.
 	nextCfg := current.CloneVT()
-	nextCfg.RosterDroppedPeerIds = next
+	nextCfg.RosterDroppedPeerIds = dropped
 	if err := ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_SET_ROSTER, signer, nil, nil); err != nil {
 		return false, err
 	}
