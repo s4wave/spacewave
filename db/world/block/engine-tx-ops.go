@@ -119,7 +119,18 @@ func (e *EngineTx) GetObject(ctx context.Context, key string) (obj world.ObjectS
 // Call Close when done with the iterator.
 // Any init errors will be available via the iterator's Err() method.
 func (e *EngineTx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	return &engineTxObjectIterator{e: e, ctx: ctx, prefix: prefix, reversed: reversed}
+	// Each step opens its own state iterator in the Tx of its performOp
+	// attempt, so a retry never reuses one the previous attempt closed.
+	run := func(fn func(world.ObjectIterator) error) error {
+		return e.performOp(ctx, func(tx *Tx) error {
+			return tx.lockedLive(ctx, func() error {
+				iter := tx.state.IterateObjects(ctx, prefix, reversed)
+				defer iter.Close()
+				return fn(iter)
+			})
+		})
+	}
+	return &lockedObjectIterator{run: run, reopens: true}
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
