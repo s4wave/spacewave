@@ -86,6 +86,12 @@ type UploadAdmit func(ctx context.Context, lastBytes int64) error
 // upload only: the blocks stay queued, and the local store keeps them, until
 // a round uploads them.
 func (s *Store) UploadPaced(ctx context.Context, remote block.StoreOps, admit UploadAdmit) error {
+	// Wait until the status counts the whole queue.
+	if err := s.waitCounted(ctx); err != nil {
+		return err
+	}
+
+	// Upload rounds until one fails or ctx ends.
 	limits := batchLimitsOf(remote)
 	var head *queueHead
 	var lastBytes int64
@@ -495,10 +501,8 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 // health, so it leaves the status's failure alone.
 func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes []*hash.Hash) error {
 	// Wait until the status counts the whole queue.
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case <-s.counted:
+	if err := s.waitCounted(ctx); err != nil {
+		return err
 	}
 
 	for chunk := range slices.Chunk(hashes, clearLocatedBlocks) {
