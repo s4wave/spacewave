@@ -215,6 +215,20 @@ class DeleteSessionResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
+class MoveSessionRequest(_message.Message):
+    __slots__ = ("from_idx", "to_idx")
+    FROM_IDX_FIELD_NUMBER: _ClassVar[int]
+    TO_IDX_FIELD_NUMBER: _ClassVar[int]
+    from_idx: int
+    to_idx: int
+    def __init__(self, from_idx: _Optional[int] = ..., to_idx: _Optional[int] = ...) -> None: ...
+
+class MoveSessionResponse(_message.Message):
+    __slots__ = ("session",)
+    SESSION_FIELD_NUMBER: _ClassVar[int]
+    session: _session_pb2.SessionListEntry
+    def __init__(self, session: _Optional[_Union[_session_pb2.SessionListEntry, _Mapping]] = ...) -> None: ...
+
 class ResetSessionByIdxRequest(_message.Message):
     __slots__ = ("session_idx", "credential")
     SESSION_IDX_FIELD_NUMBER: _ClassVar[int]

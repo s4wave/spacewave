@@ -65,6 +65,9 @@ class RootResourceServiceClient:
         self,
         request: _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionRequest,
     ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionResponse: ...
+    async def move_session(
+        self, request: _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionRequest
+    ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionResponse: ...
     async def reset_session(
         self,
         request: _github_com_s4wave_spacewave_sdk_root_root_pb2.ResetSessionByIdxRequest,
@@ -231,6 +234,9 @@ class RootResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionRequest,
     ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionResponse: ...
+    async def move_session(
+        self, request: _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionRequest
+    ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionResponse: ...
     async def reset_session(
         self,
         request: _github_com_s4wave_spacewave_sdk_root_root_pb2.ResetSessionByIdxRequest,

@@ -99,6 +99,13 @@ ROOTRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
         ),
         MethodDescriptor(
+            "MoveSession",
+            _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionRequest,
+            _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
             "ResetSession",
             _github_com_s4wave_spacewave_sdk_root_root_pb2.ResetSessionByIdxRequest,
             _github_com_s4wave_spacewave_sdk_root_root_pb2.ResetSessionByIdxResponse,
@@ -525,6 +532,26 @@ class RootResourceServiceClient:
                 raise CallProtocolError("missing unary response")
             response = (
                 _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionResponse()
+            )
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def move_session(
+        self, request: _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionRequest
+    ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionResponse:
+        call = await self._client.open_call(
+            self._service, "MoveSession", request.SerializeToString(deterministic=True)
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = (
+                _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionResponse()
             )
             response.ParseFromString(data)
             if await call.receive() is not None:
@@ -1096,6 +1123,9 @@ class RootResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionRequest,
     ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.DeleteSessionResponse: ...
+    async def move_session(
+        self, request: _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionRequest
+    ) -> _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionResponse: ...
     async def reset_session(
         self,
         request: _github_com_s4wave_spacewave_sdk_root_root_pb2.ResetSessionByIdxRequest,
@@ -1355,6 +1385,17 @@ def register_root_resource_service(
         await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "DeleteSession", delete_session_handler)
+
+    async def move_session_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_root_root_pb2.MoveSessionRequest()
+        request.ParseFromString(first)
+        response = await implementation.move_session(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "MoveSession", move_session_handler)
 
     async def reset_session_handler(call: Call) -> None:
         first = await call.receive()
