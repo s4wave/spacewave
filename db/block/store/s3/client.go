@@ -198,10 +198,19 @@ const ChecksumSHA256Header = "X-Amz-Checksum-Sha256"
 // expires from now, and the headers the upload must send. The service refuses
 // an upload whose length or SHA-256 differs from size and sum.
 func (c *Client) PresignPut(bucket, key string, size int64, sum []byte, expires time.Duration, now time.Time) (string, http.Header) {
-	header := http.Header{
-		"Content-Length":     {strconv.FormatInt(size, 10)},
-		ChecksumSHA256Header: {base64.StdEncoding.EncodeToString(sum)},
+	return c.PresignPutHeader(bucket, key, size, sum, nil, expires, now)
+}
+
+// PresignPutHeader is PresignPut with extra headers the upload must also
+// send, such as the Cache-Control the service stores with the object.
+func (c *Client) PresignPutHeader(bucket, key string, size int64, sum []byte, extra http.Header, expires time.Duration, now time.Time) (string, http.Header) {
+	// Sign the length, the digest and the extra headers.
+	header := extra.Clone()
+	if header == nil {
+		header = make(http.Header, 2)
 	}
+	header.Set("Content-Length", strconv.FormatInt(size, 10))
+	header.Set(ChecksumSHA256Header, base64.StdEncoding.EncodeToString(sum))
 	u := c.objectURL(bucket, key, nil)
 	c.presignV4(http.MethodPut, u, header, expires, now)
 	return u.String(), header

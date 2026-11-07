@@ -22,6 +22,23 @@ func TestChecksum(t *testing.T) {
 	}
 }
 
+// TestEncodingUnchanged pins the encoding readers decode, and checks the
+// appending form matches it and leaves the message unchanged.
+func TestEncodingUnchanged(t *testing.T) {
+	msg := make([]byte, len(testMessage), len(testMessage)+16)
+	copy(msg, testMessage)
+	const want = "GyYlKSFjZSAlMCBvPSJlZCEyPGoaTF8uaCw4azwgYWIjNjpoHkpdJgAIHGtqvP4S49jkbA"
+	if got := EncodePackedMessage(msg); got != want {
+		t.Fatalf("encoding changed: %s", got)
+	}
+	if got := string(AppendPackedMessage([]byte("x"), msg)); got != "x"+want {
+		t.Fatalf("appended encoding: %s", got)
+	}
+	if !bytes.Equal(msg, testMessage) || !bytes.Equal(msg[:cap(msg)][len(msg):], make([]byte, 16)) {
+		t.Fatal("encoding changed the message")
+	}
+}
+
 func TestPackedMessage(t *testing.T) {
 	// Round-trip a packed message after adding surrounding whitespace.
 	body := testMessage

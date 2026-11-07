@@ -1070,6 +1070,18 @@
         "core/cdn/world/controller/controller.proto"
       ]
     },
+    "github.com/s4wave/spacewave/core/cdn/writer/world": {
+      "hash": "c11fb640960431e26d5e2d19c42785237a04f780a363d772a88cf9d66ad252e6",
+      "generatedFiles": [
+        "core/cdn/writer/world/space.pb.go",
+        "core/cdn/writer/world/space.pb.ts",
+        "core/cdn/writer/world/space_typeid.pb.go",
+        "core/cdn/writer/world/space_typeid.pb.ts"
+      ],
+      "protoFiles": [
+        "core/cdn/writer/world/space.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/core/changelog": {
       "hash": "9d399103924a5a2e2b242a214b99d19e18ac6cb1e15b9fd5d7e2926d55000f80",
       "generatedFiles": [
