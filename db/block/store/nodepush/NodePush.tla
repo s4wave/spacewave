@@ -59,6 +59,13 @@
    itself only for a block the local index names on the remote, as the upload's
    skip does.
 
+   NodePush.cfg checks one block with a cap of one, which aptre-tla walks in
+   seconds and which kills every mutant. Two blocks, for the order of
+   receipts, the cap with a second publication and the journal's contiguity,
+   is about 1.4 million distinct states before the drain's actions, beyond
+   aptre-tla's memory on a workstation; check it with Blocks = {b1, b2} on a
+   larger host.
+
    NodePush.mutants.json lists the guards each invariant depends on. *)
 EXTENDS FiniteSets, Naturals, Sequences
 

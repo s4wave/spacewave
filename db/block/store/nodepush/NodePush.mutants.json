@@ -125,6 +125,6 @@
         "    /\\ b \\in queued\n    /\\ queued' = queued \\ {b}"
       ]
     ],
-    "expect": "AckedStaysReadable"
+    "expect": "CommittedBlocksHeld"
   }
 ]
