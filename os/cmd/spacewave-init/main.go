@@ -77,8 +77,13 @@ func main() {
 		}
 	}
 
-	// Join cancellation while retaining serial diagnostics after a console failure.
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	// BusyBox poweroff sends SIGUSR2 to init. Console shutdown is a request,
+	// separate from cancellation that disconnects failed filesystem service.
+	signals := []os.Signal{syscall.SIGTERM, syscall.SIGINT}
+	if console {
+		signals = append(signals, syscall.SIGUSR2)
+	}
+	ctx, cancel := signal.NotifyContext(context.Background(), signals...)
 	defer cancel()
 
 	// Select the bounded workload behavior, then run its ordinary supervisor.
@@ -99,7 +104,7 @@ func main() {
 		if terminal == "" {
 			terminal = "/dev/ttyS0"
 		}
-		err = boot.RunConsole(ctx, store, os.Getenv("SPACEWAVE_OS_DATA"), terminal,
+		err = boot.RunConsole(context.Background(), ctx.Done(), store, os.Getenv("SPACEWAVE_OS_DATA"), terminal,
 			os.Getenv("SPACEWAVE_OS_NATIVE_BENCH") == "1")
 	} else {
 		err = boot.Run(ctx, workload, store)

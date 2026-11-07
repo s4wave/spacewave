@@ -20,7 +20,9 @@ import (
 // creates, resets or migrates a fixture. Hosted probes keep their separate Run.
 // Native comparison access, when requested, exposes only /store/native-bench at
 // /tmp/native-bench; that existing private folder must not hold database files.
-func RunConsole(ctx context.Context, system, data, terminal string, nativeBench bool) (retErr error) {
+// Closing shutdown requests ordered cleanup while healthy FUSE remains live;
+// cancelling ctx represents failure and disconnects FUSE before containment.
+func RunConsole(ctx context.Context, shutdown <-chan struct{}, system, data, terminal string, nativeBench bool) (retErr error) {
 	// Refuse hosted invocation before opening storage or changing any mount.
 	if os.Getpid() != 1 {
 		return errors.New("console requires actual guest PID1; use probe for hosted checks")
@@ -202,6 +204,6 @@ func RunConsole(ctx context.Context, system, data, terminal string, nativeBench 
 	if err := context.Cause(runCtx); err != nil {
 		return err
 	}
-	usersStopped, err = runGuestShell(runCtx, executable, rootPath, terminal)
+	usersStopped, err = runGuestShell(runCtx, shutdown, executable, rootPath, terminal)
 	return errors.Join(err, context.Cause(runCtx))
 }

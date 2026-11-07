@@ -40,7 +40,7 @@ case "$native" in
 esac
 
 echo "Console: Ctrl-C goes to the guest. Ctrl-a x exits QEMU, even if startup fails."
-echo "Graceful shutdown: finish jobs, run sync, then exit the shell."
+echo "Graceful shutdown: finish jobs, then run poweroff (or sync; exit)."
 # signal=off sends Ctrl-C as serial input instead of killing the host emulator.
 # The standard mux keeps Ctrl-a x and Ctrl-a c available throughout startup.
 exec "${QEMU:-qemu-system-x86_64}" \

@@ -51,7 +51,7 @@ SPACEWAVE_OS_NATIVE_BENCH=0
 
 The launcher also passes `console=ttyS0,115200 rdinit=/init panic=-1 quiet`. Bootstrap
 mounts `/dev/vda` as Btrfs at `/store`, outside both served roots. The library API
-is `boot.RunConsole(ctx, systemDir, dataDir, terminalPath, nativeBench)` and
+is `boot.RunConsole(ctx, shutdown, systemDir, dataDir, terminalPath, nativeBench)` and
 refuses every non-PID1 invocation before touching storage or mounts. Hosted
 `probe`, `probe-fail` and `probe-wait` keep their private mount namespace and
 bounded `exec.Cmd` lifecycle; they never enter guest-wide waiting or signalling.
@@ -63,8 +63,11 @@ only comparison files. Runtime binds only `/store/native-bench` at
 `/tmp/native-bench`; it rejects a missing directory or symlink. It never exposes
 the backing database directories through a bind mount and runs no benchmark.
 
-Finish foreground and background jobs, run `sync`, then `exit` (or Ctrl-D) for
-graceful shutdown. PID1 kills remaining guest processes, including detached
+Finish foreground and background jobs, then run `poweroff` for graceful shutdown.
+BusyBox sends SIGUSR2 to PID1. This requests ordinary cleanup without cancelling
+healthy FUSE service; a cancelled service would prevent buffered writes from
+flushing. `sync; exit` (or Ctrl-D after syncing) also shuts down. PID1 kills
+remaining guest processes, including detached
 sessions, and reaps adopted orphans to `ECHILD`. A single Wait4 authority starts
 after every mounting helper has joined; it never races `exec.Cmd.Wait`. The
 shell starts through an independent bootstrap exec before chroot/exec into
@@ -186,7 +189,7 @@ to `busybox` for this fixed applet interface:
 
 ```
 sh cat ls echo pwd mkdir rmdir rm cp mv touch sync dd wc head tail sha256sum
-sleep ps kill true false uname id stat mount umount
+sleep ps kill true false uname id stat mount umount poweroff
 ```
 
 The caller supplies a static Linux BusyBox build implementing those applets.

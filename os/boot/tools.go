@@ -16,7 +16,7 @@ import (
 
 // toolApplets is the fixed BusyBox interface expected by the serial-shell image.
 // The input build must implement these applets; Linux execution is checked later.
-const toolApplets = "sh cat ls echo pwd mkdir rmdir rm cp mv touch sync dd wc head tail sha256sum sleep ps kill true false uname id stat mount umount"
+const toolApplets = "sh cat ls echo pwd mkdir rmdir rm cp mv touch sync dd wc head tail sha256sum sleep ps kill true false uname id stat mount umount poweroff"
 
 // buildTools adds ordinary relative applet links and empty future mountpoints.
 func buildTools(ctx context.Context, root *unixfs.FSHandle, busybox io.Reader) error {

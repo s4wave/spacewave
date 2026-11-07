@@ -63,7 +63,7 @@ model:
 	rm $(OUT)/.tmp/data-model/DataVolume.tla $(OUT)/.tmp/data-model/DataVolume.cfg
 	mkdir -p $(OUT)/.tmp/guest-model
 	cp os/boot/GuestConsole.tla $(OUT)/.tmp/guest-model/GuestConsole.tla
-	@for mutant in host-signals two-waiters early-close; do \
+	@for mutant in host-signals two-waiters early-close ignored-poweroff cancelled-poweroff; do \
 		cp os/boot/GuestConsole-$$mutant.cfg.refuted $(OUT)/.tmp/guest-model/GuestConsole.cfg; \
 		if bun node_modules/.bin/aptre-tla $(OUT)/.tmp/guest-model/GuestConsole.cfg >$(OUT)/.tmp/guest-model/$$mutant.log 2>&1; then \
 			cat $(OUT)/.tmp/guest-model/$$mutant.log; exit 1; \
@@ -72,4 +72,6 @@ model:
 	grep -F 'GuestOnlySignals' $(OUT)/.tmp/guest-model/host-signals.log
 	grep -F 'OneWaiter' $(OUT)/.tmp/guest-model/two-waiters.log
 	grep -F 'StorageOutlivesUsers' $(OUT)/.tmp/guest-model/early-close.log
+	grep -F 'EventuallyStopped' $(OUT)/.tmp/guest-model/ignored-poweroff.log
+	grep -F 'PoweroffPreservesService' $(OUT)/.tmp/guest-model/cancelled-poweroff.log
 	rm $(OUT)/.tmp/guest-model/GuestConsole.tla $(OUT)/.tmp/guest-model/GuestConsole.cfg

@@ -16,7 +16,7 @@ import (
 // runGuestShell owns every wait after mounting helpers finish. The independent
 // bootstrap exec releases the parent's vfork before touching its FUSE tree.
 // joined proves guest processes have stopped, including adopted descendants.
-func runGuestShell(ctx context.Context, executable, root, terminal string) (joined bool, retErr error) {
+func runGuestShell(ctx context.Context, shutdown <-chan struct{}, executable, root, terminal string) (joined bool, retErr error) {
 	// Global waits and signals are forbidden in the hosted mount-namespace probe.
 	if os.Getpid() != 1 {
 		return false, errors.New("interactive supervision requires actual guest PID1")
@@ -54,7 +54,7 @@ func runGuestShell(ctx context.Context, executable, root, terminal string) (join
 		joined = err == nil
 		retErr = errors.Join(retErr, err)
 	}()
-	println("Console ready. Save files under /data; run sync, then exit to power off.")
+	println("Console ready. Save files under /data; run poweroff or sync; exit to shut down.")
 	println("SPACEWAVE_OS_CONSOLE_READY pid=" + strconv.Itoa(child.Pid))
 
 	// Drain adopted orphans on each SIGCHLD while the shell owns its own job waits.
@@ -82,6 +82,9 @@ func runGuestShell(ctx context.Context, executable, root, terminal string) (join
 
 		// Server/controller failure cancels ctx and disconnects FUSE before reaping.
 		select {
+		case <-shutdown:
+			println("Poweroff requested.")
+			return false, nil
 		case <-ctx.Done():
 			return false, context.Cause(ctx)
 		case <-children:
