@@ -78,6 +78,10 @@ type NodePushConfig struct {
 	// block_store_nodepush.Publisher.SetDurable describes. Off, the memory
 	// set spills to the local disk with queue entries. Nil never does.
 	Durable *atomic.Bool
+	// Fallback, while set, lets a durable commit the node cannot take within
+	// Wait write its blocks locally. Nil or off, the commit waits for the
+	// node's flush, trying the push again until the node takes it.
+	Fallback *atomic.Bool
 	// HeldBytes bounds the memory set; a publication past it takes the local
 	// path. A tunable changes it live through the store's Held.
 	HeldBytes *atomic.Int64
@@ -261,6 +265,7 @@ func (t *bstoreTracker) startNodePush(
 	if conf.Durable != nil && conf.HeldBytes != nil {
 		held := block_store_nodepush.NewHeld(conf.HeldBytes)
 		handle.push.SetDurable(conf.Durable, held, client.Connected)
+		handle.push.SetFallback(conf.Fallback)
 		t.held.Store(held)
 		heldSpills.Store(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()), func(ctx context.Context) error { return spillAll(ctx, held, wb) })
 		running.Go(func() { runSpill(runCtx, le, held, wb, conf.Durable, client.Connected) })

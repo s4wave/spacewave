@@ -61,6 +61,12 @@ type Publisher struct {
 	held *Held
 	// connected reports whether the node can take a push now, or is nil.
 	connected func() bool
+	// fallback, while set, lets a durable publication the node cannot take
+	// write its blocks locally. Nil or off, it waits for the node's flush.
+	fallback *atomic.Bool
+	// closing ends the durable pushes' wait for the node, so a stop spills
+	// what they hold instead of waiting forever.
+	closing atomic.Bool
 	// quietUntil is the Unix time in nanoseconds before which commits don't
 	// wait for a node that timed out.
 	quietUntil atomic.Int64
@@ -210,6 +216,7 @@ func (p *Publisher) PublishAtomic(ctx context.Context, publication *block.Atomic
 
 // Close joins the accepted pushes. The caller closes the inner publisher.
 func (p *Publisher) Close() {
+	p.closing.Store(true)
 	p.running.Wait()
 }
 

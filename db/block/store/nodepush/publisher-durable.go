@@ -31,12 +31,31 @@ func (p *Publisher) SetDurable(durable *atomic.Bool, held *Held, connected func(
 	p.durable, p.held, p.connected = durable, held, connected
 }
 
+// SetFallback sets the switch that lets a durable publication write its
+// blocks locally when the node is away, quiet, or slower than the wait.
+// Without it, or while it is off, the publication waits for the node's flush
+// and its push tries again until the node takes it or the publisher closes.
+// Call it before the first publication.
+func (p *Publisher) SetFallback(fallback *atomic.Bool) {
+	p.fallback = fallback
+}
+
+// falls reports whether a durable publication may write its blocks locally
+// instead of waiting for the node.
+func (p *Publisher) falls() bool {
+	return p.fallback != nil && p.fallback.Load()
+}
+
 // submitDurable takes the publication on the durable path, reporting false
 // when the path is off, the node is away or quiet, the publication pushes
 // nothing, or held is full: the publication then takes the other paths.
 func (p *Publisher) submitDurable(ctx context.Context, publication *block.AtomicPublication) (*block.PublicationReceipt, bool, error) {
-	// Take only a publication the durable path can hold.
-	if p.durable == nil || p.held == nil || !p.durable.Load() || !p.pushing() || (p.connected != nil && !p.connected()) {
+	// Take only a publication the durable path can hold. Without the
+	// fallback, a node that is away or quiet is waited for, not skipped.
+	if p.durable == nil || p.held == nil || !p.durable.Load() || p.on == nil || !p.on.Load() {
+		return nil, false, nil
+	}
+	if p.falls() && (!p.pushing() || (p.connected != nil && !p.connected())) {
 		return nil, false, nil
 	}
 	pushes := pushed(publication.Entries)
@@ -98,17 +117,8 @@ func (p *Publisher) submitDurable(ctx context.Context, publication *block.Atomic
 // or took longer than the wait. Their hold ends when the receipt resolves
 // unless the node holds them.
 func (p *Publisher) pushDurable(entries, external []*block.PutBatchEntry, keys [][]byte, ready chan<- struct{}, receipt *block.PublicationReceipt) {
-	// Send within the wait.
-	ctx, cancel := context.WithTimeout(context.Background(), p.currentWait())
-	started := time.Now()
-	err := p.sender.Send(ctx, entries)
-	cancel()
-	if err != nil && ctx.Err() != nil {
-		p.quietUntil.Store(time.Now().Add(quietFor).UnixNano())
-	}
-	if p.result != nil {
-		p.result(err, time.Since(started))
-	}
+	// Send until the node flushes them, or within the wait with the fallback.
+	err := p.sendDurable(entries)
 
 	// Without the node's flush the commit writes the blocks locally.
 	if err != nil {
@@ -122,5 +132,40 @@ func (p *Publisher) pushDurable(entries, external []*block.PutBatchEntry, keys [
 	<-receipt.Done()
 	if err != nil || receipt.Err() != nil {
 		p.held.Remove(keys)
+	}
+}
+
+// durableRetryMax bounds the pause between a durable push's tries.
+const durableRetryMax = 2 * time.Second
+
+// sendDurable sends entries until the node flushes them. With the fallback
+// on, it tries once within the wait and quiets the node on a timeout; without
+// it, a failed or late try is sent again, backing off to durableRetryMax,
+// until the node takes it or the publisher closes.
+func (p *Publisher) sendDurable(entries []*block.PutBatchEntry) error {
+	pause := 100 * time.Millisecond
+	for {
+		// Send within the wait.
+		ctx, cancel := context.WithTimeout(context.Background(), p.currentWait())
+		started := time.Now()
+		err := p.sender.Send(ctx, entries)
+		late := err != nil && ctx.Err() != nil
+		cancel()
+		if p.result != nil {
+			p.result(err, time.Since(started))
+		}
+		if err == nil {
+			return nil
+		}
+
+		// Fall back, or wait for the node and send again.
+		if p.falls() || p.closing.Load() {
+			if late && p.falls() {
+				p.quietUntil.Store(time.Now().Add(quietFor).UnixNano())
+			}
+			return err
+		}
+		time.Sleep(pause)
+		pause = min(pause*2, durableRetryMax)
 	}
 }

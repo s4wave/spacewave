@@ -214,6 +214,8 @@ func TestDurablePublisher(t *testing.T) {
 	limit.Store(int64(len(value)))
 	held := NewHeld(&limit)
 	p.SetDurable(&durable, held, func() bool { return true })
+	var fallback atomic.Bool
+	p.SetFallback(&fallback)
 	ctx := context.Background()
 	key := packfile.BlockKey(pub.Entries[0].Ref.GetHash())
 
@@ -257,20 +259,42 @@ func TestDurablePublisher(t *testing.T) {
 	local.receipts[1].Resolve(nil)
 	waitDone(t, second)
 
-	// The report's apply drops it; a failed push then writes the block
-	// locally, and releases the hold once its commit resolves.
+	// The report's apply drops it. Without the fallback, a refused push is
+	// sent again, and the gate opens only on the node's flush.
 	held.Drop([][]byte{key})
 	third, err := p.SubmitAtomic(ctx, publicationOf(t, "z", second))
 	if err != nil {
 		t.Fatal(err)
 	}
 	n.flush <- errors.New("refused")
+	select {
+	case <-local.admitted[2].Ready:
+		t.Fatal("a refused push opened the gate without the fallback")
+	case <-time.After(150 * time.Millisecond):
+	}
+	n.flush <- nil
 	<-local.admitted[2].Ready
-	if local.admitted[2].Entries[0].External {
-		t.Fatal("a block the node refused stayed external")
+	if !local.admitted[2].Entries[0].External {
+		t.Fatal("a block the node flushed on its second try lost its external mark")
 	}
 	local.receipts[2].Resolve(nil)
 	waitDone(t, third)
+
+	// With the fallback on, a failed push writes the block locally, and
+	// releases the hold once its commit resolves.
+	held.Drop([][]byte{packfile.BlockKey(local.admitted[2].Entries[0].Ref.GetHash())})
+	fallback.Store(true)
+	fourth, err := p.SubmitAtomic(ctx, publicationOf(t, "w", third))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n.flush <- errors.New("refused")
+	<-local.admitted[3].Ready
+	if local.admitted[3].Entries[0].External {
+		t.Fatal("a block the node refused stayed external")
+	}
+	local.receipts[3].Resolve(nil)
+	waitDone(t, fourth)
 	p.Close()
 	if held.Bytes() != 0 {
 		t.Fatal("a refused push left its block held")
