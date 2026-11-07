@@ -18,16 +18,19 @@ const TailBytes = 16
 
 // Key prefixes of the scratch store.
 const (
-	catalogPackPrefix   = "c/p/"
-	catalogMemberPrefix = "c/m/"
-	catalogRefsPrefix   = "c/r/"
-	headKey             = "y/head"
-	snapshotPrefix      = "y/s/"
-	visitedPrefix       = "y/w/v/"
-	frontierPrefix      = "y/w/f/"
-	holePrefix          = "y/w/x/"
-	judgmentPrefix      = "y/j/"
-	cyclePrefix         = "y/"
+	catalogPackPrefix     = "c/p/"
+	catalogMemberPrefix   = "c/m/"
+	catalogRefsPrefix     = "c/r/"
+	headKey               = "y/head"
+	snapshotPrefix        = "y/s/"
+	visitedPrefix         = "y/w/v/"
+	frontierPrefix        = "y/w/f/"
+	holePrefix            = "y/w/x/"
+	judgmentPrefix        = "y/j/"
+	closureVisitedPrefix  = "y/c/v/"
+	closureFrontierPrefix = "y/c/f/"
+	logPullKey            = "y/l/pull"
+	cyclePrefix           = "y/"
 )
 
 // Tail returns the tail of a block key.
@@ -201,6 +204,9 @@ type Head struct {
 	Holes map[string]uint64
 	// JudgedAt is the time of the judgment; zero until it ran.
 	JudgedAt time.Time
+	// Closure is the keys the closure added to W under the log's keys, which
+	// the log pull counts.
+	Closure uint64
 }
 
 // ReadHead reads the cycle's header, or a zero header when none exists.
@@ -271,7 +277,8 @@ func (h *Head) marshal() []byte {
 		b = appendString(b, reason)
 		b = binary.AppendUvarint(b, h.Holes[reason])
 	}
-	return appendTime(b, h.JudgedAt)
+	b = appendTime(b, h.JudgedAt)
+	return binary.AppendUvarint(b, h.Closure)
 }
 
 // headFlag returns flag when set, else zero.
@@ -314,6 +321,7 @@ func (h *Head) unmarshal(b []byte) error {
 		}
 	}
 	h.JudgedAt = r.time()
+	h.Closure = r.uvarint()
 	return r.finish("cycle header")
 }
 
@@ -498,4 +506,12 @@ func NewCycle(ctx context.Context, store kvtx.Store) (*Head, error) {
 		h.Cycle = prev.Cycle + 1
 		return nil
 	})
+}
+
+// appendUvarints appends each value as a uvarint.
+func appendUvarints(b []byte, vs ...uint64) []byte {
+	for _, v := range vs {
+		b = binary.AppendUvarint(b, v)
+	}
+	return b
 }

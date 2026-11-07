@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -16,8 +17,9 @@ type DirPacks struct {
 	PackSource
 	// Dir holds the copies.
 	Dir string
-	// Local counts the packs read from Dir.
-	Local int
+	// Local counts the packs read from Dir; the snapshot reads several at
+	// once.
+	Local atomic.Int64
 }
 
 // ReadPackFile reads the local copy when it has the pack's size.
@@ -49,6 +51,6 @@ func (d *DirPacks) ReadPackFile(ctx context.Context, id string, size uint64) ([]
 	if _, err := io.ReadFull(f, data); err != nil {
 		return nil, errors.Wrap(err, "read local pack "+id)
 	}
-	d.Local++
+	d.Local.Add(1)
 	return data, nil
 }
