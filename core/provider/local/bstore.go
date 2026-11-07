@@ -634,6 +634,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// block every path missed: after a restart, until its report applies.
 	if conf := t.nodePushConfig(); conf != nil && conf.Durable != nil && sqlStore == nil {
 		reads = &nodeKeyReads{StoreOps: reads, client: &t.nodeClient, wait: conf.ReadWait}
+		copies = &nodeKeyReads{StoreOps: copies, client: &t.nodeClient, wait: conf.ReadWait}
 	}
 
 	// Build the handle over the local store and its read paths.
