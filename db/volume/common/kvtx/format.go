@@ -342,83 +342,14 @@ func readFormatVersion(ctx context.Context, store kvtx.Store, keys *store_kvkey.
 // keyed in base58.
 func migrateBase58BlockKeys(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
 	prefix := keys.GetBlockFullPrefix()
-	for start := append(bytes.Clone(prefix), binaryBlockRefTag+1); start != nil; {
-		var err error
-		start, err = migrateBase58BlockKeyBatch(ctx, store, keys, prefix, start)
+	start := append(bytes.Clone(prefix), binaryBlockRefTag+1)
+	return rekeyPrefix(ctx, store, prefix, start, func(key []byte) ([]byte, error) {
+		ref, err := b58.Decode(string(key[len(prefix):]))
 		if err != nil {
-			return err
+			return nil, errors.Wrapf(err, "decode block key %q", key)
 		}
-	}
-	return nil
-}
-
-// keyValue is one key and its value.
-type keyValue struct {
-	key, value []byte
-}
-
-// migrateBase58BlockKeyBatch moves up to migrateBatchBytes of base58 keyed
-// blocks at or after start, and returns the key to resume from, or nil when
-// none remain.
-func migrateBase58BlockKeyBatch(
-	ctx context.Context,
-	store kvtx.Store,
-	keys *store_kvkey.KVKey,
-	prefix, start []byte,
-) ([]byte, error) {
-	// Collect the next batch under the writer.
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-	moves, more, err := collectMoves(ctx, tx, prefix, start)
-	if err != nil || len(moves) == 0 {
-		return nil, err
-	}
-
-	// Rekey each block by its decoded ref bytes.
-	for _, m := range moves {
-		ref, err := b58.Decode(string(m.key[len(prefix):]))
-		if err != nil {
-			return nil, errors.Wrapf(err, "decode block key %q", m.key)
-		}
-		if err := tx.Set(ctx, keys.GetBlockKey(ref), m.value); err != nil {
-			return nil, err
-		}
-		if err := tx.Delete(ctx, m.key); err != nil {
-			return nil, err
-		}
-	}
-	if err := kvtx.CommitOrdered(ctx, tx); err != nil || !more {
-		return nil, err
-	}
-	return keyAfter(moves[len(moves)-1].key), nil
-}
-
-// collectMoves copies up to migrateBatchBytes of the records under prefix at
-// or after start, and reports whether more remain.
-func collectMoves(ctx context.Context, tx kvtx.Tx, prefix, start []byte) ([]keyValue, bool, error) {
-	// Position the sorted iterator at start.
-	it := tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(start); err != nil {
-		return nil, false, err
-	}
-
-	// Copy records until the batch fills.
-	var moves []keyValue
-	var size int
-	for ; it.Valid() && size < migrateBatchBytes; it.Next() {
-		value, err := it.ValueCopy(nil)
-		if err != nil {
-			return nil, false, err
-		}
-		key := bytes.Clone(it.Key())
-		moves = append(moves, keyValue{key: key, value: value})
-		size += len(key) + len(value)
-	}
-	return moves, it.Valid(), it.Err()
+		return keys.GetBlockKey(ref), nil
+	})
 }
 
 // deletePrefix deletes every key under prefix, a bounded batch per durable
