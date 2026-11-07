@@ -379,10 +379,19 @@ func (s *Store) Sync(ctx context.Context) error {
 }
 
 // WaitDurable waits until every commit so far is durable, locally or in the
-// sink.
+// sink. With the marker off, commits are the inner store's, which s.seq does
+// not count, so it waits for the inner store. Across a flip that is still
+// enough: going live flushes the inner store before any commit records.
 func (s *Store) WaitDurable(ctx context.Context) error {
+	// Without the journal, the inner store's durability is the answer.
 	var seq uint64
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { seq = s.seq })
+	var live bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { seq, live = s.seq, s.live })
+	if !live {
+		return s.inner.WaitDurable(ctx)
+	}
+
+	// With it, every recorded commit so far.
 	return s.waitDurable(ctx, seq)
 }
 

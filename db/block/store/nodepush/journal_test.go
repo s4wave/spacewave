@@ -387,3 +387,42 @@ func TestJournalReplaysAfterCrash(t *testing.T) {
 		return slices.ContainsFunc(names, func(e os.DirEntry) bool { return strings.HasPrefix(e.Name(), "quarantine-") })
 	})
 }
+
+// TestJournalOffWaitsForLocalFlush checks that with the marker off, which is
+// the "on" mode and every start before going live, WaitDurable waits for the
+// inner store's flush rather than returning at once.
+func TestJournalOffWaitsForLocalFlush(t *testing.T) {
+	ctx := context.Background()
+	inner := newCrashStore(make(map[string][]byte))
+	store, err := kvtx_journal.Open(ctx, inner, JournalSink{Client: NewClient(logrus.NewEntry(logrus.New()), nil)}, kvtx_journal.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Commit ordered with the flush stalled.
+	inner.hold()
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = tx.Set(ctx, []byte("k"), []byte("v"))
+	if err := kvtx.CommitOrdered(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
+	// WaitDurable waits for the flush.
+	done := make(chan error, 1)
+	go func() { done <- store.WaitDurable(ctx) }()
+	select {
+	case <-done:
+		t.Fatal("WaitDurable returned with the commit not flushed")
+	case <-time.After(50 * time.Millisecond):
+	}
+	inner.mtx.Lock()
+	close(inner.held)
+	inner.held = nil
+	inner.mtx.Unlock()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}

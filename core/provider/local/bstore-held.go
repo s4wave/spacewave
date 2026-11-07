@@ -21,10 +21,13 @@ const (
 	// upload stalls.
 	heldSpillAfter = 10 * time.Minute
 	// heldSpillAway is how long the node may stay away before every held
-	// block spills.
-	heldSpillAway = time.Minute
+	// block spills: while it is away, the memory set may hold the only copy
+	// the local process can reach. The node holds a flushed block on its
+	// disk, so heldSpillAfter alone bounds a node that is up and not
+	// reporting, which costs memory, not a copy.
+	heldSpillAway = 5 * time.Second
 	// heldSpillEvery is how often the spill looks.
-	heldSpillEvery = 10 * time.Second
+	heldSpillEvery = time.Second
 	// heldSpillBatch bounds the blocks one spill commit writes.
 	heldSpillBatch = 256
 )
