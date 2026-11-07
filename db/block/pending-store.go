@@ -34,9 +34,13 @@ import (
 //     and the kept Worlds still find their pages here.
 //   - A kept block leaves memory only once the inner store holds it under a
 //     root moved in the same transaction, or when a sweep finds that no root
-//     it is given reaches it, no open stage or pin holds it, and it was kept
-//     before the sweep's mark.
-//   - A pin on a kept block holds its kept tree in memory, with no write.
+//     it is given, no block an open stage or pin holds, and no block kept
+//     after the sweep's mark reaches it. The sweep checks the holds and marks
+//     again under the lock it drops with, and walks from those its first
+//     walk missed.
+//   - A pin on a kept block holds its kept tree in memory, with no write, by
+//     holding the root's key alone, so a pin and its release cost the same
+//     at any tree size.
 //   - A flushed block is stored under its Flush's stage until the Flush is
 //     released, and no Flush releases while a SetRoots or Flush that left out
 //     a flushed block is open, so the move that names it names a block the
@@ -192,7 +196,7 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 	for _, e := range rest {
 		children = append(children, e.Refs...)
 	}
-	tree, _ := s.reach(children)
+	tree := s.reach(children)
 
 	// Put them first, then the rest, keeping the tree.
 	found, err := dst.PutBlockBatch(ctx, slices.Concat(tree, rest))
@@ -376,21 +380,20 @@ func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, r
 	return nil
 }
 
-// reach returns the kept blocks the roots reach, children before parents, and
-// their keys.
-func (s *PendingStore) reach(roots []*BlockRef) ([]*PutBatchEntry, []string) {
+// reach returns the kept blocks the roots reach, children before parents.
+func (s *PendingStore) reach(roots []*BlockRef) []*PutBatchEntry {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	return s.reachLocked(roots)
+	return s.reachLocked(roots, make(map[string]struct{}))
 }
 
-// reachLocked is reach for a caller holding mtx, shared or exclusive.
-func (s *PendingStore) reachLocked(roots []*BlockRef) ([]*PutBatchEntry, []string) {
+// reachLocked is reach for a caller holding mtx, shared or exclusive. It
+// adds each block it returns to seen, and neither returns nor descends into a
+// block seen holds already.
+func (s *PendingStore) reachLocked(roots []*BlockRef, seen map[string]struct{}) []*PutBatchEntry {
 	// Walk the kept blocks from each root, depth first, emitting each block
 	// after its kept children.
 	var out []*PutBatchEntry
-	var keys []string
-	seen := make(map[string]struct{})
 	type frame struct {
 		key   string
 		e     *PutBatchEntry
@@ -422,11 +425,11 @@ func (s *PendingStore) reachLocked(roots []*BlockRef) ([]*PutBatchEntry, []strin
 				}
 				continue
 			}
-			out, keys = append(out, top.e), append(keys, top.key)
+			out = append(out, top.e)
 			stack = stack[:len(stack)-1]
 		}
 	}
-	return out, keys
+	return out
 }
 
 // drop forgets the kept blocks with keys.
@@ -452,31 +455,43 @@ func (s *PendingStore) SweepMark() uint64 {
 }
 
 // Sweep drops the kept blocks kept at or before mark that none of live
-// reaches, keeping every block an open stage put and what it reaches.
+// reaches, keeping every block a stage or pin holds, every block kept after
+// mark, and what each of those reaches.
 func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
-	// Add the held blocks to the live roots.
+	// Mark what the live roots and the held blocks reach.
+	reached := make(map[string]struct{})
 	s.mtx.RLock()
 	for key := range s.held {
 		if e := s.kept[key]; e != nil {
 			live = append(live, e.Ref)
 		}
 	}
+	s.reachLocked(live, reached)
 	s.mtx.RUnlock()
 
-	// Mark what the live roots reach.
-	_, keys := s.reach(live)
-	reached := make(map[string]struct{}, len(keys))
-	for _, key := range keys {
-		reached[key] = struct{}{}
+	// Gather the blocks no mark reached, and those of them a stage or pin
+	// holds now or that were kept after mark: a hold taken since the held
+	// set was read, or a release that stamped its blocks, protects the tree
+	// below it, and a pin holds only its root.
+	s.mtx.Lock()
+	var unreached []string
+	var since []*BlockRef
+	for key, e := range s.kept {
+		if _, ok := reached[key]; ok {
+			continue
+		}
+		if s.held[key] != 0 || s.keptAt[key] > mark {
+			since = append(since, e.Ref)
+		}
+		unreached = append(unreached, key)
 	}
 
-	// Drop the rest, keeping a block a stage or a pin holds now: one may
-	// have taken it since the held set was read, and a pin holds each block
-	// of its tree.
+	// Drop the rest once the walk from those marks what they reach.
+	s.reachLocked(since, reached)
 	var forgot []*BlockRef
-	s.mtx.Lock()
-	for key, e := range s.kept {
-		if _, ok := reached[key]; !ok && s.held[key] == 0 && s.keptAt[key] <= mark {
+	for _, key := range unreached {
+		if _, ok := reached[key]; !ok {
+			e := s.kept[key]
 			s.keptBytes -= len(e.Data)
 			delete(s.kept, key)
 			delete(s.keptAt, key)
@@ -497,17 +512,15 @@ func (s *PendingStore) HoldsRoots() bool {
 }
 
 // PinRoot holds ref until release. A kept ref is held in memory with the
-// kept tree below it, as a stage holds its blocks, with no write; any other
-// is pinned in the inner store.
+// kept tree below it, with no write, by a hold on its key alone: Sweep keeps
+// what a held block reaches. Any other ref is pinned in the inner store.
 func (s *PendingStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	// Hold a kept tree in memory.
+	key := pendingKey(ref)
 	s.mtx.Lock()
-	if s.kept[pendingKey(ref)] != nil {
+	if s.kept[key] != nil {
 		h := newPendingHold()
-		_, keys := s.reachLocked([]*BlockRef{ref})
-		for _, key := range keys {
-			s.holdLocked(h, key)
-		}
+		s.holdLocked(h, key)
 		s.mtx.Unlock()
 		var once sync.Once
 		return func() { once.Do(func() { s.release(h) }) }, nil
