@@ -66,3 +66,46 @@ export const CdnRootPointer: MessageType<CdnRootPointer> =
       [6, 'created_at_ms', 3],
     ],
   )
+
+/**
+ * CdnSpaceGrant lets its holder read one private CDN Space straight from the
+ * bucket, and when may_write is set publish to it, until expires_at_ms. The
+ * server issues it and never relays pack bytes. The authorization covers only
+ * the Space's prefix, so a grant for one Space reads no other.
+ *
+ * @generated from message cdn.CdnSpaceGrant
+ */
+export interface CdnSpaceGrant {
+  /**
+   * SpaceId is the Space the grant covers.
+   */
+  spaceId?: string
+  /**
+   * PackBaseUrl is the base the Space's packs are read from, as
+   * {pack base}/{spaceId}/packs/{shard}/{id}.kvf.
+   */
+  packBaseUrl?: string
+  /**
+   * Authorization is the Authorization header value sent with each pack read.
+   */
+  authorization?: string
+  /**
+   * ExpiresAtMs is when the authorization and any writer admission end, as
+   * unix epoch milliseconds. The holder asks for a fresh grant before then.
+   */
+  expiresAtMs?: bigint
+  /**
+   * MayWrite reports that the holder's peer is admitted as a writer of the
+   * Space until the grant expires.
+   */
+  mayWrite?: boolean
+}
+
+export const CdnSpaceGrant: MessageType<CdnSpaceGrant> =
+  /* @__PURE__ */ createMessageType<CdnSpaceGrant>('cdn.CdnSpaceGrant', () => [
+    [1, 'space_id', 9],
+    [2, 'pack_base_url', 9],
+    [3, 'authorization', 9],
+    [4, 'expires_at_ms', 3],
+    [5, 'may_write', 8],
+  ])

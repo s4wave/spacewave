@@ -132,7 +132,18 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 		return store, suppliedRef.Release, nil
 	}
 
-	// Otherwise own the CDN transport and its durable writeback cache.
+	// Read a private Space with the grants the app supplies.
+	var grants cdn_bstore.GrantSource
+	releaseGrants := func() {}
+	if c.conf.GetPrivateSpace() {
+		var err error
+		grants, releaseGrants, err = cdn_bstore.ExLookupCdnSpaceGrants(ctx, c.b, c.conf.GetSpaceId(), nil)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// Own the CDN transport and its durable writeback cache.
 	store, releaseStore, err := cdn_bstore.NewCachedBlockStore(ctx, c.b, cdn_bstore.CachedBlockStoreOptions{
 		CdnBaseURL:           c.conf.GetCdnBaseUrl(),
 		RootPointerBaseURL:   c.conf.GetRootPointerBaseUrl(),
@@ -141,8 +152,13 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 		PointerTTL:           pointerTTL,
 		WritebackWindowBytes: c.conf.GetWritebackWindowBytes(),
 		HttpClient:           http.DefaultClient,
+		Grants:               grants,
 	})
-	return store, releaseStore, err
+	if err != nil {
+		releaseGrants()
+		return nil, nil, err
+	}
+	return store, func() { releaseStore(); releaseGrants() }, nil
 }
 
 // Execute builds the CDN world engine and holds it until shutdown. A failed

@@ -39,3 +39,27 @@ message CdnRootPointer {
   // epoch milliseconds. Informational only; does not affect verification.
   int64 created_at_ms = 6;
 }
+
+// CdnSpaceGrant lets its holder read one private CDN Space straight from the
+// bucket, and when may_write is set publish to it, until expires_at_ms. The
+// server issues it and never relays pack bytes. The authorization covers only
+// the Space's prefix, so a grant for one Space reads no other.
+message CdnSpaceGrant {
+  // SpaceId is the Space the grant covers.
+  string space_id = 1;
+
+  // PackBaseUrl is the base the Space's packs are read from, as
+  // {pack base}/{spaceId}/packs/{shard}/{id}.kvf.
+  string pack_base_url = 2;
+
+  // Authorization is the Authorization header value sent with each pack read.
+  string authorization = 3;
+
+  // ExpiresAtMs is when the authorization and any writer admission end, as
+  // unix epoch milliseconds. The holder asks for a fresh grant before then.
+  int64 expires_at_ms = 4;
+
+  // MayWrite reports that the holder's peer is admitted as a writer of the
+  // Space until the grant expires.
+  bool may_write = 5;
+}

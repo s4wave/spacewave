@@ -82,6 +82,11 @@ type Config struct {
 	// so an owner can serve the mutable pointer from its own server and keep the
 	// CDN hostname immutable. Empty reads the pointer from cdn_base_url.
 	RootPointerBaseUrl string `protobuf:"bytes,8,opt,name=root_pointer_base_url,json=rootPointerBaseUrl,proto3" json:"rootPointerBaseUrl,omitempty"`
+	// PrivateSpace reads the Space's packs with CdnSpaceGrants from the
+	// GrantSource that cdn_bstore.LookupCdnSpaceGrants resolves on the bus.
+	// cdn_base_url then serves only the root pointer, when
+	// root_pointer_base_url is empty.
+	PrivateSpace bool `protobuf:"varint,9,opt,name=private_space,json=privateSpace,proto3" json:"privateSpace,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -146,6 +151,13 @@ func (x *Config) GetRootPointerBaseUrl() string {
 	return ""
 }
 
+func (x *Config) GetPrivateSpace() bool {
+	if x != nil {
+		return x.PrivateSpace
+	}
+	return false
+}
+
 func (m *RefreshRequest) CloneVT() *RefreshRequest {
 	if m == nil {
 		return (*RefreshRequest)(nil)
@@ -191,6 +203,7 @@ func (m *Config) CloneVT() *Config {
 	r.WritebackWindowBytes = m.WritebackWindowBytes
 	r.SuppliedBlockStoreId = m.SuppliedBlockStoreId
 	r.RootPointerBaseUrl = m.RootPointerBaseUrl
+	r.PrivateSpace = m.PrivateSpace
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -269,6 +282,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.RootPointerBaseUrl != that.RootPointerBaseUrl {
+		return false
+	}
+	if this.PrivateSpace != that.PrivateSpace {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -414,6 +430,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootPointerBaseUrl")
 		s.WriteString(x.RootPointerBaseUrl)
 	}
+	if x.PrivateSpace || s.HasField("privateSpace") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("privateSpace")
+		s.WriteBool(x.PrivateSpace)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -455,6 +476,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "root_pointer_base_url", "rootPointerBaseUrl":
 			s.AddField("root_pointer_base_url")
 			x.RootPointerBaseUrl = s.ReadString()
+		case "private_space", "privateSpace":
+			s.AddField("private_space")
+			x.PrivateSpace = s.ReadBool()
 		}
 	})
 }
@@ -567,6 +591,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.PrivateSpace {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.PrivateSpace)
+		i--
+		dAtA[i] = 0x48
+	}
 	if len(m.RootPointerBaseUrl) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.RootPointerBaseUrl)
 		i--
@@ -646,6 +675,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WritebackWindowBytes)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SuppliedBlockStoreId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RootPointerBaseUrl)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.PrivateSpace)
 	n += len(m.unknownFields)
 	return n
 }
@@ -712,6 +742,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.RootPointerBaseUrl != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_pointer_base_url")
 		protobuf_go_lite.TextWriteString(&sb, x.RootPointerBaseUrl)
+	}
+	if x.PrivateSpace != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "private_space")
+		protobuf_go_lite.TextWriteBool(&sb, x.PrivateSpace)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -925,6 +959,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RootPointerBaseUrl = v
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrivateSpace", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PrivateSpace = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

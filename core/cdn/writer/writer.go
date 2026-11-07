@@ -282,7 +282,13 @@ func (w *Writer) PackKey(spaceID, packID string) string {
 	if len(shard) > 2 {
 		shard = shard[:2]
 	}
-	return w.cfg.Prefix + spaceID + "/packs/" + shard + "/" + packID + ".kvf"
+	return w.SpacePrefix(spaceID) + "packs/" + shard + "/" + packID + ".kvf"
+}
+
+// SpacePrefix is the key prefix every object of spaceID sits under, which a
+// download authorization for the Space covers.
+func (w *Writer) SpacePrefix(spaceID string) string {
+	return w.cfg.Prefix + spaceID + "/"
 }
 
 // admitPack grants an upload of the pack req describes to spaceID, or

@@ -48,4 +48,9 @@ message Config {
   // so an owner can serve the mutable pointer from its own server and keep the
   // CDN hostname immutable. Empty reads the pointer from cdn_base_url.
   string root_pointer_base_url = 8;
+  // PrivateSpace reads the Space's packs with CdnSpaceGrants from the
+  // GrantSource that cdn_bstore.LookupCdnSpaceGrants resolves on the bus.
+  // cdn_base_url then serves only the root pointer, when
+  // root_pointer_base_url is empty.
+  bool private_space = 9;
 }

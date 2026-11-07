@@ -1039,7 +1039,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/cdn": {
-      "hash": "96290ffde41386b4ed1e61abe0167f471f6d54e57fdf9beb586045867279788e",
+      "hash": "7009a2f921229475acc61b043dd49f8057488b2187380ca21dd8bf9914070c6d",
       "generatedFiles": [
         "core/cdn/cdn.pb.go",
         "core/cdn/cdn.pb.ts"
@@ -1059,7 +1059,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/cdn/world/controller": {
-      "hash": "f0da60e348af86a06ca64fd070efcacc4fdc6906aca27368b54f12cf8f114653",
+      "hash": "a46585d9e1fb22714840c4d5cadf4092c802881e4153221a9731b27c77d360bd",
       "generatedFiles": [
         "core/cdn/world/controller/controller.pb.go",
         "core/cdn/world/controller/controller.pb.ts",

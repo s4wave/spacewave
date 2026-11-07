@@ -95,6 +95,68 @@ func (x *CdnRootPointer) GetCreatedAtMs() int64 {
 	return 0
 }
 
+// CdnSpaceGrant lets its holder read one private CDN Space straight from the
+// bucket, and when may_write is set publish to it, until expires_at_ms. The
+// server issues it and never relays pack bytes. The authorization covers only
+// the Space's prefix, so a grant for one Space reads no other.
+type CdnSpaceGrant struct {
+	unknownFields []byte
+	// SpaceId is the Space the grant covers.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// PackBaseUrl is the base the Space's packs are read from, as
+	// {pack base}/{spaceId}/packs/{shard}/{id}.kvf.
+	PackBaseUrl string `protobuf:"bytes,2,opt,name=pack_base_url,json=packBaseUrl,proto3" json:"packBaseUrl,omitempty"`
+	// Authorization is the Authorization header value sent with each pack read.
+	Authorization string `protobuf:"bytes,3,opt,name=authorization,proto3" json:"authorization,omitempty"`
+	// ExpiresAtMs is when the authorization and any writer admission end, as
+	// unix epoch milliseconds. The holder asks for a fresh grant before then.
+	ExpiresAtMs int64 `protobuf:"varint,4,opt,name=expires_at_ms,json=expiresAtMs,proto3" json:"expiresAtMs,omitempty"`
+	// MayWrite reports that the holder's peer is admitted as a writer of the
+	// Space until the grant expires.
+	MayWrite bool `protobuf:"varint,5,opt,name=may_write,json=mayWrite,proto3" json:"mayWrite,omitempty"`
+}
+
+func (x *CdnSpaceGrant) Reset() {
+	*x = CdnSpaceGrant{}
+}
+
+func (*CdnSpaceGrant) ProtoMessage() {}
+
+func (x *CdnSpaceGrant) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *CdnSpaceGrant) GetPackBaseUrl() string {
+	if x != nil {
+		return x.PackBaseUrl
+	}
+	return ""
+}
+
+func (x *CdnSpaceGrant) GetAuthorization() string {
+	if x != nil {
+		return x.Authorization
+	}
+	return ""
+}
+
+func (x *CdnSpaceGrant) GetExpiresAtMs() int64 {
+	if x != nil {
+		return x.ExpiresAtMs
+	}
+	return 0
+}
+
+func (x *CdnSpaceGrant) GetMayWrite() bool {
+	if x != nil {
+		return x.MayWrite
+	}
+	return false
+}
+
 func (m *CdnRootPointer) CloneVT() *CdnRootPointer {
 	if m == nil {
 		return (*CdnRootPointer)(nil)
@@ -113,6 +175,26 @@ func (m *CdnRootPointer) CloneVT() *CdnRootPointer {
 }
 
 func (m *CdnRootPointer) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CdnSpaceGrant) CloneVT() *CdnSpaceGrant {
+	if m == nil {
+		return (*CdnSpaceGrant)(nil)
+	}
+	r := new(CdnSpaceGrant)
+	r.SpaceId = m.SpaceId
+	r.PackBaseUrl = m.PackBaseUrl
+	r.Authorization = m.Authorization
+	r.ExpiresAtMs = m.ExpiresAtMs
+	r.MayWrite = m.MayWrite
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CdnSpaceGrant) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -145,6 +227,38 @@ func (this *CdnRootPointer) EqualVT(that *CdnRootPointer) bool {
 
 func (this *CdnRootPointer) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CdnRootPointer)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CdnSpaceGrant) EqualVT(that *CdnSpaceGrant) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.PackBaseUrl != that.PackBaseUrl {
+		return false
+	}
+	if this.Authorization != that.Authorization {
+		return false
+	}
+	if this.ExpiresAtMs != that.ExpiresAtMs {
+		return false
+	}
+	if this.MayWrite != that.MayWrite {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CdnSpaceGrant) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CdnSpaceGrant)
 	if !ok {
 		return false
 	}
@@ -258,6 +372,80 @@ func (x *CdnRootPointer) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CdnSpaceGrant message to JSON.
+func (x *CdnSpaceGrant) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.PackBaseUrl != "" || s.HasField("packBaseUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packBaseUrl")
+		s.WriteString(x.PackBaseUrl)
+	}
+	if x.Authorization != "" || s.HasField("authorization") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authorization")
+		s.WriteString(x.Authorization)
+	}
+	if x.ExpiresAtMs != 0 || s.HasField("expiresAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAtMs")
+		s.WriteInt64(x.ExpiresAtMs)
+	}
+	if x.MayWrite || s.HasField("mayWrite") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mayWrite")
+		s.WriteBool(x.MayWrite)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CdnSpaceGrant to JSON.
+func (x *CdnSpaceGrant) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CdnSpaceGrant message from JSON.
+func (x *CdnSpaceGrant) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "pack_base_url", "packBaseUrl":
+			s.AddField("pack_base_url")
+			x.PackBaseUrl = s.ReadString()
+		case "authorization":
+			s.AddField("authorization")
+			x.Authorization = s.ReadString()
+		case "expires_at_ms", "expiresAtMs":
+			s.AddField("expires_at_ms")
+			x.ExpiresAtMs = s.ReadInt64()
+		case "may_write", "mayWrite":
+			s.AddField("may_write")
+			x.MayWrite = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CdnSpaceGrant from JSON.
+func (x *CdnSpaceGrant) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *CdnRootPointer) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -332,6 +520,63 @@ func (m *CdnRootPointer) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CdnSpaceGrant) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CdnSpaceGrant) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CdnSpaceGrant) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MayWrite {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.MayWrite)
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.ExpiresAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAtMs))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Authorization) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Authorization)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PackBaseUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackBaseUrl)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CdnRootPointer) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -350,6 +595,21 @@ func (m *CdnRootPointer) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CreatedAtMs)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CdnSpaceGrant) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackBaseUrl)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Authorization)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresAtMs)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.MayWrite)
 	n += len(m.unknownFields)
 	return n
 }
@@ -393,6 +653,36 @@ func (x *CdnRootPointer) MarshalProtoText() string {
 }
 
 func (x *CdnRootPointer) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CdnSpaceGrant) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CdnSpaceGrant")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.PackBaseUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_base_url")
+		protobuf_go_lite.TextWriteString(&sb, x.PackBaseUrl)
+	}
+	if x.Authorization != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "authorization")
+		protobuf_go_lite.TextWriteString(&sb, x.Authorization)
+	}
+	if x.ExpiresAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresAtMs)
+	}
+	if x.MayWrite != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "may_write")
+		protobuf_go_lite.TextWriteBool(&sb, x.MayWrite)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CdnSpaceGrant) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -480,6 +770,98 @@ func (m *CdnRootPointer) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CdnSpaceGrant) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CdnSpaceGrant: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CdnSpaceGrant: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackBaseUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackBaseUrl = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Authorization", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Authorization = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAtMs", wireType)
+			}
+			m.ExpiresAtMs = 0
+			m.ExpiresAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MayWrite", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.MayWrite = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -89,6 +89,13 @@ export interface Config {
    * CDN hostname immutable. Empty reads the pointer from cdn_base_url.
    */
   rootPointerBaseUrl?: string
+  /**
+   * PrivateSpace reads the Space's packs with CdnSpaceGrants from the
+   * GrantSource that cdn_bstore.LookupCdnSpaceGrants resolves on the bus.
+   * cdn_base_url then serves only the root pointer, when
+   * root_pointer_base_url is empty.
+   */
+  privateSpace?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -103,5 +110,6 @@ export const Config: MessageType<Config> =
       [6, 'writeback_window_bytes', 3],
       [7, 'supplied_block_store_id', 9],
       [8, 'root_pointer_base_url', 9],
+      [9, 'private_space', 8],
     ],
   )
