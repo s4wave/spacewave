@@ -7,6 +7,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // releaseCandidates bounds the freed blocks a release check keeps by name, to
@@ -36,6 +37,7 @@ func (v *Volume) resolveReleases(ctx context.Context) (*releaseCheck, error) {
 	if !v.holdCounts {
 		return nil, nil
 	}
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 
 	// Resolve slices until no release is left, noting each freed block.
 	check := &releaseCheck{freed: block_gc.NewNodeSet()}

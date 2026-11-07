@@ -7,6 +7,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // txHolders answers the sharing walk's questions from the blocks of one
@@ -56,6 +57,7 @@ func (v *Volume) walkSharing(ctx context.Context) error {
 	if !v.holdCounts {
 		return nil
 	}
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 	for {
 		// Walk one slice.
 		var s block_gc.SharingState

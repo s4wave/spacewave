@@ -413,6 +413,9 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 // RefGraph.PromoteYoung describes, from the young log position it read before
 // the pass opened, and lets minor passes run, also after a restart.
 func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
+	// A pass is background work: its transactions take the writer behind
+	// every waiting foreground writer, and each yields after its budget.
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 	return v.runBlockPass(ctx, graph, false, func(actual *transactionRefGraph) error {
 		// Report the mark from the opening of the pass. Read the young log
 		// position before the pass opens: every block a record before it
@@ -453,6 +456,9 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 // because the young log is past the bound MarkYoung marks or a block it
 // reached has no child list, stops minor passes until a block pass promotes.
 func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
+	// A pass is background work: its transactions take the writer behind
+	// every waiting foreground writer, and each yields after its budget.
+	ctx = kvtx.WithBackgroundWriteContext(ctx)
 	return v.runBlockPass(ctx, graph, true, func(actual *transactionRefGraph) error {
 		// Report the mark from the opening of the pass.
 		defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()

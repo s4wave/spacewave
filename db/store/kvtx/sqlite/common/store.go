@@ -66,8 +66,12 @@ type Store[T SQLiteDriverConfig] struct {
 	// held connection would block every other transaction.
 	snapshotReads bool
 
-	// writeMtx admits one write transaction at a time, in arrival order.
-	writeMtx csync.Mutex
+	// writeMtx admits one write transaction at a time: a transaction opened
+	// with kvtx.WithBackgroundWriteContext waits behind every waiting
+	// foreground writer, and each priority goes in arrival order. Without it
+	// a burst of background writes, such as upload marker clears, evictions
+	// or cache fills, queues ahead of a player's write and sets its wait.
+	writeMtx csync.PrioMutex
 	// writersWaiting counts write transactions queued on writeMtx.
 	writersWaiting atomic.Int32
 
@@ -394,8 +398,18 @@ func (s *Store[T]) initTableWithRetry(ctx context.Context) error {
 	return errors.Join(errors.New("sqlite: database busy during initialization after retries"), lastErr)
 }
 
+// Priorities of Store.writeMtx.
+const (
+	// writerBackground is the priority of write transactions opened with
+	// kvtx.WithBackgroundWriteContext.
+	writerBackground = iota - 1
+	// writerForeground is the priority of every other write transaction.
+	writerForeground
+)
+
 // NewTransaction returns a new transaction against the store. A write
-// transaction waits for the writer turn, in arrival order, until ctx ends.
+// transaction waits for the writer turn until ctx ends, behind every waiting
+// foreground writer when ctx carries kvtx.WithBackgroundWriteContext.
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Read transactions open their connection at their first read.
 	if !write {
@@ -408,8 +422,12 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	}
 
 	// Queue for the writer turn, counted for WritersWaiting.
+	prio := writerForeground
+	if kvtx.IsBackgroundWriteContext(ctx) {
+		prio = writerBackground
+	}
 	s.writersWaiting.Add(1)
-	release, err := s.writeMtx.Lock(ctx)
+	release, err := s.writeMtx.Lock(ctx, prio)
 	s.writersWaiting.Add(-1)
 	if err != nil {
 		return nil, err
