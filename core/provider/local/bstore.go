@@ -407,6 +407,9 @@ type bstoreTracker struct {
 	// blocks a backend holds and switches the placement. It outlives each
 	// mount, so a remounted store still waits.
 	evictGate csync.Mutex
+	// windowFill is where the bucket's pack reads write the windows they
+	// fetch, nil while the mount does not fill its local store.
+	windowFill atomic.Pointer[windowFill]
 }
 
 // buildBlockStoreTracker builds a new bstoreTracker for a bstore id.
@@ -558,6 +561,14 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		placement.front = t.packFront()
 	}
 	t.setPlacementBackend(placement, backend)
+
+	// A bucket read fills the local store with every block of the window it
+	// fetched, as it fills the block asked for, unless a fill cache takes the
+	// fills or serve mode fills nothing.
+	if !placement.serveOnly && placement.cache == nil {
+		t.windowFill.Store(&windowFill{ctx: ctx, target: &windowFillOps{StoreOps: local, fill: placement.fill}})
+		defer t.windowFill.Store(nil)
+	}
 	if err := placement.reads.load(ctx, wb); err != nil {
 		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")
 	}
