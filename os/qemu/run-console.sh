@@ -47,7 +47,7 @@ exec "${QEMU:-qemu-system-x86_64}" \
     -no-user-config -nodefaults -machine "accel=$accel" -cpu "$cpu" -smp 1 -m 768M \
     -display none -nic none -no-reboot \
     -chardev stdio,id=console,mux=on,signal=off \
-    -serial chardev:console -mon chardev=console,mode=readline \
+    -serial chardev:console -object monitor-hmp,id=monitor,chardev=console,readline=on \
     -kernel "$kernel" -initrd "$initramfs" \
     -append "console=ttyS0,115200 rdinit=/init panic=-1 quiet GOMAXPROCS=1 SPACEWAVE_OS_MODE=console SPACEWAVE_OS_STORE=/store/image SPACEWAVE_OS_DATA=/store/data SPACEWAVE_OS_TTY=/dev/ttyS0 SPACEWAVE_OS_NATIVE_BENCH=$native" \
     -drive "file=$disk,format=raw,if=virtio,cache=none"
