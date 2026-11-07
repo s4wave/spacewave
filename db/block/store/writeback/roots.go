@@ -27,6 +27,7 @@ func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.Pu
 		if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
 			return err
 		}
+		m.observeEntries(entries, roots)
 		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
 			return errUnmarkedWrite
 		}
@@ -37,6 +38,7 @@ func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.Pu
 	if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
 		return err
 	}
+	m.observeEntries(entries, roots)
 	return m.markEntries(ctx, entries)
 }
 
@@ -52,7 +54,7 @@ func (m *MarkingStore) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 	if err != nil {
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark, marker: m.marker}, release, nil
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, observer: m.observer}, release, nil
 }
 
 // ReleaseRoots forwards staging release to the underlying store.

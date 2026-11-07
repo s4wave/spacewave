@@ -42,6 +42,18 @@ func main() {
 			Action: args.runWalk,
 		},
 		{
+			Name:   "pull-log",
+			Usage:  "store the write log's lines since the last pull and trim them from its directory",
+			Flags:  append(args.scratchFlags(), args.pullFlags()...),
+			Action: args.runPullLog,
+		},
+		{
+			Name:   "closure",
+			Usage:  "walk what the pulled log keys reach that the roots do not",
+			Flags:  append(args.scratchFlags(), args.closureFlags()...),
+			Action: args.runClosure,
+		},
+		{
 			Name:   "judge",
 			Usage:  "judge each snapshot pack and write the report",
 			Flags:  append(args.scratchFlags(), args.judgeFlags()...),

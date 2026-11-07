@@ -107,9 +107,6 @@ type JudgeOptions struct {
 	// compaction victim. Zero uses DefaultLowLivePercent; a negative value
 	// finds no victim.
 	LowLivePercent int
-	// Live reports whether a key outside L is live, such as one in the log's
-	// closure W; nil for none.
-	Live func(ctx context.Context, tx kvtx.TxOps, tail []byte) (bool, error)
 }
 
 // Summary totals a judgment.
@@ -122,8 +119,10 @@ type Summary struct {
 	DeadBytesInLow uint64
 }
 
-// Judge judges every snapshot pack against L, and W when Live is set, and
-// writes each judgment. It changes nothing but the cycle's judgment rows, so
+// Judge judges every snapshot pack against L and W, and writes each
+// judgment. It refuses while W's frontier holds keys the closure has not
+// walked. A pull running beside it can add to W during the judgment, which
+// the recheck covers. It changes nothing but the cycle's judgment rows, so
 // running it again rewrites the same ones.
 func Judge(ctx context.Context, opts *JudgeOptions) (*Summary, error) {
 	// Check the walk finished.
@@ -134,6 +133,11 @@ func Judge(ctx context.Context, opts *JudgeOptions) (*Summary, error) {
 	if !head.Walked {
 		return nil, errors.New("judge needs a finished walk")
 	}
+	if err := checkClosure(ctx, opts.Store); err != nil {
+		return nil, err
+	}
+
+	// Take the bounds.
 	minAge := opts.MinAge
 	if minAge <= 0 {
 		minAge = DefaultMinAge
@@ -177,6 +181,21 @@ func Judge(ctx context.Context, opts *JudgeOptions) (*Summary, error) {
 	return sum, err
 }
 
+// checkClosure refuses a judgment while W's frontier holds keys.
+func checkClosure(ctx context.Context, store kvtx.Store) error {
+	// Read W's frontier.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	waiting, err := closureWaiting(ctx, tx)
+	if err == nil && waiting {
+		err = errors.New("judge needs the closure: pulled log keys wait in W")
+	}
+	return err
+}
+
 // snapshotPacks reads the cycle's snapshot rows.
 func snapshotPacks(ctx context.Context, store kvtx.Store) ([]pendingPack, error) {
 	tx, err := store.NewTransaction(ctx, false)
@@ -213,7 +232,7 @@ func judgePacks(ctx context.Context, opts *JudgeOptions, packs []pendingPack, fl
 	// Judge each pack in it.
 	out := make([]*Judgment, len(packs))
 	for i, p := range packs {
-		if out[i], err = judgePack(ctx, opts, tx, p, floor, lowPercent); err != nil {
+		if out[i], err = judgePack(ctx, tx, p, floor, lowPercent); err != nil {
 			return nil, err
 		}
 	}
@@ -239,7 +258,7 @@ func writeJudgments(ctx context.Context, store kvtx.Store, judged []*Judgment) e
 }
 
 // judgePack counts a pack's live keys and returns its verdict.
-func judgePack(ctx context.Context, opts *JudgeOptions, tx kvtx.TxOps, p pendingPack, floor int64, lowPercent int) (*Judgment, error) {
+func judgePack(ctx context.Context, tx kvtx.TxOps, p pendingPack, floor int64, lowPercent int) (*Judgment, error) {
 	// Read the pack's catalog row.
 	data, found, err := tx.Get(ctx, []byte(catalogPackPrefix+p.id))
 	if err != nil {
@@ -279,14 +298,9 @@ func judgePack(ctx context.Context, opts *JudgeOptions, tx kvtx.TxOps, p pending
 		return nil, err
 	}
 	for _, e := range members {
-		live, err := tx.Exists(ctx, prefixed(visitedPrefix, e.tail))
+		live, err := isLive(ctx, tx, e.tail)
 		if err != nil {
 			return nil, err
-		}
-		if !live && opts.Live != nil {
-			if live, err = opts.Live(ctx, tx, e.tail); err != nil {
-				return nil, err
-			}
 		}
 		if live {
 			j.LiveBlocks++
@@ -306,6 +320,15 @@ func judgePack(ctx context.Context, opts *JudgeOptions, tx kvtx.TxOps, p pending
 		j.Verdict = VerdictKept
 	}
 	return j, nil
+}
+
+// isLive reports whether a key is in L or W.
+func isLive(ctx context.Context, tx kvtx.TxOps, tail []byte) (bool, error) {
+	live, err := tx.Exists(ctx, prefixed(visitedPrefix, tail))
+	if err != nil || live {
+		return live, err
+	}
+	return tx.Exists(ctx, prefixed(closureVisitedPrefix, tail))
 }
 
 // Judgments calls fn with each judgment of the cycle, in pack id order.

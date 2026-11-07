@@ -522,8 +522,8 @@ func TestDirPacksReadsCopies(t *testing.T) {
 	if _, err := f.cycle(t, store, local, 0, nil); err != nil {
 		t.Fatal(err)
 	}
-	if local.Local != len(entries)-1 {
-		t.Fatalf("read %d of %d packs locally", local.Local, len(entries)-1)
+	if n := local.Local.Load(); n != int64(len(entries)-1) {
+		t.Fatalf("read %d of %d packs locally", n, len(entries)-1)
 	}
 	verdicts, holes := readResult(t, store)
 	if !mapsEqual(verdicts, wantVerdicts) || !mapsEqual(holes, wantHoles) {

@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
+	"github.com/s4wave/spacewave/db/block/writelog"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/s4db"
@@ -51,8 +52,12 @@ type Args struct {
 	StoreID string
 	// Index is a copy of the store's pack index file, read for the pack list.
 	Index string
-	// IndexTable is the index file's table.
+	// IndexType is the index file's volume type; empty detects it.
+	IndexType string
+	// IndexTable is the table of a SQLite index file.
 	IndexTable string
+	// IndexBucket is the bucket of a Bolt index file.
+	IndexBucket string
 	// SFTPAddr is the store server's host:port.
 	SFTPAddr string
 	// SFTPUser is the store login.
@@ -80,6 +85,14 @@ type Args struct {
 	Frames cli.StringSlice
 	// Batch is the frontier keys per walk transaction.
 	Batch int
+
+	// LogDir is the backend's write log directory, read and trimmed by the
+	// pull.
+	LogDir string
+	// PullEvery is how often a following pull reads the log.
+	PullEvery time.Duration
+	// Follow keeps the pull reading the log until a signal stops it.
+	Follow bool
 
 	// MinAge is the youngest pack judged.
 	MinAge time.Duration
@@ -110,7 +123,9 @@ func (a *Args) storeFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index file holds", Destination: &a.StoreID, Required: true},
 		&cli.StringFlag{Name: "index", Usage: "copy of the store's pack index file, read for the pack list", Destination: &a.Index, Required: true},
-		&cli.StringFlag{Name: "index-table", Usage: "table of the pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
+		&cli.StringFlag{Name: "index-type", Usage: "volume type of the pack index file: sqlite, bolt or s4db; detected when unset", Destination: &a.IndexType},
+		&cli.StringFlag{Name: "index-table", Usage: "table of a SQLite pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
+		&cli.StringFlag{Name: "index-bucket", Usage: "bucket of a bbolt pack index file", Value: packcopy.DefaultIndexBucket, Destination: &a.IndexBucket},
 		&cli.StringFlag{Name: "sftp-addr", Usage: "store server's host:port", Destination: &a.SFTPAddr, Required: true},
 		&cli.StringFlag{Name: "sftp-user", Usage: "store login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
 		&cli.StringFlag{Name: "sftp-host-key", Usage: "store server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: true},
@@ -128,7 +143,42 @@ func (a *Args) walkFlags() []cli.Flag {
 		&cli.StringSliceFlag{Name: "root", Usage: "root block, as a b58 ref; repeat for each", Destination: &a.Roots},
 		&cli.StringFlag{Name: "roots-file", Usage: "file listing more roots, one b58 ref a line", Destination: &a.RootsFile},
 		&cli.StringFlag{Name: "log-position", Usage: "the write log's position when the roots were read", Destination: &a.LogPosition},
-		&cli.StringSliceFlag{Name: "frames", Usage: "block frame file serving blocks no pack holds; repeat for each", Destination: &a.Frames},
+		a.framesFlag(),
+		&cli.IntFlag{Name: "batch", Usage: "frontier keys per transaction", Value: packsweep.DefaultWalkBatch, Destination: &a.Batch},
+		a.logDirFlag(),
+		a.pullEveryFlag(),
+	}
+}
+
+// framesFlag binds the frame files serving blocks no pack holds.
+func (a *Args) framesFlag() cli.Flag {
+	return &cli.StringSliceFlag{Name: "frames", Usage: "block frame file serving blocks no pack holds; repeat for each", Destination: &a.Frames}
+}
+
+// logDirFlag binds the write log directory.
+func (a *Args) logDirFlag() cli.Flag {
+	return &cli.StringFlag{Name: "log-dir", Usage: "the backend's write log directory, pulled into the scratch file and trimmed", Destination: &a.LogDir}
+}
+
+// pullEveryFlag binds the interval of a following pull.
+func (a *Args) pullEveryFlag() cli.Flag {
+	return &cli.DurationFlag{Name: "pull-every", Usage: "how often a following pull reads the write log", Value: packsweep.DefaultPullEvery, Destination: &a.PullEvery}
+}
+
+// pullFlags binds the flags of the log pull.
+func (a *Args) pullFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "log-dir", Usage: "the backend's write log directory, pulled into the scratch file and trimmed", Destination: &a.LogDir, Required: true},
+		&cli.StringFlag{Name: "log-position", Usage: "the write log's position when the roots were read; the walk's when unset", Destination: &a.LogPosition},
+		&cli.BoolFlag{Name: "follow", Usage: "keep pulling until a signal or a gap stops it", Destination: &a.Follow},
+		a.pullEveryFlag(),
+	}
+}
+
+// closureFlags binds the flags of the closure.
+func (a *Args) closureFlags() []cli.Flag {
+	return []cli.Flag{
+		a.framesFlag(),
 		&cli.IntFlag{Name: "batch", Usage: "frontier keys per transaction", Value: packsweep.DefaultWalkBatch, Destination: &a.Batch},
 	}
 }
@@ -136,6 +186,8 @@ func (a *Args) walkFlags() []cli.Flag {
 // judgeFlags binds the flags of the judgment.
 func (a *Args) judgeFlags() []cli.Flag {
 	return []cli.Flag{
+		a.framesFlag(),
+		a.logDirFlag(),
 		&cli.DurationFlag{Name: "min-age", Usage: "youngest pack judged, before the snapshot", Value: packsweep.DefaultMinAge, Destination: &a.MinAge},
 		&cli.IntFlag{Name: "low-percent", Usage: "live share of value bytes at or under which a pack is low; negative for none", Value: packsweep.DefaultLowLivePercent, Destination: &a.LowPercent},
 		&cli.StringFlag{Name: "report", Usage: "report file to write, one JSON judgment a line", Value: "report.jsonl", Destination: &a.Report},
@@ -214,11 +266,16 @@ func (a *Args) runSnapshot(*cli.Context) error {
 	if _, err := os.Stat(a.Index); err != nil {
 		return errors.Wrap(err, "--index")
 	}
-	index, err := store_kvtx_sqlite.OpenWithPragmas(ctx, a.Index, cmp.Or(a.IndexTable, defaultIndexTable), store_kvtx_sqlite.Pragmas{WithoutRowID: true})
+	index, closeIndex, err := packcopy.OpenIndexFile(ctx, a.Index, &packcopy.IndexFileOptions{
+		Kind:   a.IndexType,
+		Table:  cmp.Or(a.IndexTable, defaultIndexTable),
+		Bucket: a.IndexBucket,
+		SQLite: store_kvtx_sqlite.Pragmas{WithoutRowID: true},
+	})
 	if err != nil {
 		return errors.Wrap(err, "open --index")
 	}
-	defer index.Close()
+	defer closeIndex()
 
 	// Read the store as its only writer would, exactly the bytes each pack
 	// row names.
@@ -260,7 +317,7 @@ func (a *Args) runSnapshot(*cli.Context) error {
 	// Log the time and the local reads, and print the result.
 	fields := logrus.Fields{"took": time.Since(start).String()}
 	if local != nil {
-		fields["local"] = local.Local
+		fields["local"] = local.Local.Load()
 	}
 	le.WithFields(fields).Info("snapshot complete")
 	return a.print(result.JSON)
@@ -317,15 +374,16 @@ func (a *Args) runWalk(*cli.Context) error {
 		}
 	}
 
-	// Serve the blocks no catalogued pack holds from the frame files.
-	var refs packsweep.RefSource
-	if paths := a.Frames.Value(); len(paths) != 0 {
-		frames, err := packcopy.OpenFrameStore(paths)
-		if err != nil {
-			return err
-		}
-		defer frames.Close()
-		refs = packsweep.SourceRefs{frames}
+	// Serve the blocks no catalogued pack holds from the frame files, and
+	// pull the log while the walk runs, keeping the backend's copy small.
+	refs, closeFrames, err := a.openFrames()
+	if err != nil {
+		return err
+	}
+	defer closeFrames()
+	ctx, stopPull, err := a.followDuring(ctx, le, store)
+	if err != nil {
+		return err
 	}
 
 	// Walk, logging every batch.
@@ -340,12 +398,138 @@ func (a *Args) runWalk(*cli.Context) error {
 			le.WithFields(logrus.Fields{"live": p.Live, "batches": p.Batches}).Info("walk batch")
 		},
 	})
-	if err != nil {
+	if err := cmp.Or(stopPull(), err); err != nil {
 		return err
 	}
 
 	// Log the time and print the header.
 	le.WithField("took", time.Since(start).String()).Info("walk complete")
+	return a.print(head.JSON)
+}
+
+// openFrames opens the frame files serving blocks no catalogued pack holds,
+// nil when none are named.
+func (a *Args) openFrames() (packsweep.RefSource, func(), error) {
+	// Open the named files.
+	paths := a.Frames.Value()
+	if len(paths) == 0 {
+		return nil, func() {}, nil
+	}
+	frames, err := packcopy.OpenFrameStore(paths)
+	if err != nil {
+		return nil, nil, err
+	}
+	return packsweep.SourceRefs{frames}, frames.Close, nil
+}
+
+// pullOptions builds the pull of the log directory from start.
+func (a *Args) pullOptions(store kvtx.Store, start string) *packsweep.PullOptions {
+	return &packsweep.PullOptions{Store: store, Source: writelog.Dir(a.LogDir), Start: start}
+}
+
+// followDuring pulls the log in the background from --log-position while
+// the step the returned context bounds runs. stop ends the pull and returns
+// its error; a failed pull cancels the step.
+func (a *Args) followDuring(ctx context.Context, le *logrus.Entry, store kvtx.Store) (context.Context, func() error, error) {
+	// Pull only with a log directory, which needs the position R.
+	if a.LogDir == "" {
+		return ctx, func() error { return nil }, nil
+	}
+	if a.LogPosition == "" {
+		return nil, nil, errors.New("--log-dir needs --log-position, the position the roots were read at")
+	}
+
+	// Follow until stopped, cancelling the step on a failure.
+	stepCtx, cancelStep := context.WithCancel(ctx)
+	pullCtx, cancelPull := context.WithCancel(stepCtx)
+	done := make(chan error, 1)
+	go func() {
+		pull, err := packsweep.FollowLog(pullCtx, a.pullOptions(store, a.LogPosition), a.PullEvery)
+		switch {
+		case err != nil && pullCtx.Err() == nil:
+			cancelStep()
+		case err == nil && pull.Gap != "":
+			le.WithField("gap", pull.Gap).Warn("the write log stopped covering the cycle")
+		}
+		done <- err
+	}()
+
+	// Stop the pull, keeping a failure that did not come from the stop.
+	return stepCtx, func() error {
+		// Stop the pull and the step's context.
+		cancelPull()
+		err := <-done
+		cancelStep()
+		if pullCtx.Err() != nil && errors.Is(err, context.Canceled) {
+			err = nil
+		}
+		return errors.Wrap(err, "pull the write log")
+	}, nil
+}
+
+// runPullLog stores the log's lines since the last pull in the scratch file
+// and trims them from the log directory.
+func (a *Args) runPullLog(*cli.Context) error {
+	// Open the scratch file until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Pull from the walk's R unless one is given.
+	start := a.LogPosition
+	if start == "" {
+		head, err := packsweep.ReadHead(ctx, store)
+		if err != nil {
+			return err
+		}
+		start = head.LogPosition
+	}
+
+	// Pull once, or until a signal or a gap.
+	opts := a.pullOptions(store, start)
+	if a.Follow {
+		_, err = packsweep.FollowLog(ctx, opts, a.PullEvery)
+	} else {
+		_, err = packsweep.PullLog(ctx, opts)
+	}
+	if err != nil && ctx.Err() == nil {
+		return err
+	}
+
+	// Print the pull's row.
+	pull, err := packsweep.ReadLogPull(context.WithoutCancel(ctx), store)
+	if err != nil || pull == nil {
+		return cmp.Or(err, errors.New("no log pull"))
+	}
+	return a.print(pull.JSON)
+}
+
+// runClosure walks what the pulled log keys reach that the roots do not.
+func (a *Args) runClosure(*cli.Context) error {
+	// Open the scratch file and the frame files until a signal stops the
+	// step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	refs, closeFrames, err := a.openFrames()
+	if err != nil {
+		return err
+	}
+	defer closeFrames()
+
+	// Walk W and print the header.
+	head, err := packsweep.Closure(ctx, &packsweep.ClosureOptions{Store: store, Refs: refs, Batch: a.Batch})
+	if err != nil {
+		return err
+	}
 	return a.print(head.JSON)
 }
 
@@ -387,6 +571,11 @@ func (a *Args) runJudge(*cli.Context) error {
 		return err
 	}
 	defer db.Close()
+
+	// Store the log's last lines and walk what they reach first.
+	if err := a.closeOver(ctx, store); err != nil {
+		return err
+	}
 
 	// Judge every snapshot pack.
 	sum, err := packsweep.Judge(ctx, &packsweep.JudgeOptions{
@@ -436,8 +625,13 @@ func (a *Args) runJudge(*cli.Context) error {
 		}
 	}
 
-	// Count the holes the accepted list does not cover, and print the result.
+	// Count the holes the accepted list does not cover, with a log that does
+	// not cover the cycle, and print the result.
 	head, err := packsweep.ReadHead(ctx, store)
+	if err != nil {
+		return err
+	}
+	pull, err := packsweep.ReadLogPull(ctx, store)
 	if err != nil {
 		return err
 	}
@@ -446,7 +640,38 @@ func (a *Args) runJudge(*cli.Context) error {
 		holes:    head.Holes,
 		blocking: packsweep.BlockingHoles(head, accepted, holes),
 	}
+	if reason := packsweep.LogBlocking(head, pull); reason != "" {
+		result.blocking[reason] = 1
+	}
 	return a.print(result.JSON)
+}
+
+// closeOver pulls the log directory, when one is named, from the walk's R and
+// walks W, so the judgment counts every key put since R.
+func (a *Args) closeOver(ctx context.Context, store kvtx.Store) error {
+	// Pull from the walk's R.
+	if a.LogDir == "" {
+		return nil
+	}
+	head, err := packsweep.ReadHead(ctx, store)
+	if err != nil {
+		return err
+	}
+	if head.LogPosition == "" {
+		return errors.New("--log-dir needs a walk with --log-position")
+	}
+	if _, err := packsweep.PullLog(ctx, a.pullOptions(store, head.LogPosition)); err != nil {
+		return err
+	}
+
+	// Walk what the pulled keys reach.
+	refs, closeFrames, err := a.openFrames()
+	if err != nil {
+		return err
+	}
+	defer closeFrames()
+	_, err = packsweep.Closure(ctx, &packsweep.ClosureOptions{Store: store, Refs: refs, Batch: a.Batch})
+	return err
 }
 
 // runStatus prints the cycle's state.
@@ -460,12 +685,22 @@ func (a *Args) runStatus(*cli.Context) error {
 	}
 	defer db.Close()
 
-	// Print the cycle's header.
+	// Print the cycle's header with its log pull.
 	head, err := packsweep.ReadHead(ctx, store)
 	if err != nil {
 		return err
 	}
-	return a.print(head.JSON)
+	pull, err := packsweep.ReadLogPull(ctx, store)
+	if err != nil {
+		return err
+	}
+	return a.print(func(arena *fastjson.Arena) *fastjson.Value {
+		v := head.JSON(arena)
+		if pull != nil {
+			v.Set("logPull", pull.JSON(arena))
+		}
+		return v
+	})
 }
 
 // writeLines writes a file through fn, replacing it only once fn succeeds.
