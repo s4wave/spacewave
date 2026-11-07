@@ -61,7 +61,11 @@ func TestGraphSettingsAtCreation(t *testing.T) {
 	if !root.GetGraphSettings().EqualVT(settings) {
 		t.Fatal("World root lost its graph settings")
 	}
-	if got := memberA.graphHd.QuadStore.(*cayley_kv.QuadStore).Layout(); !cayley_kv.CompareQuadIndexes(got, predicateIndexes) {
+	graphHd, err := memberA.graph(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := graphHd.QuadStore.(*cayley_kv.QuadStore).Layout(); !cayley_kv.CompareQuadIndexes(got, predicateIndexes) {
 		t.Fatalf("open graph layout %v", got)
 	}
 
