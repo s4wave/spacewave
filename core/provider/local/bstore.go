@@ -602,7 +602,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		recorded,
 		localReads,
 		func() block.StoreOps { return t.getRemoteReads(placement) },
-		newPeerMissSource(le, func() block.StoreOps { return t.a.getP2PStore(bucketID) }),
+		t.peerSource(le, bucketID),
 		fallbackStore,
 	)
 

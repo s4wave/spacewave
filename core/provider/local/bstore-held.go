@@ -170,15 +170,72 @@ func (r *nodeKeyReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 
 // readNode reads ref from the node's pack log by key, or returns nil.
 func (r *nodeKeyReads) readNode(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
+	return readNodeBlock(ctx, r.client, r.wait, ref)
+}
 
-	// Ask the node, within the wait.
-	client := r.client.Load()
-	if client == nil {
+// nodeBeforePeers asks the storage node by key before the peers, whose read
+// waits up to peerReadWait for a session. After a restart in durable mode,
+// every block flushed and not yet reported is only in the node's pack log,
+// so asking the peers first cost each such read seconds.
+func nodeBeforePeers(peers func() block.StoreOps, client *atomic.Pointer[block_store_nodepush.Client], wait time.Duration) func() block.StoreOps {
+	return func() block.StoreOps {
+		store := peers()
+		if store == nil {
+			return nil
+		}
+		return &nodeFirstReads{StoreOps: store, client: client, wait: wait}
+	}
+}
+
+// nodeFirstReads reads the node by key, then the store it wraps.
+type nodeFirstReads struct {
+	block.StoreOps
+	client *atomic.Pointer[block_store_nodepush.Client]
+	wait   time.Duration
+}
+
+// BeginReadOperation opens a read scope of the wrapped store that still asks
+// the node first.
+func (r *nodeFirstReads) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	scope, release, err := r.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &nodeFirstReads{StoreOps: scope, client: r.client, wait: r.wait}, release, nil
+}
+
+// GetStoredBlock asks the node, then the wrapped store.
+func (r *nodeFirstReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if found := readNodeBlock(ctx, r.client, r.wait, ref); found != nil {
+		return found, nil
+	}
+	return r.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// GetBlock asks the node, then the wrapped store.
+func (r *nodeFirstReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if found := readNodeBlock(ctx, r.client, r.wait, ref); found != nil {
+		return found.Data, true, nil
+	}
+	return r.StoreOps.GetBlock(ctx, ref)
+}
+
+// readNodeBlock reads ref from the node's pack log by key within wait, or
+// returns nil.
+func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodepush.Client], wait time.Duration, ref *block.BlockRef) *block.StoredBlock {
+	// Only a mounted push can ask.
+	if ref.GetEmpty() {
 		return nil
 	}
-	rctx, cancel := context.WithTimeout(ctx, r.wait)
+
+	// Ask the node, within the wait.
+	c := client.Load()
+	if c == nil {
+		return nil
+	}
+	rctx, cancel := context.WithTimeout(ctx, wait)
 	defer cancel()
-	value, ok := client.ReadBlock(rctx, packfile.BlockKey(ref.GetHash()))
+	value, ok := c.ReadBlock(rctx, packfile.BlockKey(ref.GetHash()))
 	if !ok {
 		return nil
 	}
@@ -309,4 +366,15 @@ func spill(ctx context.Context, wb *block_store_writeback.Store, keys, values []
 	}
 	_, err := wb.Sync(ctx)
 	return err
+}
+
+// peerSource returns the store's peer reads, which a store whose pushed
+// blocks skip its disk reads after asking the node by key: with no peer
+// session, a peer read waits for one, so the node must come first.
+func (t *bstoreTracker) peerSource(le *logrus.Entry, bucketID string) func() block.StoreOps {
+	peers := newPeerMissSource(le, func() block.StoreOps { return t.a.getP2PStore(bucketID) })
+	if conf := t.nodePushConfig(); conf != nil && conf.Durable != nil {
+		return nodeBeforePeers(peers, &t.nodeClient, conf.ReadWait)
+	}
+	return peers
 }
