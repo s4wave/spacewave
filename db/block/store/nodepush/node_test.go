@@ -386,33 +386,80 @@ func TestReportWaitsOnNoConnection(t *testing.T) {
 
 // objectRemote is the remote's object store.
 type objectRemote struct {
+	mtx     sync.Mutex
 	objects map[string][]byte
+	// ranges counts the range reads.
+	ranges atomic.Int32
+	// gets counts the whole reads.
+	gets atomic.Int32
+}
+
+// set stores an object.
+func (o *objectRemote) set(key string, data []byte) {
+	o.mtx.Lock()
+	defer o.mtx.Unlock()
+	if o.objects == nil {
+		o.objects = make(map[string][]byte)
+	}
+	o.objects[key] = data
+}
+
+// get returns an object.
+func (o *objectRemote) get(key string) ([]byte, bool) {
+	o.mtx.Lock()
+	defer o.mtx.Unlock()
+	data, ok := o.objects[key]
+	return data, ok
 }
 
 // GetObject opens an object.
 func (o *objectRemote) GetObject(_ context.Context, _, key string) (io.ReadCloser, error) {
-	data, ok := o.objects[key]
+	o.gets.Add(1)
+	data, ok := o.get(key)
 	if !ok {
 		return nil, errors.New("no such object")
 	}
 	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
-// TestReadThrough reads ranges through the node: a miss fills the pack, the
-// next read comes from the node, and a short range, a bad name, the switch and
-// a node that is away or silent all report false rather than an answer.
+// GetObjectRange reads a range of an object, short at its end.
+func (o *objectRemote) GetObjectRange(_ context.Context, _, key string, off int64, length int) ([]byte, error) {
+	o.ranges.Add(1)
+	data, ok := o.get(key)
+	if !ok {
+		return nil, errors.New("no such object")
+	}
+	if off >= int64(len(data)) {
+		return nil, nil
+	}
+	return data[off:min(off+int64(length), int64(len(data)))], nil
+}
+
+// newPackFiles opens read copies in dir/packs reading remote.
+func newPackFiles(t *testing.T, dir string, remote Source) *PackFiles {
+	t.Helper()
+	packs, err := NewPackFiles(t.Context(), logrus.NewEntry(logrus.New()), dir+"/packs", remote, "bucket", "p/packs", PackFilesOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = packs.Close() })
+	return packs
+}
+
+// TestReadThrough reads ranges through the node: a miss is served by a range
+// read of the remote and fetches the whole pack once in the background, the
+// next read comes from the read copy, and a short range, a bad name, the
+// switch and a node that is away or silent all report false rather than an
+// answer.
 func TestReadThrough(t *testing.T) {
 	// A node with no packs, and a remote with one.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	id := identity.NewPackID()
-	remote := &objectRemote{objects: map[string][]byte{"p/packs/" + id: []byte("the pack's bytes")}}
+	remote := &objectRemote{}
+	remote.set("p/packs/"+id, []byte("the pack's bytes"))
 	dir := t.TempDir()
-	packs, err := NewPackFiles(logrus.NewEntry(logrus.New()), dir+"/packs", remote, "bucket", "p/packs")
-	if err != nil {
-		t.Fatal(err)
-	}
-	go packs.Run(ctx)
+	packs := newPackFiles(t, dir, remote)
 	server, err := NewServer(nopHolder{}, dir+"/reports")
 	if err != nil {
 		t.Fatal(err)
@@ -422,22 +469,41 @@ func TestReadThrough(t *testing.T) {
 	end := connect(ctx, t, client, server)
 	var on atomic.Bool
 	var reach atomic.Pointer[Client]
-	reads := NewReads(time.Second, &on, &reach)
+	reads := NewReads(time.Second, &on, nil, &reach)
 	reach.Store(client)
 	on.Store(true)
 
-	// A miss answers false and starts the fill.
-	if _, ok := reads.ReadCached(ctx, id, 4, 4); ok {
-		t.Fatal("read a pack the node lacks")
+	// Misses on a pack the node lacks are served from the remote's range, and
+	// queue one fetch of the pack, however many there are.
+	for range 3 {
+		if data, ok := reads.ReadCached(ctx, id, 4, 4); !ok || string(data) != "pack" {
+			t.Fatalf("miss read %q %v", data, ok)
+		}
 	}
-	waitFor(t, func() bool {
-		_, ok := packs.ReadRange(id, 0, 1)
-		return ok
-	})
+	if st := packs.Stats(); st.RemoteReads != 3 || st.CopyReads != 0 {
+		t.Fatalf("stats after misses: %+v", st)
+	}
+	go packs.Run(ctx)
+	waitFor(t, func() bool { return packs.Stats().Filled == 1 })
+	if got := remote.gets.Load(); got != 1 {
+		t.Fatalf("%d fetches of one pack", got)
+	}
 
-	// The fill serves the next read.
+	// The copy is the remote's pack byte for byte, under its ID, and listed.
+	if copied, err := os.ReadFile(filepath.Join(dir, "packs", id)); err != nil || string(copied) != "the pack's bytes" {
+		t.Fatalf("read copy %q %v", copied, err)
+	}
+	if st := packs.Stats(); st.Copies != 1 || st.CopyBytes != int64(len("the pack's bytes")) || st.Filled != 1 {
+		t.Fatalf("stats after the fill: %+v", st)
+	}
+
+	// The copy serves the next read, with no trip to the remote.
+	ranges := remote.ranges.Load()
 	if data, ok := reads.ReadCached(ctx, id, 4, 4); !ok || string(data) != "pack" {
 		t.Fatalf("hit read %q %v", data, ok)
+	}
+	if remote.ranges.Load() != ranges || packs.Stats().CopyReads != 1 {
+		t.Fatal("a held pack read the remote")
 	}
 
 	// A range past the end is no answer: a copy shorter than the remote's must
@@ -446,26 +512,35 @@ func TestReadThrough(t *testing.T) {
 		t.Fatalf("short range answered %q", data)
 	}
 
-	// A name that leaves the directory reaches no file.
+	// A name that leaves the directory reaches no file and no remote.
 	if _, ok := client.ReadRange(ctx, "../reports/x", 0, 4); ok {
 		t.Fatal("read outside the pack directory")
 	}
 
-	// The switch keeps reads off the node.
+	// The switch keeps reads off the node, and so does the reads switch alone.
 	on.Store(false)
 	if _, ok := reads.ReadCached(ctx, id, 4, 4); ok {
 		t.Fatal("read with the switch off")
 	}
 	on.Store(true)
+	var readsOn atomic.Bool
+	readsOff := NewReads(time.Second, &on, &readsOn, &reach)
+	if _, ok := readsOff.ReadCached(ctx, id, 4, 4); ok {
+		t.Fatal("read with the reads switch off")
+	}
+	readsOn.Store(true)
+	if _, ok := readsOff.ReadCached(ctx, id, 4, 4); !ok {
+		t.Fatal("no read with both switches on")
+	}
 
 	// A full disk leaves the pack unfilled.
 	full := identity.NewPackID()
-	remote.objects["p/packs/"+full] = []byte("no room")
+	remote.set("p/packs/"+full, []byte("no room"))
 	packs.SetRoom(func() bool { return false })
 	if err := packs.Fill(ctx, full); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := packs.ReadRange(full, 0, 1); ok {
+	if packs.holds(full) {
 		t.Fatal("filled a pack with no room")
 	}
 	packs.SetRoom(nil)
@@ -484,10 +559,7 @@ func TestHungReadsHoldNoPush(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	dir := t.TempDir()
-	packs, err := NewPackFiles(logrus.NewEntry(logrus.New()), dir+"/packs", &objectRemote{}, "bucket", "p/packs")
-	if err != nil {
-		t.Fatal(err)
-	}
+	packs := newPackFiles(t, dir, &objectRemote{})
 	id := identity.NewPackID()
 	if err := syscall.Mkfifo(filepath.Join(dir, "packs", id), 0o600); err != nil {
 		t.Skip("no fifo here")

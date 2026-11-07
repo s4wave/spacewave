@@ -20,7 +20,6 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
-	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
 	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -69,6 +68,8 @@ type placementState struct {
 	done <-chan struct{}
 	// reads records the blocks read since the last eviction pass.
 	reads readSet
+	// localHits counts the blocks the local store served.
+	localHits atomic.Uint64
 	// evictGate is held by each eviction pass and by a storage move.
 	evictGate *csync.Mutex
 	// evictAdmit paces eviction passes, or holds nil.
@@ -83,7 +84,7 @@ type placementState struct {
 	fallbackFills fallbackFills
 	// cache is the fill cache that takes the blocks read from the backend, or nil
 	// when they fill the local store. A store mounted without a backend has none.
-	cache *block_store_fillcache.Cache
+	cache FillCache
 	// front is read after the local store misses and before the fill cache
 	// and the backend, or nil.
 	front block.StoreOps
@@ -169,6 +170,8 @@ type UploadStatus struct {
 	block_store_writeback.Status
 	// Fallback counts the reads and fills of the store's read fallback.
 	Fallback FallbackStatus
+	// Reads counts the store's block reads by where they were served.
+	Reads ReadStatus
 	// Packs counts the finalized packs of the store's packahead log, or is
 	// nil when the store has no log.
 	Packs *packahead.DrainStatus
@@ -204,7 +207,7 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 // channel that follows it.
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	status, changed := b.placement.wb.GetStatus()
-	out := UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status()}
+	out := UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status(), Reads: b.placement.readStatus()}
 	out.Packs, _ = b.GetPackStatus()
 	return out, changed
 }
@@ -590,7 +593,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Read the local store first, then the backend's bucket, then the read
 	// fallback, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
-	recorded := &readRecorder{StoreOps: local, reads: &placement.reads}
+	recorded := &readRecorder{StoreOps: &hitCounter{StoreOps: local, hits: &placement.localHits}, reads: &placement.reads}
 	reads, copies := placement.readChains(
 		recorded,
 		local,

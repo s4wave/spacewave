@@ -57,6 +57,10 @@ type NodePushConfig struct {
 	// node already uploaded, which only adds blocks it can read. A nil On stays
 	// off.
 	On *atomic.Bool
+	// ReadsOn turns reads through the node off alone, leaving the push on;
+	// reads reach the node only while On and ReadsOn are both set. Nil reads
+	// whenever On is set.
+	ReadsOn *atomic.Bool
 	// Result reports each push, or is nil.
 	Result block_store_nodepush.Result
 	// Drain pushes the upload backlog through the node, or is nil for no
@@ -183,7 +187,7 @@ func (t *bstoreTracker) nodeReads() block_store_s3.RangeCache {
 	if conf == nil || conf.On == nil {
 		return nil
 	}
-	return block_store_nodepush.NewReads(conf.ReadWait, conf.On, &t.nodeClient)
+	return block_store_nodepush.NewReads(conf.ReadWait, conf.On, conf.ReadsOn, &t.nodeClient)
 }
 
 // startNodePush starts pushing handle's publications when the account names

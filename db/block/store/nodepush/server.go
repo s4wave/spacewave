@@ -173,8 +173,9 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			}()
 		case *Message_Read:
 			// Never wait for a slot here: pushes come through this loop, and
-			// a hung disk must not hold them. A read with no slot answers a
-			// miss at once, and the local store reads the remote. A hung read
+			// a hung disk or a slow remote must not hold them. A read with no
+			// slot answers a miss at once, and the local store reads the
+			// remote. A hung read
 			// stays out of running too, so it can't hold this connection's
 			// end; the server's slots bound how many there are, across
 			// connections.
@@ -182,7 +183,7 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			case s.readSlots <- struct{}{}:
 				go func() {
 					defer func() { <-s.readSlots }()
-					send(ctx, out, s.read(body.Read))
+					send(ctx, out, s.read(ctx, body.Read))
 				}()
 			default:
 				trySend(out, &Message{Body: &Message_ReadData{ReadData: &ReadData{Id: body.Read.GetId(), Miss: true}}})
@@ -200,11 +201,12 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 	}
 }
 
-// read answers req from the pack files.
-func (s *Server) read(req *Read) *Message {
+// read answers req from the pack files: a read copy, or a range read of the
+// remote for a pack the node lacks.
+func (s *Server) read(ctx context.Context, req *Read) *Message {
 	answer := &ReadData{Id: req.GetId(), Miss: true}
 	if s.packs != nil {
-		if data, ok := s.packs.ReadRange(req.GetPackId(), req.GetOff(), req.GetLength()); ok {
+		if data, ok := s.packs.ReadRange(ctx, req.GetPackId(), req.GetOff(), req.GetLength()); ok {
 			answer.Data, answer.Miss = data, false
 		}
 	}

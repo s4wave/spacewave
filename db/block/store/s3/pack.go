@@ -119,6 +119,8 @@ type PackStore struct {
 	exactReads bool
 	// readCache serves block extents before the bucket, or is nil.
 	readCache RangeCache
+	// reads counts the blocks read by where their bytes came from.
+	reads readCounters
 	// linger is how long a short upload batch waits for more blocks.
 	linger time.Duration
 	// maxPackBytes bounds one packfile a batch writes.
@@ -593,7 +595,47 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 		stored, err = s.packs.GetStoredBlock(ctx, ref)
 		return stored == nil && placed[0], err
 	})
+	if stored != nil {
+		s.reads.packs.Add(1)
+	}
 	return stored, err
+}
+
+// ReadCounts counts a PackStore's block reads by where their bytes came from.
+// Concurrent reads of one block that share a read count once.
+type ReadCounts struct {
+	// Cached counts the blocks the read cache served, which held their hash.
+	Cached uint64
+	// CacheRejected counts the read cache's answers whose bytes failed the
+	// block's hash; the bucket served each of them instead.
+	CacheRejected uint64
+	// Bucket counts the blocks read from the bucket with one range read.
+	Bucket uint64
+	// Packs counts the blocks read through the pack readers, from the bucket
+	// or the readers' own memory.
+	Packs uint64
+}
+
+// readCounters are the running counts of ReadCounts.
+type readCounters struct {
+	// cached counts the read cache's verified answers.
+	cached atomic.Uint64
+	// cacheRejected counts its answers that failed the hash.
+	cacheRejected atomic.Uint64
+	// bucket counts the extent reads of the bucket.
+	bucket atomic.Uint64
+	// packs counts the reads through the pack readers.
+	packs atomic.Uint64
+}
+
+// ReadCounts returns the store's block reads by where their bytes came from.
+func (s *PackStore) ReadCounts() ReadCounts {
+	return ReadCounts{
+		Cached:        s.reads.cached.Load(),
+		CacheRejected: s.reads.cacheRejected.Load(),
+		Bucket:        s.reads.bucket.Load(),
+		Packs:         s.reads.packs.Load(),
+	}
 }
 
 // RangeCache holds copies of packs near this store. Only a block's bytes are
@@ -657,8 +699,10 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 		if s.readCache != nil {
 			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
 				if stored, err := verifiedBlock(ref, data); err == nil {
+					s.reads.cached.Add(1)
 					return stored, nil
 				}
+				s.reads.cacheRejected.Add(1)
 			}
 		}
 
@@ -667,7 +711,11 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 		if err != nil {
 			return nil, err
 		}
-		return verifiedBlock(ref, data)
+		stored, err := verifiedBlock(ref, data)
+		if err == nil {
+			s.reads.bucket.Add(1)
+		}
+		return stored, err
 	})
 	stored, _ := value.(*block.StoredBlock)
 	return stored

@@ -4,8 +4,19 @@ import (
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
+	block_store_memcache "github.com/s4wave/spacewave/db/block/store/memcache"
 )
+
+// FillCache takes the copies of the blocks a placed store reads from its
+// backend's packs, in place of the account's volume. It must hold only copies
+// of blocks the packs hold, so losing it loses nothing.
+type FillCache interface {
+	// Reads returns a source that reads the cache, then lower, and copies
+	// lower's hits into the cache. A nil lower yields a nil source.
+	Reads(lower block_store.StoreSource) block_store.StoreSource
+}
 
 // fillCaches maps the storage volume ID of an account to the fill cache its
 // placed block stores read through, as SetFillCache registered it.
@@ -18,7 +29,7 @@ var fillCaches sync.Map
 // the account mounts its placed block stores as it starts. A nil cache returns
 // the account to filling its volume. The caller keeps cache open while the
 // account runs.
-func SetFillCache(providerID, accountID string, cache *block_store_fillcache.Cache) {
+func SetFillCache(providerID, accountID string, cache FillCache) {
 	id := StorageVolumeID(providerID, accountID)
 	if cache == nil {
 		fillCaches.Delete(id)
@@ -60,10 +71,16 @@ func (t *bstoreTracker) packFront() block.StoreOps {
 
 // fillCache returns the fill cache registered for the block store's account,
 // or nil.
-func (t *bstoreTracker) fillCache() *block_store_fillcache.Cache {
+func (t *bstoreTracker) fillCache() FillCache {
 	id := StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID())
 	if cache, ok := fillCaches.Load(id); ok {
-		return cache.(*block_store_fillcache.Cache)
+		return cache.(FillCache)
 	}
 	return nil
 }
+
+// _ are type assertions: the disk and memory fill caches.
+var (
+	_ FillCache = (*block_store_fillcache.Cache)(nil)
+	_ FillCache = (*block_store_memcache.Cache)(nil)
+)
