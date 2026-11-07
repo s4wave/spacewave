@@ -253,7 +253,8 @@ Remove(p) ==
 \* them the pack stays trashing with its miss, which the trash and the removal
 \* both skip, and a read finds its file either gone, recording the miss again,
 \* or back, and served. The pack store registers it only once both objects
-\* are back.
+\* are back. A removed pack the operator names comes back by adoption, which
+\* adds a holder of its keys as compaction's adopted pack does, and is left out.
 Restore(p) ==
   /\ missed[p] /\ state[p] = "trash"
   /\ moved' = [moved EXCEPT ![p] = FALSE]

@@ -3,6 +3,7 @@
 package packsweep
 
 import (
+	"bytes"
 	"context"
 	"slices"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // failMover fails the first move of one key, after moving every key before
@@ -217,13 +219,15 @@ func TestTrashRemove(t *testing.T) {
 // TestRestore returns the trashing packs reads missed to the store, at each
 // point the trash leaves them: before any move, between the entry and the
 // file, and after both. A restore killed mid-move and one killed after the
-// backend's call resume, and the packs no read missed stay in the trash.
+// backend's call resume, and the packs no read missed stay in the trash
+// until one is named, and a removed pack named is adopted with its keys.
 func TestRestore(t *testing.T) {
 	ctx := t.Context()
 	h := newHoldFixture(t)
 	passed := h.passAll(t)
 	const prefix = "v2/"
-	opts := &TrashOptions{Store: h.store, Backend: h.backend, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}
+	ropts := &RestoreOptions{TrashOptions: TrashOptions{Store: h.store, Backend: h.backend, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}}
+	opts := &ropts.TrashOptions
 	miss := func(id string) {
 		h.backend.holds[id] = PackHold{ID: id, State: PackTrashing, Since: h.backend.now, Event: h.backend.now}
 	}
@@ -253,7 +257,7 @@ func TestRestore(t *testing.T) {
 	// A restore killed between a pack's file and its entry, then one killed
 	// after the backend's call, resume.
 	opts.Mover = &failMover{ObjectMover: h.f.client, from: block_store_s3.TrashEntryKey(prefix, passed[2])}
-	if _, err := Restore(ctx, opts); err == nil {
+	if _, err := Restore(ctx, ropts); err == nil {
 		t.Fatal("killed restore move returned no error")
 	}
 	if !h.objectAt(t, block_store_s3.PackObjectKey(prefix, passed[2])) || !h.objectAt(t, block_store_s3.TrashEntryKey(prefix, passed[2])) {
@@ -261,10 +265,10 @@ func TestRestore(t *testing.T) {
 	}
 	opts.Mover = h.f.client
 	h.backend.failRestore = true
-	if _, err := Restore(ctx, opts); err == nil {
+	if _, err := Restore(ctx, ropts); err == nil {
 		t.Fatal("killed restore returned no error")
 	}
-	got, err := Restore(ctx, opts)
+	got, err := Restore(ctx, ropts)
 	if err != nil || got.Restored+got.Dropped == 0 {
 		t.Fatalf("resumed restore = %+v, %v", got, err)
 	}
@@ -284,7 +288,54 @@ func TestRestore(t *testing.T) {
 
 	// A repeat calls the backend for nothing.
 	calls := h.backend.calls["restore"]
-	if again, err := Restore(ctx, opts); err != nil || again.Restored != 0 || again.Dropped != 0 || h.backend.calls["restore"] != calls {
+	if again, err := Restore(ctx, ropts); err != nil || again.Restored != 0 || again.Dropped != 0 || h.backend.calls["restore"] != calls {
 		t.Fatalf("second restore = %+v, %v", again, err)
+	}
+
+	// A named pack no read missed is restored; one the cycle never trashed,
+	// or a lifted one, is refused.
+	ropts.Packs = []string{passed[3]}
+	if got, err := Restore(ctx, ropts); err != nil || got.Restored != 1 {
+		t.Fatalf("named restore = %+v, %v", got, err)
+	}
+	for _, id := range []string{passed[0], "nope"} {
+		ropts.Packs = []string{id}
+		if _, err := Restore(ctx, ropts); err == nil {
+			t.Fatalf("restored %s, which the cycle has not trashed", id)
+		}
+	}
+
+	// Remove the rest; a restore naming one moves it back and adopts it with
+	// the keys its own index lists, a killed one resumes, and a repeat
+	// refuses it, since its record is gone.
+	if got, err := Remove(ctx, &RemoveOptions{Store: h.store, Backend: h.backend}); err != nil || got.Removed != uint64(len(passed)-4) { //nolint:gosec // test counts.
+		t.Fatalf("removal = %+v, %v", got, err)
+	}
+	gone := passed[4]
+	ropts.Packs = []string{gone}
+	ropts.Mover = &failMover{ObjectMover: h.f.client, from: block_store_s3.TrashEntryKey(prefix, gone)}
+	if _, err := Restore(ctx, ropts); err == nil || h.backend.calls["adopt"] != 0 {
+		t.Fatal("killed adoption returned no error, or adopted")
+	}
+	ropts.Mover = h.f.client
+	got, err = Restore(ctx, ropts)
+	if err != nil || got.Adopted != 1 {
+		t.Fatalf("adoption = %+v, %v", got, err)
+	}
+	var want [][]byte
+	for _, b := range h.f.packs[gone] {
+		want = append(want, packfile.BlockKey(b.ref.GetHash()))
+	}
+	slices.SortFunc(want, bytes.Compare)
+	keys := slices.Clone(h.backend.adopted[gone])
+	slices.SortFunc(keys, bytes.Compare)
+	if !slices.EqualFunc(keys, want, bytes.Equal) || !h.objectAt(t, block_store_s3.EntryObjectKey(prefix, gone)) || h.objectAt(t, block_store_s3.TrashPackKey(prefix, gone)) {
+		t.Fatalf("adopted keys %d, want %d", len(keys), len(want))
+	}
+	if _, ok := recordsByID(t, h.store)[gone]; ok {
+		t.Fatal("the adopted pack kept its record")
+	}
+	if _, err := Restore(ctx, ropts); err == nil {
+		t.Fatal("adopted a pack twice")
 	}
 }

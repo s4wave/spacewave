@@ -112,6 +112,8 @@ type Args struct {
 	Wait time.Duration
 	// Moves is the packs the trash moves at once.
 	Moves int
+	// Packs names packs the restore brings back besides those reads missed.
+	Packs cli.StringSlice
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)

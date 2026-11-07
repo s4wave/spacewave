@@ -17,7 +17,8 @@
 // pack no read missed from the backend's index, pointing each block row that
 // named it at another pack holding the block. Restore moves each missed pack's
 // file, then its entry, back from the trash and has the backend register it
-// again.
+// again; a pack named on the command line comes back too, a removed one
+// adopted with the keys its own index lists, until the purge.
 package main
 
 import (
@@ -96,8 +97,8 @@ func main() {
 		},
 		{
 			Name:   "restore",
-			Usage:  "move each trashing pack a read missed back from the store's trash, file first, and register it again",
-			Flags:  args.trashFlags(),
+			Usage:  "move each trashing pack a read missed, and each named pack, back from the store's trash, file first, and register it again",
+			Flags:  args.restoreFlags(),
 			Action: args.runRestore,
 		},
 		{
