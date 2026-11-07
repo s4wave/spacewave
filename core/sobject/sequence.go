@@ -157,13 +157,17 @@ type soSequence struct {
 	open bool
 }
 
+// verifySequenceFunc returns the hash, verified body and signer of a sequence
+// position.
+type verifySequenceFunc func(record *SOSequence) (string, *SOSequenceInner, string, error)
+
 // resolveSequence returns the sequence above base that records support under
 // sequencer. Positions up to the sequencer's start are taken along the hash
 // links down from start, whoever signed them; later ones only when the
 // sequencer signed them. It stops at the first gap, at a position that does
 // not name the one before it, and at a fork the sequencer signed. Records that
-// fail to verify are ignored.
-func resolveSequence(sharedObjectID string, base *SOSequenceHead, sequencer *SOSequencer, records []*SOSequence) soSequence {
+// fail to verify are ignored. verify checks each record.
+func resolveSequence(base *SOSequenceHead, sequencer *SOSequencer, records []*SOSequence, verify verifySequenceFunc) soSequence {
 	// Start above the base, open while a sequencer may still extend it.
 	if base == nil {
 		base = &SOSequenceHead{}
@@ -184,12 +188,12 @@ func resolveSequence(sharedObjectID string, base *SOSequenceHead, sequencer *SOS
 	byHash := make(map[string]*verified, len(records))
 	byHeight := make(map[uint64][]*verified, len(records))
 	for _, record := range records {
-		inner, signer, err := record.Verify(sharedObjectID)
+		key, inner, signer, err := verify(record)
 		if err != nil || inner.GetHeight() <= base.GetHeight() {
 			continue
 		}
-		v := &verified{inner: inner, signer: signer, hash: record.Hash()}
-		byHash[string(v.hash)] = v
+		v := &verified{inner: inner, signer: signer, hash: []byte(key)}
+		byHash[key] = v
 		byHeight[inner.GetHeight()] = append(byHeight[inner.GetHeight()], v)
 	}
 

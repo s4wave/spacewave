@@ -172,6 +172,72 @@ func TestSOOperationVerifier(t *testing.T) {
 	build(&SOState{Config: state.GetConfig(), Checkpoint: state.GetCheckpoint()})
 }
 
+// TestSOOperationVerifierSequence checks that a set over a copy of the state
+// with one more sequence position verifies that position alone, and that a
+// held position whose signature changed is verified again and dropped.
+func TestSOOperationVerifierSequence(t *testing.T) {
+	// Sequencer S places each of A's operations.
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	privS, idS := vectorKey(t, "sequencer s")
+	state.Config.Sequencer = &SOSequencer{PeerId: idS}
+	var head *SOSequenceHead
+	for range 8 {
+		head = addTestSequence(t, state, privS, head, writeTestOp(t, state, keys[0], "data"))
+	}
+
+	// build builds the set of state through the verifier and checks it
+	// against a rebuild, returning the bodies the verifier holds.
+	verifier := NewSOOperationVerifier(mockSharedObjectID)
+	build := func(state *SOState) map[string]*SOSequenceInner {
+		t.Helper()
+		got, err := verifier.OperationSet(state)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := state.OperationSet(mockSharedObjectID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.EqualFunc(got.Order(), want.Order(), bytes.Equal) {
+			t.Fatal("order differs from a rebuild")
+		}
+		inners := make(map[string]*SOSequenceInner, len(verifier.sequences))
+		for key, held := range verifier.sequences {
+			inners[key] = held.inner
+		}
+		return inners
+	}
+
+	// A copy with one more position reuses every held body; verifying
+	// would decode a new one.
+	prev := build(state)
+	if len(prev) != 8 {
+		t.Fatalf("verifier holds %d positions; the state holds 8", len(prev))
+	}
+	next := state.Clone()
+	addTestSequence(t, next, privS, head, writeTestOp(t, next, keys[0], "data"))
+	got := build(next)
+	if len(got) != 9 {
+		t.Fatalf("verifier holds %d positions; the state holds 9", len(got))
+	}
+	for key, inner := range prev {
+		if got[key] != inner {
+			t.Fatalf("position %x verified again", key)
+		}
+	}
+
+	// A held position whose signature changed is verified again and dropped,
+	// which ends the sequence below it.
+	forged := next.Clone()
+	forged.Sequence[0].Signature.SigData = slices.Clone(forged.Sequence[0].GetSignature().GetSigData())
+	forged.Sequence[0].Signature.SigData[0] ^= 0xff
+	if got := build(forged); len(got) != 8 {
+		t.Fatalf("verifier holds %d positions after a forged signature; want 8", len(got))
+	}
+}
+
 // TestSOOperationVerifierSignature checks that an operation whose signature
 // changed is verified again and rejected, as in a rebuild.
 func TestSOOperationVerifierSignature(t *testing.T) {
@@ -194,5 +260,50 @@ func TestSOOperationVerifierSignature(t *testing.T) {
 	}
 	if _, err := forged.OperationSet(mockSharedObjectID); err == nil {
 		t.Fatal("rebuild accepted an operation with another signature")
+	}
+}
+
+// BenchmarkSequencedSet measures the set built for a copy of a state whose n
+// operations a sequencer placed, through the verifier that built the last.
+func BenchmarkSequencedSet(b *testing.B) {
+	for _, n := range []int{32, 300} {
+		b.Run(fmt.Sprintf("positions=%d", n), func(b *testing.B) {
+			// Place each operation of a state of n under a sequencer.
+			state, _ := newBenchState(b, n)
+			privS := mustPrivKeys(b, createMockPeers(b, 1))[0]
+			idS, err := peer.IDFromPrivateKey(privS)
+			if err != nil {
+				b.Fatal(err)
+			}
+			state.Config.Sequencer = &SOSequencer{PeerId: idS.String()}
+			var head *SOSequenceHead
+			for _, op := range state.GetOps() {
+				inner, err := op.UnmarshalInner()
+				if err != nil {
+					b.Fatal(err)
+				}
+				pos := &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: op.Hash()}
+				record, err := BuildSOSequence(mockSharedObjectID, privS, head, pos)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if added, err := state.AddSequence(mockSharedObjectID, record); err != nil || !added {
+					b.Fatalf("add sequence: added %v, err %v", added, err)
+				}
+				head = &SOSequenceHead{Height: head.GetHeight() + 1, Hash: record.Hash()}
+			}
+
+			// Build the set of a fresh copy each iteration.
+			verifier := NewSOOperationVerifier(mockSharedObjectID)
+			if _, err := verifier.OperationSet(state); err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := verifier.OperationSet(state.Clone()); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

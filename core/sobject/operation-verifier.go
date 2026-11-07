@@ -12,17 +12,31 @@ import (
 // operations to a checkpoint or is replaced by another drops them. An operation
 // is immutable while held: state copies share it, and the verifier reuses its
 // hash. A separately decoded operation is reused only when its bytes and
-// signature match, so a set equals one built from nothing. It is safe for
-// concurrent use.
+// signature match, so a set equals one built from nothing. Sequence positions
+// are remembered the same way, by hash, since state copies do not share them.
+// It is safe for concurrent use.
 type SOOperationVerifier struct {
 	// sharedObjectID is the shared object the operations are bound to.
 	sharedObjectID string
-	// mtx guards verified and hashes.
+	// mtx guards verified, hashes and sequences.
 	mtx sync.Mutex
 	// verified holds the operations of the last set built, by hash.
 	verified map[string]verifiedOperation
 	// hashes holds the hashes of the last state's immutable operations.
 	hashes map[*SOOperation]string
+	// sequences holds the sequence positions of the last set built, by hash.
+	sequences map[string]verifiedSequence
+}
+
+// verifiedSequence is a sequence position with the body and signer its
+// verification returned.
+type verifiedSequence struct {
+	// record is the position that was verified.
+	record *SOSequence
+	// inner is the verified body of record.
+	inner *SOSequenceInner
+	// signer is the peer that signed record.
+	signer string
 }
 
 // verifiedOperation is an operation with the body its verification returned.
@@ -64,10 +78,20 @@ func (v *SOOperationVerifier) OperationSet(state *SOState) (*SOOperationSet, err
 		set.insert(key, inner)
 	}
 
-	// Resolve the sequence and keep the operations of this set for the next.
-	set.setSequence(state.GetConfig().GetSequencer(), state.GetSequence())
+	// Resolve the sequence, verifying the positions not yet verified, and keep
+	// the operations and positions of this set for the next.
+	records := state.GetSequence()
+	sequences := make(map[string]verifiedSequence, len(records))
+	set.setSequence(state.GetConfig().GetSequencer(), records, func(record *SOSequence) (string, *SOSequenceInner, string, error) {
+		key, inner, signer, err := v.verifySequenceLocked(record)
+		if err == nil {
+			sequences[key] = verifiedSequence{record: record, inner: inner, signer: signer}
+		}
+		return key, inner, signer, err
+	})
 	v.verified = verified
 	v.hashes = hashes
+	v.sequences = sequences
 	return set, nil
 }
 
@@ -113,4 +137,26 @@ func (v *SOOperationVerifier) verifyLocked(op *SOOperation) (string, *SOOperatio
 	}
 	inner, err := op.Verify(v.sharedObjectID)
 	return key, inner, err
+}
+
+// verifySequence returns the verified body and signer of record, reusing the
+// last set's for an unchanged position.
+func (v *SOOperationVerifier) verifySequence(record *SOSequence) (*SOSequenceInner, string, error) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+	_, inner, signer, err := v.verifySequenceLocked(record)
+	return inner, signer, err
+}
+
+// verifySequenceLocked returns the hash, verified body and signer of record,
+// reusing the last set's for an unchanged position. The hash names only the
+// body, so a held position is reused only when its signature matches too. The
+// caller holds mtx.
+func (v *SOOperationVerifier) verifySequenceLocked(record *SOSequence) (string, *SOSequenceInner, string, error) {
+	key := string(record.Hash())
+	if held, ok := v.sequences[key]; ok && held.record.EqualVT(record) {
+		return key, held.inner, held.signer, nil
+	}
+	inner, signer, err := record.Verify(v.sharedObjectID)
+	return key, inner, signer, err
 }

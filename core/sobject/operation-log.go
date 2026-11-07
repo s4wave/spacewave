@@ -273,8 +273,8 @@ func NewSOOperationSet(sharedObjectID string, checkpoint *SOCheckpointInner) *SO
 // setSequence resolves the sequence above the checkpoint from records under
 // sequencer. Order places the sequenced operations first, and StablePoint
 // stops at them while the sequence is open.
-func (s *SOOperationSet) setSequence(sequencer *SOSequencer, records []*SOSequence) {
-	s.sequence = resolveSequence(s.sharedObjectID, s.sequence.base, sequencer, records)
+func (s *SOOperationSet) setSequence(sequencer *SOSequencer, records []*SOSequence, verify verifySequenceFunc) {
+	s.sequence = resolveSequence(s.sequence.base, sequencer, records, verify)
 	s.placed = nil
 }
 
