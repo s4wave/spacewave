@@ -12,7 +12,7 @@ type ListRebuildResult struct {
 	// walk verified, such as a block whose refs could not be decoded. Any
 	// keeps the Volume's lists unverified and Adopt refusing.
 	Unverified uint64
-	// UnverifiedSample names up to unknownSampleSize of them.
+	// UnverifiedSample names up to sampleSize of them.
 	UnverifiedSample []*block.BlockRef
 	// Cleared reports that every list a root reaches is verified, so the
 	// rebuild cleared the Volume's unverified lists mark.

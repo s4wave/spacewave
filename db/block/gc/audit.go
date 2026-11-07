@@ -6,9 +6,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// auditSampleSize bounds the blocks an audit lists by name for each finding.
-const auditSampleSize = 8
-
 // AuditResult compares what the named roots reach with what the collector
 // would keep. The audit frees nothing; it records the holes it finds.
 type AuditResult struct {
@@ -27,14 +24,14 @@ type AuditResult struct {
 	// free now: Dead, ripe, with no cascade due, no fill up unapplied and the
 	// cursor past the hold mark. Any is an error in the counts.
 	LiveQueued uint64
-	// LiveQueuedSample names up to auditSampleSize of them.
+	// LiveQueuedSample names up to sampleSize of them.
 	LiveQueuedSample []*block.BlockRef
 	// Undercount counts the stored blocks whose netted holders, with the
 	// journal past the cursor, are fewer than the roots, child lists and
 	// release in progress that name them, such as a hole put again before an
 	// audit recorded it. Each may be freed while a root still reaches it.
 	Undercount uint64
-	// UndercountSample names up to auditSampleSize of them.
+	// UndercountSample names up to sampleSize of them.
 	UndercountSample []*block.BlockRef
 	// Holes counts the holes under a live root this audit recorded.
 	Holes uint64
@@ -42,7 +39,7 @@ type AuditResult struct {
 	// list that no root reaches: garbage nothing frees, since only a block
 	// with a list is stored for the collector.
 	Unlisted uint64
-	// UnlistedSample names up to auditSampleSize of them.
+	// UnlistedSample names up to sampleSize of them.
 	UnlistedSample []*block.BlockRef
 	// CascadeMiscount is the cascade records less the state's count of them,
 	// while the Volume keeps the count. Any is an error in the counts: a
@@ -88,10 +85,11 @@ func Audit(ctx context.Context, store AdoptStore) (AuditResult, error) {
 		if err != nil {
 			return err
 		}
-		frees, err := freesNow(ctx, rec, state)
+		frees, err := rec.freeable(ctx, state)
 		if err != nil {
 			return err
 		}
+		frees = frees && state.GetCursor() >= state.GetHoldMark()
 
 		// Compare each stored block's liveness with the queue, and its count
 		// once the Volume keeps counts.
@@ -155,9 +153,7 @@ func (res *AuditResult) countUnlisted(ctx context.Context, store AdoptStore) err
 					continue
 				}
 				res.Unlisted++
-				if len(res.UnlistedSample) < auditSampleSize {
-					res.UnlistedSample = append(res.UnlistedSample, ref)
-				}
+				res.UnlistedSample = sample(res.UnlistedSample, ref)
 			}
 			return nil
 		})
@@ -196,9 +192,7 @@ func (res *AuditResult) checkStored(
 	switch {
 	case mark.Has(ref) && holders == 0 && frees && ripe <= state.GetCursor():
 		res.LiveQueued++
-		if len(res.LiveQueuedSample) < auditSampleSize {
-			res.LiveQueuedSample = append(res.LiveQueuedSample, ref)
-		}
+		res.LiveQueuedSample = sample(res.LiveQueuedSample, ref)
 	case !mark.Has(ref) && holders != 0 && !pending:
 		res.Leaked++
 	}
@@ -209,27 +203,9 @@ func (res *AuditResult) checkStored(
 	}
 	if int64(holders)+delta[string(key)] < int64(tally[string(key)]) { //nolint:gosec // counts stay far below the int64 range.
 		res.Undercount++
-		if len(res.UndercountSample) < auditSampleSize {
-			res.UndercountSample = append(res.UndercountSample, ref)
-		}
+		res.UndercountSample = sample(res.UndercountSample, ref)
 	}
 	return nil
-}
-
-// freesNow reports whether the collector's free would run in the snapshot:
-// the Volume is adopted, no cascade is due or in progress, no fill up is
-// unapplied, and the cursor passed the hold mark.
-func freesNow(ctx context.Context, rec *Records, state *LivenessState) (bool, error) {
-	// Check the state, then the cascade and fill up records.
-	if state.GetAdoption() != Adoption_ADOPTION_ADOPTED || state.GetCursor() < state.GetHoldMark() {
-		return false, nil
-	}
-	settled, err := rec.settled(ctx, state)
-	if err != nil || !settled {
-		return false, err
-	}
-	ups, err := rec.anyKey(ctx, rec.key(kindFillUps))
-	return !ups, err
 }
 
 // counts reports whether the children of the stored block ref count it as a
@@ -340,7 +316,7 @@ func journalTail(ctx context.Context, rec *Records, state *LivenessState) (map[s
 	if err != nil {
 		return nil, err
 	}
-	err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
+	err = rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
 		for _, down := range fr.rec.GetDown() {
 			delta[string(down)]--
 		}
@@ -419,31 +395,16 @@ func holeCounts(
 // and the count holds the rest. It skips a block that a put stored, or an
 // audit recorded, since the snapshot, and never lowers a count.
 func recordHoles(ctx context.Context, store Store, holes []holeCount, res *AuditResult) error {
-	for len(holes) != 0 {
-		// Take the next slice.
+	_, err := eachSlice(ctx, store.Update, holes, nil, func(rec *Records, _ block.StoreOps, holes []holeCount) ([]holeCount, bool, error) {
 		n := min(len(holes), sliceRecords)
-		slice := holes[:n]
-		holes = holes[n:]
-
-		// Record each hole the store still lacks.
-		err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-			for _, h := range slice {
-				if err := recordHole(ctx, rec, h, res); err != nil {
-					return err
-				}
+		for _, h := range holes[:n] {
+			if err := recordHole(ctx, rec, h, res); err != nil {
+				return nil, false, err
 			}
-			return nil
-		})
-		if err != nil {
-			return err
 		}
-
-		// Let a waiting writer in.
-		if err := context.Cause(ctx); err != nil {
-			return err
-		}
-	}
-	return nil
+		return holes[n:], n != len(holes), nil
+	})
+	return err
 }
 
 // recordHole records h as a hole and raises its netted holders by the
@@ -456,13 +417,13 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 	if err != nil || listed {
 		return err
 	}
-	hole, err := rec.IsHole(ctx, h.ref)
+	hole, err := rec.tx.Exists(ctx, rec.key(kindHole, BlockKey(h.ref)))
 	if err != nil || hole {
 		return err
 	}
 
 	// Record it.
-	if err := rec.SetHole(ctx, h.ref); err != nil {
+	if err := rec.tx.Set(ctx, rec.key(kindHole, BlockKey(h.ref)), nil); err != nil {
 		return err
 	}
 	res.Holes++

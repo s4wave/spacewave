@@ -72,58 +72,38 @@ func walkPass(ctx context.Context, store Store, visit walkVisit) (uint64, error)
 			return reached, err
 		}
 
-		// Drain the frontier below them.
-		for len(frontier) != 0 {
-			var m uint64
-			if frontier, m, err = walkSlice(ctx, store, visit, frontier); err != nil {
-				return reached, err
+		// Drain the frontier below them, sliceRecords blocks per transaction
+		// off its top: mark and visit each the walk has not reached, and
+		// queue its children.
+		_, err = eachSlice(ctx, store.Update, frontier, nil, func(rec *Records, _ block.StoreOps, next []*block.BlockRef) ([]*block.BlockRef, bool, error) {
+			for taken := 0; len(next) != 0 && taken < sliceRecords; taken++ {
+				// Take the next block, skipping one the walk reached.
+				ref := next[len(next)-1]
+				next = next[:len(next)-1]
+				key := rec.key(kindReached, BlockKey(ref))
+				seen, err := rec.tx.Exists(ctx, key)
+				if err != nil {
+					return nil, false, err
+				}
+				if seen {
+					continue
+				}
+
+				// Mark it, visit it, and queue its children.
+				if err := rec.tx.Set(ctx, key, nil); err != nil {
+					return nil, false, err
+				}
+				reached++
+				children, err := visit(ctx, rec, ref)
+				if err != nil {
+					return nil, false, err
+				}
+				next = append(next, children...)
 			}
-			reached += m
-			if err := context.Cause(ctx); err != nil {
-				return reached, err
-			}
-		}
-		if n < sliceRecords {
+			return next, len(next) != 0, nil
+		})
+		if err != nil || n < sliceRecords {
 			return reached, nil
 		}
 	}
-}
-
-// walkSlice takes up to sliceRecords blocks off the top of frontier in one
-// transaction, marks and visits each the walk has not reached, and returns
-// the frontier with their children and how many it reached.
-func walkSlice(ctx context.Context, store Store, visit walkVisit, frontier []*block.BlockRef) ([]*block.BlockRef, uint64, error) {
-	var reached uint64
-	next := frontier
-	err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Start from the frontier as it was, so a retried transaction does not
-		// lose blocks it took.
-		next, reached = frontier, 0
-		for taken := 0; len(next) != 0 && taken < sliceRecords; taken++ {
-			// Take the next block, skipping one the walk reached.
-			ref := next[len(next)-1]
-			next = next[:len(next)-1]
-			key := rec.key(kindReached, BlockKey(ref))
-			seen, err := rec.tx.Exists(ctx, key)
-			if err != nil {
-				return err
-			}
-			if seen {
-				continue
-			}
-
-			// Mark it, visit it, and queue its children.
-			if err := rec.tx.Set(ctx, key, nil); err != nil {
-				return err
-			}
-			reached++
-			children, err := visit(ctx, rec, ref)
-			if err != nil {
-				return err
-			}
-			next = append(next, children...)
-		}
-		return nil
-	})
-	return next, reached, err
 }

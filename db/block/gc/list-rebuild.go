@@ -188,8 +188,6 @@ func (r *ListRebuild) visitReached(ctx context.Context, rec *Records, ref *block
 		return children, err
 	}
 	r.res.Unverified++
-	if len(r.res.UnverifiedSample) < unknownSampleSize {
-		r.res.UnverifiedSample = append(r.res.UnverifiedSample, ref)
-	}
+	r.res.UnverifiedSample = sample(r.res.UnverifiedSample, ref)
 	return nil, nil
 }

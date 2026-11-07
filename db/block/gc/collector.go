@@ -204,10 +204,15 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	defer c.mtx.Unlock()
 	start := c.opts.Now()
 	deadline := start.Add(c.opts.Budget)
+	past := func() bool { return c.opts.Now().After(deadline) }
 	defer func() { res.Duration = c.opts.Now().Sub(start) }()
 
 	// Release the lapsed leases.
-	if err := c.sweepLeases(ctx, &res); err != nil {
+	_, err = eachSlice(ctx, c.update, struct{}{}, nil, func(rec *Records, blocks block.StoreOps, _ struct{}) (struct{}, bool, error) {
+		more, err := c.sweepLeases(ctx, rec, blocks, &res)
+		return struct{}{}, more, err
+	})
+	if err != nil {
 		return res, err
 	}
 
@@ -222,25 +227,66 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		return res, err
 	}
 	if !adopted {
-		res.More, err = c.dropFills(ctx, deadline)
+		res.More, err = c.dropFills(ctx, past)
 		return res, err
 	}
 
-	// Net the aged journal and fill records.
-	more, err := c.net(ctx, &res, deadline)
-	if err == nil && !more {
-		more, err = c.netFills(ctx, &res, deadline)
-	}
-	if err != nil || more {
-		res.More = more
-		return res, err
+	// Net the aged journal records, then the aged fill records.
+	for _, body := range []func(context.Context, *netting, int) (bool, error){c.netSlice, c.netFillSlice} {
+		end := c.phase(PhaseNet)
+		res.More, err = eachSlice(ctx, c.update, struct{}{}, past, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
+			full, err := c.net(ctx, rec, &res, body)
+			return struct{}{}, full, err
+		})
+		end()
+		if err != nil || res.More {
+			return res, err
+		}
 	}
 
 	// Free the queued blocks.
 	if c.opts.Frees {
-		res.More, err = c.free(ctx, &res, deadline)
+		defer c.phase(PhaseSweep)()
+		res.More, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
+			return c.freeSlice(ctx, rec, blocks, &res, from)
+		})
 	}
 	return res, err
+}
+
+// eachSlice runs slice in one transaction of update at a time, the first at
+// the position from and each later one at the position the one before
+// returned, until one reports no more work, ctx ends, or past, unless nil,
+// reports true between two of them. It reports whether it stopped at past
+// with work left. A store may run a transaction more than once, so slice
+// reads its position only from its argument, and only the run the store
+// commits moves it.
+func eachSlice[P any](
+	ctx context.Context,
+	update func(context.Context, func(*Records, block.StoreOps) error) error,
+	from P,
+	past func() bool,
+	slice func(rec *Records, blocks block.StoreOps, from P) (P, bool, error),
+) (bool, error) {
+	for {
+		var next P
+		var more bool
+		err := update(ctx, func(rec *Records, blocks block.StoreOps) error {
+			var err error
+			next, more, err = slice(rec, blocks, from)
+			return err
+		})
+		if err != nil || !more {
+			return false, err
+		}
+		if past != nil && past() {
+			return true, nil
+		}
+		if err := context.Cause(ctx); err != nil {
+			return false, err
+		}
+		from = next
+	}
 }
 
 // Frees reports whether the collector frees.
@@ -256,74 +302,43 @@ func (c *Collector) phase(p Phase) func() {
 	return c.opts.Phase(p)
 }
 
-// sweepLeases releases the leased roots whose expiry passed, sliceLeases per
-// transaction, each through Land, so the journal records their release. It
-// seeks the lease index, so a pass reads only the lapsed leases.
-func (c *Collector) sweepLeases(ctx context.Context, res *CollectResult) error {
-	for {
-		// Release the next lapsed roots, read inside the transaction.
-		var released int
-		limit := c.share(sliceLeases)
-		err := c.update(ctx, func(rec *Records, blocks block.StoreOps) error {
-			// Find the lapsed roots.
-			now := c.opts.Now()
-			found, err := rec.ScanLapsed(ctx, now.UnixMilli(), limit)
-			if err != nil {
-				return err
-			}
-			released = len(found)
+// sweepLeases releases up to sliceLeases leased roots whose expiry passed,
+// in one transaction, through Land, so the journal records their release.
+// It seeks the lease index, so a pass reads only the lapsed leases. It
+// reports whether it filled the slice.
+func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult) (bool, error) {
+	// Find the lapsed roots.
+	now := c.opts.Now()
+	limit := c.share(sliceLeases)
+	found, err := rec.ScanLapsed(ctx, now.UnixMilli(), limit)
+	if err != nil {
+		return false, err
+	}
 
-			// Release each from the block it holds, by bucket.
-			lapsed := make(map[string][]block.NamedRoot)
-			for _, root := range found {
-				entry, err := rec.GetRoot(ctx, root.BucketID, root.Name)
-				if err != nil {
-					return err
-				}
-				ref, _, err := ParseBlockKey(entry.GetRef())
-				if err != nil {
-					return err
-				}
-				lapsed[root.BucketID] = append(lapsed[root.BucketID], block.NamedRoot{Name: root.Name, Previous: ref})
-			}
-
-			// Release them in one Land.
-			moves := make([]BucketRoots, 0, len(lapsed))
-			for _, bucketID := range slices.Sorted(maps.Keys(lapsed)) {
-				moves = append(moves, BucketRoots{BucketID: bucketID, Roots: lapsed[bucketID]})
-			}
-			_, err = Land(ctx, rec, blocks, now, nil, moves...)
-			return err
-		})
+	// Release each from the block it holds, by bucket.
+	lapsed := make(map[string][]block.NamedRoot)
+	for _, root := range found {
+		entry, err := rec.GetRoot(ctx, root.BucketID, root.Name)
 		if err != nil {
-			return err
+			return false, err
 		}
-		res.Lapsed += uint64(released) //nolint:gosec // counts are never negative.
-		if released < limit {
-			return nil
+		ref, _, err := ParseBlockKey(entry.GetRef())
+		if err != nil {
+			return false, err
 		}
-		if err := context.Cause(ctx); err != nil {
-			return err
-		}
+		lapsed[root.BucketID] = append(lapsed[root.BucketID], block.NamedRoot{Name: root.Name, Previous: ref})
 	}
-}
 
-// net nets the aged journal records in slices until none is left or the
-// deadline passes, and reports whether aged records remain.
-func (c *Collector) net(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
-	defer c.phase(PhaseNet)()
-	for {
-		more, err := c.netSlice(ctx, res)
-		if err != nil || !more {
-			return false, err
-		}
-		if c.opts.Now().After(deadline) {
-			return true, nil
-		}
-		if err := context.Cause(ctx); err != nil {
-			return false, err
-		}
+	// Release them in one Land.
+	moves := make([]BucketRoots, 0, len(lapsed))
+	for _, bucketID := range slices.Sorted(maps.Keys(lapsed)) {
+		moves = append(moves, BucketRoots{BucketID: bucketID, Roots: lapsed[bucketID]})
 	}
+	if _, err := Land(ctx, rec, blocks, now, nil, moves...); err != nil {
+		return false, err
+	}
+	res.Lapsed += uint64(len(found)) //nolint:gosec // counts are never negative.
+	return len(found) == limit, nil
 }
 
 // startNetting runs the steps every netting slice takes before its own
@@ -366,320 +381,213 @@ func (c *Collector) startNetting(ctx context.Context, rec *Records, state *Liven
 	return n, max(budget-used, 0), true, nil
 }
 
-// finishNetting resolves the slice, and writes what changed and the state
-// when it changed.
-func finishNetting(ctx context.Context, n *netting) error {
-	// Resolve and write the nodes.
+// net runs one netting slice in rec, in an adopted Volume only: the steps
+// startNetting takes, then body with the journal budget they left when they
+// let the slice go on, then the resolve, and writes what changed and the
+// state when it changed. It reports whether the slice was full.
+func (c *Collector) net(ctx context.Context, rec *Records, res *CollectResult, body func(context.Context, *netting, int) (bool, error)) (bool, error) {
+	// Net only an adopted Volume.
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return false, err
+	}
+
+	// Take the steps before the records, then the records.
+	n, budget, ok, err := c.startNetting(ctx, rec, state, res)
+	if err != nil {
+		return false, err
+	}
+	full := !ok
+	if ok {
+		if full, err = body(ctx, n, budget); err != nil {
+			return false, err
+		}
+	}
+
+	// Resolve and write the nodes, and the state when it changed.
 	if err := n.resolve(ctx); err != nil {
-		return err
+		return false, err
 	}
 	if err := n.write(ctx); err != nil {
-		return err
+		return false, err
 	}
-	state, err := n.state.MarshalVT()
-	if err != nil || bytes.Equal(state, n.start) {
-		return err
+	full = full || n.full
+	start, err := n.state.MarshalVT()
+	if err != nil || bytes.Equal(start, n.start) {
+		return full, err
 	}
-	return n.rec.SetState(ctx, n.state)
+	return full, rec.SetState(ctx, n.state)
 }
 
 // netSlice nets up to sliceRecords journal records from the cursor, all of
-// them at least Grace old, and up to slicePairs of their entries, in one
-// transaction, after the steps startNetting takes: it sums each block's up
-// and down pairs, notes the blocks the again lists name, resolves the sums
-// with the cascades they start, and deletes the records it netted whole. A
-// record with more entries than the slice has left is netted in part: the
-// state's net offset counts the entries done, its up pairs, then its down
-// pairs, then its again list, and the record stays at the cursor. It reports
-// whether it filled the slice, so more work may remain.
-func (c *Collector) netSlice(ctx context.Context, res *CollectResult) (bool, error) {
-	var full bool
-	err := c.update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Net only an adopted Volume.
-		full = false
-		state, err := rec.GetState(ctx)
-		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
-			return err
-		}
+// them at least Grace old, and up to budget of their entries, as net's body:
+// it sums each block's up and down pairs, notes the blocks the again lists
+// name, and deletes the records it netted whole, for net to resolve with the
+// cascades they start. A record with more entries than the slice has left is
+// netted in part: the state's net offset counts the entries done, its up
+// pairs, then its down pairs, then its again list, and the record stays at
+// the cursor. It reports whether it filled the slice, so more work may
+// remain.
+func (c *Collector) netSlice(ctx context.Context, n *netting, budget int) (bool, error) {
+	// Bound the slice by the grace period and the record budget.
+	rec, state := n.rec, n.state
+	now := c.opts.Now().UnixMilli()
+	horizon := now - c.opts.Grace.Milliseconds()
+	records, offset := c.share(sliceRecords), state.GetNetOffset()
 
-		// Take the steps before the journal.
-		n, budget, ok, err := c.startNetting(ctx, rec, state, res)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			full = true
-			return finishNetting(ctx, n)
-		}
-
-		// Bound the slice by the grace period and the record budget.
-		now := c.opts.Now().UnixMilli()
-		horizon := now - c.opts.Grace.Milliseconds()
-		records, offset := c.share(sliceRecords), state.GetNetOffset()
-
-		// Sum the entries of the aged records from the cursor.
-		var netted []uint64
-		partial := false
-		future := make(map[uint64]*JournalRecord)
-		err = rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
-			// Note the records stamped in the future to restamp, netting
-			// nothing past the first.
-			if r.GetAtUnixMilli() > now && len(future) < sliceRecords {
-				future[seq] = r
-				return true, nil
-			}
-
-			// Stop past a future record, at a record younger than the grace
-			// period, or at a full slice.
-			if len(future) != 0 || r.GetAtUnixMilli() > horizon || len(netted) == records || budget == 0 {
-				return false, nil
-			}
-
-			// Add its entries after the offset, up to the budget.
-			ups, downs, again := r.GetUp(), r.GetDown(), r.GetAgain()
-			pairs := uint64(len(ups) + len(downs))
-			total := pairs + uint64(len(again))
-			end := min(total, offset+uint64(budget)) //nolint:gosec // the budget is small.
-			for i := offset; i < end; i++ {
-				var err error
-				switch {
-				case i < uint64(len(ups)):
-					err = n.add(ups[i], 1)
-				case i < pairs:
-					err = n.add(downs[i-uint64(len(ups))], -1)
-				default:
-					err = n.visit(again[i-pairs], true)
-				}
-				if err != nil {
-					return false, err
-				}
-			}
-			budget -= int(end - offset) //nolint:gosec // at most the budget.
-
-			// Stop inside a record the budget ends in, or take it whole.
-			if end < total {
-				offset, partial = end, true
-				return false, nil
-			}
-			netted = append(netted, seq)
-			offset = 0
-			return true, nil
-		})
-		if err != nil {
-			return err
-		}
-		if err := clampFuture(ctx, rec, future, now); err != nil {
-			return err
-		}
-
-		// Delete the records netted whole, move the cursor past them, and
-		// keep the offset into the one netted in part.
-		for _, seq := range netted {
-			if err := rec.DeleteJournal(ctx, seq); err != nil {
-				return err
-			}
-		}
-		if len(netted) != 0 {
-			state.Cursor = netted[len(netted)-1] + 1
-		}
-		state.NetOffset = offset
-		res.Netted += uint64(len(netted))
-		if err := finishNetting(ctx, n); err != nil {
-			return err
-		}
-		full = n.full || partial || len(netted) == records || budget == 0
-		return nil
-	})
-	return full, err
-}
-
-// netFills nets the aged fill records in slices until none is left or the
-// deadline passes, and reports whether aged records remain.
-func (c *Collector) netFills(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
-	defer c.phase(PhaseNet)()
-	for {
-		more, err := c.netFillSlice(ctx, res)
-		if err != nil || !more {
-			return false, err
-		}
-		if c.opts.Now().After(deadline) {
+	// Sum the entries of the aged records from the cursor.
+	var netted []uint64
+	partial := false
+	future := make(map[uint64]*JournalRecord)
+	err := rec.ScanJournal(ctx, state.GetCursor(), func(seq uint64, r *JournalRecord) (bool, error) {
+		// Note the records stamped in the future to restamp, netting
+		// nothing past the first.
+		if r.GetAtUnixMilli() > now && len(future) < sliceRecords {
+			future[seq] = r
 			return true, nil
 		}
-		if err := context.Cause(ctx); err != nil {
-			return false, err
-		}
-	}
-}
 
-// netFillSlice nets up to sliceRecords fill records at least Grace old in
-// one transaction, after the steps startNetting takes, which applied their
-// up pairs: it resolves the down pair of each record's own block with the
-// cascades it starts, and deletes the records with their index entries. It
-// reports whether it filled the slice.
-func (c *Collector) netFillSlice(ctx context.Context, res *CollectResult) (bool, error) {
-	var full bool
-	err := c.update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Net only an adopted Volume.
-		full = false
-		state, err := rec.GetState(ctx)
-		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
-			return err
+		// Stop past a future record, at a record younger than the grace
+		// period, or at a full slice.
+		if len(future) != 0 || r.GetAtUnixMilli() > horizon || len(netted) == records || budget == 0 {
+			return false, nil
 		}
 
-		// Take the steps before the records.
-		n, budget, ok, err := c.startNetting(ctx, rec, state, res)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			full = true
-			return finishNetting(ctx, n)
-		}
-
-		// Restamp the records stamped after the collector's clock, so each
-		// ages from the time the collector first saw it.
-		now := c.opts.Now().UnixMilli()
-		var future []fillRecord
-		err = rec.scanFillRecordsFrom(ctx, now+1, func(fr fillRecord) (bool, error) {
-			future = append(future, fr)
-			return len(future) < sliceRecords, nil
-		})
-		if err != nil {
-			return err
-		}
-		for _, fr := range future {
-			if err := rec.restampFillRecord(ctx, fr, now); err != nil {
-				return err
+		// Add its entries after the offset, up to the budget.
+		ups, downs, again := r.GetUp(), r.GetDown(), r.GetAgain()
+		pairs := uint64(len(ups) + len(downs))
+		total := pairs + uint64(len(again))
+		end := min(total, offset+uint64(budget)) //nolint:gosec // the budget is small.
+		for i := offset; i < end; i++ {
+			var err error
+			switch {
+			case i < uint64(len(ups)):
+				err = n.add(ups[i], 1)
+			case i < pairs:
+				err = n.add(downs[i-uint64(len(ups))], -1)
+			default:
+				err = n.visit(again[i-pairs], true)
 			}
-		}
-
-		// Take the aged records from the oldest, within the slice's budgets,
-		// and add their down pairs.
-		horizon := now - c.opts.Grace.Milliseconds()
-		records := min(c.share(sliceRecords), max(budget, 1))
-		var taken []fillRecord
-		err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
-			// Stop at a young record or a full slice.
-			if fr.rec.GetAtUnixMilli() > horizon {
-				return false, nil
-			}
-			if len(taken) == records {
-				full = true
-				return false, nil
-			}
-			taken = append(taken, fr)
-			for _, down := range fr.rec.GetDown() {
-				if err := n.add(down, -1); err != nil {
-					return false, err
-				}
-			}
-			return true, nil
-		})
-		if err != nil {
-			return err
-		}
-
-		// Delete the records, and resolve.
-		for _, fr := range taken {
-			if err := rec.deleteFillRecord(ctx, fr); err != nil {
-				return err
-			}
-		}
-		res.Netted += uint64(len(taken))
-		if err := finishNetting(ctx, n); err != nil {
-			return err
-		}
-		full = full || n.full
-		return nil
-	})
-	return full, err
-}
-
-// dropFills deletes the fill records of an unadopted Volume in slices until
-// none is left or the deadline passes, and reports whether records remain.
-// The adoption counts every child list the fills wrote, so their records only
-// grow the store until then.
-func (c *Collector) dropFills(ctx context.Context, deadline time.Time) (bool, error) {
-	for {
-		// Delete the next slice while the Volume is unadopted.
-		var n int
-		limit := c.share(sliceRecords)
-		err := c.update(ctx, func(rec *Records, _ block.StoreOps) error {
-			// Leave the records of an adopting or adopted Volume.
-			state, err := rec.GetState(ctx)
-			if err != nil || state.GetAdoption() != Adoption_ADOPTION_UNADOPTED {
-				return err
-			}
-
-			// Take the next records and delete them.
-			var taken []fillRecord
-			err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
-				taken = append(taken, fr)
-				return len(taken) < limit, nil
-			})
 			if err != nil {
-				return err
+				return false, err
 			}
-			n = len(taken)
-			for _, fr := range taken {
-				if err := rec.deleteFillRecord(ctx, fr); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		if err != nil || n < limit {
-			return false, err
 		}
-		if c.opts.Now().After(deadline) {
-			return true, nil
-		}
-		if err := context.Cause(ctx); err != nil {
-			return false, err
-		}
-	}
-}
+		budget -= int(end - offset) //nolint:gosec // at most the budget.
 
-// clampFuture restamps the journal records, stamped after now by a clock
-// that has since stepped back, with now, so each ages from the time the
-// collector first saw it rather than waiting for the clock to pass its stamp.
-func clampFuture(ctx context.Context, rec *Records, future map[uint64]*JournalRecord, now int64) error {
+		// Stop inside a record the budget ends in, or take it whole.
+		if end < total {
+			offset, partial = end, true
+			return false, nil
+		}
+		netted = append(netted, seq)
+		offset = 0
+		return true, nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	// Restamp the records stamped after the collector's clock, by a clock
+	// that has since stepped back, so each ages from the time the collector
+	// first saw it rather than waiting for the clock to pass its stamp.
 	for seq, r := range future {
 		r.AtUnixMilli = now
 		if err := rec.PutJournal(ctx, seq, r); err != nil {
-			return err
+			return false, err
 		}
 	}
-	return nil
+
+	// Delete the records netted whole, move the cursor past them, and keep
+	// the offset into the one netted in part.
+	for _, seq := range netted {
+		if err := rec.DeleteJournal(ctx, seq); err != nil {
+			return false, err
+		}
+	}
+	if len(netted) != 0 {
+		state.Cursor = netted[len(netted)-1] + 1
+	}
+	state.NetOffset = offset
+	n.res.Netted += uint64(len(netted))
+	return partial || len(netted) == records || budget == 0, nil
 }
 
-// free frees the ripe Dead blocks in slices until none is left or the
-// deadline passes, and reports whether ripe blocks may remain.
-//
-// Each slice resumes the queue at the last entry the slice before it
-// deleted, so a long run of frees reads each entry once rather than walking
-// the run's deleted entries again each slice. The resume lasts only this
-// call: within it, nothing adds a queue entry before the resume. The free
-// deletes entries and adds none, a writer's Land and a fill write only
-// journal and fill records, and the only path that adds an entry below the
-// cursor, a Dying block whose cascade finishes and turns it Dead at its old
-// ripe sequence, is netting, which runs between calls, never between the
-// slices of one. A cascade a slice finds due stops the call.
-func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.Time) (bool, error) {
-	defer c.phase(PhaseSweep)()
-	var from []byte
-	for {
-		full, err := c.freeSlice(ctx, res, &from)
-		if err != nil || !full {
-			return false, err
-		}
-		if c.opts.Now().After(deadline) {
-			return true, nil
-		}
-		if err := context.Cause(ctx); err != nil {
+// netFillSlice nets up to sliceRecords fill records at least Grace old as
+// net's body, after the steps startNetting takes, which applied their up
+// pairs: it adds the down pair of each record's own block, for net to
+// resolve with the cascades it starts, and deletes the records with their
+// index entries. It reports whether it filled the slice.
+func (c *Collector) netFillSlice(ctx context.Context, n *netting, budget int) (bool, error) {
+	// Restamp the records stamped after the collector's clock, so each ages
+	// from the time the collector first saw it.
+	rec := n.rec
+	now := c.opts.Now().UnixMilli()
+	var future []fillRecord
+	err := rec.scanFillRecords(ctx, now+1, func(fr fillRecord) (bool, error) {
+		future = append(future, fr)
+		return len(future) < sliceRecords, nil
+	})
+	if err != nil {
+		return false, err
+	}
+	for _, fr := range future {
+		if err := rec.restampFillRecord(ctx, fr, now); err != nil {
 			return false, err
 		}
 	}
+
+	// Take the aged records from the oldest, within the slice's budgets, and
+	// add their down pairs.
+	horizon := now - c.opts.Grace.Milliseconds()
+	records := min(c.share(sliceRecords), max(budget, 1))
+	var taken []fillRecord
+	full := false
+	err = rec.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
+		// Stop at a young record or a full slice.
+		if fr.rec.GetAtUnixMilli() > horizon {
+			return false, nil
+		}
+		if len(taken) == records {
+			full = true
+			return false, nil
+		}
+		taken = append(taken, fr)
+		for _, down := range fr.rec.GetDown() {
+			if err := n.add(down, -1); err != nil {
+				return false, err
+			}
+		}
+		return true, nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	// Delete the records.
+	for _, fr := range taken {
+		if err := rec.deleteFillRecord(ctx, fr); err != nil {
+			return false, err
+		}
+	}
+	n.res.Netted += uint64(len(taken))
+	return full, nil
+}
+
+// dropFills deletes the fill records of an unadopted Volume in slices until
+// none is left or past reports true, and reports whether records remain.
+// The adoption counts every child list the fills wrote, so their records only
+// grow the store until then.
+func (c *Collector) dropFills(ctx context.Context, past func() bool) (bool, error) {
+	return eachSlice(ctx, c.update, struct{}{}, past, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
+		// Leave the records of an adopting or adopted Volume.
+		state, err := rec.GetState(ctx)
+		if err != nil || state.GetAdoption() != Adoption_ADOPTION_UNADOPTED {
+			return struct{}{}, false, err
+		}
+		limit := c.share(sliceRecords)
+		n, err := rec.deleteFills(ctx, limit)
+		return struct{}{}, n == limit, err
+	})
 }
 
 // freeSlice frees up to sliceFrees ripe Dead blocks in one transaction, in
@@ -689,74 +597,87 @@ func (c *Collector) free(ctx context.Context, res *CollectResult, deadline time.
 // cursor passes the hold mark, as Collector describes. A free deletes the
 // block's bytes, child list, queue entry, proof and count record, and
 // changes no other count: its children lost its holder when it died. It
-// starts at the queue position *from and moves *from past the entries it
-// deletes, and reports whether the slice was full.
-func (c *Collector) freeSlice(ctx context.Context, res *CollectResult, from *[]byte) (bool, error) {
-	var full bool
-	start := *from
-	err := c.update(ctx, func(rec *Records, blocks block.StoreOps) error {
-		// Free only in an adopted Volume with every cascade and fill up
-		// netted. A cascade is due here although the pass's netting found
-		// no work left when an adoption marked the Volume adopted since,
-		// its zero blocks Dying, or when the store lost a Holding block,
-		// whose re-hold waits for a put to refill its list. A fill's up
-		// pairs are unapplied here when it landed after the last netting
-		// slice.
-		full, *from = false, start
-		state, err := rec.GetState(ctx)
-		if err != nil || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
-			return err
-		}
-		settled, err := rec.settled(ctx, state)
-		if err != nil || !settled {
-			return err
-		}
-		ups, err := rec.anyKey(ctx, rec.key(kindFillUps))
-		if err != nil || ups {
-			return err
-		}
+// reports whether the slice was full.
+//
+// It starts at the queue position from and returns the position past the
+// entries it deleted, where the next slice of the pass resumes, so a long
+// run of frees reads each entry once rather than walking the run's deleted
+// entries again each slice. The resume lasts only the pass's free step:
+// within it, nothing adds a queue entry before the resume. The free deletes
+// entries and adds none, a writer's Land and a fill write only journal and
+// fill records, and the only path that adds an entry below the cursor, a
+// Dying block whose cascade finishes and turns it Dead at its old ripe
+// sequence, is netting, which runs before the free step, never between its
+// slices. A cascade a slice finds due stops the step.
+func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
+	// Free only in an adopted Volume with every cascade and fill up netted.
+	state, err := rec.GetState(ctx)
+	if err != nil {
+		return from, false, err
+	}
+	if ok, err := rec.freeable(ctx, state); err != nil || !ok {
+		return from, false, err
+	}
 
-		// Take the next ripe blocks, only one while a writer waits, noting
-		// one that waits on its ripe sequence or the hold mark.
-		type entry struct {
-			ripe uint64
-			ref  *block.BlockRef
+	// Take the next ripe blocks, only one while a writer waits, noting one
+	// that waits on its ripe sequence or the hold mark.
+	type entry struct {
+		ripe uint64
+		ref  *block.BlockRef
+	}
+	var ripe []entry
+	full := false
+	cursor, frees := state.GetCursor(), c.share(sliceFrees)
+	if c.waiting() {
+		frees = 1
+	}
+	err = rec.scanQueue(ctx, from, func(seq uint64, ref *block.BlockRef) (bool, error) {
+		switch {
+		case seq > cursor || cursor < state.GetHoldMark():
+			res.Kept++
+			return false, nil
+		case len(ripe) == frees:
+			full = true
+			return false, nil
 		}
-		var ripe []entry
-		cursor, frees := state.GetCursor(), c.share(sliceFrees)
-		if c.waiting() {
-			frees = 1
-		}
-		err = rec.scanQueue(ctx, start, func(seq uint64, ref *block.BlockRef) (bool, error) {
-			switch {
-			case seq > cursor || cursor < state.GetHoldMark():
-				res.Kept++
-				return false, nil
-			case len(ripe) == frees:
-				full = true
-				return false, nil
-			}
-			ripe = append(ripe, entry{ripe: seq, ref: ref})
-			return true, nil
-		})
-		if err != nil {
-			return err
-		}
-
-		// Free each until a writer waits; the next slice resumes there.
-		for i, e := range ripe {
-			if i != 0 && c.waiting() {
-				full = true
-				return nil
-			}
-			if err := c.freeBlock(ctx, rec, blocks, e.ripe, e.ref, res); err != nil {
-				return err
-			}
-			*from = queuePos(e.ripe, BlockKey(e.ref))
-		}
-		return nil
+		ripe = append(ripe, entry{ripe: seq, ref: ref})
+		return true, nil
 	})
-	return full, err
+	if err != nil {
+		return from, false, err
+	}
+
+	// Free each until a writer waits; the next slice resumes there.
+	for i, e := range ripe {
+		if i != 0 && c.waiting() {
+			return from, true, nil
+		}
+		if err := c.freeBlock(ctx, rec, blocks, e.ripe, e.ref, res); err != nil {
+			return from, false, err
+		}
+		from = queuePos(e.ripe, BlockKey(e.ref))
+	}
+	return from, full, nil
+}
+
+// freeable reports whether the free may run in rec, apart from the hold
+// mark, which it checks per entry: the Volume is adopted, no cascade is due
+// or in progress, and no fill up is unapplied. A cascade is due although
+// the pass's netting found no work left when an adoption marked the Volume
+// adopted since, its zero blocks Dying, or when the store lost a Holding
+// block, whose re-hold waits for a put to refill its list. A fill's up pairs
+// are unapplied when it landed after the last netting slice.
+func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, error) {
+	// Check the state, then the cascade and fill up records.
+	if state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return false, nil
+	}
+	settled, err := r.settled(ctx, state)
+	if err != nil || !settled {
+		return false, err
+	}
+	ups, err := r.anyKey(ctx, r.key(kindFillUps))
+	return !ups, err
 }
 
 // freeBlock frees one Dead block at ripe: its bytes, child list, queue

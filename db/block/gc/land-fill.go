@@ -30,48 +30,19 @@ import (
 // Collector.Collect applies the record's up pairs in its first slice, and
 // nets its down pair once the record is Grace old.
 func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time.Time, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Name each entry and find the blocks without a child list, and the
+	// Name each entry and find the blocks it gives birth to and the
 	// recorded holes it refills.
-	born := make(map[string]*block.PutBatchEntry)
-	holes := holeReader{rec: rec}
-	var refills []*block.PutBatchEntry
-	for _, entry := range entries {
-		if entry == nil || entry.Tombstone {
-			continue
-		}
-		if len(entry.Data) == 0 {
-			return nil, block.ErrEmptyBlock
-		}
-		if !entry.RefsKnown {
-			return nil, errors.Wrap(block.ErrRefsUnknown, entry.Ref.MarshalString())
-		}
-		if entry.Ref.GetEmpty() {
-			ref, err := block.BuildBlockRef(entry.Data, &block.PutOpts{HashType: blocks.GetHashType()})
-			if err != nil {
-				return nil, err
-			}
-			entry.Ref = ref
-		}
-		key := string(BlockKey(entry.Ref))
-		if _, ok := born[key]; ok {
-			continue
-		}
-		listed, err := rec.HasChildren(ctx, entry.Ref)
-		if err != nil || listed {
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-		hole, err := holes.isHole(ctx, entry.Ref)
-		if err != nil {
-			return nil, err
-		}
-		if hole {
+	var born, refills []*block.PutBatchEntry
+	err := classifyPuts(ctx, rec, blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
+		switch kind {
+		case putBorn:
+			born = append(born, entry)
+		case putRefill:
 			refills = append(refills, entry)
-			continue
 		}
-		born[key] = entry
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Store the bytes, write the refilled holes' lists back, then write each
@@ -84,7 +55,7 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 		if err := rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
 			return nil, err
 		}
-		if err := rec.DeleteHole(ctx, entry.Ref); err != nil {
+		if err := rec.tx.Delete(ctx, rec.key(kindHole, BlockKey(entry.Ref))); err != nil {
 			return nil, err
 		}
 	}
@@ -114,26 +85,35 @@ func (r *Records) fillBornKey(key []byte, at int64) []byte {
 // putFillRecord writes the fill record of ref, with its fill-born index
 // entry and its up pairs for children, all blind.
 func (r *Records) putFillRecord(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef, now time.Time) error {
-	// Write the record of the block's own implied holder.
+	// Write the record of the block's own implied holder, and the children's
+	// up pairs for the collector to apply first.
 	key := BlockKey(ref)
-	at := now.UnixMilli()
-	fr := &JournalRecord{AtUnixMilli: at, Down: [][]byte{key}}
+	var ups []byte
+	if len(children) != 0 {
+		ups = EncodeChildren(children)
+	}
+	return r.writeFill(ctx, key, &JournalRecord{AtUnixMilli: now.UnixMilli(), Down: [][]byte{key}}, ups)
+}
+
+// writeFill writes fr, the fill record of the block at filled, at its
+// stamp, with its fill-born index entry and, unless empty, its up pairs.
+func (r *Records) writeFill(ctx context.Context, filled []byte, fr *JournalRecord, ups []byte) error {
+	// Write the record and its index entry, then the up pairs.
 	value, err := fr.MarshalVT()
 	if err != nil {
 		return err
 	}
-	if err := r.tx.Set(ctx, r.fillRecordKey(at, key), value); err != nil {
+	at := fr.GetAtUnixMilli()
+	if err := r.tx.Set(ctx, r.fillRecordKey(at, filled), value); err != nil {
 		return err
 	}
-	if err := r.tx.Set(ctx, r.fillBornKey(key, at), nil); err != nil {
+	if err := r.tx.Set(ctx, r.fillBornKey(filled, at), nil); err != nil {
 		return err
 	}
-
-	// Write the children's up pairs for the collector to apply first.
-	if len(children) == 0 {
+	if len(ups) == 0 {
 		return nil
 	}
-	return r.tx.Set(ctx, r.fillUpsKey(at, key), EncodeChildren(children))
+	return r.tx.Set(ctx, r.fillUpsKey(at, filled), ups)
 }
 
 // fillUpsKey returns the key of the up pairs of the fill record of the block
@@ -145,28 +125,14 @@ func (r *Records) fillUpsKey(at int64, key []byte) []byte {
 // scanFillUps calls fn with the key and children of each fill record's up
 // pairs not applied yet, until fn returns false or an error.
 func (r *Records) scanFillUps(ctx context.Context, fn func(key []byte, children []*block.BlockRef) (bool, error)) error {
-	// Walk the fill up records in key order.
 	prefix := r.key(kindFillUps)
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(prefix); err != nil {
-		return err
-	}
-	for ; it.Valid(); it.Next() {
-		value, err := it.Value()
+	return r.scan(ctx, prefix, nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		children, err := decodeValue(value)
 		if err != nil {
-			return err
+			return false, err
 		}
-		children, err := DecodeChildren(value)
-		if err != nil {
-			return err
-		}
-		more, err := fn(bytes.Clone(it.Key()), children)
-		if err != nil || !more {
-			return err
-		}
-	}
-	return it.Err()
+		return fn(append(bytes.Clone(prefix), key...), children)
+	})
 }
 
 // fillRecord is one fill record as the collector reads it.
@@ -179,44 +145,22 @@ type fillRecord struct {
 	rec *JournalRecord
 }
 
-// scanFillRecords calls fn with each fill record in time order, until fn
-// returns false or an error.
-func (r *Records) scanFillRecords(ctx context.Context, fn func(fr fillRecord) (bool, error)) error {
-	return r.scanFillRecordsFrom(ctx, 0, fn)
-}
-
-// scanFillRecordsFrom calls fn with each fill record stamped at from or
-// later, in time order, until fn returns false or an error.
-func (r *Records) scanFillRecordsFrom(ctx context.Context, from int64, fn func(fr fillRecord) (bool, error)) error {
-	// Walk the records in key order, which is time order, from from.
+// scanFillRecords calls fn with each fill record stamped at from or later,
+// in time order, until fn returns false or an error.
+func (r *Records) scanFillRecords(ctx context.Context, from int64, fn func(fr fillRecord) (bool, error)) error {
 	prefix := r.key(kindFillRecord)
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(r.fillRecordKey(from, nil)); err != nil {
-		return err
-	}
-	for ; it.Valid(); it.Next() {
-		// Decode the record.
-		key := it.Key()
-		if len(key) <= len(prefix)+8 {
-			return errors.New("fill record key is malformed")
+	seek := binary.BigEndian.AppendUint64(nil, uint64(from)) //nolint:gosec // times after 1970.
+	return r.scan(ctx, prefix, seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Decode the record and hand it to fn.
+		if len(key) <= 8 {
+			return false, errors.New("fill record key is malformed")
 		}
-		value, err := it.Value()
+		fr, err := decodeMsg[JournalRecord](value)
 		if err != nil {
-			return err
+			return false, err
 		}
-		fr := &JournalRecord{}
-		if err := fr.UnmarshalVT(value); err != nil {
-			return err
-		}
-
-		// Hand it to fn.
-		more, err := fn(fillRecord{key: append([]byte(nil), key...), filled: append([]byte(nil), key[len(prefix)+8:]...), rec: fr})
-		if err != nil || !more {
-			return err
-		}
-	}
-	return it.Err()
+		return fn(fillRecord{key: append(bytes.Clone(prefix), key...), filled: bytes.Clone(key[8:]), rec: fr})
+	})
 }
 
 // deleteFillRecord deletes a fill record with its fill-born index entry and
@@ -233,13 +177,33 @@ func (r *Records) deleteFillRecord(ctx context.Context, fr fillRecord) error {
 	return r.tx.Delete(ctx, fr.key)
 }
 
+// deleteFills deletes the oldest limit fill records, each as
+// deleteFillRecord does, and returns how many it deleted.
+func (r *Records) deleteFills(ctx context.Context, limit int) (int, error) {
+	// Take the records, then delete them.
+	var taken []fillRecord
+	err := r.scanFillRecords(ctx, 0, func(fr fillRecord) (bool, error) {
+		taken = append(taken, fr)
+		return len(taken) < limit, nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	for _, fr := range taken {
+		if err := r.deleteFillRecord(ctx, fr); err != nil {
+			return 0, err
+		}
+	}
+	return len(taken), nil
+}
+
 // restampFillRecord moves a fill record stamped after now to now, with its
 // fill-born index entry and its up pairs not applied yet, so it ages from
 // the time the collector first saw it.
 func (r *Records) restampFillRecord(ctx context.Context, fr fillRecord, now int64) error {
-	// Read the up pairs not applied yet, then delete the record at its old
-	// time.
-	ups, found, err := r.tx.Get(ctx, r.fillUpsKey(fr.rec.GetAtUnixMilli(), fr.filled))
+	// Read the up pairs not applied yet, delete the record at its old time,
+	// and write it again at now.
+	ups, _, err := r.tx.Get(ctx, r.fillUpsKey(fr.rec.GetAtUnixMilli(), fr.filled))
 	if err != nil {
 		return err
 	}
@@ -247,24 +211,9 @@ func (r *Records) restampFillRecord(ctx context.Context, fr fillRecord, now int6
 	if err := r.deleteFillRecord(ctx, fr); err != nil {
 		return err
 	}
-
-	// Write it again at now.
 	moved := fr.rec.CloneVT()
 	moved.AtUnixMilli = now
-	value, err := moved.MarshalVT()
-	if err != nil {
-		return err
-	}
-	if err := r.tx.Set(ctx, r.fillRecordKey(now, fr.filled), value); err != nil {
-		return err
-	}
-	if err := r.tx.Set(ctx, r.fillBornKey(fr.filled, now), nil); err != nil {
-		return err
-	}
-	if !found {
-		return nil
-	}
-	return r.tx.Set(ctx, r.fillUpsKey(now, fr.filled), ups)
+	return r.writeFill(ctx, fr.filled, moved, ups)
 }
 
 // fillBorn reports whether a fill record not netted yet gave birth to ref.
