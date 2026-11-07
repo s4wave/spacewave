@@ -117,6 +117,8 @@ type PackStore struct {
 	soleWriter bool
 	// exactReads makes the pack readers fetch only the bytes a miss needs.
 	exactReads bool
+	// readCache serves block extents before the bucket, or is nil.
+	readCache RangeCache
 	// linger is how long a short upload batch waits for more blocks.
 	linger time.Duration
 	// maxPackBytes bounds one packfile a batch writes.
@@ -227,6 +229,8 @@ type PackStoreOptions struct {
 	// packs mean fewer objects and index rows, and each upload holds about
 	// three copies of its blocks in memory. Readers take a pack of any size.
 	MaxPackBytes int64
+	// ReadCache serves block extents before the bucket. Nil reads the bucket.
+	ReadCache RangeCache
 	// SoleWriter says no other writer adds packfiles under the prefix, so the
 	// store lists the bucket only for its first load, and not even then when
 	// the index's table holds a pack: the store's own writes keep its entries
@@ -270,6 +274,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		refreshInterval: refresh,
 		soleWriter:      opts.SoleWriter,
 		exactReads:      opts.ExactReads,
+		readCache:       opts.ReadCache,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
 		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
@@ -582,17 +587,6 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	}
 
 	// Otherwise read it through the pack readers.
-	stored, err := s.lookupStored(ctx, ref)
-	if errors.Is(err, hash.ErrHashMismatch) && s.distrustReads() {
-		// Bytes from a read cache failed their hash: read past the cache.
-		return s.lookupStored(ctx, ref)
-	}
-	return stored, err
-}
-
-// lookupStored reads the block through the pack readers.
-func (s *PackStore) lookupStored(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Look again when the listed packs may have changed.
 	var stored *block.StoredBlock
 	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
 		var err error
@@ -602,24 +596,25 @@ func (s *PackStore) lookupStored(ctx context.Context, ref *block.BlockRef) (*blo
 	return stored, err
 }
 
-// ReadDistruster is an ObjectStore whose reads may come from a cache that can
-// be wrong. Every block a read returns is verified, so bad bytes cost a failed
-// read and never a wrong block; this lets the store read past the cache
-// instead of failing.
-type ReadDistruster interface {
-	// DistrustReads stops reading the cache for a while.
-	DistrustReads()
+// RangeCache holds copies of packs near this store. Only a block's verified
+// bytes are read from it, never a pack's index or an answer about what the
+// bucket holds: a copy can outlive or differ from the bucket, and the store's
+// callers drop local blocks on what the bucket holds.
+type RangeCache interface {
+	// ReadCached reads the whole range of pack id, or reports false.
+	ReadCached(ctx context.Context, id string, off int64, length int) ([]byte, bool)
 }
 
-// distrustReads tells the object store that bytes it returned were wrong, and
-// reports whether a read can now see different bytes.
-func (s *PackStore) distrustReads() bool {
-	// Only a store with a cache can read differently.
-	d, ok := s.client.(ReadDistruster)
-	if ok {
-		d.DistrustReads()
+// verifiedBlock decodes data and checks it holds the block.
+func verifiedBlock(ref *block.BlockRef, data []byte) (*block.StoredBlock, error) {
+	stored, err := block.DecodeBlockObject(data)
+	if err != nil {
+		return nil, err
 	}
-	return ok
+	if err := ref.VerifyData(stored.Data, false); err != nil {
+		return nil, err
+	}
+	return stored, nil
 }
 
 // extentReadsOn turns on the extent read path of every PackStore; see
@@ -657,23 +652,21 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 
 	// Read and verify the block's bytes, once for every concurrent reader.
 	value, _, _ := s.extentReads.Do(string(key), func() (any, error) {
+		// A cached copy saves the read; anything wrong with it costs only that.
+		if s.readCache != nil {
+			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
+				if stored, err := verifiedBlock(ref, data); err == nil {
+					return stored, nil
+				}
+			}
+		}
+
 		// Read the extent.
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
 		if err != nil {
 			return nil, err
 		}
-
-		// Bytes that fail their hash came from a cache that can be wrong, or a
-		// row that names the wrong pack; the pack readers then read past it.
-		stored, err := block.DecodeBlockObject(data)
-		if err != nil {
-			return nil, err
-		}
-		if err := ref.VerifyData(stored.Data, false); err != nil {
-			s.distrustReads()
-			return nil, err
-		}
-		return stored, nil
+		return verifiedBlock(ref, data)
 	})
 	stored, _ := value.(*block.StoredBlock)
 	return stored

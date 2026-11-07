@@ -14,6 +14,10 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// ErrNodeQuiet is the Result of a publication not pushed because the node just
+// timed out.
+var ErrNodeQuiet = errors.New("storage node quiet")
+
 // quietFor is how long commits stop waiting for a node that timed out.
 const quietFor = 5 * time.Second
 
@@ -35,6 +39,9 @@ type Result func(err error, sent time.Duration)
 // Invariant: the receipt's result is the local store's result alone. The node
 // adds a wait, bounded by max(wait, the local commit), and never an error, so
 // a block the node lost is still queued for upload by the local store.
+//
+// Local commits never wait for the node. A receipt does wait for the receipt
+// before it, so the writer hears its commits in order.
 type Publisher struct {
 	block.AtomicPublisher
 
@@ -76,7 +83,11 @@ func (p *Publisher) SubmitAtomic(ctx context.Context, publication *block.AtomicP
 
 	// Push what the publication stores, if anything.
 	entries := pushed(publication.Entries)
-	if len(entries) == 0 || !p.pushing() {
+	if len(entries) != 0 && !p.pushing() {
+		p.skipped()
+		entries = nil
+	}
+	if len(entries) == 0 {
 		entries = nil
 	}
 
@@ -120,6 +131,14 @@ func (p *Publisher) finishOuter(local *block.PublicationReceipt, entries []*bloc
 // error reports, then costs one wait and not one for each commit.
 func (p *Publisher) pushing() bool {
 	return p.on != nil && p.on.Load() && time.Now().UnixNano() >= p.quietUntil.Load()
+}
+
+// skipped reports a publication with only the local store's durability, unless
+// the switch is off, which is the ordinary state.
+func (p *Publisher) skipped() {
+	if p.result != nil && p.on != nil && p.on.Load() {
+		p.result(ErrNodeQuiet, 0)
+	}
 }
 
 // previousOuter returns the last outer receipt still waiting, or nil.

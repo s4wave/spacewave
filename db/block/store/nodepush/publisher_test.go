@@ -181,7 +181,7 @@ func TestPublisherReceipts(t *testing.T) {
 	local.receipts[6].Resolve(nil)
 	waitDone(t, slow)
 	p.Close()
-	if results.Load() != 4 {
+	if results.Load() != 5 {
 		t.Fatalf("results %d", results.Load())
 	}
 }

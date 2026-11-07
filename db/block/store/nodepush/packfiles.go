@@ -19,6 +19,10 @@ import (
 // asked for again by the next read of the pack.
 const fillQueue = 1024
 
+// maxReadBytes bounds one read, so a read's answer never holds up the answers
+// commits wait for on the same connection. A larger block reads the remote.
+const maxReadBytes = 1 << 20
+
 // Source reads packs from the remote.
 type Source interface {
 	// GetObject opens the object's body. The caller must Close it.
@@ -82,7 +86,7 @@ func (p *PackFiles) hasRoom() bool {
 // ReadRange reads a range of pack id, and queues a fill when it lacks the pack.
 func (p *PackFiles) ReadRange(id string, off int64, length uint32) ([]byte, bool) {
 	// Only a valid name reaches the disk: it comes off the wire.
-	if identity.ValidatePackID(id) != nil || off < 0 || length > maxMessageBytes/2 {
+	if identity.ValidatePackID(id) != nil || off < 0 || length > maxReadBytes {
 		return nil, false
 	}
 	f, err := os.Open(p.path(id)) // #nosec G304 -- the id was validated above

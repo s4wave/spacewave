@@ -11,12 +11,12 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
@@ -384,11 +384,9 @@ func TestReportWaitsOnNoConnection(t *testing.T) {
 	waitFor(t, func() bool { return apply.applied.Load() == 3*maxFramesQueued })
 }
 
-// objectRemote is the remote's object store, counting range reads.
+// objectRemote is the remote's object store.
 type objectRemote struct {
-	block_store_s3.ObjectStore
 	objects map[string][]byte
-	ranges  atomic.Int32
 }
 
 // GetObject opens an object.
@@ -400,16 +398,9 @@ func (o *objectRemote) GetObject(_ context.Context, _, key string) (io.ReadClose
 	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
-// GetObjectRange reads a range, shorter at the end of the object.
-func (o *objectRemote) GetObjectRange(_ context.Context, _, key string, off int64, length int) ([]byte, error) {
-	o.ranges.Add(1)
-	data := o.objects[key]
-	return data[min(int(off), len(data)):min(int(off)+length, len(data))], nil
-}
-
-// TestReadThrough reads ranges through the node: a miss answers from the remote
-// and fills the pack, the next read comes from the node, and a node that is
-// away or distrusted costs nothing but the remote read.
+// TestReadThrough reads ranges through the node: a miss fills the pack, the
+// next read comes from the node, and a short range, a bad name, the switch and
+// a node that is away or silent all report false rather than an answer.
 func TestReadThrough(t *testing.T) {
 	// A node with no packs, and a remote with one.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -431,36 +422,28 @@ func TestReadThrough(t *testing.T) {
 	end := connect(ctx, t, client, server)
 	var on atomic.Bool
 	var reach atomic.Pointer[Client]
-	objects := NewObjects(remote, time.Second, &on, &reach)
+	reads := NewReads(time.Second, &on, &reach)
 	reach.Store(client)
 	on.Store(true)
-	key := "p/packs/" + id
-	read := func() string {
-		t.Helper()
-		data, err := objects.GetObjectRange(ctx, "bucket", key, 4, 4)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return string(data)
-	}
 
-	// The miss reads the remote and starts the fill.
-	if got := read(); got != "pack" || remote.ranges.Load() != 1 {
-		t.Fatalf("miss read %q, %d remote reads", got, remote.ranges.Load())
+	// A miss answers false and starts the fill.
+	if _, ok := reads.ReadCached(ctx, id, 4, 4); ok {
+		t.Fatal("read a pack the node lacks")
 	}
 	waitFor(t, func() bool {
 		_, ok := packs.ReadRange(id, 0, 1)
 		return ok
 	})
 
-	// The fill serves the next read, without the remote.
-	if got := read(); got != "pack" || remote.ranges.Load() != 1 {
-		t.Fatalf("hit read %q, %d remote reads", got, remote.ranges.Load())
+	// The fill serves the next read.
+	if data, ok := reads.ReadCached(ctx, id, 4, 4); !ok || string(data) != "pack" {
+		t.Fatalf("hit read %q %v", data, ok)
 	}
 
-	// A range past the end comes back short, as the object store's does.
-	if data, ok := client.ReadRange(ctx, id, 12, 100); !ok || string(data) != "ytes" {
-		t.Fatalf("short read %q %v", data, ok)
+	// A range past the end is no answer: a copy shorter than the remote's must
+	// never pass for a whole extent.
+	if data, ok := reads.ReadCached(ctx, id, 12, 100); ok {
+		t.Fatalf("short range answered %q", data)
 	}
 
 	// A name that leaves the directory reaches no file.
@@ -468,21 +451,14 @@ func TestReadThrough(t *testing.T) {
 		t.Fatal("read outside the pack directory")
 	}
 
-	// Distrusted, reads go to the remote though the node holds the pack.
-	objects.DistrustReads()
-	if got := read(); got != "pack" || remote.ranges.Load() != 2 {
-		t.Fatalf("distrusted read %q, %d remote reads", got, remote.ranges.Load())
-	}
-	objects.distrustUntil.Store(0)
-
-	// The switch keeps reads off the node as well.
+	// The switch keeps reads off the node.
 	on.Store(false)
-	if got := read(); got != "pack" || remote.ranges.Load() != 3 {
-		t.Fatalf("switched off read %q, %d remote reads", got, remote.ranges.Load())
+	if _, ok := reads.ReadCached(ctx, id, 4, 4); ok {
+		t.Fatal("read with the switch off")
 	}
 	on.Store(true)
 
-	// A full disk leaves the pack unfilled, and reads carry on from the remote.
+	// A full disk leaves the pack unfilled.
 	full := identity.NewPackID()
 	remote.objects["p/packs/"+full] = []byte("no room")
 	packs.SetRoom(func() bool { return false })
@@ -494,10 +470,68 @@ func TestReadThrough(t *testing.T) {
 	}
 	packs.SetRoom(nil)
 
-	// A node that goes away ends the read at once, and the remote answers.
+	// A node that goes away answers false at once.
 	end()
-	if got := read(); got != "pack" || remote.ranges.Load() != 4 {
-		t.Fatalf("read with the node away %q, %d remote reads", got, remote.ranges.Load())
+	if _, ok := reads.ReadCached(ctx, id, 4, 4); ok {
+		t.Fatal("read from a node that went away")
+	}
+}
+
+// TestHungReadsHoldNoPush fills every read slot with reads that never finish,
+// and a push behind them must still answer.
+func TestHungReadsHoldNoPush(t *testing.T) {
+	// A pack that is a FIFO hangs its reader, as a hung disk does.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dir := t.TempDir()
+	packs, err := NewPackFiles(logrus.NewEntry(logrus.New()), dir+"/packs", &objectRemote{}, "bucket", "p/packs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := identity.NewPackID()
+	if err := syscall.Mkfifo(filepath.Join(dir, "packs", id), 0o600); err != nil {
+		t.Skip("no fifo here")
+	}
+	server, err := NewServer(nopHolder{}, dir+"/reports")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.SetPacks(packs)
+	client := NewClient(logrus.NewEntry(logrus.New()), &slowApplier{})
+	end := connect(ctx, t, client, server)
+
+	// More reads than slots, none of which will ever answer.
+	for range 2 * maxReadsInFlight {
+		readCtx, done := context.WithTimeout(ctx, 5*time.Millisecond)
+		go func() {
+			defer done()
+			client.ReadRange(readCtx, id, 0, 4)
+		}()
+	}
+
+	// A push still answers at once.
+	sendCtx, done := context.WithTimeout(ctx, 3*time.Second)
+	defer done()
+	if err := client.Send(sendCtx, []*block.PutBatchEntry{entry(t, "behind the reads")}); err != nil {
+		t.Fatalf("push behind hung reads: %v", err)
+	}
+
+	// The connection still ends.
+	finished := make(chan struct{})
+	go func() {
+		end()
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case <-time.After(5 * time.Second):
+		t.Fatal("hung reads held the connection's end")
+	}
+	for range maxReadsInFlight {
+		f, err := os.OpenFile(filepath.Join(dir, "packs", id), os.O_WRONLY|syscall.O_NONBLOCK, 0)
+		if err == nil {
+			_ = f.Close()
+		}
 	}
 }
 

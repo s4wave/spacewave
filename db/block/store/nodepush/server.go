@@ -171,17 +171,19 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 				send(ctx, out, s.hold(ctx, body.Push))
 			}()
 		case *Message_Read:
+			// Never wait for a slot here: pushes come through this loop, and
+			// a hung disk must not hold them. A read with no slot times out
+			// on the local store, which then reads the remote. A hung read
+			// stays out of running too, so it can't hold this connection's
+			// end, and the slots bound how many there are.
 			select {
 			case readSlots <- struct{}{}:
-			case <-ctx.Done():
-				return ctx.Err()
+				go func() {
+					defer func() { <-readSlots }()
+					send(ctx, out, s.read(body.Read))
+				}()
+			default:
 			}
-			running.Add(1)
-			go func() {
-				defer running.Done()
-				defer func() { <-readSlots }()
-				send(ctx, out, s.read(body.Read))
-			}()
 		case *Message_PackApplied:
 			if body.PackApplied.GetFailed() {
 				s.rotate(body.PackApplied.GetPackId())
@@ -456,7 +458,9 @@ func (r *ReportingRemote) PutPackFile(ctx context.Context, id string, data []byt
 		return nil, err
 	}
 
-	// Report it with what the local store needs to find its blocks.
+	// Keep it for reads before the local store can ask, so the first read
+	// doesn't download what the node is writing, then report it with what the
+	// local store needs to find its blocks.
 	index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile index")
@@ -469,14 +473,13 @@ func (r *ReportingRemote) PutPackFile(ctx context.Context, id string, data []byt
 	if err != nil {
 		return nil, err
 	}
+	if r.server.packs != nil {
+		r.server.packs.Keep(id, data)
+	}
 	if err := r.server.report(&PackReport{PackId: id, Entry: encoded, Keys: keys}); err != nil {
 		return nil, err
 	}
 
-	// Keep the pack for reads, beyond the log's eviction of it.
-	if r.server.packs != nil {
-		r.server.packs.Keep(id, data)
-	}
 	return entry, nil
 }
 

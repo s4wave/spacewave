@@ -3,7 +3,6 @@ package provider_local
 import (
 	"context"
 	"net"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,8 +23,9 @@ const nodeRedial = 5 * time.Second
 // NodePushConfig sends the publications of an account's block stores to a
 // storage node.
 type NodePushConfig struct {
-	// StoreIDs lists the block stores to push.
-	StoreIDs []string
+	// StoreID names the one block store to push: a node serves one connection,
+	// so a second store would keep replacing the first.
+	StoreID string
 	// Dial connects to the node. It must return when ctx ends.
 	Dial func(ctx context.Context) (net.Conn, error)
 	// Wait is the least a commit waits for the node's flush. A slower local
@@ -100,25 +100,20 @@ func (t *bstoreTracker) nodePushConfig() *NodePushConfig {
 
 	// It applies only to the stores it names.
 	conf := value.(*NodePushConfig)
-	if !slices.Contains(conf.StoreIDs, t.id) {
+	if conf.StoreID != t.id {
 		return nil
 	}
 	return conf
 }
 
-// nodeReads returns the wrapper that reads this store's backend through its
-// storage node, or nil for a store without one.
-func (t *bstoreTracker) nodeReads() func(block_store_s3.ObjectStore) block_store_s3.ObjectStore {
-	// A store without a node reads its backend directly.
+// nodeReads returns this store's read cache on its storage node, or nil. A nil
+// interface matters: a typed nil would look like a cache to the pack store.
+func (t *bstoreTracker) nodeReads() block_store_s3.RangeCache {
 	conf := t.nodePushConfig()
 	if conf == nil || conf.On == nil {
 		return nil
 	}
-
-	// Each opened backend reads through the store's one client.
-	return func(store block_store_s3.ObjectStore) block_store_s3.ObjectStore {
-		return block_store_nodepush.NewObjects(store, conf.ReadWait, conf.On, &t.nodeClient)
-	}
+	return block_store_nodepush.NewReads(conf.ReadWait, conf.On, &t.nodeClient)
 }
 
 // startNodePush starts pushing handle's publications when the account names
