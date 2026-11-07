@@ -13,8 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// reportRetry is how long a report that failed to apply waits for its next try.
-const reportRetry = 5 * time.Second
+// maxFramesQueued bounds the frames waiting for the socket, each at most
+// maxMessageBytes, including those of pushes that gave up.
+const maxFramesQueued = 16
 
 // ErrNodeAway is returned by Send while no connection to the node is up.
 var ErrNodeAway = errors.New("storage node away")
@@ -41,11 +42,13 @@ type Client struct {
 	next uint64
 	// waiting holds the answer channel of each push in flight.
 	waiting map[uint64]chan error
+	// reading holds the answer channel of each read in flight.
+	reading map[uint64]chan *ReadData
 }
 
 // NewClient builds a Client that hands reported packs to applier.
 func NewClient(le *logrus.Entry, applier Applier) *Client {
-	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error)}
+	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData)}
 }
 
 // Run keeps a connection to the node up through dial until ctx ends.
@@ -122,6 +125,75 @@ func (c *Client) begin() (uint64, chan error, chan<- []byte) {
 	return c.next, answer, c.out
 }
 
+// ReadRange asks the node for a range of pack id. It reports false when the
+// node lacks the pack, is away, or ctx ends first.
+func (c *Client) ReadRange(ctx context.Context, id string, off int64, length int) ([]byte, bool) {
+	// Take a read id on the live connection.
+	req, answer, out := c.beginRead()
+	if out == nil {
+		return nil, false
+	}
+	defer c.forgetRead(req)
+
+	// Send the read.
+	frame, err := encodeMessage(&Message{Body: &Message_Read{Read: &Read{Id: req, PackId: id, Off: off, Length: uint32(max(length, 0))}}}) //nolint:gosec // a range is far below 4 GiB
+	if err != nil {
+		return nil, false
+	}
+	select {
+	case out <- frame:
+	case <-ctx.Done():
+		return nil, false
+	}
+
+	// Wait for the answer. A closed channel means the connection ended.
+	select {
+	case data, ok := <-answer:
+		if !ok || data.GetMiss() {
+			return nil, false
+		}
+		return data.GetData(), true
+	case <-ctx.Done():
+		return nil, false
+	}
+}
+
+// beginRead numbers a read on the live connection and returns its id, its
+// answer channel and the connection's frames, nil while no connection is up.
+func (c *Client) beginRead() (uint64, chan *ReadData, chan<- []byte) {
+	// Only a live connection takes a read.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if c.out == nil {
+		return 0, nil, nil
+	}
+
+	// Number it and keep its answer channel.
+	c.next++
+	answer := make(chan *ReadData, 1)
+	c.reading[c.next] = answer
+	return c.next, answer, c.out
+}
+
+// forgetRead drops read id's answer channel.
+func (c *Client) forgetRead(id uint64) {
+	// The answer may have removed it already.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	delete(c.reading, id)
+}
+
+// answerRead delivers the answer of a read, which holds one answer.
+func (c *Client) answerRead(data *ReadData) {
+	// A read that gave up has no channel left.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if answer := c.reading[data.GetId()]; answer != nil {
+		answer <- data
+		delete(c.reading, data.GetId())
+	}
+}
+
 // forget drops push id's answer channel.
 func (c *Client) forget(id uint64) {
 	c.mtx.Lock()
@@ -155,7 +227,7 @@ func deliver(answer chan<- error, err error) {
 func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 	// Publish the connection, and on the way out fail what it carried.
 	ctx, cancel := context.WithCancel(ctx)
-	out := make(chan []byte, 64)
+	out := make(chan []byte, maxFramesQueued)
 	c.mtx.Lock()
 	c.out = out
 	c.mtx.Unlock()
@@ -174,7 +246,7 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
 	}()
-	reports := make(chan *PackReport, 64)
+	reports := make(chan *PackReport, 2)
 	go func() {
 		defer running.Done()
 		c.applyReports(ctx, reports, out)
@@ -192,11 +264,15 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 			c.answer(body.Flushed.GetId(), nil)
 		case *Message_Refused:
 			c.answer(body.Refused.GetId(), errors.New(body.Refused.GetReason()))
+		case *Message_ReadData:
+			c.answerRead(body.ReadData)
 		case *Message_PackReport:
+			// Never block here: this loop carries the answers every commit
+			// waits for. The node sends one report at a time and repeats it,
+			// so a report that does not fit is heard again.
 			select {
 			case reports <- body.PackReport:
-			case <-ctx.Done():
-				return ctx.Err()
+			default:
 			}
 		}
 	}
@@ -204,6 +280,7 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 
 // disconnect marks the node away and fails the pushes in flight.
 func (c *Client) disconnect() {
+	// Take the connection down, then end everything that waits on it.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	c.out = nil
@@ -211,22 +288,15 @@ func (c *Client) disconnect() {
 		deliver(answer, ErrNodeAway)
 		delete(c.waiting, id)
 	}
+	for id, answer := range c.reading {
+		close(answer)
+		delete(c.reading, id)
+	}
 }
 
-// retryReport offers report again after a pause, unless the connection ends
-// first: the node then repeats it on the next one.
-func (c *Client) retryReport(ctx context.Context, reports chan<- *PackReport, report *PackReport) {
-	time.AfterFunc(reportRetry, func() {
-		select {
-		case reports <- report:
-		case <-ctx.Done():
-		}
-	})
-}
-
-// applyReports applies each report and acknowledges it. An unapplied report
-// goes unacknowledged and is tried again.
-func (c *Client) applyReports(ctx context.Context, reports chan *PackReport, out chan<- []byte) {
+// applyReports applies each report and answers it. The node sends a report that
+// failed again later.
+func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, out chan<- []byte) {
 	for {
 		// Take the next report.
 		var report *PackReport
@@ -237,12 +307,11 @@ func (c *Client) applyReports(ctx context.Context, reports chan *PackReport, out
 		}
 
 		// Apply it, and say so.
-		if err := c.applier.ApplyPack(ctx, report); err != nil {
+		err := c.applier.ApplyPack(ctx, report)
+		if err != nil {
 			c.le.WithError(err).WithField("pack", report.GetPackId()).Warn("unable to apply a reported pack")
-			c.retryReport(ctx, reports, report)
-			continue
 		}
-		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId()}}})
+		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId(), Failed: err != nil}}})
 		if err != nil {
 			continue
 		}

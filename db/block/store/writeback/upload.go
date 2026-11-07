@@ -434,6 +434,10 @@ func (s *Store) uploadRound(ctx context.Context, remote block.StoreOps, round up
 type BlockLocator interface {
 	// LocateBlocks reports, for each ref, whether the remote holds it.
 	LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+	// KeepsBlocks reports that the remote never reclaims a block it holds. A
+	// remote that does relies on the next writer of a dead block uploading it
+	// again, so a block it locates may not stay.
+	KeepsBlocks() bool
 }
 
 // SetLocateUploaded makes Upload skip the blocks the remote already holds, such
@@ -450,7 +454,7 @@ func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch 
 	// Only a remote with an index can answer without reading the remote.
 	locator, ok := remote.(BlockLocator)
 	on := s.locate.Load()
-	if !ok || on == nil || !on.Load() {
+	if !ok || on == nil || !on.Load() || !locator.KeepsBlocks() {
 		return nil
 	}
 

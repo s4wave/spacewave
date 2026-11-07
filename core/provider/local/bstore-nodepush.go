@@ -3,7 +3,6 @@ package provider_local
 import (
 	"context"
 	"net"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,16 +22,21 @@ const nodeRedial = 5 * time.Second
 // NodePushConfig sends the publications of an account's block stores to a
 // storage node.
 type NodePushConfig struct {
-	// StoreIDs lists the block stores to push.
-	StoreIDs []string
-	// Dial connects to the node.
+	// StoreID names the one block store to push: a node serves one connection,
+	// so a second store, on any account, would keep replacing the first.
+	StoreID string
+	// Dial connects to the node. It must return when ctx ends.
 	Dial func(ctx context.Context) (net.Conn, error)
 	// Wait is the least a commit waits for the node's flush. A slower local
 	// commit gives the node all of its time.
 	Wait time.Duration
-	// On is the runtime switch for the push and for clearing queued blocks the
-	// node uploaded. Off, a store commits and uploads as it would without a
-	// node.
+	// ReadWait bounds one read from the node, before the backend answers it.
+	ReadWait time.Duration
+	// On is the runtime switch for the push, for clearing queued blocks the
+	// node uploaded and for reading through the node. Off, a store commits,
+	// uploads and reads as it would without a node, and still adopts what the
+	// node already uploaded, which only adds blocks it can read. A nil On stays
+	// off.
 	On *atomic.Bool
 	// Result reports each push, or is nil.
 	Result block_store_nodepush.Result
@@ -66,11 +70,39 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 	if remote == nil {
 		return errors.New("storage backend not open")
 	}
+
+	// Only a pack store adopts.
 	adopter, ok := remote.(block_store_nodepush.Adopter)
 	if !ok {
 		return errors.New("storage backend adopts no packs")
 	}
 	return adopter.AdoptPack(ctx, entry, keys)
+}
+
+// nodePushConfig returns this store's NodePushConfig, or nil.
+func (t *bstoreTracker) nodePushConfig() *NodePushConfig {
+	// Find the account's config.
+	value, ok := nodePushes.Load(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()))
+	if !ok {
+		return nil
+	}
+
+	// It applies only to the stores it names.
+	conf := value.(*NodePushConfig)
+	if conf.StoreID != t.id {
+		return nil
+	}
+	return conf
+}
+
+// nodeReads returns this store's read cache on its storage node, or nil. A nil
+// interface matters: a typed nil would look like a cache to the pack store.
+func (t *bstoreTracker) nodeReads() block_store_s3.RangeCache {
+	conf := t.nodePushConfig()
+	if conf == nil || conf.On == nil {
+		return nil
+	}
+	return block_store_nodepush.NewReads(conf.ReadWait, conf.On, &t.nodeClient)
 }
 
 // startNodePush starts pushing handle's publications when the account names
@@ -83,12 +115,8 @@ func (t *bstoreTracker) startNodePush(
 	handle *BlockStore,
 ) func() {
 	// Push only a store the config names.
-	value, ok := nodePushes.Load(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()))
-	if !ok {
-		return func() {}
-	}
-	conf := value.(*NodePushConfig)
-	if !slices.Contains(conf.StoreIDs, t.id) {
+	conf := t.nodePushConfig()
+	if conf == nil || conf.On == nil {
 		return func() {}
 	}
 
@@ -96,6 +124,7 @@ func (t *bstoreTracker) startNodePush(
 	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement}))
 	handle.push = block_store_nodepush.NewPublisher(client, conf.Wait, conf.On, conf.Result)
 	wb.SetLocateUploaded(conf.On)
+	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
 	// Keep the connection up until the store unmounts.
@@ -106,6 +135,7 @@ func (t *bstoreTracker) startNodePush(
 		_ = client.Run(runCtx, conf.Dial, nodeRedial)
 	}()
 	return func() {
+		t.nodeClient.Store(nil)
 		cancel()
 		<-done
 		handle.push.Close()

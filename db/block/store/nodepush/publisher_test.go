@@ -35,14 +35,15 @@ func (n *node) Send(ctx context.Context, _ []*block.PutBatchEntry) error {
 }
 
 // TestPublisherRootChanges checks disabled, successful, failed and silent node
-// pushes, including a local commit that outlasts the configured wait.
+// pushes, the quiet after a timeout, entries with unknown refs, and a local
+// commit that outlasts the configured wait.
 func TestPublisherRootChanges(t *testing.T) {
 	// Build one root change and its node sender.
 	ref, err := block.BuildBlockRef([]byte("x"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := []*block.PutBatchEntry{{Data: []byte("x"), Ref: ref}}
+	entries := []*block.PutBatchEntry{{Data: []byte("x"), Ref: ref, RefsKnown: true}}
 	roots := []block.NamedRoot{{Name: "main", Ref: ref}}
 	n := &node{flush: make(chan error, 1)}
 	var on atomic.Bool
@@ -94,6 +95,22 @@ func TestPublisherRootChanges(t *testing.T) {
 		t.Fatalf("silent node: %v, sends running %d", err, n.running.Load())
 	}
 
+	// After a timeout commits stop waiting for the node for a while, and an
+	// entry with unknown refs is never pushed.
+	sends := n.sends.Load()
+	committed := false
+	if err := p.SetRoots(t.Context(), entries, roots, func(ctx context.Context, e []*block.PutBatchEntry, r []block.NamedRoot) error {
+		committed = true
+		return commit(ctx, e, r)
+	}); err != nil || !committed || n.sends.Load() != sends {
+		t.Fatalf("quiet node: %v, committed %v, sends %d", err, committed, n.sends.Load()-sends)
+	}
+	p.quietUntil.Store(0)
+	unknown := []*block.PutBatchEntry{{Data: []byte("x"), Ref: ref}}
+	if err := p.SetRoots(t.Context(), unknown, roots, func(context.Context, []*block.PutBatchEntry, []block.NamedRoot) error { return nil }); err != nil || n.sends.Load() != sends {
+		t.Fatalf("unknown refs: %v, sends %d", err, n.sends.Load()-sends)
+	}
+
 	// A slow local commit lets the node use all of its time beyond the wait.
 	n.flush = make(chan error, 1)
 	if err := p.SetRoots(t.Context(), entries, roots, func(ctx context.Context, e []*block.PutBatchEntry, r []block.NamedRoot) error {
@@ -104,7 +121,7 @@ func TestPublisherRootChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.Close()
-	if results.Load() != 4 {
+	if results.Load() != 5 {
 		t.Fatalf("results %d", results.Load())
 	}
 }

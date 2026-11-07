@@ -118,7 +118,7 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := newFallbackTestOn(t, func() backendStore {
-		store, err := buildFTPSBlockStore(logrus.NewEntry(logrus.New()), backend.GetFtps(), tlsConf, hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()))
+		store, err := buildFTPSBlockStore(logrus.NewEntry(logrus.New()), backend.GetFtps(), tlsConf, hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

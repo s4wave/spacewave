@@ -117,6 +117,8 @@ type PackStore struct {
 	soleWriter bool
 	// exactReads makes the pack readers fetch only the bytes a miss needs.
 	exactReads bool
+	// readCache serves block extents before the bucket, or is nil.
+	readCache RangeCache
 	// linger is how long a short upload batch waits for more blocks.
 	linger time.Duration
 	// maxPackBytes bounds one packfile a batch writes.
@@ -227,6 +229,8 @@ type PackStoreOptions struct {
 	// packs mean fewer objects and index rows, and each upload holds about
 	// three copies of its blocks in memory. Readers take a pack of any size.
 	MaxPackBytes int64
+	// ReadCache serves block extents before the bucket. Nil reads the bucket.
+	ReadCache RangeCache
 	// SoleWriter says no other writer adds packfiles under the prefix, so the
 	// store lists the bucket only for its first load, and not even then when
 	// the index's table holds a pack: the store's own writes keep its entries
@@ -270,6 +274,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		refreshInterval: refresh,
 		soleWriter:      opts.SoleWriter,
 		exactReads:      opts.ExactReads,
+		readCache:       opts.ReadCache,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
 		mergeTailBytes:  max(opts.MergeTailBytes, 0),
 		maxPackBytes:    cmp.Or(max(opts.MaxPackBytes, 0), writer.DefaultMaxPackBytes),
@@ -573,12 +578,15 @@ func (s *PackStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 // GetStoredBlock returns the block with its refs. Returns nil if the block is
 // not found.
 func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Try the block's extent, which takes one range read.
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
 	if stored := s.readExtent(ctx, ref); stored != nil {
 		return stored, nil
 	}
+
+	// Otherwise read it through the pack readers.
 	var stored *block.StoredBlock
 	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
 		var err error
@@ -586,6 +594,29 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 		return stored == nil && placed[0], err
 	})
 	return stored, err
+}
+
+// RangeCache holds copies of packs near this store. Only a block's bytes are
+// read from it, never a pack's index or an answer about what the bucket holds: a
+// copy can outlive or differ from the bucket, and the store's callers drop local
+// blocks on what the bucket holds. The store checks the block's data against its
+// hash; the block's refs are not covered, so the cache must answer only bytes it
+// has checked itself.
+type RangeCache interface {
+	// ReadCached reads the whole range of pack id, or reports false.
+	ReadCached(ctx context.Context, id string, off int64, length int) ([]byte, bool)
+}
+
+// verifiedBlock decodes data and checks it holds the block.
+func verifiedBlock(ref *block.BlockRef, data []byte) (*block.StoredBlock, error) {
+	stored, err := block.DecodeBlockObject(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := ref.VerifyData(stored.Data, false); err != nil {
+		return nil, err
+	}
+	return stored, nil
 }
 
 // extentReadsOn turns on the extent read path of every PackStore; see
@@ -623,18 +654,21 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 
 	// Read and verify the block's bytes, once for every concurrent reader.
 	value, _, _ := s.extentReads.Do(string(key), func() (any, error) {
+		// A cached copy saves the read; anything wrong with it costs only that.
+		if s.readCache != nil {
+			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
+				if stored, err := verifiedBlock(ref, data); err == nil {
+					return stored, nil
+				}
+			}
+		}
+
+		// Read the extent.
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
 		if err != nil {
 			return nil, err
 		}
-		stored, err := block.DecodeBlockObject(data)
-		if err != nil {
-			return nil, err
-		}
-		if err := ref.VerifyData(stored.Data, false); err != nil {
-			return nil, err
-		}
-		return stored, nil
+		return verifiedBlock(ref, data)
 	})
 	stored, _ := value.(*block.StoredBlock)
 	return stored

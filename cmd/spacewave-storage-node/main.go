@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -39,6 +40,8 @@ type args struct {
 	prefix   string
 	conns    int
 	keepMiB  int64
+	minFree  uint64
+	backfill bool
 	linger   time.Duration
 }
 
@@ -59,6 +62,8 @@ func main() {
 		&cli.StringFlag{Name: "prefix", Usage: "object prefix of the pack store", Destination: &a.prefix},
 		&cli.IntFlag{Name: "conns", Usage: "SFTP connections", Value: 2, Destination: &a.conns},
 		&cli.Int64Flag{Name: "keep-mib", Usage: "uploaded packs the log keeps; bounds the memory its table takes", Value: 8192, Destination: &a.keepMiB},
+		&cli.Uint64Flag{Name: "min-free-gib", Usage: "keep and fill no read copies with less free disk than this", Value: 200, Destination: &a.minFree},
+		&cli.BoolFlag{Name: "backfill", Usage: "fill every pack the remote lists, one at a time", Destination: &a.backfill},
 		&cli.DurationFlag{Name: "linger", Usage: "rotate a pack once its first batch is this old", Value: 30 * time.Second, Destination: &a.linger},
 	}
 	app.Action = func(*cli.Context) error {
@@ -98,11 +103,24 @@ func (a *args) run(ctx context.Context) error {
 	}
 
 	// Reach the pack store. It keeps no index: the node only adds packs.
-	remote, err := a.openRemote(le)
+	client, remote, err := a.openRemote(le)
 	if err != nil {
 		return err
 	}
 	defer remote.Close()
+
+	// Serve reads from read copies of the packs, while the disk has room.
+	packDir := a.prefix + "packs"
+	packs, err := block_store_nodepush.NewPackFiles(le, filepath.Join(a.dir, "packs"), client, a.root, packDir)
+	if err != nil {
+		return err
+	}
+	packs.SetRoom(func() bool { return a.hasRoom(le) })
+	server.SetPacks(packs)
+	go packs.Run(ctx)
+	if a.backfill {
+		go a.fillAll(ctx, le, packs, client, packDir)
+	}
 
 	// Upload finished packs until ctx ends.
 	go a.drain(ctx, le, log, block_store_nodepush.NewReportingRemote(remote, server))
@@ -112,15 +130,15 @@ func (a *args) run(ctx context.Context) error {
 }
 
 // openRemote opens the SFTP pack store.
-func (a *args) openRemote(le *logrus.Entry) (*block_store_s3.PackStore, error) {
+func (a *args) openRemote(le *logrus.Entry) (*block_store_sftp.Client, *block_store_s3.PackStore, error) {
 	// Read the login, as the store's own host does.
 	host, _, err := net.SplitHostPort(a.sftpAddr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	logins, err := block_store_ftps.ReadNetrc(a.netrc, host)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Connect, and keep every pack.
@@ -132,9 +150,32 @@ func (a *args) openRemote(le *logrus.Entry) (*block_store_s3.PackStore, error) {
 		Conns:    a.conns,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return block_store_s3.NewPackStore(le, client, a.root, a.prefix, &block_store_s3.PackStoreOptions{KeepPacks: true, SoleWriter: true}), nil
+	store := block_store_s3.NewPackStore(le, client, a.root, a.prefix, &block_store_s3.PackStoreOptions{KeepPacks: true, SoleWriter: true})
+	return client, store, nil
+}
+
+// hasRoom reports whether the disk keeps its free space past a read copy.
+func (a *args) hasRoom(le *logrus.Entry) bool {
+	// Assume room when the disk can't say: a full disk fails only the copy.
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(a.dir, &stat); err != nil {
+		le.WithError(err).Warn("read the free disk space")
+		return true
+	}
+	return stat.Bavail*uint64(stat.Bsize) >= a.minFree<<30 //nolint:gosec // a block size is positive
+}
+
+// fillAll fills every pack the remote lists.
+func (a *args) fillAll(ctx context.Context, le *logrus.Entry, packs *block_store_nodepush.PackFiles, client *block_store_sftp.Client, packDir string) {
+	// Walk the listing, handing each name on as it comes.
+	err := packs.Backfill(ctx, func(fn func(id string) error) error {
+		return client.ListObjects(ctx, a.root, packDir+"/", func(key string, _ int64) error {
+			return fn(path.Base(key))
+		})
+	})
+	le.WithError(err).Info("backfill ended")
 }
 
 // drain uploads the log's finished packs until ctx ends, retrying a failure.
