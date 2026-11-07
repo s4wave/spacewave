@@ -36,6 +36,9 @@ type SRPCPackSweepAdminClient interface {
 	// Remove drops trashing packs whose entries and files are in the trash,
 	// first pointing each h row that names one at another holder of its key.
 	Remove(ctx context.Context, in *RemoveRequest) (*PacksResponse, error)
+	// Restore registers again trashing packs whose entries and files the
+	// command moved back from the trash, as for a pack a read missed.
+	Restore(ctx context.Context, in *PacksRequest) (*PacksResponse, error)
 	// Adopt registers packs another writer uploaded.
 	Adopt(ctx context.Context, in *AdoptRequest) (*AdoptResponse, error)
 	// ReadLog returns the write log's lines after a position.
@@ -134,6 +137,15 @@ func (c *srpcPackSweepAdminClient) Remove(ctx context.Context, in *RemoveRequest
 	return out, nil
 }
 
+func (c *srpcPackSweepAdminClient) Restore(ctx context.Context, in *PacksRequest) (*PacksResponse, error) {
+	out := new(PacksResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Restore", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcPackSweepAdminClient) Adopt(ctx context.Context, in *AdoptRequest) (*AdoptResponse, error) {
 	out := new(AdoptResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Adopt", in, out)
@@ -184,6 +196,9 @@ type SRPCPackSweepAdminServer interface {
 	// Remove drops trashing packs whose entries and files are in the trash,
 	// first pointing each h row that names one at another holder of its key.
 	Remove(context.Context, *RemoveRequest) (*PacksResponse, error)
+	// Restore registers again trashing packs whose entries and files the
+	// command moved back from the trash, as for a pack a read missed.
+	Restore(context.Context, *PacksRequest) (*PacksResponse, error)
 	// Adopt registers packs another writer uploaded.
 	Adopt(context.Context, *AdoptRequest) (*AdoptResponse, error)
 	// ReadLog returns the write log's lines after a position.
@@ -226,6 +241,7 @@ func (SRPCPackSweepAdminHandler) GetMethodIDs() []string {
 		"Lift",
 		"BeginTrash",
 		"Remove",
+		"Restore",
 		"Adopt",
 		"ReadLog",
 		"TrimLog",
@@ -257,6 +273,8 @@ func (d *SRPCPackSweepAdminHandler) InvokeMethod(
 		return true, d.InvokeMethod_BeginTrash(d.impl, strm)
 	case "Remove":
 		return true, d.InvokeMethod_Remove(d.impl, strm)
+	case "Restore":
+		return true, d.InvokeMethod_Restore(d.impl, strm)
 	case "Adopt":
 		return true, d.InvokeMethod_Adopt(d.impl, strm)
 	case "ReadLog":
@@ -364,6 +382,18 @@ func (SRPCPackSweepAdminHandler) InvokeMethod_Remove(impl SRPCPackSweepAdminServ
 	return strm.MsgSend(out)
 }
 
+func (SRPCPackSweepAdminHandler) InvokeMethod_Restore(impl SRPCPackSweepAdminServer, strm srpc.Stream) error {
+	req := new(PacksRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Restore(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCPackSweepAdminHandler) InvokeMethod_Adopt(impl SRPCPackSweepAdminServer, strm srpc.Stream) error {
 	req := new(AdoptRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -461,6 +491,14 @@ type SRPCPackSweepAdmin_RemoveStream interface {
 }
 
 type srpcPackSweepAdmin_RemoveStream struct {
+	srpc.Stream
+}
+
+type SRPCPackSweepAdmin_RestoreStream interface {
+	srpc.Stream
+}
+
+type srpcPackSweepAdmin_RestoreStream struct {
 	srpc.Stream
 }
 

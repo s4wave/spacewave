@@ -8,14 +8,16 @@
 // pack index file, and keeps everything it learns in one scratch file, so a
 // stopped step resumes where its last batch left it.
 //
-// Only quarantine, recheck, trash and remove change the store, each through
+// Only quarantine, recheck, trash, remove and restore change the store, each through
 // the backend's admin service: quarantine takes the dead packs out of the
 // reads, leaving each readable through the fallback, and recheck passes each
 // that stayed unreached, or lifts it back. Trash marks each passed pack
 // trashing and moves its entry, then its file, to the store's trash, where a
 // read that still falls back to it records a miss. Remove drops each trashed
 // pack no read missed from the backend's index, pointing each block row that
-// named it at another pack holding the block.
+// named it at another pack holding the block. Restore moves each missed pack's
+// file, then its entry, back from the trash and has the backend register it
+// again.
 package main
 
 import (
@@ -91,6 +93,12 @@ func main() {
 			Usage:  "have the backend remove each trashed pack no read missed, repairing the rows naming it",
 			Flags:  args.removeFlags(),
 			Action: args.runRemove,
+		},
+		{
+			Name:   "restore",
+			Usage:  "move each trashing pack a read missed back from the store's trash, file first, and register it again",
+			Flags:  args.trashFlags(),
+			Action: args.runRestore,
 		},
 		{
 			Name:   "status",

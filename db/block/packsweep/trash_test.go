@@ -213,3 +213,78 @@ func TestTrashRemove(t *testing.T) {
 		t.Fatalf("second removal = %+v, %v", again, err)
 	}
 }
+
+// TestRestore returns the trashing packs reads missed to the store, at each
+// point the trash leaves them: before any move, between the entry and the
+// file, and after both. A restore killed mid-move and one killed after the
+// backend's call resume, and the packs no read missed stay in the trash.
+func TestRestore(t *testing.T) {
+	ctx := t.Context()
+	h := newHoldFixture(t)
+	passed := h.passAll(t)
+	const prefix = "v2/"
+	opts := &TrashOptions{Store: h.store, Backend: h.backend, Mover: h.f.client, Bucket: s3test.BucketName, Prefix: prefix, Moves: 1}
+	miss := func(id string) {
+		h.backend.holds[id] = PackHold{ID: id, State: PackTrashing, Since: h.backend.now, Event: h.backend.now}
+	}
+
+	// A read misses one pack before any move, one between its entry and its
+	// file, and one after both.
+	h.backend.failBeginTrash = true
+	if _, err := Trash(ctx, opts); err == nil {
+		t.Fatal("killed trash returned no error")
+	}
+	miss(passed[0])
+	opts.Mover = &failMover{ObjectMover: h.f.client, from: block_store_s3.PackObjectKey(prefix, passed[1])}
+	if _, err := Trash(ctx, opts); err == nil {
+		t.Fatal("killed move returned no error")
+	}
+	miss(passed[1])
+	opts.Mover = h.f.client
+	if res, err := Trash(ctx, opts); err != nil || res.Missed != 2 {
+		t.Fatalf("trash = %+v, %v", res, err)
+	}
+	miss(passed[2])
+	records := recordsByID(t, h.store)
+	if records[passed[0]].Stage != StageTrash || records[passed[1]].Stage != StageTrash || records[passed[2]].Stage != StageMoved {
+		t.Fatal("the missed packs are not at the trash's stages")
+	}
+
+	// A restore killed between a pack's file and its entry, then one killed
+	// after the backend's call, resume.
+	opts.Mover = &failMover{ObjectMover: h.f.client, from: block_store_s3.TrashEntryKey(prefix, passed[2])}
+	if _, err := Restore(ctx, opts); err == nil {
+		t.Fatal("killed restore move returned no error")
+	}
+	if !h.objectAt(t, block_store_s3.PackObjectKey(prefix, passed[2])) || !h.objectAt(t, block_store_s3.TrashEntryKey(prefix, passed[2])) {
+		t.Fatal("the restore moved the entry back before the file")
+	}
+	opts.Mover = h.f.client
+	h.backend.failRestore = true
+	if _, err := Restore(ctx, opts); err == nil {
+		t.Fatal("killed restore returned no error")
+	}
+	got, err := Restore(ctx, opts)
+	if err != nil || got.Restored+got.Dropped == 0 {
+		t.Fatalf("resumed restore = %+v, %v", got, err)
+	}
+
+	// Each missed pack is back in the store and registered, with no record;
+	// the rest stay moved and trashing.
+	records = recordsByID(t, h.store)
+	for i, id := range passed {
+		live := h.objectAt(t, block_store_s3.EntryObjectKey(prefix, id)) && h.objectAt(t, block_store_s3.PackObjectKey(prefix, id))
+		trashed := h.objectAt(t, block_store_s3.TrashEntryKey(prefix, id)) || h.objectAt(t, block_store_s3.TrashPackKey(prefix, id))
+		_, recorded := records[id]
+		state := h.backend.hold(id).State
+		if restored := i < 3; live != restored || trashed == restored || recorded == restored || (state == PackRegistered) != restored {
+			t.Fatalf("pack %s after the restore: live %v, trashed %v, recorded %v, state %v", id, live, trashed, recorded, state)
+		}
+	}
+
+	// A repeat calls the backend for nothing.
+	calls := h.backend.calls["restore"]
+	if again, err := Restore(ctx, opts); err != nil || again.Restored != 0 || again.Dropped != 0 || h.backend.calls["restore"] != calls {
+		t.Fatalf("second restore = %+v, %v", again, err)
+	}
+}

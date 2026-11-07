@@ -163,27 +163,7 @@ func beginTrashBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecor
 // opts.Moves at once, then records them moved.
 func moveBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecord, res *TrashResult) error {
 	// Move each pack's entry, then its file.
-	moves := opts.Moves
-	if moves <= 0 {
-		moves = DefaultMoves
-	}
-	eg, egCtx := errgroup.WithContext(ctx)
-	eg.SetLimit(moves)
-	var mtx sync.Mutex
-	var moved []*PackRecord
-	for _, p := range batch {
-		eg.Go(func() error {
-			// Move the pack, then keep it for the record.
-			if err := movePack(egCtx, opts, p.ID); err != nil {
-				return err
-			}
-			mtx.Lock()
-			moved = append(moved, p)
-			mtx.Unlock()
-			return nil
-		})
-	}
-	moveErr := eg.Wait()
+	moved, moveErr := moveEach(ctx, opts, batch, trashMoves)
 
 	// Record the packs moved, even when another move failed.
 	for _, p := range moved {
@@ -196,15 +176,51 @@ func moveBatch(ctx context.Context, opts *TrashOptions, batch []*PackRecord, res
 	return moveErr
 }
 
-// movePack moves the entry, then the file, of pack id to the trash.
-func movePack(ctx context.Context, opts *TrashOptions, id string) error {
-	moves := [][2]string{
-		{block_store_s3.EntryObjectKey(opts.Prefix, id), block_store_s3.TrashEntryKey(opts.Prefix, id)},
-		{block_store_s3.PackObjectKey(opts.Prefix, id), block_store_s3.TrashPackKey(opts.Prefix, id)},
+// moveEach makes the moves of each pack of batch, at most opts.Moves packs at
+// once and each pack's moves in order, and returns the packs whose moves all
+// succeeded with the first failure.
+func moveEach(ctx context.Context, opts *TrashOptions, batch []*PackRecord, moves func(prefix, id string) [][2]string) ([]*PackRecord, error) {
+	// Bound the packs moved at once.
+	limit := opts.Moves
+	if limit <= 0 {
+		limit = DefaultMoves
 	}
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(limit)
+	var mtx sync.Mutex
+	var moved []*PackRecord
+
+	// Move each pack, keeping those that moved.
+	for _, p := range batch {
+		eg.Go(func() error {
+			// Move the pack, then keep it.
+			if err := movePack(egCtx, opts, moves(opts.Prefix, p.ID)); err != nil {
+				return err
+			}
+			mtx.Lock()
+			moved = append(moved, p)
+			mtx.Unlock()
+			return nil
+		})
+	}
+	err := eg.Wait()
+	return moved, err
+}
+
+// trashMoves are the moves of pack id to the trash: its entry, then its file,
+// so the store lists no pack whose file is gone.
+func trashMoves(prefix, id string) [][2]string {
+	return [][2]string{
+		{block_store_s3.EntryObjectKey(prefix, id), block_store_s3.TrashEntryKey(prefix, id)},
+		{block_store_s3.PackObjectKey(prefix, id), block_store_s3.TrashPackKey(prefix, id)},
+	}
+}
+
+// movePack makes moves in order, each from its first key to its second.
+func movePack(ctx context.Context, opts *TrashOptions, moves [][2]string) error {
 	for _, m := range moves {
 		if err := opts.Mover.MoveObject(ctx, opts.Bucket, m[0], m[1]); err != nil {
-			return errors.Wrapf(err, "move %s to the trash", m[0])
+			return errors.Wrapf(err, "move %s to %s", m[0], m[1])
 		}
 	}
 	return nil

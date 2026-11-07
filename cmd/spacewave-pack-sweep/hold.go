@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
@@ -144,6 +145,29 @@ func (a *Args) runRecheck(*cli.Context) error {
 
 // runTrash moves the passed packs to the trash.
 func (a *Args) runTrash(*cli.Context) error {
+	return a.runMoves(func(ctx context.Context, opts *packsweep.TrashOptions) (func(*fastjson.Arena) *fastjson.Value, error) {
+		res, err := packsweep.Trash(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		return res.JSON, nil
+	})
+}
+
+// runRestore moves the missed packs back from the trash.
+func (a *Args) runRestore(*cli.Context) error {
+	return a.runMoves(func(ctx context.Context, opts *packsweep.TrashOptions) (func(*fastjson.Arena) *fastjson.Value, error) {
+		res, err := packsweep.Restore(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		return res.JSON, nil
+	})
+}
+
+// runMoves runs a step that moves packs' objects within the store and their
+// states through the backend, and prints its result.
+func (a *Args) runMoves(step func(context.Context, *packsweep.TrashOptions) (func(*fastjson.Arena) *fastjson.Value, error)) error {
 	// Open the scratch file until a signal stops the step.
 	ctx, cancel := signalContext()
 	defer cancel()
@@ -168,13 +192,13 @@ func (a *Args) runTrash(*cli.Context) error {
 		return err
 	}
 
-	// Reach the backend, trash, and print the result.
+	// Reach the backend, run the step, and print the result.
 	client, closeClient, err := a.dialAdminService(ctx)
 	if err != nil {
 		return err
 	}
 	defer closeClient()
-	res, err := packsweep.Trash(ctx, &packsweep.TrashOptions{
+	res, err := step(ctx, &packsweep.TrashOptions{
 		Store:   store,
 		Backend: client.Backend(),
 		Mover:   mover,
@@ -185,7 +209,7 @@ func (a *Args) runTrash(*cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return a.print(res.JSON)
+	return a.print(res)
 }
 
 // runRemove has the backend remove the moved packs.

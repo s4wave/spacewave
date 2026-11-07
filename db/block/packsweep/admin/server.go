@@ -19,8 +19,8 @@ import (
 const (
 	// MaxRefs is the blocks a Locate or Refs call takes.
 	MaxRefs = 4096
-	// MaxPacks is the packs a Status, Quarantine, Lift, BeginTrash or Remove
-	// call names.
+	// MaxPacks is the packs a Status, Quarantine, Lift, BeginTrash, Remove or
+	// Restore call names.
 	MaxPacks = packsweep.MaxBackendPacks
 	// MaxKeys is the keys and their holders together a Remove call carries.
 	MaxKeys = packsweep.MaxBackendKeys
@@ -58,6 +58,9 @@ type PackStates interface {
 	// RepairRemoved repairs the h rows of keys as Remove does, and leaves the
 	// packs trashing.
 	RepairRemoved(ctx context.Context, ids []string, keys []block_store_s3.KeyHolders) error
+	// Restore registers again trashing packs whose entries and files are
+	// back in the store.
+	Restore(ctx context.Context, ids []string) error
 	// AdoptPack registers a pack another writer uploaded.
 	AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error
 }
@@ -251,6 +254,12 @@ func (s *Server) move(ctx context.Context, req *PacksRequest, fn func(context.Co
 		return nil, err
 	}
 	return &PacksResponse{Packs: packHolds(holds)}, nil
+}
+
+// Restore registers again trashing packs whose entries and files the command
+// moved back from the trash.
+func (s *Server) Restore(ctx context.Context, req *PacksRequest) (*PacksResponse, error) {
+	return s.move(ctx, req, s.opts.Packs.Restore)
 }
 
 // Adopt registers packs another writer uploaded.

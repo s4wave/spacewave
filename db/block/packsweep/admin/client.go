@@ -165,6 +165,15 @@ func (b backend) Remove(ctx context.Context, ids []string, keys []packsweep.KeyH
 	return sweepHolds(resp.GetPacks())
 }
 
+// Restore registers again trashing packs whose entries and files are back.
+func (b backend) Restore(ctx context.Context, ids []string) ([]packsweep.PackHold, error) {
+	resp, err := b.SRPCPackSweepAdminClient.Restore(ctx, &PacksRequest{PackIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	return sweepHolds(resp.GetPacks())
+}
+
 // sweepHolds converts the service's pack states, refusing a state this
 // client does not know, which a sweep must not read as quarantined.
 func sweepHolds(holds []*PackHold) ([]packsweep.PackHold, error) {

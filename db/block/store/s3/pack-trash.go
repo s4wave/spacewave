@@ -172,6 +172,90 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 	return nil
 }
 
+// Restore registers again the trashing packs ids whose entries and files the
+// command moved back from the trash, as for a pack a read missed while it was
+// trashing. A registered pack stays as it is, so a repeated call changes
+// nothing; a pack the table lacks, a quarantined one, or one whose entry or
+// file is not back in the store fails the call before any row is written. The
+// pack's row keeps its miss, with the restore's time.
+func (s *PackStore) Restore(ctx context.Context, ids []string) error {
+	// Refuse a store that holds nothing.
+	if s.index == nil || !s.keepPacks {
+		return errNoSweep
+	}
+	if err := s.loadEntries(ctx); err != nil {
+		return err
+	}
+	release, err := s.holdMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Choose the trashing packs, refusing a pack the sweep has not trashed.
+	var move []string
+	for _, id := range ids {
+		state, ok := s.index.heldState(id)
+		switch {
+		case !ok:
+			return errors.Errorf("restore pack %s: the index holds no such pack", id)
+		case state == PackQuarantined:
+			return errors.Errorf("restore pack %s: it is quarantined, not trashing", id)
+		case state == PackTrashing && !slices.Contains(move, id):
+			move = append(move, id)
+		}
+	}
+	if len(move) == 0 {
+		return nil
+	}
+
+	// Check each pack is back in the store.
+	for _, id := range move {
+		if err := s.checkRestored(ctx, id); err != nil {
+			return errors.Wrap(err, "restore pack "+id)
+		}
+	}
+
+	// Record the restores with each miss, then return the packs to the reads.
+	now := time.Now().UnixNano()
+	holds := make([]packHold, len(move))
+	for i, id := range move {
+		prev, _, err := s.index.readHold(ctx, id)
+		if err != nil {
+			return err
+		}
+		holds[i] = packHold{state: PackRegistered, since: now, event: now, key: prev.key}
+	}
+	if err := s.index.writeHolds(ctx, move, holds); err != nil {
+		return err
+	}
+	s.setHolds(move, PackRegistered)
+	s.le.WithField("packs", len(move)).Info("restored trashed packs")
+	return nil
+}
+
+// checkRestored checks that the entry and file of pack id are back in the
+// store and gone from the trash, reading one byte of each.
+func (s *PackStore) checkRestored(ctx context.Context, id string) error {
+	// Each key in the store must be there.
+	for _, key := range []string{s.prefix + entryDir + id, s.prefix + packDir + id} {
+		if _, err := s.client.GetObjectRange(ctx, s.bucket, key, 0, 1); err != nil {
+			return errors.Wrap(err, "find "+key)
+		}
+	}
+
+	// Each key in the trash must be gone.
+	for _, key := range []string{TrashEntryKey(s.prefix, id), TrashPackKey(s.prefix, id)} {
+		if _, err := s.client.GetObjectRange(ctx, s.bucket, key, 0, 1); !errors.Is(err, ErrNotFound) {
+			if err == nil {
+				return errors.Errorf("%s is still in the trash", key)
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 // checkTrashed checks that the entry and file of pack id are in the trash and
 // gone from their keys in the store, reading one byte of each.
 func (s *PackStore) checkTrashed(ctx context.Context, id string) error {
