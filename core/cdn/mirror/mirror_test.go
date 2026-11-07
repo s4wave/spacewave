@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"path/filepath"
 	"sync/atomic"
@@ -49,23 +50,39 @@ type tree struct {
 
 // newTree writes n files of random content in a new local World.
 func newTree(t *testing.T, n int) *tree {
-	// Make the files.
-	ctx := t.Context()
+	w, err := publisher.OpenLocalWorld(t.Context(), logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "source.s4wave"), "mirror-source", "mirror-source")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(w.Release)
+	files := randomFiles(t, n, "dir")
+	writeObject(t, w, fsKey, files)
+	return &tree{world: w, files: files}
+}
+
+// randomFiles makes n files of random content under directories named with
+// prefix.
+func randomFiles(t *testing.T, n int, prefix string) fstest.MapFS {
+	// Make the directories writable, so a checkout can fill them.
 	files := fstest.MapFS{}
+	for i := range min(n, 3) {
+		files[fmt.Sprintf("%s%d", prefix, i)] = &fstest.MapFile{Mode: fs.ModeDir | 0o755}
+	}
+
+	// Fill them with files of distinct sizes.
 	for i := range n {
 		data := make([]byte, 24<<10+i*512)
 		if _, err := rand.Read(data); err != nil {
 			t.Fatal(err)
 		}
-		files[fmt.Sprintf("dir%d/file%d.bin", i%3, i)] = &fstest.MapFile{Data: data, Mode: 0o644}
+		files[fmt.Sprintf("%s%d/file%d.bin", prefix, i%3, i)] = &fstest.MapFile{Data: data, Mode: 0o644}
 	}
+	return files
+}
 
-	// Write them as one UnixFS object in a World.
-	w, err := publisher.OpenLocalWorld(ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "source.s4wave"), "mirror-source", "mirror-source")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(w.Release)
+// writeObject writes files as one UnixFS object at key in w.
+func writeObject(t *testing.T, w *publisher.LocalWorld, key string, files fstest.MapFS) {
+	ctx := t.Context()
 	tx, err := w.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +94,7 @@ func newTree(t *testing.T, n int) *tree {
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err := tx.CreateObject(ctx, fsKey, ref)
+	obj, err := tx.CreateObject(ctx, key, ref)
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +102,6 @@ func newTree(t *testing.T, n int) *tree {
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	return &tree{world: w, files: files}
 }
 
 // head returns the World's head and the number of blocks under it.
@@ -192,6 +208,9 @@ func readTree(t *testing.T, r *writertest.Rig, tr *tree) {
 	}
 	defer fsh.Release()
 	for name, file := range tr.files {
+		if file.Mode.IsDir() {
+			continue
+		}
 		child, _, err := fsh.LookupPath(ctx, name)
 		if err != nil {
 			t.Fatalf("lookup %s: %v", name, err)
