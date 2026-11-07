@@ -5,6 +5,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,8 +36,9 @@ type Applier interface {
 // Client is the local store's end of the connection, and the Sender a
 // Publisher pushes through.
 type Client struct {
-	le      *logrus.Entry
-	applier Applier
+	le *logrus.Entry
+	// applier takes the reports; SetApplier replaces it.
+	applier atomic.Pointer[Applier]
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -54,7 +56,15 @@ type Client struct {
 
 // NewClient builds a Client that hands reported packs to applier.
 func NewClient(le *logrus.Entry, applier Applier) *Client {
-	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData), tailing: make(map[uint64]chan *JournalRecords)}
+	c := &Client{le: le, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData), tailing: make(map[uint64]chan *JournalRecords)}
+	c.SetApplier(applier)
+	return c
+}
+
+// SetApplier hands later reports to applier. A nil applier answers each
+// report failed, so the node sends it again.
+func (c *Client) SetApplier(applier Applier) {
+	c.applier.Store(&applier)
 }
 
 // Run keeps a connection to the node up through dial until ctx ends.
@@ -319,7 +329,12 @@ func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, o
 		}
 
 		// Apply it, and say so.
-		err := c.applier.ApplyPack(ctx, report)
+		var err error
+		if applier := c.applier.Load(); applier != nil && *applier != nil {
+			err = (*applier).ApplyPack(ctx, report)
+		} else {
+			err = errors.New("no applier for reports yet")
+		}
 		if err != nil {
 			c.le.WithError(err).WithField("pack", report.GetPackId()).Warn("unable to apply a reported pack")
 		}

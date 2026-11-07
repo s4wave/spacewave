@@ -52,6 +52,13 @@ type Publisher struct {
 
 	// on is the runtime switch; off, a publication is the local one.
 	on *atomic.Bool
+	// durable, set with on, keeps pushed blocks off the local disk, in held:
+	// see publisher-durable.go. Nil never does.
+	durable *atomic.Bool
+	// held is the memory set of blocks the durable path keeps, or nil.
+	held *Held
+	// connected reports whether the node can take a push now, or is nil.
+	connected func() bool
 	// quietUntil is the Unix time in nanoseconds before which commits don't
 	// wait for a node that timed out.
 	quietUntil atomic.Int64
@@ -73,6 +80,11 @@ func NewPublisher(inner block.AtomicPublisher, sender Sender, wait time.Duration
 // SubmitAtomic admits the publication to the local store and pushes its blocks
 // beside it.
 func (p *Publisher) SubmitAtomic(ctx context.Context, publication *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	// Keep the blocks off the local disk when the durable path takes them.
+	if receipt, ok, err := p.submitDurable(ctx, publication); ok || err != nil {
+		return receipt, err
+	}
+
 	// Order the local store by its own receipts: a later commit waits for the
 	// earlier commit, not for the node's flush of it.
 	local := *publication

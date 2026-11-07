@@ -25,6 +25,18 @@ func NewSqlite(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Sqlite, error) {
+	return NewSqliteWrapped(ctx, le, conf, nil)
+}
+
+// NewSqliteWrapped builds a Sqlite volume as NewSqlite does, with the store
+// wrap returns between the database and the Volume, such as a journal. wrap
+// takes ownership of the store, including on failure. A nil wrap adds none.
+func NewSqliteWrapped(
+	ctx context.Context,
+	le *logrus.Entry,
+	conf *Config,
+	wrap func(context.Context, Store) (Store, error),
+) (*Sqlite, error) {
 	// Open the SQLite store with the configured cache and database layout.
 	pragmas := sqlite.Pragmas{
 		CacheSize: conf.GetCacheSize(),
@@ -37,9 +49,18 @@ func NewSqlite(
 		return nil, err
 	}
 
+	// Put the wrapper between the database and the Volume.
+	var vstore Store = store
+	if wrap != nil {
+		vstore, err = wrap(ctx, store)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Wrap the opened store as a volume with database deletion support.
 	path := conf.GetPath()
-	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) })
+	vol, err := NewWithStore(ctx, le, conf, vstore, func() error { return os.Remove(path) })
 	if err != nil {
 		return nil, err
 	}

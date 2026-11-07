@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // localStore admits publications and resolves their receipts when told to.
@@ -15,12 +16,14 @@ type localStore struct {
 	block.AtomicPublisher
 	receipts []*block.PublicationReceipt
 	afters   []*block.PublicationReceipt
+	admitted []*block.AtomicPublication
 }
 
 func (l *localStore) SubmitAtomic(_ context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
 	receipt := block.NewPublicationReceipt()
 	l.receipts = append(l.receipts, receipt)
 	l.afters = append(l.afters, p.After)
+	l.admitted = append(l.admitted, p)
 	return receipt, nil
 }
 
@@ -49,12 +52,16 @@ func (n *node) Send(ctx context.Context, _ []*block.PutBatchEntry) error {
 }
 
 func publication(t *testing.T, after *block.PublicationReceipt) *block.AtomicPublication {
+	return publicationOf(t, "x", after)
+}
+
+func publicationOf(t *testing.T, data string, after *block.PublicationReceipt) *block.AtomicPublication {
 	t.Helper()
-	ref, err := block.BuildBlockRef([]byte("x"), nil)
+	ref, err := block.BuildBlockRef([]byte(data), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &block.AtomicPublication{After: after, Entries: []*block.PutBatchEntry{{Data: []byte("x"), Ref: ref, RefsKnown: true}}}
+	return &block.AtomicPublication{After: after, Entries: []*block.PutBatchEntry{{Data: []byte(data), Ref: ref, RefsKnown: true}}}
 }
 
 func resolved(r *block.PublicationReceipt) bool {
@@ -109,7 +116,7 @@ func TestPublisherReceipts(t *testing.T) {
 
 	// A later commit orders behind the local receipt, while the first still
 	// waits for the node.
-	second, err := p.SubmitAtomic(ctx, publication(t, first))
+	second, err := p.SubmitAtomic(ctx, publicationOf(t, "y", first))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,5 +190,87 @@ func TestPublisherReceipts(t *testing.T) {
 	p.Close()
 	if results.Load() != 5 {
 		t.Fatalf("results %d", results.Load())
+	}
+}
+
+// TestDurablePublisher walks the durable path: the commit is gated on the
+// node's flush and names the block external, a failed push turns it back to
+// a local entry before the gate opens, the memory set holds what the node
+// flushed and is full at its limit, and a full memory set or a quiet node
+// sends the publication down the other paths.
+func TestDurablePublisher(t *testing.T) {
+	local := &localStore{}
+	n := &node{flush: make(chan error, 1)}
+	var on, durable atomic.Bool
+	on.Store(true)
+	durable.Store(true)
+	p := NewPublisher(local, n, time.Second, &on, nil)
+	pub := publication(t, nil)
+	value, err := block.EncodeBlockObject(pub.Entries[0].Data, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	held := NewHeld(int64(len(value)))
+	p.SetDurable(&durable, held, func() bool { return true })
+	ctx := context.Background()
+	key := packfile.BlockKey(pub.Entries[0].Ref.GetHash())
+
+	// The commit waits behind the gate until the node flushes.
+	first, err := p.SubmitAtomic(ctx, pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	admitted := local.admitted[0]
+	if !admitted.Entries[0].External || pub.Entries[0].External {
+		t.Fatal("the durable commit names its block as stored, or changed the caller's entry")
+	}
+	if got, ok := held.Get(key); !ok || string(got) != string(value) {
+		t.Fatal("the block is not readable from memory before its commit")
+	}
+	select {
+	case <-admitted.Ready:
+		t.Fatal("the commit's gate opened before the node's flush")
+	case <-time.After(5 * time.Millisecond):
+	}
+	n.flush <- nil
+	<-admitted.Ready
+	if !admitted.Entries[0].External {
+		t.Fatal("a flushed block lost its external mark")
+	}
+
+	// The memory set is full: the next publication takes the other path.
+	second, err := p.SubmitAtomic(ctx, publicationOf(t, "y", first))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if local.admitted[1].Ready != nil || local.admitted[1].Entries[0].External {
+		t.Fatal("a publication past the memory limit took the durable path")
+	}
+	local.receipts[0].Resolve(nil)
+	waitDone(t, first)
+	if _, ok := held.Get(key); !ok {
+		t.Fatal("the memory copy dropped at its commit, before the node's report")
+	}
+	n.flush <- nil
+	local.receipts[1].Resolve(nil)
+	waitDone(t, second)
+
+	// The report's apply drops it; a failed push then writes the block
+	// locally, and releases the hold once its commit resolves.
+	held.Drop([][]byte{key})
+	third, err := p.SubmitAtomic(ctx, publicationOf(t, "z", second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n.flush <- errors.New("refused")
+	<-local.admitted[2].Ready
+	if local.admitted[2].Entries[0].External {
+		t.Fatal("a block the node refused stayed external")
+	}
+	local.receipts[2].Resolve(nil)
+	waitDone(t, third)
+	p.Close()
+	if held.Bytes() != 0 {
+		t.Fatal("a refused push left its block held")
 	}
 }

@@ -66,6 +66,18 @@ type NodePushConfig struct {
 	// Drain pushes the upload backlog through the node, or is nil for no
 	// drain.
 	Drain *NodeDrainConfig
+	// Client is the connection to the node, which the caller runs and
+	// shares, such as with the journal of the store's Volume; nil has the
+	// store dial and run its own through Dial.
+	Client *block_store_nodepush.Client
+	// Durable, set with On, keeps pushed blocks off the local disk: in a
+	// memory set of HeldBytes until the node reports them uploaded, as
+	// block_store_nodepush.Publisher.SetDurable describes. Off, the memory
+	// set spills to the local disk with queue entries. Nil never does.
+	Durable *atomic.Bool
+	// HeldBytes bounds the memory set; a publication past it takes the local
+	// path.
+	HeldBytes int64
 }
 
 // NodeDrainConfig drains a store's upload backlog through its storage node, as
@@ -164,6 +176,12 @@ func (a nodeAdopter) AdoptPack(ctx context.Context, entry *packfile.PackfileEntr
 		}
 		hashes[i] = h
 	}
+
+	// The index finds the blocks on the remote now: their memory copies can
+	// go before the clear, which may wait out the queue's count.
+	if held := a.t.held.Load(); held != nil {
+		held.Drop(keys)
+	}
 	return a.p.wb.ClearLocated(ctx, remote, hashes)
 }
 
@@ -208,17 +226,36 @@ func (t *bstoreTracker) startNodePush(
 		return func() {}
 	}
 
-	// Build the client and put the publisher in front of the local store.
-	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement}))
+	// Take the shared client, or build one, and put the publisher in front of
+	// the local store.
+	applier := block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement})
+	client := conf.Client
+	if client != nil {
+		client.SetApplier(applier)
+	} else {
+		client = block_store_nodepush.NewClient(le.WithField("routine", "node-push"), applier)
+	}
 	handle.push = block_store_nodepush.NewPublisher(localPublisher{handle}, client, conf.Wait, conf.On, conf.Result)
 	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
-	// Keep the connection up until the store unmounts, and drain beside it.
+	// Keep the connection up until the store unmounts, unless the caller runs
+	// it, and drain beside it.
 	runCtx, cancel := context.WithCancel(ctx)
 	var running sync.WaitGroup
-	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	if conf.Client == nil {
+		running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	}
+
+	// Keep pushed blocks in memory while durable, spilling what waits too
+	// long or what the switch turned back.
+	if conf.Durable != nil && conf.HeldBytes > 0 {
+		held := block_store_nodepush.NewHeld(conf.HeldBytes)
+		handle.push.SetDurable(conf.Durable, held, client.Connected)
+		t.held.Store(held)
+		running.Go(func() { runSpill(runCtx, le, held, wb, conf.Durable, client.Connected) })
+	}
 	if conf.Drain != nil && conf.Drain.Admit != nil {
 		drain := wb.NewDrain(func(ctx context.Context, entries []*block.PutBatchEntry) error {
 			if !conf.On.Load() {
@@ -237,10 +274,36 @@ func (t *bstoreTracker) startNodePush(
 		running.Go(func() { t.runNodeDrain(runCtx, le, placement, drain) })
 	}
 	return func() {
+		// Stop the push and the routines, then spill what memory holds.
 		t.nodeClient.Store(nil)
 		cancel()
 		running.Wait()
 		handle.push.Close()
+		if conf.Client != nil {
+			client.SetApplier(nil)
+		}
+		t.spillOnClose(le, wb)
+	}
+}
+
+// spillOnClose writes every block still held to the local disk as the store
+// unmounts, so a clean stop leaves none only in the node's log.
+func (t *bstoreTracker) spillOnClose(le *logrus.Entry, wb *block_store_writeback.Store) {
+	held := t.held.Swap(nil)
+	if held == nil {
+		return
+	}
+	ctx := context.Background()
+	for {
+		keys, values := held.HeldSince(time.Now(), heldSpillBatch)
+		if len(keys) == 0 {
+			return
+		}
+		if err := spill(ctx, wb, keys, values); err != nil {
+			le.WithError(err).Warn("unable to spill held blocks as the store unmounts; the storage node holds them")
+			return
+		}
+		held.Drop(keys)
 	}
 }
 

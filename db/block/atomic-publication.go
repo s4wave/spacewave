@@ -38,6 +38,14 @@ type AtomicPublication struct {
 	// when the receipt resolves, and durable no later than the volume's next
 	// durable commit. A group commits ordered only when every member allows it.
 	Ordered bool
+	// Ready, when set, closes once the publication may apply. The store
+	// applies neither it nor any publication admitted after it before then,
+	// and holds no transaction while it waits. Until Ready closes the
+	// submitter may change each entry's External, and nothing else: a store
+	// reads External only once Ready is closed. A storage node push uses it,
+	// since a commit naming a block whose only copy is in memory must not
+	// apply before the node holds the block.
+	Ready <-chan struct{}
 	// Validate optionally inspects the prepared overlay before mutation.
 	Validate func(ctx context.Context, prepared StoreOps) error
 	// BucketID scopes GC ownership; populated by the bucket capability.

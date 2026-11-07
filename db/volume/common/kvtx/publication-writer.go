@@ -234,15 +234,37 @@ func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublicati
 }
 
 // takeLocked takes the next queued request for a group, or returns nil when
-// every queued request is taken. The request stays queued, and readable,
-// until its group resolves. The caller holds bcast.
+// every queued request is taken or the next is not ready. The request stays
+// queued, and readable, until its group resolves. The caller holds bcast.
 func (w *publicationWriter) takeLocked() *publicationRequest {
-	if w.next == len(w.queue) {
+	// Take requests in order, the next only once it is ready.
+	if w.next == len(w.queue) || w.readyLocked() != nil {
 		return nil
 	}
 	r := w.queue[w.next]
 	w.next++
 	return r
+}
+
+// readyLocked returns the Ready of the next queued request while it is open,
+// or nil. The caller holds bcast.
+func (w *publicationWriter) readyLocked() <-chan struct{} {
+	// A request without Ready is ready.
+	if w.next == len(w.queue) {
+		return nil
+	}
+	ready := w.queue[w.next].publication.Ready
+	if ready == nil {
+		return nil
+	}
+
+	// One whose Ready closed is too.
+	select {
+	case <-ready:
+		return nil
+	default:
+		return ready
+	}
 }
 
 // pin returns the unresolved requests in admission order, never nil for a
@@ -349,13 +371,15 @@ func (w *publicationWriter) run() {
 	for {
 		// Take the next request or publish final shutdown while holding queue state.
 		var first *publicationRequest
-		var waitCh <-chan struct{}
+		var waitCh, readyCh <-chan struct{}
 		w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// Take a ready request, else note what to wait for.
 			first = w.takeLocked()
 			if first != nil {
 				return
 			}
-			if w.closing {
+			readyCh = w.readyLocked()
+			if w.closing && readyCh == nil {
 				w.finished = true
 				broadcast()
 				return
@@ -363,12 +387,16 @@ func (w *publicationWriter) run() {
 			waitCh = getWaitCh()
 		})
 
-		// An idle writer waits on its owner event; a closed empty writer exits.
+		// An idle writer waits on its owner event or the next request's
+		// Ready; a closed empty writer exits.
 		if first == nil {
 			if waitCh == nil {
 				return
 			}
-			<-waitCh
+			select {
+			case <-waitCh:
+			case <-readyCh:
+			}
 			continue
 		}
 

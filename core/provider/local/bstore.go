@@ -383,6 +383,9 @@ func NewBlockStoreRef(providerID, providerAccountID, bstoreID string) *bstore.Bl
 type bstoreTracker struct {
 	// nodeClient reaches the store's storage node, nil while none is up.
 	nodeClient atomic.Pointer[block_store_nodepush.Client]
+	// held is the memory set of pushed blocks the durable path keeps off the
+	// disk, nil while it is off.
+	held atomic.Pointer[block_store_nodepush.Held]
 	// a is the provider account
 	a *ProviderAccount
 	// id is the bstore id
@@ -593,10 +596,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Read the local store first, then the backend's bucket, then the read
 	// fallback, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
-	recorded := &readRecorder{StoreOps: &hitCounter{StoreOps: local, hits: &placement.localHits}, reads: &placement.reads}
+	localReads := &heldReads{StoreOps: local, held: &t.held}
+	recorded := &readRecorder{StoreOps: &hitCounter{StoreOps: localReads, hits: &placement.localHits}, reads: &placement.reads}
 	reads, copies := placement.readChains(
 		recorded,
-		local,
+		localReads,
 		func() block.StoreOps { return t.getRemoteReads(placement) },
 		newPeerMissSource(le, func() block.StoreOps { return t.a.getP2PStore(bucketID) }),
 		fallbackStore,
@@ -624,6 +628,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			}()
 		}
 		copies = reads
+	}
+
+	// A store whose pushed blocks skip its disk asks the node by key for a
+	// block every path missed: after a restart, until its report applies.
+	if conf := t.nodePushConfig(); conf != nil && conf.Durable != nil && sqlStore == nil {
+		reads = &nodeKeyReads{StoreOps: reads, client: &t.nodeClient, wait: conf.ReadWait}
 	}
 
 	// Build the handle over the local store and its read paths.
