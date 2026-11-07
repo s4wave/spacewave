@@ -111,6 +111,8 @@ type Node struct {
 	log *packahead.Log
 	// server is the connection's end, in front of log and packs.
 	server *Server
+	// journal keeps the local store's commit records.
+	journal *Journal
 	// packs serves the reads from read copies.
 	packs *PackFiles
 	// drain uploads the log's finalized packs.
@@ -142,10 +144,19 @@ func OpenNode(ctx context.Context, le *logrus.Entry, conf NodeConfig) (*Node, er
 		return nil, err
 	}
 
+	// Keep the local store's commit records, for its durable mode.
+	journal, err := OpenJournal(filepath.Join(conf.Dir, "journal"))
+	if err != nil {
+		log.Close()
+		return nil, errors.Wrap(err, "open journal")
+	}
+	server.SetJournal(journal)
+
 	// Serve reads from read copies, in their own directory, while the disk
 	// has room.
 	packs, err := NewPackFiles(ctx, le, filepath.Join(conf.Dir, "packs"), conf.Source, conf.Bucket, conf.Prefix, PackFilesOptions{RemoteReads: conf.RemoteReads})
 	if err != nil {
+		_ = journal.Close()
 		log.Close()
 		return nil, err
 	}
@@ -154,6 +165,7 @@ func OpenNode(ctx context.Context, le *logrus.Entry, conf NodeConfig) (*Node, er
 		conf:         conf,
 		log:          log,
 		server:       server,
+		journal:      journal,
 		packs:        packs,
 		drain:        packahead.NewDrain(log, packahead.DrainOptions{KeepBytes: conf.KeepBytes}),
 		backfillWake: make(chan struct{}, 1),
@@ -164,10 +176,15 @@ func OpenNode(ctx context.Context, le *logrus.Entry, conf NodeConfig) (*Node, er
 	return n, nil
 }
 
-// Close closes the read copy list and the pack log. Call it after Run returns.
+// Close closes the read copy list, the journal and the pack log. Call it
+// after Run returns.
 func (n *Node) Close() {
+	// Close each store.
 	if err := n.packs.Close(); err != nil {
 		n.le.WithError(err).Warn("close the read copy list")
+	}
+	if err := n.journal.Close(); err != nil {
+		n.le.WithError(err).Warn("close the journal")
 	}
 	n.log.Close()
 }
