@@ -115,4 +115,24 @@ func TestPackStoreIndexOnly(t *testing.T) {
 	if n := objs.requests.Load() - read; n != 0 {
 		t.Fatalf("warm misses made %d requests, want none", n)
 	}
+
+	// A pack written after the restart takes a new number: were the first
+	// pack's number reused, a third start would place one pack's blocks in
+	// the other and miss them.
+	// The write is the restarted store's first call, before any read loads
+	// the table.
+	store.Close()
+	store, _ = open()
+	later, laterRefs := batch("later", 10)
+	if _, err := store.PutBlockBatch(ctx, later); err != nil {
+		t.Fatal(err)
+	}
+	store.Close()
+	store, _ = open()
+	for i, ref := range append(ownRefs, laterRefs...) {
+		want := append(own, later...)[i].Data
+		if data, found, err := store.GetBlock(ctx, ref); err != nil || !found || string(data) != string(want) {
+			t.Fatalf("third start read = %q, %v, %v", data, found, err)
+		}
+	}
 }
