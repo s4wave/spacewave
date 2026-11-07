@@ -88,8 +88,9 @@ type Store struct {
 	// lowered counts the transactions that lowered floor, guarded by bcast,
 	// so clear raises it only when none lowered it since clear read it.
 	lowered uint64
-	// locate skips uploading the blocks the remote already holds.
-	locate atomic.Bool
+	// locate is the switch that skips uploading the blocks the remote already
+	// holds, nil while none was set.
+	locate atomic.Pointer[atomic.Bool]
 	// reads bounds the upload's local reads in flight by the disk's load.
 	reads *readGate
 	// fills queues blocks read from the remote for their local writes.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -435,10 +436,10 @@ type BlockLocator interface {
 	LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
 }
 
-// SetLocateUploaded turns on skipping the blocks the remote already holds,
-// such as those another writer uploaded. With it off, Upload reads and writes
-// every queued block.
-func (s *Store) SetLocateUploaded(on bool) {
+// SetLocateUploaded makes Upload skip the blocks the remote already holds, such
+// as those another writer uploaded, while on is set. Otherwise it reads and
+// writes every queued block.
+func (s *Store) SetLocateUploaded(on *atomic.Bool) {
 	s.locate.Store(on)
 }
 
@@ -448,7 +449,8 @@ func (s *Store) SetLocateUploaded(on bool) {
 func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch []pendingBlock) []bool {
 	// Only a remote with an index can answer without reading the remote.
 	locator, ok := remote.(BlockLocator)
-	if !ok || !s.locate.Load() {
+	on := s.locate.Load()
+	if !ok || on == nil || !on.Load() {
 		return nil
 	}
 

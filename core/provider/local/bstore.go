@@ -21,6 +21,7 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
+	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -35,6 +36,8 @@ const blockStoreBucketConfigRev = 2
 
 // BlockStore implements the bstore interface.
 type BlockStore struct {
+	// push sends the store's publications to its storage node, or is nil.
+	push *block_store_nodepush.Publisher
 	// store provides local writes and durability.
 	store block_store.Store
 	// readStore optionally routes uncached reads through the active Session DEX.
@@ -625,6 +628,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		copyStore:     copies,
 		decodedBlocks: decodedBlocks,
 		placement:     placement,
+	}
+
+	// Push publications to the storage node, for a store the account names.
+	if sqlStore == nil {
+		stopPush := t.startNodePush(ctx, le, wb, placement, bstoreHandle)
+		defer stopPush()
 	}
 
 	// Keep the store under its placement's resident budget. A store writing

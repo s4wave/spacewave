@@ -13,6 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// reportRetry is how long a report that failed to apply waits for its next try.
+const reportRetry = 5 * time.Second
+
 // ErrNodeAway is returned by Send while no connection to the node is up.
 var ErrNodeAway = errors.New("storage node away")
 
@@ -210,9 +213,20 @@ func (c *Client) disconnect() {
 	}
 }
 
+// retryReport offers report again after a pause, unless the connection ends
+// first: the node then repeats it on the next one.
+func (c *Client) retryReport(ctx context.Context, reports chan<- *PackReport, report *PackReport) {
+	time.AfterFunc(reportRetry, func() {
+		select {
+		case reports <- report:
+		case <-ctx.Done():
+		}
+	})
+}
+
 // applyReports applies each report and acknowledges it. An unapplied report
-// goes unacknowledged, so the node repeats it on the next connection.
-func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, out chan<- []byte) {
+// goes unacknowledged and is tried again.
+func (c *Client) applyReports(ctx context.Context, reports chan *PackReport, out chan<- []byte) {
 	for {
 		// Take the next report.
 		var report *PackReport
@@ -225,6 +239,7 @@ func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, o
 		// Apply it, and say so.
 		if err := c.applier.ApplyPack(ctx, report); err != nil {
 			c.le.WithError(err).WithField("pack", report.GetPackId()).Warn("unable to apply a reported pack")
+			c.retryReport(ctx, reports, report)
 			continue
 		}
 		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId()}}})

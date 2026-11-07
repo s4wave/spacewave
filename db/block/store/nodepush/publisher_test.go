@@ -82,7 +82,8 @@ func TestPublisherReceipts(t *testing.T) {
 	local := &localStore{}
 	n := &node{flush: make(chan error, 1)}
 	var results atomic.Int32
-	p := NewPublisher(local, n, 20*time.Millisecond, func(error, time.Duration) { results.Add(1) })
+	var on atomic.Bool
+	p := NewPublisher(local, n, 20*time.Millisecond, &on, func(error, time.Duration) { results.Add(1) })
 	ctx := context.Background()
 
 	// Off, the publication is the local one and nothing is sent.
@@ -93,7 +94,7 @@ func TestPublisherReceipts(t *testing.T) {
 	if off != local.receipts[0] || n.sends.Load() != 0 {
 		t.Fatal("a disabled publisher pushed")
 	}
-	p.SetEnabled(true)
+	on.Store(true)
 
 	// The receipt waits for the node after the local commit.
 	first, err := p.SubmitAtomic(ctx, publication(t, nil))

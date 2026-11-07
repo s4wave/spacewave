@@ -38,21 +38,16 @@ type Publisher struct {
 	wait   time.Duration
 	result Result
 
-	// enabled is the runtime switch; off, a publication is the local one.
-	enabled atomic.Bool
+	// on is the runtime switch; off, a publication is the local one.
+	on *atomic.Bool
 	// running joins the pushes of accepted publications.
 	running sync.WaitGroup
 }
 
 // NewPublisher wraps inner, waiting at least wait for the node on each
-// publication. result may be nil. The publisher starts disabled.
-func NewPublisher(inner block.AtomicPublisher, sender Sender, wait time.Duration, result Result) *Publisher {
-	return &Publisher{AtomicPublisher: inner, sender: sender, wait: wait, result: result}
-}
-
-// SetEnabled turns the push on or off for later publications.
-func (p *Publisher) SetEnabled(enabled bool) {
-	p.enabled.Store(enabled)
+// publication while on is set. result may be nil.
+func NewPublisher(inner block.AtomicPublisher, sender Sender, wait time.Duration, on *atomic.Bool, result Result) *Publisher {
+	return &Publisher{AtomicPublisher: inner, sender: sender, wait: wait, on: on, result: result}
 }
 
 // SubmitAtomic admits the publication to the local store and pushes its blocks
@@ -69,7 +64,7 @@ func (p *Publisher) SubmitAtomic(ctx context.Context, publication *block.AtomicP
 
 	// Push what the publication stores, if anything.
 	entries := pushed(publication.Entries)
-	if len(entries) == 0 || !p.enabled.Load() {
+	if len(entries) == 0 || !p.on.Load() {
 		return receipt, nil
 	}
 	outer := block.NewOuterPublicationReceipt(receipt)

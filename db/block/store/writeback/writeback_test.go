@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -796,13 +797,15 @@ func TestUploadSkipsLocatedBlocks(t *testing.T) {
 	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{}}
 
 	// With the switch off, a located block uploads as before.
+	var on atomic.Bool
+	s.SetLocateUploaded(&on)
 	off := put("switch off")
 	remote.located[off.MarshalString()] = true
 	drain(t, s, remote)
 	if remote.puts != 1 {
 		t.Fatalf("switch off wrote %d blocks", remote.puts)
 	}
-	s.SetLocateUploaded(true)
+	on.Store(true)
 
 	// A located block clears unread, and one beside it still uploads.
 	remote.puts = 0

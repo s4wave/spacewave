@@ -73,12 +73,21 @@ func (b *BlockStore) AcquirePublicationPreparation(ctx context.Context) (func(),
 	return b.placement.sqlPublish.prepare.Lock(ctx)
 }
 
-// SubmitAtomic admits a publication to the account's own storage. While writes
+// SubmitAtomic admits a publication, pushing its blocks to the storage node
+// when the store has one.
+func (b *BlockStore) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	if b.push != nil {
+		return b.push.SubmitAtomic(ctx, p)
+	}
+	return b.submitLocal(ctx, p)
+}
+
+// submitLocal admits a publication to the account's own storage. While writes
 // queue for upload, the publication's blocks are marked in the transaction that
 // commits them, so the publication and its upload markers are atomic; a storage
 // backend chosen after admission backfills the published blocks.
 // A store whose SQL backend is primary admits it to its SQL publisher.
-func (b *BlockStore) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+func (b *BlockStore) submitLocal(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
 	// Require storage that publishes atomically.
 	publisher := b.publisher()
 	if publisher == nil {
