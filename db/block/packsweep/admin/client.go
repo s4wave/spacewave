@@ -4,6 +4,7 @@ package block_packsweep_admin
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -84,6 +85,82 @@ func (c *Client) BlockRefs(ctx context.Context, refs []*block.BlockRef) ([]packs
 		}
 	}
 	return out, nil
+}
+
+// Backend serves the client as the backend's side of a cycle.
+func (c *Client) Backend() packsweep.Backend {
+	return backend{c}
+}
+
+// backend is the client as a packsweep.Backend.
+type backend struct {
+	*Client
+}
+
+// Status returns the packs' states, the log's and the open operations.
+func (b backend) Status(ctx context.Context, ids []string) (*packsweep.BackendStatus, error) {
+	// Ask, then convert the answer.
+	resp, err := b.SRPCPackSweepAdminClient.Status(ctx, &StatusRequest{PackIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	packs, err := sweepHolds(resp.GetPacks())
+	if err != nil {
+		return nil, err
+	}
+	st := &packsweep.BackendStatus{
+		Packs:    packs,
+		LogOn:    resp.GetLog().GetOn(),
+		LogEpoch: resp.GetLog().GetEpoch(),
+		Now:      fromUnixNano(resp.GetNowUnixNano()),
+	}
+	if ops := resp.GetOperations(); ops != nil {
+		st.Operations = &packsweep.OpenOperations{
+			Write: fromUnixNano(ops.GetOldestWriteUnixNano()),
+			Read:  fromUnixNano(ops.GetOldestReadUnixNano()),
+		}
+	}
+	return st, nil
+}
+
+// Quarantine holds registered packs out of the reads.
+func (b backend) Quarantine(ctx context.Context, ids []string) ([]packsweep.PackHold, error) {
+	resp, err := b.SRPCPackSweepAdminClient.Quarantine(ctx, &PacksRequest{PackIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	return sweepHolds(resp.GetPacks())
+}
+
+// Lift returns quarantined packs to the reads.
+func (b backend) Lift(ctx context.Context, ids []string) ([]packsweep.PackHold, error) {
+	resp, err := b.SRPCPackSweepAdminClient.Lift(ctx, &PacksRequest{PackIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	return sweepHolds(resp.GetPacks())
+}
+
+// sweepHolds converts the service's pack states, refusing a state this
+// client does not know, which a sweep must not read as quarantined.
+func sweepHolds(holds []*PackHold) ([]packsweep.PackHold, error) {
+	out := make([]packsweep.PackHold, len(holds))
+	for i, h := range holds {
+		state := h.GetState()
+		if state < PackState_PACK_STATE_REGISTERED || state > PackState_PACK_STATE_TRASHING {
+			return nil, errors.Errorf("pack %s is in state %d, which this client does not know", h.GetPackId(), state)
+		}
+		out[i] = packsweep.PackHold{ID: h.GetPackId(), State: packsweep.PackState(state), Since: fromUnixNano(h.GetSinceUnixNano())}
+	}
+	return out, nil
+}
+
+// fromUnixNano returns a time from Unix nanoseconds, the zero time for zero.
+func fromUnixNano(v int64) time.Time {
+	if v == 0 {
+		return time.Time{}
+	}
+	return time.Unix(0, v)
 }
 
 // logKind parses a line kind the service named.

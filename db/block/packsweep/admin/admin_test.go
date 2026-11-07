@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
@@ -281,5 +282,56 @@ func TestAdminHTTP(t *testing.T) {
 	status, err := client.Status(ctx, &StatusRequest{})
 	if err != nil || status.GetEnabled() || !status.GetLog().GetOn() {
 		t.Fatalf("status over HTTP = %v, %v", status, err)
+	}
+}
+
+// TestAdminBackend checks the client's Backend carries the service's answers
+// to a cycle: the states, the log, the clock and the open operations, absent
+// when the backend records none.
+func TestAdminBackend(t *testing.T) {
+	ctx := t.Context()
+	b := newTestBackend(t)
+	_, id := b.put(t, "block")
+	backend := b.admin.Backend()
+
+	// With no operations recorded, Status reports none, and a registered
+	// pack with no time.
+	before := time.Now()
+	st, err := backend.Status(ctx, []string{id})
+	if err != nil || len(st.Packs) != 1 || st.Packs[0] != (packsweep.PackHold{ID: id, State: packsweep.PackRegistered}) {
+		t.Fatalf("status = %+v, %v", st, err)
+	}
+	pos, _ := b.log.Position()
+	if !st.LogOn || st.LogEpoch != pos.Epoch || st.Operations != nil || st.Now.Before(before) || st.Now.After(time.Now()) {
+		t.Fatalf("status = %+v, want the log's epoch %s, no operations and the clock", st, pos.Epoch)
+	}
+
+	// The operations carry each start, and zero for none.
+	write := time.Unix(0, 12345)
+	b.server.opts.Operations = func() (time.Time, time.Time) { return write, time.Time{} }
+	if st, err = backend.Status(ctx, []string{id}); err != nil || st.Operations == nil || !st.Operations.Write.Equal(write) || !st.Operations.Read.IsZero() {
+		t.Fatalf("status with operations = %+v, %v", st, err)
+	}
+
+	// A quarantine and a lift answer each pack's state and time.
+	b.on.Store(true)
+	holds, err := backend.Quarantine(ctx, []string{id})
+	if err != nil || len(holds) != 1 || holds[0].ID != id || holds[0].State != packsweep.PackQuarantined || holds[0].Since.Before(before) {
+		t.Fatalf("quarantine = %+v, %v", holds, err)
+	}
+	if st, err = backend.Status(ctx, []string{id}); err != nil || !st.Packs[0].Since.Equal(holds[0].Since) {
+		t.Fatalf("status of the quarantined pack = %+v, %v", st, err)
+	}
+	if holds, err = backend.Lift(ctx, []string{id}); err != nil || holds[0].State != packsweep.PackRegistered {
+		t.Fatalf("lift = %+v, %v", holds, err)
+	}
+
+	// The states number as the pack store numbers them.
+	for i, want := range []packsweep.PackState{packsweep.PackRegistered, packsweep.PackQuarantined, packsweep.PackTrashing} {
+		store := []block_store_s3.PackState{block_store_s3.PackRegistered, block_store_s3.PackQuarantined, block_store_s3.PackTrashing}[i]
+		wire := []PackState{PackState_PACK_STATE_REGISTERED, PackState_PACK_STATE_QUARANTINED, PackState_PACK_STATE_TRASHING}[i]
+		if packsweep.PackState(store) != want || packsweep.PackState(wire) != want {
+			t.Fatalf("state %v numbers as %d in the store and %d on the wire", want, store, wire)
+		}
 	}
 }
