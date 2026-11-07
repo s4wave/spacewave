@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/cayley/graph/iterator"
 	"github.com/aperturerobotics/cayley/graph/refs"
 	"github.com/aperturerobotics/cayley/quad"
-	"github.com/aperturerobotics/cayley/query/shape"
 )
 
 // QuadEqual checks if two quads are equal.
@@ -192,20 +191,6 @@ func collectQuadFilterBatchGroup(
 		err = nil
 	}
 	return err
-}
-
-// IterateFullQuads iterates over the full quads matched by a shape.
-func IterateFullQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb func(q quad.Quad) error) error {
-	if cb == nil {
-		return nil
-	}
-
-	// Do not call shape.Optimize here. Optimized shapes may yield node/value refs
-	// instead of quad refs, but graph.NewResultReader requires each iterator result
-	// to be a quad ref so QuadStore.Quad can recover all four directions.
-	it := sh.BuildIterator(ctx, h).Iterate(ctx)
-	defer it.Close()
-	return iterateQuadResults(ctx, h, it, cb)
 }
 
 func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner, cb func(q quad.Quad) error) error {
