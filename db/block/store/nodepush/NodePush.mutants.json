@@ -1,37 +1,130 @@
 [
   {
     "name": "a receipt answers before the node's flush",
-    "replace": [["    /\\ b \\in nodeDisk\n    /\\ state' = [state EXCEPT ![b] = \"acked\"]", "    /\\ state' = [state EXCEPT ![b] = \"acked\"]"]],
+    "replace": [
+      [
+        "    /\\ path[b] = \"local\"\n    /\\ b \\in nodeDisk\n    /\\ HeadDurable(b)",
+        "    /\\ path[b] = \"local\"\n    /\\ HeadDurable(b)"
+      ]
+    ],
     "expect": "AckedSurvivesLocalDisk"
   },
   {
     "name": "the node reports a block it only flushed",
-    "replace": [["    /\\ b \\in remote\n    /\\ b \\in queued", "    /\\ b \\in nodeDisk\n    /\\ b \\in queued"]],
-    "expect": "QueueHoldsUntilRemote"
+    "replace": [
+      [
+        "    /\\ b \\in remote\n    /\\ b \\in queued \\cup mem",
+        "    /\\ b \\in nodeDisk\n    /\\ b \\in queued \\cup mem"
+      ]
+    ],
+    "expect": "CommittedBlocksHeld"
   },
   {
     "name": "a report drops the queue entry before the index entry",
-    "replace": [["    /\\ b \\in reported\n    /\\ b \\in indexed\n", "    /\\ b \\in reported\n"]],
+    "replace": [
+      [
+        "ApplyReport(b) ==\n    /\\ b \\in reported\n    /\\ b \\in indexed\n",
+        "ApplyReport(b) ==\n    /\\ b \\in reported\n"
+      ]
+    ],
     "expect": "AckedStaysReadable"
   },
   {
     "name": "a report is answered while its clear is dropped",
-    "replace": [["    /\\ queued' = queued \\ {b}\n    /\\ local' = local \\ {b}\n    /\\ reported' = reported \\ {b}\n    /\\ answered'", "    /\\ reported' = reported \\ {b}\n    /\\ answered'"], ["<<indexed, state, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>", "<<indexed, state, local, queued, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed>>"]],
+    "replace": [
+      [
+        "    /\\ queued' = queued \\ {b}\n    /\\ local' = local \\ {b}\n    /\\ mem' = mem \\ {b}\n    /\\ reported' = reported \\ {b}\n    /\\ answered'",
+        "    /\\ reported' = reported \\ {b}\n    /\\ answered'"
+      ],
+      [
+        "    /\\ UNCHANGED <<indexed, state, path, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed,\n                   mode, waiting,",
+        "    /\\ UNCHANGED <<indexed, state, path, local, queued, mem, nodeBuf, nodeDisk, remote, nodeUp, degraded, failed,\n                   mode, waiting,"
+      ]
+    ],
     "expect": "AnsweredCleared"
   },
   {
     "name": "a failed apply answers the report",
-    "replace": [["    /\\ reported' = reported \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, queued,", "    /\\ reported' = reported \\ {b}\n    /\\ answered' = answered \\cup {b}\n    /\\ UNCHANGED <<indexed, state, local, queued,"]],
+    "replace": [
+      [
+        "    /\\ reported' = reported \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, path, local, queued,",
+        "    /\\ reported' = reported \\ {b}\n    /\\ answered' = answered \\cup {b}\n    /\\ UNCHANGED <<indexed, state, path, local, queued,"
+      ]
+    ],
     "expect": "AnsweredCleared"
   },
   {
+    "name": "a durable receipt answers before every commit up to it is durable",
+    "replace": [
+      [
+        "    /\\ path[b] = \"node\"\n    /\\ HeadDurable(b)",
+        "    /\\ path[b] = \"node\"\n    /\\ InWal(b)"
+      ]
+    ],
+    "expect": "AckedCommitSurvives"
+  },
+  {
+    "name": "a memory copy drops at the node's flush, before its report",
+    "replace": [
+      [
+        "    /\\ nodeDisk' = nodeDisk \\cup {b}\n    /\\ UNCHANGED <<indexed, answered, state, path, local, queued, remote, reported, nodeUp, degraded,\n                   failed, mode, mem, waiting,",
+        "    /\\ nodeDisk' = nodeDisk \\cup {b}\n    /\\ mem' = mem \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, path, local, queued, remote, reported, nodeUp, degraded,\n                   failed, mode, waiting,"
+      ]
+    ],
+    "expect": "CommittedBlocksHeld"
+  },
+  {
+    "name": "a durable publication commits before its push flushed",
+    "replace": [
+      [
+        "    /\\ waiting # <<>>\n    /\\ Head(waiting) \\in nodeDisk\n",
+        "    /\\ waiting # <<>>\n"
+      ]
+    ],
+    "expect": "CommittedBlocksHeld"
+  },
+  {
+    "name": "the journal marker clears before every commit is flushed locally",
+    "replace": [
+      [
+        "    /\\ waiting = <<>>\n    /\\ durN = Len(wal)\n    /\\ live' = FALSE",
+        "    /\\ waiting = <<>>\n    /\\ live' = FALSE"
+      ]
+    ],
+    "expect": "AckedCommitSurvives"
+  },
+  {
+    "name": "a restart without the node starts on the local head as if nothing failed",
+    "replace": [
+      [
+        "    /\\ failed = \"none\"\n    /\\ failed' = \"node\"\n    /\\ lost' = <<>>",
+        "    /\\ failed = \"none\"\n    /\\ lost' = <<>>"
+      ],
+      [
+        "                   nodeUp, degraded, mode, mem, waiting, wal, durN, bounced, late>>",
+        "                   nodeUp, degraded, failed, mode, mem, waiting, wal, durN, bounced, late>>"
+      ]
+    ],
+    "expect": "AckedCommitSurvives"
+  },
+  {
     "name": "the drain drops the entry of a block it pushed",
-    "replace": [["    /\\ nodeBuf' = nodeBuf \\cup {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, queued, nodeDisk,", "    /\\ nodeBuf' = nodeBuf \\cup {b}\n    /\\ queued' = queued \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, nodeDisk,"]],
+    "replace": [
+      [
+        "    /\\ nodeBuf' = nodeBuf \\cup {b}\n    /\\ UNCHANGED <<indexed, answered, state, path, local, queued, nodeDisk,",
+        "    /\\ nodeBuf' = nodeBuf \\cup {b}\n    /\\ queued' = queued \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, path, local, nodeDisk,"
+      ]
+    ],
     "expect": "QueueHoldsUntilRemote"
   },
   {
     "name": "the drain clears a block the index does not name",
-    "replace": [["    /\\ b \\in queued\n    /\\ b \\in indexed\n    /\\ queued' = queued \\ {b}", "    /\\ b \\in queued\n    /\\ queued' = queued \\ {b}"]],
-    "expect": "QueueHoldsUntilRemote"
+    "replace": [
+      [
+        "    /\\ b \\in queued\n    /\\ b \\in indexed\n    /\\ queued' = queued \\ {b}",
+        "    /\\ b \\in queued\n    /\\ queued' = queued \\ {b}"
+      ]
+    ],
+    "expect": "AckedStaysReadable"
   }
 ]
