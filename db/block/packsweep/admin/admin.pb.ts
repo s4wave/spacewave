@@ -77,6 +77,16 @@ export interface StatusResponse {
    * Log is the write log's state.
    */
   log?: LogStatus
+  /**
+   * Operations is when the oldest open write and read operation began;
+   * absent when the backend records none, and then no pack passes a recheck.
+   */
+  operations?: OpenOperations
+  /**
+   * NowUnixNano is the backend's clock when it read the state, the clock the
+   * packs' since and the operations' starts are on.
+   */
+  nowUnixNano?: bigint
 }
 
 export const StatusResponse: MessageType<StatusResponse> =
@@ -86,6 +96,39 @@ export const StatusResponse: MessageType<StatusResponse> =
       [1, 'enabled', 8],
       [2, 'packs', 11, 1, PackHold.codec],
       [3, 'log', 11, 0, LogStatus.codec],
+      [4, 'operations', 11, 0, OpenOperations.codec],
+      [5, 'now_unix_nano', 3],
+    ],
+  )
+
+/**
+ * OpenOperations is when the oldest write and read operation still open on
+ * the backend's store began. A pack passes its recheck only when each began
+ * after the pack left the reads: a write begun before may log a block of the
+ * pack after the command read the log, and a read begun before may hold a
+ * block of the pack it read without the fallback.
+ *
+ * @generated from message block.packsweep.admin.OpenOperations
+ */
+export interface OpenOperations {
+  /**
+   * OldestWriteUnixNano is the start of the oldest write in flight, zero for
+   * none.
+   */
+  oldestWriteUnixNano?: bigint
+  /**
+   * OldestReadUnixNano is the start of the oldest read operation or stage not
+   * yet released, zero for none.
+   */
+  oldestReadUnixNano?: bigint
+}
+
+export const OpenOperations: MessageType<OpenOperations> =
+  /* @__PURE__ */ createMessageType<OpenOperations>(
+    'block.packsweep.admin.OpenOperations',
+    () => [
+      [1, 'oldest_write_unix_nano', 3],
+      [2, 'oldest_read_unix_nano', 3],
     ],
   )
 

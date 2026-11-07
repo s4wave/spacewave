@@ -4,6 +4,7 @@ package block_packsweep_admin
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -19,7 +20,7 @@ const (
 	// MaxRefs is the blocks a Locate or Refs call takes.
 	MaxRefs = 4096
 	// MaxPacks is the packs a Status, Quarantine or Lift call names.
-	MaxPacks = 1024
+	MaxPacks = packsweep.MaxBackendPacks
 	// MaxAdopt is the packs an Adopt call registers: each carries every key
 	// it holds.
 	MaxAdopt = 16
@@ -76,6 +77,11 @@ type Options struct {
 	// Enabled is the switch, read at each call that changes a pack's state;
 	// nil is always off.
 	Enabled func() bool
+	// Operations returns when the oldest open write and read operation of the
+	// backend's store began, each zero for none, as
+	// block_store_writeback.MarkingStore.OldestOperations reports them. Nil
+	// reports none recorded, and no pack passes a recheck.
+	Operations func() (write, read time.Time)
 }
 
 // Server serves PackSweepAdmin over a backend's pack store and write log.
@@ -105,11 +111,16 @@ func (s *Server) Status(ctx context.Context, req *StatusRequest) (*StatusRespons
 		return nil, err
 	}
 
-	// Report the log beside them.
-	resp := &StatusResponse{Enabled: s.enabled(), Packs: packHolds(holds)}
+	// Report the log and the open operations beside them, on the clock the
+	// holds were read on.
+	resp := &StatusResponse{Enabled: s.enabled(), Packs: packHolds(holds), NowUnixNano: time.Now().UnixNano()}
 	if s.opts.Log != nil {
 		st := s.opts.Log.Status()
 		resp.Log = &LogStatus{On: st.On, Epoch: st.Epoch, Seq: st.Seq, Bytes: st.Bytes, Broken: st.Broken}
+	}
+	if s.opts.Operations != nil {
+		write, read := s.opts.Operations()
+		resp.Operations = &OpenOperations{OldestWriteUnixNano: unixNano(write), OldestReadUnixNano: unixNano(read)}
 	}
 	return resp, nil
 }
@@ -251,6 +262,14 @@ func (s *Server) TrimLog(ctx context.Context, req *TrimLogRequest) (*TrimLogResp
 		return nil, err
 	}
 	return &TrimLogResponse{}, nil
+}
+
+// unixNano returns t in Unix nanoseconds, zero for the zero time.
+func unixNano(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.UnixNano()
 }
 
 // checkRefs refuses an unbounded batch of blocks or an invalid ref.

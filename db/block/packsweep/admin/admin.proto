@@ -59,6 +59,26 @@ message StatusResponse {
   repeated PackHold packs = 2;
   // Log is the write log's state.
   LogStatus log = 3;
+  // Operations is when the oldest open write and read operation began;
+  // absent when the backend records none, and then no pack passes a recheck.
+  OpenOperations operations = 4;
+  // NowUnixNano is the backend's clock when it read the state, the clock the
+  // packs' since and the operations' starts are on.
+  int64 now_unix_nano = 5;
+}
+
+// OpenOperations is when the oldest write and read operation still open on
+// the backend's store began. A pack passes its recheck only when each began
+// after the pack left the reads: a write begun before may log a block of the
+// pack after the command read the log, and a read begun before may hold a
+// block of the pack it read without the fallback.
+message OpenOperations {
+  // OldestWriteUnixNano is the start of the oldest write in flight, zero for
+  // none.
+  int64 oldest_write_unix_nano = 1;
+  // OldestReadUnixNano is the start of the oldest read operation or stage not
+  // yet released, zero for none.
+  int64 oldest_read_unix_nano = 2;
 }
 
 // PackHold is a pack's sweep state and its last fallback read or lift.
