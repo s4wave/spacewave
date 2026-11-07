@@ -181,10 +181,14 @@ type queueDelta struct {
 	// oldest is the earliest write time of those blocks, while added is not
 	// zero.
 	oldest time.Time
+	// counted is the change to the queue's kept count, the entries it
+	// covers.
+	counted countDelta
 }
 
 // queueMarks queues the marked blocks in tx and returns the blocks it queued
-// for the first time. It reads the blocks' markers in one batch, so a cold
+// for the first time, adding those the kept count covers to it in tx, as
+// countKey describes. It reads the blocks' markers in one batch, so a cold
 // index costs one round of reads rather than one read per block while tx
 // holds the store's writer.
 //
@@ -207,6 +211,8 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 	// Queue each block, finding a block listed twice under the entry its
 	// first listing queued.
 	var delta queueDelta
+	var count queueCount
+	var read, kept bool
 	now := time.Now()
 	queuedHere := make(map[string][]byte)
 	for i, mark := range marks {
@@ -241,6 +247,27 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		}
 		delta.added++
 		delta.addedBytes += mark.Size
+
+		// Count the entry when the kept count covers it, reading the count
+		// at the first new entry.
+		if !read {
+			if count, kept, err = readQueueCount(ctx, tx); err != nil {
+				return queueDelta{}, err
+			}
+			read = true
+		}
+		if !kept {
+			continue
+		}
+		delta.counted = delta.counted.plus(count.add(entryKey, mark.Size))
+	}
+
+	// Keep the count in the same transaction.
+	if delta.counted == (countDelta{}) {
+		return delta, nil
+	}
+	if err := writeQueueCount(ctx, tx, count); err != nil {
+		return queueDelta{}, errors.Wrap(err, "count queued blocks")
 	}
 	return delta, nil
 }

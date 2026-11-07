@@ -12,8 +12,9 @@ type Status struct {
 	// PendingBytes is the size of the blocks awaiting upload, and while
 	// Counting the size of those counted so far.
 	PendingBytes int64
-	// Counting reports that the count of the queue an open started has not
-	// ended, so Pending and PendingBytes are short of the queue.
+	// Counting reports that the walk that starts the queue's kept count, on
+	// a store that kept none, has not reached the queue's end, so Pending and
+	// PendingBytes are short of the queue.
 	Counting bool
 	// Oldest is the write time of the first block awaiting upload, zero only
 	// while none awaits it. Every block written before it has uploaded.

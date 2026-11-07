@@ -595,15 +595,15 @@ func (r *sizedStore) getBatches() []int {
 	return slices.Clone(r.batches)
 }
 
-// waitStatus waits until the status satisfies done.
-func waitStatus(t *testing.T, s *Store, done func(Status) bool) {
+// waitStatus waits until the status satisfies done, and returns it.
+func waitStatus(t *testing.T, s *Store, done func(Status) bool) Status {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	for {
 		status, changed := s.GetStatus()
 		if done(status) {
-			return
+			return status
 		}
 		select {
 		case <-changed:
@@ -992,20 +992,36 @@ func countQueue(t *testing.T, markers kvtx.Store) (int, int64) {
 	return n, size
 }
 
-// TestClearsDuringTheCount clears blocks on both sides of the count of the
-// queue after an open while it runs, and lets the upload start, which waits
-// for nothing but the queue's head. The status must end equal to a count of
-// the queue: a clear that took an entry the count had yet to read off the
-// status would leave it low, and one the count read after the clear removed
-// it would leave it high.
-func TestClearsDuringTheCount(t *testing.T) {
+// readCount reads the queue's kept count.
+func readCount(t *testing.T, markers kvtx.Store) queueCount {
+	t.Helper()
+	var count queueCount
+	err := kvtx.RunTransaction(t.Context(), false, func(ctx context.Context) (kvtx.Tx, error) { return markers.NewTransaction(ctx, false) }, func(ctx context.Context, tx kvtx.Tx) error {
+		var err error
+		count, _, err = readQueueCount(ctx, tx)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return count
+}
+
+// TestQueueCountWalk walks the queue of a store that keeps no count, with the
+// upload, clears and writes running from the open on, reopens mid-walk with
+// the first store still walking, crashes it and a write mid-transaction, and
+// resumes. The walk must resume from its cursor, and once it
+// ends the kept count and the status must equal a count of the queue: a
+// write or clear that adjusted the count for a key the walk had yet to reach
+// would leave it high or low.
+func TestQueueCountWalk(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
 	s := env.newStore(t, true)
 
-	// Queue past what an open counts by several chunks, then reopen with a
-	// slow count.
-	total := openCountLimit + 30*countChunkLimit
+	// Queue many walk slices of entries, then reopen with the switch that
+	// drops the count, as on a store that never kept one, and slow reads.
+	total := 40 * walkSliceLimit
 	entries := make([]*block.PutBatchEntry, total)
 	for i := range total {
 		data := []byte(strconv.Itoa(i))
@@ -1018,75 +1034,113 @@ func TestClearsDuringTheCount(t *testing.T) {
 	if _, err := s.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)
 	}
+	if status, _ := s.GetStatus(); status.Counting || status.Pending != total {
+		t.Fatalf("status before the reopen = %+v, want %d counted", status, total)
+	}
 	g := &slowMarkers{Store: env.markers(t)}
 	g.armed.Store(true)
-	s, err := NewStore(ctx, ownedStore{env.vol}, env.vol, g, testMarkersID, true)
+	openCtx, crash := context.WithCancel(ctx)
+	SetRecountAtOpen(true)
+	s, err := NewStore(openCtx, ownedStore{env.vol}, env.vol, g, testMarkersID, true)
+	SetRecountAtOpen(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status, _ := s.GetStatus(); !status.Counting || status.Pending != openCountLimit || status.Oldest.IsZero() {
-		t.Fatalf("status after the open = %+v, want counting the first %d", status, openCountLimit)
+	if status, _ := s.GetStatus(); !status.Counting || status.Pending != 0 || status.Oldest.IsZero() {
+		t.Fatalf("status after the open = %+v, want counting from zero", status)
 	}
 
-	// The upload starts at once and uploads from the head while the count
+	// The upload starts at once and uploads from the head while the walk
 	// runs.
-	uploadCtx, stopUpload := context.WithCancel(ctx)
+	uploadCtx, stopUpload := context.WithCancel(openCtx)
 	uploaded := make(chan error, 1)
 	go func() { uploaded <- s.Upload(uploadCtx, newInmemBlockStore()) }()
-	for {
-		status, changed := s.GetStatus()
-		if !status.Counting {
-			t.Fatal("the count ended before the upload uploaded; slow it further")
-		}
-		if status.Uploaded != 0 {
-			break
-		}
-		<-changed
-	}
+	waitStatus(t, s, func(st Status) bool { return st.Uploaded != 0 })
 	stopUpload()
 	<-uploaded
 
-	// Clear a spread of blocks the count read, has yet to read, and passes,
-	// with a write queued after the open among them.
-	written, _, err := s.PutBlock(ctx, []byte("written after the open"), leafOpts)
+	// Clear a spread of blocks behind and past the cursor, with a write
+	// queued after the open among them.
+	put := func(s *Store, data string) *block.BlockRef {
+		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	clearSpread := func(s *Store, from int, extra *block.BlockRef) {
+		located := map[string]bool{extra.MarshalString(): true}
+		hashes := []*hash.Hash{extra.GetHash()}
+		for i := from; i < total; i += 997 {
+			located[entries[i].Ref.MarshalString()] = true
+			hashes = append(hashes, entries[i].Ref.GetHash())
+		}
+		remote := &locatingStore{StoreOps: newInmemBlockStore(), located: located}
+		var on atomic.Bool
+		on.Store(true)
+		s.SetLocateUploaded(&on)
+		for chunk := range slices.Chunk(hashes, 5) {
+			if err := s.ClearLocated(ctx, remote, chunk); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	clearSpread(s, 0, put(s, "written after the first open"))
+
+	// A write that fails mid-transaction queues and counts nothing.
+	err = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) { return g.NewTransaction(ctx, true) }, func(ctx context.Context, tx kvtx.Tx) error {
+		h, err := hash.Sum(hash.RecommendedHashType, []byte("discarded"))
+		if err != nil {
+			return err
+		}
+		if _, err := queueMarks(ctx, tx, []Mark{{Hash: h, Size: 9, At: time.Unix(0, 0)}, {Hash: h, Size: 9, At: time.Now()}}); err != nil {
+			return err
+		}
+		return errors.New("crash mid-write")
+	})
+	if err == nil {
+		t.Fatal("the discarded write committed")
+	}
+
+	// Reopen mid-walk, as a remount does, and crash the first store after:
+	// the walk resumes from its cursor, and the first store's slices count
+	// nothing into the count the second read.
+	status := waitStatus(t, s, func(st Status) bool { return st.Pending > 3*walkSliceLimit })
+	if !status.Counting {
+		t.Fatal("the walk ended before the crash; slow it further")
+	}
+	s, err = NewStore(ctx, ownedStore{env.vol}, env.vol, g, testMarkersID, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	located := map[string]bool{written.MarshalString(): true}
-	var hashes []*hash.Hash
-	for i := 0; i < total; i += 997 {
-		located[entries[i].Ref.MarshalString()] = true
-		hashes = append(hashes, entries[i].Ref.GetHash())
-	}
-	hashes = append(hashes, written.GetHash())
-	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: located}
-	var on atomic.Bool
-	on.Store(true)
-	s.SetLocateUploaded(&on)
-	for chunk := range slices.Chunk(hashes, 5) {
-		if err := s.ClearLocated(ctx, remote, chunk); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if status, _ := s.GetStatus(); !status.Counting {
-		t.Fatal("the count ended before the clears; slow it further")
+	time.Sleep(50 * time.Millisecond)
+	crash()
+	if status, _ := s.GetStatus(); !status.Counting || status.Pending < 3*walkSliceLimit {
+		t.Fatalf("status after the crash = %+v, want the walk resumed past %d", status, 3*walkSliceLimit)
 	}
 
-	// The status ends at the queue's count once the count does.
-	if err := s.waitCounted(ctx); err != nil {
-		t.Fatal(err)
-	}
+	// Writes and clears run on while the resumed walk ends.
+	clearSpread(s, 500, put(s, "written after the crash"))
+	put(s, "written again after the crash")
+	status = waitStatus(t, s, func(st Status) bool { return !st.Counting })
 	g.armed.Store(false)
+
+	// The kept count and the status equal the queue's count.
 	n, size := countQueue(t, env.markers(t))
-	if n >= total+1-len(hashes) {
-		t.Fatalf("queue holds %d, want fewer than %d after the upload and clears", n, total+1-len(hashes))
+	count := readCount(t, env.markers(t))
+	if !count.done || count.n != n || count.bytes != size {
+		t.Fatalf("kept count = %+v, queue holds %d, %d", count, n, size)
 	}
-	if status, _ := s.GetStatus(); status.Counting || status.Pending != n || status.PendingBytes != size {
-		t.Fatalf("status = %d entries, %d bytes, counting %v; queue holds %d, %d", status.Pending, status.PendingBytes, status.Counting, n, size)
+	status, _ = s.GetStatus()
+	if status.Pending != n || status.PendingBytes != size {
+		t.Fatalf("status = %d entries, %d bytes; queue holds %d, %d", status.Pending, status.PendingBytes, n, size)
 	}
 
-	// The upload drains the rest to an empty status.
-	drain(t, s, remote)
+	// The upload drains the rest to an empty count.
+	drain(t, s, newInmemBlockStore())
+	if count := readCount(t, env.markers(t)); !count.done || count.n != 0 || count.bytes != 0 {
+		t.Fatalf("kept count after the drain = %+v", count)
+	}
 	if status, _ := s.GetStatus(); status.Pending != 0 || status.PendingBytes != 0 || !status.Oldest.IsZero() {
 		t.Fatalf("status after the drain = %+v", status)
 	}

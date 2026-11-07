@@ -1,0 +1,72 @@
+[
+  {
+    "name": "a write above the cursor adjusts the count",
+    "replace": [
+      [
+        "    /\\ queue' = queue \\cup {k}\n    /\\ IF Covered(k)\n",
+        "    /\\ queue' = queue \\cup {k}\n    /\\ IF TRUE\n"
+      ]
+    ],
+    "expect": "CountedPlusUncovered"
+  },
+  {
+    "name": "a clear above the cursor adjusts the count",
+    "replace": [
+      [
+        "            /\\ IF Covered(k)\n               THEN n' = n - 1",
+        "            /\\ IF TRUE\n               THEN n' = n - 1"
+      ]
+    ],
+    "expect": "CountedPlusUncovered"
+  },
+  {
+    "name": "a slice persists its cursor outside its transaction",
+    "replace": [
+      [
+        "          /\\ cursor' = IF ended THEN cursor ELSE last\n          /\\ done' = ended\n          /\\ UNCHANGED <<walker, upTo>>",
+        "          /\\ upTo' = IF ended THEN cursor ELSE last\n          /\\ walker' = \"cursor\"\n          /\\ UNCHANGED <<cursor, done>>"
+      ]
+    ],
+    "expect": "CountedPlusUncovered"
+  },
+  {
+    "name": "an open trusts the status it had before the crash",
+    "replace": [
+      [
+        "    /\\ up' = TRUE\n    /\\ status' = n\n",
+        "    /\\ up' = TRUE\n    /\\ UNCHANGED status\n"
+      ]
+    ],
+    "expect": "StatusFollows"
+  },
+  {
+    "name": "a write past the end goes uncounted",
+    "replace": [
+      [
+        "    /\\ queue' = queue \\cup {k}\n    /\\ IF Covered(k)\n",
+        "    /\\ queue' = queue \\cup {k}\n    /\\ IF done \\/ k <= cursor\n"
+      ]
+    ],
+    "expect": "CountedPlusUncovered"
+  },
+  {
+    "name": "the walk counts past its end",
+    "replace": [
+      [
+        "    LET past == {k \\in queue : k > c /\\ k < end}",
+        "    LET past == {k \\in queue : k > c}"
+      ]
+    ],
+    "expect": "CountedPlusUncovered"
+  },
+  {
+    "name": "a recount ends its walk at the time of the open, below an entry written before a clock step back",
+    "replace": [
+      [
+        "    /\\ end' = EndPast(queue)\n",
+        "    /\\ end' \\in Ends\n"
+      ]
+    ],
+    "expect": "CountedPlusUncovered"
+  }
+]

@@ -7,6 +7,9 @@ import "strconv"
 // value is empty, and the queue key ordered by write time, whose value is
 // MarkerQueueValue(m). A tool that copies a block into a volume writes both
 // keys, under the object store's prefix, so the uploader finds the block.
+// The store's kept count of its queue does not see them: write them before a
+// store first opens over the volume, whose open counts them, or open it next
+// with SetRecountAtOpen.
 func MarkerKeys(m Mark) (marked, queue []byte) {
 	return markedKey(m.Hash), queueKey(queueTime(m.At), m.Hash)
 }

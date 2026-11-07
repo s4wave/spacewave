@@ -157,11 +157,12 @@ func addEvictableBytes(ctx context.Context, tx kvtx.Tx, delta int64) error {
 // EvictBytes returns how many uploaded bytes a pass drops to bring the
 // resident bytes from past the high mark down to the low mark, or zero.
 //
-// While Counting, the queue holds more than openCountLimit entries of which
-// only some are counted, so a pass takes the queue alone as past the high mark
-// and drops every uploaded byte: holding eviction until the count ends would
-// let the disk fill for its length, and an uploaded block dropped early costs
-// only its refill.
+// While Counting, the walk that starts the queue's kept count has yet to
+// reach part of the queue, by an amount unknown until it ends, so a pass takes
+// the queue as past the high mark and drops every uploaded byte: holding
+// eviction until the walk ends would let the disk fill for its length, and an
+// uploaded block dropped early costs only its refill. The walk runs once per
+// store, and over a short queue ends within the open's first moments.
 func (s Status) EvictBytes() int64 {
 	resident := s.ResidentBytes()
 	switch {
