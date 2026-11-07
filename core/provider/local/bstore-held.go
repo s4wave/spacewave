@@ -41,6 +41,11 @@ const (
 	nodeKeyReadPauseMin = 50 * time.Millisecond
 	nodeKeyReadPauseMax = 5 * time.Second
 	nodeKeyReadAwayPoll = 50 * time.Millisecond
+	// nodeKeyReadSilentBound is how long a read keeps asking a connected
+	// node that sends no answer, such as one whose serve loop is blocked
+	// behind pushes waiting on fsync. Silence never counts as a miss; past
+	// this bound the read fails with block.ErrUnavailable, not not-found.
+	nodeKeyReadSilentBound = 2 * time.Minute
 )
 
 // heldReads reads the store's memory set before the local store. A block the
@@ -172,15 +177,20 @@ func (r *nodeKeyReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	if stored != nil || ref.GetEmpty() {
 		return stored, err
 	}
-	if found := r.readNode(ctx, ref); found != nil {
+	found, silent := r.readNode(ctx, ref)
+	if found != nil {
 		return found, nil
+	}
+	if silent && err == nil {
+		err = block.ErrUnavailable
 	}
 	return nil, err
 }
 
-// readNode reads ref from the node's pack log by key, or returns nil.
-func (r *nodeKeyReads) readNode(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
-	return readNodeBlock(ctx, r.client, r.wait, nodeKeyReadBound, ref)
+// readNode reads ref from the node's pack log by key, or returns nil and
+// whether the node failed to answer rather than missing it.
+func (r *nodeKeyReads) readNode(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, bool) {
+	return readNodeBlockAnswer(ctx, r.client, r.wait, nodeKeyReadBound, ref)
 }
 
 // nodeBeforePeers asks the storage node by key before the peers, whose read
@@ -230,36 +240,48 @@ func (r *nodeFirstReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 	return r.StoreOps.GetBlock(ctx, ref)
 }
 
-// readNodeBlock reads ref from the node's pack log by key, each try within
-// wait, asking again after a miss until bound of connected time has passed,
-// or returns nil. While the node is away it waits for it to come back, until
-// ctx ends, and asks at once when it does. A bound of zero asks once and does
-// not wait for an away node.
+// readNodeBlock reads as readNodeBlockAnswer does and drops the silent flag.
 func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodepush.Client], wait, bound time.Duration, ref *block.BlockRef) *block.StoredBlock {
+	stored, _ := readNodeBlockAnswer(ctx, client, wait, bound, ref)
+	return stored
+}
+
+// readNodeBlockAnswer reads ref from the node's pack log by key, each try
+// within wait. An answered miss counts against bound; a try the node did not
+// answer counts only against nodeKeyReadSilentBound, and the try wait backs
+// off up to nodeKeyReadPauseMax. While the node is away it waits for it to
+// come back, until ctx ends, and asks at once when it does. It returns the
+// block, or nil and true when the read ended on silence rather than a miss.
+// A bound of zero asks once and does not wait for an away node.
+func readNodeBlockAnswer(ctx context.Context, client *atomic.Pointer[block_store_nodepush.Client], wait, bound time.Duration, ref *block.BlockRef) (*block.StoredBlock, bool) {
+	// An empty ref, or a one-try read with no node, has nothing to ask.
 	if ref.GetEmpty() {
-		return nil
+		return nil, false
 	}
 	if bound <= 0 && client.Load() == nil {
-		return nil
+		return nil, false
 	}
 
-	// Ask the node, again after a miss and while it is away: a node with no
-	// free read slot, or one slow to answer, misses a block it holds, and a
-	// block flushed but not yet reported is held nowhere else.
+	// Ask the node, again after a miss and while it is away or silent: a
+	// node with no free read slot misses a block it holds, a stalled node
+	// answers nothing, and a block flushed but not yet reported is held
+	// nowhere else.
 	key := packfile.BlockKey(ref.GetHash())
 	left := bound
+	silentLeft := nodeKeyReadSilentBound
 	pause := nodeKeyReadPauseMin
+	try := max(wait, nodeKeyReadWait)
 	var value []byte
 	for {
 		// Wait for an away node to come back, then ask at once.
 		c := client.Load()
-		if c == nil {
+		if c == nil || !c.Connected() {
 			if bound <= 0 {
-				return nil
+				return nil, c != nil
 			}
 			select {
 			case <-ctx.Done():
-				return nil
+				return nil, true
 			case <-time.After(nodeKeyReadAwayPoll):
 			}
 			pause = nodeKeyReadPauseMin
@@ -267,29 +289,43 @@ func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodep
 		}
 
 		started := time.Now()
-		rctx, cancel := context.WithTimeout(ctx, max(wait, nodeKeyReadWait))
-		data, ok := c.ReadBlock(rctx, key)
+		rctx, cancel := context.WithTimeout(ctx, try)
+		data, ok, answered := c.ReadBlockAnswer(rctx, key)
 		cancel()
 		if ok {
 			value = data
 			break
 		}
 		if ctx.Err() != nil {
-			return nil
+			return nil, !answered
+		}
+		if bound <= 0 {
+			return nil, !answered
 		}
 
-		// A miss from a connected node counts against bound; a try the node
-		// dropped mid-way does not.
-		if client.Load() == nil {
+		// Silence is not a miss: ask again with a longer try, until the
+		// silent bound. A try the node dropped mid-way costs nothing.
+		if !answered {
+			if c2 := client.Load(); c2 == nil || !c2.Connected() {
+				continue
+			}
+			silentLeft -= time.Since(started)
+			if silentLeft < 0 {
+				return nil, true
+			}
+			try = min(try*2, nodeKeyReadPauseMax)
 			continue
 		}
+
+		// An answered miss from a connected node counts against bound.
+		try = max(wait, nodeKeyReadWait)
 		left -= time.Since(started) + pause
 		if left < 0 {
-			return nil
+			return nil, false
 		}
 		select {
 		case <-ctx.Done():
-			return nil
+			return nil, false
 		case <-time.After(pause):
 		}
 		pause = min(pause*2, nodeKeyReadPauseMax)
@@ -298,9 +334,9 @@ func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodep
 	// Check what it sends; a bad answer is a miss.
 	stored, err := block.DecodeBlockObject(value)
 	if err != nil || ref.VerifyData(stored.Data, false) != nil {
-		return nil
+		return nil, false
 	}
-	return stored
+	return stored, false
 }
 
 // GetBlock reads as GetStoredBlock does.

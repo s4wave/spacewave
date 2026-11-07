@@ -138,31 +138,42 @@ func (c *Client) answerTail(page *JournalRecords) {
 // ReadBlock reads one block's stored value from the node's pack log by its
 // pack key. It reports false when the node lacks it, is away, or ctx ends.
 func (c *Client) ReadBlock(ctx context.Context, key []byte) ([]byte, bool) {
+	data, ok, _ := c.ReadBlockAnswer(ctx, key)
+	return data, ok
+}
+
+// ReadBlockAnswer reads as ReadBlock does and also reports whether the node
+// answered. A node that is away, or one that sent no answer before ctx ended,
+// did not answer; only an answered miss means the node lacks the block.
+func (c *Client) ReadBlockAnswer(ctx context.Context, key []byte) ([]byte, bool, bool) {
 	// Take a read id on the live connection.
 	req, answer, out := c.beginRead()
 	if out == nil {
-		return nil, false
+		return nil, false, false
 	}
 	defer c.forgetRead(req)
 
 	// Send the read and wait for the answer.
 	frame, err := encodeMessage(&Message{Body: &Message_ReadBlock{ReadBlock: &ReadBlock{Id: req, Key: key}}})
 	if err != nil {
-		return nil, false
+		return nil, false, false
 	}
 	select {
 	case out <- frame:
 	case <-ctx.Done():
-		return nil, false
+		return nil, false, false
 	}
 	select {
 	case data, ok := <-answer:
-		if !ok || data.GetMiss() {
-			return nil, false
+		if !ok {
+			return nil, false, false
 		}
-		return data.GetData(), true
+		if data.GetMiss() {
+			return nil, false, true
+		}
+		return data.GetData(), true, true
 	case <-ctx.Done():
-		return nil, false
+		return nil, false, false
 	}
 }
 
