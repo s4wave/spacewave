@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/block/writelog"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
@@ -37,6 +39,14 @@ const commandStoreID = "p/local/acc/blk/so"
 // in the file at path of the volume type kind.
 func openIndexStore(ctx context.Context, t *testing.T, kind, path string, client block_store_s3.ObjectStore) (*block_store_s3.PackStore, func() error) {
 	t.Helper()
+	store, _, closeIndex := openIndexFile(ctx, t, kind, path, client)
+	return store, closeIndex
+}
+
+// openIndexFile opens a pack store as openIndexStore does, and returns the
+// index file's key space too.
+func openIndexFile(ctx context.Context, t *testing.T, kind, path string, client block_store_s3.ObjectStore) (*block_store_s3.PackStore, kvtx.Store, func() error) {
+	t.Helper()
 	index, closeIndex, err := packcopy.OpenIndexFile(ctx, path, &packcopy.IndexFileOptions{
 		Kind:   kind,
 		Table:  defaultIndexTable,
@@ -48,7 +58,7 @@ func openIndexStore(ctx context.Context, t *testing.T, kind, path string, client
 	return block_store_s3.NewPackStore(logrus.NewEntry(logrus.New()), client, s3test.BucketName, "world/", &block_store_s3.PackStoreOptions{
 		KeepPacks: true,
 		Index:     kvtx_prefixer.NewPrefixer(index, block_store_s3.PackIndexPrefix(commandStoreID)),
-	}), closeIndex
+	}), index, closeIndex
 }
 
 // commandBackend is a backend for the command tests: a pack store, a marking
@@ -62,20 +72,22 @@ type commandBackend struct {
 	wlog *writelog.Log
 	// url is the admin service's ws URL.
 	url string
+	// stop stops the admin service and closes the write log, once.
+	stop func()
 }
 
 // serveAdmin serves the admin service over store until the test ends, and
 // sets the credential the command sends.
 func serveAdmin(t *testing.T, store *block_store_s3.PackStore, dir string) *commandBackend {
 	t.Helper()
-	b := &commandBackend{store: store, marking: block_store_writeback.NewMarkingStore(store, nil), wlog: writelog.New(logrus.NewEntry(logrus.New()))}
+	b := &commandBackend{store: store, marking: block_store_writeback.NewMarkingStore(store, func(context.Context, []block_store_writeback.Mark) error { return nil }), wlog: writelog.New(logrus.NewEntry(logrus.New()))}
 	if err := b.wlog.Set(&writelog.Options{Dir: filepath.Join(dir, "log")}); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = b.wlog.Close() })
 	server := block_packsweep_admin.NewServer(block_packsweep_admin.Options{
 		Packs:   store,
 		Log:     b.wlog,
+		Refs:    packsweep.SourceRefs{store},
 		Enabled: func() bool { return true },
 		Operations: func() (time.Time, time.Time) {
 			ops := b.marking.OldestOperations()
@@ -93,7 +105,11 @@ func serveAdmin(t *testing.T, store *block_store_s3.PackStore, dir string) *comm
 		}
 		handler.ServeHTTP(w, r)
 	}))
-	t.Cleanup(srv.Close)
+	b.stop = sync.OnceFunc(func() {
+		srv.Close()
+		_ = b.wlog.Close()
+	})
+	t.Cleanup(b.stop)
 	t.Setenv(adminAuthEnv, "Bearer admin")
 	b.url = "ws" + strings.TrimPrefix(srv.URL, "http") + "/admin/pack-sweep"
 	return b
