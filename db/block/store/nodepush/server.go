@@ -25,7 +25,7 @@ const reportSuffix = ".report"
 // share the log's flushes.
 const maxPushesInFlight = 16
 
-// maxReadsInFlight bounds the reads one connection serves at once.
+// maxReadsInFlight bounds the reads the server runs at once.
 const maxReadsInFlight = 32
 
 // reportWait is how long a report waits for its answer before the next one
@@ -58,6 +58,8 @@ type Server struct {
 	wait time.Duration
 	// wake tells the report routine that pending changed.
 	wake chan struct{}
+	// readSlots bounds the reads in flight on every connection.
+	readSlots chan struct{}
 	// retryBase is the wait after a report's first failed try.
 	retryBase time.Duration
 	// packs serves reads, or is nil on a node that serves none.
@@ -86,7 +88,7 @@ func NewServer(holder Holder, dir string) (*Server, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
-	s := &Server{holder: holder, dir: dir, wait: reportWait, retryBase: reportWait, wake: make(chan struct{}, 1)}
+	s := &Server{holder: holder, dir: dir, wait: reportWait, retryBase: reportWait, wake: make(chan struct{}, 1), readSlots: make(chan struct{}, maxReadsInFlight)}
 
 	// An empty report was applied. The sizes come from the directory walk, so
 	// this reads no report.
@@ -150,7 +152,6 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 	// Take pushes, appending several at once so they share a flush, and
 	// reads, in their own slots so a burst of them never holds back a push.
 	slots := make(chan struct{}, maxPushesInFlight)
-	readSlots := make(chan struct{}, maxReadsInFlight)
 	r := bufio.NewReader(conn)
 	for {
 		msg, err := readMessage(r)
@@ -172,17 +173,19 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			}()
 		case *Message_Read:
 			// Never wait for a slot here: pushes come through this loop, and
-			// a hung disk must not hold them. A read with no slot times out
-			// on the local store, which then reads the remote. A hung read
+			// a hung disk must not hold them. A read with no slot answers a
+			// miss at once, and the local store reads the remote. A hung read
 			// stays out of running too, so it can't hold this connection's
-			// end, and the slots bound how many there are.
+			// end; the server's slots bound how many there are, across
+			// connections.
 			select {
-			case readSlots <- struct{}{}:
+			case s.readSlots <- struct{}{}:
 				go func() {
-					defer func() { <-readSlots }()
+					defer func() { <-s.readSlots }()
 					send(ctx, out, s.read(body.Read))
 				}()
 			default:
+				trySend(out, &Message{Body: &Message_ReadData{ReadData: &ReadData{Id: body.Read.GetId(), Miss: true}}})
 			}
 		case *Message_PackApplied:
 			if body.PackApplied.GetFailed() {
@@ -393,6 +396,19 @@ func send(ctx context.Context, out chan<- []byte, msg *Message) {
 	select {
 	case out <- frame:
 	case <-ctx.Done():
+	}
+}
+
+// trySend writes msg to out unless out is full.
+func trySend(out chan<- []byte, msg *Message) {
+	// A dropped frame costs its reader the wait it would have had anyway.
+	frame, err := encodeMessage(msg)
+	if err != nil {
+		return
+	}
+	select {
+	case out <- frame:
+	default:
 	}
 }
 

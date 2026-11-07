@@ -31,7 +31,8 @@ type Sender interface {
 
 // Result reports how one publication's push ended, after sent elapsed. A nil
 // err means the node flushed it; otherwise the publication has only the local
-// store's durability until it is uploaded.
+// store's durability until it is uploaded. It may run on the commit path, so it
+// must not block.
 type Result func(err error, sent time.Duration)
 
 // Publisher wraps an AtomicPublisher so each receipt also waits for the node.

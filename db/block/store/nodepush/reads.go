@@ -14,10 +14,15 @@ const readsQuietFor = 5 * time.Second
 // Reads is a pack store's read cache on the storage node.
 //
 // The node only ever saves a trip to the remote. It answers nothing but the
-// bytes of a block the pack store then verifies against its hash, so it can't
-// vouch for the remote: existence checks, index reads and adoption never reach
-// it. Lacking the pack, being away, being slow and returning bad bytes all cost
-// at most one bounded wait, and the remote answers.
+// bytes of one block, so it can't vouch for the remote: existence checks, index
+// reads and adoption never reach it. Lacking the pack, being away, being slow
+// and returning bad bytes all cost at most one bounded wait, and the remote
+// answers.
+//
+// The pack store checks a block's data against its hash. Its refs have no such
+// check, so they rest on the node's chunk sums, which catch a damaged disk. That
+// trusts the node as a process: it is the operator's own host behind SSH, and
+// the sums would not stop one that lied.
 type Reads struct {
 	// wait bounds one read from the node.
 	wait time.Duration
@@ -38,9 +43,10 @@ func NewReads(wait time.Duration, on *atomic.Bool, client *atomic.Pointer[Client
 // ReadCached reads a range of pack id from the node. It reports false for
 // anything but the full range.
 func (r *Reads) ReadCached(ctx context.Context, id string, off int64, length int) ([]byte, bool) {
-	// Ask only a node that is on, connected and not just timed out.
+	// Ask only a node that is on, connected and not just timed out, about a
+	// range it would serve.
 	client := r.client.Load()
-	if client == nil || !r.on.Load() || time.Now().UnixNano() < r.quietUntil.Load() {
+	if client == nil || !r.on.Load() || length > maxReadBytes || time.Now().UnixNano() < r.quietUntil.Load() {
 		return nil, false
 	}
 

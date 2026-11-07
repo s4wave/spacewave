@@ -24,7 +24,7 @@ const nodeRedial = 5 * time.Second
 // storage node.
 type NodePushConfig struct {
 	// StoreID names the one block store to push: a node serves one connection,
-	// so a second store would keep replacing the first.
+	// so a second store, on any account, would keep replacing the first.
 	StoreID string
 	// Dial connects to the node. It must return when ctx ends.
 	Dial func(ctx context.Context) (net.Conn, error)

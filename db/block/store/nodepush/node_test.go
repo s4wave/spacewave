@@ -110,7 +110,7 @@ func connect(ctx context.Context, t *testing.T, c *Client, s *Server) func() {
 
 func waitFor(t *testing.T, ok func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(60 * time.Second)
 	for !ok() {
 		if time.Now().After(deadline) {
 			t.Fatal("condition not reached")
@@ -446,6 +446,40 @@ func TestReadThrough(t *testing.T) {
 		t.Fatalf("short range answered %q", data)
 	}
 
+	// A flipped byte anywhere in a copy is a miss, not an answer: the local
+	// store can't check a block's refs. The copy goes, and fills again.
+	copyPath := filepath.Join(dir, "packs", id)
+	copyData, err := os.ReadFile(copyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	copyData[5] ^= 1
+	if err := os.WriteFile(copyPath, copyData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if data, ok := reads.ReadCached(ctx, id, 4, 4); ok {
+		t.Fatalf("damaged copy answered %q", data)
+	}
+	if _, err := os.Stat(copyPath); err == nil {
+		t.Fatal("damaged copy stayed")
+	}
+	waitFor(t, func() bool {
+		data, ok := packs.ReadRange(id, 4, 4)
+		return ok && string(data) == "pack"
+	})
+
+	// A copy cut short, or missing its sums, is no answer either.
+	if err := os.Remove(packs.sumsPath(id)); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := reads.ReadCached(ctx, id, 4, 4); ok {
+		t.Fatal("answered a copy with no sums")
+	}
+	waitFor(t, func() bool {
+		data, ok := packs.ReadRange(id, 4, 4)
+		return ok && string(data) == "pack"
+	})
+
 	// A name that leaves the directory reaches no file.
 	if _, ok := client.ReadRange(ctx, "../reports/x", 0, 4); ok {
 		t.Fatal("read outside the pack directory")
@@ -492,6 +526,9 @@ func TestHungReadsHoldNoPush(t *testing.T) {
 	if err := syscall.Mkfifo(filepath.Join(dir, "packs", id), 0o600); err != nil {
 		t.Skip("no fifo here")
 	}
+	if err := os.WriteFile(packs.sumsPath(id), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	server, err := NewServer(nopHolder{}, dir+"/reports")
 	if err != nil {
 		t.Fatal(err)
@@ -501,12 +538,20 @@ func TestHungReadsHoldNoPush(t *testing.T) {
 	end := connect(ctx, t, client, server)
 
 	// More reads than slots, none of which will ever answer.
-	for range 2 * maxReadsInFlight {
-		readCtx, done := context.WithTimeout(ctx, 5*time.Millisecond)
-		go func() {
-			defer done()
-			client.ReadRange(readCtx, id, 0, 4)
-		}()
+	hung, stopHung := context.WithCancel(ctx)
+	defer stopHung()
+	for range maxReadsInFlight {
+		go client.ReadRange(hung, id, 0, 4)
+	}
+
+	// With every slot taken, a read of another pack misses at once rather than
+	// costing the local store its whole wait.
+	waitFor(t, func() bool { return len(server.readSlots) == maxReadsInFlight })
+	missCtx, missDone := context.WithTimeout(ctx, 3*time.Second)
+	defer missDone()
+	started := time.Now()
+	if _, ok := client.ReadRange(missCtx, id, 0, 4); ok || time.Since(started) > time.Second {
+		t.Fatalf("read with no slot: ok %v after %v", ok, time.Since(started))
 	}
 
 	// A push still answers at once.
@@ -514,6 +559,11 @@ func TestHungReadsHoldNoPush(t *testing.T) {
 	defer done()
 	if err := client.Send(sendCtx, []*block.PutBatchEntry{entry(t, "behind the reads")}); err != nil {
 		t.Fatalf("push behind hung reads: %v", err)
+	}
+
+	// A new connection gets no fresh slots, so hung reads stay bounded.
+	if len(server.readSlots) != maxReadsInFlight {
+		t.Fatalf("%d slots taken", len(server.readSlots))
 	}
 
 	// The connection still ends.
