@@ -1039,7 +1039,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/cdn": {
-      "hash": "5b8a1d21e20eb6b5d60b2d2171d8079c0178031162e36c6ebb15494e53c09e27",
+      "hash": "96290ffde41386b4ed1e61abe0167f471f6d54e57fdf9beb586045867279788e",
       "generatedFiles": [
         "core/cdn/cdn.pb.go",
         "core/cdn/cdn.pb.ts"
