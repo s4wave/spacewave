@@ -121,6 +121,8 @@ type Node struct {
 	backfillWake chan struct{}
 	// backfillRate is the backfill's pace in bytes a second.
 	backfillRate atomic.Int64
+	// uploadRate paces the upload in bytes a second, zero for no pace.
+	uploadRate atomic.Int64
 
 	// mtx guards backfillOn and backfill.
 	mtx sync.Mutex
@@ -167,9 +169,10 @@ func OpenNode(ctx context.Context, le *logrus.Entry, conf NodeConfig) (*Node, er
 		server:       server,
 		journal:      journal,
 		packs:        packs,
-		drain:        packahead.NewDrain(log, packahead.DrainOptions{KeepBytes: conf.KeepBytes}),
+		drain:        nil,
 		backfillWake: make(chan struct{}, 1),
 	}
+	n.drain = packahead.NewDrain(log, packahead.DrainOptions{KeepBytes: conf.KeepBytes, Admit: n.admitUpload})
 	n.backfillRate.Store(defaultBackfillBytesPerSecond)
 	packs.SetRoom(n.hasRoom)
 	server.SetPacks(packs)
@@ -225,6 +228,39 @@ func (n *Node) SetBackfill(on bool, bytesPerSecond int64) {
 	select {
 	case n.backfillWake <- struct{}{}:
 	default:
+	}
+}
+
+// SetCopies turns the node's new read copies on or off, at once, as
+// PackFiles.SetCopies describes.
+func (n *Node) SetCopies(on bool) {
+	n.packs.SetCopies(on)
+}
+
+// SetUploadRate paces the upload at bytesPerSecond, at once; zero or less
+// uploads each pack as soon as it is finalized. The upload sends one pack at
+// a time, so the pace bounds its average read rate on the node's disk.
+func (n *Node) SetUploadRate(bytesPerSecond int64) {
+	n.uploadRate.Store(max(bytesPerSecond, 0))
+}
+
+// admitUpload waits before an upload long enough that the one before it,
+// lastBytes, ran at the upload's pace.
+func (n *Node) admitUpload(ctx context.Context, lastBytes int64) error {
+	// No pace, or nothing uploaded yet, waits for nothing.
+	rate := n.uploadRate.Load()
+	if rate <= 0 || lastBytes <= 0 {
+		return nil
+	}
+
+	// Wait out the pack's share of the pace.
+	timer := time.NewTimer(time.Duration(float64(lastBytes) / float64(rate) * float64(time.Second)))
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
 }
 

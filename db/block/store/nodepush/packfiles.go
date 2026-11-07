@@ -118,6 +118,11 @@ type PackFiles struct {
 	prefix string
 	// list lists the read copies held.
 	list *packList
+	// copiesOff stops new read copies: no pack is kept after its upload and
+	// no read miss fetches a whole pack, so the disk serves the pushes, the
+	// journal and the upload alone. Reads of the copies held and range reads
+	// of the remote go on.
+	copiesOff atomic.Bool
 	// fills queues the packs reads missed on, filled before any backfill.
 	fills chan string
 	// backfills hands the backfill's next pack to the filler.
@@ -305,11 +310,17 @@ func (p *PackFiles) readRemote(ctx context.Context, id string, off int64, length
 	return data, true
 }
 
+// SetCopies turns new read copies on or off, at once. Off, Keep stores
+// nothing and a read miss queues no fill.
+func (p *PackFiles) SetCopies(on bool) {
+	p.copiesOff.Store(!on)
+}
+
 // Keep stores data as pack id, a pack the node just uploaded. A failure only
 // costs a later fill.
 func (p *PackFiles) Keep(id string, data []byte) {
 	// A read copy gives way to the pushes.
-	if !p.hasRoom() {
+	if p.copiesOff.Load() || !p.hasRoom() {
 		return
 	}
 
@@ -403,6 +414,11 @@ func (p *PackFiles) holds(id string) bool {
 
 // queueFill asks for pack id unless it waits already.
 func (p *PackFiles) queueFill(id string) {
+	// Queue none while copies are off.
+	if p.copiesOff.Load() {
+		return
+	}
+
 	// Mark it, and leave the mark off when the queue is full.
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
