@@ -304,10 +304,10 @@ func TestCompact(t *testing.T) {
 		}
 	}
 
-	// The next compaction writes the relinked block alone, and the
-	// quarantine takes its victims again.
+	// The next compaction writes the relinked block alone, read from one of
+	// the lifted packs that hold it, and the quarantine takes them all again.
 	res, err = Compact(ctx, copts)
-	if err != nil || res.Packs != 1 || res.Blocks != 1 || res.Victims != uint64(len(lifted)) { //nolint:gosec // test counts.
+	if err != nil || res.Packs != 1 || res.Blocks != 1 || res.Victims != 1 {
 		t.Fatalf("compaction after the relink = %+v, %v", res, err)
 	}
 	last := h.readPack(t, prefix, h.backend.adoptOrder[len(h.backend.adoptOrder)-1])
