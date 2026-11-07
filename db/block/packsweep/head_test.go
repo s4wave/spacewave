@@ -16,11 +16,12 @@ func TestHeadRow(t *testing.T) {
 		SnapshotPacks: 31250,
 		Catalogued:    true,
 		Roots:         []string{"rootA", "rootB"},
-		LogPosition:   "00000042",
+		LogPosition:   "6f1c2a3b4d5e6f70/42",
 		Walked:        true,
 		Live:          830_000,
 		Holes:         map[string]uint64{"missing": 2, "unparsed": 1},
 		JudgedAt:      time.Unix(1_800_000_600, 0),
+		Closure:       1200,
 	}
 	for _, want := range []*Head{full, {}} {
 		var got Head
@@ -32,7 +33,7 @@ func TestHeadRow(t *testing.T) {
 			got.Seeded != want.Seeded || got.Walked != want.Walked ||
 			!slices.Equal(got.Roots, want.Roots) || got.LogPosition != want.LogPosition ||
 			got.Live != want.Live || !maps.Equal(got.Holes, want.Holes) ||
-			!got.JudgedAt.Equal(want.JudgedAt) {
+			!got.JudgedAt.Equal(want.JudgedAt) || got.Closure != want.Closure {
 			t.Fatalf("round trip = %+v, want %+v", got, *want)
 		}
 	}
