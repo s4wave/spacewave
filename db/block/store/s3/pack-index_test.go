@@ -15,7 +15,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
 )
@@ -43,6 +42,10 @@ func (c *countingObjects) GetObjectRange(ctx context.Context, bucket, key string
 // TestPackStoreIndex walks the location index through a cold start, a lookup, a
 // warm restart, a new pack, a removed pack and a miss.
 func TestPackStoreIndex(t *testing.T) {
+	eachIndexVolume(t, testPackStoreIndex)
+}
+
+func testPackStoreIndex(t *testing.T, kind string) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
 
@@ -72,7 +75,7 @@ func TestPackStoreIndex(t *testing.T) {
 
 	// Open a store with an index: the first read lists and reads the entries,
 	// and the background indexer covers the three packs.
-	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	kv := newIndexKV(t, kind)
 	open := func() (*PackStore, *countingObjects) {
 		objs := &countingObjects{ObjectStore: client}
 		s := NewPackStore(logrus.NewEntry(logrus.New()), objs, "bucket", "p/", &PackStoreOptions{
@@ -410,6 +413,10 @@ func (f *flakyKV) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, erro
 // index and no entry from the bucket. A miss the index places nowhere is
 // final without publishing every entry.
 func TestPackStoreLazyLookup(t *testing.T) {
+	eachIndexVolume(t, testPackStoreLazyLookup)
+}
+
+func testPackStoreLazyLookup(t *testing.T, kind string) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
 	writer := newTestPackStore(t, client)
@@ -438,7 +445,7 @@ func TestPackStoreLazyLookup(t *testing.T) {
 
 	// Index the three packs, then restart over an index whose first
 	// transaction fails.
-	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	kv := newIndexKV(t, kind)
 	var soleWriter bool
 	open := func(index kvtx.Store) (*PackStore, *countingObjects) {
 		objs := &countingObjects{ObjectStore: client}
@@ -649,6 +656,10 @@ func (s *stopAfterWrites) NewTransaction(ctx context.Context, write bool) (kvtx.
 // so lookups test its filter and the indexer finishes it, and the next pack
 // takes a new number rather than the one the written h rows name.
 func TestAddWrittenInterrupted(t *testing.T) {
+	eachIndexVolume(t, testAddWrittenInterrupted)
+}
+
+func testAddWrittenInterrupted(t *testing.T, kind string) {
 	// Index pack a, then stop pack b after its first slice.
 	ctx := t.Context()
 	keysOf := func(id string, n int) [][]byte {
@@ -658,7 +669,7 @@ func TestAddWrittenInterrupted(t *testing.T) {
 		}
 		return keys
 	}
-	store := &stopAfterWrites{Store: hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()), writes: 2}
+	store := &stopAfterWrites{Store: newIndexKV(t, kind), writes: 2}
 	x := newPackIndex(store)
 	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "a"}, keysOf("a", 10), nil); err != nil {
 		t.Fatal(err)

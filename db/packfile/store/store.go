@@ -290,6 +290,13 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 // order. The first pack that finds the block returns it. Returns nil when no
 // pack holds the block.
 func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, _, err := s.GetStoredBlockPack(ctx, ref)
+	return stored, err
+}
+
+// GetStoredBlockPack is GetStoredBlock that also returns the id of the pack
+// that served the block, "" on a miss.
+func (s *PackfileStore) GetStoredBlockPack(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, string, error) {
 	// Trace the block lookup across candidate pack readers.
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/store/get-block")
 	defer task.End()
@@ -298,7 +305,7 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	h := ref.GetHash()
 	if h == nil {
 		trace.Log(ctx, "result", "empty-hash")
-		return nil, nil
+		return nil, "", nil
 	}
 	if trace.IsEnabled() {
 		trace.Log(ctx, "block-ref", ref.MarshalString())
@@ -307,28 +314,32 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 
 	// Read the block from the first candidate pack that contains it.
 	var stored *block.StoredBlock
+	var packID string
 	var lookup packLookup
 	err := s.probePacks(ctx, key, &lookup, func(eng *PackReader) (bool, error) {
 		// Trace and read the block from this candidate pack.
 		trace.Log(ctx, "pack-id", eng.packID)
 		var err error
 		stored, err = eng.getBlock(ctx, key, ref)
+		if stored != nil {
+			packID = eng.packID
+		}
 		return stored != nil, err
 	})
 	s.recordLookupStats(lookup)
 	if err != nil {
 		trace.Log(ctx, "result", "error")
-		return nil, err
+		return nil, "", err
 	}
 
 	// Record whether the candidate packs supplied the requested block.
 	trace.Logf(ctx, "candidate-packs", "%d", lookup.candidates)
 	if stored == nil {
 		trace.Log(ctx, "result", "miss")
-		return nil, nil
+		return nil, "", nil
 	}
 	trace.Log(ctx, "result", "hit")
-	return stored, nil
+	return stored, packID, nil
 }
 
 // GetBlockExists reports whether a block exists in the store.
@@ -480,26 +491,37 @@ func (s *PackfileStore) loadIndexes(ctx context.Context, candidates []*packfile.
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	stat, _, err := s.StatBlockPack(ctx, ref)
+	return stat, err
+}
+
+// StatBlockPack is StatBlock that also returns the id of the pack holding the
+// block, "" when none does.
+func (s *PackfileStore) StatBlockPack(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, string, error) {
 	// Resolve the block reference to its pack index key.
 	h := ref.GetHash()
 	if h == nil {
-		return nil, nil
+		return nil, "", nil
 	}
 	key := packfile.BlockKey(h)
 
 	// Read block metadata from the first matching candidate pack.
 	var stat *block.BlockStat
+	var packID string
 	var lookup packLookup
 	err := s.probePacks(ctx, key, &lookup, func(eng *PackReader) (bool, error) {
 		var err error
 		stat, err = eng.statBlock(ctx, key, ref)
+		if stat != nil {
+			packID = eng.packID
+		}
 		return stat != nil, err
 	})
 	s.recordLookupStats(lookup)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return stat, nil
+	return stat, packID, nil
 }
 
 // probePacks visits the engine of each pack whose bloom filter may hold key,
