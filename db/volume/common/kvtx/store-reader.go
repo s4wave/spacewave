@@ -4,33 +4,23 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 // storeReader reads and writes a Volume's blocks in its store and reports
 // what the decoded-block cache needs: a block the store serves is durable,
 // since the store is the Volume's committed store, and every removal from it
-// reports itself (RmBlock, tombstones, and physicalTx).
+// reports itself (RmBlock, tombstones, and physicalTx). The calls it does not
+// override go to the store as they are.
 type storeReader struct {
+	// StoreOps reads and writes the applied blocks.
+	block.StoreOps
 	// volume serves the child lists of stored blocks.
 	volume *Volume
-	// store reads and writes the applied blocks.
-	store block.StoreOps
 	// scoped is set in a read scope, which reads one store snapshot.
 	scoped bool
 	// gen is the removal generation recorded before a read scope's snapshot
 	// opened. Outside a read scope each read records its own.
 	gen uint64
-}
-
-// GetHashType returns the store's preferred hash type.
-func (r storeReader) GetHashType() hash.HashType {
-	return r.store.GetHashType()
-}
-
-// GetSupportedFeatures returns the store's native features.
-func (r storeReader) GetSupportedFeatures() block.StoreFeature {
-	return r.store.GetSupportedFeatures()
 }
 
 // BeginReadOperation opens a read scope on the store, recording the removal
@@ -43,23 +33,18 @@ func (r storeReader) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 
 	// Record the removal generation, then open the snapshot.
 	gen := block.DurableReadGeneration()
-	scope, release, err := r.store.BeginReadOperation(ctx)
+	scope, release, err := r.StoreOps.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	return storeReader{volume: r.volume, store: scope, scoped: true, gen: gen}, release, nil
-}
-
-// PutBlock writes a block to the store.
-func (r storeReader) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	return r.store.PutBlock(ctx, data, opts)
+	return storeReader{StoreOps: scope, volume: r.volume, scoped: true, gen: gen}, release, nil
 }
 
 // PutBlockBatch writes a batch of blocks to the store, reporting its
 // tombstones as removals.
 func (r storeReader) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	defer block.InvalidateRemovedTombstones(entries)
-	return r.store.PutBlockBatch(ctx, entries)
+	return r.StoreOps.PutBlockBatch(ctx, entries)
 }
 
 // readGen returns the removal generation for a read about to open: the read
@@ -74,7 +59,7 @@ func (r storeReader) readGen() uint64 {
 // GetBlock reads the store and marks a found block durable.
 func (r storeReader) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	gen := r.readGen()
-	data, found, err := r.store.GetBlock(ctx, ref)
+	data, found, err := r.StoreOps.GetBlock(ctx, ref)
 	if err == nil && found {
 		block.MarkDurableRead(ctx, ref, gen)
 	}
@@ -87,7 +72,7 @@ func (r storeReader) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 func (r storeReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the block and mark it durable.
 	gen := r.readGen()
-	stored, err := r.store.GetStoredBlock(ctx, ref)
+	stored, err := r.StoreOps.GetStoredBlock(ctx, ref)
 	if err != nil || stored == nil {
 		return stored, err
 	}
@@ -100,30 +85,10 @@ func (r storeReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return stored, err
 }
 
-// GetBlockExists asks the store.
-func (r storeReader) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return r.store.GetBlockExists(ctx, ref)
-}
-
-// GetBlockExistsBatch asks the store about each block in one batch.
-func (r storeReader) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	return r.store.GetBlockExistsBatch(ctx, refs)
-}
-
 // RmBlock removes a block from the store and reports the removal.
 func (r storeReader) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	defer block.InvalidateRemovedBlock(ref)
-	return r.store.RmBlock(ctx, ref)
-}
-
-// StatBlock asks the store.
-func (r storeReader) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	return r.store.StatBlock(ctx, ref)
-}
-
-// Sync syncs the store.
-func (r storeReader) Sync(ctx context.Context) (bool, error) {
-	return r.store.Sync(ctx)
+	return r.StoreOps.RmBlock(ctx, ref)
 }
 
 // _ is a type assertion
