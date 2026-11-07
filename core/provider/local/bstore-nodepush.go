@@ -81,6 +81,10 @@ type NodePushConfig struct {
 	// HeldBytes bounds the memory set; a publication past it takes the local
 	// path. A tunable changes it live through the store's Held.
 	HeldBytes *atomic.Int64
+	// NoPeers drops the store's peer reads, for a host with no peers to ask:
+	// a block every other path misses, the node by key included, is not
+	// found at once rather than waiting for a peer session.
+	NoPeers bool
 }
 
 // NodeDrainConfig drains a store's upload backlog through its storage node, as
