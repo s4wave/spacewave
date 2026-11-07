@@ -137,6 +137,15 @@ func (r *QuarantineResult) JSON(a *fastjson.Arena) *fastjson.Value {
 	)
 }
 
+// JSON describes the removal.
+func (r *RemoveResult) JSON(a *fastjson.Arena) *fastjson.Value {
+	return jsonObject(a,
+		jsonField{"removed", jsonUint(a, r.Removed)},
+		jsonField{"missed", jsonUint(a, r.Missed)},
+		jsonField{"rounds", jsonUint(a, r.Rounds)},
+	)
+}
+
 // JSON describes the recheck.
 func (r *RecheckResult) JSON(a *fastjson.Arena) *fastjson.Value {
 	return jsonObject(a,
@@ -144,6 +153,7 @@ func (r *RecheckResult) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"passed", jsonUint(a, r.Passed)},
 		jsonField{"lifted", jsonUint(a, r.Lifted)},
 		jsonField{"live", jsonUint(a, r.Live)},
+		jsonField{"gone", jsonUint(a, r.Gone)},
 		jsonField{"waiting", JSONCounts(a, r.Waiting)},
 	)
 }

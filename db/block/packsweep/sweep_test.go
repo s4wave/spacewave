@@ -42,6 +42,8 @@ type fixtureBlock struct {
 type fixture struct {
 	// store is the pack store holding the packs.
 	store *block_store_s3.PackStore
+	// client is the bucket's client.
+	client *block_store_s3.Client
 	// blocks are the graph's blocks by marshaled ref.
 	blocks map[string]*fixtureBlock
 	// order lists the blocks in creation order.
@@ -129,6 +131,7 @@ func newFixture(t *testing.T, seed uint64, opts fixtureOptions) *fixture {
 
 	// Write the packs in creation order, then a second copy of some blocks.
 	_, client := s3test.New(t)
+	f.client = client
 	f.store = block_store_s3.NewPackStore(logrus.NewEntry(logrus.New()), client, s3test.BucketName, "v2/", &block_store_s3.PackStoreOptions{KeepPacks: true})
 	t.Cleanup(f.store.Close)
 	var stored []*fixtureBlock

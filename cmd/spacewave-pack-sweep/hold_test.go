@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
 	"github.com/s4wave/spacewave/db/block/packsweep"
@@ -24,11 +25,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestCommandQuarantine quarantines and rechecks through a backend's admin
-// service over HTTP, its pack store on an index file of each volume type and
-// its open operations from a marking store over it. The recheck holds the two
-// dead packs while young, then while a read operation open since before their
-// quarantine remains, then lifts the one a put relinked and passes the other.
+// TestCommandQuarantine quarantines, rechecks, trashes and removes through a
+// backend's admin service over HTTP, its pack store on an index file of each
+// volume type and its open operations from a marking store over it. The
+// recheck holds the two dead packs while young, then while a read operation
+// open since before their quarantine remains, then lifts the one a put
+// relinked and passes the other. The trash moves the passed pack's objects to
+// the store's trash, and the removal points the row of a block it shares with
+// the root's pack at that pack.
 func TestCommandQuarantine(t *testing.T) {
 	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
 		t.Run(kind, func(t *testing.T) { testCommandQuarantine(t, kind) })
@@ -68,13 +72,17 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		}
 		return r
 	}
-	rootRef, deadRef, relinkRef := ref("root"), ref("dead"), ref("relink")
+	rootRef, sharedRef, deadRef, relinkRef := ref("root"), ref("shared"), ref("dead"), ref("relink")
 	seed, closeIndex := openStore()
-	for _, r := range []struct {
-		ref  *block.BlockRef
-		data string
-	}{{rootRef, "root"}, {deadRef, "dead"}, {relinkRef, "relink"}} {
-		if _, err := seed.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: r.ref, Data: []byte(r.data), RefsKnown: true}}); err != nil {
+	entry := func(r *block.BlockRef, data string) *block.PutBatchEntry {
+		return &block.PutBatchEntry{Ref: r, Data: []byte(data), RefsKnown: true}
+	}
+	for _, batch := range [][]*block.PutBatchEntry{
+		{entry(rootRef, "root"), entry(sharedRef, "shared")},
+		{entry(deadRef, "dead"), entry(sharedRef, "shared")},
+		{entry(relinkRef, "relink")},
+	} {
+		if _, err := seed.PutBlockBatch(ctx, batch); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -164,6 +172,11 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		t.Fatalf("judgment = %s", result)
 	}
 
+	locatedBefore, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef, sharedRef})
+	if err != nil || locatedBefore[0] == "" || locatedBefore[1] != locatedBefore[0] {
+		t.Fatalf("locate before the quarantine = %v, %v", locatedBefore, err)
+	}
+
 	// A read operation open from before the quarantine, then the quarantine
 	// holds both packs out of the reads.
 	_, release, err := marking.BeginReadOperation(ctx)
@@ -212,12 +225,61 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		t.Fatalf("locate after the recheck = %v, %v", located, err)
 	}
 
-	// The status counts the record, and a dial without the credential fails.
+	// The trash moves the passed pack's entry and file to the store's
+	// trash, refusing a scratch file of another prefix, and a repeat moves
+	// nothing.
+	deadPack := locatedBefore[0]
+	args.Prefix = "other/"
+	if err := args.runTrash(nil); err == nil {
+		t.Fatal("trashed through a scratch file of another prefix")
+	}
+	args.Prefix = "world/"
+	for _, want := range []uint{1, 0} {
+		out.Reset()
+		if err := args.runTrash(nil); err != nil {
+			t.Fatal(err)
+		}
+		if res := parse(t, out.Bytes()); res.GetUint("moved") != want || res.GetUint("missed") != 0 {
+			t.Fatalf("trash = %s", res)
+		}
+	}
+	for key, want := range map[string]bool{
+		block_store_s3.EntryObjectKey("world/", deadPack): false,
+		block_store_s3.PackObjectKey("world/", deadPack):  false,
+		block_store_s3.TrashEntryKey("world/", deadPack):  true,
+		block_store_s3.TrashPackKey("world/", deadPack):   true,
+	} {
+		_, err := client.GetObjectRange(ctx, s3test.BucketName, key, 0, 1)
+		if found := err == nil; found != want || (err != nil && !errors.Is(err, block_store_s3.ErrNotFound)) {
+			t.Fatalf("object %s found %v, %v; want %v", key, found, err, want)
+		}
+	}
+
+	// The removal drops the pack, pointing the shared block's row at the
+	// root's pack, and a repeat removes nothing.
+	for _, want := range []uint{1, 0} {
+		out.Reset()
+		if err := args.runRemove(nil); err != nil {
+			t.Fatal(err)
+		}
+		if res := parse(t, out.Bytes()); res.GetUint("removed") != want || res.GetUint("missed") != 0 {
+			t.Fatalf("removal = %s", res)
+		}
+	}
+	located, err = store.LocatePacks(ctx, []*block.BlockRef{sharedRef, rootRef, deadRef})
+	if err != nil || located[0] == "" || located[0] != located[1] || located[2] != "" {
+		t.Fatalf("locate after the removal = %v, %v", located, err)
+	}
+	if data, found, err := store.GetBlock(ctx, sharedRef); err != nil || !found || string(data) != "shared" {
+		t.Fatalf("read of the shared block = %q, %v, %v", data, found, err)
+	}
+
+	// The status counts the records, and a dial without the credential fails.
 	out.Reset()
 	if err := args.runStatus(nil); err != nil {
 		t.Fatal(err)
 	}
-	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "pass") != 1 || status.GetUint("packRecords", "quarantine") != 0 {
+	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "removed") != 1 || status.GetUint("packRecords", "quarantine") != 0 {
 		t.Fatalf("status = %s", status)
 	}
 	t.Setenv(adminAuthEnv, "")

@@ -141,6 +141,30 @@ func (b backend) Lift(ctx context.Context, ids []string) ([]packsweep.PackHold, 
 	return sweepHolds(resp.GetPacks())
 }
 
+// BeginTrash moves quarantined packs to the trashing state.
+func (b backend) BeginTrash(ctx context.Context, ids []string) ([]packsweep.PackHold, error) {
+	resp, err := b.SRPCPackSweepAdminClient.BeginTrash(ctx, &PacksRequest{PackIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	return sweepHolds(resp.GetPacks())
+}
+
+// Remove repairs the h rows of keys and drops the trashing packs ids, or
+// only repairs the rows when more is set.
+func (b backend) Remove(ctx context.Context, ids []string, keys []packsweep.KeyHolders, more bool) ([]packsweep.PackHold, error) {
+	// Build the request, then send it.
+	req := &RemoveRequest{PackIds: ids, Keys: make([]*KeyHolders, len(keys)), More: more}
+	for i, k := range keys {
+		req.Keys[i] = &KeyHolders{Key: k.Key, Others: k.Others}
+	}
+	resp, err := b.SRPCPackSweepAdminClient.Remove(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return sweepHolds(resp.GetPacks())
+}
+
 // sweepHolds converts the service's pack states, refusing a state this
 // client does not know, which a sweep must not read as quarantined.
 func sweepHolds(holds []*PackHold) ([]packsweep.PackHold, error) {
@@ -150,7 +174,13 @@ func sweepHolds(holds []*PackHold) ([]packsweep.PackHold, error) {
 		if state < PackState_PACK_STATE_REGISTERED || state > PackState_PACK_STATE_TRASHING {
 			return nil, errors.Errorf("pack %s is in state %d, which this client does not know", h.GetPackId(), state)
 		}
-		out[i] = packsweep.PackHold{ID: h.GetPackId(), State: packsweep.PackState(state), Since: fromUnixNano(h.GetSinceUnixNano())}
+		out[i] = packsweep.PackHold{
+			ID:     h.GetPackId(),
+			State:  packsweep.PackState(state),
+			Since:  fromUnixNano(h.GetSinceUnixNano()),
+			Event:  fromUnixNano(h.GetEventUnixNano()),
+			Absent: h.GetAbsent(),
+		}
 	}
 	return out, nil
 }

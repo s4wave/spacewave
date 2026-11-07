@@ -185,6 +185,9 @@ type PackHold struct {
 	EventUnixNano int64 `protobuf:"varint,4,opt,name=event_unix_nano,json=eventUnixNano,proto3" json:"eventUnixNano,omitempty"`
 	// Key is the block key the event read, empty for a lift by the command.
 	Key []byte `protobuf:"bytes,5,opt,name=key,proto3" json:"key,omitempty"`
+	// Absent is set for a pack the store does not hold: removed, or never
+	// registered.
+	Absent bool `protobuf:"varint,6,opt,name=absent,proto3" json:"absent,omitempty"`
 }
 
 func (x *PackHold) Reset() {
@@ -226,6 +229,13 @@ func (x *PackHold) GetKey() []byte {
 		return x.Key
 	}
 	return nil
+}
+
+func (x *PackHold) GetAbsent() bool {
+	if x != nil {
+		return x.Absent
+	}
+	return false
 }
 
 // RootsRequest asks for the roots of a walk.
@@ -517,6 +527,77 @@ func (x *PacksResponse) GetPacks() []*PackHold {
 	return nil
 }
 
+// RemoveRequest names trashing packs to remove, with the keys they hold.
+type RemoveRequest struct {
+	unknownFields []byte
+	// PackIds are the packs.
+	PackIds []string `protobuf:"bytes,1,rep,name=pack_ids,json=packIds,proto3" json:"packIds,omitempty"`
+	// Keys are block keys the packs hold, each with the other packs the
+	// snapshot lists holding it. Each h row of a key that names one of the
+	// packs moves to the first of those the backend holds, registered before
+	// held, or is deleted when it holds none.
+	Keys []*KeyHolders `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
+	// More is set when more of the packs' keys follow in later calls: the
+	// backend repairs these keys' rows and leaves the packs trashing.
+	More bool `protobuf:"varint,3,opt,name=more,proto3" json:"more,omitempty"`
+}
+
+func (x *RemoveRequest) Reset() {
+	*x = RemoveRequest{}
+}
+
+func (*RemoveRequest) ProtoMessage() {}
+
+func (x *RemoveRequest) GetPackIds() []string {
+	if x != nil {
+		return x.PackIds
+	}
+	return nil
+}
+
+func (x *RemoveRequest) GetKeys() []*KeyHolders {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+func (x *RemoveRequest) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
+}
+
+// KeyHolders is a block key a removed pack holds and its other holders.
+type KeyHolders struct {
+	unknownFields []byte
+	// Key is the block key, or its tail.
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Others are the other packs the snapshot lists holding it.
+	Others []string `protobuf:"bytes,2,rep,name=others,proto3" json:"others,omitempty"`
+}
+
+func (x *KeyHolders) Reset() {
+	*x = KeyHolders{}
+}
+
+func (*KeyHolders) ProtoMessage() {}
+
+func (x *KeyHolders) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *KeyHolders) GetOthers() []string {
+	if x != nil {
+		return x.Others
+	}
+	return nil
+}
+
 // AdoptRequest names packs to register.
 type AdoptRequest struct {
 	unknownFields []byte
@@ -785,6 +866,7 @@ func (m *PackHold) CloneVT() *PackHold {
 	r.State = m.State
 	r.SinceUnixNano = m.SinceUnixNano
 	r.EventUnixNano = m.EventUnixNano
+	r.Absent = m.Absent
 	r.Key = protobuf_go_lite.CloneBytes(m.Key)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -976,6 +1058,41 @@ func (m *PacksResponse) CloneVT() *PacksResponse {
 }
 
 func (m *PacksResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RemoveRequest) CloneVT() *RemoveRequest {
+	if m == nil {
+		return (*RemoveRequest)(nil)
+	}
+	r := new(RemoveRequest)
+	r.More = m.More
+	r.PackIds = protobuf_go_lite.CloneSlice(m.PackIds)
+	r.Keys = protobuf_go_lite.CloneVTSlice(m.Keys)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RemoveRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *KeyHolders) CloneVT() *KeyHolders {
+	if m == nil {
+		return (*KeyHolders)(nil)
+	}
+	r := new(KeyHolders)
+	r.Key = protobuf_go_lite.CloneBytes(m.Key)
+	r.Others = protobuf_go_lite.CloneSlice(m.Others)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *KeyHolders) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1206,6 +1323,9 @@ func (this *PackHold) EqualVT(that *PackHold) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.Key, that.Key) {
+		return false
+	}
+	if this.Absent != that.Absent {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1454,6 +1574,55 @@ func (this *PacksResponse) EqualVT(that *PacksResponse) bool {
 
 func (this *PacksResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PacksResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RemoveRequest) EqualVT(that *RemoveRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.PackIds, that.PackIds) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Keys, that.Keys, func() *KeyHolders { return &KeyHolders{} }) {
+		return false
+	}
+	if this.More != that.More {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RemoveRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RemoveRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *KeyHolders) EqualVT(that *KeyHolders) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Others, that.Others) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *KeyHolders) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*KeyHolders)
 	if !ok {
 		return false
 	}
@@ -1907,6 +2076,11 @@ func (x *PackHold) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("key")
 		s.WriteBytes(x.Key)
 	}
+	if x.Absent || s.HasField("absent") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("absent")
+		s.WriteBool(x.Absent)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1939,6 +2113,9 @@ func (x *PackHold) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "key":
 			s.AddField("key")
 			x.Key = s.ReadBytes()
+		case "absent":
+			s.AddField("absent")
+			x.Absent = s.ReadBool()
 		}
 	})
 }
@@ -2621,6 +2798,143 @@ func (x *PacksResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the RemoveRequest message to JSON.
+func (x *RemoveRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.PackIds) > 0 || s.HasField("packIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packIds")
+		s.WriteStringArray(x.PackIds)
+	}
+	if len(x.Keys) > 0 || s.HasField("keys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("keys")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Keys {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("keys"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.More || s.HasField("more") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("more")
+		s.WriteBool(x.More)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RemoveRequest to JSON.
+func (x *RemoveRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RemoveRequest message from JSON.
+func (x *RemoveRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_ids", "packIds":
+			s.AddField("pack_ids")
+			if s.ReadNil() {
+				x.PackIds = nil
+				return
+			}
+			x.PackIds = s.ReadStringArray()
+		case "keys":
+			s.AddField("keys")
+			if s.ReadNil() {
+				x.Keys = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Keys = append(x.Keys, nil)
+					return
+				}
+				v := &KeyHolders{}
+				v.UnmarshalProtoJSON(s.WithField("keys", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Keys = append(x.Keys, v)
+			})
+		case "more":
+			s.AddField("more")
+			x.More = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RemoveRequest from JSON.
+func (x *RemoveRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the KeyHolders message to JSON.
+func (x *KeyHolders) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Key) > 0 || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteBytes(x.Key)
+	}
+	if len(x.Others) > 0 || s.HasField("others") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("others")
+		s.WriteStringArray(x.Others)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the KeyHolders to JSON.
+func (x *KeyHolders) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the KeyHolders message from JSON.
+func (x *KeyHolders) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadBytes()
+		case "others":
+			s.AddField("others")
+			if s.ReadNil() {
+				x.Others = nil
+				return
+			}
+			x.Others = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the KeyHolders from JSON.
+func (x *KeyHolders) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the AdoptRequest message to JSON.
 func (x *AdoptRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3227,6 +3541,11 @@ func (m *PackHold) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Absent {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Absent)
+		i--
+		dAtA[i] = 0x30
+	}
 	if len(m.Key) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Key)
 		i--
@@ -3755,6 +4074,106 @@ func (m *PacksResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *RemoveRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RemoveRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RemoveRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.More {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.More)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Keys) > 0 {
+		for iNdEx := len(m.Keys) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Keys[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.PackIds) > 0 {
+		for iNdEx := len(m.PackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PackIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *KeyHolders) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *KeyHolders) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *KeyHolders) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Others) > 0 {
+		for iNdEx := len(m.Others) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Others[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AdoptRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4160,6 +4579,7 @@ func (m *PackHold) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SinceUnixNano)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.EventUnixNano)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Key)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Absent)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4312,6 +4732,34 @@ func (m *PacksResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RemoveRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.PackIds)
+	for _, e := range m.Keys {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *KeyHolders) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Key)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Others)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4521,6 +4969,10 @@ func (x *PackHold) MarshalProtoText() string {
 	if len(x.Key) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Key)
+	}
+	if x.Absent != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "absent")
+		protobuf_go_lite.TextWriteBool(&sb, x.Absent)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4772,6 +5224,62 @@ func (x *PacksResponse) MarshalProtoText() string {
 }
 
 func (x *PacksResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RemoveRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RemoveRequest")
+	if len(x.PackIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "pack_ids")
+		for i, v := range x.PackIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Keys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "keys")
+		for i, v := range x.Keys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &KeyHolders{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.More != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "more")
+		protobuf_go_lite.TextWriteBool(&sb, x.More)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RemoveRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *KeyHolders) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "KeyHolders")
+	if len(x.Key) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Key)
+	}
+	if len(x.Others) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "others")
+		for i, v := range x.Others {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *KeyHolders) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5213,6 +5721,16 @@ func (m *PackHold) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Absent", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Absent = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5890,6 +6408,143 @@ func (m *PacksResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RemoveRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RemoveRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RemoveRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackIds = append(m.PackIds, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Keys", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Keys = append(m.Keys, &KeyHolders{})
+			if err := m.Keys[len(m.Keys)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field More", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.More = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *KeyHolders) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: KeyHolders: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: KeyHolders: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			m.Key, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Key, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Others", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Others = append(m.Others, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

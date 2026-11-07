@@ -13,6 +13,7 @@ import {
   ReadLogResponse,
   RefsRequest,
   RefsResponse,
+  RemoveRequest,
   RootsRequest,
   RootsResponse,
   StatusRequest,
@@ -101,6 +102,30 @@ export const PackSweepAdminDefinition = {
     Lift: {
       name: 'Lift',
       I: PacksRequest,
+      O: PacksResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * BeginTrash moves quarantined packs to the trashing state, before the
+     * command moves their entries and files to the trash.
+     *
+     * @generated from rpc block.packsweep.admin.PackSweepAdmin.BeginTrash
+     */
+    BeginTrash: {
+      name: 'BeginTrash',
+      I: PacksRequest,
+      O: PacksResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Remove drops trashing packs whose entries and files are in the trash,
+     * first pointing each h row that names one at another holder of its key.
+     *
+     * @generated from rpc block.packsweep.admin.PackSweepAdmin.Remove
+     */
+    Remove: {
+      name: 'Remove',
+      I: RemoveRequest,
       O: PacksResponse,
       kind: MethodKind.Unary,
     },
@@ -206,6 +231,28 @@ export interface PackSweepAdmin {
    * @generated from rpc block.packsweep.admin.PackSweepAdmin.Lift
    */
   Lift(request: PacksRequest, abortSignal?: AbortSignal): Promise<PacksResponse>
+
+  /**
+   * BeginTrash moves quarantined packs to the trashing state, before the
+   * command moves their entries and files to the trash.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.BeginTrash
+   */
+  BeginTrash(
+    request: PacksRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse>
+
+  /**
+   * Remove drops trashing packs whose entries and files are in the trash,
+   * first pointing each h row that names one at another holder of its key.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Remove
+   */
+  Remove(
+    request: RemoveRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse>
 
   /**
    * Adopt registers packs another writer uploaded.
@@ -318,6 +365,30 @@ export interface PackSweepAdminHandler {
   ): Promise<PacksResponse>
 
   /**
+   * BeginTrash moves quarantined packs to the trashing state, before the
+   * command moves their entries and files to the trash.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.BeginTrash
+   */
+  BeginTrash(
+    request: PacksRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PacksResponse>
+
+  /**
+   * Remove drops trashing packs whose entries and files are in the trash,
+   * first pointing each h row that names one at another holder of its key.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Remove
+   */
+  Remove(
+    request: RemoveRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PacksResponse>
+
+  /**
    * Adopt registers packs another writer uploaded.
    *
    * @generated from rpc block.packsweep.admin.PackSweepAdmin.Adopt
@@ -365,6 +436,8 @@ export class PackSweepAdminClient implements PackSweepAdmin {
     this.Refs = this.Refs.bind(this)
     this.Quarantine = this.Quarantine.bind(this)
     this.Lift = this.Lift.bind(this)
+    this.BeginTrash = this.BeginTrash.bind(this)
+    this.Remove = this.Remove.bind(this)
     this.Adopt = this.Adopt.bind(this)
     this.ReadLog = this.ReadLog.bind(this)
     this.TrimLog = this.TrimLog.bind(this)
@@ -482,6 +555,46 @@ export class PackSweepAdminClient implements PackSweepAdmin {
       this.service,
       PackSweepAdminDefinition.methods.Lift.name,
       PacksRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PacksResponse.fromBinary(result)
+  }
+
+  /**
+   * BeginTrash moves quarantined packs to the trashing state, before the
+   * command moves their entries and files to the trash.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.BeginTrash
+   */
+  async BeginTrash(
+    request: PacksRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse> {
+    const requestMsg = PacksRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PackSweepAdminDefinition.methods.BeginTrash.name,
+      PacksRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PacksResponse.fromBinary(result)
+  }
+
+  /**
+   * Remove drops trashing packs whose entries and files are in the trash,
+   * first pointing each h row that names one at another holder of its key.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Remove
+   */
+  async Remove(
+    request: RemoveRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse> {
+    const requestMsg = RemoveRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PackSweepAdminDefinition.methods.Remove.name,
+      RemoveRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return PacksResponse.fromBinary(result)

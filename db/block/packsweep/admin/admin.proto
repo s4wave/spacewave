@@ -26,6 +26,12 @@ service PackSweepAdmin {
   rpc Quarantine(PacksRequest) returns (PacksResponse);
   // Lift returns quarantined packs to the reads.
   rpc Lift(PacksRequest) returns (PacksResponse);
+  // BeginTrash moves quarantined packs to the trashing state, before the
+  // command moves their entries and files to the trash.
+  rpc BeginTrash(PacksRequest) returns (PacksResponse);
+  // Remove drops trashing packs whose entries and files are in the trash,
+  // first pointing each h row that names one at another holder of its key.
+  rpc Remove(RemoveRequest) returns (PacksResponse);
   // Adopt registers packs another writer uploaded.
   rpc Adopt(AdoptRequest) returns (AdoptResponse);
   // ReadLog returns the write log's lines after a position.
@@ -94,6 +100,9 @@ message PackHold {
   int64 event_unix_nano = 4;
   // Key is the block key the event read, empty for a lift by the command.
   bytes key = 5;
+  // Absent is set for a pack the store does not hold: removed, or never
+  // registered.
+  bool absent = 6;
 }
 
 // RootsRequest asks for the roots of a walk.
@@ -179,6 +188,28 @@ message PacksRequest {
 message PacksResponse {
   // Packs are the packs' states after the move, in order.
   repeated PackHold packs = 1;
+}
+
+// RemoveRequest names trashing packs to remove, with the keys they hold.
+message RemoveRequest {
+  // PackIds are the packs.
+  repeated string pack_ids = 1;
+  // Keys are block keys the packs hold, each with the other packs the
+  // snapshot lists holding it. Each h row of a key that names one of the
+  // packs moves to the first of those the backend holds, registered before
+  // held, or is deleted when it holds none.
+  repeated KeyHolders keys = 2;
+  // More is set when more of the packs' keys follow in later calls: the
+  // backend repairs these keys' rows and leaves the packs trashing.
+  bool more = 3;
+}
+
+// KeyHolders is a block key a removed pack holds and its other holders.
+message KeyHolders {
+  // Key is the block key, or its tail.
+  bytes key = 1;
+  // Others are the other packs the snapshot lists holding it.
+  repeated string others = 2;
 }
 
 // AdoptRequest names packs to register.
