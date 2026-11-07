@@ -277,8 +277,7 @@ func (a *slowApplier) ApplyPack(ctx context.Context, report *PackReport) error {
 // hold back the rest, and every other must apply on a live connection.
 func TestReportsNeverWedgeCommits(t *testing.T) {
 	// A node with a backlog, starting with a report that never applies.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	dir := t.TempDir()
 	keys := make([][]byte, 2000)
 	for i := range keys {
@@ -331,9 +330,7 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 	stop := make(chan struct{})
 	var load sync.WaitGroup
 	for range 4 {
-		load.Add(1)
-		go func() {
-			defer load.Done()
+		load.Go(func() {
 			for {
 				select {
 				case <-stop:
@@ -344,7 +341,7 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 				_ = client.Send(sendCtx, []*block.PutBatchEntry{big})
 				done()
 			}
-		}()
+		})
 	}
 
 	// Every report but the stuck one applies, with the load still running.
@@ -364,8 +361,7 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 // connection up, and that the report reaches the next one.
 func TestReportWaitsOnNoConnection(t *testing.T) {
 	// Report more packs than any queue holds, with nobody connected.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	server, err := NewServer(nopHolder{}, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -402,8 +398,7 @@ func (o *objectRemote) GetObject(_ context.Context, _, key string) (io.ReadClose
 // a node that is away or silent all report false rather than an answer.
 func TestReadThrough(t *testing.T) {
 	// A node with no packs, and a remote with one.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	id := identity.NewPackID()
 	remote := &objectRemote{objects: map[string][]byte{"p/packs/" + id: []byte("the pack's bytes")}}
 	dir := t.TempDir()
@@ -514,8 +509,7 @@ func TestReadThrough(t *testing.T) {
 // and a push behind them must still answer.
 func TestHungReadsHoldNoPush(t *testing.T) {
 	// A pack that is a FIFO hangs its reader, as a hung disk does.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	dir := t.TempDir()
 	packs, err := NewPackFiles(logrus.NewEntry(logrus.New()), dir+"/packs", &objectRemote{}, "bucket", "p/packs")
 	if err != nil {
@@ -599,8 +593,7 @@ func nextPending(s *Server) string {
 // connection replaces an older one, which then costs the reports nothing.
 func TestReportsOutliveFailures(t *testing.T) {
 	// A report the local store refuses far past any number of tries.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	server, err := NewServer(nopHolder{}, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
