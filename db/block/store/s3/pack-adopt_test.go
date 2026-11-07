@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
 )
@@ -20,11 +19,15 @@ import (
 // TestAdoptPack adopts a pack another writer uploaded into a store that never
 // lists the bucket, and tries to make it register a pack it should not.
 func TestAdoptPack(t *testing.T) {
+	eachIndexVolume(t, testAdoptPack)
+}
+
+func testAdoptPack(t *testing.T, kind string) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
 
 	// The local store owns one pack, so it never lists the bucket again.
-	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	kv := newIndexKV(t, kind)
 	open := func() *PackStore {
 		s := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
 		t.Cleanup(s.Close)
@@ -115,11 +118,15 @@ func (c *countingCache) ReadCached(_ context.Context, id string, off int64, leng
 // holds may come from it, and no bad answer may fail a read the bucket can
 // serve.
 func TestReadCacheNeverVouches(t *testing.T) {
+	eachIndexVolume(t, testReadCacheNeverVouches)
+}
+
+func testReadCacheNeverVouches(t *testing.T, kind string) {
 	// A store with a cache, and a block with an extent row in its index.
 	ctx := t.Context()
 	bucket, client := newFakeBucket(t, nil)
 	cache := &countingCache{}
-	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	kv := newIndexKV(t, kind)
 	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true, ExactReads: true, ReadCache: cache})
 	t.Cleanup(store.Close)
 	adoptBlocks(ctx, t, store, "own", 1)
@@ -216,10 +223,14 @@ func (f *failingIndex) NewTransaction(ctx context.Context, write bool) (kvtx.Tx,
 // not count as registered, so its repeat registers it rather than reporting a
 // success that left it unreadable.
 func TestAdoptFailedIndexWrite(t *testing.T) {
+	eachIndexVolume(t, testAdoptFailedIndexWrite)
+}
+
+func testAdoptFailedIndexWrite(t *testing.T, kind string) {
 	// A local store with an index that can fail, and a pack from the node.
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
-	kv := &failingIndex{Store: hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())}
+	kv := &failingIndex{Store: newIndexKV(t, kind)}
 	local := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
 	t.Cleanup(local.Close)
 	adoptBlocks(ctx, t, local, "own", 1)

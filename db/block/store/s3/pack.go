@@ -103,10 +103,23 @@ type PackStore struct {
 	pricing *Pricing
 	// keepPacks stops compaction and reclaim.
 	keepPacks bool
-	// packs reads blocks from the known packfiles.
+	// packs reads blocks from the known registered packfiles.
 	packs *packfile_store.PackfileStore
+	// held reads blocks from the known held packfiles, quarantined or
+	// trashing, as the fallback of a read every registered pack misses. Nil
+	// without an index.
+	held *packfile_store.PackfileStore
 	// leaveReadCache removes the pack store from the shared read-cache budget.
 	leaveReadCache func()
+	// leaveHeldCache removes the held store from the shared read-cache budget.
+	leaveHeldCache func()
+	// holdMtx serializes the moves of the packs' sweep states, each a q/ row
+	// write followed by the manifest move.
+	holdMtx csync.Mutex
+	// holdMoves counts the halves of the manifest moves setHolds made: odd
+	// while one runs. A read that misses both manifests while it changed
+	// reads again, since the pack may have moved between the two lookups.
+	holdMoves atomic.Uint64
 	// compactor runs compact after writes.
 	compactor *routine.RoutineContainer
 	// refresher lists the entries every refreshInterval once a read started it.
@@ -146,10 +159,12 @@ type PackStore struct {
 	// and the rest are read from the index on demand.
 	full atomic.Bool
 
-	// bcast guards entries and writes.
+	// bcast guards entries, heldEntries and writes.
 	bcast broadcast.Broadcast
-	// entries are the known packfiles by id.
+	// entries are the known registered packfiles by id, held's manifest.
 	entries map[string]*packfile.PackfileEntry
+	// heldEntries are the known held packfiles by id, the held manifest.
+	heldEntries map[string]*packfile.PackfileEntry
 	// writes counts the packfiles this store wrote.
 	writes uint64
 
@@ -265,6 +280,8 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 		keepPacks: opts.KeepPacks,
 		entries:   make(map[string]*packfile.PackfileEntry),
 		loadedCh:  make(chan struct{}),
+
+		heldEntries: make(map[string]*packfile.PackfileEntry),
 		compactor: routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-compaction"),
 			routine.WithRetry(compactBackoff),
@@ -299,9 +316,14 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	s.compactor.SetContext(context.Background(), false)
 	s.refresher.SetRoutine(s.runRefresh)
 
-	// Locate blocks through the index and index the listed packs.
+	// Locate blocks through the index, read the held packs as the fallback,
+	// and index the listed packs.
+	s.leaveHeldCache = func() {}
 	if s.index != nil {
 		s.packs.SetLocator(s.index)
+		s.held = packfile_store.NewPackfileStore(s.openPack, tails)
+		s.held.SetLocator(heldLocator{x: s.index})
+		s.leaveHeldCache = s.held.JoinReadCacheBudget(block.SharedReadCacheBudget())
 		s.indexer = routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-index"),
 			routine.WithRetry(compactBackoff),
@@ -323,6 +345,10 @@ func (s *PackStore) Close() {
 	}
 	s.leaveReadCache()
 	s.packs.Close()
+	s.leaveHeldCache()
+	if s.held != nil {
+		s.held.Close()
+	}
 
 	// Wait for the tail drain, which writes the index.
 	if s.index != nil {
@@ -591,21 +617,36 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 	if ref.GetEmpty() {
 		return nil, block.ErrEmptyBlockRef
 	}
-	if stored := s.readExtent(ctx, ref); stored != nil {
-		return stored, nil
-	}
+	for {
+		moves := s.holdMoves.Load()
+		if stored := s.readExtent(ctx, ref); stored != nil {
+			return stored, nil
+		}
 
-	// Otherwise read it through the pack readers.
-	var stored *block.StoredBlock
-	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
-		var err error
-		stored, err = s.packs.GetStoredBlock(ctx, ref)
-		return stored == nil && placed[0], err
-	})
-	if stored != nil {
-		s.reads.packs.Add(1)
+		// Otherwise read it through the pack readers.
+		var stored *block.StoredBlock
+		err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
+			var err error
+			stored, err = s.packs.GetStoredBlock(ctx, ref)
+			return stored == nil && placed[0], err
+		})
+		if stored != nil {
+			s.reads.packs.Add(1)
+		}
+		if err != nil || stored != nil {
+			return stored, err
+		}
+
+		// A block every registered pack lacks may be in a held one. A miss
+		// while a pack moved between the two reads again.
+		stored, err = s.readHeld(ctx, ref)
+		if stored != nil {
+			s.reads.packs.Add(1)
+		}
+		if err != nil || stored != nil || !s.movedSince(moves) {
+			return stored, err
+		}
 	}
-	return stored, err
 }
 
 // ReadCounts counts a PackStore's block reads by where their bytes came from.
@@ -759,14 +800,28 @@ func (s *PackStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Block
 }
 
 // StatBlock returns the block's metadata, or nil if the block is not found.
+// A block only a held pack holds is found, and lifts the pack, as a read
+// does.
 func (s *PackStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	var stat *block.BlockStat
-	err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
-		var err error
-		stat, err = s.packs.StatBlock(ctx, ref)
-		return stat == nil && placed[0], err
-	})
-	return stat, err
+	for {
+		// Stat it in the registered packs.
+		moves := s.holdMoves.Load()
+		var stat *block.BlockStat
+		err := s.lookup(ctx, []*block.BlockRef{ref}, func(placed []bool) (bool, error) {
+			var err error
+			stat, err = s.packs.StatBlock(ctx, ref)
+			return stat == nil && placed[0], err
+		})
+		if err != nil || stat != nil {
+			return stat, err
+		}
+
+		// Then in the held ones, again when a pack moved meanwhile.
+		stat, err = s.statHeld(ctx, ref)
+		if err != nil || stat != nil || !s.movedSince(moves) {
+			return stat, err
+		}
+	}
 }
 
 // RmBlock returns ErrPackImmutable: packfiles are written once.
@@ -890,8 +945,11 @@ func (s *PackStore) loadAll(ctx context.Context) error {
 	start := time.Now()
 	var known map[string]bool
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
-		known = make(map[string]bool, len(s.entries))
+		known = make(map[string]bool, len(s.entries)+len(s.heldEntries))
 		for id := range s.entries {
+			known[id] = true
+		}
+		for id := range s.heldEntries {
 			known[id] = true
 		}
 	})
@@ -1060,8 +1118,7 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		}
 	}
 
-	// Index and publish the new entries the last listing holds, and drop the
-	// known entries it no longer holds.
+	// Index the new entries the last listing holds.
 	var entries []*packfile.PackfileEntry
 	for id, entry := range read {
 		if !ids[id] {
@@ -1079,9 +1136,12 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Drop the known entries the listing no longer holds, apart from held
+	// packs, which a listing never drops.
 	var removed []string
 	for id := range known {
-		if !ids[id] {
+		if !ids[id] && (s.index == nil || !s.index.isHeld(id)) {
 			removed = append(removed, id)
 		}
 	}
@@ -1185,10 +1245,11 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 // updateEntries adds and removes known packfiles and publishes the change to
 // the reader as a delta, so an upload costs the packs it changes rather than
 // the whole catalog. Every catalog change passes through here, so the reader's
-// manifest stays equal to entries. Publishing under the lock keeps concurrent
-// updates in order. The index forgets a removed pack only after the reader's
-// manifest drops it, since the reader trusts an indexed pack to stay indexed
-// while the manifest holds it.
+// manifest stays equal to entries, and the held reader's to heldEntries: an
+// added pack the index holds goes to the held one. Publishing under the lock
+// keeps concurrent updates in order, and orders them with setHolds. The index
+// forgets a removed pack only after the readers' manifests drop it, since a
+// reader trusts an indexed pack to stay indexed while its manifest holds it.
 func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string) {
 	if s.index != nil {
 		defer func() {
@@ -1198,14 +1259,39 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 		}()
 	}
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		// Drop the removed packs from both manifests.
+		var heldRemove []string
 		for _, id := range remove {
 			delete(s.entries, id)
+			if s.heldEntries[id] != nil {
+				delete(s.heldEntries, id)
+				heldRemove = append(heldRemove, id)
+			}
 		}
 		s.dropped.Add(uint64(len(remove)))
+
+		// Add each pack to the manifest of its state.
+		var heldAdd []*packfile.PackfileEntry
+		if s.index != nil && s.index.heldCount.Load() != 0 {
+			heldAdd = slices.DeleteFunc(slices.Clone(add), func(entry *packfile.PackfileEntry) bool {
+				return !s.index.isHeld(entry.GetId())
+			})
+			if len(heldAdd) != 0 {
+				add = slices.DeleteFunc(slices.Clone(add), func(entry *packfile.PackfileEntry) bool {
+					return s.index.isHeld(entry.GetId())
+				})
+			}
+		}
 		for _, entry := range add {
 			s.entries[entry.GetId()] = entry
 		}
 		s.packs.ApplyManifestDelta(add, remove)
+		if len(heldAdd) != 0 || len(heldRemove) != 0 {
+			for _, entry := range heldAdd {
+				s.heldEntries[entry.GetId()] = entry
+			}
+			s.held.ApplyManifestDelta(heldAdd, heldRemove)
+		}
 	})
 }
 
