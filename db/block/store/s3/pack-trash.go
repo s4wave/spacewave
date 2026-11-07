@@ -89,12 +89,13 @@ func (s *PackStore) BeginTrash(ctx context.Context, ids []string) error {
 // Remove removes the trashing packs ids, whose entries and files the command
 // moved to the trash. keys are the block keys the packs hold, each with the
 // other packs a snapshot lists holding it: each h row that names a removed
-// pack is pointed at the first of those the store holds, registered before
-// held, or deleted when it holds none. The rows are repaired before the
-// packs' own rows go, so a call killed between them is finished by repeating
-// it. A pack the table lacks counts as removed. A pack that is not trashing,
-// that a read missed while trashing, or whose entry or file is not in the
-// trash fails the call before anything changes.
+// pack, or a pack removed before, is pointed at the first of those the store
+// holds, registered before held, or deleted when it holds none. The rows are
+// repaired before the packs' own rows go, so a call killed between them is
+// finished by repeating it. A pack the table lacks counts as removed, so a
+// call naming only removed packs repairs the rows of its keys alone. A pack
+// that is not trashing, that a read missed while trashing, or whose entry or
+// file is not in the trash fails the call before anything changes.
 func (s *PackStore) Remove(ctx context.Context, ids []string, keys []KeyHolders) error {
 	return s.remove(ctx, ids, keys, true)
 }
@@ -102,6 +103,9 @@ func (s *PackStore) Remove(ctx context.Context, ids []string, keys []KeyHolders)
 // RepairRemoved repairs the h rows of keys as Remove does, after the same
 // checks, and leaves the packs ids trashing, so a removal holding more keys
 // than one call carries sends the first of them here and the last to Remove.
+// It deletes no row: a row with no other holder keeps naming the trashing
+// pack, so a read of its block still falls back to the pack and records a
+// miss, until Remove drops the pack and repairs the row.
 func (s *PackStore) RepairRemoved(ctx context.Context, ids []string, keys []KeyHolders) error {
 	return s.remove(ctx, ids, keys, false)
 }
@@ -143,7 +147,7 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 		remove = append(remove, id)
 	}
 	if len(remove) == 0 {
-		return nil
+		return s.index.repairRows(ctx, nil, keys, drop)
 	}
 
 	// Check each pack's entry and file are in the trash and out of the store.
@@ -154,7 +158,7 @@ func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders,
 	}
 
 	// Repair the h rows, then drop the packs.
-	if err := s.index.repairRows(ctx, remove, keys); err != nil {
+	if err := s.index.repairRows(ctx, remove, keys, drop); err != nil {
 		return errors.Wrap(err, "repair the h rows of the removed packs")
 	}
 	if !drop {
@@ -190,13 +194,14 @@ func (s *PackStore) checkTrashed(ctx context.Context, id string) error {
 	return nil
 }
 
-// repairRows points each h row of keys that names one of the packs ids at the
-// first other holder of the key the table holds, registered before held and
-// none of ids, or deletes the row when there is none. A number another pack
-// shares, as an index written before its table loaded gave out, is left on a
-// row with no other holder, since the row may be that pack's. It writes in
-// transactions of indexBatchKeys keys.
-func (x *packIndex) repairRows(ctx context.Context, ids []string, keys []KeyHolders) error {
+// repairRows points each h row of keys that names one of the packs ids, or a
+// pack removed before, at the first other holder of the key the table holds,
+// registered before held and none of ids, or deletes the row when there is
+// none and del is set. A number another pack shares, as an index written
+// before its table loaded gave out, is left on a row with no other holder,
+// since the row may be that pack's. It writes in transactions of
+// indexBatchKeys keys.
+func (x *packIndex) repairRows(ctx context.Context, ids []string, keys []KeyHolders, del bool) error {
 	// Read the removed packs' numbers, and the numbers another pack shares.
 	x.mtx.RLock()
 	gone := make(map[string]bool, len(ids))
@@ -216,7 +221,7 @@ func (x *packIndex) repairRows(ctx context.Context, ids []string, keys []KeyHold
 
 	// Repair a batch of keys in each transaction.
 	for batch := range slices.Chunk(keys, indexBatchKeys) {
-		if err := x.repairBatch(ctx, gone, removed, shared, batch); err != nil {
+		if err := x.repairBatch(ctx, gone, removed, shared, batch, del); err != nil {
 			return err
 		}
 	}
@@ -225,7 +230,7 @@ func (x *packIndex) repairRows(ctx context.Context, ids []string, keys []KeyHold
 
 // repairBatch repairs the h rows of keys in one transaction, as repairRows
 // describes.
-func (x *packIndex) repairBatch(ctx context.Context, gone map[string]bool, removed, shared map[uint32]bool, keys []KeyHolders) error {
+func (x *packIndex) repairBatch(ctx context.Context, gone map[string]bool, removed, shared map[uint32]bool, keys []KeyHolders, del bool) error {
 	// Open the transaction.
 	tx, err := x.store.NewTransaction(ctx, true)
 	if err != nil {
@@ -241,28 +246,37 @@ func (x *packIndex) repairBatch(ctx context.Context, gone map[string]bool, remov
 			return err
 		}
 		row, ok := parseHashValue(value)
-		if !found || !ok || !removed[row.num] {
+		if !found || !ok || (!removed[row.num] && !x.removedNum(row.num)) {
 			continue
 		}
-		if err := x.repairRow(ctx, tx, rowKey, gone, shared[row.num], k.Others); err != nil {
+		keep := shared[row.num] || !del
+		if err := x.repairRow(ctx, tx, rowKey, gone, keep, k.Others); err != nil {
 			return err
 		}
 	}
 	return tx.Commit(ctx)
 }
 
+// removedNum reports whether num is the number of a pack the table removed,
+// which no later pack takes.
+func (x *packIndex) removedNum(num uint32) bool {
+	x.mtx.RLock()
+	defer x.mtx.RUnlock()
+	return int(num) < len(x.ids) && x.ids[num] == ""
+}
+
 // repairRow points the h row at rowKey, which names a removed pack, at the
 // first holder of others the table holds and gone lacks, or deletes it unless
-// another pack shares the removed pack's number.
-func (x *packIndex) repairRow(ctx context.Context, tx kvtx.Tx, rowKey []byte, gone map[string]bool, shared bool, others []string) error {
+// keep is set.
+func (x *packIndex) repairRow(ctx context.Context, tx kvtx.Tx, rowKey []byte, gone map[string]bool, keep bool, others []string) error {
 	// Choose the holder: a registered pack, else a held one.
 	to, found := x.holderNum(gone, others)
 	if found {
 		return tx.Set(ctx, rowKey, hashValue{num: to}.marshal())
 	}
 
-	// With none, delete the row unless another pack shares the number.
-	if shared {
+	// With none, delete the row unless it is kept.
+	if keep {
 		return nil
 	}
 	return tx.Delete(ctx, rowKey)
