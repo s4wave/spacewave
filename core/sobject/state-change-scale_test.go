@@ -167,10 +167,15 @@ func referenceStablePoint(set *SOOperationSet, roster []string) [][]byte {
 	return order
 }
 
-// fastest returns the shortest of five runs of fn.
+// fastestRuns is how many times fastest runs a function.
+const fastestRuns = 40
+
+// fastest returns the shortest of fastestRuns runs of fn. The costs compared
+// are about a millisecond, so a loaded CI runner needs many runs for one to
+// land outside a stall.
 func fastest(fn func()) time.Duration {
 	best := time.Duration(1<<63 - 1)
-	for range 5 {
+	for range fastestRuns {
 		start := time.Now()
 		fn()
 		best = min(best, time.Since(start))
