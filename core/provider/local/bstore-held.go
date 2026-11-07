@@ -30,11 +30,13 @@ const (
 	heldSpillEvery = time.Second
 	// heldSpillBatch bounds the blocks one spill commit writes.
 	heldSpillBatch = 256
-	// nodeKeyReadTries is how many times a block read asks the node by key
-	// before it reports the block not found, and nodeKeyReadWait the least
-	// each try waits. The tries back off 50, 100, 150 ms.
-	nodeKeyReadTries = 4
-	nodeKeyReadWait  = time.Second
+	// nodeKeyReadBound is how long a block read keeps asking the node by key,
+	// through misses and while the node is away, before it reports the block
+	// not found, and nodeKeyReadWait the least each try waits. The pauses
+	// between tries back off from 50 ms to nodeKeyReadPauseMax.
+	nodeKeyReadBound    = 30 * time.Second
+	nodeKeyReadWait     = time.Second
+	nodeKeyReadPauseMax = time.Second
 )
 
 // heldReads reads the store's memory set before the local store. A block the
@@ -174,7 +176,7 @@ func (r *nodeKeyReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 
 // readNode reads ref from the node's pack log by key, or returns nil.
 func (r *nodeKeyReads) readNode(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
-	return readNodeBlock(ctx, r.client, r.wait, ref)
+	return readNodeBlock(ctx, r.client, r.wait, nodeKeyReadBound, ref)
 }
 
 // nodeBeforePeers asks the storage node by key before the peers, whose read
@@ -210,7 +212,7 @@ func (r *nodeFirstReads) BeginReadOperation(ctx context.Context) (block.StoreOps
 
 // GetStoredBlock asks the node, then the wrapped store.
 func (r *nodeFirstReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	if found := readNodeBlock(ctx, r.client, r.wait, ref); found != nil {
+	if found := readNodeBlock(ctx, r.client, r.wait, 0, ref); found != nil {
 		return found, nil
 	}
 	return r.StoreOps.GetStoredBlock(ctx, ref)
@@ -218,44 +220,47 @@ func (r *nodeFirstReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 
 // GetBlock asks the node, then the wrapped store.
 func (r *nodeFirstReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	if found := readNodeBlock(ctx, r.client, r.wait, ref); found != nil {
+	if found := readNodeBlock(ctx, r.client, r.wait, 0, ref); found != nil {
 		return found.Data, true, nil
 	}
 	return r.StoreOps.GetBlock(ctx, ref)
 }
 
-// readNodeBlock reads ref from the node's pack log by key within wait, or
-// returns nil.
-func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodepush.Client], wait time.Duration, ref *block.BlockRef) *block.StoredBlock {
+// readNodeBlock reads ref from the node's pack log by key, each try within
+// wait, asking again until bound has passed, or returns nil. A bound of zero
+// asks once.
+func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodepush.Client], wait, bound time.Duration, ref *block.BlockRef) *block.StoredBlock {
 	// Only a mounted push can ask.
-	if ref.GetEmpty() {
+	if ref.GetEmpty() || client.Load() == nil {
 		return nil
 	}
 
-	// Ask the node, again after a miss: a node with no free read slot, or
-	// one slow to answer, misses a block it holds.
+	// Ask the node, again after a miss and while it is away: a node with no
+	// free read slot, or one slow to answer, misses a block it holds, and a
+	// block flushed but not yet reported is held nowhere else.
 	key := packfile.BlockKey(ref.GetHash())
+	deadline := time.Now().Add(bound)
+	pause := 50 * time.Millisecond
 	var value []byte
-	for try := range nodeKeyReadTries {
-		c := client.Load()
-		if c == nil {
-			return nil
+	for {
+		if c := client.Load(); c != nil {
+			rctx, cancel := context.WithTimeout(ctx, max(wait, nodeKeyReadWait))
+			data, ok := c.ReadBlock(rctx, key)
+			cancel()
+			if ok {
+				value = data
+				break
+			}
 		}
-		rctx, cancel := context.WithTimeout(ctx, max(wait, nodeKeyReadWait))
-		data, ok := c.ReadBlock(rctx, key)
-		cancel()
-		if ok {
-			value = data
-			break
-		}
-		if try == nodeKeyReadTries-1 || ctx.Err() != nil {
+		if ctx.Err() != nil || time.Now().Add(pause).After(deadline) {
 			return nil
 		}
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(time.Duration(try+1) * 50 * time.Millisecond):
+		case <-time.After(pause):
 		}
+		pause = min(pause*2, nodeKeyReadPauseMax)
 	}
 
 	// Check what it sends; a bad answer is a miss.
