@@ -30,6 +30,11 @@ func UpdateSnapshot(
 		return nil, errors.New("snapshot update requires an existing World root")
 	}
 
+	// Return no candidate for a canceled update before it calls the mutation.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	// Trace the snapshot update for the whole operation.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/update-snapshot")
 	defer task.End()
