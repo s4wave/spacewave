@@ -9,39 +9,25 @@ import (
 
 // cursorWorldStorage implements WorldStorage with a object cursor.
 type cursorWorldStorage struct {
-	// buildCursorFn builds a new root cursor.
-	buildCursorFn BuildCursorFn
-}
-
-// BuildCursorFn builds a object cursor.
-type BuildCursorFn func(ctx context.Context) (*bucket_lookup.Cursor, error)
-
-// NewCursorWorldStorage constructs a WorldStorage from a object cursor.
-func NewCursorWorldStorage(buildCursor BuildCursorFn) WorldStorage {
-	return &cursorWorldStorage{buildCursorFn: buildCursor}
+	// cursor is the root cursor, cloned for each access.
+	cursor *bucket_lookup.Cursor
 }
 
 // NewWorldStorageFromCursor builds a WorldStorage from an existing cursor.
 func NewWorldStorageFromCursor(cursor *bucket_lookup.Cursor) WorldStorage {
-	return NewCursorWorldStorage(func(ctx context.Context) (*bucket_lookup.Cursor, error) {
-		return cursor.Clone(), nil
-	})
+	return &cursorWorldStorage{cursor: cursor}
 }
 
-// NewAccessWorldStateFunc constructs an AccessWorldStateFunc from a existing cursor
+// NewAccessWorldStateFunc constructs an AccessWorldStateFunc from an existing cursor.
 func NewAccessWorldStateFunc(cursor *bucket_lookup.Cursor) AccessWorldStateFunc {
-	st := NewWorldStorageFromCursor(cursor)
-	return st.AccessWorldState
+	return NewWorldStorageFromCursor(cursor).AccessWorldState
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.
 func (s *cursorWorldStorage) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
-	if s.buildCursorFn == nil {
-		return nil, ErrWorldStorageUnavailable
-	}
-	return s.buildCursorFn(ctx)
+	return s.cursor.Clone(), nil
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -53,10 +39,7 @@ func (s *cursorWorldStorage) AccessWorldState(
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
 	// Acquire the World storage cursor for this access.
-	cursor, err := s.buildCursorFn(ctx)
-	if err != nil {
-		return err
-	}
+	cursor := s.cursor.Clone()
 	defer cursor.Release()
 
 	// Follow the requested reference when it differs from the World root.
