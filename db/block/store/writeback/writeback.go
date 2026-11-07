@@ -168,7 +168,7 @@ func newStore(
 	// backfill target.
 	var pending int
 	var pendingBytes, evictableBytes int64
-	var target, resume []byte
+	var target, resume, end []byte
 	var oldest time.Time
 	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Drop the former marker layout before reading the queue.
@@ -190,7 +190,33 @@ func newStore(
 		if err != nil {
 			return err
 		}
-		resume = nil
+
+		// Take the queue's kept count when its ends are the queue's.
+		resume, end = nil, nil
+		kept, found, err := readQueueCount(ctx, tx, pendingKey)
+		if err != nil {
+			return err
+		}
+		first, last, err := queueEnds(ctx, tx, nil)
+		if err != nil {
+			return err
+		}
+		if found && !recountAtOpen.Load() && bytes.Equal(kept.first, first) && bytes.Equal(kept.last, last) {
+			pending, pendingBytes = kept.n, kept.bytes
+			if first != nil {
+				if oldest, err = (queueItem{key: first}).at(); err != nil {
+					return err
+				}
+			}
+			return tx.Delete(ctx, []byte(pendingDeltaKey))
+		}
+
+		// Count the queue otherwise, keeping the entries queued meanwhile in
+		// the delta: they sort at or after end, where the count stops.
+		if err := tx.Delete(ctx, []byte(pendingKey)); err != nil {
+			return err
+		}
+		end = queueFloor(queueTime(time.Now()))
 		err = scanQueue(ctx, tx, nil, func(item queueItem) error {
 			if pending == 0 {
 				at, err := item.at()
@@ -210,7 +236,18 @@ func newStore(
 		if errors.Is(err, errScanDone) {
 			err = nil
 		}
-		return err
+		if err != nil {
+			return err
+		}
+
+		// Keep the count now if this read it whole, or start the delta.
+		if resume == nil {
+			if err := tx.Delete(ctx, []byte(pendingDeltaKey)); err != nil {
+				return err
+			}
+			return writeQueueCount(ctx, tx, pendingKey, queueCount{n: pending, bytes: pendingBytes, first: first, last: last})
+		}
+		return writeQueueCount(ctx, tx, pendingDeltaKey, queueCount{})
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "count pending uploads")
@@ -229,7 +266,7 @@ func newStore(
 		close(s.counted)
 		return s, nil
 	}
-	go s.countRest(ctx, resume)
+	go s.countRest(ctx, queueCount{n: pending, bytes: pendingBytes}, resume, end)
 	return s, nil
 }
 
@@ -255,23 +292,24 @@ func (s *Store) waitCounted(ctx context.Context) error {
 }
 
 // countRest counts the upload queue from resume, the first entry NewStore did
-// not count, and adds each chunk's count to the status as it goes.
+// not count, up to end, adds each chunk's count to the status as it goes, and
+// then keeps the queue's count, as pendingKey describes, from base, what
+// NewStore counted, and the entries queued since the open.
 //
 // Each chunk of openCountLimit entries reads in a snapshot of its own. One
 // snapshot over a backlog of millions would stay open for the whole scan, and
 // an open snapshot keeps a WAL store from checkpointing past it, so the log
-// would grow with every write until the scan ended. The count stops at the
-// queue key of its own start time: later writes sort after it, and the
-// status counts them as they commit. An entry cleared before its chunk reads
-// leaves the total low by one; the count feeds only the status and the
-// eviction budget, which a backlog this size keeps over its bound either way.
-// Every clear waits for counted: one ahead of the count would come off the
-// status without the count ever adding it, leaving Pending low enough that
-// Upload sleeps with entries queued. A failed read tries its chunk again, since
-// a count that stops short leaves Pending low in the same way.
-func (s *Store) countRest(ctx context.Context, resume []byte) {
+// would grow with every write until the scan ended. The count stops at end,
+// the queue key of the open's time: later writes sort after it, and the
+// status counts them as they commit. Every clear waits for counted: one ahead
+// of the count would come off the status without the count ever adding it,
+// leaving Pending low enough that Upload sleeps with entries queued, and would
+// remove an entry the kept count never held. A backfill waits too, since its
+// entries sort before end. A failed read tries its chunk again, since a count
+// that stops short leaves Pending low in the same way.
+func (s *Store) countRest(ctx context.Context, base queueCount, resume, end []byte) {
 	defer close(s.counted)
-	end := queueFloor(queueTime(time.Now()))
+	total := base
 	for resume != nil {
 		// Count one chunk from resume.
 		var pending int
@@ -311,8 +349,47 @@ func (s *Store) countRest(ctx context.Context, resume []byte) {
 			s.status.PendingBytes += pendingBytes
 			broadcast()
 		})
+		total.n += pending
+		total.bytes += pendingBytes
 		resume = next
 	}
+
+	// Keep the count from here on, before any clear may run. One that cannot
+	// be kept leaves the next open to count again.
+	for ctx.Err() == nil {
+		err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			return keepQueueCount(ctx, tx, total)
+		})
+		if err == nil {
+			return
+		}
+		select {
+		case <-ctx.Done():
+		case <-time.After(countRetry):
+		}
+	}
+}
+
+// keepQueueCount writes the queue's count from counted, the entries an open's
+// count read, and the delta of the entries queued since, then drops the delta.
+// With no delta, as after SetEnabled emptied the queue, it keeps nothing.
+func keepQueueCount(ctx context.Context, tx kvtx.Tx, counted queueCount) error {
+	// Add the delta to the counted entries.
+	delta, found, err := readQueueCount(ctx, tx, pendingDeltaKey)
+	if err != nil || !found {
+		return err
+	}
+	first, last, err := queueEnds(ctx, tx, nil)
+	if err != nil {
+		return err
+	}
+
+	// Keep the count and drop the delta.
+	c := queueCount{n: counted.n + delta.n, bytes: counted.bytes + delta.bytes, first: first, last: last}
+	if err := writeQueueCount(ctx, tx, pendingKey, c); err != nil {
+		return err
+	}
+	return tx.Delete(ctx, []byte(pendingDeltaKey))
 }
 
 // SetPolicy sets when queued blocks upload and the resident budget, waking
@@ -385,6 +462,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 	// by the old setting or ends before the write below returns. Dropping the
 	// markers also removes those a disabled-to-enabled race left behind.
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Drop the queue, its count and the eviction queue.
 		if enabled {
 			return nil
 		}
@@ -392,6 +470,12 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 			if err := deletePrefix(ctx, tx, prefix); err != nil {
 				return err
 			}
+		}
+		if err := tx.Delete(ctx, []byte(pendingDeltaKey)); err != nil {
+			return err
+		}
+		if err := writeQueueCount(ctx, tx, pendingKey, queueCount{}); err != nil {
+			return err
 		}
 		if err := tx.Delete(ctx, []byte(evictableBytesKey)); err != nil {
 			return err
@@ -415,10 +499,14 @@ func (s *Store) Backfill(
 	target string,
 	list func(ctx context.Context) ([]*block.BlockRef, error),
 ) error {
-	// Skip backfill when the selected remote target is already complete.
+	// Skip backfill when the selected remote target is already complete, and
+	// wait for the queue's count, which reads the entries a backfill queues.
 	status, _ := s.GetStatus()
 	if status.Target == target {
 		return nil
+	}
+	if err := s.waitCounted(ctx); err != nil {
+		return err
 	}
 
 	// Queue existing local blocks for the selected upload target.
@@ -660,6 +748,11 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		if err != nil {
 			return err
 		}
+		kept, keptFound, err := readQueueCount(ctx, tx, pendingKey)
+		if err != nil {
+			return err
+		}
+		lastGone := false
 		cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0
 		for _, pending := range batch {
 			value, found, err := tx.Get(ctx, pending.queueKey)
@@ -669,6 +762,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 			if !found || (pending.dropped && !bytes.Equal(value, pending.value)) {
 				continue
 			}
+			lastGone = lastGone || bytes.Equal(pending.queueKey, kept.last)
 			if err := tx.Delete(ctx, pending.queueKey); err != nil {
 				return err
 			}
@@ -694,7 +788,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		// Read the new queue head's write time from the floor. The store
 		// orders write transactions, so every transaction that lowered the
 		// floor before this read committed or discarded already.
-		var floor []byte
+		var floor, headKey []byte
 		floor, lowered = s.readFloor()
 		oldest, head = time.Time{}, []byte(queueEnd)
 		err = scanQueue(ctx, tx, floor, func(item queueItem) error {
@@ -702,13 +796,13 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 			if err != nil {
 				return err
 			}
-			oldest, head = at, queueFloor(at)
+			oldest, head, headKey = at, queueFloor(at), bytes.Clone(item.key)
 			return errScanDone
 		})
-		if errors.Is(err, errScanDone) {
-			return nil
+		if err != nil && !errors.Is(err, errScanDone) {
+			return err
 		}
-		return err
+		return s.removeQueued(ctx, tx, kept, keptFound, cleared, clearedBytes, headKey, lastGone)
 	})
 	if err != nil {
 		return errors.Wrap(err, "clear uploaded blocks")
@@ -731,6 +825,37 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		broadcast()
 	})
 	return nil
+}
+
+// removeQueued takes the entries a clear deleted off the queue's count kept,
+// with head the queue's first key after it, nil for an empty queue, and
+// lastGone set when it deleted the last key. An empty queue counts zero
+// whatever the count held. With no count kept it drops the delta of an open's
+// count, which cannot take removals, so the next open counts the queue again.
+func (s *Store) removeQueued(ctx context.Context, tx kvtx.Tx, kept queueCount, found bool, n int, size int64, head []byte, lastGone bool) error {
+	// Leave the next open to count, with no count kept.
+	if !found {
+		return tx.Delete(ctx, []byte(pendingDeltaKey))
+	}
+	if n == 0 {
+		return nil
+	}
+
+	// Take the entries off, and read the new ends.
+	if head == nil {
+		return writeQueueCount(ctx, tx, pendingKey, queueCount{})
+	}
+	kept.n -= n
+	kept.bytes -= size
+	kept.first = head
+	if lastGone {
+		last, err := queueLast(ctx, tx)
+		if err != nil {
+			return err
+		}
+		kept.last = last
+	}
+	return writeQueueCount(ctx, tx, pendingKey, kept)
 }
 
 // prefetchClear reads the keys clear reads, in a read transaction that holds
