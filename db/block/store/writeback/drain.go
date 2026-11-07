@@ -141,11 +141,6 @@ func (s *Store) NewDrain(push DrainPush, opts DrainOptions) *Drain {
 // later call resumes where this one stopped, pushing a batch it read before.
 // Calls must not overlap.
 func (d *Drain) Run(ctx context.Context, remote block.StoreOps) error {
-	// Wait for the queue's count, as every clear does.
-	if err := d.s.waitCounted(ctx); err != nil {
-		return err
-	}
-
 	for !d.done {
 		// Start a pass below the newest entry old enough.
 		if d.below == nil {
@@ -176,14 +171,14 @@ func (d *Drain) Run(ctx context.Context, remote block.StoreOps) error {
 }
 
 // waitRegrow returns once the queued bytes grow grow above their lowest since
-// they were from, or with ctx's error.
+// they were from, as netQueued reads them, or with ctx's error.
 func (s *Store) waitRegrow(ctx context.Context, from, grow int64) error {
 	low := from
 	for {
 		// Follow the lowest queued bytes, and return on enough growth.
-		status, changed := s.GetStatus()
-		low = min(low, status.PendingBytes)
-		if status.PendingBytes-low >= grow {
+		queued, changed := s.netQueued()
+		low = min(low, queued)
+		if queued-low >= grow {
 			return nil
 		}
 
@@ -211,8 +206,8 @@ func (d *Drain) step(ctx context.Context, remote block.StoreOps) error {
 			return err
 		}
 		if next == nil {
-			status, _ := d.s.GetStatus()
-			d.below, d.stop, d.ended = nil, d.cutoff, status.PendingBytes
+			queued, _ := d.s.netQueued()
+			d.below, d.stop, d.ended = nil, d.cutoff, queued
 			d.report(DrainReport{Done: true})
 			return nil
 		}
@@ -368,4 +363,16 @@ func sizeOf(blocks []pendingBlock) int64 {
 		n += b.size
 	}
 	return n
+}
+
+// netQueued returns the bytes queued less the bytes cleared since the open,
+// which moves with the queue's writes and clears but not with the count of
+// an open, and a channel closed when the status changes.
+func (s *Store) netQueued() (int64, <-chan struct{}) {
+	var queued int64
+	var changed <-chan struct{}
+	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		queued, changed = s.netQueuedBytes, getWaitCh()
+	})
+	return queued, changed
 }

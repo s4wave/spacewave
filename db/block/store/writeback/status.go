@@ -6,12 +6,17 @@ import "time"
 type Status struct {
 	// Enabled reports whether writes are queued for upload.
 	Enabled bool
-	// Pending is the number of blocks awaiting upload.
+	// Pending is the number of blocks awaiting upload. While Counting, it
+	// holds only the blocks counted so far.
 	Pending int
-	// PendingBytes is the size of the blocks awaiting upload.
+	// PendingBytes is the size of the blocks awaiting upload, and while
+	// Counting the size of those counted so far.
 	PendingBytes int64
-	// Oldest is the write time of the first block awaiting upload, while
-	// Pending is not zero. Every block written before it has uploaded.
+	// Counting reports that the count of the queue an open started has not
+	// ended, so Pending and PendingBytes are short of the queue.
+	Counting bool
+	// Oldest is the write time of the first block awaiting upload, zero only
+	// while none awaits it. Every block written before it has uploaded.
 	Oldest time.Time
 	// Err is the last upload failure, cleared by the next successful batch.
 	Err error
@@ -47,7 +52,8 @@ type Status struct {
 }
 
 // ResidentBytes is the size of the store's blocks the local store holds: the
-// blocks awaiting upload and the uploaded blocks not yet evicted.
+// blocks awaiting upload and the uploaded blocks not yet evicted. While
+// Counting it is short by the blocks not counted yet.
 func (s Status) ResidentBytes() int64 {
 	return s.PendingBytes + s.EvictableBytes
 }

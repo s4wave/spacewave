@@ -958,34 +958,54 @@ func TestClearLocatedPassesTheBacklog(t *testing.T) {
 	pending(0)
 }
 
-// gatedMarkers holds the first read transaction after armed, the count's, until
-// release closes.
-type gatedMarkers struct {
+// slowMarkers delays every read transaction while armed, so the count of the
+// queue after an open spans many clears.
+type slowMarkers struct {
 	kvtx.Store
-	armed   atomic.Bool
-	reached chan struct{}
-	release chan struct{}
+	armed atomic.Bool
 }
 
-// NewTransaction holds the armed read.
-func (g *gatedMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	if !write && g.armed.CompareAndSwap(true, false) {
-		close(g.reached)
-		<-g.release
+// NewTransaction delays an armed read.
+func (g *slowMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if !write && g.armed.Load() {
+		time.Sleep(5 * time.Millisecond)
 	}
 	return g.Store.NewTransaction(ctx, write)
 }
 
-// TestClearLocatedWaitsForTheCount clears a block past the count of the queue
-// after an open. Cleared early, it would come off the status without the count
-// adding it, and Upload would sleep with entries still queued.
-func TestClearLocatedWaitsForTheCount(t *testing.T) {
+// countQueue counts the queue's entries and their bytes in one snapshot.
+func countQueue(t *testing.T, markers kvtx.Store) (int, int64) {
+	t.Helper()
+	var n int
+	var size int64
+	err := kvtx.RunTransaction(t.Context(), false, func(ctx context.Context) (kvtx.Tx, error) { return markers.NewTransaction(ctx, false) }, func(ctx context.Context, tx kvtx.Tx) error {
+		n, size = 0, 0
+		return scanQueue(ctx, tx, nil, func(item queueItem) error {
+			n++
+			size += item.size()
+			return nil
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n, size
+}
+
+// TestClearsDuringTheCount clears blocks on both sides of the count of the
+// queue after an open while it runs, and lets the upload start, which waits
+// for nothing but the queue's head. The status must end equal to a count of
+// the queue: a clear that took an entry the count had yet to read off the
+// status would leave it low, and one the count read after the clear removed
+// it would leave it high.
+func TestClearsDuringTheCount(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
 	s := env.newStore(t, true)
 
-	// Queue past what an open counts, then reopen with the count held.
-	total := openCountLimit + 2
+	// Queue past what an open counts by several chunks, then reopen with a
+	// slow count.
+	total := openCountLimit + 30*countChunkLimit
 	entries := make([]*block.PutBatchEntry, total)
 	for i := range total {
 		data := []byte(strconv.Itoa(i))
@@ -998,33 +1018,77 @@ func TestClearLocatedWaitsForTheCount(t *testing.T) {
 	if _, err := s.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)
 	}
-	g := &gatedMarkers{Store: env.markers(t), reached: make(chan struct{}), release: make(chan struct{})}
+	g := &slowMarkers{Store: env.markers(t)}
 	g.armed.Store(true)
 	s, err := NewStore(ctx, ownedStore{env.vol}, env.vol, g, testMarkersID, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	<-g.reached
+	if status, _ := s.GetStatus(); !status.Counting || status.Pending != openCountLimit || status.Oldest.IsZero() {
+		t.Fatalf("status after the open = %+v, want counting the first %d", status, openCountLimit)
+	}
 
-	// The clear waits for the count, then both land.
-	last := entries[total-1].Ref
-	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{last.MarshalString(): true}}
+	// The upload starts at once and uploads from the head while the count
+	// runs.
+	uploadCtx, stopUpload := context.WithCancel(ctx)
+	uploaded := make(chan error, 1)
+	go func() { uploaded <- s.Upload(uploadCtx, newInmemBlockStore()) }()
+	for {
+		status, changed := s.GetStatus()
+		if !status.Counting {
+			t.Fatal("the count ended before the upload uploaded; slow it further")
+		}
+		if status.Uploaded != 0 {
+			break
+		}
+		<-changed
+	}
+	stopUpload()
+	<-uploaded
+
+	// Clear a spread of blocks the count read, has yet to read, and passes,
+	// with a write queued after the open among them.
+	written, _, err := s.PutBlock(ctx, []byte("written after the open"), leafOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	located := map[string]bool{written.MarshalString(): true}
+	var hashes []*hash.Hash
+	for i := 0; i < total; i += 997 {
+		located[entries[i].Ref.MarshalString()] = true
+		hashes = append(hashes, entries[i].Ref.GetHash())
+	}
+	hashes = append(hashes, written.GetHash())
+	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: located}
 	var on atomic.Bool
 	on.Store(true)
 	s.SetLocateUploaded(&on)
-	cleared := make(chan error, 1)
-	go func() { cleared <- s.ClearLocated(ctx, remote, []*hash.Hash{last.GetHash()}) }()
-	select {
-	case err := <-cleared:
-		t.Fatalf("clear returned during the count: %v", err)
-	case <-time.After(50 * time.Millisecond):
+	for chunk := range slices.Chunk(hashes, 5) {
+		if err := s.ClearLocated(ctx, remote, chunk); err != nil {
+			t.Fatal(err)
+		}
 	}
-	close(g.release)
-	if err := <-cleared; err != nil {
+	if status, _ := s.GetStatus(); !status.Counting {
+		t.Fatal("the count ended before the clears; slow it further")
+	}
+
+	// The status ends at the queue's count once the count does.
+	if err := s.waitCounted(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if status, _ := s.GetStatus(); status.Pending != total-1 {
-		t.Fatalf("pending=%d, want %d", status.Pending, total-1)
+	g.armed.Store(false)
+	n, size := countQueue(t, env.markers(t))
+	if n >= total+1-len(hashes) {
+		t.Fatalf("queue holds %d, want fewer than %d after the upload and clears", n, total+1-len(hashes))
+	}
+	if status, _ := s.GetStatus(); status.Counting || status.Pending != n || status.PendingBytes != size {
+		t.Fatalf("status = %d entries, %d bytes, counting %v; queue holds %d, %d", status.Pending, status.PendingBytes, status.Counting, n, size)
+	}
+
+	// The upload drains the rest to an empty status.
+	drain(t, s, remote)
+	if status, _ := s.GetStatus(); status.Pending != 0 || status.PendingBytes != 0 || !status.Oldest.IsZero() {
+		t.Fatalf("status after the drain = %+v", status)
 	}
 }
 

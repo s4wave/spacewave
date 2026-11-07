@@ -91,6 +91,20 @@ type Store struct {
 	// counted closes once the status counts the whole queue, as countRest
 	// describes.
 	counted chan struct{}
+	// countFrom and countEnd bound the queue keys the open's count has yet to
+	// read, [countFrom, countEnd), guarded by bcast and moved only under mtx;
+	// countFrom is nil once the count ends. The status counts every entry
+	// outside that range, so clear takes only those off it, and the count
+	// adds each one inside it that is still queued when its chunk reads.
+	countFrom, countEnd []byte
+	// netQueuedBytes is the bytes queued less the bytes cleared since the
+	// open, guarded by bcast: the queue's growth, which the count does not
+	// move, so a drain's regrow measures new writes alone.
+	netQueuedBytes int64
+	// queued counts the projected transactions that queued blocks, guarded
+	// by bcast, so an upload that read an empty head wakes on the next one
+	// whatever Oldest says.
+	queued uint64
 	// locate is the switch that skips uploading the blocks the remote already
 	// holds, nil while none was set.
 	locate atomic.Pointer[atomic.Bool]
@@ -225,12 +239,14 @@ func newStore(
 		Oldest:         oldest,
 		Target:         string(target),
 		EvictableBytes: evictableBytes,
+		Counting:       resume != nil,
 	}
 	if resume == nil {
 		close(s.counted)
 		return s, nil
 	}
-	go s.countRest(ctx, resume)
+	s.countFrom, s.countEnd = resume, queueFloor(queueTime(time.Now()))
+	go s.countRest(ctx)
 	return s, nil
 }
 
@@ -241,11 +257,16 @@ func newStore(
 // the rest in the background.
 const openCountLimit = 10_000
 
+// countChunkLimit bounds the upload queue entries one chunk of countRest
+// reads, and so how long it holds clears off.
+const countChunkLimit = 1000
+
 // countRetry is how long countRest waits to read a failed chunk again.
 const countRetry = time.Second
 
 // waitCounted returns once the status counts the whole queue, as countRest
-// describes, or with ctx's error.
+// describes, or with ctx's error. Only a backfill waits for it: its entries
+// sort at the epoch, inside the range the count may yet read.
 func (s *Store) waitCounted(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
@@ -255,65 +276,110 @@ func (s *Store) waitCounted(ctx context.Context) error {
 	}
 }
 
-// countRest counts the upload queue from resume, the first entry NewStore did
-// not count, and adds each chunk's count to the status as it goes.
+// countRest counts the upload queue from countFrom, the first entry NewStore
+// did not count, up to countEnd, the queue key of the open's time, and adds
+// each chunk's count to the status as it goes. Later writes sort past
+// countEnd, and the status counts them as they commit.
 //
-// Each chunk of openCountLimit entries reads in a snapshot of its own. One
+// Nothing waits for the count but a backfill: clears, the upload and the
+// drain run from the open on. Each chunk reads and publishes under mtx, which
+// every clear holds from its read of the range to its projection, so the
+// two never interleave: a clear takes off the status only the entries outside
+// [countFrom, countEnd), which the status already holds, and an entry it
+// removes inside the range is gone before the chunk that would read it. So
+// the status stays the queue's count, the count's part partial until it ends.
+//
+// Each chunk of countChunkLimit entries reads in a snapshot of its own. One
 // snapshot over a backlog of millions would stay open for the whole scan, and
 // an open snapshot keeps a WAL store from checkpointing past it, so the log
-// would grow with every write until the scan ended. The count stops at the
-// queue key of its own start time: later writes sort after it, and the
-// status counts them as they commit. An entry cleared before its chunk reads
-// leaves the total low by one; the count feeds only the status and the
-// eviction budget, which a backlog this size keeps over its bound either way.
-// Every clear waits for counted: one ahead of the count would come off the
-// status without the count ever adding it, leaving Pending low enough that
-// Upload sleeps with entries queued. A failed read tries its chunk again, since
-// a count that stops short leaves Pending low in the same way.
-func (s *Store) countRest(ctx context.Context, resume []byte) {
+// would grow with every write until the scan ended. After each chunk the count
+// waits as long as the chunk took, so the clears it held off get mtx at least
+// half the time. A failed read tries its chunk again, since a count that stops
+// short leaves Pending low.
+func (s *Store) countRest(ctx context.Context) {
 	defer close(s.counted)
-	end := queueFloor(queueTime(time.Now()))
-	for resume != nil {
-		// Count one chunk from resume.
-		var pending int
-		var pendingBytes int64
-		var next []byte
-		err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-			pending, pendingBytes, next = 0, 0, nil
-			err := scanQueue(ctx, tx, resume, func(item queueItem) error {
-				if bytes.Compare(item.key, end) >= 0 {
-					return errScanDone
-				}
-				if pending == openCountLimit {
-					next = bytes.Clone(item.key)
-					return errScanDone
-				}
-				pending++
-				pendingBytes += item.size()
-				return nil
-			})
-			if errors.Is(err, errScanDone) {
-				err = nil
-			}
-			return err
-		})
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(countRetry):
-			}
-			continue
+	for {
+		start := time.Now()
+		done, err := s.countChunk(ctx)
+		if done {
+			return
 		}
-
-		// Add the chunk to the status.
-		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			s.status.Pending += pending
-			s.status.PendingBytes += pendingBytes
-			broadcast()
-		})
-		resume = next
+		wait := time.Since(start)
+		if err != nil {
+			wait = countRetry
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(wait):
+		}
 	}
+}
+
+// countChunk counts the chunk of the queue from countFrom and publishes it,
+// reporting true once the count ends or ctx ends.
+func (s *Store) countChunk(ctx context.Context) (bool, error) {
+	// Hold off clears for the chunk's read and publication.
+	release, err := s.mtx.Lock(ctx)
+	if err != nil {
+		return true, err
+	}
+	defer release()
+	var from, end []byte
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		from, end = s.countFrom, s.countEnd
+	})
+	if from == nil {
+		return true, nil
+	}
+
+	// Count one chunk from the range's start.
+	var pending int
+	var pendingBytes int64
+	var next []byte
+	err = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read up to the range's end or the chunk's limit.
+		pending, pendingBytes, next = 0, 0, nil
+		err := scanQueue(ctx, tx, from, func(item queueItem) error {
+			// Stop at the range's end, or where the next chunk starts.
+			if bytes.Compare(item.key, end) >= 0 {
+				return errScanDone
+			}
+			if pending == countChunkLimit {
+				next = bytes.Clone(item.key)
+				return errScanDone
+			}
+
+			// Count the entry.
+			pending++
+			pendingBytes += item.size()
+			return nil
+		})
+		if errors.Is(err, errScanDone) {
+			err = nil
+		}
+		return err
+	})
+	if err != nil {
+		return ctx.Err() != nil, err
+	}
+
+	// Add the chunk to the status and move the range past it.
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Publish the chunk, then wake watchers.
+		s.countFrom = next
+		s.status.Pending += pending
+		s.status.PendingBytes += pendingBytes
+		s.status.Counting = next != nil
+		broadcast()
+	})
+	return next == nil, nil
+}
+
+// counted reports whether the status counts the queue entry at key, with
+// [from, end) the range the count has yet to read.
+func counted(key, from, end []byte) bool {
+	return from == nil || bytes.Compare(key, from) < 0 || bytes.Compare(key, end) >= 0
 }
 
 // SetPolicy sets when queued blocks upload and the resident budget, waking
@@ -375,6 +441,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 		s.status.Enabled = enabled
 		if !enabled {
 			s.status.Pending, s.status.PendingBytes = 0, 0
+			s.countFrom, s.status.Counting = nil, false
 			s.status.EvictableBytes = 0
 			s.status.Oldest = time.Time{}
 			s.status.Err, s.status.Target = nil, ""
@@ -416,10 +483,14 @@ func (s *Store) Backfill(
 	target string,
 	list func(ctx context.Context) ([]*block.BlockRef, error),
 ) error {
-	// Skip backfill when the selected remote target is already complete.
+	// Skip backfill when the selected remote target is already complete, and
+	// wait for the queue's count, which reads the entries a backfill queues.
 	status, _ := s.GetStatus()
 	if status.Target == target {
 		return nil
+	}
+	if err := s.waitCounted(ctx); err != nil {
+		return err
 	}
 
 	// Queue existing local blocks for the selected upload target.
@@ -611,11 +682,13 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 		if s.gen != gen || !s.status.Enabled {
 			return
 		}
-		if s.status.Pending <= 0 || delta.oldest.Before(s.status.Oldest) {
+		if s.status.Oldest.IsZero() || delta.oldest.Before(s.status.Oldest) {
 			s.status.Oldest = delta.oldest
 		}
 		s.status.Pending += delta.added
 		s.status.PendingBytes += delta.addedBytes
+		s.netQueuedBytes += delta.addedBytes
+		s.queued++
 		broadcast()
 	})
 }
@@ -647,10 +720,17 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	}
 	defer release()
 
+	// Read the range the open's count has yet to read, which holds still
+	// under mtx.
+	var countFrom, countEnd []byte
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		countFrom, countEnd = s.countFrom, s.countEnd
+	})
+
 	// Remove uploaded block markers, count their cleared bytes, and read the
 	// write time of the queue's new head.
-	var cleared, uploaded int
-	var clearedBytes, uploadedBytes, queuedBytes int64
+	var cleared, uploaded, uncounted int
+	var clearedBytes, uploadedBytes, queuedBytes, uncountedBytes int64
 	var oldest time.Time
 	var head []byte
 	var lowered uint64
@@ -662,6 +742,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 			return err
 		}
 		cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0
+		uncounted, uncountedBytes = 0, 0
 		for _, pending := range batch {
 			value, found, err := tx.Get(ctx, pending.queueKey)
 			if err != nil {
@@ -687,6 +768,10 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 			}
 			cleared++
 			clearedBytes += pending.size
+			if !counted(pending.queueKey, countFrom, countEnd) {
+				uncounted++
+				uncountedBytes += pending.size
+			}
 		}
 		if err := addEvictableBytes(ctx, tx, queuedBytes); err != nil {
 			return err
@@ -717,13 +802,23 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 
 	// Publish the remaining upload queue and clear its last failure.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Apply the cleared counts and the new head, then wake watchers.
-		s.status.Pending -= cleared
-		s.status.PendingBytes -= clearedBytes
+		// Apply the cleared counts, less the entries the count has yet to
+		// reach, which the status never held.
+		s.status.Pending -= cleared - uncounted
+		s.status.PendingBytes -= clearedBytes - uncountedBytes
+		s.netQueuedBytes -= clearedBytes
 		s.status.Uploaded += int64(uploaded)
 		s.status.UploadedBytes += uploadedBytes
 		s.status.EvictableBytes += queuedBytes
-		s.status.Oldest = oldest
+
+		// Take the new head. Oldest is zero only for an empty queue, since
+		// the upload sleeps on it: when the clear left none but a writer
+		// lowered the floor since this clear read it, that writer's entries
+		// may have committed after the read, so Oldest stays as it was, or
+		// as the writer's projection sets it.
+		if !oldest.IsZero() || s.lowered == lowered {
+			s.status.Oldest = oldest
+		}
 
 		// Retain a floor lowered by a writer since this clear read it.
 		if s.lowered == lowered || (s.floor != nil && bytes.Compare(head, s.floor) < 0) {

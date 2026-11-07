@@ -86,11 +86,6 @@ type UploadAdmit func(ctx context.Context, lastBytes int64) error
 // upload only: the blocks stay queued, and the local store keeps them, until
 // a round uploads them.
 func (s *Store) UploadPaced(ctx context.Context, remote block.StoreOps, admit UploadAdmit) error {
-	// Wait until the status counts the whole queue.
-	if err := s.waitCounted(ctx); err != nil {
-		return err
-	}
-
 	// Upload rounds until one fails or ctx ends.
 	limits := batchLimitsOf(remote)
 	var head *queueHead
@@ -122,7 +117,8 @@ func (s *Store) UploadPaced(ctx context.Context, remote block.StoreOps, admit Up
 
 // waitDue waits until the oldest marker has settled or the queue exceeds its
 // byte limit. A mark or policy change wakes it to recompute the deadline,
-// which reads no markers.
+// which reads no markers. It sleeps on the queue's head, Oldest, rather than
+// its count, which may still be counting after an open.
 func (s *Store) waitDue(ctx context.Context) error {
 	for {
 		// Compute the oldest marker's due time from the projected queue.
@@ -132,7 +128,7 @@ func (s *Store) waitDue(ctx context.Context) error {
 		var changed <-chan struct{}
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			changed = getWaitCh()
-			pending = s.status.Pending > 0
+			pending = !s.status.Oldest.IsZero()
 			due = s.status.Oldest.Add(s.status.Policy.Settle)
 			ready = pending && (!now.Before(due) || s.status.Policy.overLimit(s.status.PendingBytes))
 		})
@@ -202,10 +198,11 @@ type queueHead struct {
 	// closed.
 	fullAt time.Time
 	// policy, oldest and pendingBytes are the status the read was chosen
-	// against.
+	// against, and queued the store's count of queueing transactions then.
 	policy       Policy
 	oldest       time.Time
 	pendingBytes int64
+	queued       uint64
 }
 
 // nextRound waits until a round of batches is worth uploading and returns it,
@@ -250,9 +247,10 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits, prev *qu
 	var oldest time.Time
 	var pendingBytes int64
 	var floor []byte
+	var queued uint64
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		policy, oldest, pendingBytes = s.status.Policy, s.status.Oldest, s.status.PendingBytes
-		floor = s.floor
+		floor, queued = s.floor, s.queued
 	})
 	settled := time.Now().Add(-policy.Settle)
 
@@ -260,7 +258,7 @@ func (s *Store) scanHead(ctx context.Context, limits block.BatchLimits, prev *qu
 	var head *queueHead
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Start a head and track the open batch.
-		head = &queueHead{policy: policy, oldest: oldest, pendingBytes: pendingBytes}
+		head = &queueHead{policy: policy, oldest: oldest, pendingBytes: pendingBytes, queued: queued}
 		var known []pendingBlock
 		if prev != nil {
 			known = prev.entries
@@ -375,9 +373,11 @@ func (h *queueHead) plan(now time.Time, linger time.Duration) (uploadRound, time
 }
 
 // waitFill waits for readyAt, or until a change could make a read of the queue
-// choose a batch: a policy change, a new queue head, or enough queued bytes to
-// close the first batch. A mark that changes none of them wakes it and goes back
-// to sleep without reading markers. A zero readyAt waits for a change alone.
+// choose a batch: a policy change, a new queue head, enough queued bytes to
+// close the first batch, or any queueing after a read that found the queue
+// empty, since Oldest can stay at a cleared head while a writer that lowered
+// the floor aborts. A mark that changes none of them wakes it and goes back to
+// sleep without reading markers. A zero readyAt waits for a change alone.
 func (s *Store) waitFill(ctx context.Context, head *queueHead, limits block.BatchLimits, readyAt time.Time) error {
 	for {
 		// Decide from the projected status whether to read the queue again.
@@ -386,7 +386,8 @@ func (s *Store) waitFill(ctx context.Context, head *queueHead, limits block.Batc
 		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			changed = getWaitCh()
 			st := &s.status
-			again = st.Pending == 0 ||
+			again = st.Oldest.IsZero() ||
+				len(head.entries) == 0 && s.queued != head.queued ||
 				st.Policy != head.policy ||
 				!st.Oldest.Equal(head.oldest) ||
 				!head.policy.overLimit(head.pendingBytes) && st.Policy.overLimit(st.PendingBytes) ||
@@ -512,16 +513,10 @@ func (s *Store) locateBlocks(ctx context.Context, remote block.StoreOps, batch [
 // The queue's head stays the oldest block the remote may lack, so UploadedBefore
 // keeps its meaning. Each block clears once, here or in Upload, so this adds no
 // marker writes to the ones its upload would have made; it only moves them
-// earlier. Clears wait behind foreground writers, and behind the count of the
-// queue after an open, as countRest describes, so the caller must not hold up
+// earlier. Clears wait behind foreground writers, so the caller must not hold up
 // anything that matters on this call. A clear says nothing about the upload's
 // health, so it leaves the status's failure alone.
 func (s *Store) ClearLocated(ctx context.Context, remote block.StoreOps, hashes []*hash.Hash) error {
-	// Wait until the status counts the whole queue.
-	if err := s.waitCounted(ctx); err != nil {
-		return err
-	}
-
 	for chunk := range slices.Chunk(hashes, clearLocatedBlocks) {
 		// Find the blocks still queued.
 		batch, err := s.queuedBlocks(ctx, chunk)
