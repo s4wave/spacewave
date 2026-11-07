@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
+
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
@@ -259,4 +261,15 @@ func TestClient(t *testing.T) {
 	if _, err := c.GetObjectRange(ctx, bucket, "world/packs/b.pack", 0, 1); !errors.Is(err, block_store_s3.ErrNotFound) {
 		t.Fatalf("deleted object: %v", err)
 	}
+}
+
+// TestMoveObject checks the move contract over the server's renames.
+func TestMoveObject(t *testing.T) {
+	srv := startTestServer(t)
+	c, err := NewClient(Config{Addr: srv.addr, User: "user", Password: "pass", HostKey: string(ssh.MarshalAuthorizedKey(srv.key.PublicKey())), Conns: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	s3test.CheckMover(t, c, t.TempDir())
 }

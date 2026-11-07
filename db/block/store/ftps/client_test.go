@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
+
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
@@ -303,4 +305,12 @@ func TestIsFull(t *testing.T) {
 	if isFull(&textproto.Error{Code: 530, Msg: "Login incorrect."}) || isFull(errors.New("x")) {
 		t.Fatal("a bad login is not full")
 	}
+}
+
+// TestMoveObject checks the move contract over the server's renames.
+func TestMoveObject(t *testing.T) {
+	addr, tlsConf := startTestServer(t)
+	client := NewClient(Config{Addr: addr, Logins: []Login{{User: "user", Password: "pass"}}, TLSConfig: tlsConf, MaxSessions: 2})
+	t.Cleanup(client.Close)
+	s3test.CheckMover(t, client, "b")
 }

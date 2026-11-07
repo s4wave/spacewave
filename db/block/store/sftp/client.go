@@ -380,6 +380,49 @@ func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
 	return err
 }
 
+// MoveObject renames the object to another key on the server, creating the
+// directories the new key needs; no byte passes through the client. A move
+// whose source is gone counts as done when the destination exists, so a
+// repeated move succeeds. A move onto an existing object fails where the
+// server lacks the posix-rename extension, rather than delete what is there.
+func (c *Client) MoveObject(ctx context.Context, bucket, from, to string) error {
+	// Rename on one connection.
+	src, dst := path.Join(bucket, from), path.Join(bucket, to)
+	err := c.do(ctx, func(cn *conn) error {
+		// Rename, or find why the server could not: the source gone, or the
+		// destination's directory missing.
+		err := rename(cn.sftp, src, dst)
+		if !isNotExist(err) {
+			return errors.Wrap(err, "move "+src)
+		}
+		if _, serr := cn.sftp.Stat(src); isNotExist(serr) {
+			if _, derr := cn.sftp.Stat(dst); derr == nil || !isNotExist(derr) {
+				return derr
+			}
+			return errors.Wrap(block_store_s3.ErrNotFound, "move "+src)
+		}
+
+		// Create the destination's directory and rename again.
+		if err := cn.sftp.MkdirAll(path.Dir(dst)); err != nil {
+			return errors.Wrap(err, "move "+src)
+		}
+		return errors.Wrap(rename(cn.sftp, src, dst), "move "+src)
+	})
+	c.forget(src)
+	c.forget(dst)
+	return err
+}
+
+// rename renames src to dst, over any file there where the server has the
+// posix-rename extension.
+func rename(sc *sftp.Client, src, dst string) error {
+	err := sc.PosixRename(src, dst)
+	if err != nil && isReply(err) && !isNotExist(err) {
+		err = sc.Rename(src, dst)
+	}
+	return err
+}
+
 // forget drops the open files of the object on every connection, since the
 // name no longer holds what they opened.
 func (c *Client) forget(name string) {
@@ -851,4 +894,4 @@ func notFound(err error, name string) error {
 }
 
 // _ is a type assertion
-var _ block_store_s3.ObjectStore = (*Client)(nil)
+var _ block_store_s3.ObjectMover = (*Client)(nil)

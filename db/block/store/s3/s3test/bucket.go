@@ -1,6 +1,6 @@
 // Package s3test serves an in-memory S3 bucket for tests of code that writes
-// objects: PUT, ranged GET and HEAD, ListObjectsV2 by prefix, and the versions
-// of an overwritten key.
+// objects: PUT, copy, ranged GET and HEAD, ListObjectsV2 by prefix, and the
+// versions of an overwritten key.
 package s3test
 
 import (
@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,8 +33,10 @@ type Bucket struct {
 	history map[string][]objectVersion
 	// versions counts the versions stored, which names the next one.
 	versions int
-	// puts counts the accepted PUT requests.
+	// puts counts the accepted PUT requests that carry a body.
 	puts int
+	// copies counts the accepted copies.
+	copies int
 	// failPut, when set, decides whether to refuse a PUT of the key with a
 	// server error before it is stored.
 	failPut func(key string) bool
@@ -107,7 +110,14 @@ func (b *Bucket) Keys(prefix string) []string {
 	return keys
 }
 
-// Puts returns the number of PUT requests accepted.
+// Copies returns the number of copies accepted.
+func (b *Bucket) Copies() int {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	return b.copies
+}
+
+// Puts returns the number of PUT requests with a body accepted.
 func (b *Bucket) Puts() int {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
@@ -179,6 +189,16 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodDelete && query.Has("uploadId"):
 		delete(b.parts, query.Get("uploadId"))
 		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodPut && r.Header.Get("X-Amz-Copy-Source") != "":
+		source, _ := url.PathUnescape(r.Header.Get("X-Amz-Copy-Source"))
+		data, ok := b.objects[strings.TrimPrefix(source, "/"+BucketName+"/")]
+		if !ok {
+			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)
+			return
+		}
+		b.store(key, slices.Clone(data))
+		b.copies++
+		_, _ = io.WriteString(w, "<CopyObjectResult/>")
 	case r.Method == http.MethodPut:
 		if b.failPut != nil && b.failPut(key) {
 			http.Error(w, "<Error><Code>InternalError</Code></Error>", http.StatusInternalServerError)
