@@ -18,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
 	"github.com/s4wave/spacewave/db/block/packsweep"
+	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
 	"github.com/s4wave/spacewave/db/block/writelog"
@@ -104,7 +105,14 @@ type Args struct {
 	Holes string
 	// AcceptMissing lists missing blocks accepted as lost, one b58 ref a line.
 	AcceptMissing string
+	// AdminURL is the backend's pack sweep admin service, a ws or wss URL.
+	AdminURL string
+	// Wait is how long a pack stays quarantined before its recheck can pass
+	// it.
+	Wait time.Duration
 
+	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
+	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)
 	// dial reaches the store; nil dials SFTP. Tests set it.
 	dial func() (block_store_s3.ObjectStore, string, func(), error)
 	// out receives the printed results; nil prints to stdout.
@@ -694,11 +702,16 @@ func (a *Args) runStatus(*cli.Context) error {
 	if err != nil {
 		return err
 	}
+	records, err := recordCounts(ctx, store)
+	if err != nil {
+		return err
+	}
 	return a.print(func(arena *fastjson.Arena) *fastjson.Value {
 		v := head.JSON(arena)
 		if pull != nil {
 			v.Set("logPull", pull.JSON(arena))
 		}
+		v.Set("packRecords", packsweep.JSONCounts(arena, records))
 		return v
 	})
 }

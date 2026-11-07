@@ -27,6 +27,9 @@ func (m *MarkingStore) ListRoots(ctx context.Context, prefix string, fn func(blo
 
 // SetRoots moves the roots on the inner store and marks the blocks it wrote.
 func (m *MarkingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Hold the write open until the observer has seen it.
+	defer m.ops.end(m.ops.begin(false))
+
 	// Mark in the storing transaction.
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
@@ -41,6 +44,7 @@ func (m *MarkingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 		return nil
 	}
 
+	// Mark after the write without a marker.
 	if err := m.store.SetRoots(ctx, entries, roots); err != nil {
 		return err
 	}
@@ -54,13 +58,17 @@ func (m *MarkingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func()
 }
 
 // OpenStage wraps a stage opened on the inner store, so staged writes are
-// marked for upload like any other write.
+// marked for upload like any other write. The stage is open in the record of
+// read operations until its release, as it reads through its own view.
 func (m *MarkingStore) OpenStage(ctx context.Context) (block.StoreOps, func(), error) {
+	// Record the stage as a read operation, then open it.
+	n := m.ops.begin(true)
 	store, release, err := block.OpenStage(ctx, m.store)
 	if err != nil {
+		m.ops.end(n)
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, observer: m.observer}, release, nil
+	return m.copyOver(store), m.ops.releaseRead(n, release), nil
 }
 
 // ReleaseRoots forwards staging release to the underlying store.

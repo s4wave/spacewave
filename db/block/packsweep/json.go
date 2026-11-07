@@ -126,3 +126,24 @@ func jsonTime(a *fastjson.Arena, t time.Time) *fastjson.Value {
 	}
 	return a.NewString(t.UTC().Format(time.RFC3339Nano))
 }
+
+// JSON describes the quarantine.
+func (r *QuarantineResult) JSON(a *fastjson.Arena) *fastjson.Value {
+	return jsonObject(a,
+		jsonField{"blocked", a.NewString(r.Blocked)},
+		jsonField{"quarantined", jsonUint(a, r.Quarantined)},
+		jsonField{"live", jsonUint(a, r.Live)},
+		jsonField{"unmoved", jsonUint(a, r.Unmoved)},
+	)
+}
+
+// JSON describes the recheck.
+func (r *RecheckResult) JSON(a *fastjson.Arena) *fastjson.Value {
+	return jsonObject(a,
+		jsonField{"blocked", a.NewString(r.Blocked)},
+		jsonField{"passed", jsonUint(a, r.Passed)},
+		jsonField{"lifted", jsonUint(a, r.Lifted)},
+		jsonField{"live", jsonUint(a, r.Live)},
+		jsonField{"waiting", JSONCounts(a, r.Waiting)},
+	)
+}

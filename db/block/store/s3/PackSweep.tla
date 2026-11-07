@@ -27,7 +27,12 @@ EXTENDS Naturals, Sequences, FiniteSets
 \* its scratch state before it calls the backend and every call is idempotent,
 \* which Phase 6's run-through checks; compaction, whose adopted pack is the
 \* duplicate holder p1 is to p2 here; the purge, an operator step after the
-\* trash's retention.
+\* trash's retention. Each write here is one step, its log line included, and
+\* each read takes its block in the step it reads; in the code a write spans
+\* the dedup check and its log line, and a read operation may hold a block it
+\* read before the quarantine. The recheck passes a pack only once the oldest
+\* write and read operation open on the store began after its quarantine
+\* (MarkingStore.OldestOperations), which makes each one atomic against it.
 \*
 \* A link made after every holder of the block passed its recheck, or a read
 \* made after the command's last check before every holder's file moves, is

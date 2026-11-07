@@ -1,0 +1,227 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/aperturerobotics/cli"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/packcopy"
+	"github.com/s4wave/spacewave/db/block/packsweep"
+	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/block/writelog"
+	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
+	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
+	"github.com/sirupsen/logrus"
+)
+
+// TestCommandQuarantine quarantines and rechecks through a backend's admin
+// service over HTTP, its pack store on an index file of each volume type and
+// its open operations from a marking store over it. The recheck holds the two
+// dead packs while young, then while a read operation open since before their
+// quarantine remains, then lifts the one a put relinked and passes the other.
+func TestCommandQuarantine(t *testing.T) {
+	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
+		t.Run(kind, func(t *testing.T) { testCommandQuarantine(t, kind) })
+	}
+}
+
+// testCommandQuarantine runs the quarantine with the pack index in a file of
+// the volume type kind.
+func testCommandQuarantine(t *testing.T, kind string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	dir := t.TempDir()
+
+	// Write a live pack and two dead packs through an index file.
+	const storeID = "p/local/acc/blk/so"
+	_, client := s3test.New(t)
+	indexPath := filepath.Join(dir, "index.db")
+	openStore := func() (*block_store_s3.PackStore, func() error) {
+		index, closeIndex, err := packcopy.OpenIndexFile(ctx, indexPath, &packcopy.IndexFileOptions{
+			Kind:   kind,
+			Table:  defaultIndexTable,
+			SQLite: store_kvtx_sqlite.Pragmas{WithoutRowID: true},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return block_store_s3.NewPackStore(le, client, s3test.BucketName, "world/", &block_store_s3.PackStoreOptions{
+			KeepPacks: true,
+			Index:     kvtx_prefixer.NewPrefixer(index, block_store_s3.PackIndexPrefix(storeID)),
+		}), closeIndex
+	}
+	ref := func(data string) *block.BlockRef {
+		r, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	rootRef, deadRef, relinkRef := ref("root"), ref("dead"), ref("relink")
+	seed, closeIndex := openStore()
+	for _, r := range []struct {
+		ref  *block.BlockRef
+		data string
+	}{{rootRef, "root"}, {deadRef, "dead"}, {relinkRef, "relink"}} {
+		if _, err := seed.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: r.ref, Data: []byte(r.data), RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seed.Close()
+	if err := closeIndex(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Snapshot the store from its index file while no backend holds it.
+	var out bytes.Buffer
+	args := &Args{
+		Scratch:    filepath.Join(dir, "scratch"),
+		StoreID:    storeID,
+		Index:      indexPath,
+		Prefix:     "world/",
+		Reads:      2,
+		Roots:      *cli.NewStringSlice(rootRef.MarshalString()),
+		Batch:      1,
+		MinAge:     time.Nanosecond,
+		LowPercent: packsweep.DefaultLowLivePercent,
+		Report:     filepath.Join(dir, "report.jsonl"),
+		Holes:      filepath.Join(dir, "holes.txt"),
+		dial: func() (block_store_s3.ObjectStore, string, func(), error) {
+			return client, s3test.BucketName, func() {}, nil
+		},
+		out: &out,
+	}
+	if err := args.runNewCycle(nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := args.runSnapshot(nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open the backend: the pack store, a marking store over it, the write
+	// log and the admin service behind a credential.
+	store, closeIndex := openStore()
+	defer func() {
+		store.Close()
+		_ = closeIndex()
+	}()
+	marking := block_store_writeback.NewMarkingStore(store, nil)
+	wlog := writelog.New(le)
+	if err := wlog.Set(&writelog.Options{Dir: filepath.Join(dir, "log")}); err != nil {
+		t.Fatal(err)
+	}
+	defer wlog.Close()
+	server := block_packsweep_admin.NewServer(block_packsweep_admin.Options{
+		Packs:   store,
+		Log:     wlog,
+		Enabled: func() bool { return true },
+		Operations: func() (time.Time, time.Time) {
+			ops := marking.OldestOperations()
+			return ops.Write, ops.Read
+		},
+	})
+	handler, err := block_packsweep_admin.NewHTTPHandler(server, "/admin/pack-sweep")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer admin" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	defer srv.Close()
+	t.Setenv(adminAuthEnv, "Bearer admin")
+	args.AdminURL = "ws" + strings.TrimPrefix(srv.URL, "http") + "/admin/pack-sweep"
+
+	// Walk from the log's position, and judge both packs dead. The judgment
+	// waits on the unread log, which the quarantine pulls.
+	pos, ok := wlog.Position()
+	if !ok {
+		t.Fatal("write log is off")
+	}
+	args.LogPosition = pos.String()
+	if err := args.runWalk(nil); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := args.runJudge(nil); err != nil {
+		t.Fatal(err)
+	}
+	if result := parse(t, out.Bytes()); result.GetUint("summary", "packs", "dead") != 2 || result.GetUint("blocking", packsweep.BlockLogUnread) != 1 {
+		t.Fatalf("judgment = %s", result)
+	}
+
+	// A read operation open from before the quarantine, then the quarantine
+	// holds both packs out of the reads.
+	_, release, err := marking.BeginReadOperation(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	out.Reset()
+	if err := args.runQuarantine(nil); err != nil {
+		t.Fatal(err)
+	}
+	if res := parse(t, out.Bytes()); res.GetUint("quarantined") != 2 || res.GetUint("live") != 0 || string(res.GetStringBytes("blocked")) != "" {
+		t.Fatalf("quarantine = %s", res)
+	}
+	located, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef, relinkRef, rootRef})
+	if err != nil || located[0] != "" || located[1] != "" || located[2] == "" {
+		t.Fatalf("locate after the quarantine = %v, %v", located, err)
+	}
+
+	// The recheck holds them while young, then while the read is open.
+	recheck := func(wait time.Duration) string {
+		t.Helper()
+		args.Wait = wait
+		out.Reset()
+		if err := args.runRecheck(nil); err != nil {
+			t.Fatal(err)
+		}
+		return out.String()
+	}
+	if res := parse(t, []byte(recheck(time.Hour))); res.GetUint("waiting", packsweep.WaitQuarantine) != 2 {
+		t.Fatalf("young recheck = %s", res)
+	}
+	if res := parse(t, []byte(recheck(time.Nanosecond))); res.GetUint("waiting", packsweep.WaitOpenRead) != 2 {
+		t.Fatalf("recheck with the read open = %s", res)
+	}
+
+	// Once the read is released, a put relinking one pack lifts it, and the
+	// other passes.
+	release()
+	wlog.Put(relinkRef.GetHash())
+	if res := parse(t, []byte(recheck(time.Nanosecond))); res.GetUint("passed") != 1 || res.GetUint("live") != 1 || res.Get("waiting", packsweep.WaitOpenRead) != nil {
+		t.Fatalf("recheck = %s", res)
+	}
+	located, err = store.LocatePacks(ctx, []*block.BlockRef{deadRef, relinkRef})
+	if err != nil || located[0] != "" || located[1] == "" {
+		t.Fatalf("locate after the recheck = %v, %v", located, err)
+	}
+
+	// The status counts the record, and a dial without the credential fails.
+	out.Reset()
+	if err := args.runStatus(nil); err != nil {
+		t.Fatal(err)
+	}
+	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "pass") != 1 || status.GetUint("packRecords", "quarantine") != 0 {
+		t.Fatalf("status = %s", status)
+	}
+	t.Setenv(adminAuthEnv, "")
+	if err := args.runRecheck(nil); err == nil {
+		t.Fatal("rechecked without the credential")
+	}
+}

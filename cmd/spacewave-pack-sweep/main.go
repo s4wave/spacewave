@@ -1,5 +1,5 @@
 // Command spacewave-pack-sweep proves which packs of a pack store hold no
-// block a set of roots reaches, and changes nothing.
+// block a set of roots reaches, and moves them out of the reads.
 //
 // A cycle takes a snapshot of the store's registered packs, reading each pack
 // the scratch file's catalog lacks once, walks what the roots reach through the
@@ -7,6 +7,11 @@
 // reads the store over SFTP, finding its packs through a copy of the store's
 // pack index file, and keeps everything it learns in one scratch file, so a
 // stopped step resumes where its last batch left it.
+//
+// Only quarantine and recheck change the store, and only through the
+// backend's admin service: quarantine takes the dead packs out of the reads,
+// leaving each readable through the fallback, and recheck passes each that
+// stayed unreached, or lifts it back.
 package main
 
 import (
@@ -21,7 +26,7 @@ func main() {
 	args := &Args{}
 	app := cli.NewApp()
 	app.Name = "spacewave-pack-sweep"
-	app.Usage = "prove which packs no root reaches, changing nothing"
+	app.Usage = "prove which packs no root reaches, and quarantine them"
 	app.Commands = []*cli.Command{
 		{
 			Name:   "new-cycle",
@@ -58,6 +63,18 @@ func main() {
 			Usage:  "judge each snapshot pack and write the report",
 			Flags:  append(args.scratchFlags(), args.judgeFlags()...),
 			Action: args.runJudge,
+		},
+		{
+			Name:   "quarantine",
+			Usage:  "quarantine through the backend each pack judged dead and still unreached",
+			Flags:  args.adminFlags(),
+			Action: args.runQuarantine,
+		},
+		{
+			Name:   "recheck",
+			Usage:  "pass each quarantined pack that waited, with no write or read open since, and nothing reached",
+			Flags:  append(args.adminFlags(), args.waitFlag()),
+			Action: args.runRecheck,
 		},
 		{
 			Name:   "status",
