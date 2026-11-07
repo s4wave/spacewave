@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
 // BuildSOConfigMerge builds and signs a MERGE record on head that absorbs
@@ -73,13 +72,12 @@ func mergeConfigBranch(sharedObjectID string, head *SharedObjectConfig, merge *S
 	if fork == nil || len(merge.GetBranch()) == 0 {
 		return nil, errors.New("merge requires a fork and a branch")
 	}
-	forkHash, err := HashSOConfigChange(fork)
+	parent, err := appliedConfig(fork)
 	if err != nil {
 		return nil, err
 	}
 
 	// Apply the fields each record changed, while its signers still own.
-	parent := configWithAppliedConfigChainHead(fork.GetConfig(), fork.GetConfigSeqno(), forkHash)
 	result := head.CloneVT()
 	for i, change := range merge.GetBranch() {
 		if !isPeerConfigChange(change.GetChangeType()) {
@@ -108,11 +106,7 @@ func signedByOwners(entry *SOConfigChange, cfg *SharedObjectConfig) bool {
 		return false
 	}
 	for _, sig := range sigs {
-		pub, err := sig.ParsePubKey()
-		if err != nil || pub == nil {
-			return false
-		}
-		id, err := peer.IDFromPublicKey(pub)
+		_, id, err := signerOf(sig)
 		if err != nil || !isOwnerPeer(cfg, id.String()) {
 			return false
 		}

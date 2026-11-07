@@ -87,47 +87,22 @@ func changeSORoster(ctx context.Context, host *SOHost, signer crypto.PrivKey, ne
 // have all fallen behind it drops them and becomes the checkpointer. It
 // watches the state and returns when ctx ends or a change fails.
 func MaintainRoster(ctx context.Context, so SharedObject, host RosterHost) error {
-	// Watch the state as the local peer.
-	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer rel()
-	peerID := so.GetPeerID().String()
-
-	// Adjust the roster of each state.
-	var snap SharedObjectStateSnapshot
-	for {
-		// Wait for the next state.
-		snap, err = ctr.WaitValueChange(ctx, snap, nil)
-		if err != nil {
-			return err
-		}
-		if snap == nil {
-			continue
-		}
-
+	return watchStates(ctx, so, func(snap SharedObjectStateSnapshot, cfg *SharedObjectConfig, peerID string) error {
 		// A group changes its roster only by decision.
-		cfg, err := snap.GetConfig(ctx)
-		if err != nil {
-			return err
-		}
 		if cfg.IsGroupControl() || !isOwnerPeer(cfg, peerID) {
-			continue
+			return nil
 		}
 		set, err := snap.GetOperationSet(ctx)
 		if err != nil {
 			return err
 		}
-
 		next := nextRosterDropped(cfg, set, peerID)
 		if slices.Equal(next, cfg.GetRosterDroppedPeerIds()) {
-			continue
+			return nil
 		}
-		if _, err := host.SetRosterDropped(ctx, next); err != nil {
-			return err
-		}
-	}
+		_, err = host.SetRosterDropped(ctx, next)
+		return err
+	})
 }
 
 // nextRosterDropped returns the writers the owner self should drop from the

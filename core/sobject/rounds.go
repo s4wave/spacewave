@@ -117,37 +117,23 @@ func addVoter[K comparable](sets map[K]map[string]struct{}, key K, peerID string
 	sets[key][peerID] = struct{}{}
 }
 
-// weight sums the weight of voters.
-func (t *roundTally) weight(voters []string) uint64 {
-	var w uint64
-	for _, v := range voters {
-		w += t.cfg.VotingWeight(v)
-	}
-	return w
-}
-
 // quorum reports whether more than two thirds of the weight cast typ for
 // hash in round. An empty hash is a nil vote.
 func (t *roundTally) quorum(typ SOControlMessageType, round uint32, hash []byte) bool {
-	votes := t.votes[roundVote{typ: typ, round: round, hash: string(hash)}]
-	voters := make([]string, 0, len(votes))
-	for v := range votes {
-		voters = append(voters, v)
-	}
-	return HasQuorum(t.weight(voters), t.cfg.TotalVotingWeight())
+	return HasQuorum(voterWeight(t.cfg, t.votes[roundVote{typ: typ, round: round, hash: string(hash)}]), t.cfg.TotalVotingWeight())
 }
 
 // quorumAny reports whether more than two thirds of the weight cast typ in
 // round, for any value.
 func (t *roundTally) quorumAny(typ SOControlMessageType, round uint32) bool {
-	return HasQuorum(t.weightOf(t.any[roundVote{typ: typ, round: round}]), t.cfg.TotalVotingWeight())
+	return HasQuorum(voterWeight(t.cfg, t.any[roundVote{typ: typ, round: round}]), t.cfg.TotalVotingWeight())
 }
 
-// weightOf sums the weight of a voter set.
-func (t *roundTally) weightOf(set map[string]struct{}) uint64 {
+// voterWeight sums the weight cfg gives the voters keyed in set.
+func voterWeight[V any](cfg *SharedObjectConfig, set map[string]V) uint64 {
 	var w uint64
 	for v := range set {
-		w += t.cfg.VotingWeight(v)
+		w += cfg.VotingWeight(v)
 	}
 	return w
 }
@@ -236,7 +222,7 @@ func stepRound(in *roundInput) *roundOutput {
 	r := in.round
 	var skip uint32
 	for round, voters := range t.rounds {
-		if round > r && round > skip && exceedsFaultyWeight(t.weightOf(voters), in.cfg.TotalVotingWeight()) {
+		if round > r && round > skip && exceedsFaultyWeight(voterWeight(in.cfg, voters), in.cfg.TotalVotingWeight()) {
 			skip = round
 		}
 	}

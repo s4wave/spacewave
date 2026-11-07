@@ -279,60 +279,40 @@ func (s *SOState) BuildStableCheckpoint(
 	prefix [][]byte,
 	stateDataEnc []byte,
 ) (*SOCheckpoint, error) {
-	inner, err := s.StableCheckpointInner(sharedObjectID, prefix, stateDataEnc)
+	set, err := s.OperationSet(sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+	return s.signStableCheckpoint(sharedObjectID, set, privKey, prefix, stateDataEnc)
+}
+
+// signStableCheckpoint signs, as the owner of privKey, the checkpoint
+// stableCheckpointInner returns.
+func (s *SOState) signStableCheckpoint(
+	sharedObjectID string,
+	set *SOOperationSet,
+	privKey crypto.PrivKey,
+	prefix [][]byte,
+	stateDataEnc []byte,
+) (*SOCheckpoint, error) {
+	inner, err := s.stableCheckpointInner(sharedObjectID, set, prefix, stateDataEnc)
 	if err != nil {
 		return nil, err
 	}
 	return BuildSOCheckpoint(privKey, inner)
 }
 
-// StableCheckpointInner returns the body of the checkpoint after the held one
-// that covers prefix, a prefix of the held operations, with the state data
-// stateDataEnc. A group decides it unsigned.
-func (s *SOState) StableCheckpointInner(sharedObjectID string, prefix [][]byte, stateDataEnc []byte) (*SOCheckpointInner, error) {
-	set, err := s.OperationSet(sharedObjectID)
-	if err != nil {
-		return nil, err
-	}
-	return s.stableCheckpointInner(sharedObjectID, set, prefix, stateDataEnc)
-}
-
-// stableCheckpointInner is StableCheckpointInner over set, the verified
-// operations s holds, so a caller with a verified set checks no signature
-// again.
+// stableCheckpointInner returns the body of the checkpoint after the held one
+// that covers prefix, a prefix of set, the verified operations s holds, with
+// the state data stateDataEnc. A group decides it unsigned.
 func (s *SOState) stableCheckpointInner(sharedObjectID string, set *SOOperationSet, prefix [][]byte, stateDataEnc []byte) (*SOCheckpointInner, error) {
+	// Cover only held operations.
 	for _, h := range prefix {
 		if set.Get(h) == nil {
 			return nil, errors.New("checkpoint covers an operation the state does not hold")
 		}
 	}
-	return s.checkpointInner(sharedObjectID, set.cover(prefix), set.SequenceHead(prefix), stateDataEnc)
-}
 
-// buildCheckpoint signs the checkpoint after the held one with the given
-// author heads and sequence position.
-func (s *SOState) buildCheckpoint(
-	sharedObjectID string,
-	privKey crypto.PrivKey,
-	authors []*SOOperationPosition,
-	sequence *SOSequenceHead,
-	stateDataEnc []byte,
-) (*SOCheckpoint, error) {
-	inner, err := s.checkpointInner(sharedObjectID, authors, sequence, stateDataEnc)
-	if err != nil {
-		return nil, err
-	}
-	return BuildSOCheckpoint(privKey, inner)
-}
-
-// checkpointInner returns the body of the checkpoint after the held one with
-// the given author heads and sequence position.
-func (s *SOState) checkpointInner(
-	sharedObjectID string,
-	authors []*SOOperationPosition,
-	sequence *SOSequenceHead,
-	stateDataEnc []byte,
-) (*SOCheckpointInner, error) {
 	// Continue the chain from the held checkpoint.
 	prev := s.GetCheckpoint()
 	prevInner, err := s.GetCheckpointInner()
@@ -342,7 +322,6 @@ func (s *SOState) checkpointInner(
 	if prevInner == nil {
 		return nil, errors.New("state has no checkpoint to follow")
 	}
-
 	return &SOCheckpointInner{
 		SharedObjectId:     sharedObjectID,
 		Height:             prevInner.GetHeight() + 1,
@@ -351,8 +330,8 @@ func (s *SOState) checkpointInner(
 		StateData:          stateDataEnc,
 		ReplayVersion:      SOReplayVersion,
 		KeyEpoch:           s.CurrentKeyEpoch().GetEpoch(),
-		Authors:            authors,
-		Sequence:           sequenceHeadOrNil(sequence),
+		Authors:            set.cover(prefix),
+		Sequence:           sequenceHeadOrNil(set.SequenceHead(prefix)),
 	}, nil
 }
 

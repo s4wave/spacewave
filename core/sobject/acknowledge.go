@@ -11,44 +11,16 @@ import (
 // operation after every operation the local peer has already started. It
 // watches the state and returns when ctx ends or write fails.
 func Acknowledge(ctx context.Context, so SharedObject, write func(context.Context) error) error {
-	// Watch the state as the local peer.
-	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer rel()
-	peerID := so.GetPeerID().String()
-
-	// Acknowledge each state that needs it.
-	var snap SharedObjectStateSnapshot
-	for {
-		// Wait for the next state.
-		snap, err = ctr.WaitValueChange(ctx, snap, nil)
-		if err != nil {
-			return err
-		}
-		if snap == nil {
-			continue
-		}
-
+	return watchStates(ctx, so, func(snap SharedObjectStateSnapshot, cfg *SharedObjectConfig, peerID string) error {
 		// Acknowledge as a writer, on the roster or dropped from it, so a
 		// dropped device that returns answers the checkpointer too.
-		cfg, err := snap.GetConfig(ctx)
-		if err != nil {
-			return err
-		}
 		if !slices.Contains(cfg.Writers(), peerID) {
-			continue
+			return nil
 		}
 		set, err := snap.GetOperationSet(ctx)
-		if err != nil {
+		if err != nil || !set.NeedsAcknowledgment(cfg.Checkpointer(), peerID, AcknowledgmentLag) {
 			return err
 		}
-		if !set.NeedsAcknowledgment(cfg.Checkpointer(), peerID, AcknowledgmentLag) {
-			continue
-		}
-		if err := write(ctx); err != nil {
-			return err
-		}
-	}
+		return write(ctx)
+	})
 }

@@ -3,7 +3,6 @@ package sobject
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -61,20 +60,6 @@ func (c *SharedObjectConfig) TotalVotingWeight() uint64 {
 		total += uint64(p.GetVotingWeight())
 	}
 	return total
-}
-
-// voterCount returns how many participants vote under group control.
-func (c *SharedObjectConfig) voterCount() int {
-	if !c.IsGroupControl() {
-		return 0
-	}
-	n := 0
-	for _, p := range c.GetParticipants() {
-		if p.GetVotingWeight() != 0 {
-			n++
-		}
-	}
-	return n
 }
 
 // Voters returns the peer IDs that vote under group control, sorted.
@@ -183,21 +168,9 @@ func (h *SOCheckpointHead) Validate() error {
 	return nil
 }
 
-// HashSOControlMessageInner returns the identity of a control message from its
-// signed body.
-func HashSOControlMessageInner(inner []byte) []byte {
-	// Prefix the length-framed body with the domain.
-	preimage := make([]byte, 0, len(soControlMessageHashDomain)+8+len(inner))
-	preimage = append(preimage, soControlMessageHashDomain...)
-	preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(inner)))
-	preimage = append(preimage, inner...)
-	digest := sha256.Sum256(preimage)
-	return digest[:]
-}
-
-// Hash returns the identity of the message.
+// Hash returns the identity of the message, a digest of its signed body.
 func (m *SOControlMessage) Hash() []byte {
-	return HashSOControlMessageInner(m.GetInner())
+	return domainHash(soControlMessageHashDomain, m.GetInner())
 }
 
 // ControlValueHash returns the identity of a value of kind: the hash of a
@@ -339,30 +312,13 @@ func (m *SOControlMessage) Verify(sharedObjectID string) (*SOControlMessageInner
 		return nil, errors.New("control message is bound to another shared object")
 	}
 
-	// The signer must be the named voter.
-	sig := m.GetSignature()
-	pubKey, err := sig.ParsePubKey()
+	// The named voter signed exactly the encoded body.
+	signer, err := verifySignature(m.GetSignature(), SOControlMessageSignatureContext, m.GetInner())
 	if err != nil {
 		return nil, err
 	}
-	if pubKey == nil {
-		return nil, peer.ErrEmptyPeerID
-	}
-	signer, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid peer ID in signature")
-	}
 	if signer.String() != inner.GetPeerId() {
 		return nil, errors.New("control message is not signed by its peer")
-	}
-
-	// The signature covers exactly the encoded body.
-	valid, err := sig.VerifyWithPublic(SOControlMessageSignatureContext, pubKey, m.GetInner())
-	if err != nil {
-		return nil, errors.Wrap(err, "verify control message signature")
-	}
-	if !valid {
-		return nil, peer.ErrSignatureInvalid
 	}
 	return inner, nil
 }
@@ -382,7 +338,7 @@ func VerifyCommit(
 	if !cfg.IsGroupControl() {
 		return errors.New("commit requires group control")
 	}
-	if len(commit) == 0 || len(commit) > cfg.voterCount() {
+	if len(commit) == 0 || len(commit) > len(cfg.Voters()) {
 		return errors.New("commit must hold between one and the voter count of precommits")
 	}
 

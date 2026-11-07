@@ -28,10 +28,7 @@ func (h *SharedObjectHealth) WithSyncPeerAdmission(peerID string, accepted bool)
 	}
 
 	// Retain immutable snapshots for concurrent health watchers.
-	next := h.CloneVT()
-	if next == nil {
-		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
-	}
+	next := h.edit()
 	if accepted {
 		next.SyncDeniedPeerIds = slices.DeleteFunc(next.SyncDeniedPeerIds, func(id string) bool { return id == peerID })
 		return next
@@ -48,7 +45,7 @@ func (h *SharedObjectHealth) WithoutSyncDenials() *SharedObjectHealth {
 	if len(h.GetSyncDeniedPeerIds()) == 0 {
 		return h
 	}
-	next := h.CloneVT()
+	next := h.edit()
 	next.SyncDeniedPeerIds = nil
 	return next
 }
@@ -61,10 +58,7 @@ func (h *SharedObjectHealth) WithSyncPeerRecovery(peerID string, required bool) 
 	}
 
 	// Keep source recovery separate from admission decisions and mount readiness.
-	next := h.CloneVT()
-	if next == nil {
-		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
-	}
+	next := h.edit()
 	if !required {
 		next.SyncRecoveryPeerIds = slices.DeleteFunc(next.SyncRecoveryPeerIds, func(id string) bool { return id == peerID })
 		return next
@@ -92,10 +86,7 @@ func (h *SharedObjectHealth) WithSyncPeerConnection(peerID string, connected boo
 	}
 
 	// Copy the snapshot with the peer's new state.
-	next := h.CloneVT()
-	if next == nil {
-		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
-	}
+	next := h.edit()
 	syncPeer := &SOSyncPeer{PeerId: peerID, Connected: connected, Since: timestamppb.New(now), Error: errText}
 	if found {
 		next.SyncPeers[i] = syncPeer
@@ -114,10 +105,7 @@ func (h *SharedObjectHealth) WithRejectedEdits(edits []*SORejectedEdit) *SharedO
 	}
 
 	// Copy the snapshot with the new edits.
-	next := h.CloneVT()
-	if next == nil {
-		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
-	}
+	next := h.edit()
 	next.RejectedEdits = edits
 	return next
 }
@@ -131,10 +119,7 @@ func (h *SharedObjectHealth) WithCheckpointMismatch(mismatch *SOCheckpointMismat
 	}
 
 	// Copy the snapshot with the new mismatch.
-	next := h.CloneVT()
-	if next == nil {
-		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
-	}
+	next := h.edit()
 	next.CheckpointMismatch = mismatch
 	return next
 }
@@ -148,38 +133,35 @@ func (h *SharedObjectHealth) WithUnorderedCount(n uint32) *SharedObjectHealth {
 	}
 
 	// Copy the snapshot with the new count.
-	next := h.CloneVT()
-	if next == nil {
-		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
-	}
+	next := h.edit()
 	next.UnorderedCount = n
 	return next
 }
 
+// edit returns a copy of h to change, or a loading snapshot when h is nil.
+func (h *SharedObjectHealth) edit() *SharedObjectHealth {
+	if h == nil {
+		return NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
+	}
+	return h.CloneVT()
+}
+
 // NewSharedObjectLoadingHealth constructs a loading SharedObjectHealth snapshot.
-func NewSharedObjectLoadingHealth(
-	layer SharedObjectHealthLayer,
-) *SharedObjectHealth {
-	return NewSharedObjectHealth(
-		SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING,
-		layer,
-		SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN,
-		SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE,
-		"",
-	)
+func NewSharedObjectLoadingHealth(layer SharedObjectHealthLayer) *SharedObjectHealth {
+	return &SharedObjectHealth{
+		Status:          SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING,
+		Layer:           layer,
+		RemediationHint: SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE,
+	}
 }
 
 // NewSharedObjectReadyHealth constructs a ready SharedObjectHealth snapshot.
-func NewSharedObjectReadyHealth(
-	layer SharedObjectHealthLayer,
-) *SharedObjectHealth {
-	return NewSharedObjectHealth(
-		SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY,
-		layer,
-		SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN,
-		SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE,
-		"",
-	)
+func NewSharedObjectReadyHealth(layer SharedObjectHealthLayer) *SharedObjectHealth {
+	return &SharedObjectHealth{
+		Status:          SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY,
+		Layer:           layer,
+		RemediationHint: SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE,
+	}
 }
 
 // NewSharedObjectClosedHealth constructs a closed SharedObjectHealth snapshot.
@@ -189,25 +171,8 @@ func NewSharedObjectClosedHealth(
 	remediationHint SharedObjectHealthRemediationHint,
 	errText string,
 ) *SharedObjectHealth {
-	return NewSharedObjectHealth(
-		SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED,
-		layer,
-		commonReason,
-		remediationHint,
-		errText,
-	)
-}
-
-// NewSharedObjectHealth constructs a SharedObjectHealth snapshot.
-func NewSharedObjectHealth(
-	status SharedObjectHealthStatus,
-	layer SharedObjectHealthLayer,
-	commonReason SharedObjectHealthCommonReason,
-	remediationHint SharedObjectHealthRemediationHint,
-	errText string,
-) *SharedObjectHealth {
 	return &SharedObjectHealth{
-		Status:          status,
+		Status:          SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_CLOSED,
 		Layer:           layer,
 		CommonReason:    commonReason,
 		RemediationHint: remediationHint,

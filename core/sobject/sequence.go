@@ -3,7 +3,6 @@ package sobject
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -20,21 +19,9 @@ const soSequenceHashDomain = "spacewave/sharedobject/sequence/v1"
 // per-position data.
 var SOSequenceSignatureContext = baseCryptoContext + "sequence_signature"
 
-// HashSOSequenceInner returns the identity of a sequence position from its
-// signed body.
-func HashSOSequenceInner(inner []byte) []byte {
-	// Prefix the length-framed body with the domain.
-	preimage := make([]byte, 0, len(soSequenceHashDomain)+8+len(inner))
-	preimage = append(preimage, soSequenceHashDomain...)
-	preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(inner)))
-	preimage = append(preimage, inner...)
-	digest := sha256.Sum256(preimage)
-	return digest[:]
-}
-
-// Hash returns the identity of the position.
+// Hash returns the identity of the position, a digest of its signed body.
 func (q *SOSequence) Hash() []byte {
-	return HashSOSequenceInner(q.GetInner())
+	return domainHash(soSequenceHashDomain, q.GetInner())
 }
 
 // BuildSOSequence signs, as the sequencer of privKey, the position after prev
@@ -116,27 +103,10 @@ func (q *SOSequence) Verify(sharedObjectID string) (*SOSequenceInner, string, er
 		return nil, "", errors.New("sequence position is bound to another shared object")
 	}
 
-	// Recover the signer from the included public key.
-	sig := q.GetSignature()
-	pubKey, err := sig.ParsePubKey()
+	// The named sequencer signed exactly the encoded body.
+	signer, err := verifySignature(q.GetSignature(), SOSequenceSignatureContext, q.GetInner())
 	if err != nil {
 		return nil, "", err
-	}
-	if pubKey == nil {
-		return nil, "", peer.ErrEmptyPeerID
-	}
-	signer, err := peer.IDFromPublicKey(pubKey)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "invalid peer ID in signature")
-	}
-
-	// The signature covers exactly the encoded body, by the named sequencer.
-	valid, err := sig.VerifyWithPublic(SOSequenceSignatureContext, pubKey, q.GetInner())
-	if err != nil {
-		return nil, "", errors.Wrap(err, "verify sequence signature")
-	}
-	if !valid {
-		return nil, "", peer.ErrSignatureInvalid
 	}
 	if signer.String() != inner.GetPeerId() {
 		return nil, "", errors.New("sequence signer does not match inner peer ID")

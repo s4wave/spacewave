@@ -1,7 +1,8 @@
 package sobject
 
 import (
-	"strings"
+	"crypto/sha256"
+	"encoding/binary"
 
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
@@ -15,28 +16,65 @@ var baseCryptoContext = "sobject 2024-05-22T20:10:42.613604Z shared object crypt
 
 // BuildSOGrantSignatureContext builds the context string for a signature on a SOGrant.
 func BuildSOGrantSignatureContext(sharedObjectID string, signerPeerID, recipientPeerID string) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("grant_signature ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" signer ")
-	b.WriteString(signerPeerID)
-	b.WriteString(" recipient ")
-	b.WriteString(recipientPeerID)
-	return b.String()
+	return baseCryptoContext + "grant_signature " + sharedObjectID + " signer " + signerPeerID + " recipient " + recipientPeerID
 }
 
 // BuildSOGrantEncContext builds the context for encrypting a SOGrant's inner data.
 func BuildSOGrantEncContext(sharedObjectID string, fromPeerID string, recipientPeerID string) string {
-	var b strings.Builder
-	b.WriteString(baseCryptoContext)
-	b.WriteString("grant_enc_inner ")
-	b.WriteString(sharedObjectID)
-	b.WriteString(" signer ")
-	b.WriteString(fromPeerID)
-	b.WriteString(" recipient ")
-	b.WriteString(recipientPeerID)
-	return b.String()
+	return baseCryptoContext + "grant_enc_inner " + sharedObjectID + " signer " + fromPeerID + " recipient " + recipientPeerID
+}
+
+// domainHash returns the SHA-256 digest of domain, the big-endian length of
+// inner, and inner, so a digest of one record kind never equals another's.
+func domainHash(domain string, inner []byte) []byte {
+	// Hash the length-framed body without copying it.
+	digest := sha256.New()
+	var length [8]byte
+	binary.BigEndian.PutUint64(length[:], uint64(len(inner)))
+	digest.Write([]byte(domain))
+	digest.Write(length[:])
+	digest.Write(inner)
+	return digest.Sum(nil)
+}
+
+// signerOf returns the public key sig carries and the peer it identifies. It
+// does not verify the signature.
+func signerOf(sig *peer.Signature) (crypto.PubKey, peer.ID, error) {
+	// Require the public key the signature carries.
+	pubKey, err := sig.ParsePubKey()
+	if err != nil {
+		return nil, "", err
+	}
+	if pubKey == nil {
+		return nil, "", peer.ErrEmptyPeerID
+	}
+
+	// Derive the signing peer from that key.
+	signer, err := peer.IDFromPublicKey(pubKey)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "invalid peer ID in signature")
+	}
+	return pubKey, signer, nil
+}
+
+// verifySignature checks that sig covers exactly data under encContext and
+// returns the signer.
+func verifySignature(sig *peer.Signature, encContext string, data []byte) (peer.ID, error) {
+	// Identify the signer.
+	pubKey, signer, err := signerOf(sig)
+	if err != nil {
+		return "", err
+	}
+
+	// Check the signature over data.
+	valid, err := sig.VerifyWithPublic(encContext, pubKey, data)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to verify signature")
+	}
+	if !valid {
+		return "", peer.ErrSignatureInvalid
+	}
+	return signer, nil
 }
 
 // EncryptSOGrant encrypts the inner data of a SOGrant.
@@ -99,29 +137,21 @@ func EncryptSOGrant(privKey crypto.PrivKey, toPubKey crypto.PubKey, sharedObject
 
 // DecryptInnerData decrypts the inner data of a SOGrant.
 func (g *SOGrant) DecryptInnerData(privKey crypto.PrivKey, sharedObjectID string) (*SOGrantInner, error) {
-	signerPubKey, err := g.GetSignature().ParsePubKey()
+	// Decrypt under the context bound to the grant's signer and recipient.
+	_, signer, err := signerOf(g.GetSignature())
 	if err != nil {
 		return nil, err
 	}
-	if signerPubKey == nil {
-		return nil, peer.ErrEmptyPeerID
-	}
-
-	signerPeerID, err := peer.IDFromPublicKey(signerPubKey)
-	if err != nil {
-		return nil, err
-	}
-	signerPeerIDStr := signerPeerID.String()
-
 	innerDataDec, err := peer.DecryptWithPrivKey(
 		privKey,
-		BuildSOGrantEncContext(sharedObjectID, signerPeerIDStr, g.GetPeerId()),
+		BuildSOGrantEncContext(sharedObjectID, signer.String(), g.GetPeerId()),
 		g.GetInnerData(),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Decode the plaintext, then scrub it.
 	innerDataObj := &SOGrantInner{}
 	err = innerDataObj.UnmarshalVT(innerDataDec)
 	scrub.Scrub(innerDataDec)
@@ -140,14 +170,7 @@ func (g *SOGrant) Verify(sharedObjectID string) (string, error) {
 		return "", ErrEmptyInnerData
 	}
 	sig := g.GetSignature()
-	pubKey, err := sig.ParsePubKey()
-	if err != nil {
-		return "", err
-	}
-	if pubKey == nil {
-		return "", peer.ErrEmptyPeerID
-	}
-	signer, err := peer.IDFromPublicKey(pubKey)
+	pubKey, signer, err := signerOf(sig)
 	if err != nil {
 		return "", err
 	}

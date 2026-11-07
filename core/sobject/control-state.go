@@ -208,7 +208,7 @@ func (s *SOState) pruneControlMessages() {
 // validateControlMessages checks that the control messages are signed for
 // this object, bounded, and sorted by hash.
 func (s *SOState) validateControlMessages(sharedObjectID string) error {
-	if len(s.GetControlMessages()) > s.GetConfig().voterCount()*maxControlMessagesPerVoter {
+	if len(s.GetControlMessages()) > len(s.GetConfig().Voters())*maxControlMessagesPerVoter {
 		return errors.Wrap(ErrMaxCountExceeded, "control messages")
 	}
 	var prev []byte

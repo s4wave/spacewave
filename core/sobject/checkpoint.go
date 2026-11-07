@@ -3,7 +3,6 @@ package sobject
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"slices"
 	"strings"
 
@@ -26,13 +25,7 @@ var SOCheckpointSignatureContext = baseCryptoContext + "checkpoint_signature"
 
 // HashSOCheckpointInner returns the identity of a checkpoint from its signed body.
 func HashSOCheckpointInner(inner []byte) []byte {
-	// Prefix the length-framed body with the domain.
-	preimage := make([]byte, 0, len(soCheckpointHashDomain)+8+len(inner))
-	preimage = append(preimage, soCheckpointHashDomain...)
-	preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(inner)))
-	preimage = append(preimage, inner...)
-	digest := sha256.Sum256(preimage)
-	return digest[:]
+	return domainHash(soCheckpointHashDomain, inner)
 }
 
 // Hash returns the identity of the checkpoint.
@@ -101,7 +94,7 @@ func (s *SOState) BuildNextCheckpoint(sharedObjectID string, privKey crypto.Priv
 	for key := range set.ops {
 		held = append(held, []byte(key))
 	}
-	return s.buildCheckpoint(sharedObjectID, privKey, set.cover(held), set.SequenceHead(held), stateDataEnc)
+	return s.signStableCheckpoint(sharedObjectID, set, privKey, held, stateDataEnc)
 }
 
 // UnmarshalInner decodes and checks the checkpoint body.
@@ -202,14 +195,7 @@ func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []stri
 	signers := make([]string, 0, len(c.GetSignatures()))
 	seen := make(map[string]struct{}, len(c.GetSignatures()))
 	for i, sig := range c.GetSignatures() {
-		pubKey, err := sig.ParsePubKey()
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "signatures[%d]", i)
-		}
-		if pubKey == nil {
-			return nil, nil, peer.ErrEmptyPeerID
-		}
-		signer, err := peer.IDFromPublicKey(pubKey)
+		signer, err := verifySignature(sig, SOCheckpointSignatureContext, c.GetInner())
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "signatures[%d]", i)
 		}
@@ -217,13 +203,6 @@ func (c *SOCheckpoint) Verify(sharedObjectID string) (*SOCheckpointInner, []stri
 			return nil, nil, errors.Errorf("signatures[%d]: duplicate signer", i)
 		}
 		seen[signer.String()] = struct{}{}
-		valid, err := sig.VerifyWithPublic(SOCheckpointSignatureContext, pubKey, c.GetInner())
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "signatures[%d]", i)
-		}
-		if !valid {
-			return nil, nil, peer.ErrSignatureInvalid
-		}
 		signers = append(signers, signer.String())
 	}
 	return inner, signers, nil

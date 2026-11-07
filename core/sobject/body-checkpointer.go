@@ -55,11 +55,7 @@ func (c *bodyCheckpointer) adopt(ctx context.Context, le *logrus.Entry, so Share
 	}
 
 	// Sign and adopt the checkpoint.
-	inner, err := state.stableCheckpointInner(soID, held, prefix, dataEnc)
-	if err != nil {
-		return err
-	}
-	checkpoint, err := BuildSOCheckpoint(c.privKey, inner)
+	checkpoint, err := state.signStableCheckpoint(soID, held, c.privKey, prefix, dataEnc)
 	if err != nil {
 		return err
 	}
