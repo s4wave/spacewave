@@ -23,7 +23,7 @@ func openSweepStore(client ObjectStore, kv kvtx.Store) *PackStore {
 }
 
 // heldState reads the state the index holds pack id in.
-func heldStateOf(t *testing.T, s *PackStore, id string) packState {
+func heldStateOf(t *testing.T, s *PackStore, id string) PackState {
 	t.Helper()
 	state, ok := s.index.heldState(id)
 	if !ok {
@@ -62,7 +62,7 @@ func TestQuarantineReadLifts(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if got := heldStateOf(t, s, deadPack); got != packQuarantined {
+		if got := heldStateOf(t, s, deadPack); got != PackQuarantined {
 			t.Fatalf("state %v, want quarantined", got)
 		}
 		s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
@@ -95,7 +95,7 @@ func TestQuarantineReadLifts(t *testing.T) {
 		if locatedAny(t, s, dead) {
 			t.Fatal("located a quarantined block after a restart")
 		}
-		if got := heldStateOf(t, s, deadPack); got != packQuarantined {
+		if got := heldStateOf(t, s, deadPack); got != PackQuarantined {
 			t.Fatalf("state after restart %v, want quarantined", got)
 		}
 
@@ -103,11 +103,11 @@ func TestQuarantineReadLifts(t *testing.T) {
 		if data, found, err := s.GetBlock(ctx, dead[0]); err != nil || !found || string(data) != "dead block 0" {
 			t.Fatalf("fallback read = %q, %v, %v", data, found, err)
 		}
-		if got := heldStateOf(t, s, deadPack); got != packRegistered {
+		if got := heldStateOf(t, s, deadPack); got != PackRegistered {
 			t.Fatalf("state after the read %v, want registered", got)
 		}
 		hold, ok, err := s.index.readHold(ctx, deadPack)
-		if err != nil || !ok || hold.state != packRegistered || hold.event == 0 || !bytes.Equal(hold.key, packfile.BlockKey(dead[0].GetHash())) {
+		if err != nil || !ok || hold.state != PackRegistered || hold.event == 0 || !bytes.Equal(hold.key, packfile.BlockKey(dead[0].GetHash())) {
 			t.Fatalf("lift record = %+v, %v, %v", hold, ok, err)
 		}
 		if !locatedAny(t, s, dead[1:]) {
@@ -135,7 +135,7 @@ func TestQuarantineStatLifts(t *testing.T) {
 		if stat, err := s.StatBlock(ctx, dead[1]); err != nil || stat == nil {
 			t.Fatalf("stat = %v, %v", stat, err)
 		}
-		if got := heldStateOf(t, s, deadPack); got != packRegistered {
+		if got := heldStateOf(t, s, deadPack); got != PackRegistered {
 			t.Fatalf("state after the stat %v, want registered", got)
 		}
 	})
@@ -160,7 +160,7 @@ func TestQuarantineMoves(t *testing.T) {
 		if err := s.Quarantine(ctx, []string{packA, "nope"}); err == nil {
 			t.Fatal("quarantined a pack the index lacks")
 		}
-		if got := heldStateOf(t, s, packA); got != packRegistered {
+		if got := heldStateOf(t, s, packA); got != PackRegistered {
 			t.Fatalf("a refused call moved pack a to %v", got)
 		}
 		rewriting := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{Index: newIndexKV(t, "memory"), SoleWriter: true})
@@ -181,11 +181,26 @@ func TestQuarantineMoves(t *testing.T) {
 			t.Fatal(err)
 		}
 		hold, ok, err := s.index.readHold(ctx, packA)
-		if err != nil || !ok || hold.state != packRegistered || hold.event == 0 || len(hold.key) != 0 {
+		if err != nil || !ok || hold.state != PackRegistered || hold.event == 0 || len(hold.key) != 0 {
 			t.Fatalf("command lift record = %+v, %v, %v", hold, ok, err)
 		}
 		if !locatedAny(t, s, a) {
 			t.Fatal("the lifted pack places none of its blocks")
+		}
+
+		// Holds reports every pack the sweep moved, or the named ones, and
+		// LocatePacks names the registered pack of each block.
+		all, err := s.Holds(ctx, nil)
+		if err != nil || len(all) != 2 || all[0].ID > all[1].ID {
+			t.Fatalf("Holds = %+v, %v; want both moved packs in order", all, err)
+		}
+		named, err := s.Holds(ctx, []string{packB, "never"})
+		if err != nil || named[0].State != PackQuarantined || named[0].Since == 0 || named[1].ID != "never" || named[1].State != PackRegistered || named[1].Since != 0 {
+			t.Fatalf("Holds of named packs = %+v, %v", named, err)
+		}
+		ids, err := s.LocatePacks(ctx, []*block.BlockRef{a[0], b[0]})
+		if err != nil || ids[0] != packA || ids[1] != "" {
+			t.Fatalf("LocatePacks = %v, %v; want pack a and none", ids, err)
 		}
 
 		// A trashing pack refuses quarantine and lift; a read still serves it
@@ -194,10 +209,10 @@ func TestQuarantineMoves(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := s.index.writeHolds(ctx, []string{packB}, []packHold{{state: packTrashing, since: 1}}); err != nil {
+		if err := s.index.writeHolds(ctx, []string{packB}, []packHold{{state: PackTrashing, since: 1}}); err != nil {
 			t.Fatal(err)
 		}
-		s.setHolds([]string{packB}, packTrashing)
+		s.setHolds([]string{packB}, PackTrashing)
 		release()
 		if err := s.Quarantine(ctx, []string{packB}); err == nil {
 			t.Fatal("quarantined a trashing pack")
@@ -209,7 +224,7 @@ func TestQuarantineMoves(t *testing.T) {
 			t.Fatalf("trashing read = %q, %v, %v", data, found, err)
 		}
 		hold, ok, err = s.index.readHold(ctx, packB)
-		if err != nil || !ok || hold.state != packTrashing || hold.since != 1 || hold.event == 0 || !bytes.Equal(hold.key, packfile.BlockKey(b[1].GetHash())) {
+		if err != nil || !ok || hold.state != PackTrashing || hold.since != 1 || hold.event == 0 || !bytes.Equal(hold.key, packfile.BlockKey(b[1].GetHash())) {
 			t.Fatalf("miss record = %+v, %v, %v", hold, ok, err)
 		}
 
