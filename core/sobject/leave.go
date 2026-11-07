@@ -129,6 +129,10 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		if len(next.Participants) == len(current.GetParticipants()) {
 			return nil, errors.New("leave proofs name no current participant")
 		}
+
+		// A departed writer leaves the trimming roster's drops in the same
+		// change, so no roster change follows the departure.
+		next.RosterDroppedPeerIds = slices.DeleteFunc(next.RosterDroppedPeerIds, func(peerID string) bool { return slices.Contains(peers, peerID) })
 		for _, p := range next.Participants {
 			if slices.Contains(promote, p.GetPeerId()) {
 				p.Role = SOParticipantRole_SOParticipantRole_OWNER
