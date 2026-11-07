@@ -36,7 +36,13 @@ func putDatas(ctx context.Context, t *testing.T, s *PackStore, datas ...string) 
 // command does.
 func trashMove(ctx context.Context, t *testing.T, client ObjectStore, prefix, id string) {
 	t.Helper()
-	for _, keys := range [][2]string{{EntryObjectKey(prefix, id), TrashEntryKey(prefix, id)}, {PackObjectKey(prefix, id), TrashPackKey(prefix, id)}} {
+	moveObjects(ctx, t, client, [2]string{EntryObjectKey(prefix, id), TrashEntryKey(prefix, id)}, [2]string{PackObjectKey(prefix, id), TrashPackKey(prefix, id)})
+}
+
+// moveObjects moves each object from its first key to its second, in order.
+func moveObjects(ctx context.Context, t *testing.T, client ObjectStore, moves ...[2]string) {
+	t.Helper()
+	for _, keys := range moves {
 		body, err := client.GetObject(ctx, "bucket", keys[0])
 		if err != nil {
 			t.Fatal(err)
@@ -245,4 +251,64 @@ func testTrashRemove(t *testing.T, kind string) {
 	if heldStateOf(t, s, packD) != PackTrashing {
 		t.Fatal("the restart lost the kept trashing pack")
 	}
+
+	// The restore refuses a removed or a quarantined pack, and a missed pack
+	// until its file and its entry are both back from the trash.
+	if err := s.Restore(ctx, []string{packR}); err == nil {
+		t.Fatal("restored a removed pack")
+	}
+	if err := s.Quarantine(ctx, []string{packH1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Restore(ctx, []string{packH1}); err == nil {
+		t.Fatal("restored a quarantined pack")
+	}
+	if err := s.Lift(ctx, []string{packH1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Restore(ctx, []string{packD}); err == nil {
+		t.Fatal("restored a pack in the trash")
+	}
+	moveObjects(ctx, t, client, [2]string{TrashPackKey("p/", packD), PackObjectKey("p/", packD)})
+	if err := s.Restore(ctx, []string{packD}); err == nil {
+		t.Fatal("restored a pack whose entry is in the trash")
+	}
+	if heldStateOf(t, s, packD) != PackTrashing {
+		t.Fatal("a refused restore moved the pack")
+	}
+
+	// Once both are back, the restore registers the pack, keeping its miss,
+	// and a repeat, or one naming a registered pack, changes nothing. The
+	// missed block reads again, across a restart.
+	moveObjects(ctx, t, client, [2]string{TrashEntryKey("p/", packD), EntryObjectKey("p/", packD)})
+	for range 2 {
+		if err := s.Restore(ctx, []string{packD, packH1}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	checkRestored := func(s *PackStore) {
+		t.Helper()
+		if err := s.loadEntries(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if heldStateOf(t, s, packD) != PackRegistered {
+			t.Fatal("the restore left the pack held")
+		}
+		hold, _, err := s.index.readHold(ctx, packD)
+		if err != nil || hold.state != PackRegistered || hold.event == 0 || !bytes.Equal(hold.key, hashKey(d[0])) {
+			t.Fatalf("hold after the restore = %+v, %v", hold, err)
+		}
+		for _, ref := range d {
+			if _, found, err := s.GetBlock(ctx, ref); err != nil || !found {
+				t.Fatalf("read of a restored block = %v, %v", found, err)
+			}
+		}
+		if located, err := s.LocatePacks(ctx, d[:1]); err != nil || located[0] != packD {
+			t.Fatalf("locate of a restored block = %v, %v", located, err)
+		}
+	}
+	checkRestored(s)
+	s.Close()
+	s = openSweepStore(client, kv)
+	checkRestored(s)
 }

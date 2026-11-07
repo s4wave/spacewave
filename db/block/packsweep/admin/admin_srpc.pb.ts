@@ -130,6 +130,18 @@ export const PackSweepAdminDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * Restore registers again trashing packs whose entries and files the
+     * command moved back from the trash, as for a pack a read missed.
+     *
+     * @generated from rpc block.packsweep.admin.PackSweepAdmin.Restore
+     */
+    Restore: {
+      name: 'Restore',
+      I: PacksRequest,
+      O: PacksResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Adopt registers packs another writer uploaded.
      *
      * @generated from rpc block.packsweep.admin.PackSweepAdmin.Adopt
@@ -251,6 +263,17 @@ export interface PackSweepAdmin {
    */
   Remove(
     request: RemoveRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse>
+
+  /**
+   * Restore registers again trashing packs whose entries and files the
+   * command moved back from the trash, as for a pack a read missed.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Restore
+   */
+  Restore(
+    request: PacksRequest,
     abortSignal?: AbortSignal,
   ): Promise<PacksResponse>
 
@@ -389,6 +412,18 @@ export interface PackSweepAdminHandler {
   ): Promise<PacksResponse>
 
   /**
+   * Restore registers again trashing packs whose entries and files the
+   * command moved back from the trash, as for a pack a read missed.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Restore
+   */
+  Restore(
+    request: PacksRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PacksResponse>
+
+  /**
    * Adopt registers packs another writer uploaded.
    *
    * @generated from rpc block.packsweep.admin.PackSweepAdmin.Adopt
@@ -438,6 +473,7 @@ export class PackSweepAdminClient implements PackSweepAdmin {
     this.Lift = this.Lift.bind(this)
     this.BeginTrash = this.BeginTrash.bind(this)
     this.Remove = this.Remove.bind(this)
+    this.Restore = this.Restore.bind(this)
     this.Adopt = this.Adopt.bind(this)
     this.ReadLog = this.ReadLog.bind(this)
     this.TrimLog = this.TrimLog.bind(this)
@@ -595,6 +631,26 @@ export class PackSweepAdminClient implements PackSweepAdmin {
       this.service,
       PackSweepAdminDefinition.methods.Remove.name,
       RemoveRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PacksResponse.fromBinary(result)
+  }
+
+  /**
+   * Restore registers again trashing packs whose entries and files the
+   * command moved back from the trash, as for a pack a read missed.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Restore
+   */
+  async Restore(
+    request: PacksRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PacksResponse> {
+    const requestMsg = PacksRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PackSweepAdminDefinition.methods.Restore.name,
+      PacksRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return PacksResponse.fromBinary(result)
