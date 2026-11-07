@@ -139,28 +139,37 @@ func (a *Adapter) waitAnswers(ctx context.Context, fence []byte) ([]*block.Block
 	return dedupRefs(live), nil
 }
 
-// holdFence copies the graph of each live root into the local store under a
-// stage, then holds them all under the pass's fence root.
+// holdFence copies the graph of each live root into the local store, skipping
+// each subtree it holds, and holds them all under the pass's fence root.
 func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.BlockRef) error {
+	opts := &block.GraphCopyOptions{Known: a.so.GetBlockStore().GetBlockExistsBatch, Forget: true}
+	return a.copyAndHold(ctx, fenceRootPrefix+pass, live, opts)
+}
+
+// copyAndHold copies the graph of each root from the kept pages and the read
+// path into the SharedObject's block store with opts, under a stage that holds
+// each copied block until the named root name holds one block naming every
+// root. The stage ends after the root moved, so no copied block is unheld in
+// between.
+func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.BlockRef, opts *block.GraphCopyOptions) error {
 	// Copy under a stage until the root holds them.
-	store := a.so.GetBlockStore()
-	staged, release, err := block.OpenStage(ctx, store)
+	staged, release, err := block.OpenStage(ctx, a.so.GetBlockStore())
 	if err != nil {
 		return err
 	}
 	defer release()
-	for _, root := range live {
-		if err := block.CopyGraph(ctx, a.pages, staged, root, &block.GraphCopyOptions{Known: store.GetBlockExistsBatch, Forget: true}); err != nil {
-			return errors.Wrapf(err, "copy live root %s", root.MarshalString())
+	for _, root := range roots {
+		if err := block.CopyGraph(ctx, a.pages, staged, root, opts); err != nil {
+			return errors.Wrapf(err, "copy root %s", root.MarshalString())
 		}
 	}
 
 	// Hold them under one block.
-	entry, err := refsEntry(&HeldRoots{Roots: live}, live)
+	entry, err := refsEntry(&HeldRoots{Roots: roots}, roots)
 	if err != nil {
 		return err
 	}
-	return a.moveRoots(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: fenceRootPrefix + pass, Ref: entry.Ref})
+	return a.moveRoots(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: name, Ref: entry.Ref})
 }
 
 // releaseFences releases every fence root this device holds.
