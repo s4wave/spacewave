@@ -43,9 +43,12 @@ func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) w
 		return nil
 	})
 	if err != nil {
-		return &txObjectIterator{err: err}
+		return &lockedObjectIterator{err: err}
 	}
-	return &txObjectIterator{t: t, ctx: ctx, it: it}
+	run := func(fn func(world.ObjectIterator) error) error {
+		return t.lockedLive(ctx, func() error { return fn(it) })
+	}
+	return &lockedObjectIterator{run: run, held: it}
 }
 
 // CreateObject creates a object with a key and initial root ref.
