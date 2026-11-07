@@ -33,6 +33,8 @@ type fakeBackend struct {
 	failBeginTrash, failRemove bool
 	// failDrop fails the next removal that drops packs, after applying it.
 	failDrop bool
+	// failRestore fails the next restore after applying it.
+	failRestore bool
 	// removed are the packs a removal dropped.
 	removed map[string]bool
 	// removals are the removal calls, in order.
@@ -175,6 +177,32 @@ func (b *fakeBackend) Remove(_ context.Context, ids []string, keys []KeyHolders,
 	}
 	if b.failRemove || (b.failDrop && !more) {
 		b.failRemove, b.failDrop = false, b.failDrop && more
+		return nil, errors.New("killed")
+	}
+	return out, nil
+}
+
+// Restore registers the trashing packs a read missed, refusing any other
+// trashing or held pack as the pack store does.
+func (b *fakeBackend) Restore(_ context.Context, ids []string) ([]PackHold, error) {
+	// Refuse a pack that is neither missed nor registered before changing any.
+	b.calls["restore"]++
+	for _, id := range ids {
+		if h := b.hold(id); h.Absent || h.State == PackQuarantined {
+			return nil, errors.Errorf("pack %s is not trashing", id)
+		}
+	}
+
+	// Register each trashing pack, keeping its miss.
+	out := make([]PackHold, len(ids))
+	for i, id := range ids {
+		if h := b.hold(id); h.State == PackTrashing {
+			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: b.now, Event: b.now}
+		}
+		out[i] = b.hold(id)
+	}
+	if b.failRestore {
+		b.failRestore = false
 		return nil, errors.New("killed")
 	}
 	return out, nil

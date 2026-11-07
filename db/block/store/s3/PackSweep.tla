@@ -248,7 +248,12 @@ Remove(p) ==
                  phase, R, REpoch, L, late, failed>>
 
 \* A recorded miss restores the pack before anything else: the file comes
-\* back, then the entry, and the pack is registered again.
+\* back, then the entry, and the pack is registered again. The command makes
+\* these in three steps (packsweep.Restore), which one step abstracts: between
+\* them the pack stays trashing with its miss, which the trash and the removal
+\* both skip, and a read finds its file either gone, recording the miss again,
+\* or back, and served. The pack store registers it only once both objects
+\* are back.
 Restore(p) ==
   /\ missed[p] /\ state[p] = "trash"
   /\ moved' = [moved EXCEPT ![p] = FALSE]
