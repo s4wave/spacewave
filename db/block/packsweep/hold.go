@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/writelog"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // Bounds of the quarantine and the recheck.
@@ -26,6 +27,9 @@ const (
 	// MaxKeyHolders is the other holders a removal names for one key, the
 	// admin service's bound.
 	MaxKeyHolders = 16
+	// MaxBackendAdopt is the packs one adoption registers, the admin
+	// service's bound: each carries every key it holds.
+	MaxBackendAdopt = 16
 )
 
 // PackState is a pack's state in the backend's pack store, numbered as the
@@ -115,6 +119,18 @@ type Backend interface {
 	// Restore registers again trashing packs whose entries and files are
 	// back in the store, and returns their states after.
 	Restore(ctx context.Context, ids []string) ([]PackHold, error)
+	// Adopt registers packs whose entries and files are in the store, each
+	// with every key its index holds; a registered pack stays as it is. It
+	// takes at most MaxBackendAdopt packs.
+	Adopt(ctx context.Context, packs []AdoptedPack) error
+}
+
+// AdoptedPack is a pack to register: its entry and every key it holds.
+type AdoptedPack struct {
+	// Entry is the pack's entry.
+	Entry *packfile.PackfileEntry
+	// Keys are the block keys its index holds.
+	Keys [][]byte
 }
 
 // Stage is the command's record of a pack it moved: the step the pack is at,

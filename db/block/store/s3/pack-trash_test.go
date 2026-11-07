@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // putDatas writes the blocks of datas as one pack and returns their refs.
@@ -311,4 +312,53 @@ func testTrashRemove(t *testing.T, kind string) {
 	s.Close()
 	s = openSweepStore(client, kv)
 	checkRestored(s)
+
+	// The removed pack, moved back, is adopted with the keys its index lists
+	// under a new number, and each of its blocks reads from it, across a
+	// restart.
+	moveObjects(ctx, t, client, [2]string{TrashPackKey("p/", packR), PackObjectKey("p/", packR)}, [2]string{TrashEntryKey("p/", packR), EntryObjectKey("p/", packR)})
+	body, err := client.GetObject(ctx, "bucket", EntryObjectKey("p/", packR))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := io.ReadAll(body)
+	_ = body.Close()
+	entry := &packfile.PackfileEntry{}
+	if err != nil || entry.UnmarshalVT(data) != nil {
+		t.Fatalf("read the removed pack's entry: %v", err)
+	}
+	keysR := make([][]byte, len(r))
+	for i, ref := range r {
+		keysR[i] = hashKey(ref)
+	}
+	if err := s.AdoptPack(ctx, entry, keysR); err != nil {
+		t.Fatal(err)
+	}
+	checkAdopted := func(s *PackStore) {
+		t.Helper()
+		if err := s.loadEntries(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if heldStateOf(t, s, packR) != PackRegistered {
+			t.Fatal("the adopted pack is not registered")
+		}
+		s.index.mtx.RLock()
+		num := s.index.rows[packR].num
+		s.index.mtx.RUnlock()
+		if num == numR {
+			t.Fatal("the adopted pack took its removed number again")
+		}
+		for i, ref := range r {
+			if data, found, err := s.GetBlock(ctx, ref); err != nil || !found || string(data) != []string{"x", "y", "r0", "r1"}[i] {
+				t.Fatalf("read of the adopted pack's block %d = %q, %v, %v", i, data, found, err)
+			}
+		}
+		if located, err := s.LocatePacks(ctx, r[2:]); err != nil || located[0] != packR || located[1] != packR {
+			t.Fatalf("locate of the adopted pack's own blocks = %v, %v", located, err)
+		}
+	}
+	checkAdopted(s)
+	s.Close()
+	s = openSweepStore(client, kv)
+	checkAdopted(s)
 }

@@ -37,6 +37,8 @@ type fakeBackend struct {
 	failRestore bool
 	// removed are the packs a removal dropped.
 	removed map[string]bool
+	// adopted are the keys each adopted pack carried.
+	adopted map[string][][]byte
 	// removals are the removal calls, in order.
 	removals []fakeRemoval
 	// calls counts the calls by method.
@@ -45,7 +47,7 @@ type fakeBackend struct {
 
 // newFakeBackend builds a backend over log.
 func newFakeBackend(log *writelog.Log) *fakeBackend {
-	return &fakeBackend{log: log, holds: make(map[string]PackHold), now: time.Unix(1_000_000, 0), calls: make(map[string]int), removed: make(map[string]bool)}
+	return &fakeBackend{log: log, holds: make(map[string]PackHold), now: time.Unix(1_000_000, 0), calls: make(map[string]int), removed: make(map[string]bool), adopted: make(map[string][][]byte)}
 }
 
 // ReadLog reads the write log.
@@ -206,6 +208,23 @@ func (b *fakeBackend) Restore(_ context.Context, ids []string) ([]PackHold, erro
 		return nil, errors.New("killed")
 	}
 	return out, nil
+}
+
+// Adopt registers the removed packs, recording each pack's keys.
+func (b *fakeBackend) Adopt(_ context.Context, packs []AdoptedPack) error {
+	b.calls["adopt"]++
+	if len(packs) > MaxBackendAdopt {
+		return errors.Errorf("an adoption names %d packs", len(packs))
+	}
+	for _, p := range packs {
+		id := p.Entry.GetId()
+		if b.removed[id] {
+			delete(b.removed, id)
+			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: b.now}
+			b.adopted[id] = p.Keys
+		}
+	}
+	return nil
 }
 
 // recordsByID reads the pack records.

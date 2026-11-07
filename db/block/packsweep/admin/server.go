@@ -28,7 +28,7 @@ const (
 	MaxKeyHolders = packsweep.MaxKeyHolders
 	// MaxAdopt is the packs an Adopt call registers: each carries every key
 	// it holds.
-	MaxAdopt = 16
+	MaxAdopt = packsweep.MaxBackendAdopt
 	// MaxLines is the lines a ReadLog call returns, and its bound when the
 	// request sets none.
 	MaxLines = 65536
