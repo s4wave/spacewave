@@ -336,13 +336,13 @@ func TestAdapterRunThrough(t *testing.T) {
 
 		// A remount applies only the operations past the saved replay
 		// cursor, whatever stands above the checkpoint. The cursor falls at
-		// most 32 operations behind, and a save in flight at the remount at
-		// most 32 more; each operation resolves the mock type twice, to run
+		// most 64 operations behind, and a save in flight at the remount at
+		// most 64 more; each operation resolves the mock type twice, to run
 		// and for its payloads.
-		small, large = measureRemountReplay(t, 40), measureRemountReplay(t, 240)
-		t.Logf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 240", small, large)
-		if small > 128 || large > 128 {
-			t.Fatalf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 240, want at most 128", small, large)
+		small, large = measureRemountReplay(t, 40), measureRemountReplay(t, 300)
+		t.Logf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 300", small, large)
+		if small > 256 || large > 256 {
+			t.Fatalf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 300, want at most 256", small, large)
 		}
 	})
 }

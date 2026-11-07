@@ -15,9 +15,13 @@ const replayCursorStoreID = "space-world-replay"
 var replayCursorKey = []byte("cursor")
 
 // replayCursorOperations is how many positions the saved replay may fall
-// behind the last one before the adapter saves it again, which bounds what a
-// restart replays while no checkpoint lands.
-const replayCursorOperations = 32
+// behind the last one, past the stable positions a checkpoint covers, before
+// the adapter saves it again. It bounds what a restart replays while no
+// checkpoint lands. While checkpoints land, the positions above the installed
+// one are the next checkpoint's stable operations and the unstable ones after
+// them, so a bound of fewer than MinCheckpointOperations positions would store
+// a World between every two checkpoints.
+const replayCursorOperations = sobject.MinCheckpointOperations + 32
 
 // maybeSaveCursor saves the replay cursor when it fell replayCursorOperations
 // behind the last position, or when the kept pages near their bound. A save
