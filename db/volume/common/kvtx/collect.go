@@ -1,7 +1,6 @@
 package kvtx
 
 import (
-	"bytes"
 	"context"
 	"errors"
 
@@ -61,9 +60,9 @@ func (s collectorStore) BlockStored(ctx context.Context, ref *block.BlockRef) (b
 	return s.v.Store.GetBlockExists(ctx, ref)
 }
 
-// ScanBlocks calls fn with runs of the blocks the Volume keeps as records,
-// each run read in a short snapshot after the last key the run before
-// reached. A Volume whose blocks a BlockDomain serves lists none.
+// ScanBlocks calls fn with runs of the blocks the Volume keeps as records, as
+// scanRuns reads them. A key that names no ref is skipped. A Volume whose
+// blocks a BlockDomain serves lists none.
 func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.BlockRef) error) error {
 	// A BlockDomain keeps its blocks outside the records.
 	if _, ok := s.v.kvtxStore.(BlockDomain); ok {
@@ -72,47 +71,10 @@ func (s collectorStore) ScanBlocks(ctx context.Context, fn func(refs []*block.Bl
 
 	// Read and hand over each run.
 	prefix := s.v.kvKey.GetBlockFullPrefix()
-	var after []byte
-	for {
-		refs, last, err := s.v.readBlockRun(ctx, prefix, after, legacyRootRun)
-		if err != nil || last == nil {
-			return err
-		}
-		after = last
-		if err := fn(refs); err != nil {
-			return err
-		}
-	}
-}
-
-// readBlockRun reads up to limit block keys under prefix after the key after,
-// nil for the first, in one snapshot, and returns the refs they name and the
-// last key, nil when none remain. A key that names no ref is skipped.
-func (v *Volume) readBlockRun(ctx context.Context, prefix, after []byte, limit int) ([]*block.BlockRef, []byte, error) {
-	// Position a sorted iterator past after.
-	tx, err := v.kvtxStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer tx.Discard()
-	it := tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := seekPastKey(it, after); err != nil {
-		return nil, nil, err
-	}
-
-	// Parse the keys of the run.
-	var refs []*block.BlockRef
-	var last []byte
-	for n := 0; it.Valid() && n < limit; it.Next() {
-		last = bytes.Clone(it.Key())
-		n++
+	return scanRuns(ctx, s.v.kvtxStore, prefix, func(key []byte) (*block.BlockRef, bool) {
 		ref := &block.BlockRef{}
-		if ref.UnmarshalVT(last[len(prefix):]) == nil && ref.GetHash().Validate() == nil {
-			refs = append(refs, ref)
-		}
-	}
-	return refs, last, it.Err()
+		return ref, ref.UnmarshalVT(key[len(prefix):]) == nil && ref.GetHash().Validate() == nil
+	}, fn)
 }
 
 // Adopt counts the holders of every block of a Volume that predates its
