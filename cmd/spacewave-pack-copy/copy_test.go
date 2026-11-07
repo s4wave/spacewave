@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/packfile"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -179,6 +181,37 @@ func TestCommandRunThrough(t *testing.T) {
 		Reads:        4,
 		Uploads:      2,
 	}
+
+	// The source's writer keeps the index open and commits rows through every
+	// pass, as be-5's backend does while a pass reads its live index.
+	indexWriter, err := store_kvtx_sqlite.OpenWithPragmas(ctx, sourceIndex, defaultIndexTable, store_kvtx_sqlite.Pragmas{WithoutRowID: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeCtx, stopWrites := context.WithCancel(ctx)
+	writes := make(chan error, 1)
+	go func() {
+		var err error
+		for i := 0; writeCtx.Err() == nil; i++ {
+			err = kvtx.RunTransaction(writeCtx, true, func(ctx context.Context) (kvtx.Tx, error) {
+				return indexWriter.NewTransaction(ctx, true)
+			}, func(ctx context.Context, tx kvtx.Tx) error {
+				return tx.Set(ctx, []byte("other/"+strconv.Itoa(i)), []byte("row"))
+			})
+			if err != nil && writeCtx.Err() == nil {
+				break
+			}
+			err = nil
+		}
+		writes <- err
+	}()
+	defer func() {
+		stopWrites()
+		if err := <-writes; err != nil {
+			t.Errorf("source writer: %v", err)
+		}
+		_ = indexWriter.Close()
+	}()
 
 	// A sample reads the source's one pack through its read-only index.
 	if err := args.runSample(&sampleArgs{count: 4, bytes: 16, reads: 2}); err != nil {

@@ -56,8 +56,9 @@ type Args struct {
 	// StoreID is the block store whose pack index the index files hold. The
 	// clean store keeps the source's block store id under a new prefix.
 	StoreID string
-	// SourceIndex is a copy of the source's pack index file, which the source
-	// store reads and may add rows to.
+	// SourceIndex is the source's pack index file, opened read-only, so it may
+	// be the live file beside its writer: each lookup is a short transaction of
+	// its own, and the source store writes no row.
 	SourceIndex string
 	// TargetIndex is the clean store's pack index file, created if missing,
 	// which an owner of the clean store opens as it is.
@@ -120,7 +121,7 @@ func (a *Args) storeFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "scratch", Usage: "scratch file holding the proofs and byte count", Destination: &a.Scratch, Required: true},
 		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index files hold", Destination: &a.StoreID, Required: true},
-		&cli.StringFlag{Name: "source-index", Usage: "copy of the source's pack index file; the source store may add rows", Destination: &a.SourceIndex, Required: true},
+		&cli.StringFlag{Name: "source-index", Usage: "the source's pack index file, opened read-only beside its writer", Destination: &a.SourceIndex, Required: true},
 		&cli.StringFlag{Name: "target-index", Usage: "the clean store's pack index file, created if missing", Destination: &a.TargetIndex, Required: true},
 		&cli.StringFlag{Name: "index-table", Usage: "table of both pack index files", Value: defaultIndexTable, Destination: &a.IndexTable},
 		&cli.IntFlag{Name: "width", Usage: "target packs indexed at once", Value: 2, Destination: &a.Width},
@@ -197,7 +198,7 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 		return nil, errors.Wrap(err, "--source-index")
 	}
 	table := cmp.Or(a.IndexTable, defaultIndexTable)
-	if r.sourceIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.SourceIndex, table, store_kvtx_sqlite.Pragmas{WithoutRowID: true}); err != nil {
+	if r.sourceIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.SourceIndex, table, store_kvtx_sqlite.Pragmas{ReadOnly: true}); err != nil {
 		return nil, errors.Wrap(err, "open --source-index")
 	}
 	if r.targetIndex, err = store_kvtx_sqlite.OpenWithPragmas(ctx, a.TargetIndex, table, store_kvtx_sqlite.Pragmas{FullSync: true, WithoutRowID: true}); err != nil {
@@ -223,8 +224,8 @@ func (a *Args) open(ctx context.Context) (_ *run, rerr error) {
 	r.meter = packcopy.NewMeter(r.sftp, a.BudgetBytes, used)
 
 	// The source reads its blocks from the index alone: a listing of every
-	// pack over two connections would cost hours, and each pass takes a fresh
-	// copy of the index, which names the packs written since the last.
+	// pack over two connections would cost hours, and the live index names
+	// the packs its writer added since the last pass.
 	r.source = block_store_s3.NewPackStore(r.le, r.meter, a.SFTPRoot, a.SourcePrefix, &block_store_s3.PackStoreOptions{
 		KeepPacks:  true,
 		Index:      kvtx_prefixer.NewPrefixer(r.sourceIndex, indexPrefix),
