@@ -135,7 +135,7 @@ func TestNodeRunThrough(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.wait = 20 * time.Millisecond
+	server.wait, server.retryBase = 20*time.Millisecond, time.Millisecond
 	apply := &applier{refuse: true, applied: map[string][][]byte{}, changed: make(chan struct{}, 1)}
 	client := NewClient(logrus.NewEntry(logrus.New()), apply)
 
@@ -193,7 +193,7 @@ func TestNodeRunThrough(t *testing.T) {
 	apply.mtx.Unlock()
 	end = connect(ctx, t, client, server)
 	waitFor(t, func() bool { return apply.count() == 1 })
-	waitFor(t, func() bool { return server.nextReport() == "" })
+	waitFor(t, func() bool { return nextPending(server) == "" })
 	for id, keys := range apply.applied {
 		if len(keys) != 1 || string(keys[0]) != string(key) {
 			t.Fatalf("pack %s reported keys %x", id, keys)
@@ -251,12 +251,16 @@ func (nopHolder) Append(context.Context, []packahead.Block) error { return nil }
 type slowApplier struct {
 	delay   atomic.Int64
 	applied atomic.Int64
+	mtx     sync.Mutex
 	stuck   string
 }
 
 // ApplyPack counts the report after the delay.
 func (a *slowApplier) ApplyPack(ctx context.Context, report *PackReport) error {
-	if report.GetPackId() == a.stuck {
+	a.mtx.Lock()
+	stuck := a.stuck
+	a.mtx.Unlock()
+	if report.GetPackId() == stuck {
 		return errors.New("pack merged away")
 	}
 	select {
@@ -296,7 +300,7 @@ func TestReportsNeverWedgeCommits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.wait = 30 * time.Millisecond
+	server.wait, server.retryBase = 30*time.Millisecond, time.Millisecond
 
 	// Connect over TCP.
 	apply := &slowApplier{stuck: "pack0000"}
@@ -495,4 +499,63 @@ func TestReadThrough(t *testing.T) {
 	if got := read(); got != "pack" || remote.ranges.Load() != 4 {
 		t.Fatalf("read with the node away %q, %d remote reads", got, remote.ranges.Load())
 	}
+}
+
+// nextPending returns the report at the head of the line, due or not.
+func nextPending(s *Server) string {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if len(s.pending) == 0 {
+		return ""
+	}
+	return s.pending[0].id
+}
+
+// TestReportsOutliveFailures fails a report many times, then lets the local
+// store recover: it must still hear the report, on the same connection. A newer
+// connection replaces an older one, which then costs the reports nothing.
+func TestReportsOutliveFailures(t *testing.T) {
+	// A report the local store refuses far past any number of tries.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server, err := NewServer(nopHolder{}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.wait, server.retryBase = time.Minute, time.Microsecond
+	if err := server.report(&PackReport{PackId: "pack", Keys: [][]byte{{1}}}); err != nil {
+		t.Fatal(err)
+	}
+	apply := &slowApplier{stuck: "pack"}
+	client := NewClient(logrus.NewEntry(logrus.New()), apply)
+	defer connect(ctx, t, client, server)()
+	waitFor(t, func() bool {
+		server.mtx.Lock()
+		defer server.mtx.Unlock()
+		return server.pending[0].tries > 30
+	})
+
+	// A refusal takes its turn at once, not the minute a silent report waits,
+	// and recovery is heard. The refusal backs off, so shorten what remains.
+	server.mtx.Lock()
+	server.pending[0].notBefore = time.Time{}
+	server.mtx.Unlock()
+	apply.mtx.Lock()
+	apply.stuck = ""
+	apply.mtx.Unlock()
+	server.poke()
+	waitFor(t, func() bool { return apply.applied.Load() == 1 })
+
+	// A second connection ends the first.
+	near, far := net.Pipe()
+	defer near.Close()
+	done := make(chan error, 1)
+	go func() { done <- server.Serve(ctx, far) }()
+	waitFor(t, func() bool {
+		client.mtx.Lock()
+		defer client.mtx.Unlock()
+		return client.out == nil
+	})
+	_ = near.Close()
+	<-done
 }

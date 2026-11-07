@@ -294,8 +294,8 @@ func (c *Client) disconnect() {
 	}
 }
 
-// applyReports applies each report and acknowledges it. An unapplied report
-// goes unacknowledged, and the node sends it again.
+// applyReports applies each report and answers it. The node sends a report that
+// failed again later.
 func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, out chan<- []byte) {
 	for {
 		// Take the next report.
@@ -307,11 +307,11 @@ func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, o
 		}
 
 		// Apply it, and say so.
-		if err := c.applier.ApplyPack(ctx, report); err != nil {
+		err := c.applier.ApplyPack(ctx, report)
+		if err != nil {
 			c.le.WithError(err).WithField("pack", report.GetPackId()).Warn("unable to apply a reported pack")
-			continue
 		}
-		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId()}}})
+		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId(), Failed: err != nil}}})
 		if err != nil {
 			continue
 		}

@@ -32,11 +32,10 @@ const maxReadsInFlight = 32
 // takes its turn.
 const reportWait = 30 * time.Second
 
-// maxReportTries bounds the tries of one report per process, so a report that
-// can never apply, such as for a pack since merged away, stops taking turns.
-// Its blocks stay queued for the local upload, and its file keeps it for the
-// next start.
-const maxReportTries = 20
+// maxReportBackoff bounds the wait between tries of a report that keeps failing,
+// such as one for a pack since merged away. It keeps trying, so a local store
+// that recovers hears every report, and it takes few turns from the others.
+const maxReportBackoff = time.Hour
 
 // Holder keeps pushed blocks: packahead.Log does.
 type Holder interface {
@@ -59,11 +58,15 @@ type Server struct {
 	wait time.Duration
 	// wake tells the report routine that pending changed.
 	wake chan struct{}
+	// retryBase is the wait after a report's first failed try.
+	retryBase time.Duration
 	// packs serves reads, or is nil on a node that serves none.
 	packs *PackFiles
 
-	// mtx guards pending.
+	// mtx guards pending and stop.
 	mtx sync.Mutex
+	// stop ends the live connection, nil with none up.
+	stop context.CancelFunc
 	// pending lists the reports the local store has not applied, next first.
 	pending []*pendingReport
 }
@@ -72,6 +75,8 @@ type Server struct {
 type pendingReport struct {
 	id    string
 	tries int
+	// notBefore is when it may be sent again.
+	notBefore time.Time
 }
 
 // NewServer builds a Server keeping its reports in dir, and resumes the
@@ -81,7 +86,7 @@ func NewServer(holder Holder, dir string) (*Server, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
-	s := &Server{holder: holder, dir: dir, wait: reportWait, wake: make(chan struct{}, 1)}
+	s := &Server{holder: holder, dir: dir, wait: reportWait, retryBase: reportWait, wake: make(chan struct{}, 1)}
 
 	// An empty report was applied. The sizes come from the directory walk, so
 	// this reads no report.
@@ -106,10 +111,20 @@ func (s *Server) SetPacks(packs *PackFiles) {
 	s.packs = packs
 }
 
-// Serve runs conn until it ends.
+// Serve runs conn until it ends. A newer connection ends an older one: the
+// local store that dialed last is the one listening, and one routine owns the
+// reports.
 func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
-	// End the connection's work on the way out.
+	// Replace the older connection.
 	ctx, cancel := context.WithCancel(ctx)
+	s.mtx.Lock()
+	if s.stop != nil {
+		s.stop()
+	}
+	s.stop = cancel
+	s.mtx.Unlock()
+
+	// End the connection's work on the way out.
 	out := make(chan []byte, maxFramesQueued)
 	var running sync.WaitGroup
 	defer func() {
@@ -168,6 +183,11 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 				send(ctx, out, s.read(body.Read))
 			}()
 		case *Message_PackApplied:
+			if body.PackApplied.GetFailed() {
+				s.rotate(body.PackApplied.GetPackId())
+				s.poke()
+				continue
+			}
 			if err := s.applied(body.PackApplied.GetPackId()); err != nil {
 				return err
 			}
@@ -265,15 +285,21 @@ func (s *Server) applied(id string) error {
 
 // sendReports sends the pending reports to out, one at a time, until ctx ends.
 func (s *Server) sendReports(ctx context.Context, out chan<- []byte) {
-	var sent string
+	// sent is the try in flight: a report that failed comes back as a new try.
+	var sent reportTry
 	timer := time.NewTimer(s.wait)
 	defer timer.Stop()
 	for {
-		// Send the next report, unless it is the one still in flight.
-		if id := s.nextReport(); id != "" && id != sent {
-			s.sendReport(ctx, out, id)
-			sent = id
+		// Send the next report due, unless that try is still in flight.
+		next, due := s.nextReport(time.Now())
+		switch {
+		case next.id != "" && next != sent:
+			s.sendReport(ctx, out, next.id)
+			sent = next
 			timer.Reset(s.wait)
+		case next.id == "" && due > 0:
+			sent = reportTry{}
+			timer.Reset(due)
 		}
 
 		// Wait for a change, or for the report's turn to end.
@@ -282,25 +308,42 @@ func (s *Server) sendReports(ctx context.Context, out chan<- []byte) {
 			return
 		case <-s.wake:
 		case <-timer.C:
-			s.rotate(sent)
-			sent = ""
+			if sent.id != "" {
+				s.rotate(sent.id)
+			}
+			sent = reportTry{}
 			timer.Reset(s.wait)
 		}
 	}
 }
 
-// nextReport returns the report whose turn it is, or "" with none pending.
-func (s *Server) nextReport() string {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if len(s.pending) == 0 {
-		return ""
-	}
-	return s.pending[0].id
+// reportTry is one try of a report.
+type reportTry struct {
+	id    string
+	tries int
 }
 
-// rotate ends report id's turn, sending it to the back of the line, or out of
-// it once it used its tries.
+// nextReport returns the first report due at now, or none and how long until
+// one is due, zero with none pending.
+func (s *Server) nextReport(now time.Time) (reportTry, time.Duration) {
+	// Reports are in line in the order of their turns.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	var due time.Duration
+	for _, report := range s.pending {
+		wait := report.notBefore.Sub(now)
+		if wait <= 0 {
+			return reportTry{id: report.id, tries: report.tries}, 0
+		}
+		if due == 0 || wait < due {
+			due = wait
+		}
+	}
+	return reportTry{}, due
+}
+
+// rotate ends report id's turn, sending it to the back of the line to wait
+// longer the more tries it has failed.
 func (s *Server) rotate(id string) {
 	// Find the report, which may have been applied meanwhile.
 	s.mtx.Lock()
@@ -310,12 +353,13 @@ func (s *Server) rotate(id string) {
 		return
 	}
 
-	// Take it out, and put it back if it has tries left.
+	// Double its wait, up to the bound.
 	report := s.pending[i]
 	s.pending = slices.Delete(s.pending, i, i+1)
-	if report.tries++; report.tries < maxReportTries {
-		s.pending = append(s.pending, report)
-	}
+	wait := min(s.retryBase<<min(report.tries, 16), maxReportBackoff)
+	report.tries++
+	report.notBefore = time.Now().Add(wait)
+	s.pending = append(s.pending, report)
 }
 
 // sendReport sends report id from its file.

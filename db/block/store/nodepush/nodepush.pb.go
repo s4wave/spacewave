@@ -304,6 +304,9 @@ type PackApplied struct {
 	unknownFields []byte
 	// pack_id is the reported pack's name.
 	PackId string `protobuf:"bytes,1,opt,name=pack_id,json=packId,proto3" json:"packId,omitempty"`
+	// failed says the local store could not apply it yet, so the node tries
+	// again later rather than waiting out the report's turn.
+	Failed bool `protobuf:"varint,2,opt,name=failed,proto3" json:"failed,omitempty"`
 }
 
 func (x *PackApplied) Reset() {
@@ -317,6 +320,13 @@ func (x *PackApplied) GetPackId() string {
 		return x.PackId
 	}
 	return ""
+}
+
+func (x *PackApplied) GetFailed() bool {
+	if x != nil {
+		return x.Failed
+	}
+	return false
 }
 
 // Read asks for a byte range of a pack the node may hold on its disk.
@@ -606,6 +616,7 @@ func (m *PackApplied) CloneVT() *PackApplied {
 	}
 	r := new(PackApplied)
 	r.PackId = m.PackId
+	r.Failed = m.Failed
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -918,6 +929,9 @@ func (this *PackApplied) EqualVT(that *PackApplied) bool {
 		return false
 	}
 	if this.PackId != that.PackId {
+		return false
+	}
+	if this.Failed != that.Failed {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1409,6 +1423,11 @@ func (x *PackApplied) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("packId")
 		s.WriteString(x.PackId)
 	}
+	if x.Failed || s.HasField("failed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failed")
+		s.WriteBool(x.Failed)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1429,6 +1448,9 @@ func (x *PackApplied) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "pack_id", "packId":
 			s.AddField("pack_id")
 			x.PackId = s.ReadString()
+		case "failed":
+			s.AddField("failed")
+			x.Failed = s.ReadBool()
 		}
 	})
 }
@@ -2017,6 +2039,11 @@ func (m *PackApplied) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Failed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Failed)
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.PackId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackId)
 		i--
@@ -2306,6 +2333,7 @@ func (m *PackApplied) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Failed)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2504,6 +2532,10 @@ func (x *PackApplied) MarshalProtoText() string {
 	if x.PackId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_id")
 		protobuf_go_lite.TextWriteString(&sb, x.PackId)
+	}
+	if x.Failed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Failed)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3081,6 +3113,16 @@ func (m *PackApplied) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PackId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Failed = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

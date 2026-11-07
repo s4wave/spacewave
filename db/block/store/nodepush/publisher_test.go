@@ -54,7 +54,7 @@ func publication(t *testing.T, after *block.PublicationReceipt) *block.AtomicPub
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &block.AtomicPublication{After: after, Entries: []*block.PutBatchEntry{{Data: []byte("x"), Ref: ref}}}
+	return &block.AtomicPublication{After: after, Entries: []*block.PutBatchEntry{{Data: []byte("x"), Ref: ref, RefsKnown: true}}}
 }
 
 func resolved(r *block.PublicationReceipt) bool {
@@ -131,6 +131,9 @@ func TestPublisherReceipts(t *testing.T) {
 		t.Fatalf("receipt result %v", second.Err())
 	}
 
+	// Receipts resolve in commit order, whatever the node does: the second
+	// waited for the first above, though its local commit failed first.
+
 	// A silent node costs the wait and no error, and the send has ended by the
 	// time the receipt returns the borrow of the entries.
 	n.flush = nil
@@ -144,6 +147,29 @@ func TestPublisherReceipts(t *testing.T) {
 		t.Fatalf("silent node: err %v, sends running %d", silent.Err(), n.running.Load())
 	}
 
+	// After a timeout commits stop waiting for the node for a while, and a
+	// publication with unknown refs is never pushed.
+	sends := n.sends.Load()
+	quiet, err := p.SubmitAtomic(ctx, publication(t, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n.sends.Load() != sends || quiet != local.receipts[4] {
+		t.Fatal("a commit waited for a node that just timed out")
+	}
+	local.receipts[4].Resolve(nil)
+	p.quietUntil.Store(0)
+	unknown := publication(t, nil)
+	unknown.Entries[0].RefsKnown = false
+	plain, err := p.SubmitAtomic(ctx, unknown)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n.sends.Load() != sends || plain != local.receipts[5] {
+		t.Fatal("pushed a block with unknown refs")
+	}
+	local.receipts[5].Resolve(nil)
+
 	// A slow local commit gives the node all of its time past the wait.
 	n.flush = make(chan error, 1)
 	slow, err := p.SubmitAtomic(ctx, publication(t, nil))
@@ -152,7 +178,7 @@ func TestPublisherReceipts(t *testing.T) {
 	}
 	time.Sleep(60 * time.Millisecond)
 	n.flush <- nil
-	local.receipts[4].Resolve(nil)
+	local.receipts[6].Resolve(nil)
 	waitDone(t, slow)
 	p.Close()
 	if results.Load() != 4 {

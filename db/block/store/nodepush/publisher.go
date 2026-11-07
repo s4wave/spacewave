@@ -6,12 +6,16 @@ package block_store_nodepush
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 )
+
+// quietFor is how long commits stop waiting for a node that timed out.
+const quietFor = 5 * time.Second
 
 // Sender delivers blocks to the storage node.
 type Sender interface {
@@ -40,12 +44,20 @@ type Publisher struct {
 
 	// on is the runtime switch; off, a publication is the local one.
 	on *atomic.Bool
+	// quietUntil is the Unix time in nanoseconds before which commits don't
+	// wait for a node that timed out.
+	quietUntil atomic.Int64
 	// running joins the pushes of accepted publications.
 	running sync.WaitGroup
+
+	// mtx guards last.
+	mtx sync.Mutex
+	// last is the newest outer receipt.
+	last *block.PublicationReceipt
 }
 
 // NewPublisher wraps inner, waiting at least wait for the node on each
-// publication while on is set. result may be nil.
+// publication while on is set. A nil on leaves the push off. result may be nil.
 func NewPublisher(inner block.AtomicPublisher, sender Sender, wait time.Duration, on *atomic.Bool, result Result) *Publisher {
 	return &Publisher{AtomicPublisher: inner, sender: sender, wait: wait, on: on, result: result}
 }
@@ -64,22 +76,79 @@ func (p *Publisher) SubmitAtomic(ctx context.Context, publication *block.AtomicP
 
 	// Push what the publication stores, if anything.
 	entries := pushed(publication.Entries)
-	if len(entries) == 0 || !p.on.Load() {
+	if len(entries) == 0 || !p.pushing() {
+		entries = nil
+	}
+
+	// A receipt also waits for the one before it, so the writer hears its
+	// commits in order however long the node takes with each.
+	previous := p.previousOuter()
+	if entries == nil && previous == nil {
 		return receipt, nil
 	}
-	outer := block.NewOuterPublicationReceipt(receipt)
+	return p.finishOuter(receipt, entries, previous), nil
+}
+
+// finishOuter returns the receipt that resolves with local once entries are
+// pushed and previous, which may be nil, has resolved.
+func (p *Publisher) finishOuter(local *block.PublicationReceipt, entries []*block.PutBatchEntry, previous *block.PublicationReceipt) *block.PublicationReceipt {
+	// Later receipts order behind this one.
+	outer := block.NewOuterPublicationReceipt(local)
+	p.setPrevious(outer)
+
+	// Run the rest beside the commit.
 	p.running.Add(1)
 	go func() {
+		// Push what there is to push.
 		defer p.running.Done()
-		p.push(entries, receipt)
-		outer.ResolveExisted(receipt.Err(), receipt.Existed(), receipt.Counting())
+		if entries != nil {
+			p.push(entries, local)
+		}
+
+		// Resolve once the local commit and the receipt before are done.
+		<-local.Done()
+		if previous != nil {
+			<-previous.Done()
+		}
+		outer.ResolveExisted(local.Err(), local.Existed(), local.Counting())
 	}()
-	return outer, nil
+	return outer
+}
+
+// pushing reports whether to send the next publication: the switch is on, and
+// the node did not just time out. A node that went silent, which no connection
+// error reports, then costs one wait and not one for each commit.
+func (p *Publisher) pushing() bool {
+	return p.on != nil && p.on.Load() && time.Now().UnixNano() >= p.quietUntil.Load()
+}
+
+// previousOuter returns the last outer receipt still waiting, or nil.
+func (p *Publisher) previousOuter() *block.PublicationReceipt {
+	// A resolved receipt orders nothing.
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if p.last == nil {
+		return nil
+	}
+	select {
+	case <-p.last.Done():
+		p.last = nil
+	default:
+	}
+	return p.last
+}
+
+// setPrevious records the newest outer receipt.
+func (p *Publisher) setPrevious(outer *block.PublicationReceipt) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	p.last = outer
 }
 
 // PublishAtomic submits a publication and waits for its result with
 // cancellation disabled after admission.
 func (p *Publisher) PublishAtomic(ctx context.Context, publication *block.AtomicPublication) error {
+	// Submit, then wait with cancellation disabled.
 	receipt, err := p.SubmitAtomic(ctx, publication)
 	if err != nil {
 		return err
@@ -118,17 +187,22 @@ func (p *Publisher) push(entries []*block.PutBatchEntry, local *block.Publicatio
 	// Send, and hold the receipt until the local commit is done as well.
 	started := time.Now()
 	err := p.sender.Send(ctx, entries)
+	if errors.Is(err, context.Canceled) {
+		p.quietUntil.Store(time.Now().Add(quietFor).UnixNano())
+	}
 	if p.result != nil {
 		p.result(err, time.Since(started))
 	}
 	<-local.Done()
 }
 
-// pushed returns the entries that store a block.
+// pushed returns the entries that store a block with known refs. An entry with
+// unknown refs stays with the local upload: adopted, the node's copy could
+// replace a copy that knows them.
 func pushed(entries []*block.PutBatchEntry) []*block.PutBatchEntry {
 	out := make([]*block.PutBatchEntry, 0, len(entries))
 	for _, entry := range entries {
-		if entry != nil && !entry.Tombstone && !entry.Ref.GetEmpty() {
+		if entry != nil && !entry.Tombstone && !entry.Ref.GetEmpty() && entry.RefsKnown {
 			out = append(out, entry)
 		}
 	}

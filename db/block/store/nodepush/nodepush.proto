@@ -71,6 +71,9 @@ message PackReport {
 message PackApplied {
   // pack_id is the reported pack's name.
   string pack_id = 1;
+  // failed says the local store could not apply it yet, so the node tries
+  // again later rather than waiting out the report's turn.
+  bool failed = 2;
 }
 
 // Read asks for a byte range of a pack the node may hold on its disk.
