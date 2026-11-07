@@ -38,16 +38,22 @@ const packUploads = 4
 // The caller must exclusively own the local World for the operation's lifetime,
 // and the destination Space must have one publisher at a time.
 func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata, opts cdn_publish.Options) (*sobject.SOCheckpointInner, error) {
+	checkpoint, _, err := publish(ctx, eng, metadata, opts)
+	return checkpoint, err
+}
+
+// publish is Publish, also returning the head the checkpoint posted.
+func publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata, opts cdn_publish.Options) (*sobject.SOCheckpointInner, *bucket.ObjectRef, error) {
 	// Require explicit cloud authority and a complete release before exporting.
 	if eng == nil || opts.Client == nil || opts.DstSpaceID == "" || opts.OwnerKeyPem == "" || opts.CdnBaseURL == "" {
-		return nil, errors.New("release World, session, destination Space, owner key, and CDN URL are required")
+		return nil, nil, errors.New("release World, session, destination Space, owner key, and CDN URL are required")
 	}
 	if err := metadata.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	head, blocks, err := collectBlocks(ctx, eng, metadata)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if opts.Logger != nil {
 		opts.Logger.WithField("blocks", len(blocks)).Info("verified release content")
@@ -56,7 +62,7 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	// Fetch the published pack entries.
 	entries, err := cdn_publish.FetchPackEntries(ctx, opts.Client, opts.DstSpaceID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Exact pack indexes prove presence; Bloom filters only narrow the search.
@@ -71,7 +77,7 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	}
 	exists, err := remote.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
-		return nil, errors.Wrap(err, "check published release blocks")
+		return nil, nil, errors.Wrap(err, "check published release blocks")
 	}
 
 	// Keep the missing blocks apart from the closure, which reclaim needs.
@@ -112,13 +118,13 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		err = waitErr
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "upload release packs")
+		return nil, nil, errors.Wrap(err, "upload release packs")
 	}
 
 	// The signed checkpoint is the sole publication point after all packs are durable.
 	checkpoint, err := cdn_publish.PostCheckpoint(ctx, opts, head)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// A destination that keeps every pack replaces none.
@@ -126,7 +132,7 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		if opts.Logger != nil {
 			opts.Logger.Info("kept every published pack")
 		}
-		return checkpoint, nil
+		return checkpoint, head, nil
 	}
 
 	// Drop the content no longer reachable from the posted head. The release
@@ -140,7 +146,7 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 			log.Info("reclaimed unreferenced release content")
 		}
 	}
-	return checkpoint, nil
+	return checkpoint, head, nil
 }
 
 // packedBlock retains a content-addressed block from the verified local
