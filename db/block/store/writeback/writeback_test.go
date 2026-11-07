@@ -752,3 +752,93 @@ func TestRPCWritesRetainUploadMarkers(t *testing.T) {
 		}
 	}
 }
+
+// locatingStore is a remote whose index answers from located, or fails.
+type locatingStore struct {
+	block.StoreOps
+	located map[string]bool
+	err     error
+	puts    int
+}
+
+// LocateBlocks answers from located.
+func (l *locatingStore) LocateBlocks(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if l.err != nil {
+		return nil, l.err
+	}
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		out[i] = l.located[ref.MarshalString()]
+	}
+	return out, nil
+}
+
+// PutBlockBatch counts the blocks written.
+func (l *locatingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	l.puts += len(entries)
+	return l.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+// TestUploadSkipsLocatedBlocks drains blocks another writer uploaded without
+// reading them, and tries to lose one: a block the index does not name, a
+// lookup that fails, and the switch turned off all still upload.
+func TestUploadSkipsLocatedBlocks(t *testing.T) {
+	ctx := t.Context()
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+	put := func(data string) *block.BlockRef {
+		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{}}
+
+	// With the switch off, a located block uploads as before.
+	off := put("switch off")
+	remote.located[off.MarshalString()] = true
+	drain(t, s, remote)
+	if remote.puts != 1 {
+		t.Fatalf("switch off wrote %d blocks", remote.puts)
+	}
+	s.SetLocateUploaded(true)
+
+	// A located block clears unread, and one beside it still uploads.
+	remote.puts = 0
+	held, missing := put("held"), put("missing")
+	remote.located[held.MarshalString()] = true
+	drain(t, s, remote)
+	if remote.puts != 1 {
+		t.Fatalf("wrote %d blocks, want only the unlocated one", remote.puts)
+	}
+	if found, err := remote.GetBlockExists(ctx, missing); err != nil || !found {
+		t.Fatalf("unlocated block not uploaded: %v", err)
+	}
+	if env.isMarked(t, held) || env.isMarked(t, missing) {
+		t.Fatal("a marker stayed after the drain")
+	}
+
+	// A failed lookup uploads everything, though the index would have said yes.
+	remote.puts = 0
+	failed := put("lookup failed")
+	remote.located[failed.MarshalString()] = true
+	remote.err = errors.New("index unavailable")
+	drain(t, s, remote)
+	if remote.puts != 1 {
+		t.Fatalf("failed lookup wrote %d blocks", remote.puts)
+	}
+
+	// A lookup answering for the wrong number of blocks is not trusted either.
+	if got := s.locatedBlocks(ctx, shortLocator{remote}, make([]pendingBlock, 2)); got != nil {
+		t.Fatalf("short answer trusted: %v", got)
+	}
+}
+
+// shortLocator answers with one result, whatever it is asked.
+type shortLocator struct{ block.StoreOps }
+
+// LocateBlocks answers for one block.
+func (shortLocator) LocateBlocks(context.Context, []*block.BlockRef) ([]bool, error) {
+	return []bool{true}, nil
+}

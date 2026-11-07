@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -87,6 +88,8 @@ type Store struct {
 	// lowered counts the transactions that lowered floor, guarded by bcast,
 	// so clear raises it only when none lowered it since clear read it.
 	lowered uint64
+	// locate skips uploading the blocks the remote already holds.
+	locate atomic.Bool
 	// reads bounds the upload's local reads in flight by the disk's load.
 	reads *readGate
 	// fills queues blocks read from the remote for their local writes.

@@ -428,15 +428,58 @@ func (s *Store) uploadRound(ctx context.Context, remote block.StoreOps, round up
 	return eg.Wait()
 }
 
+// BlockLocator is a remote that can say which blocks it holds from a local
+// index, without reading the remote.
+type BlockLocator interface {
+	// LocateBlocks reports, for each ref, whether the remote holds it.
+	LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+}
+
+// SetLocateUploaded turns on skipping the blocks the remote already holds,
+// such as those another writer uploaded. With it off, Upload reads and writes
+// every queued block.
+func (s *Store) SetLocateUploaded(on bool) {
+	s.locate.Store(on)
+}
+
+// locatedBlocks reports which blocks of batch the remote holds, or nil to
+// upload them all. A failed lookup uploads them: a repeated block is only
+// stored twice, and a block wrongly skipped could lose its last copy.
+func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch []pendingBlock) []bool {
+	// Only a remote with an index can answer without reading the remote.
+	locator, ok := remote.(BlockLocator)
+	if !ok || !s.locate.Load() {
+		return nil
+	}
+
+	// Ask about the whole batch at once.
+	refs := make([]*block.BlockRef, len(batch))
+	for i := range batch {
+		refs[i] = batch[i].ref
+	}
+	located, err := locator.LocateBlocks(ctx, refs)
+	if err != nil || len(located) != len(batch) {
+		return nil
+	}
+	return located
+}
+
 // uploadChunk writes the batch's blocks with their refs to remote. A block the
-// local store no longer holds is marked dropped without upload. A block it
-// holds without its refs fails the batch, since the remote would keep it as a
-// leaf.
+// remote already holds is neither read nor written, and clears as uploaded. A
+// block the local store no longer holds is marked dropped without upload. A
+// block it holds without its refs fails the batch, since the remote would keep
+// it as a leaf.
 func (s *Store) uploadChunk(ctx context.Context, remote block.StoreOps, batch []pendingBlock) error {
+	// Leave out the blocks the remote holds.
+	located := s.locatedBlocks(ctx, remote, batch)
+
 	// Read the blocks with their refs from the local store, as many at once
 	// as the disk's load admits.
 	read := make([]*block.PutBatchEntry, len(batch))
 	err := s.reads.readEach(ctx, len(batch), func(ctx context.Context, i int) error {
+		if located != nil && located[i] {
+			return nil
+		}
 		entry, err := s.readPending(ctx, &batch[i])
 		read[i] = entry
 		return err
