@@ -13,6 +13,8 @@ import {
   ReadLogResponse,
   RefsRequest,
   RefsResponse,
+  RootsRequest,
+  RootsResponse,
   StatusRequest,
   StatusResponse,
   TrimLogRequest,
@@ -41,6 +43,19 @@ export const PackSweepAdminDefinition = {
       name: 'Status',
       I: StatusRequest,
       O: StatusResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Roots reads every named root, every ref the process pins, and the write
+     * log's position R, so every root and pin set since R is in the log after
+     * R.
+     *
+     * @generated from rpc block.packsweep.admin.PackSweepAdmin.Roots
+     */
+    Roots: {
+      name: 'Roots',
+      I: RootsRequest,
+      O: RootsResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -145,6 +160,18 @@ export interface PackSweepAdmin {
   ): Promise<StatusResponse>
 
   /**
+   * Roots reads every named root, every ref the process pins, and the write
+   * log's position R, so every root and pin set since R is in the log after
+   * R.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Roots
+   */
+  Roots(
+    request: RootsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RootsResponse>
+
+  /**
    * Locate returns the registered pack the index places each block in.
    *
    * @generated from rpc block.packsweep.admin.PackSweepAdmin.Locate
@@ -230,6 +257,19 @@ export interface PackSweepAdminHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<StatusResponse>
+
+  /**
+   * Roots reads every named root, every ref the process pins, and the write
+   * log's position R, so every root and pin set since R is in the log after
+   * R.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Roots
+   */
+  Roots(
+    request: RootsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RootsResponse>
 
   /**
    * Locate returns the registered pack the index places each block in.
@@ -320,6 +360,7 @@ export class PackSweepAdminClient implements PackSweepAdmin {
     this.service = opts?.service || PackSweepAdminServiceName
     this.rpc = rpc
     this.Status = this.Status.bind(this)
+    this.Roots = this.Roots.bind(this)
     this.Locate = this.Locate.bind(this)
     this.Refs = this.Refs.bind(this)
     this.Quarantine = this.Quarantine.bind(this)
@@ -345,6 +386,27 @@ export class PackSweepAdminClient implements PackSweepAdmin {
       abortSignal || undefined,
     )
     return StatusResponse.fromBinary(result)
+  }
+
+  /**
+   * Roots reads every named root, every ref the process pins, and the write
+   * log's position R, so every root and pin set since R is in the log after
+   * R.
+   *
+   * @generated from rpc block.packsweep.admin.PackSweepAdmin.Roots
+   */
+  async Roots(
+    request: RootsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RootsResponse> {
+    const requestMsg = RootsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PackSweepAdminDefinition.methods.Roots.name,
+      RootsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RootsResponse.fromBinary(result)
   }
 
   /**
