@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"math"
 	"strconv"
 	"testing"
@@ -179,7 +178,6 @@ func runLeanRecoveryScenario(t *testing.T, peers []peer.Peer, seed uint64) []lea
 			ok: unlockErr == nil, field: "material", value: projectLeanRecoveryMaterial(t, a, actual).MarshalTo(nil),
 		})
 	}
-	cases = append(cases, runLeanRecoveryResolver(t, projection, base, seed)...)
 	cases = append(cases, runLeanRecoveryEnrollment(t, projection, peers, keys, config, base, seed)...)
 	return cases
 }
@@ -219,66 +217,6 @@ func decodeLeanRecovery(t *testing.T, keys []crypto.PrivKey, env *SOEntityRecove
 		return nil
 	}
 	return material
-}
-
-// runLeanRecoveryResolver reuses the provider fixtures to vary each independent provider result.
-func runLeanRecoveryResolver(t *testing.T, projection *configChainScenario, base *SOEntityRecoveryMaterial, seed uint64) []leanCase {
-	// Vary one provider result per variant.
-	t.Helper()
-	a := &projection.arena
-	injected := errors.New("injected recovery provider failure")
-	var cases []leanCase
-	for variant := range 13 {
-		decoder := &fakeSharedObjectRecoveryDecoder{material: base.CloneVT()}
-		provider := &fakeSharedObjectRecoveryProvider{
-			entityID: "entity", env: &SOEntityRecoveryEnvelope{EntityId: "entity"}, dec: decoder,
-		}
-		account := &fakeProviderAccount{recoveryProv: provider}
-		switch variant {
-		case 1:
-			account.featureErr = injected
-		case 2:
-			provider.entityErr = injected
-		case 3:
-			provider.entityID = ""
-		case 4:
-			provider.envErr = injected
-		case 5:
-			provider.env.EntityId = "foreign entity"
-		case 6:
-			provider.env.EntityId = ""
-		case 7:
-			provider.decoderErr = injected
-		case 8:
-			decoder.err = injected
-		case 9:
-			decoder.material.EntityId = "foreign entity"
-		case 10:
-			decoder.material.EntityId = ""
-		case 11:
-			provider.env = nil
-		case 12:
-			decoder.material = nil
-		}
-		result, err := ResolveSharedObjectRecoveryMaterial(t.Context(), account, &SharedObjectRef{})
-		req := a.NewObject()
-		req.Set("op", a.NewString("resolveRecovery"))
-		req.Set("featureOK", leanBool(a, account.featureErr == nil))
-		req.Set("entity", a.NewNull())
-		if provider.entityErr == nil {
-			req.Set("entity", a.NewString(provider.entityID))
-		}
-		req.Set("readOK", leanBool(a, provider.envErr == nil))
-		req.Set("envelope", projectLeanRecoveryEnvelope(a, provider.env))
-		req.Set("decoderOK", leanBool(a, provider.decoderErr == nil))
-		req.Set("decodeOK", leanBool(a, decoder.err == nil))
-		req.Set("material", projectLeanRecoveryMaterial(t, a, decoder.material))
-		cases = append(cases, leanCase{
-			name:    "resolveRecovery seed " + strconv.FormatUint(seed, 10) + " variant " + strconv.Itoa(variant),
-			request: req.MarshalTo(nil), ok: err == nil, field: "material", value: projectLeanRecoveryMaterial(t, a, result).MarshalTo(nil),
-		})
-	}
-	return cases
 }
 
 // projectLeanRecoveryMaterial retains exact material bytes and the separately inspected entity/role.

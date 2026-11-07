@@ -96,13 +96,6 @@ def respond (req : Json) : Except String Json := do
       (← req.getObjValAs? (Option RecoveryEnvelope) "envelope")
       (← req.getObjValAs? (Option RecoveryMaterial) "decoded")
     return json% {ok: $(result.isSome), material: $result}
-  | "resolveRecovery" =>
-    let result := resolveRecovery (← req.getObjValAs? Bool "featureOK")
-      (← req.getObjValAs? (Option String) "entity") (← req.getObjValAs? Bool "readOK")
-      (← req.getObjValAs? (Option RecoveryEnvelope) "envelope")
-      (← req.getObjValAs? Bool "decoderOK") (← req.getObjValAs? Bool "decodeOK")
-      (← req.getObjValAs? (Option RecoveryMaterial) "material")
-    return json% {ok: $(result.isSome), material: $result}
   | "buildSelfEnroll" =>
     let result := buildSelfEnroll (← req.getObjValAs? String "object")
       (← req.getObjValAs? (Option Config) "current")

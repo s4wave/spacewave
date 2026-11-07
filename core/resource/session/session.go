@@ -449,7 +449,7 @@ func (r *SessionResource) mountSpaceResponse(
 	if err != nil {
 		return nil, err
 	}
-	mountedSpace, spaceBodyRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
+	mountedSpace, spaceBodyRef, err := sobject.ExMountSharedObjectBody[space.SpaceSharedObjectBody](
 		ctx,
 		r.b,
 		soRef,

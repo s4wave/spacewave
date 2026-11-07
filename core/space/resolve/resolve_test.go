@@ -124,7 +124,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	attachedMount, mountInstance, mountRef, err := bus.ExecOneOffTyped[space.MountSharedObjectBodyValue](
 		ctx,
 		tb.Bus,
-		sobject.NewMountSharedObjectBody(soRef, space.SpaceBodyType),
+		sobject.NewMountSharedObjectBody(soRef, space.SpaceBodyType, nil),
 		bus.ReturnIfIdle(false),
 		nil,
 	)

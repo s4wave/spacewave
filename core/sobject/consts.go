@@ -1,9 +1,6 @@
 package sobject
 
 const (
-	// MaxErrorDetailsSize is the maximum size in bytes for error details.
-	MaxErrorDetailsSize = 4096
-
 	// MaxBlockRefSize is the maximum size in bytes for block references.
 	MaxBlockRefSize = 256
 
@@ -15,9 +12,6 @@ const (
 	// leaving room for the entries the size accounting does not count and for
 	// the operation envelope.
 	MaxBatchSize = MaxInnerDataSize / 2
-
-	// MaxSignatureSize is the maximum size in bytes for signatures.
-	MaxSignatureSize = 512
 
 	// MaxOperations is the maximum number of operations above the checkpoint.
 	MaxOperations = 65536

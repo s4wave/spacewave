@@ -1,8 +1,6 @@
 package sobject
 
 import (
-	"context"
-
 	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/db/block"
@@ -19,11 +17,6 @@ func NewSharedObjectRef(providerID, providerAccountID, sobjectID, blockStoreID s
 		},
 		BlockStoreId: blockStoreID,
 	}
-}
-
-// UnmarshalSharedObjectRef unmarshals a SharedObjectRef from a block cursor.
-func UnmarshalSharedObjectRef(ctx context.Context, bcs *block.Cursor) (*SharedObjectRef, error) {
-	return block.UnmarshalBlock[SharedObjectRef](ctx, bcs)
 }
 
 // Validate validates the shared object ref.

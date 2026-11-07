@@ -1,17 +1,10 @@
 package sobject
 
-import (
-	"errors"
-
-	"github.com/aperturerobotics/util/ulid"
-)
+import "errors"
 
 var (
 	// ErrEmptySharedObjectID is returned if the shared object id was empty.
 	ErrEmptySharedObjectID = errors.New("shared object id cannot be empty")
-
-	// ErrInvalidSharedObjectID is returned if the shared object id was invalid.
-	ErrInvalidSharedObjectID = errors.New("invalid shared object id")
 
 	// ErrSharedObjectExists is returned if the shared object already exists.
 	ErrSharedObjectExists = errors.New("shared object with that id already exists")
@@ -69,9 +62,6 @@ var (
 
 	// ErrMaxCountExceeded is returned if a count limit is exceeded.
 	ErrMaxCountExceeded = errors.New("maximum count exceeded")
-
-	// ErrInvalidLocalOpID is returned if the local op id is invalid.
-	ErrInvalidLocalOpID = ulid.ErrInvalidULID
 
 	// ErrRejectedOp is returned if the op was rejected.
 	ErrRejectedOp = errors.New("rejected op")

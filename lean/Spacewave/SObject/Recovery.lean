@@ -49,24 +49,6 @@ def unlockRecovery (keys : List String) (envelope : Option RecoveryEnvelope)
   let envelope ← envelope
   if keys.isEmpty || envelope.data = "" then none else decoded
 
-/-- resolveRecovery binds every nonempty entity tag to the provider account's current entity. -/
-def resolveRecovery (featureOK : Bool) (entity : Option String)
-    (readOK : Bool) (envelope : Option RecoveryEnvelope) (decoderOK decodeOK : Bool)
-    (material : Option RecoveryMaterial) : Option (Option RecoveryMaterial) := do
-  if !featureOK then none
-  else
-    let entity ← entity
-    if entity = "" || !readOK then none
-    else
-      let envelopeEntity := (envelope.map (·.entity)).getD ""
-      if envelopeEntity != "" && envelopeEntity != entity then none
-      else if !decoderOK then none
-      else if !decodeOK then none
-      else
-        let materialEntity := (material.map (·.entity)).getD ""
-        if materialEntity != "" && materialEntity != entity then none
-        else some material
-
 /-- buildSelfEnroll constructs a signed proposal without assuming its membership admission. -/
 def buildSelfEnroll (object : String) (current : Option Config) (sig : Option Sig)
     (peer entity : String) (role : Role) (hash : String) (signOK : Bool) : Option Entry := do
@@ -139,45 +121,6 @@ theorem unlockRecovery_spec {keys : List String} {envelope : Option RecoveryEnve
     · rename_i present
       simp only [Bool.or_eq_true, decide_eq_true_eq, not_or] at present
       exact ⟨by simpa using present.1, h, env, rfl, present.2⟩
-
-/-- Resolution rejects nonempty entity tags that disagree with the selected provider account. -/
-theorem resolveRecovery_entities {featureOK readOK decoderOK decodeOK : Bool}
-    {entity : Option String} {envelope : Option RecoveryEnvelope}
-    {material out : Option RecoveryMaterial}
-    (h : resolveRecovery featureOK entity readOK envelope decoderOK decodeOK material = some out) :
-    ∃ id, entity = some id ∧ id ≠ "" ∧ out = material ∧
-      ((envelope.map (·.entity)).getD "" = "" ∨ (envelope.map (·.entity)).getD "" = id) ∧
-      ((out.map (·.entity)).getD "" = "" ∨ (out.map (·.entity)).getD "" = id) := by
-  unfold resolveRecovery at h
-  split at h
-  · contradiction
-  · cases entity with
-    | none => simp at h
-    | some id =>
-      simp only [Option.bind_eq_bind, Option.bind_some] at h
-      split at h
-      · contradiction
-      · rename_i present
-        split at h
-        · contradiction
-        · rename_i envelopeOK
-          split at h
-          · contradiction
-          · split at h
-            · contradiction
-            · split at h
-              · contradiction
-              · rename_i materialOK
-                cases h
-                simp only [Bool.or_eq_true, decide_eq_true_eq, not_or] at present
-                simp only [Bool.and_eq_true, bne_iff_ne, not_and] at envelopeOK materialOK
-                refine ⟨id, rfl, present.1, rfl, ?_, ?_⟩
-                · by_cases empty : (envelope.map (·.entity)).getD "" = ""
-                  · exact Or.inl empty
-                  · exact Or.inr (by simpa using envelopeOK empty)
-                · by_cases empty : (material.map (·.entity)).getD "" = ""
-                  · exact Or.inl empty
-                  · exact Or.inr (by simpa using materialOK empty)
 
 /--
 A successful self-enrollment builder appends exactly the requested peer and

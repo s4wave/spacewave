@@ -9,7 +9,6 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -90,12 +89,12 @@ func TestSharedObject(t *testing.T) {
 	// Test the state store
 	testStoreID := "test-local-store"
 	le.Debug("testing shared object local storage")
-	stateStoreRc := sobject.NewLocalStateStoreRefcount(testStoreID, so.AccessLocalStateStore)
-	stateStoreRc.SetContext(ctx)
-	err = stateStoreRc.Access(ctx, func(ctx context.Context, val kvtx.Store) error {
-		// test all
-		return kvtx_kvtest.TestAll(ctx, val)
-	})
+	store, relStore, err := so.AccessLocalStateStore(ctx, testStoreID, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = kvtx_kvtest.TestAll(ctx, store)
+	relStore()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
