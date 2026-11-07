@@ -140,28 +140,32 @@ func (a *Adapter) waitAnswers(ctx context.Context, fence []byte) ([]*block.Block
 }
 
 // holdFence copies the graph of each live root into the local store, skipping
-// each subtree it holds, and holds them all under the pass's fence root.
+// each subtree the copy's stage holds, and holds them all under the pass's
+// fence root.
 func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.BlockRef) error {
-	opts := &block.GraphCopyOptions{Known: a.so.GetBlockStore().GetBlockExistsBatch, Forget: true}
-	return a.copyAndHold(ctx, fenceRootPrefix+pass, live, opts)
+	return a.copyAndHold(ctx, fenceRootPrefix+pass, live, block.GraphCopyOptions{Forget: true}, false)
 }
 
 // copyAndHold copies the graph of each root from the kept pages and the read
 // path into the SharedObject's block store with opts, under a stage that holds
 // each copied block until the named root name holds one block naming every
-// root. The stage ends after the root moved, so no copied block is unheld in
-// between.
-func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.BlockRef, opts *block.GraphCopyOptions) error {
+// root. It skips only the subtrees the stage holds, as block.StageCopy
+// describes, unless recheck reads every block again. The stage ends after the
+// root moved, so no copied block is unheld in between.
+func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.BlockRef, opts block.GraphCopyOptions, recheck bool) error {
 	// Copy under a stage until the root holds them.
-	staged, release, err := block.OpenStage(ctx, a.so.GetBlockStore())
+	c, err := block.OpenStageCopy(ctx, a.so.GetBlockStore(), recheck)
 	if err != nil {
 		return err
 	}
-	defer release()
+	defer c.Release()
 	for _, root := range roots {
-		if err := block.CopyGraph(ctx, a.pages, staged, root, opts); err != nil {
+		if err := c.Copy(ctx, a.pages, root, opts); err != nil {
 			return errors.Wrapf(err, "copy root %s", root.MarshalString())
 		}
+	}
+	if err := c.Flush(ctx); err != nil {
+		return err
 	}
 
 	// Hold them under one block.

@@ -97,7 +97,12 @@ func (b *spaceBackfill) start(ctx context.Context) error {
 	b.choice.SetValue(enabled)
 	b.routine.SetContext(ctx, false)
 	b.routine.SetState(enabled)
-	return nil
+	if enabled {
+		return nil
+	}
+
+	// Release a root an earlier run left held when backfill turned off.
+	return b.a.moveRoots(ctx, nil, block.NamedRoot{Name: RootBackfill})
 }
 
 // set stores the choice and starts or stops the copy. Stopping clears its
@@ -108,12 +113,20 @@ func (b *spaceBackfill) set(ctx context.Context, enabled bool) error {
 		return err
 	}
 
-	// Publish it and start or stop the copy. Stopping releases what the
-	// copy held and clears its outcome.
+	// Publish it and start or stop the copy. Stopping waits for the copy to
+	// exit, since one already moving its root lands it, then releases what
+	// the copy held and clears its outcome.
 	b.choice.SetValue(enabled)
-	b.routine.SetState(enabled)
+	exited, _, _, _ := b.routine.SetState(enabled)
 	if enabled {
 		return nil
+	}
+	if exited != nil {
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-exited:
+		}
 	}
 	b.state.SetValue(nil)
 	return b.a.moveRoots(ctx, nil, block.NamedRoot{Name: RootBackfill})
@@ -184,13 +197,13 @@ func (b *spaceBackfill) execute(ctx context.Context, _ bool) error {
 
 // copy copies the graph of each root into the local store and holds them all
 // under the backfill root, and returns the number of blocks no reachable store
-// held. A recheck reads every block again; a copy
-// skips each subtree the local store already holds.
+// held. A copy skips each subtree its stage holds, which a completion proof
+// on the local store lets it hold; a recheck reads every block again.
 func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, recheck bool) (uint32, error) {
 	// Copy and hold each root, counting the blocks no store held.
 	start := time.Now()
 	var holes uint32
-	opts := &block.GraphCopyOptions{
+	opts := block.GraphCopyOptions{
 		Forget: true,
 		Missing: func(_ context.Context, ref *block.BlockRef) error {
 			holes++
@@ -198,10 +211,7 @@ func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, reche
 			return nil
 		},
 	}
-	if !recheck {
-		opts.Known = b.a.so.GetBlockStore().GetBlockExistsBatch
-	}
-	if err := b.a.copyAndHold(ctx, RootBackfill, roots, opts); err != nil {
+	if err := b.a.copyAndHold(ctx, RootBackfill, roots, opts, recheck); err != nil {
 		return 0, err
 	}
 	b.a.le.WithField("dur", time.Since(start).String()).WithField("holes", holes).Debug("backfilled the World")

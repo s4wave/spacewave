@@ -42,7 +42,7 @@ func TestAdmitWaitsOnlyForTheRootSwap(t *testing.T) {
 func measureAdmitWait(t *testing.T, mib int) (wait, store time.Duration) {
 	// Keep a World of mib MiB of 4 KiB pages, two levels deep, and a payload.
 	ctx := t.Context()
-	a, _ := newVolumeAdapter(t, (mib+8)<<20)
+	a, _ := newVolumeAdapter(t, (mib+8)<<20, time.Nanosecond)
 	put := func(data []byte, children ...*block.BlockRef) *block.BlockRef {
 		t.Helper()
 		ref, err := block.BuildBlockRef(data, nil)
