@@ -40,6 +40,12 @@ func (a *Args) trashFlags() []cli.Flag {
 	return append(flags, &cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves})
 }
 
+// restoreFlags configures the restore: the trash's, and the packs to bring
+// back besides those reads missed.
+func (a *Args) restoreFlags() []cli.Flag {
+	return append(a.trashFlags(), &cli.StringSliceFlag{Name: "pack", Usage: "a trashing or removed pack to restore besides those reads missed; repeat for each", Destination: &a.Packs})
+}
+
 // removeFlags configures the removal, which reaches the backend only.
 func (a *Args) removeFlags() []cli.Flag {
 	return append(a.scratchFlags(), a.adminURLFlag())
@@ -154,10 +160,10 @@ func (a *Args) runTrash(*cli.Context) error {
 	})
 }
 
-// runRestore moves the missed packs back from the trash.
+// runRestore moves the missed and the named packs back from the trash.
 func (a *Args) runRestore(*cli.Context) error {
 	return a.runMoves(func(ctx context.Context, opts *packsweep.TrashOptions) (func(*fastjson.Arena) *fastjson.Value, error) {
-		res, err := packsweep.Restore(ctx, opts)
+		res, err := packsweep.Restore(ctx, &packsweep.RestoreOptions{TrashOptions: *opts, Packs: a.Packs.Value()})
 		if err != nil {
 			return nil, err
 		}
