@@ -31,6 +31,7 @@ const (
 	closureFrontierPrefix = "y/c/f/"
 	logPullKey            = "y/l/pull"
 	cyclePrefix           = "y/"
+	packRecordPrefix      = "q/"
 )
 
 // Tail returns the tail of a block key.
