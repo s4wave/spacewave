@@ -2,7 +2,7 @@ package kvtx
 
 // SplitOptions adjusts a CopyStoreSplitting.
 type SplitOptions struct {
-	// Drop reports the blocks the copy leaves out, as CopyStoreDropping
+	// Drop reports the blocks the copy leaves out, as CopyStoreSplitting
 	// describes; nil keeps every block.
 	Drop DropBlocks
 	// Kept returns keys the copy writes beside each block it keeps while Drop

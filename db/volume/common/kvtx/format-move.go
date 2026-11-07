@@ -64,26 +64,26 @@ func rekeyBatch(ctx context.Context, store kvtx.Store, prefix, start []byte, rek
 
 	// Rewrite each record under its new key and delete the original.
 	for _, m := range moves {
-		key, err := rekey(m.key)
+		key, err := rekey(m.Key)
 		if err != nil {
 			return nil, err
 		}
-		if err := tx.Set(ctx, key, m.value); err != nil {
+		if err := tx.Set(ctx, key, m.Value); err != nil {
 			return nil, err
 		}
-		if err := tx.Delete(ctx, m.key); err != nil {
+		if err := tx.Delete(ctx, m.Key); err != nil {
 			return nil, err
 		}
 	}
 	if err := kvtx.CommitOrdered(ctx, tx); err != nil || !more {
 		return nil, err
 	}
-	return keyAfter(moves[len(moves)-1].key), nil
+	return keyAfter(moves[len(moves)-1].Key), nil
 }
 
 // collectMoves copies up to migrateBatchBytes of the records under prefix at
 // or after start, and reports whether more remain.
-func collectMoves(ctx context.Context, tx kvtx.Tx, prefix, start []byte) ([]keyValue, bool, error) {
+func collectMoves(ctx context.Context, tx kvtx.Tx, prefix, start []byte) ([]CopyKey, bool, error) {
 	// Position the sorted iterator at start.
 	it := tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
@@ -92,7 +92,7 @@ func collectMoves(ctx context.Context, tx kvtx.Tx, prefix, start []byte) ([]keyV
 	}
 
 	// Copy records until the batch fills.
-	var moves []keyValue
+	var moves []CopyKey
 	var size int
 	for ; it.Valid() && size < migrateBatchBytes; it.Next() {
 		value, err := it.ValueCopy(nil)
@@ -100,13 +100,8 @@ func collectMoves(ctx context.Context, tx kvtx.Tx, prefix, start []byte) ([]keyV
 			return nil, false, err
 		}
 		key := bytes.Clone(it.Key())
-		moves = append(moves, keyValue{key: key, value: value})
+		moves = append(moves, CopyKey{Key: key, Value: value})
 		size += len(key) + len(value)
 	}
 	return moves, it.Valid(), it.Err()
-}
-
-// keyValue is one key and its value.
-type keyValue struct {
-	key, value []byte
 }
