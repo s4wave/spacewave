@@ -191,7 +191,8 @@ func newStore(
 			return err
 		}
 
-		// Take the queue's kept count when its ends are the queue's.
+		// Take the queue's kept count when its ends are the queue's and it
+		// counts an entry for a queue that holds one.
 		resume, end = nil, nil
 		kept, found, err := readQueueCount(ctx, tx, pendingKey)
 		if err != nil {
@@ -201,7 +202,8 @@ func newStore(
 		if err != nil {
 			return err
 		}
-		if found && !recountAtOpen.Load() && bytes.Equal(kept.first, first) && bytes.Equal(kept.last, last) {
+		trusted := found && !recountAtOpen.Load() && bytes.Equal(kept.first, first) && bytes.Equal(kept.last, last) && (first == nil || kept.n > 0)
+		if trusted {
 			pending, pendingBytes = kept.n, kept.bytes
 			if first != nil {
 				if oldest, err = (queueItem{key: first}).at(); err != nil {
@@ -813,6 +815,10 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		// Apply the cleared counts and the new head, then wake watchers.
 		s.status.Pending -= cleared
 		s.status.PendingBytes -= clearedBytes
+		if !bytes.Equal(head, []byte(queueEnd)) {
+			s.status.Pending = max(s.status.Pending, 1)
+			s.status.PendingBytes = max(s.status.PendingBytes, 0)
+		}
 		s.status.Uploaded += int64(uploaded)
 		s.status.UploadedBytes += uploadedBytes
 		s.status.EvictableBytes += queuedBytes
@@ -830,7 +836,8 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 // removeQueued takes the entries a clear deleted off the queue's count kept,
 // with head the queue's first key after it, nil for an empty queue, and
 // lastGone set when it deleted the last key. An empty queue counts zero
-// whatever the count held. With no count kept it drops the delta of an open's
+// whatever the count held, and a queue with an entry left counts at least
+// one, so a count low from a writer that kept none never reads empty. With no count kept it drops the delta of an open's
 // count, which cannot take removals, so the next open counts the queue again.
 func (s *Store) removeQueued(ctx context.Context, tx kvtx.Tx, kept queueCount, found bool, n int, size int64, head []byte, lastGone bool) error {
 	// Leave the next open to count, with no count kept.
@@ -845,8 +852,8 @@ func (s *Store) removeQueued(ctx context.Context, tx kvtx.Tx, kept queueCount, f
 	if head == nil {
 		return writeQueueCount(ctx, tx, pendingKey, queueCount{})
 	}
-	kept.n -= n
-	kept.bytes -= size
+	kept.n = max(kept.n-n, 1)
+	kept.bytes = max(kept.bytes-size, 0)
 	kept.first = head
 	if lastGone {
 		last, err := queueLast(ctx, tx)

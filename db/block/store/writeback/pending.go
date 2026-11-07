@@ -20,11 +20,15 @@ import (
 // in the same snapshot produces. queueMarks adds only the entries it creates,
 // clear removes only the entries it deletes, and SetEnabled empties both. A
 // writer that changes the queue without it, such as an older build of this
-// package, leaves it stale; the first and last keys catch such a writer's
-// appends and head clears at open, which then counts the queue again. A
-// clear in the middle it misses leaves the count high, never low, so the
-// upload never sleeps with entries queued, and a clear that empties the queue
-// sets it to zero.
+// package, leaves it stale. Such a writer's inserts at the head or the tail,
+// and its clears of the head, change the first or last key, which an open
+// checks and then counts the queue again; for those the count is high, never
+// low. One inserting strictly inside, such as a backfill at the epoch behind
+// an epoch entry, or a write after the clock stepped back, leaves it low.
+// Then a clear with an entry left keeps it at one or more, the status too,
+// and an open counts again when it holds none with the queue not empty, so
+// the upload never sleeps with entries queued. A clear that empties the
+// queue sets it to zero.
 const pendingKey = "queue-pending"
 
 // pendingDeltaKey holds the entries queued since an open that found no valid

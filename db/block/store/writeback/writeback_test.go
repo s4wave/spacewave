@@ -3,6 +3,7 @@ package block_store_writeback
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -1139,6 +1140,76 @@ func TestQueueCount(t *testing.T) {
 	}
 	s = env.newStore(t, true)
 	check(s, "after the queue emptied")
+
+	// A writer that keeps no count inserting strictly inside the queue leaves
+	// the count low. Clears past it keep the count and the status at one, so
+	// the upload still takes the entry; an open that finds none counted with
+	// the queue not empty counts again.
+	var counted []*block.BlockRef
+	for i := range 4 {
+		counted = append(counted, put(s, fmt.Sprintf("counted %d", i)))
+	}
+	inside, err := block.BuildBlockRef([]byte("inserted inside by an old build"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rawQueue(t, env, inside, func(tx kvtx.Tx, h *hash.Hash) {
+		first, _, err := queueEnds(ctx, tx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		at, err := (queueItem{key: first}).at()
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := queueKey(queueTime(at.Add(time.Nanosecond)), h)
+		if err := tx.Set(ctx, markedKey(h), key); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, key, queueValue(31, time.Time{})); err != nil {
+			t.Fatal(err)
+		}
+	})
+	hashes := make([]*hash.Hash, len(counted))
+	for i, ref := range counted {
+		remote.located[ref.MarshalString()] = true
+		hashes[i] = ref.GetHash()
+	}
+	s.SetLocateUploaded(&on)
+	if err := s.ClearLocated(ctx, remote, hashes); err != nil {
+		t.Fatal(err)
+	}
+	kept, _ := keptQueueCount(t, env)
+	if status, _ := s.GetStatus(); recountQueue(t, env).n != 1 || kept.n != 1 || status.Pending != 1 {
+		t.Fatalf("kept %d, status %d with %d queued after clears past an uncounted entry, want one each", kept.n, status.Pending, recountQueue(t, env).n)
+	}
+	rawQueue(t, env, nil, func(tx kvtx.Tx, _ *hash.Hash) {
+		kept.n = 0
+		if err := writeQueueCount(ctx, tx, pendingKey, kept); err != nil {
+			t.Fatal(err)
+		}
+	})
+	s = env.newStore(t, true)
+	if err := s.waitCounted(ctx); err != nil {
+		t.Fatal(err)
+	}
+	check(s, "after an open found none counted")
+	upCtx, stopUpload = context.WithCancel(ctx)
+	go func() { uploaded <- s.Upload(upCtx, newInmemBlockStore()) }()
+	deadline := time.Now().Add(10 * time.Second)
+	for recountQueue(t, env).n != 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("the upload slept with the uncounted entry queued")
+		}
+		_, changed := s.GetStatus()
+		select {
+		case <-changed:
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	stopUpload()
+	<-uploaded
+	check(s, "after the upload took the uncounted entry")
 
 	// Turning uploads off empties the queue and its count.
 	put(s, "before uploads stop")
