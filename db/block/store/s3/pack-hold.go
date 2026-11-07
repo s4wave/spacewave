@@ -409,15 +409,16 @@ func (s *PackStore) movedSince(moves uint64) bool {
 }
 
 // publishHeld publishes the held pack the index places ref in, reading its
-// entry from the index, and reports whether any pack is held.
-func (s *PackStore) publishHeld(ctx context.Context, ref *block.BlockRef) (bool, error) {
+// entry from the index, and returns it, "" when the index places ref in no
+// held pack, and whether any pack is held.
+func (s *PackStore) publishHeld(ctx context.Context, ref *block.BlockRef) (string, bool, error) {
 	// Find the held pack the key's row names.
 	if s.index == nil || s.index.heldCount.Load() == 0 || ref.GetHash() == nil {
-		return false, nil
+		return "", false, nil
 	}
 	id, err := s.index.heldPack(ctx, packfile.BlockKey(ref.GetHash()))
 	if err != nil || id == "" {
-		return true, err
+		return "", true, err
 	}
 
 	// Read and publish its entry unless it is published.
@@ -426,29 +427,52 @@ func (s *PackStore) publishHeld(ctx context.Context, ref *block.BlockRef) (bool,
 		published = s.heldEntries[id] != nil
 	})
 	if published {
-		return true, nil
+		return id, true, nil
 	}
 	entries, err := s.index.readEntries(ctx, []string{id})
 	if err != nil {
-		return true, err
+		return id, true, err
 	}
 	s.updateEntries(entries, nil)
-	return true, nil
+	return id, true, nil
+}
+
+// trashedRead records the read of ref as a miss when err is a read that
+// found the file of placed, the trashing pack the index places ref in, gone
+// to the trash, and returns err naming the pack. The command then restores
+// the pack rather than remove it.
+func (s *PackStore) trashedRead(ctx context.Context, placed string, ref *block.BlockRef, err error) error {
+	// Leave any other failure as it is.
+	if placed == "" || !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	if state, _ := s.index.heldState(placed); state != PackTrashing {
+		return err
+	}
+
+	// Record the miss, then fail the read.
+	if nerr := s.noteFallback(ctx, placed, ref); nerr != nil {
+		return nerr
+	}
+	return errors.Wrapf(err, "pack %s is in the trash", placed)
 }
 
 // readHeld reads a block every registered pack lacks from the held packs,
 // lifting the quarantined pack that serves it, or nil when none holds it.
 func (s *PackStore) readHeld(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Publish the held pack the index places the block in.
-	holding, err := s.publishHeld(ctx, ref)
+	placed, holding, err := s.publishHeld(ctx, ref)
 	if err != nil || !holding {
 		return nil, err
 	}
 
 	// Read it, and record the read before returning the block.
 	stored, id, err := s.held.GetStoredBlockPack(ctx, ref)
-	if err != nil || stored == nil {
-		return nil, err
+	if err != nil {
+		return nil, s.trashedRead(ctx, placed, ref, err)
+	}
+	if stored == nil {
+		return nil, nil
 	}
 	if err := s.noteFallback(ctx, id, ref); err != nil {
 		return nil, err
@@ -459,15 +483,18 @@ func (s *PackStore) readHeld(ctx context.Context, ref *block.BlockRef) (*block.S
 // statHeld is readHeld for StatBlock.
 func (s *PackStore) statHeld(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	// Publish the held pack the index places the block in.
-	holding, err := s.publishHeld(ctx, ref)
+	placed, holding, err := s.publishHeld(ctx, ref)
 	if err != nil || !holding {
 		return nil, err
 	}
 
 	// Stat it, and record the read before answering.
 	stat, id, err := s.held.StatBlockPack(ctx, ref)
-	if err != nil || stat == nil {
-		return nil, err
+	if err != nil {
+		return nil, s.trashedRead(ctx, placed, ref, err)
+	}
+	if stat == nil {
+		return nil, nil
 	}
 	if err := s.noteFallback(ctx, id, ref); err != nil {
 		return nil, err
