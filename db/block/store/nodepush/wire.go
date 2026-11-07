@@ -11,7 +11,7 @@ import (
 
 // maxMessageBytes bounds one frame. A publication's blocks fit well inside it;
 // a larger one is left to the local upload.
-const maxMessageBytes = 64 << 20
+const maxMessageBytes = 16 << 20
 
 // encodeMessage returns msg as one frame.
 func encodeMessage(msg *Message) ([]byte, error) {

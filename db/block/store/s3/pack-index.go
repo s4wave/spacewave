@@ -479,9 +479,13 @@ func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry,
 // The pack is not in the manifest until this returns, so no lookup trusts its
 // row early. A pack of at most indexBatchKeys keys takes one transaction.
 func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
-	// Number the pack, indexed in memory: the manifest does not hold it yet.
+	// Number the pack, or keep the number of an earlier attempt that failed,
+	// so its durable rows stay right.
 	x.mtx.Lock()
-	row := x.nextRow(entry.GetId(), true)
+	row, numbered := x.rows[entry.GetId()]
+	if !numbered {
+		row = x.nextRow(entry.GetId(), false)
+	}
 	x.mtx.Unlock()
 
 	// Write the slices, the rows with the first and the marker with the last.
@@ -494,6 +498,14 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 			return err
 		}
 	}
+
+	// Only now is every key in the index: Indexed tells a drain or an adopter
+	// that the pack is registered, and it then stops retrying.
+	x.mtx.Lock()
+	row.indexed = true
+	x.rows[entry.GetId()] = row
+	x.mtx.Unlock()
+	x.version.Add(1)
 	return nil
 }
 

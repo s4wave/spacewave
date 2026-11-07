@@ -7,8 +7,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -21,7 +23,17 @@ const reportSuffix = ".report"
 
 // maxPushesInFlight bounds the pushes one connection appends at once, which
 // share the log's flushes.
-const maxPushesInFlight = 64
+const maxPushesInFlight = 16
+
+// reportWait is how long a report waits for its answer before the next one
+// takes its turn.
+const reportWait = 30 * time.Second
+
+// maxReportTries bounds the tries of one report per process, so a report that
+// can never apply, such as for a pack since merged away, stops taking turns.
+// Its blocks stay queued for the local upload, and its file keeps it for the
+// next start.
+const maxReportTries = 20
 
 // Holder keeps pushed blocks: packahead.Log does.
 type Holder interface {
@@ -32,55 +44,82 @@ type Holder interface {
 // Server is the node's end of the connection. It holds pushes in a Holder and
 // reports each pack a ReportingRemote uploaded until the local store applies
 // it, across restarts of either side.
+//
+// One report is in flight at a time, sent by the connection's own routine and
+// repeated until answered. So reports can't fill the connection that carries
+// the answers commits wait for, and the upload never waits on a connection.
 type Server struct {
 	holder Holder
 	// dir holds one report file per uploaded pack.
 	dir string
+	// wait is how long a report waits for its answer.
+	wait time.Duration
+	// wake tells the report routine that pending changed.
+	wake chan struct{}
 
-	// mtx guards out.
+	// mtx guards pending.
 	mtx sync.Mutex
-	// out takes frames for the live connection, nil while none is up.
-	out chan []byte
+	// pending lists the reports the local store has not applied, next first.
+	pending []*pendingReport
 }
 
-// NewServer builds a Server keeping its reports in dir.
+// pendingReport is a report not yet applied.
+type pendingReport struct {
+	id    string
+	tries int
+}
+
+// NewServer builds a Server keeping its reports in dir, and resumes the
+// reports an earlier process left unapplied.
 func NewServer(holder Holder, dir string) (*Server, error) {
+	// Open the directory.
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
-	return &Server{holder: holder, dir: dir}, nil
+	s := &Server{holder: holder, dir: dir, wait: reportWait, wake: make(chan struct{}, 1)}
+
+	// An empty report was applied. The sizes come from the directory walk, so
+	// this reads no report.
+	names, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range names {
+		id, ok := strings.CutSuffix(name.Name(), reportSuffix)
+		if !ok {
+			continue
+		}
+		if info, err := name.Info(); err == nil && info.Size() != 0 {
+			s.pending = append(s.pending, &pendingReport{id: id})
+		}
+	}
+	return s, nil
 }
 
-// Serve runs conn until it ends. A newer connection replaces an older one, so
-// reports go to the local store that is listening.
+// Serve runs conn until it ends.
 func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
-	// Publish the connection.
-	ctx, cancel := context.WithCancel(ctx)
-	out := make(chan []byte, 64)
-	s.publish(out)
-
 	// End the connection's work on the way out.
+	ctx, cancel := context.WithCancel(ctx)
+	out := make(chan []byte, maxFramesQueued)
 	var running sync.WaitGroup
 	defer func() {
 		cancel()
 		_ = conn.Close()
 		running.Wait()
-		s.retire(out)
 	}()
 
 	// Write frames until the connection ends.
-	running.Add(1)
+	running.Add(2)
 	go func() {
 		defer running.Done()
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
 	}()
 
-	// Repeat every report the local store has not applied.
-	running.Add(1)
+	// Send the pending reports, one at a time.
 	go func() {
 		defer running.Done()
-		s.repeatReports(ctx, out)
+		s.sendReports(ctx, out)
 	}()
 
 	// Take pushes, appending several at once so they share a flush.
@@ -112,22 +151,6 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 	}
 }
 
-// publish makes out the live connection's frames.
-func (s *Server) publish(out chan []byte) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	s.out = out
-}
-
-// retire clears out unless a newer connection replaced it.
-func (s *Server) retire(out chan []byte) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if s.out == out {
-		s.out = nil
-	}
-}
-
 // hold makes push durable and returns its answer.
 func (s *Server) hold(ctx context.Context, push *Push) *Message {
 	// Check the batch against the sum the local store computed.
@@ -150,27 +173,34 @@ func (s *Server) hold(ctx context.Context, push *Push) *Message {
 	return &Message{Body: &Message_Flushed{Flushed: &Flushed{Id: push.GetId()}}}
 }
 
-// report records pack id's report durably and offers it to the live
-// connection.
-func (s *Server) report(ctx context.Context, report *PackReport) error {
+// report records pack id's report durably and queues it. It waits on no
+// connection, so the upload carries on with the local store away.
+func (s *Server) report(report *PackReport) error {
 	// Write the report whole, then name it.
 	data, err := report.MarshalVT()
 	if err != nil {
 		return err
 	}
-	path := s.reportPath(report.GetPackId())
-	if err := writeDurable(path, data); err != nil {
+	if err := writeDurable(s.reportPath(report.GetPackId()), data); err != nil {
 		return err
 	}
 
-	// A connection that misses it hears it on the next repeat.
+	// Queue it unless an earlier upload of the same pack did.
 	s.mtx.Lock()
-	out := s.out
-	s.mtx.Unlock()
-	if out != nil {
-		send(ctx, out, &Message{Body: &Message_PackReport{PackReport: report}})
+	if !slices.ContainsFunc(s.pending, func(p *pendingReport) bool { return p.id == report.GetPackId() }) {
+		s.pending = append(s.pending, &pendingReport{id: report.GetPackId()})
 	}
+	s.mtx.Unlock()
+	s.poke()
 	return nil
+}
+
+// poke wakes the report routine.
+func (s *Server) poke() {
+	select {
+	case s.wake <- struct{}{}:
+	default:
+	}
 }
 
 // reported reports whether pack id has a durable report, applied or not.
@@ -182,33 +212,89 @@ func (s *Server) reported(id string) bool {
 // applied records that the local store applied pack id, keeping the empty file
 // so a restarted drain knows the pack needs no new report.
 func (s *Server) applied(id string) error {
+	// Ignore a repeat.
 	if !s.reported(id) {
 		return nil
 	}
-	return writeDurable(s.reportPath(id), nil)
+	if err := writeDurable(s.reportPath(id), nil); err != nil {
+		return err
+	}
+
+	// Let the next report take its turn.
+	s.mtx.Lock()
+	s.pending = slices.DeleteFunc(s.pending, func(p *pendingReport) bool { return p.id == id })
+	s.mtx.Unlock()
+	s.poke()
+	return nil
 }
 
-// repeatReports sends each unapplied report to out.
-func (s *Server) repeatReports(ctx context.Context, out chan<- []byte) {
-	// Walk the report files, one read at a time.
-	names, err := os.ReadDir(s.dir)
+// sendReports sends the pending reports to out, one at a time, until ctx ends.
+func (s *Server) sendReports(ctx context.Context, out chan<- []byte) {
+	var sent string
+	timer := time.NewTimer(s.wait)
+	defer timer.Stop()
+	for {
+		// Send the next report, unless it is the one still in flight.
+		if id := s.nextReport(); id != "" && id != sent {
+			s.sendReport(ctx, out, id)
+			sent = id
+			timer.Reset(s.wait)
+		}
+
+		// Wait for a change, or for the report's turn to end.
+		select {
+		case <-ctx.Done():
+			return
+		case <-s.wake:
+		case <-timer.C:
+			s.rotate(sent)
+			sent = ""
+			timer.Reset(s.wait)
+		}
+	}
+}
+
+// nextReport returns the report whose turn it is, or "" with none pending.
+func (s *Server) nextReport() string {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if len(s.pending) == 0 {
+		return ""
+	}
+	return s.pending[0].id
+}
+
+// rotate ends report id's turn, sending it to the back of the line, or out of
+// it once it used its tries.
+func (s *Server) rotate(id string) {
+	// Find the report, which may have been applied meanwhile.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	i := slices.IndexFunc(s.pending, func(p *pendingReport) bool { return p.id == id })
+	if i < 0 {
+		return
+	}
+
+	// Take it out, and put it back if it has tries left.
+	report := s.pending[i]
+	s.pending = slices.Delete(s.pending, i, i+1)
+	if report.tries++; report.tries < maxReportTries {
+		s.pending = append(s.pending, report)
+	}
+}
+
+// sendReport sends report id from its file.
+func (s *Server) sendReport(ctx context.Context, out chan<- []byte, id string) {
+	// A file that can't be read waits for its turn to end.
+	data, err := os.ReadFile(s.reportPath(id))
 	if err != nil {
 		return
 	}
-	for _, name := range names {
-		if !strings.HasSuffix(name.Name(), reportSuffix) {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(s.dir, name.Name()))
-		if err != nil || len(data) == 0 {
-			continue
-		}
-		report := &PackReport{}
-		if err := report.UnmarshalVT(data); err != nil {
-			continue
-		}
-		send(ctx, out, &Message{Body: &Message_PackReport{PackReport: report}})
+	report := &PackReport{}
+	if err := report.UnmarshalVT(data); err != nil {
+		return
 	}
+	send(ctx, out, &Message{Body: &Message_PackReport{PackReport: report}})
 }
 
 // reportPath returns pack id's report file.
@@ -304,7 +390,7 @@ func (r *ReportingRemote) PutPackFile(ctx context.Context, id string, data []byt
 	if err != nil {
 		return nil, err
 	}
-	if err := r.server.report(ctx, &PackReport{PackId: id, Entry: encoded, Keys: keys}); err != nil {
+	if err := r.server.report(&PackReport{PackId: id, Entry: encoded, Keys: keys}); err != nil {
 		return nil, err
 	}
 	return entry, nil

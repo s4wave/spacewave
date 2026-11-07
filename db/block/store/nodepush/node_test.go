@@ -2,9 +2,13 @@ package block_store_nodepush
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -127,6 +131,7 @@ func TestNodeRunThrough(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	server.wait = 20 * time.Millisecond
 	apply := &applier{refuse: true, applied: map[string][][]byte{}, changed: make(chan struct{}, 1)}
 	client := NewClient(logrus.NewEntry(logrus.New()), apply)
 
@@ -184,6 +189,7 @@ func TestNodeRunThrough(t *testing.T) {
 	apply.mtx.Unlock()
 	end = connect(ctx, t, client, server)
 	waitFor(t, func() bool { return apply.count() == 1 })
+	waitFor(t, func() bool { return server.nextReport() == "" })
 	for id, keys := range apply.applied {
 		if len(keys) != 1 || string(keys[0]) != string(key) {
 			t.Fatalf("pack %s reported keys %x", id, keys)
@@ -229,4 +235,143 @@ func TestNodeRunThrough(t *testing.T) {
 	if err := client.Send(ctx, []*block.PutBatchEntry{entry(t, "late")}); !errors.Is(err, ErrNodeAway) {
 		t.Fatalf("send after the connection ended: %v", err)
 	}
+}
+
+// nopHolder takes every push at once.
+type nopHolder struct{}
+
+// Append holds nothing.
+func (nopHolder) Append(context.Context, []packahead.Block) error { return nil }
+
+// slowApplier takes delay to apply each report, and refuses the pack stuck.
+type slowApplier struct {
+	delay   atomic.Int64
+	applied atomic.Int64
+	stuck   string
+}
+
+// ApplyPack counts the report after the delay.
+func (a *slowApplier) ApplyPack(ctx context.Context, report *PackReport) error {
+	if report.GetPackId() == a.stuck {
+		return errors.New("pack merged away")
+	}
+	select {
+	case <-time.After(time.Duration(a.delay.Load())):
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	a.applied.Add(1)
+	return nil
+}
+
+// TestReportsNeverWedgeCommits runs a backlog of large reports beside commit
+// load over a real socket, the load that once filled both directions and
+// stopped the connection for good. One report that can never apply must not
+// hold back the rest, and every other must apply on a live connection.
+func TestReportsNeverWedgeCommits(t *testing.T) {
+	// A node with a backlog, starting with a report that never applies.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dir := t.TempDir()
+	keys := make([][]byte, 2000)
+	for i := range keys {
+		keys[i] = make([]byte, 34)
+	}
+	const packs = 300
+	for i := range packs {
+		id := fmt.Sprintf("pack%04d", i)
+		data, err := (&PackReport{PackId: id, Keys: keys}).MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := writeDurable(filepath.Join(dir, id+reportSuffix), data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	server, err := NewServer(nopHolder{}, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.wait = 30 * time.Millisecond
+
+	// Connect over TCP.
+	apply := &slowApplier{stuck: "pack0000"}
+	apply.delay.Store(int64(time.Millisecond))
+	client := NewClient(logrus.NewEntry(logrus.New()), apply)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	go func() {
+		if conn, err := listener.Accept(); err == nil {
+			_ = server.Serve(ctx, conn)
+		}
+	}()
+	go func() {
+		_ = client.Run(ctx, func(context.Context) (net.Conn, error) {
+			return net.Dial("tcp", listener.Addr().String())
+		}, time.Millisecond)
+	}()
+	waitFor(t, func() bool {
+		client.mtx.Lock()
+		defer client.mtx.Unlock()
+		return client.out != nil
+	})
+
+	// Commit load throughout, giving up quickly as a Publisher does.
+	big := entry(t, strings.Repeat("x", 1<<20))
+	stop := make(chan struct{})
+	var load sync.WaitGroup
+	for range 4 {
+		load.Add(1)
+		go func() {
+			defer load.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				sendCtx, done := context.WithTimeout(ctx, 20*time.Millisecond)
+				_ = client.Send(sendCtx, []*block.PutBatchEntry{big})
+				done()
+			}
+		}()
+	}
+
+	// Every report but the stuck one applies, with the load still running.
+	waitFor(t, func() bool { return apply.applied.Load() == packs-1 })
+	close(stop)
+	load.Wait()
+
+	// The connection still answers a commit at once.
+	sendCtx, done := context.WithTimeout(ctx, 3*time.Second)
+	defer done()
+	if err := client.Send(sendCtx, []*block.PutBatchEntry{entry(t, "after")}); err != nil {
+		t.Fatalf("send after the load: %v", err)
+	}
+}
+
+// TestReportWaitsOnNoConnection checks that an upload finishes with no
+// connection up, and that the report reaches the next one.
+func TestReportWaitsOnNoConnection(t *testing.T) {
+	// Report more packs than any queue holds, with nobody connected.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server, err := NewServer(nopHolder{}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 3 * maxFramesQueued {
+		if err := server.report(&PackReport{PackId: fmt.Sprintf("pack%04d", i), Keys: [][]byte{{1}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A connection hears them all.
+	apply := &slowApplier{}
+	client := NewClient(logrus.NewEntry(logrus.New()), apply)
+	defer connect(ctx, t, client, server)()
+	waitFor(t, func() bool { return apply.applied.Load() == 3*maxFramesQueued })
 }

@@ -757,9 +757,10 @@ func TestRPCWritesRetainUploadMarkers(t *testing.T) {
 // locatingStore is a remote whose index answers from located, or fails.
 type locatingStore struct {
 	block.StoreOps
-	located map[string]bool
-	err     error
-	puts    int
+	located  map[string]bool
+	err      error
+	puts     int
+	reclaims bool
 }
 
 // LocateBlocks answers from located.
@@ -773,6 +774,9 @@ func (l *locatingStore) LocateBlocks(_ context.Context, refs []*block.BlockRef) 
 	}
 	return out, nil
 }
+
+// KeepsBlocks reports the store's setting.
+func (l *locatingStore) KeepsBlocks() bool { return !l.reclaims }
 
 // PutBlockBatch counts the blocks written.
 func (l *locatingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
@@ -832,6 +836,15 @@ func TestUploadSkipsLocatedBlocks(t *testing.T) {
 		t.Fatalf("failed lookup wrote %d blocks", remote.puts)
 	}
 
+	// A remote that reclaims needs the upload, located or not.
+	remote.puts, remote.err, remote.reclaims = 0, nil, true
+	reclaimed := put("reclaiming remote")
+	remote.located[reclaimed.MarshalString()] = true
+	drain(t, s, remote)
+	if remote.puts != 1 {
+		t.Fatalf("reclaiming remote wrote %d blocks", remote.puts)
+	}
+
 	// A lookup answering for the wrong number of blocks is not trusted either.
 	if got := s.locatedBlocks(ctx, shortLocator{remote}, make([]pendingBlock, 2)); got != nil {
 		t.Fatalf("short answer trusted: %v", got)
@@ -845,3 +858,6 @@ type shortLocator struct{ block.StoreOps }
 func (shortLocator) LocateBlocks(context.Context, []*block.BlockRef) ([]bool, error) {
 	return []bool{true}, nil
 }
+
+// KeepsBlocks says the remote keeps what it holds.
+func (shortLocator) KeepsBlocks() bool { return true }

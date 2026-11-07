@@ -13,8 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// reportRetry is how long a report that failed to apply waits for its next try.
-const reportRetry = 5 * time.Second
+// maxFramesQueued bounds the frames waiting for the socket, each at most
+// maxMessageBytes, including those of pushes that gave up.
+const maxFramesQueued = 16
 
 // ErrNodeAway is returned by Send while no connection to the node is up.
 var ErrNodeAway = errors.New("storage node away")
@@ -155,7 +156,7 @@ func deliver(answer chan<- error, err error) {
 func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 	// Publish the connection, and on the way out fail what it carried.
 	ctx, cancel := context.WithCancel(ctx)
-	out := make(chan []byte, 64)
+	out := make(chan []byte, maxFramesQueued)
 	c.mtx.Lock()
 	c.out = out
 	c.mtx.Unlock()
@@ -174,7 +175,7 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
 	}()
-	reports := make(chan *PackReport, 64)
+	reports := make(chan *PackReport, 2)
 	go func() {
 		defer running.Done()
 		c.applyReports(ctx, reports, out)
@@ -193,10 +194,12 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 		case *Message_Refused:
 			c.answer(body.Refused.GetId(), errors.New(body.Refused.GetReason()))
 		case *Message_PackReport:
+			// Never block here: this loop carries the answers every commit
+			// waits for. The node sends one report at a time and repeats it,
+			// so a report that does not fit is heard again.
 			select {
 			case reports <- body.PackReport:
-			case <-ctx.Done():
-				return ctx.Err()
+			default:
 			}
 		}
 	}
@@ -213,20 +216,9 @@ func (c *Client) disconnect() {
 	}
 }
 
-// retryReport offers report again after a pause, unless the connection ends
-// first: the node then repeats it on the next one.
-func (c *Client) retryReport(ctx context.Context, reports chan<- *PackReport, report *PackReport) {
-	time.AfterFunc(reportRetry, func() {
-		select {
-		case reports <- report:
-		case <-ctx.Done():
-		}
-	})
-}
-
 // applyReports applies each report and acknowledges it. An unapplied report
-// goes unacknowledged and is tried again.
-func (c *Client) applyReports(ctx context.Context, reports chan *PackReport, out chan<- []byte) {
+// goes unacknowledged, and the node sends it again.
+func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, out chan<- []byte) {
 	for {
 		// Take the next report.
 		var report *PackReport
@@ -239,7 +231,6 @@ func (c *Client) applyReports(ctx context.Context, reports chan *PackReport, out
 		// Apply it, and say so.
 		if err := c.applier.ApplyPack(ctx, report); err != nil {
 			c.le.WithError(err).WithField("pack", report.GetPackId()).Warn("unable to apply a reported pack")
-			c.retryReport(ctx, reports, report)
 			continue
 		}
 		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId()}}})

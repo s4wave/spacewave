@@ -6,9 +6,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
@@ -92,6 +95,59 @@ func TestAdoptPack(t *testing.T) {
 	}
 	if data, found, err := restarted.GetBlock(ctx, refs[2]); err != nil || !found || string(data) != "node block 2" {
 		t.Fatalf("read after restart = %q, %v, %v", data, found, err)
+	}
+}
+
+// failingIndex fails its write transactions while failing is set.
+type failingIndex struct {
+	kvtx.Store
+	failing atomic.Bool
+}
+
+// NewTransaction refuses a write while failing is set.
+func (f *failingIndex) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write && f.failing.Load() {
+		return nil, errors.New("index write failed")
+	}
+	return f.Store.NewTransaction(ctx, write)
+}
+
+// TestAdoptFailedIndexWrite checks that a pack whose index write failed does
+// not count as registered, so its repeat registers it rather than reporting a
+// success that left it unreadable.
+func TestAdoptFailedIndexWrite(t *testing.T) {
+	// A local store with an index that can fail, and a pack from the node.
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	kv := &failingIndex{Store: hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())}
+	local := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
+	t.Cleanup(local.Close)
+	adoptBlocks(ctx, t, local, "own", 1)
+	node := newTestPackStore(t, client)
+	refs := adoptBlocks(ctx, t, node, "node", 3)
+	entry := nodeEntry(ctx, t, node)
+	keys := make([][]byte, len(refs))
+	for i, ref := range refs {
+		keys[i] = packfile.BlockKey(ref.GetHash())
+	}
+
+	// The failed adoption reports failure and registers nothing.
+	kv.failing.Store(true)
+	if err := local.AdoptPack(ctx, entry, keys); err == nil {
+		t.Fatal("adoption succeeded over a failed index write")
+	}
+	kv.failing.Store(false)
+	if held, err := local.HasPackfile(ctx, entry.GetId()); err != nil || held {
+		t.Fatalf("failed pack counts as held: %v %v", held, err)
+	}
+
+	// The repeat registers it for real.
+	if err := local.AdoptPack(ctx, entry, keys); err != nil {
+		t.Fatal(err)
+	}
+	found, err := local.LocateBlocks(ctx, refs)
+	if err != nil || !found[0] || !found[1] || !found[2] {
+		t.Fatalf("located %v after the repeat: %v", found, err)
 	}
 }
 

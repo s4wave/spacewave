@@ -53,6 +53,11 @@ func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry
 	return nil
 }
 
+// KeepsBlocks reports that the store never reclaims a block it holds.
+func (s *PackStore) KeepsBlocks() bool {
+	return s.keepPacks
+}
+
 // verifyAdopted reads the pack's index from the bucket and returns it, or an
 // error unless it holds exactly keys.
 func (s *PackStore) verifyAdopted(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) ([]byte, error) {
