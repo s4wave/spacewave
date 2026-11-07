@@ -6,8 +6,16 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// unknownSampleSize bounds the unknown blocks a Mark lists by name.
-const unknownSampleSize = 8
+// sampleSize bounds the blocks a result lists by name for each finding.
+const sampleSize = 8
+
+// sample returns s with ref appended while s holds fewer than sampleSize.
+func sample(s []*block.BlockRef, ref *block.BlockRef) []*block.BlockRef {
+	if len(s) < sampleSize {
+		return append(s, ref)
+	}
+	return s
+}
 
 // Mark is what a walk from a Volume's named roots through child lists
 // reached. It is the audit of the counts and the collector: it never frees.
@@ -18,7 +26,7 @@ type Mark struct {
 	// a child list. The blocks they name are not reached and may be live, so
 	// a Volume with any is not adopted.
 	Unknown int
-	// UnknownSample names up to unknownSampleSize of the unknown blocks.
+	// UnknownSample names up to sampleSize of the unknown blocks.
 	UnknownSample []*block.BlockRef
 	// Absent counts the reached blocks the store holds neither the bytes nor
 	// the child list of: holes, which name nothing a reader can reach.
@@ -100,8 +108,6 @@ func (m *Mark) noteUnlisted(ctx context.Context, ref *block.BlockRef, stored fun
 
 	// Count and sample an unknown block.
 	m.Unknown++
-	if len(m.UnknownSample) < unknownSampleSize {
-		m.UnknownSample = append(m.UnknownSample, ref)
-	}
+	m.UnknownSample = sample(m.UnknownSample, ref)
 	return nil
 }

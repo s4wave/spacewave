@@ -35,7 +35,7 @@ type AdoptResult struct {
 	// Unknown counts the holders naming a block whose bytes the Volume stores
 	// without a child list. Any refuses the adoption.
 	Unknown uint64
-	// UnknownSample names up to unknownSampleSize of the blocks.
+	// UnknownSample names up to sampleSize of the blocks.
 	UnknownSample []*block.BlockRef
 }
 
@@ -106,13 +106,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	}
 
 	// Clear what an earlier run left while the claim stands.
-	claimed := func(state *LivenessState) bool {
-		return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
-	}
-	if err := clearKinds(ctx, store, claimed, adoptionKinds...); err != nil {
-		return res, err
-	}
-	if err := clearFills(ctx, store, claimed); err != nil {
+	if err := clearRun(ctx, store, run); err != nil {
 		return res, err
 	}
 
@@ -124,7 +118,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 		if err != nil {
 			return err
 		}
-		if !claimed(state) {
+		if !claimedBy(state, run) {
 			return ErrAdoptSuperseded
 		}
 		if state.GetUnverifiedLists() {
@@ -189,14 +183,8 @@ func inRun(ctx context.Context, rec *Records, run string) (*LivenessState, error
 // it journals nothing more. A Volume calls it when it opens: the adoption
 // that marked it ended with the process.
 func ResetAdoption(ctx context.Context, store Store) error {
-	_, err := resetAdoption(ctx, store)
+	_, err := claimAdoption(ctx, store, "")
 	return err
-}
-
-// resetAdoption returns an adopting Volume to unadopted, superseding the run
-// that marked it, and reports whether the Volume is adopted.
-func resetAdoption(ctx context.Context, store Store) (bool, error) {
-	return claimAdoption(ctx, store, "")
 }
 
 // claimAdoption returns a Volume that is not adopted to unadopted under run,
@@ -257,13 +245,7 @@ func abandonAdopt(ctx context.Context, store Store, run string, cause error) err
 
 	// Delete what a failed run wrote, stopping once another run starts.
 	if err == nil && ours && !interrupted {
-		abandoned := func(state *LivenessState) bool {
-			return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
-		}
-		err = clearKinds(ctx, store, abandoned, adoptionKinds...)
-		if err == nil {
-			err = clearFills(ctx, store, abandoned)
-		}
+		err = clearRun(ctx, store, run)
 	}
 	if err != nil {
 		return errors.Wrapf(cause, "and returning the volume to unadopted failed: %v", err)
@@ -364,60 +346,45 @@ func (a *adoption) count(ctx context.Context) error {
 // has a mark holding its starting block, and one moved after had none to
 // read, so the scan read its starting block from the table.
 func (a *adoption) countRoots(ctx context.Context) error {
-	var after []byte
-	for {
-		// Read the next names of either kind in one transaction.
-		var last []byte
-		var n int
-		err := a.store.Update(ctx, func(rec *Records, blocks block.StoreOps) error {
-			// Read the names while the run holds the Volume.
-			if _, err := inRun(ctx, rec, a.run); err != nil {
-				return err
-			}
-			names, err := rec.scanNamesAfter(ctx, after, sliceRecords, kindRoot, kindAdoptRoot)
+	_, err := eachSlice(ctx, a.store.Update, []byte(nil), nil, func(rec *Records, blocks block.StoreOps, after []byte) ([]byte, bool, error) {
+		// Read the next names of either kind while the run holds the Volume.
+		if _, err := inRun(ctx, rec, a.run); err != nil {
+			return nil, false, err
+		}
+		names, err := rec.scanNamesAfter(ctx, after, sliceRecords, kindRoot, kindAdoptRoot)
+		if err != nil {
+			return nil, false, err
+		}
+		for _, name := range names {
+			// Read the starting block from the mark, or else the table.
+			start, moved, err := rec.tx.Get(ctx, rec.key(kindAdoptRoot, name))
 			if err != nil {
-				return err
+				return nil, false, err
 			}
-			n = len(names)
-			for _, name := range names {
-				// Read the starting block from the mark, or else the table.
-				start, moved, err := rec.tx.Get(ctx, rec.key(kindAdoptRoot, name))
+			if !moved {
+				value, _, err := rec.tx.Get(ctx, rec.key(kindRoot, name))
 				if err != nil {
-					return err
+					return nil, false, err
 				}
-				if !moved {
-					value, found, err := rec.tx.Get(ctx, rec.key(kindRoot, name))
-					if err != nil || !found {
-						return err
-					}
-					entry := &RootEntry{}
-					if err := entry.UnmarshalVT(value); err != nil {
-						return err
-					}
-					start = entry.GetRef()
+				entry := &RootEntry{}
+				if err := entry.UnmarshalVT(value); err != nil {
+					return nil, false, err
 				}
-
-				// Count the holder of a name that held a block.
-				if len(start) != 0 {
-					a.res.Roots++
-					if err := a.hold(ctx, rec, blocks, start); err != nil {
-						return err
-					}
-				}
-				last = name
+				start = entry.GetRef()
 			}
-			return nil
-		})
-		if err != nil || n < sliceRecords {
-			return err
-		}
 
-		// Move past them and let a waiting writer in.
-		after = last
-		if err := context.Cause(ctx); err != nil {
-			return err
+			// Count the holder of a name that held a block.
+			if len(start) != 0 {
+				a.res.Roots++
+				if err := a.hold(ctx, rec, blocks, start); err != nil {
+					return nil, false, err
+				}
+			}
+			after = name
 		}
-	}
+		return after, len(names) == sliceRecords, nil
+	})
+	return err
 }
 
 // listed returns the block of a child list record and whether its holders come
@@ -433,7 +400,7 @@ func (a *adoption) listed(ctx context.Context, rec *Records, r adoptRecord) (*bl
 	}
 
 	// Read its born mark, then its fill-born index.
-	born, err := rec.AdoptBorn(ctx, ref)
+	born, err := rec.tx.Exists(ctx, rec.key(kindAdoptBorn, BlockKey(ref)))
 	if err != nil || born {
 		return ref, born, err
 	}
@@ -467,9 +434,7 @@ func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps
 		return err
 	}
 	a.res.Unknown++
-	if len(a.res.UnknownSample) < unknownSampleSize {
-		a.res.UnknownSample = append(a.res.UnknownSample, ref)
-	}
+	a.res.UnknownSample = sample(a.res.UnknownSample, ref)
 	return nil
 }
 
@@ -477,132 +442,57 @@ func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps
 // per transaction while run holds the Volume, yielding to waiting writers
 // between transactions.
 func forSlices(ctx context.Context, store Store, run string, kind byte, fn func(rec *Records, blocks block.StoreOps, r adoptRecord) error) error {
-	var after []byte
-	for {
-		// Read and handle the next slice in one transaction.
-		var last []byte
-		var n int
-		err := store.Update(ctx, func(rec *Records, blocks block.StoreOps) error {
-			// Read the slice while the run holds the Volume, then handle each
-			// record.
-			if _, err := inRun(ctx, rec, run); err != nil {
-				return err
-			}
-			recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
-			if err != nil {
-				return err
-			}
-			n = len(recs)
-			for _, r := range recs {
-				if err := fn(rec, blocks, r); err != nil {
-					return err
-				}
-				last = r.key
-			}
-			return nil
-		})
-		if err != nil || n < sliceRecords {
-			return err
+	_, err := eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, blocks block.StoreOps, after []byte) ([]byte, bool, error) {
+		// Read the slice while the run holds the Volume, then handle each
+		// record.
+		if _, err := inRun(ctx, rec, run); err != nil {
+			return nil, false, err
 		}
-
-		// Move past it and let a waiting writer in.
-		after = last
-		if err := context.Cause(ctx); err != nil {
-			return err
+		recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
+		if err != nil {
+			return nil, false, err
 		}
-	}
+		for _, r := range recs {
+			if err := fn(rec, blocks, r); err != nil {
+				return nil, false, err
+			}
+			after = r.key
+		}
+		return after, len(recs) == sliceRecords, nil
+	})
+	return err
 }
 
 // deleteJournalBefore deletes the journal records before cursor, which the
 // adoption's counts reflect, sliceRecords per transaction while run holds the
 // Volume.
 func deleteJournalBefore(ctx context.Context, store Store, run string, cursor uint64) error {
-	var from uint64
-	for {
-		// Delete the next records before the cursor.
-		var n int
-		err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-			// Read the sequence numbers while the run holds the Volume, then
-			// delete their records.
-			if _, err := inRun(ctx, rec, run); err != nil {
-				return err
+	_, err := eachSlice(ctx, store.Update, uint64(0), nil, func(rec *Records, _ block.StoreOps, from uint64) (uint64, bool, error) {
+		// Read the sequence numbers while the run holds the Volume, then
+		// delete their records.
+		if _, err := inRun(ctx, rec, run); err != nil {
+			return 0, false, err
+		}
+		var seqs []uint64
+		err := rec.ScanJournal(ctx, from, func(seq uint64, _ *JournalRecord) (bool, error) {
+			if seq >= cursor || len(seqs) == sliceRecords {
+				return false, nil
 			}
-			var seqs []uint64
-			err := rec.ScanJournal(ctx, from, func(seq uint64, _ *JournalRecord) (bool, error) {
-				if seq >= cursor || len(seqs) == sliceRecords {
-					return false, nil
-				}
-				seqs = append(seqs, seq)
-				return true, nil
-			})
-			if err != nil {
-				return err
-			}
-			n = len(seqs)
-			if n != 0 {
-				from = seqs[n-1] + 1
-			}
-			for _, seq := range seqs {
-				if err := rec.DeleteJournal(ctx, seq); err != nil {
-					return err
-				}
-			}
-			return nil
+			seqs = append(seqs, seq)
+			return true, nil
 		})
-		if err != nil || n < sliceRecords {
-			return err
+		if err != nil {
+			return 0, false, err
 		}
-
-		// Let a waiting writer in.
-		if err := context.Cause(ctx); err != nil {
-			return err
+		for _, seq := range seqs {
+			if err := rec.DeleteJournal(ctx, seq); err != nil {
+				return 0, false, err
+			}
+			from = seq + 1
 		}
-	}
-}
-
-// clearFills deletes every fill record, each with its index entries in the
-// transaction that deletes it, sliceRecords per transaction while keep
-// accepts the state. A fill that lands during the clear keeps its record,
-// which the adoption then treats as a birth.
-func clearFills(ctx context.Context, store Store, keep func(*LivenessState) bool) error {
-	for {
-		// Delete the next records while keep accepts the state.
-		var n int
-		var stop bool
-		err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-			// Stop at a state keep refuses.
-			state, err := rec.GetState(ctx)
-			if err != nil {
-				return err
-			}
-			if stop = !keep(state); stop {
-				return nil
-			}
-
-			// Take the next records and delete them.
-			var taken []fillRecord
-			err = rec.scanFillRecords(ctx, func(fr fillRecord) (bool, error) {
-				taken = append(taken, fr)
-				return len(taken) < sliceRecords, nil
-			})
-			if err != nil {
-				return err
-			}
-			n = len(taken)
-			for _, fr := range taken {
-				if err := rec.deleteFillRecord(ctx, fr); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		if err != nil || stop || n < sliceRecords {
-			return err
-		}
-		if err := context.Cause(ctx); err != nil {
-			return err
-		}
-	}
+		return from, len(seqs) == sliceRecords, nil
+	})
+	return err
 }
 
 // adoptionKinds are the kinds of record an adoption writes or replaces, which
@@ -614,55 +504,66 @@ var adoptionKinds = []byte{
 	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex,
 }
 
+// claimedBy reports whether state is unadopted under run's claim.
+func claimedBy(state *LivenessState, run string) bool {
+	return state.GetAdoption() == Adoption_ADOPTION_UNADOPTED && state.GetAdoptionRun() == run
+}
+
+// clearRun deletes every record of the adoptionKinds, then every fill
+// record, each with its index entries in the transaction that deletes it,
+// stopping, deleting nothing more, once the Volume leaves run's claim. A
+// fill that lands during the clear keeps its record, which the adoption then
+// treats as a birth.
+func clearRun(ctx context.Context, store Store, run string) error {
+	claimed := func(state *LivenessState) bool { return claimedBy(state, run) }
+	if err := clearKinds(ctx, store, claimed, adoptionKinds...); err != nil {
+		return err
+	}
+	_, err := eachSlice(ctx, store.Update, struct{}{}, nil, func(rec *Records, _ block.StoreOps, _ struct{}) (struct{}, bool, error) {
+		state, err := rec.GetState(ctx)
+		if err != nil || !claimed(state) {
+			return struct{}{}, false, err
+		}
+		n, err := rec.deleteFills(ctx, sliceRecords)
+		return struct{}{}, n == sliceRecords, err
+	})
+	return err
+}
+
 // clearKinds deletes every record of the kinds, sliceRecords per
 // transaction, yielding to waiting writers between transactions. With keep
 // set it stops, deleting nothing more, at the first transaction whose state
 // keep refuses.
 func clearKinds(ctx context.Context, store Store, keep func(*LivenessState) bool, kinds ...byte) error {
 	for _, kind := range kinds {
-		var after []byte
-		for {
-			// Delete the next records of the kind while keep accepts the
-			// state, from the last key the slice before reached.
-			var n int
-			var stop bool
-			err := store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-				// Stop at a state keep refuses, then delete the records.
-				if keep != nil {
-					state, err := rec.GetState(ctx)
-					if err != nil {
-						return err
-					}
-					if stop = !keep(state); stop {
-						return nil
-					}
-				}
-				recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
+		var stop bool
+		_, err := eachSlice(ctx, store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
+			// Stop at a state keep refuses, then delete the records of the
+			// kind from the last key the slice before reached.
+			stop = false
+			if keep != nil {
+				state, err := rec.GetState(ctx)
 				if err != nil {
-					return err
+					return nil, false, err
 				}
-				n = len(recs)
-				for _, r := range recs {
-					if err := rec.tx.Delete(ctx, rec.key(kind, r.key)); err != nil {
-						return err
-					}
+				if stop = !keep(state); stop {
+					return nil, false, nil
 				}
-				if n != 0 {
-					after = recs[n-1].key
+			}
+			recs, err := rec.scanAfter(ctx, kind, after, sliceRecords)
+			if err != nil {
+				return nil, false, err
+			}
+			for _, r := range recs {
+				if err := rec.tx.Delete(ctx, rec.key(kind, r.key)); err != nil {
+					return nil, false, err
 				}
-				return nil
-			})
-			if err != nil || stop {
-				return err
+				after = r.key
 			}
-			if n < sliceRecords {
-				break
-			}
-
-			// Let a waiting writer in.
-			if err := context.Cause(ctx); err != nil {
-				return err
-			}
+			return after, len(recs) == sliceRecords, nil
+		})
+		if err != nil || stop {
+			return err
 		}
 	}
 	return nil

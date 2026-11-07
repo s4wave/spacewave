@@ -236,32 +236,48 @@ func (r *Records) DeleteChildren(ctx context.Context, ref *block.BlockRef) error
 // release cursor depends on that order, so this walks a sorted iterator rather
 // than ScanPrefix, whose order a store such as Redis leaves undefined.
 func (r *Records) ScanChildren(ctx context.Context, fn func(ref *block.BlockRef, children []*block.BlockRef) error) error {
-	// Walk the child lists in key order.
-	prefix := r.key(kindChildren)
+	return r.scan(ctx, r.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Decode the block and its list.
+		ref, rest, err := ParseBlockKey(key)
+		if err != nil || len(rest) != 0 {
+			return false, errBadBlockKey
+		}
+		children, err := decodeValue(value)
+		if err != nil {
+			return false, err
+		}
+		return true, fn(ref, children)
+	})
+}
+
+// scan calls fn with each record under prefix in key order, from the first
+// key at or after prefix then from, until fn returns false or an error. fn
+// gets the key after prefix and a reader of the value, so a scan that needs
+// only keys reads no value. Both are valid only during the call.
+func (r *Records) scan(ctx context.Context, prefix, from []byte, fn func(key []byte, value func() ([]byte, error)) (bool, error)) error {
+	// Seek from, then walk the records under prefix.
 	it := r.tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
-	if err := it.Seek(prefix); err != nil {
+	if err := it.Seek(append(bytes.Clone(prefix), from...)); err != nil {
 		return err
 	}
 	for ; it.Valid(); it.Next() {
-		// Decode the block and its list.
-		ref, rest, err := ParseBlockKey(it.Key()[len(prefix):])
-		if err != nil || len(rest) != 0 {
-			return errBadBlockKey
-		}
-		value, err := it.Value()
-		if err != nil {
-			return err
-		}
-		children, err := DecodeChildren(value)
-		if err != nil {
-			return err
-		}
-		if err := fn(ref, children); err != nil {
+		more, err := fn(it.Key()[len(prefix):], it.Value)
+		if err != nil || !more {
 			return err
 		}
 	}
 	return it.Err()
+}
+
+// decodeValue reads a value packing block keys, as a child list does, and
+// decodes it.
+func decodeValue(value func() ([]byte, error)) ([]*block.BlockRef, error) {
+	v, err := value()
+	if err != nil {
+		return nil, err
+	}
+	return DecodeChildren(v)
 }
 
 // EncodeChildren packs the block keys of children, sorted and distinct, as a
@@ -471,26 +487,27 @@ func (r *Records) DeleteRoot(ctx context.Context, bucketID, name string) error {
 // ListRoots calls fn with each root of bucketID whose name starts with
 // prefix, in name order.
 func (r *Records) ListRoots(ctx context.Context, bucketID, prefix string, fn func(name string, entry *RootEntry) error) error {
-	// Iterate the bucket's roots under the name prefix in key order.
-	bucket := r.key(kindRoot, binary.AppendUvarint(nil, uint64(len(bucketID))), []byte(bucketID))
-	it := r.tx.Iterate(ctx, append(bytes.Clone(bucket), prefix...), true, false)
-	defer it.Close()
-
-	// Decode each entry and call fn.
-	for it.Next(); it.Valid(); it.Next() {
-		value, err := it.Value()
+	under := append(r.namedKey(kindRoot, bucketID, ""), prefix...)
+	return r.scan(ctx, under, nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		entry, err := decodeMsg[RootEntry](value)
 		if err != nil {
-			return err
+			return false, err
 		}
-		entry := &RootEntry{}
-		if err := entry.UnmarshalVT(value); err != nil {
-			return err
-		}
-		if err := fn(string(it.Key()[len(bucket):]), entry); err != nil {
-			return err
-		}
+		return true, fn(prefix+string(key), entry)
+	})
+}
+
+// decodeMsg reads a value and decodes it as a message of type T.
+func decodeMsg[T any, P interface {
+	*T
+	UnmarshalVT([]byte) error
+}](value func() ([]byte, error)) (P, error) {
+	v, err := value()
+	if err != nil {
+		return nil, err
 	}
-	return it.Err()
+	msg := P(new(T))
+	return msg, msg.UnmarshalVT(v)
 }
 
 // ScanRoots calls fn with every named root of every bucket.
@@ -533,45 +550,29 @@ func (r *Records) DeleteJournal(ctx context.Context, seq uint64) error {
 
 // anyKey reports whether a key begins with prefix.
 func (r *Records) anyKey(ctx context.Context, prefix []byte) (bool, error) {
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(prefix); err != nil {
-		return false, err
-	}
-	return it.Valid(), it.Err()
+	var found bool
+	err := r.scan(ctx, prefix, nil, func([]byte, func() ([]byte, error)) (bool, error) {
+		found = true
+		return false, nil
+	})
+	return found, err
 }
 
 // ScanJournal calls fn with each journal record from seq from on, in order,
 // until fn returns false or an error.
 func (r *Records) ScanJournal(ctx context.Context, from uint64, fn func(seq uint64, rec *JournalRecord) (bool, error)) error {
-	// Position the sorted iterator at from.
-	prefix := r.key(kindJournal)
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(r.journalKey(from)); err != nil {
-		return err
-	}
-
-	// Decode records until fn stops.
-	for ; it.Valid(); it.Next() {
-		key := it.Key()
-		if len(key) != len(prefix)+8 {
-			return errors.New("liveness journal key is malformed")
+	seek := binary.BigEndian.AppendUint64(nil, from)
+	return r.scan(ctx, r.key(kindJournal), seek, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Decode the record.
+		if len(key) != 8 {
+			return false, errors.New("liveness journal key is malformed")
 		}
-		value, err := it.Value()
+		rec, err := decodeMsg[JournalRecord](value)
 		if err != nil {
-			return err
+			return false, err
 		}
-		rec := &JournalRecord{}
-		if err := rec.UnmarshalVT(value); err != nil {
-			return err
-		}
-		more, err := fn(binary.BigEndian.Uint64(key[len(prefix):]), rec)
-		if err != nil || !more {
-			return err
-		}
-	}
-	return it.Err()
+		return fn(binary.BigEndian.Uint64(key), rec)
+	})
 }
 
 // queueKey returns the queue key of the Dead block at key with ripe.
@@ -590,30 +591,16 @@ func queuePos(ripe uint64, key []byte) []byte {
 // block key as queuePos returns, or from the start when from is nil, until
 // fn returns false or an error.
 func (r *Records) scanQueue(ctx context.Context, from []byte, fn func(ripe uint64, ref *block.BlockRef) (bool, error)) error {
-	// Seek the queue at from.
-	prefix := r.key(kindQueue)
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(r.key(kindQueue, from)); err != nil {
-		return err
-	}
-
-	// Decode entries until fn stops.
-	for ; it.Valid(); it.Next() {
-		key := it.Key()[len(prefix):]
+	return r.scan(ctx, r.key(kindQueue), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
 		if len(key) < 8 {
-			return errBadBlockKey
+			return false, errBadBlockKey
 		}
 		ref, rest, err := ParseBlockKey(key[8:])
 		if err != nil || len(rest) != 0 {
-			return errBadBlockKey
+			return false, errBadBlockKey
 		}
-		more, err := fn(binary.BigEndian.Uint64(key), ref)
-		if err != nil || !more {
-			return err
-		}
-	}
-	return it.Err()
+		return fn(binary.BigEndian.Uint64(key), ref)
+	})
 }
 
 // cascadeKey returns the cascade key of the block at key.
@@ -665,27 +652,16 @@ func cascadesCounted(state *LivenessState) bool {
 // cascade in key order from the block key from, or from the first when from
 // is nil, until fn returns false or an error.
 func (r *Records) scanCascades(ctx context.Context, from []byte, fn func(key []byte, dir byte) (bool, error)) error {
-	// Walk the cascade records in key order from from.
-	prefix := r.key(kindCascade)
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := it.Seek(r.key(kindCascade, from)); err != nil {
-		return err
-	}
-	for ; it.Valid(); it.Next() {
-		value, err := it.Value()
+	return r.scan(ctx, r.key(kindCascade), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		v, err := value()
 		if err != nil {
-			return err
+			return false, err
 		}
-		if len(value) != 1 {
-			return errors.New("liveness cascade record is malformed")
+		if len(v) != 1 {
+			return false, errors.New("liveness cascade record is malformed")
 		}
-		more, err := fn(bytes.Clone(it.Key()[len(prefix):]), value[0])
-		if err != nil || !more {
-			return err
-		}
-	}
-	return it.Err()
+		return fn(bytes.Clone(key), v[0])
+	})
 }
 
 // settled reports whether no cascade is due or in progress: no cascade

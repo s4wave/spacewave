@@ -170,9 +170,9 @@
 \*                   block's ripe sequence and the hold mark, and no fill's
 \*                   ups wait, delete the block with its child list and count
 \*                   record.
-\*   AdoptStart(r)   block_gc.Adopt's resetAdoption: report an adopted Volume,
+\*   AdoptStart(r)   block_gc.Adopt's claimAdoption: report an adopted Volume,
 \*                   otherwise return it to unadopted and claim it for r.
-\*   AdoptClear(r)   Adopt's clearKinds of the count, queue and mark records.
+\*   AdoptClear(r)   Adopt's clearRun of the count, queue and mark records.
 \*   AdoptMark(r)    Adopt's transaction that marks the Volume adopting in run
 \*                   r at the cursor.
 \*   AdoptRoot(r)    one name of adoption.countRoots.

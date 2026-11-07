@@ -98,7 +98,6 @@ func Land(
 	l := &lander{
 		rec:      rec,
 		blocks:   blocks,
-		holes:    holeReader{rec: rec},
 		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		verify:   state.GetUnverifiedLists(),
@@ -162,8 +161,6 @@ type lander struct {
 	rec *Records
 	// blocks stores the block bytes.
 	blocks block.StoreOps
-	// holes reads the recorded holes the entries put.
-	holes holeReader
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
 	// adopting reports that an adoption is counting the Volume, so Land marks
@@ -222,50 +219,23 @@ func (l *lander) checkRoots(ctx context.Context, bucketID string, roots []block.
 // putEntries stores the entries' bytes and the child lists of the blocks
 // they give birth to, and evicts the tombstones' bytes.
 func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Name each entry and find the blocks without a child list.
-	for _, entry := range entries {
-		if entry == nil || entry.Tombstone {
-			continue
-		}
-		if len(entry.Data) == 0 {
-			return nil, block.ErrEmptyBlock
-		}
-		if !entry.RefsKnown {
-			return nil, errors.Wrap(block.ErrRefsUnknown, entry.Ref.MarshalString())
-		}
-		if entry.Ref.GetEmpty() {
-			ref, err := block.BuildBlockRef(entry.Data, &block.PutOpts{HashType: l.blocks.GetHashType()})
-			if err != nil {
-				return nil, err
-			}
-			entry.Ref = ref
-		}
+	// Name each entry and sort its block: stored, a refilled hole, or born.
+	err := classifyPuts(ctx, l.rec, l.blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
 		key := string(BlockKey(entry.Ref))
-		if _, ok := l.born[key]; ok {
-			continue
-		}
-		stored, err := l.rec.HasChildren(ctx, entry.Ref)
-		if err != nil {
-			return nil, err
-		}
-		if stored {
-			l.touched[key] = struct{}{}
-			continue
-		}
-
-		// A recorded hole is stored too: the put refills it.
-		hole, err := l.holes.isHole(ctx, entry.Ref)
-		if err != nil {
-			return nil, err
-		}
-		if hole {
-			l.touched[key] = struct{}{}
+		switch kind {
+		case putRefill:
 			l.refills = append(l.refills, entry)
-			continue
+			fallthrough
+		case putStored:
+			l.touched[key] = struct{}{}
+		default:
+			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
+			l.born[key] = b
+			l.order = append(l.order, b)
 		}
-		b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
-		l.born[key] = b
-		l.order = append(l.order, b)
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Store the bytes, which also evicts the tombstones' bytes, then write the
@@ -278,7 +248,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		if err := l.putList(ctx, entry.Ref, entry.Refs); err != nil {
 			return nil, err
 		}
-		if err := l.rec.DeleteHole(ctx, entry.Ref); err != nil {
+		if err := l.rec.tx.Delete(ctx, l.rec.key(kindHole, BlockKey(entry.Ref))); err != nil {
 			return nil, err
 		}
 	}
@@ -305,12 +275,89 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			return nil, err
 		}
 		if l.adopting {
-			if err := l.rec.MarkAdoptBorn(ctx, b.ref); err != nil {
+			if err := l.rec.tx.Set(ctx, l.rec.key(kindAdoptBorn, BlockKey(b.ref)), nil); err != nil {
 				return nil, err
 			}
 		}
 	}
 	return existed, nil
+}
+
+// putKind is what the liveness records hold for a block a put names.
+type putKind int
+
+const (
+	// putBorn is a block without a child list: the put gives birth to it.
+	putBorn putKind = iota
+	// putStored is a block with a child list, stored already.
+	putStored
+	// putRefill is a hole the audit recorded, stored too: the put writes its
+	// child list back.
+	putRefill
+)
+
+// classifyPuts checks and names each put entry, building an empty ref from
+// its data, and calls fn with the first entry of each block the entries
+// put and what the records hold for it, skipping nil entries and
+// tombstones. It reads whether the Volume records any hole once, at the
+// first block without a child list, and a block's hole record only when one
+// does, so a put into a Volume without a hole, the usual case, reads no hole
+// record per block.
+func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entries []*block.PutBatchEntry, fn func(entry *block.PutBatchEntry, kind putKind)) error {
+	seen := make(map[string]struct{}, len(entries))
+	var holesRead, holes bool
+	for _, entry := range entries {
+		// Check and name the entry, once per block.
+		if entry == nil || entry.Tombstone {
+			continue
+		}
+		if len(entry.Data) == 0 {
+			return block.ErrEmptyBlock
+		}
+		if !entry.RefsKnown {
+			return errors.Wrap(block.ErrRefsUnknown, entry.Ref.MarshalString())
+		}
+		if entry.Ref.GetEmpty() {
+			ref, err := block.BuildBlockRef(entry.Data, &block.PutOpts{HashType: blocks.GetHashType()})
+			if err != nil {
+				return err
+			}
+			entry.Ref = ref
+		}
+		key := BlockKey(entry.Ref)
+		if _, ok := seen[string(key)]; ok {
+			continue
+		}
+		seen[string(key)] = struct{}{}
+
+		// Read its child list, then whether it is a recorded hole.
+		listed, err := rec.HasChildren(ctx, entry.Ref)
+		if err != nil {
+			return err
+		}
+		if listed {
+			fn(entry, putStored)
+			continue
+		}
+		if !holesRead {
+			if holes, err = rec.anyKey(ctx, rec.key(kindHole)); err != nil {
+				return err
+			}
+			holesRead = true
+		}
+		hole := false
+		if holes {
+			if hole, err = rec.tx.Exists(ctx, rec.key(kindHole, key)); err != nil {
+				return err
+			}
+		}
+		if hole {
+			fn(entry, putRefill)
+		} else {
+			fn(entry, putBorn)
+		}
+	}
+	return nil
 }
 
 // putList writes ref's child list, marking it verified while the Volume's

@@ -50,26 +50,24 @@ type LapsedRoot struct {
 // ScanLapsed returns up to limit leased roots whose lease lapsed at or before
 // now, soonest first, reading only their index records.
 func (r *Records) ScanLapsed(ctx context.Context, now int64, limit int) ([]LapsedRoot, error) {
-	// Iterate the index in expiry order.
-	prefix := r.key(kindLease)
-	it := r.tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-
-	// Stop at the first lease that has not lapsed.
 	var out []LapsedRoot
-	for it.Next(); it.Valid() && len(out) < limit; it.Next() {
-		rest := it.Key()[len(prefix):]
-		if len(rest) < 8 {
-			return nil, errors.New("liveness lease record is malformed")
+	err := r.scan(ctx, r.key(kindLease), nil, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+		// Stop at the limit and at the first lease that has not lapsed.
+		if len(out) == limit {
+			return false, nil
 		}
-		if int64(binary.BigEndian.Uint64(rest)) > now { //nolint:gosec // expiries are positive.
-			break
+		if len(key) < 8 {
+			return false, errors.New("liveness lease record is malformed")
 		}
-		bucketID, name, err := parseNamedKey(rest[8:])
+		if int64(binary.BigEndian.Uint64(key)) > now { //nolint:gosec // expiries are positive.
+			return false, nil
+		}
+		bucketID, name, err := parseNamedKey(key[8:])
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 		out = append(out, LapsedRoot{BucketID: bucketID, Name: name})
-	}
-	return out, it.Err()
+		return true, nil
+	})
+	return out, err
 }
