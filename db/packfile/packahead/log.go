@@ -565,21 +565,33 @@ func (l *Log) rotate() error {
 // Get returns the value under key, from the buffer of a pack not yet
 // finalized or from a local pack file, and whether a local pack holds it.
 func (l *Log) Get(key []byte) ([]byte, bool, error) {
+	out, found, _, err := l.GetDurable(key)
+	return out, found, err
+}
+
+// GetDurable returns the value under key as Get does, and whether the value
+// was synced when found. A value not yet synced is one a failed sync forgets,
+// so a cache keeps only a durable one.
+func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 	// Locate the value, copying it out of a pack buffer.
 	if len(key) < keyTailLen {
-		return nil, false, ErrKeyTooShort
+		return nil, false, false, ErrKeyTooShort
 	}
 	var loc location
-	var found, copied bool
+	var found, copied, durable bool
 	var out []byte
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		loc, found = l.table[tailOf(key)]
-		if found && loc.p.buf != nil {
+		if !found {
+			return
+		}
+		durable = loc.end() <= loc.p.synced
+		if loc.p.buf != nil {
 			out, copied = slices.Clone(loc.p.buf[loc.off:loc.end()]), true
 		}
 	})
 	if !found || copied {
-		return out, found, nil
+		return out, found, durable, nil
 	}
 
 	// Read it from the pack file. A pack evicted since the lookup no longer
@@ -591,11 +603,11 @@ func (l *Log) Get(key []byte) ([]byte, bool, error) {
 			gone = loc.p.state == packGone
 		})
 		if gone {
-			return nil, false, nil
+			return nil, false, false, nil
 		}
-		return nil, false, errors.Wrapf(err, "read pack %s", seqText(loc.p.seq))
+		return nil, false, false, errors.Wrapf(err, "read pack %s", seqText(loc.p.seq))
 	}
-	return out, true, nil
+	return out, true, durable, nil
 }
 
 // Has reports whether a local pack holds the value under key.

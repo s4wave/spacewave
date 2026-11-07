@@ -107,9 +107,15 @@ func (s *PackedStore) PutBlock(ctx context.Context, data []byte, opts *block.Put
 // in the local store as external entries, and reports whether each block was
 // stored before, in the Log or the local store.
 func (s *PackedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Write to the local store while not diverting.
+	// Write to the local store while not diverting, still forgetting the
+	// Log's copies of the tombstoned blocks.
 	if !s.divert {
-		return s.local.PutBlockBatch(ctx, entries)
+		existed, err := s.local.PutBlockBatch(ctx, entries)
+		if err != nil {
+			return nil, err
+		}
+		s.forgetTombstones(entries)
+		return existed, nil
 	}
 
 	// Append the values, then land the entries.
@@ -131,9 +137,14 @@ func (s *PackedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBat
 // SetRoots appends the entries' values to the Log, then lands them and moves
 // the roots in the local store in one transaction.
 func (s *PackedStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
-	// Write to the local store while not diverting.
+	// Write to the local store while not diverting, still forgetting the
+	// Log's copies of the tombstoned blocks.
 	if !s.divert {
-		return s.local.SetRoots(ctx, entries, roots)
+		if err := s.local.SetRoots(ctx, entries, roots); err != nil {
+			return err
+		}
+		s.forgetTombstones(entries)
+		return nil
 	}
 
 	// Append the values, then land the entries and move the roots.
@@ -195,11 +206,13 @@ func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatc
 }
 
 // forgetTombstones forgets the Log's copies of the tombstoned blocks, once
-// the local store removed them.
+// the local store removed them, then invalidates the decoded-block pool's
+// entries a durable Log read may have admitted in between.
 func (s *PackedStore) forgetTombstones(entries []*block.PutBatchEntry) {
 	for _, entry := range entries {
 		if entry != nil && entry.Tombstone && !entry.Ref.GetEmpty() {
 			s.log.Remove(packfile.BlockKey(entry.Ref.GetHash()))
+			block.InvalidateRemovedBlock(entry.Ref)
 		}
 	}
 }
@@ -215,10 +228,16 @@ func (s *PackedStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 
 // GetStoredBlock returns the block with its refs from the Log, checking its
 // bytes against ref, or from the local store.
+//
+// A synced copy marks the read durable, so the decoded-block pool keeps the
+// block as it keeps one the Volume served: the Log holds it until RmBlock,
+// which invalidates it, or an eviction, after which the remote holds it.
 func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Read the Log's copy and check it.
+	// Read the Log's copy and check it. The removal generation is read before
+	// the lookup, so a removal in between keeps the block out of the pool.
 	if !ref.GetEmpty() {
-		value, ok, err := s.log.Get(packfile.BlockKey(ref.GetHash()))
+		gen := block.DurableReadGeneration()
+		value, ok, durable, err := s.log.GetDurable(packfile.BlockKey(ref.GetHash()))
 		if err != nil {
 			return nil, err
 		}
@@ -229,6 +248,9 @@ func (s *PackedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 			}
 			if err := ref.VerifyData(stored.Data, false); err != nil {
 				return nil, errors.Wrap(err, ref.MarshalString())
+			}
+			if durable {
+				block.MarkDurableRead(ctx, ref, gen)
 			}
 			return stored, nil
 		}
@@ -283,13 +305,15 @@ func (s *PackedStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 }
 
 // RmBlock removes the block from the local store, which keeps its child list,
-// and forgets the Log's copy.
+// and forgets the Log's copy, then invalidates the decoded-block pool's entry
+// a durable Log read may have admitted.
 func (s *PackedStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if err := s.local.RmBlock(ctx, ref); err != nil {
 		return err
 	}
 	if !ref.GetEmpty() {
 		s.log.Remove(packfile.BlockKey(ref.GetHash()))
+		block.InvalidateRemovedBlock(ref)
 	}
 	return nil
 }
