@@ -486,7 +486,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	// lists. A batch of tombstones only frees space, so it runs below the
 	// reserve too.
 	if !onlyTombstones(entries) {
-		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
+		if err := v.checkReserve(ctx, v.gateBytes(batchBytes(entries))); err != nil {
 			return nil, err
 		}
 	}
@@ -531,7 +531,7 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 
 	// Refuse new data below the disk reserve, and a block without its child
 	// list.
-	if err := v.checkReserve(ctx, len(data)); err != nil {
+	if err := v.checkReserve(ctx, v.gateBytes(len(data))); err != nil {
 		return nil, false, err
 	}
 	v.noteUnknownRefs(putDirect, data, putOpts)

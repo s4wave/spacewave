@@ -240,6 +240,15 @@ func (v *Volume) checkReserve(ctx context.Context, size int) error {
 	return nil
 }
 
+// gateBytes returns the n bytes a put counts at its reserve check: none on a
+// Volume that keeps liveness, whose putEntries counts them when it stores.
+func (v *Volume) gateBytes(n int) int {
+	if v.HoldsRoots() {
+		return 0
+	}
+	return n
+}
+
 // batchBytes returns the length of the data entries write.
 func batchBytes(entries []*block.PutBatchEntry) int {
 	var n int

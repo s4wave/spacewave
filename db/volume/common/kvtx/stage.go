@@ -371,6 +371,7 @@ func (v *Volume) HoldStageCompleteRoots(ctx context.Context, stage string, refs 
 		// Hold each root whose proof is recorded or pending.
 		expires := v.leaseExpiry()
 		holds = nil
+		clear(complete)
 		for i, ref := range refs {
 			if ref.GetEmpty() {
 				continue
