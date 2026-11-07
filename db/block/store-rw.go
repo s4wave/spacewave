@@ -8,8 +8,11 @@ import (
 
 // StoreRW combines a read and write store together.
 type StoreRW struct {
-	readHandle  StoreOps
-	writeHandle StoreOps
+	// StoreOps is the write handle. It answers the writes and the root calls,
+	// so a Previous read from GetRoot is the reference SetRoots compares
+	// against.
+	StoreOps
+	readHandle StoreOps
 }
 
 // NewStoreRW constructs a new Store handle using a read handle and an optional
@@ -19,18 +22,15 @@ func NewStoreRW(readHandle, writeHandle StoreOps) StoreOps {
 	if writeHandle == nil {
 		writeHandle = readHandle
 	}
-	return &StoreRW{
-		readHandle:  readHandle,
-		writeHandle: writeHandle,
-	}
+	return &StoreRW{StoreOps: writeHandle, readHandle: readHandle}
 }
 
 // GetHashType returns the preferred hash type for the store.
 // This should return as fast as possible (called frequently).
 // If 0 is returned, uses a default defined by Hydra.
 func (b *StoreRW) GetHashType() hash.HashType {
-	if b.writeHandle != nil {
-		return b.writeHandle.GetHashType()
+	if b.StoreOps != nil {
+		return b.StoreOps.GetHashType()
 	}
 	if b.readHandle != nil {
 		return b.readHandle.GetHashType()
@@ -41,8 +41,8 @@ func (b *StoreRW) GetHashType() hash.HashType {
 // GetSupportedFeatures returns the native feature bitmask for the store.
 func (b *StoreRW) GetSupportedFeatures() StoreFeature {
 	var out StoreFeature
-	if b.writeHandle != nil {
-		features := b.writeHandle.GetSupportedFeatures()
+	if b.StoreOps != nil {
+		features := b.StoreOps.GetSupportedFeatures()
 		out |= features & StoreFeatureNativeBatchPut
 	}
 	if b.readHandle != nil {
@@ -57,7 +57,7 @@ func (b *StoreRW) BeginReadOperation(ctx context.Context) (StoreOps, func(), err
 	if err != nil {
 		return nil, nil, err
 	}
-	return &StoreRW{readHandle: readHandle, writeHandle: readHandle}, release, nil
+	return &StoreRW{StoreOps: readHandle, readHandle: readHandle}, release, nil
 }
 
 // EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the read handle.
@@ -67,12 +67,6 @@ func (b *StoreRW) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
 		return nil
 	}
 	return freshener.EnsureDecodedBlockCacheFresh(ctx)
-}
-
-// PutBlock puts a block into the store.
-// The ref should not be modified after return.
-func (b *StoreRW) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return b.writeHandle.PutBlock(ctx, data, opts)
 }
 
 // GetBlock gets a block with a cid reference.
@@ -105,26 +99,9 @@ func (b *StoreRW) StatBlock(ctx context.Context, ref *BlockRef) (*BlockStat, err
 	return b.readHandle.StatBlock(ctx, ref)
 }
 
-// RmBlock deletes a block from the bucket.
-// Does not return an error if the block was not present.
-// In some cases, will return before confirming delete.
-func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
-	return b.writeHandle.RmBlock(ctx, ref)
-}
-
-// PutBlockBatch forwards to the write handle if it supports batched writes.
-func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
-	return b.writeHandle.PutBlockBatch(ctx, entries)
-}
-
-// Sync forwards the durability barrier to the write handle.
-func (b *StoreRW) Sync(ctx context.Context) (bool, error) {
-	return b.writeHandle.Sync(ctx)
-}
-
 // HoldCompleteRoots forwards a stage hold of proved roots to the write handle, never the read handle.
 func (b *StoreRW) HoldCompleteRoots(ctx context.Context, refs []*BlockRef) ([]bool, error) {
-	return HoldCompleteRoots(ctx, b.writeHandle, refs)
+	return HoldCompleteRoots(ctx, b.StoreOps, refs)
 }
 
 // _ is a type assertion
