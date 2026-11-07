@@ -30,6 +30,11 @@ const (
 	heldSpillEvery = time.Second
 	// heldSpillBatch bounds the blocks one spill commit writes.
 	heldSpillBatch = 256
+	// nodeKeyReadTries is how many times a block read asks the node by key
+	// before it reports the block not found, and nodeKeyReadWait the least
+	// each try waits. The tries back off 50, 100, 150 ms.
+	nodeKeyReadTries = 4
+	nodeKeyReadWait  = time.Second
 )
 
 // heldReads reads the store's memory set before the local store. A block the
@@ -227,16 +232,30 @@ func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodep
 		return nil
 	}
 
-	// Ask the node, within the wait.
-	c := client.Load()
-	if c == nil {
-		return nil
-	}
-	rctx, cancel := context.WithTimeout(ctx, wait)
-	defer cancel()
-	value, ok := c.ReadBlock(rctx, packfile.BlockKey(ref.GetHash()))
-	if !ok {
-		return nil
+	// Ask the node, again after a miss: a node with no free read slot, or
+	// one slow to answer, misses a block it holds.
+	key := packfile.BlockKey(ref.GetHash())
+	var value []byte
+	for try := range nodeKeyReadTries {
+		c := client.Load()
+		if c == nil {
+			return nil
+		}
+		rctx, cancel := context.WithTimeout(ctx, max(wait, nodeKeyReadWait))
+		data, ok := c.ReadBlock(rctx, key)
+		cancel()
+		if ok {
+			value = data
+			break
+		}
+		if try == nodeKeyReadTries-1 || ctx.Err() != nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(time.Duration(try+1) * 50 * time.Millisecond):
+		}
 	}
 
 	// Check what it sends; a bad answer is a miss.
