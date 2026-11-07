@@ -156,21 +156,37 @@ func testTrashRemove(t *testing.T, kind string) {
 	}
 
 	// A repair alone, as for the first keys of a pack too large for one
-	// call, keeps the pack, and a removal killed after its repair is finished
-	// by the next; a repeat changes nothing.
-	if err := s.RepairRemoved(ctx, []string{packR}, keys[:2]); err != nil {
+	// call, keeps the pack and the row of a key no other pack holds, so a
+	// read still falls back to the pack.
+	s.index.mtx.RLock()
+	numR := s.index.rows[packR].num
+	s.index.mtx.RUnlock()
+	if err := s.RepairRemoved(ctx, []string{packR}, keys[:3]); err != nil {
 		t.Fatal(err)
 	}
 	if heldStateOf(t, s, packR) != PackTrashing {
 		t.Fatal("a repair alone dropped the pack")
 	}
-	if err := s.index.repairRows(ctx, []string{packR}, keys); err != nil {
+	if num, ok := rowNum(t, kv, r[2]); !ok || num != numR {
+		t.Fatalf("a repair alone moved the row of a key only the pack holds to %d, %v", num, ok)
+	}
+
+	// A removal killed after its repair is finished by the next, and a
+	// repeat changes nothing. The row of the key the removal left out still
+	// names the dropped pack, until a call naming it with the key prunes it.
+	if err := s.index.repairRows(ctx, []string{packR}, keys[:3], true); err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {
-		if err := s.Remove(ctx, []string{packR}, keys); err != nil {
+		if err := s.Remove(ctx, []string{packR}, keys[:3]); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if num, ok := rowNum(t, kv, r[3]); !ok || num != numR {
+		t.Fatalf("the left out key's row = %d, %v; want the dropped pack's %d", num, ok, numR)
+	}
+	if err := s.Remove(ctx, []string{packR}, keys[3:]); err != nil {
+		t.Fatal(err)
 	}
 	checkRemoved := func(s *PackStore) {
 		t.Helper()

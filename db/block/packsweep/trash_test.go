@@ -123,6 +123,15 @@ func TestTrashRemove(t *testing.T) {
 	if _, err := Remove(ctx, ropts); err == nil {
 		t.Fatal("killed removal returned no error")
 	}
+	h.backend.failDrop = true
+	if _, err := Remove(ctx, ropts); err == nil {
+		t.Fatal("removal killed at its drop returned no error")
+	}
+	killed := h.backend.removals[len(h.backend.removals)-1]
+	if killed.more || !h.backend.removed[killed.ids[0]] {
+		t.Fatalf("the killed call = %+v", killed)
+	}
+	before := len(h.backend.removals)
 	got, err := Remove(ctx, ropts)
 	removed := len(passed) - 2
 	if err != nil || got.Missed != 1 || got.Rounds < 2 {
@@ -147,10 +156,19 @@ func TestTrashRemove(t *testing.T) {
 	}
 	sent := make(map[string][]string)
 	ids := make(map[string]bool)
+	dropped := make(map[string]bool)
 	repairs := 0
 	for _, call := range h.backend.removals {
 		if call.more {
 			repairs++
+			if !slices.IsSortedFunc(call.keys, func(a, b KeyHolders) int { return lone(a) - lone(b) }) {
+				t.Fatal("a repair sent a key no other pack holds before one with holders")
+			}
+		}
+		for _, k := range call.keys {
+			if !call.more && len(k.Others) == 0 {
+				dropped[string(k.Key)] = true
+			}
 		}
 		if keysWeight(call.keys) > removeCallWeight || (call.more && len(call.ids) != 1) {
 			t.Fatalf("removal call over the bound: %d ids, weight %d, more %v", len(call.ids), keysWeight(call.keys), call.more)
@@ -162,7 +180,11 @@ func TestTrashRemove(t *testing.T) {
 			sent[string(k.Key)] = k.Others
 		}
 	}
-	if len(ids) != removed || ids[missed] || ids[lifted] || repairs == 0 {
+	resent := false
+	for _, call := range h.backend.removals[before:] {
+		resent = resent || slices.Contains(call.ids, killed.ids[0])
+	}
+	if len(ids) != removed || ids[missed] || ids[lifted] || repairs == 0 || !resent {
 		t.Fatalf("removal calls named %d packs, want %d, with %d repairs", len(ids), removed, repairs)
 	}
 	for id := range ids {
@@ -174,9 +196,13 @@ func TestTrashRemove(t *testing.T) {
 				}
 			}
 			slices.Sort(want)
-			others, ok := sent[string(RefTail(b.ref))]
+			tail := string(RefTail(b.ref))
+			others, ok := sent[tail]
 			if !ok || strings.Join(others, ",") != strings.Join(want, ",") {
 				t.Fatalf("pack %s key holders = %v, %v, want %v", id, others, ok, want)
+			}
+			if len(want) == 0 && !dropped[tail] {
+				t.Fatalf("pack %s key %x no other pack holds went in no call that deletes its row", id, tail)
 			}
 		}
 	}

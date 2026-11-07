@@ -31,6 +31,8 @@ type fakeBackend struct {
 	// failBeginTrash and failRemove fail the next such call after applying
 	// it.
 	failBeginTrash, failRemove bool
+	// failDrop fails the next removal that drops packs, after applying it.
+	failDrop bool
 	// removed are the packs a removal dropped.
 	removed map[string]bool
 	// removals are the removal calls, in order.
@@ -171,8 +173,8 @@ func (b *fakeBackend) Remove(_ context.Context, ids []string, keys []KeyHolders,
 		}
 		out[i] = b.hold(id)
 	}
-	if b.failRemove {
-		b.failRemove = false
+	if b.failRemove || (b.failDrop && !more) {
+		b.failRemove, b.failDrop = false, b.failDrop && more
 		return nil, errors.New("killed")
 	}
 	return out, nil
