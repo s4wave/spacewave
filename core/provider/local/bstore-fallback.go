@@ -31,7 +31,9 @@ const fallbackFillSlots = 64
 // The copy path never reads the cache.
 //
 // With no fallback, reads and copies are the local store over the backend and
-// peers, as they were before fallbacks existed.
+// peers, as they were before fallbacks existed. When peer fills upload, see
+// SetPeerFillsUpload, a peer's block is stored like the fallback's, with an
+// upload marker, so the reads keep the backend's fill apart from the peers'.
 func (p *placementState) readChains(
 	recorded, local block.StoreOps,
 	remote, peers block_store.StoreSource,
@@ -40,7 +42,7 @@ func (p *placementState) readChains(
 	// Read the backend and then peers when the placement has no fallback.
 	if fallback == nil {
 		lower := block_store.NewStoreReadThrough(remote, peers, nil)
-		if p.cache != nil {
+		if p.cache != nil || p.peerUpload {
 			packs := p.packReads(recorded, remote)
 			reads = block_store.NewStoreReadThrough(
 				func() block.StoreOps { return packs },
@@ -135,6 +137,9 @@ func (p *placementState) packReadsBehind(recorded block.StoreOps, remote block_s
 // the durable store, so the block never enters the fill cache.
 func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 	return func(ctx context.Context, _ block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+		if p.peerUpload {
+			return p.fillFromFallback(ctx, ref, stored)
+		}
 		return p.fill(ctx, recorded, ref, stored)
 	}
 }
