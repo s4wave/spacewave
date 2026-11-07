@@ -14,14 +14,17 @@ package packcopy
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/sirupsen/logrus"
 )
 
 // DefaultReads is the number of block reads a copy keeps in flight when the
@@ -87,6 +90,14 @@ type Options struct {
 	Uploads int
 	// Progress observes the counts after each pack, nil for none.
 	Progress func(Result)
+	// Typer decodes blocks by type, nil for none. With a Typer, a block with
+	// unknown refs is decoded for them instead of left a hole.
+	Typer Typer
+	// ReadTarget reads a block the target holds back from the target when no
+	// source serves it. Off, the target is written and never read: a held
+	// block comes from a source, which needs no request to the bucket, and a
+	// held block no source serves is a missing hole.
+	ReadTarget bool
 }
 
 // Result reports a copy.
@@ -95,7 +106,7 @@ type Result struct {
 	Read uint64
 	// ReadBytes is the size of those blocks.
 	ReadBytes uint64
-	// Held is the blocks the target already held, read back for their refs.
+	// Held is the blocks the target already held, read for their refs.
 	Held uint64
 	// Written is the blocks written to durable packs.
 	Written uint64
@@ -193,6 +204,8 @@ type node struct {
 	done bool
 	// holed is set when a hole sits at or under the block.
 	holed bool
+	// typ is the block's type for the Typer, nil when unknown.
+	typ any
 }
 
 // flush is one pack and the proofs it makes durable.
@@ -213,10 +226,13 @@ type readResult struct {
 	node *node
 	// stored is the block, nil for a hole.
 	stored *block.StoredBlock
-	// held is set when stored came from the target.
+	// held is set when the target's index places the block, so it is not
+	// written again.
 	held bool
 	// reason says why the block is a hole.
 	reason string
+	// kids holds the types of the block's children by marshaled ref.
+	kids map[string]any
 	// err stops the walk: the block is neither read nor a hole.
 	err error
 }
@@ -269,6 +285,9 @@ func (c *copier) walk(ctx context.Context) error {
 			continue
 		}
 		n := &node{ref: ref}
+		if c.opts.Typer != nil {
+			n.typ = c.opts.Typer.RootType(ref)
+		}
 		c.nodes[key] = n
 		roots = append(roots, n)
 	}
@@ -305,39 +324,50 @@ func (c *copier) walk(ctx context.Context) error {
 	}
 }
 
-// read finds a block in the target, then in each source. A block whose bytes
-// fail their hash counts as absent from that store, so a later source can
-// still serve it and a corrupt copy in the target is replaced.
+// read finds a block in each source, then, with ReadTarget, in the target. A
+// block the target's index places is not written again, whichever store
+// served it. A block whose bytes fail their hash counts as absent from that
+// store, so a later store can still serve it.
 func (c *copier) read(ctx context.Context, n *node) readResult {
-	// Read a block the target holds back from the target.
+	// Try each source in order.
 	res := readResult{node: n, reason: ReasonMissing}
-	if n.held {
-		stored, reason, err := readFrom(ctx, c.opts.Target, n.ref)
+	for _, src := range c.opts.Sources {
+		stored, kids, reason, err := c.readTyped(ctx, src, n)
 		if err != nil {
 			return readResult{node: n, err: err}
 		}
 		if reason == "" {
-			return readResult{node: n, stored: stored, held: true}
+			return readResult{node: n, stored: stored, held: n.held, kids: kids}
 		}
 		res.reason = worseReason(res.reason, reason)
 	}
 
-	// Try each source in order.
-	for _, src := range c.opts.Sources {
-		stored, reason, err := readFrom(ctx, src, n.ref)
+	// Read a block the target holds back from the target.
+	if n.held && c.opts.ReadTarget {
+		stored, kids, reason, err := c.readTyped(ctx, c.opts.Target, n)
 		if err != nil {
 			return readResult{node: n, err: err}
 		}
 		if reason == "" {
-			return readResult{node: n, stored: stored}
+			return readResult{node: n, stored: stored, held: true, kids: kids}
 		}
 		res.reason = worseReason(res.reason, reason)
 	}
 	return res
 }
 
+// readTyped reads a block from one store and decodes it by the node's type.
+func (c *copier) readTyped(ctx context.Context, src Source, n *node) (*block.StoredBlock, map[string]any, string, error) {
+	stored, reason, err := readFrom(ctx, src, n.ref)
+	if err != nil || reason != "" {
+		return nil, nil, reason, err
+	}
+	return c.typeBlock(ctx, n, stored)
+}
+
 // readFrom reads and checks a block from one store, returning the reason the
-// store cannot serve it. An error stops the walk: the run is over, or the read
+// store cannot serve it. A block whose refs are unknown is returned for the
+// caller to type. An error stops the walk: the run is over, or the read
 // went over the budget. Any other failure is that store's.
 func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.StoredBlock, string, error) {
 	// Read the block, separating a stop from a failed read.
@@ -352,6 +382,9 @@ func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.Stor
 		return nil, ReasonMissing, nil
 	}
 	if err != nil {
+		if readErrorsLogged.Add(1) <= maxReadErrorsLogged {
+			logrus.WithError(err).WithField("source", fmt.Sprintf("%T", src)).WithField("ref", ref.MarshalString()).Warn("block read failed")
+		}
 		return nil, ReasonError, nil
 	}
 	if stored == nil {
@@ -362,11 +395,14 @@ func readFrom(ctx context.Context, src Source, ref *block.BlockRef) (*block.Stor
 	if err := ref.VerifyData(stored.Data, false); err != nil {
 		return nil, ReasonCorrupt, nil
 	}
-	if !stored.RefsKnown {
-		return nil, ReasonRefsUnknown, nil
-	}
 	return stored, "", nil
 }
+
+// maxReadErrorsLogged bounds the failed reads one run logs.
+const maxReadErrorsLogged = 20
+
+// readErrorsLogged counts the failed reads this run logged.
+var readErrorsLogged atomic.Int64
 
 // worseReason returns the reason that says more about a block no store could
 // serve: a store that held it outranks one that did not.
@@ -407,7 +443,7 @@ func (c *copier) handle(ctx context.Context, res readResult) error {
 	}
 
 	// Follow the refs.
-	return c.expand(ctx, res.node, res.stored.Refs)
+	return c.expand(ctx, res.node, res.stored.Refs, res.kids)
 }
 
 // addBlock appends a block to the batch, first sending the batch when the
@@ -449,7 +485,7 @@ func (c *copier) takeFlush() *flush {
 
 // expand links a read block to its children, queues those still to walk, and
 // finishes the block when none remain.
-func (c *copier) expand(ctx context.Context, n *node, refs []*block.BlockRef) error {
+func (c *copier) expand(ctx context.Context, n *node, refs []*block.BlockRef, kids map[string]any) error {
 	// Link the children, collecting the ones not seen in this run.
 	var fresh []*node
 	for _, ref := range refs {
@@ -459,7 +495,7 @@ func (c *copier) expand(ctx context.Context, n *node, refs []*block.BlockRef) er
 		key := ref.MarshalString()
 		child := c.nodes[key]
 		if child == nil {
-			child = &node{ref: ref}
+			child = &node{ref: ref, typ: kids[key]}
 			c.nodes[key] = child
 			fresh = append(fresh, child)
 		}
