@@ -322,10 +322,11 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	stored(true, "X", "C4", "R4")
 
 	// A pin taken while a sweep walks keeps its tree: the sweep read the
-	// held set before the pin, so it must check the holds again where it
-	// drops. A long kept chain the sweep walks from its live root widens the
-	// window, and each round pins the target just after a sweep ends, as the
-	// next one starts.
+	// held set before the pin, and the pin holds only the target's root, so
+	// the sweep must walk from the holds again where it drops. A released
+	// tree leaves memory by the second sweep after the release. A long kept
+	// chain the sweep walks from its live root widens the window, and each
+	// round pins the target just after a sweep ends, as the next one starts.
 	wide := block.NewPendingStore(f.store, 64<<20)
 	chain := make([]string, 0, 5000)
 	for i := range cap(chain) {
@@ -338,7 +339,25 @@ func TestPendingStoreRunThrough(t *testing.T) {
 		chain = append(chain, name)
 	}
 	put(wide, chain...)
-	tr.add(t, "PT")
+	target := []string{"PL0", "PL1", "PC0", "PC1", "PT"}
+	tr.add(t, "PL0")
+	tr.add(t, "PL1")
+	tr.add(t, "PC0", "PL0", "PL1")
+	tr.add(t, "PC1", "PL1")
+	tr.add(t, "PT", "PC0", "PC1")
+	keptIn := func(ps *block.PendingStore, names []string) (n int) {
+		t.Helper()
+		for _, name := range names {
+			_, found, err := ps.GetBlock(ctx, tr.ref(name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if found {
+				n++
+			}
+		}
+		return n
+	}
 	var sweeps atomic.Uint64
 	stop := make(chan struct{})
 	swept := make(chan struct{})
@@ -369,14 +388,13 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	var pinned int
 	for round := range 50 {
 		// Keep the target, and let a sweep take a mark after its put.
-		if _, found, err := wide.GetBlock(ctx, tr.ref("PT")); err != nil || !found {
-			put(wide, "PT")
-		}
+		put(wide, target...)
 		waitSweeps(1)
 
-		// Pin it as the next sweep starts, and check it stays kept until
-		// that sweep and the one after end. A sweep that dropped it before
-		// the pin leaves nothing to pin, and the round puts it again.
+		// Pin it as the next sweep starts, and check its tree stays kept
+		// until that sweep and the one after end. A sweep drops a tree
+		// whole, so one that dropped it before the pin leaves nothing to
+		// pin, and the round puts it again.
 		releasePin, err := wide.PinRoot(ctx, tr.ref("PT"))
 		if errors.Is(err, block.ErrNotFound) {
 			continue
@@ -386,10 +404,14 @@ func TestPendingStoreRunThrough(t *testing.T) {
 		}
 		pinned++
 		waitSweeps(2)
-		if _, found, err := wide.GetBlock(ctx, tr.ref("PT")); err != nil || !found {
-			t.Fatalf("round %d: a sweep dropped a pinned block: %v %v", round, found, err)
+		if n := keptIn(wide, target); n != len(target) {
+			t.Fatalf("round %d: sweeps kept %d of the %d pinned blocks", round, n, len(target))
 		}
 		releasePin()
+		waitSweeps(2)
+		if n := keptIn(wide, target); n != 0 {
+			t.Fatalf("round %d: sweeps kept %d released blocks", round, n)
+		}
 	}
 	close(stop)
 	<-swept
