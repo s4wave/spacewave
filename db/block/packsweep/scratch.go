@@ -32,6 +32,10 @@ const (
 	logPullKey            = "y/l/pull"
 	cyclePrefix           = "y/"
 	packRecordPrefix      = "q/"
+	// The compaction's rows stay across cycles with the pack records: each
+	// new pack's row, and the pack each compacted key was placed in.
+	compactPackPrefix = "k/p/"
+	placedPrefix      = "k/t/"
 )
 
 // Tail returns the tail of a block key.
