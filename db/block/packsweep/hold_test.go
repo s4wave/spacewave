@@ -35,10 +35,14 @@ type fakeBackend struct {
 	failDrop bool
 	// failRestore fails the next restore after applying it.
 	failRestore bool
+	// failAdopt fails the next adoption after applying it.
+	failAdopt bool
 	// removed are the packs a removal dropped.
 	removed map[string]bool
 	// adopted are the keys each adopted pack carried.
 	adopted map[string][][]byte
+	// adoptOrder are the packs adopted, in order.
+	adoptOrder []string
 	// removals are the removal calls, in order.
 	removals []fakeRemoval
 	// calls counts the calls by method.
@@ -210,19 +214,31 @@ func (b *fakeBackend) Restore(_ context.Context, ids []string) ([]PackHold, erro
 	return out, nil
 }
 
-// Adopt registers the removed packs, recording each pack's keys.
+// Adopt registers the removed packs and the new ones, recording each pack's
+// keys; a registered pack stays as it is.
 func (b *fakeBackend) Adopt(_ context.Context, packs []AdoptedPack) error {
+	// Refuse an adoption over the bound.
 	b.calls["adopt"]++
 	if len(packs) > MaxBackendAdopt {
 		return errors.Errorf("an adoption names %d packs", len(packs))
 	}
+
+	// Register each removed or new pack.
 	for _, p := range packs {
 		id := p.Entry.GetId()
-		if b.removed[id] {
+		_, known := b.adopted[id]
+		if b.removed[id] || !known {
 			delete(b.removed, id)
 			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: b.now}
 			b.adopted[id] = p.Keys
+			b.adoptOrder = append(b.adoptOrder, id)
 		}
+	}
+
+	// Fail once after registering, when asked.
+	if b.failAdopt {
+		b.failAdopt = false
+		return errors.New("killed")
 	}
 	return nil
 }
