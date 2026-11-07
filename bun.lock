@@ -82,7 +82,7 @@
         "zod": "4.6.7",
       },
       "devDependencies": {
-        "@aptre/common": "0.38.1",
+        "@aptre/common": "0.38.2",
         "@google/design.md": "^0.4.0",
         "@playwright/test": "^1.62.1",
         "@reylosql/mysql": "0.6.0",
@@ -132,7 +132,7 @@
     "quickjs-wasi-reactor": "0.17.0",
   },
   "packages": {
-    "@aptre/common": ["@aptre/common@0.38.1", "", { "dependencies": { "@aptre/protobuf-es-lite": "1.2.4", "starpc": "^0.52.3", "tla-ts": "0.0.3", "vitest": "^5.0.0" }, "bin": { "aptre-tla": "dist/tla/check.js" } }, "sha512-hfoicQ206BH9CxtEmmjFHUgDy4+xf2f8B8k+/NWP/KUa7tJToHrh34pgRLYKS36VHIQ1FLdPJgCqALHeMycJqA=="],
+    "@aptre/common": ["@aptre/common@0.38.2", "", { "dependencies": { "@aptre/protobuf-es-lite": "1.2.4", "starpc": "^0.52.3", "tla-ts": "0.0.8", "vitest": "^5.0.0" }, "bin": { "aptre-tla": "dist/tla/check.js" } }, "sha512-x5+73sGDyeSqk3G2G26fyxEudaWe2blWHoQ3cQMjwLenTXdKxfRZM8INyzJsrmNMFZZl08TjLiZ74C5ONvKUWw=="],
 
     "@aptre/flex-layout": ["@aptre/flex-layout@0.6.4", "", { "peerDependencies": { "react": "^19.2.5", "react-dom": "^19.2.5" } }, "sha512-ROKbbJSoDGv1wbLcQq6VryPtWsqZBIF3R2z5q9hRpBjdltC7/71i2e4erpKqn2gTFckZrjuXssIHTdHMs60/Ag=="],
 
@@ -1616,7 +1616,7 @@
 
     "tinyrainbow": ["tinyrainbow@3.1.1", "", {}, "sha512-yau8yJdTt989Mm0Bd/236QnzEiPf2xLLTqUZRUJOo/3CB078LSwzei343DgtJVmfJKJE3TMINY1u42SQsP6mXw=="],
 
-    "tla-ts": ["tla-ts@0.0.3", "", { "bin": { "tla-ts": "dist/cli.js" } }, "sha512-y5wQZRGMqjc+47BHRZ3I+Re7O1bFSWlNX+835pZkdPzVRPkgQeTlKERPsPcuI1fMGf2Av4Gx8K3n3NnPAAUUBg=="],
+    "tla-ts": ["tla-ts@0.0.8", "", { "dependencies": { "fflate": "^0.8.3" }, "bin": { "tla-ts": "dist/cli.js" } }, "sha512-o6l6mvlV+o81B6ZRN/k1Jb4De788F4584vzm13U+EBgEIqifeyHjBNvCiUJtZFFM/GV3LugdKhhnCS/cAbA3qg=="],
 
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
 
