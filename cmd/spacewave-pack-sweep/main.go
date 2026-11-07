@@ -8,10 +8,13 @@
 // pack index file, and keeps everything it learns in one scratch file, so a
 // stopped step resumes where its last batch left it.
 //
-// Only quarantine, recheck, trash, remove and restore change the store, each through
-// the backend's admin service: quarantine takes the dead packs out of the
-// reads, leaving each readable through the fallback, and recheck passes each
-// that stayed unreached, or lifts it back. Trash marks each passed pack
+// Only compact, quarantine, recheck, trash, remove and restore change the
+// store, each through the backend's admin service. Compact writes the live
+// blocks of the packs judged low into new packs, which the backend adopts, so
+// the backend reads those blocks from them. Quarantine takes the dead packs,
+// and the low packs whose live blocks a compaction placed, out of the reads,
+// leaving each readable through the fallback, and recheck passes each that
+// stayed unreached, or lifts it back. Trash marks each passed pack
 // trashing and moves its entry, then its file, to the store's trash, where a
 // read that still falls back to it records a miss. Remove drops each trashed
 // pack no read missed from the backend's index, pointing each block row that
@@ -76,6 +79,12 @@ func main() {
 			Usage:  "quarantine through the backend each pack judged dead and still unreached",
 			Flags:  args.adminFlags(),
 			Action: args.runQuarantine,
+		},
+		{
+			Name:   "compact",
+			Usage:  "write the live blocks of each pack judged low into new packs, and have the backend adopt them",
+			Flags:  args.compactFlags(),
+			Action: args.runCompact,
 		},
 		{
 			Name:   "recheck",

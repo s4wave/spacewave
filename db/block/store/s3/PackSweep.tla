@@ -26,7 +26,9 @@ EXTENDS Naturals, Sequences, FiniteSets
 \* and closure_test.go checks; a crash of the command, since each step commits
 \* its scratch state before it calls the backend and every call is idempotent,
 \* which Phase 6's run-through checks; compaction, whose adopted pack is the
-\* duplicate holder p1 is to p2 here; the purge, an operator step after the
+\* duplicate holder p1 is to p2 here, and which places a key, as Elsewhere
+\* counts a registered holder, only while the sweep holds no record of that
+\* pack; the purge, an operator step after the
 \* trash's retention. Each write here is one step, its log line included, and
 \* each read takes its block in the step it reads; in the code a write spans
 \* the dedup check and its log line, and a read operation may hold a block it

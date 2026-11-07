@@ -114,6 +114,8 @@ type Args struct {
 	Moves int
 	// Packs names packs the restore brings back besides those reads missed.
 	Packs cli.StringSlice
+	// MaxPackBytes bounds a pack the compaction writes.
+	MaxPackBytes int64
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)
@@ -703,7 +705,7 @@ func (a *Args) runStatus(*cli.Context) error {
 	}
 	defer db.Close()
 
-	// Print the cycle's header with its log pull.
+	// Read the cycle's header, its log pull and its counts.
 	head, err := packsweep.ReadHead(ctx, store)
 	if err != nil {
 		return err
@@ -716,12 +718,20 @@ func (a *Args) runStatus(*cli.Context) error {
 	if err != nil {
 		return err
 	}
+	compacted, err := packsweep.CompactPacks(ctx, store)
+	if err != nil {
+		return err
+	}
+
+	// Print them.
 	return a.print(func(arena *fastjson.Arena) *fastjson.Value {
+		// Set the pull and the counts beside the header.
 		v := head.JSON(arena)
 		if pull != nil {
 			v.Set("logPull", pull.JSON(arena))
 		}
 		v.Set("packRecords", packsweep.JSONCounts(arena, records))
+		v.Set("compactPacks", packsweep.JSONCounts(arena, compacted))
 		return v
 	})
 }

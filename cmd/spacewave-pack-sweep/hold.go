@@ -12,6 +12,7 @@ import (
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 )
 
 // adminAuthEnv names the variable holding the Authorization header the
@@ -44,6 +45,13 @@ func (a *Args) trashFlags() []cli.Flag {
 // back besides those reads missed.
 func (a *Args) restoreFlags() []cli.Flag {
 	return append(a.trashFlags(), &cli.StringSliceFlag{Name: "pack", Usage: "a trashing or removed pack to restore besides those reads missed; repeat for each", Destination: &a.Packs})
+}
+
+// compactFlags configures the compaction, which covers the cycle as the
+// quarantine does and reaches the store.
+func (a *Args) compactFlags() []cli.Flag {
+	flags := append(a.adminFlags(), a.sftpFlags()...)
+	return append(flags, &cli.Int64Flag{Name: "max-pack-bytes", Usage: "most bytes of a pack the compaction writes", Value: writer.DefaultMaxPackBytes, Destination: &a.MaxPackBytes})
 }
 
 // removeFlags configures the removal, which reaches the backend only.
@@ -119,6 +127,42 @@ func (a *Args) runQuarantine(*cli.Context) error {
 
 	// Quarantine, and print the result.
 	res, err := packsweep.Quarantine(ctx, opts)
+	if err != nil {
+		return err
+	}
+	return a.print(res.JSON)
+}
+
+// runCompact writes the live blocks of the low packs into new packs.
+func (a *Args) runCompact(*cli.Context) error {
+	// Open the scratch file until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Reach the store, refusing one the catalog does not describe.
+	objects, root, closeStore, err := a.dialStore()
+	if err != nil {
+		return err
+	}
+	defer closeStore()
+	if err := checkStore(ctx, db, a.storeBinding(root)); err != nil {
+		return err
+	}
+
+	// Reach the backend and the refs.
+	opts, closeOpts, err := a.coverOptions(ctx, store)
+	if err != nil {
+		return err
+	}
+	defer closeOpts()
+
+	// Compact, and print the result.
+	res, err := packsweep.Compact(ctx, &packsweep.CompactOptions{CoverOptions: *opts, Objects: objects, Bucket: root, Prefix: a.Prefix, MaxPackBytes: a.MaxPackBytes})
 	if err != nil {
 		return err
 	}

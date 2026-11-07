@@ -133,6 +133,7 @@ func (r *QuarantineResult) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"blocked", a.NewString(r.Blocked)},
 		jsonField{"quarantined", jsonUint(a, r.Quarantined)},
 		jsonField{"live", jsonUint(a, r.Live)},
+		jsonField{"unplaced", jsonUint(a, r.Unplaced)},
 		jsonField{"unmoved", jsonUint(a, r.Unmoved)},
 	)
 }

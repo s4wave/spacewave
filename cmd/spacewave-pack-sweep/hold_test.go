@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/packcopy"
@@ -24,6 +25,75 @@ import (
 	store_kvtx_sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
 	"github.com/sirupsen/logrus"
 )
+
+// commandStoreID is the block store id of the command tests' pack index.
+const commandStoreID = "p/local/acc/blk/so"
+
+// openIndexStore opens a pack store over the bucket of client, its pack index
+// in the file at path of the volume type kind.
+func openIndexStore(ctx context.Context, t *testing.T, kind, path string, client *block_store_s3.Client) (*block_store_s3.PackStore, func() error) {
+	t.Helper()
+	index, closeIndex, err := packcopy.OpenIndexFile(ctx, path, &packcopy.IndexFileOptions{
+		Kind:   kind,
+		Table:  defaultIndexTable,
+		SQLite: store_kvtx_sqlite.Pragmas{WithoutRowID: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return block_store_s3.NewPackStore(logrus.NewEntry(logrus.New()), client, s3test.BucketName, "world/", &block_store_s3.PackStoreOptions{
+		KeepPacks: true,
+		Index:     kvtx_prefixer.NewPrefixer(index, block_store_s3.PackIndexPrefix(commandStoreID)),
+	}), closeIndex
+}
+
+// commandBackend is a backend for the command tests: a pack store, a marking
+// store over it, the write log, and the admin service behind a credential.
+type commandBackend struct {
+	// store is the pack store.
+	store *block_store_s3.PackStore
+	// marking records the open operations over store.
+	marking *block_store_writeback.MarkingStore
+	// wlog is the write log.
+	wlog *writelog.Log
+	// url is the admin service's ws URL.
+	url string
+}
+
+// serveAdmin serves the admin service over store until the test ends, and
+// sets the credential the command sends.
+func serveAdmin(t *testing.T, store *block_store_s3.PackStore, dir string) *commandBackend {
+	t.Helper()
+	b := &commandBackend{store: store, marking: block_store_writeback.NewMarkingStore(store, nil), wlog: writelog.New(logrus.NewEntry(logrus.New()))}
+	if err := b.wlog.Set(&writelog.Options{Dir: filepath.Join(dir, "log")}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = b.wlog.Close() })
+	server := block_packsweep_admin.NewServer(block_packsweep_admin.Options{
+		Packs:   store,
+		Log:     b.wlog,
+		Enabled: func() bool { return true },
+		Operations: func() (time.Time, time.Time) {
+			ops := b.marking.OldestOperations()
+			return ops.Write, ops.Read
+		},
+	})
+	handler, err := block_packsweep_admin.NewHTTPHandler(server, "/admin/pack-sweep")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer admin" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	t.Cleanup(srv.Close)
+	t.Setenv(adminAuthEnv, "Bearer admin")
+	b.url = "ws" + strings.TrimPrefix(srv.URL, "http") + "/admin/pack-sweep"
+	return b
+}
 
 // TestCommandQuarantine quarantines, rechecks, trashes and removes through a
 // backend's admin service over HTTP, its pack store on an index file of each
@@ -46,26 +116,13 @@ func TestCommandQuarantine(t *testing.T) {
 func testCommandQuarantine(t *testing.T, kind string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	le := logrus.NewEntry(logrus.New())
 	dir := t.TempDir()
 
 	// Write a live pack and three dead packs through an index file.
-	const storeID = "p/local/acc/blk/so"
 	_, client := s3test.New(t)
 	indexPath := filepath.Join(dir, "index.db")
 	openStore := func() (*block_store_s3.PackStore, func() error) {
-		index, closeIndex, err := packcopy.OpenIndexFile(ctx, indexPath, &packcopy.IndexFileOptions{
-			Kind:   kind,
-			Table:  defaultIndexTable,
-			SQLite: store_kvtx_sqlite.Pragmas{WithoutRowID: true},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return block_store_s3.NewPackStore(le, client, s3test.BucketName, "world/", &block_store_s3.PackStoreOptions{
-			KeepPacks: true,
-			Index:     kvtx_prefixer.NewPrefixer(index, block_store_s3.PackIndexPrefix(storeID)),
-		}), closeIndex
+		return openIndexStore(ctx, t, kind, indexPath, client)
 	}
 	ref := func(data string) *block.BlockRef {
 		r, err := block.BuildBlockRef([]byte(data), nil)
@@ -98,7 +155,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	var out bytes.Buffer
 	args := &Args{
 		Scratch:    filepath.Join(dir, "scratch"),
-		StoreID:    storeID,
+		StoreID:    commandStoreID,
 		Index:      indexPath,
 		Prefix:     "world/",
 		Reads:      2,
@@ -120,42 +177,15 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		t.Fatal(err)
 	}
 
-	// Open the backend: the pack store, a marking store over it, the write
-	// log and the admin service behind a credential.
+	// Open the backend over the index file.
 	store, closeIndex := openStore()
 	defer func() {
 		store.Close()
 		_ = closeIndex()
 	}()
-	marking := block_store_writeback.NewMarkingStore(store, nil)
-	wlog := writelog.New(le)
-	if err := wlog.Set(&writelog.Options{Dir: filepath.Join(dir, "log")}); err != nil {
-		t.Fatal(err)
-	}
-	defer wlog.Close()
-	server := block_packsweep_admin.NewServer(block_packsweep_admin.Options{
-		Packs:   store,
-		Log:     wlog,
-		Enabled: func() bool { return true },
-		Operations: func() (time.Time, time.Time) {
-			ops := marking.OldestOperations()
-			return ops.Write, ops.Read
-		},
-	})
-	handler, err := block_packsweep_admin.NewHTTPHandler(server, "/admin/pack-sweep")
-	if err != nil {
-		t.Fatal(err)
-	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer admin" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		handler.ServeHTTP(w, r)
-	}))
-	defer srv.Close()
-	t.Setenv(adminAuthEnv, "Bearer admin")
-	args.AdminURL = "ws" + strings.TrimPrefix(srv.URL, "http") + "/admin/pack-sweep"
+	backend := serveAdmin(t, store, dir)
+	marking, wlog := backend.marking, backend.wlog
+	args.AdminURL = backend.url
 
 	// Walk from the log's position, and judge the three packs dead. The judgment
 	// waits on the unread log, which the quarantine pulls.
@@ -339,5 +369,164 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	t.Setenv(adminAuthEnv, "")
 	if err := args.runRecheck(nil); err == nil {
 		t.Fatal("rechecked without the credential")
+	}
+}
+
+// TestCommandCompact compacts a low pack through a backend's admin service,
+// its pack index in a file of each volume type. The quarantine leaves the low
+// pack until the compaction writes its live block to a new pack the backend
+// adopts and reads it from; then the quarantine, recheck, trash and removal
+// take the low pack, and the live block still reads.
+func TestCommandCompact(t *testing.T) {
+	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
+		t.Run(kind, func(t *testing.T) { testCommandCompact(t, kind) })
+	}
+}
+
+// testCommandCompact runs the compaction with the pack index in a file of the
+// volume type kind.
+func testCommandCompact(t *testing.T, kind string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	dir := t.TempDir()
+
+	// Write the root's pack, and a low pack holding the block it links and a
+	// large dead block, through an index file.
+	_, client := s3test.New(t)
+	indexPath := filepath.Join(dir, "index.db")
+	dead := strings.Repeat("dead ", 400)
+	ref := func(data string) *block.BlockRef {
+		r, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	rootRef, liveRef, deadRef := ref("root"), ref("live"), ref(dead)
+	seed, closeIndex := openIndexStore(ctx, t, kind, indexPath, client)
+	for _, batch := range [][]*block.PutBatchEntry{
+		{{Ref: rootRef, Data: []byte("root"), Refs: []*block.BlockRef{liveRef}, RefsKnown: true}},
+		{{Ref: liveRef, Data: []byte("live"), RefsKnown: true}, {Ref: deadRef, Data: []byte(dead), RefsKnown: true}},
+	} {
+		if _, err := seed.PutBlockBatch(ctx, batch); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seed.Close()
+	if err := closeIndex(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Snapshot the store while no backend holds it, then open the backend.
+	var out bytes.Buffer
+	args := &Args{
+		Scratch:      filepath.Join(dir, "scratch"),
+		StoreID:      commandStoreID,
+		Index:        indexPath,
+		Prefix:       "world/",
+		Reads:        2,
+		Roots:        *cli.NewStringSlice(rootRef.MarshalString()),
+		Batch:        1,
+		MinAge:       time.Nanosecond,
+		LowPercent:   packsweep.DefaultLowLivePercent,
+		Report:       filepath.Join(dir, "report.jsonl"),
+		Holes:        filepath.Join(dir, "holes.txt"),
+		MaxPackBytes: 1 << 20,
+		dial: func() (block_store_s3.ObjectStore, string, func(), error) {
+			return client, s3test.BucketName, func() {}, nil
+		},
+		out: &out,
+	}
+	if err := args.runNewCycle(nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := args.runSnapshot(nil); err != nil {
+		t.Fatal(err)
+	}
+	store, closeIndex := openIndexStore(ctx, t, kind, indexPath, client)
+	defer func() {
+		store.Close()
+		_ = closeIndex()
+	}()
+	backend := serveAdmin(t, store, dir)
+	args.AdminURL = backend.url
+	run := func(step func(*cli.Context) error) *fastjson.Value {
+		t.Helper()
+		out.Reset()
+		if err := step(nil); err != nil {
+			t.Fatal(err)
+		}
+		return parse(t, out.Bytes())
+	}
+
+	// Walk from the log's position, and judge the second pack low.
+	pos, ok := backend.wlog.Position()
+	if !ok {
+		t.Fatal("write log is off")
+	}
+	args.LogPosition = pos.String()
+	if err := args.runWalk(nil); err != nil {
+		t.Fatal(err)
+	}
+	if res := run(args.runJudge); res.GetUint("summary", "packs", "low") != 1 {
+		t.Fatalf("judgment = %s", res)
+	}
+	located, err := store.LocatePacks(ctx, []*block.BlockRef{liveRef, deadRef})
+	if err != nil || located[0] == "" || located[1] != located[0] {
+		t.Fatalf("locate before the compaction = %v, %v", located, err)
+	}
+	lowPack := located[0]
+
+	// The quarantine leaves the low pack before the compaction.
+	if res := run(args.runQuarantine); res.GetUint("unplaced") != 1 || res.GetUint("quarantined") != 0 {
+		t.Fatalf("quarantine before the compaction = %s", res)
+	}
+
+	// The compaction writes the live block to a new pack the backend reads it
+	// from, and a repeat writes nothing.
+	if res := run(args.runCompact); res.GetUint("packs") != 1 || res.GetUint("blocks") != 1 || res.GetUint("victims") != 1 {
+		t.Fatalf("compaction = %s", res)
+	}
+	if res := run(args.runCompact); res.GetUint("packs") != 0 || res.GetUint("victims") != 0 {
+		t.Fatalf("second compaction = %s", res)
+	}
+	located, err = store.LocatePacks(ctx, []*block.BlockRef{liveRef, deadRef})
+	if err != nil || located[0] == "" || located[0] == lowPack || located[1] != lowPack {
+		t.Fatalf("locate after the compaction = %v, %v", located, err)
+	}
+	newPack := located[0]
+	if status := run(args.runStatus); status.GetUint("compactPacks", "adopted") != 1 || status.GetUint("compactPacks", "pending") != 0 {
+		t.Fatalf("status = %s", status)
+	}
+
+	// The quarantine, recheck, trash and removal take the low pack, and the
+	// live block reads from the new pack throughout.
+	readLive := func(step string) {
+		t.Helper()
+		if data, found, err := store.GetBlock(ctx, liveRef); err != nil || !found || string(data) != "live" {
+			t.Fatalf("read of the live block after the %s = %q, %v, %v", step, data, found, err)
+		}
+		if located, err := store.LocatePacks(ctx, []*block.BlockRef{liveRef}); err != nil || located[0] != newPack {
+			t.Fatalf("locate of the live block after the %s = %v, %v", step, located, err)
+		}
+	}
+	if res := run(args.runQuarantine); res.GetUint("quarantined") != 1 || res.GetUint("unplaced") != 0 {
+		t.Fatalf("quarantine after the compaction = %s", res)
+	}
+	readLive("quarantine")
+	args.Wait = time.Nanosecond
+	if res := run(args.runRecheck); res.GetUint("passed") != 1 {
+		t.Fatalf("recheck = %s", res)
+	}
+	if res := run(args.runTrash); res.GetUint("moved") != 1 {
+		t.Fatalf("trash = %s", res)
+	}
+	readLive("trash")
+	if res := run(args.runRemove); res.GetUint("removed") != 1 {
+		t.Fatalf("removal = %s", res)
+	}
+	readLive("removal")
+	if located, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef}); err != nil || located[0] != "" {
+		t.Fatalf("locate of the dead block after the removal = %v, %v", located, err)
 	}
 }

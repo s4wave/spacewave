@@ -183,7 +183,7 @@ func adoptBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, 
 	packs := make([]AdoptedPack, len(moved))
 	ids := make([]string, len(moved))
 	for i, p := range moved {
-		ap, err := readAdopted(ctx, &opts.TrashOptions, p.ID)
+		ap, err := readAdopted(ctx, opts.Mover, opts.Bucket, opts.Prefix, p.ID)
 		if err != nil {
 			return err
 		}
@@ -201,33 +201,54 @@ func adoptBatch(ctx context.Context, opts *RestoreOptions, batch []*PackRecord, 
 	return moveErr
 }
 
-// readAdopted reads the entry of pack id from the store and the keys its
-// index lists, from the end of its file.
-func readAdopted(ctx context.Context, opts *TrashOptions, id string) (AdoptedPack, error) {
-	// Read the entry.
-	body, err := opts.Mover.GetObject(ctx, opts.Bucket, block_store_s3.EntryObjectKey(opts.Prefix, id))
+// readAdopted reads the entry of pack id from the store's bucket and the keys
+// its index lists, from the end of its file. A missing object matches
+// block_store_s3.ErrNotFound.
+func readAdopted(ctx context.Context, objects block_store_s3.ObjectStore, bucket, prefix, id string) (AdoptedPack, error) {
+	entry, err := readEntry(ctx, objects, bucket, prefix, id)
 	if err != nil {
-		return AdoptedPack{}, errors.Wrap(err, "read the entry of pack "+id)
+		return AdoptedPack{}, err
+	}
+	return readIndexKeys(ctx, objects, bucket, prefix, entry)
+}
+
+// readEntry reads the entry of pack id from the store's bucket. A missing
+// entry matches block_store_s3.ErrNotFound.
+func readEntry(ctx context.Context, objects block_store_s3.ObjectStore, bucket, prefix, id string) (*packfile.PackfileEntry, error) {
+	// Read the object.
+	body, err := objects.GetObject(ctx, bucket, block_store_s3.EntryObjectKey(prefix, id))
+	if err != nil {
+		return nil, errors.Wrap(err, "read the entry of pack "+id)
 	}
 	data, err := io.ReadAll(body)
 	_ = body.Close()
 	if err != nil {
-		return AdoptedPack{}, errors.Wrap(err, "read the entry of pack "+id)
-	}
-	entry := &packfile.PackfileEntry{}
-	if err := entry.UnmarshalVT(data); err != nil || entry.GetId() != id {
-		return AdoptedPack{}, errors.Errorf("the entry object of pack %s is not its entry", id)
+		return nil, errors.Wrap(err, "read the entry of pack "+id)
 	}
 
-	// Read the keys the index lists.
-	key := block_store_s3.PackObjectKey(opts.Prefix, id)
+	// Decode it, and check it names the pack.
+	entry := &packfile.PackfileEntry{}
+	if err := entry.UnmarshalVT(data); err != nil || entry.GetId() != id {
+		return nil, errors.Errorf("the entry object of pack %s is not its entry", id)
+	}
+	return entry, nil
+}
+
+// readIndexKeys reads the keys the index of the pack entry describes lists,
+// from the end of its file.
+func readIndexKeys(ctx context.Context, objects block_store_s3.ObjectStore, bucket, prefix string, entry *packfile.PackfileEntry) (AdoptedPack, error) {
+	// Read the index from the end of the file.
+	id := entry.GetId()
+	key := block_store_s3.PackObjectKey(prefix, id)
 	read := func(ctx context.Context, off int64, length int) ([]byte, error) {
-		return opts.Mover.GetObjectRange(ctx, opts.Bucket, key, off, length)
+		return objects.GetObjectRange(ctx, bucket, key, off, length)
 	}
 	tail, err := packfile.ReadIndexTail(ctx, entry.GetSizeBytes(), packfile.IndexTailReadSize(entry.GetBlockCount()), read)
 	if err != nil {
 		return AdoptedPack{}, errors.Wrap(err, "read the index of pack "+id)
 	}
+
+	// Take each key it lists.
 	var keys [][]byte
 	err = packfile.ScanIndexTail(tail, entry.GetSizeBytes(), func(e *kvfile.IndexEntry) error {
 		keys = append(keys, bytes.Clone(e.GetKey()))
