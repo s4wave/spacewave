@@ -1723,7 +1723,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/packsweep/admin": {
-      "hash": "fc0166abe959dcc841a6154875bcdbcae3b342d5126163eea490e41e40416fc1",
+      "hash": "a1e0eef6845b3c8e40a37aedd198a6e517c91bcd8f6fc09959bc0f63c95f5bf9",
       "generatedFiles": [
         "db/block/packsweep/admin/admin.pb.go",
         "db/block/packsweep/admin/admin.pb.ts",

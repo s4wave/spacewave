@@ -54,6 +54,9 @@ type Log interface {
 	packsweep.LogSource
 	// Status returns the log's state.
 	Status() writelog.Status
+	// Position flushes the buffered lines and returns the open epoch's last
+	// line, false while the log is off.
+	Position() (writelog.Position, bool)
 }
 
 // Options configures a Server.
@@ -65,6 +68,11 @@ type Options struct {
 	// Refs serves the child lists of the blocks the backend holds; nil fails
 	// the Refs call.
 	Refs packsweep.RefSource
+	// Roots lists the named roots; nil fails the Roots call.
+	Roots RootLister
+	// Pins holds the refs the process pins outside its named roots; nil
+	// reports none.
+	Pins *Pins
 	// Enabled is the switch, read at each call that changes a pack's state;
 	// nil is always off.
 	Enabled func() bool

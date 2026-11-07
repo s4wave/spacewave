@@ -12,6 +12,10 @@ import "github.com/s4wave/spacewave/net/hash/hash.proto";
 service PackSweepAdmin {
   // Status reports the switch, the packs' sweep states and the write log.
   rpc Status(StatusRequest) returns (StatusResponse);
+  // Roots reads every named root, every ref the process pins, and the write
+  // log's position R, so every root and pin set since R is in the log after
+  // R.
+  rpc Roots(RootsRequest) returns (RootsResponse);
   // Locate returns the registered pack the index places each block in.
   rpc Locate(LocateRequest) returns (LocateResponse);
   // Refs returns the child lists of blocks the backend holds, without
@@ -70,6 +74,30 @@ message PackHold {
   int64 event_unix_nano = 4;
   // Key is the block key the event read, empty for a lift by the command.
   bytes key = 5;
+}
+
+// RootsRequest asks for the roots of a walk.
+message RootsRequest {}
+
+// RootsResponse holds the roots of a walk and the log position they were
+// read at.
+message RootsResponse {
+  // Position is the write log's position R, read before the roots and the
+  // pins, as epoch/seq; empty while the log is off, and then no cycle on
+  // these roots can remove a pack.
+  string position = 1;
+  // Roots are the named roots.
+  repeated NamedRootRef roots = 2;
+  // Pins are the refs the process pins.
+  repeated .block.BlockRef pins = 3;
+}
+
+// NamedRootRef is one named root and the block it holds.
+message NamedRootRef {
+  // Name is the root's name.
+  string name = 1;
+  // Ref is the block the root holds.
+  .block.BlockRef ref = 2;
 }
 
 // LogStatus is the write log's state.
