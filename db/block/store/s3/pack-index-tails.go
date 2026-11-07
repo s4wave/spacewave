@@ -3,6 +3,7 @@ package block_store_s3
 import (
 	"context"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -39,6 +40,12 @@ type tailQueue struct {
 	bytes int
 	// draining records that a drain goroutine runs.
 	draining bool
+	// closed refuses new tails and ends the drain at its next step.
+	closed bool
+	// stop ends the drain's pause once closed; nil until the first drain.
+	stop chan struct{}
+	// drains counts the drain goroutines, which closeTails waits for.
+	drains sync.WaitGroup
 }
 
 // queueTail queues the index tail of a pack for its write and starts the
@@ -48,7 +55,7 @@ func (x *packIndex) queueTail(packID string, data []byte) {
 	// Skip a queued pack, and drop a tail past the byte bound.
 	x.mtx.Lock()
 	q := &x.tails
-	if _, ok := q.pending[packID]; ok || q.bytes+len(data) > tailQueueBytes {
+	if _, ok := q.pending[packID]; ok || q.closed || q.bytes+len(data) > tailQueueBytes {
 		x.mtx.Unlock()
 		return
 	}
@@ -61,10 +68,35 @@ func (x *packIndex) queueTail(packID string, data []byte) {
 	q.bytes += len(data)
 	drain := !q.draining
 	q.draining = true
+	if drain {
+		if q.stop == nil {
+			q.stop = make(chan struct{})
+		}
+		q.drains.Add(1)
+	}
 	x.mtx.Unlock()
 	if drain {
 		go x.drainTails()
 	}
+}
+
+// closeTails drops the queued tails and waits for the drain to end, so the
+// caller may close the index store after it. A dropped tail costs its cold
+// reads a read of the tail from the bucket again.
+func (x *packIndex) closeTails() {
+	// Refuse new tails and end the drain's pause.
+	x.mtx.Lock()
+	q := &x.tails
+	if !q.closed {
+		q.closed = true
+		if q.stop != nil {
+			close(q.stop)
+		}
+	}
+	x.mtx.Unlock()
+
+	// Wait out a step writing.
+	q.drains.Wait()
 }
 
 // queuedTail returns the tail of a pack awaiting its write.
@@ -97,13 +129,14 @@ func (x *packIndex) forgetQueuedTailsLocked(ids []string) {
 // than flushed, and a failed step drops its tails.
 func (x *packIndex) drainTails() {
 	ctx := kvtx.WithBackgroundWriteContext(kvtx.WithOrderedCommitContext(context.Background()))
+	defer x.tails.drains.Done()
 	for {
 		// Take the next step with each tail's pack number, or end the drain on
-		// an empty queue. A tail stays queued, and readable, until its step is
-		// written.
+		// an empty queue or a closed index. A tail stays queued, and readable,
+		// until its step is written.
 		x.mtx.Lock()
 		q := &x.tails
-		if len(q.pending) == 0 {
+		if len(q.pending) == 0 || q.closed {
 			q.draining = false
 			x.mtx.Unlock()
 			return
@@ -143,7 +176,12 @@ func (x *packIndex) drainTails() {
 		x.mtx.Lock()
 		x.forgetQueuedTailsLocked(mapKeys(step))
 		x.mtx.Unlock()
-		time.Sleep(min(max(tailStepPause, 2*time.Since(started)), tailStepPauseMax))
+		pause := time.NewTimer(min(max(tailStepPause, 2*time.Since(started)), tailStepPauseMax))
+		select {
+		case <-q.stop:
+		case <-pause.C:
+		}
+		pause.Stop()
 	}
 }
 

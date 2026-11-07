@@ -129,14 +129,16 @@ func Walk(ctx context.Context, opts *WalkOptions) (*Head, error) {
 		batch = DefaultWalkBatch
 	}
 	progress := WalkProgress{Live: head.Live}
+	w := &walker{store: opts.Store, refs: opts.Refs, set: liveSet}
 	for {
-		done, err := walkBatch(ctx, opts, batch, &progress)
+		done, live, err := w.batch(ctx, batch)
 		if err != nil {
 			return nil, err
 		}
 		if done {
 			break
 		}
+		progress.Live = live
 		progress.Batches++
 		if opts.Progress != nil {
 			opts.Progress(progress)
@@ -173,7 +175,7 @@ func seed(ctx context.Context, opts *WalkOptions, roots []string) (*Head, error)
 		if err != nil {
 			return nil, err
 		}
-		added, err := visit(ctx, tx, ref)
+		added, err := visit(ctx, tx, liveSet, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -192,25 +194,68 @@ func seed(ctx context.Context, opts *WalkOptions, roots []string) (*Head, error)
 	return head, tx.Commit(ctx)
 }
 
-// visit adds ref to L and the frontier unless L holds it, reporting whether
-// it did.
-func visit(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (bool, error) {
-	// Skip a key L holds.
+// walkSet names the rows of one walked set of keys: L, or the closure W.
+type walkSet struct {
+	// visited prefixes the set's keys.
+	visited string
+	// frontier prefixes the set's keys whose children wait.
+	frontier string
+	// stop is the visited prefix of a set whose keys this one does not take,
+	// empty for none: W takes no key of L, whose children L holds.
+	stop string
+	// count returns the head's count of the keys the set's walk added.
+	count func(*Head) *uint64
+}
+
+// liveSet is L, what the roots reach.
+var liveSet = walkSet{
+	visited:  visitedPrefix,
+	frontier: frontierPrefix,
+	count:    func(h *Head) *uint64 { return &h.Live },
+}
+
+// closureSet is W, what the log since R reaches that L lacks.
+var closureSet = walkSet{
+	visited:  closureVisitedPrefix,
+	frontier: closureFrontierPrefix,
+	stop:     visitedPrefix,
+	count:    func(h *Head) *uint64 { return &h.Closure },
+}
+
+// visit adds ref to the set and its frontier unless the set or its stop set
+// holds it, reporting whether it did.
+func visit(ctx context.Context, tx kvtx.TxOps, set walkSet, ref *block.BlockRef) (bool, error) {
+	// Skip a key the set or its stop set holds.
 	tail := RefTail(ref)
-	found, err := tx.Exists(ctx, prefixed(visitedPrefix, tail))
-	if err != nil || found {
-		return false, err
+	for _, prefix := range [2]string{set.stop, set.visited} {
+		if prefix == "" {
+			continue
+		}
+		found, err := tx.Exists(ctx, prefixed(prefix, tail))
+		if err != nil || found {
+			return false, err
+		}
 	}
 
-	// Add it to L and the frontier.
+	// Add it to the set and the frontier.
 	data, err := ref.MarshalVT()
 	if err != nil {
 		return false, err
 	}
-	if err := tx.Set(ctx, prefixed(visitedPrefix, tail), nil); err != nil {
+	if err := tx.Set(ctx, prefixed(set.visited, tail), nil); err != nil {
 		return false, err
 	}
-	return true, tx.Set(ctx, prefixed(frontierPrefix, tail), data)
+	return true, tx.Set(ctx, prefixed(set.frontier, tail), data)
+}
+
+// walker walks one set a batch of its frontier at a time.
+type walker struct {
+	// store is the scratch store.
+	store kvtx.Store
+	// refs serves blocks the catalog lacks, nil for none.
+	refs RefSource
+	// set is the walked set.
+	set walkSet
 }
 
 // frontierKey is one key taken from the frontier.
@@ -223,105 +268,137 @@ type frontierKey struct {
 	refs []*block.BlockRef
 	// reason is its hole reason, empty for none.
 	reason string
+	// skip is set for a key the stop set holds, whose children it holds.
+	skip bool
 }
 
-// walkBatch takes up to batch frontier keys, finds their children, and
-// commits the children and the holes in place of the keys. It reports done
-// when the frontier was empty.
-func walkBatch(ctx context.Context, opts *WalkOptions, batch int, progress *WalkProgress) (bool, error) {
+// batch takes up to n frontier keys, finds their children, and commits the
+// children and the holes in place of the keys. It reports done when the
+// frontier was empty, and the set's count after the batch.
+func (w *walker) batch(ctx context.Context, n int) (bool, uint64, error) {
 	// Read the batch and its refs rows in one snapshot.
-	keys, err := readFrontier(ctx, opts.Store, batch)
+	keys, err := w.readFrontier(ctx, n)
 	if err != nil || len(keys) == 0 {
-		return len(keys) == 0, err
+		return len(keys) == 0, 0, err
 	}
 
 	// Ask the source for the keys the catalog cannot serve: a block a
 	// backend holds may wait to upload, or have a good copy where every
 	// catalogued one is corrupt or lacks its refs.
+	if err := w.askRefs(ctx, keys); err != nil {
+		return false, 0, err
+	}
+	return w.commit(ctx, keys)
+}
+
+// askRefs asks the ref source for the keys with a hole reason, keeping the
+// worse reason of a key it cannot serve either.
+func (w *walker) askRefs(ctx context.Context, keys []*frontierKey) error {
+	// Collect the keys to ask for.
 	var ask []*frontierKey
 	for _, k := range keys {
 		if k.reason != "" {
 			ask = append(ask, k)
 		}
 	}
-	if len(ask) != 0 && opts.Refs != nil {
-		refs := make([]*block.BlockRef, len(ask))
-		for i, k := range ask {
-			refs[i] = k.ref
-		}
-		results, err := opts.Refs.BlockRefs(ctx, refs)
-		if err != nil {
-			return false, errors.Wrap(err, "read refs")
-		}
-		if len(results) != len(ask) {
-			return false, errors.Errorf("ref source answered %d of %d blocks", len(results), len(ask))
-		}
-		for i, k := range ask {
-			if results[i].Reason == "" {
-				k.refs, k.reason = results[i].Refs, ""
-				continue
-			}
-			k.reason = packcopy.WorseReason(k.reason, results[i].Reason)
-		}
+	if len(ask) == 0 || w.refs == nil {
+		return nil
 	}
 
-	// Open a write with the header.
-	tx, err := opts.Store.NewTransaction(ctx, true)
+	// Ask, and take each answer.
+	refs := make([]*block.BlockRef, len(ask))
+	for i, k := range ask {
+		refs[i] = k.ref
+	}
+	results, err := w.refs.BlockRefs(ctx, refs)
 	if err != nil {
-		return false, err
+		return errors.Wrap(err, "read refs")
+	}
+	if len(results) != len(ask) {
+		return errors.Errorf("ref source answered %d of %d blocks", len(results), len(ask))
+	}
+	for i, k := range ask {
+		if results[i].Reason == "" {
+			k.refs, k.reason = results[i].Refs, ""
+			continue
+		}
+		k.reason = packcopy.WorseReason(k.reason, results[i].Reason)
+	}
+	return nil
+}
+
+// commit replaces each batch key with its children, or its hole, in one
+// transaction, and returns the set's count after it.
+func (w *walker) commit(ctx context.Context, keys []*frontierKey) (bool, uint64, error) {
+	// Open a write with the header.
+	tx, err := w.store.NewTransaction(ctx, true)
+	if err != nil {
+		return false, 0, err
 	}
 	defer tx.Discard()
 	head, err := readHead(ctx, tx)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 	if head.Holes == nil {
 		head.Holes = make(map[string]uint64)
 	}
+	count := w.set.count(head)
 
-	// Replace each batch key with its children, or with its hole.
+	// Replace each batch key with its children, or with its hole; a key the
+	// stop set holds just leaves the frontier.
 	for _, k := range keys {
-		if err := tx.Delete(ctx, prefixed(frontierPrefix, k.tail)); err != nil {
-			return false, err
+		if err := tx.Delete(ctx, prefixed(w.set.frontier, k.tail)); err != nil {
+			return false, 0, err
+		}
+		if k.skip {
+			continue
 		}
 		if k.reason != "" {
-			data, err := k.ref.MarshalVT()
-			if err != nil {
-				return false, err
+			if err := writeHole(ctx, tx, head, k); err != nil {
+				return false, 0, err
 			}
-			if err := tx.Set(ctx, prefixed(holePrefix, k.tail), append([]byte(k.reason+"\x00"), data...)); err != nil {
-				return false, err
-			}
-			head.Holes[k.reason]++
 			continue
 		}
 		for _, child := range k.refs {
-			added, err := visit(ctx, tx, child)
+			added, err := visit(ctx, tx, w.set, child)
 			if err != nil {
-				return false, err
+				return false, 0, err
 			}
 			if added {
-				head.Live++
+				*count++
 			}
 		}
 	}
 
 	// Record the totals and commit.
 	if err := writeHead(ctx, tx, head); err != nil {
-		return false, err
+		return false, 0, err
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return false, err
+	return false, *count, tx.Commit(ctx)
+}
+
+// writeHole records a key's hole and counts it in head. L and W share the
+// hole rows: W takes no key of L, so a key is a hole of one set at most.
+func writeHole(ctx context.Context, tx kvtx.TxOps, head *Head, k *frontierKey) error {
+	// Write the row with its reason, and count it.
+	data, err := k.ref.MarshalVT()
+	if err != nil {
+		return err
 	}
-	progress.Live = head.Live
-	return false, nil
+	if err := tx.Set(ctx, prefixed(holePrefix, k.tail), append([]byte(k.reason+"\x00"), data...)); err != nil {
+		return err
+	}
+	head.Holes[k.reason]++
+	return nil
 }
 
 // readFrontier reads up to n frontier keys with their catalog refs. A key the
-// catalog lacks carries the missing reason until a source answers.
-func readFrontier(ctx context.Context, store kvtx.Store, n int) ([]*frontierKey, error) {
+// catalog lacks carries the missing reason until a source answers; a key the
+// stop set holds is marked to skip.
+func (w *walker) readFrontier(ctx context.Context, n int) ([]*frontierKey, error) {
 	// Open a read.
-	tx, err := store.NewTransaction(ctx, false)
+	tx, err := w.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -330,13 +407,14 @@ func readFrontier(ctx context.Context, store kvtx.Store, n int) ([]*frontierKey,
 	// Take the first n keys.
 	var keys []*frontierKey
 	errFull := errors.New("full")
-	err = tx.ScanPrefix(ctx, []byte(frontierPrefix), func(key, value []byte) error {
+	prefix := []byte(w.set.frontier)
+	err = tx.ScanPrefix(ctx, prefix, func(key, value []byte) error {
 		// Decode the key's ref, stopping at the n-th.
 		ref := &block.BlockRef{}
 		if err := ref.UnmarshalVT(value); err != nil {
 			return errors.Wrap(err, "frontier row")
 		}
-		keys = append(keys, &frontierKey{tail: bytes.Clone(key[len(frontierPrefix):]), ref: ref})
+		keys = append(keys, &frontierKey{tail: bytes.Clone(key[len(prefix):]), ref: ref})
 		if len(keys) == n {
 			return errFull
 		}
@@ -346,30 +424,48 @@ func readFrontier(ctx context.Context, store kvtx.Store, n int) ([]*frontierKey,
 		return nil, err
 	}
 
-	// Read each key's refs from the catalog.
+	// Read each key's refs from the catalog, unless the stop set holds it.
 	for _, k := range keys {
-		value, found, err := tx.Get(ctx, prefixed(catalogRefsPrefix, k.tail))
-		if err != nil {
-			return nil, err
+		if w.set.stop != "" {
+			if k.skip, err = tx.Exists(ctx, prefixed(w.set.stop, k.tail)); err != nil {
+				return nil, err
+			}
 		}
-		if !found {
-			k.reason = packcopy.ReasonMissing
-			continue
-		}
-		state, refs, err := unmarshalRefs(value)
-		if err != nil {
-			return nil, err
-		}
-		switch state {
-		case refsKnown:
-			k.refs = refs
-		case refsUnknown:
-			k.reason = packcopy.ReasonRefsUnknown
-		default:
-			k.reason = packcopy.ReasonCorrupt
+		if !k.skip {
+			if err := readCatalogRefs(ctx, tx, k); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return keys, nil
+}
+
+// readCatalogRefs sets a key's refs from the catalog, or its hole reason.
+func readCatalogRefs(ctx context.Context, tx kvtx.TxOps, k *frontierKey) error {
+	// Read the refs row; none is a missing key.
+	value, found, err := tx.Get(ctx, prefixed(catalogRefsPrefix, k.tail))
+	if err != nil {
+		return err
+	}
+	if !found {
+		k.reason = packcopy.ReasonMissing
+		return nil
+	}
+
+	// Decode it.
+	state, refs, err := unmarshalRefs(value)
+	if err != nil {
+		return err
+	}
+	switch state {
+	case refsKnown:
+		k.refs = refs
+	case refsUnknown:
+		k.reason = packcopy.ReasonRefsUnknown
+	default:
+		k.reason = packcopy.ReasonCorrupt
+	}
+	return nil
 }
 
 // Hole is a reached block the walk could not see under.

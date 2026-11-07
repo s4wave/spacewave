@@ -21,6 +21,7 @@ func (h *Head) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"seeded", jsonBool(a, h.Seeded)},
 		jsonField{"walked", jsonBool(a, h.Walked)},
 		jsonField{"live", jsonUint(a, h.Live)},
+		jsonField{"closure", jsonUint(a, h.Closure)},
 		jsonField{"holes", JSONCounts(a, h.Holes)},
 		jsonField{"judgedAt", jsonTime(a, h.JudgedAt)},
 	)
@@ -37,6 +38,17 @@ func (j *Judgment) JSON(a *fastjson.Arena) *fastjson.Value {
 		jsonField{"liveBytes", jsonUint(a, j.LiveBytes)},
 		jsonField{"size", jsonUint(a, j.Size)},
 		jsonField{"created", jsonTime(a, j.Created)},
+	)
+}
+
+// JSON describes the log pull.
+func (p *LogPull) JSON(a *fastjson.Arena) *fastjson.Value {
+	return jsonObject(a,
+		jsonField{"start", a.NewString(p.Start)},
+		jsonField{"position", a.NewString(p.Position)},
+		jsonField{"lines", jsonUint(a, p.Lines)},
+		jsonField{"seeds", jsonUint(a, p.Seeds)},
+		jsonField{"gap", a.NewString(p.Gap)},
 	)
 }
 
