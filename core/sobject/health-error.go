@@ -5,14 +5,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// SharedObjectHealthError exposes a SharedObjectHealth snapshot through an error wrapper.
-type SharedObjectHealthError interface {
-	error
-
-	// GetSharedObjectHealth returns the attached SharedObjectHealth snapshot.
-	GetSharedObjectHealth() *SharedObjectHealth
-}
-
+// sharedObjectHealthError attaches a SharedObjectHealth snapshot to an error.
 type sharedObjectHealthError struct {
 	health *SharedObjectHealth
 	cause  error
@@ -32,11 +25,6 @@ func (e *sharedObjectHealthError) Error() string {
 // Unwrap returns the wrapped cause.
 func (e *sharedObjectHealthError) Unwrap() error {
 	return e.cause
-}
-
-// GetSharedObjectHealth returns the attached SharedObjectHealth snapshot.
-func (e *sharedObjectHealthError) GetSharedObjectHealth() *SharedObjectHealth {
-	return e.health
 }
 
 // BuildSharedObjectHealthFromError maps a known error into a SharedObjectHealth snapshot.
@@ -82,11 +70,11 @@ func BuildSharedObjectHealthFromError(
 
 // GetSharedObjectHealthFromError returns an attached SharedObjectHealth snapshot when available.
 func GetSharedObjectHealthFromError(err error) (*SharedObjectHealth, bool) {
-	var healthErr SharedObjectHealthError
+	var healthErr *sharedObjectHealthError
 	if !errors.As(err, &healthErr) {
 		return nil, false
 	}
-	return healthErr.GetSharedObjectHealth(), true
+	return healthErr.health, true
 }
 
 // NewSharedObjectHealthError wraps an explicit SharedObjectHealth snapshot in an error.
@@ -100,22 +88,11 @@ func NewSharedObjectHealthError(health *SharedObjectHealth, cause error) error {
 	}
 }
 
-// WrapSharedObjectHealthError wraps err with an attached SharedObjectHealth snapshot.
-func WrapSharedObjectHealthError(
-	layer SharedObjectHealthLayer,
-	err error,
-) error {
+// WrapSharedObjectHealthError wraps err with the SharedObjectHealth snapshot
+// it carries, or the one BuildSharedObjectHealthFromError maps it to.
+func WrapSharedObjectHealthError(layer SharedObjectHealthLayer, err error) error {
 	if err == nil {
 		return nil
 	}
-	if health, ok := GetSharedObjectHealthFromError(err); ok {
-		return NewSharedObjectHealthError(health, err)
-	}
-	return &sharedObjectHealthError{
-		health: BuildSharedObjectHealthFromError(layer, err),
-		cause:  err,
-	}
+	return NewSharedObjectHealthError(BuildSharedObjectHealthFromError(layer, err), err)
 }
-
-// _ is a type assertion
-var _ SharedObjectHealthError = (*sharedObjectHealthError)(nil)

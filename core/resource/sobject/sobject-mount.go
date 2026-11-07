@@ -70,7 +70,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 	}
 
 	// Mount the Space body.
-	mountedSpace, mountedSpaceRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
+	mountedSpace, mountedSpaceRef, err := sobject.ExMountSharedObjectBody[space.SpaceSharedObjectBody](
 		ctx,
 		r.sharedObject.GetBus(),
 		r.ref,

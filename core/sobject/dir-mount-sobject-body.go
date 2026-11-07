@@ -78,31 +78,12 @@ func (v *mountSharedObjectBodyValue[T]) GetSharedObjectBody() T {
 	return v.body
 }
 
-// ExMountSharedObjectBody executes a directive to mount the body of a shared object.
+// ExMountSharedObjectBody executes a directive to mount the body of a shared
+// object, with source, an already-mounted object or nil, available to
+// body-specific resolvers.
 //
 // If returnIfIdle is set, returns when the directive becomes idle.
 func ExMountSharedObjectBody[T comparable](
-	ctx context.Context,
-	b bus.Bus,
-	ref *SharedObjectRef,
-	bodyType string,
-	returnIfIdle bool,
-	valDisposeCb func(),
-) (MountSharedObjectBodyValue[T], directive.Reference, error) {
-	return ExMountSharedObjectBodyWithSource[T](
-		ctx,
-		b,
-		ref,
-		bodyType,
-		nil,
-		returnIfIdle,
-		valDisposeCb,
-	)
-}
-
-// ExMountSharedObjectBodyWithSource executes a mount directive with an already-mounted
-// source object available to body-specific resolvers.
-func ExMountSharedObjectBodyWithSource[T comparable](
 	ctx context.Context,
 	b bus.Bus,
 	ref *SharedObjectRef,
@@ -114,7 +95,7 @@ func ExMountSharedObjectBodyWithSource[T comparable](
 	av, _, avRef, err := bus.ExecOneOffTyped[MountSharedObjectBodyValue[T]](
 		ctx,
 		b,
-		NewMountSharedObjectBodyWithSource(ref, bodyType, source),
+		NewMountSharedObjectBody(ref, bodyType, source),
 		bus.ReturnIfIdle(returnIfIdle),
 		valDisposeCb,
 	)
@@ -134,14 +115,10 @@ type mountSharedObjectBody struct {
 	source   SharedObject
 }
 
-// NewMountSharedObjectBody constructs a new MountSharedObjectBody directive.
-func NewMountSharedObjectBody(ref *SharedObjectRef, bodyType string) MountSharedObjectBody {
-	return NewMountSharedObjectBodyWithSource(ref, bodyType, nil)
-}
-
-// NewMountSharedObjectBodyWithSource constructs a MountSharedObjectBody directive
-// with an already-mounted source object available to body-specific resolvers.
-func NewMountSharedObjectBodyWithSource(ref *SharedObjectRef, bodyType string, source SharedObject) MountSharedObjectBody {
+// NewMountSharedObjectBody constructs a MountSharedObjectBody directive with
+// source, an already-mounted object or nil, available to body-specific
+// resolvers.
+func NewMountSharedObjectBody(ref *SharedObjectRef, bodyType string, source SharedObject) MountSharedObjectBody {
 	return &mountSharedObjectBody{
 		ref:      ref,
 		bodyType: bodyType,
@@ -151,10 +128,7 @@ func NewMountSharedObjectBodyWithSource(ref *SharedObjectRef, bodyType string, s
 
 // Validate checks whether the directive has a valid SharedObject reference.
 func (d *mountSharedObjectBody) Validate() error {
-	if err := d.ref.Validate(); err != nil {
-		return err
-	}
-	return nil
+	return d.ref.Validate()
 }
 
 // GetValueOptions returns options relating to value handling.

@@ -25,12 +25,3 @@ type SharedObjectRecoveryDecoder interface {
 	// DecryptSharedObjectRecoveryEnvelope decrypts the envelope into recovery material.
 	DecryptSharedObjectRecoveryEnvelope(ctx context.Context, env *SOEntityRecoveryEnvelope) (*SOEntityRecoveryMaterial, error)
 }
-
-// GetSharedObjectRecoveryProviderAccountFeature returns the SharedObjectRecoveryProvider for a ProviderAccount.
-func GetSharedObjectRecoveryProviderAccountFeature(ctx context.Context, provAcc provider.ProviderAccount) (SharedObjectRecoveryProvider, error) {
-	return provider.GetProviderAccountFeature[SharedObjectRecoveryProvider](
-		ctx,
-		provAcc,
-		provider.ProviderFeature_ProviderFeature_SHARED_OBJECT_RECOVERY,
-	)
-}

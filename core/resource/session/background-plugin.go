@@ -127,7 +127,7 @@ func (r *SessionResource) MountSpace(
 
 	// Mount the Space body on the SharedObject.
 	bodyType := soListEntry.GetMeta().GetBodyType()
-	mountedSpace, bodyMountRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
+	mountedSpace, bodyMountRef, err := sobject.ExMountSharedObjectBody[space.SpaceSharedObjectBody](
 		ctx,
 		so.GetBus(),
 		soRef,

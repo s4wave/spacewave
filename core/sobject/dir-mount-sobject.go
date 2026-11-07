@@ -60,12 +60,9 @@ func NewMountSharedObject(ref *SharedObjectRef) MountSharedObject {
 }
 
 // Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// This is a cursory validation that the values look correct.
 func (d *mountSharedObject) Validate() error {
-	if err := d.ref.Validate(); err != nil {
-		return err
-	}
-	return nil
+	return d.ref.Validate()
 }
 
 // GetValueOptions returns options relating to value handling.

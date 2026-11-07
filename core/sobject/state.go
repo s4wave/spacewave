@@ -3,19 +3,12 @@ package sobject
 import (
 	"bytes"
 	"cmp"
-	"context"
 	"slices"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
-
-// UnmarshalSOState unmarshals a SOState from a block cursor.
-func UnmarshalSOState(ctx context.Context, bcs *block.Cursor) (*SOState, error) {
-	return block.UnmarshalBlock[SOState](ctx, bcs)
-}
 
 // Validate checks the configuration, checkpoint, key epochs, operations,
 // sequence positions and control messages.

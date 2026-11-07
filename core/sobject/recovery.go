@@ -1,12 +1,10 @@
 package sobject
 
 import (
-	"context"
 	"crypto/rand"
 
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
-	provider "github.com/s4wave/spacewave/core/provider"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/envelope"
 	bifrost_peer "github.com/s4wave/spacewave/net/peer"
@@ -207,51 +205,4 @@ func BuildSelfEnrollPeerGrant(
 		sharedObjectID,
 		material.GetGrantInner(),
 	)
-}
-
-// ResolveSharedObjectRecoveryMaterial resolves the recovery material for an SO using the provider feature surface.
-func ResolveSharedObjectRecoveryMaterial(
-	ctx context.Context,
-	provAcc provider.ProviderAccount,
-	ref *SharedObjectRef,
-) (*SOEntityRecoveryMaterial, error) {
-	// Resolve the recovery provider feature.
-	recoveryProv, err := GetSharedObjectRecoveryProviderAccountFeature(ctx, provAcc)
-	if err != nil {
-		return nil, err
-	}
-
-	// Resolve the current entity identity.
-	entityID, err := recoveryProv.GetSelfEntityID(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if entityID == "" {
-		return nil, errors.New("self entity id is required")
-	}
-
-	// Read and validate the recovery envelope.
-	env, err := recoveryProv.ReadSharedObjectRecoveryEnvelope(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-	if env.GetEntityId() != "" && env.GetEntityId() != entityID {
-		return nil, ErrSharedObjectRecoveryEntityMismatch
-	}
-
-	// Acquire the recovery decoder.
-	dec, err := recoveryProv.GetSharedObjectRecoveryDecoder(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decrypt and validate recovered material.
-	material, err := dec.DecryptSharedObjectRecoveryEnvelope(ctx, env)
-	if err != nil {
-		return nil, err
-	}
-	if material.GetEntityId() != "" && material.GetEntityId() != entityID {
-		return nil, ErrSharedObjectRecoveryEntityMismatch
-	}
-	return material, nil
 }

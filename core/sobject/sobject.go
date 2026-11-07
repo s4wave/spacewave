@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
@@ -113,20 +112,6 @@ type InviteMutator interface {
 	RevokeInvite(ctx context.Context, signerPrivKey crypto.PrivKey, inviteID string) error
 	// IncrementInviteUses increments the use counter for an invite by ID.
 	IncrementInviteUses(ctx context.Context, signerPrivKey crypto.PrivKey, inviteID string) error
-}
-
-// AccessLocalStateStoreFunc implements AccessLocalStateStore.
-type AccessLocalStateStoreFunc func(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error)
-
-// NewLocalStateStoreRefcount retains the selected local store while references remain.
-// The access callback supplies the store and its release function.
-func NewLocalStateStoreRefcount(
-	storeID string,
-	access AccessLocalStateStoreFunc,
-) *refcount.RefCount[kvtx.Store] {
-	return refcount.NewRefCount(nil, false, nil, nil, func(ctx context.Context, released func()) (kvtx.Store, func(), error) {
-		return access(ctx, storeID, released)
-	})
 }
 
 // Validate checks bootstrap structure or a retained configuration, including a terminal empty audience.
