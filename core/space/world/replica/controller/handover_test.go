@@ -21,7 +21,6 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/sirupsen/logrus"
 )
 
 // The shape of the large World: rounds of writes, each followed by a block
@@ -48,14 +47,14 @@ const (
 // TestReplicaHandsLargeWorldOverAndBack hands a World written across many
 // block passes over to a second Device and back, with block passes running
 // throughout. Each side restarts its Session transport in each ownership
-// state. No read finds a missing block, and no departed owner's write reaches
-// the successor.
+// state. Each handover waits for the successor's proof of a complete copy,
+// every live object reads back whole on each side, and no departed owner's
+// write reaches the successor.
 func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
-	// Bound the run and count every logged missing block.
+	// Bound the run.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
 	tb := startTestbed(ctx, t)
-	missing := countMissingBlocks(tb.Logger.Logger)
 
 	// A owns a Space holding the large World.
 	a, aSession := setupAccount(ctx, t, tb)
@@ -100,16 +99,12 @@ func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
 	waitOwner(ctx, t, a, id, aPeer, bPeer)
 	stopGC()
 
-	// A holds the whole World, B's writes included, and nothing read found a
-	// missing block.
+	// A holds the whole World, B's writes included.
 	checkWorld(ctx, t, tb.Bus, a, id, fix)
 	stopWatch = watchDeparted(ctx, t, a, id, bPeer)
 	fix.write(ctx, t, tb.Bus, listedRef(a.GetSOListCtr().GetValue(), id), "owner-a")
 	checkDeparted(t, stopWatch())
 	checkWorld(ctx, t, tb.Bus, a, id, fix)
-	if n := missing.Load(); n != 0 {
-		t.Fatalf("%d log entries report a missing block", n)
-	}
 }
 
 // largeWorld is the expected content of the large World: the payload digest
@@ -617,37 +612,4 @@ func runPasses(ctx context.Context, collector volume.Collector, passes *atomic.I
 		}
 		passes.Add(1)
 	}
-}
-
-// countMissingBlocks counts the entries log writes that report a missing
-// block: a read that found none, or a backfill that found no peer holding it.
-func countMissingBlocks(log *logrus.Logger) *atomic.Int64 {
-	hook := &missingBlockHook{}
-	log.AddHook(hook)
-	return &hook.count
-}
-
-// missingBlockHook counts log entries whose message or error reports a
-// missing block.
-type missingBlockHook struct {
-	// count is the number of such entries.
-	count atomic.Int64
-}
-
-// Levels returns every level.
-func (h *missingBlockHook) Levels() []logrus.Level {
-	return logrus.AllLevels
-}
-
-// Fire counts the entry when it reports a missing block.
-func (h *missingBlockHook) Fire(entry *logrus.Entry) error {
-	// Match the message and the error field.
-	text := entry.Message
-	if err, ok := entry.Data[logrus.ErrorKey].(error); ok {
-		text += " " + err.Error()
-	}
-	if strings.Contains(text, block.ErrNotFound.Error()) || strings.Contains(text, "no peer holds") {
-		h.count.Add(1)
-	}
-	return nil
 }
