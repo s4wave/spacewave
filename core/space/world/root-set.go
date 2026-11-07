@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -23,7 +24,8 @@ import (
 //  1. roots is what the stored root's block names: it changes only after the
 //     move that stores the new block lands, and it is read from that block at
 //     open before any move, so a move after a restart keeps every root the
-//     stored block names unless the caller drops it.
+//     stored block names unless the caller drops it. An open that cannot read
+//     the block fails rather than start from an empty set.
 //  2. A move names a set's old block as Previous, so one that another writer
 //     moved first fails and changes nothing.
 //  3. A move's new block lands in the same Land as the release of the old
@@ -112,21 +114,37 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 
 // readRootSet reads the roots h's named root holds. The caller holds rootMtx.
 func (a *Adapter) readRootSet(ctx context.Context, h *rootSet) error {
-	// Read the block the root holds.
-	ref := a.held[h.name]
-	if ref.GetEmpty() {
-		return nil
-	}
-	data, found, err := a.pages.GetBlock(ctx, ref)
-	if err != nil || !found {
+	// Read the block the root holds, then decode its roots.
+	data, err := a.readHeldBlock(ctx, h.name)
+	if err != nil || data == nil {
 		return err
 	}
-
-	// Decode its roots.
 	msg := &HeldRoots{}
 	if err := msg.UnmarshalVT(data); err != nil {
 		return err
 	}
 	h.roots = msg.GetRoots()
 	return nil
+}
+
+// readHeldBlock reads the block the named root holds, or nil when it holds
+// none. A block the root names but the store does not find is an error: the
+// next move would name it as Previous and release every root it holds, so the
+// adapter stays closed until the block reads. The caller holds rootMtx.
+func (a *Adapter) readHeldBlock(ctx context.Context, name string) ([]byte, error) {
+	// Read nothing for a root that holds no block.
+	ref := a.held[name]
+	if ref.GetEmpty() {
+		return nil, nil
+	}
+
+	// Read the block, failing when the store does not find it.
+	data, found, err := a.pages.GetBlock(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, errors.Wrapf(block.ErrNotFound, "read %s root block %s", name, ref.MarshalString())
+	}
+	return data, nil
 }
