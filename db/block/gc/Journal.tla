@@ -703,7 +703,7 @@ AdoptStage(w, s) ==
 \* begins, each put holds the blocks the batch does not name under a leased
 \* stage root and releases the stage's roots on the blocks it names, and the
 \* last SetRoots moves main onto the tree and releases the stage. The leases
-\* are stall for the session's life; Journal-stage.cfg checks a renewal
+\* are renewed for the session's life; Journal-stage.cfg checks a renewal
 \* that stalls.
 Need(w) == Reach(tgt[w]) \ Reach(obs[w])
 Unsent(w) == Need(w) \ (wrote[w] \cup skipped[w])
@@ -1155,7 +1155,7 @@ AdoptMark(r) ==
 Owned(r) == RunCheck => InRun(r)
 
 \* AdoptRoot counts the next name, in key order, of the root table and the
-\* moved marks, at the block it held when the adoption sessionAge: its mark, or
+\* moved marks, at the block it held when the adoption began: its mark, or
 \* else its table entry.
 AdoptRoot(r) ==
   /\ pc[r] = "roots"
