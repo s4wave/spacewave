@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,52 +46,9 @@ func TestCommandRunThrough(t *testing.T) {
 // testCommandRunThrough runs the cycles with the pack index in a file of the
 // volume type kind, as a rehearsal when rehearsal is set.
 func testCommandRunThrough(t *testing.T, kind string, rehearsal bool) {
-	// Serve the store, through an overlay for a rehearsal, and fail a chosen
-	// object call of the command's.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	dir := t.TempDir()
-	_, client := s3test.New(t)
-	before := readObjects(t, client)
-	var objects block_store_s3.ObjectMover = client
-	if rehearsal {
-		ov, err := block_store_s3_overlay.New(client, s3test.BucketName, filepath.Join(dir, "overlay"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		objects = ov
-	}
-	faults := &faultObjects{ObjectMover: objects}
-
-	// Start the backend and the writer, and seed the store.
-	r := &runThrough{t: t, ctx: ctx, kind: kind, index: filepath.Join(dir, "index.db"), objects: objects, dir: dir}
-	r.start()
+	r, faults, client, stopWriter := newRunThrough(t, kind, rehearsal)
 	defer r.stop()
-	for range 12 {
-		r.write()
-	}
-	stopWriter := r.runWriter()
 	defer stopWriter()
-
-	// Configure the command.
-	r.args = &Args{
-		Scratch:      filepath.Join(dir, "scratch"),
-		StoreID:      commandStoreID,
-		Prefix:       "world/",
-		Reads:        4,
-		Batch:        64,
-		MinAge:       time.Nanosecond,
-		LowPercent:   packsweep.DefaultLowLivePercent,
-		Wait:         time.Nanosecond,
-		Report:       filepath.Join(dir, "report.jsonl"),
-		Holes:        filepath.Join(dir, "holes.txt"),
-		MaxPackBytes: 1 << 20,
-		AdminURL:     r.backend.url,
-		dial: func() (block_store_s3.ObjectStore, string, func(), error) {
-			return faults, s3test.BucketName, func() {}, nil
-		},
-		out: &r.out,
-	}
 
 	// Run a cycle restarting the backend before each step, then a clean one.
 	var removed, compacted, lifted uint
@@ -128,10 +86,61 @@ func testCommandRunThrough(t *testing.T, kind string, rehearsal bool) {
 		}
 	}
 	if rehearsal {
-		if after := readObjects(t, client); len(after) != len(before) {
-			t.Fatalf("the rehearsal changed the store: %d objects before, %d after", len(before), len(after))
+		if after := readObjects(t, client); len(after) != 0 {
+			t.Fatalf("the rehearsal wrote %d objects to the empty store", len(after))
 		}
 	}
+}
+
+// newRunThrough serves an empty store, through an overlay for a rehearsal,
+// starts a backend over it with the pack index in a file of the volume type
+// kind, seeds it, starts the writer, and configures the command. The caller
+// stops the writer, then the backend.
+func newRunThrough(t *testing.T, kind string, rehearsal bool) (*runThrough, *faultObjects, block_store_s3.ObjectStore, func()) {
+	// Serve the store, through an overlay for a rehearsal, and fail a chosen
+	// object call of the command's.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	t.Cleanup(cancel)
+	dir := t.TempDir()
+	_, client := s3test.New(t)
+	var objects block_store_s3.ObjectMover = client
+	if rehearsal {
+		ov, err := block_store_s3_overlay.New(client, s3test.BucketName, filepath.Join(dir, "overlay"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		objects = ov
+	}
+	faults := &faultObjects{ObjectMover: objects}
+
+	// Start the backend and the writer, and seed the store.
+	r := &runThrough{t: t, ctx: ctx, kind: kind, index: filepath.Join(dir, "index.db"), objects: objects, dir: dir}
+	r.start()
+	for range 12 {
+		r.write()
+	}
+	stopWriter := r.runWriter()
+
+	// Configure the command.
+	r.args = &Args{
+		Scratch:      filepath.Join(dir, "scratch"),
+		StoreID:      commandStoreID,
+		Prefix:       "world/",
+		Reads:        4,
+		Batch:        64,
+		MinAge:       time.Nanosecond,
+		LowPercent:   packsweep.DefaultLowLivePercent,
+		Wait:         time.Nanosecond,
+		Report:       filepath.Join(dir, "report.jsonl"),
+		Holes:        filepath.Join(dir, "holes.txt"),
+		MaxPackBytes: 1 << 20,
+		AdminURL:     r.backend.url,
+		dial: func() (block_store_s3.ObjectStore, string, func(), error) {
+			return faults, s3test.BucketName, func() {}, nil
+		},
+		out: &r.out,
+	}
+	return r, faults, client, stopWriter
 }
 
 // runThrough is the state of a run-through: the backend it restarts, the
@@ -157,8 +166,20 @@ type runThrough struct {
 	// root is the writer's root, and live the leaves it links.
 	root *block.BlockRef
 	live []*block.BlockRef
-	// writes counts the writer's rounds, and copies the index copies.
-	writes, copies int
+	// writes counts the writer's rounds, copies the index copies, and cycles
+	// the cycles begun.
+	writes, copies, cycles int
+	// data holds each leaf's data by its ref.
+	data map[string][]byte
+	// linked are the blocks an adversary linked, which the root links and
+	// the reads check, and late those it linked too late for the sweep to
+	// see, which the root links but no read checks until the cycle's end.
+	linked, late []*block.BlockRef
+	// dropped are the leaves the root dropped since the cycle's roots were
+	// read, and prey those it dropped before, dead to the cycle's walk.
+	dropped, prey []*block.BlockRef
+	// before is called before each step's first run, with its index.
+	before func(i int)
 
 	// args and out are the command and its output.
 	args *Args
@@ -208,8 +229,13 @@ func (r *runThrough) write() {
 		r.t.Error(err)
 		return
 	}
+	if r.data == nil {
+		r.data = make(map[string][]byte)
+	}
+	r.data[leaf.MarshalString()] = leafData
 	r.live = append(r.live, leaf)
 	if len(r.live) > 5 {
+		r.dropped = append(r.dropped, r.live[0])
 		r.live = r.live[1:]
 	}
 
@@ -222,7 +248,7 @@ func (r *runThrough) write() {
 	}
 	_, err = r.backend.marking.PutBlockBatch(r.ctx, []*block.PutBatchEntry{
 		{Ref: leaf, Data: leafData, RefsKnown: true},
-		{Ref: root, Data: rootData, Refs: append([]*block.BlockRef(nil), r.live...), RefsKnown: true},
+		{Ref: root, Data: rootData, Refs: slices.Concat(r.live, r.linked, r.late), RefsKnown: true},
 	})
 	if err != nil {
 		r.t.Error(err)
@@ -255,12 +281,13 @@ func (r *runThrough) runWriter() func() {
 	})
 }
 
-// checkReads reads the root and every leaf it links, with the writer paused.
+// checkReads reads the root and every leaf and linked block it links but
+// the late, with the writer paused.
 func (r *runThrough) checkReads(step string) {
 	r.t.Helper()
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
-	for _, ref := range append([]*block.BlockRef{r.root}, r.live...) {
+	for _, ref := range slices.Concat([]*block.BlockRef{r.root}, r.live, r.linked) {
 		if _, found, err := r.store.GetBlock(r.ctx, ref); err != nil || !found {
 			r.t.Fatalf("after the %s, read of live block %s = %v, %v", step, ref.MarshalString(), found, err)
 		}
@@ -281,6 +308,8 @@ func (r *runThrough) readRoots() {
 	}
 	r.args.Roots = *cli.NewStringSlice(r.root.MarshalString())
 	r.args.LogPosition = pos.String()
+	r.prey = append(r.prey, r.dropped...)
+	r.dropped = nil
 
 	// Copy the index in one read to a new file of its type.
 	r.copies++
@@ -359,6 +388,7 @@ func (r *runThrough) cycle(restartAt int, faults *faultObjects) cycleResult {
 	r.t.Helper()
 	var res cycleResult
 	restarted := false
+	r.cycles++
 	r.mustRun("new-cycle")
 	r.readRoots()
 	for i := 0; i < len(runSteps); i++ {
@@ -368,6 +398,9 @@ func (r *runThrough) cycle(restartAt int, faults *faultObjects) cycleResult {
 		if i == restartAt && !restarted {
 			r.restart()
 			restarted = true
+		}
+		if r.before != nil {
+			r.before(i)
 		}
 		faults.failAt(restartAt + 1)
 		out, err := r.run(step)
