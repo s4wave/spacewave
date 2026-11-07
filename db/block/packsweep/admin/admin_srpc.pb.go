@@ -30,6 +30,12 @@ type SRPCPackSweepAdminClient interface {
 	Quarantine(ctx context.Context, in *PacksRequest) (*PacksResponse, error)
 	// Lift returns quarantined packs to the reads.
 	Lift(ctx context.Context, in *PacksRequest) (*PacksResponse, error)
+	// BeginTrash moves quarantined packs to the trashing state, before the
+	// command moves their entries and files to the trash.
+	BeginTrash(ctx context.Context, in *PacksRequest) (*PacksResponse, error)
+	// Remove drops trashing packs whose entries and files are in the trash,
+	// first pointing each h row that names one at another holder of its key.
+	Remove(ctx context.Context, in *RemoveRequest) (*PacksResponse, error)
 	// Adopt registers packs another writer uploaded.
 	Adopt(ctx context.Context, in *AdoptRequest) (*AdoptResponse, error)
 	// ReadLog returns the write log's lines after a position.
@@ -110,6 +116,24 @@ func (c *srpcPackSweepAdminClient) Lift(ctx context.Context, in *PacksRequest) (
 	return out, nil
 }
 
+func (c *srpcPackSweepAdminClient) BeginTrash(ctx context.Context, in *PacksRequest) (*PacksResponse, error) {
+	out := new(PacksResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "BeginTrash", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcPackSweepAdminClient) Remove(ctx context.Context, in *RemoveRequest) (*PacksResponse, error) {
+	out := new(PacksResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Remove", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcPackSweepAdminClient) Adopt(ctx context.Context, in *AdoptRequest) (*AdoptResponse, error) {
 	out := new(AdoptResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Adopt", in, out)
@@ -154,6 +178,12 @@ type SRPCPackSweepAdminServer interface {
 	Quarantine(context.Context, *PacksRequest) (*PacksResponse, error)
 	// Lift returns quarantined packs to the reads.
 	Lift(context.Context, *PacksRequest) (*PacksResponse, error)
+	// BeginTrash moves quarantined packs to the trashing state, before the
+	// command moves their entries and files to the trash.
+	BeginTrash(context.Context, *PacksRequest) (*PacksResponse, error)
+	// Remove drops trashing packs whose entries and files are in the trash,
+	// first pointing each h row that names one at another holder of its key.
+	Remove(context.Context, *RemoveRequest) (*PacksResponse, error)
 	// Adopt registers packs another writer uploaded.
 	Adopt(context.Context, *AdoptRequest) (*AdoptResponse, error)
 	// ReadLog returns the write log's lines after a position.
@@ -194,6 +224,8 @@ func (SRPCPackSweepAdminHandler) GetMethodIDs() []string {
 		"Refs",
 		"Quarantine",
 		"Lift",
+		"BeginTrash",
+		"Remove",
 		"Adopt",
 		"ReadLog",
 		"TrimLog",
@@ -221,6 +253,10 @@ func (d *SRPCPackSweepAdminHandler) InvokeMethod(
 		return true, d.InvokeMethod_Quarantine(d.impl, strm)
 	case "Lift":
 		return true, d.InvokeMethod_Lift(d.impl, strm)
+	case "BeginTrash":
+		return true, d.InvokeMethod_BeginTrash(d.impl, strm)
+	case "Remove":
+		return true, d.InvokeMethod_Remove(d.impl, strm)
 	case "Adopt":
 		return true, d.InvokeMethod_Adopt(d.impl, strm)
 	case "ReadLog":
@@ -298,6 +334,30 @@ func (SRPCPackSweepAdminHandler) InvokeMethod_Lift(impl SRPCPackSweepAdminServer
 		return err
 	}
 	out, err := impl.Lift(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCPackSweepAdminHandler) InvokeMethod_BeginTrash(impl SRPCPackSweepAdminServer, strm srpc.Stream) error {
+	req := new(PacksRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.BeginTrash(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCPackSweepAdminHandler) InvokeMethod_Remove(impl SRPCPackSweepAdminServer, strm srpc.Stream) error {
+	req := new(RemoveRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Remove(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -385,6 +445,22 @@ type SRPCPackSweepAdmin_LiftStream interface {
 }
 
 type srpcPackSweepAdmin_LiftStream struct {
+	srpc.Stream
+}
+
+type SRPCPackSweepAdmin_BeginTrashStream interface {
+	srpc.Stream
+}
+
+type srpcPackSweepAdmin_BeginTrashStream struct {
+	srpc.Stream
+}
+
+type SRPCPackSweepAdmin_RemoveStream interface {
+	srpc.Stream
+}
+
+type srpcPackSweepAdmin_RemoveStream struct {
 	srpc.Stream
 }
 

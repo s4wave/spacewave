@@ -154,6 +154,95 @@ func TestAdminMoves(t *testing.T) {
 	}
 }
 
+// TestAdminTrash trashes and removes a pack through the service: the removal
+// waits for the pack's objects to reach the trash, a call with more keys to
+// follow repairs and keeps the pack, the last drops it, and the keys are
+// bounded.
+func TestAdminTrash(t *testing.T) {
+	ctx := t.Context()
+	b := newTestBackend(t)
+	ref, id := b.put(t, "block")
+	pack := &PacksRequest{PackIds: []string{id}}
+	keys := []*KeyHolders{{Key: ref.GetHash().GetHash()}}
+	b.on.Store(true)
+
+	// A quarantined pack begins trashing.
+	if _, err := b.admin.BeginTrash(ctx, pack); err == nil {
+		t.Fatal("began trashing a registered pack")
+	}
+	if _, err := b.admin.Quarantine(ctx, pack); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := b.admin.BeginTrash(ctx, pack)
+	if err != nil || len(resp.GetPacks()) != 1 || resp.GetPacks()[0].GetState() != PackState_PACK_STATE_TRASHING {
+		t.Fatalf("begin trash = %v, %v", resp, err)
+	}
+
+	// The removal waits for the objects to reach the trash.
+	remove := func(more bool, keys []*KeyHolders) (*PacksResponse, error) {
+		return b.admin.Remove(ctx, &RemoveRequest{PackIds: []string{id}, Keys: keys, More: more})
+	}
+	if _, err := remove(false, keys); err == nil {
+		t.Fatal("removed a pack still in the store")
+	}
+	for _, keys := range [][2]string{
+		{block_store_s3.EntryObjectKey("p/", id), block_store_s3.TrashEntryKey("p/", id)},
+		{block_store_s3.PackObjectKey("p/", id), block_store_s3.TrashPackKey("p/", id)},
+	} {
+		if err := b.client.MoveObject(ctx, s3test.BucketName, keys[0], keys[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// The keys are bounded: each needs bytes and few holders, and a call
+	// carries at most MaxKeys keys and holders.
+	weighted := func(n, holders int) []*KeyHolders {
+		out := make([]*KeyHolders, n)
+		for i := range out {
+			out[i] = &KeyHolders{Key: []byte{byte(i), byte(i >> 8), byte(i >> 16)}, Others: make([]string, holders)}
+		}
+		return out
+	}
+	for name, bad := range map[string][]*KeyHolders{
+		"an empty key":  {{}},
+		"many holders":  weighted(1, MaxKeyHolders+1),
+		"too many keys": weighted(MaxKeys+1, 0),
+		"heavy holders": weighted(MaxKeys/(1+MaxKeyHolders)+1, MaxKeyHolders),
+	} {
+		if _, err := remove(false, bad); err == nil {
+			t.Fatalf("removed with %s", name)
+		}
+	}
+	if _, err := remove(true, weighted(MaxKeys/(1+MaxKeyHolders), MaxKeyHolders)); err != nil {
+		t.Fatalf("repair at the bound = %v", err)
+	}
+
+	// A repair with more keys to follow keeps the pack, and the last call
+	// drops it, reported absent.
+	resp, err = remove(true, keys)
+	if err != nil || resp.GetPacks()[0].GetState() != PackState_PACK_STATE_TRASHING || resp.GetPacks()[0].GetAbsent() {
+		t.Fatalf("repair = %v, %v", resp, err)
+	}
+	for range 2 {
+		resp, err = remove(false, keys)
+		if err != nil || len(resp.GetPacks()) != 1 || !resp.GetPacks()[0].GetAbsent() {
+			t.Fatalf("remove = %v, %v", resp, err)
+		}
+	}
+	if data, found, err := b.store.GetBlock(ctx, ref); err != nil || found {
+		t.Fatalf("read of the removed block = %q, %v, %v", data, found, err)
+	}
+
+	// While the switch is off, both moves are refused.
+	b.on.Store(false)
+	if _, err := b.admin.BeginTrash(ctx, pack); err == nil {
+		t.Fatal("began trashing while off")
+	}
+	if _, err := remove(false, keys); err == nil {
+		t.Fatal("removed while off")
+	}
+}
+
 // TestAdminAdopt registers a pack another writer uploaded, twice, and finds
 // its blocks placed.
 func TestAdminAdopt(t *testing.T) {

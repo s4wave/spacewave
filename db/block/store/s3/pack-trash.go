@@ -96,6 +96,19 @@ func (s *PackStore) BeginTrash(ctx context.Context, ids []string) error {
 // that a read missed while trashing, or whose entry or file is not in the
 // trash fails the call before anything changes.
 func (s *PackStore) Remove(ctx context.Context, ids []string, keys []KeyHolders) error {
+	return s.remove(ctx, ids, keys, true)
+}
+
+// RepairRemoved repairs the h rows of keys as Remove does, after the same
+// checks, and leaves the packs ids trashing, so a removal holding more keys
+// than one call carries sends the first of them here and the last to Remove.
+func (s *PackStore) RepairRemoved(ctx context.Context, ids []string, keys []KeyHolders) error {
+	return s.remove(ctx, ids, keys, false)
+}
+
+// remove checks the packs ids and repairs the h rows of keys, then removes
+// the packs when drop is set.
+func (s *PackStore) remove(ctx context.Context, ids []string, keys []KeyHolders, drop bool) error {
 	// Refuse a store that holds nothing.
 	if s.index == nil || !s.keepPacks {
 		return errNoSweep
@@ -143,6 +156,9 @@ func (s *PackStore) Remove(ctx context.Context, ids []string, keys []KeyHolders)
 	// Repair the h rows, then drop the packs.
 	if err := s.index.repairRows(ctx, remove, keys); err != nil {
 		return errors.Wrap(err, "repair the h rows of the removed packs")
+	}
+	if !drop {
+		return nil
 	}
 	if err := s.index.remove(ctx, remove); err != nil {
 		return err

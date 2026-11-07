@@ -155,8 +155,15 @@ func testTrashRemove(t *testing.T, kind string) {
 		t.Fatal("removed a pack a read missed")
 	}
 
-	// A removal killed after its repair is finished by the next, and a
-	// repeat changes nothing.
+	// A repair alone, as for the first keys of a pack too large for one
+	// call, keeps the pack, and a removal killed after its repair is finished
+	// by the next; a repeat changes nothing.
+	if err := s.RepairRemoved(ctx, []string{packR}, keys[:2]); err != nil {
+		t.Fatal(err)
+	}
+	if heldStateOf(t, s, packR) != PackTrashing {
+		t.Fatal("a repair alone dropped the pack")
+	}
 	if err := s.index.repairRows(ctx, []string{packR}, keys); err != nil {
 		t.Fatal(err)
 	}
@@ -198,6 +205,10 @@ func testTrashRemove(t *testing.T, kind string) {
 		}
 	}
 	checkRemoved(s)
+	holds, err := s.Holds(ctx, []string{packR, packD, packH1})
+	if err != nil || !holds[0].Absent || holds[1].Absent || holds[1].State != PackTrashing || holds[2].Absent || holds[2].State != PackRegistered {
+		t.Fatalf("holds after the removal = %+v, %v", holds, err)
+	}
 
 	// The read of y falls back to its quarantined holder and lifts it.
 	if data, found, err := s.GetBlock(ctx, r[1]); err != nil || !found || string(data) != "y" {
