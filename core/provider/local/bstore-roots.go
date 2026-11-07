@@ -52,6 +52,11 @@ func (b *BlockStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntr
 			batch[root.Ref.MarshalString()] = struct{}{}
 		}
 	}
+
+	// Push the committed blocks beside the local root change when configured.
+	if b.push != nil {
+		return b.push.SetRoots(ctx, entries, roots, b.store.SetRoots)
+	}
 	return b.store.SetRoots(ctx, entries, roots)
 }
 

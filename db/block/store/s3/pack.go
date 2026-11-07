@@ -511,6 +511,24 @@ func (s *PackStore) PutPackFile(ctx context.Context, id string, data []byte) (*p
 	return entry, nil
 }
 
+// HasPackfile reports whether the store holds pack id registered: its entry
+// listed and, with an index, every key indexed. A pack whose upload stopped
+// before its keys were indexed reports false, so its writer uploads it again.
+func (s *PackStore) HasPackfile(ctx context.Context, id string) (bool, error) {
+	// Load the entries, then check the index or the listing.
+	if err := s.loadEntries(ctx); err != nil {
+		return false, err
+	}
+	if s.index != nil {
+		return s.index.Indexed(id), nil
+	}
+	var listed bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		_, listed = s.entries[id]
+	})
+	return listed, nil
+}
+
 // publishPack uploads the packfile data, then its entry, so a listed entry
 // names a complete packfile, then indexes keys with the entry, so the pack is
 // found at once, and keeps its index tail, so its first read from the remote

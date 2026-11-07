@@ -65,6 +65,8 @@ type pack struct {
 	blocks int
 	// bloom is a finalized pack's serialized bloom filter.
 	bloom []byte
+	// uploaded is set once the Log's remote holds the finalized pack.
+	uploaded bool
 }
 
 // packState is a pack's place in its life.
@@ -79,6 +81,9 @@ const (
 	packRotated
 	// packFinal is a finalized packfile.
 	packFinal
+	// packGone is an evicted pack: its file is unlinked and the table holds
+	// none of its values.
+	packGone
 )
 
 // openName returns the file name of pack seq while it is open.

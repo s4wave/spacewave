@@ -19,6 +19,8 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/packfile/packahead"
+	"golang.org/x/sync/errgroup"
 )
 
 // settingsWatch follows the account settings.
@@ -216,8 +218,9 @@ type openBackend struct {
 	store backendStore
 }
 
-// runUpload uploads the store's queued blocks to the backend's bucket, which
-// also serves reads the local store misses.
+// runUpload uploads the store's queued blocks, and the finalized packs drain
+// holds when it is not nil, to the backend's bucket, which also serves reads
+// the local store misses.
 //
 // The bucket store stays open across failed uploads and their retries, so an
 // unreachable bucket fails reads with its own error and the store keeps the
@@ -226,6 +229,7 @@ type openBackend struct {
 func (t *bstoreTracker) runUpload(
 	ctx context.Context,
 	wb *block_store_writeback.Store,
+	drain *packahead.Drain,
 	backend *account_settings.StorageBackend,
 ) error {
 	// Reopen the backend store when the placement changed.
@@ -251,18 +255,49 @@ func (t *bstoreTracker) runUpload(
 		}
 	}
 
-	// Upload the queued blocks, paced by the account's admit, closing the
-	// store when the context ends.
-	err := wb.UploadPaced(ctx, remote.store, func(ctx context.Context, lastBytes int64) error {
-		if fn := t.a.uploadAdmit.Load(); fn != nil {
-			return (*fn)(ctx, lastBytes)
-		}
-		return nil
+	// Upload the queued blocks and the finalized packs, both paced by the
+	// account's admit, closing the store when the context ends. A backend
+	// that takes no packfiles leaves the packs local.
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return wb.UploadPaced(egCtx, remote.store, t.admitUpload)
 	})
+	if drain != nil {
+		if packRemote, ok := remote.store.(packahead.Remote); ok {
+			eg.Go(func() error {
+				t.runDrain(egCtx, drain, packRemote)
+				return nil
+			})
+		} else {
+			t.a.le.WithField("bstore-id", t.id).Warn("storage backend takes no packfiles, keeping the packahead log local")
+		}
+	}
+	err := eg.Wait()
 	if ctx.Err() != nil {
 		t.swapRemote(nil)
 	}
 	return err
+}
+
+// drainRetryDelay is how long a failed pack drain waits before it retries.
+const drainRetryDelay = 5 * time.Second
+
+// runDrain drains the store's packahead log to remote until ctx ends,
+// retrying after a failed step, so a pack the backend refuses never stops
+// the queued block upload beside it.
+func (t *bstoreTracker) runDrain(ctx context.Context, drain *packahead.Drain, remote packahead.Remote) {
+	for {
+		err := drain.Run(ctx, remote)
+		if ctx.Err() != nil {
+			return
+		}
+		t.a.le.WithError(err).WithField("bstore-id", t.id).Warn("packahead drain failed, retrying")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(drainRetryDelay):
+		}
+	}
 }
 
 // openBackendStore opens the backend's bucket with its credential Secret.

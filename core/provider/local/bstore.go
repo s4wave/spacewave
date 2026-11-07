@@ -20,9 +20,11 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
+	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -33,6 +35,8 @@ const blockStoreBucketConfigRev = 2
 
 // BlockStore implements the bstore interface.
 type BlockStore struct {
+	// push sends the store's publications to its storage node, or is nil.
+	push *block_store_nodepush.Publisher
 	// store provides local writes and durability.
 	store block_store.Store
 	// readStore optionally routes uncached reads through the active Session DEX.
@@ -87,6 +91,9 @@ type placementState struct {
 	// front is read after the local store misses and before the fill cache
 	// and the backend, or nil.
 	front block.StoreOps
+	// drain uploads the finalized packs of the store's packahead log, or is
+	// nil when the store has no log.
+	drain *packahead.Drain
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the volume
@@ -166,6 +173,9 @@ type UploadStatus struct {
 	block_store_writeback.Status
 	// Fallback counts the reads and fills of the store's read fallback.
 	Fallback FallbackStatus
+	// Packs counts the finalized packs of the store's packahead log, or is
+	// nil when the store has no log.
+	Packs *packahead.DrainStatus
 }
 
 // GetID returns the inner store id.
@@ -194,16 +204,34 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 }
 
 // GetUploadStatus returns the storage backend and upload status, and a channel
-// closed when either changes.
+// closed when either changes. Packs is a snapshot: GetPackStatus returns the
+// channel that follows it.
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	status, changed := b.placement.wb.GetStatus()
-	return UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status()}, changed
+	out := UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status()}
+	out.Packs, _ = b.GetPackStatus()
+	return out, changed
+}
+
+// GetPackStatus returns the status of the finalized packs of the store's
+// packahead log, and a channel that closes when it next changes, or nils when
+// the store has no log.
+func (b *BlockStore) GetPackStatus() (*packahead.DrainStatus, <-chan struct{}) {
+	if b.placement.drain == nil {
+		return nil, nil
+	}
+	status, changed := b.placement.drain.Status()
+	return &status, changed
 }
 
 // UploadedBefore reports whether the storage backend holds every block written
-// before at.
+// before at: the queued writes and the packs of the store's packahead log.
 func (b *BlockStore) UploadedBefore(ctx context.Context, at time.Time) (bool, error) {
-	return b.placement.wb.UploadedBefore(ctx, at)
+	uploaded, err := b.placement.wb.UploadedBefore(ctx, at)
+	if err != nil || !uploaded || b.placement.drain == nil {
+		return uploaded, err
+	}
+	return b.placement.drain.UploadedBefore(at), nil
 }
 
 // ReclaimStorage drops the blocks the volume no longer tracks or holds from
@@ -474,14 +502,32 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		return err
 	}
 	defer markersRef.Release()
-	wb, err := block_store_writeback.NewStore(ctx, localBucket, t.a.vol, markers.GetObjectStore(), markersID, backend != nil)
+
+	// Open the store's packahead log, when the account keeps one, which then
+	// reads before the Volume's bucket and takes the store's writes.
+	local := block.StoreOps(localBucket)
+	packs, err := t.openPacks(ctx, le, localBucket)
+	if err != nil {
+		return err
+	}
+	var wb *block_store_writeback.Store
+	if packs != nil {
+		defer packs.log.Close()
+		local = packs.packed
+		wb, err = block_store_writeback.NewStoreWithPacks(ctx, packs.packed, t.a.vol, markers.GetObjectStore(), markersID, backend != nil)
+	} else {
+		wb, err = block_store_writeback.NewStore(ctx, localBucket, t.a.vol, markers.GetObjectStore(), markersID, backend != nil)
+	}
 	if err != nil {
 		return err
 	}
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
+	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
+	if packs != nil {
+		placement.drain = packs.drain
+	}
 	placement.tracker, _ = t.a.vol.(childListReader)
 	if backend != nil {
 		placement.cache = t.fillCache()
@@ -526,7 +572,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		routine.WithRetry(providerBackoff),
 	)
 	upload.SetStateRoutine(func(ctx context.Context, backend *account_settings.StorageBackend) error {
-		return t.runUpload(ctx, wb, backend)
+		return t.runUpload(ctx, wb, placement.drain, backend)
 	})
 	upload.SetState(backend)
 	upload.SetContext(ctx, true)
@@ -536,10 +582,10 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Read the local store first, then the backend's bucket, then the read
 	// fallback, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
-	recorded := &readRecorder{StoreOps: localBucket, reads: &placement.reads}
+	recorded := &readRecorder{StoreOps: local, reads: &placement.reads}
 	reads, copies := placement.readChains(
 		recorded,
-		localBucket,
+		local,
 		func() block.StoreOps { return t.getRemoteReads(placement) },
 		newPeerMissSource(
 			le,
@@ -564,6 +610,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		copyStore:     copies,
 		decodedBlocks: decodedBlocks,
 		placement:     placement,
+	}
+
+	// Push publications to the storage node, for a store the account names.
+	if sqlStore == nil {
+		stopPush := t.startNodePush(ctx, le, wb, placement, bstoreHandle)
+		defer stopPush()
 	}
 
 	// Keep the store under its placement's resident budget. A store writing
