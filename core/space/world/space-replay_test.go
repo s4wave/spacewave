@@ -12,6 +12,7 @@ import (
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
 )
@@ -64,7 +65,8 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 func createOn(ctx context.Context, t *testing.T, r *spaceReplay, prev *InnerState, key string) *InnerState {
 	t.Helper()
 	next, reason, err := r.commitOn(ctx, prev, "create failed", func(btx *world_block.EngineTx) (bool, error) {
-		_, err := btx.CreateObject(ctx, key, nil)
+		obj, err := btx.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(obj)
 		return err == nil, err
 	})
 	if err != nil || reason != "" {
@@ -87,7 +89,9 @@ func hasKeys(ctx context.Context, t *testing.T, r *spaceReplay, state *InnerStat
 	defer tx.Discard()
 	out := make([]bool, len(keys))
 	for i, key := range keys {
-		_, out[i], err = tx.GetObject(ctx, key)
+		var obj world.ObjectState
+		obj, out[i], err = tx.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err)
 		}
