@@ -99,7 +99,7 @@ func (p *Publisher) submitDurable(ctx context.Context, publication *block.Atomic
 // unless the node holds them.
 func (p *Publisher) pushDurable(entries, external []*block.PutBatchEntry, keys [][]byte, ready chan<- struct{}, receipt *block.PublicationReceipt) {
 	// Send within the wait.
-	ctx, cancel := context.WithTimeout(context.Background(), p.wait)
+	ctx, cancel := context.WithTimeout(context.Background(), p.currentWait())
 	started := time.Now()
 	err := p.sender.Send(ctx, entries)
 	cancel()

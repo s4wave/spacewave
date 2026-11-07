@@ -62,6 +62,11 @@ type publicationRequest struct {
 	// failed records that the request is known to fail, guarded by the
 	// writer's bcast. Readers skip a failed request while its group resolves.
 	failed bool
+	// committed records that the request's group committed and the request
+	// was accepted, guarded by the writer's bcast. A pipelined group stays
+	// queued, committed, until its durability resolves it; a later group may
+	// depend on it meanwhile.
+	committed bool
 	// receipt resolves only after this request has its final physical result.
 	receipt *block.PublicationReceipt
 	// bytes is the computed admission cost of the publication.
@@ -97,6 +102,43 @@ type publicationWriter struct {
 	finished bool
 	// stats retains admitted work in its budget until its group resolves.
 	stats PublicationStats
+	// resolved closes once the last pipelined group resolved, nil while none
+	// is pending. Each group's resolution waits for the one before it.
+	resolved <-chan struct{}
+	// chainErr is the durability failure of a pipelined group whose later
+	// groups are still pending, which they resolve with.
+	chainErr error
+}
+
+// Pipelined commits. Invariant: a receipt resolves only once its own group
+// and every group before it are durable, through the store's Sync, and in
+// group order. A later group may apply on top of an earlier group that is
+// committed but not yet durable; if that earlier group's durability fails,
+// every later group pending behind it fails with it, and none resolves as
+// durable. PipelinedReceipts.tla beside this file specifies it.
+
+// pipelineSwitch reports whether a Volume pipelines its commits, or is nil
+// for none.
+var pipelineSwitch atomic.Pointer[func(volumeID string) bool]
+
+// SetPipelinedCommits has every Volume whose id on reports true commit each
+// publication group without waiting for its durability, and wait for it
+// beside the next group's apply, resolving receipts in group order. It is
+// read at each group, so it switches live. A nil on turns it off: each
+// group's commit then waits for its durability on the writer, as before.
+func SetPipelinedCommits(on func(volumeID string) bool) {
+	if on == nil {
+		pipelineSwitch.Store(nil)
+		return
+	}
+	pipelineSwitch.Store(&on)
+}
+
+// pipelined reports whether this Volume pipelines its commits now. Only a
+// store with ordered commits and a Sync can.
+func (w *publicationWriter) pipelined() bool {
+	fn := pipelineSwitch.Load()
+	return fn != nil && w.volume.ordered != nil && (*fn)(w.volume.GetID())
 }
 
 // newPublicationWriter constructs the writer and starts its drain goroutine.
@@ -354,6 +396,21 @@ func (w *publicationWriter) find(ref *block.BlockRef, pinned []*publicationReque
 	return entry, err
 }
 
+// isCommittedPending reports whether after is the receipt of a queued
+// request whose group committed it, pending durability. It takes bcast.
+func (w *publicationWriter) isCommittedPending(after *block.PublicationReceipt) bool {
+	var found bool
+	w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, r := range w.queue {
+			if r.receipt == after {
+				found = r.committed && !r.failed
+				return
+			}
+		}
+	})
+	return found
+}
+
 // failDependentsLocked marks failed the queued requests that follow a failed
 // request, as each fails with ErrPublicationDependency when its group runs.
 // The caller holds bcast.
@@ -407,7 +464,7 @@ func (w *publicationWriter) run() {
 				return
 			}
 			readyCh = w.readyLocked()
-			if w.closing && readyCh == nil {
+			if w.closing && readyCh == nil && len(w.queue) == 0 {
 				w.finished = true
 				broadcast()
 				return
@@ -428,41 +485,34 @@ func (w *publicationWriter) run() {
 			continue
 		}
 
-		// Resolve the physical group before releasing its admission budget,
-		// and drop it from the read set as its receipts resolve.
-		group, results, committed := w.applyGroup(first)
+		// Apply the group, then resolve it: at once when its commit was
+		// durable and nothing earlier waits, else behind the earlier groups
+		// once its own durability is known.
+		group, results, committed, pending := w.applyGroup(first)
 		var written int
+		var prev <-chan struct{}
 		w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			// Count the physical commit.
+			// Count the physical commit, mark what committed, and hide failed
+			// requests from readers with the queued requests behind them.
 			if committed {
 				w.stats.PhysicalCommits++
 			}
-
-			// Hide failed requests from readers before they leave the queue,
-			// along with the queued requests that depend on them.
 			for i, r := range group {
 				r.failed = results[i] != nil
-			}
-			w.failDependentsLocked()
-
-			// Account for each request and resolve its receipt, summing the
-			// bytes that committed.
-			for i, r := range group {
-				if results[i] != nil {
-					w.stats.Rejected++
-				} else {
+				r.committed = committed && results[i] == nil
+				if results[i] == nil {
 					written += r.bytes
 				}
-				w.stats.Completed++
-				w.stats.Pending--
-				w.stats.PendingBytes -= r.bytes
-				w.stats.PendingEntries -= len(r.publication.Entries)
-				r.receipt.ResolveExisted(results[i], r.existed, r.counting)
 			}
-			w.queue = slices.Delete(w.queue, 0, len(group))
-			w.next -= len(group)
+			w.failDependentsLocked()
+			prev = w.resolved
 			broadcast()
 		})
+		if !pending && prev == nil {
+			w.resolveGroup(group, results, nil)
+		} else {
+			w.resolveLater(group, results, pending, prev)
+		}
 
 		// Notify volume observers only after successful physical publication,
 		// count the blocks each accepted request stored, and count its bytes
@@ -479,13 +529,79 @@ func (w *publicationWriter) run() {
 	}
 }
 
+// resolveLater resolves group behind prev, the resolution of the group
+// before it, once its commit is durable when pending says it waits for that.
+func (w *publicationWriter) resolveLater(group []*publicationRequest, results []error, pending bool, prev <-chan struct{}) {
+	// Chain this resolution behind the last.
+	done := make(chan struct{})
+	w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { w.resolved = done })
+	go func() {
+		// Wait for the group's durability, then for every earlier group.
+		defer close(done)
+		var durable error
+		if pending {
+			durable = w.volume.ordered.Sync(group[0].ctx)
+		}
+		if prev != nil {
+			<-prev
+		}
+
+		// An earlier failure fails this group too, and so does its own.
+		var chainErr error
+		w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if durable != nil && w.chainErr == nil {
+				w.chainErr = durable
+			}
+			chainErr = w.chainErr
+		})
+		w.resolveGroup(group, results, chainErr)
+
+		// The chain ends with the last pending group, and its error with it.
+		w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if w.resolved == done {
+				w.resolved, w.chainErr = nil, nil
+			}
+		})
+	}()
+}
+
+// resolveGroup resolves group's receipts, the accepted ones with chainErr
+// when the pipeline's durability failed, releases its admission budget and
+// drops it from the queue, whose head it is.
+func (w *publicationWriter) resolveGroup(group []*publicationRequest, results []error, chainErr error) {
+	w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Account for each request and resolve its receipt.
+		for i, r := range group {
+			result := results[i]
+			if result == nil && chainErr != nil {
+				result = block.NewPublicationDependencyError(chainErr)
+				r.failed = true
+			}
+			if result != nil {
+				w.stats.Rejected++
+			}
+			w.stats.Completed++
+			w.stats.Pending--
+			w.stats.PendingBytes -= r.bytes
+			w.stats.PendingEntries -= len(r.publication.Entries)
+			r.receipt.ResolveExisted(result, r.existed, r.counting)
+		}
+
+		// Drop the group from the head of the queue.
+		w.failDependentsLocked()
+		w.queue = slices.Delete(w.queue, 0, len(group))
+		w.next -= len(group)
+		broadcast()
+	})
+}
+
 // applyGroup never treats TxStore.Discard as a savepoint. Each request is
 // preflighted before mutation. A comparison/validation rejection affects only
 // that request; any error after mutations start aborts the entire physical group.
 // Ready requests are collected opportunistically, with no latency timer. The
 // group also carries the Volume's deferred edits, the edges of released reader
 // pins and pending root proofs, which therefore cost no commit of their own.
-func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publicationRequest, results []error, committed bool) {
+func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publicationRequest, results []error, committed, pending bool) {
 	// Open one physical transaction shared by the blocks and the reference
 	// graph of every request in the group, timing the wait for the writer
 	// turn apart from the apply and commit.
@@ -493,7 +609,7 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 	started := time.Now()
 	p, err := w.volume.openPhysical(first.ctx)
 	if err != nil {
-		return group, []error{err}, false
+		return group, []error{err}, false, false
 	}
 	defer p.discard()
 	opened := time.Now()
@@ -551,9 +667,15 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 
 	// Publish all accepted requests together, or discard the entire physical group.
 	if err == nil && accepted != 0 {
-		if ordered && w.volume.ordered != nil {
+		switch {
+		case ordered && w.volume.ordered != nil:
 			err = kvtx.CommitOrdered(first.ctx, tx)
-		} else {
+		case w.pipelined():
+			// Commit without the durability wait, which the resolution
+			// takes beside the next group.
+			err = kvtx.CommitOrdered(first.ctx, tx)
+			pending = err == nil
+		default:
 			err = tx.Commit(first.ctx)
 		}
 		committed = err == nil
@@ -577,7 +699,7 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 			}
 		}
 	}
-	return group, results, committed
+	return group, results, committed, pending
 }
 
 // preflight checks one request's dependency, prepared overlay, head
@@ -605,7 +727,11 @@ func (w *publicationWriter) preflight(
 					return block.NewPublicationDependencyError(previous)
 				}
 			default:
-				return block.ErrPublicationDependency
+				// A pipelined group committed before this one may still wait
+				// for its durability; its resolution precedes this one's.
+				if !w.isCommittedPending(p.After) {
+					return block.ErrPublicationDependency
+				}
 			}
 		}
 	}

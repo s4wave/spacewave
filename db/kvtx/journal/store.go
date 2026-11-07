@@ -76,6 +76,9 @@ type Options struct {
 	Live func() bool
 	// Wait bounds a commit's wait for the sink before it flushes locally.
 	Wait time.Duration
+	// WaitFunc, when set, returns the bound in place of Wait, read at each
+	// wait, so its owner can change it live.
+	WaitFunc func() time.Duration
 	// StartWait bounds Open's wait for an unreachable sink after a run that
 	// relied on it. Past it the store starts on its own durable head and has
 	// the sink set aside that run's records once it is back.
@@ -295,7 +298,7 @@ func (s *Store) writeHead(ctx context.Context, live bool) error {
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { s.seq = seq })
 
 	// Flush it with everything before it.
-	return s.Sync(ctx)
+	return s.flushLocal(ctx)
 }
 
 // commitHead sets head in tx and commits tx without a flush.
@@ -365,9 +368,25 @@ func (s *Store) WritersWaiting() bool {
 	return ok && q.WritersWaiting()
 }
 
-// Sync flushes the inner store, making every commit so far durable locally,
-// and tells the sink it may drop their records.
+// Sync makes every commit so far durable: while the journal is live, in the
+// sink or locally, as a commit's own wait does; otherwise by flushing the
+// inner store. It is the durability an OrderedCommitStore's Sync promises.
 func (s *Store) Sync(ctx context.Context) error {
+	// While live, the sink's flush of every record so far is enough.
+	var seq uint64
+	var live bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { seq, live = s.seq, s.live })
+	if live {
+		return s.waitDurable(ctx, seq)
+	}
+
+	// Otherwise flush locally.
+	return s.flushLocal(ctx)
+}
+
+// flushLocal flushes the inner store, making every commit so far durable
+// locally, and tells the sink it may drop their records.
+func (s *Store) flushLocal(ctx context.Context) error {
 	// Read the last commit first: the flush covers every commit before it.
 	var seq uint64
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { seq = s.seq })
@@ -393,6 +412,16 @@ func (s *Store) WaitDurable(ctx context.Context) error {
 
 	// With it, every recorded commit so far.
 	return s.waitDurable(ctx, seq)
+}
+
+// wait returns the bound on a wait for the sink.
+func (s *Store) wait() time.Duration {
+	if s.opts.WaitFunc != nil {
+		if w := s.opts.WaitFunc(); w > 0 {
+			return w
+		}
+	}
+	return s.opts.Wait
 }
 
 // setLocal records that the inner store holds every commit up to seq, and
@@ -452,7 +481,7 @@ func (s *Store) advanceLocked() {
 // waitDurable returns once every commit up to seq is durable: in the sink
 // within Wait, or else locally by a flush.
 func (s *Store) waitDurable(ctx context.Context, seq uint64) error {
-	timer := time.NewTimer(s.opts.Wait)
+	timer := time.NewTimer(s.wait())
 	defer timer.Stop()
 	for {
 		var done bool
@@ -465,13 +494,13 @@ func (s *Store) waitDurable(ctx context.Context, seq uint64) error {
 			return nil
 		}
 		if !s.sink.Connected() {
-			return s.Sync(ctx)
+			return s.flushLocal(ctx)
 		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timer.C:
-			return s.Sync(ctx)
+			return s.flushLocal(ctx)
 		case <-wait:
 		}
 	}
@@ -494,7 +523,7 @@ func (s *Store) commit(ctx context.Context, t *tx) (uint64, error) {
 	}
 	rec := &Record{Epoch: s.epoch, Seq: seq, Writes: t.writes}
 	go func() {
-		actx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.opts.Wait)
+		actx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.wait())
 		defer cancel()
 		if err := s.sink.Append(actx, rec); err == nil {
 			s.setFlushed(seq)
@@ -506,6 +535,9 @@ func (s *Store) commit(ctx context.Context, t *tx) (uint64, error) {
 // Run flushes the inner store every FlushEvery, sets and clears the marker
 // as the switch and the sink allow, and cuts the old run, until ctx ends.
 func (s *Store) Run(ctx context.Context) error {
+	// Take the first step at once, so the marker moves without waiting a
+	// whole interval, then one each FlushEvery.
+	s.step(ctx)
 	ticker := time.NewTicker(s.opts.FlushEvery)
 	defer ticker.Stop()
 	for {
@@ -527,7 +559,7 @@ func (s *Store) step(ctx context.Context) {
 		seq, local, live, cut = s.seq, s.local, s.live, s.cut
 	})
 	if seq > local {
-		if err := s.Sync(ctx); err != nil {
+		if err := s.flushLocal(ctx); err != nil {
 			s.le.WithError(err).Warn("journal: local flush failed")
 		}
 	}
@@ -556,7 +588,7 @@ func (s *Store) step(ctx context.Context) {
 
 // Close flushes the inner store, so a clean stop needs no replay.
 func (s *Store) Close(ctx context.Context) error {
-	return s.Sync(ctx)
+	return s.flushLocal(ctx)
 }
 
 // _ are type assertions

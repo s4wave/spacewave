@@ -49,6 +49,9 @@ type NodePushConfig struct {
 	// Wait is the least a commit waits for the node's flush. A slower local
 	// commit gives the node all of its time.
 	Wait time.Duration
+	// WaitLive, when set and positive, replaces Wait, in nanoseconds, read
+	// at each push, so a tunable changes it live.
+	WaitLive *atomic.Int64
 	// ReadWait bounds one read from the node, before the backend answers it.
 	ReadWait time.Duration
 	// On is the runtime switch for the push, for clearing queued blocks the
@@ -236,6 +239,7 @@ func (t *bstoreTracker) startNodePush(
 		client = block_store_nodepush.NewClient(le.WithField("routine", "node-push"), applier)
 	}
 	handle.push = block_store_nodepush.NewPublisher(localPublisher{handle}, client, conf.Wait, conf.On, conf.Result)
+	handle.push.SetWaitLive(conf.WaitLive)
 	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")

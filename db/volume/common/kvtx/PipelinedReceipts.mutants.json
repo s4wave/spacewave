@@ -1,0 +1,32 @@
+[
+  {
+    "name": "resolve a receipt before its group is durable",
+    "replace": [
+      [
+        "    /\\ \\A j \\in 1..(resolved + 1) : j \\in durable\n",
+        ""
+      ]
+    ],
+    "expect": "ResolvedSurvives"
+  },
+  {
+    "name": "resolve a later receipt before an earlier group is durable",
+    "replace": [
+      [
+        "    /\\ \\A j \\in 1..(resolved + 1) : j \\in durable\n",
+        "    /\\ (resolved + 1) \\in durable\n"
+      ]
+    ],
+    "expect": "ResolvedSurvives"
+  },
+  {
+    "name": "a later receipt resolves durable after an earlier group failed",
+    "replace": [
+      [
+        "    /\\ \\A j \\in 1..(resolved + 1) : j \\in durable\n",
+        "    /\\ (resolved + 1) \\in durable\n    /\\ \\A j \\in 1..resolved : j \\in durable \\cup lost\n"
+      ]
+    ],
+    "expect": "ResolvedSurvives"
+  }
+]

@@ -223,7 +223,8 @@ func (n *journalNode) close() {
 }
 
 // TestJournalReplaysAfterCrash crashes the local store after the node
-// flushed its commits' records and before its own flush, at every possible
+// flushed its commits' records and before its own flush, half of them
+// pipelined commits acknowledged by the store's Sync, at every possible
 // point of its write-ahead log, restarts the node too, and checks that the
 // replay brings back every acknowledged write, then that a restart which
 // cannot reach the node starts on its local head and the node sets that run
@@ -271,7 +272,14 @@ func TestJournalReplaysAfterCrash(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := tx.Commit(ctx); err != nil {
+		// Every other commit is a pipelined one: committed ordered, its
+		// receipt resolving once the store's Sync returns.
+		if i%2 == 0 {
+			err = tx.Commit(ctx)
+		} else if err = kvtx.CommitOrdered(ctx, tx); err == nil {
+			err = store.Sync(ctx)
+		}
+		if err != nil {
 			t.Fatal(err)
 		}
 		acked[key] = value

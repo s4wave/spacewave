@@ -48,7 +48,9 @@ type Publisher struct {
 
 	sender Sender
 	wait   time.Duration
-	result Result
+	// waitLive, when set and positive, replaces wait, read at each push.
+	waitLive *atomic.Int64
+	result   Result
 
 	// on is the runtime switch; off, a publication is the local one.
 	on *atomic.Bool
@@ -139,6 +141,23 @@ func (p *Publisher) finishOuter(local *block.PublicationReceipt, entries []*bloc
 	return outer
 }
 
+// SetWaitLive has each push wait the nanoseconds wait holds while positive,
+// in place of the wait NewPublisher took. Call it before the first
+// publication.
+func (p *Publisher) SetWaitLive(wait *atomic.Int64) {
+	p.waitLive = wait
+}
+
+// currentWait returns the least a push waits for the node.
+func (p *Publisher) currentWait() time.Duration {
+	if p.waitLive != nil {
+		if w := time.Duration(p.waitLive.Load()); w > 0 {
+			return w
+		}
+	}
+	return p.wait
+}
+
 // pushing reports whether to send the next publication: the switch is on, and
 // the node did not just time out. A node that went silent, which no connection
 // error reports, then costs one wait and not one for each commit.
@@ -202,7 +221,7 @@ func (p *Publisher) push(entries []*block.PutBatchEntry, local *block.Publicatio
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
-		timer := time.NewTimer(p.wait)
+		timer := time.NewTimer(p.currentWait())
 		defer timer.Stop()
 		select {
 		case <-ctx.Done():
