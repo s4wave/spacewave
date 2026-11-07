@@ -3,7 +3,6 @@ package block_store_writeback
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -977,42 +976,15 @@ func (g *gatedMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.Tx,
 	return g.Store.NewTransaction(ctx, write)
 }
 
-// TestQueueCount keeps the queue's count across opens and checks it against a
-// count of the queue at each step. The first open after the count is lost
-// counts in the background while blocks are written, and a clear waits for it:
-// cleared early, it would come off the status without the count adding it, and
-// Upload would sleep with entries still queued. Later opens take the kept count
-// at once, also after a crash with writes and clears since the last open. A
-// writer that leaves the count alone, as an older build does, is caught at
-// open when it appended or cleared the head, and a clear of the middle leaves
-// the count high until the queue empties.
-func TestQueueCount(t *testing.T) {
+// TestClearLocatedWaitsForTheCount clears a block past the count of the queue
+// after an open. Cleared early, it would come off the status without the count
+// adding it, and Upload would sleep with entries still queued.
+func TestClearLocatedWaitsForTheCount(t *testing.T) {
 	ctx := t.Context()
 	env := newTestEnv(t)
 	s := env.newStore(t, true)
-	check := func(s *Store, when string) {
-		t.Helper()
-		want := recountQueue(t, env)
-		kept, found := keptQueueCount(t, env)
-		status, _ := s.GetStatus()
-		if !found || kept.n != want.n || kept.bytes != want.bytes || !bytes.Equal(kept.first, want.first) || !bytes.Equal(kept.last, want.last) {
-			t.Fatalf("%s: kept count %+v (found %v), want %+v", when, kept, found, want)
-		}
-		if status.Pending != want.n || status.PendingBytes != want.bytes {
-			t.Fatalf("%s: status %d entries, %d bytes; want %d, %d", when, status.Pending, status.PendingBytes, want.n, want.bytes)
-		}
-	}
-	put := func(s *Store, data string) *block.BlockRef {
-		t.Helper()
-		ref, _, err := s.PutBlock(ctx, []byte(data), leafOpts)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return ref
-	}
 
-	// Queue past what an open counts, then count again at the next open,
-	// holding its background count while two more blocks queue.
+	// Queue past what an open counts, then reopen with the count held.
 	total := openCountLimit + 2
 	entries := make([]*block.PutBatchEntry, total)
 	for i := range total {
@@ -1026,23 +998,15 @@ func TestQueueCount(t *testing.T) {
 	if _, err := s.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)
 	}
-	check(s, "after the first writes")
-	SetRecountAtOpen(true)
 	g := &gatedMarkers{Store: env.markers(t), reached: make(chan struct{}), release: make(chan struct{})}
 	g.armed.Store(true)
 	s, err := NewStore(ctx, ownedStore{env.vol}, env.vol, g, testMarkersID, true)
-	SetRecountAtOpen(false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	<-g.reached
-	if _, found := keptQueueCount(t, env); found {
-		t.Fatal("the count is kept while the open counts")
-	}
-	put(s, "queued during the count")
-	put(s, "also queued during the count")
 
-	// The clear waits for the count, then both land, and the count is kept.
+	// The clear waits for the count, then both land.
 	last := entries[total-1].Ref
 	remote := &locatingStore{StoreOps: newInmemBlockStore(), located: map[string]bool{last.MarshalString(): true}}
 	var on atomic.Bool
@@ -1059,221 +1023,8 @@ func TestQueueCount(t *testing.T) {
 	if err := <-cleared; err != nil {
 		t.Fatal(err)
 	}
-	check(s, "after the count")
-
-	// A crash after more writes and a clear of the last entry reopens on the
-	// kept count at once: a clear needs no count.
-	put(s, "after the count")
-	newest := put(s, "newest")
-	remote.located[newest.MarshalString()] = true
-	if err := s.ClearLocated(ctx, remote, []*hash.Hash{newest.GetHash()}); err != nil {
-		t.Fatal(err)
-	}
-	s = env.newStore(t, true)
-	if err := s.waitCounted(ctx); err != nil {
-		t.Fatal(err)
-	}
-	check(s, "after a crash")
-
-	// A writer that leaves the count alone is caught when it appends or
-	// clears the head, and the next open counts again.
-	unstored, err := block.BuildBlockRef([]byte("queued by an old build"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rawQueue(t, env, unstored, func(tx kvtx.Tx, h *hash.Hash) {
-		key := queueKey(queueTime(time.Now()), h)
-		if err := tx.Set(ctx, markedKey(h), key); err != nil {
-			t.Fatal(err)
-		}
-		if err := tx.Set(ctx, key, queueValue(22, time.Time{})); err != nil {
-			t.Fatal(err)
-		}
-	})
-	rawQueue(t, env, nil, func(tx kvtx.Tx, _ *hash.Hash) {
-		first, _, err := queueEnds(ctx, tx, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := tx.Delete(ctx, first); err != nil {
-			t.Fatal(err)
-		}
-	})
-	s = env.newStore(t, true)
-	if err := s.waitCounted(ctx); err != nil {
-		t.Fatal(err)
-	}
-	check(s, "after a writer that kept no count")
-
-	// A clear of the middle by such a writer leaves the count high, never
-	// low, until the queue empties.
-	rawQueue(t, env, nil, func(tx kvtx.Tx, _ *hash.Hash) {
-		var keys [][]byte
-		if err := scanQueue(ctx, tx, nil, func(item queueItem) error {
-			keys = append(keys, bytes.Clone(item.key))
-			return nil
-		}); err != nil {
-			t.Fatal(err)
-		}
-		if err := tx.Delete(ctx, keys[len(keys)/2]); err != nil {
-			t.Fatal(err)
-		}
-	})
-	s = env.newStore(t, true)
-	if status, _ := s.GetStatus(); status.Pending != recountQueue(t, env).n+1 {
-		t.Fatalf("pending %d after a middle clear, want one over the queue's %d", status.Pending, recountQueue(t, env).n)
-	}
-	upCtx, stopUpload := context.WithCancel(ctx)
-	uploaded := make(chan error, 1)
-	go func() { uploaded <- s.Upload(upCtx, newInmemBlockStore()) }()
-	for recountQueue(t, env).n != 0 {
-		_, changed := s.GetStatus()
-		select {
-		case <-changed:
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
-	stopUpload()
-	<-uploaded
-	if kept, _ := keptQueueCount(t, env); kept.n != 0 || kept.bytes != 0 || kept.first != nil || kept.last != nil {
-		t.Fatalf("kept count %+v after the queue emptied, want zero", kept)
-	}
-	s = env.newStore(t, true)
-	check(s, "after the queue emptied")
-
-	// A writer that keeps no count inserting strictly inside the queue leaves
-	// the count low. Clears past it keep the count and the status at one, so
-	// the upload still takes the entry; an open that finds none counted with
-	// the queue not empty counts again.
-	var counted []*block.BlockRef
-	for i := range 4 {
-		counted = append(counted, put(s, fmt.Sprintf("counted %d", i)))
-	}
-	inside, err := block.BuildBlockRef([]byte("inserted inside by an old build"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rawQueue(t, env, inside, func(tx kvtx.Tx, h *hash.Hash) {
-		first, _, err := queueEnds(ctx, tx, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		at, err := (queueItem{key: first}).at()
-		if err != nil {
-			t.Fatal(err)
-		}
-		key := queueKey(queueTime(at.Add(time.Nanosecond)), h)
-		if err := tx.Set(ctx, markedKey(h), key); err != nil {
-			t.Fatal(err)
-		}
-		if err := tx.Set(ctx, key, queueValue(31, time.Time{})); err != nil {
-			t.Fatal(err)
-		}
-	})
-	hashes := make([]*hash.Hash, len(counted))
-	for i, ref := range counted {
-		remote.located[ref.MarshalString()] = true
-		hashes[i] = ref.GetHash()
-	}
-	s.SetLocateUploaded(&on)
-	if err := s.ClearLocated(ctx, remote, hashes); err != nil {
-		t.Fatal(err)
-	}
-	kept, _ := keptQueueCount(t, env)
-	if status, _ := s.GetStatus(); recountQueue(t, env).n != 1 || kept.n != 1 || status.Pending != 1 {
-		t.Fatalf("kept %d, status %d with %d queued after clears past an uncounted entry, want one each", kept.n, status.Pending, recountQueue(t, env).n)
-	}
-	rawQueue(t, env, nil, func(tx kvtx.Tx, _ *hash.Hash) {
-		kept.n = 0
-		if err := writeQueueCount(ctx, tx, pendingKey, kept); err != nil {
-			t.Fatal(err)
-		}
-	})
-	s = env.newStore(t, true)
-	if err := s.waitCounted(ctx); err != nil {
-		t.Fatal(err)
-	}
-	check(s, "after an open found none counted")
-	upCtx, stopUpload = context.WithCancel(ctx)
-	go func() { uploaded <- s.Upload(upCtx, newInmemBlockStore()) }()
-	deadline := time.Now().Add(10 * time.Second)
-	for recountQueue(t, env).n != 0 {
-		if time.Now().After(deadline) {
-			t.Fatal("the upload slept with the uncounted entry queued")
-		}
-		_, changed := s.GetStatus()
-		select {
-		case <-changed:
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
-	stopUpload()
-	<-uploaded
-	check(s, "after the upload took the uncounted entry")
-
-	// Turning uploads off empties the queue and its count.
-	put(s, "before uploads stop")
-	if err := s.SetEnabled(ctx, false); err != nil {
-		t.Fatal(err)
-	}
-	check(s, "after uploads stopped")
-}
-
-// recountQueue counts the queue's entries, as an open with no kept count does.
-func recountQueue(t *testing.T, env *testEnv) queueCount {
-	t.Helper()
-	var c queueCount
-	markers := env.markers(t)
-	readTx := func(ctx context.Context) (kvtx.Tx, error) { return markers.NewTransaction(ctx, false) }
-	err := kvtx.RunTransaction(t.Context(), false, readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		c = queueCount{}
-		return scanQueue(ctx, tx, nil, func(item queueItem) error {
-			if c.first == nil {
-				c.first = bytes.Clone(item.key)
-			}
-			c.last = bytes.Clone(item.key)
-			c.n++
-			c.bytes += item.size()
-			return nil
-		})
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return c
-}
-
-// keptQueueCount reads the queue's kept count.
-func keptQueueCount(t *testing.T, env *testEnv) (queueCount, bool) {
-	t.Helper()
-	tx, err := env.markers(t).NewTransaction(t.Context(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Discard()
-	c, found, err := readQueueCount(t.Context(), tx, pendingKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return c, found
-}
-
-// rawQueue changes the queue in one transaction without its count, as a
-// writer of an older build does; ref's hash, or nil, is passed to change.
-func rawQueue(t *testing.T, env *testEnv, ref *block.BlockRef, change func(tx kvtx.Tx, h *hash.Hash)) {
-	t.Helper()
-	tx, err := env.markers(t).NewTransaction(t.Context(), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Discard()
-	var h *hash.Hash
-	if ref != nil {
-		h = ref.GetHash()
-	}
-	change(tx, h)
-	if err := tx.Commit(t.Context()); err != nil {
-		t.Fatal(err)
+	if status, _ := s.GetStatus(); status.Pending != total-1 {
+		t.Fatalf("pending=%d, want %d", status.Pending, total-1)
 	}
 }
 

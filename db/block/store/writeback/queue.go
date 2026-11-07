@@ -181,14 +181,12 @@ type queueDelta struct {
 	// oldest is the earliest write time of those blocks, while added is not
 	// zero.
 	oldest time.Time
-	// first and last are the least and greatest queue keys of those blocks.
-	first, last []byte
 }
 
 // queueMarks queues the marked blocks in tx and returns the blocks it queued
-// for the first time, which it adds to the queue's count in tx. It reads the
-// blocks' markers in one batch, so a cold index costs one round of reads
-// rather than one read per block while tx holds the store's writer.
+// for the first time. It reads the blocks' markers in one batch, so a cold
+// index costs one round of reads rather than one read per block while tx
+// holds the store's writer.
 //
 // A block that is queued already keeps its first write time, so it uploads
 // with its first write. Its queue value changes, so an upload that read the
@@ -241,22 +239,8 @@ func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, erro
 		if delta.added == 0 || at.Before(delta.oldest) {
 			delta.oldest = at
 		}
-		if delta.first == nil || bytes.Compare(entryKey, delta.first) < 0 {
-			delta.first = entryKey
-		}
-		if delta.last == nil || bytes.Compare(entryKey, delta.last) > 0 {
-			delta.last = entryKey
-		}
 		delta.added++
 		delta.addedBytes += mark.Size
-	}
-
-	// Count the new entries in the same transaction.
-	if delta.added == 0 {
-		return delta, nil
-	}
-	if err := addQueued(ctx, tx, delta.added, delta.addedBytes, delta.first, delta.last); err != nil {
-		return queueDelta{}, errors.Wrap(err, "count queued blocks")
 	}
 	return delta, nil
 }
