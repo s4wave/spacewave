@@ -1,0 +1,25 @@
+---
+title: "A pack through the sweep: quarantine, trash, removal"
+---
+stateDiagram-v2
+  s0: registered
+  s1: quarantined
+  s2: quarantined, rechecked
+  s3: trashing
+  s4: trashing, checked for misses
+  s5: trashing, a read missed
+  s6: in the trash
+  s7: removed
+  [*] --> s0
+  s0 --> s1: Quarantine
+  s1 --> s2: the recheck passes
+  s1 --> s0: a fallback read lifts it
+  s2 --> s0: a fallback read lifts it
+  s2 --> s3: BeginTrash
+  s3 --> s4: no miss recorded
+  s3 --> s5: a read misses
+  s4 --> s5: a read misses
+  s4 --> s6: the file moves
+  s5 --> s0: Restore
+  s6 --> s7: Remove
+  s6 --> s5: a read misses
