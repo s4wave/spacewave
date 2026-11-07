@@ -180,7 +180,7 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		}
 		defer drop.close()
 		copyStore = func(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(volume_kvtx.CopyProgress)) error {
-			return volume_kvtx.CopyStoreDropping(ctx, src, dst, keys, drop.drop, progress)
+			return volume_kvtx.CopyStoreSplitting(ctx, src, dst, keys, volume_kvtx.SplitOptions{Drop: drop.drop}, progress)
 		}
 	}
 	if reachable != nil {

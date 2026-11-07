@@ -54,17 +54,12 @@ type KeptBlockKeys func(ctx context.Context, src kvtx.Tx, ref *block.BlockRef, v
 // dropCheckBlocks bounds the blocks one DropBlocks call checks.
 const dropCheckBlocks = 1000
 
-// CopyStoreDropping copies src into dst like CopyStore, leaving out the bytes
-// of the blocks drop reports. Every other key is copied as it is, the dropped
-// blocks' child lists too, so their liveness is unchanged. drop sees the
-// blocks in key order, up to dropCheckBlocks at a time, and a dropped block's
-// value is never read.
-func CopyStoreDropping(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, drop DropBlocks, progress func(CopyProgress)) error {
-	return CopyStoreSplitting(ctx, src, dst, keys, SplitOptions{Drop: drop}, progress)
-}
-
-// CopyStoreSplitting copies src into dst like CopyStoreDropping, with the
-// extra keys and omissions of opts.
+// CopyStoreSplitting copies src into dst like CopyStore, with the omissions
+// and extra keys of opts. A copy with opts.Drop leaves out the bytes of the
+// blocks it reports. Every other key is copied as it is, the dropped blocks'
+// child lists too, so their liveness is unchanged. Drop sees the blocks in key
+// order, up to dropCheckBlocks at a time, and a dropped block's value is never
+// read.
 func CopyStoreSplitting(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts SplitOptions, progress func(CopyProgress)) error {
 	ctx = block.WithBackground(ctx)
 	return copyStore(ctx, src, dst, keys, nil, opts, progress)
@@ -223,6 +218,9 @@ type copyWriter struct {
 	omit [][]byte
 	// held are the block keys awaiting a drop check, in key order.
 	held [][]byte
+	// batch are the keys the next commit writes, holding size bytes.
+	batch []CopyKey
+	size  int
 }
 
 // copyKeys copies every key of stx except versionKey, in commits of up to
@@ -236,8 +234,6 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 	}
 
 	// Fill each batch, seeking past an omitted prefix in one step.
-	var batch []keyValue
-	var size int
 	for it.Valid() {
 		key := it.Key()
 		if prefix := w.omitted(key); prefix != nil {
@@ -259,10 +255,10 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 			if held {
 				w.held = append(w.held, key)
 				if len(w.held) == dropCheckBlocks {
-					batch, size, err = w.checkHeld(ctx, stx, batch, size)
+					err = w.checkHeld(ctx, stx)
 				}
 			} else if keep {
-				batch, size, err = w.checkHeld(ctx, stx, batch, size)
+				err = w.checkHeld(ctx, stx)
 			}
 			if err != nil {
 				return err
@@ -276,28 +272,31 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 				if err != nil {
 					return err
 				}
-				batch = append(batch, keyValue{key: key, value: value})
-				size += len(key) + len(value)
+				w.add(CopyKey{Key: key, Value: value})
 			} else if !keep {
 				w.counts.DroppedBytes += uint64(len(key)) //nolint:gosec // lengths are never negative.
 			}
 		}
-		if size >= migrateBatchBytes {
-			if err := w.commitKeys(ctx, batch, size); err != nil {
+		if w.size >= migrateBatchBytes {
+			if err := w.commitKeys(ctx); err != nil {
 				return err
 			}
-			batch, size = batch[:0], 0
 		}
 		it.Next()
 	}
 	if err := it.Err(); err != nil {
 		return err
 	}
-	batch, size, err := w.checkHeld(ctx, stx, batch, size)
-	if err != nil {
+	if err := w.checkHeld(ctx, stx); err != nil {
 		return err
 	}
-	return w.commitKeys(ctx, batch, size)
+	return w.commitKeys(ctx)
+}
+
+// add appends a key to the next commit.
+func (w *copyWriter) add(k CopyKey) {
+	w.batch = append(w.batch, k)
+	w.size += len(k.Key) + len(k.Value)
 }
 
 // omitted returns the omitted prefix key starts with, or nil.
@@ -310,12 +309,12 @@ func (w *copyWriter) omitted(key []byte) []byte {
 	return nil
 }
 
-// checkHeld asks drop which held blocks the copy leaves out, and appends the
-// rest to batch with their values read from stx.
-func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValue, size int) ([]keyValue, int, error) {
+// checkHeld asks drop which held blocks the copy leaves out, and adds the
+// rest to the next commit with their values read from stx.
+func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx) error {
 	// Skip a batch that holds no blocks.
 	if len(w.held) == 0 {
-		return batch, size, nil
+		return nil
 	}
 
 	// Decode the held block keys.
@@ -323,17 +322,17 @@ func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValu
 	for i, key := range w.held {
 		refs[i] = &block.BlockRef{}
 		if err := refs[i].UnmarshalVT(key[len(w.blockPrefix):]); err != nil {
-			return nil, 0, errors.Wrapf(err, "decode block key %q", key)
+			return errors.Wrapf(err, "decode block key %q", key)
 		}
 	}
 
 	// Ask which of them the copy leaves out.
 	dropped, err := w.drop(ctx, refs)
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 	if len(dropped) != len(refs) {
-		return nil, 0, errors.Errorf("drop check answered %d of %d blocks", len(dropped), len(refs))
+		return errors.Errorf("drop check answered %d of %d blocks", len(dropped), len(refs))
 	}
 
 	// Count the dropped blocks and read the values of the rest.
@@ -345,28 +344,26 @@ func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValu
 		}
 		value, found, err := stx.Get(ctx, key)
 		if err != nil {
-			return nil, 0, err
+			return err
 		}
 		if !found {
-			return nil, 0, errors.Errorf("block key %q left the snapshot", key)
+			return errors.Errorf("block key %q left the snapshot", key)
 		}
 		value = bytes.Clone(value)
-		batch = append(batch, keyValue{key: key, value: value})
-		size += len(key) + len(value)
+		w.add(CopyKey{Key: key, Value: value})
 		if w.kept == nil {
 			continue
 		}
 		extra, err := w.kept(ctx, stx, refs[i], value)
 		if err != nil {
-			return nil, 0, err
+			return err
 		}
 		for _, k := range extra {
-			batch = append(batch, keyValue{key: k.Key, value: k.Value})
-			size += len(k.Key) + len(k.Value)
+			w.add(k)
 		}
 	}
 	w.held = w.held[:0]
-	return batch, size, nil
+	return nil
 }
 
 // keep reports whether the copy writes key, counting a dropped key. A
@@ -423,10 +420,10 @@ func (w *copyWriter) keepRecord(record []byte) (bool, error) {
 	return false, nil
 }
 
-// commitKeys writes batch, holding size bytes, in one ordered commit.
-func (w *copyWriter) commitKeys(ctx context.Context, batch []keyValue, size int) error {
+// commitKeys writes the next commit's keys in one ordered commit.
+func (w *copyWriter) commitKeys(ctx context.Context) error {
 	// Open the commit when there is work.
-	if len(batch) == 0 {
+	if len(w.batch) == 0 {
 		return nil
 	}
 	tx, err := w.store.NewTransaction(ctx, true)
@@ -436,8 +433,8 @@ func (w *copyWriter) commitKeys(ctx context.Context, batch []keyValue, size int)
 	defer tx.Discard()
 
 	// Write the batch.
-	for _, m := range batch {
-		if err := tx.Set(ctx, m.key, m.value); err != nil {
+	for _, k := range w.batch {
+		if err := tx.Set(ctx, k.Key, k.Value); err != nil {
 			return err
 		}
 	}
@@ -445,9 +442,10 @@ func (w *copyWriter) commitKeys(ctx context.Context, batch []keyValue, size int)
 		return err
 	}
 
-	// Count the committed work.
-	w.counts.Keys += uint64(len(batch))
-	w.counts.Bytes += uint64(size) //nolint:gosec
+	// Count the committed work and start the next batch.
+	w.counts.Keys += uint64(len(w.batch))
+	w.counts.Bytes += uint64(w.size) //nolint:gosec
+	w.batch, w.size = w.batch[:0], 0
 	w.report()
 	return nil
 }
