@@ -18,8 +18,20 @@ message Message {
     PackApplied pack_applied = 5;
     // Read asks the node for a byte range of a pack.
     Read read = 6;
-    // ReadData answers a Read.
+    // ReadData answers a Read or a ReadBlock.
     ReadData read_data = 7;
+    // Record carries one local commit's writes to the node's journal.
+    Record record = 8;
+    // JournalTail asks for the journal's records past a sequence.
+    JournalTail journal_tail = 9;
+    // JournalRecords answers a JournalTail.
+    JournalRecords journal_records = 10;
+    // JournalCut has the node keep no record of a run but the ones it names.
+    JournalCut journal_cut = 11;
+    // JournalTrim lets the node drop records the local store holds durably.
+    JournalTrim journal_trim = 12;
+    // ReadBlock asks the node for one block of its pack log by key.
+    ReadBlock read_block = 13;
   }
 }
 
@@ -97,4 +109,84 @@ message ReadData {
   // miss says the node lacks the pack. It fills it in the background, and the
   // local store reads the remote meanwhile.
   bool miss = 3;
+}
+
+// Record is the writes of one local commit, in the order the commit made
+// them. A local store whose node journals its commits replays the records past
+// its own durable head after a crash. The node answers Flushed once the record
+// is on its disk, or Refused.
+message Record {
+  // id names the record's frame on this connection.
+  uint64 id = 1;
+  // epoch names the local store's run that committed it.
+  uint64 epoch = 2;
+  // seq numbers the commit in the local store, one more than the commit
+  // before it.
+  uint64 seq = 3;
+  // writes are the commit's sets and deletes.
+  repeated Write writes = 4;
+}
+
+// Write is one key's change in a commit.
+message Write {
+  // key is the store key.
+  bytes key = 1;
+  // value is the key's new value; unused for a delete.
+  bytes value = 2;
+  // delete removes the key.
+  bool delete = 3;
+}
+
+// JournalTail asks for the records of epoch past seq after, in seq order.
+message JournalTail {
+  // id names the request on this connection.
+  uint64 id = 1;
+  // epoch is the run whose records to return.
+  uint64 epoch = 2;
+  // after is the last seq the local store holds.
+  uint64 after = 3;
+}
+
+// JournalRecords is a run of consecutive records past a JournalTail's after,
+// as many as fit one frame.
+message JournalRecords {
+  // id is the JournalTail's id.
+  uint64 id = 1;
+  // records follow one another by seq, starting at the tail's after plus one.
+  repeated Record records = 2;
+  // more says the node holds further consecutive records; ask again past the
+  // last one.
+  bool more = 3;
+}
+
+// JournalCut sets aside every record except those of epoch up to through,
+// which the local store has replayed and holds durably. The node answers
+// Flushed once the cut is on its disk. A record set aside was never
+// acknowledged through the journal, or its run started without the node.
+message JournalCut {
+  // id names the request on this connection.
+  uint64 id = 1;
+  // epoch is the run being replaced.
+  uint64 epoch = 2;
+  // through is the last seq the local store replayed.
+  uint64 through = 3;
+}
+
+// JournalTrim says the local store holds epoch's records up to through
+// durably, so the node may drop them.
+message JournalTrim {
+  // epoch is the local store's run.
+  uint64 epoch = 1;
+  // through is the last seq the local store holds durably.
+  uint64 through = 2;
+}
+
+// ReadBlock asks for one block by its pack key from the node's pack log, which
+// holds the blocks the node flushed and has not evicted. It is answered with
+// ReadData, a miss when the log lacks the block.
+message ReadBlock {
+  // id names the read on this connection.
+  uint64 id = 1;
+  // key is the block's pack key.
+  bytes key = 2;
 }

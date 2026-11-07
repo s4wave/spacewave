@@ -1804,6 +1804,16 @@
         "db/block/store/kvfile/http/http.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/block/store/nodepush": {
+      "hash": "6457edd1b5ebc0734593a332231cb0e12937cbcee048d88aa0a3d1fb748a6c77",
+      "generatedFiles": [
+        "db/block/store/nodepush/nodepush.pb.go",
+        "db/block/store/nodepush/nodepush.pb.ts"
+      ],
+      "protoFiles": [
+        "db/block/store/nodepush/nodepush.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/block/store/overlay": {
       "hash": "233d491bcbb02a6ac8977bb8ac8c6256c1dc12774babe1003ce83d940192104a",
       "generatedFiles": [
@@ -2161,6 +2171,16 @@
       ],
       "protoFiles": [
         "db/kvtx/fibheap/fibheap.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/db/kvtx/journal": {
+      "hash": "3a4fec9130077c0017b5aedf6d715ccfad3fded8d3d972e9b316654d510d0480",
+      "generatedFiles": [
+        "db/kvtx/journal/journal.pb.go",
+        "db/kvtx/journal/journal.pb.ts"
+      ],
+      "protoFiles": [
+        "db/kvtx/journal/journal.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/kvtx/rpc": {

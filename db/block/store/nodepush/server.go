@@ -64,6 +64,9 @@ type Server struct {
 	retryBase time.Duration
 	// packs serves reads, or is nil on a node that serves none.
 	packs *PackFiles
+	// journal keeps the local store's commit records, or is nil on a node
+	// that journals none.
+	journal *Journal
 
 	// mtx guards pending and stop.
 	mtx sync.Mutex
@@ -195,6 +198,13 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 				continue
 			}
 			if err := s.applied(body.PackApplied.GetPackId()); err != nil {
+				return err
+			}
+		default:
+			// The journal and block reads, in server-journal.go. A record
+			// shares the push slots, so records and pushes share flushes and
+			// the bound on what one connection appends at once.
+			if err := s.serveJournal(ctx, msg, out, slots, &running); err != nil {
 				return err
 			}
 		}

@@ -48,11 +48,13 @@ type Client struct {
 	waiting map[uint64]chan error
 	// reading holds the answer channel of each read in flight.
 	reading map[uint64]chan *ReadData
+	// tailing holds the answer channel of each journal tail in flight.
+	tailing map[uint64]chan *JournalRecords
 }
 
 // NewClient builds a Client that hands reported packs to applier.
 func NewClient(le *logrus.Entry, applier Applier) *Client {
-	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData)}
+	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData), tailing: make(map[uint64]chan *JournalRecords)}
 }
 
 // Run keeps a connection to the node up through dial until ctx ends.
@@ -270,6 +272,8 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 			c.answer(body.Refused.GetId(), errors.New(body.Refused.GetReason()))
 		case *Message_ReadData:
 			c.answerRead(body.ReadData)
+		case *Message_JournalRecords:
+			c.answerTail(body.JournalRecords)
 		case *Message_PackReport:
 			// Never block here: this loop carries the answers every commit
 			// waits for. The node sends one report at a time and repeats it,
@@ -295,6 +299,10 @@ func (c *Client) disconnect() {
 	for id, answer := range c.reading {
 		close(answer)
 		delete(c.reading, id)
+	}
+	for id, answer := range c.tailing {
+		close(answer)
+		delete(c.tailing, id)
 	}
 }
 

@@ -6,10 +6,11 @@ package block_store_nodepush
 
 import (
 	fmt "fmt"
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	io "io"
 	slices "slices"
+
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Message is one frame on the connection between a local store and its storage
@@ -24,6 +25,12 @@ type Message struct {
 	//	*Message_PackApplied
 	//	*Message_Read
 	//	*Message_ReadData
+	//	*Message_Record
+	//	*Message_JournalTail
+	//	*Message_JournalRecords
+	//	*Message_JournalCut
+	//	*Message_JournalTrim
+	//	*Message_ReadBlock
 	Body isMessage_Body `protobuf_oneof:"body"`
 }
 
@@ -89,6 +96,48 @@ func (x *Message) GetReadData() *ReadData {
 	return nil
 }
 
+func (x *Message) GetRecord() *Record {
+	if x, ok := x.GetBody().(*Message_Record); ok {
+		return x.Record
+	}
+	return nil
+}
+
+func (x *Message) GetJournalTail() *JournalTail {
+	if x, ok := x.GetBody().(*Message_JournalTail); ok {
+		return x.JournalTail
+	}
+	return nil
+}
+
+func (x *Message) GetJournalRecords() *JournalRecords {
+	if x, ok := x.GetBody().(*Message_JournalRecords); ok {
+		return x.JournalRecords
+	}
+	return nil
+}
+
+func (x *Message) GetJournalCut() *JournalCut {
+	if x, ok := x.GetBody().(*Message_JournalCut); ok {
+		return x.JournalCut
+	}
+	return nil
+}
+
+func (x *Message) GetJournalTrim() *JournalTrim {
+	if x, ok := x.GetBody().(*Message_JournalTrim); ok {
+		return x.JournalTrim
+	}
+	return nil
+}
+
+func (x *Message) GetReadBlock() *ReadBlock {
+	if x, ok := x.GetBody().(*Message_ReadBlock); ok {
+		return x.ReadBlock
+	}
+	return nil
+}
+
 type isMessage_Body interface {
 	isMessage_Body()
 }
@@ -125,8 +174,38 @@ type Message_Read struct {
 }
 
 type Message_ReadData struct {
-	// ReadData answers a Read.
+	// ReadData answers a Read or a ReadBlock.
 	ReadData *ReadData `protobuf:"bytes,7,opt,name=read_data,json=readData,proto3,oneof"`
+}
+
+type Message_Record struct {
+	// Record carries one local commit's writes to the node's journal.
+	Record *Record `protobuf:"bytes,8,opt,name=record,proto3,oneof"`
+}
+
+type Message_JournalTail struct {
+	// JournalTail asks for the journal's records past a sequence.
+	JournalTail *JournalTail `protobuf:"bytes,9,opt,name=journal_tail,json=journalTail,proto3,oneof"`
+}
+
+type Message_JournalRecords struct {
+	// JournalRecords answers a JournalTail.
+	JournalRecords *JournalRecords `protobuf:"bytes,10,opt,name=journal_records,json=journalRecords,proto3,oneof"`
+}
+
+type Message_JournalCut struct {
+	// JournalCut has the node keep no record of a run but the ones it names.
+	JournalCut *JournalCut `protobuf:"bytes,11,opt,name=journal_cut,json=journalCut,proto3,oneof"`
+}
+
+type Message_JournalTrim struct {
+	// JournalTrim lets the node drop records the local store holds durably.
+	JournalTrim *JournalTrim `protobuf:"bytes,12,opt,name=journal_trim,json=journalTrim,proto3,oneof"`
+}
+
+type Message_ReadBlock struct {
+	// ReadBlock asks the node for one block of its pack log by key.
+	ReadBlock *ReadBlock `protobuf:"bytes,13,opt,name=read_block,json=readBlock,proto3,oneof"`
 }
 
 func (*Message_Push) isMessage_Body() {}
@@ -142,6 +221,18 @@ func (*Message_PackApplied) isMessage_Body() {}
 func (*Message_Read) isMessage_Body() {}
 
 func (*Message_ReadData) isMessage_Body() {}
+
+func (*Message_Record) isMessage_Body() {}
+
+func (*Message_JournalTail) isMessage_Body() {}
+
+func (*Message_JournalRecords) isMessage_Body() {}
+
+func (*Message_JournalCut) isMessage_Body() {}
+
+func (*Message_JournalTrim) isMessage_Body() {}
+
+func (*Message_ReadBlock) isMessage_Body() {}
 
 // Push is the blocks of one publication.
 type Push struct {
@@ -415,6 +506,275 @@ func (x *ReadData) GetMiss() bool {
 	return false
 }
 
+// Record is the writes of one local commit, in the order the commit made
+// them. A local store whose node journals its commits replays the records past
+// its own durable head after a crash. The node answers Flushed once the record
+// is on its disk, or Refused.
+type Record struct {
+	unknownFields []byte
+	// id names the record's frame on this connection.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// epoch names the local store's run that committed it.
+	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// seq numbers the commit in the local store, one more than the commit
+	// before it.
+	Seq uint64 `protobuf:"varint,3,opt,name=seq,proto3" json:"seq,omitempty"`
+	// writes are the commit's sets and deletes.
+	Writes []*Write `protobuf:"bytes,4,rep,name=writes,proto3" json:"writes,omitempty"`
+}
+
+func (x *Record) Reset() {
+	*x = Record{}
+}
+
+func (*Record) ProtoMessage() {}
+
+func (x *Record) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Record) GetEpoch() uint64 {
+	if x != nil {
+		return x.Epoch
+	}
+	return 0
+}
+
+func (x *Record) GetSeq() uint64 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *Record) GetWrites() []*Write {
+	if x != nil {
+		return x.Writes
+	}
+	return nil
+}
+
+// Write is one key's change in a commit.
+type Write struct {
+	unknownFields []byte
+	// key is the store key.
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// value is the key's new value; unused for a delete.
+	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	// delete removes the key.
+	Delete bool `protobuf:"varint,3,opt,name=delete,proto3" json:"delete,omitempty"`
+}
+
+func (x *Write) Reset() {
+	*x = Write{}
+}
+
+func (*Write) ProtoMessage() {}
+
+func (x *Write) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *Write) GetValue() []byte {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *Write) GetDelete() bool {
+	if x != nil {
+		return x.Delete
+	}
+	return false
+}
+
+// JournalTail asks for the records of epoch past seq after, in seq order.
+type JournalTail struct {
+	unknownFields []byte
+	// id names the request on this connection.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// epoch is the run whose records to return.
+	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// after is the last seq the local store holds.
+	After uint64 `protobuf:"varint,3,opt,name=after,proto3" json:"after,omitempty"`
+}
+
+func (x *JournalTail) Reset() {
+	*x = JournalTail{}
+}
+
+func (*JournalTail) ProtoMessage() {}
+
+func (x *JournalTail) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *JournalTail) GetEpoch() uint64 {
+	if x != nil {
+		return x.Epoch
+	}
+	return 0
+}
+
+func (x *JournalTail) GetAfter() uint64 {
+	if x != nil {
+		return x.After
+	}
+	return 0
+}
+
+// JournalRecords is a run of consecutive records past a JournalTail's after,
+// as many as fit one frame.
+type JournalRecords struct {
+	unknownFields []byte
+	// id is the JournalTail's id.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// records follow one another by seq, starting at the tail's after plus one.
+	Records []*Record `protobuf:"bytes,2,rep,name=records,proto3" json:"records,omitempty"`
+	// more says the node holds further consecutive records; ask again past the
+	// last one.
+	More bool `protobuf:"varint,3,opt,name=more,proto3" json:"more,omitempty"`
+}
+
+func (x *JournalRecords) Reset() {
+	*x = JournalRecords{}
+}
+
+func (*JournalRecords) ProtoMessage() {}
+
+func (x *JournalRecords) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *JournalRecords) GetRecords() []*Record {
+	if x != nil {
+		return x.Records
+	}
+	return nil
+}
+
+func (x *JournalRecords) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
+}
+
+// JournalCut sets aside every record except those of epoch up to through,
+// which the local store has replayed and holds durably. The node answers
+// Flushed once the cut is on its disk. A record set aside was never
+// acknowledged through the journal, or its run started without the node.
+type JournalCut struct {
+	unknownFields []byte
+	// id names the request on this connection.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// epoch is the run being replaced.
+	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// through is the last seq the local store replayed.
+	Through uint64 `protobuf:"varint,3,opt,name=through,proto3" json:"through,omitempty"`
+}
+
+func (x *JournalCut) Reset() {
+	*x = JournalCut{}
+}
+
+func (*JournalCut) ProtoMessage() {}
+
+func (x *JournalCut) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *JournalCut) GetEpoch() uint64 {
+	if x != nil {
+		return x.Epoch
+	}
+	return 0
+}
+
+func (x *JournalCut) GetThrough() uint64 {
+	if x != nil {
+		return x.Through
+	}
+	return 0
+}
+
+// JournalTrim says the local store holds epoch's records up to through
+// durably, so the node may drop them.
+type JournalTrim struct {
+	unknownFields []byte
+	// epoch is the local store's run.
+	Epoch uint64 `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// through is the last seq the local store holds durably.
+	Through uint64 `protobuf:"varint,2,opt,name=through,proto3" json:"through,omitempty"`
+}
+
+func (x *JournalTrim) Reset() {
+	*x = JournalTrim{}
+}
+
+func (*JournalTrim) ProtoMessage() {}
+
+func (x *JournalTrim) GetEpoch() uint64 {
+	if x != nil {
+		return x.Epoch
+	}
+	return 0
+}
+
+func (x *JournalTrim) GetThrough() uint64 {
+	if x != nil {
+		return x.Through
+	}
+	return 0
+}
+
+// ReadBlock asks for one block by its pack key from the node's pack log, which
+// holds the blocks the node flushed and has not evicted. It is answered with
+// ReadData, a miss when the log lacks the block.
+type ReadBlock struct {
+	unknownFields []byte
+	// id names the read on this connection.
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// key is the block's pack key.
+	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *ReadBlock) Reset() {
+	*x = ReadBlock{}
+}
+
+func (*ReadBlock) ProtoMessage() {}
+
+func (x *ReadBlock) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *ReadBlock) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
 func (m *Message) CloneVT() *Message {
 	if m == nil {
 		return (*Message)(nil)
@@ -521,6 +881,84 @@ func (m *Message_ReadData) CloneVT() *Message_ReadData {
 }
 
 func (m *Message_ReadData) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_Record) CloneVT() *Message_Record {
+	if m == nil {
+		return (*Message_Record)(nil)
+	}
+	r := new(Message_Record)
+	r.Record = protobuf_go_lite.CloneVTValue(m.Record)
+	return r
+}
+
+func (m *Message_Record) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_JournalTail) CloneVT() *Message_JournalTail {
+	if m == nil {
+		return (*Message_JournalTail)(nil)
+	}
+	r := new(Message_JournalTail)
+	r.JournalTail = protobuf_go_lite.CloneVTValue(m.JournalTail)
+	return r
+}
+
+func (m *Message_JournalTail) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_JournalRecords) CloneVT() *Message_JournalRecords {
+	if m == nil {
+		return (*Message_JournalRecords)(nil)
+	}
+	r := new(Message_JournalRecords)
+	r.JournalRecords = protobuf_go_lite.CloneVTValue(m.JournalRecords)
+	return r
+}
+
+func (m *Message_JournalRecords) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_JournalCut) CloneVT() *Message_JournalCut {
+	if m == nil {
+		return (*Message_JournalCut)(nil)
+	}
+	r := new(Message_JournalCut)
+	r.JournalCut = protobuf_go_lite.CloneVTValue(m.JournalCut)
+	return r
+}
+
+func (m *Message_JournalCut) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_JournalTrim) CloneVT() *Message_JournalTrim {
+	if m == nil {
+		return (*Message_JournalTrim)(nil)
+	}
+	r := new(Message_JournalTrim)
+	r.JournalTrim = protobuf_go_lite.CloneVTValue(m.JournalTrim)
+	return r
+}
+
+func (m *Message_JournalTrim) CloneOneofVT() isMessage_Body {
+	return m.CloneVT()
+}
+
+func (m *Message_ReadBlock) CloneVT() *Message_ReadBlock {
+	if m == nil {
+		return (*Message_ReadBlock)(nil)
+	}
+	r := new(Message_ReadBlock)
+	r.ReadBlock = protobuf_go_lite.CloneVTValue(m.ReadBlock)
+	return r
+}
+
+func (m *Message_ReadBlock) CloneOneofVT() isMessage_Body {
 	return m.CloneVT()
 }
 
@@ -664,6 +1102,131 @@ func (m *ReadData) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *Record) CloneVT() *Record {
+	if m == nil {
+		return (*Record)(nil)
+	}
+	r := new(Record)
+	r.Id = m.Id
+	r.Epoch = m.Epoch
+	r.Seq = m.Seq
+	r.Writes = protobuf_go_lite.CloneVTSlice(m.Writes)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Record) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Write) CloneVT() *Write {
+	if m == nil {
+		return (*Write)(nil)
+	}
+	r := new(Write)
+	r.Delete = m.Delete
+	r.Key = protobuf_go_lite.CloneBytes(m.Key)
+	r.Value = protobuf_go_lite.CloneBytes(m.Value)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Write) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *JournalTail) CloneVT() *JournalTail {
+	if m == nil {
+		return (*JournalTail)(nil)
+	}
+	r := new(JournalTail)
+	r.Id = m.Id
+	r.Epoch = m.Epoch
+	r.After = m.After
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *JournalTail) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *JournalRecords) CloneVT() *JournalRecords {
+	if m == nil {
+		return (*JournalRecords)(nil)
+	}
+	r := new(JournalRecords)
+	r.Id = m.Id
+	r.More = m.More
+	r.Records = protobuf_go_lite.CloneVTSlice(m.Records)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *JournalRecords) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *JournalCut) CloneVT() *JournalCut {
+	if m == nil {
+		return (*JournalCut)(nil)
+	}
+	r := new(JournalCut)
+	r.Id = m.Id
+	r.Epoch = m.Epoch
+	r.Through = m.Through
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *JournalCut) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *JournalTrim) CloneVT() *JournalTrim {
+	if m == nil {
+		return (*JournalTrim)(nil)
+	}
+	r := new(JournalTrim)
+	r.Epoch = m.Epoch
+	r.Through = m.Through
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *JournalTrim) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadBlock) CloneVT() *ReadBlock {
+	if m == nil {
+		return (*ReadBlock)(nil)
+	}
+	r := new(ReadBlock)
+	r.Id = m.Id
+	r.Key = protobuf_go_lite.CloneBytes(m.Key)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadBlock) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *Message) EqualVT(that *Message) bool {
 	if this == that {
 		return true
@@ -690,6 +1253,7 @@ func (this *Message) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Message_Push) EqualVT(thatIface isMessage_Body) bool {
 	that, ok := thatIface.(*Message_Push)
 	if !ok {
@@ -809,6 +1373,108 @@ func (this *Message_ReadData) EqualVT(thatIface isMessage_Body) bool {
 	return true
 }
 
+func (this *Message_Record) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_Record)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Record, that.Record, func() *Record { return &Record{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_JournalTail) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_JournalTail)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.JournalTail, that.JournalTail, func() *JournalTail { return &JournalTail{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_JournalRecords) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_JournalRecords)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.JournalRecords, that.JournalRecords, func() *JournalRecords { return &JournalRecords{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_JournalCut) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_JournalCut)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.JournalCut, that.JournalCut, func() *JournalCut { return &JournalCut{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_JournalTrim) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_JournalTrim)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.JournalTrim, that.JournalTrim, func() *JournalTrim { return &JournalTrim{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *Message_ReadBlock) EqualVT(thatIface isMessage_Body) bool {
+	that, ok := thatIface.(*Message_ReadBlock)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.ReadBlock, that.ReadBlock, func() *ReadBlock { return &ReadBlock{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *Push) EqualVT(that *Push) bool {
 	if this == that {
 		return true
@@ -834,6 +1500,7 @@ func (this *Push) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Block) EqualVT(that *Block) bool {
 	if this == that {
 		return true
@@ -856,6 +1523,7 @@ func (this *Block) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Flushed) EqualVT(that *Flushed) bool {
 	if this == that {
 		return true
@@ -875,6 +1543,7 @@ func (this *Flushed) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Refused) EqualVT(that *Refused) bool {
 	if this == that {
 		return true
@@ -897,6 +1566,7 @@ func (this *Refused) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PackReport) EqualVT(that *PackReport) bool {
 	if this == that {
 		return true
@@ -922,6 +1592,7 @@ func (this *PackReport) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PackApplied) EqualVT(that *PackApplied) bool {
 	if this == that {
 		return true
@@ -944,6 +1615,7 @@ func (this *PackApplied) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *Read) EqualVT(that *Read) bool {
 	if this == that {
 		return true
@@ -972,6 +1644,7 @@ func (this *Read) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *ReadData) EqualVT(that *ReadData) bool {
 	if this == that {
 		return true
@@ -992,6 +1665,185 @@ func (this *ReadData) EqualVT(that *ReadData) bool {
 
 func (this *ReadData) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReadData)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Record) EqualVT(that *Record) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Epoch != that.Epoch {
+		return false
+	}
+	if this.Seq != that.Seq {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Writes, that.Writes, func() *Write { return &Write{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Record) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Record)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Write) EqualVT(that *Write) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Value, that.Value) {
+		return false
+	}
+	if this.Delete != that.Delete {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Write) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Write)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *JournalTail) EqualVT(that *JournalTail) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Epoch != that.Epoch {
+		return false
+	}
+	if this.After != that.After {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *JournalTail) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*JournalTail)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *JournalRecords) EqualVT(that *JournalRecords) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Records, that.Records, func() *Record { return &Record{} }) {
+		return false
+	}
+	if this.More != that.More {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *JournalRecords) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*JournalRecords)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *JournalCut) EqualVT(that *JournalCut) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if this.Epoch != that.Epoch {
+		return false
+	}
+	if this.Through != that.Through {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *JournalCut) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*JournalCut)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *JournalTrim) EqualVT(that *JournalTrim) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Epoch != that.Epoch {
+		return false
+	}
+	if this.Through != that.Through {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *JournalTrim) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*JournalTrim)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadBlock) EqualVT(that *ReadBlock) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Key, that.Key) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadBlock) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadBlock)
 	if !ok {
 		return false
 	}
@@ -1036,6 +1888,30 @@ func (x *Message) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("readData")
 			ov.ReadData.MarshalProtoJSON(s.WithField("readData"))
+		case *Message_Record:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("record")
+			ov.Record.MarshalProtoJSON(s.WithField("record"))
+		case *Message_JournalTail:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("journalTail")
+			ov.JournalTail.MarshalProtoJSON(s.WithField("journalTail"))
+		case *Message_JournalRecords:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("journalRecords")
+			ov.JournalRecords.MarshalProtoJSON(s.WithField("journalRecords"))
+		case *Message_JournalCut:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("journalCut")
+			ov.JournalCut.MarshalProtoJSON(s.WithField("journalCut"))
+		case *Message_JournalTrim:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("journalTrim")
+			ov.JournalTrim.MarshalProtoJSON(s.WithField("journalTrim"))
+		case *Message_ReadBlock:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("readBlock")
+			ov.ReadBlock.MarshalProtoJSON(s.WithField("readBlock"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -1118,6 +1994,60 @@ func (x *Message) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.ReadData = &ReadData{}
 			ov.ReadData.UnmarshalProtoJSON(s.WithField("read_data", true))
+		case "record":
+			ov := &Message_Record{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Record = nil
+				return
+			}
+			ov.Record = &Record{}
+			ov.Record.UnmarshalProtoJSON(s.WithField("record", true))
+		case "journal_tail", "journalTail":
+			ov := &Message_JournalTail{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.JournalTail = nil
+				return
+			}
+			ov.JournalTail = &JournalTail{}
+			ov.JournalTail.UnmarshalProtoJSON(s.WithField("journal_tail", true))
+		case "journal_records", "journalRecords":
+			ov := &Message_JournalRecords{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.JournalRecords = nil
+				return
+			}
+			ov.JournalRecords = &JournalRecords{}
+			ov.JournalRecords.UnmarshalProtoJSON(s.WithField("journal_records", true))
+		case "journal_cut", "journalCut":
+			ov := &Message_JournalCut{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.JournalCut = nil
+				return
+			}
+			ov.JournalCut = &JournalCut{}
+			ov.JournalCut.UnmarshalProtoJSON(s.WithField("journal_cut", true))
+		case "journal_trim", "journalTrim":
+			ov := &Message_JournalTrim{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.JournalTrim = nil
+				return
+			}
+			ov.JournalTrim = &JournalTrim{}
+			ov.JournalTrim.UnmarshalProtoJSON(s.WithField("journal_trim", true))
+		case "read_block", "readBlock":
+			ov := &Message_ReadBlock{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.ReadBlock = nil
+				return
+			}
+			ov.ReadBlock = &ReadBlock{}
+			ov.ReadBlock.UnmarshalProtoJSON(s.WithField("read_block", true))
 		}
 	})
 }
@@ -1584,6 +2514,446 @@ func (x *ReadData) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Record message to JSON.
+func (x *Record) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if x.Epoch != 0 || s.HasField("epoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("epoch")
+		s.WriteUint64(x.Epoch)
+	}
+	if x.Seq != 0 || s.HasField("seq") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seq")
+		s.WriteUint64(x.Seq)
+	}
+	if len(x.Writes) > 0 || s.HasField("writes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Writes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("writes"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Record to JSON.
+func (x *Record) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Record message from JSON.
+func (x *Record) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "epoch":
+			s.AddField("epoch")
+			x.Epoch = s.ReadUint64()
+		case "seq":
+			s.AddField("seq")
+			x.Seq = s.ReadUint64()
+		case "writes":
+			s.AddField("writes")
+			if s.ReadNil() {
+				x.Writes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Writes = append(x.Writes, nil)
+					return
+				}
+				v := &Write{}
+				v.UnmarshalProtoJSON(s.WithField("writes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Writes = append(x.Writes, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Record from JSON.
+func (x *Record) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Write message to JSON.
+func (x *Write) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Key) > 0 || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteBytes(x.Key)
+	}
+	if len(x.Value) > 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteBytes(x.Value)
+	}
+	if x.Delete || s.HasField("delete") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("delete")
+		s.WriteBool(x.Delete)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Write to JSON.
+func (x *Write) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Write message from JSON.
+func (x *Write) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadBytes()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadBytes()
+		case "delete":
+			s.AddField("delete")
+			x.Delete = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Write from JSON.
+func (x *Write) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the JournalTail message to JSON.
+func (x *JournalTail) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if x.Epoch != 0 || s.HasField("epoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("epoch")
+		s.WriteUint64(x.Epoch)
+	}
+	if x.After != 0 || s.HasField("after") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("after")
+		s.WriteUint64(x.After)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the JournalTail to JSON.
+func (x *JournalTail) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the JournalTail message from JSON.
+func (x *JournalTail) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "epoch":
+			s.AddField("epoch")
+			x.Epoch = s.ReadUint64()
+		case "after":
+			s.AddField("after")
+			x.After = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the JournalTail from JSON.
+func (x *JournalTail) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the JournalRecords message to JSON.
+func (x *JournalRecords) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if len(x.Records) > 0 || s.HasField("records") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("records")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Records {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("records"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.More || s.HasField("more") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("more")
+		s.WriteBool(x.More)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the JournalRecords to JSON.
+func (x *JournalRecords) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the JournalRecords message from JSON.
+func (x *JournalRecords) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "records":
+			s.AddField("records")
+			if s.ReadNil() {
+				x.Records = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Records = append(x.Records, nil)
+					return
+				}
+				v := &Record{}
+				v.UnmarshalProtoJSON(s.WithField("records", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Records = append(x.Records, v)
+			})
+		case "more":
+			s.AddField("more")
+			x.More = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the JournalRecords from JSON.
+func (x *JournalRecords) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the JournalCut message to JSON.
+func (x *JournalCut) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if x.Epoch != 0 || s.HasField("epoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("epoch")
+		s.WriteUint64(x.Epoch)
+	}
+	if x.Through != 0 || s.HasField("through") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("through")
+		s.WriteUint64(x.Through)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the JournalCut to JSON.
+func (x *JournalCut) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the JournalCut message from JSON.
+func (x *JournalCut) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "epoch":
+			s.AddField("epoch")
+			x.Epoch = s.ReadUint64()
+		case "through":
+			s.AddField("through")
+			x.Through = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the JournalCut from JSON.
+func (x *JournalCut) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the JournalTrim message to JSON.
+func (x *JournalTrim) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Epoch != 0 || s.HasField("epoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("epoch")
+		s.WriteUint64(x.Epoch)
+	}
+	if x.Through != 0 || s.HasField("through") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("through")
+		s.WriteUint64(x.Through)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the JournalTrim to JSON.
+func (x *JournalTrim) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the JournalTrim message from JSON.
+func (x *JournalTrim) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "epoch":
+			s.AddField("epoch")
+			x.Epoch = s.ReadUint64()
+		case "through":
+			s.AddField("through")
+			x.Through = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the JournalTrim from JSON.
+func (x *JournalTrim) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadBlock message to JSON.
+func (x *ReadBlock) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Id != 0 || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteUint64(x.Id)
+	}
+	if len(x.Key) > 0 || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteBytes(x.Key)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadBlock to JSON.
+func (x *ReadBlock) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadBlock message from JSON.
+func (x *ReadBlock) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadUint64()
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadBlock from JSON.
+func (x *ReadBlock) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Message) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1648,6 +3018,7 @@ func (m *Message_Push) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_Flushed) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1671,6 +3042,7 @@ func (m *Message_Flushed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_Refused) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1694,6 +3066,7 @@ func (m *Message_Refused) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_PackReport) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1717,6 +3090,7 @@ func (m *Message_PackReport) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_PackApplied) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1740,6 +3114,7 @@ func (m *Message_PackApplied) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_Read) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1763,6 +3138,7 @@ func (m *Message_Read) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
 func (m *Message_ReadData) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -1786,6 +3162,151 @@ func (m *Message_ReadData) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+
+func (m *Message_Record) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_Record) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Record != nil {
+		size, err := m.Record.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Message_JournalTail) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_JournalTail) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.JournalTail != nil {
+		size, err := m.JournalTail.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x4a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Message_JournalRecords) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_JournalRecords) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.JournalRecords != nil {
+		size, err := m.JournalRecords.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Message_JournalCut) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_JournalCut) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.JournalCut != nil {
+		size, err := m.JournalCut.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x5a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Message_JournalTrim) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_JournalTrim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.JournalTrim != nil {
+		size, err := m.JournalTrim.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x62
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Message_ReadBlock) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Message_ReadBlock) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ReadBlock != nil {
+		size, err := m.ReadBlock.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x6a
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Push) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2151,6 +3672,344 @@ func (m *ReadData) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Record) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Record) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Record) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Writes) > 0 {
+		for iNdEx := len(m.Writes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Writes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.Seq != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seq))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Epoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Write) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Write) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Write) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Delete {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Delete)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Value) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Value)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *JournalTail) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *JournalTail) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *JournalTail) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.After != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.After))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Epoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *JournalRecords) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *JournalRecords) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *JournalRecords) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.More {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.More)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Records) > 0 {
+		for iNdEx := len(m.Records) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Records[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *JournalCut) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *JournalCut) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *JournalCut) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Through != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Through))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Epoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *JournalTrim) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *JournalTrim) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *JournalTrim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Through != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Through))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Epoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadBlock) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadBlock) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadBlock) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Id != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Message) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2178,6 +4037,7 @@ func (m *Message_Push) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_Flushed) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2192,6 +4052,7 @@ func (m *Message_Flushed) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_Refused) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2206,6 +4067,7 @@ func (m *Message_Refused) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_PackReport) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2220,6 +4082,7 @@ func (m *Message_PackReport) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_PackApplied) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2234,6 +4097,7 @@ func (m *Message_PackApplied) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_Read) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2248,6 +4112,7 @@ func (m *Message_Read) SizeVT() (n int) {
 	}
 	return n
 }
+
 func (m *Message_ReadData) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2262,6 +4127,97 @@ func (m *Message_ReadData) SizeVT() (n int) {
 	}
 	return n
 }
+
+func (m *Message_Record) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Record != nil {
+		l = m.Record.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Message_JournalTail) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.JournalTail != nil {
+		l = m.JournalTail.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Message_JournalRecords) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.JournalRecords != nil {
+		l = m.JournalRecords.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Message_JournalCut) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.JournalCut != nil {
+		l = m.JournalCut.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Message_JournalTrim) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.JournalTrim != nil {
+		l = m.JournalTrim.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *Message_ReadBlock) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ReadBlock != nil {
+		l = m.ReadBlock.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *Push) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2365,6 +4321,102 @@ func (m *ReadData) SizeVT() (n int) {
 	return n
 }
 
+func (m *Record) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Epoch)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seq)
+	for _, e := range m.Writes {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Write) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Key)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Value)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Delete)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *JournalTail) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Epoch)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.After)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *JournalRecords) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	for _, e := range m.Records {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *JournalCut) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Epoch)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Through)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *JournalTrim) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Epoch)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Through)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadBlock) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Key)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x *Message) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Message")
@@ -2418,6 +4470,48 @@ func (x *Message) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ReadData)
 		}
+	case *Message_Record:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "record")
+		if body.Record == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &Record{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Record)
+		}
+	case *Message_JournalTail:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal_tail")
+		if body.JournalTail == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &JournalTail{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.JournalTail)
+		}
+	case *Message_JournalRecords:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal_records")
+		if body.JournalRecords == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &JournalRecords{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.JournalRecords)
+		}
+	case *Message_JournalCut:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal_cut")
+		if body.JournalCut == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &JournalCut{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.JournalCut)
+		}
+	case *Message_JournalTrim:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal_trim")
+		if body.JournalTrim == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &JournalTrim{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.JournalTrim)
+		}
+	case *Message_ReadBlock:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_block")
+		if body.ReadBlock == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReadBlock{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ReadBlock)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2425,6 +4519,7 @@ func (x *Message) MarshalProtoText() string {
 func (x *Message) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Push) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Push")
@@ -2454,6 +4549,7 @@ func (x *Push) MarshalProtoText() string {
 func (x *Push) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Block) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Block")
@@ -2471,6 +4567,7 @@ func (x *Block) MarshalProtoText() string {
 func (x *Block) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Flushed) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Flushed")
@@ -2484,6 +4581,7 @@ func (x *Flushed) MarshalProtoText() string {
 func (x *Flushed) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Refused) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Refused")
@@ -2501,6 +4599,7 @@ func (x *Refused) MarshalProtoText() string {
 func (x *Refused) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PackReport) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PackReport")
@@ -2526,6 +4625,7 @@ func (x *PackReport) MarshalProtoText() string {
 func (x *PackReport) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PackApplied) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PackApplied")
@@ -2543,6 +4643,7 @@ func (x *PackApplied) MarshalProtoText() string {
 func (x *PackApplied) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *Read) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Read")
@@ -2568,6 +4669,7 @@ func (x *Read) MarshalProtoText() string {
 func (x *Read) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *ReadData) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadData")
@@ -2589,6 +4691,173 @@ func (x *ReadData) MarshalProtoText() string {
 func (x *ReadData) String() string {
 	return x.MarshalProtoText()
 }
+
+func (x *Record) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Record")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if x.Epoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.Epoch)
+	}
+	if x.Seq != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seq")
+		protobuf_go_lite.TextWriteUint(&sb, x.Seq)
+	}
+	if len(x.Writes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "writes")
+		for i, v := range x.Writes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &Write{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Record) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Write) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Write")
+	if len(x.Key) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Key)
+	}
+	if len(x.Value) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Value)
+	}
+	if x.Delete != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "delete")
+		protobuf_go_lite.TextWriteBool(&sb, x.Delete)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Write) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *JournalTail) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "JournalTail")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if x.Epoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.Epoch)
+	}
+	if x.After != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "after")
+		protobuf_go_lite.TextWriteUint(&sb, x.After)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *JournalTail) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *JournalRecords) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "JournalRecords")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if len(x.Records) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "records")
+		for i, v := range x.Records {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &Record{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.More != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "more")
+		protobuf_go_lite.TextWriteBool(&sb, x.More)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *JournalRecords) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *JournalCut) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "JournalCut")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if x.Epoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.Epoch)
+	}
+	if x.Through != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "through")
+		protobuf_go_lite.TextWriteUint(&sb, x.Through)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *JournalCut) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *JournalTrim) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "JournalTrim")
+	if x.Epoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.Epoch)
+	}
+	if x.Through != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "through")
+		protobuf_go_lite.TextWriteUint(&sb, x.Through)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *JournalTrim) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadBlock) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadBlock")
+	if x.Id != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteUint(&sb, x.Id)
+	}
+	if len(x.Key) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Key)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadBlock) String() string {
+	return x.MarshalProtoText()
+}
+
 func (m *Message) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2749,6 +5018,126 @@ func (m *Message) UnmarshalVT(dAtA []byte) error {
 				m.Body = &Message_ReadData{ReadData: v}
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Record", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_Record); ok {
+				if err := oneof.Record.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &Record{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_Record{Record: v}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JournalTail", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_JournalTail); ok {
+				if err := oneof.JournalTail.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &JournalTail{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_JournalTail{JournalTail: v}
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JournalRecords", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_JournalRecords); ok {
+				if err := oneof.JournalRecords.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &JournalRecords{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_JournalRecords{JournalRecords: v}
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JournalCut", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_JournalCut); ok {
+				if err := oneof.JournalCut.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &JournalCut{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_JournalCut{JournalCut: v}
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JournalTrim", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_JournalTrim); ok {
+				if err := oneof.JournalTrim.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &JournalTrim{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_JournalTrim{JournalTrim: v}
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadBlock", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*Message_ReadBlock); ok {
+				if err := oneof.ReadBlock.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ReadBlock{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &Message_ReadBlock{ReadBlock: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2771,6 +5160,7 @@ func (m *Message) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Push) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2843,6 +5233,7 @@ func (m *Push) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Block) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2901,6 +5292,7 @@ func (m *Block) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Flushed) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2952,6 +5344,7 @@ func (m *Flushed) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Refused) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3013,6 +5406,7 @@ func (m *Refused) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PackReport) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3083,6 +5477,7 @@ func (m *PackReport) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PackApplied) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3145,6 +5540,7 @@ func (m *PackApplied) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *Read) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3224,6 +5620,7 @@ func (m *Read) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *ReadData) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3271,6 +5668,494 @@ func (m *ReadData) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Miss = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Record) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Record: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Record: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			m.Epoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seq", wireType)
+			}
+			m.Seq = 0
+			m.Seq, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Writes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Writes = append(m.Writes, &Write{})
+			if err := m.Writes[len(m.Writes)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Write) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Write: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Write: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			m.Key, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Key, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			m.Value, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Value, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Delete", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Delete = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *JournalTail) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: JournalTail: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: JournalTail: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			m.Epoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field After", wireType)
+			}
+			m.After = 0
+			m.After, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *JournalRecords) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: JournalRecords: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: JournalRecords: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Records", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Records = append(m.Records, &Record{})
+			if err := m.Records[len(m.Records)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field More", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.More = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *JournalCut) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: JournalCut: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: JournalCut: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			m.Epoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Through", wireType)
+			}
+			m.Through = 0
+			m.Through, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *JournalTrim) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: JournalTrim: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: JournalTrim: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			m.Epoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Through", wireType)
+			}
+			m.Through = 0
+			m.Through, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadBlock) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadBlock: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadBlock: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			m.Id, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			m.Key, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Key, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,0 +1,14 @@
+syntax = "proto3";
+package kvtx.journal;
+
+// Head is the journal's record in the store it journals, written by every
+// commit while the journal is live and by each change of the marker.
+message Head {
+  // epoch names the run that wrote it.
+  uint64 epoch = 1;
+  // seq numbers the commit that wrote it.
+  uint64 seq = 2;
+  // live is the marker: commits past this one may be durable only in the
+  // sink, so a restart replays the sink's records past seq before serving.
+  bool live = 3;
+}
