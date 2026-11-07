@@ -16,6 +16,10 @@ type SRPCPackSweepAdminClient interface {
 
 	// Status reports the switch, the packs' sweep states and the write log.
 	Status(ctx context.Context, in *StatusRequest) (*StatusResponse, error)
+	// Roots reads every named root, every ref the process pins, and the write
+	// log's position R, so every root and pin set since R is in the log after
+	// R.
+	Roots(ctx context.Context, in *RootsRequest) (*RootsResponse, error)
 	// Locate returns the registered pack the index places each block in.
 	Locate(ctx context.Context, in *LocateRequest) (*LocateResponse, error)
 	// Refs returns the child lists of blocks the backend holds, without
@@ -55,6 +59,15 @@ func (c *srpcPackSweepAdminClient) SRPCClient() srpc.Client { return c.cc }
 func (c *srpcPackSweepAdminClient) Status(ctx context.Context, in *StatusRequest) (*StatusResponse, error) {
 	out := new(StatusResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Status", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcPackSweepAdminClient) Roots(ctx context.Context, in *RootsRequest) (*RootsResponse, error) {
+	out := new(RootsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Roots", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +140,10 @@ func (c *srpcPackSweepAdminClient) TrimLog(ctx context.Context, in *TrimLogReque
 type SRPCPackSweepAdminServer interface {
 	// Status reports the switch, the packs' sweep states and the write log.
 	Status(context.Context, *StatusRequest) (*StatusResponse, error)
+	// Roots reads every named root, every ref the process pins, and the write
+	// log's position R, so every root and pin set since R is in the log after
+	// R.
+	Roots(context.Context, *RootsRequest) (*RootsResponse, error)
 	// Locate returns the registered pack the index places each block in.
 	Locate(context.Context, *LocateRequest) (*LocateResponse, error)
 	// Refs returns the child lists of blocks the backend holds, without
@@ -172,6 +189,7 @@ func (d *SRPCPackSweepAdminHandler) GetServiceID() string { return d.serviceID }
 func (SRPCPackSweepAdminHandler) GetMethodIDs() []string {
 	return []string{
 		"Status",
+		"Roots",
 		"Locate",
 		"Refs",
 		"Quarantine",
@@ -193,6 +211,8 @@ func (d *SRPCPackSweepAdminHandler) InvokeMethod(
 	switch methodID {
 	case "Status":
 		return true, d.InvokeMethod_Status(d.impl, strm)
+	case "Roots":
+		return true, d.InvokeMethod_Roots(d.impl, strm)
 	case "Locate":
 		return true, d.InvokeMethod_Locate(d.impl, strm)
 	case "Refs":
@@ -218,6 +238,18 @@ func (SRPCPackSweepAdminHandler) InvokeMethod_Status(impl SRPCPackSweepAdminServ
 		return err
 	}
 	out, err := impl.Status(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCPackSweepAdminHandler) InvokeMethod_Roots(impl SRPCPackSweepAdminServer, strm srpc.Stream) error {
+	req := new(RootsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Roots(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -313,6 +345,14 @@ type SRPCPackSweepAdmin_StatusStream interface {
 }
 
 type srpcPackSweepAdmin_StatusStream struct {
+	srpc.Stream
+}
+
+type SRPCPackSweepAdmin_RootsStream interface {
+	srpc.Stream
+}
+
+type srpcPackSweepAdmin_RootsStream struct {
 	srpc.Stream
 }
 
