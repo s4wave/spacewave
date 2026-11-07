@@ -54,11 +54,14 @@ const (
 // transaction excludes other writers, and its Commit applies atomically and
 // makes every earlier write on the device durable no later than the commit
 // itself, so a crash never keeps a commit without them. A write transaction
-// may also implement kvtx.OrderedCommitTx, whose commits a device flush makes
-// durable. The index keeps its own files on the device, none named with
-// segmentPrefix.
+// may also implement kvtx.OrderedCommitTx, whose commits Sync makes durable.
+// The index keeps its own files on the device, none named with segmentPrefix.
 type Index interface {
 	kvtx.Store
+
+	// Sync makes every completed ordered commit durable. An index may hold an
+	// ordered commit's writes in memory, so a device flush alone may not.
+	Sync(ctx context.Context) error
 
 	// Close releases the index. Uncommitted writes are lost.
 	Close() error
