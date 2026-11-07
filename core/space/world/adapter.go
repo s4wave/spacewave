@@ -158,17 +158,14 @@ type Adapter struct {
 	engine *Engine
 	// storing holds the Worlds each background store keeps live, such as a
 	// checkpoint's, a cursor save's or a trim's, under the store's own token
-	// until it returns. The sweep and the trim keep them live. Guarded by
-	// bcast.
+	// until it returns. The sweep and the trim keep them live, and Execute
+	// waits for it to empty before it releases the Space. Guarded by bcast.
 	storing map[uint64][]*block.BlockRef
 	// storingNext is the next background store's token. Guarded by bcast.
 	storingNext uint64
 	// stopped reports that Execute's run ended, so no background store
 	// starts. Guarded by bcast.
 	stopped bool
-	// background counts the background stores. Execute waits for them before
-	// it releases the Space, so none outlives the adapter's claim.
-	background sync.WaitGroup
 	// runCtx ends every background store when Execute's run ends.
 	runCtx context.Context
 	// cursorSaving reports that a cursor save runs in the background.
@@ -316,7 +313,7 @@ func (a *Adapter) Execute(ctx context.Context) error {
 		a.stopped = true
 	})
 	stopRun()
-	a.background.Wait()
+	a.waitBackground()
 	a.replay.close()
 	a.replay.stage.end()
 	return err
@@ -328,8 +325,8 @@ var errAdapterStopped = errors.New("space world adapter stopped")
 
 // startBackground starts a background store that keeps roots live, under its
 // own token, so a sweep keeps their pages for the store, and Execute waits for
-// the store until the returned done is called once. It reports false, and
-// starts nothing, once Execute's run ended.
+// the store until the returned done is called; a second call does nothing. It
+// reports false, and starts nothing, once Execute's run ended.
 func (a *Adapter) startBackground(roots ...*block.BlockRef) (done func(), ok bool) {
 	// Count the store and keep its roots live, unless the run ended.
 	var token uint64
@@ -343,7 +340,6 @@ func (a *Adapter) startBackground(roots ...*block.BlockRef) (done func(), ok boo
 		if a.storing == nil {
 			a.storing = make(map[uint64][]*block.BlockRef)
 		}
-		a.background.Add(1)
 		token, ok = a.storingNext, true
 		a.storingNext++
 		a.storing[token] = slices.Clone(roots)
@@ -352,16 +348,22 @@ func (a *Adapter) startBackground(roots ...*block.BlockRef) (done func(), ok boo
 		return func() {}, false
 	}
 
-	// Drop them and the count once.
-	var once sync.Once
+	// Drop them once, waking Execute's wait.
 	return func() {
-		once.Do(func() {
-			a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if _, ok := a.storing[token]; ok {
 				delete(a.storing, token)
-			})
-			a.background.Done()
+				broadcast()
+			}
 		})
 	}, true
+}
+
+// waitBackground waits until every background store ended.
+func (a *Adapter) waitBackground() {
+	_ = a.bcast.Wait(context.Background(), func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return len(a.storing) == 0, nil
+	})
 }
 
 // backgroundContext returns ctx, also ended when Execute's run ends, for a

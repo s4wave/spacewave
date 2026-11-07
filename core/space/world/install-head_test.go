@@ -121,7 +121,7 @@ func trimNow(t *testing.T, a *Adapter) {
 	if err := a.trimInBackground(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	a.background.Wait()
+	a.waitBackground()
 }
 
 // TestInstallHeadRetriesRetainedHold checks that a head whose retained-root
@@ -799,7 +799,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 
 	// It tries again and lands every move once the store takes them.
 	store.set("")
-	a.background.Wait()
+	a.waitBackground()
 	if !refEqual(store.held()[RootReplayBase], base) || a.cursorWorlds.holds(covered) || !a.cursorWorlds.holds(head) || !a.pendingWorlds.holds(candidate) {
 		t.Fatalf("roots after the trim = %v, cursor %v, pending %v", store.held(), a.cursorWorlds.roots, a.pendingWorlds.roots)
 	}
@@ -866,7 +866,7 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 		t.Fatal(err)
 	}
 	turn()
-	a.background.Wait()
+	a.waitBackground()
 	if !refEqual(store.held()[RootReplayBase], second) {
 		t.Fatalf("replay base after both trims = %v, want the second World", store.held()[RootReplayBase])
 	}
@@ -909,7 +909,7 @@ func TestBackgroundStoresKeepTheirOwnRoots(t *testing.T) {
 	if _, ok := a.startBackground(root); ok {
 		t.Fatal("a store started after the run ended")
 	}
-	a.background.Wait()
+	a.waitBackground()
 }
 
 // readRoots are the Worlds a test's engine readers still read.
