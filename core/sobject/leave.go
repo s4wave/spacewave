@@ -92,6 +92,14 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 	}
 	requestHash := sha256.Sum256(data)
 
+	// Index the departing and promoted peers once for every rebase attempt.
+	targets := peerIDSet(peers)
+	promoted := peerIDSet(promote)
+	departs := func(peerID string) bool {
+		_, ok := targets[peerID]
+		return ok
+	}
+
 	// Rebase the removal onto the current configuration until it applies.
 	for {
 		state, err := host.GetHostState(ctx)
@@ -125,16 +133,16 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 
 		// Preserve every other participant and remove the proven grants in the same commit.
 		next := current.CloneVT()
-		next.Participants = slices.DeleteFunc(next.Participants, func(p *SOParticipantConfig) bool { return slices.Contains(peers, p.GetPeerId()) })
+		next.Participants = slices.DeleteFunc(next.Participants, func(p *SOParticipantConfig) bool { return departs(p.GetPeerId()) })
 		if len(next.Participants) == len(current.GetParticipants()) {
 			return nil, errors.New("leave proofs name no current participant")
 		}
 
 		// A departed writer leaves the trimming roster's drops in the same
 		// change, so no roster change follows the departure.
-		next.RosterDroppedPeerIds = slices.DeleteFunc(next.RosterDroppedPeerIds, func(peerID string) bool { return slices.Contains(peers, peerID) })
+		next.RosterDroppedPeerIds = slices.DeleteFunc(next.RosterDroppedPeerIds, departs)
 		for _, p := range next.Participants {
-			if slices.Contains(promote, p.GetPeerId()) {
+			if _, ok := promoted[p.GetPeerId()]; ok {
 				p.Role = SOParticipantRole_SOParticipantRole_OWNER
 			}
 		}
@@ -144,10 +152,6 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		change, err := BuildSOConfigChange(host.GetSharedObjectID(), current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
 		if err != nil {
 			return nil, err
-		}
-		targets := make(map[string]struct{}, len(peers))
-		for _, peerID := range peers {
-			targets[peerID] = struct{}{}
 		}
 		err = host.ApplyConfigChange(ctx, change, func(state *SOState) error {
 			return pruneRemovedParticipants(host.GetSharedObjectID(), state, targets, owner)
@@ -163,6 +167,15 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 			return nil, err
 		}
 	}
+}
+
+// peerIDSet returns the set of ids.
+func peerIDSet(ids []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		set[id] = struct{}{}
+	}
+	return set
 }
 
 // carriesLeaveRequest reports whether changes is the single ownership transfer
