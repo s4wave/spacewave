@@ -97,6 +97,27 @@ func (c *Client) CopyObject(ctx context.Context, srcBucket, srcKey, dstBucket, d
 	return nil
 }
 
+// MoveObject copies the object to its new key within the bucket, then
+// deletes every version of the old one; no byte passes through the client. A
+// copy that finds the source gone counts as done when the destination exists,
+// so a move killed between its copy and its delete finishes when repeated.
+func (c *Client) MoveObject(ctx context.Context, bucket, from, to string) error {
+	// Copy, or find the move already made.
+	err := c.CopyObject(ctx, bucket, from, bucket, to)
+	if errors.Is(err, ErrNotFound) {
+		if _, herr := c.HeadObject(ctx, bucket, to); herr == nil || !errors.Is(herr, ErrNotFound) {
+			return herr
+		}
+		return errors.Wrap(ErrNotFound, "move "+bucket+"/"+from)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Delete the source.
+	return c.DeleteObject(ctx, bucket, from)
+}
+
 // GetObject downloads an object body. Caller must Close the returned reader.
 // Returns ErrNotFound if the object does not exist.
 func (c *Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, error) {

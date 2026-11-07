@@ -28,5 +28,19 @@ type ObjectStore interface {
 	DeleteObject(ctx context.Context, bucket, key string) error
 }
 
+// ObjectMover is an ObjectStore that moves an object to another key of the
+// same bucket without passing its bytes through the client, as a pack sweep
+// moves a pack to the trash and back.
+type ObjectMover interface {
+	ObjectStore
+	// MoveObject moves the object at from to to. A move whose source is gone
+	// and whose destination exists counts as done, so a repeated move
+	// succeeds; with neither, it returns ErrNotFound.
+	MoveObject(ctx context.Context, bucket, from, to string) error
+}
+
 // _ is a type assertion
-var _ ObjectStore = (*Client)(nil)
+var (
+	_ ObjectStore = (*Client)(nil)
+	_ ObjectMover = (*Client)(nil)
+)
