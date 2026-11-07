@@ -589,6 +589,13 @@ func TestHungReadsHoldNoPush(t *testing.T) {
 		t.Fatalf("read with no slot: ok %v after %v", ok, time.Since(started))
 	}
 
+	// A block read with no slot answers busy, which is not a miss: the node
+	// did not look, so a serving store must not report the block not found.
+	started = time.Now()
+	if _, ok, answered := client.ReadBlockAnswer(missCtx, []byte("no slot")); ok || answered || time.Since(started) > time.Second {
+		t.Fatalf("block read with no slot: ok %v answered %v after %v", ok, answered, time.Since(started))
+	}
+
 	// A push still answers at once.
 	sendCtx, done := context.WithTimeout(ctx, 3*time.Second)
 	defer done()
@@ -677,4 +684,25 @@ func TestReportsOutliveFailures(t *testing.T) {
 	})
 	_ = near.Close()
 	<-done
+}
+
+// TestReadBlockMissIsAnswered checks that a block the node lacks, read with a
+// slot free, is an answered miss, which a serving store reports not found.
+func TestReadBlockMissIsAnswered(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dir := t.TempDir()
+	server, err := NewServer(nopHolder{}, dir+"/reports")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := NewClient(logrus.NewEntry(logrus.New()), &slowApplier{})
+	end := connect(ctx, t, client, server)
+	defer end()
+
+	readCtx, done := context.WithTimeout(ctx, 3*time.Second)
+	defer done()
+	if _, ok, answered := client.ReadBlockAnswer(readCtx, []byte("absent")); ok || !answered {
+		t.Fatalf("absent block: ok %v answered %v", ok, answered)
+	}
 }

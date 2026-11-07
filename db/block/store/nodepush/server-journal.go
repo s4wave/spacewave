@@ -86,7 +86,8 @@ func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []by
 			_ = s.journal.Trim(body.JournalTrim.GetEpoch(), body.JournalTrim.GetThrough())
 		}
 	case *Message_ReadBlock:
-		// As for a Read: never wait for a slot, answer a miss without one.
+		// As for a Read: never wait for a slot. Without one, answer busy,
+		// which is not a miss: the node did not look.
 		select {
 		case s.readSlots <- struct{}{}:
 			go func() {
@@ -94,7 +95,7 @@ func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []by
 				send(ctx, out, s.readBlock(body.ReadBlock))
 			}()
 		default:
-			trySend(out, &Message{Body: &Message_ReadData{ReadData: &ReadData{Id: body.ReadBlock.GetId(), Miss: true}}})
+			trySend(out, &Message{Body: &Message_ReadData{ReadData: &ReadData{Id: body.ReadBlock.GetId(), Miss: true, Busy: true}}})
 		}
 	}
 	return nil
@@ -113,9 +114,14 @@ func (s *Server) appendRecord(rec *Record) *Message {
 
 // readBlock answers req from the node's pack log.
 func (s *Server) readBlock(req *ReadBlock) *Message {
+	// A failed read did not look, so it answers busy, not a miss.
 	answer := &ReadData{Id: req.GetId(), Miss: true}
 	if g, ok := s.holder.(blockGetter); ok {
-		if data, found, err := g.Get(req.GetKey()); err == nil && found {
+		data, found, err := g.Get(req.GetKey())
+		switch {
+		case err != nil:
+			answer.Busy = true
+		case found:
 			answer.Data, answer.Miss = data, false
 		}
 	}

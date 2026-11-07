@@ -143,8 +143,9 @@ func (c *Client) ReadBlock(ctx context.Context, key []byte) ([]byte, bool) {
 }
 
 // ReadBlockAnswer reads as ReadBlock does and also reports whether the node
-// answered. A node that is away, or one that sent no answer before ctx ended,
-// did not answer; only an answered miss means the node lacks the block.
+// answered. A node that is away, one that sent no answer before ctx ended, and
+// one that answered busy did not answer; only an answered miss means the node
+// lacks the block.
 func (c *Client) ReadBlockAnswer(ctx context.Context, key []byte) ([]byte, bool, bool) {
 	// Take a read id on the live connection.
 	req, answer, out := c.beginRead()
@@ -166,6 +167,9 @@ func (c *Client) ReadBlockAnswer(ctx context.Context, key []byte) ([]byte, bool,
 	select {
 	case data, ok := <-answer:
 		if !ok {
+			return nil, false, false
+		}
+		if data.GetBusy() {
 			return nil, false, false
 		}
 		if data.GetMiss() {

@@ -477,6 +477,10 @@ type ReadData struct {
 	// miss says the node lacks the pack. It fills it in the background, and the
 	// local store reads the remote meanwhile.
 	Miss bool `protobuf:"varint,3,opt,name=miss,proto3" json:"miss,omitempty"`
+	// busy says the node did not look, since no read slot was free or its read
+	// failed, so miss is not an answer. It is set with miss, so a client that
+	// predates it reads a miss as before.
+	Busy bool `protobuf:"varint,4,opt,name=busy,proto3" json:"busy,omitempty"`
 }
 
 func (x *ReadData) Reset() {
@@ -502,6 +506,13 @@ func (x *ReadData) GetData() []byte {
 func (x *ReadData) GetMiss() bool {
 	if x != nil {
 		return x.Miss
+	}
+	return false
+}
+
+func (x *ReadData) GetBusy() bool {
+	if x != nil {
+		return x.Busy
 	}
 	return false
 }
@@ -1091,6 +1102,7 @@ func (m *ReadData) CloneVT() *ReadData {
 	r := new(ReadData)
 	r.Id = m.Id
 	r.Miss = m.Miss
+	r.Busy = m.Busy
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1658,6 +1670,9 @@ func (this *ReadData) EqualVT(that *ReadData) bool {
 		return false
 	}
 	if this.Miss != that.Miss {
+		return false
+	}
+	if this.Busy != that.Busy {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2479,6 +2494,11 @@ func (x *ReadData) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("miss")
 		s.WriteBool(x.Miss)
 	}
+	if x.Busy || s.HasField("busy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("busy")
+		s.WriteBool(x.Busy)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2505,6 +2525,9 @@ func (x *ReadData) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "miss":
 			s.AddField("miss")
 			x.Miss = s.ReadBool()
+		case "busy":
+			s.AddField("busy")
+			x.Busy = s.ReadBool()
 		}
 	})
 }
@@ -3654,6 +3677,11 @@ func (m *ReadData) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Busy {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Busy)
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Miss {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Miss)
 		i--
@@ -4317,6 +4345,7 @@ func (m *ReadData) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Id)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Data)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Miss)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Busy)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4684,6 +4713,10 @@ func (x *ReadData) MarshalProtoText() string {
 	if x.Miss != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "miss")
 		protobuf_go_lite.TextWriteBool(&sb, x.Miss)
+	}
+	if x.Busy != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "busy")
+		protobuf_go_lite.TextWriteBool(&sb, x.Busy)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5668,6 +5701,16 @@ func (m *ReadData) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Miss = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Busy", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Busy = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -66,6 +66,8 @@ type placementState struct {
 	tracker block_gc.BlockTracker
 	// done closes when this mount ends, including a failed mount or remount.
 	done <-chan struct{}
+	// serveOnly is serve mode, as SetServeOnly describes: reads fill nothing.
+	serveOnly bool
 	// reads records the blocks read since the last eviction pass.
 	reads readSet
 	// localHits counts the blocks the local store served.
@@ -134,6 +136,11 @@ func (p *placementState) live(ctx context.Context, refs []*block.BlockRef) ([]bo
 // block the graph tracks lost only its value to eviction, so it is refilled
 // below the ownership layer; any other block is a cache fill.
 func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+	// Serve mode writes nothing.
+	if p.serveOnly {
+		return nil
+	}
+
 	// Refill a tracked block of a placed store.
 	if p.backend.Load() != nil && p.tracker != nil {
 		tracked, err := p.tracker.TrackedBlocks(ctx, []*block.BlockRef{ref})
@@ -543,8 +550,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		placement.drain = packs.drain
 	}
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
+	placement.serveOnly = serveOnly.Load()
 	if backend != nil {
-		placement.cache = t.fillCache()
+		if !placement.serveOnly {
+			placement.cache = t.fillCache()
+		}
 		placement.front = t.packFront()
 	}
 	t.setPlacementBackend(placement, backend)
@@ -597,12 +607,19 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// fallback, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
 	localReads := &heldReads{StoreOps: local, held: &t.held}
-	recorded := &readRecorder{StoreOps: &hitCounter{StoreOps: localReads, hits: &placement.localHits}, reads: &placement.reads}
+	var recorded block.StoreOps = &hitCounter{StoreOps: localReads, hits: &placement.localHits}
+	if !placement.serveOnly {
+		recorded = &readRecorder{StoreOps: recorded, reads: &placement.reads}
+	}
+	peers := t.peerSource(le, bucketID)
+	if placement.serveOnly {
+		peers = func() block.StoreOps { return nil }
+	}
 	reads, copies := placement.readChains(
 		recorded,
 		localReads,
 		func() block.StoreOps { return t.getRemoteReads(placement) },
-		t.peerSource(le, bucketID),
+		peers,
 		fallbackStore,
 	)
 
@@ -633,8 +650,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// A store whose pushed blocks skip its disk asks the node by key for a
 	// block every path missed: after a restart, until its report applies.
 	if conf := t.nodePushConfig(); conf != nil && conf.Durable != nil && sqlStore == nil {
-		reads = &nodeKeyReads{StoreOps: reads, client: &t.nodeClient, wait: conf.ReadWait}
-		copies = &nodeKeyReads{StoreOps: copies, client: &t.nodeClient, wait: conf.ReadWait}
+		bound := nodeKeyReadBound
+		if placement.serveOnly {
+			bound = 0
+		}
+		reads = &nodeKeyReads{StoreOps: reads, client: &t.nodeClient, wait: conf.ReadWait, bound: bound}
+		copies = &nodeKeyReads{StoreOps: copies, client: &t.nodeClient, wait: conf.ReadWait, bound: bound}
 	}
 
 	// Build the handle over the local store and its read paths.
