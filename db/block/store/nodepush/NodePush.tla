@@ -24,13 +24,15 @@
    quiet after a timeout, when the entry's references are not yet known, or when
    pushing is off, so a block may never reach the node at all.
 
-   A read of a pack's byte range goes to the node first. The node answers from
-   its disk only after the range matches the pack's chunk sums, so a flipped
-   byte on the node's disk is a miss, never an answer: the damaged copy is
-   dropped and the node fills the pack again from the remote, while the local
-   store reads the remote meanwhile. A report the local store cannot apply
-   yet, a PackApplied that says failed, is forgotten like one lost to a restart
-   and the node repeats it later.
+   A read of a pack's byte range goes to the node first. The node answers with
+   whatever its disk holds, and the local pack store checks the block's data,
+   which holds its refs, against the block's hash. A flipped byte on the node's
+   disk fails that check, so the store reads the remote instead and the answer
+   is the same; the damaged copy stays on the node's disk until a flush writes
+   the pack again. A read of a pack the node lacks queues a fill from the
+   remote. A report the local store cannot apply yet, a PackApplied that says
+   failed, is forgotten like one lost to a restart and the node repeats it
+   later.
 
    AckBeforeFlush, DropOnFlush, DropBeforeIndex and ServeUnchecked are mutants:
    each must fail an invariant. *)
@@ -189,20 +191,17 @@ NodeCorrupt(b) ==
     /\ damaged' = damaged \cup {b}
     /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, served>>
 
-\* A read of a damaged copy. The range fails its chunk sums, so the node drops
-\* the copy and answers a miss; under the mutant the bytes go out as an answer.
+\* A read of a damaged copy. The node sends the bytes and the pack store checks
+\* them against the block's hash, so a checked read changes nothing here: the
+\* store reads the remote. Under the mutant the store takes the bytes unchecked.
 NodeRead(b) ==
     /\ nodeUp
     /\ b \in damaged
-    /\ IF ServeUnchecked
-          THEN /\ served' = served \cup {b}
-               /\ UNCHANGED <<nodeDisk, damaged>>
-          ELSE /\ nodeDisk' = nodeDisk \ {b}
-               /\ damaged' = damaged \ {b}
-               /\ UNCHANGED served
-    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, remote, reported, nodeUp, degraded, failed>>
+    /\ ServeUnchecked
+    /\ served' = served \cup {b}
+    /\ UNCHANGED <<indexed, state, local, queued, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, damaged, failed>>
 
-\* After a miss the node fills the pack again from the remote.
+\* A read of a pack the node lacks queues a fill from the remote.
 NodeFill(b) ==
     /\ nodeUp
     /\ b \in remote
@@ -271,7 +270,7 @@ QueueHoldsUntilRemote ==
     failed # "local" =>
         \A b \in Blocks : state[b] # "new" => b \in queued \cup remote
 
-\* A read never takes bytes from a damaged copy.
+\* A read never accepts bytes from a damaged copy.
 ReadsVerified == served = {}
 
 \* No receipt waits forever.
