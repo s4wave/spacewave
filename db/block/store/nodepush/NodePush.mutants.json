@@ -23,5 +23,15 @@
     "name": "a failed apply answers the report",
     "replace": [["    /\\ reported' = reported \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, queued,", "    /\\ reported' = reported \\ {b}\n    /\\ answered' = answered \\cup {b}\n    /\\ UNCHANGED <<indexed, state, local, queued,"]],
     "expect": "AnsweredCleared"
+  },
+  {
+    "name": "the drain drops the entry of a block it pushed",
+    "replace": [["    /\\ nodeBuf' = nodeBuf \\cup {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, queued, nodeDisk,", "    /\\ nodeBuf' = nodeBuf \\cup {b}\n    /\\ queued' = queued \\ {b}\n    /\\ UNCHANGED <<indexed, answered, state, local, nodeDisk,"]],
+    "expect": "QueueHoldsUntilRemote"
+  },
+  {
+    "name": "the drain clears a block the index does not name",
+    "replace": [["    /\\ b \\in queued\n    /\\ b \\in indexed\n    /\\ queued' = queued \\ {b}", "    /\\ b \\in queued\n    /\\ queued' = queued \\ {b}"]],
+    "expect": "QueueHoldsUntilRemote"
   }
 ]

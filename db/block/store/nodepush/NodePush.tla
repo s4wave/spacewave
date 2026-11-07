@@ -24,6 +24,13 @@
    would leave them queued, the local copy unevictable, until the upload's
    turn.
 
+   A drain sends the local backlog to the node from the local disk: the blocks
+   committed while the node was away or slow. It never drops the queue entry
+   of a block it sent; the report's apply does, as for any pushed block, so a
+   push the node loses leaves the entry for the local upload. It drops an entry
+   itself only for a block the local index names on the remote, as the upload's
+   skip does.
+
    NodePush.mutants.json lists the guards each invariant depends on. *)
 EXTENDS FiniteSets, Naturals
 
@@ -145,6 +152,25 @@ LocalUpload(b) ==
     /\ queued' = queued \ {b}
     /\ UNCHANGED <<answered, state, local, nodeBuf, nodeDisk, reported, nodeUp, degraded, failed>>
 
+\* The drain reads a queued block from the local disk and sends it to the node,
+\* unless the local index names it on the remote already. The entry stays.
+DrainPush(b) ==
+    /\ nodeUp
+    /\ b \in queued
+    /\ b \in local
+    /\ b \notin indexed
+    /\ nodeBuf' = nodeBuf \cup {b}
+    /\ UNCHANGED <<indexed, answered, state, local, queued, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+
+\* The drain drops the queue entry of a block the local index names on the
+\* remote. The local value may then be evicted.
+DrainClearLocated(b) ==
+    /\ b \in queued
+    /\ b \in indexed
+    /\ queued' = queued \ {b}
+    /\ local' = local \ {b}
+    /\ UNCHANGED <<indexed, answered, state, nodeBuf, nodeDisk, remote, reported, nodeUp, degraded, failed>>
+
 \* The node goes away, losing what it had not flushed.
 NodeDown ==
     /\ nodeUp
@@ -185,7 +211,7 @@ Next ==
     \/ \E b \in Blocks :
         \/ Submit(b) \/ NodeFlush(b) \/ Ack(b) \/ AckDegraded(b)
         \/ NodeUpload(b) \/ NodeReport(b) \/ IndexReport(b) \/ ApplyReport(b) \/ ApplyFails(b)
-        \/ LocalUpload(b)
+        \/ LocalUpload(b) \/ DrainPush(b) \/ DrainClearLocated(b)
     \/ NodeDown \/ NodeBack \/ NodeDiskLost \/ LocalDiskLost \/ LocalRestart
 
 Spec == Init /\ [][Next]_vars

@@ -12,7 +12,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +24,7 @@ import (
 	ftpserver "github.com/fclairamb/ftpserverlib"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -230,6 +233,104 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	if result := f.evict(); result.Evicted != reports+1 {
 		t.Fatalf("evict = %+v, want the cleared and uploaded blocks", result)
 	}
+
+	// The drain pushes the backlog through a node, newest first and each push
+	// in queue order, and clears only a block the index names. A block SFTP
+	// holds clears without a push even while the node is away; the rest stay
+	// queued through a failed push and after the node's flush, and only the
+	// report clears them, except the blocks the report names that its pack
+	// lacks, which the upload then carries. A block written after the pass
+	// starts is left to its own push and the upload.
+	backlog := make([]*block.BlockRef, 6)
+	for i := range backlog {
+		data := []byte(fmt.Sprintf("drain backlog %03d %s", i, strings.Repeat("x", 80)))
+		ref, _, err := f.wb.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		backlog[i] = ref
+	}
+	newest, _, err := f.wb.PutBlock(f.ctx, []byte("drain backlog on sftp"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.packs.PutBlock(f.ctx, []byte("drain backlog on sftp"), &block.PutOpts{RefsKnown: true}); err != nil {
+		t.Fatal(err)
+	}
+	node := &fakeNode{away: true}
+	var reported []block_store_writeback.DrainReport
+	drain := f.wb.NewDrain(node.push, block_store_writeback.DrainOptions{BatchBytes: 250, Report: func(r block_store_writeback.DrainReport) {
+		reported = append(reported, r)
+	}})
+	if err := drain.Run(f.ctx, held); !errors.Is(err, block_store_nodepush.ErrNodeAway) {
+		t.Fatalf("drain with the node away = %v, want ErrNodeAway", err)
+	}
+	if status := f.status(); status.Pending != len(backlog) || len(node.pushed) != 0 {
+		t.Fatalf("pending = %d, pushed %d with the node away; want the backlog queued and none pushed", status.Pending, len(node.pushed))
+	}
+	fresh, _, err := f.wb.PutBlock(f.ctx, []byte("written after the pass started"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	node.setAway(false)
+	if err := drain.Run(f.ctx, held); err != nil {
+		t.Fatal(err)
+	}
+	if err := drain.Run(f.ctx, held); err != nil {
+		t.Fatal(err)
+	}
+	order := make(map[string]int, len(backlog))
+	for i, ref := range backlog {
+		order[ref.GetHash().MarshalString()] = i
+	}
+	var got []int
+	for _, push := range node.pushed {
+		for _, entry := range push {
+			i, ok := order[entry.Ref.GetHash().MarshalString()]
+			if !ok {
+				t.Fatalf("drain pushed %s, which is not backlog", entry.Ref.MarshalString())
+			}
+			got = append(got, i)
+		}
+	}
+	if want := []int{4, 5, 2, 3, 0, 1}; !slices.Equal(got, want) {
+		t.Fatalf("drain pushed backlog %v, want %v: newest batch first, each in queue order", got, want)
+	}
+	last := reported[len(reported)-1]
+	if !last.Done || reported[0].Err == nil || reported[1].Located != 1 {
+		t.Fatalf("drain reports = %+v, want a failure, the located block, then the end", reported)
+	}
+	if status := f.status(); status.Pending != len(backlog)+1 {
+		t.Fatalf("pending = %d after the node's flush, want the backlog and the fresh block queued", status.Pending)
+	}
+	var reportKeys [][]byte
+	for i, push := range node.pushed {
+		for _, entry := range push {
+			reportKeys = append(reportKeys, packfile.BlockKey(entry.Ref.GetHash()))
+		}
+		if i == 0 {
+			continue
+		}
+		if _, err := f.packs.PutBlockBatch(f.ctx, push); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := adopter.AdoptPack(f.ctx, nil, reportKeys); err != nil {
+		t.Fatal(err)
+	}
+	if status := f.status(); status.Pending != 3 {
+		t.Fatalf("pending = %d after the report, want the two blocks its pack lacks and the fresh block", status.Pending)
+	}
+	if f.packHolds(backlog[4]) || f.packHolds(fresh) || !f.packHolds(newest) {
+		t.Fatal("packs hold a block the node never uploaded")
+	}
+	f.upload()
+	if status := f.status(); status.Pending != 0 || status.PendingBytes != 0 || !f.packHolds(backlog[4]) || !f.packHolds(fresh) {
+		t.Fatalf("status = %+v after the upload, want every block uploaded and counted once", status)
+	}
+	if result := f.evict(); result.Evicted != len(backlog)+2 {
+		t.Fatalf("evict = %+v, want the drained, located and fresh blocks", result)
+	}
 	f.p.backend.Store(&account_settings.StorageBackend{Id: "packs"})
 
 	// An SFTP location whose server refuses connections lists the same packs
@@ -343,6 +444,32 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	if !f.packHolds(sqlRef) {
 		t.Fatal("ftps packs lack the fallback block after the upload")
 	}
+}
+
+// fakeNode is a storage node that flushes each push at once, or refuses every
+// push while away, as the client does with no connection up.
+type fakeNode struct {
+	mtx    sync.Mutex
+	away   bool
+	pushed [][]*block.PutBatchEntry
+}
+
+// push records the entries unless the node is away.
+func (n *fakeNode) push(_ context.Context, entries []*block.PutBatchEntry) error {
+	n.mtx.Lock()
+	defer n.mtx.Unlock()
+	if n.away {
+		return block_store_nodepush.ErrNodeAway
+	}
+	n.pushed = append(n.pushed, slices.Clone(entries))
+	return nil
+}
+
+// setAway sets whether the node is away.
+func (n *fakeNode) setAway(away bool) {
+	n.mtx.Lock()
+	n.away = away
+	n.mtx.Unlock()
 }
 
 // adoptedStore is a pack store whose pack a report names is already registered.

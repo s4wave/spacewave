@@ -17,9 +17,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// nodeRedial is how long a lost connection to the storage node waits to dial
-// again. Publications meanwhile commit on the local store alone.
-const nodeRedial = 5 * time.Second
+const (
+	// nodeRedial is how long a lost connection to the storage node waits to
+	// dial again, and how long the drain waits after a failed push.
+	// Publications meanwhile commit on the local store alone.
+	nodeRedial = 5 * time.Second
+	// nodeDrainBatchBytes bounds one push of the drain. A drain push shares
+	// the connection with the commits' pushes, so a commit's frame waits
+	// behind at most one of these.
+	nodeDrainBatchBytes = 1 << 20
+	// nodeDrainWait bounds one push of the drain. A push the node does not
+	// flush in time is tried again, after nodeRedial.
+	nodeDrainWait = 30 * time.Second
+)
+
+// errNodePushOff is a drain push refused while the node's switch is off. The
+// drain keeps the batch and tries it again once the switch is back on.
+var errNodePushOff = errors.New("storage node push off")
 
 // NodePushConfig sends the publications of an account's block stores to a
 // storage node.
@@ -45,6 +59,25 @@ type NodePushConfig struct {
 	On *atomic.Bool
 	// Result reports each push, or is nil.
 	Result block_store_nodepush.Result
+	// Drain pushes the upload backlog through the node, or is nil for no
+	// drain.
+	Drain *NodeDrainConfig
+}
+
+// NodeDrainConfig drains a store's upload backlog through its storage node, as
+// block_store_writeback.Drain describes: the store reads its queued blocks and
+// pushes them, the node uploads them and reports each pack, and the report
+// clears them. The upload still runs beside it.
+type NodeDrainConfig struct {
+	// Admit paces the drain and holds it while it is switched off. It runs
+	// before every batch, so a drain held from the start reads nothing.
+	// Required.
+	Admit block_store_writeback.UploadAdmit
+	// MinAge leaves out the blocks written this recently, which their own
+	// push may have sent already.
+	MinAge time.Duration
+	// Report receives the drain's progress, or is nil.
+	Report func(block_store_writeback.DrainReport)
 }
 
 // nodePushes maps the storage volume ID of an account to the NodePushConfig
@@ -175,15 +208,62 @@ func (t *bstoreTracker) startNodePush(
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
-	// Keep the connection up until the store unmounts.
+	// Keep the connection up until the store unmounts, and drain beside it.
 	runCtx, cancel := context.WithCancel(ctx)
 	var running sync.WaitGroup
 	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	if conf.Drain != nil && conf.Drain.Admit != nil {
+		drain := wb.NewDrain(func(ctx context.Context, entries []*block.PutBatchEntry) error {
+			if !conf.On.Load() {
+				return errNodePushOff
+			}
+			ctx, cancel := context.WithTimeout(ctx, nodeDrainWait)
+			defer cancel()
+			return client.Send(ctx, entries)
+		}, block_store_writeback.DrainOptions{
+			MinAge:     conf.Drain.MinAge,
+			BatchBytes: nodeDrainBatchBytes,
+			Admit:      conf.Drain.Admit,
+			Report:     conf.Drain.Report,
+		})
+		running.Go(func() { t.runNodeDrain(runCtx, le, placement, drain) })
+	}
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()
 		running.Wait()
 		handle.push.Close()
+	}
+}
+
+// runNodeDrain runs the drain against the open backend until its pass ends or
+// ctx ends. A failed step, such as a push while the node is away, waits
+// nodeRedial and resumes where it stopped; meanwhile the upload carries the
+// queue alone.
+func (t *bstoreTracker) runNodeDrain(ctx context.Context, le *logrus.Entry, placement *placementState, drain *block_store_writeback.Drain) {
+	for {
+		// Wait for the backend, whose index says what needs no push.
+		remote, changed := t.readBackend(placement)
+		if remote == nil {
+			select {
+			case <-ctx.Done():
+				return
+			case <-changed:
+			}
+			continue
+		}
+
+		// Drain until the pass ends, or pause after a failure.
+		err := drain.Run(ctx, remote)
+		if err == nil || ctx.Err() != nil {
+			return
+		}
+		le.WithError(err).Debug("drain through the storage node paused")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(nodeRedial):
+		}
 	}
 }
 
