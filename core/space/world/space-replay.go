@@ -400,13 +400,25 @@ func (r *spaceReplay) seqno(ctx context.Context, state *InnerState) (uint64, err
 	return engine.GetSeqno(ctx)
 }
 
-// bind returns the replay engine at head, rebuilding it when it serves another
-// World than head.
+// bind returns the replay engine at head. An engine at another World with the
+// same transform moves to head, as after an adopted own candidate; one with
+// another transform, or one that cannot move, is rebuilt.
 func (r *spaceReplay) bind(ctx context.Context, head *bucket.ObjectRef) (*world_block.Engine, error) {
-	// Reuse the engine at head.
+	// Reuse the engine at head, or move it there.
 	if r.engine != nil {
-		if r.engine.GetRootRef().EqualsRef(r.a.bucketRef(head)) {
+		ref := r.a.bucketRef(head)
+		if r.engine.GetRootRef().EqualsRef(ref) {
 			return r.engine, nil
+		}
+		if r.bound.GetTransformConf().EqualVT(head.GetTransformConf()) {
+			err := r.engine.SetRootRef(ctx, ref)
+			if err == nil {
+				r.bound = head.CloneVT()
+				return r.engine, nil
+			}
+			if ctx.Err() != nil {
+				return nil, err
+			}
 		}
 		r.close()
 	}

@@ -839,6 +839,7 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 		state, _ := r.stateBefore(covered)
 		kept = state.EqualVT(base)
 	}
+	paid := kept && slices.ContainsFunc(r.positions[:covered], func(pos spacePosition) bool { return len(pos.payloads) != 0 })
 	if kept {
 		r.positions = slices.Clone(r.positions[covered:])
 		r.floor, r.saved = max(0, r.floor-covered), max(0, r.saved-covered)
@@ -851,6 +852,15 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	r.base, r.baseSeqno, r.height = base, seqno, checkpoint.GetHeight()
 	if len(r.restored) != 0 && !kept && !r.restoredFrom.EqualVT(base) {
 		r.restored = nil
+	}
+
+	// Release the payloads of the operations it covers, which replay reads
+	// no more. Operations a missed install leaves above it keep theirs until
+	// replay applies them again.
+	if paid {
+		if err := a.resetPayloads(ctx); err != nil {
+			return false, err
+		}
 	}
 
 	// Hold the checkpoint's World as the replay base, and trim the Worlds it
