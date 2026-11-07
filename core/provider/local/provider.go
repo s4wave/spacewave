@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"slices"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/backoff"
@@ -36,6 +37,9 @@ type Provider struct {
 	signalingURL string
 	// signalingEnvPrefix selects the trusted signaling server signing namespace.
 	signalingEnvPrefix string
+	// packs is the packahead config from the provider Config, read as each
+	// block store mounts. An account's SetPackahead overrides it.
+	packs atomic.Pointer[PackaheadConfig]
 	// info is the provider info
 	info *provider.ProviderInfo
 	// sfs is the step factory set for block transforms
@@ -123,6 +127,18 @@ func NewProvider(
 		keyed.WithRetry[string, *providerAccountTracker](&backoff.Backoff{}),
 	)
 	return p
+}
+
+// SetPackDir keeps each block store's packahead log in a subdirectory of dir
+// and diverts the new values of the stores in divert to it, for every account
+// that registered no PackaheadConfig of its own. An empty dir opens no log. It
+// applies to stores as they mount.
+func (p *Provider) SetPackDir(dir string, divert []string) {
+	if dir == "" {
+		p.packs.Store(nil)
+		return
+	}
+	p.packs.Store(&PackaheadConfig{Dir: dir, DivertStoreIDs: slices.Clone(divert)})
 }
 
 // getLocalProviderFeatures returns the slice of provider features implemented by the local provider.

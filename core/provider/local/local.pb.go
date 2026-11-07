@@ -126,6 +126,16 @@ type Config struct {
 	// SignalingEnvPrefix is the request-signing namespace of the signaling server.
 	// Empty uses the production namespace.
 	SignalingEnvPrefix string `protobuf:"bytes,5,opt,name=signaling_env_prefix,json=signalingEnvPrefix,proto3" json:"signalingEnvPrefix,omitempty"`
+	// PackDir is the directory that holds each block store's packahead log, in
+	// a subdirectory named by the store id. Native only. Empty keeps every
+	// store's new values in the volume, as before packahead.
+	PackDir string `protobuf:"bytes,6,opt,name=pack_dir,json=packDir,proto3" json:"packDir,omitempty"`
+	// PackDivertStoreIds lists the block stores whose new values append to their
+	// packahead log, which lands only their child lists in the volume. Needs
+	// pack_dir. A store absent from the list writes to the volume, and keeps
+	// reading and uploading the packs its log holds. An account's own packahead
+	// config overrides both fields.
+	PackDivertStoreIds []string `protobuf:"bytes,7,rep,name=pack_divert_store_ids,json=packDivertStoreIds,proto3" json:"packDivertStoreIds,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -167,6 +177,20 @@ func (x *Config) GetSignalingEnvPrefix() string {
 		return x.SignalingEnvPrefix
 	}
 	return ""
+}
+
+func (x *Config) GetPackDir() string {
+	if x != nil {
+		return x.PackDir
+	}
+	return ""
+}
+
+func (x *Config) GetPackDivertStoreIds() []string {
+	if x != nil {
+		return x.PackDivertStoreIds
+	}
+	return nil
 }
 
 // AccountReplicaCopyState records local durability for one accepted World head.
@@ -295,6 +319,8 @@ func (m *Config) CloneVT() *Config {
 	r.StorageId = m.StorageId
 	r.SignalingUrl = m.SignalingUrl
 	r.SignalingEnvPrefix = m.SignalingEnvPrefix
+	r.PackDir = m.PackDir
+	r.PackDivertStoreIds = protobuf_go_lite.CloneSlice(m.PackDivertStoreIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -414,6 +440,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.SignalingEnvPrefix != that.SignalingEnvPrefix {
+		return false
+	}
+	if this.PackDir != that.PackDir {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.PackDivertStoreIds, that.PackDivertStoreIds) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -649,6 +681,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("signalingEnvPrefix")
 		s.WriteString(x.SignalingEnvPrefix)
 	}
+	if x.PackDir != "" || s.HasField("packDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packDir")
+		s.WriteString(x.PackDir)
+	}
+	if len(x.PackDivertStoreIds) > 0 || s.HasField("packDivertStoreIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packDivertStoreIds")
+		s.WriteStringArray(x.PackDivertStoreIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -681,6 +723,16 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "signaling_env_prefix", "signalingEnvPrefix":
 			s.AddField("signaling_env_prefix")
 			x.SignalingEnvPrefix = s.ReadString()
+		case "pack_dir", "packDir":
+			s.AddField("pack_dir")
+			x.PackDir = s.ReadString()
+		case "pack_divert_store_ids", "packDivertStoreIds":
+			s.AddField("pack_divert_store_ids")
+			if s.ReadNil() {
+				x.PackDivertStoreIds = nil
+				return
+			}
+			x.PackDivertStoreIds = s.ReadStringArray()
 		}
 	})
 }
@@ -936,6 +988,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PackDivertStoreIds) > 0 {
+		for iNdEx := len(m.PackDivertStoreIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PackDivertStoreIds[iNdEx])
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.PackDir) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackDir)
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.SignalingEnvPrefix) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SignalingEnvPrefix)
 		i--
@@ -1081,6 +1145,8 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SignalingUrl)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SignalingEnvPrefix)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackDir)
+	n += protobuf_go_lite.SizeStringSlice(1, m.PackDivertStoreIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1180,6 +1246,18 @@ func (x *Config) MarshalProtoText() string {
 	if x.SignalingEnvPrefix != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signaling_env_prefix")
 		protobuf_go_lite.TextWriteString(&sb, x.SignalingEnvPrefix)
+	}
+	if x.PackDir != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_dir")
+		protobuf_go_lite.TextWriteString(&sb, x.PackDir)
+	}
+	if len(x.PackDivertStoreIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "pack_divert_store_ids")
+		for i, v := range x.PackDivertStoreIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1486,6 +1564,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SignalingEnvPrefix = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackDir", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackDir = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackDivertStoreIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackDivertStoreIds = append(m.PackDivertStoreIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

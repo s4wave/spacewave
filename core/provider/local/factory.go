@@ -79,7 +79,7 @@ func (t *Factory) Construct(
 			peer peer.Peer,
 			handler provider.ProviderHandler,
 		) (provider.Provider, error) {
-			return NewProvider(
+			prov := NewProvider(
 				le,
 				t.bus,
 				cc.GetStorageId(),
@@ -89,7 +89,9 @@ func (t *Factory) Construct(
 				peer,
 				handler,
 				t.transportOptions...,
-			), nil
+			)
+			prov.SetPackDir(cc.GetPackDir(), cc.GetPackDivertStoreIds())
+			return prov, nil
 		},
 	), nil
 }

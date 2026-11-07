@@ -28,6 +28,8 @@ func (a *StoreArgs) BuildFlags() []cli.Flag {
 		&cli.Int64Flag{Name: "cache-bytes", Usage: "index page cache of each s4db volume; zero keeps the server's", Destination: &a.Store.CacheBytes},
 		&cli.Int64Flag{Name: "checkpoint-max-bytes", Usage: "overlay size that starts an s4db checkpoint; zero keeps the server's", Destination: &a.Store.CheckpointMaxBytes},
 		&cli.Int64Flag{Name: "block-cache-bytes", Usage: "decoded block cache budget; zero keeps the default", Destination: &a.Store.BlockCacheBytes},
+		&cli.StringFlag{Name: "pack-dir", Usage: "directory of the World store's packahead log; empty keeps every write in the volume", Destination: &a.Store.PackDir},
+		&cli.BoolFlag{Name: "pack-divert", Usage: "append the World store's new values to its packahead log", Destination: &a.Store.PackDivert},
 		&cli.BoolFlag{Name: "verbose", Usage: "log at debug level", Destination: &a.Verbose},
 	}
 }

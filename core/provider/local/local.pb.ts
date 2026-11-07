@@ -119,6 +119,20 @@ export interface Config {
    * Empty uses the production namespace.
    */
   signalingEnvPrefix?: string
+  /**
+   * PackDir is the directory that holds each block store's packahead log, in
+   * a subdirectory named by the store id. Native only. Empty keeps every
+   * store's new values in the volume, as before packahead.
+   */
+  packDir?: string
+  /**
+   * PackDivertStoreIds lists the block stores whose new values append to their
+   * packahead log, which lands only their child lists in the volume. Needs
+   * pack_dir. A store absent from the list writes to the volume, and keeps
+   * reading and uploading the packs its log holds. An account's own packahead
+   * config overrides both fields.
+   */
+  packDivertStoreIds?: string[]
 }
 
 export const Config: MessageType<Config> =
@@ -128,6 +142,8 @@ export const Config: MessageType<Config> =
     [3, 'storage_id', 9],
     [4, 'signaling_url', 9],
     [5, 'signaling_env_prefix', 9],
+    [6, 'pack_dir', 9],
+    [7, 'pack_divert_store_ids', 9, 1],
   ])
 
 /**

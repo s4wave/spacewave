@@ -140,6 +140,21 @@ func OpenStore(ctx context.Context, le *logrus.Entry, conf *StoreConfig, create 
 		return nil, err
 	}
 
+	// Keep the World store's new values in packahead when asked, before the
+	// engine mounts the store.
+	if conf.PackDir != "" {
+		var divert []string
+		if conf.PackDivert {
+			divert = append(divert, ref.GetBlockStoreId())
+		}
+		prov, provRef, err := provider.ExLookupProvider(ctx, b, "local", false, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "look up local provider")
+		}
+		s.rels = append(s.rels, provRef.Release)
+		prov.(*provider_local.Provider).SetPackDir(conf.PackDir, divert)
+	}
+
 	// Serve the World from the SharedObject.
 	eng, engRef, err := world.StartEngine(ctx, b, space_world.NewConfig(conf.EngineID, ref), nil)
 	if err != nil {

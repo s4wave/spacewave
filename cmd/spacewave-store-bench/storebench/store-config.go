@@ -25,4 +25,10 @@ type StoreConfig struct {
 	// BlockCacheBytes is the decoded block cache budget. Zero keeps the
 	// default.
 	BlockCacheBytes int64
+	// PackDir is the directory of the World store's packahead log. Empty
+	// keeps every write in the volume.
+	PackDir string
+	// PackDivert sends the World store's new values to its packahead log,
+	// and needs PackDir.
+	PackDivert bool
 }

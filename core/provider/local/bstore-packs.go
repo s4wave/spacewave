@@ -69,15 +69,19 @@ type storePacks struct {
 }
 
 // openPacks opens the store's packahead log over local, its bucket on the
-// Volume, when its account registered a PackaheadConfig, or returns nil.
+// Volume, when its account registered a PackaheadConfig or the provider has a
+// pack directory, or returns nil.
 // Close the log when the store unmounts.
 func (t *bstoreTracker) openPacks(ctx context.Context, le *logrus.Entry, local block.StoreOps) (*storePacks, error) {
-	// Open no log without a config.
-	value, ok := packaheads.Load(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()))
-	if !ok {
+	// Take the account's config, else the provider's, and open no log
+	// without either.
+	conf := t.a.t.p.packs.Load()
+	if value, ok := packaheads.Load(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID())); ok {
+		conf = value.(*PackaheadConfig)
+	}
+	if conf == nil {
 		return nil, nil
 	}
-	conf := value.(*PackaheadConfig)
 
 	// Open the store's log in its own directory.
 	dir := filepath.Join(conf.Dir, url.PathEscape(t.id))
