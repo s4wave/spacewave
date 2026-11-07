@@ -115,8 +115,7 @@ func waitFor(t *testing.T, ok func() bool) {
 // corrupted push, an upload whose report outlives a refused apply and a lost
 // connection, a node restart, and a node that is away.
 func TestNodeRunThrough(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	dir := t.TempDir()
 	log, err := packahead.Open(ctx, dir+"/log", packahead.Options{Linger: 10 * time.Millisecond})
 	if err != nil {

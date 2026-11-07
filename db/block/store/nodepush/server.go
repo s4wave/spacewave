@@ -69,19 +69,15 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 	}()
 
 	// Write frames until the connection ends.
-	running.Add(1)
-	go func() {
-		defer running.Done()
+	running.Go(func() {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
-	}()
+	})
 
 	// Repeat every report the local store has not applied.
-	running.Add(1)
-	go func() {
-		defer running.Done()
+	running.Go(func() {
 		s.repeatReports(ctx, out)
-	}()
+	})
 
 	// Take pushes, appending several at once so they share a flush.
 	slots := make(chan struct{}, maxPushesInFlight)
@@ -98,12 +94,10 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			running.Add(1)
-			go func() {
-				defer running.Done()
+			running.Go(func() {
 				defer func() { <-slots }()
 				send(ctx, out, s.hold(ctx, body.Push))
-			}()
+			})
 		case *Message_PackApplied:
 			if err := s.applied(body.PackApplied.GetPackId()); err != nil {
 				return err
