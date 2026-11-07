@@ -32,6 +32,8 @@ type CachedBlockStoreOptions struct {
 	WritebackWindowBytes int64
 	// HttpClient overrides the default http.Client.
 	HttpClient *http.Client
+	// Grants reads a private Space with grants from this source. See Options.
+	Grants GrantSource
 	// Release is called when a looked-up cache dependency is disposed while
 	// the assembled store is still live. Callers whose store sits under a
 	// lifecycle owner pass their invalidation callback here. Callers that
@@ -102,6 +104,7 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 		PointerTTL:         opts.PointerTTL,
 		IndexCache:         indexCache,
 		PointerStore:       pointerStore,
+		Grants:             opts.Grants,
 	})
 	if err != nil {
 		releaseRefs()

@@ -43,6 +43,12 @@ type Options struct {
 	Uploads int
 	// MaxPackBytes bounds each pack. Zero selects delta.DefaultMaxChunkBytes.
 	MaxPackBytes int64
+	// Grants publishes to a private destination: the mirror holds a grant
+	// that may write from before its first request, reads the Space's pack
+	// indexes with it, and renews it before each upload and the checkpoint, so
+	// the writer admission it carries never lapses. Nil reads the indexes
+	// anonymously from Publish.CdnBaseURL.
+	Grants cdn_bstore.GrantSource
 }
 
 // Result describes a mirror.
@@ -84,6 +90,15 @@ func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opt
 		return nil, errors.New("the session client cannot stage a pack")
 	}
 
+	// Hold a writing grant before the first request, since it admits us.
+	var grants *cdn_bstore.GrantKeeper
+	if opts.Grants != nil {
+		grants = cdn_bstore.NewGrantKeeper(opts.Grants, pub.DstSpaceID)
+		if err := requireWrite(ctx, grants); err != nil {
+			return nil, err
+		}
+	}
+
 	// Skip the copy when the Space's checkpoint already names the tree. A
 	// published head carries no bucket binding.
 	current, err := destinationHead(ctx, pub)
@@ -102,12 +117,19 @@ func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opt
 	if err != nil {
 		return nil, err
 	}
-	remote := packfile_store.NewPackfileStore(cdn_bstore.NewAnonymousOpener(nil, pub.CdnBaseURL, pub.DstSpaceID), nil)
+	opener := cdn_bstore.NewAnonymousOpener(nil, pub.CdnBaseURL, pub.DstSpaceID)
+	if grants != nil {
+		opener = grants.Opener(nil)
+	}
+	remote := packfile_store.NewPackfileStore(opener, nil)
 	defer remote.Close()
 	remote.UpdateManifest(entries)
 
 	// Copy, pack and commit the missing blocks, then post the checkpoint.
-	if err := copyTree(ctx, src, remote, head.GetRootRef(), opts, res); err != nil {
+	if err := copyTree(ctx, src, remote, head.GetRootRef(), opts, grants, res); err != nil {
+		return nil, err
+	}
+	if err := requireWrite(ctx, grants); err != nil {
 		return nil, err
 	}
 	res.Checkpoint, err = cdn_publish.PostCheckpoint(ctx, pub, head)
@@ -115,6 +137,23 @@ func Mirror(ctx context.Context, src block.StoreOps, head *bucket.ObjectRef, opt
 		return nil, err
 	}
 	return res, nil
+}
+
+// requireWrite renews the grant when it is due and requires that it may
+// write. A nil keeper requires nothing.
+func requireWrite(ctx context.Context, grants *cdn_bstore.GrantKeeper) error {
+	// Renew the grant if due, and refuse one that may not write.
+	if grants == nil {
+		return nil
+	}
+	g, err := grants.Current(ctx)
+	if err != nil {
+		return err
+	}
+	if !g.GetMayWrite() {
+		return errors.New("the grant does not allow publishing to the Space")
+	}
+	return nil
 }
 
 // destinationHead returns the head the Space's checkpoint names, or nil.
@@ -140,7 +179,7 @@ func destinationHead(ctx context.Context, pub cdn_publish.Options) (*bucket.Obje
 // writes the blocks the Space lacks in post-order, the packer cuts them into
 // packs and starts each upload, and the committer commits the packs in the
 // order they were cut.
-func copyTree(ctx context.Context, src block.StoreOps, remote *packfile_store.PackfileStore, root *block.BlockRef, opts Options, res *Result) error {
+func copyTree(ctx context.Context, src block.StoreOps, remote *packfile_store.PackfileStore, root *block.BlockRef, opts Options, grants *cdn_bstore.GrantKeeper, res *Result) error {
 	// Bound the uploads in flight and the packs awaiting their commit.
 	uploads := opts.Uploads
 	if uploads <= 0 {
@@ -175,7 +214,7 @@ func copyTree(ctx context.Context, src block.StoreOps, remote *packfile_store.Pa
 				return nil, nil, context.Cause(gctx)
 			}
 		}, opts.MaxPackBytes, func(ctx context.Context, _ int, entry *packfile.PackfileEntry, data []byte) error {
-			return startUpload(ctx, g, slots, packs, opts.Publish, entry, data)
+			return startUpload(ctx, g, slots, packs, opts.Publish, grants, entry, data)
 		})
 		return err
 	})
@@ -203,7 +242,7 @@ func copyTree(ctx context.Context, src block.StoreOps, remote *packfile_store.Pa
 
 // startUpload waits for an upload slot, queues the pack for its commit, and
 // uploads it in the background.
-func startUpload(ctx context.Context, g *errgroup.Group, slots chan struct{}, packs chan<- *pendingPack, pub cdn_publish.Options, entry *packfile.PackfileEntry, data []byte) error {
+func startUpload(ctx context.Context, g *errgroup.Group, slots chan struct{}, packs chan<- *pendingPack, pub cdn_publish.Options, grants *cdn_bstore.GrantKeeper, entry *packfile.PackfileEntry, data []byte) error {
 	// Take an upload slot and a place in the commit order.
 	select {
 	case slots <- struct{}{}:
@@ -224,7 +263,11 @@ func startUpload(ctx context.Context, g *errgroup.Group, slots chan struct{}, pa
 		defer func() { <-slots }()
 		defer close(p.done)
 
-		// Upload the pack and hand it to the committer.
+		// Upload the pack under a current admission and hand it to the
+		// committer.
+		if err := requireWrite(ctx, grants); err != nil {
+			return err
+		}
 		staged, err := cdn_publish.StagePackData(ctx, pub, data, entry.GetBloomFilter())
 		if err != nil {
 			return errors.Wrap(err, "upload pack")

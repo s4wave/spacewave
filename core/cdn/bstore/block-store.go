@@ -61,7 +61,7 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 		cli = http.DefaultClient
 	}
 
-	// Configure index caching and the anonymous packfile opener.
+	// Configure index caching and the anonymous or granted pack opener.
 	cache := opts.IndexCache
 	var memCache *memIndexCache
 	if cache == nil {
@@ -69,6 +69,9 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 		cache = memCache
 	}
 	opener := NewAnonymousOpener(cli, opts.CdnBaseURL, opts.SpaceID)
+	if opts.Grants != nil {
+		opener = NewGrantKeeper(opts.Grants, opts.SpaceID).Opener(cli)
+	}
 	pfs := packfile_store.NewPackfileStore(opener, cache)
 
 	// Allocate the decoded-block cache.

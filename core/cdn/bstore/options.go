@@ -32,6 +32,12 @@ type Options struct {
 	// PointerStore optionally persists the last fetched root pointer, so cached
 	// blocks of its manifest stay readable while the CDN is unreachable.
 	PointerStore kvtx.Store
+	// Grants reads a private Space: each pack read goes to the current
+	// grant's pack base with its authorization, and a fresh grant is asked
+	// for before the current one expires. CdnBaseURL then serves only the
+	// root pointer, when RootPointerBaseURL is empty. Nil reads packs
+	// anonymously from CdnBaseURL.
+	Grants GrantSource
 }
 
 // PackIndexObjectStoreID returns the stable metadata ObjectStore ID for a CDN
