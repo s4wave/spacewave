@@ -1460,7 +1460,7 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 // holds rootMtx.
 func (a *Adapter) readRetained(ctx context.Context) error {
 	// Read the block the root holds, then decode its roots.
-	data, err := a.readHeldBlock(ctx, RootRetained)
+	data, err := a.readRootBlock(ctx, RootRetained, a.held[RootRetained])
 	if err != nil || data == nil {
 		return err
 	}

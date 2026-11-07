@@ -129,12 +129,18 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 // the block h's root holds now as its Prev, so an append writes and links the
 // same however many roots h holds, until the chain reaches maxRootLinks and
 // the append rewrites the set as one block. The new block holds the earlier
-// one from the move that takes the root off it. The caller holds rootMtx.
+// one from the move that takes the root off it. A root of extra that h holds
+// already, or that extra repeats or leaves empty, is left out: by invariant 1
+// the stored chain names it already, so leaving it out keeps the same roots
+// held. The caller holds rootMtx.
 func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.BlockRef) error {
-	// Rewrite a set whose chain reached the bound as one block.
+	// Add only the roots h does not hold yet.
+	extra = slices.DeleteFunc(dedupRefs(extra), h.holds)
 	if len(extra) == 0 {
 		return nil
 	}
+
+	// Rewrite a set whose chain reached the bound as one block.
 	if h.links >= maxRootLinks {
 		return a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{slices.Concat(h.roots, extra)}, nil)
 	}
@@ -164,12 +170,9 @@ func (a *Adapter) readRootSet(ctx context.Context, h *rootSet) error {
 	// Read each block of the chain, newest first.
 	var chain [][]*block.BlockRef
 	for ref := a.held[h.name]; !ref.GetEmpty(); {
-		data, found, err := a.pages.GetBlock(ctx, ref)
+		data, err := a.readRootBlock(ctx, h.name, ref)
 		if err != nil {
 			return err
-		}
-		if !found {
-			return errors.Wrapf(block.ErrNotFound, "read %s root block %s", h.name, ref.MarshalString())
 		}
 		msg := &HeldRoots{}
 		if err := msg.UnmarshalVT(data); err != nil {
@@ -187,13 +190,13 @@ func (a *Adapter) readRootSet(ctx context.Context, h *rootSet) error {
 	return nil
 }
 
-// readHeldBlock reads the block the named root holds, or nil when it holds
-// none. A block the root names but the store does not find is an error: the
-// next move would name it as Previous and release every root it holds, so the
-// adapter stays closed until the block reads. The caller holds rootMtx.
-func (a *Adapter) readHeldBlock(ctx context.Context, name string) ([]byte, error) {
+// readRootBlock reads ref, a block the named root name holds directly or
+// through a Prev chain, or nil for an empty ref. A block the store does not
+// find is an error: the next move would name the root's block as Previous and
+// release every root it holds, so the adapter stays closed until the block
+// reads. The caller holds rootMtx.
+func (a *Adapter) readRootBlock(ctx context.Context, name string, ref *block.BlockRef) ([]byte, error) {
 	// Read nothing for a root that holds no block.
-	ref := a.held[name]
 	if ref.GetEmpty() {
 		return nil, nil
 	}
