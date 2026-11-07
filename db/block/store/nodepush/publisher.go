@@ -19,7 +19,7 @@ import (
 var ErrNodeQuiet = errors.New("storage node quiet")
 
 // quietFor is how long commits stop waiting for a node that timed out.
-const quietFor = 5 * time.Second
+const quietFor = time.Second
 
 // Sender delivers blocks to the storage node.
 type Sender interface {
