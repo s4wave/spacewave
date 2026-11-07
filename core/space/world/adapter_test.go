@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -332,7 +333,66 @@ func TestAdapterRunThrough(t *testing.T) {
 		if small != 0 || large != 0 {
 			t.Fatalf("a local commit stored %d blocks over 1x objects and %d over 10x, want none", small, large)
 		}
+
+		// A remount applies only the operations past the saved replay
+		// cursor, whatever stands above the checkpoint. The cursor falls at
+		// most 32 operations behind, and a save in flight at the remount at
+		// most 32 more; each operation resolves the mock type twice, to run
+		// and for its payloads.
+		small, large = measureRemountReplay(t, 40), measureRemountReplay(t, 240)
+		t.Logf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 240", small, large)
+		if small > 128 || large > 128 {
+			t.Fatalf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 240, want at most 128", small, large)
+		}
 	})
+}
+
+// measureRemountReplay writes n World operations to a Space whose stable
+// point a silent device holds, so all n stay above the checkpoint, then
+// remounts the Space World and returns how many times replay resolved the
+// mock World operation type before the remounted engine read the last object.
+func measureRemountReplay(t *testing.T, n int) uint64 {
+	// Count the mock World operations the Space's lookup resolves.
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
+	defer cancel()
+	var ran atomic.Uint64
+	f := newAdapterFixtureOn(t, fixtureOpts{opTypes: &space_world.OpTypes{
+		Lookup: func(ctx context.Context, opTypeID string) (world.Operation, error) {
+			if opTypeID == world_mock.MockWorldOpTypeID {
+				ran.Add(1)
+			}
+			return world_mock.LookupMockOp(ctx, opTypeID)
+		},
+	}})
+	eng, engRef := f.start(t)
+	addDevice(t, f.space(t))
+
+	// Write n operations, each creating an object and running the mock
+	// World operation on it.
+	for i := range n {
+		key := "replay-" + strconv.Itoa(i)
+		err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			_, _, err = ws.ApplyWorldOp(ctx, world_mock.NewMockWorldOp(key, "replay"), "")
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Remount and count what replay runs to reach the last object.
+	last := "replay-" + strconv.Itoa(n-1)
+	ran.Store(0)
+	eng, engRef = f.remount(ctx, t, eng, engRef)
+	defer engRef.Release()
+	waitObjects(ctx, t, eng, last)
+	return ran.Load()
 }
 
 // measureAdapterCommit starts a Space World with n objects and returns the

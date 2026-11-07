@@ -234,7 +234,9 @@ func TestReplayStageHoldsEarlyDrains(t *testing.T) {
 // the floor naming a page it freed. The skipped full save moves the floor
 // below a World whose page went past the bound to the current epoch; the
 // later save ends that epoch, and the World above the floor then names a
-// freed page unless the floor moves past it.
+// freed page unless the floor moves past it. An acknowledgment a reorder puts
+// in place of the later World takes the World before it, so the floor must
+// cover it too.
 func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 	f := newReplayFixture(t, 1000)
 	a, ctx := f.a, t.Context()
@@ -270,5 +272,18 @@ func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 	// Replay computes the full World again, or still finds its pages.
 	if a.replay.floor <= full {
 		f.requireFound("a World above the floor", world, stored, kept)
+	}
+
+	// A reorder puts an acknowledgment in place of the later World, which
+	// takes the full World as its own: it shares that World's floor.
+	r := a.replay
+	r.positions = r.positions[:len(r.positions)-1]
+	pos, err := r.run(ctx, len(r.positions), &sobject.OrderedOperation{Hash: []byte("ack")}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.positions = append(r.positions, pos)
+	if r.floor < len(r.positions) {
+		f.requireFound("the acknowledgment's World", world, stored, kept)
 	}
 }

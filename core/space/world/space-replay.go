@@ -170,18 +170,19 @@ func (r *spaceReplay) restoredAt(index int, op *sobject.OrderedOperation, prev *
 // set, is the World a local writer built on that World with op, which the
 // position takes without running op again.
 func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOperation, adopt *spacePosition) (spacePosition, error) {
-	// Compute the World before index again when it left memory unstored.
-	if index != 0 && index <= r.floor {
-		if err := r.recompute(ctx, index); err != nil {
-			return spacePosition{}, err
-		}
-	}
+	// The World before index may have left memory unstored. Only running an
+	// operation reads its pages; the other outcomes compare and copy its
+	// InnerState, which computing it again leaves the same.
+	unstored := index != 0 && index <= r.floor
 	prev, prevSeqno := r.stateBefore(index)
 	pos := spacePosition{op: op, state: prev, seqno: prevSeqno, reason: op.Refused}
 
 	// An operation every member refuses, or an acknowledgment, leaves the
-	// World.
+	// World, so its position shares the floor of the World before it.
 	if op.Refused != "" || op.Data == nil {
+		if unstored {
+			r.floor = max(r.floor, index+1)
+		}
 		return pos, nil
 	}
 
@@ -201,7 +202,14 @@ func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOpe
 		return *saved, nil
 	}
 
-	// Run the operation.
+	// Compute the World before index again when it left memory unstored, then
+	// run the operation on it.
+	if unstored {
+		if err := r.recompute(ctx, index); err != nil {
+			return spacePosition{}, err
+		}
+		pos.state, pos.seqno = r.stateBefore(index)
+	}
 	ctx, task := trace.NewTask(ctx, "space/world/replay/apply")
 	defer task.End()
 	return r.apply(ctx, pos, op)
