@@ -1453,17 +1453,11 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 // readRetained reads the retained roots the retained root holds. The caller
 // holds rootMtx.
 func (a *Adapter) readRetained(ctx context.Context) error {
-	// Read the block the root holds.
-	ref := a.held[RootRetained]
-	if ref.GetEmpty() {
-		return nil
-	}
-	data, found, err := a.pages.GetBlock(ctx, ref)
-	if err != nil || !found {
+	// Read the block the root holds, then decode its roots.
+	data, err := a.readHeldBlock(ctx, RootRetained)
+	if err != nil || data == nil {
 		return err
 	}
-
-	// Decode its roots.
 	msg := &RetainedRootSet{}
 	if err := msg.UnmarshalVT(data); err != nil {
 		return err

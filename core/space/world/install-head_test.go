@@ -317,11 +317,12 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// An adapter opened again over the same roots reads the payloads the
 	// root holds, and adds a payload beside them.
 	b := &Adapter{
-		le:       a.le,
-		opened:   openedNow(),
-		pages:    block.NewPendingStore(a.pages.StoreOps, 1<<20),
-		held:     make(map[string]*block.BlockRef),
-		payloads: rootSet{name: RootReplayPayloads},
+		le:           a.le,
+		opened:       openedNow(),
+		pages:        block.NewPendingStore(a.pages.StoreOps, 1<<20),
+		held:         make(map[string]*block.BlockRef),
+		cursorWorlds: rootSet{name: RootReplayCursor},
+		payloads:     rootSet{name: RootReplayPayloads},
 	}
 	if err := b.loadRoots(ctx); err != nil {
 		t.Fatal(err)
@@ -331,6 +332,76 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect(b, "admission after the open", []*block.BlockRef{second, third, fifth}, second, third, fifth, shared)
+
+	// An open that does not find the block the payloads root or a history
+	// names fails: opening on an empty set would let the next move name the
+	// unread block as Previous and release every root it names.
+	world := put(b, "world", shared)
+	release, err = b.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = b.addRoot(ctx, &b.cursorWorlds, world)
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{RootReplayPayloads, RootReplayCursor} {
+		c := &Adapter{
+			le:           a.le,
+			opened:       openedNow(),
+			pages:        block.NewPendingStore(&hiddenBlockStore{StoreOps: b.pages.StoreOps, hide: b.held[name]}, 1<<20),
+			held:         make(map[string]*block.BlockRef),
+			cursorWorlds: rootSet{name: RootReplayCursor},
+			payloads:     rootSet{name: RootReplayPayloads},
+		}
+		err := c.loadRoots(ctx)
+		if errors.Is(err, block.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Show what the open on an empty set costs: a payload and a World
+		// added beside it release the unread block's roots.
+		extra := put(c, "extra "+name)
+		if err := c.addPayloads(ctx, admit(c, extra).payloads); err != nil {
+			t.Fatal(err)
+		}
+		release, err := c.rootMtx.Lock(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = c.addRoot(ctx, &c.cursorWorlds, extra)
+		release()
+		if err != nil {
+			t.Fatal(err)
+		}
+		collect()
+		for _, ref := range []*block.BlockRef{second, third, fifth, world, shared} {
+			if _, found, err := b.pages.GetBlock(ctx, ref); err != nil || !found {
+				t.Fatalf("open without the %s block: collection freed %v: %v, %v", name, ref, found, err)
+			}
+		}
+		t.Fatalf("opened without the %s block", name)
+	}
+}
+
+// hiddenBlockStore reports the block hide as not found, as a store does that
+// lost or has not fetched the block a root names.
+type hiddenBlockStore struct {
+	block.StoreOps
+	// hide is the block reported as not found.
+	hide *block.BlockRef
+}
+
+// GetBlock reports hide as not found and reads every other block.
+func (s *hiddenBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if ref.EqualsRef(s.hide) {
+		return nil, false, nil
+	}
+	return s.StoreOps.GetBlock(ctx, ref)
 }
 
 // TestInstallKeepsLaterCheckpointWorlds checks that an install of an earlier
