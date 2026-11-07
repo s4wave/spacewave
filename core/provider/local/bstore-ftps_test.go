@@ -1,6 +1,7 @@
 package provider_local
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -20,7 +21,10 @@ import (
 	ftpserver "github.com/fclairamb/ftpserverlib"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 
@@ -155,6 +159,49 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 		t.Fatalf("locate = %v, %v; want the uploaded block alone", found, err)
 	}
 
+	// A reported pack clears from the upload queue past an older block the
+	// backend lacks, through the keys a report carries.
+	var on atomic.Bool
+	on.Store(true)
+	f.wb.SetLocateUploaded(&on)
+	if _, _, err := f.wb.PutBlock(f.ctx, []byte("backlog"), &block.PutOpts{RefsKnown: true}); err != nil {
+		t.Fatal(err)
+	}
+	pushed, _, err := f.wb.PutBlock(f.ctx, []byte("pushed"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.packs.PutBlock(f.ctx, []byte("pushed"), &block.PutOpts{RefsKnown: true}); err != nil {
+		t.Fatal(err)
+	}
+	f.p.backend.Store(backend)
+	tkr := &bstoreTracker{}
+	tkr.remote.Store(&openBackend{backend: backend, store: adoptedStore{f.packs.(*block_store_s3.PackStore)}})
+	clears := make(chan []*hash.Hash, 1)
+	adopter := nodeAdopter{t: tkr, p: f.p, clears: clears}
+	if err := adopter.AdoptPack(f.ctx, nil, [][]byte{packfile.BlockKey(pushed.GetHash())}); err != nil {
+		t.Fatal(err)
+	}
+	clearCtx, stopClears := context.WithCancel(f.ctx)
+	go tkr.runNodeClears(clearCtx, logrus.NewEntry(logrus.New()), f.p, clears)
+	for {
+		status, changed := f.wb.GetStatus()
+		if status.Pending == 1 {
+			break
+		}
+		select {
+		case <-changed:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("pending = %d, want the backlog block alone", status.Pending)
+		}
+	}
+	stopClears()
+	f.upload()
+	if result := f.evict(); result.Evicted != 2 {
+		t.Fatalf("evict = %+v, want the cleared and uploaded blocks", result)
+	}
+	f.p.backend.Store(&account_settings.StorageBackend{Id: "packs"})
+
 	// An SFTP location whose server refuses connections lists the same packs
 	// over its FTPS port.
 	refused, err := net.Listen("tcp", "127.0.0.1:0")
@@ -264,4 +311,14 @@ func TestFTPSPlacementAndFallback(t *testing.T) {
 	if !f.packHolds(sqlRef) {
 		t.Fatal("ftps packs lack the fallback block after the upload")
 	}
+}
+
+// adoptedStore is a pack store whose pack a report names is already registered.
+type adoptedStore struct {
+	*block_store_s3.PackStore
+}
+
+// AdoptPack finds the pack registered.
+func (adoptedStore) AdoptPack(context.Context, *packfile.PackfileEntry, [][]byte) error {
+	return nil
 }
