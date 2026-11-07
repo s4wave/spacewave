@@ -15,6 +15,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -277,7 +278,12 @@ func (c *SessionClient) uploadPack(ctx context.Context, upload *packfile.PushUpl
 	defer httpclient.DrainAndCloseResponseBody(resp)
 	if resp.StatusCode/100 != 2 {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return errors.Errorf("storage refused the upload: %s: %s", resp.Status, strings.TrimSpace(string(msg)))
+		return &clouderror.Error{
+			StatusCode: resp.StatusCode,
+			Code:       "storage_refused",
+			Message:    "storage refused the upload: " + strings.TrimSpace(string(msg)),
+			Retryable:  resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500,
+		}
 	}
 	return nil
 }
