@@ -600,8 +600,7 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 // read from it, never a pack's index or an answer about what the bucket holds: a
 // copy can outlive or differ from the bucket, and the store's callers drop local
 // blocks on what the bucket holds. The store checks the block's data against its
-// hash; the block's refs are not covered, so the cache must answer only bytes it
-// has checked itself.
+// hash, as it does for bytes from the bucket.
 type RangeCache interface {
 	// ReadCached reads the whole range of pack id, or reports false.
 	ReadCached(ctx context.Context, id string, off int64, length int) ([]byte, bool)

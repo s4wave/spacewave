@@ -19,10 +19,10 @@ const readsQuietFor = 5 * time.Second
 // and returning bad bytes all cost at most one bounded wait, and the remote
 // answers.
 //
-// The pack store checks a block's data against its hash. Its refs have no such
-// check, so they rest on the node's chunk sums, which catch a damaged disk. That
-// trusts the node as a process: it is the operator's own host behind SSH, and
-// the sums would not stop one that lied.
+// The pack store checks a block's data, which holds its refs, against its hash.
+// The refs list stored beside the data is a copy no read path checks, from the
+// remote or the node, so a copy on the node carries the same risk as one on the
+// remote. The tunnel authenticates the bytes in transit.
 type Reads struct {
 	// wait bounds one read from the node.
 	wait time.Duration
