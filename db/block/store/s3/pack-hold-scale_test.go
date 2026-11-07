@@ -4,6 +4,7 @@ package block_store_s3
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -23,6 +24,11 @@ type holdCost struct {
 // holdRuns is the calls each read path is measured over. The fallback lifts a
 // pack each call, so each size holds more packs than this.
 const holdRuns = 20
+
+// holdRounds is the rounds each read path that lifts nothing is measured
+// over, keeping the least: the allocations count the whole process, so a
+// round may count an allocation of background work.
+const holdRounds = 3
 
 // measureHolds builds a store of one registered pack and held quarantined
 // packs, and measures the cost of each read path over it.
@@ -63,26 +69,34 @@ func measureHolds(t *testing.T, kind string, held int) []holdCost {
 	// Measure each path; the fallback reads the next held pack each call.
 	next := 0
 	paths := []struct {
-		name string
-		fn   func()
+		name  string
+		fn    func()
+		lifts bool
 	}{
-		{"extent read", func() { _ = s.readExtent(ctx, live[0]) }},
-		{"registered read", func() { _, _, _ = s.GetBlock(ctx, live[1]) }},
-		{"locate", func() { _, _ = s.LocateBlocks(ctx, batch) }},
-		{"absent read", func() { _, _, _ = s.GetBlock(ctx, absent) }},
+		{"extent read", func() { _ = s.readExtent(ctx, live[0]) }, false},
+		{"registered read", func() { _, _, _ = s.GetBlock(ctx, live[1]) }, false},
+		{"locate", func() { _, _ = s.LocateBlocks(ctx, batch) }, false},
+		{"absent read", func() { _, _, _ = s.GetBlock(ctx, absent) }, false},
 		{"fallback read", func() {
 			if _, found, err := s.GetBlock(ctx, firsts[next]); err != nil || !found {
 				t.Errorf("fallback read of held pack %d = %v, %v", next, found, err)
 			}
 			next++
-		}},
+		}, true},
 	}
 	costs := make([]holdCost, len(paths))
 	for i, p := range paths {
-		before := objects.entryReads.Load() + objects.rangeReads.Load()
-		allocs := testing.AllocsPerRun(holdRuns, p.fn)
-		reads := float64(objects.entryReads.Load()+objects.rangeReads.Load()-before) / (holdRuns + 1)
-		costs[i] = holdCost{name: p.name, allocs: allocs, reads: reads}
+		rounds := holdRounds
+		if p.lifts {
+			rounds = 1
+		}
+		costs[i] = holdCost{name: p.name, allocs: math.Inf(1), reads: math.Inf(1)}
+		for range rounds {
+			before := objects.entryReads.Load() + objects.rangeReads.Load()
+			allocs := testing.AllocsPerRun(holdRuns, p.fn)
+			reads := float64(objects.entryReads.Load()+objects.rangeReads.Load()-before) / (holdRuns + 1)
+			costs[i].allocs, costs[i].reads = min(costs[i].allocs, allocs), min(costs[i].reads, reads)
+		}
 	}
 	return costs
 }
@@ -102,10 +116,15 @@ func TestHoldReadsScale(t *testing.T) {
 		for i, s := range small {
 			l := large[i]
 			t.Logf("%s: %d held: %.1f allocs, %.2f reads; %d held: %.1f allocs, %.2f reads", s.name, n, s.allocs, s.reads, 10*n, l.allocs, l.reads)
-			// A B-tree a level deeper may allocate a node more, and a pack's
-			// tail read now and then varies the fallback's reads by a fraction
-			// of one; nothing grows with the held packs.
-			if l.allocs > s.allocs*1.1+2 || l.reads > s.reads+0.5 {
+			// A B-tree a level deeper may allocate a node more, and where a
+			// pack's tail lies varies the fallback's reads by a fraction of one,
+			// with the allocations of each read, so a path that reads compares
+			// its allocations per read; nothing grows with the held packs.
+			sa, la := s.allocs, l.allocs
+			if s.reads > 0 && l.reads > 0 {
+				sa, la = s.allocs/s.reads, l.allocs/l.reads
+			}
+			if la > sa*1.1+2 || l.reads > s.reads+0.5 {
 				t.Errorf("%s grew from %.1f allocs and %.2f reads to %.1f and %.2f", s.name, s.allocs, s.reads, l.allocs, l.reads)
 			}
 		}
