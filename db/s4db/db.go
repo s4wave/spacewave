@@ -601,13 +601,18 @@ func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	}
 
 	// Wait while the memtable is past its ceiling, then count the writer so
-	// Close waits for it, take the writer lock and read the state it caught
-	// up to.
+	// Close waits for it. An optimistic transaction reads the published
+	// state and takes the writer lock at Commit; any other takes the lock
+	// now and reads the state it caught up to.
 	if err := db.waitMemtable(ctx, block.IsBackground(ctx)); err != nil {
 		return nil, err
 	}
 	if err := db.beginWrite(); err != nil {
 		return nil, err
+	}
+	if kvtx.IsOptimisticContext(ctx) {
+		st, stripe := db.acquire()
+		return &Tx{db: db, st: st, stripe: stripe, changes: newChanges(), reads: newReadSet()}, nil
 	}
 	if err := db.w.lock(ctx); err != nil {
 		db.endWrite()

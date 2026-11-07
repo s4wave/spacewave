@@ -1,0 +1,12 @@
+[
+  {
+    "name": "a flush past the snapshot passes validation",
+    "replace": [["\\/ flushed > s", "\\/ FALSE"]],
+    "expect": "Safety"
+  },
+  {
+    "name": "a memtable entry newer than the snapshot passes validation",
+    "replace": [["\\/ \\E k \\in R : mem[k] > s", "\\/ FALSE"]],
+    "expect": "Safety"
+  }
+]
