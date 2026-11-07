@@ -80,6 +80,9 @@ type NodeDrainConfig struct {
 	// MinAge leaves out the blocks written this recently, which their own
 	// push may have sent already.
 	MinAge time.Duration
+	// Regrow starts another pass once the queued bytes grow this far after
+	// one ends, such as after the node was away. Zero runs one pass.
+	Regrow int64
 	// Report receives the drain's progress, or is nil.
 	Report func(block_store_writeback.DrainReport)
 }
@@ -227,6 +230,7 @@ func (t *bstoreTracker) startNodePush(
 		}, block_store_writeback.DrainOptions{
 			MinAge:     conf.Drain.MinAge,
 			BatchBytes: nodeDrainBatchBytes,
+			Regrow:     conf.Drain.Regrow,
 			Admit:      conf.Drain.Admit,
 			Report:     conf.Drain.Report,
 		})
@@ -240,10 +244,10 @@ func (t *bstoreTracker) startNodePush(
 	}
 }
 
-// runNodeDrain runs the drain against the open backend until its pass ends or
-// ctx ends. A failed step, such as a push while the node is away, waits
-// nodeRedial and resumes where it stopped; meanwhile the upload carries the
-// queue alone.
+// runNodeDrain runs the drain against the open backend until ctx ends, or its
+// one pass ends with Regrow zero. A failed step, such as a push while the node
+// is away, waits nodeRedial and resumes where it stopped; meanwhile the upload
+// carries the queue alone.
 func (t *bstoreTracker) runNodeDrain(ctx context.Context, le *logrus.Entry, placement *placementState, drain *block_store_writeback.Drain) {
 	for {
 		// Wait for the backend, whose index says what needs no push.

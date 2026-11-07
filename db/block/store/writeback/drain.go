@@ -34,6 +34,10 @@ type DrainOptions struct {
 	// BatchBytes bounds the queued bytes one push carries. A batch holds at
 	// least one block.
 	BatchBytes int64
+	// Regrow starts another pass once the queued bytes grow this far above
+	// their lowest since the last pass ended, such as after the receiver was
+	// away. Zero runs one pass.
+	Regrow int64
 	// Admit is called before each batch with the queued bytes the previous
 	// batch handled, pushed or located, and returns once the next may start.
 	// It holds the drain while it is switched off. A nil Admit admits each
@@ -55,16 +59,19 @@ type DrainReport struct {
 	Located int64
 	// LocatedBytes is their queued size.
 	LocatedBytes int64
-	// Done reports that the pass reached the head of the queue.
+	// Done reports that a pass reached its end.
 	Done bool
 	// Err is the failure that ended a Run early, nil otherwise.
 	Err error
 }
 
-// Drain pushes the upload backlog to a receiver that uploads it, in one pass
+// Drain pushes the upload backlog to a receiver that uploads it, in passes
 // from the newest entry older than MinAge back to the queue's head, which
 // Upload drains forward, so the two meet once. It suits a backlog that the
-// remote uploads slower than the receiver.
+// remote uploads slower than the receiver. A later pass, once the backlog
+// grows again, walks only the entries written since the last one started:
+// those the last pass pushed may wait for their reports, and are not pushed
+// twice.
 //
 // Invariants, which Upload's own rules already keep for every other path:
 //
@@ -94,15 +101,22 @@ type Drain struct {
 	push DrainPush
 	opts DrainOptions
 
-	// below is the queue key the next batch reads below, nil before the pass
-	// starts. It moves only past a batch that pushed or needed no push.
+	// below is the queue key the next batch reads below, nil between passes.
+	// It moves only past a batch that pushed or needed no push.
 	below []byte
+	// cutoff is the key the pass started below, and stop the key it ends at:
+	// the cutoff of the pass before, nil for the first, which ends at the
+	// queue's head.
+	cutoff, stop []byte
+	// ended is the queued bytes when the last pass ended, which the next
+	// pass's growth is measured from.
+	ended int64
 	// held is a batch read and not yet pushed, kept across a failed push so a
 	// node that is away costs no reads, with the key it moves below to.
 	held *drainBatch
 	// last is the queued bytes the last batch handled, for Admit.
 	last int64
-	// done is set once the pass reached the queue's head.
+	// done is set once the only pass ended, with Regrow zero.
 	done bool
 }
 
@@ -122,29 +136,64 @@ func (s *Store) NewDrain(push DrainPush, opts DrainOptions) *Drain {
 }
 
 // Run drains the queue against remote, whose index says which blocks need no
-// push, until the pass ends, ctx ends or a step fails. It returns nil once the
-// pass is done, and at once on every later call. After a failure, a later call
-// resumes where this one stopped, pushing a batch it read before. Calls must
-// not overlap.
+// push, until ctx ends or a step fails. With Regrow zero it returns nil once
+// the one pass is done, and at once on every later call. After a failure, a
+// later call resumes where this one stopped, pushing a batch it read before.
+// Calls must not overlap.
 func (d *Drain) Run(ctx context.Context, remote block.StoreOps) error {
 	// Wait for the queue's count, as every clear does.
 	if err := d.s.waitCounted(ctx); err != nil {
 		return err
 	}
-	if d.below == nil && !d.done {
-		d.below = queueFloor(queueTime(time.Now().Add(-d.opts.MinAge)))
-	}
 
-	// Drain batches until the pass ends.
 	for !d.done {
-		if err := d.step(ctx, remote); err != nil {
-			if ctx.Err() == nil {
-				d.report(DrainReport{Err: err})
+		// Start a pass below the newest entry old enough.
+		if d.below == nil {
+			d.cutoff = queueFloor(queueTime(time.Now().Add(-d.opts.MinAge)))
+			d.below = d.cutoff
+		}
+
+		// Drain batches until the pass ends.
+		for d.below != nil {
+			if err := d.step(ctx, remote); err != nil {
+				if ctx.Err() == nil {
+					d.report(DrainReport{Err: err})
+				}
+				return err
 			}
+		}
+
+		// Stop after one pass, or wait for the backlog to grow again.
+		if d.opts.Regrow <= 0 {
+			d.done = true
+			return nil
+		}
+		if err := d.s.waitRegrow(ctx, d.ended, d.opts.Regrow); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// waitRegrow returns once the queued bytes grow grow above their lowest since
+// they were from, or with ctx's error.
+func (s *Store) waitRegrow(ctx context.Context, from, grow int64) error {
+	low := from
+	for {
+		// Follow the lowest queued bytes, and return on enough growth.
+		status, changed := s.GetStatus()
+		low = min(low, status.PendingBytes)
+		if status.PendingBytes-low >= grow {
+			return nil
+		}
+
+		// Wait for the next change of the status.
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-changed:
+		}
+	}
 }
 
 // step admits and drains one batch.
@@ -157,12 +206,13 @@ func (d *Drain) step(ctx context.Context, remote block.StoreOps) error {
 	}
 	d.last = 0
 	if d.held == nil {
-		batch, next, err := d.s.queueBefore(ctx, d.below, d.opts.BatchBytes)
+		batch, next, err := d.s.queueBefore(ctx, d.below, d.stop, d.opts.BatchBytes)
 		if err != nil {
 			return err
 		}
 		if next == nil {
-			d.done = true
+			status, _ := d.s.GetStatus()
+			d.below, d.stop, d.ended = nil, d.cutoff, status.PendingBytes
 			d.report(DrainReport{Done: true})
 			return nil
 		}
@@ -237,14 +287,19 @@ func (d *Drain) report(r DrainReport) {
 	}
 }
 
-// queueBefore reads the queue entries below the key before, newest first, up
-// to maxBytes of queued blocks and drainBatchBlocks entries, and returns them
-// in queue order with the key the next batch reads below. A nil next means no
-// live entry is left below before. An entry too large to push is passed over
-// and stays queued for Upload, so a batch of only those is empty.
-func (s *Store) queueBefore(ctx context.Context, before []byte, maxBytes int64) ([]pendingBlock, []byte, error) {
-	// No live entry sorts below the floor.
+// queueBefore reads the queue entries below the key before and at or above
+// stop, newest first, up to maxBytes of queued blocks, and returns them in
+// queue order with the key the next batch reads below. A nil stop reads down
+// to the queue's head, and a nil next means no live entry is left in range.
+// An entry too large to push is passed over and stays queued for Upload, so a
+// batch of only those is empty. The entries walked, taken or passed over, stay
+// within drainBatchBlocks, which bounds one read transaction.
+func (s *Store) queueBefore(ctx context.Context, before, stop []byte, maxBytes int64) ([]pendingBlock, []byte, error) {
+	// No live entry sorts below the floor, and the pass ends at stop.
 	floor, _ := s.readFloor()
+	if bytes.Compare(stop, floor) > 0 {
+		floor = stop
+	}
 
 	// Read back from before in a read transaction of this batch's own.
 	var batch []pendingBlock
@@ -254,20 +309,22 @@ func (s *Store) queueBefore(ctx context.Context, before []byte, maxBytes int64) 
 		// the newest entry at or below before.
 		batch, next = nil, nil
 		var batchBytes int64
+		walked := 0
 		it := tx.Iterate(ctx, []byte(queuePrefix), true, true)
 		defer it.Close()
 		if err := it.Seek(before); err != nil {
 			return err
 		}
 		for ok := it.Valid(); ok; ok = it.Next() {
-			// Stop below the floor.
+			// Stop below the floor, or once the batch walked its bound.
 			key := it.Key()
 			if bytes.Equal(key, before) {
 				continue
 			}
-			if floor != nil && bytes.Compare(key, floor) < 0 {
+			if floor != nil && bytes.Compare(key, floor) < 0 || walked == drainBatchBlocks {
 				break
 			}
+			walked++
 
 			// Pass over an entry too large to push, and stop at a full batch.
 			value, err := it.Value()
@@ -280,7 +337,7 @@ func (s *Store) queueBefore(ctx context.Context, before []byte, maxBytes int64) 
 				next = bytes.Clone(key)
 				continue
 			}
-			if len(batch) != 0 && (len(batch) == drainBatchBlocks || batchBytes+size > maxBytes) {
+			if len(batch) != 0 && batchBytes+size > maxBytes {
 				break
 			}
 
