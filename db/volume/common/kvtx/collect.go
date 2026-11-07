@@ -57,7 +57,7 @@ func (s collectorStore) View(ctx context.Context, fn func(rec *block_gc.Records)
 
 // BlockStored reports whether the Volume holds the bytes of ref.
 func (s collectorStore) BlockStored(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return s.v.Store.GetBlockExists(ctx, ref)
+	return s.v.GetBlockExists(ctx, ref)
 }
 
 // ScanBlocks calls fn with runs of the blocks the Volume keeps as records, as

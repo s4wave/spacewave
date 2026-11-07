@@ -102,7 +102,7 @@ func (v *Volume) recordRootProofs(ctx context.Context, roots []*block.BlockRef) 
 			if root.GetEmpty() {
 				continue
 			}
-			found, err := v.Store.GetBlockExists(ctx, root)
+			found, err := v.GetBlockExists(ctx, root)
 			if err != nil {
 				return err
 			}

@@ -461,7 +461,7 @@ func (v *Volume) GetStorageStatsSnapshotWithWait(
 
 // reader reads the embedded store, marking durable reads.
 func (v *Volume) reader() storeReader {
-	return storeReader{volume: v, store: v.Store}
+	return storeReader{StoreOps: v.Store, volume: v}
 }
 
 // broadcastStorageStatsChanged wakes watchers of the Volume storage statistics.
@@ -593,21 +593,6 @@ func (v *Volume) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, boo
 // GetStoredBlock reads a block with its refs from the embedded store.
 func (v *Volume) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	return v.reader().GetStoredBlock(ctx, ref)
-}
-
-// GetBlockExists asks the embedded store for a block.
-func (v *Volume) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return v.reader().GetBlockExists(ctx, ref)
-}
-
-// GetBlockExistsBatch asks the embedded store for each block.
-func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	return v.reader().GetBlockExistsBatch(ctx, refs)
-}
-
-// StatBlock asks the embedded store for a block's size.
-func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	return v.reader().StatBlock(ctx, ref)
 }
 
 // RmBlock evicts a block's bytes and its proof, and reports the removal to the
