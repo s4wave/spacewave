@@ -131,6 +131,77 @@ export const PackHold: MessageType<PackHold> =
   )
 
 /**
+ * RootsRequest asks for the roots of a walk.
+ *
+ * @generated from message block.packsweep.admin.RootsRequest
+ */
+export interface RootsRequest {}
+
+export const RootsRequest: MessageType<RootsRequest> =
+  /* @__PURE__ */ createMessageType<RootsRequest>(
+    'block.packsweep.admin.RootsRequest',
+    () => [],
+  )
+
+/**
+ * RootsResponse holds the roots of a walk and the log position they were
+ * read at.
+ *
+ * @generated from message block.packsweep.admin.RootsResponse
+ */
+export interface RootsResponse {
+  /**
+   * Position is the write log's position R, read before the roots and the
+   * pins, as epoch/seq; empty while the log is off, and then no cycle on
+   * these roots can remove a pack.
+   */
+  position?: string
+  /**
+   * Roots are the named roots.
+   */
+  roots?: NamedRootRef[]
+  /**
+   * Pins are the refs the process pins.
+   */
+  pins?: BlockRef[]
+}
+
+export const RootsResponse: MessageType<RootsResponse> =
+  /* @__PURE__ */ createMessageType<RootsResponse>(
+    'block.packsweep.admin.RootsResponse',
+    () => [
+      [1, 'position', 9],
+      [2, 'roots', 11, 1, NamedRootRef.codec],
+      [3, 'pins', 11, 1, BlockRef.codec],
+    ],
+  )
+
+/**
+ * NamedRootRef is one named root and the block it holds.
+ *
+ * @generated from message block.packsweep.admin.NamedRootRef
+ */
+export interface NamedRootRef {
+  /**
+   * Name is the root's name.
+   */
+  name?: string
+  /**
+   * Ref is the block the root holds.
+   */
+  ref?: BlockRef
+}
+
+export const NamedRootRef: MessageType<NamedRootRef> =
+  /* @__PURE__ */ createMessageType<NamedRootRef>(
+    'block.packsweep.admin.NamedRootRef',
+    () => [
+      [1, 'name', 9],
+      [2, 'ref', 11, 0, BlockRef.codec],
+    ],
+  )
+
+/**
  * LogStatus is the write log's state.
  *
  * @generated from message block.packsweep.admin.LogStatus
