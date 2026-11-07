@@ -63,6 +63,16 @@ func (r *heldReads) get(ref *block.BlockRef) (*block.StoredBlock, error) {
 	return stored, nil
 }
 
+// BeginReadOperation opens a read scope of the local store that still reads
+// the memory set first.
+func (r *heldReads) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	scope, release, err := r.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &heldReads{StoreOps: scope, held: r.held}, release, nil
+}
+
 // GetBlock reads the memory set, then the local store.
 func (r *heldReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if stored, err := r.get(ref); err != nil || stored != nil {
@@ -132,32 +142,52 @@ type nodeKeyReads struct {
 	wait   time.Duration
 }
 
-// GetStoredBlock reads the other paths, then the node.
+// BeginReadOperation opens a read scope of the other paths that still asks
+// the node last.
+func (r *nodeKeyReads) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	scope, release, err := r.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &nodeKeyReads{StoreOps: scope, client: r.client, wait: r.wait}, release, nil
+}
+
+// GetStoredBlock reads the other paths, then the node. A path that ends in
+// an error, such as no peer to ask, still asks the node, and keeps its error
+// when the node lacks the block too.
 func (r *nodeKeyReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the other paths.
 	stored, err := r.StoreOps.GetStoredBlock(ctx, ref)
-	if err != nil || stored != nil || ref.GetEmpty() {
+	if stored != nil || ref.GetEmpty() {
 		return stored, err
 	}
+	if found := r.readNode(ctx, ref); found != nil {
+		return found, nil
+	}
+	return nil, err
+}
+
+// readNode reads ref from the node's pack log by key, or returns nil.
+func (r *nodeKeyReads) readNode(ctx context.Context, ref *block.BlockRef) *block.StoredBlock {
 
 	// Ask the node, within the wait.
 	client := r.client.Load()
 	if client == nil {
-		return nil, nil
+		return nil
 	}
 	rctx, cancel := context.WithTimeout(ctx, r.wait)
 	defer cancel()
 	value, ok := client.ReadBlock(rctx, packfile.BlockKey(ref.GetHash()))
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
 	// Check what it sends; a bad answer is a miss.
-	stored, err = block.DecodeBlockObject(value)
+	stored, err := block.DecodeBlockObject(value)
 	if err != nil || ref.VerifyData(stored.Data, false) != nil {
-		return nil, nil
+		return nil
 	}
-	return stored, nil
+	return stored
 }
 
 // GetBlock reads as GetStoredBlock does.
