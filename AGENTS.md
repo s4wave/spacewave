@@ -150,6 +150,30 @@ Resolvers use `directive.NewValueResolver` for static values and `directive.NewF
 
 Use the existing `Ex*` and `loader.WaitExecControllerRunning*` helpers. Keep a returned live `directive.Reference` until the caller's resource or lifecycle releases it.
 
+## World writes and reads
+
+Express each World change as a typed, registered `world.Operation` that records intent, applied through `ApplyWorldOp` or an object's `ApplyObjectOp`. Do not use an operation that only carries a list of final values. The operation carries every input its apply needs: the actor, timestamps, generated identities and payload refs. That way validation, the locked apply and a replica's replay decide alike. An apply reads only the World and the operation. Write the blocks an operation publishes before applying it, and run network calls, clock reads and other external effects outside the apply.
+
+One writer holds a World's writer slot at a time, so every cold block read under it delays every other write. Do the slow reads before taking the slot, then validate again under it, because the head may have moved. Keep the locked part bounded: never hold a write transaction across a scan, a file transfer, a network call or a wait. Maintenance prepares its changes outside the slot and commits them in small batches that yield to foreground writes.
+
+Exercise a new operation through the real apply path at representative and high cardinalities before landing it. Record the records and blocks it touches, how long it holds the writer slot, and its commit cost. An in-memory benchmark measures CPU, not storage latency.
+
+Startup and opening must not depend on how much the World holds. A pass over stored records, such as a backfill or a cleanup, runs in the background after the component serves, and logs how many records it read and how long it took. A request, watch or loop starts at the objects it concerns and follows graph edges or an index. It never scans every object of a type, and it never repeats a lookup inside a loop over records.
+
+A graph lookup is indexed by its subject or its object. A lookup that fixes only the predicate reads every quad in the World, however few edges match. For a World-wide set, link every member to one index object and read from that object; a self link is not an index. A watch, lease or cache that recomputes on every World revision multiplies a read's cost by its subscribers and the revision rate, so state that product before adding a read there.
+
+A dependency update that changes a store's on-disk format converts it on first open. Measure that first open on a copy of production size before landing the update.
+
+## CDN Spaces, releases and relays
+
+A CDN Space's packs are content addressed and immutable; its root pointer changes on every commit. Serve packs with a long immutable cache rule, and serve the pointer from its own base URL (`RootPointerBaseURL`) with revalidation on every read, never behind the pack rule. Packs are append-only: a commit never replaces or deletes a pack that a published pointer names, and only the repack and reclaim path frees space, after the new pointer is published. A commit adds a pack only after its size and hash are verified, and the new pointer becomes visible only once it is durable.
+
+Bucket credentials stay on the server. A writer uploads through a short-lived presigned URL, and a reader of a private Space gets a download authorization scoped to that Space's prefix. Neither ever holds the bucket key. A volume serves any block it holds to anyone who names its hash, so keep public and private content on separate volumes.
+
+A launcher adopts a signed release selector and fetches its root at once. Check the selection out of the release World before signing it, and sign and serve the selector only after its root is durable on the CDN Space. A published revision only grows: roll back by reissuing a retained manifest at a revision above the current one, never by republishing an old revision. Keep a fixed number of revisions per platform so the release World stays bounded.
+
+Supply relay credentials through `LookupICEProvider`, answered only for the local session's own peer. The provider token stays on the issuing server. Keep issued credentials in memory for one connection attempt, refuse those about to expire, and never persist, log or include them in directive debug values.
+
 ## Documentation audiences
 
 Each page in `app/docs/content/` serves one audience:
