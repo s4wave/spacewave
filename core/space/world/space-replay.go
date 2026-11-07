@@ -83,7 +83,7 @@ type spaceReplay struct {
 	bound *bucket.ObjectRef
 	// stage holds what a serving adapter's replay stores until a cursor save
 	// lands, or is nil for a transient replay, whose kept pages already go
-	// to a stage the caller holds.
+	// to a stage the caller holds. Its methods do nothing on nil.
 	stage *replayStage
 }
 
@@ -93,42 +93,6 @@ func (r *spaceReplay) store() block.StoreOps {
 		return r.a.pages
 	}
 	return r.stage
-}
-
-// openStage opens the replay stage of a serving adapter's run.
-func (r *spaceReplay) openStage(ctx context.Context) error {
-	stage, err := newReplayStage(ctx, r.a.pages)
-	if err != nil {
-		return err
-	}
-	r.stage = stage
-	return nil
-}
-
-// rotateStage starts the next epoch of the replay stage, for a save that
-// starts now, and returns the epochs the save ends once it lands, and whether
-// any of them stored a page. It returns none without a stage.
-func (r *spaceReplay) rotateStage(ctx context.Context) ([]*block.OverflowStage, bool, error) {
-	if r.stage == nil {
-		return nil, false, nil
-	}
-	return r.stage.rotate(ctx)
-}
-
-// keepStages keeps the epochs of a save that did not land for the next one.
-func (r *spaceReplay) keepStages(epochs []*block.OverflowStage) {
-	if r.stage != nil {
-		r.stage.keep(epochs)
-	}
-}
-
-// endStage releases the replay stage once the run ended and no save runs. A
-// later put through it fails, which stops replay rather than storing pages
-// nothing holds.
-func (r *spaceReplay) endStage() {
-	if r.stage != nil {
-		r.stage.end()
-	}
 }
 
 // stateBefore returns the World before the position at index and its seqno.

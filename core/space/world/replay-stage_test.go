@@ -42,10 +42,12 @@ func newReplayFixture(t *testing.T, maxPending int) *replayFixture {
 	a, collect := newVolumeAdapter(t, maxPending, time.Nanosecond)
 	a.so = &localStateSpace{store: kvtx_inmem.NewStore()}
 	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{}}}
-	if err := a.replay.openStage(t.Context()); err != nil {
+	stage, err := newReplayStage(t.Context(), a.pages)
+	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(a.replay.endStage)
+	a.replay.stage = stage
+	t.Cleanup(stage.end)
 	return &replayFixture{t: t, a: a, collect: collect}
 }
 

@@ -90,7 +90,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 	if !ok {
 		return nil
 	}
-	epochs, stored, err := r.rotateStage(ctx)
+	epochs, stored, err := r.stage.rotate(ctx)
 	if err != nil {
 		done()
 		return err
@@ -114,7 +114,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		if err == nil {
 			endEpochs(epochs)
 		} else {
-			r.keepStages(epochs)
+			r.stage.keep(epochs)
 		}
 		done()
 		if err != nil && ctx.Err() == nil {
