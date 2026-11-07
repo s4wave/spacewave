@@ -1194,12 +1194,9 @@ func (e *Engine) SetChangelogDisabled(ctx context.Context, disable bool) error {
 	}
 
 	// Apply the setting and commit only a change.
-	unlock, err := engTx.writeTx.rmtx.Lock(ctx, true)
-	if err != nil {
-		return err
-	}
-	changed, err := engTx.writeTx.state.SetChangelogDisabled(ctx, disable)
-	unlock()
+	changed, err := lockedValue(ctx, engTx.writeTx, true, func() (bool, error) {
+		return engTx.writeTx.state.SetChangelogDisabled(ctx, disable)
+	})
 	if err != nil || !changed {
 		return err
 	}

@@ -10,47 +10,41 @@ import (
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (t *Tx) accessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
-	return t.state.AccessCayleyGraph(ctx, write, cb)
+func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+	return t.locked(ctx, false, func() error {
+		return t.state.AccessCayleyGraph(ctx, write, cb)
+	})
 }
 
-// LookupGraphQuads searches for graph quads in the store.
+// lookupGraphQuads searches for graph quads in the store. LookupGraphQuads
+// wraps it with the startup trace when that build tag is set.
 func (t *Tx) lookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	return t.state.LookupGraphQuads(ctx, filter, limit)
+	return lockedValue(ctx, t, false, func() ([]world.GraphQuad, error) {
+		return t.state.LookupGraphQuads(ctx, filter, limit)
+	})
 }
 
 // LookupGraphQuadsBatch searches for graph quads for each filter in one locked read.
-func (t *Tx) lookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	return t.state.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+func (t *Tx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	return lockedValue(ctx, t, false, func() ([][]world.GraphQuad, error) {
+		return t.state.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+	})
 }
 
 // QueryGraphPath executes a bounded graph traversal.
-func (t *Tx) queryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
+func (t *Tx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	return lockedValue(ctx, t, false, func() (*world.GraphPathQueryResult, error) {
+		return t.state.QueryGraphPath(ctx, query)
+	})
+}
 
-	return t.state.QueryGraphPath(ctx, query)
+// ListObjectsWithType retains the transaction lock for one typed subject page.
+func (t *Tx) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) (keys []string, more bool, err error) {
+	err = t.locked(ctx, false, func() error {
+		keys, more, err = t.state.ListObjectsWithType(ctx, typeID, startAfter, limit)
+		return err
+	})
+	return keys, more, err
 }
 
 // SetGraphQuad sets a quad in the graph store.
@@ -58,82 +52,26 @@ func (t *Tx) queryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*
 // Predicate: a predicate string, e.x. IRI: <ref>
 // Object: an existing object IRI: <object-key>
 // If already exists, returns nil.
-func (t *Tx) setGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
-	return t.state.SetGraphQuad(ctx, q)
-}
-
-// DeleteGraphQuad deletes a quad from the graph store.
-// Note: if quad did not exist, returns nil.
-func (t *Tx) deleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
-	return t.state.DeleteGraphQuad(ctx, q)
-}
-
-// DeleteGraphObject deletes all quads with Subject or Object set to value.
-// May also remove objects with <predicate> or <value> set to the value.
-func (t *Tx) deleteGraphObject(ctx context.Context, value string) error {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
-	return t.state.DeleteGraphObject(ctx, value)
-}
-
-// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
-func (t *Tx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
-	return t.accessCayleyGraph(ctx, write, cb)
-}
-
-// LookupGraphQuadsBatch searches for graph quads for each filter in one locked read.
-func (t *Tx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	return t.lookupGraphQuadsBatch(ctx, filters, limitPerFilter)
-}
-
-// QueryGraphPath executes a bounded graph traversal.
-func (t *Tx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	return t.queryGraphPath(ctx, query)
-}
-
-// ListObjectsWithType retains the transaction lock for one typed subject page.
-func (t *Tx) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
-	// Retain the transaction's read authority through the page scan.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, false, err
-	}
-	defer unlock()
-
-	// Read the typed page from the transaction's current World state.
-	return t.state.ListObjectsWithType(ctx, typeID, startAfter, limit)
-}
-
-// SetGraphQuad sets a quad in the graph store.
 func (t *Tx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	return t.setGraphQuad(ctx, q)
+	return t.locked(ctx, true, func() error {
+		return t.state.SetGraphQuad(ctx, q)
+	})
 }
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
 func (t *Tx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	return t.deleteGraphQuad(ctx, q)
+	return t.locked(ctx, true, func() error {
+		return t.state.DeleteGraphQuad(ctx, q)
+	})
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
+// May also remove objects with <predicate> or <value> set to the value.
 func (t *Tx) DeleteGraphObject(ctx context.Context, value string) error {
-	return t.deleteGraphObject(ctx, value)
+	return t.locked(ctx, true, func() error {
+		return t.state.DeleteGraphObject(ctx, value)
+	})
 }
 
 // _ is a type assertion

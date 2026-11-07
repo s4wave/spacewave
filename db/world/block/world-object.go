@@ -65,7 +65,10 @@ func (t *WorldState) mustGetObject(ctx context.Context, key string) (*ObjectStat
 // Call Close when done with the iterator.
 // Any init errors will be available via the iterator's Err() method.
 func (t *WorldState) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	return NewObjectIterator(t, ctx, prefix, reversed)
+	return &objectIterator{
+		prefix: prefix,
+		iter:   t.objTree.Iterate(ctx, []byte(objectKeyPrefix+prefix), true, reversed),
+	}
 }
 
 // CreateObject creates an object with a key and initial root ref.
@@ -441,9 +444,6 @@ func (t *WorldState) PurgeObject(ctx context.Context, key string) (bool, error) 
 	return true, err
 }
 
-// _ is a type assertion.
-var _ world.ObjectPurger = (*WorldState)(nil)
-
 // renameGraphObject rewrites each complete incident quad exactly once.
 func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey string) error {
 	// Open the graph, then capture both endpoint directions before changing
@@ -527,4 +527,7 @@ func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey strin
 }
 
 // _ is a type assertion
-var _ world.WorldStateObject = (*WorldState)(nil)
+var (
+	_ world.WorldStateObject = (*WorldState)(nil)
+	_ world.ObjectPurger     = (*WorldState)(nil)
+)

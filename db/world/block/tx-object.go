@@ -10,17 +10,19 @@ import (
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
-	// Lock the transaction for the object read.
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return nil, false, err
-	}
-	defer unlock()
-
-	// Load the object and wrap it.
-	cobj, ok, err := t.state.GetObject(ctx, key)
-	if err != nil || !ok || cobj == nil {
-		world.ReleaseObjectState(cobj)
+	// Load the object under the read lock, releasing a miss there.
+	var cobj world.ObjectState
+	var ok bool
+	err := t.locked(ctx, false, func() error {
+		var err error
+		cobj, ok, err = t.state.GetObject(ctx, key)
+		if err != nil || !ok || cobj == nil {
+			world.ReleaseObjectState(cobj)
+			cobj = nil
+		}
+		return err
+	})
+	if cobj == nil {
 		return nil, ok, err
 	}
 	return NewTxObjectState(t, key, cobj), true, nil
@@ -33,84 +35,68 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 // Call Close when done with the iterator.
 // Any init errors will be available via the iterator's Err() method.
 func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	// newTxObjectIterator takes the read lock: taking it here too would
-	// recursively read lock and deadlock behind a queued writer.
-	return newTxObjectIterator(t, ctx, prefix, reversed)
+	// Open the state iterator under the read lock. Each step of the iterator
+	// takes the read lock again, so no step may run while this call holds it.
+	var it world.ObjectIterator
+	err := t.lockedLive(ctx, func() error {
+		it = t.state.IterateObjects(ctx, prefix, reversed)
+		return nil
+	})
+	if err != nil {
+		return &txObjectIterator{err: err}
+	}
+	return &txObjectIterator{t: t, ctx: ctx, it: it}
 }
 
 // CreateObject creates a object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
-	// Lock the transaction for the object create.
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	// Create the object and wrap it.
-	cobj, err := t.state.CreateObject(ctx, key, rootRef)
-	if err != nil || cobj == nil {
-		world.ReleaseObjectState(cobj)
-		return nil, err
-	}
-	return NewTxObjectState(t, key, cobj), nil
+	return lockedValue(ctx, t, true, func() (world.ObjectState, error) {
+		cobj, err := t.state.CreateObject(ctx, key, rootRef)
+		if err != nil || cobj == nil {
+			world.ReleaseObjectState(cobj)
+			return nil, err
+		}
+		return NewTxObjectState(t, key, cobj), nil
+	})
 }
 
 // RenameObject renames an object key and updates associated graph quads.
 func (t *Tx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
-	// Lock the transaction for the rename.
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	defer unlock()
-
-	// Rename the object and wrap the result.
-	cobj, err := t.state.RenameObject(ctx, oldKey, newKey, descendants)
-	if err != nil || cobj == nil {
-		world.ReleaseObjectState(cobj)
-		return nil, err
-	}
-	return NewTxObjectState(t, newKey, cobj), nil
+	return lockedValue(ctx, t, true, func() (world.ObjectState, error) {
+		cobj, err := t.state.RenameObject(ctx, oldKey, newKey, descendants)
+		if err != nil || cobj == nil {
+			world.ReleaseObjectState(cobj)
+			return nil, err
+		}
+		return NewTxObjectState(t, newKey, cobj), nil
+	})
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (t *Tx) DeleteObject(ctx context.Context, key string) (bool, error) {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return false, err
-	}
-	defer unlock()
-
-	return t.state.DeleteObject(ctx, key)
+	return lockedValue(ctx, t, true, func() (bool, error) {
+		return t.state.DeleteObject(ctx, key)
+	})
 }
 
 // PurgeObject removes the object entry and its graph quads without reading
 // the object's record. Returns false, nil if not found.
 func (t *Tx) PurgeObject(ctx context.Context, key string) (bool, error) {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return false, err
-	}
-	defer unlock()
-
-	return t.state.PurgeObject(ctx, key)
+	return lockedValue(ctx, t, true, func() (bool, error) {
+		return t.state.PurgeObject(ctx, key)
+	})
 }
 
 // HasObject reports whether an object exists at key. It takes the write lock
 // because a miss may populate the underlying state's transaction-local object
 // memo, which the single-threaded state does not guard on its own.
 func (t *Tx) HasObject(ctx context.Context, key string) (bool, error) {
-	unlock, err := t.rmtx.Lock(ctx, true)
-	if err != nil {
-		return false, err
-	}
-	defer unlock()
-
-	return t.state.HasObject(ctx, key)
+	return lockedValue(ctx, t, true, func() (bool, error) {
+		return t.state.HasObject(ctx, key)
+	})
 }
 
 // _ is a type assertion

@@ -70,52 +70,41 @@ func (e *EngineTx) ApplyWorldOp(
 	ctx context.Context,
 	op world.Operation,
 	opSender peer.ID,
-) (uint64, bool, error) {
-	var outSeqno uint64
-	var outSysErr bool
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		outSeqno, outSysErr, berr = tx.ApplyWorldOp(ctx, op, opSender)
-		return berr
+) (seqno uint64, sysErr bool, err error) {
+	err = e.performOp(ctx, func(tx *Tx) error {
+		seqno, sysErr, err = tx.ApplyWorldOp(ctx, op, opSender)
+		return err
 	})
-	return outSeqno, outSysErr, err
+	return seqno, sysErr, err
 }
 
 // CreateObject creates an object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
-	var obj world.ObjectState
-	if err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
-		world.ReleaseObjectState(obj)
-		obj, err = tx.CreateObject(ctx, key, rootRef)
-		return err
-	}); err != nil {
+	obj, err := performOpValue(ctx, e, func(tx *Tx) (world.ObjectState, error) {
+		return tx.CreateObject(ctx, key, rootRef)
+	})
+	if err != nil {
 		world.ReleaseObjectState(obj)
 		return nil, err
 	}
-
 	return newEngineTxObjectState(e, key, obj), nil
 }
 
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
-func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+func (e *EngineTx) GetObject(ctx context.Context, key string) (obj world.ObjectState, found bool, err error) {
 	// Look up the object in the transaction.
-	var found bool
-	var obj world.ObjectState
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var nerr error
-		world.ReleaseObjectState(obj)
-		obj, found, nerr = tx.GetObject(ctx, key)
-		return nerr
+	err = e.performOp(ctx, func(tx *Tx) error {
+		obj, found, err = tx.GetObject(ctx, key)
+		return err
 	})
 	if err != nil || !found {
-		world.ReleaseObjectState(obj)
 		return nil, found, err
 	}
 
-	// Wrap the object for a write transaction.
+	// Keep the handle only for a write transaction: a read snapshot's Tx can
+	// be replaced, so its object handles load the object for each call.
 	if e.writeTx == nil {
 		world.ReleaseObjectState(obj)
 		obj = nil
@@ -130,47 +119,35 @@ func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState
 // Call Close when done with the iterator.
 // Any init errors will be available via the iterator's Err() method.
 func (e *EngineTx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	return NewEngineTxObjectIterator(e, ctx, prefix, reversed)
+	return &engineTxObjectIterator{e: e, ctx: ctx, prefix: prefix, reversed: reversed}
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.
 // Calls DeleteGraphObject internally.
 // Returns false, nil if not found.
 func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
-	var deleted bool
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var nerr error
-		deleted, nerr = tx.DeleteObject(ctx, key)
-		return nerr
+	return performOpValue(ctx, e, func(tx *Tx) (bool, error) {
+		return tx.DeleteObject(ctx, key)
 	})
-	return deleted, err
 }
 
 // PurgeObject removes the object entry and its graph quads without reading
 // the object's record. Returns false, nil if not found.
 func (e *EngineTx) PurgeObject(ctx context.Context, key string) (bool, error) {
-	var purged bool
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var nerr error
-		purged, nerr = tx.PurgeObject(ctx, key)
-		return nerr
+	return performOpValue(ctx, e, func(tx *Tx) (bool, error) {
+		return tx.PurgeObject(ctx, key)
 	})
-	return purged, err
 }
 
 // RenameObject renames an object key and updates associated graph quads.
 func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
-	var obj world.ObjectState
-	if err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
-		world.ReleaseObjectState(obj)
-		obj, err = tx.RenameObject(ctx, oldKey, newKey, descendants)
-		return err
-	}); err != nil {
+	obj, err := performOpValue(ctx, e, func(tx *Tx) (world.ObjectState, error) {
+		return tx.RenameObject(ctx, oldKey, newKey, descendants)
+	})
+	if err != nil {
 		world.ReleaseObjectState(obj)
 		return nil, err
 	}
-
 	return newEngineTxObjectState(e, newKey, obj), nil
 }
 
@@ -186,44 +163,28 @@ func (e *EngineTx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ct
 
 // LookupGraphQuads searches for graph quads in the store.
 func (e *EngineTx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
-	var quads []world.GraphQuad
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		quads, berr = tx.LookupGraphQuads(ctx, filter, limit)
-		return berr
+	return performOpValue(ctx, e, func(tx *Tx) ([]world.GraphQuad, error) {
+		return tx.LookupGraphQuads(ctx, filter, limit)
 	})
-	return quads, err
 }
 
 // LookupGraphQuadsBatch searches for graph quads for each filter in one transaction operation.
 func (e *EngineTx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	var results [][]world.GraphQuad
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		results, berr = tx.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
-		return berr
+	return performOpValue(ctx, e, func(tx *Tx) ([][]world.GraphQuad, error) {
+		return tx.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 	})
-	return results, err
 }
 
 // QueryGraphPath executes a bounded graph traversal.
 func (e *EngineTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	var result *world.GraphPathQueryResult
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		result, berr = tx.QueryGraphPath(ctx, query)
-		return berr
+	return performOpValue(ctx, e, func(tx *Tx) (*world.GraphPathQueryResult, error) {
+		return tx.QueryGraphPath(ctx, query)
 	})
-	return result, err
 }
 
 // ListObjectsWithType reads one typed subject page through the transaction.
-func (e *EngineTx) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) ([]string, bool, error) {
-	// Resolve the page through the transaction's existing operation scope.
-	var keys []string
-	var more bool
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var err error
+func (e *EngineTx) ListObjectsWithType(ctx context.Context, typeID, startAfter string, limit uint32) (keys []string, more bool, err error) {
+	err = e.performOp(ctx, func(tx *Tx) error {
 		keys, more, err = tx.ListObjectsWithType(ctx, typeID, startAfter, limit)
 		return err
 	})
@@ -261,13 +222,9 @@ func (e *EngineTx) DeleteGraphObject(ctx context.Context, value string) error {
 // transaction like GetObject, so a write transaction can answer from its
 // transaction-local object memo.
 func (e *EngineTx) HasObject(ctx context.Context, key string) (bool, error) {
-	var found bool
-	err := e.performOp(ctx, func(tx *Tx) error {
-		var berr error
-		found, berr = tx.HasObject(ctx, key)
-		return berr
+	return performOpValue(ctx, e, func(tx *Tx) (bool, error) {
+		return tx.HasObject(ctx, key)
 	})
-	return found, err
 }
 
 // performOp preserves the read revision across storage retries and invalidates
@@ -350,9 +307,20 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error 
 	return nil
 }
 
+// performOpValue runs fn through performOp and returns the value of its last
+// attempt.
+func performOpValue[T any](ctx context.Context, e *EngineTx, fn func(tx *Tx) (T, error)) (T, error) {
+	var v T
+	err := e.performOp(ctx, func(tx *Tx) error {
+		var err error
+		v, err = fn(tx)
+		return err
+	})
+	return v, err
+}
+
+// isCoordinatedWriteSnapshotError reports whether err says the storage
+// snapshot under the transaction was invalidated by another writer.
 func isCoordinatedWriteSnapshotError(err error) bool {
 	return err != nil && errors.Is(err, kvtx.ErrInvalidSnapshot)
 }
-
-// Verify the WorldState implementation.
-var _ world.WorldState = (*EngineTx)(nil)

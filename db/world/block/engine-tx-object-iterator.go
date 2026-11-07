@@ -7,6 +7,10 @@ import (
 )
 
 // engineTxObjectIterator implements ObjectIterator for EngineTx.
+//
+// performOp may replace a read snapshot's Tx between steps, so the iterator
+// holds no state iterator: each step opens one on the Tx performOp supplies,
+// under its read lock, and seeks back to the recorded key.
 type engineTxObjectIterator struct {
 	// e is the engine tx
 	e *EngineTx
@@ -23,21 +27,6 @@ type engineTxObjectIterator struct {
 	currKey string
 	// valid indicates if the iterator is valid
 	valid bool
-}
-
-// NewEngineTxObjectIterator constructs a new engine tx object iterator.
-func NewEngineTxObjectIterator(
-	e *EngineTx,
-	ctx context.Context,
-	prefix string,
-	reversed bool,
-) *engineTxObjectIterator {
-	return &engineTxObjectIterator{
-		e:        e,
-		ctx:      ctx,
-		prefix:   prefix,
-		reversed: reversed,
-	}
 }
 
 // Err returns any error that has closed the iterator.
@@ -60,107 +49,58 @@ func (e *engineTxObjectIterator) Key() string {
 
 // Next advances to the next entry and returns Valid.
 func (e *engineTxObjectIterator) Next() bool {
-	// Stop when the iterator has already failed.
-	if e.err != nil {
-		return false
-	}
+	_ = e.step(func(iter world.ObjectIterator) error {
+		// Position a fresh iteration at its first entry.
+		if e.currKey == "" {
+			iter.Next()
+			return nil
+		}
 
-	// Rebuild the transaction iterator and advance it.
-	var valid bool
-	err := e.e.performOp(e.ctx, func(tx *Tx) error {
-		// Build a fresh iterator on each attempt: a retry must not reuse the
-		// iterator closed by the previous attempt.
-		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
-		defer iter.Close()
-
-		// Reject an iterator that failed during initialization.
-		if err := iter.Err(); err != nil {
+		// Seek back to the current key and step past it when it still exists.
+		if err := iter.Seek(e.currKey); err != nil {
 			return err
 		}
-
-		// Seek past the current key on a retry.
-		if e.currKey != "" {
-			if err := iter.Seek(e.currKey); err != nil {
-				return err
-			}
-
-			if !iter.Valid() {
-				return iter.Err()
-			}
-
-			// Advance past the current key when Seek returns it again.
-			if iter.Key() == e.currKey {
-				// Advance once more when Seek returned the previous key.
-				if !iter.Next() {
-					return iter.Err()
-				}
-			}
-		} else {
-			// Position the fresh iterator at its first valid entry.
-			if !iter.Next() {
-				return iter.Err()
-			}
+		if iter.Valid() && iter.Key() == e.currKey {
+			iter.Next()
 		}
-
-		// Stop when the rebuilt iterator has no entry.
-		if !iter.Valid() {
-			return iter.Err()
-		}
-
-		// Store the current key.
-		e.currKey = iter.Key()
-		valid = true
 		return nil
 	})
-	if err != nil {
-		e.err = err
-		e.valid = false
-		return false
-	}
-
-	// Publish the advanced key.
-	e.valid = valid
-	return valid
+	return e.Valid()
 }
 
 // Seek moves the iterator to the first key >= the provided key (or <= in reverse mode).
 func (e *engineTxObjectIterator) Seek(k string) error {
-	// Return an earlier seek error.
+	return e.step(func(iter world.ObjectIterator) error {
+		return iter.Seek(k)
+	})
+}
+
+// step opens a state iterator in the transaction, positions it with move, and
+// records the entry it lands on. Each performOp attempt opens its own
+// iterator, so a retry never reuses one closed by the previous attempt.
+func (e *engineTxObjectIterator) step(move func(world.ObjectIterator) error) error {
+	// Stop when the iterator has already failed.
 	if e.err != nil {
 		return e.err
 	}
 
-	// Rebuild the transaction iterator and seek it.
-	var valid bool
-	err := e.e.performOp(e.ctx, func(tx *Tx) error {
-		// Open a fresh object iterator.
-		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
-		defer iter.Close()
-
-		// Seek the inner iterator.
-		if err := iter.Seek(k); err != nil {
-			return err
-		}
-
-		// Stop when the seek finds no entry.
-		if !iter.Valid() {
-			return iter.Err()
-		}
-
-		// Store the seeked key.
-		e.currKey = iter.Key()
-		valid = true
-		return nil
+	e.valid = false
+	e.err = e.e.performOp(e.ctx, func(tx *Tx) error {
+		return tx.lockedLive(e.ctx, func() error {
+			// Open a state iterator in this attempt's transaction and move it.
+			iter := tx.state.IterateObjects(e.ctx, e.prefix, e.reversed)
+			defer iter.Close()
+			if err := move(iter); err != nil {
+				return err
+			}
+			if !iter.Valid() {
+				return iter.Err()
+			}
+			e.currKey, e.valid = iter.Key(), true
+			return nil
+		})
 	})
-	if err != nil {
-		e.err = err
-		e.valid = false
-		return err
-	}
-
-	// Publish the seeked key.
-	e.valid = valid
-	return nil
+	return e.err
 }
 
 // Close releases the iterator.
