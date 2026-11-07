@@ -27,6 +27,7 @@ import (
 //	p/{pack id}   the pack's number and whether its keys are all in h rows
 //	h{digest tail} the number of a pack that holds the block, 4 bytes
 //	t/{pack id}   the raw kvfile index tail of the pack, as its reader read it
+//	q/{pack id}   the pack's sweep state and its last lift or miss, as packHold
 //	n/next        the lowest pack number not yet given, 4 bytes
 //
 // Pack numbers grow by one for each pack the index learns and are never reused,
@@ -53,11 +54,16 @@ import (
 //   - A t/ row holds the tail bytes of a pack id, which never change, so a
 //     reader loads it instead of reading the tail again; removing the pack
 //     removes its row.
+//   - A pack with no q/ row is registered. A q/ row naming a quarantined or
+//     trashing pack holds the pack out of every read, locate and listing until
+//     a lift or a remove: only a fallback reads it. Removing the pack removes
+//     its row.
 const (
 	indexEntryPrefix = "e/"
 	indexPackPrefix  = "p/"
 	indexHashPrefix  = "h"
 	indexTailPrefix  = "t/"
+	indexHoldPrefix  = "q/"
 	indexNextKey     = "n/next"
 	// indexKeyBytes is the bytes of a block key an h row key keeps.
 	indexKeyBytes = 16
@@ -127,6 +133,12 @@ type packIndex struct {
 	version atomic.Uint64
 	// tails holds the index tails awaiting their write.
 	tails tailQueue
+	// held is the state of each quarantined or trashing pack by id; a pack
+	// it lacks is registered. Changed with mtx held, and by the PackStore
+	// under its hold lock and bcast, so the manifests move with it.
+	held map[string]packState
+	// heldCount is len(held), read without mtx by the fallback.
+	heldCount atomic.Int64
 }
 
 func newPackIndex(store kvtx.Store) *packIndex {
@@ -135,6 +147,7 @@ func newPackIndex(store kvtx.Store) *packIndex {
 		rows:    make(map[string]packRow),
 		pending: make(map[string]*packfile.PackfileEntry),
 		work:    make(chan struct{}, 1),
+		held:    make(map[string]packState),
 	}
 }
 
@@ -160,7 +173,7 @@ const readChunk = 1024
 func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, error) {
 	// Read the pack table, which names every pack that may have a cached
 	// entry, and register it.
-	rows, ids, nextNum, err := x.loadTable(ctx)
+	rows, ids, nextNum, holds, err := x.loadTable(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -170,6 +183,11 @@ func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, e
 	}
 	for uint32(len(x.ids)) < nextNum { //nolint:gosec // 2^32 packs cannot exist.
 		x.ids = append(x.ids, "")
+	}
+	for id, state := range holds {
+		if _, ok := rows[id]; ok {
+			x.setHeldLocked(id, state)
+		}
 	}
 	x.mtx.Unlock()
 
@@ -302,23 +320,28 @@ func (x *packIndex) eachPack(fn func(id string)) {
 	}
 }
 
-// loadTable reads the pack table, the ids of its packs in key order and the
-// next pack number the index recorded, 0 when it recorded none. It
+// loadTable reads the pack table, the ids of its packs in key order, the
+// next pack number the index recorded, 0 when it recorded none, and the state
+// of each held pack. It
 // reads only the table, whose rows are a few bytes each, and no entry: listing
 // the entries' keys would read every entry's pages, bloom filter included,
 // once here and again in load, and load already skips a pack with no entry.
-func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, uint32, error) {
+func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string, uint32, map[string]packState, error) {
 	// Hold one read snapshot while listing the cached pack table.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, 0, nil, err
 	}
 	defer tx.Discard()
 
-	// Read the next number the removes recorded.
+	// Read the next number the removes recorded, and the held packs.
 	next, err := readNext(ctx, tx)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, 0, nil, err
+	}
+	holds, err := readHeld(ctx, tx)
+	if err != nil {
+		return nil, nil, 0, nil, err
 	}
 
 	// Read the pack table in key order.
@@ -336,9 +359,9 @@ func (x *packIndex) loadTable(ctx context.Context) (map[string]packRow, []string
 		return nil
 	})
 	if err != nil {
-		return nil, nil, 0, errors.Wrap(err, "read pack table")
+		return nil, nil, 0, nil, errors.Wrap(err, "read pack table")
 	}
-	return rows, ids, next, nil
+	return rows, ids, next, holds, nil
 }
 
 // readNext reads the recorded next pack number, 0 when none is recorded.
@@ -755,6 +778,7 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 		}
 		delete(x.rows, id)
 		delete(x.pending, id)
+		x.setHeldLocked(id, packRegistered)
 	}
 	x.forgetQueuedTailsLocked(ids)
 	next := uint32(len(x.ids)) //nolint:gosec // 2^32 packs cannot exist.
@@ -789,6 +813,9 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 			return err
 		}
 		if err := tx.Delete(ctx, []byte(indexTailPrefix+id)); err != nil {
+			return err
+		}
+		if err := tx.Delete(ctx, []byte(indexHoldPrefix+id)); err != nil {
 			return err
 		}
 	}
@@ -838,10 +865,23 @@ func (x *packIndex) cacheTail(ctx context.Context, packID string, tail []byte) {
 	_ = x.Set(ctx, packID, tail)
 }
 
-// Locate returns the pack that holds a block key. A row that names a removed
-// pack reports found with an empty id: the block may sit in an older pack the
-// row shadowed, so the lookup must test every filter rather than end.
+// Locate returns the registered pack that holds a block key, as the locator of
+// the main manifest. A row that names a removed pack reports found with an
+// empty id: the block may sit in an older pack the row shadowed, so the lookup
+// must test every filter rather than end. A row that names a held pack reports
+// not found, as for a key in no indexed pack: the held packs are in no filter
+// list the lookup tests, and a block only they hold is read by the fallback.
 func (x *packIndex) Locate(ctx context.Context, key []byte) (string, bool, error) {
+	id, found, err := x.locateAny(ctx, key)
+	if err != nil || !found || id == "" || !x.isHeld(id) {
+		return id, found, err
+	}
+	return "", false, nil
+}
+
+// locateAny returns the pack that holds a block key, held or not, as Locate
+// does otherwise.
+func (x *packIndex) locateAny(ctx context.Context, key []byte) (string, bool, error) {
 	// Read the key's h row.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
@@ -887,10 +927,10 @@ func (x *packIndex) locateExtent(ctx context.Context, key []byte) (id string, of
 		return "", 0, 0, false, nil
 	}
 
-	// Name its pack, which must still be in the table.
+	// Name its pack, which must still be in the table and not held.
 	x.mtx.RLock()
 	defer x.mtx.RUnlock()
-	if int(row.num) >= len(x.ids) || x.ids[row.num] == "" {
+	if int(row.num) >= len(x.ids) || x.ids[row.num] == "" || x.heldLocked(x.ids[row.num]) {
 		return "", 0, 0, false, nil
 	}
 	return x.ids[row.num], int64(row.off), int(row.size), true, nil
@@ -898,7 +938,9 @@ func (x *packIndex) locateExtent(ctx context.Context, key []byte) (id string, of
 
 // locate reads the rows of keys in one snapshot, sets placed for each key
 // that has one, and returns the id of the pack each row names: "" for a key
-// with no row, a nil key, or a row naming a removed pack.
+// with no row, a nil key, or a row naming a removed pack. A row naming a held
+// pack neither places its key nor names the pack, so no lookup publishes it
+// and no locate reports its blocks held.
 func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([]string, error) {
 	// Read every row in one snapshot.
 	tx, err := x.store.NewTransaction(ctx, false)
@@ -921,13 +963,18 @@ func (x *packIndex) locate(ctx context.Context, keys [][]byte, placed []bool) ([
 		if !ok || !valid {
 			continue
 		}
-		placed[i] = true
 		num := row.num
 		x.mtx.RLock()
 		if int(num) < len(x.ids) {
 			ids[i] = x.ids[num]
 		}
+		held := x.heldLocked(ids[i])
 		x.mtx.RUnlock()
+		if held {
+			ids[i] = ""
+			continue
+		}
+		placed[i] = true
 	}
 	return ids, nil
 }
