@@ -31,13 +31,17 @@ const (
 	heldSpillEvery = time.Second
 	// heldSpillBatch bounds the blocks one spill commit writes.
 	heldSpillBatch = 256
-	// nodeKeyReadBound is how long a block read keeps asking the node by key,
-	// through misses and while the node is away, before it reports the block
-	// not found, and nodeKeyReadWait the least each try waits. The pauses
-	// between tries back off from 50 ms to nodeKeyReadPauseMax.
+	// nodeKeyReadBound is how long a block read keeps asking a connected node
+	// by key, through misses, before it reports the block not found; time
+	// while the node is away does not count. nodeKeyReadWait is the least each
+	// try waits. The pauses between misses back off from nodeKeyReadPauseMin
+	// to nodeKeyReadPauseMax, and nodeKeyReadAwayPoll is how often a read
+	// looks for the node to come back, asking at once when it does.
 	nodeKeyReadBound    = 30 * time.Second
 	nodeKeyReadWait     = time.Second
-	nodeKeyReadPauseMax = time.Second
+	nodeKeyReadPauseMin = 50 * time.Millisecond
+	nodeKeyReadPauseMax = 5 * time.Second
+	nodeKeyReadAwayPoll = 50 * time.Millisecond
 )
 
 // heldReads reads the store's memory set before the local store. A block the
@@ -228,11 +232,15 @@ func (r *nodeFirstReads) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 }
 
 // readNodeBlock reads ref from the node's pack log by key, each try within
-// wait, asking again until bound has passed, or returns nil. A bound of zero
-// asks once.
+// wait, asking again after a miss until bound of connected time has passed,
+// or returns nil. While the node is away it waits for it to come back, until
+// ctx ends, and asks at once when it does. A bound of zero asks once and does
+// not wait for an away node.
 func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodepush.Client], wait, bound time.Duration, ref *block.BlockRef) *block.StoredBlock {
-	// Only a mounted push can ask.
-	if ref.GetEmpty() || client.Load() == nil {
+	if ref.GetEmpty() {
+		return nil
+	}
+	if bound <= 0 && client.Load() == nil {
 		return nil
 	}
 
@@ -240,20 +248,44 @@ func readNodeBlock(ctx context.Context, client *atomic.Pointer[block_store_nodep
 	// free read slot, or one slow to answer, misses a block it holds, and a
 	// block flushed but not yet reported is held nowhere else.
 	key := packfile.BlockKey(ref.GetHash())
-	deadline := time.Now().Add(bound)
-	pause := 50 * time.Millisecond
+	left := bound
+	pause := nodeKeyReadPauseMin
 	var value []byte
 	for {
-		if c := client.Load(); c != nil {
-			rctx, cancel := context.WithTimeout(ctx, max(wait, nodeKeyReadWait))
-			data, ok := c.ReadBlock(rctx, key)
-			cancel()
-			if ok {
-				value = data
-				break
+		// Wait for an away node to come back, then ask at once.
+		c := client.Load()
+		if c == nil {
+			if bound <= 0 {
+				return nil
 			}
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(nodeKeyReadAwayPoll):
+			}
+			pause = nodeKeyReadPauseMin
+			continue
 		}
-		if ctx.Err() != nil || time.Now().Add(pause).After(deadline) {
+
+		started := time.Now()
+		rctx, cancel := context.WithTimeout(ctx, max(wait, nodeKeyReadWait))
+		data, ok := c.ReadBlock(rctx, key)
+		cancel()
+		if ok {
+			value = data
+			break
+		}
+		if ctx.Err() != nil {
+			return nil
+		}
+
+		// A miss from a connected node counts against bound; a try the node
+		// dropped mid-way does not.
+		if client.Load() == nil {
+			continue
+		}
+		left -= time.Since(started) + pause
+		if left < 0 {
 			return nil
 		}
 		select {
