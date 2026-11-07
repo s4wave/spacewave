@@ -490,6 +490,12 @@ type S3Location struct {
 	// request, and packs another writer left under the prefix stay unseen. The
 	// block store is then the prefix's only writer.
 	IndexOnly bool `protobuf:"varint,8,opt,name=index_only,json=indexOnly,proto3" json:"indexOnly,omitempty"`
+	// MaxPackBytes bounds one packfile a block store writes. An upload batch
+	// holds half of it in block bytes. Zero uses the 63 MiB default.
+	MaxPackBytes uint64 `protobuf:"varint,9,opt,name=max_pack_bytes,json=maxPackBytes,proto3" json:"maxPackBytes,omitempty"`
+	// LingerSeconds is how long a short upload batch waits for more blocks
+	// before it is written anyway. Zero uses the 30 s default.
+	LingerSeconds uint32 `protobuf:"varint,10,opt,name=linger_seconds,json=lingerSeconds,proto3" json:"lingerSeconds,omitempty"`
 }
 
 func (x *S3Location) Reset() {
@@ -552,6 +558,20 @@ func (x *S3Location) GetIndexOnly() bool {
 		return x.IndexOnly
 	}
 	return false
+}
+
+func (x *S3Location) GetMaxPackBytes() uint64 {
+	if x != nil {
+		return x.MaxPackBytes
+	}
+	return 0
+}
+
+func (x *S3Location) GetLingerSeconds() uint32 {
+	if x != nil {
+		return x.LingerSeconds
+	}
+	return 0
 }
 
 // BlockStorePlacement places one block store on a storage backend.
@@ -1528,6 +1548,8 @@ func (m *S3Location) CloneVT() *S3Location {
 	r.DisableSsl = m.DisableSsl
 	r.KeepPacks = m.KeepPacks
 	r.IndexOnly = m.IndexOnly
+	r.MaxPackBytes = m.MaxPackBytes
+	r.LingerSeconds = m.LingerSeconds
 	r.Pricing = protobuf_go_lite.CloneVTValue(m.Pricing)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2293,6 +2315,12 @@ func (this *S3Location) EqualVT(that *S3Location) bool {
 		return false
 	}
 	if this.IndexOnly != that.IndexOnly {
+		return false
+	}
+	if this.MaxPackBytes != that.MaxPackBytes {
+		return false
+	}
+	if this.LingerSeconds != that.LingerSeconds {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3757,6 +3785,16 @@ func (x *S3Location) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("indexOnly")
 		s.WriteBool(x.IndexOnly)
 	}
+	if x.MaxPackBytes != 0 || s.HasField("maxPackBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("maxPackBytes")
+		s.WriteUint64(x.MaxPackBytes)
+	}
+	if x.LingerSeconds != 0 || s.HasField("lingerSeconds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lingerSeconds")
+		s.WriteUint32(x.LingerSeconds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3802,6 +3840,12 @@ func (x *S3Location) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "index_only", "indexOnly":
 			s.AddField("index_only")
 			x.IndexOnly = s.ReadBool()
+		case "max_pack_bytes", "maxPackBytes":
+			s.AddField("max_pack_bytes")
+			x.MaxPackBytes = s.ReadUint64()
+		case "linger_seconds", "lingerSeconds":
+			s.AddField("linger_seconds")
+			x.LingerSeconds = s.ReadUint32()
 		}
 	})
 }
@@ -5386,6 +5430,16 @@ func (m *S3Location) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.LingerSeconds != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LingerSeconds))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.MaxPackBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxPackBytes))
+		i--
+		dAtA[i] = 0x48
+	}
 	if m.IndexOnly {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.IndexOnly)
 		i--
@@ -6806,6 +6860,8 @@ func (m *S3Location) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.KeepPacks)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.IndexOnly)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxPackBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.LingerSeconds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7629,6 +7685,14 @@ func (x *S3Location) MarshalProtoText() string {
 	if x.IndexOnly != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index_only")
 		protobuf_go_lite.TextWriteBool(&sb, x.IndexOnly)
+	}
+	if x.MaxPackBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_pack_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.MaxPackBytes)
+	}
+	if x.LingerSeconds != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "linger_seconds")
+		protobuf_go_lite.TextWriteUint(&sb, x.LingerSeconds)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8809,6 +8873,24 @@ func (m *S3Location) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.IndexOnly = bool(v)
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxPackBytes", wireType)
+			}
+			m.MaxPackBytes = 0
+			m.MaxPackBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LingerSeconds", wireType)
+			}
+			m.LingerSeconds = 0
+			m.LingerSeconds, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -37,7 +37,7 @@ func (s *PackStore) mergeTail(ctx context.Context, batch []*block.PutBatchEntry)
 	for _, entry := range batch {
 		batchBytes += int64(len(entry.Data))
 	}
-	if batchBytes >= packPayloadBytes {
+	if batchBytes >= s.maxPackBytes/2 {
 		return false, nil
 	}
 
@@ -59,7 +59,7 @@ func (s *PackStore) mergeTail(ctx context.Context, batch []*block.PutBatchEntry)
 	defer release()
 
 	// Choose the newest packfile that is small enough to merge into.
-	tail := s.pickTail(packPayloadBytes - batchBytes)
+	tail := s.pickTail(s.maxPackBytes/2 - batchBytes)
 	if tail == nil {
 		return false, nil
 	}
@@ -117,7 +117,7 @@ func (s *PackStore) pickTail(limit int64) *packfile.PackfileEntry {
 	var tail *packfile.PackfileEntry
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
 		for _, entry := range s.entries {
-			if int64(entry.GetSizeBytes()) >= s.mergeTailBytes { //nolint:gosec // a packfile is at most writer.DefaultMaxPackBytes.
+			if int64(entry.GetSizeBytes()) >= s.mergeTailBytes { //nolint:gosec // a packfile is far below 2^63 bytes.
 				continue
 			}
 			if tail == nil || cmp.Or(
@@ -128,7 +128,7 @@ func (s *PackStore) pickTail(limit int64) *packfile.PackfileEntry {
 			}
 		}
 	})
-	if tail == nil || int64(tail.GetSizeBytes()) >= limit { //nolint:gosec // a packfile is at most writer.DefaultMaxPackBytes.
+	if tail == nil || int64(tail.GetSizeBytes()) >= limit { //nolint:gosec // a packfile is far below 2^63 bytes.
 		return nil
 	}
 	return tail

@@ -361,6 +361,16 @@ export interface S3Location {
    * block store is then the prefix's only writer.
    */
   indexOnly?: boolean
+  /**
+   * MaxPackBytes bounds one packfile a block store writes. An upload batch
+   * holds half of it in block bytes. Zero uses the 63 MiB default.
+   */
+  maxPackBytes?: bigint
+  /**
+   * LingerSeconds is how long a short upload batch waits for more blocks
+   * before it is written anyway. Zero uses the 30 s default.
+   */
+  lingerSeconds?: number
 }
 
 export const S3Location: MessageType<S3Location> =
@@ -375,6 +385,8 @@ export const S3Location: MessageType<S3Location> =
       [6, 'pricing', 11, 0, Pricing.codec],
       [7, 'keep_packs', 8],
       [8, 'index_only', 8],
+      [9, 'max_pack_bytes', 4],
+      [10, 'linger_seconds', 13],
     ],
   )
 

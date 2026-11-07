@@ -43,8 +43,8 @@ const (
 )
 
 const (
-	// packPayloadBytes bounds the block bytes of a pack an upload builds. It is
-	// half the packfile ceiling, which leaves room for the refs, the index and
+	// packPayloadBytes bounds the block bytes of a pack an upload builds at the
+	// default ceiling. It is half the packfile ceiling, which leaves room for the refs, the index and
 	// the encoding around the block data.
 	packPayloadBytes = writer.DefaultMaxPackBytes / 2
 	// packMaxBlocks bounds the blocks of a pack an upload builds. A pack of
@@ -483,8 +483,8 @@ func (s *PackStore) PutPackFile(ctx context.Context, id string, data []byte) (*p
 	if err := identity.ValidatePackID(id); err != nil {
 		return nil, err
 	}
-	if int64(len(data)) > writer.DefaultMaxPackBytes {
-		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", len(data), writer.DefaultMaxPackBytes)
+	if int64(len(data)) > s.maxPackBytes {
+		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", len(data), s.maxPackBytes)
 	}
 	index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
