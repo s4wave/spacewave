@@ -165,7 +165,8 @@ func NewWorldEngine(
 	return w, nil
 }
 
-// Release releases the underlying cursor and stops the refresh routine.
+// Release stops the refresh routine, waits for it to exit, and releases the
+// underlying cursor.
 // Safe to call more than once; the cursor's own Release guards against
 // double-release.
 func (w *WorldEngine) Release() {
@@ -174,7 +175,10 @@ func (w *WorldEngine) Release() {
 		return
 	}
 	if w.refresh != nil {
-		w.refresh.ClearContext()
+		// Wait for a head update in flight, which reads through the cursor.
+		if exited, _ := w.refresh.SetRoutine(nil); exited != nil {
+			<-exited
+		}
 		w.refresh = nil
 	}
 
