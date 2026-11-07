@@ -189,7 +189,7 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			}
 		case *Message_PackApplied:
 			if body.PackApplied.GetFailed() {
-				s.rotate(body.PackApplied.GetPackId())
+				s.rotate(body.PackApplied.GetPackId(), true)
 				s.poke()
 				continue
 			}
@@ -314,7 +314,7 @@ func (s *Server) sendReports(ctx context.Context, out chan<- []byte) {
 		case <-s.wake:
 		case <-timer.C:
 			if sent.id != "" {
-				s.rotate(sent.id)
+				s.rotate(sent.id, false)
 			}
 			sent = reportTry{}
 			timer.Reset(s.wait)
@@ -347,9 +347,13 @@ func (s *Server) nextReport(now time.Time) (reportTry, time.Duration) {
 	return reportTry{}, due
 }
 
-// rotate ends report id's turn, sending it to the back of the line to wait
-// longer the more tries it has failed.
-func (s *Server) rotate(id string) {
+// rotate ends report id's turn, sending it to the back of the line. A report
+// the local store refused waits longer the more tries it has failed. One that
+// went unanswered keeps its backoff: the local store may be applying it, or
+// waiting to, such as for the count of its upload queue after a restart, and a
+// slow answer says nothing about the next one. So a long wait there delays no
+// report past its turn once the local store catches up.
+func (s *Server) rotate(id string, refused bool) {
 	// Find the report, which may have been applied meanwhile.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
@@ -358,12 +362,14 @@ func (s *Server) rotate(id string) {
 		return
 	}
 
-	// Double its wait, up to the bound.
+	// Double a refused report's wait, up to the bound.
 	report := s.pending[i]
 	s.pending = slices.Delete(s.pending, i, i+1)
-	wait := min(s.retryBase<<min(report.tries, 16), maxReportBackoff)
-	report.tries++
-	report.notBefore = time.Now().Add(wait)
+	if refused {
+		wait := min(s.retryBase<<min(report.tries, 16), maxReportBackoff)
+		report.tries++
+		report.notBefore = time.Now().Add(wait)
+	}
 	s.pending = append(s.pending, report)
 }
 
