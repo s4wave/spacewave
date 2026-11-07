@@ -22,6 +22,13 @@
 // file, then its entry, back from the trash and has the backend register it
 // again; a pack named on the command line comes back too, a removed one
 // adopted with the keys its own index lists, until the purge.
+//
+// A rehearsal runs the same cycle with --overlay naming a local directory on
+// every step, and a backend over the same overlay: the store is only read,
+// and each write, move and delete is recorded in the directory instead, so the
+// full deletion cycle runs on the store's real packs and changes none. The
+// scratch file binds the overlay, so a rehearsal's scratch file never drives
+// the store itself.
 package main
 
 import (
