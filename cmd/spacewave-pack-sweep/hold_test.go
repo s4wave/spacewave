@@ -33,7 +33,8 @@ import (
 // relinked and passes the other. The trash moves the passed pack's objects to
 // the store's trash, and the removal points the row of a block it shares with
 // the root's pack at that pack. A read that misses a third dead pack in the
-// trash keeps it from the removal, and the restore returns it to the reads.
+// trash keeps it from the removal, and the restore returns it to the reads; a
+// restore naming the removed pack adopts it back.
 func TestCommandQuarantine(t *testing.T) {
 	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
 		t.Run(kind, func(t *testing.T) { testCommandQuarantine(t, kind) })
@@ -308,6 +309,33 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "removed") != 1 || status.GetUint("packRecords", "quarantine") != 0 || status.GetUint("packRecords", "moved") != 0 {
 		t.Fatalf("status = %s", status)
 	}
+	// A restore naming the removed dead pack moves it back and adopts it:
+	// its block reads again, and the status counts no removed pack.
+	args.Packs = *cli.NewStringSlice(deadPack)
+	out.Reset()
+	if err := args.runRestore(nil); err != nil {
+		t.Fatal(err)
+	}
+	if res := parse(t, out.Bytes()); res.GetUint("adopted") != 1 || res.GetUint("restored") != 0 {
+		t.Fatalf("named restore = %s", res)
+	}
+	if data, found, err := store.GetBlock(ctx, deadRef); err != nil || !found || string(data) != "dead" {
+		t.Fatalf("read of the adopted dead block = %q, %v, %v", data, found, err)
+	}
+	if located, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef}); err != nil || located[0] != deadPack {
+		t.Fatalf("locate of the adopted dead block = %v, %v", located, err)
+	}
+	out.Reset()
+	if err := args.runStatus(nil); err != nil {
+		t.Fatal(err)
+	}
+	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "removed") != 0 {
+		t.Fatalf("status after the adoption = %s", status)
+	}
+	if err := args.runRestore(nil); err == nil {
+		t.Fatal("adopted the dead pack twice")
+	}
+	args.Packs = cli.StringSlice{}
 	t.Setenv(adminAuthEnv, "")
 	if err := args.runRecheck(nil); err == nil {
 		t.Fatal("rechecked without the credential")

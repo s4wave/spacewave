@@ -174,6 +174,16 @@ func (b backend) Restore(ctx context.Context, ids []string) ([]packsweep.PackHol
 	return sweepHolds(resp.GetPacks())
 }
 
+// Adopt registers packs whose entries and files are in the store.
+func (b backend) Adopt(ctx context.Context, packs []packsweep.AdoptedPack) error {
+	req := &AdoptRequest{Packs: make([]*AdoptPack, len(packs))}
+	for i, p := range packs {
+		req.Packs[i] = &AdoptPack{Entry: p.Entry, Keys: p.Keys}
+	}
+	_, err := b.SRPCPackSweepAdminClient.Adopt(ctx, req)
+	return err
+}
+
 // sweepHolds converts the service's pack states, refusing a state this
 // client does not know, which a sweep must not read as quarantined.
 func sweepHolds(holds []*PackHold) ([]packsweep.PackHold, error) {
