@@ -1,0 +1,50 @@
+---
+title: Release an App Through a CDN Space
+section: plugins
+order: 5
+summary: Publish your app's release manifests to a CDN Space and sign the launcher's selector only once the Space serves them.
+---
+
+Your launchers read releases from a CDN Space. A `publisher.Deployment` names
+the Space and the identifiers your launchers mount, and `publisher.Release`
+publishes a local release World to it:
+
+```go
+d := publisher.Deployment{
+	ProjectID:  "myapp",
+	ChannelKey: "stable",
+	SpaceID:    spaceID,
+	CdnBaseURL: "https://cdn.example.com",
+}
+w, err := publisher.OpenLocalWorld(ctx, le, "release.s4wave", "myapp-release-world", "myapp-release")
+// ... build your manifests into w's manifest store, myapp/release/manifests ...
+released, err := publisher.Release(ctx, w.Engine, publisher.ReleaseOptions{
+	Deployment: d,
+	Metadata:   &release.ReleaseMetadata{Version: "1.4.0", Rev: 14},
+	ReleaseKey: releaseKey,
+	DistKey:    distKey,
+	Rev:        14,
+	Publish:    cdn_publish.Options{Client: session, OwnerKeyPem: "owner.pem"},
+})
+```
+
+`Release` stages the channel over the newest release manifest of each
+platform, publishes the World, waits for the Space to post the checkpoint
+naming it, and only then signs the selector. Serve `released.Signed` where
+your launchers fetch their DistConfig.
+
+## Why the order matters
+
+A launcher that verifies a new selector fetches the release at once. If the
+selector were signed first, a launcher could adopt it while the Space still
+served the previous root. So `Release` signs nothing until the root is
+posted: a manifest whose content the World lacks stops the release before
+any upload, and a failed upload or checkpoint returns an error with no
+selector.
+
+## The launcher's side
+
+Launchers ignore Release World controllers inside a signed DistConfig, so the
+mount belongs in your launcher's host config. `d.HostConfigSet()` returns
+those controllers: the CDN World following the Space's root pointer, the
+buckets its refs name, and the manifest fetcher over your manifest store.
