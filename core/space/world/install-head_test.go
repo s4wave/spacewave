@@ -381,6 +381,34 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 			t.Fatalf("admission %d wrote %v after %v, want only its payload after the last block", i, held, prev)
 		}
 	}
+	// Adding payloads the set holds already, twice over and beside an empty
+	// ref, moves nothing; adding them beside a new payload names only the new
+	// one. The collection then keeps every payload the set holds.
+	held = b.held[RootReplayPayloads]
+	if err := b.addPayloads(ctx, []*block.BlockRef{second, want[4], second, nil}); err != nil {
+		t.Fatal(err)
+	}
+	if !refEqual(b.held[RootReplayPayloads], held) {
+		t.Fatalf("re-adding held payloads moved the payloads root from %v to %v", held, b.held[RootReplayPayloads])
+	}
+	sixth := put(b, "sixth", shared)
+	if err := b.addPayloads(ctx, []*block.BlockRef{third, sixth, sixth, fifth}); err != nil {
+		t.Fatal(err)
+	}
+	want = append(want, sixth)
+	data, found, err := b.pages.GetBlock(ctx, b.held[RootReplayPayloads])
+	if err != nil || !found {
+		t.Fatalf("payload block: %v, %v", found, err)
+	}
+	mixed := &HeldRoots{}
+	if err := mixed.UnmarshalVT(data); err != nil {
+		t.Fatal(err)
+	}
+	if len(mixed.GetRoots()) != 1 || !mixed.GetRoots()[0].EqualsRef(sixth) || !mixed.GetPrev().EqualsRef(held) {
+		t.Fatalf("a mixed add wrote %v after %v, want only the new payload", mixed, held)
+	}
+	expect(b, "re-adding held payloads", want, append(slices.Clone(want), shared)...)
+
 	reopened := rootSet{name: RootReplayPayloads}
 	if err := b.readRootSet(ctx, &reopened); err != nil {
 		t.Fatal(err)
