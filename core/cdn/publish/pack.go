@@ -6,13 +6,16 @@ import (
 	"crypto/sha256"
 	"io"
 	"math"
+	"net"
+	"net/http"
 	"os"
 	"strconv"
-	"strings"
+	"syscall"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -227,16 +230,23 @@ func retrySyncPush(ctx context.Context, push func() error) error {
 }
 
 // isRetryableSyncPushError classifies service and transport failures eligible
-// for the bounded publication retry policy.
+// for the bounded publication retry policy: a 429 or 5xx answer, a timeout,
+// or a connection dropped or refused. It reads the error's type, never its
+// text, which carries URLs and pack IDs.
 func isRetryableSyncPushError(err error) bool {
-	msg := err.Error()
-	if strings.Contains(msg, "429") {
+	// Retry an answer the service marks as transient.
+	var cerr *clouderror.Error
+	if errors.As(err, &cerr) {
+		return cerr.Retryable || cerr.StatusCode == http.StatusTooManyRequests || cerr.StatusCode >= 500
+	}
+
+	// Retry a timeout or a lost connection.
+	var nerr net.Error
+	if errors.As(err, &nerr) && nerr.Timeout() {
 		return true
 	}
-	if strings.Contains(msg, "500") || strings.Contains(msg, "502") || strings.Contains(msg, "503") || strings.Contains(msg, "504") {
-		return true
-	}
-	return strings.Contains(msg, "connection") || strings.Contains(msg, "timeout")
+	return errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, syscall.EPIPE) || errors.Is(err, io.ErrUnexpectedEOF)
 }
 
 // KVFilePushMetadata is verified metadata for one kvfile pack.
