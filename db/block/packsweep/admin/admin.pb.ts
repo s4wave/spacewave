@@ -159,6 +159,11 @@ export interface PackHold {
    * Key is the block key the event read, empty for a lift by the command.
    */
   key?: Uint8Array
+  /**
+   * Absent is set for a pack the store does not hold: removed, or never
+   * registered.
+   */
+  absent?: boolean
 }
 
 export const PackHold: MessageType<PackHold> =
@@ -170,6 +175,7 @@ export const PackHold: MessageType<PackHold> =
       [3, 'since_unix_nano', 3],
       [4, 'event_unix_nano', 3],
       [5, 'key', 12],
+      [6, 'absent', 8],
     ],
   )
 
@@ -418,6 +424,65 @@ export const PacksResponse: MessageType<PacksResponse> =
   /* @__PURE__ */ createMessageType<PacksResponse>(
     'block.packsweep.admin.PacksResponse',
     () => [[1, 'packs', 11, 1, PackHold.codec]],
+  )
+
+/**
+ * RemoveRequest names trashing packs to remove, with the keys they hold.
+ *
+ * @generated from message block.packsweep.admin.RemoveRequest
+ */
+export interface RemoveRequest {
+  /**
+   * PackIds are the packs.
+   */
+  packIds?: string[]
+  /**
+   * Keys are block keys the packs hold, each with the other packs the
+   * snapshot lists holding it. Each h row of a key that names one of the
+   * packs moves to the first of those the backend holds, registered before
+   * held, or is deleted when it holds none.
+   */
+  keys?: KeyHolders[]
+  /**
+   * More is set when more of the packs' keys follow in later calls: the
+   * backend repairs these keys' rows and leaves the packs trashing.
+   */
+  more?: boolean
+}
+
+export const RemoveRequest: MessageType<RemoveRequest> =
+  /* @__PURE__ */ createMessageType<RemoveRequest>(
+    'block.packsweep.admin.RemoveRequest',
+    () => [
+      [1, 'pack_ids', 9, 1],
+      [2, 'keys', 11, 1, KeyHolders.codec],
+      [3, 'more', 8],
+    ],
+  )
+
+/**
+ * KeyHolders is a block key a removed pack holds and its other holders.
+ *
+ * @generated from message block.packsweep.admin.KeyHolders
+ */
+export interface KeyHolders {
+  /**
+   * Key is the block key, or its tail.
+   */
+  key?: Uint8Array
+  /**
+   * Others are the other packs the snapshot lists holding it.
+   */
+  others?: string[]
+}
+
+export const KeyHolders: MessageType<KeyHolders> =
+  /* @__PURE__ */ createMessageType<KeyHolders>(
+    'block.packsweep.admin.KeyHolders',
+    () => [
+      [1, 'key', 12],
+      [2, 'others', 9, 1],
+    ],
   )
 
 /**
