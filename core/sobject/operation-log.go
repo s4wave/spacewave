@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"crypto/sha256"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -225,11 +226,14 @@ type SOOperationSet struct {
 	// sequence is the resolved sequence above the checkpoint.
 	sequence soSequence
 
-	// placedMtx guards placed.
+	// placedMtx guards placed and heads.
 	placedMtx sync.Mutex
 	// placed is the replay order, computed once for the operations and
 	// sequence the set holds, or nil until then.
 	placed *soOrder
+	// heads are the heads, computed once for the operations the set holds, or
+	// nil until then.
+	heads []*SOOperationPosition
 }
 
 // soAuthorSeq identifies one position in one author's chain.
@@ -320,11 +324,25 @@ func (s *SOOperationSet) insert(key string, inner *SOOperationInner) bool {
 
 	// Index it by hash and by its author position, and order it with the
 	// rest when next asked.
-	s.placed = nil
+	s.placed, s.heads = nil, nil
 	s.ops[key] = inner
 	pos := soAuthorSeq{author: inner.GetPeerId(), nonce: inner.GetNonce()}
-	s.byAuthorSeq[pos] = append(s.byAuthorSeq[pos], key)
+	s.byAuthorSeq[pos] = append(slices.Clip(s.byAuthorSeq[pos]), key)
 	return true
+}
+
+// clone returns a copy of s that insert and setSequence change without
+// changing s. The copy shares the verified bodies, the checkpoint's authors
+// and the resolved sequence, which neither changes in place, and orders its
+// operations again when next asked.
+func (s *SOOperationSet) clone() *SOOperationSet {
+	return &SOOperationSet{
+		sharedObjectID: s.sharedObjectID,
+		ops:            maps.Clone(s.ops),
+		byAuthorSeq:    maps.Clone(s.byAuthorSeq),
+		authors:        s.authors,
+		sequence:       s.sequence,
+	}
 }
 
 // Len returns the number of operations in the set.
@@ -333,8 +351,19 @@ func (s *SOOperationSet) Len() int {
 }
 
 // Heads returns the operations in the set and the checkpoint's author heads
-// that no operation in the set names, in hash order.
+// that no operation in the set names, in hash order. The set computes them
+// once and shares them, so callers must not modify them.
 func (s *SOOperationSet) Heads() []*SOOperationPosition {
+	s.placedMtx.Lock()
+	defer s.placedMtx.Unlock()
+	if s.heads == nil {
+		s.heads = s.findHeads()
+	}
+	return s.heads
+}
+
+// findHeads computes Heads.
+func (s *SOOperationSet) findHeads() []*SOOperationPosition {
 	// Collect every hash an operation names.
 	named := make(map[string]struct{}, len(s.ops))
 	for _, inner := range s.ops {
@@ -526,6 +555,55 @@ func (s *SOOperationSet) placeOrder() soOrder {
 		}
 	}
 	return out
+}
+
+// extendLast gives s, a clone of prev with the operation key inserted, the
+// order of prev followed by key, and the heads of prev with key in place of
+// the ones it names, when that is what s would compute: prev placed every
+// operation it holds after its whole sequence, and key links only to
+// operations prev holds or the checkpoint covers, one of them the last placed.
+// Then key is ready only once every other operation is placed, and no
+// operation names it. A local write names every head, so it always qualifies.
+// Otherwise s computes them when first asked.
+func (s *SOOperationSet) extendLast(prev *SOOperationSet, key string) {
+	// Start from a complete order of prev.
+	prev.placedMtx.Lock()
+	placed, heads := prev.placed, prev.heads
+	prev.placedMtx.Unlock()
+	if placed == nil || !placed.complete || len(placed.order) == 0 ||
+		len(placed.order) != len(prev.ops) || len(s.ops) != len(prev.ops)+1 {
+		return
+	}
+
+	// Require key to follow the last placed operation and every other link.
+	inner := s.ops[key]
+	last, follows := placed.order[len(placed.order)-1], false
+	named := make(map[string]struct{}, len(inner.GetParents())+1)
+	for _, link := range links(inner) {
+		h := link.GetOpHash()
+		if _, ok := prev.ops[string(h)]; !ok && !s.Covers(link.GetPeerId(), link.GetNonce()) {
+			return
+		}
+		follows = follows || bytes.Equal(h, last)
+		named[string(h)] = struct{}{}
+	}
+	if !follows {
+		return
+	}
+
+	// Place it last, and make it the head in place of the ones it names.
+	next := *placed
+	next.order = slices.Clip(append(placed.order, []byte(key)))
+	s.placed = &next
+	if heads != nil {
+		head := &SOOperationPosition{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: []byte(key)}
+		s.heads = slices.DeleteFunc(slices.Clone(heads), func(h *SOOperationPosition) bool {
+			_, ok := named[string(h.GetOpHash())]
+			return ok
+		})
+		i, _ := slices.BinarySearchFunc(s.heads, head, compareOpHash)
+		s.heads = slices.Insert(s.heads, i, head)
+	}
 }
 
 // linksPlaced reports whether every link of inner is placed or covered.

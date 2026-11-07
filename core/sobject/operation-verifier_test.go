@@ -13,19 +13,30 @@ import (
 )
 
 // newBenchState returns a valid state holding n operations of its owner's
-// chain, and the owner's key.
+// chain, with their data encrypted as a local write encrypts it, and the
+// owner's key.
 func newBenchState(b *testing.B, n int) (*SOState, crypto.PrivKey) {
 	// Start from a valid state with one owner.
 	b.Helper()
 	peers := createMockPeers(b, 1)
 	owner := mustPrivKeys(b, peers)[0]
 	state, _ := newTestSOState(b, peers)
+	le := logrus.New().WithField("bench", b.Name())
+	handle := NewSOStateParticipantHandle(le, testStepFactorySet(), mockSharedObjectID, state, owner, peers[0].GetPeerID())
+	xfrm, err := handle.GetTransformer(b.Context())
+	if err != nil {
+		b.Fatal(err)
+	}
+	data, err := xfrm.EncodeBlock([]byte("data"))
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	// Sign each operation after its predecessor.
 	var prev []byte
 	for nonce := uint64(1); nonce <= uint64(n); nonce++ {
-		link := &SOOperationLink{Nonce: nonce, PrevOpHash: prev, ConfigHash: state.GetConfig().GetConfigChainHash()}
-		op, err := BuildSOOperation(mockSharedObjectID, owner, []byte("data"), link, NewSOOperationLocalID())
+		link := &SOOperationLink{Nonce: nonce, PrevOpHash: prev, ConfigHash: state.GetConfig().GetConfigChainHash(), KeyEpoch: state.CurrentKeyEpoch().GetEpoch()}
+		op, err := BuildSOOperation(mockSharedObjectID, owner, data, link, NewSOOperationLocalID())
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -37,11 +48,32 @@ func newBenchState(b *testing.B, n int) (*SOState, crypto.PrivKey) {
 	return state, owner
 }
 
-// BenchmarkCommit measures one local write above a state of n operations: the
-// host adds the operation under its lock, then the published snapshot of the
-// written state reads its operation set.
+// benchBody is a Body that applies every operation and keeps nothing, so a
+// benchmark measures the driver alone.
+type benchBody struct{}
+
+// Root returns no state, so the driver signs no checkpoint.
+func (benchBody) Root(context.Context, int) ([]byte, func(context.Context) error, error) {
+	return nil, nil, nil
+}
+
+// Apply applies op.
+func (benchBody) Apply(context.Context, int, *OrderedOperation) (string, error) {
+	return "", nil
+}
+
+// Install resets to the checkpoint and keeps nothing.
+func (benchBody) Install(context.Context, *SOCheckpointInner, int) (bool, error) {
+	return false, nil
+}
+
+// BenchmarkCommit measures one local write above a state of about n
+// operations, as the local provider runs it: the host adds the operation under
+// its lock on the state the last write committed, the published snapshot of
+// the written state reads its operation set, and the body driver steps to it.
+// Every 64 writes the state returns to n operations, outside the timer.
 func BenchmarkCommit(b *testing.B) {
-	for _, n := range []int{32, 256, 1024} {
+	for _, n := range []int{300, 1000} {
 		b.Run(fmt.Sprintf("ops=%d", n), func(b *testing.B) {
 			// Hold the state behind a lock that writes it back.
 			base, owner := newBenchState(b, n)
@@ -52,27 +84,45 @@ func BenchmarkCommit(b *testing.B) {
 			current := base
 			host := NewSOHost(nil, nil, func(context.Context, string) (SOStateLock, error) {
 				return NewSOStateLock(current, func(_ context.Context, next *SOState, _ ...*SOConfigChange) error {
-					current = next
+					current = next.Clone()
 					return nil
 				}, func() {}), nil
 			}, mockSharedObjectID)
 			le := logrus.New().WithField("bench", b.Name())
+			le.Logger.SetLevel(logrus.ErrorLevel)
 
-			// Write one operation above the base state each iteration.
-			b.ReportAllocs()
-			for b.Loop() {
-				current = base
-				localID, _, err := host.AddLocalOperation(b.Context(), le, testStepFactorySet(), owner, []byte("data"))
-				if err != nil {
-					b.Fatal(err)
-				}
+			// Step the driver to each published state.
+			driver := NewBodyDriver(le, &testDriverSharedObject{peerID: peerID}, benchBody{}, nil)
+			publish := func() *SOOperationSet {
 				snap := NewSOStateParticipantHandle(le, testStepFactorySet(), mockSharedObjectID, current, owner, peerID).
 					WithOperationVerifier(host.GetOperationVerifier())
+				if err := driver.Step(b.Context(), snap); err != nil {
+					b.Fatal(err)
+				}
 				set, err := snap.GetOperationSet(b.Context())
 				if err != nil {
 					b.Fatal(err)
 				}
-				if set.Find(peerID.String(), localID) == nil || set.Len() != n+1 {
+				return set
+			}
+			publish()
+
+			// Write one operation above the last written state each iteration.
+			b.ReportAllocs()
+			written := 0
+			for b.Loop() {
+				if written == 64 {
+					b.StopTimer()
+					current, written = base, 0
+					publish()
+					b.StartTimer()
+				}
+				localID, _, err := host.AddLocalOperation(b.Context(), le, testStepFactorySet(), owner, []byte("data"))
+				if err != nil {
+					b.Fatal(err)
+				}
+				written++
+				if set := publish(); set.Find(peerID.String(), localID) == nil || set.Len() != n+written {
 					b.Fatal("written operation missing from the set")
 				}
 			}
