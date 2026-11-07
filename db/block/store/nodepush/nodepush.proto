@@ -1,0 +1,70 @@
+syntax = "proto3";
+package block.store.nodepush;
+
+// Message is one frame on the connection between a local store and its storage
+// node. Each frame is a varint length and then this message.
+message Message {
+  oneof body {
+    // Push carries a publication's blocks to the node.
+    Push push = 1;
+    // Flushed answers a Push: the node holds its blocks on its disk.
+    Flushed flushed = 2;
+    // Refused answers a Push the node did not take.
+    Refused refused = 3;
+    // PackReport says the remote holds a pack the node uploaded.
+    PackReport pack_report = 4;
+    // PackApplied says the local store indexed a reported pack and dropped its
+    // queue entries, so the node need not report it again.
+    PackApplied pack_applied = 5;
+  }
+}
+
+// Push is the blocks of one publication.
+message Push {
+  // id names the push on this connection.
+  uint64 id = 1;
+  // blocks are the blocks to hold.
+  repeated Block blocks = 2;
+  // sum is the SHA-256 of every block's key and data, in order.
+  bytes sum = 3;
+}
+
+// Block is one stored block.
+message Block {
+  // key is the block's pack key.
+  bytes key = 1;
+  // data is the block's stored bytes.
+  bytes data = 2;
+}
+
+// Flushed answers a Push the node holds on its disk.
+message Flushed {
+  // id is the Push's id.
+  uint64 id = 1;
+}
+
+// Refused answers a Push the node did not take, such as one whose sum did not
+// match. The local store keeps the blocks queued for its own upload.
+message Refused {
+  // id is the Push's id.
+  uint64 id = 1;
+  // reason says why, for the log.
+  string reason = 2;
+}
+
+// PackReport says the remote holds a pack. It is everything the local store
+// needs to find the pack's blocks there, since it never lists the remote.
+message PackReport {
+  // pack_id is the pack's name on the remote.
+  string pack_id = 1;
+  // entry is the encoded packfile entry.
+  bytes entry = 2;
+  // keys are the pack's block keys.
+  repeated bytes keys = 3;
+}
+
+// PackApplied acknowledges a PackReport.
+message PackApplied {
+  // pack_id is the reported pack's name.
+  string pack_id = 1;
+}
