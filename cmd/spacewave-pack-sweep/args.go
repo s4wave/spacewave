@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -20,6 +21,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	block_store_s3_overlay "github.com/s4wave/spacewave/db/block/store/s3/overlay"
 	block_store_sftp "github.com/s4wave/spacewave/db/block/store/sftp"
 	"github.com/s4wave/spacewave/db/block/writelog"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -71,6 +73,10 @@ type Args struct {
 	SFTPRoot string
 	// Prefix starts the store's keys.
 	Prefix string
+	// Overlay is the directory of a rehearsal's overlay, which records every
+	// write, move and delete while the store is only read; empty reaches the
+	// store itself.
+	Overlay string
 	// LocalPacks is a directory of pack copies, named by id, read first.
 	LocalPacks string
 	// Reads is the packs read at once.
@@ -154,6 +160,7 @@ func (a *Args) sftpFlags() []cli.Flag {
 		&cli.IntFlag{Name: "sftp-conns", Usage: "most SSH connections to the store at once", Value: 2, Destination: &a.SFTPConns},
 		&cli.StringFlag{Name: "sftp-root", Usage: "store directory holding the prefix", Destination: &a.SFTPRoot, Required: true},
 		&cli.StringFlag{Name: "prefix", Usage: "key prefix of the store's packs", Destination: &a.Prefix},
+		&cli.StringFlag{Name: "overlay", Usage: "rehearse: only read the store, recording every write, move and delete in this directory, which the rehearsal's backend shares", Destination: &a.Overlay},
 	}
 }
 
@@ -343,8 +350,26 @@ func (a *Args) runSnapshot(*cli.Context) error {
 	return a.print(result.JSON)
 }
 
-// dialStore reaches the store over SFTP unless a test set another way.
+// dialStore reaches the store, through the rehearsal's overlay when one is
+// named.
 func (a *Args) dialStore() (block_store_s3.ObjectStore, string, func(), error) {
+	// Reach the store.
+	objects, root, closeStore, err := a.dialBase()
+	if err != nil || a.Overlay == "" {
+		return objects, root, closeStore, err
+	}
+
+	// Lay the overlay over it.
+	ov, err := block_store_s3_overlay.New(objects, root, a.Overlay)
+	if err != nil {
+		closeStore()
+		return nil, "", nil, errors.Wrap(err, "--overlay")
+	}
+	return ov, root, closeStore, nil
+}
+
+// dialBase reaches the store over SFTP unless a test set another way.
+func (a *Args) dialBase() (block_store_s3.ObjectStore, string, func(), error) {
 	if a.dial != nil {
 		return a.dial()
 	}
@@ -803,15 +828,24 @@ func checkStore(ctx context.Context, store kvtx.Store, id string) error {
 		return err
 	}
 	if !found || string(data) != id {
-		return errors.New("--scratch holds no catalog of this store id, root and prefix")
+		return errors.New("--scratch holds no catalog of this store id, root, prefix and overlay")
 	}
 	return nil
 }
 
 // storeBinding names the store the flags reach, its catalog's root on the
-// server at root.
+// server at root, and the rehearsal's overlay, so a rehearsal's scratch file
+// never drives the store itself, nor the store's a rehearsal.
 func (a *Args) storeBinding(root string) string {
-	return a.StoreID + "\x00" + root + "\x00" + a.Prefix
+	id := a.StoreID + "\x00" + root + "\x00" + a.Prefix
+	if a.Overlay != "" {
+		dir, err := filepath.Abs(a.Overlay)
+		if err != nil {
+			dir = a.Overlay
+		}
+		id += "\x00overlay\x00" + dir
+	}
+	return id
 }
 
 // bindStore records the store the scratch file's catalog describes on its
@@ -831,7 +865,7 @@ func bindStore(ctx context.Context, store kvtx.Store, id string) error {
 	}
 	if found {
 		if string(data) != id {
-			return errors.New("--scratch holds the catalog of another store id, root or prefix; use a new scratch file")
+			return errors.New("--scratch holds the catalog of another store id, root, prefix or overlay; use a new scratch file")
 		}
 		return nil
 	}

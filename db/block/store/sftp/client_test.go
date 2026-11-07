@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	block_store_s3_overlay "github.com/s4wave/spacewave/db/block/store/s3/overlay"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 
 	"github.com/pkg/errors"
@@ -272,4 +273,64 @@ func TestMoveObject(t *testing.T) {
 	}
 	defer c.Close()
 	s3test.CheckMover(t, c, t.TempDir())
+}
+
+// TestOverlay rehearses a pack's trash, its read from the trash and its
+// restore through an overlay over the server, which leaves the server's files
+// as they were.
+func TestOverlay(t *testing.T) {
+	// Write a pack and its entry to the server.
+	ctx := context.Background()
+	srv := startTestServer(t)
+	c, err := NewClient(Config{Addr: srv.addr, User: "user", Password: "pass", HostKey: string(ssh.MarshalAuthorizedKey(srv.key.PublicKey())), Conns: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	bucket := t.TempDir()
+	const pack, trash = "world/packs/p.pack", "world/trash/packs/p.pack"
+	data := bytes.Repeat([]byte("0123456789"), 100)
+	if err := c.PutObject(ctx, bucket, pack, data, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Move it to the trash through the overlay: the trash key reads, and
+	// lists at its size.
+	ov, err := block_store_s3_overlay.New(c, bucket, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ov.MoveObject(ctx, bucket, pack, trash); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := ov.GetObjectRange(ctx, bucket, trash, 3, 4); err != nil || string(got) != "3456" {
+		t.Fatalf("range of the trashed pack = %q, %v", got, err)
+	}
+	if _, err := ov.GetObjectRange(ctx, bucket, pack, 0, 1); !errors.Is(err, block_store_s3.ErrNotFound) {
+		t.Fatalf("range of the moved pack = %v, want not found", err)
+	}
+	var sizes []int64
+	err = ov.ListObjects(ctx, bucket, "world/trash/", func(key string, size int64) error {
+		sizes = append(sizes, size)
+		return nil
+	})
+	if err != nil || len(sizes) != 1 || sizes[0] != int64(len(data)) {
+		t.Fatalf("trash listing = %v, %v", sizes, err)
+	}
+
+	// The server still holds the pack at its key, and nothing in the trash.
+	if got, err := os.ReadFile(filepath.Join(bucket, pack)); err != nil || !bytes.Equal(got, data) {
+		t.Fatalf("server's pack = %d bytes, %v", len(got), err)
+	}
+	if _, err := os.Stat(filepath.Join(bucket, "world", "trash")); !os.IsNotExist(err) {
+		t.Fatalf("server's trash: %v", err)
+	}
+
+	// The move back reads the pack at its key again.
+	if err := ov.MoveObject(ctx, bucket, trash, pack); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := ov.GetObjectRange(ctx, bucket, pack, 3, 4); err != nil || string(got) != "3456" {
+		t.Fatalf("range of the restored pack = %q, %v", got, err)
+	}
 }

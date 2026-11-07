@@ -3,9 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +21,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	block_store_s3_overlay "github.com/s4wave/spacewave/db/block/store/s3/overlay"
 	"github.com/s4wave/spacewave/db/block/store/s3/s3test"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/block/writelog"
@@ -31,7 +35,7 @@ const commandStoreID = "p/local/acc/blk/so"
 
 // openIndexStore opens a pack store over the bucket of client, its pack index
 // in the file at path of the volume type kind.
-func openIndexStore(ctx context.Context, t *testing.T, kind, path string, client *block_store_s3.Client) (*block_store_s3.PackStore, func() error) {
+func openIndexStore(ctx context.Context, t *testing.T, kind, path string, client block_store_s3.ObjectStore) (*block_store_s3.PackStore, func() error) {
 	t.Helper()
 	index, closeIndex, err := packcopy.OpenIndexFile(ctx, path, &packcopy.IndexFileOptions{
 		Kind:   kind,
@@ -95,6 +99,61 @@ func serveAdmin(t *testing.T, store *block_store_s3.PackStore, dir string) *comm
 	return b
 }
 
+// rehearse, when on, names an overlay on args and returns one over client for
+// the backend, with a check that the store is as it was when rehearse was
+// called. Off, it returns client and a check of nothing.
+func rehearse(t *testing.T, on bool, args *Args, client *block_store_s3.Client, dir string) (block_store_s3.ObjectStore, func()) {
+	// Lay the overlay over the store.
+	t.Helper()
+	if !on {
+		return client, func() {}
+	}
+	args.Overlay = filepath.Join(dir, "overlay")
+	objects, err := block_store_s3_overlay.New(client, s3test.BucketName, args.Overlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the store's objects are as they were.
+	before := readObjects(t, client)
+	return objects, func() {
+		t.Helper()
+		after := readObjects(t, client)
+		if !maps.EqualFunc(before, after, bytes.Equal) {
+			t.Fatalf("the rehearsal changed the store: %v before, %v after", slices.Sorted(maps.Keys(before)), slices.Sorted(maps.Keys(after)))
+		}
+	}
+}
+
+// readObjects reads every object of client's bucket.
+func readObjects(t *testing.T, client block_store_s3.ObjectStore) map[string][]byte {
+	t.Helper()
+	ctx := context.Background()
+	out := make(map[string][]byte)
+	err := client.ListObjects(ctx, s3test.BucketName, "", func(key string, _ int64) error {
+		rc, err := client.GetObject(ctx, s3test.BucketName, key)
+		if err != nil {
+			return err
+		}
+		out[key], err = io.ReadAll(rc)
+		_ = rc.Close()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// commandRuns are the command tests' runs: each volume type of the pack
+// index, on the store itself and as a rehearsal through an overlay.
+func commandRuns(t *testing.T, run func(t *testing.T, kind string, rehearsal bool)) {
+	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
+		t.Run(kind, func(t *testing.T) { run(t, kind, false) })
+		t.Run(kind+"/overlay", func(t *testing.T) { run(t, kind, true) })
+	}
+}
+
 // TestCommandQuarantine quarantines, rechecks, trashes and removes through a
 // backend's admin service over HTTP, its pack store on an index file of each
 // volume type and its open operations from a marking store over it. The
@@ -106,14 +165,12 @@ func serveAdmin(t *testing.T, store *block_store_s3.PackStore, dir string) *comm
 // trash keeps it from the removal, and the restore returns it to the reads; a
 // restore naming the removed pack adopts it back.
 func TestCommandQuarantine(t *testing.T) {
-	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
-		t.Run(kind, func(t *testing.T) { testCommandQuarantine(t, kind) })
-	}
+	commandRuns(t, testCommandQuarantine)
 }
 
 // testCommandQuarantine runs the quarantine with the pack index in a file of
-// the volume type kind.
-func testCommandQuarantine(t *testing.T, kind string) {
+// the volume type kind, as a rehearsal when rehearsal is set.
+func testCommandQuarantine(t *testing.T, kind string, rehearsal bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	dir := t.TempDir()
@@ -121,8 +178,9 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	// Write a live pack and three dead packs through an index file.
 	_, client := s3test.New(t)
 	indexPath := filepath.Join(dir, "index.db")
+	var objects block_store_s3.ObjectStore = client
 	openStore := func() (*block_store_s3.PackStore, func() error) {
-		return openIndexStore(ctx, t, kind, indexPath, client)
+		return openIndexStore(ctx, t, kind, indexPath, objects)
 	}
 	ref := func(data string) *block.BlockRef {
 		r, err := block.BuildBlockRef([]byte(data), nil)
@@ -170,6 +228,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		},
 		out: &out,
 	}
+	objects, unchanged := rehearse(t, rehearsal, args, client, dir)
 	if err := args.runNewCycle(nil); err != nil {
 		t.Fatal(err)
 	}
@@ -282,11 +341,12 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		block_store_s3.TrashEntryKey("world/", deadPack):  true,
 		block_store_s3.TrashPackKey("world/", deadPack):   true,
 	} {
-		_, err := client.GetObjectRange(ctx, s3test.BucketName, key, 0, 1)
+		_, err := objects.GetObjectRange(ctx, s3test.BucketName, key, 0, 1)
 		if found := err == nil; found != want || (err != nil && !errors.Is(err, block_store_s3.ErrNotFound)) {
 			t.Fatalf("object %s found %v, %v; want %v", key, found, err, want)
 		}
 	}
+	unchanged()
 
 	// A read of the lost block finds its pack in the trash and records the
 	// miss.
@@ -370,6 +430,16 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	if err := args.runRecheck(nil); err == nil {
 		t.Fatal("rechecked without the credential")
 	}
+
+	// A rehearsal left the store as it was, and its scratch file refuses the
+	// store itself.
+	unchanged()
+	if rehearsal {
+		args.Overlay = ""
+		if err := args.runTrash(nil); err == nil || !strings.Contains(err.Error(), "overlay") {
+			t.Fatalf("trash of the store through a rehearsal's scratch file = %v", err)
+		}
+	}
 }
 
 // TestCommandCompact compacts a low pack through a backend's admin service,
@@ -378,14 +448,12 @@ func testCommandQuarantine(t *testing.T, kind string) {
 // adopts and reads it from; then the quarantine, recheck, trash and removal
 // take the low pack, and the live block still reads.
 func TestCommandCompact(t *testing.T) {
-	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
-		t.Run(kind, func(t *testing.T) { testCommandCompact(t, kind) })
-	}
+	commandRuns(t, testCommandCompact)
 }
 
 // testCommandCompact runs the compaction with the pack index in a file of the
-// volume type kind.
-func testCommandCompact(t *testing.T, kind string) {
+// volume type kind, as a rehearsal when rehearsal is set.
+func testCommandCompact(t *testing.T, kind string, rehearsal bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	dir := t.TempDir()
@@ -437,13 +505,14 @@ func testCommandCompact(t *testing.T, kind string) {
 		},
 		out: &out,
 	}
+	objects, unchanged := rehearse(t, rehearsal, args, client, dir)
 	if err := args.runNewCycle(nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := args.runSnapshot(nil); err != nil {
 		t.Fatal(err)
 	}
-	store, closeIndex := openIndexStore(ctx, t, kind, indexPath, client)
+	store, closeIndex := openIndexStore(ctx, t, kind, indexPath, objects)
 	defer func() {
 		store.Close()
 		_ = closeIndex()
@@ -529,4 +598,5 @@ func testCommandCompact(t *testing.T, kind string) {
 	if located, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef}); err != nil || located[0] != "" {
 		t.Fatalf("locate of the dead block after the removal = %v, %v", located, err)
 	}
+	unchanged()
 }
