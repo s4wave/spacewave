@@ -1,10 +1,12 @@
 package publisher
 
 import (
+	"cmp"
 	"context"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/release"
@@ -27,6 +29,9 @@ type ReleaseOptions struct {
 	DistKey crypto.PrivKey
 	// Rev is the DistConfig control revision, above every earlier selector's.
 	Rev uint64
+	// Retain is the revisions of each manifest platform kept in the release
+	// World; zero keeps DefaultRetain.
+	Retain int
 	// LauncherConfigs are applied to the launcher bus with the selector.
 	LauncherConfigs map[string]*configset_proto.ControllerConfig
 	// Publish writes the Deployment's Space. Its Space and CDN URL default to
@@ -58,7 +63,32 @@ type Released struct {
 // lacks stops the release before any upload, and a failed upload or
 // checkpoint returns before signing. The caller must exclusively own eng and
 // the Space's publisher for the release.
+//
+// Before staging, each manifest platform's revisions past the newest Retain
+// are deleted from the release World, and the Space reclaims their content
+// once the release is posted.
 func Release(ctx context.Context, eng world.Engine, opts ReleaseOptions) (*Released, error) {
+	return orderedRelease(ctx, eng, opts, nil)
+}
+
+// Reissue rolls back by releasing a copy of the retained manifest meta names
+// at a revision above the newest of its platform. Launchers adopt the highest
+// revision, so a rollback is a release. The copy is staged in the same
+// transaction as the channel.
+func Reissue(ctx context.Context, eng world.Engine, opts ReleaseOptions, meta *bldr_manifest.ManifestMeta) (*Released, error) {
+	if meta == nil {
+		return nil, errors.New("manifest meta to reissue is required")
+	}
+	manifestKey := opts.Deployment.withDefaults().ManifestKey
+	return orderedRelease(ctx, eng, opts, func(ctx context.Context, ws world.WorldState) error {
+		_, err := ReissueManifest(ctx, ws, manifestKey, meta)
+		return err
+	})
+}
+
+// orderedRelease runs the release, calling prepare on the staging
+// transaction before retention and the channel are applied.
+func orderedRelease(ctx context.Context, eng world.Engine, opts ReleaseOptions, prepare func(context.Context, world.WorldState) error) (*Released, error) {
 	// Require the metadata and the selector's signer.
 	d := opts.Deployment.withDefaults()
 	if opts.Metadata == nil || opts.DistKey == nil {
@@ -95,8 +125,9 @@ func Release(ctx context.Context, eng world.Engine, opts ReleaseOptions) (*Relea
 		return nil, err
 	}
 
-	// Stage the channel over the current manifests and commit it locally.
-	staged, err := stage(ctx, eng, d.ManifestKey, metadata, opts.ReleaseKey)
+	// Stage the channel over the retained manifests and commit it locally.
+	retain := cmp.Or(opts.Retain, DefaultRetain)
+	staged, err := stage(ctx, eng, d.ManifestKey, retain, metadata, opts.ReleaseKey, prepare)
 	if err != nil {
 		return nil, errors.Wrap(err, "stage release")
 	}
@@ -116,14 +147,33 @@ func Release(ctx context.Context, eng world.Engine, opts ReleaseOptions) (*Relea
 	return &Released{Metadata: staged, Checkpoint: checkpoint, Head: head, DistConfig: conf, Signed: signed}, nil
 }
 
-// stage records metadata's channel in one committed write transaction.
-func stage(ctx context.Context, eng world.Engine, manifestKey string, metadata *release.ReleaseMetadata, releaseKey crypto.PrivKey) (*release.ReleaseMetadata, error) {
+// stage applies prepare and retention, then records metadata's channel, in
+// one committed write transaction.
+func stage(
+	ctx context.Context,
+	eng world.Engine,
+	manifestKey string,
+	retain int,
+	metadata *release.ReleaseMetadata,
+	releaseKey crypto.PrivKey,
+	prepare func(context.Context, world.WorldState) error,
+) (*release.ReleaseMetadata, error) {
 	// Stage in one write transaction, discarded unless it commits.
 	tx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
+
+	// Apply the caller's change, then keep the newest retain revisions.
+	if prepare != nil {
+		if err := prepare(ctx, tx); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := PruneManifests(ctx, tx, manifestKey, retain); err != nil {
+		return nil, errors.Wrap(err, "retain manifests")
+	}
 
 	// Stage the channel and commit it.
 	staged, err := StageChannel(ctx, tx, manifestKey, metadata, releaseKey)

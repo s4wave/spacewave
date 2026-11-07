@@ -42,6 +42,28 @@ posted: a manifest whose content the World lacks stops the release before
 any upload, and a failed upload or checkpoint returns an error with no
 selector.
 
+## Retention and rollback
+
+Each release keeps the newest three revisions of every platform's manifest in
+the release World and deletes the older ones before staging. Set
+`ReleaseOptions.Retain` to keep a different count.
+
+A launcher runs the highest revision it sees, so you can't roll back by
+publishing an older one again. `publisher.Reissue` copies a retained revision
+to a new revision above the platform's newest and releases it:
+
+```go
+released, err := publisher.Reissue(ctx, w.Engine, opts, &bldr_manifest.ManifestMeta{
+	ManifestId: "myapp-desktop",
+	BuildType:  "release",
+	PlatformId: "desktop/linux/amd64",
+	Rev:        12,
+})
+```
+
+The copy shares the original's files, so the rollback uploads almost nothing.
+Give `opts.Rev` and `opts.Metadata` new revisions, as for any release.
+
 ## The launcher's side
 
 Launchers ignore Release World controllers inside a signed DistConfig, so the

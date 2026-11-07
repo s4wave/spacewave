@@ -142,12 +142,22 @@ func TestReleaseLauncherFetchesEveryManifest(t *testing.T) {
 		t.Fatal("the launcher verified a different selector than the release signed")
 	}
 
-	// Mount the Space on a launcher bus through the Deployment's host config.
+	// A launcher mounting the Space reads the channel and every executable.
+	ws := mountLauncher(t, ctx, le, d)
+	checkLauncherReads(t, ctx, le, ws, conf.GetChannelKey(), released.Metadata, func(meta *bldr_manifest.ManifestMeta) []byte {
+		return exeOf(t, meta)
+	})
+}
+
+// mountLauncher mounts d's Space on a launcher bus through the Deployment's
+// host config and returns the mounted release World.
+func mountLauncher(t *testing.T, ctx context.Context, le *logrus.Entry, d publisher.Deployment) world.WorldState {
+	// Run the host config's controllers on a launcher bus.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tb.Release()
+	t.Cleanup(tb.Release)
 	b := tb.Bus
 	tb.StaticResolver.AddFactory(cdn_world_controller.NewFactory(b))
 	tb.StaticResolver.AddFactory(block_store_bucket.NewFactory(b))
@@ -164,20 +174,25 @@ func TestReleaseLauncherFetchesEveryManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer applyRef.Release()
+	t.Cleanup(applyRef.Release)
 
-	// Read every selected manifest's executable from the mounted World.
+	// Look up the mounted release World.
 	eng, _, engRef, err := world.ExLookupWorldEngine(ctx, b, false, d.ProjectID+"-release-world", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer engRef.Release()
-	ws := world.NewEngineWorldState(eng, false)
+	t.Cleanup(engRef.Release)
+	return world.NewEngineWorldState(eng, false)
+}
 
-	// The mounted World holds the channel the selector names.
-	_, _, err = world.AccessWorldObject(ctx, ws, path.Join(publisher.ChannelDirectoryKey, conf.GetChannelKey()), false, func(cursor *block.Cursor) error {
+// checkLauncherReads reads channelKey's metadata from the mounted World ws,
+// requires it to be staged, and reads each selected manifest's executable,
+// requiring the one want returns for its meta.
+func checkLauncherReads(t *testing.T, ctx context.Context, le *logrus.Entry, ws world.WorldState, channelKey string, staged *release.ReleaseMetadata, want func(*bldr_manifest.ManifestMeta) []byte) {
+	// The mounted World holds the staged channel.
+	_, _, err := world.AccessWorldObject(ctx, ws, path.Join(publisher.ChannelDirectoryKey, channelKey), false, func(cursor *block.Cursor) error {
 		got, err := block.UnmarshalBlock[release.ReleaseMetadata](ctx, cursor)
-		if err == nil && !got.EqualVT(released.Metadata) {
+		if err == nil && !got.EqualVT(staged) {
 			t.Fatal("the launcher read different channel metadata than the release staged")
 		}
 		return err
@@ -185,11 +200,12 @@ func TestReleaseLauncherFetchesEveryManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, ref := range released.Metadata.GetManifestRefs() {
-		want := exeOf(t, ref.GetMeta())
+
+	// Each selected manifest checks out its executable.
+	for _, ref := range staged.GetManifestRefs() {
+		exe := want(ref.GetMeta())
 		err := manifest_world.AccessManifest(ctx, le, ws.AccessWorldState, ref.GetManifestRef(), func(ctx context.Context, _ *bucket_lookup.Cursor, _ *block.Cursor, _ *bldr_manifest.Manifest, distFS *unixfs.FSHandle, _ *unixfs.FSHandle) error {
-			got := readFile(t, ctx, distFS, "app")
-			if !bytes.Equal(got, want) {
+			if !bytes.Equal(readFile(t, ctx, distFS, "app"), exe) {
 				t.Fatalf("%s: the launcher read a different executable", ref.GetMeta().GetPlatformId())
 			}
 			return nil
