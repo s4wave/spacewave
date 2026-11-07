@@ -34,7 +34,8 @@ const stageCopyBatchEntries = 1024
 //     have at zero sets the hold mark the same way.
 //  4. A proof is recorded only after a durability fence covers the writes of
 //     its whole subtree, and never for a block with a hole under it.
-//  5. A store that holds no roots never frees a block by liveness, so the
+//  5. A store that holds no roots, such as a cloud block store, keeps a block
+//     because its storage is durable and not because nothing frees it, so the
 //     copy skips each block it stores and records no proofs.
 //
 // The caller keeps the stage open until a root that names the copied roots

@@ -266,16 +266,20 @@ func (b *spaceBackfill) copy(ctx context.Context, roots []*block.BlockRef, reche
 	var holes uint32
 	opts := block.GraphCopyOptions{
 		Forget: true,
-		Missing: func(_ context.Context, ref *block.BlockRef) error {
+		Missing: func(context.Context, *block.BlockRef) error {
 			holes++
-			b.a.le.WithField("block", ref.MarshalString()).Warn("backfill found a block no peer holds")
 			return nil
 		},
 	}
 	if err := b.a.copyAndHold(ctx, RootBackfill, roots, opts, recheck); err != nil {
 		return 0, err
 	}
-	b.a.le.WithField("dur", time.Since(start).String()).WithField("holes", holes).Debug("backfilled the World")
+	le := b.a.le.WithField("dur", time.Since(start).String()).WithField("holes", holes)
+	if holes != 0 {
+		le.Warn("backfilled the World with blocks that are unreachable or that no peer holds")
+	} else {
+		le.Debug("backfilled the World")
+	}
 	return holes, nil
 }
 
