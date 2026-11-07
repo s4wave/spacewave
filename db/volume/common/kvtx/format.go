@@ -192,47 +192,34 @@ func storeEmpty(ctx context.Context, store kvtx.Store) (bool, error) {
 
 // carryLegacyRoots writes a root table entry for each named root the
 // reference graph of a format 5 or 6 store held: a forward edge from a root
-// owner node to a block. Each batch of entries commits on its own and is
-// written again by a rerun, so the carry is safe to repeat.
+// owner node to a block. It scans the text node forward edges in runs, each
+// read in its own short snapshot, and writes the root owner edges each run
+// finds in a commit of their own before reading the next. A rerun writes the
+// entries again, so the carry is safe to repeat.
 func carryLegacyRoots(ctx context.Context, store kvtx.Store) error {
-	// Scan the text node forward edges in runs, each read in its own short
-	// snapshot after the last key the run before it reached, and write the
-	// root owner edges each run finds before reading the next.
 	prefix := append(bytes.Clone(livenessPrefix), legacyForwardKind, legacyTextNode)
-	var after []byte
-	for {
-		// Read the next run of edges.
-		roots, last, err := readLegacyRoots(ctx, store, prefix, after, legacyRootRun)
-		if err != nil || last == nil {
-			return err
-		}
-		after = last
-
-		// Write the roots it found.
+	parse := func(key []byte) (legacyRoot, bool) {
+		return parseLegacyRootEdge(key[len(prefix)-1:])
+	}
+	return scanRuns(ctx, store, prefix, parse, func(roots []legacyRoot) error {
+		// Write the roots the run found.
 		if len(roots) == 0 {
-			continue
+			return nil
 		}
 		wtx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
 		}
+		defer wtx.Discard()
 		rec := block_gc.NewRecords(wtx, livenessPrefix)
 		for _, root := range roots {
 			if err := rec.SetRoot(ctx, root.bucketID, root.name, &block_gc.RootEntry{Ref: block_gc.BlockKey(root.ref)}); err != nil {
-				wtx.Discard()
 				return err
 			}
 		}
-		err = kvtx.CommitOrdered(ctx, wtx)
-		wtx.Discard()
-		if err != nil {
-			return err
-		}
-	}
+		return kvtx.CommitOrdered(ctx, wtx)
+	})
 }
-
-// legacyRootRun bounds the forward edges one read of carryLegacyRoots scans.
-const legacyRootRun = 4096
 
 // legacyRoot is a named root an old graph's root owner edge holds.
 type legacyRoot struct {
@@ -242,48 +229,18 @@ type legacyRoot struct {
 	ref *block.BlockRef
 }
 
-// readLegacyRoots reads up to limit forward edge keys under prefix after the
-// key after, nil for the first, in one snapshot, and returns the root owner
-// edges among them and the last key it read, nil when none remain.
-func readLegacyRoots(ctx context.Context, store kvtx.Store, prefix, after []byte, limit int) ([]legacyRoot, []byte, error) {
-	// Position a sorted iterator past after.
-	tx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer tx.Discard()
-	it := tx.Iterate(ctx, prefix, true, false)
-	defer it.Close()
-	if err := seekPastKey(it, after); err != nil {
-		return nil, nil, err
-	}
-
-	// Collect the root owner edges of the run.
-	var roots []legacyRoot
-	var last []byte
-	for n := 0; it.Valid() && n < limit; it.Next() {
-		key := it.Key()
-		last = bytes.Clone(key)
-		n++
-		if bucketID, name, ref, ok := parseLegacyRootEdge(key[len(prefix)-1:]); ok {
-			roots = append(roots, legacyRoot{bucketID: bucketID, name: name, ref: ref})
-		}
-	}
-	return roots, last, it.Err()
-}
-
 // parseLegacyRootEdge parses the subject and object of a forward edge record
 // of the old graph, enc being the record key after its kind byte, and returns
 // the root it names when the subject is a root owner node and the object a
 // block.
-func parseLegacyRootEdge(enc []byte) (bucketID, name string, ref *block.BlockRef, ok bool) {
+func parseLegacyRootEdge(enc []byte) (legacyRoot, bool) {
 	// Read the subject, a text node.
 	if len(enc) == 0 || enc[0] != legacyTextNode {
-		return "", "", nil, false
+		return legacyRoot{}, false
 	}
 	n, size := binary.Uvarint(enc[1:])
 	if size <= 0 || uint64(len(enc)-1-size) < n { //nolint:gosec // size > 0 and at most len(enc)-1.
-		return "", "", nil, false
+		return legacyRoot{}, false
 	}
 	subject := string(enc[1+size : 1+size+int(n)]) //nolint:gosec // n fits the key.
 	object := enc[1+size+int(n):]                  //nolint:gosec // n fits the key.
@@ -292,23 +249,23 @@ func parseLegacyRootEdge(enc []byte) (bucketID, name string, ref *block.BlockRef
 	rest, isOwner := strings.CutPrefix(subject, legacyRootOwnerPrefix)
 	encBucket, encName, cut := strings.Cut(rest, "/")
 	if !isOwner || !cut {
-		return "", "", nil, false
+		return legacyRoot{}, false
 	}
 	bucket, err := base64.RawURLEncoding.DecodeString(encBucket)
 	if err != nil {
-		return "", "", nil, false
+		return legacyRoot{}, false
 	}
 	rootName, err := base64.RawURLEncoding.DecodeString(encName)
 	if err != nil {
-		return "", "", nil, false
+		return legacyRoot{}, false
 	}
 
 	// Read the object, a block.
 	ref, tail, err := block_gc.ParseBlockKey(object)
 	if err != nil || len(tail) != 0 {
-		return "", "", nil, false
+		return legacyRoot{}, false
 	}
-	return string(bucket), string(rootName), ref, true
+	return legacyRoot{bucketID: string(bucket), name: string(rootName), ref: ref}, true
 }
 
 // NeedsFormatUpgrade reports whether opening a Volume on store rewrites its
@@ -371,6 +328,56 @@ func deletePrefix(ctx context.Context, store kvtx.Store, prefix []byte) error {
 			return err
 		}
 	}
+}
+
+// scanRun bounds the keys one snapshot of scanRuns reads.
+const scanRun = 4096
+
+// scanRuns calls fn with each run of the keys under prefix, in key order, up
+// to scanRun keys a run, each run read in its own short snapshot of store
+// after the last key the run before reached. parse names the item a key
+// holds; a key it rejects counts toward its run and is left out of it.
+func scanRuns[T any](ctx context.Context, store kvtx.Store, prefix []byte, parse func(key []byte) (T, bool), fn func(run []T) error) error {
+	var after []byte
+	for {
+		run, last, err := readRun(ctx, store, prefix, after, parse)
+		if err != nil || last == nil {
+			return err
+		}
+		after = last
+		if err := fn(run); err != nil {
+			return err
+		}
+	}
+}
+
+// readRun reads up to scanRun keys under prefix after the key after, nil for
+// the first, in one snapshot, and returns the items parse names among them
+// and the last key, nil when none remain.
+func readRun[T any](ctx context.Context, store kvtx.Store, prefix, after []byte, parse func(key []byte) (T, bool)) ([]T, []byte, error) {
+	// Position a sorted iterator past after.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Discard()
+	it := tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+	if err := seekPastKey(it, after); err != nil {
+		return nil, nil, err
+	}
+
+	// Parse the keys of the run.
+	var run []T
+	var last []byte
+	for n := 0; it.Valid() && n < scanRun; it.Next() {
+		last = bytes.Clone(it.Key())
+		n++
+		if item, ok := parse(last); ok {
+			run = append(run, item)
+		}
+	}
+	return run, last, it.Err()
 }
 
 // seekPastKey positions it at its first key when after is nil, and otherwise
