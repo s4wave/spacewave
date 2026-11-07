@@ -65,7 +65,7 @@ func EncodePointer(ptr *cdn.CdnRootPointer) (Pointer, error) {
 	if err != nil {
 		return Pointer{}, err
 	}
-	body := []byte(packedmsg.EncodePackedMessage(data))
+	body := packedmsg.AppendPackedMessage(nil, data)
 	if int64(len(body)) > cdn_bstore.MaxRootPackedmsgBytes {
 		return Pointer{}, errors.Errorf("cdn root pointer exceeds %d bytes", cdn_bstore.MaxRootPackedmsgBytes)
 	}

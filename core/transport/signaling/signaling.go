@@ -4,29 +4,22 @@ package signaling
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"io"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/transport/reqsig"
 	"github.com/s4wave/spacewave/net/peer"
 	signaling_rpc "github.com/s4wave/spacewave/net/signaling/rpc"
 	signaling_rpc_frame "github.com/s4wave/spacewave/net/signaling/rpc/frame"
 	signaling_server "github.com/s4wave/spacewave/net/signaling/rpc/server"
 	"github.com/sirupsen/logrus"
 )
-
-// clockSkew bounds how far a signed request's timestamp may be from the
-// server's clock.
-const clockSkew = 5 * time.Minute
 
 // ticketLifetime is how long a ticket waits for its socket.
 const ticketLifetime = 30 * time.Second
@@ -200,50 +193,13 @@ func (s *Signaling) ServePeer(w http.ResponseWriter, r *http.Request) {
 }
 
 // VerifyRequest returns the peer whose key signed r at a time near now, in
-// the request signing form peers use for the configured service.
+// the request signing form peers use for the configured service. It reads at
+// most 4096 bytes of the body.
 func VerifyRequest(r *http.Request, now time.Time, signingEnv string) (peer.ID, error) {
-	// Read the claimed peer, its public key and the signing time.
-	pid, err := peer.IDB58Decode(r.Header.Get("X-Peer-ID"))
-	if err != nil {
-		return "", err
-	}
-	pub, err := pid.ExtractPublicKey()
-	if err != nil {
-		return "", err
-	}
-	timestamp, err := strconv.ParseInt(r.Header.Get("X-Timestamp"), 10, 64)
-	if err != nil {
-		return "", err
-	}
-	if skew := now.Sub(time.UnixMilli(timestamp)); skew > clockSkew || skew < -clockSkew {
-		return "", errors.New("request time is out of range")
-	}
-
-	// Bind the signature to this request's method, path and body.
+	// Read the small body these routes take, then verify the signature over it.
 	body, err := io.ReadAll(io.LimitReader(r.Body, 4096))
 	if err != nil {
 		return "", err
 	}
-	digest := sha256.Sum256(body)
-	payload, err := (&api.SigningPayload{
-		EnvPrefix:     signingEnv,
-		Method:        r.Method,
-		Path:          r.URL.Path,
-		TimestampMs:   timestamp,
-		ContentLength: int64(len(body)),
-		BodyHashHex:   hex.EncodeToString(digest[:]),
-	}).MarshalVT()
-	if err != nil {
-		return "", err
-	}
-
-	// Check the signature over that payload.
-	signature, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Signature"))
-	if err != nil {
-		return "", err
-	}
-	if ok, err := pub.Verify(payload, signature); err != nil || !ok {
-		return "", errors.New("invalid request signature")
-	}
-	return pid, nil
+	return reqsig.Verify(r, body, signingEnv, now)
 }

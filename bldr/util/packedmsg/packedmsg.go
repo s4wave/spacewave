@@ -26,8 +26,26 @@ func checksum(data []byte) []byte {
 	return binary.LittleEndian.AppendUint64(nil, sum)
 }
 
+// wrapChecksum returns data with its masked checksum appended, masked, in one
+// new buffer; data is not changed.
 func wrapChecksum(data []byte) []byte {
-	return xor(append(data, xor(checksum(data))...))
+	// Append the checksum masked from position zero.
+	out := make([]byte, len(data)+8)
+	copy(out, data)
+	sum := out[len(data):]
+	binary.LittleEndian.PutUint64(sum, crc64.Checksum(data, crc64.MakeTable(crc64.ECMA)))
+	xorInPlace(sum)
+
+	// Mask the whole buffer.
+	xorInPlace(out)
+	return out
+}
+
+// xorInPlace masks data in place as xor does.
+func xorInPlace(data []byte) {
+	for i := range data {
+		data[i] ^= secondMagic[i%len(secondMagic)] ^ baseMagic[i%len(baseMagic)]
+	}
 }
 
 func unwrapChecksum(data []byte) ([]byte, bool) {
@@ -45,6 +63,12 @@ func unwrapChecksum(data []byte) ([]byte, bool) {
 // EncodePackedMessage encodes a message to base64 with a checksum.
 func EncodePackedMessage(message []byte) string {
 	return base64.RawURLEncoding.EncodeToString(wrapChecksum(message))
+}
+
+// AppendPackedMessage appends the encoding EncodePackedMessage returns to dst,
+// without the copy a string conversion makes.
+func AppendPackedMessage(dst, message []byte) []byte {
+	return base64.RawURLEncoding.AppendEncode(dst, wrapChecksum(message))
 }
 
 // DecodePackedMessage decodes the given ciphertext.

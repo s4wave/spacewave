@@ -1,0 +1,46 @@
+syntax = "proto3";
+package cdn.writer.world;
+
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/s4wave/spacewave/core/cdn/cdn.proto";
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/db/packfile/packfile.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/cdn/writer/world;cdn_writer_world";
+
+// CdnSpace is the World object holding the root pointer of one CDN Space a
+// writer owns.
+message CdnSpace {
+  option (typeid.id) = "spacewave/cdn/space";
+
+  // Root is the Space's current root pointer.
+  .cdn.CdnRootPointer root = 1;
+}
+
+// ImportCdnSpaceOp records a Space's root pointer as the writer found it when
+// it became the Space's writer. It changes nothing once the Space is recorded.
+message ImportCdnSpaceOp {
+  option (typeid.id) = "spacewave/cdn/space/import";
+
+  // Root is the pointer to record.
+  .cdn.CdnRootPointer root = 1;
+}
+
+// CommitCdnSpaceOp adds packs the bucket already holds to a Space, and moves
+// the Space to a new checkpoint when one is set. It never removes or replaces
+// a pack.
+message CommitCdnSpaceOp {
+  option (typeid.id) = "spacewave/cdn/space/commit";
+
+  // SpaceId is the Space committed to.
+  string space_id = 1;
+  // Checkpoint follows the recorded checkpoint, or is unset to keep it.
+  .sobject.SOCheckpoint checkpoint = 2;
+  // Packs are the packs the commit adds.
+  repeated .packfile.PackfileEntry packs = 3;
+  // NowUnixMillis stamps the new root pointer and the added packs.
+  int64 now_unix_millis = 4;
+  // Signer, when set, is the peer whose signature the checkpoint must carry
+  // in place of the recorded checkpoint's signers.
+  string signer = 5;
+}
