@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
@@ -41,6 +40,10 @@ func (r *countingRemote) PutPackFile(ctx context.Context, id string, data []byte
 // holds only once the values written before its time are uploaded; and a
 // drain of a Log whose packs the store holds uploads none again.
 func TestPackStoreDrain(t *testing.T) {
+	eachIndexVolume(t, testPackStoreDrain)
+}
+
+func testPackStoreDrain(t *testing.T, kind string) {
 	ctx := t.Context()
 	dir := t.TempDir()
 	open := func() *packahead.Log {
@@ -101,7 +104,7 @@ func TestPackStoreDrain(t *testing.T) {
 
 	// Open an indexed store on the bucket.
 	_, client := newFakeBucket(t, nil)
-	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	kv := newIndexKV(t, kind)
 	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{Index: kv})
 	t.Cleanup(store.Close)
 	remote := &countingRemote{PackStore: store}

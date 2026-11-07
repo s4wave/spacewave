@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -17,9 +18,9 @@ import (
 // default.
 const maxReadPackBytes = 1 << 30
 
-// Packs returns every pack the store has registered, sorted by id. With an
-// index it reads the index's entries, and lists the bucket only when the
-// index holds no pack.
+// Packs returns every pack the store has registered, held ones included,
+// sorted by id. With an index it reads the index's entries, and lists the
+// bucket only when the index holds no pack.
 func (s *PackStore) Packs(ctx context.Context) ([]*packfile.PackfileEntry, error) {
 	// Publish every registered entry.
 	if err := s.loadAll(ctx); err != nil {
@@ -29,12 +30,9 @@ func (s *PackStore) Packs(ctx context.Context) ([]*packfile.PackfileEntry, error
 	// Copy them out in id order.
 	var out []*packfile.PackfileEntry
 	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
-		ids := slices.Sorted(maps.Keys(s.entries))
-		out = make([]*packfile.PackfileEntry, len(ids))
-		for i, id := range ids {
-			out[i] = s.entries[id]
-		}
+		out = slices.AppendSeq(slices.Collect(maps.Values(s.entries)), maps.Values(s.heldEntries))
 	})
+	slices.SortFunc(out, func(a, b *packfile.PackfileEntry) int { return strings.Compare(a.GetId(), b.GetId()) })
 	return out, nil
 }
 
