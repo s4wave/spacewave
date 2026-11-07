@@ -210,7 +210,9 @@ func TestDurablePublisher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	held := NewHeld(int64(len(value)))
+	var limit atomic.Int64
+	limit.Store(int64(len(value)))
+	held := NewHeld(&limit)
 	p.SetDurable(&durable, held, func() bool { return true })
 	ctx := context.Background()
 	key := packfile.BlockKey(pub.Entries[0].Ref.GetHash())

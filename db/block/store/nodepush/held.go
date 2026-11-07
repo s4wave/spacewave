@@ -2,6 +2,7 @@ package block_store_nodepush
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -17,8 +18,10 @@ import (
 // Dropping it earlier loses the only copy besides the node's disk.
 type Held struct {
 	// limit bounds the bytes held; a publication that would pass it takes
-	// the local path.
-	limit int64
+	// the local path. Its owner may change it at any time: lowering it below
+	// what is held drops nothing, and new publications take the local path
+	// until reports and spills bring it under.
+	limit *atomic.Int64
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -39,7 +42,7 @@ type heldBlock struct {
 }
 
 // NewHeld builds a Held of at most limit bytes.
-func NewHeld(limit int64) *Held {
+func NewHeld(limit *atomic.Int64) *Held {
 	return &Held{limit: limit, blocks: make(map[string]*heldBlock)}
 }
 
@@ -55,7 +58,7 @@ func (h *Held) Add(keys, values [][]byte) bool {
 			size += int64(len(values[i]))
 		}
 	}
-	if h.bytes+size > h.limit {
+	if h.bytes+size > h.limit.Load() {
 		return false
 	}
 

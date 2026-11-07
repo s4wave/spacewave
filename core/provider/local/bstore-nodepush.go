@@ -76,8 +76,8 @@ type NodePushConfig struct {
 	// set spills to the local disk with queue entries. Nil never does.
 	Durable *atomic.Bool
 	// HeldBytes bounds the memory set; a publication past it takes the local
-	// path.
-	HeldBytes int64
+	// path. A tunable changes it live through the store's Held.
+	HeldBytes *atomic.Int64
 }
 
 // NodeDrainConfig drains a store's upload backlog through its storage node, as
@@ -250,7 +250,7 @@ func (t *bstoreTracker) startNodePush(
 
 	// Keep pushed blocks in memory while durable, spilling what waits too
 	// long or what the switch turned back.
-	if conf.Durable != nil && conf.HeldBytes > 0 {
+	if conf.Durable != nil && conf.HeldBytes != nil {
 		held := block_store_nodepush.NewHeld(conf.HeldBytes)
 		handle.push.SetDurable(conf.Durable, held, client.Connected)
 		t.held.Store(held)

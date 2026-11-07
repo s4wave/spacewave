@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
@@ -21,6 +23,32 @@ const (
 	// publicationGroupLimit bounds publications sharing one physical commit.
 	publicationGroupLimit = 16
 )
+
+// GroupObserver receives the times of one physical publication group: the
+// wait for the store's writer turn, and the apply and commit after it,
+// including the commit's durability wait. It runs on the writer's goroutine,
+// so it must not block.
+type GroupObserver func(volumeID string, writerWait, apply time.Duration, publications int)
+
+// groupObserver is the observer SetGroupObserver set, or nil.
+var groupObserver atomic.Pointer[GroupObserver]
+
+// SetGroupObserver has every Volume report its publication groups to fn. A
+// nil fn stops it.
+func SetGroupObserver(fn GroupObserver) {
+	if fn == nil {
+		groupObserver.Store(nil)
+		return
+	}
+	groupObserver.Store(&fn)
+}
+
+// observeGroup reports one group to the observer, if any.
+func observeGroup(volumeID string, writerWait, apply time.Duration, publications int) {
+	if fn := groupObserver.Load(); fn != nil {
+		(*fn)(volumeID, writerWait, apply, publications)
+	}
+}
 
 // publicationRequest is one admitted publication awaiting a physical group.
 type publicationRequest struct {
@@ -459,13 +487,17 @@ func (w *publicationWriter) run() {
 // pins and pending root proofs, which therefore cost no commit of their own.
 func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publicationRequest, results []error, committed bool) {
 	// Open one physical transaction shared by the blocks and the reference
-	// graph of every request in the group.
+	// graph of every request in the group, timing the wait for the writer
+	// turn apart from the apply and commit.
 	group = []*publicationRequest{first}
+	started := time.Now()
 	p, err := w.volume.openPhysical(first.ctx)
 	if err != nil {
 		return group, []error{err}, false
 	}
 	defer p.discard()
+	opened := time.Now()
+	defer func() { observeGroup(w.volume.GetID(), opened.Sub(started), time.Since(opened), len(group)) }()
 	tx, blocks, rg := p.tx, p.blocks, p.rg
 
 	// Preflight each request against prior accepted changes in this physical group.
