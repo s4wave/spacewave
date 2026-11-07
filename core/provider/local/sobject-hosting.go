@@ -45,9 +45,9 @@ func (a *ProviderAccount) watchSOHosting(ctx context.Context, soID string, so *S
 // The account holding the successor of a departure commits it and promotes its
 // storage identity in one change. An account whose storage identity owns so
 // enrolls its running Session as an owner, so the configuration names the
-// endpoint that serves so. Every account keeps a link to each other owner, so
-// a participant reaches the owner account's current Session after the Session
-// it joined through is replaced.
+// endpoint that serves so, and drops it from the trimming roster. Every
+// account keeps a link to each other owner, so a participant reaches the owner
+// account's current Session after the Session it joined through is replaced.
 func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, so *SharedObject) error {
 	// The storage identity always signs; the session identity signs while its transport runs.
 	st := a.GetSessionTransport()
@@ -112,18 +112,22 @@ func (a *ProviderAccount) reconcileSOHosting(ctx context.Context, soID string, s
 }
 
 // enrollSOSession adds the Session peer as an owner of so unless owners
-// already name it.
+// already name it, and keeps it off the trimming roster. The storage identity
+// writes every operation of so, so the Session never builds on the
+// checkpointer's edits and on the roster would hold the stable point at zero.
 func (a *ProviderAccount) enrollSOSession(ctx context.Context, soID string, so *SharedObject, session peer.ID, owners []string) error {
-	// An enrolled Session needs no change.
-	if slices.Contains(owners, session.String()) {
-		return nil
+	// The storage identity signs the Session's addition.
+	if !slices.Contains(owners, session.String()) {
+		pub, err := session.ExtractPublicKey()
+		if err != nil {
+			return err
+		}
+		if _, err := sobject.AddSOParticipant(ctx, so.soHost, soID, so.localPriv, so.localPid.String(), session.String(), pub, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
+			return err
+		}
 	}
 
-	// The storage identity signs the Session's addition.
-	pub, err := session.ExtractPublicKey()
-	if err != nil {
-		return err
-	}
-	_, err = sobject.AddSOParticipant(ctx, so.soHost, soID, so.localPriv, so.localPid.String(), session.String(), pub, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", "")
+	// Drop the Session from the trimming roster.
+	_, err := sobject.DropFromSORoster(ctx, so.soHost, []string{session.String()}, so.localPriv)
 	return err
 }

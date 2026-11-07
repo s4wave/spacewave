@@ -73,7 +73,9 @@ func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *P
 		return nil, errors.New("calling Session is not a reader of the object")
 	}
 
-	// Add the storage identity at the Session's role.
+	// Add the storage identity at the Session's role. It writes for the
+	// Session, which never builds on the checkpointer's edits, so the Session
+	// leaves the trimming roster.
 	if participantRole(state.GetConfig(), storage.String()) == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
 		owner, err := a.vol.GetPeer(ctx, true)
 		if err != nil {
@@ -85,6 +87,9 @@ func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *P
 		}
 		if _, err := sobject.AddSOParticipant(ctx, local.soHost, id, key, owner.GetPeerID().String(), storage.String(), storagePub, role, "", ""); err != nil {
 			return nil, errors.Wrap(err, "add storage identity")
+		}
+		if _, err := sobject.DropFromSORoster(ctx, local.soHost, []string{session.String()}, key); err != nil {
+			return nil, errors.Wrap(err, "drop session from trimming roster")
 		}
 	}
 
