@@ -112,6 +112,9 @@ type Backend interface {
 	// or only repairs the rows when more is set, and returns their states
 	// after. keys carry at most MaxBackendKeys keys and holders together.
 	Remove(ctx context.Context, ids []string, keys []KeyHolders, more bool) ([]PackHold, error)
+	// Restore registers again trashing packs whose entries and files are
+	// back in the store, and returns their states after.
+	Restore(ctx context.Context, ids []string) ([]PackHold, error)
 }
 
 // Stage is the command's record of a pack it moved: the step the pack is at,

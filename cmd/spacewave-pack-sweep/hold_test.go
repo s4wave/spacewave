@@ -32,7 +32,8 @@ import (
 // open since before their quarantine remains, then lifts the one a put
 // relinked and passes the other. The trash moves the passed pack's objects to
 // the store's trash, and the removal points the row of a block it shares with
-// the root's pack at that pack.
+// the root's pack at that pack. A read that misses a third dead pack in the
+// trash keeps it from the removal, and the restore returns it to the reads.
 func TestCommandQuarantine(t *testing.T) {
 	for _, kind := range []string{packcopy.IndexSQLite, packcopy.IndexBolt, packcopy.IndexS4DB} {
 		t.Run(kind, func(t *testing.T) { testCommandQuarantine(t, kind) })
@@ -47,7 +48,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	le := logrus.NewEntry(logrus.New())
 	dir := t.TempDir()
 
-	// Write a live pack and two dead packs through an index file.
+	// Write a live pack and three dead packs through an index file.
 	const storeID = "p/local/acc/blk/so"
 	_, client := s3test.New(t)
 	indexPath := filepath.Join(dir, "index.db")
@@ -72,7 +73,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		}
 		return r
 	}
-	rootRef, sharedRef, deadRef, relinkRef := ref("root"), ref("shared"), ref("dead"), ref("relink")
+	rootRef, sharedRef, deadRef, relinkRef, lostRef := ref("root"), ref("shared"), ref("dead"), ref("relink"), ref("lost")
 	seed, closeIndex := openStore()
 	entry := func(r *block.BlockRef, data string) *block.PutBatchEntry {
 		return &block.PutBatchEntry{Ref: r, Data: []byte(data), RefsKnown: true}
@@ -81,6 +82,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		{entry(rootRef, "root"), entry(sharedRef, "shared")},
 		{entry(deadRef, "dead"), entry(sharedRef, "shared")},
 		{entry(relinkRef, "relink")},
+		{entry(lostRef, "lost")},
 	} {
 		if _, err := seed.PutBlockBatch(ctx, batch); err != nil {
 			t.Fatal(err)
@@ -154,7 +156,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	t.Setenv(adminAuthEnv, "Bearer admin")
 	args.AdminURL = "ws" + strings.TrimPrefix(srv.URL, "http") + "/admin/pack-sweep"
 
-	// Walk from the log's position, and judge both packs dead. The judgment
+	// Walk from the log's position, and judge the three packs dead. The judgment
 	// waits on the unread log, which the quarantine pulls.
 	pos, ok := wlog.Position()
 	if !ok {
@@ -168,7 +170,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	if err := args.runJudge(nil); err != nil {
 		t.Fatal(err)
 	}
-	if result := parse(t, out.Bytes()); result.GetUint("summary", "packs", "dead") != 2 || result.GetUint("blocking", packsweep.BlockLogUnread) != 1 {
+	if result := parse(t, out.Bytes()); result.GetUint("summary", "packs", "dead") != 3 || result.GetUint("blocking", packsweep.BlockLogUnread) != 1 {
 		t.Fatalf("judgment = %s", result)
 	}
 
@@ -178,7 +180,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	}
 
 	// A read operation open from before the quarantine, then the quarantine
-	// holds both packs out of the reads.
+	// holds the packs out of the reads.
 	_, release, err := marking.BeginReadOperation(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -188,7 +190,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 	if err := args.runQuarantine(nil); err != nil {
 		t.Fatal(err)
 	}
-	if res := parse(t, out.Bytes()); res.GetUint("quarantined") != 2 || res.GetUint("live") != 0 || string(res.GetStringBytes("blocked")) != "" {
+	if res := parse(t, out.Bytes()); res.GetUint("quarantined") != 3 || res.GetUint("live") != 0 || string(res.GetStringBytes("blocked")) != "" {
 		t.Fatalf("quarantine = %s", res)
 	}
 	located, err := store.LocatePacks(ctx, []*block.BlockRef{deadRef, relinkRef, rootRef})
@@ -206,18 +208,18 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		}
 		return out.String()
 	}
-	if res := parse(t, []byte(recheck(time.Hour))); res.GetUint("waiting", packsweep.WaitQuarantine) != 2 {
+	if res := parse(t, []byte(recheck(time.Hour))); res.GetUint("waiting", packsweep.WaitQuarantine) != 3 {
 		t.Fatalf("young recheck = %s", res)
 	}
-	if res := parse(t, []byte(recheck(time.Nanosecond))); res.GetUint("waiting", packsweep.WaitOpenRead) != 2 {
+	if res := parse(t, []byte(recheck(time.Nanosecond))); res.GetUint("waiting", packsweep.WaitOpenRead) != 3 {
 		t.Fatalf("recheck with the read open = %s", res)
 	}
 
 	// Once the read is released, a put relinking one pack lifts it, and the
-	// other passes.
+	// others pass.
 	release()
 	wlog.Put(relinkRef.GetHash())
-	if res := parse(t, []byte(recheck(time.Nanosecond))); res.GetUint("passed") != 1 || res.GetUint("live") != 1 || res.Get("waiting", packsweep.WaitOpenRead) != nil {
+	if res := parse(t, []byte(recheck(time.Nanosecond))); res.GetUint("passed") != 2 || res.GetUint("live") != 1 || res.Get("waiting", packsweep.WaitOpenRead) != nil {
 		t.Fatalf("recheck = %s", res)
 	}
 	located, err = store.LocatePacks(ctx, []*block.BlockRef{deadRef, relinkRef})
@@ -225,7 +227,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		t.Fatalf("locate after the recheck = %v, %v", located, err)
 	}
 
-	// The trash moves the passed pack's entry and file to the store's
+	// The trash moves the passed packs' entries and files to the store's
 	// trash, refusing a scratch file of another prefix, and a repeat moves
 	// nothing.
 	deadPack := locatedBefore[0]
@@ -234,7 +236,7 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		t.Fatal("trashed through a scratch file of another prefix")
 	}
 	args.Prefix = "world/"
-	for _, want := range []uint{1, 0} {
+	for _, want := range []uint{2, 0} {
 		out.Reset()
 		if err := args.runTrash(nil); err != nil {
 			t.Fatal(err)
@@ -255,14 +257,20 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		}
 	}
 
-	// The removal drops the pack, pointing the shared block's row at the
-	// root's pack, and a repeat removes nothing.
+	// A read of the lost block finds its pack in the trash and records the
+	// miss.
+	if _, _, err := store.GetBlock(ctx, lostRef); !errors.Is(err, block_store_s3.ErrNotFound) {
+		t.Fatalf("read of the trashed lost block = %v, want not found", err)
+	}
+
+	// The removal drops the dead pack, pointing the shared block's row at
+	// the root's pack, keeps the missed one, and a repeat removes nothing.
 	for _, want := range []uint{1, 0} {
 		out.Reset()
 		if err := args.runRemove(nil); err != nil {
 			t.Fatal(err)
 		}
-		if res := parse(t, out.Bytes()); res.GetUint("removed") != want || res.GetUint("missed") != 0 {
+		if res := parse(t, out.Bytes()); res.GetUint("removed") != want || res.GetUint("missed") != 1 {
 			t.Fatalf("removal = %s", res)
 		}
 	}
@@ -274,12 +282,30 @@ func testCommandQuarantine(t *testing.T, kind string) {
 		t.Fatalf("read of the shared block = %q, %v, %v", data, found, err)
 	}
 
+	// The restore moves the missed pack back and registers it, the lost block
+	// reads again, and a repeat restores nothing.
+	for _, want := range []uint{1, 0} {
+		out.Reset()
+		if err := args.runRestore(nil); err != nil {
+			t.Fatal(err)
+		}
+		if res := parse(t, out.Bytes()); res.GetUint("restored") != want || res.GetUint("dropped") != 0 {
+			t.Fatalf("restore = %s", res)
+		}
+	}
+	if data, found, err := store.GetBlock(ctx, lostRef); err != nil || !found || string(data) != "lost" {
+		t.Fatalf("read of the restored lost block = %q, %v, %v", data, found, err)
+	}
+	if located, err := store.LocatePacks(ctx, []*block.BlockRef{lostRef}); err != nil || located[0] == "" {
+		t.Fatalf("locate of the restored lost block = %v, %v", located, err)
+	}
+
 	// The status counts the records, and a dial without the credential fails.
 	out.Reset()
 	if err := args.runStatus(nil); err != nil {
 		t.Fatal(err)
 	}
-	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "removed") != 1 || status.GetUint("packRecords", "quarantine") != 0 {
+	if status := parse(t, out.Bytes()); status.GetUint("packRecords", "removed") != 1 || status.GetUint("packRecords", "quarantine") != 0 || status.GetUint("packRecords", "moved") != 0 {
 		t.Fatalf("status = %s", status)
 	}
 	t.Setenv(adminAuthEnv, "")

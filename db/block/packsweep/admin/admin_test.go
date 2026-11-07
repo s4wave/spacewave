@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -240,6 +241,64 @@ func TestAdminTrash(t *testing.T) {
 	}
 	if _, err := remove(false, keys); err == nil {
 		t.Fatal("removed while off")
+	}
+}
+
+// TestAdminRestore registers again a trashing pack a read missed, once its
+// objects are back from the trash, and refuses it while they are not or
+// while the switch is off.
+func TestAdminRestore(t *testing.T) {
+	ctx := t.Context()
+	b := newTestBackend(t)
+	ref, id := b.put(t, "block")
+	pack := &PacksRequest{PackIds: []string{id}}
+	b.on.Store(true)
+
+	// Trash the pack, and a read misses it.
+	if _, err := b.admin.Quarantine(ctx, pack); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.admin.BeginTrash(ctx, pack); err != nil {
+		t.Fatal(err)
+	}
+	moves := [][2]string{
+		{block_store_s3.EntryObjectKey("p/", id), block_store_s3.TrashEntryKey("p/", id)},
+		{block_store_s3.PackObjectKey("p/", id), block_store_s3.TrashPackKey("p/", id)},
+	}
+	for _, m := range moves {
+		if err := b.client.MoveObject(ctx, s3test.BucketName, m[0], m[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, _, err := b.store.GetBlock(ctx, ref); err == nil {
+		t.Fatal("read a block in the trash")
+	}
+
+	// The restore waits for the objects to come back.
+	if _, err := b.admin.Restore(ctx, pack); err == nil {
+		t.Fatal("restored a pack in the trash")
+	}
+	for _, m := range slices.Backward(moves) {
+		if err := b.client.MoveObject(ctx, s3test.BucketName, m[1], m[0]); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// While the switch is off it is refused; once on, it registers the pack
+	// with its miss, twice, and the block reads.
+	b.on.Store(false)
+	if _, err := b.admin.Restore(ctx, pack); err == nil || !strings.Contains(err.Error(), ErrDisabled.Error()) {
+		t.Fatalf("restore while off = %v", err)
+	}
+	b.on.Store(true)
+	for range 2 {
+		resp, err := b.admin.Restore(ctx, pack)
+		if err != nil || len(resp.GetPacks()) != 1 || resp.GetPacks()[0].GetState() != PackState_PACK_STATE_REGISTERED || resp.GetPacks()[0].GetEventUnixNano() == 0 {
+			t.Fatalf("restore = %v, %v", resp, err)
+		}
+	}
+	if data, found, err := b.store.GetBlock(ctx, ref); err != nil || !found || string(data) != "block" {
+		t.Fatalf("read of the restored block = %q, %v, %v", data, found, err)
 	}
 }
 
