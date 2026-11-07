@@ -406,7 +406,13 @@ func TestReadThrough(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go packs.Run(ctx)
+	// The fill routine ends before the directory goes: the context ends first.
+	running := make(chan struct{})
+	go func() {
+		defer close(running)
+		packs.Run(ctx)
+	}()
+	t.Cleanup(func() { <-running })
 	server, err := NewServer(nopHolder{}, dir+"/reports")
 	if err != nil {
 		t.Fatal(err)
