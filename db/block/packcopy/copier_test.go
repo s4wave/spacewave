@@ -336,7 +336,7 @@ func TestCopyRunThrough(t *testing.T) {
 	if err == nil {
 		t.Fatal("a spent budget must stop the read")
 	}
-	if _, reason, stop := readFrom(ctx, metered, root.ref); stop == nil {
+	if _, reason, stop := ReadVerified(ctx, metered, root.ref); stop == nil {
 		t.Fatalf("spent budget became a hole: %q", reason)
 	}
 }
