@@ -88,13 +88,9 @@ jobs:
   # Each model checks on one core. A model that takes minutes gets its own
   # job, named in the models job's skip list, so no job nears its timeout;
   # every other config, including a new one, checks in the models job. A model
-  # that needs longer than 25 minutes sets its own timeout. Journal.cfg,
-  # Journal-writers.cfg and Journal-writers-staged.cfg compose every rule with
-  # concurrent writers and have not finished: the checker ran out of its 4 GB
-  # heap after 51 minutes on a runner, and ran 4 hours on one core of a build
-  # host (5 GB resident) without ending or finding a violation. They stay in
-  # the skip list and run by hand with a time limit; the other configs each
-  # check part of the composition and finish.
+  # that needs longer than 25 minutes sets its own timeout. Journal.cfg, which
+  # composes every rule with concurrent writers, takes about an hour on one
+  # core of a build host (2.3 GB resident).
   specs:
     name: TLA+ specs (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -111,8 +107,10 @@ jobs:
               db/block/gc/Journal-stage.cfg
               db/block/gc/Journal-fill-staged.cfg
               db/block/gc/Journal-fill-writers.cfg
-              db/block/gc/Journal-writers.cfg
               db/block/gc/Journal-writers-staged.cfg
+          - name: Journal
+            config: db/block/gc/Journal.cfg
+            timeout: 90
           - name: Journal-adopt
             config: db/block/gc/Journal-adopt.cfg
           - name: Journal-hole
@@ -126,6 +124,8 @@ jobs:
           - name: Journal-fill-writers
             config: db/block/gc/Journal-fill-writers.cfg
             timeout: 60
+          - name: Journal-writers-staged
+            config: db/block/gc/Journal-writers-staged.cfg
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

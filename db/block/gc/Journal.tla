@@ -81,7 +81,7 @@
 \* a tree bottom up: it puts T under the leased root sT, then puts S over T
 \* under sS, releasing sT in the same transaction, and the World writer moves
 \* main onto S and releases sS. The owner keeps its own record of the roots it
-\* holds. Its renewal moves each one's expiry forward, and holds a root that
+\* holds. Its renewal restarts each one's lease, and holds a root that
 \* lapsed and was swept again while its block is stored with holders, as
 \* reader pins are; when the block is gone or at zero, the stage fails and its
 \* writes are refused. A put
@@ -192,7 +192,7 @@
 \*   HoldStored(w,r) a root moving onto a block the store holds without a put
 \*                   of its tree, such as a copy that finds its head stored.
 \*   Punch(b)        a hole: a block the store lost with its child list.
-\*   Tick            the clock Grace, Window and leases are read on.
+\*   Tick            time passing, on which Grace, Window and leases are read.
 \*
 \* Ripeness (Ripe). The collector decides a block has no holders from a
 \* journal prefix, and a record past the cursor may add a holder to it: a put
@@ -362,7 +362,7 @@
 
 EXTENDS Integers, FiniteSets, Sequences, TLC
 
-CONSTANTS Writers, MaxTxns, MaxNow, Grace, Window, Lease, MaxHoles,
+CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           MainRoots, StageRoots, Reader,
           Ripe, Revive, HoldMark, Reripen, Held, HoleStop, Reput, CAS,
           PutPair,
@@ -417,24 +417,28 @@ Unadopted == Runs # {}
 
 VARIABLES
   root,      \* each named root's block, or None
-  expires,   \* each leased root's expiry on the clock
+  left,      \* each leased root's ticks until its lease lapses, -1 once
+             \* lapsed or while the root names nothing
   stored,    \* blocks with a child list in the store
   lost,      \* blocks the store lost that no put stored again
   cnt,       \* each block's count record: holders minus one, 0 for none;
              \* during an adoption, the holders the run has counted
   zero,      \* stored blocks whose netted holders are zero
   rel,       \* stored blocks whose children do not hold them
-  ripe,      \* each zero block's ripe sequence: the journal's end when it
-             \* reached zero, or when netting last met a put of it again
+  ripe,      \* each zero block's ripe sequence, as the records past the
+             \* cursor that must net before it may be freed: the journal's
+             \* length when it reached zero, or when netting last met a put
+             \* of it again, less the records netted since; 0 once passed
   jr,        \* the journal past the collector's cursor, oldest first
-  appended,  \* records ever appended: the journal's end as a sequence
-  hseq,      \* the hold mark: the end of the last record that held a stored
-             \* block that was released or at zero, or while a cascade was due
+  hseq,      \* the hold mark, as the records past the cursor that must net
+             \* before any block may be freed: the journal's length after the
+             \* last record that held a stored block that was released or at
+             \* zero, or while a cascade was due, less those netted since
   under,     \* some transaction took a holder from a block that had none
-  now,       \* the clock
   obs,       \* each writer's observed head of main
   seen,      \* the head of main the reader saw and has not pinned, or None
-  seenAt,    \* when the reader saw it
+  seenAge,   \* ticks since the reader saw it, up to Window + 1; 0 while it
+             \* has seen nothing
   txns,      \* write transactions spent, which keeps every run finite
   holes,     \* blocks punched
   adoption,  \* "unadopted", "adopting" or "adopted"
@@ -445,9 +449,11 @@ VARIABLES
   moved,     \* each root's block when it first moved while adopting
   opens,     \* Volume openings
   stage,     \* the stage owner's build: "none", "T", "S", "done", "failed"
-  renewed,   \* when the stage owner last renewed or wrote
+  stall,     \* ticks since the stage owner last renewed or wrote, up to
+             \* Lease + Grace + 1; 0 while it is not building
   tgt,       \* each writer's session: the tree it is writing, or None
-  began,     \* when each writer's session began
+  sessionAge, \* ticks since each writer's session began, up to Grace; 0
+             \* while it writes no session
   wrote,     \* the blocks each writer's session put
   skipped,   \* the blocks each writer's session found stored and did not put
   sheld,     \* the blocks each writer's stage holds under its leased roots
@@ -458,23 +464,22 @@ VARIABLES
   pend,      \* the children a cascade in progress has not reached yet
   pdir       \* that cascade's direction: -1 releases, 1 re-holds, 0 none
 gcVars == <<cnt, zero, rel, ripe, under, pend, pdir>>
-jrVars == <<jr, appended, hseq>>
+jrVars == <<jr, hseq>>
 fillVars == <<fj, freedLive>>
 landVars == <<born, moved, sheld, freed, fillVars>>
 adoptVars == <<adoption, owner, pc, pos, opens>>
-stageVars == <<stage, renewed>>
-writerVars == <<tgt, began, wrote, skipped>>
-vars == <<root, expires, stored, lost, cnt, zero, rel, ripe, jr, appended,
-          hseq, under, now, obs, seen,
-          seenAt, txns, holes, adoption, owner, pc, pos, born, moved, opens,
-          stage, renewed, tgt, began, wrote, skipped, sheld, freed, fj,
-          freedLive, pend, pdir>>
+stageVars == <<stage, stall>>
+writerVars == <<tgt, sessionAge, wrote, skipped>>
+vars == <<root, left, stored, lost, cnt, zero, rel, ripe, jr, hseq, under,
+          obs, seen, seenAge, txns, holes, adoption, owner, pc, pos, born,
+          moved, opens, stage, stall, tgt, sessionAge, wrote, skipped, sheld,
+          freed, fj, freedLive, pend, pdir>>
 
 Init ==
   /\ root = [n \in Names |->
                IF n = "main" THEN "R1"
                ELSE IF n = "stg" /\ Unadopted THEN "R3" ELSE None]
-  /\ expires = [n \in Leases |-> 0]
+  /\ left = [n \in Leases |-> IF n = "stg" /\ Unadopted THEN 0 ELSE -1]
   /\ stored = Reach("R1") \cup (IF Unadopted THEN {"R3"} ELSE {})
   /\ lost = {}
   /\ cnt = [b \in Blocks |-> IF b = "E" /\ Unadopted THEN 1 ELSE 0]
@@ -482,13 +487,11 @@ Init ==
   /\ rel = {}
   /\ ripe = [b \in Blocks |-> 0]
   /\ jr = <<>>
-  /\ appended = 0
   /\ hseq = 0
   /\ under = FALSE
-  /\ now = 0
   /\ obs = [w \in Writers |-> None]
   /\ seen = None
-  /\ seenAt = 0
+  /\ seenAge = 0
   /\ txns = 0
   /\ holes = 0
   /\ adoption = IF Unadopted THEN "unadopted" ELSE "adopted"
@@ -499,9 +502,9 @@ Init ==
   /\ moved = [n \in Names |-> Unmoved]
   /\ opens = 0
   /\ stage = "none"
-  /\ renewed = 0
+  /\ stall = 0
   /\ tgt = [w \in Writers |-> None]
-  /\ began = [w \in Writers |-> 0]
+  /\ sessionAge = [w \in Writers |-> 0]
   /\ wrote = [w \in Writers |-> {}]
   /\ skipped = [w \in Writers |-> {}]
   /\ sheld = [w \in Writers |-> {}]
@@ -534,7 +537,8 @@ Pending == 1..Len(jr)
 \* only the blocks whose holders changed. A stored block at zero holders is
 \* zero, and one below zero is an underflow. A block that reaches zero takes
 \* the journal's end as its ripe sequence, and so does one a put again in the
-\* interval names that stays at zero (again, with Reripen). Without Revive, a
+\* interval names that stays at zero (again, with Reripen): the whole
+\* journal past the cursor must net first. Without Revive, a
 \* Dead block that gains a holder counts its children as holding it again
 \* without the cascade that gives them their holder back.
 Step(st, d, again) ==
@@ -546,7 +550,7 @@ Step(st, d, again) ==
       zero |-> z,
       ripe |-> [b \in Blocks |->
                  IF b \notin z THEN 0
-                 ELSE IF b \notin zero \/ (Reripen /\ b \in again) THEN appended
+                 ELSE IF b \notin zero \/ (Reripen /\ b \in again) THEN Len(jr)
                  ELSE ripe[b]],
       rel |-> IF Revive THEN rel ELSE rel \ (zero \ z),
       under |-> \E b \in st : nh(b) < 0]
@@ -554,9 +558,16 @@ Step(st, d, again) ==
 \* ---------------------------------------------------------------------------
 \* The writer side: SetRoots, one write transaction.
 
-\* Every record must be able to age Grace before the clock stops, so the
-\* collector can consume it.
-Live == now + Grace <= MaxNow /\ txns < MaxTxns
+\* The transaction bound keeps every run finite. Time has no bound: the model
+\* keeps each time as an age that stops counting where no rule reads it any
+\* more, so time runs on after the last transaction.
+Live == txns < MaxTxns
+
+\* An unstaged session lands nothing when it begins, so one may begin after
+\* the last transaction, over the head its writer observed, though it can
+\* never land. Where none can, nothing reads an idle writer's head after the
+\* last transaction.
+LateBegin == Sessions /\ ~Staged
 
 \* Land is SetRoots(batch, moves). moves is a set of [n, from, to] root moves,
 \* from the root's Previous; batch is the blocks the caller puts. born, up and
@@ -567,7 +578,7 @@ Live == now + Grace <= MaxNow /\ txns < MaxTxns
 \* root on, one root per block, as stageMoves names them. A born block that
 \* nothing in the transaction holds, no parent born with it, no root and no
 \* stage root, gets a down pair for its implied holder with BornDown.
-LandCore(batch, moves, holds, rels) ==
+LandCore(batch, moves, holds, rels, keep) ==
   LET new == batch \ stored
       found == UNION {{<<p, k>> : k \in Kids(p) \ new} : p \in new}
       held == {<<m.n, m.to>> : m \in {x \in moves : x.to \in stored}} \cup
@@ -598,12 +609,16 @@ LandCore(batch, moves, holds, rels) ==
      /\ root' = [n \in Names |->
                    IF \E m \in moves : m.n = n
                    THEN (CHOOSE m \in moves : m.n = n).to ELSE root[n]]
-     /\ jr' = IF append THEN Append(jr, [at |-> now, up |-> up, down |-> down])
+     \* A leased root a move sets starts a lease of Lease ticks; one a move
+     \* clears holds no lease.
+     /\ left' = [n \in Leases |->
+                   IF root'[n] = None THEN -1
+                   ELSE IF \E m \in moves : m.n = n THEN Lease ELSE left[n]]
+     /\ jr' = IF append THEN Append(jr, [age |-> 0, up |-> up, down |-> down])
               ELSE jr
-     /\ appended' = IF append THEN appended + 1 ELSE appended
      /\ hseq' = IF append /\ HoldMark /\ onStored # {} /\
                    (onStored \cap (zero \cup rel) # {} \/ ~Settled)
-                THEN appended + 1 ELSE hseq
+                THEN Len(jr) + 1 ELSE hseq
      /\ born' = IF adopting /\ BornMark THEN born \cup new ELSE born
      /\ moved' = IF adopting /\ RootMark
                  THEN [n \in Names |->
@@ -612,21 +627,29 @@ LandCore(batch, moves, holds, rels) ==
                  ELSE moved
      /\ freed' = freed \ batch
      /\ txns' = txns + 1
+     \* After the last transaction, unless LateBegin, the head an idle writer
+     \* observed is never read; it is cleared, keeping one state where the
+     \* writers' heads were all that differed. keep is the writer whose
+     \* session this transaction begins or ends.
+     /\ obs' = IF txns' < MaxTxns \/ LateBegin THEN obs
+               ELSE [x \in Writers |->
+                       IF x \in keep \/ tgt[x] # None THEN obs[x] ELSE None]
      /\ UNCHANGED fillVars
 
-Land(batch, moves) == LandCore(batch, moves, {}, {}) /\ sheld' = sheld
+Land(batch, moves) == LandCore(batch, moves, {}, {}, {}) /\ sheld' = sheld
 
 \* LandAs is Land for writer w's stage, which takes holds and releases rels.
 LandAs(w, batch, moves, holds, rels) ==
   /\ holds \cap sheld[w] = {} /\ rels \subseteq sheld[w]
-  /\ LandCore(batch, moves, holds, rels)
+  /\ LandCore(batch, moves, holds, rels, {w})
   /\ sheld' = [sheld EXCEPT ![w] = (@ \ rels) \cup holds]
 
 \* Observe reads the head of main, as a writer does before it builds a tree.
 Observe(w) ==
+  /\ Live \/ LateBegin
   /\ tgt[w] = None
   /\ obs' = [obs EXCEPT ![w] = root["main"]]
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, seen, seenAt,
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, seen, seenAge,
                  txns, holes, landVars, adoptVars, stageVars, writerVars>>
 
 \* Commit moves main from the head the writer observed to r. The writer puts
@@ -635,7 +658,7 @@ Observe(w) ==
 Commit(w, r) ==
   /\ obs[w] # None /\ r # obs[w]
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "main", from |-> obs[w], to |-> r]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  stageVars, writerVars>>
 
 \* HoldStored moves main from the observed head onto r, a block the store
@@ -644,7 +667,7 @@ Commit(w, r) ==
 HoldStored(w, r) ==
   /\ Holds /\ obs[w] # None /\ r # obs[w] /\ r \in stored
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> r]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  stageVars, writerVars>>
 
 \* StageWrite holds a stage tree r built over the head of main the writer
@@ -655,8 +678,7 @@ HoldStored(w, r) ==
 StageWrite(w, r) ==
   /\ obs[w] # None /\ obs[w] = root["main"]
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "stg", from |-> None, to |-> r]})
-  /\ expires' = [expires EXCEPT !["stg"] = now + Lease]
-  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes, adoptVars, stageVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars, stageVars,
                  writerVars>>
 
 \* AdoptStage moves main from the observed head to stage s and releases the
@@ -665,7 +687,7 @@ AdoptStage(w, s) ==
   /\ obs[w] # None
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> s],
                [n |-> "stg", from |-> s, to |-> None]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  stageVars, writerVars>>
 
 \* A writer session writes the tree tgt[w] over its observed head across
@@ -681,7 +703,7 @@ AdoptStage(w, s) ==
 \* begins, each put holds the blocks the batch does not name under a leased
 \* stage root and releases the stage's roots on the blocks it names, and the
 \* last SetRoots moves main onto the tree and releases the stage. The leases
-\* are renewed for the session's life; Journal-stage.cfg checks a renewal
+\* are stall for the session's life; Journal-stage.cfg checks a renewal
 \* that stalls.
 Need(w) == Reach(tgt[w]) \ Reach(obs[w])
 Unsent(w) == Need(w) \ (wrote[w] \cup skipped[w])
@@ -695,16 +717,17 @@ Named(batch) == UNION {Kids(p) : p \in batch}
 \* children do not hold it has none. A proof written again after a re-hold
 \* is a writer's claim about its own tree, which the spec leaves out.
 SessionBegin(w, r) ==
-  /\ Sessions /\ tgt[w] = None /\ sheld[w] = {} /\ obs[w] # None /\ r # obs[w]
+  /\ Sessions /\ tgt[w] = None /\ sheld[w] = {} /\ obs[w] # None
+  /\ r # obs[w]
   /\ Staged => obs[w] \notin rel
   /\ tgt' = [tgt EXCEPT ![w] = r]
-  /\ began' = [began EXCEPT ![w] = now]
+  /\ sessionAge' = [sessionAge EXCEPT ![w] = 0]
   /\ IF Staged
      THEN /\ LandAs(w, {}, {}, {obs[w]}, {})
-          /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes,
+          /\ UNCHANGED <<gcVars, seen, seenAge, holes,
                          adoptVars, stageVars, wrote, skipped>>
-     ELSE UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                      seenAt, txns, holes, landVars, adoptVars, stageVars,
+     ELSE UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                      seenAge, txns, holes, landVars, adoptVars, stageVars,
                       wrote, skipped>>
 
 \* SessionPut is one PutBlockBatch of the session: any blocks it has not put,
@@ -718,8 +741,8 @@ SessionPut(w, batch) ==
                  (sheld[w] \ {obs[w]}) \cap Named(batch))
      ELSE Land(batch, {})
   /\ wrote' = [wrote EXCEPT ![w] = @ \cup batch]
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
-                 stageVars, tgt, began, skipped>>
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+                 stageVars, tgt, sessionAge, skipped>>
 
 \* SessionSkip is a writer that reads GetBlockExists as true and does not put
 \* the block: it neither put it in this session nor reaches it from a root it
@@ -727,9 +750,9 @@ SessionPut(w, batch) ==
 SessionSkip(w, b) ==
   /\ Skips /\ tgt[w] # None /\ b \in Unsent(w) /\ b \in stored
   /\ skipped' = [skipped EXCEPT ![w] = @ \cup {b}]
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                 seenAt, txns, holes, landVars, adoptVars, stageVars, tgt,
-                 began, wrote>>
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, landVars, adoptVars, stageVars, tgt,
+                 sessionAge, wrote>>
 
 \* SessionFinish is the session's last SetRoots: the blocks it has not put or
 \* skipped, and main moved by compare and swap from the observed head; staged,
@@ -738,14 +761,14 @@ SessionSkip(w, b) ==
 \* session must keep.
 SessionFinish(w) ==
   /\ tgt[w] # None
-  /\ SessionGrace => now < began[w] + Grace
+  /\ SessionGrace => sessionAge[w] < Grace
   /\ LandAs(w, Unsent(w), {[n |-> "main", from |-> obs[w], to |-> tgt[w]]},
             {}, sheld[w])
   /\ tgt' = [tgt EXCEPT ![w] = None]
   /\ wrote' = [wrote EXCEPT ![w] = {}]
   /\ skipped' = [skipped EXCEPT ![w] = {}]
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
-                 stageVars, began>>
+  /\ sessionAge' = [sessionAge EXCEPT ![w] = 0]
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars, stageVars>>
 
 \* SessionAbandon is a session whose write failed. What it put stays stored
 \* until the collector frees it: unstaged, once the down pair of each block
@@ -756,53 +779,51 @@ SessionAbandon(w) ==
   /\ tgt' = [tgt EXCEPT ![w] = None]
   /\ wrote' = [wrote EXCEPT ![w] = {}]
   /\ skipped' = [skipped EXCEPT ![w] = {}]
+  /\ sessionAge' = [sessionAge EXCEPT ![w] = 0]
   /\ IF sheld[w] = {}
-     THEN UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                      seenAt, txns, holes, landVars, adoptVars, stageVars,
-                      began>>
+     THEN UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                      seenAge, txns, holes, landVars, adoptVars, stageVars>>
      ELSE /\ LandAs(w, {}, {}, {}, sheld[w])
-          /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes,
-                         adoptVars, stageVars, began>>
+          /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+                         stageVars>>
 
 \* ReaderSee: a reader learns the head of main and reads its tree without a
 \* pin until it pins, which it must do within Window.
 ReaderSee ==
   /\ Reader /\ seen = None /\ root["rdr"] = None
   /\ seen' = root["main"]
-  /\ seenAt' = now
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, txns, holes,
+  /\ seenAge' = 0
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, txns, holes,
                  landVars, adoptVars, stageVars, writerVars>>
 
 \* ReaderPin holds the block the reader saw as a leased root. SetRoots refuses
 \* it when the block is gone, which Grace keeps from happening inside Window.
 ReaderPin ==
-  /\ seen # None /\ now <= seenAt + Window
+  /\ seen # None /\ seenAge <= Window
   /\ Land({}, {[n |-> "rdr", from |-> None, to |-> seen]})
-  /\ expires' = [expires EXCEPT !["rdr"] = now + Lease]
-  /\ seen' = None
-  /\ UNCHANGED <<gcVars, now, obs, seenAt, holes, adoptVars, stageVars,
-                 writerVars>>
+  /\ seen' = None /\ seenAge' = 0
+  /\ UNCHANGED <<gcVars, holes, adoptVars, stageVars, writerVars>>
 
 \* ReaderLate: a reader that missed its window gives up its unpinned read.
 ReaderLate ==
-  /\ seen # None /\ now > seenAt + Window
-  /\ seen' = None
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seenAt,
+  /\ seen # None /\ seenAge > Window
+  /\ seen' = None /\ seenAge' = 0
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs,
                  txns, holes, landVars, adoptVars, stageVars, writerVars>>
 
 \* Drop releases a leased root, as its holder does when it is done.
 Drop(n) ==
   /\ root[n] # None
   /\ Land({}, {[n |-> n, from |-> root[n], to |-> None]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  stageVars, writerVars>>
 
 \* Sweep is the collector releasing a root whose lease lapsed, whoever holds
 \* it and whether or not its owner still runs.
 Sweep(n) ==
-  /\ root[n] # None /\ now > expires[n]
+  /\ root[n] # None /\ left[n] < 0
   /\ Land({}, {[n |-> n, from |-> root[n], to |-> None]})
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  stageVars, writerVars>>
 
 \* ---------------------------------------------------------------------------
@@ -817,9 +838,8 @@ Building == stage \in {"T", "S"}
 StagePut1 ==
   /\ Stage /\ stage = "none"
   /\ Land({"T"}, {[n |-> "sT", from |-> None, to |-> "T"]})
-  /\ expires' = [expires EXCEPT !["sT"] = now + Lease]
-  /\ stage' = "T" /\ renewed' = now
-  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ stage' = "T" /\ stall' = 0
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  writerVars>>
 
 \* StagePut2 is prepareStaged storing S, which names T, under the new root sS
@@ -832,9 +852,8 @@ StagePut2 ==
   /\ Land({"S"}, {[n |-> "sS", from |-> None, to |-> "S"]} \cup
                  (IF StageCAS \/ root["sT"] = "T"
                   THEN {[n |-> "sT", from |-> "T", to |-> None]} ELSE {}))
-  /\ expires' = [expires EXCEPT !["sS"] = now + Lease]
-  /\ stage' = "S" /\ renewed' = now
-  /\ UNCHANGED <<gcVars, now, obs, seen, seenAt, holes, adoptVars,
+  /\ stage' = "S" /\ stall' = 0
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
                  writerVars>>
 
 \* StagePublish moves main from the head the World writer observed onto S
@@ -843,11 +862,10 @@ StagePublish(w) ==
   /\ stage = "S" /\ obs[w] # None
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> "S"],
                [n |-> "sS", from |-> "S", to |-> None]})
-  /\ stage' = "done"
-  /\ UNCHANGED <<expires, gcVars, now, obs, seen, seenAt, holes, adoptVars,
-                 renewed, writerVars>>
+  /\ stage' = "done" /\ stall' = 0
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars, writerVars>>
 
-\* StageRenew moves the owner's root's expiry forward. A root a sweep took is
+\* StageRenew restarts the lease on the owner's root. A root a sweep took is
 \* held again while its block is stored and has holders, through Land, which
 \* journals the up pair and checks the hold mark; when the block is gone or at
 \* zero the stage fails, since a Dead block's children may already be freed.
@@ -856,23 +874,23 @@ StagePublish(w) ==
 StageRenew ==
   /\ Building
   /\ \/ /\ root[StageName] = StageTop
-        /\ expires' = [expires EXCEPT ![StageName] = now + Lease]
-        /\ renewed' = now
-        /\ UNCHANGED <<root, stored, lost, gcVars, jrVars, txns, landVars, stage>>
+        /\ left' = [left EXCEPT ![StageName] = Lease]
+        /\ stall' = 0
+        /\ UNCHANGED <<root, stored, lost, gcVars, jrVars, obs, txns,
+                       landVars, stage>>
      \/ /\ root[StageName] = None /\ Rehold /\ StageTop \in stored \ zero
         /\ Land({}, {[n |-> StageName, from |-> None, to |-> StageTop]})
-        /\ expires' = [expires EXCEPT ![StageName] = now + Lease]
-        /\ renewed' = now
+        /\ stall' = 0
         /\ UNCHANGED <<gcVars, stage>>
      \/ /\ root[StageName] = None /\ Rehold /\ StageTop \notin stored \ zero
-        /\ stage' = "failed"
-        /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, txns, landVars,
-                       renewed>>
+        /\ stage' = "failed" /\ stall' = 0
+        /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, txns,
+                       landVars>>
      \/ /\ root[StageName] = None /\ ~Rehold
-        /\ renewed' = now
-        /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, txns, landVars,
-                       stage>>
-  /\ UNCHANGED <<now, obs, seen, seenAt, holes, adoptVars, writerVars, pend, pdir>>
+        /\ stall' = 0
+        /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, txns,
+                       landVars, stage>>
+  /\ UNCHANGED <<seen, seenAge, holes, adoptVars, writerVars, pend, pdir>>
 
 \* ---------------------------------------------------------------------------
 \* The collector.
@@ -896,8 +914,9 @@ StoredLive ==
   UNION {StoredReach(b) :
            b \in ({root[n] : n \in Names} \ {None}) \cup UNION {sheld[w] : w \in Writers}}
 
-\* The cursor as a sequence: the records before it are netted.
-Cursor == appended - Len(jr)
+\* A sequence held as the records past the cursor it waits for, after k
+\* more net: 0 once the cursor has passed it.
+Past(x, k) == IF x > k THEN x - k ELSE 0
 
 \* The blocks a put again in the first k records names, as a journal
 \* record's again list does.
@@ -906,18 +925,18 @@ AgainIn(k) == {b \in Blocks : \E i \in 1..k : <<"put", b>> \in jr[i].up}
 \* Net consumes the first k records as one interval; every one has aged Grace.
 Net(k) ==
   /\ adoption = "adopted"
-  /\ \A i \in 1..k : jr[i].at + Grace <= now
+  /\ \A i \in 1..k : jr[i].age = Grace
   /\ LET s == Step(Blocks, [b \in Blocks |-> Ups(1..k, b) - Downs(1..k, b)],
                   AgainIn(k))
      IN /\ cnt' = s.cnt
         /\ zero' = s.zero
-        /\ ripe' = s.ripe
+        /\ ripe' = [b \in Blocks |-> Past(s.ripe[b], k)]
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
   /\ jr' = SubSeq(jr, k + 1, Len(jr))
-  /\ UNCHANGED <<root, expires, stored, lost, appended, hseq, now, obs, seen,
-                 seenAt, txns, holes, landVars, adoptVars, stageVars, writerVars,
-                 pend, pdir>>
+  /\ hseq' = Past(hseq, k)
+  /\ UNCHANGED <<root, left, stored, lost, obs, seen, seenAge, txns, holes,
+                 landVars, adoptVars, stageVars, writerVars, pend, pdir>>
 
 \* What a cascade reaches: the children of its block. A lost child has no
 \* child list, so HoleStop keeps its children; the cascade stops there.
@@ -935,8 +954,8 @@ Cascade(b) ==
   /\ rel' = IF b \in zero THEN rel \cup {b} ELSE rel \ {b}
   /\ pend' = Decrement(b)
   /\ pdir' = IF Decrement(b) = {} THEN 0 ELSE IF b \in zero THEN -1 ELSE 1
-  /\ UNCHANGED <<root, expires, stored, lost, cnt, zero, ripe, under, jrVars,
-                 now, obs, seen, seenAt, txns, holes, landVars, adoptVars,
+  /\ UNCHANGED <<root, left, stored, lost, cnt, zero, ripe, under, jrVars,
+                 obs, seen, seenAge, txns, holes, landVars, adoptVars,
                  stageVars, writerVars>>
 
 \* Release moves child c's holders by the cascade's direction, which may take
@@ -956,7 +975,7 @@ Release(c) ==
         /\ under' = (under \/ s.under)
   /\ pend' = pend \ {c}
   /\ pdir' = IF pend' = {} THEN 0 ELSE pdir
-  /\ UNCHANGED <<root, expires, stored, lost, jrVars, now, obs, seen, seenAt,
+  /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, landVars, adoptVars, stageVars, writerVars>>
 
 \* Delete frees Dead block b: it deletes the block with its child list and
@@ -969,8 +988,8 @@ Release(c) ==
 Delete(b) ==
   /\ adoption = "adopted"
   /\ b \in zero \cap rel /\ Settled
-  /\ Ripe => Cursor >= ripe[b]
-  /\ HoldMark => Cursor >= hseq
+  /\ Ripe => ripe[b] = 0
+  /\ HoldMark => hseq = 0
   /\ IF FillEager THEN Unapplied = {} ELSE FUps(b) = 0
   /\ stored' = stored \ {b}
   /\ cnt' = [cnt EXCEPT ![b] = 0]
@@ -979,7 +998,7 @@ Delete(b) ==
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ freed' = freed \cup {b}
   /\ freedLive' = (freedLive \/ b \in StoredLive \ ToPutNow)
-  /\ UNCHANGED <<root, expires, lost, jrVars, under, now, obs, seen, seenAt,
+  /\ UNCHANGED <<root, left, lost, jrVars, under, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, fj, adoptVars, stageVars,
                  writerVars, pend, pdir>>
 
@@ -993,11 +1012,11 @@ Fill(b) ==
   /\ b \in FillBlocks /\ b \notin stored \cup lost /\ Live
   /\ stored' = stored \cup {b}
   /\ freed' = freed \ {b}
-  /\ fj' = fj \cup {[b |-> b, at |-> now, applied |-> FALSE,
+  /\ fj' = fj \cup {[b |-> b, age |-> 0, applied |-> FALSE,
                      up |-> IF FillUps THEN {<<b, k>> : k \in Kids(b)} ELSE {},
                      down |-> {<<"fill", b>>}]}
   /\ txns' = txns + 1
-  /\ UNCHANGED <<root, expires, lost, gcVars, jrVars, now, obs, seen, seenAt,
+  /\ UNCHANGED <<root, left, lost, gcVars, jrVars, obs, seen, seenAge,
                  holes, born, moved, sheld, freedLive, adoptVars, stageVars,
                  writerVars>>
 
@@ -1006,8 +1025,8 @@ Fill(b) ==
 DropFill(r) ==
   /\ adoption = "unadopted" /\ r \in fj
   /\ fj' = fj \ {r}
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                 seenAt, txns, holes, born, moved, sheld, freed, freedLive,
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, freedLive,
                  adoptVars, stageVars, writerVars>>
 
 \* The deltas of a fill record's up and down pairs.
@@ -1026,7 +1045,7 @@ ApplyFill(r) ==
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
   /\ fj' = (fj \ {r}) \cup {[r EXCEPT !.applied = TRUE]}
-  /\ UNCHANGED <<root, expires, stored, lost, jrVars, now, obs, seen, seenAt,
+  /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, freed, freedLive, adoptVars,
                  stageVars, writerVars, pend, pdir>>
 
@@ -1035,7 +1054,7 @@ ApplyFill(r) ==
 \* With FillEager its ups are already applied and it nets only its down.
 NetFill(r) ==
   /\ adoption = "adopted"
-  /\ r \in fj /\ r.at + Grace <= now /\ (FillEager => r.applied)
+  /\ r \in fj /\ r.age = Grace /\ (FillEager => r.applied)
   /\ LET up == IF FillEager THEN [b \in Blocks |-> 0] ELSE FillUpDelta(r)
          s == Step(Blocks, [b \in Blocks |-> up[b] - FillDownDelta(r)[b]], {})
      IN /\ cnt' = s.cnt
@@ -1044,7 +1063,7 @@ NetFill(r) ==
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
   /\ fj' = fj \ {r}
-  /\ UNCHANGED <<root, expires, stored, lost, jrVars, now, obs, seen, seenAt,
+  /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, freed, freedLive, adoptVars,
                  stageVars, writerVars, pend, pdir>>
 
@@ -1064,20 +1083,20 @@ InRun(r) == adoption = "adopting" /\ owner = r
 \* A superseded run returns ErrAdoptSuperseded and writes nothing.
 Superseded(r) ==
   /\ pc' = [pc EXCEPT ![r] = "dead"]
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                 seenAt, txns, holes, landVars, adoption, owner, pos, opens,
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, landVars, adoption, owner, pos, opens,
                  stageVars, writerVars>>
 
 \* Go moves r to the next step, leaving the records alone.
 Go(r, step) ==
   /\ pc' = [pc EXCEPT ![r] = step]
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                 seenAt, txns, holes, landVars, adoption, owner, opens,
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, landVars, adoption, owner, opens,
                  stageVars, writerVars>>
 
 AdoptUnchanged ==
-  UNCHANGED <<root, expires, stored, lost, rel, under, jrVars, now, obs, seen,
-              seenAt, txns, holes, opens, sheld, freed, fillVars, stageVars,
+  UNCHANGED <<root, left, stored, lost, rel, under, jrVars, obs, seen,
+              seenAge, txns, holes, opens, sheld, freed, fillVars, stageVars,
               writerVars, pend, pdir>>
 
 \* AdoptStart reports an adopted Volume, and otherwise returns it to
@@ -1108,13 +1127,14 @@ AdoptClear(r) ==
           /\ fj' = {}
           /\ pc' = [pc EXCEPT ![r] = "mark"]
           /\ UNCHANGED <<adoption, owner, pos, pend, pdir>>
-          /\ UNCHANGED <<root, expires, stored, lost, under, jrVars, now, obs, seen,
-                         seenAt, txns, holes, opens, sheld, freed, freedLive,
+          /\ UNCHANGED <<root, left, stored, lost, under, jrVars, obs, seen,
+                         seenAge, txns, holes, opens, sheld, freed, freedLive,
                          stageVars, writerVars>>
 
 \* AdoptMark marks the Volume adopting in r at the journal's end. The
-\* collector's cursor moves there, and the records before it, which the
-\* counts will reflect, are never read again.
+\* collector's cursor moves there, past every ripe sequence and the hold
+\* mark, and the records before it, which the counts will reflect, are never
+\* read again.
 AdoptMark(r) ==
   /\ pc[r] = "mark"
   /\ IF Claim /\ ~Claimed(r)
@@ -1122,19 +1142,20 @@ AdoptMark(r) ==
      ELSE /\ adoption' = "adopting"
           /\ owner' = r
           /\ jr' = <<>>
+          /\ ripe' = [b \in Blocks |-> 0]
+          /\ hseq' = 0
           /\ pc' = [pc EXCEPT ![r] = "roots"]
           /\ pos' = [pos EXCEPT ![r] = 0]
-          /\ UNCHANGED <<gcVars, appended, hseq, landVars, root, expires, stored,
-                         lost, now,
-                         obs, seen, seenAt, txns, holes, opens, stageVars,
-                         writerVars>>
+          /\ UNCHANGED <<cnt, zero, rel, under, pend, pdir, landVars, root,
+                         left, stored, lost, obs, seen, seenAge, txns, holes,
+                         opens, stageVars, writerVars>>
 
 \* A count, settle or end step of r: with RunCheck it first checks that the
 \* Volume is still adopting in r.
 Owned(r) == RunCheck => InRun(r)
 
 \* AdoptRoot counts the next name, in key order, of the root table and the
-\* moved marks, at the block it held when the adoption began: its mark, or
+\* moved marks, at the block it held when the adoption sessionAge: its mark, or
 \* else its table entry.
 AdoptRoot(r) ==
   /\ pc[r] = "roots"
@@ -1183,7 +1204,7 @@ AdoptSettle(r) ==
              ELSE /\ IF Skipped(b) THEN UNCHANGED <<cnt, zero, ripe>>
                      ELSE IF cnt[b] = 0
                      THEN /\ zero' = zero \cup {b}
-                          /\ ripe' = [ripe EXCEPT ![b] = appended]
+                          /\ ripe' = [ripe EXCEPT ![b] = Len(jr)]
                           /\ UNCHANGED cnt
                      ELSE cnt' = [cnt EXCEPT ![b] = @ - 1] /\ UNCHANGED <<zero, ripe>>
                   /\ pos' = [pos EXCEPT ![r] = i]
@@ -1211,8 +1232,9 @@ AdoptCrash(r) ==
 Open ==
   /\ opens < MaxOpens /\ adoption = "adopting"
   /\ adoption' = "unadopted" /\ owner' = None /\ opens' = opens + 1
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, now, obs, seen,
-                 seenAt, txns, holes, landVars, pc, pos, stageVars, writerVars>>
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, landVars, pc, pos, stageVars,
+                 writerVars>>
 
 \* ---------------------------------------------------------------------------
 \* The environment.
@@ -1228,13 +1250,26 @@ Punch(b) ==
   /\ cnt' = [cnt EXCEPT ![b] = 0] /\ zero' = zero \ {b}
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ holes' = holes + 1
-  /\ UNCHANGED <<root, expires, jrVars, under, now, obs, seen, seenAt, txns,
+  /\ UNCHANGED <<root, left, jrVars, under, obs, seen, seenAge, txns,
                  landVars, adoptVars, stageVars, writerVars, rel, pend, pdir>>
 
+\* Tick lets one unit of time pass: every age grows by one up to the age past
+\* which no rule tells two apart, and every lease's time left shrinks by one
+\* until it lapses. An age nothing will read stays 0. A record has aged
+\* Grace at age Grace; a reader is late past Window; a stage owner has
+\* stalled too long past Lease + Grace.
+Older(a, cap) == IF a < cap THEN a + 1 ELSE cap
 Tick ==
-  /\ now < MaxNow /\ now' = now + 1
-  /\ UNCHANGED <<root, expires, stored, lost, gcVars, jrVars, obs, seen, seenAt,
-                 txns, holes, landVars, adoptVars, stageVars, writerVars>>
+  /\ jr' = [i \in 1..Len(jr) |-> [jr[i] EXCEPT !.age = Older(@, Grace)]]
+  /\ fj' = {[r EXCEPT !.age = Older(@, Grace)] : r \in fj}
+  /\ left' = [n \in Leases |-> IF left[n] < 0 THEN -1 ELSE left[n] - 1]
+  /\ seenAge' = IF seen = None THEN 0 ELSE Older(seenAge, Window + 1)
+  /\ stall' = IF Building THEN Older(stall, Lease + Grace + 1) ELSE 0
+  /\ sessionAge' = [w \in Writers |->
+                      IF tgt[w] = None THEN 0 ELSE Older(sessionAge[w], Grace)]
+  /\ UNCHANGED <<root, stored, lost, gcVars, hseq, obs, seen, txns, holes,
+                 born, moved, sheld, freed, freedLive, adoptVars, stage, tgt,
+                 wrote, skipped>>
 
 NetAny == \E k \in 1..Len(jr) : Net(k)
 NetFillAny == \E r \in fj : NetFill(r) \/ DropFill(r) \/ ApplyFill(r)
@@ -1297,7 +1332,7 @@ OneFillRecord == \A r1, r2 \in fj : r1.b = r2.b => r1 = r2
 
 \* A reader that saw a head and still has time to pin it finds all of it.
 ReaderWindow ==
-  seen # None /\ now <= seenAt + Window => ReachOf(seen) \subseteq stored \cup lost
+  seen # None /\ seenAge <= Window => ReachOf(seen) \subseteq stored \cup lost
 
 \* No transaction took a holder from a block that had none.
 NoUnderflow == ~under
@@ -1349,7 +1384,7 @@ NoLeak == Quiet => stored \subseteq LiveSet \cup BelowLost
 \* of the tree its record holds: a stall shorter than that loses nothing,
 \* and after a longer one the renewal fails the stage or holds it again.
 StageKept ==
-  Building /\ now <= renewed + Lease + Grace => Reach(StageTop) \subseteq stored
+  Building /\ stall <= Lease + Grace => Reach(StageTop) \subseteq stored
 
 \* Every block no root reaches is freed in the end, but those below a hole.
 Collected == <>[](Quiet /\ stored \subseteq LiveSet \cup BelowLost)
