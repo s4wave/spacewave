@@ -22,32 +22,36 @@ func UnlinkMissingStartupManifests(
 		if !candidate.Missing {
 			continue
 		}
-
-		// Delete the edges from each root to the candidate.
-		objKey := candidate.ObjectKey
-		for _, root := range rootObjKeys {
-			quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(root, PredManifest.String(), objKey, ""), 0)
-			if err != nil {
-				return unlinked, err
-			}
-			for _, q := range quads {
-				if err := ws.DeleteGraphQuad(ctx, q); err != nil {
-					return unlinked, err
-				}
-			}
-		}
-		unlinked = append(unlinked, objKey)
-
-		// Delete the object once no other manifest edge reaches it.
-		inbound, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("", PredManifest.String(), objKey, ""), 1)
-		if err != nil {
+		if err := UnlinkManifest(ctx, ws, candidate.ObjectKey, rootObjKeys...); err != nil {
 			return unlinked, err
 		}
-		if len(inbound) == 0 {
-			if _, err := ws.DeleteObject(ctx, objKey); err != nil {
-				return unlinked, err
+		unlinked = append(unlinked, candidate.ObjectKey)
+	}
+	return unlinked, nil
+}
+
+// UnlinkManifest deletes the manifest edges from rootObjKeys to objKey, then
+// deletes the object at objKey once no manifest edge references it. Block
+// bytes remain owned by normal World GC.
+func UnlinkManifest(ctx context.Context, ws world.WorldState, objKey string, rootObjKeys ...string) error {
+	// Delete the edges from each root to the manifest.
+	for _, root := range rootObjKeys {
+		quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(root, PredManifest.String(), objKey, ""), 0)
+		if err != nil {
+			return err
+		}
+		for _, q := range quads {
+			if err := ws.DeleteGraphQuad(ctx, q); err != nil {
+				return err
 			}
 		}
 	}
-	return unlinked, nil
+
+	// Delete the object once no other manifest edge reaches it.
+	inbound, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("", PredManifest.String(), objKey, ""), 1)
+	if err != nil || len(inbound) != 0 {
+		return err
+	}
+	_, err = ws.DeleteObject(ctx, objKey)
+	return err
 }
