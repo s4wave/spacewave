@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/packsweep"
 	block_packsweep_admin "github.com/s4wave/spacewave/db/block/packsweep/admin"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -19,11 +20,28 @@ const adminAuthEnv = "PACK_SWEEP_ADMIN_AUTH" //nolint:gosec // the name of a var
 // adminFlags configures a step that moves packs through the backend.
 func (a *Args) adminFlags() []cli.Flag {
 	return append(a.scratchFlags(),
-		&cli.StringFlag{Name: "admin-url", Usage: "the backend's pack sweep admin service, a ws or wss URL; the Authorization header comes from " + adminAuthEnv, Destination: &a.AdminURL, Required: true},
+		a.adminURLFlag(),
 		a.framesFlag(),
 		&cli.IntFlag{Name: "batch", Usage: "frontier keys per transaction", Value: packsweep.DefaultWalkBatch, Destination: &a.Batch},
 		&cli.StringFlag{Name: "accept-missing", Usage: "file listing missing blocks accepted as lost, one b58 ref a line", Destination: &a.AcceptMissing},
 	)
+}
+
+// adminURLFlag binds the backend's admin service.
+func (a *Args) adminURLFlag() cli.Flag {
+	return &cli.StringFlag{Name: "admin-url", Usage: "the backend's pack sweep admin service, a ws or wss URL; the Authorization header comes from " + adminAuthEnv, Destination: &a.AdminURL, Required: true}
+}
+
+// trashFlags configures the trash, which reaches the backend and the store.
+func (a *Args) trashFlags() []cli.Flag {
+	flags := append(a.scratchFlags(), a.adminURLFlag())
+	flags = append(flags, a.sftpFlags()...)
+	return append(flags, &cli.IntFlag{Name: "moves", Usage: "packs moved to the trash at once, each two renames", Value: packsweep.DefaultMoves, Destination: &a.Moves})
+}
+
+// removeFlags configures the removal, which reaches the backend only.
+func (a *Args) removeFlags() []cli.Flag {
+	return append(a.scratchFlags(), a.adminURLFlag())
 }
 
 // waitFlag is how long a pack stays quarantined before it can pass.
@@ -118,6 +136,76 @@ func (a *Args) runRecheck(*cli.Context) error {
 
 	// Recheck, and print the result.
 	res, err := packsweep.Recheck(ctx, &packsweep.RecheckOptions{CoverOptions: *opts, Wait: a.Wait})
+	if err != nil {
+		return err
+	}
+	return a.print(res.JSON)
+}
+
+// runTrash moves the passed packs to the trash.
+func (a *Args) runTrash(*cli.Context) error {
+	// Open the scratch file until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Reach the store, and refuse one the catalog does not describe: its
+	// files are not the packs the sweep judged.
+	objects, root, closeStore, err := a.dialStore()
+	if err != nil {
+		return err
+	}
+	defer closeStore()
+	mover, ok := objects.(block_store_s3.ObjectMover)
+	if !ok {
+		return errors.New("the store cannot move its objects")
+	}
+	if err := checkStore(ctx, db, a.storeBinding(root)); err != nil {
+		return err
+	}
+
+	// Reach the backend, trash, and print the result.
+	client, closeClient, err := a.dialAdminService(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeClient()
+	res, err := packsweep.Trash(ctx, &packsweep.TrashOptions{
+		Store:   store,
+		Backend: client.Backend(),
+		Mover:   mover,
+		Bucket:  root,
+		Prefix:  a.Prefix,
+		Moves:   a.Moves,
+	})
+	if err != nil {
+		return err
+	}
+	return a.print(res.JSON)
+}
+
+// runRemove has the backend remove the moved packs.
+func (a *Args) runRemove(*cli.Context) error {
+	// Open the scratch file and the backend until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	client, closeClient, err := a.dialAdminService(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeClient()
+
+	// Remove, and print the result.
+	res, err := packsweep.Remove(ctx, &packsweep.RemoveOptions{Store: store, Backend: client.Backend()})
 	if err != nil {
 		return err
 	}

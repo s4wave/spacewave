@@ -28,13 +28,20 @@ type fakeBackend struct {
 	// failQuarantine fails the next quarantine after applying it, as a run
 	// killed before it records the answer.
 	failQuarantine bool
+	// failBeginTrash and failRemove fail the next such call after applying
+	// it.
+	failBeginTrash, failRemove bool
+	// removed are the packs a removal dropped.
+	removed map[string]bool
+	// removals are the removal calls, in order.
+	removals []fakeRemoval
 	// calls counts the calls by method.
 	calls map[string]int
 }
 
 // newFakeBackend builds a backend over log.
 func newFakeBackend(log *writelog.Log) *fakeBackend {
-	return &fakeBackend{log: log, holds: make(map[string]PackHold), now: time.Unix(1_000_000, 0), calls: make(map[string]int)}
+	return &fakeBackend{log: log, holds: make(map[string]PackHold), now: time.Unix(1_000_000, 0), calls: make(map[string]int), removed: make(map[string]bool)}
 }
 
 // ReadLog reads the write log.
@@ -49,6 +56,9 @@ func (b *fakeBackend) TrimLog(ctx context.Context, to writelog.Position) error {
 
 // hold returns a pack's state.
 func (b *fakeBackend) hold(id string) PackHold {
+	if b.removed[id] {
+		return PackHold{ID: id, Absent: true}
+	}
 	if h, ok := b.holds[id]; ok {
 		return h
 	}
@@ -104,6 +114,66 @@ func (b *fakeBackend) Lift(_ context.Context, ids []string) ([]PackHold, error) 
 			b.holds[id] = PackHold{ID: id, State: PackRegistered, Since: b.now}
 		}
 		out[i] = b.hold(id)
+	}
+	return out, nil
+}
+
+// fakeRemoval is one removal call.
+type fakeRemoval struct {
+	ids  []string
+	keys []KeyHolders
+	more bool
+}
+
+// BeginTrash marks the quarantined packs trashing, refusing a registered
+// pack as the pack store does.
+func (b *fakeBackend) BeginTrash(_ context.Context, ids []string) ([]PackHold, error) {
+	// Refuse a registered pack before changing any.
+	b.calls["begin-trash"]++
+	for _, id := range ids {
+		if h := b.hold(id); h.Absent || h.State == PackRegistered {
+			return nil, errors.Errorf("pack %s is not quarantined", id)
+		}
+	}
+
+	// Mark each quarantined pack trashing.
+	out := make([]PackHold, len(ids))
+	for i, id := range ids {
+		if b.hold(id).State == PackQuarantined {
+			b.holds[id] = PackHold{ID: id, State: PackTrashing, Since: b.now}
+		}
+		out[i] = b.hold(id)
+	}
+	if b.failBeginTrash {
+		b.failBeginTrash = false
+		return nil, errors.New("killed")
+	}
+	return out, nil
+}
+
+// Remove records the call and drops the trashing packs no read missed,
+// unless more keys follow.
+func (b *fakeBackend) Remove(_ context.Context, ids []string, keys []KeyHolders, more bool) ([]PackHold, error) {
+	// Refuse a pack that is not trashing, or that a read missed.
+	b.calls["remove"]++
+	b.removals = append(b.removals, fakeRemoval{ids: ids, keys: slices.Clone(keys), more: more})
+	for _, id := range ids {
+		if h := b.hold(id); !h.Absent && (h.State != PackTrashing || !h.Event.IsZero()) {
+			return nil, errors.Errorf("pack %s is not removable", id)
+		}
+	}
+
+	// Drop them unless more keys follow.
+	out := make([]PackHold, len(ids))
+	for i, id := range ids {
+		if !more {
+			b.removed[id] = true
+		}
+		out[i] = b.hold(id)
+	}
+	if b.failRemove {
+		b.failRemove = false
+		return nil, errors.New("killed")
 	}
 	return out, nil
 }
@@ -364,9 +434,9 @@ func TestQuarantineResumes(t *testing.T) {
 
 // TestPackRecordRow round-trips a record row.
 func TestPackRecordRow(t *testing.T) {
-	p := &PackRecord{ID: "pack", Stage: StagePass, Cycle: 3, Since: time.Unix(5, 6), Wait: WaitOpenRead}
+	p := &PackRecord{ID: "pack", Stage: StageRemoved, Cycle: 3, Since: time.Unix(5, 6), Wait: WaitOpenRead, Removed: time.Unix(7, 8)}
 	got, err := unmarshalPackRecord(p.ID, p.marshal())
-	if err != nil || got.Stage != p.Stage || got.Cycle != p.Cycle || !got.Since.Equal(p.Since) || got.Wait != p.Wait {
+	if err != nil || got.Stage != p.Stage || got.Cycle != p.Cycle || !got.Since.Equal(p.Since) || got.Wait != p.Wait || !got.Removed.Equal(p.Removed) {
 		t.Fatalf("round trip = %+v, %v, want %+v", got, err, p)
 	}
 	if _, err := unmarshalPackRecord(p.ID, p.marshal()[:2]); err == nil {

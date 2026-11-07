@@ -95,15 +95,21 @@ type PackHold struct {
 	Event int64
 	// Key is the block key the event read, empty for a lift by the command.
 	Key []byte
+	// Absent is set for a pack the store's table lacks: removed, or never
+	// registered.
+	Absent bool
 }
 
 // Holds returns the sweep state of packs ids, in order, or of every pack the
 // sweep moved when ids is empty, sorted by id. A pack the sweep never moved
-// is registered with no record.
+// is registered with no record, and one the table lacks is absent.
 func (s *PackStore) Holds(ctx context.Context, ids []string) ([]PackHold, error) {
-	// Read the q/ rows in one snapshot.
+	// Read the q/ rows in one snapshot, after the table loads.
 	if s.index == nil {
 		return nil, errNoSweep
+	}
+	if err := s.loadEntries(ctx); err != nil {
+		return nil, err
 	}
 	tx, err := s.index.store.NewTransaction(ctx, false)
 	if err != nil {
@@ -114,7 +120,8 @@ func (s *PackStore) Holds(ctx context.Context, ids []string) ([]PackHold, error)
 	// Read every row when no pack is named.
 	decode := func(id string, value []byte) (PackHold, error) {
 		hold, err := unmarshalPackHold(value)
-		return PackHold{ID: id, State: hold.state, Since: hold.since, Event: hold.event, Key: hold.key}, err
+		_, known := s.index.heldState(id)
+		return PackHold{ID: id, State: hold.state, Since: hold.since, Event: hold.event, Key: hold.key, Absent: !known}, err
 	}
 	var out []PackHold
 	if len(ids) == 0 {
@@ -133,7 +140,8 @@ func (s *PackStore) Holds(ctx context.Context, ids []string) ([]PackHold, error)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = PackHold{ID: id}
+		_, known := s.index.heldState(id)
+		out[i] = PackHold{ID: id, Absent: !known}
 		if ok {
 			if out[i], err = decode(id, value); err != nil {
 				return nil, err

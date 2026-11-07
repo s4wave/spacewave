@@ -8,10 +8,14 @@
 // pack index file, and keeps everything it learns in one scratch file, so a
 // stopped step resumes where its last batch left it.
 //
-// Only quarantine and recheck change the store, and only through the
-// backend's admin service: quarantine takes the dead packs out of the reads,
-// leaving each readable through the fallback, and recheck passes each that
-// stayed unreached, or lifts it back.
+// Only quarantine, recheck, trash and remove change the store, each through
+// the backend's admin service: quarantine takes the dead packs out of the
+// reads, leaving each readable through the fallback, and recheck passes each
+// that stayed unreached, or lifts it back. Trash marks each passed pack
+// trashing and moves its entry, then its file, to the store's trash, where a
+// read that still falls back to it records a miss. Remove drops each trashed
+// pack no read missed from the backend's index, pointing each block row that
+// named it at another pack holding the block.
 package main
 
 import (
@@ -26,7 +30,7 @@ func main() {
 	args := &Args{}
 	app := cli.NewApp()
 	app.Name = "spacewave-pack-sweep"
-	app.Usage = "prove which packs no root reaches, and quarantine them"
+	app.Usage = "prove which packs no root reaches, and move them to the trash"
 	app.Commands = []*cli.Command{
 		{
 			Name:   "new-cycle",
@@ -75,6 +79,18 @@ func main() {
 			Usage:  "pass each quarantined pack that waited, with no write or read open since, and nothing reached",
 			Flags:  append(args.adminFlags(), args.waitFlag()),
 			Action: args.runRecheck,
+		},
+		{
+			Name:   "trash",
+			Usage:  "move each passed pack to the store's trash through the backend, entry first",
+			Flags:  args.trashFlags(),
+			Action: args.runTrash,
+		},
+		{
+			Name:   "remove",
+			Usage:  "have the backend remove each trashed pack no read missed, repairing the rows naming it",
+			Flags:  args.removeFlags(),
+			Action: args.runRemove,
 		},
 		{
 			Name:   "status",

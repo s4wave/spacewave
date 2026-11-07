@@ -20,6 +20,12 @@ const (
 	// MaxBackendPacks is the packs one backend call names, the admin
 	// service's bound.
 	MaxBackendPacks = 1024
+	// MaxBackendKeys is the keys and their holders together one removal
+	// call carries, the admin service's bound.
+	MaxBackendKeys = 65536
+	// MaxKeyHolders is the other holders a removal names for one key, the
+	// admin service's bound.
+	MaxKeyHolders = 16
 )
 
 // PackState is a pack's state in the backend's pack store, numbered as the
@@ -45,6 +51,22 @@ type PackHold struct {
 	// Since is when the pack entered its state, on the backend's clock, or
 	// zero for a pack the sweep never moved.
 	Since time.Time
+	// Event is when the last lift or miss read the pack, on the backend's
+	// clock, or zero. A trashing pack with an event was missed by a read
+	// after its move, and goes back by restore.
+	Event time.Time
+	// Absent is set for a pack the backend does not hold: removed, or never
+	// registered.
+	Absent bool
+}
+
+// KeyHolders is a block key a removed pack holds, by its tail, with the
+// other packs the snapshot lists holding it.
+type KeyHolders struct {
+	// Key is the key's tail.
+	Key []byte
+	// Others are the other packs that hold it.
+	Others []string
 }
 
 // OpenOperations is when the oldest write and read operation still open on
@@ -83,6 +105,13 @@ type Backend interface {
 	// Lift returns quarantined packs to the reads and returns their states
 	// after.
 	Lift(ctx context.Context, ids []string) ([]PackHold, error)
+	// BeginTrash moves quarantined packs to the trashing state and returns
+	// their states after.
+	BeginTrash(ctx context.Context, ids []string) ([]PackHold, error)
+	// Remove repairs the h rows of keys and drops the trashing packs ids,
+	// or only repairs the rows when more is set, and returns their states
+	// after. keys carry at most MaxBackendKeys keys and holders together.
+	Remove(ctx context.Context, ids []string, keys []KeyHolders, more bool) ([]PackHold, error)
 }
 
 // Stage is the command's record of a pack it moved: the step the pack is at,
@@ -95,6 +124,14 @@ const (
 	StageQuarantine Stage = iota + 1
 	// StagePass is a quarantined pack that passed its recheck.
 	StagePass
+	// StageTrash is a passed pack the command moves to the trashing state,
+	// then to the trash.
+	StageTrash
+	// StageMoved is a trashing pack whose entry and file are in the trash.
+	StageMoved
+	// StageRemoved is a pack the backend removed; it stays in the trash
+	// until the operator purges it.
+	StageRemoved
 )
 
 // String names the stage.
@@ -104,6 +141,12 @@ func (s Stage) String() string {
 		return "quarantine"
 	case StagePass:
 		return "pass"
+	case StageTrash:
+		return "trash"
+	case StageMoved:
+		return "moved"
+	case StageRemoved:
+		return "removed"
 	default:
 		return "unknown"
 	}
@@ -137,20 +180,25 @@ type PackRecord struct {
 	Since time.Time
 	// Wait is why the last recheck held the pack, empty for none.
 	Wait string
+	// Removed is when the backend removed the pack, on the command's clock,
+	// which the trash's retention counts from; zero until it did.
+	Removed time.Time
 }
 
 // marshal encodes the record row.
 func (p *PackRecord) marshal() []byte {
+	// Append each field in order.
 	b := []byte{byte(p.Stage)}
 	b = appendUvarints(b, uint64(p.Cycle)) //nolint:gosec // A cycle number is positive.
 	b = appendTime(b, p.Since)
-	return appendString(b, p.Wait)
+	b = appendString(b, p.Wait)
+	return appendTime(b, p.Removed)
 }
 
 // unmarshalPackRecord decodes a record row.
 func unmarshalPackRecord(id string, b []byte) (*PackRecord, error) {
 	r := &rowReader{b: b, ok: true}
-	p := &PackRecord{ID: id, Stage: Stage(r.byte()), Cycle: int(r.uvarint()), Since: r.time(), Wait: r.string()} //nolint:gosec // The row holds a cycle number this command wrote.
+	p := &PackRecord{ID: id, Stage: Stage(r.byte()), Cycle: int(r.uvarint()), Since: r.time(), Wait: r.string(), Removed: r.time()} //nolint:gosec // The row holds a cycle number this command wrote.
 	return p, r.finish("pack record row")
 }
 
@@ -432,6 +480,8 @@ type RecheckResult struct {
 	Lifted uint64
 	// Live is the packs that gained a live key, lifted by the command.
 	Live uint64
+	// Gone is the packs the backend no longer holds, dropped from the cycle.
+	Gone uint64
 	// Waiting counts the packs held another round, by reason.
 	Waiting map[string]uint64
 }
@@ -453,8 +503,9 @@ func Recheck(ctx context.Context, opts *RecheckOptions) (*RecheckResult, error) 
 	}
 	var quar []*PackRecord
 	for _, p := range records {
-		// A passed pack has its quarantine time.
-		if !p.Since.IsZero() {
+		// A quarantined pack has its quarantine time; a pack past its pass
+		// is the trash's.
+		if !p.Since.IsZero() && p.Stage <= StagePass {
 			quar = append(quar, p)
 		}
 	}
@@ -553,6 +604,10 @@ func recheckBatch(ctx context.Context, opts *RecheckOptions, records []*PackReco
 	for i, p := range records {
 		h := holds[i]
 		switch {
+		case h.Absent:
+			del = append(del, p.ID)
+			res.Gone++
+			continue
 		case h.State == PackRegistered:
 			del = append(del, p.ID)
 			res.Lifted++

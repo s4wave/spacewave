@@ -110,6 +110,8 @@ type Args struct {
 	// Wait is how long a pack stays quarantined before its recheck can pass
 	// it.
 	Wait time.Duration
+	// Moves is the packs the trash moves at once.
+	Moves int
 
 	// dialAdmin reaches the admin service; nil dials AdminURL. Tests set it.
 	dialAdmin func(ctx context.Context) (*block_packsweep_admin.Client, func(), error)
@@ -128,20 +130,26 @@ func (a *Args) scratchFlags() []cli.Flag {
 
 // storeFlags binds the flags of the snapshot.
 func (a *Args) storeFlags() []cli.Flag {
-	return []cli.Flag{
-		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index file holds", Destination: &a.StoreID, Required: true},
+	return append(a.sftpFlags(),
 		&cli.StringFlag{Name: "index", Usage: "copy of the store's pack index file, read for the pack list", Destination: &a.Index, Required: true},
 		&cli.StringFlag{Name: "index-type", Usage: "volume type of the pack index file: sqlite, bolt or s4db; detected when unset", Destination: &a.IndexType},
 		&cli.StringFlag{Name: "index-table", Usage: "table of a SQLite pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
 		&cli.StringFlag{Name: "index-bucket", Usage: "bucket of a bbolt pack index file", Value: packcopy.DefaultIndexBucket, Destination: &a.IndexBucket},
+		&cli.StringFlag{Name: "local-packs", Usage: "directory of pack copies named by id, read before the store", Destination: &a.LocalPacks},
+		&cli.IntFlag{Name: "reads", Usage: "packs read at once, each held whole in memory", Value: packsweep.DefaultPackReads, Destination: &a.Reads},
+	)
+}
+
+// sftpFlags binds the flags that name and reach the store.
+func (a *Args) sftpFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index file holds", Destination: &a.StoreID, Required: true},
 		&cli.StringFlag{Name: "sftp-addr", Usage: "store server's host:port", Destination: &a.SFTPAddr, Required: true},
 		&cli.StringFlag{Name: "sftp-user", Usage: "store login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
 		&cli.StringFlag{Name: "sftp-host-key", Usage: "store server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: true},
 		&cli.IntFlag{Name: "sftp-conns", Usage: "most SSH connections to the store at once", Value: 2, Destination: &a.SFTPConns},
 		&cli.StringFlag{Name: "sftp-root", Usage: "store directory holding the prefix", Destination: &a.SFTPRoot, Required: true},
 		&cli.StringFlag{Name: "prefix", Usage: "key prefix of the store's packs", Destination: &a.Prefix},
-		&cli.StringFlag{Name: "local-packs", Usage: "directory of pack copies named by id, read before the store", Destination: &a.LocalPacks},
-		&cli.IntFlag{Name: "reads", Usage: "packs read at once, each held whole in memory", Value: packsweep.DefaultPackReads, Destination: &a.Reads},
 	}
 }
 
@@ -265,7 +273,7 @@ func (a *Args) runSnapshot(*cli.Context) error {
 		return err
 	}
 	defer closeClient()
-	if err := bindStore(ctx, db, a.StoreID+"\x00"+root+"\x00"+a.Prefix); err != nil {
+	if err := bindStore(ctx, db, a.storeBinding(root)); err != nil {
 		return err
 	}
 
@@ -765,6 +773,33 @@ func readRefLines(path string) ([]string, error) {
 	}
 	slices.Sort(out)
 	return slices.Compact(out), nil
+}
+
+// checkStore refuses a scratch file whose catalog describes a store other
+// than id, or none.
+func checkStore(ctx context.Context, store kvtx.Store, id string) error {
+	// Open a read.
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Compare the recorded store.
+	data, found, err := tx.Get(ctx, storeKey)
+	if err != nil {
+		return err
+	}
+	if !found || string(data) != id {
+		return errors.New("--scratch holds no catalog of this store id, root and prefix")
+	}
+	return nil
+}
+
+// storeBinding names the store the flags reach, its catalog's root on the
+// server at root.
+func (a *Args) storeBinding(root string) string {
+	return a.StoreID + "\x00" + root + "\x00" + a.Prefix
 }
 
 // bindStore records the store the scratch file's catalog describes on its

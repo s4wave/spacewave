@@ -19,8 +19,13 @@ import (
 const (
 	// MaxRefs is the blocks a Locate or Refs call takes.
 	MaxRefs = 4096
-	// MaxPacks is the packs a Status, Quarantine or Lift call names.
+	// MaxPacks is the packs a Status, Quarantine, Lift, BeginTrash or Remove
+	// call names.
 	MaxPacks = packsweep.MaxBackendPacks
+	// MaxKeys is the keys and their holders together a Remove call carries.
+	MaxKeys = packsweep.MaxBackendKeys
+	// MaxKeyHolders is the other holders a Remove call names for one key.
+	MaxKeyHolders = packsweep.MaxKeyHolders
 	// MaxAdopt is the packs an Adopt call registers: each carries every key
 	// it holds.
 	MaxAdopt = 16
@@ -46,6 +51,13 @@ type PackStates interface {
 	Quarantine(ctx context.Context, ids []string) error
 	// Lift returns quarantined packs to the reads.
 	Lift(ctx context.Context, ids []string) error
+	// BeginTrash moves quarantined packs to the trashing state.
+	BeginTrash(ctx context.Context, ids []string) error
+	// Remove repairs the h rows of keys and drops the trashing packs ids.
+	Remove(ctx context.Context, ids []string, keys []block_store_s3.KeyHolders) error
+	// RepairRemoved repairs the h rows of keys as Remove does, and leaves the
+	// packs trashing.
+	RepairRemoved(ctx context.Context, ids []string, keys []block_store_s3.KeyHolders) error
 	// AdoptPack registers a pack another writer uploaded.
 	AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error
 }
@@ -170,6 +182,52 @@ func (s *Server) Quarantine(ctx context.Context, req *PacksRequest) (*PacksRespo
 // Lift returns quarantined packs to the reads.
 func (s *Server) Lift(ctx context.Context, req *PacksRequest) (*PacksResponse, error) {
 	return s.move(ctx, req, s.opts.Packs.Lift)
+}
+
+// BeginTrash moves quarantined packs to the trashing state.
+func (s *Server) BeginTrash(ctx context.Context, req *PacksRequest) (*PacksResponse, error) {
+	return s.move(ctx, req, s.opts.Packs.BeginTrash)
+}
+
+// Remove drops trashing packs whose entries and files are in the trash,
+// repairing the h rows of the keys the request carries first; with more set
+// it repairs the rows and leaves the packs.
+func (s *Server) Remove(ctx context.Context, req *RemoveRequest) (*PacksResponse, error) {
+	// Check the keys, then repair their rows and drop the packs unless more
+	// keys follow.
+	keys, err := keyHolders(req.GetKeys())
+	if err != nil {
+		return nil, err
+	}
+	remove := s.opts.Packs.Remove
+	if req.GetMore() {
+		remove = s.opts.Packs.RepairRemoved
+	}
+	return s.move(ctx, &PacksRequest{PackIds: req.GetPackIds()}, func(ctx context.Context, ids []string) error {
+		return remove(ctx, ids, keys)
+	})
+}
+
+// keyHolders converts the keys of a removal, refusing an empty key, a key
+// with more than MaxKeyHolders holders, or more than MaxKeys keys and holders
+// together.
+func keyHolders(in []*KeyHolders) ([]block_store_s3.KeyHolders, error) {
+	// Check and convert each key, weighing it with its holders.
+	out := make([]block_store_s3.KeyHolders, len(in))
+	weight := 0
+	for i, k := range in {
+		if len(k.GetKey()) == 0 || len(k.GetOthers()) > MaxKeyHolders {
+			return nil, errors.Errorf("removal key %d has %d bytes and %d holders, want a key and at most %d", i, len(k.GetKey()), len(k.GetOthers()), MaxKeyHolders)
+		}
+		weight += 1 + len(k.GetOthers())
+		out[i] = block_store_s3.KeyHolders{Key: k.GetKey(), Others: k.GetOthers()}
+	}
+
+	// Refuse a call over the bound.
+	if weight > MaxKeys {
+		return nil, errors.Errorf("a removal carries %d keys and holders, more than %d", weight, MaxKeys)
+	}
+	return out, nil
 }
 
 // move runs a state move on the packs a request names, and reports their
@@ -299,7 +357,7 @@ func parsePosition(s string) (writelog.Position, error) {
 func packHolds(holds []block_store_s3.PackHold) []*PackHold {
 	out := make([]*PackHold, len(holds))
 	for i, h := range holds {
-		out[i] = &PackHold{PackId: h.ID, State: PackState(h.State), SinceUnixNano: h.Since, EventUnixNano: h.Event, Key: h.Key}
+		out[i] = &PackHold{PackId: h.ID, State: PackState(h.State), SinceUnixNano: h.Since, EventUnixNano: h.Event, Key: h.Key, Absent: h.Absent}
 	}
 	return out
 }
