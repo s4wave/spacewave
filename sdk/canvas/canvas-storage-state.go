@@ -118,11 +118,7 @@ func loadCanvasStorageForWrite(
 	previous *CanvasState,
 ) (*CanvasStorage, *CanvasState, error) {
 	// Initialize empty Canvas storage when the root has no block.
-	_, found, err := bcs.Fetch(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	if !found {
+	if bcs.GetRef().GetEmpty() {
 		storage := NewCanvasStorage()
 		bcs.SetBlock(storage, true)
 		return storage, &CanvasState{}, nil

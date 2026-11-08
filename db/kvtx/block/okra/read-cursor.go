@@ -85,6 +85,6 @@ func readEntryValue(ctx context.Context, page *flatPage, cursor block.ReadCursor
 	if page.valueIsBlob(index) {
 		return blob.FetchToBytes(ctx, value.Cursor())
 	}
-	data, _, err := value.Fetch(ctx)
+	data, _, err := value.FetchLeaf(ctx)
 	return data, err
 }

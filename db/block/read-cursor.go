@@ -92,14 +92,14 @@ func (r ReadCursor) edge(id uint32) *decodedBlockReadLink {
 	return data.links[id]
 }
 
-// Fetch reads the referenced bytes through the source's current storage view.
-// Raw values are not retained by the decoded-node graph.
-func (r ReadCursor) Fetch(ctx context.Context) ([]byte, bool, error) {
+// FetchLeaf reads the referenced leaf through the source's current storage
+// view, as Cursor.FetchLeaf does. Raw values are not retained by the
+// decoded-node graph.
+func (r ReadCursor) FetchLeaf(ctx context.Context) ([]byte, bool, error) {
 	if r.source == nil {
 		return nil, false, nil
 	}
-	cursor := r.loadCursor()
-	return cursor.Fetch(ctx)
+	return r.loadCursor().FetchLeaf(ctx)
 }
 
 // Cursor materializes a private position in the borrowed transaction, without
