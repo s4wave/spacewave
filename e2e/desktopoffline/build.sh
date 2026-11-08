@@ -11,6 +11,8 @@ fixture=.tmp/desktop-offline-e2e
 mkdir -p "$fixture/config"
 cat bldr.star desktop-offline-e2e.star > "$fixture/config/bldr.star"
 cp desktop-offline-e2e.yaml "$fixture/config/bldr.yaml"
+mkdir -p "$fixture/config/core/release/publisher"
+cp core/release/publisher/release.star "$fixture/config/core/release/publisher/"
 
 go run -mod=readonly github.com/s4wave/spacewave/bldr/cmd/bldr \
     --config="./$fixture/config/bldr.yaml" \

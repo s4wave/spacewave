@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// LibraryPath is the release library bldr.star loads, relative to it. A copy of
+// bldr.star evaluated elsewhere needs the library at the same path.
+const LibraryPath = "core/release/publisher/release.star"
+
 // Prepare combines the source build definitions with the staging release export.
 // Production retains bldr.yaml. Callers pass the returned path to every builder,
 // including manifest-pack production, so the handoff label and runtime agree.
@@ -58,6 +62,19 @@ func Prepare(repoDir, environment string) (string, error) {
 	}
 	content := append(append(source, '\n'), overrides...)
 	if err := root.WriteFile(filepath.Join(dir, "bldr.star"), content, 0o644); err != nil {
+		return "", err
+	}
+
+	// Copy the release library bldr.star loads beside it.
+	library, err := root.ReadFile(LibraryPath)
+	if err != nil {
+		return "", errors.Wrap(err, "read release library")
+	}
+	libraryPath := filepath.Join(dir, filepath.FromSlash(LibraryPath))
+	if err := root.MkdirAll(filepath.Dir(libraryPath), 0o755); err != nil {
+		return "", err
+	}
+	if err := root.WriteFile(libraryPath, library, 0o644); err != nil {
 		return "", err
 	}
 
