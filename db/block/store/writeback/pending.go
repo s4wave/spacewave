@@ -51,6 +51,17 @@ func SetRecountAtOpen(on bool) {
 	recountAtOpen.Store(on)
 }
 
+// readOnlyOpen makes an open read its markers without writing them.
+var readOnlyOpen atomic.Bool
+
+// SetReadOnlyOpen makes stores opened while on is set read their kept state in
+// a read transaction: they drop no former marker layout, take no ownership of
+// the queue count, and start no walk of the queue, so the open writes nothing.
+// It is for a store that only serves reads and never uploads.
+func SetReadOnlyOpen(on bool) {
+	readOnlyOpen.Store(on)
+}
+
 // queueCount is the kept count of the upload queue.
 type queueCount struct {
 	// n is the number of covered queue entries.

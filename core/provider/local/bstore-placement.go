@@ -225,12 +225,14 @@ type openBackend struct {
 // The bucket store stays open across failed uploads and their retries, so an
 // unreachable bucket fails reads with its own error and the store keeps the
 // packfiles it knows. Clearing or changing the placement cancels ctx and
-// closes the store.
+// closes the store. With serve set it only opens the store for reads, until
+// ctx ends, and uploads and drains nothing.
 func (t *bstoreTracker) runUpload(
 	ctx context.Context,
 	wb *block_store_writeback.Store,
 	drain *packahead.Drain,
 	backend *account_settings.StorageBackend,
+	serve bool,
 ) error {
 	// Reopen the backend store when the placement changed.
 	remote := t.remote.Load()
@@ -253,6 +255,13 @@ func (t *bstoreTracker) runUpload(
 				}
 			}()
 		}
+	}
+
+	// Serve mode keeps the store open for reads alone.
+	if serve {
+		<-ctx.Done()
+		t.swapRemote(nil)
+		return ctx.Err()
 	}
 
 	// Upload the queued blocks and the finalized packs, both paced by the

@@ -178,13 +178,22 @@ func newStore(
 
 	// Restore the queue's kept count, its head, the eviction queue size and
 	// the completed backfill target.
+	// A read-only open reads the same state and writes none of it.
 	var count queueCount
 	var evictableBytes int64
 	var target []byte
 	var oldest time.Time
-	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	readOnly := readOnlyOpen.Load()
+	openTx := s.writeTx
+	if readOnly {
+		openTx = func(ctx context.Context) (kvtx.Tx, error) { return s.markers.NewTransaction(ctx, false) }
+	}
+	err := kvtx.RunTransaction(ctx, !readOnly, openTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Drop the former marker layout before reading the queue.
 		for _, prefix := range formerPrefixes {
+			if readOnly {
+				break
+			}
 			if err := deletePrefix(ctx, tx, prefix); err != nil {
 				return err
 			}
@@ -223,6 +232,10 @@ func newStore(
 		count, found, err = readQueueCount(ctx, tx)
 		if err != nil {
 			return err
+		}
+		if readOnly {
+			count.done = true
+			return nil
 		}
 		switch {
 		case found && count.done && !recountAtOpen.Load():

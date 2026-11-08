@@ -120,6 +120,7 @@ func buildFTPSBlockStore(le *logrus.Entry, location *account_settings.FtpsLocati
 		MergeTailBytes: mergeTail,
 		SoleWriter:     location.GetSoleWriter(),
 		ReadCache:      cache,
+		ReadOnlyIndex:  serveOnly.Load(),
 	}), nil
 }
 

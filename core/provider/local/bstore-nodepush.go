@@ -300,6 +300,34 @@ func (t *bstoreTracker) startNodePush(
 	}
 }
 
+// startNodeReads connects the store to its storage node for reads alone, in
+// serve mode: it pushes nothing, applies no reported pack, drains nothing and
+// holds no block. The node then reads by key the blocks every other path
+// missed. The release disconnects it.
+func (t *bstoreTracker) startNodeReads(ctx context.Context, le *logrus.Entry) func() {
+	// Read only a store the config names.
+	conf := t.nodePushConfig()
+	if conf == nil || conf.On == nil {
+		return func() {}
+	}
+
+	// Take the shared client, or run one without an applier.
+	client := conf.Client
+	runCtx, cancel := context.WithCancel(ctx)
+	var running sync.WaitGroup
+	if client == nil {
+		client = block_store_nodepush.NewClient(le.WithField("routine", "node-reads"), nil)
+		running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	}
+	t.nodeClient.Store(client)
+	le.Info("reading the storage node, serve mode pushes nothing")
+	return func() {
+		t.nodeClient.Store(nil)
+		cancel()
+		running.Wait()
+	}
+}
+
 // spillOnClose writes every block still held to the local disk as the store
 // unmounts, so a clean stop leaves none only in the node's log.
 func (t *bstoreTracker) spillOnClose(le *logrus.Entry, wb *block_store_writeback.Store) {
