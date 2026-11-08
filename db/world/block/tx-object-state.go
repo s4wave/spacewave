@@ -103,9 +103,12 @@ func (t *TxObjectState) WaitRev(
 	ignoreNotFound bool,
 ) (uint64, error) {
 	for {
-		var currSeqno uint64
+		var changes uint64
 		var currObjRev uint64
 		err := t.tx.locked(ctx, false, func() error {
+			// Count the transaction's changes before reading the revision.
+			changes = t.tx.state.getChanges()
+
 			// Load the object and require that it exists.
 			obj, err := t.tx.state.mustGetObject(ctx, t.key)
 			if err != nil {
@@ -118,14 +121,7 @@ func (t *TxObjectState) WaitRev(
 				return err
 			}
 
-			// Return when the revision has reached the target.
-			if currObjRev >= rev {
-				return nil
-			}
-
-			// Read the transaction seqno for the wait.
-			currSeqno, err = t.tx.state.GetSeqno(ctx)
-			return err
+			return nil
 		})
 		if err != nil {
 			return 0, err
@@ -134,7 +130,7 @@ func (t *TxObjectState) WaitRev(
 			return currObjRev, nil
 		}
 
-		_, err = t.tx.WaitSeqno(ctx, currSeqno+1)
+		_, err = t.tx.state.waitChanges(ctx, changes)
 		if err != nil {
 			return 0, err
 		}
