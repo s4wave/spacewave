@@ -15,6 +15,8 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	// Configure explicit container options for the Docker create command.
 	conf := &Config{
 		Image:       "ghbot:dev",
+		NetworkMode: "host",
+		Devices:     []string{"/dev/kvm:/dev/kvm:rw"},
 		Workdir:     "/work/repo",
 		MilliCpu:    1500,
 		MemoryBytes: 1 << 30,
@@ -35,6 +37,8 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	want := []string{
 		"create",
 		"--cpus", "1.5", "--memory", "1073741824",
+		"--network", "host",
+		"--device", "/dev/kvm:/dev/kvm:rw",
 		"--workdir", "/work/repo",
 		"--env", "ALPHA=one",
 		"--env", "BETA=two",
@@ -109,6 +113,8 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 		DockerPath:  "docker-test",
 		DockerEnv:   map[string]string{"DOCKER_HOST": "unix:///var/run/docker.sock"},
 		Image:       "ghbot:dev",
+		NetworkMode: "host",
+		Devices:     []string{"/dev/kvm:/dev/kvm:rw"},
 		MilliCpu:    1000,
 		MemoryBytes: 1 << 20,
 		Workdir:     "/work/repo",
@@ -136,6 +142,8 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 			name: "docker-test",
 			args: []string{
 				"create", "--name", "test-runtime", "--cpus", "1", "--memory", "1048576",
+				"--network", "host",
+				"--device", "/dev/kvm:/dev/kvm:rw",
 				"--workdir", "/work/repo",
 				"--env", "GHBOT_SOCKET=/run/ghbot.sock",
 				"--mount", "type=bind,source=/host/socket,target=/run/ghbot.sock",

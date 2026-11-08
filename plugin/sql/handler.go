@@ -277,6 +277,7 @@ func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) e
 			committedRoot = next.Clone()
 			return nil
 		})
+		defer store.Close()
 
 		// Create and commit the quickstart database schema.
 		tx, err := store.NewMysqlTransaction(ctx, true)

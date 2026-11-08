@@ -12,6 +12,8 @@ import (
 
 // Tx contains a transaction against the mysql data store.
 type Tx struct {
+	// unlock releases the root gate after the transaction's final operation.
+	unlock     func()
 	commitOnce atomic.Bool
 	t          *Mysql
 	write      bool
@@ -36,7 +38,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 		return nil
 	}
 	if t.commitOnce.CompareAndSwap(false, true) {
-		defer t.t.rmtx.Unlock()
+		defer t.unlock()
 		t.bcs.SetBlock(t.root, true)
 		res, _, err := t.tx.Write(ctx, true)
 		if err != nil {
@@ -69,11 +71,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	if t.commitOnce.CompareAndSwap(false, true) {
-		if t.write {
-			t.t.rmtx.Unlock()
-		} else {
-			t.t.rmtx.RUnlock()
-		}
+		t.unlock()
 	}
 }
 

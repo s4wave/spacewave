@@ -1,0 +1,10 @@
+SPECIFICATION Spec
+CONSTANTS
+  DurableBeforeAck = TRUE
+  BootOwnsClose = FALSE
+  AtomicRetention = TRUE
+  CancelStoppedWriter = TRUE
+INVARIANTS
+  AcknowledgedSurvives
+  StorageOutlivesUsers
+  RefusalPreserves

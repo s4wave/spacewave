@@ -48,8 +48,8 @@ github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5 h
 github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5/go.mod h1:qCrUDxkyS9ElQNb1LyV5wcRJwhdLgkHj19CDJBW60vs=
 github.com/aperturerobotics/go-multibase v0.4.0 h1:zYxJkOb6yIXvd2m4je/QfJeoWoWW/Sbl9/FoOfY7ptQ=
 github.com/aperturerobotics/go-multibase v0.4.0/go.mod h1:PMClsExj7sks4HmxY7SAo09ZkR8B6pOCjjApo/ZE4GU=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261024013424-a1751f2da19d h1:R69Afp99CjggRvxf8m34TZKogeSjzIYanV4xCbXDT3E=
-github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261024013424-a1751f2da19d/go.mod h1:nlGP2az3ine8cluAjd4dGbs2egzvny4t/PbFgAUCp0c=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261108213153-7e4a5ee7d16f h1:x5eQn/BWXddruRIt1GvUO1VABNrjFaVqap0AQ6+rRQQ=
+github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261108213153-7e4a5ee7d16f/go.mod h1:ZHXRq5r8weRmG/KieOiX7HfaqJBHSvbwH8bfrMy0l9o=
 github.com/aperturerobotics/go-prometheus-client-lite v1.23.3-0.20261024041454-92147463582b h1:KyyWkmOpe2b2OafNgBQYuYHdpm7osK51vs7RgCEi3RI=
 github.com/aperturerobotics/go-prometheus-client-lite v1.23.3-0.20261024041454-92147463582b/go.mod h1:qRtWyi1AK6J7eZ1E5dfZEBZtBOIHjL0Nq9BejU+9UIM=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20261024221648-a1c7ae9a2bb8 h1:PUpcIOhtn3TyQtYPbrpzLaTzeU5pJ+JbdUIyKKHX+bg=

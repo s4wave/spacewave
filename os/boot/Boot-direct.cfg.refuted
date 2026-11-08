@@ -1,0 +1,7 @@
+\* Retained direct-vfork design. Copy beside Boot.tla as Boot.cfg in scratch.
+\* Expected failure: EventuallyStopped; entering waits for an unavailable server.
+CONSTANT IndependentExec = FALSE
+SPECIFICATION Spec
+INVARIANT Safe
+PROPERTY EventuallyStopped
+CHECK_DEADLOCK FALSE

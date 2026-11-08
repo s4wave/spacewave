@@ -25,6 +25,10 @@ import (
 type Server struct {
 	// srv is the MySQL protocol server.
 	srv *gms_server.Server
+	// store owns the engine used to construct the schema.
+	store *sql_mysql.Mysql
+	// engine owns the read-only protocol catalog.
+	engine *sqle.Engine
 	// tx is the read transaction every connection shares.
 	tx *sql_mysql.Tx
 	// url is the endpoint's mysql:// URL.
@@ -37,9 +41,14 @@ type Server struct {
 
 // Start builds database dbName from the schema statements and serves it on
 // lis until Close. It takes ownership of lis.
-func Start(ctx context.Context, lis net.Listener, dbName string, schema []string) (*Server, error) {
+func Start(ctx context.Context, lis net.Listener, dbName string, schema []string) (_ *Server, retErr error) {
 	// Build the database from the schema in a write transaction.
 	store := sql_mysql.NewMysql(&memoryRoot{store: block_mock.NewMockStore(0)}, nil)
+	defer func() {
+		if retErr != nil {
+			_ = store.Close()
+		}
+	}()
 	if err := applySchema(ctx, store, dbName, schema); err != nil {
 		_ = lis.Close()
 		return nil, err
@@ -60,14 +69,24 @@ func Start(ctx context.Context, lis net.Listener, dbName string, schema []string
 
 	// Serve the engine on the listener, with one session per connection.
 	engine := sqle.NewDefault(catalog)
-	srv, err := gms_server.NewServer(gms_server.Config{Listener: lis}, engine, sql.NewContext, newSession, nil)
+	defer func() {
+		if retErr != nil {
+			_ = engine.Close()
+		}
+	}()
+	buildSession := func(ctx context.Context, conn *mysql.Conn, addr string) (sql.Session, error) {
+		client := sql.Client{Address: conn.RemoteAddr().String(), User: conn.User}
+		return sql.NewBaseSessionWithClientServerWithVariables(addr, client, conn.ConnectionID, engine.Variables()), nil
+	}
+	srv, err := gms_server.NewServer(gms_server.Config{Listener: lis}, engine, sql.NewContext, buildSession, nil)
 	if err != nil {
 		tx.Discard()
 		_ = lis.Close()
 		return nil, err
 	}
 	s := &Server{
-		srv:  srv,
+		srv:   srv,
+		store: store, engine: engine,
 		tx:   tx,
 		url:  "mysql://root@" + lis.Addr().String() + "/" + dbName,
 		done: make(chan struct{}),
@@ -88,10 +107,23 @@ func (s *Server) URL() string {
 // Close stops the server, waits for it to stop serving, and releases the
 // database.
 func (s *Server) Close() error {
+	// Stop protocol admission before releasing the shared read transaction.
 	err := s.srv.Close()
 	<-s.done
 	s.tx.Discard()
-	return err
+
+	// Close both engines after the protocol server and its catalog release.
+	engineErr := s.engine.Close()
+	storeErr := s.store.Close()
+
+	// Preserve the first shutdown failure while releasing every owned engine.
+	if err != nil {
+		return err
+	}
+	if engineErr != nil {
+		return engineErr
+	}
+	return storeErr
 }
 
 // applySchema creates database dbName and runs each statement of the schema
@@ -130,10 +162,4 @@ func applySchema(ctx context.Context, store *sql_mysql.Mysql, dbName string, sch
 
 	// Commit the built database.
 	return tx.Commit(ctx)
-}
-
-// newSession builds the session for a client connection.
-func newSession(ctx context.Context, conn *mysql.Conn, addr string) (sql.Session, error) {
-	client := sql.Client{Address: conn.RemoteAddr().String(), User: conn.User}
-	return sql.NewBaseSessionWithClientServer(addr, client, conn.ConnectionID), nil
 }

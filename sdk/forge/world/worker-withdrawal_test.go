@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	resolver_ctrl "github.com/aperturerobotics/controllerbus/controller/resolver"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_job "github.com/s4wave/spacewave/forge/job"
@@ -144,8 +145,10 @@ type workerHarness struct {
 	sender peer.ID
 	// workerPeerID is the Worker's peer.
 	workerPeerID peer.ID
-	// script is the fake Docker CLI the Jobs run.
+	// script is the Docker CLI the Jobs run.
 	script string
+	// memoryBytes is the capacity this fixture declares.
+	memoryBytes uint64
 }
 
 // Worker and Cluster object keys of the harness.
@@ -153,11 +156,26 @@ const harnessWorkerKey, harnessClusterKey = "worker/1", "cluster/1"
 
 // newWorkerHarness creates the Worker and the Cluster that places Jobs on it.
 func newWorkerHarness(t *testing.T) *workerHarness {
+	return newWorkerHarnessWithOptions(t, workerHarnessOptions{timeout: time.Minute, memoryBytes: 2 << 30})
+}
+
+// workerHarnessOptions selects real runtime and durable storage for external workloads.
+type workerHarnessOptions struct {
+	timeout     time.Duration
+	memoryBytes uint64
+	dockerPath  string
+	storage     []db_testbed.Option
+}
+
+// newWorkerHarnessWithOptions keeps storage alive until runtime cleanup has joined.
+func newWorkerHarnessWithOptions(t *testing.T, options workerHarnessOptions) *workerHarness {
 	// Start a Forge testbed whose bus will run the Worker's controllers.
 	t.Helper()
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	lifeCtx, cancelLife := context.WithCancel(context.WithoutCancel(t.Context()))
+	t.Cleanup(cancelLife)
+	ctx, cancel := context.WithTimeout(lifeCtx, options.timeout)
 	t.Cleanup(cancel)
-	tb, err := forge_testbed.Default(ctx)
+	tb, err := forge_testbed.WithTestbedOptions(lifeCtx, options.storage, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,9 +209,12 @@ func newWorkerHarness(t *testing.T) *workerHarness {
 	}
 
 	// Install the fake Docker CLI.
-	script := filepath.Join(t.TempDir(), "docker")
-	if err := os.WriteFile(script, []byte(fakeDockerScript), 0o700); err != nil {
-		t.Fatal(err)
+	script := options.dockerPath
+	if script == "" {
+		script = filepath.Join(t.TempDir(), "docker")
+		if err := os.WriteFile(script, []byte(fakeDockerScript), 0o700); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return &workerHarness{
 		ctx:          ctx,
@@ -202,13 +223,14 @@ func newWorkerHarness(t *testing.T) *workerHarness {
 		sender:       sender,
 		workerPeerID: workerPeer.GetPeerID(),
 		script:       script,
+		memoryBytes:  options.memoryBytes,
 	}
 }
 
 // declaration returns the Worker declaration the Device publishes.
 func (h *workerHarness) declaration() *s4wave_device.ForgeWorkerDeclaration {
 	return &s4wave_device.ForgeWorkerDeclaration{
-		WorkerObjectKey: harnessWorkerKey, MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
+		WorkerObjectKey: harnessWorkerKey, MilliCpu: 2000, MemoryBytes: h.memoryBytes, Backends: []string{"docker"},
 	}
 }
 

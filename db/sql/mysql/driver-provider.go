@@ -36,12 +36,19 @@ func (p *DriverProvider) NewSession(
 	id uint32,
 	conn *gdriver.Connector,
 ) (sql.Session, error) {
-	return sql.NewBaseSessionWithClientServer(
+	// Reuse the protocol client's session without retaining a storage transaction.
+	if session, ok := ctx.Value(sessionContextKey{}).(sql.Session); ok {
+		return session, nil
+	}
+
+	// Give standalone driver clients their own engine session.
+	return sql.NewBaseSessionWithClientServerWithVariables(
 		conn.Server(),
 		sql.Client{
 			Address: "#" + strconv.Itoa(int(id)),
 		},
 		id,
+		conn.EngineVariables(),
 	), nil
 }
 
@@ -63,8 +70,8 @@ func (p *DriverProvider) NewContext(
 	}
 
 	// Construct the SQL context with the connection database selected.
-	sctx := sql.NewContext(ctx, opts...)
-	if dbName != "" {
+	sctx := sql.NewContext(context.WithValue(ctx, transactionContextKey{}, p.sql), opts...)
+	if dbName != "" && p.ctx.Value(sessionContextKey{}) == nil {
 		sctx.SetCurrentDatabase(dbName)
 	}
 	return sctx, nil

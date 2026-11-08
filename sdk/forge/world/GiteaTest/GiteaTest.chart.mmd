@@ -1,0 +1,24 @@
+---
+title: "Keep the repository, issues and build result"
+---
+stateDiagram-v2
+  s0: Stopped
+  s1: Starting
+  s2: Ready
+  s3: Working
+  s4: Data recorded
+  s5: Build verified
+  s6: Stopping
+  s7: Waiting for stop confirmation
+  s8: Verified
+  [*] --> s0
+  s0 --> s1: Start or Replace the VM
+  s1 --> s2: Open Gitea
+  s2 --> s3: Create issue and push code
+  s3 --> s4: Record issue and commit
+  s4 --> s5: Run and verify build
+  s5 --> s6: Stop through graph
+  s6 --> s7: Stop unavailable#59; keep custody
+  s6 --> s0: Stop confirmed
+  s7 --> s6: Retry stop
+  s2 --> s8: Clone and read the issue
