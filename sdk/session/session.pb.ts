@@ -2435,6 +2435,18 @@ export interface RemoveSpaceParticipantsRequest {
    * PeerIds are the participant peer IDs to remove in one configuration change.
    */
   peerIds?: string[]
+  /**
+   * AdmitThrough maps a peer ID to the last of its operations every member
+   * still applies; replay rejects the peer's later operations. A peer it does
+   * not name keeps every operation the Space holds. It recovers a Space whose
+   * removed author signed operations whose payloads no member holds.
+   */
+  admitThrough?: { [key: string]: bigint }
+  /**
+   * DryRun reports the cut for each peer AdmitThrough names without signing
+   * the removal.
+   */
+  dryRun?: boolean
 }
 
 export const RemoveSpaceParticipantsRequest: MessageType<RemoveSpaceParticipantsRequest> =
@@ -2443,6 +2455,8 @@ export const RemoveSpaceParticipantsRequest: MessageType<RemoveSpaceParticipants
     () => [
       [1, 'space_id', 9],
       [2, 'peer_ids', 9, 1],
+      [3, 'admit_through', 4, 584],
+      [4, 'dry_run', 8],
     ],
   )
 
@@ -2461,6 +2475,10 @@ export interface RemoveSpaceParticipantsResponse {
    * control, and it applies once the group decides it.
    */
   awaitingGroup?: boolean
+  /**
+   * Cuts reports each peer AdmitThrough named, in peer ID order.
+   */
+  cuts?: SpaceParticipantCut[]
 }
 
 export const RemoveSpaceParticipantsResponse: MessageType<RemoveSpaceParticipantsResponse> =
@@ -2469,6 +2487,49 @@ export const RemoveSpaceParticipantsResponse: MessageType<RemoveSpaceParticipant
     () => [
       [1, 'removed_peer_ids', 9, 1],
       [2, 'awaiting_group', 8],
+      [3, 'cuts', 11, 1, SpaceParticipantCut.codec],
+    ],
+  )
+
+/**
+ * SpaceParticipantCut describes the operations a removal through a nonce stops
+ * applying for one peer.
+ *
+ * @generated from message s4wave.session.SpaceParticipantCut
+ */
+export interface SpaceParticipantCut {
+  /**
+   * PeerId is the removed author.
+   */
+  peerId?: string
+  /**
+   * AdmitThrough is the last nonce of the peer's operations that applies.
+   */
+  admitThrough?: bigint
+  /**
+   * HeadNonce is the nonce of the peer's latest operation the Space holds.
+   */
+  headNonce?: bigint
+  /**
+   * CheckpointNonce is the nonce through which the checkpoint covers the peer.
+   */
+  checkpointNonce?: bigint
+  /**
+   * CutOperations is the number of the peer's held operations above
+   * AdmitThrough that stop applying.
+   */
+  cutOperations?: number
+}
+
+export const SpaceParticipantCut: MessageType<SpaceParticipantCut> =
+  /* @__PURE__ */ createMessageType<SpaceParticipantCut>(
+    's4wave.session.SpaceParticipantCut',
+    () => [
+      [1, 'peer_id', 9],
+      [2, 'admit_through', 4],
+      [3, 'head_nonce', 4],
+      [4, 'checkpoint_nonce', 4],
+      [5, 'cut_operations', 13],
     ],
   )
 

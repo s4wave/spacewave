@@ -24,6 +24,11 @@ type SessionController interface {
 	// DeleteSession removes the registration and waits for tracked lifetimes to stop.
 	// Returns nil if neither a registration nor a tracked lifetime exists.
 	DeleteSession(ctx context.Context, ref *SessionRef) error
+	// MoveSession gives the session at index from the free index to, with its
+	// metadata, and stops its tracked lifetimes so clients mount it again at
+	// the new index. A stale reference to index to, such as a cloud session's
+	// link to a local session deleted before, then names the moved session.
+	MoveSession(ctx context.Context, from, to uint32) (*SessionListEntry, error)
 	// GetSessionMetadata returns the metadata for a session by index.
 	// Returns nil, nil if not found.
 	GetSessionMetadata(ctx context.Context, idx uint32) (*SessionMetadata, error)

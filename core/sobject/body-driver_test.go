@@ -291,6 +291,62 @@ func TestBodyDriverRunThrough(t *testing.T) {
 	}
 }
 
+// TestBodyDriverDropsOperationsACutRemoves checks that a driver whose body
+// applied a writer's operations, then sees a removal that cuts the writer
+// through its first one, applies again from the first cut operation and
+// reaches the state of a driver that starts after the cut. It fails when the
+// driver keeps every applied position the order still lists.
+func TestBodyDriverDropsOperationsACutRemoves(t *testing.T) {
+	// The writer writes two operations and the owner one.
+	peers := createMockPeers(t, 2)
+	keys := mustPrivKeys(t, peers)
+	removedID := peers[1].GetPeerID().String()
+	state, genesis := newTestSOState(t, peers)
+	writeTestOp(t, state, keys[1], "w1")
+	writeTestOp(t, state, keys[1], "w2")
+	writeTestOp(t, state, keys[0], "a")
+
+	// The warm driver applies all three.
+	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
+	le := logrus.New().WithField("test", t.Name())
+	warm := &testBody{}
+	dw := NewBodyDriver(le, so, warm, nil)
+	if err := dw.Step(t.Context(), testHandle(t, state, keys[0], genesis)); err != nil {
+		t.Fatal(err)
+	}
+	if got := warm.stateAt(len(warm.states)); !strings.Contains(got, "w2") {
+		t.Fatalf("state %q before the cut; want w2 applied", got)
+	}
+
+	// The owner removes the writer through its first operation.
+	next := state.GetConfig().CloneVT()
+	next.Participants = next.Participants[:1]
+	if err := pinRemovedAuthors(mockSharedObjectID, state, next, []string{removedID}, map[string]uint64{removedID: 1}); err != nil {
+		t.Fatal(err)
+	}
+	removal, err := BuildSOConfigChange(mockSharedObjectID, state.GetConfig(), next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Config, err = VerifyConfigChange(mockSharedObjectID, state.GetConfig(), removal)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Both drivers step under the cut and reach the same state, without w2.
+	cold := &testBody{}
+	dc := NewBodyDriver(le, so, cold, nil)
+	for _, d := range []*BodyDriver{dw, dc} {
+		if err := d.Step(t.Context(), testHandle(t, state, keys[0], genesis)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, want := warm.stateAt(len(warm.states)), cold.stateAt(len(cold.states))
+	if got != want || strings.Contains(got, "w2") || !strings.Contains(got, "w1") {
+		t.Fatalf("after the cut the warm state is %q and the cold one %q; want them equal, with w1 and without w2", got, want)
+	}
+}
+
 // TestBodyDriverCheckpoints checks that an owner's driver signs a checkpoint
 // over the stable prefix once MinCheckpointOperations operations are stable,
 // with the state the body's Root holds, once the store Root returns finished

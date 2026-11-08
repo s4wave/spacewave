@@ -245,6 +245,15 @@ func (r *Root) DeleteSession(ctx context.Context, sessionIdx uint32) error {
 	return err
 }
 
+// MoveSession gives the session at index from the free index to.
+func (r *Root) MoveSession(ctx context.Context, from, to uint32) (*session.SessionListEntry, error) {
+	resp, err := r.service.MoveSession(ctx, &MoveSessionRequest{FromIdx: from, ToIdx: to})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetSession(), nil
+}
+
 // GetChangelog returns the application changelog.
 func (r *Root) GetChangelog(ctx context.Context) (*changelog.Changelog, error) {
 	resp, err := r.service.GetChangelog(ctx, &GetChangelogRequest{})

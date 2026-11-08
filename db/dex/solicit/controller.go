@@ -393,6 +393,13 @@ func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession, wan
 		}
 		return !wantPeer || len(sessions) != 0, nil
 	})
+
+	// Report why ctx ended: the broadcast wait reports context.Canceled even
+	// for a deadline, which callers bounding a peer read must tell apart from
+	// their own cancellation.
+	if err != nil && ctx.Err() != nil {
+		err = context.Cause(ctx)
+	}
 	return sessions, err
 }
 

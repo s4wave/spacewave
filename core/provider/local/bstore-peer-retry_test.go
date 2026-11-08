@@ -3,7 +3,6 @@ package provider_local
 import (
 	"context"
 	"errors"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -32,7 +31,7 @@ func (f *flakyPeers) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 // peerRead reads ref through a peerMissLog over peers.
 func peerRead(t *testing.T, peers block.StoreOps) (*block.StoredBlock, time.Duration, error) {
 	t.Helper()
-	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: &sync.Map{}}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), misses: &peerMisses{}}
 	ref := block.NewBlockRef(nil)
 	started := time.Now()
 	blk, err := p.GetStoredBlock(context.Background(), ref)

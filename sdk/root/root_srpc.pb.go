@@ -38,6 +38,8 @@ type SRPCRootResourceServiceClient interface {
 
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest) (*DeleteSessionResponse, error)
 
+	MoveSession(ctx context.Context, in *MoveSessionRequest) (*MoveSessionResponse, error)
+
 	ResetSession(ctx context.Context, in *ResetSessionByIdxRequest) (*ResetSessionByIdxResponse, error)
 
 	AccessStateAtom(ctx context.Context, in *AccessStateAtomRequest) (*AccessStateAtomResponse, error)
@@ -279,6 +281,15 @@ func (c *srpcRootResourceServiceClient) UnlockSession(ctx context.Context, in *U
 func (c *srpcRootResourceServiceClient) DeleteSession(ctx context.Context, in *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	out := new(DeleteSessionResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "DeleteSession", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcRootResourceServiceClient) MoveSession(ctx context.Context, in *MoveSessionRequest) (*MoveSessionResponse, error) {
+	out := new(MoveSessionResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "MoveSession", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -694,6 +705,8 @@ type SRPCRootResourceServiceServer interface {
 
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
 
+	MoveSession(context.Context, *MoveSessionRequest) (*MoveSessionResponse, error)
+
 	ResetSession(context.Context, *ResetSessionByIdxRequest) (*ResetSessionByIdxResponse, error)
 
 	AccessStateAtom(context.Context, *AccessStateAtomRequest) (*AccessStateAtomResponse, error)
@@ -781,6 +794,7 @@ func (SRPCRootResourceServiceHandler) GetMethodIDs() []string {
 		"WatchSessionMetadata",
 		"UnlockSession",
 		"DeleteSession",
+		"MoveSession",
 		"ResetSession",
 		"AccessStateAtom",
 		"WatchStateAtoms",
@@ -841,6 +855,8 @@ func (d *SRPCRootResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_UnlockSession(d.impl, strm)
 	case "DeleteSession":
 		return true, d.InvokeMethod_DeleteSession(d.impl, strm)
+	case "MoveSession":
+		return true, d.InvokeMethod_MoveSession(d.impl, strm)
 	case "ResetSession":
 		return true, d.InvokeMethod_ResetSession(d.impl, strm)
 	case "AccessStateAtom":
@@ -1023,6 +1039,18 @@ func (SRPCRootResourceServiceHandler) InvokeMethod_DeleteSession(impl SRPCRootRe
 		return err
 	}
 	out, err := impl.DeleteSession(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCRootResourceServiceHandler) InvokeMethod_MoveSession(impl SRPCRootResourceServiceServer, strm srpc.Stream) error {
+	req := new(MoveSessionRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.MoveSession(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1434,6 +1462,14 @@ type SRPCRootResourceService_DeleteSessionStream interface {
 }
 
 type srpcRootResourceService_DeleteSessionStream struct {
+	srpc.Stream
+}
+
+type SRPCRootResourceService_MoveSessionStream interface {
+	srpc.Stream
+}
+
+type srpcRootResourceService_MoveSessionStream struct {
 	srpc.Stream
 }
 

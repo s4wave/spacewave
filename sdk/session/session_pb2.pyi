@@ -824,20 +824,47 @@ class ListSpaceParticipantsResponse(_message.Message):
     def __init__(self, participants: _Optional[_Iterable[_Union[_sobject_pb2.SOParticipantConfig, _Mapping]]] = ...) -> None: ...
 
 class RemoveSpaceParticipantsRequest(_message.Message):
-    __slots__ = ("space_id", "peer_ids")
+    __slots__ = ("space_id", "peer_ids", "admit_through", "dry_run")
+    class AdmitThroughEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: int
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[int] = ...) -> None: ...
     SPACE_ID_FIELD_NUMBER: _ClassVar[int]
     PEER_IDS_FIELD_NUMBER: _ClassVar[int]
+    ADMIT_THROUGH_FIELD_NUMBER: _ClassVar[int]
+    DRY_RUN_FIELD_NUMBER: _ClassVar[int]
     space_id: str
     peer_ids: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, space_id: _Optional[str] = ..., peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+    admit_through: _containers.ScalarMap[str, int]
+    dry_run: bool
+    def __init__(self, space_id: _Optional[str] = ..., peer_ids: _Optional[_Iterable[str]] = ..., admit_through: _Optional[_Mapping[str, int]] = ..., dry_run: _Optional[bool] = ...) -> None: ...
 
 class RemoveSpaceParticipantsResponse(_message.Message):
-    __slots__ = ("removed_peer_ids", "awaiting_group")
+    __slots__ = ("removed_peer_ids", "awaiting_group", "cuts")
     REMOVED_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
     AWAITING_GROUP_FIELD_NUMBER: _ClassVar[int]
+    CUTS_FIELD_NUMBER: _ClassVar[int]
     removed_peer_ids: _containers.RepeatedScalarFieldContainer[str]
     awaiting_group: bool
-    def __init__(self, removed_peer_ids: _Optional[_Iterable[str]] = ..., awaiting_group: _Optional[bool] = ...) -> None: ...
+    cuts: _containers.RepeatedCompositeFieldContainer[SpaceParticipantCut]
+    def __init__(self, removed_peer_ids: _Optional[_Iterable[str]] = ..., awaiting_group: _Optional[bool] = ..., cuts: _Optional[_Iterable[_Union[SpaceParticipantCut, _Mapping]]] = ...) -> None: ...
+
+class SpaceParticipantCut(_message.Message):
+    __slots__ = ("peer_id", "admit_through", "head_nonce", "checkpoint_nonce", "cut_operations")
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    ADMIT_THROUGH_FIELD_NUMBER: _ClassVar[int]
+    HEAD_NONCE_FIELD_NUMBER: _ClassVar[int]
+    CHECKPOINT_NONCE_FIELD_NUMBER: _ClassVar[int]
+    CUT_OPERATIONS_FIELD_NUMBER: _ClassVar[int]
+    peer_id: str
+    admit_through: int
+    head_nonce: int
+    checkpoint_nonce: int
+    cut_operations: int
+    def __init__(self, peer_id: _Optional[str] = ..., admit_through: _Optional[int] = ..., head_nonce: _Optional[int] = ..., checkpoint_nonce: _Optional[int] = ..., cut_operations: _Optional[int] = ...) -> None: ...
 
 class RevokeSpaceInviteRequest(_message.Message):
     __slots__ = ("space_id", "invite_id")
