@@ -3,6 +3,16 @@
 # Higher-order config using Starlark. Evaluated at runtime alongside bldr.yaml.
 # Star config merges on top of YAML via MergeProjectConfigs().
 
+# The release library downstream projects load from the vendored module.
+load(
+    "core/release/publisher/release.star",
+    "release_deployment",
+    "release_launcher_controller_config",
+    "release_world_config_set",
+    "release_world_reader_config_set",
+    "release_world_serve_config_set",
+)
+
 # Shared Go packages for the core runtime
 CORE_GO_PKGS = [
     "./db/volume/world",
@@ -177,127 +187,56 @@ def e2e_browser_spacewave_core_config(web_go_compiler=None):
     conf["configSet"]["provider-local"] = config_entry("provider/local", 1)
     return conf
 
-def spacewave_launcher_controller_config(
-        dist_peer_ids=[PRODUCTION_DIST_PEER_ID],
-        endpoints=[{"url": PRODUCTION_RELEASE_CONFIG_URL}],
-        refetch_dur="1h",
-        init_dist_config="",
-        disable_endpoint_fetch=False,
-        channel_key=""):
-    conf = {
-        "projectId": "spacewave",
-        # Public defaults are production-only. Release-owned overlays replace
-        # endpoints and distPeerIds for other release environments.
-        "distPeerIds": dist_peer_ids,
-    }
-    if channel_key:
-        conf["channelKey"] = channel_key
-    if not disable_endpoint_fetch:
-        conf["endpoints"] = endpoints
-    if disable_endpoint_fetch:
-        conf["disableEndpointFetch"] = True
-    if refetch_dur != "":
-        conf["refetchDur"] = refetch_dur
-    if init_dist_config != "":
-        conf["initDistConfig"] = init_dist_config
-    return conf
+# SPACEWAVE_RELEASE_SPACE_ID is the production release World's CDN Space.
+SPACEWAVE_RELEASE_SPACE_ID = "01kqjmfxd44r7ggrq78efad3d2"
 
-
-# Release World identifiers. One process per composition owns the Release World
+# spacewave_release_deployment names a Spacewave release Deployment; the
+# defaults are production. One process per composition owns the release World
 # CDN transport, pack readers, index cache, decoded cache, and the durable dist
 # writeback; every other bus reads the same blocks through it over the block
-# store RPC. Keeping the ids here stops the owning and reading sides from
-# drifting apart.
-RELEASE_WORLD_ENGINE_ID = "spacewave-release-world"
-RELEASE_WORLD_SPACE_ID = "01kqjmfxd44r7ggrq78efad3d2"
-RELEASE_WORLD_CDN_BASE_URL = "https://cdn.spacewave.app"
-RELEASE_WORLD_BLOCK_STORE_ID = "spacewave-release-cdn"
-RELEASE_WORLD_BUCKET_ID = "spacewave-release"
-RELEASE_WORLD_BLOCK_STORE_SERVICE_ID = RELEASE_WORLD_BLOCK_STORE_ID + "/block.rpc.BlockStore"
-
-
-def release_world_config_set(
-        space_id=RELEASE_WORLD_SPACE_ID,
-        cdn_base_url=RELEASE_WORLD_CDN_BASE_URL,
+# store RPC.
+def spacewave_release_deployment(
+        space_id=SPACEWAVE_RELEASE_SPACE_ID,
+        signer_peer_id=PRODUCTION_DIST_PEER_ID,
+        selector_url=PRODUCTION_RELEASE_CONFIG_URL,
+        cdn_base_url="https://cdn.spacewave.app",
+        channel_key=""):
+    return release_deployment(
+        project_id="spacewave",
+        space_id=space_id,
+        signer_peer_id=signer_peer_id,
+        selector_url=selector_url,
+        cdn_base_url=cdn_base_url,
+        channel_key=channel_key,
+        # Cached refs from older releases name this store.
+        block_store_id="spacewave-release-cdn",
         cache_block_store_id="dist",
-        include_fetch=True):
-    configs = {
-        "release-world": config_entry("spacewave/cdn/world", 1, {
-            "engineId": RELEASE_WORLD_ENGINE_ID,
-            "spaceId": space_id,
-            "cdnBaseUrl": cdn_base_url,
-            "cacheBlockStoreId": cache_block_store_id,
-        }),
-    }
-    configs.update(release_world_cdn_config_set(space_id))
-    if include_fetch:
-        configs["release-world-fetch"] = config_entry("bldr/manifest/fetch/world", 1, {
-            "engineId": RELEASE_WORLD_ENGINE_ID,
-            "objectKeys": ["spacewave/release/manifests"],
-            "releaseAuthorityPluginId": "spacewave-launcher",
-        })
-    return configs
+        release_authority_plugin_id="spacewave-launcher",
+    )
 
-def release_world_cdn_config_set(space_id=RELEASE_WORLD_SPACE_ID):
-    # Published refs use the Space ID. Keep the logical name for cached refs
-    # from older releases; both buckets borrow the same CDN store.
-    cdn_block_store_id = RELEASE_WORLD_BLOCK_STORE_ID
-    return {
-        "release-world-cdn-bucket": config_entry("hydra/block/store/bucket", 1, {
-            "blockStoreId": cdn_block_store_id,
-            "bucketStoreId": cdn_block_store_id,
-            "bucketConfig": {
-                "id": RELEASE_WORLD_BUCKET_ID,
-                "rev": 1,
-            },
-        }),
-        "release-world-space-bucket": config_entry("hydra/block/store/bucket", 1, {
-            "blockStoreId": cdn_block_store_id,
-            "bucketStoreId": cdn_block_store_id,
-            "bucketConfig": {"id": space_id, "rev": 1},
-        }),
-    }
+SPACEWAVE_RELEASE = spacewave_release_deployment()
 
-def release_world_serve_config_set():
-    # Serves the owning bus's Release World block store to plugin buses. The
-    # plugin reader below is the only consumer.
-    return {
-        "release-world-cdn-server": config_entry("hydra/block/store/rpc/server", 1, {
-            "blockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
-            "serviceId": RELEASE_WORLD_BLOCK_STORE_SERVICE_ID,
-        }),
-    }
-
-def release_world_reader_config_set(
-        space_id=RELEASE_WORLD_SPACE_ID,
-        cdn_base_url=RELEASE_WORLD_CDN_BASE_URL):
-    # Reads the Release World through the plugin host's authority: every block
-    # read traverses the host block store rpc, so this bus opens no CDN
-    # transport, no pack reader, and no writeback cache of its own. Only the
-    # CDN root pointer is fetched here so the reader can build its world head.
-    configs = {
-        "release-world-cdn-store": config_entry("hydra/block/store/rpc", 1, {
-            "blockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
-            "serviceId": "plugin-host/" + RELEASE_WORLD_BLOCK_STORE_SERVICE_ID,
-            "readOnly": True,
-            "bucketIds": [space_id, RELEASE_WORLD_BUCKET_ID],
-            "lookupOnStart": True,
-        }),
-        "release-world": config_entry("spacewave/cdn/world", 1, {
-            "engineId": RELEASE_WORLD_ENGINE_ID,
-            "spaceId": space_id,
-            "cdnBaseUrl": cdn_base_url,
-            "suppliedBlockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
-        }),
-    }
-    configs.update(release_world_cdn_config_set(space_id))
-    return configs
-
+def spacewave_launcher_controller_config(
+        dist_peer_ids=[PRODUCTION_DIST_PEER_ID],
+        refetch_dur="1h",
+        init_dist_config="",
+        disable_endpoint_fetch=False):
+    # Public defaults are production-only. Release-owned overlays replace the
+    # deployment for other release environments.
+    conf = release_launcher_controller_config(
+        SPACEWAVE_RELEASE,
+        refetch_dur=refetch_dur,
+        init_dist_config=init_dist_config,
+        disable_endpoint_fetch=disable_endpoint_fetch,
+    )
+    conf["distPeerIds"] = dist_peer_ids
+    return conf
 
 def spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(),
         web_go_compiler=None,
-        include_release_world=True):
+        include_release_world=True,
+        release=SPACEWAVE_RELEASE):
     config_set = {
         "spacewave-launcher": config_entry(
             "spacewave/launcher/controller", 1,
@@ -312,7 +251,7 @@ def spacewave_launcher_config(
         # The native launcher resolves release metadata and stages updates from
         # the Release World, so it mounts a world engine, but reads every block
         # through the plugin host's authority instead of a second CDN transport.
-        config_set.update(release_world_reader_config_set())
+        config_set.update(release_world_reader_config_set(release))
     conf = {
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
@@ -320,8 +259,8 @@ def spacewave_launcher_config(
     if include_release_world:
         # Release World providers must be applied to the plugin-host bus as
         # host configuration so they mount before plugin startup begins.
-        conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
-        conf["hostConfigSet"].update(release_world_serve_config_set())
+        conf["hostConfigSet"] = release_world_config_set(release)
+        conf["hostConfigSet"].update(release_world_serve_config_set(release))
     if web_go_compiler:
         conf["platformTypes"] = {
             browser_go_compiler_platform(web_go_compiler): {
@@ -707,7 +646,7 @@ def browser_dist_release_config(embed_manifests, load_plugins, go_compiler):
         load_plugins,
         entrypoint_role="browser",
         go_compiler=go_compiler,
-        host_config_set=release_world_config_set(cache_block_store_id="dist"),
+        host_config_set=release_world_config_set(SPACEWAVE_RELEASE),
     )
 
 manifest("spacewave-dist",
@@ -1094,22 +1033,20 @@ def apply_release_environment(
         rev=SPACEWAVE_CORE_MANIFEST_REV, config=core)
 
     native = web_go_compiler == None
+    release = spacewave_release_deployment(
+        space_id=world_space_id,
+        signer_peer_id=signer_peer_id,
+        selector_url=cloud_api_endpoint.rstrip("/") + "/api/release/config",
+        cdn_base_url=cdn_base_url,
+        channel_key=channel_key,
+    )
     launcher = spacewave_launcher_config(
-        launcher_controller_config=spacewave_launcher_controller_config(
-            dist_peer_ids=[signer_peer_id],
-            endpoints=[{"url": cloud_api_endpoint.rstrip("/") + "/api/release/config"}],
-            channel_key=channel_key,
-        ),
+        launcher_controller_config=release_launcher_controller_config(release),
         web_go_compiler=web_go_compiler,
         include_release_world=native,
+        release=release,
     )
-    release_world = release_world_config_set(
-        space_id=world_space_id, cdn_base_url=cdn_base_url, cache_block_store_id="dist")
-    if native:
-        launcher["configSet"].update(release_world_reader_config_set(
-            space_id=world_space_id, cdn_base_url=cdn_base_url))
-        launcher["hostConfigSet"] = dict(release_world)
-        launcher["hostConfigSet"].update(release_world_serve_config_set())
+    release_world = release_world_config_set(release)
     manifest("spacewave-launcher", builder="bldr/plugin/compiler/go", rev=1, config=launcher)
 
     if native:

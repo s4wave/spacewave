@@ -4,7 +4,6 @@ package bldr_project_starlark
 
 import (
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -17,11 +16,7 @@ import (
 // TestDesktopOfflineE2EConfig audits the composed fixture before its artifact
 // can be used to launch a desktop daemon.
 func TestDesktopOfflineE2EConfig(t *testing.T) {
-	// Read the base manifest, the offline overlay, and the fixture YAML.
-	root, err := os.ReadFile("../../../bldr.star")
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Read the offline overlay and the fixture YAML.
 	overlay, err := os.ReadFile("../../../desktop-offline-e2e.star")
 	if err != nil {
 		t.Fatal(err)
@@ -36,12 +31,8 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 		t.Fatalf("offline fixture YAML adds configuration: %s", yaml)
 	}
 
-	// Evaluate the overlayed manifest from a temporary file.
-	starPath := filepath.Join(t.TempDir(), "bldr.star")
-	if err := os.WriteFile(starPath, append(append(root, '\n'), overlay...), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	result, err := Evaluate(starPath)
+	// Evaluate the overlayed manifest from a temporary project.
+	result, err := Evaluate(writeSpacewaveProject(t, overlay))
 	if err != nil {
 		t.Fatal(err)
 	}

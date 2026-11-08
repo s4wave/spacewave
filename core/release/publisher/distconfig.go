@@ -80,7 +80,7 @@ func (d Deployment) HostConfigSet() (map[string]*configset_proto.ControllerConfi
 		}),
 		// Manifest refs name the local World's bucket, and refs the Space
 		// rewrites name the Space; both read the Space's store.
-		"release-world-bucket": configset.NewControllerConfig(1, &block_store_bucket.Config{
+		"release-world-cdn-bucket": configset.NewControllerConfig(1, &block_store_bucket.Config{
 			BlockStoreId:  d.SpaceID,
 			BucketStoreId: d.SpaceID,
 			BucketConfig:  &bucket.Config{Id: d.BucketID, Rev: 1},

@@ -20,12 +20,16 @@ import (
 func TestNativeStagingAuthority(t *testing.T) {
 	// Copy only producer inputs into an isolated project, then prepare it normally.
 	dir := t.TempDir()
-	for _, name := range []string{"bldr.star", "release-staging.star"} {
+	for _, name := range []string{"bldr.star", "release-staging.star", LibraryPath} {
 		data, err := os.ReadFile(filepath.Join("..", "..", "..", name))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+		dst := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(dst, data, 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
