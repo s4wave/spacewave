@@ -248,6 +248,13 @@ type PackStoreOptions struct {
 	// invisible. It implies SoleWriter and needs Index; without Index it is
 	// ignored.
 	IndexOnly bool
+	// ReadOnlyIndex makes the store write nothing to Index: a listing
+	// publishes the packs it finds in memory only, a removed pack leaves its
+	// rows, an index tail a read fetched is not kept, and no routine indexes
+	// the listed packs. Lookups still read the index and test the bloom filter
+	// of every pack it does not place. It is for a store that only serves
+	// reads, beside a disk that must not grow.
+	ReadOnlyIndex bool
 }
 
 // NewPackStore builds a packfile block store on the bucket. opts may be nil.
@@ -298,6 +305,7 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	var tails packfile_store.IndexCache
 	if opts.Index != nil {
 		s.index = newPackIndex(opts.Index)
+		s.index.readOnly = opts.ReadOnlyIndex
 		tails = s.index
 	}
 
@@ -313,6 +321,8 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 	// Locate blocks through the index and index the listed packs.
 	if s.index != nil {
 		s.packs.SetLocator(s.index)
+	}
+	if s.index != nil && !opts.ReadOnlyIndex {
 		s.indexer = routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-index"),
 			routine.WithRetry(compactBackoff),

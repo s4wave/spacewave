@@ -46,8 +46,9 @@ func buildS3BlockStore(
 		Index:     index,
 		IndexOnly: location.GetIndexOnly(),
 		// A value past int64 wraps negative, which the store reads as the default.
-		MaxPackBytes: int64(location.GetMaxPackBytes()), //nolint:gosec // see above.
-		Linger:       time.Duration(location.GetLingerSeconds()) * time.Second,
+		MaxPackBytes:  int64(location.GetMaxPackBytes()), //nolint:gosec // see above.
+		Linger:        time.Duration(location.GetLingerSeconds()) * time.Second,
+		ReadOnlyIndex: serveOnly.Load(),
 	}), nil
 }
 

@@ -103,6 +103,9 @@ func unmarshalPackRow(b []byte) (packRow, error) {
 // memory too, as a read needs it for every lookup.
 type packIndex struct {
 	store kvtx.Store
+	// readOnly keeps every change in memory and writes nothing to store, as
+	// PackStoreOptions.ReadOnlyIndex describes.
+	readOnly bool
 
 	// mtx guards the fields below. It is held for map operations only, never
 	// across a KV transaction.
@@ -429,6 +432,9 @@ func (x *packIndex) flush(ctx context.Context) error {
 		rows = append(rows, added{entry: entry, row: x.nextRow(id, false)})
 	}
 	x.mtx.Unlock()
+	if x.readOnly {
+		return nil
+	}
 	tx, err := x.store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -715,6 +721,9 @@ func (x *packIndex) remove(ctx context.Context, ids []string) error {
 	next := uint32(len(x.ids)) //nolint:gosec // 2^32 packs cannot exist.
 	x.version.Add(1)
 	x.mtx.Unlock()
+	if x.readOnly {
+		return nil
+	}
 
 	// Record the next number, keeping a higher one a concurrent remove wrote.
 	tx, err := x.store.NewTransaction(ctx, true)
@@ -774,6 +783,9 @@ func (x *packIndex) Get(ctx context.Context, packID string) ([]byte, bool, error
 // the pack's entry, and returns at once. Until the drain takes it, Get serves
 // it; the tail itself is not stored.
 func (x *packIndex) Set(ctx context.Context, packID string, data []byte) error {
+	if x.readOnly {
+		return nil
+	}
 	x.queueTail(packID, bytes.Clone(data))
 	return nil
 }

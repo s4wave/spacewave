@@ -165,14 +165,23 @@ func newStore(
 	}
 
 	// Restore the pending upload counts, eviction queue size and completed
-	// backfill target.
+	// backfill target. A read-only open reads the same state and writes none
+	// of it.
 	var pending int
 	var pendingBytes, evictableBytes int64
 	var target, resume []byte
 	var oldest time.Time
-	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	readOnly := readOnlyOpen.Load()
+	openTx := s.writeTx
+	if readOnly {
+		openTx = func(ctx context.Context) (kvtx.Tx, error) { return s.markers.NewTransaction(ctx, false) }
+	}
+	err := kvtx.RunTransaction(ctx, !readOnly, openTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Drop the former marker layout before reading the queue.
 		for _, prefix := range formerPrefixes {
+			if readOnly {
+				break
+			}
 			if err := deletePrefix(ctx, tx, prefix); err != nil {
 				return err
 			}
@@ -231,6 +240,16 @@ func newStore(
 	}
 	go s.countRest(ctx, resume)
 	return s, nil
+}
+
+// readOnlyOpen makes an open read its markers without writing them.
+var readOnlyOpen atomic.Bool
+
+// SetReadOnlyOpen makes stores opened while on is set read their markers in a
+// read transaction and drop no former marker layout, so the open writes
+// nothing. It is for a store that only serves reads and never uploads.
+func SetReadOnlyOpen(on bool) {
+	readOnlyOpen.Store(on)
 }
 
 // openCountLimit bounds the upload queue entries NewStore counts before it

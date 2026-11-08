@@ -596,13 +596,17 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 
 	// Upload the recorded writes to the current backend until the store
-	// unmounts.
+	// unmounts. Serve mode only opens the backend for reads.
+	uploadName := "storage-upload"
+	if placement.serveOnly {
+		uploadName = "storage-reads"
+	}
 	upload := routine.NewStateRoutineContainerWithLoggerVT[*account_settings.StorageBackend](
-		le.WithField("routine", "storage-upload"),
+		le.WithField("routine", uploadName),
 		routine.WithRetry(providerBackoff),
 	)
 	upload.SetStateRoutine(func(ctx context.Context, backend *account_settings.StorageBackend) error {
-		return t.runUpload(ctx, wb, placement.drain, backend)
+		return t.runUpload(ctx, wb, placement.drain, backend, placement.serveOnly)
 	})
 	upload.SetState(backend)
 	upload.SetContext(ctx, true)
@@ -663,14 +667,19 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 
 	// Push publications to the storage node, for a store the account names.
-	if sqlStore == nil {
+	// Serve mode only reads the node.
+	if sqlStore == nil && placement.serveOnly {
+		stopReads := t.startNodeReads(ctx, le)
+		defer stopReads()
+	} else if sqlStore == nil {
 		stopPush := t.startNodePush(ctx, le, wb, placement, bstoreHandle)
 		defer stopPush()
 	}
 
 	// Keep the store under its placement's resident budget. A store writing
-	// to its SQL backend leaves the local bucket as it is.
-	if sqlStore == nil {
+	// to its SQL backend leaves the local bucket as it is, and serve mode
+	// evicts nothing.
+	if sqlStore == nil && !placement.serveOnly {
 		eviction := routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "storage-evict"),
 			routine.WithRetry(providerBackoff),
@@ -703,7 +712,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Follow placement changes until the store unmounts. The backend receives
 	// the blocks stored before it was chosen as well as new writes.
 	// A placement that skips the backfill queues it once the placement no
-	// longer does.
+	// longer does. Serve mode queues nothing and writes no placement change.
+	if placement.serveOnly {
+		<-ctx.Done()
+		return context.Canceled
+	}
 	if err := t.backfill(ctx, wb, backend, placed); err != nil {
 		return err
 	}

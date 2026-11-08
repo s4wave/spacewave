@@ -20,6 +20,9 @@ const maxFramesQueued = 16
 // ErrNodeAway is returned by Send while no connection to the node is up.
 var ErrNodeAway = errors.New("storage node away")
 
+// errNoApplier answers a report sent to a client built without an applier.
+var errNoApplier = errors.New("client applies no packs")
+
 // Applier takes the packs the node reports.
 type Applier interface {
 	// ApplyPack makes report's pack readable through the local pack index,
@@ -46,7 +49,9 @@ type Client struct {
 	reading map[uint64]chan *ReadData
 }
 
-// NewClient builds a Client that hands reported packs to applier.
+// NewClient builds a Client that hands reported packs to applier. A nil
+// applier, for a client that only reads, applies none and answers each report
+// as failed, so the node keeps it for a writer.
 func NewClient(le *logrus.Entry, applier Applier) *Client {
 	return &Client{le: le, applier: applier, waiting: make(map[uint64]chan error), reading: make(map[uint64]chan *ReadData)}
 }
@@ -307,8 +312,11 @@ func (c *Client) applyReports(ctx context.Context, reports <-chan *PackReport, o
 		}
 
 		// Apply it, and say so.
-		err := c.applier.ApplyPack(ctx, report)
-		if err != nil {
+		err := errNoApplier
+		if c.applier != nil {
+			err = c.applier.ApplyPack(ctx, report)
+		}
+		if err != nil && err != errNoApplier {
 			c.le.WithError(err).WithField("pack", report.GetPackId()).Warn("unable to apply a reported pack")
 		}
 		frame, err := encodeMessage(&Message{Body: &Message_PackApplied{PackApplied: &PackApplied{PackId: report.GetPackId(), Failed: err != nil}}})

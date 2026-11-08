@@ -202,6 +202,31 @@ func (t *bstoreTracker) startNodePush(
 	}
 }
 
+// startNodeReads connects the store to its storage node for reads alone, in
+// serve mode: it pushes nothing, applies no reported pack and drains nothing.
+// The pack store then reads through the node's range cache as nodeReads
+// describes. The release disconnects it.
+func (t *bstoreTracker) startNodeReads(ctx context.Context, le *logrus.Entry) func() {
+	// Read only a store the config names.
+	conf := t.nodePushConfig()
+	if conf == nil || conf.On == nil {
+		return func() {}
+	}
+
+	// Run a client without an applier until the store unmounts.
+	client := block_store_nodepush.NewClient(le.WithField("routine", "node-reads"), nil)
+	runCtx, cancel := context.WithCancel(ctx)
+	var running sync.WaitGroup
+	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	t.nodeClient.Store(client)
+	le.Info("reading the storage node, serve mode pushes nothing")
+	return func() {
+		t.nodeClient.Store(nil)
+		cancel()
+		running.Wait()
+	}
+}
+
 // _ are type assertions: a remote that stopped satisfying these would turn the
 // node's uploads off with no error.
 var (
