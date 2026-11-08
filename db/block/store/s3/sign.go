@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	hash_sha256 "github.com/s4wave/spacewave/net/hash/sha256"
 )
 
 const (
@@ -204,8 +206,9 @@ func hmacSHA256(key []byte, data string) []byte {
 	return h.Sum(nil)
 }
 
-// hexSHA256 returns the hex-encoded sha256 of data.
+// hexSHA256 returns the hex-encoded sha256 of data. It hashes each uploaded
+// pack whole, so it uses the AVX code on CPUs where crypto/sha256 has none.
 func hexSHA256(data []byte) string {
-	h := sha256.Sum256(data)
+	h := hash_sha256.Sum256(data)
 	return hex.EncodeToString(h[:])
 }
