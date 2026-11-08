@@ -12,8 +12,10 @@ import (
 // Store is a read-only block store view owned by a solicitation Controller.
 // Reads wait for the solicitation to settle and for at least one peer session,
 // then fan out to the controller's peer sessions. A read under a context from
-// block.WithoutPeerWait does not wait: with no peer connected it records the
-// block and reports block.ErrUnavailable. Existence checks do not wait for a
+// block.WithoutPeerWait does not wait for a peer to connect: with no peer
+// connected it records the block and reports block.ErrUnavailable, unless a
+// peer's session ended within sessionReplaceWait, when it waits that long for
+// the session to be restored. Existence checks do not wait for a
 // peer: with none connected they report the block missing.
 type Store struct {
 	controller *Controller
@@ -88,6 +90,14 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (
 	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer && !skipWait)
 	if err != nil {
 		return nil, err
+	}
+	if skipWait && len(sessions) == 0 {
+		// A peer whose session just ended is expected back within seconds,
+		// so wait for its recovery rather than report the block unavailable.
+		sessions, err = s.controller.waitRecovery(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if skipWait && len(sessions) == 0 {
 		peerWait.Skip(ref)

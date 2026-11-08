@@ -28,6 +28,9 @@ type peerSession struct {
 	onExit     func()
 	nextID     atomic.Uint32
 	closed     atomic.Bool
+	// endErr is why the session ended, set once by the first close or read
+	// failure.
+	endErr atomic.Pointer[error]
 
 	// sendMtx guards sendQueue and sending. It is never held during a write.
 	sendMtx sync.Mutex
@@ -65,6 +68,20 @@ type queuedSend struct {
 	// done receives the write result.
 	done chan error
 }
+
+// errPeerClosedStream reports a session whose peer closed the stream.
+var errPeerClosedStream = errors.New("the peer closed the stream")
+
+// errSessionClosedLocally reports a session this side closed.
+var errSessionClosedLocally = errors.New("closed by this side")
+
+// errDenialWriteBlocked reports a session closed because the denial of a
+// canceled request blocked its write.
+var errDenialWriteBlocked = errors.New("closed the stream: the denial of a canceled request blocked its write")
+
+// errAccessRevokedInWrite reports a session closed because its requester lost
+// read access while a block payload was written.
+var errAccessRevokedInWrite = errors.New("closed the stream: the requester lost read access during a block write")
 
 // handledRequest is an incoming request this side is serving.
 type handledRequest struct {
@@ -119,9 +136,15 @@ func (s *peerSession) run(ctx context.Context) {
 	for {
 		var msg DexMessage
 		if err := s.sess.RecvMsg(&msg); err != nil {
-			if err != io.EOF && ctx.Err() == nil {
-				s.le.WithError(err).Debug("dex session read error")
+			switch {
+			case ctx.Err() != nil:
+				err = ctx.Err()
+			case err == io.EOF:
+				err = errPeerClosedStream
+			default:
+				err = errors.Wrap(err, "read")
 			}
+			s.setEndErr(err)
 			return
 		}
 
@@ -442,14 +465,16 @@ func prepareSend(q *queuedSend) (preparedSend, error) {
 func (s *peerSession) watchWrite(stops []func() bool, p preparedSend) []func() bool {
 	// Close the stream if a canceled request blocks while writing its denial.
 	if p.closeOnCancel {
-		stops = append(stops, context.AfterFunc(p.q.ctx, s.close))
+		stops = append(stops, context.AfterFunc(p.q.ctx, func() {
+			s.closeWith(errDenialWriteBlocked)
+		}))
 	}
 
 	// Interrupt an in-progress payload write if its requester loses authority.
 	if access := p.q.access; p.msg.GetFound() && access != nil {
 		stops = append(stops, context.AfterFunc(p.q.requestCtx, func() {
 			if access.Check() != nil {
-				s.close()
+				s.closeWith(errAccessRevokedInWrite)
 			}
 		}))
 	}
@@ -587,12 +612,32 @@ func (s *peerSession) sendMsg(ctx context.Context, msg *DexMessage) error {
 
 // close closes the session stream.
 func (s *peerSession) close() {
+	s.closeWith(errSessionClosedLocally)
+}
+
+// closeWith closes the session stream, recording reason as why it ended
+// unless it already ended.
+func (s *peerSession) closeWith(reason error) {
+	s.setEndErr(reason)
 	if s.closed.CompareAndSwap(false, true) {
 		if s.sess != nil {
 			s.sess.Close()
 		}
 		s.wakePending()
 	}
+}
+
+// setEndErr records err as why the session ended unless a reason is recorded.
+func (s *peerSession) setEndErr(err error) {
+	s.endErr.CompareAndSwap(nil, &err)
+}
+
+// getEndErr returns why the session ended, or nil while it runs.
+func (s *peerSession) getEndErr() error {
+	if err := s.endErr.Load(); err != nil {
+		return *err
+	}
+	return nil
 }
 
 func (s *peerSession) wakePending() {
