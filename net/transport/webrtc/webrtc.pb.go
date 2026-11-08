@@ -92,6 +92,10 @@ type Config struct {
 	BlockPeers []string `protobuf:"bytes,10,rep,name=block_peers,json=blockPeers,proto3" json:"blockPeers,omitempty"`
 	// Verbose enables very verbose logging.
 	Verbose bool `protobuf:"varint,11,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	// GatherAllInterfaces gathers native ICE candidates on every interface.
+	// By default the docker, veth and br- container and bridge interfaces are
+	// skipped, since they cannot reach another machine.
+	GatherAllInterfaces bool `protobuf:"varint,13,opt,name=gather_all_interfaces,json=gatherAllInterfaces,proto3" json:"gatherAllInterfaces,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -173,6 +177,13 @@ func (x *Config) GetBlockPeers() []string {
 func (x *Config) GetVerbose() bool {
 	if x != nil {
 		return x.Verbose
+	}
+	return false
+}
+
+func (x *Config) GetGatherAllInterfaces() bool {
+	if x != nil {
+		return x.GatherAllInterfaces
 	}
 	return false
 }
@@ -518,6 +529,7 @@ func (m *Config) CloneVT() *Config {
 	r.AllPeers = m.AllPeers
 	r.DisableListen = m.DisableListen
 	r.Verbose = m.Verbose
+	r.GatherAllInterfaces = m.GatherAllInterfaces
 	r.Quic = protobuf_go_lite.CloneVTValue(m.Quic)
 	r.WebRtc = protobuf_go_lite.CloneVTValue(m.WebRtc)
 	r.Backoff = protobuf_go_lite.CloneVTValue(m.Backoff)
@@ -746,6 +758,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Verbose != that.Verbose {
+		return false
+	}
+	if this.GatherAllInterfaces != that.GatherAllInterfaces {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1174,6 +1189,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("verbose")
 		s.WriteBool(x.Verbose)
 	}
+	if x.GatherAllInterfaces || s.HasField("gatherAllInterfaces") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("gatherAllInterfaces")
+		s.WriteBool(x.GatherAllInterfaces)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1249,6 +1269,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "verbose":
 			s.AddField("verbose")
 			x.Verbose = s.ReadBool()
+		case "gather_all_interfaces", "gatherAllInterfaces":
+			s.AddField("gather_all_interfaces")
+			x.GatherAllInterfaces = s.ReadBool()
 		}
 	})
 }
@@ -1684,6 +1707,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.GatherAllInterfaces {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.GatherAllInterfaces)
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.Verbose {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Verbose)
@@ -2192,6 +2220,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableListen)
 	n += protobuf_go_lite.SizeStringSlice(1, m.BlockPeers)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.GatherAllInterfaces)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2426,6 +2455,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.Verbose != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "verbose")
 		protobuf_go_lite.TextWriteBool(&sb, x.Verbose)
+	}
+	if x.GatherAllInterfaces != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gather_all_interfaces")
+		protobuf_go_lite.TextWriteBool(&sb, x.GatherAllInterfaces)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2771,6 +2804,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Verbose = bool(v)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GatherAllInterfaces", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.GatherAllInterfaces = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
