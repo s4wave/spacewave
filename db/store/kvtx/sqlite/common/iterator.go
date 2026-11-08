@@ -18,6 +18,8 @@ type Iterator struct {
 	ctx     context.Context
 	queryer sqliteQueryer
 	active  func() error
+	// turns admits each statement into SQLite, as the transaction's reads.
+	turns   readTurns
 	table   string
 	prefix  []byte
 	reverse bool
@@ -193,7 +195,7 @@ func (i *Iterator) advance() bool {
 
 	// Read the next SQLite entry and record exhaustion or query failure.
 	var key, value []byte
-	err := i.queryer.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
+	err := i.turns.queryRow(i.ctx, i.queryer, query, args, &key, &value)
 	if err == sql.ErrNoRows {
 		i.valid = false
 		return false
@@ -293,7 +295,7 @@ func (i *Iterator) Seek(k []byte) error {
 
 	// Read the selected SQLite entry and record exhaustion or query failure.
 	var key, value []byte
-	err := i.queryer.QueryRowContext(i.ctx, query, args...).Scan(&key, &value)
+	err := i.turns.queryRow(i.ctx, i.queryer, query, args, &key, &value)
 	if err == sql.ErrNoRows {
 		i.valid = false
 		return nil
