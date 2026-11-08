@@ -65,6 +65,9 @@ type Store[T SQLiteDriverConfig] struct {
 	// connection of its own. It is off on a pool of one connection, where a
 	// held connection would block every other transaction.
 	snapshotReads bool
+	// readTurns admits the snapshot reads' statements into SQLite, nil
+	// without snapshot reads, whose statements wait for the pool instead.
+	readTurns readTurns
 
 	// writeMtx admits one write transaction at a time: a transaction opened
 	// with kvtx.WithBackgroundWriteContext waits behind every waiting
@@ -140,6 +143,9 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 		checkpointWake:  make(chan struct{}, 1),
 		stopCheckpoints: stop,
 		checkpointsDone: make(chan struct{}),
+	}
+	if s.snapshotReads {
+		s.readTurns = newReadTurns()
 	}
 	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
 	go s.runCheckpoints(ctx)
@@ -413,7 +419,7 @@ const (
 func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Read transactions open their connection at their first read.
 	if !write {
-		return newReadTx(s.db, s.queries, s.snapshotReads), nil
+		return newReadTx(s.db, s.queries, s.snapshotReads, s.readTurns), nil
 	}
 
 	// A read-only store never takes the writer's lock from the file's writer.
