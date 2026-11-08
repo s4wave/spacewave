@@ -91,8 +91,8 @@ func openScaled(t *testing.T, keys int) *scaled {
 		t.Fatal(err)
 	}
 
-	// Open it through a read counter, and load every run's reader so the
-	// measurements leave out the footers' first reads.
+	// Open it through a read counter. Loading every run's reader below keeps
+	// the footers' first reads out of the measurements.
 	f, closeFile, err = OpenFile(path, func(name string) (*os.File, error) {
 		return os.OpenFile(name, os.O_RDWR, 0o600)
 	})
@@ -105,6 +105,13 @@ func openScaled(t *testing.T, keys int) *scaled {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
+
+	// Stop the background jobs: a merge of the built runs would change the
+	// shape being measured, and its allocations and reads would count
+	// against whichever call it overlapped.
+	db.sched.stop()
+
+	// Load every run's reader.
 	for _, m := range db.cur.Load().m.runs {
 		if _, err := db.reader(m); err != nil {
 			t.Fatal(err)
