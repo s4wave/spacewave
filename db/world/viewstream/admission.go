@@ -10,8 +10,9 @@ import (
 // A restarted backend meets thousands of reconnecting streams in the same
 // second, each asking for a full first view on a cold process; building them
 // all at once pins every core for minutes and starves the World writer. The
-// limit admits them one per two cores, so the writer and the streams already
-// open always find a core, in priority order and first come first served
+// application sizes the limit, such as one slot per two cores, so the writer
+// and the streams already open always find a core, and SetSlots resizes it
+// while streams wait. It admits in priority order and first come first served
 // within a priority.
 type Admission struct {
 	// observer counts the streams admitted and waiting, and their wait.
@@ -21,7 +22,10 @@ type Admission struct {
 	hold time.Duration
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// free is the number of slots no first view holds.
+	// slots is the number of slots, as NewAdmission or SetSlots set it.
+	slots int
+	// free is the number of slots no first view holds. It is negative after
+	// SetSlots lowered slots below the slots held, until enough return.
 	free int
 	// waiting holds the streams waiting for a slot, oldest first, by
 	// priority.
@@ -35,7 +39,8 @@ type Admission struct {
 // until release. Slots and priorities have a minimum of one.
 func NewAdmission(slots, priorities, defaultPriority int, hold time.Duration, observer AdmissionObserver) *Admission {
 	priorities = max(1, priorities)
-	return &Admission{observer: observer, hold: hold, free: max(1, slots), waiting: make([][]chan struct{}, priorities), defaultPriority: max(0, min(defaultPriority, priorities-1))}
+	slots = max(1, slots)
+	return &Admission{observer: observer, hold: hold, slots: slots, free: slots, waiting: make([][]chan struct{}, priorities), defaultPriority: max(0, min(defaultPriority, priorities-1))}
 }
 
 // Acquire waits for a slot at the priority ctx carries and returns the
@@ -116,17 +121,49 @@ func (a *Admission) held() func() {
 	}
 }
 
-// release grants a slot to the first waiting stream of the highest priority,
-// or frees it.
+// SetSlots changes the number of slots to slots, at least one, while streams
+// hold and wait for them. Raising it admits as many waiting streams at once,
+// in priority order; lowering it takes the free slots first and retires each
+// held slot past the new count as it returns, so the streams already admitted
+// finish undisturbed and no new one starts until the held slots fit.
+func (a *Admission) SetSlots(slots int) {
+	slots = max(1, slots)
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.free += slots - a.slots
+	a.slots = slots
+	for a.free > 0 && a.grantLocked() {
+		a.free--
+	}
+}
+
+// Slots returns the number of slots.
+func (a *Admission) Slots() int {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.slots
+}
+
+// release grants a returned slot to the first waiting stream of the highest
+// priority, or frees it; a slot past the count SetSlots lowered retires.
 func (a *Admission) release() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	if a.free >= 0 && a.grantLocked() {
+		return
+	}
+	a.free++
+}
+
+// grantLocked hands a slot to the first waiting stream of the highest
+// priority, and reports whether one waited. The caller holds mtx.
+func (a *Admission) grantLocked() bool {
 	for p := range a.waiting {
 		if len(a.waiting[p]) != 0 {
 			close(a.waiting[p][0])
 			a.waiting[p] = a.waiting[p][1:]
-			return
+			return true
 		}
 	}
-	a.free++
+	return false
 }

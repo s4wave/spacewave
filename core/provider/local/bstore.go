@@ -19,7 +19,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
-	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
 	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -74,8 +73,15 @@ type placementState struct {
 	tracker childListReader
 	// done closes when this mount ends, including a failed mount or remount.
 	done <-chan struct{}
+	// serveOnly is serve mode, as SetServeOnly describes: reads fill nothing.
+	serveOnly bool
+	// peerUpload stores peer reads with an upload marker, as
+	// SetPeerFillsUpload describes.
+	peerUpload bool
 	// reads records the blocks read since the last eviction pass.
 	reads readSet
+	// localHits counts the blocks the local store served.
+	localHits atomic.Uint64
 	// evictGate is held by each eviction pass and by a storage move.
 	evictGate *csync.Mutex
 	// evictAdmit paces eviction passes, or holds nil.
@@ -87,7 +93,7 @@ type placementState struct {
 	fallbackFills fallbackFills
 	// cache is the fill cache that takes the blocks read from the backend, or nil
 	// when they fill the local store. A store mounted without a backend has none.
-	cache *block_store_fillcache.Cache
+	cache FillCache
 	// front is read after the local store misses and before the fill cache
 	// and the backend, or nil.
 	front block.StoreOps
@@ -137,6 +143,11 @@ func (p *placementState) live(ctx context.Context, refs []*block.BlockRef) ([]bo
 // block the graph tracks lost only its value to eviction, so it is refilled
 // below the ownership layer; any other block is a cache fill.
 func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+	// Serve mode writes nothing.
+	if p.serveOnly {
+		return nil
+	}
+
 	// Refill a tracked block of a placed store.
 	if p.backend.Load() != nil && p.tracker != nil {
 		tracked, err := p.tracker.HasChildLists(ctx, []*block.BlockRef{ref})
@@ -173,6 +184,8 @@ type UploadStatus struct {
 	block_store_writeback.Status
 	// Fallback counts the reads and fills of the store's read fallback.
 	Fallback FallbackStatus
+	// Reads counts the store's block reads by where they were served.
+	Reads ReadStatus
 	// Packs counts the finalized packs of the store's packahead log, or is
 	// nil when the store has no log.
 	Packs *packahead.DrainStatus
@@ -208,7 +221,7 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 // channel that follows it.
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	status, changed := b.placement.wb.GetStatus()
-	out := UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status()}
+	out := UploadStatus{Backend: b.placement.backend.Load(), Status: status, Fallback: b.placement.fallbackFills.status(), Reads: b.placement.readStatus()}
 	out.Packs, _ = b.GetPackStatus()
 	return out, changed
 }
@@ -388,6 +401,9 @@ type bstoreTracker struct {
 	// blocks a backend holds and switches the placement. It outlives each
 	// mount, so a remounted store still waits.
 	evictGate csync.Mutex
+	// windowFill is where the bucket's pack reads write the windows they
+	// fetch, nil while the mount does not fill its local store.
+	windowFill atomic.Pointer[windowFill]
 }
 
 // buildBlockStoreTracker builds a new bstoreTracker for a bstore id.
@@ -531,11 +547,23 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		placement.drain = packs.drain
 	}
 	placement.tracker, _ = t.a.vol.(childListReader)
+	placement.serveOnly = serveOnly.Load()
+	placement.peerUpload = !placement.serveOnly && peerFillsUpload.Load()
 	if backend != nil {
-		placement.cache = t.fillCache()
+		if !placement.serveOnly {
+			placement.cache = t.fillCache()
+		}
 		placement.front = t.packFront()
 	}
 	t.setPlacementBackend(placement, backend)
+
+	// A bucket read fills the local store with every block of the window it
+	// fetched, as it fills the block asked for, unless a fill cache takes the
+	// fills or serve mode fills nothing.
+	if !placement.serveOnly && placement.cache == nil {
+		t.windowFill.Store(&windowFill{ctx: ctx, target: &windowFillOps{StoreOps: local, fill: placement.fill}})
+		defer t.windowFill.Store(nil)
+	}
 	if err := placement.reads.load(ctx, wb); err != nil {
 		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")
 	}
@@ -584,16 +612,19 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Read the local store first, then the backend's bucket, then the read
 	// fallback, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
-	recorded := &readRecorder{StoreOps: local, reads: &placement.reads}
+	var recorded block.StoreOps = &hitCounter{StoreOps: local, hits: &placement.localHits}
+	if !placement.serveOnly {
+		recorded = &readRecorder{StoreOps: recorded, reads: &placement.reads}
+	}
+	peers := t.peerSource(le, bucketID)
+	if placement.serveOnly {
+		peers = func() block.StoreOps { return nil }
+	}
 	reads, copies := placement.readChains(
 		recorded,
 		local,
 		func() block.StoreOps { return t.getRemoteReads(placement) },
-		newPeerMissSource(
-			le,
-			func() block.StoreOps { return t.a.getP2PStore(bucketID) },
-			func(ctx context.Context) block.StoreOps { return t.a.waitP2PStore(ctx, bucketID) },
-		),
+		peers,
 		fallbackStore,
 	)
 

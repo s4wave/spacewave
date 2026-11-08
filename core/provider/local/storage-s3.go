@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"time"
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
@@ -43,6 +44,10 @@ func buildS3BlockStore(
 		Pricing:   location.GetPricing(),
 		KeepPacks: location.GetKeepPacks(),
 		Index:     index,
+		IndexOnly: location.GetIndexOnly(),
+		// A value past int64 wraps negative, which the store reads as the default.
+		MaxPackBytes: int64(location.GetMaxPackBytes()), //nolint:gosec // see above.
+		Linger:       time.Duration(location.GetLingerSeconds()) * time.Second,
 	}), nil
 }
 

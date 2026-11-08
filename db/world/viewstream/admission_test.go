@@ -64,6 +64,46 @@ func TestAdmission(t *testing.T) {
 		if a.free != 1 {
 			t.Fatal("late release freed an extra slot")
 		}
+
+		// Raising the slots admits waiting streams at once; lowering them
+		// retires held slots as they return before admitting another.
+		a = NewAdmission(1, 1, 0, 0, nil)
+		first, err := a.Acquire(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		admitted := make(chan func(), 3)
+		for range 3 {
+			go func() {
+				done, err := a.Acquire(t.Context())
+				if err == nil {
+					admitted <- done
+				}
+			}()
+		}
+		synctest.Wait()
+		a.SetSlots(3)
+		synctest.Wait()
+		if len(admitted) != 2 {
+			t.Fatal("raised slots admitted", len(admitted))
+		}
+		a.SetSlots(1)
+		first()
+		(<-admitted)()
+		synctest.Wait()
+		if len(admitted) != 1 {
+			t.Fatal("lowered slots admitted a stream before the held ones drained")
+		}
+		(<-admitted)()
+		synctest.Wait()
+		last := <-admitted
+		if a.free != 0 {
+			t.Fatal("lowered slots left", a.free, "free")
+		}
+		last()
+		if a.free != 1 || a.Slots() != 1 {
+			t.Fatal("drained slots", a.free, a.Slots())
+		}
 	})
 }
 

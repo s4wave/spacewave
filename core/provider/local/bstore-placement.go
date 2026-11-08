@@ -319,7 +319,12 @@ func (t *bstoreTracker) openBackendStore(
 	if location := backend.GetSql(); location != nil {
 		return buildSQLBlockStore(ctx, le, location, t.id, creds)
 	}
-	return buildS3BlockStore(le, backend.GetS3(), t.id, creds, t.packIndexStore())
+	store, err := buildS3BlockStore(le, backend.GetS3(), t.id, creds, t.packIndexStore())
+	if err != nil {
+		return nil, err
+	}
+	t.fillWindows(store)
+	return store, nil
 }
 
 // openFallbackStore opens the SQL backend the store reads after its own

@@ -8,23 +8,39 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store_fillcache "github.com/s4wave/spacewave/db/block/store/fillcache"
+	block_store_memcache "github.com/s4wave/spacewave/db/block/store/memcache"
 	"github.com/sirupsen/logrus"
 )
 
 // TestFillCacheTakesPackHits reads blocks the pack store holds, a block only
-// the fallback holds, and one the disk holds. A pack hit fills the fill cache
-// and not the disk, and the next read is served from the cache without the
-// pack store. A fallback hit fills the disk with its upload marker and never
-// the cache. A cache that fails reads as a miss, so the read goes on to the
-// pack store.
+// the fallback holds, and one the disk holds, through the disk fill cache and
+// the memory one. A pack hit fills the fill cache and not the disk, and the
+// next read is served from the cache without the pack store. A fallback hit
+// fills the disk with its upload marker and never the cache. A disk cache that
+// fails reads as a miss, so the read goes on to the pack store.
 func TestFillCacheTakesPackHits(t *testing.T) {
+	t.Run("disk", func(t *testing.T) { testFillCacheTakesPackHits(t, false) })
+	t.Run("memory", func(t *testing.T) { testFillCacheTakesPackHits(t, true) })
+}
+
+// testFillCacheTakesPackHits runs TestFillCacheTakesPackHits on the disk fill
+// cache, or the memory one.
+func testFillCacheTakesPackHits(t *testing.T, memory bool) {
 	// Open the placed store and a fill cache, and count the pack store's reads.
 	f := newFallbackTest(t)
-	cache, err := block_store_fillcache.Open(f.ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "cache.db"), block_store_fillcache.Options{})
-	if err != nil {
-		t.Fatal(err)
+	var cache FillCache
+	var disk *block_store_fillcache.Cache
+	if memory {
+		cache = block_store_memcache.New(0)
+	} else {
+		var err error
+		disk, err = block_store_fillcache.Open(f.ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "cache.db"), block_store_fillcache.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = disk.Close() })
+		cache = disk
 	}
-	t.Cleanup(func() { _ = cache.Close() })
 	counted := &countingStore{StoreOps: f.packs}
 	f.p.cache = cache
 	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
@@ -37,9 +53,12 @@ func TestFillCacheTakesPackHits(t *testing.T) {
 	)
 	waitCache := func() {
 		t.Helper()
+		if disk == nil {
+			return
+		}
 		ctx, cancel := context.WithTimeout(f.ctx, 10*time.Second)
 		defer cancel()
-		if err := cache.Wait(ctx); err != nil {
+		if err := disk.Wait(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -99,8 +118,11 @@ func TestFillCacheTakesPackHits(t *testing.T) {
 		t.Fatal("the cache does not hold exactly the pack hits")
 	}
 
-	// A closed cache reads as a miss, so the read goes to the pack store.
-	if err := cache.Close(); err != nil {
+	// A closed disk cache reads as a miss, so the read goes to the pack store.
+	if disk == nil {
+		return
+	}
+	if err := disk.Close(); err != nil {
 		t.Fatal(err)
 	}
 	before = counted.reads.Load()

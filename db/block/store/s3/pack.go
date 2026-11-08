@@ -43,8 +43,8 @@ const (
 )
 
 const (
-	// packPayloadBytes bounds the block bytes of a pack an upload builds. It is
-	// half the packfile ceiling, which leaves room for the refs, the index and
+	// packPayloadBytes bounds the block bytes of a pack an upload builds at the
+	// default ceiling. It is half the packfile ceiling, which leaves room for the refs, the index and
 	// the encoding around the block data.
 	packPayloadBytes = writer.DefaultMaxPackBytes / 2
 	// packMaxBlocks bounds the blocks of a pack an upload builds. A pack of
@@ -115,10 +115,15 @@ type PackStore struct {
 	refreshInterval time.Duration
 	// soleWriter stops the refresher: no other writer adds packfiles.
 	soleWriter bool
+	// indexOnly keeps the store to the packs its index holds; see
+	// PackStoreOptions.IndexOnly.
+	indexOnly bool
 	// exactReads makes the pack readers fetch only the bytes a miss needs.
 	exactReads bool
 	// readCache serves block extents before the bucket, or is nil.
 	readCache RangeCache
+	// reads counts the blocks read by where their bytes came from.
+	reads readCounters
 	// linger is how long a short upload batch waits for more blocks.
 	linger time.Duration
 	// maxPackBytes bounds one packfile a batch writes.
@@ -236,6 +241,13 @@ type PackStoreOptions struct {
 	// the index's table holds a pack: the store's own writes keep its entries
 	// and index current. RefreshInterval is then unused.
 	SoleWriter bool
+	// IndexOnly makes the index the whole record of the store's packs: the
+	// store never lists the bucket, not at a start with an empty table nor
+	// after a read that finds a pack gone, so a block the index does not place
+	// costs no request. Packs under the prefix that another writer left stay
+	// invisible. It implies SoleWriter and needs Index; without Index it is
+	// ignored.
+	IndexOnly bool
 }
 
 // NewPackStore builds a packfile block store on the bucket. opts may be nil.
@@ -272,7 +284,8 @@ func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, o
 			routine.WithRetry(compactBackoff),
 		),
 		refreshInterval: refresh,
-		soleWriter:      opts.SoleWriter,
+		soleWriter:      opts.SoleWriter || (opts.IndexOnly && opts.Index != nil),
+		indexOnly:       opts.IndexOnly && opts.Index != nil,
 		exactReads:      opts.ExactReads,
 		readCache:       opts.ReadCache,
 		linger:          cmp.Or(max(opts.Linger, 0), packLinger),
@@ -470,8 +483,8 @@ func (s *PackStore) PutPackFile(ctx context.Context, id string, data []byte) (*p
 	if err := identity.ValidatePackID(id); err != nil {
 		return nil, err
 	}
-	if int64(len(data)) > writer.DefaultMaxPackBytes {
-		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", len(data), writer.DefaultMaxPackBytes)
+	if int64(len(data)) > s.maxPackBytes {
+		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", len(data), s.maxPackBytes)
 	}
 	index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
@@ -593,7 +606,47 @@ func (s *PackStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*b
 		stored, err = s.packs.GetStoredBlock(ctx, ref)
 		return stored == nil && placed[0], err
 	})
+	if stored != nil {
+		s.reads.packs.Add(1)
+	}
 	return stored, err
+}
+
+// ReadCounts counts a PackStore's block reads by where their bytes came from.
+// Concurrent reads of one block that share a read count once.
+type ReadCounts struct {
+	// Cached counts the blocks the read cache served, which held their hash.
+	Cached uint64
+	// CacheRejected counts the read cache's answers whose bytes failed the
+	// block's hash; the bucket served each of them instead.
+	CacheRejected uint64
+	// Bucket counts the blocks read from the bucket with one range read.
+	Bucket uint64
+	// Packs counts the blocks read through the pack readers, from the bucket
+	// or the readers' own memory.
+	Packs uint64
+}
+
+// readCounters are the running counts of ReadCounts.
+type readCounters struct {
+	// cached counts the read cache's verified answers.
+	cached atomic.Uint64
+	// cacheRejected counts its answers that failed the hash.
+	cacheRejected atomic.Uint64
+	// bucket counts the extent reads of the bucket.
+	bucket atomic.Uint64
+	// packs counts the reads through the pack readers.
+	packs atomic.Uint64
+}
+
+// ReadCounts returns the store's block reads by where their bytes came from.
+func (s *PackStore) ReadCounts() ReadCounts {
+	return ReadCounts{
+		Cached:        s.reads.cached.Load(),
+		CacheRejected: s.reads.cacheRejected.Load(),
+		Bucket:        s.reads.bucket.Load(),
+		Packs:         s.reads.packs.Load(),
+	}
 }
 
 // RangeCache holds copies of packs near this store. Only a block's bytes are
@@ -657,8 +710,10 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 		if s.readCache != nil {
 			if data, ok := s.readCache.ReadCached(ctx, id, off, size); ok {
 				if stored, err := verifiedBlock(ref, data); err == nil {
+					s.reads.cached.Add(1)
 					return stored, nil
 				}
+				s.reads.cacheRejected.Add(1)
 			}
 		}
 
@@ -667,7 +722,11 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 		if err != nil {
 			return nil, err
 		}
-		return verifiedBlock(ref, data)
+		stored, err := verifiedBlock(ref, data)
+		if err == nil {
+			s.reads.bucket.Add(1)
+		}
+		return stored, err
 	})
 	stored, _ := value.(*block.StoredBlock)
 	return stored
@@ -951,8 +1010,9 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 
 // listEntriesLocked runs listEntries' listing. Call with listMtx held.
 func (s *PackStore) listEntriesLocked(ctx context.Context) error {
-	// Start from the index's pack table when it holds any pack, and list in
-	// the background: the table holds the packs the last run knew.
+	// Start from the index's pack table when it holds any pack, or always
+	// when index-only, and list in the background: the table holds the packs
+	// the last run knew. An index-only store never lists.
 	first := !s.loaded.Load()
 	if s.index != nil && first {
 		start := time.Now()
@@ -960,7 +1020,7 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if packs != 0 {
+		if packs != 0 || s.indexOnly {
 			s.updateEntries(unindexed, nil)
 			s.setLoaded()
 			s.le.WithFields(logrus.Fields{
@@ -970,6 +1030,9 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 			}).Info("loaded the pack index table")
 			return nil
 		}
+	}
+	if s.indexOnly {
+		return nil
 	}
 	s.listings.Add(1)
 

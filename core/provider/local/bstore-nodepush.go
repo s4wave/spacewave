@@ -49,6 +49,10 @@ type NodePushConfig struct {
 	On *atomic.Bool
 	// Result reports each push, or is nil.
 	Result block_store_nodepush.Result
+	// NoPeers drops the store's peer reads, for a host with no peers to ask:
+	// a block every other path misses is not found at once rather than
+	// waiting for a peer session.
+	NoPeers bool
 }
 
 // nodePushes maps the storage volume ID of an account to the NodePushConfig

@@ -354,6 +354,23 @@ export interface S3Location {
    * only ever add packfiles and never rewrite or delete one.
    */
   keepPacks?: boolean
+  /**
+   * IndexOnly keeps each block store to the packs its local index holds: it
+   * never lists the bucket, so a block the index does not place costs no
+   * request, and packs another writer left under the prefix stay unseen. The
+   * block store is then the prefix's only writer.
+   */
+  indexOnly?: boolean
+  /**
+   * MaxPackBytes bounds one packfile a block store writes. An upload batch
+   * holds half of it in block bytes. Zero uses the 63 MiB default.
+   */
+  maxPackBytes?: bigint
+  /**
+   * LingerSeconds is how long a short upload batch waits for more blocks
+   * before it is written anyway. Zero uses the 30 s default.
+   */
+  lingerSeconds?: number
 }
 
 export const S3Location: MessageType<S3Location> =
@@ -367,6 +384,9 @@ export const S3Location: MessageType<S3Location> =
       [5, 'disable_ssl', 8],
       [6, 'pricing', 11, 0, Pricing.codec],
       [7, 'keep_packs', 8],
+      [8, 'index_only', 8],
+      [9, 'max_pack_bytes', 4],
+      [10, 'linger_seconds', 13],
     ],
   )
 
