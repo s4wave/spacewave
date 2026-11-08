@@ -45,6 +45,23 @@ const maxSessionRetries = 3
 // closed under a fanout. A peer replacing its link reconnects within seconds.
 const sessionReplaceWait = 10 * time.Second
 
+// renewGrace is how long the side with the higher peer ID waits after its
+// last session with a peer ended before it offers the protocol again itself.
+// The lower side offers again at once, and its stream normally arrives well
+// within the grace, so the two sides rarely both open a replacement.
+const renewGrace = 2 * time.Second
+
+// renewRetryMin and renewRetryMax bound the pause before offering again while
+// a peer's session has not returned. A renewal whose stream never came, such
+// as one made while the link was down, is replaced by a new one.
+const (
+	renewRetryMin = 2 * time.Second
+	renewRetryMax = 30 * time.Second
+)
+
+// renewLogAttempts is how many renewals of one recovery log at Info level.
+const renewLogAttempts = 3
+
 // errSessionClosed reports a request that failed because its peer session closed.
 var errSessionClosed = errors.New("session closed")
 
@@ -66,6 +83,10 @@ type Controller struct {
 	// renewals holds the offer made again to each peer whose last session
 	// ended while the controller ran, keyed by peer ID, guarded by bcast.
 	renewals map[string]directive.Reference
+	// recoveries holds the recovery of each peer whose last session ended
+	// while the controller ran and has not returned, keyed by peer ID,
+	// guarded by bcast.
+	recoveries map[string]*peerRecovery
 	// sessionStarts counts the peer sessions started, guarded by bcast.
 	sessionStarts uint64
 	// settled reports that the solicitation has delivered a session for every
@@ -77,6 +98,18 @@ type Controller struct {
 	// localSource is the store a peer's request reads first, or nil to read
 	// only the bucket lookup, as SetLocalSource describes.
 	localSource atomic.Pointer[func() block.StoreOps]
+}
+
+// peerRecovery restores the session with a peer whose last session ended.
+type peerRecovery struct {
+	// lostAt is when the last session with the peer ended.
+	lostAt time.Time
+	// reason is why that session ended.
+	reason error
+	// cancel stops the recovery.
+	cancel context.CancelFunc
+	// kick asks a recovery waiting before its next renewal to renew at once.
+	kick chan struct{}
 }
 
 // SetLocalSource sets the store a peer's request reads before the bucket
@@ -184,6 +217,7 @@ func NewControllerWithRequestAuthorizer(le *logrus.Entry, b bus.Bus, cc *Config,
 		authorizeRequest: authorizeRequest,
 		sessions:         make(map[string][]*peerSession),
 		renewals:         make(map[string]directive.Reference),
+		recoveries:       make(map[string]*peerRecovery),
 	}, nil
 }
 
@@ -197,12 +231,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Publish the solicitation protocol for the configured logical store.
-	di, solicitRef, err := c.addSolicitation(ctx, peerID)
+	di, solicitRef, err := c.addSolicitation(ctx, peerID, false)
 	if err != nil {
 		return errors.Wrap(err, "add solicit protocol directive")
 	}
 	defer solicitRef.Release()
 	defer c.releaseRenewals()
+	defer c.stopRecoveries()
 
 	// Track settlement. Idle callbacks follow the value callbacks queued
 	// before them, so an idle solicitation has registered its sessions. Once
@@ -219,9 +254,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // addSolicitation offers the DEX protocol to remotePeer, or to every peer when
-// it is empty, and starts a peer session on each stream it matches.
-func (c *Controller) addSolicitation(ctx context.Context, remotePeer peer.ID) (directive.Instance, directive.Reference, error) {
-	dir := link_solicit.NewSolicitProtocol(
+// it is empty, and starts a peer session on each stream it matches. A unique
+// offer is never merged into an equivalent existing one, so it carries a new
+// incarnation.
+func (c *Controller) addSolicitation(ctx context.Context, remotePeer peer.ID, unique bool) (directive.Instance, directive.Reference, error) {
+	newDir := link_solicit.NewSolicitProtocol
+	if unique {
+		newDir = link_solicit.NewUniqueSolicitProtocol
+	}
+	dir := newDir(
 		DexProtocolID,
 		solicitationContext(c.cc),
 		remotePeer,
@@ -255,39 +296,181 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	// Construct the session with cleanup bound to its identity.
 	var sess *peerSession
 	sess = newPeerSession(c, le, ms, func() {
-		le.Debug("dex peer session ended")
-		if c.removeSession(remotePeer, sess) && ml.GetLocalPeer() < ml.GetRemotePeer() {
-			c.renewSolicitation(ctx, ml.GetRemotePeer())
+		reason := sess.getEndErr()
+		last := c.removeSession(remotePeer, sess)
+		if ctx.Err() != nil {
+			le.WithError(reason).Debug("dex peer session ended with the controller")
+			return
 		}
+		if !last {
+			le.WithError(reason).Info("dex peer session ended; another session with the peer remains")
+			return
+		}
+		le.WithError(reason).Warn("dex peer session ended; restoring it")
+		c.startRecovery(ctx, ml.GetRemotePeer(), ml.GetLocalPeer() < ml.GetRemotePeer(), reason)
 	})
 
-	// Make it the newest session with this peer.
+	// Make it the newest session with this peer, ending its recovery.
+	var restored *peerRecovery
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.sessions[remotePeer] = append(c.sessions[remotePeer], sess)
 		c.sessionStarts++
+		if rec := c.recoveries[remotePeer]; rec != nil {
+			delete(c.recoveries, remotePeer)
+			restored = rec
+		}
 		broadcast()
 	})
 
 	// Start the peer session.
-	le.Debug("dex peer session started")
+	if restored != nil {
+		restored.cancel()
+		le.WithField("lost-for", time.Since(restored.lostAt).Round(time.Millisecond).String()).
+			Info("dex peer session restored")
+	} else {
+		le.Info("dex peer session started")
+	}
 	sess.start(ctx)
 }
 
-// renewSolicitation offers the protocol to remotePeer again after its last
-// session ended. The solicit controller opens one stream for each pair of
+// startRecovery restores the session with remotePeer after its last session
+// ended for reason. The solicit controller opens one stream for each pair of
 // offers on a link, so a link that outlives its session carries no other
-// stream until one side makes a new offer. Only the peer with the lower ID
-// renews, so one stream replaces the session.
+// stream until one side makes a new offer. Either side may be the one that
+// noticed, so both renew: the side with the lower peer ID at once, the other
+// after renewGrace if no session arrived meanwhile. A renewal is repeated with
+// a backoff until a session with the peer starts or the controller stops.
+func (c *Controller) startRecovery(ctx context.Context, remotePeer peer.ID, lower bool, reason error) {
+	// Register the recovery unless a session already returned.
+	id := remotePeer.String()
+	rctx, cancel := context.WithCancel(ctx)
+	rec := &peerRecovery{lostAt: time.Now(), reason: reason, cancel: cancel, kick: make(chan struct{}, 1)}
+	var prev *peerRecovery
+	var restored bool
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if len(c.sessions[id]) != 0 {
+			restored = true
+			return
+		}
+		if c.recoveries == nil {
+			c.recoveries = make(map[string]*peerRecovery)
+		}
+		prev = c.recoveries[id]
+		c.recoveries[id] = rec
+		broadcast()
+	})
+	if prev != nil {
+		prev.cancel()
+	}
+	if restored {
+		cancel()
+		return
+	}
+
+	// Renew until a session with the peer starts.
+	go c.runRecovery(ctx, rctx, remotePeer, rec, lower)
+}
+
+// runRecovery renews the offer to remotePeer until rctx ends. ctx is the
+// controller lifetime, which the renewed offers and their sessions share.
+func (c *Controller) runRecovery(ctx, rctx context.Context, remotePeer peer.ID, rec *peerRecovery, lower bool) {
+	le := c.le.WithField("remote-peer", remotePeer.String())
+	var wait time.Duration
+	if !lower {
+		wait = renewGrace
+	}
+	kick := rec.kick
+	for attempt := 1; ; attempt++ {
+		// Wait out the grace or backoff, unless a read asks for the peer.
+		if wait > 0 {
+			timer := time.NewTimer(wait)
+			select {
+			case <-rctx.Done():
+				timer.Stop()
+				return
+			case <-kick:
+				timer.Stop()
+				kick = nil
+			case <-timer.C:
+			}
+		}
+		if rctx.Err() != nil {
+			return
+		}
+
+		// Offer the protocol to the peer under a new incarnation.
+		entry := le.WithField("attempt", attempt).WithField("lower-peer-id", lower)
+		if attempt <= renewLogAttempts {
+			entry.Info("dex offering the protocol again to restore the peer session")
+		} else {
+			entry.Debug("dex offering the protocol again to restore the peer session")
+		}
+		c.renewSolicitation(ctx, remotePeer)
+		wait = min(renewRetryMin<<min(attempt-1, 8), renewRetryMax)
+	}
+}
+
+// stopRecoveries stops every recovery when the controller stops.
+func (c *Controller) stopRecoveries() {
+	var recs []*peerRecovery
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for id, rec := range c.recoveries {
+			recs = append(recs, rec)
+			delete(c.recoveries, id)
+		}
+	})
+	for _, rec := range recs {
+		rec.cancel()
+	}
+}
+
+// waitRecovery waits for a peer session while a peer whose last session ended
+// within sessionReplaceWait is being recovered, asking each recovery to renew
+// at once. It returns no sessions and no error when no recovery is that
+// recent or none restored a session within it, so a read that may not wait
+// for peers is held only while a lost session is expected back.
+func (c *Controller) waitRecovery(ctx context.Context) ([]*peerSession, error) {
+	// Find the latest end of the recent recoveries and hurry them.
+	var deadline time.Time
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, rec := range c.recoveries {
+			if d := rec.lostAt.Add(sessionReplaceWait); d.After(deadline) {
+				deadline = d
+			}
+			select {
+			case rec.kick <- struct{}{}:
+			default:
+			}
+		}
+	})
+	if !time.Now().Before(deadline) {
+		return nil, nil
+	}
+
+	// Wait for a session until then.
+	waitCtx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+	sessions, err := c.waitSessions(waitCtx, nil, true)
+	if err != nil && ctx.Err() == nil {
+		return nil, nil
+	}
+	return sessions, err
+}
+
+// renewSolicitation offers the protocol to remotePeer again under a new
+// incarnation, replacing the previous renewal for remotePeer.
 func (c *Controller) renewSolicitation(ctx context.Context, remotePeer peer.ID) {
 	// Skip the renewal once the controller stops.
 	if ctx.Err() != nil {
 		return
 	}
 
-	// Offer the protocol to remotePeer under a new incarnation.
-	_, ref, err := c.addSolicitation(ctx, remotePeer)
+	// Offer the protocol to remotePeer under a new incarnation. An equivalent
+	// offer would merge into the previous renewal and keep its incarnation,
+	// whose pair already had its stream, so the renewal is unique.
+	_, ref, err := c.addSolicitation(ctx, remotePeer, true)
 	if err != nil {
-		c.le.WithError(err).Warn("dex solicitation renewal failed")
+		c.le.WithField("remote-peer", remotePeer.String()).WithError(err).Warn("dex solicitation renewal failed")
 		return
 	}
 
