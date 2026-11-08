@@ -10,6 +10,9 @@ replace (
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17 // aperture
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261003021338-72ab61d58aa6
+	// SQLite 3.54.1 rather than v2.0.3+incompatible's 3.31.1, whose
+	// shared-memory locks walk every open connection to the file.
+	github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.53
 	github.com/pion/datachannel => github.com/aperturerobotics/pion-datachannel v1.6.4-0.20261105123030-289a2b049b5f // main
 	github.com/pion/ice/v4 => github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260923005200-d591ff5895c0
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260922235615-c5c6104de130
