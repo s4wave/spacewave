@@ -3455,6 +3455,16 @@
         "net/transport/webrtc/webrtc.proto"
       ]
     },
+    "github.com/s4wave/spacewave/net/transport/webrtc/relay": {
+      "hash": "f7beeb6eb400d6874a91a543db822ebfe71c9d6dd5ec22473fcc4b2bc8e089ff",
+      "generatedFiles": [
+        "net/transport/webrtc/relay/relay.pb.go",
+        "net/transport/webrtc/relay/relay.pb.ts"
+      ],
+      "protoFiles": [
+        "net/transport/webrtc/relay/relay.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/net/transport/websocket": {
       "hash": "0b5cfa0c101017e7371ea92f7a995ff5571097ecc79904f52bbb5bc8ff6f2458",
       "generatedFiles": [

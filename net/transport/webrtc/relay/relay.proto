@@ -1,0 +1,14 @@
+syntax = "proto3";
+package webrtc.relay;
+
+import "github.com/s4wave/spacewave/net/transport/webrtc/webrtc.proto";
+import "google/protobuf/timestamp.proto";
+
+// Credentials are short-lived TURN credentials an app server issues to one
+// signed-in session for its new WebRTC links.
+message Credentials {
+  // IceServers are the relay servers and the credentials that open them.
+  repeated .webrtc.IceServerConfig ice_servers = 1;
+  // ExpiresAt is when the credentials stop opening new allocations.
+  google.protobuf.Timestamp expires_at = 2;
+}
