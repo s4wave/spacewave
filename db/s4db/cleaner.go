@@ -33,21 +33,26 @@ type cleaner struct {
 }
 
 // victimKey names what decides whether a table holds a victim: the manifest
-// version, the open chunks, and the count of value chunks. A victim appears
-// when a chunk closes, a run or manifest changes, or a value chunk comes or
-// goes; a stuck chunk a commit rewrites waits for one of those.
+// version, the open chunks, the count of value chunks, and for the top victim
+// the file end and the count of free chunks. A victim appears when a chunk
+// closes, a run or manifest changes, a value chunk comes or goes, or a release
+// step frees chunks below the top; a stuck chunk a commit rewrites waits for
+// one of those.
 type victimKey struct {
 	// version is the manifest version.
 	version uint64
 	// hot and cold are the open value chunks.
 	hot, cold uint64
-	// values counts the value chunks.
-	values int64
+	// end is the table's end.
+	end uint64
+	// values and free count the value and free chunks.
+	values, free int64
 }
 
 // victimKeyOf returns the victim key of m.
 func victimKeyOf(m *manifest) victimKey {
-	return victimKey{version: m.version, hot: m.hot, cold: m.cold, values: m.table.count(chunkValue)}
+	t := m.table
+	return victimKey{version: m.version, hot: m.hot, cold: m.cold, end: t.end(), values: t.count(chunkValue), free: t.count(chunkFree)}
 }
 
 // slack returns the live bytes and the slack: free chunks plus dead bytes in
