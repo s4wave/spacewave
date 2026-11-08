@@ -97,6 +97,12 @@ export interface Config {
    * Verbose enables very verbose logging.
    */
   verbose?: boolean
+  /**
+   * GatherAllInterfaces gathers native ICE candidates on every interface.
+   * By default the docker, veth and br- container and bridge interfaces are
+   * skipped, since they cannot reach another machine.
+   */
+  gatherAllInterfaces?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -112,6 +118,7 @@ export const Config: MessageType<Config> =
     [9, 'disable_listen', 8],
     [10, 'block_peers', 9, 1],
     [11, 'verbose', 8],
+    [13, 'gather_all_interfaces', 8],
   ])
 
 /**

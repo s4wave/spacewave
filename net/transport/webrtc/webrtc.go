@@ -163,7 +163,7 @@ func NewWebRTC(
 	// Build the WebRTC API and configuration.
 	settingEngine := webrtc.SettingEngine{}
 	settingEngine.DetachDataChannels()
-	applyICEOptions(&settingEngine, &o)
+	applyICEOptions(&settingEngine, &o, conf)
 	webrtcApi := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 	webrtcConf := conf.WebRtc.ToWebRtcConfiguration()
 

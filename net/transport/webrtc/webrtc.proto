@@ -45,6 +45,10 @@ message Config {
   // Session negotiation selects one offerer while allowing either peer to dial.
   reserved 12;
   reserved "all_peers_lower_peer_offers";
+  // GatherAllInterfaces gathers native ICE candidates on every interface.
+  // By default the docker, veth and br- container and bridge interfaces are
+  // skipped, since they cannot reach another machine.
+  bool gather_all_interfaces = 13;
 }
 
 // WebRtcConfig configures the WebRTC PeerConnection.
