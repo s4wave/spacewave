@@ -58,6 +58,55 @@ type nodeType struct {
 	xfrm block.Transformer
 	// values constructs the values of the tree, nil for none.
 	values block.Ctor
+	// objectRoot marks the root of an Object, typed by the object's type.
+	objectRoot bool
+}
+
+// Kinds of block Kind reports.
+const (
+	// KindWorld is a World block.
+	KindWorld = "world"
+	// KindKeyValue is a key-value store block.
+	KindKeyValue = "kvtx"
+	// KindOkraRoot is an okra tree's root.
+	KindOkraRoot = "okra-root"
+	// KindOkraPage is an okra page, at any level.
+	KindOkraPage = "okra-page"
+	// KindIavl is an iavl tree node.
+	KindIavl = "iavl"
+	// KindObject is a World Object.
+	KindObject = "object"
+	// KindObjectRoot is an Object's root.
+	KindObjectRoot = "object-root"
+	// KindOther is any other typed block.
+	KindOther = "other"
+)
+
+// Kind reports what kind of block typ, a type the Typer gave, is, or empty
+// for no type.
+func (t *Typer) Kind(typ any) string {
+	nt, ok := typ.(*nodeType)
+	if !ok || nt == nil {
+		return ""
+	}
+	if nt.objectRoot {
+		return KindObjectRoot
+	}
+	switch nt.ctor().(type) {
+	case *world_block.World:
+		return KindWorld
+	case *kvtx_block.KeyValueStore:
+		return KindKeyValue
+	case *kvtx_block_okra.Root:
+		return KindOkraRoot
+	case *kvtx_block_okra.Page:
+		return KindOkraPage
+	case *kvtx_block_iavl.Node:
+		return KindIavl
+	case *world_block.Object:
+		return KindObject
+	}
+	return KindOther
 }
 
 // New builds a Typer for the World roots in heads, the head first and then
@@ -318,7 +367,7 @@ func (t *Typer) objectRoot(o *world_block.Object, nt *nodeType) ([]packcopy.Type
 			return nil, err
 		}
 	}
-	return []packcopy.TypedRef{{Ref: ref, Type: &nodeType{ctor: ctor, xfrm: xfrm}}}, nil
+	return []packcopy.TypedRef{{Ref: ref, Type: &nodeType{ctor: ctor, xfrm: xfrm, objectRoot: true}}}, nil
 }
 
 // transformer returns the transformer for conf, built once per config.
