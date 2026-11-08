@@ -26,8 +26,8 @@ const (
 	// none. A remote with a long round trip, such as a database across the
 	// internet, uploads one batch per round trip per worker.
 	uploadWorkers = 16
-	// clearLocatedBlocks bounds the queue entries one ClearLocated transaction
-	// removes, and so how long it holds the writer.
+	// clearLocatedBlocks bounds the hashes one ClearLocated round looks up
+	// and clears; clear bounds each of its transactions itself.
 	clearLocatedBlocks = 1024
 )
 
