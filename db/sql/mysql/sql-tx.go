@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 
+	"github.com/dolthub/go-mysql-server/sql"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 )
 
@@ -19,6 +20,14 @@ func NewSqlTx(ctx context.Context, tx *Tx, dsn string) (*SqlTx, error) {
 		return nil, err
 	}
 	return &SqlTx{Tx: tx, db: db}, nil
+}
+
+// PrepareQuery describes a command on this transaction without retaining resolved
+// storage handles. Its caller consumes the node before ending the transaction.
+func (r *SqlTx) PrepareQuery(ctx context.Context, session sql.Session, query string) (sql.Node, error) {
+	// Bind storage in the command context instead of changing the shared catalog.
+	sqlCtx := r.t.engine.NewContext(context.WithValue(ctx, transactionContextKey{}, r.Tx), sql.WithSession(session))
+	return r.t.engine.PrepareQuery(sqlCtx, query)
 }
 
 // GetReadOnly returns if the transaction is read-only.

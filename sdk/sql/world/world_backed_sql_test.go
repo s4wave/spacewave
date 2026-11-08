@@ -124,22 +124,14 @@ func TestWorldBackedSqlReportsCommitPersistedWhenWorldRootUpdateFails(t *testing
 	execSql(t, ctx, rootTx, "CREATE DATABASE alpha")
 	commitSqlPersisted(t, ctx, rootTx)
 
-	// Commit the table and row while World root updates remain rejected.
-	writeTx := openSqlTx(t, ctx, store, true, "/alpha")
-	for _, query := range []string{
-		"CREATE TABLE persisted (id BIGINT NOT NULL PRIMARY KEY, name TEXT NOT NULL)",
-		"INSERT INTO persisted (id, name) VALUES (1, 'inner-root')",
-	} {
-		execSql(t, ctx, writeTx, query)
-	}
-	commitSqlPersisted(t, ctx, writeTx)
-
-	// Verify the committed row remains readable from the SQL engine.
-	readTx := openSqlTx(t, ctx, store, false, "/alpha")
-	name := querySingleString(t, ctx, readTx, "SELECT name FROM persisted WHERE id = 1")
-	readTx.Discard()
-	if name != "inner-root" {
-		t.Fatalf("inner SELECT name = %q, want inner-root", name)
+	// Block both readers and writers from observing an unpublished private root.
+	for _, write := range []bool{false, true} {
+		if tx, err := store.NewSqlTransaction(ctx, write, "/alpha"); !errors.Is(err, s4wave_sql_world.ErrCommitPersisted) {
+			if tx != nil {
+				tx.Discard()
+			}
+			t.Fatalf("transaction after publication failure: write=%v err=%v", write, err)
+		}
 	}
 
 	// Verify the rejected World operation left the object root unchanged.

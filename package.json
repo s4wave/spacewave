@@ -131,6 +131,8 @@
     "format": "bun run format:js && bun run format:go && bun run format:config",
     "format:js": "oxfmt './{app,web,core,sdk,net}/**/*.{ts,tsx,js,html,css,scss}' && bun run format:config",
     "format:go": "bun run go:aptre -- format && cross-env \"GOFLAGS=-mod=mod -tags=purego\" go fix -embedlit=false ./...",
+    "format:os:python": "uv run --frozen --all-groups ruff check --fix os/qemu && uv run --frozen --all-groups ruff format os/qemu",
+    "check:os:python": "uv run --frozen --all-groups ruff check os/qemu && uv run --frozen --all-groups mypy os/qemu",
     "format:config": "oxfmt '*.json' '!.protoc-manifest.json' '!.protoc-python-resource-manifest.json' '!.protoc-python-session-journey-manifest.json' '.github/**/*.json' '.github/**/*.yml' '.oxfmtrc.json' '.golangci.yml' 'tsconfig.json' 'tsconfig.net.json'",
     "vitecheck": "vite build --outDir vite-check",
     "typecheck": "tsrs --noEmit -p tsconfig.json --runExternalCode",

@@ -102,6 +102,7 @@ func main() {
 
 	// Run the go-orm demo.
 	sq := mysql.NewMysql(oc, nil)
+	defer sq.Close()
 	dbName := "test-db"
 	dsn := "/" + dbName
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {

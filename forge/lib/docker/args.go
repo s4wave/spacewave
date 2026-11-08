@@ -31,6 +31,14 @@ func buildCreateArgs(conf *Config, runtimeName, outputDir string) []string {
 	}
 	args = append(args, "--cpus", cpu, "--memory", strconv.FormatUint(conf.GetMemoryBytes(), 10))
 
+	// Apply the explicitly requested network and host devices.
+	if mode := conf.GetNetworkMode(); mode != "" {
+		args = append(args, "--network", mode)
+	}
+	for _, device := range conf.GetDevices() {
+		args = append(args, "--device", device)
+	}
+
 	// Apply the container working directory, environment, and bind mounts.
 	if workdir := conf.GetWorkdir(); workdir != "" {
 		args = append(args, "--workdir", workdir)

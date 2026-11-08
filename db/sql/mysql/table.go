@@ -53,7 +53,7 @@ func (t *Table) loadRootState(ctx context.Context, root *TableRoot) error {
 
 	// Load the table auto-increment column and its stored value.
 	var autoIncIdx int
-	var autoIncVal uint64
+	autoIncVal := uint64(1)
 	for i, colSch := range root.GetTableSchema().GetColumns() {
 		if !colSch.GetAutoIncrement() {
 			continue
@@ -68,6 +68,9 @@ func (t *Table) loadRootState(ctx context.Context, root *TableRoot) error {
 			autoIncVal, ok = autoIncInter.(uint64)
 			if !ok {
 				return errors.New("auto-increment type must be uint64")
+			}
+			if autoIncVal == 0 {
+				autoIncVal = 1
 			}
 		}
 		break

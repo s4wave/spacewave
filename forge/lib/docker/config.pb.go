@@ -53,6 +53,12 @@ type Config struct {
 	// Entrypoint replaces the image's entrypoint when set: its first entry is
 	// the executable and the rest are placed before command.
 	Entrypoint []string `protobuf:"bytes,13,rep,name=entrypoint,proto3" json:"entrypoint,omitempty"`
+	// NetworkMode selects Docker's network, such as host for a local VM attachment.
+	// Empty retains Docker's default network.
+	NetworkMode string `protobuf:"bytes,14,opt,name=network_mode,json=networkMode,proto3" json:"networkMode,omitempty"`
+	// Devices maps explicit host devices using Docker's host:container:permissions
+	// syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
+	Devices []string `protobuf:"bytes,15,rep,name=devices,proto3" json:"devices,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -148,6 +154,20 @@ func (x *Config) GetOutputs() []string {
 func (x *Config) GetEntrypoint() []string {
 	if x != nil {
 		return x.Entrypoint
+	}
+	return nil
+}
+
+func (x *Config) GetNetworkMode() string {
+	if x != nil {
+		return x.NetworkMode
+	}
+	return ""
+}
+
+func (x *Config) GetDevices() []string {
+	if x != nil {
+		return x.Devices
 	}
 	return nil
 }
@@ -254,12 +274,14 @@ func (m *Config) CloneVT() *Config {
 	r.MilliCpu = m.MilliCpu
 	r.MemoryBytes = m.MemoryBytes
 	r.OutputDir = m.OutputDir
+	r.NetworkMode = m.NetworkMode
 	r.DockerEnv = protobuf_go_lite.CloneMap(m.DockerEnv)
 	r.Env = protobuf_go_lite.CloneMap(m.Env)
 	r.Mounts = protobuf_go_lite.CloneVTSlice(m.Mounts)
 	r.Command = protobuf_go_lite.CloneSlice(m.Command)
 	r.Outputs = protobuf_go_lite.CloneSlice(m.Outputs)
 	r.Entrypoint = protobuf_go_lite.CloneSlice(m.Entrypoint)
+	r.Devices = protobuf_go_lite.CloneSlice(m.Devices)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -331,6 +353,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.Entrypoint, that.Entrypoint) {
+		return false
+	}
+	if this.NetworkMode != that.NetworkMode {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Devices, that.Devices) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -565,6 +593,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("entrypoint")
 		s.WriteStringArray(x.Entrypoint)
 	}
+	if x.NetworkMode != "" || s.HasField("networkMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("networkMode")
+		s.WriteString(x.NetworkMode)
+	}
+	if len(x.Devices) > 0 || s.HasField("devices") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("devices")
+		s.WriteStringArray(x.Devices)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -662,6 +700,16 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Entrypoint = s.ReadStringArray()
+		case "network_mode", "networkMode":
+			s.AddField("network_mode")
+			x.NetworkMode = s.ReadString()
+		case "devices":
+			s.AddField("devices")
+			if s.ReadNil() {
+				x.Devices = nil
+				return
+			}
+			x.Devices = s.ReadStringArray()
 		}
 	})
 }
@@ -757,6 +805,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Devices) > 0 {
+		for iNdEx := len(m.Devices) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Devices[iNdEx])
+			i--
+			dAtA[i] = 0x7a
+		}
+	}
+	if len(m.NetworkMode) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NetworkMode)
+		i--
+		dAtA[i] = 0x72
 	}
 	if len(m.Entrypoint) > 0 {
 		for iNdEx := len(m.Entrypoint) - 1; iNdEx >= 0; iNdEx-- {
@@ -938,6 +998,8 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OutputDir)
 	n += protobuf_go_lite.SizeStringSlice(1, m.Outputs)
 	n += protobuf_go_lite.SizeStringSlice(1, m.Entrypoint)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NetworkMode)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Devices)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1075,6 +1137,18 @@ func (x *Config) MarshalProtoText() string {
 	if len(x.Entrypoint) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "entrypoint")
 		for i, v := range x.Entrypoint {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.NetworkMode != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "network_mode")
+		protobuf_go_lite.TextWriteString(&sb, x.NetworkMode)
+	}
+	if len(x.Devices) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "devices")
+		for i, v := range x.Devices {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
@@ -1323,6 +1397,26 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Entrypoint = append(m.Entrypoint, v)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NetworkMode", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NetworkMode = v
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Devices", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Devices = append(m.Devices, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

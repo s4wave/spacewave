@@ -152,6 +152,7 @@ func (o *SqlSetRootOp) rebaseRoot(
 			nextRoot = root.Clone()
 			return nil
 		})
+		defer db.Close()
 
 		// Select the SQL transaction DSN from the replay statements.
 		dsn := ""
@@ -199,7 +200,10 @@ func (o *SqlSetRootOp) rebaseRoot(
 			return err
 		}
 		if nextRoot == nil {
-			nextRoot = db.GetRootNodeRef()
+			nextRoot, err = db.GetRootNodeRef(ctx)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	})

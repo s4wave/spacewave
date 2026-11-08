@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"sync"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -27,8 +28,11 @@ type WorldBackedSql struct {
 	stage world.WorldStage
 	// mtx guards tx.
 	mtx sync.Mutex
-	// writeMtx serializes write transactions.
-	writeMtx sync.Mutex
+	// txMtx orders new transactions with pending World publication.
+	txMtx csync.Mutex
+	// failure prevents serving a private SQL root after uncertain publication.
+	// txMtx protects it; the owner reopens the store from World to recover.
+	failure error
 	// tx is the open write transaction, if any.
 	tx *worldBackedSqlTx
 }
@@ -79,6 +83,7 @@ func (s *WorldBackedSql) Close() {
 	if s == nil || s.stage == nil {
 		return
 	}
+	_ = s.inner.Close()
 	s.stage.Release()
 	s.stage = nil
 }
@@ -89,33 +94,49 @@ func (s *WorldBackedSql) NewSqlTransaction(
 	write bool,
 	dsn string,
 ) (hydra_sql.SqlTransaction, error) {
-	// Serialize SQL writers and capture the root they start from.
-	if write {
-		s.writeMtx.Lock()
+	// Admit readers only before or after a writer's World publication, never between
+	// its inner commit and publication. Existing readers retain the inner read gate.
+	release, err := s.txMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		release()
+		return nil, err
+	}
+	if s.failure != nil {
+		release()
+		return nil, s.failure
+	}
+
+	// Capture the root only after admission confirms the store is usable.
 	var baseRoot *bucket.ObjectRef
 	if write {
-		baseRoot = s.inner.GetRootNodeRef()
+		baseRoot, err = s.inner.GetRootNodeRef(ctx)
+		if err != nil {
+			release()
+			return nil, err
+		}
 	}
 
 	// Open the SQL transaction and release the writer lock if opening fails.
 	tx, err := s.inner.NewSqlTransaction(ctx, write, dsn)
 	if err != nil {
-		if write {
-			s.writeMtx.Unlock()
-		}
+		release()
 		return nil, err
 	}
 	if !write {
+		release()
 		return tx, nil
 	}
 
 	// Track the writable SQL transaction until it releases its writer lock.
 	wtx := &worldBackedSqlTx{
-		store:    s,
-		inner:    tx,
-		dsn:      dsn,
-		baseRoot: baseRoot,
+		store:        s,
+		inner:        tx,
+		dsn:          dsn,
+		baseRoot:     baseRoot,
+		writeRelease: release,
 	}
 	s.mtx.Lock()
 	s.tx = wtx
@@ -156,8 +177,7 @@ func (s *WorldBackedSql) refreshInnerRoot(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	s.inner.SetRootNodeRef(root)
-	return nil
+	return s.inner.SetRootNodeRef(ctx, root)
 }
 
 type worldBackedSqlTx struct {
@@ -168,6 +188,8 @@ type worldBackedSqlTx struct {
 	committedRoot *bucket.ObjectRef
 	statements    []*SqlStatement
 	releaseOnce   sync.Once
+	// writeRelease returns writer admission after inner storage users finish.
+	writeRelease func()
 }
 
 // Commit commits the SQL transaction and advances the world object root.
@@ -180,7 +202,7 @@ func (t *worldBackedSqlTx) Commit(ctx context.Context) error {
 	}
 	root := t.committedRoot
 	if root == nil {
-		return &CommitPersistedError{Err: errors.New("sql/db: committed root was not captured")}
+		return t.publicationFailed(errors.New("sql/db: committed root was not captured"))
 	}
 
 	// Advance the World object root with the committed SQL statements,
@@ -190,24 +212,32 @@ func (t *worldBackedSqlTx) Commit(ctx context.Context) error {
 	_, _, err := world.ApplyRehearsed(ctx, t.store.ws, NewSqlSetRootOp(t.store.key, t.baseRoot, root, t.statements), peer.ID(""))
 	_ = t.store.stage.ReleaseRoots(ctx, []*block.BlockRef{root.GetRootRef()})
 	if err != nil {
-		return &CommitPersistedError{Err: err}
+		return t.publicationFailed(err)
 	}
 	if err := t.store.refreshInnerRoot(ctx); err != nil {
-		return &CommitPersistedError{Err: err}
+		return t.publicationFailed(err)
 	}
 	return nil
 }
 
+// publicationFailed closes admission before releasing the writer's publication
+// gate. Another client must never observe the unpublished private SQL root.
+func (t *worldBackedSqlTx) publicationFailed(err error) error {
+	failure := &CommitPersistedError{Err: err}
+	t.store.failure = failure
+	return failure
+}
+
 // Discard discards the SQL transaction.
 func (t *worldBackedSqlTx) Discard() {
-	t.releaseWrite()
 	t.inner.Discard()
+	t.releaseWrite()
 }
 
 func (t *worldBackedSqlTx) releaseWrite() {
 	t.releaseOnce.Do(func() {
 		t.store.clearActiveTx(t)
-		t.store.writeMtx.Unlock()
+		t.writeRelease()
 	})
 }
 
@@ -230,10 +260,12 @@ type recordingSqlOps struct {
 	inner hydra_sql.SqlOps
 }
 
+// Exec records a mutation using the context-free SQL operations contract.
 func (o *recordingSqlOps) Exec(query string, args []driver.Value) (driver.Result, error) {
 	return o.ExecContext(context.Background(), query, hydra_sql.ConvertToNamedValues(args))
 }
 
+// ExecContext records a successful mutation for deterministic World replay.
 func (o *recordingSqlOps) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	// Execute the SQL statement and record it for World root replay.
 	statement, err := buildSqlStatement(SqlStatementKind_SQL_STATEMENT_KIND_EXEC, o.tx.dsn, query, args)
@@ -248,10 +280,12 @@ func (o *recordingSqlOps) ExecContext(ctx context.Context, query string, args []
 	return res, nil
 }
 
+// Query records a query using the context-free SQL operations contract.
 func (o *recordingSqlOps) Query(query string, args []driver.Value) (driver.Rows, error) {
 	return o.QueryContext(context.Background(), query, hydra_sql.ConvertToNamedValues(args))
 }
 
+// QueryContext records a successful query for deterministic World replay.
 func (o *recordingSqlOps) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	// Query the SQL transaction and record the statement for World root replay.
 	statement, err := buildSqlStatement(SqlStatementKind_SQL_STATEMENT_KIND_QUERY, o.tx.dsn, query, args)

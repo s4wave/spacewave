@@ -7,6 +7,7 @@ var ErrCommitPersisted = errors.New("sql/db: commit persisted before world root 
 
 // CommitPersistedError wraps an error after the inner SQL root already committed.
 type CommitPersistedError struct {
+	// Err is the World publication failure after the inner root committed.
 	Err error
 }
 
