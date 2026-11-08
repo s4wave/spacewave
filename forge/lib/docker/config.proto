@@ -39,6 +39,12 @@ message Config {
   // Entrypoint replaces the image's entrypoint when set: its first entry is
   // the executable and the rest are placed before command.
   repeated string entrypoint = 13;
+  // NetworkMode selects Docker's network, such as host for a local VM attachment.
+  // Empty retains Docker's default network.
+  string network_mode = 14;
+  // Devices maps explicit host devices using Docker's host:container:permissions
+  // syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
+  repeated string devices = 15;
 }
 
 // Mount configures one docker bind mount.

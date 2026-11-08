@@ -1,0 +1,17 @@
+[
+  {
+    "name": "reply acknowledges unpublished SQL work",
+    "replace": [["phase[c] = \"published\"", "phase[c] = \"working\""]],
+    "expect": "AckIsPublished"
+  },
+  {
+    "name": "disconnect retains the transaction writer",
+    "replace": [["owner' = IF owner = c THEN \"none\" ELSE owner", "owner' = owner"]],
+    "expect": "ClosedOwnsNothing"
+  },
+  {
+    "name": "a canceled waiting client acquires the writer",
+    "replace": [["phase[c] = \"waiting\" /\\ owner = \"none\"", "phase[c] \\in {\"waiting\", \"closed\"} /\\ owner = \"none\""]],
+    "expect": "NoResurrection"
+  }
+]

@@ -2,8 +2,10 @@ package mysql
 
 import (
 	"context"
-	"sync"
 
+	"github.com/aperturerobotics/util/csync"
+	sqle "github.com/dolthub/go-mysql-server"
+	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 )
@@ -21,7 +23,9 @@ type RootCursor interface {
 
 // Mysql is the root of a mysql server data structure, containing named databases.
 type Mysql struct {
-	rmtx       sync.RWMutex
+	// engine keeps planning and variable state for this store across transactions.
+	engine     *sqle.Engine
+	rmtx       csync.RWMutex
 	rootCursor RootCursor
 	commitFn   CommitFn
 }
@@ -36,30 +40,48 @@ type CommitFn func(nref *bucket.ObjectRef) error
 // NewMysql creates a handle with an optional root object cursor pointing to the
 // tree. The cursor ref can be empty to indicate a new tree.
 func NewMysql(rootCursor RootCursor, commitFn CommitFn) *Mysql {
-	return &Mysql{rootCursor: rootCursor, commitFn: commitFn}
+	return &Mysql{rootCursor: rootCursor, commitFn: commitFn, engine: sqle.NewDefault(&databaseProvider{})}
 }
 
+// Variables returns the engine variable bundle shared by this store's sessions.
+func (t *Mysql) Variables() *sql.EngineVariables { return t.engine.Variables() }
+
+// Close releases engine resources after every store transaction has finished.
+func (t *Mysql) Close() error { return t.engine.Close() }
+
 // GetRootNodeRef returns the reference to the root node.
-func (t *Mysql) GetRootNodeRef() *bucket.ObjectRef {
-	t.rmtx.RLock()
-	defer t.rmtx.RUnlock()
-	return t.rootCursor.GetRef().Clone()
+func (t *Mysql) GetRootNodeRef(ctx context.Context) (*bucket.ObjectRef, error) {
+	// Read the root only while this caller retains the shared storage gate.
+	release, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return t.rootCursor.GetRef().Clone(), nil
 }
 
 // SetRootNodeRef switches the root cursor to an externally advanced root.
-func (t *Mysql) SetRootNodeRef(ref *bucket.ObjectRef) {
-	t.rmtx.Lock()
-	defer t.rmtx.Unlock()
+func (t *Mysql) SetRootNodeRef(ctx context.Context, ref *bucket.ObjectRef) error {
+	// Serialize root replacement with transactions without trapping canceled callers.
+	release, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer release()
 	t.rootCursor.SetRootRef(ref.GetRootRef().Clone())
+	return nil
 }
 
 // NewMysqlTransaction returns a transaction against the db.
 func (t *Mysql) NewMysqlTransaction(ctx context.Context, write bool) (*Tx, error) {
 	// Hold the database root lock for the requested transaction mode.
-	if write {
-		t.rmtx.Lock()
-	} else {
-		t.rmtx.RLock()
+	release, err := t.rmtx.Lock(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		release()
+		return nil, err
 	}
 
 	// Load the root and construct the transaction with its database catalog.
@@ -71,6 +93,7 @@ func (t *Mysql) NewMysqlTransaction(ctx context.Context, write bool) (*Tx, error
 		tx:      btx,
 		bcs:     bcs,
 		openDbs: make(map[string]*Database),
+		unlock:  release,
 	}
 	if err != nil {
 		atx.Discard()

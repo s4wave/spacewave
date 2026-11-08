@@ -1,12 +1,12 @@
 module github.com/s4wave/spacewave
 
-go 1.27.0
+go 1.27.3
 
 tool github.com/s4wave/goscript/cmd/goscript
 
 replace (
 	github.com/cloudflare/circl => github.com/aperturerobotics/circl v1.6.4-0.20261026102657-7415ab3046b7
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261024013424-a1751f2da19d
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261108213153-7e4a5ee7d16f
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20261108201950-8dc30550ec17 // aperture
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261003021338-72ab61d58aa6
@@ -53,13 +53,13 @@ require (
 	github.com/cockroachdb/apd/v3 v3.2.3
 	github.com/creack/pty v1.1.24
 	github.com/dolthub/go-mysql-server v0.20.1-0.20261030230720-02aadeeae4f1
-	github.com/dolthub/vitess v0.0.0-20261014211039-3e903c0f05d3
+	github.com/dolthub/vitess v0.0.0-20261106002823-dae4b00ae0a4
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
 	github.com/fclairamb/ftpserverlib v0.32.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261118131511-ef69bf247300 // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261118180548-5704ad0245b0 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261119064520-75f3ca83333c // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.12.0
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -134,7 +134,7 @@ require (
 	github.com/dlclark/regexp2/v2 v2.8.1 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 // indirect
-	github.com/dolthub/jsonpath v0.0.2-0.20260807003725-336cd89c1c76 // indirect
+	github.com/dolthub/jsonpath v0.0.2-0.20261015203105-2af4aa8c81af // indirect
 	github.com/dop251/goja v0.0.0-20261024144015-2a9269b6b6de // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb // indirect

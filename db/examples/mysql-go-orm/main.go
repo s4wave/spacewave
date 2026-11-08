@@ -102,6 +102,7 @@ func main() {
 
 	// Run the go-orm demo.
 	sq := mysql.NewMysql(oc, nil)
+	defer sq.Close()
 	dbName := "test-db"
 	dsn := "/" + dbName
 	buildTx := func(write bool) (*mysql.Tx, *gorm.DB, *sql.DB) {
@@ -185,7 +186,9 @@ func main() {
 
 // Entry is an entry in the database.
 type Entry struct {
-	ID    int `gorm:"primaryKey"`
+	// ID is the row's primary key.
+	ID int `gorm:"primaryKey"`
+	// Value is the number the example writes and reads back.
 	Value int `json:"value"`
 }
 

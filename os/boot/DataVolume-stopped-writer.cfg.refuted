@@ -1,0 +1,4 @@
+SPECIFICATION Spec
+CONSTANTS DurableBeforeAck = TRUE BootOwnsClose = TRUE AtomicRetention = TRUE CancelStoppedWriter = FALSE
+PROPERTY ContainmentCompletes
+CHECK_DEADLOCK FALSE

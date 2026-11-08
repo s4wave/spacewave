@@ -73,6 +73,16 @@ export interface Config {
    * the executable and the rest are placed before command.
    */
   entrypoint?: string[]
+  /**
+   * NetworkMode selects Docker's network, such as host for a local VM attachment.
+   * Empty retains Docker's default network.
+   */
+  networkMode?: string
+  /**
+   * Devices maps explicit host devices using Docker's host:container:permissions
+   * syntax, such as /dev/kvm:/dev/kvm:rw. Empty grants no additional devices.
+   */
+  devices?: string[]
 }
 
 export const Config: MessageType<Config> =
@@ -90,6 +100,8 @@ export const Config: MessageType<Config> =
     [11, 'output_dir', 9],
     [12, 'outputs', 9, 1],
     [13, 'entrypoint', 9, 1],
+    [14, 'network_mode', 9],
+    [15, 'devices', 9, 1],
   ])
 
 /**
