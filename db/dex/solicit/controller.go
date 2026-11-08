@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -73,6 +74,31 @@ type Controller struct {
 	// transfer counts block payloads that actually crossed a peer stream.
 	transfer      TransferSnapshot
 	peerTransfers map[string]PeerTransferSnapshot
+	// localSource is the store a peer's request reads first, or nil to read
+	// only the bucket lookup, as SetLocalSource describes.
+	localSource atomic.Pointer[func() block.StoreOps]
+}
+
+// SetLocalSource sets the store a peer's request reads before the bucket
+// lookup, such as a placed store that reads through to its backend: the
+// bucket lookup holds only the blocks resident in the local volumes. The
+// source returns nil while it has no store, and the request then reads the
+// bucket lookup alone. The source must not ask peers.
+func (c *Controller) SetLocalSource(src func() block.StoreOps) {
+	if src == nil {
+		c.localSource.Store(nil)
+		return
+	}
+	c.localSource.Store(&src)
+}
+
+// getLocalStore returns the store of the local source, or nil.
+func (c *Controller) getLocalStore() block.StoreOps {
+	src := c.localSource.Load()
+	if src == nil {
+		return nil
+	}
+	return (*src)()
 }
 
 // GetTransferSnapshot returns counters and a channel for the next change.

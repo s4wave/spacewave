@@ -470,6 +470,17 @@ func (s *peerSession) finishRequest(id uint32, h *handledRequest) {
 // lookupLocalBlock looks up a block and its refs in the local bucket store
 // only. Returns nil when the block is not found.
 func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
+	// Read the local source first: it reaches the tiers below the volumes.
+	if store := s.c.getLocalStore(); store != nil {
+		stored, err := store.GetStoredBlock(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		if stored != nil {
+			return storedBlockMessage(stored), nil
+		}
+	}
+
 	// Acquire the configured bucket lookup for this session.
 	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, s.c.b, false, s.c.cc.GetBucketId(), nil)
 	if err != nil {
@@ -488,12 +499,17 @@ func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef)
 	if err != nil || stored == nil {
 		return nil, err
 	}
+	return storedBlockMessage(stored), nil
+}
+
+// storedBlockMessage builds the found response of a stored block.
+func storedBlockMessage(stored *block.StoredBlock) *DexMessage {
 	return &DexMessage{
 		Found:     true,
 		Data:      stored.Data,
 		Refs:      stored.Refs,
 		RefsKnown: stored.RefsKnown,
-	}, nil
+	}
 }
 
 // requestBlock sends a block request and waits for the response. Returns the

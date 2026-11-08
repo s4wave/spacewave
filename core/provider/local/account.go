@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -69,6 +70,10 @@ type ProviderAccount struct {
 	// p2pSyncCur mirrors p2pSync for block reads that resolve their store
 	// without p2pSyncBcast. Set with p2pSync under p2pSyncBcast.
 	p2pSyncCur atomic.Pointer[p2pSyncState]
+	// serveStores holds each mounted block store's reads for a peer's request,
+	// keyed by bucket ID: the store without peers, filling nothing. Each value
+	// is a *serveStore its block store sets on mount and deletes on exit.
+	serveStores sync.Map
 	// p2pPeerIDs are enrollment peers retained across P2P sync state restarts.
 	p2pPeerIDs map[string]peer.ID
 	// p2pPendingEnrollPeers are device peers recorded by SpaceLink approval that

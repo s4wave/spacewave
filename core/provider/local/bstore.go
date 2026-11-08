@@ -636,6 +636,23 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		copies = reads
 	}
 
+	// A peer's request reads the store below its local volume too, without
+	// peers and filling nothing; the DEX bucket lookup alone holds only the
+	// resident blocks.
+	var serve block.StoreOps
+	if sqlStore != nil {
+		serve = block_store.NewStoreReadThrough(
+			func() block.StoreOps { return block.NewReadOnlyStore(localBucket) },
+			func() block.StoreOps { return sqlStore },
+			nil,
+		)
+	} else {
+		serve = placement.serveReads(local, func() block.StoreOps { return t.getRemoteReads(placement) }, fallbackStore)
+	}
+	served := &serveStore{StoreOps: serve}
+	t.a.serveStores.Store(bucketID, served)
+	defer t.a.serveStores.CompareAndDelete(bucketID, served)
+
 	// Build the handle over the local store and its read paths.
 	bstoreHandle := &BlockStore{
 		store:         localStore,
