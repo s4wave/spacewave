@@ -61,7 +61,7 @@ func (q *Queue) dropLocked(c *committingBatch, err error) {
 	var writes []*queuedWrite
 	for _, w := range c.writes {
 		if w.acked {
-			w = &queuedWrite{ctx: context.WithoutCancel(w.ctx), queued: w.queued, actor: w.actor, checks: w.checks, body: w.replay, replay: w.replay, arrival: w.arrival, answered: true, refusals: w.refusals, done: make(chan struct{})}
+			w = &queuedWrite{ctx: context.WithoutCancel(w.ctx), name: w.name, queued: w.queued, actor: w.actor, checks: w.checks, body: w.replay, replay: w.replay, arrival: w.arrival, answered: true, refusals: w.refusals, done: make(chan struct{})}
 		} else if w.ended() {
 			continue
 		}
