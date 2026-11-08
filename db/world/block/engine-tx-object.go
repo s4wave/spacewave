@@ -145,9 +145,12 @@ func (t *EngineTxObjectState) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	seqno, err := t.t.GetSeqno(ctx)
-	if err != nil {
-		return 0, err
+	// A writer can advance within its pending transaction. Count its changes
+	// before reading the revision.
+	writeTx := t.t.writeTx
+	var changes uint64
+	if writeTx != nil {
+		changes = writeTx.state.getChanges()
 	}
 
 	for {
@@ -159,14 +162,12 @@ func (t *EngineTxObjectState) WaitRev(
 			return currRev, nil
 		}
 
-		// A writer can advance within its pending transaction. A snapshot can
-		// only satisfy revisions it already contains.
-		if writeTx := t.t.writeTx; writeTx != nil {
-			seqno, err = writeTx.WaitSeqno(ctx, seqno+1)
-		} else {
+		// A snapshot can only satisfy revisions it already contains.
+		if writeTx == nil {
 			<-ctx.Done()
 			return 0, ctx.Err()
 		}
+		changes, err = writeTx.state.waitChanges(ctx, changes)
 		if err != nil {
 			return 0, err
 		}
