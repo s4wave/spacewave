@@ -49,22 +49,23 @@ stateDiagram-v2
   s10 --> s0: CancelOrDie
   s10 --> s15: OtherTake
   s10 --> s7: Take
-  s11 --> s0: WakeBackground
   s11 --> s9: Want
+  s11 --> s0: WakeBackground
   s11 --> s16: OtherTake
   s12 --> s9: OtherEnd
   s12 --> s16: CancelOrDie
-  s13 --> s7: WakeBackground
   s13 --> s11: CommitOrDiscard
+  s13 --> s7: WakeBackground
   s14 --> s1: CancelOrDie
   s14 --> s17: BackgroundCheck
   s15 --> s10: OtherEnd
   s15 --> s3: CancelOrDie
-  s16 --> s3: WakeBackground
   s16 --> s11: OtherEnd
   s16 --> s12: Want
+  s16 --> s3: WakeBackground
   s17 --> s11: CancelOrDie
   s17 --> s18: OtherTake
   s17 --> s13: Take
+  s5 --> s8: BackgroundCheck
   s18 --> s17: OtherEnd
   s18 --> s16: CancelOrDie
