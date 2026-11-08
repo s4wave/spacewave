@@ -58,6 +58,16 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 	return &spaceWriteTx{Tx: tx, a: e.a}, nil
 }
 
+// NewRehearsalTransaction opens a write fork of the newest World that never
+// commits, applying authenticated operations as NewTransaction applies them.
+func (e *Engine) NewRehearsalTransaction(ctx context.Context) (world.Tx, error) {
+	tx, err := e.Engine.NewRehearsalTransaction(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &spaceWriteTx{Tx: tx, a: e.a}, nil
+}
+
 // SetRetainedRoot retains the installed World head under name, or releases
 // name when ref is empty, and waits for the operation's outcome.
 func (e *Engine) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
@@ -221,6 +231,7 @@ func normalizeGraphSettings(target *world_block.GraphSettings) (*world_block.Gra
 var (
 	_ world.Engine                     = (*Engine)(nil)
 	_ world_block.GraphSettingsStepper = (*Engine)(nil)
+	_ world.RehearsalEngine            = (*Engine)(nil)
 	_ BackfillEngine                   = (*Engine)(nil)
 	_ worldReaders                     = (*Engine)(nil)
 )
