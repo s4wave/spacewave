@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -478,7 +479,20 @@ func putPackRows(ctx context.Context, tx kvtx.Tx, entry *packfile.PackfileEntry,
 // between them loads as unindexed and the background indexer finishes it.
 // The pack is not in the manifest until this returns, so no lookup trusts its
 // row early. A pack of at most indexBatchKeys keys takes one transaction.
-func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
+//
+// tail is the pack's index tail, or nil when the caller holds none. With
+// extent writes on (SetIndexExtentWrites) and a tail that gives every key an
+// extent a row can hold, each h row is written once with its block's extent,
+// and the tail is not queued: the rows already hold what its drain would
+// write. Otherwise the rows name only the pack, and a tail is queued for the
+// drain, as before rows were written with extents.
+//
+// Invariant: an h row written with an extent holds exactly the offset and
+// size the tail lists for its key in this pack of entry's size, the values
+// upgradeHashRows would write. An extent read verifies the block's hash, so a
+// row that is wrong anyway costs one range read and the lookup through the
+// pack readers, never a wrong block.
+func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte, tail []byte) error {
 	// Number the pack, or keep the number of an earlier attempt that failed,
 	// so its durable rows stay right.
 	x.mtx.Lock()
@@ -488,13 +502,23 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 	}
 	x.mtx.Unlock()
 
-	// Write the slices, the rows with the first and the marker with the last.
+	// Take each key's extent from the tail, or write rows of the number alone.
 	value := binary.BigEndian.AppendUint32(nil, row.num)
+	var extents [][]byte
+	if tail != nil && extentWritesOn.Load() {
+		extents = extentValues(tail, entry.GetSizeBytes(), row.num, keys)
+	}
+
+	// Write the slices, the rows with the first and the marker with the last.
 	for start := 0; start == 0 || start < len(keys); start += indexBatchKeys {
 		end := min(start+indexBatchKeys, len(keys))
 		stored := row
 		stored.indexed = end == len(keys)
-		if err := x.writeSlice(ctx, entry, stored, start == 0, keys[start:end], value); err != nil {
+		var slice [][]byte
+		if extents != nil {
+			slice = extents[start:end]
+		}
+		if err := x.writeSlice(ctx, entry, stored, start == 0, keys[start:end], value, slice); err != nil {
 			return err
 		}
 	}
@@ -506,12 +530,70 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 	x.rows[entry.GetId()] = row
 	x.mtx.Unlock()
 	x.version.Add(1)
+
+	// Queue the tail for the drain unless the rows hold their extents.
+	if tail != nil && extents == nil {
+		x.cacheTail(ctx, entry.GetId(), tail)
+	}
 	return nil
 }
 
-// writeSlice writes the h rows of keys naming value, and the pack's row, with
-// its entry when first is set, in one transaction.
-func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte) error {
+// extentWritesOn turns on the extent writes of addWritten; see
+// SetIndexExtentWrites.
+var extentWritesOn atomic.Bool
+
+func init() {
+	extentWritesOn.Store(true)
+}
+
+// SetIndexExtentWrites turns the extent writes of every pack index on or off.
+// On, a pack written or adopted with its index tail writes each block's h row
+// once, with the block's extent; off, the rows name only the pack and the
+// tail's drain rewrites each row with its extent afterwards, as before. The
+// rows are the same either way; on saves the second write of every row.
+func SetIndexExtentWrites(on bool) {
+	extentWritesOn.Store(on)
+}
+
+// extentValues returns the h row value of each of keys, naming the pack num
+// with the key's extent from the index tail of the pack of size bytes, or nil
+// when the tail does not open or does not give every key an extent a row can
+// hold.
+func extentValues(tail []byte, size uint64, num uint32, keys [][]byte) [][]byte {
+	// Collect the tail's extents by h row key.
+	found := make(map[string]hashValue, len(keys))
+	err := packfile.ScanIndexTail(tail, size, func(ie *kvfile.IndexEntry) error {
+		if ie.GetSize() > math.MaxUint32 {
+			return nil
+		}
+		found[string(hashRowKey(ie.GetKey()))] = hashValue{
+			num:    num,
+			off:    ie.GetOffset(),
+			size:   uint32(ie.GetSize()), //nolint:gosec // checked against MaxUint32 above.
+			extent: true,
+		}
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	// Give each key its extent, or none at all when any key lacks one.
+	values := make([][]byte, len(keys))
+	for i, key := range keys {
+		v, ok := found[string(hashRowKey(key))]
+		if !ok {
+			return nil
+		}
+		values[i] = v.marshal()
+	}
+	return values
+}
+
+// writeSlice writes the h rows of keys, each naming value or, when extents is
+// not nil, holding extents[i], and the pack's row, with its entry when first
+// is set, in one transaction.
+func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte, extents [][]byte) error {
 	// Open the transaction, which queues behind waiting writers.
 	tx, err := x.store.NewTransaction(ctx, true)
 	if err != nil {
@@ -531,8 +613,12 @@ func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntr
 	}
 
 	// Write the slice's h rows and commit.
-	for _, key := range keys {
-		if err := tx.Set(ctx, hashRowKey(key), value); err != nil {
+	for i, key := range keys {
+		v := value
+		if extents != nil {
+			v = extents[i]
+		}
+		if err := tx.Set(ctx, hashRowKey(key), v); err != nil {
 			return err
 		}
 	}

@@ -31,7 +31,7 @@ func TestMergePackIndex(t *testing.T) {
 	// The source indexed packs a, b and c, and lists d unindexed.
 	src := newIndex()
 	for _, id := range []string{"a", "b", "c"} {
-		if err := src.addWritten(ctx, entry(id), keysOf(id)); err != nil {
+		if err := src.addWritten(ctx, entry(id), keysOf(id), nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -42,7 +42,7 @@ func TestMergePackIndex(t *testing.T) {
 
 	// The destination indexed its own pack z and lists b unindexed.
 	dst := newIndex()
-	if err := dst.addWritten(ctx, entry("z"), keysOf("z")); err != nil {
+	if err := dst.addWritten(ctx, entry("z"), keysOf("z"), nil); err != nil {
 		t.Fatal(err)
 	}
 	dst.buffered = append(dst.buffered, entry("b"))

@@ -44,11 +44,11 @@ func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry
 		return errors.Wrapf(err, "adopt pack %s", id)
 	}
 
-	// Register it, and list it as this store's own writes are.
-	if err := s.index.addWritten(ctx, entry, keys); err != nil {
+	// Register it with the extents its index lists, and list it as this
+	// store's own writes are.
+	if err := s.index.addWritten(ctx, entry, keys, tail); err != nil {
 		return errors.Wrap(err, "index packfile")
 	}
-	s.index.cacheTail(ctx, id, tail)
 	s.published(entry)
 	return nil
 }
