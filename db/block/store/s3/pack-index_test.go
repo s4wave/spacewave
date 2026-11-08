@@ -660,11 +660,11 @@ func TestAddWrittenInterrupted(t *testing.T) {
 	}
 	store := &stopAfterWrites{Store: hashmap.NewHashmapKvtx(hashmap.NewBTreeMap[[]byte]()), writes: 2}
 	x := newPackIndex(store)
-	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "a"}, keysOf("a", 10)); err != nil {
+	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "a"}, keysOf("a", 10), nil); err != nil {
 		t.Fatal(err)
 	}
 	bKeys := keysOf("b", 2*indexBatchKeys+1)
-	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "b"}, bKeys); err == nil {
+	if err := x.addWritten(ctx, &packfile.PackfileEntry{Id: "b"}, bKeys, nil); err == nil {
 		t.Fatal("indexing b did not stop")
 	}
 
@@ -685,7 +685,7 @@ func TestAddWrittenInterrupted(t *testing.T) {
 	}
 
 	// The next pack takes a number no h row names.
-	if err := got.addWritten(ctx, &packfile.PackfileEntry{Id: "c"}, keysOf("c", 10)); err != nil {
+	if err := got.addWritten(ctx, &packfile.PackfileEntry{Id: "c"}, keysOf("c", 10), nil); err != nil {
 		t.Fatal(err)
 	}
 	if c, b := got.rows["c"].num, got.rows["b"].num; c == b || !got.rows["c"].indexed {

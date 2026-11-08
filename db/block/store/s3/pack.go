@@ -565,19 +565,20 @@ func (s *PackStore) publishPack(ctx context.Context, entry *packfile.PackfileEnt
 		return errors.Wrap(err, "write packfile entry")
 	}
 
-	// Index the keys with the entry and cache the pack's index tail.
+	// Index the keys with the entry and the extents the pack's index tail
+	// lists. A tail that does not read leaves rows of the pack alone.
 	if s.index == nil {
 		return nil
-	}
-	if err := s.index.addWritten(ctx, entry, keys); err != nil {
-		return errors.Wrap(err, "index packfile")
 	}
 	size := uint64(len(data))
 	tail, err := packfile.ReadIndexTail(ctx, size, size, func(_ context.Context, off int64, length int) ([]byte, error) {
 		return data[off : off+int64(length)], nil
 	})
-	if err == nil {
-		s.index.cacheTail(ctx, id, tail)
+	if err != nil {
+		tail = nil
+	}
+	if err := s.index.addWritten(ctx, entry, keys, tail); err != nil {
+		return errors.Wrap(err, "index packfile")
 	}
 	return nil
 }
