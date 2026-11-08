@@ -89,6 +89,22 @@ func (p *placementState) readChains(
 	return reads, copies
 }
 
+// serveReads builds the reads that answer a peer's request for a block: the
+// local store, the backend, then the read fallback. They never ask peers, so
+// two backends that read each other cannot ask in a loop, and they fill
+// nothing, so serving a peer adds nothing to the local store.
+func (p *placementState) serveReads(local block.StoreOps, remote block_store.StoreSource, fallback block.StoreOps) block.StoreOps {
+	reads := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return local },
+		remote,
+		nil,
+	)
+	if fallback == nil {
+		return reads
+	}
+	return &fallbackReads{StoreOps: reads, fallback: block.NewReadOnlyStore(fallback)}
+}
+
 // packReads builds the reads of the local store over the backend. With a fill
 // cache, a backend hit is copied into the cache and not the local store, and the
 // cache is read between the two. Without one, a backend hit fills the local

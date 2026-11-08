@@ -883,6 +883,21 @@ func (a *ProviderAccount) StopP2PSync() {
 	a.retireP2PSyncState(nil)
 }
 
+// serveStore is a mounted block store's reads for a peer's request.
+type serveStore struct {
+	block.StoreOps
+}
+
+// getServeStore returns the reads a peer's request for a block of bucketID
+// takes, or nil while no block store of the bucket is mounted.
+func (a *ProviderAccount) getServeStore(bucketID string) block.StoreOps {
+	v, ok := a.serveStores.Load(bucketID)
+	if !ok {
+		return nil
+	}
+	return v.(*serveStore).StoreOps
+}
+
 // getP2PStore returns the active lifecycle's store for bucketID, including its
 // retained predecessor while replacement startup is incomplete.
 func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
@@ -1377,6 +1392,7 @@ func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus,
 	if err != nil {
 		return err
 	}
+	ctrl.SetLocalSource(func() block.StoreOps { return a.getServeStore(bucketID) })
 	state.addRef(dexRef)
 	state.addStore(bucketID, dex_solicit.NewStore(ctrl))
 	state.bcast.HoldLock(func(changed func(), _ func() <-chan struct{}) {
