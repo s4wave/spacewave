@@ -64,9 +64,12 @@ func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
 }
 
 // locked runs fn under the writer lock as a background step, recording its
-// hold as a commit's wait when a commit waited for the lock meanwhile.
+// hold as a commit's wait when a commit waited for the lock meanwhile. The
+// step yields to an announced request once, then runs: a steady foreground
+// stream always has its next request announced, and yielding to every one
+// would hold flushes until the memtable reached its ceiling (WriterWait.tla).
 func (w *writer) locked(ctx context.Context, fn func() error) error {
-	for {
+	for aged := false; ; aged = true {
 		// Check announcements under the writer lock. Once this check passes,
 		// a newly arriving request can wait behind only this one step.
 		if err := w.take(ctx); err != nil {
@@ -77,7 +80,7 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 			w.unlock()
 			return err
 		}
-		if slot < 0 {
+		if slot < 0 || aged {
 			start := time.Now()
 			err = fn()
 			if w.waiting.Load() != 0 {
@@ -89,8 +92,9 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 
 		// Wait without either writer lock until the announced request takes
 		// its turn, is cancelled locally, or its remote process exits.
+		served := w.served.Load()
 		w.unlock()
-		if err := w.waitRequest(ctx, slot); err != nil {
+		if err := w.waitRequest(ctx, slot, served); err != nil {
 			return err
 		}
 	}

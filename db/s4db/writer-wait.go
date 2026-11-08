@@ -26,6 +26,7 @@ func (w *writer) endWait() {
 	if w.waiting.Add(-1) == 0 {
 		_ = w.db.s.unlock(lockForeground + int64(w.db.slot))
 	}
+	w.served.Add(1)
 	l.Broadcast()
 	l.Unlock()
 }
@@ -58,11 +59,13 @@ func (w *writer) waitingSlot() (int, error) {
 // waitRequest waits for a foreground intent to clear without holding either
 // writer lock. Remote waits use the OS lock wakeup, including process death;
 // like the writer's existing file-lock wait, they cannot be context-cancelled.
-func (w *writer) waitRequest(ctx context.Context, slot int) error {
+// A local wait ends once a request has cleared since served was read under
+// the writer lock, even when overlapping requests keep the count above zero.
+func (w *writer) waitRequest(ctx context.Context, slot int, served uint64) error {
 	// Local requests broadcast both acquisition and cancellation.
 	if slot == w.db.slot {
 		return w.requests.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-			return w.waiting.Load() == 0, nil
+			return w.served.Load() != served, nil
 		})
 	}
 

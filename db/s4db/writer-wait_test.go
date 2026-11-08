@@ -179,6 +179,42 @@ func TestWriterAdmission(t *testing.T) {
 		})
 	}
 
+	// A background step yields once, then runs behind a stream that always has
+	// its next request announced, as a tight commit loop on cheap syncs does.
+	t.Run("steady", func(t *testing.T) {
+		// Two overlapping requests keep this handle's intent held throughout.
+		db := openTest(t, filepath.Join(t.TempDir(), "steady.s4wave"), Options{})
+		defer db.Close()
+		db.sched.stop()
+		for range 2 {
+			if err := db.w.beginWait(); err != nil {
+				t.Fatal(err)
+			}
+		}
+		defer db.w.endWait()
+
+		// The step sees the first request and yields to it.
+		ran := make(chan struct{})
+		done := make(chan error, 1)
+		go func() {
+			done <- db.w.locked(ctx, func() error {
+				close(ran)
+				return nil
+			})
+		}()
+		select {
+		case <-ran:
+			t.Fatal("background step passed an announced request")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		// Serving one request lets the step run though the other is announced.
+		db.w.endWait()
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	})
+
 	// Cancelling before the local mutex grants a transaction drops its intent.
 	t.Run("cancel", func(t *testing.T) {
 		// Hold the local writer while a real transaction announces itself.

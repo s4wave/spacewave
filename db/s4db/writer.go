@@ -27,6 +27,10 @@ type writer struct {
 	// waiting counts this handle's foreground writers waiting for the writer lock. It
 	// is safe without the writer lock.
 	waiting atomic.Int32
+	// served counts this handle's foreground requests that stopped waiting,
+	// by acquiring the writer lock or cancelling. It is safe without the
+	// writer lock.
+	served atomic.Uint64
 }
 
 // lock takes the writer lock and brings the handle up to date with records
