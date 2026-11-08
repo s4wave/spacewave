@@ -584,9 +584,44 @@ func (c *Cursor) ClearAllRefs() {
 // Returns nil, false, ErrBlockStoreUnavailable if the block store is unset.
 // Returns nil, false, nil if the reference is empty.
 // Returns nil, false, ErrNotFound if not found (block unavailable).
+//
+// Fetch keeps nothing: a block the store served without its refs, as a peer
+// serves one, is read from that peer again next time. A reader that decodes
+// the bytes uses Unmarshal or FetchWithKeep, and a reader of a block that
+// holds no refs uses FetchLeaf.
 func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 	data, _, found, err := c.fetch(ctx, false)
 	return data, found, err
+}
+
+// FetchLeaf is Fetch for a block that holds no refs by construction, such as a
+// raw value, a blob chunk or a MessagePack block. A block the store served
+// without its refs is kept as the leaf it is, so the next read finds it
+// locally. Never use it for a block whose decoded form holds refs: the store
+// would record it without them.
+func (c *Cursor) FetchLeaf(ctx context.Context) ([]byte, bool, error) {
+	data, keep, found, err := c.FetchWithKeep(ctx)
+	if keep != nil {
+		keep(context.WithoutCancel(ctx), nil)
+	}
+	return data, found, err
+}
+
+// FetchWithKeep is Fetch for a caller that decodes the block itself. keep is
+// non-nil when the store served the block without its refs and asks to keep
+// it once they are known, as KeepDecodedRefs describes: the caller calls keep
+// with the refs of the block it decodes from data, as Unmarshal does, or drops
+// it when it cannot decode the block.
+func (c *Cursor) FetchWithKeep(ctx context.Context) (data []byte, keep func(context.Context, []*BlockRef), found bool, err error) {
+	if c == nil {
+		return nil, nil, false, nil
+	}
+	fetchCtx, mark := withBlockReadMark(ctx, c.pos.ref)
+	data, _, found, err = c.fetch(fetchCtx, false)
+	if err != nil || !found {
+		return nil, nil, found, err
+	}
+	return data, mark.takeKeep(), true, nil
 }
 
 // fetch loads the decoded block data at the cursor position. With verify it

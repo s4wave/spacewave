@@ -1013,7 +1013,7 @@ func (t *Tx) nodeToValue(ctx context.Context, bcs *block.Cursor, n *Node) ([]byt
 	if isBlob {
 		return blob.FetchToBytes(ctx, valueCursor)
 	}
-	dat, _, err := valueCursor.Fetch(ctx)
+	dat, _, err := valueCursor.FetchLeaf(ctx)
 	return dat, err
 }
 

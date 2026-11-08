@@ -199,9 +199,9 @@ func LookupObjectBodyEntry(ctx context.Context, ws WorldState, objKey string) (*
 
 	// Fetch the root block bytes through the object storage cursor.
 	_, err = AccessObject(ctx, obj.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
-		body, found, err := bcs.Fetch(ctx)
+		body, keep, found, err := bcs.FetchWithKeep(ctx)
 		if found {
-			out.Body = body
+			out.Body, out.keep = body, keep
 		}
 		return err
 	})

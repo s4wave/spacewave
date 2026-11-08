@@ -286,6 +286,6 @@ func (t *Tx) entryToValue(ctx context.Context, page *Page, cursor *block.Cursor,
 	if page.GetEntries()[index].GetValueIsBlob() {
 		return blob.FetchToBytes(ctx, valueCursor)
 	}
-	data, _, err := valueCursor.Fetch(ctx)
+	data, _, err := valueCursor.FetchLeaf(ctx)
 	return data, err
 }

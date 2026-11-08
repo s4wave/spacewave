@@ -26,6 +26,23 @@ type ObjectBody struct {
 	ModSeqno uint64
 	// Exists reports whether the object key exists.
 	Exists bool
+
+	// keep stores the body's block once its decoder knows the block's refs,
+	// set when the store served the block without them; see
+	// block.Cursor.FetchWithKeep. It never crosses a process boundary.
+	keep func(context.Context, []*block.BlockRef)
+}
+
+// keepDecoded hands the refs of blk, the block decoded from b.Body, to the
+// store that served it without them, so the store keeps the block instead of
+// reading it again on the next lookup.
+func (b *ObjectBody) keepDecoded(ctx context.Context, blk any) {
+	if b.keep == nil {
+		return
+	}
+	if refs, err := block.ExtractBlockRefs(blk); err == nil {
+		b.keep(context.WithoutCancel(ctx), refs)
+	}
 }
 
 // ObjectBodyBatcher returns serialized object bodies for object keys.
@@ -232,6 +249,7 @@ func LookupObjectBodies[T any, PT block.Ptr[T]](
 			if err := result.Body.UnmarshalVT(body.Body); err != nil {
 				return nil, err
 			}
+			body.keepDecoded(ctx, result.Body)
 		}
 		results[i] = result
 	}

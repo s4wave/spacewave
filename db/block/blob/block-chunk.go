@@ -62,7 +62,7 @@ func (r *Chunk) fetchData(ctx context.Context, bcs *block.Cursor, copyBuf bool, 
 
 	// Fetch chunk bytes when the cursor has no populated byte block.
 	if !dataOk {
-		data, dataOk, err = currChunkDataCs.Fetch(ctx)
+		data, dataOk, err = currChunkDataCs.FetchLeaf(ctx)
 		if err != nil {
 			return nil, err
 		}
