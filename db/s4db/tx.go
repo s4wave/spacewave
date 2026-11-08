@@ -51,6 +51,8 @@ type Tx struct {
 	// atCommit holds the writes an optimistic transaction deferred to its
 	// commit, in order.
 	atCommit []func(context.Context, kvtx.Tx) error
+	// committed is the seq a commit that wrote changes published.
+	committed uint64
 	// done is set after Commit or Discard.
 	done bool
 }
@@ -397,6 +399,9 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Record the published seq, then make it durable unless ordered.
+	t.committed = seq
 	if ordered {
 		db.flush.ordered()
 		return nil
