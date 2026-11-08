@@ -124,6 +124,7 @@ func runChild(path string) error {
 
 	// Force a single-chunk rollover and a subsequent real checkpoint.
 	initialSpare := db.cur.Load().spare
+	var target uint64
 	for range 3 {
 		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {
@@ -138,8 +139,11 @@ func runChild(path string) error {
 		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
+		target = tx.(*Tx).committed
 	}
-	target := db.cur.Load().seq
+
+	// Wait for a flush through the last commit. The published seq can be past
+	// it already, at a peer's record, and a flush need never reach that seq.
 	if err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
 		st := db.cur.Load()
 		return st.flushed >= target, nil
