@@ -39,6 +39,9 @@ func (p *placementState) readChains(
 	remote, peers block_store.StoreSource,
 	fallback block.StoreOps,
 ) (reads, copies block.StoreOps) {
+	// Keep a peer's block served without refs once its reader decodes them.
+	peers = p.peerDecoded(peers)
+
 	// Read the backend and then peers when the placement has no fallback.
 	if fallback == nil {
 		lower := block_store.NewStoreReadThrough(remote, peers, nil)

@@ -171,6 +171,9 @@ type blockReadMark struct {
 	gen uint64
 	// staged is set when any store served staged content during the read.
 	staged bool
+	// keep stores the block once the reader decoded its refs, set by a store
+	// that served it without them.
+	keep func(context.Context, []*BlockRef)
 }
 
 // withBlockReadMark attaches a fresh mark for a read of ref to ctx.
@@ -219,6 +222,37 @@ func MarkStagedRead(ctx context.Context) {
 		mark.staged = true
 		mark.mtx.Unlock()
 	}
+}
+
+// KeepDecodedRefs asks the reader of ref on ctx to call keep with a copy of
+// data, the block's stored bytes, and the block's refs once it decodes the
+// block. A store that served the block without its refs, which it cannot store
+// as a leaf, stores it this way with the refs a write of the block records.
+// keep runs at most once, after the read returns, and only for a block the
+// reader decoded. A read nobody marks drops it without copying data.
+func KeepDecodedRefs(ctx context.Context, ref *BlockRef, data []byte, keep func(ctx context.Context, data []byte, refs []*BlockRef)) {
+	mark := blockReadMarkFromContext(ctx)
+	if mark == nil || !mark.ref.EqualsRef(ref) {
+		return
+	}
+
+	// Copy the bytes: the reader may decode them in place.
+	data = append([]byte(nil), data...)
+	mark.mtx.Lock()
+	mark.keep = func(ctx context.Context, refs []*BlockRef) { keep(ctx, data, refs) }
+	mark.mtx.Unlock()
+}
+
+// takeKeep returns and clears the read's keep, or nil.
+func (m *blockReadMark) takeKeep() func(context.Context, []*BlockRef) {
+	if m == nil {
+		return nil
+	}
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	keep := m.keep
+	m.keep = nil
+	return keep
 }
 
 // admission returns the removal generation the read's block may enter the

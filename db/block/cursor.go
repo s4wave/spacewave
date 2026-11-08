@@ -735,11 +735,9 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
-	// The mark records whether a durable store served the block.
-	fetchCtx, mark := ctx, (*blockReadMark)(nil)
-	if cacheable {
-		fetchCtx, mark = withBlockReadMark(ctx, c.pos.ref)
-	}
+	// The mark records whether a durable store served the block, and whether
+	// the store asks for the block's refs to keep it.
+	fetchCtx, mark := withBlockReadMark(ctx, c.pos.ref)
 	dat, stored, datFound, err := c.fetch(fetchCtx, cacheable)
 	if err != nil {
 		return nil, err
@@ -755,6 +753,15 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		if v, ok := b.(DecodedBlockValidator); ok {
 			if err := v.ValidateDecodedBlock(); err != nil {
 				return nil, err
+			}
+		}
+
+		// Hand the decoded refs to a store that served the block without
+		// them, so it can keep the block. These are the refs a write of the
+		// block records.
+		if keep := mark.takeKeep(); keep != nil {
+			if refs, err := ExtractBlockRefs(b); err == nil {
+				keep(context.WithoutCancel(ctx), refs)
 			}
 		}
 
