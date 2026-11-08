@@ -44,6 +44,9 @@ type solicitProtocol struct {
 	context     []byte
 	peerID      peer.ID
 	transportID uint64
+	// unique makes the directive equivalent to no other, so the bus never
+	// merges it into an existing offer.
+	unique bool
 }
 
 // NewSolicitProtocol constructs a new SolicitProtocol directive.
@@ -58,6 +61,27 @@ func NewSolicitProtocol(
 		context:     ctx,
 		peerID:      peerID,
 		transportID: transportID,
+	}
+}
+
+// NewUniqueSolicitProtocol constructs a SolicitProtocol that no other
+// directive is equivalent to. The bus merges an equivalent directive into the
+// existing one, which keeps its offer incarnation, and the solicit controller
+// opens one stream per pair of incarnations on a link. Offering again with a
+// unique directive gets a new incarnation, so it matches the remote offers
+// anew and opens a new stream on a link that is already up.
+func NewUniqueSolicitProtocol(
+	protocolID protocol.ID,
+	ctx []byte,
+	peerID peer.ID,
+	transportID uint64,
+) SolicitProtocol {
+	return &solicitProtocol{
+		protocolID:  protocolID,
+		context:     ctx,
+		peerID:      peerID,
+		transportID: transportID,
+		unique:      true,
 	}
 }
 
@@ -102,6 +126,14 @@ func (d *solicitProtocol) IsEquivalent(other directive.Directive) bool {
 	// Compare only directives that solicit a protocol.
 	od, ok := other.(SolicitProtocol)
 	if !ok {
+		return false
+	}
+
+	// A unique offer is never merged with another.
+	if d.unique {
+		return false
+	}
+	if o, ok := od.(*solicitProtocol); ok && o.unique {
 		return false
 	}
 
