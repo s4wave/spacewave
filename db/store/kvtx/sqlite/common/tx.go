@@ -44,6 +44,9 @@ type Tx struct {
 	committed func()
 	// release ends a write transaction's writer turn.
 	release func()
+	// turns admits a snapshot read's statements into SQLite, nil for writes
+	// and reads through the pool.
+	turns readTurns
 
 	// finalizeMu guards closed.
 	finalizeMu sync.RWMutex
@@ -67,9 +70,9 @@ func newWriteTx(conn *sql.Conn, queries *queries, flusher *kvtx.OrderedFlusher, 
 }
 
 // newReadTx returns a read transaction on db, in one snapshot when snapshot
-// is set.
-func newReadTx(db *sql.DB, queries *queries, snapshot bool) *Tx {
-	return &Tx{queries: queries, db: db, snapshot: snapshot}
+// is set, whose statements take turns when turns is set.
+func newReadTx(db *sql.DB, queries *queries, snapshot bool, turns readTurns) *Tx {
+	return &Tx{queries: queries, db: db, snapshot: snapshot, turns: turns}
 }
 
 // errIfClosed returns kvtx.ErrDiscarded after Commit or Discard.
@@ -111,7 +114,13 @@ func (t *Tx) queryer(ctx context.Context) (sqliteQueryer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := conn.ExecContext(ctx, "BEGIN"); err != nil {
+	if err := t.turns.enter(ctx); err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+	_, err = conn.ExecContext(ctx, "BEGIN")
+	t.turns.leave()
+	if err != nil {
 		discardConn(conn)
 		return nil, err
 	}
@@ -143,7 +152,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 
 	// Read the SQLite value and distinguish a missing key from query failure.
 	var value []byte
-	err = q.QueryRowContext(ctx, t.queries.get, key).Scan(&value)
+	err = t.turns.queryRow(ctx, q, t.queries.get, []any{key}, &value)
 	if err == sql.ErrNoRows {
 		return nil, false, nil
 	}
@@ -163,7 +172,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 
 	// Count the table's rows.
 	var count uint64
-	err = q.QueryRowContext(ctx, t.queries.size).Scan(&count)
+	err = t.turns.queryRow(ctx, q, t.queries.size, nil, &count)
 	return count, err
 }
 
@@ -204,24 +213,44 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		args = []any{prefix}
 	}
 
-	// Open SQLite scan rows and release them when scanning ends.
-	rows, err := q.QueryContext(ctx, query, args...)
-	if err != nil {
+	// Open SQLite scan rows and close them when scanning ends, taking a turn
+	// for each row but not for the callback, which may read again.
+	if err := t.turns.enter(ctx); err != nil {
 		return err
 	}
-	defer rows.Close()
+	rows, err := q.QueryContext(ctx, query, args...)
+	if err != nil {
+		t.turns.leave()
+		return err
+	}
+	inTurn := true
+	defer func() {
+		if !inTurn {
+			_ = t.turns.enter(context.Background())
+		}
+		_ = rows.Close()
+		t.turns.leave()
+	}()
 
 	// Deliver each SQLite key and value to the scan callback.
-	for rows.Next() {
+	for {
+		if !rows.Next() {
+			return rows.Err()
+		}
 		var key, value []byte
 		if err := rows.Scan(&key, &value); err != nil {
 			return err
 		}
+		t.turns.leave()
+		inTurn = false
 		if err := cb(key, value); err != nil {
 			return err
 		}
+		if err := t.turns.enter(ctx); err != nil {
+			return err
+		}
+		inTurn = true
 	}
-	return rows.Err()
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
@@ -237,7 +266,9 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	if err != nil {
 		return kvtx.NewErrIterator(err)
 	}
-	return NewIterator(ctx, q, t.errIfClosed, t.queries.table, prefix, sort, reverse)
+	it := NewIterator(ctx, q, t.errIfClosed, t.queries.table, prefix, sort, reverse)
+	it.turns = t.turns
+	return it
 }
 
 // Delete deletes a key.
@@ -269,7 +300,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 	// Check SQLite key existence and distinguish absence from query failure.
 	var exists int
-	err = q.QueryRowContext(ctx, t.queries.exists, key).Scan(&exists)
+	err = t.turns.queryRow(ctx, q, t.queries.exists, []any{key}, &exists)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
@@ -345,7 +376,10 @@ func (t *Tx) endRead() {
 	if t.conn == nil {
 		return
 	}
-	if _, err := t.conn.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+	_ = t.turns.enter(context.Background())
+	_, err := t.conn.ExecContext(context.Background(), "ROLLBACK")
+	t.turns.leave()
+	if err != nil {
 		discardConn(t.conn)
 		return
 	}
