@@ -42,6 +42,22 @@ var formerPrefixes = []string{"pending/", "target", "queue-pending"}
 // backfillBatchSize bounds the blocks one backfill marker transaction queues.
 const backfillBatchSize = 256
 
+const (
+	// clearBlocks bounds the queue entries one clear transaction removes, and
+	// the entries one prefetch warms ahead of the transactions that remove
+	// them. An upload batch to a pack store carries over a hundred thousand
+	// blocks; cleared in one transaction, it held the store's writer for a
+	// minute, and every write of the store, a player's included, waited
+	// behind it.
+	clearBlocks = 1024
+	// clearHold bounds how long one clear transaction holds the store's
+	// writer once it removed one entry, so a slow disk shortens the
+	// transaction rather than lengthening the foreground writers' wait. The
+	// clear commits there and queues for the writer again, behind every
+	// foreground writer that arrived meanwhile.
+	clearHold = 20 * time.Millisecond
+)
+
 // errScanDone stops a queue scan.
 var errScanDone = errors.New("queue scan done")
 
@@ -739,12 +755,30 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // A dropped block written again since the batch read it keeps its marker: the
 // write changed the queue entry's value, and the block is on the local store
 // alone.
+//
+// The batch clears in transactions of at most clearBlocks entries, each
+// holding the writer for about clearHold at most. A failure leaves the entries
+// after the last commit queued, so they upload again, which the remote keeps
+// as another copy.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
-	// Read what the clear reads before taking any lock, so the reads under
-	// the writer lock find their pages cached and bound how long it holds
-	// them.
-	s.prefetchClear(ctx, batch)
+	for window := range slices.Chunk(batch, clearBlocks) {
+		// Read what the clears read before taking any lock, so the reads
+		// under the writer find their pages cached.
+		s.prefetchClear(ctx, window)
+		for len(window) != 0 {
+			n, err := s.clearSome(ctx, window)
+			if err != nil {
+				return err
+			}
+			window = window[n:]
+		}
+	}
+	return nil
+}
 
+// clearSome clears the batch's leading entries in one transaction, as many as
+// clearHold admits and at least one, and returns how many it cleared.
+func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error) {
 	// Clear behind every foreground writer: the upload is background work,
 	// and a player's write must not queue behind its marker clears. The
 	// writers that block on mtx while a clear waits are a backfill, a
@@ -756,13 +790,13 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	// Serialize uploaded marker removal with queue status updates.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer release()
 
 	// Remove uploaded block markers, count their cleared bytes, and read the
 	// write time of the queue's new head.
-	var cleared, uploaded int
+	var taken, cleared, uploaded int
 	var clearedBytes, uploadedBytes, queuedBytes int64
 	var oldest time.Time
 	var head []byte
@@ -772,6 +806,9 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	var counted countDelta
 	var ended bool
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// The writer is held from here.
+		held := time.Now()
+
 		// Delete the markers still queued, counting what they held, and queue
 		// the uploaded blocks for eviction.
 		epoch, err := readEpoch(ctx, tx)
@@ -782,9 +819,15 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		if err != nil {
 			return err
 		}
-		cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0
+		taken, cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0, 0
 		counted, ended = countDelta{}, false
 		for _, pending := range batch {
+			// Commit once the writer was held for clearHold, leaving the rest
+			// to the next transaction.
+			if taken != 0 && time.Since(held) >= clearHold {
+				break
+			}
+			taken++
 			value, found, err := tx.Get(ctx, pending.queueKey)
 			if err != nil {
 				return err
@@ -850,7 +893,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		return writeQueueCount(ctx, tx, count)
 	})
 	if err != nil {
-		return errors.Wrap(err, "clear uploaded blocks")
+		return 0, errors.Wrap(err, "clear uploaded blocks")
 	}
 
 	// Publish the remaining upload queue and clear its last failure.
@@ -882,7 +925,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		}
 		broadcast()
 	})
-	return nil
+	return taken, nil
 }
 
 // prefetchClear reads the keys clear reads, in a read transaction that holds

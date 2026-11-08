@@ -13,7 +13,7 @@ import (
 
 const (
 	// drainBatchBlocks bounds the queue entries one drain batch carries, and
-	// so the entries its clear of located blocks removes in one transaction.
+	// so the entries its clear of located blocks removes.
 	drainBatchBlocks = clearLocatedBlocks
 	// drainMaxBlock is the largest queued block a drain pushes. A larger one
 	// stays queued for Upload, so a batch always fits one push.
