@@ -125,6 +125,11 @@ if [ -n "$go_files" ]; then
 	set --
 	while IFS= read -r go_pkg_dir; do
 		[ -n "$go_pkg_dir" ] || continue
+		# The go tool never builds testdata as a package; analyzer fixtures
+		# there resolve only inside their analysistest GOPATH.
+		case "$go_pkg_dir" in
+		*/testdata | */testdata/*) continue ;;
+		esac
 		# Nested tool modules own their dependency graph and have no aptre setup.
 		# Check them from their package directory instead of the root module.
 		module_file=$(cd "$go_pkg_dir" && go env GOMOD)

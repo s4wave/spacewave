@@ -2,5 +2,7 @@ version: v2.13.2
 plugins:
   - module: 'github.com/s4wave/spacewave/lint/nonavigate'
     path: ./lint/nonavigate
+  - module: 'github.com/s4wave/spacewave/lint/quadscan'
+    path: ./lint/quadscan
   - module: 'github.com/aperturerobotics/common/lint/lostresource'
     version: v0.0.0-20260914223937-aa204b01cc83

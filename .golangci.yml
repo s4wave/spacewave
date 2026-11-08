@@ -17,6 +17,7 @@ linters:
     - lostresource
     - misspell
     - nonavigate
+    - quadscan
     - revive
     - unconvert
   disable:
@@ -138,6 +139,9 @@ linters:
       nonavigate:
         type: 'module'
         description: Forbids Harness.Navigate calls in e2e/wasm tests (destroys WASM process).
+      quadscan:
+        type: 'module'
+        description: Flags graph quads that fix only the predicate, which scan every quad with it.
     revive:
       rules:
         - name: package-comments
