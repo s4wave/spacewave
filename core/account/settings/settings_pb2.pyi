@@ -107,7 +107,7 @@ class SqlLocation(_message.Message):
     def __init__(self, host: _Optional[str] = ..., port: _Optional[int] = ..., database: _Optional[str] = ..., table_prefix: _Optional[str] = ..., tls: _Optional[bool] = ..., tls_cert_sha256: _Optional[str] = ...) -> None: ...
 
 class S3Location(_message.Message):
-    __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl", "pricing", "keep_packs")
+    __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl", "pricing", "keep_packs", "index_only", "max_pack_bytes", "linger_seconds")
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     REGION_FIELD_NUMBER: _ClassVar[int]
     BUCKET_FIELD_NUMBER: _ClassVar[int]
@@ -115,6 +115,9 @@ class S3Location(_message.Message):
     DISABLE_SSL_FIELD_NUMBER: _ClassVar[int]
     PRICING_FIELD_NUMBER: _ClassVar[int]
     KEEP_PACKS_FIELD_NUMBER: _ClassVar[int]
+    INDEX_ONLY_FIELD_NUMBER: _ClassVar[int]
+    MAX_PACK_BYTES_FIELD_NUMBER: _ClassVar[int]
+    LINGER_SECONDS_FIELD_NUMBER: _ClassVar[int]
     endpoint: str
     region: str
     bucket: str
@@ -122,7 +125,10 @@ class S3Location(_message.Message):
     disable_ssl: bool
     pricing: _s3_pb2.Pricing
     keep_packs: bool
-    def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ..., keep_packs: _Optional[bool] = ...) -> None: ...
+    index_only: bool
+    max_pack_bytes: int
+    linger_seconds: int
+    def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ..., keep_packs: _Optional[bool] = ..., index_only: _Optional[bool] = ..., max_pack_bytes: _Optional[int] = ..., linger_seconds: _Optional[int] = ...) -> None: ...
 
 class BlockStorePlacement(_message.Message):
     __slots__ = ("block_store_id", "storage_backend_id", "cache", "fallback_storage_backend_id")
