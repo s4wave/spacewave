@@ -71,6 +71,34 @@ mount belongs in your launcher's host config. `d.HostConfigSet()` returns
 those controllers: the CDN World following the Space's root pointer, the
 buckets its refs name, and the manifest fetcher over your manifest store.
 
+## Serve and push the selector
+
+A launcher polls its selector URL hourly by default. Serve it from a
+`publisher.Selector`, which caches the response for a minute and forwards each
+new selector to the clients your server holds connections to:
+
+```go
+var sel publisher.Selector
+http.Handle("/api/release/config", &sel)
+
+// After each Release or Reissue:
+sel.SetReleased(released)
+
+// Per connected client, on the server:
+go sel.Forward(ctx, func(ctx context.Context, signed string) error {
+	return conn.SendSelector(ctx, signed)
+})
+
+// On the client, hand each message to its launcher:
+push := publisher.PushToLauncher(pluginBus)
+err := push(ctx, signed)
+```
+
+`Set` keeps the higher revision, so a late or repeated release never moves
+clients back. The launcher verifies a pushed selector as it would a fetched
+one and adopts it only above its current revision, so an old or badly signed
+message changes nothing.
+
 ## Name the deployment once in bldr.star
 
 Your `bldr.star` loads the same configs from the release library in the
