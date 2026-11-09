@@ -589,8 +589,8 @@ func (s *Store[T]) wakeCheckpoint() {
 // reader on it starts the log over and trims it to the bound. The checkpointer
 // takes the write lock only for a log past walRestartFactor times its bound,
 // which readers kept from restarting: a restarting checkpoint holds the lock
-// through the database file's fsync, 2 to 15 s on a busy disk, past every
-// writer's busy wait.
+// through the database file's fsync, 2 to 15 s on a busy disk, and holds the
+// writer turn meanwhile, so writers wait for it in the store's queue.
 func (s *Store[T]) runCheckpoints(ctx context.Context) {
 	defer close(s.checkpointsDone)
 	for {
@@ -646,8 +646,21 @@ func (s *Store[T]) walPastBound(factor int64) bool {
 // a log of hundreds of MiB to zero freed and synced the whole file under the
 // write lock, 7 to 10 s on a busy disk, past every writer's busy wait, and the
 // file would only grow back to the bound.
+//
+// The checkpoint takes the writer turn first, as a foreground writer, so the
+// write lock is free when it asks and its short wait covers only readers.
+// Without the turn it raced the store's own writers for SQLite's write lock:
+// writers that follow each other with no gap hold it nearly all the time, the
+// checkpoint fell back to a passive one, and on be-7 the World's log grew to
+// 5.4 GiB between restarts against a 512 MiB bound.
 func (s *Store[T]) truncateWAL(ctx context.Context) {
-	// Take a connection and shorten its busy wait.
+	// Take the writer turn, then a connection, in the order every writer
+	// takes them, and shorten the connection's busy wait.
+	release, err := s.writeMtx.Lock(ctx, writerForeground)
+	if err != nil {
+		return
+	}
+	defer release()
 	conn, err := s.db.Conn(ctx)
 	if err != nil {
 		return
