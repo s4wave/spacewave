@@ -439,9 +439,13 @@ func (p *placementState) runEviction(ctx context.Context) error {
 	startCacheHits()
 	for {
 		// Run a pass while the store is past its budget.
+		// Before the upload opens the backend no pass can run, so wait for
+		// the next status change rather than the short wait: a restart
+		// checks before the backend opens, and waiting evictShortWait then
+		// left the disk filling for ten minutes after every start.
 		status, changed := p.wb.GetStatus()
 		var retry <-chan time.Time
-		if want := status.EvictBytes(); want > 0 {
+		if want := status.EvictBytes(); want > 0 && p.remote.Load() != nil {
 			result, err := p.evict(ctx, want)
 			if err != nil {
 				return err
