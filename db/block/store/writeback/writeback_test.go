@@ -683,6 +683,41 @@ func TestUploadFillsBatches(t *testing.T) {
 // TestRPCWritesRetainUploadMarkers checks that writes through the real block
 // RPC persist their markers before success and drain after the store reopens.
 func TestRPCWritesRetainUploadMarkers(t *testing.T) {
+	testRPCWritesRetainUploadMarkers(t, false)
+}
+
+// TestRPCHoldingWritesRetainUploadMarkers repeats the RPC test through a proxy
+// that reports the remote volume holds roots, as the plugin host volume does:
+// its transactions run in another process and cannot mark the blocks.
+func TestRPCHoldingWritesRetainUploadMarkers(t *testing.T) {
+	testRPCWritesRetainUploadMarkers(t, true)
+}
+
+// holdingProxy is a remote block store that reports holding roots.
+type holdingProxy struct {
+	block.StoreOps
+}
+
+// HoldsRoots reports that the remote volume holds roots.
+func (holdingProxy) HoldsRoots() bool { return true }
+
+// PinRoot holds nothing; the test writes no roots.
+func (holdingProxy) PinRoot(context.Context, *block.BlockRef) (func(), error) {
+	return func() {}, nil
+}
+
+// OpenStage returns the proxy itself; the test opens no stage.
+func (p holdingProxy) OpenStage(context.Context) (block.StoreOps, func(), error) {
+	return p, func() {}, nil
+}
+
+// ReleaseRoots releases nothing; the test opens no stage.
+func (holdingProxy) ReleaseRoots(context.Context, []*block.BlockRef) error { return nil }
+
+// testRPCWritesRetainUploadMarkers writes through a block RPC proxy, which
+// reports holding roots when holds is set, and checks every acknowledged write
+// is marked and uploads after a reopen.
+func testRPCWritesRetainUploadMarkers(t *testing.T, holds bool) {
 	// Serve blocks over RPC under an independent server connection context.
 	ctx := t.Context()
 	env := newTestEnv(t)
@@ -697,7 +732,10 @@ func TestRPCWritesRetainUploadMarkers(t *testing.T) {
 	client := srpc.NewClient(func(_ context.Context, handler srpc.PacketDataHandler, closed srpc.CloseHandler) (srpc.PacketWriter, error) {
 		return open(ctx, handler, closed)
 	})
-	local := block_rpc_client.NewBlockStore(block_rpc.NewSRPCBlockStoreClient(client), 0, false)
+	var local block.StoreOps = block_rpc_client.NewBlockStore(block_rpc.NewSRPCBlockStoreClient(client), 0, false)
+	if holds {
+		local = holdingProxy{local}
+	}
 
 	// Open the upload queue over the remote block store.
 	s, err := NewStore(ctx, local, env.vol, env.markers(t), testMarkersID, true)

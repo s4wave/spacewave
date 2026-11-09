@@ -159,18 +159,19 @@ func newStore(
 	case divert:
 		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
 	case block.HoldsRoots(writes):
-		s.MarkingStore = NewTxMarkingStore(writes, s)
+		s.MarkingStore = NewTxMarkingStore(writes, s, s.queue)
 	default:
 		s.MarkingStore = NewMarkingStore(writes, s.queue)
 	}
 
 	// Restore the pending upload counts, eviction queue size and completed
-	// backfill target. A read-only open reads the same state and writes none
-	// of it.
+	// backfill target.
 	var pending int
 	var pendingBytes, evictableBytes int64
 	var target, resume []byte
 	var oldest time.Time
+
+	// A read-only open reads the same state and writes none of it.
 	readOnly := readOnlyOpen.Load()
 	openTx := s.writeTx
 	if readOnly {

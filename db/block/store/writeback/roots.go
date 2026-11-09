@@ -34,7 +34,7 @@ func (m *MarkingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 			return err
 		}
 		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
-			return errUnmarkedWrite
+			return m.markEntriesUnapplied(ctx, entries)
 		}
 		m.invalidateTombstones(ctx, entries)
 		return nil

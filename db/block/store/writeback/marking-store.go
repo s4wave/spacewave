@@ -18,20 +18,24 @@ type decodedBlockRefInvalidator interface {
 }
 
 // errUnmarkedWrite is returned for a write whose blocks no transaction
-// marked, because the store below cannot mark in its transactions.
+// marked, because the store below cannot mark in its transactions, when the
+// MarkingStore has no mark function to mark them after the write.
 var errUnmarkedWrite = errors.New("store did not mark the written blocks")
 
 // MarkingStore acknowledges writes only after each written block is marked.
 //
 // It marks in one of two ways. NewTxMarkingStore asks the transaction that
 // stores a block to mark it, so the block and its marker commit or discard
-// together, and a write fails if the store below cannot do so. NewMarkingStore
-// calls a function after the write, so a write that fails to mark returns the
-// error with the block stored, and repeating the write repairs the marker.
+// together. NewMarkingStore calls a function after the write, so a write that
+// fails to mark returns the error with the block stored, and repeating the
+// write repairs the marker. A store below that holds roots can still be unable
+// to mark in its transactions, such as an RPC proxy whose transactions run in
+// another process; NewTxMarkingStore then marks its writes after them.
 type MarkingStore struct {
 	// store owns the block writes.
 	store block.StoreOps
-	// mark records every written block after its write, when marker is nil.
+	// mark records every written block after its write, when marker is nil
+	// or no transaction applied the marker.
 	mark MarkFunc
 	// marker records every written block in the transaction that stores it,
 	// when not nil.
@@ -44,9 +48,10 @@ func NewMarkingStore(store block.StoreOps, mark MarkFunc) *MarkingStore {
 }
 
 // NewTxMarkingStore wraps store, which marks every written block with marker
-// in the transaction that stores it.
-func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker) *MarkingStore {
-	return &MarkingStore{store: store, marker: marker}
+// in the transaction that stores it. A write no transaction marked is marked
+// by calling mark after it, or fails when mark is nil.
+func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker, mark MarkFunc) *MarkingStore {
+	return &MarkingStore{store: store, marker: marker, mark: mark}
 }
 
 // GetStoreParts returns the wrapped store.
@@ -80,7 +85,7 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
 		ref, existed, err := m.store.PutBlock(ctx, data, opts)
 		if err == nil && !ref.GetEmpty() && !req.Applied() {
-			err = errUnmarkedWrite
+			err = m.markUnapplied(ctx, []Mark{{Hash: ref.GetHash(), Size: int64(len(data)), At: time.Now()}})
 		}
 		return ref, existed, err
 	}
@@ -103,7 +108,7 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 			return nil, err
 		}
 		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
-			return nil, errUnmarkedWrite
+			return existed, m.markEntriesUnapplied(ctx, entries)
 		}
 		m.invalidateTombstones(ctx, entries)
 		return existed, nil
@@ -116,6 +121,24 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		return nil, err
 	}
 	return existed, m.markEntries(ctx, entries)
+}
+
+// markUnapplied marks blocks a transaction-marked write stored without
+// marking, through mark, or fails when there is none.
+func (m *MarkingStore) markUnapplied(ctx context.Context, marks []Mark) error {
+	if m.mark == nil {
+		return errUnmarkedWrite
+	}
+	return m.mark(ctx, marks)
+}
+
+// markEntriesUnapplied marks a batch a transaction-marked write stored without
+// marking, through mark, or fails when there is none.
+func (m *MarkingStore) markEntriesUnapplied(ctx context.Context, entries []*block.PutBatchEntry) error {
+	if m.mark == nil {
+		return errUnmarkedWrite
+	}
+	return m.markEntries(ctx, entries)
 }
 
 // isMarked reports whether a batch entry stores a block that needs a marker.
