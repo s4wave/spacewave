@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
@@ -252,11 +253,12 @@ func (t *bstoreTracker) startNodePush(
 	le.Info("pushing publications to the storage node")
 
 	// Keep the connection up until the store unmounts, unless the caller runs
-	// it, and drain beside it.
+	// it, and drain beside it. The unbounded queue starts each routine at once
+	// and reports idle when every one returned.
 	runCtx, cancel := context.WithCancel(ctx)
-	var running sync.WaitGroup
+	running := conc.NewConcurrentQueue(0)
 	if conf.Client == nil {
-		running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+		running.Enqueue(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
 	}
 
 	// Keep pushed blocks in memory while durable, spilling what waits too
@@ -267,7 +269,7 @@ func (t *bstoreTracker) startNodePush(
 		handle.push.SetFallback(conf.Fallback)
 		t.held.Store(held)
 		heldSpills.Store(StorageVolumeID(t.a.GetProviderID(), t.a.GetAccountID()), func(ctx context.Context) error { return spillAll(ctx, held, wb) })
-		running.Go(func() { runSpill(runCtx, le, held, wb, conf.Durable, client.Connected) })
+		running.Enqueue(func() { runSpill(runCtx, le, held, wb, conf.Durable, client.Connected) })
 	}
 	if conf.Drain != nil && conf.Drain.Admit != nil {
 		drain := wb.NewDrain(func(ctx context.Context, entries []*block.PutBatchEntry) error {
@@ -284,13 +286,13 @@ func (t *bstoreTracker) startNodePush(
 			Admit:      conf.Drain.Admit,
 			Report:     conf.Drain.Report,
 		})
-		running.Go(func() { t.runNodeDrain(runCtx, le, placement, drain) })
+		running.Enqueue(func() { t.runNodeDrain(runCtx, le, placement, drain) })
 	}
 	return func() {
 		// Stop the push and the routines, then spill what memory holds.
 		t.nodeClient.Store(nil)
 		cancel()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 		handle.push.Close()
 		if conf.Client != nil {
 			client.SetApplier(nil)
@@ -313,17 +315,17 @@ func (t *bstoreTracker) startNodeReads(ctx context.Context, le *logrus.Entry) fu
 	// Take the shared client, or run one without an applier.
 	client := conf.Client
 	runCtx, cancel := context.WithCancel(ctx)
-	var running sync.WaitGroup
+	running := conc.NewConcurrentQueue(0)
 	if client == nil {
 		client = block_store_nodepush.NewClient(le.WithField("routine", "node-reads"), nil)
-		running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+		running.Enqueue(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
 	}
 	t.nodeClient.Store(client)
 	le.Info("reading the storage node, serve mode pushes nothing")
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 	}
 }
 
