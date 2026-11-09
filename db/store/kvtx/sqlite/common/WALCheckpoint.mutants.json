@@ -1,0 +1,7 @@
+[
+  {
+    "name": "D2 and D3: the restart takes the lock outside the writer turn, with no busy retry",
+    "replace": [["RestartTakesTurn == TRUE", "RestartTakesTurn == FALSE"]],
+    "expect": "WritersNeverBusy"
+  }
+]

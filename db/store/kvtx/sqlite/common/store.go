@@ -47,7 +47,9 @@ func ValidateTableName(table string) error {
 // writer turn. A crash may lose an ordered commit only with every commit after
 // it, since SQLite recovers the WAL up to its first incomplete frame. The
 // writer never checkpoints; a background passive checkpoint moves the WAL into
-// the database file without SQLite's write lock.
+// the database file without SQLite's write lock, and the one checkpoint that
+// takes that lock, the WAL restart, takes the writer turn first, so it too
+// queues with the writers.
 type Store[T SQLiteDriverConfig] struct {
 	// db owns the SQL connection pool and its transaction lifetimes.
 	db *sql.DB
@@ -77,7 +79,7 @@ type Store[T SQLiteDriverConfig] struct {
 
 	// flusher makes ordered commits durable by flushing the WAL.
 	flusher *kvtx.OrderedFlusher
-	// walBound is the WAL size past which a complete checkpoint truncates it.
+	// walBound is the WAL size past which a complete checkpoint restarts it.
 	walBound int64
 
 	// fileMtx guards the fields below.
@@ -112,9 +114,9 @@ const CheckpointInterval = time.Second
 // none.
 const DefaultWALCheckpointBytes = 64 << 20
 
-// truncateBusyTimeout bounds how long the checkpoint that truncates the WAL
+// restartBusyTimeout bounds how long the checkpoint that restarts the WAL
 // waits for readers of the old log, while it holds SQLite's write lock.
-const truncateBusyTimeout = 100 * time.Millisecond
+const restartBusyTimeout = 100 * time.Millisecond
 
 // NewStore constructs a new key-value store from a SQLite database.
 func NewStore[T SQLiteDriverConfig](db *sql.DB, table string, config T) (*Store[T], error) {
@@ -530,7 +532,7 @@ func (s *Store[T]) wakeCheckpoint() {
 // most once per CheckpointInterval while commits continue. A passive
 // checkpoint never takes SQLite's write lock, so no write waits on it. Under
 // constant reads SQLite may never restart a fully copied WAL, so once a passive
-// checkpoint copies all of a WAL past its bound, a truncating one resets it.
+// checkpoint copies all of a WAL past its bound, a restarting one resets it.
 func (s *Store[T]) runCheckpoints(ctx context.Context) {
 	defer close(s.checkpointsDone)
 	for {
@@ -553,9 +555,9 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 			continue
 		}
 
-		// Truncate a fully copied WAL past its bound.
+		// Restart a fully copied WAL past its bound.
 		if s.walPastBound() {
-			s.truncateWAL(ctx)
+			s.restartWAL(ctx)
 		}
 	}
 }
@@ -571,25 +573,40 @@ func (s *Store[T]) walPastBound() bool {
 	return err == nil && info.Size() > s.walBound
 }
 
-// truncateWAL resets and truncates a WAL with nothing left to copy. The
-// checkpoint holds SQLite's write lock while it waits for readers of the old
-// log, so it runs on a connection of its own that waits at most
-// truncateBusyTimeout, then gives up until a later round.
-func (s *Store[T]) truncateWAL(ctx context.Context) {
+// restartWAL restarts a fully copied WAL, so the next commit writes from the
+// start of the file and journal_size_limit trims it to the bound.
+//
+// The checkpoint holds SQLite's write lock while it copies the frames
+// committed since the passive pass and waits for readers of the old log. It
+// takes the writer turn first, at background priority, so a write waits for
+// it in this process, bounded by its own context, rather than in SQLite's
+// busy handler, which fails it with "database is locked" after 5 s. The
+// checkpoint's own connection waits at most restartBusyTimeout for readers,
+// then gives up until a later round. It restarts rather than truncates:
+// truncating a log of hundreds of MiB to zero frees and syncs the whole file
+// under the lock, and the file would only grow back to the bound.
+func (s *Store[T]) restartWAL(ctx context.Context) {
+	// Take the writer turn behind every waiting foreground writer.
+	release, err := s.writeMtx.Lock(ctx, writerBackground)
+	if err != nil {
+		return
+	}
+	defer release()
+
 	// Take a connection and shorten its busy wait.
 	conn, err := s.db.Conn(ctx)
 	if err != nil {
 		return
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout="+strconv.FormatInt(truncateBusyTimeout.Milliseconds(), 10)); err != nil {
+	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout="+strconv.FormatInt(restartBusyTimeout.Milliseconds(), 10)); err != nil {
 		return
 	}
 
-	// Truncate, then restore the pool's busy wait before the connection
+	// Restart, then restore the pool's busy wait before the connection
 	// returns to it.
 	var busy, frames, copied int
-	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied)
+	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(RESTART)").Scan(&busy, &frames, &copied)
 	_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
 }
 
