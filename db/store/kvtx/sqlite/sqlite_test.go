@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -730,5 +732,110 @@ func checkWALBoundStats(t *testing.T, path string) {
 	})
 	if !found {
 		t.Fatalf("no store stats for %s", path)
+	}
+}
+
+// TestSQLiteWALRestartsUnderSteadyWrites checks that a log past its bound
+// restarts while writers follow each other without a gap and readers never
+// stop, as on a busy World store. Writers back to back never begin on a fully
+// copied log by themselves, so the checkpointer's gap pass must open the gap
+// in which the next writer restarts it.
+func TestSQLiteWALRestartsUnderSteadyWrites(t *testing.T) {
+	// Open a database whose log is bounded at 64 KiB.
+	ctx := context.Background()
+	tp := newTempDBPath(t, "hydra-test-sqlite-wal-steady-*.sqlite")
+	const bound = 64 << 10
+	db, err := OpenWithPragmas(ctx, tp, "test_wal", Pragmas{WALCheckpointBytes: bound})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	// Readers read constantly, a few at a time.
+	stop := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 4 {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				if tx, err := db.NewTransaction(ctx, false); err == nil {
+					_, _, _ = tx.Get(ctx, []byte("key-0"))
+					tx.Discard()
+				}
+			}
+		}()
+	}
+	defer func() {
+		close(stop)
+		readers.Wait()
+	}()
+
+	// Writers queue for the turn so each begins as the last commits, and each
+	// holds the write lock for many rows. Watch the log after every commit
+	// until it shrinks, which only a restart does.
+	value := make([]byte, 256)
+	writes := make(chan error, 4)
+	shrank := make(chan struct{})
+	var once sync.Once
+	var largest atomic.Int64
+	deadline := time.Now().Add(10 * time.Second)
+	for range 4 {
+		go func() {
+			var last int64
+			for i := 0; time.Now().Before(deadline); i++ {
+				select {
+				case <-shrank:
+					writes <- nil
+					return
+				default:
+				}
+				tx, err := db.NewTransaction(ctx, true)
+				if err != nil {
+					writes <- err
+					return
+				}
+				for j := range 2000 {
+					if err := tx.Set(ctx, []byte("key-"+strconv.Itoa(j)), value); err != nil {
+						tx.Discard()
+						writes <- err
+						return
+					}
+				}
+				if err := tx.Commit(ctx); err != nil {
+					writes <- err
+					return
+				}
+				info, err := os.Stat(tp + "-wal")
+				if err != nil {
+					writes <- err
+					return
+				}
+				size := info.Size()
+				if size > largest.Load() {
+					largest.Store(size)
+				}
+				if last > 4*bound && size < last {
+					once.Do(func() { close(shrank) })
+				}
+				last = size
+			}
+			writes <- nil
+		}()
+	}
+	for range 4 {
+		if err := <-writes; err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	select {
+	case <-shrank:
+	default:
+		t.Fatalf("the log grew to %d bytes under steady writes and never restarted; bound %d", largest.Load(), bound)
 	}
 }
