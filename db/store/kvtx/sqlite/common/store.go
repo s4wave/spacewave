@@ -591,8 +591,8 @@ func (s *Store[T]) wakeCheckpoint() {
 // reader on it starts the log over and trims it to the bound. The checkpointer
 // takes the write lock only for a log past walRestartFactor times its bound,
 // which readers kept from restarting: a restarting checkpoint holds the lock
-// through the database file's fsync, 2 to 15 s on a busy disk, past every
-// writer's busy wait.
+// through the database file's fsync, 2 to 15 s on a busy disk, and holds the
+// writer turn meanwhile, so writers wait for it in the store's queue.
 func (s *Store[T]) runCheckpoints(ctx context.Context) {
 	defer close(s.checkpointsDone)
 	for {
@@ -645,16 +645,21 @@ func (s *Store[T]) walPastBound(factor int64) bool {
 //
 // The checkpoint holds SQLite's write lock while it copies the frames
 // committed since the passive pass and waits for readers of the old log. It
-// takes the writer turn first, at background priority, so a write waits for
-// it in this process, bounded by its own context, rather than in SQLite's
-// busy handler, which fails it with "database is locked" after 5 s. The
-// checkpoint's own connection waits at most restartBusyTimeout for readers,
-// then gives up until a later round. It restarts rather than truncates:
-// truncating a log of hundreds of MiB to zero frees and syncs the whole file
-// under the lock, and the file would only grow back to the bound.
+// takes the writer turn first, as a foreground writer in arrival order, so a
+// write waits for it in this process, bounded by its own context, rather than
+// in SQLite's busy handler, which fails it with "database is locked" after
+// 5 s, and the write lock is free when it asks. At background priority it
+// waited behind every waiting foreground writer, and writers that follow
+// each other with no gap always have one waiting: the turn never came, and
+// on be-7 the World's log grew to 5.4 GiB between restarts against a 512 MiB
+// bound. CheckpointTurn.tla checks the restart recurs under steady writes.
+// The checkpoint's own connection waits at most restartBusyTimeout for
+// readers, then gives up until a later round. It restarts rather than
+// truncates: truncating a log of hundreds of MiB to zero frees and syncs the
+// whole file under the lock, and the file would only grow back to the bound.
 func (s *Store[T]) restartWAL(ctx context.Context) {
-	// Take the writer turn behind every waiting foreground writer.
-	release, err := s.writeMtx.Lock(ctx, writerBackground)
+	// Take the writer turn in arrival order among foreground writers.
+	release, err := s.writeMtx.Lock(ctx, writerForeground)
 	if err != nil {
 		return
 	}
