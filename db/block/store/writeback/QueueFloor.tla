@@ -2,7 +2,9 @@
 \* MarkBlocks lowers floor before committing. clear reads under the same
 \* storage writer, then applies its new floor after commit under bcast.
 \* One later writer with an earlier timestamp exposes the post-commit
-\* publication race. A batch clears in transactions of a bounded size, so the
+\* publication race. A batch clears in transactions of a bounded size, the
+\* consecutive parts of the batch a hold and a block bound admit, which
+\* SetClearBatch may change between them; Parts is one such split. So the
 \* batch here, the older blocks 1 and 2, clears in two: each takes the writer,
 \* removes its part, reads the head and commits, then publishes its floor, and
 \* the producer may run before, between or inside them. Real key prefixes and
