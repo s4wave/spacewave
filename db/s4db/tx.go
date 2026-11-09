@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/tidwall/btree"
@@ -403,6 +404,7 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	// Record the published seq, then make it durable unless ordered.
 	t.committed = seq
 	if ordered {
+		raiseSeq(&db.orderedSeq, seq)
 		db.flush.ordered()
 		return nil
 	}
@@ -483,3 +485,15 @@ var (
 	_ kvtx.BatchTxOps      = (*Tx)(nil)
 	_ kvtx.AtCommitTxOps   = (*Tx)(nil)
 )
+
+// raiseSeq raises v to seq unless it holds a newer one already. Commits
+// record their seq after leaving the writer lock, so they can arrive out of
+// order.
+func raiseSeq(v *atomic.Uint64, seq uint64) {
+	for {
+		cur := v.Load()
+		if cur >= seq || v.CompareAndSwap(cur, seq) {
+			return
+		}
+	}
+}
