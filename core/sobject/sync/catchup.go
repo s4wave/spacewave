@@ -350,6 +350,9 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 			return errors.New("invalid or overlapping sync head")
 		}
 		x.remoteRevision = head.GetRevision()
+		if x.sync.peerState != nil {
+			x.sync.peerState(x.remoteID, bytes.Clone(head.GetStateHash()))
+		}
 		digest, err := x.sync.digest.get(current)
 		if err != nil {
 			return err
@@ -665,6 +668,12 @@ func (d *stateDigest) get(state *sobject.SOState) ([]byte, error) {
 	}
 	d.state, d.sum = state, sum
 	return sum, nil
+}
+
+// StateHash returns the sync digest of state, the StateHash a peer advertises
+// for it.
+func StateHash(state *sobject.SOState) ([]byte, error) {
+	return syncStateHash(state)
 }
 
 // syncStateHash detects unchanged content without treating the advertised digest as authority.

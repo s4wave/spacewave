@@ -1151,6 +1151,7 @@ func (a *ProviderAccount) startSOSync(
 			return health.WithSyncPeerRecovery(remoteID.String(), required)
 		})
 	})
+	soSync.SetPeerStateObserver(localSO.tkr.recordPeerState)
 	soSync.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
 		localSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 			return health.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())

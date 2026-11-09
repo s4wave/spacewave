@@ -118,6 +118,23 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 			if _, err := a.enrollMigratedSession(ctx, transition, identity, server, source.GetPeerId()); err != nil {
 				return nil, err
 			}
+
+			// The acceptance and this member exist only here until a sync
+			// peer holds them. The account's other clients admit only
+			// members they know, so the temporary transport must not retire
+			// first. The wait is bounded: an offline account falls back to
+			// a later reconnect.
+			if hasRemoteAccountMember(settings, server, source.GetPeerId()) {
+				waitCtx, cancel := context.WithTimeout(ctx, settingsHeldTimeout)
+				err := a.waitAccountSettingsHeld(waitCtx)
+				cancel()
+				if err != nil {
+					if ctx.Err() != nil {
+						return nil, context.Cause(ctx)
+					}
+					a.le.WithError(err).Warn("no account peer confirmed the migrated Session before the enrollment transport retires")
+				}
+			}
 		} else if member := settings.FindAccountSession(source.GetPeerId().String()); member.GetStoragePeerId() != storagePeer.GetPeerID().String() || member.GetRevoked() {
 			return nil, errors.New("returning Session has no approved destination storage binding")
 		}

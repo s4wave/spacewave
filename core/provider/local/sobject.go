@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
@@ -172,6 +173,22 @@ type sobjectTracker struct {
 	sobjectProm *promise.PromiseContainer[*SharedObject]
 	// healthCtr contains the current shared object health snapshot.
 	healthCtr *ccontainer.CContainer[*sobject.SharedObjectHealth]
+	// peerStateBcast guards peerStates.
+	peerStateBcast broadcast.Broadcast
+	// peerStates maps each sync peer to the digest of the last state it
+	// advertised as held. Entries are peer claims, used only to delay work.
+	peerStates map[string][]byte
+}
+
+// recordPeerState records the digest of a state a sync peer advertised.
+func (t *sobjectTracker) recordPeerState(remoteID peer.ID, stateHash []byte) {
+	t.peerStateBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if t.peerStates == nil {
+			t.peerStates = make(map[string][]byte)
+		}
+		t.peerStates[remoteID.String()] = stateHash
+		broadcast()
+	})
 }
 
 // buildSharedObjectTracker builds a new sobjectTracker for a sobject id.

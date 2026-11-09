@@ -69,6 +69,8 @@ type SOSync struct {
 	peerRecovery func(peer.ID, bool)
 	// peerConnection reports each authenticated stream's start and end.
 	peerConnection func(peer.ID, bool, error)
+	// peerState reports a sync digest of a state a peer holds.
+	peerState func(peer.ID, []byte)
 	// failures remembers the last logged stream failure of each peer.
 	failures syncFailures
 	// digest memoizes the digest of the latest watched state for every stream.
@@ -139,6 +141,15 @@ func (s *SOSync) SetPeerRecoveryObserver(observer func(peer.ID, bool)) {
 // calls can come from concurrent peer streams.
 func (s *SOSync) SetPeerConnectionObserver(observer func(remoteID peer.ID, connected bool, err error)) {
 	s.peerConnection = observer
+}
+
+// SetPeerStateObserver configures held-state observation before Execute
+// starts. The observer sees the StateHash digest of each state the remote
+// peer advertises as its own. A digest is the peer's claim, not authority:
+// use it only to delay local work, never to admit anything. The observer must
+// return promptly; calls can come from concurrent peer streams.
+func (s *SOSync) SetPeerStateObserver(observer func(remoteID peer.ID, stateHash []byte)) {
+	s.peerState = observer
 }
 
 // Execute runs the SO sync, emitting a SolicitProtocol directive and
