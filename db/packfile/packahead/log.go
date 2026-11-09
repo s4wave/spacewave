@@ -597,7 +597,7 @@ func (l *Log) GetDurable(key []byte) ([]byte, bool, bool, error) {
 	// Read it from the pack file. A pack evicted since the lookup no longer
 	// holds the value, which the remote holds instead.
 	out = make([]byte, loc.size)
-	if _, err := loc.p.f.ReadAt(out, int64(loc.off)); err != nil {
+	if err := readAtFull(loc.p.f, out, int64(loc.off)); err != nil {
 		var gone bool
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			gone = loc.p.state == packGone

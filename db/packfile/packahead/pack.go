@@ -3,6 +3,7 @@ package packahead
 import (
 	"bytes"
 	"crypto/sha256"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -211,7 +212,7 @@ func (p *pack) recoverFile() ([]byte, []entry, error) {
 		return nil, nil, err
 	}
 	data := make([]byte, info.Size())
-	if _, err := p.f.ReadAt(data, 0); err != nil {
+	if err := readAtFull(p.f, data, 0); err != nil {
 		return nil, nil, errors.Wrap(err, "read pack")
 	}
 
@@ -226,4 +227,15 @@ func (p *pack) recoverFile() ([]byte, []entry, error) {
 		}
 	}
 	return data[:end], entries, nil
+}
+
+// readAtFull fills buf from f at off. An io.ReaderAt may return io.EOF with a
+// full read that ends at the end of the file, which the GoScript runtime's
+// files do, so only a short read is an error.
+func readAtFull(f io.ReaderAt, buf []byte, off int64) error {
+	n, err := f.ReadAt(buf, off)
+	if err == io.EOF && n == len(buf) {
+		return nil
+	}
+	return err
 }
