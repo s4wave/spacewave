@@ -141,7 +141,7 @@ import (
 //go:embed web/bundler/rolldown/run-build.mjs web/bundler/rolldown/run-build.ts
 //go:embed web/bundler/rolldown/rolldown.pb.ts
 //go:embed web/bundler/vite/build.ts web/bundler/vite/run-build.ts
-//go:embed web/bundler/vite/stylex.ts
+//go:embed web/bundler/vite/stylex.ts web/bundler/vite/stylex-fragments.ts
 //go:embed web/bundler/vite/vite.ts web/bundler/vite/plugin.ts
 //go:embed web/bundler/vite/module-preload.ts web/bundler/vite/output-naming.ts
 //go:embed web/bundler/vite/web-pkg-naming.ts

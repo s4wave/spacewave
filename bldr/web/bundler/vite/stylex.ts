@@ -11,6 +11,11 @@ import stylexPlugin from '@stylexjs/babel-plugin'
 import type { Plugin, ResolvedConfig, ModuleNode, Rollup } from 'vite'
 
 import { stylexLayersBefore } from '../../bldr/stylex-priorities.js'
+import {
+  fragmentModulePattern,
+  inlineFragments,
+  type ResolveFile,
+} from './stylex-fragments.js'
 
 // stylexCssSuffix identifies generated native CSS dependencies.
 export const stylexCssSuffix = '.bldr-stylex.css'
@@ -28,6 +33,7 @@ interface CompiledModule {
   map: BabelFileResult['map']
   rules: Rules
   dependencies: string[]
+  fragments: string[]
 }
 
 /** stylexCss exposes native CSS; module delivery serves one-shot browser package builds. */
@@ -54,6 +60,8 @@ export function stylexCss(
     { source: string; promise: Promise<CompiledModule> } | null
   >()
   const owner = { sources: () => modules.keys() }
+  // fragmentUsers maps each fragment module to the sources that inlined it.
+  const fragmentUsers = new Map<string, Set<string>>()
 
   // Compiler metadata resolves against the same package sources the build owner selected.
   const packageRoots = metadata.packageRoots ?? {}
@@ -84,6 +92,23 @@ export function stylexCss(
           : ['typescript', 'jsx'],
       },
     })!
+    // Fragment spreads become literal properties before the compiler reads the rules.
+    const resolveFile: ResolveFile = async (specifier, importer) => {
+      const pkg = packages.find((pkg) => specifier.startsWith(pkg + '/'))
+      const source = pkg
+        ? resolve(packageRoots[pkg]!, specifier.slice(pkg.length + 1))
+        : (metadata.resolveImport?.(specifier) ?? specifier)
+      return (await resolveTheme(source, importer))?.split('?')[0]
+    }
+    const fragments = source.includes('.fragments')
+      ? await inlineFragments(ast, file, resolveFile)
+      : []
+    for (const fragment of fragments) {
+      let users = fragmentUsers.get(fragment)
+      if (!users) fragmentUsers.set(fragment, (users = new Set()))
+      users.add(file)
+    }
+
     const aliases: Record<string, string[]> = {}
     for (const node of ast.program.body) {
       if (node.type !== 'ImportDeclaration' || node.importKind === 'type')
@@ -135,6 +160,7 @@ export function stylexCss(
       map: result.map,
       rules: (result.metadata as unknown as { stylex?: Rules }).stylex ?? [],
       dependencies: [...new Set(Object.values(aliases).flat())],
+      fragments,
     }
     return compiled
   }
@@ -296,6 +322,10 @@ export function stylexCss(
         context.file + stylexCssSuffix,
       ) ?? [])
         updates.add(module)
+      for (const user of fragmentModulePattern.test(context.file)
+        ? (fragmentUsers.get(context.file) ?? [])
+        : [])
+        affected.add(user)
       if (/\.stylex(?:\.const)?\.[cm]?[jt]s$/.test(context.file)) {
         const seen = new Set<ModuleNode>()
         const visit = (module: ModuleNode) => {
