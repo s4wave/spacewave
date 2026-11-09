@@ -561,12 +561,25 @@ func (s *PackStore) HasPackfile(ctx context.Context, id string) (bool, error) {
 // names a complete packfile, then indexes keys with the entry, so the pack is
 // found at once, and keeps its index tail, so its first read from the remote
 // reads no tail.
+//
+// With an index, it first commits the pack's w/ row, the marker that the
+// upload started. The first index slice replaces it with the pack's p/ row. A
+// crash or a failure between them leaves the marker, and the next start
+// indexes the uploaded pack from its tail, as adoptUploads describes, instead
+// of the write-back uploading its blocks again in a new pack.
 func (s *PackStore) publishPack(ctx context.Context, entry *packfile.PackfileEntry, data []byte, keys [][]byte) error {
-	// Upload the packfile before the entry that lists it.
+	// Record the upload before it starts.
 	entryData, err := entry.MarshalVT()
 	if err != nil {
 		return err
 	}
+	if s.index != nil && !s.index.readOnly {
+		if err := s.index.markUpload(ctx, entry); err != nil {
+			return errors.Wrap(err, "mark packfile upload")
+		}
+	}
+
+	// Upload the packfile before the entry that lists it.
 	id := entry.GetId()
 	if err := s.client.PutObject(ctx, s.bucket, s.prefix+packDir+id, data, "application/octet-stream"); err != nil {
 		return errors.Wrap(err, "write packfile")
@@ -1031,6 +1044,15 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
+		// Index the packs uploaded before a crash stopped their index, and
+		// publish them with the unindexed packs.
+		adopted, err := s.adoptUploads(ctx)
+		if err != nil {
+			return err
+		}
+		packs += len(adopted)
+		s.updateEntries(adopted, nil)
 		if packs != 0 || s.indexOnly {
 			s.updateEntries(unindexed, nil)
 			s.setLoaded()
