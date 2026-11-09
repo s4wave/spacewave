@@ -248,6 +248,106 @@ func TestSQLitePragmas(t *testing.T) {
 	}
 }
 
+// TestSQLiteAutoVacuum checks that a fresh file is made with incremental
+// auto_vacuum, so a delete's pages can go back to the disk, and that a file
+// made without it opens and keeps its mode.
+func TestSQLiteAutoVacuum(t *testing.T) {
+	ctx := context.Background()
+	autoVacuum := func(db Store) int {
+		var got int
+		if err := db.GetDB().QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&got); err != nil {
+			t.Fatal(err.Error())
+		}
+		return got
+	}
+
+	// A fresh file: incremental (2), and incremental_vacuum frees the pages
+	// of deleted values.
+	tp := newTempDBPath(t, "hydra-test-sqlite-autovacuum-*.sqlite")
+	db, err := Open(ctx, tp, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := autoVacuum(db); got != 2 {
+		t.Fatalf("fresh file auto_vacuum = %d, want 2", got)
+	}
+	value := make([]byte, 64<<10)
+	tx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i := range 64 {
+		if err := tx.Set(ctx, []byte("k"+strconv.Itoa(i)), value); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	tx, err = db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for i := range 64 {
+		if err := tx.Delete(ctx, []byte("k"+strconv.Itoa(i))); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	pages := func(pragma string) int {
+		var n int
+		if err := db.GetDB().QueryRowContext(ctx, "PRAGMA "+pragma).Scan(&n); err != nil {
+			t.Fatal(err.Error())
+		}
+		return n
+	}
+	free := pages("freelist_count")
+	if free < 1000 {
+		t.Fatalf("freelist after deletes = %d pages, want the values' pages", free)
+	}
+	before := pages("page_count")
+	// SQLite frees one page per row of the pragma's result, so read them all.
+	rows, err := db.GetDB().QueryContext(ctx, "PRAGMA incremental_vacuum")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	for rows.Next() {
+	}
+	if err := rows.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if after := pages("page_count"); after > before-free+1 || pages("freelist_count") != 0 {
+		t.Fatalf("incremental_vacuum left %d of %d pages, freelist %d", after, before, pages("freelist_count"))
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// A file made with auto_vacuum none keeps its mode.
+	tp = newTempDBPath(t, "hydra-test-sqlite-autovacuum-none-*.sqlite")
+	db, err = Open(ctx, tp, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := db.GetDB().ExecContext(ctx, "PRAGMA auto_vacuum=NONE"); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := db.GetDB().ExecContext(ctx, "VACUUM"); err != nil {
+		t.Fatal(err.Error())
+	}
+	db.Close()
+	db, err = Open(ctx, tp, "kv")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+	if got := autoVacuum(db); got != 0 {
+		t.Fatalf("existing file auto_vacuum = %d, want 0 kept", got)
+	}
+}
+
 // TestSQLiteWriterContract walks the commit contract the kvtx Volume relies
 // on: ordered commits wait for a flush, full commits are durable, the deadline
 // flushes a pending commit, writers queue in arrival order, a read transaction
