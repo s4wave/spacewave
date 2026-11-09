@@ -1,0 +1,52 @@
+[
+  {
+    "name": "a save leaves out the running reads",
+    "replace": [
+      [
+        "    /\\ copy' = {[front |-> front \\cup flying, done |-> done]}",
+        "    /\\ copy' = {[front |-> front, done |-> done]}"
+      ]
+    ],
+    "expect": "FileCovers"
+  },
+  {
+    "name": "a save writes the state file in place",
+    "replace": [
+      [
+        "    /\\ tmp' = copy\n    /\\ copy' = {}\n    /\\ UNCHANGED <<status, front, flying, seen, done, file, pos,",
+        "    /\\ tmp' = copy\n    /\\ copy' = {}\n    /\\ file' = \"none\"\n    /\\ UNCHANGED <<status, front, flying, seen, done, pos,"
+      ]
+    ],
+    "expect": "StateKept"
+  },
+  {
+    "name": "a save counts reached blocks as done",
+    "replace": [
+      [
+        "    /\\ copy' = {[front |-> front \\cup flying, done |-> done]}",
+        "    /\\ copy' = {[front |-> front \\cup flying, done |-> seen]}"
+      ]
+    ],
+    "expect": "DoneRead"
+  },
+  {
+    "name": "a restart removes the state file",
+    "replace": [
+      [
+        "    /\\ stops' = stops + 1\n    /\\ UNCHANGED <<file, pos, reads, discarded>>",
+        "    /\\ stops' = stops + 1\n    /\\ file' = \"none\"\n    /\\ UNCHANGED <<pos, reads, discarded>>"
+      ]
+    ],
+    "expect": "StateKept"
+  },
+  {
+    "name": "a resume walks the head written after the pin",
+    "replace": [
+      [
+        "    /\\ front' = pos.front /\\ seen' = pos.front",
+        "    /\\ front' = pos.front \\cup {Later} /\\ seen' = pos.front \\cup {Later}"
+      ]
+    ],
+    "expect": "ReadsPinned"
+  }
+]
