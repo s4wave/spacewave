@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -55,11 +56,11 @@ func (t *Tx) SalvageHoles(ctx context.Context, low, high []byte) (uint64, []Salv
 	w.visit(page, cursor, nil, nil)
 
 	// Load the rest of the tree with a pool of loaders.
-	var wg sync.WaitGroup
+	loaders := conc.NewConcurrentQueue(0)
 	for range salvageHolesConcurrency {
-		wg.Go(func() { w.work(ctx) })
+		loaders.Enqueue(func() { w.work(ctx) })
 	}
-	wg.Wait()
+	_ = loaders.WaitIdle(context.Background(), nil)
 	if w.err != nil {
 		return 0, nil, w.err
 	}
