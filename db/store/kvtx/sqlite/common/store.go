@@ -77,6 +77,8 @@ type Store[T SQLiteDriverConfig] struct {
 	writeMtx csync.PrioMutex
 	// writersWaiting counts write transactions queued on writeMtx.
 	writersWaiting atomic.Int32
+	// stats counts the writer turn waits and checkpoints for Stats.
+	stats storeStats
 
 	// flusher makes ordered commits durable by flushing the WAL.
 	flusher *kvtx.OrderedFlusher
@@ -149,6 +151,7 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	}
 	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
 	go s.runCheckpoints(ctx)
+	openStores.Store(s, struct{}{})
 	return s, nil
 }
 
@@ -433,11 +436,13 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		prio = writerBackground
 	}
 	s.writersWaiting.Add(1)
+	queued := time.Now()
 	release, err := s.writeMtx.Lock(ctx, prio)
 	s.writersWaiting.Add(-1)
 	if err != nil {
 		return nil, err
 	}
+	s.stats.addWait(prio, time.Since(queued))
 
 	// Begin on a connection of its own, taking SQLite's write lock at once so
 	// the transaction never waits to upgrade from a read.
@@ -490,6 +495,7 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 // Close stops the checkpointer, flushes pending ordered commits, and closes
 // the database.
 func (s *Store[T]) Close() error {
+	openStores.Delete(s)
 	s.stopCheckpoints()
 	<-s.checkpointsDone
 	return errors.Join(s.flusher.Close(), s.db.Close())
@@ -555,7 +561,10 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		// Copy the WAL into the database file; a failure retries after the
 		// next commit.
 		var busy, frames, copied int
-		if err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied); err != nil || frames <= 0 || copied < frames {
+		start := time.Now()
+		err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
+		s.stats.addPassive(time.Since(start))
+		if err != nil || frames <= 0 || copied < frames {
 			continue
 		}
 
@@ -595,7 +604,9 @@ func (s *Store[T]) truncateWAL(ctx context.Context) {
 	// Truncate, then restore the pool's busy wait before the connection
 	// returns to it.
 	var busy, frames, copied int
+	start := time.Now()
 	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied)
+	s.stats.addTruncate(time.Since(start))
 	_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
 }
 
