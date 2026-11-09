@@ -1723,6 +1723,15 @@
         "db/block/packcopy/packcopy.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/block/packcopy/world": {
+      "hash": "e78e30a31e72e825fd84c880e7f139efc218ea11981dc4aead88f249f5e70f06",
+      "generatedFiles": [
+        "db/block/packcopy/world/world.pb.go"
+      ],
+      "protoFiles": [
+        "db/block/packcopy/world/world.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/block/quad": {
       "hash": "86e37f56f4809d1b7455a592370ad636db2a1b188fa10c4daa16165435938a39",
       "generatedFiles": [
