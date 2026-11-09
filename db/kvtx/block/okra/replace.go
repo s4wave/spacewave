@@ -47,6 +47,9 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 	if t.commitOnce.Load() {
 		return kvtx.ErrDiscarded
 	}
+	if err := t.Flush(ctx); err != nil {
+		return err
+	}
 
 	// Adapt the value sequence, remembering the first error or cancellation.
 	var valueErr error
