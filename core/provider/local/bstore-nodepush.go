@@ -248,7 +248,6 @@ func (t *bstoreTracker) startNodePush(
 	}
 	handle.push = block_store_nodepush.NewPublisher(localPublisher{handle}, client, conf.Wait, conf.On, conf.Result)
 	handle.push.SetWaitLive(conf.WaitLive)
-	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
