@@ -21,6 +21,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume/device"
@@ -58,8 +59,9 @@ type Index struct {
 	atomicFlush bool
 	// opts holds the options with defaults applied.
 	opts Options
-	// wg tracks the running checkpoint.
-	wg sync.WaitGroup
+	// checkpoints runs the background checkpoint, and Close waits for it to
+	// go idle.
+	checkpoints *conc.ConcurrentQueue
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -88,7 +90,13 @@ func Open(ctx context.Context, dev device.Device, opts Options) (*Index, error) 
 		opts.CheckpointBytes = defaultCheckpointBytes
 	}
 	af, ok := dev.(device.AtomicFlusher)
-	i := &Index{ctx: ctx, dev: dev, opts: opts, atomicFlush: ok && af.FlushesAtomically()}
+	i := &Index{
+		ctx:         ctx,
+		dev:         dev,
+		opts:        opts,
+		atomicFlush: ok && af.FlushesAtomically(),
+		checkpoints: conc.NewConcurrentQueue(0),
+	}
 	i.Table = memtable.New(i.commit)
 
 	// Find the manifest and the files.
@@ -277,7 +285,7 @@ func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtab
 	if i.opts.Foreground {
 		return i.checkpoint(ctx, next, seq, log)
 	}
-	i.wg.Go(func() {
+	i.checkpoints.Enqueue(func() {
 		err := i.checkpoint(i.ctx, next, seq, log)
 		if err != nil {
 			i.mtx.Lock()
@@ -400,7 +408,7 @@ func (i *Index) WaitDurable(ctx context.Context) error {
 // Close waits for a running checkpoint and returns the error of the last
 // failed background checkpoint.
 func (i *Index) Close() error {
-	i.wg.Wait()
+	_ = i.checkpoints.WaitIdle(context.Background(), nil)
 	i.mtx.Lock()
 	defer i.mtx.Unlock()
 	return i.checkpointErr
