@@ -501,7 +501,13 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	if err != nil {
 		return result, err
 	}
-	return p.wb.Evict(ctx, remote.store, maxBytes, keep, admit)
+	// The queue proves the backend holds a block unless a peer read can fill
+	// one without an upload marker; then each batch asks the backend.
+	var check block.StoreOps
+	if !p.peerUpload {
+		check = remote.store
+	}
+	return p.wb.Evict(ctx, check, maxBytes, keep, admit)
 }
 
 // SetEvictAdmit paces the eviction passes of the account's placed block

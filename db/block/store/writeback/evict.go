@@ -42,7 +42,8 @@ type EvictResult struct {
 	// epoch.
 	Requeued int
 	// Refused is the number of blocks kept because the remote store may not
-	// hold them: a marker awaits upload, or the remote does not report them.
+	// hold them: a marker awaits upload, or a checked remote does not report
+	// them.
 	Refused int
 }
 
@@ -205,12 +206,20 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // reaches the new epoch. A block keep reports is queued at the new epoch
 // instead. A nil keep keeps nothing.
 //
-// A block leaves the local values only while no marker awaits its upload and
-// remote reports holding it, so the remote store always holds what was
-// dropped. An entry whose value is already gone, such as a block the garbage
-// collector swept, is deleted. Values are dropped before their entries, so an
-// interrupted pass leaves only entries the next pass deletes. The pass takes
-// no lock a write waits on, since asking remote can wait on the network.
+// A block leaves the local values only while no marker awaits its upload.
+// With a nil check the queue itself is the proof the remote holds the block,
+// which the caller asserts: every entry was written in the transaction that
+// cleared an uploaded block's marker, or after a fill read the block from the
+// remote, so the pass asks the remote nothing. A caller whose fills may queue
+// blocks the remote lacks, such as a peer's block filled without an upload
+// marker, passes the remote as check, and a block leaves only while check
+// reports holding it. Asking costs a remote index probe per batch, which can
+// wait on the pack index writer and on bucket reads, so a pass over a large
+// queue that asks can run for days. An entry whose value is already gone, such
+// as a block the garbage collector swept, is deleted. Values are dropped before
+// their entries, so an interrupted pass leaves only entries the next pass
+// deletes. Each batch reads and commits on its own, so the pass holds no lock
+// across batches.
 //
 // The volume shares values by hash across its block stores. Eviction relies on
 // each placed store sealing its blocks with its own transform keys, so no other
@@ -219,7 +228,7 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // A non-nil admit paces the pass, as EvictAdmit describes.
 func (s *Store) Evict(
 	ctx context.Context,
-	remote block.StoreOps,
+	check block.StoreOps,
 	maxBytes int64,
 	keep func(*hash.Hash) bool,
 	admit EvictAdmit,
@@ -262,7 +271,7 @@ func (s *Store) Evict(
 			}
 		}
 		last = result.EvictedBytes
-		next, done, err := s.evictBatch(ctx, remote, epoch, maxBytes, keep, s.evictFrom, &result)
+		next, done, err := s.evictBatch(ctx, check, epoch, maxBytes, keep, s.evictFrom, &result)
 		if err != nil {
 			return result, err
 		}
@@ -280,7 +289,7 @@ func (s *Store) Evict(
 // entries; the key is then the start of epoch, where later entries queue.
 func (s *Store) evictBatch(
 	ctx context.Context,
-	remote block.StoreOps,
+	check block.StoreOps,
 	epoch uint64,
 	maxBytes int64,
 	keep func(*hash.Hash) bool,
@@ -330,7 +339,9 @@ func (s *Store) evictBatch(
 		return next, true, nil
 	}
 
-	// Ask the local values and the remote which blocks they hold.
+	// Ask the local values which blocks they hold, and check which the remote
+	// holds when the caller asks; otherwise the queue entry shows it, as Evict
+	// describes.
 	refs := make([]*block.BlockRef, len(batch))
 	for i, entry := range batch {
 		refs[i] = block.NewBlockRef(entry.hash)
@@ -339,9 +350,12 @@ func (s *Store) evictBatch(
 	if err != nil {
 		return nil, false, errors.Wrap(err, "check local values")
 	}
-	stored, err := remote.GetBlockExistsBatch(ctx, refs)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "check remote blocks")
+	var stored []bool
+	if check != nil {
+		stored, err = check.GetBlockExistsBatch(ctx, refs)
+		if err != nil {
+			return nil, false, errors.Wrap(err, "check remote blocks")
+		}
 	}
 
 	// Decide each entry.
@@ -351,7 +365,7 @@ func (s *Store) evictBatch(
 	for i, entry := range batch {
 		switch {
 		case !held[i]:
-		case marked[i] || !stored[i]:
+		case marked[i] || (stored != nil && !stored[i]):
 			result.Refused++
 		case keep != nil && keep(entry.hash):
 			requeue = append(requeue, entry)

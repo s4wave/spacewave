@@ -24,7 +24,7 @@ type StoreStats struct {
 	// Passives counts the passive checkpoints and Passive sums their time.
 	Passives uint64
 	Passive  time.Duration
-	// Truncates counts the truncating checkpoints, Truncate sums their time,
+	// Truncates counts the restarting checkpoints that bound the log, Truncate sums their time,
 	// TruncatesOver1s counts the ones that took at least a second, and
 	// LastTruncate is the time the newest took. A truncate holds SQLite's
 	// write lock, so every writer waits for it.

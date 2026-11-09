@@ -198,3 +198,45 @@ func TestFillQueueBoundsAndDedupes(t *testing.T) {
 		t.Fatalf("after the drain %d blocks are queued, draining=%v; want none", n, s.fills.draining)
 	}
 }
+
+// TestEvictChecksOnlyWhenAsked checks that a pass given a check keeps a
+// queued block the check does not hold, and that a pass without one trusts
+// the queue and drops it.
+func TestEvictChecksOnlyWhenAsked(t *testing.T) {
+	ctx := t.Context()
+	source := newInmemBlockStore()
+	ref, _, err := source.PutBlock(ctx, []byte("peer-block"), leafOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := source.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		t.Fatalf("source read: %v", err)
+	}
+	for _, checked := range []bool{true, false} {
+		// Fill the block read from the source into a placed store.
+		s := newTestEnv(t).newStore(t, true)
+		s.CacheFill(ref, stored)
+		s.drainFills()
+
+		// A check that lacks the block keeps it; no check drops it.
+		var check block.StoreOps
+		if checked {
+			check = newInmemBlockStore()
+		}
+		result, err := s.Evict(ctx, check, 1<<30, nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		held, err := s.values.GetBlockExistsBatch(ctx, []*block.BlockRef{ref})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if checked && (result.Refused != 1 || result.Evicted != 0 || !held[0]) {
+			t.Fatalf("checked pass = %+v held=%v, want 1 refused and kept", result, held[0])
+		}
+		if !checked && (result.Evicted != 1 || held[0]) {
+			t.Fatalf("unchecked pass = %+v held=%v, want 1 evicted", result, held[0])
+		}
+	}
+}

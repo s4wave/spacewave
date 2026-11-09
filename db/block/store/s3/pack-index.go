@@ -9,8 +9,10 @@ import (
 	"encoding/binary"
 	"math"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
@@ -524,7 +526,7 @@ func (x *packIndex) addWritten(ctx context.Context, entry *packfile.PackfileEntr
 		if extents != nil {
 			slice = extents[start:end]
 		}
-		if err := x.writeSlice(ctx, entry, stored, start == 0, keys[start:end], value, slice); err != nil {
+		if err := x.writeSliceRetry(ctx, entry, stored, start == 0, keys[start:end], value, slice); err != nil {
 			return err
 		}
 	}
@@ -594,6 +596,43 @@ func extentValues(tail []byte, size uint64, num uint32, keys [][]byte) [][]byte 
 		values[i] = v.marshal()
 	}
 	return values
+}
+
+// sliceBusyRetries bounds how often writeSliceRetry writes a slice the store
+// reported busy, and sliceBusyWait is its first wait, doubling to
+// sliceBusyMaxWait.
+const (
+	sliceBusyRetries = 20
+	sliceBusyWait    = 250 * time.Millisecond
+	sliceBusyMaxWait = 5 * time.Second
+)
+
+// writeSliceRetry writes one slice as writeSlice does, writing it again after
+// a wait when the store reports itself busy. The rows of a slice are written
+// whole or not at all and say the same each time, so a busy slice is retried
+// in place: returning the error would fail the pack's publish, and the upload
+// would write the pack to the bucket again.
+func (x *packIndex) writeSliceRetry(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte, extents [][]byte) error {
+	wait := sliceBusyWait
+	for attempt := 0; ; attempt++ {
+		err := x.writeSlice(ctx, entry, row, first, keys, value, extents)
+		if err == nil || attempt >= sliceBusyRetries || !isBusyError(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-time.After(wait):
+		}
+		wait = min(2*wait, sliceBusyMaxWait)
+	}
+}
+
+// isBusyError reports whether err is a store's report that another writer
+// holds its lock, SQLite's "database is locked", which a later attempt may
+// pass.
+func isBusyError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "database is locked")
 }
 
 // writeSlice writes the h rows of keys, each naming value or, when extents is
