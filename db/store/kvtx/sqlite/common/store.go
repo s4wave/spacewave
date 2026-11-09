@@ -542,7 +542,7 @@ func (s *Store[T]) wakeCheckpoint() {
 // most once per CheckpointInterval while commits continue. A passive
 // checkpoint never takes SQLite's write lock, so no write waits on it. Under
 // constant reads SQLite may never restart a fully copied WAL, so once a passive
-// checkpoint copies all of a WAL past its bound, a truncating one resets it.
+// checkpoint copies all of a WAL past its bound, a restarting one resets it.
 func (s *Store[T]) runCheckpoints(ctx context.Context) {
 	defer close(s.checkpointsDone)
 	for {
@@ -568,7 +568,7 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 			continue
 		}
 
-		// Truncate a fully copied WAL past its bound.
+		// Restart a fully copied WAL past its bound.
 		if s.walPastBound() {
 			s.truncateWAL(ctx)
 		}
@@ -586,10 +586,14 @@ func (s *Store[T]) walPastBound() bool {
 	return err == nil && info.Size() > s.walBound
 }
 
-// truncateWAL resets and truncates a WAL with nothing left to copy. The
-// checkpoint holds SQLite's write lock while it waits for readers of the old
-// log, so it runs on a connection of its own that waits at most
-// truncateBusyTimeout, then gives up until a later round.
+// truncateWAL restarts a WAL with nothing left to copy, so the next commit
+// writes from the start of the file and trims it to the bound. The checkpoint
+// holds SQLite's write lock while it waits for readers of the old log, so it
+// runs on a connection of its own that waits at most truncateBusyTimeout, then
+// gives up until a later round. It restarts rather than truncates: truncating
+// a log of hundreds of MiB to zero freed and synced the whole file under the
+// write lock, 7 to 10 s on a busy disk, past every writer's busy wait, and the
+// file would only grow back to the bound.
 func (s *Store[T]) truncateWAL(ctx context.Context) {
 	// Take a connection and shorten its busy wait.
 	conn, err := s.db.Conn(ctx)
@@ -605,7 +609,7 @@ func (s *Store[T]) truncateWAL(ctx context.Context) {
 	// returns to it.
 	var busy, frames, copied int
 	start := time.Now()
-	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied)
+	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(RESTART)").Scan(&busy, &frames, &copied)
 	s.stats.addTruncate(time.Since(start))
 	_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
 }
