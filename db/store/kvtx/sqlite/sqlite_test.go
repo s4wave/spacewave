@@ -5,6 +5,7 @@ package store_kvtx_sqlite
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -487,11 +488,35 @@ func TestSQLiteWALBound(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		if info.Size() <= 4*bound {
+			checkWALBoundStats(t, tp)
 			return
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("write-ahead log is %d bytes, want at most %d", info.Size(), 4*bound)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// checkWALBoundStats checks the counters of the store at path after
+// TestSQLiteWALBound's writes: every write took a turn, and the log was
+// checkpointed and truncated.
+func checkWALBoundStats(t *testing.T, path string) {
+	t.Helper()
+	var found bool
+	common.EachStoreStats(func(st common.StoreStats) {
+		if filepath.Base(st.File) != filepath.Base(path) {
+			return
+		}
+		found = true
+		if st.ForegroundWaits < 2000 || st.BackgroundWaits != 0 {
+			t.Fatalf("writer turns: %d foreground, %d background; want at least 2000 foreground", st.ForegroundWaits, st.BackgroundWaits)
+		}
+		if st.Passives == 0 || st.Truncates == 0 || st.LastTruncate <= 0 || st.Truncate < st.LastTruncate {
+			t.Fatalf("checkpoints: %+v", st)
+		}
+	})
+	if !found {
+		t.Fatalf("no store stats for %s", path)
 	}
 }
