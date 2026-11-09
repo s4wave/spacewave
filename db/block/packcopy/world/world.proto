@@ -1,0 +1,195 @@
+syntax = "proto3";
+package packcopy.world;
+
+import "github.com/s4wave/spacewave/db/block/block.proto";
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// WalkPhase is how far a walk's stages have got. A walk reads the World's
+// trees and their okra pages first, then lists the object types from the
+// graph that stage read, then reads each Object, its root and its body.
+enum WalkPhase {
+  // WALK_PHASE_WORLD reads the World's trees and their okra pages; the
+  // Objects wait for the listing.
+  WALK_PHASE_WORLD = 0;
+  // WALK_PHASE_OBJECTS reads the Objects, their roots and their bodies,
+  // typed by the listing.
+  WALK_PHASE_OBJECTS = 1;
+  // WALK_PHASE_DONE is a walk that read every block it reached.
+  WALK_PHASE_DONE = 2;
+}
+
+// WalkPin is the World a walk reads: the roots of one World head, which every
+// resume walks again, never the live head.
+message WalkPin {
+  // Heads are the head's World root, then each earlier root it retains, each
+  // with the head's bucket and transform.
+  repeated bucket.ObjectRef heads = 1;
+  // Seqno is the head's seqno.
+  uint64 seqno = 2;
+}
+
+// WalkState opens a walk's state file. The file is a sequence of messages,
+// each a uvarint length then the message: this header, then WalkChunk
+// messages holding Nodes nodes, then Entries entries, nodes first. A walk
+// writes the whole file beside its path, syncs it and renames it into place,
+// so the file always holds one complete position.
+message WalkState {
+  // Pin is the World the walk reads.
+  WalkPin pin = 1;
+  // Phase is how far the walk's stages got.
+  WalkPhase phase = 2;
+  // Concurrency is the reads the walk keeps in flight.
+  uint32 concurrency = 3;
+  // StartedAt is when the walk first started, in Unix milliseconds.
+  int64 started_at = 4;
+  // PersistedAt is when this position was written, in Unix milliseconds.
+  int64 persisted_at = 5;
+  // Resumes counts the runs that continued this walk after the first.
+  uint32 resumes = 6;
+  // Status is the walk's counts as of this position.
+  WalkStatus status = 7;
+  // Nodes counts the nodes the chunks hold.
+  uint64 nodes = 8;
+  // Entries counts the entries the chunks hold.
+  uint64 entries = 9;
+  // Ctors names the block types the saved types use, by Go type.
+  repeated string ctors = 10;
+  // Xfrms are the transform configs the saved types use, each marshaled.
+  repeated bytes xfrms = 11;
+}
+
+// WalkType is a saved block type. A resume rebuilds it when this build knows
+// the type Ctor names; otherwise it reads the block's parent again and types
+// the block from the parent's decode.
+message WalkType {
+  // Ctor is the block's type, counting from 1 in the header's ctors, or 0 for
+  // a block of no known type.
+  uint32 ctor = 1;
+  // Values is the type of the values of the tree the block belongs to,
+  // counting from 1 in the header's ctors, or 0 for none.
+  uint32 values = 2;
+  // ObjectRoot marks the root of an Object.
+  bool object_root = 3;
+  // Xfrm is the transform that decodes the block's bytes, counting from 1 in
+  // the header's xfrms, or 0 for none.
+  uint32 xfrm = 4;
+}
+
+// WalkChunk is one part of a state file's frontier.
+message WalkChunk {
+  // Nodes are blocks the walk read whose children wait in the frontier, each
+  // after its parent.
+  repeated WalkNode nodes = 1;
+  // Entries are the blocks the walk will read.
+  repeated WalkEntry entries = 2;
+}
+
+// WalkNode is a block the walk read that names a block in the frontier. A
+// resume reads it again only when a block it names has no saved type, and
+// decodes it by its own saved type, or the type its parent gives it, to type
+// its children.
+message WalkNode {
+  // Ref is the block.
+  block.BlockRef ref = 1;
+  // Parent is the number of the node that named this one, counting from 1,
+  // or 0 for a pinned root or a node with a saved type.
+  uint64 parent = 2;
+  // Stage is the stage the block was read in: 0 for the world, 1 for the
+  // objects.
+  uint32 stage = 3;
+  // Type is the block's type, unset when a resume takes it from the parent.
+  WalkType type = 4;
+}
+
+// WalkEntry is a block the walk will read: queued, in flight, waiting for a
+// retry, or an Object waiting for the listing.
+message WalkEntry {
+  // Ref is the block.
+  block.BlockRef ref = 1;
+  // Parent is the number of the node that named this block, counting from 1,
+  // or 0 for a pinned root.
+  uint64 parent = 2;
+  // Stage is the stage the block belongs to: 0 for the world, 1 for the
+  // objects.
+  uint32 stage = 3;
+  // OkraValue marks an okra entry's value.
+  bool okra_value = 4;
+  // Type is the block's type, unset when a resume takes it from the parent.
+  WalkType type = 5;
+}
+
+// WalkStatus is the progress of a walk. A hole is a block the walk could not
+// read or could not learn the refs of; the walk records it and goes on.
+message WalkStatus {
+  // Head is the pinned World root.
+  string head = 1;
+  // Seqno is the pinned head's seqno.
+  uint64 seqno = 2;
+  // Stage is "world" while the World, object and graph trees and their okra
+  // pages are read, "types" while the object types are listed, "objects" for
+  // object roots and bodies, "retry" for the reads that failed, then "done".
+  string stage = 3;
+  // Concurrency is the reads kept in flight.
+  uint32 concurrency = 4;
+  // Visited counts the distinct blocks the walk reached. A resume does not
+  // know the blocks reached before it, so a block reached again after a
+  // resume counts again.
+  uint64 visited = 5;
+  // Queued counts the blocks waiting to be read.
+  uint64 queued = 6;
+  // InFlight counts the reads running.
+  uint32 in_flight = 7;
+  // Reads counts the blocks read.
+  uint64 reads = 8;
+  // Bytes counts the bytes of the blocks read.
+  uint64 bytes = 9;
+  // BlocksPerSec is the read rate over the last few seconds.
+  double blocks_per_sec = 10;
+  // OkraRoots, OkraPages and OkraValues count the okra roots, pages at
+  // every level and entry values read.
+  uint64 okra_roots = 11;
+  uint64 okra_pages = 12;
+  uint64 okra_values = 13;
+  // Objects counts the World Objects read.
+  uint64 objects = 14;
+  // RefsUnknown counts blocks read without their refs.
+  uint64 refs_unknown = 15;
+  // KeptDecoded counts those stored with the refs their type decodes.
+  uint64 kept_decoded = 16;
+  // KeepFailed counts those whose store failed.
+  uint64 keep_failed = 17;
+  // Missing counts holes no source holds.
+  uint64 missing = 18;
+  // Errors counts holes whose reads failed on every try.
+  uint64 errors = 19;
+  // Retried counts the reads tried again after an error.
+  uint64 retried = 20;
+  // Untyped counts holes read without their refs and of no known type.
+  uint64 untyped = 21;
+  // Undecodable counts holes read without their refs whose type did not
+  // decode them.
+  uint64 undecodable = 22;
+  // FirstHoles lists the first holes as "<reason> <ref> parent <ref>".
+  repeated string first_holes = 23;
+  // WorldDoneAt is when the world stage ended, in Unix milliseconds.
+  int64 world_done_at = 24;
+  // RetryPending counts the failed reads waiting for the retry stage.
+  uint64 retry_pending = 25;
+  // KeepHeld counts blocks read without their refs that the World's packs
+  // hold, which the walk does not keep.
+  uint64 keep_held = 26;
+  // KeepDeferred counts blocks not kept because every keep slot was busy;
+  // the next walk reads them again.
+  uint64 keep_deferred = 27;
+  // PersistedAt is when the walk last saved its position, in Unix
+  // milliseconds; zero for a walk that saves none.
+  int64 persisted_at = 28;
+  // Frontier counts the blocks the last saved position holds.
+  uint64 frontier = 29;
+  // StateBytes is the size of the last saved position.
+  uint64 state_bytes = 30;
+  // Resumes counts the runs that continued this walk after the first.
+  uint32 resumes = 31;
+  // DoneAt is when the walk finished, in Unix milliseconds.
+  int64 done_at = 32;
+}
