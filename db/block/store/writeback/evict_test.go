@@ -3,10 +3,17 @@ package block_store_writeback
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -237,6 +244,155 @@ func TestEvictChecksOnlyWhenAsked(t *testing.T) {
 		}
 		if !checked && (result.Evicted != 1 || held[0]) {
 			t.Fatalf("unchecked pass = %+v held=%v, want 1 evicted", result, held[0])
+		}
+	}
+}
+
+// countingKV counts the write transactions opened on a key-value store.
+type countingKV struct {
+	kvtx.Store
+	writes atomic.Int64
+}
+
+// SupportsAtomicCommit reports the inner store's atomic commits.
+func (c *countingKV) SupportsAtomicCommit() bool { return true }
+
+// NewTransaction counts a write transaction.
+func (c *countingKV) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write {
+		c.writes.Add(1)
+	}
+	return c.Store.NewTransaction(ctx, write)
+}
+
+// putUploaded writes n blocks to s and uploads them to a new remote, which
+// it returns with their refs.
+func putUploaded(t *testing.T, s *Store, n int) (block.StoreOps, []*block.BlockRef) {
+	t.Helper()
+	var refs []*block.BlockRef
+	for i := range n {
+		ref, _, err := s.PutBlock(t.Context(), fmt.Appendf(nil, "block-%06d", i), leafOpts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	remote := newInmemBlockStore()
+	drain(t, s, remote)
+	return remote, refs
+}
+
+// TestEvictCommitsEachBatchOnce checks that a pass over a Volume's values
+// drops each batch's values and changes the queue in one write transaction,
+// that the next batch grows while a batch holds the writer briefly, and that
+// the pass leaves no value or entry behind.
+func TestEvictCommitsEachBatchOnce(t *testing.T) {
+	// Open a placed store over a Volume whose writes are counted.
+	ctx := t.Context()
+	kv := &countingKV{Store: store_kvtx_inmem.NewStore()}
+	vol, err := volume_kvtx.NewVolume(ctx, "test/writeback", store_kvkey.NewDefaultKVKey(), kv, &store_kvtx.Config{}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+	markers, release, err := vol.AccessObjectStore(ctx, testMarkersID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+	s, err := NewStore(ctx, ownedStore{vol}, vol, markers, testMarkersID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, refs := putUploaded(t, s, 4*evictBatchBlocks)
+
+	// Evict them all: the epoch takes one write and each batch one more, and
+	// the batches grow from evictBatchBlocks, so fewer than four walk them.
+	before := kv.writes.Load()
+	evictHoldHook = func(n int, hold time.Duration) { t.Logf("batch of %d entries held the writer %v", n, hold) }
+	defer func() { evictHoldHook = nil }()
+	result, err := s.Evict(ctx, nil, 1<<30, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Evicted != len(refs) || result.Batches < 2 || result.Batches > 3 {
+		t.Fatalf("evict = %+v, want %d evicted in growing batches", result, len(refs))
+	}
+	if writes := kv.writes.Load() - before; writes != int64(1+result.Batches) {
+		t.Fatalf("pass opened %d write transactions, want %d", writes, 1+result.Batches)
+	}
+	if result.Hold <= 0 || result.Hold > time.Second {
+		t.Fatalf("longest hold = %v, want a measured hold under a second", result.Hold)
+	}
+
+	// No value and no entry remains.
+	held, err := vol.GetBlockExistsBatch(ctx, refs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, ok := range held {
+		if ok {
+			t.Fatalf("evicted %s still on disk", refs[i].MarshalString())
+		}
+	}
+	if status, _ := s.GetStatus(); status.EvictableBytes != 0 {
+		t.Fatalf("evictable bytes = %d, want 0", status.EvictableBytes)
+	}
+}
+
+// TestEvictStepEndsPass checks that a step that declines a batch ends the
+// pass after the batches before it, reporting Stopped, and that the next pass
+// resumes where it stopped.
+func TestEvictStepEndsPass(t *testing.T) {
+	// Upload more blocks than one batch evicts.
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	remote, refs := putUploaded(t, s, evictBatchBlocks+10)
+
+	// Run one batch, then decline the next.
+	var steps int
+	result, err := s.EvictSteps(ctx, 1<<30, nil, nil, func(_ context.Context, batch func(block.StoreOps) error) error {
+		if steps++; steps > 1 {
+			return nil
+		}
+		return batch(remote)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Stopped || result.Batches != 1 || result.Evicted != evictBatchBlocks {
+		t.Fatalf("stopped pass = %+v, want one batch then Stopped", result)
+	}
+
+	// The next pass evicts the rest.
+	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
+	if err != nil || result.Stopped || result.Evicted != len(refs)-evictBatchBlocks {
+		t.Fatalf("next pass = %+v/%v, want the other %d evicted", result, err, len(refs)-evictBatchBlocks)
+	}
+}
+
+// TestNextEvictBatch checks that a batch that held the writer past
+// evictHoldHigh at least halves the next, toward evictHoldTarget, that one
+// under evictHoldLow doubles it, and that the size stays within its bounds.
+func TestNextEvictBatch(t *testing.T) {
+	cases := []struct {
+		n    int
+		hold time.Duration
+		want int
+	}{
+		{1024, 0, 2048},
+		{1024, evictHoldLow - 1, 2048},
+		{1024, evictHoldLow, 1024},
+		{1024, evictHoldHigh, 1024},
+		{1024, evictHoldHigh + 1, 511},
+		{1024, 400 * time.Millisecond, 128},
+		{1024, 10 * time.Second, evictBatchMin},
+		{evictBatchMin, 10 * time.Second, evictBatchMin},
+		{evictBatchMax, 0, evictBatchMax},
+	}
+	for _, c := range cases {
+		if got := nextEvictBatch(c.n, c.hold); got != c.want {
+			t.Errorf("nextEvictBatch(%d, %v) = %d, want %d", c.n, c.hold, got, c.want)
 		}
 	}
 }

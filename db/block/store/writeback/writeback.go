@@ -92,6 +92,10 @@ type Store struct {
 	// and a pass advances the epoch before it walks, so a later entry sorts
 	// at or past it. Nil walks from the start, as after an open.
 	evictFrom []byte
+	// evictBatchSize is the entries the next eviction batch reads, guarded
+	// by evictMtx: sized from the writer hold of the last batch committed in
+	// one write, zero for evictBatchBlocks.
+	evictBatchSize int
 	// bcast guards status, and wakes Upload and status watchers.
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.

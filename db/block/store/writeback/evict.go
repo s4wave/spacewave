@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -29,8 +30,60 @@ const evictableBytesKey = "evictable-bytes"
 // disk's other writers; its error ends the pass.
 type EvictAdmit func(ctx context.Context, lastBytes int64) error
 
-// evictBatchBlocks bounds the entries one eviction step reads and commits.
-const evictBatchBlocks = 1024
+// EvictStep runs one eviction batch for the caller of EvictSteps, which may
+// hold a lock over the batch alone: it calls batch at most once, with the
+// store the batch checks as Evict's check describes, and returns batch's
+// error. A step that returns nil without calling batch ends the pass after the
+// batches before it, which then reports Stopped. EvictSteps calls admit before
+// step, so a step holds nothing while the pass is paced.
+type EvictStep func(ctx context.Context, batch func(check block.StoreOps) error) error
+
+const (
+	// evictBatchBlocks is the entries the first eviction batch of an open
+	// reads and commits.
+	evictBatchBlocks = 256
+	// evictBatchMin and evictBatchMax bound the entries of a later batch,
+	// which the writer hold of the last one sizes.
+	evictBatchMin = 32
+	evictBatchMax = 16384
+	// evictHoldHigh and evictHoldLow bound the writer hold of an eviction
+	// batch: a batch that held the writer longer shrinks the next to at
+	// least half, toward evictHoldTarget, and one that held it shorter
+	// doubles it. The values store's writer is shared with every foreground
+	// write, which cannot preempt a holder and so waits out the whole hold,
+	// while each batch waits behind every foreground writer for its turn, so
+	// a batch is as large as its hold allows.
+	evictHoldHigh   = 100 * time.Millisecond
+	evictHoldLow    = 25 * time.Millisecond
+	evictHoldTarget = 50 * time.Millisecond
+)
+
+// evictHoldHook observes each batch committed in one write with its entries
+// and writer hold, for tests; nil in production.
+var evictHoldHook func(entries int, hold time.Duration)
+
+// valueEditor is a values store whose key-value store also holds the marker
+// store, such as a Volume, so one write transaction drops values and changes
+// the eviction queue together.
+type valueEditor interface {
+	// EditValues runs fn in one write transaction with the transaction's
+	// blocks and a view of the object store storeID, and commits both.
+	EditValues(ctx context.Context, storeID string, fn func(ctx context.Context, blocks block.StoreOps, tx kvtx.Tx) error, retry kvtx.RetryPredicate) error
+}
+
+// nextEvictBatch sizes the next eviction batch from the last one, which held
+// the writer for hold over n entries, as evictHoldHigh describes, within
+// evictBatchMin and evictBatchMax.
+func nextEvictBatch(n int, hold time.Duration) int {
+	next := n
+	switch {
+	case hold > evictHoldHigh:
+		next = min(n/2, int(int64(n)*int64(evictHoldTarget)/int64(hold)))
+	case hold < evictHoldLow:
+		next = 2 * n
+	}
+	return min(max(next, evictBatchMin), evictBatchMax)
+}
 
 // EvictResult reports what an eviction pass did.
 type EvictResult struct {
@@ -45,6 +98,12 @@ type EvictResult struct {
 	// hold them: a marker awaits upload, or a checked remote does not report
 	// them.
 	Refused int
+	// Batches is the number of batches committed.
+	Batches int
+	// Hold is the longest writer hold of a batch committed in one write.
+	Hold time.Duration
+	// Stopped is set when the step ended the pass before its target.
+	Stopped bool
 }
 
 // evictEntry is a decoded eviction queue entry.
@@ -216,10 +275,12 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // reports holding it. Asking costs a remote index probe per batch, which can
 // wait on the pack index writer and on bucket reads, so a pass over a large
 // queue that asks can run for days. An entry whose value is already gone, such
-// as a block the garbage collector swept, is deleted. Values are dropped before
-// their entries, so an interrupted pass leaves only entries the next pass
+// as a block the garbage collector swept, is deleted. Values are dropped with
+// their entries in one transaction where the values store holds the queue,
+// else before them, so an interrupted pass leaves only entries the next pass
 // deletes. Each batch reads and commits on its own, so the pass holds no lock
-// across batches.
+// across batches, and each sizes the next by its writer hold, as
+// evictHoldHigh describes.
 //
 // The volume shares values by hash across its block stores. Eviction relies on
 // each placed store sealing its blocks with its own transform keys, so no other
@@ -232,6 +293,21 @@ func (s *Store) Evict(
 	maxBytes int64,
 	keep func(*hash.Hash) bool,
 	admit EvictAdmit,
+) (EvictResult, error) {
+	return s.EvictSteps(ctx, maxBytes, keep, admit, func(_ context.Context, batch func(block.StoreOps) error) error {
+		return batch(check)
+	})
+}
+
+// EvictSteps runs one eviction pass as Evict does, with each batch run by
+// step, which names the store the batch checks and may end the pass between
+// batches, as EvictStep describes.
+func (s *Store) EvictSteps(
+	ctx context.Context,
+	maxBytes int64,
+	keep func(*hash.Hash) bool,
+	admit EvictAdmit,
+	step EvictStep,
 ) (EvictResult, error) {
 	// Commit the pass ordered: it drops only values the remote holds, so a
 	// crash that loses its commits leaves values the next pass drops again,
@@ -271,9 +347,20 @@ func (s *Store) Evict(
 			}
 		}
 		last = result.EvictedBytes
-		next, done, err := s.evictBatch(ctx, check, epoch, maxBytes, keep, s.evictFrom, &result)
+		var next []byte
+		var done, ran bool
+		err := step(ctx, func(check block.StoreOps) error {
+			var err error
+			ran = true
+			next, done, err = s.evictBatch(ctx, check, epoch, maxBytes, keep, s.evictFrom, &result)
+			return err
+		})
 		if err != nil {
 			return result, err
+		}
+		if !ran {
+			result.Stopped = true
+			return result, nil
 		}
 		s.evictFrom = next
 		if done {
@@ -296,7 +383,12 @@ func (s *Store) evictBatch(
 	from []byte,
 	result *EvictResult,
 ) ([]byte, bool, error) {
-	// Read the batch with the markers of its blocks.
+	// Read the batch with the markers of its blocks, as many entries as the
+	// last batch's writer hold sized.
+	size := s.evictBatchSize
+	if size == 0 {
+		size = evictBatchBlocks
+	}
 	var batch []evictEntry
 	var marked []bool
 	var next []byte
@@ -310,7 +402,7 @@ func (s *Store) evictBatch(
 		err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
 			// Stop at the new epoch or a full batch, where the next batch
 			// starts.
-			if entry.epoch >= epoch || len(batch) == evictBatchBlocks || result.EvictedBytes+batchBytes >= maxBytes {
+			if entry.epoch >= epoch || len(batch) == size || result.EvictedBytes+batchBytes >= maxBytes {
 				done, next = entry.epoch >= epoch, entry.key
 				return errScanDone
 			}
@@ -375,21 +467,13 @@ func (s *Store) evictBatch(
 		}
 	}
 
-	// Drop the values the remote holds in one write, not one per block: the
-	// local writer is shared with every other write, so a write per block
-	// bounds eviction to a few blocks a second under load.
-	if len(drop) != 0 {
-		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
-			return nil, false, errors.Wrap(err, "evict blocks")
-		}
-		result.Evicted += len(drop)
-	}
-
-	// Delete the walked entries and queue the kept ones at the new epoch,
-	// reading without the writer lock. A refused block's next upload queues it
-	// again.
+	// Drop the values the remote holds, delete the walked entries and queue
+	// the kept ones at the new epoch, in one write where the values store
+	// holds the queue: the writer is shared with every other write, and each
+	// turn waits behind every foreground writer. A refused block's next upload
+	// queues it again. The size of the next batch follows the writer hold.
 	var delta int64
-	err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+	editQueue := func(ctx context.Context, tx kvtx.Tx) error {
 		delta = 0
 		for _, entry := range batch {
 			if err := tx.Delete(ctx, entry.key); err != nil {
@@ -405,14 +489,63 @@ func (s *Store) evictBatch(
 			delta += added
 		}
 		return addEvictableBytes(ctx, tx, delta)
-	}, kvtx.RetryInvalidSnapshot)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "update eviction queue")
 	}
+	editor, joint := s.values.(valueEditor)
+	if joint {
+		var start time.Time
+		err = editor.EditValues(ctx, s.markersID, func(ctx context.Context, blocks block.StoreOps, tx kvtx.Tx) error {
+			start = time.Now()
+			if len(drop) != 0 {
+				if _, err := blocks.PutBlockBatch(ctx, drop); err != nil {
+					return err
+				}
+			}
+			return editQueue(ctx, tx)
+		}, kvtx.RetryInvalidSnapshot)
+		if err == nil {
+			hold := time.Since(start)
+			result.Hold = max(result.Hold, hold)
+			if evictHoldHook != nil {
+				evictHoldHook(len(batch), hold)
+			}
+			if len(batch) == size {
+				s.evictBatchSize = nextEvictBatch(size, hold)
+			}
+		} else if !errors.Is(err, kvtx.ErrTxTooBig) && !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
+			return nil, false, errors.Wrap(err, "evict blocks")
+		}
+	}
+	if !joint || err != nil {
+		if err := s.evictApart(ctx, drop, editQueue); err != nil {
+			return nil, false, err
+		}
+	}
+	result.Evicted += len(drop)
 
 	// Report the batch.
 	s.addEvictStatus(delta, evictedBytes)
 	result.EvictedBytes += evictedBytes
 	result.Requeued += len(requeue)
+	result.Batches++
 	return next, done, nil
+}
+
+// evictApart drops the values in drop, then runs editQueue on the eviction
+// queue, in two writes: for a values store that does not hold the queue or
+// cannot commit atomically, or a batch too big for one transaction. Values go
+// first, so an interrupted batch leaves only entries the next pass deletes.
+// Each write splits as its store needs, and the queue's reads take no writer
+// lock.
+func (s *Store) evictApart(ctx context.Context, drop []*block.PutBatchEntry, editQueue func(context.Context, kvtx.Tx) error) error {
+	// Drop the values in one write, not one per block: a write per block
+	// bounds eviction to a few blocks a second under load.
+	if len(drop) != 0 {
+		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
+			return errors.Wrap(err, "evict blocks")
+		}
+	}
+
+	// Change the queue.
+	err := kvtx.RunOptimisticTransaction(ctx, s.writeTx, editQueue, kvtx.RetryInvalidSnapshot)
+	return errors.Wrap(err, "update eviction queue")
 }
