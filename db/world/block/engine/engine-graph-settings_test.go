@@ -2,6 +2,7 @@ package world_block_engine_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"testing"
@@ -113,8 +114,19 @@ func predicateSettings(t *testing.T) *world_block.GraphSettings {
 
 // rootGraphSettings decodes the engine's World root and returns its settings.
 func rootGraphSettings(t *testing.T, ctx context.Context, eng world.Engine) *world_block.GraphSettings {
-	// Decode the root through the engine's World state access.
+	// Fail the test on any read error.
 	t.Helper()
+	settings, err := readRootGraphSettings(ctx, eng)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return settings
+}
+
+// readRootGraphSettings decodes the engine's World root and returns its
+// settings.
+func readRootGraphSettings(ctx context.Context, eng world.Engine) (*world_block.GraphSettings, error) {
+	// Decode the root through the engine's World state access.
 	var settings *world_block.GraphSettings
 	err := eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		// Unmarshal the root block and keep its settings.
@@ -126,20 +138,22 @@ func rootGraphSettings(t *testing.T, ctx context.Context, eng world.Engine) *wor
 		settings = wi.(*world_block.World).GetGraphSettings()
 		return nil
 	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return settings
+	return settings, err
 }
 
 // waitRootGraphSettings waits for the engine's World root to hold settings.
 func waitRootGraphSettings(t *testing.T, ctx context.Context, eng world.Engine, settings *world_block.GraphSettings) {
-	// Poll the root until it matches or the deadline passes.
+	// Poll the root until it matches or the deadline passes. Right after a
+	// restart the lookup can still resolve the previous engine as it shuts
+	// down: keep polling through its close until the new engine serves.
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		got := rootGraphSettings(t, ctx, eng)
-		if got.EqualVT(settings) {
+		got, err := readRootGraphSettings(ctx, eng)
+		if err != nil && !errors.Is(err, world_block.ErrEngineClosed) {
+			t.Fatal(err.Error())
+		}
+		if err == nil && got.EqualVT(settings) {
 			return
 		}
 		if time.Now().After(deadline) {
