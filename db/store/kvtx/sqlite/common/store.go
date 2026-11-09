@@ -452,7 +452,14 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	if err != nil {
 		return nil, err
 	}
-	s.stats.addWait(prio, time.Since(queued))
+	turn := time.Now()
+	s.stats.addWait(prio, turn.Sub(queued))
+	release = func(release func()) func() {
+		return func() {
+			s.stats.addHold(prio, time.Since(turn))
+			release()
+		}
+	}(release)
 
 	// Begin on a connection of its own, taking SQLite's write lock at once so
 	// the transaction never waits to upgrade from a read.

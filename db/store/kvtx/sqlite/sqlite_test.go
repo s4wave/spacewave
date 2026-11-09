@@ -601,6 +601,9 @@ func checkWALBoundStats(t *testing.T, path string) {
 		if st.ForegroundWaits < 2000 || st.BackgroundWaits != 0 {
 			t.Fatalf("writer turns: %d foreground, %d background; want at least 2000 foreground", st.ForegroundWaits, st.BackgroundWaits)
 		}
+		if st.ForegroundHold <= 0 || st.BackgroundHold != 0 {
+			t.Fatalf("writer holds: %v foreground, %v background; want some foreground", st.ForegroundHold, st.BackgroundHold)
+		}
 		if st.Passives == 0 || st.Truncates == 0 || st.LastTruncate <= 0 || st.Truncate < st.LastTruncate {
 			t.Fatalf("checkpoints: %+v", st)
 		}
