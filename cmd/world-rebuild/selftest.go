@@ -1,0 +1,265 @@
+package main
+
+import (
+	"crypto/rand"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/net/hash"
+)
+
+// selftest block categories by i % 10.
+const (
+	catMarked   = 0 // marked, not queued: keep
+	catUnqueued = 1 // no eviction entry: keep
+	catNoPack   = 2 // queued, no h row: keep
+	catDeadPack = 3 // queued, h row names a removed pack: keep
+	catHot      = 4 // queued, packed, in the read set: keep
+	// 5..9: queued, packed, cold: drop
+)
+
+func runSelftest(o opts) error {
+	dir, err := os.MkdirTemp(o.out, "world-rebuild-selftest-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	n := o.n
+	o.full = true
+	o.world = filepath.Join(dir, "world.db")
+	o.packs = filepath.Join(dir, "packs.db")
+	want, err := buildTestStore(o.world, o.packs, n, o.storeID, o.rowid)
+	if err != nil {
+		return fmt.Errorf("build test store: %w", err)
+	}
+	fi, _ := os.Stat(o.world)
+	fmt.Printf("test store: %d blocks, %s file, %d blocks the rule drops\n", n, gb(fi.Size()), want)
+
+	// A full-sample count finds exactly the blocks the rule drops, and
+	// their eviction entries.
+	co := o
+	co.sample, co.slices, co.rateOut, co.rateMB = 1, 37, filepath.Join(dir, "rate.db"), 50
+	res, err := runCount(co)
+	if err != nil {
+		return fmt.Errorf("count: %w", err)
+	}
+	hot := int64(0)
+	for i := range n {
+		if i%10 == catHot {
+			hot++
+		}
+	}
+	for _, c := range []struct {
+		name      string
+		got, want int64
+	}{
+		{"exact drop keys", res.blockKeys[vDrop], want},
+		{"sampled drop keys", res.blocks[vDrop].keys, want},
+		{"sampled hot keys", res.blocks[vHot].keys, hot},
+		{"dropped eviction entries", res.dropEvict.keys, want},
+	} {
+		if c.got != c.want {
+			return fmt.Errorf("count: %s %d, want %d", c.name, c.got, c.want)
+		}
+	}
+	if res.scale != 1 {
+		return fmt.Errorf("count: full sample scale %v, want 1", res.scale)
+	}
+	// A partial sample measures the copy rate on the rows past it.
+	co.sample, co.blocks = 0.3, false
+	if _, err := runCount(co); err != nil {
+		return fmt.Errorf("sampled count: %w", err)
+	}
+	fmt.Println("count: ok")
+
+	// The faithful copy verifies and drops exactly the cold packed blocks.
+	o.out = filepath.Join(dir, "new.db")
+	start := time.Now()
+	if err := runCopy(o); err != nil {
+		return fmt.Errorf("copy: %w", err)
+	}
+	el := time.Since(start)
+	nf, _ := os.Stat(o.out)
+	fmt.Printf("copy rate: %.0f MB/s of source file, %s\n", float64(fi.Size())/1e6/el.Seconds(), el.Round(time.Millisecond))
+	if err := runVerify(o); err != nil {
+		return fmt.Errorf("faithful copy failed verify: %w", err)
+	}
+	got, err := countBlocks(o.out)
+	if err != nil {
+		return err
+	}
+	if got != int64(n)-want {
+		return fmt.Errorf("copy holds %d blocks, want %d", got, int64(n)-want)
+	}
+	fmt.Printf("faithful copy: ok, %d blocks kept, new file %s\n", got, gb(nf.Size()))
+
+	// Each mutant drops one key the rule keeps; verify must catch it.
+	for _, m := range []string{"drop-marked", "drop-unqueued", "drop-hot", "drop-unpacked", "drop-meta", "stale-evict-bytes"} {
+		o.mutant = m
+		o.out = filepath.Join(dir, m+".db")
+		if err := runCopy(o); err != nil {
+			return fmt.Errorf("mutant %s copy: %w", m, err)
+		}
+		if err := runVerify(o); err == nil {
+			return fmt.Errorf("mutant %s: verify passed, want a fault", m)
+		}
+		fmt.Printf("mutant %s: caught\n", m)
+		os.Remove(o.out)
+	}
+	fmt.Println("selftest: ok")
+	return nil
+}
+
+func countBlocks(path string) (int64, error) {
+	db, err := openRO(path)
+	if err != nil {
+		return 0, err
+	}
+	defer db.Close()
+	t, _, err := kvTable(db)
+	if err != nil {
+		return 0, err
+	}
+	var c int64
+	err = db.QueryRow("SELECT count(*) FROM "+t+" WHERE key >= ? AND key < ?", []byte(blockPrefix), prefixEnd([]byte(blockPrefix))).Scan(&c)
+	return c, err
+}
+
+// buildTestStore writes a World store and pack index in the production
+// layout, returning how many blocks the drop rule drops.
+func buildTestStore(world, packs string, n int, storeID string, rowid bool) (int64, error) {
+	stmt := "CREATE TABLE IF NOT EXISTS kv ( key BLOB PRIMARY KEY, value BLOB)"
+	if !rowid {
+		stmt += " WITHOUT ROWID"
+	}
+	w, err := sql.Open("sqlite", "file:"+world+"?_pragma=journal_mode(WAL)&_pragma=synchronous(OFF)")
+	if err != nil {
+		return 0, err
+	}
+	defer w.Close()
+	w.SetMaxOpenConns(1)
+	if _, err := w.Exec(stmt); err != nil {
+		return 0, err
+	}
+	p, err := sql.Open("sqlite", "file:"+packs+"?_pragma=journal_mode(WAL)")
+	if err != nil {
+		return 0, err
+	}
+	defer p.Close()
+	p.SetMaxOpenConns(1)
+	if _, err := p.Exec(stmt); err != nil {
+		return 0, err
+	}
+
+	wtx, _ := w.Begin()
+	ptx, _ := p.Begin()
+	wput := func(k string, v []byte) error {
+		_, err := wtx.Exec("INSERT INTO kv (key, value) VALUES (?, ?)", []byte(k), v)
+		return err
+	}
+	sum := sha256.Sum256([]byte(storeID))
+	pre := string(append([]byte("pi"), sum[:8]...))
+	pput := func(k string, v []byte) error {
+		_, err := ptx.Exec("INSERT INTO kv (key, value) VALUES (?, ?)", []byte(pre+k), v)
+		return err
+	}
+	num := func(x uint32) []byte { return binary.BigEndian.AppendUint32(nil, x) }
+	if err := pput("p/packA", append(num(1), 1)); err != nil {
+		return 0, err
+	}
+	if err := pput("p/packB", append(num(2), 1)); err != nil {
+		return 0, err
+	}
+
+	const obj = "h/objs/world-wb/"
+	var hot []byte
+	var drop int64
+	var evictTotal int64
+	stamp := func(x uint64) string { return hex.EncodeToString(binary.BigEndian.AppendUint64(nil, x)) }
+	for i := range n {
+		digest := sha256.Sum256([]byte("block-" + strconv.Itoa(i)))
+		h := hash.NewHash(hash.HashType_HashType_SHA256, digest[:])
+		ref := &block.BlockRef{Hash: h}
+		rk, _ := ref.MarshalKey()
+		val := make([]byte, 500+(i*7919)%15500)
+		_, _ = rand.Read(val)
+		if err := wput(blockPrefix+string(rk), val); err != nil {
+			return 0, err
+		}
+		if err := wput("h/c/"+string(rk), []byte("children")); err != nil {
+			return 0, err
+		}
+		b58 := h.MarshalString()
+		size := strconv.Itoa(len(val))
+		cat := i % 10
+		queued := cat != catMarked && cat != catUnqueued
+		if cat == catMarked {
+			if err := wput(obj+"marked/"+b58, nil); err != nil {
+				return 0, err
+			}
+			if err := wput(obj+"queue/"+stamp(uint64(i))+"/"+b58, []byte(size)); err != nil {
+				return 0, err
+			}
+		}
+		if queued {
+			if err := wput(obj+"evictable/"+stamp(uint64(i%3))+"/"+b58, []byte(size)); err != nil {
+				return 0, err
+			}
+			evictTotal += int64(len(val))
+		}
+		hr := "h" + string(h.MarshalDigest()[len(h.MarshalDigest())-indexKeyBytes:])
+		switch {
+		case cat == catDeadPack:
+			if err := pput(hr, num(7)); err != nil {
+				return 0, err
+			}
+		case queued && cat != catNoPack:
+			if err := pput(hr, num(uint32(1+i%2))); err != nil {
+				return 0, err
+			}
+		}
+		if cat == catHot {
+			hot = append(hot, digest[:readKeyLen]...)
+		}
+		if cat >= 5 {
+			drop++
+		}
+	}
+	// An eviction entry for a block the store does not hold stays.
+	ghost := hash.NewHash(hash.HashType_HashType_SHA256, make([]byte, 32))
+	if err := wput(obj+"evictable/"+stamp(0)+"/"+ghost.MarshalString(), []byte("10")); err != nil {
+		return 0, err
+	}
+	gen := uint64(time.Now().Add(-30 * time.Minute).UnixNano())
+	old := uint64(time.Now().Add(-5 * time.Hour).UnixNano())
+	for _, kv := range []struct {
+		k string
+		v []byte
+	}{
+		{obj + "reads/" + stamp(gen) + "/" + stamp(gen+1), hot[:len(hot)/2]},
+		{obj + "reads/" + stamp(gen) + "/" + stamp(gen+2), hot[len(hot)/2:]},
+		{obj + "reads/" + stamp(old) + "/" + stamp(old+1), []byte("0123456789abcdef")},
+		{obj + "evictable-bytes", []byte("999")},
+		{obj + "epoch", []byte("3")},
+		{obj + "queue-count", []byte("12")},
+		{"h/r/root", []byte("root")},
+		{"zz-format", []byte("1")},
+	} {
+		if err := wput(kv.k, kv.v); err != nil {
+			return 0, err
+		}
+	}
+	_ = evictTotal
+	if err := wtx.Commit(); err != nil {
+		return 0, err
+	}
+	return drop, ptx.Commit()
+}
