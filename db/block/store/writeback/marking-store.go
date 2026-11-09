@@ -36,6 +36,8 @@ type MarkingStore struct {
 	// marker records every written block in the transaction that stores it,
 	// when not nil.
 	marker kvtx.BlockMarker
+	// fillsOnly marks only the cache fills, as NewFillMarkingStore describes.
+	fillsOnly bool
 }
 
 // NewMarkingStore wraps store, calling mark after each successful write.
@@ -47,6 +49,15 @@ func NewMarkingStore(store block.StoreOps, mark MarkFunc) *MarkingStore {
 // in the transaction that stores it.
 func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker) *MarkingStore {
 	return &MarkingStore{store: store, marker: marker}
+}
+
+// NewFillMarkingStore wraps a packed store that diverts, marking only its
+// cache fills the way m marks every write. A diverted value needs no marker,
+// since its finalized pack is its upload queue entry, but a cache fill lands
+// in the local store as a full value, and one read from a peer the backend
+// lacks uploads and stays resident only through its marker.
+func NewFillMarkingStore(m *MarkingStore) *MarkingStore {
+	return &MarkingStore{store: m.store, mark: m.mark, marker: m.marker, fillsOnly: true}
 }
 
 // GetStoreParts returns the wrapped store.
@@ -70,11 +81,16 @@ func (m *MarkingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	if err != nil {
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark, marker: m.marker}, release, nil
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, fillsOnly: m.fillsOnly}, release, nil
 }
 
 // PutBlock stores a block and marks it, even when it already existed.
 func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Store a diverted value unmarked.
+	if m.fillsOnly && !opts.GetCacheFill() {
+		return m.store.PutBlock(ctx, data, opts)
+	}
+
 	// Mark in the storing transaction.
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
@@ -95,6 +111,16 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 // PutBlockBatch marks every successful non-tombstone write.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Store a diverted batch unmarked; a batch carries no cache fill.
+	if m.fillsOnly {
+		existed, err := m.store.PutBlockBatch(ctx, entries)
+		if err != nil {
+			return nil, err
+		}
+		m.invalidateTombstones(ctx, entries)
+		return existed, nil
+	}
+
 	// Mark in the storing transaction.
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
