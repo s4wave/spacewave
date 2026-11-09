@@ -25,8 +25,19 @@ func (m *MarkingStore) ListRoots(ctx context.Context, prefix string, fn func(blo
 	return m.store.ListRoots(ctx, prefix, fn)
 }
 
-// SetRoots moves the roots on the inner store and marks the blocks it wrote.
+// SetRoots moves the roots on the inner store and marks the blocks it wrote,
+// or, for a store that marks only cache fills, writes them unmarked: a
+// publication carries no cache fill.
 func (m *MarkingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Store a diverted publication unmarked.
+	if m.fillsOnly {
+		if err := m.store.SetRoots(ctx, entries, roots); err != nil {
+			return err
+		}
+		m.invalidateTombstones(ctx, entries)
+		return nil
+	}
+
 	// Mark in the storing transaction.
 	if m.marker != nil {
 		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
@@ -58,7 +69,7 @@ func (m *MarkingStore) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 	if err != nil {
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark, marker: m.marker}, release, nil
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker, fillsOnly: m.fillsOnly}, release, nil
 }
 
 // ReleaseRoots forwards staging release to the underlying store.
