@@ -2,6 +2,7 @@ import React from 'react'
 import {
   getWebViewModuleImportStallError,
   getWebViewRootAssetLoadError,
+  reloadForFailedModuleGraph,
 } from './web-view-module-loader.js'
 
 export interface IWebViewErrorBoundaryProps {
@@ -156,6 +157,13 @@ export class WebViewErrorBoundary extends React.Component<
     console.error('web-view error', error, errorInfo)
 
     if (isRecoverableError(error)) {
+      // A retry that fails the same way leaves only a fresh document.
+      if (this.state.retryAttempt >= 1 && reloadForFailedModuleGraph(error)) {
+        console.log(
+          'web-view: module graph failed again with a live root asset, reloading page',
+        )
+        return
+      }
       const delay = backoffSeconds(this.state.retryAttempt)
       console.log(
         `web-view: recoverable error detected, retrying in ${delay}s (attempt ${this.state.retryAttempt + 1})`,

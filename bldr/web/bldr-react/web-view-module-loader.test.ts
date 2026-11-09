@@ -4,6 +4,7 @@ import {
   fetchWebViewRootAssetResult,
   isWebViewRootPluginAssetPath,
   loadWebViewScriptModule,
+  reloadForFailedModuleGraph,
   WebViewModuleImportStallError,
   WebViewRootAssetLoadError,
   webViewModuleImportErrorEvent,
@@ -548,5 +549,91 @@ describe('WebView root module loader', () => {
 
     expect(error.message).toContain('generation-closed')
     expect(error.rootAsset.status).toBe(410)
+  })
+})
+
+describe('reloadForFailedModuleGraph', () => {
+  const liveHeaders = {
+    'content-type': 'text/javascript',
+    'X-Bldr-Fetch-Source': 'plugin-assets',
+    'X-Bldr-Plugin-Asset-Fetch-Result': 'live',
+  }
+
+  async function failWithLiveRoot(scriptPath: string): Promise<Error> {
+    const failure = new TypeError(
+      `Failed to fetch dynamically imported module: ${scriptPath}`,
+    )
+    await expect(
+      loadWebViewScriptModule(scriptPath, {
+        fetchRootAsset: vi.fn(async () =>
+          pluginAssetResponse(200, 'export default 1', liveHeaders),
+        ),
+        importModule: vi.fn(async () => {
+          throw failure
+        }),
+      }),
+    ).rejects.toBe(failure)
+    return failure
+  }
+
+  it('reloads once per root script until an import of it succeeds', async () => {
+    const scriptPath = '/b/pa/spacewave-app/v/app/App-graph-reload.mjs'
+    sessionStorage.clear()
+    try {
+      const reload = vi.fn()
+      const first = await failWithLiveRoot(scriptPath)
+      expect(reloadForFailedModuleGraph(first, reload)).toBe(true)
+      expect(reload).toHaveBeenCalledOnce()
+
+      // The reloaded document failing the same way must not loop.
+      const second = await failWithLiveRoot(scriptPath)
+      expect(reloadForFailedModuleGraph(second, reload)).toBe(false)
+      expect(reload).toHaveBeenCalledOnce()
+
+      await expect(
+        loadWebViewScriptModule(scriptPath, {
+          importModule: vi.fn(async () => ({ default: 'component' })),
+        }),
+      ).resolves.toEqual({ default: 'component' })
+
+      const third = await failWithLiveRoot(scriptPath)
+      expect(reloadForFailedModuleGraph(third, reload)).toBe(true)
+      expect(reload).toHaveBeenCalledTimes(2)
+    } finally {
+      sessionStorage.clear()
+      globalThis.__bldrWebViewModuleImportError = undefined
+      globalThis.__bldrWebViewRootAssetStatus = undefined
+    }
+  })
+
+  it('does not reload when the root asset probe was not live', async () => {
+    const scriptPath = '/b/pa/spacewave-app/v/app/App-graph-missing.mjs'
+    sessionStorage.clear()
+    try {
+      const failure = new TypeError(
+        `Failed to fetch dynamically imported module: ${scriptPath}`,
+      )
+      await expect(
+        loadWebViewScriptModule(scriptPath, {
+          fetchRootAsset: vi.fn(async () =>
+            pluginAssetResponse(404, 'missing', {
+              'X-Bldr-Fetch-Source': 'plugin-assets',
+              'X-Bldr-Plugin-Asset-Fetch-Result': 'missing',
+            }),
+          ),
+          importModule: vi.fn(async () => {
+            throw failure
+          }),
+        }),
+      ).rejects.toBeInstanceOf(WebViewRootAssetLoadError)
+
+      const reload = vi.fn()
+      expect(reloadForFailedModuleGraph(failure, reload)).toBe(false)
+      expect(reload).not.toHaveBeenCalled()
+    } finally {
+      sessionStorage.clear()
+      globalThis.__bldrWebViewModuleImportError = undefined
+      globalThis.__bldrWebViewRootAssetStatus = undefined
+    }
   })
 })

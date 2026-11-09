@@ -372,6 +372,66 @@ function recordModuleImportFailure(scriptPath: string) {
 
 function recordModuleImportSuccess(scriptPath: string) {
   moduleImportRetryNonceByScriptPath.delete(scriptPath)
+  try {
+    if (
+      globalThis.sessionStorage?.getItem(moduleGraphReloadSessionKey) ===
+      scriptPath
+    ) {
+      globalThis.sessionStorage.removeItem(moduleGraphReloadSessionKey)
+    }
+  } catch {
+    // Storage is unavailable; no reload guard was recorded.
+  }
+}
+
+// moduleGraphReloadSessionKey names the root script whose failed module graph
+// already reloaded this tab, so a persistent failure reloads only once.
+const moduleGraphReloadSessionKey = 'bldr:webview-module-graph-reload'
+
+function isModuleFetchFailureMessage(message: string): boolean {
+  return (
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('error loading dynamically imported module') ||
+    message.includes('Importing a module script failed')
+  )
+}
+
+// reloadForFailedModuleGraph reloads the document once when an import failed
+// although the root asset probe was live. The browser keeps a failed module
+// fetch in the document's module map, and the retry nonce changes only the
+// root URL, so a dependency that failed once fails every retry in this
+// document. Returns true when it started the reload.
+export function reloadForFailedModuleGraph(
+  error: unknown,
+  reload: () => void = () => globalThis.location.reload(),
+): boolean {
+  const record = globalThis.__bldrWebViewModuleImportError
+  if (!(error instanceof Error) || !record?.rootAsset) {
+    return false
+  }
+  if (record.message !== error.message) {
+    return false
+  }
+  if (!isModuleFetchFailureMessage(record.message)) {
+    return false
+  }
+  if (!record.rootAsset.ok || record.rootAsset.classification !== 'live') {
+    return false
+  }
+  try {
+    const storage = globalThis.sessionStorage
+    if (!storage) {
+      return false
+    }
+    if (storage.getItem(moduleGraphReloadSessionKey) === record.scriptPath) {
+      return false
+    }
+    storage.setItem(moduleGraphReloadSessionKey, record.scriptPath)
+  } catch {
+    return false
+  }
+  reload()
+  return true
 }
 
 export function loadWebViewScriptModule<T>(
