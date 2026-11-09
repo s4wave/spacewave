@@ -103,6 +103,8 @@ type committingBatch struct {
 	// dropped is set once the engine dropped the batch and its writes queued
 	// again.
 	dropped bool
+	// admitStarted and admitted bound the engine's admission of the batch.
+	admitStarted, admitted time.Time
 }
 
 // New constructs a queue that preserves admitted replay obligations across

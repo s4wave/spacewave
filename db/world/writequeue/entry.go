@@ -72,6 +72,9 @@ type queuedWrite struct {
 	// peerReads. Only such an attempt parks: one that read from peers under
 	// the lock may leave blocks pending from the attempt before it.
 	deferring bool
+	// bodyStarted and bodyEnded bound the last run of the write's checks and
+	// body, for its stage times; see stages.go.
+	bodyStarted, bodyEnded time.Time
 }
 
 // Check authorizes a write inside the transaction that carries it.

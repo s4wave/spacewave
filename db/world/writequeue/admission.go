@@ -3,6 +3,7 @@ package writequeue
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -35,10 +36,12 @@ func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite
 	// Admit the batch. A batch the engine dropped meanwhile already queued
 	// again.
 	var adm world.Admission
+	c.admitStarted = time.Now()
 	err := q.watch(len(batch), func() (err error) {
 		adm, err = tx.Admit(ctx)
 		return err
 	})
+	c.admitted = time.Now()
 	tx.Discard()
 	q.mtx.Lock()
 	if err != nil {
@@ -97,9 +100,11 @@ func (q *Queue) settle(c *committingBatch, adm world.Admission, durable func(uin
 	}
 	q.mtx.Unlock()
 
-	// Count the batch, note the actors whose writes the revision carries,
-	// so their views rerun at once, then finish the writes.
+	// Count the batch and its writes' stage times, note the actors whose
+	// writes the revision carries, so their views rerun at once, then finish
+	// the writes.
 	durable(seqno)
+	q.observeStages(c, time.Now())
 	if q.options.Committed != nil {
 		q.options.Committed()
 	}

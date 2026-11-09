@@ -217,3 +217,46 @@ func TestQueuePeerFetchRounds(t *testing.T) {
 		t.Fatalf("deferred %d of %d attempts, want %d of %d", deferred, attempts, peerFetchRounds, peerFetchRounds+1)
 	}
 }
+
+// TestQueueStageTotals checks that a committed write's stage times are
+// counted under its operation and sum to no more than its time in the queue.
+func TestQueueStageTotals(t *testing.T) {
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx, testbed.WithChangelog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	type opKey struct{}
+	q := New(tb.Engine, Options{Name: func(ctx context.Context) string {
+		name, _ := ctx.Value(opKey{}).(string)
+		return name
+	}})
+	const op = "test/stage-totals"
+	before := GetStageTotals()[op]
+	started := time.Now()
+	_, err = q.Write(context.WithValue(ctx, opKey{}, op), 0, nil, func(ctx context.Context, tx world.Tx) error {
+		time.Sleep(20 * time.Millisecond)
+		object, err := tx.CreateObject(ctx, "staged", nil)
+		world.ReleaseObjectState(object)
+		return err
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	took := time.Since(started).Seconds()
+	after := GetStageTotals()[op]
+	if after.Writes != before.Writes+1 {
+		t.Fatalf("counted %d writes, want 1", after.Writes-before.Writes)
+	}
+	var sum float64
+	for i := range after.Seconds {
+		sum += after.Seconds[i] - before.Seconds[i]
+	}
+	if body := after.Seconds[StageBody] - before.Seconds[StageBody]; body < 0.02 {
+		t.Fatalf("body stage %.3fs, want at least the body's 20ms", body)
+	}
+	if sum > took {
+		t.Fatalf("stages sum to %.3fs, more than the write's %.3fs", sum, took)
+	}
+}
