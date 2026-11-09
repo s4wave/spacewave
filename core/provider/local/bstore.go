@@ -86,6 +86,10 @@ type placementState struct {
 	evictGate *csync.Mutex
 	// evictAdmit paces eviction passes, or holds nil.
 	evictAdmit *atomic.Pointer[block_store_writeback.EvictAdmit]
+	// resident is the account's resident mark override, or nil.
+	resident *residentOverride
+	// policyWake wakes the eviction loop when the policy changes; nil never.
+	policyWake chan struct{}
 	// sqlPrimary reports that the store writes to its SQL backend, which
 	// then holds blocks the reference graph may not track.
 	sqlPrimary bool
@@ -542,7 +546,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
+	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, resident: &t.a.resident, policyWake: make(chan struct{}, 1), done: ctx.Done()}
+	defer placement.unregister()
 	if packs != nil {
 		placement.drain = packs.drain
 	}
