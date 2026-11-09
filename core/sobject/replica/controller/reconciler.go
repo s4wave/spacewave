@@ -2,7 +2,6 @@ package sobject_replica_controller
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -53,10 +52,13 @@ func (r *reconciler) run(ctx context.Context) error {
 
 	// Wake on each change of the list until run returns.
 	listCtx, stopList := context.WithCancel(ctx)
-	var wg sync.WaitGroup
+	listDone := make(chan struct{})
 	initial := list.GetValue()
-	wg.Go(func() { wakeOnChange(listCtx, list, initial, r.c.wake) })
-	defer func() { stopList(); wg.Wait() }()
+	go func() {
+		defer close(listDone)
+		wakeOnChange(listCtx, list, initial, r.c.wake)
+	}()
+	defer func() { stopList(); <-listDone }()
 
 	// Take the next step after each change of either node's state, the list,
 	// the Space or the copy, retrying a failed step after retryDelay.

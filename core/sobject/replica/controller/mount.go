@@ -2,9 +2,9 @@ package sobject_replica_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -49,15 +49,16 @@ func openMount(ctx context.Context, r *reconciler, ref *sobject.SharedObjectRef)
 
 	// Wake the node on each change of the state or the copy.
 	watchCtx, stopWatch := context.WithCancel(ctx)
-	var wg sync.WaitGroup
 	initial := state.GetValue()
-	wg.Go(func() { wakeOnChange(watchCtx, state, initial, r.c.wake) })
-	wg.Go(func() { m.wakeOnBackfill(watchCtx, r.c.wake) })
+	watches := conc.NewConcurrentQueue(0,
+		func() { wakeOnChange(watchCtx, state, initial, r.c.wake) },
+		func() { m.wakeOnBackfill(watchCtx, r.c.wake) },
+	)
 
 	// Release stops the watches before the state and the body they read.
 	m.release = func() {
 		stopWatch()
-		wg.Wait()
+		_ = watches.WaitIdle(context.Background(), nil)
 		releaseState()
 		bodyRef.Release()
 	}
@@ -90,10 +91,13 @@ func (m *mount) wakeOnBackfill(ctx context.Context, wake func()) {
 		choice, outcome := be.GetBackfill(), be.GetBackfillState()
 		initialChoice, initialOutcome := choice.GetValue(), outcome.GetValue()
 		wake()
-		var wg sync.WaitGroup
-		wg.Go(func() { wakeOnChange(ctx, choice, initialChoice, wake) })
+		choiceDone := make(chan struct{})
+		go func() {
+			defer close(choiceDone)
+			wakeOnChange(ctx, choice, initialChoice, wake)
+		}()
 		wakeOnChange(ctx, outcome, initialOutcome, wake)
-		wg.Wait()
+		<-choiceDone
 		return nil
 	})
 }
