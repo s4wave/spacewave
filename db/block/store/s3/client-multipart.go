@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 )
 
@@ -92,12 +93,13 @@ func (c *Client) uploadParts(
 	defer stop(nil)
 
 	// Keep the landed parts as the workers finish.
-	var wg sync.WaitGroup
 	var mtx sync.Mutex
 	var parts []completedPart
 
-	// Hand each part to a worker, holding a slot while it uploads.
-	slots := make(chan struct{}, max(opts.Workers, 1))
+	// Hand each part to a worker, holding a slot of the semaphore while it
+	// uploads. Taking every slot afterward waits for the last worker.
+	workers := int64(max(opts.Workers, 1))
+	slots := csync.NewSemaphore(workers)
 	var size int64
 	var readErr error
 	next := first
@@ -109,20 +111,20 @@ func (c *Client) uploadParts(
 		}
 
 		// Wait for a slot, or stop if a part failed.
-		select {
-		case slots <- struct{}{}:
-		case <-ctx.Done():
+		if slots.Acquire(ctx, 1) != nil {
+			break
 		}
 		if ctx.Err() != nil {
+			slots.Release(1)
 			break
 		}
 
 		// Start the part. The worker keeps its own bytes, since next moves on.
 		data := next
 		size += int64(len(data))
-		wg.Go(func() {
+		go func() {
 			// Upload the part, stopping the rest on failure.
-			defer func() { <-slots }()
+			defer slots.Release(1)
 			etag, err := c.uploadPart(ctx, bucket, key, uploadID, number, data)
 			if err != nil {
 				stop(err)
@@ -133,7 +135,7 @@ func (c *Client) uploadParts(
 			mtx.Lock()
 			parts = append(parts, completedPart{Number: number, ETag: etag})
 			mtx.Unlock()
-		})
+		}()
 
 		// Read the next part while this one uploads. A short part was the last.
 		if len(data) < opts.PartBytes {
@@ -143,7 +145,7 @@ func (c *Client) uploadParts(
 			break
 		}
 	}
-	wg.Wait()
+	_ = slots.Acquire(context.Background(), workers)
 
 	// Report the first failure, and the parts in order.
 	if readErr != nil {
