@@ -3,7 +3,8 @@ package block
 import (
 	"context"
 	"sync"
-	"sync/atomic"
+
+	"github.com/aperturerobotics/util/conc"
 )
 
 // Prefetch reads refs from store in order, with at most concurrency reads in
@@ -14,27 +15,24 @@ import (
 // arrive together. Returns the first read error, or the context error when ctx
 // ends first.
 func Prefetch(ctx context.Context, store StoreOps, refs []*BlockRef, concurrency int) error {
-	// Start one worker per allowed read, each claiming the next ref in order.
-	var next atomic.Int64
+	// Queue one read per ref. The queue starts them in list order with at
+	// most concurrency in flight, and a read queued after ctx ends is skipped.
 	var errOnce sync.Once
 	var firstErr error
-	var wg sync.WaitGroup
-	for range min(max(concurrency, 1), len(refs)) {
-		wg.Go(func() {
-			for ctx.Err() == nil {
-				i := next.Add(1) - 1
-				if i >= int64(len(refs)) {
-					return
-				}
-				if _, _, err := store.GetBlock(ctx, refs[i]); err != nil {
-					errOnce.Do(func() { firstErr = err })
-				}
+	reads := conc.NewConcurrentQueue(max(concurrency, 1))
+	for _, ref := range refs {
+		reads.Enqueue(func() {
+			if ctx.Err() != nil {
+				return
+			}
+			if _, _, err := store.GetBlock(ctx, ref); err != nil {
+				errOnce.Do(func() { firstErr = err })
 			}
 		})
 	}
 
-	// Wait for the workers and report the first failure.
-	wg.Wait()
+	// Wait for the reads in flight and report the first failure.
+	_ = reads.WaitIdle(context.Background(), nil)
 	if err := ctx.Err(); err != nil {
 		return err
 	}
