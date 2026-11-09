@@ -10,7 +10,8 @@ import (
 
 // peerFetchRounds bounds the times one write leaves its batch to fetch blocks
 // from peers. A write past it reads from peers under the writer lock, as every
-// write did before writes fetched outside it.
+// write did before writes fetched outside it. A write that parked again past
+// it would never commit, and neither would the writes requeued with it.
 const peerFetchRounds = 8
 
 // A write body runs under the engine's writer lock, so a read that only a
@@ -38,16 +39,11 @@ func (q *Queue) runnableLocked() bool {
 }
 
 // park sets w aside to fetch the blocks its body deferred, queueing the rest
-// of its batch again. A write past peerFetchRounds queues again at once and
-// reads from peers under the lock.
+// of its batch again. Only an attempt under peerReads parks, so a write parks
+// at most peerFetchRounds times.
 func (q *Queue) park(w *queuedWrite, rest []*queuedWrite) {
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
-	if w.peerReads.Rounds() >= peerFetchRounds {
-		w.peerWait = true
-		q.requeueLocked(append(rest, w))
-		return
-	}
 	if w.actor != 0 {
 		if q.fetching == nil {
 			q.fetching = make(map[uint64]int)

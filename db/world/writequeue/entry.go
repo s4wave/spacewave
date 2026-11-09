@@ -65,9 +65,13 @@ type queuedWrite struct {
 	// peerReads holds the blocks the body deferred to a peer fetch and those
 	// fetched, across the write's attempts; see park.
 	peerReads *block.PeerReads
-	// peerWait is set once the write reads from peers under the writer lock:
-	// a fetch missed or the write used its fetch rounds.
+	// peerWait is set once a fetch missed: the write reads from peers under
+	// the writer lock from then on.
 	peerWait bool
+	// deferring reports whether the current attempt's body runs under
+	// peerReads. Only such an attempt parks: one that read from peers under
+	// the lock may leave blocks pending from the attempt before it.
+	deferring bool
 }
 
 // Check authorizes a write inside the transaction that carries it.
@@ -101,6 +105,7 @@ func (w *queuedWrite) run(q *Queue, tx Transaction, spans *bodySpans) (bool, err
 	// mid-body waits here for the body to return.
 	w.runMtx.Lock()
 	defer w.runMtx.Unlock()
+	w.deferring = false
 	if w.abandoned {
 		return false, context.Cause(w.ctx)
 	}
@@ -108,11 +113,13 @@ func (w *queuedWrite) run(q *Queue, tx Transaction, spans *bodySpans) (bool, err
 	// Authorize and apply the body in the attempt's auxiliary context. The
 	// body runs under the writer lock, so its reads are urgent.
 	ctx := spans.attach(block.WithReadClass(context.WithValue(tx.BodyContext(w.ctx), batchedWriteKey{}, q), block.ReadUrgent))
-	if !w.answered && !w.peerWait {
-		// Defer a read only a peer can serve; see park.
-		if w.peerReads == nil {
-			w.peerReads = block.NewPeerReads()
-		}
+	// Defer a read only a peer can serve, for peerFetchRounds fetches; see
+	// park. A write past them reads from peers under the lock.
+	if w.peerReads == nil {
+		w.peerReads = block.NewPeerReads()
+	}
+	w.deferring = !w.answered && !w.peerWait && w.peerReads.Rounds() < peerFetchRounds
+	if w.deferring {
 		ctx = block.WithPeerReads(ctx, w.peerReads)
 	}
 	for _, check := range w.checks {

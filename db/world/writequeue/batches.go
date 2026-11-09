@@ -215,7 +215,7 @@ func (q *Queue) run(ctx context.Context, tx Transaction, batch []*queuedWrite) (
 		if errors.Is(err, coord.ErrStaleGeneration) {
 			return -1, 0, -1, err
 		}
-		if w.peerReads != nil && w.peerReads.Pending() {
+		if w.deferring && w.peerReads.Pending() {
 			return -1, 0, i, nil
 		}
 		if err != nil {

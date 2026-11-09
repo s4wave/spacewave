@@ -156,3 +156,64 @@ func TestQueuePeerFetch(t *testing.T) {
 		}
 	}
 }
+
+// TestQueuePeerFetchRounds checks that a write whose every attempt defers a
+// new peer read stops parking after peerFetchRounds fetches, reads from peers
+// under the lock, and commits, and that a write queued behind it commits too.
+func TestQueuePeerFetchRounds(t *testing.T) {
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx, testbed.WithChangelog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	q := New(tb.Engine, Options{})
+
+	// Each deferring attempt asks for a block no attempt asked for before.
+	var attempts, deferred int
+	body := func(ctx context.Context, tx world.Tx) error {
+		attempts++
+		if reads := block.GetPeerReads(ctx); reads != nil {
+			data := []byte{byte(attempts)}
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				return err
+			}
+			deferred++
+			reads.Defer(ref, func(context.Context) (*block.StoredBlock, error) {
+				return &block.StoredBlock{Data: data, RefsKnown: true}, nil
+			})
+		}
+		object, err := tx.CreateObject(ctx, "deferring", nil)
+		world.ReleaseObjectState(object)
+		return err
+	}
+
+	write := func(actor uint64, body func(context.Context, world.Tx) error) <-chan error {
+		done := make(chan error, 1)
+		go func() {
+			_, err := q.Write(ctx, actor, nil, body, nil)
+			done <- err
+		}()
+		return done
+	}
+	first := write(0, body)
+	second := write(0, func(ctx context.Context, tx world.Tx) error {
+		object, err := tx.CreateObject(ctx, "behind", nil)
+		world.ReleaseObjectState(object)
+		return err
+	})
+	for _, done := range []<-chan error{first, second} {
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("writes never committed after %d attempts", attempts)
+		}
+	}
+	if deferred != peerFetchRounds || attempts != peerFetchRounds+1 {
+		t.Fatalf("deferred %d of %d attempts, want %d of %d", deferred, attempts, peerFetchRounds, peerFetchRounds+1)
+	}
+}

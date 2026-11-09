@@ -10,6 +10,9 @@ CONSTANTS EarlyApply, HoldSQL, DiscardOnRetry
 \* The guards the deferred fetch relies on; the mutants clear them.
 FetchReleasesWriter == TRUE
 ActorGuard == TRUE
+RoundGuard == TRUE
+\* The fetches one write may run before it reads from peers under the lock.
+MaxRounds == 2
 Writes == {1, 2}
 Kinds == {"apply", "report"}
 VARIABLE s
@@ -17,6 +20,7 @@ Init == s = [pc |-> [i \in Writes |-> "queued"],
              kind |-> [i \in Writes |-> CHOOSE k \in Kinds : TRUE],
              actor |-> [i \in Writes |-> 1],
              sql |-> [i \in Writes |-> FALSE],
+             rounds |-> [i \in Writes |-> 0],
              lock |-> 0, durable |-> {}, answered |-> {}, read |-> {},
              badRead |-> FALSE, failed |-> FALSE, cancelled |-> {}]
 \* Enumerate the caller kinds and whether each body uses SQL independently.
@@ -39,10 +43,12 @@ Body(i) ==
   /\ s' = [s EXCEPT !.pc[i] = "body", !.lock = IF s.sql[i] THEN i ELSE 0]
 \* A read only a peer serves defers: the batch is discarded, releasing the
 \* writer and any SQL writer, and the write fetches. An answered replay may
-\* have been seen, so it never moves behind later writes.
+\* have been seen, so it never moves behind later writes. A write that used
+\* its rounds reads from peers under the lock instead, so it commits.
 Defer(i) ==
   /\ s.pc[i] = "body" /\ i \notin s.answered
-  /\ s' = [s EXCEPT !.pc[i] = "fetching",
+  /\ RoundGuard => s.rounds[i] < MaxRounds
+  /\ s' = [s EXCEPT !.pc[i] = "fetching", !.rounds[i] = @ + 1,
                     !.lock = IF s.lock = i /\ FetchReleasesWriter THEN 0 ELSE @]
 Fetched(i) ==
   /\ s.pc[i] = "fetching"
@@ -105,5 +111,8 @@ NoFetchUnderWriter == \A i \in Writes : s.pc[i] = "fetching" => s.lock # i
 ActorWaitsForFetch == \A i \in Writes :
   (s.pc[i] = "fetching" => i \notin s.answered) /\
   (s.pc[i] \in {"body", "sql"} => ~ActorFetching(i))
+\* No write leaves its batch to fetch more than MaxRounds times; one that did
+\* without bound would hold back its batch, and every write requeued with it.
+BoundedFetches == \A i \in Writes : s.rounds[i] <= MaxRounds
 DurableSurvives == \A i \in s.durable : s.pc[i] = "durable"
 ====

@@ -23,10 +23,20 @@
     "name": "a write answered at admission defers and moves behind later writes",
     "replace": [
       [
-        "/\\ s.pc[i] = \"body\" /\\ i \\notin s.answered\n  /\\ s' = [s EXCEPT !.pc[i] = \"fetching\"",
-        "/\\ s.pc[i] = \"body\"\n  /\\ s' = [s EXCEPT !.pc[i] = \"fetching\""
+        "/\\ s.pc[i] = \"body\" /\\ i \\notin s.answered\n  /\\ RoundGuard",
+        "/\\ s.pc[i] = \"body\"\n  /\\ RoundGuard"
       ]
     ],
     "expect": "ActorWaitsForFetch"
+  },
+  {
+    "name": "a write past its fetch rounds defers again",
+    "replace": [
+      [
+        "RoundGuard == TRUE",
+        "RoundGuard == FALSE"
+      ]
+    ],
+    "expect": "BoundedFetches"
   }
 ]
