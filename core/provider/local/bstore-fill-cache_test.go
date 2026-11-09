@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -19,7 +20,14 @@ import (
 // fills the disk with its upload marker and never the cache. A disk cache that
 // fails reads as a miss, so the read goes on to the pack store.
 func TestFillCacheTakesPackHits(t *testing.T) {
-	t.Run("disk", func(t *testing.T) { testFillCacheTakesPackHits(t, false) })
+	t.Run("disk", func(t *testing.T) {
+		// The js SQLite store opens its database in an OPFS Worker over RPC,
+		// which the GoScript test runtime does not serve.
+		if runtime.GOOS == "js" {
+			t.Skip("the SQLite fill cache needs an OPFS Worker under js")
+		}
+		testFillCacheTakesPackHits(t, false)
+	})
 	t.Run("memory", func(t *testing.T) { testFillCacheTakesPackHits(t, true) })
 }
 
