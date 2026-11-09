@@ -692,26 +692,50 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // alone.
 //
 // The batch clears in transactions of at most clearBlocks entries, each
-// holding the writer for about clearHold at most. A failure leaves the entries
-// after the last commit queued, so they upload again, which the remote keeps
-// as another copy.
+// holding the writer for about clearHold at most. A transaction the store
+// reports busy is retried in place after a backoff, since the blocks are
+// already on the remote. Another failure leaves the entries after the last
+// commit queued, so they upload again, which the remote keeps as another copy.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	for window := range slices.Chunk(batch, clearBlocks) {
 		// Read what the clears read before taking any lock, so the reads
 		// under the writer find their pages cached.
 		s.prefetchClear(ctx, window)
 
-		// Clear the window in transactions that each hold the writer briefly.
+		// Clear the window in transactions that each hold the writer briefly,
+		// waiting out a store that reports itself busy.
+		wait := clearBusyWait
+		busy := 0
 		for len(window) != 0 {
 			n, err := s.clearSome(ctx, window)
 			if err != nil {
-				return err
+				if busy >= clearBusyRetries || !kvtx.IsBusy(err) {
+					return err
+				}
+				busy++
+				select {
+				case <-ctx.Done():
+					return context.Cause(ctx)
+				//gostyle:timer backoff
+				case <-time.After(wait):
+				}
+				wait = min(2*wait, clearBusyMaxWait)
+				continue
 			}
 			window = window[n:]
 		}
 	}
 	return nil
 }
+
+// clearBusyRetries bounds how often clear retries a transaction the store
+// reported busy, and clearBusyWait is its first wait, doubling to
+// clearBusyMaxWait.
+const (
+	clearBusyRetries = 20
+	clearBusyWait    = 250 * time.Millisecond
+	clearBusyMaxWait = 5 * time.Second
+)
 
 // clearSome clears the batch's leading entries in one transaction, as many as
 // clearHold admits and at least one, and returns how many it cleared.

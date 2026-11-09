@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"math"
 	"slices"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -628,7 +627,7 @@ func (x *packIndex) writeSliceRetry(ctx context.Context, entry *packfile.Packfil
 	wait := sliceBusyWait
 	for attempt := 0; ; attempt++ {
 		err := x.writeSlice(ctx, entry, row, first, keys, value, extents)
-		if err == nil || attempt >= sliceBusyRetries || !isBusyError(err) {
+		if err == nil || attempt >= sliceBusyRetries || !kvtx.IsBusy(err) {
 			return err
 		}
 		select {
@@ -639,13 +638,6 @@ func (x *packIndex) writeSliceRetry(ctx context.Context, entry *packfile.Packfil
 		}
 		wait = min(2*wait, sliceBusyMaxWait)
 	}
-}
-
-// isBusyError reports whether err is a store's report that another writer
-// holds its lock, SQLite's "database is locked", which a later attempt may
-// pass.
-func isBusyError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "database is locked")
 }
 
 // writeSlice writes the h rows of keys, each naming value or, when extents is
