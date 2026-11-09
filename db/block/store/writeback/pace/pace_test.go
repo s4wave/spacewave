@@ -18,14 +18,14 @@ func TestEvictPaceBacksOffSlowFlushes(t *testing.T) {
 	var st Stats
 	var slept time.Duration
 	p := &Pace{
-		le:       logrus.NewEntry(logrus.New()),
-		stats:    func() (Stats, bool) { return st, true },
-		flushMax: 50 * time.Millisecond,
+		le:    logrus.NewEntry(logrus.New()),
+		stats: func() (Stats, bool) { return st, true },
 		sleep: func(_ context.Context, d time.Duration) error {
 			slept += d
 			return nil
 		},
 	}
+	p.SetFlushMax(50 * time.Millisecond)
 	ctx := t.Context()
 
 	// The first batch has no window to judge and runs.
@@ -62,6 +62,16 @@ func TestEvictPaceBacksOffSlowFlushes(t *testing.T) {
 	if err := p.Admit(ctx, 1<<20); err != nil || slept < evictBackoffMax || slept > evictBackoffMax+evictBackoffStepMax {
 		t.Fatalf("stuck admit = %v after %v", err, slept)
 	}
+
+	// Raising the bound past the slow flushes while the pace runs admits at
+	// once, and zero never backs off.
+	for _, bound := range []time.Duration{2 * time.Second, 0} {
+		slept = 0
+		p.SetFlushMax(bound)
+		if err := p.Admit(ctx, 1<<20); err != nil || slept != 0 {
+			t.Fatalf("admit under flush max %v = %v after %v", bound, err, slept)
+		}
+	}
 }
 
 // TestEvictPaceCapsRate checks that the cap spaces batches by the bytes the
@@ -72,12 +82,12 @@ func TestEvictPaceCapsRate(t *testing.T) {
 	p := &Pace{
 		le:    logrus.NewEntry(logrus.New()),
 		stats: func() (Stats, bool) { return Stats{}, false },
-		rate:  1 << 20,
 		sleep: func(_ context.Context, d time.Duration) error {
 			slept += d
 			return nil
 		},
 	}
+	p.SetBytesPerSecond(1 << 20)
 	ctx := t.Context()
 
 	// A batch of 2 MiB waits about two seconds before the next.
@@ -86,6 +96,13 @@ func TestEvictPaceCapsRate(t *testing.T) {
 	}
 	if err := p.Admit(ctx, 2<<20); err != nil || slept < 1900*time.Millisecond || slept > 2*time.Second {
 		t.Fatalf("capped admit = %v after %v", err, slept)
+	}
+
+	// Doubling the cap while the pace runs halves the next wait.
+	slept = 0
+	p.SetBytesPerSecond(2 << 20)
+	if err := p.Admit(ctx, 2<<20); err != nil || slept < 900*time.Millisecond || slept > time.Second {
+		t.Fatalf("raised cap admit = %v after %v", err, slept)
 	}
 
 	// A paused pace holds until the pass ends.

@@ -2,6 +2,8 @@ package pace
 
 import (
 	"context"
+	"math"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/util/csync"
@@ -30,11 +32,12 @@ type Pace struct {
 	stats func() (Stats, bool)
 	// paused holds every pass until it ends.
 	paused bool
-	// rate caps the bytes evicted a second, zero for no cap.
-	rate float64
+	// rate caps the bytes evicted a second, zero for no cap, as float64
+	// bits; SetBytesPerSecond changes it while passes run.
+	rate atomic.Uint64
 	// flushMax is the mean flush time past which a batch waits, zero to
-	// never wait on flushes.
-	flushMax time.Duration
+	// never wait on flushes; SetFlushMax changes it while passes run.
+	flushMax atomic.Int64
 	// sleep waits d or until ctx ends.
 	sleep func(ctx context.Context, d time.Duration) error
 
@@ -52,7 +55,22 @@ type Pace struct {
 // New constructs an optional policy for a store's EvictAdmit hook. The
 // policy delays work only; it never changes which blocks may be removed.
 func New(le *logrus.Entry, stats func() (Stats, bool), config Config) *Pace {
-	return &Pace{le: le, stats: stats, paused: config.Paused, rate: config.BytesPerSecond, flushMax: config.FlushMax, sleep: sleepCtx}
+	p := &Pace{le: le, stats: stats, paused: config.Paused, sleep: sleepCtx}
+	p.SetBytesPerSecond(config.BytesPerSecond)
+	p.SetFlushMax(config.FlushMax)
+	return p
+}
+
+// SetBytesPerSecond sets the cap on the bytes evicted a second, zero or less
+// for no cap. The next batch admitted spaces itself by the new cap.
+func (p *Pace) SetBytesPerSecond(rate float64) {
+	p.rate.Store(math.Float64bits(max(rate, 0)))
+}
+
+// SetFlushMax sets the mean flush time past which a batch backs off, zero or
+// less to never back off. A batch backing off reads it at its next sample.
+func (p *Pace) SetFlushMax(d time.Duration) {
+	p.flushMax.Store(int64(max(d, 0)))
 }
 
 // Admit waits before an eviction batch, as block_store_writeback.EvictAdmit
@@ -74,8 +92,8 @@ func (p *Pace) Admit(ctx context.Context, lastBytes int64) error {
 	start := time.Now()
 
 	// Space batches to the rate cap.
-	if p.rate > 0 && lastBytes > 0 && !p.last.IsZero() {
-		due := p.last.Add(time.Duration(float64(lastBytes) / p.rate * float64(time.Second)))
+	if rate := math.Float64frombits(p.rate.Load()); rate > 0 && lastBytes > 0 && !p.last.IsZero() {
+		due := p.last.Add(time.Duration(float64(lastBytes) / rate * float64(time.Second)))
 		if wait := time.Until(due); wait > 0 {
 			if err := p.sleep(ctx, wait); err != nil {
 				return err
@@ -111,7 +129,8 @@ func (p *Pace) Admit(ctx context.Context, lastBytes int64) error {
 // checkpoint.
 func (p *Pace) slow() bool {
 	// Take the change since the last sample.
-	if p.flushMax == 0 {
+	flushMax := time.Duration(p.flushMax.Load())
+	if flushMax == 0 {
 		return false
 	}
 	st, ok := p.stats()
@@ -132,7 +151,7 @@ func (p *Pace) slow() bool {
 	if flushes == 0 {
 		return false
 	}
-	return float64(st.FlushTime-prev.FlushTime)/float64(flushes) > float64(p.flushMax)
+	return float64(st.FlushTime-prev.FlushTime)/float64(flushes) > float64(flushMax)
 }
 
 // sleepCtx waits d or until ctx ends.
