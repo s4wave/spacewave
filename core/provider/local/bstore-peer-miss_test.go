@@ -120,3 +120,28 @@ func TestPeerExistsAsksNoPeer(t *testing.T) {
 		t.Fatalf("asked the peers %d times", peers.asks.Load())
 	}
 }
+
+// TestPeerReadDeferred checks that a read under block.WithPeerReads asks no
+// peer and fails unavailable at once, that the PeerReads' fetch reads the
+// peer, and that the next read answers from the fetched block.
+func TestPeerReadDeferred(t *testing.T) {
+	want := &block.StoredBlock{Data: []byte("served")}
+	peers := &flakyPeers{blk: want}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: &sync.Map{}}
+	ref := block.NewBlockRef(nil)
+	reads := block.NewPeerReads()
+	ctx := block.WithPeerReads(context.Background(), reads)
+
+	blk, err := p.GetStoredBlock(ctx, ref)
+	if blk != nil || !errors.Is(err, block.ErrUnavailable) || peers.reads.Load() != 0 || !reads.Pending() {
+		t.Fatalf("deferred read: %v %v, %d peer reads, pending %v", blk, err, peers.reads.Load(), reads.Pending())
+	}
+	ok, err := reads.Fetch(context.Background())
+	if !ok || err != nil || peers.reads.Load() != 1 || reads.Pending() {
+		t.Fatalf("fetch: %v %v, %d peer reads", ok, err, peers.reads.Load())
+	}
+	blk, err = p.GetStoredBlock(ctx, ref)
+	if blk != want || err != nil || peers.reads.Load() != 1 {
+		t.Fatalf("read after fetch: %v %v, %d peer reads", blk, err, peers.reads.Load())
+	}
+}

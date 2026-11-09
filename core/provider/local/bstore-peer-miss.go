@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -57,6 +58,9 @@ type peerMissLog struct {
 	le *logrus.Entry
 	// seen holds the refs already logged, keyed by their marshaled string.
 	seen *sync.Map
+	// peers returns the unscoped peer store, which a read deferred by
+	// block.WithPeerReads fetches from after its read scope ends.
+	peers func() block.StoreOps
 }
 
 // newPeerMissSource wraps peers so each block that reaches it is logged once.
@@ -67,7 +71,7 @@ func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps) func() blo
 		if store == nil {
 			return nil
 		}
-		return &peerMissLog{StoreOps: store, le: le, seen: seen}
+		return &peerMissLog{StoreOps: store, le: le, seen: seen, peers: peers}
 	}
 }
 
@@ -79,7 +83,7 @@ func (p *peerMissLog) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &peerMissLog{StoreOps: scoped, le: p.le, seen: p.seen}, release, nil
+	return &peerMissLog{StoreOps: scoped, le: p.le, seen: p.seen, peers: p.peers}, release, nil
 }
 
 // GetBlock logs the miss and reads the block from peers.
@@ -94,16 +98,49 @@ func (p *peerMissLog) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 // GetStoredBlock logs the miss and reads the block and its refs from peers,
 // asking again after a failure until peerReadLimit, as SetPeerReadWait
 // describes.
+//
+// Under block.WithPeerReads the read asks no peer: it answers a block the
+// PeerReads fetched, and otherwise defers the block to it and returns
+// block.ErrUnavailable at once, since its caller may hold the World's writer.
 func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Answer from, or defer to, a caller's PeerReads.
+	if reads := block.GetPeerReads(ctx); reads != nil {
+		if stored := reads.Lookup(ref); stored != nil {
+			return stored, nil
+		}
+		p.logMiss(ref)
+		reads.Defer(ref, p.fetch(ref))
+		return nil, fmt.Errorf("%w: block %s deferred to a peer fetch", block.ErrUnavailable, ref.MarshalString())
+	}
+
 	// Log the first miss of the block.
 	p.logMiss(ref)
+	return readPeers(ctx, p.StoreOps, ref)
+}
 
+// fetch returns the deferred peer read of ref, which reads the unscoped peer
+// store within the peer read bound.
+func (p *peerMissLog) fetch(ref *block.BlockRef) block.PeerFetch {
+	return func(ctx context.Context) (*block.StoredBlock, error) {
+		store := p.StoreOps
+		if p.peers != nil {
+			if peers := p.peers(); peers != nil {
+				store = peers
+			}
+		}
+		return readPeers(block.WithPeerReads(ctx, nil), store, ref)
+	}
+}
+
+// readPeers asks the peers in store for ref until one answers, or
+// peerReadLimit ends.
+func readPeers(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Ask the peers until one answers, or the bound ends.
 	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
 	defer cancel()
 	pause := peerReadPauseMin
 	for {
-		blk, err := p.StoreOps.GetStoredBlock(readCtx, ref)
+		blk, err := store.GetStoredBlock(readCtx, ref)
 		if err == nil || readCtx.Err() != nil {
 			return blk, peerReadErr(ctx, err)
 		}

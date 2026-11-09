@@ -82,6 +82,12 @@ type Queue struct {
 	committing []*committingBatch
 	// draining is set while a goroutine forks batches for the pending writes.
 	draining bool
+	// parked are the writes set aside while they fetch blocks from peers;
+	// see park.
+	parked []*queuedWrite
+	// fetching counts each actor's parked writes; the actor's pending writes
+	// wait while it is not zero.
+	fetching map[uint64]int
 }
 
 // committingBatch is a batch from its commit until its durable result.

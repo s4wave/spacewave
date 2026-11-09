@@ -62,6 +62,12 @@ type queuedWrite struct {
 	// seqno is the World revision the write committed, set before done
 	// closes on success.
 	seqno uint64
+	// peerReads holds the blocks the body deferred to a peer fetch and those
+	// fetched, across the write's attempts; see park.
+	peerReads *block.PeerReads
+	// peerWait is set once the write reads from peers under the writer lock:
+	// a fetch missed or the write used its fetch rounds.
+	peerWait bool
 }
 
 // Check authorizes a write inside the transaction that carries it.
@@ -102,6 +108,13 @@ func (w *queuedWrite) run(q *Queue, tx Transaction, spans *bodySpans) (bool, err
 	// Authorize and apply the body in the attempt's auxiliary context. The
 	// body runs under the writer lock, so its reads are urgent.
 	ctx := spans.attach(block.WithReadClass(context.WithValue(tx.BodyContext(w.ctx), batchedWriteKey{}, q), block.ReadUrgent))
+	if !w.answered && !w.peerWait {
+		// Defer a read only a peer can serve; see park.
+		if w.peerReads == nil {
+			w.peerReads = block.NewPeerReads()
+		}
+		ctx = block.WithPeerReads(ctx, w.peerReads)
+	}
 	for _, check := range w.checks {
 		if err := check(ctx, tx); err != nil {
 			return false, err

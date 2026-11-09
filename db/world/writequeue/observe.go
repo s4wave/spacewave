@@ -21,6 +21,11 @@ func (q *Queue) OldestWait(now time.Time) time.Duration {
 	if len(q.pending) != 0 && (oldest.IsZero() || q.pending[0].queued.Before(oldest)) {
 		oldest = q.pending[0].queued
 	}
+	for _, w := range q.parked {
+		if oldest.IsZero() || w.queued.Before(oldest) {
+			oldest = w.queued
+		}
+	}
 	q.mtx.Unlock()
 	if oldest.IsZero() {
 		return 0
