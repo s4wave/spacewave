@@ -24,6 +24,11 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 		return err
 	}
 
+	// Apply the held cursor writes first, so this batch lands on top of them.
+	if err := t.Flush(ctx); err != nil {
+		return err
+	}
+
 	// Validate the entire input first and collapse overwrites before building
 	// values. Sorting only the private slice never changes the caller's batch.
 	last := make(map[string]kvtx.WriteBatchEntry, len(entries))
@@ -33,12 +38,26 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 		}
 		last[string(entry.Key)] = entry
 	}
-	ordered := make([]kvtx.WriteBatchEntry, 0, len(last))
+	ordered := make([]batchOp, 0, len(last))
 	for _, entry := range last {
-		ordered = append(ordered, entry)
+		ordered = append(ordered, batchOp{key: entry.Key, value: entry.Value, del: entry.Delete})
 	}
-	slices.SortFunc(ordered, func(a, b kvtx.WriteBatchEntry) int { return bytes.Compare(a.Key, b.Key) })
+	slices.SortFunc(ordered, func(a, b batchOp) int { return bytes.Compare(a.key, b.key) })
+	return t.applyBatch(ctx, ordered)
+}
 
+// batchOp is one key's change in a batch: a delete, a built entry, or a value
+// to build an entry from.
+type batchOp struct {
+	key   []byte
+	value []byte
+	entry *BuildEntry
+	del   bool
+}
+
+// applyBatch applies ops, sorted by key with one op per key, rebuilding each
+// affected page window once.
+func (t *Tx) applyBatch(ctx context.Context, ordered []batchOp) error {
 	// Seed the node builder, adding the anchor for an empty tree.
 	oldKeys := make([]okraNodeKey, 0, len(ordered))
 	nodes := make([]okraLevelNode, 0, len(ordered)+1)
@@ -50,31 +69,31 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 	// Resolve each entry against its leaf page, reusing the loaded page while
 	// lookups stay inside it, and prepare the replacement nodes.
 	var page *Page
-	for _, entry := range ordered {
+	for _, op := range ordered {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
 		var old *Entry
 		if !empty {
-			if page == nil || !pageContainsKey(page, okraNodeKey{key: entry.Key}) {
-				path, err := t.findPagePath(ctx, 0, okraNodeKey{key: entry.Key})
+			if page == nil || !pageContainsKey(page, okraNodeKey{key: op.key}) {
+				path, err := t.findPagePath(ctx, 0, okraNodeKey{key: op.key})
 				if err != nil {
 					return err
 				}
 				page = path.leaf().page
 			}
-			idx := page.searchEntry(entry.Key)
+			idx := page.searchEntry(op.key)
 			if idx >= 0 {
 				candidate := page.GetEntries()[idx]
-				if !candidate.GetAnchor() && bytes.Equal(candidate.GetKey(), entry.Key) {
+				if !candidate.GetAnchor() && bytes.Equal(candidate.GetKey(), op.key) {
 					old = candidate
 				}
 			}
 		}
 
-		if !entry.Delete {
-			value, err := t.buildValueEntry(ctx, entry.Key, entry.Value)
+		if !op.del {
+			value, err := op.build(ctx, t)
 			if err != nil {
 				return err
 			}
@@ -101,6 +120,14 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 		return ctx.Err()
 	}
 	return t.replaceLevelEntries(ctx, 0, oldKeys, nodes)
+}
+
+// build returns op's entry, building it from its value when op holds none.
+func (op *batchOp) build(ctx context.Context, t *Tx) (BuildEntry, error) {
+	if op.entry != nil {
+		return *op.entry, nil
+	}
+	return t.buildValueEntry(ctx, op.key, op.value)
 }
 
 var _ kvtx.WriteBatchTxOps = (*Tx)(nil)

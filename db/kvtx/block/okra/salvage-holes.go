@@ -24,6 +24,11 @@ const salvageHolesConcurrency = 4096
 // walk over a remote store keeps many reads in flight. Memory grows with the
 // queue of pages found but not yet loaded, not with the tree.
 func (t *Tx) SalvageHoles(ctx context.Context, low, high []byte) (uint64, []SalvageHole, error) {
+	// Apply the held cursor writes, then read the tree they leave.
+	if err := t.Flush(ctx); err != nil {
+		return 0, nil, err
+	}
+
 	// An empty tree holds nothing.
 	if t.root.GetSize() == 0 {
 		return 0, nil, nil
