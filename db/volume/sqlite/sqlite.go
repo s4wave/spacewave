@@ -25,12 +25,33 @@ func NewSqlite(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Sqlite, error) {
+	return NewSqliteWithOptions(ctx, le, conf, Options{})
+}
+
+// Options sets how NewSqliteWithOptions opens a Volume beyond its Config.
+type Options struct {
+	// WALCheckpointBytes bounds the write-ahead log, as
+	// sqlite.Pragmas.WALCheckpointBytes describes; 0 keeps the store's
+	// default. A Volume whose log grows megabytes a second wants a bound
+	// above the default, so it checkpoints less often.
+	WALCheckpointBytes int64
+}
+
+// NewSqliteWithOptions builds a Sqlite volume as NewSqlite does, with opts
+// applied.
+func NewSqliteWithOptions(
+	ctx context.Context,
+	le *logrus.Entry,
+	conf *Config,
+	opts Options,
+) (*Sqlite, error) {
 	// Open the SQLite store with the configured cache and database layout.
 	pragmas := sqlite.Pragmas{
-		CacheSize: conf.GetCacheSize(),
-		MmapSize:  conf.GetMmapSize(),
-		TempStore: int32(conf.GetTempStore()),
-		PageSize:  conf.GetPageSize(),
+		CacheSize:          conf.GetCacheSize(),
+		MmapSize:           conf.GetMmapSize(),
+		TempStore:          int32(conf.GetTempStore()),
+		PageSize:           conf.GetPageSize(),
+		WALCheckpointBytes: opts.WALCheckpointBytes,
 	}
 	store, err := sqlite.OpenWithPragmas(ctx, conf.GetPath(), conf.GetTable(), pragmas)
 	if err != nil {
