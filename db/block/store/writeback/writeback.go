@@ -41,22 +41,6 @@ var formerPrefixes = []string{"pending/", "target"}
 // backfillBatchSize bounds the blocks one backfill marker transaction queues.
 const backfillBatchSize = 256
 
-const (
-	// clearBlocks bounds the queue entries one clear transaction removes, and
-	// the entries one prefetch warms ahead of the transactions that remove
-	// them. An upload batch to a pack store carries over a hundred thousand
-	// blocks; cleared in one transaction, it held the store's writer for a
-	// minute, and every write of the store, a player's included, waited
-	// behind it.
-	clearBlocks = 1024
-	// clearHold bounds how long one clear transaction holds the store's
-	// writer once it removed one entry, so a slow disk shortens the
-	// transaction rather than lengthening the foreground writers' wait. The
-	// clear commits there and queues for the writer again, behind every
-	// foreground writer that arrived meanwhile.
-	clearHold = 20 * time.Millisecond
-)
-
 // errScanDone stops a queue scan.
 var errScanDone = errors.New("queue scan done")
 
@@ -666,15 +650,19 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // write changed the queue entry's value, and the block is on the local store
 // alone.
 //
-// The batch clears in transactions of at most clearBlocks entries, each
-// holding the writer for about clearHold at most. A transaction the store
+// The batch clears in transactions of at most ClearBatch.MaxBlocks entries,
+// each holding the writer for about ClearBatch.Hold at most, as SetClearBatch
+// sets them: a change of the hold applies from the next transaction, and one
+// of the block bound from the next prefetch window. A transaction the store
 // reports busy is retried in place after a backoff, since the blocks are
 // already on the remote. Another failure leaves the entries after the last
 // commit queued, so they upload again, which the remote keeps as another copy.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
-	for window := range slices.Chunk(batch, clearBlocks) {
+	for len(batch) != 0 {
 		// Read what the clears read before taking any lock, so the reads
 		// under the writer find their pages cached.
+		window := batch[:min(len(batch), loadClearBatch().MaxBlocks)]
+		batch = batch[len(window):]
 		s.prefetchClear(ctx, window)
 		wait := clearBusyWait
 		busy := 0
@@ -716,7 +704,7 @@ func isBusyError(err error) bool {
 }
 
 // clearSome clears the batch's leading entries in one transaction, as many as
-// clearHold admits and at least one, and returns how many it cleared.
+// the hold in force admits and at least one, and returns how many it cleared.
 func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error) {
 	// Clear behind every foreground writer: the upload is background work,
 	// and a player's write must not queue behind its marker clears. The
@@ -740,6 +728,9 @@ func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error
 	var oldest time.Time
 	var head []byte
 	var lowered uint64
+
+	// Read the hold in force for this transaction.
+	hold := loadClearBatch().Hold
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// The writer is held from here.
 		held := time.Now()
@@ -752,9 +743,9 @@ func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error
 		}
 		taken, cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0, 0
 		for _, pending := range batch {
-			// Commit once the writer was held for clearHold, leaving the rest
+			// Commit once the writer was held for the hold, leaving the rest
 			// to the next transaction.
-			if taken != 0 && time.Since(held) >= clearHold {
+			if taken != 0 && time.Since(held) >= hold {
 				break
 			}
 			taken++
@@ -834,13 +825,17 @@ func (s *Store) clearSome(ctx context.Context, batch []pendingBlock) (int, error
 // clear to read the pages itself.
 func (s *Store) prefetchClear(ctx context.Context, batch []pendingBlock) {
 	_ = kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		// Read the epoch and each pending block's queue and evict keys.
+		// Read the epoch and each pending block's queue, marked and evict
+		// keys: the leaves clear reads, deletes and inserts into.
 		epoch, err := readEpoch(ctx, tx)
 		if err != nil {
 			return err
 		}
 		for _, pending := range batch {
 			if _, _, err := tx.Get(ctx, pending.queueKey); err != nil {
+				return err
+			}
+			if _, err := tx.Exists(ctx, pending.markedKey); err != nil {
 				return err
 			}
 			if _, err := tx.Exists(ctx, evictKey(epoch, pending.ref.GetHash())); err != nil {
