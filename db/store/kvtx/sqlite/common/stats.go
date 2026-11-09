@@ -21,6 +21,14 @@ type StoreStats struct {
 	// WaitsOver100ms and WaitsOver1s count the turns of either priority that
 	// waited at least that long.
 	WaitsOver100ms, WaitsOver1s uint64
+	// ForegroundHold and BackgroundHold sum how long the turns of each
+	// priority held the writer, from taking the turn to Commit or Discard
+	// returning it, and ForegroundHoldsOver1s and BackgroundHoldsOver1s
+	// count the turns that held it at least a second. Every writer queued
+	// meanwhile waits out a hold; a foreground writer goes first in the
+	// queue but cannot cut a background hold short.
+	ForegroundHold, BackgroundHold               time.Duration
+	ForegroundHoldsOver1s, BackgroundHoldsOver1s uint64
 	// Passives counts the passive checkpoints and Passive sums their time.
 	Passives uint64
 	Passive  time.Duration
@@ -35,6 +43,7 @@ type StoreStats struct {
 // storeStats is the atomic form of StoreStats a Store updates.
 type storeStats struct {
 	fgWaits, bgWaits, fgWait, bgWait, over100ms, over1s atomic.Uint64
+	fgHold, bgHold, fgHoldsOver1s, bgHoldsOver1s        atomic.Uint64
 	passives, passive                                   atomic.Uint64
 	truncates, truncatesOver1s, truncate, lastTruncate  atomic.Uint64
 }
@@ -54,6 +63,19 @@ func (s *storeStats) addWait(prio int, d time.Duration) {
 	}
 	if d >= time.Second {
 		s.over1s.Add(1)
+	}
+}
+
+// addHold counts a turn at prio that held the writer for d.
+func (s *storeStats) addHold(prio int, d time.Duration) {
+	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
+	hold, over := &s.fgHold, &s.fgHoldsOver1s
+	if prio == writerBackground {
+		hold, over = &s.bgHold, &s.bgHoldsOver1s
+	}
+	hold.Add(ns)
+	if d >= time.Second {
+		over.Add(1)
 	}
 }
 
@@ -78,18 +100,22 @@ func (s *storeStats) addTruncate(d time.Duration) {
 func (s *storeStats) snapshot() StoreStats {
 	d := func(v *atomic.Uint64) time.Duration { return time.Duration(v.Load()) } //nolint:gosec // sums of durations.
 	return StoreStats{
-		ForegroundWaits: s.fgWaits.Load(),
-		BackgroundWaits: s.bgWaits.Load(),
-		ForegroundWait:  d(&s.fgWait),
-		BackgroundWait:  d(&s.bgWait),
-		WaitsOver100ms:  s.over100ms.Load(),
-		WaitsOver1s:     s.over1s.Load(),
-		Passives:        s.passives.Load(),
-		Passive:         d(&s.passive),
-		Truncates:       s.truncates.Load(),
-		TruncatesOver1s: s.truncatesOver1s.Load(),
-		Truncate:        d(&s.truncate),
-		LastTruncate:    d(&s.lastTruncate),
+		ForegroundWaits:       s.fgWaits.Load(),
+		BackgroundWaits:       s.bgWaits.Load(),
+		ForegroundWait:        d(&s.fgWait),
+		BackgroundWait:        d(&s.bgWait),
+		WaitsOver100ms:        s.over100ms.Load(),
+		WaitsOver1s:           s.over1s.Load(),
+		ForegroundHold:        d(&s.fgHold),
+		BackgroundHold:        d(&s.bgHold),
+		ForegroundHoldsOver1s: s.fgHoldsOver1s.Load(),
+		BackgroundHoldsOver1s: s.bgHoldsOver1s.Load(),
+		Passives:              s.passives.Load(),
+		Passive:               d(&s.passive),
+		Truncates:             s.truncates.Load(),
+		TruncatesOver1s:       s.truncatesOver1s.Load(),
+		Truncate:              d(&s.truncate),
+		LastTruncate:          d(&s.lastTruncate),
 	}
 }
 
