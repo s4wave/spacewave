@@ -146,8 +146,8 @@ func NewStoreWithPacks(
 	return newStore(ctx, packed, values, markers, markersID, enabled, packed.divert)
 }
 
-// newStore builds the Store over writes, which marks nothing when divert is
-// set.
+// newStore builds the Store over writes, which marks only cache fills when
+// divert is set.
 func newStore(
 	ctx context.Context,
 	writes, values block.StoreOps,
@@ -156,16 +156,17 @@ func newStore(
 	enabled bool,
 	divert bool,
 ) (*Store, error) {
-	// Connect local block writes to the durable upload markers, or diverted
-	// values to their packs, which need none.
+	// Connect local block writes to the durable upload markers. Diverted
+	// values go to their packs, which need none, so a diverting store marks
+	// only its cache fills.
 	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, evictLimit: evictBatchStartBlocks, reads: newReadGate(), counted: make(chan struct{})}
-	switch {
-	case divert:
-		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
-	case block.HoldsRoots(writes):
+	if block.HoldsRoots(writes) {
 		s.MarkingStore = NewTxMarkingStore(writes, s, s.queue)
-	default:
+	} else {
 		s.MarkingStore = NewMarkingStore(writes, s.queue)
+	}
+	if divert {
+		s.MarkingStore = NewFillMarkingStore(s.MarkingStore)
 	}
 
 	// Restore the pending upload counts, eviction queue size and completed
