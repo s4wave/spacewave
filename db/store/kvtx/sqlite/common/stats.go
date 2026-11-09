@@ -30,6 +30,11 @@ type StoreStats struct {
 	// write lock, so every writer waits for it.
 	Truncates, TruncatesOver1s uint64
 	Truncate, LastTruncate     time.Duration
+	// Vacuums counts the incremental vacuum steps, VacuumPages sums the pages
+	// they freed, Vacuum sums their time and LastVacuum is the time the
+	// newest took. A step holds SQLite's write lock.
+	Vacuums, VacuumPages uint64
+	Vacuum, LastVacuum   time.Duration
 }
 
 // storeStats is the atomic form of StoreStats a Store updates.
@@ -37,6 +42,7 @@ type storeStats struct {
 	fgWaits, bgWaits, fgWait, bgWait, over100ms, over1s atomic.Uint64
 	passives, passive                                   atomic.Uint64
 	truncates, truncatesOver1s, truncate, lastTruncate  atomic.Uint64
+	vacuums, vacuumPages, vacuum, lastVacuum            atomic.Uint64
 }
 
 // addWait counts a turn taken at prio after waiting d.
@@ -74,6 +80,15 @@ func (s *storeStats) addTruncate(d time.Duration) {
 	}
 }
 
+// addVacuum counts an incremental vacuum step that freed pages in d.
+func (s *storeStats) addVacuum(pages int64, d time.Duration) {
+	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
+	s.vacuums.Add(1)
+	s.vacuumPages.Add(uint64(max(pages, 0))) //nolint:gosec // pages is not negative.
+	s.vacuum.Add(ns)
+	s.lastVacuum.Store(ns)
+}
+
 // snapshot reads the counters.
 func (s *storeStats) snapshot() StoreStats {
 	d := func(v *atomic.Uint64) time.Duration { return time.Duration(v.Load()) } //nolint:gosec // sums of durations.
@@ -90,6 +105,10 @@ func (s *storeStats) snapshot() StoreStats {
 		TruncatesOver1s: s.truncatesOver1s.Load(),
 		Truncate:        d(&s.truncate),
 		LastTruncate:    d(&s.lastTruncate),
+		Vacuums:         s.vacuums.Load(),
+		VacuumPages:     s.vacuumPages.Load(),
+		Vacuum:          d(&s.vacuum),
+		LastVacuum:      d(&s.lastVacuum),
 	}
 }
 

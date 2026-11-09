@@ -423,6 +423,95 @@ func TestSQLiteWriterContract(t *testing.T) {
 // TestSQLiteWALBound writes far past a small write-ahead log bound while a
 // reader keeps reading, and checks that the checkpointer brings the log back
 // near the bound instead of letting it grow with the writes.
+func TestSQLiteIncrementalVacuum(t *testing.T) {
+	// Open a fresh file, which takes incremental auto-vacuum.
+	ctx := context.Background()
+	tp := newTempDBPath(t, "hydra-test-sqlite-vacuum-*.sqlite")
+	db, err := OpenWithPragmas(ctx, tp, "test_vacuum", Pragmas{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+	var mode int
+	if err := db.GetDB().QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
+		t.Fatal(err.Error())
+	}
+	if mode != 2 {
+		t.Fatalf("auto_vacuum is %d, want 2 (INCREMENTAL)", mode)
+	}
+
+	// Write 6,000 rows of 4 KiB, then delete them all.
+	value := make([]byte, 4096)
+	write := func(fn func(tx kvtx.Tx) error) {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := fn(tx); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for b := range 60 {
+		write(func(tx kvtx.Tx) error {
+			for i := range 100 {
+				if err := tx.Set(ctx, []byte("key-"+strconv.Itoa(b*100+i)), value); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+	write(func(tx kvtx.Tx) error {
+		for i := range 6000 {
+			if err := tx.Delete(ctx, []byte("key-"+strconv.Itoa(i))); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	var free int64
+	if err := db.GetDB().QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&free); err != nil {
+		t.Fatal(err.Error())
+	}
+	if free < 3000 {
+		t.Fatalf("freelist holds %d pages after the delete, want at least 3000", free)
+	}
+
+	// The checkpointer frees the pages past the kept ones in steps, and the
+	// file shrinks once a checkpoint copies the whole log.
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		write(func(tx kvtx.Tx) error { return tx.Set(ctx, []byte("tick"), []byte("x")) })
+		if err := db.GetDB().QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&free); err != nil {
+			t.Fatal(err.Error())
+		}
+		info, err := os.Stat(tp)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		var st common.StoreStats
+		common.EachStoreStats(func(each common.StoreStats) {
+			if filepath.Base(each.File) == filepath.Base(tp) {
+				st = each
+			}
+		})
+		if free <= 1024 && info.Size() < 8<<20 {
+			if st.Vacuums == 0 || st.VacuumPages == 0 {
+				t.Fatalf("file shrank with no vacuum step counted: %+v", st)
+			}
+			t.Logf("free %d pages, file %d bytes, %d steps freed %d pages in %v", free, info.Size(), st.Vacuums, st.VacuumPages, st.Vacuum)
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("freelist %d pages, file %d bytes after 30 s; stats %+v", free, info.Size(), st)
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 func TestSQLiteWALBound(t *testing.T) {
 	// Open a database whose log is bounded at 64 KiB.
 	ctx := context.Background()

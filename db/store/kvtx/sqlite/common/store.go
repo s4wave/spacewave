@@ -99,6 +99,16 @@ type Store[T SQLiteDriverConfig] struct {
 	stopCheckpoints context.CancelFunc
 	// checkpointsDone is closed when the checkpointer has returned.
 	checkpointsDone chan struct{}
+
+	// The checkpointer alone reads and writes the fields below.
+	//
+	// vacuumChecked marks vacuumOff as read from the file.
+	vacuumChecked bool
+	// vacuumOff marks a file without incremental auto-vacuum, whose free
+	// pages stay in the file for later writes.
+	vacuumOff bool
+	// vacuumPages is how many pages the next incremental vacuum step frees.
+	vacuumPages int64
 }
 
 // ErrReadOnly is returned for a write transaction on a store opened with
@@ -568,15 +578,99 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		start := time.Now()
 		err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
 		s.stats.addPassive(time.Since(start))
-		if err != nil || frames <= 0 || copied < frames {
-			continue
-		}
 
 		// Restart a fully copied WAL far past its bound.
-		if s.walPastBound(walRestartFactor) {
+		if err == nil && frames > 0 && copied >= frames && s.walPastBound(walRestartFactor) {
 			s.truncateWAL(ctx)
 		}
+
+		// Hand one step of free pages back to the filesystem.
+		s.vacuumStep(ctx)
 	}
+}
+
+// Incremental vacuum steps. The checkpointer frees at most one step per
+// round, so a file with many free pages shrinks over many rounds, each
+// holding SQLite's write lock briefly, instead of in one long VACUUM.
+const (
+	// vacuumKeepPages is how many free pages the file keeps for later
+	// writes before the checkpointer frees more.
+	vacuumKeepPages = 1024
+	// vacuumMinPages and vacuumMaxPages bound one step.
+	vacuumMinPages = 64
+	vacuumMaxPages = 16384
+	// vacuumStepTarget is the time a step aims for: a step slower than
+	// twice it halves the next, one faster than half of it doubles the next.
+	vacuumStepTarget = 100 * time.Millisecond
+	// vacuumTurnWait bounds how long a step waits for the writer turn
+	// before it gives the round up.
+	vacuumTurnWait = time.Second
+)
+
+// vacuumStep frees up to vacuumPages free pages past vacuumKeepPages from the
+// end of the file, in one write transaction taken behind every waiting
+// foreground writer. It does nothing on a file without incremental
+// auto-vacuum. The freed pages leave the file at the next checkpoint that
+// copies the whole log, so a step that freed pages wakes the checkpointer
+// for the next round.
+func (s *Store[T]) vacuumStep(ctx context.Context) {
+	// Read the file's auto-vacuum mode once: 2 is INCREMENTAL.
+	if s.vacuumOff {
+		return
+	}
+	if !s.vacuumChecked {
+		var mode int
+		if err := s.db.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
+			return
+		}
+		s.vacuumChecked, s.vacuumOff = true, mode != 2
+		if s.vacuumOff {
+			return
+		}
+		s.vacuumPages = vacuumMinPages
+	}
+
+	// Count the free pages without the writer turn.
+	var free int64
+	if err := s.db.QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&free); err != nil || free <= vacuumKeepPages {
+		return
+	}
+
+	// Take the writer turn behind every foreground writer, giving the round
+	// up when the turn does not come within vacuumTurnWait.
+	turnCtx, cancel := context.WithTimeout(ctx, vacuumTurnWait)
+	release, err := s.writeMtx.Lock(turnCtx, writerBackground)
+	cancel()
+	if err != nil {
+		return
+	}
+	defer release()
+
+	// Free one step. Each freed page is a result row, so the rows are read
+	// to the end: a driver that steps the statement once frees one page.
+	pages := min(free-vacuumKeepPages, s.vacuumPages)
+	start := time.Now()
+	rows, err := s.db.QueryContext(ctx, "PRAGMA incremental_vacuum("+strconv.FormatInt(pages, 10)+")")
+	if err == nil {
+		for rows.Next() {
+		}
+		err = errors.Join(rows.Err(), rows.Close())
+	}
+	took := time.Since(start)
+	s.stats.addVacuum(pages, took)
+	if err != nil {
+		return
+	}
+
+	// Size the next step to the time this one held the lock, and come back
+	// next round while free pages remain.
+	switch {
+	case took > 2*vacuumStepTarget:
+		s.vacuumPages = max(s.vacuumPages/2, vacuumMinPages)
+	case took < vacuumStepTarget/2:
+		s.vacuumPages = min(s.vacuumPages*2, vacuumMaxPages)
+	}
+	s.wakeCheckpoint()
 }
 
 // walRestartFactor is how many times its bound a fully copied WAL grows before
