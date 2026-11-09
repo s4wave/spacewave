@@ -70,10 +70,13 @@ func TestReplicaMovesOwnershipOverAndBack(t *testing.T) {
 	checkObject(ctx, t, tb.Bus, a, id, "replica-check")
 }
 
+// collectorGrace is the grace of the testbed volumes' block passes.
+const collectorGrace = time.Second
+
 // startTestbed starts a testbed running the local provider, whose Session
 // transports run the replica controller, and the Space body controller.
 func startTestbed(ctx context.Context, t *testing.T) *testbed.Testbed {
-	storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1s"}
+	storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: collectorGrace.String()}
 	tb, err := testbed.Default(ctx, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
 	if err != nil {
 		t.Fatal(err)
