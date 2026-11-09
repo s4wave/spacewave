@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -29,8 +30,49 @@ const evictableBytesKey = "evictable-bytes"
 // disk's other writers; its error ends the pass.
 type EvictAdmit func(ctx context.Context, lastBytes int64) error
 
-// evictBatchBlocks bounds the entries one eviction step reads and commits.
-const evictBatchBlocks = 1024
+// Bounds of one eviction batch. A batch reads at most the store's current
+// block limit of entries, and stops before an entry that would take it past
+// evictBatchBytes. The limit starts at evictBatchStartBlocks on each open and
+// follows the time the batch's drop write takes, as nextEvictLimit describes,
+// between evictBatchMinBlocks and evictBatchMaxBlocks.
+//
+// The drop write holds the store's writer for a time that grows with the
+// blocks it drops, not their bytes: each tombstone is a row delete that may
+// rebalance its B-tree page and read its neighbors. On a store much larger
+// than the page cache that costs from a quarter of a millisecond to several
+// milliseconds a block, so a fixed count large enough to move many bytes
+// would hold the writer for seconds on a slow disk.
+const (
+	evictBatchStartBlocks = 1024
+	evictBatchMinBlocks   = 128
+	evictBatchMaxBlocks   = 8192
+	evictBatchBytes       = 32 << 20
+)
+
+// evictWriteTarget is the time a batch's drop write aims to take, half the
+// longest a background write may hold the writer, so a batch whose blocks
+// cost twice the last batch's still releases it within a second.
+const evictWriteTarget = 500 * time.Millisecond
+
+// nextEvictLimit returns the block limit of the batch after one that dropped
+// dropped blocks under limit in elapsed: the count that would take
+// evictWriteTarget at the same cost a block, moving at most a factor of two
+// from limit and kept between evictBatchMinBlocks and evictBatchMaxBlocks. A
+// batch that dropped nothing measured nothing and keeps limit. elapsed
+// includes the write's wait for the writer turn, so a busy writer shrinks the
+// batches too.
+func nextEvictLimit(limit, dropped int, elapsed time.Duration) int {
+	// Keep the limit when the batch measured nothing.
+	if dropped == 0 {
+		return limit
+	}
+
+	// Scale the batch to the target at its cost a block, within the bounds.
+	elapsed = max(elapsed, time.Millisecond)
+	next := int(int64(dropped) * int64(evictWriteTarget) / int64(elapsed))
+	next = min(max(next, limit/2), limit*2)
+	return min(max(next, evictBatchMinBlocks), evictBatchMaxBlocks)
+}
 
 // EvictResult reports what an eviction pass did.
 type EvictResult struct {
@@ -284,11 +326,15 @@ func (s *Store) evictBatch(
 	from []byte,
 	result *EvictResult,
 ) ([]byte, bool, error) {
-	// Read the batch with the markers of its blocks.
-	var batch []evictEntry
-	var marked []bool
-	var next []byte
-	var done bool
+	// Read the batch with the markers of its blocks, up to the block limit the
+	// last drop write set.
+	limit := s.evictLimit
+	var (
+		batch  []evictEntry
+		marked []bool
+		next   []byte
+		done   bool
+	)
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Walk the older entries up to the batch and byte limits; the walk is
 		// done when it runs out of them.
@@ -297,8 +343,9 @@ func (s *Store) evictBatch(
 		next = nil
 		err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
 			// Stop at the new epoch or a full batch, where the next batch
-			// starts.
-			if entry.epoch >= epoch || len(batch) == evictBatchBlocks || result.EvictedBytes+batchBytes >= maxBytes {
+			// starts. A batch takes its first entry whatever its size.
+			full := len(batch) == limit || (len(batch) != 0 && batchBytes+entry.size > evictBatchBytes)
+			if entry.epoch >= epoch || full || result.EvictedBytes+batchBytes >= maxBytes {
 				done, next = entry.epoch >= epoch, entry.key
 				return errScanDone
 			}
@@ -365,11 +412,14 @@ func (s *Store) evictBatch(
 
 	// Drop the values the remote holds in one write, not one per block: the
 	// local writer is shared with every other write, so a write per block
-	// bounds eviction to a few blocks a second under load.
+	// bounds eviction to a few blocks a second under load. The write's time
+	// sets the next batch's limit.
 	if len(drop) != 0 {
+		start := time.Now()
 		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
 			return nil, false, errors.Wrap(err, "evict blocks")
 		}
+		s.evictLimit = nextEvictLimit(limit, len(drop), time.Since(start))
 		result.Evicted += len(drop)
 	}
 
