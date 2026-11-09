@@ -342,11 +342,11 @@ func inspectEngineGraph(ctx context.Context, tb *db_testbed.Testbed, so sobject.
 		if span == nil {
 			return nil, errors.New("precheckpoint advertisement omitted the committed object payload")
 		}
-		decoded := &space_world.ReplaySpan{}
+		decoded := &space_world.HeldRoots{}
 		if err := decoded.UnmarshalVT(span.Data); err != nil {
 			return nil, err
 		}
-		if !slices.ContainsFunc(decoded.GetPayloads(), payload.EqualsRef) {
+		if !slices.ContainsFunc(decoded.GetRoots(), payload.EqualsRef) {
 			return nil, errors.New("precheckpoint advertisement omitted the committed object payload")
 		}
 	}

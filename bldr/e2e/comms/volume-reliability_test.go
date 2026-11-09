@@ -150,15 +150,17 @@ func testReliabilityContend(t *testing.T, r rel) {
 	checkReliability(t, waitHolder())
 }
 
-// testReliabilityQuota fills the volume against a 4 MiB origin quota, then
+// testReliabilityQuota fills the volume against a 16 MiB origin quota, then
 // lifts the quota and checks that the volume keeps working.
 func testReliabilityQuota(t *testing.T, r rel) {
-	// Impose a small origin quota through the DevTools protocol.
+	// Impose a small origin quota through the DevTools protocol. A new s4db
+	// file already takes 4 MiB with its log spare, so the quota leaves room
+	// for the steps to fill before a write fails.
 	ctx := launchContext(t, r.browser, t.TempDir())
 	_, cdp := cdpSession(t, ctx)
 	cdpSend(t, cdp, "Storage.overrideQuotaForOrigin", map[string]any{
 		"origin":    testServer.url,
-		"quotaSize": 4 << 20,
+		"quotaSize": 16 << 20,
 	})
 
 	// Fill the volume until the page hits the quota.
