@@ -544,18 +544,42 @@ func TestReadFallbackFailures(t *testing.T) {
 		t.Fatalf("fallback status = %+v, held %v; want one failure and no fill", status, f.held(corrupt))
 	}
 
-	// A hit with every fill slot busy serves, counts the skip, and fills on
-	// the next read.
+	// A hit with every fill slot busy serves and waits in the queue, and
+	// fills once a slot frees.
+	fills := &f.p.fallbackFills
 	busy := []byte("read while the slots are busy")
 	busyRef := f.putSQL(busy)
-	f.p.fallbackFills.running.Store(fallbackFillSlots)
-	f.read(busyRef, busy)
-	f.p.fallbackFills.running.Store(0)
-	if status := f.p.fallbackFills.status(); status.FillSkipped != 1 || f.held(busyRef) {
-		t.Fatalf("fallback status = %+v, held %v; want one skip and no fill", status, f.held(busyRef))
+	for fills.running.Load() != 0 {
+		runtime.Gosched()
 	}
+	fills.running.Store(fallbackFillSlots)
 	f.read(busyRef, busy)
+	if status := fills.status(); status.FillSkipped != 0 || f.held(busyRef) {
+		t.Fatalf("fallback status = %+v, held %v; want the fill queued", status, f.held(busyRef))
+	}
+	fills.running.Store(0)
+	freed := []byte("read once a slot is free")
+	freedRef := f.putSQL(freed)
+	f.read(freedRef, freed)
 	f.waitHeld(busyRef)
+	f.waitHeld(freedRef)
+
+	// A hit with the queue full serves, counts the skip, and fills on the
+	// next read.
+	full := []byte("read while the queue is full")
+	fullRef := f.putSQL(full)
+	fills.mtx.Lock()
+	fills.queuedBytes = fallbackFillQueueBytes
+	fills.mtx.Unlock()
+	f.read(fullRef, full)
+	fills.mtx.Lock()
+	fills.queuedBytes = 0
+	fills.mtx.Unlock()
+	if status := fills.status(); status.FillSkipped != 1 || f.held(fullRef) {
+		t.Fatalf("fallback status = %+v, held %v; want one skip and no fill", status, f.held(fullRef))
+	}
+	f.read(fullRef, full)
+	f.waitHeld(fullRef)
 }
 
 // TestReadFallbackFillRacesEviction fills blocks from the fallback while
