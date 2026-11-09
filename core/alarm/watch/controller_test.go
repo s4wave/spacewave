@@ -362,13 +362,20 @@ func (f *fakeProm) LabelValues(context.Context, *s4wave_prom.LabelValuesRequest)
 	return &s4wave_prom.LabelsResponse{}, nil
 }
 
-// WatchTargets sends a change after each commit until the stream ends.
+// WatchTargets sends the targets, then a change after each commit until the
+// stream ends.
 func (f *fakeProm) WatchTargets(_ *s4wave_prom.WatchTargetsRequest, stream s4wave_prom.SRPCPromQueryResourceService_WatchTargetsStream) error {
 	// Register the stream's wake.
 	ch := make(chan struct{}, 1)
 	f.mu.Lock()
 	f.watchers = append(f.watchers, ch)
 	f.mu.Unlock()
+
+	// Send the targets first, as the service does, so that a commit before
+	// the stream registered still reaches the watch.
+	if err := stream.Send(&s4wave_prom.WatchTargetsResponse{}); err != nil {
+		return err
+	}
 
 	// Send a change after each commit.
 	for {

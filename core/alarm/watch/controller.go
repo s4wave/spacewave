@@ -269,16 +269,28 @@ func (c *Controller) store(ctx context.Context, cond *s4wave_alarm.Condition, ev
 // its stream fails, or holdEnds passes, and returns the context's error when
 // ctx ends.
 func (c *Controller) wait(ctx context.Context, ws world.WorldState, src *source, seen []*world.ObjectRootRef, holdEnds time.Time) error {
-	// End the World wait on the first other wake.
+	// Join the waker before returning: a waker left running could take the
+	// next wake after the following evaluation has already queried, and that
+	// change would be lost.
 	waitCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	done := make(chan struct{})
+	defer func() {
+		cancel()
+		<-done
+	}()
+
+	// End the World wait on the first other wake.
 	go func() {
+		// Release the join on exit, and arm the hold timer if the Alarm holds.
+		defer close(done)
 		var hold <-chan time.Time
 		if !holdEnds.IsZero() {
 			timer := time.NewTimer(time.Until(holdEnds))
 			defer timer.Stop()
 			hold = timer.C
 		}
+
+		// Cancel the World wait on the first wake.
 		select {
 		case <-src.changed:
 		case <-hold:
