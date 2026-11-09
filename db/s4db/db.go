@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/conc"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
@@ -114,7 +115,11 @@ func open(s storage, opts Options) (*DB, error) {
 		flows:     make([]flowCount, len(opts.Families)+1),
 	}
 	db.flush = newFlusher(s, &db.cur)
-	db.w = &writer{db: db}
+	db.w = &writer{
+		db:      db,
+		builds:  conc.NewConcurrentQueue(0),
+		punches: conc.NewConcurrentQueue(0),
+	}
 
 	// Recover the state, releasing everything on failure.
 	if err := db.load(); err != nil {
@@ -934,8 +939,8 @@ func (db *DB) Close() error {
 		}
 	}
 	db.w.closing.Store(true)
-	db.w.builds.Wait()
-	db.w.punches.Wait()
+	_ = db.w.builds.WaitIdle(context.Background(), nil)
+	_ = db.w.punches.WaitIdle(context.Background(), nil)
 
 	// Flush and release freed space when no other process is writing. The
 	// flush raises the durability marks that bound the release. A read-only

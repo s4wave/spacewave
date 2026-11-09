@@ -5,9 +5,9 @@ import (
 	"context"
 	"io"
 	"slices"
-	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 )
 
@@ -80,16 +80,13 @@ func (p *pager) nodes(pages []uint64) ([]*node, error) {
 
 	// Read the rest together, keeping the error of each read.
 	errs := make([]error, len(pages))
-	slots := make(chan struct{}, nodeReads)
-	var wg sync.WaitGroup
+	reads := conc.NewConcurrentQueue(nodeReads)
 	for _, i := range miss {
-		slots <- struct{}{}
-		wg.Go(func() {
+		reads.Enqueue(func() {
 			out[i], errs[i] = p.node(pages[i])
-			<-slots
 		})
 	}
-	wg.Wait()
+	_ = reads.WaitIdle(context.Background(), nil)
 	for _, err := range errs {
 		if err != nil {
 			return nil, err

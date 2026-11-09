@@ -67,7 +67,7 @@ func fillSlack(t *testing.T, ctx context.Context, db *DB) model {
 
 	// Wait until the background punch returns its reserved runs to the free
 	// space that the compactor plans against.
-	w.punches.Wait()
+	_ = w.punches.WaitIdle(context.Background(), nil)
 	return m
 }
 
@@ -259,7 +259,7 @@ func TestCompactorEmptiesSparsePages(t *testing.T) {
 	// punches out of the free runs the moves fill.
 	c := &compactor{db: db}
 	for range 20 {
-		db.w.punches.Wait()
+		_ = db.w.punches.WaitIdle(context.Background(), nil)
 		if _, err := c.step(ctx); err != nil {
 			t.Fatal(err)
 		}

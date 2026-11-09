@@ -98,7 +98,7 @@ func TestCommitDoesNotWaitForPunch(t *testing.T) {
 
 	// The punch finishes and returns its runs to the free runs.
 	close(g.release)
-	db.w.punches.Wait()
+	_ = db.w.punches.WaitIdle(context.Background(), nil)
 	if err := db.w.lock(ctx); err != nil {
 		t.Fatal(err)
 	}
