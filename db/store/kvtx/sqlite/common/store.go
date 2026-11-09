@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"runtime"
@@ -196,6 +197,17 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 		}
 	}
 
+	// Create a fresh file with incremental auto_vacuum, so the pages deletes
+	// free can be handed back to the disk with PRAGMA incremental_vacuum. With
+	// SQLite's default of none they stay in the file for good, and shrinking
+	// it means copying the whole file. The mode must be set before the first
+	// table; an existing file keeps the mode it was made with, since changing
+	// it needs a VACUUM.
+	if err := setFreshAutoVacuum(ctx, db); err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	// Select WAL mode, which the database keeps across connections.
 	if _, err := db.ExecContext(ctx, "PRAGMA journal_mode=WAL"); err != nil {
 		db.Close()
@@ -204,6 +216,38 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 
 	// Initialize the table through the same path used by injected SQL pools.
 	return openDB(ctx, db, table, pragmas.WithoutRowID, walBound(pragmas), config)
+}
+
+// setFreshAutoVacuum sets incremental auto_vacuum on a database that holds no
+// table yet. A driver whose DSN selects WAL mode has already written the
+// file's header, after which SQLite applies the new mode only on a VACUUM,
+// which on an empty file rewrites one page.
+func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
+	var tables int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master").Scan(&tables); err != nil {
+		return err
+	}
+	if tables != 0 {
+		return nil
+	}
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	for _, q := range []string{"PRAGMA auto_vacuum=INCREMENTAL", "VACUUM"} {
+		if _, err := conn.ExecContext(ctx, q); err != nil {
+			return fmt.Errorf("%s: %w", q, err)
+		}
+	}
+	var mode int
+	if err := conn.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
+		return err
+	}
+	if mode != 2 {
+		return fmt.Errorf("sqlite: auto_vacuum is %d after setting incremental", mode)
+	}
+	return nil
 }
 
 // walBound returns the WAL bound pragmas set, or the default.
