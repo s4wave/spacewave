@@ -75,11 +75,15 @@ func (t *slowReadTx) ended() {
 // holds the store's writer in short transactions, each bounded in entries and
 // in time, and leaves the queue and status as one transaction would.
 func TestClearBoundsTheWriterHold(t *testing.T) {
+	// Bound each clear transaction to 512 entries and a 40 ms hold.
+	SetClearBatch(ClearBatch{Hold: 40 * time.Millisecond, MaxBlocks: 512})
+	t.Cleanup(func() { SetClearBatch(ClearBatch{}) })
+
 	// Queue more blocks than one clear transaction removes.
 	ctx := t.Context()
 	env := newTestEnv(t)
 	s := env.newStore(t, true)
-	const blocks = clearBlocks + 300
+	const blocks = 512 + 300
 	for i := range blocks {
 		if _, _, err := s.PutBlock(ctx, fmt.Appendf(nil, "clear-%05d", i), leafOpts); err != nil {
 			t.Fatal(err)
@@ -107,10 +111,14 @@ func TestClearBoundsTheWriterHold(t *testing.T) {
 	}
 	markers.armed.Store(false)
 
-	// Each transaction let the writer go within a bounded time, a small part
-	// of the second one transaction for the batch would have held it.
-	if longest := time.Duration(markers.longest.Load()); longest > 250*time.Millisecond {
+	// Each transaction let the writer go within a bounded time near the
+	// hold, a small part of the 0.8 s one transaction for the batch would
+	// have held it, and the 512-entry bound split the batch.
+	if longest := time.Duration(markers.longest.Load()); longest > 150*time.Millisecond {
 		t.Fatalf("a clear transaction held the writer %v over %d transactions", longest, markers.writes.Load())
+	}
+	if writes := markers.writes.Load(); writes < blocks/60 {
+		t.Fatalf("the clear ran %d transactions, want at least %d at 40 ms of 1 ms reads", writes, blocks/60)
 	}
 
 	// The queue and the status read as cleared.
@@ -126,6 +134,26 @@ func TestClearBoundsTheWriterHold(t *testing.T) {
 // limitsFor returns batch limits that hold the given number of small blocks.
 func limitsFor(blocks int) block.BatchLimits {
 	return block.BatchLimits{Bytes: int64(blocks) << 10, Blocks: blocks, Workers: 1}
+}
+
+// TestSetClearBatchBounds checks that SetClearBatch keeps the default of each
+// zero or negative field and lowers a field past its most.
+func TestSetClearBatchBounds(t *testing.T) {
+	t.Cleanup(func() { SetClearBatch(ClearBatch{}) })
+	cases := []struct {
+		set, want ClearBatch
+	}{
+		{ClearBatch{}, ClearBatch{Hold: clearHoldDefault, MaxBlocks: clearBlocksDefault}},
+		{ClearBatch{Hold: -time.Second, MaxBlocks: -1}, ClearBatch{Hold: clearHoldDefault, MaxBlocks: clearBlocksDefault}},
+		{ClearBatch{Hold: 150 * time.Millisecond, MaxBlocks: 2048}, ClearBatch{Hold: 150 * time.Millisecond, MaxBlocks: 2048}},
+		{ClearBatch{Hold: 5 * time.Second, MaxBlocks: 1 << 20}, ClearBatch{Hold: clearHoldMax, MaxBlocks: clearBlocksMax}},
+	}
+	for _, c := range cases {
+		SetClearBatch(c.set)
+		if got := loadClearBatch(); got != c.want {
+			t.Fatalf("SetClearBatch(%+v) applies %+v, want %+v", c.set, got, c.want)
+		}
+	}
 }
 
 // countQueue counts the upload queue's entries and their bytes.
