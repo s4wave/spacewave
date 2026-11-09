@@ -5,8 +5,8 @@ import (
 	"context"
 	"iter"
 	"slices"
-	"sync"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -162,19 +162,16 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 		}
 	}
 
-	// Load the children in parallel.
-	sem := make(chan struct{}, salvageConcurrency)
-	var wg sync.WaitGroup
+	// Load the children in parallel, salvageConcurrency at a time.
+	loads := conc.NewConcurrentQueue(salvageConcurrency)
 	for i := range children {
 		child := &children[i]
 		child.cursor = page.FollowChild(cursor, child.index)
-		sem <- struct{}{}
-		wg.Go(func() {
-			defer func() { <-sem }()
+		loads.Enqueue(func() {
 			child.page, child.err = loadPage(ctx, child.cursor)
 		})
 	}
-	wg.Wait()
+	_ = loads.WaitIdle(context.Background(), nil)
 
 	// Walk the children in key order, passing on a missing one as a hole.
 	// The parent cursor keeps each child it followed, with its decoded page,
