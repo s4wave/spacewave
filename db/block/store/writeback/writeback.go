@@ -92,6 +92,9 @@ type Store struct {
 	// and a pass advances the epoch before it walks, so a later entry sorts
 	// at or past it. Nil walks from the start, as after an open.
 	evictFrom []byte
+	// evictLimit is the block limit of the next eviction batch, guarded by
+	// evictMtx, as nextEvictLimit sets it; evictBatchStartBlocks on open.
+	evictLimit int
 	// bcast guards status, and wakes Upload and status watchers.
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.
@@ -183,7 +186,7 @@ func newStore(
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers, or diverted
 	// values to their packs, which need none.
-	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate(), owner: rand.Uint64()} //nolint:gosec // the owner tells opens apart and guards nothing.
+	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, evictLimit: evictBatchStartBlocks, reads: newReadGate(), owner: rand.Uint64()} //nolint:gosec // the owner tells opens apart and guards nothing.
 	switch {
 	case divert:
 		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })
@@ -196,10 +199,12 @@ func newStore(
 	// Restore the queue's kept count, its head, the eviction queue size and
 	// the completed backfill target.
 	// A read-only open reads the same state and writes none of it.
-	var count queueCount
-	var evictableBytes int64
-	var target []byte
-	var oldest time.Time
+	var (
+		count          queueCount
+		evictableBytes int64
+		target         []byte
+		oldest         time.Time
+	)
 	readOnly := readOnlyOpen.Load()
 	openTx := s.writeTx
 	if readOnly {
