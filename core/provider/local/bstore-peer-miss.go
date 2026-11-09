@@ -350,6 +350,16 @@ func (p *peerMissLog) GetBlockExistsBatch(_ context.Context, refs []*block.Block
 	return make([]bool, len(refs)), nil
 }
 
+// StatBlock reads the block from peers within the bound, as GetStoredBlock
+// does, since the peer store's own stat reads the whole block unbounded.
+func (p *peerMissLog) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	blk, err := p.GetStoredBlock(ctx, ref)
+	if blk == nil || err != nil {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: int64(len(blk.Data))}, nil
+}
+
 // peerReadErr reports a peer read of ref that failed or outlived its bound
 // readCtx, while the caller's ctx is still live, as block.ErrUnavailable
 // naming ref, so the reader learns which block no peer served. A read that
