@@ -540,9 +540,13 @@ func (s *Store[T]) wakeCheckpoint() {
 
 // runCheckpoints moves the WAL into the database file in the background, at
 // most once per CheckpointInterval while commits continue. A passive
-// checkpoint never takes SQLite's write lock, so no write waits on it. Under
-// constant reads SQLite may never restart a fully copied WAL, so once a passive
-// checkpoint copies all of a WAL past its bound, a restarting one resets it.
+// checkpoint never takes SQLite's write lock, so no write waits on it. Once a
+// passive checkpoint has copied all of the log, the next writer that finds no
+// reader on it starts the log over and trims it to the bound. The checkpointer
+// takes the write lock only for a log past walRestartFactor times its bound,
+// which readers kept from restarting: a restarting checkpoint holds the lock
+// through the database file's fsync, 2 to 15 s on a busy disk, past every
+// writer's busy wait.
 func (s *Store[T]) runCheckpoints(ctx context.Context) {
 	defer close(s.checkpointsDone)
 	for {
@@ -568,22 +572,26 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 			continue
 		}
 
-		// Restart a fully copied WAL past its bound.
-		if s.walPastBound() {
+		// Restart a fully copied WAL far past its bound.
+		if s.walPastBound(walRestartFactor) {
 			s.truncateWAL(ctx)
 		}
 	}
 }
 
-// walPastBound reports whether the WAL file on this host is larger than its
-// bound.
-func (s *Store[T]) walPastBound() bool {
+// walRestartFactor is how many times its bound a fully copied WAL grows before
+// the checkpointer restarts it under the write lock.
+const walRestartFactor = 4
+
+// walPastBound reports whether the WAL file on this host is larger than factor
+// times its bound.
+func (s *Store[T]) walPastBound(factor int64) bool {
 	file, err := s.dbFile()
 	if err != nil || file == "" {
 		return false
 	}
 	info, err := os.Stat(file + "-wal")
-	return err == nil && info.Size() > s.walBound
+	return err == nil && info.Size() > factor*s.walBound
 }
 
 // truncateWAL restarts a WAL with nothing left to copy, so the next commit
