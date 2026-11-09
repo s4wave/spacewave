@@ -83,6 +83,9 @@ type Store struct {
 	// mutex that disabling uploads waits on. Foreground writes do not acquire
 	// it.
 	fillMtx csync.Mutex
+	// evictLimit is the block limit of the next eviction batch, guarded by
+	// evictMtx, as nextEvictLimit sets it; evictBatchStartBlocks on open.
+	evictLimit int
 	// evictMtx runs one eviction pass at a time, and disabling uploads waits
 	// for the pass to end.
 	evictMtx csync.Mutex
@@ -178,7 +181,16 @@ func newStore(
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers, or diverted
 	// values to their packs, which need none.
-	s := &Store{local: writes, values: values, markers: markers, markersID: markersID, reads: newReadGate(), counted: make(chan struct{}), indexDone: make(chan struct{})}
+	s := &Store{
+		local:      writes,
+		values:     values,
+		markers:    markers,
+		markersID:  markersID,
+		evictLimit: evictBatchStartBlocks,
+		reads:      newReadGate(),
+		counted:    make(chan struct{}),
+		indexDone:  make(chan struct{}),
+	}
 	switch {
 	case divert:
 		s.MarkingStore = NewMarkingStore(writes, func(context.Context, []Mark) error { return nil })

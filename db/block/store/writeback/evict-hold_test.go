@@ -183,7 +183,7 @@ func TestEvictRefusedWriterHold(t *testing.T) {
 			}
 
 			// Queue a full scan batch of unmarked local fills absent remotely.
-			for i := range evictBatchBlocks {
+			for i := range evictBatchStartBlocks {
 				data := fmt.Appendf(nil, "writer-hold-refusal-%05d", i)
 				ref, err := block.BuildBlockRef(data, nil)
 				if err != nil {
@@ -191,16 +191,16 @@ func TestEvictRefusedWriterHold(t *testing.T) {
 				}
 				s.Refill(ref, &block.StoredBlock{Data: data, RefsKnown: true})
 			}
-			waitStatus(t, s, func(st Status) bool { return st.Refills == evictBatchBlocks })
+			waitStatus(t, s, func(st Status) bool { return st.Refills == evictBatchStartBlocks })
 
 			// Time only the actual queue transactions, excluding scan and probes.
 			result, err := s.Evict(ctx, newInmemBlockStore(), 1<<30, nil, nil)
-			if err != nil || result != (EvictResult{Refused: evictBatchBlocks}) || measured.entries != evictBatchBlocks {
+			if err != nil || result != (EvictResult{Refused: evictBatchStartBlocks}) || measured.entries != evictBatchStartBlocks {
 				t.Fatalf("measured pass = %+v, %v, %d entries", result, err, measured.entries)
 			}
 			wantCommits := 1
 			if retry {
-				wantCommits = (evictBatchBlocks + evictRetryCommitBlocks - 1) / evictRetryCommitBlocks
+				wantCommits = (evictBatchStartBlocks + evictRetryCommitBlocks - 1) / evictRetryCommitBlocks
 			}
 			if len(measured.holds) != wantCommits {
 				t.Fatalf("queue transactions = %d, want %d", len(measured.holds), wantCommits)
@@ -245,9 +245,9 @@ func TestEvictIndexWriterHold(t *testing.T) {
 	<-s.indexDone
 
 	// Seed two legacy epochs, then remove duplicates in bounded native slices.
-	fills := make([]fill, 0, evictBatchBlocks)
+	fills := make([]fill, 0, evictBatchStartBlocks)
 	marks := make([]Mark, 0, 2*evictRetryCommitBlocks)
-	for i := range evictBatchBlocks {
+	for i := range evictBatchStartBlocks {
 		data := fmt.Appendf(nil, "index-hold-%05d", i)
 		ref, err := block.BuildBlockRef(data, nil)
 		if err != nil {
@@ -291,8 +291,8 @@ func TestEvictIndexWriterHold(t *testing.T) {
 		longest = max(longest, hold)
 	}
 	t.Logf("index-rebuild entries=%d transactions=%d writer-total=%s writer-max=%s", measured.entries, len(measured.holds), total, longest)
-	if measured.entries != evictBatchBlocks || len(measured.holds) != 2*evictBatchBlocks/evictRetryCommitBlocks {
-		t.Fatalf("rebuild deleted %d entries, want %d", measured.entries, evictBatchBlocks)
+	if measured.entries != evictBatchStartBlocks || len(measured.holds) != 2*evictBatchStartBlocks/evictRetryCommitBlocks {
+		t.Fatalf("rebuild deleted %d entries, want %d", measured.entries, evictBatchStartBlocks)
 	}
 
 	// Recreate legacy rows outside measurement, then start one real foreground
@@ -317,7 +317,7 @@ func TestEvictIndexWriterHold(t *testing.T) {
 		}
 		wait = max(wait, probe.wait)
 	}
-	if len(measured.probes) != len(measured.holds) || len(measured.probes) != 2*evictBatchBlocks/evictRetryCommitBlocks {
+	if len(measured.probes) != len(measured.holds) || len(measured.probes) != 2*evictBatchStartBlocks/evictRetryCommitBlocks {
 		t.Fatalf("probe coverage=%d measured slices=%d", len(measured.probes), len(measured.holds))
 	}
 	t.Logf("index-rebuild-controlled probes=%d native-queued=%d foreground-admission-max=%s; includes per-slice rendezvous", len(measured.probes), len(measured.probes), wait)
