@@ -28,6 +28,15 @@ type SQLiteReadOnlyDSN interface {
 	OpenReadOnlyDSN(path string) string
 }
 
+// SQLiteCreateDSN is a driver that opens a database without selecting a
+// journal mode, so Open can set the pragmas that shape a fresh file, such as
+// auto-vacuum, before selecting WAL mode writes its header.
+type SQLiteCreateDSN interface {
+	// OpenCreateDSN returns the DSN that opens the database at path in the
+	// driver's default journal mode.
+	OpenCreateDSN(path string) string
+}
+
 // SQLiteDriverPoolConfigurator optionally constrains the sql.DB pool created by
 // common.Open. Drivers with connection-bound semantics can use this to align
 // database/sql pooling with the underlying engine.

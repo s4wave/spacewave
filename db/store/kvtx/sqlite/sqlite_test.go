@@ -589,7 +589,7 @@ func TestSQLiteWALBound(t *testing.T) {
 
 // checkWALBoundStats checks the counters of the store at path after
 // TestSQLiteWALBound's writes: every write took a turn, and the log was
-// checkpointed and truncated.
+// checkpointed.
 func checkWALBoundStats(t *testing.T, path string) {
 	t.Helper()
 	var found bool
@@ -604,7 +604,9 @@ func checkWALBoundStats(t *testing.T, path string) {
 		if st.ForegroundHold <= 0 || st.BackgroundHold != 0 {
 			t.Fatalf("writer holds: %v foreground, %v background; want some foreground", st.ForegroundHold, st.BackgroundHold)
 		}
-		if st.Passives == 0 || st.Truncates == 0 || st.LastTruncate <= 0 || st.Truncate < st.LastTruncate {
+		// The log comes back either through the checkpointer's restart or
+		// through a writer that found it fully copied with no reader on it.
+		if st.Passives == 0 || st.Truncate < st.LastTruncate {
 			t.Fatalf("checkpoints: %+v", st)
 		}
 	})

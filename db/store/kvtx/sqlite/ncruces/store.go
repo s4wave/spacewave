@@ -29,13 +29,16 @@ func (c SqliteWasmConfig) DriverName() string {
 	return "sqlite3"
 }
 
-// OpenDSN returns the DSN to use with sql.Open(). It selects incremental
-// auto-vacuum ahead of WAL mode: a fresh file takes auto-vacuum only before
-// its header is written, which selecting WAL mode does, and an existing file
-// keeps its mode until a VACUUM.
+// OpenDSN returns the DSN to use with sql.Open().
 func (c SqliteWasmConfig) OpenDSN(path string) string {
 	return "file:" + filepath.ToSlash(path) +
-		"?_pragma=auto_vacuum(INCREMENTAL)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)"
+		"?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)"
+}
+
+// OpenCreateDSN returns the DSN that opens the database at path without
+// selecting a journal mode, to shape a fresh file before WAL mode.
+func (c SqliteWasmConfig) OpenCreateDSN(path string) string {
+	return "file:" + filepath.ToSlash(path) + "?_pragma=busy_timeout(5000)"
 }
 
 // OpenReadOnlyDSN returns the DSN that opens the database at path read-only.

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -109,6 +110,9 @@ type Store[T SQLiteDriverConfig] struct {
 	vacuumOff bool
 	// vacuumPages is how many pages the next incremental vacuum step frees.
 	vacuumPages int64
+	// restartAfter is when the checkpointer may next try to restart the WAL,
+	// after a restart that readers kept from finishing.
+	restartAfter time.Time
 }
 
 // ErrReadOnly is returned for a write transaction on a store opened with
@@ -179,6 +183,13 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 		return nil, err
 	}
 
+	// Shape a fresh file before the pool's DSN selects WAL mode.
+	if !pragmas.ReadOnly {
+		if err := createFile(ctx, config, path, pragmas); err != nil {
+			return nil, err
+		}
+	}
+
 	// Open the pool through a connector that configures every connection.
 	// The DSN sets WAL mode where the driver reads it, before any statement.
 	db, err := openPool(config, path, pragmas)
@@ -212,6 +223,46 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 
 	// Initialize the table through the same path used by injected SQL pools.
 	return openDB(ctx, db, table, pragmas.WithoutRowID, walBound(pragmas), config)
+}
+
+// createFile sets the pragmas that shape a database file while the file at
+// path is missing or empty, on one connection that selects no journal mode:
+// the page size, incremental auto-vacuum, and then WAL mode, which writes the
+// header and fixes both. Setting auto-vacuum on a file with tables instead
+// runs a write transaction, so it is never set on the pool's connections. An
+// existing file, an in-memory database, or a driver without SQLiteCreateDSN is
+// left as it is.
+func createFile[T SQLiteDriverConfig](ctx context.Context, config T, path string, pragmas Pragmas) error {
+	// Skip all but a missing or empty file on disk.
+	creator, ok := any(config).(SQLiteCreateDSN)
+	if !ok || path == "" || strings.HasPrefix(path, ":memory:") || strings.HasPrefix(path, "file:") {
+		return nil
+	}
+	if info, err := os.Stat(path); err == nil && info.Size() > 0 || err != nil && !os.IsNotExist(err) {
+		return nil
+	}
+
+	// Set the shape, then WAL mode, on one connection.
+	db, err := sql.Open(config.DriverName(), creator.OpenCreateDSN(path))
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	stmts := []string{"PRAGMA auto_vacuum=INCREMENTAL", "PRAGMA journal_mode=WAL"}
+	if pragmas.PageSize != 0 {
+		stmts = append([]string{"PRAGMA page_size=" + strconv.FormatInt(int64(pragmas.PageSize), 10)}, stmts...)
+	}
+	for _, stmt := range stmts {
+		if _, err := conn.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // walBound returns the WAL bound pragmas set, or the default.
@@ -587,7 +638,7 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		s.stats.addPassive(time.Since(start))
 
 		// Restart a fully copied WAL far past its bound.
-		if err == nil && frames > 0 && copied >= frames && s.walPastBound(walRestartFactor) {
+		if err == nil && frames > 0 && copied >= frames && time.Now().After(s.restartAfter) && s.walPastBound(walRestartFactor) {
 			s.truncateWAL(ctx)
 		}
 
@@ -680,6 +731,13 @@ func (s *Store[T]) vacuumStep(ctx context.Context) {
 	s.wakeCheckpoint()
 }
 
+// restartRetryWait is how long the checkpointer waits to restart the WAL
+// again after readers kept a restart from finishing. Such a restart still
+// copied the log and synced the file under the write lock, about a second on
+// be-7's disk, and retrying it every round held the lock 15 times in two
+// minutes while the log stayed past its bound.
+const restartRetryWait = 30 * time.Second
+
 // walRestartFactor is how many times its bound a fully copied WAL grows before
 // the checkpointer restarts it under the write lock.
 const walRestartFactor = 4
@@ -718,8 +776,11 @@ func (s *Store[T]) truncateWAL(ctx context.Context) {
 	// returns to it.
 	var busy, frames, copied int
 	start := time.Now()
-	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(RESTART)").Scan(&busy, &frames, &copied)
+	err = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(RESTART)").Scan(&busy, &frames, &copied)
 	s.stats.addTruncate(time.Since(start))
+	if err != nil || busy != 0 {
+		s.restartAfter = time.Now().Add(restartRetryWait)
+	}
 	_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
 }
 
