@@ -108,3 +108,34 @@ func TestSqliteKeyedLeaseNamespacesTables(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = leaseB.Release(ctx) })
 }
+
+// TestSqliteVolumeWALBound checks that NewSqliteWithOptions opens the store
+// with the WAL bound it is given.
+func TestSqliteVolumeWALBound(t *testing.T) {
+	// Open a Volume whose WAL is bounded at 512 MiB, keeping its store.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	conf := volume_sqlite.NewConfig(filepath.Join(t.TempDir(), "test.db"), "hydra")
+	const bound = 512 << 20
+	var store volume_sqlite.Store
+	vol, err := volume_sqlite.NewSqliteWithOptions(ctx, le, conf, volume_sqlite.Options{
+		Wrap: func(_ context.Context, s volume_sqlite.Store) (volume_sqlite.Store, error) {
+			store = s
+			return s, nil
+		},
+		WALCheckpointBytes: bound,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer vol.Close()
+
+	// The store's connections truncate the log to the bound.
+	var limit int64
+	if err := store.GetDB().QueryRowContext(ctx, "PRAGMA journal_size_limit").Scan(&limit); err != nil {
+		t.Fatal(err.Error())
+	}
+	if limit != bound {
+		t.Fatalf("journal_size_limit is %d, want %d", limit, bound)
+	}
+}
