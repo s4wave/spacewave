@@ -60,7 +60,9 @@ func TestSessionTransportWebRTCRefusesStream(t *testing.T) {
 	}
 	defer release()
 
-	// Open a stream over WebRTC; the first write delivers it to the listener.
+	// Open a stream over WebRTC. Opening writes the establishment header, which
+	// delivers the stream to the listener; the dialer writes nothing more, since
+	// the listener may already have refused and closed the stream.
 	ms, msRel, err := link.OpenStreamWithPeerEx(
 		ctx,
 		dialer.GetChildBus(),
@@ -76,9 +78,6 @@ func TestSessionTransportWebRTCRefusesStream(t *testing.T) {
 	defer msRel()
 	strm := ms.GetStream()
 	defer strm.Close()
-	if _, err := strm.Write([]byte{1}); err != nil {
-		t.Fatal(err)
-	}
 
 	// The dialer reads the reason, and the handler never sees the stream.
 	got := make([]byte, len(refusal.Error()))
