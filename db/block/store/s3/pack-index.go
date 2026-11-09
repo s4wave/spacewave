@@ -28,6 +28,8 @@ import (
 //	h{digest tail} the number of a pack that holds the block, 4 bytes
 //	t/{pack id}   the raw kvfile index tail of the pack, as its reader read it
 //	n/next        the lowest pack number not yet given, 4 bytes
+//	w/{pack id}   the PackfileEntry of a pack whose upload started and whose
+//	              e/ and p/ rows are not yet written
 //
 // Pack numbers grow by one for each pack the index learns and are never reused,
 // so an h row of a removed pack names a number no pack holds and reads as a
@@ -50,15 +52,22 @@ import (
 //     filters when that pack has left the manifest. The background indexer
 //     never replaces a row that names a pack the table holds, so a listed pack
 //     indexed while a tail merge replaces it cannot shadow the merged pack.
+//   - A w/ row is committed before its pack's object is written, and deleted
+//     in the transaction that writes the pack's e/ and p/ rows, so a pack
+//     never holds both. From before its upload until its first index slice a
+//     pack object this store writes is named by a w/ row, and then by its p/
+//     row, so a restart finds a pack uploaded before a crash and indexes it
+//     instead of uploading its blocks again.
 //   - A t/ row holds the tail bytes of a pack id, which never change, so a
 //     reader loads it instead of reading the tail again; removing the pack
 //     removes its row.
 const (
-	indexEntryPrefix = "e/"
-	indexPackPrefix  = "p/"
-	indexHashPrefix  = "h"
-	indexTailPrefix  = "t/"
-	indexNextKey     = "n/next"
+	indexEntryPrefix  = "e/"
+	indexPackPrefix   = "p/"
+	indexHashPrefix   = "h"
+	indexTailPrefix   = "t/"
+	indexNextKey      = "n/next"
+	indexUploadPrefix = "w/"
 	// indexKeyBytes is the bytes of a block key an h row key keeps.
 	indexKeyBytes = 16
 
@@ -613,9 +622,18 @@ const (
 // in place: returning the error would fail the pack's publish, and the upload
 // would write the pack to the bucket again.
 func (x *packIndex) writeSliceRetry(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte, extents [][]byte) error {
+	return retryBusy(ctx, func() error {
+		return x.writeSlice(ctx, entry, row, first, keys, value, extents)
+	})
+}
+
+// retryBusy runs write, running it again after a wait while the store reports
+// itself busy, at most sliceBusyRetries times. write must commit whole or not
+// at all and write the same each time.
+func retryBusy(ctx context.Context, write func() error) error {
 	wait := sliceBusyWait
 	for attempt := 0; ; attempt++ {
-		err := x.writeSlice(ctx, entry, row, first, keys, value, extents)
+		err := write()
 		if err == nil || attempt >= sliceBusyRetries || !isBusyError(err) {
 			return err
 		}
@@ -637,7 +655,8 @@ func isBusyError(err error) bool {
 
 // writeSlice writes the h rows of keys, each naming value or, when extents is
 // not nil, holding extents[i], and the pack's row, with its entry when first
-// is set, in one transaction.
+// is set, in one transaction. The first slice deletes the pack's w/ row, which
+// its p/ row replaces as the record of the uploaded pack.
 func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntry, row packRow, first bool, keys [][]byte, value []byte, extents [][]byte) error {
 	// Open the transaction, which queues behind waiting writers.
 	tx, err := x.store.NewTransaction(ctx, true)
@@ -650,6 +669,9 @@ func (x *packIndex) writeSlice(ctx context.Context, entry *packfile.PackfileEntr
 	switch {
 	case first:
 		err = putPackRows(ctx, tx, entry, row)
+		if err == nil {
+			err = tx.Delete(ctx, []byte(indexUploadPrefix+entry.GetId()))
+		}
 	case row.indexed:
 		err = tx.Set(ctx, []byte(indexPackPrefix+entry.GetId()), row.marshal())
 	}
@@ -1093,4 +1115,93 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 	delete(x.pending, id)
 	x.mtx.Unlock()
 	return total, nil
+}
+
+// markUpload commits the w/ row of a pack about to be uploaded in its own
+// transaction, so a crash after the upload and before the pack's first index
+// slice leaves a row naming the pack, which adoptUploads finds at the next
+// start. A busy store is retried in place.
+func (x *packIndex) markUpload(ctx context.Context, entry *packfile.PackfileEntry) error {
+	data, err := entry.MarshalVT()
+	if err != nil {
+		return err
+	}
+	key := []byte(indexUploadPrefix + entry.GetId())
+	return retryBusy(ctx, func() error {
+		tx, err := x.store.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		if err := tx.Set(ctx, key, data); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	})
+}
+
+// dropUpload deletes the w/ row of a pack whose object is not in the bucket.
+func (x *packIndex) dropUpload(ctx context.Context, id string) error {
+	key := []byte(indexUploadPrefix + id)
+	return retryBusy(ctx, func() error {
+		tx, err := x.store.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		if err := tx.Delete(ctx, key); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	})
+}
+
+// uploads returns the entries of the w/ rows: the packs whose upload started
+// and whose index never began. A row that does not decode to its pack is
+// returned with only its id set, so the caller can delete it.
+func (x *packIndex) uploads(ctx context.Context) ([]*packfile.PackfileEntry, error) {
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	var entries []*packfile.PackfileEntry
+	err = tx.ScanPrefix(ctx, []byte(indexUploadPrefix), func(key, value []byte) error {
+		id := string(key[len(indexUploadPrefix):])
+		entry := &packfile.PackfileEntry{}
+		if entry.UnmarshalVT(bytes.Clone(value)) != nil || entry.GetId() != id {
+			entry = &packfile.PackfileEntry{Id: id}
+		}
+		entries = append(entries, entry)
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "read upload markers")
+	}
+	return entries, nil
+}
+
+// queueUnindexed queues a pack for the background indexer when its p/ row is
+// durable and not marked indexed, as an index stopped after its first slice
+// leaves it.
+func (x *packIndex) queueUnindexed(ctx context.Context, entry *packfile.PackfileEntry) error {
+	// Read the pack's durable row.
+	tx, err := x.store.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	value, found, err := tx.Get(ctx, []byte(indexPackPrefix+entry.GetId()))
+	var row packRow
+	if err == nil && found {
+		row, err = unmarshalPackRow(value)
+	}
+	tx.Discard()
+	if err != nil || !found || row.indexed {
+		return err
+	}
+
+	// Queue it and wake the indexer.
+	x.register(entry.GetId(), row, entry)
+	x.wake()
+	return nil
 }
