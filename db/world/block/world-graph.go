@@ -201,11 +201,31 @@ func (t *WorldState) setGraphQuad(ctx context.Context, q world.GraphQuad) error 
 
 // deleteGraphQuadEntry validates a requested relationship before deletion.
 func (t *WorldState) deleteGraphQuadEntry(ctx context.Context, q world.GraphQuad) error {
-	return t.deleteGraphQuad(ctx, q, true)
+	return t.deleteGraphQuad(ctx, q, true, nil)
+}
+
+// pendingRevs counts the revisions a run of quad deletes owes each endpoint,
+// in the order the endpoints were first revised.
+type pendingRevs struct {
+	keys  []string
+	count map[string]uint64
+}
+
+// add owes key one revision.
+func (p *pendingRevs) add(key string) {
+	if p.count == nil {
+		p.count = make(map[string]uint64)
+	}
+	if p.count[key] == 0 {
+		p.keys = append(p.keys, key)
+	}
+	p.count[key]++
 }
 
 // deleteGraphQuad removes a relationship and records the change when present.
-func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, validate bool) error {
+// It revises each endpoint, or owes it the revision in revs when revs is not
+// nil, so a caller deleting many quads rewrites each endpoint's root once.
+func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, validate bool, revs *pendingRevs) error {
 	// Reject invalid requests before changing graph or object state.
 	if q == nil {
 		return world.ErrNilQuad
@@ -242,14 +262,12 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 		if !ok {
 			continue
 		}
-		obj, found, err := t.getObject(ctx, string(key))
-		if err != nil {
-			return err
+		if revs != nil {
+			revs.add(string(key))
+			continue
 		}
-		if found {
-			if _, err := obj.incrementRev(ctx, false); err != nil {
-				return err
-			}
+		if err := t.reviseObject(ctx, string(key), 1); err != nil {
+			return err
 		}
 	}
 
@@ -293,17 +311,36 @@ func (t *WorldState) deleteGraphObject(ctx context.Context, objKey string) error
 	// interleaves reading and deleting across direction passes, and
 	// decNodes in one pass can delete shared node log entries that
 	// subsequent passes need to resolve quads.
+	var revs pendingRevs
 	for _, q := range subjQuads {
-		if err := t.deleteGraphQuad(ctx, q, false); err != nil {
+		if err := t.deleteGraphQuad(ctx, q, false, &revs); err != nil {
 			return err
 		}
 	}
 	for _, q := range objQuads {
-		if err := t.deleteGraphQuad(ctx, q, false); err != nil {
+		if err := t.deleteGraphQuad(ctx, q, false, &revs); err != nil {
+			return err
+		}
+	}
+
+	// Revise each endpoint once by the quads it lost: each revision rewrites
+	// the object's root and the index path above it.
+	for _, key := range revs.keys {
+		if err := t.reviseObject(ctx, key, revs.count[key]); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// reviseObject advances the object at key by count revisions, when it exists.
+func (t *WorldState) reviseObject(ctx context.Context, key string, count uint64) error {
+	obj, found, err := t.getObject(ctx, key)
+	if err != nil || !found {
+		return err
+	}
+	_, err = obj.incrementRevBy(ctx, count, false)
+	return err
 }
 
 // AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
