@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -25,6 +26,7 @@ import (
 	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
+	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/signaling"
 	stream_api_accept "github.com/s4wave/spacewave/net/stream/api/accept"
 	stream_forwarding "github.com/s4wave/spacewave/net/stream/forwarding"
@@ -435,6 +437,13 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 			if dir.LoadFactoryByConfig().GetConfigID() == stream_srpc_server_lookup.ConfigID {
 				return false, nil
 			}
+		case link.HandleMountedStream:
+			// Solicit streams on session links belong to this bus's solicit
+			// controller. A parent bus controller would answer them with
+			// none of the session's solicitations.
+			if isSolicitStreamProtocol(dir.HandleMountedStreamProtocolID()) {
+				return false, nil
+			}
 		case peer.GetPeer, link.EstablishLinkWithPeer, link_solicit.SolicitProtocol,
 			signaling.SignalPeer, signaling.HandleSignalPeer, configset.ApplyConfigSet,
 			resolver.LoadControllerWithConfig, loader.ExecController:
@@ -596,4 +605,11 @@ func (t *SessionTransport) exitFailed(err error) error {
 		return nil
 	}
 	return err
+}
+
+// isSolicitStreamProtocol reports whether pid is a link solicit control or
+// solicited stream protocol.
+func isSolicitStreamProtocol(pid protocol.ID) bool {
+	return pid == link_solicit_controller.ControlProtocolID ||
+		strings.HasPrefix(string(pid), link_solicit_controller.SolicitStreamPrefix)
 }

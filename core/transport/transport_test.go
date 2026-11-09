@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
+	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	transport_webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
@@ -279,16 +281,20 @@ type establishLinkSpy struct {
 	count      atomic.Int32
 	loadCount  atomic.Int32
 	bridgedSig chan struct{}
+	// streamProtocols records the HandleMountedStream protocol IDs observed.
+	streamProtocols sync.Map
 }
 
 func (s *establishLinkSpy) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	switch di.GetDirective().(type) {
+	switch d := di.GetDirective().(type) {
 	case link.EstablishLinkWithPeer:
 		s.count.Add(1)
 	case resolver.LoadControllerWithConfig:
 		if _, ok := di.GetDirective().(resolver.LoadControllerWithConfig).GetLoadControllerConfig().(*transport_webrtc.Config); ok {
 			s.loadCount.Add(1)
 		}
+	case link.HandleMountedStream:
+		s.streamProtocols.Store(d.HandleMountedStreamProtocolID(), true)
 	case link_solicit.SolicitProtocol:
 		select {
 		case s.bridgedSig <- struct{}{}:
@@ -384,6 +390,25 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 	}
 	defer loadRef.Release()
 
+	// Add mounted stream handler directives for the solicit control stream, a
+	// solicited stream, and an unrelated protocol that still bridges.
+	streamProtocols := []protocol.ID{
+		link_solicit_controller.ControlProtocolID,
+		protocol.ID(link_solicit_controller.SolicitStreamPrefix + "00"),
+		protocol.ID("test/bridged-stream"),
+	}
+	for _, pid := range streamProtocols {
+		_, streamRef, err := st.GetChildBus().AddDirective(
+			ctx,
+			link.NewHandleMountedStream(pid, localID, remoteID),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer streamRef.Release()
+	}
+
 	// Assert the parent bus never observed the child-bus directives.
 	select {
 	case <-spy.bridgedSig:
@@ -395,6 +420,14 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 	}
 	if got := spy.loadCount.Load(); got != 0 {
 		t.Fatalf("parent bus observed %d session controller load directives", got)
+	}
+	for _, pid := range streamProtocols[:2] {
+		if _, ok := spy.streamProtocols.Load(pid); ok {
+			t.Fatalf("parent bus observed a session %s stream handler directive", pid)
+		}
+	}
+	if _, ok := spy.streamProtocols.Load(streamProtocols[2]); !ok {
+		t.Fatal("parent bus did not observe the bridged stream handler directive")
 	}
 	cancel()
 	<-done
