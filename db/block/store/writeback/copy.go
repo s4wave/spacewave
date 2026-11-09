@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -186,8 +187,8 @@ func (s *Store) Copy(ctx context.Context, target string, remote block.StoreOps, 
 		limit = rate.NewLimiter(rate.Limit(opts.MaxBytesPerSecond), max(burst, uploadBatchBytes))
 	}
 
-	// List the steps in order and copy them on the workers. A failed list
-	// stops listing but lets the listed steps land, so their progress saves.
+	// List the steps in order for the workers. A failed list stops listing but
+	// lets the listed steps land, so their progress saves.
 	run := &copyRun{landed: make(map[int][]byte), cursor: cursor}
 	steps := make(chan copyStep)
 	var listErr error
@@ -212,11 +213,19 @@ func (s *Store) Copy(ctx context.Context, target string, remote block.StoreOps, 
 			after = next
 		}
 	})
-	var workers sync.WaitGroup
+
+	// Copy the steps on the workers. workersBcast guards liveWorkers, the
+	// workers still running, and wakes the saver as each one exits.
+	var workersBcast broadcast.Broadcast
+	liveWorkers := copyWorkers
 	for range copyWorkers {
-		workers.Add(1)
 		eg.Go(func() error {
-			defer workers.Done()
+			defer func() {
+				l := workersBcast.Lock()
+				liveWorkers--
+				l.Broadcast()
+				l.Unlock()
+			}()
 			for st := range steps {
 				if opts.Admit != nil {
 					if err := opts.Admit(egCtx); err != nil {
@@ -234,22 +243,29 @@ func (s *Store) Copy(ctx context.Context, target string, remote block.StoreOps, 
 	}
 
 	// Save the cursor every few seconds until the workers finish.
-	stopped := make(chan struct{})
-	go func() {
-		workers.Wait()
-		close(stopped)
-	}()
 	eg.Go(func() error {
 		ticker := time.NewTicker(copySaveEvery)
 		defer ticker.Stop()
 		for {
+			// Stop once the last worker exited, or wait for the next exit.
+			l := workersBcast.Lock()
+			stopped := liveWorkers == 0
+			var exited <-chan struct{}
+			if !stopped {
+				exited = l.WaitCh()
+			}
+			l.Unlock()
+			if stopped {
+				return nil
+			}
+
+			// Save on each tick until a worker exits or the copy stops.
 			select {
 			case <-ticker.C:
 				if err := s.saveCopy(egCtx, target, run, false); err != nil {
 					return err
 				}
-			case <-stopped:
-				return nil
+			case <-exited:
 			case <-egCtx.Done():
 				return nil
 			}
