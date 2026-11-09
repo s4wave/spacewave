@@ -106,6 +106,12 @@ type DB struct {
 	// before the write reaches the file, so a tailed state beyond it came
 	// from another process.
 	ownSeq atomic.Uint64
+	// orderedSeq is the newest ordered commit this handle made, which the
+	// deadline flush makes durable. WaitDurable waits for it alone: a
+	// background record, such as a free or truncate record or a cleaner
+	// move, arms no flush, so waiting for the published state would wait for
+	// the next commit on a quiet file.
+	orderedSeq atomic.Uint64
 	// shared is set once a tail finds another process's record. Until then
 	// the slot keeps the pin written at open, which is no newer than any
 	// state this handle reads, so the slot is not rewritten on every commit.
@@ -698,9 +704,10 @@ func (db *DB) Sync(ctx context.Context) error {
 }
 
 // WaitDurable returns once every earlier commit is durable without forcing
-// a flush. An ordered commit is flushed within a second of completing.
+// a flush. An ordered commit is flushed within a second of completing; a
+// commit that was not ordered was durable when it returned.
 func (db *DB) WaitDurable(ctx context.Context) error {
-	return db.flush.waitDurable(ctx, db.cur.Load().seq)
+	return db.flush.waitDurable(ctx, db.orderedSeq.Load())
 }
 
 // Close flushes and closes the file. It leaves the memtable in the log for
