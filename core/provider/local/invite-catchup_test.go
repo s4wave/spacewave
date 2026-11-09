@@ -82,7 +82,10 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	}
 	defer releaseStates()
 
-	// Retire sync while the owner makes a signed configuration change.
+	// Retire sync while the owner makes a signed configuration change. The
+	// reader's checkpoint can still lag the configuration changes of the join,
+	// so the change's seqno follows the owner's configuration, not the
+	// checkpoint's.
 	reader.StopP2PSync()
 	checkpoint := states.GetValue().GetConfig().CloneVT()
 	current, err := ownerObject.GetSOHostState(ctx)
@@ -96,6 +99,7 @@ func TestInvitedProviderCatchup(t *testing.T) {
 	if err := ownerObject.GetSOHost().ApplyConfigChange(ctx, change, nil); err != nil {
 		t.Fatal(err)
 	}
+	changed := current.GetConfig().GetConfigChainSeqno() + 1
 
 	// Write new content as an operation while the reader is offline.
 	want := []byte("readable content written while the other device is offline")
@@ -114,7 +118,7 @@ func TestInvitedProviderCatchup(t *testing.T) {
 		if err != nil {
 			return false, err
 		}
-		return set.Find(ownerID, localID) != nil && state.GetConfig().GetConfigChainSeqno() == checkpoint.GetConfigChainSeqno()+1, nil
+		return set.Find(ownerID, localID) != nil && state.GetConfig().GetConfigChainSeqno() >= changed, nil
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
