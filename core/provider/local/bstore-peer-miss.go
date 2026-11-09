@@ -118,6 +118,31 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 	}
 }
 
+// GetBlockExists reports that the peers hold no block, without asking them.
+// The peers are a read tier the placed store fills from, not a store of its
+// own, and an existence probe comes from a put deciding whether to store a
+// block: the local store must keep a block that only a peer holds, and a new
+// block is never on a peer. Asking would hold the put, often under the
+// World's writer lock, for a peer's answer to a block it cannot have.
+func (p *peerMissLog) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
+	return false, nil
+}
+
+// GetBlockExistsBatch reports each block absent, as GetBlockExists does.
+func (p *peerMissLog) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return make([]bool, len(refs)), nil
+}
+
+// StatBlock reads the block from peers within the bound, as GetStoredBlock
+// does, since the peer store's own stat reads the whole block unbounded.
+func (p *peerMissLog) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	blk, err := p.GetStoredBlock(ctx, ref)
+	if blk == nil || err != nil {
+		return nil, err
+	}
+	return &block.BlockStat{Ref: ref, Size: int64(len(blk.Data))}, nil
+}
+
 // peerReadErr reports a peer read that failed or outlived its bound, while
 // the caller's ctx is still live, as block.ErrUnavailable.
 func peerReadErr(ctx context.Context, err error) error {

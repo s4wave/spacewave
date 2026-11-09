@@ -81,3 +81,42 @@ func TestPeerReadFailsUnavailable(t *testing.T) {
 		t.Fatalf("%d reads, want retries", peers.reads.Load())
 	}
 }
+
+// hangingPeers answers nothing until ctx ends.
+type hangingPeers struct {
+	block.StoreOps
+	asks atomic.Int32
+}
+
+// GetBlockExists waits for ctx.
+func (h *hangingPeers) GetBlockExists(ctx context.Context, _ *block.BlockRef) (bool, error) {
+	h.asks.Add(1)
+	<-ctx.Done()
+	return false, ctx.Err()
+}
+
+// GetBlockExistsBatch waits for ctx.
+func (h *hangingPeers) GetBlockExistsBatch(ctx context.Context, _ []*block.BlockRef) ([]bool, error) {
+	h.asks.Add(1)
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+// TestPeerExistsAsksNoPeer checks that an existence probe, such as a put's,
+// reports the block absent at once without asking a peer that never answers.
+func TestPeerExistsAsksNoPeer(t *testing.T) {
+	peers := &hangingPeers{}
+	p := &peerMissLog{StoreOps: peers, le: logrus.NewEntry(logrus.New()), seen: &sync.Map{}}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ref := block.NewBlockRef(nil)
+	if found, err := p.GetBlockExists(ctx, ref); found || err != nil {
+		t.Fatalf("exists: %v %v", found, err)
+	}
+	if found, err := p.GetBlockExistsBatch(ctx, []*block.BlockRef{ref, ref}); len(found) != 2 || found[0] || found[1] || err != nil {
+		t.Fatalf("exists batch: %v %v", found, err)
+	}
+	if ctx.Err() != nil || peers.asks.Load() != 0 {
+		t.Fatalf("asked the peers %d times", peers.asks.Load())
+	}
+}
