@@ -25,21 +25,54 @@ func NewSqlite(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Sqlite, error) {
+	return NewSqliteWithOptions(ctx, le, conf, Options{})
+}
+
+// Options sets how NewSqliteWithOptions opens a Volume beyond its Config.
+type Options struct {
+	// Wrap returns the store between the database and the Volume. It takes
+	// ownership of the store, including on failure; nil adds none.
+	Wrap func(context.Context, Store) (Store, error)
+	// WALCheckpointBytes bounds the write-ahead log, as
+	// sqlite.Pragmas.WALCheckpointBytes describes; 0 keeps the store's
+	// default.
+	WALCheckpointBytes int64
+}
+
+// NewSqliteWithOptions builds a Sqlite volume as NewSqlite does, with opts
+// applied.
+func NewSqliteWithOptions(
+	ctx context.Context,
+	le *logrus.Entry,
+	conf *Config,
+	opts Options,
+) (*Sqlite, error) {
 	// Open the SQLite store with the configured cache and database layout.
+	wrap := opts.Wrap
 	pragmas := sqlite.Pragmas{
-		CacheSize: conf.GetCacheSize(),
-		MmapSize:  conf.GetMmapSize(),
-		TempStore: int32(conf.GetTempStore()),
-		PageSize:  conf.GetPageSize(),
+		CacheSize:          conf.GetCacheSize(),
+		MmapSize:           conf.GetMmapSize(),
+		TempStore:          int32(conf.GetTempStore()),
+		PageSize:           conf.GetPageSize(),
+		WALCheckpointBytes: opts.WALCheckpointBytes,
 	}
 	store, err := sqlite.OpenWithPragmas(ctx, conf.GetPath(), conf.GetTable(), pragmas)
 	if err != nil {
 		return nil, err
 	}
 
+	// Put the wrapper between the database and the Volume.
+	var vstore Store = store
+	if wrap != nil {
+		vstore, err = wrap(ctx, store)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Wrap the opened store as a volume with database deletion support.
 	path := conf.GetPath()
-	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) })
+	vol, err := NewWithStore(ctx, le, conf, vstore, func() error { return os.Remove(path) })
 	if err != nil {
 		return nil, err
 	}
