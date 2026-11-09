@@ -3,65 +3,282 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // countResult is what a dry run found; selftest checks it.
 type countResult struct {
-	// blockKeys counts the block keys by verdict (exact, with -blocks).
-	blockKeys map[string]int64
-	// blocks and meta are the sampled tallies, not scaled.
 	blocks    map[string]*tally
 	meta      map[string]*tally
 	dropEvict tally
-	scale     float64
+	badCells  int64
 }
 
-// sliceStat is one sampled rowid slice.
-type sliceStat struct {
-	lo, hi      int64
-	rows, bytes int64
-	keptBlock   int64
-	dropped     int64
+// rawEvict is an eviction entry seen by the raw pass.
+type rawEvict struct {
+	rowid, bytes, size int64
 }
 
+// rawBlock is a block value seen by the raw pass.
+type rawBlock struct {
+	d            string
+	rowid, bytes int64
+}
+
+// rowidBucketBits sizes the rowid buckets of the clustering report.
+const rowidBucketBits = 20
+
+// runCount is the dry run. It reads the World file and the pack index page by
+// page without SQLite (rawFile), so it holds no lock on the live files and
+// cannot hold back their checkpointer; the pass is paced to -mbps and waits
+// while either WAL is past -wal-max-mib. Its numbers describe the main files
+// as of their last checkpoint: rows still only in a WAL are not seen.
 func runCount(o opts) (*countResult, error) {
 	start := time.Now()
-	live = &pacer{target: o.txn, pause: o.pause, wals: []string{o.world + "-wal", o.packs + "-wal"}, walMax: o.walMax << 20}
+	live = &pacer{wals: []string{o.world + "-wal", o.packs + "-wal"}, walMax: o.walMax << 20}
 	defer func() {
-		fmt.Printf("pacer: %d reads, last size %d rows, busy %s, waited %s for the WAL\n", live.reads, live.rows, live.busy.Round(time.Second), live.waited.Round(time.Second))
+		fmt.Printf("pacer: waited %s for the WAL\n", live.waited.Round(time.Second))
 		live = nil
 	}()
-	world, err := openRO(o.world)
+	world, err := openRaw(o.world)
 	if err != nil {
 		return nil, err
 	}
 	defer world.Close()
-	packs, err := openRO(o.packs)
+	packs, err := openRaw(o.packs)
 	if err != nil {
 		return nil, err
 	}
 	defer packs.Close()
-	table, stmt, err := kvTable(world)
-	if err != nil {
-		return nil, err
+	var freePages int64
+	for _, w := range world.free {
+		freePages += int64(popcount(w))
 	}
-	h, err := readHeader(world)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("world %s\n  table %s: %s\n  page_size %d page_count %d (%s) freelist %d (%s) auto_vacuum %d journal %s\n",
-		o.world, table, stmt, h.pageSize, h.pageCount, gb(h.pageSize*h.pageCount), h.freelist, gb(h.pageSize*h.freelist), h.autoVacuum, h.journal)
+	worldSize := world.pages * int64(world.pageSize)
+	fmt.Printf("world %s: %d pages of %d (%s), %d free (%s), direct reads %v\n",
+		o.world, world.pages, world.pageSize, gb(worldSize), freePages, gb(freePages*int64(world.pageSize)), world.direct)
 
-	f, err := loadFacts(o, world, table, packs)
-	if err != nil {
-		return nil, err
+	res := &countResult{blocks: map[string]*tally{}, meta: map[string]*tally{}}
+	f := &facts{
+		marked:           map[string]struct{}{},
+		evict:            map[string][]evictEntry{},
+		hashTypes:        map[string]hash.HashType{},
+		hot:              map[[readKeyLen]byte]struct{}{},
+		packed:           map[string]struct{}{},
+		objStores:        map[string]string{},
+		evictBytesStored: map[string]int64{},
 	}
-	res := &countResult{blockKeys: map[string]int64{}, blocks: map[string]*tally{}, meta: map[string]*tally{}}
+	evicts := map[string][]rawEvict{}
+	var blocks []rawBlock
+	type readRef struct {
+		c      rawCell
+		vlen   int64
+		vlocal []byte
+	}
+	gens := map[string]map[string][]readRef{}
+	keptBy := map[int64]int64{}
+	totalBy := map[int64]int64{}
+	var maxRowid, rows, readBytes int64
+	var objBytes tally
+
+	// Pass 1: every row of the World table, from its leaf pages.
+	live.setPhase("world pages", func() string {
+		return fmt.Sprintf("%.1f%% read, %d rows, %d blocks", 100*float64(readBytes)/float64(worldSize), rows, len(blocks))
+	})
+	wst, err := world.scanLeaves(o.mbps, 4<<20, &readBytes, func(c rawCell) {
+		key, vlen, vlocal, ok := kvRecord(c)
+		if !ok {
+			res.badCells++
+			return
+		}
+		rows++
+		maxRowid = max(maxRowid, c.rowid)
+		b := int64(len(key)) + vlen
+		bucket := c.rowid >> rowidBucketBits
+		totalBy[bucket] += b
+		if bytes.HasPrefix(key, []byte(blockPrefix)) {
+			d, ok := digestOfBlockKey(key)
+			if !ok {
+				res.addBlock(vUnparsed, b)
+				keptBy[bucket] += b
+				return
+			}
+			blocks = append(blocks, rawBlock{d: d, rowid: c.rowid, bytes: b})
+			return
+		}
+		if obj, rest, isObj := objKey(key); isObj {
+			objBytes.add(b)
+			if in, ok := f.objStores[obj]; ok {
+				obj = in
+			} else {
+				f.objStores[obj] = obj
+			}
+			switch {
+			case strings.HasPrefix(rest, markedSeg):
+				if d, ok := digestOfB58(rest[len(markedSeg):]); ok {
+					f.marked[d] = struct{}{}
+				} else {
+					f.badKeys++
+				}
+			case strings.HasPrefix(rest, evictSeg):
+				parts := strings.SplitN(rest[len(evictSeg):], "/", 2)
+				h := &hash.Hash{}
+				if len(parts) != 2 || h.ParseFromB58(parts[1]) != nil || len(h.GetHash()) == 0 {
+					f.badKeys++
+					break
+				}
+				d := string(h.GetHash())
+				var size int64
+				if int64(len(vlocal)) == vlen {
+					size, _ = evictSize(vlocal)
+				}
+				f.hashTypes[d] = h.GetHashType()
+				f.evict[d] = append(f.evict[d], evictEntry{obj: obj})
+				evicts[d] = append(evicts[d], rawEvict{rowid: c.rowid, bytes: b, size: size})
+				f.evictKeys++
+				// Tallied once the drop rule has decided its block.
+				return
+			case strings.HasPrefix(rest, readsSeg):
+				r := rest[len(readsSeg):]
+				if len(r) < 16 {
+					f.badKeys++
+					break
+				}
+				if gens[obj] == nil {
+					gens[obj] = map[string][]readRef{}
+				}
+				gens[obj][r[:16]] = append(gens[obj][r[:16]], readRef{c: rawCell{rowid: c.rowid, size: c.size, overflow: c.overflow}, vlen: vlen, vlocal: bytes.Clone(vlocal)})
+			case rest == evictBytesSeg:
+				n, _ := evictSize(vlocal)
+				f.evictBytesStored[obj] = n
+			}
+		}
+		res.addMeta(family(key), b)
+		keptBy[bucket] += b
+	})
+	if err != nil {
+		return nil, fmt.Errorf("world pages: %w", err)
+	}
+	res.badCells += wst.badCells
+	fmt.Printf("world pass (measured): %s read in %s (%.0f MB/s, paced to %.0f), %d leaf pages, %d free pages skipped, %d rows, %d cells did not decode\n",
+		gb(wst.read), wst.took.Round(time.Second), float64(wst.read)/1e6/wst.took.Seconds(), o.mbps, wst.leaves, wst.free, rows, res.badCells)
+
+	// The two newest read generations of each object store, read through
+	// their overflow chains.
+	for obj, g := range gens {
+		var starts []string
+		for s := range g {
+			starts = append(starts, s)
+		}
+		sort.Strings(starts)
+		if len(starts) > 2 {
+			starts = starts[len(starts)-2:]
+		}
+		for _, s := range starts {
+			raw, _ := hex.DecodeString(s)
+			at := time.Unix(0, int64(binary.BigEndian.Uint64(raw))).UTC()
+			n := 0
+			for _, ref := range g[s] {
+				v, err := world.value(ref.c, ref.vlen, ref.vlocal)
+				if err != nil {
+					fmt.Printf("warning: read chunk at rowid %d: %v; its keys are not counted hot\n", ref.c.rowid, err)
+					continue
+				}
+				for ; len(v) >= readKeyLen; v = v[readKeyLen:] {
+					f.hot[[readKeyLen]byte(v[:readKeyLen])] = struct{}{}
+					n++
+				}
+			}
+			f.gens = append(f.gens, fmt.Sprintf("%s gen %s: %d chunks, %d keys", obj, at.Format(time.RFC3339), len(g[s]), n))
+		}
+	}
+
+	// Pass 2: the pack index. Live packs from p/ rows, and the h rows of
+	// the queued, unmarked blocks.
+	pre := packIndexPrefix(o.storeID)
+	pp := append(bytes.Clone(pre), "p/"...)
+	hp := append(bytes.Clone(pre), 'h')
+	cands := map[[indexKeyBytes]byte]string{}
+	for d := range f.evict {
+		if _, marked := f.marked[d]; !marked {
+			cands[packRowKey(d, f.hashTypes[d])] = d
+		}
+	}
+	livePacks := map[uint32]struct{}{}
+	hnum := map[string]uint32{}
+	var hRows, packRead int64
+	live.setPhase("pack index pages", func() string { return fmt.Sprintf("%d h rows, %d matched", hRows, len(hnum)) })
+	pst, err := packs.scanLeaves(o.mbps, 4<<20, &packRead, func(c rawCell) {
+		key, vlen, v, ok := kvRecord(c)
+		if !ok || int64(len(v)) != vlen {
+			return
+		}
+		switch {
+		case bytes.HasPrefix(key, pp):
+			if len(v) >= 4 {
+				livePacks[binary.BigEndian.Uint32(v)] = struct{}{}
+			}
+		case len(key) == len(hp)+indexKeyBytes && bytes.HasPrefix(key, hp):
+			hRows++
+			if d, ok := cands[[indexKeyBytes]byte(key[len(hp):])]; ok && len(v) >= 4 {
+				hnum[d] = binary.BigEndian.Uint32(v)
+			}
+		}
+	})
+	if err != nil {
+		return nil, fmt.Errorf("pack index pages: %w", err)
+	}
+	f.packsLive = len(livePacks)
+	for _, d := range cands {
+		f.lookups++
+		num, ok := hnum[d]
+		if !ok {
+			f.hMissing++
+			continue
+		}
+		if _, isLive := livePacks[num]; !isLive {
+			f.hDead++
+			continue
+		}
+		f.packed[d] = struct{}{}
+	}
+	fmt.Printf("pack index pass (measured): %s in %s, %d h rows, %d cells did not decode\n", gb(pst.read), pst.took.Round(time.Second), hRows, pst.badCells)
+
+	// Classify the blocks, then their eviction entries.
+	dropped := map[string]struct{}{}
+	for _, b := range blocks {
+		v := f.verdict(b.d)
+		res.addBlock(v, b.bytes)
+		if v == vDrop {
+			dropped[b.d] = struct{}{}
+		} else {
+			keptBy[b.rowid>>rowidBucketBits] += b.bytes
+		}
+	}
+	var evictKept int64
+	for d, es := range evicts {
+		_, drop := dropped[d]
+		for _, e := range es {
+			if drop {
+				res.dropEvict.add(e.bytes)
+				continue
+			}
+			res.addMeta("objs/<id>/evictable/", e.bytes)
+			keptBy[e.rowid>>rowidBucketBits] += e.bytes
+			evictKept += e.size
+		}
+	}
+
+	// Report.
 	var stored int64
 	for _, n := range f.evictBytesStored {
 		stored += n
@@ -72,75 +289,35 @@ func runCount(o opts) (*countResult, error) {
 			hotPacked++
 		}
 	}
-	fmt.Printf("\nfacts in %s (measured, exact):\n", f.took.Round(time.Second))
-	fmt.Printf("  object stores %d; marked %d; queued blocks %d in %d entries; evictable-bytes as stored %s\n",
-		len(f.objStores), len(f.marked), len(f.evict), f.evictKeys, gb(stored))
+	fmt.Printf("\nfacts (measured, main files as of their last checkpoint):\n")
+	fmt.Printf("  object stores %d (%d keys, %s); marked %d; queued blocks %d in %d entries\n",
+		len(f.objStores), objBytes.keys, gb(objBytes.bytes), len(f.marked), len(f.evict), f.evictKeys)
+	fmt.Printf("  evictable-bytes as stored %s; after the drop the kept entries sum to %s\n", gb(stored), gb(evictKept))
 	fmt.Printf("  read set: %d hot keys\n", len(f.hot))
 	for _, g := range f.gens {
 		fmt.Println("    read", g)
 	}
-	fmt.Printf("  pack index: %d live packs; %d queued unmarked blocks looked up: %d packed, %d no h row, %d h row on a dead pack\n",
+	fmt.Printf("  pack index: %d live packs; %d queued unmarked blocks: %d packed, %d no h row, %d h row on a dead pack\n",
 		f.packsLive, f.lookups, len(f.packed), f.hMissing, f.hDead)
-	fmt.Printf("  drop candidates: %d packed, of which %d hot (kept)\n", len(f.packed), hotPacked)
+	fmt.Printf("  drop candidates: %d packed, of which %d hot (kept); %d object store keys did not parse\n", len(f.packed), hotPacked, f.badKeys)
 
-	// Exact block counts from a key-only scan of the block range.
-	if o.blocks {
-		var n int64
-		live.setPhase("block keys", func() string { return fmt.Sprintf("%d block keys", n) })
-		err := scanKeys(world, table, []byte(blockPrefix), prefixEnd([]byte(blockPrefix)), o.chunk, o.pause, func(key []byte) error {
-			n++
-			res.blockKeys[f.blockVerdict(key)]++
-			return nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("scan block keys: %w", err)
-		}
-		fmt.Printf("\nblock keys (measured, exact, %d):\n", n)
-		for _, v := range sortedKeys(res.blockKeys) {
-			fmt.Printf("  %-44s %12d\n", v, res.blockKeys[v])
-		}
-	}
-
-	if !hasRowid(stmt) {
-		return nil, fmt.Errorf("count samples rowid slices; %s has no rowid", table)
-	}
-	slices, scale, err := sampleRowids(o, world, table, f, res)
-	if err != nil {
-		return nil, err
-	}
-	res.scale = scale
-	sampleBusy := live.busy
-	var sampleRows, sampleBytes int64
-	for _, s := range slices {
-		sampleRows += s.rows
-		sampleBytes += s.bytes
-	}
-	if sampleRows == 0 {
-		return nil, fmt.Errorf("sample read no rows")
-	}
-	_ = sampleBusy
-
-	// Report, scaled to the whole table.
-	est := func(b int64) int64 { return int64(float64(b) * scale) }
-	fmt.Printf("\nsample: %d slices, %.2f%% of the rowid span, %d rows, %s payload; scale x%.1f (projected below)\n",
-		len(slices), 100/scale, sampleRows, gb(sampleBytes), scale)
-	fmt.Println("\nblock values (h/b/), projected keys and bytes:")
-	var keepBytes, dropBytes, keepRows, hotBytes int64
+	fmt.Println("\nblock values (h/b/), measured:")
+	var keepBytes, dropBytes, keepRows, hotBytes, hotKeys int64
 	for _, v := range sortedKeys(res.blocks) {
 		t := res.blocks[v]
-		fmt.Printf("  %-44s %12d keys %12s\n", v, est(t.keys), gb(est(t.bytes)))
+		fmt.Printf("  %-44s %12d keys %12s\n", v, t.keys, gb(t.bytes))
 		switch v {
 		case vDrop:
 			dropBytes += t.bytes
 		case vHot:
-			hotBytes += t.bytes
+			hotBytes, hotKeys = t.bytes, t.keys
 			fallthrough
 		default:
 			keepBytes += t.bytes
 			keepRows += t.keys
 		}
 	}
-	fmt.Println("\nother keys by family, projected (kept, except the eviction entries of dropped blocks):")
+	fmt.Println("\nother keys by family, measured (kept, except the eviction entries of dropped blocks):")
 	fams := sortedKeys(res.meta)
 	sort.SliceStable(fams, func(i, j int) bool { return res.meta[fams[i]].bytes > res.meta[fams[j]].bytes })
 	for i, k := range fams {
@@ -148,53 +325,26 @@ func runCount(o opts) (*countResult, error) {
 		keepBytes += t.bytes
 		keepRows += t.keys
 		if i < 30 {
-			fmt.Printf("  %-44s %12d keys %12s\n", k, est(t.keys), gb(est(t.bytes)))
+			fmt.Printf("  %-44s %12d keys %12s\n", k, t.keys, gb(t.bytes))
 		}
 	}
 	if len(fams) > 30 {
 		fmt.Printf("  ... %d more families\n", len(fams)-30)
 	}
 	dropBytes += res.dropEvict.bytes
-	fmt.Printf("  eviction entries of dropped blocks: %d keys %s (dropped)\n", est(res.dropEvict.keys), gb(est(res.dropEvict.bytes)))
+	fmt.Printf("  eviction entries of dropped blocks: %d keys %s (dropped)\n", res.dropEvict.keys, gb(res.dropEvict.bytes))
 
-	// Clustering: how the kept block bytes spread over the slices.
-	reportClusters(slices)
+	reportClusters(keptBy, totalBy)
 
-	// Projection.
-	keepB, dropB, keepN := est(keepBytes), est(dropBytes), est(keepRows)
-	avgKey := 48.0
-	used := (h.pageCount - h.freelist) * h.pageSize
-	ratio := float64(used) / float64(max(est(sampleBytes), 1))
-	// A fresh file: the table's cells and the key index, each key once
-	// more plus about 24 bytes of cell and page overhead, pages 90% full.
-	fresh := int64((float64(keepB) + float64(keepN)*(avgKey+24)) / 0.9)
-	fmt.Printf("\nprojected: kept payload %s in %d keys (hot set %s), dropped %s\n", gb(keepB), keepN, gb(est(hotBytes)), gb(dropB))
-	fmt.Printf("file %s = used %s + freelist %s; used pages per payload byte %.3f\n", gb(h.pageCount*h.pageSize), gb(used), gb(h.freelist*h.pageSize), ratio)
-	fmt.Printf("projected new file: about %s fresh (payload, index, 90%% full pages); %s at the old file's ratio\n", gb(fresh), gb(int64(float64(keepB)*ratio)))
-
-	// Copy rate on real rows, into a scratch file.
-	scanRate := float64(sampleRows) / max(sampleBusy.Seconds(), 0.001)
-	fmt.Printf("\nscan rate (measured, live, busy time only): %.0f rows/s, %s busy for %d rows\n", scanRate, sampleBusy.Round(time.Second), sampleRows)
-	totalRows := est(sampleRows)
-	scanTime := time.Duration(float64(totalRows) / scanRate * float64(time.Second))
-	fmt.Printf("projected full rowid scan: %s for %d rows\n", scanTime.Round(time.Minute), totalRows)
-	if o.rateOut != "" {
-		mbps, err := measureCopy(o, world, table, stmt, h.pageSize, f, slices)
-		if err != nil {
-			return nil, fmt.Errorf("copy rate: %w", err)
-		}
-		if mbps <= 0 {
-			fmt.Println("copy rate: no kept rows outside the sample to measure")
-		} else {
-			valueTime := time.Duration(float64(keepB) / 1e6 / mbps * float64(time.Second))
-			fmt.Printf("projected copy: scan %s + kept values %s at %.0f MB/s = %s\n", scanTime.Round(time.Minute), valueTime.Round(time.Minute), mbps, (scanTime + valueTime).Round(time.Minute))
-		}
-	}
-
+	// Projection: the payload, each key once more in the key index, about
+	// 24 bytes of cell and index overhead a row, pages 90% full.
+	fresh := int64((float64(keepBytes) + float64(keepRows)*(48+24)) / 0.9)
+	fmt.Printf("\nkept payload %s in %d keys (hot set %d keys %s); dropped %s\n", gb(keepBytes), keepRows, hotKeys, gb(hotBytes), gb(dropBytes))
+	fmt.Printf("projected new file: about %s\n", gb(fresh))
 	for _, d := range []string{"/dev/shm", "/"} {
-		var st syscall.Statfs_t
-		if err := syscall.Statfs(d, &st); err == nil {
-			free := int64(st.Bavail) * int64(st.Bsize)
+		var sfs syscall.Statfs_t
+		if err := syscall.Statfs(d, &sfs); err == nil {
+			free := int64(sfs.Bavail) * int64(sfs.Bsize)
 			fit := "fits"
 			if free < fresh {
 				fit = "does NOT fit"
@@ -202,102 +352,59 @@ func runCount(o opts) (*countResult, error) {
 			fmt.Printf("free on %s: %s; the projected new file %s\n", d, gb(free), fit)
 		}
 	}
+
+	if o.rateOut != "" {
+		if err := measureCopy(o, f, maxRowid, rows, keepBytes); err != nil {
+			fmt.Printf("copy probe: %v\n", err)
+		}
+	}
 	fmt.Printf("\ncount done in %s\n", time.Since(start).Round(time.Second))
 	return res, nil
 }
 
-// sampleRowids reads o.sample of the rowid span, spread over o.slices
-// slices, each read from its start. It tallies the rows into res and returns
-// the slices and the scale from the sample to the whole span.
-func sampleRowids(o opts, db *sql.DB, table string, f *facts, res *countResult) ([]sliceStat, float64, error) {
-	var lo, hi sql.NullInt64
-	if err := db.QueryRow("SELECT min(rowid), max(rowid) FROM "+table).Scan(&lo, &hi); err != nil {
-		return nil, 0, err
+func (r *countResult) addBlock(v string, b int64) {
+	t := r.blocks[v]
+	if t == nil {
+		t = &tally{}
+		r.blocks[v] = t
 	}
-	if !lo.Valid {
-		return nil, 1, nil
-	}
-	span := hi.Int64 - lo.Int64 + 1
-	n := int64(max(o.slices, 1))
-	n = min(n, span)
-	width := span / n
-	take := max(int64(float64(width)*o.sample), 1)
-	if o.sample >= 1 {
-		take = width
-	}
-	slices := make([]sliceStat, n)
-	var sampled int64
-	for i := range slices {
-		s := &slices[i]
-		s.lo = lo.Int64 + int64(i)*width
-		s.hi = s.lo + take
-		if o.sample >= 1 && i == len(slices)-1 {
-			s.hi = hi.Int64 + 1
-		}
-		sampled += s.hi - s.lo
-	}
-	var rows int64
-	cur := 0
-	live.setPhase("rowid sample", func() string {
-		return fmt.Sprintf("slice %d of %d, %d rows", cur, len(slices), rows)
-	})
-	for i := range slices {
-		cur = i
-		s := &slices[i]
-		err := scanRowids(db, table, s.lo, s.hi, o.chunk, o.pause, func(_ int64, key []byte, vlen int64) error {
-			rows++
-			b := int64(len(key)) + vlen
-			s.rows++
-			s.bytes += b
-			if bytes.HasPrefix(key, []byte(blockPrefix)) {
-				v := f.blockVerdict(key)
-				t := res.blocks[v]
-				if t == nil {
-					t = &tally{}
-					res.blocks[v] = t
-				}
-				t.add(b)
-				if v == vDrop {
-					s.dropped += b
-				} else {
-					s.keptBlock += b
-				}
-				return nil
-			}
-			if d, ok := evictDigest(key); ok && f.verdict(d) == vDrop {
-				res.dropEvict.add(b)
-				s.dropped += b
-				return nil
-			}
-			fam := family(key)
-			t := res.meta[fam]
-			if t == nil {
-				t = &tally{}
-				res.meta[fam] = t
-			}
-			t.add(b)
-			return nil
-		})
-		if err != nil {
-			return nil, 0, fmt.Errorf("sample slice %d: %w", i, err)
-		}
-	}
-	return slices, float64(span) / float64(sampled), nil
+	t.add(b)
 }
 
-// reportClusters prints how the kept block bytes spread over the slices: if a
-// few slices hold most of them, a copy could skip the rest by rowid range.
-func reportClusters(slices []sliceStat) {
-	var kept, total int64
-	empty := 0
-	byKept := make([]int64, 0, len(slices))
-	for _, s := range slices {
-		kept += s.keptBlock
-		total += s.bytes
-		if s.keptBlock == 0 {
-			empty++
+func (r *countResult) addMeta(fam string, b int64) {
+	t := r.meta[fam]
+	if t == nil {
+		t = &tally{}
+		r.meta[fam] = t
+	}
+	t.add(b)
+}
+
+func popcount(w uint64) int {
+	n := 0
+	for ; w != 0; w &= w - 1 {
+		n++
+	}
+	return n
+}
+
+// reportClusters prints how the kept bytes spread over rowid buckets: if
+// few buckets hold most of them, a copy could skip the rest by rowid range.
+func reportClusters(keptBy, totalBy map[int64]int64) {
+	var ids []int64
+	var kept int64
+	for id := range totalBy {
+		ids = append(ids, id)
+		kept += keptBy[id]
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	byKept := make([]int64, 0, len(ids))
+	sparse := 0
+	for _, id := range ids {
+		byKept = append(byKept, keptBy[id])
+		if keptBy[id]*20 < totalBy[id] {
+			sparse++
 		}
-		byKept = append(byKept, s.keptBlock)
 	}
 	sort.Slice(byKept, func(i, j int) bool { return byKept[i] > byKept[j] })
 	need := func(share float64) int {
@@ -310,33 +417,60 @@ func reportClusters(slices []sliceStat) {
 		}
 		return len(byKept)
 	}
-	fmt.Printf("\nclustering: kept block bytes %s of %s sampled; %d of %d slices hold no kept block value\n", gb(kept), gb(total), empty, len(slices))
+	fmt.Printf("\nclustering by rowid bucket (%d rowids each): %d buckets; %d keep under 5%% of their payload\n", 1<<rowidBucketBits, len(ids), sparse)
 	if kept > 0 {
-		fmt.Printf("  slices holding 50%% / 90%% / 99%% of the kept block bytes: %d / %d / %d of %d\n", need(0.5), need(0.9), need(0.99), len(slices))
+		fmt.Printf("  buckets holding 50%% / 90%% / 99%% of the kept bytes: %d / %d / %d of %d\n", need(0.5), need(0.9), need(0.99), len(ids))
 	}
-	// Kept share by tenth of the rowid span.
 	const parts = 10
-	var line string
+	line := ""
 	for p := range parts {
 		var k, t int64
-		for i := p * len(slices) / parts; i < (p+1)*len(slices)/parts; i++ {
-			k += slices[i].bytes - slices[i].dropped
-			t += slices[i].bytes
+		for _, id := range ids[p*len(ids)/parts : (p+1)*len(ids)/parts] {
+			k += keptBy[id]
+			t += totalBy[id]
 		}
 		line += fmt.Sprintf(" %.0f%%", 100*float64(k)/float64(max(t, 1)))
 	}
 	fmt.Printf("  kept share of payload by tenth of the rowid span:%s\n", line)
 }
 
-// measureCopy copies the kept rows just past the sampled part of spread
-// slices into a scratch file, as the copy does (key scan, then values by
-// rowid), until o.rateMB megabytes are kept, and returns the kept MB/s over
-// the time spent reading the kept values and writing them; the key scan is
-// timed by the sample. The scratch file is removed.
-func measureCopy(o opts, src *sql.DB, table, stmt string, pageSize int64, f *facts, slices []sliceStat) (float64, error) {
-	dst, err := openNew(o.rateOut, stmt, pageSize)
+// openImmutable opens a SQLite file as immutable: SQLite reads the main file
+// only, takes no lock and touches no WAL or shared memory file, so a read of a
+// live file cannot hold its checkpointer. It sees the last checkpoint.
+func openImmutable(path string) (*sql.DB, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("sqlite", "file:"+path+"?immutable=1")
 	if err != nil {
-		return 0, err
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	return db, db.Ping()
+}
+
+// measureCopy runs the copy's pipeline on rowid ranges spread over the table,
+// reading an immutable view of the source and writing a scratch file, until
+// o.rateMB megabytes are kept. It times the key scan per row and the value
+// reads and writes per kept byte, and projects the copy from them. The
+// scratch file is removed.
+func measureCopy(o opts, f *facts, maxRowid, rows, keepBytes int64) error {
+	src, err := openImmutable(o.world)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	table, stmt, err := kvTable(src)
+	if err != nil {
+		return err
+	}
+	h, err := readHeader(src)
+	if err != nil {
+		return err
+	}
+	dst, err := openNew(o.rateOut, stmt, h.pageSize)
+	if err != nil {
+		return err
 	}
 	defer func() {
 		dst.Close()
@@ -346,32 +480,30 @@ func measureCopy(o opts, src *sql.DB, table, stmt string, pageSize int64, f *fac
 	}()
 	ins, err := dst.Prepare("INSERT INTO " + table + " (key, value) VALUES (?, ?)")
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer ins.Close()
-	var kept, rows int64
-	var writeTime, readTime time.Duration
-	limit := o.rateMB * 1e6
-	live.setPhase("copy rate", func() string { return fmt.Sprintf("%s kept", gb(kept)) })
-	// Visit slices in a spread order: every 7th, then the next offset.
-	order := make([]int, 0, len(slices))
-	for off := range 7 {
-		for i := off; i < len(slices); i += 7 {
-			order = append(order, i)
-		}
+	get, err := src.Prepare("SELECT key, value FROM " + table + " WHERE rowid = ?")
+	if err != nil {
+		return err
 	}
-	for _, i := range order {
-		if kept >= limit {
-			break
-		}
-		s := slices[i]
-		end := s.hi + (s.hi - s.lo)
-		if i+1 < len(slices) {
-			end = min(end, slices[i+1].lo)
-		}
+	defer get.Close()
+
+	saved := live
+	live = nil
+	defer func() { live = saved }()
+	var kept, scanned int64
+	var scanT, readT, writeT time.Duration
+	limit := o.rateMB * 1e6
+	const ranges = 64
+	step := max(maxRowid/ranges, 1)
+	width := max(step/50, 1000)
+	for i := int64(0); i < ranges && kept < limit; i++ {
+		lo := i*step + step/3
 		var ids []int64
-		err := scanRowids(src, table, s.hi, end, o.chunk, o.pause, func(id int64, key []byte, _ int64) error {
-			rows++
+		t0 := time.Now()
+		err := scanRowids(src, table, lo, lo+width, 5000, 0, func(id int64, key []byte, _ int64) error {
+			scanned++
 			if bytes.HasPrefix(key, []byte(blockPrefix)) && f.blockVerdict(key) == vDrop {
 				return nil
 			}
@@ -381,53 +513,50 @@ func measureCopy(o opts, src *sql.DB, table, stmt string, pageSize int64, f *fac
 			ids = append(ids, id)
 			return nil
 		})
+		scanT += time.Since(t0)
 		if err != nil {
-			return 0, err
+			return fmt.Errorf("scan range %d: %w", lo, err)
 		}
-		type kv struct{ k, v []byte }
-		var batch []kv
-		busy0 := live.busy
-		err = pointReads(src, "SELECT key, value FROM "+table+" WHERE rowid = ?", len(ids), o.chunk, func(j int, st *sql.Stmt) error {
-			var k, v []byte
-			if err := st.QueryRow(ids[j]).Scan(&k, &v); err != nil {
-				if err == sql.ErrNoRows {
-					return nil
-				}
-				return err
-			}
-			batch = append(batch, kv{k, v})
-			return nil
-		})
-		if err != nil {
-			return 0, err
-		}
-		readTime += live.busy - busy0
-		t0 := time.Now()
 		tx, err := dst.Begin()
 		if err != nil {
-			return 0, err
+			return err
 		}
 		txins := tx.Stmt(ins)
-		for _, e := range batch {
-			if _, err := txins.Exec(e.k, e.v); err != nil {
-				_ = tx.Rollback()
-				return 0, err
+		for _, id := range ids {
+			r0 := time.Now()
+			var k, v []byte
+			if err := get.QueryRow(id).Scan(&k, &v); err != nil {
+				continue
 			}
-			kept += int64(len(e.k) + len(e.v))
+			w0 := time.Now()
+			readT += w0.Sub(r0)
+			if _, err := txins.Exec(k, v); err != nil {
+				_ = tx.Rollback()
+				return err
+			}
+			writeT += time.Since(w0)
+			kept += int64(len(k) + len(v))
 		}
+		w0 := time.Now()
 		if err := tx.Commit(); err != nil {
-			return 0, err
+			return err
 		}
-		writeTime += time.Since(t0)
+		writeT += time.Since(w0)
 	}
-	el := readTime + writeTime
-	mbps := float64(kept) / 1e6 / max(el.Seconds(), 0.001)
-	fmt.Printf("value copy rate (measured, live source, scratch %s): %s kept from %d rows in %s (value reads %s, writes %s): %.0f MB/s\n",
-		o.rateOut, gb(kept), rows, el.Round(time.Millisecond), readTime.Round(time.Millisecond), writeTime.Round(time.Millisecond), mbps)
-	return mbps, nil
+	if scanned == 0 || kept == 0 {
+		return fmt.Errorf("nothing kept in the probe ranges")
+	}
+	perRow := scanT / time.Duration(scanned)
+	perMB := float64(readT+writeT) / (float64(kept) / 1e6)
+	fmt.Printf("\ncopy probe (measured, live disk, immutable view, scratch %s): %d rows scanned in %s (%s a row); %s kept, value reads %s, writes %s: %.0f MB/s kept\n",
+		o.rateOut, scanned, scanT.Round(time.Millisecond), perRow, gb(kept), readT.Round(time.Millisecond), writeT.Round(time.Millisecond), 1e9/perMB)
+	scanAll := time.Duration(rows) * perRow
+	valueAll := time.Duration(perMB * float64(keepBytes) / 1e6)
+	fmt.Printf("projected copy at the probe's rates: scan %s + kept values %s = %s (verify reads as much again)\n",
+		scanAll.Round(time.Minute), valueAll.Round(time.Minute), (scanAll + valueAll).Round(time.Minute))
+	return nil
 }
 
-// sortedKeys returns a map's keys in order.
 func sortedKeys[V any](m map[string]V) []string {
 	ks := make([]string, 0, len(m))
 	for k := range m {

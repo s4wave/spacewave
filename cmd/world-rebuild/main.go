@@ -13,8 +13,9 @@
 //
 // Subcommands:
 //
-//	count    dry run on a live file: short key-only reads, point reads, and a
-//	         sampled pass over rowid slices; reports by family
+//	count    dry run on a live file: reads its pages and the pack index's
+//	         directly, without SQLite and so without a lock, paced to
+//	         -mbps; reports by family and probes the copy rate
 //	copy     writes the new file; the source must have no writer
 //	verify   checks a copy against its source and the drop rule
 //	selftest builds a local test store, counts, copies, verifies, and runs
@@ -64,13 +65,10 @@ type opts struct {
 	n       int
 	full    bool
 	rowid   bool
-	// sample is the share of the rowid span count reads, in slices.
-	sample float64
-	slices int
+	// mbps paces count's raw page reads, in megabytes a second.
+	mbps float64
 	// maxKeptGB aborts a copy whose kept bytes pass it; 0 is no cap.
 	maxKeptGB float64
-	// blocks makes count scan the block keys for exact block counts.
-	blocks bool
 	// rateOut and rateMB make count copy kept rows of some slices into a
 	// scratch file to measure the copy rate.
 	rateOut string
@@ -97,10 +95,8 @@ func main() {
 	fs.IntVar(&o.n, "n", 100000, "selftest blocks")
 	fs.BoolVar(&o.full, "full", false, "verify: compare block values byte for byte, not only their lengths")
 	fs.BoolVar(&o.rowid, "rowid", true, "selftest: rowid table, as production, instead of WITHOUT ROWID")
-	fs.Float64Var(&o.sample, "sample", 0.05, "count: share of the rowid span to read")
-	fs.IntVar(&o.slices, "slices", 4000, "count: rowid slices the sample spreads over")
+	fs.Float64Var(&o.mbps, "mbps", 60, "count: megabytes a second the raw page reads take (0: no limit)")
 	fs.Float64Var(&o.maxKeptGB, "max-kept-gb", 0, "copy: abort once the kept bytes pass this (0: no cap)")
-	fs.BoolVar(&o.blocks, "blocks", true, "count: scan the block keys (key only) for exact block counts")
 	fs.StringVar(&o.rateOut, "rate-out", "", "count: scratch file for the copy rate measurement (removed after)")
 	fs.Int64Var(&o.rateMB, "rate-mb", 1000, "count: kept megabytes the copy rate measurement copies")
 	_ = fs.Parse(os.Args[2:])

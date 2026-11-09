@@ -43,10 +43,10 @@ func runSelftest(o opts) error {
 	fi, _ := os.Stat(o.world)
 	fmt.Printf("test store: %d blocks, %s file, %d blocks the rule drops\n", n, gb(fi.Size()), want)
 
-	// A full-sample count finds exactly the blocks the rule drops, and
-	// their eviction entries.
+	// The raw count finds exactly the blocks the rule drops, and their
+	// eviction entries, and none of the deleted rows on freelist pages.
 	co := o
-	co.sample, co.slices, co.rateOut, co.rateMB = 1, 37, filepath.Join(dir, "rate.db"), 50
+	co.mbps, co.rateOut, co.rateMB = 0, filepath.Join(dir, "rate.db"), 50
 	res, err := runCount(co)
 	if err != nil {
 		return fmt.Errorf("count: %w", err)
@@ -57,26 +57,23 @@ func runSelftest(o opts) error {
 			hot++
 		}
 	}
+	var blocks int64
+	for _, t := range res.blocks {
+		blocks += t.keys
+	}
 	for _, c := range []struct {
 		name      string
 		got, want int64
 	}{
-		{"exact drop keys", res.blockKeys[vDrop], want},
-		{"sampled drop keys", res.blocks[vDrop].keys, want},
-		{"sampled hot keys", res.blocks[vHot].keys, hot},
+		{"block keys", blocks, int64(n)},
+		{"drop keys", res.blocks[vDrop].keys, want},
+		{"hot keys", res.blocks[vHot].keys, hot},
 		{"dropped eviction entries", res.dropEvict.keys, want},
+		{"cells that did not decode", res.badCells, 0},
 	} {
 		if c.got != c.want {
 			return fmt.Errorf("count: %s %d, want %d", c.name, c.got, c.want)
 		}
-	}
-	if res.scale != 1 {
-		return fmt.Errorf("count: full sample scale %v, want 1", res.scale)
-	}
-	// A partial sample measures the copy rate on the rows past it.
-	co.sample, co.blocks = 0.3, false
-	if _, err := runCount(co); err != nil {
-		return fmt.Errorf("sampled count: %w", err)
 	}
 	fmt.Println("count: ok")
 
@@ -261,5 +258,32 @@ func buildTestStore(world, packs string, n int, storeID string, rowid bool) (int
 	if err := wtx.Commit(); err != nil {
 		return 0, err
 	}
-	return drop, ptx.Commit()
+	if err := ptx.Commit(); err != nil {
+		return 0, err
+	}
+	// Block rows written then deleted leave whole leaf pages on the
+	// freelist with their stale cells: a raw count must skip them.
+	jtx, _ := w.Begin()
+	for i := range 3000 {
+		if _, err := jtx.Exec("INSERT INTO kv (key, value) VALUES (?, ?)", []byte(blockPrefix+"junk-"+strconv.Itoa(i)), make([]byte, 1500)); err != nil {
+			return 0, err
+		}
+	}
+	if err := jtx.Commit(); err != nil {
+		return 0, err
+	}
+	if _, err := w.Exec("DELETE FROM kv WHERE key >= ? AND key < ?", []byte(blockPrefix+"junk-"), prefixEnd([]byte(blockPrefix+"junk-"))); err != nil {
+		return 0, err
+	}
+	// The raw count reads the main files only.
+	for _, db := range []*sql.DB{w, p} {
+		if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+			return 0, err
+		}
+	}
+	var free int64
+	if err := w.QueryRow("PRAGMA freelist_count").Scan(&free); err != nil || free < 100 {
+		return 0, fmt.Errorf("deleted junk rows left %d free pages (%v), want at least 100", free, err)
+	}
+	return drop, nil
 }
