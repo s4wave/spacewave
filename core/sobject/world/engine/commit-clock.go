@@ -105,17 +105,13 @@ func (c *commitClock) end(stage commitStage) {
 }
 
 // finish reports the stage times of the write to its observer as Commit ends and
-// logs them when the write took longer than slowCommitThreshold. The stages
-// field lists them in stage order, and the hold field is the writer lock hold:
-// every stage after the lock wait up to the end of advance.
+// logs them when the write took longer than slowCommitThreshold, or held the
+// writer lock longer than slowHoldThreshold, the hold the writer lock warns
+// of. The stages field lists them in stage order, and the hold field is the
+// writer lock hold: every stage after the lock wait up to the end of advance.
 func (c *commitClock) finish(le *logrus.Entry) {
 	// Skip the work when nothing reads the times.
 	if c == nil {
-		return
-	}
-	elapsed := time.Since(c.started)
-	slow := elapsed > slowCommitThreshold
-	if !slow && c.observer == nil {
 		return
 	}
 
@@ -123,6 +119,11 @@ func (c *commitClock) finish(le *logrus.Entry) {
 	var hold time.Duration
 	for stage := stageLockWait + 1; stage <= stageAdvance; stage++ {
 		hold += c.stages[stage]
+	}
+	elapsed := time.Since(c.started)
+	slow := elapsed > slowCommitThreshold || hold > slowHoldThreshold
+	if !slow && c.observer == nil {
+		return
 	}
 
 	// Report every stage to the observer.

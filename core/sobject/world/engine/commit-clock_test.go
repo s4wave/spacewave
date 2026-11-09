@@ -15,6 +15,32 @@ import (
 	logtest "github.com/sirupsen/logrus/hooks/test"
 )
 
+// TestWorldCommitLogsSlowHoldStages checks that a World write whose writer
+// lock hold passes the slow hold threshold logs its stage times, though the
+// write as a whole is under the slow commit threshold.
+func TestWorldCommitLogsSlowHoldStages(t *testing.T) {
+	// Capture the warnings, with only the hold threshold reachable.
+	w := startLocalWorld(t, t.TempDir(), nil)
+	hook := logtest.NewLocal(w.le.Logger)
+	defer sobject_world_engine.SetSlowCommitThreshold(time.Hour)()
+	defer sobject_world_engine.SetSlowHoldThreshold(0)()
+	w.create(t, "stages/hold")
+
+	// The write logs its stages once.
+	var slow int
+	for _, entry := range hook.AllEntries() {
+		if entry.Message == "slow World commit" {
+			slow++
+			if _, ok := entry.Data["stages"].(string); !ok {
+				t.Fatalf("warning lacks the stages: %v", entry.Data)
+			}
+		}
+	}
+	if slow != 1 {
+		t.Fatalf("got %d slow World commit warnings, want 1", slow)
+	}
+}
+
 // TestWorldCommitLogsStageTimes lowers the slow threshold to zero and checks
 // that a World write logs one warning that names every stage with its
 // duration, and the writer lock hold, which excludes the receipt wait.
