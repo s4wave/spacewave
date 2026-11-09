@@ -185,7 +185,6 @@ func (t *bstoreTracker) startNodePush(
 	clears := make(chan []*hash.Hash, nodeClearQueue)
 	client := block_store_nodepush.NewClient(le.WithField("routine", "node-push"), block_store_nodepush.NewPackApplier(nodeAdopter{t: t, p: placement, clears: clears}))
 	handle.push = block_store_nodepush.NewPublisher(client, conf.Wait, conf.On, conf.Result)
-	wb.SetLocateUploaded(conf.On)
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
