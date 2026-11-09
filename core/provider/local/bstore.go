@@ -549,6 +549,16 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		return err
 	}
 
+	// Skip uploading the blocks the remote's index already names in a kept
+	// pack, such as a pack uploaded before a crash and adopted at the restart,
+	// whose queued markers would otherwise upload every block again. A remote
+	// that keeps its packs never drops a block its index names, so a located
+	// block is on the remote whether the node, an adopted pack or an earlier
+	// round put it there.
+	locate := new(atomic.Bool)
+	locate.Store(true)
+	wb.SetLocateUploaded(locate)
+
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
 	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
