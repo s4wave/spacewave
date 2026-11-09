@@ -51,6 +51,12 @@ func NewIterator(ctx context.Context, tx *Tx, prefix []byte, sort, reverse bool)
 		return it
 	}
 
+	// Apply the held cursor writes, so the iterator sees them.
+	if err := tx.Flush(ctx); err != nil {
+		it.err = err
+		return it
+	}
+
 	// Bound the iterator with the successor of its key prefix.
 	if len(prefix) != 0 {
 		it.upper, _ = kvtx.PrefixSuccessor(prefix)
