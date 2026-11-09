@@ -222,8 +222,103 @@ func TestEvictBatchesByBytes(t *testing.T) {
 		{8192, 4096, 10 * time.Millisecond, evictBatchMaxBlocks},
 		{1024, 0, time.Minute, 1024},
 	} {
-		if got := nextEvictLimit(c.limit, c.dropped, c.elapsed); got != c.want {
+		if got := nextEvictLimit(EvictBatch{}.normalize(), c.limit, c.dropped, c.elapsed); got != c.want {
 			t.Fatalf("nextEvictLimit(%d, %d, %v) = %d, want %d", c.limit, c.dropped, c.elapsed, got, c.want)
+		}
+	}
+}
+
+// slowValues makes each drop write cost perBlock a block, as a store much
+// larger than its page cache does, and records each write's blocks and time.
+type slowValues struct {
+	block.StoreOps
+	perBlock time.Duration
+	writes   []int
+	took     []time.Duration
+}
+
+// PutBlockBatch waits perBlock for each entry, then stores the batch.
+func (v *slowValues) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	start := time.Now()
+	time.Sleep(time.Duration(len(entries)) * v.perBlock)
+	ok, err := v.StoreOps.PutBlockBatch(ctx, entries)
+	v.writes, v.took = append(v.writes, len(entries)), append(v.took, time.Since(start))
+	return ok, err
+}
+
+// TestLoweredHighMarkKeepsBatchesShort checks that lowering the resident high
+// mark while the store runs, so a pass must drop nearly every resident byte,
+// still drops them in batches whose drop writes each hold the writer near the
+// write target, not one long write: the batch limit shrinks to the target at
+// the measured cost a block. Lowering the batch bounds mid-pass, as a live
+// tunable does, applies at the next batch.
+func TestLoweredHighMarkKeepsBatchesShort(t *testing.T) {
+	// Scale the target down so the test runs in well under a second, keeping
+	// the same ratio of target to cost a block as 500 ms at 1 ms a block.
+	const target, perBlock = 20 * time.Millisecond, 40 * time.Microsecond
+	SetEvictBatch(EvictBatch{WriteTarget: target, MinBlocks: 16})
+	t.Cleanup(func() { SetEvictBatch(EvictBatch{}) })
+
+	// Write and upload 6,000 blocks of 1 KiB under a high mark past them.
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	const total, size = 6000, 1 << 10
+	for i := range total {
+		data := make([]byte, size)
+		copy(data, fmt.Appendf(nil, "block-%05d", i))
+		if _, _, err := s.PutBlock(ctx, data, leafOpts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	drain(t, s, newInmemBlockStore())
+	s.SetPolicy(Policy{ResidentHigh: 1 << 40, ResidentLow: 1 << 39})
+	if status, _ := s.GetStatus(); status.EvictBytes() != 0 {
+		t.Fatalf("evict bytes = %d under a high mark past the store", status.EvictBytes())
+	}
+
+	// Lower the high mark to a tenth of the store, as the resident tunable
+	// does: the pass is asked to drop nearly everything.
+	s.SetPolicy(Policy{ResidentHigh: total * size / 10, ResidentLow: total * size / 20})
+	status, _ := s.GetStatus()
+	want := status.EvictBytes()
+	if want < total*size*9/10 {
+		t.Fatalf("evict bytes = %d after lowering the high mark, want most of %d", want, total*size)
+	}
+
+	// Run the pass on slow drop writes, lowering the most blocks a batch
+	// takes to 64 after the eighth batch.
+	values := &slowValues{StoreOps: s.values, perBlock: perBlock}
+	s.values = values
+	batches := 0
+	admit := func(context.Context, int64) error {
+		if batches++; batches == 9 {
+			SetEvictBatch(EvictBatch{WriteTarget: target, MinBlocks: 16, MaxBlocks: 64})
+		}
+		return nil
+	}
+	result, err := s.Evict(ctx, nil, want, nil, admit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.EvictedBytes < want {
+		t.Fatalf("evicted %d bytes, want %d", result.EvictedBytes, want)
+	}
+
+	t.Logf("drop writes of %v blocks took %v", values.writes, values.took)
+
+	// The first write takes the open's limit of 1,024 blocks; from the
+	// fourth on, each takes near the target, never several times it.
+	if values.writes[0] != evictBatchStartBlocks {
+		t.Fatalf("first drop write took %d blocks, want %d", values.writes[0], evictBatchStartBlocks)
+	}
+	for i, took := range values.took {
+		if i >= 3 && took > 3*target {
+			t.Fatalf("drop write %d of %d blocks held the writer %v, want under %v; writes %v", i, values.writes[i], took, 3*target, values.writes)
+		}
+	}
+	for i, n := range values.writes[8:] {
+		if n > 64 {
+			t.Fatalf("drop write %d took %d blocks after the bound fell to 64", i+8, n)
 		}
 	}
 }
