@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 )
 
 // fallbackFillSlots bounds the fills of one placed store that run at once.
@@ -173,16 +174,25 @@ func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 	}
 }
 
-// fillFromFallback stores a block only the read fallback holds, which the read
-// verified against its hash. The write goes through the write-back store,
-// which marks it for upload, below the ownership layer as a cache fill: the
-// fallback keeps the block, so the copy takes no ownership and a collector
-// sweeping it before the upload loses nothing. Tracked or not, the backend does
-// not hold the block, so it never takes the refill path of a backend hit.
+// fillFromFallback stores a block the read fallback or a peer served, which
+// the read verified against its hash. The write goes through the write-back
+// store, which marks it for upload, below the ownership layer as a cache fill:
+// the fallback keeps the block, so the copy takes no ownership and a collector
+// sweeping it before the upload loses nothing.
+//
+// A block the backend's pack index places is the backend's, whichever source
+// served it, as when a backend read failed and the fallback answered, or a
+// pack read missed a block its row names. It fills as a backend hit does,
+// without a marker, so a block the backend holds never queues to upload again.
 func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Serve mode writes nothing.
 	if p.serveOnly {
 		return nil
+	}
+
+	// Refill a block the backend holds without a marker.
+	if p.backendPlaces(ctx, ref) {
+		return p.fill(ctx, p.local, ref, stored)
 	}
 
 	// Store the block with its refs and its upload marker.
@@ -196,6 +206,30 @@ func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockR
 		return errors.New("fallback block stored under another hash")
 	}
 	return nil
+}
+
+// backendPlaces reports whether the open backend's local pack index places
+// the block in a pack the backend never reclaims. It reads the index alone,
+// never the bucket. A backend without an index, one that reclaims blocks, a
+// backend the placement left, or a failed lookup reports false, so the block
+// keeps its marker: a block uploaded twice is only stored twice.
+func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef) bool {
+	// Ask only the open backend of the current placement.
+	if p.remote == nil {
+		return false
+	}
+	remote := p.remote.Load()
+	if remote == nil || !remote.backend.EqualVT(p.backend.Load()) {
+		return false
+	}
+	locator, ok := remote.store.(block_store_writeback.BlockLocator)
+	if !ok || !locator.KeepsBlocks() {
+		return false
+	}
+
+	// Look the block up in the index.
+	placed, err := locator.LocateBlocks(ctx, []*block.BlockRef{ref})
+	return err == nil && len(placed) == 1 && placed[0]
 }
 
 // fallbackFills is the state of a placed store's fallback fills, shared by the
