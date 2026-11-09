@@ -132,8 +132,8 @@ type largeWorld struct {
 // buildLargeWorld writes the large World into the Space ref on acc's volume.
 // Each round creates objects, overwrites a quarter of the live ones and
 // deletes an eighth, then runs a block pass. The churn that follows overwrites
-// one object a commit, with a block pass every fixtureChurnPass commits, until
-// the passes sweep the payloads the rounds replaced.
+// one object a commit, with a block pass every fixtureChurnPass commits, and
+// passes run until the grace lets them sweep a payload the rounds replaced.
 func buildLargeWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider_local.ProviderAccount, ref *sobject.SharedObjectRef) *largeWorld {
 	// Write in the Space body for the whole fixture.
 	t.Helper()
@@ -176,9 +176,16 @@ func buildLargeWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider
 		}
 	}
 
-	// The passes must have swept replaced payloads, or the store spans no
-	// block pass that mattered.
+	// The passes must sweep replaced payloads, or the store spans no block
+	// pass that mattered. A pass nets only records older than the grace, and a
+	// fast run writes the whole fixture within it, so pass again until the
+	// grace has passed over the replaced payloads.
 	swept := fix.sweptReplaced(ctx, t, acc.GetVolume())
+	for deadline := time.Now().Add(10 * collectorGrace); swept == 0 && time.Now().Before(deadline); {
+		time.Sleep(collectorGrace / 4)
+		pass()
+		swept = fix.sweptReplaced(ctx, t, acc.GetVolume())
+	}
 	t.Logf("large World: %d live objects, %d deleted, %d commits, %d block passes removed %d blocks, %d of %d replaced payload roots swept, in %v",
 		len(fix.live), len(fix.deleted), fixtureRounds+fixtureChurn, passes, removed, swept, len(fix.replaced), time.Since(start))
 	if swept == 0 {
