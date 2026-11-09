@@ -2,7 +2,6 @@ package unixfs_world
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -34,8 +33,11 @@ type FSCursor struct {
 	ctx context.Context
 	// ctxCancel is canceled when the cursor is released
 	ctxCancel context.CancelFunc
-	// watchWg waits for world-change watchers to exit before Release returns.
-	watchWg sync.WaitGroup
+	// watchBcast guards watchers and wakes Release as each watcher exits.
+	watchBcast broadcast.Broadcast
+	// watchers counts the world-change watchers still running, which Release
+	// waits for before it returns.
+	watchers int
 	// le is the logger
 	le *logrus.Entry
 	// ws is the world state
@@ -326,7 +328,7 @@ func (f *FSCursor) lockedInstallRoot(root *fsRoot) unixfs.FSCursor {
 	nfs := unixfs_block_fs.NewFS(f.ctx, 0, root.cursor, f.writer)
 	f.rootFSCursor = nfs
 	if f.watchChanges {
-		f.watchWg.Go(func() {
+		f.startWatcher(func() {
 			f.watchWorldChanges(nfs, root.ref)
 		})
 	}
@@ -379,7 +381,7 @@ func (f *FSCursor) release(waitForWatchers bool) {
 	if f.CheckReleased() {
 		// fast path
 		if waitForWatchers {
-			f.watchWg.Wait()
+			f.waitWatchers()
 		}
 		return
 	}
@@ -406,7 +408,42 @@ func (f *FSCursor) release(waitForWatchers bool) {
 	// Notify detached callbacks and finish the FSCursor watchers when requested.
 	_ = changeCbs.CallCbs(&unixfs.FSCursorChange{Cursor: f, Released: true})
 	if waitForWatchers {
-		f.watchWg.Wait()
+		f.waitWatchers()
+	}
+}
+
+// startWatcher runs fn on its own goroutine, counted in watchers until it
+// returns.
+func (f *FSCursor) startWatcher(fn func()) {
+	// Count the watcher before it starts, so a Release that follows waits.
+	l := f.watchBcast.Lock()
+	f.watchers++
+	l.Unlock()
+
+	// Run it, and wake the waiters when it exits.
+	go func() {
+		defer func() {
+			l := f.watchBcast.Lock()
+			f.watchers--
+			l.Broadcast()
+			l.Unlock()
+		}()
+		fn()
+	}()
+}
+
+// waitWatchers waits until every world-change watcher returned. It holds
+// watchBcast only to read the count, never while it waits.
+func (f *FSCursor) waitWatchers() {
+	for {
+		l := f.watchBcast.Lock()
+		if f.watchers == 0 {
+			l.Unlock()
+			return
+		}
+		waitCh := l.WaitCh()
+		l.Unlock()
+		<-waitCh
 	}
 }
 
