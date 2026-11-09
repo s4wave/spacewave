@@ -26,6 +26,11 @@ type Tx struct {
 	commitOnce atomic.Bool
 
 	rootChangedCb func(*block.Cursor)
+
+	// deferCursors holds cursor writes until Flush; see DeferCursorWrites.
+	deferCursors bool
+	// held are the held cursor writes by key.
+	held map[string]heldWrite
 }
 
 // NewTx constructs a new Okra transaction.
@@ -91,13 +96,20 @@ func validateRootAtCursor(root *Root, bcs *block.Cursor) error {
 	return err
 }
 
-// GetCursor returns the cursor pointing to the root of the tree.
+// GetCursor returns the cursor pointing to the root of the tree. A tree with
+// held cursor writes applies them first; call Flush to see its error.
 func (t *Tx) GetCursor() *block.Cursor {
+	_ = t.Flush(context.Background())
 	return t.bcs
 }
 
 // Commit commits the transaction to storage.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
+	if !t.commitOnce.Load() {
+		if err := t.Flush(ctx); err != nil {
+			return err
+		}
+	}
 	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.write {
 			if t.tx != nil {
@@ -125,6 +137,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // cursor's transaction leaves them to that transaction's owner, which may
 // still publish blocks staged by other trees.
 func (t *Tx) Discard() {
+	t.held = nil
 	if t.commitOnce.CompareAndSwap(false, true) {
 		t.tx.DiscardStagedWrites()
 		if t.rel != nil {
@@ -135,6 +148,9 @@ func (t *Tx) Discard() {
 
 // Size returns the number of keys in the tree.
 func (t *Tx) Size(ctx context.Context) (uint64, error) {
+	if err := t.Flush(ctx); err != nil {
+		return 0, err
+	}
 	return t.root.GetSize(), ctx.Err()
 }
 
@@ -148,6 +164,11 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
 		return false, err
+	}
+
+	// Answer a held write from the held entries.
+	if h, ok := t.heldAt(key); ok {
+		return !h.del, nil
 	}
 
 	// Avoid traversing an empty Okra tree.
@@ -176,6 +197,11 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+
+	// Apply the held cursor writes, so the value read is current.
+	if err := t.Flush(ctx); err != nil {
 		return nil, false, err
 	}
 
@@ -228,6 +254,11 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 		return nil, nil, err
 	}
 
+	// Apply the held cursor writes, so the values read are current.
+	if err := t.Flush(ctx); err != nil {
+		return nil, nil, err
+	}
+
 	// Avoid traversing an empty Okra tree.
 	if t.root.GetSize() == 0 || len(lookups) == 0 {
 		return values, found, nil
@@ -262,6 +293,14 @@ func (t *Tx) GetCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, err
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+
+	// Answer a held write with a cursor at its value.
+	if h, ok := t.heldAt(key); ok {
+		if h.del {
+			return nil, nil
+		}
+		return t.heldCursor(ctx, h), nil
 	}
 
 	// Avoid traversing an empty Okra tree.
@@ -310,6 +349,11 @@ func (t *Tx) Set(ctx context.Context, key, val []byte) error {
 		return err
 	}
 
+	// Apply the held cursor writes, so this write lands on top of them.
+	if err := t.Flush(ctx); err != nil {
+		return err
+	}
+
 	// Build the value entry for insertion into the Okra tree.
 	entry, err := t.buildValueEntry(ctx, key, val)
 	if err != nil {
@@ -337,6 +381,12 @@ func (t *Tx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cursor, 
 		return err
 	}
 
+	// Hold the entry when the tree defers its cursor writes.
+	if t.deferCursors {
+		t.hold(key, heldWrite{ref: valueRef, isBlob: isBlob})
+		return nil
+	}
+
 	return t.setEntry(ctx, BuildEntry{
 		Key:         key,
 		ValueRef:    valueRef,
@@ -354,6 +404,12 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+
+	// Hold the delete when the tree defers its cursor writes.
+	if t.deferCursors {
+		t.hold(key, heldWrite{del: true})
+		return nil
 	}
 
 	// Avoid traversing an empty Okra tree.
@@ -377,6 +433,17 @@ func (t *Tx) DeleteCursorAtKey(ctx context.Context, key []byte) (*block.Cursor, 
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+
+	// Hold the delete when the tree defers its cursor writes, returning the
+	// cursor the key held.
+	if t.deferCursors {
+		cursor, err := t.GetCursorAtKey(ctx, key)
+		if err != nil || cursor == nil {
+			return nil, err
+		}
+		t.hold(key, heldWrite{del: true})
+		return cursor, nil
 	}
 
 	// Avoid traversing an empty Okra tree.
@@ -409,6 +476,11 @@ func (t *Tx) GetAndDelete(ctx context.Context, key []byte) ([]byte, bool, error)
 
 	// Stop the Okra operation if its context was canceled.
 	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+
+	// Apply the held cursor writes, so the value read is current.
+	if err := t.Flush(ctx); err != nil {
 		return nil, false, err
 	}
 
