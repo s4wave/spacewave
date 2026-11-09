@@ -5,6 +5,7 @@ import (
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -127,5 +128,15 @@ func (o *GitInitOp) ApplyWorldObjectOp(
 	return false, err
 }
 
+// GetPayloadRefs returns the root of the repository the operation imports,
+// which its writer stored before the operation, or none for a new repository.
+func (o *GitInitOp) GetPayloadRefs() []*block.BlockRef {
+	root := o.GetRepoRef().GetRootRef()
+	if root.GetEmpty() {
+		return nil
+	}
+	return []*block.BlockRef{root}
+}
+
 // _ is a type assertion
-var _ world.Operation = (*GitInitOp)(nil)
+var _ world.PayloadOperation = (*GitInitOp)(nil)
