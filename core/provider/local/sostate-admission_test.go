@@ -329,6 +329,65 @@ func TestSOStateDirectWriteAfterChain(t *testing.T) {
 	})
 }
 
+// TestSOStateDirectWriteWaitsOffTheWriter checks that in the legacy lane a
+// direct write waits for the receipts pending when it starts with no provider
+// writer held, so a publication admits meanwhile, and that it then waits under
+// the writer for only that admission.
+func TestSOStateDirectWriteWaitsOffTheWriter(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// Admit one operation and start a direct write behind it.
+		h := newAdmissionHarness(t)
+		op1 := h.add(true)
+		var op2, op3 string
+		var directErr, admitErr error
+		direct := make(chan struct{})
+		go func() {
+			defer close(direct)
+			op3, directErr = h.addErr(false)
+		}()
+		synctest.Wait()
+
+		// A publication admits while the direct write waits.
+		admitted := make(chan struct{})
+		go func() {
+			defer close(admitted)
+			op2, admitErr = h.addErr(true)
+		}()
+		synctest.Wait()
+		select {
+		case <-admitted:
+		default:
+			t.Fatal("publication waited behind the direct write's receipt wait")
+		}
+		if admitErr != nil {
+			t.Fatal(admitErr)
+		}
+
+		// After the first receipt the direct write waits for the second.
+		if err := h.pub.apply(t.Context(), 0); err != nil {
+			t.Fatal(err)
+		}
+		synctest.Wait()
+		select {
+		case <-direct:
+			t.Fatal("direct write finished before the admission it overlapped")
+		default:
+		}
+		if err := h.pub.apply(t.Context(), 1); err != nil {
+			t.Fatal(err)
+		}
+		<-direct
+		if directErr != nil {
+			t.Fatal(directErr)
+		}
+		synctest.Wait()
+		h.expect("durable", h.durable, map[string]bool{op1: true, op2: true, op3: true})
+		if h.durable.GetValue() != h.admitted.GetValue() {
+			t.Fatal("direct write left the admitted state ahead")
+		}
+	})
+}
+
 // TestSOStateWriteReservations walks direct configuration, peer import and
 // declined publications behind pending receipts, including cancellation.
 func TestSOStateWriteReservations(t *testing.T) {

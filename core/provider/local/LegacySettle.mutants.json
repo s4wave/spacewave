@@ -1,0 +1,17 @@
+[
+  {
+    "name": "take the provider writer with no wait first",
+    "replace": [["         /\\ k' = IF PreWait THEN \"pre\" ELSE \"lock\"\n", "         /\\ k' = \"lock\"\n"]],
+    "expect": "NoOldWaitUnderWriter"
+  },
+  {
+    "name": "wait for an empty queue with no writer held",
+    "replace": [["Pre == /\\ k = \"pre\" /\\ Old = {}\n", "Pre == /\\ k = \"pre\" /\\ q = <<>>\n"]],
+    "expect": "Finishes"
+  },
+  {
+    "name": "write with no wait under the provider writer",
+    "replace": [["Settled == /\\ k = \"settle\" /\\ q = <<>>\n", "Settled == /\\ k = \"settle\"\n"]],
+    "expect": "BuildsOnDurable"
+  }
+]

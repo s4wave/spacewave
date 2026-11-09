@@ -157,6 +157,17 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 			}
 		}
 
+		// The legacy lane waits for the receipts pending now before taking the
+		// provider writer, so the wait under it covers only the admissions
+		// that arrive between this wait and the lock. Admissions continue
+		// meanwhile, so this wait must not wait for an empty queue.
+		if !admission && reservation == nil {
+			if err := ent.waitPendingNow(ctx); err != nil {
+				ref.Release()
+				return nil, err
+			}
+		}
+
 		// The provider writer spans no receipt wait in the reservation lane.
 		relLock, err := ent.writeMtx.Lock(ctx)
 		if err != nil {

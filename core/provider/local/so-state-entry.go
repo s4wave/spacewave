@@ -148,7 +148,8 @@ func (e *soStateEntry) readAdmitted() *sobject.SOState {
 // waitSettled waits until every pending receipt settled and returns the durable
 // state, which then equals the admitted state. Reservation callers hold only
 // intent, preventing new admissions while keeping both writers free. The legacy
-// lane retains its original provider-writer wait.
+// lane first waits in waitPendingNow with no writer held, then here under the
+// provider writer for only the admissions that arrived between the two.
 func (e *soStateEntry) waitSettled(ctx context.Context) (*sobject.SOState, error) {
 	for {
 		// Settle completed receipts and subscribe to the next pending one.
@@ -162,6 +163,26 @@ func (e *soStateEntry) waitSettled(ctx context.Context) (*sobject.SOState, error
 		case <-done:
 		}
 	}
+}
+
+// waitPendingNow waits for the receipts pending when it is called and requires
+// no writer lock. Later admissions are left to the caller's waitSettled under
+// the provider writer, so it returns under steady admissions.
+func (e *soStateEntry) waitPendingNow(ctx context.Context) error {
+	var dones []<-chan struct{}
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, p := range e.pending {
+			dones = append(dones, p.receipt.Done())
+		}
+	})
+	for _, done := range dones {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-done:
+		}
+	}
+	return nil
 }
 
 // readSettled returns the durable state when nothing is pending, or the next
