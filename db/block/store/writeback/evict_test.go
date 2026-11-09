@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -23,7 +25,7 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 	s := newTestEnv(t).newStore(t, true)
 
 	// Write more blocks than three batches evict, and keep every third.
-	const total = 3*evictBatchBlocks + 10
+	const total = 3*evictBatchStartBlocks + 10
 	var size int64
 	kept := make(map[string]bool)
 	var refs []*block.BlockRef
@@ -68,8 +70,8 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 	if !errors.Is(err, stop) {
 		t.Fatalf("evict err = %v, want the admit's", err)
 	}
-	batchBytes := evictBatchBlocks * size
-	if result.Evicted != evictBatchBlocks || result.EvictedBytes != batchBytes {
+	batchBytes := evictBatchStartBlocks * size
+	if result.Evicted != evictBatchStartBlocks || result.EvictedBytes != batchBytes {
 		t.Fatalf("evict = %+v, want one batch", result)
 	}
 	if len(asked) != 2 || asked[0] != 0 || asked[1] != batchBytes {
@@ -88,7 +90,7 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rest := total - evictBatchBlocks; result.Evicted+result.Requeued != rest || len(seen) != rest {
+	if rest := total - evictBatchStartBlocks; result.Evicted+result.Requeued != rest || len(seen) != rest {
 		t.Fatalf("second pass = %+v over %d entries, want %d", result, len(seen), rest)
 	}
 	for key, n := range seen {
@@ -137,6 +139,92 @@ func TestEvictAdmitPacesBatches(t *testing.T) {
 	result, err = s.Evict(ctx, remote, 1<<30, nil, nil)
 	if err != nil || result.Evicted != len(refs) {
 		t.Fatalf("pass after the refills = %+v, %v, want %d evicted", result, err, len(refs))
+	}
+}
+
+// countingValues counts the batch writes to the local values.
+type countingValues struct {
+	block.StoreOps
+	writes int
+}
+
+// PutBlockBatch counts the write and stores the batch.
+func (c *countingValues) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	c.writes++
+	return c.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+// countingMarkers counts the write transactions on the marker store.
+type countingMarkers struct {
+	kvtx.Store
+	writes int
+}
+
+// NewTransaction counts a write transaction and opens it.
+func (c *countingMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write {
+		c.writes++
+	}
+	return c.Store.NewTransaction(ctx, write)
+}
+
+// TestEvictBatchesByBytes checks that once the drop writes run fast, one
+// eviction batch carries 8,192 blocks of 3 KiB, 24 MiB, in one drop write and
+// one queue commit, where a batch of 1,024 blocks took eight of each; and that
+// the batch limit follows the drop write's time, halving when a write runs
+// long and staying within its bounds.
+func TestEvictBatchesByBytes(t *testing.T) {
+	// Open a placed store and write 8,192 distinct blocks of 3 KiB.
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	const total, size = evictBatchMaxBlocks, 3 << 10
+	for i := range total {
+		data := make([]byte, size)
+		copy(data, fmt.Appendf(nil, "block-%05d", i))
+		if _, _, err := s.PutBlock(ctx, data, leafOpts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	drain(t, s, newInmemBlockStore())
+
+	// Evict them all with the limit fast writes reach, counting the writes.
+	values := &countingValues{StoreOps: s.values}
+	markers := &countingMarkers{Store: s.markers}
+	s.values, s.markers = values, markers
+	s.evictLimit = evictBatchMaxBlocks
+	result, err := s.Evict(ctx, nil, 1<<40, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Evicted != total || result.EvictedBytes != total*size {
+		t.Fatalf("evict = %+v, want %d blocks of %d bytes", result, total, size)
+	}
+	if values.writes != 1 {
+		t.Fatalf("%d drop writes, want 1", values.writes)
+	}
+	// One write advances the epoch, the other commits the queue.
+	if markers.writes != 2 {
+		t.Fatalf("%d marker store writes, want the epoch and 1 queue commit", markers.writes)
+	}
+
+	// The limit aims the next write at evictWriteTarget, moving at most a
+	// factor of two a batch, within its bounds.
+	for _, c := range []struct {
+		limit, dropped int
+		elapsed        time.Duration
+		want           int
+	}{
+		{1024, 1024, 5 * time.Second, 512},
+		{1024, 1024, 250 * time.Millisecond, 2048},
+		{8192, 8192, 2 * time.Second, 4096},
+		{1024, 1024, 700 * time.Millisecond, 731},
+		{128, 128, 10 * time.Second, evictBatchMinBlocks},
+		{8192, 4096, 10 * time.Millisecond, evictBatchMaxBlocks},
+		{1024, 0, time.Minute, 1024},
+	} {
+		if got := nextEvictLimit(c.limit, c.dropped, c.elapsed); got != c.want {
+			t.Fatalf("nextEvictLimit(%d, %d, %v) = %d, want %d", c.limit, c.dropped, c.elapsed, got, c.want)
+		}
 	}
 }
 
