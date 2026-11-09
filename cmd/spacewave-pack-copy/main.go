@@ -1,3 +1,5 @@
+//go:build !js && !wasip1
+
 // Command spacewave-pack-copy copies what a set of roots reaches from one pack
 // store to a clean one, within a connection cap and a byte budget.
 //

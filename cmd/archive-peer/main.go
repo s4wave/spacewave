@@ -1,3 +1,5 @@
+//go:build !js && !wasip1
+
 // Command archive-peer serves the blocks of a stopped s4db or bolt file to one
 // named peer over the block exchange, so that peer's lookups that miss its own
 // stores find them. It opens the file read-only, refuses a file another
