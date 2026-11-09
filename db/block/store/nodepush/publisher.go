@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -70,8 +71,9 @@ type Publisher struct {
 	// quietUntil is the Unix time in nanoseconds before which commits don't
 	// wait for a node that timed out.
 	quietUntil atomic.Int64
-	// running joins the pushes of accepted publications.
-	running sync.WaitGroup
+	// running runs the pushes of accepted publications, each on its own
+	// goroutine, and Close waits for it to go idle.
+	running *conc.ConcurrentQueue
 
 	// mtx guards last.
 	mtx sync.Mutex
@@ -82,7 +84,14 @@ type Publisher struct {
 // NewPublisher wraps inner, waiting at least wait for the node on each
 // publication while on is set. A nil on leaves the push off. result may be nil.
 func NewPublisher(inner block.AtomicPublisher, sender Sender, wait time.Duration, on *atomic.Bool, result Result) *Publisher {
-	return &Publisher{AtomicPublisher: inner, sender: sender, wait: wait, on: on, result: result}
+	return &Publisher{
+		AtomicPublisher: inner,
+		sender:          sender,
+		wait:            wait,
+		on:              on,
+		result:          result,
+		running:         conc.NewConcurrentQueue(0),
+	}
 }
 
 // SubmitAtomic admits the publication to the local store and pushes its blocks
@@ -129,10 +138,8 @@ func (p *Publisher) finishOuter(local *block.PublicationReceipt, entries []*bloc
 	p.setPrevious(outer)
 
 	// Run the rest beside the commit.
-	p.running.Add(1)
-	go func() {
+	p.running.Enqueue(func() {
 		// Push what there is to push.
-		defer p.running.Done()
 		if entries != nil {
 			p.push(entries, local)
 		}
@@ -143,7 +150,7 @@ func (p *Publisher) finishOuter(local *block.PublicationReceipt, entries []*bloc
 			<-previous.Done()
 		}
 		outer.ResolveExisted(local.Err(), local.Existed(), local.Counting())
-	}()
+	})
 	return outer
 }
 
@@ -217,7 +224,7 @@ func (p *Publisher) PublishAtomic(ctx context.Context, publication *block.Atomic
 // Close joins the accepted pushes. The caller closes the inner publisher.
 func (p *Publisher) Close() {
 	p.closing.Store(true)
-	p.running.Wait()
+	_ = p.running.WaitIdle(context.Background(), nil)
 }
 
 // push sends entries and returns once the send has ended and local is done.

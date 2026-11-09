@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -247,26 +248,24 @@ func (c *Client) serve(ctx context.Context, conn net.Conn) error {
 	c.mtx.Lock()
 	c.out = out
 	c.mtx.Unlock()
-	var running sync.WaitGroup
+	running := conc.NewConcurrentQueue(0)
 	defer func() {
 		cancel()
 		_ = conn.Close()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 		c.disconnect()
 	}()
 
-	// Write frames, and apply reports off the read loop.
-	running.Add(2)
-	go func() {
-		defer running.Done()
+	// Write frames, and apply reports off the read loop. The unbounded
+	// running queue starts each at once and reports idle when both returned.
+	running.Enqueue(func() {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
-	}()
+	})
 	reports := make(chan *PackReport, 2)
-	go func() {
-		defer running.Done()
+	running.Enqueue(func() {
 		c.applyReports(ctx, reports, out)
-	}()
+	})
 
 	// Read answers and reports until the connection ends.
 	r := bufio.NewReader(conn)
