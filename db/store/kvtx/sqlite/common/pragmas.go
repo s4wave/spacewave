@@ -31,9 +31,10 @@ type Pragmas struct {
 	WithoutRowID bool
 	// WALCheckpointBytes bounds the write-ahead log: journal_size_limit
 	// truncates the log to it whenever SQLite restarts it, and once the
-	// store's background checkpoint has copied all of a log past it, a
-	// truncating checkpoint resets it. Under constant reads and heavy writes
-	// SQLite may never restart the log, which can then grow without bound.
+	// store's background checkpoint has copied all of a log past it, the
+	// next commit restarts it from its start. Under constant reads and heavy
+	// writes SQLite may never restart the log, which can then grow without
+	// bound.
 	// 0 uses DefaultWALCheckpointBytes.
 	WALCheckpointBytes int64
 	// ReadOnly opens an existing table for reads beside another process that
