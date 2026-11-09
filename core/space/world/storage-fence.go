@@ -152,6 +152,13 @@ func (a *Adapter) holdFence(ctx context.Context, pass string, live []*block.Bloc
 // root. It skips only the subtrees the stage holds, as block.StageCopy
 // describes, unless recheck reads every block again. The stage ends after the
 // root moved, so no copied block is unheld in between.
+//
+// The root moves on the kept pages' store, not through the kept pages, so the
+// copy leaves every kept page in memory. A copy's root releases what it held
+// at its next copy or pass, whether or not the adapter still reads it, so a
+// kept page the move took out of memory would be held by nothing once the copy
+// moved on. A live World's pages leave memory only under the replay base or a
+// history, whose trim keeps every live World.
 func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.BlockRef, opts block.GraphCopyOptions, recheck bool) error {
 	// Copy under a stage until the root holds them.
 	c, err := block.OpenStageCopy(ctx, a.so.GetBlockStore(), recheck)
@@ -168,12 +175,17 @@ func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.B
 		return err
 	}
 
-	// Hold them under one block.
+	// Hold them under one block, which the copy stored all of.
 	entry, err := refsEntry(&HeldRoots{Roots: roots}, roots)
 	if err != nil {
 		return err
 	}
-	return a.moveRoots(ctx, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: name, Ref: entry.Ref})
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	return a.moveRootsOn(ctx, a.pages.StoreOps, []*block.PutBatchEntry{entry}, block.NamedRoot{Name: name, Ref: entry.Ref})
 }
 
 // releaseFences releases every fence root this device holds.

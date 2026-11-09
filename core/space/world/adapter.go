@@ -40,9 +40,13 @@ import (
 // The adapter keeps the pages of every World it computes in a PendingStore and
 // stores a World only where a named root moves onto it: the checkpoint, the
 // replay base and the replay cursor. Pages written and replaced between those
-// Worlds never reach the Volume. An operation's payloads, which no World need
-// reach, are held under the replay payloads root before the operation is
-// queued, so the operation log never names a payload a restart cannot read.
+// Worlds never reach the Volume. A backfill or fence copy stores the Worlds
+// it holds and leaves their pages kept. An operation's payloads, which no
+// World need reach, are held under the replay payloads root before the
+// operation is queued, so the operation log never names a payload a restart
+// cannot read. Replay holds another device's payloads the same way as it
+// applies the operation, so a successor that owns the Space after a handover
+// holds every payload above the checkpoint once its peer is gone.
 //
 // Invariants:
 //   - The adopted checkpoint's World is held, by replay-base or checkpoint, at
@@ -787,6 +791,15 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	r.positions = append(r.positions, pos)
 	delete(a.missing, string(op.Hash))
 
+	// Hold the payloads of another device's operation, as its writer did
+	// before queueing it, so the device that later owns the Space holds every
+	// payload above the checkpoint without the peer that wrote it.
+	if len(pos.payloads) != 0 {
+		if err := a.addPayloads(ctx, pos.payloads); err != nil {
+			return "", err
+		}
+	}
+
 	// Decide or place the candidate, and install the head when it lost
 	// nothing.
 	if adm != nil {
@@ -1404,8 +1417,16 @@ func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func
 	}, nil
 }
 
-// moveRootsLocked is moveRoots for a caller holding rootMtx.
+// moveRootsLocked is moveRoots for a caller holding rootMtx. It moves the
+// roots through the kept pages, which store every kept page a moved root
+// reaches and drop it from memory.
 func (a *Adapter) moveRootsLocked(ctx context.Context, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
+	return a.moveRootsOn(ctx, a.pages, entries, roots...)
+}
+
+// moveRootsOn moves the roots that change on store, from what they hold. The
+// caller holds rootMtx.
+func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
 	// A transient replay holds nothing.
 	if a.opts.transient {
 		return nil
@@ -1424,7 +1445,7 @@ func (a *Adapter) moveRootsLocked(ctx context.Context, entries []*block.PutBatch
 	if len(moves) == 0 && len(entries) == 0 {
 		return nil
 	}
-	if err := a.pages.SetRoots(ctx, entries, moves); err != nil {
+	if err := store.SetRoots(ctx, entries, moves); err != nil {
 		return err
 	}
 
@@ -1482,10 +1503,11 @@ func (a *Adapter) readRetained(ctx context.Context) error {
 	return nil
 }
 
-// addPayloads holds extra beside the payloads already held, before the
-// operation that names them is queued. A local writer calls it, so the swap
-// stores the writer's own kept payload pages in its one transaction, and the
-// lock waits only for another swap.
+// addPayloads holds extra beside the payloads already held. A local writer
+// calls it before the operation that names them is queued, so the swap stores
+// the writer's own kept payload pages in its one transaction, and the lock
+// waits only for another swap. Apply calls it for each operation it applies,
+// which holds nothing new for one this device already holds.
 func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) error {
 	release, err := a.lockRoots(ctx)
 	if err != nil {

@@ -78,8 +78,11 @@ func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
 	restartBoth(ctx, t, b, bSession, a, aSession, "A handing over")
 	waitOwner(ctx, t, b, id, bPeer, aPeer)
 
-	// Stop the passes, cut A off, and check that B's copy of the World reads
-	// whole from B's volume alone.
+	// Let the passes outlast the grace once the move settles, so they free
+	// any block B stopped holding when it stopped proving its copy. Then stop
+	// them, cut A off, and check that B's copy of the World reads whole from
+	// B's volume alone.
+	time.Sleep(settleGraces * collectorGrace)
 	stopGC()
 	cutOff(t, a)
 	checkWorld(ctx, t, tb.Bus, b, id, fix)
@@ -100,6 +103,7 @@ func TestReplicaHandsLargeWorldOverAndBack(t *testing.T) {
 	waitOwnership(ctx, t, b, id, func(own *sobject.SOOwnership) bool { return own.Departing(bPeer) })
 	restartBoth(ctx, t, a, aSession, b, bSession, "B handing over")
 	waitOwner(ctx, t, a, id, aPeer, bPeer)
+	time.Sleep(settleGraces * collectorGrace)
 	stopGC()
 
 	// A holds the whole World, B's writes included, with B cut off.

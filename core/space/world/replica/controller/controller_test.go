@@ -73,6 +73,11 @@ func TestReplicaMovesOwnershipOverAndBack(t *testing.T) {
 // collectorGrace is the grace of the testbed volumes' block passes.
 const collectorGrace = time.Second
 
+// settleGraces is how many graces the block passes run after a move settles,
+// so a block the successor released at the end of the move is freed before
+// the departed owner is cut off.
+const settleGraces = 3
+
 // startTestbed starts a testbed running the local provider, whose Session
 // transports run the replica controller, and the Space body controller.
 func startTestbed(ctx context.Context, t *testing.T) *testbed.Testbed {
