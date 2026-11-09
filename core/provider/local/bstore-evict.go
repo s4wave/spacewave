@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/net/hash"
@@ -410,15 +409,6 @@ func (r *readRecorder) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 	return stored, err
 }
 
-// setPolicy applies the cache settings of the placement. Reads are recorded
-// from before the store sees a resident budget, so no read the budget pass
-// should keep goes unrecorded.
-func (p *placementState) setPolicy(cache *account_settings.BlockStoreCache) {
-	policy := uploadPolicy(cache)
-	p.reads.enabled.Store(policy.ResidentHigh > 0)
-	p.wb.SetPolicy(policy)
-}
-
 // evictShortWait is how long eviction waits after a pass that left the store
 // over its budget: the blocks it kept were read within readKeepAge, so a pass
 // at the next upload would only queue them again.
@@ -428,8 +418,10 @@ const evictShortWait = 10 * time.Minute
 // When the resident bytes cross the high mark, a pass drops the uploaded
 // blocks not read within readKeepAge, oldest queued first, down to the low
 // mark. Uploads and writes change the status, which starts the next check,
-// or evictShortWait after a pass that fell short of the mark. Between passes
-// it saves the recorded reads every readSaveInterval.
+// or evictShortWait after a pass that fell short of the mark; a policy
+// change, such as SetResidentMarks lowering the high mark, starts it at once
+// either way. Between passes it saves the recorded reads every
+// readSaveInterval.
 func (p *placementState) runEviction(ctx context.Context) error {
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
@@ -442,7 +434,12 @@ func (p *placementState) runEviction(ctx context.Context) error {
 		// Before the upload opens the backend no pass can run, so wait for
 		// the next status change rather than the short wait: a restart
 		// checks before the backend opens, and waiting evictShortWait then
-		// left the disk filling for ten minutes after every start.
+		// left the disk filling for ten minutes after every start. A policy
+		// wake sent before this status read is answered by it.
+		select {
+		case <-p.policyWake:
+		default:
+		}
 		status, changed := p.wb.GetStatus()
 		var retry <-chan time.Time
 		if want := status.EvictBytes(); want > 0 && p.remote.Load() != nil {
@@ -464,6 +461,8 @@ func (p *placementState) runEviction(ctx context.Context) error {
 			case <-changed:
 				waiting = false
 			case <-retry:
+				waiting = false
+			case <-p.policyWake:
 				waiting = false
 			case <-save.C:
 				if err := p.reads.save(ctx); err != nil {
