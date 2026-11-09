@@ -76,7 +76,7 @@ func TestCheckpointSavesSpaceCopy(t *testing.T) {
 			}
 			db.w.startCheckpoint()
 			db.w.unlock(nil)
-			db.w.builds.Wait()
+			_ = db.w.builds.WaitIdle(context.Background(), nil)
 
 			// The hook ran and its commits succeeded.
 			if !saved {
@@ -179,7 +179,7 @@ func TestCheckpointReplacedDuringEncode(t *testing.T) {
 	}
 	db.w.startCheckpoint()
 	db.w.unlock(nil)
-	db.w.builds.Wait()
+	_ = db.w.builds.WaitIdle(context.Background(), nil)
 
 	// The hook ran and both checkpoints succeeded.
 	if !saved {

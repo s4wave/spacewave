@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -68,8 +69,9 @@ type writer struct {
 	// building is set while a background checkpoint runs. It and builds
 	// are safe without the writer lock.
 	building atomic.Bool
-	// builds counts running background checkpoints, so Close can wait.
-	builds sync.WaitGroup
+	// builds runs the background checkpoints, each on its own goroutine, so
+	// Close can wait for it to go idle.
+	builds *conc.ConcurrentQueue
 	// stats counts the checkpoint work and the writers' waits for it.
 	stats writerStats
 	// beforeBuild, when set by a test, runs as a background checkpoint
@@ -87,8 +89,9 @@ type writer struct {
 	// punching is set while a single-process handle punches released runs
 	// in the background. It and punches are safe without the writer lock.
 	punching atomic.Bool
-	// punches counts running background punches, so Close can wait.
-	punches sync.WaitGroup
+	// punches runs the background punches, each on its own goroutine, so
+	// Close can wait for it to go idle.
+	punches *conc.ConcurrentQueue
 	// changed lists the commit records published since the state a
 	// background checkpoint builds.
 	changed []*record
@@ -602,8 +605,7 @@ func (w *writer) startPunch() {
 	}
 
 	// Punch them without the writer lock.
-	w.punches.Add(1)
-	go w.runPunch(sp, runs)
+	w.punches.Enqueue(func() { w.runPunch(sp, runs) })
 }
 
 // runPunch punches runs taken from sp, then returns them to its free runs
@@ -611,7 +613,6 @@ func (w *writer) startPunch() {
 // and Close stops the punch, queuing the rest for its own.
 func (w *writer) runPunch(sp *space, runs []run) {
 	// Punch each run while the space still holds it.
-	defer w.punches.Done()
 	var err error
 	done := 0
 	for _, r := range runs {
@@ -758,7 +759,7 @@ func (w *writer) startCheckpoint() {
 	// the next build the deltas need.
 	t := w.newTree(st)
 	t.kind = kind
-	w.builds.Go(func() {
+	w.builds.Enqueue(func() {
 		w.runCheckpoint(t, stripe)
 		w.endBuild()
 		w.chain()

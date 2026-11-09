@@ -411,7 +411,7 @@ func TestCommitPrefetch(t *testing.T) {
 		}
 		db.w.startCheckpoint()
 		db.w.unlock(nil)
-		db.w.builds.Wait()
+		_ = db.w.builds.WaitIdle(context.Background(), nil)
 	}
 
 	// Reopen it so its index is on disk, with no checkpoint to read pages

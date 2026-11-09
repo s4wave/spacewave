@@ -729,7 +729,7 @@ func TestCheckpointNothingToFold(t *testing.T) {
 	}
 	db.w.startCheckpoint()
 	db.w.unlock(nil)
-	db.w.builds.Wait()
+	_ = db.w.builds.WaitIdle(context.Background(), nil)
 	if err := db.w.lock(ctx); err != nil {
 		t.Fatal(err)
 	}

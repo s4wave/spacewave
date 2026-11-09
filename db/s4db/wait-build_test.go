@@ -90,7 +90,7 @@ func TestUserCommitSkipsBuildWait(t *testing.T) {
 
 	// The stats count the wait and, once it ends, the checkpoint it waited
 	// for. The user commit did not wait.
-	db.w.builds.Wait()
+	_ = db.w.builds.WaitIdle(context.Background(), nil)
 	stats := db.Stats()
 	if stats.BuildWaits != 1 || stats.BuildWaitTime != db.BuildWait() {
 		t.Fatalf("build waits %d for %v, want 1 for %v", stats.BuildWaits, stats.BuildWaitTime, db.BuildWait())
