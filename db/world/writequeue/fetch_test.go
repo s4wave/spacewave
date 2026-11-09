@@ -260,3 +260,53 @@ func TestQueueStageTotals(t *testing.T) {
 		t.Fatalf("stages sum to %.3fs, more than the write's %.3fs", sum, took)
 	}
 }
+
+// partsTx reports a commit part and pages from its admission, as an engine or
+// an auxiliary store does.
+type partsTx struct{ *basicTx }
+
+// Admit reports the parts, then admits the World write.
+func (t *partsTx) Admit(ctx context.Context) (world.Admission, error) {
+	RecordCommitTime(ctx, "test-part", 5*time.Millisecond)
+	RecordCommitPages(ctx, 4, 400)
+	return t.basicTx.Admit(ctx)
+}
+
+// TestQueueCommitParts checks that the parts and pages a transaction reports
+// from its admission are added to the operation's totals.
+func TestQueueCommitParts(t *testing.T) {
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx, testbed.WithChangelog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	type opKey struct{}
+	q := New(tb.Engine, Options{
+		Name: func(ctx context.Context) string {
+			name, _ := ctx.Value(opKey{}).(string)
+			return name
+		},
+		Wrap: func(_ context.Context, tx world.Tx) Transaction { return &partsTx{&basicTx{Tx: tx}} },
+	})
+	const op = "test/commit-parts"
+	before := GetStageTotals()[op]
+	_, err = q.Write(context.WithValue(ctx, opKey{}, op), 0, nil, func(ctx context.Context, tx world.Tx) error {
+		object, err := tx.CreateObject(ctx, "parted", nil)
+		world.ReleaseObjectState(object)
+		return err
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := GetStageTotals()[op]
+	if after.Writes != before.Writes+1 {
+		t.Fatalf("counted %d writes, want 1", after.Writes-before.Writes)
+	}
+	if part := after.Parts["test-part"] - before.Parts["test-part"]; part < 0.005 {
+		t.Fatalf("test part %.4fs, want the reported 5ms", part)
+	}
+	if pages, bytes := after.Pages-before.Pages, after.PageBytes-before.PageBytes; pages != 4 || bytes != 400 {
+		t.Fatalf("pages %v bytes %v, want 4 and 400", pages, bytes)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	fmt "fmt"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -14,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	"github.com/s4wave/spacewave/db/world/writequeue"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -61,6 +63,10 @@ type soEngineWriteTx struct {
 	releasePreparation func()
 	// clock times the stages of the write.
 	clock *commitClock
+	// publishedPages and publishedBytes are the World pages the write's
+	// publication stored and their length.
+	publishedPages int
+	publishedBytes uint64
 	// seqno is the World seqno after the write, set at admission.
 	seqno uint64
 	// durable is the durable head's install of the World after the write,
@@ -155,8 +161,10 @@ func (t *soEngineWriteTx) CommitAdmit(ctx context.Context) (world.Admission, err
 // admit adds the operation and installs the World after it, then releases
 // the writer lock. It records the World seqno and its durable position.
 func (t *soEngineWriteTx) admit(ctx context.Context) error {
-	// End the callback stage.
+	// End the callback stage, and report the later stages to the write
+	// queue's batch when one admits this write.
 	t.clock.end(stageCallback)
+	t.clock.reportTo(writequeue.CommitTimeRecorder(ctx))
 	if err := t.checkPublicationBase(); err != nil {
 		return err
 	}
@@ -303,6 +311,7 @@ func (t *soEngineWriteTx) admit(ctx context.Context) error {
 		}
 	}
 	t.clock.end(stageAdvance)
+	writequeue.RecordCommitPages(ctx, t.publishedPages, t.publishedBytes)
 
 	// Record the World after the write and release the writer lock.
 	if err == nil {
@@ -491,6 +500,7 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 	}
 	t.clock.end(stagePublicationAdmission)
 	countPublication(payload, slices.Concat(pages, named), save)
+	t.publishedPages, t.publishedBytes = len(pages)+len(named), entriesLen(pages)+entriesLen(named)
 	t.eng.replay.addWorldPut(receipt, pub.Entries, pages)
 
 	// The publication holds the candidate under the accepted World root and
@@ -600,7 +610,9 @@ func (a *soAdmission) WaitDurable(ctx context.Context) (uint64, error) {
 		}
 		waitCtx, cancel := t.eng.detach(ctx)
 		defer cancel()
+		headWait := time.Now()
 		dropped, kept, err := t.eng.waitDurable(waitCtx, t.durable)
+		writequeue.RecordCommitTime(ctx, "durable-head", time.Since(headWait))
 		switch {
 		case rerr != nil && dropped:
 			a.waitedAt, a.waitErr = kept, fmt.Errorf("world publication receipt: %w", rerr)

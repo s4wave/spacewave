@@ -19,6 +19,21 @@ var (
 		"Committed World writes the stage seconds cover, by operation, since the process started.",
 		[]string{"op"}, nil,
 	)
+	worldWriteCommitPartSecondsDesc = prometheus.NewDesc(
+		"spacewave_world_write_commit_part_seconds_total",
+		"Seconds committed World writes spent in each reported part of their commit's admit and durable stages, by operation, since the process started: the engine's stages (world-state-commit, block-commit, publication-admission, advance, receipt-wait), durable-head, and the parts a transaction reports, such as sql-commit.",
+		[]string{"op", "part"}, nil,
+	)
+	worldWriteCommitPagesDesc = prometheus.NewDesc(
+		"spacewave_world_write_commit_pages_total",
+		"World pages the commits of committed World writes stored, each write counting its share of its batch, by operation, since the process started.",
+		[]string{"op"}, nil,
+	)
+	worldWriteCommitPageBytesDesc = prometheus.NewDesc(
+		"spacewave_world_write_commit_page_bytes_total",
+		"Length of the World pages the commits of committed World writes stored, each write counting its share of its batch, by operation, since the process started.",
+		[]string{"op"}, nil,
+	)
 )
 
 // writeStagesCollector reports writequeue.GetStageTotals.
@@ -28,6 +43,9 @@ type writeStagesCollector struct{}
 func (writeStagesCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- worldWriteStageSecondsDesc
 	ch <- worldWriteStageWritesDesc
+	ch <- worldWriteCommitPartSecondsDesc
+	ch <- worldWriteCommitPagesDesc
+	ch <- worldWriteCommitPageBytesDesc
 }
 
 // Collect sends the stage totals as of now.
@@ -37,6 +55,11 @@ func (writeStagesCollector) Collect(ch chan<- prometheus.Metric) {
 		for i, secs := range t.Seconds {
 			ch <- prometheus.MustNewConstMetric(worldWriteStageSecondsDesc, prometheus.CounterValue, secs, op, writequeue.Stage(i).String())
 		}
+		for part, secs := range t.Parts {
+			ch <- prometheus.MustNewConstMetric(worldWriteCommitPartSecondsDesc, prometheus.CounterValue, secs, op, part)
+		}
+		ch <- prometheus.MustNewConstMetric(worldWriteCommitPagesDesc, prometheus.CounterValue, t.Pages, op)
+		ch <- prometheus.MustNewConstMetric(worldWriteCommitPageBytesDesc, prometheus.CounterValue, t.PageBytes, op)
 	}
 }
 

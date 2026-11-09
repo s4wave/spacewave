@@ -105,6 +105,9 @@ type committingBatch struct {
 	dropped bool
 	// admitStarted and admitted bound the engine's admission of the batch.
 	admitStarted, admitted time.Time
+	// parts collects the parts of the commit the engine and the transaction
+	// report.
+	parts commitParts
 }
 
 // New constructs a queue that preserves admitted replay obligations across

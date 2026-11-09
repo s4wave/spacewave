@@ -67,6 +67,16 @@ type commitClock struct {
 	stages [commitStageCount]time.Duration
 	// observer receives the stage times when the write commits, or is nil.
 	observer CommitObserver
+	// report receives each stage after the callback as it closes, or is nil.
+	report func(part string, d time.Duration)
+}
+
+// reportTo sends each stage after the callback to report as it closes. A nil
+// report sends nothing.
+func (c *commitClock) reportTo(report func(part string, d time.Duration)) {
+	if c != nil && report != nil {
+		c.report = report
+	}
 }
 
 // newCommitClock starts the clock at the writer lock wait. The write reports
@@ -89,6 +99,9 @@ func (c *commitClock) end(stage commitStage) {
 	c.stages[stage] = now.Sub(c.mark)
 	c.mark = now
 	c.open = stage + 1
+	if c.report != nil && stage > stageCallback {
+		c.report(commitStageNames[stage], c.stages[stage])
+	}
 }
 
 // finish reports the stage times of the write to its observer as Commit ends and

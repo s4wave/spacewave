@@ -37,8 +37,9 @@ func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite
 	// again.
 	var adm world.Admission
 	c.admitStarted = time.Now()
+	admitCtx := withCommitParts(ctx, &c.parts)
 	err := q.watch(len(batch), func() (err error) {
-		adm, err = tx.Admit(ctx)
+		adm, err = tx.Admit(admitCtx)
 		return err
 	})
 	c.admitted = time.Now()
@@ -86,7 +87,7 @@ func (q *Queue) commit(ctx context.Context, tx Transaction, batch []*queuedWrite
 // when the engine reported no reinstall.
 func (q *Queue) settle(c *committingBatch, adm world.Admission, durable func(uint64)) {
 	// Wait, then stop counting the batch before its writers hear back.
-	seqno, err := adm.WaitDurable(q.ctx)
+	seqno, err := adm.WaitDurable(withCommitParts(q.ctx, &c.parts))
 	adm.Release()
 	q.mtx.Lock()
 	q.forgetLocked(c)
