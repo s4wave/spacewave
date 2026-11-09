@@ -53,6 +53,11 @@ func (t *Tx) Salvage(
 	entry func(BuildEntry) bool,
 	hole func(SalvageHole) bool,
 ) error {
+	// Apply the held cursor writes, then read the tree they leave.
+	if err := t.Flush(ctx); err != nil {
+		return err
+	}
+
 	// An empty tree holds nothing.
 	if t.root.GetSize() == 0 {
 		return nil
@@ -249,6 +254,9 @@ func (t *Tx) ReplaceAllEntries(ctx context.Context, entries iter.Seq2[BuildEntry
 // entries stay readable here without the blocks of from. Inline values are
 // kept as they are.
 func (t *Tx) CopyEntries(ctx context.Context, from *Tx, entries []BuildEntry) ([]BuildEntry, error) {
+	if err := t.Flush(ctx); err != nil {
+		return nil, err
+	}
 	out := make([]BuildEntry, 0, len(entries))
 	for _, entry := range entries {
 		// Keep an inline value, which the entry holds itself.
