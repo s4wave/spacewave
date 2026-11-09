@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,9 +33,10 @@ type EvictAdmit func(ctx context.Context, lastBytes int64) error
 
 // Bounds of one eviction batch. A batch reads at most the store's current
 // block limit of entries, and stops before an entry that would take it past
-// evictBatchBytes. The limit starts at evictBatchStartBlocks on each open and
-// follows the time the batch's drop write takes, as nextEvictLimit describes,
-// between evictBatchMinBlocks and evictBatchMaxBlocks.
+// the batch byte bound, evictBatchBytes by default. The limit starts at
+// evictBatchStartBlocks on each open and follows the time the batch's drop
+// write takes, as nextEvictLimit describes, between the batch's least and
+// most blocks, evictBatchMinBlocks and evictBatchMaxBlocks by default.
 //
 // The drop write holds the store's writer for a time that grows with the
 // blocks it drops, not their bytes: each tombstone is a row delete that may
@@ -49,19 +51,78 @@ const (
 	evictBatchBytes       = 32 << 20
 )
 
-// evictWriteTarget is the time a batch's drop write aims to take, half the
-// longest a background write may hold the writer, so a batch whose blocks
-// cost twice the last batch's still releases it within a second.
+// evictWriteTarget is the time a batch's drop write aims to take by default,
+// half the longest a background write may hold the writer, so a batch whose
+// blocks cost twice the last batch's still releases it within a second.
 const evictWriteTarget = 500 * time.Millisecond
 
+// EvictBatch bounds the eviction batches of every store in the process, as
+// SetEvictBatch sets them. A zero field keeps its default.
+type EvictBatch struct {
+	// MinBlocks is the least block limit a batch shrinks to, 128 by default.
+	MinBlocks int
+	// MaxBlocks is the most blocks a batch takes, 8192 by default.
+	MaxBlocks int
+	// MaxBytes is the most bytes a batch takes past its first entry, 32 MiB
+	// by default.
+	MaxBytes int64
+	// WriteTarget is the time a batch's drop write aims to take, 500 ms by
+	// default. The next batch's block limit scales to it.
+	WriteTarget time.Duration
+}
+
+// evictBatchConfig holds the bounds SetEvictBatch set, nil for the defaults.
+var evictBatchConfig atomic.Pointer[EvictBatch]
+
+// SetEvictBatch sets the bounds of the eviction batches of every store in the
+// process. A pass running reads them at its next batch, which clamps the
+// store's block limit into the new bounds, so lowering them applies within a
+// batch. A zero field keeps its default, a negative one too, and a least
+// block limit past the most is lowered to it.
+func SetEvictBatch(b EvictBatch) {
+	b = b.normalize()
+	evictBatchConfig.Store(&b)
+}
+
+// loadEvictBatch returns the bounds in force.
+func loadEvictBatch() EvictBatch {
+	if b := evictBatchConfig.Load(); b != nil {
+		return *b
+	}
+	return EvictBatch{}.normalize()
+}
+
+// normalize fills the defaults of the zero or negative fields and keeps
+// MinBlocks at most MaxBlocks.
+func (b EvictBatch) normalize() EvictBatch {
+	if b.MinBlocks <= 0 {
+		b.MinBlocks = evictBatchMinBlocks
+	}
+	if b.MaxBlocks <= 0 {
+		b.MaxBlocks = evictBatchMaxBlocks
+	}
+	if b.MaxBytes <= 0 {
+		b.MaxBytes = evictBatchBytes
+	}
+	if b.WriteTarget <= 0 {
+		b.WriteTarget = evictWriteTarget
+	}
+	b.MinBlocks = min(b.MinBlocks, b.MaxBlocks)
+	return b
+}
+
+// clamp returns limit within the batch's block bounds.
+func (b EvictBatch) clamp(limit int) int {
+	return min(max(limit, b.MinBlocks), b.MaxBlocks)
+}
+
 // nextEvictLimit returns the block limit of the batch after one that dropped
-// dropped blocks under limit in elapsed: the count that would take
-// evictWriteTarget at the same cost a block, moving at most a factor of two
-// from limit and kept between evictBatchMinBlocks and evictBatchMaxBlocks. A
-// batch that dropped nothing measured nothing and keeps limit. elapsed
-// includes the write's wait for the writer turn, so a busy writer shrinks the
-// batches too.
-func nextEvictLimit(limit, dropped int, elapsed time.Duration) int {
+// dropped blocks under limit in elapsed: the count that would take b's write
+// target at the same cost a block, moving at most a factor of two from limit
+// and kept within b's block bounds. A batch that dropped nothing measured
+// nothing and keeps limit. elapsed includes the write's wait for the writer
+// turn, so a busy writer shrinks the batches too.
+func nextEvictLimit(b EvictBatch, limit, dropped int, elapsed time.Duration) int {
 	// Keep the limit when the batch measured nothing.
 	if dropped == 0 {
 		return limit
@@ -69,9 +130,9 @@ func nextEvictLimit(limit, dropped int, elapsed time.Duration) int {
 
 	// Scale the batch to the target at its cost a block, within the bounds.
 	elapsed = max(elapsed, time.Millisecond)
-	next := int(int64(dropped) * int64(evictWriteTarget) / int64(elapsed))
+	next := int(int64(dropped) * int64(b.WriteTarget) / int64(elapsed))
 	next = min(max(next, limit/2), limit*2)
-	return min(max(next, evictBatchMinBlocks), evictBatchMaxBlocks)
+	return b.clamp(next)
 }
 
 // EvictResult reports what an eviction pass did.
@@ -327,8 +388,9 @@ func (s *Store) evictBatch(
 	result *EvictResult,
 ) ([]byte, bool, error) {
 	// Read the batch with the markers of its blocks, up to the block limit the
-	// last drop write set.
-	limit := s.evictLimit
+	// last drop write set within the bounds in force.
+	bounds := loadEvictBatch()
+	limit := bounds.clamp(s.evictLimit)
 	var (
 		batch  []evictEntry
 		marked []bool
@@ -344,7 +406,7 @@ func (s *Store) evictBatch(
 		err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
 			// Stop at the new epoch or a full batch, where the next batch
 			// starts. A batch takes its first entry whatever its size.
-			full := len(batch) == limit || (len(batch) != 0 && batchBytes+entry.size > evictBatchBytes)
+			full := len(batch) == limit || (len(batch) != 0 && batchBytes+entry.size > bounds.MaxBytes)
 			if entry.epoch >= epoch || full || result.EvictedBytes+batchBytes >= maxBytes {
 				done, next = entry.epoch >= epoch, entry.key
 				return errScanDone
@@ -419,7 +481,7 @@ func (s *Store) evictBatch(
 		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
 			return nil, false, errors.Wrap(err, "evict blocks")
 		}
-		s.evictLimit = nextEvictLimit(limit, len(drop), time.Since(start))
+		s.evictLimit = nextEvictLimit(bounds, limit, len(drop), time.Since(start))
 		result.Evicted += len(drop)
 	}
 
