@@ -428,8 +428,9 @@ const evictShortWait = 10 * time.Minute
 // When the resident bytes cross the high mark, a pass drops the uploaded
 // blocks not read within readKeepAge, oldest queued first, down to the low
 // mark. Uploads and writes change the status, which starts the next check,
-// or evictShortWait after a pass that fell short of the mark. Between passes
-// it saves the recorded reads every readSaveInterval.
+// or evictShortWait after a pass that fell short of the mark; a pass a storage
+// move stopped starts again at once, waiting for the move. Between passes it
+// saves the recorded reads every readSaveInterval.
 func (p *placementState) runEviction(ctx context.Context) error {
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
@@ -449,6 +450,9 @@ func (p *placementState) runEviction(ctx context.Context) error {
 			result, err := p.evict(ctx, want)
 			if err != nil {
 				return err
+			}
+			if result.Stopped {
+				continue
 			}
 			if result.EvictedBytes < want {
 				changed, retry = nil, time.After(evictShortWait)
@@ -475,23 +479,28 @@ func (p *placementState) runEviction(ctx context.Context) error {
 }
 
 // evict drops up to maxBytes of uploaded local values that the backend holds,
-// oldest queued first, keeping the blocks read within readKeepAge. A storage
-// move holds passes off through the gate. Returns a zero result without a
-// storage backend.
+// oldest queued first, keeping the blocks read within readKeepAge. Returns a
+// zero result without a storage backend.
+//
+// A storage move holds eviction off through the gate. A pass waits out a move
+// before it starts, then takes the gate for each batch alone, so a move waits
+// at most one batch: a batch that finds the gate taken, or a backend other
+// than the one the pass started with, ends the pass as Stopped, and the next
+// pass waits for the gate and reads the open backend again.
 func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store_writeback.EvictResult, error) {
-	// Wait out a storage move.
+	// Wait out a storage move, and read the open backend.
 	var result block_store_writeback.EvictResult
 	release, err := p.evictGate.Lock(ctx)
 	if err != nil {
 		return result, err
 	}
-	defer release()
-
-	// Evict to the open backend, paced by the account's admit.
 	remote := p.remote.Load()
+	release()
 	if remote == nil {
 		return result, nil
 	}
+
+	// Pace the pass by the account's admit.
 	admit := func(ctx context.Context, lastBytes int64) error {
 		if p.evictAdmit == nil {
 			return nil
@@ -505,13 +514,28 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	if err != nil {
 		return result, err
 	}
+
+	// Run each batch under the gate against the backend the pass started
+	// with. The pass holds the store's eviction lock, which a move's
+	// placement change may wait for, so a batch never waits for the gate.
 	// The queue proves the backend holds a block unless a peer read can fill
 	// one without an upload marker; then each batch asks the backend.
-	var check block.StoreOps
-	if !p.peerUpload {
-		check = remote.store
+	step := func(ctx context.Context, batch func(block.StoreOps) error) error {
+		release, ok := p.evictGate.TryLock()
+		if !ok {
+			return nil
+		}
+		defer release()
+		if p.remote.Load() != remote {
+			return nil
+		}
+		var check block.StoreOps
+		if !p.peerUpload {
+			check = remote.store
+		}
+		return batch(check)
 	}
-	return p.wb.Evict(ctx, check, maxBytes, keep, admit)
+	return p.wb.EvictSteps(ctx, maxBytes, keep, admit, step)
 }
 
 // SetEvictAdmit paces the eviction passes of the account's placed block

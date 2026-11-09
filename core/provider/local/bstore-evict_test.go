@@ -1,8 +1,14 @@
 package provider_local
 
 import (
+	"context"
+	"fmt"
+	"math"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/aperturerobotics/util/csync"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
@@ -167,5 +173,98 @@ func TestEvictionKeepsCacheHits(t *testing.T) {
 	now = hitAt.Add(2 * readKeepAge)
 	if hits.has(cached.GetHash()) {
 		t.Fatal("hit set kept the hit past two generations")
+	}
+}
+
+// TestEvictGateHeldPerBatch checks that an eviction pass holds the gate for
+// each batch alone: a storage move takes it between batches, which ends the
+// pass, and a pass whose backend changed between batches ends before the
+// next one. The pass after them evicts the rest.
+func TestEvictGateHeldPerBatch(t *testing.T) {
+	// Upload more blocks than one batch evicts from a write-back store over a
+	// Volume.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	local, vol := newOwnedVolume(t)
+	markers, release, err := vol.AccessObjectStore(ctx, "test/markers", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+	wb, err := block_store_writeback.NewStore(ctx, local, vol, markers, "test/markers", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const total = 1100
+	for i := range total {
+		if _, _, err := wb.PutBlock(ctx, fmt.Appendf(nil, "gate-%05d", i), &block.PutOpts{RefsKnown: true}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	uploadCtx, uploadCancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		done <- wb.Upload(uploadCtx, block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false))
+	}()
+	for {
+		status, changed := wb.GetStatus()
+		if status.Pending == 0 {
+			break
+		}
+		select {
+		case <-changed:
+		case <-ctx.Done():
+			t.Fatalf("upload did not finish: %+v", status)
+		}
+	}
+	uploadCancel()
+	<-done
+
+	// Place the store on a backend; the queue proves the backend holds the
+	// blocks, as for a store whose peer reads fill with a marker.
+	var remote atomic.Pointer[openBackend]
+	remote.Store(&openBackend{})
+	var admitPtr atomic.Pointer[block_store_writeback.EvictAdmit]
+	p := &placementState{wb: wb, local: local, remote: &remote, evictGate: &csync.Mutex{}, evictAdmit: &admitPtr, peerUpload: true}
+	setAdmit := func(fn block_store_writeback.EvictAdmit) { admitPtr.Store(&fn) }
+
+	// A move takes the gate after the first batch: the pass ends there.
+	var moveRelease func()
+	setAdmit(func(ctx context.Context, lastBytes int64) error {
+		if lastBytes == 0 {
+			return nil
+		}
+		lockCtx, lockCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer lockCancel()
+		var err error
+		moveRelease, err = p.evictGate.Lock(lockCtx)
+		return err
+	})
+	result, err := p.evict(ctx, math.MaxInt64)
+	if err != nil {
+		t.Fatalf("evict with a move between batches: %v", err)
+	}
+	if !result.Stopped || result.Batches != 1 {
+		t.Fatalf("pass with a move = %+v, want one batch then Stopped", result)
+	}
+	evicted := result.Evicted
+	moveRelease()
+
+	// The move changes the backend before the next pass's first batch: the
+	// pass ends without one.
+	setAdmit(func(context.Context, int64) error {
+		remote.Store(&openBackend{})
+		return nil
+	})
+	result, err = p.evict(ctx, math.MaxInt64)
+	if err != nil || !result.Stopped || result.Batches != 0 {
+		t.Fatalf("pass with a new backend = %+v/%v, want Stopped before a batch", result, err)
+	}
+
+	// The next pass evicts the rest.
+	admitPtr.Store(nil)
+	result, err = p.evict(ctx, math.MaxInt64)
+	if err != nil || result.Stopped || evicted+result.Evicted != total {
+		t.Fatalf("last pass = %+v/%v, want the other %d evicted", result, err, total-evicted)
 	}
 }
