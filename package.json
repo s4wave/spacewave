@@ -244,7 +244,7 @@
     "bldr:vendor": "go mod vendor"
   },
   "devDependencies": {
-    "@aptre/common": "0.38.2",
+    "@aptre/common": "0.38.3",
     "@google/design.md": "^0.4.0",
     "@playwright/test": "^1.62.1",
     "@reylosql/mysql": "0.6.0",
