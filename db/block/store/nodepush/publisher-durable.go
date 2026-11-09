@@ -100,11 +100,9 @@ func (p *Publisher) submitDurable(ctx context.Context, publication *block.Atomic
 
 	// Push, then open the gate, and order the receipt behind the one before.
 	previous := p.previousOuter()
-	p.running.Add(1)
-	go func() {
-		defer p.running.Done()
+	p.running.Enqueue(func() {
 		p.pushDurable(pushes, external, keys, ready, receipt)
-	}()
+	})
 	if previous == nil {
 		p.setPrevious(receipt)
 		return receipt, true, nil

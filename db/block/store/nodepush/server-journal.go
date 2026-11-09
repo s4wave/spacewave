@@ -2,8 +2,8 @@ package block_store_nodepush
 
 import (
 	"context"
-	"sync"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 )
 
@@ -29,7 +29,7 @@ func (s *Server) SetJournal(journal *Journal) {
 // serveJournal handles the journal's messages and block reads for Serve. A
 // record takes one of slots, as a push does, so it waits for nothing but a
 // slot and its own flush.
-func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []byte, slots chan struct{}, running *sync.WaitGroup) error {
+func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []byte, slots chan struct{}, running *conc.ConcurrentQueue) error {
 	switch body := msg.GetBody().(type) {
 	case *Message_Record:
 		select {
@@ -37,12 +37,10 @@ func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []by
 		case <-ctx.Done():
 			return ctx.Err()
 		}
-		running.Add(1)
-		go func() {
-			defer running.Done()
+		running.Enqueue(func() {
 			defer func() { <-slots }()
 			send(ctx, out, s.appendRecord(body.Record))
-		}()
+		})
 	case *Message_JournalTail:
 		var answer *JournalRecords
 		if s.journal != nil {
@@ -55,10 +53,8 @@ func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []by
 	case *Message_JournalCut:
 		// Cut beside the read loop, which keeps reading pushes meanwhile.
 		cut := body.JournalCut
-		running.Add(1)
-		go func() {
+		running.Enqueue(func() {
 			// Take every slot, so no record is appending during the cut.
-			defer running.Done()
 			for range cap(slots) {
 				slots <- struct{}{}
 			}
@@ -78,7 +74,7 @@ func (s *Server) serveJournal(ctx context.Context, msg *Message, out chan<- []by
 				return
 			}
 			send(ctx, out, &Message{Body: &Message_Flushed{Flushed: &Flushed{Id: cut.GetId()}}})
-		}()
+		})
 	case *Message_JournalTrim:
 		if s.journal != nil {
 			// A failed compaction keeps the file as it was; the next trim

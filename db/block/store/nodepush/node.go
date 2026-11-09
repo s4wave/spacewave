@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
@@ -200,13 +201,14 @@ func (n *Node) Close() {
 // Run fills read copies, uploads the log's packs, prunes read copies when the
 // disk runs short and runs the backfill while it is on, until ctx ends.
 func (n *Node) Run(ctx context.Context) {
-	// Run each routine, and wait for them all.
-	var running sync.WaitGroup
-	running.Go(func() { n.packs.Run(ctx) })
-	running.Go(func() { n.runDrain(ctx) })
-	running.Go(func() { n.runPrune(ctx) })
-	running.Go(func() { n.runBackfill(ctx) })
-	running.Wait()
+	// Run each routine on its own goroutine, and wait for them all.
+	running := conc.NewConcurrentQueue(0,
+		func() { n.packs.Run(ctx) },
+		func() { n.runDrain(ctx) },
+		func() { n.runPrune(ctx) },
+		func() { n.runBackfill(ctx) },
+	)
+	_ = running.WaitIdle(context.Background(), nil)
 }
 
 // Serve runs one connection from the local store until it ends.

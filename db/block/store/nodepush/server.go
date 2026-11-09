@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
@@ -132,28 +133,26 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 	s.stop = cancel
 	s.mtx.Unlock()
 
-	// End the connection's work on the way out.
+	// End the connection's work on the way out. The unbounded running queue
+	// starts each routine at once and reports idle when every one returned.
 	out := make(chan []byte, maxFramesQueued)
-	var running sync.WaitGroup
+	running := conc.NewConcurrentQueue(0)
 	defer func() {
 		cancel()
 		_ = conn.Close()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 	}()
 
 	// Write frames until the connection ends.
-	running.Add(2)
-	go func() {
-		defer running.Done()
+	running.Enqueue(func() {
 		writeFrames(ctx, conn, out)
 		_ = conn.Close()
-	}()
+	})
 
 	// Send the pending reports, one at a time.
-	go func() {
-		defer running.Done()
+	running.Enqueue(func() {
 		s.sendReports(ctx, out)
-	}()
+	})
 
 	// Take pushes, appending several at once so they share a flush, and
 	// reads, in their own slots so a burst of them never holds back a push.
@@ -171,12 +170,10 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			running.Add(1)
-			go func() {
-				defer running.Done()
+			running.Enqueue(func() {
 				defer func() { <-slots }()
 				send(ctx, out, s.hold(ctx, body.Push))
-			}()
+			})
 		case *Message_Read:
 			// Never wait for a slot here: pushes come through this loop, and
 			// a hung disk or a slow remote must not hold them. A read with no
@@ -207,7 +204,7 @@ func (s *Server) Serve(ctx context.Context, conn net.Conn) error {
 			// The journal and block reads, in server-journal.go. A record
 			// shares the push slots, so records and pushes share flushes and
 			// the bound on what one connection appends at once.
-			if err := s.serveJournal(ctx, msg, out, slots, &running); err != nil {
+			if err := s.serveJournal(ctx, msg, out, slots, running); err != nil {
 				return err
 			}
 		}
