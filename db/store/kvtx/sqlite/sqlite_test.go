@@ -617,6 +617,7 @@ func checkWALBoundStats(t *testing.T, path string) {
 		if st.Passives == 0 || st.Truncates == 0 || st.LastTruncate <= 0 || st.Truncate < st.LastTruncate {
 			t.Fatalf("checkpoints: %+v", st)
 		}
+		t.Logf("checkpoints: %+v", st)
 	})
 	if !found {
 		t.Fatalf("no store stats for %s", path)
@@ -721,9 +722,39 @@ func TestSQLiteWALRestartsUnderSteadyWrites(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	}
+	st := walStats(t, tp)
+	t.Logf("largest log %d bytes; %d passives, %d restarts, %d skipped, %d forced; longest writer turn held %v", largest.Load(), st.Passives, st.Truncates, st.RestartsSkipped, st.RestartsForced, st.MaxRestartHold)
 	select {
 	case <-shrank:
 	default:
 		t.Fatalf("the log grew to %d bytes under steady writes and never restarted; bound %d", largest.Load(), bound)
 	}
+
+	// Writers with no gap add to the log during every passive checkpoint, so
+	// the restart is forced and holds the turn while it copies and syncs the
+	// frames added during one short passive checkpoint.
+	if st.MaxRestartHold > maxRestartHold {
+		t.Fatalf("the checkpointer held the writer turn for %v; want at most %v", st.MaxRestartHold, maxRestartHold)
+	}
+}
+
+// maxRestartHold bounds the writer turn a restart holds: the restart's busy
+// wait for readers and a short copy and sync, with room for a loaded test
+// host.
+const maxRestartHold = 250 * time.Millisecond
+
+// walStats returns the counters of the open store at path.
+func walStats(t *testing.T, path string) common.StoreStats {
+	t.Helper()
+	var st common.StoreStats
+	var found bool
+	common.EachStoreStats(func(s common.StoreStats) {
+		if filepath.Base(s.File) == filepath.Base(path) {
+			st, found = s, true
+		}
+	})
+	if !found {
+		t.Fatalf("no store stats for %s", path)
+	}
+	return st
 }
