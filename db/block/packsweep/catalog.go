@@ -3,6 +3,7 @@ package packsweep
 import (
 	"bytes"
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -10,7 +11,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
-	"golang.org/x/sync/errgroup"
 )
 
 // DefaultPackReads is the packs a snapshot reads at once when the options set
@@ -24,9 +24,9 @@ const snapshotBatch = 4096
 // a transaction.
 const commitKeys = 16384
 
-// readyPacks is the parsed packs waiting to commit. A parsed pack holds its
-// keys and refs, not its bytes, so many small packs wait in little memory.
-const readyPacks = 64
+// DefaultDrainTimeout bounds the commits of the packs already read once a
+// snapshot is stopped.
+const DefaultDrainTimeout = 2 * time.Minute
 
 // PackSource lists the packs a store has registered and reads them.
 // PackStore implements it.
@@ -50,6 +50,9 @@ type SnapshotOptions struct {
 	Now func() time.Time
 	// Progress observes each catalogued pack, nil for none.
 	Progress func(SnapshotProgress)
+	// DrainTimeout bounds the commits of the packs already read after ctx
+	// ends. Zero uses DefaultDrainTimeout.
+	DrainTimeout time.Duration
 }
 
 // SnapshotProgress reports a snapshot.
@@ -217,47 +220,101 @@ type packKey struct {
 
 // catalogPacks reads the packs, several at once, and commits each from one
 // goroutine, so two packs holding one key never race on its refs row.
+//
+// When ctx ends, the reads stop and those in flight are abandoned, but every
+// pack already read is committed before catalogPacks returns, on a context
+// ctx does not reach, bounded by the drain timeout. A stopped run then loses
+// only the packs it was still reading.
 func catalogPacks(ctx context.Context, opts *SnapshotOptions, todo []pendingPack, progress *SnapshotProgress) error {
-	// Bound the reads in flight, and the parsed packs waiting to commit.
+	// Bound the reads in flight, and the parsed packs waiting to commit:
+	// commits are the bottleneck, so a deeper queue only holds more memory
+	// and loses more reads when the run stops.
 	reads := opts.Reads
 	if reads <= 0 {
 		reads = DefaultPackReads
 	}
-	eg, egCtx := errgroup.WithContext(ctx)
-	ready := make(chan *readPack, readyPacks)
+	ready := make(chan *readPack, readyQueue(reads))
 
-	// Read the packs, at most reads at once.
-	eg.Go(func() error {
+	// Reads end when ctx ends, or when the commits fail.
+	readCtx, stopReads := context.WithCancelCause(ctx)
+	defer stopReads(nil)
+
+	// Commits outlive ctx by at most the drain timeout. They are background
+	// work, so an s4db scratch file holds each commit while its overlay
+	// exceeds CommitWaitMax and a checkpoint builds: unmarked, the overlay
+	// and the log the next open replays grow without bound.
+	drain := opts.DrainTimeout
+	if drain <= 0 {
+		drain = DefaultDrainTimeout
+	}
+	commitCtx, stopCommits := context.WithCancelCause(block.WithBackground(context.WithoutCancel(ctx)))
+	defer stopCommits(nil)
+	stopDrain := context.AfterFunc(ctx, func() {
+		t := time.AfterFunc(drain, func() {
+			stopCommits(errors.Errorf("drain exceeded %s", drain))
+		})
+		context.AfterFunc(commitCtx, func() { t.Stop() })
+	})
+	defer stopDrain()
+
+	// committed closes when the committer returns, so a read waiting to
+	// queue its pack never blocks on a committer that failed.
+	committed := make(chan struct{})
+
+	// Read the packs, at most reads at once, then close the queue.
+	var readErr error
+	var readErrOnce sync.Once
+	go func() {
 		// Close the queue once every read ended.
 		defer close(ready)
-		inner, innerCtx := errgroup.WithContext(egCtx)
-		inner.SetLimit(reads)
+		var wg sync.WaitGroup
+		defer wg.Wait()
 
-		// Read each pack and queue it.
+		// Start each read in a free slot, and none once the reads stop.
+		slots := make(chan struct{}, reads)
 		for _, p := range todo {
-			if innerCtx.Err() != nil {
-				break
+			select {
+			case slots <- struct{}{}:
+			case <-readCtx.Done():
 			}
-			inner.Go(func() error {
-				rp, err := readCatalogPack(innerCtx, opts.Packs, p)
+			if readCtx.Err() != nil {
+				return
+			}
+
+			// Read the pack; a failure not caused by the stop stops the
+			// reads.
+			wg.Add(1)
+			go func() {
+				// Free the slot once the pack is queued or dropped.
+				defer wg.Done()
+				defer func() { <-slots }()
+
+				// Read and parse the pack.
+				rp, err := readCatalogPack(readCtx, opts.Packs, p)
 				if err != nil {
-					return err
+					if readCtx.Err() == nil {
+						readErrOnce.Do(func() { readErr = err })
+						stopReads(err)
+					}
+					return
 				}
+
+				// Queue the pack even when the reads stopped: the
+				// committer drains the queue.
 				select {
 				case ready <- rp:
-					return nil
-				case <-innerCtx.Done():
-					return context.Cause(innerCtx)
+				case <-committed:
 				}
-			})
+			}()
 		}
-		return inner.Wait()
-	})
+	}()
 
 	// Commit the packs as they arrive, with those already waiting in the
 	// same transaction, so a store of many small packs pays a commit per
-	// batch rather than per pack.
-	eg.Go(func() error {
+	// batch rather than per pack. Drain the queue to its close, even after
+	// ctx ends.
+	commitErr := func() error {
+		defer close(committed)
 		for rp := range ready {
 			batch, keys := []*readPack{rp}, len(rp.keys)
 		drain:
@@ -273,7 +330,11 @@ func catalogPacks(ctx context.Context, opts *SnapshotOptions, todo []pendingPack
 					break drain
 				}
 			}
-			if err := commitCatalogPacks(egCtx, opts.Store, batch); err != nil {
+			if err := commitCatalogPacks(commitCtx, opts.Store, batch); err != nil {
+				if cause := context.Cause(commitCtx); cause != nil && commitCtx.Err() != nil {
+					err = errors.Wrap(cause, err.Error())
+				}
+				stopReads(err)
 				return err
 			}
 			for _, rp := range batch {
@@ -285,8 +346,27 @@ func catalogPacks(ctx context.Context, opts *SnapshotOptions, todo []pendingPack
 			}
 		}
 		return nil
-	})
-	return eg.Wait()
+	}()
+
+	// Wait for the reads to end, then report the first failure.
+	for range ready {
+	}
+	if commitErr != nil {
+		return commitErr
+	}
+	if readErr != nil {
+		return readErr
+	}
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	return nil
+}
+
+// readyQueue is the parsed packs that wait to commit with reads packs read
+// at once.
+func readyQueue(reads int) int {
+	return max(reads, 1)
 }
 
 // readCatalogPack reads a pack whole and parses its keys and refs. A value
