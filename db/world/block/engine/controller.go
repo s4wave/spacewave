@@ -202,13 +202,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lookupWorldOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
 	}
 	var engine *world_block.Engine
+	var authority *world_block.LocalAuthority
 	switch {
 	case c.conf.GetEphemeral():
 		engine, err = c.openEphemeral(ctx, cursor, lookupWorldOp)
 	case readOnly:
 		engine, err = c.openReadOnly(ctx, cursor, initRef, lookupWorldOp)
 	default:
-		engine, err = c.openWritable(ctx, cursor, stateStore, stateStoreID, coordinator, scopeVolumeID, lookupWorldOp)
+		engine, authority, err = c.openWritable(ctx, cursor, stateStore, stateStoreID, coordinator, scopeVolumeID, lookupWorldOp)
 	}
 	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
 		c.engineCtr.SetValue(&engineResult{err: err})
@@ -253,12 +254,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}()
 	}
 
+	// Regenerate a writable World in the background, alongside writers.
+	var regenDone chan struct{}
+	if regen := c.conf.GetRegen(); regen.GetTarget() != RegenTarget_REGEN_TARGET_NONE && authority != nil {
+		regenDone = make(chan struct{})
+		go func() {
+			defer close(regenDone)
+			driveRegen(rctx, le, authority, regen)
+		}()
+	}
+
 	// Fence durability when this execution ends, after the settings change
-	// stops. Controller-lifetime resources remain mounted until Close.
+	// and the regeneration stop. Controller-lifetime resources remain mounted
+	// until Close.
 	<-rctx.Done()
 	le.Debug("shutting down")
-	if graphSettingsDone != nil {
-		<-graphSettingsDone
+	for _, done := range []chan struct{}{graphSettingsDone, regenDone} {
+		if done != nil {
+			<-done
+		}
 	}
 	if _, err := engine.Sync(context.WithoutCancel(ctx)); err != nil {
 		le.WithError(err).Warn("world engine shutdown sync failed")
@@ -306,7 +320,8 @@ func (c *Controller) openEphemeral(
 
 // openWritable opens the World at the head its local authority holds under
 // the world root, adopting or creating the head first when the root is free,
-// and replacing a head whose blocks are missing when configured to.
+// and replacing a head whose blocks are missing when configured to. It returns
+// the authority beside the engine.
 func (c *Controller) openWritable(
 	ctx context.Context,
 	cursor *bucket_lookup.Cursor,
@@ -315,10 +330,10 @@ func (c *Controller) openWritable(
 	coordinator coord.Coordinator,
 	scopeVolumeID string,
 	lookupWorldOp world.LookupOp,
-) (*world_block.Engine, error) {
+) (*world_block.Engine, *world_block.LocalAuthority, error) {
 	// A writable World names its head root after its engine.
 	if c.engineID == "" {
-		return nil, world.ErrEmptyEngineID
+		return nil, nil, world.ErrEmptyEngineID
 	}
 	name := world_block.WorldRootName(c.engineID)
 
@@ -327,7 +342,7 @@ func (c *Controller) openWritable(
 	if coordinator != nil {
 		supported, err := c.coordinatorSupported(ctx, coordinator, scope)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if !supported {
 			coordinator = nil
@@ -341,7 +356,7 @@ func (c *Controller) openWritable(
 		RecoverMissing: c.conf.GetRecoverMissingPersistedHead(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Open the engine at the head, replacing a head with missing blocks once
@@ -351,16 +366,16 @@ func (c *Controller) openWritable(
 		cursor.SetRootRef(head.Root)
 		engine, err := world_block.NewEngine(ctx, c.le, cursor, lookupWorldOp, authority, c.conf.GetVerbose())
 		if err == nil || recovered || !errors.Is(err, block.ErrNotFound) || !c.conf.GetRecoverMissingPersistedHead() {
-			return engine, err
+			return engine, authority, err
 		}
 		c.le.WithError(err).Warn("world head is missing blocks; rebuilding world")
 		recovered = true
 		root, err := c.initialRoot(ctx, cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if head, err = authority.Install(ctx, head.Root, root); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 }

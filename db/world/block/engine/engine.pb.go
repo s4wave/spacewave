@@ -8,6 +8,7 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
@@ -15,6 +16,60 @@ import (
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	block "github.com/s4wave/spacewave/db/world/block"
 )
+
+// RegenTarget is the stage a configured regeneration moves a World to.
+type RegenTarget int32
+
+const (
+	// REGEN_TARGET_NONE takes no step. A regeneration in progress keeps its
+	// roots and resumes when a target is set again.
+	RegenTarget_REGEN_TARGET_NONE RegenTarget = 0
+	// REGEN_TARGET_SWITCHED builds the node graph World and swaps it in as the
+	// head, holding the old root so a switch back still works.
+	RegenTarget_REGEN_TARGET_SWITCHED RegenTarget = 1
+	// REGEN_TARGET_DONE swaps, compares the new World with the old root and
+	// releases the old root when they match. A mismatch switches back.
+	RegenTarget_REGEN_TARGET_DONE RegenTarget = 2
+	// REGEN_TARGET_SWITCHED_BACK returns a switched World to the held old root,
+	// carrying the commits made since the swap, and holds the new root.
+	RegenTarget_REGEN_TARGET_SWITCHED_BACK RegenTarget = 3
+	// REGEN_TARGET_RELEASED drops the regeneration's roots: it abandons a build
+	// or catch-up, or lets go of the new root a switch back held. A switched
+	// World refuses it until it is compared or switched back.
+	RegenTarget_REGEN_TARGET_RELEASED RegenTarget = 4
+)
+
+// Enum value maps for RegenTarget.
+var (
+	RegenTarget_name = map[int32]string{
+		0: "REGEN_TARGET_NONE",
+		1: "REGEN_TARGET_SWITCHED",
+		2: "REGEN_TARGET_DONE",
+		3: "REGEN_TARGET_SWITCHED_BACK",
+		4: "REGEN_TARGET_RELEASED",
+	}
+	RegenTarget_value = map[string]int32{
+		"REGEN_TARGET_NONE":          0,
+		"REGEN_TARGET_SWITCHED":      1,
+		"REGEN_TARGET_DONE":          2,
+		"REGEN_TARGET_SWITCHED_BACK": 3,
+		"REGEN_TARGET_RELEASED":      4,
+	}
+)
+
+func (x RegenTarget) Enum() *RegenTarget {
+	p := new(RegenTarget)
+	*p = x
+	return p
+}
+
+func (x RegenTarget) String() string {
+	name, valid := RegenTarget_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // Config configures a World Graph engine bound to a block graph.
 // Builds a bucket handle using the given bucket ID.
@@ -64,6 +119,10 @@ type Config struct {
 	// Format is the stored layout a new World starts with. An existing World
 	// keeps the format it has.
 	Format block.WorldFormat `protobuf:"varint,17,opt,name=format,proto3" json:"format,omitempty"`
+	// Regen moves an existing writable World to the node graph format in the
+	// background, alongside writers. Each step lands in the World's roots, so a
+	// regeneration stopped by a restart resumes at the next open.
+	Regen *RegenConfig `protobuf:"bytes,18,opt,name=regen,proto3" json:"regen,omitempty"`
 	// DisableLookup disables looking up anything on the bus via directives.
 	// Implies both DisableApplyWorldOp and DisableApplyObjectOp.
 	DisableLookup bool `protobuf:"varint,8,opt,name=disable_lookup,json=disableLookup,proto3" json:"disableLookup,omitempty"`
@@ -166,6 +225,13 @@ func (x *Config) GetFormat() block.WorldFormat {
 	return block.WorldFormat(0)
 }
 
+func (x *Config) GetRegen() *RegenConfig {
+	if x != nil {
+		return x.Regen
+	}
+	return nil
+}
+
 func (x *Config) GetDisableLookup() bool {
 	if x != nil {
 		return x.DisableLookup
@@ -206,6 +272,57 @@ func (x *Config) GetVerbose() bool {
 		return x.Verbose
 	}
 	return false
+}
+
+// RegenConfig configures a World's regeneration.
+type RegenConfig struct {
+	unknownFields []byte
+	// Target is the stage to move the World to.
+	Target RegenTarget `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"`
+	// SpillDir is the directory the build's sort writes its disposable runs in.
+	// Required with a target that builds.
+	SpillDir string `protobuf:"bytes,2,opt,name=spill_dir,json=spillDir,proto3" json:"spillDir,omitempty"`
+	// BudgetBytes is the sort's memory before it spills a run.
+	// Defaults to 256 MiB.
+	BudgetBytes uint64 `protobuf:"varint,3,opt,name=budget_bytes,json=budgetBytes,proto3" json:"budgetBytes,omitempty"`
+	// SwapChanges is the most changed records the swap applies inside the writer
+	// turn, which bounds the wait a commit can take behind it.
+	// Defaults to 4096.
+	SwapChanges uint32 `protobuf:"varint,4,opt,name=swap_changes,json=swapChanges,proto3" json:"swapChanges,omitempty"`
+}
+
+func (x *RegenConfig) Reset() {
+	*x = RegenConfig{}
+}
+
+func (*RegenConfig) ProtoMessage() {}
+
+func (x *RegenConfig) GetTarget() RegenTarget {
+	if x != nil {
+		return x.Target
+	}
+	return RegenTarget_REGEN_TARGET_NONE
+}
+
+func (x *RegenConfig) GetSpillDir() string {
+	if x != nil {
+		return x.SpillDir
+	}
+	return ""
+}
+
+func (x *RegenConfig) GetBudgetBytes() uint64 {
+	if x != nil {
+		return x.BudgetBytes
+	}
+	return 0
+}
+
+func (x *RegenConfig) GetSwapChanges() uint32 {
+	if x != nil {
+		return x.SwapChanges
+	}
+	return 0
 }
 
 // HeadState is the record an older engine kept the head in. An open reads it
@@ -251,6 +368,7 @@ func (m *Config) CloneVT() *Config {
 	r.InitHeadRef = protobuf_go_lite.CloneVTValue(m.InitHeadRef)
 	r.StateTransformConf = protobuf_go_lite.CloneVTValue(m.StateTransformConf)
 	r.GraphSettings = protobuf_go_lite.CloneVTValue(m.GraphSettings)
+	r.Regen = protobuf_go_lite.CloneVTValue(m.Regen)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -258,6 +376,25 @@ func (m *Config) CloneVT() *Config {
 }
 
 func (m *Config) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RegenConfig) CloneVT() *RegenConfig {
+	if m == nil {
+		return (*RegenConfig)(nil)
+	}
+	r := new(RegenConfig)
+	r.Target = m.Target
+	r.SpillDir = m.SpillDir
+	r.BudgetBytes = m.BudgetBytes
+	r.SwapChanges = m.SwapChanges
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegenConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -334,11 +471,43 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.Format != that.Format {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Regen, that.Regen) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Config) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Config)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RegenConfig) EqualVT(that *RegenConfig) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Target != that.Target {
+		return false
+	}
+	if this.SpillDir != that.SpillDir {
+		return false
+	}
+	if this.BudgetBytes != that.BudgetBytes {
+		return false
+	}
+	if this.SwapChanges != that.SwapChanges {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegenConfig) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegenConfig)
 	if !ok {
 		return false
 	}
@@ -363,6 +532,46 @@ func (this *HeadState) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the RegenTarget to JSON.
+func (x RegenTarget) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), RegenTarget_name)
+}
+
+// MarshalText marshals the RegenTarget to text.
+func (x RegenTarget) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), RegenTarget_name)), nil
+}
+
+// MarshalJSON marshals the RegenTarget to JSON.
+func (x RegenTarget) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegenTarget from JSON.
+func (x *RegenTarget) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(RegenTarget_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read RegenTarget enum: %v", err)
+		return
+	}
+	*x = RegenTarget(v)
+}
+
+// UnmarshalText unmarshals the RegenTarget from text.
+func (x *RegenTarget) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), RegenTarget_value)
+	if err != nil {
+		return err
+	}
+	*x = RegenTarget(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the RegenTarget from JSON.
+func (x *RegenTarget) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the Config message to JSON.
@@ -458,6 +667,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("format")
 		x.Format.MarshalProtoJSON(s)
 	}
+	if x.Regen != nil || s.HasField("regen") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("regen")
+		x.Regen.MarshalProtoJSON(s.WithField("regen"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -538,12 +752,85 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "format":
 			s.AddField("format")
 			x.Format.UnmarshalProtoJSON(s)
+		case "regen":
+			if s.ReadNil() {
+				x.Regen = nil
+				return
+			}
+			x.Regen = &RegenConfig{}
+			x.Regen.UnmarshalProtoJSON(s.WithField("regen", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Config from JSON.
 func (x *Config) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RegenConfig message to JSON.
+func (x *RegenConfig) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Target != 0 || s.HasField("target") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("target")
+		x.Target.MarshalProtoJSON(s)
+	}
+	if x.SpillDir != "" || s.HasField("spillDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spillDir")
+		s.WriteString(x.SpillDir)
+	}
+	if x.BudgetBytes != 0 || s.HasField("budgetBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("budgetBytes")
+		s.WriteUint64(x.BudgetBytes)
+	}
+	if x.SwapChanges != 0 || s.HasField("swapChanges") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("swapChanges")
+		s.WriteUint32(x.SwapChanges)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegenConfig to JSON.
+func (x *RegenConfig) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegenConfig message from JSON.
+func (x *RegenConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "target":
+			s.AddField("target")
+			x.Target.UnmarshalProtoJSON(s)
+		case "spill_dir", "spillDir":
+			s.AddField("spill_dir")
+			x.SpillDir = s.ReadString()
+		case "budget_bytes", "budgetBytes":
+			s.AddField("budget_bytes")
+			x.BudgetBytes = s.ReadUint64()
+		case "swap_changes", "swapChanges":
+			s.AddField("swap_changes")
+			x.SwapChanges = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegenConfig from JSON.
+func (x *RegenConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -621,6 +908,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Regen != nil {
+		size, err := m.Regen.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
 	}
 	if m.Format != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Format))
@@ -729,6 +1028,58 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *RegenConfig) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegenConfig) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegenConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SwapChanges != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SwapChanges))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.BudgetBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BudgetBytes))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.SpillDir) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpillDir)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Target != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Target))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *HeadState) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -803,6 +1154,24 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(2, m.Ephemeral)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.Format)
+	if m.Regen != nil {
+		l = m.Regen.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RegenConfig) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Target)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpillDir)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.BudgetBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SwapChanges)
 	n += len(m.unknownFields)
 	return n
 }
@@ -819,6 +1188,10 @@ func (m *HeadState) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x RegenTarget) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -892,10 +1265,40 @@ func (x *Config) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
 		protobuf_go_lite.TextWriteStringer(&sb, block.WorldFormat(x.Format))
 	}
+	if x.Regen != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "regen")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Regen)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Config) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RegenConfig) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RegenConfig")
+	if x.Target != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target")
+		protobuf_go_lite.TextWriteStringer(&sb, RegenTarget(x.Target))
+	}
+	if x.SpillDir != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "spill_dir")
+		protobuf_go_lite.TextWriteString(&sb, x.SpillDir)
+	}
+	if x.BudgetBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "budget_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.BudgetBytes)
+	}
+	if x.SwapChanges != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "swap_changes")
+		protobuf_go_lite.TextWriteUint(&sb, x.SwapChanges)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RegenConfig) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1116,6 +1519,103 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			m.Format = block.WorldFormat(_v)
+			if err != nil {
+				return err
+			}
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Regen", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Regen == nil {
+				m.Regen = &RegenConfig{}
+			}
+			if err := m.Regen.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RegenConfig) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegenConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegenConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+			}
+			m.Target = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Target = RegenTarget(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpillDir", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpillDir = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BudgetBytes", wireType)
+			}
+			m.BudgetBytes = 0
+			m.BudgetBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SwapChanges", wireType)
+			}
+			m.SwapChanges = 0
+			m.SwapChanges, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

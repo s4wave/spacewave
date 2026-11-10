@@ -3,6 +3,7 @@ package world_block
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
@@ -186,29 +187,33 @@ func (r *Regenerator) read(ctx context.Context) (regenState, error) {
 	return s, nil
 }
 
-// Run carries the World's regeneration from its current stage until the new
-// World is the head and proven equal to the old root, then releases the old
-// root. Each step lands in the roots before the next starts, so a Run after a
-// crash resumes from the last step. A new World that differs from the old
-// root is switched back and Run returns ErrRegenMismatch; a regeneration
-// switched back returns ErrRegenSwitchedBack until Release.
-func (r *Regenerator) Run(ctx context.Context) error {
+// Run carries the World's regeneration from its current stage to until,
+// RegenSwitched or RegenDone, calling step, when set, with the stage each step
+// reached and the time it took. Done releases the old root once the new World
+// is proven equal to it. Each step lands in the roots before the next starts,
+// so a Run after a crash resumes from the last step. A new World that differs
+// from the old root is switched back and Run returns ErrRegenMismatch; a
+// regeneration switched back returns ErrRegenSwitchedBack until Release.
+func (r *Regenerator) Run(ctx context.Context, until RegenStage, step func(RegenStage, time.Duration)) error {
 	// Trace the whole regeneration.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/run")
 	defer task.End()
 
-	// Step until done, switching back from a mismatch.
-	for {
-		stage, err := r.Step(ctx)
+	// Step until the stage asked for, switching back from a mismatch.
+	stage, err := r.Stage(ctx)
+	for err == nil && stage != until && stage != RegenDone {
+		start := time.Now()
+		stage, err = r.Step(ctx)
 		if errors.Is(err, ErrRegenMismatch) {
 			if backErr := r.SwitchBack(ctx); backErr != nil {
 				return errors.Wrapf(backErr, "switch back after %v", err)
 			}
 		}
-		if err != nil || stage == RegenDone {
-			return err
+		if err == nil && step != nil {
+			step(stage, time.Since(start))
 		}
 	}
+	return err
 }
 
 // Step takes the one step the current stage calls for and returns the stage
