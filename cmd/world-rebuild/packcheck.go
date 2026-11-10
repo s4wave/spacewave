@@ -76,7 +76,14 @@ func runPackCheck(o opts) (packCheckResult, error) {
 	var packs []neededPack
 	var err error
 	if o.needed != "" {
-		packs, err = readNeeded(o.needed)
+		var hdr neededHeader
+		packs, hdr, err = readNeeded(o.needed)
+		res.noRow, res.deadPack = hdr.noRow, hdr.deadPack
+		for _, p := range packs {
+			if p.size < 0 {
+				res.noEntry++
+			}
+		}
 	} else {
 		packs, err = neededPacks(o, &res)
 	}
@@ -85,23 +92,27 @@ func runPackCheck(o opts) (packCheckResult, error) {
 	}
 	res.needed = int64(len(packs))
 	if o.neededOut != "" {
-		if err := writeNeeded(o.neededOut, packs); err != nil {
+		if err := writeNeeded(o.neededOut, packs, neededHeader{noRow: res.noRow, deadPack: res.deadPack}); err != nil {
 			return res, err
 		}
 	}
 
 	// Compare with the listing.
-	objs, entries, ignored, err := readListing(o.list, o.listFormat)
+	objs, entries, ignored, err := readListing(o.list, o.listFormat, o.listPrefix)
 	if err != nil {
 		return res, err
 	}
 	fmt.Printf("packcheck: listing %s: %d pack objects, %d entry objects, %d other keys ignored\n", o.list, len(objs), len(entries), ignored)
 	for _, p := range packs {
-		if p.size < 0 {
-			continue
-		}
+		// A pack with no e/ row is a fault already counted; it is still
+		// checked to be listed, at any size.
 		sizes, ok := objs[p.id]
 		switch {
+		case !ok && p.size < 0:
+			res.missing++
+			fmt.Printf("  MISSING pack %s (no e/ row, %d dropped blocks)\n", p.id, p.blocks)
+		case p.size < 0:
+			fmt.Printf("  NO E/ ROW for pack %s: listed %v bytes, size unchecked (%d dropped blocks)\n", p.id, sizes, p.blocks)
 		case !ok:
 			res.missing++
 			fmt.Printf("  MISSING pack %s (%d bytes, %d dropped blocks)\n", p.id, p.size, p.blocks)
@@ -114,12 +125,17 @@ func runPackCheck(o opts) (packCheckResult, error) {
 			fmt.Printf("  MISSING entry of pack %s\n", p.id)
 		}
 	}
+	var noEntries int64
 	if len(entries) == 0 {
 		fmt.Println("packcheck: the listing has no entries/ keys: entry objects not checked")
+		if !o.noEntries {
+			noEntries = 1
+			fmt.Println("  FAULT: a listing with no entries/ keys fails without -no-entries")
+		}
 	}
-	fmt.Printf("packcheck: %d packs checked: %d missing, %d size mismatches, %d entries missing; %d packs with no e/ row; in %s\n",
-		res.needed, res.missing, res.mismatch, res.entriesMissing, res.noEntry, time.Since(start).Round(time.Millisecond))
-	if n := res.faults(); n != 0 {
+	fmt.Printf("packcheck: %d packs checked: %d missing, %d size mismatches, %d entries missing; %d packs with no e/ row; %d dropped blocks with no h row, %d on a dead pack; in %s\n",
+		res.needed, res.missing, res.mismatch, res.entriesMissing, res.noEntry, res.noRow, res.deadPack, time.Since(start).Round(time.Millisecond))
+	if n := res.faults() + noEntries; n != 0 {
 		return res, fmt.Errorf("packcheck failed: %d faults: do not remove the old World", n)
 	}
 	fmt.Println("packcheck: ok")
@@ -313,47 +329,76 @@ func openLiveRO(path string) (*sql.DB, error) {
 	return db, db.Ping()
 }
 
-// writeNeeded writes the needed packs, one "id size blocks" line each.
-func writeNeeded(path string, packs []neededPack) error {
+// neededHeader is the first line of a needed-packs file: the dropped blocks
+// with no h row, or one naming a pack number no p/ row holds. Both are
+// faults packcheck -needed counts.
+type neededHeader struct{ noRow, deadPack int64 }
+
+// writeNeeded writes the needed packs: the header line "# noRow N deadPack
+// M", then one "id size blocks" line each.
+func writeNeeded(path string, packs []neededPack, hdr neededHeader) error {
 	var b bytes.Buffer
+	fmt.Fprintf(&b, "# noRow %d deadPack %d\n", hdr.noRow, hdr.deadPack)
 	for _, p := range packs {
 		fmt.Fprintf(&b, "%s %d %d\n", p.id, p.size, p.blocks)
 	}
 	return os.WriteFile(path, b.Bytes(), 0o644)
 }
 
-// readNeeded reads a needed-packs file writeNeeded wrote.
-func readNeeded(path string) ([]neededPack, error) {
+// readNeeded reads a needed-packs file writeNeeded wrote. A file without the
+// header is refused: it does not say whether dropped blocks lacked packs.
+func readNeeded(path string) ([]neededPack, neededHeader, error) {
+	var hdr neededHeader
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, hdr, err
 	}
 	defer f.Close()
 	var packs []neededPack
+	sawHeader := false
 	sc := bufio.NewScanner(f)
 	for n := 1; sc.Scan(); n++ {
 		fs := strings.Fields(sc.Text())
 		if len(fs) == 0 {
 			continue
 		}
+		if fs[0] == "#" {
+			if n != 1 || len(fs) != 5 || fs[1] != "noRow" || fs[3] != "deadPack" {
+				return nil, hdr, fmt.Errorf("%s:%d: want the header # noRow N deadPack M first", path, n)
+			}
+			r, err1 := strconv.ParseInt(fs[2], 10, 64)
+			d, err2 := strconv.ParseInt(fs[4], 10, 64)
+			if err1 != nil || err2 != nil || r < 0 || d < 0 {
+				return nil, hdr, fmt.Errorf("%s:%d: bad header counts", path, n)
+			}
+			hdr, sawHeader = neededHeader{noRow: r, deadPack: d}, true
+			continue
+		}
 		if len(fs) != 3 {
-			return nil, fmt.Errorf("%s:%d: want id size blocks", path, n)
+			return nil, hdr, fmt.Errorf("%s:%d: want id size blocks", path, n)
 		}
 		size, err1 := strconv.ParseInt(fs[1], 10, 64)
 		blocks, err2 := strconv.ParseInt(fs[2], 10, 64)
-		if err1 != nil || err2 != nil {
-			return nil, fmt.Errorf("%s:%d: bad size or block count", path, n)
+		if err1 != nil || err2 != nil || size < -1 {
+			return nil, hdr, fmt.Errorf("%s:%d: bad size or block count", path, n)
 		}
 		packs = append(packs, neededPack{fs[0], size, blocks})
 	}
-	return packs, sc.Err()
+	if err := sc.Err(); err != nil {
+		return nil, hdr, err
+	}
+	if !sawHeader {
+		return nil, hdr, fmt.Errorf("%s: no '# noRow N deadPack M' header: write it again with this build", path)
+	}
+	return packs, hdr, nil
 }
 
 // readListing reads a listing of size and key lines, separated by ';' as
 // rclone lsf writes them or by white space, in the order format names (sp:
 // size first, ps: key first). It returns the sizes of each pack id, the ids
-// with an entry object, and the count of other keys.
-func readListing(path, format string) (map[string][]int64, map[string]bool, int, error) {
+// with an entry object, and the count of other keys. With prefix set, a key
+// counts only as <prefix>packs/<id> or <prefix>entries/<id>.
+func readListing(path, format, prefix string) (map[string][]int64, map[string]bool, int, error) {
 	if format == "" {
 		format = "sp"
 	}
@@ -407,6 +452,21 @@ func readListing(path, format string) (map[string][]int64, map[string]bool, int,
 			return nil, nil, 0, fmt.Errorf("%s:%d: size %q", path, n, sizeStr)
 		}
 		key = strings.TrimSpace(key)
+		if prefix != "" {
+			rest, under := strings.CutPrefix(key, prefix)
+			d, id, cut := strings.Cut(rest, "/")
+			switch {
+			case !under || !cut || id == "" || strings.Contains(id, "/"):
+				ignored++
+			case d == "packs":
+				objs[id] = append(objs[id], size)
+			case d == "entries":
+				entries[id] = true
+			default:
+				ignored++
+			}
+			continue
+		}
 		dir, id := "", key
 		if i := strings.LastIndexByte(key, '/'); i >= 0 {
 			dir, id = key[:i], key[i+1:]

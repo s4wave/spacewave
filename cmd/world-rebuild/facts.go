@@ -42,11 +42,11 @@ type facts struct {
 	badKeys          int
 	// otherFacts counts the marked/ and evictable/ rows of write-back
 	// stores other than the one rebuilt, by store id.
-	otherFacts map[string]int
-	packsLive        int
-	lookups          int64
-	hMissing, hDead  int64
-	took             time.Duration
+	otherFacts      map[string]int
+	packsLive       int
+	lookups         int64
+	hMissing, hDead int64
+	took            time.Duration
 }
 
 // subKey is one key name the write-back object store writes under its id,

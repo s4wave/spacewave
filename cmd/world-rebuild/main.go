@@ -99,6 +99,11 @@ type opts struct {
 	list string
 	// listFormat is the listing's field order: sp (size, key) or ps.
 	listFormat string
+	// listPrefix, when set, is the directory the listing's packs/ and
+	// entries/ must sit directly under, e.g. hyperline-world/.
+	listPrefix string
+	// noEntries lets packcheck pass a listing with no entries/ objects.
+	noEntries bool
 	// needed is a needed-packs file packcheck reads instead of the files.
 	needed string
 	// neededOut is where packcheck writes the needed packs.
@@ -152,6 +157,8 @@ func main() {
 	// The pack existence check.
 	fs.StringVar(&o.list, "list", "", "packcheck: bucket listing, size and key lines (rclone lsf -R --format sp)")
 	fs.StringVar(&o.listFormat, "list-format", "sp", "packcheck: the listing's field order, sp (size;key) or ps (key;size)")
+	fs.StringVar(&o.listPrefix, "list-prefix", "", "packcheck: take only keys <prefix>packs/<id> and <prefix>entries/<id> of the listing, e.g. hyperline-world/")
+	fs.BoolVar(&o.noEntries, "no-entries", false, "packcheck: pass a listing with no entries/ objects (entry objects then go unchecked)")
 	fs.StringVar(&o.needed, "needed", "", "packcheck: check the packs of this needed-packs file, reading no SQLite file")
 	fs.StringVar(&o.neededOut, "needed-out", "", "packcheck, count: write the packs the dropped blocks need (id size blocks) here, for packcheck -needed")
 	_ = fs.Parse(os.Args[2:])

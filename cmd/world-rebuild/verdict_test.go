@@ -42,18 +42,18 @@ func countFixture(t *testing.T) (opts, *countResult, copyStats) {
 // that packcheck -needed checks it against a listing.
 func TestCountNeededOut(t *testing.T) {
 	o, _, _ := countFixture(t)
-	predicted, err := readNeeded(o.neededOut)
+	predicted, _, err := readNeeded(o.neededOut)
 	if err != nil {
 		t.Fatal("count -needed-out:", err)
 	}
 	po := o
 	po.list = filepath.Join(filepath.Dir(o.out), "list.txt")
 	po.neededOut = filepath.Join(filepath.Dir(o.out), "after.txt")
-	writeList(t, po.list, fmt.Sprintf("%d;p/packs/packA", testPackSizes[0]), fmt.Sprintf("%d;p/packs/packB", testPackSizes[1]))
+	writeList(t, po.list, fmt.Sprintf("%d;p/packs/packA", testPackSizes[0]), fmt.Sprintf("%d;p/packs/packB", testPackSizes[1]), "300;p/entries/packA", "300;p/entries/packB")
 	if _, err := runPackCheck(po); err != nil {
 		t.Fatal("packcheck of the copy:", err)
 	}
-	after, err := readNeeded(po.neededOut)
+	after, _, err := readNeeded(po.neededOut)
 	if err != nil {
 		t.Fatal(err)
 	}

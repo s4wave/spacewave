@@ -119,3 +119,77 @@ func TestPackCheck(t *testing.T) {
 		t.Fatalf("h row gone: %+v, want 1 dropped block with no h row", res)
 	}
 }
+
+// TestPackCheckNeededFaults checks packcheck -needed counts a pack with no
+// e/ row (size -1) and the noRow and deadPack counts of the file's header as
+// faults, and still checks the -1 pack is listed.
+func TestPackCheckNeededFaults(t *testing.T) {
+	dir := t.TempDir()
+	list := filepath.Join(dir, "list.txt")
+	writeList(t, list, "100;packs/packA", "10;entries/packA", "10;entries/packB")
+	needed := func(name string, lines ...string) string {
+		p := filepath.Join(dir, name)
+		writeList(t, p, lines...)
+		return p
+	}
+
+	// The clean file passes.
+	if _, err := runPackCheck(opts{needed: needed("ok.txt", "# noRow 0 deadPack 0", "packA 100 3"), list: list}); err != nil {
+		t.Fatal("clean needed file:", err)
+	}
+
+	// A -1 pack is a fault, and is checked against the listing.
+	res, err := runPackCheck(opts{needed: needed("noentry.txt", "# noRow 0 deadPack 0", "packA 100 3", "packB -1 2"), list: list})
+	if err == nil || res.noEntry != 1 || res.missing != 1 {
+		t.Fatalf("-1 pack: err %v, %+v, want a fault with 1 noEntry and 1 missing", err, res)
+	}
+	res, err = runPackCheck(opts{needed: needed("noentry-listed.txt", "# noRow 0 deadPack 0", "packA -1 3"), list: list})
+	if err == nil || res.noEntry != 1 || res.missing != 0 {
+		t.Fatalf("listed -1 pack: err %v, %+v, want a fault with 1 noEntry and none missing", err, res)
+	}
+
+	// The header's counts are faults.
+	res, err = runPackCheck(opts{needed: needed("norow.txt", "# noRow 2 deadPack 0", "packA 100 3"), list: list})
+	if err == nil || res.noRow != 2 {
+		t.Fatalf("noRow header: err %v, %+v, want a fault with 2 noRow", err, res)
+	}
+	res, err = runPackCheck(opts{needed: needed("dead.txt", "# noRow 0 deadPack 1", "packA 100 3"), list: list})
+	if err == nil || res.deadPack != 1 {
+		t.Fatalf("deadPack header: err %v, %+v, want a fault with 1 deadPack", err, res)
+	}
+
+	// A file with no header is refused.
+	if _, err := runPackCheck(opts{needed: needed("old.txt", "packA 100 3"), list: list}); err == nil {
+		t.Fatal("needed file with no header passed")
+	}
+}
+
+// TestPackCheckListing checks -list-prefix takes only packs/ and entries/
+// directly under the prefix, and that a listing with no entries/ objects is
+// a fault unless -no-entries is given.
+func TestPackCheckListing(t *testing.T) {
+	dir := t.TempDir()
+	nd := filepath.Join(dir, "needed.txt")
+	writeList(t, nd, "# noRow 0 deadPack 0", "packA 100 3")
+	list := filepath.Join(dir, "list.txt")
+
+	// A same-id object under another prefix does not count.
+	writeList(t, list, "100;other-store/packs/packA", "10;hyperline-world/entries/packA")
+	res, err := runPackCheck(opts{needed: nd, list: list, listPrefix: "hyperline-world/"})
+	if err == nil || res.missing != 1 {
+		t.Fatalf("pack under another prefix: err %v, %+v, want 1 missing", err, res)
+	}
+	writeList(t, list, "100;hyperline-world/packs/packA", "10;other/hyperline-world/entries/packA", "10;hyperline-world/entries/packA")
+	if _, err := runPackCheck(opts{needed: nd, list: list, listPrefix: "hyperline-world/"}); err != nil {
+		t.Fatal("pack under the prefix:", err)
+	}
+
+	// No entries/ objects at all is a fault, unless -no-entries.
+	writeList(t, list, "100;packs/packA")
+	if _, err := runPackCheck(opts{needed: nd, list: list}); err == nil {
+		t.Fatal("listing with no entries/ passed")
+	}
+	if _, err := runPackCheck(opts{needed: nd, list: list, noEntries: true}); err != nil {
+		t.Fatal("listing with no entries/ and -no-entries:", err)
+	}
+}

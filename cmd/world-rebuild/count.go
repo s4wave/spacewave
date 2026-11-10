@@ -815,11 +815,23 @@ func runRateSplit(o opts) error {
 // writeCountNeeded writes the packs the dropped blocks' h rows name, with
 // the sizes their e/ rows record, as packcheck -needed-out does: the list
 // packcheck -needed checks a listing against before the downtime. A pack with
-// no e/ row is written with size -1, which packcheck counts as a fault.
+// no e/ row is written with size -1, which packcheck counts as a fault; the
+// header records the dropped blocks with no h row or a pack number no p/ row
+// holds, which packcheck -needed counts as faults too.
 func writeCountNeeded(path string, dropped map[string]struct{}, hnum map[string]uint32, ids map[uint32]string, sizes map[string]int64, badEntries int64) error {
 	byID := map[string]*neededPack{}
+	var hdr neededHeader
 	for d := range dropped {
-		id := ids[hnum[d]]
+		num, ok := hnum[d]
+		if !ok {
+			hdr.noRow++
+			continue
+		}
+		id, ok := ids[num]
+		if !ok {
+			hdr.deadPack++
+			continue
+		}
 		p := byID[id]
 		if p == nil {
 			size, ok := sizes[id]
@@ -840,10 +852,10 @@ func writeCountNeeded(path string, dropped map[string]struct{}, hnum map[string]
 		}
 	}
 	sort.Slice(packs, func(i, j int) bool { return packs[i].id < packs[j].id })
-	if err := writeNeeded(path, packs); err != nil {
+	if err := writeNeeded(path, packs, hdr); err != nil {
 		return err
 	}
-	fmt.Printf("needed packs (measured, as of the main files' last checkpoint): %d dropped blocks in %d packs, %d with no e/ row, %d e/ rows did not decode; written to %s\n",
-		len(dropped), len(packs), noEntry, badEntries, path)
+	fmt.Printf("needed packs (measured, as of the main files' last checkpoint): %d dropped blocks in %d packs, %d with no e/ row, %d e/ rows did not decode, %d dropped blocks with no h row, %d naming a pack no p/ row holds; written to %s\n",
+		len(dropped), len(packs), noEntry, badEntries, hdr.noRow, hdr.deadPack, path)
 	return nil
 }
