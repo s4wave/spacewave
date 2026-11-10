@@ -130,34 +130,91 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 // computeBehind computes the named value in tx, at seqno, a revision the cache
 // has passed while it keeps another value under name that does not hold at
 // seqno, and keeps it for later readers when that value is gone and the
-// changes since seqno left its reads alone.
+// changes since seqno left its reads alone. The callers reading name at seqno
+// share one computation: a burst of writes moving the head past many outer
+// values computing at once would otherwise have each compute the same part.
+// A computation abandoned with its caller's context is claimed again by a
+// waiter; another failure reaches every waiter and is not kept.
 func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
-	// Compute in a child evaluation, then share its reads with this caller.
-	reads, blocks := world.NewReadSet(), block.NewRefHold()
-	child, finish := world.WithViewReads(block.WithRefHold(ctx, blocks), reads)
-	child, parts := c.withParts(child)
-	value, err := c.observe(name, "stale", func() (any, error) {
-		return compute(child, reads.Track(tx))
-	})
-	wake := finish()
-	if err != nil {
-		return nil, err
-	}
+	key := behindKey{name: name, seqno: seqno}
+	for {
+		// Wait on the computation another caller claimed, or claim it. A
+		// caller inside the claimed computation, reading the value from
+		// itself through its parts, computes it alone instead of waiting
+		// on itself.
+		c.mtx.Lock()
+		entry := c.behind[key]
+		if entry != nil && ctx.Value(behindClaimKey{entry}) == nil {
+			c.mtx.Unlock()
+			select {
+			case <-entry.done:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+			if entry.err != nil {
+				if err := ctx.Err(); err != nil {
+					return nil, err
+				}
+				if errors.Is(entry.err, context.Canceled) || errors.Is(entry.err, context.DeadlineExceeded) {
+					continue
+				}
+				return nil, entry.err
+			}
+			c.addViewReads(ctx, entry)
+			return entry.value, nil
+		}
+		entry = &revisionEntry{name: name, done: make(chan struct{}), at: seqno, reads: world.NewReadSet(), blocks: block.NewRefHold()}
+		claimed := c.behind[key] == nil
+		if claimed {
+			if c.behind == nil {
+				c.behind = make(map[behindKey]*revisionEntry)
+			}
+			c.behind[key] = entry
+		}
+		c.mtx.Unlock()
 
-	// Publish the completed dependency set to this caller.
-	plain, facets := parts.collected()
-	entry := &revisionEntry{name: name, done: make(chan struct{}), at: seqno, value: value, reads: reads, blocks: blocks, wake: wake, parts: plain, facets: facets, finished: true}
-	close(entry.done)
-	c.addViewReads(ctx, entry)
+		// Compute in a child evaluation, then share its reads with this caller.
+		child, finish := world.WithViewReads(block.WithRefHold(ctx, entry.blocks), entry.reads)
+		child, parts := c.withParts(context.WithValue(child, behindClaimKey{entry}, true))
+		entry.value, entry.err = c.observe(name, "stale", func() (any, error) {
+			return compute(child, entry.reads.Track(tx))
+		})
+		entry.wake = finish()
+		if entry.err == nil {
+			entry.parts, entry.facets = parts.collected()
+			entry.finished = true
+		}
 
-	// Keep it when it still holds at the cache's revision.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	if c.entries[name] == nil && c.heldSinceLocked(entry, seqno) {
-		c.keepLocked(entry)
+		// End the claim, and keep the value when it still holds at the
+		// cache's revision.
+		c.mtx.Lock()
+		if claimed && c.behind[key] == entry {
+			delete(c.behind, key)
+		}
+		if entry.err == nil && c.entries[name] == nil && c.heldSinceLocked(entry, seqno) {
+			c.keepLocked(entry)
+		}
+		close(entry.done)
+		c.mtx.Unlock()
+		if entry.err != nil {
+			return nil, entry.err
+		}
+
+		// Publish the completed dependency set to this caller.
+		c.addViewReads(ctx, entry)
+		return entry.value, nil
 	}
-	return value, nil
 }
+
+// behindKey names the computation of a value at a revision the cache passed.
+type behindKey struct {
+	name  string
+	seqno uint64
+}
+
+// behindClaimKey marks a context computing the claimed value entry behind the
+// cache.
+type behindClaimKey struct{ entry *revisionEntry }
 
 // heldSinceLocked reports whether the changes the cache passed after seqno
 // left entry alone. It reports false when the history no longer reaches back

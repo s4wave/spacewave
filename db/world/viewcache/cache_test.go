@@ -746,3 +746,288 @@ func TestValuesAndViewsHoldTheirBlocks(t *testing.T) {
 		t.Fatal("ended view still holds its blocks")
 	}
 }
+
+// behindSnapshots opens n read snapshots at one revision, then moves the World
+// and the cache past it, keeping a value of name at the newest revision: a
+// read of name in those snapshots while computing another value is computed
+// behind the cache.
+func behindSnapshots(t *testing.T, name string, n int) (*Cache, world.Engine, []world.Tx) {
+	t.Helper()
+	store, engine := readsStore(t)
+	ctx := t.Context()
+	cache := &Cache{engine: engine}
+	read := func() world.Tx {
+		tx, err := store.engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(tx.Discard)
+		return tx
+	}
+	old := make([]world.Tx, n)
+	for i := range old {
+		old[i] = read()
+	}
+	seed(t, engine, "behind-"+name)
+	if _, err := cache.Get(ctx, read(), name, func(context.Context, world.WorldState) (any, error) { return -1, nil }); err != nil {
+		t.Fatal(err)
+	}
+	return cache, engine, old
+}
+
+// computingCtx marks ctx as computing another value of the cache, as a part
+// read inside an outer value's computation is.
+func computingCtx(ctx context.Context) context.Context {
+	return context.WithValue(ctx, computingKey{}, true)
+}
+
+// TestRevisionCacheBehindShared has many callers read one part at one passed
+// snapshot at once: they share one computation and its value.
+func TestRevisionCacheBehindShared(t *testing.T) {
+	const n = 16
+	cache, _, old := behindSnapshots(t, "part", n)
+	ctx := computingCtx(t.Context())
+	var calls atomic.Int32
+	release := make(chan struct{})
+	compute := func(ctx context.Context, tx world.WorldState) (any, error) {
+		calls.Add(1)
+		<-release
+		if _, err := tx.HasObject(ctx, "a"); err != nil {
+			return nil, err
+		}
+		return &calls, nil
+	}
+	results := make(chan any, n)
+	for i := range n {
+		go func() {
+			got, err := cache.Get(ctx, old[i], "part", compute)
+			if err != nil {
+				got = err
+			}
+			results <- got
+		}()
+	}
+	time.Sleep(50 * time.Millisecond)
+	close(release)
+	for range n {
+		if got := <-results; got != &calls {
+			t.Fatal("a caller got", got)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Fatal("the part was computed", calls.Load(), "times")
+	}
+	if len(cache.behind) != 0 {
+		t.Fatal("claims leaked:", len(cache.behind))
+	}
+}
+
+// TestRevisionCacheBehindAbandoned cancels the caller computing a shared part
+// behind the cache: its waiters still get the value, computed once more.
+func TestRevisionCacheBehindAbandoned(t *testing.T) {
+	const waiters = 8
+	cache, _, old := behindSnapshots(t, "part", waiters+1)
+	ctx := computingCtx(t.Context())
+	started := make(chan struct{})
+	var calls atomic.Int32
+	compute := func(ctx context.Context, _ world.WorldState) (any, error) {
+		if calls.Add(1) == 1 {
+			close(started)
+			<-ctx.Done()
+			return nil, ctx.Err()
+		}
+		time.Sleep(50 * time.Millisecond)
+		return 5, nil
+	}
+	owner, cancel := context.WithCancel(ctx)
+	ownerErr := make(chan error, 1)
+	go func() {
+		_, err := cache.Get(owner, old[0], "part", compute)
+		ownerErr <- err
+	}()
+	<-started
+	results := make(chan any, waiters)
+	for i := range waiters {
+		go func() {
+			got, err := cache.Get(ctx, old[i+1], "part", compute)
+			if err != nil {
+				got = err
+			}
+			results <- got
+		}()
+	}
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+	if err := <-ownerErr; !errors.Is(err, context.Canceled) {
+		t.Fatal("the abandoned caller got", err)
+	}
+	for range waiters {
+		if got := <-results; got != 5 {
+			t.Fatal("a waiter got", got)
+		}
+	}
+	if calls.Load() != 2 {
+		t.Fatal("the waiters computed", calls.Load()-1, "times")
+	}
+
+	// A waiter that leaves returns its own error while the computation it
+	// waited on still runs.
+	hold, holding := make(chan struct{}), make(chan struct{})
+	claimed := make(chan error, 1)
+	go func() {
+		_, err := cache.Get(ctx, old[0], "part", func(context.Context, world.WorldState) (any, error) {
+			close(holding)
+			<-hold
+			return 0, nil
+		})
+		claimed <- err
+	}()
+	<-holding
+	leaving, leave := context.WithCancel(ctx)
+	left := make(chan error, 1)
+	go func() {
+		_, err := cache.Get(leaving, old[1], "part", func(context.Context, world.WorldState) (any, error) {
+			t.Error("a waiter computed the claimed value")
+			return 0, nil
+		})
+		left <- err
+	}()
+	time.Sleep(20 * time.Millisecond)
+	leave()
+	if err := <-left; !errors.Is(err, context.Canceled) {
+		t.Fatal("the leaving waiter got", err)
+	}
+	close(hold)
+	if err := <-claimed; err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRevisionCacheBehindError returns a failure of a shared part to every
+// caller, and keeps none of it: a later call computes again.
+func TestRevisionCacheBehindError(t *testing.T) {
+	const n = 16
+	cache, _, old := behindSnapshots(t, "part", n+1)
+	ctx := computingCtx(t.Context())
+	boom := errors.New("boom")
+	var calls atomic.Int32
+	release := make(chan struct{})
+	compute := func(context.Context, world.WorldState) (any, error) {
+		if calls.Add(1) == 1 {
+			<-release
+			return nil, boom
+		}
+		return 7, nil
+	}
+	errs := make(chan error, n)
+	for i := range n {
+		go func() {
+			_, err := cache.Get(ctx, old[i], "part", compute)
+			errs <- err
+		}()
+	}
+	time.Sleep(50 * time.Millisecond)
+	close(release)
+	for range n {
+		if err := <-errs; !errors.Is(err, boom) {
+			t.Fatal("a caller got", err)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Fatal("the failing part was computed", calls.Load(), "times")
+	}
+	if got, err := cache.Get(ctx, old[n], "part", compute); err != nil || got != 7 || calls.Load() != 2 {
+		t.Fatal("the failure was kept", got, err, calls.Load())
+	}
+}
+
+// TestRevisionCacheBehindSnapshots reads one part at two passed snapshots at
+// once: each computes its own.
+func TestRevisionCacheBehindSnapshots(t *testing.T) {
+	store, engine := readsStore(t)
+	ctx := t.Context()
+	cache := &Cache{engine: engine}
+	read := func() world.Tx {
+		tx, err := store.engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(tx.Discard)
+		return tx
+	}
+	first := read()
+	seed(t, engine, "x")
+	second := read()
+	seed(t, engine, "y")
+	if _, err := cache.Get(ctx, read(), "part", func(context.Context, world.WorldState) (any, error) { return -1, nil }); err != nil {
+		t.Fatal(err)
+	}
+
+	// Each computation waits for the other to start: sharing would never
+	// see both.
+	var calls atomic.Int32
+	both := make(chan struct{})
+	compute := func(_ context.Context, tx world.WorldState) (any, error) {
+		if calls.Add(1) == 2 {
+			close(both)
+		}
+		select {
+		case <-both:
+		case <-time.After(5 * time.Second):
+			return nil, errors.New("the snapshots shared one computation")
+		}
+		return tx.GetSeqno(ctx)
+	}
+	cctx := computingCtx(ctx)
+	results := make(chan any, 2)
+	for _, tx := range []world.Tx{first, second} {
+		go func() {
+			got, err := cache.Get(cctx, tx, "part", compute)
+			if err != nil {
+				got = err
+			}
+			results <- got
+		}()
+	}
+	a, b := <-results, <-results
+	if _, ok := a.(error); ok {
+		t.Fatal(a)
+	}
+	if _, ok := b.(error); ok {
+		t.Fatal(b)
+	}
+	if a == b || calls.Load() != 2 {
+		t.Fatal("the snapshots shared", a, b, calls.Load())
+	}
+}
+
+// TestRevisionCacheBehindRecursive reads a part behind the cache from within
+// its own computation: it computes alone instead of waiting on itself.
+func TestRevisionCacheBehindRecursive(t *testing.T) {
+	cache, _, old := behindSnapshots(t, "part", 1)
+	ctx := computingCtx(t.Context())
+	var calls atomic.Int32
+	var compute func(context.Context, world.WorldState) (any, error)
+	compute = func(ctx context.Context, tx world.WorldState) (any, error) {
+		if calls.Add(1) == 1 {
+			return cache.Get(ctx, tx, "part", compute)
+		}
+		return 3, nil
+	}
+	done := make(chan any, 1)
+	go func() {
+		got, err := cache.Get(ctx, old[0], "part", compute)
+		if err != nil {
+			got = err
+		}
+		done <- got
+	}()
+	select {
+	case got := <-done:
+		if got != 3 || calls.Load() != 2 {
+			t.Fatal("the recursive part got", got, calls.Load())
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("a part read from its own computation waited on itself")
+	}
+}
