@@ -720,12 +720,15 @@ func (t *WorldState) Commit(ctx context.Context) error {
 
 // buildObjectTree builds the object tree handle.
 func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, error) {
+	// Build the tree transaction.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-object-tree")
 	defer task.End()
 	tree, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), t.write)
 	if err != nil {
 		return nil, err
 	}
+
+	// A write holds its object writes until the commit, unless turned off.
 	if packed, ok := tree.(*kvtx_block_okra.Tx); ok && t.write && !objectWritesUnheld {
 		packed.DeferCursorWrites()
 	}

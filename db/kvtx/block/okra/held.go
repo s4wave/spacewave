@@ -41,9 +41,12 @@ func (t *Tx) Held() int {
 // when the batch fails; the transaction is then partly written, and the
 // caller discards it.
 func (t *Tx) Flush(ctx context.Context) error {
+	// Nothing to apply.
 	if len(t.held) == 0 {
 		return nil
 	}
+
+	// Build the batch in key order.
 	ops := make([]batchOp, 0, len(t.held))
 	for key, h := range t.held {
 		op := batchOp{key: []byte(key), del: h.del}
@@ -53,6 +56,8 @@ func (t *Tx) Flush(ctx context.Context) error {
 		ops = append(ops, op)
 	}
 	slices.SortFunc(ops, func(a, b batchOp) int { return bytes.Compare(a.key, b.key) })
+
+	// Apply it, and release the held writes once applied.
 	if err := t.applyBatch(ctx, ops); err != nil {
 		return err
 	}
