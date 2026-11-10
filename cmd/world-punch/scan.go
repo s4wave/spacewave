@@ -417,8 +417,8 @@ func parseChunk(h header, b []byte, off int64, leaf bitset, nextPg []uint32, out
 
 // scanProbe waits o.probeAt into phase 2, then projects the phase 2 time
 // from the bytes scanned against the whole file and prints it. Past
-// o.probeLimit it closes stop. It does nothing if phase 2 ends first or
-// no limit is set.
+// o.probeLimit it closes stop. If phase 2 ends first it records that; with
+// no limit set it does nothing.
 func scanProbe(o ccOpts, total int64, t2 time.Time, scanned *atomic.Int64, done <-chan struct{}, stop chan struct{}, pr *scanProbeResult) {
 	// Wait for the probe time.
 	if o.probeLimit <= 0 {
@@ -430,6 +430,8 @@ func scanProbe(o ccOpts, total int64, t2 time.Time, scanned *atomic.Int64, done 
 	}
 	select {
 	case <-done:
+		pr.line = fmt.Sprintf("probe: phase 2 ended in %s, before the %s probe, within limit %s",
+			time.Since(t2).Round(time.Millisecond), at, o.probeLimit)
 		return
 	case <-time.After(at):
 	}
