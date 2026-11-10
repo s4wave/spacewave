@@ -157,8 +157,8 @@ type dropPlan struct {
 // hold is kept.
 func planDrops(f *facts, present map[string]bool) *dropPlan {
 	p := &dropPlan{f: f, skipEvict: map[string]struct{}{}}
-	for d, es := range f.evict {
-		if !present[d] || f.verdict(d) != vDrop {
+	for bk, es := range f.evict {
+		if !present[bk] || f.verdicts[bk] != vDrop {
 			continue
 		}
 		for _, e := range es {
@@ -185,11 +185,7 @@ func (s evictSums) add(key, value []byte) {
 // keepBlock applies the drop rule (and a mutant) to one block key, and
 // returns the verdict with it.
 func (p *dropPlan) keepBlock(key []byte) (bool, string) {
-	d, ok := digestOfBlockKey(key)
-	if !ok {
-		return true, vUnparsed
-	}
-	v := p.f.verdict(d)
+	v := p.f.verdict(key)
 	if p.hit == 0 {
 		switch {
 		case p.mutant == "drop-marked" && v == vMarked,
@@ -267,13 +263,12 @@ func readBlockDigests(o opts, db *sql.DB, path, table, stmt string) (map[string]
 	return blockDigests(o, db, table)
 }
 
-// blockDigests scans the block range keys only and returns the digests held.
+// blockDigests scans the block range keys only and returns the block keys
+// held.
 func blockDigests(o opts, db *sql.DB, table string) (map[string]bool, error) {
 	present := map[string]bool{}
 	err := scanKeys(db, table, []byte(blockPrefix), prefixEnd([]byte(blockPrefix)), o.chunk, 0, func(key []byte) error {
-		if d, ok := digestOfBlockKey(key); ok {
-			present[d] = true
-		}
+		present[string(key)] = true
 		return nil
 	})
 	return present, err
@@ -624,7 +619,7 @@ func runVerifyBody(o opts) error {
 		if errors.Is(err, sql.ErrNoRows) {
 			ok := false
 			if bytes.HasPrefix(key, []byte(blockPrefix)) {
-				if dg, parsed := digestOfBlockKey(key); parsed && f.verdict(dg) == vDrop {
+				if f.drops(key) {
 					ok = true
 				}
 			} else if _, skip := p.skipEvict[string(key)]; skip {
@@ -703,10 +698,7 @@ func runVerifyBody(o opts) error {
 // reason names why a missing key had to be kept.
 func reason(f *facts, key []byte) string {
 	if bytes.HasPrefix(key, []byte(blockPrefix)) {
-		if d, ok := digestOfBlockKey(key); ok {
-			return f.verdict(d)
-		}
-		return vUnparsed
+		return f.verdict(key)
 	}
 	return "non-block key"
 }

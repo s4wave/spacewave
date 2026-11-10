@@ -167,7 +167,7 @@ func runVerifyRaw(o opts) error {
 					// The rule, computed again: a dropped block, or an
 					// eviction entry of one.
 					if bytes.HasPrefix(key, []byte(blockPrefix)) {
-						if d, ok := digestOfBlockKey(key); ok && f.verdict(d) == vDrop {
+						if f.drops(key) {
 							drop++
 							return nil
 						}

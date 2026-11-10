@@ -199,12 +199,8 @@ func blockDigestsRaw(o opts, db *sql.DB, path, table, stmt string) (map[string]b
 	var mu sync.Mutex
 	present := map[string]bool{}
 	err = r.indexKeys(root, []byte(blockPrefix), readers, func(key []byte) error {
-		d, ok := digestOfBlockKey(key)
-		if !ok {
-			return nil
-		}
 		mu.Lock()
-		present[d] = true
+		present[string(key)] = true
 		mu.Unlock()
 		return nil
 	})

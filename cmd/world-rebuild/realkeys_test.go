@@ -45,6 +45,9 @@ func TestRealKeysGolden(t *testing.T) {
 	// Classify each key, and count the write-back stores.
 	counts := map[string]int{}
 	stores := map[string]struct{}{}
+	var o opts
+	o.storeID = defaultStoreID
+	facts := newFacts(o)
 	sc := bufio.NewScanner(f)
 	sc.Buffer(nil, 1<<20)
 	for n := 1; sc.Scan(); n++ {
@@ -59,6 +62,12 @@ func TestRealKeysGolden(t *testing.T) {
 		}
 		if obj, _, ok := objKey(key); ok {
 			stores[obj] = struct{}{}
+		}
+		// The rebuilt store's keys decode by the store's own parsers.
+		before := facts.badKeys
+		facts.addKey(key)
+		if facts.badKeys != before {
+			t.Errorf("line %d: drop rule refused %q", n, key)
 		}
 	}
 	if err := sc.Err(); err != nil {

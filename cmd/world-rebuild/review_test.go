@@ -128,24 +128,35 @@ func TestStampSeesWALReset(t *testing.T) {
 	}
 }
 
-// TestBadSubKeysRefused checks object store keys of a write-back store's
-// layout with a bad stamp, or a store id holding a writeback segment, parse
-// as bad, not as a fact or a fake store.
+// TestBadSubKeysRefused checks keys of the rebuilt store the store's own
+// parsers refuse, or that are none it writes, are refused, not read as a
+// fact; and that reads/ keys its parser accepts, which checks only the
+// generation, are taken.
 func TestBadSubKeysRefused(t *testing.T) {
 	b58, _ := testB58("bad")
 	hex16 := "0000000000000001"
+	var o opts
+	o.storeID = defaultStoreID
 	for _, key := range []string{
 		testObjPrefix + "reads/zzzzzzzzzzzzzzzz/" + hex16,
-		testObjPrefix + "reads/" + hex16 + "/zzzzzzzzzzzzzzzz",
-		testObjPrefix + "reads/" + hex16 + "0/" + hex16,
 		testObjPrefix + "evictable/NOTHEXNOTHEXNOTH/" + b58,
 		testObjPrefix + "evictable/01/" + b58,
 		testObjPrefix + "status/writeback/reads/" + hex16 + "/" + hex16,
 		testObjPrefix + "status/writeback/epoch",
 		testObjPrefix + "status/writeback/marked/" + b58,
 	} {
-		if k := objKeyOf([]byte(key)); !k.ok || k.kind != kindBad {
-			t.Errorf("%s: objKeyOf %+v, want kindBad", key, k)
+		f := newFacts(o)
+		if f.addKey([]byte(key)); f.badKeys != 1 {
+			t.Errorf("%s: %d refused, want 1", key, f.badKeys)
+		}
+	}
+	for _, key := range []string{
+		testObjPrefix + "reads/" + hex16 + "/zzzzzzzzzzzzzzzz",
+		testObjPrefix + "reads/" + hex16 + "0/" + hex16,
+	} {
+		f := newFacts(o)
+		if f.addKey([]byte(key)); f.badKeys != 0 || len(f.valueKeys) != 1 {
+			t.Errorf("%s: %d refused, %d values, want the chunk taken as LoadReads takes it", key, f.badKeys, len(f.valueKeys))
 		}
 	}
 }

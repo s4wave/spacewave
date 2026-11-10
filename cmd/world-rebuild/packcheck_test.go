@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -106,7 +107,7 @@ func TestPackCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := p.Exec("DELETE FROM kv WHERE key = ?", append(packIndexPrefix(o.storeID), append([]byte("h"), md[len(md)-indexKeyBytes:]...)...))
+	r, err := p.Exec("DELETE FROM kv WHERE key = ?", append(block_store_s3.PackIndexPrefix(o.storeID), append([]byte("h"), md[len(md)-indexKeyBytes:]...)...))
 	if err != nil {
 		t.Fatal(err)
 	}

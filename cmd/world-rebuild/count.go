@@ -3,16 +3,15 @@ package main
 import (
 	"bytes"
 	"database/sql"
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"sort"
 	"syscall"
 	"time"
 
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	wb "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/packfile"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 // countResult is what a dry run found; selftest checks it.
@@ -33,7 +32,7 @@ type rawEvict struct {
 
 // rawBlock is a block value seen by the raw pass.
 type rawBlock struct {
-	d            string
+	key          string
 	rowid, bytes int64
 }
 
@@ -89,31 +88,24 @@ func runCount(o opts) (*countResult, error) {
 		schemaErr = fmt.Errorf("World schema unread: %w; refusing", err)
 	}
 
-	// -needed-out is written aside and renamed into place only when the
-	// count does not refuse.
+	// -needed-out is written to a temp file of its own beside it, synced,
+	// and renamed into place only when the count does not refuse.
 	neededTmp := ""
-	if o.neededOut != "" {
-		neededTmp = o.neededOut + ".tmp"
-		defer os.Remove(neededTmp)
-	}
-	f := &facts{
-		marked:           map[string]struct{}{},
-		evict:            map[string][]evictEntry{},
-		hashTypes:        map[string]hash.HashType{},
-		hot:              map[[readKeyLen]byte]struct{}{},
-		packed:           map[string]struct{}{},
-		objStores:        map[string]string{},
-		evictBytesStored: map[string]int64{},
-		otherFacts:       map[string]int{},
-	}
-	evicts := map[string][]rawEvict{}
+	defer func() {
+		if neededTmp != "" {
+			os.Remove(neededTmp)
+		}
+	}()
+	f := newFacts(o)
+	evicts := map[string]rawEvict{}
 	var blocks []rawBlock
-	type readRef struct {
+	type valueRef struct {
 		c      rawCell
 		vlen   int64
 		vlocal []byte
+		blob   bool
 	}
-	gens := map[string]map[string][]readRef{}
+	values := map[string]valueRef{}
 	keptBy := map[int64]int64{}
 	totalBy := map[int64]int64{}
 	var maxRowid, rows, readBytes int64
@@ -125,10 +117,11 @@ func runCount(o opts) (*countResult, error) {
 	})
 	wst, err := world.scanLeaves(o.mbps, 4<<20, &readBytes, func(c rawCell) {
 		key, vlen, vlocal, ok := kvRecord(c)
+		keyBlob, valueBlob := kvBlobs(c)
 		if ok && kvValueNull(c) {
 			res.nullValues++
 		}
-		if !ok {
+		if !ok || !keyBlob {
 			res.badCells++
 			return
 		}
@@ -138,66 +131,25 @@ func runCount(o opts) (*countResult, error) {
 		bucket := c.rowid >> rowidBucketBits
 		totalBy[bucket] += b
 		if bytes.HasPrefix(key, []byte(blockPrefix)) {
-			d, ok := digestOfBlockKey(key)
-			if !ok {
-				res.addBlock(vUnparsed, b)
-				keptBy[bucket] += b
-				return
-			}
-			blocks = append(blocks, rawBlock{d: d, rowid: c.rowid, bytes: b})
+			blocks = append(blocks, rawBlock{key: string(key), rowid: c.rowid, bytes: b})
 			return
 		}
 		if k := objKeyOf(key); k.ok {
 			objBytes.add(b)
 			res.census.add(key, k, vlen, vlocal)
-			if k.kind == kindBad || k.kind == kindForeign {
-				if k.kind == kindBad {
-					f.badKeys++
-				}
-				res.addMeta(family(key), b)
-				keptBy[bucket] += b
-				return
+			nEvict, nValues := f.evictKeys, len(f.valueKeys)
+			f.addKey(key)
+			if len(f.valueKeys) > nValues {
+				values[string(key)] = valueRef{c: rawCell{rowid: c.rowid, size: c.size, overflow: c.overflow}, vlen: vlen, vlocal: bytes.Clone(vlocal), blob: valueBlob}
 			}
-			obj := k.obj
-			if k.kind == kindCopy || k.kind == kindCopyDone {
-				f.noteCopy(k)
-			}
-			if (k.kind == kindMarked || k.kind == kindEvict || k.kind == kindReads) && !ownStore(o, obj) {
-				if k.kind != kindReads {
-					f.otherFacts[obj]++
-				}
-				res.addMeta(family(key), b)
-				keptBy[bucket] += b
-				return
-			}
-			if in, ok := f.objStores[obj]; ok {
-				obj = in
-			} else {
-				f.objStores[obj] = obj
-			}
-			switch k.kind {
-			case kindMarked:
-				f.marked[k.digest] = struct{}{}
-			case kindEvict:
-				d := k.digest
+			if f.evictKeys > nEvict {
 				var size int64
 				if int64(len(vlocal)) == vlen {
 					size, _ = evictSize(vlocal)
 				}
-				f.hashTypes[d] = k.hashType
-				f.evict[d] = append(f.evict[d], evictEntry{obj: obj})
-				evicts[d] = append(evicts[d], rawEvict{rowid: c.rowid, bytes: b, size: size})
-				f.evictKeys++
+				evicts[string(key)] = rawEvict{rowid: c.rowid, bytes: b, size: size}
 				// Tallied once the drop rule has decided its block.
 				return
-			case kindReads:
-				if gens[obj] == nil {
-					gens[obj] = map[string][]readRef{}
-				}
-				gens[obj][k.gen] = append(gens[obj][k.gen], readRef{c: rawCell{rowid: c.rowid, size: c.size, overflow: c.overflow}, vlen: vlen, vlocal: bytes.Clone(vlocal)})
-			case kindBytes:
-				n, _ := evictSize(vlocal)
-				f.evictBytesStored[obj] = n
 			}
 		}
 		res.addMeta(family(key), b)
@@ -209,123 +161,115 @@ func runCount(o opts) (*countResult, error) {
 	res.badCells += wst.badCells
 	fmt.Printf("world pass (measured): %s read in %s (%.0f MB/s, paced to %.0f), %d leaf pages, %d free pages skipped, %d rows, %d cells did not decode\n",
 		gb(wst.read), wst.took.Round(time.Second), float64(wst.read)/1e6/wst.took.Seconds(), o.mbps, wst.leaves, wst.free, rows, res.badCells)
-
-	// The two newest read generations of each object store, read through
-	// their overflow chains.
-	for obj, g := range gens {
-		var starts []string
-		for s := range g {
-			starts = append(starts, s)
-		}
-		sort.Strings(starts)
-		if len(starts) > 2 {
-			starts = starts[len(starts)-2:]
-		}
-		for _, s := range starts {
-			raw, _ := hex.DecodeString(s)
-			at := time.Unix(0, int64(binary.BigEndian.Uint64(raw))).UTC()
-			n := 0
-			for _, ref := range g[s] {
-				v, err := world.value(ref.c, ref.vlen, ref.vlocal)
-				if err != nil {
-					fmt.Printf("warning: read chunk at rowid %d: %v; its keys are not counted hot\n", ref.c.rowid, err)
-					continue
-				}
-				for ; len(v) >= readKeyLen; v = v[readKeyLen:] {
-					f.hot[[readKeyLen]byte(v[:readKeyLen])] = struct{}{}
-					n++
-				}
-			}
-			f.gens = append(f.gens, fmt.Sprintf("%s gen %s: %d chunks, %d keys", obj, at.Format(time.RFC3339), len(g[s]), n))
-		}
+	if res.badCells > 0 {
+		f.refuse("%d World cells did not decode as a blob key and a blob or NULL value", res.badCells)
 	}
 
-	// Pass 2: the pack index. Live packs from p/ rows, and the h rows of
-	// the queued, unmarked blocks.
-	pre := packIndexPrefix(o.storeID)
-	pp := append(bytes.Clone(pre), "p/"...)
-	hp := append(bytes.Clone(pre), 'h')
-	cands := map[[indexKeyBytes]byte]string{}
-	for d := range f.evict {
-		if _, marked := f.marked[d]; !marked {
-			cands[packRowKey(d, f.hashTypes[d])] = d
+	// The values the rule reads, through their overflow chains.
+	for _, key := range f.valueKeys {
+		ref := values[string(key)]
+		v, err := world.value(ref.c, ref.vlen, ref.vlocal)
+		if err != nil {
+			f.refuse("value of %q at rowid %d: %v", trunc(key), ref.c.rowid, err)
+			continue
 		}
+		f.addValue(key, v, ref.blob)
 	}
-	livePacks := map[uint32]struct{}{}
+	values = nil
+	cands := map[string][]int{}
+	crows := f.settle()
+	for i, c := range crows {
+		cands[string(c.row)] = append(cands[string(c.row)], i)
+	}
+
+	// Pass 2: the pack index. The p/ rows, and the h rows of the drop
+	// candidates.
+	pre := block_store_s3.PackIndexPrefix(o.storeID)
+	pp := append(bytes.Clone(pre), block_store_s3.PackRowPrefix...)
+	hp := append(bytes.Clone(pre), block_store_s3.HashRowPrefix...)
 	// With -needed-out, the pack ids and the sizes their e/ rows record.
 	packIDs := map[uint32]string{}
 	packSizes := map[string]int64{}
 	ep := append(bytes.Clone(pre), "e/"...)
-	var badEntries int64
-	hnum := map[string]uint32{}
+	var badEntries, badPackCells int64
+	hvals := map[int][]byte{}
 	var hRows, packRead int64
-	live.setPhase("pack index pages", func() string { return fmt.Sprintf("%d h rows, %d matched", hRows, len(hnum)) })
+	live.setPhase("pack index pages", func() string { return fmt.Sprintf("%d h rows, %d matched", hRows, len(hvals)) })
 	pst, err := packs.scanLeaves(o.mbps, 4<<20, &packRead, func(c rawCell) {
 		key, vlen, v, ok := kvRecord(c)
-		if !ok || int64(len(v)) != vlen {
+		keyBlob, valueBlob := kvBlobs(c)
+		if !ok || !keyBlob {
+			badPackCells++
 			return
 		}
 		switch {
 		case bytes.HasPrefix(key, pp):
-			if len(v) >= 4 {
-				livePacks[binary.BigEndian.Uint32(v)] = struct{}{}
-				if o.neededOut != "" {
-					packIDs[binary.BigEndian.Uint32(v)] = string(key[len(pp):])
-				}
+			if !valueBlob || int64(len(v)) != vlen {
+				f.refuse("pack index p/ row %q is not a blob on its page", trunc(key))
+				return
+			}
+			f.addPackRow(key, v)
+			if num, err := block_store_s3.ParsePackRow(v); err == nil && o.neededOut != "" {
+				packIDs[num] = string(key[len(pp):])
 			}
 		case o.neededOut != "" && bytes.HasPrefix(key, ep):
 			e := &packfile.PackfileEntry{}
-			if e.UnmarshalVT(v) != nil {
+			if int64(len(v)) != vlen || e.UnmarshalVT(v) != nil {
 				badEntries++
 				return
 			}
 			packSizes[string(key[len(ep):])] = int64(e.GetSizeBytes())
-		case len(key) == len(hp)+indexKeyBytes && bytes.HasPrefix(key, hp):
+		case bytes.HasPrefix(key, hp):
 			hRows++
-			if d, ok := cands[[indexKeyBytes]byte(key[len(hp):])]; ok && len(v) >= 4 {
-				hnum[d] = binary.BigEndian.Uint32(v)
+			is, ok := cands[string(key[len(pre):])]
+			if !ok {
+				return
+			}
+			if !valueBlob || int64(len(v)) != vlen {
+				f.refuse("pack index h row %q is not a blob on its page", trunc(key))
+				return
+			}
+			for _, i := range is {
+				hvals[i] = bytes.Clone(v)
 			}
 		}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("pack index pages: %w", err)
 	}
-	f.packsLive = len(livePacks)
-	for _, d := range cands {
-		f.lookups++
-		num, ok := hnum[d]
-		if !ok {
-			f.hMissing++
-			continue
-		}
-		if _, isLive := livePacks[num]; !isLive {
-			f.hDead++
-			continue
-		}
-		f.packed[d] = struct{}{}
+	badPackCells += pst.badCells
+	if badPackCells > 0 {
+		f.refuse("%d pack index cells did not decode as a blob key and value", badPackCells)
 	}
-	fmt.Printf("pack index pass (measured): %s in %s, %d h rows, %d cells did not decode\n", gb(pst.read), pst.took.Round(time.Second), hRows, pst.badCells)
+	for i, c := range crows {
+		v, found := hvals[i]
+		f.addHashRow(c, v, found)
+	}
+	f.decide()
+	fmt.Printf("pack index pass (measured): %s in %s, %d h rows, %d cells did not decode\n", gb(pst.read), pst.took.Round(time.Second), hRows, badPackCells)
 
 	// Classify the blocks, then their eviction entries.
 	dropped := map[string]struct{}{}
 	for _, b := range blocks {
-		v := f.verdict(b.d)
+		v := f.verdict([]byte(b.key))
 		res.addBlock(v, b.bytes)
 		if v == vDrop {
-			dropped[b.d] = struct{}{}
+			dropped[b.key] = struct{}{}
 		} else {
 			keptBy[b.rowid>>rowidBucketBits] += b.bytes
 		}
 	}
-	if o.neededOut != "" {
-		if err := writeCountNeeded(neededTmp, dropped, hnum, packIDs, packSizes, badEntries); err != nil {
+	if o.neededOut != "" && f.refusedErr() == nil {
+		neededTmp, err = writeCountNeeded(o.neededOut, dropped, f.hashNum, packIDs, packSizes, badEntries)
+		if err != nil {
 			return nil, err
 		}
 	}
 	var evictKept int64
-	for d, es := range evicts {
-		_, drop := dropped[d]
-		for _, e := range es {
+	for bk, es := range f.evict {
+		_, drop := dropped[bk]
+		for _, ee := range es {
+			e := evicts[string(ee.key)]
 			if drop {
 				res.dropEvict.add(e.bytes)
 				continue
@@ -342,8 +286,8 @@ func runCount(o opts) (*countResult, error) {
 		stored += n
 	}
 	hotPacked := 0
-	for d := range f.packed {
-		if f.verdict(d) == vHot {
+	for bk := range f.packed {
+		if f.verdicts[bk] == vHot {
 			hotPacked++
 		}
 	}
@@ -351,13 +295,14 @@ func runCount(o opts) (*countResult, error) {
 	fmt.Printf("  object stores %d (%d keys, %s); marked %d; queued blocks %d in %d entries\n",
 		len(f.objStores), objBytes.keys, gb(objBytes.bytes), len(f.marked), len(f.evict), f.evictKeys)
 	fmt.Printf("  evictable-bytes as stored %s; after the drop the kept entries sum to %s\n", gb(stored), gb(evictKept))
-	fmt.Printf("  read set: %d hot keys\n", len(f.hot))
+	fmt.Printf("  read set: %d chunks; eviction epoch %d, the next pass walks entries below %d (%d blocks; %d not walked)\n",
+		len(f.chunks), f.epoch, wb.PassEpoch(f.epoch), f.walkedN, f.unwalkedN)
 	for _, g := range f.gens {
 		fmt.Println("    read", g)
 	}
-	fmt.Printf("  pack index: %d live packs; %d queued unmarked blocks: %d packed, %d no h row, %d h row on a dead pack\n",
-		f.packsLive, f.lookups, len(f.packed), f.hMissing, f.hDead)
-	fmt.Printf("  drop candidates: %d packed, of which %d hot (kept); %d object store keys did not parse\n", len(f.packed), hotPacked, f.badKeys)
+	fmt.Printf("  pack index: %d live packs (%d numbers held twice); %d walked unmarked blocks: %d packed, %d no h row, %d h row on a dead pack, %d on a shared number\n",
+		f.packsLive, f.packsShared, f.lookups, len(f.packed), f.hMissing, f.hDead, f.hShared)
+	fmt.Printf("  drop candidates: %d packed, of which %d hot (kept); %d rows the rule cannot decide by\n", len(f.packed), hotPacked, f.badKeys)
 	fmt.Printf("marked blocks (marked/ rows): %d\n", len(f.marked))
 	fmt.Printf("NULL values (rows of the World table whose value is NULL, kept NULL by copy): %d\n", res.nullValues)
 	fmt.Printf("read set keys per generation:\n")
@@ -424,15 +369,9 @@ func runCount(o opts) (*countResult, error) {
 		}
 	}
 	fmt.Printf("\ncount done in %s\n", time.Since(start).Round(time.Second))
-	if f.badKeys != 0 {
-		// The report stands, but its verdicts do not: an unparsed
-		// marker or read set key would leave its block droppable.
-		return res, fmt.Errorf("%d object store keys did not parse as write-back store keys; the drop verdicts are not trustworthy", f.badKeys)
-	}
-	if err := otherFactsErr(f); err != nil {
-		return res, err
-	}
-	if err := unfinishedCopiesErr(f); err != nil {
+	// The report stands, but its verdicts do not: a row the rule cannot
+	// decide by could leave its block droppable.
+	if err := factsErr(f); err != nil {
 		return res, err
 	}
 	if schemaErr != nil {
@@ -443,6 +382,7 @@ func runCount(o opts) (*countResult, error) {
 			return res, err
 		}
 		fmt.Printf("needed packs: %s renamed to %s\n", neededTmp, o.neededOut)
+		neededTmp = ""
 	}
 	return res, nil
 }
@@ -577,6 +517,14 @@ func measureCopy(o opts, f *facts, maxRowid, rows, keepBytes int64) error {
 	saved := live
 	live = nil
 	defer func() { live = saved }()
+	skip := map[string]struct{}{}
+	for bk, es := range f.evict {
+		if f.drops([]byte(bk)) {
+			for _, e := range es {
+				skip[string(e.key)] = struct{}{}
+			}
+		}
+	}
 	var kept, scanned int64
 	var scanT, readT, writeT time.Duration
 	limit := o.rateMB * 1e6
@@ -589,10 +537,10 @@ func measureCopy(o opts, f *facts, maxRowid, rows, keepBytes int64) error {
 		t0 := time.Now()
 		err := scanRowids(src, table, lo, lo+width, 5000, 0, func(id int64, key []byte, _ int64) error {
 			scanned++
-			if bytes.HasPrefix(key, []byte(blockPrefix)) && f.blockVerdict(key) == vDrop {
+			if f.drops(key) {
 				return nil
 			}
-			if d, ok := evictDigest(key); ok && f.verdict(d) == vDrop {
+			if _, ok := skip[string(key)]; ok {
 				return nil
 			}
 			ids = append(ids, id)
@@ -858,13 +806,13 @@ func runRateSplit(o opts) error {
 	return insert(o.rateOut+".sorted", "key order")
 }
 
-// writeCountNeeded writes the packs the dropped blocks' h rows name, with
+// writeCountNeeded writes, to a temp file beside path it returns, the packs the dropped blocks' h rows name, with
 // the sizes their e/ rows record, as packcheck -needed-out does: the list
 // packcheck -needed checks a listing against before the downtime. A pack with
 // no e/ row is written with size -1, which packcheck counts as a fault; the
 // header records the dropped blocks with no h row or a pack number no p/ row
 // holds, which packcheck -needed counts as faults too.
-func writeCountNeeded(path string, dropped map[string]struct{}, hnum map[string]uint32, ids map[uint32]string, sizes map[string]int64, badEntries int64) error {
+func writeCountNeeded(path string, dropped map[string]struct{}, hnum map[string]uint32, ids map[uint32]string, sizes map[string]int64, badEntries int64) (string, error) {
 	byID := map[string]*neededPack{}
 	var hdr neededHeader
 	for d := range dropped {
@@ -898,10 +846,11 @@ func writeCountNeeded(path string, dropped map[string]struct{}, hnum map[string]
 		}
 	}
 	sort.Slice(packs, func(i, j int) bool { return packs[i].id < packs[j].id })
-	if err := writeNeeded(path, packs, hdr); err != nil {
-		return err
+	tmp, err := writeNeededTemp(path, packs, hdr)
+	if err != nil {
+		return "", err
 	}
 	fmt.Printf("needed packs (measured, as of the main files' last checkpoint): %d dropped blocks in %d packs, %d with no e/ row, %d e/ rows did not decode, %d dropped blocks with no h row, %d naming a pack no p/ row holds; written to %s\n",
-		len(dropped), len(packs), noEntry, badEntries, hdr.noRow, hdr.deadPack, path)
-	return nil
+		len(dropped), len(packs), noEntry, badEntries, hdr.noRow, hdr.deadPack, tmp)
+	return tmp, nil
 }

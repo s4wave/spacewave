@@ -27,7 +27,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -36,8 +35,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/net/hash"
 	_ "modernc.org/sqlite"
 )
 
@@ -369,39 +366,6 @@ func prefixEnd(p []byte) []byte {
 	return nil
 }
 
-// digestOf parses a block hash from its base58 key form and returns its
-// digest bytes.
-func digestOfB58(s string) (string, bool) {
-	h := &hash.Hash{}
-	if err := h.ParseFromB58(s); err != nil || len(h.GetHash()) == 0 {
-		return "", false
-	}
-	return string(h.GetHash()), true
-}
-
-// digestOfBlockKey parses the block ref after the block prefix.
-func digestOfBlockKey(key []byte) (string, bool) {
-	ref := &block.BlockRef{}
-	if err := ref.UnmarshalVT(key[len(blockPrefix):]); err != nil {
-		return "", false
-	}
-	h := ref.GetHash()
-	if h == nil || len(h.GetHash()) == 0 {
-		return "", false
-	}
-	return string(h.GetHash()), true
-}
-
-// packRowKey returns the 16 bytes an h row keys a digest by: the end of the
-// marshaled hash, as the pack index's hashRowKey takes from BlockKey.
-func packRowKey(digest string, hashType hash.HashType) [indexKeyBytes]byte {
-	h := hash.NewHash(hashType, []byte(digest))
-	full := h.MarshalDigest()
-	var k [indexKeyBytes]byte
-	copy(k[:], full[max(len(full)-indexKeyBytes, 0):])
-	return k
-}
-
 // tally counts keys and bytes.
 type tally struct{ keys, bytes int64 }
 
@@ -437,11 +401,4 @@ func trunc(b []byte) string {
 		b = b[:24]
 	}
 	return string(b)
-}
-
-// packIndexPrefix is the pack index's key prefix for a block store: "pi" and
-// 8 bytes of the store id's hash, as s3.PackIndexPrefix.
-func packIndexPrefix(storeID string) []byte {
-	sum := sha256.Sum256([]byte(storeID))
-	return append([]byte("pi"), sum[:8]...)
 }

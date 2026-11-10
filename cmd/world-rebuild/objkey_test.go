@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
 	"path/filepath"
@@ -85,47 +86,51 @@ func TestObjKeySlashedID(t *testing.T) {
 }
 
 // TestFactsSlashedID checks the drop rule sees the markers, eviction entries
-// and read set of a production-shaped store, and of one without slashes in
-// the same World.
+// and read set of the production-shaped store, whose id holds slashes.
 func TestFactsSlashedID(t *testing.T) {
 	stamp := "0000000000000003"
-	for _, obj := range []string{prodObj, "h/objs/writeback/"} {
-		markedB58, markedD := testB58(obj + "marked")
-		hotB58, hotD := testB58(obj + "hot")
-		dropB58, dropD := testB58(obj + "drop")
-		keys := []string{
-			obj + "marked/" + markedB58,
-			obj + "evictable/" + stamp + "/" + markedB58,
-			obj + "evictable/" + stamp + "/" + hotB58,
-			obj + "evictable/" + stamp + "/" + dropB58,
+	var o opts
+	o.storeID = defaultStoreID
+	marked, hot, drop := testBlockOf(1), testBlockOf(2), testBlockOf(3)
+	f := newFacts(o)
+	for _, key := range []string{
+		prodObj + "marked/" + marked.b58,
+		prodObj + "evictable/" + stamp + "/" + marked.b58,
+		prodObj + "evictable/" + stamp + "/" + hot.b58,
+		prodObj + "evictable/" + stamp + "/" + drop.b58,
+		prodObj + "reads/" + stamp + "/" + stamp,
+		prodObj + "epoch",
+	} {
+		f.addKey([]byte(key))
+	}
+	if err := f.refusedErr(); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range f.valueKeys {
+		v := []byte("3")
+		if bytes.HasSuffix(key, []byte("/"+stamp)) {
+			v = hot.readKey
 		}
-		f := &facts{marked: map[string]struct{}{}, evict: map[string][]evictEntry{}, packed: map[string]struct{}{}, hot: map[[readKeyLen]byte]struct{}{}}
-		for _, key := range keys {
-			k := objKeyOf([]byte(key))
-			switch k.kind {
-			case kindMarked:
-				f.marked[k.digest] = struct{}{}
-			case kindEvict:
-				f.evict[k.digest] = append(f.evict[k.digest], evictEntry{obj: k.obj})
-				f.packed[k.digest] = struct{}{}
-			default:
-				t.Fatalf("%s: kind %d", key, k.kind)
-			}
-		}
-		if k := objKeyOf([]byte(obj + "reads/" + stamp + "/" + stamp)); k.kind != kindReads || k.gen != stamp {
-			t.Fatalf("reads key: %+v", k)
-		}
-		var hk [readKeyLen]byte
-		copy(hk[:], hotD)
-		f.hot[hk] = struct{}{}
-		for _, c := range []struct{ d, want string }{
-			{markedD, vMarkedEvic},
-			{hotD, vHot},
-			{dropD, vDrop},
-		} {
-			if got := f.verdict(c.d); got != c.want {
-				t.Errorf("%s: verdict %q, want %q", obj, got, c.want)
-			}
+		f.addValue(key, v, true)
+	}
+	for _, c := range f.settle() {
+		f.addHashRow(c, []byte{0, 0, 0, 7}, true)
+	}
+	f.addPackRow([]byte("p/pack7"), []byte{0, 0, 0, 7, 0})
+	if err := f.refusedErr(); err != nil {
+		t.Fatal(err)
+	}
+	f.decide()
+	for _, c := range []struct {
+		b    testBlock
+		want string
+	}{
+		{marked, vMarkedEvic},
+		{hot, vHot},
+		{drop, vDrop},
+	} {
+		if got := f.verdict(c.b.key); got != c.want {
+			t.Errorf("block %d: verdict %q, want %q", c.b.category, got, c.want)
 		}
 	}
 }
@@ -227,15 +232,9 @@ func sharedRefWorld(t *testing.T, rows func(other, b58 string) []string) opts {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var b58 string
-	for d := range f.evict {
-		if f.verdict(d) == vDrop {
-			b58 = hash.NewHash(f.hashTypes[d], []byte(d)).MarshalString()
-			break
-		}
-	}
-	if b58 == "" {
-		t.Fatal("no dropped block")
+	b58 := dropBlock.b58
+	if !f.drops(dropBlock.key) {
+		t.Fatalf("block %s is not dropped: %s", b58, f.verdict(dropBlock.key))
 	}
 
 	// Write the second store's rows for it.

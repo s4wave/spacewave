@@ -256,6 +256,27 @@ func kvRecord(c rawCell) (key []byte, vlen int64, vlocal []byte, ok bool) {
 	return key, vl, vlocal, true
 }
 
+// kvBlobs reports whether a record kvRecord decodes has a blob key, and a
+// blob or NULL value: kvRecord takes text for either, as its lengths are
+// read alike, and the rule takes only blobs, as SQLite's typeof does.
+func kvBlobs(c rawCell) (keyBlob, valueBlob bool) {
+	b := c.local
+	hs, k := varint(b)
+	if k == 0 || int(hs) > len(b) {
+		return false, false
+	}
+	t1, k1 := varint(b[k:hs])
+	if k1 == 0 {
+		return false, false
+	}
+	t2, k2 := varint(b[k+k1 : hs])
+	if k2 == 0 {
+		return false, false
+	}
+	isBlob := func(t uint64) bool { return t >= 12 && t%2 == 0 }
+	return isBlob(t1), t2 == 0 || isBlob(t2)
+}
+
 // kvValueNull reports whether a record kvRecord decodes has a NULL value,
 // serial type 0, which kvRecord reads as zero bytes. The kvtx SQLite store
 // writes a nil value as NULL.

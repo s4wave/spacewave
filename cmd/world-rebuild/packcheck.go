@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
-	"encoding/binary"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
@@ -221,14 +222,15 @@ func neededPacks(o opts, res *packCheckResult) ([]neededPack, error) {
 	if err != nil {
 		return nil, err
 	}
-	pre := packIndexPrefix(o.storeID)
+	pre := block_store_s3.PackIndexPrefix(o.storeID)
 	ids := map[uint32]string{}
-	pp := append(bytes.Clone(pre), "p/"...)
+	pp := append(bytes.Clone(pre), block_store_s3.PackRowPrefix...)
 	err = scan(pdb, ptable, pp, prefixEnd(pp), o.chunk, 0, true, func(key []byte, _ int64, v []byte) error {
-		if len(v) < 4 {
-			return fmt.Errorf("p/ row %q of %d bytes", trunc(key), len(v))
+		num, err := block_store_s3.ParsePackRow(v)
+		if err != nil {
+			return fmt.Errorf("p/ row %q: %w", trunc(key), err)
 		}
-		ids[binary.BigEndian.Uint32(v)] = string(key[len(pp):])
+		ids[num] = string(key[len(pp):])
 		return nil
 	})
 	if err != nil {
@@ -247,17 +249,22 @@ func neededPacks(o opts, res *packCheckResult) ([]neededPack, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: e/ rows: %w", o.packs, err)
 	}
-	hp := append(bytes.Clone(pre), 'h')
+	hp := append(bytes.Clone(pre), block_store_s3.HashRowPrefix...)
 	found := map[[indexKeyBytes]byte]bool{}
 	err = scan(pdb, ptable, hp, prefixEnd(hp), o.chunk, 0, true, func(key []byte, _ int64, v []byte) error {
-		if len(key) != len(hp)+indexKeyBytes || len(v) < 4 {
+		if len(key) != len(pre)+len(block_store_s3.HashRowPrefix)+indexKeyBytes {
 			return nil
 		}
 		k := [indexKeyBytes]byte(key[len(hp):])
-		if _, ok := dropped[k]; ok {
-			dropped[k] = binary.BigEndian.Uint32(v)
-			found[k] = true
+		if _, ok := dropped[k]; !ok {
+			return nil
 		}
+		num, ok := block_store_s3.HashRowPack(v)
+		if !ok {
+			return fmt.Errorf("h row %q of a dropped block did not decode", trunc(key))
+		}
+		dropped[k] = num
+		found[k] = true
 		return nil
 	})
 	if err != nil {
@@ -306,11 +313,11 @@ func blockRowKey(key []byte) ([indexKeyBytes]byte, bool) {
 	if !bytes.HasPrefix(key, []byte(blockPrefix)) || ref.UnmarshalVT(key[len(blockPrefix):]) != nil || ref.GetHash() == nil {
 		return k, false
 	}
-	md := ref.GetHash().MarshalDigest()
-	if len(md) < indexKeyBytes {
+	row := block_store_s3.HashRowKey(ref.GetHash())
+	if len(row) != len(block_store_s3.HashRowPrefix)+indexKeyBytes {
 		return k, false
 	}
-	copy(k[:], md[len(md)-indexKeyBytes:])
+	copy(k[:], row[len(block_store_s3.HashRowPrefix):])
 	return k, true
 }
 
@@ -334,15 +341,59 @@ func openLiveRO(path string) (*sql.DB, error) {
 // faults packcheck -needed counts.
 type neededHeader struct{ noRow, deadPack int64 }
 
-// writeNeeded writes the needed packs: the header line "# noRow N deadPack
+// syncFile syncs a file written aside before its rename; tests wrap it.
+var syncFile = (*os.File).Sync
+
+// writeNeededTemp writes the needed packs to a synced temp file beside
+// path, and returns its name: the header line "# noRow N deadPack
 // M", then one "id size blocks" line each.
-func writeNeeded(path string, packs []neededPack, hdr neededHeader) error {
+func writeNeededTemp(path string, packs []neededPack, hdr neededHeader) (string, error) {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "# noRow %d deadPack %d\n", hdr.noRow, hdr.deadPack)
 	for _, p := range packs {
 		fmt.Fprintf(&b, "%s %d %d\n", p.id, p.size, p.blocks)
 	}
-	return os.WriteFile(path, b.Bytes(), 0o644)
+	tmp, err := writeTemp(path, b.Bytes())
+	if err != nil {
+		return "", err
+	}
+	return tmp, nil
+}
+
+// writeNeeded writes the needed packs to path, through a synced temp file
+// renamed into place.
+func writeNeeded(path string, packs []neededPack, hdr neededHeader) error {
+	tmp, err := writeNeededTemp(path, packs, hdr)
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return nil
+}
+
+// writeTemp writes b to a new temp file of its own in path's directory,
+// named after path, and syncs it: a rename then puts whole contents in
+// place. A file at any fixed name beside path is left alone.
+func writeTemp(path string, b []byte) (string, error) {
+	f, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return "", err
+	}
+	_, err = f.Write(b)
+	if err == nil {
+		err = syncFile(f)
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(f.Name())
+		return "", err
+	}
+	return f.Name(), nil
 }
 
 // readNeeded reads a needed-packs file writeNeeded wrote. A file without the
