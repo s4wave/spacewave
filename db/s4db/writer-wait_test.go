@@ -59,7 +59,7 @@ func runAdmission(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	db.w.endWait()
-	err = db.w.commit(ctx, db.cur.Load(), []tentry{{key: []byte("admitted"), data: []byte("child")}}, false)
+	err = db.w.commit(ctx, db.cur.Load(), []tentry{{key: []byte("admitted"), data: []byte("child")}}, commitForeground)
 	db.w.unlock()
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +159,7 @@ func TestWriterAdmission(t *testing.T) {
 					if command != "write" {
 						return nil
 					}
-					v, found, err := db.lookup(db.cur.Load(), []byte("admitted"))
+					v, found, err := db.lookup(db.cur.Load(), []byte("admitted"), nil)
 					if err != nil || !found || !bytes.Equal(v.inline, []byte("child")) {
 						return fmt.Errorf("background passed foreground commit: %t %v", found, err)
 					}

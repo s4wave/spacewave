@@ -10,6 +10,8 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // waitFlushed waits until the memtable is back within its budget and at
@@ -75,7 +77,56 @@ func TestFlush(t *testing.T) {
 	}
 	db = openTest(t, path, opts)
 	defer db.Close()
+
+	// A background write transaction's reads and commit leave the reopened
+	// file's empty block cache alone; a foreground read then fills it.
+	ctx := kvtx.WithBackgroundWriteContext(context.Background())
+	tx, err := db.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := slices.Collect(maps.Keys(m))
+	batch := make([][]byte, 0, len(keys))
+	for _, k := range keys {
+		batch = append(batch, []byte(k))
+		got, ok, err := tx.Get(ctx, []byte(k))
+		if err != nil || !ok || !bytes.Equal(got, m[k]) {
+			t.Fatalf("background get %x: found %v err %v", k, ok, err)
+		}
+		if ok, err := tx.Exists(ctx, []byte(k)); err != nil || !ok {
+			t.Fatalf("background exists %x: %v err %v", k, ok, err)
+		}
+	}
+	values, found, err := tx.(*Tx).GetBatch(ctx, batch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, k := range keys {
+		if !found[i] || !bytes.Equal(values[i], m[k]) {
+			t.Fatalf("background batch get %x: found %v", k, found[i])
+		}
+	}
+	for _, k := range keys[:min(len(keys), 100)] {
+		m[k] = append(bytes.Clone(m[k]), 'b')
+		if err := tx.Set(ctx, []byte(k), m[k]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	cached := func() int64 {
+		db.cache.mtx.Lock()
+		defer db.cache.mtx.Unlock()
+		return db.cache.bytes
+	}
+	if n := cached(); n != 0 {
+		t.Fatalf("background transaction left %d bytes in the block cache", n)
+	}
 	m.check(t, db)
+	if cached() == 0 {
+		t.Fatal("foreground reads left the block cache empty")
+	}
 	if got := contents(t, db); !maps.EqualFunc(got, m, bytes.Equal) {
 		t.Fatalf("reopened contents differ: %d keys, want %d", len(got), len(m))
 	}
