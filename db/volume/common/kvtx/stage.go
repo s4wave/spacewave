@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -231,17 +230,10 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 		return nil, nil
 	}
 
-	// Store the batch under the stage, in cuts that each hold the writer turn
-	// about backgroundBatchHold for a background writer, and count the blocks
-	// it stored, or the refusal.
+	// Store the batch under the stage and count the blocks it stored, or the
+	// refusal.
 	v.noteUnknownRefsBatch(putStaged, entries)
-	var existed []bool
-	var err error
-	if kvtx.IsBackgroundWriteContext(ctx) && backgroundBatchHold != 0 {
-		existed, err = v.putStagedCut(ctx, stage, entries)
-	} else {
-		existed, err = v.prepareStaged(ctx, stage, entries)
-	}
+	existed, err := v.prepareStaged(ctx, stage, entries)
 	if err == nil {
 		v.countPutBatch(putStaged, entries, existed)
 	}
