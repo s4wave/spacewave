@@ -75,3 +75,6 @@ func (s *readThroughStore) OpenStage(ctx context.Context) (block.StoreOps, func(
 	}
 	return newReadThroughStore(staged, s.rt), release, nil
 }
+
+// BuildNodeGraphRoot exposes the regeneration build to the external tests.
+var BuildNodeGraphRoot = buildNodeGraphRoot

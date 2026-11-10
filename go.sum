@@ -22,6 +22,8 @@ github.com/aperturerobotics/cayley v0.15.1-0.20261026172548-43cf8e6be6cb h1:V9Q0
 github.com/aperturerobotics/cayley v0.15.1-0.20261026172548-43cf8e6be6cb/go.mod h1:ND+69RkuSKxwwDq05oJh5L/88VoUY5PrvKCW14Chnys=
 github.com/aperturerobotics/cayley v0.15.1-0.20261110052155-7ec2cb5f95c8 h1:dE68yE4S7qvgPLldfS2iB16J1YzOzYAmGs1d4YnWvaA=
 github.com/aperturerobotics/cayley v0.15.1-0.20261110052155-7ec2cb5f95c8/go.mod h1:ND+69RkuSKxwwDq05oJh5L/88VoUY5PrvKCW14Chnys=
+github.com/aperturerobotics/cayley v0.15.1-0.20261110080746-0ca7434b350d h1:PAWQhlg4aGEcwK7Dqcyzp7dpa3+n+G9BOs8LdjfLy6E=
+github.com/aperturerobotics/cayley v0.15.1-0.20261110080746-0ca7434b350d/go.mod h1:ND+69RkuSKxwwDq05oJh5L/88VoUY5PrvKCW14Chnys=
 github.com/aperturerobotics/circl v1.6.4-0.20261026102657-7415ab3046b7 h1:9MoBgDn8jSdA2p6gtZOaVCzlepQKvs3P7ApxdnQOQJ0=
 github.com/aperturerobotics/circl v1.6.4-0.20261026102657-7415ab3046b7/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 h1:rtXExSFsl0x9FN+MfC8L3cKsgCzC1RteeqmTwlsuAps=
