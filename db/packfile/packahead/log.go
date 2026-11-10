@@ -581,7 +581,7 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 	entries := encodeBatch(buf[start:end], start, batch)
 
 	// Write them with one positioned write.
-	_, werr := p.f.WriteAt(buf[start:end], start)
+	_, werr := batchWriteAt(p.f, buf[start:end], start)
 
 	// Publish the batch, or fail the pack so the next write rotates.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -695,11 +695,14 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 				l.leaders--
 				l.syncs++
 
-				// A failed sync poisons the pack; a good one advances its mark.
+				// A failed sync poisons the pack. A good one advances its mark
+				// only while the pack has no error: a write that failed during
+				// the sync already dropped the batches past the mark from the
+				// table, and salvage keeps only bytes below it.
 				if serr != nil {
 					l.syncFailures++
 					l.failLocked(p, serr)
-				} else {
+				} else if p.err == nil {
 					p.synced = max(p.synced, target)
 				}
 				broadcast()
@@ -1093,6 +1096,21 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 // sync covered, from its buffer into a finalized pack that takes its place,
 // or removes p when it holds none.
 func (l *Log) salvageRotated(p *pack) error {
+	// Wait out a sync leader still running on p: no new one starts on a
+	// failed pack, and the mark it leaves is final.
+	for {
+		var waitCh <-chan struct{}
+		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if p.syncing {
+				waitCh = getWaitCh()
+			}
+		})
+		if waitCh == nil {
+			break
+		}
+		<-waitCh
+	}
+
 	// Take the synced batches from the buffer: the file is not trusted.
 	var data []byte
 	var keep []entry
@@ -1125,9 +1143,11 @@ func (l *Log) salvageRotated(p *pack) error {
 			}
 		}
 
-		// Locate p's values in the copy, keeping their removed marks.
-		for t, loc := range l.table {
-			if loc.p == p {
+		// Locate the kept values still at their place in p in the copy,
+		// keeping their removed marks.
+		for _, e := range keep {
+			t := tailOf(e.key)
+			if loc, ok := l.table[t]; ok && loc.p == p && int64(loc.off) == e.off {
 				loc.p = q
 				if loc.removed {
 					q.removed++

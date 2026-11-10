@@ -198,10 +198,10 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	if size > opts.MaxPackBytes {
 		return nil, errors.Errorf("pack %s of %d bytes exceeds %d", seqText(p.seq), size, opts.MaxPackBytes)
 	}
-	if _, err := p.f.WriteAt(tail.Bytes(), int64(len(data))); err != nil {
+	if _, err := indexWriteAt(p.f, tail.Bytes(), int64(len(data))); err != nil {
 		return nil, &ioError{errors.Wrap(err, "write pack index")}
 	}
-	if err := opts.SyncData(p.f); err != nil {
+	if err := indexSync(opts, p.f); err != nil {
 		return nil, &ioError{errors.Wrap(err, "sync pack index")}
 	}
 
@@ -238,7 +238,7 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	// Rename the pack to its finalized name and make the rename durable. A
 	// rename done is never tried again.
 	path := filepath.Join(dir, finalName(p.seq, id))
-	if err := os.Rename(p.path, path); err != nil {
+	if err := renameFile(p.path, path); err != nil {
 		return nil, err
 	}
 	p.renamed = &finalized{id: id, path: path, size: size, blocks: len(index), bloom: bloomBytes}

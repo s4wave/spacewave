@@ -15,3 +15,16 @@ func syncDir(dir string) error {
 	defer f.Close()
 	return f.Sync()
 }
+
+// batchWriteAt writes a batch to a pack file, replaced by a test to fail it.
+var batchWriteAt = (*os.File).WriteAt
+
+// indexWriteAt writes a pack's index, replaced by a test to fail it.
+var indexWriteAt = (*os.File).WriteAt
+
+// indexSync syncs a pack's index, replaced by a test to fail it.
+var indexSync = func(opts Options, f *os.File) error { return opts.SyncData(f) }
+
+// renameFile renames a pack to its finalized name, replaced by a test to
+// fail it.
+var renameFile = os.Rename
