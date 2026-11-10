@@ -20,11 +20,19 @@
 \*   DataCheck:   recovery rejects a record whose values did not survive.
 \*   RowAfterSync: a liveness row is committed only for a synced batch.
 \*   EvictCheck:  eviction requires the object, the entry and the registration.
+\*   DurableSkip: a second put of a block the pack table holds stores nothing
+\*                and receipts it only once the batch holding it is synced.
+\*                PackedStore skipped on any table hit, synced or not.
+\*   PoisonCheck: a pack whose sync failed is poisoned: it is never synced or
+\*                finalized again by the process, and the next recovery reads
+\*                it. A failed sync may leave its dropped pages clean, so a
+\*                later sync reports success for batches the disk lost.
 \*
 \* Not modeled: frees from the local pack table (memory only, and a lost free
-\* keeps a block readable), the pack index's own transaction (one step here),
-\* and more than one block per batch, since a batch is accepted or dropped
-\* whole.
+\* keeps a block readable; a put after a free stores the block again), the
+\* pack index's own transaction (one step here), more than one block per
+\* batch, since a batch is accepted or dropped whole, and Close, which waits
+\* for the running syncs and is a crash with nothing lost to this model.
 
 EXTENDS Naturals, Sequences, FiniteSets
 
@@ -35,7 +43,9 @@ CONSTANTS
   MaxCrashes,   \* crashes the model allows
   DataCheck,
   RowAfterSync,
-  EvictCheck
+  EvictCheck,
+  DurableSkip,
+  PoisonCheck
 
 VARIABLES
   up,       \* the process runs; FALSE between a crash and its recovery
@@ -51,9 +61,10 @@ VARIABLES
   remote,   \* the packs whose object the remote holds
   entries,  \* the packs whose entry the remote holds
   reg,      \* the packs registered in the pack index
-  crashes   \* crashes so far
+  crashes,  \* crashes so far
+  poisoned  \* the packs a failed sync poisoned since the last recovery
 vars == <<up, next, open, log, synced, disk, file, fin, valid, rows, remote,
-          entries, reg, crashes>>
+          entries, reg, crashes, poisoned>>
 
 Packs == 1..NPacks
 FirstPack == 1
@@ -73,6 +84,7 @@ Init ==
   /\ entries = {}
   /\ reg = {}
   /\ crashes = 0
+  /\ poisoned = {}
 
 \* Write appends the next block's values and record to the open pack.
 Write ==
@@ -81,15 +93,29 @@ Write ==
   /\ disk' = [disk EXCEPT ![open] = Append(@, [d |-> FALSE, r |-> FALSE])]
   /\ valid' = [valid EXCEPT ![open] = Append(@, TRUE)]
   /\ next' = next + 1
-  /\ UNCHANGED <<up, open, synced, file, fin, rows, remote, entries, reg, crashes>>
+  /\ UNCHANGED <<up, open, synced, file, fin, rows, remote, entries, reg, crashes, poisoned>>
 
-\* Sync flushes every batch of the open pack.
+\* Sync flushes every batch of the open pack. On a poisoned pack it reports
+\* success and flushes nothing: the failed sync left the lost pages clean.
 Sync ==
   /\ up /\ synced[open] < Len(log[open])
+  /\ PoisonCheck => open \notin poisoned
   /\ synced' = [synced EXCEPT ![open] = Len(log[open])]
-  /\ disk' = [disk EXCEPT ![open] = [i \in DOMAIN @ |-> [d |-> TRUE, r |-> TRUE]]]
+  /\ disk' = IF open \in poisoned THEN disk
+             ELSE [disk EXCEPT ![open] = [i \in DOMAIN @ |-> [d |-> TRUE, r |-> TRUE]]]
   /\ UNCHANGED <<up, next, open, log, file, fin, valid, rows, remote, entries,
-                 reg, crashes>>
+                 reg, crashes, poisoned>>
+
+\* SyncFail is a sync of the open pack that fails: the disk keeps any subset
+\* of each unsynced batch, as a crash would, and the pack is poisoned.
+SyncFail ==
+  /\ up /\ synced[open] < Len(log[open]) /\ open \notin poisoned
+  /\ poisoned' = poisoned \cup {open}
+  /\ \E keep \in [1..Cap -> [d : BOOLEAN, r : BOOLEAN]] :
+       disk' = [disk EXCEPT ![open] =
+                  [i \in DOMAIN @ |-> IF i <= synced[open] THEN @[i] ELSE keep[i]]]
+  /\ UNCHANGED <<up, next, open, log, synced, file, fin, valid, rows, remote,
+                 entries, reg, crashes>>
 
 \* Commit writes a block's liveness row in the Volume, its receipt.
 Commit ==
@@ -100,7 +126,22 @@ Commit ==
        /\ RowAfterSync => i <= synced[p]
        /\ rows' = rows \cup {log[p][i]}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
-                 entries, reg, crashes>>
+                 entries, reg, crashes, poisoned>>
+
+\* SkipPut is a second put of a block the pack table holds: it appends
+\* nothing and commits the block's liveness row. The table holds every
+\* written batch of a local pack, synced or not.
+SkipPut ==
+  /\ up
+  /\ \E p \in Packs, i \in 1..Cap :
+       /\ file[p] \in {"open", "final"}
+       /\ i <= Len(log[p])
+       /\ log[p][i] \notin rows
+       /\ DurableSkip => i <= synced[p]
+       /\ PoisonCheck => p \notin poisoned
+       /\ rows' = rows \cup {log[p][i]}
+  /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
+                 entries, reg, crashes, poisoned>>
 
 \* Rotate moves the writer to the next pack once the open one is full and
 \* synced.
@@ -111,7 +152,18 @@ Rotate ==
        /\ open' = q
        /\ file' = [file EXCEPT ![q] = "open"]
   /\ UNCHANGED <<up, next, log, synced, disk, fin, valid, rows, remote,
-                 entries, reg, crashes>>
+                 entries, reg, crashes, poisoned>>
+
+\* RotatePoisoned moves the writer off a poisoned pack, which takes no more
+\* batches.
+RotatePoisoned ==
+  /\ up /\ open \in poisoned
+  /\ \E q \in Packs :
+       /\ q = open + 1
+       /\ open' = q
+       /\ file' = [file EXCEPT ![q] = "open"]
+  /\ UNCHANGED <<up, next, log, synced, disk, fin, valid, rows, remote,
+                 entries, reg, crashes, poisoned>>
 
 \* FinIndex writes and syncs a rotated pack's index after its last record.
 FinIndex ==
@@ -119,9 +171,10 @@ FinIndex ==
   /\ \E p \in Packs :
        /\ p # open /\ file[p] = "open" /\ fin[p] = "none"
        /\ synced[p] = Len(log[p])
+       /\ PoisonCheck => p \notin poisoned
        /\ fin' = [fin EXCEPT ![p] = "index"]
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, valid, rows, remote,
-                 entries, reg, crashes>>
+                 entries, reg, crashes, poisoned>>
 
 \* FinRename renames the pack to its finalized name and syncs the directory.
 FinRename ==
@@ -130,7 +183,7 @@ FinRename ==
        /\ file[p] = "open" /\ fin[p] = "index"
        /\ file' = [file EXCEPT ![p] = "final"]
   /\ UNCHANGED <<up, next, open, log, synced, disk, fin, valid, rows, remote,
-                 entries, reg, crashes>>
+                 entries, reg, crashes, poisoned>>
 
 \* Upload writes a finalized pack's object to the remote.
 Upload ==
@@ -139,7 +192,7 @@ Upload ==
        /\ file[p] = "final" /\ p \notin remote
        /\ remote' = remote \cup {p}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
-                 entries, reg, crashes>>
+                 entries, reg, crashes, poisoned>>
 
 \* Entry writes the pack's entry once its object is there.
 Entry ==
@@ -148,7 +201,7 @@ Entry ==
        /\ p \notin entries
        /\ entries' = entries \cup {p}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
-                 remote, reg, crashes>>
+                 remote, reg, crashes, poisoned>>
 
 \* Register commits the pack's keys and its indexed row in the pack index.
 Register ==
@@ -157,7 +210,7 @@ Register ==
        /\ p \notin reg
        /\ reg' = reg \cup {p}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
-                 remote, entries, crashes>>
+                 remote, entries, crashes, poisoned>>
 
 \* Evict unlinks a finalized local pack.
 Evict ==
@@ -167,7 +220,7 @@ Evict ==
        /\ EvictCheck => (p \in reg /\ p \in entries /\ p \in remote)
        /\ file' = [file EXCEPT ![p] = "gone"]
   /\ UNCHANGED <<up, next, open, log, synced, disk, fin, valid, rows, remote,
-                 entries, reg, crashes>>
+                 entries, reg, crashes, poisoned>>
 
 \* Crash loses memory and keeps, for each unsynced batch of a pack not yet
 \* finalized, any subset of its values and record. A finalized pack was synced
@@ -181,7 +234,7 @@ Crash ==
                   [i \in DOMAIN disk[p] |->
                      IF i <= synced[p] THEN disk[p][i] ELSE keep[p][i]]]
   /\ UNCHANGED <<next, open, log, synced, file, fin, valid, rows, remote,
-                 entries, reg>>
+                 entries, reg, poisoned>>
 
 \* Accepted holds for a batch recovery keeps: its record survived, and with
 \* DataCheck its values did too.
@@ -215,10 +268,12 @@ Recover ==
         /\ fin' = [p \in Packs |-> IF p \in live THEN "index" ELSE fin[p]]
         /\ open' = q
   /\ up' = TRUE
+  /\ poisoned' = {}
   /\ UNCHANGED <<next, rows, remote, entries, reg, crashes>>
 
 Next ==
-  \/ Write \/ Sync \/ Commit \/ Rotate \/ FinIndex \/ FinRename
+  \/ Write \/ Sync \/ SyncFail \/ Commit \/ SkipPut \/ Rotate
+  \/ RotatePoisoned \/ FinIndex \/ FinRename
   \/ Upload \/ Entry \/ Register \/ Evict \/ Crash \/ Recover
 
 Spec == Init /\ [][Next]_vars
@@ -244,6 +299,7 @@ EvictedRegistered ==
 
 TypeOK ==
   /\ open \in Packs
+  /\ poisoned \subseteq Packs
   /\ \A p \in Packs : synced[p] <= Len(log[p]) /\ Len(log[p]) <= Cap
 
 ====

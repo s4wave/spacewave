@@ -33,8 +33,9 @@ const retryDelay = time.Second
 // with one fdatasync shared by the writers waiting at once. A value is
 // readable through Get from the moment its batch is written, before it is
 // durable, and stays readable while its pack is local. Remove forgets a
-// value the caller has freed; the bytes stay in the pack, and after a restart
-// the value reads again, which keeps data when unsure.
+// value the caller has freed once its pack is uploaded; the bytes stay in the
+// pack, and after a restart the value reads again, which keeps data when
+// unsure.
 type Log struct {
 	// dir holds the pack files.
 	dir string
@@ -55,6 +56,11 @@ type Log struct {
 	table map[keyTail]location
 	// syncs counts the fdatasyncs writers have run.
 	syncs uint64
+	// syncFailures counts the fdatasyncs that failed.
+	syncFailures uint64
+	// leaders counts the writers running an fdatasync, which Close waits
+	// out before it closes the files.
+	leaders int
 	// nextSeq is the seq of the next pack created.
 	nextSeq uint64
 	// bufs are buffers kept for the next open packs.
@@ -158,7 +164,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile()
+	data, entries, err := p.recoverFile(l.opts.SyncData)
 	if err != nil {
 		_ = f.Close()
 		return err
@@ -170,7 +176,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		if err := os.Remove(path); err != nil { // #nosec G703 -- a pack name listed in the caller's directory.
 			return err
 		}
-		return syncDir(l.dir)
+		return dirSync(l.dir)
 	}
 
 	// Finalize the kept batches and locate their values.
@@ -235,7 +241,7 @@ func (l *Log) createPack(seq uint64) (*pack, error) {
 	}
 
 	// Make its directory entry durable before any batch is written to it.
-	if err := syncDir(l.dir); err != nil {
+	if err := dirSync(l.dir); err != nil {
 		_ = f.Close()
 		_ = os.Remove(path) // #nosec G703 -- the pack just created.
 		return nil, errors.Wrap(err, "sync pack directory")
@@ -299,15 +305,20 @@ func (l *Log) checkReserve(blocks []Block) error {
 		return nil
 	}
 
-	// Measure the free disk and the blocks' bytes.
+	// Measure the free disk and the bytes of the blocks the Log does not
+	// hold, which Append writes; a held block writes nothing.
 	free, err := l.opts.FreeBytes(l.dir)
 	if err != nil {
 		return errors.Wrap(err, "measure free disk")
 	}
 	var need uint64
-	for _, b := range blocks {
-		need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
-	}
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, b := range blocks {
+			if !l.holdsLocked(tailOf(b.Key)) {
+				need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
+			}
+		}
+	})
 	if free < need || free-need < uint64(l.opts.ReserveBytes) { //nolint:gosec // positive.
 		return ErrReserve
 	}
@@ -400,7 +411,11 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64
 	var entryBytes, data, keyBytes int64
 	for plan.consumed < len(blocks) {
 		b := blocks[plan.consumed]
-		if loc, ok := l.table[tailOf(b.Key)]; ok {
+		if t := tailOf(b.Key); l.holdsLocked(t) {
+			loc := l.table[t]
+			if loc.removed {
+				l.reviveLocked(t, loc)
+			}
 			if loc.p.state != packFinal {
 				addWait(loc.p, loc.end())
 			}
@@ -426,6 +441,21 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64
 	return plan
 }
 
+// holdsLocked reports whether the table holds a copy of t that a put may
+// skip writing. The caller holds bcast.
+func (l *Log) holdsLocked(t keyTail) bool {
+	loc, ok := l.table[t]
+	return ok && !loc.p.poisoned
+}
+
+// reviveLocked clears the removed mark of t's location loc, which a put
+// stores again. The caller holds bcast.
+func (l *Log) reviveLocked(t keyTail, loc location) {
+	loc.removed = false
+	loc.p.removed--
+	l.table[t] = loc
+}
+
 // writeBatch encodes batch at the end of open pack p, writes it, and locates
 // its values, returning the pack's new end. The caller holds writeMtx.
 func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
@@ -440,10 +470,15 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 
 	// Publish the batch, or fail the pack so the next write rotates.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// A failed write fails the pack.
+		// A failed write fails the pack, and a pack whose sync failed since
+		// the batch was planned takes it no further.
 		defer broadcast()
 		if werr != nil {
 			l.failLocked(p, werr)
+			return
+		}
+		if p.err != nil {
+			werr = errors.Wrap(p.err, "pack failed")
 			return
 		}
 
@@ -492,6 +527,9 @@ func (l *Log) failLocked(p *pack, err error) {
 	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= p.synced; i-- {
 		t := tailOf(p.entries[i].key)
 		if loc, ok := l.table[t]; ok && loc.p == p {
+			if loc.removed {
+				p.removed--
+			}
 			delete(l.table, t)
 		}
 	}
@@ -513,8 +551,11 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 				done = true
 			case p.err != nil:
 				err = p.err
+			case l.closed:
+				err = ErrClosed
 			case !p.syncing:
 				p.syncing, lead, target = true, true, p.written
+				l.leaders++
 			default:
 				waitCh = getWaitCh()
 			}
@@ -528,11 +569,17 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 
 		// Lead: sync the pack and publish the new durable mark.
 		if lead {
-			serr := syncData(p.f)
+			serr := l.opts.SyncData(p.f)
 			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				// End the sync, which Close may wait out.
 				p.syncing = false
+				l.leaders--
 				l.syncs++
+
+				// A failed sync poisons the pack; a good one advances its mark.
 				if serr != nil {
+					l.syncFailures++
+					p.poisoned = true
 					l.failLocked(p, serr)
 				} else {
 					p.synced = max(p.synced, target)
@@ -639,14 +686,45 @@ func (l *Log) Has(key []byte) bool {
 	return found
 }
 
-// Remove forgets the value under key, which the caller has freed. Its bytes
-// stay in their pack.
+// HasDurable reports whether a local pack holds the value under key durably:
+// its pack is finalized, or a sync covered its batch. A writer may skip
+// storing a value only on this, since Has also reports a value whose batch is
+// written and not yet synced, which a crash or a failed sync loses.
+func (l *Log) HasDurable(key []byte) bool {
+	if len(key) < keyTailLen {
+		return false
+	}
+	var durable bool
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		loc, ok := l.table[tailOf(key)]
+		durable = ok && !loc.removed && !loc.p.poisoned && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
+	})
+	return durable
+}
+
+// Remove forgets the value under key, which the caller has freed, once the
+// remote holds its pack. Its bytes stay in their pack. A value whose pack
+// is not uploaded is marked removed and stays readable until the pack
+// uploads: a writer that found it held may have stored it again, and until
+// the upload no other copy serves it. A marked value reports no durable
+// copy, so a put of it again appends it, which clears the mark and keeps it
+// past the upload.
 func (l *Log) Remove(key []byte) {
 	if len(key) < keyTailLen {
 		return
 	}
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		delete(l.table, tailOf(key))
+		t := tailOf(key)
+		loc, ok := l.table[t]
+		switch {
+		case !ok || loc.removed:
+		case loc.p.uploaded:
+			delete(l.table, t)
+		default:
+			loc.removed = true
+			loc.p.removed++
+			l.table[t] = loc
+		}
 	})
 }
 
@@ -725,7 +803,7 @@ func (l *Log) maintain(ctx context.Context) {
 func (l *Log) nextStepLocked() (func(context.Context) error, time.Time) {
 	// Finalize the oldest rotated pack first, so packs finalize in order.
 	for _, p := range l.packs {
-		if p.state == packRotated {
+		if p.state == packRotated && !p.poisoned {
 			return func(ctx context.Context) error { return l.finalizeRotated(ctx, p) }, time.Time{}
 		}
 	}
@@ -808,17 +886,23 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	// Take the pack's bytes: its buffer, or its file after a failure.
 	var data []byte
 	var entries []entry
-	var failed bool
+	var failed, poisoned bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		failed = p.err != nil
+		failed, poisoned = p.err != nil, p.poisoned
 		data, entries = p.buf[:p.written], p.entries
 	})
 	if syncErr != nil && !failed {
 		return syncErr
 	}
+
+	// A pack a sync failed is never finalized here: its file may read back
+	// pages the disk lost. The next Open recovers it from its batch checksums.
+	if poisoned {
+		return nil
+	}
 	if failed {
 		var err error
-		data, entries, err = p.recoverFile()
+		data, entries, err = p.recoverFile(l.opts.SyncData)
 		if err != nil {
 			return err
 		}
@@ -861,19 +945,20 @@ func (l *Log) locateRecoveredLocked(p *pack, entries []entry) {
 	for _, e := range entries {
 		t := tailOf(e.key)
 		if loc, ok := l.table[t]; !ok || loc.p == p {
-			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
+			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size), removed: ok && loc.removed} //nolint:gosec // bounded by the pack size.
 		}
 	}
 }
 
 // dropEmpty removes rotated pack p, which holds no good batch.
 func (l *Log) dropEmpty(p *pack) error {
-	// Remove the file and make the removal durable.
+	// Remove the file and make the removal durable. A retry after a failed
+	// directory sync finds the file gone.
 	_ = p.f.Close()
-	if err := os.Remove(p.path); err != nil {
+	if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if err := syncDir(l.dir); err != nil {
+	if err := dirSync(l.dir); err != nil {
 		return err
 	}
 
@@ -886,8 +971,9 @@ func (l *Log) dropEmpty(p *pack) error {
 	return nil
 }
 
-// Close stops the background work, waits for the writer in progress, and
-// closes the pack files. Batches written stay in their packs, and the next
+// Close stops the background work, waits for the writer in progress and the
+// syncs running, and closes the pack files. A writer waiting for a sync that
+// has not started returns ErrClosed. Batches written stay in their packs, and the next
 // Open finalizes the pack that was open.
 func (l *Log) Close() {
 	// Refuse new work and stop the maintainer.
@@ -908,10 +994,20 @@ func (l *Log) Close() {
 		<-waitCh
 	}
 
-	// Wait for the writer in progress, then close the files.
+	// Wait for the writer in progress and the syncs running, which use the
+	// files, then close the files. No sync starts once closed is set.
 	release, err := l.writeMtx.Lock(context.Background())
 	if err == nil {
 		defer release()
+	}
+	for {
+		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			done, waitCh = l.leaders == 0, getWaitCh()
+		})
+		if done {
+			break
+		}
+		<-waitCh
 	}
 	l.closeFiles()
 }

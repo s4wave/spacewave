@@ -47,8 +47,8 @@ type PackedStats struct {
 	Diverted uint64
 	// DivertedBytes is their encoded size.
 	DivertedBytes uint64
-	// Held counts the diverted values the Log held already, so appended
-	// nothing.
+	// Held counts the diverted values the Log held durably already, so
+	// appended nothing.
 	Held uint64
 	// Fills counts the cache fills sent to the local store while diverting,
 	// which the upload markers, not the Log, upload.
@@ -168,9 +168,11 @@ func (s *PackedStore) PutBlockBatch(ctx context.Context, entries []*block.PutBat
 	return existed, nil
 }
 
-// appendValues appends the values of entries the Log does not hold, and
-// returns external copies of the entries to land, and whether the Log held
-// each block before. Tombstones pass through. A block whose bytes the local
+// appendValues appends the values of entries the Log does not hold durably,
+// and returns external copies of the entries to land, and whether the Log held
+// each block durably before. A value the Log holds in a batch not yet synced
+// goes to Append too, which stores nothing for it and waits for that sync, so
+// no entry lands before its value is durable. Tombstones pass through. A block whose bytes the local
 // store holds already is appended too: asking would cost a read of the local
 // store per block, the read this store exists to remove, and the copy holds
 // the same bytes.
@@ -195,7 +197,7 @@ func (s *PackedStore) appendValues(ctx context.Context, entries []*block.PutBatc
 		copied.External = true
 		landed[i] = &copied
 		key := packfile.BlockKey(copied.Ref.GetHash())
-		if held[i] = s.log.Has(key); held[i] {
+		if held[i] = s.log.HasDurable(key); held[i] {
 			s.counts.held.Add(1)
 			continue
 		}
