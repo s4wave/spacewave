@@ -200,3 +200,90 @@ func TestCountProdShapedVerdicts(t *testing.T) {
 		t.Errorf("census: %d bad rows", bad)
 	}
 }
+
+// sharedRefWorld builds the test store and adds rows of a second write-back
+// store, 01m6…, of the same volume, for a block ref hyperline-world drops.
+func sharedRefWorld(t *testing.T, rows func(other, b58 string) []string) opts {
+	t.Helper()
+	dir := t.TempDir()
+	var o opts
+	o.world = filepath.Join(dir, "world.db")
+	o.packs = filepath.Join(dir, "packs.db")
+	o.out = filepath.Join(dir, "new.db")
+	o.storeID, o.chunk, o.readers, o.read, o.txnRows = defaultStoreID, 500, 2, "raw", 20000
+	o.walMax = 2560
+	if _, err := buildTestStore(o.world, o.packs, 200, o.storeID, true, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// Find a block the rule drops: its eviction entry in hyperline-world.
+	db, err := sql.Open("sqlite", o.world)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	f, err := loadFacts(o, db, "kv", mustOpen(t, o.packs))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b58 string
+	for d := range f.evict {
+		if f.verdict(d) == vDrop {
+			b58 = hash.NewHash(f.hashTypes[d], []byte(d)).MarshalString()
+			break
+		}
+	}
+	if b58 == "" {
+		t.Fatal("no dropped block")
+	}
+
+	// Write the second store's rows for it.
+	other := "h/objs/p/local/acct1/blk/01m6wbbw9t9z0vv0c4t5spvs68/writeback/"
+	for _, k := range rows(other, b58) {
+		if _, err := db.Exec("INSERT INTO kv (key, value) VALUES (?, ?)", []byte(k), []byte("10")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		t.Fatal(err)
+	}
+	return o
+}
+
+// mustOpen opens a sqlite file for the test.
+func mustOpen(t *testing.T, path string) *sql.DB {
+	t.Helper()
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+// TestCopyRefusesOtherStoreFacts checks copy and count refuse a World where
+// another write-back store of the volume marks or queues for eviction a
+// block ref hyperline-world would drop: h/b/ is shared by every store.
+func TestCopyRefusesOtherStoreFacts(t *testing.T) {
+	for name, rows := range map[string]func(other, b58 string) []string{
+		"marked":    func(other, b58 string) []string { return []string{other + "marked/" + b58} },
+		"evictable": func(other, b58 string) []string { return []string{other + "evictable/0000000000000000/" + b58} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			o := sharedRefWorld(t, rows)
+			if err := runCopy(o); err == nil {
+				t.Fatal("copy succeeded with another store's " + name + " row for a dropped ref")
+			}
+			if _, err := runCount(o); err == nil {
+				t.Fatal("count succeeded with another store's " + name + " row for a dropped ref")
+			}
+		})
+	}
+
+	// A store holding only its queue count, as production's other stores
+	// do, is no bar.
+	o := sharedRefWorld(t, func(other, _ string) []string { return []string{other + "queue-count"} })
+	if err := runCopy(o); err != nil {
+		t.Fatal("copy with another store's queue-count:", err)
+	}
+}

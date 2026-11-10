@@ -40,6 +40,9 @@ type facts struct {
 	evictBytesStored map[string]int64
 	evictKeys        int64
 	badKeys          int
+	// otherFacts counts the marked/ and evictable/ rows of write-back
+	// stores other than the one rebuilt, by store id.
+	otherFacts map[string]int
 	packsLive        int
 	lookups          int64
 	hMissing, hDead  int64
@@ -161,6 +164,23 @@ func isWritebackID(id string) bool {
 	return id == wbSeg || strings.HasSuffix(id, "/"+wbSeg)
 }
 
+// ownStore reports whether obj is the write-back object store of the block
+// store rebuilt: p/<provider>/<account>/blk/<storeID>/writeback, or a test
+// id of the bare writeback.
+func ownStore(storeID, obj string) bool {
+	return obj == wbSeg || strings.HasSuffix(obj, "/blk/"+storeID+"/"+wbSeg)
+}
+
+// otherFactsErr refuses a World where another write-back store holds a
+// marker or an eviction entry: the block table is shared by every store of
+// the volume, so the drop rule of one store cannot decide such a block.
+func otherFactsErr(f *facts) error {
+	if len(f.otherFacts) == 0 {
+		return nil
+	}
+	return fmt.Errorf("write-back stores other than the one rebuilt hold marked/ or evictable/ rows (%v); refusing", f.otherFacts)
+}
+
 // objKey splits an object store key into its id and the key inside it; ok is
 // false for a key outside the object stores or one splitObjKey refuses.
 func objKey(key []byte) (string, string, bool) {
@@ -259,6 +279,7 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 		packed:           map[string]struct{}{},
 		objStores:        map[string]string{},
 		evictBytesStored: map[string]int64{},
+		otherFacts:       map[string]int{},
 	}
 
 	// Key-only scan of the object stores. Values are read below only for
@@ -282,6 +303,13 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 			return
 		case kindForeign:
 			return
+		case kindMarked, kindEvict, kindReads:
+			if !ownStore(o.storeID, obj) {
+				if k.kind != kindReads {
+					f.otherFacts[obj]++
+				}
+				return
+			}
 		}
 		if in, ok := f.objStores[obj]; ok {
 			obj = in
@@ -329,6 +357,9 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 		// An unparsed marker or read set key would leave its block
 		// droppable: nothing is decided on such a World.
 		return nil, fmt.Errorf("%d object store keys under %s did not parse as write-back store keys; refusing", f.badKeys, objsPrefix)
+	}
+	if err := otherFactsErr(f); err != nil {
+		return nil, err
 	}
 
 	// Point reads: the chunks of the two newest read generations of each

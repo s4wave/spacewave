@@ -77,6 +77,7 @@ func runCount(o opts) (*countResult, error) {
 		packed:           map[string]struct{}{},
 		objStores:        map[string]string{},
 		evictBytesStored: map[string]int64{},
+		otherFacts:       map[string]int{},
 	}
 	evicts := map[string][]rawEvict{}
 	var blocks []rawBlock
@@ -128,6 +129,14 @@ func runCount(o opts) (*countResult, error) {
 				return
 			}
 			obj := k.obj
+			if (k.kind == kindMarked || k.kind == kindEvict || k.kind == kindReads) && !ownStore(o.storeID, obj) {
+				if k.kind != kindReads {
+					f.otherFacts[obj]++
+				}
+				res.addMeta(family(key), b)
+				keptBy[bucket] += b
+				return
+			}
 			if in, ok := f.objStores[obj]; ok {
 				obj = in
 			} else {
@@ -385,6 +394,9 @@ func runCount(o opts) (*countResult, error) {
 		// The report stands, but its verdicts do not: an unparsed
 		// marker or read set key would leave its block droppable.
 		return res, fmt.Errorf("%d object store keys did not parse as write-back store keys; the drop verdicts are not trustworthy", f.badKeys)
+	}
+	if err := otherFactsErr(f); err != nil {
+		return res, err
 	}
 	return res, nil
 }
