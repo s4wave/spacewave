@@ -348,6 +348,11 @@ func (r *Regenerator) build(ctx context.Context, s regenState) error {
 // swaps when the round was small enough that the last one should be too. The
 // swap runs as foreground work, since commits wait on its turn.
 func (r *Regenerator) catchUp(ctx context.Context, s regenState, way regenWay) error {
+	// Refuse a round on a disk below the floor; the old tree stays live.
+	if err := newRegenFloor(r.cfg).check(); err != nil {
+		return err
+	}
+
 	// Hold the head while the round reads it.
 	release, err := block.PinRoot(ctx, r.a.store, s.head.Root)
 	if err != nil {
