@@ -51,6 +51,12 @@ type pack struct {
 	// err is the first failed write or sync. The pack takes no more batches,
 	// and the maintainer recovers it from the file.
 	err error
+	// poisoned is set when a sync of the pack failed. A later sync may report
+	// success for pages the failed one dropped, so the pack is never
+	// finalized by this process: it stays unfinalized for the next Open to
+	// recover from its batch checksums, and none of its values is durable to
+	// a writer, which stores them again in a later pack.
+	poisoned bool
 	// entries are the values written, in write order, until finalized.
 	entries []entry
 	// keyBytes sums the keys of entries, for the index reserve.
