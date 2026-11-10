@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	cayley_proto "github.com/aperturerobotics/cayley/graph/proto"
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
@@ -206,54 +207,67 @@ func changedNodeGraphQuads(ctx context.Context, before, after *block.Cursor, key
 }
 
 // readGraphLinks resolves the quads of the link records among the primitive log
-// keys in the graph tree at bcs. Keys the tree lacks and node records are
-// skipped.
+// keys in the graph tree at bcs. A key the tree lacks, a node record, and a
+// record marked deleted yield nothing.
 func readGraphLinks(ctx context.Context, bcs *block.Cursor, keys [][]byte) ([]world.GraphQuad, error) {
+	var quads []world.GraphQuad
+	err := walkGraphLinks(ctx, bcs, keys, func(q quad.Quad) error {
+		quads = append(quads, world.CayleyQuadToGraphQuad(q))
+		return nil
+	})
+	return quads, err
+}
+
+// walkGraphLinks calls fn with the quad of each live link record among the
+// primitive log keys in the graph tree at bcs, in keys' order. It reads each
+// key once and resolves each link's nodes through the quad store.
+func walkGraphLinks(ctx context.Context, bcs *block.Cursor, keys [][]byte, fn func(quad.Quad) error) error {
 	// Open the graph tree for reading.
 	if len(keys) == 0 {
-		return nil, nil
+		return nil
 	}
 	ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs, false)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer ktx.Discard()
 
-	// Decode the link records the tree holds.
+	// Decode the live link records the tree holds.
 	var links []*cayley_proto.Primitive
 	for _, key := range keys {
 		data, found, err := ktx.Get(ctx, key)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if !found {
 			continue
 		}
 		p := &cayley_proto.Primitive{}
 		if err := p.UnmarshalVT(data); err != nil {
-			return nil, err
+			return err
 		}
-		if !p.IsNode() {
+		if !p.IsNode() && !p.Deleted {
 			links = append(links, p)
 		}
 	}
 	if len(links) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// Resolve the node values of each link through the quad store.
 	graphHd, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(ktx), graph.Options{cayley_kv.OptAssumeDefaultIdx: true})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer graphHd.Close()
-	quads := make([]world.GraphQuad, 0, len(links))
 	for _, p := range links {
 		q, err := graphHd.Quad(ctx, p)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		quads = append(quads, world.CayleyQuadToGraphQuad(q))
+		if err := fn(q); err != nil {
+			return err
+		}
 	}
-	return quads, nil
+	return nil
 }
