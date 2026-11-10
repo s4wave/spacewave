@@ -14,7 +14,7 @@
 \* batch not yet synced, its values, its record, both or neither. Recovery reads
 \* each pack the rename did not finalize, keeps the batches in order up to the
 \* first whose record is missing or whose values are missing (the record's
-\* checksum of its values), truncates there and finalizes the pack.
+\* checksum of its values), and copies them into a fresh finalized pack.
 \*
 \* Guards, which a mutant turns off to show the invariant needs it:
 \*   DataCheck:   recovery rejects a record whose values did not survive.
@@ -34,12 +34,17 @@
 \*                restart in the same boot reads the page cache, which shows
 \*                every written batch intact, the lost ones too, and a sync of
 \*                the old file does not bring back a page a failed sync lost.
+\*   PublishCheck: a sync runs in two steps, its start and its publish, and a
+\*                write or sync may fail the pack between them. The publish
+\*                then advances no mark and acks no batch, and Salvage waits
+\*                for a sync in flight before it reads the mark.
 \*
 \* Not modeled: frees from the local pack table (memory only, and a lost free
 \* keeps a block readable; a put after a free stores the block again), the
 \* pack index's own transaction (one step here), more than one block per
 \* batch, since a batch is accepted or dropped whole, and Close, which waits
-\* for the running syncs and is a crash with nothing lost to this model.
+\* for the running syncs and finalizes the packs with no failure through
+\* FinIndex and FinRename, or else stops as Restart does.
 
 EXTENDS Naturals, Sequences, FiniteSets
 
@@ -54,6 +59,8 @@ CONSTANTS
   DurableSkip,
   PoisonCheck,
   SalvageOnOpen,
+  PublishCheck,
+  WriteFails,   \* a write may fail; the life chart leaves it out
   MaxRestarts   \* process restarts within one boot the model allows
 
 VARIABLES
@@ -74,11 +81,16 @@ VARIABLES
   poisoned, \* the packs a failed sync poisoned since the last recovery
   lost,     \* the batches <<p, i>> whose pages a failed sync dropped clean
   rebooted, \* the last stop was a crash of the machine, not of the process
-  restarts  \* process restarts so far
+  restarts, \* process restarts so far
+  inflight, \* each pack's batches a running sync covers, <<>> when none runs
+  acked     \* the blocks whose Append a published sync returned nil to
 vars == <<up, next, open, log, synced, disk, file, fin, valid, rows, remote,
-          entries, reg, crashes, poisoned, lost, rebooted, restarts>>
+          entries, reg, crashes, poisoned, lost, rebooted, restarts,
+          inflight, acked>>
 
 Packs == 1..NPacks
+max2(a, b) == IF a >= b THEN a ELSE b
+min2(a, b) == IF a <= b THEN a ELSE b
 FirstPack == 1
 
 Init ==
@@ -100,6 +112,8 @@ Init ==
   /\ lost = {}
   /\ rebooted = FALSE
   /\ restarts = 0
+  /\ inflight = [p \in Packs |-> <<>>]
+  /\ acked = {}
 
 \* Write appends the next block's values and record to the open pack.
 Write ==
@@ -109,32 +123,63 @@ Write ==
   /\ valid' = [valid EXCEPT ![open] = Append(@, TRUE)]
   /\ next' = next + 1
   /\ UNCHANGED <<up, open, synced, file, fin, rows, remote, entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
-\* Sync flushes every batch of the open pack. On a poisoned pack it reports
-\* success and flushes nothing: the failed sync left the lost pages clean.
-Sync ==
-  /\ up /\ synced[open] < Len(log[open])
+\* WriteFail is a write to the open pack that fails: the block is not
+\* written, its Append fails, and the pack is poisoned. The pages a failed
+\* write leaves are not marked clean, so nothing is lost beyond a crash.
+WriteFail ==
+  /\ up /\ WriteFails /\ next <= NBlocks /\ Len(log[open]) < Cap /\ open \notin poisoned
+  /\ poisoned' = poisoned \cup {open}
+  /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
+                 remote, entries, reg, crashes, lost, rebooted, restarts,
+                 inflight, acked>>
+
+\* SyncStart starts a sync of every batch written to the open pack.
+SyncStart ==
+  /\ up /\ synced[open] < Len(log[open]) /\ inflight[open] = <<>>
   /\ PoisonCheck => open \notin poisoned
-  /\ synced' = [synced EXCEPT ![open] = Len(log[open])]
-  /\ disk' = IF open \in poisoned THEN disk
-             ELSE [disk EXCEPT ![open] = [i \in DOMAIN @ |-> [d |-> TRUE, r |-> TRUE]]]
-  /\ UNCHANGED <<up, next, open, log, file, fin, valid, rows, remote, entries,
-                 reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+  /\ inflight' = [inflight EXCEPT ![open] = log[open]]
+  /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
+                 remote, entries, reg, crashes, poisoned, lost, rebooted,
+                 restarts, acked>>
 
-\* SyncFail is a sync of the open pack that fails: the disk keeps any subset
-\* of each unsynced batch, as a crash would, the page cache keeps showing them
+\* SyncPublish ends a sync that succeeded: the drive holds its batches but
+\* those a failed sync left clean. With no failure on the pack, the mark
+\* advances and the batches' Appends return nil.
+SyncPublish ==
+  /\ up
+  /\ \E p \in Packs :
+       /\ inflight[p] # <<>>
+       /\ inflight' = [inflight EXCEPT ![p] = <<>>]
+       /\ disk' = [disk EXCEPT ![p] =
+                    [i \in DOMAIN @ |->
+                       IF i <= Len(inflight[p]) /\ <<p, i>> \notin lost
+                       THEN [d |-> TRUE, r |-> TRUE] ELSE @[i]]]
+       /\ IF (PoisonCheck /\ PublishCheck) => p \notin poisoned
+          THEN /\ synced' = [synced EXCEPT ![p] =
+                                max2(@, min2(Len(inflight[p]), Len(log[p])))]
+               /\ acked' = acked \cup {inflight[p][i] : i \in DOMAIN inflight[p]}
+          ELSE UNCHANGED <<synced, acked>>
+  /\ UNCHANGED <<up, next, open, log, file, fin, valid, rows, remote, entries,
+                 reg, crashes, poisoned, lost, rebooted, restarts>>
+
+\* SyncFail ends a sync that failed: the disk keeps any subset of each
+\* unsynced batch, as a crash would, the page cache keeps showing them
 \* intact, and the pack is poisoned.
 SyncFail ==
-  /\ up /\ synced[open] < Len(log[open]) /\ open \notin poisoned
-  /\ poisoned' = poisoned \cup {open}
-  /\ lost' = lost \cup {<<open, i>> : i \in synced[open] + 1 .. Len(log[open])}
-  /\ \E keep \in [1..Cap -> [d : BOOLEAN, r : BOOLEAN]] :
-       disk' = [disk EXCEPT ![open] =
-                  [i \in DOMAIN @ |-> IF i <= synced[open] THEN @[i] ELSE keep[i]]]
+  /\ up
+  /\ \E p \in Packs :
+       /\ inflight[p] # <<>>
+       /\ inflight' = [inflight EXCEPT ![p] = <<>>]
+       /\ poisoned' = poisoned \cup {p}
+       /\ lost' = lost \cup {<<p, i>> : i \in synced[p] + 1 .. Len(log[p])}
+       /\ \E keep \in [1..Cap -> [d : BOOLEAN, r : BOOLEAN]] :
+            disk' = [disk EXCEPT ![p] =
+                       [i \in DOMAIN @ |-> IF i <= synced[p] THEN @[i] ELSE keep[i]]]
   /\ UNCHANGED <<up, next, open, log, synced, file, fin, valid, rows, remote,
-                 entries, reg, crashes, rebooted, restarts>>
+                 entries, reg, crashes, rebooted, restarts, acked>>
 
 \* Commit writes a block's liveness row in the Volume, its receipt.
 Commit ==
@@ -145,8 +190,18 @@ Commit ==
        /\ RowAfterSync => i <= synced[p]
        /\ rows' = rows \cup {log[p][i]}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
+                 entries, reg, crashes, poisoned, rebooted, lost, restarts,
+                 inflight, acked>>
+
+\* Receipt writes the liveness row of a block whose Append returned nil.
+Receipt ==
+  /\ up
+  /\ \E b \in acked \ rows :
+       rows' = rows \cup {b}
+  /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* SkipPut is a second put of a block the pack table holds: it appends
 \* nothing and commits the block's liveness row. The table holds every
@@ -162,7 +217,8 @@ SkipPut ==
        /\ rows' = rows \cup {log[p][i]}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Rotate moves the writer to the next pack once the open one is full and
 \* synced.
@@ -174,7 +230,8 @@ Rotate ==
        /\ file' = [file EXCEPT ![q] = "open"]
   /\ UNCHANGED <<up, next, log, synced, disk, fin, valid, rows, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* RotatePoisoned moves the writer off a poisoned pack, which takes no more
 \* batches.
@@ -186,7 +243,8 @@ RotatePoisoned ==
        /\ file' = [file EXCEPT ![q] = "open"]
   /\ UNCHANGED <<up, next, log, synced, disk, fin, valid, rows, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Salvage copies the synced batches of a rotated poisoned pack from memory
 \* into a fresh file, syncs it and finalizes it in the pack's place.
@@ -194,6 +252,7 @@ Salvage ==
   /\ up /\ PoisonCheck
   /\ \E p \in poisoned :
        /\ p # open /\ file[p] = "open"
+       /\ PublishCheck => inflight[p] = <<>>
        /\ log' = [log EXCEPT ![p] = SubSeq(@, 1, synced[p])]
        /\ disk' = [disk EXCEPT ![p] = [i \in 1..synced[p] |-> [d |-> TRUE, r |-> TRUE]]]
        /\ valid' = [valid EXCEPT ![p] = SubSeq(@, 1, synced[p])]
@@ -202,7 +261,8 @@ Salvage ==
        /\ poisoned' = poisoned \ {p}
        /\ lost' = {x \in lost : x[1] # p}
   /\ UNCHANGED <<up, next, open, synced, rows, remote, entries, reg, crashes,
-                 rebooted, restarts>>
+                 rebooted, restarts,
+                 inflight, acked>>
 
 \* FinIndex writes and syncs a rotated pack's index after its last record.
 FinIndex ==
@@ -214,7 +274,8 @@ FinIndex ==
        /\ fin' = [fin EXCEPT ![p] = "index"]
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, valid, rows, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* FinRename renames the pack to its finalized name and syncs the directory.
 FinRename ==
@@ -224,7 +285,8 @@ FinRename ==
        /\ file' = [file EXCEPT ![p] = "final"]
   /\ UNCHANGED <<up, next, open, log, synced, disk, fin, valid, rows, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Upload writes a finalized pack's object to the remote.
 Upload ==
@@ -234,7 +296,8 @@ Upload ==
        /\ remote' = remote \cup {p}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Entry writes the pack's entry once its object is there.
 Entry ==
@@ -244,7 +307,8 @@ Entry ==
        /\ entries' = entries \cup {p}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
                  remote, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Register commits the pack's keys and its indexed row in the pack index.
 Register ==
@@ -254,7 +318,8 @@ Register ==
        /\ reg' = reg \cup {p}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, rows,
                  remote, entries, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Evict unlinks a finalized local pack.
 Evict ==
@@ -265,7 +330,8 @@ Evict ==
        /\ file' = [file EXCEPT ![p] = "gone"]
   /\ UNCHANGED <<up, next, open, log, synced, disk, fin, valid, rows, remote,
                  entries, reg, crashes, poisoned,
-                 rebooted, lost, restarts>>
+                 rebooted, lost, restarts,
+                 inflight, acked>>
 
 \* Crash loses memory and keeps, for each unsynced batch of a pack not yet
 \* finalized, any subset of its values and record. A finalized pack was synced
@@ -275,12 +341,14 @@ Crash ==
   /\ up' = FALSE
   /\ crashes' = crashes + 1
   /\ rebooted' = TRUE
+  /\ inflight' = [p \in Packs |-> <<>>]
   /\ \E keep \in [Packs -> [1..Cap -> [d : BOOLEAN, r : BOOLEAN]]] :
        disk' = [p \in Packs |->
                   [i \in DOMAIN disk[p] |->
                      IF i <= synced[p] THEN disk[p][i] ELSE keep[p][i]]]
   /\ UNCHANGED <<next, open, log, synced, file, fin, valid, rows, remote,
-                 entries, reg, poisoned, lost, restarts>>
+                 entries, reg, poisoned, lost, restarts,
+                 acked>>
 
 \* Restart stops the process in the same boot: memory is lost, and the disk
 \* and the page cache stay as they are.
@@ -289,8 +357,10 @@ Restart ==
   /\ up' = FALSE
   /\ restarts' = restarts + 1
   /\ rebooted' = FALSE
+  /\ inflight' = [p \in Packs |-> <<>>]
   /\ UNCHANGED <<next, open, log, synced, disk, file, fin, valid, rows, remote,
-                 entries, reg, crashes, poisoned, lost>>
+                 entries, reg, crashes, poisoned, lost,
+                 acked>>
 
 \* Accepted holds for a batch recovery keeps: its record survived, and with
 \* DataCheck its values did too.
@@ -338,10 +408,11 @@ Recover ==
   /\ up' = TRUE
   /\ poisoned' = {}
   /\ lost' = {}
-  /\ UNCHANGED <<next, rows, remote, entries, reg, crashes, rebooted, restarts>>
+  /\ UNCHANGED <<next, rows, remote, entries, reg, crashes, rebooted, restarts,
+                 inflight, acked>>
 
 Next ==
-  \/ Write \/ Sync \/ SyncFail \/ Commit \/ SkipPut \/ Rotate
+  \/ Write \/ WriteFail \/ SyncStart \/ SyncPublish \/ SyncFail \/ Commit \/ Receipt \/ SkipPut \/ Rotate
   \/ RotatePoisoned \/ Salvage \/ FinIndex \/ FinRename
   \/ Upload \/ Entry \/ Register \/ Evict \/ Crash \/ Restart \/ Recover
 

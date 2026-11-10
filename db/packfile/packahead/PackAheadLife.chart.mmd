@@ -4,42 +4,42 @@ title: "One pack: appended, finalized, uploaded, evicted"
 stateDiagram-v2
   s0: open
   s1: open, crashed
-  s2: poisoned
-  s3: finalized
+  s2: finalized
+  s3: poisoned
   s4: object uploaded
-  s5: poisoned, crashed
-  s6: index written
-  s7: entry written
+  s5: entry written
+  s6: poisoned, crashed
+  s7: index written
   s8: registered
-  s9: finalized, crashed
-  s10: index written, crashed
-  s11: evicted
+  s9: index written, crashed
+  s10: evicted
+  s11: finalized, crashed
   s12: object uploaded, crashed
   s13: entry written, crashed
   s14: registered, crashed
   s15: evicted, crashed
   [*] --> s0
   s0 --> s1: crash
-  s0 --> s2: sync fails: poison
-  s1 --> s3: recover: salvage the good records into a fresh file
-  s2 --> s5: crash
-  s3 --> s4: upload the file
-  s2 --> s3: salvage the synced records into a fresh file
-  s0 --> s6: write and sync the index
-  s4 --> s7: write the entry
-  s5 --> s3: recover: salvage the good records into a fresh file
-  s3 --> s9: crash
-  s6 --> s3: rename and sync the directory
-  s6 --> s10: crash
-  s7 --> s8: register its keys
+  s1 --> s2: recover: salvage the good records into a fresh file
+  s0 --> s3: sync fails: poison
+  s2 --> s4: upload the file
+  s3 --> s6: crash
+  s4 --> s5: write the entry
+  s0 --> s7: write and sync the index
+  s3 --> s2: salvage the synced records into a fresh file
+  s5 --> s8: register its keys
+  s6 --> s2: recover: salvage the good records into a fresh file
+  s7 --> s2: rename and sync the directory
+  s7 --> s9: crash
+  s2 --> s11: crash
+  s8 --> s10: unlink
+  s9 --> s2: recover: salvage the good records into a fresh file
   s4 --> s12: crash
-  s8 --> s11: unlink
-  s9 --> s3: recover
-  s10 --> s3: recover: salvage the good records into a fresh file
-  s7 --> s13: crash
+  s11 --> s2: recover
+  s5 --> s13: crash
   s12 --> s4: recover
   s8 --> s14: crash
-  s13 --> s7: recover
-  s11 --> s15: crash
+  s13 --> s5: recover
+  s10 --> s15: crash
   s14 --> s8: recover
-  s15 --> s11: recover
+  s15 --> s10: recover

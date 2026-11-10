@@ -43,6 +43,8 @@ export const step = (action: string, from: PackAhead, to: PackAhead) => {
       return 'salvage the synced records into a fresh file'
     case 'SyncFail':
       return 'sync fails: poison'
+    case 'WriteFail':
+      return 'write fails: poison'
     case 'FinIndex':
       return 'write and sync the index'
     case 'FinRename':
