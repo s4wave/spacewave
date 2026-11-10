@@ -79,6 +79,10 @@ type pack struct {
 	// so a retry after a failed directory sync only syncs the directory. Only
 	// the goroutine finalizing the pack uses it.
 	renamed *finalized
+	// dropped is set once dropEmpty closed the pack's file to remove it, so a
+	// retry after a failed remove or directory sync does not recover it
+	// again. Only the goroutine finalizing the pack uses it.
+	dropped bool
 }
 
 // packState is a pack's place in its life.

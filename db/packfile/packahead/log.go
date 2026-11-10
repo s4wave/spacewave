@@ -923,8 +923,9 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	}
 
 	// Recover a failed pack from its file, unless an earlier try renamed it:
-	// the renamed file ends in the index, which recovery would truncate.
-	if failed && p.renamed == nil {
+	// the renamed file ends in the index, which recovery would truncate. A
+	// pack an earlier try dropped has no file left to recover.
+	if failed && p.renamed == nil && !p.dropped {
 		var err error
 		data, entries, err = p.recoverFile(opts.SyncData)
 		if err != nil {
@@ -976,9 +977,13 @@ func (l *Log) locateRecoveredLocked(p *pack, entries []entry) {
 
 // dropEmpty removes rotated pack p, which holds no good batch.
 func (l *Log) dropEmpty(p *pack) error {
-	// Remove the file and make the removal durable. A retry after a failed
-	// directory sync finds the file gone.
-	_ = p.f.Close()
+	// Close and remove the file and make the removal durable. A retry after a
+	// failed remove or directory sync does not recover the closed file again:
+	// it finds the file gone and syncs the directory.
+	if !p.dropped {
+		_ = p.f.Close()
+		p.dropped = true
+	}
 	if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) {
 		return err
 	}
