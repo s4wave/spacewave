@@ -140,11 +140,18 @@ func usage() {
 	os.Exit(2)
 }
 
-// openRO opens a SQLite file for queries only, one connection.
+// openRO opens a SQLite file for queries only, one connection. It refuses a
+// file another process holds a lock on, such as a running backend.
 func openRO(path string) (*sql.DB, error) {
+	// The file must exist and have no live connection.
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
 	}
+	if err := refuseLiveLock(path); err != nil {
+		return nil, err
+	}
+
+	// Open one connection.
 	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=query_only(1)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		return nil, err
