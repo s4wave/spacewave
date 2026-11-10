@@ -227,6 +227,7 @@ func OpenWithPragmas[T SQLiteDriverConfig](ctx context.Context, path string, tab
 // file's header, after which SQLite applies the new mode only on a VACUUM,
 // which on an empty file rewrites one page.
 func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
+	// Leave a database that already holds a table alone.
 	var tables int
 	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM sqlite_master").Scan(&tables); err != nil {
 		return err
@@ -234,6 +235,8 @@ func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
 	if tables != 0 {
 		return nil
 	}
+
+	// Set the mode and rewrite the empty file on one connection.
 	conn, err := db.Conn(ctx)
 	if err != nil {
 		return err
@@ -244,6 +247,8 @@ func setFreshAutoVacuum(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("%s: %w", q, err)
 		}
 	}
+
+	// Check that the file took the incremental mode.
 	var mode int
 	if err := conn.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
 		return err

@@ -76,6 +76,7 @@ func (s *storeStats) addWait(prio int, d time.Duration) {
 
 // addHold counts a turn at prio that held the writer for d.
 func (s *storeStats) addHold(prio int, d time.Duration) {
+	// Add the hold to its priority's sum, and count a hold past a second.
 	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
 	hold, over := &s.fgHold, &s.fgHoldsOver1s
 	if prio == writerBackground {
@@ -95,6 +96,7 @@ func (s *storeStats) addPassive(d time.Duration) {
 
 // addTruncate counts a truncating checkpoint that took d.
 func (s *storeStats) addTruncate(d time.Duration) {
+	// Count the truncate, sum its time and keep it as the newest.
 	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
 	s.truncates.Add(1)
 	s.truncate.Add(ns)
@@ -173,6 +175,7 @@ func EachStoreStats(fn func(StoreStats)) {
 // Stats returns the store's writer turn and checkpoint counters since it
 // opened.
 func (s *Store[T]) Stats() StoreStats {
+	// Read the counters, then the file name under its lock.
 	st := s.stats.snapshot()
 	s.fileMtx.Lock()
 	st.File = s.file

@@ -262,6 +262,7 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 
 // Iterate returns an iterator with a given key prefix.
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	// Iterate on the transaction's queryer, sharing its read turns.
 	q, err := t.queryer(ctx)
 	if err != nil {
 		return kvtx.NewErrIterator(err)
@@ -373,9 +374,12 @@ func (t *Tx) Discard() {
 
 // endRead ends a snapshot read's transaction and returns its connection.
 func (t *Tx) endRead() {
+	// A read that never began holds no connection.
 	if t.conn == nil {
 		return
 	}
+
+	// Roll back in a read turn, and discard a connection that fails to.
 	_ = t.turns.enter(context.Background())
 	_, err := t.conn.ExecContext(context.Background(), "ROLLBACK")
 	t.turns.leave()
