@@ -1548,7 +1548,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/space/world": {
-      "hash": "b7dffcca90f2c8c3cf253d9313cb64fdd10f927ed13ad5483c4f1fafcb84a5c0",
+      "hash": "89271a866fb2bf9ce7b30439939b48ff45c2f33dea629646e342f0b9406a9964",
       "generatedFiles": [
         "core/space/world/world.pb.go",
         "core/space/world/world.pb.ts",
@@ -2164,6 +2164,16 @@
         "db/kvtx/block/okra/okra.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/kvtx/cayley/nodegraph": {
+      "hash": "09ae7a089c354df194dc8a8c22ac1446a85b00fcbf152f315ed0ee67f2d01865",
+      "generatedFiles": [
+        "db/kvtx/cayley/nodegraph/nodegraph.pb.go",
+        "db/kvtx/cayley/nodegraph/nodegraph.pb.ts"
+      ],
+      "protoFiles": [
+        "db/kvtx/cayley/nodegraph/nodegraph.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/kvtx/fibheap": {
       "hash": "b3a929ac5a557196de94890bacfc1508085de05c20b057e50e33a7cba0cf4841",
       "generatedFiles": [
@@ -2578,7 +2588,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/block": {
-      "hash": "a5fe25600deca2ca429a09c0db02e16a5a93422ea191a519ed0477fb2cdce17a",
+      "hash": "55d2d7d626cb2dd6b65f9fa501bd0e618a8fa7759b7a58865502e82ba90d7318",
       "generatedFiles": [
         "db/world/block/nested-world.pb.go",
         "db/world/block/nested-world.pb.ts",
@@ -2591,7 +2601,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/block/engine": {
-      "hash": "73253074cd634b5c3237afea1ecae8683a7e9f880eb262b6d581b99350e84a70",
+      "hash": "db87b803fa92a1f062ea1346957d2f5710729e84e88f338ccf7aa4fe6f548d47",
       "generatedFiles": [
         "db/world/block/engine/engine.pb.go",
         "db/world/block/engine/engine.pb.ts"

@@ -61,6 +61,9 @@ type Config struct {
 	// Empty leaves an existing World's settings unchanged and starts a new World
 	// with the default settings; list the default indexes to return to them.
 	GraphSettings *block.GraphSettings `protobuf:"bytes,15,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
+	// Format is the stored layout a new World starts with. An existing World
+	// keeps the format it has.
+	Format block.WorldFormat `protobuf:"varint,17,opt,name=format,proto3" json:"format,omitempty"`
 	// DisableLookup disables looking up anything on the bus via directives.
 	// Implies both DisableApplyWorldOp and DisableApplyObjectOp.
 	DisableLookup bool `protobuf:"varint,8,opt,name=disable_lookup,json=disableLookup,proto3" json:"disableLookup,omitempty"`
@@ -156,6 +159,13 @@ func (x *Config) GetGraphSettings() *block.GraphSettings {
 	return nil
 }
 
+func (x *Config) GetFormat() block.WorldFormat {
+	if x != nil {
+		return x.Format
+	}
+	return block.WorldFormat(0)
+}
+
 func (x *Config) GetDisableLookup() bool {
 	if x != nil {
 		return x.DisableLookup
@@ -231,6 +241,7 @@ func (m *Config) CloneVT() *Config {
 	r.ObjectStorePrefix = m.ObjectStorePrefix
 	r.ObjectStoreHeadKey = m.ObjectStoreHeadKey
 	r.DisableChangelog = m.DisableChangelog
+	r.Format = m.Format
 	r.DisableLookup = m.DisableLookup
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
 	r.DisableApplyObjectOp = m.DisableApplyObjectOp
@@ -318,6 +329,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Ephemeral != that.Ephemeral {
+		return false
+	}
+	if this.Format != that.Format {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -439,6 +453,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ephemeral")
 		s.WriteBool(x.Ephemeral)
 	}
+	if x.Format != 0 || s.HasField("format") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("format")
+		x.Format.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -516,6 +535,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ephemeral":
 			s.AddField("ephemeral")
 			x.Ephemeral = s.ReadBool()
+		case "format":
+			s.AddField("format")
+			x.Format.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -599,6 +621,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Format != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Format))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if m.Ephemeral {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Ephemeral)
@@ -773,6 +802,7 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(2, m.Ephemeral)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.Format)
 	n += len(m.unknownFields)
 	return n
 }
@@ -857,6 +887,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.Ephemeral != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ephemeral")
 		protobuf_go_lite.TextWriteBool(&sb, x.Ephemeral)
+	}
+	if x.Format != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
+		protobuf_go_lite.TextWriteStringer(&sb, block.WorldFormat(x.Format))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1074,6 +1108,17 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Ephemeral = bool(v)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Format", wireType)
+			}
+			m.Format = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Format = block.WorldFormat(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

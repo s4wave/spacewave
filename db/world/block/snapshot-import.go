@@ -7,14 +7,12 @@ import (
 	"slices"
 
 	"github.com/aperturerobotics/cayley/graph"
-	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
-	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
@@ -74,6 +72,11 @@ func ImportSnapshot(
 	return result, nil
 }
 
+// importFormat is the format an imported World takes. A user imports a
+// snapshot, so the import follows the Engine's default creation format, and
+// moves to NewestWorldFormat with it.
+const importFormat = WorldFormat_WORLD_FORMAT_CAYLEY_KV
+
 // importWorld builds the World blocks of an import and returns its root. The
 // object index is built from the object stream in one pass, so no mutable
 // index is staged.
@@ -108,7 +111,9 @@ func importWorld(
 	// transaction and referenced within the World, as CreateObject does for
 	// same-bucket bodies.
 	transaction, worldCursor := bucketCursor.BuildTransactionAtRef(nil, nil)
-	worldCursor.SetBlock(NewWorld(true), true)
+	worldRoot := NewWorld(true)
+	worldRoot.Format = importFormat
+	worldCursor.SetBlock(worldRoot, true)
 	objectCursor := worldCursor.Detach(false)
 	objectCursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA), true)
 	objectTx, err := kvtx_block.BuildKvTransaction(ctx, objectCursor, true)
@@ -187,9 +192,15 @@ func buildGraphIndex(ctx context.Context, quads []world.GraphQuad) (*hashmap.BTr
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/import-snapshot/build-graph")
 	defer task.End()
 
-	// Create the in-memory graph index and its staged Cayley graph.
+	// Create the in-memory graph index and stage the graph in one write
+	// transaction over it.
 	index := hashmap.NewBTreeMap[[]byte]()
-	staged, err := kvtx_cayley.NewGraph(ctx, hashmap.NewHashmapKvtx(index), graph.Options{cayley_kv.OptAssumeDefaultIdx: true})
+	stage, err := hashmap.NewHashmapKvtx(index).NewTransaction(ctx, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "create graph index")
+	}
+	defer stage.Discard()
+	staged, err := openGraph(ctx, importFormat, nil, stage, stage)
 	if err != nil {
 		return nil, errors.Wrap(err, "create graph index")
 	}
@@ -208,6 +219,9 @@ func buildGraphIndex(ctx context.Context, quads []world.GraphQuad) (*hashmap.BTr
 		if err := staged.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 			return nil, errors.Wrap(err, "build graph index")
 		}
+	}
+	if err := stage.Commit(ctx); err != nil {
+		return nil, errors.Wrap(err, "build graph index")
 	}
 	return index, nil
 }

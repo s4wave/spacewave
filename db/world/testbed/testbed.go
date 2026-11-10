@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
 )
@@ -95,6 +96,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		enableChangelog,
 	)
 	engConf.Verbose = worldVerbose
+	engConf.Format = world_block.NewestWorldFormat
 
 	// Start the World engine and retain its directive for failure cleanup.
 	eng, engRef, err := world.StartEngine(ctx, b, engConf, nil)

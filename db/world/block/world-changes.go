@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
+	kvtx_cayley_nodegraph "github.com/s4wave/spacewave/db/kvtx/cayley/nodegraph"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -127,20 +128,29 @@ func ChangedObjectKeysIn(ctx context.Context, before, after *block.Cursor, keys 
 }
 
 // changedGraphQuads lists the quads set or deleted between the graphs of two
-// decoded World roots. A link record present in only one graph names a quad
-// set or deleted; one rewritten in place names the quads of both versions.
-// complete is false when the change exceeds maxKeys or the comparison bound.
+// decoded World roots, each quad in the version of each graph that holds it.
+// complete is false when the change exceeds maxKeys or the comparison bound,
+// or when the roots differ in format, since then every key differs.
 func changedGraphQuads(ctx context.Context, before, after *block.Cursor, maxKeys int) ([]world.GraphQuad, bool, error) {
-	// Compare the graph trees and keep the primitive log records.
+	// Compare the graph trees of two roots in one format.
+	format, same, err := sharedFormat(ctx, before, after)
+	if err != nil || !same {
+		return nil, false, err
+	}
 	keys, complete, err := kvtx_block.ChangedKeys(ctx, before.FollowSubBlock(2), after.FollowSubBlock(2), maxKeys)
 	if err != nil || !complete {
 		return nil, false, err
 	}
+	if format == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
+		return changedNodeGraphQuads(ctx, before.FollowSubBlock(2), after.FollowSubBlock(2), keys, maxKeys)
+	}
+
+	// Resolve each changed link record in the graph that holds it. A record
+	// present in only one graph names a quad set or deleted; one rewritten in
+	// place names the quads of both versions.
 	keys = slices.DeleteFunc(keys, func(key []byte) bool {
 		return !bytes.HasPrefix(key, graphLogPrefix)
 	})
-
-	// Resolve each changed link in the graph that holds it.
 	var quads []world.GraphQuad
 	for _, bcs := range []*block.Cursor{before, after} {
 		graphQuads, err := readGraphLinks(ctx, bcs.FollowSubBlock(2), keys)
@@ -148,6 +158,49 @@ func changedGraphQuads(ctx context.Context, before, after *block.Cursor, maxKeys
 			return nil, false, err
 		}
 		quads = append(quads, graphQuads...)
+	}
+	return quads, true, nil
+}
+
+// sharedFormat returns the format of two decoded World roots, with same false
+// when they differ.
+func sharedFormat(ctx context.Context, before, after *block.Cursor) (WorldFormat, bool, error) {
+	var formats [2]WorldFormat
+	for i, bcs := range []*block.Cursor{before, after} {
+		w, err := UnmarshalWorld(ctx, bcs)
+		if err != nil {
+			return 0, false, err
+		}
+		if w == nil {
+			return 0, false, block.ErrNotFound
+		}
+		formats[i] = w.GetFormat()
+	}
+	return formats[0], formats[0] == formats[1], nil
+}
+
+// changedNodeGraphQuads resolves the changed keys of two node graph trees to
+// the quads they name, at most maxKeys of them.
+func changedNodeGraphQuads(ctx context.Context, before, after *block.Cursor, keys [][]byte, maxKeys int) ([]world.GraphQuad, bool, error) {
+	// Open both graph trees for reading.
+	var txs [2]kvtx.BlockTx
+	for i, bcs := range []*block.Cursor{before, after} {
+		ktx, err := kvtx_block.BuildKvTransaction(ctx, bcs, false)
+		if err != nil {
+			return nil, false, err
+		}
+		defer ktx.Discard()
+		txs[i] = ktx
+	}
+
+	// Resolve the changed keys to quads in each tree.
+	cquads, complete, err := kvtx_cayley_nodegraph.ChangedQuads(ctx, txs[0], txs[1], keys, maxKeys)
+	if err != nil || !complete {
+		return nil, false, err
+	}
+	quads := make([]world.GraphQuad, len(cquads))
+	for i, q := range cquads {
+		quads[i] = world.CayleyQuadToGraphQuad(q)
 	}
 	return quads, true, nil
 }

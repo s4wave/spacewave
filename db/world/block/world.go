@@ -15,7 +15,6 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
-	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
 	kvtx_deferred "github.com/s4wave/spacewave/db/kvtx/deferred"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/tx"
@@ -59,8 +58,9 @@ type WorldState struct {
 	releaseOwned bool
 
 	objTree kvtx.BlockTx
-	// graphSettings are the loaded root's graph settings, which the graph
-	// tree opens with.
+	// format and graphSettings are the loaded root's format and graph
+	// settings, which the graph tree opens with.
+	format        WorldFormat
 	graphSettings *GraphSettings
 	// graphMtx guards opening the graph tree, which readers sharing a Tx's
 	// read lock may race to. graphTree, graphOps and graphHd are nil until
@@ -502,7 +502,7 @@ func (t *WorldState) setBlockTransaction(
 	if t.objTree != nil {
 		t.objTree.Discard()
 	}
-	t.objTree, t.graphSettings = objTree, root.GetGraphSettings()
+	t.objTree, t.format, t.graphSettings = objTree, root.GetFormat(), root.GetGraphSettings()
 	t.graphTree, t.graphOps, t.graphHd = nil, nil, nil
 
 	// The rebuilt block state supersedes any transaction-local object memo.
@@ -681,7 +681,7 @@ func (t *WorldState) graph(ctx context.Context) (*cayley.Handle, error) {
 	t.graphMtx.Lock()
 	defer t.graphMtx.Unlock()
 	if t.graphHd == nil {
-		tree, ops, hd, err := t.buildGraphTree(context.WithoutCancel(ctx), t.bcs, t.graphSettings)
+		tree, ops, hd, err := t.buildGraphTree(context.WithoutCancel(ctx))
 		if err != nil {
 			return nil, err
 		}
@@ -699,19 +699,19 @@ func (t *WorldState) graphKvTx(ctx context.Context) (kvtx.BlockTx, error) {
 	return t.graphTree, nil
 }
 
-// buildGraphTree builds the graph tree (kv storage) handle.
+// buildGraphTree opens the loaded root's graph tree and its graph handle.
 //
 // The handle writes through deferred ops that hold the writes of many cayley
 // transactions, so a World transaction rehashes the graph tree once per
 // commit instead of once per graph write.
-func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor, settings *GraphSettings) (kvtx.BlockTx, *kvtx_deferred.Ops, *cayley.Handle, error) {
+func (t *WorldState) buildGraphTree(ctx context.Context) (kvtx.BlockTx, *kvtx_deferred.Ops, *cayley.Handle, error) {
 	// Start the graph-tree trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree")
 	defer task.End()
 
 	// Build the graph key-value transaction.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/build-kv-transaction")
-	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(2), t.write)
+	ktx, err := kvtx_block.BuildKvTransaction(taskCtx, t.bcs.FollowSubBlock(2), t.write)
 	subtask.End()
 	if err != nil {
 		return nil, nil, nil, err
@@ -722,15 +722,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor, sett
 		ktx = kvtx_vlogger.NewBlockTx(t.le, ktx)
 	}
 
-	// Open the graph under the root's settings, so the store reads no layout.
-	// The calls back onto one transaction: makes frequent NewTx() Get()
-	// Discard() calls.
-	graphOpts, err := settings.graphOptions()
-	if err != nil {
-		ktx.Discard()
-		return nil, nil, nil, err
-	}
-
+	// Open the graph in the root's format and under its settings.
 	// NOTE: the ctx is used here for internal hidalgo k/v transactions!
 	// it must not be canceled while WorldState is in use!
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-graph-tree/new-graph-handle")
@@ -740,7 +732,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor, sett
 		graphOps = kvtx_deferred.NewOps(ktx, batch, 0, 0)
 		graphStore = graphOps
 	}
-	graphHd, err := kvtx_cayley.NewGraph(taskCtx, kvtx.NewTxStore(graphStore), graphOpts)
+	graphHd, err := openGraph(taskCtx, t.format, t.graphSettings, graphStore, ktx)
 	subtask.End()
 	if err != nil {
 		ktx.Discard()

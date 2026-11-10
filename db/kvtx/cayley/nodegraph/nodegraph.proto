@@ -1,0 +1,13 @@
+syntax = "proto3";
+package kvtx.cayley.nodegraph;
+
+import "github.com/aperturerobotics/cayley/quad/pquads/quads.proto";
+
+// NodeMeta is the meta value of a node in the node graph store.
+message NodeMeta {
+  // Value is the node's quad value.
+  .pquads.Value value = 1;
+  // Pinned marks a node used as a predicate or label. A pinned node is never
+  // deleted, since no range of its own shows whether a quad still names it.
+  bool pinned = 2;
+}

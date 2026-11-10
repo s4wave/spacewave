@@ -34,10 +34,22 @@ message World {
   // Empty means the default settings. The graph store holds the same
   // settings; this copy lets the World open it without reading them.
   GraphSettings graph_settings = 8;
+  // Format is the stored layout of graph_key_value.
+  WorldFormat format = 9;
 
   // The volume owns block reachability. Fields 5 and 6 held a World-local
   // reference graph and its journal.
   reserved 5, 6;
+}
+
+// WorldFormat is the stored layout of a World.
+enum WorldFormat {
+  // WORLD_FORMAT_CAYLEY_KV is the Cayley kv quad store: a primitive log,
+  // posting lists and reference counts.
+  WORLD_FORMAT_CAYLEY_KV = 0;
+  // WORLD_FORMAT_NODE_GRAPH stores each quad as an out key under its subject
+  // and an in key under its object.
+  WORLD_FORMAT_NODE_GRAPH = 1;
 }
 
 // GraphSettings are the settings of a World's graph store.
@@ -57,7 +69,6 @@ message Object {
   // Rev is the revision nonce of the object.
   // Incremented when a transaction is applied to the object.
   // Incremented when root_ref is changed (SetRootRef).
-  // Incremented when adding or removing a graph quad referencing Object.
   uint64 rev = 3;
   // ModSeqno is the World seqno after the last commit that wrote this Object
   // record. Rev counts this Object's own changes; ModSeqno orders them with
