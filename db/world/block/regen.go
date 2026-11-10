@@ -66,7 +66,7 @@ const (
 type RegenStage int
 
 const (
-	// RegenIdle is no regeneration in progress.
+	// RegenIdle is an old-format World with no regeneration in progress.
 	RegenIdle RegenStage = iota
 	// RegenBuilding is a pinned root not yet built in the new format.
 	RegenBuilding
@@ -78,6 +78,8 @@ const (
 	// RegenSwitchedBack is the old format serving again, with the new-format
 	// root it left held.
 	RegenSwitchedBack
+	// RegenDone is a World in the newest format with no regeneration roots.
+	RegenDone
 )
 
 // String returns the stage's name.
@@ -93,6 +95,8 @@ func (s RegenStage) String() string {
 		return "switched"
 	case RegenSwitchedBack:
 		return "switched back"
+	case RegenDone:
+		return "done"
 	}
 	return "unknown"
 }
@@ -168,6 +172,8 @@ func (r *Regenerator) read(ctx context.Context) (regenState, error) {
 	switch {
 	case s.base.GetEmpty() && !s.built.GetEmpty():
 		s.stage = RegenSwitchedBack
+	case s.base.GetEmpty() && s.format == WorldFormat_WORLD_FORMAT_NODE_GRAPH:
+		s.stage = RegenDone
 	case s.base.GetEmpty():
 		s.stage = RegenIdle
 	case s.built.GetEmpty():
@@ -182,49 +188,62 @@ func (r *Regenerator) read(ctx context.Context) (regenState, error) {
 
 // Run carries the World's regeneration from its current stage until the new
 // World is the head and proven equal to the old root, then releases the old
-// root, and returns at once for a World already in the node graph format.
-// Each step lands in the roots before the next starts, so a Run after a crash
-// resumes from the last step. A new World that differs from the old root is
-// switched back and Run returns ErrRegenMismatch; a regeneration switched
-// back returns ErrRegenSwitchedBack until Release.
+// root. Each step lands in the roots before the next starts, so a Run after a
+// crash resumes from the last step. A new World that differs from the old
+// root is switched back and Run returns ErrRegenMismatch; a regeneration
+// switched back returns ErrRegenSwitchedBack until Release.
 func (r *Regenerator) Run(ctx context.Context) error {
 	// Trace the whole regeneration.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/run")
 	defer task.End()
 
-	// Take the step each stage calls for until the release.
+	// Step until done, switching back from a mismatch.
 	for {
-		s, err := r.read(ctx)
-		if err != nil {
-			return err
-		}
-		switch s.stage {
-		case RegenIdle:
-			if s.format == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
-				return nil
+		stage, err := r.Step(ctx)
+		if errors.Is(err, ErrRegenMismatch) {
+			if backErr := r.SwitchBack(ctx); backErr != nil {
+				return errors.Wrapf(backErr, "switch back after %v", err)
 			}
-			err = r.pin(ctx, s)
-		case RegenBuilding:
-			err = r.build(ctx, s)
-		case RegenCatchingUp:
-			err = r.catchUp(ctx, s, regenForward)
-		case RegenSwitched:
-			err = r.verify(ctx, s)
-			if err == nil {
-				err = r.release(ctx, s)
-			} else if errors.Is(err, ErrRegenMismatch) {
-				if backErr := r.SwitchBack(ctx); backErr != nil {
-					return errors.Wrapf(backErr, "switch back after %v", err)
-				}
-				return err
-			}
-		case RegenSwitchedBack:
-			return ErrRegenSwitchedBack
 		}
-		if err != nil {
+		if err != nil || stage == RegenDone {
 			return err
 		}
 	}
+}
+
+// Step takes the one step the current stage calls for and returns the stage
+// it reached: the pin from idle, the build, a catch-up round and the swap it
+// may lead to, or the comparison and the release of the old root from
+// switched. A comparison that finds a difference returns ErrRegenMismatch and
+// stays switched; a switch back returns ErrRegenSwitchedBack; done takes no
+// step.
+func (r *Regenerator) Step(ctx context.Context) (RegenStage, error) {
+	// Take the stage's step.
+	s, err := r.read(ctx)
+	if err != nil {
+		return s.stage, err
+	}
+	switch s.stage {
+	case RegenIdle:
+		err = r.pin(ctx, s)
+	case RegenBuilding:
+		err = r.build(ctx, s)
+	case RegenCatchingUp:
+		err = r.catchUp(ctx, s, regenForward)
+	case RegenSwitched:
+		if err = r.verify(ctx, s); err == nil {
+			err = r.release(ctx, s)
+		}
+	case RegenSwitchedBack:
+		err = ErrRegenSwitchedBack
+	}
+	if err != nil {
+		return s.stage, err
+	}
+
+	// Read the stage the step reached.
+	s, err = r.read(ctx)
+	return s.stage, err
 }
 
 // SwitchBack returns a switched World to the old format, the runtime switch

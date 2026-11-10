@@ -296,7 +296,7 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	if err := NewRegenerator(authority, cfg).Run(ctx); err != nil {
 		t.Fatal(err)
 	}
-	stage(r, RegenIdle)
+	stage(r, RegenDone)
 	f.collect(t)
 	m.check(t, engine)
 }
