@@ -10,14 +10,16 @@ stateDiagram-v2
   s5: poisoned, crashed
   s6: index written
   s7: entry written
-  s8: registered
-  s9: index written, crashed
-  s10: evicted
-  s11: finalized, crashed
-  s12: object uploaded, crashed
-  s13: entry written, crashed
-  s14: registered, crashed
-  s15: evicted, crashed
+  s8: renamed
+  s9: registered
+  s10: index written, crashed
+  s11: evicted
+  s12: renamed, crashed
+  s13: finalized, crashed
+  s14: object uploaded, crashed
+  s15: entry written, crashed
+  s16: registered, crashed
+  s17: evicted, crashed
   [*] --> s0
   s0 --> s1: crash
   s0 --> s2: sync fails: poison
@@ -27,18 +29,21 @@ stateDiagram-v2
   s0 --> s6: write and sync the index
   s4 --> s7: write the entry
   s5 --> s3: recover: truncate to the last good record, finalize
-  s6 --> s3: rename and sync the directory
-  s6 --> s9: crash
-  s7 --> s8: register its keys
-  s3 --> s11: crash
-  s8 --> s10: unlink
-  s9 --> s3: recover: truncate to the last good record, finalize
-  s4 --> s12: crash
-  s11 --> s3: recover
-  s7 --> s13: crash
-  s12 --> s4: recover
-  s8 --> s14: crash
-  s13 --> s7: recover
-  s10 --> s15: crash
-  s14 --> s8: recover
-  s15 --> s10: recover
+  s6 --> s8: rename
+  s6 --> s10: crash
+  s7 --> s9: register its keys
+  s8 --> s3: sync the directory
+  s8 --> s12: crash
+  s9 --> s11: unlink
+  s10 --> s3: recover: truncate to the last good record, finalize
+  s3 --> s13: crash
+  s12 --> s3: recover
+  s4 --> s14: crash
+  s13 --> s3: recover
+  s7 --> s15: crash
+  s14 --> s4: recover
+  s9 --> s16: crash
+  s15 --> s7: recover
+  s11 --> s17: crash
+  s16 --> s9: recover
+  s17 --> s11: recover
