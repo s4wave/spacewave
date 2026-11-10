@@ -120,3 +120,12 @@ func TestSorterCloseRemovesRuns(t *testing.T) {
 		t.Fatalf("parent holds %d entries after Close: %v", len(entries), err)
 	}
 }
+
+// TestSorterReserve checks that Reserve refuses runs larger than the disk.
+func TestSorterReserve(t *testing.T) {
+	s := New(t.TempDir(), 1)
+	defer s.Close()
+	if err := s.Reserve(1 << 61); !errors.Is(err, ErrNoSpace) {
+		t.Fatalf("reserve of 2 EiB returned %v", err)
+	}
+}
