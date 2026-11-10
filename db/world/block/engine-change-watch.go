@@ -324,7 +324,7 @@ func (e *Engine) runChangeWatch(w *engineChangeWatch) {
 }
 
 // compareChangeWatchHeads compares two held heads. keys lists the changed
-// object records, including revisions that only follow changed quads; for a
+// object records; a changed quad does not change the records it names. For a
 // change too large to list, it lists only the changed keys w's waiters watch.
 // keys is nil when the comparison failed. When listChanges is set and the
 // change could be listed, changes is the ChangeSet for subscribers; otherwise

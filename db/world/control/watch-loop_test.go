@@ -292,6 +292,73 @@ func TestWatchLoopReportsObjectDeletion(t *testing.T) {
 	}
 }
 
+// TestWatchLoopWakesOnReadEdge verifies an object's watch loop wakes when a
+// relationship its handler read is set or deleted, though the object's own
+// revision stays put.
+func TestWatchLoopWakesOnReadEdge(t *testing.T) {
+	// Bound the watch lifetime and cancel it on test exit.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	// Open the World testbed and create the two objects the edge joins.
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ws := tb.WorldState
+	for _, key := range []string{"edge-host", "edge-member"} {
+		obj, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Start a loop on the host whose handler reads the host's member edges.
+	type seen struct{ rev, members uint64 }
+	seenCh := make(chan seen, 4)
+	filter := world.NewGraphQuadWithKeys("edge-host", "<member>", "", "")
+	loop := world_control.NewWatchLoop(
+		tb.Logger,
+		"edge-host",
+		world_control.NewWaitForStateHandler(func(
+			ctx context.Context,
+			ws world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			rev uint64,
+		) (bool, error) {
+			quads, err := ws.LookupGraphQuads(ctx, filter, 0)
+			if err != nil {
+				return false, err
+			}
+			seenCh <- seen{rev: rev, members: uint64(len(quads))}
+			return true, nil
+		}),
+	)
+	go func() {
+		_ = loop.Execute(ctx, ws)
+	}()
+	initial := recvWatchLoopValue(t, seenCh, "initial state")
+
+	// Set the edge: the loop wakes with one member at the same revision.
+	quad := world.NewGraphQuadWithKeys("edge-host", "<member>", "edge-member", "")
+	if err := ws.SetGraphQuad(ctx, quad); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := recvWatchLoopValue(t, seenCh, "edge set"); got != (seen{rev: initial.rev, members: 1}) {
+		t.Fatalf("after set got %+v, want rev %d with one member", got, initial.rev)
+	}
+
+	// Delete the edge: the loop wakes with no members.
+	if err := ws.DeleteGraphQuad(ctx, quad); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := recvWatchLoopValue(t, seenCh, "edge deleted"); got != (seen{rev: initial.rev}) {
+		t.Fatalf("after delete got %+v, want rev %d with no members", got, initial.rev)
+	}
+}
+
 func TestWatchLoopCancellationDuringWait(t *testing.T) {
 	// Create a cancelable lifetime for the World wait.
 	ctx, cancel := context.WithCancel(t.Context())

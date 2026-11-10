@@ -79,29 +79,29 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Evaluate, then wait for an input to change or a hold time to end.
 	for {
-		seen, holdEnds, err := c.evaluate(ctx, src)
+		reads, holdEnds, err := c.evaluate(ctx, src)
 		if err != nil {
 			return err
 		}
-		if err := c.wait(ctx, ws, src, seen, holdEnds); err != nil {
+		if err := c.wait(ctx, ws, src, reads, holdEnds); err != nil {
 			return err
 		}
 	}
 }
 
 // evaluate runs the function on the current inputs and stores the Alarm it
-// implies. It returns the World objects the evaluation read and when the
+// implies. It returns what the evaluation read from the World and when the
 // Alarm's hold time ends, if it is holding. A failure to read an input or run
 // the function shows on the Alarm; only a World failure or the end of ctx
 // returns an error.
-func (c *Controller) evaluate(ctx context.Context, src *source) ([]*world.ObjectRootRef, time.Time, error) {
+func (c *Controller) evaluate(ctx context.Context, src *source) (*worldReads, time.Time, error) {
 	// Read the function and the objects at one point in the World.
 	now := c.now()
-	in, fn, seen, readErr := c.readWorld(ctx)
+	in, fn, reads, readErr := c.readWorld(ctx)
 	if ctx.Err() != nil {
 		return nil, time.Time{}, ctx.Err()
 	}
-	if seen == nil {
+	if reads == nil {
 		return nil, time.Time{}, readErr
 	}
 
@@ -120,7 +120,7 @@ func (c *Controller) evaluate(ctx context.Context, src *source) ([]*world.Object
 
 	// Store the Alarm the result implies, or the failure.
 	cond := &s4wave_alarm.Condition{Firing: result.GetFiring(), Summary: result.GetSummary(), Options: result.GetOptions()}
-	next, err := c.store(ctx, cond, evalErr, c.existingReads(seen), now)
+	next, err := c.store(ctx, cond, evalErr, c.existingReads(reads.seen), now)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -128,19 +128,37 @@ func (c *Controller) evaluate(ctx context.Context, src *source) ([]*world.Object
 		c.le.WithError(evalErr).Debug("alarm watch evaluation failed")
 	}
 	holdEnds, _ := next.HoldEnds()
-	return seen, holdEnds, nil
+	return reads, holdEnds, nil
+}
+
+// worldReads is what one evaluation read from the World.
+type worldReads struct {
+	// seqno is the World seqno the reads observed.
+	seqno uint64
+	// set holds the reads, so a change to an object or to an object's type
+	// edge ends the wait. A type change does not revise the object.
+	set *world.ReadSet
+	// seen holds the root of the function, each object and the source, in
+	// that order.
+	seen []*world.ObjectRootRef
 }
 
 // readWorld reads the function and the objects it reads, and returns the
 // function's input with the objects filled in, with the root of each object
 // read. It returns no roots when the World cannot be read.
-func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s4wave_function.PureFunction, []*world.ObjectRootRef, error) {
+func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s4wave_function.PureFunction, *worldReads, error) {
 	// Open a read transaction.
 	tx, err := c.engine.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	defer tx.Discard()
+	seqno, err := tx.GetSeqno(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	set := world.NewReadSet()
+	rtx := set.Track(tx)
 
 	// Read the roots of the function, the source and each object, so a change
 	// to any of them wakes the watch.
@@ -148,10 +166,11 @@ func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s
 	if c.conf.GetSourceKey() != "" {
 		keys = append(keys, c.conf.GetSourceKey())
 	}
-	seen, err := world.GetObjectRootRefsBatch(ctx, tx, keys)
+	seen, err := world.GetObjectRootRefsBatch(ctx, rtx, keys)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	reads := &worldReads{seqno: seqno, set: set, seen: seen}
 
 	// Describe each object to the function.
 	in := &alarm_watch.WatchInput{}
@@ -159,8 +178,8 @@ func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s
 		ref := seen[1+i]
 		obj := &alarm_watch.ObjectInput{Key: key, Exists: ref.Exists, Rev: ref.Rev}
 		if ref.Exists {
-			if obj.TypeId, err = world_types.GetObjectType(ctx, tx, key); err != nil {
-				return nil, nil, seen, err
+			if obj.TypeId, err = world_types.GetObjectType(ctx, rtx, key); err != nil {
+				return nil, nil, reads, err
 			}
 		}
 		if in.Objects == nil {
@@ -171,13 +190,13 @@ func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s
 
 	// Read the function.
 	if !seen[0].Exists {
-		return nil, nil, seen, errors.Errorf("function %q does not exist", c.conf.GetFunctionKey())
+		return nil, nil, reads, errors.Errorf("function %q does not exist", c.conf.GetFunctionKey())
 	}
-	fn, err := s4wave_function.ReadPureFunction(ctx, tx, c.conf.GetFunctionKey())
+	fn, err := s4wave_function.ReadPureFunction(ctx, rtx, c.conf.GetFunctionKey())
 	if err != nil {
-		return nil, nil, seen, err
+		return nil, nil, reads, err
 	}
-	return in, fn, seen, nil
+	return in, fn, reads, nil
 }
 
 // existingReads returns the sorted keys of the source and the read objects
@@ -185,12 +204,12 @@ func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s
 func (c *Controller) existingReads(seen []*world.ObjectRootRef) []string {
 	var reads []string
 	for _, ref := range seen[1:] {
-		if ref.Exists && !slices.Contains(reads, ref.ObjectKey) {
+		if ref.Exists {
 			reads = append(reads, ref.ObjectKey)
 		}
 	}
 	slices.Sort(reads)
-	return reads
+	return slices.Compact(reads)
 }
 
 // query fills in the result of each query at now.
@@ -265,10 +284,10 @@ func (c *Controller) store(ctx context.Context, cond *s4wave_alarm.Condition, ev
 	return next, err
 }
 
-// wait returns when an object in seen changes, the source's targets change or
+// wait returns when a change touches reads, the source's targets change or
 // its stream fails, or holdEnds passes, and returns the context's error when
 // ctx ends.
-func (c *Controller) wait(ctx context.Context, ws world.WorldState, src *source, seen []*world.ObjectRootRef, holdEnds time.Time) error {
+func (c *Controller) wait(ctx context.Context, ws world.WorldState, src *source, reads *worldReads, holdEnds time.Time) error {
 	// End the World wait on the first other wake.
 	waitCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -287,15 +306,9 @@ func (c *Controller) wait(ctx context.Context, ws world.WorldState, src *source,
 		cancel()
 	}()
 
-	// Return at once when an object changed since readWorld. An object deleted
-	// and created again in between can be back at its seen revision, which the
-	// wait below would not see as a change.
-	if changed, err := rootsChanged(ctx, ws, seen); err != nil || changed {
-		return err
-	}
-
-	// Wait for an object to change.
-	err := world.WaitObjectChange(waitCtx, ws, seen...)
+	// Wait for a change since the reads to what they read. Starting from the
+	// reads' seqno also catches an object deleted and created again since.
+	_, err := reads.set.WaitChange(waitCtx, ws, reads.seqno)
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -317,22 +330,3 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var _ controller.Controller = (*Controller)(nil)
-
-// rootsChanged reports whether any object's root differs from seen.
-func rootsChanged(ctx context.Context, ws world.WorldState, seen []*world.ObjectRootRef) (bool, error) {
-	// Read the current roots and compare each one.
-	keys := make([]string, len(seen))
-	for i, ref := range seen {
-		keys[i] = ref.ObjectKey
-	}
-	curr, err := world.GetObjectRootRefsBatch(ctx, ws, keys)
-	if err != nil {
-		return false, err
-	}
-	for i, ref := range seen {
-		if curr[i].Exists != ref.Exists || curr[i].Rev != ref.Rev || !curr[i].RootRef.EqualVT(ref.RootRef) {
-			return true, nil
-		}
-	}
-	return false, nil
-}

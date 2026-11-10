@@ -10,10 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestDeleteObjectRevisesEndpoints checks that deleting an object advances
-// each object it shared quads with by one revision per shared quad, as when
-// each quad's delete revised its endpoints in turn.
-func TestDeleteObjectRevisesEndpoints(t *testing.T) {
+// TestDeleteObjectKeepsEndpointRevisions checks that deleting an object leaves
+// the revisions of the objects it shared quads with alone: a quad names a
+// record without changing it.
+func TestDeleteObjectKeepsEndpointRevisions(t *testing.T) {
 	// Open an Engine on an empty World.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -86,13 +86,12 @@ func TestDeleteObjectRevisesEndpoints(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The host lost two quads and the type one.
+	// The host lost two quads and the type one; neither record changed.
 	after := revs()
-	if d := after["host"] - before["host"]; d != 2 {
-		t.Fatalf("host advanced %d revisions, want 2", d)
-	}
-	if d := after["types/attempt"] - before["types/attempt"]; d != 1 {
-		t.Fatalf("type advanced %d revisions, want 1", d)
+	for key, rev := range before {
+		if after[key] != rev {
+			t.Fatalf("%s revision %d, want %d", key, after[key], rev)
+		}
 	}
 }
 

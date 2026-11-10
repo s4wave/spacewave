@@ -2,7 +2,6 @@ package s4wave_flowgraph
 
 import (
 	"context"
-	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/s4wave/spacewave/db/world"
@@ -96,20 +95,4 @@ func (b *FlowgraphBinding) FindPort(name string) *FlowgraphPort {
 		}
 	}
 	return nil
-}
-
-// boundObjectKeys lists the distinct objects the graph's nodes bind, sorted.
-func boundObjectKeys(graph *Flowgraph) []string {
-	seen := make(map[string]struct{})
-	var keys []string
-	for _, node := range graph.GetNodes() {
-		key := node.GetObjectKey()
-		if _, ok := seen[key]; key == "" || ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	return keys
 }
