@@ -89,10 +89,11 @@ func TestManifestRegistrationRetriesInvalidSnapshot(t *testing.T) {
 				t.Fatalf("registration links: %v, error: %v", quads, err)
 			}
 
-			// The graph insertion and explicit registration notification each
-			// advance the host once; discarded attempts must add neither.
+			// The explicit registration notification advances the host once; a
+			// graph insertion does not revise the objects it names, and
+			// discarded attempts must add nothing.
 			_, after, err := host.GetRootRef(ctx)
-			if err != nil || after != before+2 {
+			if err != nil || after != before+1 {
 				t.Fatalf("host revision: before=%d after=%d error=%v", before, after, err)
 			}
 		})
