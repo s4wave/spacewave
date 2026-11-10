@@ -289,9 +289,10 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 
 	// Adopt an unadopted Volume in the background when its collector frees,
 	// as CollectorFrees describes: frees need exact counts, and without them
-	// nothing reads the counts. Unverified child lists refuse an adoption
-	// until a repair verifies them, so none starts while they are.
-	if v.collector.Frees() && state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED && !state.GetUnverifiedLists() {
+	// nothing reads the counts. Child lists an older format left unverified
+	// adopt as they are, and the collector frees only blocks born since
+	// until they are verified.
+	if v.collector.Frees() && state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED {
 		adoptCtx, cancelAdopt := context.WithCancel(context.WithoutCancel(ctx))
 		v.adoptCancel, v.adoptDone = cancelAdopt, make(chan struct{})
 		go v.runBackgroundAdopt(adoptCtx)

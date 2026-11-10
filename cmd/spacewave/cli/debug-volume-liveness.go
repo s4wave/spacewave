@@ -96,8 +96,6 @@ func (a *debugVolumeAdoptArgs) Run(c *cli.Context) error {
 	// Print the counts, then name the step a refusal waits on.
 	writeFields(os.Stdout, adoptFields(path, res))
 	switch {
-	case errors.Is(err, block_gc.ErrAdoptUnverified):
-		return errors.Wrap(err, "rebuild the child lists with debug ref-repair first")
 	case errors.Is(err, block_gc.ErrAdoptUnknown):
 		return errors.Wrap(err, "write the missing child lists with debug ref-repair, then adopt again")
 	}

@@ -167,7 +167,9 @@ type lander struct {
 	// the blocks it gives birth to and the roots it moves, as Adopt reads.
 	adopting bool
 	// verify reports that the Volume's lists are unverified, so Land marks
-	// each list it writes verified: it writes them from the put's refs.
+	// each list it writes verified, since it writes it from the put's refs,
+	// and each block it gives birth to landed, since all the block's holders
+	// come through Land, as putList describes.
 	verify bool
 	// touched holds the block keys of the entries already stored, whose put
 	// the journal record's again list names.
@@ -245,7 +247,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		return nil, err
 	}
 	for _, entry := range l.refills {
-		if err := l.putList(ctx, entry.Ref, entry.Refs); err != nil {
+		if err := l.putList(ctx, entry.Ref, entry.Refs, false); err != nil {
 			return nil, err
 		}
 		if err := l.rec.tx.Delete(ctx, l.rec.key(kindHole, BlockKey(entry.Ref))); err != nil {
@@ -271,7 +273,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		}
 		b.written = true
 		b.reput = i < len(existed) && existed[i]
-		if err := l.putList(ctx, b.ref, b.children); err != nil {
+		if err := l.putList(ctx, b.ref, b.children, !b.reput); err != nil {
 			return nil, err
 		}
 		if l.adopting {
@@ -360,13 +362,20 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 	return nil
 }
 
-// putList writes ref's child list, marking it verified while the Volume's
-// lists are unverified.
-func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
+// putList writes ref's child list from the put's refs. While the Volume's
+// lists are unverified it marks the list verified, and marks the block
+// landed only when born is set: a block whose bytes were stored before the
+// put, such as a reput of a block an older format left without a list or a
+// refilled hole, is older, and an older list may lack it.
+func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef, born bool) error {
 	if err := l.rec.PutChildren(ctx, ref, children); err != nil || !l.verify {
 		return err
 	}
-	return l.rec.tx.Set(ctx, l.rec.key(kindVerified, BlockKey(ref)), nil)
+	kind := kindVerified
+	if born {
+		kind = kindLanded
+	}
+	return l.rec.tx.Set(ctx, l.rec.key(kind, BlockKey(ref)), nil)
 }
 
 // holdChildren counts the holder each born block gives each child: an
