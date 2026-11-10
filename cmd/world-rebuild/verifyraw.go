@@ -29,6 +29,22 @@ func newRowHasher(sa, sb maphash.Seed) *rowHasher {
 	return h
 }
 
+// Value type tags, hashed with each row so a NULL value and an empty blob,
+// equal as bytes, differ. scanTable gives a NULL value as nil and any other
+// as a non-nil slice.
+var (
+	tagNull = []byte{'n'}
+	tagBlob = []byte{'b'}
+)
+
+// valueTag returns the type tag of a value scanTable gave.
+func valueTag(v []byte) []byte {
+	if v == nil {
+		return tagNull
+	}
+	return tagBlob
+}
+
 // add adds the row of the fields to s, each length-prefixed.
 func (h *rowHasher) add(s *rowSet, fields ...[]byte) {
 	h.a.Reset()
@@ -169,7 +185,7 @@ func runVerifyRaw(o opts) error {
 					if err != nil {
 						return fmt.Errorf("source value of %q: %w", trunc(key), err)
 					}
-					h.add(&s, key, v)
+					h.add(&s, key, v, valueTag(v))
 					return nil
 				}, func() error {
 					mu.Lock()
@@ -201,7 +217,7 @@ func runVerifyRaw(o opts) error {
 						return nil
 					}
 					ws.add(key, v)
-					h.add(&s, key, v)
+					h.add(&s, key, v, valueTag(v))
 					return nil
 				}, func() error {
 					mu.Lock()

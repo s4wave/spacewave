@@ -138,3 +138,87 @@ func TestCopyRefusesExtraTable(t *testing.T) {
 		t.Fatal("copy of a World with an extra table succeeded")
 	}
 }
+
+// TestVerifyTellsNullFromEmpty checks verify, raw and through SQLite,
+// rejects a copy where a NULL value became an empty blob, or an empty blob
+// NULL: the bytes are equal, the types are not.
+func TestVerifyTellsNullFromEmpty(t *testing.T) {
+	dir := t.TempDir()
+	var o opts
+	o.world = filepath.Join(dir, "world.db")
+	o.packs = filepath.Join(dir, "packs.db")
+	o.out = filepath.Join(dir, "new.db")
+	o.storeID, o.chunk, o.readers, o.read, o.txnRows = defaultStoreID, 500, 2, "raw", 20000
+	if _, err := buildTestStore(o.world, o.packs, 200, o.storeID, true, false); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", o.world)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("INSERT INTO kv (key, value) VALUES (?, ?)", []byte("h/r/empty"), []byte{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	if err := runCopy(o); err != nil {
+		t.Fatal(err)
+	}
+
+	// The faithful copy verifies both ways.
+	for _, read := range []string{"raw", "sqlite"} {
+		vo := o
+		vo.read = read
+		if err := runVerify(vo); err != nil {
+			t.Fatalf("verify -read %s of the faithful copy: %v", read, err)
+		}
+	}
+
+	// Flip one value's type in the copy, keeping its bytes.
+	for name, q := range map[string]string{
+		"NULL to empty blob": "UPDATE kv SET value = x'' WHERE rowid = (SELECT min(rowid) FROM kv WHERE value IS NULL)",
+		"empty blob to NULL": "UPDATE kv SET value = NULL WHERE key = CAST('h/r/empty' AS BLOB)",
+	} {
+		t.Run(name, func(t *testing.T) {
+			vo := o
+			vo.out = filepath.Join(t.TempDir(), "flipped.db")
+			b, err := os.ReadFile(o.out)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(vo.out, b, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			st, err := os.ReadFile(stampPath(o.out))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(stampPath(vo.out), st, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			d, err := sql.Open("sqlite", vo.out)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := d.Exec(q)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n, _ := r.RowsAffected(); n != 1 {
+				t.Fatalf("flipped %d rows, want 1", n)
+			}
+			if _, err := d.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+				t.Fatal(err)
+			}
+			d.Close()
+			for _, read := range []string{"raw", "sqlite"} {
+				vo.read = read
+				if err := runVerify(vo); err == nil {
+					t.Errorf("verify -read %s passed a copy with a value's type flipped", read)
+				}
+			}
+		})
+	}
+}

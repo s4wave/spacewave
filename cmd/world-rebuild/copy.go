@@ -599,11 +599,17 @@ func runVerifyBody(o opts) error {
 		return err
 	}
 	defer closeRead()
-	dget, err := dst.Prepare("SELECT length(value), value FROM " + dtable + " WHERE key = ?")
+	dget, err := dst.Prepare("SELECT length(value), value, typeof(value) FROM " + dtable + " WHERE key = ?")
 	if err != nil {
 		return err
 	}
 	defer dget.Close()
+	// The source value's type, so a NULL and an empty blob differ.
+	sget, err := src.Prepare("SELECT typeof(value) FROM " + table + " WHERE key = ?")
+	if err != nil {
+		return err
+	}
+	defer sget.Close()
 
 	// Every source row: in the copy with an equal value (blocks by length,
 	// or by bytes with -full), or left out by the rule.
@@ -613,7 +619,8 @@ func runVerifyBody(o opts) error {
 	err = scanPhysical(src, table, hasRowid(srcStmt), o.chunk, 0, func(id any, key []byte, vlen int64) error {
 		var dlen sql.NullInt64
 		var dval []byte
-		err := dget.QueryRow(key).Scan(&dlen, &dval)
+		var dtype string
+		err := dget.QueryRow(key).Scan(&dlen, &dval, &dtype)
 		if errors.Is(err, sql.ErrNoRows) {
 			ok := false
 			if bytes.HasPrefix(key, []byte(blockPrefix)) {
@@ -635,6 +642,13 @@ func runVerifyBody(o opts) error {
 		checked++
 		if _, skip := p.skipEvict[string(key)]; skip {
 			fault("eviction entry of a dropped block kept: %q", trunc(key))
+		}
+		var stype string
+		if err := sget.QueryRow(key).Scan(&stype); err != nil {
+			return err
+		}
+		if stype != dtype {
+			fault("value type differs: %q is %s, the source's %s", trunc(key), dtype, stype)
 		}
 		isBlock := bytes.HasPrefix(key, []byte(blockPrefix))
 		if isBlock && !o.full {
