@@ -11,9 +11,9 @@ stateDiagram-v2
   s6: index written
   s7: entry written
   s8: registered
-  s9: index written, crashed
-  s10: evicted
-  s11: finalized, crashed
+  s9: finalized, crashed
+  s10: index written, crashed
+  s11: evicted
   s12: object uploaded, crashed
   s13: entry written, crashed
   s14: registered, crashed
@@ -21,24 +21,25 @@ stateDiagram-v2
   [*] --> s0
   s0 --> s1: crash
   s0 --> s2: sync fails: poison
-  s1 --> s3: recover: truncate to the last good record, finalize
+  s1 --> s3: recover: salvage the good records into a fresh file
   s2 --> s5: crash
   s3 --> s4: upload the file
+  s2 --> s3: salvage the synced records into a fresh file
   s0 --> s6: write and sync the index
   s4 --> s7: write the entry
-  s5 --> s3: recover: truncate to the last good record, finalize
+  s5 --> s3: recover: salvage the good records into a fresh file
+  s3 --> s9: crash
   s6 --> s3: rename and sync the directory
-  s6 --> s9: crash
+  s6 --> s10: crash
   s7 --> s8: register its keys
-  s3 --> s11: crash
-  s8 --> s10: unlink
-  s9 --> s3: recover: truncate to the last good record, finalize
   s4 --> s12: crash
-  s11 --> s3: recover
+  s8 --> s11: unlink
+  s9 --> s3: recover
+  s10 --> s3: recover: salvage the good records into a fresh file
   s7 --> s13: crash
   s12 --> s4: recover
   s8 --> s14: crash
   s13 --> s7: recover
-  s10 --> s15: crash
+  s11 --> s15: crash
   s14 --> s8: recover
-  s15 --> s10: recover
+  s15 --> s11: recover

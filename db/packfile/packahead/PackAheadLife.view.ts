@@ -37,8 +37,10 @@ export const step = (action: string, from: PackAhead, to: PackAhead) => {
       return 'crash'
     case 'Recover':
       return from.file['1'] === 'open'
-        ? 'recover: truncate to the last good record, finalize'
+        ? 'recover: salvage the good records into a fresh file'
         : 'recover'
+    case 'Salvage':
+      return 'salvage the synced records into a fresh file'
     case 'SyncFail':
       return 'sync fails: poison'
     case 'FinIndex':
