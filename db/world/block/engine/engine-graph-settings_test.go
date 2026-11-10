@@ -116,48 +116,54 @@ func predicateSettings(t *testing.T) *world_block.GraphSettings {
 func rootGraphSettings(t *testing.T, ctx context.Context, eng world.Engine) *world_block.GraphSettings {
 	// Fail the test on any read error.
 	t.Helper()
-	settings, err := readRootGraphSettings(ctx, eng)
+	w, err := readRootWorld(ctx, eng)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return settings
+	return w.GetGraphSettings()
 }
 
-// readRootGraphSettings decodes the engine's World root and returns its
-// settings.
-func readRootGraphSettings(ctx context.Context, eng world.Engine) (*world_block.GraphSettings, error) {
+// readRootWorld decodes the engine's World root.
+func readRootWorld(ctx context.Context, eng world.Engine) (*world_block.World, error) {
 	// Decode the root through the engine's World state access.
-	var settings *world_block.GraphSettings
+	var w *world_block.World
 	err := eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		// Unmarshal the root block and keep its settings.
 		_, bcs := bls.BuildTransaction(nil)
 		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
 			return err
 		}
-		settings = wi.(*world_block.World).GetGraphSettings()
+		w = wi.(*world_block.World)
 		return nil
 	})
-	return settings, err
+	return w, err
 }
 
 // waitRootGraphSettings waits for the engine's World root to hold settings.
 func waitRootGraphSettings(t *testing.T, ctx context.Context, eng world.Engine, settings *world_block.GraphSettings) {
+	t.Helper()
+	waitRootWorld(t, ctx, eng, func(w *world_block.World) bool {
+		return w.GetGraphSettings().EqualVT(settings)
+	})
+}
+
+// waitRootWorld waits for the engine's World root to satisfy ok.
+func waitRootWorld(t *testing.T, ctx context.Context, eng world.Engine, ok func(*world_block.World) bool) {
 	// Poll the root until it matches or the deadline passes. Right after a
 	// restart the lookup can still resolve the previous engine as it shuts
 	// down: keep polling through its close until the new engine serves.
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		got, err := readRootGraphSettings(ctx, eng)
+		w, err := readRootWorld(ctx, eng)
 		if err != nil && !errors.Is(err, world_block.ErrEngineClosed) {
 			t.Fatal(err.Error())
 		}
-		if err == nil && got.EqualVT(settings) {
+		if err == nil && ok(w) {
 			return
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("world root graph settings %v, want %v", got, settings)
+			t.Fatalf("world root %v", w)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}

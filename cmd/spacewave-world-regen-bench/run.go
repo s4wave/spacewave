@@ -142,18 +142,14 @@ func (a *runArgs) steps(ctx context.Context, r *world_block.Regenerator, stage *
 	}
 
 	// Step forward until the stage asked for.
-	for {
-		st, err := r.Step(ctx)
-		if err != nil {
-			return errors.Wrapf(err, "step from %v", st)
-		}
-		stage.Store(st.String())
-		logf("stage %v after %v", st, time.Since(start).Round(time.Millisecond))
-		if st == world_block.RegenDone || st.String() == a.Until {
-			return nil
-		}
-		start = time.Now()
+	until := world_block.RegenDone
+	if a.Until == world_block.RegenSwitched.String() {
+		until = world_block.RegenSwitched
 	}
+	return r.Run(ctx, until, func(st world_block.RegenStage, took time.Duration) {
+		stage.Store(st.String())
+		logf("stage %v after %v", st, took.Round(time.Millisecond))
+	})
 }
 
 // write commits Batch new results Rate times a second until ctx ends,
