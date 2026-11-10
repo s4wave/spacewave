@@ -30,9 +30,12 @@ func New() hash.Hash {
 
 // Sum256 returns the SHA-256 checksum of data.
 func Sum256(data []byte) [Size]byte {
+	// Without AVX the standard library is as fast.
 	if !useAVX {
 		return sha256.Sum256(data)
 	}
+
+	// Hash data in one digest.
 	var d digest
 	d.Reset()
 	_, _ = d.Write(data)
@@ -68,6 +71,7 @@ func (d *digest) BlockSize() int { return BlockSize }
 
 // Write adds p to the running checksum.
 func (d *digest) Write(p []byte) (int, error) {
+	// Count the bytes, then fill a partial block first.
 	nn := len(p)
 	d.len += uint64(nn)
 	if d.nx > 0 {
@@ -100,6 +104,7 @@ func (d *digest) Sum(in []byte) []byte {
 
 // checkSum pads the message and returns its checksum.
 func (d *digest) checkSum() [Size]byte {
+	// Pad to a block boundary with the bit length last.
 	length := d.len
 	var tmp [BlockSize + 8]byte
 	tmp[0] = 0x80
@@ -111,6 +116,7 @@ func (d *digest) checkSum() [Size]byte {
 	binary.BigEndian.PutUint64(tmp[pad:], length<<3)
 	_, _ = d.Write(tmp[:pad+8])
 
+	// Write the state words out big-endian.
 	var sum [Size]byte
 	for i, word := range d.h {
 		binary.BigEndian.PutUint32(sum[i*4:], word)
