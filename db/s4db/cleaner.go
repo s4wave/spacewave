@@ -193,15 +193,9 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 	for len(live) != 0 {
 		batch, rest := c.batch(live)
 		live = rest
-		var chunks []uint64
 		if err := db.w.locked(ctx, func() error {
-			var err error
-			chunks, err = db.w.commit(ctx, db.cur.Load(), batch, true)
-			return err
+			return db.w.commit(ctx, db.cur.Load(), batch, true)
 		}); err != nil {
-			return true, err
-		}
-		if err := db.s.writeback(chunks); err != nil {
 			return true, err
 		}
 		if db.WritersWaiting() {
