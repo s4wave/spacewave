@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +21,7 @@ type countResult struct {
 	meta      map[string]*tally
 	dropEvict tally
 	badCells  int64
+	census    census
 }
 
 // rawEvict is an eviction entry seen by the raw pass.
@@ -116,49 +116,44 @@ func runCount(o opts) (*countResult, error) {
 			blocks = append(blocks, rawBlock{d: d, rowid: c.rowid, bytes: b})
 			return
 		}
-		if obj, rest, isObj := objKey(key); isObj {
+		if k := objKeyOf(key); k.ok {
 			objBytes.add(b)
+			res.census.add(key, k, vlen, vlocal)
+			if k.kind == kindBad || k.kind == kindForeign {
+				if k.kind == kindBad {
+					f.badKeys++
+				}
+				res.addMeta(family(key), b)
+				keptBy[bucket] += b
+				return
+			}
+			obj := k.obj
 			if in, ok := f.objStores[obj]; ok {
 				obj = in
 			} else {
 				f.objStores[obj] = obj
 			}
-			switch {
-			case strings.HasPrefix(rest, markedSeg):
-				if d, ok := digestOfB58(rest[len(markedSeg):]); ok {
-					f.marked[d] = struct{}{}
-				} else {
-					f.badKeys++
-				}
-			case strings.HasPrefix(rest, evictSeg):
-				parts := strings.SplitN(rest[len(evictSeg):], "/", 2)
-				h := &hash.Hash{}
-				if len(parts) != 2 || h.ParseFromB58(parts[1]) != nil || len(h.GetHash()) == 0 {
-					f.badKeys++
-					break
-				}
-				d := string(h.GetHash())
+			switch k.kind {
+			case kindMarked:
+				f.marked[k.digest] = struct{}{}
+			case kindEvict:
+				d := k.digest
 				var size int64
 				if int64(len(vlocal)) == vlen {
 					size, _ = evictSize(vlocal)
 				}
-				f.hashTypes[d] = h.GetHashType()
+				f.hashTypes[d] = k.hashType
 				f.evict[d] = append(f.evict[d], evictEntry{obj: obj})
 				evicts[d] = append(evicts[d], rawEvict{rowid: c.rowid, bytes: b, size: size})
 				f.evictKeys++
 				// Tallied once the drop rule has decided its block.
 				return
-			case strings.HasPrefix(rest, readsSeg):
-				r := rest[len(readsSeg):]
-				if len(r) < 16 {
-					f.badKeys++
-					break
-				}
+			case kindReads:
 				if gens[obj] == nil {
 					gens[obj] = map[string][]readRef{}
 				}
-				gens[obj][r[:16]] = append(gens[obj][r[:16]], readRef{c: rawCell{rowid: c.rowid, size: c.size, overflow: c.overflow}, vlen: vlen, vlocal: bytes.Clone(vlocal)})
-			case rest == evictBytesSeg:
+				gens[obj][k.gen] = append(gens[obj][k.gen], readRef{c: rawCell{rowid: c.rowid, size: c.size, overflow: c.overflow}, vlen: vlen, vlocal: bytes.Clone(vlocal)})
+			case kindBytes:
 				n, _ := evictSize(vlocal)
 				f.evictBytesStored[obj] = n
 			}
@@ -321,6 +316,12 @@ func runCount(o opts) (*countResult, error) {
 	fmt.Printf("  pack index: %d live packs; %d queued unmarked blocks: %d packed, %d no h row, %d h row on a dead pack\n",
 		f.packsLive, f.lookups, len(f.packed), f.hMissing, f.hDead)
 	fmt.Printf("  drop candidates: %d packed, of which %d hot (kept); %d object store keys did not parse\n", len(f.packed), hotPacked, f.badKeys)
+	fmt.Printf("marked blocks (marked/ rows): %d\n", len(f.marked))
+	fmt.Printf("read set keys per generation:\n")
+	for _, g := range f.gens {
+		fmt.Println("  ", g)
+	}
+	res.census.print()
 
 	fmt.Println("\nblock values (h/b/), measured:")
 	var keepBytes, dropBytes, keepRows, hotBytes, hotKeys int64
@@ -380,6 +381,11 @@ func runCount(o opts) (*countResult, error) {
 		}
 	}
 	fmt.Printf("\ncount done in %s\n", time.Since(start).Round(time.Second))
+	if f.badKeys != 0 {
+		// The report stands, but its verdicts do not: an unparsed
+		// marker or read set key would leave its block droppable.
+		return res, fmt.Errorf("%d object store keys did not parse as write-back store keys; the drop verdicts are not trustworthy", f.badKeys)
+	}
 	return res, nil
 }
 

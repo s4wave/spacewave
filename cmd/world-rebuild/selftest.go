@@ -352,7 +352,7 @@ func buildTestStore(world, packs string, n int, storeID string, rowid, synth boo
 		}
 	}
 
-	const obj = "h/objs/world-wb/"
+	const obj = testObjPrefix
 	var hot []byte
 	var drop int64
 	var evictTotal int64
@@ -524,3 +524,7 @@ func masterRows(db *sql.DB) (string, error) {
 	}
 	return s, r.Err()
 }
+
+// testObjPrefix is the test store's write-back object store prefix, shaped
+// like production's BlockStoreWritebackObjectStoreID: its id holds slashes.
+const testObjPrefix = "h/objs/p/local/acct1/blk/hyperline-world/writeback/"

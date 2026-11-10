@@ -1,0 +1,11 @@
+evictable evictable                      1621
+evictable-bytes evictable-bytes          1
+marked marked                            400
+not-objs                                 6016
+other backfill                           1
+other epoch                              1
+other queue-count                        3
+other: not write-back                    132
+queue queue                              7442
+reads reads                              3
+write-back stores                        3

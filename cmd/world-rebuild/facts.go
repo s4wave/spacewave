@@ -46,17 +46,126 @@ type facts struct {
 	took             time.Duration
 }
 
-// objKey splits an object store key into its id and the key inside it.
-func objKey(key []byte) (string, string, bool) {
+// subKey is one key name the write-back object store writes under its id,
+// with the shape of the key after the name.
+type subKey struct {
+	name string
+	// prefix is set for a name that prefixes keys; otherwise the key is the
+	// name exactly.
+	prefix bool
+	// slashes is the number of '/' after a prefix name, or -1 for any.
+	slashes int
+}
+
+// subKeys are the key names of db/block/store/writeback, relative to its
+// object store:
+//
+//	marked/<hash>                 queue.go:21 markedPrefix
+//	queue/<16 hex>/<hash>         queue.go:27 queuePrefix
+//	evictable/<16 hex>/<hash>     evict.go:20 evictPrefix
+//	evictable-bytes               evict.go:26 evictableBytesKey
+//	epoch                         evict.go:23 epochKey
+//	queue-count                   pending.go:42 countKey
+//	reads/<16 hex>/<16 hex>       reads.go:19 readsPrefix, reads.go:73-75
+//	copy/<target>                 copy.go:22 copyCursorPrefix
+//	copy-done/<target>            copy.go:25 copyDonePrefix
+//	backfill                      writeback.go:36 backfillKey
+//	pending/, target, queue-pending  writeback.go:41 formerPrefixes (legacy)
+var subKeys = []subKey{
+	{markedSeg, true, 0},
+	{"queue/", true, 1},
+	{evictSeg, true, 1},
+	{readsSeg, true, 1},
+	{"copy/", true, -1},
+	{"copy-done/", true, -1},
+	{"pending/", true, -1},
+	{evictBytesSeg, false, 0},
+	{"epoch", false, 0},
+	{"queue-count", false, 0},
+	{"backfill", false, 0},
+	{"target", false, 0},
+	{"queue-pending", false, 0},
+}
+
+// isSubKey reports whether rest is a key the write-back store writes.
+func isSubKey(rest string) bool {
+	for _, k := range subKeys {
+		if !k.prefix {
+			if rest == k.name {
+				return true
+			}
+			continue
+		}
+		if !strings.HasPrefix(rest, k.name) {
+			continue
+		}
+		r := rest[len(k.name):]
+		if r == "" || strings.HasPrefix(r, "/") || strings.HasSuffix(r, "/") {
+			continue
+		}
+		if k.slashes < 0 || strings.Count(r, "/") == k.slashes {
+			return true
+		}
+	}
+	return false
+}
+
+// Object store key split results.
+const (
+	splitOK = iota
+	splitNotObj
+	splitUnknown
+	splitAmbiguous
+	// splitForeign is a key of an object store that is not a write-back
+	// store: its id has no writeback segment. It holds no drop fact.
+	splitForeign
+)
+
+// wbSeg is the last segment of every write-back object store id, as
+// core/provider/local/id.go BlockStoreWritebackObjectStoreID builds it.
+const wbSeg = "writeback"
+
+// splitObjKey splits an object store key into its store id and the key
+// inside it. Write-back store ids hold slashes (p/<provider>/<account>/blk/
+// <store>/writeback), so the split is at the one '/' that follows a
+// writeback segment and after which the rest is a key the write-back store
+// writes. No such '/' is splitUnknown if the key has a writeback segment,
+// else splitForeign; more than one is splitAmbiguous. Nothing is guessed.
+func splitObjKey(key []byte) (string, string, int) {
 	if !bytes.HasPrefix(key, []byte(objsPrefix)) {
-		return "", "", false
+		return "", "", splitNotObj
 	}
-	rest := string(key[len(objsPrefix):])
-	i := strings.IndexByte(rest, '/')
-	if i < 0 {
-		return "", "", false
+	s := string(key[len(objsPrefix):])
+	at, n := -1, 0
+	for i := len(wbSeg); i < len(s); i++ {
+		if s[i] != '/' || !isWritebackID(s[:i]) || !isSubKey(s[i+1:]) {
+			continue
+		}
+		at = i
+		n++
 	}
-	return rest[:i], rest[i+1:], true
+	switch {
+	case n == 1:
+		return s[:at], s[at+1:], splitOK
+	case n > 1:
+		return "", "", splitAmbiguous
+	case s == wbSeg || strings.HasPrefix(s, wbSeg+"/") || strings.Contains(s, "/"+wbSeg+"/") || strings.HasSuffix(s, "/"+wbSeg):
+		return "", "", splitUnknown
+	}
+	return "", "", splitForeign
+}
+
+// isWritebackID reports whether id is a write-back object store id: its last
+// segment is writeback.
+func isWritebackID(id string) bool {
+	return id == wbSeg || strings.HasSuffix(id, "/"+wbSeg)
+}
+
+// objKey splits an object store key into its id and the key inside it; ok is
+// false for a key outside the object stores or one splitObjKey refuses.
+func objKey(key []byte) (string, string, bool) {
+	obj, rest, st := splitObjKey(key)
+	return obj, rest, st == splitOK
 }
 
 // evictSize parses an eviction entry's value, the block size.
@@ -73,6 +182,10 @@ const (
 	kindEvict
 	kindReads
 	kindBytes
+	kindQueue
+	// kindForeign is a key of an object store that is not a write-back
+	// store; it is kept and holds no drop fact.
+	kindForeign
 )
 
 // objKeyInfo is one object store key, parsed.
@@ -89,9 +202,14 @@ type objKeyInfo struct {
 // block digest of a marker or eviction entry, or the generation of a read
 // set chunk.
 func objKeyOf(key []byte) objKeyInfo {
-	obj, rest, ok := objKey(key)
-	if !ok {
+	obj, rest, st := splitObjKey(key)
+	switch st {
+	case splitNotObj:
 		return objKeyInfo{}
+	case splitUnknown, splitAmbiguous:
+		return objKeyInfo{ok: true, kind: kindBad}
+	case splitForeign:
+		return objKeyInfo{ok: true, kind: kindForeign}
 	}
 	k := objKeyInfo{ok: true, obj: obj}
 	switch {
@@ -123,6 +241,8 @@ func objKeyOf(key []byte) objKeyInfo {
 		k.kind, k.gen = kindReads, r[:16]
 	case rest == evictBytesSeg:
 		k.kind = kindBytes
+	case strings.HasPrefix(rest, "queue/"):
+		k.kind = kindQueue
 	}
 	return k
 }
@@ -156,14 +276,19 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 			return
 		}
 		obj := k.obj
+		switch k.kind {
+		case kindBad:
+			f.badKeys++
+			return
+		case kindForeign:
+			return
+		}
 		if in, ok := f.objStores[obj]; ok {
 			obj = in
 		} else {
 			f.objStores[obj] = obj
 		}
 		switch k.kind {
-		case kindBad:
-			f.badKeys++
 		case kindMarked:
 			f.marked[k.digest] = struct{}{}
 		case kindEvict:
@@ -201,7 +326,9 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 		return nil, fmt.Errorf("scan object store keys: %w", err)
 	}
 	if f.badKeys != 0 {
-		fmt.Printf("warning: %d object store keys did not parse; their blocks are kept\n", f.badKeys)
+		// An unparsed marker or read set key would leave its block
+		// droppable: nothing is decided on such a World.
+		return nil, fmt.Errorf("%d object store keys under %s did not parse as write-back store keys; refusing", f.badKeys, objsPrefix)
 	}
 
 	// Point reads: the chunks of the two newest read generations of each
