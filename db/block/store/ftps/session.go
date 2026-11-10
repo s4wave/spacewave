@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jlaffaye/ftp"
@@ -30,13 +31,43 @@ type session struct {
 	dialed bool
 	// closed is set once the session is closed: a later dial is refused.
 	closed bool
-	// done is closed once every socket of the session is confirmed closed.
+	// done is closed once every socket of the session is closed.
 	done chan struct{}
+	// unconfirmed is set when the server did not answer a socket's close
+	// within closeConfirmWait.
+	unconfirmed bool
+	// leak is called once when the close of a socket is unconfirmed: the
+	// session's token must then never be freed, since the server may still
+	// count it.
+	leak func()
 }
 
-// newSession returns a session whose data connections use tlsConf.
-func newSession(tlsConf *tls.Config) *session {
-	return &session{tlsConf: tlsConf, done: make(chan struct{})}
+// newSession returns a session whose data connections use tlsConf, calling
+// leak when its close is unconfirmed.
+func newSession(tlsConf *tls.Config, leak func()) *session {
+	return &session{tlsConf: tlsConf, done: make(chan struct{}), leak: leak}
+}
+
+// tracked reports whether the session dialed its sockets itself, under
+// Config.CloseOnDone.
+func (s *session) tracked() bool {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.dialed
+}
+
+// idle clears the control connection's deadline, which the FTP library sets
+// at each transfer's end and never clears, and forgets the data connections
+// of the finished call, which are closed.
+func (s *session) idle() {
+	// Keep only the control connection, with no deadline.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if len(s.conns) == 0 {
+		return
+	}
+	_ = s.conns[0].SetDeadline(time.Time{})
+	s.conns = s.conns[:1]
 }
 
 // dialFunc returns the dial function of the session: the first dial is the
@@ -80,7 +111,8 @@ func (s *session) dialFunc(ctx context.Context) func(network, addr string) (net.
 
 // close closes every socket of the session and waits until each is
 // confirmed closed: the server answered the close with its own, or
-// closeConfirmWait passed. A second close waits for the first.
+// closeConfirmWait passed, which calls leak. A second close waits for the
+// first.
 func (s *session) close() {
 	// Mark the session closed and take its sockets, or wait for the close
 	// already under way.
@@ -98,24 +130,38 @@ func (s *session) close() {
 
 	// Close each and wait for the server's answer in parallel.
 	var wg sync.WaitGroup
+	var unconfirmed atomic.Bool
 	for _, conn := range conns {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			closeConfirmed(conn)
+			if !closeConfirmed(conn) {
+				unconfirmed.Store(true)
+			}
 		}()
 	}
 	wg.Wait()
+
+	// Keep the token of a session the server may still count.
+	if unconfirmed.Load() {
+		s.mtx.Lock()
+		s.unconfirmed = true
+		s.mtx.Unlock()
+		if s.leak != nil {
+			s.leak()
+		}
+	}
 }
 
 // closeConfirmed half-closes conn, reads until the server closes its side or
-// closeConfirmWait passes, then closes it.
-func closeConfirmed(conn net.Conn) {
+// closeConfirmWait passes, then closes it. It reports whether the server
+// closed its side in time.
+func closeConfirmed(conn net.Conn) bool {
 	// Send our close and stop anything blocked writing.
 	tcp, ok := conn.(*net.TCPConn)
 	if !ok {
 		_ = conn.Close()
-		return
+		return true
 	}
 	_ = tcp.CloseWrite()
 
@@ -123,15 +169,16 @@ func closeConfirmed(conn net.Conn) {
 	deadline := time.Now().Add(closeConfirmWait)
 	_ = tcp.SetReadDeadline(deadline)
 	buf := make([]byte, 4096)
-	for {
-		if _, err := tcp.Read(buf); err != nil {
-			break
-		}
+	var err error
+	for err == nil {
+		_, err = tcp.Read(buf)
 	}
 
 	// Close the socket. One the server never answered was counted open for
-	// the whole wait.
+	// the whole wait, and is reported unconfirmed.
 	_ = tcp.Close()
+	var nerr net.Error
+	return !errors.As(err, &nerr) || !nerr.Timeout()
 }
 
 // ErrSessionsClosed is returned by every call of a Client after CloseAll,
@@ -194,10 +241,25 @@ func (ss *sessions) take(conn *ftp.ServerConn) *session {
 	return s
 }
 
-// quit logs conn out and forgets its session.
+// quit ends conn's session and forgets it. A session whose sockets the
+// client dialed is closed and waited for, so its token is reused only once
+// the server closed it; any other is logged out with QUIT.
 func (ss *sessions) quit(conn *ftp.ServerConn) {
-	ss.take(conn)
+	if s := ss.take(conn); s != nil && s.tracked() {
+		s.close()
+		return
+	}
 	_ = conn.Quit()
+}
+
+// idle readies conn's session for its next call.
+func (ss *sessions) idle(conn *ftp.ServerConn) {
+	ss.mtx.Lock()
+	s := ss.byConn[conn]
+	ss.mtx.Unlock()
+	if s != nil {
+		s.idle()
+	}
 }
 
 // kill closes the sockets of conn's session, waiting for their close, and

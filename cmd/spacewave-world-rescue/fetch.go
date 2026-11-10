@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	block_store_ftps "github.com/s4wave/spacewave/db/block/store/ftps"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"golang.org/x/time/rate"
 )
@@ -33,6 +34,17 @@ type objectSizer interface {
 	// ObjectSize returns the object's size in bytes.
 	ObjectSize(ctx context.Context, bucket, key string) (int64, error)
 }
+
+// objectMaxReader reads a whole object of at most a limit, failing one past
+// it without reading it. *block_store_ftps.Client implements it.
+type objectMaxReader interface {
+	// GetObjectMax reads the whole object, failing one past limit bytes.
+	GetObjectMax(ctx context.Context, bucket, key string, limit int64) ([]byte, error)
+}
+
+// errOverSize reports an object the server sent past the size the rescue
+// expected and charged for. At most one byte past the size is read.
+var errOverSize = errors.New("object larger than its size")
 
 // sessionCloser closes every session of the client at once, cutting the
 // calls running on them. *block_store_ftps.Client implements it.
@@ -83,6 +95,7 @@ var limitPhrases = []string{
 	"too many clients",
 	"maximum number",
 	"login limit",
+	"already logged in",
 	"connection limit",
 	"session limit",
 }
@@ -98,6 +111,11 @@ func isHardStop(err error) bool {
 	}
 	var reply *textproto.Error
 	if errors.As(err, &reply) && (reply.Code == 530 || reply.Code == 421) {
+		return true
+	}
+
+	// Match any refused login, whose reply code the FTP library may drop.
+	if errors.Is(err, block_store_ftps.ErrLoginRefused) {
 		return true
 	}
 
@@ -118,7 +136,7 @@ func isHardStop(err error) bool {
 // be tried again: a timeout, a dropped connection or a transient 4xx reply,
 // but not a missing object or a permanent 5xx reply.
 func isRetryable(err error) bool {
-	if errors.Is(err, block_store_s3.ErrNotFound) || errors.Is(err, context.Canceled) {
+	if errors.Is(err, block_store_s3.ErrNotFound) || errors.Is(err, context.Canceled) || errors.Is(err, errOverSize) {
 		return false
 	}
 	var reply *textproto.Error
@@ -142,6 +160,9 @@ type fetchOptions struct {
 	// CapBytes is the most bytes fetched across runs, counting each attempt
 	// at its requested length.
 	CapBytes uint64
+	// Reserved, when set, makes the byte total durable before each request
+	// that reads bytes, so a crash mid-request loses no charged bytes.
+	Reserved func(total uint64) error
 }
 
 // fetcher makes the rescue's requests within the timeout, retry, rate and
@@ -246,9 +267,19 @@ func (f *fetcher) wait(ctx context.Context, n uint64) error {
 	return nil
 }
 
-// whole reads the whole object of size bytes.
+// whole reads the whole object of size bytes, reading at most one byte past
+// size: a larger object fails with errOverSize.
 func (f *fetcher) whole(ctx context.Context, key string, size uint64) ([]byte, error) {
 	return f.do(ctx, size, func(ctx context.Context) ([]byte, error) {
+		// Read through the client's own limit when it has one.
+		if mr, ok := f.client.(objectMaxReader); ok {
+			data, err := mr.GetObjectMax(ctx, f.bucket, key, int64(size)) //nolint:gosec // pack sizes fit int64.
+			if errors.Is(err, block_store_ftps.ErrTooLarge) {
+				return nil, errors.Wrap(errOverSize, key)
+			}
+			return data, err
+		}
+
 		// Open the object's body.
 		body, err := f.client.GetObject(ctx, f.bucket, key)
 		if err != nil {
@@ -256,10 +287,14 @@ func (f *fetcher) whole(ctx context.Context, key string, size uint64) ([]byte, e
 		}
 		defer body.Close()
 
-		// Read it into a buffer of the expected size.
+		// Read it into a buffer of the expected size, and one byte more to
+		// tell a larger object.
 		var buf bytes.Buffer
-		buf.Grow(int(size)) //nolint:gosec // pack sizes fit memory.
-		_, err = io.Copy(&buf, body)
+		buf.Grow(int(size) + 1)                                     //nolint:gosec // pack sizes fit memory.
+		_, err = io.Copy(&buf, io.LimitReader(body, int64(size)+1)) //nolint:gosec // pack sizes fit int64.
+		if err == nil && uint64(buf.Len()) > size {                 //nolint:gosec // a length is not negative.
+			return nil, errors.Wrap(errOverSize, key)
+		}
 		return buf.Bytes(), err
 	})
 }
@@ -305,6 +340,11 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 		}
 		if err := f.reserve(n); err != nil {
 			return nil, err
+		}
+		if n != 0 && f.opts.Reserved != nil {
+			if err := f.opts.Reserved(f.fetched.Load()); err != nil {
+				return nil, errors.Wrap(err, "record the byte reservation")
+			}
 		}
 		if err := f.wait(ctx, n); err != nil {
 			return nil, err

@@ -1,6 +1,9 @@
 package block_store_ftps
 
-import "crypto/tls"
+import (
+	"crypto/tls"
+	"time"
+)
 
 // Config configures a Client.
 type Config struct {
@@ -31,4 +34,7 @@ type Config struct {
 	// the client and wrapped in TLS without session resumption checks beyond
 	// the shared cache.
 	CloseOnDone bool
+	// ShutTimeout bounds the wait for the server's reply at a transfer's
+	// end; zero is 30 seconds.
+	ShutTimeout time.Duration
 }

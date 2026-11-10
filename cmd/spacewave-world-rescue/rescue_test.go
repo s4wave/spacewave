@@ -954,8 +954,7 @@ func TestRescueLedgerPerPack(t *testing.T) {
 			totals = append(totals, n)
 		}
 	}
-	// One total per pack lands before any ref line, rising; in-flight
-	// reservations may make a later one equal an earlier one.
+	// One total per pack lands before any ref line, rising.
 	if len(totals) != 3 || totals[0] == 0 || totals[0] > totals[1] || totals[1] > totals[2] {
 		t.Fatalf("byte totals before the first block line: %v", totals)
 	}

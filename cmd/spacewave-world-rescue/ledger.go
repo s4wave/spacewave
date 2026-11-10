@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -41,19 +42,33 @@ const (
 //	                                     too-large or no-size for a pack
 //	                                     skipped unfetched
 //	b <bytes>                            the bytes fetched across runs so far
+//	rb <bytes>                           bytes reserved ahead of the requests
+//	                                     in flight, written and synced before
+//	                                     a request crosses the last one
 //
-// A later line for a ref replaces an earlier one. A partial last line, left
+// A later line for a ref replaces an earlier one. A b line sets the byte
+// total and an rb line raises it: after a crash the total counts every
+// request that started, and at most reserveAhead bytes more. A partial last line, left
 // by a crash, is ignored.
 type ledger struct {
-	f *os.File
-	w *bufio.Writer
+	// mtx guards the appends and the maps against concurrent writers.
+	mtx sync.Mutex
+	f   *os.File
+	w   *bufio.Writer
 	// refs holds the state of each ref by block key.
 	refs map[string]string
 	// packs holds the finished packs.
 	packs map[string]bool
 	// bytes is the last byte total recorded.
 	bytes uint64
+	// durable is the byte total the ledger on disk is sure to yield at
+	// least, and seen the largest total a request reserved.
+	durable, seen uint64
 }
+
+// reserveAhead is how far past a request's bytes a reservation reaches, so
+// one sync covers many requests.
+const reserveAhead = 64 << 20
 
 // openLedger opens or creates the ledger at path and reads what it holds.
 func openLedger(path string) (*ledger, error) {
@@ -112,6 +127,10 @@ func (l *ledger) apply(fields []string) {
 		if n, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
 			l.bytes = n
 		}
+	case len(fields) == 2 && fields[0] == "rb":
+		if n, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
+			l.bytes = max(l.bytes, n)
+		}
 	}
 }
 
@@ -119,6 +138,8 @@ func (l *ledger) apply(fields []string) {
 // absent one.
 func (l *ledger) ref(key []byte, state, reason string) error {
 	// Format the line, its reason made one word.
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
 	l.refs[string(key)] = state
 	line := "r " + hex.EncodeToString(key) + " " + state
 	if reason != "" {
@@ -134,6 +155,8 @@ func (l *ledger) ref(key []byte, state, reason string) error {
 // wanted refs found and those not in it, and why it was skipped unfetched.
 func (l *ledger) pack(id string, fetched uint64, found, notInPack int, skip string) error {
 	// Format the line, with the skip reason when there is one.
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
 	l.packs[id] = true
 	line := fmt.Sprintf("p %s %d %d %d", id, fetched, found, notInPack)
 	if skip != "" {
@@ -145,15 +168,51 @@ func (l *ledger) pack(id string, fetched uint64, found, notInPack int, skip stri
 	return err
 }
 
-// total appends the byte total.
+// total appends the byte total n, raised to the largest total a request
+// reserved: a request that reserved after n was read is counted too.
 func (l *ledger) total(n uint64) error {
-	l.bytes = n
+	// Raise n to the reserved total and append it.
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	n = max(n, l.seen)
+	l.bytes, l.durable = n, min(l.durable, n)
 	_, err := l.w.WriteString("b " + strconv.FormatUint(n, 10) + "\n")
 	return err
 }
 
+// reserve makes sure the ledger on disk counts a byte total of at least n
+// before a request reaches it: past the last reservation it appends one
+// reserveAhead further and syncs it.
+func (l *ledger) reserve(n uint64) error {
+	// Note the total, and stop when the disk already covers it.
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	l.seen = max(l.seen, n)
+	if n <= l.durable {
+		return nil
+	}
+
+	// Append and sync a reservation past it.
+	ahead := n + reserveAhead
+	if _, err := l.w.WriteString("rb " + strconv.FormatUint(ahead, 10) + "\n"); err != nil {
+		return err
+	}
+	if err := l.syncLocked(); err != nil {
+		return err
+	}
+	l.durable = ahead
+	return nil
+}
+
 // sync makes the appended lines durable.
 func (l *ledger) sync() error {
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	return l.syncLocked()
+}
+
+// syncLocked syncs with mtx held.
+func (l *ledger) syncLocked() error {
 	if err := l.w.Flush(); err != nil {
 		return err
 	}
@@ -162,7 +221,10 @@ func (l *ledger) sync() error {
 
 // close syncs and closes the ledger.
 func (l *ledger) close() error {
+	// Sync, then close the file.
 	err := l.sync()
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
 	if cerr := l.f.Close(); err == nil {
 		err = cerr
 	}

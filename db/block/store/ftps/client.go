@@ -5,6 +5,7 @@ package block_store_ftps
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/tls"
@@ -84,6 +85,12 @@ type Client struct {
 	sess sessions
 	// onSpareError receives the error of a failed spare dial.
 	onSpareError atomic.Pointer[func(error)]
+	// leaks counts per login the tokens never to free: those of sessions
+	// whose close the server did not confirm.
+	leaks []atomic.Int32
+	// stopCtx ends at CloseAll, cancelling the spare dials.
+	stopCtx context.Context
+	stop    context.CancelFunc
 }
 
 // slot is a pool entry. conn and spare each hold a token of the slot's login.
@@ -144,6 +151,8 @@ func NewClient(conf Config) *Client {
 	for range conf.Logins {
 		c.tokens = append(c.tokens, make(chan struct{}, limit))
 	}
+	c.leaks = make([]atomic.Int32, len(conf.Logins))
+	c.stopCtx, c.stop = context.WithCancel(context.Background())
 	return c
 }
 
@@ -174,6 +183,7 @@ func (c *Client) Close() {
 // Config.CloseOnDone, which has the client dial them; otherwise CloseAll only
 // refuses the later calls.
 func (c *Client) CloseAll() {
+	c.stop()
 	c.sess.closeAll()
 }
 
@@ -240,17 +250,61 @@ func (c *Client) GetObject(ctx context.Context, bucket, key string) (io.ReadClos
 			return notFound(err, name)
 		}
 
-		// Read it to the end and close the transfer.
+		// Read it to the end and close the transfer, keeping the server's
+		// reply, such as a 421, over the data connection's error it caused.
 		data, err = io.ReadAll(resp)
-		if cerr := resp.Close(); err == nil {
-			err = cerr
-		}
-		return err
+		return closeTransfer(resp, err)
 	})
 	if err != nil {
 		return nil, err
 	}
 	return io.NopCloser(bytes.NewReader(data)), nil
+}
+
+// ErrTooLarge is returned by GetObjectMax for an object past its limit.
+var ErrTooLarge = errors.New("object larger than the limit")
+
+// GetObjectMax reads the whole object, reading at most limit+1 bytes: an
+// object past limit bytes fails with ErrTooLarge, its transfer aborted and
+// its session dropped.
+func (c *Client) GetObjectMax(ctx context.Context, bucket, key string, limit int64) ([]byte, error) {
+	name := path.Join(bucket, key)
+	var data []byte
+	err := c.do(ctx, func(conn *ftp.ServerConn, _ *slot) error {
+		// Start the download.
+		resp, err := conn.Retr(name)
+		if err != nil {
+			return notFound(err, name)
+		}
+
+		// Read up to one byte past the limit, failing an object past it.
+		data, err = io.ReadAll(io.LimitReader(resp, limit+1))
+		if err == nil && int64(len(data)) > limit {
+			_ = resp.Close()
+			data = nil
+			return errors.Wrapf(ErrTooLarge, "%s is over %d bytes", name, limit)
+		}
+		return closeTransfer(resp, err)
+	})
+	return data, err
+}
+
+// closeTransfer closes a download that read with err, returning the
+// server's reply to the close when it is a session-ending one, a 421 or a
+// 530, over err, and otherwise err or the close's error.
+func closeTransfer(resp *ftp.Response, err error) error {
+	cerr := resp.Close()
+	if endsSession(cerr) || err == nil {
+		return cerr
+	}
+	return err
+}
+
+// endsSession reports whether err holds a reply 421 or 530, after which the
+// session is unusable and the server may refuse more.
+func endsSession(err error) bool {
+	var reply *textproto.Error
+	return errors.As(err, &reply) && (reply.Code == 421 || reply.Code == 530)
 }
 
 // GetObjectRange reads length bytes from offset off with REST and RETR, then
@@ -288,8 +342,13 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 		// Close the transfer. Closing it early, before the object ends,
 		// aborts it: some servers answer with a reply, others, such as
 		// ProFTPD over TLS, end the session, which spends the connection
-		// but not the range already read.
-		if err := resp.Close(); err != nil && !isReply(err) {
+		// but not the range already read. A 421 or 530 is returned.
+		err = resp.Close()
+		if endsSession(err) {
+			out = nil
+			return err
+		}
+		if err != nil && !isReply(err) {
 			return errSpent
 		}
 		return nil
@@ -393,7 +452,7 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 
 	// Retry on a fresh connection when the pooled one failed. The new
 	// connection keeps the slot's token.
-	if err != nil && err != errSpent && !isReply(err) && ctx.Err() == nil {
+	if err != nil && err != errSpent && !isReply(err) && ctx.Err() == nil && !c.sess.isDead() {
 		c.sess.quit(conn)
 		conn, err = c.dial(ctx, s.login)
 		if err == nil {
@@ -443,7 +502,8 @@ func (c *Client) run(ctx context.Context, conn *ftp.ServerConn, s *slot, fn func
 		return false, fn(conn, s)
 	}
 
-	// Arm the close, run fn, then disarm it or wait for it to finish.
+	// Arm the close, run fn, then disarm it and ready the session for its
+	// next call, or wait for the close to finish.
 	closed := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
 		defer close(closed)
@@ -451,6 +511,7 @@ func (c *Client) run(ctx context.Context, conn *ftp.ServerConn, s *slot, fn func
 	})
 	err = fn(conn, s)
 	if stop() {
+		c.sess.idle(conn)
 		return false, err
 	}
 	<-closed
@@ -519,7 +580,7 @@ func (c *Client) acquire(ctx context.Context) (*slot, error) {
 // the connection failed or spent. A connection that outlived its range read
 // makes the spare dialed for it surplus.
 func (c *Client) release(s *slot, err error) {
-	if s.conn != nil && err != nil && !isReply(err) {
+	if s.conn != nil && err != nil && (!isReply(err) || endsSession(err)) {
 		c.sess.quit(s.conn)
 		s.conn = nil
 		c.free(s.login)
@@ -549,7 +610,7 @@ func (c *Client) startSpare(ctx context.Context, s *slot) {
 	// Dial in the background into a channel the next call waits on.
 	spare := make(chan *ftp.ServerConn, 1)
 	s.spare = spare
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*dialTimeout)
+	ctx, cancel := context.WithTimeout(c.stopCtx, 2*dialTimeout)
 	go func() {
 		defer cancel()
 		conn, err := c.dial(ctx, s.login)
@@ -617,8 +678,22 @@ func (c *Client) tryTake(login int) bool {
 	}
 }
 
-// free returns the tokens of a session of the login.
+// free returns the tokens of a session of the login, unless a session of the
+// login leaked its tokens: the server did not confirm its close and may still
+// count it, so one token stays taken for good.
 func (c *Client) free(login int) {
+	// Keep the token of a leaked session.
+	for {
+		n := c.leaks[login].Load()
+		if n == 0 {
+			break
+		}
+		if c.leaks[login].CompareAndSwap(n, n-1) {
+			return
+		}
+	}
+
+	// Return the tokens.
 	<-c.total
 	<-c.tokens[login]
 }
@@ -646,14 +721,14 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, error) {
 	// Track the session's sockets, closing them if ctx ends mid-dial under
 	// CloseOnDone or at CloseAll, which refuses the dial once it ran.
-	sess := newSession(c.tlsConf)
+	sess := newSession(c.tlsConf, func() { c.leaks[login].Add(1) })
 	if err := c.sess.track(sess); err != nil {
 		return nil, err
 	}
 	opts := []ftp.DialOption{
 		ftp.DialWithContext(ctx),
 		ftp.DialWithTimeout(dialTimeout),
-		ftp.DialWithShutTimeout(dialTimeout),
+		ftp.DialWithShutTimeout(cmp.Or(c.conf.ShutTimeout, dialTimeout)),
 		ftp.DialWithExplicitTLS(c.tlsConf),
 	}
 	stop := func() bool { return true }
@@ -684,7 +759,9 @@ func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, erro
 		return nil, errors.Wrap(err, "connect to "+c.conf.Addr)
 	}
 
-	// Log in. The error names the server, never the credentials.
+	// Log in. The error names the server, never the credentials. Any login
+	// failure is an ErrLoginRefused: the FTP library drops the reply code of
+	// a refused USER.
 	err = conn.Login(c.conf.Logins[login].User, c.conf.Logins[login].Password)
 	if derr := disarm(); derr != nil {
 		c.sess.forget(sess)
@@ -694,7 +771,7 @@ func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, erro
 		_ = conn.Quit()
 		sess.close()
 		c.sess.forget(sess)
-		return nil, errors.Wrap(err, "log in to "+c.conf.Addr)
+		return nil, &loginError{err: errors.Wrap(err, "log in to "+c.conf.Addr)}
 	}
 
 	// Keep the session, unless CloseAll cut it while it logged in.
@@ -718,6 +795,17 @@ func (c *Client) ObjectSize(ctx context.Context, bucket, key string) (int64, err
 	})
 	return size, err
 }
+
+// ErrLoginRefused marks a failed login, whatever the server answered.
+var ErrLoginRefused = errors.New("ftps login refused")
+
+// loginError is a failed login: it is ErrLoginRefused and unwraps to the
+// server's answer.
+type loginError struct{ err error }
+
+func (e *loginError) Error() string        { return e.err.Error() }
+func (e *loginError) Unwrap() error        { return e.err }
+func (e *loginError) Is(target error) bool { return target == ErrLoginRefused }
 
 // isFull reports whether err is the server's answer that it holds the most
 // sessions it allows the user or the client host, sent at the greeting or the

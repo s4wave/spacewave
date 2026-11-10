@@ -208,12 +208,16 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 		return nil, err
 	}
 	defer l.close()
+
+	// Build the rescuer, its fetcher reserving bytes in the ledger.
 	le := logrus.NewEntry(logrus.StandardLogger())
 	out := block_store_s3.NewPackStore(le, objects, o.OutDir, "", &block_store_s3.PackStoreOptions{KeepPacks: true, SoleWriter: true, MaxPackBytes: syntheticPackBytes})
 	defer out.Close()
+	fo := o.Fetch
+	fo.Reserved = l.reserve
 	r := &rescuer{
 		o: o, le: le, ledger: l, out: out, multi: make(map[string]int), multiDone: make(map[string]bool), limits: out.GetBatchLimits(), start: time.Now(),
-		fetch: newFetcher(client, o.Bucket, o.Fetch, l.bytes), bytes0: l.bytes,
+		fetch: newFetcher(client, o.Bucket, fo, l.bytes), bytes0: l.bytes,
 	}
 	for _, s := range l.refs {
 		r.count(s, 1)
@@ -398,11 +402,14 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 		return nil, err
 	}
 
-	// Drop finished packs and those left empty; record the refs of packs the
-	// plan cannot read; defer the packs at or below MinWanted.
+	// Drop the packs left empty; record the refs of packs the plan cannot
+	// read; defer the packs at or below MinWanted. A pack the ledger
+	// finished is kept when it has wants: they are refs no earlier run
+	// recorded, added to the list since, and every candidate pack of a ref
+	// stays counted in r.multi.
 	packs := make([]*packWork, 0, len(byID))
-	for id, p := range byID {
-		if len(p.wants) == 0 || (r.ledger.packs[id] && !r.o.RetryFailed) {
+	for _, p := range byID {
+		if len(p.wants) == 0 {
 			continue
 		}
 		if _, _, ok := choosePlan(p, r.o.Plan); !ok && !r.canSize() {
@@ -782,6 +789,10 @@ func (r *rescuer) fetchPack(ctx context.Context, p *packWork) (*packResult, erro
 	// Read the whole pack, charging its size against the byte cap first.
 	data, err := r.fetch.whole(ctx, key, size)
 	res.fetched = uint64(len(data))
+	if errors.Is(err, errOverSize) {
+		r.le.WithError(err).Warn("pack larger than its size; not read")
+		return r.failAll(res, p, "over-size"), nil
+	}
 	if err != nil {
 		return r.missing(res, p, err)
 	}

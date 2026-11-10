@@ -97,9 +97,9 @@ type planOptions struct {
 const infinite = math.MaxUint64
 
 // wholeCost returns the bytes of reading the pack whole, or infinite when
-// its size is unknown.
+// its size is unknown: no entry, or an entry of size 0, which no pack has.
 func wholeCost(p *packWork, o planOptions) uint64 {
-	if p.entry == nil {
+	if p.entry.GetSizeBytes() == 0 {
 		return infinite
 	}
 	return p.entry.GetSizeBytes() + o.Overhead
