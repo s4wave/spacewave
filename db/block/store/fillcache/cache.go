@@ -125,15 +125,17 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts Options) (*Ca
 }
 
 // Reads returns a source that reads the cache, then the durable store lower,
-// and queues each block of lower's hits that carries its refs for the cache. A
-// nil lower yields a nil source, as no store holds the blocks to copy.
+// and queues each block of lower's hits for the cache, whether or not its refs
+// are known: the cache keeps no refs and serves every block with its refs
+// unknown. A nil lower yields a nil source, as no store holds the blocks to
+// copy.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 	return func() block.StoreOps {
 		store := lower()
 		if store == nil {
 			return nil
 		}
-		return block_store.NewStoreReadThrough(
+		return block_store.NewCacheReadThrough(
 			func() block.StoreOps { return c.view },
 			func() block.StoreOps { return store },
 			c.Fill,

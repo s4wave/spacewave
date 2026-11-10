@@ -86,8 +86,10 @@ func New(limitBytes int64) *Cache {
 }
 
 // Reads returns a source that reads the cache, then the durable store lower,
-// and keeps a copy of each of lower's hits. A nil lower yields a nil source, as
-// no store holds the blocks to copy.
+// and keeps a copy of each of lower's hits, whether or not its refs are known:
+// the copy keeps the refs-known state it was read with, so a block with unknown
+// refs never reads back as a leaf. A nil lower yields a nil source, as no store
+// holds the blocks to copy.
 func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 	view := &view{cache: c}
 	return func() block.StoreOps {
@@ -95,7 +97,7 @@ func (c *Cache) Reads(lower block_store.StoreSource) block_store.StoreSource {
 		if store == nil {
 			return nil
 		}
-		return block_store.NewStoreReadThrough(
+		return block_store.NewCacheReadThrough(
 			func() block.StoreOps { return view },
 			func() block.StoreOps { return store },
 			c.Fill,
