@@ -72,15 +72,13 @@ func TestObserverSeesWrites(t *testing.T) {
 	}
 	release()
 
-	// Roots: each entry, then each root's block.
+	// Roots: each entry, then each root's block. The test Volume keeps no
+	// roots, so observe the root write directly.
 	parent := []byte("parent")
 	parentRef, _ := block.BuildBlockRef(parent, nil)
-	err = s.SetRoots(ctx, []*block.PutBatchEntry{
+	s.observeEntries([]*block.PutBatchEntry{
 		{Ref: parentRef, Data: parent, Refs: refs, RefsKnown: true},
 	}, []block.NamedRoot{{Name: "main", Ref: parentRef}, {Name: "gone"}})
-	if err != nil {
-		t.Fatal(err)
-	}
 	if got := obs.take(); !slices.Equal(got, []string{name("p", parentRef), name("r", parentRef)}) {
 		t.Fatalf("roots seen as %v", got)
 	}
@@ -121,4 +119,20 @@ func TestNoObserverCostsNothing(t *testing.T) {
 	if n := testing.AllocsPerRun(100, func() { m.observeEntries(entries, roots) }); n != 0 {
 		t.Fatalf("observer with none set allocates %v", n)
 	}
+}
+
+// batchOf builds a batch of the blocks in order.
+func batchOf(t *testing.T, blocks ...string) ([]*block.PutBatchEntry, []*block.BlockRef) {
+	t.Helper()
+	var entries []*block.PutBatchEntry
+	var refs []*block.BlockRef
+	for _, data := range blocks {
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: []byte(data), RefsKnown: true})
+		refs = append(refs, ref)
+	}
+	return entries, refs
 }
