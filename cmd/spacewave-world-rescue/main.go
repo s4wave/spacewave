@@ -50,7 +50,7 @@ type args struct {
 	out, ledgerPath                  string
 	sessions, minWanted, retries     int
 	ranges, retryFailed              bool
-	overhead, maxBytes               uint64
+	overhead, maxBytes, maxPackMiB   uint64
 	diskFloorGB                      float64
 	timeout, backoff, maxBackoff     time.Duration
 	progress, flushInterval          time.Duration
@@ -82,6 +82,7 @@ func main() {
 		&cli.BoolFlag{Name: "ranges", Usage: "read by block ranges a pack whose wanted blocks all have extents in the index, when that costs fewer bytes than the whole pack", Destination: &a.ranges},
 		&cli.Uint64Flag{Name: "range-overhead", Usage: "bytes a request costs beyond its body, for --ranges", Value: 4096, Destination: &a.overhead},
 		&cli.Uint64Flag{Name: "max-bytes", Usage: "most bytes fetched across runs; 0 refuses to run", Destination: &a.maxBytes},
+		&cli.Uint64Flag{Name: "max-pack-mib", Usage: "largest pack read whole, in MiB; a larger one is skipped and its refs recorded too-large", Value: 1024, Destination: &a.maxPackMiB},
 		&cli.Float64Flag{Name: "disk-floor-gb", Usage: "stop cleanly when the output disk has less free", Value: 20, Destination: &a.diskFloorGB},
 		&cli.DurationFlag{Name: "timeout", Usage: "per-request timeout", Value: 2 * time.Minute, Destination: &a.timeout},
 		&cli.IntFlag{Name: "retries", Usage: "retries of a failed request, never of a 530, 421 or session limit", Value: 3, Destination: &a.retries},
@@ -90,7 +91,7 @@ func main() {
 		&cli.Float64Flag{Name: "requests-per-sec", Usage: "request rate cap across sessions; 0 is none", Value: 4, Destination: &a.reqRate},
 		&cli.Float64Flag{Name: "bytes-per-sec", Usage: "byte rate cap across sessions; 0 is none", Value: 20 << 20, Destination: &a.byteRate},
 		&cli.BoolFlag{Name: "retry-failed", Usage: "fetch again the refs and packs the ledger records as failed", Destination: &a.retryFailed},
-		&cli.DurationFlag{Name: "flush-interval", Usage: "longest wait of verified blocks for their write and ledger sync; each flush closes a synthetic pack", Value: 10 * time.Minute, Destination: &a.flushInterval},
+		&cli.DurationFlag{Name: "flush-interval", Usage: "longest wait of verified blocks for their write to the output and their ref lines; each flush closes a synthetic pack. The byte total is synced after every pack", Value: 10 * time.Minute, Destination: &a.flushInterval},
 		&cli.DurationFlag{Name: "progress", Usage: "time between progress lines", Value: 30 * time.Second, Destination: &a.progress},
 	}
 	app.Action = func(*cli.Context) error { return a.run() }
@@ -125,6 +126,9 @@ func (a *args) run() error {
 	if a.sessions < 1 || a.sessions > maxSessions {
 		return errors.New("--sessions must be 1 to 9")
 	}
+	if a.maxPackMiB == 0 {
+		return errors.New("--max-pack-mib is 0: set a pack size limit to run")
+	}
 	if a.minWanted < 0 {
 		return errors.New("--min-wanted must not be negative")
 	}
@@ -158,6 +162,7 @@ func (a *args) run() error {
 		MaxSessions:   a.sessions,
 		ConnsPerLogin: a.sessions,
 		NoFullRetry:   true,
+		CloseOnDone:   true,
 	})
 	defer client.Close()
 
@@ -166,15 +171,16 @@ func (a *args) run() error {
 		return err
 	}
 	res, err := run(ctx, &options{
-		Bucket:    a.root,
-		Prefix:    a.prefix,
-		Index:     index,
-		RefList:   a.refs,
-		Ledger:    cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
-		OutDir:    a.out,
-		Sessions:  a.sessions,
-		Plan:      planOptions{Ranges: a.ranges, Overhead: a.overhead},
-		MinWanted: a.minWanted,
+		Bucket:       a.root,
+		Prefix:       a.prefix,
+		Index:        index,
+		RefList:      a.refs,
+		Ledger:       cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
+		OutDir:       a.out,
+		Sessions:     a.sessions,
+		Plan:         planOptions{Ranges: a.ranges, Overhead: a.overhead},
+		MinWanted:    a.minWanted,
+		MaxPackBytes: a.maxPackMiB << 20,
 		Fetch: fetchOptions{
 			Timeout: a.timeout, Retries: a.retries, Backoff: a.backoff, MaxBackoff: a.maxBackoff,
 			RequestsPerSec: a.reqRate, BytesPerSec: a.byteRate, CapBytes: a.maxBytes,

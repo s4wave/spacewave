@@ -78,6 +78,9 @@ type Client struct {
 	// sizes holds the sizes of the objects seen by ListObjects and PutObject,
 	// which tell a range read whether it reaches the end of the object.
 	sizes sync.Map
+	// sess tracks the sockets of each session, to close them when a call's
+	// context ends under Config.CloseOnDone.
+	sess sessions
 }
 
 // slot is a pool entry. conn and spare each hold a token of the slot's login.
@@ -360,15 +363,31 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 	}
 	conn := s.conn
 
+	// Run fn, closing the session when ctx ends first under CloseOnDone. A
+	// closed session is dropped with no retry, its token freed only once its
+	// sockets are closed.
+	killed, err := c.run(ctx, conn, s, fn)
+	if killed {
+		s.conn = nil
+		c.free(s.login)
+		c.release(s, nil)
+		return errors.Wrap(context.Cause(ctx), "ftps session closed at its deadline")
+	}
+
 	// Retry on a fresh connection when the pooled one failed. The new
 	// connection keeps the slot's token.
-	err = fn(conn, s)
-	if err != nil && err != errSpent && !isReply(err) {
-		_ = conn.Quit()
+	if err != nil && err != errSpent && !isReply(err) && ctx.Err() == nil {
+		c.sess.quit(conn)
 		conn, err = c.dial(ctx, s.login)
 		if err == nil {
 			s.conn = conn
-			err = fn(conn, s)
+			killed, err = c.run(ctx, conn, s, fn)
+			if killed {
+				s.conn = nil
+				c.free(s.login)
+				c.release(s, nil)
+				return errors.Wrap(context.Cause(ctx), "ftps session closed at its deadline")
+			}
 		} else {
 			s.conn = nil
 			c.free(s.login)
@@ -381,6 +400,29 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 		return nil
 	}
 	return err
+}
+
+// run runs fn on conn. Under CloseOnDone, when ctx ends before fn returns, it
+// closes the session's sockets, which ends the command fn is blocked in, and
+// reports killed once fn returned and the sockets are confirmed closed.
+func (c *Client) run(ctx context.Context, conn *ftp.ServerConn, s *slot, fn func(conn *ftp.ServerConn, s *slot) error) (killed bool, err error) {
+	// Run fn directly unless the session must close at ctx's end.
+	if !c.conf.CloseOnDone {
+		return false, fn(conn, s)
+	}
+
+	// Arm the close, run fn, then disarm it or wait for it to finish.
+	closed := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		defer close(closed)
+		c.sess.kill(conn)
+	})
+	err = fn(conn, s)
+	if stop() {
+		return false, err
+	}
+	<-closed
+	return true, err
 }
 
 // takeSlot waits for a slot in the read class of ctx and records its lease.
@@ -442,7 +484,7 @@ func (c *Client) acquire(ctx context.Context) (*slot, error) {
 // makes the spare dialed for it surplus.
 func (c *Client) release(s *slot, err error) {
 	if s.conn != nil && err != nil && !isReply(err) {
-		_ = s.conn.Quit()
+		c.sess.quit(s.conn)
 		s.conn = nil
 		c.free(s.login)
 	}
@@ -485,7 +527,7 @@ func (c *Client) startSpare(ctx context.Context, s *slot) {
 // discard closes the spare session and frees its token.
 func (c *Client) discard(login int, spare chan *ftp.ServerConn) {
 	if conn := <-spare; conn != nil {
-		_ = conn.Quit()
+		c.sess.quit(conn)
 	}
 	c.free(login)
 }
@@ -493,7 +535,7 @@ func (c *Client) discard(login int, spare chan *ftp.ServerConn) {
 // drop logs out the sessions of a slot held by the caller.
 func (c *Client) drop(s *slot) {
 	if s.conn != nil {
-		_ = s.conn.Quit()
+		c.sess.quit(s.conn)
 		s.conn = nil
 		c.free(s.login)
 	}
@@ -563,23 +605,66 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 
 // dialOnce makes one attempt to dial.
 func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, error) {
-	// Connect and upgrade the control connection to TLS.
-	conn, err := ftp.Dial(c.conf.Addr,
+	// Track the session's sockets, closing them if ctx ends mid-dial under
+	// CloseOnDone.
+	sess := &session{tlsConf: c.tlsConf}
+	opts := []ftp.DialOption{
 		ftp.DialWithContext(ctx),
 		ftp.DialWithTimeout(dialTimeout),
 		ftp.DialWithShutTimeout(dialTimeout),
 		ftp.DialWithExplicitTLS(c.tlsConf),
-	)
+	}
+	stop := func() bool { return true }
+	closed := make(chan struct{})
+	if c.conf.CloseOnDone {
+		opts = append(opts, ftp.DialWithDialFunc(sess.dialFunc(ctx)))
+		stop = context.AfterFunc(ctx, func() {
+			defer close(closed)
+			sess.close()
+		})
+	}
+	disarm := func() error {
+		if stop() {
+			return nil
+		}
+		<-closed
+		return errors.Wrap(context.Cause(ctx), "ftps session closed at its deadline")
+	}
+
+	// Connect and upgrade the control connection to TLS.
+	conn, err := ftp.Dial(c.conf.Addr, opts...)
 	if err != nil {
+		if derr := disarm(); derr != nil {
+			err = derr
+		}
 		return nil, errors.Wrap(err, "connect to "+c.conf.Addr)
 	}
 
 	// Log in. The error names the server, never the credentials.
-	if err := conn.Login(c.conf.Logins[login].User, c.conf.Logins[login].Password); err != nil {
+	err = conn.Login(c.conf.Logins[login].User, c.conf.Logins[login].Password)
+	if derr := disarm(); derr != nil {
+		return nil, derr
+	}
+	if err != nil {
 		_ = conn.Quit()
+		sess.close()
 		return nil, errors.Wrap(err, "log in to "+c.conf.Addr)
 	}
+	c.sess.add(conn, sess)
 	return conn, nil
+}
+
+// ObjectSize asks the server for the object's size with SIZE on a pooled
+// session.
+func (c *Client) ObjectSize(ctx context.Context, bucket, key string) (int64, error) {
+	name := path.Join(bucket, key)
+	var size int64
+	err := c.do(ctx, func(conn *ftp.ServerConn, _ *slot) error {
+		var err error
+		size, err = conn.FileSize(name)
+		return notFound(err, name)
+	})
+	return size, err
 }
 
 // isFull reports whether err is the server's answer that it holds the most

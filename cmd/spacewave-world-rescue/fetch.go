@@ -26,8 +26,21 @@ type objectReader interface {
 	GetObjectRange(ctx context.Context, bucket, key string, off int64, length int) ([]byte, error)
 }
 
+// objectSizer asks the server for an object's size. *block_store_ftps.Client
+// implements it with SIZE.
+type objectSizer interface {
+	// ObjectSize returns the object's size in bytes.
+	ObjectSize(ctx context.Context, bucket, key string) (int64, error)
+}
+
+// errNoSizer reports that the client cannot ask for an object's size.
+var errNoSizer = errors.New("the client cannot ask for an object's size")
+
 // errCapReached reports that the next request would cross the byte cap.
 var errCapReached = errors.New("byte cap reached")
+
+// errHardStopped refuses a request after a hard stop.
+var errHardStopped = errors.New("not requested: the run hit a hard stop")
 
 // errTimeout reports that a request outlived its timeout.
 var errTimeout = errors.New("request timed out")
@@ -125,6 +138,8 @@ type fetcher struct {
 	fetched atomic.Uint64
 	// requests counts the request attempts of this run.
 	requests atomic.Uint64
+	// stopped is set by the first hard stop: no request starts after it.
+	stopped atomic.Bool
 }
 
 // newFetcher builds a fetcher whose byte count starts at fetched.
@@ -194,6 +209,28 @@ func (f *fetcher) whole(ctx context.Context, key string, size uint64) ([]byte, e
 	})
 }
 
+// size asks the server for the object's size, with the retries and stops of
+// any request. It counts no bytes against the cap.
+func (f *fetcher) size(ctx context.Context, key string) (uint64, error) {
+	// Find the client's SIZE.
+	sizer, ok := f.client.(objectSizer)
+	if !ok {
+		return 0, errNoSizer
+	}
+
+	// Ask for it as a request of no bytes.
+	var size int64
+	_, err := f.do(ctx, 0, func(ctx context.Context) ([]byte, error) {
+		var err error
+		size, err = sizer.ObjectSize(ctx, f.bucket, key)
+		return nil, err
+	})
+	if err == nil && size < 0 {
+		err = errors.Errorf("negative size %d", size)
+	}
+	return uint64(size), err //nolint:gosec // checked not negative.
+}
+
 // rangeRead reads length bytes of the object at off.
 func (f *fetcher) rangeRead(ctx context.Context, key string, off int64, length int) ([]byte, error) {
 	return f.do(ctx, uint64(length), func(ctx context.Context) ([]byte, error) { //nolint:gosec // lengths are not negative.
@@ -206,7 +243,11 @@ func (f *fetcher) rangeRead(ctx context.Context, key string, off int64, length i
 func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]byte, error)) ([]byte, error) {
 	backoff := f.opts.Backoff
 	for attempt := 0; ; attempt++ {
-		// Count the bytes against the cap and wait for the rate.
+		// Start nothing after a hard stop, then count the bytes against the
+		// cap and wait for the rate.
+		if f.stopped.Load() {
+			return nil, errHardStopped
+		}
 		if err := f.reserve(n); err != nil {
 			return nil, err
 		}
@@ -214,13 +255,17 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 			return nil, err
 		}
 
-		// Make the attempt.
+		// Make the attempt, unless a hard stop came while it waited.
+		if f.stopped.Load() {
+			return nil, errHardStopped
+		}
 		f.requests.Add(1)
 		data, err := f.attempt(ctx, fn)
 		if err == nil {
 			return data, nil
 		}
 		if isHardStop(err) {
+			f.stopped.Store(true)
 			return nil, &hardStopError{err: err}
 		}
 		if ctx.Err() != nil {
@@ -240,39 +285,25 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 	}
 }
 
-// attempt runs fn bounded by the timeout. The FTP commands do not take a
-// context, so a timed out attempt is abandoned: it keeps its session until
-// the server answers, and its result is dropped.
+// attempt runs fn bounded by the timeout and waits for it to return. The
+// FTPS client closes a session whose call outlives its context
+// (Config.CloseOnDone), so fn returns once the session's sockets are closed:
+// a timed out request never leaves a session open behind it.
 func (f *fetcher) attempt(ctx context.Context, fn func(context.Context) ([]byte, error)) ([]byte, error) {
 	// Run fn directly when there is no timeout.
 	if f.opts.Timeout <= 0 {
 		return fn(ctx)
 	}
 
-	// Run fn in its own goroutine under the timeout.
+	// Run fn under the timeout, telling a timeout from the run's cancel.
 	actx, cancel := context.WithTimeout(ctx, f.opts.Timeout)
 	defer cancel()
-	type result struct {
-		data []byte
-		err  error
-	}
-	ch := make(chan result, 1)
-	go func() {
-		data, err := fn(actx)
-		ch <- result{data, err}
-	}()
-
-	// Return its result, or a timeout or the run's cancel, whichever is first.
-	select {
-	case r := <-ch:
-		if r.err != nil && actx.Err() != nil && ctx.Err() == nil {
-			return nil, errTimeout
-		}
-		return r.data, r.err
-	case <-actx.Done():
+	data, err := fn(actx)
+	if err != nil && actx.Err() != nil {
 		if ctx.Err() != nil {
 			return nil, context.Cause(ctx)
 		}
 		return nil, errTimeout
 	}
+	return data, err
 }

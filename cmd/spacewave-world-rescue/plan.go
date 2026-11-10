@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
@@ -29,6 +30,28 @@ type packWork struct {
 	entry *packfile.PackfileEntry
 	// wants are the wanted blocks in the pack.
 	wants []want
+	// filter is the entry's bloom filter, parsed on first use; nil when the
+	// entry has none usable, which rules out no key.
+	filter       *bloom.Filter
+	filterParsed bool
+}
+
+// mayHold reports whether the pack's bloom filter may hold key. A pack
+// without a usable filter, of format version 1, may hold any key.
+func (p *packWork) mayHold(key []byte) bool {
+	// Parse the filter once.
+	if !p.filterParsed {
+		p.filterParsed = true
+		if p.entry.GetBloomFormatVersion() == packfile.BloomFormatVersionV1 {
+			var encoded bloom.BloomFilter
+			if err := encoded.UnmarshalVT(p.entry.GetBloomFilter()); err == nil {
+				p.filter = encoded.ToBloomFilter()
+			}
+		}
+	}
+
+	// Test the key.
+	return p.filter == nil || p.filter.Test(key)
 }
 
 // counts returns the wanted blocks with and without an extent.

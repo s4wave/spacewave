@@ -24,4 +24,11 @@ type Config struct {
 	// fail at once instead of waiting and dialing again, for a caller that
 	// must stop on that answer.
 	NoFullRetry bool
+	// CloseOnDone closes a session's control and data connections when the
+	// context of the call using it ends first, so a stalled command does not
+	// keep its session open. The session's token is freed only once its
+	// sockets are confirmed closed. The data connections are then dialed by
+	// the client and wrapped in TLS without session resumption checks beyond
+	// the shared cache.
+	CloseOnDone bool
 }

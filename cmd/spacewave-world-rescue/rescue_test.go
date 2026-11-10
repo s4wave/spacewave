@@ -43,6 +43,9 @@ type fakeServer struct {
 	mtx   sync.Mutex
 	calls int
 	whole int
+	// sizes counts the SIZE calls; sizeErr fails them.
+	sizes   int
+	sizeErr error
 	// hook runs before call n (from 1) and may delay or fail it.
 	hook func(n int) (time.Duration, error)
 }
@@ -81,6 +84,24 @@ func (f *fakeServer) GetObjectRange(ctx context.Context, bucket, key string, off
 		return nil, err
 	}
 	return dirObjects{}.GetObjectRange(ctx, filepath.Join(f.dir, bucket), key, off, length)
+}
+
+// ObjectSize answers SIZE from the file, or with sizeErr.
+func (f *fakeServer) ObjectSize(ctx context.Context, bucket, key string) (int64, error) {
+	if err := f.before(ctx); err != nil {
+		return 0, err
+	}
+	f.mtx.Lock()
+	f.sizes++
+	f.mtx.Unlock()
+	if f.sizeErr != nil {
+		return 0, f.sizeErr
+	}
+	info, err := os.Stat(objectPath(filepath.Join(f.dir, bucket), key))
+	if err != nil {
+		return 0, block_store_s3.ErrNotFound
+	}
+	return info.Size(), nil
 }
 
 func (f *fakeServer) count() (calls, whole int) {
@@ -784,5 +805,265 @@ func TestIndexReadOnlyOpen(t *testing.T) {
 		if !bytes.Equal(data, after[s]) {
 			t.Errorf("index%s changed", s)
 		}
+	}
+}
+
+// dropEntry closes the source and removes a pack's e row from its index, so
+// the index gives no size for the pack.
+func (s *source) dropEntry(id string) {
+	s.close()
+	ctx := context.Background()
+	tx, err := s.index.NewTransaction(ctx, true)
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	defer tx.Discard()
+	if err := tx.Delete(ctx, []byte("e/"+id)); err != nil {
+		s.t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		s.t.Fatal(err)
+	}
+}
+
+// onlyPack returns the id and size of the only pack of src.
+func onlyPack(t *testing.T, src *source) (string, int64) {
+	var id string
+	var size int64
+	err := dirObjects{}.ListObjects(context.Background(), filepath.Join(src.dir, testRoot), testPrefix+"packs/", func(key string, n int64) error {
+		id, size = key[strings.LastIndex(key, "/")+1:], n
+		return nil
+	})
+	if err != nil || id == "" {
+		t.Fatalf("no pack: %v", err)
+	}
+	return id, size
+}
+
+// TestRescueSizeNoEntry reads a pack the index gives no size for: SIZE on the
+// server sizes it, the size is charged against the cap, and its wanted blocks
+// come from the pack's own index. A failed SIZE or one past the memory guard
+// records the pack and fetches nothing.
+func TestRescueSizeNoEntry(t *testing.T) {
+	// Write a pack and drop its e row.
+	src := newSource(t)
+	refs := src.pack(6)
+	id, size := onlyPack(t, src)
+	src.dropEntry(id)
+
+	// SIZE answers: the pack is read whole and every wanted block stored.
+	out := t.TempDir()
+	srv := &fakeServer{dir: src.dir}
+	o := testOptions(src, writeList(t, out, refs[:4]), out)
+	o.Fetch.CapBytes = uint64(size)
+	res, err := run(context.Background(), o, srv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, whole := srv.count(); srv.sizes != 1 || whole != 1 || res.Sized != 1 || res.Done != 4 || res.Bytes != uint64(size) {
+		t.Fatalf("sizes %d whole %d, %+v", srv.sizes, whole, res)
+	}
+	if n := checkOutput(t, out, refs[:4]); n != 4 {
+		t.Fatalf("output holds %d of 4", n)
+	}
+
+	// A cap a byte short of the SIZE answer stops before the fetch.
+	out = t.TempDir()
+	srv = &fakeServer{dir: src.dir}
+	o = testOptions(src, writeList(t, out, refs[:4]), out)
+	o.Fetch.CapBytes = uint64(size) - 1
+	res, err = run(context.Background(), o, srv)
+	if _, whole := srv.count(); err != nil || whole != 0 || res.Stop != stopByteCap {
+		t.Fatalf("short cap: %v, whole %d, %+v", err, whole, res)
+	}
+
+	// SIZE fails: the pack is recorded no-size and not fetched.
+	out = t.TempDir()
+	srv = &fakeServer{dir: src.dir, sizeErr: &textproto.Error{Code: 550, Msg: "SIZE not allowed"}}
+	res, err = run(context.Background(), testOptions(src, writeList(t, out, refs[:4]), out), srv)
+	if _, whole := srv.count(); err != nil || whole != 0 || res.Failed != 4 {
+		t.Fatalf("failed size: %v, whole %d, %+v", err, whole, res)
+	}
+	if l := packLines(t, out); len(l) != 1 || len(l[0]) != 6 || l[0][5] != "no-size" {
+		t.Fatalf("pack lines %v", l)
+	}
+
+	// SIZE past the memory guard: recorded too-large and not fetched.
+	out = t.TempDir()
+	srv = &fakeServer{dir: src.dir}
+	o = testOptions(src, writeList(t, out, refs[:4]), out)
+	o.MaxPackBytes = uint64(size) - 1
+	res, err = run(context.Background(), o, srv)
+	if _, whole := srv.count(); err != nil || whole != 0 || res.TooLarge != 4 {
+		t.Fatalf("too large: %v, whole %d, %+v", err, whole, res)
+	}
+}
+
+// TestRescueTooLarge skips a pack whose entry is past the memory guard,
+// recording its refs too-large with no request, and skips them on resume.
+func TestRescueTooLarge(t *testing.T) {
+	src := newSource(t)
+	big := src.pack(8)
+	small := src.pack(1)
+	out := t.TempDir()
+	o := testOptions(src, writeList(t, out, append(append([]*block.BlockRef{}, big...), small...)), out)
+	o.MaxPackBytes = 2000
+	srv := &fakeServer{dir: src.dir}
+	res, err := run(context.Background(), o, srv)
+	if calls, _ := srv.count(); err != nil || calls != 1 || res.TooLarge != 8 || res.Done != 1 {
+		t.Fatalf("%v, calls %d, %+v", err, calls, res)
+	}
+	var skipped bool
+	for _, f := range packLines(t, out) {
+		skipped = skipped || (len(f) == 6 && f[2] == "0" && f[5] == "too-large")
+	}
+	if !skipped {
+		t.Fatalf("no too-large pack line: %v", packLines(t, out))
+	}
+	srv = &fakeServer{dir: src.dir}
+	res, err = run(context.Background(), o, srv)
+	if calls, _ := srv.count(); err != nil || calls != 0 || res.TooLarge != 8 {
+		t.Fatalf("resume: %v, calls %d, %+v", err, calls, res)
+	}
+}
+
+// TestRescueLedgerPerPack syncs the byte total after every pack, ahead of
+// the blocks' flush, so a crash loses no finished pack's bytes.
+func TestRescueLedgerPerPack(t *testing.T) {
+	src := newSource(t)
+	var refs []*block.BlockRef
+	for range 3 {
+		refs = append(refs, src.pack(2)...)
+	}
+	out := t.TempDir()
+	if _, err := run(context.Background(), testOptions(src, writeList(t, out, refs), out), &fakeServer{dir: src.dir}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(out, "rescue.ledger"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var totals []uint64
+	for _, line := range strings.Split(string(data), "\n") {
+		f := strings.Fields(line)
+		if len(f) == 3 && f[0] == "r" && f[2] == "done" {
+			break
+		}
+		if len(f) == 2 && f[0] == "b" {
+			n, _ := strconv.ParseUint(f[1], 10, 64)
+			totals = append(totals, n)
+		}
+	}
+	// One total per pack lands before any ref line, rising; in-flight
+	// reservations may make a later one equal an earlier one.
+	if len(totals) != 3 || totals[0] == 0 || totals[0] > totals[1] || totals[1] > totals[2] {
+		t.Fatalf("byte totals before the first block line: %v", totals)
+	}
+}
+
+// TestRescueSharedNum gives two packs one pack number: each wanted ref goes
+// to the pack whose bloom filter may hold it, and a ref neither filter holds
+// is recorded ambiguous-num.
+func TestRescueSharedNum(t *testing.T) {
+	// Write three packs; give the second the first's number, and point the
+	// h rows of the second and one block of the third at it.
+	src := newSource(t)
+	a, b, c := src.pack(4), src.pack(4), src.pack(1)
+	src.close()
+	ctx := context.Background()
+	tx, err := src.index.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hrow := func(ref *block.BlockRef) []byte {
+		return block_store_s3.IndexHashRowKey(packfile.BlockKey(ref.GetHash()))
+	}
+	numA, _, err := tx.Get(ctx, hrow(a[0]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rowB, _, err := tx.Get(ctx, hrow(b[0]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rowB = append([]byte(nil), rowB...)
+	num := append([]byte(nil), numA[:4]...)
+	for _, ref := range append(append([]*block.BlockRef{}, b...), c...) {
+		if err := tx.Set(ctx, hrow(ref), num); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Give b's pack a's p row, read before the h rows changed.
+	before, err := block_store_s3.ReadIndexPackIDs(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	idOf := func(value []byte) string {
+		row, ok := block_store_s3.ParseIndexHashRow(value)
+		if !ok || len(before[row.Num]) != 1 {
+			t.Fatalf("h row %x", value)
+		}
+		return before[row.Num][0]
+	}
+	idA, idB := idOf(numA), idOf(rowB)
+	pa, _, err := tx.Get(ctx, []byte("p/"+idA))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pb := []byte("p/" + idB)
+	if err := tx.Set(ctx, pb, pa); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx, _ = src.index.NewTransaction(ctx, false)
+	ids, err := block_store_s3.ReadIndexPackIDs(ctx, tx)
+	tx.Discard()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var shared bool
+	for _, list := range ids {
+		shared = shared || len(list) == 2
+	}
+	if !shared {
+		t.Fatalf("no shared number: %v", ids)
+	}
+
+	// Run: every ref of a and b is stored, the c ref is ambiguous, and no
+	// pack fetched lacks a ref it was asked for.
+	out := t.TempDir()
+	wanted := append(append(append([]*block.BlockRef{}, a...), b...), c...)
+	srv := &fakeServer{dir: src.dir}
+	res, err := run(ctx, testOptions(src, writeList(t, out, wanted), out), srv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Done != 8 || res.Ambiguous != 1 || res.NotInPack != 0 || res.PacksDone != 2 {
+		t.Fatalf("result %+v", res)
+	}
+	for _, f := range packLines(t, out) {
+		if f[3] != "4" || f[4] != "0" {
+			t.Fatalf("pack line %v: the filter did not pick the pack", f)
+		}
+	}
+	if n := checkOutput(t, out, wanted); n != 8 {
+		t.Fatalf("output holds %d of 8", n)
+	}
+}
+
+// TestSettle records a ref of several candidate packs done by the first that
+// stored it, or by the last result when none did.
+func TestSettle(t *testing.T) {
+	r := &rescuer{multi: map[string]int{"x": 2, "y": 2}, multiDone: map[string]bool{}}
+	if r.settle([]byte("x"), false) || !r.settle([]byte("x"), true) || r.settle([]byte("x"), false) {
+		t.Fatal("x: a miss then a hit records the hit alone")
+	}
+	if r.settle([]byte("y"), false) || !r.settle([]byte("y"), false) {
+		t.Fatal("y: two misses record the last")
+	}
+	if !r.settle([]byte("z"), false) {
+		t.Fatal("z: a ref of one pack records its result")
 	}
 }

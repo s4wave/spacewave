@@ -36,15 +36,16 @@ func ParseIndexHashRow(value []byte) (IndexHashRow, bool) {
 }
 
 // ReadIndexPackIDs reads the p rows of a pack index in tx and returns the
-// pack id of each pack number they give.
-func ReadIndexPackIDs(ctx context.Context, tx kvtx.Tx) (map[uint32]string, error) {
-	ids := make(map[uint32]string)
+// pack ids of each pack number they give, in id order. An index written
+// before its pack table loaded may give one number to several packs.
+func ReadIndexPackIDs(ctx context.Context, tx kvtx.Tx) (map[uint32][]string, error) {
+	ids := make(map[uint32][]string)
 	err := tx.ScanPrefix(ctx, []byte(indexPackPrefix), func(key, value []byte) error {
 		row, err := unmarshalPackRow(value)
 		if err != nil {
 			return err
 		}
-		ids[row.num] = string(key[len(indexPackPrefix):])
+		ids[row.num] = append(ids[row.num], string(key[len(indexPackPrefix):]))
 		return nil
 	})
 	if err != nil {

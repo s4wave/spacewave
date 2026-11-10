@@ -21,6 +21,12 @@ const (
 	stateAbsent = "absent"
 	// stateNotInPack is a ref the index placed in a pack that lacks it.
 	stateNotInPack = "not-in-pack"
+	// stateTooLarge is a ref in a pack larger than --max-pack-mib, which is
+	// not fetched.
+	stateTooLarge = "too-large"
+	// stateAmbiguous is a ref whose pack number several packs share and
+	// none of whose bloom filters may hold it.
+	stateAmbiguous = "ambiguous-num"
 )
 
 // ledger is the append-only record of a rescue, which a restart reads to
@@ -31,7 +37,9 @@ const (
 //	p <pack id> <fetched> <found> <not-in-pack>
 //	                                     every wanted ref of the pack finished,
 //	                                     with the bytes read for it, the wanted
-//	                                     refs stored and those it lacked
+//	                                     refs stored and those it lacked, then
+//	                                     too-large or no-size for a pack
+//	                                     skipped unfetched
 //	b <bytes>                            the bytes fetched across runs so far
 //
 // A later line for a ref replaces an earlier one. A partial last line, left
@@ -123,10 +131,17 @@ func (l *ledger) ref(key []byte, state, reason string) error {
 }
 
 // pack appends that a pack is finished, with the bytes read for it, the
-// wanted refs found and those not in it.
-func (l *ledger) pack(id string, fetched uint64, found, notInPack int) error {
+// wanted refs found and those not in it, and why it was skipped unfetched.
+func (l *ledger) pack(id string, fetched uint64, found, notInPack int, skip string) error {
+	// Format the line, with the skip reason when there is one.
 	l.packs[id] = true
-	_, err := fmt.Fprintf(l.w, "p %s %d %d %d\n", id, fetched, found, notInPack)
+	line := fmt.Sprintf("p %s %d %d %d", id, fetched, found, notInPack)
+	if skip != "" {
+		line += " " + skip
+	}
+
+	// Append it to the buffer.
+	_, err := l.w.WriteString(line + "\n")
 	return err
 }
 
