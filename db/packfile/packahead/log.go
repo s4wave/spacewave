@@ -900,7 +900,10 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	if poisoned {
 		return nil
 	}
-	if failed {
+
+	// Recover a failed pack from its file, unless an earlier try renamed it:
+	// the renamed file ends in the index, which recovery would truncate.
+	if failed && p.renamed == nil {
 		var err error
 		data, entries, err = p.recoverFile(l.opts.SyncData)
 		if err != nil {
