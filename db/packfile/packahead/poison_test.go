@@ -91,3 +91,34 @@ func TestPackAheadSyncPoisons(t *testing.T) {
 		t.Fatalf("value after reopen: %v %v", ok, err)
 	}
 }
+
+// TestPackAheadWriteBatchFailedPack writes a batch to a pack whose sync
+// failed after the batch was planned: the batch is refused and not located.
+func TestPackAheadWriteBatchFailedPack(t *testing.T) {
+	ctx := t.Context()
+	l, err := Open(ctx, t.TempDir(), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	a := testBlock(t, 1, 3000)
+	release, err := l.writeMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var p *pack
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		p = l.open
+		p.poisoned = true
+		l.failLocked(p, syscall.EIO)
+	})
+	_, werr := l.writeBatch(p, []Block{a})
+	release()
+	if werr == nil {
+		t.Fatal("batch written to a failed pack")
+	}
+	if l.Has(a.Key) {
+		t.Fatal("batch of a failed pack located")
+	}
+}
