@@ -36,12 +36,24 @@ type StoreReadThrough struct {
 	primary StoreSource
 	lower   StoreSource
 	fill    Fill
+	// fillUnknownRefs fills lower hits whose refs are unknown too, for a
+	// primary that keeps the refs-known state with the block or reports refs
+	// unknown for every block it serves.
+	fillUnknownRefs bool
 }
 
 // NewStoreReadThrough constructs a synchronous read-through store. A nil fill
 // serves lower hits without writing them back.
 func NewStoreReadThrough(primary, lower StoreSource, fill Fill) *StoreReadThrough {
 	return &StoreReadThrough{primary: primary, lower: lower, fill: fill}
+}
+
+// NewCacheReadThrough constructs a read-through store over a fill cache that
+// fills every lower hit, whether or not its refs are known. The cache must
+// never serve a block with unknown refs as one with known refs: it keeps the
+// refs-known state with the block, or reports refs unknown for every block.
+func NewCacheReadThrough(primary, lower StoreSource, fill Fill) *StoreReadThrough {
+	return &StoreReadThrough{primary: primary, lower: lower, fill: fill, fillUnknownRefs: true}
 }
 
 // GetHashType returns the first available source hash type.
@@ -98,9 +110,10 @@ func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreO
 
 	// Bind the read-through view to the acquired scopes and their cleanup.
 	scoped := &StoreReadThrough{
-		primary: s.primary,
-		lower:   s.lower,
-		fill:    s.fill,
+		primary:         s.primary,
+		lower:           s.lower,
+		fill:            s.fill,
+		fillUnknownRefs: s.fillUnknownRefs,
 	}
 	if primary != nil {
 		scoped.primary = func() block.StoreOps { return primary }
@@ -138,7 +151,8 @@ func (*StoreReadThrough) Sync(context.Context) (bool, error) { return true, nil 
 
 // GetBlock reads the primary source, then the current lower source. With a
 // fill, a lower hit with known refs is inserted into primary in the
-// background with its refs. A lower hit with unknown refs is served without the fill.
+// background with its refs. A lower hit with unknown refs is served without
+// the fill, unless NewCacheReadThrough built the store.
 func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Serve the block from the primary store when it is available there.
 	primary := s.source(s.primary)
@@ -211,7 +225,9 @@ func (s *StoreReadThrough) source(src StoreSource) block.StoreOps {
 
 // readLower reads a block and its refs from lower. With a fill, a hit with
 // known refs is written into primary before the read returns; a block with
-// unknown refs would look like a leaf there, so it is served without the fill.
+// unknown refs would look like a leaf there, so it is served without the fill,
+// unless NewCacheReadThrough built the store over a cache that keeps it as a
+// block with unknown refs.
 // A fill that fails leaves the block readable from lower, so its error is
 // dropped and the next read fills it again. A placed store's fill only queues
 // the block for its store's background drain.
@@ -220,7 +236,7 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 	if err != nil || stored == nil {
 		return nil, err
 	}
-	if s.fill != nil && primary != nil && stored.RefsKnown {
+	if s.fill != nil && primary != nil && (stored.RefsKnown || s.fillUnknownRefs) {
 		_ = s.fill(context.WithoutCancel(ctx), primary, ref, stored)
 	}
 	return stored, nil

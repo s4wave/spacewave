@@ -108,7 +108,7 @@ func (e *evicter) step(ctx context.Context) error {
 	}
 
 	// Delete the run in one statement.
-	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last)
+	_, err = e.db.ExecContext(ctx, "DELETE FROM "+e.table+" WHERE key >= ? AND key <= ?", first, last) //nolint:gosec // the table name is the cache's constant.
 	return err
 }
 
@@ -118,7 +118,7 @@ func (e *evicter) step(ctx context.Context) error {
 func (e *evicter) run(ctx context.Context, start []byte) (first, last []byte, err error) {
 	// Scan the rows from start in key order.
 	rows, err := e.db.QueryContext(ctx,
-		"SELECT key, length(value) FROM "+e.table+" WHERE key >= ? ORDER BY key LIMIT ?",
+		"SELECT key, length(value) FROM "+e.table+" WHERE key >= ? ORDER BY key LIMIT ?", //nolint:gosec // the table name is the cache's constant.
 		start, evictChunkRows,
 	)
 	if err != nil {
