@@ -28,15 +28,20 @@ type ResidentMarks struct {
 
 // apply returns policy with the marks set over it.
 func (m ResidentMarks) apply(policy block_store_writeback.Policy) block_store_writeback.Policy {
+	// Set the high mark, with a low mark nine tenths of it.
 	if m.HighBytes > 0 {
 		policy.ResidentHigh, policy.ResidentLow = m.HighBytes, m.HighBytes/10*9
 	}
 	if m.LowBytes > 0 {
 		policy.ResidentLow = m.LowBytes
 	}
+
+	// Keep the low mark under the high mark.
 	if policy.ResidentLow > policy.ResidentHigh {
 		policy.ResidentLow = policy.ResidentHigh / 10 * 9
 	}
+
+	// Set the pending bound.
 	if m.MaxPendingBytes > 0 {
 		policy.MaxPendingBytes = m.MaxPendingBytes
 	}
@@ -63,6 +68,7 @@ type residentOverride struct {
 // bytes still drops them in batches the store's batch bounds keep short, so
 // lowering the high mark far holds the store's writer no longer at a time.
 func (a *ProviderAccount) SetResidentMarks(marks ResidentMarks) {
+	// Record the marks and apply them over each placement.
 	r := &a.resident
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -75,11 +81,14 @@ func (a *ProviderAccount) SetResidentMarks(marks ResidentMarks) {
 // setPolicy applies the cache settings of the placement under the account's
 // resident marks, recording them for SetResidentMarks until unregister.
 func (p *placementState) setPolicy(cache *account_settings.BlockStoreCache) {
+	// Apply the settings as they are when the account has no marks.
 	r := p.resident
 	if r == nil {
 		p.applyPolicy(uploadPolicy(cache))
 		return
 	}
+
+	// Record the placement and apply the marks over its settings.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if r.placements == nil {

@@ -288,6 +288,7 @@ func (f *fallbackFills) status() FallbackStatus {
 // not queued again. When the queue is full it counts a skip and leaves the
 // block for the next read.
 func (f *fallbackFills) start(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock, fill func(context.Context, *block.BlockRef, *block.StoredBlock) error) {
+	// Key the fill by its block.
 	key := ref.MarshalString()
 	size := len(stored.Data)
 

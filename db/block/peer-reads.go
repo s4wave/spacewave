@@ -61,12 +61,15 @@ func (r *PeerReads) Lookup(ref *BlockRef) *StoredBlock {
 
 // Defer records ref as a block to fetch with fetch, unless it is recorded.
 func (r *PeerReads) Defer(ref *BlockRef, fetch PeerFetch) {
+	// Skip a block already fetched.
 	key := ref.MarshalString()
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if _, ok := r.fetched[key]; ok {
 		return
 	}
+
+	// Record its fetch once.
 	if r.pending == nil {
 		r.pending = make(map[string]PeerFetch)
 	}
@@ -108,6 +111,7 @@ func (r *PeerReads) Fetch(ctx context.Context) (ok bool, err error) {
 	ok = true
 	for key, fetch := range pending {
 		eg.Go(func() error {
+			// Fetch the block, and count a miss or failure.
 			stored, err := fetch(ctx)
 			mtx.Lock()
 			defer mtx.Unlock()
@@ -115,6 +119,8 @@ func (r *PeerReads) Fetch(ctx context.Context) (ok bool, err error) {
 				ok = false
 				return err
 			}
+
+			// Keep it for Lookup.
 			r.mtx.Lock()
 			if r.fetched == nil {
 				r.fetched = make(map[string]*StoredBlock)
