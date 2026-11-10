@@ -961,16 +961,16 @@ func TestRescueLedgerPerPack(t *testing.T) {
 	}
 }
 
-// TestRescueSharedNum gives two packs one pack number: each wanted ref goes
-// to the pack whose bloom filter may hold it, and a ref neither filter holds
-// is recorded ambiguous-num.
-func TestRescueSharedNum(t *testing.T) {
+// sharedNumSource writes three packs; gives the second the first's number,
+// and points the h rows of the second and one block of the third at it. It
+// reports clean when no pack's bloom filter holds a key of another, which
+// random blocks give most of the time.
+func sharedNumSource(ctx context.Context, t *testing.T) (src *source, a, b, c []*block.BlockRef, clean bool) {
 	// Write three packs; give the second the first's number, and point the
 	// h rows of the second and one block of the third at it.
-	src := newSource(t)
-	a, b, c := src.pack(4), src.pack(4), src.pack(1)
+	src = newSource(t)
+	a, b, c = src.pack(4), src.pack(4), src.pack(1)
 	src.close()
-	ctx := context.Background()
 	tx, err := src.index.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -1029,6 +1029,48 @@ func TestRescueSharedNum(t *testing.T) {
 	}
 	if !shared {
 		t.Fatalf("no shared number: %v", ids)
+	}
+
+	// Test each pack's filter against the other packs' keys.
+	tx, _ = src.index.NewTransaction(ctx, false)
+	defer tx.Discard()
+	filters := make(map[string]*packWork, 2)
+	for _, id := range []string{idA, idB} {
+		entry, err := block_store_s3.ReadIndexEntry(ctx, tx, id)
+		if err != nil || entry == nil {
+			t.Fatalf("e row of %s: %v", id, err)
+		}
+		filters[id] = &packWork{entry: entry}
+	}
+	holds := func(id string, refs []*block.BlockRef) bool {
+		for _, ref := range refs {
+			if filters[id].mayHold(packfile.BlockKey(ref.GetHash())) {
+				return true
+			}
+		}
+		return false
+	}
+	clean = !holds(idB, a) && !holds(idA, b) && !holds(idA, c) && !holds(idB, c)
+	return src, a, b, c, clean
+}
+
+// TestRescueSharedNum gives two packs one pack number: each wanted ref goes
+// to the pack whose bloom filter may hold it, and a ref neither filter holds
+// is recorded ambiguous-num.
+func TestRescueSharedNum(t *testing.T) {
+	// Build packs on a shared number with no cross-pack false positive.
+	ctx := context.Background()
+	var src *source
+	var a, b, c []*block.BlockRef
+	for try := 0; ; try++ {
+		var clean bool
+		src, a, b, c, clean = sharedNumSource(ctx, t)
+		if clean {
+			break
+		}
+		if try == 20 {
+			t.Fatal("every source had a bloom false positive")
+		}
 	}
 
 	// Run: every ref of a and b is stored, the c ref is ambiguous, and no

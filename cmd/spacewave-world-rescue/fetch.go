@@ -9,6 +9,7 @@ import (
 	"net/textproto"
 	"regexp"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -33,6 +34,20 @@ type objectSizer interface {
 	ObjectSize(ctx context.Context, bucket, key string) (int64, error)
 }
 
+// sessionCloser closes every session of the client at once, cutting the
+// calls running on them. *block_store_ftps.Client implements it.
+type sessionCloser interface {
+	// CloseAll closes every session and refuses later calls.
+	CloseAll()
+}
+
+// spareWatcher reports the failed dials no call returns.
+// *block_store_ftps.Client implements it.
+type spareWatcher interface {
+	// OnSpareError sets the receiver of a failed spare dial's error.
+	OnSpareError(fn func(error))
+}
+
 // errNoSizer reports that the client cannot ask for an object's size.
 var errNoSizer = errors.New("the client cannot ask for an object's size")
 
@@ -41,6 +56,10 @@ var errCapReached = errors.New("byte cap reached")
 
 // errHardStopped refuses a request after a hard stop.
 var errHardStopped = errors.New("not requested: the run hit a hard stop")
+
+// errCut reports a request that was in flight at a hard stop: its session
+// was closed under it and what it read is dropped.
+var errCut = errors.Wrap(errHardStopped, "cut at the hard stop")
 
 // errTimeout reports that a request outlived its timeout.
 var errTimeout = errors.New("request timed out")
@@ -140,6 +159,9 @@ type fetcher struct {
 	requests atomic.Uint64
 	// stopped is set by the first hard stop: no request starts after it.
 	stopped atomic.Bool
+	// stopOnce runs the first hard stop, and stopErr is its error.
+	stopOnce sync.Once
+	stopErr  *hardStopError
 }
 
 // newFetcher builds a fetcher whose byte count starts at fetched.
@@ -147,6 +169,15 @@ func newFetcher(client objectReader, bucket string, opts fetchOptions, fetched u
 	// Start the byte count at the ledger's total.
 	f := &fetcher{client: client, bucket: bucket, opts: opts}
 	f.fetched.Store(fetched)
+
+	// Stop on a refused spare dial as on a refused request.
+	if w, ok := client.(spareWatcher); ok {
+		w.OnSpareError(func(err error) {
+			if isHardStop(err) {
+				f.hardStop(err)
+			}
+		})
+	}
 
 	// Build the rate limiters the options ask for.
 	if opts.RequestsPerSec > 0 {
@@ -156,6 +187,30 @@ func newFetcher(client objectReader, bucket string, opts fetchOptions, fetched u
 		f.bytes = rate.NewLimiter(rate.Limit(opts.BytesPerSec), max(int(opts.BytesPerSec), 1<<20))
 	}
 	return f
+}
+
+// hardStop stops the run at a hard stop: no request starts after it, and
+// every session of the client is closed at once, control and data
+// connections, which cuts the requests in flight on them. It returns the
+// first hard stop's error.
+func (f *fetcher) hardStop(err error) *hardStopError {
+	f.stopOnce.Do(func() {
+		// Set the error before the latch, which publishes it.
+		f.stopErr = &hardStopError{err: err}
+		f.stopped.Store(true)
+		if c, ok := f.client.(sessionCloser); ok {
+			c.CloseAll()
+		}
+	})
+	return f.stopErr
+}
+
+// stopError returns the first hard stop's error, or nil.
+func (f *fetcher) stopError() error {
+	if !f.stopped.Load() {
+		return nil
+	}
+	return f.stopErr
 }
 
 // reserve counts n bytes against the cap, or returns errCapReached when they
@@ -259,14 +314,18 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 		if f.stopped.Load() {
 			return nil, errHardStopped
 		}
+		// A request in flight when a hard stop came was cut: drop what it
+		// read, even if it finished first. Its bytes stay counted.
 		f.requests.Add(1)
 		data, err := f.attempt(ctx, fn)
+		if isHardStop(err) {
+			return nil, f.hardStop(err)
+		}
+		if f.stopped.Load() {
+			return nil, errCut
+		}
 		if err == nil {
 			return data, nil
-		}
-		if isHardStop(err) {
-			f.stopped.Store(true)
-			return nil, &hardStopError{err: err}
 		}
 		if ctx.Err() != nil {
 			return nil, context.Cause(ctx)

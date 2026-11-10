@@ -500,6 +500,9 @@ func (r *rescuer) fetchAll(ctx context.Context, packs []*packWork) error {
 				if errors.Is(err, errStopped) {
 					err = nil
 				}
+				if stopErr == nil {
+					stopErr = r.fetch.stopError()
+				}
 				if stopErr != nil {
 					return stopErr
 				}
@@ -531,6 +534,7 @@ func (r *rescuer) fetchAll(ctx context.Context, packs []*packWork) error {
 				}
 				cancel()
 			case errors.Is(err, errHardStopped):
+				cancel()
 			case errors.Is(err, errCapReached):
 				if r.res.Stop == "" {
 					r.res.Stop = stopByteCap
@@ -742,7 +746,7 @@ func (r *rescuer) fetchPack(ctx context.Context, p *packWork) (*packResult, erro
 		var err error
 		size, err = r.fetch.size(ctx, key)
 		var hard *hardStopError
-		if errors.As(err, &hard) || ctx.Err() != nil {
+		if errors.As(err, &hard) || errors.Is(err, errHardStopped) || ctx.Err() != nil {
 			return res, err
 		}
 		if err != nil {

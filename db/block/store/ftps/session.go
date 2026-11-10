@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jlaffaye/ftp"
+	"github.com/pkg/errors"
 )
 
 // closeConfirmWait bounds the wait for the server to answer a closed
@@ -29,6 +30,13 @@ type session struct {
 	dialed bool
 	// closed is set once the session is closed: a later dial is refused.
 	closed bool
+	// done is closed once every socket of the session is confirmed closed.
+	done chan struct{}
+}
+
+// newSession returns a session whose data connections use tlsConf.
+func newSession(tlsConf *tls.Config) *session {
+	return &session{tlsConf: tlsConf, done: make(chan struct{})}
 }
 
 // dialFunc returns the dial function of the session: the first dial is the
@@ -72,14 +80,21 @@ func (s *session) dialFunc(ctx context.Context) func(network, addr string) (net.
 
 // close closes every socket of the session and waits until each is
 // confirmed closed: the server answered the close with its own, or
-// closeConfirmWait passed.
+// closeConfirmWait passed. A second close waits for the first.
 func (s *session) close() {
-	// Mark the session closed and take its sockets.
+	// Mark the session closed and take its sockets, or wait for the close
+	// already under way.
 	s.mtx.Lock()
+	if s.closed {
+		s.mtx.Unlock()
+		<-s.done
+		return
+	}
 	s.closed = true
 	conns := s.conns
 	s.conns = nil
 	s.mtx.Unlock()
+	defer close(s.done)
 
 	// Close each and wait for the server's answer in parallel.
 	var wg sync.WaitGroup
@@ -119,26 +134,109 @@ func closeConfirmed(conn net.Conn) {
 	_ = tcp.Close()
 }
 
-// sessions maps each live ServerConn to its session.
+// ErrSessionsClosed is returned by every call of a Client after CloseAll,
+// and by a call that was running when CloseAll cut its session.
+var ErrSessionsClosed = errors.New("ftps sessions closed by CloseAll")
+
+// sessions tracks every session of a client, those being dialed included,
+// and the ServerConn of each logged in one.
 type sessions struct {
-	m sync.Map
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// dead is set by closeAll: no session is tracked after it.
+	dead bool
+	// all holds every session not yet forgotten.
+	all map[*session]struct{}
+	// byConn maps each logged in ServerConn to its session.
+	byConn map[*ftp.ServerConn]*session
 }
 
-// add records the session of conn.
+// track records a session about to dial, or refuses it after closeAll.
+func (ss *sessions) track(s *session) error {
+	// Refuse the session once closeAll ran.
+	ss.mtx.Lock()
+	defer ss.mtx.Unlock()
+	if ss.dead {
+		return ErrSessionsClosed
+	}
+
+	// Record it, making the maps on first use.
+	if ss.all == nil {
+		ss.all = make(map[*session]struct{})
+		ss.byConn = make(map[*ftp.ServerConn]*session)
+	}
+	ss.all[s] = struct{}{}
+	return nil
+}
+
+// add records the ServerConn of a tracked session once it logged in.
 func (ss *sessions) add(conn *ftp.ServerConn, s *session) {
-	ss.m.Store(conn, s)
+	ss.mtx.Lock()
+	defer ss.mtx.Unlock()
+	ss.byConn[conn] = s
+}
+
+// forget drops a session whose dial failed.
+func (ss *sessions) forget(s *session) {
+	ss.mtx.Lock()
+	defer ss.mtx.Unlock()
+	delete(ss.all, s)
+}
+
+// take removes conn and its session, returning the session.
+func (ss *sessions) take(conn *ftp.ServerConn) *session {
+	// Look up and drop the session under the lock.
+	ss.mtx.Lock()
+	defer ss.mtx.Unlock()
+	s := ss.byConn[conn]
+	delete(ss.byConn, conn)
+	delete(ss.all, s)
+	return s
 }
 
 // quit logs conn out and forgets its session.
 func (ss *sessions) quit(conn *ftp.ServerConn) {
-	ss.m.Delete(conn)
+	ss.take(conn)
 	_ = conn.Quit()
 }
 
 // kill closes the sockets of conn's session, waiting for their close, and
 // forgets it.
 func (ss *sessions) kill(conn *ftp.ServerConn) {
-	if v, ok := ss.m.LoadAndDelete(conn); ok {
-		v.(*session).close()
+	if s := ss.take(conn); s != nil {
+		s.close()
 	}
+}
+
+// isDead reports whether closeAll ran.
+func (ss *sessions) isDead() bool {
+	ss.mtx.Lock()
+	defer ss.mtx.Unlock()
+	return ss.dead
+}
+
+// closeAll refuses every later session and closes the sockets of every
+// session now tracked at once, those being dialed and those running a call
+// included, waiting until each is confirmed closed. The sessions stay
+// tracked, so a kill of one waits for its close too.
+func (ss *sessions) closeAll() {
+	// Refuse new sessions and take the tracked ones.
+	ss.mtx.Lock()
+	ss.dead = true
+	all := make([]*session, 0, len(ss.all))
+	for s := range ss.all {
+		all = append(all, s)
+	}
+	ss.mtx.Unlock()
+
+	// Close them in parallel.
+	var wg sync.WaitGroup
+	for _, s := range all {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.close()
+		}()
+	}
+	wg.Wait()
 }

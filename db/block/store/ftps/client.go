@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jlaffaye/ftp"
@@ -79,8 +80,10 @@ type Client struct {
 	// which tell a range read whether it reaches the end of the object.
 	sizes sync.Map
 	// sess tracks the sockets of each session, to close them when a call's
-	// context ends under Config.CloseOnDone.
+	// context ends under Config.CloseOnDone or at CloseAll.
 	sess sessions
+	// onSpareError receives the error of a failed spare dial.
+	onSpareError atomic.Pointer[func(error)]
 }
 
 // slot is a pool entry. conn and spare each hold a token of the slot's login.
@@ -162,6 +165,23 @@ func (c *Client) Close() {
 	for _, s := range held {
 		c.pool.Put(s.lease)
 	}
+}
+
+// CloseAll closes every session at once, control and data connections,
+// those idle, being dialed or running a call alike, and waits until each is
+// confirmed closed. A running call returns ErrSessionsClosed, and every later
+// call fails with it without dialing. The sockets are closed only under
+// Config.CloseOnDone, which has the client dial them; otherwise CloseAll only
+// refuses the later calls.
+func (c *Client) CloseAll() {
+	c.sess.closeAll()
+}
+
+// OnSpareError sets fn to receive the error of each failed dial of a spare
+// session, which no call returns: a caller that must stop on a refused login
+// sees it there.
+func (c *Client) OnSpareError(fn func(error)) {
+	c.onSpareError.Store(&fn)
 }
 
 // PutObject writes the object under a temporary name in its directory and
@@ -367,11 +387,8 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 	// closed session is dropped with no retry, its token freed only once its
 	// sockets are closed.
 	killed, err := c.run(ctx, conn, s, fn)
-	if killed {
-		s.conn = nil
-		c.free(s.login)
-		c.release(s, nil)
-		return errors.Wrap(context.Cause(ctx), "ftps session closed at its deadline")
+	if killed || c.sess.isDead() {
+		return c.cut(ctx, s, killed)
 	}
 
 	// Retry on a fresh connection when the pooled one failed. The new
@@ -382,11 +399,8 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 		if err == nil {
 			s.conn = conn
 			killed, err = c.run(ctx, conn, s, fn)
-			if killed {
-				s.conn = nil
-				c.free(s.login)
-				c.release(s, nil)
-				return errors.Wrap(context.Cause(ctx), "ftps session closed at its deadline")
+			if killed || c.sess.isDead() {
+				return c.cut(ctx, s, killed)
 			}
 		} else {
 			s.conn = nil
@@ -400,6 +414,24 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 		return nil
 	}
 	return err
+}
+
+// cut drops the session of a slot that was closed under its call, at the
+// call's deadline when killed or else by CloseAll, waiting until its sockets
+// are confirmed closed before freeing its token. What the call read is
+// dropped with it.
+func (c *Client) cut(ctx context.Context, s *slot, killed bool) error {
+	// Wait for the close, then free the session's token and the slot.
+	c.sess.kill(s.conn)
+	s.conn = nil
+	c.free(s.login)
+	c.release(s, nil)
+
+	// Say which close cut the call.
+	if killed {
+		return errors.Wrap(context.Cause(ctx), "ftps session closed at its deadline")
+	}
+	return ErrSessionsClosed
 }
 
 // run runs fn on conn. Under CloseOnDone, when ctx ends before fn returns, it
@@ -438,7 +470,11 @@ func (c *Client) takeSlot(ctx context.Context) (*slot, error) {
 // acquire takes a slot and gives it a connection: the spare dialed for it, or
 // a new dial. On error the slot is already back in the pool.
 func (c *Client) acquire(ctx context.Context) (*slot, error) {
-	// Wait for a slot the call's read class may take.
+	// Refuse every call after CloseAll, then wait for a slot the call's read
+	// class may take.
+	if c.sess.isDead() {
+		return nil, ErrSessionsClosed
+	}
 	s, err := c.takeSlot(ctx)
 	if err != nil {
 		return nil, err
@@ -519,6 +555,9 @@ func (c *Client) startSpare(ctx context.Context, s *slot) {
 		conn, err := c.dial(ctx, s.login)
 		if err != nil {
 			conn = nil
+			if fn := c.onSpareError.Load(); fn != nil && !errors.Is(err, ErrSessionsClosed) {
+				(*fn)(err)
+			}
 		}
 		spare <- conn
 	}()
@@ -606,8 +645,11 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 // dialOnce makes one attempt to dial.
 func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, error) {
 	// Track the session's sockets, closing them if ctx ends mid-dial under
-	// CloseOnDone.
-	sess := &session{tlsConf: c.tlsConf}
+	// CloseOnDone or at CloseAll, which refuses the dial once it ran.
+	sess := newSession(c.tlsConf)
+	if err := c.sess.track(sess); err != nil {
+		return nil, err
+	}
 	opts := []ftp.DialOption{
 		ftp.DialWithContext(ctx),
 		ftp.DialWithTimeout(dialTimeout),
@@ -637,20 +679,30 @@ func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, erro
 		if derr := disarm(); derr != nil {
 			err = derr
 		}
+		sess.close()
+		c.sess.forget(sess)
 		return nil, errors.Wrap(err, "connect to "+c.conf.Addr)
 	}
 
 	// Log in. The error names the server, never the credentials.
 	err = conn.Login(c.conf.Logins[login].User, c.conf.Logins[login].Password)
 	if derr := disarm(); derr != nil {
+		c.sess.forget(sess)
 		return nil, derr
 	}
 	if err != nil {
 		_ = conn.Quit()
 		sess.close()
+		c.sess.forget(sess)
 		return nil, errors.Wrap(err, "log in to "+c.conf.Addr)
 	}
+
+	// Keep the session, unless CloseAll cut it while it logged in.
 	c.sess.add(conn, sess)
+	if c.sess.isDead() {
+		c.sess.kill(conn)
+		return nil, ErrSessionsClosed
+	}
 	return conn, nil
 }
 
