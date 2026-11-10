@@ -25,6 +25,10 @@ type location struct {
 	size uint32
 	// read is set by the first Get since the value was written to p.
 	read bool
+	// removed is set when Remove freed the value before its pack uploaded:
+	// it stays readable until the upload, reports no durable copy, and a
+	// put of it again clears the mark.
+	removed bool
 }
 
 // end returns the offset just past the value.
