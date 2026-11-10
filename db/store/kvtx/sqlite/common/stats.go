@@ -38,6 +38,13 @@ type StoreStats struct {
 	// write lock, so every writer waits for it.
 	Truncates, TruncatesOver1s uint64
 	Truncate, LastTruncate     time.Duration
+	// RestartsSkipped counts the restarts given up under the writer turn
+	// because a writer ended after the passive checkpoint began,
+	// RestartsForced counts the ones a log past walForceFactor times its
+	// bound ran anyway, copying and syncing that writer's frames, and
+	// MaxRestartHold is the longest the checkpointer held the writer turn.
+	RestartsSkipped, RestartsForced uint64
+	MaxRestartHold                  time.Duration
 }
 
 // storeStats is the atomic form of StoreStats a Store updates.
@@ -46,6 +53,7 @@ type storeStats struct {
 	fgHold, bgHold, fgHoldsOver1s, bgHoldsOver1s        atomic.Uint64
 	passives, passive                                   atomic.Uint64
 	truncates, truncatesOver1s, truncate, lastTruncate  atomic.Uint64
+	restartsSkipped, restartsForced, maxRestartHold     atomic.Uint64
 }
 
 // addWait counts a turn taken at prio after waiting d.
@@ -96,6 +104,28 @@ func (s *storeStats) addTruncate(d time.Duration) {
 	}
 }
 
+// addRestartSkip counts a restart given up under the writer turn.
+func (s *storeStats) addRestartSkip() {
+	s.restartsSkipped.Add(1)
+}
+
+// addForcedRestart counts a restart run although a writer ended since its
+// passive checkpoint.
+func (s *storeStats) addForcedRestart() {
+	s.restartsForced.Add(1)
+}
+
+// addRestartHold notes that the checkpointer held the writer turn for d.
+func (s *storeStats) addRestartHold(d time.Duration) {
+	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
+	for {
+		cur := s.maxRestartHold.Load()
+		if ns <= cur || s.maxRestartHold.CompareAndSwap(cur, ns) {
+			return
+		}
+	}
+}
+
 // snapshot reads the counters.
 func (s *storeStats) snapshot() StoreStats {
 	d := func(v *atomic.Uint64) time.Duration { return time.Duration(v.Load()) } //nolint:gosec // sums of durations.
@@ -116,6 +146,9 @@ func (s *storeStats) snapshot() StoreStats {
 		TruncatesOver1s:       s.truncatesOver1s.Load(),
 		Truncate:              d(&s.truncate),
 		LastTruncate:          d(&s.lastTruncate),
+		RestartsSkipped:       s.restartsSkipped.Load(),
+		RestartsForced:        s.restartsForced.Load(),
+		MaxRestartHold:        d(&s.maxRestartHold),
 	}
 }
 
