@@ -62,7 +62,7 @@ func changedSince(snap, base *state, reads *readSet) bool {
 	}
 	for _, prefix := range reads.prefixes {
 		changed := false
-		base.mem.tree.Ascend(mentry{key: prefix}, func(e mentry) bool {
+		base.mem.tree.Ascend(&mentry{key: prefix}, func(e *mentry) bool {
 			if !bytes.HasPrefix(e.key, prefix) {
 				return false
 			}
