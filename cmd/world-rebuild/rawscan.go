@@ -258,7 +258,14 @@ func kvRecord(c rawCell) (key []byte, vlen int64, vlocal []byte, ok bool) {
 
 // value reads a cell's whole value, following its overflow chain.
 func (r *rawFile) value(c rawCell, vlen int64, vlocal []byte) ([]byte, error) {
-	v := append([]byte(nil), vlocal...)
+	v := make([]byte, len(vlocal), max(vlen, int64(len(vlocal))))
+	copy(v, vlocal)
+	if c.overflow == 0 || int64(len(v)) >= vlen {
+		if int64(len(v)) != vlen {
+			return nil, fmt.Errorf("value of %d bytes, page gave %d", vlen, len(v))
+		}
+		return v, nil
+	}
 	buf := alignedBuf(r.pageSize)
 	for pg := int64(c.overflow); pg != 0 && int64(len(v)) < vlen; {
 		if pg > r.pages {

@@ -110,6 +110,9 @@ type rawVisit func(rowid int64, key []byte, vlen int64, value func() ([]byte, er
 // when set, ends the readers early. The first error stops all readers.
 func (r *rawFile) scanTable(leaves []uint64, readers int, read *atomic.Int64, stop *atomic.Bool, visit func(w int) (rawVisit, func() error)) error {
 	const chunk = 4 << 20
+	if r.direct && r.pageSize%4096 != 0 {
+		return fmt.Errorf("%s: page size %d: the O_DIRECT reads of a share need 4096-byte pages or larger", r.path, r.pageSize)
+	}
 	per := chunk / r.pageSize
 	share := (r.pages + int64(readers) - 1) / int64(readers)
 	if stop == nil {
