@@ -45,13 +45,18 @@ const (
 	regenQuadRunBytes = 96
 )
 
-// RegenBuildConfig sets where and how much a regeneration build sorts.
-type RegenBuildConfig struct {
+// RegenConfig sets where and how much a regeneration build sorts, and when
+// its catch-up is small enough to swap.
+type RegenConfig struct {
 	// SpillDir is the directory the sort writes its runs in. The runs are
 	// disposable and removed when the build ends.
 	SpillDir string
 	// Budget is the sort's memory in bytes before it spills a run.
 	Budget int
+	// SwapChanges is the most changed log records the swap applies inside the
+	// writer turn. A catch-up round that leaves more runs again off the turn,
+	// so a commit waits at most for a diff of this size.
+	SwapChanges int
 }
 
 // buildNodeGraphRoot writes a node graph World holding the objects, quads and
@@ -62,14 +67,21 @@ type RegenBuildConfig struct {
 //
 // The build reads only root. Its memory is cfg.Budget plus the sort's read
 // buffers, and its disk the sort's runs, reserved before it starts. It writes
-// blocks through bucketCursor's transaction store and publishes nothing.
-func buildNodeGraphRoot(ctx context.Context, bucketCursor *bucket_lookup.Cursor, root *block.BlockRef, cfg RegenBuildConfig) (*block.BlockRef, error) {
+// blocks through store, or bucketCursor's transaction store when store is nil,
+// and publishes nothing.
+func buildNodeGraphRoot(
+	ctx context.Context,
+	bucketCursor *bucket_lookup.Cursor,
+	store block.StoreOps,
+	root *block.BlockRef,
+	cfg RegenConfig,
+) (*block.BlockRef, error) {
 	// Trace the build for the whole walk and write.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/build")
 	defer task.End()
 
 	// Open the pinned root and check it is a kv World.
-	transaction, worldCursor := bucketCursor.BuildTransactionAtRef(nil, root)
+	transaction, worldCursor := bucketCursor.BuildTransactionAtRefWithStore(nil, root, store)
 	w, err := UnmarshalWorld(ctx, worldCursor)
 	if err != nil {
 		return nil, errors.Wrap(err, "load pinned World")
