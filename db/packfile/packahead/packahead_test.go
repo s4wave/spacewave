@@ -159,10 +159,26 @@ func TestPackAhead(t *testing.T) {
 		t.Fatalf("held blocks rewritten: %d to %d bytes", before, after)
 	}
 
-	// A removed block is forgotten until the next open.
+	// A removed block stays held while its pack is not uploaded, and once it
+	// is, it is forgotten until the next open.
 	l.Remove(all[0].Key)
-	if l.Has(all[0].Key) {
-		t.Fatal("removed block still held")
+	if !l.Has(all[0].Key) {
+		t.Fatal("removed block forgotten before its pack uploaded")
+	}
+	var uploaded int
+	for _, info := range infos {
+		l.MarkUploaded(info.Seq)
+		uploaded += info.Blocks
+	}
+	var forgotten int
+	for _, b := range all {
+		l.Remove(b.Key)
+		if !l.Has(b.Key) {
+			forgotten++
+		}
+	}
+	if forgotten != uploaded {
+		t.Fatalf("removed %d blocks of uploaded packs holding %d", forgotten, uploaded)
 	}
 	l.Close()
 	if err := l.Append(ctx, all[:1]); err != ErrClosed {

@@ -2,6 +2,7 @@ package block_store_writeback
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"sync"
 	"syscall"
@@ -127,5 +128,39 @@ func TestPackedStoreHeldWaitsDurable(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPackedStoreTombstoneKeepsPending tombstones a diverted block whose
+// pack is not uploaded: a writer that skipped storing it may have landed it
+// meanwhile, and no other copy serves it until the upload, so the Log keeps
+// serving it.
+func TestPackedStoreTombstoneKeepsPending(t *testing.T) {
+	ctx := t.Context()
+	env := newTestEnv(t)
+	log, err := packahead.Open(ctx, t.TempDir(), packahead.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer log.Close()
+	s := NewPackedStore(log, ownedStore{env.vol}, true)
+
+	data := []byte("tombstoned while pending")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RmBlock(context.WithoutCancel(ctx), ref); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := s.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil || !bytes.Equal(stored.Data, data) {
+		t.Fatalf("pending block does not read after its tombstone: %v, %v", stored, err)
 	}
 }
