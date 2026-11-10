@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -162,7 +163,7 @@ func TestAdoptBucketPack(t *testing.T) {
 		"wrong count": wrongCount,
 		"absent pack": absent,
 	} {
-		if err := local.AdoptBucketPack(ctx, bad); err == nil {
+		if _, err := local.AdoptBucketPack(ctx, bad); err == nil {
 			t.Fatalf("%s: adopted", name)
 		} else {
 			t.Logf("%s: %v", name, err)
@@ -181,14 +182,14 @@ func TestAdoptBucketPack(t *testing.T) {
 	// The true entry registers the pack with the keys its index lists, reading
 	// the index once, and a repeat reads nothing.
 	gets.Store(0)
-	if err := local.AdoptBucketPack(ctx, entry); err != nil {
-		t.Fatal(err)
+	if reg, err := local.AdoptBucketPack(ctx, entry); err != nil || !reg {
+		t.Fatalf("adoption registered = %v: %v", reg, err)
 	}
 	if gets.Load() != 1 {
 		t.Fatalf("adoption read the pack %d times, want once", gets.Load())
 	}
-	if err := local.AdoptBucketPack(ctx, entry); err != nil {
-		t.Fatal(err)
+	if reg, err := local.AdoptBucketPack(ctx, entry); err != nil || reg {
+		t.Fatalf("a repeat of a held pack registered = %v, want already held: %v", reg, err)
 	}
 	if gets.Load() != 1 {
 		t.Fatalf("a repeat read the pack again: %d reads", gets.Load())
@@ -276,7 +277,7 @@ func TestAdoptBucketPackOtherBody(t *testing.T) {
 	bucket.mtx.Unlock()
 
 	// Adopting A fails and registers nothing of either pack.
-	if err := local.AdoptBucketPack(ctx, entryA); err == nil {
+	if _, err := local.AdoptBucketPack(ctx, entryA); err == nil {
 		t.Fatal("adopted another pack's body as A")
 	} else {
 		t.Logf("other body: %v", err)
@@ -303,12 +304,75 @@ func TestAdoptBucketPackOtherBody(t *testing.T) {
 	bucket.mtx.Lock()
 	bucket.objects[keyA] = bodyA
 	bucket.mtx.Unlock()
-	if err := local.AdoptBucketPack(ctx, entryA); err != nil {
+	if _, err := local.AdoptBucketPack(ctx, entryA); err != nil {
 		t.Fatal(err)
 	}
 	found, err := local.LocateBlocks(ctx, refsA)
 	if err != nil || !found[0] || !found[1] || !found[2] {
 		t.Fatalf("located %v after adoption: %v", found, err)
+	}
+}
+
+// TestAdoptBucketPackBadBloom checks that an entry whose bloom filter is
+// missing, undecodable, of an unknown format or holds fewer bits than its size
+// fails adoption from the bucket, without a panic, and registers nothing.
+func TestAdoptBucketPackBadBloom(t *testing.T) {
+	// A local store that never lists the bucket, and a pack from the node.
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	local := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
+	t.Cleanup(local.Close)
+	adoptBlocks(ctx, t, local, "own", 1)
+	node := newTestPackStore(t, client)
+	refs := adoptBlocks(ctx, t, node, "node", 3)
+	entry := nodeEntry(ctx, t, node)
+
+	// Entries that differ from the true one only in their filter.
+	missing := entry.CloneVT()
+	missing.BloomFilter = nil
+	undecodable := entry.CloneVT()
+	undecodable.BloomFilter = []byte{0xff, 0xff, 0xff}
+	unknownVersion := entry.CloneVT()
+	unknownVersion.BloomFormatVersion = packfile.BloomFormatVersionV1 + 1
+	var pbf bloom.BloomFilter
+	if err := pbf.UnmarshalVT(entry.GetBloomFilter()); err != nil {
+		t.Fatal(err)
+	}
+	pbf.M = uint32(len(pbf.GetBitSet().GetSet())) * 64 * 1024 //nolint:gosec
+	tooLarge, err := pbf.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	inconsistent := entry.CloneVT()
+	inconsistent.BloomFilter = tooLarge
+
+	for name, bad := range map[string]*packfile.PackfileEntry{
+		"missing":         missing,
+		"undecodable":     undecodable,
+		"unknown version": unknownVersion,
+		"inconsistent":    inconsistent,
+	} {
+		if reg, err := local.AdoptBucketPack(ctx, bad); err == nil || reg {
+			t.Fatalf("%s: adopted, registered = %v", name, reg)
+		} else {
+			t.Logf("%s: %v", name, err)
+		}
+		if held, err := local.HasPackfile(ctx, bad.GetId()); err != nil || held {
+			t.Fatalf("%s: pack counts as held: %v %v", name, held, err)
+		}
+		found, err := local.LocateBlocks(ctx, refs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if found[0] || found[1] || found[2] {
+			t.Fatalf("%s: registered a block", name)
+		}
+	}
+
+	// The true entry still adopts.
+	if reg, err := local.AdoptBucketPack(ctx, entry); err != nil || !reg {
+		t.Fatalf("true entry registered = %v: %v", reg, err)
 	}
 }
 

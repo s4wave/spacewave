@@ -22,10 +22,11 @@ import (
 // blocks are on the remote, which can drop the last local copy, so a report
 // that is wrong, or a pack that is not there, must leave the blocks queued.
 func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry, keys [][]byte) error {
-	return s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
+	_, err := s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
 		tail, err := s.verifyAdopted(ctx, entry, keys)
 		return keys, tail, err
 	})
+	return err
 }
 
 // AdoptBucketPack registers a pack another writer uploaded under this store's
@@ -38,7 +39,11 @@ func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry
 // count of distinct keys, each of which the entry's bloom filter holds. The
 // keys come from the object itself, so the filter is what ties the object to
 // the entry: another pack of the same size and count at this key fails it.
-func (s *PackStore) AdoptBucketPack(ctx context.Context, entry *packfile.PackfileEntry) error {
+//
+// registered is true only when this call verified the pack and registered it.
+// For a pack the store held already it is false and nothing is checked, so the
+// caller must not treat entry as verified against the bucket.
+func (s *PackStore) AdoptBucketPack(ctx context.Context, entry *packfile.PackfileEntry) (registered bool, err error) {
 	return s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
 		return s.verifyBucketPack(ctx, entry)
 	})
@@ -46,38 +51,39 @@ func (s *PackStore) AdoptBucketPack(ctx context.Context, entry *packfile.Packfil
 
 // adopt registers entry with the keys and index tail verify returns, unless the
 // store holds the pack already. verify runs only for a pack the store lacks.
-func (s *PackStore) adopt(ctx context.Context, entry *packfile.PackfileEntry, verify func(ctx context.Context) ([][]byte, []byte, error)) error {
+// registered reports whether this call verified and registered the pack.
+func (s *PackStore) adopt(ctx context.Context, entry *packfile.PackfileEntry, verify func(ctx context.Context) ([][]byte, []byte, error)) (bool, error) {
 	// Adopting needs an index to register the pack in.
 	if s.index == nil {
-		return errors.New("pack store has no index")
+		return false, errors.New("pack store has no index")
 	}
 	id := entry.GetId()
 	if err := identity.ValidatePackID(id); err != nil {
-		return err
+		return false, err
 	}
 
 	// Load the pack table first, as a write numbering a pack does.
 	if err := s.loadEntries(ctx); err != nil {
-		return err
+		return false, err
 	}
 	held, err := s.HasPackfile(ctx, id)
 	if err != nil || held {
-		return err
+		return false, err
 	}
 
 	// Check the pack against what it was reported to hold.
 	keys, tail, err := verify(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "adopt pack %s", id)
+		return false, errors.Wrapf(err, "adopt pack %s", id)
 	}
 
 	// Register it with the extents its index lists, and list it as this
 	// store's own writes are.
 	if err := s.index.addWritten(ctx, entry, keys, tail); err != nil {
-		return errors.Wrap(err, "index packfile")
+		return false, errors.Wrap(err, "index packfile")
 	}
 	s.published(entry)
-	return nil
+	return true, nil
 }
 
 // KeepsBlocks reports that the store never reclaims a block it holds.
@@ -133,19 +139,25 @@ func (s *PackStore) verifyBucketPack(ctx context.Context, entry *packfile.Packfi
 	return keys, tail, nil
 }
 
-// checkEntryBloom returns an error unless the entry carries a bloom filter
-// that holds every one of keys.
+// checkEntryBloom returns an error unless the entry carries a bloom filter of
+// a known format that holds every one of keys.
 func checkEntryBloom(entry *packfile.PackfileEntry, keys [][]byte) error {
-	// Decode the entry's filter, which must be there.
+	// Decode the entry's filter, which must be there and in a known format.
 	data := entry.GetBloomFilter()
 	if len(data) == 0 {
 		return errors.New("entry has no bloom filter to check the pack's keys against")
+	}
+	if v := entry.GetBloomFormatVersion(); v != packfile.BloomFormatVersionV1 {
+		return errors.Errorf("entry bloom filter has unknown format version %d", v)
 	}
 	var pbf bloom.BloomFilter
 	if err := pbf.UnmarshalVT(data); err != nil {
 		return errors.Wrap(err, "decode entry bloom filter")
 	}
-	filter := pbf.ToBloomFilter()
+	filter, err := pbf.ParseFilter()
+	if err != nil {
+		return errors.Wrap(err, "decode entry bloom filter")
+	}
 	if filter == nil {
 		return errors.New("entry has no bloom filter to check the pack's keys against")
 	}
