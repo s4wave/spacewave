@@ -54,8 +54,8 @@ type Tx struct {
 	atCommit []func(context.Context, kvtx.Tx) error
 	// background marks a write transaction opened with
 	// kvtx.WithBackgroundWriteContext: it takes the writer lock as a
-	// background step, and its commit pushes its values to the drive itself
-	// rather than leaving them to the next durable flush.
+	// background step and its commit stays out of the scheduler's foreground
+	// count.
 	background bool
 	// committed is the seq a commit that wrote changes published.
 	committed uint64
@@ -398,20 +398,12 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	if db.sched != nil && !t.background {
 		defer db.sched.fg.begin()()
 	}
-	chunks, err := db.w.commit(ctx, db.cur.Load(), changes, false)
+	err := db.w.commit(ctx, db.cur.Load(), changes, false)
 	db.release(t.st, t.stripe)
 	seq := db.cur.Load().seq
 	db.w.unlock()
 	if err != nil {
 		return err
-	}
-
-	// A background commit writes its values back to the drive at its own
-	// pace, so the next durable flush carries only foreground bytes.
-	if t.background {
-		if err := db.s.writeback(chunks); err != nil {
-			return err
-		}
 	}
 
 	// Record the published seq, then make it durable unless ordered.
