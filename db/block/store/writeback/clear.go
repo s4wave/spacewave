@@ -73,6 +73,7 @@ func loadClearBatch() ClearBatch {
 // normalize fills the defaults of the zero or negative fields and lowers each
 // past its most.
 func (b ClearBatch) normalize() ClearBatch {
+	// Fill the defaults, then cap each field at its most.
 	if b.Hold <= 0 {
 		b.Hold = clearHoldDefault
 	}

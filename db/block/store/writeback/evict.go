@@ -95,6 +95,7 @@ func loadEvictBatch() EvictBatch {
 // normalize fills the defaults of the zero or negative fields and keeps
 // MinBlocks at most MaxBlocks.
 func (b EvictBatch) normalize() EvictBatch {
+	// Fill the defaults, then bound each field.
 	if b.MinBlocks <= 0 {
 		b.MinBlocks = evictBatchMinBlocks
 	}

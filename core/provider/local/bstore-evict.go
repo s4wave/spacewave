@@ -501,6 +501,7 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	if err != nil {
 		return result, err
 	}
+
 	// The queue proves the backend holds a block unless a peer read can fill
 	// one without an upload marker; then each batch asks the backend.
 	var check block.StoreOps
