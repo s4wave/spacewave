@@ -12,6 +12,12 @@ type CollectResult struct {
 	Queued uint64
 	// Freed counts the blocks the pass freed.
 	Freed uint64
+	// Parked counts the Dead blocks the free held back because the Volume's
+	// child lists are unverified and Land did not give birth to them.
+	Parked uint64
+	// Requeued counts the parked blocks the pass moved back onto the free
+	// queue once the lists were verified.
+	Requeued uint64
 	// Kept counts the times a free found Dead blocks waiting on their ripe
 	// sequence or the hold mark.
 	Kept uint64

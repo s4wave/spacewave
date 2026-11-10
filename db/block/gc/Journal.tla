@@ -349,10 +349,32 @@
 \*              testdata/Journal-stage-nocas.cfg: the owner stalls past
 \*              Lease and Grace, T is freed, and its next put lands S over
 \*              the freed T.
+\*   CutList    TRUE starts with C's child list missing F, as a format 6
+\*              list cut between two ref slices can, so adoption and the
+\*              cascade count no holder of F through C. Journal-adopt-cut.cfg
+\*              sets it with Gen and passes.
+\*   Gen        FALSE lets the collector free a block stored before the
+\*              upgrade while a cut list stands. testdata/
+\*              Journal-adopt-cut-nogen.cfg: C's cut list is F's only
+\*              parent, so adoption settles F at zero, and the collector
+\*              frees it while main reaches it through C (NoFreedRead). With
+\*              Gen the
+\*              free takes only blocks Land put, whose holders all came
+\*              through Land.
+\*   RewriteFlag FALSE has the list rebuild write C's whole list on an
+\*              adopted Volume without recording that its counts lack F's
+\*              holder through C. testdata/Journal-adopt-cut-noflag.cfg: the
+\*              rebuild clears the cut, Finish clears the mark without a
+\*              recount, and F is freed under main (NoFreedRead).
+\*   Recount    FALSE has Finish clear the mark on an adopted Volume a
+\*              rebuild rewrote a list of without returning it to
+\*              unadopted. testdata/Journal-adopt-cut-norecount.cfg fails
+\*              NoFreedRead as above. With both, the next adoption counts
+\*              C's whole list before anything older frees.
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
-\* every child list it names), the audit, the refusal of blocks stored without a
+\* every child list it names, short only under CutList), the audit, the refusal of blocks stored without a
 \* child list, slices larger than one record (they are runs of one-record
 \* slices with no writer between), an abandoned run's cleanup (an unadopted
 \* Volume's counts are cleared by the next run before they are read), a
@@ -369,7 +391,8 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           Runs, MaxOpens, RunCheck, Claim, BornMark, RootMark,
           Stage, Rehold, StageCAS,
           Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
-          FillBlocks, FillUps, Holds, FillBorn, FillEager
+          FillBlocks, FillUps, Holds, FillBorn, FillEager, CutList, Gen,
+          RewriteFlag, Recount
 
 None == "none"
 Unmoved == "unmoved"
@@ -462,18 +485,29 @@ VARIABLES
   freedLive, \* the collector freed a block a held root reached through
              \* stored blocks
   pend,      \* the children a cascade in progress has not reached yet
-  pdir       \* that cascade's direction: -1 releases, 1 re-holds, 0 none
+  pdir,      \* that cascade's direction: -1 releases, 1 re-holds, 0 none
+  cut,       \* stored blocks whose child list a store format before 7 cut
+             \* short: it lacks a child the block names
+  young,     \* stored blocks Land gave birth to since the upgrade, whose
+             \* child lists are whole; the blocks a free may take while the
+             \* lists are unverified. A put adds only blocks the store
+             \* lacks, so a block put again is never young, as Land marks
+             \* no landed block whose bytes were stored
+  unverified, \* the Volume's unverified lists mark
+  rewritten  \* a list rebuild rewrote a list no adoption has counted since
 gcVars == <<cnt, zero, rel, ripe, under, pend, pdir>>
 jrVars == <<jr, hseq>>
 fillVars == <<fj, freedLive>>
-landVars == <<born, moved, sheld, freed, fillVars>>
+genVars == <<cut, young, unverified, rewritten>>
+landVars == <<born, moved, sheld, freed, genVars, fillVars>>
 adoptVars == <<adoption, owner, pc, pos, opens>>
 stageVars == <<stage, stall>>
 writerVars == <<tgt, sessionAge, wrote, skipped>>
 vars == <<root, left, stored, lost, cnt, zero, rel, ripe, jr, hseq, under,
           obs, seen, seenAge, txns, holes, adoption, owner, pc, pos, born,
           moved, opens, stage, stall, tgt, sessionAge, wrote, skipped, sheld,
-          freed, fj, freedLive, pend, pdir>>
+          freed, fj, freedLive, pend, pdir, cut, young, unverified,
+          rewritten>>
 
 Init ==
   /\ root = [n \in Names |->
@@ -513,6 +547,15 @@ Init ==
   /\ freedLive = FALSE
   /\ pend = {}
   /\ pdir = 0
+  /\ cut = IF CutList THEN {"C"} ELSE {}
+  /\ young = {}
+  /\ unverified = CutList
+  /\ rewritten = FALSE
+
+\* The children b's stored child list names: all of Kids(b) but for a cut
+\* list, which lacks F. Counts, cascades and the adoption read the lists;
+\* what a root truly reaches, Reach, follows Kids.
+ListKids(b) == IF b \in cut THEN Kids(b) \ {"F"} ELSE Kids(b)
 
 \* The holders the netted counts give b.
 Holders(b) == IF b \in zero THEN 0 ELSE cnt[b] + 1
@@ -540,7 +583,11 @@ Pending == 1..Len(jr)
 \* interval names that stays at zero (again, with Reripen): the whole
 \* journal past the cursor must net first. Without Revive, a
 \* Dead block that gains a holder counts its children as holding it again
-\* without the cascade that gives them their holder back.
+\* without the cascade that gives them their holder back. While a recount is
+\* due, an underflow is expected rather than flagged: a rebuild added children
+\* to a list without their holders, so a cascade through that list takes a
+\* holder the counts never had. The code keeps such a block with one holder;
+\* the model takes it to zero, which keeps less.
 Step(st, d, again) ==
   LET nh(b) == Holders(b) + d[b]
       z == {b \in st \cap stored : IF d[b] # 0 THEN nh(b) <= 0 ELSE b \in zero}
@@ -553,7 +600,7 @@ Step(st, d, again) ==
                  ELSE IF b \notin zero \/ (Reripen /\ b \in again) THEN Len(jr)
                  ELSE ripe[b]],
       rel |-> IF Revive THEN rel ELSE rel \ (zero \ z),
-      under |-> \E b \in st : nh(b) < 0]
+      under |-> ~rewritten /\ \E b \in st : nh(b) < 0]
 
 \* ---------------------------------------------------------------------------
 \* The writer side: SetRoots, one write transaction.
@@ -626,6 +673,8 @@ LandCore(batch, moves, holds, rels, keep) ==
                          THEN root[n] ELSE moved[n]]
                  ELSE moved
      /\ freed' = freed \ batch
+     /\ young' = young \cup new
+     /\ UNCHANGED <<cut, unverified, rewritten>>
      /\ txns' = txns + 1
      \* After the last transaction, unless LateBegin, the head an idle writer
      \* observed is never read; it is cleared, keeping one state where the
@@ -941,7 +990,7 @@ Net(k) ==
 \* What a cascade reaches: the children of its block. A lost child has no
 \* child list, so HoleStop keeps its children; the cascade stops there.
 Decrement(b) ==
-  Kids(b) \cup IF HoleStop THEN {}
+  ListKids(b) \cup IF HoleStop THEN {}
                ELSE UNION {Kids(c) : c \in Kids(b) \cap lost}
 
 \* Cascade starts block b's release, for a Dying block, or its re-hold, for a
@@ -963,8 +1012,11 @@ Cascade(b) ==
 \* second parent may hold c meanwhile. A child not stored yet, which a parent
 \* put before it named, holds the up pair that parent journaled; with
 \* ReleaseUnlisted the release reaches its count too. A lost child keeps its
-\* count, which went with it.
+\* count, which went with it. It runs only on an adopted Volume: Finish may
+\* return one to unadopted mid-cascade, and the collector then only drops
+\* fills until the next adoption's clear deletes the release pages.
 Release(c) ==
+  /\ adoption = "adopted"
   /\ c \in pend
   /\ LET d == [x \in Blocks |-> IF x = c THEN pdir ELSE 0]
          s == Step(IF ReleaseUnlisted THEN Blocks \ lost ELSE stored, d, {})
@@ -991,7 +1043,11 @@ Delete(b) ==
   /\ Ripe => ripe[b] = 0
   /\ HoldMark => hseq = 0
   /\ IF FillEager THEN Unapplied = {} ELSE FUps(b) = 0
+  /\ unverified /\ Gen => b \in young
   /\ stored' = stored \ {b}
+  /\ young' = young \ {b}
+  /\ cut' = cut \ {b}
+  /\ UNCHANGED <<unverified, rewritten>>
   /\ cnt' = [cnt EXCEPT ![b] = 0]
   /\ zero' = zero \ {b}
   /\ rel' = rel \ {b}
@@ -1017,7 +1073,7 @@ Fill(b) ==
                      down |-> {<<"fill", b>>}]}
   /\ txns' = txns + 1
   /\ UNCHANGED <<root, left, lost, gcVars, jrVars, obs, seen, seenAge,
-                 holes, born, moved, sheld, freedLive, adoptVars, stageVars,
+                 holes, born, moved, sheld, genVars, freedLive, adoptVars, stageVars,
                  writerVars>>
 
 \* DropFill is the collector deleting a fill record of an unadopted Volume,
@@ -1026,7 +1082,7 @@ DropFill(r) ==
   /\ adoption = "unadopted" /\ r \in fj
   /\ fj' = fj \ {r}
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
-                 seenAge, txns, holes, born, moved, sheld, freed, freedLive,
+                 seenAge, txns, holes, born, moved, sheld, genVars, freed, freedLive,
                  adoptVars, stageVars, writerVars>>
 
 \* The deltas of a fill record's up and down pairs.
@@ -1046,7 +1102,7 @@ ApplyFill(r) ==
         /\ under' = (under \/ s.under)
   /\ fj' = (fj \ {r}) \cup {[r EXCEPT !.applied = TRUE]}
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
-                 txns, holes, born, moved, sheld, freed, freedLive, adoptVars,
+                 txns, holes, born, moved, sheld, genVars, freed, freedLive, adoptVars,
                  stageVars, writerVars, pend, pdir>>
 
 \* NetFill nets one aged fill record, in one transaction, whenever the
@@ -1064,7 +1120,7 @@ NetFill(r) ==
         /\ under' = (under \/ s.under)
   /\ fj' = fj \ {r}
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
-                 txns, holes, born, moved, sheld, freed, freedLive, adoptVars,
+                 txns, holes, born, moved, sheld, genVars, freed, freedLive, adoptVars,
                  stageVars, writerVars, pend, pdir>>
 
 \* ---------------------------------------------------------------------------
@@ -1096,8 +1152,8 @@ Go(r, step) ==
 
 AdoptUnchanged ==
   UNCHANGED <<root, left, stored, lost, rel, under, jrVars, obs, seen,
-              seenAge, txns, holes, opens, sheld, freed, fillVars, stageVars,
-              writerVars, pend, pdir>>
+              seenAge, txns, holes, opens, sheld, freed, genVars, fillVars,
+              stageVars, writerVars, pend, pdir>>
 
 \* AdoptStart reports an adopted Volume, and otherwise returns it to
 \* unadopted, superseding any run, and with Claim names r in it.
@@ -1113,7 +1169,8 @@ AdoptStart(r) ==
 
 \* AdoptClear deletes every count, queue entry, mark and fill record while r
 \* holds its claim; without Claim it deletes them whatever the state. Each
-\* fill record goes with its index entries in one transaction.
+\* fill record goes with its index entries in one transaction. It deletes the
+\* release pages too, so a cascade Finish interrupted is dropped with them.
 AdoptClear(r) ==
   /\ pc[r] = "clear"
   /\ IF Claim /\ ~Claimed(r)
@@ -1125,11 +1182,14 @@ AdoptClear(r) ==
           /\ born' = {}
           /\ moved' = [n \in Names |-> Unmoved]
           /\ fj' = {}
+          /\ rewritten' = FALSE
+          /\ pend' = {}
+          /\ pdir' = 0
           /\ pc' = [pc EXCEPT ![r] = "mark"]
-          /\ UNCHANGED <<adoption, owner, pos, pend, pdir>>
+          /\ UNCHANGED <<adoption, owner, pos>>
           /\ UNCHANGED <<root, left, stored, lost, under, jrVars, obs, seen,
                          seenAge, txns, holes, opens, sheld, freed, freedLive,
-                         stageVars, writerVars>>
+                         cut, young, unverified, stageVars, writerVars>>
 
 \* AdoptMark marks the Volume adopting in r at the journal's end. The
 \* collector's cursor moves there, past every ripe sequence and the hold
@@ -1187,7 +1247,7 @@ AdoptList(r) ==
           IN IF i = 0 THEN Go(r, "settle") /\ pos' = [pos EXCEPT ![r] = 0]
              ELSE /\ cnt' = IF Skipped(b) THEN cnt
                             ELSE [c \in Blocks |->
-                                    cnt[c] + IF c \in Kids(b) THEN 1 ELSE 0]
+                                    cnt[c] + IF c \in ListKids(b) THEN 1 ELSE 0]
                   /\ pos' = [pos EXCEPT ![r] = i]
                   /\ UNCHANGED <<zero, ripe, landVars, adoption, owner, pc>>
                   /\ AdoptUnchanged
@@ -1237,6 +1297,39 @@ Open ==
                  writerVars>>
 
 \* ---------------------------------------------------------------------------
+\* The list rebuild.
+
+\* Rebuild writes b's whole child list in place of the cut one, on any Volume
+\* but an adopting one. It journals no holder, so on an adopted Volume the
+\* counts lack the children it adds until an adoption recounts the lists;
+\* with RewriteFlag it records that one is due. On an unadopted Volume the
+\* next adoption counts the rewritten list, so it sets no flag there: a flag
+\* set between an adoption's clear and its mark would outlive that adoption.
+\* The rewrite and the flag are one transaction, the rebuild's flush.
+Rebuild(b) ==
+  /\ b \in cut /\ adoption # "adopting"
+  /\ cut' = cut \ {b}
+  /\ rewritten' = (rewritten \/ (RewriteFlag /\ adoption = "adopted"))
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, fillVars,
+                 young, unverified, adoptVars, stageVars, writerVars>>
+
+\* Finish clears the unverified lists mark once no list is cut, on any Volume
+\* but an adopting one. With Recount it returns an adopted Volume a rebuild
+\* rewrote a list of to unadopted in the same transaction, superseding no
+\* run, so the next adoption recounts the lists before anything more frees.
+Finish ==
+  /\ unverified /\ cut = {} /\ adoption # "adopting"
+  /\ unverified' = FALSE
+  /\ IF Recount /\ rewritten /\ adoption = "adopted"
+     THEN adoption' = "unadopted" /\ owner' = None
+     ELSE UNCHANGED <<adoption, owner>>
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, fillVars,
+                 cut, young, rewritten, pc, pos, opens, stageVars,
+                 writerVars>>
+
+\* ---------------------------------------------------------------------------
 \* The environment.
 
 \* Punch loses block b with its child list and count record. Blocks it named
@@ -1268,7 +1361,7 @@ Tick ==
   /\ sessionAge' = [w \in Writers |->
                       IF tgt[w] = None THEN 0 ELSE Older(sessionAge[w], Grace)]
   /\ UNCHANGED <<root, stored, lost, gcVars, hseq, obs, seen, txns, holes,
-                 born, moved, sheld, freed, freedLive, adoptVars, stage, tgt,
+                 born, moved, sheld, genVars, freed, freedLive, adoptVars, stage, tgt,
                  wrote, skipped>>
 
 NetAny == \E k \in 1..Len(jr) : Net(k)
@@ -1293,6 +1386,8 @@ Next ==
        \/ AdoptStart(r) \/ AdoptClear(r) \/ AdoptMark(r) \/ AdoptRoot(r)
        \/ AdoptList(r) \/ AdoptSettle(r) \/ AdoptEnd(r) \/ AdoptCrash(r)
   \/ Open
+  \/ \E b \in Blocks : Rebuild(b)
+  \/ Finish
   \/ \E b \in Blocks : Punch(b)
   \/ \E b \in FillBlocks : Fill(b)
   \/ NetFillAny
@@ -1337,6 +1432,11 @@ ReaderWindow ==
 \* No transaction took a holder from a block that had none.
 NoUnderflow == ~under
 
+\* An adopted Volume whose lists are all verified owes no recount: Finish
+\* returned any Volume a rewrite left short to unadopted, and the adoption
+\* that followed cleared the flag before it counted.
+RewriteRecounted == adoption = "adopted" /\ ~unverified => ~rewritten
+
 \* Only stored blocks are zero or released.
 ZeroStored == zero \cup rel \subseteq stored
 
@@ -1348,7 +1448,7 @@ RootHolders(b) ==
 \* The holders of a block: the roots, and the stored child lists of parents
 \* that have holders. A block with no holders holds nothing.
 TrueHolders(b) ==
-  RootHolders(b) + Cardinality({p \in stored \ zero : b \in Kids(p)})
+  RootHolders(b) + Cardinality({p \in stored \ zero : b \in ListKids(p)})
 
 \* The netted holders plus the journal past the cursor.
 JournalHolders(b) ==
@@ -1359,17 +1459,17 @@ JournalHolders(b) ==
 \* cause. While a cascade is due or running the counts lag by its block, and
 \* Delete waits.
 CountsCover ==
-  Adopted /\ Settled => \A b \in stored : JournalHolders(b) >= TrueHolders(b)
+  Adopted /\ Settled /\ ~rewritten => \A b \in stored : JournalHolders(b) >= TrueHolders(b)
 
 \* Once adopted with no hole, the journal counts each block's holders
 \* exactly: the roots and the parents whose children hold them, Live and
 \* Dying ones, with the holder a cascade in progress has not moved yet.
 Owed(b) == IF b \in pend THEN -pdir ELSE 0
 CountsExact ==
-  Adopted /\ lost = {} =>
+  Adopted /\ lost = {} /\ ~rewritten =>
     \A b \in stored :
       JournalHolders(b) =
-        RootHolders(b) + Cardinality({p \in stored \ rel : b \in Kids(p)}) + Owed(b)
+        RootHolders(b) + Cardinality({p \in stored \ rel : b \in ListKids(p)}) + Owed(b)
 
 \* A lost block's children stay stored: the cascade stopped at the hole.
 HoleKeeps == \A h \in lost : Kids(h) \subseteq stored \cup lost

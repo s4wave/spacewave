@@ -79,8 +79,9 @@ func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*bloc
 // volume-wide inventory counts private-state prefix keys and raw blocks
 // without child lists.
 func TestDebugRefRepair(t *testing.T) {
-	// Open a volume configuring the Space's bucket, and mark it unadopted, as
-	// a volume written before puts carried child lists is.
+	// Open a volume configuring the Space's bucket, and mark it unadopted with
+	// its lists unverified, as the upgrade leaves a volume written before puts
+	// carried child lists.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	path := filepath.Join(t.TempDir(), "volume.s4wave")
@@ -93,7 +94,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeRecords(t, vol, func(rec *block_gc.Records) error {
-		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED})
+		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, UnverifiedLists: true})
 	})
 
 	// Start a storage testbed whose blocks are copied into the volume

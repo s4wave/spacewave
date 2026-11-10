@@ -95,8 +95,8 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 }
 
 // runBackgroundAdopt adopts the Volume once, in Adopt's bounded background
-// slices, and stops at the first failure, such as unverified child lists a
-// repair must verify first, or when ctx ends. An adoption another process
+// slices, and stops at the first failure, such as a named block stored
+// without a child list, or when ctx ends. An adoption another process
 // runs supersedes it, and that one finishes the work.
 func (v *Volume) runBackgroundAdopt(ctx context.Context) {
 	defer close(v.adoptDone)

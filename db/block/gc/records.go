@@ -100,6 +100,22 @@ const (
 	// against the block's decoded refs, by the block. It holds no value and
 	// lasts until the rebuild clears the Volume's unverified lists mark.
 	kindVerified byte = 'V'
+	// kindLanded keys a block Land gave birth to while the Volume's child
+	// lists are unverified, by the block. It holds no value. Land wrote the
+	// block's list from the put's refs, so the list is verified, and every
+	// holder of the block came through Land and the journal, so its count is
+	// exact although older lists may lack a child. The free takes only such
+	// blocks while the mark stands, as Collector describes. A put of a block
+	// stored already, a refilled hole and a cache fill write none, since
+	// their blocks are older. It lasts until the free takes the block or the
+	// list rebuild clears the mark.
+	kindLanded byte = 'W'
+	// kindParked keys a Dead block the free held back while the Volume's
+	// child lists were unverified, because Land did not give birth to it, by
+	// its big-endian ripe sequence, then the block, as the free queue keys it.
+	// It holds no value. Once the mark clears, the collector moves each back
+	// onto the free queue, where the free checks the block again.
+	kindParked byte = 'X'
 	// kindReached keys a block a streaming walk from the roots reached, by the
 	// block. It holds no value; the walk deletes every one when it starts and
 	// when it ends.
@@ -118,6 +134,13 @@ const (
 	// exist from the slice that starts the cascade until the slice that
 	// moves their last child.
 	kindReleasePage byte = 'D'
+	// kindRewritten is one record, with no key past the kind and no value,
+	// that a list rebuild writes when it rewrites a list on an adopted
+	// Volume: it journals no holder for a child the list gains, so the counts
+	// lack those holders until an adoption recounts the lists. Finish returns
+	// the Volume to unadopted when it finds it, and the adoption that follows
+	// deletes it with the counts.
+	kindRewritten byte = 'Y'
 )
 
 // The values of a cascade record: the direction its block's children move.
@@ -578,6 +601,22 @@ func (r *Records) ScanJournal(ctx context.Context, from uint64, fn func(seq uint
 // queueKey returns the queue key of the Dead block at key with ripe.
 func (r *Records) queueKey(ripe uint64, key []byte) []byte {
 	return r.key(kindQueue, binary.BigEndian.AppendUint64(nil, ripe), key)
+}
+
+// parkedKey returns the parked key of the Dead block at key with ripe.
+func (r *Records) parkedKey(ripe uint64, key []byte) []byte {
+	return r.key(kindParked, binary.BigEndian.AppendUint64(nil, ripe), key)
+}
+
+// listVerified reports whether the child list of the block at key is known
+// to name every child: a list rebuild verified it, or Land wrote it while
+// the Volume's lists were unverified.
+func (r *Records) listVerified(ctx context.Context, key []byte) (bool, error) {
+	verified, err := r.tx.Exists(ctx, r.key(kindVerified, key))
+	if err != nil || verified {
+		return verified, err
+	}
+	return r.tx.Exists(ctx, r.key(kindLanded, key))
 }
 
 // queuePos returns the position on the free queue of the block at key,

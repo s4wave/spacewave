@@ -45,12 +45,6 @@ type AdoptResult struct {
 // missing child lists, then adopt again.
 var ErrAdoptUnknown = errors.New("named blocks are stored without a child list")
 
-// ErrAdoptUnverified is returned by Adopt when the Volume's child lists came
-// from a store format before 7, whose lists may lack a child the block
-// names: counting from them could free a block a live block names. Rebuild
-// the lists from the blocks, then adopt.
-var ErrAdoptUnverified = errors.New("the child lists are unverified")
-
 // ErrAdoptSuperseded is returned by Adopt when another adoption, in this
 // process or another on the same store, or a Volume opening, took the Volume
 // from it. It writes nothing more and leaves the other run's records alone.
@@ -77,9 +71,11 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // It drops the journal before the cursor and marks the Volume adopted.
 //
 // It refuses with ErrAdoptUnknown, returning the Volume to unadopted, when a
-// root or a stored block names a block stored without a child list, and with
-// ErrAdoptUnverified, before it begins, while the child lists come from an
-// older store format. An adoption that fails or is interrupted returns the
+// root or a stored block names a block stored without a child list. It counts
+// child lists an older store format left unverified as they are: such a list
+// may lack a child, which then counts too few holders, and the collector
+// frees only blocks Land gave birth to until the lists are verified, as
+// Collector describes. An adoption that fails or is interrupted returns the
 // Volume to unadopted, as does reopening the Volume after a crash, and a later
 // Adopt starts over and reaches the same counts. Each run first claims the
 // unadopted Volume under its name, clears only while its claim stands, and
@@ -113,16 +109,13 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 	// Mark the Volume adopting in the run, at the cursor.
 	var cursor uint64
 	err = store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Refuse a lost claim and unverified child lists.
+		// Refuse a lost claim.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
 		if !claimedBy(state, run) {
 			return ErrAdoptSuperseded
-		}
-		if state.GetUnverifiedLists() {
-			return ErrAdoptUnverified
 		}
 
 		// Start the cursor at the next journal record.
@@ -497,11 +490,12 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 
 // adoptionKinds are the kinds of record an adoption writes or replaces, which
 // it clears before it counts the lists and after a failed run: the counts,
-// queue and cascade records, its marks, release pages, unapplied fill ups,
-// and the up index a format 8 store left.
+// free queue, parked and cascade records, its marks, release pages, unapplied
+// fill ups, the up index a format 8 store left, and the list rebuild's
+// record that a recount is due.
 var adoptionKinds = []byte{
-	kindCount, kindQueue, kindCascade, kindAdoptBorn, kindAdoptRoot,
-	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex,
+	kindCount, kindQueue, kindParked, kindCascade, kindAdoptBorn, kindAdoptRoot,
+	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex, kindRewritten,
 }
 
 // claimedBy reports whether state is unadopted under run's claim.

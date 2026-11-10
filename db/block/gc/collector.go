@@ -17,7 +17,8 @@ import (
 // Journal.tla models it: Collect's lease sweep is Sweep, netSlice is Net(k)
 // with the Cascade and Release steps its resolve runs, netFillSlice is
 // NetFill, the fill ups startNetting applies are ApplyFill, freeBlock is
-// Delete(b), and a block without a child list is the model's hole.
+// Delete(b), a block without a child list is the model's hole, and the
+// landed marks are the model's young set under Gen.
 //
 // Between two transactions a pass checks only that ctx is live. The store
 // admits a writer that waited before the pass's next transaction, as
@@ -98,6 +99,31 @@ import (
 //     child list replaces; a fill that lands while the Volume adopts has its
 //     block treated as born, so the adoption neither counts its children nor
 //     settles it, and its record supplies both.
+//  11. The generation rule. While the Volume's child lists are unverified,
+//     as a store format before 7 left them, it frees only a block Land gave
+//     birth to since, one with a landed mark. An older list may lack a child,
+//     cut between two slices of the old reference graph's edge batch, and the
+//     child it lacks was stored when the list was written, so it is an older
+//     block; a block Land gave birth to has a verified list of its own and
+//     every holder in the journal. The free parks an older Dead block instead
+//     of freeing it, and once the mark clears the collector moves the parked
+//     blocks back onto the free queue, where invariant 2 checks each again.
+//     A put of a block whose bytes were stored, a refilled hole and a cache
+//     fill write no landed mark, so their blocks count as older. The gap
+//     left is a refilled hole under any older block: a block missing at the
+//     upgrade that a put stores since counts as born, so if an older list
+//     above it lacks a child, it can lose its last counted holder while a
+//     live root still reaches it. Older P's list names C, missing at the
+//     upgrade; Q's cut list lacks P; C is put, born with P its one holder;
+//     P's other holders go, P is parked at zero, and its cascade releases C,
+//     which the free takes although Q still reaches it through P. C returns
+//     to the hole it was, and a backfill that finds it on a peer fetches it
+//     again; no block the Volume held at the upgrade is lost. The World's
+//     backfill stores what it copies through Land under a stage, so on a
+//     Volume partly synced at the upgrade a refilled hole is the usual way
+//     a missing block arrives; the gap still needs a cut list above it, of
+//     which a check of 1,555,914 lists on one production Volume found none,
+//     with 476,410 more of plugin types not yet checked.
 type Collector struct {
 	// store runs the collector's transactions.
 	store Store
@@ -266,9 +292,16 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		}
 	}
 
-	// Free the queued blocks.
+	// Free the queued blocks, after moving the parked ones back onto the
+	// queue once the Volume's lists are verified.
 	if c.opts.Frees {
 		defer c.phase(PhaseSweep)()
+		res.More, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
+			return c.requeueSlice(ctx, rec, &res, from)
+		})
+		if err != nil || res.More {
+			return res, err
+		}
 		res.More, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
 			return c.freeSlice(ctx, rec, blocks, &res, from)
 		})
@@ -681,10 +714,50 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 		if i != 0 && c.waiting() {
 			return from, true, nil
 		}
-		if err := c.freeBlock(ctx, rec, blocks, e.ripe, e.ref, res); err != nil {
+		if err := c.freeBlock(ctx, rec, blocks, state.GetUnverifiedLists(), e.ripe, e.ref, res); err != nil {
 			return from, false, err
 		}
 		from = queuePos(e.ripe, BlockKey(e.ref))
+	}
+	return from, full, nil
+}
+
+// requeueSlice moves up to a slice of parked blocks back onto the free queue
+// once the Volume's lists are verified, from the parked key position from,
+// and reports whether the slice was full. Each keeps its ripe sequence, which
+// the cursor passed before the free parked it, so the free step that follows
+// takes it, checking it is still Dead at that sequence. While the lists are
+// unverified, or the Volume is not adopted, it moves nothing.
+func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+	// Requeue only once an adopted Volume's lists are verified.
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetUnverifiedLists() || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return from, false, err
+	}
+
+	// Take the next parked keys, then move each.
+	var keys [][]byte
+	full, budget := false, c.share(sliceFrees)
+	err = rec.scan(ctx, rec.key(kindParked), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+		if len(keys) == budget {
+			full = true
+			return false, nil
+		}
+		keys = append(keys, slices.Clone(key))
+		return true, nil
+	})
+	if err != nil {
+		return from, false, err
+	}
+	for _, key := range keys {
+		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
+			return from, false, err
+		}
+		if err := rec.tx.Set(ctx, rec.key(kindQueue, key), nil); err != nil {
+			return from, false, err
+		}
+		res.Requeued++
+		from = key
 	}
 	return from, full, nil
 }
@@ -710,9 +783,11 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 }
 
 // freeBlock frees one Dead block at ripe: its bytes, child list, queue
-// entry, proof and count record. It deletes only the queue entry when the
+// entry, proof, count record and landed mark. It deletes only the queue entry when the
 // entry is stale: the block has no child list or no zero record at ripe.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, ripe uint64, ref *block.BlockRef, res *CollectResult) error {
+// While the Volume's lists are unverified it parks a block Land did not give
+// birth to instead, as invariant 11 describes.
+func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, unverified bool, ripe uint64, ref *block.BlockRef, res *CollectResult) error {
 	// Check the block is stored, Dead and at the entry's ripe sequence.
 	key := BlockKey(ref)
 	if err := rec.tx.Delete(ctx, rec.queueKey(ripe, key)); err != nil {
@@ -731,12 +806,30 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 		return err
 	}
 
+	// Park an older block while the lists are unverified: a list that lacks
+	// a child may name it.
+	if unverified {
+		landed, err := rec.tx.Exists(ctx, rec.key(kindLanded, key))
+		if err != nil {
+			return err
+		}
+		if !landed {
+			res.Parked++
+			return rec.tx.Set(ctx, rec.parkedKey(ripe, key), nil)
+		}
+	}
+
 	// Free its bytes and records.
 	if err := blocks.RmBlock(ctx, ref); err != nil {
 		return err
 	}
 	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
 		if err := del(ctx, ref); err != nil {
+			return err
+		}
+	}
+	if unverified {
+		if err := rec.tx.Delete(ctx, rec.key(kindLanded, key)); err != nil {
 			return err
 		}
 	}
