@@ -88,6 +88,17 @@ type Client struct {
 	// leaks counts per login the tokens never to free: those of sessions
 	// whose close the server did not confirm.
 	leaks []atomic.Int32
+	// lostMtx guards lost, lostAll and the closes of gone and goneAll.
+	lostMtx sync.Mutex
+	// lost counts per login the tokens kept for good, and lostAll those of
+	// every login.
+	lost    []int
+	lostAll int
+	// gone is closed per login once every token of the login is kept for
+	// good, and goneAll once every token of the client is: no session can be
+	// dialed again.
+	gone    []chan struct{}
+	goneAll chan struct{}
 	// stopCtx ends at CloseAll, cancelling the spare dials.
 	stopCtx context.Context
 	stop    context.CancelFunc
@@ -152,6 +163,13 @@ func NewClient(conf Config) *Client {
 		c.tokens = append(c.tokens, make(chan struct{}, limit))
 	}
 	c.leaks = make([]atomic.Int32, len(conf.Logins))
+
+	// Track the tokens kept for good, per login and in all.
+	c.lost = make([]int, len(conf.Logins))
+	for range conf.Logins {
+		c.gone = append(c.gone, make(chan struct{}))
+	}
+	c.goneAll = make(chan struct{})
 	c.stopCtx, c.stop = context.WithCancel(context.Background())
 	return c
 }
@@ -261,7 +279,8 @@ func (c *Client) GetObject(ctx context.Context, bucket, key string) (io.ReadClos
 	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
-// ErrTooLarge is returned by GetObjectMax for an object past its limit.
+// ErrTooLarge is returned by GetObjectMax for an object past its limit. It is
+// not retried: the object would be as large again.
 var ErrTooLarge = errors.New("object larger than the limit")
 
 // GetObjectMax reads the whole object, reading at most limit+1 bytes: an
@@ -280,8 +299,10 @@ func (c *Client) GetObjectMax(ctx context.Context, bucket, key string, limit int
 		// Read up to one byte past the limit, failing an object past it.
 		data, err = io.ReadAll(io.LimitReader(resp, limit+1))
 		if err == nil && int64(len(data)) > limit {
-			_ = resp.Close()
 			data = nil
+			if cerr := resp.Close(); endsSession(cerr) {
+				return cerr
+			}
 			return errors.Wrapf(ErrTooLarge, "%s is over %d bytes", name, limit)
 		}
 		return closeTransfer(resp, err)
@@ -334,8 +355,7 @@ func (c *Client) GetObjectRange(ctx context.Context, bucket, key string, off int
 		buf := make([]byte, length)
 		n, err := io.ReadFull(resp, buf)
 		if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
-			_ = resp.Close()
-			return err
+			return closeTransfer(resp, err)
 		}
 		out = buf[:n]
 
@@ -450,10 +470,17 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 		return c.cut(ctx, s, killed)
 	}
 
-	// Retry on a fresh connection when the pooled one failed. The new
-	// connection keeps the slot's token.
-	if err != nil && err != errSpent && !isReply(err) && ctx.Err() == nil && !c.sess.isDead() {
+	// Retry on a fresh connection when the pooled one failed. The failed
+	// session's token is freed once its close is confirmed, or kept for good
+	// when it is not, and the new connection takes a token of its own.
+	if err != nil && err != errSpent && !isReply(err) && !errors.Is(err, ErrTooLarge) && ctx.Err() == nil && !c.sess.isDead() {
 		c.sess.quit(conn)
+		s.conn = nil
+		c.free(s.login)
+		if err = c.take(ctx, s.login); err != nil {
+			c.release(s, nil)
+			return err
+		}
 		conn, err = c.dial(ctx, s.login)
 		if err == nil {
 			s.conn = conn
@@ -462,7 +489,6 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 				return c.cut(ctx, s, killed)
 			}
 		} else {
-			s.conn = nil
 			c.free(s.login)
 		}
 	}
@@ -645,16 +671,30 @@ func (c *Client) drop(s *slot) {
 	}
 }
 
-// take waits for a session token of the login and of the client.
+// ErrSessionsLost is returned when every session token of a login, or of
+// the client, is kept for good, each by a session whose close the server did
+// not confirm: no session can be dialed again without passing the server's
+// limit.
+var ErrSessionsLost = errors.New("ftps sessions lost: the server did not confirm their close")
+
+// take waits for a session token of the login and of the client, failing with
+// ErrSessionsLost once none can be freed again.
 func (c *Client) take(ctx context.Context, login int) error {
 	select {
 	case c.tokens[login] <- struct{}{}:
+	case <-c.gone[login]:
+		return ErrSessionsLost
+	case <-c.goneAll:
+		return ErrSessionsLost
 	case <-ctx.Done():
 		return context.Cause(ctx)
 	}
 	select {
 	case c.total <- struct{}{}:
 		return nil
+	case <-c.goneAll:
+		<-c.tokens[login]
+		return ErrSessionsLost
 	case <-ctx.Done():
 		<-c.tokens[login]
 		return context.Cause(ctx)
@@ -689,6 +729,7 @@ func (c *Client) free(login int) {
 			break
 		}
 		if c.leaks[login].CompareAndSwap(n, n-1) {
+			c.lose(login)
 			return
 		}
 	}
@@ -696,6 +737,22 @@ func (c *Client) free(login int) {
 	// Return the tokens.
 	<-c.total
 	<-c.tokens[login]
+}
+
+// lose records a token of the login kept for good, closing gone or goneAll
+// once no token is left to free.
+func (c *Client) lose(login int) {
+	// Count the token and close what no token is left to free.
+	c.lostMtx.Lock()
+	defer c.lostMtx.Unlock()
+	c.lost[login]++
+	c.lostAll++
+	if c.lost[login] == cap(c.tokens[login]) {
+		close(c.gone[login])
+	}
+	if c.lostAll == cap(c.total) {
+		close(c.goneAll)
+	}
 }
 
 // dial connects, upgrades to TLS with AUTH TLS, and logs in. While the server
@@ -721,7 +778,7 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, error) {
 	// Track the session's sockets, closing them if ctx ends mid-dial under
 	// CloseOnDone or at CloseAll, which refuses the dial once it ran.
-	sess := newSession(c.tlsConf, func() { c.leaks[login].Add(1) })
+	sess := newSession(c.tlsConf, cmp.Or(c.conf.CloseConfirmWait, closeConfirmWait), func() { c.leaks[login].Add(1) })
 	if err := c.sess.track(sess); err != nil {
 		return nil, err
 	}

@@ -221,11 +221,17 @@ func (m *miniFTPS) counts() (peak, logins, users, peakSockets int) {
 // client returns an FTPS client of the server with the tool's settings,
 // closed at the test's end.
 func (m *miniFTPS) client(t *testing.T, sessions int, shut time.Duration) *block_store_ftps.Client {
+	return m.clientConfirm(t, sessions, shut, 0)
+}
+
+// clientConfirm returns a client as client does, waiting confirm for the
+// server to answer a closed session, or the default when zero.
+func (m *miniFTPS) clientConfirm(t *testing.T, sessions int, shut, confirm time.Duration) *block_store_ftps.Client {
 	c := block_store_ftps.NewClient(block_store_ftps.Config{
 		Addr: m.ln.Addr().String(), TLSConfig: m.cliTLS,
 		Logins:      []block_store_ftps.Login{{User: "u", Password: "p"}},
 		MaxSessions: sessions, ConnsPerLogin: sessions, NoFullRetry: true, CloseOnDone: true,
-		ShutTimeout: shut,
+		ShutTimeout: shut, CloseConfirmWait: confirm,
 	})
 	t.Cleanup(c.Close)
 	return c
@@ -428,5 +434,137 @@ func TestReviewStaleDeadline(t *testing.T) {
 	}
 	if _, logins, _, _ := m.counts(); logins != 1 {
 		t.Fatalf("idle pooled session died at the stale deadline: %d logins", logins)
+	}
+}
+
+// retrs counts the RETR commands the server got.
+func (m *miniFTPS) retrs() int {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	var n int
+	for _, c := range m.cmds {
+		if c == "RETR" {
+			n++
+		}
+	}
+	return n
+}
+
+// TestReviewOverSizeFTPS serves a pack far past its size through the FTPS
+// client: the read stops near the size and fails with errOverSize after one
+// login and one RETR, with no retry of an object that would be as large
+// again.
+func TestReviewOverSizeFTPS(t *testing.T) {
+	// Serve 8 MiB for a pack of 64 KiB, counting the bytes the client took.
+	m := newMini(t)
+	m.data = make([]byte, 8<<20)
+	var served int
+	m.onRetr = func(m *miniFTPS, ctl *bufio.Writer, _ net.Conn, dc net.Conn, rest int64) {
+		for off := rest; off < int64(len(m.data)); off += 64 << 10 {
+			n, err := dc.Write(m.data[off : off+64<<10])
+			m.mtx.Lock()
+			served += n
+			m.mtx.Unlock()
+			if err != nil {
+				break
+			}
+		}
+		_ = dc.Close()
+		_, _ = ctl.WriteString("226 done\r\n")
+		_ = ctl.Flush()
+	}
+	f := reviewFetcher(m.client(t, 1, 0))
+	_, err := f.whole(context.Background(), "k", 64<<10)
+
+	// One login and one RETR, and far less than the object read.
+	_, logins, _, _ := m.counts()
+	m.mtx.Lock()
+	got := served
+	m.mtx.Unlock()
+	if !errors.Is(err, errOverSize) || logins != 1 || m.retrs() != 1 {
+		t.Fatalf("over-size read: err %v, %d logins, %d RETRs", err, logins, m.retrs())
+	}
+	if got >= len(m.data) {
+		t.Fatalf("served all %d bytes of an over-size object", got)
+	}
+}
+
+// TestReviewRangeMid421 answers a range read with a 421 while its data
+// flows, then resets the data connection: the read error must not hide the
+// 421, which stops the run after one login.
+func TestReviewRangeMid421(t *testing.T) {
+	m := newMini(t)
+	m.onRetr = func(m *miniFTPS, ctl *bufio.Writer, raw net.Conn, dc net.Conn, _ int64) {
+		_, _ = dc.Write(m.data[:1000])
+		_, _ = ctl.WriteString("421 Too many connections, closing control connection\r\n")
+		_ = ctl.Flush()
+		rstData(dc)
+		time.Sleep(50 * time.Millisecond)
+		_ = raw.Close()
+	}
+	f := reviewFetcher(m.client(t, 1, 0))
+	_, err := f.rangeRead(context.Background(), "k", 0, 50000)
+	_, logins, _, _ := m.counts()
+	var hard *hardStopError
+	if !errors.As(err, &hard) || logins != 1 {
+		t.Fatalf("range mid-421: err %v, %d logins", err, logins)
+	}
+}
+
+// TestReviewRedialUnconfirmed fails a whole read on its connection under
+// --sessions 1, with a server that drops a closed session only after the
+// client stopped waiting for it: the retry must not dial past the limit, and
+// with the only token kept for good the run stops at once with
+// ErrSessionsLost rather than waiting out each attempt.
+func TestReviewRedialUnconfirmed(t *testing.T) {
+	// Abort the first RETR mid-transfer, serve any later one.
+	m := newMini(t)
+	m.closeLag = 1500 * time.Millisecond
+	var n int
+	m.onRetr = func(m *miniFTPS, ctl *bufio.Writer, raw net.Conn, dc net.Conn, rest int64) {
+		n++
+		if n == 1 {
+			_, _ = dc.Write(m.data[:1000])
+			rstData(dc)
+			_, _ = ctl.WriteString("451 aborted\r\n")
+			_ = ctl.Flush()
+			return
+		}
+		okRetr(m, ctl, raw, dc, rest)
+	}
+	f := reviewFetcher(m.clientConfirm(t, 1, 0, 300*time.Millisecond))
+	start := time.Now()
+	_, err := f.whole(context.Background(), "k", uint64(len(m.data)))
+	took := time.Since(start)
+
+	// No second session while the first is counted, and a prompt stop.
+	peak, logins, _, _ := m.counts()
+	if peak > 1 {
+		t.Fatalf("peak sessions %d under --sessions 1, %d logins", peak, logins)
+	}
+	var hard *hardStopError
+	if !errors.As(err, &hard) || !errors.Is(err, block_store_ftps.ErrSessionsLost) || took > 2*time.Second {
+		t.Fatalf("lost session: err %v after %v", err, took)
+	}
+}
+
+// TestReviewOverSize421 ends an over-size transfer with a 421: the abort of
+// the transfer must not hide it, so the run stops rather than fail the pack.
+func TestReviewOverSize421(t *testing.T) {
+	m := newMini(t)
+	m.data = make([]byte, 8<<20)
+	m.onRetr = func(m *miniFTPS, ctl *bufio.Writer, raw net.Conn, dc net.Conn, _ int64) {
+		_, _ = dc.Write(m.data)
+		_ = dc.Close()
+		_, _ = ctl.WriteString("421 Too many connections, closing control connection\r\n")
+		_ = ctl.Flush()
+		time.Sleep(50 * time.Millisecond)
+		_ = raw.Close()
+	}
+	f := reviewFetcher(m.client(t, 1, 0))
+	_, err := f.whole(context.Background(), "k", 64<<10)
+	var hard *hardStopError
+	if !errors.As(err, &hard) {
+		t.Fatalf("over-size 421: err %v", err)
 	}
 }

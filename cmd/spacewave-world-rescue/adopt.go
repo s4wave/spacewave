@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // Output layouts.
@@ -106,35 +107,79 @@ func publishAdopt(dir, id string) error {
 }
 
 // recoverAdopt finishes the pairs a crash left between the pack's and the
-// entry's rename: every staged entry is published with its pack. A staged
-// pack with no staged entry stays staged, invisible to the adopt reader, and
-// its blocks, never recorded in the ledger, are fetched again.
-func recoverAdopt(dir string) error {
+// entry's rename: every staged entry is published with its pack, and its id
+// returned in published, so the caller records the pack's blocks rather than
+// fetch them again. A staged pack with no staged entry stays staged,
+// invisible to the adopt reader and to world-adopt-packs, which take only
+// {id}.entry files: its blocks, never recorded in the ledger, are fetched
+// again into a new pack. It is returned in orphans and not removed, since
+// the rescue never deletes.
+func recoverAdopt(dir string) (published, orphans []string, err error) {
 	// Find the staged entries.
 	names, err := os.ReadDir(dir)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil
+		return nil, nil, nil
 	}
 	if err != nil {
-		return err
+		return nil, nil, err
+	}
+	have := make(map[string]bool, len(names))
+	for _, n := range names {
+		have[n.Name()] = true
 	}
 
-	// Publish each with its pack, staged or already renamed.
+	// Publish each with its pack, staged or already renamed, and list the
+	// staged packs with no staged entry.
 	for _, n := range names {
-		id, ok := strings.CutSuffix(n.Name(), adoptEntrySuffix+adoptPartSuffix)
-		if !ok || !validAdoptID(id) {
+		if id, ok := strings.CutSuffix(n.Name(), adoptPartSuffix); ok && validAdoptID(id) && !have[id+adoptEntrySuffix+adoptPartSuffix] {
+			orphans = append(orphans, n.Name())
 			continue
 		}
-		_, perr := os.Stat(filepath.Join(dir, id+adoptPartSuffix))
-		_, ferr := os.Stat(filepath.Join(dir, id))
-		if perr != nil && ferr != nil {
+		id, ok := strings.CutSuffix(n.Name(), adoptEntrySuffix+adoptPartSuffix)
+		if !ok || !validAdoptID(id) || (!have[id+adoptPartSuffix] && !have[id]) {
 			continue
 		}
 		if err := publishAdopt(dir, id); err != nil {
+			return published, orphans, err
+		}
+		published = append(published, id)
+	}
+	return published, orphans, nil
+}
+
+// ledgerAdopted records as done every block of the published packs ids in
+// dir that the ledger does not already hold as done, read from each pack's
+// own index, and syncs the ledger: the pack holds them durably, and the run
+// skips them rather than store them twice.
+func ledgerAdopted(l *ledger, dir string, ids []string) error {
+	for _, id := range ids {
+		// Read the pack's index.
+		f, err := os.Open(filepath.Join(dir, id))
+		if err != nil {
 			return err
 		}
+		st, err := f.Stat()
+		if err != nil {
+			_ = f.Close()
+			return err
+		}
+		index, err := packfile.ReadIndex(f, uint64(st.Size())) //nolint:gosec // sizes are not negative.
+		_ = f.Close()
+		if err != nil {
+			return errors.Wrap(err, "read the index of recovered pack "+id)
+		}
+
+		// Record its blocks.
+		for _, ie := range index {
+			if l.refs[string(ie.GetKey())] == stateDone {
+				continue
+			}
+			if err := l.ref(ie.GetKey(), stateDone, ""); err != nil {
+				return err
+			}
+		}
 	}
-	return nil
+	return l.sync()
 }
 
 // writeSynced writes data to dir/name through a temporary file, synced and

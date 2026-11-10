@@ -12,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// closeConfirmWait bounds the wait for the server to answer a closed
-// connection with its own close. A connection it does not answer in time
-// still counts as open for that long.
+// closeConfirmWait is the default bound on the wait for the server to answer
+// a closed connection with its own close. A connection it does not answer in
+// time still counts as open for that long.
 const closeConfirmWait = 10 * time.Second
 
 // session tracks the sockets of one FTP session, its control connection and
@@ -23,6 +23,8 @@ const closeConfirmWait = 10 * time.Second
 type session struct {
 	// tlsConf wraps the data connections in TLS.
 	tlsConf *tls.Config
+	// confirmWait bounds the wait for the server to answer a close.
+	confirmWait time.Duration
 	// mtx guards the fields below.
 	mtx sync.Mutex
 	// conns are the session's sockets, the control connection first.
@@ -34,7 +36,7 @@ type session struct {
 	// done is closed once every socket of the session is closed.
 	done chan struct{}
 	// unconfirmed is set when the server did not answer a socket's close
-	// within closeConfirmWait.
+	// within confirmWait.
 	unconfirmed bool
 	// leak is called once when the close of a socket is unconfirmed: the
 	// session's token must then never be freed, since the server may still
@@ -43,9 +45,9 @@ type session struct {
 }
 
 // newSession returns a session whose data connections use tlsConf, calling
-// leak when its close is unconfirmed.
-func newSession(tlsConf *tls.Config, leak func()) *session {
-	return &session{tlsConf: tlsConf, done: make(chan struct{}), leak: leak}
+// leak when the server does not answer its close within confirmWait.
+func newSession(tlsConf *tls.Config, confirmWait time.Duration, leak func()) *session {
+	return &session{tlsConf: tlsConf, confirmWait: confirmWait, done: make(chan struct{}), leak: leak}
 }
 
 // tracked reports whether the session dialed its sockets itself, under
@@ -111,7 +113,7 @@ func (s *session) dialFunc(ctx context.Context) func(network, addr string) (net.
 
 // close closes every socket of the session and waits until each is
 // confirmed closed: the server answered the close with its own, or
-// closeConfirmWait passed, which calls leak. A second close waits for the
+// confirmWait passed, which calls leak. A second close waits for the
 // first.
 func (s *session) close() {
 	// Mark the session closed and take its sockets, or wait for the close
@@ -135,7 +137,7 @@ func (s *session) close() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if !closeConfirmed(conn) {
+			if !closeConfirmed(conn, s.confirmWait) {
 				unconfirmed.Store(true)
 			}
 		}()
@@ -154,9 +156,9 @@ func (s *session) close() {
 }
 
 // closeConfirmed half-closes conn, reads until the server closes its side or
-// closeConfirmWait passes, then closes it. It reports whether the server
-// closed its side in time.
-func closeConfirmed(conn net.Conn) bool {
+// wait passes, then closes it. It reports whether the server closed its side
+// in time.
+func closeConfirmed(conn net.Conn, wait time.Duration) bool {
 	// Send our close and stop anything blocked writing.
 	tcp, ok := conn.(*net.TCPConn)
 	if !ok {
@@ -166,7 +168,7 @@ func closeConfirmed(conn net.Conn) bool {
 	_ = tcp.CloseWrite()
 
 	// Read until the server's close, discarding what it still sends.
-	deadline := time.Now().Add(closeConfirmWait)
+	deadline := time.Now().Add(wait)
 	_ = tcp.SetReadDeadline(deadline)
 	buf := make([]byte, 4096)
 	var err error

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -45,6 +46,10 @@ const (
 //	rb <bytes>                           bytes reserved ahead of the requests
 //	                                     in flight, written and synced before
 //	                                     a request crosses the last one
+//	t <pack id> <ms> <requests>          the time from the start of a
+//	                                     fetched pack's first request to the
+//	                                     end of its last, and its requests,
+//	                                     retries included; a reader ignores it
 //
 // A later line for a ref replaces an earlier one. A b line sets the byte
 // total and an rb line raises it: after a crash the total counts every
@@ -165,6 +170,14 @@ func (l *ledger) pack(id string, fetched uint64, found, notInPack int, skip stri
 
 	// Append it to the buffer.
 	_, err := l.w.WriteString(line + "\n")
+	return err
+}
+
+// timing appends the time and the request count of a fetched pack.
+func (l *ledger) timing(id string, elapsed time.Duration, requests int) error {
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	_, err := fmt.Fprintf(l.w, "t %s %d %d\n", id, elapsed.Milliseconds(), requests)
 	return err
 }
 

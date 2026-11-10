@@ -37,4 +37,9 @@ type Config struct {
 	// ShutTimeout bounds the wait for the server's reply at a transfer's
 	// end; zero is 30 seconds.
 	ShutTimeout time.Duration
+	// CloseConfirmWait bounds the wait under CloseOnDone for the server to
+	// answer a closed session with its own close; zero is 10 seconds. A
+	// session it does not answer in time keeps its token for good, since the
+	// server may still count it.
+	CloseConfirmWait time.Duration
 }

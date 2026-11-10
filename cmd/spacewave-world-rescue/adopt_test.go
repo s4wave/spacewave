@@ -156,9 +156,13 @@ func TestRecoverAdopt(t *testing.T) {
 		}
 	}
 
-	// Recovery publishes a's entry and leaves b staged.
-	if err := recoverAdopt(dir); err != nil {
+	// Recovery publishes a's entry and leaves b staged, reported.
+	published, orphans, err := recoverAdopt(dir)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if strings.Join(published, ",") != "pfv1_a" || strings.Join(orphans, ",") != "pfv1_b.part" {
+		t.Fatalf("published %v, orphans %v", published, orphans)
 	}
 	for name, want := range map[string]bool{
 		"pfv1_a": true, "pfv1_a.entry": true, "pfv1_a.entry.part": false,
@@ -178,5 +182,42 @@ func TestRecoverAdopt(t *testing.T) {
 	}
 	if _, err := (adoptObjects{}).GetObject(context.Background(), dir, "other/x"); err == nil {
 		t.Fatal("a key outside packs/ and entries/ was read")
+	}
+}
+
+// TestRescueAdoptRecoverLedgers crashes a run between its last pair's renames
+// and before its ledger lines: the resumed run publishes the pair, records
+// its blocks as done and fetches nothing, so no block is stored twice.
+func TestRescueAdoptRecoverLedgers(t *testing.T) {
+	// Rescue one pack into one pair.
+	src := newSource(t)
+	refs := src.pack(4)
+	out := t.TempDir()
+	o := testOptions(src, writeList(t, out, refs), out)
+	o.Layout = layoutAdopt
+	res, err := run(context.Background(), o, &fakeServer{dir: src.dir})
+	if err != nil || res.Done != 4 {
+		t.Fatalf("first run: %v, %+v", err, res)
+	}
+
+	// Unpublish the entry and lose the ledger, as a crash leaves them.
+	names, err := filepath.Glob(filepath.Join(out, "*"+adoptEntrySuffix))
+	if err != nil || len(names) != 1 {
+		t.Fatalf("entries %v: %v", names, err)
+	}
+	if err := os.Rename(names[0], names[0]+adoptPartSuffix); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(o.Ledger, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// The resumed run fetches nothing and keeps one copy of each block.
+	res, err = run(context.Background(), o, &fakeServer{dir: src.dir})
+	if err != nil || res.Done != 4 || res.Requests != 0 {
+		t.Fatalf("resumed run: %v, %+v", err, res)
+	}
+	if packs, keys := checkAdoptDir(t, out); packs != 1 || keys != 4 {
+		t.Fatalf("resumed run: %d packs, %d keys", packs, keys)
 	}
 }

@@ -114,8 +114,10 @@ func isHardStop(err error) bool {
 		return true
 	}
 
-	// Match any refused login, whose reply code the FTP library may drop.
-	if errors.Is(err, block_store_ftps.ErrLoginRefused) {
+	// Match any refused login, whose reply code the FTP library may drop,
+	// and the loss of every session token to unconfirmed closes, after which
+	// no session can be dialed within the server's limit.
+	if errors.Is(err, block_store_ftps.ErrLoginRefused) || errors.Is(err, block_store_ftps.ErrSessionsLost) {
 		return true
 	}
 
@@ -163,6 +165,58 @@ type fetchOptions struct {
 	// Reserved, when set, makes the byte total durable before each request
 	// that reads bytes, so a crash mid-request loses no charged bytes.
 	Reserved func(total uint64) error
+}
+
+// reqStats times the requests made under a context that carries it, from
+// the start of the first to the end of the last, and counts them. A nil
+// reqStats records nothing.
+type reqStats struct {
+	mtx         sync.Mutex
+	first, last time.Time
+	n           int
+}
+
+// reqStatsKey is the context key of a reqStats.
+type reqStatsKey struct{}
+
+// withReqStats returns ctx carrying st.
+func withReqStats(ctx context.Context, st *reqStats) context.Context {
+	return context.WithValue(ctx, reqStatsKey{}, st)
+}
+
+// begin records the start of a request.
+func (s *reqStats) begin() {
+	// Count the request, timing the first.
+	if s == nil {
+		return
+	}
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if s.n == 0 {
+		s.first = time.Now()
+	}
+	s.n++
+}
+
+// end records the end of a request.
+func (s *reqStats) end() {
+	if s == nil {
+		return
+	}
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.last = time.Now()
+}
+
+// result returns the time from the first request's start to the last's end,
+// and the request count.
+func (s *reqStats) result() (time.Duration, int) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if s.n == 0 {
+		return 0, 0
+	}
+	return s.last.Sub(s.first), s.n
 }
 
 // fetcher makes the rescue's requests within the timeout, retry, rate and
@@ -357,7 +411,10 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 		// A request in flight when a hard stop came was cut: drop what it
 		// read, even if it finished first. Its bytes stay counted.
 		f.requests.Add(1)
+		st, _ := ctx.Value(reqStatsKey{}).(*reqStats)
+		st.begin()
 		data, err := f.attempt(ctx, fn)
+		st.end()
 		if isHardStop(err) {
 			return nil, f.hardStop(err)
 		}

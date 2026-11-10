@@ -960,6 +960,66 @@ func TestRescueLedgerPerPack(t *testing.T) {
 	}
 }
 
+// TestRescueLedgerTiming checks each fetched pack gets a t line with its
+// time and requests after its p line, and that a ledger without t lines, as
+// an older run wrote, still loads its packs.
+func TestRescueLedgerTiming(t *testing.T) {
+	// Rescue two packs and find their t lines.
+	src := newSource(t)
+	refs := append(src.pack(2), src.pack(2)...)
+	out := t.TempDir()
+	if _, err := run(context.Background(), testOptions(src, writeList(t, out, refs), out), &fakeServer{dir: src.dir}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(out, "rescue.ledger")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept []string
+	packs := map[string]bool{}
+	for _, line := range strings.Split(string(data), "\n") {
+		f := strings.Fields(line)
+		if len(f) == 4 && f[0] == "t" && packs[f[1]] {
+			if ms, err := strconv.ParseInt(f[2], 10, 64); err != nil || ms < 0 || f[3] == "0" {
+				t.Fatalf("bad t line %q", line)
+			}
+			delete(packs, f[1])
+			packs["timed "+f[1]] = true
+			continue
+		}
+		if len(f) >= 2 && f[0] == "p" {
+			packs[f[1]] = true
+		}
+		kept = append(kept, line)
+	}
+	timed := 0
+	for k := range packs {
+		if strings.HasPrefix(k, "timed ") {
+			timed++
+		} else {
+			t.Fatalf("pack %s has no t line after its p line:\n%s", k, data)
+		}
+	}
+	if timed != 2 {
+		t.Fatalf("%d packs timed, want 2:\n%s", timed, data)
+	}
+
+	// The ledger with its t lines dropped loads both packs.
+	old := filepath.Join(t.TempDir(), "old.ledger")
+	if err := os.WriteFile(old, []byte(strings.Join(kept, "\n")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l, err := openLedger(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.close()
+	if len(l.packs) != 2 {
+		t.Fatalf("old ledger loads %d packs, want 2", len(l.packs))
+	}
+}
+
 // sharedNumSource writes three packs; gives the second the first's number,
 // and points the h rows of the second and one block of the third at it. It
 // reports clean when no pack's bloom filter holds a key of another, which

@@ -134,6 +134,8 @@ type packResult struct {
 	// bytes is the verified blocks' size, fetched the bytes read for the pack.
 	bytes   int64
 	fetched uint64
+	// reqs times and counts the pack's requests.
+	reqs reqStats
 	// skip says why the pack was not fetched, empty when it was.
 	skip string
 }
@@ -190,12 +192,19 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	// Choose the output layout, finishing the pairs a crash left staged in
 	// the adopt layout.
 	var objects block_store_s3.ObjectStore
+	var recovered []string
 	switch o.Layout {
 	case "", layoutPackStore:
 		objects = dirObjects{}
 	case layoutAdopt:
-		if err := recoverAdopt(o.OutDir); err != nil {
+		var orphans []string
+		var err error
+		recovered, orphans, err = recoverAdopt(o.OutDir)
+		if err != nil {
 			return nil, err
+		}
+		for _, name := range orphans {
+			logrus.WithField("file", name).Warn("staged pack with no entry left in place: its blocks are fetched again, and the file may be removed by hand")
 		}
 		objects = adoptObjects{}
 	default:
@@ -208,6 +217,9 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 		return nil, err
 	}
 	defer l.close()
+	if err := ledgerAdopted(l, o.OutDir, recovered); err != nil {
+		return nil, err
+	}
 
 	// Build the rescuer, its fetcher reserving bytes in the ledger.
 	le := logrus.NewEntry(logrus.StandardLogger())
@@ -679,6 +691,11 @@ func (r *rescuer) flush(ctx context.Context) error {
 			if err := r.ledger.pack(res.id, res.fetched, len(res.keys), res.notInPack(), res.skip); err != nil {
 				return err
 			}
+			if elapsed, n := res.reqs.result(); n != 0 {
+				if err := r.ledger.timing(res.id, elapsed, n); err != nil {
+					return err
+				}
+			}
 			r.res.PacksDone++
 		}
 		r.count(stateDone, done)
@@ -740,6 +757,7 @@ func (r *rescuer) packKey(id string) string {
 func (r *rescuer) fetchPack(ctx context.Context, p *packWork) (*packResult, error) {
 	// Skip a pack the index says is past the memory guard.
 	res := &packResult{id: p.id}
+	ctx = withReqStats(ctx, &res.reqs)
 	key := r.packKey(p.id)
 	if p.entry != nil && r.tooLarge(p.entry.GetSizeBytes()) {
 		return r.skipAll(res, p, stateTooLarge, "too-large"), nil
