@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -164,29 +165,37 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 	for {
 		blk, err := p.StoreOps.GetStoredBlock(readCtx, ref)
 		if err == nil || readCtx.Err() != nil {
-			return blk, peerReadErr(ctx, err)
+			return blk, peerReadErr(ctx, readCtx, ref, err)
 		}
 
 		// A failed read asks again after a pause.
 		select {
 		case <-readCtx.Done():
-			return nil, peerReadErr(ctx, err)
+			return nil, peerReadErr(ctx, readCtx, ref, err)
 		case <-time.After(pause):
 		}
 		pause = min(pause*2, peerReadPauseMax)
 	}
 }
 
-// peerReadErr reports a peer read that failed or outlived its bound, while
-// the caller's ctx is still live, as block.ErrUnavailable.
-func peerReadErr(ctx context.Context, err error) error {
-	if err == nil || ctx.Err() != nil || errors.Is(err, block.ErrUnavailable) {
+// peerReadErr reports a peer read of ref that failed or outlived its bound
+// readCtx, while the caller's ctx is still live, as block.ErrUnavailable
+// naming ref, so the reader learns which block no peer served. A read that
+// outlived its bound keeps its last failure as text only: the failure is often
+// the bound's own deadline or cancellation, which must not read as the
+// caller's. An error that already is block.ErrUnavailable comes from the peer
+// store, which names the block.
+func peerReadErr(ctx, readCtx context.Context, ref *block.BlockRef, err error) error {
+	switch {
+	case err == nil, ctx.Err() != nil:
 		return err
+	case readCtx.Err() != nil:
+		return fmt.Errorf("%w: no peer served block %s within %v: %v", block.ErrUnavailable, ref.MarshalString(), peerReadLimit(), err)
+	case errors.Is(err, block.ErrUnavailable):
+		return err
+	default:
+		return fmt.Errorf("%w: peer read of block %s: %w", block.ErrUnavailable, ref.MarshalString(), err)
 	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return block.ErrUnavailable
-	}
-	return errors.Join(block.ErrUnavailable, err)
 }
 
 // logMiss counts ref reaching the peers and reports the count once per
