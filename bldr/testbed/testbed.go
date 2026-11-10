@@ -29,6 +29,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
@@ -201,6 +202,7 @@ func BuildTestbedWithSchedulerConfig(
 		nil,
 		false,
 	)
+	engConf.Format = world_block.NewestWorldFormat
 
 	// Start the world block engine and build its World state.
 	eng, engRef, err := world.StartEngine(ctx, b, engConf, nil)

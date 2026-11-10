@@ -19,6 +19,44 @@ import (
 	block "github.com/s4wave/spacewave/db/kvtx/block"
 )
 
+// WorldFormat is the stored layout of a World.
+type WorldFormat int32
+
+const (
+	// WORLD_FORMAT_CAYLEY_KV is the Cayley kv quad store: a primitive log,
+	// posting lists and reference counts.
+	WorldFormat_WORLD_FORMAT_CAYLEY_KV WorldFormat = 0
+	// WORLD_FORMAT_NODE_GRAPH stores each quad as an out key under its subject
+	// and an in key under its object.
+	WorldFormat_WORLD_FORMAT_NODE_GRAPH WorldFormat = 1
+)
+
+// Enum value maps for WorldFormat.
+var (
+	WorldFormat_name = map[int32]string{
+		0: "WORLD_FORMAT_CAYLEY_KV",
+		1: "WORLD_FORMAT_NODE_GRAPH",
+	}
+	WorldFormat_value = map[string]int32{
+		"WORLD_FORMAT_CAYLEY_KV":  0,
+		"WORLD_FORMAT_NODE_GRAPH": 1,
+	}
+)
+
+func (x WorldFormat) Enum() *WorldFormat {
+	p := new(WorldFormat)
+	*p = x
+	return p
+}
+
+func (x WorldFormat) String() string {
+	name, valid := WorldFormat_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // WorldChangeType is the list of possible change types for the world.
 type WorldChangeType int32
 
@@ -98,6 +136,8 @@ type World struct {
 	// Empty means the default settings. The graph store holds the same
 	// settings; this copy lets the World open it without reading them.
 	GraphSettings *GraphSettings `protobuf:"bytes,8,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
+	// Format is the stored layout of graph_key_value.
+	Format WorldFormat `protobuf:"varint,9,opt,name=format,proto3" json:"format,omitempty"`
 }
 
 func (x *World) Reset() {
@@ -148,6 +188,13 @@ func (x *World) GetGraphSettings() *GraphSettings {
 	return nil
 }
 
+func (x *World) GetFormat() WorldFormat {
+	if x != nil {
+		return x.Format
+	}
+	return WorldFormat_WORLD_FORMAT_CAYLEY_KV
+}
+
 // GraphSettings are the settings of a World's graph store.
 type GraphSettings struct {
 	unknownFields []byte
@@ -180,7 +227,6 @@ type Object struct {
 	// Rev is the revision nonce of the object.
 	// Incremented when a transaction is applied to the object.
 	// Incremented when root_ref is changed (SetRootRef).
-	// Incremented when adding or removing a graph quad referencing Object.
 	Rev uint64 `protobuf:"varint,3,opt,name=rev,proto3" json:"rev,omitempty"`
 	// ModSeqno is the World seqno after the last commit that wrote this Object
 	// record. Rev counts this Object's own changes; ModSeqno orders them with
@@ -426,6 +472,7 @@ func (m *World) CloneVT() *World {
 	}
 	r := new(World)
 	r.LastChangeDisable = m.LastChangeDisable
+	r.Format = m.Format
 	r.ObjectKeyValue = protobuf_go_lite.CloneVTValue(m.ObjectKeyValue)
 	r.GraphKeyValue = protobuf_go_lite.CloneVTValue(m.GraphKeyValue)
 	r.LastChange = protobuf_go_lite.CloneVTValue(m.LastChange)
@@ -559,6 +606,9 @@ func (this *World) EqualVT(that *World) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.GraphSettings, that.GraphSettings) {
+		return false
+	}
+	if this.Format != that.Format {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -720,6 +770,46 @@ func (this *ChangeLogLL) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the WorldFormat to JSON.
+func (x WorldFormat) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), WorldFormat_name)
+}
+
+// MarshalText marshals the WorldFormat to text.
+func (x WorldFormat) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), WorldFormat_name)), nil
+}
+
+// MarshalJSON marshals the WorldFormat to JSON.
+func (x WorldFormat) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WorldFormat from JSON.
+func (x *WorldFormat) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(WorldFormat_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read WorldFormat enum: %v", err)
+		return
+	}
+	*x = WorldFormat(v)
+}
+
+// UnmarshalText unmarshals the WorldFormat from text.
+func (x *WorldFormat) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), WorldFormat_value)
+	if err != nil {
+		return err
+	}
+	*x = WorldFormat(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the WorldFormat from JSON.
+func (x *WorldFormat) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WorldChangeType to JSON.
 func (x WorldChangeType) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), WorldChangeType_name)
@@ -798,6 +888,11 @@ func (x *World) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("graphSettings")
 		x.GraphSettings.MarshalProtoJSON(s.WithField("graphSettings"))
 	}
+	if x.Format != 0 || s.HasField("format") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("format")
+		x.Format.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -853,6 +948,9 @@ func (x *World) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.GraphSettings = &GraphSettings{}
 			x.GraphSettings.UnmarshalProtoJSON(s.WithField("graph_settings", true))
+		case "format":
+			s.AddField("format")
+			x.Format.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1303,6 +1401,11 @@ func (m *World) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Format != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Format))
+		i--
+		dAtA[i] = 0x48
+	}
 	if m.GraphSettings != nil {
 		size, err := m.GraphSettings.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1707,6 +1810,7 @@ func (m *World) SizeVT() (n int) {
 		l = m.GraphSettings.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Format)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1812,6 +1916,10 @@ func (m *ChangeLogLL) SizeVT() (n int) {
 	return n
 }
 
+func (x WorldFormat) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x WorldChangeType) MarshalProtoText() string {
 	return x.String()
 }
@@ -1842,6 +1950,10 @@ func (x *World) MarshalProtoText() string {
 	if x.GraphSettings != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "graph_settings")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GraphSettings)
+	}
+	if x.Format != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldFormat(x.Format))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2105,6 +2217,17 @@ func (m *World) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Format", wireType)
+			}
+			m.Format = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Format = WorldFormat(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

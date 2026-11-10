@@ -504,6 +504,8 @@ type InitWorldOp struct {
 	// GraphSettings are the settings the World's graph store starts with.
 	// Empty means the default settings.
 	GraphSettings *block1.GraphSettings `protobuf:"bytes,3,opt,name=graph_settings,json=graphSettings,proto3" json:"graphSettings,omitempty"`
+	// Format is the stored layout the World starts with.
+	Format block1.WorldFormat `protobuf:"varint,4,opt,name=format,proto3" json:"format,omitempty"`
 }
 
 func (x *InitWorldOp) Reset() {
@@ -531,6 +533,13 @@ func (x *InitWorldOp) GetGraphSettings() *block1.GraphSettings {
 		return x.GraphSettings
 	}
 	return nil
+}
+
+func (x *InitWorldOp) GetFormat() block1.WorldFormat {
+	if x != nil {
+		return x.Format
+	}
+	return block1.WorldFormat(0)
 }
 
 // ApplyTxOp applies a World transaction.
@@ -1217,6 +1226,7 @@ func (m *InitWorldOp) CloneVT() *InitWorldOp {
 	}
 	r := new(InitWorldOp)
 	r.LastChangeDisable = m.LastChangeDisable
+	r.Format = m.Format
 	r.TransformConf = protobuf_go_lite.CloneVTValue(m.TransformConf)
 	r.GraphSettings = protobuf_go_lite.CloneVTValue(m.GraphSettings)
 	if len(m.unknownFields) > 0 {
@@ -1805,6 +1815,9 @@ func (this *InitWorldOp) EqualVT(that *InitWorldOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.GraphSettings, that.GraphSettings) {
+		return false
+	}
+	if this.Format != that.Format {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2915,6 +2928,11 @@ func (x *InitWorldOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("graphSettings")
 		x.GraphSettings.MarshalProtoJSON(s.WithField("graphSettings"))
 	}
+	if x.Format != 0 || s.HasField("format") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("format")
+		x.Format.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2949,6 +2967,9 @@ func (x *InitWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.GraphSettings = &block1.GraphSettings{}
 			x.GraphSettings.UnmarshalProtoJSON(s.WithField("graph_settings", true))
+		case "format":
+			s.AddField("format")
+			x.Format.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -4435,6 +4456,11 @@ func (m *InitWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Format != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Format))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.GraphSettings != nil {
 		size, err := m.GraphSettings.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -5332,6 +5358,7 @@ func (m *InitWorldOp) SizeVT() (n int) {
 		l = m.GraphSettings.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Format)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5857,6 +5884,10 @@ func (x *InitWorldOp) MarshalProtoText() string {
 	if x.GraphSettings != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "graph_settings")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GraphSettings)
+	}
+	if x.Format != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
+		protobuf_go_lite.TextWriteStringer(&sb, block1.WorldFormat(x.Format))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -7067,6 +7098,17 @@ func (m *InitWorldOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Format", wireType)
+			}
+			m.Format = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Format = block1.WorldFormat(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

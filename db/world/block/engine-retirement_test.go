@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -554,18 +555,31 @@ func newRetirementTestEngine(
 	}
 	t.Cleanup(tb.Release)
 
-	// Build the empty engine root.
+	// Build the engine root, an empty World in the newest format.
 	base, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(base.Release)
+	btx, bcs := base.BuildTransaction(nil)
+	root := NewWorld(false)
+	root.Format = NewestWorldFormat
+	bcs.SetBlock(root, true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.SetRootRef(rootRef)
 
 	// Open the engine, over a local authority on coordinator when one is
 	// given, and close it when the test ends.
 	var authority world.Authority
 	if coordinator != nil {
-		authority = NewLocalAuthority(le, base, "world:retirement", coordinator, coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: "world:retirement"})
+		const name = "world:retirement"
+		if err := base.GetBucket().SetRoots(ctx, nil, []block.NamedRoot{{Name: name, Ref: rootRef}}); err != nil {
+			t.Fatal(err)
+		}
+		authority = NewLocalAuthority(le, base, name, coordinator, coord.Scope{VolumeID: "retirement-volume", ObjectStoreID: name})
 	}
 	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, authority, false)
 	if err != nil {

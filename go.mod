@@ -25,7 +25,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.4
 	github.com/aperturerobotics/bbolt v0.0.0-20261024221644-3def6903e63a // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.15.1-0.20261026172548-43cf8e6be6cb
+	github.com/aperturerobotics/cayley v0.15.1-0.20261110052155-7ec2cb5f95c8
 	github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 // master
 	github.com/aperturerobotics/common v0.38.3
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261101202130-19d64da664cd // master
@@ -125,13 +125,17 @@ require (
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bwesterb/go-ristretto v1.2.4 // indirect
+	github.com/cayleygraph/quad v1.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.1 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 // indirect
 	github.com/dolthub/jsonpath v0.0.2-0.20260807003725-336cd89c1c76 // indirect
+	github.com/dop251/goja v0.0.0-20261024144015-2a9269b6b6de // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/grafana/regexp v0.0.0-20250905093917-f7b3be9d1853 // indirect
@@ -165,8 +169,10 @@ require (
 	github.com/pion/sctp v1.12.0 // indirect
 	github.com/pion/srtp/v3 v3.1.0 // indirect
 	github.com/pion/stun/v4 v4.0.1 // indirect
+	github.com/piprate/json-gold v0.9.1 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/pquerna/cachecontrol v0.2.0 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect

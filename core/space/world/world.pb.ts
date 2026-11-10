@@ -9,7 +9,11 @@ import { SharedObjectRef } from '../../sobject/sobject.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 import { BlockRef } from '../../../db/block/block.pb.js'
 import { Config as Config$1 } from '../../../db/block/transform/transform.pb.js'
-import { GraphSettings } from '../../../db/world/block/world.pb.js'
+import type { WorldFormat } from '../../../db/world/block/world.pb.js'
+import {
+  GraphSettings,
+  WorldFormat_Enum,
+} from '../../../db/world/block/world.pb.js'
 import { Tx } from '../../../db/world/block/tx/tx.pb.js'
 
 /**
@@ -330,6 +334,10 @@ export interface InitWorldOp {
    * Empty means the default settings.
    */
   graphSettings?: GraphSettings
+  /**
+   * Format is the stored layout the World starts with.
+   */
+  format?: WorldFormat
 }
 
 export const InitWorldOp: MessageType<InitWorldOp> =
@@ -339,6 +347,7 @@ export const InitWorldOp: MessageType<InitWorldOp> =
       [1, 'last_change_disable', 8],
       [2, 'transform_conf', 11, 0, Config$1.codec],
       [3, 'graph_settings', 11, 0, GraphSettings.codec],
+      [4, 'format', 14, 0, WorldFormat_Enum],
     ],
   )
 
