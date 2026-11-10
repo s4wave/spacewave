@@ -14,7 +14,7 @@ import (
 )
 
 // fakeBucket is an in-memory S3 bucket named "bucket" serving PUT, ranged GET,
-// DELETE, and ListObjectsV2 by prefix.
+// HEAD, DELETE, and ListObjectsV2 by prefix.
 //
 // Without versioning it answers a version listing with 501, as Cloudflare R2
 // does. With versioning it lists versions, and an overwrite or a delete
@@ -88,7 +88,7 @@ func (b *fakeBucket) serve(w http.ResponseWriter, r *http.Request) {
 		b.hide(key)
 		b.objects[key] = string(body)
 		b.puts++
-	case r.Method == http.MethodGet:
+	case r.Method == http.MethodGet || r.Method == http.MethodHead:
 		data, ok := b.objects[key]
 		if !ok {
 			http.Error(w, "<Error><Code>NoSuchKey</Code></Error>", http.StatusNotFound)

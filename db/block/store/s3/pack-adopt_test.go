@@ -5,6 +5,7 @@ package block_store_s3
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -96,6 +97,108 @@ func TestAdoptPack(t *testing.T) {
 	if data, found, err := restarted.GetBlock(ctx, refs[2]); err != nil || !found || string(data) != "node block 2" {
 		t.Fatalf("read after restart = %q, %v, %v", data, found, err)
 	}
+}
+
+// TestAdoptBucketPack adopts a pack with no copy at hand to report its keys,
+// taking them from the pack's index in the bucket, and tries to make it
+// register a pack the bucket does not hold as its entry says.
+func TestAdoptBucketPack(t *testing.T) {
+	// A local store that never lists the bucket, and a pack from the node.
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	local := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
+	t.Cleanup(local.Close)
+	adoptBlocks(ctx, t, local, "own", 1)
+	node := newTestPackStore(t, client)
+	refs := adoptBlocks(ctx, t, node, "node", 3)
+	entry := nodeEntry(ctx, t, node)
+	registered := func() bool {
+		found, err := local.LocateBlocks(ctx, refs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return found[0] || found[1] || found[2]
+	}
+
+	// Count the reads of the pack's body.
+	key := "p/" + packDir + entry.GetId()
+	var gets atomic.Int32
+	bucket.after = func(r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/"+key) {
+			gets.Add(1)
+		}
+	}
+
+	// An entry the bucket object does not match is refused and registers
+	// nothing: a wrong size, a wrong block count and a pack that is not there.
+	wrongSize := entry.CloneVT()
+	wrongSize.SizeBytes++
+	wrongCount := entry.CloneVT()
+	wrongCount.BlockCount++
+	gone := newTestPackStore(t, client)
+	adoptBlocks(ctx, t, gone, "gone", 2)
+	var absent *packfile.PackfileEntry
+	if err := gone.loadEntries(ctx); err != nil {
+		t.Fatal(err)
+	}
+	gone.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, e := range gone.entries {
+			if e.GetBlockCount() == 2 {
+				absent = e
+			}
+		}
+	})
+	if absent == nil {
+		t.Fatal("no two-block pack")
+	}
+	bucket.mtx.Lock()
+	delete(bucket.objects, "p/"+packDir+absent.GetId())
+	bucket.mtx.Unlock()
+	for name, bad := range map[string]*packfile.PackfileEntry{
+		"wrong size":  wrongSize,
+		"wrong count": wrongCount,
+		"absent pack": absent,
+	} {
+		if err := local.AdoptBucketPack(ctx, bad); err == nil {
+			t.Fatalf("%s: adopted", name)
+		} else {
+			t.Logf("%s: %v", name, err)
+		}
+		if registered() {
+			t.Fatalf("%s: registered a block", name)
+		}
+		if held, err := local.HasPackfile(ctx, bad.GetId()); err != nil || held {
+			t.Fatalf("%s: pack counts as held: %v %v", name, held, err)
+		}
+	}
+	if gets.Load() != 1 {
+		t.Fatalf("the refused entries read the pack %d times, want once for the wrong count", gets.Load())
+	}
+
+	// The true entry registers the pack with the keys its index lists, reading
+	// the index once, and a repeat reads nothing.
+	gets.Store(0)
+	if err := local.AdoptBucketPack(ctx, entry); err != nil {
+		t.Fatal(err)
+	}
+	if gets.Load() != 1 {
+		t.Fatalf("adoption read the pack %d times, want once", gets.Load())
+	}
+	if err := local.AdoptBucketPack(ctx, entry); err != nil {
+		t.Fatal(err)
+	}
+	if gets.Load() != 1 {
+		t.Fatalf("a repeat read the pack again: %d reads", gets.Load())
+	}
+	found, err := local.LocateBlocks(ctx, refs)
+	if err != nil || !found[0] || !found[1] || !found[2] {
+		t.Fatalf("located %v after adoption: %v", found, err)
+	}
+	if data, ok, err := local.GetBlock(ctx, refs[1]); err != nil || !ok || string(data) != "node block 1" {
+		t.Fatalf("adopted block read = %q, %v, %v", data, ok, err)
+	}
+
 }
 
 // countingCache is a RangeCache that answers data, counting its reads.
