@@ -250,7 +250,7 @@ func TestFetch(t *testing.T) {
 // and no overwrite.
 func TestFetchResume(t *testing.T) {
 	ctx := t.Context()
-	for killAt := 1; killAt < 20; killAt++ {
+	for killAt := 1; killAt < 15; killAt++ { // 5 batches of 3 puts, 30 reads
 		for _, kill := range []string{"put", "read"} {
 			t.Run(fmt.Sprintf("%s-%d", kill, killAt), func(t *testing.T) {
 				src, refs := newBlocks(t, 30)
@@ -259,7 +259,7 @@ func TestFetchResume(t *testing.T) {
 				if kill == "put" {
 					bkt.failPutsAfter = killAt
 				} else {
-					src.failAfter = killAt * 3
+					src.failAfter = killAt * 2
 				}
 				if _, err := f.Run(ctx, refs); !errors.Is(err, errKilled) {
 					t.Fatalf("killed run returned %v", err)
