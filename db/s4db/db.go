@@ -564,13 +564,12 @@ func (db *DB) writePin(p pin) error {
 }
 
 // lookup returns the value of key in st: the memtable decides when it holds
-// the key, else the newest run that holds it, read through sc around the
-// block cache when sc is set.
-func (db *DB) lookup(st *state, key []byte, sc *getScratch) (value, bool, error) {
+// the key, else the newest run that holds it.
+func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
 	if e, ok := st.mem.get(key); ok {
 		return e.val, e.val.kind != valueDeleted, nil
 	}
-	return db.lookupRuns(st, key, sc)
+	return db.lookupRuns(st, key, nil)
 }
 
 // readValue returns the bytes of v: an inline value's own bytes, or the
