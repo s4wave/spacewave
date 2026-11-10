@@ -1758,12 +1758,7 @@ func TestLivenessAdversarial(t *testing.T) {
 
 			// Reopen with frees on, wait for any adoption, and collect.
 			v, clk := openLivenessVolume(t, store, true)
-			if v.adoptDone != nil {
-				<-v.adoptDone
-			}
-			if got := livenessAdoption(t, v); got != block_gc.Adoption_ADOPTION_ADOPTED {
-				t.Fatalf("reopened Volume is %v, want adopted", got)
-			}
+			waitAdopted(t, v)
 			clk.Add(block_gc.DefaultGrace + time.Second)
 			collectAll(t, v)
 			requireStored(t, v, tr, true, "P", "B")
@@ -1796,14 +1791,39 @@ func TestLivenessAdversarial(t *testing.T) {
 
 		// Reopen with frees on and wait for the adoption.
 		v, clk := openLivenessVolume(t, store, true)
-		if v.adoptDone == nil {
-			t.Fatal("an unadopted Volume opened with frees on started no adoption")
-		}
-		<-v.adoptDone
+		waitAdopted(t, v)
 		clk.Add(block_gc.DefaultGrace + time.Second)
 		collectAll(t, v)
 		requireStored(t, v, tr, true, "R", "X")
 		requireStored(t, v, tr, false, "G")
+		requireAudit(t, v, 0)
+
+		// A list rebuild that rewrites a list of the adopted Volume returns it
+		// to unadopted, and the background adoption recounts it without a
+		// reopen: N, stored unheld and then named in R's rewritten list,
+		// stays.
+		setListsUnverified(t, v, true)
+		n := tr.add(t, "N")
+		if _, err := v.PutBlockBatch(ctx, tr.entries("N")); err != nil {
+			t.Fatal(err)
+		}
+		rb, err := v.OpenListRebuild(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := rb.Verify(ctx, tr["X"].Ref, nil); err != nil {
+			t.Fatal(err)
+		}
+		if err := rb.Verify(ctx, r, []*block.BlockRef{tr["X"].Ref, n}); err != nil {
+			t.Fatal(err)
+		}
+		if res, err := rb.Finish(ctx); err != nil || res.Rewritten != 1 || !res.Cleared || !res.Unadopted {
+			t.Fatalf("rebuild with a rewrite = %+v err %v, want the Volume unadopted", res, err)
+		}
+		waitAdopted(t, v)
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, "R", "X", "N")
 		requireAudit(t, v, 0)
 	})
 
@@ -2813,7 +2833,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// Volume stays adopted with the mark standing, so nothing frees.
 		probeCtx, cancel := context.WithCancel(ctx)
 		probe := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){rebuildSecondPass: cancel}}
-		rb, err := block_gc.OpenListRebuild(probeCtx, probe)
+		rb, err := block_gc.OpenListRebuild(probeCtx, probe, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -2934,7 +2954,7 @@ func TestLivenessAdversarial(t *testing.T) {
 				}
 			}
 		}}
-		rb, err := block_gc.OpenListRebuild(ctx, probe)
+		rb, err := block_gc.OpenListRebuild(ctx, probe, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -3036,7 +3056,7 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatalf("collect under unverified lists = %+v, want G parked", res)
 		}
 		requireStored(t, v, tr, true, "R", "X", "G")
-		markListsVerified(t, v)
+		setListsUnverified(t, v, false)
 		if res := collectAll(t, v); res.Requeued != 1 || res.Freed != 1 || res.Parked != 0 {
 			t.Fatalf("collect once verified = %+v, want G requeued and freed", res)
 		}
@@ -3201,6 +3221,20 @@ func (p *adoptProbe) Update(ctx context.Context, fn func(rec *block_gc.Records, 
 	return p.Store.Update(ctx, fn)
 }
 
+// waitAdopted waits for the background adoption of v to mark it adopted.
+func waitAdopted(t *testing.T, v *Volume) {
+	t.Helper()
+	if v.adoptDone == nil {
+		t.Fatal("the Volume runs no background adoption")
+	}
+	for deadline := time.Now().Add(10 * time.Second); livenessAdoption(t, v) != block_gc.Adoption_ADOPTION_ADOPTED; {
+		if time.Now().After(deadline) {
+			t.Fatalf("background adoption left the Volume %v", livenessAdoption(t, v))
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 // livenessAdoption returns the Volume's adoption state.
 func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
 	t.Helper()
@@ -3216,16 +3250,17 @@ func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
 	return adoption
 }
 
-// markListsVerified clears the Volume's unverified child lists mark, as a
-// repair that rebuilt the lists from the blocks does.
-func markListsVerified(t *testing.T, v *Volume) {
+// setListsUnverified sets the Volume's unverified child lists mark, as an
+// upgrade from format 6 does, or clears it, as a repair that rebuilt the lists
+// from the blocks does.
+func setListsUnverified(t *testing.T, v *Volume, unverified bool) {
 	t.Helper()
 	err := collectorStore{v: v}.Update(t.Context(), func(rec *block_gc.Records, _ block.StoreOps) error {
 		state, err := rec.GetState(t.Context())
 		if err != nil {
 			return err
 		}
-		state.UnverifiedLists = false
+		state.UnverifiedLists = unverified
 		return rec.SetState(t.Context(), state)
 	})
 	if err != nil {
@@ -3381,7 +3416,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	store2 := store_kvtx_inmem.NewStore()
 	writeLegacyStore(t, store2, keys, tr, "R1", false)
 	v2, _ := openUnadoptedVolume(t, store2)
-	markListsVerified(t, v2)
+	setListsUnverified(t, v2, false)
 	if _, err := v2.Adopt(ctx); !errors.Is(err, block_gc.ErrAdoptUnknown) {
 		t.Fatalf("adopt of a listless root = %v, want ErrAdoptUnknown", err)
 	}
@@ -3394,13 +3429,7 @@ func TestFormatUpgradeCarriesLiveness(t *testing.T) {
 	store4 := store_kvtx_inmem.NewStore()
 	writeLegacyStore(t, store4, keys, tr, "R1", true, "C", "R1")
 	v4, _ := openLivenessVolume(t, store4, true)
-	if v4.adoptDone == nil {
-		t.Fatal("a Volume with unverified lists started no background adoption")
-	}
-	<-v4.adoptDone
-	if adoption := livenessAdoption(t, v4); adoption != block_gc.Adoption_ADOPTION_ADOPTED {
-		t.Fatalf("background adoption left %v, want adopted", adoption)
-	}
+	waitAdopted(t, v4)
 
 	// An adopted format 7 store where main holds B, which a fill stored
 	// naming C with a fill mark and no holder for C, opens unadopted, and its

@@ -94,21 +94,41 @@ func (v *Volume) Adopt(ctx context.Context) (block_gc.AdoptResult, error) {
 	return block_gc.Adopt(backgroundPass(ctx), collectorStore{v: v})
 }
 
-// runBackgroundAdopt adopts the Volume once, in Adopt's bounded background
-// slices, and stops at the first failure, such as a named block stored
-// without a child list, or when ctx ends. An adoption another process
-// runs supersedes it, and that one finishes the work.
+// runBackgroundAdopt adopts the Volume, in Adopt's bounded background
+// slices, each time wakeAdopt asks, until ctx ends. A failed pass, such as one
+// that finds a named block stored without a child list, waits for the next
+// request; an adoption another process runs supersedes a pass, and that one
+// finishes the work.
 func (v *Volume) runBackgroundAdopt(ctx context.Context) {
 	defer close(v.adoptDone)
-	res, err := v.Adopt(ctx)
-	switch {
-	case v.le == nil || ctx.Err() != nil:
-	case errors.Is(err, block_gc.ErrAdoptSuperseded):
-		v.le.WithError(err).Info("background adoption of the volume left to another run")
-	case err != nil:
-		v.le.WithError(err).Warn("background adoption of the volume failed")
+	for {
+		// Wait for a request.
+		select {
+		case <-ctx.Done():
+			return
+		case <-v.adoptWake:
+		}
+
+		// Adopt and log the outcome.
+		res, err := v.Adopt(ctx)
+		switch {
+		case v.le == nil || ctx.Err() != nil:
+		case errors.Is(err, block_gc.ErrAdoptSuperseded):
+			v.le.WithError(err).Info("background adoption of the volume left to another run")
+		case err != nil:
+			v.le.WithError(err).Warn("background adoption of the volume failed")
+		case !res.Already:
+			v.le.WithField("blocks", res.Blocks).WithField("queued", res.Queued).Info("adopted the volume")
+		}
+	}
+}
+
+// wakeAdopt asks the background adoption for a pass, keeping at most one
+// request pending. A Volume without one ignores it.
+func (v *Volume) wakeAdopt() {
+	select {
+	case v.adoptWake <- struct{}{}:
 	default:
-		v.le.WithField("blocks", res.Blocks).WithField("queued", res.Queued).Info("adopted the volume")
 	}
 }
 

@@ -61,6 +61,9 @@ func rebuildable(state *LivenessState) error {
 type ListRebuild struct {
 	// store is the Volume.
 	store Store
+	// unadopted is called after Finish returns the Volume to unadopted, nil
+	// when nothing waits on it.
+	unadopted func()
 	// pending are the verified lists not yet written.
 	pending []*block.PutBatchEntry
 	// res counts the results.
@@ -69,8 +72,10 @@ type ListRebuild struct {
 
 // OpenListRebuild starts a list rebuild of store, refusing a Volume an
 // adoption is counting with ErrListRebuildAdopting and one whose lists are
-// verified with ErrListsVerified.
-func OpenListRebuild(ctx context.Context, store Store) (*ListRebuild, error) {
+// verified with ErrListsVerified. Finish calls unadopted, unless it is nil,
+// once it has returned the Volume to unadopted, so the owner of the Volume's
+// adoption can start the recount.
+func OpenListRebuild(ctx context.Context, store Store, unadopted func()) (*ListRebuild, error) {
 	err := store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -81,7 +86,7 @@ func OpenListRebuild(ctx context.Context, store Store) (*ListRebuild, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ListRebuild{store: store}, nil
+	return &ListRebuild{store: store, unadopted: unadopted}, nil
 }
 
 // Verify records that ref's decoded refs are refs, writing its list and mark
@@ -249,7 +254,14 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 		return r.res, err
 	}
 	r.res.Cleared = true
-	return r.res, clearKinds(ctx, r.store, nil, kindVerified, kindLanded)
+
+	// Delete the rebuild's marks, then signal the recount, which an unadopted
+	// Volume needs even when the marks remain.
+	err = clearKinds(ctx, r.store, nil, kindVerified, kindLanded)
+	if r.res.Unadopted && r.unadopted != nil {
+		r.unadopted()
+	}
+	return r.res, err
 }
 
 // visitReached counts a listed block a root reaches without a verified list,
