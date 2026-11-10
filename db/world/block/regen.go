@@ -447,7 +447,7 @@ func (g *regenGraft) write(ctx context.Context) (*block.BlockRef, error) {
 	}
 
 	// Apply the changes to the tree.
-	handle, err := openGraph(ctx, WorldFormat_WORLD_FORMAT_NODE_GRAPH, nil, ops, ktx)
+	handle, err := openGraph(ctx, WorldFormat_WORLD_FORMAT_NODE_GRAPH, nil, ops)
 	if err != nil {
 		return nil, err
 	}
