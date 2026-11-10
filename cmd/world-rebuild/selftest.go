@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -130,8 +132,43 @@ func runSelftest(o opts) error {
 		os.Remove(o.out)
 	}
 
+	// A connection holding the source open makes copy refuse. Only Linux's
+	// open file description probe sees this process's own locks.
+	if runtime.GOOS == "linux" {
+		if err := heldSourceRefused(o, filepath.Join(dir, "held.db")); err != nil {
+			return err
+		}
+	}
+
 	// All checks passed.
 	fmt.Println("selftest: ok")
+	return nil
+}
+
+// heldSourceRefused holds a connection to the test World open and checks
+// that copy refuses to start.
+func heldSourceRefused(o opts, out string) error {
+	// Open the source as the backend would and read from it.
+	hold, err := sql.Open("sqlite", "file:"+o.world)
+	if err != nil {
+		return err
+	}
+	defer hold.Close()
+	var c int64
+	if err := hold.QueryRow("SELECT count(*) FROM kv WHERE rowid < 10").Scan(&c); err != nil {
+		return err
+	}
+
+	// copy must refuse before writing anything.
+	o.out, o.mutant = out, ""
+	err = runCopy(o)
+	if err == nil || !strings.Contains(err.Error(), "lock") {
+		return fmt.Errorf("copy with a live connection on the source: got %v, want a lock refusal", err)
+	}
+	if _, serr := os.Stat(out); serr == nil {
+		return fmt.Errorf("copy refused but wrote %s", out)
+	}
+	fmt.Printf("held source: copy refused: %v\n", err)
 	return nil
 }
 
