@@ -27,8 +27,10 @@ func textOf(q quad.Quad) quadText {
 //
 // Every delta is checked before any key is written, so a rejected call
 // changes nothing. A node left without edges is deleted with its ID map entry
-// in the same call, unless it is pinned as a predicate or label.
-func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts graph.IgnoreOpts) error {
+// in the same call, unless it is pinned as a predicate or label. The next ID
+// is stored on every return after an allocation, also when a write fails
+// midway, so an ID whose keys reached the buffer is never handed out again.
+func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts graph.IgnoreOpts) (err error) {
 	// An empty call writes nothing; otherwise one batch resolves each value once.
 	if len(in) == 0 {
 		return nil
@@ -70,13 +72,18 @@ func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts gra
 		apply[i] = true
 	}
 
-	// Write the accepted deltas, then delete the nodes they left empty.
+	// Write the accepted deltas, then delete the nodes they left empty, and
+	// store the next ID however the writes end.
+	defer func() {
+		if serr := qs.storeNextID(ctx); err == nil {
+			err = serr
+		}
+	}()
 	emptied := make(map[uint64]struct{})
 	for i, d := range in {
 		if !apply[i] {
 			continue
 		}
-		var err error
 		if d.Action == graph.Add {
 			err = b.add(ctx, d.Quad)
 		} else {
@@ -91,7 +98,7 @@ func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts gra
 			return err
 		}
 	}
-	return qs.storeNextID(ctx)
+	return nil
 }
 
 // deltaBatch resolves each distinct value once within one ApplyDeltas call.

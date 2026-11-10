@@ -70,9 +70,10 @@ func (b *Builder) AddQuad(s, p, o, l uint64) error {
 }
 
 // Write streams the built tree's keys and values to fn in ascending key
-// order, once. fn must not keep key or value after it returns. Write fails on
-// a key added twice, such as two nodes with one value, and on a pin of a node
-// never added.
+// order, once. fn must not keep key or value after it returns. A quad added
+// twice writes its edges once, since an old kv store can hold several
+// physical copies of one quad. Write fails on any other key added twice, such
+// as two nodes with one value, and on a pin of a node never added.
 func (b *Builder) Write(ctx context.Context, fn func(key, value []byte) error) error {
 	// Sort in the next ID, one past the largest node, when there is a node.
 	if b.maxID != 0 {
@@ -125,10 +126,13 @@ func (h *heldKey) set(key, value []byte) {
 	}
 }
 
-// merge adds another record of the held key: a pin marker, or the meta of a
-// node whose pin markers came first. Any other repeat is an error.
+// merge adds another record of the held key: a pin marker, the meta of a
+// node whose pin markers came first, or another copy of a quad's edge. Any
+// other repeat is an error.
 func (h *heldKey) merge(value []byte) error {
 	switch {
+	case !h.meta && len(value) == 0 && len(h.value) == 0:
+		return nil
 	case !h.meta:
 		return errors.Errorf("node graph build: key %q added twice", h.key)
 	case len(value) == 0:
