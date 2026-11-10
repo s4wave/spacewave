@@ -111,18 +111,37 @@ func unmarshalPackRow(b []byte) (packRow, error) {
 }
 
 // ParsePackRow decodes the value of a p/ row of the pack index into the pack's
-// number, as loading the pack table does: an error fails the load, and with
-// it every lookup of the store.
-func ParsePackRow(value []byte) (uint32, error) {
+// number and whether its h rows are written, as loading the pack table does:
+// an error fails the load, and with it every lookup of the store.
+func ParsePackRow(value []byte) (num uint32, indexed bool, err error) {
 	row, err := unmarshalPackRow(value)
-	return row.num, err
+	return row.num, row.indexed, err
 }
 
-// PackRowPrefix and HashRowPrefix prefix the p/ and h rows of the pack index,
-// after PackIndexPrefix.
+// PackNeedsEntry reports whether loading the pack table reads the entry of a
+// pack whose row is indexed, of a number holders rows hold, and forgets the
+// pack when it has none: an unindexed pack, or one sharing its number.
+func PackNeedsEntry(indexed bool, holders int) bool {
+	return !indexed || holders > 1
+}
+
+// ParseEntry decodes the value of pack id's e/ row as loading the pack table
+// reads it, nil for a value that does not decode to that pack, which the
+// load reads as no entry.
+func ParseEntry(id string, value []byte) *packfile.PackfileEntry {
+	entry := &packfile.PackfileEntry{}
+	if entry.UnmarshalVT(value) != nil || entry.GetId() != id {
+		return nil
+	}
+	return entry
+}
+
+// PackRowPrefix, HashRowPrefix and EntryRowPrefix prefix the p/, h and e/
+// rows of the pack index, after PackIndexPrefix.
 const (
-	PackRowPrefix = indexPackPrefix
-	HashRowPrefix = indexHashPrefix
+	PackRowPrefix  = indexPackPrefix
+	HashRowPrefix  = indexHashPrefix
+	EntryRowPrefix = indexEntryPrefix
 )
 
 // HashRowKey returns the key of the h row that places the block with hash h,
@@ -222,7 +241,7 @@ func (x *packIndex) load(ctx context.Context) (int, []*packfile.PackfileEntry, e
 	// packs sharing a number.
 	var unplaced []string
 	for _, id := range ids {
-		if row := rows[id]; !row.indexed || holders[row.num] > 1 {
+		if row := rows[id]; PackNeedsEntry(row.indexed, holders[row.num]) {
 			unplaced = append(unplaced, id)
 		}
 	}
@@ -280,11 +299,7 @@ func getEntry(ctx context.Context, tx kvtx.Tx, id string) (*packfile.PackfileEnt
 	if err != nil || !found {
 		return nil, errors.Wrap(err, "read cached entry")
 	}
-	entry := &packfile.PackfileEntry{}
-	if entry.UnmarshalVT(value) != nil || entry.GetId() != id {
-		return nil, nil
-	}
-	return entry, nil
+	return ParseEntry(id, value), nil
 }
 
 // forgetMissing forgets the rows of the packs in ids that read has no entry

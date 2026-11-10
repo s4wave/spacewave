@@ -221,6 +221,12 @@ func readEvictableBytes(ctx context.Context, tx kvtx.Tx) (int64, error) {
 	if err != nil || !found {
 		return 0, err
 	}
+	return ParseEvictableBytes(value)
+}
+
+// ParseEvictableBytes decodes the value of EvictableBytesKey as the store
+// reads it when it opens: an error fails the open.
+func ParseEvictableBytes(value []byte) (int64, error) {
 	return strconv.ParseInt(string(value), 10, 64)
 }
 

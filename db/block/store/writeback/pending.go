@@ -183,6 +183,17 @@ func decodeQueueCount(value []byte) (queueCount, bool) {
 	return c, true
 }
 
+// QueueCountKey is countKey, for tools that read the store's keys offline.
+const QueueCountKey = countKey
+
+// ValidQueueCount reports whether value, of QueueCountKey, decodes as the
+// store decodes it when it opens. The store recounts the queue when it does
+// not.
+func ValidQueueCount(value []byte) bool {
+	_, ok := decodeQueueCount(value)
+	return ok
+}
+
 // readQueueCount reads the kept count, reporting false when it is absent or
 // unreadable, which an open replaces with a new walk.
 func readQueueCount(ctx context.Context, tx kvtx.Tx) (queueCount, bool, error) {

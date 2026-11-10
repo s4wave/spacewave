@@ -35,6 +35,9 @@ import (
 // backfillKey names the remote whose backfill completed.
 const backfillKey = "backfill"
 
+// BackfillKey is backfillKey, for tools that read the store's keys offline.
+const BackfillKey = backfillKey
+
 // formerPrefixes match the keys of the marker layout before the queue,
 // dropped at open so the next backfill queues their blocks again, and those
 // of an earlier count of the queue.
