@@ -18,6 +18,12 @@ var ErrEngineClosed = errors.New("world block engine is closed")
 // caller runs its change again there.
 var errEngineRetired = fmt.Errorf("%w: %w", ErrEngineClosed, world.ErrEngineRetired)
 
+// ErrPartialWrite is returned by a commit or fork of a World state whose
+// write failed after changing part of it. The caller discards the state and
+// runs its change again in a new transaction; the error it wraps says why the
+// write failed.
+var ErrPartialWrite = errors.New("world state holds a partial graph write")
+
 // ErrAuthorityHead is returned by SetRootRef on an engine with an Authority,
 // whose head only the Authority moves.
 var ErrAuthorityHead = errors.New("world block engine head belongs to its authority")

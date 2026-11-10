@@ -240,7 +240,7 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 		if graph.IsQuadNotExist(err) {
 			return nil
 		}
-		return err
+		return t.failGraphCall(err)
 	}
 
 	// Record the removed relationship.
@@ -248,7 +248,7 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 		ChangeType: WorldChangeType_WorldChange_GRAPH_DELETE,
 		Quad:       world.GraphQuadToQuad(q),
 	})
-	return err
+	return t.failWrite(err)
 }
 
 // deleteGraphObject removes outgoing and incoming relationships for an object.

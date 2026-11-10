@@ -8,7 +8,8 @@ import (
 )
 
 // TestWorldStateSetGraphQuadValidatesAndDeduplicates checks endpoint validation
-// and revision stability when an existing relationship is inserted again.
+// and revision stability when an existing relationship is inserted again, and
+// that neither rejection keeps the state from committing.
 func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 	// Open a fresh write state.
 	ctx := context.Background()
@@ -73,5 +74,10 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 		if err != nil || revision != revisions[i] {
 			t.Fatalf("duplicate changed %s revision: got=%d want=%d err=%v", key, revision, revisions[i], err)
 		}
+	}
+
+	// A rejected relationship wrote nothing, so the state still commits.
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err)
 	}
 }
