@@ -18,6 +18,8 @@
 //	         -mbps; reports by family and probes the copy rate
 //	copy     writes the new file; the source must have no writer
 //	verify   checks a copy against its source and the drop rule
+//	packcheck checks the packs of the blocks a copy dropped against a bucket
+//	         listing, before the old World is removed
 //	synth    builds a test store shaped like production, of -n blocks, for timing
 //	selftest builds a local test store, counts, copies, verifies, and runs
 //	         mutants
@@ -144,6 +146,12 @@ func main() {
 	fs.Int64Var(&o.rateMB, "rate-mb", 1000, "count: kept megabytes the copy rate measurement copies")
 	fs.BoolVar(&o.rateOnly, "rate-only", false, "count: skip the passes; copy ~rate-mb of rows from 64 slices to -rate-out, keeping all, and report the MB/s")
 	fs.BoolVar(&o.rateSplit, "rate-split", false, "count: read ~rate-mb of rows from 64 slices into memory, then insert them into -rate-out as copy does, physical then key order, and report each rate")
+
+	// The pack existence check.
+	fs.StringVar(&o.list, "list", "", "packcheck: bucket listing, size and key lines (rclone lsf -R --format sp)")
+	fs.StringVar(&o.listFormat, "list-format", "sp", "packcheck: the listing's field order, sp (size;key) or ps (key;size)")
+	fs.StringVar(&o.needed, "needed", "", "packcheck: check the packs of this needed-packs file, reading no SQLite file")
+	fs.StringVar(&o.neededOut, "needed-out", "", "packcheck: write the needed packs (id size blocks) here")
 	_ = fs.Parse(os.Args[2:])
 
 	// Run the subcommand.
@@ -166,6 +174,8 @@ func main() {
 		if drop, err = buildTestStore(o.world, o.packs, o.n, o.storeID, o.rowid, true); err == nil {
 			fmt.Printf("synth: %d blocks, %d the rule drops\n", o.n, drop)
 		}
+	case cmd == "packcheck":
+		_, err = runPackCheck(o)
 	case cmd == "probe":
 		err = runProbe(o)
 	default:
@@ -178,7 +188,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: world-rebuild count|copy|verify|selftest|probe -world F -packs F [-out F]")
+	fmt.Fprintln(os.Stderr, "usage: world-rebuild count|copy|verify|packcheck|selftest|probe -world F -packs F [-out F]")
 	os.Exit(2)
 }
 
