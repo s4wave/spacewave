@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -25,6 +26,10 @@ type opts struct {
 	reserve  int64
 	rangeSHA string
 	live     bool
+	cross    bool
+	mbps     float64
+	mbpsFile string
+	readers  int
 }
 
 func main() {
@@ -32,8 +37,12 @@ func main() {
 	flag.Int64Var(&o.reserve, "reserve", 1<<30, "bytes of leaves to keep unpunched, taken whole trunks from the head of the chain")
 	flag.StringVar(&o.rangeSHA, "range-sha", "", "punch, if a fresh walk gives this range sha256 from a dry run")
 	flag.BoolVar(&o.live, "live", false, "read a running database read-only: estimates only, no locks, cannot punch")
+	flag.BoolVar(&o.cross, "crosscheck", false, "read-only: walk every b-tree and overflow chain and check none of their pages is on the freelist; no locks, cannot punch")
+	flag.Float64Var(&o.mbps, "mbps", 150, "-crosscheck read cap in MB/s, 0 for none")
+	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread every second; a number in it replaces the -mbps cap")
+	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: world-punch [-live | -range-sha HASH] [-reserve BYTES] DB")
+		fmt.Fprintln(os.Stderr, "usage: world-punch [-live | -crosscheck [-mbps N] [-mbps-file PATH] | -range-sha HASH] [-reserve BYTES] DB")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -44,8 +53,16 @@ func main() {
 	o.path = flag.Arg(0)
 	var err error
 	switch {
-	case o.live && o.rangeSHA != "":
-		err = errors.New("-live cannot punch: drop -range-sha")
+	case (o.live || o.cross) && o.rangeSHA != "":
+		err = errors.New("-live and -crosscheck cannot punch: drop -range-sha")
+	case o.live && o.cross:
+		err = errors.New("pick one of -live and -crosscheck")
+	case o.cross:
+		var bad bool
+		bad, err = runCrosscheck(os.Stdout, o)
+		if err == nil && bad {
+			os.Exit(3)
+		}
 	case o.live:
 		err = runLive(os.Stdout, o)
 	default:
@@ -85,6 +102,42 @@ func runLive(out io.Writer, o opts) error {
 		fmt.Fprintln(out, "walk stopped early (torn or changing chain):", w.torn)
 	}
 	return nil
+}
+
+// runCrosscheck walks a possibly running file read-only. It reports true
+// when an unexplained conflict remains.
+func runCrosscheck(out io.Writer, o opts) (bool, error) {
+	f, err := os.Open(o.path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return false, err
+	}
+	h, herr := readHeader(f, st.Size())
+	if h.pageSize == 0 {
+		return false, herr
+	}
+	fmt.Fprintln(out, "CROSSCHECK read-only: no lock held, the WAL is not read, a live file may change while it is walked")
+	if herr != nil {
+		fmt.Fprintln(out, "header warning:", herr)
+	}
+	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, out: out}
+	if d, err := openDirect(o.path); err == nil {
+		defer d.Close()
+		co.bulk = d
+		fmt.Fprintln(out, "tree reads use O_DIRECT")
+	} else {
+		fmt.Fprintln(out, "tree reads use the page cache:", err)
+	}
+	res, err := crosscheck(f, h, co)
+	if err != nil {
+		return false, err
+	}
+	res.print(out)
+	return res.unexplained() > 0, nil
 }
 
 // runLocked is the dry run, and the punch when o.rangeSHA is set.

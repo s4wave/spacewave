@@ -66,3 +66,9 @@ func allocated(st os.FileInfo) int64 {
 	}
 	return -1
 }
+
+// openDirect opens path read-only with O_DIRECT, so bulk reads skip the
+// page cache.
+func openDirect(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_RDONLY|unix.O_DIRECT, 0)
+}
