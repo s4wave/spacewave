@@ -200,7 +200,7 @@ func buildGraphIndex(ctx context.Context, quads []world.GraphQuad) (*hashmap.BTr
 		return nil, errors.Wrap(err, "create graph index")
 	}
 	defer stage.Discard()
-	staged, err := openGraph(ctx, importFormat, nil, stage, stage)
+	staged, err := openGraph(ctx, importFormat, nil, stage)
 	if err != nil {
 		return nil, errors.Wrap(err, "create graph index")
 	}

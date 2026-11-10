@@ -732,7 +732,7 @@ func (t *WorldState) buildGraphTree(ctx context.Context) (kvtx.BlockTx, *kvtx_de
 		graphOps = kvtx_deferred.NewOps(ktx, batch, 0, 0)
 		graphStore = graphOps
 	}
-	graphHd, err := openGraph(taskCtx, t.format, t.graphSettings, graphStore, ktx)
+	graphHd, err := openGraph(taskCtx, t.format, t.graphSettings, graphStore)
 	subtask.End()
 	if err != nil {
 		ktx.Discard()

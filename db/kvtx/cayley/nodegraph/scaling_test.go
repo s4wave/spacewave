@@ -54,7 +54,7 @@ func newScaleGraph(t *testing.T, objects int) *scaleGraph {
 		t.Fatal(err)
 	}
 	t.Cleanup(tx.Discard)
-	h, err := NewGraph(tx, nil)
+	h, err := NewGraph(tx)
 	if err != nil {
 		t.Fatal(err)
 	}
