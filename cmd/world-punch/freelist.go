@@ -11,7 +11,7 @@ const pendingByte = sqlitefree.PendingByte
 var lockByteOffset int64 = pendingByte
 
 // lockBytePage is the page crosscheck and scan treat as the lock-byte page.
-func lockBytePage(h header) uint32 { return uint32(lockByteOffset/h.PageSize + 1) }
+func lockBytePage(h header) uint32 { return uint32(lockByteOffset/h.PageSize + 1) } //nolint:gosec // the lock-byte page number is under 2^22.
 
 // The header, freelist walk and punch plan are sqlitefree's, which the sqlite
 // kvtx store's online punch shares.

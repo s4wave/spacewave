@@ -299,7 +299,7 @@ func (r *ccResult) print(out io.Writer) {
 		r.reached, r.free, r.lockPage, sum, r.dbPages, sum == uint64(r.dbPages), r.leafCells)
 	fmt.Fprintf(out, "header pages start %d end %d; header freelist count start %d end %d\n", r.dbPages, r.endPages, r.startFree, r.endFree)
 	fmt.Fprintf(out, "pages walked %d (main walk %d + late walk %d, late roots not counted) = table interior %d + table leaf %d + index interior %d + index leaf %d + overflow %d\n",
-		r.reached+uint64(r.lateReached), r.reached, r.lateReached, r.byType[0x05], r.byType[0x0d], r.byType[0x02], r.byType[0x0a], r.kinds[kindOverflow])
+		r.reached+uint64(r.lateReached), r.reached, r.lateReached, r.byType[0x05], r.byType[0x0d], r.byType[0x02], r.byType[0x0a], r.kinds[kindOverflow]) //nolint:gosec // a count, not negative.
 	fmt.Fprintf(out, "free at start %d = trunks %d + leaves %d\n", r.free, r.freeTrunks, r.freeLeaves)
 
 	// List the first unaccounted pages.
@@ -366,7 +366,7 @@ func (r *ccResult) print(out io.Writer) {
 	fmt.Fprintf(out, "leftover leaf+overflow %d\n", r.leftoverLeaf)
 	fmt.Fprintf(out, "leftover unparsable %d\n", r.leftoverUnparse)
 	fmt.Fprintf(out, "freed-during-walk %d (unaccounted %d + bad %d) against freelist growth %d (end %d - start %d)\n",
-		r.unaccFreed+uint64(r.badFreed()), r.unaccFreed, r.badFreed(), int64(r.endFree)-int64(r.startFree), r.endFree, r.startFree)
+		r.unaccFreed+uint64(r.badFreed()), r.unaccFreed, r.badFreed(), int64(r.endFree)-int64(r.startFree), r.endFree, r.startFree) //nolint:gosec // a count, not negative.
 
 	// Conclude: FAIL with every reason, else PASS.
 	fmt.Fprintf(out, "unexplained conflicts %d\n", r.unexplained())
@@ -754,7 +754,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			} else {
 				res.kinds[lr.r.tree]++
 				res.byType[lr.r.ptype]++
-				res.leafCells += uint64(lr.r.leafCells)
+				res.leafCells += uint64(lr.r.leafCells) //nolint:gosec // a count, not negative.
 			}
 		}
 		// Candidates no root reached (a cycle among them) stay leftover.
@@ -839,7 +839,7 @@ func tally(res *ccResult, kindOf map[uint32]pageKind, r pageResult, addBad func(
 	if k != kindOverflow {
 		res.byType[r.ptype]++
 	}
-	res.leafCells += uint64(r.leafCells)
+	res.leafCells += uint64(r.leafCells) //nolint:gosec // a count, not negative.
 	if res.firstOfKind[k] == 0 && r.item.pg != 1 {
 		res.firstOfKind[k] = r.item.pg
 	}
@@ -1178,7 +1178,7 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		}
 		r.leafCells += boolInt(t == 0x0d || t == 0x0a)
 		size, k := varint(c)
-		if k == 0 {
+		if k == 0 || size > maxPayload {
 			r.bad = fmt.Sprintf("cell %d payload size", i)
 			return r
 		}
@@ -1191,8 +1191,8 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 			}
 			c = c[k:]
 		}
-		local := localPayload(u, int64(size), t == 0x0d)
-		if int64(len(c)) < local+4 && int64(size) > local || int64(len(c)) < local {
+		local := localPayload(u, int64(size), t == 0x0d)                             //nolint:gosec // size is at most maxPayload, checked above.
+		if int64(len(c)) < local+4 && int64(size) > local || int64(len(c)) < local { //nolint:gosec // size is at most maxPayload, checked above.
 			r.bad = fmt.Sprintf("cell %d payload %d runs past the page", i, size)
 			return r
 		}
@@ -1201,9 +1201,9 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 				r.children = append(r.children, ccItem{pg: root, parent: 0, kind: kindTree})
 			}
 		}
-		if int64(size) > local {
-			pages := (int64(size) - local + int64(u-4) - 1) / int64(u-4)
-			r.children = append(r.children, ccItem{pg: binary.BigEndian.Uint32(c[local:]), parent: it.pg, kind: kindOverflow, left: uint32(pages)})
+		if int64(size) > local { //nolint:gosec // size is at most maxPayload, checked above.
+			pages := (int64(size) - local + int64(u-4) - 1) / int64(u-4)                                                                            //nolint:gosec // size is at most maxPayload, checked above.
+			r.children = append(r.children, ccItem{pg: binary.BigEndian.Uint32(c[local:]), parent: it.pg, kind: kindOverflow, left: uint32(pages)}) //nolint:gosec // pages is at most maxPayload/(u-4)+1.
 		}
 	}
 
@@ -1213,6 +1213,14 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 	}
 	return r
 }
+
+// maxPayload is the largest cell payload SQLite writes, its hard limit on
+// the length of a row; a larger size is a corrupt cell.
+const maxPayload = 1<<31 - 1
+
+// maxSerial is the largest record serial type schemaRoot reads, that of a
+// column of maxPayload bytes.
+const maxSerial = 2*maxPayload + 13
 
 // localPayload is how many payload bytes of a cell sit on its b-tree page.
 func localPayload(u int, p int64, table bool) int64 {
@@ -1233,14 +1241,18 @@ func localPayload(u int, p int64, table bool) int64 {
 
 // schemaRoot reads the rootpage column of a local sqlite_master record.
 func schemaRoot(rec []byte) (uint32, bool) {
+	// Read the record header's size, which must lie within the record.
 	hsize, k := varint(rec)
-	if k == 0 || int(hsize) > len(rec) {
+	if k == 0 || hsize > uint64(len(rec)) {
 		return 0, false
 	}
+
+	// Read the serial types of the header, each at most one maxPayload
+	// column.
 	var types []uint64
-	for pos := k; pos < int(hsize); {
+	for pos := k; pos < int(hsize); { //nolint:gosec // hsize is at most len(rec), checked above.
 		st, n := varint(rec[pos:])
-		if n == 0 {
+		if n == 0 || st > maxSerial {
 			return 0, false
 		}
 		types = append(types, st)
@@ -1249,7 +1261,9 @@ func schemaRoot(rec []byte) (uint32, bool) {
 	if len(types) < 4 {
 		return 0, false
 	}
-	body := int(hsize)
+
+	// Find the fourth column, rootpage, past the first three.
+	body := int(hsize) //nolint:gosec // hsize is at most len(rec), checked above.
 	for _, st := range types[:3] {
 		body += serialLen(st)
 	}
@@ -1257,6 +1271,8 @@ func schemaRoot(rec []byte) (uint32, bool) {
 	if body+l > len(rec) {
 		return 0, false
 	}
+
+	// Decode rootpage from its serial type.
 	var v uint64
 	switch types[3] {
 	case 8:
@@ -1283,9 +1299,9 @@ func serialLen(st uint64) int {
 	case st < 12:
 		return 0
 	case st%2 == 0:
-		return int(st-12) / 2
+		return int(st-12) / 2 //nolint:gosec // st is at most maxSerial, which schemaRoot checks.
 	default:
-		return int(st-13) / 2
+		return int(st-13) / 2 //nolint:gosec // st is at most maxSerial, which schemaRoot checks.
 	}
 }
 

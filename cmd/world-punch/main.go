@@ -304,7 +304,7 @@ func runLocked(out io.Writer, o opts) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "punched %d ranges, %d bytes; walk after punch matches %s\n", len(p.Ranges), int64(p.PunchPages)*h.PageSize, p.SHA)
+	fmt.Fprintf(out, "punched %d ranges, %d bytes; walk after punch matches %s\n", len(p.Ranges), int64(p.PunchPages)*h.PageSize, p.SHA) //nolint:gosec // a page count of a file of at most 2^32 pages.
 	fmt.Fprintf(out, "allocated bytes: before %d, after %d\n", allocated(st), allocated(st2))
 	return nil
 }
@@ -335,8 +335,8 @@ func report(out io.Writer, h header, w *walk, p plan, st os.FileInfo) {
 	fmt.Fprintf(out, "header freelist count %d; walked trunks %d + leaves %d = %d (match %v)\n", h.FreeCount, len(w.Trunks), len(w.Leaves), got, got == uint64(h.FreeCount))
 
 	// Print the plan and the file's allocation.
-	fmt.Fprintf(out, "kept back: leaves of the first %d trunks, %d pages, %d bytes\n", p.KeptTrunks, p.KeptPages, int64(p.KeptPages)*h.PageSize)
-	fmt.Fprintf(out, "to release: %d ranges, %d pages, %d bytes\n", len(p.Ranges), p.PunchPages, int64(p.PunchPages)*h.PageSize)
+	fmt.Fprintf(out, "kept back: leaves of the first %d trunks, %d pages, %d bytes\n", p.KeptTrunks, p.KeptPages, int64(p.KeptPages)*h.PageSize) //nolint:gosec // a page count of a file of at most 2^32 pages.
+	fmt.Fprintf(out, "to release: %d ranges, %d pages, %d bytes\n", len(p.Ranges), p.PunchPages, int64(p.PunchPages)*h.PageSize)                 //nolint:gosec // a page count of a file of at most 2^32 pages.
 	fmt.Fprintf(out, "estimate: ext4 extents up to +%d, extent tree up to +%d bytes\n", len(p.Ranges), int64(len(p.Ranges)+339)/340*4096)
 	fmt.Fprintf(out, "allocated bytes now %d of size %d\n", allocated(st), st.Size())
 	fmt.Fprintf(out, "range sha256 %s\n", p.SHA)

@@ -295,7 +295,7 @@ func scanPhase1(res *ccResult, r pageResult, probes map[uint32][]ccItem, btree, 
 	btree.Set(it.pg)
 	res.kinds[r.tree]++
 	res.byType[r.ptype]++
-	res.leafCells += uint64(r.leafCells)
+	res.leafCells += uint64(r.leafCells) //nolint:gosec // a count, not negative.
 	next = append(next, sibs...)
 
 	// Record overflow heads; read sqlite_schema children and roots, and
@@ -419,7 +419,7 @@ func scanPass(f io.ReaderAt, h header, o ccOpts, lim *limiter, leaf bitset, next
 // the first word of every other page in nextPg.
 func parseChunk(h header, b []byte, off int64, leaf bitset, nextPg []uint32, out *scanStream) {
 	ps := int(h.PageSize)
-	first := uint32(off/h.PageSize) + 1
+	first := uint32(off/h.PageSize) + 1 //nolint:gosec // a page number of a file of at most 2^32 pages.
 	for i := 0; i < len(b)/ps; i++ {
 		pg, p := first+uint32(i), b[i*ps:(i+1)*ps]
 		if leaf.Has(pg) {
@@ -505,7 +505,7 @@ func scanLeaf(h header, pg uint32, p []byte, out *scanStream) {
 	}
 	out.kinds[k]++
 	out.byType[t]++
-	out.cells += uint64(n)
+	out.cells += uint64(n) //nolint:gosec // a count, not negative.
 }
 
 // scanCells appends the overflow heads of a leaf's n cells, returning a
@@ -519,7 +519,7 @@ func scanCells(p []byte, u int, t byte, n int, pg uint32, heads *[]chainHead) st
 		}
 		c := p[off:u]
 		size, k := varint(c)
-		if k == 0 {
+		if k == 0 || size > maxPayload {
 			return fmt.Sprintf("cell %d payload size", i)
 		}
 		c = c[k:]
@@ -533,13 +533,13 @@ func scanCells(p []byte, u int, t byte, n int, pg uint32, heads *[]chainHead) st
 		}
 
 		// Record the overflow head past the local payload.
-		local := localPayload(u, int64(size), t == 0x0d)
-		if int64(len(c)) < local+4 && int64(size) > local || int64(len(c)) < local {
+		local := localPayload(u, int64(size), t == 0x0d)                             //nolint:gosec // size is at most maxPayload, checked above.
+		if int64(len(c)) < local+4 && int64(size) > local || int64(len(c)) < local { //nolint:gosec // size is at most maxPayload, checked above.
 			return fmt.Sprintf("cell %d payload %d runs past the page", i, size)
 		}
-		if int64(size) > local {
-			pages := (int64(size) - local + int64(u-4) - 1) / int64(u-4)
-			*heads = append(*heads, chainHead{pg: binary.BigEndian.Uint32(c[local:]), pages: uint32(pages), parent: pg})
+		if int64(size) > local { //nolint:gosec // size is at most maxPayload, checked above.
+			pages := (int64(size) - local + int64(u-4) - 1) / int64(u-4)                                                 //nolint:gosec // size is at most maxPayload, checked above.
+			*heads = append(*heads, chainHead{pg: binary.BigEndian.Uint32(c[local:]), pages: uint32(pages), parent: pg}) //nolint:gosec // pages is at most maxPayload/(u-4)+1.
 		}
 	}
 	return ""
