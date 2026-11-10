@@ -33,10 +33,10 @@ type CollectorOptions struct {
 	// Phase reports each step of a pass, returning the func that ends it; nil
 	// reports nothing.
 	Phase func(Phase) func()
-	// WritersWaiting reports that a foreground writer waits on the store, as
-	// kvtx.WriterQueueStore does; nil reports none. The free loop stops at the
-	// next block, and a paged cascade at the next page, once one waits.
-	WritersWaiting func() bool
+	// ForegroundWaiting reports that a foreground writer waits on the store,
+	// as kvtx.ForegroundWaiting does; nil reports none. The free loop stops at
+	// the next block, and a paged cascade at the next page, once one waits.
+	ForegroundWaiting func() bool
 }
 
 // sliceTarget is how long the collector's own work in one transaction aims

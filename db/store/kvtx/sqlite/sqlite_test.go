@@ -262,7 +262,7 @@ func TestSQLiteWriterContract(t *testing.T) {
 	}
 	defer db.Close()
 	ordered := db.(kvtx.OrderedCommitStore)
-	queue := db.(kvtx.WriterQueueStore)
+	queue := db.(kvtx.ForegroundQueueStore)
 	if !db.(kvtx.AtomicCommitStore).SupportsAtomicCommit() {
 		t.Fatal("local store does not support atomic commit")
 	}
@@ -323,38 +323,52 @@ func TestSQLiteWriterContract(t *testing.T) {
 		t.Fatalf("deadline flush took %v", waited)
 	}
 
-	// A second writer queues behind the first and runs once it commits.
+	// A background writer queues behind the first without counting as a
+	// foreground one, and a foreground writer queued behind both does.
 	first, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second := make(chan error, 1)
-	go func() {
-		tx, err := db.NewTransaction(ctx, true)
-		if err == nil {
-			err = tx.Set(ctx, []byte("k"), []byte("6"))
-		}
-		if err == nil {
-			err = tx.Commit(ctx)
-		}
-		second <- err
-	}()
+	queued := func(ctx context.Context, value string) chan error {
+		done := make(chan error, 1)
+		go func() {
+			tx, err := db.NewTransaction(ctx, true)
+			if err == nil {
+				err = tx.Set(ctx, []byte("k"), []byte(value))
+			}
+			if err == nil {
+				err = tx.Commit(ctx)
+			}
+			done <- err
+		}()
+		return done
+	}
+	background := queued(kvtx.WithBackgroundWriteContext(ctx), "6")
 	for !queue.WritersWaiting() {
 		time.Sleep(time.Millisecond)
 	}
+	if queue.ForegroundWaiting() {
+		t.Fatal("background writer counted as a foreground one")
+	}
+	foreground := queued(ctx, "7")
+	for !queue.ForegroundWaiting() {
+		time.Sleep(time.Millisecond)
+	}
 
-	// The first writer commits, and the second follows it.
+	// The first writer commits, and the queued ones follow it.
 	if err := first.Set(ctx, []byte("k"), []byte("5")); err != nil {
 		t.Fatal(err)
 	}
 	if err := first.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := <-second; err != nil {
-		t.Fatal(err)
+	for _, done := range []chan error{foreground, background} {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
 	}
-	if queue.WritersWaiting() {
-		t.Fatal("writer still waiting after both committed")
+	if queue.WritersWaiting() || queue.ForegroundWaiting() {
+		t.Fatal("writer still waiting after all committed")
 	}
 
 	// A read transaction keeps its snapshot across a later commit, and ends

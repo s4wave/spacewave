@@ -76,6 +76,8 @@ type Store[T SQLiteDriverConfig] struct {
 	writeMtx csync.PrioMutex
 	// writersWaiting counts write transactions queued on writeMtx.
 	writersWaiting atomic.Int32
+	// foregroundWaiting counts the foreground ones of writersWaiting.
+	foregroundWaiting atomic.Int32
 
 	// flusher makes ordered commits durable by flushing the WAL.
 	flusher *kvtx.OrderedFlusher
@@ -423,14 +425,12 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 		return nil, ErrReadOnly
 	}
 
-	// Queue for the writer turn, counted for WritersWaiting.
+	// Queue for the writer turn.
 	prio := writerForeground
 	if kvtx.IsBackgroundWriteContext(ctx) {
 		prio = writerBackground
 	}
-	s.writersWaiting.Add(1)
-	release, err := s.writeMtx.Lock(ctx, prio)
-	s.writersWaiting.Add(-1)
+	release, err := s.lockTurn(ctx, prio)
 	if err != nil {
 		return nil, err
 	}
@@ -450,10 +450,28 @@ func (s *Store[T]) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	return newWriteTx(conn, s.queries, s.flusher, s.wakeCheckpoint, release), nil
 }
 
+// lockTurn waits for the writer turn at prio, counted in writersWaiting and,
+// for a foreground writer, in foregroundWaiting while it waits.
+func (s *Store[T]) lockTurn(ctx context.Context, prio int) (func(), error) {
+	s.writersWaiting.Add(1)
+	defer s.writersWaiting.Add(-1)
+	if prio == writerForeground {
+		s.foregroundWaiting.Add(1)
+		defer s.foregroundWaiting.Add(-1)
+	}
+	return s.writeMtx.Lock(ctx, prio)
+}
+
 // WritersWaiting reports whether a write transaction waits for the writer
 // turn.
 func (s *Store[T]) WritersWaiting() bool {
 	return s.writersWaiting.Load() > 0
+}
+
+// ForegroundWaiting reports whether a foreground write transaction waits for
+// the writer turn.
+func (s *Store[T]) ForegroundWaiting() bool {
+	return s.foregroundWaiting.Load() > 0
 }
 
 // Sync makes every completed ordered commit durable, flushing the WAL once
@@ -612,8 +630,8 @@ func (s *Store[T]) restartWAL(ctx context.Context) {
 
 // _ is a type assertion
 var (
-	_ kvtx.Store              = (*Store[SQLiteDriverConfig])(nil)
-	_ kvtx.OrderedCommitStore = (*Store[SQLiteDriverConfig])(nil)
-	_ kvtx.AtomicCommitStore  = (*Store[SQLiteDriverConfig])(nil)
-	_ kvtx.WriterQueueStore   = (*Store[SQLiteDriverConfig])(nil)
+	_ kvtx.Store                = (*Store[SQLiteDriverConfig])(nil)
+	_ kvtx.OrderedCommitStore   = (*Store[SQLiteDriverConfig])(nil)
+	_ kvtx.AtomicCommitStore    = (*Store[SQLiteDriverConfig])(nil)
+	_ kvtx.ForegroundQueueStore = (*Store[SQLiteDriverConfig])(nil)
 )

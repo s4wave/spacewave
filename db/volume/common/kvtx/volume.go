@@ -237,9 +237,7 @@ func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collect
 		Now:   v.now,
 		Phase: v.collectorPhase,
 	}
-	if w, ok := v.kvtxStore.(kvtx.WriterQueueStore); ok {
-		opts.WritersWaiting = w.WritersWaiting
-	}
+	opts.ForegroundWaiting = func() bool { return kvtx.ForegroundWaiting(v.kvtxStore) }
 	return block_gc.NewCollector(collectorStore{v: v}, opts)
 }
 

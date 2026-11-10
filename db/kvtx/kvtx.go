@@ -211,3 +211,27 @@ type WriterQueueStore interface {
 	// WritersWaiting reports whether a write transaction waits to begin.
 	WritersWaiting() bool
 }
+
+// ForegroundQueueStore is a WriterQueueStore with a prioritized writer turn
+// that reports foreground writers apart. A background transaction, one opened
+// with WithBackgroundWriteContext, commits early when one waits: a waiting
+// background writer gains nothing from the hand-off, since background work
+// finishes later rather than sooner either way, while every early commit
+// costs one.
+type ForegroundQueueStore interface {
+	WriterQueueStore
+	// ForegroundWaiting reports whether a foreground write transaction waits
+	// to begin.
+	ForegroundWaiting() bool
+}
+
+// ForegroundWaiting reports whether a foreground writer waits on store. On a
+// store without a prioritized turn every writer counts, since each waits on
+// the holder the same way; a store without a writer queue reports none.
+func ForegroundWaiting(store Store) bool {
+	if q, ok := store.(ForegroundQueueStore); ok {
+		return q.ForegroundWaiting()
+	}
+	q, ok := store.(WriterQueueStore)
+	return ok && q.WritersWaiting()
+}
