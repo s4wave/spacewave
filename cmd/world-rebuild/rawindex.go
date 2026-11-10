@@ -74,8 +74,12 @@ func (r *rawFile) indexKeys(root int64, prefix []byte, readers int, fn func(key 
 		}
 		return fn(key)
 	}
+	hi := prefixEnd(prefix)
 	level := []int64{root}
 	for depth := 0; ; depth++ {
+		if len(level) == 0 {
+			return nil
+		}
 		if depth > 30 {
 			return fmt.Errorf("index b-tree deeper than 30")
 		}
@@ -110,6 +114,12 @@ func (r *rawFile) indexKeys(root int64, prefix []byte, readers int, fn func(key 
 						h = 8
 					}
 					n := int(binary.BigEndian.Uint16(b[3:]))
+					// The child left of a cell holds the keys between the
+					// cell before (or the page's low end) and the cell: it
+					// is read only when that span meets the prefix's range.
+					// A spilled key bounds nothing.
+					var lower []byte
+					lowerKnown := false
 					for c := range n {
 						at := h + 2*c
 						if at+2 > r.usable {
@@ -120,18 +130,25 @@ func (r *rawFile) indexKeys(root int64, prefix []byte, readers int, fn func(key 
 							if off+4 > r.usable {
 								return fmt.Errorf("index page %d: cell %d out of range", pg, c)
 							}
-							kids = append(kids, int64(binary.BigEndian.Uint32(b[off:])))
 							off += 4
 						}
 						key, spilled, err := r.indexCell(b, off)
 						if err != nil {
 							return fmt.Errorf("index page %d cell %d: %w", pg, c, err)
 						}
+						if !leaf {
+							below := lowerKnown && hi != nil && bytes.Compare(lower, hi) >= 0
+							above := !spilled && bytes.Compare(key, prefix) <= 0
+							if !below && !above {
+								kids = append(kids, int64(binary.BigEndian.Uint32(b[off-4:])))
+							}
+							lower, lowerKnown = key, !spilled
+						}
 						if err := check(key, spilled); err != nil {
 							return err
 						}
 					}
-					if !leaf {
+					if !leaf && !(lowerKnown && hi != nil && bytes.Compare(lower, hi) >= 0) {
 						kids = append(kids, int64(binary.BigEndian.Uint32(b[8:])))
 					}
 				}

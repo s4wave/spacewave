@@ -65,6 +65,68 @@ func evictSize(v []byte) (int64, bool) {
 	return n, err == nil && n >= 0
 }
 
+// Object store key kinds.
+const (
+	kindOther = iota
+	kindBad
+	kindMarked
+	kindEvict
+	kindReads
+	kindBytes
+)
+
+// objKeyInfo is one object store key, parsed.
+type objKeyInfo struct {
+	ok       bool
+	obj      string
+	kind     int
+	digest   string
+	hashType hash.HashType
+	gen      string
+}
+
+// objKeyOf parses an object store key: its store, and its kind with the
+// block digest of a marker or eviction entry, or the generation of a read
+// set chunk.
+func objKeyOf(key []byte) objKeyInfo {
+	obj, rest, ok := objKey(key)
+	if !ok {
+		return objKeyInfo{}
+	}
+	k := objKeyInfo{ok: true, obj: obj}
+	switch {
+	case strings.HasPrefix(rest, markedSeg):
+		d, ok := digestOfB58(rest[len(markedSeg):])
+		if !ok {
+			k.kind = kindBad
+			return k
+		}
+		k.kind, k.digest = kindMarked, d
+	case strings.HasPrefix(rest, evictSeg):
+		parts := strings.SplitN(rest[len(evictSeg):], "/", 2)
+		if len(parts) != 2 {
+			k.kind = kindBad
+			return k
+		}
+		h := &hash.Hash{}
+		if err := h.ParseFromB58(parts[1]); err != nil || len(h.GetHash()) == 0 {
+			k.kind = kindBad
+			return k
+		}
+		k.kind, k.digest, k.hashType = kindEvict, string(h.GetHash()), h.GetHashType()
+	case strings.HasPrefix(rest, readsSeg):
+		r := rest[len(readsSeg):]
+		if len(r) < 16 {
+			k.kind = kindBad
+			return k
+		}
+		k.kind, k.gen = kindReads, r[:16]
+	case rest == evictBytesSeg:
+		k.kind = kindBytes
+	}
+	return k
+}
+
 // loadFacts reads the markers, eviction queue and read generations of every
 // object store, and checks each queued, unmarked block against the pack index.
 func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, error) {
@@ -87,70 +149,54 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 	live.setPhase("object store keys", func() string {
 		return fmt.Sprintf("%d keys, %d marked, %d queued", seen, len(f.marked), f.evictKeys)
 	})
-	scanObjs := func(fn func(key []byte) error) error {
-		return scanKeys(world, table, []byte(objsPrefix), prefixEnd([]byte(objsPrefix)), o.chunk, o.pause, fn)
-	}
-	if o.rawFacts {
-		// The offline source's key index, read raw by several readers,
-		// one key at a time through the lock.
-		scanObjs = func(fn func(key []byte) error) error {
-			var mu sync.Mutex
-			return rawIndexKeys(o, world, o.world, table, []byte(objsPrefix), func(key []byte) error {
-				mu.Lock()
-				defer mu.Unlock()
-				return fn(bytes.Clone(key))
-			})
-		}
-	}
-	err := scanObjs(func(key []byte) error {
+	// Each key is parsed by objKeyOf, which needs no state, then applied.
+	apply := func(key []byte, k objKeyInfo) {
 		seen++
-		obj, rest, ok := objKey(key)
-		if !ok {
-			return nil
+		if !k.ok {
+			return
 		}
+		obj := k.obj
 		if in, ok := f.objStores[obj]; ok {
 			obj = in
 		} else {
 			f.objStores[obj] = obj
 		}
-		switch {
-		case strings.HasPrefix(rest, markedSeg):
-			d, ok := digestOfB58(rest[len(markedSeg):])
-			if !ok {
-				f.badKeys++
-				return nil
-			}
-			f.marked[d] = struct{}{}
-		case strings.HasPrefix(rest, evictSeg):
-			parts := strings.SplitN(rest[len(evictSeg):], "/", 2)
-			if len(parts) != 2 {
-				f.badKeys++
-				return nil
-			}
-			h := &hash.Hash{}
-			if err := h.ParseFromB58(parts[1]); err != nil || len(h.GetHash()) == 0 {
-				f.badKeys++
-				return nil
-			}
-			d := string(h.GetHash())
-			f.hashTypes[d] = h.GetHashType()
-			f.evict[d] = append(f.evict[d], evictEntry{obj: obj, key: bytes.Clone(key)})
+		switch k.kind {
+		case kindBad:
+			f.badKeys++
+		case kindMarked:
+			f.marked[k.digest] = struct{}{}
+		case kindEvict:
+			f.hashTypes[k.digest] = k.hashType
+			f.evict[k.digest] = append(f.evict[k.digest], evictEntry{obj: obj, key: bytes.Clone(key)})
 			f.evictKeys++
-		case strings.HasPrefix(rest, readsSeg):
-			r := rest[len(readsSeg):]
-			if len(r) < 16 {
-				f.badKeys++
-				return nil
-			}
+		case kindReads:
 			if gens[obj] == nil {
 				gens[obj] = map[string][][]byte{}
 			}
-			gens[obj][r[:16]] = append(gens[obj][r[:16]], bytes.Clone(key))
-		case rest == evictBytesSeg:
+			gens[obj][k.gen] = append(gens[obj][k.gen], bytes.Clone(key))
+		case kindBytes:
 			bytesKeys = append(bytesKeys, bytes.Clone(key))
 		}
-		return nil
-	})
+	}
+	var err error
+	if o.rawFacts {
+		// The offline source's key index, read raw by several readers that
+		// parse each key, then apply it through the lock.
+		var mu sync.Mutex
+		err = rawIndexKeys(o, world, o.world, table, []byte(objsPrefix), func(key []byte) error {
+			k := objKeyOf(key)
+			mu.Lock()
+			apply(key, k)
+			mu.Unlock()
+			return nil
+		})
+	} else {
+		err = scanKeys(world, table, []byte(objsPrefix), prefixEnd([]byte(objsPrefix)), o.chunk, o.pause, func(key []byte) error {
+			apply(key, objKeyOf(key))
+			return nil
+		})
+	}
 	if err != nil {
 		return nil, fmt.Errorf("scan object store keys: %w", err)
 	}
