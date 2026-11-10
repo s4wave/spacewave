@@ -141,6 +141,14 @@ const (
 	// the Volume to unadopted when it finds it, and the adoption that follows
 	// deletes it with the counts.
 	kindRewritten byte = 'Y'
+	// kindSuspect keys a listed block whose child list no list rebuild
+	// verified and no Land wrote while the Volume's lists were unverified, by
+	// the block. It holds no value. Finish writes one for each such block
+	// before it clears the mark: no root reached the block, so its list may
+	// still lack a child. A put of the block checks the list against the
+	// put's refs and deletes the record, as Land describes; the free deletes
+	// it with the block.
+	kindSuspect byte = 'Z'
 )
 
 // The values of a cascade record: the direction its block's children move.
@@ -203,11 +211,31 @@ type Records struct {
 	tx kvtx.TxOps
 	// prefix begins every liveness key.
 	prefix []byte
+	// unadopted reports that a write in the transaction returned the Volume
+	// to unadopted.
+	unadopted bool
 }
 
 // NewRecords returns the liveness records under prefix in tx.
 func NewRecords(tx kvtx.TxOps, prefix []byte) *Records {
 	return &Records{tx: tx, prefix: prefix}
+}
+
+// unadopt returns the Volume in state to unadopted under no run, as a claim
+// does, ending any release in progress, and notes it for Unadopted. The
+// caller writes state.
+func (r *Records) unadopt(state *LivenessState) {
+	state.Adoption = Adoption_ADOPTION_UNADOPTED
+	state.AdoptionRun = ""
+	state.Release = nil
+	r.unadopted = true
+}
+
+// Unadopted reports whether a write in the transaction returned the Volume to
+// unadopted, so once it commits the owner of the Volume's adoption starts the
+// recount.
+func (r *Records) Unadopted() bool {
+	return r.unadopted
 }
 
 // key returns prefix, kind and the parts concatenated.

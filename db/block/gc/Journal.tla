@@ -290,8 +290,9 @@
 \*              over R2 finds C stored and skips its put, R1 and then C are
 \*              freed, and R3 lands over the freed C, all within Grace.
 \*   HoleStop   FALSE decrements a lost block's children from a remembered
-\*              child list. Journal-hole.cfg: C, named by R1 and R3, is lost;
-\*              R1 dies and its cascade frees F and E under R3.
+\*              child list. testdata/Journal-hole-nostop.cfg: C, named by R1
+\*              and R3, is lost; R1 dies and its cascade frees F and E under
+\*              R3.
 \*   Reput      TRUE lets a later put store a lost block again.
 \*              Journal-hole.cfg: R2 is lost under main, a stage built over R1
 \*              puts R2 again with the stage as its one implied holder, and
@@ -366,11 +367,35 @@
 \*              holder through C. testdata/Journal-adopt-cut-noflag.cfg: the
 \*              rebuild clears the cut, Finish clears the mark without a
 \*              recount, and F is freed under main (NoFreedRead).
+\*   ClearMark  FALSE has Finish clear the mark without setting the hold
+\*              mark at the journal's end. testdata/
+\*              Journal-adopt-cut-noclearmark.cfg: adoption counts F at zero
+\*              through C's cut list and the free parks it, main commits R2,
+\*              whose new C2 names F with an up pair, so nothing reaches C,
+\*              Finish clears, and the free takes F before that up pair nets
+\*              (NoFreedRead). With it, nothing frees until every record
+\*              landed before the clear has netted.
 \*   Recount    FALSE has Finish clear the mark on an adopted Volume a
 \*              rebuild rewrote a list of without returning it to
 \*              unadopted. testdata/Journal-adopt-cut-norecount.cfg fails
 \*              NoFreedRead as above. With both, the next adoption counts
 \*              C's whole list before anything older frees.
+\*   Suspect    FALSE has Finish clear the mark writing no suspect record
+\*              for a cut list no root reaches. Journal-adopt-revive.cfg:
+\*              Finish clears with C unreached, a commit puts R1 and C again
+\*              over C's cut list, and F is freed under R1 and C
+\*              (testdata/Journal-adopt-revive-nosuspect.cfg, NoFreedRead).
+\*   SuspectLand FALSE has Land trust the stored list of a block it puts
+\*              again although the block has a suspect record
+\*              (testdata/Journal-adopt-revive-suspectignored.cfg).
+\*   SuspectRecount FALSE has Land write the put's list over a suspect one
+\*              without returning the Volume to unadopted, so the counts
+\*              lack F's holder through C
+\*              (testdata/Journal-adopt-revive-suspectnorecount.cfg).
+\*   SuspectEarly FALSE has Land check only suspect records, so a put of C
+\*              between Finish's walk and its suspect records keeps C's cut
+\*              list, and the records come too late, as no later put names C
+\*              (testdata/Journal-adopt-revive-suspectlate.cfg).
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
@@ -392,7 +417,8 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           Stage, Rehold, StageCAS,
           Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
           FillBlocks, FillUps, Holds, FillBorn, FillEager, CutList, Gen,
-          RewriteFlag, Recount
+          RewriteFlag, Recount, ClearMark, Suspect, SuspectLand,
+          SuspectRecount, SuspectEarly
 
 None == "none"
 Unmoved == "unmoved"
@@ -453,6 +479,8 @@ VARIABLES
              \* length when it reached zero, or when netting last met a put
              \* of it again, less the records netted since; 0 once passed
   jr,        \* the journal past the collector's cursor, oldest first
+  noff,      \* the collector netted the up pairs of the record at the
+             \* cursor, and not yet its down pairs and again list
   hseq,      \* the hold mark, as the records past the cursor that must net
              \* before any block may be freed: the journal's length after the
              \* last record that held a stored block that was released or at
@@ -494,20 +522,30 @@ VARIABLES
              \* lacks, so a block put again is never young, as Land marks
              \* no landed block whose bytes were stored
   unverified, \* the Volume's unverified lists mark
-  rewritten  \* a list rebuild rewrote a list no adoption has counted since
+  rewritten, \* a list rebuild or a put rewrote a list no adoption has
+             \* counted since: a recount is due
+  fin,       \* where the rebuild's Finish is: "idle", "walked" once its walk
+             \* found no cut list a held root reaches, "suspected" once it
+             \* has written the suspect records
+  suspect,  \* the stored blocks whose list Finish could not verify, which
+             \* a put must verify before Land trusts it
+  wake       \* an adoption pass the Volume asked for that no run has taken:
+             \* each step that returns it to unadopted asks for one
 gcVars == <<cnt, zero, rel, ripe, under, pend, pdir>>
-jrVars == <<jr, hseq>>
+jrVars == <<jr, hseq, noff>>
 fillVars == <<fj, freedLive>>
-genVars == <<cut, young, unverified, rewritten>>
+genVars == <<cut, young, unverified, rewritten, fin, suspect, wake>>
 landVars == <<born, moved, sheld, freed, genVars, fillVars>>
 adoptVars == <<adoption, owner, pc, pos, opens>>
+runVars == <<pc, pos, opens>>
 stageVars == <<stage, stall>>
 writerVars == <<tgt, sessionAge, wrote, skipped>>
-vars == <<root, left, stored, lost, cnt, zero, rel, ripe, jr, hseq, under,
+vars == <<root, left, stored, lost, cnt, zero, rel, ripe, jr, hseq, noff,
+          under,
           obs, seen, seenAge, txns, holes, adoption, owner, pc, pos, born,
           moved, opens, stage, stall, tgt, sessionAge, wrote, skipped, sheld,
           freed, fj, freedLive, pend, pdir, cut, young, unverified,
-          rewritten>>
+          rewritten, fin, suspect, wake>>
 
 Init ==
   /\ root = [n \in Names |->
@@ -522,6 +560,7 @@ Init ==
   /\ ripe = [b \in Blocks |-> 0]
   /\ jr = <<>>
   /\ hseq = 0
+  /\ noff = FALSE
   /\ under = FALSE
   /\ obs = [w \in Writers |-> None]
   /\ seen = None
@@ -551,11 +590,25 @@ Init ==
   /\ young = {}
   /\ unverified = CutList
   /\ rewritten = FALSE
+  /\ fin = "idle"
+  /\ suspect = {}
+  /\ wake = FALSE
 
 \* The children b's stored child list names: all of Kids(b) but for a cut
 \* list, which lacks F. Counts, cascades and the adoption read the lists;
 \* what a root truly reaches, Reach, follows Kids.
 ListKids(b) == IF b \in cut THEN Kids(b) \ {"F"} ELSE Kids(b)
+
+\* The stored blocks whose list Land must verify from a put: those with a
+\* suspect record and, with SuspectEarly, a cut list while the mark stands,
+\* which no walk has verified. The code tells them apart by their verified
+\* and landed marks; a whole list it cannot tell from a cut one costs only a
+\* compare, so the model names only the cut ones.
+\* Unadopt returns the Volume to unadopted, superseding any run, and asks for
+\* an adoption pass, as the code's wakeAdopt does.
+Unadopt == adoption' = "unadopted" /\ owner' = None /\ wake' = TRUE
+
+Untrusted == suspect \cup (IF SuspectEarly /\ unverified THEN cut ELSE {})
 
 \* The holders the netted counts give b.
 Holders(b) == IF b \in zero THEN 0 ELSE cnt[b] + 1
@@ -576,6 +629,10 @@ Ups(idx, b) == Cardinality(UNION {{<<i, x>> : x \in {y \in jr[i].up : y[2] = b}}
 Downs(idx, b) == Cardinality(UNION {{<<i, x>> : x \in {y \in jr[i].down : y[2] = b}} : i \in idx})
 Pending == 1..Len(jr)
 
+\* The up pairs of records idx not netted yet: all of them but the up pairs
+\* of the record at the cursor once NetUps took them.
+Unnetted(idx, b) == Ups(idx, b) - (IF noff /\ 1 \in idx THEN Ups(1..1, b) ELSE 0)
+
 \* Step adds the deltas d to the netted holders of the blocks in st and writes
 \* only the blocks whose holders changed. A stored block at zero holders is
 \* zero, and one below zero is an underflow. A block that reaches zero takes
@@ -587,7 +644,9 @@ Pending == 1..Len(jr)
 \* due, an underflow is expected rather than flagged: a rebuild added children
 \* to a list without their holders, so a cascade through that list takes a
 \* holder the counts never had. The code keeps such a block with one holder;
-\* the model takes it to zero, which keeps less.
+\* the model takes it to zero, which keeps less. A lost block's count went
+\* with the damage that lost it, which can come between a record's up and
+\* down pairs, so its underflow says nothing about the netting.
 Step(st, d, again) ==
   LET nh(b) == Holders(b) + d[b]
       z == {b \in st \cap stored : IF d[b] # 0 THEN nh(b) <= 0 ELSE b \in zero}
@@ -600,7 +659,7 @@ Step(st, d, again) ==
                  ELSE IF b \notin zero \/ (Reripen /\ b \in again) THEN Len(jr)
                  ELSE ripe[b]],
       rel |-> IF Revive THEN rel ELSE rel \ (zero \ z),
-      under |-> ~rewritten /\ \E b \in st : nh(b) < 0]
+      under |-> ~rewritten /\ \E b \in st \ lost : nh(b) < 0]
 
 \* ---------------------------------------------------------------------------
 \* The writer side: SetRoots, one write transaction.
@@ -661,6 +720,7 @@ LandCore(batch, moves, holds, rels, keep) ==
      /\ left' = [n \in Leases |->
                    IF root'[n] = None THEN -1
                    ELSE IF \E m \in moves : m.n = n THEN Lease ELSE left[n]]
+     /\ UNCHANGED noff
      /\ jr' = IF append THEN Append(jr, [age |-> 0, up |-> up, down |-> down])
               ELSE jr
      /\ hseq' = IF append /\ HoldMark /\ onStored # {} /\
@@ -674,7 +734,19 @@ LandCore(batch, moves, holds, rels, keep) ==
                  ELSE moved
      /\ freed' = freed \ batch
      /\ young' = young \cup new
-     /\ UNCHANGED <<cut, unverified, rewritten>>
+     \* A stored block put again whose list is untrusted gets the list the
+     \* put names. When that adds a child, the transaction returns a Volume
+     \* an adoption counts or has counted to unadopted, superseding any run,
+     \* as Finish's clear does, so the next adoption recounts the list.
+     /\ LET fixed == IF SuspectLand THEN batch \cap stored \cap Untrusted
+                    ELSE {}
+        IN /\ cut' = cut \ fixed
+           /\ suspect' = suspect \ fixed
+           /\ IF SuspectRecount /\ fixed \cap cut # {} /\
+                 adoption # "unadopted"
+              THEN Unadopt
+              ELSE UNCHANGED <<adoption, owner, wake>>
+     /\ UNCHANGED <<unverified, rewritten, fin>>
      /\ txns' = txns + 1
      \* After the last transaction, unless LateBegin, the head an idle writer
      \* observed is never read; it is cleared, keeping one state where the
@@ -707,7 +779,7 @@ Observe(w) ==
 Commit(w, r) ==
   /\ obs[w] # None /\ r # obs[w]
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "main", from |-> obs[w], to |-> r]})
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
 \* HoldStored moves main from the observed head onto r, a block the store
@@ -716,7 +788,7 @@ Commit(w, r) ==
 HoldStored(w, r) ==
   /\ Holds /\ obs[w] # None /\ r # obs[w] /\ r \in stored
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> r]})
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
 \* StageWrite holds a stage tree r built over the head of main the writer
@@ -727,7 +799,7 @@ HoldStored(w, r) ==
 StageWrite(w, r) ==
   /\ obs[w] # None /\ obs[w] = root["main"]
   /\ Land(Reach(r) \ Reach(obs[w]), {[n |-> "stg", from |-> None, to |-> r]})
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars, stageVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars, stageVars,
                  writerVars>>
 
 \* AdoptStage moves main from the observed head to stage s and releases the
@@ -736,7 +808,7 @@ AdoptStage(w, s) ==
   /\ obs[w] # None
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> s],
                [n |-> "stg", from |-> s, to |-> None]})
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
 \* A writer session writes the tree tgt[w] over its observed head across
@@ -774,7 +846,7 @@ SessionBegin(w, r) ==
   /\ IF Staged
      THEN /\ LandAs(w, {}, {}, {obs[w]}, {})
           /\ UNCHANGED <<gcVars, seen, seenAge, holes,
-                         adoptVars, stageVars, wrote, skipped>>
+                         runVars, stageVars, wrote, skipped>>
      ELSE UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                       seenAge, txns, holes, landVars, adoptVars, stageVars,
                       wrote, skipped>>
@@ -790,7 +862,7 @@ SessionPut(w, batch) ==
                  (sheld[w] \ {obs[w]}) \cap Named(batch))
      ELSE Land(batch, {})
   /\ wrote' = [wrote EXCEPT ![w] = @ \cup batch]
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, tgt, sessionAge, skipped>>
 
 \* SessionSkip is a writer that reads GetBlockExists as true and does not put
@@ -817,7 +889,7 @@ SessionFinish(w) ==
   /\ wrote' = [wrote EXCEPT ![w] = {}]
   /\ skipped' = [skipped EXCEPT ![w] = {}]
   /\ sessionAge' = [sessionAge EXCEPT ![w] = 0]
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars, stageVars>>
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars, stageVars>>
 
 \* SessionAbandon is a session whose write failed. What it put stays stored
 \* until the collector frees it: unstaged, once the down pair of each block
@@ -833,7 +905,7 @@ SessionAbandon(w) ==
      THEN UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                       seenAge, txns, holes, landVars, adoptVars, stageVars>>
      ELSE /\ LandAs(w, {}, {}, {}, sheld[w])
-          /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+          /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                          stageVars>>
 
 \* ReaderSee: a reader learns the head of main and reads its tree without a
@@ -851,7 +923,7 @@ ReaderPin ==
   /\ seen # None /\ seenAge <= Window
   /\ Land({}, {[n |-> "rdr", from |-> None, to |-> seen]})
   /\ seen' = None /\ seenAge' = 0
-  /\ UNCHANGED <<gcVars, holes, adoptVars, stageVars, writerVars>>
+  /\ UNCHANGED <<gcVars, holes, runVars, stageVars, writerVars>>
 
 \* ReaderLate: a reader that missed its window gives up its unpinned read.
 ReaderLate ==
@@ -864,7 +936,7 @@ ReaderLate ==
 Drop(n) ==
   /\ root[n] # None
   /\ Land({}, {[n |-> n, from |-> root[n], to |-> None]})
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
 \* Sweep is the collector releasing a root whose lease lapsed, whoever holds
@@ -872,7 +944,7 @@ Drop(n) ==
 Sweep(n) ==
   /\ root[n] # None /\ left[n] < 0
   /\ Land({}, {[n |-> n, from |-> root[n], to |-> None]})
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
 \* ---------------------------------------------------------------------------
@@ -888,7 +960,7 @@ StagePut1 ==
   /\ Stage /\ stage = "none"
   /\ Land({"T"}, {[n |-> "sT", from |-> None, to |-> "T"]})
   /\ stage' = "T" /\ stall' = 0
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  writerVars>>
 
 \* StagePut2 is prepareStaged storing S, which names T, under the new root sS
@@ -902,7 +974,7 @@ StagePut2 ==
                  (IF StageCAS \/ root["sT"] = "T"
                   THEN {[n |-> "sT", from |-> "T", to |-> None]} ELSE {}))
   /\ stage' = "S" /\ stall' = 0
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars,
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  writerVars>>
 
 \* StagePublish moves main from the head the World writer observed onto S
@@ -912,7 +984,7 @@ StagePublish(w) ==
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> "S"],
                [n |-> "sS", from |-> "S", to |-> None]})
   /\ stage' = "done" /\ stall' = 0
-  /\ UNCHANGED <<gcVars, seen, seenAge, holes, adoptVars, writerVars>>
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars, writerVars>>
 
 \* StageRenew restarts the lease on the owner's root. A root a sweep took is
 \* held again while its block is stored and has holders, through Land, which
@@ -926,7 +998,7 @@ StageRenew ==
         /\ left' = [left EXCEPT ![StageName] = Lease]
         /\ stall' = 0
         /\ UNCHANGED <<root, stored, lost, gcVars, jrVars, obs, txns,
-                       landVars, stage>>
+                       landVars, adoption, owner, stage>>
      \/ /\ root[StageName] = None /\ Rehold /\ StageTop \in stored \ zero
         /\ Land({}, {[n |-> StageName, from |-> None, to |-> StageTop]})
         /\ stall' = 0
@@ -934,12 +1006,12 @@ StageRenew ==
      \/ /\ root[StageName] = None /\ Rehold /\ StageTop \notin stored \ zero
         /\ stage' = "failed" /\ stall' = 0
         /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, txns,
-                       landVars>>
+                       landVars, adoption, owner>>
      \/ /\ root[StageName] = None /\ ~Rehold
         /\ stall' = 0
         /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, txns,
-                       landVars, stage>>
-  /\ UNCHANGED <<seen, seenAge, holes, adoptVars, writerVars, pend, pdir>>
+                       landVars, adoption, owner, stage>>
+  /\ UNCHANGED <<seen, seenAge, holes, runVars, writerVars, pend, pdir>>
 
 \* ---------------------------------------------------------------------------
 \* The collector.
@@ -975,7 +1047,7 @@ AgainIn(k) == {b \in Blocks : \E i \in 1..k : <<"put", b>> \in jr[i].up}
 Net(k) ==
   /\ adoption = "adopted"
   /\ \A i \in 1..k : jr[i].age = Grace
-  /\ LET s == Step(Blocks, [b \in Blocks |-> Ups(1..k, b) - Downs(1..k, b)],
+  /\ LET s == Step(Blocks, [b \in Blocks |-> Unnetted(1..k, b) - Downs(1..k, b)],
                   AgainIn(k))
      IN /\ cnt' = s.cnt
         /\ zero' = s.zero
@@ -984,8 +1056,28 @@ Net(k) ==
         /\ under' = (under \/ s.under)
   /\ jr' = SubSeq(jr, k + 1, Len(jr))
   /\ hseq' = Past(hseq, k)
+  /\ noff' = FALSE
   /\ UNCHANGED <<root, left, stored, lost, obs, seen, seenAge, txns, holes,
                  landVars, adoptVars, stageVars, writerVars, pend, pdir>>
+
+\* NetUps nets only the up pairs of the record at the cursor, as a slice
+\* whose budget ends inside the record: the code nets a record's up pairs,
+\* then its down pairs, then its again list, keeping the offset in the
+\* Volume's state, and anything may run between the slices. The model ends a
+\* slice only after the up pairs; the again list nets with the down pairs.
+NetUps ==
+  /\ adoption = "adopted" /\ jr # <<>> /\ ~noff
+  /\ jr[1].age = Grace
+  /\ LET s == Step(Blocks, [b \in Blocks |-> Ups(1..1, b)], {})
+     IN /\ cnt' = s.cnt
+        /\ zero' = s.zero
+        /\ ripe' = s.ripe
+        /\ rel' = s.rel
+        /\ under' = (under \/ s.under)
+  /\ noff' = TRUE
+  /\ UNCHANGED <<root, left, stored, lost, jr, hseq, obs, seen, seenAge,
+                 txns, holes, landVars, adoptVars, stageVars, writerVars,
+                 pend, pdir>>
 
 \* What a cascade reaches: the children of its block. A lost child has no
 \* child list, so HoleStop keeps its children; the cascade stops there.
@@ -1047,7 +1139,8 @@ Delete(b) ==
   /\ stored' = stored \ {b}
   /\ young' = young \ {b}
   /\ cut' = cut \ {b}
-  /\ UNCHANGED <<unverified, rewritten>>
+  /\ suspect' = suspect \ {b}
+  /\ UNCHANGED <<unverified, rewritten, fin, wake>>
   /\ cnt' = [cnt EXCEPT ![b] = 0]
   /\ zero' = zero \ {b}
   /\ rel' = rel \ {b}
@@ -1189,7 +1282,8 @@ AdoptClear(r) ==
           /\ UNCHANGED <<adoption, owner, pos>>
           /\ UNCHANGED <<root, left, stored, lost, under, jrVars, obs, seen,
                          seenAge, txns, holes, opens, sheld, freed, freedLive,
-                         cut, young, unverified, stageVars, writerVars>>
+                         cut, young, unverified, fin, suspect, wake, stageVars,
+                         writerVars>>
 
 \* AdoptMark marks the Volume adopting in r at the journal's end. The
 \* collector's cursor moves there, past every ripe sequence and the hold
@@ -1204,6 +1298,7 @@ AdoptMark(r) ==
           /\ jr' = <<>>
           /\ ripe' = [b \in Blocks |-> 0]
           /\ hseq' = 0
+          /\ noff' = FALSE
           /\ pc' = [pc EXCEPT ![r] = "roots"]
           /\ pos' = [pos EXCEPT ![r] = 0]
           /\ UNCHANGED <<cnt, zero, rel, under, pend, pdir, landVars, root,
@@ -1288,45 +1383,93 @@ AdoptCrash(r) ==
   /\ pc[r] \in {"clear", "mark", "roots", "lists", "settle", "end"}
   /\ Go(r, "dead") /\ UNCHANGED pos
 
+\* Wake starts r on the pass the Volume asked for once r has finished, been
+\* superseded or failed: the code's background loop takes the one pending
+\* request after its pass returns.
+Wake(r) ==
+  /\ wake /\ pc[r] \in {"done", "dead"}
+  /\ pc' = [pc EXCEPT ![r] = "idle"] /\ wake' = FALSE
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, cut, young,
+                 unverified, rewritten, fin, suspect, fillVars, adoption,
+                 owner, pos, opens, stageVars, writerVars>>
+
 \* Open returns an adopting Volume to unadopted, superseding its run.
 Open ==
   /\ opens < MaxOpens /\ adoption = "adopting"
-  /\ adoption' = "unadopted" /\ owner' = None /\ opens' = opens + 1
+  /\ Unadopt /\ opens' = opens + 1
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
-                 seenAge, txns, holes, landVars, pc, pos, stageVars,
-                 writerVars>>
+                 seenAge, txns, holes, born, moved, sheld, freed, cut, young,
+                 unverified, rewritten, fin, suspect, fillVars, pc, pos,
+                 stageVars, writerVars>>
 
 \* ---------------------------------------------------------------------------
 \* The list rebuild.
 
-\* Rebuild writes b's whole child list in place of the cut one, on any Volume
-\* but an adopting one. It journals no holder, so on an adopted Volume the
-\* counts lack the children it adds until an adoption recounts the lists;
+\* Rebuild writes b's whole child list in place of the cut one while the
+\* lists are unverified, on any Volume but an adopting one. It journals no
+\* holder, so on an adopted Volume the counts lack the children it adds until
+\* an adoption recounts the lists;
 \* with RewriteFlag it records that one is due. On an unadopted Volume the
 \* next adoption counts the rewritten list, so it sets no flag there: a flag
 \* set between an adoption's clear and its mark would outlive that adoption.
 \* The rewrite and the flag are one transaction, the rebuild's flush.
 Rebuild(b) ==
-  /\ b \in cut /\ adoption # "adopting"
+  /\ unverified /\ b \in cut /\ adoption # "adopting"
   /\ cut' = cut \ {b}
   /\ rewritten' = (rewritten \/ (RewriteFlag /\ adoption = "adopted"))
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
-                 young, unverified, adoptVars, stageVars, writerVars>>
+                 young, unverified, fin, suspect, wake, adoptVars, stageVars,
+                 writerVars>>
 
-\* Finish clears the unverified lists mark once no list is cut, on any Volume
-\* but an adopting one. With Recount it returns an adopted Volume a rebuild
-\* rewrote a list of to unadopted in the same transaction, superseding no
-\* run, so the next adoption recounts the lists before anything more frees.
-Finish ==
-  /\ unverified /\ cut = {} /\ adoption # "adopting"
-  /\ unverified' = FALSE
-  /\ IF Recount /\ rewritten /\ adoption = "adopted"
-     THEN adoption' = "unadopted" /\ owner' = None
-     ELSE UNCHANGED <<adoption, owner>>
+\* FinishWalk walks from every named root and a session's holds through the
+\* stored lists and finds no cut list they reach; a cut list nothing reaches
+\* stays stored. The code repeats passes until one reaches nothing new, so
+\* the walk is taken as one step at its last pass, and a root that moves
+\* after that pass read the roots is not walked: writers, adoptions and
+\* rebuilds run before the clear.
+FinishWalk ==
+  /\ unverified /\ fin = "idle"
+  /\ LET held == ({root[n] : n \in Names} \ {None}) \cup
+                 UNION {sheld[w] : w \in Writers}
+     IN cut \cap UNION {Reach(h) : h \in held} = {}
+  /\ fin' = "walked"
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
-                 cut, young, rewritten, pc, pos, opens, stageVars,
+                 cut, young, unverified, rewritten, suspect, wake, adoptVars,
+                 stageVars, writerVars>>
+
+\* FinishSuspect writes a suspect record for each stored block whose list no
+\* walk or Land verified: the code's anti-join of the listed blocks against
+\* the verified and landed marks, which streams over the keys and yields to
+\* writers between slices, taken as one step. Without Suspect it writes none.
+FinishSuspect ==
+  /\ fin = "walked"
+  /\ suspect' = IF Suspect THEN suspect \cup cut ELSE suspect
+  /\ fin' = "suspected"
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, fillVars,
+                 cut, young, unverified, rewritten, wake, adoptVars, stageVars,
+                 writerVars>>
+
+\* FinishClear clears the unverified lists mark in its own transaction, on
+\* any Volume but an adopting one; it does not walk again. With ClearMark it
+\* sets the hold mark at the journal's end, so a block the cut lists left
+\* zero is freed only after every record journaled while they stood has
+\* netted. With Recount it returns an adopted Volume a rebuild rewrote a
+\* list of to unadopted in the same transaction, superseding no run, so the
+\* next adoption recounts the lists before anything more frees.
+FinishClear ==
+  /\ fin = "suspected" /\ adoption # "adopting"
+  /\ unverified' = FALSE /\ fin' = "idle"
+  /\ hseq' = IF ClearMark THEN Len(jr) ELSE hseq
+  /\ IF Recount /\ rewritten /\ adoption = "adopted"
+     THEN Unadopt
+     ELSE UNCHANGED <<adoption, owner, wake>>
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jr, noff, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, fillVars,
+                 cut, young, rewritten, suspect, pc, pos, opens, stageVars,
                  writerVars>>
 
 \* ---------------------------------------------------------------------------
@@ -1360,11 +1503,11 @@ Tick ==
   /\ stall' = IF Building THEN Older(stall, Lease + Grace + 1) ELSE 0
   /\ sessionAge' = [w \in Writers |->
                       IF tgt[w] = None THEN 0 ELSE Older(sessionAge[w], Grace)]
-  /\ UNCHANGED <<root, stored, lost, gcVars, hseq, obs, seen, txns, holes,
+  /\ UNCHANGED <<root, stored, lost, gcVars, hseq, noff, obs, seen, txns, holes,
                  born, moved, sheld, genVars, freed, freedLive, adoptVars, stage, tgt,
                  wrote, skipped>>
 
-NetAny == \E k \in 1..Len(jr) : Net(k)
+NetAny == NetUps \/ \E k \in 1..Len(jr) : Net(k)
 NetFillAny == \E r \in fj : NetFill(r) \/ DropFill(r) \/ ApplyFill(r)
 DeleteAny == \E b \in Blocks : Delete(b) \/ Cascade(b) \/ Release(b)
 
@@ -1385,9 +1528,10 @@ Next ==
   \/ \E r \in Runs :
        \/ AdoptStart(r) \/ AdoptClear(r) \/ AdoptMark(r) \/ AdoptRoot(r)
        \/ AdoptList(r) \/ AdoptSettle(r) \/ AdoptEnd(r) \/ AdoptCrash(r)
+       \/ Wake(r)
   \/ Open
   \/ \E b \in Blocks : Rebuild(b)
-  \/ Finish
+  \/ FinishWalk \/ FinishSuspect \/ FinishClear
   \/ \E b \in Blocks : Punch(b)
   \/ \E b \in FillBlocks : Fill(b)
   \/ NetFillAny
@@ -1397,6 +1541,14 @@ Next ==
 
 Spec == Init /\ [][Next]_vars /\ WF_vars(Tick) /\ WF_vars(NetAny)
           /\ WF_vars(NetFillAny) /\ WF_vars(DeleteAny)
+
+\* Every step of r but a crash, and its wake.
+AdoptRun(r) ==
+  \/ AdoptStart(r) \/ AdoptClear(r) \/ AdoptMark(r) \/ AdoptRoot(r)
+  \/ AdoptList(r) \/ AdoptSettle(r) \/ AdoptEnd(r) \/ Wake(r)
+
+\* Spec where each run, once it can step, does.
+ReadoptSpec == Spec /\ \A r \in Runs : WF_vars(AdoptRun(r))
 
 \* ---------------------------------------------------------------------------
 \* Properties.
@@ -1432,11 +1584,6 @@ ReaderWindow ==
 \* No transaction took a holder from a block that had none.
 NoUnderflow == ~under
 
-\* An adopted Volume whose lists are all verified owes no recount: Finish
-\* returned any Volume a rewrite left short to unadopted, and the adoption
-\* that followed cleared the flag before it counted.
-RewriteRecounted == adoption = "adopted" /\ ~unverified => ~rewritten
-
 \* Only stored blocks are zero or released.
 ZeroStored == zero \cup rel \subseteq stored
 
@@ -1452,7 +1599,7 @@ TrueHolders(b) ==
 
 \* The netted holders plus the journal past the cursor.
 JournalHolders(b) ==
-  Holders(b) + Ups(Pending, b) + FUps(b) - Downs(Pending, b) - FDowns(b)
+  Holders(b) + Unnetted(Pending, b) + FUps(b) - Downs(Pending, b) - FDowns(b)
 
 \* Once adopted and settled, the journal never counts fewer holders than a
 \* block has: fewer frees a live block. More leaks, which only a hole may
@@ -1471,7 +1618,9 @@ CountsExact ==
       JournalHolders(b) =
         RootHolders(b) + Cardinality({p \in stored \ rel : b \in ListKids(p)}) + Owed(b)
 
-\* A lost block's children stay stored: the cascade stopped at the hole.
+\* A lost block's children stay stored: the cascade stopped at the hole. With
+\* fills a block can be stored, and lost, before a read fills its children,
+\* so a config with FillBlocks leaves this out and relies on NoFreedStoredRead.
 HoleKeeps == \A h \in lost : Kids(h) \subseteq stored \cup lost
 
 Quiet == Adopted /\ jr = <<>> /\ fj = {} /\ zero = {} /\ rel = {} /\ pend = {}
@@ -1485,6 +1634,12 @@ NoLeak == Quiet => stored \subseteq LiveSet \cup BelowLost
 \* and after a longer one the renewal fails the stage or holds it again.
 StageKept ==
   Building /\ stall <= Lease + Grace => Reach(StageTop) \subseteq stored
+
+\* A Volume returned to unadopted, by a put that adds a child to a suspect
+\* list, by Finish's recount or by an opening, is adopted again once those
+\* steps stop, unless its run failed with no pass asked for since.
+Readopted ==
+  ~Adopted ~> (Adopted \/ \E r \in Runs : pc[r] = "dead" /\ ~wake)
 
 \* Every block no root reaches is freed in the end, but those below a hole.
 Collected == <>[](Quiet /\ stored \subseteq LiveSet \cup BelowLost)
