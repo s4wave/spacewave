@@ -11,8 +11,10 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/s4wave/spacewave/db/world/refwalk"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +51,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 	}
 	path := c.Args().First()
 	le := logrus.NewEntry(logrus.New())
-	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun)
+	res, err := repairVolumeRefs(c.Context, le, path, a.spaceID, a.dryRun, space_world_optypes.LookupBlockType)
 	if err != nil {
 		return err
 	}
@@ -103,21 +105,23 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
 	}
 
-	// Retain the typed walk's reasons for stopping at an untyped ref.
+	// Retain the walk's reasons for stopping at an untyped ref, with a sample
+	// ref of each.
 	for _, reason := range slices.Sorted(maps.Keys(res.untyped)) {
-		fields = append(fields, [2]string{"Untyped: " + reason, strconv.FormatUint(res.untyped[reason], 10)})
+		untyped := res.untyped[reason]
+		fields = append(fields, [2]string{"Untyped: " + reason, strconv.FormatUint(untyped.Count, 10) + " (" + untyped.Sample.MarshalString() + ")"})
 	}
 	return fields
 }
 
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
-// or spaceID alone, and unless dryRun is set rebuilds the child lists they
+// or spaceID alone, typing objects' roots with lookup, and unless dryRun is set rebuilds the child lists they
 // reach from the decoded blocks, clearing the volume's unverified lists mark
 // when every list a root reaches is verified. Once the mark is clear the
 // rebuild refuses the volume and the run only walks it, so a list found short
 // after that is not repaired here: re-verifying a verified volume needs a step
 // that sets the mark again, and none exists yet.
-func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool) (refRepairResult, error) {
+func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool, lookup refwalk.LookupBlockType) (refRepairResult, error) {
 	// Open the stopped volume.
 	vol, err := openStoppedVolume(ctx, le, path)
 	if err != nil {
@@ -135,9 +139,9 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 	}
 
 	// Start the list rebuild unless this is a dry run, then walk each Space
-	// and release the typed snapshots.
-	rr := newRefRepair(le, vol)
-	defer rr.closeTypes()
+	// and release the walker.
+	rr := newRefRepair(le, vol, lookup)
+	defer rr.close()
 	if !dryRun {
 		rr.rebuild, err = vol.OpenListRebuild(ctx)
 		rr.res.verified = errors.Is(err, block_gc.ErrListsVerified)
@@ -150,7 +154,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 			return refRepairResult{}, errors.Wrapf(err, "walk space %s", sc.spaceID)
 		}
 	}
-	rr.closeTypes()
+	rr.close()
 
 	// Measure the whole volume before applying any of the planned repairs.
 	if err := rr.measurePluginStores(ctx, vol); err != nil {
