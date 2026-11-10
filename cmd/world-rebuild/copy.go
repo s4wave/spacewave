@@ -313,6 +313,27 @@ func runCopy(o opts) error {
 		return err
 	}
 
+	// With -kept-digest, the digest of the rows inserted, for verify -digest.
+	var kd *keptDigest
+	var kh *xxRowHasher
+	var ks rowSet
+	if o.keptDigest {
+		if o.dryRead {
+			return errors.New("-kept-digest needs rows inserted, not -dry-read")
+		}
+		id, err := readSourceID(src, o.world, table)
+		if err != nil {
+			return err
+		}
+		if kd, err = newKeptDigest(id); err != nil {
+			return err
+		}
+		kh = newXXRowHasher(kd.SeedA, kd.SeedB)
+		if err := os.Remove(o.out + keptDigestExt); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
 	var root int64
 	if o.read == "raw" {
 		if root, err = rawSource(src, o.world, table, stmt); err != nil {
@@ -388,6 +409,8 @@ func runCopy(o opts) error {
 	keep := func(key, v []byte) error {
 		if _, rest, ok := objKey(key); ok && rest == evictBytesSeg {
 			bytesKeys = append(bytesKeys, key)
+		} else if kh != nil {
+			kh.add(&ks, key, v)
 		}
 		sums.add(key, v)
 		return put(key, v)
@@ -433,6 +456,9 @@ func runCopy(o opts) error {
 	// evictable-bytes holds the sum of the entries kept.
 	for _, k := range bytesKeys {
 		obj, _, _ := objKey(k)
+		if kd != nil {
+			kd.EvictBytes[obj] = sums[obj]
+		}
 		if o.mutant == "stale-evict-bytes" {
 			p.hit++
 			continue
@@ -462,6 +488,18 @@ func runCopy(o opts) error {
 	}
 	if o.copyStatsOut != nil {
 		*o.copyStatsOut = st
+	}
+	if kd != nil {
+		if err := dst.Close(); err != nil {
+			return err
+		}
+		kd.Rows, kd.SumA, kd.SumB = ks.n, ks.a, ks.b
+		kd.Kept, kd.Dropped = st.keptKeys, st.droppedKeys
+		kd.Written = time.Now().UTC()
+		if err := writeKeptDigest(o.out+keptDigestExt, kd); err != nil {
+			return err
+		}
+		fmt.Printf("kept digest: %d rows besides evictable-bytes, written to %s (check with verify -digest)\n", ks.n, o.out+keptDigestExt)
 	}
 	fmt.Printf("copy done in %s (read %s): kept %d keys %s, dropped %d keys %s (%d eviction entries); new file %s, auto_vacuum %d, %.0f MB/s kept\n",
 		el.Round(time.Second), o.read, st.keptKeys, gb(st.keptBytes), st.droppedKeys, gb(st.droppedBytes), st.droppedEvict,

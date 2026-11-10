@@ -18,6 +18,8 @@
 //	         -mbps; reports by family and probes the copy rate
 //	copy     writes the new file; the source must have no writer
 //	verify   checks a copy against its source and the drop rule
+//	         (-digest: against the digest copy -kept-digest wrote, one raw
+//	         read of the copy and a SQLite spot check of the source)
 //	packcheck checks the packs of the blocks a copy dropped against a bucket
 //	         listing, before the old World is removed
 //	synth    builds a test store shaped like production, of -n blocks, for timing
@@ -103,6 +105,14 @@ type opts struct {
 	needed string
 	// neededOut is where packcheck writes the needed packs.
 	neededOut string
+	// keptDigest makes copy write the digest of the rows it inserts to
+	// out + keptDigestExt.
+	keptDigest bool
+	// digest makes verify check out against its digest file, reading it
+	// raw once, and spot check spot rows of the source through SQLite.
+	digest bool
+	spot   int
+	seed   uint64
 	// copyStatsOut, when set, receives the copy's stats; for tests.
 	copyStatsOut *copyStats
 }
@@ -141,6 +151,10 @@ func main() {
 	fs.IntVar(&o.txnRows, "txn-rows", 20000, "copy: rows a transaction holds")
 	fs.BoolVar(&o.sortBatch, "sort-batch", false, "copy: sort each batch of kept rows by key before inserting it")
 	fs.BoolVar(&o.dryRead, "dry-read", false, "copy: read raw and decide every row, insert none (times the read alone)")
+	fs.BoolVar(&o.keptDigest, "kept-digest", false, "copy: write the digest of the rows inserted to -out + "+keptDigestExt+", for verify -digest")
+	fs.BoolVar(&o.digest, "digest", false, "verify: check -out against its "+keptDigestExt+" file (one raw read of -out, no raw read of -world), its key index and evictable-bytes, then spot check -spot rows through SQLite")
+	fs.IntVar(&o.spot, "spot", 100000, "verify -digest: kept source rows the spot check compares through SQLite; a tenth as many dropped rows are checked absent")
+	fs.Uint64Var(&o.seed, "seed", 0, "verify -digest: spot check sampling seed (0: from the clock; printed)")
 	fs.BoolVar(&o.deferIndex, "defer-index", false, "copy: build the key index after the rows are in, then give it the source's autoindex schema row")
 
 	// The copy rate measurement of count.
@@ -167,6 +181,8 @@ func main() {
 		_, err = runCount(o)
 	case cmd == "copy":
 		err = runCopy(o)
+	case cmd == "verify" && o.digest:
+		err = runVerifyDigest(o)
 	case cmd == "verify":
 		err = runVerify(o)
 	case cmd == "selftest":
