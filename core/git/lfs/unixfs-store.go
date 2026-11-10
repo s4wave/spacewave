@@ -62,7 +62,7 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 		return err
 	}
 	defer strm.Close()
-	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+	if err := sendUpload(strm, &s4wave_unixfs.HandleUploadTreeRequest{
 		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
 			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
 				Path:      ObjectPath(oid),
@@ -83,7 +83,7 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 		if _, err := io.ReadFull(rdr, buf[:n]); err != nil {
 			return errors.Wrap(err, "read object")
 		}
-		if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		if err := sendUpload(strm, &s4wave_unixfs.HandleUploadTreeRequest{
 			Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{Data: buf[:n]},
 		}); err != nil {
 			return err
@@ -105,6 +105,20 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 		)
 	}
 	return nil
+}
+
+// sendUpload sends one upload frame. A send fails once the daemon has ended
+// the call, so the call's result, which carries the daemon's reason, is
+// returned in place of the transport's refusal of the frame.
+func sendUpload(strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeClient, msg *s4wave_unixfs.HandleUploadTreeRequest) error {
+	err := strm.Send(msg)
+	if err == nil {
+		return nil
+	}
+	if _, verdict := strm.CloseAndRecv(); verdict != nil {
+		return verdict
+	}
+	return err
 }
 
 // Get writes the file for oid to w through one ReadStream call.
