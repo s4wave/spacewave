@@ -33,8 +33,9 @@ const retryDelay = time.Second
 // with one fdatasync shared by the writers waiting at once. A value is
 // readable through Get from the moment its batch is written, before it is
 // durable, and stays readable while its pack is local. Remove forgets a
-// value the caller has freed; the bytes stay in the pack, and after a restart
-// the value reads again, which keeps data when unsure.
+// value the caller has freed once its pack is uploaded; the bytes stay in the
+// pack, and after a restart the value reads again, which keeps data when
+// unsure.
 type Log struct {
 	// dir holds the pack files.
 	dir string
@@ -655,14 +656,20 @@ func (l *Log) HasDurable(key []byte) bool {
 	return durable
 }
 
-// Remove forgets the value under key, which the caller has freed. Its bytes
-// stay in their pack.
+// Remove forgets the value under key, which the caller has freed, once the
+// remote holds its pack. Its bytes stay in their pack. A value whose pack
+// is not uploaded stays readable until the pack is evicted: a writer that
+// found it held may have stored it again, and until the upload no other
+// copy serves it.
 func (l *Log) Remove(key []byte) {
 	if len(key) < keyTailLen {
 		return
 	}
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		delete(l.table, tailOf(key))
+		t := tailOf(key)
+		if loc, ok := l.table[t]; ok && loc.p.uploaded {
+			delete(l.table, t)
+		}
 	})
 }
 
