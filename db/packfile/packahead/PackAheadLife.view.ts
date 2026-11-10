@@ -8,6 +8,7 @@ type PackAhead = {
   remote: number[]
   entries: number[]
   reg: number[]
+  poisoned: number[]
 }
 
 export const title = 'One pack: appended, finalized, uploaded, evicted'
@@ -22,6 +23,7 @@ const pack = (v: PackAhead) => {
   if (has(v.remote)) return 'object uploaded'
   if (v.file['1'] === 'final') return 'finalized'
   if (v.fin['1'] === 'index') return 'index written'
+  if (has(v.poisoned)) return 'poisoned'
   return 'open'
 }
 
@@ -37,6 +39,8 @@ export const step = (action: string, from: PackAhead, to: PackAhead) => {
       return from.file['1'] === 'open'
         ? 'recover: truncate to the last good record, finalize'
         : 'recover'
+    case 'SyncFail':
+      return 'sync fails: poison'
     case 'FinIndex':
       return 'write and sync the index'
     case 'FinRename':
