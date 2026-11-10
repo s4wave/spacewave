@@ -14,6 +14,13 @@ import (
 // page, which SQLite never uses and never puts on the freelist.
 const pendingByte = 0x40000000
 
+// lockByteOffset is where crosscheck and scan place the lock-byte page; a
+// test moves it into a small file.
+var lockByteOffset int64 = pendingByte
+
+// lockBytePage is the page crosscheck and scan treat as the lock-byte page.
+func lockBytePage(h header) uint32 { return uint32(lockByteOffset/h.pageSize + 1) }
+
 // header is the part of the SQLite database header the punch needs.
 type header struct {
 	pageSize  int64
@@ -21,11 +28,13 @@ type header struct {
 	dbPages   uint32
 	trunk     uint32
 	freeCount uint32
+	change    uint32 // file change counter at offset 24
 	autoVac   bool
 }
 
 // readHeader reads and checks the 100 byte header of page 1.
 func readHeader(r io.ReaderAt, fileSize int64) (header, error) {
+	// Read the header and check the magic string.
 	var b [100]byte
 	if _, err := r.ReadAt(b[:], 0); err != nil {
 		return header{}, errors.Wrap(err, "read header")
@@ -33,19 +42,31 @@ func readHeader(r io.ReaderAt, fileSize int64) (header, error) {
 	if string(b[:16]) != "SQLite format 3\x00" {
 		return header{}, errors.New("not an SQLite database")
 	}
+
+	// Refuse a page size or usable size SQLite would not write.
 	h := header{pageSize: int64(binary.BigEndian.Uint16(b[16:18]))}
 	if h.pageSize == 1 {
 		h.pageSize = 65536
 	}
 	h.usable = h.pageSize - int64(b[20])
-	change := binary.BigEndian.Uint32(b[24:28])
+	if h.pageSize < 512 || h.pageSize > 65536 || h.pageSize&(h.pageSize-1) != 0 {
+		return header{}, errors.Errorf("header page size %d: want a power of two from 512 to 65536", h.pageSize)
+	}
+	if h.usable < 480 {
+		return header{}, errors.Errorf("header usable size %d (page size %d, reserved %d): want at least 480", h.usable, h.pageSize, b[20])
+	}
+
+	// Take the counts and the freelist head.
+	h.change = binary.BigEndian.Uint32(b[24:28])
 	h.dbPages = binary.BigEndian.Uint32(b[28:32])
 	validFor := binary.BigEndian.Uint32(b[92:96])
 	h.trunk = binary.BigEndian.Uint32(b[32:36])
 	h.freeCount = binary.BigEndian.Uint32(b[36:40])
 	h.autoVac = binary.BigEndian.Uint32(b[52:56]) != 0
-	if validFor != change {
-		return h, errors.Errorf("header page count is stale: version-valid-for %d, change counter %d", validFor, change)
+
+	// Warn of a stale page count or a file size unlike it.
+	if validFor != h.change {
+		return h, errors.Errorf("header page count is stale: version-valid-for %d, change counter %d", validFor, h.change)
 	}
 	if fileSize != int64(h.dbPages)*h.pageSize {
 		return h, errors.Errorf("file is %d bytes, header says %d pages of %d", fileSize, h.dbPages, h.pageSize)

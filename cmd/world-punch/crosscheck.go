@@ -124,6 +124,9 @@ type ccResult struct {
 	startFree   uint32 // header freelist counts
 	endFree     uint32
 	endPages    uint32
+	startChange uint32 // header change counters (scan)
+	endChange   uint32
+	strict      bool // scan: header freelist count and end header must match
 
 	lateRoots        int
 	lateReached      int
@@ -153,8 +156,9 @@ func (r *ccResult) sanityMatch() bool {
 
 // failReasons lists why the run fails: an interrupted walk, a sanity
 // mismatch, unexplained unaccounted pages, unexplained bad pages,
-// unexplained conflicts, or a freelist walk that stopped early. None means
-// PASS.
+// unexplained conflicts, or a freelist walk that stopped early; for a scan
+// also a header freelist count unlike the walk, or a header that changed
+// between the start and the end. None means PASS.
 func (r *ccResult) failReasons() []string {
 	checks := []struct {
 		fail bool
@@ -166,6 +170,9 @@ func (r *ccResult) failReasons() []string {
 		{len(r.bad) > r.badFreed(), fmt.Sprintf("bad-unexplained %d", len(r.bad)-r.badFreed())},
 		{r.unexplained() > 0, fmt.Sprintf("unexplained conflicts %d", r.unexplained())},
 		{r.freeTorn != nil, "freelist walk stopped early"},
+		{r.strict && uint64(r.startFree) != r.freeTrunks+r.freeLeaves, fmt.Sprintf("header freelist count %d != walked trunks %d + leaves %d", r.startFree, r.freeTrunks, r.freeLeaves)},
+		{r.strict && !r.interrupted && (r.endPages != r.dbPages || r.endFree != r.startFree || r.endChange != r.startChange),
+			fmt.Sprintf("file changed during scan: header pages %d -> %d, freelist count %d -> %d, change counter %d -> %d", r.dbPages, r.endPages, r.startFree, r.endFree, r.startChange, r.endChange)},
 	}
 	var why []string
 	for _, c := range checks {
@@ -522,6 +529,10 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.dbPages), ptr: true})
 			return next
 		}
+		if it.pg == lockBytePage(h) {
+			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to the lock-byte page %d", it.pg), ptr: true})
+			return next
+		}
 		if it.kind == kindOverflow && it.left == 0 && reached.has(it.pg) {
 			return next // a late chain of unknown length ran into reached pages
 		}
@@ -627,10 +638,14 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	}
 	res.readBytes = readBytes
 
-	// Count pages reached, free and neither.
-	lockPg := uint32(pendingByte/h.pageSize + 1)
+	// Count pages reached, free and neither; a reached lock-byte page is
+	// bad.
+	lockPg := lockBytePage(h)
 	for pg := uint32(1); pg <= h.dbPages; pg++ {
 		r, fr := reached.has(pg), free.has(pg)
+		if r && pg == lockPg {
+			addBad(badPage{page: pg, err: "lock-byte page reached"})
+		}
 		switch {
 		case r:
 			res.reached++

@@ -288,3 +288,74 @@ func TestScanShortRead(t *testing.T) {
 		}
 	}
 }
+
+// TestScanLockPage: a b-tree, leaf or overflow page on the lock-byte page
+// fails both modes. The lock-byte offset is moved onto a page the fixture
+// uses, since a real lock-byte page needs a file over 1 GiB.
+func TestScanLockPage(t *testing.T) {
+	path := makeBigIndex(t)
+	ref := crosscheckFile(t, path)
+	for _, kind := range []pageKind{kindOverflow, kindTable, kindIndex} {
+		target := ref.firstOfKind[kind]
+		if target < 2 {
+			t.Fatalf("no page of kind %v", kind)
+		}
+		h, _ := fileHeader(t, path)
+		lockByteOffset = int64(target-1)*h.pageSize + 100
+		var out bytes.Buffer
+		code, err := runCrosscheck(&out, opts{path: path, cross: true, scan: true, readers: 4, streams: 3, parsers: 2}, nil)
+		cc := crosscheckFile(t, path)
+		lockByteOffset = pendingByte
+		if err != nil || code != 3 || !strings.Contains(out.String(), "lock-byte page") {
+			t.Fatalf("scan, lock-byte page %d (kind %v): code %d err %v, output:\n%s", target, kind, code, err, out.String())
+		}
+		if !cc.failed() || !slices.ContainsFunc(cc.bad, func(b badPage) bool { return strings.Contains(b.err, "lock-byte page") }) {
+			t.Fatalf("crosscheck, lock-byte page %d (kind %v): bad %+v reasons %v", target, kind, cc.bad, cc.failReasons())
+		}
+	}
+}
+
+// TestScanHeaderChecks: the scan fails on a header freelist count unlike
+// the walk and on a header changed during the scan, and refuses a hot
+// journal and an invalid page size.
+func TestScanHeaderChecks(t *testing.T) {
+	// A header freelist count one more than the walk finds.
+	path := makeBigIndex(t)
+	h, _ := fileHeader(t, path)
+	var b [4]byte
+	binary.BigEndian.PutUint32(b[:], h.freeCount+1)
+	patch(t, path, 36, b[:])
+	res0 := scanFile(t, path)
+	if r := strings.Join(res0.failReasons(), ","); !strings.Contains(r, "header freelist count") {
+		t.Fatalf("freelist count: reasons %s", r)
+	}
+	binary.BigEndian.PutUint32(b[:], h.freeCount)
+	patch(t, path, 36, b[:])
+
+	// The change counter bumped after the start header was read.
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	res, err := scanCheck(f, h, ccOpts{readers: 4, streams: 3, parsers: 2, freelistOverride: func(bitset, bool) {
+		binary.BigEndian.PutUint32(b[:], h.change+1)
+		patch(t, path, 24, b[:])
+	}})
+	if err != nil || !strings.Contains(strings.Join(res.failReasons(), ","), "file changed during scan") {
+		t.Fatalf("change counter: err %v reasons %v", err, res.failReasons())
+	}
+
+	// A hot journal, and a page size that is not a power of two.
+	if err := os.WriteFile(path+"-journal", []byte{1}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runCrosscheck(io.Discard, opts{path: path, cross: true, scan: true, readers: 4, streams: 3, parsers: 2}, nil); err == nil || !strings.Contains(err.Error(), "-journal is 1 bytes") {
+		t.Fatalf("hot journal: err %v", err)
+	}
+	os.Remove(path + "-journal")
+	patch(t, path, 16, []byte{0x0b, 0xb8})
+	if _, err := runCrosscheck(io.Discard, opts{path: path, cross: true, scan: true, readers: 4, streams: 3, parsers: 2}, nil); err == nil || !strings.Contains(err.Error(), "power of two") {
+		t.Fatalf("page size 3000: err %v", err)
+	}
+}

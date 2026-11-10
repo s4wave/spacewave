@@ -37,7 +37,7 @@ type scanStream struct {
 func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Size the result against the header.
 	start := time.Now()
-	res := ccResult{dbPages: h.dbPages, byType: map[byte]uint64{}, startFree: h.freeCount, inUse: h.dbPages}
+	res := ccResult{dbPages: h.dbPages, byType: map[byte]uint64{}, startFree: h.freeCount, inUse: h.dbPages, strict: true, startChange: h.change}
 	if h.freeCount < h.dbPages {
 		res.inUse = h.dbPages - h.freeCount
 	}
@@ -94,6 +94,10 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		// Refuse an out-of-range or already reached page.
 		if it.pg < 1 || it.pg > h.dbPages {
 			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.dbPages), ptr: true})
+			return false
+		}
+		if it.pg == lockBytePage(h) {
+			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to the lock-byte page %d", it.pg), ptr: true})
 			return false
 		}
 		if reached.has(it.pg) {
@@ -224,10 +228,14 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		scanChain(&res, h, hd, nextPg, reached, btree, leaf, free, addConflict, addBad)
 	}
 
-	// Count pages reached, free and neither, as crosscheck does.
-	lockPg := uint32(pendingByte/h.pageSize + 1)
+	// Count pages reached, free and neither, as crosscheck does; a
+	// reached lock-byte page is bad.
+	lockPg := lockBytePage(h)
 	for pg := uint32(1); pg <= h.dbPages; pg++ {
 		r, fr := reached.has(pg), free.has(pg)
+		if r && pg == lockPg {
+			addBad(badPage{page: pg, err: "lock-byte page reached"})
+		}
 		switch {
 		case r:
 			res.reached++
@@ -253,6 +261,7 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	}
 	res.endPages = binary.BigEndian.Uint32(hb[28:32])
 	res.endFree = binary.BigEndian.Uint32(hb[36:40])
+	res.endChange = binary.BigEndian.Uint32(hb[24:28])
 	res.leftoverByType = map[string]int{}
 	return finish()
 }
@@ -546,6 +555,10 @@ func scanChain(res *ccResult, h header, hd chainHead, nextPg []uint32, reached, 
 		// The page must be in range and not reached by anything else.
 		if cur < 1 || cur > h.dbPages {
 			addBad(badPage{page: prev, err: fmt.Sprintf("points to page %d outside 1..%d", cur, h.dbPages), ptr: true})
+			return
+		}
+		if cur == lockBytePage(h) {
+			addBad(badPage{page: prev, err: fmt.Sprintf("points to the lock-byte page %d", cur), ptr: true})
 			return
 		}
 		if reached.has(cur) {

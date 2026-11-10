@@ -160,10 +160,11 @@ func runLive(out io.Writer, o opts) error {
 // code 0 on PASS, 3 on FAIL (see failReasons) and 4 when interrupt closed
 // before the check finished; then it prints a partial report.
 func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error) {
-	// A scan reads only the main file, so it refuses a WAL with frames.
+	// A scan reads only the main file, so it refuses a WAL with frames or
+	// a hot rollback journal.
 	if o.scan {
-		if st, err := os.Stat(o.path + "-wal"); err == nil && st.Size() != 0 {
-			return 0, errors.Errorf("-scan is for stopped files: %s-wal is %d bytes; checkpoint it (wal_checkpoint(TRUNCATE)) and stop every writer first", o.path, st.Size())
+		if err := checkNoJournal(o.path); err != nil {
+			return 0, errors.Wrap(err, "-scan is for stopped files")
 		}
 	}
 
