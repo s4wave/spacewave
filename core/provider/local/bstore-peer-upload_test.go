@@ -11,6 +11,7 @@ import (
 	block_store_memcache "github.com/s4wave/spacewave/db/block/store/memcache"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
+	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
@@ -265,4 +266,54 @@ func TestPlacedFillsNeverQueue(t *testing.T) {
 			time.Sleep(5 * time.Millisecond)
 		}
 	})
+}
+
+// TestPeerFillsUploadUnderDivert checks the new owner's peer fills while its
+// store diverts new values to a packahead Log: a block only the peer holds
+// must still land with an upload marker and reach the pack store, as it does
+// without the Log. The diverting store's values upload through their packs,
+// but a peer fill is a cache fill the PackedStore keeps on the Volume, and
+// nothing else uploads it.
+func TestPeerFillsUploadUnderDivert(t *testing.T) {
+	// Build the placed store over a diverting PackedStore.
+	log, err := packahead.Open(t.Context(), t.TempDir(), packahead.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer log.Close()
+	f := newFallbackTestWith(t, nil, log)
+
+	// Rebuild the reads with a peer and peer fills that upload.
+	peer := newLeafStore()
+	f.p.peerUpload = true
+	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
+	f.reads, f.copies = f.p.readChains(
+		recorded,
+		f.local,
+		func() block.StoreOps { return f.packs },
+		func() block.StoreOps { return peer },
+		nil,
+	)
+
+	// A block only the peer holds lands marked.
+	peerData := []byte("old owner block, store diverting")
+	peerRef, _, err := peer.PutBlock(f.ctx, peerData, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.read(peerRef, peerData)
+	f.waitHeld(peerRef)
+	deadline := time.Now().Add(5 * time.Second)
+	for f.status().Pending != 1 {
+		if time.Now().After(deadline) {
+			t.Fatalf("pending = %d, want the peer block queued to upload", f.status().Pending)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	// The upload moves it to a pack.
+	f.upload()
+	if !f.packHolds(peerRef) {
+		t.Fatal("pack store lacks the peer block after the upload")
+	}
 }
