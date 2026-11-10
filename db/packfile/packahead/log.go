@@ -265,6 +265,11 @@ func (l *Log) Append(ctx context.Context, blocks []Block) error {
 		}
 	}
 
+	// Refuse blocks that would leave less free disk than the reserve.
+	if err := l.checkReserve(blocks); err != nil {
+		return err
+	}
+
 	// Write the blocks under writeMtx, collecting the syncs they wait for.
 	release, err := l.writeMtx.Lock(ctx)
 	if err != nil {
@@ -281,6 +286,30 @@ func (l *Log) Append(ctx context.Context, blocks []Block) error {
 		if err := l.waitSynced(ctx, w.p, w.end); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// checkReserve returns ErrReserve when writing blocks would leave less free
+// disk than Options.ReserveBytes, and the measurement's error when the free
+// disk cannot be read.
+func (l *Log) checkReserve(blocks []Block) error {
+	// Keep no reserve when none is set.
+	if l.opts.ReserveBytes <= 0 {
+		return nil
+	}
+
+	// Measure the free disk and the blocks' bytes.
+	free, err := l.opts.FreeBytes(l.dir)
+	if err != nil {
+		return errors.Wrap(err, "measure free disk")
+	}
+	var need uint64
+	for _, b := range blocks {
+		need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
+	}
+	if free < need || free-need < uint64(l.opts.ReserveBytes) { //nolint:gosec // positive.
+		return ErrReserve
 	}
 	return nil
 }
