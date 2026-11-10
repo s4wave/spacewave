@@ -3,12 +3,15 @@
 package world_block
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cayley/graph"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -115,40 +118,110 @@ func headFormat(t *testing.T, engine *Engine) WorldFormat {
 	return root.GetFormat()
 }
 
-// TestRegeneratorSwapsWhileCommitting regenerates a kv World on a Volume that
-// frees at once while a writer commits between every step, through a
-// restart at each stage, and checks that the head becomes a node graph World
-// holding exactly the objects and quads committed, that the engine follows it
-// and keeps writing, and that collection between steps loses nothing.
-func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
-	// Seed a kv World with objects and quads, some labeled.
-	ctx := t.Context()
+// regenFixture is a kv World under a writing engine, seeded for regeneration.
+type regenFixture struct {
+	*volumeFixture
+	authority *LocalAuthority
+	engine    *Engine
+	m         *regenModel
+	keys      []string
+	cfg       RegenConfig
+}
+
+// newRegenFixture seeds a kv World with objects and quads, some labeled.
+func newRegenFixture(t *testing.T) *regenFixture {
 	f := newVolumeFixture(t)
 	authority := f.authority()
-	engine := f.openEngine(t, authority)
-	m := &regenModel{objects: make(map[string]bool), quads: make(map[string]world.GraphQuad)}
-	keys := fixtureKeys("o", 20)
-	m.commit(t, engine, func(w *EngineTx, add, _ func(world.GraphQuad)) {
-		m.create(t, w, keys...)
+	rf := &regenFixture{
+		volumeFixture: f,
+		authority:     authority,
+		engine:        f.openEngine(t, authority),
+		m:             &regenModel{objects: make(map[string]bool), quads: make(map[string]world.GraphQuad)},
+		keys:          fixtureKeys("o", 20),
+		cfg:           RegenConfig{SpillDir: t.TempDir(), Budget: 1 << 20},
+	}
+	rf.m.commit(t, rf.engine, func(w *EngineTx, add, _ func(world.GraphQuad)) {
+		rf.m.create(t, w, rf.keys...)
 		for i := range 40 {
 			label := ""
 			if i%5 == 0 {
 				label = fmt.Sprintf("<l%d>", i%2)
 			}
-			add(regenQuad(keys[i%20], fmt.Sprintf("<p%d>", i%3), keys[(i*7+1)%20], label))
+			add(regenQuad(rf.keys[i%20], fmt.Sprintf("<p%d>", i%3), rf.keys[(i*7+1)%20], label))
 		}
 	})
-	if f := headFormat(t, engine); f != WorldFormat_WORLD_FORMAT_CAYLEY_KV {
+	if f := headFormat(t, rf.engine); f != WorldFormat_WORLD_FORMAT_CAYLEY_KV {
 		t.Fatalf("seeded World is %v", f)
 	}
-	cfg := RegenConfig{SpillDir: t.TempDir(), Budget: 1 << 20}
-	stage := func(r *Regenerator, want RegenStage) regenState {
-		t.Helper()
-		s, err := r.read(ctx)
-		if err != nil || s.stage != want {
-			t.Fatalf("stage %v, %v; want %v", s.stage, err, want)
+	return rf
+}
+
+// stage fails unless r reads stage want, and returns the state.
+func (rf *regenFixture) stage(t *testing.T, r *Regenerator, want RegenStage) regenState {
+	t.Helper()
+	s, err := r.read(t.Context())
+	if err != nil || s.stage != want {
+		t.Fatalf("stage %v, %v; want %v", s.stage, err, want)
+	}
+	return s
+}
+
+// follow waits for the engine to read the World root ref in format.
+func (rf *regenFixture) follow(t *testing.T, ref *block.BlockRef, format WorldFormat) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !rf.engine.GetRootRef().GetRootRef().EqualsRef(ref) {
+		if time.Now().After(deadline) {
+			t.Fatal("engine did not follow the swapped head")
 		}
-		return s
+		time.Sleep(time.Millisecond)
+	}
+	if f := headFormat(t, rf.engine); f != format {
+		t.Fatalf("head World is %v, want %v", f, format)
+	}
+}
+
+// switchTo pins, builds and swaps with no commits between, running fault on
+// the built root before the swap when it is set, and returns the switched
+// regenerator.
+func (rf *regenFixture) switchTo(t *testing.T, fault func(r *Regenerator, s regenState)) *Regenerator {
+	t.Helper()
+	ctx := t.Context()
+	rf.cfg.SwapChanges = 1 << 10
+	r := NewRegenerator(rf.authority, rf.cfg)
+	if err := r.pin(ctx, rf.stage(t, r, RegenIdle)); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.build(ctx, rf.stage(t, r, RegenBuilding)); err != nil {
+		t.Fatal(err)
+	}
+	if fault != nil {
+		fault(r, rf.stage(t, r, RegenCatchingUp))
+	}
+	rf.m.commit(t, rf.engine, func(_ *EngineTx, add, _ func(world.GraphQuad)) {
+		add(regenQuad(rf.keys[2], "<p7>", rf.keys[3], ""))
+	})
+	if err := r.catchUp(ctx, rf.stage(t, r, RegenCatchingUp), regenForward); err != nil {
+		t.Fatal(err)
+	}
+	s := rf.stage(t, r, RegenSwitched)
+	rf.follow(t, s.built, WorldFormat_WORLD_FORMAT_NODE_GRAPH)
+	return r
+}
+
+// TestRegeneratorSwapsWhileCommitting regenerates a kv World on a Volume that
+// frees at once while a writer commits between every step, through a
+// restart at each stage, and checks that the head becomes a node graph World
+// holding exactly the objects and quads committed, that the engine follows it
+// and keeps writing, that Run verifies and releases the old root, and that
+// collection between steps loses nothing.
+func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
+	ctx := t.Context()
+	rf := newRegenFixture(t)
+	f, engine, m, keys, cfg := rf.volumeFixture, rf.engine, rf.m, rf.keys, rf.cfg
+	authority, stage := rf.authority, func(r *Regenerator, want RegenStage) regenState {
+		t.Helper()
+		return rf.stage(t, r, want)
 	}
 
 	// Pin, then commit deletes, adds and a quad deleted and added again.
@@ -182,7 +255,7 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 
 	// Restart, and run a round that leaves too much for the swap.
 	r = NewRegenerator(authority, cfg)
-	if err := r.catchUp(ctx, stage(r, RegenCatchingUp)); err != nil {
+	if err := r.catchUp(ctx, stage(r, RegenCatchingUp), regenForward); err != nil {
 		t.Fatal(err)
 	}
 	s := stage(r, RegenCatchingUp)
@@ -195,10 +268,10 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 		add(regenQuad(keys[19], "<p1>", "late-1", ""))
 	})
 
-	// Restart, and run to the swap.
+	// Restart, and run the round that swaps.
 	cfg.SwapChanges = 1 << 10
 	r = NewRegenerator(authority, cfg)
-	if err := r.Run(ctx); err != nil {
+	if err := r.catchUp(ctx, stage(r, RegenCatchingUp), regenForward); err != nil {
 		t.Fatal(err)
 	}
 	s = stage(r, RegenSwitched)
@@ -208,16 +281,7 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	f.collect(t)
 
 	// The engine follows the new head and holds exactly what was committed.
-	deadline := time.Now().Add(5 * time.Second)
-	for !engine.GetRootRef().GetRootRef().EqualsRef(s.built) {
-		if time.Now().After(deadline) {
-			t.Fatal("engine did not follow the swapped head")
-		}
-		time.Sleep(time.Millisecond)
-	}
-	if f := headFormat(t, engine); f != WorldFormat_WORLD_FORMAT_NODE_GRAPH {
-		t.Fatalf("swapped World is %v", f)
-	}
+	rf.follow(t, s.built, WorldFormat_WORLD_FORMAT_NODE_GRAPH)
 	m.check(t, engine)
 
 	// It keeps writing on the new World.
@@ -227,4 +291,118 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	})
 	f.collect(t)
 	m.check(t, engine)
+
+	// Run proves the new World equal to the old root and releases it.
+	if err := NewRegenerator(authority, cfg).Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	stage(r, RegenIdle)
+	f.collect(t)
+	m.check(t, engine)
+}
+
+// TestRegeneratorSwitchesBack commits on a switched World, including
+// deleting the nodes with the highest IDs and adding new ones, runs a switch
+// back round that leaves too much for the turn, commits again, and switches
+// back. The head must be a kv World holding exactly what was committed, keep
+// writing, and release to idle.
+func TestRegeneratorSwitchesBack(t *testing.T) {
+	// Switch, then commit on the new World: drop the only quad naming the
+	// newest node, <p7>, and add quads on new ones.
+	ctx := t.Context()
+	rf := newRegenFixture(t)
+	rf.switchTo(t, nil)
+	rf.m.commit(t, rf.engine, func(w *EngineTx, add, del func(world.GraphQuad)) {
+		del(regenQuad(rf.keys[2], "<p7>", rf.keys[3], ""))
+		rf.m.create(t, w, "back-0")
+		add(regenQuad("back-0", "<p8>", rf.keys[1], "<l2>"))
+	})
+
+	// A round off the turn leaves too much for a zero bound and moves built
+	// to the head.
+	rf.cfg.SwapChanges = 0
+	r := NewRegenerator(rf.authority, rf.cfg)
+	if err := r.catchUp(ctx, rf.stage(t, r, RegenSwitched), regenBack); err != nil {
+		t.Fatal(err)
+	}
+	s := rf.stage(t, r, RegenSwitched)
+	if !s.built.EqualsRef(rf.worldRoot(t)) {
+		t.Fatalf("back round left built %v behind head %v", s.built, rf.worldRoot(t))
+	}
+	rf.collect(t)
+	rf.m.commit(t, rf.engine, func(_ *EngineTx, add, del func(world.GraphQuad)) {
+		del(regenQuad("back-0", "<p8>", rf.keys[1], "<l2>"))
+		add(regenQuad(rf.keys[9], "<p9>", "back-0", ""))
+	})
+
+	// Switch back under the turn; the old format serves what was committed.
+	rf.cfg.SwapChanges = 1 << 10
+	r = NewRegenerator(rf.authority, rf.cfg)
+	if err := r.SwitchBack(ctx); err != nil {
+		t.Fatal(err)
+	}
+	s = rf.stage(t, r, RegenSwitchedBack)
+	if !s.base.GetEmpty() || s.built.EqualsRef(rf.worldRoot(t)) {
+		t.Fatalf("switch back left base %v built %v head %v", s.base, s.built, rf.worldRoot(t))
+	}
+	rf.follow(t, rf.worldRoot(t), WorldFormat_WORLD_FORMAT_CAYLEY_KV)
+	rf.collect(t)
+	rf.m.check(t, rf.engine)
+	if err := r.Run(ctx); !errors.Is(err, ErrRegenSwitchedBack) {
+		t.Fatalf("Run after switch back: %v", err)
+	}
+
+	// It keeps writing, and Release lets go of the new-format root.
+	rf.m.commit(t, rf.engine, func(_ *EngineTx, add, _ func(world.GraphQuad)) {
+		add(regenQuad("back-0", "<p0>", rf.keys[4], ""))
+	})
+	if err := r.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rf.stage(t, r, RegenIdle)
+	rf.collect(t)
+	rf.m.check(t, rf.engine)
+}
+
+// TestRegeneratorMismatchSwitchesBack swaps in a built World missing a quad
+// and checks that Run finds the difference, switches back to the old root,
+// and returns ErrRegenMismatch, with the head holding every quad.
+func TestRegeneratorMismatchSwitchesBack(t *testing.T) {
+	// Drop one quad from the built World before the swap.
+	ctx := t.Context()
+	rf := newRegenFixture(t)
+	dropped := rf.m.quads[slices.Sorted(maps.Keys(rf.m.quads))[0]]
+	r := rf.switchTo(t, func(r *Regenerator, s regenState) {
+		store, release, err := block.OpenStage(ctx, r.a.store)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+		g, err := r.graft(ctx, store, s.built, s.built)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g.limit = -1
+		q, err := world.GraphQuadToCayleyQuad(dropped, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := g.apply(ctx, graph.Delta{Quad: q, Action: graph.Delete}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := g.write(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if err := r.a.store.SetRoots(ctx, nil, []block.NamedRoot{{Name: r.builtName, Ref: g.ref, Previous: s.built}}); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	// Run finds the missing quad and switches back.
+	if err := r.Run(ctx); !errors.Is(err, ErrRegenMismatch) {
+		t.Fatalf("Run on a faulty World: %v", err)
+	}
+	rf.stage(t, r, RegenSwitchedBack)
+	rf.follow(t, rf.worldRoot(t), WorldFormat_WORLD_FORMAT_CAYLEY_KV)
+	rf.m.check(t, rf.engine)
 }
