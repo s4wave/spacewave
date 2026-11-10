@@ -390,7 +390,7 @@ func TestWrongRowPeerFillKept(t *testing.T) {
 	f.waitResident(int64(len(placedData) + len(lostData)))
 
 	// Two passes, the first keeping the blocks just read: the placed block
-	// evicts on the queue's word, and the wrongly placed one stays, queued
+	// evicts once the packs confirm it, and the wrongly placed one stays, queued
 	// to upload.
 	for range 2 {
 		if _, err := f.p.evict(f.ctx, 1<<30); err != nil {
@@ -430,8 +430,8 @@ var _ block_store_writeback.BlockLocator = promptRows{}
 // TestWrongRowLocateUploadKept uploads, with the locate skip on and peer
 // fills uploading, a queued block whose h row names a pack that lacks it.
 // The upload does not trust the row: the packs do not confirm the block, so
-// it uploads rather than clearing as already uploaded, and eviction, which
-// trusts the queue with no remote check, cannot drop the only copy.
+// it uploads rather than clearing as already uploaded, and eviction cannot
+// drop the only copy.
 func TestWrongRowLocateUploadKept(t *testing.T) {
 	// Give the peer a block the packs lack, whose row wrongly places it.
 	f := newIndexedFallbackTest(t)
@@ -484,5 +484,81 @@ func TestWrongRowLocateUploadKept(t *testing.T) {
 	}
 	if !f.held(lostRef) && !f.packHolds(lostRef) {
 		t.Fatal("eviction dropped the only copy of a block a wrong row placed")
+	}
+}
+
+// unheldBlocks is a pack store whose existence checks deny the blocks in
+// gone, as a bucket that lost them or never held them does.
+type unheldBlocks struct {
+	backendStore
+	gone map[string]bool
+}
+
+// GetBlockExists denies the gone blocks and asks the packs for the rest.
+func (u *unheldBlocks) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	if u.gone[ref.GetHash().MarshalString()] {
+		return false, nil
+	}
+	return u.backendStore.GetBlockExists(ctx, ref)
+}
+
+// GetBlockExistsBatch denies the gone blocks and asks the packs for the rest.
+func (u *unheldBlocks) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	held, err := u.backendStore.GetBlockExistsBatch(ctx, refs)
+	for i, ref := range refs {
+		if err == nil && u.gone[ref.GetHash().MarshalString()] {
+			held[i] = false
+		}
+	}
+	return held, err
+}
+
+// TestPeerUploadEvictAsksBackend checks that eviction with peer fills
+// uploading asks the backend before it drops a block: a block whose eviction
+// entry stands but whose backend copy is gone stays on the disk, refused, and
+// its entry leaves the queue; a block the backend holds is dropped.
+func TestPeerUploadEvictAsksBackend(t *testing.T) {
+	// Upload two blocks, so both queue for eviction.
+	f := newFallbackTest(t)
+	f.p.peerUpload = true
+	f.p.evictGate = &csync.Mutex{}
+	heldData, lostData := []byte("block the backend holds"), []byte("block the backend lost")
+	var refs []*block.BlockRef
+	for _, data := range [][]byte{heldData, lostData} {
+		ref, _, err := f.wb.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	f.upload()
+	heldRef, lostRef := refs[0], refs[1]
+	if status := f.status(); status.Pending != 0 || status.EvictableBytes != int64(len(heldData)+len(lostData)) {
+		t.Fatalf("status = %+v, want both blocks queued for eviction", status)
+	}
+
+	// Open a backend that no longer holds the second block.
+	f.p.remote = &atomic.Pointer[openBackend]{}
+	f.p.remote.Store(&openBackend{backend: f.p.backend.Load(), store: &unheldBlocks{
+		backendStore: f.packs,
+		gone:         map[string]bool{lostRef.GetHash().MarshalString(): true},
+	}})
+
+	// The pass drops the held block and refuses the lost one.
+	result, err := f.p.evict(f.ctx, 1<<30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Evicted != 1 || result.Refused != 1 {
+		t.Fatalf("evict = %+v, want one evicted and one refused", result)
+	}
+	if f.held(heldRef) {
+		t.Fatal("the block the backend holds was not evicted")
+	}
+	if !f.held(lostRef) {
+		t.Fatal("eviction dropped a block the backend does not hold")
+	}
+	if status := f.status(); status.EvictableBytes != 0 {
+		t.Fatalf("evictable = %d, want the refused entry gone from the queue", status.EvictableBytes)
 	}
 }

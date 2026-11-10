@@ -516,13 +516,16 @@ func (p *placementState) evict(ctx context.Context, maxBytes int64) (block_store
 	if err != nil {
 		return result, err
 	}
-	// The queue proves the backend holds a block unless a peer read can fill
-	// one without an upload marker; then each batch asks the backend.
-	var check block.StoreOps
-	if !p.peerUpload {
-		check = remote.store
-	}
-	return p.wb.Evict(ctx, check, maxBytes, keep, admit)
+
+	// Each batch asks the backend whether it holds the blocks, and a block
+	// the backend does not confirm is never dropped, with or without peer
+	// fills that upload. The queue alone does not prove the backend holds a
+	// block: an entry can stand for a block no upload backed, as one an older
+	// build's fill queued, and a dropped block may be the only copy. With
+	// peer fills uploading, a peer fill the backend does not yet hold keeps
+	// its local value: it is refused until its upload queues it again. The
+	// check costs a backend existence probe per batch.
+	return p.wb.Evict(ctx, remote.store, maxBytes, keep, admit)
 }
 
 // SetEvictAdmit paces the eviction passes of the account's placed block

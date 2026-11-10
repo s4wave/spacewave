@@ -183,9 +183,9 @@ func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 // A block the backend holds is the backend's, whichever source served it, as
 // when a backend read failed and the fallback answered, or a pack read missed
 // a block its row names. It fills as a backend hit does, without a marker, so
-// a block the backend holds never queues to upload again. Such a fill's
-// eviction entry is trusted with no remote check when peer fills upload, so
-// the backend's own pack must confirm the block, not the index row alone.
+// a block the backend holds never queues to upload again. Such a fill queues
+// for eviction, so the backend's own pack must confirm the block, not the
+// index row alone; eviction asks the backend again before it drops it.
 func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Serve mode writes nothing.
 	if p.serveOnly {
