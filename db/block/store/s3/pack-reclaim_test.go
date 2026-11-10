@@ -14,8 +14,8 @@ import (
 
 // TestPackStoreReclaim rewrites the listed packfiles that are at least half
 // dead, deletes the ones with no live block, skips the ones another writer
-// removed, and leaves the packfiles written after the fence and no hidden
-// versions.
+// removed, leaves the packfiles written after the fence, and keeps each
+// object it deleted as a hidden version.
 func TestPackStoreReclaim(t *testing.T) {
 	// Serve a versioned bucket.
 	ctx := t.Context()
@@ -86,8 +86,8 @@ func TestPackStoreReclaim(t *testing.T) {
 			t.Errorf("packfile %v was replaced", pack.names)
 		}
 	}
-	if hidden := bucket.hiddenVersions(); hidden != 0 {
-		t.Errorf("bucket keeps %d hidden versions", hidden)
+	if hidden := bucket.hiddenVersions(); hidden == 0 {
+		t.Errorf("bucket keeps no hidden version of the deleted packfiles")
 	}
 
 	// Read every block back through a new store.

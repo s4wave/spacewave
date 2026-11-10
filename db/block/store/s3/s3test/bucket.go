@@ -54,6 +54,8 @@ type objectVersion struct {
 	id string
 	// data is its content.
 	data []byte
+	// marker is set on a delete marker, which hides the versions below it.
+	marker bool
 }
 
 // New serves an empty bucket until the test ends and returns it with a client
@@ -210,11 +212,14 @@ func (b *Bucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodDelete && query.Has("versionId"):
 		b.deleteVersion(key, query.Get("versionId"))
 		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodDelete:
+		b.hide(key)
+		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet || r.Method == http.MethodHead:
 		data, ok := b.objects[key]
 		if version := query.Get("versionId"); version != "" {
 			i := slices.IndexFunc(b.history[key], func(v objectVersion) bool { return v.id == version })
-			if ok = i >= 0; ok {
+			if ok = i >= 0 && !b.history[key][i].marker; ok {
 				data = b.history[key][i].data
 			}
 		}
@@ -236,14 +241,50 @@ func (b *Bucket) store(key string, data []byte) {
 	b.history[key] = slices.Insert(b.history[key], 0, version)
 }
 
+// hide puts a delete marker on top of key, as a versioned bucket does for a
+// DELETE that names no version: the key leaves the listing and its versions
+// are kept. A key with no current version is left alone.
+func (b *Bucket) hide(key string) {
+	// Leave a key with no current version alone.
+	if _, ok := b.objects[key]; !ok {
+		return
+	}
+
+	// Put the marker on top and drop the key from the listing.
+	b.versions++
+	b.history[key] = slices.Insert(b.history[key], 0, objectVersion{id: strconv.Itoa(b.versions), marker: true})
+	delete(b.objects, key)
+}
+
+// Hidden returns the number of versions under prefix that a delete marker
+// hides.
+func (b *Bucket) Hidden(prefix string) int {
+	// Count, under the bucket's lock, each data version below a marker.
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	var n int
+	for key, history := range b.history {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		for i, version := range history {
+			if !version.marker && slices.ContainsFunc(history[:i], func(v objectVersion) bool { return v.marker }) {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // deleteVersion removes one version of key, so the next newest becomes current.
 func (b *Bucket) deleteVersion(key, id string) {
 	// Remove the version from the history.
 	history := slices.DeleteFunc(b.history[key], func(v objectVersion) bool { return v.id == id })
 	b.history[key] = history
 
-	// Serve the newest version left, or nothing.
-	if len(history) == 0 {
+	// Serve the newest version left, or nothing when none is left or a delete
+	// marker is newest.
+	if len(history) == 0 || history[0].marker {
 		delete(b.objects, key)
 		return
 	}
@@ -259,7 +300,11 @@ func (b *Bucket) listVersions(w io.Writer, prefix string) {
 			continue
 		}
 		for _, version := range b.history[key] {
-			_, _ = io.WriteString(w, "<Version><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></Version>")
+			kind := "Version"
+			if version.marker {
+				kind = "DeleteMarker"
+			}
+			_, _ = io.WriteString(w, "<"+kind+"><Key>"+key+"</Key><VersionId>"+version.id+"</VersionId></"+kind+">")
 		}
 	}
 	_, _ = io.WriteString(w, "</ListVersionsResult>")

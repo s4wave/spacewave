@@ -253,7 +253,8 @@ func (s *PackStore) readPack(ctx context.Context, id string) (map[string][]byte,
 	return values, nil
 }
 
-// deleteObjects deletes every version of the object dir+id for each id.
+// deleteObjects hides the object dir+id for each id; a versioned bucket keeps
+// each one hidden until its lifecycle rule removes it.
 func (s *PackStore) deleteObjects(ctx context.Context, dir string, ids []string) error {
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(batchConcurrency)

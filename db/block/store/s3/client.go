@@ -97,8 +97,8 @@ func (c *Client) CopyObject(ctx context.Context, srcBucket, srcKey, dstBucket, d
 	return nil
 }
 
-// MoveObject copies the object to its new key within the bucket, then
-// deletes every version of the old one; no byte passes through the client. A
+// MoveObject copies the object to its new key within the bucket, then hides
+// the old one with DeleteObject; no byte passes through the client. A
 // copy that finds the source gone counts as done when the destination exists,
 // so a move killed between its copy and its delete finishes when repeated.
 func (c *Client) MoveObject(ctx context.Context, bucket, from, to string) error {
@@ -228,29 +228,14 @@ func (c *Client) PresignPut(bucket, key string, size int64, sum []byte, expires 
 	return u.String(), header
 }
 
-// DeleteObject removes every version of an object, so a bucket with
-// versioning, such as Backblaze B2, keeps no hidden copy. A missing object is
-// already deleted. Where the service does not list versions, or the key may
-// not, it deletes the current version alone.
+// DeleteObject hides an object: a plain DELETE that names no version. On a
+// bucket with versioning, such as Backblaze B2, the service keeps the object
+// as a hidden version behind a delete marker, and the bucket's lifecycle rule
+// decides when a hidden version is removed; until then the object can be
+// restored. On a bucket without versioning the object is gone. A missing
+// object is already deleted.
 func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
-	// List the versions, or delete the current version alone where they are
-	// not listed.
-	versions, err := c.ObjectVersions(ctx, bucket, key)
-	var serr *StatusError
-	if errors.As(err, &serr) && (serr.StatusCode == http.StatusNotImplemented || serr.StatusCode == http.StatusForbidden) {
-		return c.deleteObjectVersion(ctx, bucket, key, "")
-	}
-	if err != nil {
-		return err
-	}
-
-	// Delete each version.
-	for _, version := range versions {
-		if err := c.deleteObjectVersion(ctx, bucket, key, version); err != nil {
-			return err
-		}
-	}
-	return nil
+	return c.deleteObjectVersion(ctx, bucket, key, "")
 }
 
 // deleteObjectVersion removes one version of an object, or the current version

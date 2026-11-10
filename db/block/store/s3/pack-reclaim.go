@@ -435,9 +435,9 @@ func (s *PackStore) loadReclaimState(ctx context.Context) (*ReclaimState, error)
 	return state, nil
 }
 
-// saveReclaimState writes state as a new object named by its time and deletes
-// the earlier ones with their versions, so a versioned bucket keeps no hidden
-// copy. Called with compactMtx.
+// saveReclaimState writes state as a new object named by its time and hides
+// the earlier ones; a versioned bucket keeps them hidden until its lifecycle
+// rule removes them. Called with compactMtx.
 func (s *PackStore) saveReclaimState(ctx context.Context, state *ReclaimState) error {
 	// Write the new state.
 	data, err := state.MarshalVT()

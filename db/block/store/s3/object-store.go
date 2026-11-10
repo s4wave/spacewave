@@ -24,7 +24,8 @@ type ObjectStore interface {
 	// ListObjects calls fn with the key and size of every object whose key
 	// starts with prefix.
 	ListObjects(ctx context.Context, bucket, prefix string, fn func(key string, size int64) error) error
-	// DeleteObject removes the object.
+	// DeleteObject removes the object from the listing. A versioned bucket
+	// keeps it as a hidden version; no implementation deletes a version.
 	DeleteObject(ctx context.Context, bucket, key string) error
 }
 
