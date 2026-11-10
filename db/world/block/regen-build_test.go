@@ -83,7 +83,7 @@ func TestBuildNodeGraphRootKeepsWorld(t *testing.T) {
 	var roots []*block.BlockRef
 	for _, budget := range []int{1 << 20, 512} {
 		err := engineStage(t, tb.Engine).AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-			root, err := world_block.BuildNodeGraphRoot(ctx, cursor, base.GetRootRef(), world_block.RegenBuildConfig{SpillDir: t.TempDir(), Budget: budget})
+			root, err := world_block.BuildNodeGraphRoot(ctx, cursor, nil, base.GetRootRef(), world_block.RegenConfig{SpillDir: t.TempDir(), Budget: budget})
 			roots = append(roots, root)
 			return err
 		})
