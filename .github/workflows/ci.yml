@@ -88,9 +88,10 @@ jobs:
   # Each model checks on one core. A model that takes minutes gets its own
   # job, named in the models job's skip list, so no job nears its timeout;
   # every other config, including a new one, checks in the models job. A model
-  # that needs longer than 25 minutes sets its own timeout. Journal.cfg, which
-  # composes every rule with concurrent writers, takes about an hour on one
-  # core of a build host (2.3 GB resident) and longer on a hosted runner.
+  # that needs longer than 25 minutes sets its own timeout, and one that needs
+  # hours checks with the runner's four cores. Journal.cfg, which composes
+  # every rule with concurrent writers, reaches 17.5 million states in 4.8
+  # hours on one core.
   specs:
     name: TLA+ specs (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -112,7 +113,8 @@ jobs:
               db/block/gc/Journal-writers-staged.cfg
           - name: Journal
             config: db/block/gc/Journal.cfg
-            timeout: 180
+            workers: 4
+            timeout: 240
           - name: Journal-adopt
             config: db/block/gc/Journal-adopt.cfg
           - name: Journal-adopt-cut
@@ -145,6 +147,7 @@ jobs:
         env:
           CONFIG: ${{ matrix.config }}
           SKIP: ${{ matrix.skip }}
+          WORKERS: ${{ matrix.workers || 1 }}
         run: |
           if [ -n "$CONFIG" ]; then
             set -- "$CONFIG"
@@ -154,7 +157,7 @@ jobs:
             mapfile -t configs < <(git ls-files '*.cfg' ':!:**/testdata/**' "${excludes[@]}")
             set -- "${configs[@]}"
           fi
-          bun run check:tla "$@"
+          bun run check:tla -workers "$WORKERS" "$@"
 
   member-ci:
     name: CI (${{ matrix.name }})
