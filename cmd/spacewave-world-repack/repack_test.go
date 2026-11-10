@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"io"
@@ -488,10 +489,11 @@ func writeFrames(t *testing.T, path string, blks []frameBlock) {
 	}
 }
 
-// frameOpts returns options re-packing the frame files into out.
-func frameOpts(in, frames []string, out string) *options {
+// frameOpts returns options re-packing the frame files, of n frames in
+// all, into out.
+func frameOpts(in, frames []string, n uint64, out string) *options {
 	o := testOpts(in, out, 1<<20)
-	o.Frames = frames
+	o.Frames, o.FrameBlocks = frames, n
 	at := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
 	o.CreatedAt = &at
 	return o
@@ -516,7 +518,7 @@ func TestRepackFrames(t *testing.T) {
 
 	// Re-pack and prove it.
 	var log bytes.Buffer
-	o := frameOpts(nil, []string{path}, filepath.Join(root, "out"))
+	o := frameOpts(nil, []string{path}, 5, filepath.Join(root, "out"))
 	o.Log = &log
 	rep, err := run(o)
 	if err != nil {
@@ -555,19 +557,23 @@ func TestRepackFrames(t *testing.T) {
 	}
 }
 
-// TestRepackFramesBadHash fails on a frame whose bytes do not match its key.
+// TestRepackFramesBadHash fails on a frame whose bytes do not match its key,
+// a key no earlier frame holds, so only the hash check can refuse it.
 func TestRepackFramesBadHash(t *testing.T) {
-	// The second frame names the first block's hash for its own bytes.
+	// The second frame names a third block's hash for the second's bytes.
 	rng := rand.New(rand.NewPCG(23, 24))
 	root := t.TempDir()
-	blks := newBlocks(t, rng, 2, 300)
-	bad := frameBlock{testBlock: testBlock{ref: blks[0].ref, data: blks[1].data}, known: true}
+	blks := newBlocks(t, rng, 3, 300)
+	first := appendFrame(t, nil, frameBlock{testBlock: blks[0], known: true})
+	bad := frameBlock{testBlock: testBlock{ref: blks[2].ref, data: blks[1].data}, known: true}
 	path := filepath.Join(root, "blocks.frames")
-	writeFrames(t, path, []frameBlock{{testBlock: blks[0], known: true}, bad})
+	if err := os.WriteFile(path, appendFrame(t, bytes.Clone(first), bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
-	// The run fails, naming the frame.
-	_, err := run(frameOpts(nil, []string{path}, filepath.Join(root, "out")))
-	if err == nil || !strings.Contains(err.Error(), "frame at offset") {
+	// The run fails on the hash, naming the second frame's offset.
+	_, err := run(frameOpts(nil, []string{path}, 2, filepath.Join(root, "out")))
+	if err == nil || !strings.Contains(err.Error(), "frame at offset "+strconv.Itoa(len(first))+":") || !strings.Contains(err.Error(), "expected block") {
 		t.Fatalf("bad hash taken: %v", err)
 	}
 }
@@ -603,7 +609,7 @@ func TestRepackFramesTruncated(t *testing.T) {
 		if err := os.WriteFile(path, data, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		_, err := run(frameOpts(nil, []string{path}, filepath.Join(root, "out-"+filepath.Base(path))))
+		_, err := run(frameOpts(nil, []string{path}, 2, filepath.Join(root, "out-"+filepath.Base(path))))
 		if err == nil || !strings.Contains(err.Error(), offset) {
 			t.Errorf("%s: %v", name, err)
 		}
@@ -624,11 +630,128 @@ func TestRepackFramesDuplicate(t *testing.T) {
 	writeFrames(t, path, []frameBlock{{testBlock: blks[1], known: true}, {testBlock: blks[3], known: false}})
 
 	// The output holds the four distinct blocks.
-	rep, err := run(frameOpts([]string{in}, []string{path}, filepath.Join(root, "out")))
+	rep, err := run(frameOpts([]string{in}, []string{path}, 2, filepath.Join(root, "out")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if rep.PacksIn != 1 || rep.FrameFiles != 1 || rep.BlocksIn != 5 || rep.Duplicates != 1 || rep.BlocksOut != 4 || rep.DataOut != 4*500 {
 		t.Fatalf("report %+v", rep)
+	}
+}
+
+// TestRepackFramesCount fails on a file cut at a frame boundary, on more
+// frames than the count, on an empty file and without the count, and takes
+// the whole file at its count.
+func TestRepackFramesCount(t *testing.T) {
+	// Write two frames, and the first alone, cut at the boundary.
+	rng := rand.New(rand.NewPCG(29, 30))
+	root := t.TempDir()
+	blks := newBlocks(t, rng, 2, 300)
+	first := appendFrame(t, nil, frameBlock{testBlock: blks[0], known: true})
+	whole := appendFrame(t, bytes.Clone(first), frameBlock{testBlock: blks[1], known: true})
+	write := func(name string, data []byte) string {
+		path := filepath.Join(root, name)
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	cut, full, empty := write("cut", first), write("full", whole), write("empty", nil)
+
+	// Each bad case fails and says why.
+	for _, c := range []struct {
+		name, path, want string
+		n                uint64
+	}{
+		{"cut at boundary", cut, "read 1 frames, --frames-blocks is 2", 2},
+		{"more than the count", full, "frame at offset " + strconv.Itoa(len(first)) + ": past the 1 frames", 1},
+		{"empty", empty, "empty frame file", 1},
+		{"no count", full, "--frames-blocks is required", 0},
+	} {
+		_, err := run(frameOpts(nil, []string{c.path}, c.n, filepath.Join(root, "out-"+strings.ReplaceAll(c.name, " ", "-"))))
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v", c.name, err)
+		}
+	}
+
+	// The whole file at its count is taken.
+	if rep, err := run(frameOpts(nil, []string{full}, 2, filepath.Join(root, "out"))); err != nil || rep.Frames != 2 || rep.BlocksOut != 2 {
+		t.Fatalf("whole file: %v", err)
+	}
+}
+
+// TestFrameReaderPastSize fails a read after the reader passed the file's
+// stat size, as a file grown while read would.
+func TestFrameReaderPastSize(t *testing.T) {
+	fr := &frameReader{r: bufio.NewReader(bytes.NewReader([]byte{1, 2, 3})), size: 1}
+	if _, err := fr.uvarint(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fr.uvarint(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fr.read(0); err == nil || !strings.Contains(err.Error(), "read past the file's 1 bytes") {
+		t.Fatalf("read past the size: %v", err)
+	}
+}
+
+// TestRepackFramesNoCreatedAt fails a frames-only run without a created-at
+// before writing anything.
+func TestRepackFramesNoCreatedAt(t *testing.T) {
+	rng := rand.New(rand.NewPCG(31, 32))
+	root := t.TempDir()
+	path := filepath.Join(root, "blocks.frames")
+	writeFrames(t, path, []frameBlock{{testBlock: newBlocks(t, rng, 1, 100)[0], known: true}})
+	o := frameOpts(nil, []string{path}, 1, filepath.Join(root, "out"))
+	o.CreatedAt = nil
+	if _, err := run(o); err == nil || !strings.Contains(err.Error(), "set --created-at") {
+		t.Fatalf("no created-at taken: %v", err)
+	}
+	if _, err := os.Stat(o.Out); err == nil {
+		t.Fatal("an output was made")
+	}
+}
+
+// TestRepackFramesTwoFiles reads two frame files, in order, counted across
+// both, with --max-blocks closing the packs.
+func TestRepackFramesTwoFiles(t *testing.T) {
+	// Write seven blocks across two files, one held by both.
+	rng := rand.New(rand.NewPCG(33, 34))
+	root := t.TempDir()
+	blks := newBlocks(t, rng, 7, 200)
+	var fa, fb []frameBlock
+	for i, b := range blks {
+		f := frameBlock{testBlock: b, known: i%2 == 0}
+		if i < 4 {
+			fa = append(fa, f)
+		} else {
+			fb = append(fb, f)
+		}
+	}
+	fb = append(fb, fa[1])
+	a, b := filepath.Join(root, "a.frames"), filepath.Join(root, "b.frames")
+	writeFrames(t, a, fa)
+	writeFrames(t, b, fb)
+
+	// Re-pack at three blocks a pack.
+	var log bytes.Buffer
+	o := frameOpts(nil, []string{a, b}, 8, filepath.Join(root, "out"))
+	o.MaxBlocks, o.Log = 3, &log
+	rep, err := run(o)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, log.String())
+	}
+	if rep.FrameFiles != 2 || rep.Frames != 8 || rep.BlocksIn != 8 || rep.Duplicates != 1 || rep.BlocksOut != 7 || rep.PacksOut != 3 || !strings.Contains(log.String(), "proof ok") {
+		t.Fatalf("report %+v\n%s", rep, log.String())
+	}
+	for i, p := range rep.Packs {
+		if want := []uint64{3, 3, 1}[i]; p.blocks != want {
+			t.Fatalf("pack %d holds %d blocks, want %d", i, p.blocks, want)
+		}
+	}
+
+	// A count of one file's frames fails on the second file.
+	if _, err := run(frameOpts(nil, []string{a, b}, 4, filepath.Join(root, "out2"))); err == nil || !strings.Contains(err.Error(), "input frames "+b) {
+		t.Fatalf("a count of one file was taken: %v", err)
 	}
 }

@@ -37,6 +37,10 @@ type options struct {
 	// Frames are the input frame files of hyperline's world block-export,
 	// only read, after the directories' packs.
 	Frames []string
+	// FrameBlocks is the count of frames across every frame file, which the
+	// run must read: the export has no trailer, so a file cut at a frame
+	// boundary is found only by its count. It is required with Frames.
+	FrameBlocks uint64
 	// Out is the output directory: missing or empty.
 	Out string
 	// PackBytes bounds an output pack file.
@@ -119,6 +123,8 @@ type report struct {
 	// FrameFiles counts the input frame files and FrameBytes their bytes.
 	FrameFiles int
 	FrameBytes uint64
+	// Frames counts the frames read across every frame file.
+	Frames uint64
 	// Packs are the output packs in write order.
 	Packs []outPack
 }
@@ -153,6 +159,12 @@ func run(o *options) (*report, error) {
 	}
 	if len(o.In) == 0 && len(o.Frames) == 0 {
 		return nil, errors.New("no input directory or frame file")
+	}
+	if len(o.Frames) != 0 && o.FrameBlocks < uint64(len(o.Frames)) {
+		return nil, errors.Errorf("--frames-blocks is required with --frames and must be at least the %d frame files", len(o.Frames))
+	}
+	if len(o.Frames) == 0 && o.FrameBlocks != 0 {
+		return nil, errors.New("--frames-blocks is set without --frames")
 	}
 	if err := freshOut(o.Out, slices.Concat(o.In, o.Frames)); err != nil {
 		return nil, err
@@ -199,6 +211,9 @@ func run(o *options) (*report, error) {
 		if err := r.readFrames(path); err != nil {
 			return &r.rep, errors.Wrapf(err, "input frames %s", path)
 		}
+	}
+	if r.rep.Frames != o.FrameBlocks {
+		return &r.rep, errors.Errorf("read %d frames, --frames-blocks is %d: a frame file is cut or another is missing", r.rep.Frames, o.FrameBlocks)
 	}
 	if err := r.flush(); err != nil {
 		return &r.rep, err
@@ -517,8 +532,13 @@ func (f *frameReader) uvarint() (uint64, error) {
 
 // read reads n bytes; n past the file's end is io.ErrUnexpectedEOF.
 func (f *frameReader) read(n uint64) ([]byte, error) {
-	// Refuse a length past the file's end before allocating it.
-	if n > uint64(f.size-f.n) { //nolint:gosec // n never passes size.
+	// Refuse a read past the file's stat size, and a length past the
+	// file's end before allocating it.
+	left := f.size - f.n
+	if left < 0 {
+		return nil, errors.Errorf("read past the file's %d bytes", f.size)
+	}
+	if n > uint64(left) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
@@ -535,7 +555,8 @@ func (f *frameReader) read(n uint64) ([]byte, error) {
 // frame is the uvarint length of the marshaled hash, the hash, a uvarint 1
 // when the block's refs are known and 0 when not, the uvarint length of the
 // encoded block.BlockObject and the object. A cut or malformed frame fails,
-// named by its offset.
+// named by its offset, as does an empty file and more frames than
+// FrameBlocks.
 func (r *repacker) readFrames(path string) error {
 	// Open the file read-only.
 	f, err := os.Open(path)
@@ -543,12 +564,17 @@ func (r *repacker) readFrames(path string) error {
 		return err
 	}
 	defer f.Close()
+
+	// Require a regular, non-empty file, and count it.
 	st, err := f.Stat()
 	if err != nil {
 		return err
 	}
 	if !st.Mode().IsRegular() {
 		return errors.New("not a regular file")
+	}
+	if st.Size() == 0 {
+		return errors.New("empty frame file")
 	}
 	r.rep.FrameFiles++
 	r.rep.FrameBytes += uint64(st.Size()) //nolint:gosec // sizes are not negative.
@@ -559,6 +585,13 @@ func (r *repacker) readFrames(path string) error {
 		start := fr.n
 		if err := r.readFrame(fr); err != nil {
 			return errors.Wrapf(err, "frame at offset %d", start)
+		}
+		if fr.n > fr.size {
+			return errors.Errorf("frame at offset %d: read past the file's %d bytes", start, fr.size)
+		}
+		r.rep.Frames++
+		if r.rep.Frames > r.o.FrameBlocks {
+			return errors.Errorf("frame at offset %d: past the %d frames of --frames-blocks", start, r.o.FrameBlocks)
 		}
 	}
 	if _, err := fr.r.ReadByte(); err != io.EOF {
@@ -826,7 +859,7 @@ func (r *repacker) print() {
 	_, _ = fmt.Fprintf(w, "blocks in %d unique %d duplicates dropped %d out %d\n", p.BlocksIn, p.BlocksIn-p.Duplicates, p.Duplicates, p.BlocksOut)
 	_, _ = fmt.Fprintf(w, "block bytes in %d unique %d out %d\n", p.DataIn, p.DataUnique, p.DataOut)
 	_, _ = fmt.Fprintf(w, "file bytes in %d out %d\n", p.FilesIn, p.FilesOut)
-	_, _ = fmt.Fprintf(w, "frame files in %d bytes %d\n", p.FrameFiles, p.FrameBytes)
+	_, _ = fmt.Fprintf(w, "frame files in %d bytes %d frames %d\n", p.FrameFiles, p.FrameBytes, p.Frames)
 }
 
 // printSlices prints the output packs, in write order, grouped into slices of

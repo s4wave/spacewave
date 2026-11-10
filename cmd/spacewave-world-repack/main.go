@@ -39,6 +39,7 @@ type args struct {
 	out, resourceID   string
 	createdAt         string
 	packMiB, maxBlock uint64
+	frameBlocks       uint64
 	sliceGB           float64
 	allowExtra        bool
 }
@@ -52,6 +53,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		&cli.StringSliceFlag{Name: "in", Usage: "input directory in the adopt layout, {id} and {id}.entry; repeat for several, merged into one id-sorted list; only read"},
 		&cli.StringSliceFlag{Name: "frames", Usage: "input frame file of hyperline's world block-export, read after the --in packs; repeat for several, read in order; only read"},
+		&cli.Uint64Flag{Name: "frames-blocks", Usage: "count of frames across every --frames file, required with --frames; the run fails when it reads another count", Destination: &a.frameBlocks},
 		&cli.StringFlag{Name: "out", Usage: "output directory; must not exist or be empty", Destination: &a.out, Required: true},
 		&cli.Uint64Flag{Name: "pack-mib", Usage: "largest output pack file, in MiB, at most 128", Value: maxPackMiB, Destination: &a.packMiB},
 		&cli.Uint64Flag{Name: "max-blocks", Usage: "most blocks in one output pack; a pack is cut at this or --pack-mib, whichever comes first; 0 is no limit", Value: defaultMaxBlocks, Destination: &a.maxBlock},
@@ -85,15 +87,16 @@ func (a *args) run() error {
 
 	// Build the options and run.
 	o := &options{
-		In:         a.in,
-		Frames:     a.frames,
-		Out:        a.out,
-		PackBytes:  int64(a.packMiB) << 20, //nolint:gosec // at most 128.
-		MaxBlocks:  a.maxBlock,
-		SliceBytes: uint64(a.sliceGB * 1e9),
-		ResourceID: a.resourceID,
-		AllowExtra: a.allowExtra,
-		Log:        os.Stdout,
+		In:          a.in,
+		Frames:      a.frames,
+		FrameBlocks: a.frameBlocks,
+		Out:         a.out,
+		PackBytes:   int64(a.packMiB) << 20, //nolint:gosec // at most 128.
+		MaxBlocks:   a.maxBlock,
+		SliceBytes:  uint64(a.sliceGB * 1e9),
+		ResourceID:  a.resourceID,
+		AllowExtra:  a.allowExtra,
+		Log:         os.Stdout,
 	}
 	if a.createdAt != "" {
 		t, err := time.Parse(time.RFC3339Nano, a.createdAt)
