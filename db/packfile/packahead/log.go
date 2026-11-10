@@ -164,7 +164,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile()
+	data, entries, err := p.recoverFile(l.opts.SyncData)
 	if err != nil {
 		_ = f.Close()
 		return err
@@ -902,7 +902,7 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	}
 	if failed {
 		var err error
-		data, entries, err = p.recoverFile()
+		data, entries, err = p.recoverFile(l.opts.SyncData)
 		if err != nil {
 			return err
 		}

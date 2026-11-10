@@ -132,9 +132,9 @@ type finalized struct {
 }
 
 // finalize writes the sorted kvfile index after the pack's last batch, syncs
-// it, and renames the pack to its finalized name in dir, syncing dir. data is
-// the pack's bytes [0, written), from its buffer or its file. The pack must
-// take no more batches.
+// it with opts.SyncData, and renames the pack to its finalized name in dir,
+// syncing dir. data is the pack's bytes [0, written), from its buffer or its
+// file. The pack must take no more batches.
 func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, error) {
 	// Index each key once, at its last copy: a block written again after a
 	// free repeats its bytes, and a kvfile holds each key once.
@@ -164,7 +164,7 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	if _, err := p.f.WriteAt(tail.Bytes(), int64(len(data))); err != nil {
 		return nil, errors.Wrap(err, "write pack index")
 	}
-	if err := syncData(p.f); err != nil {
+	if err := opts.SyncData(p.f); err != nil {
 		return nil, errors.Wrap(err, "sync pack index")
 	}
 
@@ -211,8 +211,9 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 
 // recoverFile reads an unfinalized pack's file, keeps its leading good
 // batches, and truncates the file after them. It returns the kept bytes and
-// their entries, whose keys point into the bytes.
-func (p *pack) recoverFile() ([]byte, []entry, error) {
+// their entries, whose keys point into the bytes. sync makes the truncation
+// durable.
+func (p *pack) recoverFile(sync func(*os.File) error) ([]byte, []entry, error) {
 	// Read the whole file: a pack is bounded by MaxPackBytes.
 	info, err := p.f.Stat()
 	if err != nil {
@@ -229,7 +230,7 @@ func (p *pack) recoverFile() ([]byte, []entry, error) {
 		if err := p.f.Truncate(end); err != nil {
 			return nil, nil, errors.Wrap(err, "truncate pack")
 		}
-		if err := syncData(p.f); err != nil {
+		if err := sync(p.f); err != nil {
 			return nil, nil, errors.Wrap(err, "sync truncated pack")
 		}
 	}

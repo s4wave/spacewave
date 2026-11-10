@@ -122,3 +122,27 @@ func TestPackAheadWriteBatchFailedPack(t *testing.T) {
 		t.Fatal("batch of a failed pack located")
 	}
 }
+
+// TestPackAheadFinalizeSyncHook finalizes a pack with a SyncData that counts
+// its calls: the index sync goes through the hook too, so a test that fails
+// syncs reaches every one.
+func TestPackAheadFinalizeSyncHook(t *testing.T) {
+	ctx := t.Context()
+	var calls atomic.Int64
+	hook := func(f *os.File) error {
+		calls.Add(1)
+		return f.Sync()
+	}
+	l, err := Open(ctx, t.TempDir(), Options{SyncData: hook, Linger: 10 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	if err := l.Append(ctx, []Block{testBlock(t, 1, 3000)}); err != nil {
+		t.Fatal(err)
+	}
+	waitFinalized(t, l, 1)
+	if n := calls.Load(); n < 2 {
+		t.Fatalf("finalize bypassed SyncData: %d calls", n)
+	}
+}

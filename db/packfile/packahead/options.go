@@ -29,9 +29,10 @@ type Options struct {
 	// FreeBytes returns the disk space free on the file system holding the
 	// Log's directory. Nil measures it with statfs.
 	FreeBytes func(dir string) (uint64, error)
-	// SyncData makes the batches written to a pack file durable, the sync
-	// writers share. Nil uses fdatasync, F_FULLFSYNC on darwin. A test sets
-	// it to order writers around a sync.
+	// SyncData makes the bytes written to a pack file durable: the sync
+	// writers share, and the syncs of a finalized index and a recovered
+	// pack's truncation. Nil uses fdatasync, F_FULLFSYNC on darwin. A test
+	// sets it to order writers around a sync or to fail one.
 	SyncData func(f *os.File) error
 }
 
