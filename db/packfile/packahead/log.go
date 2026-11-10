@@ -56,6 +56,8 @@ type Log struct {
 	table map[keyTail]location
 	// syncs counts the fdatasyncs writers have run.
 	syncs uint64
+	// syncFailures counts the fdatasyncs that failed.
+	syncFailures uint64
 	// nextSeq is the seq of the next pack created.
 	nextSeq uint64
 	// bufs are buffers kept for the next open packs.
@@ -456,8 +458,8 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, replace *pack, addWait fu
 // holdsLocked reports whether the table holds a copy of t that a put may
 // skip writing. The caller holds bcast.
 func (l *Log) holdsLocked(t keyTail) bool {
-	_, ok := l.table[t]
-	return ok
+	loc, ok := l.table[t]
+	return ok && !loc.p.poisoned
 }
 
 // reviveLocked clears the removed mark of t's location loc, which a put
@@ -578,6 +580,8 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 				p.syncing = false
 				l.syncs++
 				if serr != nil {
+					l.syncFailures++
+					p.poisoned = true
 					l.failLocked(p, serr)
 				} else {
 					p.synced = max(p.synced, target)
@@ -714,7 +718,7 @@ func (l *Log) HasDurable(key []byte) bool {
 	var durable bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		loc, ok := l.table[tailOf(key)]
-		durable = ok && !loc.removed && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
+		durable = ok && !loc.removed && !loc.p.poisoned && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
 	})
 	return durable
 }
@@ -823,7 +827,7 @@ func (l *Log) maintain(ctx context.Context) {
 func (l *Log) nextStepLocked() (func(context.Context) error, time.Time) {
 	// Finalize the oldest rotated pack first, so packs finalize in order.
 	for _, p := range l.packs {
-		if p.state == packRotated {
+		if p.state == packRotated && !p.poisoned {
 			return func(ctx context.Context) error { return l.finalizeRotated(ctx, p) }, time.Time{}
 		}
 	}
@@ -906,13 +910,19 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	// Take the pack's bytes: its buffer, or its file after a failure.
 	var data []byte
 	var entries []entry
-	var failed bool
+	var failed, poisoned bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		failed = p.err != nil
+		failed, poisoned = p.err != nil, p.poisoned
 		data, entries = p.buf[:p.written], p.entries
 	})
 	if syncErr != nil && !failed {
 		return syncErr
+	}
+
+	// A pack a sync failed is never finalized here: its file may read back
+	// pages the disk lost. The next Open recovers it from its batch checksums.
+	if poisoned {
+		return nil
 	}
 	if failed {
 		var err error
