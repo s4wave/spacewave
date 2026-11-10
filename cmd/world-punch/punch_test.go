@@ -20,11 +20,14 @@ import (
 
 // makeWorld builds a WAL database with rows, overflow chains and a freelist
 // of several trunks, checkpoints it to an empty WAL and closes it.
-func makeWorld(t *testing.T, pageSize int, rows int) string {
+func makeWorld(t *testing.T, pageSize int, rows int, pragmas ...string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "world.db")
 	db := openDB(t, path)
 	defer db.Close()
+	for _, s := range pragmas {
+		mustExec(t, db, s)
+	}
 	for _, s := range []string{
 		"PRAGMA page_size=" + strconv.Itoa(pageSize),
 		"PRAGMA journal_mode=WAL",
@@ -309,6 +312,9 @@ func TestRefusals(t *testing.T) {
 	t.Run("page size", func(t *testing.T) {
 		refuse(t, opts{path: makeWorld(t, 8192, 2000)}, "page_size is 8192")
 	})
+	t.Run("auto_vacuum", func(t *testing.T) {
+		refuse(t, opts{path: makeWorld(t, 4096, 3000, "PRAGMA auto_vacuum=INCREMENTAL")}, "auto_vacuum")
+	})
 	t.Run("header count mismatch", func(t *testing.T) {
 		path := makeWorld(t, 4096, 3000)
 		f, _ := os.OpenFile(path, os.O_RDWR, 0)
@@ -358,6 +364,20 @@ func TestNeverTrunk(t *testing.T) {
 	}
 	if p0 := makePlan(w, h, 0); p0.punchPages != 9 || p0.sha == p.sha {
 		t.Fatalf("reserve 0: %d pages, sha %s", p0.punchPages, p0.sha)
+	}
+
+	// The same ranges with a different kept-back leaf or trunk chain must
+	// give a different sha, so a punch only runs on the chain dry-run saw.
+	kept := &walk{trunks: w.trunks, leaves: append([]uint32{11, 12, 8}, w.leaves[3:]...), perTrunk: w.perTrunk}
+	chain := &walk{trunks: []uint32{10, 20, 33}, leaves: w.leaves, perTrunk: w.perTrunk}
+	for name, w2 := range map[string]*walk{"kept leaf": kept, "trunk": chain} {
+		p2 := makePlan(w2, h, 1)
+		if len(p2.ranges) != len(p.ranges) {
+			t.Fatalf("%s: ranges %v, want %v", name, p2.ranges, p.ranges)
+		}
+		if p2.sha == p.sha {
+			t.Fatalf("%s changed but the range sha did not", name)
+		}
 	}
 }
 

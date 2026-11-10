@@ -173,21 +173,28 @@ func makePlan(w *walk, h header, reserve int64) plan {
 			p.punchPages++
 		}
 	}
-	p.sha = rangeSHA(h, p.ranges)
+	p.sha = rangeSHA(h, p.ranges, w.trunks, w.leaves[:p.keptPages])
 	return p
 }
 
-// rangeSHA hashes the page size, page count and every range.
-func rangeSHA(h header, rs []pageRange) string {
+// rangeSHA hashes the page size, page count, every range, the trunk chain
+// in order and the kept-back leaves, each list prefixed by its length.
+func rangeSHA(h header, rs []pageRange, trunks, kept []uint32) string {
 	d := sha256.New()
-	var b [8]byte
-	binary.BigEndian.PutUint32(b[0:4], uint32(h.pageSize))
-	binary.BigEndian.PutUint32(b[4:8], h.dbPages)
-	d.Write(b[:])
-	for _, r := range rs {
-		binary.BigEndian.PutUint32(b[0:4], r.start)
-		binary.BigEndian.PutUint32(b[4:8], r.count)
-		d.Write(b[:])
+	put := func(v ...uint32) {
+		var b [4]byte
+		for _, x := range v {
+			binary.BigEndian.PutUint32(b[:], x)
+			d.Write(b[:])
+		}
 	}
+	put(uint32(h.pageSize), h.dbPages, uint32(len(rs)))
+	for _, r := range rs {
+		put(r.start, r.count)
+	}
+	put(uint32(len(trunks)))
+	put(trunks...)
+	put(uint32(len(kept)))
+	put(kept...)
 	return hex.EncodeToString(d.Sum(nil))
 }
