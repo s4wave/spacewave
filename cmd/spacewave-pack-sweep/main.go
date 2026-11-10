@@ -65,6 +65,12 @@ func main() {
 			Action: args.runWalk,
 		},
 		{
+			Name:   "rewalk",
+			Usage:  "walk only from an earlier walk's holes through the catalog, writing the holes below them",
+			Flags:  append(args.scratchFlags(), args.rewalkFlags()...),
+			Action: args.runRewalk,
+		},
+		{
 			Name:   "pull-log",
 			Usage:  "store the write log's lines since the last pull and trim them from its directory",
 			Flags:  append(args.scratchFlags(), args.pullFlags()...),

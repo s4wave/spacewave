@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -115,6 +116,8 @@ type Args struct {
 	Report string
 	// Holes is the holes file, one hole a line.
 	Holes string
+	// FromHoles is an earlier walk's holes file the re-walk walks from.
+	FromHoles string
 	// AcceptMissing lists missing blocks accepted as lost, one b58 ref a line.
 	AcceptMissing string
 	// AdminURL is the backend's pack sweep admin service, a ws or wss URL.
@@ -671,14 +674,14 @@ func (a *Args) runJudge(*cli.Context) error {
 
 	// Write the holes.
 	var holes []packsweep.Hole
-	if err := writeLines(a.Holes, func(w *bufio.Writer) error {
-		return packsweep.Holes(ctx, store, func(h packsweep.Hole) error {
-			holes = append(holes, h)
-			_, err := w.WriteString(h.Ref.MarshalString() + " " + h.Reason + "\n")
-			return err
-		})
+	if err := packsweep.Holes(ctx, store, func(h packsweep.Hole) error {
+		holes = append(holes, h)
+		return nil
 	}); err != nil {
-		return errors.Wrap(err, "write --holes")
+		return err
+	}
+	if err := writeHoles(a.Holes, holes); err != nil {
+		return err
 	}
 
 	// Read the holes the operator accepted.
@@ -712,6 +715,104 @@ func (a *Args) runJudge(*cli.Context) error {
 		result.blocking[reason] = 1
 	}
 	return a.print(result.JSON)
+}
+
+// writeHoles writes the holes file, one b58 ref and reason a line.
+func writeHoles(path string, holes []packsweep.Hole) error {
+	err := writeLines(path, func(w *bufio.Writer) error {
+		for _, h := range holes {
+			if _, err := w.WriteString(h.Ref.MarshalString() + " " + h.Reason + "\n"); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return errors.Wrap(err, "write --holes")
+}
+
+// rewalkFlags binds the flags of the re-walk.
+func (a *Args) rewalkFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "from-holes", Usage: "holes file of an earlier walk to walk from, one b58 ref a line; the cycle's hole rows when unset", Destination: &a.FromHoles},
+		a.framesFlag(),
+		&cli.IntFlag{Name: "batch", Usage: "keys per catalog read", Value: packsweep.DefaultWalkBatch, Destination: &a.Batch},
+		&cli.StringFlag{Name: "holes", Usage: "holes file to write, one b58 ref and reason a line", Value: "holes.txt", Destination: &a.Holes},
+	}
+}
+
+// runRewalk walks from an earlier walk's holes through the catalog and
+// writes the holes below them, leaving the scratch file as it was.
+func (a *Args) runRewalk(*cli.Context) error {
+	// Open the scratch file until a signal stops the step.
+	ctx, cancel := signalContext()
+	defer cancel()
+	le := logrus.NewEntry(logrus.StandardLogger())
+	db, store, err := a.openScratch()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Read the old holes from the file, or from the cycle's hole rows.
+	var old []*block.BlockRef
+	if a.FromHoles != "" {
+		lines, err := readRefLines(a.FromHoles)
+		if err != nil {
+			return errors.Wrap(err, "--from-holes")
+		}
+		for _, line := range lines {
+			ref, err := block.UnmarshalBlockRefB58(line)
+			if err != nil {
+				return errors.Wrap(err, "parse hole "+line)
+			}
+			old = append(old, ref)
+		}
+	} else if err := packsweep.Holes(ctx, store, func(h packsweep.Hole) error {
+		old = append(old, h.Ref)
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	// Serve the blocks no catalogued pack holds from the frame files.
+	refs, closeFrames, err := a.openFrames()
+	if err != nil {
+		return err
+	}
+	defer closeFrames()
+
+	// Re-walk, logging every batch.
+	start := time.Now()
+	res, err := packsweep.Rewalk(ctx, &packsweep.RewalkOptions{
+		Store: store,
+		Holes: old,
+		Refs:  refs,
+		Batch: a.Batch,
+		Progress: func(p packsweep.RewalkProgress) {
+			le.WithFields(logrus.Fields{"marked": p.Marked, "frontier": p.Frontier, "holes": p.Holes}).Debug("re-walk batch")
+		},
+	})
+	if err != nil {
+		return err
+	}
+	le.WithField("took", time.Since(start).String()).Info("re-walk complete")
+
+	// Write the new holes.
+	if err := writeHoles(a.Holes, res.Holes); err != nil {
+		return err
+	}
+
+	// Print the counts.
+	return a.print(func(arena *fastjson.Arena) *fastjson.Value {
+		// Describe the old holes, the filled ones, the marked keys and the
+		// new holes.
+		o := arena.NewObject()
+		o.Set("from", arena.NewNumberInt(len(old)))
+		o.Set("filled", arena.NewNumberInt(res.Filled))
+		o.Set("marked", arena.NewNumberString(strconv.FormatUint(res.Marked, 10)))
+		o.Set("holes", packsweep.JSONCounts(arena, res.Counts()))
+		return o
+	})
 }
 
 // closeOver pulls the log directory, when one is named, from the walk's R and
