@@ -17,3 +17,7 @@ func punchRanges(*os.File, header, []pageRange) error {
 }
 
 func allocated(os.FileInfo) int64 { return -1 }
+
+func openDirect(string) (*os.File, error) {
+	return nil, errors.New("O_DIRECT needs Linux")
+}
