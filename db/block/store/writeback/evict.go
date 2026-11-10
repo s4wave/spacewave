@@ -259,13 +259,54 @@ func addEvictableBytes(ctx context.Context, tx kvtx.Tx, delta int64) error {
 }
 
 // EvictBytes returns how many uploaded bytes a pass drops to bring the
-// resident bytes from past the high mark down to the low mark, or zero.
+// resident bytes from past the high mark down to the low mark, or zero. It
+// starts a pass only past the high mark; EvictLatch carries a cut-short pass on
+// to the low mark.
 func (s Status) EvictBytes() int64 {
 	resident := s.ResidentBytes()
 	if s.Policy.ResidentHigh <= 0 || resident <= s.Policy.ResidentHigh {
 		return 0
 	}
 	return min(resident-s.Policy.ResidentLow, s.EvictableBytes)
+}
+
+// EvictLatch carries an eviction loop from the high mark down to the low mark
+// across passes: once the resident bytes cross the high mark, Bytes keeps
+// returning the bytes down to the low mark after a pass cut short leaves them
+// between the marks, until they reach the low mark, no uploaded byte is left
+// to evict, or either mark changes. Without it a pass that ends early, such as
+// on a busy database, starts again only once the resident bytes cross the high
+// mark again. The latch decides only when a pass starts; each pass still
+// commits in the same short batches. The zero value is released.
+type EvictLatch struct {
+	// held is set while a pass started at the high mark has yet to reach
+	// the low mark.
+	held bool
+	// high and low are the marks the latch was set under.
+	high, low int64
+}
+
+// Bytes returns how many uploaded bytes the next pass drops: EvictBytes when
+// positive, which sets the latch, or else, while the latch holds under the same
+// marks, the bytes from the resident bytes down to the low mark. Otherwise it
+// releases the latch and returns zero.
+func (l *EvictLatch) Bytes(s Status) int64 {
+	// Set the latch when the store is past the high mark.
+	if want := s.EvictBytes(); want > 0 {
+		l.held, l.high, l.low = true, s.Policy.ResidentHigh, s.Policy.ResidentLow
+		return want
+	}
+
+	// Keep evicting toward the low mark while the latch holds under the same
+	// marks and there is something to drop.
+	var want int64
+	if l.held && s.Policy.ResidentHigh == l.high && s.Policy.ResidentLow == l.low {
+		want = min(s.ResidentBytes()-s.Policy.ResidentLow, s.EvictableBytes)
+	}
+	if want <= 0 {
+		l.held, want = false, 0
+	}
+	return want
 }
 
 // addEvictStatus projects committed eviction queue changes into the status:
@@ -310,7 +351,9 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // as a block the garbage collector swept, is deleted. Values are dropped before
 // their entries, so an interrupted pass leaves only entries the next pass
 // deletes. Each batch reads and commits on its own, so the pass holds no lock
-// across batches.
+// across batches. A transaction the store reports busy runs again after a
+// backoff, as retryBusy describes, each attempt its own short transaction; a
+// pass ends on a busy store only after those retries.
 //
 // The volume shares values by hash across its block stores. Eviction relies on
 // each placed store sealing its blocks with its own transform keys, so no other
@@ -340,13 +383,15 @@ func (s *Store) Evict(
 
 	// Advance the epoch, so entries this pass queues sort after the walk.
 	var epoch uint64
-	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		prev, err := readEpoch(ctx, tx)
-		if err != nil {
-			return err
-		}
-		epoch = prev + 1
-		return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
+	err = retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			prev, err := readEpoch(ctx, tx)
+			if err != nil {
+				return err
+			}
+			epoch = prev + 1
+			return tx.Set(ctx, []byte(epochKey), []byte(strconv.FormatUint(epoch, 10)))
+		})
 	})
 	if err != nil {
 		return result, errors.Wrap(err, "advance eviction epoch")
@@ -397,34 +442,36 @@ func (s *Store) evictBatch(
 		next   []byte
 		done   bool
 	)
-	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
-		// Walk the older entries up to the batch and byte limits; the walk is
-		// done when it runs out of them.
-		batch, marked, done = batch[:0], marked[:0], true
-		var batchBytes int64
-		next = nil
-		err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
-			// Stop at the new epoch or a full batch, where the next batch
-			// starts. A batch takes its first entry whatever its size.
-			full := len(batch) == limit || (len(batch) != 0 && batchBytes+entry.size > bounds.MaxBytes)
-			if entry.epoch >= epoch || full || result.EvictedBytes+batchBytes >= maxBytes {
-				done, next = entry.epoch >= epoch, entry.key
-				return errScanDone
-			}
+	err := retryBusy(ctx, func() error {
+		return kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+			// Walk the older entries up to the batch and byte limits; the walk is
+			// done when it runs out of them.
+			batch, marked, done = batch[:0], marked[:0], true
+			var batchBytes int64
+			next = nil
+			err := scanEvictable(ctx, tx, from, func(entry evictEntry) error {
+				// Stop at the new epoch or a full batch, where the next batch
+				// starts. A batch takes its first entry whatever its size.
+				full := len(batch) == limit || (len(batch) != 0 && batchBytes+entry.size > bounds.MaxBytes)
+				if entry.epoch >= epoch || full || result.EvictedBytes+batchBytes >= maxBytes {
+					done, next = entry.epoch >= epoch, entry.key
+					return errScanDone
+				}
 
-			// Take the entry with whether a marker awaits its upload.
-			found, err := tx.Exists(ctx, markedKey(entry.hash))
-			if err != nil {
-				return err
+				// Take the entry with whether a marker awaits its upload.
+				found, err := tx.Exists(ctx, markedKey(entry.hash))
+				if err != nil {
+					return err
+				}
+				batch, marked = append(batch, entry), append(marked, found)
+				batchBytes += entry.size
+				return nil
+			})
+			if errors.Is(err, errScanDone) {
+				return nil
 			}
-			batch, marked = append(batch, entry), append(marked, found)
-			batchBytes += entry.size
-			return nil
+			return err
 		})
-		if errors.Is(err, errScanDone) {
-			return nil
-		}
-		return err
 	})
 	if err != nil {
 		return nil, false, errors.Wrap(err, "scan eviction queue")
@@ -475,13 +522,20 @@ func (s *Store) evictBatch(
 	// Drop the values the remote holds in one write, not one per block: the
 	// local writer is shared with every other write, so a write per block
 	// bounds eviction to a few blocks a second under load. The write's time
-	// sets the next batch's limit.
+	// sets the next batch's limit: the attempt that committed, not the waits
+	// of a busy store before it.
 	if len(drop) != 0 {
-		start := time.Now()
-		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
+		var took time.Duration
+		err := retryBusy(ctx, func() error {
+			start := time.Now()
+			_, err := s.values.PutBlockBatch(ctx, drop)
+			took = time.Since(start)
+			return err
+		})
+		if err != nil {
 			return nil, false, errors.Wrap(err, "evict blocks")
 		}
-		s.evictLimit = nextEvictLimit(bounds, limit, len(drop), time.Since(start))
+		s.evictLimit = nextEvictLimit(bounds, limit, len(drop), took)
 		result.Evicted += len(drop)
 	}
 
@@ -489,23 +543,25 @@ func (s *Store) evictBatch(
 	// reading without the writer lock. A refused block's next upload queues it
 	// again.
 	var delta int64
-	err = kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		delta = 0
-		for _, entry := range batch {
-			if err := tx.Delete(ctx, entry.key); err != nil {
-				return err
+	err = retryBusy(ctx, func() error {
+		return kvtx.RunOptimisticTransaction(ctx, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			delta = 0
+			for _, entry := range batch {
+				if err := tx.Delete(ctx, entry.key); err != nil {
+					return err
+				}
+				delta -= entry.size
 			}
-			delta -= entry.size
-		}
-		for _, entry := range requeue {
-			added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
-			if err != nil {
-				return err
+			for _, entry := range requeue {
+				added, err := queueEvict(ctx, tx, epoch, entry.hash, entry.size)
+				if err != nil {
+					return err
+				}
+				delta += added
 			}
-			delta += added
-		}
-		return addEvictableBytes(ctx, tx, delta)
-	}, kvtx.RetryInvalidSnapshot)
+			return addEvictableBytes(ctx, tx, delta)
+		}, kvtx.RetryInvalidSnapshot)
+	})
 	if err != nil {
 		return nil, false, errors.Wrap(err, "update eviction queue")
 	}

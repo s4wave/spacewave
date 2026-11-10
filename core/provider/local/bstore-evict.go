@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
 )
 
 // readSetMax bounds the blocks a read set records in one generation. Reads
@@ -414,15 +415,23 @@ func (r *readRecorder) GetStoredBlock(ctx context.Context, ref *block.BlockRef) 
 // at the next upload would only queue them again.
 const evictShortWait = 10 * time.Minute
 
+// evictBusyWait is how long eviction waits to retry a pass that ended on a
+// busy database, after the pass's own retries of the busy transaction.
+const evictBusyWait = 30 * time.Second
+
 // runEviction keeps the store's resident bytes under its placement's budget.
 // When the resident bytes cross the high mark, a pass drops the uploaded
 // blocks not read within readKeepAge, oldest queued first, down to the low
-// mark. Uploads and writes change the status, which starts the next check,
-// or evictShortWait after a pass that fell short of the mark; a policy
-// change, such as SetResidentMarks lowering the high mark, starts it at once
-// either way. Between passes it saves the recorded reads every
-// readSaveInterval.
-func (p *placementState) runEviction(ctx context.Context) error {
+// mark. A pass cut short keeps the loop evicting toward the low mark after the
+// resident bytes fall below the high mark, as EvictLatch describes, until they
+// reach the low mark, nothing uploaded is left to evict, or the marks change.
+// Uploads and writes change the status, which starts the next check, or
+// evictShortWait after a pass that fell short of the mark; a policy change,
+// such as SetResidentMarks lowering the high mark, starts it at once either
+// way. A pass that ends on a busy database, after its own retries, is retried
+// after evictBusyWait instead of ending the loop. Between passes it saves the
+// recorded reads every readSaveInterval.
+func (p *placementState) runEviction(ctx context.Context, le *logrus.Entry) error {
 	save := time.NewTicker(readSaveInterval)
 	defer save.Stop()
 
@@ -442,12 +451,15 @@ func (p *placementState) runEviction(ctx context.Context) error {
 		}
 		status, changed := p.wb.GetStatus()
 		var retry <-chan time.Time
-		if want := status.EvictBytes(); want > 0 && p.remote.Load() != nil {
+		if want := p.evictLatch.Bytes(status); want > 0 && p.remote.Load() != nil {
 			result, err := p.evict(ctx, want)
-			if err != nil {
+			switch {
+			case err != nil && ctx.Err() == nil && block_store_writeback.IsBusyError(err):
+				le.WithError(err).WithField("evicted-bytes", result.EvictedBytes).Warn("eviction pass ended on a busy database, retrying")
+				changed, retry = nil, time.After(evictBusyWait)
+			case err != nil:
 				return err
-			}
-			if result.EvictedBytes < want {
+			case result.EvictedBytes < want:
 				changed, retry = nil, time.After(evictShortWait)
 			}
 		}

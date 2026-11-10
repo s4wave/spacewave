@@ -654,8 +654,8 @@ func (s *Store) applyQueued(gen uint64, delta queueDelta) {
 // each holding the writer for about ClearBatch.Hold at most, as SetClearBatch
 // sets them: a change of the hold applies from the next transaction, and one
 // of the block bound from the next prefetch window. A transaction the store
-// reports busy is retried in place after a backoff, since the blocks are
-// already on the remote. Another failure leaves the entries after the last
+// reports busy is retried in place after a backoff, as retryBusy describes,
+// since the blocks are already on the remote. Another failure leaves the entries after the last
 // commit queued, so they upload again, which the remote keeps as another copy.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	for len(batch) != 0 {
@@ -664,22 +664,15 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		window := batch[:min(len(batch), loadClearBatch().MaxBlocks)]
 		batch = batch[len(window):]
 		s.prefetchClear(ctx, window)
-		wait := clearBusyWait
-		busy := 0
 		for len(window) != 0 {
-			n, err := s.clearSome(ctx, window)
+			var n int
+			err := retryBusy(ctx, func() error {
+				var err error
+				n, err = s.clearSome(ctx, window)
+				return err
+			})
 			if err != nil {
-				if busy >= clearBusyRetries || !isBusyError(err) {
-					return err
-				}
-				busy++
-				select {
-				case <-ctx.Done():
-					return context.Cause(ctx)
-				case <-time.After(wait):
-				}
-				wait = min(2*wait, clearBusyMaxWait)
-				continue
+				return err
 			}
 			window = window[n:]
 		}
@@ -687,19 +680,40 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 	return nil
 }
 
-// clearBusyRetries bounds how often clear retries a transaction the store
-// reported busy, and clearBusyWait is its first wait, doubling to
-// clearBusyMaxWait.
+// busyRetries bounds how often retryBusy retries a transaction the store
+// reported busy, and busyWait is its first wait, doubling to busyMaxWait: about
+// 80 seconds in all.
 const (
-	clearBusyRetries = 20
-	clearBusyWait    = 250 * time.Millisecond
-	clearBusyMaxWait = 5 * time.Second
+	busyRetries = 20
+	busyWait    = 250 * time.Millisecond
+	busyMaxWait = 5 * time.Second
 )
 
-// isBusyError reports whether err is a store's report that another writer
+// retryBusy runs fn, a transaction that commits whole or not at all, and runs
+// it again after a backoff while the store reports itself busy, up to
+// busyRetries times. Each attempt is its own transaction, so a retry holds the
+// writer no longer than the first attempt did. Returns fn's last error, or the
+// context's cause if it ends during a wait.
+func retryBusy(ctx context.Context, fn func() error) error {
+	wait := busyWait
+	for busy := 0; ; busy++ {
+		err := fn()
+		if err == nil || busy >= busyRetries || !IsBusyError(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-time.After(wait):
+		}
+		wait = min(2*wait, busyMaxWait)
+	}
+}
+
+// IsBusyError reports whether err is a store's report that another writer
 // holds its lock, SQLite's "database is locked", which a later attempt may
 // pass.
-func isBusyError(err error) bool {
+func IsBusyError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "database is locked")
 }
 

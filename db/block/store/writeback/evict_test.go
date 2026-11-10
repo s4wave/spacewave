@@ -423,3 +423,68 @@ func TestEvictChecksOnlyWhenAsked(t *testing.T) {
 		}
 	}
 }
+
+// busyValues reports the local values busy on the first drop write, as SQLite
+// does while another writer holds its lock, then stores each batch.
+type busyValues struct {
+	block.StoreOps
+	busy int
+}
+
+// PutBlockBatch fails the first write busy and stores the rest.
+func (v *busyValues) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	if v.busy == 0 {
+		v.busy++
+		return nil, errors.New("put block batch: database is locked")
+	}
+	return v.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+// busyMarkers reports the marker store busy on its first write transaction.
+type busyMarkers struct {
+	kvtx.Store
+	busy int
+}
+
+// NewTransaction fails the first write transaction busy and opens the rest.
+func (m *busyMarkers) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	if write && m.busy == 0 {
+		m.busy++
+		return nil, errors.New("begin: database is locked")
+	}
+	return m.Store.NewTransaction(ctx, write)
+}
+
+// TestEvictRetriesBusyStore checks that an eviction pass whose epoch
+// transaction and drop write each find the database locked once retries them
+// and still drops every uploaded block, as on be-7 at 01:14:33Z, where the
+// drop write's "database is locked" ended the pass.
+func TestEvictRetriesBusyStore(t *testing.T) {
+	// Write and upload 50 blocks.
+	ctx := t.Context()
+	s := newTestEnv(t).newStore(t, true)
+	const total = 50
+	for i := range total {
+		if _, _, err := s.PutBlock(ctx, fmt.Appendf(nil, "block-%05d", i), leafOpts); err != nil {
+			t.Fatal(err)
+		}
+	}
+	drain(t, s, newInmemBlockStore())
+
+	// Evict them all on a store busy once for each write.
+	values, markers := &busyValues{StoreOps: s.values}, &busyMarkers{Store: s.markers}
+	s.values, s.markers = values, markers
+	result, err := s.Evict(ctx, nil, 1<<30, nil, nil)
+	if err != nil {
+		t.Fatalf("evict on a busy store: %v", err)
+	}
+	if result.Evicted != total {
+		t.Fatalf("evict = %+v, want %d evicted", result, total)
+	}
+	if values.busy != 1 || markers.busy != 1 {
+		t.Fatalf("busy drop writes %d, epoch writes %d, want 1 each", values.busy, markers.busy)
+	}
+	if status, _ := s.GetStatus(); status.EvictableBytes != 0 {
+		t.Fatalf("evictable bytes = %d after the pass, want 0", status.EvictableBytes)
+	}
+}
