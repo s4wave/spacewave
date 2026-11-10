@@ -664,3 +664,111 @@ func sortedKeys[V any](m map[string]V) []string {
 	sort.Strings(ks)
 	return ks
 }
+
+// runRateSplit measures the two halves of the copy rate apart. It reads 64
+// raw slices of the World file as rate-only does, holding the rows in memory,
+// so the read rate is the scan alone. Then, with the World file no longer
+// read, it inserts the rows into -rate-out as copy does (copy's pragmas, 20000
+// rows a transaction, in physical order), and again sorted by key into
+// -rate-out.sorted, each file removed after.
+func runRateSplit(o opts) error {
+	// Open the source raw.
+	if o.rateOut == "" {
+		return fmt.Errorf("-rate-split needs -rate-out")
+	}
+	world, err := openRaw(o.world)
+	if err != nil {
+		return err
+	}
+	defer world.Close()
+	live = &pacer{wals: []string{o.world + "-wal", o.packs + "-wal"}, walMax: o.walMax << 20}
+	defer func() { live = nil }()
+	live.setPhase("rate split", nil)
+
+	// Read the slices into memory, paced to -mbps.
+	type row struct{ key, value []byte }
+	const slices, step = 64, 4 << 20
+	size, align, quota := world.pages*int64(world.pageSize), int64(max(world.pageSize, 4096)), o.rateMB*1e6/slices
+	var rows []row
+	var sampled, read, bad int64
+	var slept time.Duration
+	start := time.Now()
+	for i := range int64(slices) {
+		end := (i + 1) * size / slices / align * align
+		for off := i * size / slices / align * align; off < end && sampled < (i+1)*quota; off += step {
+			st, err := world.scanRange(off, min(off+step, end), 0, step, nil, func(c rawCell) {
+				// Keep the row with its whole value.
+				key, vlen, vlocal, ok := kvRecord(c)
+				v, err := world.value(c, vlen, vlocal)
+				if !ok || err != nil {
+					bad++
+					return
+				}
+				read += (c.size - int64(len(c.local)) + int64(world.usable) - 5) / int64(world.usable-4) * int64(world.pageSize)
+				rows = append(rows, row{bytes.Clone(key), v})
+				sampled += int64(len(key)) + vlen
+			})
+			if err != nil {
+				return err
+			}
+			read += st.read
+			if want := time.Duration(float64(read) / (o.mbps * 1e6) * float64(time.Second)); o.mbps > 0 && time.Since(start) < want {
+				slept += want - time.Since(start)
+				time.Sleep(want - time.Since(start))
+			}
+		}
+	}
+	scan := time.Since(start)
+	unpaced := max(scan-slept-live.waited, time.Millisecond)
+	fmt.Printf("rate-split read (measured): %s of rows (%d rows, %d cells skipped) from %s of pages in %s: %.0f MB/s of pages, %.0f MB/s without %s of pacing to %.0f MB/s and WAL waits\n",
+		gb(sampled), len(rows), bad, gb(read), scan.Round(time.Millisecond), float64(read)/1e6/scan.Seconds(), float64(read)/1e6/unpaced.Seconds(), (slept + live.waited).Round(time.Millisecond), o.mbps)
+	world.Close()
+
+	// Insert the rows into a new file as copy does, and report the rate.
+	insert := func(path, order string) error {
+		dst, err := openNew(path, "CREATE TABLE kv ( key BLOB PRIMARY KEY, value BLOB)", int64(world.pageSize))
+		if err != nil {
+			return err
+		}
+		defer func() {
+			dst.Close()
+			for _, sfx := range []string{"", "-journal", "-wal", "-shm"} {
+				_ = os.Remove(path + sfx)
+			}
+		}()
+		t0 := time.Now()
+		for i := 0; i < len(rows); i += 20000 {
+			tx, err := dst.Begin()
+			if err != nil {
+				return err
+			}
+			ins, err := tx.Prepare("INSERT OR IGNORE INTO kv (key, value) VALUES (?, ?)")
+			if err != nil {
+				return err
+			}
+			for _, r := range rows[i:min(i+20000, len(rows))] {
+				if _, err := ins.Exec(r.key, r.value); err != nil {
+					_ = tx.Rollback()
+					return err
+				}
+			}
+			ins.Close()
+			if err := tx.Commit(); err != nil {
+				return err
+			}
+		}
+		el := time.Since(t0)
+		var fsz int64
+		if fi, err := os.Stat(path); err == nil {
+			fsz = fi.Size()
+		}
+		fmt.Printf("rate-split insert %s (measured): %d rows, %s in %s: %.0f rows/s, %.0f MB/s; file %s\n",
+			order, len(rows), gb(sampled), el.Round(time.Millisecond), float64(len(rows))/el.Seconds(), float64(sampled)/1e6/el.Seconds(), gb(fsz))
+		return nil
+	}
+	if err := insert(o.rateOut, "physical order"); err != nil {
+		return err
+	}
+	sort.Slice(rows, func(a, b int) bool { return bytes.Compare(rows[a].key, rows[b].key) < 0 })
+	return insert(o.rateOut+".sorted", "key order")
+}

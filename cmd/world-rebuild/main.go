@@ -75,6 +75,8 @@ type opts struct {
 	rateMB  int64
 	// rateOnly makes count skip its passes and only sample the copy rate.
 	rateOnly bool
+	// rateSplit makes count time the raw read and the insert apart.
+	rateSplit bool
 }
 
 func main() {
@@ -111,11 +113,14 @@ func main() {
 	fs.StringVar(&o.rateOut, "rate-out", "", "count: scratch file for the copy rate measurement (removed after)")
 	fs.Int64Var(&o.rateMB, "rate-mb", 1000, "count: kept megabytes the copy rate measurement copies")
 	fs.BoolVar(&o.rateOnly, "rate-only", false, "count: skip the passes; copy ~rate-mb of rows from 64 slices to -rate-out, keeping all, and report the MB/s")
+	fs.BoolVar(&o.rateSplit, "rate-split", false, "count: read ~rate-mb of rows from 64 slices into memory, then insert them into -rate-out as copy does, physical then key order, and report each rate")
 	_ = fs.Parse(os.Args[2:])
 
 	// Run the subcommand.
 	var err error
 	switch {
+	case cmd == "count" && o.rateSplit:
+		err = runRateSplit(o)
 	case cmd == "count" && o.rateOnly:
 		err = runRateOnly(o)
 	case cmd == "count":
