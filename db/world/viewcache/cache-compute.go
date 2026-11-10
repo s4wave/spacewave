@@ -134,7 +134,8 @@ func (c *Cache) Get(ctx context.Context, tx world.WorldState, name string, compu
 // share one computation: a burst of writes moving the head past many outer
 // values computing at once would otherwise have each compute the same part.
 // A computation abandoned with its caller's context is claimed again by a
-// waiter; another failure reaches every waiter and is not kept.
+// waiter; another failure is retried alone by each waiter, in its own
+// snapshot, as Get retries one, and is not kept.
 func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno uint64, name string, compute func(context.Context, world.WorldState) (any, error)) (any, error) {
 	key := behindKey{name: name, seqno: seqno}
 	for {
@@ -158,7 +159,9 @@ func (c *Cache) computeBehind(ctx context.Context, tx world.WorldState, seqno ui
 				if errors.Is(entry.err, context.Canceled) || errors.Is(entry.err, context.DeadlineExceeded) {
 					continue
 				}
-				return nil, entry.err
+				return c.observe(name, "retry", func() (any, error) {
+					return compute(ctx, tx)
+				})
 			}
 			c.addViewReads(ctx, entry)
 			return entry.value, nil
