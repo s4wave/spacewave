@@ -115,6 +115,9 @@ type placementState struct {
 	// fileSegments serves the blocks of linked files from the files, after the
 	// local store misses and before every remote tier.
 	fileSegments *block_store_filesegment.Store
+	// packed is the store over the packahead log, or nil when the store has
+	// no log.
+	packed *block_store_writeback.PackedStore
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the volume
@@ -564,7 +567,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	placement.fileSegments = block_store_filesegment.NewStore(block_store_filesegment.NewIndex(segments.GetObjectStore(), nil))
 	placement.fallbackFills.ctx, placement.fallbackFills.budget = ctx, &t.a.t.p.fillBudget
 	if packs != nil {
-		placement.drain = packs.drain
+		placement.drain, placement.packed = packs.drain, packs.packed
 	}
 	placement.tracker, _ = t.a.vol.(childListReader)
 	placement.serveOnly = serveOnly.Load()

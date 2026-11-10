@@ -48,7 +48,7 @@ func TestPackaheadPlacedStore(t *testing.T) {
 		t.Fatal(err)
 	}
 	tracker, _ := any(vol).(childListReader)
-	p := &placementState{wb: wb, local: packed, tracker: tracker}
+	p := &placementState{wb: wb, local: packed, packed: packed, tracker: tracker}
 	p.backend.Store(&account_settings.StorageBackend{Id: "packs"})
 	b := &BlockStore{store: block_store.NewStore("local", wb), decodedBlocks: block.NewDecodedBlockCache(), placement: p}
 	t.Cleanup(b.decodedBlocks.Close)
@@ -136,6 +136,9 @@ func TestPackaheadPlacedStore(t *testing.T) {
 	}
 	cancel()
 	<-done
+	if st, ok := b.GetPackaheadStats(); !ok || !st.Divert || st.Diverted != 2 || st.DivertedBytes == 0 || st.Pending != 0 || st.Written == 0 || st.WrittenBytes == 0 || st.Failures != 0 {
+		t.Fatalf("packahead stats after the drain = %+v, %v; want 2 diverted, none pending, some written, no failure", st, ok)
+	}
 	if uploaded, err := b.UploadedBefore(ctx, time.Now()); err != nil || !uploaded {
 		t.Fatalf("UploadedBefore after the drain = %v, %v", uploaded, err)
 	}
