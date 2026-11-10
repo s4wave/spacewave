@@ -146,3 +146,83 @@ func TestPackAheadFinalizeSyncHook(t *testing.T) {
 		t.Fatalf("finalize bypassed SyncData: %d calls", n)
 	}
 }
+
+// TestPackAheadFinalizeSyncPoisons fails the index sync of a pack a write
+// failed on, after a batch written but never synced: the failed sync may have
+// dropped that batch's pages, so the pack is poisoned, is never finalized,
+// and none of its values reports durable.
+func TestPackAheadFinalizeSyncPoisons(t *testing.T) {
+	ctx := t.Context()
+	dir := t.TempDir()
+	var armed, fired atomic.Bool
+	path := filepath.Join(dir, openName(1))
+	hook := func(f *os.File) error {
+		if armed.Load() && f.Name() == path && fired.CompareAndSwap(false, true) {
+			return syscall.EIO
+		}
+		return f.Sync()
+	}
+	l, err := Open(ctx, dir, Options{SyncData: hook, Linger: 10 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		l.opts.Linger = 0
+	})
+
+	// Batch a syncs; batch b is written but not synced, then a write fails.
+	a, b, c := testBlock(t, 1, 3000), testBlock(t, 2, 3000), testBlock(t, 3, 3000)
+	if err := l.Append(ctx, []Block{a}); err != nil {
+		t.Fatal(err)
+	}
+	release, err := l.writeMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var p *pack
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		p = l.open
+	})
+	if _, err := l.writeBatch(p, []Block{b}); err != nil {
+		release()
+		t.Fatal(err)
+	}
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		l.failLocked(p, syscall.EIO)
+	})
+	release()
+
+	// The next Append rotates; the failed pack's index sync fails.
+	armed.Store(true)
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		l.opts.Linger = 10 * time.Millisecond
+	})
+	if err := l.Append(ctx, []Block{c}); err != nil {
+		t.Fatal(err)
+	}
+	infos := waitFinalized(t, l, 1)
+	if !fired.Load() {
+		t.Fatal("the index sync never failed")
+	}
+	if slices.ContainsFunc(infos, func(i PackInfo) bool { return i.Seq == 1 }) {
+		t.Fatal("pack whose index sync failed finalized")
+	}
+	if l.HasDurable(a.Key) || l.HasDurable(b.Key) {
+		t.Fatal("a value of the poisoned pack reports durable")
+	}
+	if st := l.GetStats(); st.Poisoned != 1 || st.SyncFailures != 1 {
+		t.Fatalf("stats: %+v", st)
+	}
+
+	// The next Open recovers the poisoned pack from its file.
+	l.Close()
+	l2, err := Open(ctx, dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l2.Close()
+	if !l2.HasDurable(a.Key) || !l2.HasDurable(c.Key) {
+		t.Fatal("value lost after reopen")
+	}
+}
