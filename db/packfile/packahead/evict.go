@@ -61,7 +61,7 @@ func (l *Log) Evict(ctx context.Context, seq uint64) error {
 	if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) { // #nosec G703 -- a pack in the Log's directory.
 		return errors.Wrapf(err, "unlink pack %s", seqText(seq))
 	}
-	if err := syncDir(l.dir); err != nil {
+	if err := dirSync(l.dir); err != nil {
 		return errors.Wrap(err, "sync pack directory")
 	}
 	_ = p.f.Close()

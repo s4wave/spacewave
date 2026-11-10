@@ -2,6 +2,9 @@ package packahead
 
 import "os"
 
+// dirSync is syncDir, replaced by a test to fail a directory sync.
+var dirSync = syncDir
+
 // syncDir makes the directory's entries, its creates, renames and removes,
 // durable on the drive.
 func syncDir(dir string) error {

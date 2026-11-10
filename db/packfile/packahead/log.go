@@ -176,7 +176,7 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		if err := os.Remove(path); err != nil { // #nosec G703 -- a pack name listed in the caller's directory.
 			return err
 		}
-		return syncDir(l.dir)
+		return dirSync(l.dir)
 	}
 
 	// Finalize the kept batches and locate their values.
@@ -241,7 +241,7 @@ func (l *Log) createPack(seq uint64) (*pack, error) {
 	}
 
 	// Make its directory entry durable before any batch is written to it.
-	if err := syncDir(l.dir); err != nil {
+	if err := dirSync(l.dir); err != nil {
 		_ = f.Close()
 		_ = os.Remove(path) // #nosec G703 -- the pack just created.
 		return nil, errors.Wrap(err, "sync pack directory")
@@ -952,12 +952,13 @@ func (l *Log) locateRecoveredLocked(p *pack, entries []entry) {
 
 // dropEmpty removes rotated pack p, which holds no good batch.
 func (l *Log) dropEmpty(p *pack) error {
-	// Remove the file and make the removal durable.
+	// Remove the file and make the removal durable. A retry after a failed
+	// directory sync finds the file gone.
 	_ = p.f.Close()
-	if err := os.Remove(p.path); err != nil {
+	if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if err := syncDir(l.dir); err != nil {
+	if err := dirSync(l.dir); err != nil {
 		return err
 	}
 
