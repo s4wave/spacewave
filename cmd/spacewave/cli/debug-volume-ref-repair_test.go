@@ -22,6 +22,9 @@ import (
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	"github.com/s4wave/spacewave/db/block/byteslice"
+	"github.com/s4wave/spacewave/db/blocktype"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -245,7 +248,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// A dry run counts the missing edges and writes none.
-	dry, err := repairVolumeRefs(ctx, le, path, "", true)
+	dry, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +256,7 @@ func TestDebugRefRepair(t *testing.T) {
 	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.rebuild.Verified != 0 {
 		t.Fatalf("dry run: %+v", dry)
 	}
-	if dry.absent != 0 || dry.undecodable != 0 || dry.untyped["object type "+unixfs_world.FSNodeTypeID] != 0 {
+	if dry.absent != 0 || dry.undecodable != 0 || len(dry.untyped) != 0 {
 		t.Fatalf("dry run did not walk the whole filesystem: %+v", dry)
 	}
 
@@ -305,7 +308,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// The dry run left the child lists as they were.
-	again, err := repairVolumeRefs(ctx, le, path, "", true)
+	again, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +319,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// Applying writes every missing child list, those of the leaves the dry
 	// run only checks for presence too, verifies every walked block's list,
 	// and clears the volume's unverified lists mark.
-	applied, err := repairVolumeRefs(ctx, le, path, "", false)
+	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,8 +327,46 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and the mark cleared", applied.rebuild, dry.lacking, dry.blocks)
 	}
 
+	// Mark the lists unverified again, hold the World under a named root as a
+	// Space's replay base holds it, and rebuild with every object root typed as raw bytes, a
+	// registered type that decodes without refs. The rebuild refuses the
+	// shortened root list, which the held World reaches, and keeps the mark;
+	// a correct rebuild after it finds every list whole and clears the mark.
+	markVol, err := openStoppedVolume(ctx, le, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeRecords(t, markVol, func(rec *block_gc.Records) error {
+		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, UnverifiedLists: true})
+	})
+	held := []block.NamedRoot{{Name: space_world.RootReplayBase, Ref: state.GetHeadRef().GetRootRef()}}
+	err = markVol.SetBucketRoots(ctx, restoreTestBucket, nil, held)
+	if cerr := markVol.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	asBytes := func(_ context.Context, typeID string) (blocktype.BlockType, error) {
+		return blocktype.New[byteslice.ByteSlice](typeID), nil
+	}
+	wrong, err := repairVolumeRefs(ctx, le, path, "", false, asBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Unverified == 0 || wrong.rebuild.Cleared {
+		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
+	}
+	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if right.rebuild.Rewritten != 0 || right.rebuild.Dropped != 0 || right.rebuild.Verified == 0 || !right.rebuild.Cleared {
+		t.Fatalf("rebuild after a wrong root type: %+v", right.rebuild)
+	}
+
 	// Nothing is missing afterward.
-	after, err := repairVolumeRefs(ctx, le, path, "", true)
+	after, err := repairVolumeRefs(ctx, le, path, "", true, space_world_optypes.LookupBlockType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,10 +381,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatalf("adopt with a listless child: %+v, %v", refused, err)
 	}
 
-	// Give that block its list and hold the World under a named root, as a
-	// Space's replay base holds it, then adopt; a second adoption changes
-	// nothing.
-	worldRoot := state.GetHeadRef().GetRootRef()
+	// Give that block its list, then adopt; a second adoption changes nothing.
 	fixVol, err := openStoppedVolume(ctx, le, path)
 	if err != nil {
 		t.Fatal(err)
@@ -351,11 +389,7 @@ func TestDebugRefRepair(t *testing.T) {
 	writeRecords(t, fixVol, func(rec *block_gc.Records) error {
 		return rec.PutChildren(ctx, listed, nil)
 	})
-	err = fixVol.SetBucketRoots(ctx, restoreTestBucket, nil, []block.NamedRoot{{Name: space_world.RootReplayBase, Ref: worldRoot}})
-	if cerr := fixVol.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
+	if err := fixVol.Close(); err != nil {
 		t.Fatal(err)
 	}
 	adopted, err := adoptVolume(ctx, le, path)

@@ -35,6 +35,12 @@ type ObjectTypeFactory = func(
 type ObjectType interface {
 	// GetObjectTypeID returns the type identifier this factory handles.
 	// Format: "alpha/object-layout" or similar.
+	//
+	// The type ID is also the block type ID of the object's root block, so
+	// LookupBlockType with it returns the root's constructor. A reader that
+	// decodes bodies or walks refs, such as the body handler and refwalk,
+	// relies on that identity, and a type that registers no block type under
+	// its ID leaves its objects' roots opaque to them.
 	GetObjectTypeID() string
 	// GetFactory returns the factory function for creating typed resources.
 	GetFactory() ObjectTypeFactory
