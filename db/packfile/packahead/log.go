@@ -979,7 +979,8 @@ func (l *Log) makeSpare(context.Context) error {
 		return err
 	}
 
-	// Offer it to the writer, or close it when the Log closed meanwhile.
+	// Offer it to the writer, or remove it when the Log closed meanwhile:
+	// Close leaves no empty pack.
 	var closed bool
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if closed = l.closed; !closed {
@@ -989,6 +990,8 @@ func (l *Log) makeSpare(context.Context) error {
 	})
 	if closed {
 		_ = p.f.Close()
+		_ = os.Remove(p.path) // #nosec G703 -- the pack just created.
+		_ = dirSync(l.dir)
 	}
 	return nil
 }
@@ -1204,10 +1207,21 @@ func (l *Log) dropEmpty(p *pack) error {
 }
 
 // Close stops the background work, waits for the writer in progress and the
-// syncs running, and closes the pack files. A writer waiting for a sync that
-// has not started returns ErrClosed. Batches written stay in their packs, and the next
-// Open finalizes the pack that was open.
+// syncs running, finalizes the packs not yet finalized, and closes the pack
+// files. A writer waiting for a sync that has not started returns ErrClosed.
+// A failure while finalizing is logged, and the next Open salvages the pack.
 func (l *Log) Close() {
+	if err := l.CloseContext(context.Background()); err != nil {
+		l.opts.Logger.WithError(err).Warn("packahead close left an unfinalized pack for the next open")
+	}
+}
+
+// CloseContext is Close, finalizing the packs that took batches through the
+// normal finalize path while ctx lasts, so an ordinary restart finds no
+// unfinalized pack and copies nothing. An empty pack is removed. A pack that
+// failed, whose finalize fails, or that ctx ends first stays unfinalized for
+// the next Open to salvage; CloseContext returns the first such error.
+func (l *Log) CloseContext(ctx context.Context) error {
 	// Refuse new work and stop the maintainer.
 	var waitCh <-chan struct{}
 	var done bool
@@ -1227,7 +1241,7 @@ func (l *Log) Close() {
 	}
 
 	// Wait for the writer in progress and the syncs running, which use the
-	// files, then close the files. No sync starts once closed is set.
+	// files. No sync starts once closed is set.
 	release, err := l.writeMtx.Lock(context.Background())
 	if err == nil {
 		defer release()
@@ -1241,7 +1255,73 @@ func (l *Log) Close() {
 		}
 		<-waitCh
 	}
+
+	// Finalize the packs still unfinalized, then close the files.
+	err = l.finalizeAtClose(ctx)
 	l.closeFiles()
+	return err
+}
+
+// finalizeAtClose finalizes each unfinalized pack that has no failure,
+// removes the empty ones, and leaves the rest for the next Open. The Log is
+// closed and nothing else runs.
+func (l *Log) finalizeAtClose(ctx context.Context) error {
+	// Collect the unfinalized packs.
+	var packs []*pack
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, p := range append(slices.Clone(l.packs), l.open, l.spare) {
+			if p != nil && p.state != packFinal && p.state != packGone {
+				packs = append(packs, p)
+			}
+		}
+	})
+
+	// Finalize each, keeping the first failure.
+	var firstErr error
+	for _, p := range packs {
+		if err := l.finalizeOne(ctx, p); err != nil && firstErr == nil {
+			firstErr = errors.Wrapf(err, "finalize pack %s at close", seqText(p.seq))
+		}
+	}
+	return firstErr
+}
+
+// finalizeOne removes empty pack p, or syncs and finalizes it when it has no
+// failure.
+func (l *Log) finalizeOne(ctx context.Context, p *pack) error {
+	// Remove a pack that took no batch: nothing in it was acknowledged.
+	if err := context.Cause(ctx); err != nil {
+		return err
+	}
+	if p.written == 0 && p.renamed == nil {
+		_ = p.f.Close()
+		if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		p.state = packGone
+		return dirSync(l.dir)
+	}
+
+	// Leave a failed pack for salvage, and sync and finalize the rest.
+	if p.err != nil {
+		return errors.Wrap(p.err, "pack failed")
+	}
+	if p.synced < p.written {
+		if err := l.opts.SyncData(p.f); err != nil {
+			return errors.Wrap(err, "sync pack")
+		}
+	}
+	if err := context.Cause(ctx); err != nil {
+		return err
+	}
+	fin, err := p.finalize(l.dir, p.buf[:p.written], l.opts)
+	if err != nil {
+		return err
+	}
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		l.applyFinal(p, fin)
+	})
+	return nil
 }
 
 // closeFiles closes every pack file the Log holds.

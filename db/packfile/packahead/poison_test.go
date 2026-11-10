@@ -100,7 +100,7 @@ func TestPackAheadOpenSalvages(t *testing.T) {
 	if err := l.Append(ctx, []Block{a}); err != nil {
 		t.Fatal(err)
 	}
-	l.Close()
+	closeUnfinalized(l)
 	before, err := os.Stat(filepath.Join(dir, openName(1)))
 	if err != nil {
 		t.Fatal(err)

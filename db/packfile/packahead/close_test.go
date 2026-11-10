@@ -1,6 +1,7 @@
 package packahead
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -61,4 +62,12 @@ func TestCloseWaitsSync(t *testing.T) {
 	if err := <-appended; err != nil {
 		t.Fatalf("append: %v", err)
 	}
+}
+
+// closeUnfinalized closes l the way a crash would leave its packs: with a
+// context already ended, Close finalizes nothing.
+func closeUnfinalized(l *Log) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_ = l.CloseContext(ctx)
 }

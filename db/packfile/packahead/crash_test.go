@@ -44,7 +44,7 @@ func TestPackAheadCrash(t *testing.T) {
 		}
 		batches = append(batches, batch)
 	}
-	l.Close()
+	closeUnfinalized(l)
 
 	// Find the pack and the bounds of its last batch.
 	name := openName(1)
@@ -134,7 +134,7 @@ func TestPackAheadCrashFinalize(t *testing.T) {
 		}
 		batches = append(batches, batch)
 	}
-	l.Close()
+	closeUnfinalized(l)
 	l, err = Open(ctx, src, Options{})
 	if err != nil {
 		t.Fatal(err)
