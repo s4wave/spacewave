@@ -223,7 +223,8 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 		return err
 	}
 
-	// Remove the relationship before revising its endpoints; missing is a no-op.
+	// Remove the relationship; missing is a no-op. The records of the objects
+	// it names keep their revisions.
 	graphHd, err := t.graph(ctx)
 	if err != nil {
 		return err
@@ -234,23 +235,6 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 			return nil
 		}
 		return err
-	}
-
-	// Revise each referenced object, counting both endpoints of a self-edge.
-	for _, endpoint := range []quad.Value{cq.Subject, cq.Object} {
-		key, ok := endpoint.(quad.IRI)
-		if !ok {
-			continue
-		}
-		obj, found, err := t.getObject(ctx, string(key))
-		if err != nil {
-			return err
-		}
-		if found {
-			if _, err := obj.incrementRev(ctx, false); err != nil {
-				return err
-			}
-		}
 	}
 
 	// Record the removed relationship.

@@ -191,7 +191,37 @@ func BenchmarkWorldSeededWrite(b *testing.B) {
 			return ws.SetGraphQuad(ctx, quad)
 		})
 	})
+	b.Run("create-32-results", func(b *testing.B) {
+		// Create a batch of result-shaped objects in each commit, as an app
+		// accepting a few hosts' results does: each result sits under its
+		// host's key and links to its type, its host and a player.
+		benchmarkWorldSeededWrite(b, func(ctx context.Context, ws world.WorldState, i int) error {
+			quads := make([]world.GraphQuad, 0, 3*worldSeedResultBatch)
+			for j := range worldSeedResultBatch {
+				n := i*worldSeedResultBatch + j
+				host := worldSeedObjectKey(worldSeedPick(1000 + j%4 + i/2))
+				key := host + "/attempts/" + strconv.Itoa(n)
+				createWorldWriteBenchObject(ctx, b, ws, key)
+				quads = append(quads,
+					world.NewGraphQuadWithKeys(key, worldSeedTypePred, worldSeedTypeKey(0), ""),
+					world.NewGraphQuadWithKeys(host, "<bench/host-result>", key, ""),
+					world.NewGraphQuadWithKeys(key, "<bench/result-player>", worldSeedObjectKey(worldSeedPick(5000+n)), ""),
+				)
+			}
+			for _, q := range quads {
+				if err := ws.SetGraphQuad(ctx, q); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		b.ReportMetric(worldSeedResultBatch, "objects/op")
+	})
 }
+
+// worldSeedResultBatch is the number of results one create-32-results commit
+// writes.
+const worldSeedResultBatch = 32
 
 // benchmarkWorldSeededWrite applies op in one committed transaction per
 // iteration on a fresh Engine over the seeded World.

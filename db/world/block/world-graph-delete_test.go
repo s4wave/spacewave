@@ -8,7 +8,8 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// TestDeleteGraphQuadRevisions checks committed endpoint revisions and absent deletes.
+// TestDeleteGraphQuadRevisions checks a delete leaves endpoint revisions
+// alone and an absent delete changes nothing.
 func TestDeleteGraphQuadRevisions(t *testing.T) {
 	for _, target := range []string{"b", "a"} {
 		t.Run(target, func(t *testing.T) {
@@ -42,11 +43,8 @@ func TestDeleteGraphQuadRevisions(t *testing.T) {
 			// Delete the relationship through a new transaction and publish the change.
 			deleteGraphQuadAndCommit(t, ctx, engine, q)
 			after, deletedSeqno := graphDeleteSnapshot(t, ctx, engine, keys)
-			want := maps.Clone(before)
-			want["a"]++
-			want[target]++
-			if !maps.Equal(after, want) {
-				t.Errorf("deleted relationship revisions = %v, want %v", after, want)
+			if !maps.Equal(after, before) {
+				t.Errorf("deleted relationship revisions = %v, want %v", after, before)
 			}
 			if deletedSeqno != seqno+1 {
 				t.Errorf("deleted relationship sequence = %d, want %d", deletedSeqno, seqno+1)

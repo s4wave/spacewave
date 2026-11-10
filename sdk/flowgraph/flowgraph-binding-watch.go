@@ -43,9 +43,9 @@ func NewBindingWatch(b bus.Bus, engine world.Engine, engineID, objectKey string)
 // context's error when ctx ends first, and a later call resumes the wait.
 func (w *BindingWatch) Next(ctx context.Context) (*FlowgraphBinding, error) {
 	for {
-		// Read the binding and the object's root from one World state, so a
-		// change after the read ends the wait below.
-		binding, seen, err := w.read(ctx)
+		// Read the binding from one World state and record what it read, so a
+		// change after the read to the object or its type ends the wait below.
+		binding, reads, seqno, err := w.read(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -66,31 +66,33 @@ func (w *BindingWatch) Next(ctx context.Context) (*FlowgraphBinding, error) {
 		if added {
 			continue
 		}
-		if err := waitGraphChange(ctx, world.NewEngineWorldState(w.engine, false), w.watches.wake, seen); err != nil {
+		if err := waitGraphChange(ctx, world.NewEngineWorldState(w.engine, false), w.watches.wake, reads, seqno); err != nil {
 			return nil, err
 		}
 	}
 }
 
-// read derives the binding and reads the object's root in one read transaction.
-func (w *BindingWatch) read(ctx context.Context) (*FlowgraphBinding, []*world.ObjectRootRef, error) {
+// read derives the binding in one read transaction and records its reads. It
+// returns the seqno the reads observed.
+func (w *BindingWatch) read(ctx context.Context) (*FlowgraphBinding, *world.ReadSet, uint64, error) {
 	// Open the read transaction.
 	tx, err := w.engine.NewTransaction(ctx, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 	defer tx.Discard()
+	seqno, err := tx.GetSeqno(ctx)
+	if err != nil {
+		return nil, nil, 0, err
+	}
 
-	// Derive the binding and read the object's root from it.
-	binding, err := readBinding(ctx, tx, w.b, w.engineID, w.objectKey)
+	// Derive the binding through the recorded state.
+	reads := world.NewReadSet()
+	binding, err := readBinding(ctx, reads.Track(tx), w.b, w.engineID, w.objectKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
-	seen, err := world.GetObjectRootRefsBatch(ctx, tx, []string{w.objectKey})
-	if err != nil {
-		return nil, nil, err
-	}
-	return binding, seen, nil
+	return binding, reads, seqno, nil
 }
 
 // Close stops the registry watch.

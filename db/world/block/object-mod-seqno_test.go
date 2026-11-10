@@ -140,7 +140,8 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 	want["a"], want["b"] = entry{s1, 1}, entry{s1, 1}
 	check("create")
 
-	// A link stamps both ends and leaves b alone.
+	// A link stamps only the created object: a relationship leaves the
+	// records it names alone.
 	commit(func(tx *world_block.EngineTx) {
 		create(tx, "c")
 		if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("a", "<rel>", "c", "")); err != nil {
@@ -148,7 +149,7 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 		}
 	})
 	s2 := seqno()
-	want["a"], want["c"] = entry{s2, 2}, entry{s2, 2}
+	want["c"] = entry{s2, 1}
 	check("link")
 
 	// A rename stamps the new key; neither the old key nor an object created
@@ -199,15 +200,16 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 	}
 	check("discard")
 
-	// Deleting a stamps the other end of its link and nothing else.
+	// Deleting a removes its link and leaves the other end's record alone.
 	commit(func(tx *world_block.EngineTx) {
 		if _, err := tx.DeleteObject(ctx, "a"); err != nil {
 			t.Fatal(err)
 		}
 	})
-	s4 := seqno()
+	if seqno() == s3 {
+		t.Fatal("deleting a did not commit")
+	}
 	delete(want, "a")
-	want["d"] = entry{s4, want["d"].rev + 1}
 	check("delete")
 
 	// Reading through a write transaction reports the same records.
