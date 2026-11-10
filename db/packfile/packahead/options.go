@@ -1,6 +1,7 @@
 package packahead
 
 import (
+	"os"
 	"time"
 
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -28,6 +29,10 @@ type Options struct {
 	// FreeBytes returns the disk space free on the file system holding the
 	// Log's directory. Nil measures it with statfs.
 	FreeBytes func(dir string) (uint64, error)
+	// SyncData makes the batches written to a pack file durable, the sync
+	// writers share. Nil uses fdatasync, F_FULLFSYNC on darwin. A test sets
+	// it to order writers around a sync.
+	SyncData func(f *os.File) error
 }
 
 // withDefaults returns the options with each zero field at its default.
@@ -41,6 +46,9 @@ func (o Options) withDefaults() Options {
 	}
 	if o.FreeBytes == nil {
 		o.FreeBytes = freeDiskBytes
+	}
+	if o.SyncData == nil {
+		o.SyncData = syncData
 	}
 	if o.PackID == nil {
 		o.PackID = func(*writer.PackResult) (string, error) { return identity.NewPackID(), nil }

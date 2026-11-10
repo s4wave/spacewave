@@ -528,7 +528,7 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 
 		// Lead: sync the pack and publish the new durable mark.
 		if lead {
-			serr := syncData(p.f)
+			serr := l.opts.SyncData(p.f)
 			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				p.syncing = false
 				l.syncs++
@@ -637,6 +637,22 @@ func (l *Log) Has(key []byte) bool {
 		_, found = l.table[tailOf(key)]
 	})
 	return found
+}
+
+// HasDurable reports whether a local pack holds the value under key durably:
+// its pack is finalized, or a sync covered its batch. A writer may skip
+// storing a value only on this, since Has also reports a value whose batch is
+// written and not yet synced, which a crash or a failed sync loses.
+func (l *Log) HasDurable(key []byte) bool {
+	if len(key) < keyTailLen {
+		return false
+	}
+	var durable bool
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		loc, ok := l.table[tailOf(key)]
+		durable = ok && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
+	})
+	return durable
 }
 
 // Remove forgets the value under key, which the caller has freed. Its bytes
