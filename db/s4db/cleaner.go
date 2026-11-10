@@ -194,7 +194,7 @@ func (c *cleaner) step(ctx context.Context) (bool, error) {
 		batch, rest := c.batch(live)
 		live = rest
 		if err := db.w.locked(ctx, func() error {
-			return db.w.commit(ctx, db.cur.Load(), batch, true)
+			return db.w.commit(ctx, db.cur.Load(), batch, commitMoves)
 		}); err != nil {
 			return true, err
 		}

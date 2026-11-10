@@ -187,14 +187,31 @@ type valueWrite struct {
 	data []byte
 }
 
+// commitKind is whom a commit writes for, which decides how its old-value
+// lookups read and what the flows count.
+type commitKind int
+
+const (
+	// commitForeground is a user's commit; its lookups read through the block
+	// cache.
+	commitForeground commitKind = iota
+	// commitBackground is the commit of a background write transaction, such
+	// as a regeneration's build. Its lookups read around the block cache, so
+	// it never displaces the blocks foreground reads use.
+	commitBackground
+	// commitMoves is the cleaner's moves, which read around the block cache
+	// and which the flows do not count.
+	commitMoves
+)
+
 // commit appends a commit record for changes on base, writes its values,
-// and publishes the new state. moves reports that the changes are the
-// cleaner's moves, which the flows do not count. The caller holds the writer
-// lock, and base is the published state.
-func (w *writer) commit(ctx context.Context, base *state, changes []tentry, moves bool) error {
+// and publishes the new state, for kind. The caller holds the writer lock,
+// and base is the published state.
+func (w *writer) commit(ctx context.Context, base *state, changes []tentry, kind commitKind) error {
 	// Start the record on a copy of the state. Placement takes chunks from
 	// the copy's table, which the record's replay reproduces.
 	db := w.db
+	moves := kind == commitMoves
 	next := base.derive()
 	r := &record{kind: kindCommit, writer: db.id, prevWriter: base.writer, hot: next.m.hot, cold: next.m.cold}
 	var writes []valueWrite
@@ -217,15 +234,16 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	}
 
 	// Look up each change's old value in the base state, with up to
-	// lookupInFlight reads in flight. A cleaner's moves read around the block
-	// cache, and keep only the old value's kind and reference.
+	// lookupInFlight reads in flight. Only a foreground commit's lookups read
+	// through the block cache, and each keeps only the old value's kind and
+	// reference.
 	keys := make([][]byte, len(changes))
 	for i := range changes {
 		keys[i] = changes[i].key
 	}
 	olds := make([]value, len(changes))
 	founds := make([]bool, len(changes))
-	err := db.lookupEach(base, keys, !moves, func(i int, v value, found bool) error {
+	err := db.lookupEach(base, keys, kind == commitForeground, func(i int, v value, found bool) error {
 		v.inline = nil
 		olds[i], founds[i] = v, found
 		return nil
