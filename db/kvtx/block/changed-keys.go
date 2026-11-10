@@ -49,7 +49,14 @@ func PrefixKeyRange(prefix []byte) KeyRange {
 // Complete is false after maxKeys changes or 100,000 visited tree nodes;
 // callers then reread.
 func ChangedKeys(ctx context.Context, before, after *block.Cursor, maxKeys int) (keys [][]byte, complete bool, err error) {
-	return changedKeys(ctx, before, after, nil, maxKeys)
+	complete, err = changedKeys(ctx, before, after, nil, maxKeys, func(key []byte) error {
+		keys = append(keys, bytes.Clone(key))
+		return nil
+	})
+	if !complete || err != nil {
+		return nil, complete, err
+	}
+	return keys, true, nil
 }
 
 // ChangedKeysIn lists the keys within ranges that differ between two immutable
@@ -60,37 +67,57 @@ func ChangedKeysIn(ctx context.Context, before, after *block.Cursor, ranges []Ke
 	if len(ranges) == 0 {
 		return nil, nil
 	}
-	keys, _, err := changedKeys(ctx, before, after, normalizeKeyRanges(ranges), 0)
+	var keys [][]byte
+	err := WalkChangedKeysIn(ctx, before, after, ranges, func(key []byte) error {
+		keys = append(keys, bytes.Clone(key))
+		return nil
+	})
 	return keys, err
 }
 
-// changedKeys compares two KV roots. A nil ranges compares every key, bounded
-// by maxKeys and changedKeysMaxVisits; otherwise only keys in the sorted,
-// disjoint ranges are compared, without a bound.
+// WalkChangedKeysIn calls fn with each key within ranges that differs between
+// two immutable KV roots, in ascending order, as ChangedKeysIn lists them. It
+// holds only the comparison frontier, so its memory follows the trees' depth,
+// not the number of changed keys. fn must not keep key, and its error stops
+// the walk.
+func WalkChangedKeysIn(ctx context.Context, before, after *block.Cursor, ranges []KeyRange, fn func(key []byte) error) error {
+	if len(ranges) == 0 {
+		return nil
+	}
+	_, err := changedKeys(ctx, before, after, normalizeKeyRanges(ranges), 0, fn)
+	return err
+}
+
+// changedKeys compares two KV roots and calls emit with each changed key in
+// ascending order. A nil ranges compares every key, bounded by maxKeys and
+// changedKeysMaxVisits; otherwise only keys in the sorted, disjoint ranges are
+// compared, without a bound. emit must not keep key.
 func changedKeys(
 	ctx context.Context,
 	before, after *block.Cursor,
 	ranges []KeyRange,
 	maxKeys int,
-) (keys [][]byte, complete bool, err error) {
+	emit func(key []byte) error,
+) (complete bool, err error) {
 	// Open the before and after KV roots as lazy comparison frontiers.
 	left, err := newDiffTree(ctx, before)
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 	right, err := newDiffTree(ctx, after)
 	if err != nil {
-		return nil, false, err
+		return false, err
 	}
 
 	// Compare the KV frontiers while skipping unchanged subtrees.
+	var emitted int
 	for visited := 0; len(left) != 0 || len(right) != 0; visited++ {
 		// Bound the KV comparison by cancellation, node visits, and changed keys.
 		if err := ctx.Err(); err != nil {
-			return nil, false, err
+			return false, err
 		}
-		if ranges == nil && (visited >= changedKeysMaxVisits || len(keys) >= maxKeys) {
-			return nil, false, nil
+		if ranges == nil && (visited >= changedKeysMaxVisits || emitted >= maxKeys) {
+			return false, nil
 		}
 
 		// Drop the frontier nodes that cannot hold a key in ranges.
@@ -123,10 +150,10 @@ func changedKeys(
 
 		// Load the frontier nodes needed for the next comparison.
 		if err := a.load(ctx); err != nil {
-			return nil, false, err
+			return false, err
 		}
 		if err := b.load(ctx); err != nil {
-			return nil, false, err
+			return false, err
 		}
 
 		// Check the ranges again once loading reveals a leaf's key.
@@ -137,12 +164,18 @@ func changedKeys(
 		// Collect a leaf that sorts before the other side's subtree, since
 		// that subtree and every node after it start after the leaf.
 		if a != nil && a.leaf && b != nil && !b.leaf && bytes.Compare(a.key, b.lower) < 0 {
-			keys = append(keys, bytes.Clone(a.key))
+			emitted++
+			if err := emit(a.key); err != nil {
+				return false, err
+			}
 			left = left[:len(left)-1]
 			continue
 		}
 		if b != nil && b.leaf && a != nil && !a.leaf && bytes.Compare(b.key, a.lower) < 0 {
-			keys = append(keys, bytes.Clone(b.key))
+			emitted++
+			if err := emit(b.key); err != nil {
+				return false, err
+			}
 			right = right[:len(right)-1]
 			continue
 		}
@@ -157,21 +190,28 @@ func changedKeys(
 			continue
 		}
 
-		// Collect changed leaf keys and advance the ordered frontiers.
+		// Emit changed leaf keys and advance the ordered frontiers.
+		var changed []byte
+		var differs bool
 		if a == nil || b != nil && bytes.Compare(b.key, a.key) < 0 {
-			keys = append(keys, bytes.Clone(b.key))
+			changed, differs = b.key, true
 			right = right[:len(right)-1]
 		} else if b == nil || bytes.Compare(a.key, b.key) < 0 {
-			keys = append(keys, bytes.Clone(a.key))
+			changed, differs = a.key, true
 			left = left[:len(left)-1]
 		} else {
-			if !bytes.Equal(a.value, b.value) {
-				keys = append(keys, bytes.Clone(a.key))
-			}
+			changed, differs = a.key, !bytes.Equal(a.value, b.value)
 			left, right = left[:len(left)-1], right[:len(right)-1]
 		}
+		if !differs {
+			continue
+		}
+		emitted++
+		if err := emit(changed); err != nil {
+			return false, err
+		}
 	}
-	return keys, true, nil
+	return true, nil
 }
 
 // normalizeKeyRanges sorts ranges by start and merges overlapping ones.
