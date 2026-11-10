@@ -281,6 +281,11 @@ func blockDigests(o opts, db *sql.DB, table string) (map[string]bool, error) {
 
 func runCopy(o opts) error {
 	start := time.Now()
+
+	// Stamp the sources before reading them, for verify and checkswap.
+	if err := stampSources(o); err != nil {
+		return fmt.Errorf("stamp sources: %w", err)
+	}
 	src, err := openRO(o.world)
 	if err != nil {
 		return err
@@ -518,6 +523,18 @@ func copySQLiteRows(o opts, src *sql.DB, table, stmt string, p *dropPlan, st *co
 // again here, and its eviction entries; evictable-bytes holds the sum of the
 // entries kept; the copy holds no other key.
 func runVerify(o opts) error {
+	// The sources must be as the copy found them, before and after.
+	if err := checkStamps(o); err != nil {
+		return err
+	}
+	if err := runVerifyBody(o); err != nil {
+		return err
+	}
+	return checkStamps(o)
+}
+
+// runVerifyBody compares the new World with its sources.
+func runVerifyBody(o opts) error {
 	if o.read == "raw" {
 		return runVerifyRaw(o)
 	}

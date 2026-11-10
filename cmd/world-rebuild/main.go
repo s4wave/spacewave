@@ -176,6 +176,8 @@ func main() {
 		err = runCopy(o)
 	case cmd == "verify":
 		err = runVerify(o)
+	case cmd == "checkswap":
+		err = runCheckSwap(o)
 	case cmd == "selftest":
 		err = runSelftest(o)
 	case cmd == "synth":
@@ -197,7 +199,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: world-rebuild count|copy|verify|packcheck|selftest|probe -world F -packs F [-out F]")
+	fmt.Fprintln(os.Stderr, "usage: world-rebuild count|copy|verify|checkswap|packcheck|selftest|probe -world F -packs F [-out F]")
 	os.Exit(2)
 }
 
