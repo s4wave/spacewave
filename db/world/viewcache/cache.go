@@ -55,6 +55,9 @@ type Cache struct {
 	// previous holds, by name, the last value a catch-up dropped among those
 	// a reader asked for through recent, until a finished value replaces it.
 	previous map[string]previousValue
+	// behind holds, by name and revision, the computations claimed of values
+	// read at a revision the cache passed, until each ends.
+	behind map[behindKey]*revisionEntry
 	// refreshing holds the names a background refresh computes again.
 	refreshing map[string]struct{}
 	// moved is closed, and cleared, when anything recent would answer
