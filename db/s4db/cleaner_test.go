@@ -98,15 +98,17 @@ func TestCleaner(t *testing.T) {
 	}
 
 	// Reopen and check again: replay restores the open chunks the cleaner
-	// left, each a value chunk.
+	// left, each a value chunk. The replay is read on a read-only handle,
+	// whose scheduler does not run: a writer's cleaner may move values, and
+	// open a new cold chunk, before the test reads its state.
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
 	closed := db.cur.Load().m
-	db = openTest(t, path, opts)
-	defer db.Close()
-	m.check(t, db)
-	opened := db.cur.Load().m
+	ro := opts
+	ro.ReadOnly = true
+	rdb := openTest(t, path, ro)
+	opened := rdb.cur.Load().m
 	if opened.hot != closed.hot || opened.cold != closed.cold {
 		t.Fatalf("replay opened hot %d cold %d, closed with hot %d cold %d", opened.hot, opened.cold, closed.hot, closed.cold)
 	}
@@ -115,6 +117,12 @@ func TestCleaner(t *testing.T) {
 			t.Fatalf("open chunk %d is %v, not a value chunk", c, opened.table.get(c).kind)
 		}
 	}
+	if err := rdb.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db = openTest(t, path, opts)
+	defer db.Close()
+	m.check(t, db)
 }
 
 // raceKeys is the number of keys each race writer churns.
