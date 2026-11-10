@@ -54,30 +54,13 @@ type Tx struct {
 	atCommit []func(context.Context, kvtx.Tx) error
 	// background marks a write transaction opened with
 	// kvtx.WithBackgroundWriteContext: it takes the writer lock as a
-	// background step, its commit stays out of the scheduler's foreground
-	// count, and its reads leave the block cache alone.
+	// background step and its commit stays out of the scheduler's foreground
+	// count.
 	background bool
-	// sc holds the reads of a background transaction around the block cache,
-	// set on its first lookup.
-	sc *getScratch
 	// committed is the seq a commit that wrote changes published.
 	committed uint64
 	// done is set after Commit or Discard.
 	done bool
-}
-
-// scratch returns the buffers a background transaction's lookups read into
-// around the block cache, or nil to read a foreground one's through it. An
-// inline value found through them lasts until the transaction's next lookup,
-// so each caller copies it out first.
-func (t *Tx) scratch() *getScratch {
-	if !t.background {
-		return nil
-	}
-	if t.sc == nil {
-		t.sc = new(getScratch)
-	}
-	return t.sc
 }
 
 // Size returns the number of keys.
@@ -97,7 +80,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	if t.changes != nil {
 		t.changes.Scan(func(c tentry) bool {
 			var found bool
-			_, found, err = t.db.lookup(t.st, c.key, t.scratch())
+			_, found, err = t.db.lookup(t.st, c.key)
 			switch {
 			case err != nil:
 				return false
@@ -132,7 +115,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	// Otherwise read the snapshot. A reference is read into a new buffer,
 	// and an inline value is copied out of the shared memory.
 	t.read(key)
-	v, found, err := t.db.lookup(t.st, key, t.scratch())
+	v, found, err := t.db.lookup(t.st, key)
 	if err != nil || !found {
 		return nil, false, err
 	}
@@ -187,7 +170,7 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 		sorted[j] = keys[i]
 		t.read(keys[i])
 	}
-	err := t.db.lookupEach(t.st, sorted, !t.background, func(j int, v value, ok bool) error {
+	err := t.db.lookupEach(t.st, sorted, true, func(j int, v value, ok bool) error {
 		// Read a found key's value; an absent key keeps its empty slot.
 		if !ok {
 			return nil
@@ -227,7 +210,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 	// Test presence in the pinned snapshot.
 	t.read(key)
-	_, found, err := t.db.lookup(t.st, key, t.scratch())
+	_, found, err := t.db.lookup(t.st, key)
 	return found, err
 }
 
@@ -409,20 +392,13 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 		return true
 	})
 
-	// A background transaction's commit stays out of the foreground count and
-	// the block cache.
-	kind := commitForeground
-	if t.background {
-		kind = commitBackground
-	}
-
 	// Write them against the published state, which the writer lock keeps
 	// current, then release the snapshot and the lock.
 	defer db.endWrite()
-	if db.sched != nil && kind == commitForeground {
+	if db.sched != nil && !t.background {
 		defer db.sched.fg.begin()()
 	}
-	err := db.w.commit(ctx, db.cur.Load(), changes, kind)
+	err := db.w.commit(ctx, db.cur.Load(), changes, false)
 	db.release(t.st, t.stripe)
 	seq := db.cur.Load().seq
 	db.w.unlock()
