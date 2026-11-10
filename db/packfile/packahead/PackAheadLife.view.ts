@@ -21,6 +21,7 @@ const pack = (v: PackAhead) => {
   if (has(v.reg)) return 'registered'
   if (has(v.entries)) return 'entry written'
   if (has(v.remote)) return 'object uploaded'
+  if (v.file['1'] === 'final' && v.fin['1'] === 'renamed') return 'renamed'
   if (v.file['1'] === 'final') return 'finalized'
   if (v.fin['1'] === 'index') return 'index written'
   if (has(v.poisoned)) return 'poisoned'
@@ -44,7 +45,9 @@ export const step = (action: string, from: PackAhead, to: PackAhead) => {
     case 'FinIndex':
       return 'write and sync the index'
     case 'FinRename':
-      return 'rename and sync the directory'
+      return 'rename'
+    case 'FinDirSync':
+      return 'sync the directory'
     case 'Upload':
       return 'upload the file'
     case 'Entry':
