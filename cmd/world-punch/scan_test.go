@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -211,5 +212,79 @@ func TestScanProbe(t *testing.T) {
 	res.printPartial(&out)
 	if !res.interrupted || !res.probe.stopped || !strings.Contains(out.String(), "over, stopping") {
 		t.Fatalf("interrupted %v probe %+v:\n%s", res.interrupted, res.probe, out.String())
+	}
+}
+
+// shortReader returns half of each read that cut selects, with io.EOF,
+// the way a file cut short under a reader looks.
+type shortReader struct {
+	f   *os.File
+	cut func(n int, off int64) bool
+}
+
+// ReadAt reads from f, shortened when cut selects the read.
+func (s shortReader) ReadAt(b []byte, off int64) (int, error) {
+	if s.cut(len(b), off) {
+		n, _ := s.f.ReadAt(b[:len(b)/2], off)
+		return n, io.EOF
+	}
+	return s.f.ReadAt(b, off)
+}
+
+// TestScanShortRead checks that a short read is a hard error with no
+// verdict: a file truncated mid-file, a short phase 1 read, a short
+// phase 2 read, and a short read in the v3 walk.
+func TestScanShortRead(t *testing.T) {
+	// Truncate a copy mid-file: -scan refuses it before phase 1.
+	path := makeBigIndex(t)
+	st, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cut := filepath.Join(t.TempDir(), "cut.db")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cut, data[:st.Size()/2+123], 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	code, err := runCrosscheck(&out, opts{path: cut, cross: true, scan: true, readers: 4, streams: 3, parsers: 2}, nil)
+	if err == nil || code != 0 || strings.Contains(out.String(), "result:") {
+		t.Fatalf("truncated file: code %d err %v, output:\n%s", code, err, out.String())
+	}
+
+	// Short reads under each reader: phase 1 (reads of at most 32 pages
+	// past page 1), phase 2 (1 MiB reads) and the v3 walk.
+	if st.Size() <= scanChunk {
+		t.Fatalf("fixture is %d bytes, want more than one scan chunk", st.Size())
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	h, err := readHeader(f, st.Size())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		scan bool
+		cut  func(n int, off int64) bool
+	}{
+		{"phase 1", true, func(n int, off int64) bool { return n <= 32*4096 && off > 0 }},
+		{"phase 2", true, func(n int, off int64) bool { return n > 32*4096 }},
+		{"walk", false, func(n int, off int64) bool { return off > 0 }},
+	} {
+		o := ccOpts{readers: 4, streams: 3, parsers: 2, bulk: shortReader{f, tc.cut}}
+		check := crosscheck
+		if tc.scan {
+			check = scanCheck
+		}
+		if _, err := check(f, h, o); err == nil || !strings.Contains(err.Error(), "short read") {
+			t.Errorf("%s: got err %v, want a short read error", tc.name, err)
+		}
 	}
 }

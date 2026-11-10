@@ -46,7 +46,7 @@ func main() {
 	flag.StringVar(&o.rangeSHA, "range-sha", "", "punch, if a fresh walk gives this range sha256 from a dry run")
 	flag.BoolVar(&o.live, "live", false, "read a running database read-only: estimates only, no locks, cannot punch")
 	flag.BoolVar(&o.cross, "crosscheck", false, "read-only: walk every b-tree and overflow chain and check none of their pages is on the freelist; no locks, cannot punch")
-	flag.Float64Var(&o.mbps, "mbps", 100, "-crosscheck read cap in MB/s, 0 for none")
+	flag.Float64Var(&o.mbps, "mbps", 100, "-crosscheck read cap in MB/s, 0 for none; -scan defaults to none")
 	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread every second; a number in it replaces the -mbps cap")
 	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers (reads in flight), 1 to 1024")
 
@@ -67,6 +67,14 @@ func main() {
 		os.Exit(2)
 	}
 	o.path = flag.Arg(0)
+
+	// A scan runs on a stopped file, so it reads uncapped unless -mbps
+	// was given.
+	mbpsSet := false
+	flag.Visit(func(f *flag.Flag) { mbpsSet = mbpsSet || f.Name == "mbps" })
+	if o.scan && !mbpsSet {
+		o.mbps = 0
+	}
 
 	// Run the chosen mode; crosscheck exits 3 on FAIL and 4 when stopped
 	// by SIGTERM or SIGINT.
@@ -170,8 +178,8 @@ func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error
 		return 0, err
 	}
 	h, herr := readHeader(f, st.Size())
-	if h.pageSize == 0 {
-		return 0, herr
+	if h.pageSize == 0 || (o.scan && herr != nil) {
+		return 0, herr // a scan needs file size = header pages x page size
 	}
 
 	// Announce the mode and any header warning.
@@ -193,7 +201,7 @@ func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error
 	// Walk or scan, printing the scan's phase lines.
 	check := crosscheck
 	if o.scan {
-		fmt.Fprintln(out, "SCAN: interior walk, then one sequential pass with", o.streams, "streams and", o.parsers, "parse workers")
+		fmt.Fprintln(out, "SCAN: interior walk with", o.readers, "readers, then one sequential pass with", o.streams, "streams and", o.parsers, "parse workers; read cap", mbpsCap(o.mbps, o.mbpsFile))
 		check = scanCheck
 	}
 	res, err := check(f, h, co)
@@ -319,4 +327,16 @@ func report(out io.Writer, h header, w *walk, p plan, st os.FileInfo) {
 	fmt.Fprintf(out, "estimate: ext4 extents up to +%d, extent tree up to +%d bytes\n", len(p.ranges), int64(len(p.ranges)+339)/340*4096)
 	fmt.Fprintf(out, "allocated bytes now %d of size %d\n", allocated(st), st.Size())
 	fmt.Fprintf(out, "range sha256 %s\n", p.sha)
+}
+
+// mbpsCap describes the -crosscheck read cap.
+func mbpsCap(mbps float64, file string) string {
+	c := "none"
+	if mbps > 0 {
+		c = fmt.Sprintf("%g MB/s", mbps)
+	}
+	if file != "" {
+		c += " (-mbps-file " + file + " may replace it)"
+	}
+	return c
 }

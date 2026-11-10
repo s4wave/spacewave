@@ -137,10 +137,13 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		// Read the round in page order.
 		res.rounds++
 		slices.SortFunc(queue, func(a, b ccItem) int { return int(a.pg) - int(b.pg) })
-		results := readRound(bulk, h, queue, o.readers, lim, o.interrupt, func(n int) {
+		results, err := readRound(bulk, h, queue, o.readers, lim, o.interrupt, func(n int) {
 			readPages.Add(int64(n))
 			reads.Add(1)
 		})
+		if err != nil {
+			return res, err
+		}
 
 		// Sort each page into the tree or leaf set and queue what to read next.
 		var next []ccItem
@@ -244,10 +247,12 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 
 	// Read the header again for the end counts.
 	var hb [100]byte
-	if _, err := f.ReadAt(hb[:], 0); err == nil {
-		res.endPages = binary.BigEndian.Uint32(hb[28:32])
-		res.endFree = binary.BigEndian.Uint32(hb[36:40])
+	got, err := f.ReadAt(hb[:], 0)
+	if err := fullRead(got, len(hb), 0, err); err != nil {
+		return res, fmt.Errorf("scan: end header: %w", err)
 	}
+	res.endPages = binary.BigEndian.Uint32(hb[28:32])
+	res.endFree = binary.BigEndian.Uint32(hb[36:40])
 	res.leftoverByType = map[string]int{}
 	return finish()
 }
@@ -369,10 +374,12 @@ func scanPass(f io.ReaderAt, h header, o ccOpts, lim *limiter, leaf bitset, next
 				off := c * scanChunk
 				b := (<-bufs)[:min(scanChunk, total-off)]
 				lim.wait(len(b))
-				if _, err := f.ReadAt(b, off); err != nil && err != io.EOF {
+				got, err := f.ReadAt(b, off)
+				if err := fullRead(got, len(b), off, err); err != nil {
 					errMu.Lock()
-					readErr = fmt.Errorf("scan read at %d: %w", off, err)
+					readErr = fmt.Errorf("scan: %w", err)
 					errMu.Unlock()
+					chunk.Store(nChunks) // the other readers stop at their next chunk
 					return
 				}
 				reads.Add(1)

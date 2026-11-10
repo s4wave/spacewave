@@ -565,8 +565,9 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	}
 
 	// runWalk reads the queue round by round, timing the serial sort and
-	// enqueue outside the reads, until it empties or is interrupted.
-	runWalk := func(queue []ccItem) {
+	// enqueue outside the reads, until it empties or is interrupted. A
+	// failed or short read ends the walk with that error.
+	runWalk := func(queue []ccItem) error {
 		for len(queue) > 0 && !interrupted() {
 			// Sort the round by page number so adjacent pages merge into runs.
 			t0 := time.Now()
@@ -581,11 +582,14 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			if bulk == nil {
 				bulk = f
 			}
-			results := readRound(bulk, h, queue, o.readers, lim, o.interrupt, func(n int) {
+			results, err := readRound(bulk, h, queue, o.readers, lim, o.interrupt, func(n int) {
 				mu.Lock()
 				readBytes, readPages, reads = readBytes+int64(n)*h.pageSize, readPages+int64(n), reads+1
 				mu.Unlock()
 			})
+			if err != nil {
+				return err
+			}
 
 			// Tally each page and enqueue its children for the next round.
 			t1 := time.Now()
@@ -596,10 +600,13 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			queue = next
 			res.serial += time.Since(t1)
 		}
+		return nil
 	}
 
 	// Walk from page 1 and give conflicts the kind their page read as.
-	runWalk(enqueue(nil, ccItem{pg: 1, kind: kindTree, schema: true}))
+	if err := runWalk(enqueue(nil, ccItem{pg: 1, kind: kindTree, schema: true})); err != nil {
+		return res, err
+	}
 	for i := range res.conflicts {
 		if k, ok := kindOf[res.conflicts[i].page]; ok {
 			res.conflicts[i].kind = k
@@ -714,7 +721,9 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 				next = enqueue(next, c)
 			}
 		}
-		runWalk(next)
+		if err := runWalk(next); err != nil {
+			return res, err
+		}
 		for _, lr := range roots {
 			if lateRoot.has(lr.pg) {
 				lateRoot.clear(lr.pg)
@@ -989,13 +998,18 @@ type pageResult struct {
 }
 
 // readRound reads the sorted queue with readers workers, merging runs of
-// adjacent pages into reads of up to 32 pages, and parses each page.
-func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limiter, interrupt <-chan struct{}, done func(int)) []pageResult {
+// adjacent pages into reads of up to 32 pages, and parses each page. A
+// read that fails or returns fewer bytes than asked is a hard error: the
+// round stops and nothing from that read is parsed.
+func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limiter, interrupt <-chan struct{}, done func(int)) ([]pageResult, error) {
 	// Start readers workers, one read in flight each, each with its own
-	// aligned buffer and result list.
+	// aligned buffer and result list; the first read error stops them.
 	type run struct{ lo, hi int } // queue[lo:hi]
 	runs := make(chan run, readers*2)
 	results := make([][]pageResult, readers)
+	var errOnce sync.Once
+	var readErr error
+	failed := make(chan struct{})
 	var wg sync.WaitGroup
 	for w := 0; w < readers; w++ {
 		wg.Add(1)
@@ -1007,13 +1021,13 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 				n := int(queue[r.hi-1].pg-first) + 1
 				b := buf[:int64(n)*h.pageSize]
 				lim.wait(len(b))
-				_, err := f.ReadAt(b, int64(first-1)*h.pageSize)
+				got, err := f.ReadAt(b, int64(first-1)*h.pageSize)
 				done(n)
+				if err := fullRead(got, len(b), int64(first-1)*h.pageSize, err); err != nil {
+					errOnce.Do(func() { readErr = err; close(failed) })
+					continue
+				}
 				for _, it := range queue[r.lo:r.hi] {
-					if err != nil && err != io.EOF {
-						results[w] = append(results[w], pageResult{item: it, bad: "read: " + err.Error()})
-						continue
-					}
 					off := int64(it.pg-first) * h.pageSize
 					results[w] = append(results[w], parsePage(h, it, b[off:off+h.pageSize]))
 				}
@@ -1032,6 +1046,9 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 		case <-interrupt:
 			lo = len(queue)
 			continue
+		case <-failed:
+			lo = len(queue)
+			continue
 		}
 		lo = hi
 	}
@@ -1043,7 +1060,19 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 	for _, r := range results {
 		all = append(all, r...)
 	}
-	return all
+	return all, readErr
+}
+
+// fullRead turns a failed or short read of want bytes at off into an
+// error; io.EOF with a full buffer is a full read.
+func fullRead(got, want int, off int64, err error) error {
+	if got == want {
+		return nil
+	}
+	if err == nil || err == io.EOF {
+		err = io.ErrUnexpectedEOF
+	}
+	return fmt.Errorf("short read at offset %d: %d of %d bytes: %w", off, got, want, err)
 }
 
 func alignedBuf(n int) []byte {
