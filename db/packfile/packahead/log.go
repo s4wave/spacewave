@@ -58,6 +58,13 @@ type Log struct {
 	syncs uint64
 	// syncFailures counts the fdatasyncs that failed.
 	syncFailures uint64
+	// salvaged counts the poisoned packs salvaged in process.
+	salvaged uint64
+	// salvageFailures counts the salvages that failed.
+	salvageFailures uint64
+	// failErr is set when a salvage failed: every Append returns it until
+	// the Log is opened again.
+	failErr error
 	// leaders counts the writers running an fdatasync, which Close waits
 	// out before it closes the files.
 	leaders int
@@ -97,6 +104,15 @@ func Open(ctx context.Context, dir string, opts Options) (*Log, error) {
 			l.closeFiles()
 		}
 	}()
+	if err := l.removeStale(names); err != nil {
+		return nil, err
+	}
+	finals := make(map[uint64]bool)
+	for _, ent := range names {
+		if seq, ext, _, valid := parseName(ent.Name()); valid && ext == packExt {
+			finals[seq] = true
+		}
+	}
 	for _, ent := range names {
 		seq, ext, id, valid := parseName(ent.Name())
 		if !valid {
@@ -104,10 +120,12 @@ func Open(ctx context.Context, dir string, opts Options) (*Log, error) {
 		}
 		l.nextSeq = max(l.nextSeq, seq+1)
 		path := filepath.Join(dir, ent.Name())
-		switch ext {
-		case openExt:
+		switch {
+		case ext == openExt && finals[seq]:
+			err = l.removeSalvaged(path)
+		case ext == openExt:
 			err = l.recoverPack(seq, path)
-		case packExt:
+		case ext == packExt:
 			err = l.loadPack(seq, path, id)
 		}
 		if err != nil {
@@ -154,17 +172,48 @@ func parseName(name string) (uint64, string, string, bool) {
 	return 0, "", "", false
 }
 
-// recoverPack truncates an unfinalized pack at path to its last good batch and
-// finalizes it, or removes it when it holds none. It runs before the Log is
+// removeStale removes the copies a salvage left unfinished at a crash. It
+// runs before the Log is shared.
+func (l *Log) removeStale(names []os.DirEntry) error {
+	var removed bool
+	for _, ent := range names {
+		if strings.HasSuffix(ent.Name(), salvageExt) {
+			if err := os.Remove(filepath.Join(l.dir, ent.Name())); err != nil && !os.IsNotExist(err) { // #nosec G703 -- a name listed in the caller's directory.
+				return err
+			}
+			removed = true
+		}
+	}
+	if !removed {
+		return nil
+	}
+	return dirSync(l.dir)
+}
+
+// removeSalvaged removes an unfinalized pack whose salvaged copy is
+// finalized under the same seq: a crash came between the copy's rename and
+// the old file's removal. It runs before the Log is shared.
+func (l *Log) removeSalvaged(path string) error {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) { // #nosec G703 -- a pack name listed in the caller's directory.
+		return err
+	}
+	return dirSync(l.dir)
+}
+
+// recoverPack salvages the batches of an unfinalized pack at path whose
+// records and values check, or removes the pack when it holds none. The file
+// is never finalized in place: in the same boot it may read back from the
+// page cache bytes a failed sync left off the disk, so the kept batches are
+// copied into a fresh file and synced there. It runs before the Log is
 // shared.
 func (l *Log) recoverPack(seq uint64, path string) error {
-	// Read the pack and keep its good batches.
-	f, err := os.OpenFile(path, os.O_RDWR, 0) // #nosec G703 -- a pack name listed in the caller's directory.
+	// Read the pack's good batches.
+	f, err := os.Open(path) // #nosec G703 -- a pack name listed in the caller's directory.
 	if err != nil {
 		return err
 	}
 	p := &pack{seq: seq, path: path, f: f, state: packRotated}
-	data, entries, err := p.recoverFile(l.opts.SyncData)
+	data, entries, err := p.readGood()
 	if err != nil {
 		_ = f.Close()
 		return err
@@ -179,20 +228,82 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 		return dirSync(l.dir)
 	}
 
-	// Finalize the kept batches and locate their values.
-	p.entries, p.written, p.synced = entries, int64(len(data)), int64(len(data))
-	fin, err := p.finalize(l.dir, data, l.opts)
+	// Copy the kept batches into a finalized pack and locate their values.
+	q, fin, err := l.salvage(p, data, entries)
+	_ = f.Close()
 	if err != nil {
-		_ = f.Close()
-		return err
+		return errors.Wrap(err, "salvage pack")
 	}
-	l.applyFinal(p, fin)
+	l.applyFinal(q, fin)
 	for _, e := range entries {
-		l.table[tailOf(e.key)] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
+		l.table[tailOf(e.key)] = location{p: q, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
 	}
-	p.entries = nil
-	l.packs = append(l.packs, p)
+	q.entries = nil
+	l.packs = append(l.packs, q)
 	return nil
+}
+
+// salvage copies data, the leading batches of pack p to keep with their
+// entries, into a fresh file under p's seq, syncs it, finalizes it, and
+// removes p's file. The copy is written and synced only through its own new
+// descriptor, so the finalized pack holds only bytes a sync that did not fail
+// covered. The copy needs free disk for its bytes, which the removal of p's
+// file returns. It returns the finalized copy, not yet published.
+func (l *Log) salvage(p *pack, data []byte, entries []entry) (*pack, *finalized, error) {
+	// Check the disk has room for the copy.
+	size := int64(len(data)) + p.indexReserve(len(entries), keyBytesOf(entries))
+	free, err := l.opts.FreeBytes(l.dir)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "measure free disk")
+	}
+	if free < uint64(size) { //nolint:gosec // positive.
+		return nil, nil, errors.Wrapf(ErrReserve, "salvage of %d bytes with %d free", size, free)
+	}
+
+	// Create the copy, replacing one an earlier try left.
+	path := filepath.Join(l.dir, salvageName(p.seq))
+	_ = os.Remove(path)                                                 // #nosec G703 -- a pack name in the Log's directory.
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G703 -- a pack name in the Log's directory.
+	if err != nil {
+		return nil, nil, err
+	}
+	q := &pack{seq: p.seq, path: path, f: f, state: packRotated, entries: entries, written: int64(len(data)), synced: int64(len(data)), firstAt: p.firstAt}
+	fail := func(err error) (*pack, *finalized, error) {
+		_ = f.Close()
+		_ = os.Remove(path) // #nosec G703 -- the copy just created.
+		if q.renamed != nil {
+			_ = os.Remove(q.renamed.path)
+		}
+		return nil, nil, err
+	}
+
+	// Write and sync the kept batches, then finalize the copy.
+	if _, err := f.WriteAt(data, 0); err != nil {
+		return fail(errors.Wrap(err, "write salvaged pack"))
+	}
+	if err := l.opts.SyncData(f); err != nil {
+		return fail(errors.Wrap(err, "sync salvaged pack"))
+	}
+	fin, err := q.finalize(l.dir, data, l.opts)
+	if err != nil {
+		return fail(err)
+	}
+
+	// Remove the old file. A crash before the removal is durable leaves it
+	// beside its finalized copy, and the next Open removes it.
+	if err := os.Remove(p.path); err == nil || os.IsNotExist(err) {
+		_ = dirSync(l.dir)
+	}
+	return q, fin, nil
+}
+
+// keyBytesOf sums the keys of entries.
+func keyBytesOf(entries []entry) int64 {
+	var n int64
+	for _, e := range entries {
+		n += int64(len(e.key))
+	}
+	return n
 }
 
 // loadPack opens a finalized pack and locates its values from its index, read
@@ -354,6 +465,10 @@ func (l *Log) writeBlocks(ctx context.Context, blocks []Block) ([]syncWait, erro
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			if l.closed {
 				err = ErrClosed
+				return
+			}
+			if l.failErr != nil {
+				err = l.failErr
 				return
 			}
 			p = l.open
@@ -524,6 +639,7 @@ func (l *Log) failLocked(p *pack, err error) {
 	if p.err == nil {
 		p.err = err
 	}
+	p.poisoned = true
 	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= p.synced; i-- {
 		t := tailOf(p.entries[i].key)
 		if loc, ok := l.table[t]; ok && loc.p == p {
@@ -579,7 +695,6 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 				// A failed sync poisons the pack; a good one advances its mark.
 				if serr != nil {
 					l.syncFailures++
-					p.poisoned = true
 					l.failLocked(p, serr)
 				} else {
 					p.synced = max(p.synced, target)
@@ -641,10 +756,22 @@ func (l *Log) rotate() error {
 // Get returns the value under key, from the buffer of a pack not yet
 // finalized or from a local pack file, and whether a local pack holds it.
 func (l *Log) Get(key []byte) ([]byte, bool, error) {
-	// Locate the value, copying it out of a pack buffer.
+	// Look the value up again when its pack was salvaged or evicted
+	// meanwhile: a salvaged value is located in its copy.
 	if len(key) < keyTailLen {
 		return nil, false, ErrKeyTooShort
 	}
+	out, ok, gone, err := l.get(key)
+	if gone {
+		out, ok, _, err = l.get(key)
+	}
+	return out, ok, err
+}
+
+// get reads the value under key once, and reports whether its pack was gone
+// by the time it read the pack file.
+func (l *Log) get(key []byte) ([]byte, bool, bool, error) {
+	// Locate the value, copying it out of a pack buffer.
 	var loc location
 	var found, copied bool
 	var out []byte
@@ -655,7 +782,7 @@ func (l *Log) Get(key []byte) ([]byte, bool, error) {
 		}
 	})
 	if !found || copied {
-		return out, found, nil
+		return out, found, false, nil
 	}
 
 	// Read it from the pack file. A pack evicted since the lookup no longer
@@ -667,11 +794,11 @@ func (l *Log) Get(key []byte) ([]byte, bool, error) {
 			gone = loc.p.state == packGone
 		})
 		if gone {
-			return nil, false, nil
+			return nil, false, true, nil
 		}
-		return nil, false, errors.Wrapf(err, "read pack %s", seqText(loc.p.seq))
+		return nil, false, false, errors.Wrapf(err, "read pack %s", seqText(loc.p.seq))
 	}
-	return out, true, nil
+	return out, true, false, nil
 }
 
 // Has reports whether a local pack holds the value under key.
@@ -801,11 +928,22 @@ func (l *Log) maintain(ctx context.Context) {
 // nextStepLocked returns the maintainer's next step, or nil and the time the
 // open pack lingers until. The caller holds bcast.
 func (l *Log) nextStepLocked() (func(context.Context) error, time.Time) {
+	// A Log failed closed does nothing until it is opened again.
+	if l.failErr != nil {
+		return nil, time.Time{}
+	}
+
 	// Finalize the oldest rotated pack first, so packs finalize in order.
 	for _, p := range l.packs {
-		if p.state == packRotated && !p.poisoned {
+		if p.state == packRotated {
 			return func(ctx context.Context) error { return l.finalizeRotated(ctx, p) }, time.Time{}
 		}
+	}
+
+	// Rotate a failed open pack, so it is salvaged without waiting for a
+	// writer.
+	if l.open.err != nil {
+		return l.rotateFailed, time.Time{}
 	}
 
 	// Open the spare, then rotate a lingering open pack.
@@ -870,6 +1008,26 @@ func (l *Log) rotateLingering(ctx context.Context) error {
 	return l.rotate()
 }
 
+// rotateFailed rotates the open pack once a write or sync failed it.
+func (l *Log) rotateFailed(ctx context.Context) error {
+	// Hold the writer out while checking the failure again.
+	release, err := l.writeMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	var failed bool
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		failed = l.open.err != nil
+	})
+
+	// Rotate a pack that still failed.
+	if !failed {
+		return nil
+	}
+	return l.rotate()
+}
+
 // finalizeRotated makes rotated pack p durable and finalizes it, recovering
 // it from its file first when a write or sync failed.
 func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
@@ -883,70 +1041,121 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		return context.Cause(ctx)
 	}
 
-	// Take the pack's bytes: its buffer, or its file after a failure.
+	// Take the pack's bytes from its buffer.
 	var data []byte
-	var entries []entry
-	var failed, poisoned bool
+	var failed bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		failed, poisoned = p.err != nil, p.poisoned
-		data, entries = p.buf[:p.written], p.entries
+		failed = p.err != nil
+		data = p.buf[:p.written]
 	})
 	if syncErr != nil && !failed {
 		return syncErr
 	}
 
-	// A pack a sync failed is never finalized here: its file may read back
-	// pages the disk lost. The next Open recovers it from its batch checksums.
-	if poisoned {
-		return nil
-	}
-	if failed {
-		var err error
-		data, entries, err = p.recoverFile(l.opts.SyncData)
-		if err != nil {
+	// Finalize a pack with no failure, then serve it from its file and keep
+	// its buffer. A failed index write or sync poisons it; a failed directory
+	// sync is retried alone.
+	if !failed {
+		fin, err := p.finalize(l.dir, data, l.opts)
+		var ioErr *ioError
+		if err != nil && !errors.As(err, &ioErr) {
 			return err
 		}
+		if err == nil {
+			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				l.applyFinal(p, fin)
+				if len(l.bufs) < keptBufs {
+					l.bufs = append(l.bufs, p.buf)
+				}
+				p.buf, p.entries = nil, nil
+				broadcast()
+			})
+			return nil
+		}
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			p.entries = entries
+			l.syncFailures++
+			l.failLocked(p, err)
 		})
 	}
 
-	// A pack with no good batch holds no acknowledged write: remove it.
-	if len(entries) == 0 {
-		return l.dropEmpty(p)
-	}
-
-	// Finalize, then serve the pack from its file and keep its buffer.
-	fin, err := p.finalize(l.dir, data, l.opts)
-	if err != nil {
+	// Salvage a poisoned pack, failing the Log closed when that fails.
+	if err := l.salvageRotated(p); err != nil {
+		l.failClosed(p, err)
 		return err
 	}
-	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Record the finalized pack and locate what recovery kept.
-		l.applyFinal(p, fin)
-		if failed {
-			l.locateRecoveredLocked(p, entries)
-		}
-
-		// Keep the buffer for a later open pack and serve from the file.
-		if !failed && len(l.bufs) < keptBufs {
-			l.bufs = append(l.bufs, p.buf)
-		}
-		p.buf, p.entries = nil, nil
-		broadcast()
-	})
 	return nil
 }
 
-// locateRecoveredLocked locates the values recovery kept in pack p that the
-// table has no other copy of, after failLocked forgot those not yet durable.
-// The caller holds bcast.
-func (l *Log) locateRecoveredLocked(p *pack, entries []entry) {
-	for _, e := range entries {
-		t := tailOf(e.key)
-		if loc, ok := l.table[t]; !ok || loc.p == p {
-			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size), removed: ok && loc.removed} //nolint:gosec // bounded by the pack size.
+// salvageRotated copies the acknowledged batches of poisoned pack p, those a
+// sync covered, from its buffer into a finalized pack that takes its place,
+// or removes p when it holds none.
+func (l *Log) salvageRotated(p *pack) error {
+	// Take the synced batches from the buffer: the file is not trusted.
+	var data []byte
+	var keep []entry
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		data = p.buf[:p.synced]
+		for _, e := range p.entries {
+			if e.off < p.synced {
+				keep = append(keep, e)
+			}
 		}
+	})
+	if len(keep) == 0 {
+		return l.dropEmpty(p)
+	}
+
+	// Copy them into a finalized pack.
+	q, fin, err := l.salvage(p, data, keep)
+	if err != nil {
+		return errors.Wrapf(err, "salvage pack %s", seqText(p.seq))
+	}
+
+	// Put the copy in p's place, point p's values at it, and drop p.
+	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Replace p with its finalized copy.
+		l.applyFinal(q, fin)
+		q.entries = nil
+		for i := range l.packs {
+			if l.packs[i] == p {
+				l.packs[i] = q
+			}
+		}
+
+		// Locate p's values in the copy, keeping their removed marks.
+		for t, loc := range l.table {
+			if loc.p == p {
+				loc.p = q
+				if loc.removed {
+					q.removed++
+				}
+				l.table[t] = loc
+			}
+		}
+
+		// Drop p.
+		p.state, p.buf, p.entries = packGone, nil, nil
+		l.salvaged++
+		broadcast()
+	})
+	_ = p.f.Close()
+	return nil
+}
+
+// failClosed records that salvaging pack p failed: every Append returns err
+// from now on, the maintainer stops, and p's values stay readable and not
+// durable. The operator restarts the Log, whose Open salvages p again.
+func (l *Log) failClosed(p *pack, err error) {
+	var first bool
+	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		l.salvageFailures++
+		if first = l.failErr == nil; first {
+			l.failErr = errors.Wrapf(err, "packahead failed closed")
+		}
+		broadcast()
+	})
+	if first {
+		l.opts.Logger.WithError(err).WithField("pack", seqText(p.seq)).Error("packahead salvage failed: refusing appends until restart")
 	}
 }
 
@@ -965,7 +1174,7 @@ func (l *Log) dropEmpty(p *pack) error {
 	// Forget the pack.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		l.packs = slices.DeleteFunc(l.packs, func(q *pack) bool { return q == p })
-		p.buf, p.entries = nil, nil
+		p.state, p.buf, p.entries = packGone, nil, nil
 		broadcast()
 	})
 	return nil

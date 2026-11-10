@@ -16,9 +16,16 @@ type Stats struct {
 	Syncs uint64
 	// SyncFailures counts the fdatasyncs that failed.
 	SyncFailures uint64
-	// Poisoned counts the local packs a failed sync poisoned, which stay
-	// unfinalized until the next Open recovers them.
+	// Poisoned counts the local packs a failed write or sync poisoned and
+	// salvage has not replaced yet.
 	Poisoned int
+	// Salvaged counts the poisoned packs salvaged in process.
+	Salvaged uint64
+	// SalvageFailures counts the salvages that failed. After one, the Log
+	// refuses every Append until it is opened again.
+	SalvageFailures uint64
+	// FailError is the error every Append returns after a failed salvage.
+	FailError error
 	// MaintainError is the background work's last failure, or nil.
 	MaintainError error
 }
@@ -41,6 +48,7 @@ func (l *Log) GetStats() Stats {
 
 		// Read the Log's counters.
 		s.Entries, s.Syncs, s.SyncFailures, s.MaintainError = len(l.table), l.syncs, l.syncFailures, l.maintErr
+		s.Salvaged, s.SalvageFailures, s.FailError = l.salvaged, l.salvageFailures, l.failErr
 	})
 	return s
 }

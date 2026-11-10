@@ -21,6 +21,9 @@ const openExt = ".open"
 // packExt names a finalized pack.
 const packExt = ".pack"
 
+// salvageExt names the fresh copy salvage writes of a pack's kept batches.
+const salvageExt = ".salvage"
+
 // indexEntryReserve bounds the kvfile index bytes one entry costs beyond its
 // key: the entry's tags, offset and size, its length varint and its position.
 const indexEntryReserve = 32
@@ -103,6 +106,27 @@ func openName(seq uint64) string {
 	return seqText(seq) + openExt
 }
 
+// salvageName returns the file name of the copy salvage writes of pack seq.
+func salvageName(seq uint64) string {
+	return seqText(seq) + salvageExt
+}
+
+// ioError is a failed write or sync of a pack file, after which the file's
+// bytes are not trusted.
+type ioError struct {
+	err error
+}
+
+// Error returns the failure's text.
+func (e *ioError) Error() string {
+	return e.err.Error()
+}
+
+// Unwrap returns the failure.
+func (e *ioError) Unwrap() error {
+	return e.err
+}
+
 // finalName returns the file name of finalized pack seq named id.
 func finalName(seq uint64, id string) string {
 	return seqText(seq) + "-" + id + packExt
@@ -138,7 +162,8 @@ type finalized struct {
 // finalize writes the sorted kvfile index after the pack's last batch, syncs
 // it with opts.SyncData, and renames the pack to its finalized name in dir,
 // syncing dir. data is the pack's bytes [0, written), from its buffer or its
-// file. The pack must take no more batches.
+// file. The pack must take no more batches. A failed index write or sync
+// returns an ioError. After the rename, a retry only syncs dir.
 func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, error) {
 	// A pack an earlier try renamed needs only its directory sync.
 	if p.renamed != nil {
@@ -174,10 +199,10 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 		return nil, errors.Errorf("pack %s of %d bytes exceeds %d", seqText(p.seq), size, opts.MaxPackBytes)
 	}
 	if _, err := p.f.WriteAt(tail.Bytes(), int64(len(data))); err != nil {
-		return nil, errors.Wrap(err, "write pack index")
+		return nil, &ioError{errors.Wrap(err, "write pack index")}
 	}
 	if err := opts.SyncData(p.f); err != nil {
-		return nil, errors.Wrap(err, "sync pack index")
+		return nil, &ioError{errors.Wrap(err, "sync pack index")}
 	}
 
 	// Build the pack's bloom filter.
@@ -223,11 +248,11 @@ func (p *pack) finalize(dir string, data []byte, opts Options) (*finalized, erro
 	return p.renamed, nil
 }
 
-// recoverFile reads an unfinalized pack's file, keeps its leading good
-// batches, and truncates the file after them. It returns the kept bytes and
-// their entries, whose keys point into the bytes. sync makes the truncation
-// durable.
-func (p *pack) recoverFile(sync func(*os.File) error) ([]byte, []entry, error) {
+// readGood reads an unfinalized pack's file and returns its leading batches
+// whose records and values both check, with their entries, whose keys point
+// into the bytes. It writes nothing: the file may be one whose sync failed,
+// so salvage copies what it keeps into a fresh file.
+func (p *pack) readGood() ([]byte, []entry, error) {
 	// Read the whole file: a pack is bounded by MaxPackBytes.
 	info, err := p.f.Stat()
 	if err != nil {
@@ -238,15 +263,7 @@ func (p *pack) recoverFile(sync func(*os.File) error) ([]byte, []entry, error) {
 		return nil, nil, errors.Wrap(err, "read pack")
 	}
 
-	// Keep the batches whose records and values both check, and drop the rest.
+	// Keep the batches whose records and values both check.
 	entries, end := scanBatches(data)
-	if end < info.Size() {
-		if err := p.f.Truncate(end); err != nil {
-			return nil, nil, errors.Wrap(err, "truncate pack")
-		}
-		if err := sync(p.f); err != nil {
-			return nil, nil, errors.Wrap(err, "sync truncated pack")
-		}
-	}
 	return data[:end], entries, nil
 }

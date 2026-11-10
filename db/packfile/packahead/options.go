@@ -6,6 +6,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/writer"
+	"github.com/sirupsen/logrus"
 )
 
 // Options configures a Log.
@@ -34,6 +35,8 @@ type Options struct {
 	// pack's truncation. Nil uses fdatasync, F_FULLFSYNC on darwin. A test
 	// sets it to order writers around a sync or to fail one.
 	SyncData func(f *os.File) error
+	// Logger logs a failure that stops the Log. Nil uses the standard logger.
+	Logger *logrus.Entry
 }
 
 // withDefaults returns the options with each zero field at its default.
@@ -47,6 +50,9 @@ func (o Options) withDefaults() Options {
 	}
 	if o.FreeBytes == nil {
 		o.FreeBytes = freeDiskBytes
+	}
+	if o.Logger == nil {
+		o.Logger = logrus.NewEntry(logrus.StandardLogger())
 	}
 	if o.SyncData == nil {
 		o.SyncData = syncData
