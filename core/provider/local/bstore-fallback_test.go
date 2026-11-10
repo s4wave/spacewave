@@ -16,6 +16,7 @@ import (
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/packfile/packahead"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -193,17 +194,34 @@ func newFallbackTest(t *testing.T) *fallbackTest {
 // newFallbackTestOn builds a placed store whose pack store is open(), or the
 // fake bucket's when open is nil.
 func newFallbackTestOn(t *testing.T, open func() backendStore) *fallbackTest {
+	return newFallbackTestWith(t, open, nil)
+}
+
+// newFallbackTestWith builds the placed store of newFallbackTestOn, over a
+// PackedStore on log when log is not nil, diverting its new values to log as
+// a store the account's packahead config lists does.
+func newFallbackTestWith(t *testing.T, open func() backendStore, log *packahead.Log) *fallbackTest {
 	// Open the write-back store over a Volume, which marks in the transaction
 	// that stores each block.
 	t.Helper()
 	ctx := t.Context()
-	local, vol := newOwnedVolume(t)
+	owned, vol := newOwnedVolume(t)
 	markers, release, err := vol.AccessObjectStore(ctx, "test/markers", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(release)
-	wb, err := block_store_writeback.NewStore(ctx, local, vol, markers, "test/markers", true)
+	var (
+		local block.StoreOps = owned
+		wb    *block_store_writeback.Store
+	)
+	if log != nil {
+		packed := block_store_writeback.NewPackedStore(log, owned, true)
+		local = packed
+		wb, err = block_store_writeback.NewStoreWithPacks(ctx, packed, vol, markers, "test/markers", true)
+	} else {
+		wb, err = block_store_writeback.NewStore(ctx, owned, vol, markers, "test/markers", true)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
