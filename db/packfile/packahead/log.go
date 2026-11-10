@@ -58,6 +58,9 @@ type Log struct {
 	syncs uint64
 	// syncFailures counts the fdatasyncs that failed.
 	syncFailures uint64
+	// leaders counts the writers running an fdatasync, which Close waits
+	// out before it closes the files.
+	leaders int
 	// nextSeq is the seq of the next pack created.
 	nextSeq uint64
 	// bufs are buffers kept for the next open packs.
@@ -543,8 +546,11 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 				done = true
 			case p.err != nil:
 				err = p.err
+			case l.closed:
+				err = ErrClosed
 			case !p.syncing:
 				p.syncing, lead, target = true, true, p.written
+				l.leaders++
 			default:
 				waitCh = getWaitCh()
 			}
@@ -560,8 +566,12 @@ func (l *Log) waitSynced(ctx context.Context, p *pack, end int64) error {
 		if lead {
 			serr := l.opts.SyncData(p.f)
 			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				// End the sync, which Close may wait out.
 				p.syncing = false
+				l.leaders--
 				l.syncs++
+
+				// A failed sync poisons the pack; a good one advances its mark.
 				if serr != nil {
 					l.syncFailures++
 					p.poisoned = true
@@ -955,8 +965,9 @@ func (l *Log) dropEmpty(p *pack) error {
 	return nil
 }
 
-// Close stops the background work, waits for the writer in progress, and
-// closes the pack files. Batches written stay in their packs, and the next
+// Close stops the background work, waits for the writer in progress and the
+// syncs running, and closes the pack files. A writer waiting for a sync that
+// has not started returns ErrClosed. Batches written stay in their packs, and the next
 // Open finalizes the pack that was open.
 func (l *Log) Close() {
 	// Refuse new work and stop the maintainer.
@@ -977,10 +988,20 @@ func (l *Log) Close() {
 		<-waitCh
 	}
 
-	// Wait for the writer in progress, then close the files.
+	// Wait for the writer in progress and the syncs running, which use the
+	// files, then close the files. No sync starts once closed is set.
 	release, err := l.writeMtx.Lock(context.Background())
 	if err == nil {
 		defer release()
+	}
+	for {
+		l.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			done, waitCh = l.leaders == 0, getWaitCh()
+		})
+		if done {
+			break
+		}
+		<-waitCh
 	}
 	l.closeFiles()
 }
