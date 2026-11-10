@@ -28,3 +28,10 @@ func SetPunchHook[T SQLiteDriverConfig](s *Store[T], hook func(stage string) err
 	s.punchHook = hook
 	s.punchMtx.Unlock()
 }
+
+// PunchCursor returns the page the store's next punch round starts from.
+func PunchCursor[T SQLiteDriverConfig](s *Store[T]) uint32 {
+	s.punchMtx.Lock()
+	defer s.punchMtx.Unlock()
+	return s.punchCursor
+}

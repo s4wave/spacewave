@@ -39,25 +39,35 @@ type StoreStats struct {
 	MaxRestartHold                  time.Duration
 	// PunchRuns counts the freelist punch rounds that punched,
 	// PunchSkippedBusy the rounds given up because the WAL could not be
-	// checkpointed to empty, and PunchRefused the rounds that stopped at a
-	// failed check of the file or its freelist, or an error. PunchRanges and
-	// PunchBytes sum the ranges and bytes punched. PunchHeld sums the time
-	// rounds held the writer turn, LastPunchHold is the newest round's and
-	// MaxPunchHold the longest.
+	// checkpointed to empty or gained a frame before the read mark,
+	// PunchSkippedFloor the rounds not run for the disk floor, and
+	// PunchRefused the rounds that stopped at a failed check of the file or
+	// its freelist, or an error. PunchRanges and PunchBytes sum the ranges
+	// and bytes punched. PunchHeld sums the time rounds held SQLite's write
+	// lock, in their truncating checkpoint, LastPunchHold is the newest
+	// round's and MaxPunchHold the longest. PunchSnapshotHeld,
+	// LastPunchSnapshot and MaxPunchSnapshot are the same of the time rounds
+	// held their read mark, which keeps checkpoints from writing the file
+	// but blocks no writer.
 	PunchRuns, PunchSkippedBusy, PunchRefused uint64
+	PunchSkippedFloor                         uint64
 	PunchRanges, PunchBytes                   uint64
 	PunchHeld, LastPunchHold, MaxPunchHold    time.Duration
+	PunchSnapshotHeld, LastPunchSnapshot      time.Duration
+	MaxPunchSnapshot                          time.Duration
 }
 
 // storeStats is the atomic form of StoreStats a Store updates.
 type storeStats struct {
-	fgWaits, bgWaits, fgWait, bgWait, over100ms, over1s atomic.Uint64
-	passives, passive                                   atomic.Uint64
-	truncates, truncatesOver1s, truncate, lastTruncate  atomic.Uint64
-	restartsSkipped, restartsForced, maxRestartHold     atomic.Uint64
-	punchRuns, punchSkippedBusy, punchRefused           atomic.Uint64
-	punchRanges, punchBytes                             atomic.Uint64
-	punchHeld, lastPunchHold, maxPunchHold              atomic.Uint64
+	fgWaits, bgWaits, fgWait, bgWait, over100ms, over1s    atomic.Uint64
+	passives, passive                                      atomic.Uint64
+	truncates, truncatesOver1s, truncate, lastTruncate     atomic.Uint64
+	restartsSkipped, restartsForced, maxRestartHold        atomic.Uint64
+	punchRuns, punchSkippedBusy, punchRefused              atomic.Uint64
+	punchSkippedFloor                                      atomic.Uint64
+	punchSnapshotHeld, lastPunchSnapshot, maxPunchSnapshot atomic.Uint64
+	punchRanges, punchBytes                                atomic.Uint64
+	punchHeld, lastPunchHold, maxPunchHold                 atomic.Uint64
 }
 
 // addWait counts a turn taken at prio after waiting d.
@@ -142,14 +152,18 @@ func (s *storeStats) snapshot() StoreStats {
 		RestartsForced:  s.restartsForced.Load(),
 		MaxRestartHold:  d(&s.maxRestartHold),
 
-		PunchRuns:        s.punchRuns.Load(),
-		PunchSkippedBusy: s.punchSkippedBusy.Load(),
-		PunchRefused:     s.punchRefused.Load(),
-		PunchRanges:      s.punchRanges.Load(),
-		PunchBytes:       s.punchBytes.Load(),
-		PunchHeld:        d(&s.punchHeld),
-		LastPunchHold:    d(&s.lastPunchHold),
-		MaxPunchHold:     d(&s.maxPunchHold),
+		PunchRuns:         s.punchRuns.Load(),
+		PunchSkippedBusy:  s.punchSkippedBusy.Load(),
+		PunchRefused:      s.punchRefused.Load(),
+		PunchSkippedFloor: s.punchSkippedFloor.Load(),
+		PunchRanges:       s.punchRanges.Load(),
+		PunchBytes:        s.punchBytes.Load(),
+		PunchHeld:         d(&s.punchHeld),
+		LastPunchHold:     d(&s.lastPunchHold),
+		MaxPunchHold:      d(&s.maxPunchHold),
+		PunchSnapshotHeld: d(&s.punchSnapshotHeld),
+		LastPunchSnapshot: d(&s.lastPunchSnapshot),
+		MaxPunchSnapshot:  d(&s.maxPunchSnapshot),
 	}
 }
 

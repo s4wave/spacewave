@@ -12,13 +12,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/sqlitefree"
 	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/cgo"
 	"github.com/s4wave/spacewave/db/store/kvtx/sqlite/common"
+	"golang.org/x/sys/unix"
 )
 
 // punchRows is how many rows a punch test writes; a value fills most of a
@@ -35,7 +38,7 @@ func punchValue(i int) []byte {
 
 // punchEnv sets the punch's environment for a store opened after: on or
 // off, keeping reserve bytes, with an interval long enough that only the
-// test runs rounds.
+// test runs rounds and no disk floor past the least, four reserves.
 func punchEnv(t *testing.T, on bool, reserve int64) {
 	t.Helper()
 	val := ""
@@ -46,6 +49,7 @@ func punchEnv(t *testing.T, on bool, reserve int64) {
 	t.Setenv(common.FreelistPunchReserveEnv, fmt.Sprint(reserve))
 	t.Setenv(common.FreelistPunchMaxRangesEnv, "")
 	t.Setenv(common.FreelistPunchIntervalEnv, "1h")
+	t.Setenv(common.FreelistPunchFloorEnv, "0")
 }
 
 // newPunchStore makes a WAL file with auto_vacuum NONE, as be-7's World
@@ -314,6 +318,37 @@ func TestFreelistPunchMatchesPlan(t *testing.T) {
 	verifyFile(t, path, keptRows(kept))
 }
 
+// TestFreelistPunchLookBudget proves a round over a file already punched
+// through looks at no more than four times its cap of ranges, so a round
+// after the cursor wraps costs no more than any other, and that the next
+// round goes on from the last range it looked at.
+func TestFreelistPunchLookBudget(t *testing.T) {
+	// Punch the whole plan, which brings the cursor back to the start.
+	punchEnv(t, true, 0)
+	store, path, _ := newPunchStore(t)
+	checkpointEmpty(t, store)
+	_, _, p := planFile(t, path, 0)
+	if len(p.Ranges) < 12 {
+		t.Fatalf("freelist too small for the test: %d ranges", len(p.Ranges))
+	}
+	common.RunPunchStep(context.Background(), store)
+	if st := store.Stats(); st.PunchRanges != uint64(len(p.Ranges)) || common.PunchCursor(store) != 0 {
+		t.Fatalf("whole punch: %+v, cursor %d", st, common.PunchCursor(store))
+	}
+
+	// Cap rounds at one range and require each to look at four holes.
+	cfg := store.FreelistPunchConfig()
+	cfg.MaxRanges = 1
+	store.SetFreelistPunch(cfg)
+	for i := 1; i <= 2; i++ {
+		common.RunPunchStep(context.Background(), store)
+		end := p.Ranges[4*i-1].Start + p.Ranges[4*i-1].Count
+		if st := store.Stats(); st.PunchRuns != uint64(1+i) || st.PunchRanges != uint64(len(p.Ranges)) || common.PunchCursor(store) != end {
+			t.Fatalf("round %d over holes: %+v, cursor %d, want %d", i, st, common.PunchCursor(store), end)
+		}
+	}
+}
+
 // TestFreelistPunchSkipsOldSnapshot proves a reader holding a snapshot older
 // than the log's end makes the round skip as busy and punch nothing; the
 // reader reads its rows intact, and the round after it ends punches.
@@ -382,17 +417,17 @@ func TestFreelistPunchSkipsOldSnapshot(t *testing.T) {
 // TestFreelistPunchCheckpointRacesWalk proves no checkpoint can copy frames
 // into the file between the walk and the punch. A connection outside the
 // store, as another process would, writes rows into the freelist's pages
-// and checkpoints them into the file: during the walk the round's write
-// lock refuses its write and its read mark blocks the copy; between the
-// truncating checkpoint and the lock, the round finds the log no longer
-// empty and refuses. With no reserve every free leaf is planned, so a copy
-// that landed would be punched away.
+// and checkpoints them into the file: during the walk the write lands in
+// the log and the round's read mark blocks the copy; between the truncating
+// checkpoint and the read mark, the round finds the log no longer empty and
+// skips as busy. With no reserve every free leaf is planned, so a copy that
+// landed would be punched away.
 func TestFreelistPunchCheckpointRacesWalk(t *testing.T) {
 	for _, tc := range []struct {
 		name, writeAt string
 	}{
 		{"write during walk", "walked"},
-		{"write before lock", "checkpointed"},
+		{"write before read", "checkpointed"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// Open a store punching with no reserve and an outside pool.
@@ -421,16 +456,16 @@ func TestFreelistPunchCheckpointRacesWalk(t *testing.T) {
 			common.RunPunchStep(context.Background(), store)
 			st := store.Stats()
 
-			// Require the write refused during the walk, or the round
-			// refused after a write before the lock.
+			// Require the punch with the write landed during the walk, or
+			// the round skipped after a write before the read mark.
 			switch tc.writeAt {
 			case "walked":
-				if wrote || st.PunchRuns != 1 {
-					t.Fatalf("write during the walk landed (%v) or no punch: %+v", writeErr, st)
+				if !wrote || st.PunchRuns != 1 {
+					t.Fatalf("write during the walk (%v), round: %+v", writeErr, st)
 				}
 			case "checkpointed":
-				if !wrote || st.PunchRefused != 1 || st.PunchBytes != 0 {
-					t.Fatalf("write before the lock (%v), round: %+v", writeErr, st)
+				if !wrote || st.PunchSkippedBusy != 1 || st.PunchRefused != 0 || st.PunchBytes != 0 {
+					t.Fatalf("write before the read mark (%v), round: %+v", writeErr, st)
 				}
 			}
 			if !wrote {
@@ -449,6 +484,98 @@ func TestFreelistPunchCheckpointRacesWalk(t *testing.T) {
 			verifyFile(t, path, want)
 		})
 	}
+}
+
+// TestFreelistPunchReuseBeforePunch proves the plan a round walked is still
+// right when it punches, though writers reuse its pages in between. Between
+// the walk and the punch, a connection outside the store commits rows into
+// free pages the plan holds (X), a reader pins a snapshot after X, a second
+// commit writes page 1 again (Y), and a checkpoint runs. Were the file
+// writable then, the checkpoint would copy X's pages in but not page 1,
+// whose newest frame is past the reader, so the header would read as at the
+// walk while planned pages held live rows. The round's read mark, held from
+// before the walk to after the fsync, keeps the checkpoint from copying
+// anything; the rows of X read back intact after the round and a full
+// checkpoint over the punched file.
+func TestFreelistPunchReuseBeforePunch(t *testing.T) {
+	ctx := context.Background()
+
+	// Open a store punching every free leaf, a writer outside it that never
+	// checkpoints by itself, and an outside reader.
+	punchEnv(t, true, 0)
+	store, path, kept := newPunchStore(t)
+	want := keptRows(kept)
+	checkpointEmpty(t, store)
+	racer, err := sql.Open("sqlite3", path+"?_busy_timeout=100")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer racer.Close()
+	racer.SetMaxOpenConns(1)
+	if _, err := racer.Exec("PRAGMA wal_autocheckpoint=0"); err != nil {
+		t.Fatal(err)
+	}
+	reader, err := sql.Open("sqlite3", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	h0, _, plan0 := planFile(t, path, 0)
+
+	// Between the walk and the punch, commit X, pin a reader after it,
+	// commit Y and checkpoint.
+	var stepErr error
+	var busy, frames, copied int
+	common.SetPunchHook(store, func(stage string) error {
+		if stage != "walked" {
+			return nil
+		}
+		stepErr = func() error {
+			if err := racerWrite(racer, want); err != nil {
+				return fmt.Errorf("commit X: %w", err)
+			}
+			rtx, err := reader.Begin()
+			if err != nil {
+				return err
+			}
+			defer rtx.Rollback() //nolint:errcheck
+			var n int
+			if err := rtx.QueryRow("SELECT count(*) FROM kv").Scan(&n); err != nil {
+				return fmt.Errorf("reader: %w", err)
+			}
+			want["y"] = punchValue(9999)
+			if _, err := racer.Exec("INSERT INTO kv (key, value) VALUES (?, ?)", []byte("y"), want["y"]); err != nil {
+				return fmt.Errorf("commit Y: %w", err)
+			}
+			return racer.QueryRow("PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
+		}()
+		return nil
+	})
+	common.RunPunchStep(ctx, store)
+	if stepErr != nil {
+		t.Fatal(stepErr)
+	}
+
+	// Require the punch of the whole plan, with the checkpoint copying
+	// nothing while the round held its read mark.
+	st := store.Stats()
+	if st.PunchRuns != 1 || st.PunchRefused != 0 || int64(st.PunchBytes) != int64(plan0.PunchPages)*h0.PageSize {
+		t.Fatalf("round: %+v, plan of %d pages", st, plan0.PunchPages)
+	}
+	if frames == 0 || copied != 0 {
+		t.Fatalf("checkpoint during the round: busy %d, frames %d, copied %d", busy, frames, copied)
+	}
+
+	// Checkpoint every frame into the punched file and read every row back.
+	if err := racer.QueryRow("PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied); err != nil || busy != 0 || frames != copied {
+		t.Fatalf("checkpoint after the round: busy %d, frames %d, copied %d, %v", busy, frames, copied, err)
+	}
+	_ = reader.Close()
+	_ = racer.Close()
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	verifyFile(t, path, want)
 }
 
 // racerWrite writes 200 rows through db in one transaction, adding them to
@@ -587,4 +714,243 @@ func copyFile(src, dst string) error {
 	}
 	_, err = io.Copy(out, in)
 	return errors.Join(err, out.Close())
+}
+
+// TestFreelistPunchDiskFloor proves a round punches only while the disk's
+// free space less the file's holes is at least the floor: one byte under
+// skips it with nothing punched, and the holes a round made count against
+// the free space of the next.
+func TestFreelistPunchDiskFloor(t *testing.T) {
+	ctx := context.Background()
+	const floor = 1 << 40
+
+	// Open a store punching three ranges a round over a disk whose free
+	// space the test sets.
+	punchEnv(t, true, 1)
+	store, path, kept := newPunchStore(t)
+	cfg := store.FreelistPunchConfig()
+	cfg.MaxRanges, cfg.Floor = 3, floor
+	store.SetFreelistPunch(cfg)
+	var free int64
+	defer common.SetPunchDiskFree(func(string) (int64, error) { return free, nil })()
+	checkpointEmpty(t, store)
+	holes := func() int64 {
+		var st syscall.Stat_t
+		if err := syscall.Stat(path, &st); err != nil {
+			t.Fatal(err)
+		}
+		return max(st.Size-st.Blocks*512, 0)
+	}
+
+	// One byte under the floor: the round is skipped and punches nothing.
+	free = floor + holes() - 1
+	before := allocated(t, path)
+	common.RunPunchStep(ctx, store)
+	if st := store.Stats(); st.PunchSkippedFloor != 1 || st.PunchRuns != 0 || st.PunchBytes != 0 || allocated(t, path) != before {
+		t.Fatalf("round under the floor: %+v", st)
+	}
+
+	// At the floor the round punches.
+	free = floor + holes()
+	common.RunPunchStep(ctx, store)
+	st := store.Stats()
+	if st.PunchRuns != 1 || st.PunchBytes == 0 {
+		t.Fatalf("round at the floor: %+v", st)
+	}
+
+	// The holes it made count: the same free space is now under the floor.
+	made := holes()
+	if made < int64(st.PunchBytes) {
+		t.Fatalf("holes %d, punched %d", made, st.PunchBytes)
+	}
+	common.RunPunchStep(ctx, store)
+	if st := store.Stats(); st.PunchSkippedFloor != 2 || st.PunchRuns != 1 {
+		t.Fatalf("round with the same free space after holes: %+v", st)
+	}
+	free = floor + made
+	common.RunPunchStep(ctx, store)
+	if st := store.Stats(); st.PunchRuns != 2 {
+		t.Fatalf("round with free space for the holes: %+v", st)
+	}
+
+	// A floor under four reserves is raised to that.
+	store.SetFreelistPunch(common.FreelistPunch{Enabled: true, Reserve: 1 << 30, MaxRanges: 3})
+	if got := store.FreelistPunchConfig().Floor; got != 4<<30 {
+		t.Fatalf("floor %d with a 1 GiB reserve", got)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	verifyFile(t, path, keptRows(kept))
+}
+
+// TestFreelistPunchHoldLarge measures rounds on the file named by
+// SPACEWAVE_PUNCH_LARGE_DB, such as one the size of be-7's: the time of each
+// stage, cold (the file evicted from the page cache first) and warm. It is
+// skipped without the variable, and it punches the file it is given.
+func TestFreelistPunchHoldLarge(t *testing.T) {
+	path := os.Getenv("SPACEWAVE_PUNCH_LARGE_DB")
+	if path == "" {
+		t.Skip("SPACEWAVE_PUNCH_LARGE_DB is not set")
+	}
+	ctx := context.Background()
+
+	// Open the store with the punch on and only the test running rounds.
+	punchEnv(t, true, 1<<30)
+	store, err := cgo.Open(ctx, path, "kv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+
+	// Note when each stage of a round is reached.
+	var marks []time.Time
+	common.SetPunchHook(store, func(string) error {
+		marks = append(marks, time.Now())
+		return nil
+	})
+
+	// With a WAL size set, measure the round on a WAL that large with a
+	// writer committing through it, against a bare truncating checkpoint.
+	if mb, _ := strconv.Atoi(os.Getenv("SPACEWAVE_PUNCH_LARGE_WAL_MB")); mb > 0 {
+		largeWALRounds(t, store, path, int64(mb)<<20, &marks)
+		return
+	}
+
+	// Run cold rounds, then warm ones, logging the stages of each.
+	for i, cold := range []bool{true, false, false} {
+		if cold {
+			evictFile(t, path)
+		}
+		marks = marks[:0]
+		start := time.Now()
+		common.RunPunchStep(ctx, store)
+		end := time.Now()
+		st := store.Stats()
+		var stages []string
+		prev := start
+		for _, m := range append(marks, end) {
+			stages = append(stages, m.Sub(prev).String())
+			prev = m
+		}
+		t.Logf("round %d cold=%v: total %v, write lock %v, read mark %v, stages (to flushed, checkpointed, walked, punched, end) %v; runs %d busy %d refused %d ranges %d bytes %d",
+			i, cold, end.Sub(start), st.LastPunchHold, st.LastPunchSnapshot, stages, st.PunchRuns, st.PunchSkippedBusy, st.PunchRefused, st.PunchRanges, st.PunchBytes)
+	}
+}
+
+// largeWALRounds fills the WAL of the store's file to walBytes through a
+// connection outside the store, then, with a writer committing a small row
+// every 5ms, runs a punch round, and on a WAL filled again a bare TRUNCATE
+// checkpoint as a round without the passive copy first would hold; it logs
+// the stages, the write lock hold and the writer's slowest commit of each.
+func largeWALRounds(t *testing.T, store *cgo.Store, path string, walBytes int64, marks *[]time.Time) {
+	ctx := context.Background()
+
+	// Open one outside connection that never checkpoints by itself.
+	raw, err := sql.Open("sqlite3", path+"?_busy_timeout=10000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer raw.Close()
+	raw.SetMaxOpenConns(1)
+	if _, err := raw.Exec("PRAGMA wal_autocheckpoint=0"); err != nil {
+		t.Fatal(err)
+	}
+
+	// fill writes 16 MiB transactions of 64 KiB rows until the WAL holds
+	// walBytes.
+	n := 0
+	fill := func() {
+		start := time.Now()
+		for {
+			info, err := os.Stat(path + "-wal")
+			if err == nil && info.Size() >= walBytes {
+				t.Logf("WAL filled to %d bytes in %v", info.Size(), time.Since(start))
+				return
+			}
+			tx, err := raw.Begin()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for range 256 {
+				n++
+				if _, err := tx.Exec("INSERT OR REPLACE INTO kv VALUES (?, randomblob(65536))", fmt.Appendf(nil, "w%09d", n)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := tx.Commit(); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	// writer commits a small row every 5ms until stop closes, sending its
+	// slowest commit and counting the commits that failed.
+	failed := 0
+	writer := func(stop chan struct{}, slowest chan time.Duration) {
+		var worst time.Duration
+		for i := 0; ; i++ {
+			select {
+			case <-stop:
+				slowest <- worst
+				return
+			case <-time.After(5 * time.Millisecond):
+			}
+			start := time.Now()
+			if _, err := raw.Exec("INSERT OR REPLACE INTO kv VALUES (?, randomblob(512))", fmt.Appendf(nil, "s%09d", i)); err != nil {
+				failed++
+			}
+			worst = max(worst, time.Since(start))
+		}
+	}
+
+	// Run a round on the full WAL with the writer going.
+	fill()
+	stop, slowest := make(chan struct{}), make(chan time.Duration)
+	go writer(stop, slowest)
+	*marks = (*marks)[:0]
+	start := time.Now()
+	common.RunPunchStep(ctx, store)
+	end := time.Now()
+	close(stop)
+	worst := <-slowest
+	st := store.Stats()
+	var stages []string
+	prev := start
+	for _, m := range append(*marks, end) {
+		stages = append(stages, m.Sub(prev).String())
+		prev = m
+	}
+	t.Logf("round on the WAL: total %v, write lock held %v, read mark held %v, stages (to flushed, checkpointed, walked, punched, end) %v, writer's slowest commit %v, failed %d; runs %d busy %d refused %d",
+		end.Sub(start), st.LastPunchHold, st.LastPunchSnapshot, stages, worst, failed, st.PunchRuns, st.PunchSkippedBusy, st.PunchRefused)
+
+	// Time a bare truncating checkpoint on a WAL filled again, with the
+	// writer going, through a store connection.
+	fill()
+	failed = 0
+	stop = make(chan struct{})
+	go writer(stop, slowest)
+	var busy, frames, copied int
+	start = time.Now()
+	err = store.GetDB().QueryRow("PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &frames, &copied)
+	took := time.Since(start)
+	close(stop)
+	worst = <-slowest
+	t.Logf("bare TRUNCATE on the WAL: %v (busy %d, frames %d, copied %d, err %v), writer's slowest commit %v, failed %d", took, busy, frames, copied, err, worst, failed)
+}
+
+// evictFile drops the clean pages of path from the page cache.
+func evictFile(t *testing.T, path string) {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := f.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Fadvise(int(f.Fd()), 0, 0, unix.FADV_DONTNEED); err != nil {
+		t.Fatal(err)
+	}
 }
