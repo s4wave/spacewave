@@ -1,0 +1,195 @@
+//go:build !js && !wasip1 && !windows
+
+// Command spacewave-world-rescue fetches a list of blocks from the packfiles a
+// PackStore wrote to an FTPS server, verifies each against its ref, and
+// writes the verified blocks to a local pack set in the PackStore layout
+// (packs/{id} and entries/{id}).
+//
+// It places the blocks through a read-only copy of the writer's pack index,
+// reads each pack whole, keeping only the wanted blocks, most wanted packs
+// first, within a session cap, rate caps and a byte cap kept across runs, and stops
+// at once on a login refusal or a session limit. An append-only ledger lets a
+// stopped run resume. It never deletes, local or remote.
+package main
+
+import (
+	"cmp"
+	"context"
+	"errors"
+	"net"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+	"time"
+
+	"github.com/aperturerobotics/cli"
+	block_store_ftps "github.com/s4wave/spacewave/db/block/store/ftps"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
+)
+
+// maxSessions is the most FTPS sessions a run may open: one below the
+// server's per-login limit of ten.
+const maxSessions = 9
+
+// defaultIndexTable is the table of the pack index file.
+const defaultIndexTable = "pack_index"
+
+// Exit codes past the generic failure.
+const (
+	exitHardStop = 2
+	exitStopped  = 3
+)
+
+// args are the command's flags.
+type args struct {
+	refs, index, indexTable, storeID string
+	indexScratch                     string
+	addr, netrc, root, prefix        string
+	out, ledgerPath                  string
+	sessions, minWanted, retries     int
+	ranges, retryFailed              bool
+	overhead, maxBytes               uint64
+	diskFloorGB                      float64
+	timeout, backoff, maxBackoff     time.Duration
+	progress, flushInterval          time.Duration
+	reqRate, byteRate                float64
+}
+
+// main runs the command and exits with a code that tells a hard stop and a
+// clean stop apart from a failure.
+func main() {
+	// Declare the command and its flags.
+	a := &args{}
+	app := cli.NewApp()
+	app.Name = "spacewave-world-rescue"
+	app.Usage = "fetch listed blocks from PackStore packfiles on an FTPS server into a local pack set"
+	app.Flags = []cli.Flag{
+		&cli.StringFlag{Name: "refs", Usage: "list of wanted blocks, one \"<store> <hex key> [...]\" per line as block-pass --input takes; gzip allowed", Destination: &a.refs, Required: true},
+		&cli.StringFlag{Name: "index", Usage: "copy of the writer's pack index SQLite file, opened read-only", Destination: &a.index, Required: true},
+		&cli.StringFlag{Name: "index-table", Usage: "table of the pack index file", Value: defaultIndexTable, Destination: &a.indexTable},
+		&cli.StringFlag{Name: "index-scratch", Usage: "directory on the index's file system for the read-only view's links and -shm; default rescue-index-view beside the index", Destination: &a.indexScratch},
+		&cli.StringFlag{Name: "store-id", Usage: "block store id the index rows are keyed by", Destination: &a.storeID, Required: true},
+		&cli.StringFlag{Name: "addr", Usage: "FTPS server host:port", Destination: &a.addr, Required: true},
+		&cli.StringFlag{Name: "netrc", Usage: "netrc file with the server's login", Destination: &a.netrc, Required: true},
+		&cli.StringFlag{Name: "root", Usage: "server directory holding the prefix", Value: "hyperline-packs", Destination: &a.root},
+		&cli.StringFlag{Name: "prefix", Usage: "PackStore key prefix; packs are {root}/{prefix}packs/{id}", Value: "world/packs/", Destination: &a.prefix},
+		&cli.StringFlag{Name: "out", Usage: "output directory of the pack set", Destination: &a.out, Required: true},
+		&cli.StringFlag{Name: "ledger", Usage: "ledger file; default {out}/rescue.ledger", Destination: &a.ledgerPath},
+		&cli.IntFlag{Name: "sessions", Usage: "FTPS sessions at most, 1 to 9", Value: 4, Destination: &a.sessions},
+		&cli.IntFlag{Name: "min-wanted", Usage: "take only packs holding more than this many wanted blocks; 256 is tier 1", Destination: &a.minWanted},
+		&cli.BoolFlag{Name: "ranges", Usage: "read by block ranges a pack whose wanted blocks all have extents in the index, when that costs fewer bytes than the whole pack", Destination: &a.ranges},
+		&cli.Uint64Flag{Name: "range-overhead", Usage: "bytes a request costs beyond its body, for --ranges", Value: 4096, Destination: &a.overhead},
+		&cli.Uint64Flag{Name: "max-bytes", Usage: "most bytes fetched across runs; 0 refuses to run", Destination: &a.maxBytes},
+		&cli.Float64Flag{Name: "disk-floor-gb", Usage: "stop cleanly when the output disk has less free", Value: 20, Destination: &a.diskFloorGB},
+		&cli.DurationFlag{Name: "timeout", Usage: "per-request timeout", Value: 2 * time.Minute, Destination: &a.timeout},
+		&cli.IntFlag{Name: "retries", Usage: "retries of a failed request, never of a 530, 421 or session limit", Value: 3, Destination: &a.retries},
+		&cli.DurationFlag{Name: "backoff", Usage: "first retry wait, doubling", Value: 2 * time.Second, Destination: &a.backoff},
+		&cli.DurationFlag{Name: "max-backoff", Usage: "longest retry wait", Value: time.Minute, Destination: &a.maxBackoff},
+		&cli.Float64Flag{Name: "requests-per-sec", Usage: "request rate cap across sessions; 0 is none", Value: 4, Destination: &a.reqRate},
+		&cli.Float64Flag{Name: "bytes-per-sec", Usage: "byte rate cap across sessions; 0 is none", Value: 20 << 20, Destination: &a.byteRate},
+		&cli.BoolFlag{Name: "retry-failed", Usage: "fetch again the refs and packs the ledger records as failed", Destination: &a.retryFailed},
+		&cli.DurationFlag{Name: "flush-interval", Usage: "longest wait of verified blocks for their write and ledger sync; each flush closes a synthetic pack", Value: 10 * time.Minute, Destination: &a.flushInterval},
+		&cli.DurationFlag{Name: "progress", Usage: "time between progress lines", Value: 30 * time.Second, Destination: &a.progress},
+	}
+	app.Action = func(*cli.Context) error { return a.run() }
+
+	// Run it and exit by the kind of its error.
+	if err := app.Run(os.Args); err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		var hard *hardStopError
+		if errors.As(err, &hard) {
+			os.Exit(exitHardStop)
+		}
+		var stopped stoppedError
+		if errors.As(err, &stopped) {
+			os.Exit(exitStopped)
+		}
+		os.Exit(1)
+	}
+}
+
+// stoppedError reports a clean early stop.
+type stoppedError string
+
+func (e stoppedError) Error() string { return "stopped cleanly: " + string(e) }
+
+// run checks the flags, opens the index and the server, and runs the rescue.
+func (a *args) run() error {
+	// Refuse limits that would run unbounded or past the server's caps,
+	// before reading any credential.
+	if a.maxBytes == 0 {
+		return errors.New("--max-bytes is 0: set a byte cap to run")
+	}
+	if a.sessions < 1 || a.sessions > maxSessions {
+		return errors.New("--sessions must be 1 to 9")
+	}
+	if a.minWanted < 0 {
+		return errors.New("--min-wanted must not be negative")
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// Open the index copy read-only through a view that leaves its files,
+	// -wal and -shm included, as they are.
+	if _, err := os.Stat(a.index); err != nil {
+		return err
+	}
+	store, err := openIndexView(ctx, a.index, cmp.Or(a.indexScratch, filepath.Join(filepath.Dir(a.index), "rescue-index-view")), a.indexTable)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	index := kvtx_prefixer.NewPrefixer(store, block_store_s3.PackIndexPrefix(a.storeID))
+
+	// Log in from the netrc. The logins are never printed.
+	host := a.addr
+	if h, _, err := net.SplitHostPort(a.addr); err == nil {
+		host = h
+	}
+	logins, err := block_store_ftps.ReadNetrc(a.netrc, host)
+	if err != nil {
+		return err
+	}
+	client := block_store_ftps.NewClient(block_store_ftps.Config{
+		Addr:          a.addr,
+		Logins:        logins,
+		MaxSessions:   a.sessions,
+		ConnsPerLogin: a.sessions,
+		NoFullRetry:   true,
+	})
+	defer client.Close()
+
+	// Run.
+	if err := os.MkdirAll(a.out, 0o755); err != nil {
+		return err
+	}
+	res, err := run(ctx, &options{
+		Bucket:    a.root,
+		Prefix:    a.prefix,
+		Index:     index,
+		RefList:   a.refs,
+		Ledger:    cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
+		OutDir:    a.out,
+		Sessions:  a.sessions,
+		Plan:      planOptions{Ranges: a.ranges, Overhead: a.overhead},
+		MinWanted: a.minWanted,
+		Fetch: fetchOptions{
+			Timeout: a.timeout, Retries: a.retries, Backoff: a.backoff, MaxBackoff: a.maxBackoff,
+			RequestsPerSec: a.reqRate, BytesPerSec: a.byteRate, CapBytes: a.maxBytes,
+		},
+		DiskFloorBytes: uint64(a.diskFloorGB * (1 << 30)),
+		Progress:       a.progress,
+		FlushInterval:  a.flushInterval,
+		RetryFailed:    a.retryFailed,
+		Log:            os.Stderr,
+	}, client)
+	if err != nil {
+		return err
+	}
+	if res.Stop != "" {
+		return stoppedError(res.Stop)
+	}
+	return nil
+}

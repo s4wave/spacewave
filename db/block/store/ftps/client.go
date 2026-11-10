@@ -549,7 +549,7 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 	wait := 100 * time.Millisecond
 	for {
 		conn, err := c.dialOnce(ctx, login)
-		if err == nil || !isFull(err) {
+		if err == nil || !isFull(err) || c.conf.NoFullRetry {
 			return conn, err
 		}
 		select {

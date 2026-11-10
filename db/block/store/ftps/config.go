@@ -20,4 +20,8 @@ type Config struct {
 	// ConnsPerLogin is the most sessions open at once on one login, counting
 	// the spares dialed ahead of range reads; zero uses DefaultConnsPerLogin.
 	ConnsPerLogin int
+	// NoFullRetry makes a dial that the server answers with its session limit
+	// fail at once instead of waiting and dialing again, for a caller that
+	// must stop on that answer.
+	NoFullRetry bool
 }
