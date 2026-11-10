@@ -58,3 +58,20 @@ func refuseLiveLock(path string) error {
 	}
 	return nil
 }
+
+// runProbe reports whether another process holds a lock on the World file and
+// the pack index file, without opening either through SQLite. It takes no lock.
+func runProbe(o opts) error {
+	// Test each file given and print what the probe finds.
+	for _, path := range []string{o.world, o.packs} {
+		if path == "" {
+			continue
+		}
+		if err := refuseLiveLock(path); err != nil {
+			fmt.Println("held:", err)
+			continue
+		}
+		fmt.Println("free:", path)
+	}
+	return nil
+}

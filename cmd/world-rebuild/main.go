@@ -126,6 +126,8 @@ func main() {
 		err = runVerify(o)
 	case cmd == "selftest":
 		err = runSelftest(o)
+	case cmd == "probe":
+		err = runProbe(o)
 	default:
 		usage()
 	}
@@ -136,7 +138,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: world-rebuild count|copy|verify|selftest -world F -packs F [-out F]")
+	fmt.Fprintln(os.Stderr, "usage: world-rebuild count|copy|verify|selftest|probe -world F -packs F [-out F]")
 	os.Exit(2)
 }
 
