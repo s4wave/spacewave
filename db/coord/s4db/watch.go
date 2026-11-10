@@ -41,7 +41,9 @@ func newWatch(ctx context.Context, db *db_s4db.DB, scope coord.Scope, inner coor
 		func() { w.commits(ctx, db, scope, afterGeneration) },
 	)
 
-	// Close the stream once both end.
+	// Close the stream once both end. The wait must outlive ctx, which Close
+	// cancels before it waits on done.
+	// #nosec G118 -- the closer waits for both streams after ctx is cancelled.
 	go func() {
 		_ = streams.WaitIdle(context.Background(), nil)
 		close(w.events)
