@@ -140,8 +140,12 @@ func usage() {
 	os.Exit(2)
 }
 
-// openRO opens a SQLite file for queries only, one connection. It refuses a
-// file another process holds a lock on, such as a running backend.
+// openRO opens a SQLite file read-only (mode=ro), one connection. It refuses
+// a file another process holds a lock on, such as a running backend. The
+// read-only open reads a WAL that still holds commits, and closing it cannot
+// checkpoint: the checkpoint on close needs an exclusive lock and a write
+// through the main file's descriptor, which a read-only open does not have.
+// It may leave an empty -wal or -shm beside the file.
 func openRO(path string) (*sql.DB, error) {
 	// The file must exist and have no live connection.
 	if _, err := os.Stat(path); err != nil {
@@ -152,7 +156,7 @@ func openRO(path string) (*sql.DB, error) {
 	}
 
 	// Open one connection.
-	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=query_only(1)&_pragma=busy_timeout(5000)")
+	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro&_pragma=busy_timeout(5000)")
 	if err != nil {
 		return nil, err
 	}
