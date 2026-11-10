@@ -23,19 +23,21 @@ func (e mentry) size() int64 {
 }
 
 // lessMentry orders entries by key.
-func lessMentry(a, b mentry) bool {
+func lessMentry(a, b *mentry) bool {
 	return bytes.Compare(a.key, b.key) < 0
 }
 
 // memtable holds the entries since the last flush in key order. A published
 // state's memtable is immutable; the writer copies it before changing it,
-// which the tree does cheaply by sharing nodes.
+// which the tree does cheaply by sharing nodes. The tree holds pointers, so a
+// commit's copy of each node it changes moves a word per entry rather than
+// the entry; an entry never changes once set, so trees share it.
 type memtable struct {
 	// copyMtx serializes Copy, which changes the source tree's COW epoch.
 	// Readers never use that epoch and never hold this lock.
 	copyMtx sync.Mutex
 	// tree holds the entries.
-	tree *btree.BTreeG[mentry]
+	tree *btree.BTreeG[*mentry]
 	// filter holds every key the memtable has held, so a lookup of another
 	// key skips the tree. It only gains keys, so copies share it until a
 	// flush starts a new one.
@@ -59,16 +61,39 @@ func (m *memtable) copy() *memtable {
 	return &memtable{tree: m.tree.Copy(), filter: m.filter, bytes: m.bytes}
 }
 
+// probes holds the entries get searches with. The tree's comparison takes
+// its probe by pointer through a function value, so a probe built per call
+// escapes; a pooled one makes a lookup allocate nothing.
+var probes = sync.Pool{New: func() any { return new(mentry) }}
+
 // get returns the entry of key.
 func (m *memtable) get(key []byte) (mentry, bool) {
+	// Skip the tree for a key the filter has never held.
 	if !m.filter.has(key) {
 		return mentry{}, false
 	}
-	return m.tree.Get(mentry{key: key})
+
+	// Search with a pooled probe, cleared before it goes back so the pool
+	// keeps no caller's key alive.
+	probe := probes.Get().(*mentry)
+	probe.key = key
+	e, ok := m.tree.Get(probe)
+	probe.key = nil
+	probes.Put(probe)
+	if !ok {
+		return mentry{}, false
+	}
+	return *e, true
 }
 
 // set records e, replacing an earlier entry of its key.
 func (m *memtable) set(e mentry) {
+	m.setEntry(&e)
+}
+
+// setEntry records e, which no one changes afterward, replacing an earlier
+// entry of its key.
+func (m *memtable) setEntry(e *mentry) {
 	m.filter.add(e.key)
 	if old, ok := m.tree.Set(e); ok {
 		m.bytes -= old.size()
@@ -80,9 +105,9 @@ func (m *memtable) set(e mentry) {
 // fresh filter: the flush through seq holds them now.
 func (m *memtable) dropThrough(seq uint64, budget int64) *memtable {
 	next := newMemtable(budget)
-	m.tree.Scan(func(e mentry) bool {
+	m.tree.Scan(func(e *mentry) bool {
 		if e.seq > seq {
-			next.set(e)
+			next.setEntry(e)
 		}
 		return true
 	})
