@@ -59,7 +59,8 @@ func buildTree(t *testing.T, budget int, adds []func(*Builder) error) ([]treeEnt
 
 // TestBuilderMatchesIncrementalTree checks that building a tree from the nodes
 // and quads of a tree written by ApplyDeltas gives the same keys and values, in
-// any add order and at any sort budget.
+// any add order and at any sort budget, with each quad added twice as an old kv
+// store's physical copies of it would be.
 func TestBuilderMatchesIncrementalTree(t *testing.T) {
 	// Write a graph with shared nodes, several predicates and some labels.
 	ctx := context.Background()
@@ -94,7 +95,8 @@ func TestBuilderMatchesIncrementalTree(t *testing.T) {
 			adds = append(adds, func(b *Builder) error { return b.AddNode(id, meta.GetValue()) })
 		case ok && tag == tagOut:
 			q, _ := parseEdgeKey(e.k)
-			adds = append(adds, func(b *Builder) error { return b.AddQuad(q.s, q.p, q.o, q.l) })
+			add := func(b *Builder) error { return b.AddQuad(q.s, q.p, q.o, q.l) }
+			adds = append(adds, add, add)
 		}
 	}
 	r := rand.New(rand.NewPCG(3, 4))

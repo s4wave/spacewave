@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/aperturerobotics/cayley/quad/pquads"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -477,13 +478,28 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *block.Cursor, action graph.Procedure, fn func(quad.Quad) error) error {
 	switch format {
 	case WorldFormat_WORLD_FORMAT_CAYLEY_KV:
-		// A changed log record names its quad in the World that holds it.
+		// A changed log record names its quad in the World that holds it. An
+		// old store can hold several physical copies of one quad, and one
+		// logical write changes them all in the same commit, so the pass
+		// passes each quad once; seen grows with the round's changes.
 		side := before
 		if action == graph.Add {
 			side = after
 		}
+		seen := make(map[string]struct{})
 		return walkChangedKeys(ctx, before, after, graphLogPrefix, func(keys [][]byte) error {
-			return walkGraphLinks(ctx, side.FollowSubBlock(2), keys, fn)
+			return walkGraphLinks(ctx, side.FollowSubBlock(2), keys, func(q quad.Quad) error {
+				// Pass the quad on at its first copy only.
+				key, err := pquads.MakeQuad(q).MarshalVT()
+				if err != nil {
+					return err
+				}
+				if _, ok := seen[string(key)]; ok {
+					return nil
+				}
+				seen[string(key)] = struct{}{}
+				return fn(q)
+			})
 		})
 	case WorldFormat_WORLD_FORMAT_NODE_GRAPH:
 		// A changed out key names its quad in the tree that holds it.

@@ -72,9 +72,9 @@ func ImportSnapshot(
 	return result, nil
 }
 
-// importFormat is the format an imported World takes. A user imports a
-// snapshot, so the import follows the Engine's default creation format, and
-// moves to NewestWorldFormat with it.
+// importFormat is the format an imported World takes: the format a World
+// engine creates when its config names none, the zero format. When that
+// default moves to NewestWorldFormat, this moves with it.
 const importFormat = WorldFormat_WORLD_FORMAT_CAYLEY_KV
 
 // importWorld builds the World blocks of an import and returns its root. The
