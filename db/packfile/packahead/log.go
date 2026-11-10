@@ -462,10 +462,15 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 
 	// Publish the batch, or fail the pack so the next write rotates.
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// A failed write fails the pack.
+		// A failed write fails the pack, and a pack whose sync failed since
+		// the batch was planned takes it no further.
 		defer broadcast()
 		if werr != nil {
 			l.failLocked(p, werr)
+			return
+		}
+		if p.err != nil {
+			werr = errors.Wrap(p.err, "pack failed")
 			return
 		}
 
