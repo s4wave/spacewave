@@ -20,6 +20,9 @@
 \*   DataCheck:   recovery rejects a record whose values did not survive.
 \*   RowAfterSync: a liveness row is committed only for a synced batch.
 \*   EvictCheck:  eviction requires the object, the entry and the registration.
+\*   DurableSkip: a second put of a block the pack table holds stores nothing
+\*                and receipts it only once the batch holding it is synced.
+\*                PackedStore skipped on any table hit, synced or not.
 \*
 \* Not modeled: frees from the local pack table (memory only, and a lost free
 \* keeps a block readable), the pack index's own transaction (one step here),
@@ -35,7 +38,8 @@ CONSTANTS
   MaxCrashes,   \* crashes the model allows
   DataCheck,
   RowAfterSync,
-  EvictCheck
+  EvictCheck,
+  DurableSkip
 
 VARIABLES
   up,       \* the process runs; FALSE between a crash and its recovery
@@ -98,6 +102,20 @@ Commit ==
        /\ i <= Len(log[p])
        /\ log[p][i] \notin rows
        /\ RowAfterSync => i <= synced[p]
+       /\ rows' = rows \cup {log[p][i]}
+  /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
+                 entries, reg, crashes>>
+
+\* SkipPut is a second put of a block the pack table holds: it appends
+\* nothing and commits the block's liveness row. The table holds every
+\* written batch of a local pack, synced or not.
+SkipPut ==
+  /\ up
+  /\ \E p \in Packs, i \in 1..Cap :
+       /\ file[p] \in {"open", "final"}
+       /\ i <= Len(log[p])
+       /\ log[p][i] \notin rows
+       /\ DurableSkip => i <= synced[p]
        /\ rows' = rows \cup {log[p][i]}
   /\ UNCHANGED <<up, next, open, log, synced, disk, file, fin, valid, remote,
                  entries, reg, crashes>>
@@ -218,7 +236,7 @@ Recover ==
   /\ UNCHANGED <<next, rows, remote, entries, reg, crashes>>
 
 Next ==
-  \/ Write \/ Sync \/ Commit \/ Rotate \/ FinIndex \/ FinRename
+  \/ Write \/ Sync \/ Commit \/ SkipPut \/ Rotate \/ FinIndex \/ FinRename
   \/ Upload \/ Entry \/ Register \/ Evict \/ Crash \/ Recover
 
 Spec == Init /\ [][Next]_vars
