@@ -77,6 +77,7 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
 		{"Reached lists still unverified", strconv.FormatUint(res.rebuild.Unverified, 10)},
+		{"Unreached lists a put checks before trusting", strconv.FormatUint(res.rebuild.Suspect, 10)},
 		{"Lists verified", strconv.FormatBool(res.verified || res.rebuild.Cleared)},
 		{"Returned to unadopted for a recount", strconv.FormatBool(res.rebuild.Unadopted)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},

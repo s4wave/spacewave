@@ -106,6 +106,7 @@ jobs:
               db/block/gc/Journal-adopt.cfg
               db/block/gc/Journal-adopt-cut.cfg
               db/block/gc/Journal-hole.cfg
+              db/block/gc/Journal-hole-fill.cfg
               db/block/gc/Journal-lease.cfg
               db/block/gc/Journal-stage.cfg
               db/block/gc/Journal-fill-staged.cfg
@@ -121,6 +122,8 @@ jobs:
             config: db/block/gc/Journal-adopt-cut.cfg
           - name: Journal-hole
             config: db/block/gc/Journal-hole.cfg
+          - name: Journal-hole-fill
+            config: db/block/gc/Journal-hole-fill.cfg
           - name: Journal-lease
             config: db/block/gc/Journal-lease.cfg
             timeout: 45

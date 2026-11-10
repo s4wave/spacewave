@@ -165,12 +165,16 @@ func (d *directTx) Discard() {
 }
 
 // settle reports the committed markers, forgets the pending proofs of the
-// blocks p removed and wakes Volume statistics watchers once p committed.
+// blocks p removed, wakes Volume statistics watchers and, when p returned the
+// Volume to unadopted, starts the recount, once p committed.
 func (d *directTx) settle() {
 	if d.committed {
 		d.p.blocks.marks.committed()
 		d.v.forgetFreedProofs(d.p.blocks.removedRefs())
 		d.v.broadcastStorageStatsChanged()
+		if d.p.rec.Unadopted() {
+			d.v.wakeAdopt()
+		}
 	}
 }
 

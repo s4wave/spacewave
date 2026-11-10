@@ -61,9 +61,6 @@ func rebuildable(state *LivenessState) error {
 type ListRebuild struct {
 	// store is the Volume.
 	store Store
-	// unadopted is called after Finish returns the Volume to unadopted, nil
-	// when nothing waits on it.
-	unadopted func()
 	// pending are the verified lists not yet written.
 	pending []*block.PutBatchEntry
 	// res counts the results.
@@ -72,10 +69,10 @@ type ListRebuild struct {
 
 // OpenListRebuild starts a list rebuild of store, refusing a Volume an
 // adoption is counting with ErrListRebuildAdopting and one whose lists are
-// verified with ErrListsVerified. Finish calls unadopted, unless it is nil,
-// once it has returned the Volume to unadopted, so the owner of the Volume's
-// adoption can start the recount.
-func OpenListRebuild(ctx context.Context, store Store, unadopted func()) (*ListRebuild, error) {
+// verified with ErrListsVerified. A Finish that returns the Volume to
+// unadopted reports it through Records.Unadopted, so store starts the
+// recount.
+func OpenListRebuild(ctx context.Context, store Store) (*ListRebuild, error) {
 	err := store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
@@ -86,7 +83,7 @@ func OpenListRebuild(ctx context.Context, store Store, unadopted func()) (*ListR
 	if err != nil {
 		return nil, err
 	}
-	return &ListRebuild{store: store, unadopted: unadopted}, nil
+	return &ListRebuild{store: store}, nil
 }
 
 // Verify records that ref's decoded refs are refs, writing its list and mark
@@ -173,9 +170,8 @@ func (r *ListRebuild) flush(ctx context.Context) error {
 	return context.Cause(ctx)
 }
 
-// verifyOne checks entry's refs against the block's stored list: it refuses
-// refs that lack a child the list names, writes the list when it is missing
-// or lacks a child the refs name, and marks the block verified otherwise.
+// verifyOne checks entry's refs against the block's stored list, as
+// checkList does, and marks the block verified unless the refs drop a child.
 func (r *ListRebuild) verifyOne(ctx context.Context, rec *Records, entry *block.PutBatchEntry) (listVerdict, error) {
 	// Skip a block already verified, or one Land wrote while the mark stood.
 	key := BlockKey(entry.Ref)
@@ -184,23 +180,36 @@ func (r *ListRebuild) verifyOne(ctx context.Context, rec *Records, entry *block.
 		return listSkipped, err
 	}
 
-	// Refuse refs that drop a stored child, and rewrite a list they extend.
-	value, listed, err := rec.tx.Get(ctx, rec.key(kindChildren, key))
+	// Check the list, and mark it.
+	verdict, err := rec.checkList(ctx, key, entry.Refs)
+	if err != nil || verdict == listDropped {
+		return verdict, err
+	}
+	return verdict, rec.tx.Set(ctx, rec.key(kindVerified, key), nil)
+}
+
+// checkList checks refs, the decoded refs of the block at key, against its
+// stored child list: it refuses refs that lack a child the list names, since
+// a list can only miss children, writes the list when it is missing or lacks
+// a child the refs name, and leaves a matching one. A rewrite journals no
+// holder for a child the list gains; the caller owes the counts a recount.
+func (r *Records) checkList(ctx context.Context, key []byte, refs []*block.BlockRef) (listVerdict, error) {
+	// Read the stored list.
+	value, listed, err := r.tx.Get(ctx, r.key(kindChildren, key))
 	if err != nil {
 		return listSkipped, err
 	}
-	encoded := EncodeChildren(entry.Refs)
-	verdict := listVerified
-	if !listed || !bytes.Equal(value, encoded) {
-		if listed && !containsChildren(encoded, value) {
-			return listDropped, nil
-		}
-		if err := rec.tx.Set(ctx, rec.key(kindChildren, key), encoded); err != nil {
-			return listSkipped, err
-		}
-		verdict = listRewritten
+
+	// Keep a matching list, refuse refs that drop a child, and rewrite the
+	// rest.
+	encoded := EncodeChildren(refs)
+	switch {
+	case listed && bytes.Equal(value, encoded):
+		return listVerified, nil
+	case listed && !containsChildren(encoded, value):
+		return listDropped, nil
 	}
-	return verdict, rec.tx.Set(ctx, rec.key(kindVerified, key), nil)
+	return listRewritten, r.tx.Set(ctx, r.key(kindChildren, key), encoded)
 }
 
 // Finish writes the pending lists, walks from every named root through the
@@ -213,10 +222,11 @@ func (r *ListRebuild) verifyOne(ctx context.Context, rec *Records, entry *block.
 // unverified list; a cache fill's list is not, and a rerun of the typed walk
 // verifies it.
 //
-// Known hole, so frees stay off after a Finish: a listed block no root
-// reaches keeps its unverified list past the clear, and a later put of it
-// revives it with that list, which Land trusts, so a child the list misses
-// can be freed under a live holder.
+// A listed block no root reaches keeps its unverified list past the clear,
+// and a later put of it revives it with that list. Before the clear, Finish
+// therefore writes a suspect record for each listed block no walk verified
+// and no Land wrote, and Land checks a suspect list against the put's refs
+// before it trusts it, as Land describes.
 func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 	// Write what is pending, then find the unverified lists a root reaches.
 	if err := r.flush(ctx); err != nil {
@@ -225,6 +235,11 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 	r.res.Unverified, r.res.UnverifiedSample = 0, nil
 	err := walkRoots(ctx, r.store, r.visitReached)
 	if err != nil || r.res.Unverified != 0 {
+		return r.res, err
+	}
+
+	// Name the lists nothing verified.
+	if err := r.markSuspects(ctx); err != nil {
 		return r.res, err
 	}
 
@@ -241,16 +256,19 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 		}
 		state.UnverifiedLists = false
 
-		// Return an adopted Volume a rewrite left short to unadopted under
-		// no run, as a claim does, ending any release in progress.
+		// A block reaches zero only by netting a record sequenced after
+		// every unnetted up pair it has; a parked block's zero came from
+		// lists that may have been short, so it is freed only after every
+		// record journaled while they stood has netted.
+		state.HoldMark = state.GetNextSeq()
+
+		// Return an adopted Volume a rewrite left short to unadopted.
 		recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten))
 		if err != nil {
 			return err
 		}
 		if recount && state.GetAdoption() == Adoption_ADOPTION_ADOPTED {
-			state.Adoption = Adoption_ADOPTION_UNADOPTED
-			state.AdoptionRun = ""
-			state.Release = nil
+			rec.unadopt(state)
 			r.res.Unadopted = true
 		}
 		return rec.SetState(ctx, state)
@@ -260,13 +278,53 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 	}
 	r.res.Cleared = true
 
-	// Delete the rebuild's marks, then signal the recount, which an unadopted
-	// Volume needs even when the marks remain.
-	err = clearKinds(ctx, r.store, nil, kindVerified, kindLanded)
-	if r.res.Unadopted && r.unadopted != nil {
-		r.unadopted()
-	}
-	return r.res, err
+	// Delete the rebuild's marks.
+	return r.res, clearKinds(ctx, r.store, nil, kindVerified, kindLanded)
+}
+
+// markSuspects writes a suspect record for each listed block without a
+// verified or landed mark, an anti-join of the child lists against the
+// marks, in slices of sliceRecords lists that let a waiting writer in. A put
+// between slices needs no fence: one of a block the join has passed checks
+// the list and deletes the record, and one of a block ahead of it writes a
+// mark the join then finds.
+func (r *ListRebuild) markSuspects(ctx context.Context) error {
+	r.res.Suspect = 0
+	_, err := eachSlice(ctx, r.store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
+		// Read the next slice of listed blocks, keys only.
+		from := after
+		if after != nil {
+			from = append(bytes.Clone(after), 0)
+		}
+		var keys [][]byte
+		err := rec.scan(ctx, rec.key(kindChildren), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+			if len(keys) == sliceRecords {
+				return false, nil
+			}
+			keys = append(keys, bytes.Clone(key))
+			return true, nil
+		})
+		if err != nil || len(keys) == 0 {
+			return nil, false, err
+		}
+
+		// Name each one nothing verified.
+		for _, key := range keys {
+			verified, err := rec.listVerified(ctx, key)
+			if err != nil {
+				return nil, false, err
+			}
+			if verified {
+				continue
+			}
+			r.res.Suspect++
+			if err := rec.tx.Set(ctx, rec.key(kindSuspect, key), nil); err != nil {
+				return nil, false, err
+			}
+		}
+		return keys[len(keys)-1], len(keys) == sliceRecords, nil
+	})
+	return err
 }
 
 // visitReached counts a listed block a root reaches without a verified list,
