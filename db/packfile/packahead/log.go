@@ -901,13 +901,34 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 		return nil
 	}
 
+	// A failed data sync here poisons the pack as a writer's would: it may
+	// have dropped the pages of a batch written but never synced.
+	opts := l.opts
+	var syncFailed bool
+	opts.SyncData = func(f *os.File) error {
+		err := l.opts.SyncData(f)
+		syncFailed = syncFailed || err != nil
+		return err
+	}
+	poison := func(err error) error {
+		if syncFailed {
+			l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				l.syncFailures++
+				p.poisoned = true
+				l.failLocked(p, err)
+				broadcast()
+			})
+		}
+		return err
+	}
+
 	// Recover a failed pack from its file, unless an earlier try renamed it:
 	// the renamed file ends in the index, which recovery would truncate.
 	if failed && p.renamed == nil {
 		var err error
-		data, entries, err = p.recoverFile(l.opts.SyncData)
+		data, entries, err = p.recoverFile(opts.SyncData)
 		if err != nil {
-			return err
+			return poison(err)
 		}
 		l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			p.entries = entries
@@ -920,9 +941,9 @@ func (l *Log) finalizeRotated(ctx context.Context, p *pack) error {
 	}
 
 	// Finalize, then serve the pack from its file and keep its buffer.
-	fin, err := p.finalize(l.dir, data, l.opts)
+	fin, err := p.finalize(l.dir, data, opts)
 	if err != nil {
-		return err
+		return poison(err)
 	}
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Record the finalized pack and locate what recovery kept.
