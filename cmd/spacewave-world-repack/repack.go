@@ -34,6 +34,9 @@ const tempPrefix = ".tmp-"
 type options struct {
 	// In are the input directories, only read.
 	In []string
+	// Frames are the input frame files of hyperline's world block-export,
+	// only read, after the directories' packs.
+	Frames []string
 	// Out is the output directory: missing or empty.
 	Out string
 	// PackBytes bounds an output pack file.
@@ -113,6 +116,9 @@ type report struct {
 	DataIn, DataUnique, DataOut uint64
 	// FilesIn and FilesOut are the bytes of the packs and entries.
 	FilesIn, FilesOut uint64
+	// FrameFiles counts the input frame files and FrameBytes their bytes.
+	FrameFiles int
+	FrameBytes uint64
 	// Packs are the output packs in write order.
 	Packs []outPack
 }
@@ -145,10 +151,10 @@ func run(o *options) (*report, error) {
 	if o.PackBytes <= 0 || o.PackBytes > maxPackMiB<<20 {
 		return nil, errors.Errorf("pack size must be 1 to %d MiB", maxPackMiB)
 	}
-	if len(o.In) == 0 {
-		return nil, errors.New("no input directory")
+	if len(o.In) == 0 && len(o.Frames) == 0 {
+		return nil, errors.New("no input directory or frame file")
 	}
-	if err := freshOut(o.Out, o.In); err != nil {
+	if err := freshOut(o.Out, slices.Concat(o.In, o.Frames)); err != nil {
 		return nil, err
 	}
 
@@ -187,6 +193,11 @@ func run(o *options) (*report, error) {
 	for _, p := range packs {
 		if err := r.readPack(p); err != nil {
 			return &r.rep, errors.Wrapf(err, "input pack %s", filepath.Join(p.dir, p.id))
+		}
+	}
+	for _, path := range o.Frames {
+		if err := r.readFrames(path); err != nil {
+			return &r.rep, errors.Wrapf(err, "input frames %s", path)
 		}
 	}
 	if err := r.flush(); err != nil {
@@ -446,19 +457,12 @@ func (r *repacker) readPack(p *inPack) error {
 	// Verify and take each block.
 	var n uint64
 	err = rdr.ScanPrefix(nil, func(key, value []byte) error {
-		// Decode it, verifying its bytes against its key.
 		n++
-		ref, stored, err := packfile.DecodeBlockValue(key, value)
+		h, stored, err := decodeBlock(key, value)
 		if err != nil {
-			return errors.Wrapf(err, "block %x", key)
+			return err
 		}
-
-		// The key must be the canonical key of its hash, as the writer
-		// writes it.
-		if want := packfile.BlockKey(ref.GetHash()); !bytes.Equal(key, want) {
-			return errors.Errorf("block key %x is not the canonical key %x of its hash", key, want)
-		}
-		return r.take(key, ref.GetHash(), stored, value)
+		return r.take(key, h, stored, value)
 	})
 	if err != nil {
 		return err
@@ -467,6 +471,146 @@ func (r *repacker) readPack(p *inPack) error {
 		return errors.Errorf("scanned %d blocks of %d", n, rdr.Size())
 	}
 	return nil
+}
+
+// decodeBlock decodes a block value, verifying its bytes against its key,
+// and requires the key be the canonical key of its hash, as the writer
+// writes it.
+func decodeBlock(key, value []byte) (*hash.Hash, *block.StoredBlock, error) {
+	// Decode it, verifying its bytes against its key.
+	ref, stored, err := packfile.DecodeBlockValue(key, value)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "block %x", key)
+	}
+
+	// Require the canonical key.
+	if want := packfile.BlockKey(ref.GetHash()); !bytes.Equal(key, want) {
+		return nil, nil, errors.Errorf("block key %x is not the canonical key %x of its hash", key, want)
+	}
+	return ref.GetHash(), stored, nil
+}
+
+// frameReader reads a frame file, counting its offset.
+type frameReader struct {
+	r *bufio.Reader
+	// n is the bytes consumed; size the file's.
+	n, size int64
+}
+
+// ReadByte reads one byte and counts it.
+func (f *frameReader) ReadByte() (byte, error) {
+	b, err := f.r.ReadByte()
+	if err == nil {
+		f.n++
+	}
+	return b, err
+}
+
+// uvarint reads a uvarint; a cut file is io.ErrUnexpectedEOF.
+func (f *frameReader) uvarint() (uint64, error) {
+	v, err := binary.ReadUvarint(f)
+	if err == io.EOF {
+		err = io.ErrUnexpectedEOF
+	}
+	return v, err
+}
+
+// read reads n bytes; n past the file's end is io.ErrUnexpectedEOF.
+func (f *frameReader) read(n uint64) ([]byte, error) {
+	// Refuse a length past the file's end before allocating it.
+	if n > uint64(f.size-f.n) { //nolint:gosec // n never passes size.
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	// Read and count the bytes.
+	buf := make([]byte, n)
+	k, err := io.ReadFull(f.r, buf)
+	f.n += int64(k)
+	return buf, err
+}
+
+// readFrames reads every frame of a frame file of hyperline's world
+// block-export, in file order, verifying each block against its key and its
+// refs flag against its object, and adds the new ones to the output. A
+// frame is the uvarint length of the marshaled hash, the hash, a uvarint 1
+// when the block's refs are known and 0 when not, the uvarint length of the
+// encoded block.BlockObject and the object. A cut or malformed frame fails,
+// named by its offset.
+func (r *repacker) readFrames(path string) error {
+	// Open the file read-only.
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if !st.Mode().IsRegular() {
+		return errors.New("not a regular file")
+	}
+	r.rep.FrameFiles++
+	r.rep.FrameBytes += uint64(st.Size()) //nolint:gosec // sizes are not negative.
+
+	// Read each frame until the end of the file.
+	fr := &frameReader{r: bufio.NewReaderSize(f, 1<<20), size: st.Size()}
+	for fr.n < fr.size {
+		start := fr.n
+		if err := r.readFrame(fr); err != nil {
+			return errors.Wrapf(err, "frame at offset %d", start)
+		}
+	}
+	if _, err := fr.r.ReadByte(); err != io.EOF {
+		return errors.Errorf("file grew past its %d bytes while read", fr.size)
+	}
+	return nil
+}
+
+// readFrame reads one frame and takes its block.
+func (r *repacker) readFrame(fr *frameReader) error {
+	// Read the key.
+	keyLen, err := fr.uvarint()
+	if err != nil {
+		return errors.Wrap(err, "key length")
+	}
+	if keyLen == 0 || keyLen > maxKeyLen {
+		return errors.Errorf("key length %d is not 1 to %d", keyLen, maxKeyLen)
+	}
+	key, err := fr.read(keyLen)
+	if err != nil {
+		return errors.Wrap(err, "key")
+	}
+
+	// Read the refs flag and the object.
+	known, err := fr.uvarint()
+	if err != nil {
+		return errors.Wrap(err, "refs flag")
+	}
+	if known > 1 {
+		return errors.Errorf("refs flag %d is not 0 or 1", known)
+	}
+	objLen, err := fr.uvarint()
+	if err != nil {
+		return errors.Wrap(err, "object length")
+	}
+	if objLen > uint64(r.o.PackBytes) { //nolint:gosec // positive.
+		return errors.Errorf("object length %d is past the %d byte pack limit", objLen, r.o.PackBytes)
+	}
+	obj, err := fr.read(objLen)
+	if err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	// Verify the block, and its refs flag against its object.
+	h, stored, err := decodeBlock(key, obj)
+	if err != nil {
+		return err
+	}
+	if stored.RefsKnown != (known == 1) {
+		return errors.Errorf("block %x: refs flag %d, its object's refs known %v", key, known, stored.RefsKnown)
+	}
+	return r.take(key, h, stored, obj)
 }
 
 // sumBlock returns the contents sum of a block and its encoded value as the
@@ -682,6 +826,7 @@ func (r *repacker) print() {
 	_, _ = fmt.Fprintf(w, "blocks in %d unique %d duplicates dropped %d out %d\n", p.BlocksIn, p.BlocksIn-p.Duplicates, p.Duplicates, p.BlocksOut)
 	_, _ = fmt.Fprintf(w, "block bytes in %d unique %d out %d\n", p.DataIn, p.DataUnique, p.DataOut)
 	_, _ = fmt.Fprintf(w, "file bytes in %d out %d\n", p.FilesIn, p.FilesOut)
+	_, _ = fmt.Fprintf(w, "frame files in %d bytes %d\n", p.FrameFiles, p.FrameBytes)
 }
 
 // printSlices prints the output packs, in write order, grouped into slices of

@@ -1,7 +1,8 @@
 // Command spacewave-world-repack writes the blocks of one or more pack sets
 // in the flat adopt layout ({id} and {id}.entry, as hyperline-backend
 // world-adopt-packs reads) into fewer, larger packs in a fresh directory in
-// the same layout.
+// the same layout. It also reads the frame files of hyperline's world
+// block-export, whose blocks it packs as it does the packs' blocks.
 //
 // The inputs are only read. Every block is verified against its ref as it is
 // read, and a ref held by several input packs is written once. The packs are
@@ -34,7 +35,7 @@ const defaultResourceID = "spacewave-world-repack"
 
 // args are the command's flags.
 type args struct {
-	in                []string
+	in, frames        []string
 	out, resourceID   string
 	createdAt         string
 	packMiB, maxBlock uint64
@@ -49,7 +50,8 @@ func main() {
 	app.Name = "spacewave-world-repack"
 	app.Usage = "re-pack adopt-layout pack sets into fewer, larger packs, deterministically, and prove the output equal"
 	app.Flags = []cli.Flag{
-		&cli.StringSliceFlag{Name: "in", Usage: "input directory in the adopt layout, {id} and {id}.entry; repeat for several, merged into one id-sorted list; only read", Required: true},
+		&cli.StringSliceFlag{Name: "in", Usage: "input directory in the adopt layout, {id} and {id}.entry; repeat for several, merged into one id-sorted list; only read"},
+		&cli.StringSliceFlag{Name: "frames", Usage: "input frame file of hyperline's world block-export, read after the --in packs; repeat for several, read in order; only read"},
 		&cli.StringFlag{Name: "out", Usage: "output directory; must not exist or be empty", Destination: &a.out, Required: true},
 		&cli.Uint64Flag{Name: "pack-mib", Usage: "largest output pack file, in MiB, at most 128", Value: maxPackMiB, Destination: &a.packMiB},
 		&cli.Uint64Flag{Name: "max-blocks", Usage: "most blocks in one output pack; a pack is cut at this or --pack-mib, whichever comes first; 0 is no limit", Value: defaultMaxBlocks, Destination: &a.maxBlock},
@@ -60,6 +62,7 @@ func main() {
 	}
 	app.Action = func(c *cli.Context) error {
 		a.in = c.StringSlice("in")
+		a.frames = c.StringSlice("frames")
 		return a.run()
 	}
 
@@ -83,6 +86,7 @@ func (a *args) run() error {
 	// Build the options and run.
 	o := &options{
 		In:         a.in,
+		Frames:     a.frames,
 		Out:        a.out,
 		PackBytes:  int64(a.packMiB) << 20, //nolint:gosec // at most 128.
 		MaxBlocks:  a.maxBlock,

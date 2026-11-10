@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -445,5 +447,188 @@ func TestRepackOutInsideIn(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(in, "out")); err == nil {
 		t.Fatal("an output was made inside the input")
+	}
+}
+
+// frameBlock is a block for a frame file, with its refs and their flag.
+type frameBlock struct {
+	testBlock
+	refs  []*block.BlockRef
+	known bool
+}
+
+// appendFrame appends b as hyperline's world block-export frames it.
+func appendFrame(t *testing.T, buf []byte, b frameBlock) []byte {
+	t.Helper()
+	object, err := block.EncodeBlockObject(b.data, b.refs, b.known)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := packfile.BlockKey(b.ref.GetHash())
+	var known uint64
+	if b.known {
+		known = 1
+	}
+	buf = binary.AppendUvarint(buf, uint64(len(key)))
+	buf = append(buf, key...)
+	buf = binary.AppendUvarint(buf, known)
+	buf = binary.AppendUvarint(buf, uint64(len(object)))
+	return append(buf, object...)
+}
+
+// writeFrames writes blks as one frame file at path.
+func writeFrames(t *testing.T, path string, blks []frameBlock) {
+	t.Helper()
+	var buf []byte
+	for _, b := range blks {
+		buf = appendFrame(t, buf, b)
+	}
+	if err := os.WriteFile(path, buf, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// frameOpts returns options re-packing the frame files into out.
+func frameOpts(in, frames []string, out string) *options {
+	o := testOpts(in, out, 1<<20)
+	o.Frames = frames
+	at := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
+	o.CreatedAt = &at
+	return o
+}
+
+// TestRepackFrames re-packs a frame file of refs-known and refs-unknown
+// blocks, proves it, and keeps each block's refs and their flag.
+func TestRepackFrames(t *testing.T) {
+	// Write five blocks: three refs known, one with refs, two unknown.
+	rng := rand.New(rand.NewPCG(21, 22))
+	root := t.TempDir()
+	blks := newBlocks(t, rng, 5, 400)
+	frames := []frameBlock{
+		{testBlock: blks[0], known: true},
+		{testBlock: blks[1], known: true, refs: []*block.BlockRef{blks[0].ref}},
+		{testBlock: blks[2], known: false},
+		{testBlock: blks[3], known: true},
+		{testBlock: blks[4], known: false},
+	}
+	path := filepath.Join(root, "blocks.frames")
+	writeFrames(t, path, frames)
+
+	// Re-pack and prove it.
+	var log bytes.Buffer
+	o := frameOpts(nil, []string{path}, filepath.Join(root, "out"))
+	o.Log = &log
+	rep, err := run(o)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, log.String())
+	}
+	if rep.FrameFiles != 1 || rep.BlocksIn != 5 || rep.BlocksOut != 5 || rep.Duplicates != 0 || rep.PacksOut != 1 || !strings.Contains(log.String(), "proof ok") {
+		t.Fatalf("report %+v\n%s", rep, log.String())
+	}
+
+	// The output pack holds each block with its refs and flag.
+	want := make(map[string]frameBlock)
+	for _, f := range frames {
+		want[string(packfile.BlockKey(f.ref.GetHash()))] = f
+	}
+	data, err := os.ReadFile(filepath.Join(o.Out, rep.Packs[0].id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rdr, err := kvfile.BuildReader(bytes.NewReader(data), uint64(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rdr.ScanPrefix(nil, func(key, value []byte) error {
+		_, stored, err := packfile.DecodeBlockValue(key, value)
+		if err != nil {
+			return err
+		}
+		f := want[string(key)]
+		if stored.RefsKnown != f.known || len(stored.Refs) != len(f.refs) {
+			t.Errorf("block %x: refs known %v refs %d, want %v %d", key, stored.RefsKnown, len(stored.Refs), f.known, len(f.refs))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRepackFramesBadHash fails on a frame whose bytes do not match its key.
+func TestRepackFramesBadHash(t *testing.T) {
+	// The second frame names the first block's hash for its own bytes.
+	rng := rand.New(rand.NewPCG(23, 24))
+	root := t.TempDir()
+	blks := newBlocks(t, rng, 2, 300)
+	bad := frameBlock{testBlock: testBlock{ref: blks[0].ref, data: blks[1].data}, known: true}
+	path := filepath.Join(root, "blocks.frames")
+	writeFrames(t, path, []frameBlock{{testBlock: blks[0], known: true}, bad})
+
+	// The run fails, naming the frame.
+	_, err := run(frameOpts(nil, []string{path}, filepath.Join(root, "out")))
+	if err == nil || !strings.Contains(err.Error(), "frame at offset") {
+		t.Fatalf("bad hash taken: %v", err)
+	}
+}
+
+// TestRepackFramesTruncated fails on a frame cut short, on a bad refs flag,
+// and on a flag that disagrees with the object, naming the frame's offset.
+func TestRepackFramesTruncated(t *testing.T) {
+	// Write two frames, then cut the second.
+	rng := rand.New(rand.NewPCG(25, 26))
+	root := t.TempDir()
+	blks := newBlocks(t, rng, 2, 300)
+	first := appendFrame(t, nil, frameBlock{testBlock: blks[0], known: true})
+	whole := appendFrame(t, bytes.Clone(first), frameBlock{testBlock: blks[1], known: false})
+	offset := "frame at offset " + strconv.Itoa(len(first))
+	cases := map[string][]byte{
+		"cut object": whole[:len(whole)-5],
+		"cut header": whole[:len(first)+3],
+		"garbage":    append(bytes.Clone(first), 0xff),
+	}
+
+	// A refs flag of 2, and a flag of 1 for a refs-unknown object.
+	flag := len(first) + 1 + maxKeyLen
+	two := bytes.Clone(whole)
+	two[flag] = 2
+	cases["flag 2"] = two
+	lie := bytes.Clone(whole)
+	lie[flag] = 1
+	cases["flag disagrees"] = lie
+
+	// Each fails, naming the second frame.
+	for name, data := range cases {
+		path := filepath.Join(root, strings.ReplaceAll(name, " ", "-"))
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		_, err := run(frameOpts(nil, []string{path}, filepath.Join(root, "out-"+filepath.Base(path))))
+		if err == nil || !strings.Contains(err.Error(), offset) {
+			t.Errorf("%s: %v", name, err)
+		}
+		t.Logf("%s: %v", name, err)
+	}
+}
+
+// TestRepackFramesDuplicate drops a frame's block an input pack also holds,
+// in a run of a pack directory and a frame file.
+func TestRepackFramesDuplicate(t *testing.T) {
+	// A pack of three blocks, and frames of one of them and a new one.
+	rng := rand.New(rand.NewPCG(27, 28))
+	root := t.TempDir()
+	in := filepath.Join(root, "in")
+	blks := newBlocks(t, rng, 4, 500)
+	writeInput(t, in, blks[:3])
+	path := filepath.Join(root, "blocks.frames")
+	writeFrames(t, path, []frameBlock{{testBlock: blks[1], known: true}, {testBlock: blks[3], known: false}})
+
+	// The output holds the four distinct blocks.
+	rep, err := run(frameOpts([]string{in}, []string{path}, filepath.Join(root, "out")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.PacksIn != 1 || rep.FrameFiles != 1 || rep.BlocksIn != 5 || rep.Duplicates != 1 || rep.BlocksOut != 4 || rep.DataOut != 4*500 {
+		t.Fatalf("report %+v", rep)
 	}
 }
