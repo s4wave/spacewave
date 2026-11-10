@@ -1,0 +1,215 @@
+package main
+
+import (
+	"bytes"
+	"encoding/binary"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"testing"
+	"time"
+)
+
+// scanFile runs scanCheck on path with small reader and stream counts.
+func scanFile(t *testing.T, path string) ccResult {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	st, _ := f.Stat()
+	h, err := readHeader(f, st.Size())
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := scanCheck(f, h, ccOpts{readers: 4, streams: 3, parsers: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res
+}
+
+// makeBigIndex builds a world table with an index on large tags, so index
+// interior and index leaf cells overflow, and frees some pages.
+func makeBigIndex(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "big.db")
+	db := openDB(t, path)
+	defer db.Close()
+	for _, s := range []string{
+		"PRAGMA page_size=4096",
+		"PRAGMA journal_mode=WAL",
+		"CREATE TABLE world ( key BLOB PRIMARY KEY, value BLOB, tag BLOB)",
+		"CREATE INDEX big ON world(tag) WHERE tag IS NOT NULL",
+	} {
+		mustExec(t, db, s)
+	}
+
+	// Insert mostly small rows, some large values and some large tags.
+	rng := rand.New(rand.NewSource(2))
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 6000; i++ {
+		k, v := make([]byte, 32), make([]byte, 100+rng.Intn(300))
+		if i%25 == 0 {
+			v = make([]byte, 6000+rng.Intn(8000))
+		}
+		var tag []byte
+		if i%10 == 3 {
+			tag = make([]byte, 1200+rng.Intn(2000))
+			rng.Read(tag)
+		}
+		rng.Read(k)
+		rng.Read(v)
+		if _, err := tx.Exec("INSERT INTO world VALUES(?,?,?)", k, v, tag); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Free pages and fold the WAL into the file.
+	mustExec(t, db, "DELETE FROM world WHERE rowid%7=2")
+	mustExec(t, db, "PRAGMA wal_checkpoint(TRUNCATE)")
+	return path
+}
+
+// TestScanParity: on clean files the scan gives the walk's verdict and counts.
+func TestScanParity(t *testing.T) {
+	for name, mk := range map[string]func(*testing.T) string{
+		"world":    func(t *testing.T) string { return makeWorld(t, 4096, 3000) },
+		"bigindex": makeBigIndex,
+	} {
+		t.Run(name, func(t *testing.T) {
+			// Run both checks on the same file.
+			path := mk(t)
+			walk, scan := crosscheckFile(t, path), scanFile(t, path)
+			if walk.failed() || scan.failed() {
+				t.Fatalf("walk %v scan %v", walk.failReasons(), scan.failReasons())
+			}
+
+			// Compare every count.
+			if walk.reached != scan.reached || walk.free != scan.free || walk.lockPage != scan.lockPage ||
+				walk.kinds != scan.kinds || walk.leafCells != scan.leafCells || len(walk.byType) != len(scan.byType) {
+				t.Fatalf("walk reached %d free %d kinds %v cells %d types %v; scan reached %d free %d kinds %v cells %d types %v",
+					walk.reached, walk.free, walk.kinds, walk.leafCells, walk.byType, scan.reached, scan.free, scan.kinds, scan.leafCells, scan.byType)
+			}
+			for k, n := range walk.byType {
+				if scan.byType[k] != n {
+					t.Fatalf("type 0x%02x: walk %d scan %d", k, n, scan.byType[k])
+				}
+			}
+		})
+	}
+}
+
+// longChain finds the first page of an overflow chain of at least two pages,
+// from the cells of in-use table leaves.
+func longChain(t *testing.T, path string) uint32 {
+	t.Helper()
+	h, w := fileHeader(t, path)
+	free := slices.Concat(w.trunks, w.leaves)
+	for pg := uint32(2); pg <= h.dbPages; pg++ {
+		if slices.Contains(free, pg) {
+			continue
+		}
+		r := parsePage(h, ccItem{pg: pg, kind: kindTree}, readPages(t, path, h, []uint32{pg})[0])
+		for _, c := range r.children {
+			if r.bad == "" && r.ptype == 0x0d && c.kind == kindOverflow && c.left >= 2 {
+				return c.pg
+			}
+		}
+	}
+	t.Fatal("no chain of two pages")
+	return 0
+}
+
+// patch writes b at off in path.
+func patch(t *testing.T, path string, off int64, b []byte) {
+	t.Helper()
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteAt(b, off); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestScanFaults: the scan fails with the right reason on planted faults.
+func TestScanFaults(t *testing.T) {
+	// A freelist leaf entry that is also an overflow chain page.
+	t.Run("free", func(t *testing.T) {
+		path := makeWorld(t, 4096, 3000)
+		target := crosscheckFile(t, path).firstOfKind[kindOverflow]
+		listAsFree(t, path, target)
+		res := scanFile(t, path)
+		if len(res.conflicts) != 1 || res.conflicts[0].page != target || res.conflicts[0].dup || !strings.Contains(strings.Join(res.failReasons(), ","), "unexplained conflicts 1") {
+			t.Fatalf("conflicts %+v reasons %v", res.conflicts, res.failReasons())
+		}
+	})
+
+	// A chain cut short: its first page's next pointer is 0.
+	t.Run("cut", func(t *testing.T) {
+		path := makeBigIndex(t)
+		h, _ := fileHeader(t, path)
+		head := longChain(t, path)
+		patch(t, path, int64(head-1)*h.pageSize, make([]byte, 4))
+		res := scanFile(t, path)
+		if len(res.bad) != 1 || res.bad[0].page != head || !strings.Contains(res.bad[0].err, "ends") || !slices.Contains(res.failReasons(), "bad-unexplained 1") {
+			t.Fatalf("bad %+v reasons %v", res.bad, res.failReasons())
+		}
+	})
+
+	// Two tree parents: the root's right child repeats its first child.
+	t.Run("dup", func(t *testing.T) {
+		path := makeWorld(t, 4096, 3000)
+		db := openDB(t, path)
+		var root uint32
+		if err := db.QueryRow("SELECT rootpage FROM sqlite_master WHERE name='t'").Scan(&root); err != nil {
+			t.Fatal(err)
+		}
+		db.Close()
+		h, _ := fileHeader(t, path)
+		rp := readPages(t, path, h, []uint32{root})[0]
+		first := binary.BigEndian.Uint32(rp[binary.BigEndian.Uint16(rp[12:]):])
+		patch(t, path, int64(root-1)*h.pageSize+8, binary.BigEndian.AppendUint32(nil, first))
+		res := scanFile(t, path)
+		var dup bool
+		for _, c := range res.conflicts {
+			dup = dup || (c.dup && c.page == first)
+		}
+		if !dup || !res.failed() || res.sanityMatch() {
+			t.Fatalf("conflicts %+v reasons %v", res.conflicts, res.failReasons())
+		}
+	})
+}
+
+// TestScanProbe: a probe projecting past its limit stops phase 2 as an
+// interrupt, with the projection in the partial report.
+func TestScanProbe(t *testing.T) {
+	// Pace phase 2 so the probe fires mid-pass.
+	path := makeWorld(t, 4096, 3000)
+	f, _ := os.Open(path)
+	defer f.Close()
+	st, _ := f.Stat()
+	h, _ := readHeader(f, st.Size())
+	res, err := scanCheck(f, h, ccOpts{readers: 2, streams: 2, parsers: 1, mbps: 2, probeAt: 50 * time.Millisecond, probeLimit: time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The run is interrupted and says why.
+	var out bytes.Buffer
+	res.printPartial(&out)
+	if !res.interrupted || !res.probe.stopped || !strings.Contains(out.String(), "over, stopping") {
+		t.Fatalf("interrupted %v probe %+v:\n%s", res.interrupted, res.probe, out.String())
+	}
+}

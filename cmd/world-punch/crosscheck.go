@@ -79,6 +79,12 @@ type ccOpts struct {
 	// the recheck and late walk are skipped, and the result is marked
 	// interrupted.
 	interrupt <-chan struct{}
+	// streams is the number of parallel sequential streams of scanCheck,
+	// parsers its parse workers.
+	streams, parsers int
+	// probeLimit, if set, stops scanCheck when probeAt (default a minute)
+	// into phase 2 its projected phase 2 time exceeds it.
+	probeLimit, probeAt time.Duration
 }
 
 type ccResult struct {
@@ -101,6 +107,15 @@ type ccResult struct {
 	serial      time.Duration // sort and enqueue between rounds, outside reads
 	interrupted bool
 	elapsed     time.Duration
+
+	// Set by scanCheck only.
+	phase       string           // phase an interrupt stopped
+	phaseTimes  [3]time.Duration // interior walk, sequential scan, chains
+	scanReads   int64            // phase 2 reads, counted in reads
+	scanBytes   int64            // phase 2 bytes
+	chainInTree int              // chain pages that are b-tree or leaf pages
+	pass        scanPassStats
+	probe       scanProbeResult
 	unaccPages  []uint32
 	unaccFreed  uint64 // unaccounted pages on a later freelist snapshot
 	freeTrunks  uint64
@@ -191,6 +206,9 @@ func (r *ccResult) printPartial(out io.Writer) {
 	if r.inUse > 0 {
 		pct = 100 * float64(r.readPages) / float64(r.inUse)
 	}
+	if r.phase != "" {
+		fmt.Fprintf(out, "scan stopped in %s\n", r.phase)
+	}
 	fmt.Fprintf(out, "INTERRUPTED at round %d: read %d pages (%.1f%% of %d in use) in %d reads (%.2f pages per read)\n",
 		r.rounds, r.readPages, pct, r.inUse, r.reads, r.avgRead())
 
@@ -223,6 +241,29 @@ func (r *ccResult) printPartial(out io.Writer) {
 	// Conclude nothing from a partial walk.
 	fmt.Fprintf(out, "result: INCOMPLETE (interrupted, nothing concluded)\n")
 	r.printRead(out)
+}
+
+// printScan prints the scan's phase times and total, the parse workers'
+// rate and queue, and chain pages found in the b-tree or leaf sets.
+func (r *ccResult) printScan(out io.Writer) {
+	// Phase times and total.
+	p := r.pass
+	fmt.Fprintf(out, "scan: phase 1 (interior walk) %s, phase 2 (sequential scan) %s at %.1f MB/s in %d reads, phase 3 (chains) %s, total %s\n",
+		r.phaseTimes[0].Round(time.Millisecond), r.phaseTimes[1].Round(time.Millisecond),
+		float64(r.scanBytes)/1e6/max(r.phaseTimes[1].Seconds(), 1e-9), r.scanReads,
+		r.phaseTimes[2].Round(time.Millisecond), r.elapsed.Round(time.Millisecond))
+
+	// Parse rate per busy worker and whether the queue ever filled.
+	rate := 0.0
+	if p.parsers > 0 && p.parseBusy > 0 {
+		rate = float64(p.parsePages) / p.parseBusy.Seconds()
+	}
+	fmt.Fprintf(out, "scan parse: %d workers, %.0f pages/s per worker while busy, busy %s of %s per worker; queue full on %d of %d handoffs\n",
+		p.parsers, rate, (p.parseBusy / time.Duration(max(p.parsers, 1))).Round(time.Millisecond), r.phaseTimes[1].Round(time.Millisecond), p.queueFull, p.handoffs)
+	fmt.Fprintf(out, "scan: chain pages in the tree or leaf set %d\n", r.chainInTree)
+	if r.probe.line != "" {
+		fmt.Fprintln(out, r.probe.line)
+	}
 }
 
 // printRead prints the read totals and rates.

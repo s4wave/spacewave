@@ -15,6 +15,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -32,6 +33,10 @@ type opts struct {
 	mbps     float64
 	mbpsFile string
 	readers  int
+	scan     bool
+	streams  int
+	parsers  int
+	probeLim time.Duration
 }
 
 func main() {
@@ -44,6 +49,12 @@ func main() {
 	flag.Float64Var(&o.mbps, "mbps", 100, "-crosscheck read cap in MB/s, 0 for none")
 	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread every second; a number in it replaces the -mbps cap")
 	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers (reads in flight), 1 to 1024")
+
+	// Define the -scan flags.
+	flag.BoolVar(&o.scan, "scan", false, "-crosscheck of a stopped file: walk interior pages, then read the file once in page order; refuses a nonempty -wal")
+	flag.IntVar(&o.streams, "streams", 32, "-scan parallel sequential streams of 1 MiB reads, 1 to 1024")
+	flag.IntVar(&o.parsers, "parsers", runtime.NumCPU(), "-scan parse workers fed by the streams through a bounded queue")
+	flag.DurationVar(&o.probeLim, "probe-limit", 0, "-scan: a minute into the sequential pass, stop (exit 4) if its projected time over the whole file exceeds this; 0 for no probe")
 
 	// Parse them and take the one database path.
 	flag.Usage = func() {
@@ -67,6 +78,10 @@ func main() {
 		err = errors.New("pick one of -live and -crosscheck")
 	case o.cross && (o.readers < 1 || o.readers > 1024):
 		err = errors.Errorf("-readers %d: want 1 to 1024", o.readers)
+	case o.scan && !o.cross:
+		err = errors.New("-scan needs -crosscheck")
+	case o.scan && (o.streams < 1 || o.streams > 1024):
+		err = errors.Errorf("-streams %d: want 1 to 1024", o.streams)
 	case o.cross:
 		var code int
 		code, err = runCrosscheck(os.Stdout, o, interruptOnSignal())
@@ -137,6 +152,13 @@ func runLive(out io.Writer, o opts) error {
 // code 0 on PASS, 3 on FAIL (see failReasons) and 4 when interrupt closed
 // before the check finished; then it prints a partial report.
 func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error) {
+	// A scan reads only the main file, so it refuses a WAL with frames.
+	if o.scan {
+		if st, err := os.Stat(o.path + "-wal"); err == nil && st.Size() != 0 {
+			return 0, errors.Errorf("-scan is for stopped files: %s-wal is %d bytes; checkpoint it (wal_checkpoint(TRUNCATE)) and stop every writer first", o.path, st.Size())
+		}
+	}
+
 	// Open the file read-only and read its header.
 	f, err := os.Open(o.path)
 	if err != nil {
@@ -159,7 +181,7 @@ func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error
 	}
 
 	// Serve tree reads from O_DIRECT when the file system allows it.
-	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, snapEvery: 10 * time.Second, out: out, interrupt: interrupt}
+	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, snapEvery: 10 * time.Second, out: out, interrupt: interrupt, streams: o.streams, parsers: o.parsers, probeLimit: o.probeLim}
 	if d, err := openDirect(o.path); err == nil {
 		defer d.Close()
 		co.bulk = d
@@ -168,11 +190,21 @@ func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error
 		fmt.Fprintln(out, "tree reads use the page cache:", err)
 	}
 
-	// Walk, then report partially if interrupted, else in full.
-	res, err := crosscheck(f, h, co)
+	// Walk or scan, printing the scan's phase lines.
+	check := crosscheck
+	if o.scan {
+		fmt.Fprintln(out, "SCAN: interior walk, then one sequential pass with", o.streams, "streams and", o.parsers, "parse workers")
+		check = scanCheck
+	}
+	res, err := check(f, h, co)
 	if err != nil {
 		return 0, err
 	}
+	if o.scan {
+		res.printScan(out)
+	}
+
+	// Report partially if interrupted, else in full.
 	if res.interrupted {
 		res.printPartial(out)
 		return 4, nil
