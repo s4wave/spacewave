@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/util/diskfree"
 )
 
 // readBufferSize is the read buffer of each run during the merge.
@@ -96,11 +97,11 @@ func New(parent string, budget int) *Sorter {
 // and Close removes the runs.
 func (s *Sorter) Reserve(n int64) error {
 	// Compare the parent's free bytes with the runs plus the margin.
-	free, err := freeBytes(s.parent)
+	free, err := diskfree.Bytes(s.parent)
 	if err != nil {
 		return errors.Wrapf(err, "extsort: free space of %s", s.parent)
 	}
-	need := n + max(n/4, minMargin)
+	need := uint64(n + max(n/4, minMargin)) //nolint:gosec // n counts bytes, never negative.
 	if free < need {
 		return errors.Wrapf(ErrNoSpace, "%d bytes free in %s, need %d", free, s.parent, need)
 	}

@@ -219,6 +219,19 @@ export interface RegenConfig {
    * Defaults to 4096.
    */
   swapChanges?: number
+  /**
+   * FloorDir is a directory on the file system holding the World's Volume.
+   * The build keeps free disk there, and in spill_dir, above floor_bytes.
+   * Required with a target that builds.
+   */
+  floorDir?: string
+  /**
+   * FloorBytes is the least free disk the build leaves on the file systems of
+   * floor_dir and spill_dir. Below it the build stops before the switch and
+   * the old tree stays live.
+   * Defaults to 4 GiB.
+   */
+  floorBytes?: bigint
 }
 
 export const RegenConfig: MessageType<RegenConfig> =
@@ -229,6 +242,8 @@ export const RegenConfig: MessageType<RegenConfig> =
       [2, 'spill_dir', 9],
       [3, 'budget_bytes', 4],
       [4, 'swap_changes', 13],
+      [5, 'floor_dir', 9],
+      [6, 'floor_bytes', 4],
     ],
   )
 

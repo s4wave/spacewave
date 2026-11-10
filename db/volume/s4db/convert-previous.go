@@ -16,6 +16,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/s4wave/spacewave/db/s4db/s4dbv1"
+	"github.com/s4wave/spacewave/db/util/diskfree"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
@@ -86,7 +87,7 @@ func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr
 
 	// Refuse when the disk cannot hold the new file beside the old. A person
 	// has to free disk or move the file, so the failure is permanent.
-	free, err := freeDiskBytes(path)
+	free, err := diskfree.Bytes(filepath.Dir(path))
 	if err == nil {
 		err = checkConvertSpace(src.LiveBytes(), free)
 	}

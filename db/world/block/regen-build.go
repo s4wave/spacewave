@@ -58,6 +58,13 @@ type RegenConfig struct {
 	// writer turn. A catch-up round that leaves more runs again off the turn,
 	// so a commit waits at most for a diff of this size.
 	SwapChanges int
+	// FloorDir is a directory on the file system holding the Volume, whose
+	// free disk the build keeps above FloorBytes, as it does SpillDir's.
+	FloorDir string
+	// FloorBytes is the least free disk the build leaves on the file systems
+	// of FloorDir and SpillDir; below it the build stops with ErrRegenFloor
+	// before the switch, and the old tree stays live. Zero sets no floor.
+	FloorBytes uint64
 }
 
 // newSorter removes the runs a killed regeneration left in SpillDir and opens
@@ -77,7 +84,8 @@ func (c RegenConfig) newSorter() (*extsort.Sorter, error) {
 // keeps its old ID, so the build holds no map from old IDs to new.
 //
 // The build reads only root. Its memory is cfg.Budget plus the sort's read
-// buffers, and its disk the sort's runs, reserved before it starts. It writes
+// buffers, and its disk the sort's runs, reserved before it starts, and the
+// new tree, both kept above the config's floor as they are written. It writes
 // blocks through store, or bucketCursor's transaction store when store is nil,
 // and publishes nothing.
 func buildNodeGraphRoot(
@@ -101,6 +109,12 @@ func buildNodeGraphRoot(
 		return nil, errors.Errorf("regenerate a %v World", f)
 	}
 
+	// Refuse a disk already below the floor.
+	floor := newRegenFloor(cfg)
+	if err := floor.check(); err != nil {
+		return nil, err
+	}
+
 	// Sort the old graph's nodes and quads into the new key order.
 	sorter, err := cfg.newSorter()
 	if err != nil {
@@ -108,12 +122,12 @@ func buildNodeGraphRoot(
 	}
 	defer sorter.Close()
 	builder := kvtx_cayley_nodegraph.NewBuilder(sorter)
-	if err := addKvGraph(ctx, worldCursor, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget)); err != nil {
+	if err := addKvGraph(ctx, worldCursor, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget), floor); err != nil {
 		return nil, err
 	}
 
 	// Write the sorted keys as the new graph tree under the World.
-	if err := writeBuiltGraph(ctx, worldCursor, builder); err != nil {
+	if err := writeBuiltGraph(ctx, worldCursor, builder, floor); err != nil {
 		return nil, errors.Wrap(err, "write node graph")
 	}
 
@@ -129,8 +143,8 @@ func buildNodeGraphRoot(
 }
 
 // writeBuiltGraph writes builder's key stream as a new OKRA_INLINE tree and
-// sets it as worldCursor's graph sub-block.
-func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kvtx_cayley_nodegraph.Builder) error {
+// sets it as worldCursor's graph sub-block, counting the stream against floor.
+func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kvtx_cayley_nodegraph.Builder, floor *regenFloor) error {
 	// Open an empty tree on a detached cursor.
 	cursor := worldCursor.Detach(false)
 	cursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE), true)
@@ -143,6 +157,9 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 	var writeErr error
 	err = graphTx.(*kvtx_block_okra.Tx).ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
 		writeErr = builder.Write(ctx, func(key, value []byte) error {
+			if err := floor.wrote(int64(len(key) + len(value))); err != nil {
+				return err
+			}
 			if !yield(key, value) {
 				return context.Canceled
 			}
@@ -164,7 +181,8 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 }
 
 // addKvGraph adds every node and quad of the kv graph under worldCursor to
-// builder, reserving the sort's disk first when the graph exceeds budget.
+// builder, reserving the sort's disk first when the graph exceeds budget and
+// counting each spilled run against floor.
 func addKvGraph(
 	ctx context.Context,
 	worldCursor *block.Cursor,
@@ -172,6 +190,7 @@ func addKvGraph(
 	sorter *extsort.Sorter,
 	builder *kvtx_cayley_nodegraph.Builder,
 	budget int64,
+	floor *regenFloor,
 ) error {
 	// Open the old graph tree read-only, and its quad store for the counts.
 	gtx, err := kvtx_block.BuildKvTransaction(ctx, worldCursor.FollowSubBlock(2), false)
@@ -200,14 +219,32 @@ func addKvGraph(
 	// Walk the log once, through the adapter kvtx_cayley.NewGraph opens the
 	// graph with; nodes keep their IDs.
 	logStore := flat.Upgrade(hidalgo.NewKV(kvtx.NewTxStore(gtx)))
+	var spilled int64
 	return cayley_kv.WalkLog(ctx, logStore, func(p *proto.Primitive) error {
-		if !p.IsNode() {
-			return builder.AddQuad(p.GetSubject(), p.GetPredicate(), p.GetObject(), p.GetLabel())
+		// Add the node or quad.
+		if err := addPrimitive(builder, p); err != nil {
+			return err
 		}
-		v := &pquads.Value{}
-		if err := v.UnmarshalVT(p.GetValue()); err != nil {
-			return errors.Wrapf(err, "node %d", p.GetID())
+
+		// Count a run the add spilled against the floor.
+		n := sorter.Spilled()
+		if n == spilled {
+			return nil
 		}
-		return builder.AddNode(p.GetID(), v)
+		err := floor.wrote(n - spilled)
+		spilled = n
+		return err
 	})
+}
+
+// addPrimitive adds one node or quad of the kv graph's log to builder.
+func addPrimitive(builder *kvtx_cayley_nodegraph.Builder, p *proto.Primitive) error {
+	if !p.IsNode() {
+		return builder.AddQuad(p.GetSubject(), p.GetPredicate(), p.GetObject(), p.GetLabel())
+	}
+	v := &pquads.Value{}
+	if err := v.UnmarshalVT(p.GetValue()); err != nil {
+		return errors.Wrapf(err, "node %d", p.GetID())
+	}
+	return builder.AddNode(p.GetID(), v)
 }

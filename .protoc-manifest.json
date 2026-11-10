@@ -2303,7 +2303,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
-      "hash": "5a2982b397cb402788f162b67d28acadab135c8d167efdfb2f2ea80c8e799b23",
+      "hash": "a937372a84ad4ffc5282db7a702ce1e21d8edc5cc4e09af0dfa9802bb21f715a",
       "generatedFiles": [
         "db/store/kvtx/kvtx.pb.go",
         "db/store/kvtx/kvtx.pb.ts"
@@ -2601,7 +2601,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/block/engine": {
-      "hash": "56a58c4fc6f4284b99b9027e8a35c579736285237a77cb339f0d4343a8e50630",
+      "hash": "4909d9a1338467b70c77c7bc7b82f0ed6442a25e82044ca04116cef807e48f47",
       "generatedFiles": [
         "db/world/block/engine/engine.pb.go",
         "db/world/block/engine/engine.pb.ts"
