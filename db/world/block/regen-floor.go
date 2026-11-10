@@ -21,8 +21,9 @@ const regenFloorCheckBytes = 1 << 20
 // system of any of its directories. It counts what the build writes and
 // measures free disk at the start and after each regenFloorCheckBytes, so
 // whatever else fills the disk meanwhile, such as the store's write-ahead
-// log or the users' own writes, counts against the floor too. A nil floor
-// never stops the build. It is used from one goroutine.
+// log or the users' own writes, counts against the floor too. Each catch-up
+// round checks it once before it starts. A nil floor never stops the build.
+// It is used from one goroutine.
 type regenFloor struct {
 	// dirs are directories on each file system the build fills.
 	dirs []string
