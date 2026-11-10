@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -140,6 +141,11 @@ func runSelftest(o opts) error {
 		}
 	}
 
+	// Closing a read of a file with a non-empty WAL writes nothing to it.
+	if err := roCloseLeavesWAL(dir); err != nil {
+		return err
+	}
+
 	// All checks passed.
 	fmt.Println("selftest: ok")
 	return nil
@@ -169,6 +175,69 @@ func heldSourceRefused(o opts, out string) error {
 		return fmt.Errorf("copy refused but wrote %s", out)
 	}
 	fmt.Printf("held source: copy refused: %v\n", err)
+	return nil
+}
+
+// roCloseLeavesWAL checks that openRO on a file whose WAL holds a commit
+// reads that commit and, on close, neither checkpoints it into the main file
+// nor removes the WAL.
+func roCloseLeavesWAL(dir string) error {
+	// Commit a row that stays only in the WAL, and copy the main file and
+	// WAL aside while the writer still has them open.
+	src, path := filepath.Join(dir, "walsrc.db"), filepath.Join(dir, "wal.db")
+	w, err := sql.Open("sqlite", "file:"+src+"?_pragma=journal_mode(WAL)&_pragma=wal_autocheckpoint(0)")
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	w.SetMaxOpenConns(1)
+	for _, q := range []string{"CREATE TABLE kv (key BLOB PRIMARY KEY, value BLOB)", "PRAGMA wal_checkpoint(TRUNCATE)", "INSERT INTO kv VALUES (x'01', x'02')"} {
+		if _, err := w.Exec(q); err != nil {
+			return fmt.Errorf("%s: %w", q, err)
+		}
+	}
+	for _, sfx := range []string{"", "-wal"} {
+		b, err := os.ReadFile(src + sfx)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(path+sfx, b, 0o644); err != nil {
+			return err
+		}
+	}
+
+	// Read the copy through openRO and close it.
+	before, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	db, err := openRO(path)
+	if err != nil {
+		return err
+	}
+	var n int64
+	err = db.QueryRow("SELECT count(*) FROM kv").Scan(&n)
+	db.Close()
+	if err != nil {
+		return err
+	}
+
+	// The row was read, the main file is byte for byte unchanged and the
+	// WAL is still there.
+	after, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	wi, err := os.Stat(path + "-wal")
+	switch {
+	case n != 1:
+		return fmt.Errorf("openRO read %d rows, want the 1 in the WAL", n)
+	case !bytes.Equal(before, after):
+		return fmt.Errorf("closing openRO changed the main file: a checkpoint ran")
+	case err != nil || wi.Size() == 0:
+		return fmt.Errorf("closing openRO removed or emptied the WAL: %v", err)
+	}
+	fmt.Printf("non-empty WAL: openRO read it and its close left the main file and the %d byte WAL as they were\n", wi.Size())
 	return nil
 }
 
