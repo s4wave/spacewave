@@ -59,6 +59,7 @@ type bitset []uint64
 func newBitset(n uint32) bitset    { return make(bitset, n/64+1) }
 func (s bitset) has(p uint32) bool { return s[p/64]&(1<<(p%64)) != 0 }
 func (s bitset) set(p uint32)      { s[p/64] |= 1 << (p % 64) }
+func (s bitset) clear(p uint32)    { s[p/64] &^= 1 << (p % 64) }
 
 // walk is one pass over the freelist trunk chain.
 type walk struct {

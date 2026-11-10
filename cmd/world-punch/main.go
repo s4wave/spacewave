@@ -124,7 +124,7 @@ func runCrosscheck(out io.Writer, o opts) (bool, error) {
 	if herr != nil {
 		fmt.Fprintln(out, "header warning:", herr)
 	}
-	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, out: out}
+	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, snapEvery: 10 * time.Second, out: out}
 	if d, err := openDirect(o.path); err == nil {
 		defer d.Close()
 		co.bulk = d
@@ -137,7 +137,7 @@ func runCrosscheck(out io.Writer, o opts) (bool, error) {
 		return false, err
 	}
 	res.print(out)
-	return res.unexplained() > 0, nil
+	return res.failed(), nil
 }
 
 // runLocked is the dry run, and the punch when o.rangeSHA is set.
