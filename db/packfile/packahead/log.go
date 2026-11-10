@@ -305,15 +305,20 @@ func (l *Log) checkReserve(blocks []Block) error {
 		return nil
 	}
 
-	// Measure the free disk and the blocks' bytes.
+	// Measure the free disk and the bytes of the blocks the Log does not
+	// hold, which Append writes; a held block writes nothing.
 	free, err := l.opts.FreeBytes(l.dir)
 	if err != nil {
 		return errors.Wrap(err, "measure free disk")
 	}
 	var need uint64
-	for _, b := range blocks {
-		need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
-	}
+	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, b := range blocks {
+			if !l.holdsLocked(tailOf(b.Key)) {
+				need += uint64(len(b.Key) + len(b.Value)) //nolint:gosec // lengths are not negative.
+			}
+		}
+	})
 	if free < need || free-need < uint64(l.opts.ReserveBytes) { //nolint:gosec // positive.
 		return ErrReserve
 	}

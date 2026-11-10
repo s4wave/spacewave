@@ -49,6 +49,11 @@ func TestAppendReserve(t *testing.T) {
 		}
 	}
 
+	// A block the Log holds writes nothing, so it appends under the reserve.
+	if err := l.Append(ctx, blocks[:1]); err != nil {
+		t.Fatalf("append of a held block under the reserve: %v", err)
+	}
+
 	// Reads go on under the reserve.
 	for _, b := range blocks[:3] {
 		got, ok, err := l.Get(b.Key)
