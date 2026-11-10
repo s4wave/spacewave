@@ -12,5 +12,5 @@ import "net/http"
 func newHTTPClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.MaxIdleConnsPerHost = batchConcurrency
-	return &http.Client{Transport: transport}
+	return &http.Client{Transport: traced(transport)}
 }
