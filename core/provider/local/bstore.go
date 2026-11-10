@@ -93,6 +93,9 @@ type placementState struct {
 	resident *residentOverride
 	// policyWake wakes the eviction loop when the policy changes; nil never.
 	policyWake chan struct{}
+	// evictLatch carries the eviction loop to the low mark across passes and
+	// routine restarts, as EvictLatch describes; only runEviction uses it.
+	evictLatch block_store_writeback.EvictLatch
 	// sqlPrimary reports that the store writes to its SQL backend, which
 	// then holds blocks the reference graph may not track.
 	sqlPrimary bool

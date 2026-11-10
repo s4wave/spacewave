@@ -88,7 +88,7 @@ func newIndexedFallbackTest(t *testing.T) *fallbackTest {
 	f := newFallbackTest(t)
 	index := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	f.open = func() backendStore {
-		store, err := buildS3BlockStore(logrus.NewEntry(logrus.New()), &account_settings.S3Location{
+		store, _, err := buildS3BlockStore(logrus.NewEntry(logrus.New()), &account_settings.S3Location{
 			Endpoint:   strings.TrimPrefix(f.srv.URL, "http://"),
 			Region:     "us-east-1",
 			Bucket:     "spaces",
