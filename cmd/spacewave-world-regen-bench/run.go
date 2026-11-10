@@ -31,6 +31,8 @@ type runArgs struct {
 	Budget int
 	// SwapChanges is the most quad changes the swap applies in the turn.
 	SwapChanges int
+	// Floor is the least free disk the build leaves beside the database.
+	Floor uint64
 	// Rate is the writer's commits a second.
 	Rate float64
 	// Batch is the results in each writer commit.
@@ -56,6 +58,7 @@ func (a *runArgs) BuildFlags() []cli.Flag {
 		&cli.StringFlag{Name: "path", Usage: "database file", Destination: &a.Path, Required: true},
 		&cli.StringFlag{Name: "spill-dir", Usage: "directory for the sort's runs, the database's by default", Destination: &a.SpillDir},
 		&cli.IntFlag{Name: "budget", Usage: "sort memory in bytes", Destination: &a.Budget, Value: 256 << 20},
+		&cli.Uint64Flag{Name: "floor", Usage: "least free disk in bytes the build leaves", Destination: &a.Floor, Value: 4 << 30},
 		&cli.IntFlag{Name: "swap-changes", Usage: "most quad changes the swap applies in the writer turn", Destination: &a.SwapChanges, Value: 4096},
 		&cli.Float64Flag{Name: "rate", Usage: "writer commits a second", Destination: &a.Rate, Value: 0.2},
 		&cli.IntFlag{Name: "batch", Usage: "results per writer commit", Destination: &a.Batch, Value: 32},
@@ -84,7 +87,13 @@ func (a *runArgs) Run(c *cli.Context) error {
 		return err
 	}
 	defer w.Close()
-	cfg := world_block.RegenConfig{SpillDir: a.SpillDir, Budget: a.Budget, SwapChanges: a.SwapChanges}
+	cfg := world_block.RegenConfig{
+		SpillDir:    a.SpillDir,
+		Budget:      a.Budget,
+		SwapChanges: a.SwapChanges,
+		FloorDir:    filepath.Dir(a.Path),
+		FloorBytes:  a.Floor,
+	}
 	if cfg.SpillDir == "" {
 		cfg.SpillDir = filepath.Dir(a.Path)
 	}

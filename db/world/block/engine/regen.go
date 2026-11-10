@@ -14,10 +14,16 @@ import (
 const (
 	defaultRegenBudget      = 256 << 20
 	defaultRegenSwapChanges = 4096
+	// defaultRegenFloor leaves room, after a build stops, for a SQLite
+	// Volume's write-ahead log to reach its forced restart at six times a 512
+	// MiB bound, plus the 1 GiB margin a sort keeps beyond its runs, so users'
+	// writes still fit while the stopped build's blocks wait for collection.
+	defaultRegenFloor = 4 << 30
 )
 
 // Validate checks the regeneration config: a target that builds needs a
-// directory for the sort's runs.
+// directory for the sort's runs and one on the Volume's file system for its
+// floor.
 func (c *RegenConfig) Validate() error {
 	switch c.GetTarget() {
 	case RegenTarget_REGEN_TARGET_NONE, RegenTarget_REGEN_TARGET_SWITCHED_BACK, RegenTarget_REGEN_TARGET_RELEASED:
@@ -25,6 +31,9 @@ func (c *RegenConfig) Validate() error {
 	case RegenTarget_REGEN_TARGET_SWITCHED, RegenTarget_REGEN_TARGET_DONE:
 		if c.GetSpillDir() == "" {
 			return errors.New("spill_dir required to build")
+		}
+		if c.GetFloorDir() == "" {
+			return errors.New("floor_dir required to build")
 		}
 		return nil
 	default:
@@ -34,16 +43,24 @@ func (c *RegenConfig) Validate() error {
 
 // buildConfig returns the Regenerator's config with the defaults applied.
 func (c *RegenConfig) buildConfig() world_block.RegenConfig {
+	// Copy the configured fields.
 	cfg := world_block.RegenConfig{
 		SpillDir:    c.GetSpillDir(),
 		Budget:      int(min(c.GetBudgetBytes(), math.MaxInt)),
 		SwapChanges: int(c.GetSwapChanges()),
+		FloorDir:    c.GetFloorDir(),
+		FloorBytes:  c.GetFloorBytes(),
 	}
+
+	// Fill the fields the config leaves zero.
 	if cfg.Budget == 0 {
 		cfg.Budget = defaultRegenBudget
 	}
 	if cfg.SwapChanges == 0 {
 		cfg.SwapChanges = defaultRegenSwapChanges
+	}
+	if cfg.FloorBytes == 0 {
+		cfg.FloorBytes = defaultRegenFloor
 	}
 	return cfg
 }
