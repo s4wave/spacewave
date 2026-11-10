@@ -1115,11 +1115,15 @@ func (s *PackStore) listEntriesLocked(ctx context.Context) error {
 			}
 		}
 	}
+
+	// Flush the index of the listed entries.
 	if s.index != nil {
 		if err := s.index.flush(ctx); err != nil {
 			return err
 		}
 	}
+
+	// Drop the known entries the listing no longer holds, and publish.
 	var removed []string
 	for id := range known {
 		if !ids[id] {

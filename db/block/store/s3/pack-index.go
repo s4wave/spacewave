@@ -1122,12 +1122,16 @@ func (x *packIndex) writeKeys(ctx context.Context, id string, scan func(func(key
 // slice leaves a row naming the pack, which adoptUploads finds at the next
 // start. A busy store is retried in place.
 func (x *packIndex) markUpload(ctx context.Context, entry *packfile.PackfileEntry) error {
+	// Encode the pack's entry as the row's value.
 	data, err := entry.MarshalVT()
 	if err != nil {
 		return err
 	}
+
+	// Commit the row, retrying a busy store.
 	key := []byte(indexUploadPrefix + entry.GetId())
 	return retryBusy(ctx, func() error {
+		// Set the row in its own transaction.
 		tx, err := x.store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
@@ -1142,8 +1146,10 @@ func (x *packIndex) markUpload(ctx context.Context, entry *packfile.PackfileEntr
 
 // dropUpload deletes the w/ row of a pack whose object is not in the bucket.
 func (x *packIndex) dropUpload(ctx context.Context, id string) error {
+	// Delete the row in its own transaction, retrying a busy store.
 	key := []byte(indexUploadPrefix + id)
 	return retryBusy(ctx, func() error {
+		// Delete the row and commit.
 		tx, err := x.store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
@@ -1160,13 +1166,17 @@ func (x *packIndex) dropUpload(ctx context.Context, id string) error {
 // and whose index never began. A row that does not decode to its pack is
 // returned with only its id set, so the caller can delete it.
 func (x *packIndex) uploads(ctx context.Context) ([]*packfile.PackfileEntry, error) {
+	// Read under one transaction.
 	tx, err := x.store.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
+
+	// Decode each w/ row, keeping only the id of one that does not decode.
 	var entries []*packfile.PackfileEntry
 	err = tx.ScanPrefix(ctx, []byte(indexUploadPrefix), func(key, value []byte) error {
+		// Decode the row, or keep its id alone.
 		id := string(key[len(indexUploadPrefix):])
 		entry := &packfile.PackfileEntry{}
 		if entry.UnmarshalVT(bytes.Clone(value)) != nil || entry.GetId() != id {
