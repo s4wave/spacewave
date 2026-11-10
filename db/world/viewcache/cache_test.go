@@ -903,19 +903,24 @@ func TestRevisionCacheBehindAbandoned(t *testing.T) {
 	}
 }
 
-// TestRevisionCacheBehindError returns a failure of a shared part to every
-// caller, and keeps none of it: a later call computes again.
+// TestRevisionCacheBehindError fails the shared computation of a part: each
+// waiter retries it alone, as Get does, so a caller sees only its own
+// compute's failure, at most one compute per caller, and none of it is kept.
 func TestRevisionCacheBehindError(t *testing.T) {
 	const n = 16
 	cache, _, old := behindSnapshots(t, "part", n+1)
 	ctx := computingCtx(t.Context())
-	boom := errors.New("boom")
 	var calls atomic.Int32
+	var fail atomic.Bool
+	fail.Store(true)
 	release := make(chan struct{})
 	compute := func(context.Context, world.WorldState) (any, error) {
-		if calls.Add(1) == 1 {
+		call := calls.Add(1)
+		if call == 1 {
 			<-release
-			return nil, boom
+		}
+		if fail.Load() {
+			return nil, errors.New("boom " + strconv.Itoa(int(call)))
 		}
 		return 7, nil
 	}
@@ -928,15 +933,27 @@ func TestRevisionCacheBehindError(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 	close(release)
+
+	// Every caller fails with an error no other caller got: its own.
+	seen := make(map[string]bool, n)
 	for range n {
-		if err := <-errs; !errors.Is(err, boom) {
+		err := <-errs
+		if err == nil || seen[err.Error()] {
 			t.Fatal("a caller got", err)
 		}
+		seen[err.Error()] = true
 	}
-	if calls.Load() != 1 {
-		t.Fatal("the failing part was computed", calls.Load(), "times")
+	if got := calls.Load(); got > n {
+		t.Fatal("the failing part was computed", got, "times for", n, "callers")
 	}
-	if got, err := cache.Get(ctx, old[n], "part", compute); err != nil || got != 7 || calls.Load() != 2 {
+	if len(cache.behind) != 0 {
+		t.Fatal("claims leaked:", len(cache.behind))
+	}
+
+	// The failure is not kept: a later call computes again.
+	fail.Store(false)
+	before := calls.Load()
+	if got, err := cache.Get(ctx, old[n], "part", compute); err != nil || got != 7 || calls.Load() != before+1 {
 		t.Fatal("the failure was kept", got, err, calls.Load())
 	}
 }
