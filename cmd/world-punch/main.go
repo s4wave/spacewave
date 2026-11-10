@@ -38,7 +38,7 @@ func main() {
 	flag.StringVar(&o.rangeSHA, "range-sha", "", "punch, if a fresh walk gives this range sha256 from a dry run")
 	flag.BoolVar(&o.live, "live", false, "read a running database read-only: estimates only, no locks, cannot punch")
 	flag.BoolVar(&o.cross, "crosscheck", false, "read-only: walk every b-tree and overflow chain and check none of their pages is on the freelist; no locks, cannot punch")
-	flag.Float64Var(&o.mbps, "mbps", 150, "-crosscheck read cap in MB/s, 0 for none")
+	flag.Float64Var(&o.mbps, "mbps", 100, "-crosscheck read cap in MB/s, 0 for none")
 	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread every second; a number in it replaces the -mbps cap")
 	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers")
 	flag.Usage = func() {
