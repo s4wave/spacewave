@@ -41,14 +41,22 @@ func NewFilter(n uint, p float64) *Filter {
 	}
 }
 
-// From constructs a runtime bloom filter from serialized words.
-func From(words []uint64, m, k uint) *Filter {
+// From constructs a runtime bloom filter from serialized words. It returns nil
+// for an empty filter, and ErrInconsistentBloom if the words hold fewer than m
+// bits, which a lookup would index past.
+func From(words []uint64, m, k uint) (*Filter, error) {
+	// An empty filter is none, and one whose words are short of m is refused.
 	if len(words) == 0 || m == 0 || k == 0 {
-		return nil
+		return nil, nil
 	}
+	if uint64(m) > uint64(len(words))*64 {
+		return nil, ErrInconsistentBloom
+	}
+
+	// Copy the words so the filter owns them.
 	cp := make([]uint64, len(words))
 	copy(cp, words)
-	return &Filter{words: cp, m: m, k: k}
+	return &Filter{words: cp, m: m, k: k}, nil
 }
 
 // NewBloom constructs a new bloom object from an existing bloom.
@@ -94,12 +102,21 @@ func (b *BloomFilter) Clone() *BloomFilter {
 }
 
 // ToBloomFilter converts the bloom block into a BloomFilter.
-// Returns nil if empty.
+// Returns nil if empty or inconsistent.
 func (b *BloomFilter) ToBloomFilter() *Filter {
+	f, _ := b.ParseFilter()
+	return f
+}
+
+// ParseFilter converts the bloom block into a BloomFilter. It returns nil if
+// empty, and ErrInconsistentBloom if its bits are fewer than its size.
+func (b *BloomFilter) ParseFilter() (*Filter, error) {
+	// An empty block holds no filter.
 	if b.IsEmpty() {
-		return nil
+		return nil, nil
 	}
 
+	// Build the filter from the block's words and shape.
 	m := uint(b.GetM())
 	k := uint(b.GetK())
 	return From(b.GetBitSet().GetSet(), m, k)
@@ -181,7 +198,8 @@ func (f *Filter) TestString(key string) bool {
 
 // Copy returns a deep copy of the filter.
 func (f *Filter) Copy() *Filter {
-	return From(f.words, f.m, f.k)
+	cp, _ := From(f.words, f.m, f.k)
+	return cp
 }
 
 // Merge ORs another filter into this filter.

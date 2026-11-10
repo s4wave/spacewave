@@ -1187,7 +1187,11 @@ func (f *coldFixture) addPack(t *testing.T, values []coldValue, falsePositive bo
 
 	// Every absent key becomes a bloom hit only when the test asks for it.
 	if falsePositive {
-		entry.BloomFilter, err = bloom.NewBloom(bloom.From([]uint64{^uint64(0)}, 64, 7)).MarshalVT()
+		filter, err := bloom.From([]uint64{^uint64(0)}, 64, 7)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entry.BloomFilter, err = bloom.NewBloom(filter).MarshalVT()
 		if err != nil {
 			t.Fatal(err)
 		}
