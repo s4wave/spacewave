@@ -226,7 +226,7 @@ func neededPacks(o opts, res *packCheckResult) ([]neededPack, error) {
 	ids := map[uint32]string{}
 	pp := append(bytes.Clone(pre), block_store_s3.PackRowPrefix...)
 	err = scan(pdb, ptable, pp, prefixEnd(pp), o.chunk, 0, true, func(key []byte, _ int64, v []byte) error {
-		num, err := block_store_s3.ParsePackRow(v)
+		num, _, err := block_store_s3.ParsePackRow(v)
 		if err != nil {
 			return fmt.Errorf("p/ row %q: %w", trunc(key), err)
 		}

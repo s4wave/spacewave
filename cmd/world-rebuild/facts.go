@@ -145,6 +145,24 @@ func (o opts) writebackID() string {
 	return provider_local.BlockStoreWritebackObjectStoreID(provider_local.ProviderID, prodAccount, o.storeID)
 }
 
+// idErr refuses a -writeback-id that is not the write-back store of the
+// -store-id block store: production names both by one id, the write-back
+// store's as BlockStoreWritebackObjectStoreID builds it from the provider,
+// account and block store.
+func (o opts) idErr() error {
+	if o.wbID == "" {
+		return nil
+	}
+	head, ok := strings.CutSuffix(o.wbID, "/blk/"+o.storeID+"/writeback")
+	if rest, okp := strings.CutPrefix(head, "p/"); ok && okp {
+		if provider, account, oks := strings.Cut(rest, "/"); oks && provider != "" && account != "" &&
+			provider_local.BlockStoreWritebackObjectStoreID(provider, account, o.storeID) == o.wbID {
+			return nil
+		}
+	}
+	return fmt.Errorf("-writeback-id %q is not the write-back store of block store %q (want p/<provider>/<account>/blk/%s/writeback); refusing", o.wbID, o.storeID, o.storeID)
+}
+
 // ownStore reports whether obj is the write-back object store of the block
 // store rebuilt: its id exactly. Any other write-back store, of another
 // provider, account or block store, is another store's.

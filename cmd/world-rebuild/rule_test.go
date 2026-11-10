@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"testing"
 
+	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -49,6 +51,9 @@ type kvRow struct {
 	value any
 }
 
+// textKeyed is a kvRow value whose row is written with a TEXT key.
+type textKeyed struct{ value any }
+
 // ruleWorld builds the test store with the World rows world and the pack
 // index rows packs (keys after the pack index prefix) added; a row with a
 // nil value deletes the key.
@@ -60,10 +65,15 @@ func ruleWorld(t *testing.T, world, packs []kvRow) opts {
 		for _, r := range rows {
 			k := append(append([]byte{}, pre...), r.key...)
 			var err error
+			var kv any = k
+			v := r.value
+			if tk, ok := v.(textKeyed); ok {
+				kv, v = string(k), tk.value
+			}
 			if r.value == nil {
 				_, err = db.Exec("DELETE FROM kv WHERE key = ?", k)
 			} else {
-				_, err = db.Exec("INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)", k, r.value)
+				_, err = db.Exec("INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)", kv, v)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -334,4 +344,149 @@ func TestNeededOutUniqueSynced(t *testing.T) {
 	if len(ents) != 2 {
 		t.Errorf("dir holds %d files, want needed-out and the old temp", len(ents))
 	}
+}
+
+// TestRuleRefusesStoreCounters checks evictable-bytes and queue-count values
+// the store's own decoders refuse refuse the run: the store reads both as it
+// opens.
+func TestRuleRefusesStoreCounters(t *testing.T) {
+	for name, row := range map[string]kvRow{
+		"evictable-bytes not a number": {own("evictable-bytes"), []byte("x")},
+		"evictable-bytes empty":        {own("evictable-bytes"), []byte{}},
+		"queue-count not a count":      {own("queue-count"), []byte("x")},
+		"queue-count empty":            {own("queue-count"), []byte{}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			mustRefuse(t, ruleWorld(t, []kvRow{row}, nil), name)
+		})
+	}
+}
+
+// TestRuleRefusesWritebackIDMismatch checks a -writeback-id that is not the
+// write-back store of -store-id refuses the run: production derives one
+// from the other.
+func TestRuleRefusesWritebackIDMismatch(t *testing.T) {
+	o := ruleWorld(t, nil, nil)
+	o.wbID = testObjPrefix[len(objsPrefix) : len(testObjPrefix)-1]
+	o.storeID = "other-store"
+	mustRefuse(t, o, "a -writeback-id of another block store than -store-id")
+	o.storeID = defaultStoreID
+	if held, err := copyHolds(t, o, "sqlite", dropBlock.key); err != nil || held {
+		t.Errorf("copy with the matching -writeback-id: held %v, %v; want the drop block dropped", held, err)
+	}
+}
+
+// TestRuleUnindexedPackNeedsEntry checks a block on an unindexed pack with
+// no e/ row is kept, as the pack index's load forgets such a pack, and one
+// whose e/ row does not decode refuses the run.
+func TestRuleUnindexedPackNeedsEntry(t *testing.T) {
+	num := func(x uint32) []byte { return binary.BigEndian.AppendUint32(nil, x) }
+	unindexed := kvRow{[]byte("p/packB"), append(num(2), 0)}
+	o := ruleWorld(t, nil, []kvRow{unindexed, {[]byte("e/packB"), nil}})
+	for _, read := range []string{"raw", "sqlite"} {
+		held, err := copyHolds(t, o, read, dropBlock.key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !held {
+			t.Errorf("copy -read %s dropped a block on an unindexed pack with no entry", read)
+		}
+	}
+	res, err := runCount(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.blocks[vDrop] != nil && res.blocks[vDrop].keys == res.blocks[vUnpacked].keys {
+		t.Errorf("count: drop %+v unpacked %+v", res.blocks[vDrop], res.blocks[vUnpacked])
+	}
+
+	// With its entry the unindexed pack is placed.
+	o = ruleWorld(t, nil, []kvRow{unindexed})
+	if held, err := copyHolds(t, o, "sqlite", dropBlock.key); err != nil || held {
+		t.Errorf("copy of an unindexed pack with its entry: held %v, %v", held, err)
+	}
+
+	// An entry that does not decode refuses.
+	o = ruleWorld(t, nil, []kvRow{unindexed, {[]byte("e/packB"), []byte{0xff, 0xff}}})
+	mustRefuse(t, o, "an unindexed pack's e/ row that does not decode")
+}
+
+// TestRuleSharedPackNumberKept checks a block whose h row names a pack
+// number two p/ rows hold is kept.
+func TestRuleSharedPackNumberKept(t *testing.T) {
+	num := func(x uint32) []byte { return binary.BigEndian.AppendUint32(nil, x) }
+	o := ruleWorld(t, nil, []kvRow{{[]byte("p/packZ"), append(num(2), 1)}})
+	for _, read := range []string{"raw", "sqlite"} {
+		held, err := copyHolds(t, o, read, dropBlock.key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !held {
+			t.Errorf("copy -read %s dropped a block on a shared pack number", read)
+		}
+	}
+	res, err := runCount(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.blocks[vShared] == nil || res.blocks[vShared].keys == 0 {
+		t.Errorf("count: no %q blocks", vShared)
+	}
+}
+
+// TestRuleRefusesTextKey checks a TEXT key refuses count and both copies.
+func TestRuleRefusesTextKey(t *testing.T) {
+	for name, row := range map[string]kvRow{
+		"text block key":  {dropBlock.key, textKeyed{[]byte("x")}},
+		"text marker key": {own("marked/" + dropBlock.b58), textKeyed{[]byte{}}},
+		"text other key":  {[]byte("zz/text"), textKeyed{[]byte("x")}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			mustRefuse(t, ruleWorld(t, []kvRow{row}, nil), "a "+name)
+		})
+	}
+}
+
+// TestRuleRefusesUnsplitKey checks an object store key that does not split
+// into a store and its key refuses the run.
+func TestRuleRefusesUnsplitKey(t *testing.T) {
+	for _, key := range []string{
+		"h/objs/a/writeback/copy/b/writeback/epoch",
+		"h/objs/writeback/x/marked/" + dropBlock.b58,
+	} {
+		t.Run(key, func(t *testing.T) {
+			mustRefuse(t, ruleWorld(t, []kvRow{{[]byte(key), []byte("1")}}, nil), "an unsplit key")
+		})
+	}
+}
+
+// TestRuleRefusesFormerLayout checks keys of the store's layouts before the
+// upload queue refuse the run: the store drops them at open and backfills
+// their blocks again.
+func TestRuleRefusesFormerLayout(t *testing.T) {
+	for _, rest := range []string{"pending/" + dropBlock.b58, "target", "queue-pending", "queue-pending/" + dropBlock.b58} {
+		t.Run(rest, func(t *testing.T) {
+			mustRefuse(t, ruleWorld(t, []kvRow{{own(rest), []byte("1")}}, nil), "a former layout key "+rest)
+		})
+	}
+}
+
+// TestRuleRefusesNonCanonicalMarker checks a marked/ key whose hash decodes
+// but is not the marker key of that hash refuses the run: the pass looks
+// the marker up by MarkedKey and would never find it.
+func TestRuleRefusesNonCanonicalMarker(t *testing.T) {
+	// The hash record with its fields out of order: it decodes to the drop
+	// block's hash, which marshals the other way round.
+	d := dropBlock.h.GetHash()
+	rec := append([]byte{0x12, byte(len(d))}, d...)
+	rec = append(rec, 0x08, byte(dropBlock.h.GetHashType()))
+	h := &hash.Hash{}
+	if err := h.UnmarshalVT(rec); err != nil || !h.EqualVT(dropBlock.h) {
+		t.Fatalf("out of order record: %v", err)
+	}
+	key := own("marked/" + b58.Encode(rec))
+	if bytes.Equal(key, own("marked/"+dropBlock.b58)) {
+		t.Fatal("record is canonical")
+	}
+	mustRefuse(t, ruleWorld(t, []kvRow{{key, []byte{}}}, nil), "a non-canonical marker")
 }

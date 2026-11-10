@@ -82,6 +82,12 @@ type facts struct {
 	gens     []string
 	// packNums counts the p/ rows by pack number.
 	packNums map[uint32]int
+	// packRows holds each p/ row's pack number and whether it is indexed,
+	// by pack id.
+	packRows map[string]packRowOf
+	// entries holds the packs whose e/ row the pack table load reads and
+	// finds; a pack it reads and does not find is forgotten.
+	entries map[string]struct{}
 	// hashNum holds the pack number each candidate's h row names.
 	hashNum map[string]uint32
 	// packed holds the candidates whose h row names a pack the table holds
@@ -118,6 +124,8 @@ func newFacts(o opts) *facts {
 		evict:            map[string][]evictEntry{},
 		queued:           map[string]struct{}{},
 		packNums:         map[uint32]int{},
+		packRows:         map[string]packRowOf{},
+		entries:          map[string]struct{}{},
 		hashNum:          map[string]uint32{},
 		packed:           map[string]struct{}{},
 		verdicts:         map[string]string{},
@@ -229,14 +237,14 @@ func (f *facts) addOwn(key, rest []byte) {
 			return
 		}
 		f.queued[bk] = struct{}{}
-	case r == wb.EpochKey, r == wb.EvictableBytesKey:
+	case r == wb.EpochKey, r == wb.EvictableBytesKey, r == wb.QueueCountKey:
 		f.valueKeys = append(f.valueKeys, bytes.Clone(key))
 	case strings.HasPrefix(r, "copy/") && len(r) > len("copy/"):
 		f.noteCopy(objKeyInfo{obj: string(f.own), kind: kindCopy, gen: r[len("copy/"):]})
 	case strings.HasPrefix(r, "copy-done/") && len(r) > len("copy-done/"):
 		f.noteCopy(objKeyInfo{obj: string(f.own), kind: kindCopyDone, gen: r[len("copy-done/"):]})
-	case r == "queue-count", r == "backfill":
-		// Kept; the pass reads neither.
+	case r == wb.BackfillKey:
+		// Kept; the store reads it as it is, and the pass not at all.
 	default:
 		for _, p := range formerKeys {
 			if strings.HasPrefix(r, p) {
@@ -272,8 +280,18 @@ func (f *facts) addValue(key, value []byte, blob bool) {
 		}
 		f.epoch = n
 	case r == wb.EvictableBytesKey:
-		n, _ := evictSize(value)
+		// The store reads it as it opens, and does not open without it.
+		n, err := wb.ParseEvictableBytes(value)
+		if err != nil {
+			f.refuse("evictable-bytes %q: %v", trunc(value), err)
+			return
+		}
 		f.evictBytesStored[string(f.own)] = n
+	case r == wb.QueueCountKey:
+		// The store recounts a queue-count it cannot decode; refused here.
+		if !wb.ValidQueueCount(value) {
+			f.refuse("queue-count %q does not decode", trunc(value))
+		}
 	}
 }
 
@@ -333,14 +351,71 @@ func walked(es []evictEntry, epoch uint64) bool {
 	return false
 }
 
-// addPackRow takes the value of one p/ row of the pack index.
-func (f *facts) addPackRow(key, value []byte) {
-	num, err := block_store_s3.ParsePackRow(value)
+// packRowOf is one p/ row, decoded.
+type packRowOf struct {
+	num     uint32
+	indexed bool
+}
+
+// addPackRow takes the value of the p/ row of pack id.
+func (f *facts) addPackRow(id string, value []byte) {
+	num, indexed, err := block_store_s3.ParsePackRow(value)
 	if err != nil {
-		f.refuse("pack index p/ row %q: %v", trunc(key), err)
+		f.refuse("pack index p/ row of %q: %v", trunc([]byte(id)), err)
 		return
 	}
 	f.packNums[num]++
+	f.packRows[id] = packRowOf{num: num, indexed: indexed}
+}
+
+// needEntries returns the packs whose e/ row the pack table load reads, in
+// id order: it forgets those without one.
+func (f *facts) needEntries() []string {
+	var ids []string
+	for id, r := range f.packRows {
+		if block_store_s3.PackNeedsEntry(r.indexed, f.packNums[r.num]) {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+// addEntry takes the e/ row of pack id, one needEntries named: found is
+// false for none. A row that does not decode to the pack refuses.
+func (f *facts) addEntry(id string, value []byte, found bool) {
+	if !found {
+		return
+	}
+	if block_store_s3.ParseEntry(id, value) == nil {
+		f.refuse("pack index e/ row of %q does not decode to its pack", trunc([]byte(id)))
+		return
+	}
+	f.entries[id] = struct{}{}
+}
+
+// placed reports whether a lookup places a block whose h row names num: one
+// p/ row holds it, and the load did not forget that pack. A number two rows
+// hold reports shared, kept.
+func (f *facts) placed(num uint32) (stored, shared bool) {
+	switch f.packNums[num] {
+	case 0:
+		return false, false
+	case 1:
+	default:
+		return false, true
+	}
+	for id, r := range f.packRows {
+		if r.num != num {
+			continue
+		}
+		if !block_store_s3.PackNeedsEntry(r.indexed, 1) {
+			return true, false
+		}
+		_, ok := f.entries[id]
+		return ok, false
+	}
+	return false, false
 }
 
 // addHashRow takes the h row of a candidate: found is false for none.
@@ -395,15 +470,14 @@ func (f *facts) decide() {
 		_, marked := f.marked[string(wb.MarkedKey(h))]
 		stored, shared := false, false
 		if num, ok := f.hashNum[bk]; ok {
-			switch f.packNums[num] {
-			case 0:
-				f.hDead++
-			case 1:
-				stored = true
+			stored, shared = f.placed(num)
+			switch {
+			case stored:
 				f.packed[bk] = struct{}{}
-			default:
-				shared = true
+			case shared:
 				f.hShared++
+			default:
+				f.hDead++
 			}
 		}
 		hot := f.keepRead(h)
@@ -459,6 +533,9 @@ func factsErr(f *facts) error {
 // the h rows of the drop candidates, and decides the rule.
 func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, error) {
 	start := time.Now()
+	if err := o.idErr(); err != nil {
+		return nil, err
+	}
 	f := newFacts(o)
 
 	// Key-only scan of the object stores.
@@ -490,6 +567,17 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 	}
 	if err := factsErr(f); err != nil {
 		return nil, err
+	}
+
+	// Every key is a blob, as the stores write them: the key index sorts
+	// NULL, numbers and text before any blob, so this reads only those.
+	var notBlobKey int64
+	if err := world.QueryRow("SELECT count(*) FROM " + table + " WHERE key IS NULL OR key < x''").Scan(&notBlobKey); err != nil {
+		return nil, fmt.Errorf("key types: %w", err)
+	}
+	if notBlobKey > 0 {
+		f.refuse("%d keys of the World are not blobs", notBlobKey)
+		return nil, f.refusedErr()
 	}
 
 	// Every value of the rebuilt store is a blob or NULL, as the store
@@ -540,11 +628,30 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 	pp := append(bytes.Clone(pre), block_store_s3.PackRowPrefix...)
 	live.setPhase("pack table", func() string { return fmt.Sprintf("%d packs", len(f.packNums)) })
 	err = scan(packs, ptable, pp, prefixEnd(pp), o.chunk, o.pause, true, func(key []byte, _ int64, v []byte) error {
-		f.addPackRow(key, v)
+		f.addPackRow(string(key[len(pp):]), v)
 		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("scan pack table: %w", err)
+	}
+
+	// The e/ rows the pack table load reads.
+	need := f.needEntries()
+	err = pointReads(packs, "SELECT value FROM "+ptable+" WHERE key = ?", len(need), 1, func(i int, st *sql.Stmt) error {
+		var v []byte
+		err := st.QueryRow(append(append(bytes.Clone(pre), block_store_s3.EntryRowPrefix...), need[i]...)).Scan(&v)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			f.addEntry(need[i], nil, false)
+		case err != nil:
+			return err
+		default:
+			f.addEntry(need[i], v, true)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("pack index e/ rows: %w", err)
 	}
 	full := func(i int) []byte { return append(bytes.Clone(pre), rows[i].row...) }
 	live.setPhase("pack index h rows", func() string {

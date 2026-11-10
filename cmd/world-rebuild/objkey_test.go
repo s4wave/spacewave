@@ -116,7 +116,7 @@ func TestFactsSlashedID(t *testing.T) {
 	for _, c := range f.settle() {
 		f.addHashRow(c, []byte{0, 0, 0, 7}, true)
 	}
-	f.addPackRow([]byte("p/pack7"), []byte{0, 0, 0, 7, 0})
+	f.addPackRow("pack7", []byte{0, 0, 0, 7, 1})
 	if err := f.refusedErr(); err != nil {
 		t.Fatal(err)
 	}

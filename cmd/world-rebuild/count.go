@@ -11,7 +11,6 @@ import (
 
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	wb "github.com/s4wave/spacewave/db/block/store/writeback"
-	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // countResult is what a dry run found; selftest checks it.
@@ -46,6 +45,9 @@ const rowidBucketBits = 20
 // as of their last checkpoint: rows still only in a WAL are not seen.
 func runCount(o opts) (*countResult, error) {
 	start := time.Now()
+	if err := o.idErr(); err != nil {
+		return nil, err
+	}
 	live = &pacer{wals: []string{o.world + "-wal", o.packs + "-wal"}, walMax: o.walMax << 20}
 	defer func() {
 		fmt.Printf("pacer: waited %s for the WAL\n", live.waited.Round(time.Second))
@@ -190,8 +192,10 @@ func runCount(o opts) (*countResult, error) {
 	// With -needed-out, the pack ids and the sizes their e/ rows record.
 	packIDs := map[uint32]string{}
 	packSizes := map[string]int64{}
-	ep := append(bytes.Clone(pre), "e/"...)
+	ep := append(bytes.Clone(pre), block_store_s3.EntryRowPrefix...)
 	var badEntries, badPackCells int64
+	// entryVals holds each e/ row, nil when it is not a blob on its page.
+	entryVals := map[string][]byte{}
 	hvals := map[int][]byte{}
 	var hRows, packRead int64
 	live.setPhase("pack index pages", func() string { return fmt.Sprintf("%d h rows, %d matched", hRows, len(hvals)) })
@@ -208,17 +212,24 @@ func runCount(o opts) (*countResult, error) {
 				f.refuse("pack index p/ row %q is not a blob on its page", trunc(key))
 				return
 			}
-			f.addPackRow(key, v)
-			if num, err := block_store_s3.ParsePackRow(v); err == nil && o.neededOut != "" {
+			f.addPackRow(string(key[len(pp):]), v)
+			if num, _, err := block_store_s3.ParsePackRow(v); err == nil && o.neededOut != "" {
 				packIDs[num] = string(key[len(pp):])
 			}
-		case o.neededOut != "" && bytes.HasPrefix(key, ep):
-			e := &packfile.PackfileEntry{}
-			if int64(len(v)) != vlen || e.UnmarshalVT(v) != nil {
+		case bytes.HasPrefix(key, ep):
+			id := string(key[len(ep):])
+			if !valueBlob || int64(len(v)) != vlen {
+				entryVals[id] = nil
 				badEntries++
 				return
 			}
-			packSizes[string(key[len(ep):])] = int64(e.GetSizeBytes())
+			entryVals[id] = bytes.Clone(v)
+			e := block_store_s3.ParseEntry(id, v)
+			if e == nil {
+				badEntries++
+				return
+			}
+			packSizes[id] = int64(e.GetSizeBytes())
 		case bytes.HasPrefix(key, hp):
 			hRows++
 			is, ok := cands[string(key[len(pre):])]
@@ -240,6 +251,10 @@ func runCount(o opts) (*countResult, error) {
 	badPackCells += pst.badCells
 	if badPackCells > 0 {
 		f.refuse("%d pack index cells did not decode as a blob key and value", badPackCells)
+	}
+	for _, id := range f.needEntries() {
+		v, found := entryVals[id]
+		f.addEntry(id, v, found)
 	}
 	for i, c := range crows {
 		v, found := hvals[i]

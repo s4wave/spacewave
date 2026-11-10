@@ -435,7 +435,7 @@ func buildTestStore(world, packs string, n int, storeID string, rowid, synth boo
 		{obj + "reads/" + stamp(old) + "/" + stamp(old+1), []byte("0123456789abcdef")},
 		{obj + "evictable-bytes", []byte("999")},
 		{obj + "epoch", []byte("3")},
-		{obj + "queue-count", []byte("12")},
+		{obj + "queue-count", []byte("12 4096 done")},
 		{"h/r/root", []byte("root")},
 		{"zz-format", []byte("1")},
 	} {
