@@ -157,7 +157,11 @@ func (r *repacker) provePack(id string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		in, ok := r.sums[string(key)]
+		mk, err := toBlockKey(key)
+		if err != nil {
+			return err
+		}
+		in, ok := r.sums[mk]
 		switch {
 		case !ok:
 			problems = append(problems, fmt.Sprintf("block %x is not in the input", key))
@@ -168,6 +172,7 @@ func (r *repacker) provePack(id string) ([]string, error) {
 		}
 		if ok {
 			in.seen = true
+			r.sums[mk] = in
 		}
 		return nil
 	})

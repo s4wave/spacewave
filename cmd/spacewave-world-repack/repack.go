@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
@@ -38,7 +39,8 @@ type options struct {
 	// PackBytes bounds an output pack file.
 	PackBytes int64
 	// MaxBlocks bounds the blocks of an output pack; zero is no bound, so
-	// packs fill by bytes alone.
+	// packs fill by bytes alone. The command defaults it to
+	// defaultMaxBlocks.
 	MaxBlocks uint64
 	// SliceBytes bounds the files of a slice of the plan; zero prints none.
 	SliceBytes uint64
@@ -47,6 +49,10 @@ type options struct {
 	// CreatedAt is every output entry's created-at; nil takes the latest
 	// of the input entries.
 	CreatedAt *time.Time
+	// AllowExtra skips the input files that are not packs or entries,
+	// counted, instead of failing on them. A pack without its entry or an
+	// entry without its pack always fails.
+	AllowExtra bool
 	// Log receives the report.
 	Log io.Writer
 }
@@ -66,6 +72,24 @@ type blockSum struct {
 	obj  uint64
 	// seen is set when the output's read back finds the block.
 	seen bool
+}
+
+// maxKeyLen is the longest block key: the encoded hash of a 32 byte digest.
+const maxKeyLen = 36
+
+// blockKey is a block key held as a map key: its length, then its bytes.
+type blockKey [maxKeyLen + 1]byte
+
+// toBlockKey returns key as a blockKey, or an error for a key too long.
+func toBlockKey(key []byte) (blockKey, error) {
+	// Store the length, then the bytes.
+	var k blockKey
+	if len(key) > maxKeyLen {
+		return k, errors.Errorf("block key %x is longer than %d bytes", key, maxKeyLen)
+	}
+	k[0] = byte(len(key)) //nolint:gosec // at most maxKeyLen.
+	copy(k[1:], key)
+	return k, nil
 }
 
 // outPack is one written output pack, in write order.
@@ -104,7 +128,7 @@ type repacker struct {
 	o         *options
 	createdAt *timestamppb.Timestamp
 	maxBlocks uint64
-	sums      map[string]*blockSum
+	sums      map[blockKey]blockSum
 	rep       report
 
 	// The open output pack: its blocks, and the kvfile value and index
@@ -129,7 +153,7 @@ func run(o *options) (*report, error) {
 	}
 
 	// List and check the inputs' entries before reading a block.
-	packs, sameIDs, err := listInputs(o.In)
+	packs, sameIDs, err := listInputs(o.In, o.AllowExtra, o.Log)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +178,7 @@ func run(o *options) (*report, error) {
 		o:         o,
 		createdAt: timestamppb.New(created.UTC()),
 		maxBlocks: o.MaxBlocks,
-		sums:      make(map[string]*blockSum),
+		sums:      make(map[blockKey]blockSum),
 	}
 	r.rep.PacksIn, r.rep.SameIDs = len(packs), sameIDs
 
@@ -176,33 +200,27 @@ func run(o *options) (*report, error) {
 	}
 	r.print()
 	if o.SliceBytes != 0 {
-		if err := printSlices(o.Log, r.rep.Packs, o.SliceBytes); err != nil {
-			return &r.rep, err
-		}
+		printSlices(o.Log, r.rep.Packs, o.SliceBytes)
 	}
 	return &r.rep, nil
 }
 
-// freshOut checks the output directory is missing or empty and is not one of
-// the inputs. It creates nothing.
+// freshOut checks the output directory is missing or empty and neither is,
+// holds or lies inside an input, by their paths with symlinks resolved. It
+// creates nothing.
 func freshOut(out string, in []string) error {
-	// Refuse an input as the output.
-	absOut, err := filepath.Abs(out)
+	// Refuse an output that is, holds or lies inside an input.
+	realOut, err := resolvePath(out)
 	if err != nil {
 		return err
 	}
 	for _, d := range in {
-		absIn, err := filepath.Abs(d)
+		realIn, err := resolvePath(d)
 		if err != nil {
 			return err
 		}
-		if absIn == absOut {
-			return errors.Errorf("output %s is an input", out)
-		}
-		if a, err := os.Stat(d); err == nil {
-			if b, err := os.Stat(out); err == nil && os.SameFile(a, b) {
-				return errors.Errorf("output %s is input %s", out, d)
-			}
+		if within(realIn, realOut) || within(realOut, realIn) {
+			return errors.Errorf("output %s (%s) and input %s (%s) are inside one another", out, realOut, d, realIn)
 		}
 	}
 
@@ -220,6 +238,40 @@ func freshOut(out string, in []string) error {
 	return nil
 }
 
+// resolvePath returns p absolute with its symlinks resolved. Where p does not
+// exist, the nearest existing parent is resolved and the rest kept.
+func resolvePath(p string) (string, error) {
+	// Resolve the path when it exists.
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(abs)
+	if err == nil {
+		return resolved, nil
+	}
+	if !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+
+	// Resolve its parent when it is missing, and keep its name.
+	parent := filepath.Dir(abs)
+	if parent == abs {
+		return abs, nil
+	}
+	rp, err := resolvePath(parent)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(rp, filepath.Base(abs)), nil
+}
+
+// within reports whether path p is dir or inside it.
+func within(p, dir string) bool {
+	rel, err := filepath.Rel(dir, p)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
 // validID reports whether name may be a pack's file name in the adopt
 // layout, as the rescue's adopt layout names them.
 func validID(name string) bool {
@@ -227,30 +279,112 @@ func validID(name string) bool {
 		!strings.HasSuffix(name, entrySuffix) && !strings.HasSuffix(name, ".part")
 }
 
-// listInputs returns every {id} with an {id}.entry of the directories, in
+// isPackID reports whether name is a v1 pack id, the name of a pack file.
+func isPackID(name string) bool {
+	return validID(name) && identity.ValidatePackID(name) == nil
+}
+
+// dirCounts counts the names of an input directory by kind.
+type dirCounts struct {
+	pairs, parts, dirs, symlinks, other int
+}
+
+// extra returns the count of names that are not packs or entries.
+func (c dirCounts) extra() int {
+	return c.parts + c.dirs + c.symlinks + c.other
+}
+
+// classifyDir sorts the names of an input directory: each {id} regular file,
+// named by a v1 pack id, with its {id}.entry regular file is a pair, returned in byte order of id;
+// everything else is counted by kind and named in extras. A pack without its
+// entry, or an entry without its pack, is an error.
+func classifyDir(dir string) ([]string, dirCounts, []string, error) {
+	// Read the directory.
+	var c dirCounts
+	names, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, c, nil, err
+	}
+
+	// Find the regular packs and entries; count the rest.
+	packs := make(map[string]bool)
+	entries := make(map[string]bool)
+	var extras []string
+	for _, n := range names {
+		name := n.Name()
+		switch {
+		case n.Type()&fs.ModeSymlink != 0:
+			c.symlinks++
+		case n.IsDir():
+			c.dirs++
+		case !n.Type().IsRegular():
+			c.other++
+		case strings.HasSuffix(name, ".part"):
+			c.parts++
+		case isPackID(name):
+			packs[name] = true
+			continue
+		case strings.HasSuffix(name, entrySuffix) && isPackID(strings.TrimSuffix(name, entrySuffix)):
+			entries[strings.TrimSuffix(name, entrySuffix)] = true
+			continue
+		default:
+			c.other++
+		}
+		extras = append(extras, name)
+	}
+
+	// Pair them: a pack without its entry or an entry without its pack fails.
+	var ids, unpaired []string
+	for id := range packs {
+		if !entries[id] {
+			unpaired = append(unpaired, id+" (no "+id+entrySuffix+")")
+			continue
+		}
+		ids = append(ids, id)
+	}
+	for id := range entries {
+		if !packs[id] {
+			unpaired = append(unpaired, id+entrySuffix+" (no regular "+id+")")
+		}
+	}
+	if len(unpaired) != 0 {
+		slices.Sort(unpaired)
+		return nil, c, nil, errors.Errorf("input %s holds %d unpaired packs or entries: %s", dir, len(unpaired), strings.Join(head(unpaired, 10), ", "))
+	}
+	slices.Sort(ids)
+	slices.Sort(extras)
+	c.pairs = len(ids)
+	return ids, c, extras, nil
+}
+
+// head returns at most n of list.
+func head(list []string, n int) []string {
+	return list[:min(len(list), n)]
+}
+
+// listInputs returns every {id} with its {id}.entry of the directories, in
 // byte order of id and then directory order, with its entry read and checked
-// against the pack file's name and size. It also counts the packs whose id
-// an earlier directory holds.
-func listInputs(dirs []string) ([]*inPack, int, error) {
-	// Find the pairs in each directory.
+// against the pack file's name and size, and prints each directory's counts.
+// A name that is not part of a pair fails unless allowExtra skips it. It also
+// counts the packs whose id an earlier directory holds.
+func listInputs(dirs []string, allowExtra bool, log io.Writer) ([]*inPack, int, error) {
+	// Classify each directory's names.
 	type found struct {
 		id  string
 		dir int
 	}
 	var list []found
 	for i, dir := range dirs {
-		names, err := os.ReadDir(dir)
+		ids, c, extras, err := classifyDir(dir)
 		if err != nil {
 			return nil, 0, err
 		}
-		have := make(map[string]bool, len(names))
-		for _, n := range names {
-			have[n.Name()] = true
+		_, _ = fmt.Fprintf(log, "in %s: pairs %d extra %d (part %d dir %d symlink %d other %d)\n", dir, c.pairs, c.extra(), c.parts, c.dirs, c.symlinks, c.other)
+		if len(extras) != 0 && !allowExtra {
+			return nil, 0, errors.Errorf("input %s holds %d names that are not pack and entry pairs, such as %s; --allow-extra skips them", dir, len(extras), strings.Join(head(extras, 10), ", "))
 		}
-		for _, n := range names {
-			if n.Type().IsRegular() && validID(n.Name()) && have[n.Name()+entrySuffix] {
-				list = append(list, found{n.Name(), i})
-			}
+		for _, id := range ids {
+			list = append(list, found{id, i})
 		}
 	}
 	slices.SortFunc(list, func(a, b found) int {
@@ -276,9 +410,12 @@ func listInputs(dirs []string) ([]*inPack, int, error) {
 		if err := entry.UnmarshalVT(raw); err != nil {
 			return nil, 0, errors.Wrapf(err, "decode entry %s", filepath.Join(dir, f.id+entrySuffix))
 		}
-		st, err := os.Stat(filepath.Join(dir, f.id))
+		st, err := os.Lstat(filepath.Join(dir, f.id))
 		if err != nil {
 			return nil, 0, err
+		}
+		if !st.Mode().IsRegular() {
+			return nil, 0, errors.Errorf("input pack %s is not a regular file", filepath.Join(dir, f.id))
 		}
 		if entry.GetId() != f.id || entry.GetSizeBytes() != uint64(st.Size()) { //nolint:gosec // sizes are not negative.
 			return nil, 0, errors.Errorf("entry %s names %s of %d bytes, the file is %d", filepath.Join(dir, f.id+entrySuffix), entry.GetId(), entry.GetSizeBytes(), st.Size())
@@ -309,12 +446,19 @@ func (r *repacker) readPack(p *inPack) error {
 	// Verify and take each block.
 	var n uint64
 	err = rdr.ScanPrefix(nil, func(key, value []byte) error {
+		// Decode it, verifying its bytes against its key.
 		n++
 		ref, stored, err := packfile.DecodeBlockValue(key, value)
 		if err != nil {
 			return errors.Wrapf(err, "block %x", key)
 		}
-		return r.take(string(key), ref.GetHash(), stored)
+
+		// The key must be the canonical key of its hash, as the writer
+		// writes it.
+		if want := packfile.BlockKey(ref.GetHash()); !bytes.Equal(key, want) {
+			return errors.Errorf("block key %x is not the canonical key %x of its hash", key, want)
+		}
+		return r.take(key, ref.GetHash(), stored, value)
 	})
 	if err != nil {
 		return err
@@ -337,36 +481,47 @@ func sumBlock(stored *block.StoredBlock) (blockSum, []byte, error) {
 }
 
 // take adds a verified block to the open output pack, closing the pack first
-// when the block would take it past its limits. A block already taken is
-// dropped as a duplicate, and must equal the one taken.
-func (r *repacker) take(key string, h *hash.Hash, stored *block.StoredBlock) error {
-	// Count it and check a duplicate.
+// when the block would take it past its limits. raw is the block's value as
+// the input pack holds it, which the writer's encoding must reproduce. A
+// block already taken is dropped as a duplicate, and must equal the one
+// taken.
+func (r *repacker) take(key []byte, h *hash.Hash, stored *block.StoredBlock, raw []byte) error {
+	// Encode it as the writer will and require the input's bytes.
 	sum, value, err := sumBlock(stored)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(value, raw) {
+		return errors.Errorf("block %x: its value re-encoded is %d bytes that differ from the input's %d bytes, so the output would not hold the input's value bytes", key, len(value), len(raw))
+	}
+
+	// Count it and check a duplicate.
+	mk, err := toBlockKey(key)
 	if err != nil {
 		return err
 	}
 	r.rep.BlocksIn++
 	r.rep.DataIn += uint64(len(stored.Data))
-	if prev, ok := r.sums[key]; ok {
+	if prev, ok := r.sums[mk]; ok {
 		if prev.data != sum.data || prev.obj != sum.obj {
-			return errors.Errorf("block %x is held twice with different contents", []byte(key))
+			return errors.Errorf("block %x is held twice with different contents", key)
 		}
 		r.rep.Duplicates++
 		return nil
 	}
-	r.sums[key] = &sum
+	r.sums[mk] = sum
 	r.rep.DataUnique += uint64(len(stored.Data))
 
 	// Close the open pack when this block would overflow it.
-	size, index := r.packSizeWith([]byte(key), uint64(len(value)))
+	size, index := r.packSizeWith(key, uint64(len(value)))
 	if len(r.cur) != 0 && (size > uint64(r.o.PackBytes) || (r.maxBlocks != 0 && uint64(len(r.cur)) >= r.maxBlocks)) { //nolint:gosec // positive.
 		if err := r.flush(); err != nil {
 			return err
 		}
-		size, index = r.packSizeWith([]byte(key), uint64(len(value)))
+		size, index = r.packSizeWith(key, uint64(len(value)))
 	}
 	if size > uint64(r.o.PackBytes) { //nolint:gosec // positive.
-		return errors.Errorf("block %x alone makes a pack of %d bytes, past the %d byte limit", []byte(key), size, r.o.PackBytes)
+		return errors.Errorf("block %x alone makes a pack of %d bytes, past the %d byte limit", key, size, r.o.PackBytes)
 	}
 
 	// Add it.
@@ -530,8 +685,10 @@ func (r *repacker) print() {
 }
 
 // printSlices prints the output packs, in write order, grouped into slices of
-// at most limit bytes of files, one slice per line. A pack is never split.
-func printSlices(w io.Writer, packs []outPack, limit uint64) error {
+// at most limit bytes of files, one slice per line. A pack is never split: a
+// pack with its entry past limit gets a slice of its own, after a warning
+// line.
+func printSlices(w io.Writer, packs []outPack, limit uint64) {
 	// Collect a slice's ids and print it when the next pack would overflow it.
 	var ids []string
 	var total uint64
@@ -546,15 +703,17 @@ func printSlices(w io.Writer, packs []outPack, limit uint64) error {
 	}
 	for _, p := range packs {
 		size := uint64(p.size + p.entryBytes) //nolint:gosec // positive.
-		if size > limit {
-			return errors.Errorf("pack %s of %d bytes with its entry exceeds the %d byte slice", p.id, size, limit)
-		}
 		if total+size > limit {
 			emit()
 		}
+		if size > limit {
+			_, _ = fmt.Fprintf(w, "WARN pack %s of %d bytes with its entry is past the %d byte slice: it gets a slice of its own\n", p.id, size, limit)
+		}
 		ids = append(ids, p.id)
 		total += size
+		if size > limit {
+			emit()
+		}
 	}
 	emit()
-	return nil
 }

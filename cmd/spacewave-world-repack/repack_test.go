@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -286,14 +287,163 @@ func TestRepackSizeCap(t *testing.T) {
 func TestPrintSlices(t *testing.T) {
 	packs := []outPack{{id: "a", size: 400, entryBytes: 10}, {id: "b", size: 500, entryBytes: 10}, {id: "c", size: 80, entryBytes: 10}, {id: "d", size: 900, entryBytes: 10}}
 	var buf bytes.Buffer
-	if err := printSlices(&buf, packs, 1000); err != nil {
-		t.Fatal(err)
-	}
+	printSlices(&buf, packs, 1000)
 	want := "slice 1 bytes 920 packs 2 ids a b\nslice 2 bytes 1000 packs 2 ids c d\n"
 	if buf.String() != want {
 		t.Fatalf("got\n%s", buf.String())
 	}
-	if err := printSlices(io.Discard, packs, 500); err == nil {
-		t.Fatal("a pack past the slice was taken")
+
+	// A pack past the slice gets a slice of its own after a warning.
+	buf.Reset()
+	printSlices(&buf, packs, 500)
+	want = "slice 1 bytes 410 packs 1 ids a\n" +
+		"WARN pack b of 510 bytes with its entry is past the 500 byte slice: it gets a slice of its own\n" +
+		"slice 2 bytes 510 packs 1 ids b\n" +
+		"slice 3 bytes 90 packs 1 ids c\n" +
+		"WARN pack d of 910 bytes with its entry is past the 500 byte slice: it gets a slice of its own\n" +
+		"slice 4 bytes 910 packs 1 ids d\n"
+	if buf.String() != want {
+		t.Fatalf("got\n%s", buf.String())
+	}
+}
+
+// TestRepackUnpaired fails on a pack left beside a staged entry, with or
+// without --allow-extra, and on a stray file without it; with it, the stray
+// is skipped and counted.
+func TestRepackUnpaired(t *testing.T) {
+	// A pack whose entry is still staged as {id}.entry.part.
+	rng := rand.New(rand.NewPCG(11, 12))
+	root := t.TempDir()
+	in := filepath.Join(root, "in")
+	writeInput(t, in, newBlocks(t, rng, 3, 200))
+	id := writeInput(t, in, newBlocks(t, rng, 3, 200))
+	if err := os.Rename(filepath.Join(in, id+entrySuffix), filepath.Join(in, id+entrySuffix+".part")); err != nil {
+		t.Fatal(err)
+	}
+	for _, allow := range []bool{false, true} {
+		o := testOpts([]string{in}, filepath.Join(root, "out"), 1<<20)
+		o.AllowExtra = allow
+		if _, err := run(o); err == nil || !strings.Contains(err.Error(), "unpaired") {
+			t.Fatalf("allow-extra %v: a pack without its entry was taken: %v", allow, err)
+		}
+	}
+
+	// An entry without its pack fails too.
+	in2 := filepath.Join(root, "in2")
+	id2 := writeInput(t, in2, newBlocks(t, rng, 3, 200))
+	if err := os.Remove(filepath.Join(in2, id2)); err != nil {
+		t.Fatal(err)
+	}
+	o := testOpts([]string{in2}, filepath.Join(root, "out"), 1<<20)
+	o.AllowExtra = true
+	if _, err := run(o); err == nil || !strings.Contains(err.Error(), "unpaired") {
+		t.Fatalf("an entry without its pack was taken: %v", err)
+	}
+
+	// A stray file fails, unless --allow-extra skips and counts it.
+	in3 := filepath.Join(root, "in3")
+	writeInput(t, in3, newBlocks(t, rng, 3, 200))
+	if err := os.WriteFile(filepath.Join(in3, "notes.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(in3, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(testOpts([]string{in3}, filepath.Join(root, "out3"), 1<<20)); err == nil {
+		t.Fatal("a stray file was taken")
+	}
+	var log bytes.Buffer
+	o = testOpts([]string{in3}, filepath.Join(root, "out3"), 1<<20)
+	o.AllowExtra, o.Log = true, &log
+	if rep, err := run(o); err != nil || rep.BlocksOut != 3 {
+		t.Fatalf("allow-extra run: %v", err)
+	}
+	if !strings.Contains(log.String(), "pairs 1 extra 2 (part 0 dir 1 symlink 0 other 1)") {
+		t.Fatalf("log:\n%s", log.String())
+	}
+}
+
+// TestRepackRawValue fails on an input value that decodes to a block but is
+// not the bytes the writer's encoding gives.
+func TestRepackRawValue(t *testing.T) {
+	// Encode a block's data field twice: it decodes to the second, and its
+	// hash matches, but the value re-encoded is shorter.
+	rng := rand.New(rand.NewPCG(13, 14))
+	blk := newBlocks(t, rng, 1, 100)[0]
+	junk, err := block.EncodeBlockObject([]byte("junk"), nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	real, err := block.EncodeBlockObject(blk.data, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := append(junk, real...)
+	if _, stored, err := packfile.DecodeBlockValue(packfile.BlockKey(blk.ref.GetHash()), value); err != nil || !bytes.Equal(stored.Data, blk.data) {
+		t.Fatalf("the doubled value does not decode to the block: %v", err)
+	}
+
+	// Write it as a pack and its entry.
+	var buf bytes.Buffer
+	kw := kvfile.NewWriter(&buf)
+	if err := kw.WriteValue(packfile.BlockKey(blk.ref.GetHash()), bytes.NewReader(value)); err != nil {
+		t.Fatal(err)
+	}
+	if err := kw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "in")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	id := identity.NewPackID()
+	raw, err := (&packfile.PackfileEntry{
+		Id: id, BlockCount: 1, SizeBytes: uint64(buf.Len()), BloomFormatVersion: packfile.BloomFormatVersionV1,
+		CreatedAt: timestamppb.New(time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)),
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, id), buf.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, id+entrySuffix), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// The run fails and says why.
+	_, err = run(testOpts([]string{dir}, filepath.Join(t.TempDir(), "out"), 1<<20))
+	if err == nil || !strings.Contains(err.Error(), "re-encoded") {
+		t.Fatalf("a non-canonical value was taken: %v", err)
+	}
+}
+
+// TestRepackOutInsideIn refuses an output inside an input, through a
+// symlink too, and an input inside the output.
+func TestRepackOutInsideIn(t *testing.T) {
+	// One input pack, and a symlink to its directory.
+	rng := rand.New(rand.NewPCG(15, 16))
+	root := t.TempDir()
+	in := filepath.Join(root, "in")
+	writeInput(t, in, newBlocks(t, rng, 2, 100))
+	link := filepath.Join(root, "link")
+	if err := os.Symlink(in, link); err != nil {
+		t.Fatal(err)
+	}
+
+	// Each nesting is refused before anything is written.
+	for _, c := range []struct{ in, out string }{
+		{in, in},
+		{in, filepath.Join(in, "out")},
+		{in, filepath.Join(link, "out")},
+		{link, filepath.Join(in, "sub", "out")},
+		{filepath.Join(root, "out", "in"), filepath.Join(root, "out")},
+	} {
+		if _, err := run(testOpts([]string{c.in}, c.out, 1<<20)); err == nil || !strings.Contains(err.Error(), "inside") {
+			t.Fatalf("in %s out %s: %v", c.in, c.out, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(in, "out")); err == nil {
+		t.Fatal("an output was made inside the input")
 	}
 }
