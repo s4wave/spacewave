@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -214,6 +215,11 @@ func runCount(o opts) (*countResult, error) {
 		}
 	}
 	livePacks := map[uint32]struct{}{}
+	// With -needed-out, the pack ids and the sizes their e/ rows record.
+	packIDs := map[uint32]string{}
+	packSizes := map[string]int64{}
+	ep := append(bytes.Clone(pre), "e/"...)
+	var badEntries int64
 	hnum := map[string]uint32{}
 	var hRows, packRead int64
 	live.setPhase("pack index pages", func() string { return fmt.Sprintf("%d h rows, %d matched", hRows, len(hnum)) })
@@ -226,7 +232,17 @@ func runCount(o opts) (*countResult, error) {
 		case bytes.HasPrefix(key, pp):
 			if len(v) >= 4 {
 				livePacks[binary.BigEndian.Uint32(v)] = struct{}{}
+				if o.neededOut != "" {
+					packIDs[binary.BigEndian.Uint32(v)] = string(key[len(pp):])
+				}
 			}
+		case o.neededOut != "" && bytes.HasPrefix(key, ep):
+			e := &packfile.PackfileEntry{}
+			if e.UnmarshalVT(v) != nil {
+				badEntries++
+				return
+			}
+			packSizes[string(key[len(ep):])] = int64(e.GetSizeBytes())
 		case len(key) == len(hp)+indexKeyBytes && bytes.HasPrefix(key, hp):
 			hRows++
 			if d, ok := cands[[indexKeyBytes]byte(key[len(hp):])]; ok && len(v) >= 4 {
@@ -262,6 +278,11 @@ func runCount(o opts) (*countResult, error) {
 			dropped[b.d] = struct{}{}
 		} else {
 			keptBy[b.rowid>>rowidBucketBits] += b.bytes
+		}
+	}
+	if o.neededOut != "" {
+		if err := writeCountNeeded(o.neededOut, dropped, hnum, packIDs, packSizes, badEntries); err != nil {
+			return nil, err
 		}
 	}
 	var evictKept int64
@@ -771,4 +792,40 @@ func runRateSplit(o opts) error {
 	}
 	sort.Slice(rows, func(a, b int) bool { return bytes.Compare(rows[a].key, rows[b].key) < 0 })
 	return insert(o.rateOut+".sorted", "key order")
+}
+
+// writeCountNeeded writes the packs the dropped blocks' h rows name, with
+// the sizes their e/ rows record, as packcheck -needed-out does: the list
+// packcheck -needed checks a listing against before the downtime. A pack with
+// no e/ row is written with size -1, which packcheck counts as a fault.
+func writeCountNeeded(path string, dropped map[string]struct{}, hnum map[string]uint32, ids map[uint32]string, sizes map[string]int64, badEntries int64) error {
+	byID := map[string]*neededPack{}
+	for d := range dropped {
+		id := ids[hnum[d]]
+		p := byID[id]
+		if p == nil {
+			size, ok := sizes[id]
+			if !ok {
+				size = -1
+			}
+			p = &neededPack{id: id, size: size}
+			byID[id] = p
+		}
+		p.blocks++
+	}
+	packs := make([]neededPack, 0, len(byID))
+	noEntry := 0
+	for _, p := range byID {
+		packs = append(packs, *p)
+		if p.size < 0 {
+			noEntry++
+		}
+	}
+	sort.Slice(packs, func(i, j int) bool { return packs[i].id < packs[j].id })
+	if err := writeNeeded(path, packs); err != nil {
+		return err
+	}
+	fmt.Printf("needed packs (measured, as of the main files' last checkpoint): %d dropped blocks in %d packs, %d with no e/ row, %d e/ rows did not decode; written to %s\n",
+		len(dropped), len(packs), noEntry, badEntries, path)
+	return nil
 }

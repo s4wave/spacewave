@@ -61,6 +61,9 @@ type neededPack struct {
 // World and the pack index are read through SQLite read-only in short reads,
 // without the live lock refusal: the backend may have them open.
 //
+// Before the downtime, count -needed-out writes the packs the rule would
+// drop from the live World, from count's own pass, for packcheck -needed.
+//
 // With -needed, the files are not read: the packs come from a needed-packs
 // file an earlier run wrote with -needed-out, so a rerun inside the downtime
 // is one listing and a compare.

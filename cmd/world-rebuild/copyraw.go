@@ -270,10 +270,8 @@ func copyRawRows(o opts, path string, root int64, p *dropPlan, st *copyStats, pu
 	if ierr != nil {
 		return ierr
 	}
-	for _, s := range stats {
-		st.droppedKeys += s.droppedKeys
-		st.droppedBytes += s.droppedBytes
-		st.droppedEvict += s.droppedEvict
+	for i := range stats {
+		st.merge(&stats[i])
 	}
 	return nil
 }

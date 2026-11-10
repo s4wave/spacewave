@@ -182,11 +182,12 @@ func (s evictSums) add(key, value []byte) {
 	s[obj] += n
 }
 
-// keepBlock applies the drop rule (and a mutant) to one block key.
-func (p *dropPlan) keepBlock(key []byte) bool {
+// keepBlock applies the drop rule (and a mutant) to one block key, and
+// returns the verdict with it.
+func (p *dropPlan) keepBlock(key []byte) (bool, string) {
 	d, ok := digestOfBlockKey(key)
 	if !ok {
-		return true
+		return true, vUnparsed
 	}
 	v := p.f.verdict(d)
 	if p.hit == 0 {
@@ -196,18 +197,48 @@ func (p *dropPlan) keepBlock(key []byte) bool {
 			p.mutant == "drop-hot" && v == vHot,
 			p.mutant == "drop-unpacked" && v == vUnpacked:
 			p.hit++
-			return false
+			return false, v
 		}
 	}
-	return v != vDrop
+	return v != vDrop, v
 }
 
-// decide applies the drop rule (and a mutant) to one row from its key and
-// value length, counts a drop, and reports whether to keep the row.
+// addVerdict tallies a block row of b bytes under its verdict.
+func (s *copyStats) addVerdict(v string, b int64) {
+	if s.verdicts == nil {
+		s.verdicts = map[string]*tally{}
+	}
+	t := s.verdicts[v]
+	if t == nil {
+		t = &tally{}
+		s.verdicts[v] = t
+	}
+	t.add(b)
+}
+
+// merge adds a reader's drop and verdict stats to s.
+func (s *copyStats) merge(r *copyStats) {
+	s.droppedKeys += r.droppedKeys
+	s.droppedBytes += r.droppedBytes
+	s.droppedEvict += r.droppedEvict
+	for v, t := range r.verdicts {
+		if s.verdicts == nil {
+			s.verdicts = map[string]*tally{}
+		}
+		if s.verdicts[v] == nil {
+			s.verdicts[v] = &tally{}
+		}
+		s.verdicts[v].keys += t.keys
+		s.verdicts[v].bytes += t.bytes
+	}
+}
+
 func (p *dropPlan) decide(key []byte, vlen int64, st *copyStats) bool {
 	switch {
 	case bytes.HasPrefix(key, []byte(blockPrefix)):
-		if !p.keepBlock(key) {
+		keep, v := p.keepBlock(key)
+		st.addVerdict(v, int64(len(key))+vlen)
+		if !keep {
 			st.droppedKeys++
 			st.droppedBytes += int64(len(key)) + vlen
 			return false
@@ -424,6 +455,14 @@ func runCopy(o opts) error {
 		return err
 	}
 	el := time.Since(start)
+	fmt.Println("copy block values (h/b/) by verdict, measured, as count prints them:")
+	for _, v := range sortedKeys(st.verdicts) {
+		t := st.verdicts[v]
+		fmt.Printf("  %-44s %12d keys %12s\n", v, t.keys, gb(t.bytes))
+	}
+	if o.copyStatsOut != nil {
+		*o.copyStatsOut = st
+	}
 	fmt.Printf("copy done in %s (read %s): kept %d keys %s, dropped %d keys %s (%d eviction entries); new file %s, auto_vacuum %d, %.0f MB/s kept\n",
 		el.Round(time.Second), o.read, st.keptKeys, gb(st.keptBytes), st.droppedKeys, gb(st.droppedBytes), st.droppedEvict,
 		gb(h.pageCount*h.pageSize), h.autoVacuum, float64(st.keptBytes)/1e6/el.Seconds())

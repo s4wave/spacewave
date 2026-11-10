@@ -153,7 +153,7 @@ func main() {
 	fs.StringVar(&o.list, "list", "", "packcheck: bucket listing, size and key lines (rclone lsf -R --format sp)")
 	fs.StringVar(&o.listFormat, "list-format", "sp", "packcheck: the listing's field order, sp (size;key) or ps (key;size)")
 	fs.StringVar(&o.needed, "needed", "", "packcheck: check the packs of this needed-packs file, reading no SQLite file")
-	fs.StringVar(&o.neededOut, "needed-out", "", "packcheck: write the needed packs (id size blocks) here")
+	fs.StringVar(&o.neededOut, "needed-out", "", "packcheck, count: write the packs the dropped blocks need (id size blocks) here, for packcheck -needed")
 	_ = fs.Parse(os.Args[2:])
 
 	// Run the subcommand.
