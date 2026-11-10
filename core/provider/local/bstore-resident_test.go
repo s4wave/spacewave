@@ -20,7 +20,7 @@ func TestResidentMarksApplyLive(t *testing.T) {
 	defer cancel()
 	p := setupPlacedStore(ctx, t)
 	p.place(ctx, t, &account_settings.BlockStoreCache{SettleSeconds: 3600})
-	bs := p.waitUpload(ctx, t, func(status UploadStatus) bool {
+	p.waitUpload(ctx, t, func(status UploadStatus) bool {
 		return status.Policy.Settle == time.Hour && status.Pending == 0
 	})
 	rootSize, childSize := int64(len(p.blocks[p.rootRef])), int64(len(p.blocks[p.childRef]))
@@ -46,7 +46,7 @@ func TestResidentMarksApplyLive(t *testing.T) {
 	// A high mark past the store records reads and runs no pass. Read the
 	// root, so the next pass keeps it.
 	p.acc.SetResidentMarks(ResidentMarks{HighBytes: 1 << 40})
-	bs = p.waitUpload(ctx, t, func(status UploadStatus) bool { return status.Policy.ResidentHigh == 1<<40 })
+	bs := p.waitUpload(ctx, t, func(status UploadStatus) bool { return status.Policy.ResidentHigh == 1<<40 })
 	if _, found, err := bs.GetBlock(ctx, p.rootRef); err != nil || !found {
 		t.Fatalf("read root = %v/%v", found, err)
 	}
@@ -55,7 +55,7 @@ func TestResidentMarksApplyLive(t *testing.T) {
 	// the read root, falling short of the mark.
 	p.acc.SetResidentMarks(ResidentMarks{HighBytes: 1})
 	waitPass("lowering the high mark")
-	bs = p.waitUpload(ctx, t, func(status UploadStatus) bool {
+	p.waitUpload(ctx, t, func(status UploadStatus) bool {
 		return status.Policy.ResidentHigh == 1 && status.EvictedBytes == childSize && status.ResidentBytes() == rootSize
 	})
 

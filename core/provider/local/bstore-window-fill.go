@@ -33,7 +33,7 @@ func (w *windowFillOps) PutBlockBatch(ctx context.Context, entries []*block.PutB
 	for i, e := range entries {
 		refs[i] = e.Ref
 	}
-	have, err := w.StoreOps.GetBlockExistsBatch(ctx, refs)
+	have, err := w.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
 		return nil, err
 	}
