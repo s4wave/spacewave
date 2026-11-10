@@ -1,15 +1,18 @@
 package provider_local
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_memcache "github.com/s4wave/spacewave/db/block/store/memcache"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile/packahead"
 	"github.com/sirupsen/logrus"
@@ -315,5 +318,94 @@ func TestPeerFillsUploadUnderDivert(t *testing.T) {
 	f.upload()
 	if !f.packHolds(peerRef) {
 		t.Fatal("pack store lacks the peer block after the upload")
+	}
+}
+
+// wrongRows is a pack store whose index places the blocks in wrong as well
+// as those it truly places, as an h row naming a pack that lacks the block
+// does. Reads and existence checks still ask the packs.
+type wrongRows struct {
+	backendStore
+	wrong map[string]bool
+}
+
+// LocateBlocks places the wrong blocks and asks the index for the rest.
+func (w *wrongRows) LocateBlocks(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	placed, err := w.backendStore.(block_store_writeback.BlockLocator).LocateBlocks(ctx, refs)
+	for i, ref := range refs {
+		if err == nil && w.wrong[ref.GetHash().MarshalString()] {
+			placed[i] = true
+		}
+	}
+	return placed, err
+}
+
+// KeepsBlocks reports the pack store keeps its blocks.
+func (w *wrongRows) KeepsBlocks() bool { return true }
+
+// TestWrongRowPeerFillKept fills, with peer fills uploading, a block whose
+// h row names a pack that lacks it: the fill does not trust the row, so
+// eviction keeps the only copy until its upload. A block the packs truly
+// hold, filled the same way after a pack read missed it, still fills without
+// a marker and evicts.
+func TestWrongRowPeerFillKept(t *testing.T) {
+	// Put a block in the packs, and give the peer it and a block the packs
+	// lack, whose row wrongly places it.
+	f := newIndexedFallbackTest(t)
+	f.p.peerUpload = true
+	f.p.evictGate = &csync.Mutex{}
+	placedData, lostData := []byte("pack block the peer holds"), []byte("block a wrong row places")
+	placedRef := f.putUploaded(placedData, false)
+	peer := newLeafStore()
+	var lostRef *block.BlockRef
+	for _, data := range [][]byte{placedData, lostData} {
+		ref, _, err := peer.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		lostRef = ref
+	}
+	f.p.remote.Store(&openBackend{backend: f.p.backend.Load(), store: &wrongRows{
+		backendStore: f.packs,
+		wrong:        map[string]bool{lostRef.GetHash().MarshalString(): true},
+	}})
+
+	// Read both through packs that miss them, so the peer serves both.
+	missing := newLeafStore()
+	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
+	f.reads, f.copies = f.p.readChains(
+		recorded,
+		f.local,
+		func() block.StoreOps { return missing },
+		func() block.StoreOps { return peer },
+		nil,
+	)
+	f.read(placedRef, placedData)
+	f.read(lostRef, lostData)
+	f.waitHeld(placedRef)
+	f.waitHeld(lostRef)
+
+	// Two passes, the first keeping the blocks just read: the placed block
+	// evicts on the queue's word, and the wrongly placed one stays, queued
+	// to upload.
+	for range 2 {
+		if _, err := f.p.evict(f.ctx, 1<<30); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if f.held(placedRef) {
+		t.Fatal("the block the packs hold was not evicted")
+	}
+	if !f.held(lostRef) {
+		t.Fatal("eviction dropped the only copy of a block a wrong row placed")
+	}
+	if status := f.status(); status.Pending != 1 {
+		t.Fatalf("pending = %d, want the wrongly placed block", status.Pending)
+	}
+
+	// Its upload moves it to a pack.
+	f.upload()
+	if !f.packHolds(lostRef) {
+		t.Fatal("pack store lacks the wrongly placed block after its upload")
 	}
 }

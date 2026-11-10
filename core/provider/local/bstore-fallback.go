@@ -180,10 +180,12 @@ func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 // the fallback keeps the block, so the copy takes no ownership and a collector
 // sweeping it before the upload loses nothing.
 //
-// A block the backend's pack index places is the backend's, whichever source
-// served it, as when a backend read failed and the fallback answered, or a
-// pack read missed a block its row names. It fills as a backend hit does,
-// without a marker, so a block the backend holds never queues to upload again.
+// A block the backend holds is the backend's, whichever source served it, as
+// when a backend read failed and the fallback answered, or a pack read missed
+// a block its row names. It fills as a backend hit does, without a marker, so
+// a block the backend holds never queues to upload again. Such a fill's
+// eviction entry is trusted with no remote check when peer fills upload, so
+// the backend's own pack must confirm the block, not the index row alone.
 func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Serve mode writes nothing.
 	if p.serveOnly {
@@ -208,11 +210,15 @@ func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockR
 	return nil
 }
 
-// backendPlaces reports whether the open backend's local pack index places
-// the block in a pack the backend never reclaims. It reads the index alone,
-// never the bucket. A backend without an index, one that reclaims blocks, a
-// backend the placement left, or a failed lookup reports false, so the block
-// keeps its marker: a block uploaded twice is only stored twice.
+// backendPlaces reports whether the open backend holds the block in a pack it
+// never reclaims: its local pack index places the block, and the backend's
+// existence check, which probes the packs' own indexes, confirms it. A row
+// can name a pack that lacks the block or one gone from the bucket, and a
+// fill on the row's word alone would queue for eviction a copy that may be
+// the only one. A backend without an index, one that reclaims blocks, a
+// backend the placement left, an unconfirmed block, or a failed lookup
+// reports false, so the block keeps its marker: a block uploaded twice is
+// only stored twice. Only a block the index places costs the probe.
 func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef) bool {
 	// Ask only the open backend of the current placement.
 	if p.remote == nil {
@@ -229,7 +235,13 @@ func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef)
 
 	// Look the block up in the index.
 	placed, err := locator.LocateBlocks(ctx, []*block.BlockRef{ref})
-	return err == nil && len(placed) == 1 && placed[0]
+	if err != nil || len(placed) != 1 || !placed[0] {
+		return false
+	}
+
+	// Confirm the block in the backend's packs.
+	held, err := remote.store.GetBlockExists(ctx, ref)
+	return err == nil && held
 }
 
 // fallbackFills is the state of a placed store's fallback fills, shared by the
