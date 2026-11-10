@@ -592,7 +592,9 @@ func (db *DB) readValue(v value) ([]byte, error) {
 }
 
 // NewTransaction opens a transaction. A write transaction holds the writer
-// lock across all processes until Commit or Discard.
+// lock across all processes until Commit or Discard; one opened with
+// kvtx.WithBackgroundWriteContext takes it as a background step, yielding
+// once to an announced foreground request.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	// Refuse a closed handle and serve a read from the published state.
 	if db.closed.Load() {
@@ -616,16 +618,17 @@ func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if err := db.beginWrite(); err != nil {
 		return nil, err
 	}
+	background := kvtx.IsBackgroundWriteContext(ctx)
 	if kvtx.IsOptimisticContext(ctx) {
 		st, stripe := db.acquire()
-		return &Tx{db: db, st: st, stripe: stripe, changes: newChanges(), reads: newReadSet()}, nil
+		return &Tx{db: db, st: st, stripe: stripe, changes: newChanges(), reads: newReadSet(), background: background}, nil
 	}
-	if err := db.w.lock(ctx); err != nil {
+	if err := db.w.lockTx(ctx, background); err != nil {
 		db.endWrite()
 		return nil, err
 	}
 	st, stripe := db.acquire()
-	return &Tx{db: db, st: st, stripe: stripe, changes: newChanges()}, nil
+	return &Tx{db: db, st: st, stripe: stripe, changes: newChanges(), background: background}, nil
 }
 
 // beginWrite counts a write transaction, refusing it once Close began.
