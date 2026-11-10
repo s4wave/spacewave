@@ -115,6 +115,9 @@ type Volume struct {
 	adoptCancel context.CancelFunc
 	// adoptDone closes when the background adoption has stopped.
 	adoptDone chan struct{}
+	// adoptWake holds one pending request for a background adoption pass,
+	// nil without a background adoption.
+	adoptWake chan struct{}
 	// proofMu guards the pending root proofs and the free count. It is never
 	// held across a volume transaction.
 	proofMu sync.Mutex
@@ -291,10 +294,15 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	// as CollectorFrees describes: frees need exact counts, and without them
 	// nothing reads the counts. Child lists an older format left unverified
 	// adopt as they are, and the collector frees only blocks born since
-	// until they are verified.
-	if v.collector.Frees() && state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED {
+	// until they are verified. The adoption also runs again whenever a list
+	// rebuild returns the Volume to unadopted.
+	if v.collector.Frees() {
 		adoptCtx, cancelAdopt := context.WithCancel(context.WithoutCancel(ctx))
 		v.adoptCancel, v.adoptDone = cancelAdopt, make(chan struct{})
+		v.adoptWake = make(chan struct{}, 1)
+		if state.GetAdoption() != block_gc.Adoption_ADOPTION_ADOPTED {
+			v.wakeAdopt()
+		}
 		go v.runBackgroundAdopt(adoptCtx)
 	}
 
