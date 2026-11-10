@@ -630,11 +630,17 @@ func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlock
 
 // blockKey marshals the ref into its store key.
 func (k *KVTxBlock) blockKey(ref *block.BlockRef) ([]byte, error) {
+	return BlockKey(k.kvkey, ref)
+}
+
+// BlockKey returns the key a block store namespaced by kk keeps the value of
+// ref under, which a tombstone of ref deletes.
+func BlockKey(kk *store_kvkey.KVKey, ref *block.BlockRef) ([]byte, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {
 		return nil, err
 	}
-	return k.kvkey.GetBlockKey(rm), nil
+	return kk.GetBlockKey(rm), nil
 }
 
 // _ is a type assertion

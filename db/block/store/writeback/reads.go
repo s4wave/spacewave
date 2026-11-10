@@ -18,6 +18,9 @@ import (
 // the save time>. The value is the concatenated keys of the reads saved.
 const readsPrefix = "reads/"
 
+// ReadsPrefix is readsPrefix, for tools that read the store's keys offline.
+const ReadsPrefix = readsPrefix
+
 // readsStampLen is the length of a hex encoded time stamp in a reads key.
 const readsStampLen = 16
 
@@ -89,11 +92,11 @@ func (s *Store) LoadReads(ctx context.Context) ([]ReadChunk, error) {
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		chunks = chunks[:0]
 		return tx.ScanPrefix(ctx, []byte(readsPrefix), func(key, value []byte) error {
-			generation, err := parseReadsGeneration(key)
+			chunk, err := ParseReadChunk(key, value)
 			if err != nil {
 				return err
 			}
-			chunks = append(chunks, ReadChunk{Generation: generation, Keys: bytes.Clone(value)})
+			chunks = append(chunks, chunk)
 			return nil
 		})
 	})
@@ -102,10 +105,31 @@ func (s *Store) LoadReads(ctx context.Context) ([]ReadChunk, error) {
 	}
 
 	// Order the chunks by generation: the scan is not sorted.
+	SortReadChunks(chunks)
+	return chunks, nil
+}
+
+// ParseReadChunk decodes one saved chunk of reads from its key, relative to
+// the store's object store, and value, as LoadReads does: an error fails the
+// load. The chunk owns a copy of value.
+func ParseReadChunk(key, value []byte) (ReadChunk, error) {
+	// Refuse a key outside the prefix, which LoadReads never sees.
+	if !bytes.HasPrefix(key, []byte(readsPrefix)) {
+		return ReadChunk{}, errors.Errorf("malformed reads key %q", key)
+	}
+	generation, err := parseReadsGeneration(key)
+	if err != nil {
+		return ReadChunk{}, err
+	}
+	return ReadChunk{Generation: generation, Keys: bytes.Clone(value)}, nil
+}
+
+// SortReadChunks orders chunks by generation, oldest first and stable, as
+// LoadReads returns them.
+func SortReadChunks(chunks []ReadChunk) {
 	slices.SortStableFunc(chunks, func(a, b ReadChunk) int {
 		return a.Generation.Compare(b.Generation)
 	})
-	return chunks, nil
 }
 
 // DropReadsBefore deletes the saved reads of the generations started before

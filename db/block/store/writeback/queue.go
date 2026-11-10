@@ -26,6 +26,34 @@ const markedPrefix = "marked/"
 // repeated write once there is one.
 const queuePrefix = "queue/"
 
+// MarkedPrefix and QueuePrefix are markedPrefix and queuePrefix, for tools
+// that read the store's keys offline.
+const (
+	MarkedPrefix = markedPrefix
+	QueuePrefix  = queuePrefix
+)
+
+// MarkedKey returns the key, relative to the store's object store, that
+// records the block with hash h awaiting upload: an eviction pass keeps the
+// block while the key exists, whatever its value.
+func MarkedKey(h *hash.Hash) []byte {
+	return markedKey(h)
+}
+
+// ParseQueueKey decodes an upload queue key, relative to the store's object
+// store, into the block's write time and hash, as the uploader decodes it.
+func ParseQueueKey(key []byte) (time.Time, *hash.Hash, error) {
+	// Refuse a key outside the prefix, which the uploader never sees.
+	if !bytes.HasPrefix(key, []byte(queuePrefix)) {
+		return time.Time{}, nil, errors.Errorf("malformed upload queue key %q", key)
+	}
+	p, err := queueItem{key: key}.pending()
+	if err != nil {
+		return time.Time{}, nil, err
+	}
+	return p.at, p.ref.GetHash(), nil
+}
+
 // queueTimeLen is the length of the write time in a queue key.
 const queueTimeLen = 16
 

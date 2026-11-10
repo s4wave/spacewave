@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/net/hash"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -107,6 +108,35 @@ func unmarshalPackRow(b []byte) (packRow, error) {
 		return packRow{}, errors.Errorf("pack row of %d bytes", len(b))
 	}
 	return packRow{num: binary.BigEndian.Uint32(b), indexed: b[4] == 1}, nil
+}
+
+// ParsePackRow decodes the value of a p/ row of the pack index into the pack's
+// number, as loading the pack table does: an error fails the load, and with
+// it every lookup of the store.
+func ParsePackRow(value []byte) (uint32, error) {
+	row, err := unmarshalPackRow(value)
+	return row.num, err
+}
+
+// PackRowPrefix and HashRowPrefix prefix the p/ and h rows of the pack index,
+// after PackIndexPrefix.
+const (
+	PackRowPrefix = indexPackPrefix
+	HashRowPrefix = indexHashPrefix
+)
+
+// HashRowKey returns the key of the h row that places the block with hash h,
+// after PackIndexPrefix, as a lookup reads it.
+func HashRowKey(h *hash.Hash) []byte {
+	return hashRowKey(packfile.BlockKey(h))
+}
+
+// HashRowPack decodes the value of an h row into the number of the pack it
+// names; ok is false for a malformed row, which a lookup reads as placing
+// the block nowhere.
+func HashRowPack(value []byte) (uint32, bool) {
+	v, ok := parseHashValue(value)
+	return v.num, ok
 }
 
 // packIndex is the entry cache and block location index of a PackStore in a

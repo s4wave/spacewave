@@ -130,6 +130,20 @@ func (r *readSet) load(ctx context.Context, store readStore) error {
 	// Fill the two newest generations from the newest chunks back.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+	r.fill(chunks)
+
+	// Drop the saved generations older than the two loaded.
+	if r.prevTurned.IsZero() {
+		return nil
+	}
+	return store.DropReadsBefore(ctx, r.prevTurned)
+}
+
+// fill fills the two newest generations of chunks, which LoadReads returned
+// oldest generation first, into an empty set, from the newest chunk back:
+// the newest generation is current and the one before it previous. Call
+// with mtx held.
+func (r *readSet) fill(chunks []block_store_writeback.ReadChunk) {
 	for _, chunk := range slices.Backward(chunks) {
 
 		var gen map[readKey]struct{}
@@ -152,12 +166,29 @@ func (r *readSet) load(ctx context.Context, store readStore) error {
 			gen[readKey(keys[:readKeyLen])] = struct{}{}
 		}
 	}
+}
 
-	// Drop the saved generations older than the two loaded.
-	if r.prevTurned.IsZero() {
-		return nil
-	}
-	return store.DropReadsBefore(ctx, r.prevTurned)
+// has reports whether either generation recorded the block with hash h.
+func (r *readSet) has(h *hash.Hash) bool {
+	key := newReadKey(h)
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+	_, cur := r.hashes[key]
+	_, prev := r.prev[key]
+	return cur || prev
+}
+
+// LoadedReadKeep returns whether a read set loaded from chunks, which
+// LoadReads returned, records the block with hash h: what the first eviction
+// pass after the load keeps by its reads, before the pass turns the
+// generations and without the decoded caches' hits and live holds, which
+// only keep more. A tool that decides offline what a pass may drop calls it.
+func LoadedReadKeep(chunks []block_store_writeback.ReadChunk) func(h *hash.Hash) bool {
+	r := &readSet{}
+	r.mtx.Lock()
+	r.fill(chunks)
+	r.mtx.Unlock()
+	return r.has
 }
 
 // save saves the reads recorded since the last save to the current
@@ -249,12 +280,7 @@ func (r *readSet) take(ctx context.Context) (func(*hash.Hash) bool, error) {
 	// served or live values hold.
 	return func(h *hash.Hash) bool {
 		// Look the key up in both generations.
-		key := newReadKey(h)
-		r.mtx.Lock()
-		_, cur := r.hashes[key]
-		_, prev := r.prev[key]
-		r.mtx.Unlock()
-		return cur || prev || keptByCache(h)
+		return r.has(h) || keptByCache(h)
 	}, nil
 }
 
