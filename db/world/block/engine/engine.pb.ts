@@ -202,8 +202,10 @@ export interface RegenConfig {
    */
   target?: RegenTarget
   /**
-   * SpillDir is the directory the build's sort writes its disposable runs in.
-   * Required with a target that builds.
+   * SpillDir is the directory the regeneration's sorts write their disposable
+   * runs in. The regeneration owns it and clears runs a killed process left, so
+   * no other World or program may sort there. Required with a target that
+   * builds.
    */
   spillDir?: string
   /**

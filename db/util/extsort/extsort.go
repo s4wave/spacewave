@@ -21,12 +21,14 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
+	"io/fs"
 	"iter"
 	"math"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -157,7 +159,7 @@ func (s *Sorter) sortBuffer() {
 func (s *Sorter) spill() error {
 	// Create the run directory on the first spill.
 	if s.dir == "" {
-		dir, err := os.MkdirTemp(s.parent, "extsort-")
+		dir, err := os.MkdirTemp(s.parent, runDirPrefix+"*")
 		if err != nil {
 			return err
 		}
@@ -283,6 +285,33 @@ func (s *Sorter) Close() error {
 	dir := s.dir
 	s.dir = ""
 	return os.RemoveAll(dir)
+}
+
+// runDirPrefix starts the name of each Sorter's run directory.
+const runDirPrefix = "extsort-"
+
+// RemoveRuns removes the run directories that Sorters under parent left
+// behind when their process ended before Close. The caller must own parent: a
+// Sorter still sorting under it loses its runs. A missing parent holds none.
+func RemoveRuns(parent string) error {
+	// List the run directories under parent.
+	entries, err := os.ReadDir(parent)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	// Remove each with every run in it.
+	for _, e := range entries {
+		if e.IsDir() && strings.HasPrefix(e.Name(), runDirPrefix) {
+			if err := os.RemoveAll(filepath.Join(parent, e.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // cursor reads one ascending stream of records.
