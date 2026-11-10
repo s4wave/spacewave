@@ -83,6 +83,9 @@ type placementState struct {
 	resident *residentOverride
 	// policyWake wakes the eviction loop when the policy changes; nil never.
 	policyWake chan struct{}
+	// evictLatch carries the eviction loop to the low mark across passes and
+	// routine restarts, as EvictLatch describes; only runEviction uses it.
+	evictLatch block_store_writeback.EvictLatch
 	// sqlPrimary reports that the store writes to its SQL backend, which
 	// then holds blocks the reference graph may not track.
 	sqlPrimary bool
@@ -729,11 +732,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// to its SQL backend leaves the local bucket as it is, and serve mode
 	// evicts nothing.
 	if sqlStore == nil && !placement.serveOnly {
-		eviction := routine.NewRoutineContainerWithLogger(
-			le.WithField("routine", "storage-evict"),
-			routine.WithRetry(providerBackoff),
-		)
-		eviction.SetRoutine(placement.runEviction)
+		evictLe := le.WithField("routine", "storage-evict")
+		eviction := routine.NewRoutineContainerWithLogger(evictLe, routine.WithRetry(providerBackoff))
+		eviction.SetRoutine(func(ctx context.Context) error { return placement.runEviction(ctx, evictLe) })
 		eviction.SetContext(ctx, true)
 		defer eviction.ClearContext()
 	}

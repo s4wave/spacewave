@@ -1,15 +1,21 @@
 package provider_local
 
 import (
+	"context"
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/csync"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
 )
 
 // TestReadSetKeepsRecentReads checks that eviction keeps a read block across
@@ -167,5 +173,90 @@ func TestEvictionKeepsCacheHits(t *testing.T) {
 	now = hitAt.Add(2 * readKeepAge)
 	if hits.has(cached.GetHash()) {
 		t.Fatal("hit set kept the hit past two generations")
+	}
+}
+
+// TestEvictionResumesToLowMark checks that a pass the high mark started, cut
+// short with the resident bytes back at the high mark, is carried on to the
+// low mark by the next run of the eviction loop, as the routine's restart
+// runs it, though the resident bytes no longer exceed the high mark: on be-7 a
+// pass that ended 4.6 GB into its target at 01:14:33Z waited for the high mark
+// to be crossed again.
+func TestEvictionResumesToLowMark(t *testing.T) {
+	// Batch ten blocks at a time, so a pass can stop after one batch.
+	block_store_writeback.SetEvictBatch(block_store_writeback.EvictBatch{MinBlocks: 10, MaxBlocks: 10})
+	t.Cleanup(func() { block_store_writeback.SetEvictBatch(block_store_writeback.EvictBatch{}) })
+
+	// Write and upload 100 blocks of 1 KiB to the packs.
+	f := newFallbackTest(t)
+	const total, size = 100, 1 << 10
+	for i := range total {
+		data := make([]byte, size)
+		copy(data, fmt.Appendf(nil, "block-%05d", i))
+		if _, _, err := f.wb.PutBlock(f.ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.upload()
+
+	// Open the packs as the backend, and refuse the pass's second batch once.
+	f.p.remote = &atomic.Pointer[openBackend]{}
+	f.p.remote.Store(&openBackend{backend: f.p.backend.Load(), store: f.packs})
+	f.p.evictGate, f.p.policyWake = &csync.Mutex{}, make(chan struct{}, 1)
+	f.p.evictAdmit = &atomic.Pointer[block_store_writeback.EvictAdmit]{}
+	stop := errors.New("paused")
+	var batches atomic.Int32
+	admit := block_store_writeback.EvictAdmit(func(context.Context, int64) error {
+		if batches.Add(1) == 2 {
+			return stop
+		}
+		return nil
+	})
+	f.p.evictAdmit.Store(&admit)
+
+	// Put the store past a high mark of 90 blocks, to a low mark of 20.
+	const high, low = 90 * size, 20 * size
+	resident := func() int64 {
+		status, _ := f.wb.GetStatus()
+		return status.ResidentBytes()
+	}
+	if got := resident(); got != total*size {
+		t.Fatalf("resident = %d before eviction, want %d", got, total*size)
+	}
+	f.wb.SetPolicy(block_store_writeback.Policy{ResidentHigh: high, ResidentLow: low})
+
+	// The first run drops one batch, back to the high mark, and ends on the
+	// refused batch.
+	le := logrus.NewEntry(logrus.New())
+	if err := f.p.runEviction(f.ctx, le); !errors.Is(err, stop) {
+		t.Fatalf("first run = %v, want the refused batch", err)
+	}
+	if got := resident(); got != high {
+		t.Fatalf("resident = %d after the cut-short pass, want the high mark %d", got, high)
+	}
+
+	// The next run carries the pass on to the low mark.
+	ctx, cancel := context.WithCancel(f.ctx)
+	done := make(chan error, 1)
+	go func() { done <- f.p.runEviction(ctx, le) }()
+	deadline := time.After(5 * time.Second)
+	for {
+		status, changed := f.wb.GetStatus()
+		if status.ResidentBytes() <= low {
+			break
+		}
+		select {
+		case <-changed:
+		case err := <-done:
+			t.Fatalf("eviction loop ended: %v", err)
+		case <-deadline:
+			cancel()
+			t.Fatalf("resident = %d, want the loop to evict to the low mark %d", status.ResidentBytes(), low)
+		}
+	}
+	cancel()
+	<-done
+	if got := resident(); got != low {
+		t.Fatalf("resident = %d after the loop, want the low mark %d", got, low)
 	}
 }
