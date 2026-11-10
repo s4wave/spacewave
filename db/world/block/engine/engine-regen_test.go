@@ -51,6 +51,7 @@ func TestWorldEngineControllerRegenerates(t *testing.T) {
 		c.Regen = &world_block_engine.RegenConfig{
 			Target:   world_block_engine.RegenTarget_REGEN_TARGET_DONE,
 			SpillDir: t.TempDir(),
+			FloorDir: t.TempDir(),
 		}
 	})
 	defer engRef.Release()

@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
@@ -19,6 +20,7 @@ import (
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	"github.com/s4wave/spacewave/db/util/diskfree"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/sirupsen/logrus"
@@ -188,7 +190,7 @@ func healthSizes(ctx context.Context, db *s4db.DB, path string, reserveBytes int
 	}
 
 	// Measure the free disk.
-	freeBytes, err := freeDiskBytes(path)
+	freeBytes, err := diskfree.Bytes(filepath.Dir(path))
 	if err != nil {
 		return volume_kvtx.HealthSizes{}, err
 	}

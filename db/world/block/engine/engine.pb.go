@@ -291,6 +291,15 @@ type RegenConfig struct {
 	// turn, which bounds the wait a commit can take behind it.
 	// Defaults to 4096.
 	SwapChanges uint32 `protobuf:"varint,4,opt,name=swap_changes,json=swapChanges,proto3" json:"swapChanges,omitempty"`
+	// FloorDir is a directory on the file system holding the World's Volume.
+	// The build keeps free disk there, and in spill_dir, above floor_bytes.
+	// Required with a target that builds.
+	FloorDir string `protobuf:"bytes,5,opt,name=floor_dir,json=floorDir,proto3" json:"floorDir,omitempty"`
+	// FloorBytes is the least free disk the build leaves on the file systems of
+	// floor_dir and spill_dir. Below it the build stops before the switch and
+	// the old tree stays live.
+	// Defaults to 4 GiB.
+	FloorBytes uint64 `protobuf:"varint,6,opt,name=floor_bytes,json=floorBytes,proto3" json:"floorBytes,omitempty"`
 }
 
 func (x *RegenConfig) Reset() {
@@ -323,6 +332,20 @@ func (x *RegenConfig) GetBudgetBytes() uint64 {
 func (x *RegenConfig) GetSwapChanges() uint32 {
 	if x != nil {
 		return x.SwapChanges
+	}
+	return 0
+}
+
+func (x *RegenConfig) GetFloorDir() string {
+	if x != nil {
+		return x.FloorDir
+	}
+	return ""
+}
+
+func (x *RegenConfig) GetFloorBytes() uint64 {
+	if x != nil {
+		return x.FloorBytes
 	}
 	return 0
 }
@@ -390,6 +413,8 @@ func (m *RegenConfig) CloneVT() *RegenConfig {
 	r.SpillDir = m.SpillDir
 	r.BudgetBytes = m.BudgetBytes
 	r.SwapChanges = m.SwapChanges
+	r.FloorDir = m.FloorDir
+	r.FloorBytes = m.FloorBytes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -503,6 +528,12 @@ func (this *RegenConfig) EqualVT(that *RegenConfig) bool {
 		return false
 	}
 	if this.SwapChanges != that.SwapChanges {
+		return false
+	}
+	if this.FloorDir != that.FloorDir {
+		return false
+	}
+	if this.FloorBytes != that.FloorBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -798,6 +829,16 @@ func (x *RegenConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("swapChanges")
 		s.WriteUint32(x.SwapChanges)
 	}
+	if x.FloorDir != "" || s.HasField("floorDir") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("floorDir")
+		s.WriteString(x.FloorDir)
+	}
+	if x.FloorBytes != 0 || s.HasField("floorBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("floorBytes")
+		s.WriteUint64(x.FloorBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -827,6 +868,12 @@ func (x *RegenConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "swap_changes", "swapChanges":
 			s.AddField("swap_changes")
 			x.SwapChanges = s.ReadUint32()
+		case "floor_dir", "floorDir":
+			s.AddField("floor_dir")
+			x.FloorDir = s.ReadString()
+		case "floor_bytes", "floorBytes":
+			s.AddField("floor_bytes")
+			x.FloorBytes = s.ReadUint64()
 		}
 	})
 }
@@ -1059,6 +1106,16 @@ func (m *RegenConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.FloorBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FloorBytes))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.FloorDir) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.FloorDir)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.SwapChanges != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SwapChanges))
 		i--
@@ -1174,6 +1231,8 @@ func (m *RegenConfig) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpillDir)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.BudgetBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SwapChanges)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.FloorDir)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.FloorBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1296,6 +1355,14 @@ func (x *RegenConfig) MarshalProtoText() string {
 	if x.SwapChanges != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "swap_changes")
 		protobuf_go_lite.TextWriteUint(&sb, x.SwapChanges)
+	}
+	if x.FloorDir != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "floor_dir")
+		protobuf_go_lite.TextWriteString(&sb, x.FloorDir)
+	}
+	if x.FloorBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "floor_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.FloorBytes)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1618,6 +1685,25 @@ func (m *RegenConfig) UnmarshalVT(dAtA []byte) error {
 			}
 			m.SwapChanges = 0
 			m.SwapChanges, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FloorDir", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.FloorDir = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FloorBytes", wireType)
+			}
+			m.FloorBytes = 0
+			m.FloorBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
