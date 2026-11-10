@@ -406,7 +406,7 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		}
 	}
 
-	// Retain the object used to check graph-induced revision changes.
+	// Retain the object used to check that a relationship leaves its revision.
 	quad := world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "explicit/b", "")
 	retained, err := world.MustGetObject(ctx, ws, "explicit/a")
 	if err != nil {
@@ -421,11 +421,11 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 	}
 	beforeHash := slices.Clone(beforeRoot.GetObjectKeyValue().GetOkraRoot().GetRootHash())
 
-	// Connect the objects and verify the retained object revision.
+	// Connect the objects and verify the retained object keeps its revision.
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, rev, err := retained.GetRootRef(ctx); err != nil || rev != 2 {
+	if _, rev, err := retained.GetRootRef(ctx); err != nil || rev != 1 {
 		t.Fatalf("retained object revision=%d err=%v", rev, err)
 	}
 
@@ -457,7 +457,7 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 
 	// Verify object revisions survive the explicit store round trip.
 	refs, err := readWS.GetObjectRootRefsBatch(ctx, []string{"explicit/a", "explicit/b"})
-	if err != nil || refs[0].Rev != 3 || refs[1].Rev != 2 {
+	if err != nil || refs[0].Rev != 2 || refs[1].Rev != 1 {
 		t.Fatalf("object revisions after readback=%v err=%v", refs, err)
 	}
 

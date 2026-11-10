@@ -83,12 +83,12 @@ func TestImportSnapshotPreservesWorld(t *testing.T) {
 			t.Fatalf("sequence %d, error %v", seq, err)
 		}
 
-		// Check revisions include the relationship endpoints and missing objects.
+		// Check relationships leave their endpoints' revisions alone.
 		refs, err := state.GetObjectRootRefsBatch(ctx, []string{"object-0000", "object-0001", "object-4199", "object-4200"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if refs[0].Rev != 4 || refs[1].Rev != 2 || refs[2].Rev != 1 || refs[3].Exists {
+		if refs[0].Rev != 1 || refs[1].Rev != 1 || refs[2].Rev != 1 || refs[3].Exists {
 			t.Fatalf("unexpected object revisions: %v", refs)
 		}
 

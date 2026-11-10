@@ -83,8 +83,8 @@ func importWorld(
 	objects iter.Seq2[string, block.Block],
 	quads []world.GraphQuad,
 ) (*block.BlockRef, error) {
-	// Validate every relationship and count the ends of each object before
-	// any object is written, since an object's revision includes them.
+	// Validate every relationship and collect the objects it names, so the
+	// object pass can confirm each exists.
 	for _, q := range quads {
 		if _, err := world.GraphQuadToCayleyQuad(q, true); err != nil {
 			return nil, err
@@ -93,14 +93,14 @@ func importWorld(
 	if err := requireUniqueGraphQuads(quads); err != nil {
 		return nil, err
 	}
-	ends := make(map[string]uint64)
+	ends := make(map[string]struct{})
 	for _, q := range quads {
 		for _, value := range [2]string{q.GetSubject(), q.GetObj()} {
 			key, err := world.GraphValueToKey(value)
 			if err != nil {
 				return nil, err
 			}
-			ends[key]++
+			ends[key] = struct{}{}
 		}
 	}
 
@@ -141,7 +141,6 @@ func importWorld(
 			// seqno; they do not match a replay of the source World.
 			count++
 			obj := NewObject(key, ref)
-			obj.Rev += ends[key]
 			obj.ModSeqno = count
 			delete(ends, key)
 			if !yield([]byte(objectKeyPrefix+key), obj) {

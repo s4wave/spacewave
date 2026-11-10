@@ -12,8 +12,9 @@ import (
 )
 
 // InsertGraphQuads inserts new, unique relationships in one graph index update.
-// It validates all endpoints before writing and records the same endpoint
-// revisions and World changes as individual SetGraphQuad calls. An existing or
+// It validates all endpoints before writing and records the same World changes
+// as individual SetGraphQuad calls. It writes only the graph: the records of the
+// objects a relationship names keep their revisions. An existing or
 // repeated relationship is an error; discard the enclosing transaction on error.
 // Like other mutable WorldState operations, calls must be serialized by its owner.
 func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
@@ -33,17 +34,9 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 		return err
 	}
 
-	// Keep first-seen order while counting both ends of every relationship.
-	// A shared endpoint needs one lookup and one revision mutation per batch.
-	type endpointUpdate struct {
-		state *ObjectState
-		count uint64
-	}
-
-	// Collect Cayley deltas and deduplicated endpoint states per object key.
+	// Build the Cayley deltas and require each endpoint once.
 	deltas := make([]graph.Delta, len(quads))
-	endpointIndexes := make(map[string]int)
-	var endpoints []endpointUpdate
+	checked := make(map[string]struct{})
 	for i, q := range quads {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -58,29 +51,23 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			if err != nil {
 				return err
 			}
-			if index, ok := endpointIndexes[key]; ok {
-				endpoints[index].count++
+			if _, ok := checked[key]; ok {
 				continue
 			}
-			state, err := t.mustGetObject(ctx, key)
+			found, err := t.HasObject(ctx, key)
 			if err != nil {
 				return err
 			}
-			endpointIndexes[key] = len(endpoints)
-			endpoints = append(endpoints, endpointUpdate{state: state, count: 1})
+			if !found {
+				return world.ErrObjectNotFound
+			}
+			checked[key] = struct{}{}
 		}
 	}
 
 	// Apply the deltas to the graph index.
 	if err := t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 		return err
-	}
-
-	// Increment each endpoint object's revision by its relationship count.
-	for _, endpoint := range endpoints {
-		if _, err := endpoint.state.incrementRevBy(ctx, endpoint.count, false); err != nil {
-			return err
-		}
 	}
 
 	// Record one graph-set World change per relationship.
