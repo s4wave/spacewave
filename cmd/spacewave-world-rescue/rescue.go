@@ -43,6 +43,9 @@ type options struct {
 	Ledger string
 	// OutDir is the output pack set's directory.
 	OutDir string
+	// Layout is the output's layout, layoutPackStore when empty or
+	// layoutAdopt.
+	Layout string
 	// Sessions is the packs fetched at once.
 	Sessions int
 	// Plan chooses between whole packs and ranges.
@@ -184,6 +187,21 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 		o.Log = io.Discard
 	}
 
+	// Choose the output layout, finishing the pairs a crash left staged in
+	// the adopt layout.
+	var objects block_store_s3.ObjectStore
+	switch o.Layout {
+	case "", layoutPackStore:
+		objects = dirObjects{}
+	case layoutAdopt:
+		if err := recoverAdopt(o.OutDir); err != nil {
+			return nil, err
+		}
+		objects = adoptObjects{}
+	default:
+		return nil, errors.Errorf("--layout must be %s or %s, got %q", layoutPackStore, layoutAdopt, o.Layout)
+	}
+
 	// Open the ledger and the output pack set.
 	l, err := openLedger(o.Ledger)
 	if err != nil {
@@ -191,7 +209,7 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	}
 	defer l.close()
 	le := logrus.NewEntry(logrus.StandardLogger())
-	out := block_store_s3.NewPackStore(le, dirObjects{}, o.OutDir, "", &block_store_s3.PackStoreOptions{KeepPacks: true, SoleWriter: true, MaxPackBytes: syntheticPackBytes})
+	out := block_store_s3.NewPackStore(le, objects, o.OutDir, "", &block_store_s3.PackStoreOptions{KeepPacks: true, SoleWriter: true, MaxPackBytes: syntheticPackBytes})
 	defer out.Close()
 	r := &rescuer{
 		o: o, le: le, ledger: l, out: out, multi: make(map[string]int), multiDone: make(map[string]bool), limits: out.GetBatchLimits(), start: time.Now(),

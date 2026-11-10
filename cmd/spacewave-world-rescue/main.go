@@ -3,7 +3,8 @@
 // Command spacewave-world-rescue fetches a list of blocks from the packfiles a
 // PackStore wrote to an FTPS server, verifies each against its ref, and
 // writes the verified blocks to a local pack set in the PackStore layout
-// (packs/{id} and entries/{id}).
+// (packs/{id} and entries/{id}), or with --layout adopt flat as {id} and
+// {id}.entry, the layout hyperline-backend world-adopt-packs reads.
 //
 // It places the blocks through a read-only copy of the writer's pack index,
 // reads each pack whole, keeping only the wanted blocks, most wanted packs
@@ -47,7 +48,7 @@ type args struct {
 	refs, index, indexTable, storeID string
 	indexScratch                     string
 	addr, netrc, root, prefix        string
-	out, ledgerPath                  string
+	out, ledgerPath, layout          string
 	sessions, minWanted, retries     int
 	ranges, retryFailed              bool
 	overhead, maxBytes, maxPackMiB   uint64
@@ -76,6 +77,7 @@ func main() {
 		&cli.StringFlag{Name: "root", Usage: "server directory holding the prefix", Value: "hyperline-packs", Destination: &a.root},
 		&cli.StringFlag{Name: "prefix", Usage: "PackStore key prefix; packs are {root}/{prefix}packs/{id}", Value: "world/packs/", Destination: &a.prefix},
 		&cli.StringFlag{Name: "out", Usage: "output directory of the pack set", Destination: &a.out, Required: true},
+		&cli.StringFlag{Name: "layout", Usage: "output layout: packstore writes packs/{id} and entries/{id}; adopt writes {id} and {id}.entry flat, as hyperline-backend world-adopt-packs reads", Value: layoutPackStore, Destination: &a.layout},
 		&cli.StringFlag{Name: "ledger", Usage: "ledger file; default {out}/rescue.ledger", Destination: &a.ledgerPath},
 		&cli.IntFlag{Name: "sessions", Usage: "FTPS sessions at most, 1 to 9", Value: 4, Destination: &a.sessions},
 		&cli.IntFlag{Name: "min-wanted", Usage: "take only packs holding more than this many wanted blocks; 256 is tier 1", Destination: &a.minWanted},
@@ -132,6 +134,9 @@ func (a *args) run() error {
 	if a.minWanted < 0 {
 		return errors.New("--min-wanted must not be negative")
 	}
+	if a.layout != layoutPackStore && a.layout != layoutAdopt {
+		return errors.New("--layout must be packstore or adopt")
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -177,6 +182,7 @@ func (a *args) run() error {
 		RefList:      a.refs,
 		Ledger:       cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
 		OutDir:       a.out,
+		Layout:       a.layout,
 		Sessions:     a.sessions,
 		Plan:         planOptions{Ranges: a.ranges, Overhead: a.overhead},
 		MinWanted:    a.minWanted,
