@@ -99,6 +99,9 @@ func Land(
 		rec:      rec,
 		blocks:   blocks,
 		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
+		adopted:  state.GetAdoption() == Adoption_ADOPTION_ADOPTED,
+		usePrior: landUsePrior(),
+		skipAll:  landSkipListed(),
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		verify:   state.GetUnverifiedLists(),
 		born:     make(map[string]*bornBlock),
@@ -153,6 +156,8 @@ type bornBlock struct {
 	reput bool
 	// written reports that its child list was written.
 	written bool
+	// prior is the block it replaces, as PutBatchEntry.Prior, or nil.
+	prior *block.BlockRef
 }
 
 // lander is the state of one Land call.
@@ -163,6 +168,14 @@ type lander struct {
 	blocks block.StoreOps
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
+	// adopted reports that the Volume is adopted: every writer stores a
+	// block's bytes with its list, so a child a stored list names is listed
+	// or has no bytes.
+	adopted bool
+	// usePrior and skipAll are the measurement knobs.
+	usePrior, skipAll bool
+	// stats counts the listed checks the Land made and skipped.
+	stats landStats
 	// adopting reports that an adoption is counting the Volume, so Land marks
 	// the blocks it gives birth to and the roots it moves, as Adopt reads.
 	adopting bool
@@ -231,7 +244,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		case putStored:
 			l.touched[key] = struct{}{}
 		default:
-			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
+			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs), prior: entry.Prior}
 			l.born[key] = b
 			l.order = append(l.order, b)
 		}
@@ -382,7 +395,13 @@ func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*b
 // implied holder of a child the batch stores too, and an up pair for any
 // other.
 func (l *lander) holdChildren(ctx context.Context) error {
+	defer l.stats.trace(ctx, l)
 	for _, b := range l.order {
+		// Read the list of the block it replaces, the children it vouches for.
+		vouched, err := l.priorChildren(ctx, b)
+		if err != nil {
+			return err
+		}
 		for _, child := range b.children {
 			// A child the batch stores takes the parent as a batch holder.
 			if c, ok := l.born[string(BlockKey(child))]; ok {
@@ -395,13 +414,67 @@ func (l *lander) holdChildren(ctx context.Context) error {
 			if !l.journal {
 				continue
 			}
-			if err := l.requireListed(ctx, child); err != nil {
-				return err
+
+			// A child a stored list names is listed, freed or lost, never an
+			// orphan: Land, LandFill and the rebuild write lists only from
+			// content, and adoption refuses unknowns. Before adoption a block
+			// with bytes and no list can survive from before the journal, and
+			// requireListed's refusal is what makes a writer re-put it with
+			// its refs, so only an adopted Volume skips. A freed child has no
+			// bytes, which requireListed passes anyway.
+			switch {
+			case l.adopted && l.skipAll:
+				l.stats.skipped++
+			case l.adopted && vouches(&vouched, child):
+				l.stats.skipped++
+			default:
+				l.stats.asked++
+				if err := l.requireListed(ctx, child); err != nil {
+					return err
+				}
 			}
 			l.up = append(l.up, BlockKey(child))
 		}
 	}
 	return nil
+}
+
+// priorChildren returns the child list of the block b replaces, sorted by
+// block key, or nil when b replaces none, the Volume is not adopted, or the
+// store holds no list for it.
+func (l *lander) priorChildren(ctx context.Context, b *bornBlock) ([]*block.BlockRef, error) {
+	// Only an adopted Volume's lists vouch, and only for a named prior.
+	if !l.adopted || !l.usePrior || l.skipAll || b.prior.GetEmpty() || !l.journal {
+		return nil, nil
+	}
+
+	// Read the prior's list; a missing one vouches for nothing.
+	l.stats.priors++
+	children, found, err := l.rec.GetChildren(ctx, b.prior)
+	if err != nil || !found {
+		return nil, err
+	}
+	l.stats.priorFound++
+	return children, nil
+}
+
+// vouches reports whether the sorted list *vouched names child, consuming the
+// entries below it. child arrives in key order, so the walk is one merge.
+// Only an equal ref vouches: a list stored out of order makes the walk miss
+// and the child ask the store, never skip on a guess.
+func vouches(vouched *[]*block.BlockRef, child *block.BlockRef) bool {
+	for len(*vouched) != 0 {
+		switch c := compareRefs((*vouched)[0], child); {
+		case c < 0:
+			*vouched = (*vouched)[1:]
+		case c == 0:
+			*vouched = (*vouched)[1:]
+			return true
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 // requireListed refuses a block whose bytes the store holds without a child
@@ -414,6 +487,7 @@ func (l *lander) requireListed(ctx context.Context, ref *block.BlockRef) error {
 	if err != nil || listed {
 		return err
 	}
+	l.stats.unlisted++
 
 	// Refuse one whose bytes are stored without it.
 	found, err := l.blocks.GetBlockExists(ctx, ref)

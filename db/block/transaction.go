@@ -460,6 +460,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			blkRef := bn.ref
 			var blkRefs []*BlockRef
 			if bn.blk != nil && !bn.moved {
+				// The node's old ref, when it had one, is the block this
+				// write replaces.
+				prior := bn.ref
 				blkRef = nil
 				if err := bn.ownBlock(); err != nil {
 					handleErr(err)
@@ -525,7 +528,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
 							putBlocks.Add(1)
 							RecordWrite(ctx, len(dat))
-							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false)
+							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false, prior)
 							writeTask.End()
 							if err != nil {
 								handleErr(err)

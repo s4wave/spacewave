@@ -3569,3 +3569,87 @@ func countPrefix(t *testing.T, store *store_kvtx_inmem.Store, prefix []byte) int
 	}
 	return n
 }
+
+// TestLandPriorVouchesOnlyByStoredList proves the Prior hint skips a child's
+// listed check only where the store's own list for the hinted block names the
+// child, so the hint cannot widen what the store vouches for.
+func TestLandPriorVouchesOnlyByStoredList(t *testing.T) {
+	t.Setenv("LAND_PRIOR", "1")
+
+	// orphan stores bytes below the Volume's liveness, with no list.
+	orphan := func(t *testing.T, v *Volume, tr testTree, name string) {
+		t.Helper()
+		if _, _, err := v.Store.PutBlock(t.Context(), tr[name].Data, &block.PutOpts{RefsKnown: true}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("orphan the prior does not name", func(t *testing.T) {
+		// Q -> X is landed. P replaces Q and names X and the orphan O: X
+		// skips on Q's list, O asks the store and is refused.
+		v, _ := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		tr.add(t, "O")
+		q := tr.add(t, "Q", "X")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "Q"), []block.NamedRoot{{Name: "q", Ref: q}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		p := tr.add(t, "P", "X", "O")
+		tr["P"].Prior = q
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "q", Ref: p, Previous: q}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("parent naming an orphan = %v, want ErrRefsUnknown", err)
+		}
+	})
+
+	t.Run("wrong prior that does not name the orphan", func(t *testing.T) {
+		// The hint names an unrelated listed block W -> Y. Its list does not
+		// name O, so O still asks the store and is refused.
+		v, _ := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "Y")
+		tr.add(t, "O")
+		w := tr.add(t, "W", "Y")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("Y", "W"), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		p := tr.add(t, "P", "O")
+		tr["P"].Prior = w
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "p", Ref: p}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("wrong prior = %v, want ErrRefsUnknown", err)
+		}
+	})
+
+	t.Run("stored list naming an orphan", func(t *testing.T) {
+		// W lands naming O while O is unstored, which passes; then O's
+		// bytes arrive below liveness. W's list now names an orphan, the
+		// state the skip's invariant excludes. Any hint at W, right or
+		// wrong, skips O's check, so only the invariant guards this case.
+		v, _ := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "O")
+		w := tr.add(t, "W", "O")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("W"), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		p := tr.add(t, "P", "O")
+		tr["P"].Prior = w
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "p", Ref: p}})
+		t.Logf("parent hinting a list that names an orphan: err = %v", err)
+		tr["P"].Prior = nil
+		t.Setenv("LAND_PRIOR", "")
+		p2 := tr.add(t, "P2", "O")
+		err = v.SetBucketRoots(ctx, "b", tr.entries("P2"), []block.NamedRoot{{Name: "p2", Ref: p2}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("without the hint = %v, want ErrRefsUnknown", err)
+		}
+	})
+}

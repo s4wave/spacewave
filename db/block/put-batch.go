@@ -19,4 +19,9 @@ type PutBatchEntry struct {
 	// put without External stores them. A store that keeps no liveness stores
 	// the bytes as for any entry, which loses nothing.
 	External bool
+	// Prior is the block this one replaces, when the writer rewrote a block it
+	// loaded: the old version of the same node. A Volume that keeps liveness
+	// may read Prior's child list as evidence that the children it names are
+	// listed. It is advisory and never trusted beyond that store's own record.
+	Prior *BlockRef
 }
