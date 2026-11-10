@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
@@ -14,6 +15,8 @@ const stagePrefix = "stage:"
 
 // openStage is the in-process state of one stage.
 type openStage struct {
+	// opened is when the stage opened.
+	opened time.Time
 	// written records that a transaction hung the stage under its process
 	// owner, which may have committed.
 	written bool
@@ -41,7 +44,7 @@ func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 		return "", nil, err
 	}
 	stage := stagePrefix + ulid.NewULID()
-	v.stages[stage] = &openStage{}
+	v.stages[stage] = &openStage{opened: time.Now()}
 	return stage, sync.OnceFunc(func() { v.releaseStage(stage) }), nil
 }
 

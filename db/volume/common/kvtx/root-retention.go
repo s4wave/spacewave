@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/db/block"
@@ -599,6 +600,8 @@ func (v *Volume) PinBucketRoot(ctx context.Context, ref *block.BlockRef) (func()
 type rootPin struct {
 	// count is the number of unreleased pins.
 	count int
+	// opened is when the pin last took its first reader.
+	opened time.Time
 	// settled is non-nil while the node's durable edge is being written or
 	// removed, and closes when that write finishes.
 	settled chan struct{}
@@ -639,6 +642,9 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 
 		// A retained root only gains a reader.
 		if pin != nil {
+			if pin.count == 0 {
+				pin.opened = time.Now()
+			}
 			pin.count++
 			unlock()
 			return owner, release, nil
@@ -646,13 +652,13 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 
 		// The publication transaction writes a prepared root's edge.
 		if prepared {
-			v.rootPins[node] = &rootPin{count: 1}
+			v.rootPins[node] = &rootPin{count: 1, opened: time.Now()}
 			unlock()
 			return owner, release, nil
 		}
 
 		// Write the reader edge. Concurrent pins of this root wait for it.
-		pin = &rootPin{count: 1, settled: make(chan struct{})}
+		pin = &rootPin{count: 1, opened: time.Now(), settled: make(chan struct{})}
 		v.rootPins[node] = pin
 		unlock()
 		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
