@@ -110,7 +110,7 @@ func (s *PackStore) ReadBatch(ctx context.Context, refs []*block.BlockRef, fn fu
 				return err
 			}
 			s.reads.batchReads.Add(1)
-			s.reads.batchBytes.Add(uint64(len(data)))
+			s.reads.downloaded(readBatch, len(data))
 
 			// Pass on each block whose bytes hold it, as its own copy, so a
 			// kept block does not pin the span.

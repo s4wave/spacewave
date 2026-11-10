@@ -523,7 +523,7 @@ func TestPackStoreLazyLookup(t *testing.T) {
 	if reads := objs.rangeReads.Load() - before; reads != 3 {
 		t.Fatalf("batch read the blocks with %d range reads, want 3", reads)
 	}
-	if counts := store.ReadCounts(); counts.BatchBlocks != 30 || counts.BatchReads != 3 {
+	if counts := store.ReadCounts(); counts.BatchBlocks != 30 || counts.BatchReads != 3 || counts.BatchBytes == 0 {
 		t.Fatalf("read counts = %+v, want 30 batch blocks in 3 reads", counts)
 	}
 
