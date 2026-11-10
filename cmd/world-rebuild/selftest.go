@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -296,6 +297,9 @@ func countBlocks(path string) (int64, error) {
 // synth makes a store shaped like production for timing: block values of
 // 600-3000 bytes, 15% of them 4100-12000 bytes and so on overflow pages, no
 // h/c rows, and three quarters of the blocks dropped.
+// testPackSizes are the sizes the test store's e/ rows give packA and packB.
+var testPackSizes = [2]uint64{1000, 2000}
+
 func buildTestStore(world, packs string, n int, storeID string, rowid, synth bool) (int64, error) {
 	stmt := "CREATE TABLE IF NOT EXISTS kv ( key BLOB PRIMARY KEY, value BLOB)"
 	if !rowid {
@@ -338,6 +342,14 @@ func buildTestStore(world, packs string, n int, storeID string, rowid, synth boo
 	}
 	if err := pput("p/packB", append(num(2), 1)); err != nil {
 		return 0, err
+	}
+	// The e/ rows hold the entries the packs' objects are listed by, with
+	// their sizes: packA testPackSizes[0] bytes, packB testPackSizes[1].
+	for i, id := range []string{"packA", "packB"} {
+		e, _ := (&packfile.PackfileEntry{Id: id, SizeBytes: testPackSizes[i]}).MarshalVT()
+		if err := pput("e/"+id, e); err != nil {
+			return 0, err
+		}
 	}
 
 	const obj = "h/objs/world-wb/"

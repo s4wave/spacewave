@@ -93,6 +93,14 @@ type opts struct {
 	rawFacts bool
 	// dryRead makes copy read and decide every row but insert none.
 	dryRead bool
+	// list is packcheck's bucket listing: lines of size and key.
+	list string
+	// listFormat is the listing's field order: sp (size, key) or ps.
+	listFormat string
+	// needed is a needed-packs file packcheck reads instead of the files.
+	needed string
+	// neededOut is where packcheck writes the needed packs.
+	neededOut string
 }
 
 func main() {
