@@ -37,6 +37,16 @@ type StoreStats struct {
 	// MaxRestartHold is the longest the checkpointer held the writer turn.
 	RestartsSkipped, RestartsForced uint64
 	MaxRestartHold                  time.Duration
+	// PunchRuns counts the freelist punch rounds that punched,
+	// PunchSkippedBusy the rounds given up because the WAL could not be
+	// checkpointed to empty, and PunchRefused the rounds that stopped at a
+	// failed check of the file or its freelist, or an error. PunchRanges and
+	// PunchBytes sum the ranges and bytes punched. PunchHeld sums the time
+	// rounds held the writer turn, LastPunchHold is the newest round's and
+	// MaxPunchHold the longest.
+	PunchRuns, PunchSkippedBusy, PunchRefused uint64
+	PunchRanges, PunchBytes                   uint64
+	PunchHeld, LastPunchHold, MaxPunchHold    time.Duration
 }
 
 // storeStats is the atomic form of StoreStats a Store updates.
@@ -45,6 +55,9 @@ type storeStats struct {
 	passives, passive                                   atomic.Uint64
 	truncates, truncatesOver1s, truncate, lastTruncate  atomic.Uint64
 	restartsSkipped, restartsForced, maxRestartHold     atomic.Uint64
+	punchRuns, punchSkippedBusy, punchRefused           atomic.Uint64
+	punchRanges, punchBytes                             atomic.Uint64
+	punchHeld, lastPunchHold, maxPunchHold              atomic.Uint64
 }
 
 // addWait counts a turn taken at prio after waiting d.
@@ -95,10 +108,15 @@ func (s *storeStats) addForcedRestart() {
 
 // addRestartHold notes that the checkpointer held the writer turn for d.
 func (s *storeStats) addRestartHold(d time.Duration) {
+	storeMax(&s.maxRestartHold, d)
+}
+
+// storeMax raises v to d.
+func storeMax(v *atomic.Uint64, d time.Duration) {
 	ns := uint64(max(d, 0)) //nolint:gosec // d is not negative.
 	for {
-		cur := s.maxRestartHold.Load()
-		if ns <= cur || s.maxRestartHold.CompareAndSwap(cur, ns) {
+		cur := v.Load()
+		if ns <= cur || v.CompareAndSwap(cur, ns) {
 			return
 		}
 	}
@@ -123,6 +141,15 @@ func (s *storeStats) snapshot() StoreStats {
 		RestartsSkipped: s.restartsSkipped.Load(),
 		RestartsForced:  s.restartsForced.Load(),
 		MaxRestartHold:  d(&s.maxRestartHold),
+
+		PunchRuns:        s.punchRuns.Load(),
+		PunchSkippedBusy: s.punchSkippedBusy.Load(),
+		PunchRefused:     s.punchRefused.Load(),
+		PunchRanges:      s.punchRanges.Load(),
+		PunchBytes:       s.punchBytes.Load(),
+		PunchHeld:        d(&s.punchHeld),
+		LastPunchHold:    d(&s.lastPunchHold),
+		MaxPunchHold:     d(&s.maxPunchHold),
 	}
 }
 

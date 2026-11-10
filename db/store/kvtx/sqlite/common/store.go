@@ -104,6 +104,25 @@ type Store[T SQLiteDriverConfig] struct {
 	stopCheckpoints context.CancelFunc
 	// checkpointsDone is closed when the checkpointer has returned.
 	checkpointsDone chan struct{}
+
+	// punchCfg is the freelist punch configuration, which SetFreelistPunch
+	// replaces while the store runs.
+	punchCfg atomic.Pointer[FreelistPunch]
+	// punchMtx admits one punch round at a time and guards the fields below.
+	punchMtx sync.Mutex
+	// punchLast is when the last punch round began, or the store opened.
+	punchLast time.Time
+	// punchCursor is the page the next round's ranges start from, so rounds
+	// capped by MaxRanges move through the file.
+	punchCursor uint32
+	// punchFile is the database file the punch reads and punches, opened at
+	// the first round and closed after the pool. It stays open: closing any
+	// descriptor of the file drops every POSIX lock this process holds on it,
+	// SQLite's included.
+	punchFile *os.File
+	// punchHook, set only by tests, runs at each named stage of a round; an
+	// error ends the round there.
+	punchHook func(stage string) error
 }
 
 // ErrReadOnly is returned for a write transaction on a store opened with
@@ -154,6 +173,13 @@ func newStore[T SQLiteDriverConfig](db *sql.DB, table string, config T, walBound
 	if s.snapshotReads {
 		s.readTurns = newReadTurns()
 	}
+
+	// Read the freelist punch setting; the first round waits one interval.
+	punch := freelistPunchFromEnv()
+	s.punchCfg.Store(&punch)
+	s.punchLast = time.Now()
+
+	// Start the flusher and the checkpointer.
 	s.flusher = kvtx.NewOrderedFlusher(s.flushWAL, SyncDeadline)
 	go s.runCheckpoints(ctx)
 	openStores.Store(s, struct{}{})
@@ -552,10 +578,20 @@ func (s *Store[T]) Execute(ctx context.Context) error {
 // Close stops the checkpointer, flushes pending ordered commits, and closes
 // the database.
 func (s *Store[T]) Close() error {
+	// Stop the checkpointer and close the pool.
 	openStores.Delete(s)
 	s.stopCheckpoints()
 	<-s.checkpointsDone
-	return errors.Join(s.flusher.Close(), s.db.Close())
+	err := errors.Join(s.flusher.Close(), s.db.Close())
+
+	// Close the punch's descriptor once SQLite holds no lock on the file.
+	s.punchMtx.Lock()
+	if s.punchFile != nil {
+		err = errors.Join(err, s.punchFile.Close())
+		s.punchFile = nil
+	}
+	s.punchMtx.Unlock()
+	return err
 }
 
 // flushWAL makes every commit the WAL holds durable through the driver.
@@ -621,37 +657,45 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		case <-time.After(CheckpointInterval):
 		}
 
-		// Copy the WAL into the database file, noting the writer turns that
-		// ended first; a failure retries after the next commit.
-		turns := s.writeTurns.Load()
-		var busy, frames, copied int
-		start := time.Now()
-		err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
-		s.stats.addPassive(time.Since(start))
-		if err != nil || frames <= 0 || copied < frames {
-			continue
-		}
+		// Copy and bound the WAL, then punch the freelist when that is on.
+		s.checkpointRound(ctx)
+		s.punchStep(ctx)
+	}
+}
 
-		// Restart a fully copied WAL far past its bound if no writer added
-		// to it meanwhile.
-		if !s.walPastBound(walRestartFactor) || s.restartWAL(ctx, turns, false) {
-			continue
-		}
+// checkpointRound copies the WAL into the database file once and restarts a
+// log far past its bound, as runCheckpoints describes.
+func (s *Store[T]) checkpointRound(ctx context.Context) {
+	// Copy the WAL into the database file, noting the writer turns that
+	// ended first; a failure retries after the next commit.
+	turns := s.writeTurns.Load()
+	var busy, frames, copied int
+	start := time.Now()
+	err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
+	s.stats.addPassive(time.Since(start))
+	if err != nil || frames <= 0 || copied < frames {
+		return
+	}
 
-		// Writers that follow each other with no gap add to the log during
-		// every passive checkpoint, so past walForceFactor restart it anyway.
-		// Copy the frames they added first, without the turn, so the restart
-		// copies and syncs only the few added during that copy.
-		if !s.walPastBound(walForceFactor) {
-			continue
-		}
-		turns = s.writeTurns.Load()
-		start = time.Now()
-		err = s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
-		s.stats.addPassive(time.Since(start))
-		if err == nil && frames > 0 && copied >= frames {
-			s.restartWAL(ctx, turns, true)
-		}
+	// Restart a fully copied WAL far past its bound if no writer added
+	// to it meanwhile.
+	if !s.walPastBound(walRestartFactor) || s.restartWAL(ctx, turns, false) {
+		return
+	}
+
+	// Writers that follow each other with no gap add to the log during
+	// every passive checkpoint, so past walForceFactor restart it anyway.
+	// Copy the frames they added first, without the turn, so the restart
+	// copies and syncs only the few added during that copy.
+	if !s.walPastBound(walForceFactor) {
+		return
+	}
+	turns = s.writeTurns.Load()
+	start = time.Now()
+	err = s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
+	s.stats.addPassive(time.Since(start))
+	if err == nil && frames > 0 && copied >= frames {
+		s.restartWAL(ctx, turns, true)
 	}
 }
 
