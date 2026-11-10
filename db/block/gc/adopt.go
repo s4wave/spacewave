@@ -37,6 +37,11 @@ type AdoptResult struct {
 	Unknown uint64
 	// UnknownSample names up to sampleSize of the blocks.
 	UnknownSample []*block.BlockRef
+	// Holes counts the holders naming a block the Volume neither stores nor
+	// lists. Any refuses the adoption.
+	Holes uint64
+	// HoleSample names up to sampleSize of the blocks.
+	HoleSample []*block.BlockRef
 }
 
 // ErrAdoptUnknown is returned by Adopt when a root or a stored block names a
@@ -44,6 +49,13 @@ type AdoptResult struct {
 // block names would hold nothing, so its counts cannot be known. Write the
 // missing child lists, then adopt again.
 var ErrAdoptUnknown = errors.New("named blocks are stored without a child list")
+
+// ErrAdoptHoles is returned by Adopt when a root or a stored block names a
+// block the Volume neither stores nor lists: the Volume lost the block with its
+// child list, so the stored blocks it named would count no holder from it and
+// be freed while a root still reaches them. Store the missing blocks, or write
+// their child lists, then adopt again.
+var ErrAdoptHoles = errors.New("named blocks are neither stored nor listed")
 
 // ErrAdoptUnverified is returned by Adopt when the Volume's child lists came
 // from a store format before 7, whose lists may lack a child the block
@@ -71,13 +83,13 @@ var ErrAdoptSuperseded = errors.New("another adoption superseded this one")
 // first block each root it moves held, so a later slice skips a child list
 // born after the cursor and counts a moved root at its starting block; the
 // journal past the cursor carries those changes. A stored block then keeps
-// holders minus one, one being implied, a stored block with none goes on the
-// free queue, and a named block the Volume does not store keeps all its
-// holders, since the put that stores it brings the holder its record implies.
+// holders minus one, one being implied, and a stored block with none goes on
+// the free queue.
 // It drops the journal before the cursor and marks the Volume adopted.
 //
 // It refuses with ErrAdoptUnknown, returning the Volume to unadopted, when a
-// root or a stored block names a block stored without a child list, and with
+// root or a stored block names a block stored without a child list, with
+// ErrAdoptHoles when one names a block neither stored nor listed, and with
 // ErrAdoptUnverified, before it begins, while the child lists come from an
 // older store format. An adoption that fails or is interrupted returns the
 // Volume to unadopted, as does reopening the Volume after a crash, and a later
@@ -300,6 +312,11 @@ func (a *adoption) count(ctx context.Context) error {
 		return errors.Wrapf(ErrAdoptUnknown, "%d holders, sample %v", a.res.Unknown, a.res.UnknownSample)
 	}
 
+	// Refuse when a holder names a block neither stored nor listed.
+	if a.res.Holes != 0 {
+		return errors.Wrapf(ErrAdoptHoles, "%d holders, sample %v", a.res.Holes, a.res.HoleSample)
+	}
+
 	// Settle each stored block: one holder is implied, and a block with none
 	// is Dying, at zero with children that count it, so the collector
 	// releases them once the Volume is adopted.
@@ -430,8 +447,16 @@ func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps
 		return err
 	}
 	found, err := blocks.GetBlockExists(ctx, ref)
-	if err != nil || !found {
+	if err != nil {
 		return err
+	}
+
+	// Note a block neither stored nor listed: a hole, whose stored children
+	// would count no holder from it.
+	if !found {
+		a.res.Holes++
+		a.res.HoleSample = sample(a.res.HoleSample, ref)
+		return nil
 	}
 	a.res.Unknown++
 	a.res.UnknownSample = sample(a.res.UnknownSample, ref)
