@@ -44,7 +44,7 @@ func runSelftest(o opts) error {
 	o.full = true
 	o.world = filepath.Join(dir, "world.db")
 	o.packs = filepath.Join(dir, "packs.db")
-	want, err := buildTestStore(o.world, o.packs, n, o.storeID, o.rowid)
+	want, err := buildTestStore(o.world, o.packs, n, o.storeID, o.rowid, false)
 	if err != nil {
 		return fmt.Errorf("build test store: %w", err)
 	}
@@ -118,6 +118,40 @@ func runSelftest(o opts) error {
 		return fmt.Errorf("copy holds %d blocks, want %d", got, int64(n)-want)
 	}
 	fmt.Printf("faithful copy: ok, %d blocks kept, new file %s\n", got, gb(nf.Size()))
+
+	// The copy read the other way holds the same rows and schema, and both
+	// verify reads pass it.
+	other := o
+	other.read = map[string]string{"raw": "sqlite", "sqlite": "raw"}[o.read]
+	if err := runVerify(other); err != nil {
+		return fmt.Errorf("faithful copy failed verify -read %s: %w", other.read, err)
+	}
+	other.out = filepath.Join(dir, "new-"+other.read+".db")
+	if err := runCopy(other); err != nil {
+		return fmt.Errorf("copy -read %s: %w", other.read, err)
+	}
+	n1, s1, m1, err := copyDigest(o.out)
+	if err != nil {
+		return err
+	}
+	n2, s2, m2, err := copyDigest(other.out)
+	if err != nil {
+		return err
+	}
+	srcDB, err := openRO(o.world)
+	if err != nil {
+		return err
+	}
+	m0, err := masterRows(srcDB)
+	srcDB.Close()
+	if err != nil {
+		return err
+	}
+	if n1 != n2 || s1 != s2 || m1 != m2 || m1 != m0 {
+		return fmt.Errorf("copy -read %s: %d rows %s, -read %s: %d rows %s; schemas equal to the source %v %v", o.read, n1, s1, other.read, n2, s2, m1 == m0, m2 == m0)
+	}
+	fmt.Printf("copy -read %s and -read %s: %d rows, same row hash %s, source schema\n", o.read, other.read, n1, s1[:16])
+	os.Remove(other.out)
 
 	// Each mutant drops one key the rule keeps; verify must catch it.
 	for _, m := range []string{"drop-marked", "drop-unqueued", "drop-hot", "drop-unpacked", "drop-meta", "stale-evict-bytes"} {
@@ -258,7 +292,11 @@ func countBlocks(path string) (int64, error) {
 
 // buildTestStore writes a World store and pack index in the production
 // layout, returning how many blocks the drop rule drops.
-func buildTestStore(world, packs string, n int, storeID string, rowid bool) (int64, error) {
+//
+// synth makes a store shaped like production for timing: block values of
+// 600-3000 bytes, 15% of them 4100-12000 bytes and so on overflow pages, no
+// h/c rows, and three quarters of the blocks dropped.
+func buildTestStore(world, packs string, n int, storeID string, rowid, synth bool) (int64, error) {
 	stmt := "CREATE TABLE IF NOT EXISTS kv ( key BLOB PRIMARY KEY, value BLOB)"
 	if !rowid {
 		stmt += " WITHOUT ROWID"
@@ -312,28 +350,41 @@ func buildTestStore(world, packs string, n int, storeID string, rowid bool) (int
 		h := hash.NewHash(hash.HashType_HashType_SHA256, digest[:])
 		ref := &block.BlockRef{Hash: h}
 		rk, _ := ref.MarshalKey()
-		val := make([]byte, 500+(i*7919)%15500)
+		size := 500 + (i*7919)%15500
+		if synth {
+			u := uint32(i) * 2654435761
+			size = 600 + int(u/100%2400)
+			if u%100 >= 85 {
+				size = 4100 + int(u/100%7900)
+			}
+		}
+		val := make([]byte, size)
 		_, _ = rand.Read(val)
 		if err := wput(blockPrefix+string(rk), val); err != nil {
 			return 0, err
 		}
-		if err := wput("h/c/"+string(rk), []byte("children")); err != nil {
-			return 0, err
+		if !synth {
+			if err := wput("h/c/"+string(rk), []byte("children")); err != nil {
+				return 0, err
+			}
 		}
 		b58 := h.MarshalString()
-		size := strconv.Itoa(len(val))
+		vsize := strconv.Itoa(len(val))
 		cat := i % 10
+		if synth && i%20 >= 10 {
+			cat = 5
+		}
 		queued := cat != catMarked && cat != catUnqueued
 		if cat == catMarked {
 			if err := wput(obj+"marked/"+b58, nil); err != nil {
 				return 0, err
 			}
-			if err := wput(obj+"queue/"+stamp(uint64(i))+"/"+b58, []byte(size)); err != nil {
+			if err := wput(obj+"queue/"+stamp(uint64(i))+"/"+b58, []byte(vsize)); err != nil {
 				return 0, err
 			}
 		}
 		if queued {
-			if err := wput(obj+"evictable/"+stamp(uint64(i%3))+"/"+b58, []byte(size)); err != nil {
+			if err := wput(obj+"evictable/"+stamp(uint64(i%3))+"/"+b58, []byte(vsize)); err != nil {
 				return 0, err
 			}
 			evictTotal += int64(len(val))
@@ -412,4 +463,52 @@ func buildTestStore(world, packs string, n int, storeID string, rowid bool) (int
 		return 0, fmt.Errorf("deleted junk rows left %d free pages (%v), want at least 100", free, err)
 	}
 	return drop, nil
+}
+
+// copyDigest hashes every row of a kv file in key order, and lists its
+// schema rows without their root pages.
+func copyDigest(path string) (rows int64, sum string, schema string, err error) {
+	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
+	if err != nil {
+		return 0, "", "", err
+	}
+	defer db.Close()
+	r, err := db.Query("SELECT key, value FROM kv ORDER BY key")
+	if err != nil {
+		return 0, "", "", err
+	}
+	defer r.Close()
+	h := sha256.New()
+	for r.Next() {
+		var k, v []byte
+		if err := r.Scan(&k, &v); err != nil {
+			return 0, "", "", err
+		}
+		fmt.Fprintf(h, "%d:%x %d:%x\n", len(k), k, len(v), v)
+		rows++
+	}
+	if err := r.Err(); err != nil {
+		return 0, "", "", err
+	}
+	schema, err = masterRows(db)
+	return rows, fmt.Sprintf("%x", h.Sum(nil)), schema, err
+}
+
+// masterRows lists sqlite_master without the root pages.
+func masterRows(db *sql.DB) (string, error) {
+	r, err := db.Query("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY rowid")
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+	s := ""
+	for r.Next() {
+		var ty, name, tbl string
+		var q sql.NullString
+		if err := r.Scan(&ty, &name, &tbl, &q); err != nil {
+			return "", err
+		}
+		s += fmt.Sprintf("%s|%s|%s|%v|%q\n", ty, name, tbl, q.Valid, q.String)
+	}
+	return s, r.Err()
 }

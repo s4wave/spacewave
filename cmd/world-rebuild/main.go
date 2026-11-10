@@ -18,6 +18,7 @@
 //	         -mbps; reports by family and probes the copy rate
 //	copy     writes the new file; the source must have no writer
 //	verify   checks a copy against its source and the drop rule
+//	synth    builds a test store shaped like production, of -n blocks, for timing
 //	selftest builds a local test store, counts, copies, verifies, and runs
 //	         mutants
 package main
@@ -77,6 +78,18 @@ type opts struct {
 	rateOnly bool
 	// rateSplit makes count time the raw read and the insert apart.
 	rateSplit bool
+	// read picks how copy and verify read the source: raw pages, or SQLite.
+	read string
+	// readers is the raw read goroutines.
+	readers int
+	// txnRows is the rows a copy transaction holds.
+	txnRows int
+	// sortBatch sorts each batch of kept rows by key before inserting it.
+	sortBatch bool
+	// deferIndex builds the key index after the rows are in.
+	deferIndex bool
+	// dryRead makes copy read and decide every row but insert none.
+	dryRead bool
 }
 
 func main() {
@@ -108,6 +121,12 @@ func main() {
 	fs.BoolVar(&o.full, "full", false, "verify: compare block values byte for byte, not only their lengths")
 	fs.BoolVar(&o.rowid, "rowid", true, "selftest: rowid table, as production, instead of WITHOUT ROWID")
 	fs.Float64Var(&o.maxKeptGB, "max-kept-gb", 0, "copy: abort once the kept bytes pass this (0: no cap)")
+	fs.StringVar(&o.read, "read", "raw", "copy, verify: read the source raw (pages, pipelined, needs an empty WAL) or sqlite")
+	fs.IntVar(&o.readers, "readers", 8, "copy, verify: raw read goroutines")
+	fs.IntVar(&o.txnRows, "txn-rows", 20000, "copy: rows a transaction holds")
+	fs.BoolVar(&o.sortBatch, "sort-batch", false, "copy: sort each batch of kept rows by key before inserting it")
+	fs.BoolVar(&o.dryRead, "dry-read", false, "copy: read raw and decide every row, insert none (times the read alone)")
+	fs.BoolVar(&o.deferIndex, "defer-index", false, "copy: build the key index after the rows are in, then give it the source's autoindex schema row")
 
 	// The copy rate measurement of count.
 	fs.StringVar(&o.rateOut, "rate-out", "", "count: scratch file for the copy rate measurement (removed after)")
@@ -131,6 +150,11 @@ func main() {
 		err = runVerify(o)
 	case cmd == "selftest":
 		err = runSelftest(o)
+	case cmd == "synth":
+		var drop int64
+		if drop, err = buildTestStore(o.world, o.packs, o.n, o.storeID, o.rowid, true); err == nil {
+			fmt.Printf("synth: %d blocks, %d the rule drops\n", o.n, drop)
+		}
 	case cmd == "probe":
 		err = runProbe(o)
 	default:

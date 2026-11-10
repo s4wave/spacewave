@@ -468,7 +468,7 @@ func measureCopy(o opts, f *facts, maxRowid, rows, keepBytes int64) error {
 	if err != nil {
 		return err
 	}
-	dst, err := openNew(o.rateOut, stmt, h.pageSize)
+	dst, err := openNew(o.rateOut, stmt, h.pageSize, false)
 	if err != nil {
 		return err
 	}
@@ -573,7 +573,7 @@ func runRateOnly(o opts) error {
 		return err
 	}
 	defer world.Close()
-	dst, err := openNew(o.rateOut, "CREATE TABLE kv ( key BLOB PRIMARY KEY, value BLOB)", int64(world.pageSize))
+	dst, err := openNew(o.rateOut, "CREATE TABLE kv ( key BLOB PRIMARY KEY, value BLOB)", int64(world.pageSize), false)
 	if err != nil {
 		return err
 	}
@@ -726,7 +726,7 @@ func runRateSplit(o opts) error {
 
 	// Insert the rows into a new file as copy does, and report the rate.
 	insert := func(path, order string) error {
-		dst, err := openNew(path, "CREATE TABLE kv ( key BLOB PRIMARY KEY, value BLOB)", int64(world.pageSize))
+		dst, err := openNew(path, "CREATE TABLE kv ( key BLOB PRIMARY KEY, value BLOB)", int64(world.pageSize), false)
 		if err != nil {
 			return err
 		}

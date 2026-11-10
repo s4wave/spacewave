@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,16 @@ type copyStats struct {
 // openNew creates the new World file: incremental auto_vacuum set and made
 // to hold by a VACUUM before any table exists, as spacewave's
 // setFreshAutoVacuum does, then the source's table, journal off for the build.
-func openNew(path, stmt string, pageSize int64) (*sql.DB, error) {
+//
+// deferIndex creates the table without its key index (stripPK), for
+// buildKeyIndex to add after the rows are in.
+func openNew(path, stmt string, pageSize int64, deferIndex bool) (*sql.DB, error) {
+	if deferIndex {
+		var err error
+		if stmt, err = stripPK(stmt); err != nil {
+			return nil, err
+		}
+	}
 	if _, err := os.Stat(path); err == nil {
 		return nil, fmt.Errorf("%s exists", path)
 	}
@@ -56,6 +66,76 @@ func openNew(path, stmt string, pageSize int64) (*sql.DB, error) {
 	if err := exec("PRAGMA journal_mode = OFF", "PRAGMA synchronous = OFF", "PRAGMA cache_size = -4194304", stmt); err != nil {
 		db.Close()
 		return nil, err
+	}
+	return db, nil
+}
+
+// stripPK removes the one PRIMARY KEY clause of a CREATE TABLE.
+func stripPK(stmt string) (string, error) {
+	up := strings.ToUpper(stmt)
+	i := strings.Index(up, " PRIMARY KEY")
+	if i < 0 || strings.Count(up, "PRIMARY KEY") != 1 {
+		return "", fmt.Errorf("table SQL %q: want one PRIMARY KEY clause", stmt)
+	}
+	return stmt[:i] + stmt[i+len(" PRIMARY KEY"):], nil
+}
+
+// buildKeyIndex adds the key index to a table openNew made with deferIndex,
+// one sort over the rows, then rewrites the schema rows to the source's: the
+// table row to stmt and the index row to the PRIMARY KEY's autoindex, which
+// is a unique index on key alone with no SQL. It closes db and returns the
+// file reopened, so the schema is read again, and checks SQLite sees the
+// index as the table's PRIMARY KEY.
+func buildKeyIndex(db *sql.DB, path, table, stmt string) (*sql.DB, error) {
+	const tmp = "world_rebuild_key"
+	auto := "sqlite_autoindex_" + table + "_1"
+	var ver int64
+	steps := []func() error{
+		func() error { _, err := db.Exec("CREATE UNIQUE INDEX " + tmp + " ON " + table + " (key)"); return err },
+		func() error { return db.QueryRow("PRAGMA schema_version").Scan(&ver) },
+		func() error { _, err := db.Exec("PRAGMA writable_schema = ON"); return err },
+		func() error {
+			_, err := db.Exec("UPDATE sqlite_master SET name = ?, sql = NULL WHERE type = 'index' AND name = ? AND tbl_name = ?", auto, tmp, table)
+			return err
+		},
+		func() error {
+			_, err := db.Exec("UPDATE sqlite_master SET sql = ? WHERE type = 'table' AND name = ?", stmt, table)
+			return err
+		},
+		func() error { _, err := db.Exec(fmt.Sprintf("PRAGMA schema_version = %d", ver+1)); return err },
+		func() error { _, err := db.Exec("PRAGMA writable_schema = OFF"); return err },
+	}
+	for _, f := range steps {
+		if err := f(); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("build the key index: %w", err)
+		}
+	}
+	if err := db.Close(); err != nil {
+		return nil, err
+	}
+
+	// Reopen and check the index is the PRIMARY KEY's.
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1)
+	for _, q := range []string{"PRAGMA journal_mode = OFF", "PRAGMA synchronous = OFF", "PRAGMA cache_size = -4194304"} {
+		if _, err := db.Exec(q); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+	var name, origin string
+	var unique int
+	if err := db.QueryRow("SELECT name, \"unique\", origin FROM pragma_index_list(?)", table).Scan(&name, &unique, &origin); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("index list after the schema rewrite: %w", err)
+	}
+	if name != auto || unique != 1 || origin != "pk" {
+		db.Close()
+		return nil, fmt.Errorf("after the schema rewrite the index is %s unique=%d origin=%s, want %s 1 pk", name, unique, origin, auto)
 	}
 	return db, nil
 }
@@ -120,6 +200,31 @@ func (p *dropPlan) keepBlock(key []byte) bool {
 	return v != vDrop
 }
 
+// decide applies the drop rule (and a mutant) to one row from its key and
+// value length, counts a drop, and reports whether to keep the row.
+func (p *dropPlan) decide(key []byte, vlen int64, st *copyStats) bool {
+	switch {
+	case bytes.HasPrefix(key, []byte(blockPrefix)):
+		if !p.keepBlock(key) {
+			st.droppedKeys++
+			st.droppedBytes += int64(len(key)) + vlen
+			return false
+		}
+	default:
+		if _, skip := p.skipEvict[string(key)]; skip {
+			st.droppedKeys++
+			st.droppedBytes += int64(len(key)) + vlen
+			st.droppedEvict++
+			return false
+		}
+		if p.mutant == "drop-meta" && p.hit == 0 && !strings.Contains(string(key), "/"+evictSeg) {
+			p.hit++
+			return false
+		}
+	}
+	return true
+}
+
 // blockDigests scans the block range keys only and returns the digests held.
 func blockDigests(o opts, db *sql.DB, table string) (map[string]bool, error) {
 	present := map[string]bool{}
@@ -164,11 +269,26 @@ func runCopy(o opts) error {
 		return err
 	}
 
-	dst, err := openNew(o.out, stmt, h.pageSize)
+	var root int64
+	if o.read == "raw" {
+		if root, err = rawSource(src, o.world, table, stmt); err != nil {
+			return err
+		}
+	} else if o.read != "sqlite" {
+		return fmt.Errorf("-read %q: want raw or sqlite", o.read)
+	}
+	if o.deferIndex && !hasRowid(stmt) {
+		return fmt.Errorf("-defer-index needs a rowid table")
+	}
+	dst, err := openNew(o.out, stmt, h.pageSize, o.deferIndex)
 	if err != nil {
 		return err
 	}
-	defer dst.Close()
+	defer func() { dst.Close() }()
+	txnRows := o.txnRows
+	if txnRows <= 0 {
+		txnRows = 20000
+	}
 	maxKept := int64(o.maxKeptGB * 1e9)
 	sums := evictSums{}
 	var bytesKeys [][]byte
@@ -205,17 +325,11 @@ func runCopy(o opts) error {
 			return fmt.Errorf("kept bytes passed the cap of %s; the drop rule keeps more than planned", gb(maxKept))
 		}
 		pending++
-		if pending >= 20000 {
+		if pending >= txnRows {
 			return commit()
 		}
 		return nil
 	}
-	read, closeRead, err := valueReader(src, table, hasRowid(stmt))
-	if err != nil {
-		return err
-	}
-	defer closeRead()
-
 	last := time.Now()
 	progress := func() {
 		if time.Since(last) < 30*time.Second {
@@ -226,59 +340,36 @@ func runCopy(o opts) error {
 		fmt.Printf("  %s kept %d keys %s, dropped %d keys %s, %.0f MB/s written\n", time.Now().UTC().Format("15:04:05"), st.keptKeys, gb(st.keptBytes), st.droppedKeys, gb(st.droppedBytes), float64(st.keptBytes)/1e6/el)
 	}
 
-	// One pass in physical order: decide each row from its key, then read
-	// the values of the kept rows only.
-	type kept struct {
-		id  any
-		key []byte
+	// keep inserts one kept row.
+	keep := func(key, v []byte) error {
+		if _, rest, ok := objKey(key); ok && rest == evictBytesSeg {
+			bytesKeys = append(bytesKeys, key)
+		}
+		sums.add(key, v)
+		return put(key, v)
 	}
-	var batch []kept
-	flush := func() error {
-		for _, k := range batch {
-			v, err := read(k.id)
-			if err != nil {
-				return fmt.Errorf("read value: %w", err)
-			}
-			if _, rest, ok := objKey(k.key); ok && rest == evictBytesSeg {
-				bytesKeys = append(bytesKeys, k.key)
-			}
-			sums.add(k.key, v)
-			if err := put(k.key, v); err != nil {
-				return err
-			}
-		}
-		batch = batch[:0]
-		return nil
-	}
-	err = scanPhysical(src, table, hasRowid(stmt), o.chunk, 0, func(id any, key []byte, vlen int64) error {
-		progress()
-		switch {
-		case bytes.HasPrefix(key, []byte(blockPrefix)):
-			if !p.keepBlock(key) {
-				st.droppedKeys++
-				st.droppedBytes += int64(len(key)) + vlen
+	if o.read == "raw" {
+		err = copyRawRows(o, o.world, root, p, &st, func(rows []rawRow) error {
+			progress()
+			if o.dryRead {
+				for _, r := range rows {
+					st.keptKeys++
+					st.keptBytes += int64(len(r.key) + len(r.value))
+				}
 				return nil
 			}
-		default:
-			if _, skip := p.skipEvict[string(key)]; skip {
-				st.droppedKeys++
-				st.droppedBytes += int64(len(key)) + vlen
-				st.droppedEvict++
-				return nil
+			if o.sortBatch {
+				slices.SortFunc(rows, func(a, b rawRow) int { return bytes.Compare(a.key, b.key) })
 			}
-			if p.mutant == "drop-meta" && p.hit == 0 && !strings.Contains(string(key), "/"+evictSeg) {
-				p.hit++
-				return nil
+			for _, r := range rows {
+				if err := keep(r.key, r.value); err != nil {
+					return err
+				}
 			}
-		}
-		batch = append(batch, kept{id: id, key: bytes.Clone(key)})
-		if len(batch) >= o.chunk {
-			return flush()
-		}
-		return nil
-	})
-	if err == nil {
-		err = flush()
+			return nil
+		})
+	} else {
+		err = copySQLiteRows(o, src, table, stmt, p, &st, progress, keep)
 	}
 	if err != nil {
 		return fmt.Errorf("copy: %w", err)
@@ -286,6 +377,14 @@ func runCopy(o opts) error {
 	if err := commit(); err != nil {
 		return err
 	}
+	if o.deferIndex {
+		t0 := time.Now()
+		if dst, err = buildKeyIndex(dst, o.out, table, stmt); err != nil {
+			return err
+		}
+		fmt.Printf("key index built in %s\n", time.Since(t0).Round(time.Second))
+	}
+	fmt.Printf("rows written in %s\n", time.Since(start).Round(time.Second))
 
 	// evictable-bytes holds the sum of the entries kept.
 	for _, k := range bytesKeys {
@@ -312,10 +411,54 @@ func runCopy(o opts) error {
 		return err
 	}
 	el := time.Since(start)
-	fmt.Printf("copy done in %s: kept %d keys %s, dropped %d keys %s (%d eviction entries); new file %s, auto_vacuum %d, %.0f MB/s kept\n",
-		el.Round(time.Second), st.keptKeys, gb(st.keptBytes), st.droppedKeys, gb(st.droppedBytes), st.droppedEvict,
+	fmt.Printf("copy done in %s (read %s): kept %d keys %s, dropped %d keys %s (%d eviction entries); new file %s, auto_vacuum %d, %.0f MB/s kept\n",
+		el.Round(time.Second), o.read, st.keptKeys, gb(st.keptBytes), st.droppedKeys, gb(st.droppedBytes), st.droppedEvict,
 		gb(h.pageCount*h.pageSize), h.autoVacuum, float64(st.keptBytes)/1e6/el.Seconds())
 	return nil
+}
+
+// copySQLiteRows is the SQLite read of copy: one pass in physical order,
+// deciding each row from its key, then reading the values of the kept rows
+// only, by point reads.
+func copySQLiteRows(o opts, src *sql.DB, table, stmt string, p *dropPlan, st *copyStats, progress func(), keep func(key, v []byte) error) error {
+	read, closeRead, err := valueReader(src, table, hasRowid(stmt))
+	if err != nil {
+		return err
+	}
+	defer closeRead()
+	type kept struct {
+		id  any
+		key []byte
+	}
+	var batch []kept
+	flush := func() error {
+		for _, k := range batch {
+			v, err := read(k.id)
+			if err != nil {
+				return fmt.Errorf("read value: %w", err)
+			}
+			if err := keep(k.key, v); err != nil {
+				return err
+			}
+		}
+		batch = batch[:0]
+		return nil
+	}
+	err = scanPhysical(src, table, hasRowid(stmt), o.chunk, 0, func(id any, key []byte, vlen int64) error {
+		progress()
+		if !p.decide(key, vlen, st) {
+			return nil
+		}
+		batch = append(batch, kept{id: id, key: bytes.Clone(key)})
+		if len(batch) >= o.chunk {
+			return flush()
+		}
+		return nil
+	})
+	if err == nil {
+		err = flush()
+	}
+	return err
 }
 
 // runVerify checks the new file against the source: every source key is in
@@ -323,6 +466,9 @@ func runCopy(o opts) error {
 // again here, and its eviction entries; evictable-bytes holds the sum of the
 // entries kept; the copy holds no other key.
 func runVerify(o opts) error {
+	if o.read == "raw" {
+		return runVerifyRaw(o)
+	}
 	src, err := openRO(o.world)
 	if err != nil {
 		return err

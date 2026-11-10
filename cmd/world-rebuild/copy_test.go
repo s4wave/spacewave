@@ -1,59 +1,21 @@
 package main
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-// rowsHash hashes every row of a copy in key order, and the schema rows.
-func rowsHash(t *testing.T, path string) (rows int64, sum string, schema string) {
+// rowsHash is copyDigest, failing the test on an error.
+func rowsHash(t *testing.T, path string) (int64, string, string) {
 	t.Helper()
-	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
+	rows, sum, schema, err := copyDigest(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
-	r, err := db.Query("SELECT key, value FROM kv ORDER BY key")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer r.Close()
-	h := sha256.New()
-	for r.Next() {
-		var k, v []byte
-		if err := r.Scan(&k, &v); err != nil {
-			t.Fatal(err)
-		}
-		fmt.Fprintf(h, "%d:%x %d:%x\n", len(k), k, len(v), v)
-		rows++
-	}
-	if err := r.Err(); err != nil {
-		t.Fatal(err)
-	}
-	return rows, fmt.Sprintf("%x", h.Sum(nil)), masterRows(t, db)
-}
-
-// masterRows lists sqlite_master without the root pages.
-func masterRows(t *testing.T, db *sql.DB) string {
-	t.Helper()
-	r, err := db.Query("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY rowid")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer r.Close()
-	s := ""
-	for r.Next() {
-		var ty, name, tbl string
-		var q sql.NullString
-		if err := r.Scan(&ty, &name, &tbl, &q); err != nil {
-			t.Fatal(err)
-		}
-		s += fmt.Sprintf("%s|%s|%s|%v|%q\n", ty, name, tbl, q.Valid, q.String)
-	}
-	return s
+	return rows, sum, schema
 }
 
 // TestRawCopyMatchesSQLiteCopy copies the selftest store through SQLite and
@@ -76,8 +38,11 @@ func TestRawCopyMatchesSQLiteCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srcSchema := masterRows(t, src)
+	srcSchema, err := masterRows(src)
 	src.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	o.read = "sqlite"
 	o.out = filepath.Join(dir, "sqlite.db")
@@ -134,5 +99,29 @@ func TestRawCopyMatchesSQLiteCopy(t *testing.T) {
 		if err := runVerify(mo); err == nil {
 			t.Fatalf("mutant %s: raw verify passed, want a fault", m)
 		}
+	}
+}
+
+// TestRawCopyRefusesWAL checks a raw copy refuses a source whose WAL holds
+// frames, which the raw reader would miss.
+func TestRawCopyRefusesWAL(t *testing.T) {
+	dir := t.TempDir()
+	var o opts
+	o.world = filepath.Join(dir, "world.db")
+	o.packs = filepath.Join(dir, "packs.db")
+	o.storeID, o.chunk, o.readers, o.read = defaultStoreID, 500, 2, "raw"
+	o.out = filepath.Join(dir, "new.db")
+	if _, err := buildTestStore(o.world, o.packs, 200, o.storeID, true, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(o.world+"-wal", make([]byte, 4096), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := runCopy(o)
+	if err == nil || !strings.Contains(err.Error(), "-wal holds") {
+		t.Fatalf("raw copy of a source with a WAL: %v, want a refusal", err)
+	}
+	if _, err := os.Stat(o.out); err == nil {
+		t.Fatalf("refused copy wrote %s", o.out)
 	}
 }
