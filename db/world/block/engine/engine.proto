@@ -105,8 +105,10 @@ enum RegenTarget {
 message RegenConfig {
   // Target is the stage to move the World to.
   RegenTarget target = 1;
-  // SpillDir is the directory the build's sort writes its disposable runs in.
-  // Required with a target that builds.
+  // SpillDir is the directory the regeneration's sorts write their disposable
+  // runs in. The regeneration owns it and clears runs a killed process left, so
+  // no other World or program may sort there. Required with a target that
+  // builds.
   string spill_dir = 2;
   // BudgetBytes is the sort's memory before it spills a run.
   // Defaults to 256 MiB.

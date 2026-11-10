@@ -6,6 +6,7 @@ import (
 	"iter"
 	"math/rand/v2"
 	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 
@@ -99,7 +100,8 @@ func TestSorterMergesSortedSource(t *testing.T) {
 }
 
 // TestSorterCloseRemovesRuns checks that Close removes every run, also after a
-// merge that fn stopped.
+// merge that fn stopped, and that RemoveRuns removes the runs of a Sorter its
+// process never closed while keeping the parent's other entries.
 func TestSorterCloseRemovesRuns(t *testing.T) {
 	parent := t.TempDir()
 	s := New(parent, 1)
@@ -118,6 +120,24 @@ func TestSorterCloseRemovesRuns(t *testing.T) {
 	entries, err := os.ReadDir(parent)
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("parent holds %d entries after Close: %v", len(entries), err)
+	}
+
+	// Leave a spilled Sorter open beside another file, then remove its runs.
+	left := New(parent, 1)
+	for _, r := range testRecords(8) {
+		if err := left.Add([]byte(r.k), []byte(r.v)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(parent, "keep"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := RemoveRuns(parent); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = os.ReadDir(parent)
+	if err != nil || len(entries) != 1 || entries[0].Name() != "keep" {
+		t.Fatalf("parent holds %v after RemoveRuns: %v", entries, err)
 	}
 }
 

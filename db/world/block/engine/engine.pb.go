@@ -279,8 +279,10 @@ type RegenConfig struct {
 	unknownFields []byte
 	// Target is the stage to move the World to.
 	Target RegenTarget `protobuf:"varint,1,opt,name=target,proto3" json:"target,omitempty"`
-	// SpillDir is the directory the build's sort writes its disposable runs in.
-	// Required with a target that builds.
+	// SpillDir is the directory the regeneration's sorts write their disposable
+	// runs in. The regeneration owns it and clears runs a killed process left, so
+	// no other World or program may sort there. Required with a target that
+	// builds.
 	SpillDir string `protobuf:"bytes,2,opt,name=spill_dir,json=spillDir,proto3" json:"spillDir,omitempty"`
 	// BudgetBytes is the sort's memory before it spills a run.
 	// Defaults to 256 MiB.
