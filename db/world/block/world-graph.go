@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/cayley/graph"
-	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -88,7 +88,13 @@ func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters [
 }
 
 // lookupGraphQuadsBatch preserves filter order and applies limits independently.
-func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []world.GraphQuad, limitPerFilter uint32, collector graphQuadBatchCollector) ([][]world.GraphQuad, error) {
+func lookupGraphQuadsBatch(
+	ctx context.Context,
+	h world.CayleyHandle,
+	filters []world.GraphQuad,
+	limitPerFilter uint32,
+	collector graphQuadBatchCollector,
+) ([][]world.GraphQuad, error) {
 	// Convert each filter while preserving empty-filter and input-order behavior.
 	cfilters := make([]quad.Quad, len(filters))
 	for i, filter := range filters {
@@ -378,8 +384,12 @@ func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter
 		ctx = block.WithReadOperationStore(ctx, store)
 	}
 
-	// Enumerate distinct subjects directly in the reverse index's order.
-	return world_types.ListObjectsWithTypeOnGraph(ctx, graphHd.QuadStore.(*cayley_kv.QuadStore), typeID, startAfter, limit)
+	// Enumerate distinct subjects directly in the store's order.
+	pager := world_types.NewSubjectPager(graphHd.QuadStore)
+	if pager == nil {
+		return nil, false, errors.Errorf("graph store %T cannot page subjects", graphHd.QuadStore)
+	}
+	return world_types.ListObjectsWithTypeOnGraph(ctx, pager, typeID, startAfter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.

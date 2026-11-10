@@ -174,6 +174,7 @@ func (c *Controller) initialRoot(ctx context.Context, cursor *bucket_lookup.Curs
 	btx, bcs := init.BuildTransaction(nil)
 	worldRoot := world_block.NewWorld(c.conf.GetDisableChangelog())
 	worldRoot.GraphSettings = c.conf.GetGraphSettings().CloneVT()
+	worldRoot.Format = c.conf.GetFormat()
 	bcs.ClearAllRefs()
 	bcs.SetBlock(worldRoot, true)
 	root, _, err := btx.Write(ctx, true)

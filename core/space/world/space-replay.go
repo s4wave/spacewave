@@ -267,10 +267,10 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 		return nil, "invalid world init: " + err.Error(), nil
 	}
 
-	// Write the root of a World that starts without a changelog or with graph
-	// settings.
-	settings := initOp.GetGraphSettings()
-	if !initOp.GetLastChangeDisable() && len(settings.GetIndexes()) == 0 {
+	// Write the root of a World that starts without a changelog, with graph
+	// settings or in another format.
+	settings, format := initOp.GetGraphSettings(), initOp.GetFormat()
+	if !initOp.GetLastChangeDisable() && len(settings.GetIndexes()) == 0 && format == world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV {
 		return next, "", nil
 	}
 
@@ -283,7 +283,7 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 	// Write it to the kept pages.
 	btx, bcs := block.NewTransaction(r.store(), xfrm, nil, nil)
 	root := world_block.NewWorld(initOp.GetLastChangeDisable())
-	root.GraphSettings = settings.CloneVT()
+	root.GraphSettings, root.Format = settings.CloneVT(), format
 	bcs.SetBlock(root, true)
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {

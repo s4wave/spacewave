@@ -152,6 +152,8 @@ message InitWorldOp {
   // GraphSettings are the settings the World's graph store starts with.
   // Empty means the default settings.
   .world.block.GraphSettings graph_settings = 3;
+  // Format is the stored layout the World starts with.
+  .world.block.WorldFormat format = 4;
 }
 
 // ApplyTxOp applies a World transaction.

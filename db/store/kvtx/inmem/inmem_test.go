@@ -3,6 +3,8 @@ package store_kvtx_inmem
 import (
 	"bytes"
 	"context"
+	"math/rand/v2"
+	"slices"
 	"strconv"
 	"testing"
 	"testing/synctest"
@@ -361,5 +363,94 @@ func TestIteratorSeekReportsCanceled(t *testing.T) {
 	// Verify that Seek returns the cancellation instead of nil.
 	if err := iter.Seek(nil); err != context.Canceled {
 		t.Fatalf("Seek returned %v, want %v", err, context.Canceled)
+	}
+}
+
+// TestIteratorMergeMatchesModel walks a write transaction's merged view of
+// committed, added, replaced and deleted keys, forward and reverse, under
+// random prefixes and seeks, and checks it against a sorted model. Writes
+// made while an iterator is open stay invisible to it.
+func TestIteratorMergeMatchesModel(t *testing.T) {
+	ctx := context.Background()
+	rng := rand.New(rand.NewPCG(1, 2))
+	key := func() []byte { return []byte{byte(rng.IntN(4)), byte(rng.IntN(4)), byte(rng.IntN(4))} }
+	for round := range 50 {
+		s := NewStore()
+		model := make(map[string]string)
+		tx, err := s.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range 30 {
+			k := key()
+			if err := tx.Set(ctx, k, []byte("c")); err != nil {
+				t.Fatal(err)
+			}
+			model[string(k)] = "c"
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		tx, err = s.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range 30 {
+			k := key()
+			if rng.IntN(2) == 0 {
+				_ = tx.Delete(ctx, k)
+				delete(model, string(k))
+			} else {
+				_ = tx.Set(ctx, k, []byte("a"))
+				model[string(k)] = "a"
+			}
+		}
+		for step := range 20 {
+			late := "late" + strconv.Itoa(step)
+			prefix := key()[:rng.IntN(3)]
+			if rng.IntN(4) == 0 {
+				prefix = append(prefix, 0xff)
+			}
+			reverse := rng.IntN(2) == 0
+			var want []string
+			for k := range model {
+				if bytes.HasPrefix([]byte(k), prefix) {
+					want = append(want, k)
+				}
+			}
+			slices.Sort(want)
+			if reverse {
+				slices.Reverse(want)
+			}
+			it := tx.Iterate(ctx, prefix, true, reverse)
+			from := 0
+			if rng.IntN(2) == 0 {
+				k := key()
+				if err := it.Seek(k); err != nil {
+					t.Fatal(err)
+				}
+				for from < len(want) && (!reverse && want[from] < string(k) || reverse && want[from] > string(k)) {
+					from++
+				}
+			} else if !it.Next() && len(want) != 0 {
+				t.Fatalf("round %d: empty iterator, want %d keys", round, len(want))
+			}
+			// A write while the iterator is open must not show up in it.
+			_ = tx.Set(ctx, append(bytes.Clone(prefix), 9), []byte(late))
+			model[string(append(bytes.Clone(prefix), 9))] = late
+			var got []string
+			for ; it.Valid(); it.Next() {
+				val, _ := it.Value()
+				if string(val) == late {
+					t.Fatalf("round %d: iterator saw a write made after it opened", round)
+				}
+				got = append(got, string(it.Key()))
+			}
+			it.Close()
+			if !slices.Equal(got, want[from:]) {
+				t.Fatalf("round %d prefix %x reverse %v: got %x want %x", round, prefix, reverse, got, want[from:])
+			}
+		}
+		tx.Discard()
 	}
 }
