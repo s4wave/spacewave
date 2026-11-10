@@ -465,10 +465,39 @@ func (s *Store) SetLocateUploaded(on *atomic.Bool) {
 // locatedBlocks reports which blocks of batch the remote holds, or nil to
 // upload them all. A failed lookup uploads them: a repeated block is only
 // stored twice, and a block wrongly skipped could lose its last copy.
+//
+// The index alone does not decide: a row can name a pack that lacks the block,
+// or one gone from the bucket, and a skipped block clears its marker and
+// queues for eviction, which may trust the queue with no remote check. So the
+// remote's own existence check must confirm each located block, in one batch
+// for the located blocks of the chunk. A block it does not confirm uploads.
 func (s *Store) locatedBlocks(ctx context.Context, remote block.StoreOps, batch []pendingBlock) []bool {
+	// Ask the index which blocks the remote holds.
 	located, err := s.locateBlocks(ctx, remote, batch)
-	if err != nil {
+	if err != nil || located == nil {
 		return nil
+	}
+
+	// Gather the located blocks.
+	var refs []*block.BlockRef
+	var idx []int
+	for i := range located {
+		if located[i] {
+			refs = append(refs, batch[i].ref)
+			idx = append(idx, i)
+		}
+	}
+	if len(refs) == 0 {
+		return nil
+	}
+
+	// Confirm them against the remote, keeping only the confirmed.
+	held, err := remote.GetBlockExistsBatch(ctx, refs)
+	if err != nil || len(held) != len(refs) {
+		return nil
+	}
+	for j, i := range idx {
+		located[i] = held[j]
 	}
 	return located
 }
@@ -599,7 +628,8 @@ func (s *Store) queuedBlocks(ctx context.Context, hashes []*hash.Hash) ([]pendin
 }
 
 // uploadChunk writes the batch's blocks with their refs to remote. A block the
-// remote already holds is neither read nor written, and clears as uploaded. A
+// remote's index locates and its existence check confirms is neither read nor
+// written, and clears as uploaded. A
 // block the local store no longer holds is marked dropped without upload. A
 // block it holds without its refs fails the batch, since the remote would keep
 // it as a leaf.

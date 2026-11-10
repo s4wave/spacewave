@@ -270,11 +270,17 @@ func (f *fallbackTest) openPacks() backendStore {
 
 // upload uploads every queued block to the pack store.
 func (f *fallbackTest) upload() {
+	f.t.Helper()
+	f.uploadTo(promptPacks{f.packs})
+}
+
+// uploadTo runs the write-back upload to remote until nothing is pending.
+func (f *fallbackTest) uploadTo(remote block.StoreOps) {
 	// Run the upload until nothing is pending.
 	f.t.Helper()
 	ctx, cancel := context.WithCancel(f.ctx)
 	done := make(chan error, 1)
-	go func() { done <- f.wb.Upload(ctx, promptPacks{f.packs}) }()
+	go func() { done <- f.wb.Upload(ctx, remote) }()
 	for {
 		status, changed := f.wb.GetStatus()
 		if status.Pending == 0 {

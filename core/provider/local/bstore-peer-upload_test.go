@@ -385,6 +385,10 @@ func TestWrongRowPeerFillKept(t *testing.T) {
 	f.waitHeld(placedRef)
 	f.waitHeld(lostRef)
 
+	// A held block may not yet be counted: wait for both fills to queue,
+	// the placed one for eviction and the other to upload.
+	f.waitResident(int64(len(placedData) + len(lostData)))
+
 	// Two passes, the first keeping the blocks just read: the placed block
 	// evicts on the queue's word, and the wrongly placed one stays, queued
 	// to upload.
@@ -407,5 +411,78 @@ func TestWrongRowPeerFillKept(t *testing.T) {
 	f.upload()
 	if !f.packHolds(lostRef) {
 		t.Fatal("pack store lacks the wrongly placed block after its upload")
+	}
+}
+
+// promptRows is a wrongRows pack store that uploads short packs at once, as
+// promptPacks does, and keeps the wrong rows' locator.
+type promptRows struct {
+	*wrongRows
+}
+
+// GetBatchLimits returns the pack store's limits without the linger.
+func (p promptRows) GetBatchLimits() block.BatchLimits {
+	return promptPacks{p.backendStore}.GetBatchLimits()
+}
+
+var _ block_store_writeback.BlockLocator = promptRows{}
+
+// TestWrongRowLocateUploadKept uploads, with the locate skip on and peer
+// fills uploading, a queued block whose h row names a pack that lacks it.
+// The upload does not trust the row: the packs do not confirm the block, so
+// it uploads rather than clearing as already uploaded, and eviction, which
+// trusts the queue with no remote check, cannot drop the only copy.
+func TestWrongRowLocateUploadKept(t *testing.T) {
+	// Give the peer a block the packs lack, whose row wrongly places it.
+	f := newIndexedFallbackTest(t)
+	f.p.peerUpload = true
+	f.p.evictGate = &csync.Mutex{}
+	lostData := []byte("block a wrong row places, locate skip on")
+	peer := newLeafStore()
+	lostRef, _, err := peer.PutBlock(f.ctx, lostData, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := &wrongRows{
+		backendStore: f.packs,
+		wrong:        map[string]bool{lostRef.GetHash().MarshalString(): true},
+	}
+	f.p.remote.Store(&openBackend{backend: f.p.backend.Load(), store: rows})
+
+	// Read it through packs that miss it, so the peer serves it and the fill
+	// queues it to upload.
+	missing := newLeafStore()
+	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
+	f.reads, f.copies = f.p.readChains(
+		recorded,
+		f.local,
+		func() block.StoreOps { return missing },
+		func() block.StoreOps { return peer },
+		nil,
+	)
+	f.read(lostRef, lostData)
+	f.waitHeld(lostRef)
+	f.waitResident(int64(len(lostData)))
+	if status := f.status(); status.Pending != 1 {
+		t.Fatalf("pending = %d, want the wrongly placed block queued", status.Pending)
+	}
+
+	// Upload with the locate skip on: the block must reach a pack.
+	var on atomic.Bool
+	on.Store(true)
+	f.wb.SetLocateUploaded(&on)
+	f.uploadTo(promptRows{rows})
+	if !f.packHolds(lostRef) {
+		t.Fatal("upload cleared a block a wrong row placed without uploading it")
+	}
+
+	// Eviction may now drop the local copy, which the pack keeps.
+	for range 2 {
+		if _, err := f.p.evict(f.ctx, 1<<30); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !f.held(lostRef) && !f.packHolds(lostRef) {
+		t.Fatal("eviction dropped the only copy of a block a wrong row placed")
 	}
 }
