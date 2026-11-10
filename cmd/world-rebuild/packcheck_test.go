@@ -11,6 +11,18 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
+// writeList writes a listing file of the lines.
+func writeList(t *testing.T, path string, lines ...string) {
+	t.Helper()
+	var b []byte
+	for _, l := range lines {
+		b = append(b, l+"\n"...)
+	}
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestPackCheck copies the selftest store, then checks the packs of the
 // blocks the copy dropped against listings: a full one passes, a missing
 // pack, a short pack and a dropped block with no h row fail, and a rerun

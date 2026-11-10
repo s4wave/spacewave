@@ -18,6 +18,8 @@ type copyStats struct {
 	droppedKeys, droppedBytes int64
 	droppedEvict              int64
 	mutantHits                int
+	// verdicts tallies the block keys, kept and dropped, by verdict.
+	verdicts map[string]*tally
 }
 
 // openNew creates the new World file: incremental auto_vacuum set and made

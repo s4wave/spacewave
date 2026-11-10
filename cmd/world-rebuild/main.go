@@ -103,6 +103,8 @@ type opts struct {
 	needed string
 	// neededOut is where packcheck writes the needed packs.
 	neededOut string
+	// copyStatsOut, when set, receives the copy's stats; for tests.
+	copyStatsOut *copyStats
 }
 
 func main() {
