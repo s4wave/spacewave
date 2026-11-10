@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/util/conc"
 	"github.com/pkg/errors"
 	block_store_nodepush "github.com/s4wave/spacewave/db/block/store/nodepush"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
@@ -188,15 +189,17 @@ func (t *bstoreTracker) startNodePush(
 	t.nodeClient.Store(client)
 	le.Info("pushing publications to the storage node")
 
-	// Keep the connection and the clears up until the store unmounts.
+	// Keep the connection and the clears up until the store unmounts. The
+	// unbounded queue starts each routine at once and reports idle when every
+	// one returned.
 	runCtx, cancel := context.WithCancel(ctx)
-	var running sync.WaitGroup
-	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
-	running.Go(func() { t.runNodeClears(runCtx, le, placement, clears) })
+	running := conc.NewConcurrentQueue(0)
+	running.Enqueue(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	running.Enqueue(func() { t.runNodeClears(runCtx, le, placement, clears) })
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 		handle.push.Close()
 	}
 }
@@ -215,14 +218,14 @@ func (t *bstoreTracker) startNodeReads(ctx context.Context, le *logrus.Entry) fu
 	// Run a client without an applier until the store unmounts.
 	client := block_store_nodepush.NewClient(le.WithField("routine", "node-reads"), nil)
 	runCtx, cancel := context.WithCancel(ctx)
-	var running sync.WaitGroup
-	running.Go(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
+	running := conc.NewConcurrentQueue(0)
+	running.Enqueue(func() { _ = client.Run(runCtx, conf.Dial, nodeRedial) })
 	t.nodeClient.Store(client)
 	le.Info("reading the storage node, serve mode pushes nothing")
 	return func() {
 		t.nodeClient.Store(nil)
 		cancel()
-		running.Wait()
+		_ = running.WaitIdle(context.Background(), nil)
 	}
 }
 
