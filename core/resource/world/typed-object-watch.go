@@ -268,27 +268,35 @@ func (w *typedObjectWatch) run(ctx context.Context) (retErr error) {
 	}
 }
 
-// observeWorld follows the object's revisions within the granted mutable
-// state or pinned snapshot. The object type is a graph quad on the object, so
-// a type change revises the object.
+// observeWorld follows the object's record and type within the granted
+// mutable state or pinned snapshot. The object type is a graph quad on the
+// object, which does not revise the object, so the watch waits on a read set
+// holding the object's record and its type edge.
 func (w *typedObjectWatch) observeWorld(ctx context.Context) error {
 	ws := w.resource.ws
 	for {
-		// Read the object's root before its type.
-		seen, err := w.readObjectRoot(ctx)
+		// Read the object's root, then its type, after the seqno the wait
+		// below starts from.
+		seqno, err := ws.GetSeqno(ctx)
+		if err != nil {
+			return err
+		}
+		reads := world.NewReadSet()
+		tracked := reads.Track(ws)
+		seen, err := w.readObjectRoot(ctx, tracked)
 		if err != nil {
 			return err
 		}
 		var typeID string
 		if seen.Exists {
-			typeID, err = world_types.GetObjectType(ctx, ws, w.objectKey)
+			typeID, err = world_types.GetObjectType(ctx, tracked, w.objectKey)
 			if err != nil {
 				return err
 			}
 		}
 
 		// Publish only when the object did not change during the reads.
-		observed, err := w.readObjectRoot(ctx)
+		observed, err := w.readObjectRoot(ctx, ws)
 		if err != nil {
 			return err
 		}
@@ -302,16 +310,17 @@ func (w *typedObjectWatch) observeWorld(ctx context.Context) error {
 			})
 		}
 
-		// Wait for the object to change, including pending writer changes.
-		if err := world.WaitObjectChange(ctx, ws, seen); err != nil {
+		// Wait for the object or its type to change, including pending writer
+		// changes.
+		if _, err := reads.WaitChange(ctx, ws, seqno); err != nil {
 			return err
 		}
 	}
 }
 
 // readObjectRoot reads the watched object's root and revision.
-func (w *typedObjectWatch) readObjectRoot(ctx context.Context) (*world.ObjectRootRef, error) {
-	refs, err := world.GetObjectRootRefsBatch(ctx, w.resource.ws, []string{w.objectKey})
+func (w *typedObjectWatch) readObjectRoot(ctx context.Context, ws world.WorldState) (*world.ObjectRootRef, error) {
+	refs, err := world.GetObjectRootRefsBatch(ctx, ws, []string{w.objectKey})
 	if err != nil {
 		return nil, err
 	}

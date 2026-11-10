@@ -88,11 +88,11 @@ func TestPurgeObjectWithoutRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The object and its quads are gone and both endpoints were revised.
+	// The object and its quads are gone, and the endpoints keep their revisions.
 	after, afterSeqno := graphDeleteSnapshot(t, ctx, engine, []string{"host", "types/attempt"})
 	for _, key := range []string{"host", "types/attempt"} {
-		if after[key] != before[key]+1 {
-			t.Errorf("%s revision = %d, want %d", key, after[key], before[key]+1)
+		if after[key] != before[key] {
+			t.Errorf("%s revision = %d, want %d", key, after[key], before[key])
 		}
 	}
 	if afterSeqno <= seqno {

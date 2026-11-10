@@ -163,7 +163,7 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 }
 
 // executeOnce runs one iteration: it reads the watched object, calls the
-// handler, then waits for the next revision. done reports that the loop is
+// handler, then waits for a change to what the iteration read. done reports that the loop is
 // finished and Execute should return err.
 //
 // The object-state handle lives for exactly one iteration. A remote world state
@@ -182,11 +182,18 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		return true, err
 	}
 
+	// Track every read of this iteration, the watched object's record
+	// included, so the wait below wakes for a change to the object or to
+	// anything the handler read, such as the object's relationships. A quad
+	// change does not move the revision of the objects it names.
+	reads := world.NewReadSet()
+	handlerWs := reads.Track(ws)
+
 	// Look up the watched object, if any, for this iteration.
 	var objState world.ObjectState
 	var objFound bool
 	if c.objectKey != "" {
-		objState, objFound, err = ws.GetObject(ctx, c.objectKey)
+		objState, objFound, err = handlerWs.GetObject(ctx, c.objectKey)
 		defer world.ReleaseObjectState(objState)
 		if err != nil {
 			return true, err
@@ -208,14 +215,6 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		}
 	} else {
 		objState = nil
-	}
-
-	// Record the reads of a handler that watches no single object.
-	handlerWs := ws
-	var reads *world.ReadSet
-	if c.objectKey == "" {
-		reads = world.NewReadSet()
-		handlerWs = reads.Track(ws)
 	}
 
 	// Run the handler. An unhandled operation waits for the next change, and
@@ -252,20 +251,9 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		return false, nil
 	}
 
-	// Wait for the next revision of the watched object, its deletion or its
-	// creation. A loop without an object waits for a change to what the
-	// handler read.
-	switch {
-	case objState != nil:
-		_, err = objState.WaitRev(wakeCtx, rev+1, false)
-		if errors.Is(err, world.ErrObjectNotFound) {
-			err = nil
-		}
-	case c.objectKey != "":
-		_, err = world.WaitObjectRev(wakeCtx, ws, c.objectKey, 0, true)
-	default:
-		_, err = reads.WaitChange(wakeCtx, ws, seqno)
-	}
+	// Wait for a change to the watched object, its creation or deletion, or
+	// to anything else the handler read.
+	_, err = reads.WaitChange(wakeCtx, ws, seqno)
 	finishWake()
 
 	// Wake cancels the wait context. Storage snapshot initialization may wrap

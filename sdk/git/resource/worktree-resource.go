@@ -160,9 +160,14 @@ func (r *GitWorktreeResource) WatchStatus(
 	ctx := strm.Context()
 	var prev *s4wave_git.WatchStatusResponse
 	for {
-		// Read the status and the object roots it was read at.
-		seen, err := r.statusRoots(ctx)
+		// Read the roots and links the status depends on through a read set,
+		// after the seqno the wait below starts from.
+		seqno, err := r.ws.GetSeqno(ctx)
 		if err != nil {
+			return err
+		}
+		reads := world.NewReadSet()
+		if err := r.readStatusInputs(ctx, reads.Track(r.ws)); err != nil {
 			return err
 		}
 		resp, err := r.statusSnapshot(ctx)
@@ -178,39 +183,35 @@ func (r *GitWorktreeResource) WatchStatus(
 			prev = resp.CloneVT()
 		}
 
-		// Wait for one of the objects to change.
-		if err := world.WaitObjectChange(ctx, r.ws, seen...); err != nil {
+		// Wait for one of the objects or the workdir link to change.
+		if _, err := reads.WaitChange(ctx, r.ws, seqno); err != nil {
 			return err
 		}
 	}
 }
 
-// statusRoots reads the roots of the objects the worktree status reads: the
-// worktree, its workdir and the repository. The worktree root is read before
-// its workdir link, so relinking the workdir changes a root in the result.
-func (r *GitWorktreeResource) statusRoots(ctx context.Context) ([]*world.ObjectRootRef, error) {
+// readStatusInputs reads, through ws, what the worktree status depends on: the
+// worktree's record, its workdir link, and the workdir and repository records.
+// ws is a read-set tracked state, so a change to any of them, relinking the
+// workdir included, touches the reads.
+func (r *GitWorktreeResource) readStatusInputs(ctx context.Context, ws world.WorldState) error {
 	// Require a linked repository.
 	repoObjKey := r.snap.RepoObjectKey
 	if repoObjKey == "" {
-		return nil, errNoLinkedRepo
+		return errNoLinkedRepo
 	}
 
-	// Read the worktree root, then the workdir it links.
-	worktree, err := world.GetObjectRootRefsBatch(ctx, r.ws, []string{r.objKey})
-	if err != nil {
-		return nil, err
+	// Read the worktree root, the workdir it links, and the workdir and
+	// repository roots.
+	if _, err := world.GetObjectRootRefsBatch(ctx, ws, []string{r.objKey}); err != nil {
+		return err
 	}
-	workdirRef, err := git_world.WorktreeLookupWorkdirRef(ctx, r.ws, r.objKey)
+	workdirRef, err := git_world.WorktreeLookupWorkdirRef(ctx, ws, r.objKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	// Read the workdir and repository roots.
-	rest, err := world.GetObjectRootRefsBatch(ctx, r.ws, []string{workdirRef.GetObjectKey(), repoObjKey})
-	if err != nil {
-		return nil, err
-	}
-	return append(worktree, rest...), nil
+	_, err = world.GetObjectRootRefsBatch(ctx, ws, []string{workdirRef.GetObjectKey(), repoObjKey})
+	return err
 }
 
 func (r *GitWorktreeResource) statusSnapshot(ctx context.Context) (*s4wave_git.WatchStatusResponse, error) {

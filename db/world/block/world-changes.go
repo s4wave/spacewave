@@ -26,8 +26,8 @@ var graphLogPrefix = []byte("l/")
 // roots. It compares the object and graph trees block by block and skips every
 // subtree the roots share, so its cost follows the size of the change rather
 // than the size of the World. Each tree comparison lists at most maxKeys tree
-// keys; a larger change yields an unknown ChangeSet. An object whose revision
-// moved only for its changed quads is not listed; the quads report it.
+// keys; a larger change yields an unknown ChangeSet. A changed quad does not
+// change the records of the objects it names, so only the quads report it.
 func WorldChanges(ctx context.Context, before, after *block.Cursor, maxKeys int) (*world.ChangeSet, error) {
 	// List the changed objects.
 	keys, complete, err := ChangedObjectKeys(ctx, before, after, maxKeys)
@@ -46,71 +46,7 @@ func worldChangesWithKeys(ctx context.Context, before, after *block.Cursor, keys
 	if err != nil || !complete {
 		return world.NewUnknownChangeSet(), err
 	}
-
-	// Drop the objects the changed quads alone revised.
-	keys, err = dropQuadRevisions(ctx, before, after, keys, quads)
-	if err != nil {
-		return world.NewUnknownChangeSet(), err
-	}
 	return &world.ChangeSet{Keys: keys, Quads: quads}, nil
-}
-
-// dropQuadRevisions removes the keys whose objects changed only by the
-// revisions their changed quads explain. Setting or deleting a quad revises
-// each existing object it names, once per endpoint, so without this a reader of
-// an object's body would wake for every relationship of the object. A key stays
-// when its object was created, deleted or given a new root, or when its
-// revision moved by any other amount, as an explicit IncrementRev or a quad set
-// and deleted again between the roots moves it.
-func dropQuadRevisions(ctx context.Context, before, after *block.Cursor, keys []string, quads []world.GraphQuad) ([]string, error) {
-	// Count the revisions the changed quads explain for each object.
-	explained := make(map[string]uint64)
-	for _, q := range quads {
-		for _, value := range [2]string{q.GetSubject(), q.GetObj()} {
-			if key, err := world.GraphValueToKey(value); err == nil {
-				explained[key]++
-			}
-		}
-	}
-	if len(explained) == 0 {
-		return keys, nil
-	}
-
-	// Open both object trees for reading.
-	beforeTree, err := kvtx_block.BuildKvTransaction(ctx, before.FollowSubBlock(1), false)
-	if err != nil {
-		return nil, err
-	}
-	defer beforeTree.Discard()
-	afterTree, err := kvtx_block.BuildKvTransaction(ctx, after.FollowSubBlock(1), false)
-	if err != nil {
-		return nil, err
-	}
-	defer afterTree.Discard()
-
-	// Keep each key the quads do not fully explain.
-	kept := keys[:0]
-	for _, key := range keys {
-		count := explained[key]
-		if count == 0 {
-			kept = append(kept, key)
-			continue
-		}
-		prev, err := readObjectRecord(ctx, beforeTree, key)
-		if err != nil {
-			return nil, err
-		}
-		next, err := readObjectRecord(ctx, afterTree, key)
-		if err != nil {
-			return nil, err
-		}
-		if prev == nil || next == nil ||
-			!prev.GetRootRef().EqualVT(next.GetRootRef()) ||
-			next.GetRev() != prev.GetRev()+count {
-			kept = append(kept, key)
-		}
-	}
-	return kept, nil
 }
 
 // readObjectRecord reads the record of the object at key in an object tree.
