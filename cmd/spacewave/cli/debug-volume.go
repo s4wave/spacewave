@@ -15,6 +15,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/s4db"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
@@ -381,6 +382,12 @@ func volumeKeyClassOf(key, separator []byte, depth, width int) string {
 // A daemon started meanwhile shares the file, so stop it for the whole run.
 // The caller closes the volume.
 func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string) (*volume_s4db.Volume, error) {
+	return openStoppedVolumeStore(ctx, le, path, nil)
+}
+
+// openStoppedVolumeStore is openStoppedVolume with the store configuration
+// storeConf, nil for the default.
+func openStoppedVolumeStore(ctx context.Context, le *logrus.Entry, path string, storeConf *store_kvtx.Config) (*volume_s4db.Volume, error) {
 	// Refuse a missing file, which the open would create.
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
@@ -389,6 +396,7 @@ func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string) (*vol
 		Path:          path,
 		NoGenerateKey: true,
 		NoWriteKey:    true,
+		StoreConfig:   storeConf,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "open volume")
