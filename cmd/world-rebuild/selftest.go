@@ -26,12 +26,17 @@ const (
 	// 5..9: queued, packed, cold: drop
 )
 
+// runSelftest builds a test store in a temporary directory under -out, then
+// checks count, copy, verify, the mutants and the source guards against it.
 func runSelftest(o opts) error {
+	// Make the scratch directory, removed after.
 	dir, err := os.MkdirTemp(o.out, "world-rebuild-selftest-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dir)
+
+	// Build the test store in the production layout.
 	n := o.n
 	o.full = true
 	o.world = filepath.Join(dir, "world.db")
@@ -51,6 +56,8 @@ func runSelftest(o opts) error {
 	if err != nil {
 		return fmt.Errorf("count: %w", err)
 	}
+
+	// Tally what the count must have found.
 	hot := int64(0)
 	for i := range n {
 		if i%10 == catHot {
@@ -61,6 +68,8 @@ func runSelftest(o opts) error {
 	for _, t := range res.blocks {
 		blocks += t.keys
 	}
+
+	// Compare the count with the store's known contents.
 	for _, c := range []struct {
 		name      string
 		got, want int64
@@ -77,6 +86,13 @@ func runSelftest(o opts) error {
 	}
 	fmt.Println("count: ok")
 
+	// count -rate-only samples and writes the scratch copy without error.
+	ro := co
+	ro.rateOnly = true
+	if err := runRateOnly(ro); err != nil {
+		return fmt.Errorf("count -rate-only: %w", err)
+	}
+
 	// The faithful copy verifies and drops exactly the cold packed blocks.
 	o.out = filepath.Join(dir, "new.db")
 	start := time.Now()
@@ -86,6 +102,8 @@ func runSelftest(o opts) error {
 	el := time.Since(start)
 	nf, _ := os.Stat(o.out)
 	fmt.Printf("copy rate: %.0f MB/s of source file, %s\n", float64(fi.Size())/1e6/el.Seconds(), el.Round(time.Millisecond))
+
+	// It verifies and holds exactly the kept blocks.
 	if err := runVerify(o); err != nil {
 		return fmt.Errorf("faithful copy failed verify: %w", err)
 	}
@@ -111,6 +129,8 @@ func runSelftest(o opts) error {
 		fmt.Printf("mutant %s: caught\n", m)
 		os.Remove(o.out)
 	}
+
+	// All checks passed.
 	fmt.Println("selftest: ok")
 	return nil
 }

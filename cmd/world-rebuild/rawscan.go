@@ -289,12 +289,21 @@ type rawStats struct {
 // page not on the freelist. Each cell's local bytes are valid only during fn.
 // progress, when set, follows the bytes read.
 func (r *rawFile) scanLeaves(mbps float64, chunk int, progress *int64, fn func(c rawCell)) (rawStats, error) {
+	return r.scanRange(0, r.pages*int64(r.pageSize), mbps, chunk, progress, fn)
+}
+
+// scanRange is scanLeaves over the bytes [from, to) of the file; from must be
+// page aligned.
+func (r *rawFile) scanRange(from, to int64, mbps float64, chunk int, progress *int64, fn func(c rawCell)) (rawStats, error) {
+	// Size the read buffer to whole pages and clamp the range to the file.
 	var st rawStats
 	start := time.Now()
 	chunk -= chunk % r.pageSize
 	buf := alignedBuf(chunk)
-	size := r.pages * int64(r.pageSize)
-	for off := int64(0); off < size; {
+	size := min(to, r.pages*int64(r.pageSize))
+
+	// Read chunk by chunk, decode the leaf pages, then pace.
+	for off := from; off < size; {
 		n := int(min(int64(chunk), size-off))
 		got, err := r.f.ReadAt(buf[:n], off)
 		if err != nil && !errors.Is(err, io.EOF) {
@@ -335,6 +344,8 @@ func (r *rawFile) scanLeaves(mbps float64, chunk int, progress *int64, fn func(c
 			live.done(0, 0)
 		}
 	}
+
+	// Record the pass time.
 	st.took = time.Since(start)
 	return st, nil
 }

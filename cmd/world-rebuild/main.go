@@ -73,43 +73,58 @@ type opts struct {
 	// scratch file to measure the copy rate.
 	rateOut string
 	rateMB  int64
+	// rateOnly makes count skip its passes and only sample the copy rate.
+	rateOnly bool
 }
 
 func main() {
+	// The subcommand comes first; its flags follow.
 	if len(os.Args) < 2 {
 		usage()
 	}
 	cmd := os.Args[1]
 	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
 	var o opts
+
+	// Files and the pack index store.
 	fs.StringVar(&o.world, "world", "", "World SQLite file")
 	fs.StringVar(&o.packs, "packs", "", "pack index SQLite file")
 	fs.StringVar(&o.storeID, "store-id", defaultStoreID, "pack index block store id")
 	fs.StringVar(&o.out, "out", "", "new World file (copy, verify)")
+
+	// SQLite reads and the pacing of reads of a live file.
 	fs.IntVar(&o.chunk, "chunk", 20000, "rows per short read")
 	fs.DurationVar(&o.pause, "pause", 0, "pause between short reads (count)")
-	fs.StringVar(&o.mutant, "mutant", "", "copy only: drop-marked | drop-unqueued | drop-hot | drop-unpacked | drop-meta | stale-evict-bytes")
-	fs.BoolVar(&o.verbose, "v", false, "verbose")
 	fs.DurationVar(&o.txn, "txn", 40*time.Millisecond, "count: target time of one read of the live file")
 	fs.Int64Var(&o.walMax, "wal-max-mib", 2560, "count: wait while a live WAL is larger")
+	fs.Float64Var(&o.mbps, "mbps", 60, "count: megabytes a second the raw page reads take (0: no limit)")
+
+	// Copy, verify and selftest behaviour.
+	fs.StringVar(&o.mutant, "mutant", "", "copy only: drop-marked | drop-unqueued | drop-hot | drop-unpacked | drop-meta | stale-evict-bytes")
+	fs.BoolVar(&o.verbose, "v", false, "verbose")
 	fs.IntVar(&o.n, "n", 100000, "selftest blocks")
 	fs.BoolVar(&o.full, "full", false, "verify: compare block values byte for byte, not only their lengths")
 	fs.BoolVar(&o.rowid, "rowid", true, "selftest: rowid table, as production, instead of WITHOUT ROWID")
-	fs.Float64Var(&o.mbps, "mbps", 60, "count: megabytes a second the raw page reads take (0: no limit)")
 	fs.Float64Var(&o.maxKeptGB, "max-kept-gb", 0, "copy: abort once the kept bytes pass this (0: no cap)")
+
+	// The copy rate measurement of count.
 	fs.StringVar(&o.rateOut, "rate-out", "", "count: scratch file for the copy rate measurement (removed after)")
 	fs.Int64Var(&o.rateMB, "rate-mb", 1000, "count: kept megabytes the copy rate measurement copies")
+	fs.BoolVar(&o.rateOnly, "rate-only", false, "count: skip the passes; copy ~rate-mb of rows from 64 slices to -rate-out, keeping all, and report the MB/s")
 	_ = fs.Parse(os.Args[2:])
 
+	// Run the subcommand.
 	var err error
-	switch cmd {
-	case "count":
+	switch {
+	case cmd == "count" && o.rateOnly:
+		err = runRateOnly(o)
+	case cmd == "count":
 		_, err = runCount(o)
-	case "copy":
+	case cmd == "copy":
 		err = runCopy(o)
-	case "verify":
+	case cmd == "verify":
 		err = runVerify(o)
-	case "selftest":
+	case cmd == "selftest":
 		err = runSelftest(o)
 	default:
 		usage()

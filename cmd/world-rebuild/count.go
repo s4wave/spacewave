@@ -557,6 +557,105 @@ func measureCopy(o opts, f *facts, maxRowid, rows, keepBytes int64) error {
 	return nil
 }
 
+// runRateOnly measures the copy rate without count's passes. It reads 64
+// slices spread over the World file raw, as count does (no SQLite, so no lock
+// and no read transaction), keeps every row of their leaf pages with its whole
+// value, and writes them to -rate-out as copy does: keeping every row makes the
+// rate pessimistic. Reads, overflow pages included, are paced to -mbps, and
+// the pacer waits while a WAL is past -wal-max-mib.
+func runRateOnly(o opts) error {
+	// Open the source raw and the scratch copy, removed after.
+	if o.rateOut == "" {
+		return fmt.Errorf("-rate-only needs -rate-out")
+	}
+	world, err := openRaw(o.world)
+	if err != nil {
+		return err
+	}
+	defer world.Close()
+	dst, err := openNew(o.rateOut, "CREATE TABLE kv ( key BLOB PRIMARY KEY, value BLOB)", int64(world.pageSize))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		dst.Close()
+		for _, sfx := range []string{"", "-journal", "-wal", "-shm"} {
+			_ = os.Remove(o.rateOut + sfx)
+		}
+	}()
+
+	// Guard both WALs, as count does.
+	live = &pacer{wals: []string{o.world + "-wal", o.packs + "-wal"}, walMax: o.walMax << 20}
+	defer func() { live = nil }()
+	live.setPhase("rate sample", nil)
+
+	// Spread the sample over 64 slices, each a share of -rate-mb.
+	const slices, step = 64, 4 << 20
+	size, align, quota := world.pages*int64(world.pageSize), int64(max(world.pageSize, 4096)), o.rateMB*1e6/slices
+	var sampled, read, rows, bad int64
+	var slept time.Duration
+	var werr error
+	start := time.Now()
+
+	// Copy each slice in one transaction until its share is sampled.
+	for i := range int64(slices) {
+		tx, err := dst.Begin()
+		if err != nil {
+			return err
+		}
+		ins, err := tx.Prepare("INSERT OR IGNORE INTO kv (key, value) VALUES (?, ?)")
+		if err != nil {
+			return err
+		}
+		end := (i + 1) * size / slices / align * align
+		for off := i * size / slices / align * align; off < end && sampled < (i+1)*quota; off += step {
+			// Copy the rows of one chunk, then sleep to the pace.
+			st, err := world.scanRange(off, min(off+step, end), 0, step, nil, func(c rawCell) {
+				// Read the whole value and write the row.
+				key, vlen, vlocal, ok := kvRecord(c)
+				v, err := world.value(c, vlen, vlocal)
+				if !ok || err != nil {
+					bad++
+					return
+				}
+
+				// Count the overflow pages read toward the pace.
+				read += (c.size - int64(len(c.local)) + int64(world.usable) - 5) / int64(world.usable-4) * int64(world.pageSize)
+				if _, err := ins.Exec(key, v); err != nil && werr == nil {
+					werr = err
+				}
+				rows++
+				sampled += int64(len(key)) + vlen
+			})
+			if err != nil {
+				_ = tx.Rollback()
+				return err
+			}
+
+			// Hold the reads to -mbps.
+			read += st.read
+			if want := time.Duration(float64(read) / (o.mbps * 1e6) * float64(time.Second)); o.mbps > 0 && time.Since(start) < want {
+				slept += want - time.Since(start)
+				time.Sleep(want - time.Since(start))
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+
+	// Report one line: the measured rate, then with pacing taken out.
+	el := time.Since(start)
+	if werr != nil || sampled == 0 {
+		return fmt.Errorf("rate-only: %d rows written: %v", rows, werr)
+	}
+	rate := float64(sampled) / 1e6 / el.Seconds()
+	free := float64(sampled) / 1e6 / max(el-slept-live.waited, time.Millisecond).Seconds()
+	fmt.Printf("rate-only (measured): sampled %s in %d rows (64 slices, every row kept, %d cells skipped) in %s: %.0f MB/s to %s, %.0f MB/s without %s of pacing to %.0f MB/s and WAL waits; 195 GB at that rate: %.0f min (%.0f min unpaced)\n",
+		gb(sampled), rows, bad, el.Round(time.Millisecond), rate, o.rateOut, free, (slept + live.waited).Round(time.Millisecond), o.mbps, 195e3/rate/60, 195e3/free/60)
+	return nil
+}
+
 func sortedKeys[V any](m map[string]V) []string {
 	ks := make([]string, 0, len(m))
 	for k := range m {
