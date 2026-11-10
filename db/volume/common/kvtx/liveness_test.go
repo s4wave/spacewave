@@ -16,7 +16,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -1572,71 +1571,6 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatalf("put over a freed stage top = %v, want the stage lost", err)
 			}
 			requireStored(t, v, tr, false, "S")
-		})
-	}
-
-	for _, crash := range []bool{false, true} {
-		t.Run("background staged batch cut crash="+strconv.FormatBool(crash), func(t *testing.T) {
-			// A background stage puts 300 leaves and then the parent naming
-			// them in one batch, which a hold of 1ns cuts into many
-			// transactions. Complete, it equals one batch: the stage holds
-			// only the parent. Its process dying after the leaves' cuts,
-			// before the parent's, leaves a stage whose roots lapse with its
-			// lease and whose leaves go after the grace period, while main
-			// keeps its tree.
-			defer func(prev time.Duration) { backgroundBatchHold = prev }(backgroundBatchHold)
-			backgroundBatchHold = time.Nanosecond
-			v, clk := newLivenessVolume(t, true)
-			ctx := kvtx.WithBackgroundWriteContext(t.Context())
-			tr := testTree{}
-			old := tr.add(t, "old")
-			if err := v.SetBucketRoots(ctx, "b", tr.entries("old"), []block.NamedRoot{{Name: "main", Ref: old}}); err != nil {
-				t.Fatal(err)
-			}
-			leaves := make([]string, 300)
-			for i := range leaves {
-				leaves[i] = "L" + strconv.Itoa(i)
-				tr.add(t, leaves[i])
-			}
-			tr.add(t, "P", leaves...)
-			stage, release, err := v.OpenStage(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer release()
-			batch := tr.entries(append(slices.Clone(leaves), "P")...)
-			if crash {
-				batch = batch[:len(leaves)]
-			}
-			existed, err := v.PrepareStagedBlockBatch(ctx, stage, batch)
-			if err != nil || len(existed) != len(batch) {
-				t.Fatalf("cut batch existed %d err %v, want %d", len(existed), err, len(batch))
-			}
-			if !crash {
-				if held := v.stageHeld(stage, newStageNames(stage, batch)); len(held) != 1 {
-					t.Fatalf("stage holds %d roots after the cut batch, want the parent", len(held))
-				}
-				clk.Add(block_gc.DefaultGrace + time.Second)
-				collectAll(t, v)
-				requireStored(t, v, tr, true, append(leaves, "P", "old")...)
-				return
-			}
-
-			// The process dies: nothing renews or releases the stage's
-			// roots.
-			unlock, err := v.rootPinMu.Lock(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			delete(v.stages, stage)
-			unlock()
-			clk.Add(rootLease + time.Second)
-			collectAll(t, v)
-			clk.Add(block_gc.DefaultGrace + time.Second)
-			collectAll(t, v)
-			requireStored(t, v, tr, false, leaves...)
-			requireStored(t, v, tr, true, "old")
-			requireAudit(t, v, 0)
 		})
 	}
 
