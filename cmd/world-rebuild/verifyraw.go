@@ -95,7 +95,7 @@ func runVerifyRaw(o opts) error {
 		return err
 	}
 	defer packs.Close()
-	table, _, err := kvTable(src)
+	table, stmt, err := kvTable(src)
 	if err != nil {
 		return err
 	}
@@ -103,11 +103,12 @@ func runVerifyRaw(o opts) error {
 	if err != nil {
 		return err
 	}
+	o.rawFacts = true
 	f, err := loadFacts(o, src, table, packs)
 	if err != nil {
 		return err
 	}
-	present, err := blockDigests(o, src, table)
+	present, err := readBlockDigests(o, src, o.world, table, stmt)
 	if err != nil {
 		return err
 	}

@@ -125,3 +125,41 @@ func TestRawCopyRefusesWAL(t *testing.T) {
 		t.Fatalf("refused copy wrote %s", o.out)
 	}
 }
+
+// TestBlockDigestsRaw checks the raw read of the key index finds the block
+// digests the SQLite key scan does, on a store with several index levels.
+func TestBlockDigestsRaw(t *testing.T) {
+	dir := t.TempDir()
+	var o opts
+	o.world = filepath.Join(dir, "world.db")
+	o.packs = filepath.Join(dir, "packs.db")
+	o.storeID, o.chunk, o.readers = defaultStoreID, 500, 3
+	if _, err := buildTestStore(o.world, o.packs, 20000, o.storeID, true, false); err != nil {
+		t.Fatal(err)
+	}
+	db, err := openRO(o.world)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	table, stmt, err := kvTable(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := blockDigests(o, db, table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := blockDigestsRaw(o, db, o.world, table, stmt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(want) != 20000 || len(got) != len(want) {
+		t.Fatalf("raw found %d block digests, SQLite %d, want 20000", len(got), len(want))
+	}
+	for d := range want {
+		if !got[d] {
+			t.Fatalf("raw missed digest %x", d)
+		}
+	}
+}

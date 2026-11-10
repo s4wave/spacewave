@@ -225,6 +225,15 @@ func (p *dropPlan) decide(key []byte, vlen int64, st *copyStats) bool {
 	return true
 }
 
+// readBlockDigests is blockDigests, read raw from the key index with -read
+// raw.
+func readBlockDigests(o opts, db *sql.DB, path, table, stmt string) (map[string]bool, error) {
+	if o.read == "raw" {
+		return blockDigestsRaw(o, db, path, table, stmt)
+	}
+	return blockDigests(o, db, table)
+}
+
 // blockDigests scans the block range keys only and returns the digests held.
 func blockDigests(o opts, db *sql.DB, table string) (map[string]bool, error) {
 	present := map[string]bool{}
@@ -253,17 +262,19 @@ func runCopy(o opts) error {
 	if err != nil {
 		return err
 	}
+	o.rawFacts = o.read == "raw"
 	f, err := loadFacts(o, src, table, packs)
 	if err != nil {
 		return err
 	}
-	present, err := blockDigests(o, src, table)
+	tf := time.Now()
+	present, err := readBlockDigests(o, src, o.world, table, stmt)
 	if err != nil {
 		return err
 	}
 	p := planDrops(f, present)
 	p.mutant = o.mutant
-	fmt.Printf("facts and block keys read in %s: %d blocks, %d eviction entries to drop\n", time.Since(start).Round(time.Second), len(present), len(p.skipEvict))
+	fmt.Printf("facts and block keys read in %s (facts %s, block keys %s): %d blocks, %d eviction entries to drop\n", time.Since(start).Round(time.Second), f.took.Round(time.Second), time.Since(tf).Round(time.Second), len(present), len(p.skipEvict))
 	h, err := readHeader(src)
 	if err != nil {
 		return err

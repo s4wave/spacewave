@@ -88,6 +88,9 @@ type opts struct {
 	sortBatch bool
 	// deferIndex builds the key index after the rows are in.
 	deferIndex bool
+	// rawFacts makes loadFacts read the object store keys raw from the
+	// key index; copy and verify set it with -read raw.
+	rawFacts bool
 	// dryRead makes copy read and decide every row but insert none.
 	dryRead bool
 }

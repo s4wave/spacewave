@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/s4wave/spacewave/net/hash"
@@ -86,7 +87,22 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 	live.setPhase("object store keys", func() string {
 		return fmt.Sprintf("%d keys, %d marked, %d queued", seen, len(f.marked), f.evictKeys)
 	})
-	err := scanKeys(world, table, []byte(objsPrefix), prefixEnd([]byte(objsPrefix)), o.chunk, o.pause, func(key []byte) error {
+	scanObjs := func(fn func(key []byte) error) error {
+		return scanKeys(world, table, []byte(objsPrefix), prefixEnd([]byte(objsPrefix)), o.chunk, o.pause, fn)
+	}
+	if o.rawFacts {
+		// The offline source's key index, read raw by several readers,
+		// one key at a time through the lock.
+		scanObjs = func(fn func(key []byte) error) error {
+			var mu sync.Mutex
+			return rawIndexKeys(o, world, o.world, table, []byte(objsPrefix), func(key []byte) error {
+				mu.Lock()
+				defer mu.Unlock()
+				return fn(bytes.Clone(key))
+			})
+		}
+	}
+	err := scanObjs(func(key []byte) error {
 		seen++
 		obj, rest, ok := objKey(key)
 		if !ok {
@@ -233,10 +249,28 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 	live.setPhase("pack index h rows", func() string {
 		return fmt.Sprintf("%d of %d looked up, %d packed", f.lookups, len(looks), len(f.packed))
 	})
-	err = pointReads(packs, "SELECT value FROM "+ptable+" WHERE key = ?", len(looks), o.chunk, func(i int, st *sql.Stmt) error {
-		f.lookups++
+	getH := func(i int, st *sql.Stmt) ([]byte, error) {
 		var v []byte
 		err := st.QueryRow(looks[i].row).Scan(&v)
+		return v, err
+	}
+	if o.rawFacts {
+		// Read the offline pack index raw, whole, and pick out the h rows
+		// looked for: one pass instead of a point read per block.
+		vals, err := rawLookups(o, packs, o.packs, ptable, len(looks), func(i int) []byte { return looks[i].row })
+		if err != nil {
+			return nil, fmt.Errorf("pack index h rows: %w", err)
+		}
+		getH = func(i int, _ *sql.Stmt) ([]byte, error) {
+			if vals[i] == nil {
+				return nil, sql.ErrNoRows
+			}
+			return vals[i], nil
+		}
+	}
+	err = pointReads(packs, "SELECT value FROM "+ptable+" WHERE key = ?", len(looks), o.chunk, func(i int, st *sql.Stmt) error {
+		f.lookups++
+		v, err := getH(i, st)
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			f.hMissing++
