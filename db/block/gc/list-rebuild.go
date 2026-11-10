@@ -212,6 +212,11 @@ func (r *ListRebuild) verifyOne(ctx context.Context, rec *Records, entry *block.
 // verified as it is written, by its landed mark, so the World's commits during the walk add no
 // unverified list; a cache fill's list is not, and a rerun of the typed walk
 // verifies it.
+//
+// Known hole, so frees stay off after a Finish: a listed block no root
+// reaches keeps its unverified list past the clear, and a later put of it
+// revives it with that list, which Land trusts, so a child the list misses
+// can be freed under a live holder.
 func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 	// Write what is pending, then find the unverified lists a root reaches.
 	if err := r.flush(ctx); err != nil {
