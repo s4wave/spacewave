@@ -38,11 +38,22 @@
 //
 // # Invariants
 //
+// The one the rest serve: a value is acked only when it is in the table and
+// its bytes are at or below a synced offset published with no pack error; a
+// pack is final only by a clean history or by salvage.
+//
 //   - A batch's Append returns nil only once its record and values are durable
-//     (RowAfterSync and ReceiptedHeld in PackAhead.tla).
-//   - Recovery keeps the leading records whose two checksums match, in order,
-//     and truncates the pack at the first that does not (DataCheck and
-//     RecoveredValid). A batch past it was never acknowledged.
+//     (RowAfterSync and ReceiptedHeld in PackAhead.tla). A sync that ends after
+//     a write or sync failed its pack publishes no mark, and salvage waits for
+//     a running sync before it reads the mark (PublishCheck).
+//   - A pack whose write or sync failed is never synced or finalized in place:
+//     salvage copies its batches below the published mark into a fresh file,
+//     syncs that, and finalizes it (PoisonCheck). Open salvages every
+//     unfinalized pack the same way, keeping its leading records whose two
+//     checksums match (DataCheck, SalvageOnOpen and RecoveredValid). A batch
+//     past them was never acknowledged.
+//   - A clean Close finalizes every pack with no failure through the normal
+//     path and removes the empty ones, so an ordinary restart copies nothing.
 //   - A pack file is created and its directory synced before any batch is
 //     written to it, so an acknowledged batch never lives in a file a crash
 //     can drop from the directory.
