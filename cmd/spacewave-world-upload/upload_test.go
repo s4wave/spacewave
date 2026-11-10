@@ -82,8 +82,10 @@ func writeEntry(t *testing.T, dir string, e *packfile.PackfileEntry) {
 }
 
 // fakeS3 records the requests it receives and checks each is a PUT whose
-// checksum headers match its body. fail maps a path to the status to answer,
-// badSum the paths to answer 200 with a wrong echoed sha256. stored holds
+// checksum headers match its body; x-amz-checksum-sha256 may be absent but
+// is signed when present. fail maps a path to the status to answer,
+// badSum the paths to answer 200 with a wrong echoed sha256, echo the paths
+// to answer 200 with the right one. stored holds
 // the paths put with 200; an If-None-Match: * PUT to one gets 412. headers
 // holds the last request headers of each path.
 type fakeS3 struct {
@@ -93,13 +95,14 @@ type fakeS3 struct {
 	reqs    []string
 	fail    map[string]int
 	badSum  map[string]bool
+	echo    map[string]bool
 	stored  map[string]bool
 	headers map[string]http.Header
 }
 
 // newFakeS3 starts a TLS server.
 func newFakeS3(t *testing.T) *fakeS3 {
-	f := &fakeS3{t: t, fail: map[string]int{}, badSum: map[string]bool{}, stored: map[string]bool{}, headers: map[string]http.Header{}}
+	f := &fakeS3{t: t, fail: map[string]int{}, badSum: map[string]bool{}, echo: map[string]bool{}, stored: map[string]bool{}, headers: map[string]http.Header{}}
 	f.srv = httptest.NewTLSServer(http.HandlerFunc(f.serve))
 	t.Cleanup(f.srv.Close)
 	return f
@@ -122,7 +125,7 @@ func (f *fakeS3) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	sum := sha256.Sum256(body)
 	m := md5.Sum(body) //nolint:gosec // Content-MD5.
-	if got, want := r.Header.Get("X-Amz-Checksum-Sha256"), base64.StdEncoding.EncodeToString(sum[:]); got != want {
+	if got, want := r.Header.Get("X-Amz-Checksum-Sha256"), base64.StdEncoding.EncodeToString(sum[:]); got != "" && got != want {
 		f.t.Errorf("%s: x-amz-checksum-sha256 %q, want %q", r.URL.Path, got, want)
 	}
 	if got, want := r.Header.Get("Content-Md5"), base64.StdEncoding.EncodeToString(m[:]); got != want {
@@ -132,7 +135,8 @@ func (f *fakeS3) serve(w http.ResponseWriter, r *http.Request) {
 		f.t.Errorf("%s: x-amz-content-sha256 %q, want %q", r.URL.Path, got, want)
 	}
 	auth := r.Header.Get("Authorization")
-	if !strings.Contains(auth, "content-md5;") || !strings.Contains(auth, "x-amz-checksum-sha256;") || strings.Contains(auth, testSecret) {
+	hasSum := r.Header.Get("X-Amz-Checksum-Sha256") != ""
+	if !strings.Contains(auth, "content-md5;") || strings.Contains(auth, "x-amz-checksum-sha256;") != hasSum || strings.Contains(auth, testSecret) {
 		f.t.Errorf("%s: authorization %q does not sign the checksums", r.URL.Path, auth)
 	}
 
@@ -151,6 +155,9 @@ func (f *fakeS3) serve(w http.ResponseWriter, r *http.Request) {
 	f.stored[r.URL.Path] = true
 	if f.badSum[r.URL.Path] {
 		w.Header().Set("X-Amz-Checksum-Sha256", base64.StdEncoding.EncodeToString(make([]byte, sha256.Size)))
+	}
+	if f.echo[r.URL.Path] {
+		w.Header().Set("X-Amz-Checksum-Sha256", base64.StdEncoding.EncodeToString(sum[:]))
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -194,7 +201,7 @@ func setup(t *testing.T, f *fakeS3, pairs int) (*options, []string) {
 	return &options{
 		Dir: dir, Endpoint: f.srv.URL, Region: "us-west-004", Bucket: "bucket-x", Prefix: "w/repack-1/",
 		CredsPath: credsPath, Manifest: filepath.Join(root, "manifest.tsv"), AllowList: allow,
-		ResourceID: defaultResourceID, IfNoneMatch: true, Log: &bytes.Buffer{}, Warn: &bytes.Buffer{}, HTTP: f.srv.Client(),
+		ResourceID: defaultResourceID, ChecksumHeader: true, Log: &bytes.Buffer{}, Warn: &bytes.Buffer{}, HTTP: f.srv.Client(),
 	}, ids
 }
 
@@ -585,10 +592,85 @@ func TestBadSumRecordedNotDone(t *testing.T) {
 	}
 }
 
-func TestIfNoneMatchSignedAnd412Stops(t *testing.T) {
-	// Every PUT carries If-None-Match: * under the signature.
+func TestEchoCounts(t *testing.T) {
+	// Two pairs; the service echoes our sha256 for three objects and none
+	// for the last.
+	f := newFakeS3(t)
+	o, ids := setup(t, f, 2)
+	f.echo["/bucket-x/"+o.Prefix+"packs/"+ids[0]] = true
+	f.echo["/bucket-x/"+o.Prefix+"entries/"+ids[0]] = true
+	f.echo["/bucket-x/"+o.Prefix+"packs/"+ids[1]] = true
+	rep, err := run(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The report and the one totals line both count them.
+	if rep.EchoMatched != 3 || rep.NoEcho != 1 {
+		t.Fatalf("echo matched %d, no echo %d, want 3 and 1", rep.EchoMatched, rep.NoEcho)
+	}
+	out := o.Log.(*bytes.Buffer).String()
+	if n := strings.Count(out, "echo matched"); n != 1 || !strings.Contains(out, "; echo matched 3, no echo 1\n") {
+		t.Fatalf("log %q lacks one echo count line", out)
+	}
+}
+
+func TestChecksumHeaderFlag(t *testing.T) {
+	// signedHeaders returns the SignedHeaders list of h's Authorization.
+	signedHeaders := func(h http.Header) []string {
+		_, after, _ := strings.Cut(h.Get("Authorization"), "SignedHeaders=")
+		signed, _, _ := strings.Cut(after, ",")
+		return strings.Split(signed, ";")
+	}
+
+	// With --checksum-header, the default, every PUT carries it signed.
 	f := newFakeS3(t)
 	o, ids := setup(t, f, 1)
+	if _, err := run(o); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/bucket-x/" + o.Prefix + "packs/" + ids[0], "/bucket-x/" + o.Prefix + "entries/" + ids[0]} {
+		h := f.headers[path]
+		if h.Get("X-Amz-Checksum-Sha256") == "" {
+			t.Fatalf("%s: x-amz-checksum-sha256 absent", path)
+		}
+		if !slices.Contains(signedHeaders(h), "x-amz-checksum-sha256") {
+			t.Fatalf("%s: signed headers %v lack x-amz-checksum-sha256", path, signedHeaders(h))
+		}
+	}
+
+	// With --checksum-header=false it is absent and unsigned, the payload
+	// hash and Content-MD5 stay, and the run passes.
+	f2 := newFakeS3(t)
+	o2, ids2 := setup(t, f2, 1)
+	o2.ChecksumHeader = false
+	if _, err := run(o2); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := f2.requests(), puts(o2.Prefix, ids2[0]); !slices.Equal(got, want) {
+		t.Fatalf("requests %v, want %v", got, want)
+	}
+	for _, path := range []string{"/bucket-x/" + o2.Prefix + "packs/" + ids2[0], "/bucket-x/" + o2.Prefix + "entries/" + ids2[0]} {
+		h := f2.headers[path]
+		if got := h.Get("X-Amz-Checksum-Sha256"); got != "" {
+			t.Fatalf("%s: x-amz-checksum-sha256 sent with the flag off: %q", path, got)
+		}
+		signed := signedHeaders(h)
+		if slices.Contains(signed, "x-amz-checksum-sha256") {
+			t.Fatalf("%s: signed headers %v hold x-amz-checksum-sha256", path, signed)
+		}
+		if h.Get("Content-Md5") == "" || h.Get("X-Amz-Content-Sha256") == "" || !slices.Contains(signed, "content-md5") || !slices.Contains(signed, "x-amz-content-sha256") {
+			t.Fatalf("%s: Content-MD5 or payload hash missing or unsigned: %v", path, signed)
+		}
+	}
+}
+
+func TestIfNoneMatchSignedAnd412Stops(t *testing.T) {
+	// With --if-none-match every PUT carries If-None-Match: * under the
+	// signature.
+	f := newFakeS3(t)
+	o, ids := setup(t, f, 1)
+	o.IfNoneMatch = true
 	if _, err := run(o); err != nil {
 		t.Fatal(err)
 	}
@@ -605,10 +687,9 @@ func TestIfNoneMatchSignedAnd412Stops(t *testing.T) {
 		}
 	}
 
-	// With --if-none-match=false the header is absent.
+	// Without it, the default, the header is absent.
 	f2 := newFakeS3(t)
 	o2, ids2 := setup(t, f2, 1)
-	o2.IfNoneMatch = false
 	if _, err := run(o2); err != nil {
 		t.Fatal(err)
 	}
@@ -622,6 +703,7 @@ func TestIfNoneMatchSignedAnd412Stops(t *testing.T) {
 	o3, ids3 := setup(t, f3, 2)
 	key := o3.Prefix + "packs/" + ids3[0]
 	f3.stored["/bucket-x/"+key] = true
+	o3.IfNoneMatch = true
 	_, err := run(o3)
 	if err == nil || !strings.Contains(err.Error(), key+" exists in the bucket; not overwritten") {
 		t.Fatalf("run: %v", err)
@@ -641,6 +723,7 @@ func TestIfNoneMatchSignedAnd412Stops(t *testing.T) {
 func TestResumeAfterPackPutsOnlyEntry(t *testing.T) {
 	f := newFakeS3(t)
 	o, ids := setup(t, f, 1)
+	o.IfNoneMatch = true
 
 	// The first run puts the pack and fails on the entry.
 	entryPath := "/bucket-x/" + o.Prefix + "entries/" + ids[0]

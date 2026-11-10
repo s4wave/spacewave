@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -21,6 +22,8 @@ type options struct {
 	Resume, DryRun                        bool
 	// IfNoneMatch sends a signed If-None-Match: * on every PUT.
 	IfNoneMatch bool
+	// ChecksumHeader sends a signed x-amz-checksum-sha256 on every PUT.
+	ChecksumHeader bool
 
 	// Log receives the plan, progress and totals.
 	Log io.Writer
@@ -42,6 +45,9 @@ type report struct {
 	// SkippedObjects counts the objects the manifest already held, those of
 	// skipped ids included.
 	SkippedObjects int
+	// EchoMatched counts the 200s that echoed our x-amz-checksum-sha256,
+	// NoEcho those that echoed none.
+	EchoMatched, NoEcho int
 }
 
 // run checks the flags and the whole plan, then PUTs each pack and its
@@ -130,7 +136,7 @@ func run(o *options) (*report, error) {
 		}
 		_, _ = fmt.Fprintf(o.Log, "ok %d/%d %s\n", i+1, len(plan), pl.id)
 	}
-	_, _ = fmt.Fprintf(o.Log, "totals: %d objects, %d bytes put; %d ids, %d objects skipped as done\n", rep.Objects, rep.Bytes, rep.Skipped, rep.SkippedObjects)
+	_, _ = fmt.Fprintf(o.Log, "totals: %d objects, %d bytes put; %d ids, %d objects skipped as done; echo matched %d, no echo %d\n", rep.Objects, rep.Bytes, rep.Skipped, rep.SkippedObjects, rep.EchoMatched, rep.NoEcho)
 	return rep, nil
 }
 
@@ -258,7 +264,7 @@ func uploadPair(ctx context.Context, o *options, p *putter, man *manifest, pl *p
 			rep.SkippedObjects++
 			continue
 		}
-		status, err := p.put(ctx, obj)
+		status, echo, err := p.put(ctx, obj)
 		if status != "" {
 			if merr := man.record(obj, status); merr != nil {
 				return merr
@@ -269,6 +275,14 @@ func uploadPair(ctx context.Context, o *options, p *putter, man *manifest, pl *p
 		}
 		rep.Objects++
 		rep.Bytes += obj.size
+
+		// Count whether the 200 echoed our checksum.
+		switch echo {
+		case "":
+			rep.NoEcho++
+		case base64.StdEncoding.EncodeToString(obj.sha256[:]):
+			rep.EchoMatched++
+		}
 	}
 	return nil
 }
@@ -289,7 +303,7 @@ func newPutter(o *options, endpoint *url.URL, c *creds) *putter {
 	if o.Now != nil {
 		now = o.Now
 	}
-	return &putter{http: hc, endpoint: endpoint, region: o.Region, bucket: o.Bucket, creds: c, now: now, ifNoneMatch: o.IfNoneMatch}
+	return &putter{http: hc, endpoint: endpoint, region: o.Region, bucket: o.Bucket, creds: c, now: now, ifNoneMatch: o.IfNoneMatch, checksumHeader: o.ChecksumHeader}
 }
 
 // planTotals describes the objects and bytes a plan puts.

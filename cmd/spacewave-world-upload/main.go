@@ -15,8 +15,9 @@
 // each object key matches ^{prefix}(packs|entries)/pfv1_[base58]+$.
 //
 // Each PUT carries Content-MD5 and x-amz-checksum-sha256, so the service
-// verifies the body, and is signed with SigV4 by this package. With
-// --if-none-match, the default, it also carries a signed If-None-Match: *,
+// verifies the body, and is signed with SigV4 by this package;
+// --checksum-header=false leaves out x-amz-checksum-sha256. With
+// --if-none-match, off by default, it also carries a signed If-None-Match: *,
 // so the service refuses with 412 to overwrite a key that exists; a 412
 // stops the run. The command sends no other method: it never reads, lists
 // or deletes an object.
@@ -72,7 +73,8 @@ func main() {
 		&cli.StringFlag{Name: "ids", Usage: "file of ids to upload, one per line, in that order; default every id of --dir, byte-sorted", Destination: &o.IDs},
 		&cli.StringFlag{Name: "resource-id", Usage: "resource the v1 pack ids are scoped to", Value: defaultResourceID, Destination: &o.ResourceID},
 		&cli.BoolFlag{Name: "resume", Usage: "do not put again a pack or entry the manifest records with status 200", Destination: &o.Resume},
-		&cli.BoolFlag{Name: "if-none-match", Usage: "send a signed If-None-Match: * on every PUT, so a key the bucket holds is not overwritten; a 412 stops the run", Value: true, Destination: &o.IfNoneMatch},
+		&cli.BoolFlag{Name: "if-none-match", Usage: "send a signed If-None-Match: * on every PUT, so a key the bucket holds is not overwritten; a 412 stops the run; off by default, as B2 answers it with 501", Destination: &o.IfNoneMatch},
+		&cli.BoolFlag{Name: "checksum-header", Usage: "send a signed x-amz-checksum-sha256 on every PUT and check the echoed one; Content-MD5 and x-amz-content-sha256 are sent either way", Value: true, Destination: &o.ChecksumHeader},
 		&cli.BoolFlag{Name: "dry-run", Usage: "check everything and print the plan; send no request", Destination: &o.DryRun},
 	}
 	app.Action = func(*cli.Context) error {
