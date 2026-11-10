@@ -87,7 +87,8 @@ type verifyTally struct {
 	ok  bool
 	// count is how many records of key each side gave.
 	count [2]int
-	// differ counts the quads not held once by each side.
+	// differ counts the quads one side lacks. A side may give a quad more than
+	// once, as an old kv store's physical copies of it.
 	differ int
 	// shown names the first few of them.
 	shown []string
@@ -105,7 +106,7 @@ func (t *verifyTally) add(key []byte, side byte) {
 
 // flush closes the quad being counted.
 func (t *verifyTally) flush() {
-	if !t.ok || t.count == [2]int{1, 1} {
+	if !t.ok || (t.count[0] != 0 && t.count[1] != 0) {
 		return
 	}
 	t.differ++

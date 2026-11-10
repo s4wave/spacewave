@@ -254,9 +254,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}()
 	}
 
-	// Regenerate a writable World in the background, alongside writers.
+	// Regenerate a writable World in the background, alongside writers. A
+	// read-only World has no authority to move its roots.
 	var regenDone chan struct{}
-	if regen := c.conf.GetRegen(); regen.GetTarget() != RegenTarget_REGEN_TARGET_NONE && authority != nil {
+	switch regen := c.conf.GetRegen(); {
+	case regen.GetTarget() == RegenTarget_REGEN_TARGET_NONE:
+	case authority == nil:
+		le.WithField("regen-target", regen.GetTarget().String()).Warn("world regeneration skipped on a read-only World")
+	default:
 		regenDone = make(chan struct{})
 		go func() {
 			defer close(regenDone)
