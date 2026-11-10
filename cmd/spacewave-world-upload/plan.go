@@ -13,6 +13,7 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/writer"
@@ -77,7 +78,11 @@ func (g *keyGuard) check(key string) error {
 type planned struct {
 	id          string
 	pack, entry *object
-	skip        bool
+	// packDone and entryDone mark the objects the manifest records as put
+	// with status 200; with --resume they are not put again.
+	packDone, entryDone bool
+	// skip is set when both are done.
+	skip bool
 }
 
 // listDir returns the ids of dir, byte-sorted. It refuses any file that is
@@ -149,8 +154,9 @@ func readIDList(path, flag string) ([]string, error) {
 }
 
 // readPair reads the pack and entry of id from dir and checks them: the
-// entry names the pack's id and size, and the id is the v1 id of the pack's
-// bytes under resourceID.
+// entry names the pack's id, size and block count, holds the v1 bloom filter
+// the pack writer builds of the pack's keys, and the id is the v1 id of the
+// pack's bytes under resourceID.
 func readPair(dir, id, resourceID string) (pack, entry *object, err error) {
 	// Read both files.
 	data, err := os.ReadFile(filepath.Join(dir, id))
@@ -173,12 +179,31 @@ func readPair(dir, id, resourceID string) (pack, entry *object, err error) {
 	if ent.GetSizeBytes() != uint64(len(data)) {
 		return nil, nil, errors.Errorf("entry of %s names %d bytes, the pack is %d", id, ent.GetSizeBytes(), len(data))
 	}
+	if ent.GetBloomFormatVersion() != packfile.BloomFormatVersionV1 {
+		return nil, nil, errors.Errorf("entry of %s has bloom format version %d, want %d", id, ent.GetBloomFormatVersion(), packfile.BloomFormatVersionV1)
+	}
 
-	// The id is the pack's own v1 id, from its sorted keys and bytes.
+	// The entry counts the pack's blocks and holds their bloom filter.
 	if err := identity.ValidatePackID(id); err != nil {
 		return nil, nil, errors.Wrapf(err, "pack %s", id)
 	}
-	want, err := packID(resourceID, data)
+	keys, err := packKeys(data)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "pack %s", id)
+	}
+	if uint64(len(keys)) != ent.GetBlockCount() {
+		return nil, nil, errors.Errorf("entry of %s names %d blocks, the pack holds %d", id, ent.GetBlockCount(), len(keys))
+	}
+	bloomBytes, err := packBloom(keys)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "pack %s", id)
+	}
+	if !bytes.Equal(bloomBytes, ent.GetBloomFilter()) {
+		return nil, nil, errors.Errorf("entry of %s holds a bloom filter that is not the pack's", id)
+	}
+
+	// The id is the pack's own v1 id, from its sorted keys and bytes.
+	want, err := packID(resourceID, keys, data)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "pack %s", id)
 	}
@@ -188,24 +213,39 @@ func readPair(dir, id, resourceID string) (pack, entry *object, err error) {
 	return newObject(data), newObject(raw), nil
 }
 
-// packID recomputes the v1 id of a pack from its bytes, as the re-pack
-// tool's proof does.
-func packID(resourceID string, data []byte) (string, error) {
-	// Read the block keys from the pack's index.
+// packKeys reads the block keys from a pack's index, in index order.
+func packKeys(data []byte) ([][]byte, error) {
+	// Open the index.
 	rdr, err := kvfile.BuildReader(bytes.NewReader(data), uint64(len(data)))
 	if err != nil {
-		return "", errors.Wrap(err, "read index")
+		return nil, errors.Wrap(err, "read index")
 	}
+
+	// Collect each key.
 	keys := make([][]byte, 0, rdr.Size())
 	for i := range rdr.Size() {
 		ie, err := rdr.ReadIndexEntry(i)
 		if err != nil {
-			return "", errors.Wrap(err, "read index entry")
+			return nil, errors.Wrap(err, "read index entry")
 		}
 		keys = append(keys, ie.GetKey())
 	}
+	return keys, nil
+}
 
-	// Build the id from the keys and the bytes.
+// packBloom returns the bloom filter bytes the pack writer builds of keys,
+// as the re-pack tool's proof computes them.
+func packBloom(keys [][]byte) ([]byte, error) {
+	bf := writer.DefaultPolicy().NewBloomFilter(uint64(len(keys)))
+	for _, k := range keys {
+		bf.Add(k)
+	}
+	return bloom.NewBloom(bf).MarshalVT()
+}
+
+// packID recomputes the v1 id of a pack from its keys and bytes, as the
+// re-pack tool's proof does.
+func packID(resourceID string, keys [][]byte, data []byte) (string, error) {
 	digest := sha256.Sum256(data)
 	return identity.BuildPackID(resourceID, &writer.PackResult{
 		SortedKeyDigest:  writer.DigestSortedKeys(keys),

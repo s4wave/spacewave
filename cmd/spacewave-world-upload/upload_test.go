@@ -82,18 +82,24 @@ func writeEntry(t *testing.T, dir string, e *packfile.PackfileEntry) {
 }
 
 // fakeS3 records the requests it receives and checks each is a PUT whose
-// checksum headers match its body. fail maps a path to the status to answer.
+// checksum headers match its body. fail maps a path to the status to answer,
+// badSum the paths to answer 200 with a wrong echoed sha256. stored holds
+// the paths put with 200; an If-None-Match: * PUT to one gets 412. headers
+// holds the last request headers of each path.
 type fakeS3 struct {
-	t    *testing.T
-	srv  *httptest.Server
-	mu   sync.Mutex
-	reqs []string
-	fail map[string]int
+	t       *testing.T
+	srv     *httptest.Server
+	mu      sync.Mutex
+	reqs    []string
+	fail    map[string]int
+	badSum  map[string]bool
+	stored  map[string]bool
+	headers map[string]http.Header
 }
 
 // newFakeS3 starts a TLS server.
 func newFakeS3(t *testing.T) *fakeS3 {
-	f := &fakeS3{t: t, fail: map[string]int{}}
+	f := &fakeS3{t: t, fail: map[string]int{}, badSum: map[string]bool{}, stored: map[string]bool{}, headers: map[string]http.Header{}}
 	f.srv = httptest.NewTLSServer(http.HandlerFunc(f.serve))
 	t.Cleanup(f.srv.Close)
 	return f
@@ -103,6 +109,7 @@ func (f *fakeS3) serve(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.reqs = append(f.reqs, r.Method+" "+r.URL.Path)
+	f.headers[r.URL.Path] = r.Header.Clone()
 	if r.Method != http.MethodPut {
 		f.t.Errorf("request with method %s to %s", r.Method, r.URL.Path)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -128,6 +135,8 @@ func (f *fakeS3) serve(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(auth, "content-md5;") || !strings.Contains(auth, "x-amz-checksum-sha256;") || strings.Contains(auth, testSecret) {
 		f.t.Errorf("%s: authorization %q does not sign the checksums", r.URL.Path, auth)
 	}
+
+	// Answer the configured failure, a 412 for an existing key, or 200.
 	if code, ok := f.fail[r.URL.Path]; ok {
 		if code/100 == 3 {
 			w.Header().Set("Location", "/bucket-x/elsewhere")
@@ -135,7 +144,22 @@ func (f *fakeS3) serve(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(code)
 		return
 	}
+	if r.Header.Get("If-None-Match") == "*" && f.stored[r.URL.Path] {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+	f.stored[r.URL.Path] = true
+	if f.badSum[r.URL.Path] {
+		w.Header().Set("X-Amz-Checksum-Sha256", base64.StdEncoding.EncodeToString(make([]byte, sha256.Size)))
+	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// reset forgets the requests so far.
+func (f *fakeS3) reset() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.reqs = nil
 }
 
 // requests returns the requests so far.
@@ -170,7 +194,7 @@ func setup(t *testing.T, f *fakeS3, pairs int) (*options, []string) {
 	return &options{
 		Dir: dir, Endpoint: f.srv.URL, Region: "us-west-004", Bucket: "bucket-x", Prefix: "w/repack-1/",
 		CredsPath: credsPath, Manifest: filepath.Join(root, "manifest.tsv"), AllowList: allow,
-		ResourceID: defaultResourceID, Log: &bytes.Buffer{}, HTTP: f.srv.Client(),
+		ResourceID: defaultResourceID, IfNoneMatch: true, Log: &bytes.Buffer{}, Warn: &bytes.Buffer{}, HTTP: f.srv.Client(),
 	}, ids
 }
 
@@ -325,7 +349,7 @@ func TestStopOnFirstNon200(t *testing.T) {
 			}
 
 			// The manifest records the failure, which resume does not skip.
-			done, err := readManifest(o.Manifest)
+			done, err := readManifest(o.Manifest, io.Discard)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -348,7 +372,7 @@ func TestResumeSkipsDone(t *testing.T) {
 
 	// A rerun without --resume refuses the used manifest and sends nothing.
 	delete(f.fail, "/bucket-x/"+o.Prefix+"entries/"+ids[1])
-	f.reqs = nil
+	f.reset()
 	if _, err := run(o); err == nil {
 		t.Fatal("rerun without --resume succeeded")
 	}
@@ -356,21 +380,22 @@ func TestResumeSkipsDone(t *testing.T) {
 		t.Fatalf("requests sent: %v", r)
 	}
 
-	// With --resume, the first id is skipped and the rest are put.
+	// With --resume, the first id is skipped, the second id's pack, put with
+	// 200, is not put again, and only its entry and the third id are put.
 	o.Resume = true
 	rep, err := run(o)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := f.requests(), puts(o.Prefix, ids[1], ids[2]); !slices.Equal(got, want) {
+	if got, want := f.requests(), append(puts(o.Prefix, ids[1])[1:], puts(o.Prefix, ids[2])...); !slices.Equal(got, want) {
 		t.Fatalf("requests %v, want %v", got, want)
 	}
-	if rep.Skipped != 1 || rep.Objects != 4 {
+	if rep.Skipped != 1 || rep.SkippedObjects != 3 || rep.Objects != 3 {
 		t.Fatalf("report %+v", rep)
 	}
 
 	// A third run skips every id.
-	f.reqs = nil
+	f.reset()
 	if rep, err = run(o); err != nil || rep.Skipped != 3 || len(f.requests()) != 0 {
 		t.Fatalf("third run: %+v %v %v", rep, err, f.requests())
 	}
@@ -482,5 +507,243 @@ func TestSignV4Vector(t *testing.T) {
 		"Signature=98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd"
 	if got := req.Header.Get("Authorization"); got != want {
 		t.Fatalf("authorization\n%s\nwant\n%s", got, want)
+	}
+}
+
+// rewriteEntry decodes the entry of id, applies edit, and writes it back.
+func rewriteEntry(t *testing.T, dir, id string, edit func(*packfile.PackfileEntry)) {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(dir, id+entrySuffix))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := &packfile.PackfileEntry{}
+	if err := e.UnmarshalVT(raw); err != nil {
+		t.Fatal(err)
+	}
+	edit(e)
+	writeEntry(t, dir, e)
+}
+
+func TestEntryBloomAndBlockCountRefused(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		edit func(*packfile.PackfileEntry)
+		want string
+	}{
+		{"block count", func(e *packfile.PackfileEntry) { e.BlockCount++ }, "blocks, the pack holds"},
+		{"bloom byte", func(e *packfile.PackfileEntry) { e.BloomFilter[len(e.BloomFilter)-1] ^= 1 }, "bloom filter that is not the pack's"},
+		{"bloom empty", func(e *packfile.PackfileEntry) { e.BloomFilter = nil }, "bloom filter that is not the pack's"},
+		{"bloom format", func(e *packfile.PackfileEntry) { e.BloomFormatVersion = 0 }, "bloom format version"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// The second entry keeps its id and size but not the rest.
+			f := newFakeS3(t)
+			o, ids := setup(t, f, 2)
+			rewriteEntry(t, o.Dir, ids[1], tc.edit)
+
+			// The plan is refused before the first id's PUT.
+			if _, err := run(o); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("run: %v, want %q", err, tc.want)
+			}
+			if r := f.requests(); len(r) != 0 {
+				t.Fatalf("requests sent: %v", r)
+			}
+		})
+	}
+}
+
+func TestBadSumRecordedNotDone(t *testing.T) {
+	f := newFakeS3(t)
+	o, ids := setup(t, f, 2)
+	key := o.Prefix + "packs/" + ids[0]
+	f.badSum["/bucket-x/"+key] = true
+
+	// The 200 with a wrong echoed sha256 fails the run at once.
+	if _, err := run(o); err == nil || !strings.Contains(err.Error(), "service reports sha256") {
+		t.Fatalf("run: %v", err)
+	}
+	if got, want := f.requests(), puts(o.Prefix, ids[0])[:1]; !slices.Equal(got, want) {
+		t.Fatalf("requests %v, want %v", got, want)
+	}
+
+	// The manifest records it as 200-badsum, which resume does not count.
+	raw, err := os.ReadFile(o.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields := strings.Split(strings.TrimSuffix(string(raw), "\n"), "\t")
+	if len(fields) != 6 || fields[1] != key || fields[5] != statusBadSum {
+		t.Fatalf("manifest %q", raw)
+	}
+	done, err := readManifest(o.Manifest, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := done[key]; ok {
+		t.Fatalf("200-badsum key %s recorded as done", key)
+	}
+}
+
+func TestIfNoneMatchSignedAnd412Stops(t *testing.T) {
+	// Every PUT carries If-None-Match: * under the signature.
+	f := newFakeS3(t)
+	o, ids := setup(t, f, 1)
+	if _, err := run(o); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/bucket-x/" + o.Prefix + "packs/" + ids[0], "/bucket-x/" + o.Prefix + "entries/" + ids[0]} {
+		h := f.headers[path]
+		if h.Get("If-None-Match") != "*" {
+			t.Fatalf("%s: If-None-Match %q", path, h.Get("If-None-Match"))
+		}
+		auth := h.Get("Authorization")
+		_, after, _ := strings.Cut(auth, "SignedHeaders=")
+		signed, _, _ := strings.Cut(after, ",")
+		if !slices.Contains(strings.Split(signed, ";"), "if-none-match") {
+			t.Fatalf("%s: signed headers %q lack if-none-match", path, signed)
+		}
+	}
+
+	// With --if-none-match=false the header is absent.
+	f2 := newFakeS3(t)
+	o2, ids2 := setup(t, f2, 1)
+	o2.IfNoneMatch = false
+	if _, err := run(o2); err != nil {
+		t.Fatal(err)
+	}
+	if h := f2.headers["/bucket-x/"+o2.Prefix+"packs/"+ids2[0]]; h.Get("If-None-Match") != "" {
+		t.Fatalf("If-None-Match sent with the flag off: %q", h.Get("If-None-Match"))
+	}
+
+	// A pack the bucket holds gets 412, which stops the run at once and
+	// names the key.
+	f3 := newFakeS3(t)
+	o3, ids3 := setup(t, f3, 2)
+	key := o3.Prefix + "packs/" + ids3[0]
+	f3.stored["/bucket-x/"+key] = true
+	_, err := run(o3)
+	if err == nil || !strings.Contains(err.Error(), key+" exists in the bucket; not overwritten") {
+		t.Fatalf("run: %v", err)
+	}
+	if got, want := f3.requests(), puts(o3.Prefix, ids3[0])[:1]; !slices.Equal(got, want) {
+		t.Fatalf("requests %v, want %v", got, want)
+	}
+	done, err := readManifest(o3.Manifest, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := done[key]; ok {
+		t.Fatalf("412 key %s recorded as done", key)
+	}
+}
+
+func TestResumeAfterPackPutsOnlyEntry(t *testing.T) {
+	f := newFakeS3(t)
+	o, ids := setup(t, f, 1)
+
+	// The first run puts the pack and fails on the entry.
+	entryPath := "/bucket-x/" + o.Prefix + "entries/" + ids[0]
+	f.fail[entryPath] = http.StatusInternalServerError
+	if _, err := run(o); err == nil {
+		t.Fatal("first run succeeded")
+	}
+
+	// The resume puts only the entry; a pack PUT would get 412.
+	delete(f.fail, entryPath)
+	f.reset()
+	o.Resume = true
+	rep, err := run(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := f.requests(), puts(o.Prefix, ids[0])[1:]; !slices.Equal(got, want) {
+		t.Fatalf("requests %v, want %v", got, want)
+	}
+	if rep.Objects != 1 || rep.SkippedObjects != 1 || rep.Skipped != 0 {
+		t.Fatalf("report %+v", rep)
+	}
+}
+
+func TestManifestTornLineDropped(t *testing.T) {
+	f := newFakeS3(t)
+	o, ids := setup(t, f, 2)
+
+	// The first run puts the first id, then a crash tears a line.
+	idsFile := filepath.Join(t.TempDir(), "ids")
+	if err := os.WriteFile(idsFile, []byte(ids[0]+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	o.IDs = idsFile
+	if _, err := run(o); err != nil {
+		t.Fatal(err)
+	}
+	mf, err := os.OpenFile(o.Manifest, os.O_WRONLY|os.O_APPEND, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	torn := "2026-11-10T00:00:00Z\t" + o.Prefix + "packs/" + ids[1] + "\t12"
+	if _, err := mf.WriteString(torn); err != nil {
+		t.Fatal(err)
+	}
+	_ = mf.Close()
+
+	// The resume warns, drops the torn line, and puts the second id.
+	f.reset()
+	o.IDs, o.Resume = "", true
+	if _, err := run(o); err != nil {
+		t.Fatal(err)
+	}
+	if w := o.Warn.(*bytes.Buffer).String(); !strings.Contains(w, "torn last line") {
+		t.Fatalf("warning %q", w)
+	}
+	if got, want := f.requests(), puts(o.Prefix, ids[1]); !slices.Equal(got, want) {
+		t.Fatalf("requests %v, want %v", got, want)
+	}
+
+	// The torn bytes were cut, so every line is whole.
+	raw, err := os.ReadFile(o.Manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), torn+"\n") || strings.Count(string(raw), "\n") != 4 {
+		t.Fatalf("manifest %q", raw)
+	}
+	done, err := readManifest(o.Manifest, io.Discard)
+	if err != nil || len(done) != 4 {
+		t.Fatalf("manifest done %v %v", done, err)
+	}
+}
+
+func TestManifestLockedRefused(t *testing.T) {
+	f := newFakeS3(t)
+	o, _ := setup(t, f, 1)
+
+	// Another holder takes the lock on the manifest.
+	mf, err := os.OpenFile(o.Manifest, os.O_RDWR|os.O_CREATE, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mf.Close()
+	if err := lockFile(mf); err != nil {
+		t.Fatal(err)
+	}
+
+	// A run, a resume and a dry run each refuse to start.
+	for _, mode := range []string{"run", "resume", "dry run"} {
+		o.Resume, o.DryRun = mode == "resume", mode == "dry run"
+		if _, err := run(o); err == nil || !strings.Contains(err.Error(), "locked by another run") {
+			t.Fatalf("%s: %v", mode, err)
+		}
+	}
+	if r := f.requests(); len(r) != 0 {
+		t.Fatalf("requests sent: %v", r)
+	}
+
+	// Once the holder is gone, the run goes ahead.
+	_ = mf.Close()
+	o.Resume, o.DryRun = false, false
+	if _, err := run(o); err != nil {
+		t.Fatal(err)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,9 +19,13 @@ type options struct {
 	CredsPath, Manifest, AllowList, IDs   string
 	ResourceID                            string
 	Resume, DryRun                        bool
+	// IfNoneMatch sends a signed If-None-Match: * on every PUT.
+	IfNoneMatch bool
 
 	// Log receives the plan, progress and totals.
 	Log io.Writer
+	// Warn receives warnings; nil is os.Stderr.
+	Warn io.Writer
 	// HTTP sends the requests; nil is a fresh client. Tests set it.
 	HTTP *http.Client
 	// Now is the clock; nil is time.Now.
@@ -32,8 +37,11 @@ type report struct {
 	// Objects and Bytes count the objects put.
 	Objects int
 	Bytes   int64
-	// Skipped counts the ids the manifest already held.
+	// Skipped counts the ids the manifest already held whole.
 	Skipped int
+	// SkippedObjects counts the objects the manifest already held, those of
+	// skipped ids included.
+	SkippedObjects int
 }
 
 // run checks the flags and the whole plan, then PUTs each pack and its
@@ -49,8 +57,44 @@ func run(o *options) (*report, error) {
 		return nil, err
 	}
 
+	// Read the creds before anything is opened.
+	var c *creds
+	if !o.DryRun {
+		if o.CredsPath == "" {
+			return nil, errors.New("--creds is required without --dry-run")
+		}
+		if c, err = readCreds(o.CredsPath); err != nil {
+			return nil, err
+		}
+	}
+
+	// Open and lock the manifest for the whole run, so no other run reads or
+	// appends it meanwhile.
+	man, err := openManifest(o.Manifest, o.Resume, o.DryRun)
+	if err != nil {
+		return nil, err
+	}
+	if man != nil {
+		defer man.close() //nolint:errcheck // every line is synced.
+		if o.Now != nil {
+			man.now = o.Now
+		}
+	}
+
+	// Read what the manifest holds as done, under the lock.
+	have := map[string]done{}
+	if o.Resume && man != nil {
+		warn := o.Warn
+		if warn == nil {
+			warn = os.Stderr
+		}
+		if have, err = man.load(warn); err != nil {
+			return nil, err
+		}
+	}
+
 	// Build and check the plan: every key guarded, every pair verified.
-	plan, err := buildPlan(o, guard)
+	plan, err := buildPlan(o, guard, have)
 	if err != nil {
 		return nil, err
 	}
@@ -58,9 +102,9 @@ func run(o *options) (*report, error) {
 	// Print a dry run and stop.
 	if o.DryRun {
 		for _, p := range plan {
-			for _, obj := range []*object{p.pack, p.entry} {
+			for i, obj := range []*object{p.pack, p.entry} {
 				state := "PUT"
-				if p.skip {
+				if (i == 0 && p.packDone) || (i == 1 && p.entryDone) {
 					state = "SKIP"
 				}
 				_, _ = fmt.Fprintf(o.Log, "%s\t%s\t%d\t%s\n", state, obj.key, obj.size, hex.EncodeToString(obj.sha256[:]))
@@ -69,24 +113,7 @@ func run(o *options) (*report, error) {
 		_, _ = fmt.Fprintf(o.Log, "dry run: %s\n", planTotals(plan))
 		return &report{}, nil
 	}
-
-	// Read the creds and open the manifest.
-	if o.CredsPath == "" {
-		return nil, errors.New("--creds is required without --dry-run")
-	}
-	c, err := readCreds(o.CredsPath)
-	if err != nil {
-		return nil, err
-	}
-	man, err := openManifest(o.Manifest, o.Resume)
-	if err != nil {
-		return nil, err
-	}
-	defer man.close() //nolint:errcheck // every line is synced.
 	p := newPutter(o, endpoint, c)
-	if o.Now != nil {
-		man.now = o.Now
-	}
 
 	// PUT each pack, then its entry, stopping at the first failure.
 	rep := &report{}
@@ -94,6 +121,7 @@ func run(o *options) (*report, error) {
 	for i, pl := range plan {
 		if pl.skip {
 			rep.Skipped++
+			rep.SkippedObjects += 2
 			continue
 		}
 		if err := uploadPair(ctx, o, p, man, pl, rep); err != nil {
@@ -102,7 +130,7 @@ func run(o *options) (*report, error) {
 		}
 		_, _ = fmt.Fprintf(o.Log, "ok %d/%d %s\n", i+1, len(plan), pl.id)
 	}
-	_, _ = fmt.Fprintf(o.Log, "totals: %d objects, %d bytes put; %d ids skipped as done\n", rep.Objects, rep.Bytes, rep.Skipped)
+	_, _ = fmt.Fprintf(o.Log, "totals: %d objects, %d bytes put; %d ids, %d objects skipped as done\n", rep.Objects, rep.Bytes, rep.Skipped, rep.SkippedObjects)
 	return rep, nil
 }
 
@@ -132,9 +160,9 @@ func checkTarget(o *options) (*url.URL, error) {
 }
 
 // buildPlan lists the ids in order, checks each against the allow-list,
-// guards its keys, verifies its pack and entry, and marks those the
-// manifest holds as done with --resume.
-func buildPlan(o *options, guard *keyGuard) ([]*planned, error) {
+// guards its keys, verifies its pack and entry, and marks each pack and
+// entry that have records as put with status 200.
+func buildPlan(o *options, guard *keyGuard, have map[string]done) ([]*planned, error) {
 	// List the directory, every file in a complete pair.
 	all, err := listDir(o.Dir)
 	if err != nil {
@@ -188,14 +216,6 @@ func buildPlan(o *options, guard *keyGuard) ([]*planned, error) {
 		plan[i] = pl
 	}
 
-	// Read what the manifest holds as done.
-	var have map[string]done
-	if o.Resume {
-		if have, err = readManifest(o.Manifest); err != nil {
-			return nil, err
-		}
-	}
-
 	// Verify each pair, keeping its digests, and mark the done ones.
 	for _, pl := range plan {
 		pack, entry, err := readPair(o.Dir, pl.id, o.ResourceID)
@@ -205,24 +225,22 @@ func buildPlan(o *options, guard *keyGuard) ([]*planned, error) {
 		pack.key, entry.key = pl.pack.key, pl.entry.key
 		pack.data, entry.data = nil, nil
 		pl.pack, pl.entry = pack, entry
-		ndone := 0
 		for _, obj := range []*object{pack, entry} {
 			d, ok := have[obj.key]
-			if !ok {
-				continue
-			}
-			if d.size != obj.size || d.sha256 != hex.EncodeToString(obj.sha256[:]) {
+			if ok && (d.size != obj.size || d.sha256 != hex.EncodeToString(obj.sha256[:])) {
 				return nil, errors.Errorf("--manifest records %s put with size %d sha256 %s, the local file differs", obj.key, d.size, d.sha256)
 			}
-			ndone++
 		}
-		pl.skip = ndone == 2
+		_, pl.packDone = have[pack.key]
+		_, pl.entryDone = have[entry.key]
+		pl.skip = pl.packDone && pl.entryDone
 	}
 	return plan, nil
 }
 
 // uploadPair rereads one planned pair, checks it is the bytes planned, and
-// PUTs the pack, then the entry once the pack PUT returned 200.
+// PUTs the pack, then the entry once the pack PUT returned 200. A pack or
+// entry the manifest records as put is not put again.
 func uploadPair(ctx context.Context, o *options, p *putter, man *manifest, pl *planned, rep *report) error {
 	// Reread and reverify the pair; it must not have changed since the plan.
 	pack, entry, err := readPair(o.Dir, pl.id, o.ResourceID)
@@ -235,9 +253,13 @@ func uploadPair(ctx context.Context, o *options, p *putter, man *manifest, pl *p
 	}
 
 	// PUT the pack, then the entry, recording each response.
-	for _, obj := range []*object{pack, entry} {
+	for i, obj := range []*object{pack, entry} {
+		if (i == 0 && pl.packDone) || (i == 1 && pl.entryDone) {
+			rep.SkippedObjects++
+			continue
+		}
 		status, err := p.put(ctx, obj)
-		if status != 0 {
+		if status != "" {
 			if merr := man.record(obj, status); merr != nil {
 				return merr
 			}
@@ -267,20 +289,25 @@ func newPutter(o *options, endpoint *url.URL, c *creds) *putter {
 	if o.Now != nil {
 		now = o.Now
 	}
-	return &putter{http: hc, endpoint: endpoint, region: o.Region, bucket: o.Bucket, creds: c, now: now}
+	return &putter{http: hc, endpoint: endpoint, region: o.Region, bucket: o.Bucket, creds: c, now: now, ifNoneMatch: o.IfNoneMatch}
 }
 
 // planTotals describes the objects and bytes a plan puts.
 func planTotals(plan []*planned) string {
-	var objs, skip int
+	var objs, skip, skipObjs int
 	var n int64
 	for _, p := range plan {
 		if p.skip {
 			skip++
-			continue
 		}
-		objs += 2
-		n += p.pack.size + p.entry.size
+		for i, obj := range []*object{p.pack, p.entry} {
+			if (i == 0 && p.packDone) || (i == 1 && p.entryDone) {
+				skipObjs++
+				continue
+			}
+			objs++
+			n += obj.size
+		}
 	}
-	return fmt.Sprintf("%d objects, %d bytes to put; %d ids skipped as done", objs, n, skip)
+	return fmt.Sprintf("%d objects, %d bytes to put; %d ids, %d objects skipped as done", objs, n, skip, skipObjs)
 }

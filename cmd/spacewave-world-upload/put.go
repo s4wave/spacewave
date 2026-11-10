@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,6 +39,9 @@ type putter struct {
 	bucket   string
 	creds    *creds
 	now      func() time.Time
+	// ifNoneMatch sends a signed If-None-Match: * on every PUT, so the
+	// service refuses with 412 to overwrite a key that exists.
+	ifNoneMatch bool
 }
 
 // object is one body to PUT with its digests.
@@ -49,9 +53,14 @@ type object struct {
 	md5    []byte
 }
 
-// put PUTs the object and returns the response status. A status other than
-// 200 is an error, as is a checksum the service echoes that is not ours.
-func (p *putter) put(ctx context.Context, obj *object) (int, error) {
+// statusBadSum is the manifest status of a 200 whose echoed sha256 is not
+// the one sent. readManifest does not count it as done.
+const statusBadSum = "200-badsum"
+
+// put PUTs the object and returns the status to record: the response code,
+// statusBadSum for a 200 whose echoed checksum is not ours, or "" when no
+// response came. Any status but "200" comes with an error.
+func (p *putter) put(ctx context.Context, obj *object) (string, error) {
 	// Build the request on the path-style object URL.
 	u := *p.endpoint
 	u.Path = "/" + p.bucket + "/" + obj.key
@@ -60,7 +69,7 @@ func (p *putter) put(ctx context.Context, obj *object) (int, error) {
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(obj.data))
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	req.ContentLength = int64(len(obj.data))
 
@@ -69,23 +78,34 @@ func (p *putter) put(ctx context.Context, obj *object) (int, error) {
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Content-MD5", base64.StdEncoding.EncodeToString(obj.md5))
 	req.Header.Set("X-Amz-Checksum-Sha256", sumB64)
+	if p.ifNoneMatch {
+		req.Header.Set("If-None-Match", "*")
+	}
 	p.sign(req, hex.EncodeToString(obj.sha256[:]), p.now())
 
 	// Send it once.
 	resp, err := p.http.Do(req)
 	if err != nil {
-		return 0, errors.Wrapf(err, "PUT %s", obj.key)
+		return "", errors.Wrapf(err, "PUT %s", obj.key)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
+
+	// Refuse any status but 200, naming a key the bucket already holds.
+	status := strconv.Itoa(resp.StatusCode)
+	if resp.StatusCode == http.StatusPreconditionFailed && p.ifNoneMatch {
+		return status, errors.Errorf("PUT %s: status 412: %s exists in the bucket; not overwritten", obj.key, obj.key)
+	}
 	if resp.StatusCode != http.StatusOK {
-		return resp.StatusCode, errors.Errorf("PUT %s: status %d: %s", obj.key, resp.StatusCode, strings.TrimSpace(string(body)))
+		return status, errors.Errorf("PUT %s: status %d: %s", obj.key, resp.StatusCode, strings.TrimSpace(string(body)))
 	}
+
+	// Refuse a 200 whose echoed checksum is not the one sent.
 	if got := resp.Header.Get("X-Amz-Checksum-Sha256"); got != "" && got != sumB64 {
-		return resp.StatusCode, errors.Errorf("PUT %s: service reports sha256 %s, sent %s", obj.key, got, sumB64)
+		return statusBadSum, errors.Errorf("PUT %s: status 200 but the service reports sha256 %s, sent %s", obj.key, got, sumB64)
 	}
-	return resp.StatusCode, nil
+	return status, nil
 }
 
 // sign signs req with AWS Signature Version 4 over every header it carries,

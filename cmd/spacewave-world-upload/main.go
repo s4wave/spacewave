@@ -4,25 +4,35 @@
 //
 // For each id, in order, it PUTs the pack at {prefix}packs/{id} and, only once
 // that PUT returns 200, the entry at {prefix}entries/{id}. It stops at the
-// first failure: a non-200 status or a failed request ends the run, with no
-// retry and no further object.
+// first failure: a non-200 status, a 200 whose echoed sha256 is not the one
+// sent, or a failed request ends the run, with no retry and no further
+// object.
 //
 // Before the first request it checks the whole plan locally: every pack has
-// its entry and every entry its pack, each entry names its pack's file and
-// size, each id is the v1 id of its pack's bytes, each id is in the
-// --allow-list, and each object key matches
-// ^{prefix}(packs|entries)/pfv1_[base58]+$.
+// its entry and every entry its pack, each entry names its pack's file,
+// size and block count, holds the v1 bloom filter of the pack's keys, each
+// id is the v1 id of its pack's bytes, each id is in the --allow-list, and
+// each object key matches ^{prefix}(packs|entries)/pfv1_[base58]+$.
 //
 // Each PUT carries Content-MD5 and x-amz-checksum-sha256, so the service
-// verifies the body, and is signed with SigV4 by this package. The command
-// sends no other method: it never reads, lists or deletes an object.
+// verifies the body, and is signed with SigV4 by this package. With
+// --if-none-match, the default, it also carries a signed If-None-Match: *,
+// so the service refuses with 412 to overwrite a key that exists; a 412
+// stops the run. The command sends no other method: it never reads, lists
+// or deletes an object.
 //
-// Each object put appends one fsynced line to the --manifest TSV:
+// The run holds an exclusive flock on the --manifest from start to end, and
+// refuses to start when another run holds it. Each object put appends one
+// fsynced line to the manifest TSV:
 //
 //	time  key  size  sha256-hex  md5-hex  status
 //
-// With --resume, an id whose pack and entry lines both hold status 200, with
-// the size and sha256 of the local files, is skipped.
+// The status is the response code, or 200-badsum for a 200 whose echoed
+// sha256 is not the one sent. With --resume, a pack or entry whose line
+// holds status 200, with the size and sha256 of the local file, is not put
+// again; an id whose pack and entry both are is skipped. A torn last line,
+// one without its newline, is dropped with a warning on stderr and cut off
+// the file.
 //
 // The --creds file must be a regular file of mode 0600 owned by the user. It
 // holds two key=value lines; blank lines and lines starting with # are
@@ -46,7 +56,7 @@ const defaultResourceID = "spacewave-world-repack"
 
 func main() {
 	// Declare the command and its flags.
-	o := &options{Log: os.Stdout}
+	o := &options{Log: os.Stdout, Warn: os.Stderr}
 	app := cli.NewApp()
 	app.Name = "spacewave-world-upload"
 	app.Usage = "PUT adopt-layout packs and entries to an S3 bucket, pack before entry, verified, with no other method"
@@ -61,7 +71,8 @@ func main() {
 		&cli.StringFlag{Name: "allow-list", Usage: "file of the ids allowed, one per line, the re-pack's output list; any other id in the plan is refused", Destination: &o.AllowList, Required: true},
 		&cli.StringFlag{Name: "ids", Usage: "file of ids to upload, one per line, in that order; default every id of --dir, byte-sorted", Destination: &o.IDs},
 		&cli.StringFlag{Name: "resource-id", Usage: "resource the v1 pack ids are scoped to", Value: defaultResourceID, Destination: &o.ResourceID},
-		&cli.BoolFlag{Name: "resume", Usage: "skip ids whose pack and entry are both in the manifest with status 200", Destination: &o.Resume},
+		&cli.BoolFlag{Name: "resume", Usage: "do not put again a pack or entry the manifest records with status 200", Destination: &o.Resume},
+		&cli.BoolFlag{Name: "if-none-match", Usage: "send a signed If-None-Match: * on every PUT, so a key the bucket holds is not overwritten; a 412 stops the run", Value: true, Destination: &o.IfNoneMatch},
 		&cli.BoolFlag{Name: "dry-run", Usage: "check everything and print the plan; send no request", Destination: &o.DryRun},
 	}
 	app.Action = func(*cli.Context) error {
