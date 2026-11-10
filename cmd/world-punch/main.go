@@ -113,6 +113,9 @@ func runLocked(out io.Writer, o opts) error {
 	if h.pageSize != wantPageSize {
 		return errors.Errorf("page_size is %d, want %d", h.pageSize, wantPageSize)
 	}
+	if h.autoVac {
+		return errors.New("auto_vacuum is not NONE (header offset 52 is nonzero): ptrmap pages track free pages, refusing")
+	}
 	w, p, err := strictPlan(f, h, o.reserve)
 	if err != nil {
 		return err
