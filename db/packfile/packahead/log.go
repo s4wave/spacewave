@@ -605,6 +605,9 @@ func (l *Log) writeBatch(p *pack, batch []Block) (int64, error) {
 		p.entries = append(p.entries, entries...)
 		for _, e := range entries {
 			p.keyBytes += int64(len(e.key))
+			if old, ok := l.table[tailOf(e.key)]; ok && old.removed {
+				old.p.removed--
+			}
 			l.table[tailOf(e.key)] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
 		}
 	})

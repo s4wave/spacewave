@@ -213,6 +213,30 @@ func TestPackAheadSalvageFailsClosed(t *testing.T) {
 	}
 }
 
+// TestPackAheadUploadDropsRemoved removes a value while its pack is not
+// uploaded, then marks the pack uploaded: the value is forgotten then.
+func TestPackAheadUploadDropsRemoved(t *testing.T) {
+	ctx := t.Context()
+	l, err := Open(ctx, t.TempDir(), Options{Linger: 10 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	a := testBlock(t, 1, 3000)
+	if err := l.Append(ctx, []Block{a}); err != nil {
+		t.Fatal(err)
+	}
+	infos := waitFinalized(t, l, 1)
+	l.Remove(a.Key)
+	if !l.Has(a.Key) {
+		t.Fatal("removed value forgotten before its pack uploaded")
+	}
+	l.MarkUploaded(infos[0].Seq)
+	if l.Has(a.Key) {
+		t.Fatal("removed value held after its pack uploaded")
+	}
+}
+
 // TestPackAheadWriteBatchFailedPack writes a batch to a pack whose sync
 // failed after the batch was planned: the batch is refused and not located.
 func TestPackAheadWriteBatchFailedPack(t *testing.T) {
