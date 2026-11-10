@@ -76,7 +76,7 @@ func TestBuilderMatchesIncrementalTree(t *testing.T) {
 		}
 		deltas = append(deltas, graph.Delta{Quad: q, Action: graph.Add})
 	}
-	if err := NewQuadStore(tx, nil).ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
+	if err := NewQuadStore(tx).ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 		t.Fatal(err)
 	}
 	want := readTree(t, ctx, tx)
@@ -130,5 +130,46 @@ func TestBuilderRejectsBadGraph(t *testing.T) {
 		if _, err := buildTree(t, 1, adds); err == nil {
 			t.Fatalf("%s: build succeeded", name)
 		}
+	}
+}
+
+// TestBuilderNextIDPastLargest checks that a built tree allocates past its
+// largest node, the case of a regeneration whose source freed IDs below and
+// above the nodes it keeps.
+func TestBuilderNextIDPastLargest(t *testing.T) {
+	// Build nodes 3 and 9 and the quad joining them through predicate 5.
+	ctx := context.Background()
+	add := func(id uint64, s string) func(*Builder) error {
+		return func(b *Builder) error { return b.AddNode(id, pquads.MakeValue(quad.IRI(s))) }
+	}
+	built, err := buildTree(t, 1, []func(*Builder) error{
+		add(3, "a"), add(5, "p"), add(9, "b"),
+		func(b *Builder) error { return b.AddQuad(3, 5, 9, 0) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	for _, e := range built {
+		if err := tx.Set(ctx, e.k, e.v); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A new node takes ID 10.
+	d := graph.Delta{Quad: quad.MakeIRI("a", "p", "c", ""), Action: graph.Add}
+	if err := NewQuadStore(tx).ApplyDeltas(ctx, []graph.Delta{d}, graph.IgnoreOpts{}); err != nil {
+		t.Fatal(err)
+	}
+	v, _, err := tx.Get(ctx, valueKey(quad.IRI("c").String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id, _ := decodeID(v); id != 10 {
+		t.Fatalf("new node has ID %d, want 10", id)
 	}
 }

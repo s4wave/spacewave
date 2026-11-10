@@ -13,7 +13,7 @@ import (
 // order, as the ascending key stream of a new tree.
 //
 // Each node keeps the ID its caller gives it. IDs need not be dense, since the
-// store allocates new IDs past the last node, so a caller converting another
+// tree's next ID is one past the largest added, so a caller converting another
 // store keeps that store's IDs and needs no map from old IDs to new ones. A
 // node a quad names as predicate or label is pinned, as ApplyDeltas pins it.
 //
@@ -22,6 +22,8 @@ import (
 // same keys and values.
 type Builder struct {
 	sorter *extsort.Sorter
+	// maxID is the largest node ID added.
+	maxID uint64
 }
 
 // NewBuilder returns a Builder that sorts through sorter. The caller closes
@@ -44,6 +46,7 @@ func (b *Builder) AddNode(id uint64, v *pquads.Value) error {
 	if err := b.sorter.Add(valueKey(nv.String()), encodeID(id)); err != nil {
 		return err
 	}
+	b.maxID = max(b.maxID, id)
 	return b.sorter.Add(metaKey(id), meta)
 }
 
@@ -67,10 +70,17 @@ func (b *Builder) AddQuad(s, p, o, l uint64) error {
 }
 
 // Write streams the built tree's keys and values to fn in ascending key
-// order. fn must not keep key or value after it returns. Write fails on a key
-// added twice, such as two nodes with one value, and on a pin of a node never
-// added.
+// order, once. fn must not keep key or value after it returns. Write fails on
+// a key added twice, such as two nodes with one value, and on a pin of a node
+// never added.
 func (b *Builder) Write(ctx context.Context, fn func(key, value []byte) error) error {
+	// Sort in the next ID, one past the largest node, when there is a node.
+	if b.maxID != 0 {
+		if err := b.sorter.Add(nextIDKey, encodeID(b.maxID+1)); err != nil {
+			return err
+		}
+	}
+
 	// Hold one key back until the next differs, so a meta key's records,
 	// adjacent in the merge, combine into one value.
 	var held heldKey
