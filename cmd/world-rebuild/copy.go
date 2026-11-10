@@ -300,6 +300,9 @@ func runCopy(o opts) error {
 	if err != nil {
 		return err
 	}
+	if err := onlyKVTable(src, table); err != nil {
+		return err
+	}
 	o.rawFacts = o.read == "raw"
 	f, err := loadFacts(o, src, table, packs)
 	if err != nil {

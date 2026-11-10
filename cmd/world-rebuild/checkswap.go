@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -125,5 +126,42 @@ func runCheckSwap(o opts) error {
 		return err
 	}
 	fmt.Println("checkswap: ok, the sources are as the copy found them")
+	return nil
+}
+
+// schemaRows lists sqlite_master as "type name" lines.
+func schemaRows(db *sql.DB) ([]string, error) {
+	rows, err := db.Query("SELECT type, name FROM sqlite_master ORDER BY rowid")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var ty, name string
+		if err := rows.Scan(&ty, &name); err != nil {
+			return nil, err
+		}
+		out = append(out, ty+" "+name)
+	}
+	return out, rows.Err()
+}
+
+// onlyKVTable refuses a source with a table other than its kv table, or an
+// index other than the kv table's autoindex: copy carries the kv table alone.
+func onlyKVTable(db *sql.DB, table string) error {
+	rows, err := schemaRows(db)
+	if err != nil {
+		return fmt.Errorf("read sqlite_master: %w", err)
+	}
+	var extra []string
+	for _, r := range rows {
+		if r != "table "+table && r != "index sqlite_autoindex_"+table+"_1" {
+			extra = append(extra, r)
+		}
+	}
+	if len(extra) != 0 {
+		return fmt.Errorf("source World has schema objects copy does not carry: %v; refusing", extra)
+	}
 	return nil
 }

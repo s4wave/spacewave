@@ -22,6 +22,8 @@ type countResult struct {
 	dropEvict tally
 	badCells  int64
 	census    census
+	// nullValues counts the World rows whose value is NULL.
+	nullValues int64
 }
 
 // rawEvict is an eviction entry seen by the raw pass.
@@ -69,6 +71,14 @@ func runCount(o opts) (*countResult, error) {
 		o.world, world.pages, world.pageSize, gb(worldSize), freePages, gb(freePages*int64(world.pageSize)), world.direct)
 
 	res := &countResult{blocks: map[string]*tally{}, meta: map[string]*tally{}}
+
+	// Report the World's schema, read through an immutable open, which
+	// takes no lock.
+	if sdb, err := openImmutable(o.world); err == nil {
+		rows, err := schemaRows(sdb)
+		sdb.Close()
+		fmt.Printf("World schema (sqlite_master, as of the last checkpoint): %v %v\n", rows, err)
+	}
 	f := &facts{
 		marked:           map[string]struct{}{},
 		evict:            map[string][]evictEntry{},
@@ -98,6 +108,9 @@ func runCount(o opts) (*countResult, error) {
 	})
 	wst, err := world.scanLeaves(o.mbps, 4<<20, &readBytes, func(c rawCell) {
 		key, vlen, vlocal, ok := kvRecord(c)
+		if ok && kvValueNull(c) {
+			res.nullValues++
+		}
 		if !ok {
 			res.badCells++
 			return
@@ -329,6 +342,7 @@ func runCount(o opts) (*countResult, error) {
 		f.packsLive, f.lookups, len(f.packed), f.hMissing, f.hDead)
 	fmt.Printf("  drop candidates: %d packed, of which %d hot (kept); %d object store keys did not parse\n", len(f.packed), hotPacked, f.badKeys)
 	fmt.Printf("marked blocks (marked/ rows): %d\n", len(f.marked))
+	fmt.Printf("NULL values (rows of the World table whose value is NULL, kept NULL by copy): %d\n", res.nullValues)
 	fmt.Printf("read set keys per generation:\n")
 	for _, g := range f.gens {
 		fmt.Println("  ", g)

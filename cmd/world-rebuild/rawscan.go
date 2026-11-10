@@ -256,6 +256,23 @@ func kvRecord(c rawCell) (key []byte, vlen int64, vlocal []byte, ok bool) {
 	return key, vl, vlocal, true
 }
 
+// kvValueNull reports whether a record kvRecord decodes has a NULL value,
+// serial type 0, which kvRecord reads as zero bytes. The kvtx SQLite store
+// writes a nil value as NULL.
+func kvValueNull(c rawCell) bool {
+	b := c.local
+	hs, k := varint(b)
+	if k == 0 || int(hs) > len(b) {
+		return false
+	}
+	_, k1 := varint(b[k:hs])
+	if k1 == 0 {
+		return false
+	}
+	t2, k2 := varint(b[k+k1 : hs])
+	return k2 != 0 && t2 == 0
+}
+
 // value reads a cell's whole value, following its overflow chain.
 func (r *rawFile) value(c rawCell, vlen int64, vlocal []byte) ([]byte, error) {
 	v := make([]byte, len(vlocal), max(vlen, int64(len(vlocal))))

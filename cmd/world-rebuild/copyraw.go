@@ -169,6 +169,11 @@ func (r *rawFile) scanShare(leaves []uint64, w int, share int64, per int, read *
 					verr = fmt.Errorf("page %d rowid %d: record did not decode", pg, c.rowid)
 					return
 				}
+				// A NULL value stays NULL: nil, not zero bytes.
+				if kvValueNull(c) {
+					verr = fn(c.rowid, key, vlen, func() ([]byte, error) { return nil, nil })
+					return
+				}
 				verr = fn(c.rowid, key, vlen, func() ([]byte, error) { return r.value(c, vlen, vlocal) })
 			})
 			if verr != nil {
