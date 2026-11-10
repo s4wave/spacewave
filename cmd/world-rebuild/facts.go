@@ -42,7 +42,10 @@ type facts struct {
 	badKeys          int
 	// otherFacts counts the marked/ and evictable/ rows of write-back
 	// stores other than the one rebuilt, by store id.
-	otherFacts      map[string]int
+	otherFacts map[string]int
+	// copies holds each copy to a remote by store and target: true once
+	// its copy-done/ row is seen.
+	copies          map[[2]string]bool
 	packsLive       int
 	lookups         int64
 	hMissing, hDead int64
@@ -181,6 +184,32 @@ func otherFactsErr(f *facts) error {
 	return fmt.Errorf("write-back stores other than the one rebuilt hold marked/ or evictable/ rows (%v); refusing", f.otherFacts)
 }
 
+// noteCopy records a copy cursor or completion row.
+func (f *facts) noteCopy(k objKeyInfo) {
+	if f.copies == nil {
+		f.copies = map[[2]string]bool{}
+	}
+	id := [2]string{k.obj, k.gen}
+	f.copies[id] = f.copies[id] || k.kind == kindCopyDone
+}
+
+// unfinishedCopiesErr refuses a World where a write-back copy to a remote
+// is under way: a copy/<target> row with no copy-done/<target>. Its blocks
+// may not be on the remote yet.
+func unfinishedCopiesErr(f *facts) error {
+	var open []string
+	for id, done := range f.copies {
+		if !done {
+			open = append(open, id[0]+" copy/"+id[1])
+		}
+	}
+	if len(open) == 0 {
+		return nil
+	}
+	sort.Strings(open)
+	return fmt.Errorf("%d write-back copies to a remote are unfinished (copy/ with no copy-done/): %v; refusing", len(open), open)
+}
+
 // objKey splits an object store key into its id and the key inside it; ok is
 // false for a key outside the object stores or one splitObjKey refuses.
 func objKey(key []byte) (string, string, bool) {
@@ -206,6 +235,10 @@ const (
 	// kindForeign is a key of an object store that is not a write-back
 	// store; it is kept and holds no drop fact.
 	kindForeign
+	// kindCopy and kindCopyDone are a copy to a remote's cursor and its
+	// completion mark; gen holds the target.
+	kindCopy
+	kindCopyDone
 )
 
 // objKeyInfo is one object store key, parsed.
@@ -263,6 +296,10 @@ func objKeyOf(key []byte) objKeyInfo {
 		k.kind = kindBytes
 	case strings.HasPrefix(rest, "queue/"):
 		k.kind = kindQueue
+	case strings.HasPrefix(rest, "copy/"):
+		k.kind, k.gen = kindCopy, rest[len("copy/"):]
+	case strings.HasPrefix(rest, "copy-done/"):
+		k.kind, k.gen = kindCopyDone, rest[len("copy-done/"):]
 	}
 	return k
 }
@@ -303,6 +340,8 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 			return
 		case kindForeign:
 			return
+		case kindCopy, kindCopyDone:
+			f.noteCopy(k)
 		case kindMarked, kindEvict, kindReads:
 			if !ownStore(o.storeID, obj) {
 				if k.kind != kindReads {
@@ -359,6 +398,9 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 		return nil, fmt.Errorf("%d object store keys under %s did not parse as write-back store keys; refusing", f.badKeys, objsPrefix)
 	}
 	if err := otherFactsErr(f); err != nil {
+		return nil, err
+	}
+	if err := unfinishedCopiesErr(f); err != nil {
 		return nil, err
 	}
 

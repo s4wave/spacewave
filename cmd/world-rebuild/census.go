@@ -9,14 +9,16 @@ import (
 
 // kindNames names the object store key kinds for the census.
 var kindNames = map[int]string{
-	kindOther:   "other",
-	kindBad:     "BAD",
-	kindMarked:  "marked",
-	kindEvict:   "evictable",
-	kindReads:   "reads",
-	kindBytes:   "evictable-bytes",
-	kindQueue:   "queue",
-	kindForeign: "other: not write-back",
+	kindOther:    "other",
+	kindBad:      "BAD",
+	kindMarked:   "marked",
+	kindEvict:    "evictable",
+	kindReads:    "reads",
+	kindBytes:    "evictable-bytes",
+	kindQueue:    "queue",
+	kindForeign:  "other: not write-back",
+	kindCopy:     "copy cursor",
+	kindCopyDone: "copy done",
 }
 
 // censusKey is one key shape: its pattern, object store id and kind.

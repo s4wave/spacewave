@@ -287,3 +287,20 @@ func TestCopyRefusesOtherStoreFacts(t *testing.T) {
 		t.Fatal("copy with another store's queue-count:", err)
 	}
 }
+
+// TestCopyRefusesUnfinishedRemoteCopy checks copy and count refuse a World
+// where a write-back copy to a remote is under way: a copy/<target> cursor
+// with no copy-done/<target>. A finished copy is no bar.
+func TestCopyRefusesUnfinishedRemoteCopy(t *testing.T) {
+	o := sharedRefWorld(t, func(_, _ string) []string { return []string{testObjPrefix + "copy/remote-1"} })
+	if err := runCopy(o); err == nil {
+		t.Fatal("copy succeeded with an unfinished copy/remote-1")
+	}
+	if _, err := runCount(o); err == nil {
+		t.Fatal("count succeeded with an unfinished copy/remote-1")
+	}
+	o = sharedRefWorld(t, func(_, _ string) []string { return []string{testObjPrefix + "copy-done/remote-1"} })
+	if err := runCopy(o); err != nil {
+		t.Fatal("copy with copy-done/remote-1:", err)
+	}
+}

@@ -129,6 +129,9 @@ func runCount(o opts) (*countResult, error) {
 				return
 			}
 			obj := k.obj
+			if k.kind == kindCopy || k.kind == kindCopyDone {
+				f.noteCopy(k)
+			}
 			if (k.kind == kindMarked || k.kind == kindEvict || k.kind == kindReads) && !ownStore(o.storeID, obj) {
 				if k.kind != kindReads {
 					f.otherFacts[obj]++
@@ -396,6 +399,9 @@ func runCount(o opts) (*countResult, error) {
 		return res, fmt.Errorf("%d object store keys did not parse as write-back store keys; the drop verdicts are not trustworthy", f.badKeys)
 	}
 	if err := otherFactsErr(f); err != nil {
+		return res, err
+	}
+	if err := unfinishedCopiesErr(f); err != nil {
 		return res, err
 	}
 	return res, nil
