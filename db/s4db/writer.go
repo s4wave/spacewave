@@ -190,8 +190,9 @@ type valueWrite struct {
 // commit appends a commit record for changes on base, writes its values,
 // and publishes the new state. moves reports that the changes are the
 // cleaner's moves, which the flows do not count. The caller holds the writer
-// lock, and base is the published state.
-func (w *writer) commit(ctx context.Context, base *state, changes []tentry, moves bool) error {
+// lock, and base is the published state. It returns the chunks the values
+// went to, which a background caller pushes to the drive after unlocking.
+func (w *writer) commit(ctx context.Context, base *state, changes []tentry, moves bool) ([]uint64, error) {
 	// Start the record on a copy of the state. Placement takes chunks from
 	// the copy's table, which the record's replay reproduces.
 	db := w.db
@@ -231,7 +232,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Resolve each change against its old value: frees, count, value
@@ -274,14 +275,14 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		r.ops = append(r.ops, op{key: c.key, val: v})
 	}
 	if len(r.ops) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// Reserve the log and its standby before writing values or publishing.
 	r.durable, _ = db.flush.marks()
 	pos, link, err := w.placeLog(base, next, r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	linkPos, prev := base.pos, base.crc
 	if link != nil {
@@ -292,16 +293,16 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	// before the writer lock and reads the record first publishes the same
 	// state.
 	if err := w.writeValues(writes); err != nil {
-		return err
+		return nil, err
 	}
 	rec := r.encode(prev)
 	if link != nil {
 		if _, err := db.s.WriteAt(link, fileOff(linkPos)); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if _, err := db.s.WriteAt(rec, fileOff(pos)); err != nil {
-		return err
+		return nil, err
 	}
 	db.written.Add(int64(len(link) + len(rec)))
 	db.userBytes.Add(userBytes)
@@ -309,10 +310,25 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	// Publish the new state.
 	next.apply(r, db.budget)
 	if err := db.publish(ctx, next); err != nil {
-		return err
+		return nil, err
 	}
 	db.addFlows(flows)
-	return nil
+	return valueChunks(writes), nil
+}
+
+// valueChunks returns the chunks writes cover, in the order written, each
+// once when the writes ascend.
+func valueChunks(writes []valueWrite) []uint64 {
+	var chunks []uint64
+	for _, wr := range writes {
+		last := chunkOf(wr.off + uint64(len(wr.data)) - 1)
+		for c := chunkOf(wr.off); c <= last; c++ {
+			if n := len(chunks); n == 0 || chunks[n-1] != c {
+				chunks = append(chunks, c)
+			}
+		}
+	}
+	return chunks
 }
 
 // place assigns data, stored under key, a position in the open hot value

@@ -1,7 +1,9 @@
 ---- MODULE WriterWait ----
 \* writer.beginWait holds this process's reader-slot intent byte until the
 \* foreground request acquires the writer lock (or cancels locally). Under
-\* that lock, writer.locked reads every slot before running its callback.
+\* that lock, writer.lockBackground reads every slot before a background step
+\* runs: a job's callback under writer.locked, or a write transaction opened
+\* with kvtx.WithBackgroundWriteContext, whose step lasts until it ends.
 \* Seeing intent makes it release both writer locks and wait on the intent
 \* byte, or on requests.Broadcast for its own slot. Process death drops the
 \* byte. A request beginning after the check can wait behind that step only.

@@ -52,6 +52,11 @@ type Tx struct {
 	// atCommit holds the writes an optimistic transaction deferred to its
 	// commit, in order.
 	atCommit []func(context.Context, kvtx.Tx) error
+	// background marks a write transaction opened with
+	// kvtx.WithBackgroundWriteContext: it takes the writer lock as a
+	// background step, and its commit pushes its values to the drive itself
+	// rather than leaving them to the next durable flush.
+	background bool
 	// committed is the seq a commit that wrote changes published.
 	committed uint64
 	// done is set after Commit or Discard.
@@ -390,15 +395,23 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	// Write them against the published state, which the writer lock keeps
 	// current, then release the snapshot and the lock.
 	defer db.endWrite()
-	if db.sched != nil {
+	if db.sched != nil && !t.background {
 		defer db.sched.fg.begin()()
 	}
-	err := db.w.commit(ctx, db.cur.Load(), changes, false)
+	chunks, err := db.w.commit(ctx, db.cur.Load(), changes, false)
 	db.release(t.st, t.stripe)
 	seq := db.cur.Load().seq
 	db.w.unlock()
 	if err != nil {
 		return err
+	}
+
+	// A background commit writes its values back to the drive at its own
+	// pace, so the next durable flush carries only foreground bytes.
+	if t.background {
+		if err := db.s.writeback(chunks); err != nil {
+			return err
+		}
 	}
 
 	// Record the published seq, then make it durable unless ordered.
@@ -440,7 +453,7 @@ func (t *Tx) lockValidated(ctx context.Context) error {
 	// Take the lock and the state it caught up to, in place of the
 	// snapshot.
 	db := t.db
-	if err := db.w.lock(ctx); err != nil {
+	if err := db.w.lockTx(ctx, t.background); err != nil {
 		db.release(t.st, t.stripe)
 		return err
 	}
@@ -479,13 +492,6 @@ func (t *Tx) AtCommit(ctx context.Context, fn func(context.Context, kvtx.Tx) err
 	return nil
 }
 
-// _ is a type assertion
-var (
-	_ kvtx.OrderedCommitTx = (*Tx)(nil)
-	_ kvtx.BatchTxOps      = (*Tx)(nil)
-	_ kvtx.AtCommitTxOps   = (*Tx)(nil)
-)
-
 // raiseSeq raises v to seq unless it holds a newer one already. Commits
 // record their seq after leaving the writer lock, so they can arrive out of
 // order.
@@ -497,3 +503,10 @@ func raiseSeq(v *atomic.Uint64, seq uint64) {
 		}
 	}
 }
+
+// _ is a type assertion
+var (
+	_ kvtx.OrderedCommitTx = (*Tx)(nil)
+	_ kvtx.BatchTxOps      = (*Tx)(nil)
+	_ kvtx.AtCommitTxOps   = (*Tx)(nil)
+)

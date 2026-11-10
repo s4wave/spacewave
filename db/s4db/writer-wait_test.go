@@ -59,7 +59,7 @@ func runAdmission(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	db.w.endWait()
-	err = db.w.commit(ctx, db.cur.Load(), []tentry{{key: []byte("admitted"), data: []byte("child")}}, false)
+	_, err = db.w.commit(ctx, db.cur.Load(), []tentry{{key: []byte("admitted"), data: []byte("child")}}, false)
 	db.w.unlock()
 	if err != nil {
 		t.Fatal(err)

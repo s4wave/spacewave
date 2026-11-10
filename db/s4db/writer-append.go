@@ -63,12 +63,11 @@ func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
 	return next, nil
 }
 
-// locked runs fn under the writer lock as a background step, recording its
-// hold as a commit's wait when a commit waited for the lock meanwhile. The
-// step yields to an announced request once, then runs: a steady foreground
-// stream always has its next request announced, and yielding to every one
-// would hold flushes until the memtable reached its ceiling (WriterWait.tla).
-func (w *writer) locked(ctx context.Context, fn func() error) error {
+// lockBackground takes the writer lock as a background step: it yields to an
+// announced request once, then takes its turn. A steady foreground stream
+// always has its next request announced, and yielding to every one would hold
+// background work until the memtable reached its ceiling (WriterWait.tla).
+func (w *writer) lockBackground(ctx context.Context) error {
 	for aged := false; ; aged = true {
 		// Check announcements under the writer lock. Once this check passes,
 		// a newly arriving request can wait behind only this one step.
@@ -81,13 +80,7 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 			return err
 		}
 		if slot < 0 || aged {
-			start := time.Now()
-			err = fn()
-			if w.waiting.Load() != 0 {
-				w.db.recordWait(time.Since(start))
-			}
-			w.unlock()
-			return err
+			return nil
 		}
 
 		// Wait without either writer lock until the announced request takes
@@ -98,6 +91,31 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 			return err
 		}
 	}
+}
+
+// lockTx takes the writer lock for a write transaction: as a background step
+// when it is background, else as an announced foreground request.
+func (w *writer) lockTx(ctx context.Context, background bool) error {
+	if background {
+		return w.lockBackground(ctx)
+	}
+	return w.lock(ctx)
+}
+
+// locked runs fn under the writer lock as a background step, recording its
+// hold as a commit's wait when a commit waited for the lock meanwhile.
+func (w *writer) locked(ctx context.Context, fn func() error) error {
+	// Take the lock, then time the hold for a commit that waits behind it.
+	if err := w.lockBackground(ctx); err != nil {
+		return err
+	}
+	start := time.Now()
+	err := fn()
+	if w.waiting.Load() != 0 {
+		w.db.recordWait(time.Since(start))
+	}
+	w.unlock()
+	return err
 }
 
 // reserve allocates n consecutive free chunks for a job of this handle and
