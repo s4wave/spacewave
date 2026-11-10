@@ -41,6 +41,13 @@ const maxLen = math.MaxUint32
 // entry in the record list.
 const recordOverhead = 24
 
+// minMargin is the least free space Reserve leaves beyond its estimate, so a
+// sort never leaves the disk full for the writes of the program around it.
+const minMargin = 1 << 30
+
+// ErrNoSpace is returned by Reserve when the runs might not fit.
+var ErrNoSpace = errors.New("extsort: not enough free space for the runs")
+
 // ErrUnsorted is returned when a sorted source yields a key below the one
 // before it.
 var ErrUnsorted = errors.New("extsort: sorted source is out of order")
@@ -78,6 +85,24 @@ type record struct {
 // its buffer holds budget bytes.
 func New(parent string, budget int) *Sorter {
 	return &Sorter{parent: parent, budget: max(budget, 1)}
+}
+
+// Reserve checks that the file system of the Sorter's parent directory has room
+// for n bytes of runs plus a margin of a quarter of n, at least 1 GiB. A caller
+// estimates n before its first Add, so a sort too large for the disk is
+// refused before it writes anything. A disk that fills anyway fails the spill,
+// and Close removes the runs.
+func (s *Sorter) Reserve(n int64) error {
+	// Compare the parent's free bytes with the runs plus the margin.
+	free, err := freeBytes(s.parent)
+	if err != nil {
+		return errors.Wrapf(err, "extsort: free space of %s", s.parent)
+	}
+	need := n + max(n/4, minMargin)
+	if free < need {
+		return errors.Wrapf(ErrNoSpace, "%d bytes free in %s, need %d", free, s.parent, need)
+	}
+	return nil
 }
 
 // Spilled returns the bytes written to run files so far.
