@@ -65,7 +65,9 @@ func (s *PackStore) verifyAdopted(ctx context.Context, entry *packfile.PackfileE
 	size := entry.GetSizeBytes()
 	key := s.prefix + packDir + entry.GetId()
 	read := func(ctx context.Context, off int64, length int) ([]byte, error) {
-		return s.client.GetObjectRange(ctx, s.bucket, key, off, length)
+		data, err := s.client.GetObjectRange(ctx, s.bucket, key, off, length)
+		s.reads.downloaded(readIndex, len(data))
+		return data, err
 	}
 	tail, err := packfile.ReadIndexTail(ctx, size, packfile.IndexTailReadSize(entry.GetBlockCount()), read)
 	if err != nil {

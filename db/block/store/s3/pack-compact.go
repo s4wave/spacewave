@@ -231,6 +231,7 @@ func (s *PackStore) readPack(ctx context.Context, id string) (map[string][]byte,
 	// Read the packfile bytes and close the object body.
 	data, err := io.ReadAll(body)
 	_ = body.Close()
+	s.reads.downloaded(readWhole, len(data))
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile "+id)
 	}

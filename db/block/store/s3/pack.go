@@ -636,7 +636,26 @@ type ReadCounts struct {
 	// Packs counts the blocks read through the pack readers, from the bucket
 	// or the readers' own memory.
 	Packs uint64
+
+	// The bytes the store downloaded from the bucket, by read mode: Window
+	// through the pack readers' range windows, Extent by the one range read
+	// of a block's extent, Index for pack index tails and entry objects,
+	// Whole for packs read whole, as a compaction does, and Other for the
+	// rest, such as the reclaim state.
+	WindowBytes, ExtentBytes, IndexBytes, WholeBytes, OtherBytes uint64
 }
+
+// readMode names what a bucket download was for, in ReadCounts' byte counts.
+type readMode int
+
+const (
+	readWindow readMode = iota
+	readExtent
+	readIndex
+	readWhole
+	readOther
+	readModes
+)
 
 // readCounters are the running counts of ReadCounts.
 type readCounters struct {
@@ -648,6 +667,15 @@ type readCounters struct {
 	bucket atomic.Uint64
 	// packs counts the reads through the pack readers.
 	packs atomic.Uint64
+	// bytes counts the bytes downloaded from the bucket by read mode.
+	bytes [readModes]atomic.Uint64
+}
+
+// downloaded counts n bytes downloaded from the bucket for mode.
+func (r *readCounters) downloaded(mode readMode, n int) {
+	if n > 0 {
+		r.bytes[mode].Add(uint64(n)) //nolint:gosec // n is positive.
+	}
 }
 
 // ReadCounts returns the store's block reads by where their bytes came from.
@@ -657,6 +685,11 @@ func (s *PackStore) ReadCounts() ReadCounts {
 		CacheRejected: s.reads.cacheRejected.Load(),
 		Bucket:        s.reads.bucket.Load(),
 		Packs:         s.reads.packs.Load(),
+		WindowBytes:   s.reads.bytes[readWindow].Load(),
+		ExtentBytes:   s.reads.bytes[readExtent].Load(),
+		IndexBytes:    s.reads.bytes[readIndex].Load(),
+		WholeBytes:    s.reads.bytes[readWhole].Load(),
+		OtherBytes:    s.reads.bytes[readOther].Load(),
 	}
 }
 
@@ -730,6 +763,7 @@ func (s *PackStore) readExtent(ctx context.Context, ref *block.BlockRef) *block.
 
 		// Read the extent.
 		data, err := s.client.GetObjectRange(ctx, s.bucket, s.prefix+packDir+id, off, size)
+		s.reads.downloaded(readExtent, len(data))
 		if err != nil {
 			return nil, err
 		}
@@ -1186,6 +1220,7 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 	}
 	data, err := io.ReadAll(body)
 	_ = body.Close()
+	s.reads.downloaded(readIndex, len(data))
 	if err != nil {
 		return nil, errors.Wrap(err, "read packfile entry")
 	}
@@ -1230,7 +1265,7 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 
 // openPack opens a reader over the ranges of packfile id.
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
-	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id}
+	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id, reads: &s.reads}
 	eng := packfile_store.NewPackReader(id, size, transport)
 	if s.exactReads {
 		eng.SetExactReads()
@@ -1243,6 +1278,8 @@ type rangeTransport struct {
 	client ObjectStore
 	bucket string
 	key    string
+	// reads counts the bytes fetched as window downloads, when set.
+	reads *readCounters
 }
 
 // Fetch reads bytes [off, off+length) of the object.
@@ -1250,7 +1287,11 @@ func (t *rangeTransport) Fetch(ctx context.Context, off int64, length int) ([]by
 	if length <= 0 {
 		return nil, nil
 	}
-	return t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
+	data, err := t.client.GetObjectRange(ctx, t.bucket, t.key, off, length)
+	if t.reads != nil {
+		t.reads.downloaded(readWindow, len(data))
+	}
+	return data, err
 }
 
 // _ is a type assertion

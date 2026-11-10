@@ -422,6 +422,7 @@ func (s *PackStore) loadReclaimState(ctx context.Context) (*ReclaimState, error)
 	}
 	data, err := io.ReadAll(body)
 	_ = body.Close()
+	s.reads.downloaded(readOther, len(data))
 	if err != nil {
 		return nil, errors.Wrap(err, "read reclaim state")
 	}
