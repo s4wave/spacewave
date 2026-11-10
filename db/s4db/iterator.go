@@ -78,11 +78,11 @@ func newIterator(db *DB, st *state, changes *btree.BTreeG[tentry], prefix []byte
 	}
 
 	// The memtable shadows the runs.
-	it.layers = append(it.layers, &treeIter[mentry]{
+	it.layers = append(it.layers, &treeIter[*mentry]{
 		it:    st.mem.tree.Iter(),
-		keyOf: func(e mentry) []byte { return e.key },
-		probe: func(k []byte) mentry { return mentry{key: k} },
-		conv:  func(e mentry) ientry { return ientry{del: e.val.kind == valueDeleted, val: e.val} },
+		keyOf: func(e *mentry) []byte { return e.key },
+		probe: func(k []byte) *mentry { return &mentry{key: k} },
+		conv:  func(e *mentry) ientry { return ientry{del: e.val.kind == valueDeleted, val: e.val} },
 	})
 	it.layers = append(it.layers, db.runLayers(st, prefix)...)
 	return it

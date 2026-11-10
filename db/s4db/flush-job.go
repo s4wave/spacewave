@@ -49,7 +49,7 @@ func (j *flushJob) run(ctx context.Context) error {
 	var meta runMeta
 	var buildErr error
 	if err := db.sched.idle.do(ctx, func() {
-		st.mem.tree.Scan(func(e mentry) bool {
+		st.mem.tree.Scan(func(e *mentry) bool {
 			buildErr = rb.add(e.key, e.val)
 			return buildErr == nil
 		})
