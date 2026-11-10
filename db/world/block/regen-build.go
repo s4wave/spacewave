@@ -165,7 +165,7 @@ func addKvGraph(
 		return errors.Wrap(err, "open kv graph tree")
 	}
 	defer gtx.Discard()
-	handle, err := openGraph(ctx, WorldFormat_WORLD_FORMAT_CAYLEY_KV, settings, gtx, gtx)
+	handle, err := openGraph(ctx, WorldFormat_WORLD_FORMAT_CAYLEY_KV, settings, gtx)
 	if err != nil {
 		return errors.Wrap(err, "open kv graph")
 	}
