@@ -25,7 +25,7 @@ type Store interface {
 	store_kvtx.Store
 	kvtx.OrderedCommitStore
 	kvtx.AtomicCommitStore
-	kvtx.WriterQueueStore
+	kvtx.ForegroundQueueStore
 
 	// GetDB returns the underlying SQL database connection.
 	GetDB() *sql.DB

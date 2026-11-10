@@ -51,7 +51,7 @@ func (v *Volume) resolveReleases(ctx context.Context) (*releaseCheck, error) {
 		var res block_gc.ReleaseResult
 		err := v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (err error) {
 			held := time.Now()
-			yield := func() bool { return time.Since(held) >= sweepBudget || v.writersWaiting() }
+			yield := func() bool { return time.Since(held) >= sweepBudget || v.foregroundWaiting() }
 			res, err = rg.ResolveReleases(ctx, yield, visit)
 			return err
 		})

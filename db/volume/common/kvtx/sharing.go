@@ -63,7 +63,7 @@ func (v *Volume) walkSharing(ctx context.Context) error {
 		var s block_gc.SharingState
 		err := v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (err error) {
 			held := time.Now()
-			yield := func() bool { return time.Since(held) >= sweepBudget || v.writersWaiting() }
+			yield := func() bool { return time.Since(held) >= sweepBudget || v.foregroundWaiting() }
 			s, err = rg.WalkSharing(ctx, yield)
 			return err
 		})

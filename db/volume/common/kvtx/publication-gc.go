@@ -202,12 +202,17 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 		return nil, nil
 	}
 
-	// Write the entries under the bucket's ownership and count them.
+	// Write the entries under the bucket's ownership and count them, cutting
+	// a background batch into transactions by time held.
 	v.noteUnknownRefsBatch(putOwned, entries)
-	err = v.prepareOwned(ctx, v.withDirectAtomic, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
-		existed, err = store.PutBlockBatch(ctx, entries)
-		return err
-	})
+	if kvtx.IsBackgroundWriteContext(ctx) && backgroundBatchHold != 0 {
+		existed, err = v.putOwnedCut(ctx, bucketOwner(bucketID), entries)
+	} else {
+		err = v.prepareOwned(ctx, v.withDirectAtomic, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
+			existed, err = store.PutBlockBatch(ctx, entries)
+			return err
+		})
+	}
 	if err == nil {
 		v.countPutBatch(putOwned, entries, existed)
 	}
@@ -371,7 +376,7 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 		var batch []string
 		err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 			start := time.Now()
-			yield := func() bool { return time.Since(start) >= sweepBudget || v.writersWaiting() }
+			yield := func() bool { return time.Since(start) >= sweepBudget || v.foregroundWaiting() }
 			for len(window) != 0 {
 				chunkStart := time.Now()
 				chunk := window[:min(len(window), size)]
@@ -551,7 +556,7 @@ func (v *Volume) promoteYoung(ctx context.Context, mark *block_gc.BlockMark, bou
 		var done bool
 		err := v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (err error) {
 			held := time.Now()
-			yield := func() bool { return time.Since(held) >= sweepBudget || v.writersWaiting() }
+			yield := func() bool { return time.Since(held) >= sweepBudget || v.foregroundWaiting() }
 			done, err = rg.PromoteYoung(ctx, mark, bound, yield)
 			return err
 		})
@@ -690,7 +695,7 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 			// Rescue the blocks adopted since the last transaction.
 			held = time.Now()
-			yield := func() bool { return time.Since(held) >= sweepBudget || v.writersWaiting() }
+			yield := func() bool { return time.Since(held) >= sweepBudget || v.foregroundWaiting() }
 			rescued, done, err := rg.RescueAdopted(ctx, mark, yield)
 			if err != nil {
 				return err
@@ -741,11 +746,11 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 			}
 
 			// Sweep chunks of the warmed window until the budget runs out or
-			// a writer waits.
+			// a foreground writer waits.
 			for len(window) != 0 {
 				chunkStart := time.Now()
 				chunk := window[:min(len(window), size)]
-				removed, done, err := sweepBlockChunk(ctx, blocks, rg, mark.Live, chunk, v.writersWaiting)
+				removed, done, err := sweepBlockChunk(ctx, blocks, rg, mark.Live, chunk, v.foregroundWaiting)
 				window, nodes = window[done:], nodes[done:]
 				stats.AtomicSweepCount += done
 				if err != nil {
@@ -853,11 +858,12 @@ func (v *Volume) nextCommit() <-chan struct{} {
 	return ch
 }
 
-// writersWaiting reports whether another writer queues for the store, so a
-// sweep transaction commits early and lets it in.
-func (v *Volume) writersWaiting() bool {
-	q, ok := v.kvtxStore.(kvtx.WriterQueueStore)
-	return ok && q.WritersWaiting()
+// foregroundWaiting reports whether a foreground writer queues for the store,
+// so a background transaction, such as a sweep's, commits early and lets it
+// in. A waiting background writer does not end one: it would wait behind the
+// next anyway, and each early commit costs a commit.
+func (v *Volume) foregroundWaiting() bool {
+	return kvtx.ForegroundWaiting(v.kvtxStore)
 }
 
 // nextChunkSize sizes the chunk after one of size candidates that took took:

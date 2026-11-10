@@ -368,6 +368,12 @@ func (s *Store) WritersWaiting() bool {
 	return ok && q.WritersWaiting()
 }
 
+// ForegroundWaiting reports whether a foreground writer waits for the inner
+// store's turn.
+func (s *Store) ForegroundWaiting() bool {
+	return kvtx.ForegroundWaiting(s.inner)
+}
+
 // Sync makes every commit so far durable: while the journal is live, in the
 // sink or locally, as a commit's own wait does; otherwise by flushing the
 // inner store. It is the durability an OrderedCommitStore's Sync promises.
@@ -593,7 +599,7 @@ func (s *Store) Close(ctx context.Context) error {
 
 // _ are type assertions
 var (
-	_ kvtx.OrderedCommitStore = (*Store)(nil)
-	_ kvtx.AtomicCommitStore  = (*Store)(nil)
-	_ kvtx.WriterQueueStore   = (*Store)(nil)
+	_ kvtx.OrderedCommitStore   = (*Store)(nil)
+	_ kvtx.AtomicCommitStore    = (*Store)(nil)
+	_ kvtx.ForegroundQueueStore = (*Store)(nil)
 )
