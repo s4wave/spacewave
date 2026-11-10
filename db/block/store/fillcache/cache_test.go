@@ -16,11 +16,15 @@ import (
 )
 
 // packs stands in for the durable store: an in-memory store of blocks with
-// known refs that counts the reads it serves.
+// known refs, or unknown refs when refsUnknown is set, that counts the reads it
+// serves.
 type packs struct {
 	block.StoreOps
 	// reads counts the block reads.
 	reads atomic.Int64
+	// refsUnknown serves every block with its refs unknown, as a pack holds a
+	// block written without them.
+	refsUnknown bool
 }
 
 // newPacks returns an empty durable store stand-in.
@@ -28,12 +32,13 @@ func newPacks() *packs {
 	return &packs{StoreOps: block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0)}
 }
 
-// GetStoredBlock counts the read and serves the block as a leaf with known refs.
+// GetStoredBlock counts the read and serves the block as a leaf with known
+// refs, or with unknown refs when refsUnknown is set.
 func (p *packs) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	p.reads.Add(1)
 	stored, err := block.GetBlockWithoutRefs(ctx, p.StoreOps, ref)
 	if stored != nil {
-		stored.RefsKnown = true
+		stored.RefsKnown = !p.refsUnknown
 	}
 	return stored, err
 }
@@ -128,5 +133,33 @@ func TestCacheServesFillsAfterReopen(t *testing.T) {
 	}
 	if n := src.reads.Load(); n != 0 {
 		t.Fatalf("the reopened cache read the durable store %d times", n)
+	}
+}
+
+// TestCacheFillsBlocksWithUnknownRefs reads a block the durable store serves
+// with its refs unknown, as most pack blocks are: the read fills the cache,
+// the next read is served from it without touching the durable store, and the
+// cached block still reports its refs unknown.
+func TestCacheFillsBlocksWithUnknownRefs(t *testing.T) {
+	// Put a block in a durable store that serves it with unknown refs.
+	src, refs := testBlocks(t, 1)
+	src.refsUnknown = true
+	ref := refs[0]
+
+	// Read the block through the cache and wait for its fill.
+	c := openTest(t, t.TempDir(), 1<<30)
+	fillRead(t, c, src, ref)
+
+	// Read it again: the cache serves it, with its refs still unknown.
+	before := src.reads.Load()
+	stored, err := c.View().GetStoredBlock(t.Context(), ref)
+	if err != nil || stored == nil || len(stored.Data) != 16<<10 {
+		t.Fatalf("second read = %v, %v", stored, err)
+	}
+	if n := src.reads.Load() - before; n != 0 {
+		t.Fatalf("second read touched the durable store %d times, want 0", n)
+	}
+	if stored.RefsKnown {
+		t.Fatal("the cached block reports its refs known")
 	}
 }

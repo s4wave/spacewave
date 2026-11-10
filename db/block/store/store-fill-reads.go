@@ -19,9 +19,10 @@ type StoreFillReads struct {
 	fill CopyFill
 }
 
-// NewStoreFillReads reads lower, passing each hit with known refs to fill. A
-// hit with unknown refs would look like a leaf in the copy, and a Linked hit's
-// bytes stay out of copies, so both are served without the fill.
+// NewStoreFillReads reads lower, passing each hit to fill whether or not its
+// refs are known: the copy must keep the refs-known state it was read with, so
+// a block with unknown refs never reads back as a leaf. A Linked hit's bytes
+// stay out of copies, so it is served without the fill.
 func NewStoreFillReads(lower block.StoreOps, fill CopyFill) *StoreFillReads {
 	return &StoreFillReads{StoreOps: lower, fill: fill}
 }
@@ -57,7 +58,7 @@ func (s *StoreFillReads) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 	if err != nil || stored == nil {
 		return nil, err
 	}
-	if stored.RefsKnown && !stored.Linked {
+	if !stored.Linked {
 		s.fill(context.WithoutCancel(ctx), ref, stored)
 	}
 	return stored, nil
