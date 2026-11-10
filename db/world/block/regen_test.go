@@ -293,7 +293,7 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	m.check(t, engine)
 
 	// Run proves the new World equal to the old root and releases it.
-	if err := NewRegenerator(authority, cfg).Run(ctx); err != nil {
+	if err := NewRegenerator(authority, cfg).Run(ctx, RegenDone, nil); err != nil {
 		t.Fatal(err)
 	}
 	stage(r, RegenDone)
@@ -348,7 +348,7 @@ func TestRegeneratorSwitchesBack(t *testing.T) {
 	rf.follow(t, rf.worldRoot(t), WorldFormat_WORLD_FORMAT_CAYLEY_KV)
 	rf.collect(t)
 	rf.m.check(t, rf.engine)
-	if err := r.Run(ctx); !errors.Is(err, ErrRegenSwitchedBack) {
+	if err := r.Run(ctx, RegenDone, nil); !errors.Is(err, ErrRegenSwitchedBack) {
 		t.Fatalf("Run after switch back: %v", err)
 	}
 
@@ -399,7 +399,7 @@ func TestRegeneratorMismatchSwitchesBack(t *testing.T) {
 	})
 
 	// Run finds the missing quad and switches back.
-	if err := r.Run(ctx); !errors.Is(err, ErrRegenMismatch) {
+	if err := r.Run(ctx, RegenDone, nil); !errors.Is(err, ErrRegenMismatch) {
 		t.Fatalf("Run on a faulty World: %v", err)
 	}
 	rf.stage(t, r, RegenSwitchedBack)

@@ -47,6 +47,20 @@ func (c *Config) Validate() error {
 		return errors.Wrap(err, "format")
 	}
 
+	// A regeneration writes the head's whole graph, so it neither runs on a
+	// World with no persisted head nor beside a graph settings change.
+	if err := c.GetRegen().Validate(); err != nil {
+		return errors.Wrap(err, "regen")
+	}
+	if c.GetRegen().GetTarget() != RegenTarget_REGEN_TARGET_NONE {
+		if c.GetEphemeral() {
+			return errors.New("regen: an ephemeral World keeps no head to regenerate")
+		}
+		if len(c.GetGraphSettings().GetIndexes()) != 0 {
+			return errors.New("regen: graph_settings would change the graph being regenerated")
+		}
+	}
+
 	return nil
 }
 

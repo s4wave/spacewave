@@ -52,6 +52,10 @@ message Config {
   // Format is the stored layout a new World starts with. An existing World
   // keeps the format it has.
   .world.block.WorldFormat format = 17;
+  // Regen moves an existing writable World to the node graph format in the
+  // background, alongside writers. Each step lands in the World's roots, so a
+  // regeneration stopped by a restart resumes at the next open.
+  RegenConfig regen = 18;
 
   // DisableLookup disables looking up anything on the bus via directives.
   // Implies both DisableApplyWorldOp and DisableApplyObjectOp.
@@ -75,6 +79,42 @@ message Config {
   bool verbose = 12;
 
   // TODO Auth, Version override
+}
+
+// RegenTarget is the stage a configured regeneration moves a World to.
+enum RegenTarget {
+  // REGEN_TARGET_NONE takes no step. A regeneration in progress keeps its
+  // roots and resumes when a target is set again.
+  REGEN_TARGET_NONE = 0;
+  // REGEN_TARGET_SWITCHED builds the node graph World and swaps it in as the
+  // head, holding the old root so a switch back still works.
+  REGEN_TARGET_SWITCHED = 1;
+  // REGEN_TARGET_DONE swaps, compares the new World with the old root and
+  // releases the old root when they match. A mismatch switches back.
+  REGEN_TARGET_DONE = 2;
+  // REGEN_TARGET_SWITCHED_BACK returns a switched World to the held old root,
+  // carrying the commits made since the swap, and holds the new root.
+  REGEN_TARGET_SWITCHED_BACK = 3;
+  // REGEN_TARGET_RELEASED drops the regeneration's roots: it abandons a build
+  // or catch-up, or lets go of the new root a switch back held. A switched
+  // World refuses it until it is compared or switched back.
+  REGEN_TARGET_RELEASED = 4;
+}
+
+// RegenConfig configures a World's regeneration.
+message RegenConfig {
+  // Target is the stage to move the World to.
+  RegenTarget target = 1;
+  // SpillDir is the directory the build's sort writes its disposable runs in.
+  // Required with a target that builds.
+  string spill_dir = 2;
+  // BudgetBytes is the sort's memory before it spills a run.
+  // Defaults to 256 MiB.
+  uint64 budget_bytes = 3;
+  // SwapChanges is the most changed records the swap applies inside the writer
+  // turn, which bounds the wait a commit can take behind it.
+  // Defaults to 4096.
+  uint32 swap_changes = 4;
 }
 
 // HeadState is the record an older engine kept the head in. An open reads it

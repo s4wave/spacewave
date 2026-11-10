@@ -2,12 +2,62 @@
 // @generated from file github.com/s4wave/spacewave/db/world/block/engine/engine.proto (package world.block.engine, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Config as Config$1 } from '../../../block/transform/transform.pb.js'
 import type { WorldFormat } from '../world.pb.js'
 import { GraphSettings, WorldFormat_Enum } from '../world.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+
+/**
+ * RegenTarget is the stage a configured regeneration moves a World to.
+ *
+ * @generated from enum world.block.engine.RegenTarget
+ */
+export enum RegenTarget {
+  /**
+   * REGEN_TARGET_NONE takes no step. A regeneration in progress keeps its
+   * roots and resumes when a target is set again.
+   */
+  NONE = 0,
+
+  /**
+   * REGEN_TARGET_SWITCHED builds the node graph World and swaps it in as the
+   * head, holding the old root so a switch back still works.
+   */
+  SWITCHED = 1,
+
+  /**
+   * REGEN_TARGET_DONE swaps, compares the new World with the old root and
+   * releases the old root when they match. A mismatch switches back.
+   */
+  DONE = 2,
+
+  /**
+   * REGEN_TARGET_SWITCHED_BACK returns a switched World to the held old root,
+   * carrying the commits made since the swap, and holds the new root.
+   */
+  SWITCHED_BACK = 3,
+
+  /**
+   * REGEN_TARGET_RELEASED drops the regeneration's roots: it abandons a build
+   * or catch-up, or lets go of the new root a switch back held. A switched
+   * World refuses it until it is compared or switched back.
+   */
+  RELEASED = 4,
+}
+
+export const RegenTarget_Enum = /* @__PURE__ */ createEnumType(
+  'world.block.engine.RegenTarget',
+  [
+    [0, 'REGEN_TARGET_NONE'],
+    [1, 'REGEN_TARGET_SWITCHED'],
+    [2, 'REGEN_TARGET_DONE'],
+    [3, 'REGEN_TARGET_SWITCHED_BACK'],
+    [4, 'REGEN_TARGET_RELEASED'],
+  ],
+)
 
 /**
  * Config configures a World Graph engine bound to a block graph.
@@ -83,6 +133,12 @@ export interface Config {
    */
   format?: WorldFormat
   /**
+   * Regen moves an existing writable World to the node graph format in the
+   * background, alongside writers. Each step lands in the World's roots, so a
+   * regeneration stopped by a restart resumes at the next open.
+   */
+  regen?: RegenConfig
+  /**
    * DisableLookup disables looking up anything on the bus via directives.
    * Implies both DisableApplyWorldOp and DisableApplyObjectOp.
    */
@@ -132,7 +188,47 @@ export const Config: MessageType<Config> =
     [15, 'graph_settings', 11, 0, GraphSettings.codec],
     [16, 'ephemeral', 8],
     [17, 'format', 14, 0, WorldFormat_Enum],
+    [18, 'regen', 11, 0, RegenConfig.codec],
   ])
+
+/**
+ * RegenConfig configures a World's regeneration.
+ *
+ * @generated from message world.block.engine.RegenConfig
+ */
+export interface RegenConfig {
+  /**
+   * Target is the stage to move the World to.
+   */
+  target?: RegenTarget
+  /**
+   * SpillDir is the directory the build's sort writes its disposable runs in.
+   * Required with a target that builds.
+   */
+  spillDir?: string
+  /**
+   * BudgetBytes is the sort's memory before it spills a run.
+   * Defaults to 256 MiB.
+   */
+  budgetBytes?: bigint
+  /**
+   * SwapChanges is the most changed records the swap applies inside the writer
+   * turn, which bounds the wait a commit can take behind it.
+   * Defaults to 4096.
+   */
+  swapChanges?: number
+}
+
+export const RegenConfig: MessageType<RegenConfig> =
+  /* @__PURE__ */ createMessageType<RegenConfig>(
+    'world.block.engine.RegenConfig',
+    () => [
+      [1, 'target', 14, 0, RegenTarget_Enum],
+      [2, 'spill_dir', 9],
+      [3, 'budget_bytes', 4],
+      [4, 'swap_changes', 13],
+    ],
+  )
 
 /**
  * HeadState is the record an older engine kept the head in. An open reads it
