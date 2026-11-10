@@ -24,6 +24,9 @@ const minBufBytes = 1 << 20
 // keptBufs bounds the buffers kept for reuse by the next open packs.
 const keptBufs = 2
 
+// salvageMargin is the free disk a salvage keeps beyond its copy.
+const salvageMargin = 1 << 20
+
 // retryDelay is the wait before the maintainer retries a failed step.
 const retryDelay = time.Second
 
@@ -250,14 +253,17 @@ func (l *Log) recoverPack(seq uint64, path string) error {
 // covered. The copy needs free disk for its bytes, which the removal of p's
 // file returns. It returns the finalized copy, not yet published.
 func (l *Log) salvage(p *pack, data []byte, entries []entry) (*pack, *finalized, error) {
-	// Check the disk has room for the copy.
-	size := int64(len(data)) + p.indexReserve(len(entries), keyBytesOf(entries))
+	// Check the disk has room for the copy and a fixed margin. Salvage is
+	// recovery, so it ignores Options.ReserveBytes: it copies one pack at a
+	// time and removes the old file after each, so it needs one pack's space
+	// beyond what it frees. With less, it fails and names what it needs.
+	size := int64(len(data)) + p.indexReserve(len(entries), keyBytesOf(entries)) + salvageMargin
 	free, err := l.opts.FreeBytes(l.dir)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "measure free disk")
 	}
 	if free < uint64(size) { //nolint:gosec // positive.
-		return nil, nil, errors.Wrapf(ErrReserve, "salvage of %d bytes with %d free", size, free)
+		return nil, nil, errors.Wrapf(ErrReserve, "salvage of %s needs %d bytes free and %d are: free disk space and restart", p.path, size, free)
 	}
 
 	// Create the copy, replacing one an earlier try left.

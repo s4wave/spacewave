@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -91,5 +92,43 @@ func TestAppendReserve(t *testing.T) {
 	}
 	if got, ok, err := l.Get(blocks[3].Key); err != nil || !ok || !bytes.Equal(got, blocks[3].Value) {
 		t.Fatalf("read after the space returned: %v, %v", ok, err)
+	}
+}
+
+// TestOpenSalvageNeedsSpace opens a Log whose unfinalized pack needs more
+// free disk to salvage than there is: Open fails with ErrReserve and a
+// message naming the bytes needed and the pack's path, and opens once the
+// space is there. ReserveBytes does not count against the salvage.
+func TestOpenSalvageNeedsSpace(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	l, err := Open(ctx, dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := testBlock(t, 1, 3000)
+	if err := l.Append(ctx, []Block{a}); err != nil {
+		t.Fatal(err)
+	}
+	closeUnfinalized(l)
+
+	// Less than the pack and the margin is refused, naming both.
+	var free atomic.Uint64
+	free.Store(salvageMargin)
+	opts := Options{ReserveBytes: 1 << 40, FreeBytes: func(string) (uint64, error) { return free.Load(), nil }}
+	_, err = Open(ctx, dir, opts)
+	if !errors.Is(err, ErrReserve) || !strings.Contains(err.Error(), openName(1)) || !strings.Contains(err.Error(), "bytes free") {
+		t.Fatalf("open with no room to salvage: %v", err)
+	}
+
+	// The pack's size and the margin are enough.
+	free.Store(salvageMargin + 64<<10)
+	l2, err := Open(ctx, dir, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l2.Close()
+	if got, ok, err := l2.Get(a.Key); err != nil || !ok || !bytes.Equal(got, a.Value) {
+		t.Fatalf("value after open: %v %v", ok, err)
 	}
 }
