@@ -924,6 +924,13 @@ func (c *Cursor) SetPreWriteHook(h func(b any) error) {
 	}
 }
 
+// SetReplaced records refs as blocks the write of this position's block
+// replaced, carried to the store as PutBatchEntry.Replaced. The cursor keeps
+// refs; the caller must not change them after the call.
+func (c *Cursor) SetReplaced(refs []*BlockRef) {
+	c.pos.replaced = refs
+}
+
 // SetBlock sets a block at the location, and marks the block as dirty.
 // If the location is a Block, b should implement Block interface.
 // If it is a SubBlock, b should implement the SubBlock interface.

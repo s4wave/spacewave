@@ -86,7 +86,7 @@ func Land(
 	ctx context.Context,
 	rec *Records,
 	blocks block.StoreOps,
-	now time.Time,
+	opts LandOptions,
 	entries []*block.PutBatchEntry,
 	moves ...BucketRoots,
 ) ([]bool, error) {
@@ -96,9 +96,12 @@ func Land(
 		return nil, err
 	}
 	l := &lander{
-		rec:      rec,
-		blocks:   blocks,
-		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
+		rec:     rec,
+		blocks:  blocks,
+		journal: state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
+		adopted: state.GetAdoption() == Adoption_ADOPTION_ADOPTED,
+		trustReplaced: opts.TrustReplaced &&
+			state.GetAdoption() == Adoption_ADOPTION_ADOPTED,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
 		verify:   state.GetUnverifiedLists(),
 		born:     make(map[string]*bornBlock),
@@ -134,7 +137,7 @@ func Land(
 	}
 
 	// Append the journal record.
-	if err := l.appendJournal(ctx, state, now); err != nil {
+	if err := l.appendJournal(ctx, state, opts.Now); err != nil {
 		return nil, err
 	}
 	return existed, nil
@@ -163,6 +166,19 @@ type lander struct {
 	blocks block.StoreOps
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
+	// adopted reports that the Volume is adopted: every writer stores a
+	// block's bytes with its list, so a child a stored list names is listed
+	// or has no bytes.
+	adopted bool
+	// trustReplaced reports that the Volume is adopted and LandOptions
+	// TrustReplaced is set, so the lists of the batch's replaced blocks vouch
+	// for the children they name, as holdChildren describes.
+	trustReplaced bool
+	// replaced is the batch's replaced blocks, every entry's
+	// PutBatchEntry.Replaced, gathered only when trustReplaced is set. It
+	// holds at most what the writer read to build the batch, one ref per page
+	// it rebuilt.
+	replaced []*block.BlockRef
 	// adopting reports that an adoption is counting the Volume, so Land marks
 	// the blocks it gives birth to and the roots it moves, as Adopt reads.
 	adopting bool
@@ -223,6 +239,9 @@ func (l *lander) checkRoots(ctx context.Context, bucketID string, roots []block.
 func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Name each entry and sort its block: stored, a refilled hole, or born.
 	err := classifyPuts(ctx, l.rec, l.blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
+		if l.trustReplaced {
+			l.replaced = append(l.replaced, entry.Replaced...)
+		}
 		key := string(BlockKey(entry.Ref))
 		switch kind {
 		case putRefill:
@@ -382,6 +401,14 @@ func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*b
 // implied holder of a child the batch stores too, and an up pair for any
 // other.
 func (l *lander) holdChildren(ctx context.Context) error {
+	// Read the lists of the blocks the batch replaced: the children they
+	// name.
+	vouched, err := l.replacedChildren(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Hold each child of each born block.
 	for _, b := range l.order {
 		for _, child := range b.children {
 			// A child the batch stores takes the parent as a batch holder.
@@ -395,13 +422,73 @@ func (l *lander) holdChildren(ctx context.Context) error {
 			if !l.journal {
 				continue
 			}
-			if err := l.requireListed(ctx, child); err != nil {
-				return err
+
+			// A child a replaced block's stored list names skips the listed
+			// check; that skip keeps these invariants:
+			//
+			//   - Only a list read from the store in this transaction vouches.
+			//     The writer's Replaced refs are a hint: a wrong or unknown
+			//     ref, or one with no list, vouches for nothing.
+			//   - Only an adopted Volume skips. Once adopted, a child a stored
+			//     list names is listed, freed or lost, never an orphan: Land,
+			//     LandFill and the rebuild write lists only from content, and
+			//     adoption refuses unknowns. Before then a block with bytes
+			//     and no list can survive from before the journal, and
+			//     requireListed's refusal is what makes a writer re-put it
+			//     with its refs.
+			//   - A child no such list names takes the full check.
+			//   - The skip changes no count and leaves the suspect check of
+			//     putEntries as it is. A freed child has no bytes, which
+			//     requireListed passes anyway.
+			//
+			// Known hole: LandFill writes a born block's list without this
+			// check, so a fill naming a surviving block with bytes and no
+			// list, one nothing named at adoption, leaves an adopted Volume
+			// with a stored list that names a bare block, and a Land that
+			// replaces the filled block skips it. LandTrustReplaced stays
+			// off until LandFill refuses such a child.
+			if !containsRef(vouched, child) {
+				if err := l.requireListed(ctx, child); err != nil {
+					return err
+				}
 			}
 			l.up = append(l.up, BlockKey(child))
 		}
 	}
 	return nil
+}
+
+// replacedChildren returns the children the stored lists of the batch's
+// replaced blocks name, sorted by block key, or nil unless trustReplaced is
+// set. It reads each distinct replaced block's list once; a replaced block
+// with no list vouches for nothing. The result holds at most the children of
+// the pages the writer rebuilt, which is at most what the rebuilt pages
+// themselves name.
+func (l *lander) replacedChildren(ctx context.Context) ([]*block.BlockRef, error) {
+	// Only an adopted Volume's lists vouch, and only when the switch is on.
+	if !l.trustReplaced || len(l.replaced) == 0 {
+		return nil, nil
+	}
+
+	// Read each replaced block's list and gather the children it names.
+	replaced := normalizeChildren(l.replaced)
+	var children []*block.BlockRef
+	for _, ref := range replaced {
+		names, found, err := l.rec.GetChildren(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			children = append(children, names...)
+		}
+	}
+	return normalizeChildren(children), nil
+}
+
+// containsRef reports whether the sorted list names ref.
+func containsRef(sorted []*block.BlockRef, ref *block.BlockRef) bool {
+	_, ok := slices.BinarySearchFunc(sorted, ref, compareRefs)
+	return ok
 }
 
 // requireListed refuses a block whose bytes the store holds without a child

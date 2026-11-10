@@ -60,6 +60,9 @@ type Volume struct {
 	// collector frees what no held named root reaches, nil without atomic
 	// commits.
 	collector *block_gc.Collector
+	// trustReplaced is the Config's LandTrustReplaced, which Land reads as
+	// LandOptions TrustReplaced.
+	trustReplaced bool
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
 	// atomic is set when the store commits transactions atomically, which
@@ -221,6 +224,7 @@ func NewVolume(
 			return nil, volume.Permanent(err)
 		}
 		v.collector = v.newCollector(conf.GetCollectorFrees(), grace)
+		v.trustReplaced = conf.GetLandTrustReplaced()
 		if err := v.startLiveness(ctx); err != nil {
 			return nil, err
 		}

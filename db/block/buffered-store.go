@@ -23,6 +23,9 @@ type pendingBlock struct {
 	queued        bool
 	borrowed      bool
 	metadataBytes int
+	// replaced is the writer's replaced blocks, as PutBatchEntry.Replaced. A
+	// repeat put of a pending block keeps the first put's list.
+	replaced []*BlockRef
 }
 
 // covers reports whether the queued block already carries refs, and carries
@@ -143,12 +146,12 @@ func (s *BufferedStore) BeginReadOperation(context.Context) (StoreOps, func(), e
 // PutBlock buffers a block in memory and drains synchronously only when
 // backpressure requires capacity.
 func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return s.putBlock(ctx, data, opts, true)
+	return s.putBlock(ctx, data, opts, true, nil)
 }
 
 // putBlock verifies and buffers a block, optionally resolving prior existence.
 // Batch callers discard the existence result and let storage deduplicate at drain.
-func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts, checkExists bool) (*BlockRef, bool, error) {
+func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts, checkExists bool, replaced []*BlockRef) (*BlockRef, bool, error) {
 	// Require a live write context and nonempty block data.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
@@ -252,6 +255,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		refs:          CloneBlockRefs(opts.GetRefs()),
 		refsKnown:     opts.GetRefsKnown(),
 		metadataBytes: metadataBytes,
+		replaced:      replaced,
 	}
 	for {
 		// Require a live write context before acquiring queue capacity.
@@ -363,7 +367,7 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 			ForceBlockRef: ref,
 			Refs:          CloneBlockRefs(entry.Refs),
 			RefsKnown:     entry.RefsKnown,
-		}, false)
+		}, false, entry.Replaced)
 		if err != nil {
 			return nil, err
 		}
@@ -825,6 +829,7 @@ func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 			Refs:      pending.refs,
 			RefsKnown: pending.refsKnown,
 			Tombstone: pending.tombstone,
+			Replaced:  pending.replaced,
 		})
 	}
 

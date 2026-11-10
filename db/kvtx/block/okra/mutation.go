@@ -81,7 +81,7 @@ func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
 		return t.setRootFromLevelNodes(ctx, 0, []okraLevelNode{
 			{entry: &Entry{Anchor: true, Hash: mustAnchorHash()}},
 			nextNode,
-		})
+		}, nil)
 	}
 
 	// Find the existing leaf entry before replacing it.
@@ -196,11 +196,16 @@ func (t *Tx) replaceLevelEntries(
 			return err
 		}
 
-		// Retain unchanged entries and their child cursors from the source window.
+		// Retain unchanged entries and their child cursors from the source
+		// window, and the stored pages it replaces, whose lists name them.
 		var windowNodes []okraLevelNode
+		var replaced []*block.BlockRef
 		for _, path := range paths {
 			frame := path.leaf()
 			oldParentKeys = append(oldParentKeys, pageStartKey(frame.page))
+			if ref := frame.cursor.GetRef(); !ref.GetEmpty() {
+				replaced = append(replaced, ref)
+			}
 			for idx, ent := range frame.page.GetEntries() {
 				if containsSortedNodeKey(oldKeys, entryKey(ent)) {
 					continue
@@ -233,7 +238,7 @@ func (t *Tx) replaceLevelEntries(
 		// Install the new root directly when rebuilding the root window.
 		if level == t.root.GetHeight() {
 			// There is one source root page, hence exactly one window at this level.
-			return t.setRootFromLevelNodes(ctx, level, windowNodes)
+			return t.setRootFromLevelNodes(ctx, level, windowNodes, replaced)
 		}
 
 		// Build replacement pages and carry their entries into the parent level.
@@ -241,6 +246,7 @@ func (t *Tx) replaceLevelEntries(
 		if err != nil {
 			return err
 		}
+		markReplaced(pages, replaced)
 		parents, err := parentNodesForPages(pages)
 		if err != nil {
 			return err
@@ -353,11 +359,12 @@ func (t *Tx) descendPagePath(
 
 // setRootFromLevelNodes builds pages from the nodes and collapses upward until
 // a single-entry page above level becomes the new root.
-func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []okraLevelNode) error {
+func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []okraLevelNode, replaced []*block.BlockRef) error {
 	pages, err := t.buildPagesFromLevelNodes(level, nodes, nil)
 	if err != nil {
 		return err
 	}
+	markReplaced(pages, replaced)
 	for {
 		if len(pages) == 1 && len(pages[0].page.GetEntries()) == 1 && pages[0].page.GetLevel() > 0 {
 			return t.setRootPage(ctx, pages[0])
@@ -371,6 +378,18 @@ func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []ok
 		if err != nil {
 			return err
 		}
+	}
+}
+
+// markReplaced records the stored pages a rebuilt window replaced on the
+// first page built in their place, so the write reports them to the store as
+// the batch's replaced blocks. The list holds one ref per old page the window
+// loaded, so it is bounded by the pages the mutation already read. A first
+// page a later rebuild or root collapse drops takes the list with it, and its
+// children ask the store as before.
+func markReplaced(pages []okraBuiltPage, replaced []*block.BlockRef) {
+	if len(pages) != 0 && len(replaced) != 0 {
+		pages[0].cursor.SetReplaced(replaced)
 	}
 }
 

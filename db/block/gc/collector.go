@@ -391,7 +391,7 @@ func (c *Collector) sweepLeases(ctx context.Context, rec *Records, blocks block.
 	for _, bucketID := range slices.Sorted(maps.Keys(lapsed)) {
 		moves = append(moves, BucketRoots{BucketID: bucketID, Roots: lapsed[bucketID]})
 	}
-	if _, err := Land(ctx, rec, blocks, now, nil, moves...); err != nil {
+	if _, err := Land(ctx, rec, blocks, LandOptions{Now: now}, nil, moves...); err != nil {
 		return 0, false, err
 	}
 	res.Lapsed += uint64(len(found)) //nolint:gosec // counts are never negative.

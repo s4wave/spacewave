@@ -96,7 +96,7 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 	// windows rebuild and propagate upward.
 	if empty {
 		if len(nodes) > 1 {
-			return t.setRootFromLevelNodes(ctx, 0, nodes)
+			return t.setRootFromLevelNodes(ctx, 0, nodes, nil)
 		}
 		return ctx.Err()
 	}

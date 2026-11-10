@@ -2713,7 +2713,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		// A fresh adoption of the same Volume reaches the same counts and
 		// queue.
 		netted := livenessRecords(t, store, 'H', 'Q')
-		markUnadopted(t, v)
+		setAdoption(t, v, block_gc.Adoption_ADOPTION_UNADOPTED)
 		if _, err := v.Adopt(ctx); err != nil {
 			t.Fatal(err)
 		}
@@ -3023,7 +3023,7 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, false, "N")
 
 		// A recount finds P at zero, and the free parks it.
-		markUnadopted(t, v)
+		setAdoption(t, v, block_gc.Adoption_ADOPTION_UNADOPTED)
 		if res, err := v.Adopt(ctx); err != nil || res.Queued != 1 {
 			t.Fatalf("readopt = %+v err %v, want P queued", res, err)
 		}
@@ -3268,16 +3268,16 @@ func setListsUnverified(t *testing.T, v *Volume, unverified bool) {
 	}
 }
 
-// markUnadopted returns an adopted Volume to unadopted, as one that predates
-// adoption, keeping its records.
-func markUnadopted(t *testing.T, v *Volume) {
+// setAdoption sets the Volume's adoption, keeping its records: unadopted,
+// as one that predates adoption, or adopting, as one an adoption is counting.
+func setAdoption(t *testing.T, v *Volume, adoption block_gc.Adoption) {
 	t.Helper()
 	err := collectorStore{v: v}.Update(t.Context(), func(rec *block_gc.Records, _ block.StoreOps) error {
 		state, err := rec.GetState(t.Context())
 		if err != nil {
 			return err
 		}
-		state.Adoption = block_gc.Adoption_ADOPTION_UNADOPTED
+		state.Adoption = adoption
 		return rec.SetState(t.Context(), state)
 	})
 	if err != nil {
@@ -3568,4 +3568,154 @@ func countPrefix(t *testing.T, store *store_kvtx_inmem.Store, prefix []byte) int
 		t.Fatal(err)
 	}
 	return n
+}
+
+// TestLandReplacedVouchesOnlyByStoredList proves the batch's replaced blocks
+// skip a child's listed check only where the store's own list for one of them
+// names the child, so the set cannot widen what the store vouches for.
+func TestLandReplacedVouchesOnlyByStoredList(t *testing.T) {
+	// newVolume opens an adopted Volume with LandTrustReplaced on.
+	newVolume := func(t *testing.T) *Volume {
+		t.Helper()
+		v, _ := newLivenessVolume(t, true)
+		v.trustReplaced = true
+		return v
+	}
+
+	// orphan stores bytes below the Volume's liveness, with no list.
+	orphan := func(t *testing.T, v *Volume, tr testTree, name string) {
+		t.Helper()
+		if _, _, err := v.Store.PutBlock(t.Context(), tr[name].Data, &block.PutOpts{RefsKnown: true}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("orphan the replaced list does not name", func(t *testing.T) {
+		// Q -> X is landed. P replaces Q and names X and the orphan O: X
+		// skips on Q's list, O asks the store and is refused.
+		v := newVolume(t)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "X")
+		tr.add(t, "O")
+		q := tr.add(t, "Q", "X")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X", "Q"), []block.NamedRoot{{Name: "q", Ref: q}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		p := tr.add(t, "P", "X", "O")
+		tr["P"].Replaced = []*block.BlockRef{q}
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "q", Ref: p, Previous: q}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("parent naming an orphan = %v, want ErrRefsUnknown", err)
+		}
+	})
+
+	t.Run("wrong replaced block that does not name the orphan", func(t *testing.T) {
+		// The hint names an unrelated listed block W -> Y. Its list does not
+		// name O, so O still asks the store and is refused.
+		v := newVolume(t)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "Y")
+		tr.add(t, "O")
+		w := tr.add(t, "W", "Y")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("Y", "W"), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		p := tr.add(t, "P", "O")
+		tr["P"].Replaced = []*block.BlockRef{w}
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "p", Ref: p}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("wrong replaced block = %v, want ErrRefsUnknown", err)
+		}
+	})
+
+	t.Run("stored list naming an orphan", func(t *testing.T) {
+		// W lands naming O while O is unstored, which passes; then O's
+		// bytes arrive below liveness. W's list now names an orphan, the
+		// state the skip's invariant excludes. Any hint at W, right or
+		// wrong, skips O's check and the Land passes, so only the invariant
+		// guards this case.
+		v := newVolume(t)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "O")
+		w := tr.add(t, "W", "O")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("W"), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		p := tr.add(t, "P", "O")
+		tr["P"].Replaced = []*block.BlockRef{w}
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "p", Ref: p}})
+		if err != nil {
+			t.Fatalf("replaced list naming an orphan = %v, want the skip to pass it", err)
+		}
+		v.trustReplaced = false
+		p2 := tr.add(t, "P2", "O")
+		tr["P2"].Replaced = []*block.BlockRef{w}
+		err = v.SetBucketRoots(ctx, "b", tr.entries("P2"), []block.NamedRoot{{Name: "p2", Ref: p2}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("with the switch off = %v, want ErrRefsUnknown", err)
+		}
+	})
+
+	t.Run("adopting Volume ignores the replaced list", func(t *testing.T) {
+		// W's stored list names O, which then gets bytes and no list, as a
+		// block from before the journal can. While an adoption counts the
+		// Volume, no list vouches, so O asks the store and is refused.
+		v := newVolume(t)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "O")
+		w := tr.add(t, "W", "O")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("W"), []block.NamedRoot{{Name: "w", Ref: w}}); err != nil {
+			t.Fatal(err)
+		}
+		orphan(t, v, tr, "O")
+		setAdoption(t, v, block_gc.Adoption_ADOPTION_ADOPTING)
+		p := tr.add(t, "P", "O")
+		tr["P"].Replaced = []*block.BlockRef{w}
+		err := v.SetBucketRoots(ctx, "b", tr.entries("P"), []block.NamedRoot{{Name: "p", Ref: p}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("adopting Volume = %v, want ErrRefsUnknown", err)
+		}
+	})
+
+	t.Run("fill naming a bare block, a known hole", func(t *testing.T) {
+		// B has bytes and no list and nothing names it, as a block from
+		// before the journal can survive adoption. A cache fill of P writes
+		// P's list naming B without B's listed check, so an adopted Volume's
+		// stored list now names a bare block. Known hole: a Land that
+		// replaces P skips B's check and passes, where the switch off
+		// refuses. When LandFill refuses B, the fill fails and this case
+		// must change to expect that.
+		v := newVolume(t)
+		ctx := t.Context()
+		tr := testTree{}
+		tr.add(t, "B")
+		orphan(t, v, tr, "B")
+		fill := tr.add(t, "P", "B")
+		err := v.withDirectFill(ctx, func(p *physicalTx) error {
+			_, err := block_gc.LandFill(ctx, p.rec, p.blocks, v.now(), tr.entries("P"))
+			return err
+		})
+		if err != nil {
+			t.Fatalf("fill naming a bare block = %v, want the known hole to pass it", err)
+		}
+		p2 := tr.add(t, "P2", "B")
+		tr["P2"].Replaced = []*block.BlockRef{fill}
+		v.trustReplaced = false
+		err = v.SetBucketRoots(ctx, "b", tr.entries("P2"), []block.NamedRoot{{Name: "p", Ref: p2}})
+		if !errors.Is(err, block.ErrRefsUnknown) {
+			t.Fatalf("with the switch off = %v, want ErrRefsUnknown", err)
+		}
+		v.trustReplaced = true
+		err = v.SetBucketRoots(ctx, "b", tr.entries("P2"), []block.NamedRoot{{Name: "p", Ref: p2}})
+		if err != nil {
+			t.Fatalf("replacing the fill = %v, want the known hole to pass it", err)
+		}
+	})
 }

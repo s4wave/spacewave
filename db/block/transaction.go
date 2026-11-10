@@ -525,7 +525,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
 							putBlocks.Add(1)
 							RecordWrite(ctx, len(dat))
-							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false)
+							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false, bn.replaced)
 							writeTask.End()
 							if err != nil {
 								handleErr(err)

@@ -23,6 +23,9 @@ type handle struct {
 	shared bool
 	// blkPreWrite transforms the decoded block before writing.
 	blkPreWrite func(b any) error
+	// replaced is what the write of this block reports as replaced, as
+	// PutBatchEntry.Replaced.
+	replaced []*BlockRef
 }
 
 // Clone clones the handle object.
@@ -37,6 +40,7 @@ func (h *handle) Clone() *handle {
 		blk:         h.blk,
 		shared:      h.shared,
 		blkPreWrite: h.blkPreWrite,
+		replaced:    h.replaced,
 	}
 }
 

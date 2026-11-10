@@ -183,7 +183,8 @@ func (v *Volume) land(ctx context.Context, p *physicalTx, bucketID string, entri
 // landMoves stores entries and moves the roots of each bucket in p in one
 // Land, as block_gc.Land describes, at the Volume's clock.
 func (v *Volume) landMoves(ctx context.Context, p *physicalTx, entries []*block.PutBatchEntry, moves ...block_gc.BucketRoots) ([]bool, error) {
-	return block_gc.Land(ctx, p.rec, p.blocks, v.now(), entries, moves...)
+	opts := block_gc.LandOptions{Now: v.now(), TrustReplaced: v.trustReplaced}
+	return block_gc.Land(ctx, p.rec, p.blocks, opts, entries, moves...)
 }
 
 // now returns the Volume's clock.

@@ -45,6 +45,17 @@ export interface Config {
    * Empty uses the collector's default of 15 minutes.
    */
   collectorGraceDur?: string
+  /**
+   * LandTrustReplaced lets Land, on an adopted Volume, skip the listed check
+   * of a child that the stored child list of a block the batch replaced
+   * names, such as a page of the old version of a tree window the writer
+   * rebuilt. That check guards against a block naming a child whose bytes
+   * the Volume holds without a list, so off, every child a born block names
+   * outside its batch takes it. It stays off until a cache fill refuses a
+   * child with bytes and no list, since a fill naming one would let the skip
+   * pass it, and then until it has run in production.
+   */
+  landTrustReplaced?: boolean
 }
 
 export const Config: MessageType<Config> =
@@ -53,4 +64,5 @@ export const Config: MessageType<Config> =
     [3, 'disable_hash_get', 8],
     [7, 'collector_frees', 8],
     [8, 'collector_grace_dur', 9],
+    [9, 'land_trust_replaced', 8],
   ])

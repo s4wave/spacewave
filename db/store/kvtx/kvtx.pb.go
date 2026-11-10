@@ -41,6 +41,15 @@ type Config struct {
 	// time a reader takes to pin a head it saw and the lease of a leased root.
 	// Empty uses the collector's default of 15 minutes.
 	CollectorGraceDur string `protobuf:"bytes,8,opt,name=collector_grace_dur,json=collectorGraceDur,proto3" json:"collectorGraceDur,omitempty"`
+	// LandTrustReplaced lets Land, on an adopted Volume, skip the listed check
+	// of a child that the stored child list of a block the batch replaced
+	// names, such as a page of the old version of a tree window the writer
+	// rebuilt. That check guards against a block naming a child whose bytes
+	// the Volume holds without a list, so off, every child a born block names
+	// outside its batch takes it. It stays off until a cache fill refuses a
+	// child with bytes and no list, since a fill naming one would let the skip
+	// pass it, and then until it has run in production.
+	LandTrustReplaced bool `protobuf:"varint,9,opt,name=land_trust_replaced,json=landTrustReplaced,proto3" json:"landTrustReplaced,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -77,6 +86,13 @@ func (x *Config) GetCollectorGraceDur() string {
 	return ""
 }
 
+func (x *Config) GetLandTrustReplaced() bool {
+	if x != nil {
+		return x.LandTrustReplaced
+	}
+	return false
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -86,6 +102,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableHashGet = m.DisableHashGet
 	r.CollectorFrees = m.CollectorFrees
 	r.CollectorGraceDur = m.CollectorGraceDur
+	r.LandTrustReplaced = m.LandTrustReplaced
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -112,6 +129,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.CollectorGraceDur != that.CollectorGraceDur {
+		return false
+	}
+	if this.LandTrustReplaced != that.LandTrustReplaced {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -153,6 +173,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("collectorGraceDur")
 		s.WriteString(x.CollectorGraceDur)
 	}
+	if x.LandTrustReplaced || s.HasField("landTrustReplaced") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("landTrustReplaced")
+		s.WriteBool(x.LandTrustReplaced)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -182,6 +207,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "collector_grace_dur", "collectorGraceDur":
 			s.AddField("collector_grace_dur")
 			x.CollectorGraceDur = s.ReadString()
+		case "land_trust_replaced", "landTrustReplaced":
+			s.AddField("land_trust_replaced")
+			x.LandTrustReplaced = s.ReadBool()
 		}
 	})
 }
@@ -220,6 +248,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.LandTrustReplaced {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LandTrustReplaced)
+		i--
+		dAtA[i] = 0x48
+	}
 	if len(m.CollectorGraceDur) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.CollectorGraceDur)
 		i--
@@ -253,6 +286,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableHashGet)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.CollectorFrees)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CollectorGraceDur)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.LandTrustReplaced)
 	n += len(m.unknownFields)
 	return n
 }
@@ -275,6 +309,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.CollectorGraceDur != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "collector_grace_dur")
 		protobuf_go_lite.TextWriteString(&sb, x.CollectorGraceDur)
+	}
+	if x.LandTrustReplaced != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "land_trust_replaced")
+		protobuf_go_lite.TextWriteBool(&sb, x.LandTrustReplaced)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -344,6 +382,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.CollectorGraceDur = v
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LandTrustReplaced", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LandTrustReplaced = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

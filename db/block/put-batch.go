@@ -19,4 +19,11 @@ type PutBatchEntry struct {
 	// put without External stores them. A store that keeps no liveness stores
 	// the bytes as for any entry, which loses nothing.
 	External bool
+	// Replaced lists blocks the writer's change replaced, such as the old
+	// pages of a tree window it rebuilt. The list is advisory and belongs to
+	// the batch, not to this entry: a Volume that keeps liveness may read the
+	// stored child list of each and treat a child any of them names as
+	// listed. It trusts only lists it reads from its own store, so a wrong or
+	// unknown ref costs a read and vouches for nothing.
+	Replaced []*BlockRef
 }
