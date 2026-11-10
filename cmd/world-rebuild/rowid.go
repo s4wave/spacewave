@@ -274,9 +274,11 @@ func pointReads(db *sql.DB, query string, n, chunk int, fn func(i int, st *sql.S
 
 // valueReader reads one value by the id scanPhysical passed.
 func valueReader(db *sql.DB, table string, rowid bool) (func(id any) ([]byte, error), func(), error) {
-	q := "SELECT value FROM " + table + " WHERE key = ?"
+	// The driver scans an empty blob as nil, as it does NULL: read the
+	// type alongside, so an empty blob stays an empty blob.
+	q := "SELECT value, typeof(value) FROM " + table + " WHERE key = ?"
 	if rowid {
-		q = "SELECT value FROM " + table + " WHERE rowid = ?"
+		q = "SELECT value, typeof(value) FROM " + table + " WHERE rowid = ?"
 	}
 	st, err := db.Prepare(q)
 	if err != nil {
@@ -284,7 +286,13 @@ func valueReader(db *sql.DB, table string, rowid bool) (func(id any) ([]byte, er
 	}
 	return func(id any) ([]byte, error) {
 		var v []byte
-		err := st.QueryRow(id).Scan(&v)
-		return v, err
+		var ty string
+		if err := st.QueryRow(id).Scan(&v, &ty); err != nil {
+			return nil, err
+		}
+		if v == nil && ty != "null" {
+			v = []byte{}
+		}
+		return v, nil
 	}, func() { st.Close() }, nil
 }

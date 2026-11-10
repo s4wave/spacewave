@@ -73,11 +73,28 @@ func runCount(o opts) (*countResult, error) {
 	res := &countResult{blocks: map[string]*tally{}, meta: map[string]*tally{}}
 
 	// Report the World's schema, read through an immutable open, which
-	// takes no lock.
+	// takes no lock. Schema copy does not carry refuses the count, as it
+	// refuses the copy.
+	schemaErr := fmt.Errorf("World schema unread; refusing")
 	if sdb, err := openImmutable(o.world); err == nil {
 		rows, err := schemaRows(sdb)
-		sdb.Close()
 		fmt.Printf("World schema (sqlite_master, as of the last checkpoint): %v %v\n", rows, err)
+		if table, _, terr := kvTable(sdb); terr != nil {
+			schemaErr = fmt.Errorf("World kv table: %w; refusing", terr)
+		} else {
+			schemaErr = onlyKVTable(sdb, table)
+		}
+		sdb.Close()
+	} else {
+		schemaErr = fmt.Errorf("World schema unread: %w; refusing", err)
+	}
+
+	// -needed-out is written aside and renamed into place only when the
+	// count does not refuse.
+	neededTmp := ""
+	if o.neededOut != "" {
+		neededTmp = o.neededOut + ".tmp"
+		defer os.Remove(neededTmp)
 	}
 	f := &facts{
 		marked:           map[string]struct{}{},
@@ -145,7 +162,7 @@ func runCount(o opts) (*countResult, error) {
 			if k.kind == kindCopy || k.kind == kindCopyDone {
 				f.noteCopy(k)
 			}
-			if (k.kind == kindMarked || k.kind == kindEvict || k.kind == kindReads) && !ownStore(o.storeID, obj) {
+			if (k.kind == kindMarked || k.kind == kindEvict || k.kind == kindReads) && !ownStore(o, obj) {
 				if k.kind != kindReads {
 					f.otherFacts[obj]++
 				}
@@ -301,7 +318,7 @@ func runCount(o opts) (*countResult, error) {
 		}
 	}
 	if o.neededOut != "" {
-		if err := writeCountNeeded(o.neededOut, dropped, hnum, packIDs, packSizes, badEntries); err != nil {
+		if err := writeCountNeeded(neededTmp, dropped, hnum, packIDs, packSizes, badEntries); err != nil {
 			return nil, err
 		}
 	}
@@ -417,6 +434,15 @@ func runCount(o opts) (*countResult, error) {
 	}
 	if err := unfinishedCopiesErr(f); err != nil {
 		return res, err
+	}
+	if schemaErr != nil {
+		return res, schemaErr
+	}
+	if neededTmp != "" {
+		if err := os.Rename(neededTmp, o.neededOut); err != nil {
+			return res, err
+		}
+		fmt.Printf("needed packs: %s renamed to %s\n", neededTmp, o.neededOut)
 	}
 	return res, nil
 }

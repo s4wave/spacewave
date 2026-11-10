@@ -527,4 +527,4 @@ func masterRows(db *sql.DB) (string, error) {
 
 // testObjPrefix is the test store's write-back object store prefix, shaped
 // like production's BlockStoreWritebackObjectStoreID: its id holds slashes.
-const testObjPrefix = "h/objs/p/local/acct1/blk/hyperline-world/writeback/"
+const testObjPrefix = objsPrefix + "p/local/" + prodAccount + "/blk/" + defaultStoreID + "/writeback/"

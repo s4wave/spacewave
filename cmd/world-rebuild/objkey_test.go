@@ -28,20 +28,20 @@ func TestObjKeySlashedID(t *testing.T) {
 	for _, c := range []struct {
 		key, obj, rest string
 	}{
-		{prodObj + "marked/" + b58, "p/local/acct1/blk/hyperline-world/writeback", "marked/" + b58},
-		{prodObj + "evictable/" + stamp + "/" + b58, "p/local/acct1/blk/hyperline-world/writeback", "evictable/" + stamp + "/" + b58},
-		{prodObj + "queue/" + stamp + "/" + b58, "p/local/acct1/blk/hyperline-world/writeback", "queue/" + stamp + "/" + b58},
-		{prodObj + "reads/" + stamp + "/" + stamp, "p/local/acct1/blk/hyperline-world/writeback", "reads/" + stamp + "/" + stamp},
-		{prodObj + "evictable-bytes", "p/local/acct1/blk/hyperline-world/writeback", "evictable-bytes"},
-		{prodObj + "epoch", "p/local/acct1/blk/hyperline-world/writeback", "epoch"},
-		{prodObj + "queue-count", "p/local/acct1/blk/hyperline-world/writeback", "queue-count"},
-		{prodObj + "backfill", "p/local/acct1/blk/hyperline-world/writeback", "backfill"},
-		{prodObj + "copy/remote-1", "p/local/acct1/blk/hyperline-world/writeback", "copy/remote-1"},
-		{prodObj + "copy-done/remote-1", "p/local/acct1/blk/hyperline-world/writeback", "copy-done/remote-1"},
+		{prodObj + "marked/" + b58, "p/local/hyperline-backend/blk/hyperline-world/writeback", "marked/" + b58},
+		{prodObj + "evictable/" + stamp + "/" + b58, "p/local/hyperline-backend/blk/hyperline-world/writeback", "evictable/" + stamp + "/" + b58},
+		{prodObj + "queue/" + stamp + "/" + b58, "p/local/hyperline-backend/blk/hyperline-world/writeback", "queue/" + stamp + "/" + b58},
+		{prodObj + "reads/" + stamp + "/" + stamp, "p/local/hyperline-backend/blk/hyperline-world/writeback", "reads/" + stamp + "/" + stamp},
+		{prodObj + "evictable-bytes", "p/local/hyperline-backend/blk/hyperline-world/writeback", "evictable-bytes"},
+		{prodObj + "epoch", "p/local/hyperline-backend/blk/hyperline-world/writeback", "epoch"},
+		{prodObj + "queue-count", "p/local/hyperline-backend/blk/hyperline-world/writeback", "queue-count"},
+		{prodObj + "backfill", "p/local/hyperline-backend/blk/hyperline-world/writeback", "backfill"},
+		{prodObj + "copy/remote-1", "p/local/hyperline-backend/blk/hyperline-world/writeback", "copy/remote-1"},
+		{prodObj + "copy-done/remote-1", "p/local/hyperline-backend/blk/hyperline-world/writeback", "copy-done/remote-1"},
 		{"h/objs/writeback/marked/" + b58, "writeback", "marked/" + b58},
 		{"h/objs/writeback/evictable-bytes", "writeback", "evictable-bytes"},
 		// A sub-key name inside the id: the shape of the rest decides.
-		{"h/objs/p/marked/writeback/x/writeback/marked/" + b58, "p/marked/writeback/x/writeback", "marked/" + b58},
+		{"h/objs/p/marked/x/writeback/marked/" + b58, "p/marked/x/writeback", "marked/" + b58},
 	} {
 		obj, rest, ok := objKey([]byte(c.key))
 		if !ok || obj != c.obj || rest != c.rest {
@@ -51,8 +51,9 @@ func TestObjKeySlashedID(t *testing.T) {
 	// Unknown and ambiguous layouts do not split, and parse as bad.
 	for _, key := range []string{
 		prodObj + "unknown-thing",
-		"h/objs/writeback/x/marked/" + b58,          // writeback segment, unknown layout
-		"h/objs/a/writeback/copy/b/writeback/epoch", // two boundaries
+		"h/objs/writeback/x/marked/" + b58,                    // writeback segment, unknown layout
+		"h/objs/a/writeback/copy/b/writeback/epoch",           // two boundaries
+		"h/objs/p/marked/writeback/x/writeback/marked/" + b58, // writeback inside the id
 		"h/objs/writeback",
 		prodObj + "evictable/" + b58, // no epoch
 	} {

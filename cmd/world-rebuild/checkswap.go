@@ -3,7 +3,9 @@ package main
 import (
 	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,14 +13,18 @@ import (
 )
 
 // fileStamp is what a source file looked like when copy opened it: its
-// header's file change counter (offset 24), its size and mtime, and its WAL's
-// size (0 when there is none: a reader may create an empty one).
+// header's file change counter (offset 24), its size and mtime, and its
+// WAL's size, mtime and header bytes 12-23, the checkpoint sequence and
+// salts, which move when the WAL resets even if it refills to the same size.
+// An empty or missing WAL stamps as zero: a reader may create an empty one.
 type fileStamp struct {
-	Path    string    `json:"path"`
-	Counter uint32    `json:"counter"`
-	Size    int64     `json:"size"`
-	MTime   time.Time `json:"mtime"`
-	WALSize int64     `json:"walSize"`
+	Path      string    `json:"path"`
+	Counter   uint32    `json:"counter"`
+	Size      int64     `json:"size"`
+	MTime     time.Time `json:"mtime"`
+	WALSize   int64     `json:"walSize"`
+	WALMTime  time.Time `json:"walMtime"`
+	WALHeader string    `json:"walHeader"`
 }
 
 // sourceStamps are the stamps of a copy's source World and pack index.
@@ -50,9 +56,24 @@ func stampFile(path string) (fileStamp, error) {
 	}
 	st.Counter = binary.BigEndian.Uint32(hdr[24:28])
 
-	// Read the WAL's size, if it has one.
-	if wi, err := os.Stat(path + "-wal"); err == nil {
-		st.WALSize = wi.Size()
+	// Read the WAL's size, mtime and header, if it holds anything.
+	wi, err := os.Stat(path + "-wal")
+	if err != nil || wi.Size() == 0 {
+		return st, nil
+	}
+	st.WALSize, st.WALMTime = wi.Size(), wi.ModTime().UTC()
+	w, err := os.Open(path + "-wal")
+	if err != nil {
+		return st, err
+	}
+	defer w.Close()
+	var wh [24]byte
+	n, err := io.ReadFull(w, wh[:])
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return st, fmt.Errorf("%s-wal: read header: %w", path, err)
+	}
+	if n > 12 {
+		st.WALHeader = hex.EncodeToString(wh[12:n])
 	}
 	return st, nil
 }
@@ -78,7 +99,8 @@ func stampSources(o opts) error {
 }
 
 // checkStamps compares the copy's sources with the stamps copy wrote, and
-// refuses if any moved: a change counter, size, mtime or WAL size.
+// refuses if any moved: a change counter, size, mtime, or WAL size, mtime,
+// checkpoint sequence or salts.
 func checkStamps(o opts) error {
 	// Read the stamps copy wrote.
 	b, err := os.ReadFile(stampPath(o.out))
@@ -108,6 +130,12 @@ func checkStamps(o opts) error {
 		}
 		if now.WALSize != w.WALSize {
 			moved = append(moved, fmt.Sprintf("%s WAL size %d, was %d", w.Path, now.WALSize, w.WALSize))
+		}
+		if !now.WALMTime.Equal(w.WALMTime) {
+			moved = append(moved, fmt.Sprintf("%s WAL mtime %s, was %s", w.Path, now.WALMTime.Format(time.RFC3339Nano), w.WALMTime.Format(time.RFC3339Nano)))
+		}
+		if now.WALHeader != w.WALHeader {
+			moved = append(moved, fmt.Sprintf("%s WAL checkpoint sequence and salts %s, were %s", w.Path, now.WALHeader, w.WALHeader))
 		}
 	}
 	if len(moved) != 0 {

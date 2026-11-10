@@ -58,6 +58,9 @@ type opts struct {
 	world   string
 	packs   string
 	storeID string
+	// wbID is the write-back object store id the drop rule takes facts
+	// from; empty is prodWritebackID(storeID).
+	wbID    string
 	out     string
 	chunk   int
 	pause   time.Duration
@@ -125,6 +128,7 @@ func main() {
 	fs.StringVar(&o.world, "world", "", "World SQLite file")
 	fs.StringVar(&o.packs, "packs", "", "pack index SQLite file")
 	fs.StringVar(&o.storeID, "store-id", defaultStoreID, "pack index block store id")
+	fs.StringVar(&o.wbID, "writeback-id", "", "write-back object store id the drop rule reads (default p/local/hyperline-backend/blk/<store-id>/writeback)")
 	fs.StringVar(&o.out, "out", "", "new World file (copy, verify)")
 
 	// SQLite reads and the pacing of reads of a live file.

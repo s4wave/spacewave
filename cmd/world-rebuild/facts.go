@@ -133,32 +133,38 @@ const wbSeg = "writeback"
 
 // splitObjKey splits an object store key into its store id and the key
 // inside it. Write-back store ids hold slashes (p/<provider>/<account>/blk/
-// <store>/writeback), so the split is at the one '/' that follows a
-// writeback segment and after which the rest is a key the write-back store
-// writes. No such '/' is splitUnknown if the key has a writeback segment,
-// else splitForeign; more than one is splitAmbiguous. Nothing is guessed.
+// <store>/writeback), so the split is after the key's first writeback
+// segment, and the rest must be a key the write-back store writes: a store
+// id never holds a writeback segment but its last. A key with no writeback
+// segment is splitForeign. A rest that is no such key is splitUnknown, and
+// a later writeback segment that also leaves one is splitAmbiguous. Nothing
+// is guessed.
 func splitObjKey(key []byte) (string, string, int) {
 	if !bytes.HasPrefix(key, []byte(objsPrefix)) {
 		return "", "", splitNotObj
 	}
 	s := string(key[len(objsPrefix):])
-	at, n := -1, 0
-	for i := len(wbSeg); i < len(s); i++ {
-		if s[i] != '/' || !isWritebackID(s[:i]) || !isSubKey(s[i+1:]) {
+	first, n := -1, 0
+	for i := len(wbSeg); i <= len(s); i++ {
+		if (i < len(s) && s[i] != '/') || !isWritebackID(s[:i]) {
 			continue
 		}
-		at = i
-		n++
+		if first < 0 {
+			first = i
+		}
+		if i < len(s) && isSubKey(s[i+1:]) {
+			n++
+		}
 	}
 	switch {
-	case n == 1:
-		return s[:at], s[at+1:], splitOK
+	case first < 0:
+		return "", "", splitForeign
+	case first == len(s) || !isSubKey(s[first+1:]):
+		return "", "", splitUnknown
 	case n > 1:
 		return "", "", splitAmbiguous
-	case s == wbSeg || strings.HasPrefix(s, wbSeg+"/") || strings.Contains(s, "/"+wbSeg+"/") || strings.HasSuffix(s, "/"+wbSeg):
-		return "", "", splitUnknown
 	}
-	return "", "", splitForeign
+	return s[:first], s[first+1:], splitOK
 }
 
 // isWritebackID reports whether id is a write-back object store id: its last
@@ -167,11 +173,31 @@ func isWritebackID(id string) bool {
 	return id == wbSeg || strings.HasSuffix(id, "/"+wbSeg)
 }
 
+// prodAccount is the provider account of production's write-back store:
+// its id is p/local/hyperline-backend/blk/<store>/writeback.
+const prodAccount = "hyperline-backend"
+
+// prodWritebackID is production's write-back object store id for a block
+// store, as core/provider/local/id.go BlockStoreWritebackObjectStoreID
+// builds it.
+func prodWritebackID(storeID string) string {
+	return "p/local/" + prodAccount + "/blk/" + storeID + "/" + wbSeg
+}
+
+// writebackID is the write-back object store id the drop rule takes facts
+// from.
+func (o opts) writebackID() string {
+	if o.wbID != "" {
+		return o.wbID
+	}
+	return prodWritebackID(o.storeID)
+}
+
 // ownStore reports whether obj is the write-back object store of the block
-// store rebuilt: p/<provider>/<account>/blk/<storeID>/writeback, or a test
-// id of the bare writeback.
-func ownStore(storeID, obj string) bool {
-	return obj == wbSeg || strings.HasSuffix(obj, "/blk/"+storeID+"/"+wbSeg)
+// store rebuilt: its id exactly. Any other write-back store, of another
+// provider, account or block store, is another store's.
+func ownStore(o opts, obj string) bool {
+	return obj == o.writebackID()
 }
 
 // otherFactsErr refuses a World where another write-back store holds a
@@ -275,7 +301,9 @@ func objKeyOf(key []byte) objKeyInfo {
 		k.kind, k.digest = kindMarked, d
 	case strings.HasPrefix(rest, evictSeg):
 		parts := strings.SplitN(rest[len(evictSeg):], "/", 2)
-		if len(parts) != 2 {
+		if len(parts) != 2 || !isStamp(parts[0]) {
+			// The store's parseEvictKey (evict.go:140) refuses an
+			// epoch that is not 16 hex digits.
 			k.kind = kindBad
 			return k
 		}
@@ -286,12 +314,13 @@ func objKeyOf(key []byte) objKeyInfo {
 		}
 		k.kind, k.digest, k.hashType = kindEvict, string(h.GetHash()), h.GetHashType()
 	case strings.HasPrefix(rest, readsSeg):
-		r := rest[len(readsSeg):]
-		if len(r) < 16 {
+		// reads/<16 hex generation>/<16 hex save time>, reads.go:73-75.
+		gen, at, ok := strings.Cut(rest[len(readsSeg):], "/")
+		if !ok || !isStamp(gen) || !isStamp(at) {
 			k.kind = kindBad
 			return k
 		}
-		k.kind, k.gen = kindReads, r[:16]
+		k.kind, k.gen = kindReads, gen
 	case rest == evictBytesSeg:
 		k.kind = kindBytes
 	case strings.HasPrefix(rest, "queue/"):
@@ -302,6 +331,16 @@ func objKeyOf(key []byte) objKeyInfo {
 		k.kind, k.gen = kindCopyDone, rest[len("copy-done/"):]
 	}
 	return k
+}
+
+// isStamp reports whether s is a write-back key's time stamp or epoch: 16
+// hex digits, a big-endian uint64.
+func isStamp(s string) bool {
+	if len(s) != 16 {
+		return false
+	}
+	_, err := hex.DecodeString(s)
+	return err == nil
 }
 
 // loadFacts reads the markers, eviction queue and read generations of every
@@ -343,7 +382,7 @@ func loadFacts(o opts, world *sql.DB, table string, packs *sql.DB) (*facts, erro
 		case kindCopy, kindCopyDone:
 			f.noteCopy(k)
 		case kindMarked, kindEvict, kindReads:
-			if !ownStore(o.storeID, obj) {
+			if !ownStore(o, obj) {
 				if k.kind != kindReads {
 					f.otherFacts[obj]++
 				}
