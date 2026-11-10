@@ -3,6 +3,7 @@
 package block_store_s3
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -199,6 +201,132 @@ func TestAdoptBucketPack(t *testing.T) {
 		t.Fatalf("adopted block read = %q, %v, %v", data, ok, err)
 	}
 
+	// Each block's row holds its true extent, taken from the whole pack, and
+	// every block reads back through the index. A wrong extent would still
+	// read, through the pack, so the extents are checked themselves.
+	bucket.mtx.Lock()
+	body := []byte(bucket.objects[key])
+	bucket.mtx.Unlock()
+	truth := packExtents(t, body)
+	for i, ref := range refs {
+		k := packfile.BlockKey(ref.GetHash())
+		var id string
+		var off int64
+		var size int
+		waitFor(t, "the adopted pack's rows hold their extents", func() bool {
+			var ok bool
+			var err error
+			id, off, size, ok, err = local.index.locateExtent(ctx, k)
+			return err == nil && ok
+		})
+		want, ok := truth[string(k)]
+		if !ok {
+			t.Fatalf("block %d is not in the pack", i)
+		}
+		if id != entry.GetId() || uint64(off) != want.GetOffset() || uint64(size) != want.GetSize() {
+			t.Fatalf("block %d extent = %s %d+%d, want %s %d+%d", i, id, off, size, entry.GetId(), want.GetOffset(), want.GetSize())
+		}
+		wantData := fmt.Sprintf("node block %d", i)
+		if data, ok, err := local.GetBlock(ctx, ref); err != nil || !ok || string(data) != wantData {
+			t.Fatalf("block %d read = %q, %v, %v", i, data, ok, err)
+		}
+	}
+}
+
+// TestAdoptBucketPackOtherBody puts another pack of the same size and block
+// count at a pack's key, so every check the object can make of itself passes,
+// and checks that adopting the pack from the bucket fails on its entry's bloom
+// filter and writes nothing to the index.
+func TestAdoptBucketPackOtherBody(t *testing.T) {
+	// A local store that never lists the bucket, and two packs from two nodes.
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	kv := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	local := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{KeepPacks: true, Index: kv, SoleWriter: true})
+	t.Cleanup(local.Close)
+	adoptBlocks(ctx, t, local, "own", 1)
+	nodeA := newTestPackStore(t, client)
+	refsA := adoptBlocks(ctx, t, nodeA, "nodeA", 3)
+	entryA := nodeEntry(ctx, t, nodeA)
+	nodeB := newTestPackStore(t, client)
+	refsB := adoptBlocks(ctx, t, nodeB, "nodeB", 3)
+	var entryB *packfile.PackfileEntry
+	if err := nodeB.loadEntries(ctx); err != nil {
+		t.Fatal(err)
+	}
+	nodeB.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, e := range nodeB.entries {
+			if e.GetBlockCount() == 3 && e.GetId() != entryA.GetId() {
+				entryB = e
+			}
+		}
+	})
+	if entryB == nil {
+		t.Fatal("no second three-block pack")
+	}
+	if entryA.GetSizeBytes() != entryB.GetSizeBytes() || entryA.GetBlockCount() != entryB.GetBlockCount() {
+		t.Fatalf("packs differ in shape: %d/%d and %d/%d bytes/blocks", entryA.GetSizeBytes(), entryA.GetBlockCount(), entryB.GetSizeBytes(), entryB.GetBlockCount())
+	}
+
+	// B's body sits at A's key.
+	keyA := "p/" + packDir + entryA.GetId()
+	bucket.mtx.Lock()
+	bodyA := bucket.objects[keyA]
+	bucket.objects[keyA] = bucket.objects["p/"+packDir+entryB.GetId()]
+	bucket.mtx.Unlock()
+
+	// Adopting A fails and registers nothing of either pack.
+	if err := local.AdoptBucketPack(ctx, entryA); err == nil {
+		t.Fatal("adopted another pack's body as A")
+	} else {
+		t.Logf("other body: %v", err)
+	}
+	if held, err := local.HasPackfile(ctx, entryA.GetId()); err != nil || held {
+		t.Fatalf("pack counts as held: %v %v", held, err)
+	}
+	for name, refs := range map[string][]*block.BlockRef{"A": refsA, "B": refsB} {
+		found, err := local.LocateBlocks(ctx, refs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, ref := range refs {
+			if found[i] {
+				t.Fatalf("block %d of %s located", i, name)
+			}
+			if _, _, _, ok, err := local.index.locateExtent(ctx, packfile.BlockKey(ref.GetHash())); err != nil || ok {
+				t.Fatalf("block %d of %s has an extent row: %v %v", i, name, ok, err)
+			}
+		}
+	}
+
+	// With A's own body back, A adopts.
+	bucket.mtx.Lock()
+	bucket.objects[keyA] = bodyA
+	bucket.mtx.Unlock()
+	if err := local.AdoptBucketPack(ctx, entryA); err != nil {
+		t.Fatal(err)
+	}
+	found, err := local.LocateBlocks(ctx, refsA)
+	if err != nil || !found[0] || !found[1] || !found[2] {
+		t.Fatalf("located %v after adoption: %v", found, err)
+	}
+}
+
+// packExtents returns the extent of each key in the whole pack body, by key.
+func packExtents(t *testing.T, body []byte) map[string]*kvfile.IndexEntry {
+	t.Helper()
+	rdr, err := kvfile.BuildReader(bytes.NewReader(body), uint64(len(body)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := make(map[string]*kvfile.IndexEntry)
+	if err := rdr.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
+		out[string(ie.GetKey())] = ie.CloneVT()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // countingCache is a RangeCache that answers data, counting its reads.

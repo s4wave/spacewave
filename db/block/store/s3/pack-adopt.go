@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 )
@@ -34,7 +35,9 @@ func (s *PackStore) AdoptPack(ctx context.Context, entry *packfile.PackfileEntry
 //
 // Invariant: a pack is registered only once the bucket holds an object at its
 // key of exactly the entry's size, whose index lists exactly the entry's block
-// count of distinct keys.
+// count of distinct keys, each of which the entry's bloom filter holds. The
+// keys come from the object itself, so the filter is what ties the object to
+// the entry: another pack of the same size and count at this key fails it.
 func (s *PackStore) AdoptBucketPack(ctx context.Context, entry *packfile.PackfileEntry) error {
 	return s.adopt(ctx, entry, func(ctx context.Context) ([][]byte, []byte, error) {
 		return s.verifyBucketPack(ctx, entry)
@@ -118,10 +121,42 @@ func (s *PackStore) verifyBucketPack(ctx context.Context, entry *packfile.Packfi
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// The keys come from the object itself, so only the entry's bloom filter
+	// ties the object to the entry: each key must be in it.
+	if err := checkEntryBloom(entry, keys); err != nil {
+		return nil, nil, err
+	}
 	if err := checkAdopted(tail, entry, keys); err != nil {
 		return nil, nil, err
 	}
 	return keys, tail, nil
+}
+
+// checkEntryBloom returns an error unless the entry carries a bloom filter
+// that holds every one of keys.
+func checkEntryBloom(entry *packfile.PackfileEntry, keys [][]byte) error {
+	// Decode the entry's filter, which must be there.
+	data := entry.GetBloomFilter()
+	if len(data) == 0 {
+		return errors.New("entry has no bloom filter to check the pack's keys against")
+	}
+	var pbf bloom.BloomFilter
+	if err := pbf.UnmarshalVT(data); err != nil {
+		return errors.Wrap(err, "decode entry bloom filter")
+	}
+	filter := pbf.ToBloomFilter()
+	if filter == nil {
+		return errors.New("entry has no bloom filter to check the pack's keys against")
+	}
+
+	// Every key must test present.
+	for _, k := range keys {
+		if !filter.Test(k) {
+			return errors.New("pack holds a block its entry's bloom filter does not")
+		}
+	}
+	return nil
 }
 
 // verifyAdopted reads the pack's index from the bucket and returns it, or an
