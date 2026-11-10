@@ -37,6 +37,10 @@ type PackaheadConfig struct {
 	// a trickle of writes still finalizes into a pack that can upload. Zero
 	// uses 30 seconds.
 	Linger time.Duration
+	// ReserveBytes is the free disk each store's log leaves: a write that
+	// would leave less fails with packahead.ErrReserve and stores nothing, so
+	// the logs never take the space the Volume needs. Zero keeps none.
+	ReserveBytes int64
 }
 
 // packaheads maps the storage volume ID of an account to the
@@ -85,7 +89,7 @@ func (t *bstoreTracker) openPacks(ctx context.Context, le *logrus.Entry, local b
 	if linger <= 0 {
 		linger = packLinger
 	}
-	log, err := packahead.Open(ctx, dir, packahead.Options{Linger: linger})
+	log, err := packahead.Open(ctx, dir, packahead.Options{Linger: linger, ReserveBytes: conf.ReserveBytes})
 	if err != nil {
 		return nil, errors.Wrap(err, "open packahead")
 	}
