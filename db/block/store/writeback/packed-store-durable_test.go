@@ -164,3 +164,62 @@ func TestPackedStoreTombstoneKeepsPending(t *testing.T) {
 		t.Fatalf("pending block does not read after its tombstone: %v, %v", stored, err)
 	}
 }
+
+// TestPackedStorePutAfterTombstone stores a diverted block, tombstones it
+// while its pack is not uploaded, and stores it again: the second put finds
+// no live copy, so it reports the block new, and the block stays readable
+// after the pack that held it uploads.
+func TestPackedStorePutAfterTombstone(t *testing.T) {
+	ctx := t.Context()
+	env := newTestEnv(t)
+	log, err := packahead.Open(ctx, t.TempDir(), packahead.Options{Linger: 10 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer log.Close()
+	s := NewPackedStore(log, ownedStore{env.vol}, true)
+
+	data := []byte("stored again after its tombstone")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put := []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}
+	if _, err := s.PutBlockBatch(ctx, put); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
+		t.Fatal(err)
+	}
+	existed, err := s.PutBlockBatch(ctx, put)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if existed[0] {
+		t.Fatal("put after a tombstone reports the block existed")
+	}
+
+	// Upload every pack; the block stored again stays live.
+	deadline := time.After(10 * time.Second)
+	for {
+		infos, waitCh := log.GetPacks()
+		if len(infos) != 0 {
+			for _, info := range infos {
+				log.MarkUploaded(info.Seq)
+			}
+			break
+		}
+		select {
+		case <-waitCh:
+		case <-deadline:
+			t.Fatal("pack never finalized")
+		}
+	}
+	if ok, err := s.GetBlockExists(ctx, ref); err != nil || !ok {
+		t.Fatalf("block stored again does not exist after upload: %v, %v", ok, err)
+	}
+	stored, err := s.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil || !bytes.Equal(stored.Data, data) {
+		t.Fatalf("block stored again does not read after upload: %v, %v", stored, err)
+	}
+}

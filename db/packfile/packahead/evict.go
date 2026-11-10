@@ -76,11 +76,26 @@ func (l *Log) MarkUploaded(seq uint64) {
 		for _, p := range l.packs {
 			if p.seq == seq && p.state == packFinal && !p.uploaded {
 				p.uploaded = true
+				l.dropRemovedLocked(p)
 				broadcast()
 				return
 			}
 		}
 	})
+}
+
+// dropRemovedLocked forgets the values of uploaded pack p that Remove
+// marked, which the remote now serves. The caller holds bcast.
+func (l *Log) dropRemovedLocked(p *pack) {
+	if p.removed <= 0 {
+		return
+	}
+	for t, loc := range l.table {
+		if loc.p == p && loc.removed {
+			delete(l.table, t)
+		}
+	}
+	p.removed = 0
 }
 
 // HoldsBefore reports whether a pack not marked uploaded holds a value whose

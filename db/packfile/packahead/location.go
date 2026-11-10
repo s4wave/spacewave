@@ -23,6 +23,10 @@ type location struct {
 	off uint32
 	// size is the value's length.
 	size uint32
+	// removed is set when Remove freed the value before its pack uploaded:
+	// it stays readable until the upload, reports no durable copy, and a
+	// put of it again clears the mark.
+	removed bool
 }
 
 // end returns the offset just past the value.

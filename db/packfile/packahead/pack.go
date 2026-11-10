@@ -67,6 +67,8 @@ type pack struct {
 	bloom []byte
 	// uploaded is set once the Log's remote holds the finalized pack.
 	uploaded bool
+	// removed counts the table's locations in this pack that Remove marked.
+	removed int
 }
 
 // packState is a pack's place in its life.

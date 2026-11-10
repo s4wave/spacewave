@@ -401,7 +401,11 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64
 	var entryBytes, data, keyBytes int64
 	for plan.consumed < len(blocks) {
 		b := blocks[plan.consumed]
-		if loc, ok := l.table[tailOf(b.Key)]; ok {
+		if t := tailOf(b.Key); l.holdsLocked(t) {
+			loc := l.table[t]
+			if loc.removed {
+				l.reviveLocked(t, loc)
+			}
 			if loc.p.state != packFinal {
 				addWait(loc.p, loc.end())
 			}
@@ -425,6 +429,21 @@ func (l *Log) planBatchLocked(p *pack, blocks []Block, addWait func(*pack, int64
 		return batchPlan{rotate: true, skipped: plan.consumed}
 	}
 	return plan
+}
+
+// holdsLocked reports whether the table holds a copy of t that a put may
+// skip writing. The caller holds bcast.
+func (l *Log) holdsLocked(t keyTail) bool {
+	_, ok := l.table[t]
+	return ok
+}
+
+// reviveLocked clears the removed mark of t's location loc, which a put
+// stores again. The caller holds bcast.
+func (l *Log) reviveLocked(t keyTail, loc location) {
+	loc.removed = false
+	loc.p.removed--
+	l.table[t] = loc
 }
 
 // writeBatch encodes batch at the end of open pack p, writes it, and locates
@@ -493,6 +512,9 @@ func (l *Log) failLocked(p *pack, err error) {
 	for i := len(p.entries) - 1; i >= 0 && p.entries[i].off >= p.synced; i-- {
 		t := tailOf(p.entries[i].key)
 		if loc, ok := l.table[t]; ok && loc.p == p {
+			if loc.removed {
+				p.removed--
+			}
 			delete(l.table, t)
 		}
 	}
@@ -651,24 +673,33 @@ func (l *Log) HasDurable(key []byte) bool {
 	var durable bool
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		loc, ok := l.table[tailOf(key)]
-		durable = ok && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
+		durable = ok && !loc.removed && (loc.p.state == packFinal || loc.end() <= loc.p.synced)
 	})
 	return durable
 }
 
 // Remove forgets the value under key, which the caller has freed, once the
 // remote holds its pack. Its bytes stay in their pack. A value whose pack
-// is not uploaded stays readable until the pack is evicted: a writer that
-// found it held may have stored it again, and until the upload no other
-// copy serves it.
+// is not uploaded is marked removed and stays readable until the pack
+// uploads: a writer that found it held may have stored it again, and until
+// the upload no other copy serves it. A marked value reports no durable
+// copy, so a put of it again appends it, which clears the mark and keeps it
+// past the upload.
 func (l *Log) Remove(key []byte) {
 	if len(key) < keyTailLen {
 		return
 	}
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		t := tailOf(key)
-		if loc, ok := l.table[t]; ok && loc.p.uploaded {
+		loc, ok := l.table[t]
+		switch {
+		case !ok || loc.removed:
+		case loc.p.uploaded:
 			delete(l.table, t)
+		default:
+			loc.removed = true
+			loc.p.removed++
+			l.table[t] = loc
 		}
 	})
 }
@@ -884,7 +915,7 @@ func (l *Log) locateRecoveredLocked(p *pack, entries []entry) {
 	for _, e := range entries {
 		t := tailOf(e.key)
 		if loc, ok := l.table[t]; !ok || loc.p == p {
-			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size)} //nolint:gosec // bounded by the pack size.
+			l.table[t] = location{p: p, off: uint32(e.off), size: uint32(e.size), removed: ok && loc.removed} //nolint:gosec // bounded by the pack size.
 		}
 	}
 }
