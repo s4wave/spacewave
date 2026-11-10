@@ -61,6 +61,17 @@ type BucketRoots struct {
 // undercount. A restore of lost blocks therefore audits first, as the payload
 // restore does.
 //
+// A put of a stored block checks the block's list against the put's refs
+// when Land cannot trust it: while the Volume's lists are unverified, a list
+// no rebuild verified and no Land wrote, and after, one a suspect record
+// names. It writes the list when it lacks a child, as a list rebuild does,
+// marks it verified while the mark stands, and deletes the suspect record. A
+// rewrite journals no holder for the children the list gains, so on a Volume
+// an adoption counts or has counted it returns the Volume to unadopted in the
+// same transaction, as Records.Unadopted reports, superseding any run, and
+// nothing frees until the next adoption recounts the lists. Journal.tla models
+// this with its Suspect constants.
+//
 // A Volume that is not adopted keeps no journal: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
 // them. An adopting or adopted Volume refuses a block that names a child whose
@@ -75,6 +86,11 @@ type BucketRoots struct {
 // its batch, its child list record and, for an unlisted child, a block
 // existence read, with one up pair appended for each, a blind append on reads
 // it already makes; per moved root, its entry and its lease index record.
+// Per stored block it puts, while the Volume's lists are unverified, its
+// verified and landed marks, two point reads, and, when it has neither, its
+// list, which it compares with the refs and may rewrite; after the clear, one
+// seek for any suspect record per call and, when one exists, the block's
+// suspect record, a point read, then the same list check for a suspect.
 // When it holds a stored block, a root moving onto one or a put of one
 // again, it also seeks the cascade records and reads each such block's count
 // record until one is at zero, to set the hold mark Collector describes. It
@@ -117,6 +133,15 @@ func Land(
 	existed, err := l.putEntries(ctx, entries)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check the lists of the stored blocks it cannot trust. A Volume this
+	// returns to unadopted keeps a journal, so the record's again list names
+	// the block and appendJournal writes the state.
+	for _, entry := range l.stored {
+		if err := l.trustList(ctx, state, entry); err != nil {
+			return nil, err
+		}
 	}
 
 	// Count the holders the born blocks give their children.
@@ -174,6 +199,12 @@ type lander struct {
 	// touched holds the block keys of the entries already stored, whose put
 	// the journal record's again list names.
 	touched map[string]struct{}
+	// stored are the first entries of the blocks stored with a child list,
+	// whose lists trustList checks.
+	stored []*block.PutBatchEntry
+	// suspectsRead and suspects report that the Volume's suspect records
+	// were read and that any exist.
+	suspectsRead, suspects bool
 	// onStored are the block keys of the stored blocks a root moves onto.
 	// With the touched blocks, they are the blocks the Land holds that the
 	// collector may have at zero, which decide the hold mark.
@@ -227,8 +258,9 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		switch kind {
 		case putRefill:
 			l.refills = append(l.refills, entry)
-			fallthrough
+			l.touched[key] = struct{}{}
 		case putStored:
+			l.stored = append(l.stored, entry)
 			l.touched[key] = struct{}{}
 		default:
 			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
@@ -376,6 +408,57 @@ func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*b
 		kind = kindLanded
 	}
 	return l.rec.tx.Set(ctx, l.rec.key(kind, BlockKey(ref)), nil)
+}
+
+// trustList checks the stored list of the block entry puts again when Land
+// cannot trust it, as Land describes, returning the Volume in state to
+// unadopted when the check adds a child to the list of a Volume that keeps a
+// journal.
+func (l *lander) trustList(ctx context.Context, state *LivenessState, entry *block.PutBatchEntry) error {
+	// Trust a list a rebuild verified or a Land wrote while the mark stands,
+	// and after it, any list no suspect record names.
+	key := BlockKey(entry.Ref)
+	if l.verify {
+		verified, err := l.rec.listVerified(ctx, key)
+		if err != nil || verified {
+			return err
+		}
+	} else {
+		if !l.suspectsRead {
+			var err error
+			if l.suspects, err = l.rec.anyKey(ctx, l.rec.key(kindSuspect)); err != nil {
+				return err
+			}
+			l.suspectsRead = true
+		}
+		if !l.suspects {
+			return nil
+		}
+		suspect, err := l.rec.tx.Exists(ctx, l.rec.key(kindSuspect, key))
+		if err != nil || !suspect {
+			return err
+		}
+	}
+
+	// Check the list. Refs that drop a stored child leave it untrusted.
+	verdict, err := l.rec.checkList(ctx, key, entry.Refs)
+	if err != nil || verdict == listDropped {
+		return err
+	}
+	if l.verify {
+		if err := l.rec.tx.Set(ctx, l.rec.key(kindVerified, key), nil); err != nil {
+			return err
+		}
+	}
+	if err := l.rec.tx.Delete(ctx, l.rec.key(kindSuspect, key)); err != nil {
+		return err
+	}
+
+	// The counts lack the holders a rewrite added: recount them.
+	if verdict == listRewritten && l.journal {
+		l.rec.unadopt(state)
+	}
+	return nil
 }
 
 // holdChildren counts the holder each born block gives each child: an

@@ -23,6 +23,10 @@ type ListRebuildResult struct {
 	Unverified uint64
 	// UnverifiedSample names up to sampleSize of them.
 	UnverifiedSample []*block.BlockRef
+	// Suspect counts the listed blocks no walk verified and no Land wrote
+	// that the last Finish named before clearing the mark, each of which a
+	// put checks against its refs before Land trusts its list.
+	Suspect uint64
 	// Cleared reports that every list a root reaches is verified, so the
 	// rebuild cleared the Volume's unverified lists mark.
 	Cleared bool

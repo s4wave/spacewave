@@ -176,8 +176,11 @@ type LivenessState struct {
 	// HoldMark is one past the sequence of the last journal record of a Land
 	// that held a block at zero holders, or one whose children were released,
 	// or any block while a cascade was due: a block below it may have no
-	// holder until that record nets and the re-hold it brings runs. The
-	// collector frees nothing until its cursor reaches the mark.
+	// holder until that record nets and the re-hold it brings runs. A list
+	// rebuild's Finish sets it at the journal's end as it clears the
+	// unverified lists mark, since a block parked at zero while the lists
+	// stood may be named by a record not yet netted. The collector frees
+	// nothing until its cursor reaches the mark.
 	HoldMark uint64 `protobuf:"varint,12,opt,name=hold_mark,json=holdMark,proto3" json:"holdMark,omitempty"`
 	// Cascades counts the cascade records, the blocks whose cascade is due,
 	// so a Land and the free learn whether any is due from this record rather

@@ -209,7 +209,9 @@ type Store interface {
 	// Update runs fn in one write transaction of the Volume, with its liveness
 	// records and the block bytes of the same transaction, and commits it
 	// when fn changed anything. A block removed through blocks is reported
-	// removed once the transaction commits.
+	// removed once the transaction commits, and when rec.Unadopted reports
+	// that fn returned the Volume to unadopted, the store starts an adoption
+	// once it commits.
 	Update(ctx context.Context, fn func(rec *Records, blocks block.StoreOps) error) error
 	// View runs fn in one read snapshot of the liveness records.
 	View(ctx context.Context, fn func(rec *Records) error) error
@@ -827,6 +829,9 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 		if err := del(ctx, ref); err != nil {
 			return err
 		}
+	}
+	if err := rec.tx.Delete(ctx, rec.key(kindSuspect, key)); err != nil {
+		return err
 	}
 	if unverified {
 		if err := rec.tx.Delete(ctx, rec.key(kindLanded, key)); err != nil {

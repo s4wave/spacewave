@@ -11,5 +11,5 @@ import (
 // Finish that returns the Volume to unadopted wakes the background adoption,
 // which recounts it when the collector frees.
 func (v *Volume) OpenListRebuild(ctx context.Context) (*block_gc.ListRebuild, error) {
-	return block_gc.OpenListRebuild(backgroundPass(ctx), collectorStore{v: v}, v.wakeAdopt)
+	return block_gc.OpenListRebuild(backgroundPass(ctx), collectorStore{v: v})
 }
