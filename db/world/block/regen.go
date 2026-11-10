@@ -222,23 +222,24 @@ func (r *Regenerator) Run(ctx context.Context, until RegenStage, step func(Regen
 // may lead to, or the comparison and the release of the old root from
 // switched. A comparison that finds a difference returns ErrRegenMismatch and
 // stays switched; a switch back returns ErrRegenSwitchedBack; done takes no
-// step.
+// step. Every step but the swap is background work that yields to commits.
 func (r *Regenerator) Step(ctx context.Context) (RegenStage, error) {
 	// Take the stage's step.
 	s, err := r.read(ctx)
 	if err != nil {
 		return s.stage, err
 	}
+	bg := regenBackground(ctx)
 	switch s.stage {
 	case RegenIdle:
-		err = r.pin(ctx, s)
+		err = r.pin(bg, s)
 	case RegenBuilding:
-		err = r.build(ctx, s)
+		err = r.build(bg, s)
 	case RegenCatchingUp:
 		err = r.catchUp(ctx, s, regenForward)
 	case RegenSwitched:
-		if err = r.verify(ctx, s); err == nil {
-			err = r.release(ctx, s)
+		if err = r.verify(bg, s); err == nil {
+			err = r.release(bg, s)
 		}
 	case RegenSwitchedBack:
 		err = ErrRegenSwitchedBack
@@ -313,6 +314,14 @@ func (r *Regenerator) release(ctx context.Context, s regenState) error {
 	return r.a.store.SetRoots(ctx, nil, roots)
 }
 
+// regenBackground marks ctx for the regeneration's work off the writer turn:
+// its reads are background reads, and its writes queue behind the commits
+// that wait, at a lower memory ceiling, so a commit never waits behind them.
+// Under constant commits the work slows and the stage waits.
+func regenBackground(ctx context.Context) context.Context {
+	return kvtx.WithBackgroundWriteContext(block.WithBackground(ctx))
+}
+
 // pin holds the head as the base the build reads. The head was read just now,
 // so the collector's grace keeps it until the root holds it.
 func (r *Regenerator) pin(ctx context.Context, s regenState) error {
@@ -335,15 +344,16 @@ func (r *Regenerator) build(ctx context.Context, s regenState) error {
 	return r.a.store.SetRoots(ctx, nil, []block.NamedRoot{{Name: r.builtName, Ref: built}})
 }
 
-// catchUp runs a round off the writer turn in way, then swaps when the round
-// was small enough that the last one should be too.
+// catchUp runs a round off the writer turn in way, as background work, then
+// swaps when the round was small enough that the last one should be too. The
+// swap runs as foreground work, since commits wait on its turn.
 func (r *Regenerator) catchUp(ctx context.Context, s regenState, way regenWay) error {
 	// Hold the head while the round reads it.
 	release, err := block.PinRoot(ctx, r.a.store, s.head.Root)
 	if err != nil {
 		return err
 	}
-	_, changes, err := r.advance(ctx, s, way, -1, false)
+	_, changes, err := r.advance(regenBackground(ctx), s, way, -1, false)
 	release()
 	if err != nil || changes > r.cfg.SwapChanges {
 		return err
