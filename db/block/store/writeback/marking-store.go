@@ -111,7 +111,9 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 // PutBlockBatch marks every successful non-tombstone write.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Store a diverted batch unmarked; a batch carries no cache fill.
+	// Store a diverted batch unmarked. PutBatchEntry carries no cache fill
+	// flag, so every fill comes by PutBlock; a block batched anyway diverts
+	// and uploads in its pack.
 	if m.fillsOnly {
 		existed, err := m.store.PutBlockBatch(ctx, entries)
 		if err != nil {
