@@ -37,10 +37,10 @@ func TestCrosscheckClean(t *testing.T) {
 		t.Fatalf("clean file: conflicts %v bad %v", res.conflicts, res.bad)
 	}
 	h, w := fileHeader(t, path)
-	if res.unaccounted != 0 || res.reached+res.free+res.lockPage != uint64(h.dbPages) {
-		t.Fatalf("reached %d + free %d + lock %d vs %d pages, unaccounted %d", res.reached, res.free, res.lockPage, h.dbPages, res.unaccounted)
+	if res.unaccounted != 0 || res.reached+res.free+res.lockPage != uint64(h.DBPages) {
+		t.Fatalf("reached %d + free %d + lock %d vs %d pages, unaccounted %d", res.reached, res.free, res.lockPage, h.DBPages, res.unaccounted)
 	}
-	if res.free != uint64(len(w.trunks)+len(w.leaves)) || res.kinds[kindOverflow] == 0 || res.kinds[kindIndex] == 0 {
+	if res.free != uint64(len(w.Trunks)+len(w.Leaves)) || res.kinds[kindOverflow] == 0 || res.kinds[kindIndex] == 0 {
 		t.Fatalf("free %d, kinds %v", res.free, res.kinds)
 	}
 	var out bytes.Buffer
@@ -62,7 +62,7 @@ func listAsFree(t *testing.T, path string, pg uint32) {
 	defer f.Close()
 	var b [4]byte
 	binary.BigEndian.PutUint32(b[:], pg)
-	if _, err := f.WriteAt(b[:], int64(h.trunk-1)*h.pageSize+8); err != nil {
+	if _, err := f.WriteAt(b[:], int64(h.Trunk-1)*h.PageSize+8); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -103,7 +103,7 @@ func TestCrosscheckExplained(t *testing.T) {
 	h, _ := readHeader(f, st.Size())
 	res, err := crosscheck(f, h, ccOpts{readers: 2, retries: 1, freelistOverride: func(free bitset, recheck bool) {
 		if !recheck {
-			free.set(target)
+			free.Set(target)
 		}
 	}})
 	if err != nil {
@@ -124,17 +124,17 @@ func dropLastLeaf(t *testing.T, path string) uint32 {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	n := w.perTrunk[0]
+	n := w.PerTrunk[0]
 	var b [4]byte
 	binary.BigEndian.PutUint32(b[:], uint32(n-1))
-	if _, err := f.WriteAt(b[:], int64(h.trunk-1)*h.pageSize+4); err != nil {
+	if _, err := f.WriteAt(b[:], int64(h.Trunk-1)*h.PageSize+4); err != nil {
 		t.Fatal(err)
 	}
 	// A freed page read as zeros, so the late walk finds nothing under it.
-	if _, err := f.WriteAt(make([]byte, h.pageSize), int64(w.leaves[n-1]-1)*h.pageSize); err != nil {
+	if _, err := f.WriteAt(make([]byte, h.PageSize), int64(w.Leaves[n-1]-1)*h.PageSize); err != nil {
 		t.Fatal(err)
 	}
-	return w.leaves[n-1]
+	return w.Leaves[n-1]
 }
 
 // TestCrosscheckUnaccounted: a page neither reached nor free is
@@ -153,7 +153,7 @@ func TestCrosscheckUnaccounted(t *testing.T) {
 	h, _ := readHeader(f, st.Size())
 	res, err := crosscheck(f, h, ccOpts{readers: 2, retries: 1, freelistOverride: func(free bitset, recheck bool) {
 		if recheck {
-			free.set(lost)
+			free.Set(lost)
 		}
 	}})
 	if err != nil {
@@ -172,7 +172,7 @@ func TestCrosscheckUnaccounted(t *testing.T) {
 	for _, want := range []string{
 		"unaccounted-total 1, unaccounted-freed-during-walk 1, unaccounted-unexplained 0",
 		"bad-total 0, bad-freed-during-walk 0, bad-unexplained 0",
-		"header pages start " + strconv.Itoa(int(h.dbPages)) + " end " + strconv.Itoa(int(h.dbPages)),
+		"header pages start " + strconv.Itoa(int(h.DBPages)) + " end " + strconv.Itoa(int(h.DBPages)),
 		"table interior", "table leaf", "index interior", "index leaf", "overflow", "trunks", "leaves",
 	} {
 		if !strings.Contains(out.String(), want) {
@@ -206,12 +206,12 @@ func TestCrosscheckLateWalk(t *testing.T) {
 	if ip[0] != 0x05 || readPages(t, path, h, []uint32{leaf})[0][0] != 0x0d {
 		t.Fatalf("page %d type 0x%02x, leaf %d", cut, ip[0], leaf)
 	}
-	old := w.leaves[0]
+	old := w.Leaves[0]
 	f, _ := os.OpenFile(path, os.O_RDWR, 0)
 	var b [2]byte
 	binary.BigEndian.PutUint16(b[:], uint16(n-1))
-	f.WriteAt(b[:], int64(root-1)*h.pageSize+3)
-	f.WriteAt(make([]byte, h.pageSize), int64(old-1)*h.pageSize) // the leaf listAsFree drops reads as zeros
+	f.WriteAt(b[:], int64(root-1)*h.PageSize+3)
+	f.WriteAt(make([]byte, h.PageSize), int64(old-1)*h.PageSize) // the leaf listAsFree drops reads as zeros
 	f.Close()
 	listAsFree(t, path, leaf)
 

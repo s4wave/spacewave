@@ -115,8 +115,8 @@ func TestScanParity(t *testing.T) {
 func longChain(t *testing.T, path string) uint32 {
 	t.Helper()
 	h, w := fileHeader(t, path)
-	free := slices.Concat(w.trunks, w.leaves)
-	for pg := uint32(2); pg <= h.dbPages; pg++ {
+	free := slices.Concat(w.Trunks, w.Leaves)
+	for pg := uint32(2); pg <= h.DBPages; pg++ {
 		if slices.Contains(free, pg) {
 			continue
 		}
@@ -162,7 +162,7 @@ func TestScanFaults(t *testing.T) {
 		path := makeBigIndex(t)
 		h, _ := fileHeader(t, path)
 		head := longChain(t, path)
-		patch(t, path, int64(head-1)*h.pageSize, make([]byte, 4))
+		patch(t, path, int64(head-1)*h.PageSize, make([]byte, 4))
 		res := scanFile(t, path)
 		if len(res.bad) != 1 || res.bad[0].page != head || !strings.Contains(res.bad[0].err, "ends") || !slices.Contains(res.failReasons(), "bad-unexplained 1") {
 			t.Fatalf("bad %+v reasons %v", res.bad, res.failReasons())
@@ -181,7 +181,7 @@ func TestScanFaults(t *testing.T) {
 		h, _ := fileHeader(t, path)
 		rp := readPages(t, path, h, []uint32{root})[0]
 		first := binary.BigEndian.Uint32(rp[binary.BigEndian.Uint16(rp[12:]):])
-		patch(t, path, int64(root-1)*h.pageSize+8, binary.BigEndian.AppendUint32(nil, first))
+		patch(t, path, int64(root-1)*h.PageSize+8, binary.BigEndian.AppendUint32(nil, first))
 		res := scanFile(t, path)
 		var dup bool
 		for _, c := range res.conflicts {
@@ -301,7 +301,7 @@ func TestScanLockPage(t *testing.T) {
 			t.Fatalf("no page of kind %v", kind)
 		}
 		h, _ := fileHeader(t, path)
-		lockByteOffset = int64(target-1)*h.pageSize + 100
+		lockByteOffset = int64(target-1)*h.PageSize + 100
 		var out bytes.Buffer
 		code, err := runCrosscheck(&out, opts{path: path, cross: true, scan: true, readers: 4, streams: 3, parsers: 2}, nil)
 		cc := crosscheckFile(t, path)
@@ -323,13 +323,13 @@ func TestScanHeaderChecks(t *testing.T) {
 	path := makeBigIndex(t)
 	h, _ := fileHeader(t, path)
 	var b [4]byte
-	binary.BigEndian.PutUint32(b[:], h.freeCount+1)
+	binary.BigEndian.PutUint32(b[:], h.FreeCount+1)
 	patch(t, path, 36, b[:])
 	res0 := scanFile(t, path)
 	if r := strings.Join(res0.failReasons(), ","); !strings.Contains(r, "header freelist count") {
 		t.Fatalf("freelist count: reasons %s", r)
 	}
-	binary.BigEndian.PutUint32(b[:], h.freeCount)
+	binary.BigEndian.PutUint32(b[:], h.FreeCount)
 	patch(t, path, 36, b[:])
 
 	// The change counter bumped after the start header was read.
@@ -339,7 +339,7 @@ func TestScanHeaderChecks(t *testing.T) {
 	}
 	defer f.Close()
 	res, err := scanCheck(f, h, ccOpts{readers: 4, streams: 3, parsers: 2, freelistOverride: func(bitset, bool) {
-		binary.BigEndian.PutUint32(b[:], h.change+1)
+		binary.BigEndian.PutUint32(b[:], h.Change+1)
 		patch(t, path, 24, b[:])
 	}})
 	if err != nil || !strings.Contains(strings.Join(res.failReasons(), ","), "file changed during scan") {

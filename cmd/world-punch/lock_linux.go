@@ -5,6 +5,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/sqlitefree"
 	"golang.org/x/sys/unix"
 )
 
@@ -49,15 +50,7 @@ func ofdWrite(f *os.File, start, n int64) error {
 
 // punchRanges releases each range's blocks, keeping the file size.
 func punchRanges(f *os.File, h header, rs []pageRange) error {
-	fd := int(f.Fd())
-	for _, r := range rs {
-		off := int64(r.start-1) * h.pageSize
-		n := int64(r.count) * h.pageSize
-		if err := unix.Fallocate(fd, unix.FALLOC_FL_PUNCH_HOLE|unix.FALLOC_FL_KEEP_SIZE, off, n); err != nil {
-			return errors.Wrapf(err, "pages %d+%d", r.start, r.count)
-		}
-	}
-	return nil
+	return sqlitefree.PunchRanges(f, h.PageSize, rs)
 }
 
 func allocated(st os.FileInfo) int64 {

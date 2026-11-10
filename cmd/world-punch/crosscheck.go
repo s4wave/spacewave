@@ -414,12 +414,12 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Size the result against the header: pages in use exclude the
 	// header's freelist count.
 	start := time.Now()
-	res := ccResult{dbPages: h.dbPages, byType: map[byte]uint64{}, startFree: h.freeCount}
-	if h.freeCount < h.dbPages {
-		res.inUse = h.dbPages - h.freeCount
+	res := ccResult{dbPages: h.DBPages, byType: map[byte]uint64{}, startFree: h.FreeCount}
+	if h.FreeCount < h.DBPages {
+		res.inUse = h.DBPages - h.FreeCount
 	}
 	if res.inUse == 0 {
-		res.inUse = h.dbPages
+		res.inUse = h.DBPages
 	}
 	if o.readers <= 0 {
 		o.readers = 8
@@ -427,14 +427,14 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 
 	// Walk the freelist once for the start free set.
 	free, fw := freeSet(f, h)
-	res.freeTorn = fw.torn
-	res.freeTrunks, res.freeLeaves = uint64(len(fw.trunks)), uint64(len(fw.leaves))
+	res.freeTorn = fw.Torn
+	res.freeTrunks, res.freeLeaves = uint64(len(fw.Trunks)), uint64(len(fw.Leaves))
 	if o.freelistOverride != nil {
 		o.freelistOverride(free, false)
 	}
 
 	// everFree collects every freelist snapshot taken during or after the walk.
-	everFree := newBitset(h.dbPages)
+	everFree := newBitset(h.DBPages)
 	var everMu sync.Mutex
 	addFree := func(b bitset) {
 		everMu.Lock()
@@ -445,10 +445,10 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	}
 
 	// Track each page the walk reaches, its parent and the conflicting kinds.
-	reached := newBitset(h.dbPages)
+	reached := newBitset(h.DBPages)
 	kindOf := map[uint32]pageKind{} // kinds of conflicting pages only
-	parents := make([]uint32, uint64(h.dbPages)+1)
-	fromOv := newBitset(h.dbPages)
+	parents := make([]uint32, uint64(h.DBPages)+1)
+	fromOv := newBitset(h.DBPages)
 	lim := &limiter{rate: o.mbps * 1e6}
 
 	// Snapshot the freelist and watch the rate file until the walk returns.
@@ -522,30 +522,30 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// re-read them, but claimed without a dup when a walked page points
 	// to one, since then it was not a root at all.
 	cur, late := free, false
-	lateRoot := newBitset(h.dbPages)
+	lateRoot := newBitset(h.DBPages)
 	enqueue := func(next []ccItem, it ccItem) []ccItem {
 		// Drop pointers out of range and late chains run into reached pages.
-		if it.pg < 1 || it.pg > h.dbPages {
-			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.dbPages), ptr: true})
+		if it.pg < 1 || it.pg > h.DBPages {
+			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.DBPages), ptr: true})
 			return next
 		}
 		if it.pg == lockBytePage(h) {
 			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to the lock-byte page %d", it.pg), ptr: true})
 			return next
 		}
-		if it.kind == kindOverflow && it.left == 0 && reached.has(it.pg) {
+		if it.kind == kindOverflow && it.left == 0 && reached.Has(it.pg) {
 			return next // a late chain of unknown length ran into reached pages
 		}
 
 		// Claim a late root a walked page points to.
-		if lateRoot.has(it.pg) {
-			lateRoot.clear(it.pg)
+		if lateRoot.Has(it.pg) {
+			lateRoot.Clear(it.pg)
 			res.lateReached++
 			parents[it.pg] = it.parent
 			if it.fromOv {
-				fromOv.set(it.pg)
+				fromOv.Set(it.pg)
 			}
-			if cur.has(it.pg) {
+			if cur.Has(it.pg) {
 				addConflict(conflict{page: it.pg, parent: it.parent, parentOv: it.fromOv, kind: it.kind, late: late})
 				kindOf[it.pg] = it.kind
 			}
@@ -553,22 +553,22 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 
 		// A page reached twice conflicts.
-		if reached.has(it.pg) {
-			addConflict(conflict{page: it.pg, parent: parents[it.pg], parentOv: fromOv.has(it.pg),
+		if reached.Has(it.pg) {
+			addConflict(conflict{page: it.pg, parent: parents[it.pg], parentOv: fromOv.Has(it.pg),
 				kind: it.kind, dup: true, parent2: it.parent, parent2Ov: it.fromOv, late: late})
 			return next
 		}
 
 		// Mark the page reached; a free one conflicts.
-		reached.set(it.pg)
+		reached.Set(it.pg)
 		parents[it.pg] = it.parent
 		if it.fromOv {
-			fromOv.set(it.pg)
+			fromOv.Set(it.pg)
 		}
 		if late {
 			res.lateReached++
 		}
-		if cur.has(it.pg) {
+		if cur.Has(it.pg) {
 			addConflict(conflict{page: it.pg, parent: it.parent, parentOv: it.fromOv, kind: it.kind, late: late})
 			kindOf[it.pg] = it.kind
 		}
@@ -595,7 +595,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			}
 			results, err := readRound(bulk, h, queue, o.readers, lim, o.interrupt, func(n int) {
 				mu.Lock()
-				readBytes, readPages, reads = readBytes+int64(n)*h.pageSize, readPages+int64(n), reads+1
+				readBytes, readPages, reads = readBytes+int64(n)*h.PageSize, readPages+int64(n), reads+1
 				mu.Unlock()
 			})
 			if err != nil {
@@ -641,8 +641,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Count pages reached, free and neither; a reached lock-byte page is
 	// bad.
 	lockPg := lockBytePage(h)
-	for pg := uint32(1); pg <= h.dbPages; pg++ {
-		r, fr := reached.has(pg), free.has(pg)
+	for pg := uint32(1); pg <= h.DBPages; pg++ {
+		r, fr := reached.Has(pg), free.Has(pg)
 		if r && pg == lockPg {
 			addBad(badPage{page: pg, err: "lock-byte page reached"})
 		}
@@ -674,23 +674,23 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// read again and, if it parses, walked as a root against the final
 	// free set, so a subtree the main walk lost is still checked.
 	cur, late = final, true
-	tried := newBitset(h.dbPages)
+	tried := newBitset(h.DBPages)
 	type lateRead struct {
 		pg   uint32
 		kind string
 		r    pageResult
 	}
 	var leftovers []lateRead
-	page := make([]byte, h.pageSize)
+	page := make([]byte, h.PageSize)
 	for lr := 0; lr < 3; lr++ {
 		var cands []uint32
 		for _, pg := range res.unaccPages {
-			if !reached.has(pg) && !final.has(pg) && !tried.has(pg) {
+			if !reached.Has(pg) && !final.Has(pg) && !tried.Has(pg) {
 				cands = append(cands, pg)
 			}
 		}
 		for _, b := range res.bad {
-			if !b.ptr && b.page <= h.dbPages && !final.has(b.page) && !tried.has(b.page) {
+			if !b.ptr && b.page <= h.DBPages && !final.Has(b.page) && !tried.Has(b.page) {
 				cands = append(cands, b.page)
 			}
 		}
@@ -698,15 +698,15 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			break
 		}
 		reads := make([]lateRead, 0, len(cands))
-		childOf := newBitset(h.dbPages)
+		childOf := newBitset(h.DBPages)
 		for _, pg := range cands {
-			tried.set(pg)
+			tried.Set(pg)
 			lr := lateRead{pg: pg, kind: "unparsable"}
-			if _, err := f.ReadAt(page, int64(pg-1)*h.pageSize); err == nil {
+			if _, err := f.ReadAt(page, int64(pg-1)*h.PageSize); err == nil {
 				lr.r = parsePage(h, ccItem{pg: pg, kind: kindTree}, page)
 				if lr.r.bad == "" {
 					lr.kind = map[byte]string{0x05: "table interior", 0x0d: "table leaf", 0x02: "index interior", 0x0a: "index leaf"}[lr.r.ptype]
-				} else if next := binary.BigEndian.Uint32(page[0:4]); next <= h.dbPages {
+				} else if next := binary.BigEndian.Uint32(page[0:4]); next <= h.DBPages {
 					lr.kind = "overflow/other"
 					lr.r = pageResult{item: ccItem{pg: pg, kind: kindOverflow}, tree: kindOverflow}
 					if next != 0 {
@@ -717,8 +717,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 				}
 			}
 			for _, c := range lr.r.children {
-				if c.pg >= 1 && c.pg <= h.dbPages {
-					childOf.set(c.pg)
+				if c.pg >= 1 && c.pg <= h.DBPages {
+					childOf.Set(c.pg)
 				}
 			}
 			reads = append(reads, lr)
@@ -726,11 +726,11 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		var next []ccItem
 		var roots []lateRead
 		for _, lr := range reads {
-			if childOf.has(lr.pg) {
+			if childOf.Has(lr.pg) {
 				continue // reached from another late root
 			}
-			reached.set(lr.pg)
-			lateRoot.set(lr.pg)
+			reached.Set(lr.pg)
+			lateRoot.Set(lr.pg)
 			roots = append(roots, lr)
 			for _, c := range lr.r.children {
 				next = enqueue(next, c)
@@ -740,8 +740,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			return res, err
 		}
 		for _, lr := range roots {
-			if lateRoot.has(lr.pg) {
-				lateRoot.clear(lr.pg)
+			if lateRoot.Has(lr.pg) {
+				lateRoot.Clear(lr.pg)
 				res.lateRoots++
 				leftovers = append(leftovers, lr)
 				continue
@@ -759,8 +759,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 		// Candidates no root reached (a cycle among them) stay leftover.
 		for _, lr := range reads {
-			if !reached.has(lr.pg) {
-				reached.set(lr.pg)
+			if !reached.Has(lr.pg) {
+				reached.Set(lr.pg)
 				leftovers = append(leftovers, lr)
 			}
 		}
@@ -779,12 +779,12 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// has it: a live write freed it while the walk ran.
 	everMu.Lock()
 	for _, pg := range res.unaccPages {
-		if everFree.has(pg) {
+		if everFree.Has(pg) {
 			res.unaccFreed++
 		}
 	}
 	for i := range res.bad {
-		if pg := res.bad[i].page; pg <= h.dbPages && everFree.has(pg) {
+		if pg := res.bad[i].page; pg <= h.DBPages && everFree.Has(pg) {
 			res.bad[i].freed = true
 		}
 	}
@@ -792,7 +792,7 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Count the leftovers no snapshot explains, by the type they read as.
 	res.leftoverByType = map[string]int{}
 	for _, lr := range leftovers {
-		if everFree.has(lr.pg) {
+		if everFree.Has(lr.pg) {
 			continue
 		}
 		res.leftoverByType[lr.kind]++
@@ -904,13 +904,16 @@ func watchMbps(path string, base float64, lim *limiter, out io.Writer, stop <-ch
 
 // freeSet walks the freelist tolerantly into a bitset of trunks and leaves.
 func freeSet(f io.ReaderAt, h header) (bitset, *walk) {
+	// Walk the chain, keeping what a torn walk read.
 	w, _ := walkFreelist(f, h, true)
-	free := newBitset(h.dbPages)
-	for _, p := range w.trunks {
-		free.set(p)
+
+	// Mark every trunk and leaf.
+	free := newBitset(h.DBPages)
+	for _, p := range w.Trunks {
+		free.Set(p)
 	}
-	for _, p := range w.leaves {
-		free.set(p)
+	for _, p := range w.Leaves {
+		free.Set(p)
 	}
 	return free, w
 }
@@ -922,15 +925,15 @@ func freeSet(f io.ReaderAt, h header) (bitset, *walk) {
 func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bitset)) bitset {
 	// points reports whether parent (0 for a root from sqlite_master,
 	// which is not reread) still points to target.
-	page := make([]byte, h.pageSize)
+	page := make([]byte, h.PageSize)
 	points := func(free bitset, parent uint32, ov bool, target uint32) bool {
 		if parent == 0 {
 			return true
 		}
-		if free.has(parent) {
+		if free.Has(parent) {
 			return false
 		}
-		if _, err := f.ReadAt(page, int64(parent-1)*h.pageSize); err != nil {
+		if _, err := f.ReadAt(page, int64(parent-1)*h.PageSize); err != nil {
 			return true
 		}
 		return pointsTo(h, parent, ov, page, target)
@@ -964,7 +967,7 @@ func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bits
 			case c.dup && (!points(free, c.parent, c.parentOv, c.page) || !points(free, c.parent2, c.parent2Ov, c.page)):
 				c.class = "explained: a parent changed since the walk read it"
 			case c.dup:
-			case !free.has(c.page):
+			case !free.Has(c.page):
 				c.class = "explained: no longer on the freelist"
 			case !points(free, c.parent, c.parentOv, c.page):
 				c.class = "explained: parent changed since the walk read it"
@@ -1030,21 +1033,21 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 		wg.Add(1)
 		go func(w int) {
 			defer wg.Done()
-			buf := alignedBuf(int(32 * h.pageSize))
+			buf := alignedBuf(int(32 * h.PageSize))
 			for r := range runs {
 				first := queue[r.lo].pg
 				n := int(queue[r.hi-1].pg-first) + 1
-				b := buf[:int64(n)*h.pageSize]
+				b := buf[:int64(n)*h.PageSize]
 				lim.wait(len(b))
-				got, err := f.ReadAt(b, int64(first-1)*h.pageSize)
+				got, err := f.ReadAt(b, int64(first-1)*h.PageSize)
 				done(n)
-				if err := fullRead(got, len(b), int64(first-1)*h.pageSize, err); err != nil {
+				if err := fullRead(got, len(b), int64(first-1)*h.PageSize, err); err != nil {
 					errOnce.Do(func() { readErr = err; close(failed) })
 					continue
 				}
 				for _, it := range queue[r.lo:r.hi] {
-					off := int64(it.pg-first) * h.pageSize
-					results[w] = append(results[w], parsePage(h, it, b[off:off+h.pageSize]))
+					off := int64(it.pg-first) * h.PageSize
+					results[w] = append(results[w], parsePage(h, it, b[off:off+h.PageSize]))
 				}
 			}
 		}(w)
@@ -1102,6 +1105,7 @@ func alignedBuf(n int) []byte {
 // parsePage reads one page as its item's kind and returns the pages it
 // points to.
 func parsePage(h header, it ccItem, p []byte) pageResult {
+	// Follow an overflow page to the next page of its chain.
 	r := pageResult{item: it}
 	if it.kind == kindOverflow {
 		r.tree = kindOverflow
@@ -1120,11 +1124,14 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		}
 		return r
 	}
+
+	// Find the b-tree page header, past the database header on page 1, and
+	// size it by the page type.
 	hoff := 0
 	if it.pg == 1 {
 		hoff = 100
 	}
-	u := int(h.usable)
+	u := int(h.Usable)
 	t := p[hoff]
 	var hlen int
 	switch t {
@@ -1136,11 +1143,15 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		r.bad = fmt.Sprintf("b-tree page type 0x%02x", t)
 		return r
 	}
+
+	// Note the tree kind the page type gives.
 	r.tree = kindTable
 	r.ptype = t
 	if t == 0x02 || t == 0x0a {
 		r.tree = kindIndex
 	}
+
+	// Check the cell count fits the page.
 	child := func(pg uint32) {
 		r.children = append(r.children, ccItem{pg: pg, parent: it.pg, kind: kindTree, schema: it.schema})
 	}
@@ -1149,6 +1160,8 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 		r.bad = fmt.Sprintf("%d cells do not fit", n)
 		return r
 	}
+
+	// Take each cell's child, overflow chain and schema root.
 	for i := 0; i < n; i++ {
 		off := int(binary.BigEndian.Uint16(p[hoff+hlen+2*i:]))
 		if off < hoff+hlen || off+4 > u {
@@ -1193,6 +1206,8 @@ func parsePage(h header, it ccItem, p []byte) pageResult {
 			r.children = append(r.children, ccItem{pg: binary.BigEndian.Uint32(c[local:]), parent: it.pg, kind: kindOverflow, left: uint32(pages)})
 		}
 	}
+
+	// Take an interior page's rightmost child.
 	if hlen == 12 {
 		child(binary.BigEndian.Uint32(p[hoff+8:]))
 	}

@@ -155,8 +155,8 @@ func readPages(t *testing.T, path string, h header, pages []uint32) [][]byte {
 	defer f.Close()
 	var out [][]byte
 	for _, p := range pages {
-		b := make([]byte, h.pageSize)
-		if _, err := f.ReadAt(b, int64(p-1)*h.pageSize); err != nil {
+		b := make([]byte, h.PageSize)
+		if _, err := f.ReadAt(b, int64(p-1)*h.PageSize); err != nil {
 			t.Fatal(err)
 		}
 		out = append(out, b)
@@ -186,12 +186,12 @@ func TestPunchProof(t *testing.T) {
 	db.Close()
 
 	h, w := fileHeader(t, path)
-	if len(w.trunks) < 4 {
-		t.Fatalf("fixture has %d trunks, want several", len(w.trunks))
+	if len(w.Trunks) < 4 {
+		t.Fatalf("fixture has %d trunks, want several", len(w.Trunks))
 	}
-	trunksBefore := readPages(t, path, h, w.trunks)
-	keptBefore := readPages(t, path, h, w.leaves[:w.perTrunk[0]])
-	reserve := int64(w.perTrunk[0]) * h.pageSize // keeps the head trunk's leaves
+	trunksBefore := readPages(t, path, h, w.Trunks)
+	keptBefore := readPages(t, path, h, w.Leaves[:w.PerTrunk[0]])
+	reserve := int64(w.PerTrunk[0]) * h.PageSize // keeps the head trunk's leaves
 	sha, out := dryRun(t, path, reserve)
 	t.Log(out)
 	stBefore, _ := os.Stat(path)
@@ -206,21 +206,21 @@ func TestPunchProof(t *testing.T) {
 		t.Fatalf("size changed %d -> %d", stBefore.Size(), stAfter.Size())
 	}
 	p := makePlan(w, h, reserve)
-	if p.keptTrunks != 1 || p.punchPages == 0 {
-		t.Fatalf("plan kept %d trunks, punches %d pages", p.keptTrunks, p.punchPages)
+	if p.KeptTrunks != 1 || p.PunchPages == 0 {
+		t.Fatalf("plan kept %d trunks, punches %d pages", p.KeptTrunks, p.PunchPages)
 	}
-	if got, want := allocated(stBefore)-allocated(stAfter), int64(p.punchPages)*h.pageSize; got < want*9/10 {
+	if got, want := allocated(stBefore)-allocated(stAfter), int64(p.PunchPages)*h.PageSize; got < want*9/10 {
 		t.Fatalf("released %d bytes, want about %d", got, want)
 	}
-	if !equalPages(trunksBefore, readPages(t, path, h, w.trunks)) {
+	if !equalPages(trunksBefore, readPages(t, path, h, w.Trunks)) {
 		t.Fatal("a trunk page changed")
 	}
-	if !equalPages(keptBefore, readPages(t, path, h, w.leaves[:w.perTrunk[0]])) {
+	if !equalPages(keptBefore, readPages(t, path, h, w.Leaves[:w.PerTrunk[0]])) {
 		t.Fatal("a kept-back leaf changed")
 	}
-	zero := make([]byte, h.pageSize)
-	for _, r := range p.ranges {
-		for pg := r.start; pg < r.start+r.count; pg++ {
+	zero := make([]byte, h.PageSize)
+	for _, r := range p.Ranges {
+		for pg := r.Start; pg < r.Start+r.Count; pg++ {
 			if !bytes.Equal(readPages(t, path, h, []uint32{pg})[0], zero) {
 				t.Fatalf("punched page %d is not zero", pg)
 			}
@@ -343,39 +343,39 @@ func TestRefusals(t *testing.T) {
 // TestNeverTrunk builds a walk whose trunks sit between leaves and checks
 // no range covers a trunk or a kept-back leaf.
 func TestNeverTrunk(t *testing.T) {
-	h := header{pageSize: 4096, usable: 4096, dbPages: 100}
+	h := header{PageSize: 4096, Usable: 4096, DBPages: 100}
 	w := &walk{
-		trunks:   []uint32{10, 20, 30},
-		leaves:   []uint32{11, 12, 9, 19, 21, 22, 29, 31, 32},
-		perTrunk: []int{3, 3, 3},
+		Trunks:   []uint32{10, 20, 30},
+		Leaves:   []uint32{11, 12, 9, 19, 21, 22, 29, 31, 32},
+		PerTrunk: []int{3, 3, 3},
 	}
 	p := makePlan(w, h, 1) // keeps trunk 10's leaves 11, 12, 9
-	if p.keptTrunks != 1 || p.keptPages != 3 {
-		t.Fatalf("kept %d trunks %d pages", p.keptTrunks, p.keptPages)
+	if p.KeptTrunks != 1 || p.KeptPages != 3 {
+		t.Fatalf("kept %d trunks %d pages", p.KeptTrunks, p.KeptPages)
 	}
-	want := []pageRange{{19, 1}, {21, 2}, {29, 1}, {31, 2}}
-	if len(p.ranges) != len(want) {
-		t.Fatalf("ranges %v, want %v", p.ranges, want)
+	want := []pageRange{{Start: 19, Count: 1}, {Start: 21, Count: 2}, {Start: 29, Count: 1}, {Start: 31, Count: 2}}
+	if len(p.Ranges) != len(want) {
+		t.Fatalf("ranges %v, want %v", p.Ranges, want)
 	}
 	for i := range want {
-		if p.ranges[i] != want[i] {
-			t.Fatalf("ranges %v, want %v", p.ranges, want)
+		if p.Ranges[i] != want[i] {
+			t.Fatalf("ranges %v, want %v", p.Ranges, want)
 		}
 	}
-	if p0 := makePlan(w, h, 0); p0.punchPages != 9 || p0.sha == p.sha {
-		t.Fatalf("reserve 0: %d pages, sha %s", p0.punchPages, p0.sha)
+	if p0 := makePlan(w, h, 0); p0.PunchPages != 9 || p0.SHA == p.SHA {
+		t.Fatalf("reserve 0: %d pages, sha %s", p0.PunchPages, p0.SHA)
 	}
 
 	// The same ranges with a different kept-back leaf or trunk chain must
 	// give a different sha, so a punch only runs on the chain dry-run saw.
-	kept := &walk{trunks: w.trunks, leaves: append([]uint32{11, 12, 8}, w.leaves[3:]...), perTrunk: w.perTrunk}
-	chain := &walk{trunks: []uint32{10, 20, 33}, leaves: w.leaves, perTrunk: w.perTrunk}
+	kept := &walk{Trunks: w.Trunks, Leaves: append([]uint32{11, 12, 8}, w.Leaves[3:]...), PerTrunk: w.PerTrunk}
+	chain := &walk{Trunks: []uint32{10, 20, 33}, Leaves: w.Leaves, PerTrunk: w.PerTrunk}
 	for name, w2 := range map[string]*walk{"kept leaf": kept, "trunk": chain} {
 		p2 := makePlan(w2, h, 1)
-		if len(p2.ranges) != len(p.ranges) {
-			t.Fatalf("%s: ranges %v, want %v", name, p2.ranges, p.ranges)
+		if len(p2.Ranges) != len(p.Ranges) {
+			t.Fatalf("%s: ranges %v, want %v", name, p2.Ranges, p.Ranges)
 		}
-		if p2.sha == p.sha {
+		if p2.SHA == p.SHA {
 			t.Fatalf("%s changed but the range sha did not", name)
 		}
 	}
@@ -386,21 +386,21 @@ func TestNeverTrunk(t *testing.T) {
 func TestWalkFaults(t *testing.T) {
 	path := makeWorld(t, 4096, 3000)
 	h, w := fileHeader(t, path)
-	if len(w.trunks) < 2 {
-		t.Fatalf("fixture has %d trunks", len(w.trunks))
+	if len(w.Trunks) < 2 {
+		t.Fatalf("fixture has %d trunks", len(w.Trunks))
 	}
 	f, _ := os.OpenFile(path, os.O_RDWR, 0)
 	defer f.Close()
 	// Point the second trunk's first leaf at the head trunk: listed twice.
 	var b [4]byte
-	binary.BigEndian.PutUint32(b[:], w.trunks[0])
-	f.WriteAt(b[:], int64(w.trunks[1]-1)*h.pageSize+8)
+	binary.BigEndian.PutUint32(b[:], w.Trunks[0])
+	f.WriteAt(b[:], int64(w.Trunks[1]-1)*h.PageSize+8)
 	if _, err := walkFreelist(f, h, false); err == nil || !strings.Contains(err.Error(), "listed twice") {
 		t.Fatalf("strict walk: %v", err)
 	}
 	tw, err := walkFreelist(f, h, true)
-	if err != nil || tw.torn == nil || len(tw.trunks) != 1 {
-		t.Fatalf("tolerant walk: %v torn=%v trunks=%d", err, tw.torn, len(tw.trunks))
+	if err != nil || tw.Torn == nil || len(tw.Trunks) != 1 {
+		t.Fatalf("tolerant walk: %v torn=%v trunks=%d", err, tw.Torn, len(tw.Trunks))
 	}
 }
 
@@ -428,7 +428,7 @@ func TestLive(t *testing.T) {
 		f, _ := os.Open(path)
 		defer f.Close()
 		h, _ := readHeader(f, st.Size())
-		if err := punchRanges(f, h, []pageRange{{2, 1}}); err == nil {
+		if err := punchRanges(f, h, []pageRange{{Start: 2, Count: 1}}); err == nil {
 			t.Fatal("punch on a read-only descriptor succeeded")
 		}
 	}

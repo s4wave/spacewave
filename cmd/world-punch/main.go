@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/sqlitefree"
 )
 
 const wantPageSize = 4096
@@ -130,28 +131,35 @@ func interruptOnSignal() <-chan struct{} {
 // opens the file read-only, so fallocate could not succeed on it, and it
 // never calls punch.
 func runLive(out io.Writer, o opts) error {
+	// Open the file read-only.
 	f, err := os.Open(o.path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+
+	// Read the header, going on past a warning.
 	st, err := f.Stat()
 	if err != nil {
 		return err
 	}
 	h, herr := readHeader(f, st.Size())
-	if h.pageSize == 0 {
+	if h.PageSize == 0 {
 		return herr
 	}
+
+	// Announce the mode and any header warning.
 	fmt.Fprintln(out, "LIVE read-only estimate: no lock held, the WAL is not read, the freelist may change while it is walked")
 	if herr != nil {
 		fmt.Fprintln(out, "header warning:", herr)
 	}
+
+	// Walk tolerantly and report the plan and any tear.
 	w, _ := walkFreelist(f, h, true)
 	p := makePlan(w, h, o.reserve)
 	report(out, h, w, p, st)
-	if w.torn != nil {
-		fmt.Fprintln(out, "walk stopped early (torn or changing chain):", w.torn)
+	if w.Torn != nil {
+		fmt.Fprintln(out, "walk stopped early (torn or changing chain):", w.Torn)
 	}
 	return nil
 }
@@ -179,7 +187,7 @@ func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error
 		return 0, err
 	}
 	h, herr := readHeader(f, st.Size())
-	if h.pageSize == 0 || (o.scan && herr != nil) {
+	if h.PageSize == 0 || (o.scan && herr != nil) {
 		return 0, herr // a scan needs file size = header pages x page size
 	}
 
@@ -227,6 +235,7 @@ func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error
 
 // runLocked is the dry run, and the punch when o.rangeSHA is set.
 func runLocked(out io.Writer, o opts) error {
+	// Open the file and lock out every SQLite connection.
 	f, err := os.OpenFile(o.path, os.O_RDWR, 0)
 	if err != nil {
 		return err
@@ -237,6 +246,9 @@ func runLocked(out io.Writer, o opts) error {
 		return err
 	}
 	defer release()
+
+	// Refuse a journal or WAL with pages, and a header the punch does not
+	// suit.
 	if err := checkNoJournal(o.path); err != nil {
 		return err
 	}
@@ -248,57 +260,53 @@ func runLocked(out io.Writer, o opts) error {
 	if err != nil {
 		return err
 	}
-	if h.pageSize != wantPageSize {
-		return errors.Errorf("page_size is %d, want %d", h.pageSize, wantPageSize)
+	if h.PageSize != wantPageSize {
+		return errors.Errorf("page_size is %d, want %d", h.PageSize, wantPageSize)
 	}
-	if h.autoVac {
-		return errors.New("auto_vacuum is not NONE (header offset 52 is nonzero): ptrmap pages track free pages, refusing")
+	if err := sqlitefree.CheckAutoVacuum(h); err != nil {
+		return err
 	}
+
+	// Walk strictly and report the plan, stopping for a dry run or a
+	// changed freelist.
 	w, p, err := strictPlan(f, h, o.reserve)
 	if err != nil {
 		return err
 	}
 	report(out, h, w, p, st)
 	if o.rangeSHA == "" {
-		fmt.Fprintln(out, "dry run: nothing punched. To punch, rerun with -range-sha", p.sha)
+		fmt.Fprintln(out, "dry run: nothing punched. To punch, rerun with -range-sha", p.SHA)
 		return nil
 	}
-	if o.rangeSHA != p.sha {
-		return errors.Errorf("range sha256 is %s, -range-sha is %s: the freelist changed since the dry run", p.sha, o.rangeSHA)
+	if o.rangeSHA != p.SHA {
+		return errors.Errorf("range sha256 is %s, -range-sha is %s: the freelist changed since the dry run", p.SHA, o.rangeSHA)
 	}
-	if err := punchRanges(f, h, p.ranges); err != nil {
+
+	// Punch and flush the file.
+	if err := punchRanges(f, h, p.Ranges); err != nil {
 		return errors.Wrap(err, "punch (the file stays valid: every punched page was a free leaf)")
 	}
 	if err := f.Sync(); err != nil {
 		return errors.Wrap(err, "fsync")
 	}
+
+	// Walk again and require the same plan.
 	_, after, err := strictPlan(f, h, o.reserve)
 	if err != nil {
 		return errors.Wrap(err, "walk after punch")
 	}
-	if after.sha != p.sha {
-		return errors.Errorf("range sha256 after punch is %s, before %s", after.sha, p.sha)
+	if after.SHA != p.SHA {
+		return errors.Errorf("range sha256 after punch is %s, before %s", after.SHA, p.SHA)
 	}
+
+	// Report what was punched and the allocation before and after.
 	st2, err := f.Stat()
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "punched %d ranges, %d bytes; walk after punch matches %s\n", len(p.ranges), int64(p.punchPages)*h.pageSize, p.sha)
+	fmt.Fprintf(out, "punched %d ranges, %d bytes; walk after punch matches %s\n", len(p.Ranges), int64(p.PunchPages)*h.PageSize, p.SHA)
 	fmt.Fprintf(out, "allocated bytes: before %d, after %d\n", allocated(st), allocated(st2))
 	return nil
-}
-
-// strictPlan walks the chain and refuses unless trunks plus leaves equals
-// the header's freelist count.
-func strictPlan(f io.ReaderAt, h header, reserve int64) (*walk, plan, error) {
-	w, err := walkFreelist(f, h, false)
-	if err != nil {
-		return nil, plan{}, err
-	}
-	if got := uint64(len(w.trunks)) + uint64(len(w.leaves)); got != uint64(h.freeCount) {
-		return nil, plan{}, errors.Errorf("trunks %d + leaves %d = %d, header freelist count is %d", len(w.trunks), len(w.leaves), got, h.freeCount)
-	}
-	return w, makePlan(w, h, reserve), nil
 }
 
 // checkNoJournal refuses unless the WAL is absent or empty and there is no
@@ -319,15 +327,19 @@ func checkNoJournal(path string) error {
 	return nil
 }
 
+// report prints the header, the walk and the plan.
 func report(out io.Writer, h header, w *walk, p plan, st os.FileInfo) {
-	fmt.Fprintf(out, "page size %d, pages %d, auto_vacuum %v\n", h.pageSize, h.dbPages, h.autoVac)
-	got := uint64(len(w.trunks)) + uint64(len(w.leaves))
-	fmt.Fprintf(out, "header freelist count %d; walked trunks %d + leaves %d = %d (match %v)\n", h.freeCount, len(w.trunks), len(w.leaves), got, got == uint64(h.freeCount))
-	fmt.Fprintf(out, "kept back: leaves of the first %d trunks, %d pages, %d bytes\n", p.keptTrunks, p.keptPages, int64(p.keptPages)*h.pageSize)
-	fmt.Fprintf(out, "to release: %d ranges, %d pages, %d bytes\n", len(p.ranges), p.punchPages, int64(p.punchPages)*h.pageSize)
-	fmt.Fprintf(out, "estimate: ext4 extents up to +%d, extent tree up to +%d bytes\n", len(p.ranges), int64(len(p.ranges)+339)/340*4096)
+	// Print the header and how the walk compares with its freelist count.
+	fmt.Fprintf(out, "page size %d, pages %d, auto_vacuum %v\n", h.PageSize, h.DBPages, h.AutoVac)
+	got := uint64(len(w.Trunks)) + uint64(len(w.Leaves))
+	fmt.Fprintf(out, "header freelist count %d; walked trunks %d + leaves %d = %d (match %v)\n", h.FreeCount, len(w.Trunks), len(w.Leaves), got, got == uint64(h.FreeCount))
+
+	// Print the plan and the file's allocation.
+	fmt.Fprintf(out, "kept back: leaves of the first %d trunks, %d pages, %d bytes\n", p.KeptTrunks, p.KeptPages, int64(p.KeptPages)*h.PageSize)
+	fmt.Fprintf(out, "to release: %d ranges, %d pages, %d bytes\n", len(p.Ranges), p.PunchPages, int64(p.PunchPages)*h.PageSize)
+	fmt.Fprintf(out, "estimate: ext4 extents up to +%d, extent tree up to +%d bytes\n", len(p.Ranges), int64(len(p.Ranges)+339)/340*4096)
 	fmt.Fprintf(out, "allocated bytes now %d of size %d\n", allocated(st), st.Size())
-	fmt.Fprintf(out, "range sha256 %s\n", p.sha)
+	fmt.Fprintf(out, "range sha256 %s\n", p.SHA)
 }
 
 // mbpsCap describes the -crosscheck read cap.

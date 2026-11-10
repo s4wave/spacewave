@@ -37,9 +37,9 @@ type scanStream struct {
 func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Size the result against the header.
 	start := time.Now()
-	res := ccResult{dbPages: h.dbPages, byType: map[byte]uint64{}, startFree: h.freeCount, inUse: h.dbPages, strict: true, startChange: h.change}
-	if h.freeCount < h.dbPages {
-		res.inUse = h.dbPages - h.freeCount
+	res := ccResult{dbPages: h.DBPages, byType: map[byte]uint64{}, startFree: h.FreeCount, inUse: h.DBPages, strict: true, startChange: h.Change}
+	if h.FreeCount < h.DBPages {
+		res.inUse = h.DBPages - h.FreeCount
 	}
 	o.readers, o.streams = max(o.readers, 1), max(o.streams, 1)
 	bulk := o.bulk
@@ -49,8 +49,8 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 
 	// Walk the freelist once; the file is stopped, so once is enough.
 	free, fw := freeSet(f, h)
-	res.freeTorn = fw.torn
-	res.freeTrunks, res.freeLeaves = uint64(len(fw.trunks)), uint64(len(fw.leaves))
+	res.freeTorn = fw.Torn
+	res.freeTrunks, res.freeLeaves = uint64(len(fw.Trunks)), uint64(len(fw.Leaves))
 	if o.freelistOverride != nil {
 		o.freelistOverride(free, false)
 	}
@@ -89,25 +89,25 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 
 	// mark claims a page for the walk: out of range is bad, reached
 	// before is a dup, and on the freelist conflicts.
-	reached, btree, leaf := newBitset(h.dbPages), newBitset(h.dbPages), newBitset(h.dbPages)
+	reached, btree, leaf := newBitset(h.DBPages), newBitset(h.DBPages), newBitset(h.DBPages)
 	mark := func(it ccItem) bool {
 		// Refuse an out-of-range or already reached page.
-		if it.pg < 1 || it.pg > h.dbPages {
-			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.dbPages), ptr: true})
+		if it.pg < 1 || it.pg > h.DBPages {
+			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.DBPages), ptr: true})
 			return false
 		}
 		if it.pg == lockBytePage(h) {
 			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to the lock-byte page %d", it.pg), ptr: true})
 			return false
 		}
-		if reached.has(it.pg) {
+		if reached.Has(it.pg) {
 			addConflict(conflict{page: it.pg, parent: it.parent, kind: it.kind, dup: true, parent2: it.parent})
 			return false
 		}
 
 		// Claim it; a free one conflicts.
-		reached.set(it.pg)
-		if free.has(it.pg) {
+		reached.Set(it.pg)
+		if free.Has(it.pg) {
 			addConflict(conflict{page: it.pg, parent: it.parent, kind: it.kind})
 		}
 		return true
@@ -160,8 +160,8 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Stop with the totals so far if interrupted.
 	res.phaseTimes[0] = time.Since(start)
 	finish := func() (ccResult, error) {
-		res.readPages, res.reads = readPages.Load()+scanned.Load()/h.pageSize, reads.Load()+res.scanReads
-		res.readBytes, res.elapsed, res.interrupted = res.readPages*h.pageSize, time.Since(start), interrupted()
+		res.readPages, res.reads = readPages.Load()+scanned.Load()/h.PageSize, reads.Load()+res.scanReads
+		res.readBytes, res.elapsed, res.interrupted = res.readPages*h.PageSize, time.Since(start), interrupted()
 		return res, nil
 	}
 	if interrupted() {
@@ -174,8 +174,8 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	phase.Store(2)
 	t2 := time.Now()
 	p2start.Store(t2.UnixNano())
-	nextPg := make([]uint32, uint64(h.dbPages)+1)
-	total := int64(h.dbPages) * h.pageSize
+	nextPg := make([]uint32, uint64(h.DBPages)+1)
+	total := int64(h.DBPages) * h.PageSize
 
 	// Run the probe beside the pass.
 	p2done := make(chan struct{})
@@ -231,8 +231,8 @@ func scanCheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	// Count pages reached, free and neither, as crosscheck does; a
 	// reached lock-byte page is bad.
 	lockPg := lockBytePage(h)
-	for pg := uint32(1); pg <= h.dbPages; pg++ {
-		r, fr := reached.has(pg), free.has(pg)
+	for pg := uint32(1); pg <= h.DBPages; pg++ {
+		r, fr := reached.Has(pg), free.Has(pg)
 		if r && pg == lockPg {
 			addBad(badPage{page: pg, err: "lock-byte page reached"})
 		}
@@ -283,16 +283,16 @@ func scanPhase1(res *ccResult, r pageResult, probes map[uint32][]ccItem, btree, 
 	// A leaf outside sqlite_schema joins the leaf set with its siblings,
 	// for phase 2 to parse.
 	if (r.ptype == 0x0d || r.ptype == 0x0a) && !it.schema {
-		leaf.set(it.pg)
+		leaf.Set(it.pg)
 		for _, s := range sibs {
-			leaf.set(s.pg)
+			leaf.Set(s.pg)
 		}
 		return next
 	}
 
 	// Count an interior or sqlite_schema page; an interior probe's
 	// siblings are interior too, so they are read.
-	btree.set(it.pg)
+	btree.Set(it.pg)
 	res.kinds[r.tree]++
 	res.byType[r.ptype]++
 	res.leafCells += uint64(r.leafCells)
@@ -418,11 +418,11 @@ func scanPass(f io.ReaderAt, h header, o ccOpts, lim *limiter, leaf bitset, next
 // parseChunk parses the leaf-set pages of one chunk into out and keeps
 // the first word of every other page in nextPg.
 func parseChunk(h header, b []byte, off int64, leaf bitset, nextPg []uint32, out *scanStream) {
-	ps := int(h.pageSize)
-	first := uint32(off/h.pageSize) + 1
+	ps := int(h.PageSize)
+	first := uint32(off/h.PageSize) + 1
 	for i := 0; i < len(b)/ps; i++ {
 		pg, p := first+uint32(i), b[i*ps:(i+1)*ps]
-		if leaf.has(pg) {
+		if leaf.Has(pg) {
 			scanLeaf(h, pg, p, out)
 		} else {
 			nextPg[pg] = binary.BigEndian.Uint32(p[0:4])
@@ -477,7 +477,7 @@ type scanProbeResult struct {
 // cell count and overflow heads, with the local split crosscheck uses.
 func scanLeaf(h header, pg uint32, p []byte, out *scanStream) {
 	// The page must be a leaf whose cell pointers fit.
-	u := int(h.usable)
+	u := int(h.Usable)
 	t := p[0]
 	if t != 0x0d && t != 0x0a {
 		out.bad = append(out.bad, badPage{page: pg, err: fmt.Sprintf("leaf-set page has b-tree type 0x%02x", t)})
@@ -553,16 +553,16 @@ func scanChain(res *ccResult, h header, hd chainHead, nextPg []uint32, reached, 
 	prev, cur := hd.parent, hd.pg
 	for i := uint32(0); i < hd.pages; i++ {
 		// The page must be in range and not reached by anything else.
-		if cur < 1 || cur > h.dbPages {
-			addBad(badPage{page: prev, err: fmt.Sprintf("points to page %d outside 1..%d", cur, h.dbPages), ptr: true})
+		if cur < 1 || cur > h.DBPages {
+			addBad(badPage{page: prev, err: fmt.Sprintf("points to page %d outside 1..%d", cur, h.DBPages), ptr: true})
 			return
 		}
 		if cur == lockBytePage(h) {
 			addBad(badPage{page: prev, err: fmt.Sprintf("points to the lock-byte page %d", cur), ptr: true})
 			return
 		}
-		if reached.has(cur) {
-			if btree.has(cur) || leaf.has(cur) {
+		if reached.Has(cur) {
+			if btree.Has(cur) || leaf.Has(cur) {
 				res.chainInTree++
 			}
 			addConflict(conflict{page: cur, parent: prev, parentOv: i > 0, kind: kindOverflow, dup: true, parent2: prev, parent2Ov: i > 0})
@@ -570,8 +570,8 @@ func scanChain(res *ccResult, h header, hd chainHead, nextPg []uint32, reached, 
 		}
 
 		// Claim it; a free one conflicts.
-		reached.set(cur)
-		if free.has(cur) {
+		reached.Set(cur)
+		if free.Has(cur) {
 			addConflict(conflict{page: cur, parent: prev, parentOv: i > 0, kind: kindOverflow})
 		}
 
@@ -604,7 +604,7 @@ func scanProgress(out io.Writer, el time.Duration, h header, inUse uint32, phase
 	}
 
 	// Phase 2 projects the time left from the bytes scanned so far.
-	total := int64(h.dbPages) * h.pageSize
+	total := int64(h.DBPages) * h.PageSize
 	eta := "unknown"
 	if rate := float64(scanned) / sec; rate > 0 {
 		eta = (time.Duration(float64(total-scanned)/rate) * time.Second).Round(time.Second).String()
