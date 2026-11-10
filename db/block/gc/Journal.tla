@@ -1623,6 +1623,12 @@ CountsExact ==
 \* so a config with FillBlocks leaves this out and relies on NoFreedStoredRead.
 HoleKeeps == \A h \in lost : Kids(h) \subseteq stored \cup lost
 
+\* A stored child of a lost block stays stored: the hole keeps the hold its
+\* list gave. This is what HoleKeeps leaves out under fills, where a lost
+\* block's children may never have been filled.
+HoleHolds == [][\A h \in lost : \A c \in Kids(h) \cap stored :
+                 c \in stored' \cup lost']_vars
+
 Quiet == Adopted /\ jr = <<>> /\ fj = {} /\ zero = {} /\ rel = {} /\ pend = {}
 
 \* Once the journal is consumed and the free queue empty, the store holds what
