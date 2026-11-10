@@ -194,7 +194,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 
 	// Rewrite relationships before removing their original object entry.
 	if err := t.renameGraphObject(ctx, oldKey, newKey); err != nil {
-		return nil, err
+		return nil, t.failWrite(err)
 	}
 
 	// Remove the original entry after every incident relationship was rewritten.

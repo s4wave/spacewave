@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"errors"
 	fmt "fmt"
 	"sync"
 	"sync/atomic"
@@ -9,6 +10,7 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 
 	"github.com/aperturerobotics/cayley"
+	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -58,6 +60,10 @@ type WorldState struct {
 	releaseOwned bool
 
 	objTree kvtx.BlockTx
+	// writeErr is the error of a write that stopped after changing part of
+	// the state, such as a graph batch whose first deltas reached the buffer.
+	// Once set, the state refuses to commit, so its owner discards it.
+	writeErr error
 	// format and graphSettings are the loaded root's format and graph
 	// settings, which the graph tree opens with.
 	format        WorldFormat
@@ -405,8 +411,8 @@ func (t *WorldState) ApplyWorldOp(
 //
 // Creates a new block transaction.
 func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
-	// A discarded state cannot fork.
-	if err := t.discardErr(); err != nil {
+	// A discarded state, or one holding a partial write, cannot fork.
+	if err := t.wholeErr(); err != nil {
 		return nil, err
 	}
 
@@ -517,6 +523,39 @@ func (t *WorldState) setBlockTransaction(
 	return nil
 }
 
+// wholeErr is discardErr, or ErrPartialWrite once a write stopped after
+// changing part of the state, for the calls that carry the state forward:
+// commit and fork.
+func (t *WorldState) wholeErr() error {
+	if err := t.discardErr(); err != nil {
+		return err
+	}
+	if t.writeErr != nil {
+		return fmt.Errorf("%w: %w", ErrPartialWrite, t.writeErr)
+	}
+	return nil
+}
+
+// failWrite records err, from a write that may have changed part of the
+// state, so the state refuses to commit, and returns it.
+func (t *WorldState) failWrite(err error) error {
+	if err != nil && t.writeErr == nil {
+		t.writeErr = err
+	}
+	return err
+}
+
+// failGraphCall is failWrite for the error of one graph call, which leaves
+// the graph unchanged when it rejected a delta: the call checks every delta
+// before it writes.
+func (t *WorldState) failGraphCall(err error) error {
+	var rejected *graph.DeltaError
+	if errors.As(err, &rejected) {
+		return err
+	}
+	return t.failWrite(err)
+}
+
 // discardErr returns nil while the state is not discarded, and otherwise the
 // error its operations report: why the engine ended it, or tx.ErrDiscarded.
 func (t *WorldState) discardErr() error {
@@ -582,7 +621,7 @@ func (t *WorldState) PrepareCommit(ctx context.Context) error {
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	if err := t.discardErr(); err != nil {
+	if err := t.wholeErr(); err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {

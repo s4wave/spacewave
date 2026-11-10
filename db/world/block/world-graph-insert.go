@@ -71,7 +71,7 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 		return err
 	}
 	if err := graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
-		return err
+		return t.failGraphCall(err)
 	}
 
 	// Record one graph-set World change per relationship.
@@ -80,7 +80,7 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			ChangeType: WorldChangeType_WorldChange_GRAPH_SET,
 			Quad:       world.GraphQuadToQuad(q),
 		}); err != nil {
-			return err
+			return t.failWrite(err)
 		}
 	}
 	return nil
