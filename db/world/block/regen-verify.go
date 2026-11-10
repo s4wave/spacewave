@@ -24,9 +24,9 @@ const regenVerifyShown = 4
 
 // verify proves built holds what base holds: the same World apart from the
 // graph, and the same quads. The two are one content in two formats, held by
-// name, so commits on the head since the swap do not enter the comparison. Both graphs stream
-// every quad, tagged by side, into one external sort, and the merge must
-// meet each quad exactly once from each side. Memory holds cfg.Budget and
+// name, so commits on the head since the swap do not enter the comparison.
+// Both graphs stream every quad, tagged by side, into one external sort, and
+// the merge must meet each quad from both sides. Memory holds cfg.Budget and
 // the sort's read buffers; disk holds the runs, reserved before the first.
 // A difference returns a wrapped ErrRegenMismatch.
 func (r *Regenerator) verify(ctx context.Context, s regenState) error {
@@ -55,7 +55,10 @@ func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 	}
 
 	// Sort every quad of both graphs, tagged by side.
-	sorter := extsort.New(r.cfg.SpillDir, r.cfg.Budget)
+	sorter, err := r.cfg.newSorter()
+	if err != nil {
+		return err
+	}
 	defer sorter.Close()
 	for i := range sides {
 		if err := addVerifyQuads(ctx, cursors[i], worlds[i], byte(i), sorter, int64(r.cfg.Budget)); err != nil {
@@ -63,9 +66,9 @@ func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 		}
 	}
 
-	// Each quad must show once from each side.
+	// Each quad must show on both sides.
 	var tally verifyTally
-	err := sorter.Merge(ctx, nil, func(key, value []byte) error {
+	err = sorter.Merge(ctx, nil, func(key, value []byte) error {
 		tally.add(key, value[0])
 		return nil
 	})

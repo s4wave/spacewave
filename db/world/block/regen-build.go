@@ -48,8 +48,9 @@ const (
 // RegenConfig sets where and how much a regeneration build sorts, and when
 // its catch-up is small enough to swap.
 type RegenConfig struct {
-	// SpillDir is the directory the sort writes its runs in. The runs are
-	// disposable and removed when the build ends.
+	// SpillDir is the directory the sorts write their runs in. The runs are
+	// disposable and removed when the sort ends. The regeneration owns the
+	// directory: each sort first removes the runs a killed process left.
 	SpillDir string
 	// Budget is the sort's memory in bytes before it spills a run.
 	Budget int
@@ -57,6 +58,16 @@ type RegenConfig struct {
 	// writer turn. A catch-up round that leaves more runs again off the turn,
 	// so a commit waits at most for a diff of this size.
 	SwapChanges int
+}
+
+// newSorter removes the runs a killed regeneration left in SpillDir and opens
+// a sort there. A regeneration's build and comparison never sort at once, so
+// no live sort loses its runs.
+func (c RegenConfig) newSorter() (*extsort.Sorter, error) {
+	if err := extsort.RemoveRuns(c.SpillDir); err != nil {
+		return nil, errors.Wrap(err, "remove stale sort runs")
+	}
+	return extsort.New(c.SpillDir, c.Budget), nil
 }
 
 // buildNodeGraphRoot writes a node graph World holding the objects, quads and
@@ -91,7 +102,10 @@ func buildNodeGraphRoot(
 	}
 
 	// Sort the old graph's nodes and quads into the new key order.
-	sorter := extsort.New(cfg.SpillDir, cfg.Budget)
+	sorter, err := cfg.newSorter()
+	if err != nil {
+		return nil, err
+	}
 	defer sorter.Close()
 	builder := kvtx_cayley_nodegraph.NewBuilder(sorter)
 	if err := addKvGraph(ctx, worldCursor, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget)); err != nil {
