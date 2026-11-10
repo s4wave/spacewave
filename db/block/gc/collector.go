@@ -201,7 +201,7 @@ func (c *Collector) share(base int) int {
 
 // waiting reports that a foreground writer waits on the store.
 func (c *Collector) waiting() bool {
-	return c.opts.WritersWaiting != nil && c.opts.WritersWaiting()
+	return c.opts.ForegroundWaiting != nil && c.opts.ForegroundWaiting()
 }
 
 // Store is the Volume a Collector runs in.

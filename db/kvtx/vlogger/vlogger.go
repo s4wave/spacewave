@@ -54,5 +54,11 @@ func (l *VLoggerStore) WritersWaiting() bool {
 	return ok && s.WritersWaiting()
 }
 
+// ForegroundWaiting reports whether a foreground writer waits on the wrapped
+// store.
+func (l *VLoggerStore) ForegroundWaiting() bool {
+	return kvtx.ForegroundWaiting(l.Store)
+}
+
 // _ is a type assertion
-var _ kvtx.WriterQueueStore = (*VLoggerStore)(nil)
+var _ kvtx.ForegroundQueueStore = (*VLoggerStore)(nil)
