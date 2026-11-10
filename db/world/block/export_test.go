@@ -81,3 +81,6 @@ func (s *readThroughStore) OpenStage(ctx context.Context) (block.StoreOps, func(
 func ObjectRevWake(t *EngineTx, key string) <-chan struct{} {
 	return t.writeTx.state.revs.wait(key)
 }
+
+// BuildNodeGraphRoot exposes the regeneration build to the external tests.
+var BuildNodeGraphRoot = buildNodeGraphRoot
