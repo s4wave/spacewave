@@ -22,7 +22,7 @@ func newTestStore(t testing.TB) (graph.QuadStore, graph.Options, func()) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return NewQuadStore(tx, nil), graph.Options{}, func() { tx.Discard() }
+	return NewQuadStore(tx), graph.Options{}, func() { tx.Discard() }
 }
 
 // TestQuadStore_Conformance runs the Cayley quad store conformance suite.
@@ -38,10 +38,10 @@ func TestQuadStore_Conformance(t *testing.T) {
 	graphtest.TestAll(t, newTestStore, &graphtest.Config{})
 }
 
-// TestChangedQuadsReusedID checks that the diff of two trees names the quads of
-// an out key equal in both trees whose object ID was freed and then allocated
-// to another value.
-func TestChangedQuadsReusedID(t *testing.T) {
+// TestNodeIDsNeverReused checks that a node created after the node with the
+// highest ID is deleted, in a later transaction, gets a new ID, and that the
+// diff of the two trees names both quads through their out keys.
+func TestNodeIDsNeverReused(t *testing.T) {
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
 	apply := func(action graph.Procedure, o string) {
@@ -51,7 +51,7 @@ func TestChangedQuadsReusedID(t *testing.T) {
 		}
 		defer tx.Discard()
 		d := graph.Delta{Quad: quad.MakeIRI("a", "p", o, ""), Action: action}
-		if err := NewQuadStore(tx, nil).ApplyDeltas(ctx, []graph.Delta{d}, graph.IgnoreOpts{}); err != nil {
+		if err := NewQuadStore(tx).ApplyDeltas(ctx, []graph.Delta{d}, graph.IgnoreOpts{}); err != nil {
 			t.Fatal(err)
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -95,16 +95,26 @@ func TestChangedQuadsReusedID(t *testing.T) {
 		t.Cleanup(tx.Discard)
 		return tx
 	}
+	nodeID := func(m map[string]string, iri string) uint64 {
+		id, ok := decodeID([]byte(m[string(valueKey(quad.IRI(iri).String()))]))
+		if !ok {
+			t.Fatalf("no node for %s", iri)
+		}
+		return id
+	}
 
-	// x takes the last ID; deleting its quad frees it, and y takes it again.
+	// x takes the highest ID; deleting its quad deletes it, and y comes next.
 	apply(graph.Add, "b")
 	apply(graph.Add, "x")
 	before := snapshot()
 	apply(graph.Delete, "x")
 	apply(graph.Add, "y")
 	after := snapshot()
+	if x, y := nodeID(before, "x"), nodeID(after, "y"); y <= x {
+		t.Fatalf("y has ID %d, not past deleted x's %d", y, x)
+	}
 
-	// The tree diff lists no out key, only the reused meta and value keys.
+	// The tree diff names each quad by its own out key.
 	var keys [][]byte
 	for k, v := range before {
 		if w, ok := after[k]; !ok || w != v {
@@ -116,12 +126,6 @@ func TestChangedQuadsReusedID(t *testing.T) {
 			keys = append(keys, []byte(k))
 		}
 	}
-	for _, k := range keys {
-		if _, tag, ok := parseNodeKey(k); ok && tag == tagOut {
-			t.Fatalf("diff lists out key %x; the test needs the key reused", k)
-		}
-	}
-
 	quads, complete, err := ChangedQuads(ctx, open(before), open(after), keys, 100)
 	if err != nil || !complete {
 		t.Fatalf("changed quads: complete %v, %v", complete, err)

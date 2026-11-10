@@ -32,28 +32,20 @@ var ErrInvalidQuad = errors.New("node graph: quad needs a subject, predicate and
 type QuadStore struct {
 	// tx holds the graph keys, including this transaction's held writes.
 	tx kvtx.TxOps
-	// committed is the tree under tx's write buffer, which the store reads only
-	// to find the last node ID without flushing the buffer.
-	committed kvtx.TxOps
 
-	// idMtx guards nextID and pinned.
+	// idMtx guards nextID, storedID and pinned.
 	idMtx sync.Mutex
 	// nextID is the next node ID to allocate, or 0 before loadNextID.
 	nextID uint64
+	// storedID is the next ID the tree's key holds, as read or last written.
+	storedID uint64
 	// pinned holds the nodes this transaction has seen pinned.
 	pinned map[uint64]struct{}
 }
 
 // NewQuadStore opens the store over tx.
-//
-// committed is the transaction under tx's write buffer, or tx itself when it
-// buffers nothing. Only the store allocates node IDs, so the last ID in
-// committed plus the IDs this store allocated is the last ID in tx.
-func NewQuadStore(tx, committed kvtx.TxOps) *QuadStore {
-	if committed == nil {
-		committed = tx
-	}
-	return &QuadStore{tx: tx, committed: committed}
+func NewQuadStore(tx kvtx.TxOps) *QuadStore {
+	return &QuadStore{tx: tx}
 }
 
 // nodeID is a reference to a node.
@@ -224,11 +216,11 @@ func (qs *QuadStore) QuadIteratorSize(ctx context.Context, d quad.Direction, ref
 // Stats returns the number of nodes and quads.
 //
 // The exact counts walk every node. The estimate reads no storage beyond the
-// store's one seek for the last node ID: the planner asks for it while
+// store's one read of the next node ID: the planner asks for it while
 // choosing a plan, and the tree's key count would flush the write buffer. The
 // store keeps no quad count, so it estimates one quad per node.
 func (qs *QuadStore) Stats(ctx context.Context, exact bool) (graph.Stats, error) {
-	// Estimate from the last node ID.
+	// Estimate from the next node ID.
 	if !exact {
 		n, err := qs.nodeEstimate(ctx)
 		if err != nil {

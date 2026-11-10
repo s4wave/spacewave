@@ -4,9 +4,12 @@ import (
 	"encoding/binary"
 )
 
-// Key layout. Every node has an 8-byte big-endian ID, allocated one past the
-// last node, so a new node's keys sort together at the end of the tree.
+// Key layout. Every node has an 8-byte big-endian ID, allocated from the
+// tree's next ID, so a new node's keys sort together at the end of the tree.
+// The next ID only grows: a deleted node's ID is never allocated again, so a
+// key held by two trees names the same node and quad in both.
 //
+//	n/next                               -> next node ID
 //	v/<value text>                       -> node ID
 //	g/<node> 0x00                        -> NodeMeta
 //	g/<node> 0x01 <pred> <object> [label] -> empty, one per quad
@@ -30,6 +33,8 @@ const (
 )
 
 var (
+	// nextIDKey holds the next node ID, absent until the first node.
+	nextIDKey = []byte("n/next")
 	// valuePrefix prefixes the value to ID map.
 	valuePrefix = []byte("v/")
 	// nodePrefix prefixes the node ranges.

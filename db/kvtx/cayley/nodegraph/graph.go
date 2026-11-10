@@ -8,8 +8,8 @@ import (
 
 // NewGraph opens a graph handle over the store in tx, as NewQuadStore does,
 // with a writer that applies each write as one delta batch.
-func NewGraph(tx, committed kvtx.TxOps) (*cayley.Handle, error) {
-	qs := NewQuadStore(tx, committed)
+func NewGraph(tx kvtx.TxOps) (*cayley.Handle, error) {
+	qs := NewQuadStore(tx)
 	w, err := writer.NewSingleReplication(qs, nil)
 	if err != nil {
 		return nil, err

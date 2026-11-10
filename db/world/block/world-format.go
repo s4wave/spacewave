@@ -31,10 +31,9 @@ func (f WorldFormat) ValidateInitial(settings *GraphSettings) error {
 	return errors.Errorf("unknown World format %v", f)
 }
 
-// openGraph opens the graph store of a World of format over store. committed
-// is the transaction under store's write buffer, or store itself when it
-// buffers nothing. The handle keeps ctx for its internal transactions.
-func openGraph(ctx context.Context, format WorldFormat, settings *GraphSettings, store, committed kvtx.TxOps) (*cayley.Handle, error) {
+// openGraph opens the graph store of a World of format over store. The handle
+// keeps ctx for its internal transactions.
+func openGraph(ctx context.Context, format WorldFormat, settings *GraphSettings, store kvtx.TxOps) (*cayley.Handle, error) {
 	switch format {
 	case WorldFormat_WORLD_FORMAT_CAYLEY_KV:
 		// Open under the root's settings, so the store reads no layout.
@@ -47,7 +46,7 @@ func openGraph(ctx context.Context, format WorldFormat, settings *GraphSettings,
 		if len(settings.GetIndexes()) != 0 {
 			return nil, errors.New("node graph World has graph settings")
 		}
-		return kvtx_cayley_nodegraph.NewGraph(store, committed)
+		return kvtx_cayley_nodegraph.NewGraph(store)
 	}
 	return nil, errors.Errorf("unknown World format %v", format)
 }

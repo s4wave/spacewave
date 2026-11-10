@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // quadText identifies a quad by its values' text, with "" for no label.
@@ -92,7 +91,7 @@ func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts gra
 			return err
 		}
 	}
-	return nil
+	return qs.storeNextID(ctx)
 }
 
 // deltaBatch resolves each distinct value once within one ApplyDeltas call.
@@ -312,7 +311,7 @@ func (qs *QuadStore) markPinned(id uint64) {
 	qs.pinned[id] = struct{}{}
 }
 
-// allocID returns a new node ID, one past the last.
+// allocID returns a new node ID, the tree's next ID, which it advances.
 func (qs *QuadStore) allocID(ctx context.Context) (uint64, error) {
 	// Load the next ID under the lock on first use.
 	qs.idMtx.Lock()
@@ -328,7 +327,7 @@ func (qs *QuadStore) allocID(ctx context.Context) (uint64, error) {
 }
 
 // nodeEstimate returns the number of node IDs allocated, an upper bound on the
-// live nodes: a node deleted below the last ID leaves a gap.
+// live nodes: a deleted node leaves a gap.
 func (qs *QuadStore) nodeEstimate(ctx context.Context) (int64, error) {
 	qs.idMtx.Lock()
 	defer qs.idMtx.Unlock()
@@ -338,42 +337,47 @@ func (qs *QuadStore) nodeEstimate(ctx context.Context) (int64, error) {
 	return int64(qs.nextID - 1), nil //nolint:gosec // IDs stay far below 1<<63.
 }
 
-// loadNextID sets nextID on first use from the last ID in the tree under the
-// write buffer, which holds no ID this store did not allocate: one reverse
-// seek per store. The caller holds idMtx.
+// loadNextID sets nextID on first use from the tree's next ID key: one read
+// per store, through the write buffer without flushing it. A tree without the
+// key never held a node, so its next ID is 1. The caller holds idMtx.
 func (qs *QuadStore) loadNextID(ctx context.Context) error {
 	// Loaded once per store.
 	if qs.nextID != 0 {
 		return nil
 	}
 
-	// One past the largest committed ID.
-	last, err := lastNodeID(ctx, qs.committed)
+	// Read the stored mark, or start an empty tree at 1.
+	v, found, err := qs.tx.Get(ctx, nextIDKey)
 	if err != nil {
 		return err
 	}
-	qs.nextID = last + 1
+	qs.nextID, qs.storedID = 1, 1
+	if !found {
+		return nil
+	}
+	id, ok := decodeID(v)
+	if !ok || id == 0 {
+		return errors.Errorf("node graph: invalid next ID %x", v)
+	}
+	qs.nextID, qs.storedID = id, id
 	return nil
 }
 
-// lastNodeID returns the largest node ID in tx, or 0 when it has none.
-func lastNodeID(ctx context.Context, tx kvtx.TxOps) (uint64, error) {
-	// Seek to the last node key.
-	it := tx.Iterate(ctx, nodePrefix, true, true)
-	defer it.Close()
-	if err := it.Seek(nil); err != nil {
-		return 0, err
+// storeNextID writes the next ID key when this store allocated an ID since
+// it last wrote it, so a later transaction never allocates an ID again, even
+// one whose node was deleted.
+func (qs *QuadStore) storeNextID(ctx context.Context) error {
+	// Write only after an allocation.
+	qs.idMtx.Lock()
+	defer qs.idMtx.Unlock()
+	if qs.nextID == qs.storedID {
+		return nil
 	}
-	if !it.Valid() {
-		return 0, it.Err()
+	if err := qs.tx.Set(ctx, nextIDKey, encodeID(qs.nextID)); err != nil {
+		return err
 	}
-
-	// Its ID is the largest.
-	id, _, ok := parseNodeKey(it.Key())
-	if !ok {
-		return 0, errors.Errorf("node graph: invalid node key %x", it.Key())
-	}
-	return id, nil
+	qs.storedID = qs.nextID
+	return nil
 }
 
 // deleteIfEmpty deletes a node that has no edges and is not pinned.
