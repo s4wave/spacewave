@@ -861,6 +861,12 @@ CONFIGS = [
     Cfg('gc-fixed', writers=(('W1', 'A'), ('W2', 'A')), cap=2, np=3,
         max_crashes=1, gc='A', heads=0, reserve=False, has_waits=True,
         idx_load_flushed=True),
+    # DIVERT empty (packed-store.go:109-113, 151-153): no Has, no External.
+    Cfg('dup-nodivert', writers=(('W1', 'A'), ('W2', 'A')), cap=2, np=4,
+        max_crashes=2, divert0=False),
+    # Divert on in the first life, off after a restart, as with the unfixed Has.
+    Cfg('dup-flip', writers=(('W1', 'A'), ('W2', 'A')), cap=2, np=4,
+        max_crashes=2, flip_divert=True),
     Cfg('mutant-nodatacheck', idx_load_flushed=True, has_waits=True, writers=(('W1', 'A'),), cap=1, np=3,
         max_crashes=1, data_check=False, heads=0),
     Cfg('mutant-noevictcheck', idx_load_flushed=True, has_waits=True, writers=(('W1', 'A'),), cap=1, np=3,
