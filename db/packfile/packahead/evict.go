@@ -142,7 +142,7 @@ func (l *Log) unlink(p *pack, index []*kvfile.IndexEntry) error {
 	if err := os.Remove(p.path); err != nil && !os.IsNotExist(err) { // #nosec G703 -- a pack in the Log's directory.
 		return errors.Wrapf(err, "unlink pack %s", seqText(p.seq))
 	}
-	if err := syncDir(l.dir); err != nil {
+	if err := dirSync(l.dir); err != nil {
 		return errors.Wrap(err, "sync pack directory")
 	}
 	_ = p.f.Close()
