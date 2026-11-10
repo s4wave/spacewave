@@ -109,3 +109,26 @@ func (t *bstoreTracker) admitUpload(ctx context.Context, lastBytes int64) error 
 	}
 	return nil
 }
+
+// PackaheadStats is a block store's packahead log: whether it diverts new
+// values, its drain's finalized packs and counts, and its write counts. The
+// counts restart with each mount.
+type PackaheadStats struct {
+	// Divert is set while the store diverts new values to the log.
+	Divert bool
+	// DrainStatus counts the log's finalized packs and the drain's uploads.
+	packahead.DrainStatus
+	// PackedStats counts the writes the log took.
+	block_store_writeback.PackedStats
+}
+
+// GetPackaheadStats returns the store's packahead log counts, or false when
+// the store keeps no log.
+func (b *BlockStore) GetPackaheadStats() (PackaheadStats, bool) {
+	p := b.placement
+	if p == nil || p.drain == nil || p.packed == nil {
+		return PackaheadStats{}, false
+	}
+	drain, _ := p.drain.Status()
+	return PackaheadStats{Divert: p.packed.GetDivert(), DrainStatus: drain, PackedStats: p.packed.GetStats()}, true
+}

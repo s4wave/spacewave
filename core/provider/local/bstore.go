@@ -103,6 +103,9 @@ type placementState struct {
 	// drain uploads the finalized packs of the store's packahead log, or is
 	// nil when the store has no log.
 	drain *packahead.Drain
+	// packed is the store over the packahead log, or nil when the store has
+	// no log.
+	packed *block_store_writeback.PackedStore
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the
@@ -561,7 +564,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	placement := &placementState{wb: wb, local: local, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, resident: &t.a.resident, policyWake: make(chan struct{}, 1), done: ctx.Done()}
 	defer placement.unregister()
 	if packs != nil {
-		placement.drain = packs.drain
+		placement.drain, placement.packed = packs.drain, packs.packed
 	}
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
 	placement.serveOnly = serveOnly.Load()

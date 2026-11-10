@@ -361,6 +361,28 @@ func (a *ProviderAccount) SQLPublishStats(sharedObjectID string) (SQLPublishStat
 	return bs.placement.sqlPublish.getStats(), true
 }
 
+// PackaheadStats returns the packahead log of a SharedObject's mounted block
+// store, false when the store is not mounted or keeps no log. It mounts
+// nothing.
+func (a *ProviderAccount) PackaheadStats(sharedObjectID string) (PackaheadStats, bool) {
+	// Find the mounted block store.
+	blockStoreID := a.lookupSharedObjectBlockStoreID(sharedObjectID)
+	if blockStoreID == "" {
+		return PackaheadStats{}, false
+	}
+	tkr, ok := a.bstores.GetKey(blockStoreID)
+	if !ok || tkr == nil {
+		return PackaheadStats{}, false
+	}
+
+	// Read its log's counts, if it keeps one.
+	bs := tkr.bstoreCtr.GetValue()
+	if bs == nil {
+		return PackaheadStats{}, false
+	}
+	return bs.GetPackaheadStats()
+}
+
 // watchTrackerUploadStatus calls fn with each upload status of the tracker's
 // mounted handle, following the handle across remounts.
 func watchTrackerUploadStatus(ctx context.Context, tkr *bstoreTracker, fn func(UploadStatus) error) error {
