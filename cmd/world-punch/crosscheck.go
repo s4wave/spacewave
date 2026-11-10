@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 )
@@ -74,6 +75,10 @@ type ccOpts struct {
 	snapEvery time.Duration
 	// freelistOverride lets tests edit the free set of a walk.
 	freelistOverride func(free bitset, recheck bool)
+	// interrupt, when closed, stops the walk: no new reads are issued,
+	// the recheck and late walk are skipped, and the result is marked
+	// interrupted.
+	interrupt <-chan struct{}
 }
 
 type ccResult struct {
@@ -89,6 +94,12 @@ type ccResult struct {
 	bad         []badPage
 	freeTorn    error
 	readBytes   int64
+	readPages   int64
+	reads       int64  // read calls (runs of adjacent pages)
+	inUse       uint32 // header pages minus header freelist count at start
+	rounds      int
+	serial      time.Duration // sort and enqueue between rounds, outside reads
+	interrupted bool
 	elapsed     time.Duration
 	unaccPages  []uint32
 	unaccFreed  uint64 // unaccounted pages on a later freelist snapshot
@@ -119,9 +130,108 @@ func (r *ccResult) badFreed() int {
 	return n
 }
 
-// failed reports an unexplained conflict. Leftover pages are reported
-// for the operator's thresholds but do not fail the run.
-func (r *ccResult) failed() bool { return r.unexplained() > 0 }
+// sanityMatch reports whether reached, free and lock-byte pages sum to the
+// header page count.
+func (r *ccResult) sanityMatch() bool {
+	return r.reached+r.free+r.lockPage == uint64(r.dbPages)
+}
+
+// failReasons lists why the run fails: an interrupted walk, a sanity
+// mismatch, unexplained unaccounted pages, unexplained bad pages,
+// unexplained conflicts, or a freelist walk that stopped early. None means
+// PASS.
+func (r *ccResult) failReasons() []string {
+	checks := []struct {
+		fail bool
+		why  string
+	}{
+		{r.interrupted, "interrupted"},
+		{!r.sanityMatch(), "sanity match false"},
+		{r.unaccUnexplained() > 0, fmt.Sprintf("unaccounted-unexplained %d", r.unaccUnexplained())},
+		{len(r.bad) > r.badFreed(), fmt.Sprintf("bad-unexplained %d", len(r.bad)-r.badFreed())},
+		{r.unexplained() > 0, fmt.Sprintf("unexplained conflicts %d", r.unexplained())},
+		{r.freeTorn != nil, "freelist walk stopped early"},
+	}
+	var why []string
+	for _, c := range checks {
+		if c.fail {
+			why = append(why, c.why)
+		}
+	}
+	return why
+}
+
+// failed reports whether failReasons has any reason.
+func (r *ccResult) failed() bool { return len(r.failReasons()) > 0 }
+
+// avgRead is the mean pages per read call.
+func (r *ccResult) avgRead() float64 {
+	if r.reads == 0 {
+		return 0
+	}
+	return float64(r.readPages) / float64(r.reads)
+}
+
+// dups counts reached-twice conflicts.
+func (r *ccResult) dups() int {
+	n := 0
+	for _, c := range r.conflicts {
+		if c.dup {
+			n++
+		}
+	}
+	return n
+}
+
+// printPartial reports an interrupted walk: totals so far and the first
+// conflicts, classified only if the recheck ran.
+func (r *ccResult) printPartial(out io.Writer) {
+	// Report how far the walk got against the pages in use.
+	pct := 0.0
+	if r.inUse > 0 {
+		pct = 100 * float64(r.readPages) / float64(r.inUse)
+	}
+	fmt.Fprintf(out, "INTERRUPTED at round %d: read %d pages (%.1f%% of %d in use) in %d reads (%.2f pages per read)\n",
+		r.rounds, r.readPages, pct, r.inUse, r.reads, r.avgRead())
+
+	// List the totals and the first conflicts found so far.
+	fmt.Fprintf(out, "partial totals: conflicts %d (reached twice %d), bad %d\n", len(r.conflicts), r.dups(), len(r.bad))
+	for i, c := range r.conflicts {
+		if i == 20 {
+			fmt.Fprintf(out, "  ... %d more\n", len(r.conflicts)-i)
+			break
+		}
+		what := "reached and free"
+		if c.dup {
+			what = "reached twice"
+		}
+		class := c.class
+		if class == "" {
+			class = "unclassified"
+		}
+		fmt.Fprintf(out, "  page %d (%s, parent %d) %s: %s\n", c.page, c.kind, c.parent, what, class)
+	}
+
+	// List the first bad pages.
+	for i, b := range r.bad {
+		if i == 10 {
+			break
+		}
+		fmt.Fprintf(out, "  bad page %d: %s\n", b.page, b.err)
+	}
+
+	// Conclude nothing from a partial walk.
+	fmt.Fprintf(out, "result: INCOMPLETE (interrupted, nothing concluded)\n")
+	r.printRead(out)
+}
+
+// printRead prints the read totals and rates.
+func (r *ccResult) printRead(out io.Writer) {
+	sec := r.elapsed.Seconds()
+	fmt.Fprintf(out, "read %d bytes in %s (%.1f MB/s, %.0f pages/s) in %d reads (%.2f pages per read); %d rounds, serial between rounds %s\n",
+		r.readBytes, r.elapsed.Round(time.Second), float64(r.readBytes)/1e6/sec, float64(r.readPages)/sec,
+		r.reads, r.avgRead(), r.rounds, r.serial.Round(time.Millisecond))
+}
 
 func (r *ccResult) unexplained() int {
 	n := 0
@@ -133,7 +243,9 @@ func (r *ccResult) unexplained() int {
 	return n
 }
 
+// print writes the full report and the PASS or FAIL result.
 func (r *ccResult) print(out io.Writer) {
+	// Report the sanity sum and the page counts by type.
 	sum := r.reached + r.free + r.lockPage
 	fmt.Fprintf(out, "sanity: reached %d + free %d + lock-byte %d = %d of header page count %d (match %v); leaf cells %d\n",
 		r.reached, r.free, r.lockPage, sum, r.dbPages, sum == uint64(r.dbPages), r.leafCells)
@@ -141,6 +253,8 @@ func (r *ccResult) print(out io.Writer) {
 	fmt.Fprintf(out, "pages walked %d (main walk %d + late walk %d, late roots not counted) = table interior %d + table leaf %d + index interior %d + index leaf %d + overflow %d\n",
 		r.reached+uint64(r.lateReached), r.reached, r.lateReached, r.byType[0x05], r.byType[0x0d], r.byType[0x02], r.byType[0x0a], r.kinds[kindOverflow])
 	fmt.Fprintf(out, "free at start %d = trunks %d + leaves %d\n", r.free, r.freeTrunks, r.freeLeaves)
+
+	// List the first unaccounted pages.
 	fmt.Fprintf(out, "unaccounted-total %d, unaccounted-freed-during-walk %d, unaccounted-unexplained %d (main walk; the late walk and leftovers follow)\n", r.unaccounted, r.unaccFreed, r.unaccUnexplained())
 	var unexp []uint32
 	for _, p := range r.unaccPages {
@@ -152,6 +266,8 @@ func (r *ccResult) print(out io.Writer) {
 	if len(unexp) > 0 {
 		fmt.Fprintf(out, "unaccounted pages (first %d, freed or not): %v\n", len(unexp), unexp)
 	}
+
+	// List the unexplained bad pages and a torn freelist.
 	fmt.Fprintf(out, "bad-total %d, bad-freed-during-walk %d, bad-unexplained %d\n", len(r.bad), r.badFreed(), len(r.bad)-r.badFreed())
 	if r.freeTorn != nil {
 		fmt.Fprintln(out, "freelist walk stopped early:", r.freeTorn)
@@ -164,6 +280,9 @@ func (r *ccResult) print(out io.Writer) {
 		shownBad++
 		fmt.Fprintf(out, "  bad page %d (UNEXPLAINED): %s\n", b.page, b.err)
 	}
+
+	// List the unexplained conflicts and a sample of the explained, then
+	// the count of each class.
 	fmt.Fprintf(out, "conflicts %d\n", len(r.conflicts))
 	classes := map[string]int{}
 	shown := 0
@@ -191,6 +310,8 @@ func (r *ccResult) print(out io.Writer) {
 			fmt.Fprintf(out, "  %d %s\n", n, k)
 		}
 	}
+
+	// Report the late walk and the leftovers.
 	fmt.Fprintf(out, "late walk: %d roots left unreached by any walk, %d pages walked\n", r.lateRoots, r.lateReached)
 	fmt.Fprintf(out, "leftover (unaccounted or bad, not freed during the walk, after the late walk) by type: %v\n", r.leftoverByType)
 	fmt.Fprintf(out, "leftover interior %d\n", r.leftoverInterior)
@@ -198,9 +319,15 @@ func (r *ccResult) print(out io.Writer) {
 	fmt.Fprintf(out, "leftover unparsable %d\n", r.leftoverUnparse)
 	fmt.Fprintf(out, "freed-during-walk %d (unaccounted %d + bad %d) against freelist growth %d (end %d - start %d)\n",
 		r.unaccFreed+uint64(r.badFreed()), r.unaccFreed, r.badFreed(), int64(r.endFree)-int64(r.startFree), r.endFree, r.startFree)
+
+	// Conclude: FAIL with every reason, else PASS.
 	fmt.Fprintf(out, "unexplained conflicts %d\n", r.unexplained())
-	fmt.Fprintf(out, "result: %s\n", map[bool]string{true: "FAIL (unexplained conflicts)", false: "PASS (leftovers, if any, do not fail)"}[r.failed()])
-	fmt.Fprintf(out, "read %d bytes in %s (%.1f MB/s)\n", r.readBytes, r.elapsed.Round(time.Second), float64(r.readBytes)/1e6/r.elapsed.Seconds())
+	if why := r.failReasons(); len(why) > 0 {
+		fmt.Fprintf(out, "result: FAIL (%s)\n", strings.Join(why, ", "))
+	} else {
+		fmt.Fprintf(out, "result: PASS\n")
+	}
+	r.printRead(out)
 }
 
 // limiter paces reads to mbps across readers.
@@ -236,16 +363,29 @@ func (l *limiter) wait(n int) {
 // through interior and leaf pages and overflow chains, and checks that no
 // reached page is on the freelist or reached twice. It only reads.
 func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
+	// Size the result against the header: pages in use exclude the
+	// header's freelist count.
 	start := time.Now()
-	res := ccResult{dbPages: h.dbPages}
+	res := ccResult{dbPages: h.dbPages, byType: map[byte]uint64{}, startFree: h.freeCount}
+	if h.freeCount < h.dbPages {
+		res.inUse = h.dbPages - h.freeCount
+	}
+	if res.inUse == 0 {
+		res.inUse = h.dbPages
+	}
 	if o.readers <= 0 {
 		o.readers = 8
 	}
-	res.byType = map[byte]uint64{}
-	res.startFree = h.freeCount
+
+	// Walk the freelist once for the start free set.
 	free, fw := freeSet(f, h)
 	res.freeTorn = fw.torn
 	res.freeTrunks, res.freeLeaves = uint64(len(fw.trunks)), uint64(len(fw.leaves))
+	if o.freelistOverride != nil {
+		o.freelistOverride(free, false)
+	}
+
+	// everFree collects every freelist snapshot taken during or after the walk.
 	everFree := newBitset(h.dbPages)
 	var everMu sync.Mutex
 	addFree := func(b bitset) {
@@ -255,15 +395,15 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 		everMu.Unlock()
 	}
-	if o.freelistOverride != nil {
-		o.freelistOverride(free, false)
-	}
+
+	// Track each page the walk reaches, its parent and the conflicting kinds.
 	reached := newBitset(h.dbPages)
 	kindOf := map[uint32]pageKind{} // kinds of conflicting pages only
 	parents := make([]uint32, uint64(h.dbPages)+1)
 	fromOv := newBitset(h.dbPages)
 	lim := &limiter{rate: o.mbps * 1e6}
 
+	// Snapshot the freelist and watch the rate file until the walk returns.
 	stop := make(chan struct{})
 	defer close(stop)
 	if o.snapEvery > 0 {
@@ -284,9 +424,34 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 	if o.mbpsFile != "" {
 		go watchMbps(o.mbpsFile, o.mbps, lim, o.out, stop)
 	}
+
+	// Count reads under mu and found problems in atomics, for the
+	// progress line; the walk goroutine alone appends to res.
 	var mu sync.Mutex
-	var readBytes, readPages int64
+	var readBytes, readPages, reads int64
 	round := 0
+	var nConf, nDup, nBad atomic.Int64
+	addConflict := func(c conflict) {
+		res.conflicts = append(res.conflicts, c)
+		nConf.Add(1)
+		if c.dup {
+			nDup.Add(1)
+		}
+	}
+	addBad := func(b badPage) {
+		res.bad = append(res.bad, b)
+		nBad.Add(1)
+	}
+	interrupted := func() bool {
+		select {
+		case <-o.interrupt:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// Print progress every o.every until the walk returns.
 	if o.every > 0 && o.out != nil {
 		go func() {
 			tk := time.NewTicker(o.every)
@@ -297,29 +462,30 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 					return
 				case <-tk.C:
 					mu.Lock()
-					b, p, r := readBytes, readPages, round
+					b, p, n, r := readBytes, readPages, reads, round
 					mu.Unlock()
-					el := time.Since(start).Seconds()
-					fmt.Fprintf(o.out, "progress %s: round %d, read %d pages (%.1f%% of %d), %.0f MB at %.1f MB/s\n",
-						time.Now().UTC().Format("15:04:05Z"), r, p, 100*float64(p)/float64(h.dbPages), h.dbPages, float64(b)/1e6, float64(b)/1e6/el)
+					printProgress(o.out, time.Since(start), res.inUse, r, b, p, n, nConf.Load(), nDup.Load(), nBad.Load())
 				}
 			}
 		}()
 	}
 
-	cur, late := free, false
 	// lateRoot holds late-walk roots: marked reached so the walk does not
 	// re-read them, but claimed without a dup when a walked page points
 	// to one, since then it was not a root at all.
+	cur, late := free, false
 	lateRoot := newBitset(h.dbPages)
 	enqueue := func(next []ccItem, it ccItem) []ccItem {
+		// Drop pointers out of range and late chains run into reached pages.
 		if it.pg < 1 || it.pg > h.dbPages {
-			res.bad = append(res.bad, badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.dbPages), ptr: true})
+			addBad(badPage{page: it.parent, err: fmt.Sprintf("points to page %d outside 1..%d", it.pg, h.dbPages), ptr: true})
 			return next
 		}
 		if it.kind == kindOverflow && it.left == 0 && reached.has(it.pg) {
 			return next // a late chain of unknown length ran into reached pages
 		}
+
+		// Claim a late root a walked page points to.
 		if lateRoot.has(it.pg) {
 			lateRoot.clear(it.pg)
 			res.lateReached++
@@ -328,16 +494,20 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 				fromOv.set(it.pg)
 			}
 			if cur.has(it.pg) {
-				res.conflicts = append(res.conflicts, conflict{page: it.pg, parent: it.parent, parentOv: it.fromOv, kind: it.kind, late: late})
+				addConflict(conflict{page: it.pg, parent: it.parent, parentOv: it.fromOv, kind: it.kind, late: late})
 				kindOf[it.pg] = it.kind
 			}
 			return next // its children were enqueued as a root's
 		}
+
+		// A page reached twice conflicts.
 		if reached.has(it.pg) {
-			res.conflicts = append(res.conflicts, conflict{page: it.pg, parent: parents[it.pg], parentOv: fromOv.has(it.pg),
+			addConflict(conflict{page: it.pg, parent: parents[it.pg], parentOv: fromOv.has(it.pg),
 				kind: it.kind, dup: true, parent2: it.parent, parent2Ov: it.fromOv, late: late})
 			return next
 		}
+
+		// Mark the page reached; a free one conflicts.
 		reached.set(it.pg)
 		parents[it.pg] = it.parent
 		if it.fromOv {
@@ -347,58 +517,65 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			res.lateReached++
 		}
 		if cur.has(it.pg) {
-			res.conflicts = append(res.conflicts, conflict{page: it.pg, parent: it.parent, parentOv: it.fromOv, kind: it.kind, late: late})
+			addConflict(conflict{page: it.pg, parent: it.parent, parentOv: it.fromOv, kind: it.kind, late: late})
 			kindOf[it.pg] = it.kind
 		}
 		return append(next, it)
 	}
+
+	// runWalk reads the queue round by round, timing the serial sort and
+	// enqueue outside the reads, until it empties or is interrupted.
 	runWalk := func(queue []ccItem) {
-		for len(queue) > 0 {
+		for len(queue) > 0 && !interrupted() {
+			// Sort the round by page number so adjacent pages merge into runs.
+			t0 := time.Now()
+			mu.Lock()
 			round++
+			mu.Unlock()
 			slices.SortFunc(queue, func(a, b ccItem) int { return int(a.pg) - int(b.pg) })
+			res.serial += time.Since(t0)
+
+			// Read the round, counting each read call and its pages.
 			bulk := o.bulk
 			if bulk == nil {
 				bulk = f
 			}
-			results := readRound(bulk, h, queue, o.readers, lim, func(n int) {
+			results := readRound(bulk, h, queue, o.readers, lim, o.interrupt, func(n int) {
 				mu.Lock()
-				readBytes += int64(n) * h.pageSize
-				readPages += int64(n)
+				readBytes, readPages, reads = readBytes+int64(n)*h.pageSize, readPages+int64(n), reads+1
 				mu.Unlock()
 			})
+
+			// Tally each page and enqueue its children for the next round.
+			t1 := time.Now()
 			var next []ccItem
 			for _, r := range results {
-				if r.bad != "" {
-					res.bad = append(res.bad, badPage{page: r.item.pg, err: r.bad})
-					continue
-				}
-				k := r.item.kind
-				if k == kindTree {
-					k = r.tree
-				}
-				res.kinds[k]++
-				if k != kindOverflow {
-					res.byType[r.ptype]++
-				}
-				res.leafCells += uint64(r.leafCells)
-				if res.firstOfKind[k] == 0 && r.item.pg != 1 {
-					res.firstOfKind[k] = r.item.pg
-				}
-				if c, ok := kindOf[r.item.pg]; ok && c == kindTree {
-					kindOf[r.item.pg] = k
-				}
-				for _, c := range r.children {
-					next = enqueue(next, c)
-				}
+				next = tally(&res, kindOf, r, addBad, next, enqueue)
 			}
 			queue = next
+			res.serial += time.Since(t1)
 		}
 	}
+
+	// Walk from page 1 and give conflicts the kind their page read as.
 	runWalk(enqueue(nil, ccItem{pg: 1, kind: kindTree, schema: true}))
 	for i := range res.conflicts {
 		if k, ok := kindOf[res.conflicts[i].page]; ok {
 			res.conflicts[i].kind = k
 		}
+	}
+
+	// Stop with the totals so far if interrupted.
+	finish := func() {
+		mu.Lock()
+		res.readBytes, res.readPages, res.reads, res.rounds = readBytes, readPages, reads, round
+		mu.Unlock()
+		res.elapsed = time.Since(start)
+	}
+	if interrupted() {
+		res.interrupted = true
+		finish()
+		return res, nil
 	}
 	res.readBytes = readBytes
 
@@ -422,7 +599,13 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 	}
 
+	// Recheck conflicts against fresh freelists, stopping if interrupted.
 	final := recheck(f, h, o, &res, addFree)
+	if interrupted() {
+		res.interrupted = true
+		finish()
+		return res, nil
+	}
 
 	// Late walk: an unaccounted or bad page not on the final freelist is
 	// read again and, if it parses, walked as a root against the final
@@ -540,6 +723,8 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 			res.bad[i].freed = true
 		}
 	}
+
+	// Count the leftovers no snapshot explains, by the type they read as.
 	res.leftoverByType = map[string]int{}
 	for _, lr := range leftovers {
 		if everFree.has(lr.pg) {
@@ -556,13 +741,72 @@ func crosscheck(f io.ReaderAt, h header, o ccOpts) (ccResult, error) {
 		}
 	}
 	everMu.Unlock()
+
+	// Read the header again for the end page and freelist counts.
 	var hb [100]byte
 	if _, err := f.ReadAt(hb[:], 0); err == nil {
 		res.endPages = binary.BigEndian.Uint32(hb[28:32])
 		res.endFree = binary.BigEndian.Uint32(hb[36:40])
 	}
-	res.elapsed = time.Since(start)
+
+	// Record the read totals; an interrupt during the late walk still
+	// marks the run incomplete.
+	finish()
+	res.interrupted = interrupted()
 	return res, nil
+}
+
+// tally counts one page read by the walk, records a bad page, and enqueues
+// its children onto next.
+func tally(res *ccResult, kindOf map[uint32]pageKind, r pageResult, addBad func(badPage), next []ccItem, enqueue func([]ccItem, ccItem) []ccItem) []ccItem {
+	// A page that does not parse is bad and has no children.
+	if r.bad != "" {
+		addBad(badPage{page: r.item.pg, err: r.bad})
+		return next
+	}
+
+	// Count the page by the kind it read as.
+	k := r.item.kind
+	if k == kindTree {
+		k = r.tree
+	}
+	res.kinds[k]++
+	if k != kindOverflow {
+		res.byType[r.ptype]++
+	}
+	res.leafCells += uint64(r.leafCells)
+	if res.firstOfKind[k] == 0 && r.item.pg != 1 {
+		res.firstOfKind[k] = r.item.pg
+	}
+
+	// Resolve a conflict's kind and enqueue the children.
+	if c, ok := kindOf[r.item.pg]; ok && c == kindTree {
+		kindOf[r.item.pg] = k
+	}
+	for _, c := range r.children {
+		next = enqueue(next, c)
+	}
+	return next
+}
+
+// printProgress prints one progress line: pages read against the pages in
+// use, rates, pages per read, an estimate of the time left and the running
+// problem totals.
+func printProgress(out io.Writer, el time.Duration, inUse uint32, round int, bytes, pages, reads, conf, dup, bad int64) {
+	// Derive the mean read size and the time left at the rate so far.
+	sec := el.Seconds()
+	avg, eta := 0.0, "unknown"
+	if reads > 0 {
+		avg = float64(pages) / float64(reads)
+	}
+	if rate := float64(pages) / sec; rate > 0 && int64(inUse) > pages {
+		eta = (time.Duration(float64(int64(inUse)-pages)/rate) * time.Second).Round(time.Second).String()
+	}
+
+	// Keep the "progress T: round R, read P pages (X% of N in use)" prefix.
+	fmt.Fprintf(out, "progress %s: round %d, read %d pages (%.1f%% of %d in use), %.0f MB at %.1f MB/s, %.0f pages/s, %d reads (%.2f pages per read), est. %s left; conflicts %d (reached twice %d), bad %d\n",
+		time.Now().UTC().Format("15:04:05Z"), round, pages, 100*float64(pages)/float64(inUse), inUse, float64(bytes)/1e6, float64(bytes)/1e6/sec,
+		float64(pages)/sec, reads, avg, eta, conf, dup, bad)
 }
 
 // watchMbps rereads path every second. A number in it sets the cap in
@@ -611,9 +855,9 @@ func freeSet(f io.ReaderAt, h header) (bitset, *walk) {
 // freelist, or a parent is now free or no longer points to the page: a live
 // write changed it after the walk read it.
 func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bitset)) bitset {
-	page := make([]byte, h.pageSize)
 	// points reports whether parent (0 for a root from sqlite_master,
 	// which is not reread) still points to target.
+	page := make([]byte, h.pageSize)
 	points := func(free bitset, parent uint32, ov bool, target uint32) bool {
 		if parent == 0 {
 			return true
@@ -626,17 +870,28 @@ func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bits
 		}
 		return pointsTo(h, parent, ov, page, target)
 	}
+
+	// Retry until every conflict is explained or the tries run out.
 	var last bitset
 	for try := 0; try < max(o.retries, 1); try++ {
+		// Wait between tries; an interrupt ends the recheck.
 		if try > 0 {
-			time.Sleep(o.retryIn)
+			select {
+			case <-time.After(o.retryIn):
+			case <-o.interrupt:
+				return last
+			}
 		}
+
+		// Take a fresh freelist snapshot.
 		open := 0
 		free, _ := freeSet(f, h)
 		if o.freelistOverride != nil {
 			o.freelistOverride(free, true)
 		}
 		addFree(free)
+
+		// Classify each open conflict against it.
 		for i := range res.conflicts {
 			c := &res.conflicts[i]
 			switch {
@@ -653,6 +908,8 @@ func recheck(f io.ReaderAt, h header, o ccOpts, res *ccResult, addFree func(bits
 				open++
 			}
 		}
+
+		// Report the try and stop once nothing is open.
 		if o.out != nil && len(res.conflicts) > 0 {
 			fmt.Fprintf(o.out, "classify %s: try %d of %d, %d of %d conflicts still unexplained\n",
 				time.Now().UTC().Format("15:04:05Z"), try+1, max(o.retries, 1), open, len(res.conflicts))
@@ -692,7 +949,9 @@ type pageResult struct {
 
 // readRound reads the sorted queue with readers workers, merging runs of
 // adjacent pages into reads of up to 32 pages, and parses each page.
-func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limiter, done func(int)) []pageResult {
+func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limiter, interrupt <-chan struct{}, done func(int)) []pageResult {
+	// Start readers workers, one read in flight each, each with its own
+	// aligned buffer and result list.
 	type run struct{ lo, hi int } // queue[lo:hi]
 	runs := make(chan run, readers*2)
 	results := make([][]pageResult, readers)
@@ -720,16 +979,25 @@ func readRound(f io.ReaderAt, h header, queue []ccItem, readers int, lim *limite
 			}
 		}(w)
 	}
+
+	// Feed runs of adjacent pages until the queue ends or an interrupt.
 	for lo := 0; lo < len(queue); {
 		hi := lo + 1
 		for hi < len(queue) && queue[hi].pg == queue[hi-1].pg+1 && queue[hi].pg-queue[lo].pg < 32 {
 			hi++
 		}
-		runs <- run{lo, hi}
+		select {
+		case runs <- run{lo, hi}:
+		case <-interrupt:
+			lo = len(queue)
+			continue
+		}
 		lo = hi
 	}
 	close(runs)
 	wg.Wait()
+
+	// Merge the workers' results.
 	var all []pageResult
 	for _, r := range results {
 		all = append(all, r...)

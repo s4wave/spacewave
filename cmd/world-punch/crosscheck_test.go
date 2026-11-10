@@ -143,7 +143,7 @@ func TestCrosscheckUnaccounted(t *testing.T) {
 	path := makeWorld(t, 4096, 3000)
 	lost := dropLastLeaf(t, path)
 	res := crosscheckFile(t, path)
-	if res.unaccounted != 1 || res.unaccFreed != 0 || res.unaccUnexplained() != 1 || res.failed() || res.leftoverLeaf != 1 {
+	if res.unaccounted != 1 || res.unaccFreed != 0 || res.unaccUnexplained() != 1 || !res.failed() || res.leftoverLeaf != 1 {
 		t.Fatalf("unaccounted %d freed %d failed %v leftover leaf %d", res.unaccounted, res.unaccFreed, res.failed(), res.leftoverLeaf)
 	}
 
@@ -159,8 +159,13 @@ func TestCrosscheckUnaccounted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.unaccounted != 1 || res.unaccFreed != 1 || res.unaccUnexplained() != 0 || res.failed() || res.leftoverLeaf != 0 {
-		t.Fatalf("unaccounted %d freed %d failed %v", res.unaccounted, res.unaccFreed, res.failed())
+	if res.unaccounted != 1 || res.unaccFreed != 1 || res.unaccUnexplained() != 0 || res.leftoverLeaf != 0 {
+		t.Fatalf("unaccounted %d freed %d", res.unaccounted, res.unaccFreed)
+	}
+	// Freed during the walk explains the page, but the sanity sum still
+	// misses it, and a sanity mismatch fails the run.
+	if why := res.failReasons(); len(why) != 1 || why[0] != "sanity match false" {
+		t.Fatalf("fail reasons %v, want only the sanity mismatch", why)
 	}
 	var out bytes.Buffer
 	res.print(&out)
@@ -228,6 +233,73 @@ func TestCrosscheckLateWalk(t *testing.T) {
 	for _, want := range []string{"leftover interior 1", "leftover leaf+overflow 1", "freed-during-walk"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("report lacks %q:\n%s", want, out.String())
+		}
+	}
+}
+
+// TestCrosscheckFailRule: each strict field fails the run on its own.
+func TestCrosscheckFailRule(t *testing.T) {
+	pass := ccResult{dbPages: 10, reached: 8, free: 2}
+	if pass.failed() {
+		t.Fatalf("clean result fails: %v", pass.failReasons())
+	}
+	for name, edit := range map[string]func(r *ccResult){
+		"sanity match false":          func(r *ccResult) { r.reached = 7 },
+		"unaccounted-unexplained 1":   func(r *ccResult) { r.unaccounted = 1 },
+		"bad-unexplained 1":           func(r *ccResult) { r.bad = []badPage{{page: 3}} },
+		"unexplained conflicts 1":     func(r *ccResult) { r.conflicts = []conflict{{page: 3}} },
+		"freelist walk stopped early": func(r *ccResult) { r.freeTorn = os.ErrClosed },
+		"interrupted":                 func(r *ccResult) { r.interrupted = true },
+	} {
+		r := pass
+		edit(&r)
+		var out bytes.Buffer
+		r.print(&out)
+		if why := r.failReasons(); len(why) != 1 || why[0] != name || !strings.Contains(out.String(), "result: FAIL ("+name+")") {
+			t.Fatalf("%s: reasons %v, report:\n%s", name, why, out.String())
+		}
+	}
+	r := pass
+	r.bad = []badPage{{page: 3, freed: true}}
+	r.unaccounted, r.unaccFreed = 1, 1
+	r.reached--
+	if why := r.failReasons(); len(why) != 1 || why[0] != "sanity match false" {
+		t.Fatalf("freed pages: reasons %v", why)
+	}
+}
+
+// TestCrosscheckInterrupt: a closed interrupt stops the walk and the
+// partial report gives totals and INCOMPLETE; a full run counts reads.
+func TestCrosscheckInterrupt(t *testing.T) {
+	path := makeWorld(t, 4096, 3000)
+	full := crosscheckFile(t, path)
+	if full.interrupted || full.reads == 0 || full.readPages < full.reads || full.inUse != full.dbPages-uint32(full.free) {
+		t.Fatalf("full run: interrupted %v reads %d pages %d in use %d", full.interrupted, full.reads, full.readPages, full.inUse)
+	}
+	var out bytes.Buffer
+	full.print(&out)
+	if !strings.Contains(out.String(), "pages per read") || !strings.Contains(out.String(), "result: PASS") {
+		t.Fatalf("report:\n%s", out.String())
+	}
+
+	f, _ := os.Open(path)
+	defer f.Close()
+	st, _ := f.Stat()
+	h, _ := readHeader(f, st.Size())
+	stop := make(chan struct{})
+	close(stop)
+	res, err := crosscheck(f, h, ccOpts{readers: 2, retries: 1, interrupt: stop})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.interrupted || res.readPages >= full.readPages || !res.failed() {
+		t.Fatalf("interrupted %v, read %d of %d pages", res.interrupted, res.readPages, full.readPages)
+	}
+	out.Reset()
+	res.printPartial(&out)
+	for _, want := range []string{"INTERRUPTED at round", "in use", "partial totals: conflicts 0 (reached twice 0), bad 0", "result: INCOMPLETE"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("partial report lacks %q:\n%s", want, out.String())
 		}
 	}
 }

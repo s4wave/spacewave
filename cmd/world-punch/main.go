@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,6 +35,7 @@ type opts struct {
 }
 
 func main() {
+	// Define the flags.
 	var o opts
 	flag.Int64Var(&o.reserve, "reserve", 1<<30, "bytes of leaves to keep unpunched, taken whole trunks from the head of the chain")
 	flag.StringVar(&o.rangeSHA, "range-sha", "", "punch, if a fresh walk gives this range sha256 from a dry run")
@@ -40,7 +43,9 @@ func main() {
 	flag.BoolVar(&o.cross, "crosscheck", false, "read-only: walk every b-tree and overflow chain and check none of their pages is on the freelist; no locks, cannot punch")
 	flag.Float64Var(&o.mbps, "mbps", 100, "-crosscheck read cap in MB/s, 0 for none")
 	flag.StringVar(&o.mbpsFile, "mbps-file", "", "-crosscheck: reread every second; a number in it replaces the -mbps cap")
-	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers")
+	flag.IntVar(&o.readers, "readers", 8, "-crosscheck parallel readers (reads in flight), 1 to 1024")
+
+	// Parse them and take the one database path.
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: world-punch [-live | -crosscheck [-mbps N] [-mbps-file PATH] | -range-sha HASH] [-reserve BYTES] DB")
 		flag.PrintDefaults()
@@ -51,27 +56,51 @@ func main() {
 		os.Exit(2)
 	}
 	o.path = flag.Arg(0)
+
+	// Run the chosen mode; crosscheck exits 3 on FAIL and 4 when stopped
+	// by SIGTERM or SIGINT.
 	var err error
 	switch {
 	case (o.live || o.cross) && o.rangeSHA != "":
 		err = errors.New("-live and -crosscheck cannot punch: drop -range-sha")
 	case o.live && o.cross:
 		err = errors.New("pick one of -live and -crosscheck")
+	case o.cross && (o.readers < 1 || o.readers > 1024):
+		err = errors.Errorf("-readers %d: want 1 to 1024", o.readers)
 	case o.cross:
-		var bad bool
-		bad, err = runCrosscheck(os.Stdout, o)
-		if err == nil && bad {
-			os.Exit(3)
+		var code int
+		code, err = runCrosscheck(os.Stdout, o, interruptOnSignal())
+		if err == nil && code != 0 {
+			os.Exit(code)
 		}
 	case o.live:
 		err = runLive(os.Stdout, o)
 	default:
 		err = runLocked(os.Stdout, o)
 	}
+
+	// Report an error.
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "world-punch:", err)
 		os.Exit(1)
 	}
+}
+
+// interruptOnSignal returns a channel closed at the first SIGTERM or
+// SIGINT, so a stopped crosscheck can print what it found.
+func interruptOnSignal() <-chan struct{} {
+	// Catch the stop signals.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+
+	// Close stop at the first signal.
+	stop := make(chan struct{})
+	go func() {
+		s := <-sig
+		fmt.Fprintf(os.Stdout, "signal %s %s: stopping the walk for a partial report\n", s, time.Now().UTC().Format("15:04:05Z"))
+		close(stop)
+	}()
+	return stop
 }
 
 // runLive reports estimates from a file another process may be writing. It
@@ -104,27 +133,33 @@ func runLive(out io.Writer, o opts) error {
 	return nil
 }
 
-// runCrosscheck walks a possibly running file read-only. It reports true
-// when an unexplained conflict remains.
-func runCrosscheck(out io.Writer, o opts) (bool, error) {
+// runCrosscheck walks a possibly running file read-only. It returns exit
+// code 0 on PASS, 3 on FAIL (see failReasons) and 4 when interrupt closed
+// before the check finished; then it prints a partial report.
+func runCrosscheck(out io.Writer, o opts, interrupt <-chan struct{}) (int, error) {
+	// Open the file read-only and read its header.
 	f, err := os.Open(o.path)
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	defer f.Close()
 	st, err := f.Stat()
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	h, herr := readHeader(f, st.Size())
 	if h.pageSize == 0 {
-		return false, herr
+		return 0, herr
 	}
+
+	// Announce the mode and any header warning.
 	fmt.Fprintln(out, "CROSSCHECK read-only: no lock held, the WAL is not read, a live file may change while it is walked")
 	if herr != nil {
 		fmt.Fprintln(out, "header warning:", herr)
 	}
-	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, snapEvery: 10 * time.Second, out: out}
+
+	// Serve tree reads from O_DIRECT when the file system allows it.
+	co := ccOpts{readers: o.readers, mbps: o.mbps, mbpsFile: o.mbpsFile, retries: 3, retryIn: 5 * time.Second, every: time.Minute, snapEvery: 10 * time.Second, out: out, interrupt: interrupt}
 	if d, err := openDirect(o.path); err == nil {
 		defer d.Close()
 		co.bulk = d
@@ -132,12 +167,21 @@ func runCrosscheck(out io.Writer, o opts) (bool, error) {
 	} else {
 		fmt.Fprintln(out, "tree reads use the page cache:", err)
 	}
+
+	// Walk, then report partially if interrupted, else in full.
 	res, err := crosscheck(f, h, co)
 	if err != nil {
-		return false, err
+		return 0, err
+	}
+	if res.interrupted {
+		res.printPartial(out)
+		return 4, nil
 	}
 	res.print(out)
-	return res.failed(), nil
+	if res.failed() {
+		return 3, nil
+	}
+	return 0, nil
 }
 
 // runLocked is the dry run, and the punch when o.rangeSHA is set.
