@@ -3215,6 +3215,92 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	t.Run("suspect put supersedes an overlapping adoption", func(t *testing.T) {
+		// The store of "suspect list a put revives", unadopted after the
+		// format 7 upgrade, with a rebuild that verified A and F. Adoption A
+		// marks the Volume adopting, then B claims it and counts the lists,
+		// C's still lacking F. Before B settles, a put of C rewrites C's list
+		// and returns the Volume to unadopted. Neither run may settle: B
+		// counted the short list and B's claim superseded A. After the
+		// recount the put asks for, Finish leaves only G suspect, since the
+		// put marked C's list; the free takes G, which nothing names, and F keeps
+		// its holder.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "F")
+		tr.add(t, "G")
+		c := tr.add(t, "C", "F")
+		writeLegacyStore(t, store, keys, tr, "A", true, "A", "F", "G", "C")
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cut := slices.Concat(livenessPrefix, []byte{'c'}, block_gc.BlockKey(c))
+		if err := tx.Set(ctx, cut, block_gc.EncodeChildren(nil)); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		v, clk := openUnadoptedVolume(t, store)
+		v.adoptWake = make(chan struct{}, 1)
+		rb, err := v.OpenListRebuild(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range []string{"A", "F"} {
+			if err := rb.Verify(ctx, tr[name].Ref, tr[name].Refs); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		// B runs inside A, after A's mark; the put of C lands inside B,
+		// after B counted the lists.
+		var errB error
+		probeB := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptSettle: func() {
+				if err := v.SetBucketRoots(ctx, "b", tr.entries("C"), []block.NamedRoot{{Name: "c", Ref: c}}); err != nil {
+					t.Error(err)
+				}
+			},
+		}}
+		probeA := &adoptProbe{Store: collectorStore{v: v}, at: map[int]func(){
+			adoptCountRoots: func() { _, errB = block_gc.Adopt(ctx, probeB) },
+		}}
+		_, errA := block_gc.Adopt(ctx, probeA)
+		if !errors.Is(errA, block_gc.ErrAdoptSuperseded) || !errors.Is(errB, block_gc.ErrAdoptSuperseded) {
+			t.Fatalf("adoptions = %v and %v with %d and %d hooks left, want both superseded", errA, errB, len(probeA.at), len(probeB.at))
+		}
+		if a := livenessAdoption(t, v); a != block_gc.Adoption_ADOPTION_UNADOPTED {
+			t.Fatalf("after the put of C the Volume is %v, want unadopted", a)
+		}
+		select {
+		case <-v.adoptWake:
+		default:
+			t.Fatal("the put of C asked for no recount")
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Freed != 0 {
+			t.Fatalf("collect before the recount = %+v, want nothing freed", res)
+		}
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if res, err := rb.Finish(ctx); err != nil || !res.Cleared || res.Suspect != 1 {
+			t.Fatalf("rebuild = %+v err %v, want the mark cleared with G suspect", res, err)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Freed != 1 {
+			t.Fatalf("collect after the recount = %+v, want G freed", res)
+		}
+		requireStored(t, v, tr, true, "A", "C", "F")
+		requireStored(t, v, tr, false, "G")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("adoption claimed by another", func(t *testing.T) {
 		// main -> R -> X on an unadopted Volume. Adoption A clears, then B,
 		// another process, starts while the Volume is still unadopted. A
