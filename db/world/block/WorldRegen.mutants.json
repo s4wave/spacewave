@@ -1,0 +1,164 @@
+[
+  {
+    "name": "Catch-up applies only additions",
+    "replace": [
+      [
+        "/\\ built' = Apply(built, base, head.items)",
+        "/\\ built' = built \\cup (head.items \\ base)"
+      ]
+    ],
+    "expect": "BuiltMatchesBase"
+  },
+  {
+    "name": "Swap skips the last diff",
+    "replace": [
+      [
+        "new == [fmt |-> \"new\", items |-> Apply(built, base, head.items)]",
+        "new == [fmt |-> \"new\", items |-> built]"
+      ]
+    ],
+    "expect": "HeadMatchesHistory"
+  },
+  {
+    "name": "Authority installs the swap on any head",
+    "replace": [
+      [
+        "/\\ IF head.seq = cand.base\n       THEN /\\ head' = [fmt |-> \"new\"",
+        "/\\ IF TRUE\n       THEN /\\ head' = [fmt |-> \"new\""
+      ]
+    ],
+    "expect": "HeadMatchesHistory"
+  },
+  {
+    "name": "Switch back installs the held root as it was",
+    "replace": [
+      [
+        "items |-> Apply(swap.old.items, swap.new.items,\n                                        head.items)]]",
+        "items |-> swap.old.items]]"
+      ]
+    ],
+    "expect": "HeadMatchesHistory"
+  },
+  {
+    "name": "Authority installs the switch back on any head",
+    "replace": [
+      [
+        "/\\ IF head.seq = cand.base\n       THEN /\\ head' = [fmt |-> \"old\"",
+        "/\\ IF TRUE\n       THEN /\\ head' = [fmt |-> \"old\""
+      ]
+    ],
+    "expect": "HeadMatchesHistory"
+  },
+  {
+    "name": "Verify releases without comparing",
+    "replace": [
+      [
+        "  /\\ swap.old.items = swap.new.items\n",
+        ""
+      ]
+    ],
+    "config": "WorldRegen-faults.cfg",
+    "expect": "ReleasedOnlyEqual"
+  },
+  {
+    "name": "Pin does not hold the root",
+    "replace": [
+      [
+        "  /\\ held' = TRUE\n",
+        "  /\\ held' = held\n"
+      ]
+    ],
+    "expect": "HeldUntilVerified"
+  },
+  {
+    "name": "Swap proposes before recording its roots",
+    "replace": [
+      [
+        "root |-> new]\n        /\\ swap' = s\n        /\\ file' = [file EXCEPT !.swap = s]",
+        "root |-> new]\n        /\\ swap' = s\n        /\\ UNCHANGED file"
+      ]
+    ],
+    "expect": "SwitchedKnowsOld"
+  },
+  {
+    "name": "Recovery trusts the file over the head",
+    "replace": [
+      [
+        "[] file.stage \\in {\"catchingUp\", \"switched\"} /\\ head.fmt = \"new\" ->",
+        "[] file.stage = \"switched\" ->"
+      ]
+    ],
+    "expect": "deadlock"
+  },
+  {
+    "name": "Build reads the head instead of the pin",
+    "replace": [
+      [
+        "IF cursor + 1 \\in pin THEN",
+        "IF cursor + 1 \\in head.items THEN"
+      ]
+    ],
+    "expect": "BuiltMatchesBase"
+  },
+  {
+    "name": "A crash keeps the write turn",
+    "replace": [
+      [
+        "  /\\ turn' = FALSE\n  /\\ pin' = {}",
+        "  /\\ turn' = turn\n  /\\ pin' = {}"
+      ]
+    ],
+    "expect": "deadlock"
+  },
+  {
+    "name": "Resume forgets the pages before the position",
+    "replace": [
+      [
+        "/\\ built' = file.built\n",
+        "/\\ built' = {}\n"
+      ]
+    ],
+    "expect": "BuiltMatchesBase"
+  },
+  {
+    "name": "Switch-back round keeps the content it reflected",
+    "replace": [
+      [
+        "new |-> [fmt |-> \"new\", items |-> head.items]]",
+        "new |-> swap.new]"
+      ]
+    ],
+    "expect": "StopsOnlyOnFault"
+  },
+  {
+    "name": "Switch-back round applies only additions",
+    "replace": [
+      [
+        "items |-> Apply(swap.old.items, swap.new.items,\n                                        head.items)],\n",
+        "items |-> swap.old.items \\cup (head.items \\ swap.new.items)],\n"
+      ]
+    ],
+    "expect": "StopsOnlyOnFault"
+  },
+  {
+    "name": "Switch-back round records only the old root",
+    "replace": [
+      [
+        "        /\\ file' = [file EXCEPT !.swap = s]\n  /\\ UNCHANGED <<head, history, commits, crashes, faulty, phase, turn, pin,\n                 cursor, built, base, cand, held>>",
+        "        /\\ file' = [file EXCEPT !.swap.old = s.old]\n  /\\ UNCHANGED <<head, history, commits, crashes, faulty, phase, turn, pin,\n                 cursor, built, base, cand, held>>"
+      ]
+    ],
+    "expect": "ReleasedOnlyEqual"
+  },
+  {
+    "name": "A stop releases the hold",
+    "replace": [
+      [
+        "  /\\ file' = [file EXCEPT !.stage = \"stopped\"]\n  /\\ UNCHANGED <<head, history, commits, crashes, faulty, turn, pin, cursor,\n                 built, base, cand, swap, held>>",
+        "  /\\ file' = [file EXCEPT !.stage = \"stopped\"]\n  /\\ held' = FALSE\n  /\\ UNCHANGED <<head, history, commits, crashes, faulty, turn, pin, cursor,\n                 built, base, cand, swap>>"
+      ]
+    ],
+    "config": "WorldRegen-faults.cfg",
+    "expect": "HeldUntilVerified"
+  }
+]
