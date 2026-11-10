@@ -71,6 +71,12 @@ type Args struct {
 	SFTPConns int
 	// SFTPRoot is the store directory, relative to the login directory.
 	SFTPRoot string
+	// S3Endpoint is the S3 endpoint the snapshot reads instead of SFTP.
+	S3Endpoint string
+	// S3Region is the S3 bucket's region.
+	S3Region string
+	// S3Bucket is the S3 bucket holding the prefix.
+	S3Bucket string
 	// Prefix starts the store's keys.
 	Prefix string
 	// Overlay is the directory of a rehearsal's overlay, which records every
@@ -140,7 +146,8 @@ func (a *Args) scratchFlags() []cli.Flag {
 
 // storeFlags binds the flags of the snapshot.
 func (a *Args) storeFlags() []cli.Flag {
-	return append(a.sftpFlags(),
+	flags := append(a.storeSourceFlags(false), a.s3Flags()...)
+	return append(flags,
 		&cli.StringFlag{Name: "index", Usage: "copy of the store's pack index file, read for the pack list", Destination: &a.Index, Required: true},
 		&cli.StringFlag{Name: "index-type", Usage: "volume type of the pack index file: sqlite, bolt or s4db; detected when unset", Destination: &a.IndexType},
 		&cli.StringFlag{Name: "index-table", Usage: "table of a SQLite pack index file", Value: defaultIndexTable, Destination: &a.IndexTable},
@@ -150,15 +157,21 @@ func (a *Args) storeFlags() []cli.Flag {
 	)
 }
 
-// sftpFlags binds the flags that name and reach the store.
+// sftpFlags binds the flags that name and reach the store over SFTP.
 func (a *Args) sftpFlags() []cli.Flag {
+	return a.storeSourceFlags(true)
+}
+
+// storeSourceFlags binds the flags that name and reach the store, the SFTP
+// ones required only when sftp is set: the snapshot may read S3 instead.
+func (a *Args) storeSourceFlags(sftp bool) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "store-id", Usage: "block store id whose pack index the index file holds", Destination: &a.StoreID, Required: true},
-		&cli.StringFlag{Name: "sftp-addr", Usage: "store server's host:port", Destination: &a.SFTPAddr, Required: true},
-		&cli.StringFlag{Name: "sftp-user", Usage: "store login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: true},
-		&cli.StringFlag{Name: "sftp-host-key", Usage: "store server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: true},
+		&cli.StringFlag{Name: "sftp-addr", Usage: "store server's host:port", Destination: &a.SFTPAddr, Required: sftp},
+		&cli.StringFlag{Name: "sftp-user", Usage: "store login; the password comes from " + sftpPasswordEnv, Destination: &a.SFTPUser, Required: sftp},
+		&cli.StringFlag{Name: "sftp-host-key", Usage: "store server's host key line or SHA256 fingerprint", Destination: &a.SFTPHostKey, Required: sftp},
 		&cli.IntFlag{Name: "sftp-conns", Usage: "most SSH connections to the store at once", Value: 2, Destination: &a.SFTPConns},
-		&cli.StringFlag{Name: "sftp-root", Usage: "store directory holding the prefix", Destination: &a.SFTPRoot, Required: true},
+		&cli.StringFlag{Name: "sftp-root", Usage: "store directory holding the prefix", Destination: &a.SFTPRoot, Required: sftp},
 		&cli.StringFlag{Name: "prefix", Usage: "key prefix of the store's packs", Destination: &a.Prefix},
 		&cli.StringFlag{Name: "overlay", Usage: "rehearse: only read the store, recording every write, move and delete in this directory, which the rehearsal's backend shares", Destination: &a.Overlay},
 	}
@@ -368,10 +381,20 @@ func (a *Args) dialStore() (block_store_s3.ObjectStore, string, func(), error) {
 	return ov, root, closeStore, nil
 }
 
-// dialBase reaches the store over SFTP unless a test set another way.
+// dialBase reaches the store over SFTP, or read-only over S3 when the S3
+// flags name it, unless a test set another way.
 func (a *Args) dialBase() (block_store_s3.ObjectStore, string, func(), error) {
+	// Take a test's way, or the S3 bucket the flags name.
 	if a.dial != nil {
 		return a.dial()
+	}
+	if a.usesS3() {
+		return a.dialS3()
+	}
+
+	// Reach the store over SFTP, named in full.
+	if err := a.checkSFTP(); err != nil {
+		return nil, "", nil, err
 	}
 	client, err := block_store_sftp.NewClient(block_store_sftp.Config{
 		Addr:     a.SFTPAddr,
@@ -838,6 +861,9 @@ func checkStore(ctx context.Context, store kvtx.Store, id string) error {
 // never drives the store itself, nor the store's a rehearsal.
 func (a *Args) storeBinding(root string) string {
 	id := a.StoreID + "\x00" + root + "\x00" + a.Prefix
+	if a.usesS3() {
+		id = "s3\x00" + a.S3Endpoint + "\x00" + id
+	}
 	if a.Overlay != "" {
 		dir, err := filepath.Abs(a.Overlay)
 		if err != nil {

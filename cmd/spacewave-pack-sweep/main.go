@@ -4,9 +4,10 @@
 // A cycle takes a snapshot of the store's registered packs, reading each pack
 // the scratch file's catalog lacks once, walks what the roots reach through the
 // catalog's refs, and judges each pack dead, low liveness, young or kept. It
-// reads the store over SFTP, finding its packs through a copy of the store's
-// pack index file, and keeps everything it learns in one scratch file, so a
-// stopped step resumes where its last batch left it.
+// reads the store over SFTP, or a snapshot reads it read-only from an S3
+// bucket, finding its packs through a copy of the store's pack index file,
+// and keeps everything it learns in one scratch file, so a stopped step
+// resumes where its last batch left it.
 //
 // Only compact, quarantine, recheck, trash, remove and restore change the
 // store, each through the backend's admin service. Compact writes the live
