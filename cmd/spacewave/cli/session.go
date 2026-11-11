@@ -106,6 +106,7 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 // entries carry the SessionListEntry fields and the Session's name.
 // names holds one name per entry, in the same order.
 func marshalSessionListJSON(sessions []*core_session.SessionListEntry, names []string) []byte {
+	// Write one object per entry: its index, its ref and its name.
 	buf, ms := newMarshalBuf()
 	ms.WriteArrayStart()
 	var more bool

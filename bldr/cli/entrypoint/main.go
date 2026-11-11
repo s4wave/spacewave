@@ -385,6 +385,7 @@ func newStandaloneVersionCommand(projectID string) *cli.Command {
 			&cli.BoolFlag{Name: "json", Usage: "print machine-readable JSON"},
 		},
 		Action: func(c *cli.Context) error {
+			// Describe this unmanaged binary: project, role, platform and revision.
 			identity := standaloneVersionIdentity{
 				SchemaVersion:  1,
 				ProjectID:      projectID,

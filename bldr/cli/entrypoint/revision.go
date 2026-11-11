@@ -13,6 +13,7 @@ var sourceRevision string
 // "+dirty" suffix when the tree had uncommitted changes. It returns "" when
 // the build recorded neither.
 func SourceRevision() string {
+	// Prefer the revision the build named explicitly.
 	if sourceRevision != "" {
 		return sourceRevision
 	}
