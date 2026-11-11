@@ -126,6 +126,11 @@ const DefaultWALCheckpointBytes = 64 << 20
 // left for SQLite to reset, so the guard fires only when that never comes.
 const walGuardMultiple = 8
 
+// walGapQueueMultiple is how many times its bound the WAL may grow while
+// fillWALGap waits for a free writer turn before it queues for the turn
+// instead. Writers that run back to back leave the turn free rarely.
+const walGapQueueMultiple = 2
+
 // restartBusyTimeout bounds how long the guard's checkpoint waits for
 // readers of the old log, while it holds SQLite's write lock.
 const restartBusyTimeout = 100 * time.Millisecond
@@ -622,17 +627,24 @@ func (s *Store[T]) walSize() int64 {
 
 // fillWALGap copies the whole log into the database file between two write
 // transactions, so the next writer begins on a fully copied log and SQLite
-// resets it. It waits for the writer turn behind every waiting writer and,
-// while it waits, copies outside the turn what each commit adds; under the
-// turn it copies only what the commits since its last pass added, mostly the
-// transaction that handed it the turn, and releases the turn. A reader whose
-// snapshot predates the pass keeps the next writer from resetting the log;
-// the next round tries again.
+// resets it. A passive pass that ends caught up rarely opens that gap by
+// itself: the writer holding the turn began on the uncopied log, and its
+// commit lands before the next writer begins.
+//
+// fillWALGap never waits for the turn while a pass runs, since a turn granted
+// during a pass would sit idle until the pass ends. After each commit it
+// copies outside the turn; when a pass ends caught up and the turn is free, it
+// takes the turn, copies the little that landed between, and releases it.
+// Once the log reaches walGapQueueMultiple times its bound it stops waiting
+// for a free turn and queues for it behind every waiting writer, with no pass
+// in flight, then copies under the turn what the writers ahead of it
+// committed. A reader whose snapshot predates the pass keeps the next writer
+// from resetting the log; the next round tries again.
 //
 // On a pool of several connections the passes run on one of the
 // checkpointer's own, taken before the turn, so the pass under the turn never
 // waits for the pool; a pool of one lends its connection to each pass, since
-// holding it would keep the writer ahead in the turn from committing. A
+// holding it would keep the writer holding the turn from committing. A
 // passive checkpoint never calls the busy handler: a reader limits how far it
 // copies, and a concurrent checkpoint makes it return busy at once.
 func (s *Store[T]) fillWALGap(ctx context.Context) {
@@ -648,37 +660,42 @@ func (s *Store[T]) fillWALGap(ctx context.Context) {
 		defer conn.Close()
 		q = conn
 	}
-	pass := func() {
+	// pass copies the log and reports whether it copied every logged frame.
+	pass := func() bool {
 		var busy, logged, copied int
-		_ = q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &logged, &copied)
+		err := q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &logged, &copied)
+		return err == nil && copied == logged
 	}
 
-	// Wait for the turn, copying each commit that lands meanwhile.
-	lockCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	granted := make(chan func(), 1)
-	go func() {
-		release, err := s.writeMtx.Lock(lockCtx, writerBackground)
-		if err != nil {
-			release = nil
-		}
-		granted <- release
-	}()
-	var release func()
-	for release == nil {
-		select {
-		case release = <-granted:
-			if release == nil {
+	for {
+		// Past the queue bound, wait for the turn with no pass in flight.
+		if s.walSize() >= walGapQueueMultiple*s.walBound {
+			release, err := s.writeMtx.Lock(ctx, writerBackground)
+			if err != nil {
 				return
 			}
-		case <-s.checkpointWake:
 			pass()
+			release()
+			return
+		}
+
+		// Copy outside the turn; caught up, take a free turn and close the
+		// gap.
+		if pass() {
+			if release, ok := s.writeMtx.TryLock(); ok {
+				pass()
+				release()
+				return
+			}
+		}
+
+		// Wait for the next commit.
+		select {
+		case <-ctx.Done():
+			return
+		case <-s.checkpointWake:
 		}
 	}
-	defer release()
-
-	// Copy what the last commits added.
-	pass()
 }
 
 // WALGuardRestarts returns how many times the checkpointer restarted a log
