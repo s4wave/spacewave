@@ -31,6 +31,7 @@ func (l *load) collectLoop(ctx context.Context) error {
 			WithField("duration", res.Duration).
 			WithField("netted", res.Netted).
 			WithField("freed", res.Freed).
+			WithField("hold_mark", res.HoldMark).
 			Info("gc pass")
 	}
 }

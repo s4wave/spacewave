@@ -264,6 +264,7 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	err = c.store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED
+		res.HoldMark = state.GetHoldMark()
 		return err
 	})
 	if err != nil {

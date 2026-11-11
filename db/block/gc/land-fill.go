@@ -32,10 +32,11 @@ import (
 //
 // Until the Volume's old generation settles, a fill keeps the settle's
 // barrier as Land does: while Open it pushes onto the front each unverified
-// child of a block it gives birth to or refills, and while Sweeping a fill
-// of an unmarked block gives birth to it again, as Records.rebirth
-// describes, with the old list's children outside the run in the record's
-// down pairs. A fill refuses no hold, since it serves a read. Learning the
+// child of a block it gives birth to or refills, and a fill of a block the
+// free parked gives birth to it again, as Records.repark describes; while
+// Sweeping a fill of an unmarked block gives birth to it again, as
+// Records.rebirth describes, with the old list's children outside the run
+// in the record's down pairs. A fill refuses no hold, since it serves a read. Learning the
 // generation reads the state record until the transaction knows the Volume
 // is Settled, so during the settle a fill also conflicts with a commit that
 // writes the state.
@@ -44,13 +45,18 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 	// recorded holes it refills.
 	var born, refills []*block.PutBatchEntry
 	reborn := make(map[string]bool)
+	var reparked []*block.PutBatchEntry
 	err := classifyPuts(ctx, rec, blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
 		switch kind {
 		case putBorn:
 			born = append(born, entry)
-		case putReborn:
+		case putReborn, putRepark:
 			born = append(born, entry)
-			reborn[string(BlockKey(entry.Ref))] = true
+			if kind == putReborn {
+				reborn[string(BlockKey(entry.Ref))] = true
+			} else {
+				reparked = append(reparked, entry)
+			}
 		case putRefill:
 			refills = append(refills, entry)
 		}
@@ -70,16 +76,15 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 			return nil, err
 		}
 	}
-	var state *LivenessState
+	for _, entry := range reparked {
+		if err := rec.repark(ctx, BlockKey(entry.Ref)); err != nil {
+			return nil, err
+		}
+	}
 	for _, entry := range born {
 		var released [][]byte
 		if reborn[string(BlockKey(entry.Ref))] {
-			if state == nil {
-				if state, err = rec.GetState(ctx); err != nil {
-					return nil, err
-				}
-			}
-			if released, err = rec.rebirth(ctx, state, entry.Ref); err != nil {
+			if released, err = rec.rebirth(ctx, entry.Ref); err != nil {
 				return nil, err
 			}
 		}
@@ -92,14 +97,8 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 		}
 	}
 
-	// Write the cascade count a rebirth took over, then keep the front
-	// invariant once every list is written, so a born child later in the
-	// batch is marked already.
-	if state != nil {
-		if err := rec.SetState(ctx, state); err != nil {
-			return nil, err
-		}
-	}
+	// Keep the front invariant once every list is written, so a born child
+	// later in the batch is marked already.
 	if len(born) == 0 {
 		return existed, nil
 	}

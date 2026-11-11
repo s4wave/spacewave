@@ -27,6 +27,10 @@ type CollectResult struct {
 	// Seeded counts the unverified seeds the flip found and pushed onto the
 	// front, which hold the flip until the walk decodes them.
 	Seeded uint64
+	// Returned counts the children a re-hold returned to the settle's front
+	// while the old generation is Open: blocks back from zero whose lists
+	// the walk must verify before the flip.
+	Returned uint64
 	// Flipped reports that the pass moved the generation to Sweeping.
 	Flipped bool
 	// Unadopted reports that the flip returned the Volume to unadopted
@@ -54,6 +58,11 @@ type CollectResult struct {
 	Underflows uint64
 	// Lapsed counts the leased roots the pass released.
 	Lapsed uint64
+	// HoldMark is the hold mark the pass read: one past the last journal
+	// record of a Land that held a block the collector may have at zero. A
+	// mark that moved since the last pass shows such a Land; the free and the
+	// settle's pop wait while the cursor trails it.
+	HoldMark uint64
 	// More reports that the pass stopped with work left.
 	More bool
 	// Duration is the time the pass took.

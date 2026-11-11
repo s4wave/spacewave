@@ -409,7 +409,7 @@ func (n *netting) cascade(ctx context.Context, nd *node) error {
 	nd.rel = !nd.rel
 	if inline {
 		for _, child := range nd.children {
-			if err := n.move(BlockKey(child), dir); err != nil {
+			if err := n.move(ctx, BlockKey(child), dir); err != nil {
 				return err
 			}
 		}
@@ -425,15 +425,31 @@ func (n *netting) cascade(ctx context.Context, nd *node) error {
 	return n.continueRelease(ctx)
 }
 
-// move moves the child at key by dir for its parent's cascade.
-func (n *netting) move(key []byte, dir int64) error {
+// move moves the child at key by dir for its parent's cascade. A re-hold
+// while the generation is Open also returns an unverified child to the
+// settle's front: the front may have popped it while it was Dead, leaving it
+// in the run, and the walk must verify a block that is held again before
+// the flip, or the sweep deletes it. Its own re-hold returns its children
+// the same way, so a revived chain rejoins the front block by block.
+func (n *netting) move(ctx context.Context, key []byte, dir int64) error {
+	// Move the child, counting a release.
 	if err := n.add(key, dir); err != nil {
 		return err
 	}
 	if dir < 0 {
 		n.nodes[string(key)].cascadeDowns++
+		return nil
 	}
-	return nil
+
+	// Return a re-held child to the front while Open.
+	if n.state.GetGeneration() != Generation_GENERATION_OPEN {
+		return nil
+	}
+	_, pushed, err := n.rec.returnHeld(ctx, key, true)
+	if pushed {
+		n.res.Returned++
+	}
+	return err
 }
 
 // continueRelease moves the children of the paged cascade in progress from
@@ -483,7 +499,7 @@ func (n *netting) continueRelease(ctx context.Context) error {
 		}
 		end := min(uint64(len(children)), within+uint64(n.moves-n.moved)) //nolint:gosec // the budget is small.
 		for _, child := range children[within:end] {
-			if err := n.move(BlockKey(child), dir); err != nil {
+			if err := n.move(ctx, BlockKey(child), dir); err != nil {
 				return err
 			}
 		}
@@ -549,9 +565,8 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 	// losing a Holding block is outside the contract: a refill of the hole
 	// writes its list back, and the re-hold then gives its children the
 	// holder they lack. An unmarked block is no leak, since the sweep frees
-	// it, and its cascade record is frozen with its count, since the sweep
-	// reads both to learn whether its old list still holds its children, as
-	// kindUnmarkedCount describes.
+	// it, and it has no cascade record: the flip requires none due, and an
+	// unmarked block, read as unlisted, gets none.
 	listed := nd.listRead && nd.listed
 	if nd.listRead && !nd.listed && !nd.unmarked {
 		n.res.Leaked += nd.cascadeDowns

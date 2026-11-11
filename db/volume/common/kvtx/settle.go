@@ -7,18 +7,18 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
-// hideUnmarked clears exists for each of refs the settle of the Volume's old
-// generation unmarked, so a writer that checks before it puts puts the block
-// again, which gives birth to it again, as block_gc.UnmarkedError describes.
-// Once the Volume is Settled it reads nothing; before, one snapshot reads
-// the state and, while Sweeping, the run entry of each block found.
-func (v *Volume) hideUnmarked(ctx context.Context, refs []*block.BlockRef, exists []bool) error {
+// hideAbsent clears exists for each of refs that reads absent until a put
+// stores it again, as block_gc.Records.Hidden describes, so a writer that
+// checks before it puts puts the block again, which gives birth to it again.
+// Once the Volume is Settled it reads nothing; before, one snapshot reads the
+// state and, per block found, what Hidden reads.
+func (v *Volume) hideAbsent(ctx context.Context, refs []*block.BlockRef, exists []bool) error {
 	// A Volume without liveness, or a Settled one, has none.
 	if !v.atomic || v.settled.Load() {
 		return nil
 	}
 
-	// Read the generation, then the run entry of each block found.
+	// Read the generation, then whether each block found is hidden.
 	return v.readRecords(ctx, func(rec *block_gc.Records) error {
 		if _, err := rec.GetState(ctx); err != nil || rec.Settled() {
 			return err
@@ -27,11 +27,11 @@ func (v *Volume) hideUnmarked(ctx context.Context, refs []*block.BlockRef, exist
 			if !exists[i] {
 				continue
 			}
-			unmarked, err := rec.Unmarked(ctx, block_gc.BlockKey(ref))
+			hidden, err := rec.Hidden(ctx, ref)
 			if err != nil {
 				return err
 			}
-			exists[i] = !unmarked
+			exists[i] = !hidden
 		}
 		return nil
 	})

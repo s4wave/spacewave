@@ -118,16 +118,17 @@ const (
 	kindFront byte = 'G'
 	// kindUnmarked keys an entry of the unmarked run, by the block: a block
 	// whose bytes or list the store holds without a list from content. Its
-	// value is empty, or runReborn once a put stored the block again. The
-	// run is built in slices while the generation is Open, and is complete
-	// once its runComplete entry exists; the flip makes each entry not
-	// reborn unmarked, and the sweep deletes the run, as
-	// Generation_GENERATION_SWEEPING describes.
+	// value is empty, runReborn once a put stored the block again, or
+	// runSwept once the sweep deleted it. The run is built in slices while
+	// the generation is Open, and is complete once its runComplete entry
+	// exists; the flip makes each empty entry unmarked. While Sweeping no
+	// entry is deleted, so the run stays the run at the flip until it
+	// settles, as Generation_GENERATION_SWEEPING describes.
 	kindUnmarked byte = 'I'
 	// kindUnmarkedCount keys the count record of an unmarked block by the
 	// block, in kindCount's encoding, while the generation is Sweeping. The
-	// flip freezes an unmarked block's kindCount and kindCascade records,
-	// which say whether its old list still holds its children, as
+	// flip freezes an unmarked block's kindCount record, which says whether
+	// its old list still holds its children, as
 	// Records.oldListHolds reads them; every holder the block gains or loses
 	// after the flip lands here instead, as Records.countKind routes it. A
 	// block without one has its implied holder alone, as at its birth. When
@@ -174,6 +175,11 @@ var (
 	// after the flip, so the block is live, and the sweep of an unmarked
 	// parent skips it, since the put took back what the old list held.
 	runReborn = []byte{'r'}
+	// runSwept is the value of a run entry whose block the sweep deleted.
+	// The entry stays until the run settles, so a child the block's old list
+	// named still reads as inside the run at the flip, and a put of the
+	// block after the sweep is a birth, not a rebirth.
+	runSwept = []byte{'s'}
 	// runComplete is the key after the kind of the entry that says the run
 	// names every block the store holds without a list from content. A block
 	// key is never empty, so no block's entry has this key.
@@ -539,15 +545,97 @@ func (r *Records) SetHolders(ctx context.Context, ref *block.BlockRef, holders, 
 	return r.tx.Set(ctx, key, binary.AppendUvarint(nil, holders-1))
 }
 
-// Held reports whether ref is stored with holders: it has a child list and
-// its count record is not a zero record. A root renewed onto a block that
-// is not held would hold a block the collector may free, since the
-// collector released its children when it reached zero.
-func (r *Records) Held(ctx context.Context, ref *block.BlockRef) (bool, error) {
+// Present reports whether the Volume stores ref in the liveness sense: it
+// has a child list and does not read absent, as Hidden describes. A reader
+// treats a block that is not present as absent, and a Land refuses a hold
+// onto one, so the writer puts it again.
+func (r *Records) Present(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	listed, err := r.HasChildren(ctx, ref)
 	if err != nil || !listed {
 		return false, err
 	}
+	hidden, err := r.Hidden(ctx, ref)
+	return !hidden, err
+}
+
+// Hidden reports whether ref, a block with a child list, reads absent until
+// a put stores it again: while Sweeping, an unmarked block, whose put gives
+// birth to it again, as Records.rebirth describes; while Open, a parked one,
+// whose cascade released its children while the settle's front may have
+// popped them, so a hold onto it would revive a list whose children the
+// flip can leave in the run. Settled, it reads only the generation; while
+// Sweeping, one run entry; while Open, the count record and, for a zero
+// one, its parked key.
+func (r *Records) Hidden(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	gen, err := r.generation(ctx)
+	if err != nil {
+		return false, err
+	}
+	switch gen {
+	case Generation_GENERATION_OPEN:
+		return r.parked(ctx, BlockKey(ref))
+	case Generation_GENERATION_SWEEPING:
+		return r.Unmarked(ctx, BlockKey(ref))
+	}
+	return false, nil
+}
+
+// parked reports whether the free parked the block at key: its count is a
+// zero record whose ripe sequence names a parked key. Call it only while
+// Open, when its count is the kindCount record and every parked key waits
+// for the flip.
+func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
+	// Read the count, and for a zero one its parked key.
+	value, found, err := r.tx.Get(ctx, r.key(kindCount, key))
+	if err != nil || !found {
+		return false, err
+	}
+	holders, ripe, err := decodeHolders(value)
+	if err != nil || holders != 0 {
+		return false, err
+	}
+	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
+}
+
+// repark takes the parked block at key back from the free, while Open, so
+// a put can give birth to it again: it deletes its zero count, which leaves
+// it the implied holder of a born block, its parked key, its run entry and
+// its front entry. Its cascade released its children already, so the
+// caller writes its list from content and journals a holder for each child
+// as for a born block.
+func (r *Records) repark(ctx context.Context, key []byte) error {
+	// Read the ripe sequence that keys the parked entry.
+	value, _, err := r.tx.Get(ctx, r.key(kindCount, key))
+	if err != nil {
+		return err
+	}
+	_, ripe, err := decodeHolders(value)
+	if err != nil {
+		return err
+	}
+
+	// Delete the count, the parked key, the run entry and the front entry.
+	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(ripe, key), r.key(kindUnmarked, key), r.key(kindFront, key)} {
+		if err := r.tx.Delete(ctx, del); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Held reports whether ref is present with holders: its count record is not
+// a zero record. A root renewed onto a block that is not held would hold a
+// block the collector may free, since the collector released its children
+// when it reached zero. A hidden block is not held: a Land refuses a hold
+// onto it.
+func (r *Records) Held(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Answer absent for a block that is not present.
+	present, err := r.Present(ctx, ref)
+	if err != nil || !present {
+		return false, err
+	}
+
+	// Read whether its count holds it.
 	holders, _, err := r.GetHolders(ctx, ref)
 	return holders != 0, err
 }
@@ -833,15 +921,16 @@ func (r *Records) settled(ctx context.Context, state *LivenessState) (bool, erro
 }
 
 // HasProof reports whether ref has a completion proof, which says the store
-// holds every block below it. It hides the proof of an unmarked block, which
-// answers absent, so a writer puts it again rather than naming it.
+// holds every block below it. It hides the proof of a hidden block, as
+// Hidden describes, which answers absent, so a writer puts it again rather
+// than naming it.
 func (r *Records) HasProof(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	found, err := r.tx.Exists(ctx, r.key(kindProof, BlockKey(ref)))
 	if err != nil || !found {
 		return false, err
 	}
-	unmarked, err := r.Unmarked(ctx, BlockKey(ref))
-	return !unmarked, err
+	hidden, err := r.Hidden(ctx, ref)
+	return !hidden, err
 }
 
 // SetProof records the completion proof of ref.

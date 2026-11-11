@@ -62,7 +62,7 @@ type Volume struct {
 	collector *block_gc.Collector
 	// settled is set once a transaction saw the Volume's old generation
 	// Settled, which is final, so later transactions read no state to learn
-	// it and reads hide no unmarked block, as hideUnmarked describes.
+	// it and reads hide no block, as hideAbsent describes.
 	settled atomic.Bool
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
@@ -224,7 +224,7 @@ func NewVolume(
 		if err != nil {
 			return nil, volume.Permanent(err)
 		}
-		v.collector = v.newCollector(conf.GetCollectorFrees(), grace)
+		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
 		if err := v.startLiveness(ctx); err != nil {
 			return nil, err
 		}
@@ -232,9 +232,9 @@ func NewVolume(
 	return v, nil
 }
 
-// newCollector returns the collector of the Volume, which frees when frees is
-// set, with grace as its grace period, zero for the default.
-func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collector {
+// newCollector returns the collector of the Volume over store, which frees
+// when frees is set, with grace as its grace period, zero for the default.
+func (v *Volume) newCollector(store block_gc.Store, frees bool, grace time.Duration) *block_gc.Collector {
 	opts := block_gc.CollectorOptions{
 		Frees: frees,
 		Grace: grace,
@@ -242,7 +242,7 @@ func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collect
 		Phase: v.collectorPhase,
 	}
 	opts.ForegroundWaiting = func() bool { return kvtx.ForegroundWaiting(v.kvtxStore) }
-	return block_gc.NewCollector(collectorStore{v: v}, opts)
+	return block_gc.NewCollector(store, opts)
 }
 
 // parseGrace parses the collector's grace period, zero for the default. It
@@ -600,14 +600,15 @@ func (v *Volume) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, boo
 	return v.reader().GetBlock(ctx, ref)
 }
 
-// GetBlockExists reports whether the embedded store holds ref, hiding an
-// unmarked block, as hideUnmarked describes.
+// GetBlockExists reports whether the embedded store holds ref, answering
+// false for a block a put must store again, as hideAbsent describes.
 func (v *Volume) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return v.reader().GetBlockExists(ctx, ref)
 }
 
 // GetBlockExistsBatch reports whether the embedded store holds each of refs,
-// hiding unmarked blocks, as hideUnmarked describes.
+// answering false for each block a put must store again, as hideAbsent
+// describes.
 func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return v.reader().GetBlockExistsBatch(ctx, refs)
 }

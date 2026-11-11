@@ -70,8 +70,10 @@ type BucketRoots struct {
 // off the run and the front, and pushes its unverified children; a refilled
 // hole does the same with the list it writes back. A list that gains a child
 // journals no holder for it, so on a Volume that keeps a journal Land records
-// that the counts owe a recount, which the flip reads. While Sweeping, Land
-// refuses a hold onto an unmarked block with an UnmarkedError, and a put of
+// that the counts owe a recount, which the flip reads. It refuses a hold onto
+// a block the free parked with an AbsentError, and a put of one gives birth
+// to it again, as Records.repark describes. While Sweeping, Land
+// refuses a hold onto an unmarked block with an AbsentError, and a put of
 // one gives birth to it again, as Records.rebirth describes: its old list's
 // children outside the run lose the holder it gave them, through down pairs.
 // Journal.tla models this with its FrontPop, Stop and RootWalk constants.
@@ -93,7 +95,9 @@ type BucketRoots struct {
 // While the generation is not Settled, each child list record it reads
 // returns its value, and per stored block it puts while Open, its list
 // record, which it may rewrite, with one list read per child of a rewritten
-// one; while Sweeping, one run entry read per unverified list it meets.
+// one, and per listed block it holds or puts, its count record and, for a
+// zero one, its parked key; while Sweeping, one run entry read per
+// unverified list it meets.
 // When it holds a stored block, a root moving onto one or a put of one
 // again, it also seeks the cascade records and reads each such block's count
 // record until one is at zero, to set the hold mark Collector describes. It
@@ -188,6 +192,9 @@ type bornBlock struct {
 	// reborn reports that the block was unmarked, so the put gives birth to
 	// it again.
 	reborn bool
+	// repark reports that the free parked the block, so the put gives birth
+	// to it again.
+	repark bool
 	// written reports that its child list was written.
 	written bool
 }
@@ -276,7 +283,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			l.stored = append(l.stored, entry)
 			l.touched[key] = struct{}{}
 		default:
-			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs), reborn: kind == putReborn}
+			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs), reborn: kind == putReborn, repark: kind == putRepark}
 			l.born[key] = b
 			l.order = append(l.order, b)
 		}
@@ -314,9 +321,14 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			continue
 		}
 		b.written = true
-		b.reput = i < len(existed) && existed[i] && !b.reborn
+		b.reput = i < len(existed) && existed[i] && !b.reborn && !b.repark
+		if b.repark {
+			if err := l.rec.repark(ctx, BlockKey(b.ref)); err != nil {
+				return nil, err
+			}
+		}
 		if b.reborn {
-			released, err := l.rec.rebirth(ctx, l.state, b.ref)
+			released, err := l.rec.rebirth(ctx, b.ref)
 			if err != nil {
 				return nil, err
 			}
@@ -351,6 +363,9 @@ const (
 	// putReborn is a block the settle unmarked: the put gives birth to it
 	// again, as Records.rebirth describes.
 	putReborn
+	// putRepark is a block the free parked while Open: the put gives birth
+	// to it again, as Records.repark describes.
+	putRepark
 )
 
 // classifyPuts checks and names each put entry, building an empty ref from
@@ -359,8 +374,8 @@ const (
 // tombstones. It reads whether the Volume records any hole once, at the
 // first block without a child list, and a block's hole record only when one
 // does, so a put into a Volume without a hole, the usual case, reads no hole
-// record per block. While the generation is Sweeping it reads each listed
-// block's run entry.
+// record per block. Until the generation is Settled it reads whether each
+// listed block is hidden, as Records.Hidden describes.
 func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entries []*block.PutBatchEntry, fn func(entry *block.PutBatchEntry, kind putKind)) error {
 	seen := make(map[string]struct{}, len(entries))
 	var holesRead, holes bool
@@ -394,15 +409,11 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 			return err
 		}
 		if listed {
-			unmarked, err := rec.Unmarked(ctx, key)
+			kind, err := listedPut(ctx, rec, entry.Ref)
 			if err != nil {
 				return err
 			}
-			if unmarked {
-				fn(entry, putReborn)
-			} else {
-				fn(entry, putStored)
-			}
+			fn(entry, kind)
 			continue
 		}
 		if !holesRead {
@@ -424,6 +435,24 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 		}
 	}
 	return nil
+}
+
+// listedPut returns what a put of ref, a block with a child list, does: a
+// hidden block is born again, unmarked while Sweeping or parked while Open,
+// and any other is stored already.
+func listedPut(ctx context.Context, rec *Records, ref *block.BlockRef) (putKind, error) {
+	// A block that reads present is stored already.
+	hidden, err := rec.Hidden(ctx, ref)
+	if err != nil || !hidden {
+		return putStored, err
+	}
+
+	// A hidden one is parked while Open and unmarked otherwise.
+	gen, err := rec.generation(ctx)
+	if err == nil && gen == Generation_GENERATION_OPEN {
+		return putRepark, nil
+	}
+	return putReborn, err
 }
 
 // refill writes back the child list of the recorded hole entry puts, from
@@ -471,9 +500,10 @@ func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) err
 }
 
 // holdStored checks a hold onto ref, a block the batch does not store, and
-// reports whether the store lists it: while Open it pushes an unverified
-// ref onto the front, and while Sweeping it refuses an unmarked one with an
-// UnmarkedError. While Settled it reads only whether the list exists.
+// reports whether the store lists it: it refuses a hidden one with an
+// AbsentError, as Records.Hidden describes, and while Open it pushes an
+// unverified ref onto the front. While Settled it reads only whether the
+// list exists.
 func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	// Read the list, and while Settled no more.
 	key := BlockKey(ref)
@@ -481,21 +511,28 @@ func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, err
 		return l.rec.HasChildren(ctx, ref)
 	}
 	listed, marked, err := l.rec.listState(ctx, key)
-	if err != nil || !listed || marked {
+	if err != nil || !listed {
 		return listed, err
 	}
 
-	// Push an unverified block, which the hold mark covers, or refuse an
-	// unmarked one.
-	if l.gen == Generation_GENERATION_OPEN {
-		l.onStored = append(l.onStored, key)
-		return true, l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
+	// Refuse a hidden block. A marked list is never unmarked, but a marked
+	// block may die and park.
+	if !marked || l.gen == Generation_GENERATION_OPEN {
+		hidden, err := l.rec.Hidden(ctx, ref)
+		if err != nil {
+			return true, err
+		}
+		if hidden {
+			return true, &AbsentError{Ref: ref}
+		}
 	}
-	unmarked, err := l.rec.Unmarked(ctx, key)
-	if err == nil && unmarked {
-		err = &UnmarkedError{Ref: ref}
+
+	// Push an unverified block while Open, which the hold mark covers.
+	if marked || l.gen != Generation_GENERATION_OPEN {
+		return true, nil
 	}
-	return true, err
+	l.onStored = append(l.onStored, key)
+	return true, l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
 }
 
 // holdChildren counts the holder each born block gives each child: an

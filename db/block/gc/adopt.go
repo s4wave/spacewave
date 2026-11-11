@@ -272,13 +272,25 @@ func (a *adoption) count(ctx context.Context) error {
 			return err
 		}
 
-		// Count a holder of each child.
+		// Count a holder of each child. While Open a list written from
+		// content returns each unverified child to the settle's front: the
+		// free proof may have popped the child while a short list left it
+		// Dead, and once this count holds it again the walk must verify it
+		// before the flip, or the sweep deletes it.
 		children, err := DecodeChildren(r.value)
 		if err != nil {
 			return errors.Wrapf(err, "child list of %s", ref.MarshalString())
 		}
+		returns := listMarked(r.value)
+		if returns {
+			gen, err := rec.generation(ctx)
+			if err != nil {
+				return err
+			}
+			returns = gen == Generation_GENERATION_OPEN
+		}
 		for _, child := range children {
-			if err := a.hold(ctx, rec, blocks, BlockKey(child)); err != nil {
+			if err := a.hold(ctx, rec, blocks, BlockKey(child), returns); err != nil {
 				return err
 			}
 		}
@@ -369,7 +381,7 @@ func (a *adoption) countRoots(ctx context.Context) error {
 			// Count the holder of a name that held a block.
 			if len(start) != 0 {
 				a.res.Roots++
-				if err := a.hold(ctx, rec, blocks, start); err != nil {
+				if err := a.hold(ctx, rec, blocks, start, false); err != nil {
 					return nil, false, err
 				}
 			}
@@ -403,7 +415,9 @@ func (a *adoption) listed(ctx context.Context, rec *Records, r adoptRecord) (*bl
 
 // hold counts one holder of the block key names, and notes the holder as
 // unknown when the Volume stores the block's bytes without a child list.
-func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps, key []byte) error {
+// While open, a holder from a list written from content returns the block to
+// the front through returnHeld.
+func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps, key []byte, open bool) error {
 	// Count the holder.
 	ref, rest, err := ParseBlockKey(key)
 	if err != nil || len(rest) != 0 {
@@ -417,8 +431,9 @@ func (a *adoption) hold(ctx context.Context, rec *Records, blocks block.StoreOps
 		return err
 	}
 
-	// Note a block whose bytes are stored without a child list.
-	listed, err := rec.HasChildren(ctx, ref)
+	// Return an unverified block to the front, and note one whose bytes are
+	// stored without a child list.
+	listed, _, err := rec.returnHeld(ctx, key, open)
 	if err != nil || listed {
 		return err
 	}
