@@ -197,3 +197,71 @@ func TestStreamTorn(t *testing.T) {
 		expectRows(t, streamRows(t, path), want)
 	}
 }
+
+// TestGetReadOnly looks up every key of the mixed fixture, the keys its last
+// commit deleted and keys it never held, through a copy no one may write, and
+// checks the copy's bytes and modification time are unchanged after.
+func TestGetReadOnly(t *testing.T) {
+	// Copy the fixture and take away write permission.
+	path := copyFixture(t, "mixed.s4db")
+	if err := os.Chmod(path, 0o400); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeInfo, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Every key the file holds reads back as the stream has it.
+	r, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := readRows(t, filepath.Join("testdata", "mixed.expected.tsv"))
+	held := make(map[string]bool, len(want))
+	for _, w := range want {
+		held[w.key] = true
+		v, ok, err := r.Get([]byte(w.key))
+		if err != nil || !ok {
+			t.Fatalf("get %q: found %v, %v", w.key, ok, err)
+		}
+		sum := sha256.Sum256(v)
+		if got := (row{key: w.key, n: len(v), hash: hex.EncodeToString(sum[:])}); got != w {
+			t.Fatalf("get %q: got %+v, want %+v", w.key, got, w)
+		}
+	}
+
+	// Keys the last commit deleted and keys never written are missing.
+	missing := []string{"", "\x00", "l00000\x00", "zzzz"}
+	for _, b := range readRows(t, filepath.Join("testdata", "mixed.before-last.tsv")) {
+		if !held[b.key] {
+			missing = append(missing, b.key)
+		}
+	}
+	for _, k := range missing {
+		if v, ok, err := r.Get([]byte(k)); err != nil || ok {
+			t.Fatalf("get %q: found %v with %d bytes, %v", k, ok, len(v), err)
+		}
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The file is as it was.
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterInfo, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) || !afterInfo.ModTime().Equal(beforeInfo.ModTime()) {
+		t.Fatalf("file changed: mtime %v to %v", beforeInfo.ModTime(), afterInfo.ModTime())
+	}
+	t.Logf("mixed: %d keys found, %d missing", len(want), len(missing))
+}

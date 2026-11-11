@@ -266,7 +266,7 @@ func TestConvertPrevious(t *testing.T) {
 	t.Run("install with source locked", func(t *testing.T) {
 		// Build and install without closing the old-format reader.
 		path := previousVolume(t, "mixed.s4db")
-		src, err := s4dbv1.Open(path)
+		src, err := s4dbv1.OpenExclusive(path)
 		if err != nil {
 			t.Fatal(err)
 		}
