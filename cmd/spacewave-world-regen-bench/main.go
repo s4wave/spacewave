@@ -1,9 +1,12 @@
 //go:build !js && !wasip1
 
 // Command spacewave-world-regen-bench rehearses a World's regeneration at
-// production size on one s4db file: it seeds a World shaped like Hyperline's
-// course results in the old format, then regenerates it while a writer
-// commits, through any number of kills, and checks the result.
+// production size on one database file: it seeds a World shaped like
+// Hyperline's course results in the old format, then regenerates it while a
+// writer commits, through any number of kills, and checks the result. It opens
+// the World as production opens a local one, through the World engine
+// controller on a bus, with the store, collector and cache settings of the
+// deployment --config names.
 //
 // Every acknowledged commit and its latency go to append-only files beside
 // the database, so a run killed at any point leaves what check needs to prove

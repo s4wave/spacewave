@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	_ "net/http/pprof" // #nosec G108 -- served only on the --pprof address.
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,12 +27,14 @@ import (
 type runArgs struct {
 	// Path is the database file.
 	Path string
+	// Config is the deployment profile the World opens as.
+	Config string
 	// SpillDir is the directory of the regeneration's sort runs.
 	SpillDir string
 	// Budget is the sort's memory in bytes.
-	Budget int
+	Budget uint64
 	// SwapChanges is the most quad changes the swap applies in the turn.
-	SwapChanges int
+	SwapChanges uint64
 	// Floor is the least free disk the build leaves beside the database.
 	Floor uint64
 	// Rate is the writer's commits a second.
@@ -56,10 +60,11 @@ type runArgs struct {
 func (a *runArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "path", Usage: "database file", Destination: &a.Path, Required: true},
+		configFlag(&a.Config),
 		&cli.StringFlag{Name: "spill-dir", Usage: "directory for the sort's runs, the database's by default", Destination: &a.SpillDir},
-		&cli.IntFlag{Name: "budget", Usage: "sort memory in bytes", Destination: &a.Budget, Value: 256 << 20},
+		&cli.Uint64Flag{Name: "budget", Usage: "sort memory in bytes", Destination: &a.Budget, Value: 256 << 20},
 		&cli.Uint64Flag{Name: "floor", Usage: "least free disk in bytes the build leaves", Destination: &a.Floor, Value: 4 << 30},
-		&cli.IntFlag{Name: "swap-changes", Usage: "most quad changes the swap applies in the writer turn", Destination: &a.SwapChanges, Value: 4096},
+		&cli.Uint64Flag{Name: "swap-changes", Usage: "most quad changes the swap applies in the writer turn", Destination: &a.SwapChanges, Value: 4096},
 		&cli.Float64Flag{Name: "rate", Usage: "writer commits a second", Destination: &a.Rate, Value: 0.2},
 		&cli.IntFlag{Name: "batch", Usage: "results per writer commit", Destination: &a.Batch, Value: 32},
 		&cli.DurationFlag{Name: "warmup", Usage: "writer time before the first step", Destination: &a.Warmup},
@@ -71,7 +76,7 @@ func (a *runArgs) BuildFlags() []cli.Flag {
 	}
 }
 
-// Run steps the regeneration beside the writer.
+// Run regenerates the World beside the writer.
 func (a *runArgs) Run(c *cli.Context) error {
 	// Serve the profiles.
 	ctx := c.Context
@@ -81,27 +86,14 @@ func (a *runArgs) Run(c *cli.Context) error {
 		defer srv.Close()
 	}
 
-	// Open the World and its Regenerator.
-	w, err := openBenchWorld(ctx, a.Path)
+	// Open the World and report the stage it starts from.
+	w, err := openBenchWorld(ctx, a.Path, a.Config)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-	cfg := world_block.RegenConfig{
-		SpillDir:    a.SpillDir,
-		Budget:      a.Budget,
-		SwapChanges: a.SwapChanges,
-		FloorDir:    filepath.Dir(a.Path),
-		FloorBytes:  a.Floor,
-	}
-	if cfg.SpillDir == "" {
-		cfg.SpillDir = filepath.Dir(a.Path)
-	}
-	r := world_block.NewRegenerator(w.authority, cfg)
-
-	// Report the stage it starts from.
 	var stage atomic.Value
-	st, err := r.Stage(ctx)
+	st, err := w.stage(ctx)
 	if err != nil {
 		return err
 	}
@@ -113,7 +105,7 @@ func (a *runArgs) Run(c *cli.Context) error {
 	defer stopWriter()
 	var g errgroup.Group
 	g.Go(func() error { return a.write(writeCtx, w, &stage) })
-	err = a.steps(ctx, r, &stage)
+	err = a.steps(ctx, w, &stage)
 	if err == nil {
 		err = sleep(ctx, a.Hold)
 	}
@@ -126,39 +118,75 @@ func (a *runArgs) Run(c *cli.Context) error {
 	return err
 }
 
-// steps waits out the warmup, then takes the steps the flags ask for, storing
-// each stage reached in stage.
-func (a *runArgs) steps(ctx context.Context, r *world_block.Regenerator, stage *atomic.Value) error {
+// regenConfig returns the engine's regeneration config for the flags.
+func (a *runArgs) regenConfig() *world_block_engine.RegenConfig {
+	// Choose the target.
+	target := world_block_engine.RegenTarget_REGEN_TARGET_DONE
+	switch {
+	case a.Release:
+		target = world_block_engine.RegenTarget_REGEN_TARGET_RELEASED
+	case a.Back:
+		target = world_block_engine.RegenTarget_REGEN_TARGET_SWITCHED_BACK
+	case a.Until == world_block.RegenSwitched.String():
+		target = world_block_engine.RegenTarget_REGEN_TARGET_SWITCHED
+	}
+
+	// Build beside the database unless told otherwise, swapping at most what
+	// the config holds.
+	swap := uint32(math.MaxUint32)
+	if a.SwapChanges < math.MaxUint32 {
+		swap = uint32(a.SwapChanges)
+	}
+	spill := a.SpillDir
+	if spill == "" {
+		spill = filepath.Dir(a.Path)
+	}
+	return &world_block_engine.RegenConfig{
+		Target:      target,
+		SpillDir:    spill,
+		BudgetBytes: a.Budget,
+		SwapChanges: swap,
+		FloorDir:    filepath.Dir(a.Path),
+		FloorBytes:  a.Floor,
+	}
+}
+
+// steps waits out the warmup, then restarts the engine controller with the
+// regeneration target and follows its log until it reaches the target,
+// storing each stage reached in stage.
+func (a *runArgs) steps(ctx context.Context, w *benchWorld, stage *atomic.Value) error {
 	// Let the writer set a baseline.
 	if err := sleep(ctx, a.Warmup); err != nil {
 		return err
 	}
 
-	// Release or switch back in one call.
+	// Restart with the target, as an operator does.
 	start := time.Now()
-	if a.Release || a.Back {
-		call := r.SwitchBack
-		if a.Release {
-			call = r.Release
-		}
-		if err := call(ctx); err != nil {
-			return err
-		}
-		st, err := r.Stage(ctx)
-		stage.Store(st.String())
-		logf("stage %v after %v", st, time.Since(start).Round(time.Millisecond))
+	if err := w.restart(ctx, a.regenConfig()); err != nil {
 		return err
 	}
+	logf("restarted with the target after %v", time.Since(start).Round(time.Millisecond))
 
-	// Step forward until the stage asked for.
-	until := world_block.RegenDone
-	if a.Until == world_block.RegenSwitched.String() {
-		until = world_block.RegenSwitched
+	// Follow the steps until the target or a stop.
+	for {
+		var ev regenEvent
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case ev = <-w.hook.regen:
+		}
+		switch ev.msg {
+		case "world regeneration step":
+			stage.Store(ev.stage)
+			logf("stage %v after %v", ev.stage, ev.took)
+		case "world regeneration reached its target":
+			stage.Store(ev.stage)
+			logf("reached %v after %v", ev.stage, time.Since(start).Round(time.Millisecond))
+			return nil
+		case "world regeneration stopped":
+			return errors.Wrap(ev.err, "regeneration stopped")
+		}
 	}
-	return r.Run(ctx, until, func(st world_block.RegenStage, took time.Duration) {
-		stage.Store(st.String())
-		logf("stage %v after %v", st, took.Round(time.Millisecond))
-	})
 }
 
 // write commits Batch new results Rate times a second until ctx ends,
@@ -225,4 +253,9 @@ func sleep(ctx context.Context, d time.Duration) error {
 // logf prints a timestamped progress line on stderr.
 func logf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s "+format+"\n", append([]any{time.Now().Format(time.TimeOnly)}, args...)...)
+}
+
+// configFlag binds the deployment profile flag to dst.
+func configFlag(dst *string) cli.Flag {
+	return &cli.StringFlag{Name: "config", Usage: "deployment the World opens as: " + profileNames, Destination: dst, Value: "spacewave"}
 }

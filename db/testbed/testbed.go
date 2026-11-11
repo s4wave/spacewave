@@ -30,7 +30,7 @@ import (
 type Testbed struct {
 	// Context is the root context.
 	Context context.Context
-	// Logger is the logger
+	// Logger is the logger.
 	Logger *logrus.Entry
 	// VolumeController is the test volume controller.
 	VolumeController volume.Controller
@@ -40,7 +40,7 @@ type Testbed struct {
 	BucketId string
 	// StaticResolver is the static resolver.
 	StaticResolver *srr.Resolver
-	// Bus is the controller bus
+	// Bus is the controller bus.
 	Bus bus.Bus
 	// StepFactorySet is the transformer step factory set.
 	StepFactorySet *block_transform.StepFactorySet
@@ -61,6 +61,18 @@ type withVolumeConfig struct{ conf config.Config }
 // WithVolumeConfig passes a custom volume config to load.
 func WithVolumeConfig(conf config.Config) Option {
 	return &withVolumeConfig{conf: conf}
+}
+
+// withVolumeFactory selects the factory that constructs the volume.
+type withVolumeFactory struct {
+	factory func(bus.Bus) controller.Factory
+}
+
+// WithVolumeFactory constructs the volume with the factory build returns for
+// the testbed's bus, in place of the factory the bus resolves for the volume
+// config, such as one opening the volume with process options.
+func WithVolumeFactory(build func(bus.Bus) controller.Factory) Option {
+	return &withVolumeFactory{factory: build}
 }
 
 // withVerbose selects verbose volume logging.
@@ -103,6 +115,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 
 	// Resolve testbed volume options.
 	var volumeConfig config.Config
+	var volumeFactory func(bus.Bus) controller.Factory
 	var volumeConfigEmpty bool
 	verbose := Verbose
 	for _, opt := range opts {
@@ -112,6 +125,8 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 			if o.conf == nil {
 				volumeConfigEmpty = true
 			}
+		case *withVolumeFactory:
+			volumeFactory = o.factory
 		case *withVerbose:
 			verbose = o.verbose
 		}
@@ -143,7 +158,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	var bucketID string
 	if !volumeConfigEmpty {
 		var relVolume func()
-		vc, relVolume, err = startVolume(ctx, b, le, volumeConfig)
+		vc, relVolume, err = startVolume(ctx, b, le, volumeConfig, volumeFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -274,20 +289,28 @@ func release(rels []func()) {
 	}
 }
 
-// startVolume constructs the volume controller for conf and attaches it to the
+// startVolume constructs the volume controller for conf, with the factory
+// build returns or else the one the bus resolves, and attaches it to the
 // bus. The returned release waits for the controller to exit and close.
 func startVolume(
 	ctx context.Context,
 	b bus.Bus,
 	le *logrus.Entry,
 	conf config.Config,
+	build func(bus.Bus) controller.Factory,
 ) (volume.Controller, func(), error) {
-	// Resolve the controller factory for the requested volume configuration.
-	factory, factoryRef, err := resolver.ExLoadFactoryByConfig(ctx, b, conf)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "load volume factory")
+	// Use the given factory, or resolve the one for the volume configuration.
+	var factory controller.Factory
+	if build != nil {
+		factory = build(b)
+	} else {
+		resolved, factoryRef, err := resolver.ExLoadFactoryByConfig(ctx, b, conf)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "load volume factory")
+		}
+		defer factoryRef.Release()
+		factory = resolved
 	}
-	defer factoryRef.Release()
 
 	// Construct the configured controller and require its volume interface.
 	ctrl, err := factory.Construct(ctx, conf, controller.ConstructOpts{

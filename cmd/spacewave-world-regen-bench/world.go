@@ -4,109 +4,274 @@ package main
 
 import (
 	"context"
-	"path/filepath"
+	"io"
+	"os"
+	"strings"
+	"sync"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/volume"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
-	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
 )
 
-// benchRootName is the World root on the bench's Volume.
-const benchRootName = "world:regen-bench"
+// benchEngineID is the World engine's ID. Its head root,
+// world_block.WorldRootName(benchEngineID), is "world:regen-bench", the root
+// every earlier seed holds.
+const benchEngineID = "regen-bench"
 
-// sqliteExt marks a database file the bench opens as a SQLite Volume.
-const sqliteExt = ".db"
+// benchObjectStoreID is the object store through which the engine finds the
+// Volume's coordinator, as every writable local World names one.
+const benchObjectStoreID = "regen-bench-store"
 
-// sqliteTable is the table a native SQLite Volume stores its keys in.
-const sqliteTable = "bldr"
-
-// benchWorld is the bench's World: an engine on a local authority over an
-// s4db or SQLite Volume with the production collector.
-type benchWorld struct {
-	tb        *testbed.Testbed
-	base      *bucket_lookup.Cursor
-	root      *bucket_lookup.Cursor
-	authority *world_block.LocalAuthority
-	engine    *world_block.Engine
-	decoded   *block.DecodedBlockCache
+// profile is one deployment's store, collector and cache settings for the
+// World's Volume.
+type profile struct {
+	// volume returns the Volume config for the database file at path.
+	volume func(path string) config.Config
+	// factory constructs the Volume, or nil for the factory the bus resolves.
+	factory func(b bus.Bus) controller.Factory
+	// decodedCacheBytes is the process-wide decoded-block cache's budget.
+	decodedCacheBytes int64
 }
 
-// decodedCacheBytes is the budget of the process-wide decoded-block cache,
-// the size a production server gives it.
-const decodedCacheBytes = 1536 << 20
+// Hyperline's World store settings, from its backend/world-store.go and the
+// cache size its deploy/compose.yaml sets.
+const (
+	// hyperlineTable is worldSQLiteTable.
+	hyperlineTable = "world"
+	// hyperlineMmapBytes is worldSQLiteMmapBytes.
+	hyperlineMmapBytes = 64 << 30
+	// hyperlineWALBytes is worldSQLiteWALBytes, the WAL bound its
+	// openWorldSQLite (backend/world-node-push.go) opens the World with.
+	hyperlineWALBytes = 512 << 20
+	// hyperlineDecodedCacheBytes is HYPERLINE_BLOCK_CACHE_MIB, 1536.
+	hyperlineDecodedCacheBytes = 1536 << 20
+)
 
-// openBenchWorld opens the World in the database file at path, creating both
-// when absent. The testbed's bucket ID is fixed, so a reopen finds the same
-// root.
-func openBenchWorld(ctx context.Context, path string) (*benchWorld, error) {
-	// Open the Volume quietly and the World's bucket on it.
+// profiles are the deployments the bench opens the World as.
+var profiles = map[string]profile{
+	// spacewave is a native Spacewave app's: an s4db Volume as
+	// bldr/storage/native/s4db.go builds it, with the empty volume controller
+	// config a storage Volume gets (cmd/spacewave-store-bench/storebench), so
+	// the default collector, and db/block's default decoded cache.
+	"spacewave": {
+		volume: func(path string) config.Config {
+			return &volume_s4db.Config{Path: path, VolumeConfig: &volume_controller.Config{}}
+		},
+		decodedCacheBytes: block.DefaultDecodedBlockCacheMaxCost,
+	},
+	// hyperline is Hyperline's World server's: a SQLite Volume configured as
+	// its worldSQLiteConfig does, with the sweep off as its world-store.go
+	// sets GcIntervalDur "0", opened with its WAL bound, and its decoded
+	// cache.
+	"hyperline": {
+		volume: func(path string) config.Config {
+			return &volume_sqlite.Config{
+				Path:         path,
+				Table:        hyperlineTable,
+				MmapSize:     hyperlineMmapBytes,
+				VolumeConfig: &volume_controller.Config{GcIntervalDur: "0"},
+			}
+		},
+		factory: func(b bus.Bus) controller.Factory {
+			return volume_sqlite.NewFactoryWithOpener(b, func(ctx context.Context, le *logrus.Entry, c *volume_sqlite.Config) (volume.Volume, error) {
+				return volume_sqlite.NewSqliteWithOptions(ctx, le, c, volume_sqlite.Options{WALCheckpointBytes: hyperlineWALBytes})
+			})
+		},
+		decodedCacheBytes: hyperlineDecodedCacheBytes,
+	},
+}
+
+// profileNames lists the profiles for the flag's usage.
+const profileNames = "spacewave or hyperline"
+
+// regenEvent is one regeneration log line of the engine controller.
+type regenEvent struct {
+	// msg is the line's message.
+	msg string
+	// stage is its regen-stage field.
+	stage string
+	// took is its took field, set on a step.
+	took string
+	// err is its error, set when the regeneration stopped.
+	err error
+}
+
+// logHook prints warnings on stderr and passes the engine controller's
+// regeneration lines to regen, dropping them when nothing reads.
+type logHook struct {
+	// regen receives the regeneration lines.
+	regen chan regenEvent
+}
+
+// Levels returns the levels the hook fires on.
+func (h *logHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+// Fire prints a warning and forwards a regeneration line.
+func (h *logHook) Fire(e *logrus.Entry) error {
+	// Print warnings and errors.
+	if e.Level <= logrus.WarnLevel {
+		if line, err := e.String(); err == nil {
+			_, _ = os.Stderr.WriteString(line)
+		}
+	}
+
+	// Forward the regeneration's progress.
+	if !strings.HasPrefix(e.Message, "world regeneration") {
+		return nil
+	}
+	ev := regenEvent{msg: e.Message}
+	ev.stage, _ = e.Data["regen-stage"].(string)
+	ev.took, _ = e.Data["took"].(string)
+	ev.err, _ = e.Data[logrus.ErrorKey].(error)
+	select {
+	case h.regen <- ev:
+	default:
+	}
+	return nil
+}
+
+// benchWorld is the bench's World as production opens a local one: the World
+// engine controller on a bus over the profile's Volume, its writers through
+// the engine the bus resolves. The bench reads the regeneration's stage
+// through its own authority over the same roots and never writes through it.
+type benchWorld struct {
+	tb      *testbed.Testbed
+	hook    *logHook
+	base    *bucket_lookup.Cursor
+	observe *world_block.LocalAuthority
+	engine  *world.BusEngine
+	cancel  context.CancelFunc
+
+	// mtx pauses the writers while the controller restarts.
+	mtx sync.RWMutex
+	// ref holds the running engine controller.
+	ref directive.Reference
+}
+
+// openBenchWorld opens the World in the database file at path as the named
+// profile's deployment does, creating both when absent, and starts its
+// engine controller with no regeneration. The testbed's bucket ID is fixed,
+// so a reopen finds the same root.
+func openBenchWorld(ctx context.Context, path, name string) (*benchWorld, error) {
+	// Choose the profile and size the decoded cache before any engine opens.
+	p, ok := profiles[name]
+	if !ok {
+		return nil, errors.Errorf("unknown config %q: want %s", name, profileNames)
+	}
+	block.SetSharedDecodedBlockCacheMaxCost(p.decodedCacheBytes)
+
+	// Log only to the hook: warnings to stderr, regeneration lines to run.
 	log := logrus.New()
-	log.SetLevel(logrus.WarnLevel)
+	log.SetLevel(logrus.InfoLevel)
+	log.SetOutput(io.Discard)
+	hook := &logHook{regen: make(chan regenEvent, 64)}
+	log.AddHook(hook)
 	le := logrus.NewEntry(log)
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(volumeConfig(path)))
+
+	// Open the Volume and the World's bucket on it.
+	opts := []testbed.Option{testbed.WithVolumeConfig(p.volume(path))}
+	if p.factory != nil {
+		opts = append(opts, testbed.WithVolumeFactory(p.factory))
+	}
+	tb, err := testbed.NewTestbed(ctx, le, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "open volume")
 	}
-	w := &benchWorld{tb: tb}
+	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
+
+	// Observe the World's roots through an authority of the bench's own.
+	w := &benchWorld{tb: tb, hook: hook}
 	if w.base, err = tb.BuildEmptyCursor(ctx); err != nil {
 		w.Close()
 		return nil, err
 	}
+	name = world_block.WorldRootName(benchEngineID)
+	scope := coord.Scope{VolumeID: tb.Volume.GetID(), ObjectStoreID: name, ParticipantID: "bench"}
+	w.observe = world_block.NewLocalAuthority(le, w.base, name, nil, scope)
 
-	// Find the authority's head.
-	scope := coord.Scope{VolumeID: tb.Volume.GetID(), ObjectStoreID: benchRootName, ParticipantID: "bench"}
-	w.authority = world_block.NewLocalAuthority(le, w.base, benchRootName, tb.Volume, scope)
-	head, err := w.authority.Head(ctx)
-	if err != nil {
+	// Start the engine and the writers' handle on it.
+	if err := w.start(ctx, nil); err != nil {
 		w.Close()
 		return nil, err
 	}
-
-	// Attach the shared decoded-block cache, as the World engine's open does.
-	block.SetSharedDecodedBlockCacheMaxCost(decodedCacheBytes)
-	w.decoded = block.NewDecodedBlockCache()
-	w.root = w.base.Clone()
-	w.root.SetRootRef(head.Root)
-	w.root.SetDecodedBlockCache(w.decoded)
-
-	// Open the engine at that head.
-	if w.engine, err = world_block.NewEngine(ctx, le, w.root, world_mock.LookupMockOp, w.authority, false); err != nil {
-		w.Close()
-		return nil, err
-	}
+	engineCtx, cancel := context.WithCancel(ctx)
+	w.engine, w.cancel = world.NewBusEngine(engineCtx, tb.Bus, benchEngineID), cancel
 	return w, nil
 }
 
-// volumeConfig returns the Volume config for the database file at path: a
-// SQLite Volume, configured as native storage configures one, for a file
-// ending in sqliteExt, and an s4db Volume otherwise.
-func volumeConfig(path string) config.Config {
-	if filepath.Ext(path) == sqliteExt {
-		return &volume_sqlite.Config{Path: path, Table: sqliteTable}
+// start starts the engine controller with the regeneration config, nil for
+// none, and waits for its engine. The config is a writable local World's, as
+// core/resource/root/controller/app.go builds one: the bucket's head under
+// the engine's root, the changelog kept, and the old graph format for a new
+// World.
+func (w *benchWorld) start(ctx context.Context, regen *world_block_engine.RegenConfig) error {
+	// Configure the World with the regeneration.
+	bucketID := w.tb.BucketId
+	conf := world_block_engine.NewConfig(
+		benchEngineID,
+		w.tb.Volume.GetID(), bucketID,
+		benchObjectStoreID,
+		&bucket.ObjectRef{BucketId: bucketID},
+		nil,
+		true,
+	)
+	conf.Regen = regen
+
+	// Load the controller and wait for its engine.
+	_, ref, err := world.StartEngine(ctx, w.tb.Bus, conf, nil)
+	if err != nil {
+		return errors.Wrap(err, "start world engine")
 	}
-	return &volume_s4db.Config{Path: path}
+	w.ref = ref
+	return nil
 }
 
-// Close closes the engine and the Volume.
+// restart restarts the engine controller with the regeneration config, as an
+// operator restarts a server with a new target, pausing the writers.
+func (w *benchWorld) restart(ctx context.Context, regen *world_block_engine.RegenConfig) error {
+	// Stop the running controller once no commit is in flight.
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	w.ref.Release()
+	w.ref = nil
+
+	// Start its successor with the target.
+	return w.start(ctx, regen)
+}
+
+// stage reads the regeneration's stage from the World's roots.
+func (w *benchWorld) stage(ctx context.Context) (world_block.RegenStage, error) {
+	return world_block.NewRegenerator(w.observe, world_block.RegenConfig{}).Stage(ctx)
+}
+
+// Close stops the engine controller and closes the Volume.
 func (w *benchWorld) Close() {
-	if w.engine != nil {
-		_ = w.engine.Close()
+	if w.cancel != nil {
+		w.cancel()
 	}
-	for _, c := range []*bucket_lookup.Cursor{w.root, w.base} {
-		if c != nil {
-			c.Release()
-		}
+	if w.ref != nil {
+		w.ref.Release()
 	}
-	if w.decoded != nil {
-		w.decoded.Close()
+	if w.base != nil {
+		w.base.Release()
 	}
 	w.tb.Release()
 }

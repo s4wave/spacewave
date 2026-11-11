@@ -16,6 +16,8 @@ import (
 type seedArgs struct {
 	// Path is the database file.
 	Path string
+	// Config is the deployment profile the World opens as.
+	Config string
 	// Results is the number of results the seed holds.
 	Results int
 	// Batch is the results per commit.
@@ -26,6 +28,7 @@ type seedArgs struct {
 func (a *seedArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "path", Usage: "database file", Destination: &a.Path, Required: true},
+		configFlag(&a.Config),
 		&cli.IntFlag{Name: "results", Usage: "results the seed holds", Destination: &a.Results, Value: 2_200_000},
 		&cli.IntFlag{Name: "batch", Usage: "results per commit", Destination: &a.Batch, Value: 5000},
 	}
@@ -35,7 +38,7 @@ func (a *seedArgs) BuildFlags() []cli.Flag {
 func (a *seedArgs) Run(c *cli.Context) error {
 	// Open the World and find where the seed stopped.
 	ctx := c.Context
-	w, err := openBenchWorld(ctx, a.Path)
+	w, err := openBenchWorld(ctx, a.Path, a.Config)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
 // checkArgs prove the head holds exactly the hubs and results [0, n) for an
@@ -22,12 +21,15 @@ import (
 type checkArgs struct {
 	// Path is the database file.
 	Path string
+	// Config is the deployment profile the World opens as.
+	Config string
 }
 
 // BuildFlags binds the flags.
 func (a *checkArgs) BuildFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "path", Usage: "database file", Destination: &a.Path, Required: true},
+		configFlag(&a.Config),
 	}
 }
 
@@ -35,7 +37,7 @@ func (a *checkArgs) BuildFlags() []cli.Flag {
 func (a *checkArgs) Run(c *cli.Context) error {
 	// Open the World and read what was acknowledged.
 	ctx := c.Context
-	w, err := openBenchWorld(ctx, a.Path)
+	w, err := openBenchWorld(ctx, a.Path, a.Config)
 	if err != nil {
 		return err
 	}
@@ -50,7 +52,7 @@ func (a *checkArgs) Run(c *cli.Context) error {
 	}
 
 	// Read the stage and open a read of the head.
-	stage, err := world_block.NewRegenerator(w.authority, world_block.RegenConfig{}).Stage(ctx)
+	stage, err := w.stage(ctx)
 	if err != nil {
 		return err
 	}

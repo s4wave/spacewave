@@ -169,7 +169,10 @@ var errOpNotEncoded = errors.New("bench op is not encoded")
 
 // commitTx runs fn in one write transaction on w and commits it.
 func commitTx(ctx context.Context, w *benchWorld, fn func(ws world.WorldState) error) error {
-	// Open the transaction, apply fn and commit.
+	// Wait out a controller restart, then open the transaction, apply fn and
+	// commit.
+	w.mtx.RLock()
+	defer w.mtx.RUnlock()
 	tx, err := w.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
