@@ -142,7 +142,7 @@ func TestWriteBatchPreservesSnapshotsAndSparsePages(t *testing.T) {
 
 	// Retain the reference of a middle page outside the sparse changes.
 	middle := []byte("key-1024")
-	path, err := tx.findPagePath(ctx, 0, okraNodeKey{key: middle})
+	path, err := findPagePath(ctx, cursorPages{tx}, tx.root, 0, okraNodeKey{key: middle})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func TestWriteBatchPreservesSnapshotsAndSparsePages(t *testing.T) {
 	}
 
 	// Require the sparse changes to preserve the untouched middle page.
-	path, err = tx.findPagePath(ctx, 0, okraNodeKey{key: middle})
+	path, err = findPagePath(ctx, cursorPages{tx}, tx.root, 0, okraNodeKey{key: middle})
 	if err != nil {
 		t.Fatal(err)
 	}

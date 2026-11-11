@@ -326,8 +326,8 @@ func (p *flatPage) refOf(r flatRef) *block.BlockRef {
 // Len returns the number of entries.
 func (p *flatPage) Len() int { return len(p.entries) }
 
-// Level returns the page height; zero is a leaf.
-func (p *flatPage) Level() uint32 { return p.level }
+// GetLevel returns the page height; zero is a leaf.
+func (p *flatPage) GetLevel() uint32 { return p.level }
 
 // isAnchor reports whether entry i is the anchor.
 func (p *flatPage) isAnchor(i int) bool { return p.entries[i].flags&flatAnchor != 0 }

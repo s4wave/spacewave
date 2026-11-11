@@ -42,15 +42,14 @@ func (t *Tx) findEntry(ctx context.Context, key []byte) (*Page, *block.Cursor, i
 		if idx < 0 {
 			return nil, nil, 0, nil
 		}
-		childCursor := page.FollowChild(pageCursor, idx)
-		page, err = loadPage(ctx, childCursor)
+		pageCursor = page.FollowChild(pageCursor, idx)
+		page, err = loadPage(ctx, pageCursor)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		if !page.containsKey(key) {
 			return nil, nil, 0, nil
 		}
-		pageCursor = childCursor
 	}
 
 	// Require an exact non-anchor match in the leaf page.
@@ -74,43 +73,48 @@ type batchLookup struct {
 }
 
 // batchNode is a page the batch walk reached, with the lookups under it.
-type batchNode struct {
+type batchNode[P walkPage, C any] struct {
 	// page is the loaded page.
-	page *Page
+	page P
 	// cursor locates page.
-	cursor *block.Cursor
+	cursor C
 	// lookups are the requested keys within the page bounds, sorted by key.
 	lookups []batchLookup
 }
 
-// findEntriesBatch resolves lookups below page into values and found, indexed
-// by each lookup's request position. The lookups are sorted by key, so the keys
-// under each child page form one contiguous run and child pages load in key
-// order. The walk goes one tree level at a time and loads every block the next
-// level needs together, so a remote store answers the whole level in a few
-// round trips. findEntriesBatch reorders lookups in place.
-func (t *Tx) findEntriesBatch(
+// findEntriesBatch resolves lookups into values and found, indexed by each
+// lookup's request position. The lookups are sorted by key, so the keys under
+// each child page form one contiguous run and child pages load in key order.
+// The walk goes one tree level at a time and loads every block the next level
+// needs together, so a remote store answers the whole level in a few round
+// trips. findEntriesBatch reorders lookups in place.
+func findEntriesBatch[P walkPage, C any](
 	ctx context.Context,
-	page *Page,
-	pageCursor *block.Cursor,
+	r pageReader[P, C],
 	lookups []batchLookup,
 	values [][]byte,
 	found []bool,
 ) error {
+	// Load the root page the walk starts from.
+	page, cursor, err := r.rootPage(ctx)
+	if err != nil {
+		return err
+	}
+
 	// A level holds at most one load and one child node per lookup, so the
 	// walk sizes its buffers once and reuses them on every level: loads and
 	// the next level refer only to the current level's nodes.
-	loads := make([]batchLoad, 0, len(lookups))
-	level := make([]batchNode, 1, len(lookups))
-	next := make([]batchNode, 0, len(lookups))
-	level[0] = batchNode{page: page, cursor: pageCursor, lookups: lookups}
+	loads := make([]batchLoad[P, C], 0, len(lookups))
+	level := make([]batchNode[P, C], 1, len(lookups))
+	next := make([]batchNode[P, C], 0, len(lookups))
+	level[0] = batchNode[P, C]{page: page, cursor: cursor, lookups: lookups}
 	for len(level) != 0 {
 		// Plan the level's loads in key order, then run them together.
 		loads = loads[:0]
 		for i := range level {
 			loads = appendBatchLoads(loads, &level[i])
 		}
-		if err := t.runBatchLoads(ctx, loads); err != nil {
+		if err := runBatchLoads(ctx, r, loads); err != nil {
 			return err
 		}
 
@@ -135,9 +139,9 @@ func (t *Tx) findEntriesBatch(
 // batchLoad is one block the batch walk loads below a node: the value of one
 // matched lookup in a leaf, or the child page covering a run of lookups in an
 // inner node.
-type batchLoad struct {
+type batchLoad[P walkPage, C any] struct {
 	// node is the node holding the entry.
-	node *batchNode
+	node *batchNode[P, C]
 	// idx is the entry's index in the node's page.
 	idx int
 	// lookups is the run of lookups under a child page, or the one matched
@@ -147,42 +151,39 @@ type batchLoad struct {
 	// value is the loaded leaf value.
 	value []byte
 	// page and cursor are the loaded child page and its position.
-	page   *Page
-	cursor *block.Cursor
+	page   P
+	cursor C
 }
 
 // appendBatchLoads appends the loads the lookups under node need: the value of
 // each exact non-anchor match in a leaf, or the child page of each run of keys
 // sharing a child in an inner node. Keys ordered before the page's first entry
 // load nothing.
-func appendBatchLoads(loads []batchLoad, node *batchNode) []batchLoad {
-	entries := node.page.GetEntries()
+func appendBatchLoads[P walkPage, C any](loads []batchLoad[P, C], node *batchNode[P, C]) []batchLoad[P, C] {
+	page := node.page
 	lookups := node.lookups
 	for len(lookups) != 0 {
-		idx := node.page.searchEntry(lookups[0].key)
-		if node.page.GetLevel() == 0 {
+		// Match a leaf's lookups one key at a time.
+		idx := page.searchEntry(lookups[0].key)
+		if page.GetLevel() == 0 {
 			lookup := lookups[:1]
 			lookups = lookups[1:]
-			if idx < 0 {
+			if idx < 0 || page.isAnchor(idx) || !bytes.Equal(page.entryKey(idx), lookup[0].key) {
 				continue
 			}
-			ent := entries[idx]
-			if ent.GetAnchor() || !bytes.Equal(ent.GetKey(), lookup[0].key) {
-				continue
-			}
-			loads = append(loads, batchLoad{node: node, idx: idx, lookups: lookup})
+			loads = append(loads, batchLoad[P, C]{node: node, idx: idx, lookups: lookup})
 			continue
 		}
 
 		// Take the run of keys under the first remaining key's child page.
 		n := 1
-		for n < len(lookups) && node.page.searchEntry(lookups[n].key) == idx {
+		for n < len(lookups) && page.searchEntry(lookups[n].key) == idx {
 			n++
 		}
 		group := lookups[:n]
 		lookups = lookups[n:]
 		if idx >= 0 {
-			loads = append(loads, batchLoad{node: node, idx: idx, lookups: group})
+			loads = append(loads, batchLoad[P, C]{node: node, idx: idx, lookups: group})
 		}
 	}
 	return loads
@@ -192,51 +193,51 @@ func appendBatchLoads(loads []batchLoad, node *batchNode) []batchLoad {
 const batchLoadConcurrency = 16
 
 // runBatchLoads loads each value or child page with at most
-// batchLoadConcurrency loads in flight. Each load goes through its cursor, so
-// a block the decoded block cache holds costs no store read. Returns the first
-// failure.
-func (t *Tx) runBatchLoads(ctx context.Context, loads []batchLoad) error {
+// batchLoadConcurrency loads in flight. Each load goes through r, so a block
+// the decoded block cache holds costs no store read. Returns the first failure.
+func runBatchLoads[P walkPage, C any](ctx context.Context, r pageReader[P, C], loads []batchLoad[P, C]) error {
 	// Load a single block on the caller's goroutine.
 	if len(loads) == 1 {
-		return t.runBatchLoad(ctx, &loads[0])
+		return loads[0].run(ctx, r)
 	}
 
-	// Run the loads together; each writes only its own entry.
-	eg, ctx := errgroup.WithContext(ctx)
+	// Run the loads together; each writes only its own entry. The group's
+	// context is its own variable: the closure captures it, and reassigning
+	// ctx would move ctx to the heap on the single-load path too.
+	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(batchLoadConcurrency)
 	for i := range loads {
-		eg.Go(func() error { return t.runBatchLoad(ctx, &loads[i]) })
+		eg.Go(func() error { return loads[i].run(egCtx, r) })
 	}
 	return eg.Wait()
 }
 
-// runBatchLoad loads one leaf value or child page.
-func (t *Tx) runBatchLoad(ctx context.Context, load *batchLoad) error {
+// run loads one leaf value or child page.
+func (l *batchLoad[P, C]) run(ctx context.Context, r pageReader[P, C]) error {
 	// Decode a leaf's matched value.
-	node := load.node
+	node := l.node
 	if node.page.GetLevel() == 0 {
-		value, err := t.entryToValue(ctx, node.page, node.cursor, load.idx)
-		load.value = value
+		value, err := r.entryValue(ctx, node.page, node.cursor, l.idx)
+		l.value = value
 		return err
 	}
 
 	// Load the child page covering the run of lookups.
-	load.cursor = node.page.FollowChild(node.cursor, load.idx)
-	page, err := loadPage(ctx, load.cursor)
-	load.page = page
+	page, cursor, err := r.childPage(ctx, node.page, node.cursor, l.idx)
+	l.page, l.cursor = page, cursor
 	return err
 }
 
 // childNode returns the loaded child page with the run of lookups within its
 // bounds, and false when none are.
-func (l *batchLoad) childNode() (batchNode, bool) {
+func (l *batchLoad[P, C]) childNode() (batchNode[P, C], bool) {
 	group := l.lookups[:0]
 	for _, lookup := range l.lookups {
 		if l.page.containsKey(lookup.key) {
 			group = append(group, lookup)
 		}
 	}
-	return batchNode{page: l.page, cursor: l.cursor, lookups: group}, len(group) != 0
+	return batchNode[P, C]{page: l.page, cursor: l.cursor, lookups: group}, len(group) != 0
 }
 
 func (p *Page) containsKey(key []byte) bool {
@@ -265,15 +266,6 @@ func compareEntryKey(ent *Entry, key []byte) int {
 		return -1
 	}
 	return bytes.Compare(ent.GetKey(), key)
-}
-
-// rawInlineValue returns the entry's raw inline value, borrowed from the page.
-func (p *Page) rawInlineValue(index int) ([]byte, bool) {
-	value := p.GetEntries()[index].GetValueBlob()
-	if value == nil || value.GetBlobType() != blob.BlobType_BlobType_RAW {
-		return nil, false
-	}
-	return value.GetRawData(), true
 }
 
 // entryToValue returns an owned copy of the entry's value.
