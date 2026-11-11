@@ -13,11 +13,35 @@ type CollectResult struct {
 	// Freed counts the blocks the pass freed.
 	Freed uint64
 	// Parked counts the Dead blocks the free held back because the Volume's
-	// child lists are unverified and Land did not give birth to them.
+	// old generation is Open, when nothing is deleted.
 	Parked uint64
 	// Requeued counts the parked blocks the pass moved back onto the free
-	// queue once the lists were verified.
+	// queue once the generation flipped.
 	Requeued uint64
+	// Unmarked counts the unverified lists the pass entered in the unmarked
+	// run.
+	Unmarked uint64
+	// Popped counts the front entries the pass took off because the free
+	// proof held for their blocks.
+	Popped uint64
+	// Seeded counts the unverified seeds the flip found and pushed onto the
+	// front, which hold the flip until the walk decodes them.
+	Seeded uint64
+	// Returned counts the children a re-hold returned to the settle's front
+	// while the old generation is Open: blocks back from zero whose lists
+	// the walk must verify before the flip.
+	Returned uint64
+	// Flipped reports that the pass moved the generation to Sweeping.
+	Flipped bool
+	// Unadopted reports that the flip returned the Volume to unadopted
+	// because a list rewrite left the counts short, so an adoption recounts
+	// the lists before the flip.
+	Unadopted bool
+	// Swept counts the unmarked blocks the pass deleted.
+	Swept uint64
+	// Settled reports that the pass deleted the run and settled the
+	// generation.
+	Settled bool
 	// Kept counts the times a free found Dead blocks waiting on their ripe
 	// sequence or the hold mark, and the blocks it kept because a record
 	// past the cursor names them.
@@ -43,6 +67,11 @@ type CollectResult struct {
 	Underflows uint64
 	// Lapsed counts the leased roots the pass released.
 	Lapsed uint64
+	// HoldMark is the hold mark the pass read: one past the last journal
+	// record of a Land that held a block the collector may have at zero. A
+	// mark that moved since the last pass shows such a Land; the free and the
+	// settle's pop wait while the cursor trails it.
+	HoldMark uint64
 	// More reports that the pass stopped with work left.
 	More bool
 	// Duration is the time the pass took.

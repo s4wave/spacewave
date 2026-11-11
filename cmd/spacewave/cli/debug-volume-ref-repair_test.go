@@ -100,7 +100,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeRecords(t, vol, func(rec *block_gc.Records) error {
-		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, UnverifiedLists: true})
+		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: block_gc.Generation_GENERATION_OPEN})
 	})
 
 	// Start a storage testbed whose blocks are copied into the volume
@@ -354,28 +354,30 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 
 	// Applying writes every missing child list, those of the leaves the dry
-	// run only checks for presence too, verifies every walked block's list,
-	// and clears the volume's unverified lists mark.
+	// run only checks for presence too, and verifies every walked block's
+	// list, which leaves no reached block on the settle's front.
 	applied, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applied.rebuild.Rewritten < dry.lacking || applied.rebuild.Verified != dry.blocks || applied.rebuild.Unverified != 0 || !applied.rebuild.Cleared {
-		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and the mark cleared", applied.rebuild, dry.lacking, dry.blocks)
+	if applied.rebuild.Rewritten < dry.lacking || applied.rebuild.Verified != dry.blocks || applied.rebuild.Front != 0 {
+		t.Fatalf("applied rebuild %+v, expected at least %d written of %d verified and an empty front", applied.rebuild, dry.lacking, dry.blocks)
 	}
 
-	// Mark the lists unverified again, hold the World under a named root as a
-	// Space's replay base holds it, and rebuild with every object root typed as raw bytes, a
-	// registered type that decodes without refs. The rebuild refuses the
-	// shortened root list, which the held World reaches, and keeps the mark;
-	// a correct rebuild after it finds every list whole and clears the mark.
+	// Return the lists to unverified, as a format 6 store wrote them, hold
+	// the World under a named root as a Space's replay base holds it, and
+	// rebuild with every object root typed as raw bytes, a registered type
+	// that decodes without refs. The rebuild refuses the shortened root
+	// list, which the held World reaches, and leaves it on the front; a
+	// correct rebuild after it finds every list whole and empties the front.
 	markVol, err := openStoppedVolume(ctx, le, path, volumeWritable)
 	if err != nil {
 		t.Fatal(err)
 	}
 	writeRecords(t, markVol, func(rec *block_gc.Records) error {
-		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, UnverifiedLists: true})
+		return rec.SetState(ctx, &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: block_gc.Generation_GENERATION_OPEN})
 	})
+	unmarkLists(t, markVol)
 	held := []block.NamedRoot{{Name: space_world.RootReplayBase, Ref: state.GetHeadRef().GetRootRef()}}
 	err = markVol.SetBucketRoots(ctx, restoreTestBucket, nil, held)
 	if cerr := markVol.Close(); err == nil {
@@ -391,14 +393,14 @@ func TestDebugRefRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Unverified == 0 || wrong.rebuild.Cleared {
+	if wrong.rebuild.Dropped == 0 || wrong.rebuild.Rewritten != 0 || wrong.rebuild.Front == 0 {
 		t.Fatalf("rebuild with a wrong root type: %+v", wrong.rebuild)
 	}
 	right, err := repairVolumeRefs(ctx, le, path, "", false, space_world_optypes.LookupBlockType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if right.rebuild.Rewritten != 0 || right.rebuild.Dropped != 0 || right.rebuild.Verified == 0 || !right.rebuild.Cleared {
+	if right.rebuild.Rewritten != 0 || right.rebuild.Dropped != 0 || right.rebuild.Verified == 0 || right.rebuild.Front != 0 {
 		t.Fatalf("rebuild after a wrong root type: %+v", right.rebuild)
 	}
 
@@ -489,4 +491,38 @@ func putKey(ctx context.Context, vol volume.Volume, key, value []byte) error {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// unmarkLists rewrites every child list of vol without the mark a list
+// written from its block's content carries, as a format 6 store wrote them.
+// The key is the kvtx Volume's liveness prefix, 2, the child list kind 'c',
+// then the block's key.
+func unmarkLists(t *testing.T, vol *volume_s4db.Volume) {
+	t.Helper()
+	type list struct {
+		ref      *block.BlockRef
+		children []*block.BlockRef
+	}
+	var lists []list
+	tx, err := vol.GetKvtxStore().NewTransaction(t.Context(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	err = volume_kvtx.OpenRecords(tx).ScanChildren(t.Context(), func(ref *block.BlockRef, children []*block.BlockRef) error {
+		lists = append(lists, list{ref, children})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range lists {
+		key := append([]byte{2, 'c'}, block_gc.BlockKey(l.ref)...)
+		if err := tx.Set(t.Context(), key, block_gc.EncodeChildren(l.children)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
 }

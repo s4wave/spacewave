@@ -51,10 +51,10 @@ type refRepairResult struct {
 	// edges is the number of children those lists name.
 	edges uint64
 	// rebuild is what the list rebuild verified and wrote, empty on a dry run
-	// and on a volume whose lists were verified already.
+	// and on a volume whose old generation had left Open.
 	rebuild block_gc.ListRebuildResult
-	// verified reports that the volume's lists were verified before the run,
-	// so it rebuilt nothing.
+	// verified reports that the volume's old generation had left Open before
+	// the run, so it rebuilt nothing.
 	verified bool
 	// untyped counts the refs whose type the walk cannot name, by reason, with
 	// a sample of each. Their edges are recorded; the blocks below them are

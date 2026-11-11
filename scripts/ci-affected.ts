@@ -211,6 +211,12 @@ const ownSpecJobs: SpecEntry[] = [
     timeout: 25,
   },
   {
+    name: 'Journal-hole-fill',
+    configs: 'db/block/gc/Journal-hole-fill.cfg',
+    workers: 1,
+    timeout: 25,
+  },
+  {
     name: 'Journal-lease',
     configs: 'db/block/gc/Journal-lease.cfg',
     workers: 1,

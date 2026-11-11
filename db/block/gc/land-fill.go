@@ -29,14 +29,31 @@ import (
 // number.
 // Collector.Collect applies the record's up pairs in its first slice, and
 // nets its down pair once the record is Grace old.
+//
+// Until the Volume's old generation settles, a fill keeps the settle's
+// barrier as Land does: while Open it pushes onto the front each unverified
+// child of a block it gives birth to or refills, and a fill of a block the
+// free parked gives birth to it again, as Records.repark describes; while
+// Sweeping a fill of an unmarked block gives birth to it again, as
+// Records.rebirth describes, with the old list's children outside the run
+// in the record's down pairs. A fill refuses no hold, since it serves a read. Learning the
+// generation reads the state record until the transaction knows the Volume
+// is Settled, so during the settle a fill also conflicts with a commit that
+// writes the state.
 func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time.Time, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Name each entry and find the blocks it gives birth to and the
 	// recorded holes it refills.
 	var born, refills []*block.PutBatchEntry
+
+	// hidden names the kind of each born block a put gives birth to again.
+	hidden := make(map[string]putKind)
 	err := classifyPuts(ctx, rec, blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
 		switch kind {
 		case putBorn:
 			born = append(born, entry)
+		case putReborn, putRepark:
+			born = append(born, entry)
+			hidden[string(BlockKey(entry.Ref))] = kind
 		case putRefill:
 			refills = append(refills, entry)
 		}
@@ -52,19 +69,51 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 		return nil, err
 	}
 	for _, entry := range refills {
-		if err := rec.PutChildren(ctx, entry.Ref, entry.Refs); err != nil {
+		if err := rec.refill(ctx, entry); err != nil {
 			return nil, err
 		}
-		if err := rec.tx.Delete(ctx, rec.key(kindHole, BlockKey(entry.Ref))); err != nil {
+	}
+
+	// A rebirth or a repark reads the hold rule. Only a hidden block is
+	// reborn or reparked, and classifyPuts read the state record to name
+	// it, so the read adds no conflict.
+	var state *LivenessState
+	if len(hidden) != 0 {
+		if state, err = rec.GetState(ctx); err != nil {
 			return nil, err
 		}
 	}
 	for _, entry := range born {
+		var released [][]byte
+		switch hidden[string(BlockKey(entry.Ref))] {
+		case putReborn:
+			released, err = rec.rebirth(ctx, state, entry.Ref)
+		case putRepark:
+			released, err = rec.repark(ctx, state, BlockKey(entry.Ref))
+		}
+		if err != nil {
+			return nil, err
+		}
 		children := normalizeChildren(entry.Refs)
 		if err := rec.PutChildren(ctx, entry.Ref, children); err != nil {
 			return nil, err
 		}
-		if err := rec.putFillRecord(ctx, entry.Ref, children, now); err != nil {
+		if err := rec.putFillRecord(ctx, entry.Ref, children, released, now); err != nil {
+			return nil, err
+		}
+	}
+
+	// Keep the front invariant once every list is written, so a born child
+	// later in the batch is marked already.
+	if len(born) == 0 {
+		return existed, nil
+	}
+	gen, err := rec.generation(ctx)
+	if err != nil || gen != Generation_GENERATION_OPEN {
+		return existed, err
+	}
+	for _, entry := range born {
+		if err := rec.pushChildren(ctx, EncodeChildren(entry.Refs), nil); err != nil {
 			return nil, err
 		}
 	}
@@ -84,7 +133,7 @@ func (r *Records) fillBornKey(key []byte, at int64) []byte {
 
 // putFillRecord writes the fill record of ref, with its fill-born index
 // entry and its up pairs for children, all blind.
-func (r *Records) putFillRecord(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef, now time.Time) error {
+func (r *Records) putFillRecord(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef, released [][]byte, now time.Time) error {
 	// Write the record of the block's own implied holder, and the children's
 	// up pairs for the collector to apply first.
 	key := BlockKey(ref)
@@ -92,7 +141,8 @@ func (r *Records) putFillRecord(ctx context.Context, ref *block.BlockRef, childr
 	if len(children) != 0 {
 		ups = EncodeChildren(children)
 	}
-	return r.writeFill(ctx, key, &JournalRecord{AtUnixMilli: now.UnixMilli(), Down: [][]byte{key}}, ups)
+	down := append([][]byte{key}, released...)
+	return r.writeFill(ctx, key, &JournalRecord{AtUnixMilli: now.UnixMilli(), Down: down}, ups)
 }
 
 // writeFill writes fr, the fill record of the block at filled, at its
