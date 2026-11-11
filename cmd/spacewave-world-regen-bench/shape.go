@@ -7,8 +7,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // A result is shaped like a Hyperline course result: an object with a body of
@@ -65,36 +69,50 @@ func resultBody(i int) string {
 // writeHubs creates the hub objects, or leaves those that exist.
 func writeHubs(ctx context.Context, ws world.WorldState) error {
 	for _, key := range hubKeys() {
-		if err := putObject(ctx, ws, key, key); err != nil {
+		if _, err := putObject(ctx, ws, key, key); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// writeResults writes results [start, end) with their bodies and quads. A
-// result written before is written again unchanged, so a commit a kill left
-// unacknowledged can be retried.
+// writeResults writes results [start, end) with their bodies and quads the
+// way Hyperline writes course results: inside one World operation, holding the
+// quads of every result it creates for one graph index update. A result
+// written before is written again unchanged, so a commit a kill left
+// unacknowledged can be retried; its quads exist already, so it sets them one
+// at a time, which keeps them.
 func writeResults(ctx context.Context, ws world.WorldState, start, end int) error {
-	for i := start; i < end; i++ {
-		if err := putObject(ctx, ws, resultKey(i), resultBody(i)); err != nil {
-			return err
-		}
-		for _, q := range resultQuads(i) {
-			if err := ws.SetGraphQuad(ctx, q); err != nil {
+	_, _, err := ws.ApplyWorldOp(ctx, &blockWorldOp{fn: func(ctx context.Context, bws *world_block.WorldState) error {
+		quads := make([]world.GraphQuad, 0, 3*(end-start))
+		for i := start; i < end; i++ {
+			created, err := putObject(ctx, bws, resultKey(i), resultBody(i))
+			if err != nil {
 				return err
 			}
+			rq := resultQuads(i)
+			if created {
+				quads = append(quads, rq[:]...)
+				continue
+			}
+			for _, q := range rq {
+				if err := bws.SetGraphQuad(ctx, q); err != nil {
+					return err
+				}
+			}
 		}
-	}
-	return nil
+		return bws.InsertGraphQuads(ctx, quads)
+	}}, "")
+	return err
 }
 
-// putObject writes body as a block and creates or points key at it.
-func putObject(ctx context.Context, ws world.WorldState, key, body string) error {
+// putObject writes body as a block and creates or points key at it. It
+// reports whether it created the object.
+func putObject(ctx context.Context, ws world.WorldState, key, body string) (bool, error) {
 	// Write the body through the World's storage.
 	c, err := ws.BuildStorageCursor(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer c.Release()
 
@@ -103,7 +121,7 @@ func putObject(ctx context.Context, ws world.WorldState, key, body string) error
 	bcs.SetBlock(block_mock.NewExample(body), true)
 	ref, _, err := btx.Write(ctx, true)
 	if err != nil {
-		return err
+		return false, err
 	}
 	next := c.GetRef().Clone()
 	next.RootRef = ref
@@ -115,12 +133,39 @@ func putObject(ctx context.Context, ws world.WorldState, key, body string) error
 			_, err = obj.SetRootRef(ctx, next)
 		}
 		world.ReleaseObjectState(obj)
-		return err
+		return false, err
 	}
 	created, err := ws.CreateObject(ctx, key, next)
 	world.ReleaseObjectState(created)
-	return err
+	return err == nil, err
 }
+
+// blockWorldOp runs fn on the block World under a transaction, as a Hyperline
+// World operation runs in-process. It is never encoded.
+type blockWorldOp struct {
+	fn func(ctx context.Context, ws *world_block.WorldState) error
+}
+
+// TypeID names the operation.
+func (*blockWorldOp) TypeID() string { return "spacewave-world-regen-bench/block" }
+
+// MarshalVT refuses: the operation is never encoded.
+func (*blockWorldOp) MarshalVT() ([]byte, error) { return nil, errOpNotEncoded }
+
+// UnmarshalVT refuses: the operation is never encoded.
+func (*blockWorldOp) UnmarshalVT([]byte) error { return errOpNotEncoded }
+
+// ApplyWorldOp hands the block World to fn.
+func (o *blockWorldOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, _ peer.ID) (bool, error) {
+	bws, ok := ws.(*world_block.WorldState)
+	if !ok {
+		return false, errors.Errorf("bench op needs a block World, got %T", ws)
+	}
+	return false, o.fn(ctx, bws)
+}
+
+// errOpNotEncoded is returned by blockWorldOp's codec.
+var errOpNotEncoded = errors.New("bench op is not encoded")
 
 // commitTx runs fn in one write transaction on w and commits it.
 func commitTx(ctx context.Context, w *benchWorld, fn func(ws world.WorldState) error) error {
