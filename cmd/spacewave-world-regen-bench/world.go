@@ -157,13 +157,16 @@ type benchWorld struct {
 	hook    *logHook
 	base    *bucket_lookup.Cursor
 	observe *world_block.LocalAuthority
-	engine  *world.BusEngine
-	cancel  context.CancelFunc
 
-	// mtx pauses the writers while the controller restarts.
+	// mtx pauses the writers while the controller restarts, and guards the
+	// fields below.
 	mtx sync.RWMutex
 	// ref holds the running engine controller.
 	ref directive.Reference
+	// engine is the writers' handle on the running controller's engine.
+	engine *world.BusEngine
+	// cancel ends engine's lookup.
+	cancel context.CancelFunc
 }
 
 // openBenchWorld opens the World in the database file at path as the named
@@ -212,16 +215,14 @@ func openBenchWorld(ctx context.Context, path, name string) (*benchWorld, error)
 		w.Close()
 		return nil, err
 	}
-	engineCtx, cancel := context.WithCancel(ctx)
-	w.engine, w.cancel = world.NewBusEngine(engineCtx, tb.Bus, benchEngineID), cancel
 	return w, nil
 }
 
 // start starts the engine controller with the regeneration config, nil for
-// none, and waits for its engine. The config is a writable local World's, as
-// core/resource/root/controller/app.go builds one: the bucket's head under
-// the engine's root, the changelog kept, and the old graph format for a new
-// World.
+// none, waits for its engine, and gives the writers a fresh handle on it. The
+// config is a writable local World's, as core/resource/root/controller/app.go
+// builds one: the bucket's head under the engine's root, the changelog kept,
+// and the old graph format for a new World.
 func (w *benchWorld) start(ctx context.Context, regen *world_block_engine.RegenConfig) error {
 	// Configure the World with the regeneration.
 	bucketID := w.tb.BucketId
@@ -241,15 +242,23 @@ func (w *benchWorld) start(ctx context.Context, regen *world_block_engine.RegenC
 		return errors.Wrap(err, "start world engine")
 	}
 	w.ref = ref
+
+	// Hand the writers a handle that resolves the new engine. A handle kept
+	// across the restart can still hold the closed engine, which the
+	// controller closes rather than retires, so its next commit fails.
+	engineCtx, cancel := context.WithCancel(ctx)
+	w.engine, w.cancel = world.NewBusEngine(engineCtx, w.tb.Bus, benchEngineID), cancel
 	return nil
 }
 
 // restart restarts the engine controller with the regeneration config, as an
 // operator restarts a server with a new target, pausing the writers.
 func (w *benchWorld) restart(ctx context.Context, regen *world_block_engine.RegenConfig) error {
-	// Stop the running controller once no commit is in flight.
+	// Stop the running controller and the writers' handle once no commit is
+	// in flight.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
+	w.cancel()
 	w.ref.Release()
 	w.ref = nil
 
