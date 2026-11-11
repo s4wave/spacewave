@@ -43,9 +43,12 @@ var (
 
 // valueKey returns the ID map key of a value's text.
 func valueKey(text string) []byte {
-	k := make([]byte, 0, len(valuePrefix)+len(text))
-	k = append(k, valuePrefix...)
-	return append(k, text...)
+	return appendValueKey(make([]byte, 0, len(valuePrefix)+len(text)), text)
+}
+
+// appendValueKey appends valueKey(text) to dst.
+func appendValueKey(dst []byte, text string) []byte {
+	return append(append(dst, valuePrefix...), text...)
 }
 
 // nodeKey appends g/<id> to dst.
@@ -56,25 +59,41 @@ func nodeKey(dst []byte, id uint64) []byte {
 
 // metaKey returns the meta key of a node.
 func metaKey(id uint64) []byte {
-	return append(nodeKey(make([]byte, 0, nodeKeyLen+1), id), tagMeta)
+	return appendRangeKey(make([]byte, 0, nodeKeyLen+1), id, tagMeta)
 }
 
 // rangeKey returns the prefix of a node's edges with tag, narrowed by the
 // IDs that follow it in the key, such as a predicate and the other endpoint.
 func rangeKey(id uint64, tag byte, ids ...uint64) []byte {
-	k := append(nodeKey(make([]byte, 0, nodeKeyLen+1+len(ids)*idLen), id), tag)
-	for _, v := range ids {
-		k = binary.BigEndian.AppendUint64(k, v)
-	}
-	return k
+	return appendRangeKey(make([]byte, 0, nodeKeyLen+1+len(ids)*idLen), id, tag, ids...)
 }
 
-// edgeKeys returns the out and in keys of a quad. A zero label is no label.
-func edgeKeys(q quadRef) (out, in []byte) {
-	if q.l == 0 {
-		return rangeKey(q.s, tagOut, q.p, q.o), rangeKey(q.o, tagIn, q.p, q.s)
+// appendRangeKey appends rangeKey(id, tag, ids...) to dst.
+func appendRangeKey(dst []byte, id uint64, tag byte, ids ...uint64) []byte {
+	dst = append(nodeKey(dst, id), tag)
+	for _, v := range ids {
+		dst = binary.BigEndian.AppendUint64(dst, v)
 	}
-	return rangeKey(q.s, tagOut, q.p, q.o, q.l), rangeKey(q.o, tagIn, q.p, q.s, q.l)
+	return dst
+}
+
+// edgeKeys returns the out and in keys of a quad.
+func edgeKeys(q quadRef) (out, in []byte) {
+	const maxLen = nodeKeyLen + 1 + 3*idLen
+	return appendEdgeKey(make([]byte, 0, maxLen), q, tagOut), appendEdgeKey(make([]byte, 0, maxLen), q, tagIn)
+}
+
+// appendEdgeKey appends a quad's key with tag, tagOut under its subject or
+// tagIn under its object, to dst. A zero label is no label.
+func appendEdgeKey(dst []byte, q quadRef, tag byte) []byte {
+	from, to := q.s, q.o
+	if tag == tagIn {
+		from, to = q.o, q.s
+	}
+	if q.l == 0 {
+		return appendRangeKey(dst, from, tag, q.p, to)
+	}
+	return appendRangeKey(dst, from, tag, q.p, to, q.l)
 }
 
 // parseNodeKey returns the node ID and tag of a key under g/.

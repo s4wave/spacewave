@@ -127,6 +127,7 @@ func (s *Sorter) Add(key, value []byte) error {
 	}
 
 	// Buffer the record, then spill a full buffer.
+	s.reserve(len(key) + len(value))
 	off := len(s.arena)
 	s.arena = append(append(s.arena, key...), value...)
 	s.recs = append(s.recs, record{off: off, klen: uint32(len(key)), vlen: uint32(len(value))}) //nolint:gosec // both lengths were checked against maxLen.
@@ -135,6 +136,34 @@ func (s *Sorter) Add(key, value []byte) error {
 		return nil
 	}
 	return s.spill()
+}
+
+// reserve makes room in the buffer for one record of n bytes. Grown by append
+// alone, the first buffer would leave every outgrown copy of the arena and the
+// record list as garbage, about four times the buffer by the time it spills.
+// Once a sixty-fourth of the budget is used, reserve sizes both for the whole
+// budget at the mean record size so far, so the first buffer grows about once
+// more, and a sort that stays small never takes the budget. Later buffers
+// reuse the room the spill leaves.
+func (s *Sorter) reserve(n int) {
+	if s.used == 0 || s.used < s.budget/64 {
+		return
+	}
+	s.arena = growForBudget(s.arena, n, s.used, s.budget)
+	s.recs = growForBudget(s.recs, 1, s.used, s.budget)
+}
+
+// growForBudget returns buf with room for n more elements. When buf is full,
+// it grows to the length buf would reach at budget bytes used, at its length
+// per used byte so far, plus a sixteenth for records larger than the mean.
+// used is positive.
+func growForBudget[T any](buf []T, n, used, budget int) []T {
+	if len(buf)+n <= cap(buf) {
+		return buf
+	}
+	want := int(int64(len(buf)) * int64(budget) / int64(used))
+	want += want / 16
+	return slices.Grow(buf, max(want, len(buf)+n)-len(buf))
 }
 
 // key returns the key of buffered record r.
