@@ -335,6 +335,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 		"spacewave-app",
 		"",
 		&bldr_manifest.ManifestSnapshot{ManifestRef: executeRef},
+		0,
 		&bldr_manifest.ManifestSnapshot{ManifestRef: downloadRef},
 		[]*bldr_manifest_world.StartupManifestCandidateEligibility{
 			{
@@ -379,7 +380,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 
 	// Clearing the recovery status changes the snapshot.
 	before := status
-	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, nil, nil)
+	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, 0, nil, nil)
 	after := ctrl.GetPluginStatusCtr().GetValue()
 	if before.EqualVT(after) {
 		t.Fatal("expected recovery status changes to change the snapshot")
@@ -407,7 +408,7 @@ func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 		false,
 		false,
 	)
-	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, nil, nil)
+	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, 0, nil, nil)
 	if len(ctrl.GetPluginStatusCtr().GetValue().ManifestRecovery) != 1 {
 		t.Fatalf("expected recovery row before cleanup: %#v", ctrl.GetPluginStatusCtr().GetValue())
 	}

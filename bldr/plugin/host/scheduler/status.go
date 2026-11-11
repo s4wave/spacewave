@@ -225,11 +225,13 @@ func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage st
 }
 
 // recordPluginManifestRecoveryStatus records manifest selection facts for
-// a plugin.
+// a plugin. executeRev is the build rev of executeManifest, which callers read
+// from the fetched Manifest or, before it is fetched, from its ManifestRef meta.
 func (c *Controller) recordPluginManifestRecoveryStatus(
 	pluginID,
 	instanceKey string,
-	executeManifest,
+	executeManifest *bldr_manifest.ManifestSnapshot,
+	executeRev uint64,
 	downloadManifest *bldr_manifest.ManifestSnapshot,
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 ) {
@@ -250,7 +252,7 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 		IgnoredCandidateSummary:     summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityIgnored),
 		QuarantinedCandidateCount:   countStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
 		QuarantinedCandidateSummary: summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
-		ExecuteManifestRev:          executeManifest.GetManifest().GetMeta().GetRev(),
+		ExecuteManifestRev:          executeRev,
 	}
 	snapshot := c.buildPluginStatusSnapshotLocked()
 	c.pluginStatusMtx.Unlock()

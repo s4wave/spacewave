@@ -366,6 +366,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			})
 			t.setDownloadManifestState(ctx, snapshot, t.c.conf.GetEngineId())
 			t.loggedNotFound.Store(false)
+			t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, snapshot, best.ref.GetMeta().GetRev(), snapshot, nil)
 			return
 		}
 
@@ -380,6 +381,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 		// Clear the execute and download targets.
 		t.setExecutePluginState(nil)
 		t.setDownloadManifestState(ctx, nil, t.c.conf.GetEngineId())
+		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, 0, nil, nil)
 	}
 
 	// Return the handler that canonicalizes fetched refs and re-selects.

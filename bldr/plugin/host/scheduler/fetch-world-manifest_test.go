@@ -77,6 +77,7 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 	if execState.manifestSnapshot.GetManifestRef() == nil {
 		t.Fatal("expected manifest snapshot ref to be set")
 	}
+	assertDirectSelectionRev(t, pi, 1)
 
 	// Remove the manifest value from the handler.
 	handler.HandleValueRemoved(nil, directive.NewAttachedValue(1, val1))
@@ -114,6 +115,17 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 	}
 	if execState.manifestSnapshot.GetManifestRef() == nil {
 		t.Fatal("expected replacement manifest snapshot ref to be set")
+	}
+	assertDirectSelectionRev(t, pi, 2)
+}
+
+// assertDirectSelectionRev requires the plugin's recorded manifest selection to
+// name the executing manifest and carry its rev, as plugin list shows them.
+func assertDirectSelectionRev(t *testing.T, pi *pluginInstance, rev uint64) {
+	t.Helper()
+	row := pi.c.pluginManifestRecoveryStatus[pluginInstanceKey(pi.pluginID, pi.instanceKey)]
+	if row.GetExecuteManifestRef() == "" || row.GetExecuteManifestRev() != rev {
+		t.Fatalf("selection row = %v, want an execute ref at rev %d", row, rev)
 	}
 }
 
