@@ -206,16 +206,16 @@ func (p *Page) FollowValue(cursor *block.Cursor, index int) *block.Cursor {
 
 // GetSubBlocks exposes inline Blobs through the ordinary cursor lifecycle.
 func (p *Page) GetSubBlocks() map[uint32]block.SubBlock {
-	var values map[uint32]block.SubBlock
+	return block.CollectSubBlocks(p)
+}
+
+// RangeSubBlocks calls fn with each entry's inline value Blob.
+func (p *Page) RangeSubBlocks(fn func(id uint32, subBlock block.SubBlock)) {
 	for index, entry := range p.GetEntries() {
-		if entry.GetValueBlob() != nil {
-			if values == nil {
-				values = make(map[uint32]block.SubBlock)
-			}
-			values[entryValueRefID(index)] = entry.GetValueBlob()
+		if blob := entry.GetValueBlob(); blob != nil {
+			fn(entryValueRefID(index), blob)
 		}
 	}
-	return values
 }
 
 // SharesDecodedBlock marks decoded pages as shareable between transactions:
@@ -250,3 +250,6 @@ var (
 	_ block.DecodedBlockShareable = (*Page)(nil)
 	_ block.DecodedBlockValidator = (*Page)(nil)
 )
+
+// _ is a type assertion
+var _ block.BlockWithSubBlockRange = (*Page)(nil)

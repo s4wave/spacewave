@@ -697,9 +697,12 @@ func (b *Blob) ApplySubBlock(id uint32, next block.SubBlock) error {
 // GetSubBlocks returns all constructed sub-blocks by ID.
 // May return nil, and values may also be nil.
 func (b *Blob) GetSubBlocks() map[uint32]block.SubBlock {
-	m := make(map[uint32]block.SubBlock)
-	m[4] = b.GetChunkIndex()
-	return m
+	return block.CollectSubBlocks(b)
+}
+
+// RangeSubBlocks calls fn with the chunk index.
+func (b *Blob) RangeSubBlocks(fn func(id uint32, subBlock block.SubBlock)) {
+	fn(4, b.GetChunkIndex())
 }
 
 // GetSubBlockCtor returns a function which creates or returns the existing
@@ -724,3 +727,6 @@ var (
 	_ block.Block              = (*Blob)(nil)
 	_ block.BlockWithSubBlocks = (*Blob)(nil)
 )
+
+// _ is a type assertion
+var _ block.BlockWithSubBlockRange = (*Blob)(nil)
