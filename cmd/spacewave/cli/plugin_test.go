@@ -118,8 +118,10 @@ func TestFormatPluginStatusPreservesLifecycleState(t *testing.T) {
 				State:       tt.state,
 				Detail:      detail,
 				Description: "description",
+				ManifestRef: "manifest-ref",
+				ManifestRev: 7,
 			}
-			want := "plugin-id  " + tt.label + "  " + detail + "  description\n"
+			want := "plugin-id  " + tt.label + "  rev 7  " + detail + "  description\n"
 			if got := formatPluginStatus(status); got != want {
 				t.Fatalf("formatted row = %q, want %q", got, want)
 			}
@@ -129,15 +131,17 @@ func TestFormatPluginStatusPreservesLifecycleState(t *testing.T) {
 
 func TestMarshalPluginListJSONIncludesLifecycleFields(t *testing.T) {
 	data, err := marshalPluginListJSON([]*s4wave_space.SpacePluginStatus{{
-		PluginId: "plugin-id",
-		State:    s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING,
-		Detail:   "connected-awaiting-registration",
+		PluginId:    "plugin-id",
+		State:       s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING,
+		Detail:      "connected-awaiting-registration",
+		ManifestRef: "manifest-ref",
+		ManifestRev: 42,
 	}})
 	if err != nil {
 		t.Fatalf("marshal plugin list: %v", err)
 	}
 	got := string(data)
-	for _, field := range []string{`"state":"SpacePluginLifecycleState_LOADING"`, `"detail":"connected-awaiting-registration"`} {
+	for _, field := range []string{`"state":"SpacePluginLifecycleState_LOADING"`, `"detail":"connected-awaiting-registration"`, `"manifestRef":"manifest-ref"`, `"manifestRev":`} {
 		if !strings.Contains(got, field) {
 			t.Fatalf("JSON = %s, missing %s", got, field)
 		}

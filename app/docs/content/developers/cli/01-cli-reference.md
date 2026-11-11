@@ -89,10 +89,11 @@ UnixFS, Git, and Canvas, as well as other object types.
 - `vm list|info|create|start|stop|watch|image|run`
 - `debug trace|cpu-profile|mem-profile|goroutine-profile`
 
-`plugin list --watch` keeps printing plugin state as it changes. `device
-approve` approves a device's link ticket for a Space. `device policy` manages
-this machine's device settings, such as the Forge Worker it offers and the
-Flowgraph node types it may run.
+`plugin list` shows each plugin's state and the rev of the manifest it runs;
+`-o json` adds that manifest's ref. `plugin list --watch` keeps printing plugin
+state as it changes. `device approve` approves a device's link ticket for a
+Space. `device policy` manages this machine's device settings, such as the Forge
+Worker it offers and the Flowgraph node types it may run.
 `apt import-deb` imports a Debian package into an Apt repository object.
 
 `bifrost` and `hydra` are advanced command groups built into the binary from

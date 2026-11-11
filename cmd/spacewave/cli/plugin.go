@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -341,7 +342,11 @@ func pluginLifecycleStateLabel(state s4wave_space.SpacePluginLifecycleState) str
 }
 
 func formatPluginStatus(p *s4wave_space.SpacePluginStatus) string {
+	// Lead with the plugin, its state and the rev of the manifest it runs.
 	fields := []string{p.GetPluginId(), pluginLifecycleStateLabel(p.GetState())}
+	if p.GetManifestRef() != "" {
+		fields = append(fields, "rev "+strconv.FormatUint(p.GetManifestRev(), 10))
+	}
 	if detail := p.GetDetail(); detail != "" {
 		fields = append(fields, detail)
 	}

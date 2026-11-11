@@ -250,6 +250,7 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 		IgnoredCandidateSummary:     summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityIgnored),
 		QuarantinedCandidateCount:   countStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
 		QuarantinedCandidateSummary: summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
+		ExecuteManifestRev:          executeManifest.GetManifest().GetMeta().GetRev(),
 	}
 	snapshot := c.buildPluginStatusSnapshotLocked()
 	c.pluginStatusMtx.Unlock()
