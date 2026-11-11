@@ -16,7 +16,8 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Node
-	// readBranches binds the two stored children of an immutable inline root.
+	// readBranches reads the two stored children of a read transaction's inline
+	// root. They are nil for writers and staged children, which live on bcs.
 	readBranches [2]*block.ReadCursor
 
 	t          *AVLTree
@@ -283,7 +284,7 @@ func (t *Tx) SetCursorAtKey(ctx context.Context, key []byte, bcs *block.Cursor, 
 	return t.setFromRoot(ctx, key, bcs, isBlob)
 }
 
-// Delete removes a key from the tree
+// Delete removes a key from the tree.
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
 	// Require a key before deleting from the IAVL tree.
 	if len(key) == 0 {

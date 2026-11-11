@@ -27,8 +27,10 @@ type ReadCursor struct {
 }
 
 // NewReadCursor borrows source for a nonempty immutable reference. It returns
-// nil for writable transactions, missing references, or disabled cache scopes,
-// so a caller can keep its existing mutable traversal in those cases.
+// nil only for writable transactions and missing references, whose pages live
+// on the mutable cursor tree. A transaction without an enabled borrowed scope
+// reads through its own private scope in the process-wide pool, so a scopeless
+// reader still decodes a page once rather than on every follow.
 func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCursor {
 	// Require an immutable transaction and a stored reference.
 	if source == nil || source.t == nil || !source.t.readOnly.Load() || ref.GetEmpty() {
@@ -38,10 +40,11 @@ func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCurs
 	// Capture the source's cache scope without retaining an operation context.
 	ctx = source.decodedBlockCacheContext(ctx)
 	cache := decodedBlockCacheFromContext(ctx)
-	if !cache.enabled() {
-		return nil
+	out := &ReadCursor{source: source, cache: cache, ref: ref.Clone()}
+	if cache.enabled() {
+		out.link = &decodedBlockReadLink{}
 	}
-	return &ReadCursor{source: source, cache: cache, ref: ref.Clone(), link: &decodedBlockReadLink{}}
+	return out
 }
 
 // FollowRef returns a reader at ref. A typed edge of the loaded immutable
@@ -78,6 +81,7 @@ func (r ReadCursor) FollowDigest(id uint32, hashType hash.HashType, digest []byt
 // edge returns the parent's memoized link for the typed edge id, or nil when
 // the parent is not loaded or has no such edge.
 func (r ReadCursor) edge(id uint32) *decodedBlockReadLink {
+	// An uncached reader or an evicted parent has no edges to share.
 	if r.link == nil {
 		return nil
 	}
@@ -125,7 +129,7 @@ func (r ReadCursor) current(ctx context.Context) *decodedBlockReadData {
 	}
 	cache := decodedBlockCacheFromContext(ctx)
 	if cache == nil {
-		cache = r.source.t.decodedBlocks.Load()
+		cache = r.source.t.readCache()
 	}
 	if cache != r.cache {
 		return nil

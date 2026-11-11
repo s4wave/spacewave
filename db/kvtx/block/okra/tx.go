@@ -16,7 +16,8 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Root
-	// readRoot borrows immutable page traversal for readonly stored roots.
+	// readRoot reads a read transaction's stored root page. It is nil for
+	// writers and staged roots, whose pages live on bcs.
 	readRoot *block.ReadCursor
 	// inlineValues permits the layout selected by the owning store's format tag.
 	inlineValues bool
