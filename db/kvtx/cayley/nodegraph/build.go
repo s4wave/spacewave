@@ -3,6 +3,7 @@ package kvtx_cayley_nodegraph
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 
 	"github.com/aperturerobotics/cayley/quad/pquads"
 	"github.com/pkg/errors"
@@ -24,6 +25,9 @@ type Builder struct {
 	sorter *extsort.Sorter
 	// maxID is the largest node ID added.
 	maxID uint64
+	// key and val are scratch for the record being added; the sorter copies
+	// each record, so one buffer of each serves every add.
+	key, val []byte
 }
 
 // NewBuilder returns a Builder that sorts through sorter. The caller closes
@@ -43,11 +47,12 @@ func (b *Builder) AddNode(id uint64, v *pquads.Value) error {
 	if err != nil {
 		return err
 	}
-	if err := b.sorter.Add(valueKey(nv.String()), encodeID(id)); err != nil {
+	b.val = binary.BigEndian.AppendUint64(b.val[:0], id)
+	if err := b.add(appendValueKey(b.key[:0], nv.String()), b.val); err != nil {
 		return err
 	}
 	b.maxID = max(b.maxID, id)
-	return b.sorter.Add(metaKey(id), meta)
+	return b.add(appendRangeKey(b.key[:0], id, tagMeta), meta)
 }
 
 // AddQuad adds the quad of node IDs s, p, o and l, with l zero for no label.
@@ -57,16 +62,27 @@ func (b *Builder) AddQuad(s, p, o, l uint64) error {
 	if s == 0 || p == 0 || o == 0 {
 		return errors.Errorf("node graph build: quad <%d %d %d> lacks a node", s, p, o)
 	}
-	out, in := edgeKeys(quadRef{s: s, p: p, o: o, l: l})
-	for _, k := range [][]byte{out, in, metaKey(p)} {
-		if err := b.sorter.Add(k, nil); err != nil {
-			return err
-		}
+	q := quadRef{s: s, p: p, o: o, l: l}
+	if err := b.add(appendEdgeKey(b.key[:0], q, tagOut), nil); err != nil {
+		return err
+	}
+	if err := b.add(appendEdgeKey(b.key[:0], q, tagIn), nil); err != nil {
+		return err
+	}
+	if err := b.add(appendRangeKey(b.key[:0], p, tagMeta), nil); err != nil {
+		return err
 	}
 	if l == 0 {
 		return nil
 	}
-	return b.sorter.Add(metaKey(l), nil)
+	return b.add(appendRangeKey(b.key[:0], l, tagMeta), nil)
+}
+
+// add sorts in one record whose key was appended to b.key[:0], and keeps the
+// key's buffer for the next.
+func (b *Builder) add(key, value []byte) error {
+	b.key = key
+	return b.sorter.Add(key, value)
 }
 
 // Write streams the built tree's keys and values to fn in ascending key
