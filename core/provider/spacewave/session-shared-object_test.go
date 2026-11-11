@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -28,6 +29,10 @@ type sessionLookupTestLower struct {
 	writable bool
 	// refsKnown serves blocks as leaves from GetStoredBlock, as DEX does.
 	refsKnown bool
+	// noPeer reads as the DEX store does with no peer session: a read that
+	// may wait for a peer waits until ctx ends, and a read under
+	// block.WithoutPeerWait records the block and reports ErrUnavailable.
+	noPeer    bool
 	beforeGet func()
 	// putDone reports completion of an optional asynchronous cache fill.
 	putDone chan struct{}
@@ -92,12 +97,22 @@ func (s *sessionLookupTestLower) RmBlock(context.Context, *block.BlockRef) error
 func (s *sessionLookupTestLower) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock records a source read and returns any cached bytes.
-func (s *sessionLookupTestLower) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+func (s *sessionLookupTestLower) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	// Let demand tests hold the lower read while inspecting telemetry.
 	if s.beforeGet != nil {
 		s.beforeGet()
 	}
 	s.getCalls.Add(1)
+
+	// Wait for a peer that never connects, unless the read may not wait.
+	if s.noPeer {
+		if wait := block.GetPeerWait(ctx); wait != nil {
+			wait.Skip(ref)
+			return nil, false, block.ErrUnavailable
+		}
+		<-ctx.Done()
+		return nil, false, ctx.Err()
+	}
 
 	// Read the map while excluding a concurrent background cache fill.
 	s.mtx.Lock()
@@ -322,6 +337,55 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	two := telemetryStore(t, account, "session-two")
 	if two.DirectHitCount != 1 || two.CloudHitCount != 0 || two.CacheHitCount != 1 {
 		t.Fatalf("session two telemetry = %+v, want direct=1 cloud=0 cache=1", two)
+	}
+}
+
+// TestSessionReadWithoutPeerAsksCloud checks that a cache miss with no peer
+// session reads Cloud at once instead of waiting for a peer, and that a block
+// Cloud lacks is reported unavailable rather than missing.
+func TestSessionReadWithoutPeerAsksCloud(t *testing.T) {
+	t.Parallel()
+
+	// Hold one block in Cloud only, with no peer to ask.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	refCloud, err := block.BuildBlockRef([]byte("cloud"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refAbsent, err := block.BuildBlockRef([]byte("absent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	direct := &sessionLookupTestLower{blocks: map[string][]byte{}, noPeer: true}
+	cache := &sessionLookupTestLower{blocks: map[string][]byte{}, writable: true}
+	cloud := &sessionLookupTestLower{
+		blocks: map[string][]byte{refCloud.MarshalString(): []byte("cloud-only")},
+	}
+	store, err := newProductionSessionStore(&ProviderAccount{}, "no-peer", direct, cache, cloud)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The miss reaches Cloud without waiting for a peer.
+	data, found, err := store.GetBlock(ctx, refCloud)
+	if err != nil || !found || string(data) != "cloud-only" {
+		t.Fatalf("no-peer read = %q/%v/%v, want the Cloud block", data, found, err)
+	}
+	if direct.getCalls.Load() != 1 || cloud.getCalls.Load() != 1 {
+		t.Fatalf("no-peer read calls = dex %d/cloud %d, want 1/1", direct.getCalls.Load(), cloud.getCalls.Load())
+	}
+
+	// A block Cloud lacks is unavailable, and recorded for a non-waiting read.
+	waitCtx, wait := block.WithoutPeerWait(ctx)
+	if _, found, err := store.GetBlock(waitCtx, refAbsent); found || !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("no-peer read of an absent block = %v/%v, want %v", found, err, block.ErrUnavailable)
+	}
+	if !wait.GetRef().EqualsRef(refAbsent) {
+		t.Fatalf("skipped block = %v, want %v", wait.GetRef(), refAbsent)
+	}
+	if ctx.Err() != nil {
+		t.Fatal("no-peer reads waited for the test deadline")
 	}
 }
 
