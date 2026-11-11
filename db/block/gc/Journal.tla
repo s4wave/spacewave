@@ -191,6 +191,8 @@
 \*   NetFill(r)      the collector netting one aged fill record's down.
 \*   HoldStored(w,r) a root moving onto a block the store holds without a put
 \*                   of its tree, such as a copy that finds its head stored.
+\*   PutStored(w,r)  a put of the stored block r alone, naming its children
+\*                   from an existence check made before a Finish.
 \*   Punch(b)        a hole: a block the store lost with its child list.
 \*   Tick            time passing, on which Grace, Window and leases are read.
 \*
@@ -396,6 +398,31 @@
 \*              between Finish's walk and its suspect records keeps C's cut
 \*              list, and the records come too late, as no later put names C
 \*              (testdata/Journal-adopt-revive-suspectlate.cfg).
+\*   Promote    FALSE has a put of a block with a suspect record make it
+\*              clean at once, though a child it names may still be suspect
+\*              (testdata/Journal-adopt-hold-nopromote.cfg). With it the
+\*              record turns pending, and the put promotes the block only
+\*              once every child it names is clean.
+\*   HoldGate   FALSE has Land hold a stored block whatever its suspect
+\*              record says (testdata/Journal-adopt-hold-nogate.cfg). With
+\*              it a hold onto a suspect block is refused, and one onto a
+\*              pending block promotes it first, or is refused when a block
+\*              below it is suspect: only a clean block gains a holder.
+\*   OldHoldCheck FALSE has Finish clear the mark although a hold landed
+\*              on a block its walk did not reach and no Land vouched for
+\*              since the walk read the roots. Journal-adopt-hold.cfg: main
+\*              commits R2, the walk reaches only R2, a hold moves main back
+\*              onto the stored R1 before the suspect records, and Finish
+\*              clears with C's cut list under main
+\*              (testdata/Journal-adopt-hold-nooldhold.cfg, NoFreedStoredRead).
+\*              With it the clear sees the old hold and walks again.
+\*   WalkSkip   the holders the walk leaves out: names of roots, and
+\*              "sheld" for the session stage holds. Every config walks
+\*              them all. Skipping main fails NoFreedRead
+\*              (testdata/Journal-adopt-revive-skipmain.cfg). A pin, a
+\*              stage root and a session's stage hold reach only C's
+\*              tree, which main's heads reach too, so skipping one
+\*              changes nothing these configs can see.
 \*
 \* Left out: a fill of a recorded hole, which LandFill stores as a refill,
 \* journaling nothing; the format 7 upgrade (an unadopted Volume here holds
@@ -418,7 +445,8 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           Sessions, SessionGrace, Skips, BornDown, Staged, ReleaseUnlisted,
           FillBlocks, FillUps, Holds, FillBorn, FillEager, CutList, Gen,
           RewriteFlag, Recount, ClearMark, Suspect, SuspectLand,
-          SuspectRecount, SuspectEarly
+          SuspectRecount, SuspectEarly, Promote, HoldGate, OldHoldCheck,
+          WalkSkip
 
 None == "none"
 Unmoved == "unmoved"
@@ -474,6 +502,7 @@ VARIABLES
              \* during an adoption, the holders the run has counted
   zero,      \* stored blocks whose netted holders are zero
   rel,       \* stored blocks whose children do not hold them
+  unproved,  \* stored blocks whose completion proof the collector dropped
   ripe,      \* each zero block's ripe sequence, as the records past the
              \* cursor that must net before it may be freed: the journal's
              \* length when it reached zero, or when netting last met a put
@@ -527,25 +556,38 @@ VARIABLES
   fin,       \* where the rebuild's Finish is: "idle", "walked" once its walk
              \* found no cut list a held root reaches, "suspected" once it
              \* has written the suspect records
-  suspect,  \* the stored blocks whose list Finish could not verify, which
-             \* a put must verify before Land trusts it
+  suspect,  \* the stored blocks with a suspect record: whose list Finish
+             \* could not verify, which a put must verify before Land
+             \* trusts it, or which a hold must promote
+  pending,   \* the blocks of suspect whose record is pending: the list was
+             \* written from the content, but a child may not be clean
+  pass,      \* what Finish's last pass knows: reached, the blocks its walk
+             \* reached; vouch, the blocks a Land put while the mark stood;
+             \* landed, those a Land gave birth to since the walk read the
+             \* roots, whose landed mark holds the current list pass; held,
+             \* whether a hold landed since then on a block neither reached
+             \* nor landed, as the state's old holds count
   wake       \* an adoption pass the Volume asked for that no run has taken:
              \* each step that returns it to unadopted asks for one
-gcVars == <<cnt, zero, rel, ripe, under, pend, pdir>>
+gcVars == <<cnt, zero, rel, unproved, ripe, under, pend, pdir>>
 jrVars == <<jr, hseq, noff>>
 fillVars == <<fj, freedLive>>
-genVars == <<cut, young, unverified, rewritten, fin, suspect, wake>>
+genVars == <<cut, young, unverified, rewritten, fin, suspect, pending,
+             pass, wake>>
 landVars == <<born, moved, sheld, freed, genVars, fillVars>>
 adoptVars == <<adoption, owner, pc, pos, opens>>
 runVars == <<pc, pos, opens>>
 stageVars == <<stage, stall>>
 writerVars == <<tgt, sessionAge, wrote, skipped>>
-vars == <<root, left, stored, lost, cnt, zero, rel, ripe, jr, hseq, noff,
-          under,
+vars == <<root, left, stored, lost, cnt, zero, rel, unproved, ripe, jr, hseq,
+          noff, under,
           obs, seen, seenAge, txns, holes, adoption, owner, pc, pos, born,
           moved, opens, stage, stall, tgt, sessionAge, wrote, skipped, sheld,
           freed, fj, freedLive, pend, pdir, cut, young, unverified,
-          rewritten, fin, suspect, wake>>
+          rewritten, fin, suspect, pending, pass, wake>>
+
+\* NoPass is what Finish knows before its first pass and after its clear.
+NoPass == [reached |-> {}, vouch |-> {}, landed |-> {}, held |-> FALSE]
 
 Init ==
   /\ root = [n \in Names |->
@@ -557,6 +599,7 @@ Init ==
   /\ cnt = [b \in Blocks |-> IF b = "E" /\ Unadopted THEN 1 ELSE 0]
   /\ zero = IF Unadopted THEN {"G"} ELSE {}
   /\ rel = {}
+  /\ unproved = {}
   /\ ripe = [b \in Blocks |-> 0]
   /\ jr = <<>>
   /\ hseq = 0
@@ -592,6 +635,8 @@ Init ==
   /\ rewritten = FALSE
   /\ fin = "idle"
   /\ suspect = {}
+  /\ pending = {}
+  /\ pass = NoPass
   /\ wake = FALSE
 
 \* The children b's stored child list names: all of Kids(b) but for a cut
@@ -609,6 +654,18 @@ ListKids(b) == IF b \in cut THEN Kids(b) \ {"F"} ELSE Kids(b)
 Unadopt == adoption' = "unadopted" /\ owner' = None /\ wake' = TRUE
 
 Untrusted == suspect \cup (IF SuspectEarly /\ unverified THEN cut ELSE {})
+
+\* CleanBelow(b, sus, ok) holds when every child b names is clean once the
+\* blocks of ok whose children are all clean are promoted: each child has no
+\* suspect record in sus, or is in ok with CleanBelow itself. b's list is its
+\* content's, Kids(b), as a pending or revived block's is.
+RECURSIVE CleanBelow(_, _, _)
+CleanBelow(b, sus, ok) ==
+  \A k \in Kids(b) : k \notin sus \/ (k \in ok /\ CleanBelow(k, sus, ok))
+
+\* The pending blocks at and below b, down through pending children.
+RECURSIVE PendingBelow(_, _)
+PendingBelow(b, pen) == {b} \cup UNION {PendingBelow(k, pen) : k \in Kids(b) \cap pen}
 
 \* The holders the netted counts give b.
 Holders(b) == IF b \in zero THEN 0 ELSE cnt[b] + 1
@@ -738,10 +795,42 @@ LandCore(batch, moves, holds, rels, keep) ==
      \* put names. When that adds a child, the transaction returns a Volume
      \* an adoption counts or has counted to unadopted, superseding any run,
      \* as Finish's clear does, so the next adoption recounts the list.
+     \*
+     \* A put of a block with a suspect record turns it pending, and the
+     \* batch promotes each it revives whose children are all clean. Every
+     \* stored block the transaction holds then passes the hold gate: a
+     \* suspect one refuses the transaction, and a pending one is promoted
+     \* with the pending blocks below it, unless one below is suspect. While
+     \* the mark stands, a hold onto a block the last walk did not reach and
+     \* no Land gave birth to since is an old hold, which Finish's clear
+     \* compares. A block born earlier counts: its holder may have left
+     \* before the walk read the roots.
      /\ LET fixed == IF SuspectLand THEN batch \cap stored \cap Untrusted
                     ELSE {}
-        IN /\ cut' = cut \ fixed
-           /\ suspect' = suspect \ fixed
+           rev == fixed \cap suspect
+           promoted == {b \in rev : CleanBelow(b, suspect, rev)}
+           sus1 == IF Promote THEN suspect \ promoted ELSE suspect \ fixed
+           pen1 == IF Promote THEN (pending \cup rev) \ promoted
+                   ELSE pending \ fixed
+           gated == {k \in stored : \E p \in new : k \in Kids(p)} \cup
+                    {m.to : m \in {x \in moves : x.to \in stored}} \cup
+                    (holds \cap stored)
+           lifted == IF HoldGate
+                     THEN UNION {PendingBelow(g, pen1) : g \in gated \cap pen1}
+                     ELSE {}
+        IN /\ HoldGate =>
+                \A g \in gated : g \notin sus1 \/
+                                (g \in pen1 /\ CleanBelow(g, sus1, pen1))
+           /\ cut' = cut \ fixed
+           /\ suspect' = sus1 \ lifted
+           /\ pending' = pen1 \ lifted
+           /\ pass' = IF unverified
+                      THEN [pass EXCEPT
+                              !.vouch = @ \cup batch,
+                              !.landed = @ \cup new,
+                              !.held = @ \/ \E g \in gated :
+                                         g \notin pass.reached \cup pass.landed]
+                      ELSE pass
            /\ IF SuspectRecount /\ fixed \cap cut # {} /\
                  adoption # "unadopted"
               THEN Unadopt
@@ -791,6 +880,17 @@ HoldStored(w, r) ==
   /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
+\* PutStored puts r, a block the store holds, alone and moves main onto it,
+\* naming r's children as stored without putting them: a writer whose
+\* existence check of those children ran before a Finish marked one suspect.
+\* Its put of r makes r pending, not clean, while a child is suspect, so the
+\* move is refused by the hold gate.
+PutStored(w, r) ==
+  /\ Holds /\ CutList /\ obs[w] # None /\ r # obs[w] /\ r \in stored
+  /\ Land({r}, {[n |-> "main", from |-> obs[w], to |-> r]})
+  /\ UNCHANGED <<gcVars, seen, seenAge, holes, runVars,
+                 stageVars, writerVars>>
+
 \* StageWrite holds a stage tree r built over the head of main the writer
 \* observed, under a free stage root, and starts its lease. The pages r shares
 \* with that head are named, not put, so the writer must still hold them: the
@@ -835,12 +935,14 @@ Named(batch) == UNION {Kids(p) : p \in batch}
 \* reader pin held for the write. HoldStageCompleteRoots needs the head's
 \* completion proof, which the collector drops when it starts releasing the
 \* head's children, since it may free them before the head; a head whose
-\* children do not hold it has none. A proof written again after a re-hold
+\* children do not hold it has none. The dropped proof is a record of its
+\* own, which no adoption writes again, so unproved keeps the heads that lost
+\* it across a recount that clears rel. A proof written again after a re-hold
 \* is a writer's claim about its own tree, which the spec leaves out.
 SessionBegin(w, r) ==
   /\ Sessions /\ tgt[w] = None /\ sheld[w] = {} /\ obs[w] # None
   /\ r # obs[w]
-  /\ Staged => obs[w] \notin rel
+  /\ Staged => obs[w] \notin unproved
   /\ tgt' = [tgt EXCEPT ![w] = r]
   /\ sessionAge' = [sessionAge EXCEPT ![w] = 0]
   /\ IF Staged
@@ -1054,6 +1156,7 @@ Net(k) ==
         /\ ripe' = [b \in Blocks |-> Past(s.ripe[b], k)]
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ UNCHANGED unproved
   /\ jr' = SubSeq(jr, k + 1, Len(jr))
   /\ hseq' = Past(hseq, k)
   /\ noff' = FALSE
@@ -1074,6 +1177,7 @@ NetUps ==
         /\ ripe' = s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ UNCHANGED unproved
   /\ noff' = TRUE
   /\ UNCHANGED <<root, left, stored, lost, jr, hseq, obs, seen, seenAge,
                  txns, holes, landVars, adoptVars, stageVars, writerVars,
@@ -1093,6 +1197,7 @@ Cascade(b) ==
   /\ adoption = "adopted"
   /\ b \in Due /\ pend = {}
   /\ rel' = IF b \in zero THEN rel \cup {b} ELSE rel \ {b}
+  /\ unproved' = IF b \in zero THEN unproved \cup {b} ELSE unproved
   /\ pend' = Decrement(b)
   /\ pdir' = IF Decrement(b) = {} THEN 0 ELSE IF b \in zero THEN -1 ELSE 1
   /\ UNCHANGED <<root, left, stored, lost, cnt, zero, ripe, under, jrVars,
@@ -1117,6 +1222,7 @@ Release(c) ==
         /\ ripe' = s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ UNCHANGED unproved
   /\ pend' = pend \ {c}
   /\ pdir' = IF pend' = {} THEN 0 ELSE pdir
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
@@ -1140,10 +1246,12 @@ Delete(b) ==
   /\ young' = young \ {b}
   /\ cut' = cut \ {b}
   /\ suspect' = suspect \ {b}
-  /\ UNCHANGED <<unverified, rewritten, fin, wake>>
+  /\ pending' = pending \ {b}
+  /\ UNCHANGED <<unverified, rewritten, fin, pass, wake>>
   /\ cnt' = [cnt EXCEPT ![b] = 0]
   /\ zero' = zero \ {b}
   /\ rel' = rel \ {b}
+  /\ unproved' = unproved \ {b}
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ freed' = freed \cup {b}
   /\ freedLive' = (freedLive \/ b \in StoredLive \ ToPutNow)
@@ -1193,6 +1301,7 @@ ApplyFill(r) ==
         /\ ripe' = s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ UNCHANGED unproved
   /\ fj' = (fj \ {r}) \cup {[r EXCEPT !.applied = TRUE]}
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, genVars, freed, freedLive, adoptVars,
@@ -1211,6 +1320,7 @@ NetFill(r) ==
         /\ ripe' = s.ripe
         /\ rel' = s.rel
         /\ under' = (under \/ s.under)
+        /\ UNCHANGED unproved
   /\ fj' = fj \ {r}
   /\ UNCHANGED <<root, left, stored, lost, jrVars, obs, seen, seenAge,
                  txns, holes, born, moved, sheld, genVars, freed, freedLive, adoptVars,
@@ -1244,7 +1354,7 @@ Go(r, step) ==
                  stageVars, writerVars>>
 
 AdoptUnchanged ==
-  UNCHANGED <<root, left, stored, lost, rel, under, jrVars, obs, seen,
+  UNCHANGED <<root, left, stored, lost, rel, unproved, under, jrVars, obs, seen,
               seenAge, txns, holes, opens, sheld, freed, genVars, fillVars,
               stageVars, writerVars, pend, pdir>>
 
@@ -1271,6 +1381,7 @@ AdoptClear(r) ==
      ELSE /\ cnt' = [b \in Blocks |-> 0]
           /\ zero' = {}
           /\ rel' = {}
+          /\ UNCHANGED unproved
           /\ ripe' = [b \in Blocks |-> 0]
           /\ born' = {}
           /\ moved' = [n \in Names |-> Unmoved]
@@ -1282,13 +1393,17 @@ AdoptClear(r) ==
           /\ UNCHANGED <<adoption, owner, pos>>
           /\ UNCHANGED <<root, left, stored, lost, under, jrVars, obs, seen,
                          seenAge, txns, holes, opens, sheld, freed, freedLive,
-                         cut, young, unverified, fin, suspect, wake, stageVars,
+                         cut, young, unverified, fin, suspect, pending, pass, wake, stageVars,
                          writerVars>>
 
 \* AdoptMark marks the Volume adopting in r at the journal's end. The
 \* collector's cursor moves there, past every ripe sequence and the hold
 \* mark, and the records before it, which the counts will reflect, are never
-\* read again.
+\* read again. It counts each stage hold a writer holds at the mark: a stage
+\* hold is a root record, and countRoots counts each root at the block it
+\* held when the adoption began, which a hold the stage moves later keeps in
+\* its adoption root mark. Counting them at the mark rather than in AdoptRoot's
+\* slices shows the same counts, since no collector step runs while adopting.
 AdoptMark(r) ==
   /\ pc[r] = "mark"
   /\ IF Claim /\ ~Claimed(r)
@@ -1301,7 +1416,9 @@ AdoptMark(r) ==
           /\ noff' = FALSE
           /\ pc' = [pc EXCEPT ![r] = "roots"]
           /\ pos' = [pos EXCEPT ![r] = 0]
-          /\ UNCHANGED <<cnt, zero, rel, under, pend, pdir, landVars, root,
+          /\ cnt' = [b \in Blocks |->
+                       cnt[b] + Cardinality({w \in Writers : b \in sheld[w]})]
+          /\ UNCHANGED <<zero, rel, unproved, under, pend, pdir, landVars, root,
                          left, stored, lost, obs, seen, seenAge, txns, holes,
                          opens, stageVars, writerVars>>
 
@@ -1391,7 +1508,7 @@ Wake(r) ==
   /\ pc' = [pc EXCEPT ![r] = "idle"] /\ wake' = FALSE
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, cut, young,
-                 unverified, rewritten, fin, suspect, fillVars, adoption,
+                 unverified, rewritten, fin, suspect, pending, pass, fillVars, adoption,
                  owner, pos, opens, stageVars, writerVars>>
 
 \* Open returns an adopting Volume to unadopted, superseding its run.
@@ -1400,7 +1517,7 @@ Open ==
   /\ Unadopt /\ opens' = opens + 1
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, cut, young,
-                 unverified, rewritten, fin, suspect, fillVars, pc, pos,
+                 unverified, rewritten, fin, suspect, pending, pass, fillVars, pc, pos,
                  stageVars, writerVars>>
 
 \* ---------------------------------------------------------------------------
@@ -1420,57 +1537,70 @@ Rebuild(b) ==
   /\ rewritten' = (rewritten \/ (RewriteFlag /\ adoption = "adopted"))
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
-                 young, unverified, fin, suspect, wake, adoptVars, stageVars,
+                 young, unverified, fin, suspect, pending, pass, wake, adoptVars, stageVars,
                  writerVars>>
 
-\* FinishWalk walks from every named root and a session's holds through the
-\* stored lists and finds no cut list they reach; a cut list nothing reaches
-\* stays stored. The code repeats passes until one reaches nothing new, so
-\* the walk is taken as one step at its last pass, and a root that moves
-\* after that pass read the roots is not walked: writers, adoptions and
-\* rebuilds run before the clear.
+\* FinishWalk walks from every holder, each a named root or a session's
+\* holds, through the stored lists and finds no cut list they reach; a cut
+\* list nothing reaches stays stored. The code repeats passes until one
+\* reaches nothing new, so the walk is taken as one step at its last pass,
+\* which reads the roots and starts counting old holds afresh. A hold that
+\* lands after it on a block it did not reach is seen by the clear.
 FinishWalk ==
   /\ unverified /\ fin = "idle"
-  /\ LET held == ({root[n] : n \in Names} \ {None}) \cup
-                 UNION {sheld[w] : w \in Writers}
-     IN cut \cap UNION {Reach(h) : h \in held} = {}
+  /\ LET held == ({root[n] : n \in Names \ WalkSkip} \ {None}) \cup
+                 (IF "sheld" \in WalkSkip THEN {}
+                  ELSE UNION {sheld[w] : w \in Writers})
+         reach == stored \cap UNION {Reach(h) : h \in held}
+     IN /\ cut \cap reach = {}
+        /\ pass' = [pass EXCEPT !.reached = reach, !.landed = {},
+                               !.held = FALSE]
   /\ fin' = "walked"
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
-                 cut, young, unverified, rewritten, suspect, wake, adoptVars,
-                 stageVars, writerVars>>
+                 cut, young, unverified, rewritten, suspect, pending, wake,
+                 adoptVars, stageVars, writerVars>>
 
-\* FinishSuspect writes a suspect record for each stored block whose list no
-\* walk or Land verified: the code's anti-join of the listed blocks against
-\* the verified and landed marks, which streams over the keys and yields to
-\* writers between slices, taken as one step. Without Suspect it writes none.
+\* FinishSuspect gives each stored block the walk did not reach a suspect
+\* record, pending for one a Land put while the mark stood, whose list came
+\* from its content, and takes the record from each it reached: the code's
+\* anti-join of the listed blocks against the reached, verified and landed
+\* marks, which streams over the keys and yields to writers between slices,
+\* taken as one step. Without Suspect it writes none.
 FinishSuspect ==
   /\ fin = "walked"
-  /\ suspect' = IF Suspect THEN suspect \cup cut ELSE suspect
+  /\ suspect' = IF Suspect THEN stored \ pass.reached ELSE suspect
+  /\ pending' = IF Suspect THEN (stored \cap pass.vouch) \ pass.reached
+                ELSE pending
   /\ fin' = "suspected"
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
-                 cut, young, unverified, rewritten, wake, adoptVars, stageVars,
-                 writerVars>>
+                 cut, young, unverified, rewritten, pass, wake, adoptVars,
+                 stageVars, writerVars>>
 
 \* FinishClear clears the unverified lists mark in its own transaction, on
-\* any Volume but an adopting one; it does not walk again. With ClearMark it
-\* sets the hold mark at the journal's end, so a block the cut lists left
-\* zero is freed only after every record journaled while they stood has
-\* netted. With Recount it returns an adopted Volume a rebuild rewrote a
-\* list of to unadopted in the same transaction, superseding no run, so the
-\* next adoption recounts the lists before anything more frees.
+\* any Volume but an adopting one; it does not walk again. With
+\* OldHoldCheck, an old hold since the walk read the roots sends Finish back
+\* to walk instead, as the code's compare of the old holds count does. With
+\* ClearMark it sets the hold mark at the journal's end, so a block the cut
+\* lists left zero is freed only after every record journaled while they
+\* stood has netted. With Recount it returns an adopted Volume a rebuild
+\* rewrote a list of to unadopted in the same transaction, superseding no
+\* run, so the next adoption recounts the lists before anything more frees.
 FinishClear ==
   /\ fin = "suspected" /\ adoption # "adopting"
-  /\ unverified' = FALSE /\ fin' = "idle"
-  /\ hseq' = IF ClearMark THEN Len(jr) ELSE hseq
-  /\ IF Recount /\ rewritten /\ adoption = "adopted"
-     THEN Unadopt
-     ELSE UNCHANGED <<adoption, owner, wake>>
+  /\ IF OldHoldCheck /\ pass.held
+     THEN /\ fin' = "idle"
+          /\ UNCHANGED <<unverified, hseq, pass, adoption, owner, wake>>
+     ELSE /\ unverified' = FALSE /\ fin' = "idle" /\ pass' = NoPass
+          /\ hseq' = IF ClearMark THEN Len(jr) ELSE hseq
+          /\ IF Recount /\ rewritten /\ adoption = "adopted"
+             THEN Unadopt
+             ELSE UNCHANGED <<adoption, owner, wake>>
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jr, noff, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
-                 cut, young, rewritten, suspect, pc, pos, opens, stageVars,
-                 writerVars>>
+                 cut, young, rewritten, suspect, pending, pc, pos, opens,
+                 stageVars, writerVars>>
 
 \* ---------------------------------------------------------------------------
 \* The environment.
@@ -1487,7 +1617,7 @@ Punch(b) ==
   /\ ripe' = [ripe EXCEPT ![b] = 0]
   /\ holes' = holes + 1
   /\ UNCHANGED <<root, left, jrVars, under, obs, seen, seenAge, txns,
-                 landVars, adoptVars, stageVars, writerVars, rel, pend, pdir>>
+                 landVars, adoptVars, stageVars, writerVars, rel, unproved, pend, pdir>>
 
 \* Tick lets one unit of time pass: every age grows by one up to the age past
 \* which no rule tells two apart, and every lease's time left shrinks by one
@@ -1514,7 +1644,8 @@ DeleteAny == \E b \in Blocks : Delete(b) \/ Cascade(b) \/ Release(b)
 Next ==
   \/ \E w \in Writers :
        \/ Observe(w)
-       \/ \E r \in MainRoots : Commit(w, r) \/ HoldStored(w, r)
+       \/ \E r \in MainRoots : Commit(w, r) \/ HoldStored(w, r) \/
+                                      PutStored(w, r)
        \/ \E r \in StageRoots : StageWrite(w, r) \/ AdoptStage(w, r)
        \/ StagePublish(w)
        \/ \E r \in MainRoots : SessionBegin(w, r)
@@ -1583,6 +1714,11 @@ ReaderWindow ==
 
 \* No transaction took a holder from a block that had none.
 NoUnderflow == ~under
+
+\* An adopted Volume whose lists are all verified owes no recount: Finish
+\* returned any Volume a rewrite left short to unadopted, and the adoption
+\* that followed cleared the flag before it counted.
+RewriteRecounted == adoption = "adopted" /\ ~unverified => ~rewritten
 
 \* Only stored blocks are zero or released.
 ZeroStored == zero \cup rel \subseteq stored

@@ -2900,7 +2900,8 @@ func TestLivenessAdversarial(t *testing.T) {
 	t.Run("rewrite between the rebuild's walk and its clear", func(t *testing.T) {
 		// A format 6 store holds R -> X under main with whole lists, and an
 		// unreached block U whose list lacks X. Finish's walk finds every
-		// reached list verified; before its clear, another rebuild's flush
+		// reached list verified and names U suspect; before its clear,
+		// another rebuild's flush
 		// rewrites U's list on the adopted Volume. The clear reads that
 		// flush's recount record, so it returns the Volume to unadopted.
 		ctx := t.Context()
@@ -2929,15 +2930,12 @@ func TestLivenessAdversarial(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Once the walk has marked what it reached and deleted its marks
-		// again, the next transaction is the clear: before it, another
-		// rebuild reports U until a full batch flushes, which rewrites U's
-		// list and must leave the recount record.
-		var marked, flushed bool
+		// Once Finish has named U suspect, the next transaction is the clear:
+		// before it, another rebuild reports U until a full batch flushes,
+		// which rewrites U's list and must leave the recount record.
+		var flushed bool
 		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
-			n := countPrefix(t, store, kind('K'))
-			marked = marked || n != 0
-			if !marked || n != 0 || flushed {
+			if flushed || countPrefix(t, store, kind('Z')) == 0 {
 				return
 			}
 			flushed = true
@@ -2969,6 +2967,228 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		if got := livenessAdoption(t, v); got != block_gc.Adoption_ADOPTION_UNADOPTED {
 			t.Fatalf("adoption after the rebuild = %v, want unadopted", got)
+		}
+	})
+
+	t.Run("unverified list a held root reaches", func(t *testing.T) {
+		// A format 6 store holds the root A and an unreached leaf Y. A root
+		// moved onto Y while the lists are unverified keeps the rebuild from
+		// clearing, naming Y and the root, until the root is released; the
+		// next Finish then clears and names Y suspect.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "A")
+		y := tr.add(t, "Y")
+		writeLegacyStore(t, store, keys, tr, "A", true, "A", "Y")
+		v, _ := openUnadoptedVolume(t, store)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "y", Ref: y}}); err != nil {
+			t.Fatal(err)
+		}
+		rebuild := func() block_gc.ListRebuildResult {
+			t.Helper()
+			rb, err := v.OpenListRebuild(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := rb.Verify(ctx, tr["A"].Ref, tr["A"].Refs); err != nil {
+				t.Fatal(err)
+			}
+			res, err := rb.Finish(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return res
+		}
+		want := block_gc.UnverifiedRoot{BucketID: "b", Name: "y", Unverified: 1}
+		if res := rebuild(); res.Cleared || res.Unverified != 1 || !res.UnverifiedSample[0].EqualsRef(y) || len(res.UnverifiedRoots) != 1 || res.UnverifiedRoots[0] != want {
+			t.Fatalf("rebuild with y held = %+v, want Y unverified from b/y", res)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "y", Previous: y}}); err != nil {
+			t.Fatal(err)
+		}
+		if res := rebuild(); !res.Cleared || res.Suspect != 1 {
+			t.Fatalf("rebuild with y released = %+v, want the mark cleared with Y suspect", res)
+		}
+	})
+
+	t.Run("hold between the rebuild's last pass and its clear", func(t *testing.T) {
+		// A format 6 store holds the root A and an unreached leaf U. Once
+		// the walk's first pass has marked A and the second has begun, a
+		// root moves onto U before the second pass drains, after it read
+		// the roots. The pass reaches
+		// nothing new and markSuspects names U suspect, but the clear finds
+		// the old holds moved, so Finish passes again, reaches U from the
+		// new root and refuses to clear with U unverified.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "A")
+		u := tr.add(t, "U")
+		writeLegacyStore(t, store, keys, tr, "A", true, "A", "U")
+		v, _ := openUnadoptedVolume(t, store)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		reached := slices.Concat(livenessPrefix, []byte{'K'})
+		var held bool
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if held || countPrefix(t, store, reached) == 0 || livenessListPass(t, v) < 2 {
+				return
+			}
+			held = true
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "u", Ref: u}}); err != nil {
+				t.Fatal(err)
+			}
+		}}
+		rb, err := block_gc.OpenListRebuild(ctx, probe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := rb.Verify(ctx, tr["A"].Ref, tr["A"].Refs); err != nil {
+			t.Fatal(err)
+		}
+		res, err := rb.Finish(ctx)
+		want := block_gc.UnverifiedRoot{BucketID: "b", Name: "u", Unverified: 1}
+		if err != nil || !held || res.Cleared || res.Passes != 1 || res.Unverified != 1 || !res.UnverifiedSample[0].EqualsRef(u) || len(res.UnverifiedRoots) != 1 || res.UnverifiedRoots[0] != want {
+			t.Fatalf("rebuild = %+v err %v held %v, want one more pass and U unverified from b/u", res, err, held)
+		}
+	})
+
+	t.Run("hold onto a block born before the rebuild's last pass", func(t *testing.T) {
+		// A format 6 store holds the root A and an unreached leaf U. While
+		// the mark stands, a Land gives birth to X naming U under the root x,
+		// and x is released, so X is stored with a landed mark and nothing
+		// holds it. Once Finish's second pass has read the roots, a root
+		// moves onto X. X was born before that pass, so the hold counts as
+		// old: the clear refuses, and Finish passes again and reaches U
+		// through X.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "A")
+		u := tr.add(t, "U")
+		writeLegacyStore(t, store, keys, tr, "A", true, "A", "U")
+		v, _ := openUnadoptedVolume(t, store)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		x := tr.add(t, "X", "U")
+		if err := v.SetBucketRoots(ctx, "b", tr.entries("X"), []block.NamedRoot{{Name: "x", Ref: x}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "x", Previous: x}}); err != nil {
+			t.Fatal(err)
+		}
+		reached := slices.Concat(livenessPrefix, []byte{'K'})
+		var held bool
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if held || countPrefix(t, store, reached) == 0 || livenessListPass(t, v) < 2 {
+				return
+			}
+			held = true
+			if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "x2", Ref: x}}); err != nil {
+				t.Fatal(err)
+			}
+		}}
+		rb, err := block_gc.OpenListRebuild(ctx, probe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := rb.Verify(ctx, tr["A"].Ref, tr["A"].Refs); err != nil {
+			t.Fatal(err)
+		}
+		res, err := rb.Finish(ctx)
+		want := block_gc.UnverifiedRoot{BucketID: "b", Name: "x2", Unverified: 1}
+		if err != nil || !held || res.Cleared || res.Passes != 1 || res.Unverified != 1 || !res.UnverifiedSample[0].EqualsRef(u) || len(res.UnverifiedRoots) != 1 || res.UnverifiedRoots[0] != want {
+			t.Fatalf("rebuild = %+v err %v held %v, want one more pass and U unverified from b/x2", res, err, held)
+		}
+	})
+
+	t.Run("put between the suspect marking's slices", func(t *testing.T) {
+		// A format 6 store holds the root A and more unreached leaves than
+		// one slice of markSuspects lists. Between its first and second
+		// slice, a put stores again a leaf the join has passed, which has a
+		// suspect record, and one ahead of it, which has none. Both end
+		// clean or pending and visible, a leaf nothing put stays hidden, and
+		// the suspect count matches the records.
+		ctx := t.Context()
+		keys := store_kvkey.NewDefaultKVKey()
+		store := store_kvtx_inmem.NewStore()
+		tr := testTree{}
+		tr.add(t, "A")
+		names := []string{"A"}
+		for i := range 300 {
+			name := "L" + strconv.Itoa(i)
+			tr.add(t, name)
+			names = append(names, name)
+		}
+		writeLegacyStore(t, store, keys, tr, "A", true, names...)
+		v, _ := openUnadoptedVolume(t, store)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		suspects := slices.Concat(livenessPrefix, []byte{'Z'})
+		hasRecord := func(name string) bool {
+			tx, err := store.NewTransaction(ctx, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Discard()
+			found, err := tx.Exists(ctx, slices.Concat(suspects, block_gc.BlockKey(tr[name].Ref)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return found
+		}
+		var behind, ahead string
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if behind != "" || countPrefix(t, store, suspects) == 0 {
+				return
+			}
+			for _, name := range names[1:] {
+				switch {
+				case behind == "" && hasRecord(name):
+					behind = name
+				case ahead == "" && !hasRecord(name):
+					ahead = name
+				}
+			}
+			if behind == "" || ahead == "" {
+				t.Fatalf("after the first slice behind %q ahead %q, want one of each", behind, ahead)
+			}
+			if _, err := v.PutBlockBatch(ctx, tr.entries(behind, ahead)); err != nil {
+				t.Fatal(err)
+			}
+		}}
+		rb, err := block_gc.OpenListRebuild(ctx, probe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := rb.Verify(ctx, tr["A"].Ref, tr["A"].Refs); err != nil {
+			t.Fatal(err)
+		}
+		res, err := rb.Finish(ctx)
+		if err != nil || behind == "" || !res.Cleared {
+			t.Fatalf("rebuild = %+v err %v put %q %q, want the mark cleared after the put", res, err, behind, ahead)
+		}
+		if n := countPrefix(t, store, suspects); uint64(n) != res.Suspect {
+			t.Fatalf("%d suspect records, state counts %d", n, res.Suspect)
+		}
+		untouched := names[1]
+		if untouched == behind || untouched == ahead {
+			untouched = names[len(names)-1]
+		}
+		for name, want := range map[string]bool{behind: true, ahead: true, untouched: false} {
+			if found, err := v.GetBlockExists(ctx, tr[name].Ref); err != nil || found != want {
+				t.Fatalf("exists %s = %v err %v, want %v", name, found, err, want)
+			}
 		}
 	})
 
@@ -3137,11 +3357,14 @@ func TestLivenessAdversarial(t *testing.T) {
 
 	t.Run("suspect list a put revives", func(t *testing.T) {
 		// A format 6 store holds the root A and unreached blocks C -> F,
-		// whose list lacks F, and G. The rebuild clears the mark with C's
-		// and G's lists unverified, so Finish names both suspect. A put of G,
+		// whose list lacks F, G and H. The rebuild clears the mark with C's
+		// and G's lists unverified, so Finish names them and H suspect, and F,
+		// verified but unreached, pending. A second Finish is refused. A put of G,
 		// whose list is whole, leaves the Volume adopted. A put of C under a
 		// root rewrites C's list to name F and returns the Volume to
-		// unadopted, asking for a recount; once it runs, F keeps its holder.
+		// unadopted, asking for a recount; once it runs, F keeps its holder,
+		// H, which no put revived, still reads missing, and the free of H
+		// drops its suspect record.
 		ctx := t.Context()
 		keys := store_kvkey.NewDefaultKVKey()
 		store := store_kvtx_inmem.NewStore()
@@ -3149,8 +3372,9 @@ func TestLivenessAdversarial(t *testing.T) {
 		tr.add(t, "A")
 		tr.add(t, "F")
 		tr.add(t, "G")
+		tr.add(t, "H")
 		c := tr.add(t, "C", "F")
-		writeLegacyStore(t, store, keys, tr, "A", true, "A", "F", "G", "C")
+		writeLegacyStore(t, store, keys, tr, "A", true, "A", "F", "G", "H", "C")
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)
@@ -3164,8 +3388,8 @@ func TestLivenessAdversarial(t *testing.T) {
 		}
 		v, clk := openUnadoptedVolume(t, store)
 		v.adoptWake = make(chan struct{}, 1)
-		if res, err := v.Adopt(ctx); err != nil || res.Queued != 3 {
-			t.Fatalf("adopt = %+v err %v, want C, F and G queued", res, err)
+		if res, err := v.Adopt(ctx); err != nil || res.Queued != 4 {
+			t.Fatalf("adopt = %+v err %v, want C, F, G and H queued", res, err)
 		}
 		rb, err := v.OpenListRebuild(ctx)
 		if err != nil {
@@ -3176,8 +3400,15 @@ func TestLivenessAdversarial(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if res, err := rb.Finish(ctx); err != nil || !res.Cleared || res.Unadopted || res.Suspect != 2 {
-			t.Fatalf("rebuild = %+v err %v, want the mark cleared with C and G suspect", res, err)
+		if res, err := rb.Finish(ctx); err != nil || !res.Cleared || res.Unadopted || res.Suspect != 4 {
+			t.Fatalf("rebuild = %+v err %v, want the mark cleared with C, G and H suspect and F pending", res, err)
+		}
+		suspects := slices.Concat(livenessPrefix, []byte{'Z'})
+		if _, err := rb.Finish(ctx); !errors.Is(err, block_gc.ErrListsVerified) {
+			t.Fatalf("second finish err %v, want ErrListsVerified", err)
+		}
+		if n := countPrefix(t, store, suspects); n != 4 {
+			t.Fatalf("suspect records after the second finish = %d, want 4", n)
 		}
 		woke := func() bool {
 			select {
@@ -3186,6 +3417,19 @@ func TestLivenessAdversarial(t *testing.T) {
 			default:
 				return false
 			}
+		}
+
+		// The existence check hides the suspect C, not the pending F, and a
+		// root onto C without its bytes is refused.
+		for name, want := range map[string]bool{"A": true, "C": false, "F": true} {
+			if found, err := v.GetBlockExists(ctx, tr[name].Ref); err != nil || found != want {
+				t.Fatalf("exists %s = %v err %v, want %v", name, found, err, want)
+			}
+		}
+		var suspect *block_gc.SuspectError
+		err = v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "c", Ref: c}})
+		if !errors.As(err, &suspect) {
+			t.Fatalf("root onto the suspect C err %v, want a SuspectError", err)
 		}
 
 		// G's list is whole: the put trusts it once checked.
@@ -3204,14 +3448,24 @@ func TestLivenessAdversarial(t *testing.T) {
 		if a := livenessAdoption(t, v); a != block_gc.Adoption_ADOPTION_UNADOPTED || !woke() {
 			t.Fatalf("after the put of C the Volume is %v, want unadopted and a recount asked for", a)
 		}
+		if found, err := v.GetBlockExists(ctx, c); err != nil || !found {
+			t.Fatalf("exists C after its put = %v err %v, want found", found, err)
+		}
 		if _, err := v.Adopt(ctx); err != nil {
 			t.Fatal(err)
 		}
+		if found, err := v.GetBlockExists(ctx, tr["H"].Ref); err != nil || found {
+			t.Fatalf("exists H after the recount = %v err %v, want still suspect", found, err)
+		}
 		clk.Add(block_gc.DefaultGrace + time.Second)
-		if res := collectAll(t, v); res.Freed != 0 {
-			t.Fatalf("collect after the recount = %+v, want nothing freed", res)
+		if res := collectAll(t, v); res.Freed != 1 {
+			t.Fatalf("collect after the recount = %+v, want H freed", res)
 		}
 		requireStored(t, v, tr, true, "A", "C", "F", "G")
+		requireStored(t, v, tr, false, "H")
+		if n := countPrefix(t, store, suspects); n != 0 {
+			t.Fatalf("suspect records after the free = %d, want none", n)
+		}
 		requireAudit(t, v, 0)
 	})
 
@@ -3399,8 +3653,9 @@ func TestLivenessAdversarial(t *testing.T) {
 
 // rebuildSecondPass is the transaction of a list rebuild's Finish, on a
 // Volume whose records fit in one slice, that starts the walk's second pass:
-// after the flush, the clear of earlier marks and the first pass.
-const rebuildSecondPass = 4
+// after the flush, the clear of earlier marks, and the first pass's start and
+// drain.
+const rebuildSecondPass = 5
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
 // each fit in one slice: the claim, the clears of counts, the queue, parked
@@ -3471,6 +3726,22 @@ func waitAdopted(t *testing.T, v *Volume) {
 	}
 }
 
+// livenessListPass returns the walk passes of list rebuilds the state of v
+// counts.
+func livenessListPass(t *testing.T, v *Volume) uint64 {
+	t.Helper()
+	var pass uint64
+	err := v.readRecords(t.Context(), func(rec *block_gc.Records) error {
+		state, err := rec.GetState(t.Context())
+		pass = state.GetListPass()
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pass
+}
+
 // livenessAdoption returns the Volume's adoption state.
 func livenessAdoption(t *testing.T, v *Volume) block_gc.Adoption {
 	t.Helper()
@@ -3526,6 +3797,11 @@ type walkProbe struct {
 	block_gc.Store
 	// before runs ahead of each transaction.
 	before func()
+}
+
+// MarkingSuspects opens the probed store's suspect gate, as Finish asks.
+func (p *walkProbe) MarkingSuspects(ctx context.Context) (func(), error) {
+	return p.Store.(block_gc.SuspectMarker).MarkingSuspects(ctx)
 }
 
 // Update calls before, then runs the transaction.
@@ -3804,4 +4080,82 @@ func countPrefix(t *testing.T, store *store_kvtx_inmem.Store, prefix []byte) int
 		t.Fatal(err)
 	}
 	return n
+}
+
+// TestSuspectGate checks the suspect gate's ordering, the invariant its doc
+// states: a reader skips suspect reads only after a zero count no Finish
+// overlaps. A close from an epoch a Finish moved past fails, a close while a
+// Finish runs fails, an assumer is refused while the gate is open, and a
+// Finish entering waits for the assumers that saw the gate closed.
+func TestSuspectGate(t *testing.T) {
+	var g suspectGate
+
+	// The zero gate is open, and a close from its epoch closes it.
+	e, closed := g.load()
+	if closed {
+		t.Fatal("zero gate is closed, want open")
+	}
+	g.close(e)
+	if _, closed := g.load(); !closed {
+		t.Fatal("close from the open epoch left the gate open")
+	}
+
+	// An assumer holds back a Finish until it ends.
+	ok, release := g.assume()
+	if !ok {
+		t.Fatal("assume on a closed gate refused")
+	}
+	// A Finish whose context ends while it waits returns, the gate open.
+	cancelled, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := g.marking(cancelled); !errors.Is(err, context.Canceled) {
+		t.Fatalf("marking with an ended context err %v, want context.Canceled", err)
+	}
+	if _, closed := g.load(); closed || g.running.Load() != 0 {
+		t.Fatalf("after a cancelled marking the gate is closed %v with %d running, want open with none", closed, g.running.Load())
+	}
+
+	entered := make(chan func())
+	go func() {
+		end, err := g.marking(t.Context())
+		if err != nil {
+			t.Error(err)
+		}
+		entered <- end
+	}()
+	select {
+	case <-entered:
+		t.Fatal("Finish entered while an assumer that saw the gate closed runs")
+	default:
+	}
+	release()
+	end := <-entered
+
+	// While the Finish runs, the gate is open: no assumer, and no close,
+	// from the epoch before it or the one it opened.
+	e2, closed := g.load()
+	if closed {
+		t.Fatal("gate closed while a Finish runs")
+	}
+	if ok, _ := g.assume(); ok {
+		t.Fatal("assume while a Finish runs succeeded")
+	}
+	g.close(e)
+	g.close(e2)
+	if _, closed := g.load(); closed {
+		t.Fatal("close while a Finish runs closed the gate")
+	}
+
+	// Its end moves the epoch, so a count read during it cannot close the
+	// gate; one read after it can.
+	end()
+	g.close(e2)
+	if _, closed := g.load(); closed {
+		t.Fatal("close from an epoch a Finish ended closed the gate")
+	}
+	e3, _ := g.load()
+	g.close(e3)
+	if _, closed := g.load(); !closed {
+		t.Fatal("close after the Finish ended left the gate open")
+	}
 }

@@ -212,47 +212,169 @@ func (r *Records) checkList(ctx context.Context, key []byte, refs []*block.Block
 	return listRewritten, r.tx.Set(ctx, r.key(kindChildren, key), encoded)
 }
 
+// mergeList writes the union of the stored child list of the block at key
+// and refs, the decoded refs of its content, and reports whether the list
+// gained a child. A rewrite journals no holder for a child the list gains;
+// the caller owes the counts a recount.
+func (r *Records) mergeList(ctx context.Context, key []byte, refs []*block.BlockRef) (bool, error) {
+	// Read the stored list, then write the union when it differs.
+	value, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
+	if err != nil {
+		return false, err
+	}
+	union, err := unionChildren(value, EncodeChildren(refs))
+	if err != nil || bytes.Equal(union, value) {
+		return false, err
+	}
+	return true, r.tx.Set(ctx, r.key(kindChildren, key), union)
+}
+
+// unionChildren returns the encoded child list naming every child of the
+// encoded lists a and b, which hold distinct block keys in bytes.Compare
+// order, as EncodeChildren writes them.
+func unionChildren(a, b []byte) ([]byte, error) {
+	out := make([]byte, 0, max(len(a), len(b)))
+	for len(a) != 0 || len(b) != 0 {
+		x, okA := nextBlockKey(a)
+		y, okB := nextBlockKey(b)
+		switch {
+		case len(a) != 0 && !okA, len(b) != 0 && !okB:
+			return nil, errBadBlockKey
+		case !okB || okA && bytes.Compare(x, y) < 0:
+			out, a = append(out, x...), a[len(x):]
+		case !okA || bytes.Compare(x, y) > 0:
+			out, b = append(out, y...), b[len(y):]
+		default:
+			out, a, b = append(out, x...), a[len(x):], b[len(y):]
+		}
+	}
+	return out, nil
+}
+
 // Finish writes the pending lists, walks from every named root through the
 // lists, and clears the Volume's unverified lists mark and the rebuild's
 // marks when every listed block a root reaches is verified. The walk marks
 // what it reaches on disk and keeps only its frontier in memory, yielding to
 // writers between slices, so it runs on a live Volume; an interrupted walk
 // starts over on the next Finish. A list Land writes while the mark stands is
-// verified as it is written, by its landed mark, so the World's commits during the walk add no
-// unverified list; a cache fill's list is not, and a rerun of the typed walk
-// verifies it.
+// verified as it is written, by its landed mark, so the World's commits during
+// the walk add no unverified list; a cache fill's list is not, and a rerun of
+// the typed walk verifies it.
 //
-// A listed block no root reaches keeps its unverified list past the clear,
-// and a later put of it revives it with that list. Before the clear, Finish
-// therefore writes a suspect record for each listed block no walk verified
-// and no Land wrote, and Land checks a suspect list against the put's refs
-// before it trusts it, as Land describes.
+// The clear leaves every block clean, as holdStored defines it, or with a
+// suspect record that says it may not be. The reached set is closed and
+// clean: the walk follows only verified lists and clears only when it reached
+// no unverified one. Every other listed block gets a suspect record, as
+// markSuspects describes.
+//
+// Finish's reach is the closure, through stored lists, of every holder
+// record that exists when a pass starts: the named roots, which include the
+// leased roots, reader pins and stages. A hold that arrives after a pass
+// starts, onto a stored block outside the reached set, counts in the state's
+// old holds, as noteOldHold describes, so the clear refuses and Finish passes
+// again, from holders that now include it. A hold the count misses is onto a
+// block the walk reached, already clean, or one a Land gave birth to during
+// the pass, whose birth counted the holds it gave its children. Each count
+// names a block no walk reached, which the next pass reaches unless its
+// holder left, so under writers that do not keep holding and releasing
+// unreached blocks, Finish clears after one more pass. A writer that does
+// can refuse every clear: Finish then returns uncleared after finishPasses
+// passes, with Passes at that bound, Unverified zero and the state's old
+// holds rising, leaving the suspect records of its last pass for the next
+// Finish to correct, and the driver calls Finish again later.
 func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
-	// Write what is pending, then find the unverified lists a root reaches.
-	if err := r.flush(ctx); err != nil {
-		return r.res, err
-	}
-	r.res.Unverified, r.res.UnverifiedSample = 0, nil
-	err := walkRoots(ctx, r.store, r.visitReached)
-	if err != nil || r.res.Unverified != 0 {
-		return r.res, err
-	}
-
-	// Name the lists nothing verified.
-	if err := r.markSuspects(ctx); err != nil {
-		return r.res, err
-	}
-
-	// Clear the mark while no adoption counts, then the rebuild's marks.
-	r.res.Unadopted = false
-	err = r.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
-		// Clear it only while no adoption counts.
+	// Refuse a Volume an adoption is counting or a Finish verified, write
+	// what is pending, and start the walk over.
+	err := r.store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		if state.GetAdoption() == Adoption_ADOPTION_ADOPTING {
-			return ErrListRebuildAdopting
+		return rebuildable(state)
+	})
+	if err != nil {
+		return r.res, err
+	}
+	if err := r.flush(ctx); err != nil {
+		return r.res, err
+	}
+	if err := clearKinds(ctx, r.store, nil, kindReached); err != nil {
+		return r.res, err
+	}
+
+	// Walk, name the lists the walk did not reach, and clear the mark, until
+	// no hold lands between the last pass and the clear. A store that skips
+	// suspect reads while it has none learns that records may appear.
+	if m, ok := r.store.(SuspectMarker); ok {
+		end, err := m.MarkingSuspects(ctx)
+		if err != nil {
+			return r.res, err
+		}
+		defer end()
+	}
+	for {
+		r.res.Unverified, r.res.UnverifiedSample, r.res.UnverifiedRoots = 0, nil, nil
+		holds, err := walkRoots(ctx, r.store, r.visitReached)
+		if err == nil && r.res.Unverified != 0 {
+			err = clearKinds(ctx, r.store, nil, kindReached)
+		}
+		if err != nil || r.res.Unverified != 0 {
+			return r.res, err
+		}
+		if err := r.markSuspects(ctx); err != nil {
+			return r.res, err
+		}
+		cleared, err := r.clear(ctx, holds)
+		if err != nil {
+			return r.res, err
+		}
+		if cleared {
+			break
+		}
+		if r.res.Passes++; r.res.Passes == finishPasses {
+			return r.res, nil
+		}
+	}
+	r.res.Cleared = true
+
+	// Delete the rebuild's marks.
+	return r.res, clearKinds(ctx, r.store, nil, kindVerified, kindLanded, kindReached)
+}
+
+// finishPasses bounds the passes one Finish makes after a hold refused its
+// clear, as Finish describes.
+const finishPasses = 8
+
+// SuspectMarker is a Store that skips reading suspect records while it
+// proves it has none, as a Volume's gate does. Finish calls MarkingSuspects
+// before it may write one and the returned func once it writes no more.
+type SuspectMarker interface {
+	// MarkingSuspects reports that suspect records may appear until the
+	// returned func is called. It may wait for readers that assumed none,
+	// returning ctx's error if ctx ends first.
+	MarkingSuspects(ctx context.Context) (func(), error)
+}
+
+// clear clears the unverified lists mark while no adoption counts and the
+// mark still stands, when the
+// state's old holds are still holds, the count the walk's last pass began
+// at. It reports whether it cleared.
+func (r *ListRebuild) clear(ctx context.Context, holds uint64) (bool, error) {
+	r.res.Unadopted = false
+	var cleared bool
+	err := r.store.Update(ctx, func(rec *Records, _ block.StoreOps) error {
+		// Clear it only while no adoption counts and no hold landed since
+		// the last pass began.
+		cleared = false
+		state, err := rec.GetState(ctx)
+		if err != nil {
+			return err
+		}
+		if err := rebuildable(state); err != nil {
+			return err
+		}
+		if state.GetOldHolds() != holds {
+			return nil
 		}
 		state.UnverifiedLists = false
 
@@ -271,27 +393,27 @@ func (r *ListRebuild) Finish(ctx context.Context) (ListRebuildResult, error) {
 			rec.unadopt(state)
 			r.res.Unadopted = true
 		}
+		cleared = true
 		return rec.SetState(ctx, state)
 	})
-	if err != nil {
-		return r.res, err
-	}
-	r.res.Cleared = true
-
-	// Delete the rebuild's marks.
-	return r.res, clearKinds(ctx, r.store, nil, kindVerified, kindLanded)
+	return cleared, err
 }
 
-// markSuspects writes a suspect record for each listed block without a
-// verified or landed mark, an anti-join of the child lists against the
-// marks, in slices of sliceRecords lists that let a waiting writer in. A put
-// between slices needs no fence: one of a block the join has passed checks
-// the list and deletes the record, and one of a block ahead of it writes a
-// mark the join then finds.
+// markSuspects gives each listed block the walk did not reach a suspect
+// record, and takes it from each it reached, keeping the state's suspect
+// count exact, in slices of sliceRecords lists that let a waiting writer in.
+// The record is pending for a block with a verified or landed mark, whose list
+// was written from its content, and suspect for any other. The reached set is
+// closed and clean, so after the clear a block without a record is clean and
+// the records name every block that may not be. A put between slices needs no
+// fence: one of a block the join has passed revives its record as Land
+// describes, and one of a block ahead of it writes a mark the join then
+// finds. Cost: per listed block, its reach mark, its verified and landed
+// marks and its suspect record, point reads, and a write when the record
+// changes.
 func (r *ListRebuild) markSuspects(ctx context.Context) error {
-	r.res.Suspect = 0
 	_, err := eachSlice(ctx, r.store.Update, []byte(nil), nil, func(rec *Records, _ block.StoreOps, after []byte) ([]byte, bool, error) {
-		// Read the next slice of listed blocks, keys only.
+		// Read the next slice of listed blocks, keys only, and the count.
 		from := after
 		if after != nil {
 			from = append(bytes.Clone(after), 0)
@@ -307,29 +429,77 @@ func (r *ListRebuild) markSuspects(ctx context.Context) error {
 		if err != nil || len(keys) == 0 {
 			return nil, false, err
 		}
+		state, err := rec.GetState(ctx)
+		if err != nil {
+			return nil, false, err
+		}
 
-		// Name each one nothing verified.
+		// Refuse a Volume an adoption is counting or another Finish
+		// verified: once the mark is clear, Land writes no landed marks,
+		// so a block landed for a write in flight would read suspect.
+		if err := rebuildable(state); err != nil {
+			return nil, false, err
+		}
+
+		// Give each its record.
 		for _, key := range keys {
-			verified, err := rec.listVerified(ctx, key)
-			if err != nil {
+			if err := markSuspect(ctx, rec, state, key); err != nil {
 				return nil, false, err
 			}
-			if verified {
-				continue
-			}
-			r.res.Suspect++
-			if err := rec.tx.Set(ctx, rec.key(kindSuspect, key), nil); err != nil {
-				return nil, false, err
-			}
+		}
+		r.res.Suspect = state.GetSuspectLists()
+		if err := rec.SetState(ctx, state); err != nil {
+			return nil, false, err
 		}
 		return keys[len(keys)-1], len(keys) == sliceRecords, nil
 	})
 	return err
 }
 
+// markSuspect gives the listed block at key the suspect record markSuspects
+// describes, counting it in state.
+func markSuspect(ctx context.Context, rec *Records, state *LivenessState, key []byte) error {
+	// A reached block is clean.
+	reached, err := rec.tx.Exists(ctx, rec.key(kindReached, key))
+	if err != nil {
+		return err
+	}
+	value, found, err := rec.tx.Get(ctx, rec.key(kindSuspect, key))
+	if err != nil {
+		return err
+	}
+	if reached {
+		if !found {
+			return nil
+		}
+		if len(value) == 0 || value[0] == suspectPending {
+			state.SuspectLists = max(state.GetSuspectLists(), 1) - 1
+		}
+		return rec.tx.Delete(ctx, rec.key(kindSuspect, key))
+	}
+
+	// Any other is pending when its list came from its content.
+	verified, err := rec.listVerified(ctx, key)
+	if err != nil {
+		return err
+	}
+	want := []byte{}
+	if verified {
+		want = []byte{suspectPending}
+	}
+	counted := found && (len(value) == 0 || value[0] == suspectPending)
+	if counted && bytes.Equal(value, want) {
+		return nil
+	}
+	if !counted {
+		state.SuspectLists++
+	}
+	return rec.tx.Set(ctx, rec.key(kindSuspect, key), want)
+}
+
 // visitReached counts a listed block a root reaches without a verified list,
 // descending no further below it, and descends into a verified one.
-func (r *ListRebuild) visitReached(ctx context.Context, rec *Records, ref *block.BlockRef) ([]*block.BlockRef, error) {
+func (r *ListRebuild) visitReached(ctx context.Context, rec *Records, root *walkRoot, ref *block.BlockRef) ([]*block.BlockRef, error) {
 	// Step over a block without a list.
 	children, listed, err := rec.GetChildren(ctx, ref)
 	if err != nil || !listed {
@@ -343,7 +513,23 @@ func (r *ListRebuild) visitReached(ctx context.Context, rec *Records, ref *block
 	}
 	r.res.Unverified++
 	r.res.UnverifiedSample = sample(r.res.UnverifiedSample, ref)
+	r.res.UnverifiedRoots = sampleRoot(r.res.UnverifiedRoots, root)
 	return nil, nil
+}
+
+// sampleRoot counts one more unverified list reached from root in s, adding
+// root while s names fewer than sampleSize roots.
+func sampleRoot(s []UnverifiedRoot, root *walkRoot) []UnverifiedRoot {
+	for i := range s {
+		if s[i].BucketID == root.bucketID && s[i].Name == root.name {
+			s[i].Unverified++
+			return s
+		}
+	}
+	if len(s) < sampleSize {
+		s = append(s, UnverifiedRoot{BucketID: root.bucketID, Name: root.name, Unverified: 1})
+	}
+	return s
 }
 
 // containsChildren reports whether the encoded child list has holds every

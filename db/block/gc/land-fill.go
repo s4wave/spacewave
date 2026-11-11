@@ -68,7 +68,62 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 			return nil, err
 		}
 	}
-	return existed, nil
+	return existed, markFillPending(ctx, rec, born)
+}
+
+// markFillPending writes a suspectFillPending record for each block in born,
+// the blocks a fill gave birth to, that names a child with a suspect record or
+// a born block it marks, so a hold onto it promotes it first, as holdStored
+// describes. A fill serves a read, so it refuses no block; its own up pairs
+// onto such a child hold it only until the fill record nets. It reads each
+// child's suspect record only while the Volume may have a counted one, and
+// writes no state, so a fill still conflicts with no commit's state write.
+// Each pass checks a block's children again, reading each suspect record
+// once.
+func markFillPending(ctx context.Context, rec *Records, born []*block.PutBatchEntry) error {
+	// Without a counted suspect record every child is clean.
+	if rec.suspectsKnown && rec.suspectLists == 0 {
+		return nil
+	}
+
+	// Mark until no born block gains a mark, since a born child may come
+	// after its parent in the batch.
+	marked := make(map[string]bool, len(born))
+	stored := make(map[string]bool)
+	for changed := true; changed; {
+		changed = false
+		for _, entry := range born {
+			key := string(BlockKey(entry.Ref))
+			if marked[key] {
+				continue
+			}
+			for _, child := range entry.Refs {
+				ck := BlockKey(child)
+				pending := marked[string(ck)]
+				if !pending {
+					var read bool
+					if pending, read = stored[string(ck)]; !read {
+						trust, err := rec.getTrust(ctx, ck)
+						if err != nil {
+							return err
+						}
+						pending = trust != listClean
+						stored[string(ck)] = pending
+					}
+				}
+				if pending {
+					marked[key], changed = true, true
+					break
+				}
+			}
+		}
+	}
+	for key := range marked {
+		if err := rec.tx.Set(ctx, rec.key(kindSuspect, []byte(key)), []byte{suspectFillPending}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // fillRecordKey returns the key of the fill record of ref stamped at.

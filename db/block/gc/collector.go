@@ -685,11 +685,7 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 
 	// Take the next ripe blocks, only one while a writer waits, noting one
 	// that waits on its ripe sequence or the hold mark.
-	type entry struct {
-		ripe uint64
-		ref  *block.BlockRef
-	}
-	var ripe []entry
+	var ripe []queueEntry
 	full := false
 	cursor, frees := state.GetCursor(), c.share(sliceFrees)
 	if c.waiting() {
@@ -704,24 +700,33 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 			full = true
 			return false, nil
 		}
-		ripe = append(ripe, entry{ripe: seq, ref: ref})
+		ripe = append(ripe, queueEntry{ripe: seq, ref: ref})
 		return true, nil
 	})
 	if err != nil {
 		return from, false, err
 	}
 
-	// Free each until a writer waits; the next slice resumes there.
+	// Free each until a writer waits; the next slice resumes there. Write
+	// the state when a free took a suspect record from its count.
+	suspects := state.GetSuspectLists()
+	more := full
 	for i, e := range ripe {
 		if i != 0 && c.waiting() {
-			return from, true, nil
+			more = true
+			break
 		}
-		if err := c.freeBlock(ctx, rec, blocks, state.GetUnverifiedLists(), e.ripe, e.ref, res); err != nil {
+		if err := c.freeBlock(ctx, rec, blocks, state, e, res); err != nil {
 			return from, false, err
 		}
 		from = queuePos(e.ripe, BlockKey(e.ref))
 	}
-	return from, full, nil
+	if state.GetSuspectLists() != suspects {
+		if err := rec.SetState(ctx, state); err != nil {
+			return from, false, err
+		}
+	}
+	return from, more, nil
 }
 
 // requeueSlice moves up to a slice of parked blocks back onto the free queue
@@ -784,13 +789,24 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 	return !ups, err
 }
 
-// freeBlock frees one Dead block at ripe: its bytes, child list, queue
-// entry, proof, count record and landed mark. It deletes only the queue entry when the
-// entry is stale: the block has no child list or no zero record at ripe.
-// While the Volume's lists are unverified it parks a block Land did not give
-// birth to instead, as invariant 11 describes.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, unverified bool, ripe uint64, ref *block.BlockRef, res *CollectResult) error {
+// queueEntry is a block on the free queue at its ripe sequence.
+type queueEntry struct {
+	// ripe is the block's ripe sequence.
+	ripe uint64
+	// ref is the block.
+	ref *block.BlockRef
+}
+
+// freeBlock frees the Dead block of queue entry e: its bytes, child list,
+// queue entry, proof, count record, landed mark and suspect record, taking a
+// counted suspect record from state's count, which the caller writes. It
+// deletes only the queue entry when the entry is stale: the block has no
+// child list or no zero record at e's ripe sequence. While the Volume's lists
+// are unverified it parks a block Land did not give birth to instead, as
+// invariant 11 describes.
+func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, e queueEntry, res *CollectResult) error {
 	// Check the block is stored, Dead and at the entry's ripe sequence.
+	ripe, ref, unverified := e.ripe, e.ref, state.GetUnverifiedLists()
 	key := BlockKey(ref)
 	if err := rec.tx.Delete(ctx, rec.queueKey(ripe, key)); err != nil {
 		return err
@@ -830,7 +846,7 @@ func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.St
 			return err
 		}
 	}
-	if err := rec.tx.Delete(ctx, rec.key(kindSuspect, key)); err != nil {
+	if err := rec.dropSuspect(ctx, state, key); err != nil {
 		return err
 	}
 	if unverified {
