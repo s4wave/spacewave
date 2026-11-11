@@ -18,12 +18,15 @@ func TestReadCursorLifetime(t *testing.T) {
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 4096)
 	rootRef, _ := writeOkraFixture(t, ctx, store, fixture)
+
+	// Read the stored root through a small decoded cache.
 	cache, err := block.NewDecodedBlockCacheWithOptions(block.DecodedBlockCacheOptions{MaxCost: 128 << 10})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cache.Close()
 	open := func(ref *block.BlockRef, scope *block.DecodedBlockCache) *Tx {
+		// Open a read-only Okra transaction on ref under scope.
 		bt, cs := block.NewTransaction(store, nil, ref, nil)
 		bt.SetReadOnly()
 		bt.SetDecodedBlockCache(scope)
@@ -31,6 +34,8 @@ func TestReadCursorLifetime(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// A stored root on a read-only transaction reads through ReadCursor.
 		if tr.readRoot == nil {
 			t.Fatal("readonly stored root did not use immutable traversal")
 		}
@@ -62,12 +67,16 @@ func TestReadCursorLifetime(t *testing.T) {
 	if page.GetLevel() == 0 {
 		t.Fatal("fixture lacks a child page")
 	}
+
+	// Read the first child through a cloned reference.
 	input := page.GetEntries()[0].GetChildRef().Clone()
 	expected, err := block.UnmarshalReadBlock[Page](ctx, parent.FollowRef(0, input))
 	if err != nil {
 		t.Fatal(err)
 	}
 	expectedHash := append([]byte(nil), expected.GetPageHash()...)
+
+	// Clearing the caller's reference leaves the child reader's identity intact.
 	child := parent.FollowRef(0, input)
 	input.Hash = nil
 	actual, err := block.UnmarshalReadBlock[Page](ctx, child)
@@ -96,19 +105,58 @@ func TestReadCursorLifetime(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer writer.Discard()
+
+	// A reader opened on the writable transaction's clean cursor is a snapshot.
+	snapshot, err := NewTx(ctx, cs, bt, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snapshot.Discard()
+	if snapshot.readRoot == nil {
+		t.Fatal("clean writable cursor did not use immutable traversal")
+	}
+
+	// Write to the subtree after the snapshot opens.
 	if err := writer.Set(ctx, fixture.keys[0], []byte("new value")); err != nil {
 		t.Fatal(err)
 	}
 	if err := writer.Set(ctx, []byte("key-000000-extra"), []byte("shifted slot")); err != nil {
 		t.Fatal(err)
 	}
+
+	// The snapshot still reads the stored revision.
+	value, _, err := snapshot.Get(ctx, fixture.keys[0])
+	if err != nil || !bytes.Equal(value, fixture.values[0]) {
+		t.Fatalf("snapshot saw a later write: %q %v", value, err)
+	}
+	if _, found, err := snapshot.Get(ctx, []byte("key-000000-extra")); err != nil || found {
+		t.Fatalf("snapshot saw a later key: found=%v err=%v", found, err)
+	}
+
+	// A reader opened on the dirty cursor reads the uncommitted pages.
+	dirty, err := NewTx(ctx, cs, bt, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dirty.Discard()
+	if dirty.readRoot != nil {
+		t.Fatal("dirty cursor used immutable traversal")
+	}
+
+	// The dirty reader sees the uncommitted write.
+	value, _, err = dirty.Get(ctx, fixture.keys[0])
+	if err != nil || string(value) != "new value" {
+		t.Fatalf("dirty read=%q err=%v", value, err)
+	}
+
+	// Commit the write and read both revisions.
 	next, _, err := bt.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fresh := open(next, cache)
 	defer fresh.Discard()
-	value, _, err := fresh.Get(ctx, fixture.keys[0])
+	value, _, err = fresh.Get(ctx, fixture.keys[0])
 	if err != nil || string(value) != "new value" {
 		t.Fatalf("new revision value=%q err=%v", value, err)
 	}

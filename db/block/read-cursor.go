@@ -27,19 +27,29 @@ type ReadCursor struct {
 }
 
 // NewReadCursor borrows source for a nonempty immutable reference. It returns
-// nil only for writable transactions and missing references, whose pages live
-// on the mutable cursor tree. A transaction without an enabled borrowed scope
-// reads through its own private scope in the process-wide pool, so a scopeless
-// reader still decodes a page once rather than on every follow.
+// nil for a missing reference, and for a writable transaction whose source
+// cursor is dirty: that subtree's pages live on the mutable cursor tree, and a
+// read of it sees the uncommitted pages and retains them on the tree. A clean
+// source has a clean subtree, so its reference names stored blocks no later
+// write changes, and the reader is a snapshot of the subtree as of its open,
+// on a writable transaction as on a read-only one. The reader takes the
+// context's scope, else the transaction's enabled borrowed scope, else its
+// private scope in the process-wide pool, so a scopeless reader still decodes
+// a page once rather than on every follow.
 func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCursor {
-	// Require an immutable transaction and a stored reference.
-	if source == nil || source.t == nil || !source.t.readOnly.Load() || ref.GetEmpty() {
+	// Require a stored reference beneath an immutable or clean source.
+	if source == nil || source.t == nil || ref.GetEmpty() {
+		return nil
+	}
+	if !source.t.readOnly.Load() && source.IsDirty() {
 		return nil
 	}
 
-	// Capture the source's cache scope without retaining an operation context.
-	ctx = source.decodedBlockCacheContext(ctx)
+	// Capture the reader's cache scope without retaining an operation context.
 	cache := decodedBlockCacheFromContext(ctx)
+	if cache == nil {
+		cache = source.t.readerCache()
+	}
 	out := &ReadCursor{source: source, cache: cache, ref: ref.Clone()}
 	if cache.enabled() {
 		out.link = &decodedBlockReadLink{}
@@ -153,7 +163,7 @@ func (r ReadCursor) current(ctx context.Context) *decodedBlockReadData {
 	}
 	cache := decodedBlockCacheFromContext(ctx)
 	if cache == nil {
-		cache = r.source.t.readCache()
+		cache = r.source.t.readerCache()
 	}
 	if cache != r.cache {
 		return nil
@@ -182,6 +192,13 @@ func UnmarshalReadBlock[T any, PT Ptr[T]](ctx context.Context, reader ReadCursor
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+
+	// A writer's own reads skip its private scope; a reader on it reads through
+	// the transaction's current reader scope, so a later scope change still
+	// bypasses what the old scope retained.
+	if !reader.source.t.readOnly.Load() && decodedBlockCacheFromContext(ctx) == nil {
+		ctx = WithDecodedBlockCache(ctx, reader.source.t.readerCache())
 	}
 	store := reader.source.readStore(ctx)
 	if freshener, ok := store.(DecodedBlockCacheFreshener); ok {
