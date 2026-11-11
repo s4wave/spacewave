@@ -16,14 +16,28 @@ func Lock(f *os.File, off int64, wait bool) (bool, error) {
 	return lockWithCommands(f, off, wait, cmdSetLock, cmdSetLockWait)
 }
 
+// LockShared takes a read lock on the byte at off without waiting, reporting
+// false when another holder has a write lock on it. Read locks share the byte
+// with each other and exclude a write lock, and the file may be open only for
+// reading.
+func LockShared(f *os.File, off int64) (bool, error) {
+	return setLock(f, off, unix.F_RDLCK, cmdSetLock)
+}
+
 // lockWithCommands acquires a byte with the selected ownership semantics.
 func lockWithCommands(f *os.File, off int64, wait bool, set, setWait int) (bool, error) {
-	// Choose the command, then retry it past interrupts.
+	// Choose the command.
 	cmd := set
 	if wait {
 		cmd = setWait
 	}
-	lk := unix.Flock_t{Type: unix.F_WRLCK, Start: off, Len: 1}
+	return setLock(f, off, unix.F_WRLCK, cmd)
+}
+
+// setLock takes a lock of type typ on the byte at off with cmd, retrying past
+// interrupts and reporting false when another holder conflicts.
+func setLock(f *os.File, off int64, typ int16, cmd int) (bool, error) {
+	lk := unix.Flock_t{Type: typ, Start: off, Len: 1}
 	for {
 		err := unix.FcntlFlock(f.Fd(), cmd, &lk)
 		switch err {

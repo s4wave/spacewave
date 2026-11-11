@@ -68,7 +68,7 @@ func Open(ctx context.Context, le *logrus.Entry, path string, opts s4db.Options)
 // left for the caller to reopen.
 func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr error) {
 	// Open the previous file, taking its locks for the build.
-	src, err := s4dbv1.Open(path)
+	src, err := s4dbv1.OpenExclusive(path)
 	switch {
 	case errors.Is(err, s4dbv1.ErrUnsupported), errors.Is(err, s4dbv1.ErrNotDatabase):
 		return nil
@@ -342,7 +342,7 @@ func logConvertProgress(le *logrus.Entry) func(keys, bytes int64) {
 // returns, and calls progress with the keys and bytes streamed so far. It
 // leaves src unchanged and removes dst when the copy fails.
 func CopyPreviousFormat(ctx context.Context, src, dst string, progress func(keys, bytes int64)) error {
-	// Open the source, refusing one a process has open.
+	// Open the source read-only, refusing one a writer or a conversion holds.
 	r, err := s4dbv1.Open(src)
 	if errors.Is(err, s4dbv1.ErrInUse) {
 		return fmt.Errorf("%s is open in another process; stop the daemon first", src)
