@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -35,7 +36,12 @@ type benchWorld struct {
 	root      *bucket_lookup.Cursor
 	authority *world_block.LocalAuthority
 	engine    *world_block.Engine
+	decoded   *block.DecodedBlockCache
 }
+
+// decodedCacheBytes is the budget of the process-wide decoded-block cache,
+// the size a production server gives it.
+const decodedCacheBytes = 1536 << 20
 
 // openBenchWorld opens the World in the database file at path, creating both
 // when absent. The testbed's bucket ID is fixed, so a reopen finds the same
@@ -55,7 +61,7 @@ func openBenchWorld(ctx context.Context, path string) (*benchWorld, error) {
 		return nil, err
 	}
 
-	// Open the engine at the authority's head.
+	// Find the authority's head.
 	scope := coord.Scope{VolumeID: tb.Volume.GetID(), ObjectStoreID: benchRootName, ParticipantID: "bench"}
 	w.authority = world_block.NewLocalAuthority(le, w.base, benchRootName, tb.Volume, scope)
 	head, err := w.authority.Head(ctx)
@@ -63,8 +69,15 @@ func openBenchWorld(ctx context.Context, path string) (*benchWorld, error) {
 		w.Close()
 		return nil, err
 	}
+
+	// Attach the shared decoded-block cache, as the World engine's open does.
+	block.SetSharedDecodedBlockCacheMaxCost(decodedCacheBytes)
+	w.decoded = block.NewDecodedBlockCache()
 	w.root = w.base.Clone()
 	w.root.SetRootRef(head.Root)
+	w.root.SetDecodedBlockCache(w.decoded)
+
+	// Open the engine at that head.
 	if w.engine, err = world_block.NewEngine(ctx, le, w.root, world_mock.LookupMockOp, w.authority, false); err != nil {
 		w.Close()
 		return nil, err
@@ -91,6 +104,9 @@ func (w *benchWorld) Close() {
 		if c != nil {
 			c.Release()
 		}
+	}
+	if w.decoded != nil {
+		w.decoded.Close()
 	}
 	w.tb.Release()
 }
