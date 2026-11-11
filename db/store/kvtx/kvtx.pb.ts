@@ -33,7 +33,9 @@ export interface Config {
    * Volume, such as one upgraded from an older format, in the background at
    * its next open. It stays off until a rehearsal on a restored copy of the
    * Volume, covering that adoption, has shown the collector frees no live
-   * block.
+   * block. It also stays off on a Volume whose list rebuild has finished, or
+   * will, until Land stops trusting the short child list of a block that a
+   * later put revives after Finish cleared the unverified lists mark.
    */
   collectorFrees?: boolean
   /**
