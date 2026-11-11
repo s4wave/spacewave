@@ -110,7 +110,8 @@ func newDebugVolumePreviousGetCommand() *cli.Command {
 			"prints its checkpoint. Then looks up each key argument as text and each --block under both block key " +
 			"forms, printing whether the file holds it and the value's size. The first lookup replays the log after " +
 			"the checkpoint; each lookup then reads one page per tree level. It may run beside other readers; a " +
-			"writer or a conversion of the file refuses it.",
+			"writer or a conversion of the file refuses it, and while it runs a conversion of the file fails and " +
+			"a writer waits.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}
