@@ -3,7 +3,6 @@ package kvtx_block_okra
 import (
 	"bytes"
 	"context"
-	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -19,20 +18,15 @@ type Iterator struct {
 	prefix []byte
 	upper  []byte
 
-	current  iteratorEntry
-	path     okraPagePath
-	snapshot *block.Cursor
-	valid    bool
-	started  bool
-	closed   bool
-}
+	// walk holds the path to the current leaf page.
+	walk iteratorWalk
+	// key and index are the current entry's key and its index in the leaf.
+	key   []byte
+	index int
 
-type iteratorEntry struct {
-	key []byte
-
-	page   *Page
-	cursor *block.Cursor
-	index  int
+	valid   bool
+	started bool
+	closed  bool
 }
 
 // NewIterator constructs an Okra iterator.
@@ -43,6 +37,11 @@ func NewIterator(ctx context.Context, tx *Tx, prefix []byte, sort, reverse bool)
 		tx:      tx,
 		reverse: reverse,
 		prefix:  bytes.Clone(prefix),
+	}
+	if tx.readRoot != nil {
+		it.walk = &leafWalk[*flatPage, block.ReadCursor]{t: tx, r: flatPages{tx}}
+	} else {
+		it.walk = &cursorWalk{leafWalk: leafWalk[*Page, *block.Cursor]{t: tx, r: cursorPages{tx}}}
 	}
 
 	// Record a canceled context before starting the iterator.
@@ -73,7 +72,7 @@ func (i *Iterator) Key() []byte {
 	if !i.Valid() {
 		return nil
 	}
-	return i.current.key
+	return i.key
 }
 
 // Value returns the current entry value, or nil if not valid.
@@ -89,15 +88,14 @@ func (i *Iterator) Value() ([]byte, error) {
 	}
 
 	// Decode the value at the current iterator entry.
-	ent := i.current
-	return i.tx.entryToValue(i.ctx, ent.page, ent.cursor, ent.index)
+	return i.walk.value(i.ctx, i.index)
 }
 
 // ValueCopy copies the value to the given byte slice and returns it.
 func (i *Iterator) ValueCopy(buf []byte) ([]byte, error) {
 	// Copy raw inline values straight from the page into buf.
 	if i.Valid() {
-		if raw, ok := i.current.page.rawInlineValue(i.current.index); ok {
+		if raw, ok := i.walk.leaf().rawInlineValue(i.index); ok {
 			if err := i.checkContext(); err != nil {
 				return nil, err
 			}
@@ -147,21 +145,14 @@ func (i *Iterator) Seek(key []byte) error {
 	}
 
 	// Release the previous traversal and reset the iterator position.
-	i.releaseSnapshot()
+	i.walk.release()
 	i.valid = false
 	i.started = true
 	if i.tx.root.GetSize() == 0 {
 		return nil
 	}
 
-	// Pin the traversed tree until the next seek or close. Mutations replace
-	// pages without changing the iterator's existing path.
-	if _, _, err := i.tx.getRootPage(i.ctx); err != nil {
-		return err
-	}
-	i.snapshot = i.tx.bcs.Detach(true)
-
-	// Seek within the pinned tree in the configured direction.
+	// Seek in the configured direction.
 	if i.reverse {
 		return i.seekReverse(key)
 	}
@@ -170,19 +161,10 @@ func (i *Iterator) Seek(key []byte) error {
 
 // Close closes the iterator.
 func (i *Iterator) Close() {
-	i.releaseSnapshot()
+	i.walk.release()
 	i.err = context.Canceled
 	i.valid = false
 	i.closed = true
-}
-
-func (i *Iterator) releaseSnapshot() {
-	for _, page := range i.snapshot.DiscardDetached() {
-		discardPages(page)
-	}
-	i.snapshot = nil
-	i.path = nil
-	i.current = iteratorEntry{}
 }
 
 // ValueCursor returns a cursor located at the current value.
@@ -198,8 +180,12 @@ func (i *Iterator) ValueCursor() *block.Cursor {
 	}
 
 	// Follow the value reference of the current iterator entry.
-	ent := i.current
-	return ent.page.FollowValue(ent.cursor, ent.index)
+	cursor, err := i.walk.valueCursor(i.ctx, i.index)
+	if err != nil {
+		i.err = err
+		return nil
+	}
+	return cursor
 }
 
 func (i *Iterator) checkContext() error {
@@ -223,12 +209,11 @@ func (i *Iterator) seekForward(key []byte) error {
 		target = key
 	}
 
-	// Find the leaf path containing the forward seek target.
-	path, err := i.seekPath(target, false)
-	if err != nil {
+	// Find the leaf page containing the forward seek target.
+	if err := i.walk.seek(i.ctx, target, false); err != nil {
 		return err
 	}
-	return i.firstAtOrAfter(path, target)
+	return i.firstAtOrAfter(target)
 }
 
 func (i *Iterator) seekReverse(key []byte) error {
@@ -239,168 +224,110 @@ func (i *Iterator) seekReverse(key []byte) error {
 
 	// Seek strictly below the prefix upper bound when it limits the target.
 	if i.upper != nil && (len(key) == 0 || bytes.Compare(key, i.upper) >= 0) {
-		path, err := i.seekPath(i.upper, true)
-		if err != nil {
+		if err := i.walk.seek(i.ctx, i.upper, true); err != nil {
 			return err
 		}
-		return i.lastBefore(path, i.upper)
+		return i.lastBefore(i.upper)
 	}
 
-	// Find the leaf path containing the reverse seek target.
-	path, err := i.seekPath(key, true)
-	if err != nil {
+	// Find the leaf page containing the reverse seek target.
+	if err := i.walk.seek(i.ctx, key, true); err != nil {
 		return err
 	}
-	return i.lastAtOrBefore(path, key)
+	return i.lastAtOrBefore(key)
 }
 
-func (i *Iterator) seekPath(key []byte, last bool) (okraPagePath, error) {
-	if len(key) == 0 {
-		if last {
-			return i.tx.lastPagePath(i.ctx, 0)
-		}
-		return i.tx.findPagePath(i.ctx, 0, okraNodeKey{anchor: true})
-	}
-	return i.tx.findPagePath(i.ctx, 0, okraNodeKey{key: key})
-}
-
-func (t *Tx) lastPagePath(ctx context.Context, level uint32) (okraPagePath, error) {
-	// Require a populated tree containing the requested page level.
-	if t.root.GetSize() == 0 || level > t.root.GetHeight() {
-		return nil, ErrUnexpectedRootMetadata
-	}
-
-	// Load the root page before following the last child path.
-	page, cursor, err := t.getRootPage(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Record the last child at each level down to the requested page.
-	path := okraPagePath{{page: page, cursor: cursor, index: -1}}
-	for page.GetLevel() > level {
-		idx := len(page.GetEntries()) - 1
-		childCursor := page.FollowChild(cursor, idx)
-		child, err := loadPage(ctx, childCursor)
-		if err != nil {
-			return nil, err
-		}
-		path = append(path, okraPageFrame{page: child, cursor: childCursor, index: idx})
-		page, cursor = child, childCursor
-	}
-
-	// Verify that the last child descent reached the requested level.
-	if page.GetLevel() != level {
-		return nil, ErrUnexpectedPageMetadata
-	}
-	return path, ctx.Err()
-}
-
-func (i *Iterator) firstAtOrAfter(path okraPagePath, key []byte) error {
+// firstAtOrAfter moves to the first in-bounds entry at or after key, from the
+// current leaf page forward.
+func (i *Iterator) firstAtOrAfter(key []byte) error {
 	for {
 		// Find a qualifying entry within the current leaf page.
-		frame := path.leaf()
-		for idx, ent := range frame.page.GetEntries() {
-			if ent.GetAnchor() || len(key) != 0 && bytes.Compare(ent.GetKey(), key) < 0 {
+		page := i.walk.leaf()
+		for idx := range page.Len() {
+			if page.isAnchor(idx) || len(key) != 0 && bytes.Compare(page.entryKey(idx), key) < 0 {
 				continue
 			}
-			if i.setCurrent(path, idx) {
-				return nil
-			}
+			i.setCurrent(idx)
 			return nil
 		}
 
 		// Continue to the next page when this page has no qualifying entry.
-		next, ok, err := i.tx.nextPagePath(i.ctx, path, 0)
+		ok, err := i.walk.step(i.ctx, false)
 		if err != nil || !ok {
 			return err
 		}
-		path = next
 	}
 }
 
-func (i *Iterator) lastAtOrBefore(path okraPagePath, key []byte) error {
+// lastAtOrBefore moves to the last in-bounds entry at or before key, from the
+// current leaf page backward.
+func (i *Iterator) lastAtOrBefore(key []byte) error {
 	for {
 		// Find a qualifying entry within the current leaf page.
-		frame := path.leaf()
-		for idx, ent := range slices.Backward(frame.page.GetEntries()) {
-
-			if ent.GetAnchor() || len(key) != 0 && bytes.Compare(ent.GetKey(), key) > 0 {
+		page := i.walk.leaf()
+		for idx := page.Len() - 1; idx >= 0; idx-- {
+			if page.isAnchor(idx) || len(key) != 0 && bytes.Compare(page.entryKey(idx), key) > 0 {
 				continue
 			}
-			if i.setCurrent(path, idx) {
-				return nil
-			}
+			i.setCurrent(idx)
 			return nil
 		}
 
 		// Continue to the previous page when this page has no qualifying entry.
-		prev, ok, err := i.tx.previousPagePath(i.ctx, path, 0)
+		ok, err := i.walk.step(i.ctx, true)
 		if err != nil || !ok {
 			return err
 		}
-		path = prev
 	}
 }
 
-func (i *Iterator) lastBefore(path okraPagePath, key []byte) error {
+// lastBefore moves to the last in-bounds entry before key, from the current
+// leaf page backward.
+func (i *Iterator) lastBefore(key []byte) error {
 	for {
 		// Find a qualifying entry within the current leaf page.
-		frame := path.leaf()
-		for idx, ent := range slices.Backward(frame.page.GetEntries()) {
-
-			if ent.GetAnchor() || bytes.Compare(ent.GetKey(), key) >= 0 {
+		page := i.walk.leaf()
+		for idx := page.Len() - 1; idx >= 0; idx-- {
+			if page.isAnchor(idx) || bytes.Compare(page.entryKey(idx), key) >= 0 {
 				continue
 			}
-			if i.setCurrent(path, idx) {
-				return nil
-			}
+			i.setCurrent(idx)
 			return nil
 		}
 
 		// Continue to the previous page when this page has no qualifying entry.
-		prev, ok, err := i.tx.previousPagePath(i.ctx, path, 0)
+		ok, err := i.walk.step(i.ctx, true)
 		if err != nil || !ok {
 			return err
 		}
-		path = prev
 	}
 }
 
+// next advances to the following entry, loading the next leaf page after the
+// current one is exhausted.
 func (i *Iterator) next() bool {
 	// Advance within the current iterator page when an entry remains.
-	idx := i.current.index + 1
-	if idx < len(i.current.page.GetEntries()) {
-		return i.setCurrent(i.path, idx)
+	if idx := i.index + 1; idx < i.walk.leaf().Len() {
+		return i.setCurrent(idx)
 	}
-
-	// Load the next page after exhausting the current page.
-	next, ok, err := i.tx.nextPagePath(i.ctx, i.path, 0)
-	if err != nil {
-		i.err = err
-		return false
-	}
-	if !ok {
-		i.valid = false
-		return false
-	}
-
-	// Position the iterator on a qualifying entry in the adjacent page.
-	if err := i.firstAtOrAfter(next, nil); err != nil {
-		i.err = err
-	}
-	return i.Valid()
+	return i.stepPage(false)
 }
 
+// previous moves to the preceding entry, loading the previous leaf page after
+// the current one is exhausted.
 func (i *Iterator) previous() bool {
 	// Advance within the current iterator page when an entry remains.
-	idx := i.current.index - 1
-	if idx >= 0 {
-		return i.setCurrent(i.path, idx)
+	if idx := i.index - 1; idx >= 0 {
+		return i.setCurrent(idx)
 	}
+	return i.stepPage(true)
+}
 
-	// Load the previous page after exhausting the current page.
-	prev, ok, err := i.tx.previousPagePath(i.ctx, i.path, 0)
+// stepPage moves to the adjacent leaf page and positions on its first
+// qualifying entry in the iterator's direction.
+func (i *Iterator) stepPage(reverse bool) bool {
+	// Load the adjacent page after exhausting the current page.
+	ok, err := i.walk.step(i.ctx, reverse)
 	if err != nil {
 		i.err = err
 		return false
@@ -411,29 +338,30 @@ func (i *Iterator) previous() bool {
 	}
 
 	// Position the iterator on a qualifying entry in the adjacent page.
-	if err := i.lastAtOrBefore(prev, nil); err != nil {
+	if reverse {
+		err = i.lastAtOrBefore(nil)
+	} else {
+		err = i.firstAtOrAfter(nil)
+	}
+	if err != nil {
 		i.err = err
 	}
 	return i.Valid()
 }
 
-func (i *Iterator) setCurrent(path okraPagePath, idx int) bool {
+// setCurrent positions the iterator on entry idx of the current leaf page,
+// and reports false, ending the iteration, when it is out of bounds.
+func (i *Iterator) setCurrent(idx int) bool {
 	// Require a non-anchor entry within the iterator prefix bounds.
-	frame := path.leaf()
-	ent := frame.page.GetEntries()[idx]
-	if ent.GetAnchor() || !i.inBounds(ent.GetKey()) {
+	page := i.walk.leaf()
+	if page.isAnchor(idx) || !i.inBounds(page.entryKey(idx)) {
 		i.valid = false
 		return false
 	}
 
-	// Retain the selected page path and entry as the iterator position.
-	i.current = iteratorEntry{
-		key:    append(i.current.key[:0], ent.GetKey()...),
-		page:   frame.page,
-		cursor: frame.cursor,
-		index:  idx,
-	}
-	i.path = append(i.path[:0], path...)
+	// Retain the selected entry as the iterator position.
+	i.key = append(i.key[:0], page.entryKey(idx)...)
+	i.index = idx
 	i.valid = true
 	i.started = true
 	return true
@@ -447,6 +375,115 @@ func (i *Iterator) inBounds(key []byte) bool {
 		return false
 	}
 	return true
+}
+
+// iteratorWalk is an Iterator's path to its current leaf page, in one page
+// kind.
+type iteratorWalk interface {
+	// seek loads the path to the leaf page containing key. An empty key seeks
+	// the first leaf page, or the last when last is set.
+	seek(ctx context.Context, key []byte, last bool) error
+	// step loads the next leaf page, or the previous when reverse is set, and
+	// reports false at the end of the tree.
+	step(ctx context.Context, reverse bool) (bool, error)
+	// leaf returns the current leaf page.
+	leaf() walkPage
+	// value returns an owned copy of the value of entry index of the leaf.
+	value(ctx context.Context, index int) ([]byte, error)
+	// valueCursor returns a cursor at the value of entry index of the leaf.
+	valueCursor(ctx context.Context, index int) (*block.Cursor, error)
+	// release drops the path.
+	release()
+}
+
+// leafWalk walks the leaf pages of one page kind. It holds only the path to
+// its current leaf page.
+type leafWalk[P walkPage, C any] struct {
+	t    *Tx
+	r    pageReader[P, C]
+	path pagePath[P, C]
+}
+
+// seek loads the path to the leaf page containing key.
+func (w *leafWalk[P, C]) seek(ctx context.Context, key []byte, last bool) error {
+	// Descend toward the key, or the first or last leaf without one.
+	var err error
+	switch {
+	case len(key) != 0:
+		w.path, err = findPagePath(ctx, w.r, w.t.root, 0, okraNodeKey{key: key})
+	case last:
+		w.path, err = lastPagePath(ctx, w.r, w.t.root, 0)
+	default:
+		w.path, err = findPagePath(ctx, w.r, w.t.root, 0, okraNodeKey{anchor: true})
+	}
+	return err
+}
+
+// step loads the adjacent leaf page.
+func (w *leafWalk[P, C]) step(ctx context.Context, reverse bool) (bool, error) {
+	// Keep the current path when there is no adjacent page.
+	var path pagePath[P, C]
+	var ok bool
+	var err error
+	if reverse {
+		path, ok, err = previousPagePath(ctx, w.r, w.path, 0)
+	} else {
+		path, ok, err = nextPagePath(ctx, w.r, w.path, 0)
+	}
+	if ok {
+		w.path = path
+	}
+	return ok, err
+}
+
+// leaf returns the current leaf page.
+func (w *leafWalk[P, C]) leaf() walkPage {
+	return w.path.leaf().page
+}
+
+// value returns an owned copy of the value of entry index of the leaf.
+func (w *leafWalk[P, C]) value(ctx context.Context, index int) ([]byte, error) {
+	frame := w.path.leaf()
+	return w.r.entryValue(ctx, frame.page, frame.cursor, index)
+}
+
+// valueCursor returns a cursor at the value of entry index of the leaf.
+func (w *leafWalk[P, C]) valueCursor(ctx context.Context, index int) (*block.Cursor, error) {
+	frame := w.path.leaf()
+	return w.r.valueCursor(ctx, frame.page, frame.cursor, index)
+}
+
+// release drops the path.
+func (w *leafWalk[P, C]) release() {
+	w.path = nil
+}
+
+// cursorWalk walks the mutable cursor tree. Each seek pins the tree it walks
+// until the next seek or release, so mutations replace pages without changing
+// the iterator's path.
+type cursorWalk struct {
+	leafWalk[*Page, *block.Cursor]
+	// snapshot is the detached root position pinning the walked tree.
+	snapshot *block.Cursor
+}
+
+// seek pins the current tree, then loads the path to key's leaf page in it.
+func (w *cursorWalk) seek(ctx context.Context, key []byte, last bool) error {
+	// Load the root page so the detached position pins it.
+	if _, _, err := w.t.getRootPage(ctx); err != nil {
+		return err
+	}
+	w.snapshot = w.t.bcs.Detach(true)
+	return w.leafWalk.seek(ctx, key, last)
+}
+
+// release drops the path and discards the pinned tree.
+func (w *cursorWalk) release() {
+	for _, page := range w.snapshot.DiscardDetached() {
+		discardPages(page)
+	}
+	w.snapshot = nil
+	w.leafWalk.release()
 }
 
 // _ is a type assertion

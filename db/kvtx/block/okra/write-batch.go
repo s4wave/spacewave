@@ -58,7 +58,7 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 		var old *Entry
 		if !empty {
 			if page == nil || !pageContainsKey(page, okraNodeKey{key: entry.Key}) {
-				path, err := t.findPagePath(ctx, 0, okraNodeKey{key: entry.Key})
+				path, err := findPagePath(ctx, cursorPages{t}, t.root, 0, okraNodeKey{key: entry.Key})
 				if err != nil {
 					return err
 				}

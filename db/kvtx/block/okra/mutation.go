@@ -26,20 +26,6 @@ type okraLevelNode struct {
 	child *block.Cursor
 }
 
-// okraPageFrame is one page along a descent from the root, with the cursor it
-// was loaded through and the child index used to reach the next frame.
-type okraPageFrame struct {
-	// page is the loaded page.
-	page *Page
-	// cursor is the cursor the page was loaded through.
-	cursor *block.Cursor
-	// index is the child index used to descend to the next frame, -1 for the root.
-	index int
-}
-
-// okraPagePath is a descent from the root page to a page at the target level.
-type okraPagePath []okraPageFrame
-
 // okraBuiltPage is a newly built page with the detached cursor holding it.
 type okraBuiltPage struct {
 	// page is the built page.
@@ -148,7 +134,7 @@ func (t *Tx) replaceLevelEntries(
 
 	// Each window is an ordered list of paths into the unchanged source tree.
 	// A changed page may pull in its predecessor when its boundary disappears.
-	var windows [][]okraPagePath
+	var windows [][]cursorPath
 	for _, key := range locateKeys {
 		// Reuse the previous window when it already contains the changed key.
 		if len(windows) != 0 {
@@ -159,19 +145,19 @@ func (t *Tx) replaceLevelEntries(
 		}
 
 		// Locate the changed page and include a predecessor whose boundary disappears.
-		path, err := t.findPagePath(ctx, level, key)
+		path, err := findPagePath(ctx, cursorPages{t}, t.root, level, key)
 		if err != nil {
 			return err
 		}
 		page := path.leaf().page
-		window := []okraPagePath{path}
+		window := []cursorPath{path}
 		if containsSortedNodeKey(oldKeys, pageStartKey(page)) && !page.GetStartsAtAnchor() {
-			previous, ok, err := t.previousPagePath(ctx, path, level)
+			previous, ok, err := previousPagePath(ctx, cursorPages{t}, path, level)
 			if err != nil {
 				return err
 			}
 			if ok {
-				window = []okraPagePath{previous, path}
+				window = []cursorPath{previous, path}
 			}
 		}
 
@@ -248,107 +234,6 @@ func (t *Tx) replaceLevelEntries(
 		parentNodes = append(parentNodes, parents...)
 	}
 	return t.replaceLevelEntries(ctx, level+1, oldParentKeys, parentNodes)
-}
-
-// findPagePath descends from the root to the page at level containing key.
-func (t *Tx) findPagePath(ctx context.Context, level uint32, key okraNodeKey) (okraPagePath, error) {
-	// Require a populated tree with the requested page level.
-	if t.root.GetSize() == 0 || level > t.root.GetHeight() {
-		return nil, ErrUnexpectedRootMetadata
-	}
-
-	// Load the root page before descending toward the requested level.
-	page, cursor, err := t.getRootPage(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Record the page path while following the child that contains the key.
-	path := okraPagePath{{page: page, cursor: cursor, index: -1}}
-	for page.GetLevel() > level {
-		idx := 0
-		if !key.anchor {
-			idx = page.searchEntry(key.key)
-		}
-		if idx < 0 {
-			return nil, ErrUnexpectedPageMetadata
-		}
-		childCursor := page.FollowChild(cursor, idx)
-		child, err := loadPage(ctx, childCursor)
-		if err != nil {
-			return nil, err
-		}
-		path = append(path, okraPageFrame{page: child, cursor: childCursor, index: idx})
-		page, cursor = child, childCursor
-	}
-
-	// Verify that the descent reached the requested page level.
-	if page.GetLevel() != level {
-		return nil, ErrUnexpectedPageMetadata
-	}
-	return path, ctx.Err()
-}
-
-// previousPagePath returns the path of the page preceding path's leaf at
-// level, or false when the leaf is the first page in the tree.
-func (t *Tx) previousPagePath(ctx context.Context, path okraPagePath, level uint32) (okraPagePath, bool, error) {
-	for depth := len(path) - 2; depth >= 0; depth-- {
-		childIdx := path[depth+1].index
-		if childIdx <= 0 {
-			continue
-		}
-		return t.descendPagePath(ctx, path[:depth+1], childIdx-1, level, false)
-	}
-	return nil, false, nil
-}
-
-// nextPagePath returns the path of the page following path's leaf at level,
-// or false when the leaf is the last page in the tree.
-func (t *Tx) nextPagePath(ctx context.Context, path okraPagePath, level uint32) (okraPagePath, bool, error) {
-	for depth := len(path) - 2; depth >= 0; depth-- {
-		parent := path[depth].page
-		childIdx := path[depth+1].index
-		if childIdx+1 >= len(parent.GetEntries()) {
-			continue
-		}
-		return t.descendPagePath(ctx, path[:depth+1], childIdx+1, level, true)
-	}
-	return nil, false, nil
-}
-
-// descendPagePath descends from prefix's last frame through childIdx to the
-// page at level, taking the first or last child at each deeper level.
-func (t *Tx) descendPagePath(
-	ctx context.Context,
-	prefix okraPagePath,
-	childIdx int,
-	level uint32,
-	first bool,
-) (okraPagePath, bool, error) {
-	// Load the selected child below the existing path prefix.
-	parent := prefix[len(prefix)-1]
-	cursor := parent.page.FollowChild(parent.cursor, childIdx)
-	page, err := loadPage(ctx, cursor)
-	if err != nil {
-		return nil, false, err
-	}
-
-	// Extend the path through the first or last child at each deeper level.
-	out := slices.Clone(prefix)
-	out = append(out, okraPageFrame{page: page, cursor: cursor, index: childIdx})
-	for page.GetLevel() > level {
-		idx := 0
-		if !first {
-			idx = len(page.GetEntries()) - 1
-		}
-		cursor = page.FollowChild(cursor, idx)
-		page, err = loadPage(ctx, cursor)
-		if err != nil {
-			return nil, false, err
-		}
-		out = append(out, okraPageFrame{page: page, cursor: cursor, index: idx})
-	}
-	return out, true, ctx.Err()
 }
 
 // setRootFromLevelNodes builds pages from the nodes and collapses upward until
@@ -563,11 +448,6 @@ func parentNodesForPages(pages []okraBuiltPage) ([]okraLevelNode, error) {
 		}
 	}
 	return nodes, nil
-}
-
-// leaf returns the deepest frame of the path.
-func (p okraPagePath) leaf() okraPageFrame {
-	return p[len(p)-1]
 }
 
 // validateLevelNodes checks that the nodes are non-empty, non-anchor after the
