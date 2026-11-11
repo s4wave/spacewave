@@ -27,6 +27,7 @@ func newSessionCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newSessionListCommand(),
 			newSessionInfoCommand(),
+			newSessionNameCommand(),
 			newSessionAttachLocalCommand(),
 			newSessionPairCommand(),
 			newSessionLogoutCommand(),
@@ -80,17 +81,13 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 		os.Stdout.WriteString("no sessions\n")
 		return nil
 	}
-	rows := [][]string{{"INDEX", "SESSION", "PROVIDER", "ACCOUNT", "USERNAME"}}
+	rows := [][]string{{"INDEX", "SESSION", "PROVIDER", "ACCOUNT", "NAME"}}
 	for _, s := range sessions {
-		// Spacewave Sessions store the account username as their display name.
+		// Read the name: a Spacewave username, or the name given a local account.
 		ref := s.GetSessionRef().GetProviderResourceRef()
-		var username string
-		if ref.GetProviderId() == "spacewave" {
-			meta, _, err := client.root.GetSessionMetadata(ctx, s.GetSessionIndex())
-			if err != nil {
-				return errors.Wrap(err, "get session metadata")
-			}
-			username = meta.GetDisplayName()
+		meta, _, err := client.root.GetSessionMetadata(ctx, s.GetSessionIndex())
+		if err != nil {
+			return errors.Wrap(err, "get session metadata")
 		}
 
 		// Add the Session row.
@@ -99,7 +96,7 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 			truncateID(ref.GetId(), 8),
 			ref.GetProviderId(),
 			ref.GetProviderAccountId(),
-			username,
+			meta.GetDisplayName(),
 		})
 	}
 	writeTable(os.Stdout, "", rows)
