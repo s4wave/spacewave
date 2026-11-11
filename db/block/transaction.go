@@ -784,6 +784,8 @@ func addMarshalAliasWaits(reachable map[*handle]*transactionReachableNode) {
 	}
 
 	// Add alias dependencies to each reachable block's existing child waits.
+	// Each walk starts from an empty seen set; one map is cleared and reused.
+	seen := make(map[*AliasIdentityToken]struct{})
 	for h, node := range reachable {
 		if h.isSubBlock || h.blk == nil {
 			continue
@@ -792,7 +794,8 @@ func addMarshalAliasWaits(reachable map[*handle]*transactionReachableNode) {
 		// Each identity adds its aliases once; most nodes have none, so the
 		// set is made on the first identity that has any.
 		var added map[*AliasIdentityToken]struct{}
-		walkMarshalAliasSubBlocks(h.blk, make(map[*AliasIdentityToken]struct{}), func(subBlock any) {
+		clear(seen)
+		walkMarshalAliasSubBlocks(h.blk, seen, func(subBlock any) {
 			// Skip sub-blocks with no aliases and identities already added.
 			identity := blockAliasIdentity(subBlock)
 			aliases := handlesByBlock[identity]
@@ -897,16 +900,30 @@ func walkMarshalAliasSubBlocks(v any, seen map[*AliasIdentityToken]struct{}, vis
 		}
 		seen[identity] = struct{}{}
 	}
+	rangeSubBlocks(v, func(subBlock SubBlock) {
+		if subBlock == nil || subBlock.IsNil() {
+			return
+		}
+		visit(subBlock)
+		walkMarshalAliasSubBlocks(subBlock, seen, visit)
+	})
+}
+
+// rangeSubBlocks calls fn with each constructed sub-block of v, without
+// building a map when v implements BlockWithSubBlockRange.
+func rangeSubBlocks(v any, fn func(SubBlock)) {
+	if ranger, ok := v.(BlockWithSubBlockRange); ok {
+		ranger.RangeSubBlocks(func(_ uint32, subBlock SubBlock) {
+			fn(subBlock)
+		})
+		return
+	}
 	withSubBlocks, ok := v.(BlockWithSubBlocks)
 	if !ok {
 		return
 	}
 	for _, subBlock := range withSubBlocks.GetSubBlocks() {
-		if subBlock == nil || subBlock.IsNil() {
-			continue
-		}
-		visit(subBlock)
-		walkMarshalAliasSubBlocks(subBlock, seen, visit)
+		fn(subBlock)
 	}
 }
 

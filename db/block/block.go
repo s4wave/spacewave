@@ -165,6 +165,28 @@ type BlockWithSubBlocks interface {
 	GetSubBlockCtor(id uint32) SubBlockCtor
 }
 
+// BlockWithSubBlockRange visits a block's sub-blocks without building a map,
+// for walks that run on every write. A type that implements it is the single
+// source of its sub-blocks: its GetSubBlocks returns CollectSubBlocks over it.
+// Values may be nil, as in GetSubBlocks.
+type BlockWithSubBlockRange interface {
+	// RangeSubBlocks calls fn with each sub-block by reference id.
+	RangeSubBlocks(fn func(id uint32, subBlock SubBlock))
+}
+
+// CollectSubBlocks returns the sub-blocks r visits as a map, or nil when it
+// visits none.
+func CollectSubBlocks(r BlockWithSubBlockRange) map[uint32]SubBlock {
+	var subBlocks map[uint32]SubBlock
+	r.RangeSubBlocks(func(id uint32, subBlock SubBlock) {
+		if subBlocks == nil {
+			subBlocks = make(map[uint32]SubBlock)
+		}
+		subBlocks[id] = subBlock
+	})
+	return subBlocks
+}
+
 // BlockWithPreWriteHook is a block with a function called when writing.
 // This can also be applied to a sub-block.
 type BlockWithPreWriteHook interface {
