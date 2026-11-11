@@ -47,12 +47,16 @@ import (
 //
 // While Sweeping, a run entry that is not reborn names an unmarked block,
 // which every site that asks whether a block is stored answers absent, as
-// Unmarked describes, and the sweep deletes each, releasing the holder its
-// list gave each child outside the run, unless the block's cascade already
-// released them, as sweptDowns decides. A put of an unmarked block gives
-// birth to it again: its entry turns reborn, and its old list's children
-// outside the run lose the holder it gave them. Once no unmarked block is
-// left, the sweep deletes the run and the state settles.
+// Unmarked describes. The flip freezes each unmarked block's count and
+// cascade records, which say whether its old list still holds its children,
+// and counts its holders from the flip on apart, as kindUnmarkedCount
+// describes, so no later write changes what the old list holds. The sweep
+// deletes each unmarked block, releasing the holder its old list gave each
+// child outside the run when it still holds, as releaseOld decides. A put
+// of an unmarked block gives birth to it again: its entry turns reborn, its
+// old list releases the same way, and it keeps the holders it gained since
+// the flip. Once no unmarked block is left, the sweep deletes the run and
+// the state settles.
 
 // UnmarkedError is returned by a Land that holds a block the settle
 // unmarked: no live block names it, and the sweep will delete it. The writer
@@ -83,6 +87,92 @@ func (r *Records) Unmarked(ctx context.Context, key []byte) (bool, error) {
 	}
 	value, found, err := r.tx.Get(ctx, r.key(kindUnmarked, key))
 	return found && !bytes.Equal(value, runReborn), err
+}
+
+// countKind returns the kind of the count record of the block at key:
+// kindUnmarkedCount while it is unmarked, since the flip froze its kindCount
+// record, and kindCount otherwise. Outside Sweeping it reads nothing more
+// than the generation; while Sweeping, one run entry.
+func (r *Records) countKind(ctx context.Context, key []byte) (byte, error) {
+	unmarked, err := r.Unmarked(ctx, key)
+	if err != nil || !unmarked {
+		return kindCount, err
+	}
+	return kindUnmarkedCount, nil
+}
+
+// oldListHolds reports whether the old list of the unmarked block at key
+// still holds its children, from its kindCount and kindCascade records as
+// the flip froze them, and whether a cascade is due on it. Its children
+// count it exactly when its frozen holders and a due cascade disagree: a
+// held block with none due, or a Dying one at zero whose down cascade is
+// due. A Dead block at zero with none due already released them through its
+// cascade, as did a Holding one whose up cascade is due, so releasing them
+// again would take a holder from a child something else still holds.
+func (r *Records) oldListHolds(ctx context.Context, key []byte) (holds, due bool, err error) {
+	// Read the frozen count, then the frozen cascade.
+	value, found, err := r.tx.Get(ctx, r.key(kindCount, key))
+	if err != nil {
+		return false, false, err
+	}
+	holds = true
+	if found {
+		holders, _, err := decodeHolders(value)
+		if err != nil {
+			return false, false, err
+		}
+		holds = holders != 0
+	}
+	dir, due, err := r.getCascade(ctx, key)
+	if err != nil || !due {
+		return holds, due, err
+	}
+	return dir == cascadeDown, true, nil
+}
+
+// releaseOld ends the old generation's records of the unmarked block at
+// key as it leaves the run, by the sweep or a rebirth, and returns the block
+// keys of the children outside the run its old list still holds, as
+// oldListHolds decides, which lose that holder. It deletes the block's due
+// cascade, which the release takes over, uncounting it in state, which the
+// caller writes, and moves its kindUnmarkedCount record, the holders it
+// gained and lost since the flip, over its frozen kindCount record. A child
+// inside the run keeps no holder from it, since the flip dropped the
+// holders of every unmarked block.
+func (r *Records) releaseOld(ctx context.Context, state *LivenessState, key []byte) ([][]byte, error) {
+	// Read whether the old list holds, and drop its cascade.
+	holds, due, err := r.oldListHolds(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if due {
+		if err := r.deleteCascade(ctx, state, key); err != nil {
+			return nil, err
+		}
+	}
+	var released [][]byte
+	if holds {
+		value, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
+		if err != nil {
+			return nil, err
+		}
+		if released, err = r.outsideRun(ctx, bytes.Clone(listKeys(value))); err != nil {
+			return nil, err
+		}
+	}
+
+	// Move the count since the flip over the frozen one.
+	count, found, err := r.tx.Get(ctx, r.key(kindUnmarkedCount, key))
+	switch {
+	case err != nil:
+		return nil, err
+	case !found:
+		return released, r.tx.Delete(ctx, r.key(kindCount, key))
+	}
+	if err := r.tx.Set(ctx, r.key(kindCount, key), bytes.Clone(count)); err != nil {
+		return nil, err
+	}
+	return released, r.tx.Delete(ctx, r.key(kindUnmarkedCount, key))
 }
 
 // listState reads the list record of the block at key: whether it exists,
@@ -166,26 +256,18 @@ func (r *Records) noteRewrite(ctx context.Context, state *LivenessState) error {
 	return r.tx.Set(ctx, r.key(kindRewritten), nil)
 }
 
-// rebirth gives birth again to the unmarked block at key, whose old list
-// value is old, while the generation is Sweeping: its run entry turns
-// reborn, its count record goes, as a born block has none, and it returns
-// the block keys of its old list's children outside the run, which lose the
-// holder the old list gave them. The caller writes the new list.
-func (r *Records) rebirth(ctx context.Context, ref *block.BlockRef) ([][]byte, error) {
-	// Read the old list, turn the run entry reborn, and drop the count.
+// rebirth gives birth again to the unmarked block ref while the generation
+// is Sweeping: it leaves the run as releaseOld describes, keeping the
+// holders it gained since the flip, its run entry turns reborn, and it
+// returns the block keys of the children its old list still held, which
+// lose that holder. The caller writes the new list and state.
+func (r *Records) rebirth(ctx context.Context, state *LivenessState, ref *block.BlockRef) ([][]byte, error) {
 	key := BlockKey(ref)
-	old, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
+	released, err := r.releaseOld(ctx, state, key)
 	if err != nil {
 		return nil, err
 	}
-	old = bytes.Clone(listKeys(old))
-	if err := r.tx.Set(ctx, r.key(kindUnmarked, key), runReborn); err != nil {
-		return nil, err
-	}
-	if err := r.SetHolders(ctx, ref, 1, 0); err != nil {
-		return nil, err
-	}
-	return r.outsideRun(ctx, old)
+	return released, r.tx.Set(ctx, r.key(kindUnmarked, key), runReborn)
 }
 
 // outsideRun returns the block keys in packed that have no run entry.
@@ -332,7 +414,11 @@ func (c *Collector) runSlice(ctx context.Context, rec *Records, res *CollectResu
 // such a block or can within the grace period. Its count misses only a
 // holder whose list is unverified and short; that holder, if anything holds
 // it, is a seed the flip pushes or a block below a front entry, which holds
-// the flip until the walk decodes it.
+// the flip until the walk decodes it. A list that gained a child journaled
+// no holder for it, so while kindRewritten exists the counts may miss a
+// holder whose list is marked, and nothing pops. The record lasts until the
+// next flip attempt returns the Volume to unadopted and the adoption that
+// follows deletes it, so the front waits for one recount at most.
 func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
 	// Pop only while Open, and while the free proof can hold.
 	state, err := rec.GetState(ctx)
@@ -340,6 +426,9 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 		return from, false, err
 	}
 	if ok, err := rec.freeable(ctx, state); err != nil || !ok {
+		return from, false, err
+	}
+	if recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten)); err != nil || recount {
 		return from, false, err
 	}
 
@@ -409,6 +498,12 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 	}
 
 	// A rewritten list's new children lack their holders: recount first.
+	// This is the settle's one return to unadopted, and it runs only while
+	// Open. An adoption while Sweeping would recount the unmarked blocks'
+	// frozen kindCount records and clear their kindUnmarkedCount records,
+	// losing whether each old list still holds its children and the holders
+	// gained since the flip; a future trigger of a readopt must wait for
+	// Settled, or recount into kindUnmarkedCount.
 	recount, err := rec.tx.Exists(ctx, rec.key(kindRewritten))
 	if err != nil {
 		return err
@@ -468,16 +563,17 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 
 // sweepSlice deletes each unmarked block of up to a slice of run entries
 // after the key position from, while the generation is Sweeping and the
-// Volume adopted: its bytes, list, proof, count record and run entry, with
-// one journal down pair for each child its list names outside the run while
-// those children still count it, as sweptDowns decides, as a free's cascade
-// releases them. A reborn entry stays, since the sweep of an
-// unmarked parent skips a reborn child, whose rebirth took back what the old
-// list gave it. It reports whether it reached the run's end.
+// Volume adopted: its bytes, list, proof and run entry, with one journal
+// down pair for each child its old list still holds, as releaseOld decides,
+// as a free's cascade releases them. Its count keeps the holders it gained
+// since the flip, as a free keeps a block's netted holders. A reborn entry
+// stays, since the sweep of an unmarked parent skips a reborn child, whose
+// rebirth took back what the old list gave it. It reports whether it
+// reached the run's end.
 //
-// Cost: per unmarked block, its count and cascade reads, its list read, the
-// deletes, and one run entry read per child; per slice, one journal record
-// and the state write.
+// Cost: per unmarked block, its two count reads and cascade read, its list
+// read, the deletes, and one run entry read per child; per slice, one
+// journal record and the state write.
 func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, bool, error) {
 	// Sweep only an adopted Volume, since the down pairs need its journal.
 	state, err := rec.GetState(ctx)
@@ -505,7 +601,7 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		if err != nil {
 			return from, false, false, err
 		}
-		children, err := rec.sweptDowns(ctx, state, ref, key)
+		children, err := rec.releaseOld(ctx, state, key)
 		if err != nil {
 			return from, false, false, err
 		}
@@ -518,9 +614,6 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 				return from, false, false, err
 			}
 		}
-		if err := rec.SetHolders(ctx, ref, 1, 0); err != nil {
-			return from, false, false, err
-		}
 		if err := rec.tx.Delete(ctx, rec.key(kindUnmarked, key)); err != nil {
 			return from, false, false, err
 		}
@@ -530,46 +623,6 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		return from, full, !full, rec.appendDowns(ctx, state, c.opts.Now(), down)
 	}
 	return from, full, !full, rec.SetState(ctx, state)
-}
-
-// sweptDowns returns the block keys of the children outside the run that
-// the unmarked block at key still holds, which the sweep releases as it
-// deletes the block, and deletes the block's due cascade, which the sweep
-// takes over, uncounting it in state, which the caller writes.
-//
-// Its children count it exactly when its holders and a due cascade
-// disagree: a held block with none due, or a Dying one at zero whose down
-// cascade is due. A Dead block at zero with none due already released them
-// through its cascade, as did a Holding one whose up cascade is due, so
-// releasing them again would take a holder from a child something else
-// still holds.
-func (r *Records) sweptDowns(ctx context.Context, state *LivenessState, ref *block.BlockRef, key []byte) ([][]byte, error) {
-	// Read whether the children count the block, and drop its cascade.
-	holders, _, err := r.GetHolders(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-	dir, due, err := r.getCascade(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-	counted := holders != 0
-	if due {
-		counted = dir == cascadeDown
-		if err := r.deleteCascade(ctx, state, key); err != nil {
-			return nil, err
-		}
-	}
-	if !counted {
-		return nil, nil
-	}
-
-	// Release the children its list names outside the run.
-	value, _, err := r.tx.Get(ctx, r.key(kindChildren, key))
-	if err != nil {
-		return nil, err
-	}
-	return r.outsideRun(ctx, bytes.Clone(listKeys(value)))
 }
 
 // dropRunSlice deletes up to a slice of run entries after the key position

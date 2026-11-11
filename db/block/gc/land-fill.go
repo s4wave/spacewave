@@ -70,10 +70,16 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 			return nil, err
 		}
 	}
+	var state *LivenessState
 	for _, entry := range born {
 		var released [][]byte
 		if reborn[string(BlockKey(entry.Ref))] {
-			if released, err = rec.rebirth(ctx, entry.Ref); err != nil {
+			if state == nil {
+				if state, err = rec.GetState(ctx); err != nil {
+					return nil, err
+				}
+			}
+			if released, err = rec.rebirth(ctx, state, entry.Ref); err != nil {
 				return nil, err
 			}
 		}
@@ -86,8 +92,14 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 		}
 	}
 
-	// Keep the front invariant once every list is written, so a born child
-	// later in the batch is marked already.
+	// Write the cascade count a rebirth took over, then keep the front
+	// invariant once every list is written, so a born child later in the
+	// batch is marked already.
+	if state != nil {
+		if err := rec.SetState(ctx, state); err != nil {
+			return nil, err
+		}
+	}
 	if len(born) == 0 {
 		return existed, nil
 	}

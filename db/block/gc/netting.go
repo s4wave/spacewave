@@ -548,17 +548,15 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 	// in Leaked. An up cascade stays due, keeping the frees waiting, since
 	// losing a Holding block is outside the contract: a refill of the hole
 	// writes its list back, and the re-hold then gives its children the
-	// holder they lack. An unmarked block counts as no leak, since the sweep
-	// frees it.
+	// holder they lack. An unmarked block is no leak, since the sweep frees
+	// it, and its cascade record is frozen with its count, since the sweep
+	// reads both to learn whether its old list still holds its children, as
+	// kindUnmarkedCount describes.
 	listed := nd.listRead && nd.listed
-	if nd.listRead && !nd.listed {
-		if !nd.unmarked {
-			n.res.Leaked += nd.cascadeDowns
-		}
+	if nd.listRead && !nd.listed && !nd.unmarked {
+		n.res.Leaked += nd.cascadeDowns
 		if nd.dir0 == cascadeDown {
-			if !nd.unmarked {
-				n.res.Stranded++
-			}
+			n.res.Stranded++
 			if err := n.rec.deleteCascade(ctx, n.state, nd.key); err != nil {
 				return err
 			}

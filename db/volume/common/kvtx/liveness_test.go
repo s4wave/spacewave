@@ -3255,21 +3255,21 @@ func TestLivenessAdversarial(t *testing.T) {
 
 // The transactions of block_gc.Adopt, in order, on a Volume whose records
 // each fit in one slice: the claim, the clears of counts, the queue, parked
-// blocks, cascade records, born marks, moved-root marks, old fill marks, release pages, fill
-// ups, the old up index, recount records, the four retired marks and fill
-// records, then the mark, the root count, the
-// child list count and the settle.
+// blocks, cascade records, born marks, moved-root marks, old fill marks,
+// release pages, fill ups, the old up index, recount records, the four
+// retired marks, unmarked counts and fill records, then the mark, the root
+// count, the child list count and the settle.
 const (
 	// adoptClearCounts clears the count records an earlier run left.
 	adoptClearCounts = 2
 	// adoptMark marks the Volume adopting.
-	adoptMark = 17
+	adoptMark = 18
 	// adoptCountRoots counts the roots.
-	adoptCountRoots = 18
+	adoptCountRoots = 19
 	// adoptCountChildren counts the child lists' holders.
-	adoptCountChildren = 19
+	adoptCountChildren = 20
 	// adoptSettle settles the stored blocks' counts.
-	adoptSettle = 20
+	adoptSettle = 21
 )
 
 // auditProbe runs before, once, when an audit scans the stored bytes, which
@@ -3991,6 +3991,47 @@ func TestLivenessSettle(t *testing.T) {
 			t.Fatal("the fill up never applied before the sweep")
 		}
 		requireStored(t, v, tr, true, "U", "K")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("fill naming an unmarked block", func(t *testing.T) {
+		// After the flip a read fills B, which names the unmarked C. C is
+		// absent to every step from the flip on, so B names an absent child,
+		// as any fill of part of a tree does: B's up goes to C's count, which
+		// the sweep keeps when it deletes C's bytes. A rooted parent naming an
+		// absent block has no claim on that block's children either, so the
+		// outcome is the same whether the sweep ran before or after B arrived.
+		// Once a later fill stores C again, C has B's holder alone, and goes
+		// when B does.
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "C")
+		tr.add(t, "B", "C")
+		v, clk, store := oldStore(t, tr, "A", []string{"A", "C"})
+		verify(t, v, tr, "A")
+		collectUntil(t, v, clk, flipped)
+		if !has(t, store, run, tr["C"].Ref) {
+			t.Fatal("the flip left C out of the run")
+		}
+		fill(t, v, tr, "B")
+		if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "other", Ref: tr["B"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		collectUntil(t, v, clk, settled)
+		requireStored(t, v, tr, false, "C")
+		requireStored(t, v, tr, true, "B")
+		fill(t, v, tr, "C")
+		passes(t, v, clk, 4)
+		requireStored(t, v, tr, true, "B", "C")
+		if n := holdersOf(t, v, tr["C"].Ref); n != 1 {
+			t.Fatalf("C has %d holders once filled again, want B's", n)
+		}
+		requireAudit(t, v, 0)
+		if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "other", Previous: tr["B"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		passes(t, v, clk, 6)
+		requireStored(t, v, tr, false, "B", "C")
 		requireAudit(t, v, 0)
 	})
 

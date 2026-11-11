@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
+	"google.golang.org/protobuf/encoding/protowire"
 )
 
 // Record kinds. Each kind byte begins a key under the Volume's liveness
@@ -123,6 +124,16 @@ const (
 	// reborn unmarked, and the sweep deletes the run, as
 	// Generation_GENERATION_SWEEPING describes.
 	kindUnmarked byte = 'I'
+	// kindUnmarkedCount keys the count record of an unmarked block by the
+	// block, in kindCount's encoding, while the generation is Sweeping. The
+	// flip freezes an unmarked block's kindCount and kindCascade records,
+	// which say whether its old list still holds its children, as
+	// Records.oldListHolds reads them; every holder the block gains or loses
+	// after the flip lands here instead, as Records.countKind routes it. A
+	// block without one has its implied holder alone, as at its birth. When
+	// the block leaves the run, by the sweep or a rebirth, Records.releaseOld
+	// moves the record over the frozen one.
+	kindUnmarkedCount byte = 'T'
 	// kindAdoptBorn keys a block Land gave birth to while the Volume adopts,
 	// by the block. It holds no value and lasts until the adoption ends.
 	kindAdoptBorn byte = 'B'
@@ -468,9 +479,17 @@ func DecodeChildren(value []byte) ([]*block.BlockRef, error) {
 }
 
 // GetHolders returns the netted holders of ref and, at zero holders, its
-// ripe sequence: the cursor must pass it before the collector frees ref.
+// ripe sequence: the cursor must pass it before the collector frees ref. An
+// unmarked block's holders are the ones since the flip, as
+// kindUnmarkedCount describes.
 func (r *Records) GetHolders(ctx context.Context, ref *block.BlockRef) (holders, ripe uint64, err error) {
-	value, found, err := r.tx.Get(ctx, r.key(kindCount, BlockKey(ref)))
+	// Read the record of the kind the block's state picks.
+	key := BlockKey(ref)
+	kind, err := r.countKind(ctx, key)
+	if err != nil {
+		return 0, 0, err
+	}
+	value, found, err := r.tx.Get(ctx, r.key(kind, key))
 	if err != nil || !found {
 		return 1, 0, err
 	}
@@ -501,9 +520,16 @@ var errCountMalformed = errors.New("liveness count record is malformed")
 
 // SetHolders writes the count record of ref with holders, deleting it at one,
 // the implied holder, and writing a zero record with ripe at none. Only a
-// block with a child list may be set to zero.
+// block with a child list may be set to zero. An unmarked block's record is
+// its kindUnmarkedCount record.
 func (r *Records) SetHolders(ctx context.Context, ref *block.BlockRef, holders, ripe uint64) error {
-	key := r.key(kindCount, BlockKey(ref))
+	// Write the record of the kind the block's state picks.
+	bkey := BlockKey(ref)
+	kind, err := r.countKind(ctx, bkey)
+	if err != nil {
+		return err
+	}
+	key := r.key(kind, bkey)
 	switch holders {
 	case 0:
 		return r.tx.Set(ctx, key, binary.AppendUvarint([]byte{0}, ripe))
@@ -839,8 +865,51 @@ func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
 	if err != nil {
 		return state, err
 	}
+	retireSuspectLists(state)
 	r.genKnown, r.gen = true, state.GetGeneration()
 	return state, nil
+}
+
+// stateSuspectLists is the field number of suspect_lists, which a
+// development build of store format 7 wrote in LivenessState and the proto
+// now reserves.
+const stateSuspectLists protowire.Number = 14
+
+// retireSuspectLists reads a state whose retired suspect_lists field is
+// above zero as Open, and drops the field so the next write of the state
+// stores Open. Those suspect lists may lack a child, as any unverified list
+// may, so the settle must walk them, as Generation_GENERATION_OPEN
+// describes. A state with no unknown field reads nothing more.
+func retireSuspectLists(state *LivenessState) {
+	// Split the retired field from the other unknown fields.
+	var keep []byte
+	suspect := false
+	for b := state.unknownFields; len(b) != 0; {
+		num, typ, n := protowire.ConsumeTag(b)
+		if n < 0 {
+			return
+		}
+		m := protowire.ConsumeFieldValue(num, typ, b[n:])
+		if m < 0 {
+			return
+		}
+		if num == stateSuspectLists && typ == protowire.VarintType {
+			v, _ := protowire.ConsumeVarint(b[n:])
+			suspect = suspect || v != 0
+		} else {
+			keep = append(keep, b[:n+m]...)
+		}
+		b = b[n+m:]
+	}
+
+	// Read suspect lists as Open, and drop the field.
+	if !suspect {
+		return
+	}
+	state.unknownFields = keep
+	if state.Generation == Generation_GENERATION_SETTLED {
+		state.Generation = Generation_GENERATION_OPEN
+	}
 }
 
 // SetState writes the state record.

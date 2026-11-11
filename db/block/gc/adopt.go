@@ -497,6 +497,7 @@ var adoptionKinds = []byte{
 	kindCount, kindQueue, kindParked, kindCascade, kindAdoptBorn, kindAdoptRoot,
 	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex, kindRewritten,
 	kindVerifiedRetired, kindLandedRetired, kindReachedRetired, kindSuspectRetired,
+	kindUnmarkedCount,
 }
 
 // claimedBy reports whether state is unadopted under run's claim.

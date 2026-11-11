@@ -215,7 +215,10 @@ type lander struct {
 	// stored are the first entries of the blocks stored with a child list,
 	// whose lists markStored checks.
 	stored []*block.PutBatchEntry
-	// onStored are the block keys of the stored blocks a root moves onto.
+	// onStored are the block keys of the stored blocks a root moves onto,
+	// and, while Open, of the unverified stored blocks a born block holds:
+	// the front may pop one at zero on the free proof before the hold nets,
+	// so the hold mark covers it as it covers a root.
 	// With the touched blocks, they are the blocks the Land holds that the
 	// collector may have at zero, which decide the hold mark.
 	onStored [][]byte
@@ -313,10 +316,11 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		b.written = true
 		b.reput = i < len(existed) && existed[i] && !b.reborn
 		if b.reborn {
-			released, err := l.rec.rebirth(ctx, b.ref)
+			released, err := l.rec.rebirth(ctx, l.state, b.ref)
 			if err != nil {
 				return nil, err
 			}
+			l.dirty = true
 			if l.journal {
 				l.down = append(l.down, released...)
 			}
@@ -481,8 +485,10 @@ func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, err
 		return listed, err
 	}
 
-	// Push an unverified block, or refuse an unmarked one.
+	// Push an unverified block, which the hold mark covers, or refuse an
+	// unmarked one.
 	if l.gen == Generation_GENERATION_OPEN {
+		l.onStored = append(l.onStored, key)
 		return true, l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
 	}
 	unmarked, err := l.rec.Unmarked(ctx, key)
