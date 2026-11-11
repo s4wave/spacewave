@@ -146,6 +146,8 @@ type PluginManifestRecoveryStatus struct {
 	QuarantinedCandidateCount uint32 `protobuf:"varint,9,opt,name=quarantined_candidate_count,json=quarantinedCandidateCount,proto3" json:"quarantinedCandidateCount,omitempty"`
 	// QuarantinedCandidateSummary summarizes the quarantined candidates.
 	QuarantinedCandidateSummary string `protobuf:"bytes,10,opt,name=quarantined_candidate_summary,json=quarantinedCandidateSummary,proto3" json:"quarantinedCandidateSummary,omitempty"`
+	// ExecuteManifestRev is the rev of the manifest selected for execution.
+	ExecuteManifestRev uint64 `protobuf:"varint,11,opt,name=execute_manifest_rev,json=executeManifestRev,proto3" json:"executeManifestRev,omitempty"`
 }
 
 func (x *PluginManifestRecoveryStatus) Reset() {
@@ -222,6 +224,13 @@ func (x *PluginManifestRecoveryStatus) GetQuarantinedCandidateSummary() string {
 		return x.QuarantinedCandidateSummary
 	}
 	return ""
+}
+
+func (x *PluginManifestRecoveryStatus) GetExecuteManifestRev() uint64 {
+	if x != nil {
+		return x.ExecuteManifestRev
+	}
+	return 0
 }
 
 // PluginStatusSnapshot describes a plugin host scheduler's plugin instances.
@@ -707,6 +716,7 @@ func (m *PluginManifestRecoveryStatus) CloneVT() *PluginManifestRecoveryStatus {
 	r.IgnoredCandidateSummary = m.IgnoredCandidateSummary
 	r.QuarantinedCandidateCount = m.QuarantinedCandidateCount
 	r.QuarantinedCandidateSummary = m.QuarantinedCandidateSummary
+	r.ExecuteManifestRev = m.ExecuteManifestRev
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1054,6 +1064,9 @@ func (this *PluginManifestRecoveryStatus) EqualVT(that *PluginManifestRecoverySt
 		return false
 	}
 	if this.QuarantinedCandidateSummary != that.QuarantinedCandidateSummary {
+		return false
+	}
+	if this.ExecuteManifestRev != that.ExecuteManifestRev {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1607,6 +1620,11 @@ func (x *PluginManifestRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("quarantinedCandidateSummary")
 		s.WriteString(x.QuarantinedCandidateSummary)
 	}
+	if x.ExecuteManifestRev != 0 || s.HasField("executeManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("executeManifestRev")
+		s.WriteUint64(x.ExecuteManifestRev)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1654,6 +1672,9 @@ func (x *PluginManifestRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState
 		case "quarantined_candidate_summary", "quarantinedCandidateSummary":
 			s.AddField("quarantined_candidate_summary")
 			x.QuarantinedCandidateSummary = s.ReadString()
+		case "execute_manifest_rev", "executeManifestRev":
+			s.AddField("execute_manifest_rev")
+			x.ExecuteManifestRev = s.ReadUint64()
 		}
 	})
 }
@@ -2578,6 +2599,11 @@ func (m *PluginManifestRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int,
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ExecuteManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExecuteManifestRev))
+		i--
+		dAtA[i] = 0x58
+	}
 	if len(m.QuarantinedCandidateSummary) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.QuarantinedCandidateSummary)
 		i--
@@ -3364,6 +3390,7 @@ func (m *PluginManifestRecoveryStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.IgnoredCandidateSummary)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.QuarantinedCandidateCount)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.QuarantinedCandidateSummary)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExecuteManifestRev)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3660,6 +3687,10 @@ func (x *PluginManifestRecoveryStatus) MarshalProtoText() string {
 	if x.QuarantinedCandidateSummary != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quarantined_candidate_summary")
 		protobuf_go_lite.TextWriteString(&sb, x.QuarantinedCandidateSummary)
+	}
+	if x.ExecuteManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "execute_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.ExecuteManifestRev)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4190,6 +4221,15 @@ func (m *PluginManifestRecoveryStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.QuarantinedCandidateSummary = v
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExecuteManifestRev", wireType)
+			}
+			m.ExecuteManifestRev = 0
+			m.ExecuteManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

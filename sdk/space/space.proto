@@ -517,11 +517,14 @@ message SpacePluginStatus {
   string detail = 6;
   // RetryCount is reserved for future scheduler retry projection.
   uint32 retry_count = 7;
-  // Revision is reserved for future manifest-version projection.
-  string revision = 8;
+  // ManifestRef is the content ref of the manifest the plugin host selected to
+  // run, which names its build exactly. Empty until a manifest is selected.
+  string manifest_ref = 8;
   // Account reports that the plugin comes from the account plugin list rather
   // than the Space settings, so the Space cannot remove it.
   bool account = 9;
+  // ManifestRev is the build rev of the manifest named by ManifestRef.
+  uint64 manifest_rev = 10;
 }
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.

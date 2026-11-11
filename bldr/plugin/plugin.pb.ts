@@ -132,6 +132,10 @@ export interface PluginManifestRecoveryStatus {
    * QuarantinedCandidateSummary summarizes the quarantined candidates.
    */
   quarantinedCandidateSummary?: string
+  /**
+   * ExecuteManifestRev is the rev of the manifest selected for execution.
+   */
+  executeManifestRev?: bigint
 }
 
 export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoveryStatus> =
@@ -148,6 +152,7 @@ export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoverySta
       [8, 'ignored_candidate_summary', 9],
       [9, 'quarantined_candidate_count', 13],
       [10, 'quarantined_candidate_summary', 9],
+      [11, 'execute_manifest_rev', 4],
     ],
   )
 

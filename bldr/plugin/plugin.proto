@@ -56,6 +56,8 @@ message PluginManifestRecoveryStatus {
   uint32 quarantined_candidate_count = 9;
   // QuarantinedCandidateSummary summarizes the quarantined candidates.
   string quarantined_candidate_summary = 10;
+  // ExecuteManifestRev is the rev of the manifest selected for execution.
+  uint64 execute_manifest_rev = 11;
 }
 
 // PluginStatusSnapshot describes a plugin host scheduler's plugin instances.

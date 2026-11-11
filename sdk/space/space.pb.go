@@ -1449,11 +1449,14 @@ type SpacePluginStatus struct {
 	Detail string `protobuf:"bytes,6,opt,name=detail,proto3" json:"detail,omitempty"`
 	// RetryCount is reserved for future scheduler retry projection.
 	RetryCount uint32 `protobuf:"varint,7,opt,name=retry_count,json=retryCount,proto3" json:"retryCount,omitempty"`
-	// Revision is reserved for future manifest-version projection.
-	Revision string `protobuf:"bytes,8,opt,name=revision,proto3" json:"revision,omitempty"`
+	// ManifestRef is the content ref of the manifest the plugin host selected to
+	// run, which names its build exactly. Empty until a manifest is selected.
+	ManifestRef string `protobuf:"bytes,8,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifestRef,omitempty"`
 	// Account reports that the plugin comes from the account plugin list rather
 	// than the Space settings, so the Space cannot remove it.
 	Account bool `protobuf:"varint,9,opt,name=account,proto3" json:"account,omitempty"`
+	// ManifestRev is the build rev of the manifest named by ManifestRef.
+	ManifestRev uint64 `protobuf:"varint,10,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
 }
 
 func (x *SpacePluginStatus) Reset() {
@@ -1504,9 +1507,9 @@ func (x *SpacePluginStatus) GetRetryCount() uint32 {
 	return 0
 }
 
-func (x *SpacePluginStatus) GetRevision() string {
+func (x *SpacePluginStatus) GetManifestRef() string {
 	if x != nil {
-		return x.Revision
+		return x.ManifestRef
 	}
 	return ""
 }
@@ -1516,6 +1519,13 @@ func (x *SpacePluginStatus) GetAccount() bool {
 		return x.Account
 	}
 	return false
+}
+
+func (x *SpacePluginStatus) GetManifestRev() uint64 {
+	if x != nil {
+		return x.ManifestRev
+	}
+	return 0
 }
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.
@@ -2596,8 +2606,9 @@ func (m *SpacePluginStatus) CloneVT() *SpacePluginStatus {
 	r.State = m.State
 	r.Detail = m.Detail
 	r.RetryCount = m.RetryCount
-	r.Revision = m.Revision
+	r.ManifestRef = m.ManifestRef
 	r.Account = m.Account
+	r.ManifestRev = m.ManifestRev
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3853,10 +3864,13 @@ func (this *SpacePluginStatus) EqualVT(that *SpacePluginStatus) bool {
 	if this.RetryCount != that.RetryCount {
 		return false
 	}
-	if this.Revision != that.Revision {
+	if this.ManifestRef != that.ManifestRef {
 		return false
 	}
 	if this.Account != that.Account {
+		return false
+	}
+	if this.ManifestRev != that.ManifestRev {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6633,15 +6647,20 @@ func (x *SpacePluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("retryCount")
 		s.WriteUint32(x.RetryCount)
 	}
-	if x.Revision != "" || s.HasField("revision") {
+	if x.ManifestRef != "" || s.HasField("manifestRef") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("revision")
-		s.WriteString(x.Revision)
+		s.WriteObjectField("manifestRef")
+		s.WriteString(x.ManifestRef)
 	}
 	if x.Account || s.HasField("account") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("account")
 		s.WriteBool(x.Account)
+	}
+	if x.ManifestRev != 0 || s.HasField("manifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("manifestRev")
+		s.WriteUint64(x.ManifestRev)
 	}
 	s.WriteObjectEnd()
 }
@@ -6678,12 +6697,15 @@ func (x *SpacePluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "retry_count", "retryCount":
 			s.AddField("retry_count")
 			x.RetryCount = s.ReadUint32()
-		case "revision":
-			s.AddField("revision")
-			x.Revision = s.ReadString()
+		case "manifest_ref", "manifestRef":
+			s.AddField("manifest_ref")
+			x.ManifestRef = s.ReadString()
 		case "account":
 			s.AddField("account")
 			x.Account = s.ReadBool()
+		case "manifest_rev", "manifestRev":
+			s.AddField("manifest_rev")
+			x.ManifestRev = s.ReadUint64()
 		}
 	})
 }
@@ -9358,13 +9380,18 @@ func (m *SpacePluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ManifestRev))
+		i--
+		dAtA[i] = 0x50
+	}
 	if m.Account {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Account)
 		i--
 		dAtA[i] = 0x48
 	}
-	if len(m.Revision) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Revision)
+	if len(m.ManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ManifestRef)
 		i--
 		dAtA[i] = 0x42
 	}
@@ -10758,8 +10785,9 @@ func (m *SpacePluginStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryCount)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Revision)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestRef)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Account)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ManifestRev)
 	n += len(m.unknownFields)
 	return n
 }
@@ -11893,13 +11921,17 @@ func (x *SpacePluginStatus) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_count")
 		protobuf_go_lite.TextWriteUint(&sb, x.RetryCount)
 	}
-	if x.Revision != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revision")
-		protobuf_go_lite.TextWriteString(&sb, x.Revision)
+	if x.ManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.ManifestRef)
 	}
 	if x.Account != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "account")
 		protobuf_go_lite.TextWriteBool(&sb, x.Account)
+	}
+	if x.ManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.ManifestRev)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -14788,14 +14820,14 @@ func (m *SpacePluginStatus) UnmarshalVT(dAtA []byte) error {
 			}
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Revision", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRef", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Revision = v
+			m.ManifestRef = v
 		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Account", wireType)
@@ -14806,6 +14838,15 @@ func (m *SpacePluginStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Account = bool(v)
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRev", wireType)
+			}
+			m.ManifestRev = 0
+			m.ManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

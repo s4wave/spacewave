@@ -1170,14 +1170,19 @@ export interface SpacePluginStatus {
    */
   retryCount?: number
   /**
-   * Revision is reserved for future manifest-version projection.
+   * ManifestRef is the content ref of the manifest the plugin host selected to
+   * run, which names its build exactly. Empty until a manifest is selected.
    */
-  revision?: string
+  manifestRef?: string
   /**
    * Account reports that the plugin comes from the account plugin list rather
    * than the Space settings, so the Space cannot remove it.
    */
   account?: boolean
+  /**
+   * ManifestRev is the build rev of the manifest named by ManifestRef.
+   */
+  manifestRev?: bigint
 }
 
 export const SpacePluginStatus: MessageType<SpacePluginStatus> =
@@ -1190,8 +1195,9 @@ export const SpacePluginStatus: MessageType<SpacePluginStatus> =
       [5, 'state', 14, 0, SpacePluginLifecycleState_Enum],
       [6, 'detail', 9],
       [7, 'retry_count', 13],
-      [8, 'revision', 9],
+      [8, 'manifest_ref', 9],
       [9, 'account', 8],
+      [10, 'manifest_rev', 4],
     ],
   )
 
