@@ -633,8 +633,10 @@ func (s *Store[T]) walSize() int64 {
 //
 // fillWALGap never waits for the turn while a pass runs, since a turn granted
 // during a pass would sit idle until the pass ends. After each commit it
-// copies outside the turn; when a pass ends caught up and the turn is free, it
-// takes the turn, copies the little that landed between, and releases it.
+// copies outside the turn. A pass copies the log as it was when the pass
+// began, so it passes again at once until a pass finds no frame the last one
+// had not seen; then, when the turn is free, it takes the turn, copies the
+// little that landed between, and releases it.
 // Once the log reaches walGapQueueMultiple times its bound it stops waiting
 // for a free turn and queues for it behind every waiting writer, with no pass
 // in flight, then copies under the turn what the writers ahead of it
@@ -660,13 +662,17 @@ func (s *Store[T]) fillWALGap(ctx context.Context) {
 		defer conn.Close()
 		q = conn
 	}
-	// pass copies the log and reports whether it copied every logged frame.
-	pass := func() bool {
+
+	// pass copies the log as it was when the pass began, and returns its
+	// frame count and whether it copied all of them.
+	pass := func() (int, bool) {
 		var busy, logged, copied int
 		err := q.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &logged, &copied)
-		return err == nil && copied == logged
+		return logged, err == nil && copied == logged
 	}
 
+	// seen is the frame count of the last caught-up pass, or -1 before one.
+	seen := -1
 	for {
 		// Past the queue bound, wait for the turn with no pass in flight.
 		if s.walSize() >= walGapQueueMultiple*s.walBound {
@@ -679,15 +685,21 @@ func (s *Store[T]) fillWALGap(ctx context.Context) {
 			return
 		}
 
-		// Copy outside the turn; caught up, take a free turn and close the
-		// gap.
-		if pass() {
+		// Copy outside the turn. Once a pass finds no new frame, take a free
+		// turn and close the gap; while passes find new frames, pass again.
+		logged, caught := pass()
+		if caught && logged == seen {
 			if release, ok := s.writeMtx.TryLock(); ok {
 				pass()
 				release()
 				return
 			}
 		}
+		if caught && logged != seen {
+			seen = logged
+			continue
+		}
+		seen = logged
 
 		// Wait for the next commit.
 		select {
