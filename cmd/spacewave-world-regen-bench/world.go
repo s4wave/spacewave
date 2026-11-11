@@ -254,13 +254,31 @@ func (w *benchWorld) start(ctx context.Context, regen *world_block_engine.RegenC
 // restart restarts the engine controller with the regeneration config, as an
 // operator restarts a server with a new target, pausing the writers.
 func (w *benchWorld) restart(ctx context.Context, regen *world_block_engine.RegenConfig) error {
-	// Stop the running controller and the writers' handle once no commit is
-	// in flight.
+	// Watch the running engine for its removal from the bus.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
+	dropped := make(chan struct{})
+	var drop sync.Once
+	_, _, lookup, err := world.ExLookupWorldEngine(ctx, w.tb.Bus, false, benchEngineID, func() {
+		drop.Do(func() { close(dropped) })
+	})
+	if err != nil {
+		return errors.Wrap(err, "look up world engine")
+	}
+	defer lookup.Release()
+
+	// Stop the running controller and the writers' handle once no commit is
+	// in flight, and wait until the bus drops the engine. Its release is
+	// asynchronous, so a successor started sooner resolves the closing
+	// engine, and so does the writers' new handle.
 	w.cancel()
 	w.ref.Release()
 	w.ref = nil
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case <-dropped:
+	}
 
 	// Start its successor with the target.
 	return w.start(ctx, regen)
