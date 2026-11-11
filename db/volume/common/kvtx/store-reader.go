@@ -85,27 +85,27 @@ func (r storeReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return stored, err
 }
 
-// GetBlockExists reports whether the store holds ref, hiding a suspect
-// block, as Volume.hideSuspects describes.
+// GetBlockExists reports whether the store holds ref, hiding an unmarked
+// block, as Volume.hideUnmarked describes.
 func (r storeReader) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	// Check the store, then hide a suspect block.
+	// Check the store, then hide an unmarked block.
 	found, err := r.StoreOps.GetBlockExists(ctx, ref)
 	if err != nil || !found {
 		return found, err
 	}
 	exists := []bool{true}
-	err = r.volume.hideSuspects(ctx, []*block.BlockRef{ref}, exists)
+	err = r.volume.hideUnmarked(ctx, []*block.BlockRef{ref}, exists)
 	return exists[0], err
 }
 
 // GetBlockExistsBatch reports whether the store holds each of refs, hiding
-// suspect blocks, as Volume.hideSuspects describes.
+// unmarked blocks, as Volume.hideUnmarked describes.
 func (r storeReader) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	exists, err := r.StoreOps.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
 		return nil, err
 	}
-	return exists, r.volume.hideSuspects(ctx, refs, exists)
+	return exists, r.volume.hideUnmarked(ctx, refs, exists)
 }
 
 // RmBlock removes a block from the store and reports the removal.

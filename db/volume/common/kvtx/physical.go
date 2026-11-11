@@ -63,6 +63,9 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 		return nil, err
 	}
 	p.rec = block_gc.NewRecords(recTx, livenessPrefix)
+	if v.settled.Load() {
+		p.rec.AssumeSettled()
+	}
 
 	// Serve blocks from the domain's transaction, or as records. Either view
 	// reads tx's uncommitted writes, so neither marks reads durable.

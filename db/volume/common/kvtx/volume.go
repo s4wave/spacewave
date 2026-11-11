@@ -60,8 +60,10 @@ type Volume struct {
 	// collector frees what no held named root reaches, nil without atomic
 	// commits.
 	collector *block_gc.Collector
-	// gate lets reads skip suspect records while the Volume holds none.
-	gate suspectGate
+	// settled is set once a transaction saw the Volume's old generation
+	// Settled, which is final, so later transactions read no state to learn
+	// it and reads hide no unmarked block, as hideUnmarked describes.
+	settled atomic.Bool
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
 	// atomic is set when the store commits transactions atomically, which
@@ -284,7 +286,7 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	v.gate.init(state.GetSuspectLists() != 0)
+	v.settled.Store(state.GetGeneration() == block_gc.Generation_GENERATION_SETTLED)
 	if state.GetAdoption() == block_gc.Adoption_ADOPTION_ADOPTING {
 		if err := block_gc.ResetAdoption(ctx, collectorStore{v: v}); err != nil {
 			return err
@@ -598,14 +600,14 @@ func (v *Volume) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, boo
 	return v.reader().GetBlock(ctx, ref)
 }
 
-// GetBlockExists reports whether the embedded store holds ref, hiding a
-// suspect block, as hideSuspects describes.
+// GetBlockExists reports whether the embedded store holds ref, hiding an
+// unmarked block, as hideUnmarked describes.
 func (v *Volume) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return v.reader().GetBlockExists(ctx, ref)
 }
 
 // GetBlockExistsBatch reports whether the embedded store holds each of refs,
-// hiding suspect blocks, as hideSuspects describes.
+// hiding unmarked blocks, as hideUnmarked describes.
 func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return v.reader().GetBlockExistsBatch(ctx, refs)
 }

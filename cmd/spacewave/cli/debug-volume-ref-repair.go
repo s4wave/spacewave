@@ -76,10 +76,8 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		{"Child lists verified", strconv.FormatUint(res.rebuild.Verified, 10)},
 		{"Child lists written", strconv.FormatUint(res.rebuild.Rewritten, 10)},
 		{"Decoded lists refused for dropping a stored child", strconv.FormatUint(res.rebuild.Dropped, 10)},
-		{"Reached lists still unverified", strconv.FormatUint(res.rebuild.Unverified, 10)},
-		{"Unreached lists a put checks before trusting", strconv.FormatUint(res.rebuild.Suspect, 10)},
-		{"Lists verified", strconv.FormatBool(res.verified || res.rebuild.Cleared)},
-		{"Returned to unadopted for a recount", strconv.FormatBool(res.rebuild.Unadopted)},
+		{"Reached blocks the walk still owes", strconv.FormatUint(res.rebuild.Front, 10)},
+		{"Old generation settled", strconv.FormatBool(res.verified)},
 		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
 		{"Stored blocks without a child list", strconv.FormatUint(res.untracked, 10)},
 		{"Their bytes", strconv.FormatUint(res.untrackedBytes, 10)},
@@ -97,10 +95,10 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 		fields = append(fields, [2]string{"Listless sample", blk.ref.MarshalString() + " (" + strconv.FormatUint(blk.size, 10) + " bytes)"})
 	}
 
-	// Name the reached lists the walk could not verify, which keep the
-	// collector from freeing older blocks, and the refused reports.
-	for _, ref := range res.rebuild.UnverifiedSample {
-		fields = append(fields, [2]string{"Unverified sample", ref.MarshalString()})
+	// Name the reached blocks the walk still owes, which keep the old
+	// generation Open, and the refused reports.
+	for _, ref := range res.rebuild.FrontSample {
+		fields = append(fields, [2]string{"Owed sample", ref.MarshalString()})
 	}
 	for _, ref := range res.rebuild.DroppedSample {
 		fields = append(fields, [2]string{"Refused sample", ref.MarshalString()})
@@ -116,12 +114,11 @@ func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string 
 }
 
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
-// or spaceID alone, typing objects' roots with lookup, and unless dryRun is set rebuilds the child lists they
-// reach from the decoded blocks, clearing the volume's unverified lists mark
-// when every list a root reaches is verified. Once the mark is clear the
-// rebuild refuses the volume and the run only walks it, so a list found short
-// after that is not repaired here: re-verifying a verified volume needs a step
-// that sets the mark again, and none exists yet.
+// or spaceID alone, typing objects' roots with lookup, and unless dryRun is
+// set writes the child lists they reach from the decoded blocks, as the typed
+// walk of the settle of the volume's old generation, so the collector can
+// settle it once nothing more is owed. Once the old generation has left Open
+// the rebuild refuses the volume and the run only walks it.
 func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool, lookup refwalk.LookupBlockType) (refRepairResult, error) {
 	// Open the stopped volume.
 	vol, err := openStoppedVolume(ctx, le, path)
@@ -182,11 +179,11 @@ func newDebugRefRepairCommand() *cli.Command {
 		Usage:     "rebuild the child lists a stopped volume's Spaces reach",
 		ArgsUsage: "<volume-file>",
 		Description: "Walks the Worlds each Space's replay cursor retains, decoding each block by its type, " +
-			"and rewrites the child list of each block whose list is missing or lacks a child its decoded refs name, marking it verified. " +
-			"When every list a named root reaches is verified it clears the volume's unverified lists mark, so the collector may free older blocks; " +
-			"a block it cannot decode keeps its list unverified and is reported, and so does one whose decoded refs drop a child its stored list names. " +
-			"A rerun skips the lists it verified, and a volume whose lists are verified is only walked and never repaired. " +
-			"Rewriting a list on an adopted volume returns it to unadopted when the mark clears, so the next open recounts every list before anything more frees. " +
+			"and writes each block's child list from its decoded refs, marked as written from content, adding any child the stored list lacks. " +
+			"It reports the reached blocks it still owes: once none is owed, the collector settles the volume's old generation and may free older blocks. " +
+			"A block it cannot decode stays owed and is reported, and so does one whose decoded refs drop a child its stored list names. " +
+			"A rerun skips the marked lists, and a volume whose old generation has settled is only walked and never repaired. " +
+			"A list that gains a child on an adopted volume makes the settle return it to unadopted, so an adoption recounts every list before anything more frees. " +
 			"Blocks stored before puts carried their child lists have none. " +
 			"Also counts plugin object-store keys by volume prefix and measures all stored blocks without a child list. " +
 			"These counts cover the whole volume even with --space, and describe it before repair. The scan does not decode those blocks. " +

@@ -2,7 +2,6 @@ package block_gc
 
 import (
 	"context"
-	"encoding/binary"
 	"maps"
 	"slices"
 	"time"
@@ -62,16 +61,20 @@ type BucketRoots struct {
 // undercount. A restore of lost blocks therefore audits first, as the payload
 // restore does.
 //
-// A put of a stored block checks the block's list against the put's refs
-// when Land cannot trust it: while the Volume's lists are unverified, a list
-// no rebuild verified and no Land wrote, and after, one a suspect record
-// names. It writes the list when it lacks a child, as a list rebuild does,
-// marks it verified while the mark stands, and deletes the suspect record. A
-// rewrite journals no holder for the children the list gains, so on a Volume
-// an adoption counts or has counted it returns the Volume to unadopted in the
-// same transaction, as Records.Unadopted reports, superseding any run, and
-// nothing frees until the next adoption recounts the lists. Journal.tla models
-// this with its Suspect constants.
+// While the Volume's old generation is Open, Land keeps the settle's front
+// invariant, as settle.go describes: it pushes onto the front each child a
+// born block names outside the batch, and each block a root moves onto, when
+// its list is unverified. A put of a stored block whose list is unverified
+// writes the union of the list and the put's refs, marked, since a list may
+// lack a child and naming one more only keeps a block longer, takes the block
+// off the run and the front, and pushes its unverified children; a refilled
+// hole does the same with the list it writes back. A list that gains a child
+// journals no holder for it, so on a Volume that keeps a journal Land records
+// that the counts owe a recount, which the flip reads. While Sweeping, Land
+// refuses a hold onto an unmarked block with an UnmarkedError, and a put of
+// one gives birth to it again, as Records.rebirth describes: its old list's
+// children outside the run lose the holder it gave them, through down pairs.
+// Journal.tla models this with its FrontPop, Stop and RootWalk constants.
 //
 // A Volume that is not adopted keeps no journal: Land writes the child lists
 // and roots and appends nothing, and an adoption counts every holder from
@@ -87,11 +90,10 @@ type BucketRoots struct {
 // its batch, its child list record and, for an unlisted child, a block
 // existence read, with one up pair appended for each, a blind append on reads
 // it already makes; per moved root, its entry and its lease index record.
-// Per stored block it puts, while the Volume's lists are unverified, its
-// verified and landed marks, two point reads, and, when it has neither, its
-// list, which it compares with the refs and may rewrite; after the clear, one
-// seek for any suspect record per call and, when one exists, the block's
-// suspect record, a point read, then the same list check for a suspect.
+// While the generation is not Settled, each child list record it reads
+// returns its value, and per stored block it puts while Open, its list
+// record, which it may rewrite, with one list read per child of a rewritten
+// one; while Sweeping, one run entry read per unverified list it meets.
 // When it holds a stored block, a root moving onto one or a put of one
 // again, it also seeks the cascade records and reads each such block's count
 // record until one is at zero, to set the hold mark Collector describes. It
@@ -118,8 +120,7 @@ func Land(
 		state:    state,
 		journal:  state.GetAdoption() != Adoption_ADOPTION_UNADOPTED,
 		adopting: state.GetAdoption() == Adoption_ADOPTION_ADOPTING,
-		verify:   state.GetUnverifiedLists(),
-		reads:    promoteReads,
+		gen:      state.GetGeneration(),
 		born:     make(map[string]*bornBlock),
 		touched:  make(map[string]struct{}),
 	}
@@ -138,16 +139,13 @@ func Land(
 		return nil, err
 	}
 
-	// Check the lists of the stored blocks it cannot trust, and promote the
-	// ones it revives that are clean now.
-	revived := make(map[string]*block.PutBatchEntry)
-	for _, entry := range l.stored {
-		if err := l.trustList(ctx, entry, revived); err != nil {
-			return nil, err
+	// Mark the unverified lists of the stored blocks it puts again.
+	if l.gen == Generation_GENERATION_OPEN {
+		for _, entry := range l.stored {
+			if err := l.markStored(ctx, entry); err != nil {
+				return nil, err
+			}
 		}
-	}
-	if err := l.promoteRevived(ctx, revived); err != nil {
-		return nil, err
 	}
 
 	// Count the holders the born blocks give their children.
@@ -187,6 +185,9 @@ type bornBlock struct {
 	// reput reports that the store held its bytes without a child list, so
 	// holders the store cannot see may name it.
 	reput bool
+	// reborn reports that the block was unmarked, so the put gives birth to
+	// it again.
+	reborn bool
 	// written reports that its child list was written.
 	written bool
 }
@@ -201,24 +202,18 @@ type lander struct {
 	state *LivenessState
 	// dirty reports that the Land changed state.
 	dirty bool
-	// reads counts down the suspect record reads the Land's promotions may
-	// still make, as holdStored describes.
-	reads int
 	// journal reports that the Volume is adopting or adopted.
 	journal bool
 	// adopting reports that an adoption is counting the Volume, so Land marks
 	// the blocks it gives birth to and the roots it moves, as Adopt reads.
 	adopting bool
-	// verify reports that the Volume's lists are unverified, so Land marks
-	// each list it writes verified, since it writes it from the put's refs,
-	// and each block it gives birth to landed, since all the block's holders
-	// come through Land, as putList describes.
-	verify bool
+	// gen is the Volume's generation, which decides the settle's barrier.
+	gen Generation
 	// touched holds the block keys of the entries already stored, whose put
 	// the journal record's again list names.
 	touched map[string]struct{}
 	// stored are the first entries of the blocks stored with a child list,
-	// whose lists trustList checks.
+	// whose lists markStored checks.
 	stored []*block.PutBatchEntry
 	// onStored are the block keys of the stored blocks a root moves onto.
 	// With the touched blocks, they are the blocks the Land holds that the
@@ -278,7 +273,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			l.stored = append(l.stored, entry)
 			l.touched[key] = struct{}{}
 		default:
-			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs)}
+			b := &bornBlock{ref: entry.Ref, children: normalizeChildren(entry.Refs), reborn: kind == putReborn}
 			l.born[key] = b
 			l.order = append(l.order, b)
 		}
@@ -294,10 +289,7 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 		return nil, err
 	}
 	for _, entry := range l.refills {
-		if err := l.putList(ctx, entry.Ref, entry.Refs, false); err != nil {
-			return nil, err
-		}
-		if err := l.rec.tx.Delete(ctx, l.rec.key(kindHole, BlockKey(entry.Ref))); err != nil {
+		if err := l.rec.refill(ctx, entry); err != nil {
 			return nil, err
 		}
 	}
@@ -319,8 +311,17 @@ func (l *lander) putEntries(ctx context.Context, entries []*block.PutBatchEntry)
 			continue
 		}
 		b.written = true
-		b.reput = i < len(existed) && existed[i]
-		if err := l.putList(ctx, b.ref, b.children, !b.reput); err != nil {
+		b.reput = i < len(existed) && existed[i] && !b.reborn
+		if b.reborn {
+			released, err := l.rec.rebirth(ctx, b.ref)
+			if err != nil {
+				return nil, err
+			}
+			if l.journal {
+				l.down = append(l.down, released...)
+			}
+		}
+		if err := l.rec.PutChildren(ctx, b.ref, b.children); err != nil {
 			return nil, err
 		}
 		if l.adopting {
@@ -343,6 +344,9 @@ const (
 	// putRefill is a hole the audit recorded, stored too: the put writes its
 	// child list back.
 	putRefill
+	// putReborn is a block the settle unmarked: the put gives birth to it
+	// again, as Records.rebirth describes.
+	putReborn
 )
 
 // classifyPuts checks and names each put entry, building an empty ref from
@@ -351,7 +355,8 @@ const (
 // tombstones. It reads whether the Volume records any hole once, at the
 // first block without a child list, and a block's hole record only when one
 // does, so a put into a Volume without a hole, the usual case, reads no hole
-// record per block.
+// record per block. While the generation is Sweeping it reads each listed
+// block's run entry.
 func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entries []*block.PutBatchEntry, fn func(entry *block.PutBatchEntry, kind putKind)) error {
 	seen := make(map[string]struct{}, len(entries))
 	var holesRead, holes bool
@@ -385,7 +390,15 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 			return err
 		}
 		if listed {
-			fn(entry, putStored)
+			unmarked, err := rec.Unmarked(ctx, key)
+			if err != nil {
+				return err
+			}
+			if unmarked {
+				fn(entry, putReborn)
+			} else {
+				fn(entry, putStored)
+			}
 			continue
 		}
 		if !holesRead {
@@ -409,212 +422,74 @@ func classifyPuts(ctx context.Context, rec *Records, blocks block.StoreOps, entr
 	return nil
 }
 
-// putList writes ref's child list from the put's refs. While the Volume's
-// lists are unverified it marks the list verified, and marks the block
-// landed only when born is set: a block whose bytes were stored before the
-// put, such as a reput of a block an older format left without a list or a
-// refilled hole, is older, and an older list may lack it. The landed mark
-// holds the state's list pass, as noteOldHold reads it.
-func (l *lander) putList(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef, born bool) error {
-	if err := l.rec.PutChildren(ctx, ref, children); err != nil || !l.verify {
-		return err
-	}
-	if !born {
-		return l.rec.tx.Set(ctx, l.rec.key(kindVerified, BlockKey(ref)), nil)
-	}
-	pass := binary.AppendUvarint(nil, l.state.GetListPass())
-	return l.rec.tx.Set(ctx, l.rec.key(kindLanded, BlockKey(ref)), pass)
-}
-
-// trustList checks the stored list of the block entry puts again when Land
-// cannot trust it, as Land describes: while the Volume's lists are
-// unverified, a list no rebuild verified and no Land wrote, and any list a
-// suspect record names. It writes the union of the list and the put's refs,
-// since a list may lack a child and naming one more child only keeps a block
-// longer, so the list then names every child the content names. It returns
-// the Volume in state to unadopted when the list gains a child on a Volume
-// that keeps a journal, and adds an entry whose block has a suspect record to
-// revived, turning a suspect record pending.
-func (l *lander) trustList(ctx context.Context, entry *block.PutBatchEntry, revived map[string]*block.PutBatchEntry) error {
-	// Trust a clean list a rebuild verified or a Land wrote while the mark
-	// stands, and after it, any clean list.
+// refill writes back the child list of the recorded hole entry puts, from
+// its content, and deletes its hole record. While the generation is Open,
+// the block leaves the run and the front, and its unverified children join
+// the front.
+func (r *Records) refill(ctx context.Context, entry *block.PutBatchEntry) error {
+	// Write the list back and drop the hole record.
 	key := BlockKey(entry.Ref)
-	trust, err := l.rec.getTrust(ctx, key)
+	children := normalizeChildren(entry.Refs)
+	if err := r.PutChildren(ctx, entry.Ref, children); err != nil {
+		return err
+	}
+	if err := r.tx.Delete(ctx, r.key(kindHole, key)); err != nil {
+		return err
+	}
+	gen, err := r.generation(ctx)
+	if err != nil || gen != Generation_GENERATION_OPEN {
+		return err
+	}
+	return r.markedYoung(ctx, key, EncodeChildren(children), nil)
+}
+
+// markStored marks the unverified list of the stored block entry puts
+// again, while the generation is Open, as Land describes.
+func (l *lander) markStored(ctx context.Context, entry *block.PutBatchEntry) error {
+	// A marked list was written from content.
+	key := BlockKey(entry.Ref)
+	value, listed, err := l.rec.tx.Get(ctx, l.rec.key(kindChildren, key))
+	if err != nil || !listed || listMarked(value) {
+		return err
+	}
+
+	// Write the union, marked, and keep the front invariant.
+	packed, gained, _, err := l.rec.mergeList(ctx, key, value, entry.Refs, false)
 	if err != nil {
 		return err
 	}
-	verified := !l.verify
-	if l.verify {
-		if verified, err = l.rec.listVerified(ctx, key); err != nil {
-			return err
-		}
-	}
-	if trust == listClean && verified {
-		return nil
-	}
-
-	// Write the union of the list and the refs, and mark it verified.
-	gained, err := l.rec.mergeList(ctx, key, entry.Refs)
-	if err != nil {
-		return err
-	}
-	if !verified {
-		if err := l.rec.tx.Set(ctx, l.rec.key(kindVerified, key), nil); err != nil {
-			return err
-		}
-	}
-
-	// A suspect list is pending now: written from the content, with children
-	// that may not be clean. A pending one stays pending, and an uncounted
-	// one uncounted, since only Finish raises the count.
-	if trust == listSuspect {
-		if err := l.rec.tx.Set(ctx, l.rec.key(kindSuspect, key), []byte{suspectPending}); err != nil {
-			return err
-		}
-	}
-	if trust != listClean {
-		revived[string(key)] = entry
-	}
-
-	// The counts lack the holders a rewrite added: recount them. No free
-	// runs before the recount, since the free needs the Volume adopted.
 	if gained && l.journal {
-		l.rec.unadopt(l.state)
-		l.dirty = true
-	}
-	return nil
-}
-
-// promoteRevived promotes each block of revived, the pending blocks the
-// batch put with their content, whose children are all clean, counting a
-// child the batch promotes, children first, so a tree put again in one batch
-// is clean when the batch lands. A child outside revived counts by its own
-// record: a pending one stays pending until a hold promotes it, as
-// holdStored describes. It reads each revived block's list and the suspect
-// record of each child once.
-func (l *lander) promoteRevived(ctx context.Context, revived map[string]*block.PutBatchEntry) error {
-	// clean holds each revived block visited: whether it is clean now.
-	clean := make(map[string]bool, len(revived))
-	var visit func(key string) (bool, error)
-	visit = func(key string) (bool, error) {
-		// Answer a block visited before, and mark this one on the path.
-		if done, ok := clean[key]; ok {
-			return done, nil
-		}
-		clean[key] = false
-
-		// Check each child, visiting a revived one first.
-		list, _, err := l.rec.tx.Get(ctx, l.rec.key(kindChildren, []byte(key)))
-		if err != nil {
-			return false, err
-		}
-		for next := list; len(next) != 0; {
-			child, ok := nextBlockKey(next)
-			if !ok {
-				return false, errBadBlockKey
-			}
-			next = next[len(child):]
-			var childClean bool
-			if _, ok := revived[string(child)]; ok {
-				childClean, err = visit(string(child))
-			} else {
-				var trust listTrust
-				trust, err = l.rec.getTrust(ctx, child)
-				childClean = trust == listClean
-			}
-			if err != nil || !childClean {
-				return false, err
-			}
-		}
-		if err := l.rec.dropSuspect(ctx, l.state, []byte(key)); err != nil {
-			return false, err
-		}
-		l.dirty = true
-		clean[key] = true
-		return true, nil
-	}
-	for _, key := range slices.Sorted(maps.Keys(revived)) {
-		if _, err := visit(key); err != nil {
+		if err := l.rec.noteRewrite(ctx, l.state); err != nil {
 			return err
 		}
 	}
-	return nil
+	return l.rec.markedYoung(ctx, key, packed, nil)
 }
 
-// holdStored refuses a hold onto a block that is not clean, the gate every
-// holder of a stored block passes, as Journal.tla's HoldStored action
-// models: a block is clean only if its list was written from its content and
-// every child it names is clean or absent, so only a clean block gains a
-// holder, and the children of a held block lack no child their lists should
-// name. A clean or absent block passes. A suspect one is refused with a
-// SuspectError naming it; the writer puts it again. A pending one is promoted
-// first, as promoter describes, within the Land's budget of suspect record
-// reads; a promotion beyond it returns a PromoteError, and the caller
-// promotes the block in slices and retries. While the Volume has no counted
-// suspect record, it reads nothing.
-func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) error {
-	// Pass a clean block and refuse a suspect one.
-	trust, err := l.rec.getTrust(ctx, BlockKey(ref))
-	switch {
-	case err != nil || trust == listClean:
-		return err
-	case trust == listSuspect:
-		return &SuspectError{Ref: ref}
-	}
-
-	// Promote a pending one within the Land's budget.
-	done, err := newPromoter(ref).step(ctx, l.rec, l.state, &l.reads)
-	if err != nil {
-		return err
-	}
-	l.dirty = true
-	if !done {
-		return &PromoteError{Ref: ref}
-	}
-	return nil
-}
-
-// noteOldHold counts a hold onto ref in the state's old holds while the
-// Volume's lists are unverified, when the store holds ref, no list rebuild's
-// walk reached it, and no Land gave birth to it during the current walk pass,
-// so a Finish whose walk passed over ref's holder before the hold passes
-// again, as Finish describes. listed reports that the caller read ref's
-// child list. A block born during the pass is skipped because its birth
-// counted the holds it gave its children in this pass; one born in an
-// earlier pass is not, since its holder may have left before this pass read
-// the roots.
-//
-// Cost, only while the mark stands: the reached and landed marks and the
-// child list, point reads.
-func (l *lander) noteOldHold(ctx context.Context, ref *block.BlockRef, listed bool) error {
-	// Only a Volume whose lists are unverified notes old holds.
-	if !l.verify {
-		return nil
-	}
-
-	// Skip a block a walk reached.
+// holdStored checks a hold onto ref, a block the batch does not store, and
+// reports whether the store lists it: while Open it pushes an unverified
+// ref onto the front, and while Sweeping it refuses an unmarked one with an
+// UnmarkedError. While Settled it reads only whether the list exists.
+func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	// Read the list, and while Settled no more.
 	key := BlockKey(ref)
-	reached, err := l.rec.tx.Exists(ctx, l.rec.key(kindReached, key))
-	if err != nil || reached {
-		return err
+	if l.gen == Generation_GENERATION_SETTLED {
+		return l.rec.HasChildren(ctx, ref)
+	}
+	listed, marked, err := l.rec.listState(ctx, key)
+	if err != nil || !listed || marked {
+		return listed, err
 	}
 
-	// Skip one a Land gave birth to in this pass.
-	pass, landed, err := l.rec.tx.Get(ctx, l.rec.key(kindLanded, key))
-	if err != nil {
-		return err
+	// Push an unverified block, or refuse an unmarked one.
+	if l.gen == Generation_GENERATION_OPEN {
+		return true, l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
 	}
-	if n, size := binary.Uvarint(pass); landed && size > 0 && n == l.state.GetListPass() {
-		return nil
+	unmarked, err := l.rec.Unmarked(ctx, key)
+	if err == nil && unmarked {
+		err = &UnmarkedError{Ref: ref}
 	}
-	if !listed {
-		if listed, err = l.rec.HasChildren(ctx, ref); err != nil || !listed {
-			return err
-		}
-	}
-	l.state.OldHolds++
-	l.dirty = true
-	return nil
+	return true, err
 }
 
 // holdChildren counts the holder each born block gives each child: an
@@ -629,26 +504,17 @@ func (l *lander) holdChildren(ctx context.Context) error {
 				continue
 			}
 
-			// Any other child must be clean, and gains a holder unless the
-			// Volume keeps no journal.
-			if err := l.holdStored(ctx, child); err != nil {
-				return err
-			}
-			if !l.journal {
-				if err := l.noteOldHold(ctx, child, false); err != nil {
-					return err
-				}
-				continue
-			}
-
-			// A journaled child reads its list once, for both checks; an
-			// unlisted one is unstored, so it is no old hold.
-			listed, err := l.requireListed(ctx, child)
+			// Any other child passes the settle's check, and gains a holder
+			// unless the Volume keeps no journal.
+			listed, err := l.holdStored(ctx, child)
 			if err != nil {
 				return err
 			}
-			if listed {
-				if err := l.noteOldHold(ctx, child, true); err != nil {
+			if !l.journal {
+				continue
+			}
+			if !listed {
+				if err := l.requireListed(ctx, child); err != nil {
 					return err
 				}
 			}
@@ -658,26 +524,16 @@ func (l *lander) holdChildren(ctx context.Context) error {
 	return nil
 }
 
-// requireListed refuses a block whose bytes the store holds without a child
-// list: the children it names would hold nothing. A block the store lacks,
-// such as a child stored after its parent, passes; its holders count from its
-// birth. listed reports that the block has a child list.
-func (l *lander) requireListed(ctx context.Context, ref *block.BlockRef) (listed bool, err error) {
-	// A block with a child list passes.
-	listed, err = l.rec.HasChildren(ctx, ref)
-	if err != nil || listed {
-		return listed, err
-	}
-
-	// Refuse one whose bytes are stored without it.
+// requireListed refuses ref, a block without a child list, when the store
+// holds its bytes: the children it names would hold nothing. A block the
+// store lacks, such as a child stored after its parent, passes; its holders
+// count from its birth.
+func (l *lander) requireListed(ctx context.Context, ref *block.BlockRef) error {
 	found, err := l.blocks.GetBlockExists(ctx, ref)
-	if err != nil {
-		return false, err
+	if err == nil && found {
+		err = errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())
 	}
-	if found {
-		return false, errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())
-	}
-	return false, nil
+	return err
 }
 
 // moveRoot moves one named root from held to root.Ref, counting the holder it
@@ -726,17 +582,11 @@ func (l *lander) holdRoot(ctx context.Context, root block.NamedRoot) error {
 	}
 
 	// A stored block gains a holder.
-	listed, err := l.rec.HasChildren(ctx, root.Ref)
+	listed, err := l.holdStored(ctx, root.Ref)
 	if err != nil {
 		return err
 	}
 	if listed {
-		if err := l.holdStored(ctx, root.Ref); err != nil {
-			return err
-		}
-		if err := l.noteOldHold(ctx, root.Ref, true); err != nil {
-			return err
-		}
 		if l.journal {
 			l.up = append(l.up, BlockKey(root.Ref))
 			l.onStored = append(l.onStored, BlockKey(root.Ref))

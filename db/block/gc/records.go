@@ -22,7 +22,11 @@ const (
 	// kindChildren keys the child list of a block by the block. Its value
 	// packs the block keys of its children, sorted and distinct. The record
 	// exists from the put that stored the block until the collector frees it,
-	// so its presence is what "stored" means here.
+	// so its presence is what "stored" means here. A list written from the
+	// block's content, by Land, a fill or the settle walk, begins with
+	// listMark; one an older store wrote does not, and may lack a child, as
+	// Generation_GENERATION_OPEN describes. A block key never begins with a
+	// zero byte, so the two cannot be confused.
 	kindChildren byte = 'c'
 	// kindCount keys the count record of a block by the block. A block with
 	// no record has one holder, and a uvarint value n above zero gives it
@@ -96,30 +100,29 @@ const (
 	// born, since the record supplies its children's holders and takes its
 	// own implied holder back.
 	kindFillBorn byte = 'M'
-	// kindVerified keys a block whose child list a list rebuild verified
-	// against the block's decoded refs, by the block. It holds no value and
-	// lasts until the rebuild clears the Volume's unverified lists mark.
-	kindVerified byte = 'V'
-	// kindLanded keys a block Land gave birth to while the Volume's child
-	// lists are unverified, by the block. It holds no value. Land wrote the
-	// block's list from the put's refs, so the list is verified, and every
-	// holder of the block came through Land and the journal, so its count is
-	// exact although older lists may lack a child. The free takes only such
-	// blocks while the mark stands, as Collector describes. A put of a block
-	// stored already, a refilled hole and a cache fill write none, since
-	// their blocks are older. It lasts until the free takes the block or the
-	// list rebuild clears the mark.
-	kindLanded byte = 'W'
-	// kindParked keys a Dead block the free held back while the Volume's
-	// child lists were unverified, because Land did not give birth to it, by
-	// its big-endian ripe sequence, then the block, as the free queue keys it.
-	// It holds no value. Once the mark clears, the collector moves each back
-	// onto the free queue, where the free checks the block again.
+	// kindParked keys a Dead block the free held back while the generation
+	// is Open, by its big-endian ripe sequence, then the block, as the free
+	// queue keys it. It holds no value. Once the generation leaves Open the
+	// collector moves each back onto the free queue, where the free checks
+	// the block again.
 	kindParked byte = 'X'
-	// kindReached keys a block a streaming walk from the roots reached, by the
-	// block. It holds no value; the walk deletes every one when it starts and
-	// when it ends.
-	kindReached byte = 'K'
+	// kindFront keys a block on the settle's front, by the block: a stored
+	// block whose list may lack a child, named by a young or verified block,
+	// a root or a recent down pair, which the walk still has to decode. It
+	// holds no value. Land, LandFill and the walk push onto it while the
+	// generation is Open, as Generation_GENERATION_OPEN describes; a write
+	// that marks the block's list takes its entry off, and so does the
+	// collector once its free proof holds for the block. An entry whose block
+	// the store does not list stays, and keeps the generation Open.
+	kindFront byte = 'G'
+	// kindUnmarked keys an entry of the unmarked run, by the block: a block
+	// whose bytes or list the store holds without a list from content. Its
+	// value is empty, or runReborn once a put stored the block again. The
+	// run is built in slices while the generation is Open, and is complete
+	// once its runComplete entry exists; the flip makes each entry not
+	// reborn unmarked, and the sweep deletes the run, as
+	// Generation_GENERATION_SWEEPING describes.
+	kindUnmarked byte = 'I'
 	// kindAdoptBorn keys a block Land gave birth to while the Volume adopts,
 	// by the block. It holds no value and lasts until the adoption ends.
 	kindAdoptBorn byte = 'B'
@@ -135,38 +138,35 @@ const (
 	// moves their last child.
 	kindReleasePage byte = 'D'
 	// kindRewritten is one record, with no key past the kind and no value,
-	// that a list rebuild writes when it rewrites a list on an adopted
-	// Volume: it journals no holder for a child the list gains, so the counts
-	// lack those holders until an adoption recounts the lists. Finish returns
-	// the Volume to unadopted when it finds it, and the adoption that follows
-	// deletes it with the counts.
+	// that a list rebuild or a Land writes when a list gains a child on a
+	// Volume that keeps a journal: it journals no holder for the child, so
+	// the counts lack those holders until an adoption recounts the lists. The
+	// settle's flip returns the Volume to unadopted when it finds it, and the
+	// adoption that follows deletes it with the counts.
 	kindRewritten byte = 'Y'
-	// kindSuspect keys a listed block that may not be clean, by the block.
-	// A block is clean when its list was written from its content and every
-	// child it names is clean or absent; one without a suspect record is
-	// clean. The value says why it may not be: empty for a suspect block,
-	// whose list no root vouched for, suspectPending for a pending block,
-	// whose list a put wrote from its content but whose children may not be
-	// clean, and suspectFillPending for a block a fill gave birth to below a
-	// block that may not be clean. Finish writes one for each listed block no
-	// root reached before it clears the mark, as markSuspects describes; Land
-	// promotes a pending block to clean once its children are, as holdStored
-	// describes; the free deletes the record with the block.
-	kindSuspect byte = 'Z'
+	// kindVerifiedRetired, kindLandedRetired, kindReachedRetired and
+	// kindSuspectRetired are the verified and landed marks, the walk's
+	// reached marks and the suspect records an older store wrote. Nothing
+	// reads them; an adoption's clear deletes them.
+	kindVerifiedRetired byte = 'V'
+	kindLandedRetired   byte = 'W'
+	kindReachedRetired  byte = 'K'
+	kindSuspectRetired  byte = 'Z'
 )
 
-// The values of a suspect record.
-const (
-	// suspectPending marks a pending block, which a list rebuild or a put
-	// wrote the list of from its content. LivenessState.suspect_lists
-	// counts it.
-	suspectPending byte = 'c'
-	// suspectFillPending marks a block a fill gave birth to below a child
-	// with a suspect record. It is pending, but the count leaves it out, since
-	// a fill writes no state: once the count reaches zero every counted
-	// record is gone, so every child below such a block is clean or absent,
-	// and the block is clean, by induction from the leaves.
-	suspectFillPending byte = 'f'
+// listMark begins a child list written from its block's content.
+const listMark byte = 0
+
+// The unmarked run's values, and the key of its completion entry.
+var (
+	// runReborn is the value of a run entry whose block a put stored again
+	// after the flip, so the block is live, and the sweep of an unmarked
+	// parent skips it, since the put took back what the old list held.
+	runReborn = []byte{'r'}
+	// runComplete is the key after the kind of the entry that says the run
+	// names every block the store holds without a list from content. A block
+	// key is never empty, so no block's entry has this key.
+	runComplete = []byte{}
 )
 
 // The values of a cascade record: the direction its block's children move.
@@ -232,35 +232,37 @@ type Records struct {
 	// unadopted reports that a write in the transaction returned the Volume
 	// to unadopted.
 	unadopted bool
-	// suspectsKnown reports that suspectLists holds the state's suspect
-	// count as the transaction sees it, read from the state, written with
-	// it, or told by AssumeNoSuspects.
-	suspectsKnown bool
-	// suspectLists is the suspect count when suspectsKnown is set.
-	suspectLists uint64
+	// genKnown reports that gen holds the Volume's generation as the
+	// transaction sees it, read from the state, written with it, or told by
+	// AssumeSettled.
+	genKnown bool
+	// gen is the generation when genKnown is set.
+	gen Generation
 }
 
-// AssumeNoSuspects tells the records that the Volume holds no counted
-// suspect record, as the Volume's gate proves, so the transaction reads none.
-// The caller guarantees that no Finish runs that could write one.
-func (r *Records) AssumeNoSuspects() {
-	r.suspectsKnown, r.suspectLists = true, 0
+// AssumeSettled tells the records that the Volume's generation is
+// Settled, which the Volume knows from a transaction that read or wrote it,
+// so the transaction reads no state to learn it. Settled is the last
+// generation, so the knowledge never goes stale.
+func (r *Records) AssumeSettled() {
+	r.genKnown, r.gen = true, Generation_GENERATION_SETTLED
 }
 
-// NoSuspects reports whether the transaction has seen the Volume's suspect
-// count at zero, read from the state or written with it. A Volume's gate
-// closes on it, as AssumeNoSuspects describes.
-func (r *Records) NoSuspects() bool {
-	return r.suspectsKnown && r.suspectLists == 0
+// Settled reports whether the transaction has seen the Volume's generation
+// at Settled, read from the state or written with it.
+func (r *Records) Settled() bool {
+	return r.genKnown && r.gen == Generation_GENERATION_SETTLED
 }
 
-// Suspect reports whether ref is a suspect block, one whose list no root
-// vouched for, as SuspectError describes. A Volume hides a suspect block
-// from its existence checks, so a writer puts it again. A pending block, whose
-// list was written from its content, is not suspect.
-func (r *Records) Suspect(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	trust, err := r.getTrust(ctx, BlockKey(ref))
-	return trust == listSuspect, err
+// generation returns the Volume's generation, reading the state unless the
+// transaction knows it.
+func (r *Records) generation(ctx context.Context) (Generation, error) {
+	if !r.genKnown {
+		if _, err := r.GetState(ctx); err != nil {
+			return 0, err
+		}
+	}
+	return r.gen, nil
 }
 
 // NewRecords returns the liveness records under prefix in tx.
@@ -319,9 +321,28 @@ func (r *Records) HasChildren(ctx context.Context, ref *block.BlockRef) (bool, e
 	return r.tx.Exists(ctx, r.key(kindChildren, BlockKey(ref)))
 }
 
-// PutChildren writes the child list of ref.
+// PutChildren writes the child list of ref from its content, with listMark.
 func (r *Records) PutChildren(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
-	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), EncodeChildren(children))
+	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), markList(EncodeChildren(children)))
+}
+
+// markList returns the packed block keys as a list value written from
+// content.
+func markList(packed []byte) []byte {
+	return append([]byte{listMark}, packed...)
+}
+
+// listMarked reports whether the list value was written from content.
+func listMarked(value []byte) bool {
+	return len(value) != 0 && value[0] == listMark
+}
+
+// listKeys returns the packed block keys of a list value, without its mark.
+func listKeys(value []byte) []byte {
+	if listMarked(value) {
+		return value[1:]
+	}
+	return value
 }
 
 // DeleteChildren deletes the child list of ref, which frees it in the liveness
@@ -430,9 +451,11 @@ func compareRefs(a, b *block.BlockRef) int {
 	return bytes.Compare(ha.GetHash(), hb.GetHash())
 }
 
-// DecodeChildren decodes a child list value.
+// DecodeChildren decodes a child list value, marked or not, or packed block
+// keys.
 func DecodeChildren(value []byte) ([]*block.BlockRef, error) {
 	var children []*block.BlockRef
+	value = listKeys(value)
 	for len(value) != 0 {
 		child, rest, err := ParseBlockKey(value)
 		if err != nil {
@@ -683,70 +706,6 @@ func (r *Records) parkedKey(ripe uint64, key []byte) []byte {
 	return r.key(kindParked, binary.BigEndian.AppendUint64(nil, ripe), key)
 }
 
-// listVerified reports whether the child list of the block at key is known
-// to name every child: a list rebuild verified it, or Land wrote it while
-// the Volume's lists were unverified.
-func (r *Records) listVerified(ctx context.Context, key []byte) (bool, error) {
-	verified, err := r.tx.Exists(ctx, r.key(kindVerified, key))
-	if err != nil || verified {
-		return verified, err
-	}
-	return r.tx.Exists(ctx, r.key(kindLanded, key))
-}
-
-// listTrust is what a block's suspect record says of its child list.
-type listTrust int
-
-const (
-	// listClean is a block without a suspect record: clean, or absent.
-	listClean listTrust = iota
-	// listSuspect is a block whose list no root vouched for.
-	listSuspect
-	// listPending is a block whose list was written from its content, with
-	// children that may not be clean.
-	listPending
-)
-
-// getTrust reads what the suspect record of the block at key says of its
-// list, and whether the record counts in the state's suspect count. It reads
-// no record once the transaction knows the count is zero: every counted
-// record is gone then, and an uncounted one is clean, as suspectFillPending
-// describes.
-func (r *Records) getTrust(ctx context.Context, key []byte) (listTrust, error) {
-	trust, _, err := r.readTrust(ctx, key)
-	return trust, err
-}
-
-// readTrust is getTrust, also reporting whether the record counts.
-func (r *Records) readTrust(ctx context.Context, key []byte) (listTrust, bool, error) {
-	if r.suspectsKnown && r.suspectLists == 0 {
-		return listClean, false, nil
-	}
-	value, found, err := r.tx.Get(ctx, r.key(kindSuspect, key))
-	switch {
-	case err != nil || !found:
-		return listClean, false, err
-	case len(value) == 0:
-		return listSuspect, true, nil
-	}
-	return listPending, value[0] == suspectPending, nil
-}
-
-// dropSuspect deletes the suspect record of the block at key, when it has
-// one, taking a counted one from state's suspect count. The caller writes
-// state.
-func (r *Records) dropSuspect(ctx context.Context, state *LivenessState, key []byte) error {
-	trust, counted, err := r.readTrust(ctx, key)
-	if err != nil || trust == listClean {
-		return err
-	}
-	if counted {
-		state.SuspectLists = max(state.GetSuspectLists(), 1) - 1
-		r.suspectLists = state.GetSuspectLists()
-	}
-	return r.tx.Delete(ctx, r.key(kindSuspect, key))
-}
-
 // queuePos returns the position on the free queue of the block at key,
 // ripe at ripe: its queue key without the prefix and kind.
 func queuePos(ripe uint64, key []byte) []byte {
@@ -848,16 +807,15 @@ func (r *Records) settled(ctx context.Context, state *LivenessState) (bool, erro
 }
 
 // HasProof reports whether ref has a completion proof, which says the store
-// holds every block below it. It hides the proof of a block that may not be
-// clean, suspect or pending, so a writer that skips a subtree on its proof
-// puts the blocks below it instead, as Land needs before it holds the block.
+// holds every block below it. It hides the proof of an unmarked block, which
+// answers absent, so a writer puts it again rather than naming it.
 func (r *Records) HasProof(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	found, err := r.tx.Exists(ctx, r.key(kindProof, BlockKey(ref)))
 	if err != nil || !found {
 		return false, err
 	}
-	trust, err := r.getTrust(ctx, BlockKey(ref))
-	return trust == listClean, err
+	unmarked, err := r.Unmarked(ctx, BlockKey(ref))
+	return !unmarked, err
 }
 
 // SetProof records the completion proof of ref.
@@ -872,7 +830,7 @@ func (r *Records) DeleteProof(ctx context.Context, ref *block.BlockRef) error {
 
 // GetState returns the state record, or the zero state when it is missing.
 func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
-	// Read the record, then note its suspect count.
+	// Read the record, then note its generation.
 	state := &LivenessState{}
 	value, found, err := r.tx.Get(ctx, r.key(kindState))
 	if err == nil && found {
@@ -881,7 +839,7 @@ func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
 	if err != nil {
 		return state, err
 	}
-	r.suspectsKnown, r.suspectLists = true, state.GetSuspectLists()
+	r.genKnown, r.gen = true, state.GetGeneration()
 	return state, nil
 }
 
@@ -891,7 +849,7 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 	if err != nil {
 		return err
 	}
-	r.suspectsKnown, r.suspectLists = true, state.GetSuspectLists()
+	r.genKnown, r.gen = true, state.GetGeneration()
 	return r.tx.Set(ctx, r.key(kindState), value)
 }
 

@@ -55,16 +55,10 @@ func (s collectorStore) View(ctx context.Context, fn func(rec *block_gc.Records)
 	return s.v.readRecords(ctx, fn)
 }
 
-// BlockStored reports whether the Volume holds the bytes of ref, suspect or
+// BlockStored reports whether the Volume holds the bytes of ref, unmarked or
 // not: the collector asks of bytes, not of a list.
 func (s collectorStore) BlockStored(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return s.v.Store.GetBlockExists(ctx, ref)
-}
-
-// MarkingSuspects opens the Volume's suspect gate while a list rebuild's
-// Finish may write suspect records, as suspectGate describes.
-func (s collectorStore) MarkingSuspects(ctx context.Context) (func(), error) {
-	return s.v.gate.marking(ctx)
 }
 
 // ScanBlocks calls fn with runs of the blocks the Volume keeps as records, as
@@ -170,7 +164,6 @@ func backgroundPass(ctx context.Context) context.Context {
 
 // _ is a type assertion
 var (
-	_ block_gc.AdoptStore    = collectorStore{}
-	_ block_gc.SuspectMarker = collectorStore{}
-	_ volume.Collector       = (*Volume)(nil)
+	_ block_gc.AdoptStore = collectorStore{}
+	_ volume.Collector    = (*Volume)(nil)
 )

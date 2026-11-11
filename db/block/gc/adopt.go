@@ -491,11 +491,12 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 // adoptionKinds are the kinds of record an adoption writes or replaces, which
 // it clears before it counts the lists and after a failed run: the counts,
 // free queue, parked and cascade records, its marks, release pages, unapplied
-// fill ups, the up index a format 8 store left, and the list rebuild's
-// record that a recount is due.
+// fill ups, the up index a format 8 store left, the record that a recount
+// is due, and the retired marks an older store wrote.
 var adoptionKinds = []byte{
 	kindCount, kindQueue, kindParked, kindCascade, kindAdoptBorn, kindAdoptRoot,
 	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex, kindRewritten,
+	kindVerifiedRetired, kindLandedRetired, kindReachedRetired, kindSuspectRetired,
 }
 
 // claimedBy reports whether state is unadopted under run's claim.

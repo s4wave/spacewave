@@ -2,7 +2,6 @@ package kvtx
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -39,27 +38,7 @@ func (v *Volume) withDirectPlain(ctx context.Context, fn func(p *physicalTx) err
 
 // withDirect runs fn as withDirectAtomic describes, committing fully when
 // durable is set.
-//
-// A Land in fn that holds a pending block whose promotion needs more reads
-// than one transaction makes returns a block_gc.PromoteError; withDirect then
-// promotes the block in slices, outside the transaction, and runs fn again,
-// so fn must be safe to run again. Each promotion leaves its block clean for
-// good, so the retries end.
 func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physicalTx) error) error {
-	for {
-		err := v.withDirectOnce(ctx, durable, fn)
-		var pe *block_gc.PromoteError
-		if !errors.As(err, &pe) {
-			return err
-		}
-		if err := block_gc.Promote(ctx, collectorStore{v: v}, pe.Ref); err != nil {
-			return err
-		}
-	}
-}
-
-// withDirectOnce runs fn once as withDirect describes.
-func (v *Volume) withDirectOnce(ctx context.Context, durable bool, fn func(p *physicalTx) error) error {
 	// Join direct Volume operations and reject writes after storage closes.
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
@@ -70,19 +49,12 @@ func (v *Volume) withDirectOnce(ctx context.Context, durable bool, fn func(p *ph
 		return err
 	}
 
-	// Open one physical transaction for block bytes and liveness records,
-	// loading the suspect gate before its snapshot, to close the gate on, and
-	// after, holding the store's writer, to skip suspect reads on, as
-	// suspectGate describes.
-	epoch, _ := v.gate.load()
+	// Open one physical transaction for block bytes and liveness records.
 	p, err := v.openPhysical(ctx)
 	if err != nil {
 		return err
 	}
 	defer p.discard()
-	if _, closed := v.gate.load(); closed {
-		p.rec.AssumeNoSuspects()
-	}
 
 	// Apply the direct operation.
 	if fn != nil {
@@ -97,7 +69,7 @@ func (v *Volume) withDirectOnce(ctx context.Context, durable bool, fn func(p *ph
 	if fn == nil || p.wrote() {
 		edits, err = v.applyDeferred(ctx, p)
 	}
-	d := &directTx{v: v, p: p, durable: durable, epoch: epoch}
+	d := &directTx{v: v, p: p, durable: durable}
 	if err == nil {
 		err = d.Commit(ctx)
 	}
@@ -119,7 +91,8 @@ func (v *Volume) withDirectOnce(ctx context.Context, durable bool, fn func(p *ph
 // A fill lands through block_gc.LandFill, which reads only the child list of
 // each block it puts and the Volume's hole records, and writes its pairs to a
 // fill record of its own, blind, so it conflicts only with a commit that
-// stores or frees one of its blocks, or with a write of a hole record.
+// stores or frees one of its blocks, or with a write of a hole record, and,
+// until the Volume's old generation settles, with a write of the state.
 //
 // It carries no deferred edits: they reserve in-memory pins once per
 // transaction, and the writers holding the store's writer carry them. fn runs
@@ -132,24 +105,14 @@ func (v *Volume) withDirectFill(ctx context.Context, fn func(p *physicalTx) erro
 		return volume.ErrVolumeClosed
 	}
 
-	// Skip suspect reads while the gate is closed, registering with it, since
-	// an optimistic attempt holds no writer, as suspectGate describes.
-	assume, release := v.gate.assume()
-	defer release()
-
 	// Run fn in each attempt, keeping the last.
 	var last *directTx
 	open := func(ctx context.Context) (*directTx, error) {
-		// Load the gate before the snapshot opens, as withDirectOnce does.
-		epoch, _ := v.gate.load()
 		p, err := v.openPhysical(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if assume {
-			p.rec.AssumeNoSuspects()
-		}
-		last = &directTx{v: v, p: p, epoch: epoch}
+		last = &directTx{v: v, p: p}
 		return last, nil
 	}
 	err := kvtx.RunOptimisticTransaction(ctx, open, func(_ context.Context, d *directTx) error {
@@ -175,8 +138,6 @@ type directTx struct {
 	durable bool
 	// committed records that Commit committed p.
 	committed bool
-	// epoch is the suspect gate's epoch loaded before p's snapshot opened.
-	epoch uint64
 }
 
 // Commit commits p with write ordering when the Volume orders writes and the
@@ -205,13 +166,13 @@ func (d *directTx) Discard() {
 }
 
 // settle reports the committed markers, forgets the pending proofs of the
-// blocks p removed, wakes Volume statistics watchers, closes the suspect gate
-// when p saw no suspect records and, when p returned the Volume to
+// blocks p removed, wakes Volume statistics watchers, notes that the Volume
+// is Settled when p saw or wrote it so and, when p returned the Volume to
 // unadopted, starts the recount, once p committed.
 func (d *directTx) settle() {
 	if d.committed {
-		if d.p.rec.NoSuspects() {
-			d.v.gate.close(d.epoch)
+		if d.p.rec.Settled() {
+			d.v.settled.Store(true)
 		}
 		d.p.blocks.marks.committed()
 		d.v.forgetFreedProofs(d.p.blocks.removedRefs())

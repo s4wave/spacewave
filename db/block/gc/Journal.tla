@@ -417,6 +417,21 @@
 \*              Journal-adopt-revive-hole-noholeblock.cfg, HoleKeeps).
 \*   Accepts    TRUE lets the operator accept the loss of a recorded hole,
 \*              which then no longer blocks the flip.
+\*   RootWalk   TRUE is the code's typed walk, which can decode a block
+\*              only below a seed, through its decoded parents: each pass
+\*              walks its own scan from the seeds into every stored child,
+\*              verified or not, and decodes the front entries it reaches;
+\*              it cannot decode a front entry standalone. Needs Stop.
+\*   FrontPop   how a front entry no pass reaches leaves the front, under
+\*              RootWalk: "free" when the collector's free proof holds for
+\*              it (Freeable), so nothing holds it; "unreached" drops every
+\*              entry the pass did not reach at its end, the mutant
+\*              (testdata/Journal-adopt-revive-rootwalk-popunreached.cfg);
+\*              "push" is "free" where each decode also pushes its
+\*              unproven children onto the front, as Stop does, so a pass
+\*              may end before its scan does and the flip needs only an
+\*              empty front; "pushless" ends early without the push, the
+\*              mutant of "push".
 \*   ReplacedSkip "trusted" lets a new block skip the barrier and the
 \*              unmarked refusal for each child named in the stored list
 \*              of the block it replaces (Prior), when that block is
@@ -454,7 +469,7 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           RewriteFlag, Recount, PutRecount, LandCheck, FillBarrier,
           FillLanded, PunchGuard, AdoptDirty, FlipFills,
           RebirthDown, UnmarkedRefuse, Grey, Stop, WalkSkip,
-          ReplacedSkip, CutInit, HoleBlock, Accepts
+          ReplacedSkip, CutInit, HoleBlock, Accepts, RootWalk, FrontPop
 
 None == "none"
 Unmoved == "unmoved"
@@ -570,7 +585,9 @@ VARIABLES
   verified,  \* the old blocks whose list the settle walk wrote from their
              \* decoded content, or a put wrote from its refs
   walk,      \* the settle walk: st, "idle" or "walking"; front, the
-             \* blocks it reached and has still to decode; vis, those it
+             \* blocks it reached and has still to decode; scan, with
+             \* RootWalk, the blocks the pass reached from its seeds and has
+             \* still to decode, apart from the front; vis, those it
              \* decoded this pass; dirty, whether a hold or a fill's up pair
              \* onto an unverified old block, or an adoption, came since the
              \* pass read its seeds
@@ -596,8 +613,8 @@ vars == <<root, left, stored, lost, cnt, zero, rel, unproved, ripe, jr, hseq,
 \* NoWalk is the settle walk between passes.
 \* hit holds the lost blocks a pass reached and acc the holes the operator
 \* accepted; both outlive the pass, as the code's hole records do.
-NoWalk == [st |-> "idle", front |-> {}, vis |-> {}, dirty |-> FALSE,
-           hit |-> {}, acc |-> {}]
+NoWalk == [st |-> "idle", front |-> {}, scan |-> {}, vis |-> {},
+           dirty |-> FALSE, hit |-> {}, acc |-> {}]
 
 Init ==
   /\ root = [n \in Names |->
@@ -1264,13 +1281,16 @@ Release(c) ==
 \* running, until the cursor passes the block's ripe sequence (Ripe) and the
 \* hold mark (HoldMark), and while a fill's ups are unapplied (FillEager), or
 \* without FillEager while a fill record not netted yet names b, as the fill
-\* hold index does.
-Delete(b) ==
+\* hold index does. Freeable is that proof, which the settle's FrontFree
+\* reads too.
+Freeable(b) ==
   /\ adoption = "adopted"
   /\ b \in zero \cap rel /\ Settled
   /\ Ripe => ripe[b] = 0
   /\ HoldMark => hseq = 0
   /\ IF FillEager THEN Unapplied = {} ELSE FUps(b) = 0
+Delete(b) ==
+  /\ Freeable(b)
   /\ Gen => ~unverified
   /\ stored' = stored \ {b}
   /\ young' = young \ {b}
@@ -1603,6 +1623,7 @@ WalkStart ==
   /\ walk' = [st |-> "walking",
                front |-> IF Stop THEN walk.front \cup (SeedRefs \cap Unproven)
                          ELSE Seeds,
+               scan |-> IF RootWalk THEN Seeds ELSE {},
                vis |-> {}, dirty |-> FALSE, hit |-> walk.hit, acc |-> walk.acc]
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, freed, fillVars,
@@ -1614,13 +1635,25 @@ WalkStart ==
 \* from content, and reads a verified or born block's list. A rewrite of a cut
 \* list journals no holder, so on an adopted Volume it records that a recount
 \* is due. The walk follows content, Kids, into the children the store holds.
+\* With RootWalk the pass decodes only what its scan reached, and follows
+\* every stored child, since it reaches an old block only through its
+\* decoded parents; decoding a front entry takes it off the front.
 WalkStep(b) ==
-  /\ walk.st = "walking" /\ b \in walk.front /\ b \in stored
+  /\ walk.st = "walking" /\ b \in stored
+  /\ b \in IF RootWalk THEN walk.scan ELSE walk.front
   /\ adoption # "adopting"
   /\ cut' = cut \ {b}
   /\ verified' = IF b \in Unverified THEN verified \cup {b} ELSE verified
   /\ rewritten' = (rewritten \/ (b \in cut /\ RewriteFlag /\ adoption = "adopted"))
-  /\ walk' = [walk EXCEPT !.front = (@ \ {b}) \cup
+  /\ walk' = IF RootWalk
+             THEN [walk EXCEPT !.front = (@ \ {b}) \cup
+                                        (IF FrontPop = "push"
+                                         THEN (Kids(b) \cap Unproven) \ {b}
+                                         ELSE {}),
+                               !.scan = (@ \ {b}) \cup
+                                        ((Kids(b) \cap stored) \ (walk.vis \cup {b})),
+                               !.vis = @ \cup {b}]
+             ELSE [walk EXCEPT !.front = (@ \ {b}) \cup
                             ((Kids(b) \cap (IF Stop THEN Unproven ELSE stored))
                              \ (walk.vis \cup {b})),
                           !.vis = @ \cup {b}]
@@ -1632,8 +1665,8 @@ WalkStep(b) ==
 \* WalkDrop drops a front entry the store no longer holds. With HoleBlock a
 \* lost one not accepted is a hole the pass reached, and is recorded.
 WalkDrop(b) ==
-  /\ walk.st = "walking" /\ b \in walk.front /\ b \notin stored
-  /\ walk' = [walk EXCEPT !.front = @ \ {b},
+  /\ walk.st = "walking" /\ b \in walk.front \cup walk.scan /\ b \notin stored
+  /\ walk' = [walk EXCEPT !.front = @ \ {b}, !.scan = @ \ {b},
                           !.hit = IF HoleBlock /\ b \in lost \ walk.acc
                                   THEN @ \cup {b} ELSE @]
   /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
@@ -1651,6 +1684,21 @@ Accept(h) ==
                  cut, young, unverified, rewritten, unmarked, flipped, verified,
                  wake, adoptVars, stageVars, writerVars>>
 
+\* FrontFree takes a front entry off the front, with RootWalk and FrontPop
+\* "free", once the collector's free proof holds for it: no holder counts
+\* it and none can within the grace period. Its count misses only a holder
+\* whose list is unverified and short; such a holder, if anything holds it,
+\* is a seed the pass decodes, or below a front entry that holds the flip
+\* until a pass decodes it or the same proof frees it.
+FrontFree(f) ==
+  /\ RootWalk /\ FrontPop \in {"free", "push", "pushless"}
+  /\ f \in walk.front /\ f \in stored /\ Freeable(f)
+  /\ walk' = [walk EXCEPT !.front = @ \ {f}]
+  /\ UNCHANGED <<root, left, stored, lost, gcVars, jrVars, obs, seen,
+                 seenAge, txns, holes, born, moved, sheld, freed, fillVars,
+                 cut, young, unverified, rewritten, unmarked, flipped, verified,
+                 wake, adoptVars, stageVars, writerVars>>
+
 \* Flippable: what the flip's netting transaction checks. The pass is clean,
 \* the Volume adopted with no recount due, no cascade runs, and with
 \* FlipFills every fill's up pairs are applied, so the barrier has seen them.
@@ -1658,6 +1706,8 @@ Flippable ==
   /\ ~walk.dirty /\ adoption = "adopted" /\ ~rewritten /\ pend = {}
   /\ HoleBlock => walk.hit \cap lost = {}
   /\ FlipFills => Unapplied = {}
+  \* With RootWalk every push the pass did not decode is accounted for.
+  /\ RootWalk /\ FrontPop # "unreached" => walk.front = {}
 
 \* WalkEnd ends a pass whose front is empty. A dirty pass, or one that
 \* rewrote a list, starts again; with Recount a rewrite returns the Volume
@@ -1666,7 +1716,10 @@ Flippable ==
 \* is unmarked, absent to every step from here, and the generation settles,
 \* so frees open. Its count is zeroed; its list stays for SweepDel.
 WalkEnd ==
-  /\ walk.st = "walking" /\ walk.front = {}
+  /\ walk.st = "walking"
+  /\ IF RootWalk
+     THEN FrontPop \in {"push", "pushless"} \/ walk.scan = {}
+     ELSE walk.front = {}
   /\ IF Flippable
      THEN LET c == Unverified
           IN /\ unverified' = FALSE
@@ -1687,7 +1740,9 @@ WalkEnd ==
              THEN Unadopt ELSE UNCHANGED <<adoption, owner, wake>>
           /\ UNCHANGED <<unverified, unmarked, flipped, stored, freed, freedLive, cnt,
                          zero, rel, unproved, ripe>>
-  /\ walk' = [NoWalk EXCEPT !.hit = walk.hit, !.acc = walk.acc]
+  /\ walk' = [NoWalk EXCEPT !.hit = walk.hit, !.acc = walk.acc,
+                !.front = IF RootWalk /\ FrontPop # "unreached"
+                          THEN walk.front ELSE {}]
   /\ UNCHANGED <<root, left, lost, under, pend, pdir, jrVars, obs, seen,
                  seenAge, txns, holes, born, moved, sheld, fj, cut, young,
                  rewritten, verified, pc, pos, opens, stageVars, writerVars>>
@@ -1755,7 +1810,8 @@ NetAny == NetUps \/ \E k \in 1..Len(jr) : Net(k)
 NetFillAny == \E r \in fj : NetFill(r) \/ DropFill(r) \/ ApplyFill(r)
 DeleteAny == \E b \in Blocks : Delete(b) \/ Cascade(b) \/ Release(b)
 SettleAny == WalkStart \/ WalkEnd \/
-             \E b \in Blocks : WalkStep(b) \/ WalkDrop(b) \/ SweepDel(b)
+             \E b \in Blocks : WalkStep(b) \/ WalkDrop(b) \/ SweepDel(b) \/
+                               FrontFree(b)
 
 Next ==
   \/ \E w \in Writers :
@@ -1872,6 +1928,13 @@ RefillWitness == ~(\E h \in walk.hit : h \in stored) \/ unmarked = {}
 
 \* The operator accepted a hole, and the flip then ran.
 AcceptWitness == walk.acc = {} \/ unmarked = {}
+
+\* With RootWalk, a pass ended with a stored front entry no seed reaches.
+UnreachedWitness ==
+  ~(walk.st = "idle" /\ \E f \in walk.front \cap stored : f \notin UNION {Reach(x) : x \in Seeds})
+
+\* With RootWalk, the free proof holds for a stored front entry.
+FrontFreeWitness == ~\E f \in walk.front \cap stored : Freeable(f)
 
 FillRebornProbe == ~\E r \in fj : r.b \in flipped
 

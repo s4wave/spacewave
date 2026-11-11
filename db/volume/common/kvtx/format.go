@@ -116,13 +116,13 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	}
 
 	// Record the format, unadopted, with the old graph left for its sweep and
-	// its child lists unverified: the old graph committed a large edge set in
+	// its old generation Open: the old graph committed a large edge set in
 	// slices, so a crash or a failed slice could leave a list without a child
 	// its block names.
 	state := &block_gc.LivenessState{
-		Adoption:        block_gc.Adoption_ADOPTION_UNADOPTED,
-		LegacyGraph:     true,
-		UnverifiedLists: true,
+		Adoption:    block_gc.Adoption_ADOPTION_UNADOPTED,
+		LegacyGraph: true,
+		Generation:  block_gc.Generation_GENERATION_OPEN,
 	}
 	return version, writeFormat(ctx, store, keys, state)
 }
@@ -146,12 +146,12 @@ func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 
 	// Write it back unadopted, with no run.
 	return writeFormat(ctx, store, keys, &block_gc.LivenessState{
-		Adoption:        block_gc.Adoption_ADOPTION_UNADOPTED,
-		NextSeq:         state.GetNextSeq(),
-		Cursor:          state.GetCursor(),
-		NetOffset:       state.GetNetOffset(),
-		LegacyGraph:     state.GetLegacyGraph(),
-		UnverifiedLists: state.GetUnverifiedLists(),
+		Adoption:    block_gc.Adoption_ADOPTION_UNADOPTED,
+		NextSeq:     state.GetNextSeq(),
+		Cursor:      state.GetCursor(),
+		NetOffset:   state.GetNetOffset(),
+		LegacyGraph: state.GetLegacyGraph(),
+		Generation:  state.GetGeneration(),
 	})
 }
 
