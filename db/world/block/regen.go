@@ -156,7 +156,7 @@ func (r *Regenerator) read(ctx context.Context) (regenState, error) {
 	}
 
 	// Read its format.
-	_, _, w, err := r.openWorld(ctx, nil, s.head.Root)
+	_, w, err := r.readWorld(ctx, nil, s.head.Root)
 	if err != nil {
 		return s, err
 	}
@@ -465,7 +465,7 @@ func (r *Regenerator) applyDiff(ctx context.Context, store block.StoreOps, targe
 	var format WorldFormat
 	for i, ref := range []*block.BlockRef{from, to} {
 		var w *World
-		if _, cursors[i], w, err = r.openWorld(ctx, store, ref); err != nil {
+		if cursors[i], w, err = r.readWorld(ctx, store, ref); err != nil {
 			return nil, 0, err
 		}
 		format = w.GetFormat()
@@ -543,7 +543,7 @@ func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *blo
 // settings, and returns the delta writer on it.
 func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, target *block.BlockRef) (*regenGraft, error) {
 	// Read target's graph tree and the head's World.
-	_, _, tw, err := r.openWorld(ctx, store, target)
+	_, tw, err := r.readWorld(ctx, store, target)
 	if err != nil {
 		return nil, errors.Wrap(err, "load trailing World")
 	}
@@ -568,11 +568,28 @@ func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, tar
 // store, or the bucket's transaction store when store is nil, and decodes it.
 func (r *Regenerator) openWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Transaction, *block.Cursor, *World, error) {
 	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
+	w, err := decodeWorld(ctx, cursor, ref)
+	return tx, cursor, w, err
+}
+
+// readWorld opens the World root at ref in a read-only transaction, reading
+// through store as openWorld does, and decodes it. A walk of its graph tree
+// follows stored pages through ReadCursor, bounded by the decoded-block cache;
+// on a writable transaction each page it loaded would stay on the cursor tree.
+func (r *Regenerator) readWorld(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.Cursor, *World, error) {
+	tx, cursor := r.a.root.BuildTransactionAtRefWithStore(nil, ref, store)
+	tx.SetReadOnly()
+	w, err := decodeWorld(ctx, cursor, ref)
+	return cursor, w, err
+}
+
+// decodeWorld decodes the World at cursor, the root at ref.
+func decodeWorld(ctx context.Context, cursor *block.Cursor, ref *block.BlockRef) (*World, error) {
 	w, err := UnmarshalWorld(ctx, cursor)
 	if err == nil && w == nil {
 		err = block.NotFoundError(ref)
 	}
-	return tx, cursor, w, err
+	return w, err
 }
 
 // walkChangedKeys calls fn with the changed keys under prefix of the graph

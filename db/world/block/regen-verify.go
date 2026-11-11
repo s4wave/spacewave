@@ -41,7 +41,7 @@ func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 	var cursors [2]*block.Cursor
 	for i, ref := range sides {
 		var err error
-		if _, cursors[i], worlds[i], err = r.openWorld(ctx, r.a.store, ref); err != nil {
+		if cursors[i], worlds[i], err = r.readWorld(ctx, r.a.store, ref); err != nil {
 			return err
 		}
 	}
