@@ -364,6 +364,9 @@ type standaloneVersionIdentity struct {
 	ChannelKey string
 	// PlatformID is the host platform, as desktop/<os>/<arch>.
 	PlatformID string
+	// Revision is the source revision of the build; empty when the build
+	// recorded none.
+	Revision string
 	// Manifest identifies the release manifest; empty outside a distribution.
 	Manifest struct {
 		// ManifestID is the manifest ID.
@@ -387,12 +390,17 @@ func newStandaloneVersionCommand(projectID string) *cli.Command {
 				ProjectID:      projectID,
 				EntrypointRole: "standalone",
 				PlatformID:     "desktop/" + runtime.GOOS + "/" + runtime.GOARCH,
+				Revision:       SourceRevision(),
 			}
 			if c.Bool("json") {
 				_, err := c.App.Writer.Write(marshalStandaloneVersionIdentity(identity))
 				return err
 			}
-			_, err := c.App.Writer.Write([]byte(identity.ProjectID + " " + identity.EntrypointRole + "\n"))
+			rev := identity.Revision
+			if rev == "" {
+				rev = "unknown-revision"
+			}
+			_, err := c.App.Writer.Write([]byte(identity.ProjectID + " " + identity.EntrypointRole + " " + rev + "\n"))
 			return err
 		},
 	}
@@ -408,6 +416,7 @@ func marshalStandaloneVersionIdentity(identity standaloneVersionIdentity) []byte
 	obj.Set("entrypointRole", arena.NewString(identity.EntrypointRole))
 	obj.Set("channelKey", arena.NewString(identity.ChannelKey))
 	obj.Set("platformId", arena.NewString(identity.PlatformID))
+	obj.Set("revision", arena.NewString(identity.Revision))
 
 	// Marshal the nested manifest identity object.
 	manifest := arena.NewObject()

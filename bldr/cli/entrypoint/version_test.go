@@ -38,6 +38,11 @@ func TestStandaloneVersionCommandReportsUnmanagedIdentity(t *testing.T) {
 		t.Fatalf("platform = %q, want %q", platformID, wantPlatform)
 	}
 
+	// Require the source revision the build recorded, or the linker set.
+	if rev := string(got.GetStringBytes("revision")); rev != SourceRevision() {
+		t.Fatalf("revision = %q, want %q", rev, SourceRevision())
+	}
+
 	// Require an unmanaged entrypoint to omit Manifest identity.
 	if manifestID := string(got.GetStringBytes("manifest", "manifestId")); manifestID != "" {
 		t.Fatalf("manifest ID = %q, want empty", manifestID)
