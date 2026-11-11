@@ -224,6 +224,45 @@ func BenchmarkReadTxLookups(b *testing.B) {
 	}
 }
 
+// BenchmarkReadTxBatches measures multi-key GetBatch calls in one read
+// transaction with the default decoded cache: batches of 16 and 256 keys,
+// within one key region and scattered over the tree. ns/key is the time per
+// requested key.
+func BenchmarkReadTxBatches(b *testing.B) {
+	// Store a 50,000-key tree to read from.
+	ctx := b.Context()
+	store := newOkraTestStore()
+	fixture := newPaddedFixture(b, ctx, store, 50_000)
+	rootRef := storeFixture(b, ctx, store, fixture)
+
+	// Run each batch size within one region and scattered over the tree.
+	for _, size := range []int{16, 256} {
+		for _, bc := range []struct {
+			name string
+			span int
+		}{{"region", 1024}, {"scattered", len(fixture.keys)}} {
+			b.Run(fmt.Sprintf("%s-%d", bc.name, size), func(b *testing.B) {
+				// Draw each batch's keys from the span starting a third of the way in.
+				tr := openReadTx(b, ctx, store, rootRef, block.DefaultDecodedBlockCacheMaxCost)
+				rng := rand.New(rand.NewPCG(1, 2))
+				base := len(fixture.keys) / 3
+				keys := make([][]byte, size)
+				b.ReportAllocs()
+				for b.Loop() {
+					for i := range keys {
+						keys[i] = fixture.keys[(base+rng.IntN(bc.span))%len(fixture.keys)]
+					}
+					_, found, err := tr.GetBatch(ctx, keys)
+					if err != nil || !found[0] {
+						b.Fatalf("batch: found=%v err=%v", found[0], err)
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*size), "ns/key")
+			})
+		}
+	}
+}
+
 // mib returns n bytes in MiB.
 func mib(n uint64) float64 {
 	return float64(n) / (1 << 20)

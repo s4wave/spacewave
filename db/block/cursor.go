@@ -590,7 +590,10 @@ func (c *Cursor) ClearAllRefs() {
 // the bytes uses Unmarshal or FetchWithKeep, and a reader of a block that
 // holds no refs uses FetchLeaf.
 func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
-	data, _, found, err := c.fetch(ctx, false)
+	if c == nil {
+		return nil, false, nil
+	}
+	data, _, found, err := c.fetchAt(ctx, c.pos.ref, false)
 	return data, found, err
 }
 
@@ -600,11 +603,35 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 // locally. Never use it for a block whose decoded form holds refs: the store
 // would record it without them.
 func (c *Cursor) FetchLeaf(ctx context.Context) ([]byte, bool, error) {
-	data, keep, found, err := c.FetchWithKeep(ctx)
-	if keep != nil {
+	if c == nil {
+		return nil, false, nil
+	}
+	return c.fetchLeafAt(ctx, c.pos.ref)
+}
+
+// fetchLeafAt is FetchLeaf for the block at ref, read through this cursor's
+// transaction and store, so a reader at another position needs no cursor of
+// its own. A nil cursor reads nothing. It calls fetchAt directly rather than
+// through FetchWithKeep: each batch load runs it on a fresh goroutine, and a
+// shallower chain grows that goroutine's stack less.
+func (c *Cursor) fetchLeafAt(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
+	// A nil cursor reads nothing.
+	if c == nil {
+		return nil, false, nil
+	}
+
+	// Read the block under a mark that records whether the store asks to keep it.
+	fetchCtx, mark := withBlockReadMark(ctx, ref)
+	data, _, found, err := c.fetchAt(fetchCtx, ref, false)
+	if err != nil || !found {
+		return nil, found, err
+	}
+
+	// A leaf holds no refs, so keep it with none.
+	if keep := mark.takeKeep(); keep != nil {
 		keep(context.WithoutCancel(ctx), nil)
 	}
-	return data, found, err
+	return data, true, nil
 }
 
 // FetchWithKeep is Fetch for a caller that decodes the block itself. keep is
@@ -613,28 +640,32 @@ func (c *Cursor) FetchLeaf(ctx context.Context) ([]byte, bool, error) {
 // with the refs of the block it decodes from data, as Unmarshal does, or drops
 // it when it cannot decode the block.
 func (c *Cursor) FetchWithKeep(ctx context.Context) (data []byte, keep func(context.Context, []*BlockRef), found bool, err error) {
+	// A nil cursor reads nothing.
 	if c == nil {
 		return nil, nil, false, nil
 	}
+
+	// Read the block under a mark that records whether the store asks to keep it.
 	fetchCtx, mark := withBlockReadMark(ctx, c.pos.ref)
-	data, _, found, err = c.fetch(fetchCtx, false)
+	data, _, found, err = c.fetchAt(fetchCtx, c.pos.ref, false)
 	if err != nil || !found {
 		return nil, nil, found, err
 	}
 	return data, mark.takeKeep(), true, nil
 }
 
-// fetch loads the decoded block data at the cursor position. With verify it
-// also checks the stored bytes against the ref before the transformer may
-// decode them in place, and returns their length when they match, so the
-// caller can cache the decoded block without copying the stored bytes.
-// Otherwise the returned length is zero.
-func (c *Cursor) fetch(ctx context.Context, verify bool) ([]byte, int, bool, error) {
+// fetchAt loads the decoded block data at ref, reading through this cursor's
+// transaction, store and transformer, none of which depend on the position.
+// With verify it also checks the stored bytes against ref before the
+// transformer may decode them in place, and returns their length when they
+// match, so the caller can cache the decoded block without copying the stored
+// bytes. Otherwise the returned length is zero.
+func (c *Cursor) fetchAt(ctx context.Context, ref *BlockRef, verify bool) ([]byte, int, bool, error) {
 	// Skip a nil cursor or an empty ref.
 	if c == nil {
 		return nil, 0, false, nil
 	}
-	if c.pos.ref.GetEmpty() {
+	if ref.GetEmpty() {
 		return nil, 0, false, nil
 	}
 
@@ -651,22 +682,22 @@ func (c *Cursor) fetch(ctx context.Context, verify bool) ([]byte, int, bool, err
 	if counter != nil {
 		started = time.Now()
 	}
-	data, found, err := bkt.GetBlock(withoutReadOperationStore(ctx), c.pos.ref)
+	data, found, err := bkt.GetBlock(withoutReadOperationStore(ctx), ref)
 	if err == nil {
 		counter.recordRead(found, len(data), time.Since(started))
 	}
 	if err != nil || !found {
 		if err == nil {
-			err = NotFoundError(c.pos.ref)
+			err = NotFoundError(ref)
 		}
 		return nil, 0, false, err
 	}
-	recordAccessLog(ctx, c.pos.ref, len(data))
-	holdRead(ctx, c.pos.ref)
+	recordAccessLog(ctx, ref, len(data))
+	holdRead(ctx, ref)
 
 	// Verify the stored bytes before decoding may overwrite them.
 	var stored int
-	if verify && c.pos.ref.VerifyData(data, false) == nil {
+	if verify && ref.VerifyData(data, false) == nil {
 		stored = len(data)
 	}
 
@@ -773,7 +804,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	// The mark records whether a durable store served the block, and whether
 	// the store asks for the block's refs to keep it.
 	fetchCtx, mark := withBlockReadMark(ctx, c.pos.ref)
-	dat, stored, datFound, err := c.fetch(fetchCtx, cacheable)
+	dat, stored, datFound, err := c.fetchAt(fetchCtx, c.pos.ref, cacheable)
 	if err != nil {
 		return nil, err
 	}
