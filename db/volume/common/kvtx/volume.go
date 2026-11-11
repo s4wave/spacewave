@@ -61,6 +61,15 @@ type Volume struct {
 	// collector frees what no held named root reaches, nil without atomic
 	// commits.
 	collector *block_gc.Collector
+	// settled is set once a transaction saw the Volume's old generation
+	// Settled, which is final, so later transactions read no state to learn
+	// it and reads hide no block, as hideAbsent describes.
+	settled atomic.Bool
+	// hidesNone is set when the Volume opened Open with frees off and no
+	// parked block: only a free parks a block and only the settle moves
+	// the generation on, and both run only with frees on, so no read hides a
+	// block until the Volume opens again, as hideAbsent describes.
+	hidesNone atomic.Bool
 	// adoptMu runs one adoption of this Volume at a time.
 	adoptMu sync.Mutex
 	// atomic is set when the store commits transactions atomically, which
@@ -246,7 +255,7 @@ func NewVolume(
 		if err != nil {
 			return nil, volume.Permanent(err)
 		}
-		v.collector = v.newCollector(conf.GetCollectorFrees(), grace)
+		v.collector = v.newCollector(collectorStore{v: v}, conf.GetCollectorFrees(), grace)
 		v.heldMode = rootHeldMode(conf.GetRootHeldCheck(), conf.GetCollectorFrees())
 		if err := v.startLiveness(ctx); err != nil {
 			return nil, err
@@ -269,10 +278,10 @@ func rootHeldMode(check store_kvtx.RootHeldCheck, frees bool) block_gc.HeldMode 
 	return block_gc.HeldEnforce
 }
 
-// newCollector returns the collector of the Volume, which frees when frees is
-// set, under the Volume's hold rule, with grace as its grace period, zero for
-// the default.
-func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collector {
+// newCollector returns the collector of the Volume over store, which frees
+// when frees is set, under the Volume's hold rule, with grace as its grace
+// period, zero for the default.
+func (v *Volume) newCollector(store block_gc.Store, frees bool, grace time.Duration) *block_gc.Collector {
 	opts := block_gc.CollectorOptions{
 		Frees:         frees,
 		HoldUntilFree: v.holdRule == block_gc.HoldRule_HOLD_RULE_HOLD_UNTIL_FREE,
@@ -283,7 +292,7 @@ func (v *Volume) newCollector(frees bool, grace time.Duration) *block_gc.Collect
 	if w, ok := v.kvtxStore.(kvtx.WriterQueueStore); ok {
 		opts.WritersWaiting = w.WritersWaiting
 	}
-	return block_gc.NewCollector(collectorStore{v: v}, opts)
+	return block_gc.NewCollector(store, opts)
 }
 
 // parseGrace parses the collector's grace period, zero for the default. It
@@ -320,14 +329,23 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	// Read the liveness state, and return a Volume an adoption that died with
 	// its process left adopting to unadopted.
 	var state *block_gc.LivenessState
+	var parked bool
 	err := v.readRecords(ctx, func(rec *block_gc.Records) error {
+		// Read the state, then whether an Open Volume parked any block.
 		var err error
 		state, err = rec.GetState(ctx)
+		if err != nil || state.GetGeneration() != block_gc.Generation_GENERATION_OPEN {
+			return err
+		}
+		parked, err = rec.AnyParked(ctx)
 		return err
 	})
 	if err != nil {
 		return err
 	}
+	v.settled.Store(state.GetGeneration() == block_gc.Generation_GENERATION_SETTLED)
+	v.hidesNone.Store(!v.readOnly && !v.collector.Frees() &&
+		state.GetGeneration() == block_gc.Generation_GENERATION_OPEN && !parked)
 
 	// A read-only Volume reads its liveness state as it stands and starts
 	// no background writer.
@@ -343,8 +361,8 @@ func (v *Volume) startLiveness(ctx context.Context) error {
 	// Adopt an unadopted Volume in the background when its collector frees,
 	// as CollectorFrees describes: frees need exact counts, and without them
 	// nothing reads the counts. Child lists an older format left unverified
-	// adopt as they are, and the collector frees only blocks born since
-	// until they are verified. The adoption also runs again whenever a list
+	// adopt as they are, and the old generation's settle verifies them
+	// before any free. The adoption also runs again whenever a list
 	// rebuild returns the Volume to unadopted. A Volume adopted under the
 	// other hold rule adopts again whether or not frees are on, since the
 	// collector nets nothing until its counts follow its own rule.
@@ -665,6 +683,19 @@ func (v *Volume) BeginReadOperation(ctx context.Context) (block.StoreOps, func()
 // GetBlock reads a block from the embedded store.
 func (v *Volume) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return v.reader().GetBlock(ctx, ref)
+}
+
+// GetBlockExists reports whether the embedded store holds ref, answering
+// false for a block a put must store again, as hideAbsent describes.
+func (v *Volume) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return v.reader().GetBlockExists(ctx, ref)
+}
+
+// GetBlockExistsBatch reports whether the embedded store holds each of refs,
+// answering false for each block a put must store again, as hideAbsent
+// describes.
+func (v *Volume) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return v.reader().GetBlockExistsBatch(ctx, refs)
 }
 
 // GetStoredBlock reads a block with its refs from the embedded store.

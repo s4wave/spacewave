@@ -188,9 +188,15 @@ func (res *AuditResult) checkStored(
 	delta map[string]int64,
 	named map[string]struct{},
 ) error {
-	// Read its netted holders and whether the release in progress names it.
+	// Skip an unmarked block, which the sweep deletes: it is absent from
+	// the flip on, and its holders since then are checked once it leaves
+	// the run. Then read its netted holders and whether the release in
+	// progress names it.
 	res.Stored++
 	key := BlockKey(ref)
+	if unmarked, err := rec.Unmarked(ctx, key); err != nil || unmarked {
+		return err
+	}
 	holders, ripe, err := rec.GetHolders(ctx, ref)
 	if err != nil {
 		return err
@@ -223,13 +229,27 @@ func (res *AuditResult) checkStored(
 }
 
 // counts reports whether the children of the stored block ref count it as a
-// holder in an adopted Volume: it is Live or Dying, its rel flag clear.
-func counts(ctx context.Context, rec *Records, ref *block.BlockRef) (bool, error) {
+// holder in an adopted Volume: it is Live or Dying, its rel flag clear. An
+// unmarked block's old list counts as the flip froze it, as oldListHolds
+// reads.
+func counts(ctx context.Context, rec *Records, state *LivenessState, ref *block.BlockRef) (bool, error) {
+	// Read an unmarked block's old list as frozen.
+	key := BlockKey(ref)
+	unmarked, err := rec.Unmarked(ctx, key)
+	if err != nil {
+		return false, err
+	}
+	if unmarked {
+		holds, err := rec.oldListHolds(ctx, state, key)
+		return holds, err
+	}
+
+	// Otherwise compare its holders with its due cascade.
 	holders, _, err := rec.GetHolders(ctx, ref)
 	if err != nil {
 		return false, err
 	}
-	_, due, err := rec.getCascade(ctx, BlockKey(ref))
+	_, due, err := rec.getCascade(ctx, key)
 	return (holders == 0) == due, err
 }
 
@@ -258,7 +278,7 @@ func tallyHolders(ctx context.Context, rec *Records, state *LivenessState) (map[
 	released := state.GetAdoption() == Adoption_ADOPTION_ADOPTED && state.GetHoldRule() != HoldRule_HOLD_RULE_HOLD_UNTIL_FREE
 	err = rec.ScanChildren(ctx, func(ref *block.BlockRef, children []*block.BlockRef) error {
 		if released {
-			held, err := counts(ctx, rec, ref)
+			held, err := counts(ctx, rec, state, ref)
 			if err != nil || !held {
 				return err
 			}
@@ -504,4 +524,67 @@ func uncountCascade(ctx context.Context, rec *Records, key []byte) error {
 		return err
 	}
 	return rec.SetState(ctx, state)
+}
+
+// AuditFront checks what kindFront documents while the generation is Open on
+// an adopted Volume: each stored block with an unverified list that a young
+// or verified list names is on the front, unless it has no holder, as the
+// free proof pops it. The free proof and the flip rely on it: the walk
+// decodes only the front, so a block missing from it while a marked list
+// names it and something holds it is never verified, and the sweep deletes
+// it. It returns how many times a marked list names a block that breaks it,
+// and at most sampleSize of those blocks; outside Open or before the adoption ends it checks nothing. It
+// walks every child list and reads each child's records, so it suits a test
+// or a copy host.
+func AuditFront(ctx context.Context, rec *Records) (missing uint64, sample []*block.BlockRef, err error) {
+	// Check only an adopted Volume while Open.
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetGeneration() != Generation_GENERATION_OPEN || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return 0, nil, err
+	}
+
+	// Check each child of each marked list.
+	err = rec.scan(ctx, rec.key(kindChildren), nil, func(_ []byte, value func() ([]byte, error)) (bool, error) {
+		// Decode a marked list.
+		v, err := value()
+		if err != nil || !listMarked(v) {
+			return err == nil, err
+		}
+		children, err := DecodeChildren(v)
+		if err != nil {
+			return false, err
+		}
+
+		// Count each held unverified child off the front.
+		for _, child := range children {
+			key := BlockKey(child)
+			listed, marked, err := rec.listState(ctx, key)
+			if err != nil {
+				return false, err
+			}
+			if !listed || marked {
+				continue
+			}
+			front, err := rec.tx.Exists(ctx, rec.key(kindFront, key))
+			if err != nil {
+				return false, err
+			}
+			if front {
+				continue
+			}
+			holders, _, err := rec.GetHolders(ctx, child)
+			if err != nil {
+				return false, err
+			}
+			if holders == 0 {
+				continue
+			}
+			missing++
+			if len(sample) < sampleSize {
+				sample = append(sample, child)
+			}
+		}
+		return true, nil
+	})
+	return missing, sample, err
 }
