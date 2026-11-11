@@ -6,12 +6,11 @@ package block_gc
 
 import (
 	fmt "fmt"
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	io "io"
 	slices "slices"
 	strconv "strconv"
-
-	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
 // Adoption is whether a Volume's counts describe its blocks.
@@ -188,6 +187,23 @@ type LivenessState struct {
 	// adopted: the adoption zeroes it once its clear has deleted the records
 	// an earlier run left, and counts each block it settles Dying.
 	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
+	// SuspectLists counts the suspect records, the listed blocks whose child
+	// list no root vouched for when a list rebuild cleared the unverified lists
+	// mark. It is exact: the rebuild counts the records each slice writes or
+	// deletes, and Land and the free count each one they delete. The Volume
+	// reads no suspect record while it is zero.
+	SuspectLists uint64 `protobuf:"varint,14,opt,name=suspect_lists,json=suspectLists,proto3" json:"suspectLists,omitempty"`
+	// OldHolds counts the holds Land made while the unverified lists mark
+	// stood onto a stored block no walk of a list rebuild reached and no Land
+	// gave birth to during the current walk pass. A list rebuild's Finish
+	// clears the mark only while the count is what it was when its last walk
+	// pass began, so every holder that existed when that pass began covers
+	// every hold.
+	OldHolds uint64 `protobuf:"varint,15,opt,name=old_holds,json=oldHolds,proto3" json:"oldHolds,omitempty"`
+	// ListPass counts the walk passes of list rebuilds, advanced as each pass
+	// begins. A block's landed mark holds the pass it was born in, so a hold
+	// onto it counts in old_holds unless it was born in the current pass.
+	ListPass uint64 `protobuf:"varint,16,opt,name=list_pass,json=listPass,proto3" json:"listPass,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -262,6 +278,27 @@ func (x *LivenessState) GetHoldMark() uint64 {
 func (x *LivenessState) GetCascades() uint64 {
 	if x != nil {
 		return x.Cascades
+	}
+	return 0
+}
+
+func (x *LivenessState) GetSuspectLists() uint64 {
+	if x != nil {
+		return x.SuspectLists
+	}
+	return 0
+}
+
+func (x *LivenessState) GetOldHolds() uint64 {
+	if x != nil {
+		return x.OldHolds
+	}
+	return 0
+}
+
+func (x *LivenessState) GetListPass() uint64 {
+	if x != nil {
+		return x.ListPass
 	}
 	return 0
 }
@@ -370,6 +407,9 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.NetOffset = m.NetOffset
 	r.HoldMark = m.HoldMark
 	r.Cascades = m.Cascades
+	r.SuspectLists = m.SuspectLists
+	r.OldHolds = m.OldHolds
+	r.ListPass = m.ListPass
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -422,7 +462,6 @@ func (this *RootEntry) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *JournalRecord) EqualVT(that *JournalRecord) bool {
 	if this == that {
 		return true
@@ -451,7 +490,6 @@ func (this *JournalRecord) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this == that {
 		return true
@@ -488,6 +526,15 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.Cascades != that.Cascades {
 		return false
 	}
+	if this.SuspectLists != that.SuspectLists {
+		return false
+	}
+	if this.OldHolds != that.OldHolds {
+		return false
+	}
+	if this.ListPass != that.ListPass {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -498,7 +545,6 @@ func (this *LivenessState) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *Release) EqualVT(that *Release) bool {
 	if this == that {
 		return true
@@ -754,6 +800,21 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cascades")
 		s.WriteUint64(x.Cascades)
 	}
+	if x.SuspectLists != 0 || s.HasField("suspectLists") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("suspectLists")
+		s.WriteUint64(x.SuspectLists)
+	}
+	if x.OldHolds != 0 || s.HasField("oldHolds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("oldHolds")
+		s.WriteUint64(x.OldHolds)
+	}
+	if x.ListPass != 0 || s.HasField("listPass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("listPass")
+		s.WriteUint64(x.ListPass)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -805,6 +866,15 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cascades":
 			s.AddField("cascades")
 			x.Cascades = s.ReadUint64()
+		case "suspect_lists", "suspectLists":
+			s.AddField("suspect_lists")
+			x.SuspectLists = s.ReadUint64()
+		case "old_holds", "oldHolds":
+			s.AddField("old_holds")
+			x.OldHolds = s.ReadUint64()
+		case "list_pass", "listPass":
+			s.AddField("list_pass")
+			x.ListPass = s.ReadUint64()
 		}
 	})
 }
@@ -1009,6 +1079,23 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ListPass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ListPass))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.OldHolds != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OldHolds))
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.SuspectLists != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SuspectLists))
+		i--
+		dAtA[i] = 0x70
+	}
 	if m.Cascades != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cascades))
 		i--
@@ -1164,6 +1251,9 @@ func (m *LivenessState) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SuspectLists)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OldHolds)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.ListPass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1185,7 +1275,6 @@ func (m *Release) SizeVT() (n int) {
 func (x Adoption) MarshalProtoText() string {
 	return x.String()
 }
-
 func (x *RootEntry) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RootEntry")
@@ -1203,7 +1292,6 @@ func (x *RootEntry) MarshalProtoText() string {
 func (x *RootEntry) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *JournalRecord) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "JournalRecord")
@@ -1241,7 +1329,6 @@ func (x *JournalRecord) MarshalProtoText() string {
 func (x *JournalRecord) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *LivenessState) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LivenessState")
@@ -1285,13 +1372,24 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cascades")
 		protobuf_go_lite.TextWriteUint(&sb, x.Cascades)
 	}
+	if x.SuspectLists != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "suspect_lists")
+		protobuf_go_lite.TextWriteUint(&sb, x.SuspectLists)
+	}
+	if x.OldHolds != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "old_holds")
+		protobuf_go_lite.TextWriteUint(&sb, x.OldHolds)
+	}
+	if x.ListPass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "list_pass")
+		protobuf_go_lite.TextWriteUint(&sb, x.ListPass)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *LivenessState) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *Release) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Release")
@@ -1317,7 +1415,6 @@ func (x *Release) MarshalProtoText() string {
 func (x *Release) String() string {
 	return x.MarshalProtoText()
 }
-
 func (m *RootEntry) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1377,7 +1474,6 @@ func (m *RootEntry) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *JournalRecord) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1459,7 +1555,6 @@ func (m *JournalRecord) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1581,6 +1676,33 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SuspectLists", wireType)
+			}
+			m.SuspectLists = 0
+			m.SuspectLists, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OldHolds", wireType)
+			}
+			m.OldHolds = 0
+			m.OldHolds, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ListPass", wireType)
+			}
+			m.ListPass = 0
+			m.ListPass, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1603,7 +1725,6 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *Release) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

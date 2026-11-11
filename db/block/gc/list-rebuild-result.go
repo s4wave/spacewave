@@ -23,10 +23,18 @@ type ListRebuildResult struct {
 	Unverified uint64
 	// UnverifiedSample names up to sampleSize of them.
 	UnverifiedSample []*block.BlockRef
-	// Suspect counts the listed blocks no walk verified and no Land wrote
-	// that the last Finish named before clearing the mark, each of which a
-	// put checks against its refs before Land trusts its list.
+	// UnverifiedRoots names up to sampleSize of the named roots the walk
+	// reached them from, so a person sees which holder keeps the rebuild
+	// from clearing: a bucket's root, a reader pin or a stage.
+	UnverifiedRoots []UnverifiedRoot
+	// Suspect counts the suspect records the state counted when the last
+	// Finish's join ended: the listed blocks no root reached, each of which a
+	// hold refuses or promotes, as Land describes.
 	Suspect uint64
+	// Passes counts the times Finish walked again because a hold landed
+	// between its last pass and the clear; at finishPasses, Finish returned
+	// without clearing.
+	Passes uint64
 	// Cleared reports that every list a root reaches is verified, so the
 	// rebuild cleared the Volume's unverified lists mark.
 	Cleared bool

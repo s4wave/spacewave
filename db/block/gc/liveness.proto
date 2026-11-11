@@ -89,6 +89,23 @@ message LivenessState {
   // adopted: the adoption zeroes it once its clear has deleted the records
   // an earlier run left, and counts each block it settles Dying.
   uint64 cascades = 13;
+  // SuspectLists counts the suspect records, the listed blocks whose child
+  // list no root vouched for when a list rebuild cleared the unverified lists
+  // mark. It is exact: the rebuild counts the records each slice writes or
+  // deletes, and Land and the free count each one they delete. The Volume
+  // reads no suspect record while it is zero.
+  uint64 suspect_lists = 14;
+  // OldHolds counts the holds Land made while the unverified lists mark
+  // stood onto a stored block no walk of a list rebuild reached and no Land
+  // gave birth to during the current walk pass. A list rebuild's Finish
+  // clears the mark only while the count is what it was when its last walk
+  // pass began, so every holder that existed when that pass began covers
+  // every hold.
+  uint64 old_holds = 15;
+  // ListPass counts the walk passes of list rebuilds, advanced as each pass
+  // begins. A block's landed mark holds the pass it was born in, so a hold
+  // onto it counts in old_holds unless it was born in the current pass.
+  uint64 list_pass = 16;
 }
 
 // Release is a cascade whose child list is longer than one collector slice

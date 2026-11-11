@@ -141,14 +141,32 @@ const (
 	// the Volume to unadopted when it finds it, and the adoption that follows
 	// deletes it with the counts.
 	kindRewritten byte = 'Y'
-	// kindSuspect keys a listed block whose child list no list rebuild
-	// verified and no Land wrote while the Volume's lists were unverified, by
-	// the block. It holds no value. Finish writes one for each such block
-	// before it clears the mark: no root reached the block, so its list may
-	// still lack a child. A put of the block checks the list against the
-	// put's refs and deletes the record, as Land describes; the free deletes
-	// it with the block.
+	// kindSuspect keys a listed block that may not be clean, by the block.
+	// A block is clean when its list was written from its content and every
+	// child it names is clean or absent; one without a suspect record is
+	// clean. The value says why it may not be: empty for a suspect block,
+	// whose list no root vouched for, suspectPending for a pending block,
+	// whose list a put wrote from its content but whose children may not be
+	// clean, and suspectFillPending for a block a fill gave birth to below a
+	// block that may not be clean. Finish writes one for each listed block no
+	// root reached before it clears the mark, as markSuspects describes; Land
+	// promotes a pending block to clean once its children are, as holdStored
+	// describes; the free deletes the record with the block.
 	kindSuspect byte = 'Z'
+)
+
+// The values of a suspect record.
+const (
+	// suspectPending marks a pending block, which a list rebuild or a put
+	// wrote the list of from its content. LivenessState.suspect_lists
+	// counts it.
+	suspectPending byte = 'c'
+	// suspectFillPending marks a block a fill gave birth to below a child
+	// with a suspect record. It is pending, but the count leaves it out, since
+	// a fill writes no state: once the count reaches zero every counted
+	// record is gone, so every child below such a block is clean or absent,
+	// and the block is clean, by induction from the leaves.
+	suspectFillPending byte = 'f'
 )
 
 // The values of a cascade record: the direction its block's children move.
@@ -214,6 +232,35 @@ type Records struct {
 	// unadopted reports that a write in the transaction returned the Volume
 	// to unadopted.
 	unadopted bool
+	// suspectsKnown reports that suspectLists holds the state's suspect
+	// count as the transaction sees it, read from the state, written with
+	// it, or told by AssumeNoSuspects.
+	suspectsKnown bool
+	// suspectLists is the suspect count when suspectsKnown is set.
+	suspectLists uint64
+}
+
+// AssumeNoSuspects tells the records that the Volume holds no counted
+// suspect record, as the Volume's gate proves, so the transaction reads none.
+// The caller guarantees that no Finish runs that could write one.
+func (r *Records) AssumeNoSuspects() {
+	r.suspectsKnown, r.suspectLists = true, 0
+}
+
+// NoSuspects reports whether the transaction has seen the Volume's suspect
+// count at zero, read from the state or written with it. A Volume's gate
+// closes on it, as AssumeNoSuspects describes.
+func (r *Records) NoSuspects() bool {
+	return r.suspectsKnown && r.suspectLists == 0
+}
+
+// Suspect reports whether ref is a suspect block, one whose list no root
+// vouched for, as SuspectError describes. A Volume hides a suspect block
+// from its existence checks, so a writer puts it again. A pending block, whose
+// list was written from its content, is not suspect.
+func (r *Records) Suspect(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	trust, err := r.getTrust(ctx, BlockKey(ref))
+	return trust == listSuspect, err
 }
 
 // NewRecords returns the liveness records under prefix in tx.
@@ -647,6 +694,59 @@ func (r *Records) listVerified(ctx context.Context, key []byte) (bool, error) {
 	return r.tx.Exists(ctx, r.key(kindLanded, key))
 }
 
+// listTrust is what a block's suspect record says of its child list.
+type listTrust int
+
+const (
+	// listClean is a block without a suspect record: clean, or absent.
+	listClean listTrust = iota
+	// listSuspect is a block whose list no root vouched for.
+	listSuspect
+	// listPending is a block whose list was written from its content, with
+	// children that may not be clean.
+	listPending
+)
+
+// getTrust reads what the suspect record of the block at key says of its
+// list, and whether the record counts in the state's suspect count. It reads
+// no record once the transaction knows the count is zero: every counted
+// record is gone then, and an uncounted one is clean, as suspectFillPending
+// describes.
+func (r *Records) getTrust(ctx context.Context, key []byte) (listTrust, error) {
+	trust, _, err := r.readTrust(ctx, key)
+	return trust, err
+}
+
+// readTrust is getTrust, also reporting whether the record counts.
+func (r *Records) readTrust(ctx context.Context, key []byte) (listTrust, bool, error) {
+	if r.suspectsKnown && r.suspectLists == 0 {
+		return listClean, false, nil
+	}
+	value, found, err := r.tx.Get(ctx, r.key(kindSuspect, key))
+	switch {
+	case err != nil || !found:
+		return listClean, false, err
+	case len(value) == 0:
+		return listSuspect, true, nil
+	}
+	return listPending, value[0] == suspectPending, nil
+}
+
+// dropSuspect deletes the suspect record of the block at key, when it has
+// one, taking a counted one from state's suspect count. The caller writes
+// state.
+func (r *Records) dropSuspect(ctx context.Context, state *LivenessState, key []byte) error {
+	trust, counted, err := r.readTrust(ctx, key)
+	if err != nil || trust == listClean {
+		return err
+	}
+	if counted {
+		state.SuspectLists = max(state.GetSuspectLists(), 1) - 1
+		r.suspectLists = state.GetSuspectLists()
+	}
+	return r.tx.Delete(ctx, r.key(kindSuspect, key))
+}
+
 // queuePos returns the position on the free queue of the block at key,
 // ripe at ripe: its queue key without the prefix and kind.
 func queuePos(ripe uint64, key []byte) []byte {
@@ -747,9 +847,17 @@ func (r *Records) settled(ctx context.Context, state *LivenessState) (bool, erro
 	return !due, err
 }
 
-// HasProof reports whether ref has a completion proof.
+// HasProof reports whether ref has a completion proof, which says the store
+// holds every block below it. It hides the proof of a block that may not be
+// clean, suspect or pending, so a writer that skips a subtree on its proof
+// puts the blocks below it instead, as Land needs before it holds the block.
 func (r *Records) HasProof(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return r.tx.Exists(ctx, r.key(kindProof, BlockKey(ref)))
+	found, err := r.tx.Exists(ctx, r.key(kindProof, BlockKey(ref)))
+	if err != nil || !found {
+		return false, err
+	}
+	trust, err := r.getTrust(ctx, BlockKey(ref))
+	return trust == listClean, err
 }
 
 // SetProof records the completion proof of ref.
@@ -764,12 +872,17 @@ func (r *Records) DeleteProof(ctx context.Context, ref *block.BlockRef) error {
 
 // GetState returns the state record, or the zero state when it is missing.
 func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
+	// Read the record, then note its suspect count.
 	state := &LivenessState{}
 	value, found, err := r.tx.Get(ctx, r.key(kindState))
-	if err != nil || !found {
+	if err == nil && found {
+		err = state.UnmarshalVT(value)
+	}
+	if err != nil {
 		return state, err
 	}
-	return state, state.UnmarshalVT(value)
+	r.suspectsKnown, r.suspectLists = true, state.GetSuspectLists()
+	return state, nil
 }
 
 // SetState writes the state record.
@@ -778,6 +891,7 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 	if err != nil {
 		return err
 	}
+	r.suspectsKnown, r.suspectLists = true, state.GetSuspectLists()
 	return r.tx.Set(ctx, r.key(kindState), value)
 }
 
