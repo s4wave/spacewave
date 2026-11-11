@@ -241,7 +241,7 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 	return existed, err
 }
 
-// prepareStaged stores entries in one transaction. The stage takes a root on
+// prepareStaged stores entries under the stage, as landSliced does. The stage takes a root on
 // each entry it does not hold yet and releases its root on each block an
 // entry names, whose holder the entry now is: so a stage holds the tops of
 // what it built, and a block written through it stays held from its put on.
@@ -272,20 +272,21 @@ func (v *Volume) prepareStaged(ctx context.Context, stage string, entries []*blo
 		}
 	}
 
-	// Store the entries and move the stage's roots in one transaction, then
-	// record the moves. A root the stage's record holds that the table no
-	// longer does refuses the put, and the stage is lost.
-	names := newStageNames(stage, entries)
-	roots := stageMoves(names, v.stageHeld(stage, names), v.leaseExpiry())
-	var existed []bool
-	err := v.withDirectAtomic(ctx, func(p *physicalTx) error {
-		var err error
-		existed, err = v.land(ctx, p, "", entries, roots)
-		return err
+	// Store the entries and move the stage's roots, in transactions that a
+	// background put ends when a foreground writer waits, recording each
+	// one's moves once it commits. Each transaction holds every entry it
+	// stores, under its parent there or a stage root, so a crash between two
+	// leaves its blocks held until the stage's lease lapses, and no block
+	// names one that is not stored. A root the stage's record holds that the
+	// table no longer does refuses the put, and the stage is lost.
+	existed, err := v.landSliced(ctx, false, entries, func(slice []*block.PutBatchEntry) []block.NamedRoot {
+		names := newStageNames(stage, slice)
+		return stageMoves(names, v.stageHeld(stage, names), v.leaseExpiry())
+	}, func(moves []block.NamedRoot) {
+		v.noteStageRoots(stage, moves)
 	})
 	switch {
 	case err == nil:
-		v.noteStageRoots(stage, roots)
 	case isRootMoved(err):
 		v.loseStage(stage)
 		return nil, errors.Wrap(errStageLost, err.Error())

@@ -16,6 +16,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	db_kvtx "github.com/s4wave/spacewave/db/kvtx"
 	kvtx_kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -3034,6 +3035,96 @@ func TestLivenessAdversarial(t *testing.T) {
 		requireStored(t, v, tr, true, "Q", "P")
 	})
 
+	t.Run("sliced background put with foreground writers between slices", func(t *testing.T) {
+		// A store that always reports a foreground writer waiting ends a
+		// background staged put after each segment. Between its transactions
+		// a foreground commit lands, the clock moves past the grace period
+		// and the collector runs; the third transaction fails, as a crash
+		// would stop it there. The tree arrives parents first, so the put
+		// must reorder it to cut anywhere.
+		v, clk := newLivenessVolume(t, true)
+		ctx := t.Context()
+		tr := testTree{}
+		var mids, order []string
+		for m := range 4 {
+			var leaves []string
+			for i := range 10 {
+				leaves = append(leaves, "leaf "+strconv.Itoa(m*10+i))
+				tr.add(t, leaves[i])
+			}
+			mids = append(mids, "mid "+strconv.Itoa(m))
+			tr.add(t, mids[m], leaves...)
+			order = append(append(order, mids[m]), leaves...)
+		}
+		top := tr.add(t, "top", mids...)
+		order = append([]string{"top"}, order...)
+		stage, release, err := v.OpenStage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+		ws := &waitingStore{Store: v.kvtxStore, failAt: 3}
+		v.kvtxStore = ws
+		fg := 0
+		ws.between = func(int) {
+			fg++
+			name := "fg " + strconv.Itoa(fg)
+			ref := tr.add(t, name)
+			if err := v.SetBucketRoots(ctx, "b", tr.entries(name), []block.NamedRoot{{Name: name, Ref: ref}}); err != nil {
+				t.Fatal(err)
+			}
+			advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+			collectAll(t, v)
+		}
+		bg := db_kvtx.WithBackgroundWriteContext(ctx)
+
+		// The crash leaves the first two slices, children first: the first
+		// three mids' leaves and two mids. Each is stored and held, and no
+		// stored block names one that is not.
+		ws.armed = true
+		if _, err := v.PrepareStagedBlockBatch(bg, stage, tr.entries(order...)); !errors.Is(err, errWaitingStoreCrash) {
+			t.Fatalf("put through the crash: %v", err)
+		}
+		ws.armed = false
+		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+		collectAll(t, v)
+		landed := []string{"mid 0", "mid 1"}
+		for i := range 30 {
+			landed = append(landed, "leaf "+strconv.Itoa(i))
+		}
+		requireStored(t, v, tr, true, landed...)
+		requireStored(t, v, tr, false, "mid 2", "mid 3", "top")
+		requireStored(t, v, tr, true, "fg 1", "fg 2")
+		requireAudit(t, v, 0)
+
+		// Put the whole tree again: it reports the landed blocks as stored,
+		// and the root then takes it from the stage intact.
+		ws.failAt, ws.opened, ws.armed = 0, 0, true
+		existed, err := v.PrepareStagedBlockBatch(bg, stage, tr.entries(order...))
+		ws.armed = false
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ws.opened != 3 {
+			t.Fatalf("put in %d transactions, want 3", ws.opened)
+		}
+		for i, name := range order {
+			if want := slices.Contains(landed, name); existed[i] != want {
+				t.Fatalf("%s existed=%v, want %v", name, existed[i], want)
+			}
+		}
+		v.kvtxStore = ws.Store
+		if err := v.SetBucketRoots(ctx, "b", nil, []block.NamedRoot{{Name: "main", Ref: top}}); err != nil {
+			t.Fatal(err)
+		}
+		release()
+		advanceRenewing(t, v, clk, block_gc.DefaultGrace+time.Second)
+		collectAll(t, v)
+		requireStored(t, v, tr, true, order...)
+		requireStored(t, v, tr, true, "fg 3", "fg 4")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("parked block requeued once the lists verify", func(t *testing.T) {
 		// A format 6 store holds R -> X under main and an unreached old block
 		// G. Adopted with its lists unverified, the free parks G, an older
@@ -3568,4 +3659,52 @@ func countPrefix(t *testing.T, store *store_kvtx_inmem.Store, prefix []byte) int
 		t.Fatal(err)
 	}
 	return n
+}
+
+// errWaitingStoreCrash is the failure waitingStore gives the transaction a
+// crash stops.
+var errWaitingStoreCrash = errors.New("crash between slices")
+
+// waitingStore reports a foreground writer waiting while armed, so a sliced
+// background write ends after each segment. Before each background write
+// transaction after the first it runs between, as a foreground writer the
+// background write yielded to, and it fails the failAt-th, counting from one.
+// One goroutine writes through it.
+type waitingStore struct {
+	db_kvtx.Store
+	// armed reports the waiter, outside between.
+	armed bool
+	// between runs before the nth background write transaction, n above one.
+	between func(n int)
+	// failAt is the background write transaction that fails, zero for none.
+	failAt int
+	// opened counts the background write transactions asked for outside
+	// between.
+	opened int
+	// inBetween is set while between runs, whose own background writes,
+	// such as the collector's renewal, pass through.
+	inBetween bool
+}
+
+// ForegroundWaiting reports a foreground writer waiting while armed.
+func (s *waitingStore) ForegroundWaiting() bool { return s.armed && !s.inBetween }
+
+// WritersWaiting reports a writer waiting while armed.
+func (s *waitingStore) WritersWaiting() bool { return s.ForegroundWaiting() }
+
+// NewTransaction runs between before a background write transaction after
+// the first, and fails the failAt-th.
+func (s *waitingStore) NewTransaction(ctx context.Context, write bool) (db_kvtx.Tx, error) {
+	if write && s.armed && db_kvtx.IsBackgroundWriteContext(ctx) && !s.inBetween {
+		s.opened++
+		if s.opened > 1 && s.between != nil {
+			s.inBetween = true
+			s.between(s.opened)
+			s.inBetween = false
+		}
+		if s.opened == s.failAt {
+			return nil, errWaitingStoreCrash
+		}
+	}
+	return s.Store.NewTransaction(ctx, write)
 }
