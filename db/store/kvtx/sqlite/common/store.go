@@ -459,7 +459,7 @@ func (s *Store[T]) lockTurn(ctx context.Context, prio int) (func(), error) {
 		s.foregroundWaiting.Add(1)
 		defer s.foregroundWaiting.Add(-1)
 	}
-	return s.writeMtx.Lock(ctx, prio)
+	return traceTurns.lock(func() (func(), error) { return s.writeMtx.Lock(ctx, prio) }, prio)
 }
 
 // WritersWaiting reports whether a write transaction waits for the writer
@@ -569,7 +569,10 @@ func (s *Store[T]) runCheckpoints(ctx context.Context) {
 		// Copy the WAL into the database file; a failure retries after the
 		// next commit.
 		var busy, frames, copied int
-		if err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied); err != nil || frames <= 0 || copied < frames {
+		passive := time.Now()
+		err := s.db.QueryRowContext(ctx, "PRAGMA wal_checkpoint(PASSIVE)").Scan(&busy, &frames, &copied)
+		traceTurns.checkpoint("passive", passive, busy, frames, copied)
+		if err != nil || frames <= 0 || copied < frames {
 			continue
 		}
 
@@ -605,7 +608,7 @@ func (s *Store[T]) walPastBound() bool {
 // under the lock, and the file would only grow back to the bound.
 func (s *Store[T]) restartWAL(ctx context.Context) {
 	// Take the writer turn behind every waiting foreground writer.
-	release, err := s.writeMtx.Lock(ctx, writerBackground)
+	release, err := traceTurns.lock(func() (func(), error) { return s.writeMtx.Lock(ctx, writerBackground) }, writerBackground)
 	if err != nil {
 		return
 	}
@@ -624,7 +627,9 @@ func (s *Store[T]) restartWAL(ctx context.Context) {
 	// Restart, then restore the pool's busy wait before the connection
 	// returns to it.
 	var busy, frames, copied int
+	restart := time.Now()
 	_ = conn.QueryRowContext(ctx, "PRAGMA wal_checkpoint(RESTART)").Scan(&busy, &frames, &copied)
+	traceTurns.checkpoint("restart", restart, busy, frames, copied)
 	_, _ = conn.ExecContext(context.Background(), "PRAGMA busy_timeout=5000")
 }
 
