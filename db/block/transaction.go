@@ -3,7 +3,6 @@ package block
 import (
 	"context"
 	"runtime"
-	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -34,7 +33,8 @@ const (
 // transactionReachableNode tracks one handle reachable from the write root.
 type transactionReachableNode struct {
 	// from lists handles whose encoding must finish before this handle: the
-	// referenced blocks and any alias-linked blocks.
+	// referenced blocks and any alias-linked blocks. A handle may appear twice,
+	// as a reference and an alias; every reader tolerates repeats.
 	from []*handle
 	// encodeDone is closed when encoding this node is done.
 	encodeDone chan struct{}
@@ -788,13 +788,28 @@ func addMarshalAliasWaits(reachable map[*handle]*transactionReachableNode) {
 		if h.isSubBlock || h.blk == nil {
 			continue
 		}
+
+		// Each identity adds its aliases once; most nodes have none, so the
+		// set is made on the first identity that has any.
+		var added map[*AliasIdentityToken]struct{}
 		walkMarshalAliasSubBlocks(h.blk, make(map[*AliasIdentityToken]struct{}), func(subBlock any) {
+			// Skip sub-blocks with no aliases and identities already added.
 			identity := blockAliasIdentity(subBlock)
-			if identity == nil {
+			aliases := handlesByBlock[identity]
+			if len(aliases) == 0 {
 				return
 			}
-			for _, alias := range handlesByBlock[identity] {
-				if alias != h && !slices.Contains(node.from, alias) {
+			if _, ok := added[identity]; ok {
+				return
+			}
+
+			// Record the identity and wait on each of its other handles.
+			if added == nil {
+				added = make(map[*AliasIdentityToken]struct{})
+			}
+			added[identity] = struct{}{}
+			for _, alias := range aliases {
+				if alias != h {
 					node.from = append(node.from, alias)
 				}
 			}
