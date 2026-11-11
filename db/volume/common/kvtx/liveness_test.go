@@ -3726,6 +3726,281 @@ func waitAdopted(t *testing.T, v *Volume) {
 	}
 }
 
+// TestLivenessSuspectChildren walks the sequences in which a block judged
+// clean names a child whose list a format 6 store cut short, so the block
+// below that list is counted by no holder: a put again between the suspect
+// marking's slices, fills top down, under a held block and after the
+// marking passed, and a refilled hole. Each either refuses the hold or keeps
+// the block below the short list while a root reaches it.
+func TestLivenessSuspectChildren(t *testing.T) {
+	// suspectStore writes a format 6 store holding the root A and, for each
+	// name in cut, the block's bytes with an empty child list, as a crash
+	// left them, then adopts it.
+	suspectStore := func(t *testing.T, tr testTree, root string, listed []string, cut ...string) (*Volume, *testClock, *store_kvtx_inmem.Store) {
+		t.Helper()
+		ctx := t.Context()
+		store := store_kvtx_inmem.NewStore()
+		writeLegacyStore(t, store, store_kvkey.NewDefaultKVKey(), tr, root, true, listed...)
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range cut {
+			key := slices.Concat(livenessPrefix, []byte{'c'}, block_gc.BlockKey(tr[name].Ref))
+			if err := tx.Set(ctx, key, block_gc.EncodeChildren(nil)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		v, clk := openUnadoptedVolume(t, store)
+		if _, err := v.Adopt(ctx); err != nil {
+			t.Fatal(err)
+		}
+		return v, clk, store
+	}
+	suspects := slices.Concat(livenessPrefix, []byte{'Z'})
+	hasRecord := func(t *testing.T, store *store_kvtx_inmem.Store, ref *block.BlockRef) bool {
+		t.Helper()
+		tx, err := store.NewTransaction(t.Context(), false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		found, err := tx.Exists(t.Context(), slices.Concat(suspects, block_gc.BlockKey(ref)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return found
+	}
+	fill := func(t *testing.T, v *Volume, tr testTree, name string) {
+		t.Helper()
+		err := v.withDirectFill(t.Context(), func(p *physicalTx) error {
+			_, err := block_gc.LandFill(t.Context(), p.rec, p.blocks, v.now(), tr.entries(name))
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	// rootOnto moves main onto name without putting it, and reports
+	// whether the hold was refused as suspect.
+	rootOnto := func(t *testing.T, v *Volume, tr testTree, name string) bool {
+		t.Helper()
+		err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Ref: tr[name].Ref}})
+		var suspect *block_gc.SuspectError
+		if errors.As(err, &suspect) {
+			return true
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		return false
+	}
+	// requireKept recounts if a put asked for it, lets the grace period
+	// pass, collects, and checks that below, which main reaches through
+	// path, is still stored.
+	requireKept := func(t *testing.T, v *Volume, clk *testClock, tr testTree, below, path string) {
+		t.Helper()
+		if livenessAdoption(t, v) != block_gc.Adoption_ADOPTION_ADOPTED {
+			if _, err := v.Adopt(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		res := collectAll(t, v)
+		_, found, err := v.GetBlock(t.Context(), tr[below].Ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found {
+			t.Fatalf("main reaches %s through %s, and the collector freed it (%+v): no holder counted it", below, path, res)
+		}
+	}
+	// finish runs a rebuild that verifies A alone and checks it cleared.
+	finish := func(t *testing.T, s block_gc.Store, tr testTree) {
+		t.Helper()
+		rb, err := block_gc.OpenListRebuild(t.Context(), s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := rb.Verify(t.Context(), tr["A"].Ref, tr["A"].Refs); err != nil {
+			t.Fatal(err)
+		}
+		if res, err := rb.Finish(t.Context()); err != nil || !res.Cleared {
+			t.Fatalf("rebuild = %+v err %v, want the mark cleared", res, err)
+		}
+	}
+	// pairs builds, for each i < n, D<i>, C<i> naming D<i> and B<i> naming
+	// C<i>, and returns the names to list and the C names to cut.
+	pairs := func(t *testing.T, tr testTree, n int) (listed, cut []string) {
+		t.Helper()
+		tr.add(t, "A")
+		listed = []string{"A"}
+		for i := range n {
+			s := strconv.Itoa(i)
+			tr.add(t, "D"+s)
+			tr.add(t, "C"+s, "D"+s)
+			tr.add(t, "B"+s, "C"+s)
+			listed = append(listed, "D"+s, "C"+s, "B"+s)
+			cut = append(cut, "C"+s)
+		}
+		return listed, cut
+	}
+
+	t.Run("put again ahead of the marking's cursor", func(t *testing.T) {
+		// B -> C -> D, with C's list cut, none reached. Between two slices
+		// of markSuspects, a session puts again a B the marking passed,
+		// whose C it has not reached. After the clear main moves onto B.
+		tr := testTree{}
+		listed, cut := pairs(t, tr, 150)
+		v, clk, store := suspectStore(t, tr, "A", listed, cut...)
+		var pick string
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if pick != "" || countPrefix(t, store, suspects) == 0 {
+				return
+			}
+			for i := range 150 {
+				s := strconv.Itoa(i)
+				if hasRecord(t, store, tr["B"+s].Ref) && !hasRecord(t, store, tr["C"+s].Ref) {
+					pick = s
+					break
+				}
+			}
+			if pick == "" {
+				t.Fatal("no B behind the cursor with its C ahead")
+			}
+			if _, err := v.PutBlockBatch(t.Context(), tr.entries("B"+pick)); err != nil {
+				t.Fatal(err)
+			}
+		}}
+		finish(t, probe, tr)
+		if pick == "" {
+			t.Fatal("the marking ran in one slice")
+		}
+		if rootOnto(t, v, tr, "B"+pick) {
+			return
+		}
+		requireKept(t, v, clk, tr, "D"+pick, "B"+pick+" and C"+pick+"'s short list")
+	})
+
+	t.Run("fill after the marking passed", func(t *testing.T) {
+		// Between two slices of markSuspects, a read fills X naming a C the
+		// marking has not reached, and X's key is behind the cursor, so X
+		// gets no record. After the clear main moves onto X.
+		tr := testTree{}
+		listed, cut := pairs(t, tr, 150)
+		v, clk, store := suspectStore(t, tr, "A", listed, cut...)
+		var x, c string
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if x != "" || countPrefix(t, store, suspects) == 0 {
+				return
+			}
+			var behind []byte
+			tx, err := store.NewTransaction(t.Context(), false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = tx.ScanPrefix(t.Context(), suspects, func(key, _ []byte) error {
+				if k := key[len(suspects):]; bytes.Compare(k, behind) > 0 {
+					behind = bytes.Clone(k)
+				}
+				return nil
+			})
+			tx.Discard()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := range 150 {
+				if s := strconv.Itoa(i); !hasRecord(t, store, tr["C"+s].Ref) {
+					c = "C" + s
+					break
+				}
+			}
+			for j := 0; c != "" && x == ""; j++ {
+				name := "X" + strconv.Itoa(j)
+				if bytes.Compare(block_gc.BlockKey(tr.add(t, name, c)), behind) < 0 {
+					x = name
+				}
+			}
+			if x == "" {
+				t.Fatal("no C ahead of the cursor")
+			}
+			fill(t, v, tr, x)
+		}}
+		finish(t, probe, tr)
+		if x == "" {
+			t.Fatal("the marking ran in one slice")
+		}
+		if rootOnto(t, v, tr, x) {
+			return
+		}
+		requireKept(t, v, clk, tr, "D"+c[1:], x+" and "+c+"'s short list")
+	})
+
+	// cleared builds A and C -> F with C's list cut, adopts, and clears
+	// the mark with C suspect.
+	cleared := func(t *testing.T) (*Volume, *testClock, testTree) {
+		t.Helper()
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "F")
+		tr.add(t, "C", "F")
+		v, clk, _ := suspectStore(t, tr, "A", []string{"A", "F", "C"}, "C")
+		finish(t, collectorStore{v: v}, tr)
+		return v, clk, tr
+	}
+
+	t.Run("fill top down", func(t *testing.T) {
+		// A read fills P while its child X is absent, then fills X, which
+		// names the suspect C. Main then moves onto P.
+		v, clk, tr := cleared(t)
+		tr.add(t, "X", "C")
+		tr.add(t, "P", "X")
+		fill(t, v, tr, "P")
+		fill(t, v, tr, "X")
+		if rootOnto(t, v, tr, "P") {
+			return
+		}
+		requireKept(t, v, clk, tr, "F", "P, X and C's short list")
+	})
+
+	t.Run("fill under a held block", func(t *testing.T) {
+		// Main holds B, whose child X is absent; a read then fills X, which
+		// names the suspect C.
+		v, clk, tr := cleared(t)
+		tr.add(t, "X", "C")
+		tr.add(t, "B", "X")
+		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("B"), []block.NamedRoot{{Name: "main", Ref: tr["B"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		fill(t, v, tr, "X")
+		requireKept(t, v, clk, tr, "F", "B, X and C's short list")
+	})
+
+	t.Run("refilled hole", func(t *testing.T) {
+		// Main holds A -> H -> C -> D, with C's list cut. The store loses H
+		// and an audit records the hole, so the rebuild's walk steps over
+		// H and leaves C unreached. After the clear a put refills H.
+		tr := testTree{}
+		tr.add(t, "D")
+		tr.add(t, "C", "D")
+		h := tr.add(t, "H", "C")
+		tr.add(t, "A", "H")
+		v, clk, _ := suspectStore(t, tr, "A", []string{"D", "C", "H", "A"}, "C")
+		punchHole(t, v, h)
+		if res, err := v.Audit(t.Context()); err != nil || res.Holes != 1 {
+			t.Fatalf("audit recorded %d holes err %v, want 1", res.Holes, err)
+		}
+		finish(t, collectorStore{v: v}, tr)
+		if _, err := v.PutBlockBatch(t.Context(), tr.entries("H")); err != nil {
+			t.Fatal(err)
+		}
+		requireKept(t, v, clk, tr, "D", "H and C's short list")
+	})
+}
+
 // livenessListPass returns the walk passes of list rebuilds the state of v
 // counts.
 func livenessListPass(t *testing.T, v *Volume) uint64 {
