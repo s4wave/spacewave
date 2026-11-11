@@ -847,9 +847,8 @@ func (c *Cursor) decodedBlockCacheContext(ctx context.Context) context.Context {
 		return ctx
 	}
 
-	// Attach the atomically published borrowed transaction cache.
-	cache := c.t.decodedBlocks.Load()
-	return WithDecodedBlockCache(ctx, cache)
+	// Attach the scope the transaction reads through.
+	return WithDecodedBlockCache(ctx, c.t.readCache())
 }
 
 // transformer returns the transaction's block transformer, or nil.

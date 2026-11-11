@@ -68,6 +68,11 @@ type Transaction struct {
 	bufferedStoreSettings *BufferedStoreSettings
 	// decodedBlocks is borrowed from the owning object lifecycle.
 	decodedBlocks atomic.Pointer[DecodedBlockCache]
+	// privateBlocks is a read-only transaction's own scope in the process-wide
+	// pool, made on its first read without an enabled borrowed scope. The pool's
+	// budget bounds it with every other reader; other scopes never see its
+	// entries, which age out of the pool once the transaction is gone.
+	privateBlocks atomic.Pointer[DecodedBlockCache]
 	// readOnly rejects writes.
 	readOnly atomic.Bool
 	// stagedStore buffers content-addressed sub-tree blocks until a write drains
@@ -197,6 +202,32 @@ func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
 
 	// Publish the borrowed scope independently of mutable cursor traversal.
 	t.decodedBlocks.Store(cache)
+}
+
+// readCache returns the scope the transaction reads through: the borrowed scope
+// when it is enabled, otherwise the private scope of a read-only transaction.
+// A scopeless read-only transaction thus gets a scope of its own in the
+// process-wide pool, bounded by the pool's budget, whose entries age out after
+// the transaction; so does one whose borrowed scope is disabled or closed, so
+// a Disabled cache no longer makes a read-only transaction decode every read.
+// A writable transaction without an enabled scope reads uncached; its cursor
+// tree keeps the pages it loads.
+func (t *Transaction) readCache() *DecodedBlockCache {
+	// Prefer the lifecycle's scope, and leave writers on it.
+	cache := t.decodedBlocks.Load()
+	if cache.enabled() || !t.readOnly.Load() {
+		return cache
+	}
+
+	// Make the private scope once; a racing reader adopts the winner.
+	if private := t.privateBlocks.Load(); private != nil {
+		return private
+	}
+	private := NewDecodedBlockCache()
+	if !t.privateBlocks.CompareAndSwap(nil, private) {
+		return t.privateBlocks.Load()
+	}
+	return private
 }
 
 // SetReadOnly marks the transaction read-only. Write and WriteAtRoot then fail
@@ -884,5 +915,8 @@ func (t *Transaction) cloneDetached(nroot *handle, sharesBlocks bool) *Transacti
 	}
 	nt.decodedBlocks.Store(t.decodedBlocks.Load())
 	nt.readOnly.Store(sharesBlocks && t.readOnly.Load())
+	if nt.readOnly.Load() {
+		nt.privateBlocks.Store(t.privateBlocks.Load())
+	}
 	return nt
 }
