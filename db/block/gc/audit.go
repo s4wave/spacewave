@@ -175,9 +175,15 @@ func (res *AuditResult) checkStored(
 	frees bool,
 	delta map[string]int64,
 ) error {
-	// Read its netted holders and whether the release in progress names it.
+	// Skip an unmarked block, which the sweep deletes: it is absent from
+	// the flip on, and its holders since then are checked once it leaves
+	// the run. Then read its netted holders and whether the release in
+	// progress names it.
 	res.Stored++
 	key := BlockKey(ref)
+	if unmarked, err := rec.Unmarked(ctx, key); err != nil || unmarked {
+		return err
+	}
 	holders, ripe, err := rec.GetHolders(ctx, ref)
 	if err != nil {
 		return err
@@ -209,13 +215,27 @@ func (res *AuditResult) checkStored(
 }
 
 // counts reports whether the children of the stored block ref count it as a
-// holder in an adopted Volume: it is Live or Dying, its rel flag clear.
+// holder in an adopted Volume: it is Live or Dying, its rel flag clear. An
+// unmarked block's old list counts as the flip froze it, as oldListHolds
+// reads.
 func counts(ctx context.Context, rec *Records, ref *block.BlockRef) (bool, error) {
+	// Read an unmarked block's old list as frozen.
+	key := BlockKey(ref)
+	unmarked, err := rec.Unmarked(ctx, key)
+	if err != nil {
+		return false, err
+	}
+	if unmarked {
+		holds, _, err := rec.oldListHolds(ctx, key)
+		return holds, err
+	}
+
+	// Otherwise compare its holders with its due cascade.
 	holders, _, err := rec.GetHolders(ctx, ref)
 	if err != nil {
 		return false, err
 	}
-	_, due, err := rec.getCascade(ctx, BlockKey(ref))
+	_, due, err := rec.getCascade(ctx, key)
 	return (holders == 0) == due, err
 }
 

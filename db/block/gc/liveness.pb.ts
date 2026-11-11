@@ -41,6 +41,47 @@ export const Adoption_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * Generation is how far a Volume has settled the blocks an older store
+ * format left, whose child lists may lack a child the block names. Each
+ * state is one value; nothing else of the settle remains once it is Settled.
+ *
+ * @generated from enum block.gc.Generation
+ */
+export enum Generation {
+  /**
+   * GENERATION_SETTLED is a Volume whose every stored list was written from
+   * its block's content, or whose unwritten ones are gone. A Volume created
+   * in this format starts here, and frees run here only.
+   */
+  SETTLED = 0,
+
+  /**
+   * GENERATION_OPEN is a Volume holding old blocks. Nothing frees. Land and
+   * fills push each unverified child they hold onto the front, and the
+   * settle walk decodes old blocks and writes their lists from content.
+   * The value is 1 so a store format 7 Volume's unverified lists mark,
+   * the bool true field 7 held, reads as Open.
+   */
+  OPEN = 1,
+
+  /**
+   * GENERATION_SWEEPING is a Volume whose flip unmarked every old block
+   * still unverified: each unmarked block answers absent, and a background
+   * slice deletes it and releases its children.
+   */
+  SWEEPING = 2,
+}
+
+export const Generation_Enum = /* @__PURE__ */ createEnumType(
+  'block.gc.Generation',
+  [
+    [0, 'GENERATION_SETTLED'],
+    [1, 'GENERATION_OPEN'],
+    [2, 'GENERATION_SWEEPING'],
+  ],
+)
+
+/**
  * RootEntry is one named root in a Volume's root table: the block the name
  * holds.
  *
@@ -140,11 +181,11 @@ export interface LivenessState {
    */
   adoptionRun?: string
   /**
-   * UnverifiedLists reports that the child lists came from a store format
-   * before 7, whose lists may lack a child the block names. Adopt refuses
-   * until a repair rebuilds them from the blocks and clears it.
+   * Generation is how far the Volume has settled its old blocks. A Land,
+   * fill or walk that writes a child list from content marks it so, as
+   * Records describes, while the generation is not Settled.
    */
-  unverifiedLists?: boolean
+  generation?: Generation
   /**
    * NetOffset is how much of the record at the cursor the collector has
    * netted: its up pairs, then its down pairs, then its again entries. A
@@ -161,7 +202,8 @@ export interface LivenessState {
    * that held a block at zero holders, or one whose children were released,
    * or any block while a cascade was due: a block below it may have no
    * holder until that record nets and the re-hold it brings runs. The
-   * collector frees nothing until its cursor reaches the mark.
+   * collector frees nothing, and the settle pops no front entry, until its
+   * cursor reaches the mark.
    */
   holdMark?: bigint
   /**
@@ -183,7 +225,7 @@ export const LivenessState: MessageType<LivenessState> =
       [3, 'cursor', 4],
       [5, 'legacy_graph', 8],
       [6, 'adoption_run', 9],
-      [7, 'unverified_lists', 8],
+      [7, 'generation', 14, 0, Generation_Enum],
       [8, 'net_offset', 4],
       [11, 'release', 11, 0, Release.codec],
       [12, 'hold_mark', 4],

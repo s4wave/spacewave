@@ -1684,7 +1684,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/gc": {
-      "hash": "2d67b33b28936b491cdc92957a13e6a013de732fec4ee73726f369bcc248b18c",
+      "hash": "b069b3dbc9fc03e7bfca989da3a1fdedade3f71a84f3f762ab590c0ddf7446ba",
       "generatedFiles": [
         "db/block/gc/liveness.pb.go",
         "db/block/gc/liveness.pb.ts"

@@ -29,12 +29,23 @@ func OpenRecords(tx kvtx.TxOps) *block_gc.Records {
 
 // readRecords runs fn over the liveness records in one read snapshot.
 func (v *Volume) readRecords(ctx context.Context, fn func(rec *block_gc.Records) error) error {
+	// Open a read snapshot and run fn over its records.
 	tx, err := v.kvtxStore.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
-	return fn(block_gc.NewRecords(tx, livenessPrefix))
+	rec := block_gc.NewRecords(tx, livenessPrefix)
+	if v.settled.Load() {
+		rec.AssumeSettled()
+	}
+	if err := fn(rec); err != nil {
+		return err
+	}
+	if rec.Settled() {
+		v.settled.Store(true)
+	}
+	return nil
 }
 
 // GetChildren returns the child list of a stored block and whether it is

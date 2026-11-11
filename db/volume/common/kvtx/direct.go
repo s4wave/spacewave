@@ -91,7 +91,8 @@ func (v *Volume) withDirect(ctx context.Context, durable bool, fn func(p *physic
 // A fill lands through block_gc.LandFill, which reads only the child list of
 // each block it puts and the Volume's hole records, and writes its pairs to a
 // fill record of its own, blind, so it conflicts only with a commit that
-// stores or frees one of its blocks, or with a write of a hole record.
+// stores or frees one of its blocks, or with a write of a hole record, and,
+// until the Volume's old generation settles, with a write of the state.
 //
 // It carries no deferred edits: they reserve in-memory pins once per
 // transaction, and the writers holding the store's writer carry them. fn runs
@@ -165,12 +166,20 @@ func (d *directTx) Discard() {
 }
 
 // settle reports the committed markers, forgets the pending proofs of the
-// blocks p removed and wakes Volume statistics watchers once p committed.
+// blocks p removed, wakes Volume statistics watchers, notes that the Volume
+// is Settled when p saw or wrote it so and, when p returned the Volume to
+// unadopted, starts the recount, once p committed.
 func (d *directTx) settle() {
 	if d.committed {
+		if d.p.rec.Settled() {
+			d.v.settled.Store(true)
+		}
 		d.p.blocks.marks.committed()
 		d.v.forgetFreedProofs(d.p.blocks.removedRefs())
 		d.v.broadcastStorageStatsChanged()
+		if d.p.rec.Unadopted() {
+			d.v.wakeAdopt()
+		}
 	}
 }
 

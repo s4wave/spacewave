@@ -113,17 +113,18 @@ func copyStore(
 	defer stx.Discard()
 	w := &copyWriter{store: dst, progress: progress, drop: opts.Drop, kept: opts.Kept, omit: opts.Omit, blockPrefix: keys.GetBlockFullPrefix()}
 
-	// Walk the roots in the same snapshot, and refuse unknown blocks and
-	// unverified child lists, whose missing children the walk would drop.
-	var unverified bool
+	// Walk the roots in the same snapshot, and refuse unknown blocks and an
+	// old generation not settled, whose lists may lack children the walk
+	// would drop.
+	var gen block_gc.Generation
 	if reachable != nil {
 		rec := block_gc.NewRecords(stx, livenessPrefix)
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
-		unverified = state.GetUnverifiedLists()
-		if unverified && !reachable.AllowUnknown {
+		gen = state.GetGeneration()
+		if gen != block_gc.Generation_GENERATION_SETTLED && !reachable.AllowUnknown {
 			return errors.New("the child lists come from an older store format and may lack children, which a reachable copy would drop; rebuild them first")
 		}
 		mark, err := block_gc.Reachable(ctx, rec, func(ctx context.Context, ref *block.BlockRef) (bool, error) {
@@ -165,7 +166,7 @@ func copyStore(
 	}
 	defer tx.Discard()
 	if reachable != nil {
-		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, UnverifiedLists: unverified}
+		state := &block_gc.LivenessState{Adoption: block_gc.Adoption_ADOPTION_UNADOPTED, Generation: gen}
 		if err := block_gc.NewRecords(tx, livenessPrefix).SetState(ctx, state); err != nil {
 			return err
 		}

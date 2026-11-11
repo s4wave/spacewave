@@ -100,8 +100,12 @@ type node struct {
 
 	// listRead reports that listed and children hold its child list.
 	listRead bool
-	// listed reports that it has a child list.
+	// listed reports that it has a child list the netting may cascade
+	// through: not an unmarked one, whose children the settle's sweep
+	// releases, as settle.go describes.
 	listed bool
+	// unmarked reports that the settle unmarked its list.
+	unmarked bool
 	// children are its child list.
 	children []*block.BlockRef
 
@@ -330,7 +334,11 @@ func (n *netting) apply(ctx context.Context, nd *node) error {
 	return n.cascade(ctx, nd)
 }
 
-// readList reads nd's child list once.
+// readList reads nd's child list once. While the generation is Sweeping it
+// also reads the block's run entry, and an unmarked block counts as
+// unlisted: its holders floor at its implied one, so it never queues, and
+// no cascade runs through it, since the sweep releases each child outside
+// the run its list holds and a cascade would release them twice.
 func (n *netting) readList(ctx context.Context, nd *node) error {
 	// Read the list unless read already.
 	if nd.listRead {
@@ -340,7 +348,12 @@ func (n *netting) readList(ctx context.Context, nd *node) error {
 	if err != nil {
 		return err
 	}
-	nd.listRead, nd.listed, nd.children = true, listed, children
+	if listed {
+		if nd.unmarked, err = n.rec.Unmarked(ctx, nd.key); err != nil {
+			return err
+		}
+	}
+	nd.listRead, nd.listed, nd.children = true, listed && !nd.unmarked, children
 	return nil
 }
 
@@ -535,9 +548,12 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 	// in Leaked. An up cascade stays due, keeping the frees waiting, since
 	// losing a Holding block is outside the contract: a refill of the hole
 	// writes its list back, and the re-hold then gives its children the
-	// holder they lack.
+	// holder they lack. An unmarked block is no leak, since the sweep frees
+	// it, and its cascade record is frozen with its count, since the sweep
+	// reads both to learn whether its old list still holds its children, as
+	// kindUnmarkedCount describes.
 	listed := nd.listRead && nd.listed
-	if nd.listRead && !nd.listed {
+	if nd.listRead && !nd.listed && !nd.unmarked {
 		n.res.Leaked += nd.cascadeDowns
 		if nd.dir0 == cascadeDown {
 			n.res.Stranded++

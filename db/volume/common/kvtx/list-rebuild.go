@@ -6,10 +6,9 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 )
 
-// OpenListRebuild starts a rebuild of the Volume's unverified child lists, as
-// block_gc.ListRebuild describes, on a Volume no adoption is counting. A
-// Finish that returns the Volume to unadopted wakes the background adoption,
-// which recounts it when the collector frees.
+// OpenListRebuild starts the typed walk of the settle of the Volume's old
+// generation, as block_gc.ListRebuild describes, on a Volume no adoption is
+// counting whose old generation is Open.
 func (v *Volume) OpenListRebuild(ctx context.Context) (*block_gc.ListRebuild, error) {
-	return block_gc.OpenListRebuild(backgroundPass(ctx), collectorStore{v: v}, v.wakeAdopt)
+	return block_gc.OpenListRebuild(backgroundPass(ctx), collectorStore{v: v})
 }
