@@ -75,9 +75,11 @@ func (v *Volume) runRootRenewal(ctx context.Context) {
 }
 
 // renewRoots moves the expiry of every reader pin and stage root this process
-// holds a lease forward, in one transaction. A pin or stage root a collector
-// released for a lapsed lease while this process still holds it, after a
-// stall longer than the lease, is held again while its block is stored. A
+// holds a lease forward, in one transaction unless a foreground writer ends a
+// background renewal early, as writeSliced describes. A pin or stage root a
+// collector released for a lapsed lease while this process still holds it,
+// after a stall longer than the lease, is held again while its block is
+// stored. A
 // stage whose released root's block is gone is lost, as Journal.tla's
 // StageRenew fails it: its later writes would name a freed block. It returns
 // the time the written leases count from, which precedes the write, or now
@@ -124,47 +126,49 @@ func (v *Volume) renewRoots(ctx context.Context) (time.Time, error) {
 	base := v.now()
 	expires := base.Add(rootLease)
 	var lost []string
-	err = v.withDirectAtomic(ctx, func(p *physicalTx) error {
-		// Keep only the roots this process still holds: a reader may have
-		// released its pin, or a stage may have moved or released a root,
-		// since the snapshot.
-		current, err := v.stillHeld(ctx, pins, stageOf)
-		if err != nil {
-			return err
-		}
-
-		// Renew each root, or hold a released one again.
-		var renew []block.NamedRoot
-		lost = lost[:0]
-		for _, root := range current {
-			held, err := heldRoot(ctx, p, "", root.Name)
+	err = v.writeSliced(ctx, false, slicedWrite{
+		n: len(pins),
+		land: func(ctx context.Context, p *physicalTx, now time.Time, _, lo, hi int, _ bool) error {
+			// Keep only the roots this process still holds: a reader may have
+			// released its pin, or a stage may have moved or released a root,
+			// since the snapshot.
+			current, err := v.stillHeld(ctx, pins[lo:hi], stageOf)
 			if err != nil {
 				return err
 			}
-			switch {
-			case block_gc.SameRef(held, root.Ref):
-			case !held.GetEmpty():
-				continue
-			default:
-				held, err := p.rec.Held(ctx, root.Ref)
+
+			// Renew each root, or hold a released one again.
+			var renew []block.NamedRoot
+			for _, root := range current {
+				held, err := heldRoot(ctx, p, "", root.Name)
 				if err != nil {
 					return err
 				}
-				if !held {
-					if stage, ok := stageOf[root.Name]; ok {
-						lost = append(lost, stage)
-					}
+				switch {
+				case block_gc.SameRef(held, root.Ref):
+				case !held.GetEmpty():
 					continue
+				default:
+					held, err := p.rec.Held(ctx, root.Ref)
+					if err != nil {
+						return err
+					}
+					if !held {
+						if stage, ok := stageOf[root.Name]; ok {
+							lost = append(lost, stage)
+						}
+						continue
+					}
+					root.Previous = nil
 				}
-				root.Previous = nil
+				root.Expires = expires
+				renew = append(renew, root)
 			}
-			root.Expires = expires
-			renew = append(renew, root)
-		}
 
-		// Write them all with the later expiry.
-		_, err = v.land(ctx, p, "", nil, renew)
-		return err
+			// Write them with the later expiry.
+			_, err = block_gc.Land(ctx, p.rec, p.blocks, now, nil, block_gc.BucketRoots{Roots: renew})
+			return err
+		},
 	})
 
 	// Fail the stages that lost a root with its block.
