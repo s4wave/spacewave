@@ -3823,6 +3823,177 @@ func TestLivenessSettle(t *testing.T) {
 		requireAudit(t, v, 0)
 	})
 
+	// holdersOf returns the netted holders of ref.
+	holdersOf := func(t *testing.T, v *Volume, ref *block.BlockRef) uint64 {
+		t.Helper()
+		var n uint64
+		err := v.readRecords(t.Context(), func(rec *block_gc.Records) error {
+			var err error
+			n, _, err = rec.GetHolders(t.Context(), ref)
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	// passes collects n times, letting the grace period pass before each.
+	passes := func(t *testing.T, v *Volume, clk *testClock, n int) {
+		t.Helper()
+		for range n {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			collectAll(t, v)
+		}
+	}
+	// deadU builds the root A, the old U -> D unreached, and main holding D,
+	// which the walk verified, so D stays outside the run. U dies while Open,
+	// and its cascade releases D, which main still holds. It returns once the
+	// generation flips.
+	deadU := func(t *testing.T) (*Volume, *testClock, *store_kvtx_inmem.Store, testTree) {
+		t.Helper()
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "D")
+		tr.add(t, "U", "D")
+		v, clk, store := oldStore(t, tr, "A", []string{"A", "D", "U"})
+		verify(t, v, tr, "A", "D")
+		if err := rootOnto(t, v, tr, "D"); err != nil {
+			t.Fatal(err)
+		}
+		collectUntil(t, v, clk, flipped)
+		if has(t, store, run, tr["D"].Ref) || !has(t, store, run, tr["U"].Ref) {
+			t.Fatal("the flip left D in the run or U out of it")
+		}
+		if n := holdersOf(t, v, tr["D"].Ref); n != 1 {
+			t.Fatalf("D has %d holders at the flip, want main's alone", n)
+		}
+		return v, clk, store, tr
+	}
+
+	t.Run("pop on a count a rewrite made stale", func(t *testing.T) {
+		// A -> P -> C -> D, with P's list cut, so adoption counts C at zero.
+		// The walk decodes P, whose list gains C, which goes onto the front
+		// and owes a recount. No pass may pop C on its stale count: once the
+		// recount gives C P's holder, nothing would push C again, and the
+		// sweep would delete it under the live P.
+		tr := testTree{}
+		tr.add(t, "D")
+		tr.add(t, "C", "D")
+		tr.add(t, "P", "C")
+		tr.add(t, "A", "P")
+		v, clk, store := oldStore(t, tr, "A", []string{"A", "P", "C", "D"}, "P")
+		verify(t, v, tr, "A")
+		if res := verify(t, v, tr, "P"); res.Rewritten != 1 || !has(t, store, front, tr["C"].Ref) {
+			t.Fatalf("decode of P = %+v, want its list rewritten and C on the front", res)
+		}
+		clk.Add(block_gc.DefaultGrace + time.Second)
+		if res := collectAll(t, v); res.Popped != 0 {
+			t.Fatalf("pass with a recount owed = %+v, want C kept on the front", res)
+		}
+		requireKept(t, v, clk, store, tr, "D", "P's rewritten list and C")
+		requireStored(t, v, tr, true, "P", "C", "D")
+	})
+
+	t.Run("rebirth of a block whose cascade released its child", func(t *testing.T) {
+		// After the flip a put gives birth again to U under another root.
+		// U's cascade released D while Open, so the rebirth releases nothing:
+		// D has main and the reborn U, and keeps U's once main moves off.
+		v, clk, _, tr := deadU(t)
+		if err := v.SetBucketRoots(t.Context(), "b", tr.entries("U"), []block.NamedRoot{{Name: "other", Ref: tr["U"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		collectUntil(t, v, clk, settled)
+		if n := holdersOf(t, v, tr["D"].Ref); n != 2 {
+			t.Fatalf("D has %d holders after U's rebirth, want main and U", n)
+		}
+		if err := v.SetBucketRoots(t.Context(), "b", nil, []block.NamedRoot{{Name: "main", Previous: tr["D"].Ref}}); err != nil {
+			t.Fatal(err)
+		}
+		passes(t, v, clk, 4)
+		requireStored(t, v, tr, true, "U", "D")
+		requireAudit(t, v, 0)
+	})
+
+	t.Run("fill up onto a dead unmarked block", func(t *testing.T) {
+		// After the flip a read fills B naming the unmarked U, whose fill up
+		// raises U before the sweep deletes it. U's cascade released D while
+		// Open, so the sweep releases nothing: main still holds D.
+		v, clk, _, tr := deadU(t)
+		tr.add(t, "B", "U")
+		fill(t, v, tr, "B")
+		collectUntil(t, v, clk, settled)
+		passes(t, v, clk, 4)
+		if n := holdersOf(t, v, tr["D"].Ref); n != 1 {
+			t.Fatalf("D has %d holders after the sweep, want main's", n)
+		}
+		requireStored(t, v, tr, true, "D")
+	})
+
+	t.Run("root onto a dead verified parent after the flip", func(t *testing.T) {
+		// The walk verified the unreached P, which names the old C -> E. P
+		// dies while Open; once the free proof pops C, the flip leaves C and
+		// E unmarked. A root onto the Dead P after the flip must be refused
+		// or keep C and E, since P names them.
+		tr := testTree{}
+		tr.add(t, "A")
+		tr.add(t, "E")
+		tr.add(t, "C", "E")
+		tr.add(t, "P", "C")
+		v, clk, store := oldStore(t, tr, "A", []string{"A", "E", "C", "P"})
+		verify(t, v, tr, "A", "P")
+		collectUntil(t, v, clk, flipped)
+		if err := rootOnto(t, v, tr, "P"); err != nil {
+			t.Logf("root onto the Dead P refused: %v", err)
+			return
+		}
+		collectUntil(t, v, clk, settled)
+		passes(t, v, clk, 4)
+		requireStored(t, v, tr, true, "P", "C", "E")
+		if has(t, store, run, nil) {
+			t.Fatal("the run outlived the settle")
+		}
+	})
+
+	t.Run("rebirth of a block a fill up raised", func(t *testing.T) {
+		// U -> K, unreached, dies while Open. After the flip a read fills B
+		// naming U. Once B's fill up raises U, and before the sweep reaches
+		// U, a put gives birth to U and K again under another root. When B's
+		// fill ages out and B dies, the root still holds U.
+		v, clk, store, tr := oldU(t, false)
+		collectUntil(t, v, clk, flipped)
+		tr.add(t, "B", "U")
+		fill(t, v, tr, "B")
+		fillUps := slices.Concat(livenessPrefix, []byte{'N'})
+		var put bool
+		probe := &walkProbe{Store: collectorStore{v: v}, before: func() {
+			if put || countPrefix(t, store, fillUps) != 0 || !has(t, store, run, tr["U"].Ref) {
+				return
+			}
+			put = true
+			if err := v.SetBucketRoots(t.Context(), "b", tr.entries("U", "K"), []block.NamedRoot{{Name: "other", Ref: tr["U"].Ref}}); err != nil {
+				t.Fatal(err)
+			}
+		}}
+		c := block_gc.NewCollector(probe, block_gc.CollectorOptions{Frees: true, Now: v.now})
+		for range 8 {
+			clk.Add(block_gc.DefaultGrace + time.Second)
+			for {
+				res, err := c.Collect(t.Context())
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !res.More {
+					break
+				}
+			}
+		}
+		if !put {
+			t.Fatal("the fill up never applied before the sweep")
+		}
+		requireStored(t, v, tr, true, "U", "K")
+		requireAudit(t, v, 0)
+	})
+
 	t.Run("frees off", func(t *testing.T) {
 		// With frees off the collector runs none of the settle: the run is
 		// never built, nothing flips, and every block stays.
