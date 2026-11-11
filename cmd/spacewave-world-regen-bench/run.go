@@ -9,12 +9,14 @@ import (
 	_ "net/http/pprof" // #nosec G108 -- served only on the --pprof address.
 	"os"
 	"path/filepath"
+	"runtime/metrics"
 	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"golang.org/x/sync/errgroup"
@@ -108,11 +110,12 @@ func (a *runArgs) Run(c *cli.Context) error {
 	stage.Store(st.String())
 	logf("stage %v", st)
 
-	// Commit beside the steps until they and the hold end.
+	// Commit beside the steps until they and the hold end, logging memory.
 	writeCtx, stopWriter := context.WithCancel(ctx)
 	defer stopWriter()
 	var g errgroup.Group
 	g.Go(func() error { return a.write(writeCtx, w, &stage) })
+	g.Go(func() error { logMemory(writeCtx, memoryLogInterval); return nil })
 	err = a.steps(ctx, r, &stage)
 	if err == nil {
 		err = sleep(ctx, a.Hold)
@@ -223,6 +226,35 @@ func sleep(ctx context.Context, d time.Duration) error {
 }
 
 // logf prints a timestamped progress line on stderr.
+// memoryLogInterval is how often a run logs its memory.
+const memoryLogInterval = 5 * time.Second
+
+// logMemory logs, every interval until ctx ends, the decoded-block pool's
+// retained cost against its budget and the Go heap's live object bytes, so a
+// run log shows how much of the heap the pool holds. The heap figure comes
+// from runtime/metrics, which reads it without stopping the world.
+func logMemory(ctx context.Context, interval time.Duration) {
+	// Read the process-wide pool through a scope of its own.
+	pool := block.NewDecodedBlockCache()
+	defer pool.Close()
+	sample := []metrics.Sample{{Name: "/memory/classes/heap/objects:bytes"}}
+
+	// Log one line each interval.
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		st := pool.Snapshot()
+		metrics.Read(sample)
+		heap := int64(sample[0].Value.Uint64()) //nolint:gosec // the live heap is far below 2^63 bytes.
+		logf("memory heap %d pool %d of %d (%d entries) beyond %d", heap, st.RetainedCost, st.MaxCost, st.Entries, heap-st.RetainedCost)
+	}
+}
+
 func logf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s "+format+"\n", append([]any{time.Now().Format(time.TimeOnly)}, args...)...)
 }
