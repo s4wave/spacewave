@@ -122,7 +122,7 @@ func buildNodeGraphRoot(
 	}
 	defer sorter.Close()
 	builder := kvtx_cayley_nodegraph.NewBuilder(sorter)
-	if err := addKvGraph(ctx, worldCursor, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget), floor); err != nil {
+	if err := addKvGraph(ctx, bucketCursor, store, root, w.GetGraphSettings(), sorter, builder, int64(cfg.Budget), floor); err != nil {
 		return nil, err
 	}
 
@@ -180,19 +180,33 @@ func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kv
 	return err
 }
 
-// addKvGraph adds every node and quad of the kv graph under worldCursor to
+// addKvGraph adds every node and quad of the kv graph of the World at root to
 // builder, reserving the sort's disk first when the graph exceeds budget and
 // counting each spilled run against floor.
+//
+// It reads through a read-only block transaction of its own: only there does
+// the graph tree walk stored pages through ReadCursor, bounded by the decoded
+// block cache. On the build's writable transaction every page the walk loads
+// would stay on the cursor tree until the build ends, the whole old graph.
 func addKvGraph(
 	ctx context.Context,
-	worldCursor *block.Cursor,
+	bucketCursor *bucket_lookup.Cursor,
+	store block.StoreOps,
+	root *block.BlockRef,
 	settings *GraphSettings,
 	sorter *extsort.Sorter,
 	builder *kvtx_cayley_nodegraph.Builder,
 	budget int64,
 	floor *regenFloor,
 ) error {
-	// Open the old graph tree read-only, and its quad store for the counts.
+	// Decode the pinned World in a read-only transaction of its own.
+	readTx, worldCursor := bucketCursor.BuildTransactionAtRefWithStore(nil, root, store)
+	readTx.SetReadOnly()
+	if _, err := UnmarshalWorld(ctx, worldCursor); err != nil {
+		return errors.Wrap(err, "load pinned World")
+	}
+
+	// Open the old graph tree, and its quad store for the counts.
 	gtx, err := kvtx_block.BuildKvTransaction(ctx, worldCursor.FollowSubBlock(2), false)
 	if err != nil {
 		return errors.Wrap(err, "open kv graph tree")
