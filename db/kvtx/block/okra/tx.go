@@ -209,6 +209,15 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 
 // GetBatch returns values for multiple keys.
 func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// A single key has no level to share: look it up as Get does.
+	if len(keys) == 1 {
+		value, ok, err := t.Get(ctx, keys[0])
+		if err != nil {
+			return nil, nil, err
+		}
+		return [][]byte{value}, []bool{ok}, nil
+	}
+
 	// Preserve input positions while collecting the requested Okra keys.
 	values := make([][]byte, len(keys))
 	found := make([]bool, len(keys))
@@ -239,17 +248,16 @@ func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, err
 		return bytes.Compare(a.key, b.key)
 	})
 
-	// Load the root page for the batch traversal.
-	page, pageCursor, err := t.getRootPage(ctx)
+	// Fill the batch results by traversing the requested keys together.
+	var err error
+	if t.readRoot != nil {
+		err = findEntriesBatch(ctx, flatPages{t}, lookups, values, found)
+	} else {
+		err = findEntriesBatch(ctx, cursorPages{t}, lookups, values, found)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// Fill the batch results by traversing the requested keys together.
-	if err := t.findEntriesBatch(ctx, page, pageCursor, lookups, values, found); err != nil {
-		return nil, nil, err
-	}
-
 	return values, found, nil
 }
 

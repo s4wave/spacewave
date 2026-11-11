@@ -10,24 +10,24 @@ import (
 )
 
 // findReadEntry follows immutable page nodes for a readonly point lookup.
-// Writers and iterators retain the mutable path used to propagate changes. The
+// Writers and staged reads use findEntry on the mutable cursor tree. The
 // returned page is flat: it borrows its key and value bytes from its buffer.
 func (t *Tx) findReadEntry(ctx context.Context, key []byte) (*flatPage, block.ReadCursor, int, error) {
 	// Bind this revision's root without comparing it with an earlier revision.
 	cursor := *t.readRoot
-	page, err := block.UnmarshalReadBlock[flatPage](ctx, cursor)
+	page, err := loadFlatPage(ctx, cursor)
 	if err != nil {
 		return nil, cursor, 0, err
 	}
 
 	// Follow only the child page containing the requested key.
-	for page.Level() != 0 {
+	for page.GetLevel() != 0 {
 		index := page.searchEntry(key)
 		if index < 0 {
 			return nil, cursor, 0, nil
 		}
 		cursor = page.followChild(cursor, index)
-		page, err = block.UnmarshalReadBlock[flatPage](ctx, cursor)
+		page, err = loadFlatPage(ctx, cursor)
 		if err != nil {
 			return nil, cursor, 0, err
 		}
