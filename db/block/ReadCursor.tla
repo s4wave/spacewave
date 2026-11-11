@@ -8,6 +8,10 @@ EXTENDS Naturals, FiniteSets
 \* Invalidate/Remove/ChangeScope model external freshness and borrowed authority.
 \* Root publication does not retarget existing cursors; snapshot binding is
 \* checked by ReadCursorRoots and the real World snapshot test.
+\* A read-only transaction with no enabled borrowed scope reads through its own
+\* private scope (Transaction.readCache), which is one more scope here. A scope
+\* that admits nothing keeps no link: each read is StartLoad/ReadBytes/AbortLoad
+\* and nothing is stored or bound. ReadCursor-disabled.cfg checks it, Budget 0.
 \* Units are proportional byte charges: one decoded payload plus two units of
 \* traversal metadata. Victim choice abstracts the queue, checked separately by
 \* ReadCursorClock. Caller-held blocks during a read are outside the pool budget.
