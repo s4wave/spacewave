@@ -5,6 +5,8 @@ package devtool_store
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -134,6 +136,69 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 	}
 	if err := build(true); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestExportManifestSetsRoundTrip checks that an export opens like the
+// devtool database it came from: LookupManifestSet returns the exported refs,
+// their blocks read from the exported volume, and a later export replaces the
+// earlier one without leaving its temporary file.
+func TestExportManifestSetsRoundTrip(t *testing.T) {
+	// Create the source World with the devtool manifest store.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ocs.Release()
+	ws, err := world_block.BuildMockWorldState(ctx, tb.Logger, true, ocs, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manifest_world.CreateManifestStore(ctx, ws, PluginHostObjectKey); err != nil {
+		t.Fatal(err)
+	}
+
+	// Export each revision and read it back from the closed file.
+	dir := t.TempDir()
+	for rev := uint64(1); rev <= 2; rev++ {
+		refs := []*manifest.ManifestRef{
+			testManifestRef(t, ctx, tb, "gizmo-web", "js", rev, fmt.Sprintf("js-%d", rev)),
+		}
+		if err := ExportManifestSets(ctx, le, ws, refs, dir); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(filepath.Join(dir, FileName+".tmp")); !os.IsNotExist(err) {
+			t.Fatalf("temporary export left behind: %v", err)
+		}
+
+		vol, err := OpenVolume(ctx, le, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := LookupManifestSet(ctx, le, vol, "gizmo-web")
+		if err == nil && (len(got) != 1 || !got[0].EqualVT(refs[0])) {
+			err = fmt.Errorf("rev %d: exported set = %v", rev, got)
+		}
+		if err == nil {
+			_, found, gerr := vol.GetBlock(ctx, refs[0].GetManifestRef().GetRootRef())
+			if gerr == nil && !found {
+				gerr = fmt.Errorf("rev %d: manifest block missing from export", rev)
+			}
+			err = gerr
+		}
+		if cerr := vol.Close(); err == nil {
+			err = cerr
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

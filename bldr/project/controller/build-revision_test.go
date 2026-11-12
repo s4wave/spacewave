@@ -98,7 +98,7 @@ func TestBuildTargetsManifestRevisionFloor(t *testing.T) {
 			defer release()
 
 			// Invoke the same finite-build entry point as the build command.
-			if err := ctrl.BuildTargets(ctx, "devtool", []string{"release"}, bldr_manifest.BuildType_RELEASE, nil, nil, tc.requested); err != nil {
+			if err := ctrl.BuildTargets(ctx, "devtool", []string{"release"}, bldr_manifest.BuildType_RELEASE, nil, nil, tc.requested, nil); err != nil {
 				t.Fatal(err)
 			}
 
