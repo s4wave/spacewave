@@ -50,6 +50,7 @@ func (r *AptRepository) GetBlockRefCtor(id uint32) block.Ctor {
 
 // ApplySubBlock applies the index ref sub-block at field 6.
 func (r *AptRepository) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Only field 6 is a sub-block; decode it as an object ref.
 	if id != 6 {
 		return nil
 	}
@@ -81,6 +82,7 @@ func (r *AptRepository) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // ApplySubBlock applies the source ref sub-block at field 2.
 func (s *AptBuildSpec) ApplySubBlock(id uint32, next block.SubBlock) error {
+	// Only field 2 is a sub-block; decode it as an object ref.
 	if id != 2 {
 		return nil
 	}
