@@ -383,12 +383,12 @@ func formatPluginRevisions(p *s4wave_space.SpacePluginStatus, loc *time.Location
 	default:
 		revs = selectedRev + " selected, rev " + strconv.FormatUint(p.GetRunningManifestRev(), 10) + " running"
 	}
-	return revs + formatPluginSwap(p.GetSwap(), loc)
+	return revs + formatPluginSwap(p.GetPluginId(), p.GetSwap(), loc)
 }
 
 // formatPluginSwap renders a swap state that has a candidate in flight or
 // failed, naming what it waits for and the next step.
-func formatPluginSwap(swap *bldr_plugin.PluginSwap, loc *time.Location) string {
+func formatPluginSwap(pluginID string, swap *bldr_plugin.PluginSwap, loc *time.Location) string {
 	// Render each state with its times as local clock times.
 	clock := func(ts *timestamppb.Timestamp) string { return ts.AsTime().In(loc).Format("15:04:05") }
 	if st := swap.GetPreparing(); st != nil {
@@ -397,7 +397,7 @@ func formatPluginSwap(swap *bldr_plugin.PluginSwap, loc *time.Location) string {
 	if st := swap.GetWaiting(); st != nil {
 		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
 			" waits since " + clock(st.GetSinceAt()) +
-			" for the running worker to answer its activation check; " + swapWaitingNextStep
+			" for the running worker to answer its activation check; " + swapWaitingNextStep(pluginID)
 	}
 	if st := swap.GetFailed(); st != nil {
 		next := "retries on the next deploy or host change"

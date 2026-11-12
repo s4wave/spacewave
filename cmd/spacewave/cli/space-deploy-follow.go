@@ -13,10 +13,15 @@ import (
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
-// swapWaitingNextStep says how a swap waiting on the running worker ends. The
-// listing cannot name the host kind: js plugins run both in browser workers
-// and in the desktop quickjs host.
-const swapWaitingNextStep = "it swaps when the worker answers or exits (a browser worker exits when its page reloads)"
+// swapWaitingNextStep says how a swap of pluginID waiting on the running
+// worker ends. The listing cannot name the host kind: js plugins run both in
+// browser workers and in the desktop quickjs host. A worker that never answers
+// nor exits stays until the plugin is removed and added again.
+func swapWaitingNextStep(pluginID string) string {
+	return "it swaps when the worker answers or exits (a browser worker exits when its page reloads);" +
+		" if it does neither, restart it with spacewave plugin remove " + pluginID +
+		" then spacewave plugin add " + pluginID
+}
 
 // errDeployWaitPassed ends a deploy follow whose --wait deadline passed.
 var errDeployWaitPassed = errors.New("--wait deadline passed")
@@ -120,7 +125,7 @@ func classifyDeploy(p *s4wave_space.SpacePluginStatus, set *deployedSet, loc *ti
 		return deployState{
 			line: rev(st.GetCandidateManifestRev()) + " waits since " + clock(st.GetSinceAt()) +
 				" for the running worker (" + rev(p.GetRunningManifestRev()) + ") to answer its activation check",
-			next: swapWaitingNextStep,
+			next: swapWaitingNextStep(set.manifestID),
 		}
 	}
 	if st := swap.GetPreparing(); st != nil && set.holds(st.GetCandidateManifestRef()) {
