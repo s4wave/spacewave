@@ -5,6 +5,7 @@ package releasewasm
 import (
 	"context"
 	stderrors "errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -599,6 +600,19 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		}
 		errs = append(errs, msg)
 	}
+
+	// WebKit reports the proxy's refusal of the public CDN root as two page
+	// console errors: a CORS line naming only this origin, and a Fetch API
+	// line naming the URL. Pair each CORS line with a Fetch API line for the
+	// refused root, and count any CORS line left over at cleanup.
+	var corsRefusals, cdnRootRefusals int
+	countRefusal := func(n *int) {
+		errsMu.Lock()
+		defer errsMu.Unlock()
+		if !muted {
+			*n++
+		}
+	}
 	muteDiagnostics := func() {
 		errsMu.Lock()
 		muted = true
@@ -675,7 +689,8 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 			recordConsole("worker " + msg.Type() + ": " + msg.Text())
 			switch msg.Type() {
 			case "error":
-				if !ignoreBrowserError(msg.Text()) && !h.isExpectedConsoleError(msg) {
+				if !ignoreBrowserError(msg.Text()) && !h.isExpectedConsoleError(msg) &&
+					!h.isRefusedCDNRootError(msg.Text()) {
 					recordBrowserError("worker console error: " + msg.Text())
 				}
 			case "warning":
@@ -698,7 +713,12 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		recordConsole("page " + msg.Type() + ": " + msg.Text())
 		switch msg.Type() {
 		case "error":
-			if !ignoreBrowserError(msg.Text()) && !h.isExpectedConsoleError(msg) {
+			switch text := msg.Text(); {
+			case h.isRefusedCDNRootError(text):
+				countRefusal(&cdnRootRefusals)
+			case text == h.proxyCORSRefusal():
+				countRefusal(&corsRefusals)
+			case !ignoreBrowserError(text) && !h.isExpectedConsoleError(msg):
 				t.Logf("browser console error location: %+v", msg.Location())
 				recordBrowserError("console error: " + msg.Text())
 			}
@@ -747,6 +767,11 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		bodyReads.Wait()
 		errsMu.Lock()
 		defer errsMu.Unlock()
+
+		// Count proxy refusals that no refused CDN root accounts for.
+		if extra := corsRefusals - cdnRootRefusals; extra > 0 {
+			errs = append(errs, fmt.Sprintf("console error: %s (%d not for the CDN root)", h.proxyCORSRefusal(), extra))
+		}
 
 		// Report the console tail and captured browser errors to the test.
 		if t.Failed() || len(errs) != 0 {
@@ -828,11 +853,31 @@ func (h *harness) isExpectedHTTPError(url string) bool {
 	if os.Getenv(localCDNEnv) != "1" {
 		return false
 	}
-	if url == cdn.DefaultBaseURL+"/"+cdn.ProvisionedSpaceID+"/root.packedmsg" {
+	if url == publicCDNRootURL {
 		return true
 	}
 	server, ok := h.server.Handler.(*localCDNHandler)
 	return ok && server.cdnDown.Load() && strings.Contains(url, "/cdn/")
+}
+
+// publicCDNRootURL is the production public CDN root the release fetches.
+// The local CDN fixture does not serve it, and the browser proxy refuses it.
+var publicCDNRootURL = cdn.DefaultBaseURL + "/" + cdn.ProvisionedSpaceID + "/root.packedmsg"
+
+// isRefusedCDNRootError recognizes WebKit's console error for the public CDN
+// root fetch that the harness proxy refused. Refusing every outbound request
+// is the designed isolation, and local-cdn-startup_test.go asserts it; any
+// other host or path still counts.
+func (h *harness) isRefusedCDNRootError(text string) bool {
+	return os.Getenv(localCDNEnv) == "1" &&
+		text == "Fetch API cannot load "+publicCDNRootURL+" due to access control checks."
+}
+
+// proxyCORSRefusal is WebKit's console error for a cross-origin request the
+// harness proxy refused with 403. It names only this origin, so the page
+// diagnostics pair it with a refused CDN root error.
+func (h *harness) proxyCORSRefusal() string {
+	return "Origin " + h.baseURL + " is not allowed by Access-Control-Allow-Origin. Status code: 403"
 }
 
 // isExpectedConsoleError recognizes the browser's resource error for an
