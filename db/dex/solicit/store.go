@@ -3,6 +3,7 @@ package dex_solicit
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -16,8 +17,9 @@ import (
 // block.WithoutPeerWait does not wait for a peer to connect: with no peer
 // connected it records the block and reports block.ErrUnavailable, unless a
 // peer's session ended within sessionReplaceWait, when it waits that long for
-// the session to be restored. Existence checks do not wait for a
-// peer: with none connected they report the block missing.
+// the session to be restored. Existence checks do not wait for a peer: with
+// none connected they report the block missing, or block.ErrUnavailable under
+// block.WithoutPeerWait.
 type Store struct {
 	controller *Controller
 }
@@ -137,12 +139,14 @@ func (s *Store) ask(ctx context.Context, sessions []*peerSession, ref *block.Blo
 	return found, nil
 }
 
-// GetBlockExists checks whether any connected peer has the block. It does not
-// wait for a peer to connect: with no session it answers false, or
-// block.ErrUnavailable under block.WithoutPeerWait, as GetBlock does there.
+// GetBlockExists checks whether any connected peer has the block, as
+// GetBlockExistsBatch does for one ref.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	found, err := s.fetch(ctx, ref, block.GetPeerWait(ctx) != nil)
-	return found != nil, err
+	found, err := s.GetBlockExistsBatch(ctx, []*block.BlockRef{ref})
+	if err != nil {
+		return false, err
+	}
+	return found[0], nil
 }
 
 // existsBatchAsks bounds the blocks one existence batch asks the peers about
@@ -152,10 +156,18 @@ const existsBatchAsks = 16
 // GetBlockExistsBatch checks whether any connected peer has each block. It
 // settles the sessions once for the batch, then asks about up to
 // existsBatchAsks blocks at once, so a batch waits about as long as its
-// slowest ask rather than the sum of them.
+// slowest ask rather than the sum of them. It does not wait for a peer to
+// connect: with no session it answers false.
+//
+// Under block.WithoutPeerWait a false is a proof of absence to its caller, and
+// the connected peers are not known to be every device that may hold the
+// block: a device of the Space that is offline may. So there a block no
+// connected peer holds, or a batch with no session to ask, reports
+// block.ErrUnavailable, with the answers found so far.
 func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Settle the sessions once.
-	sessions, err := s.settle(ctx, block.GetPeerWait(ctx) != nil, refs...)
+	peerWait := block.GetPeerWait(ctx)
+	sessions, err := s.settle(ctx, peerWait != nil, refs...)
 	if err != nil || len(refs) == 0 {
 		return make([]bool, len(refs)), err
 	}
@@ -173,6 +185,13 @@ func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef)
 	}
 	if err := g.Wait(); err != nil {
 		return nil, err
+	}
+
+	// Report a block no connected peer holds as unknown to a caller that
+	// reads false as absent.
+	if missed := slices.Index(out, false); peerWait != nil && missed != -1 {
+		peerWait.Skip(refs[missed])
+		return out, fmt.Errorf("%w: no connected peer holds the block, and an offline one may", block.ErrUnavailable)
 	}
 	return out, nil
 }

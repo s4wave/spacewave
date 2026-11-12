@@ -477,7 +477,9 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 // TestStoreReadWaitsForPeerSession proves a read on a settled solicitation
 // with no peer waits for a peer session instead of reporting a miss nobody was
 // asked about, while an existence check and a read that may not wait for a
-// peer answer at once: the existence check false, the others ErrUnavailable.
+// peer answer at once: the existence check false, the others ErrUnavailable,
+// and that a probe which may not wait reads a miss of every connected peer as
+// unknown.
 func TestStoreReadWaitsForPeerSession(t *testing.T) {
 	// Keep the peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
@@ -565,6 +567,24 @@ func TestStoreReadWaitsForPeerSession(t *testing.T) {
 	}
 	if !res.found || string(res.data) != string(want) {
 		t.Fatalf("read = %q found=%v, want %q", res.data, res.found, want)
+	}
+
+	// A block every connected peer lacks is unknown to a probe that may not
+	// wait, since an offline device may hold it.
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			remoteErr <- err
+			return
+		}
+		remoteErr <- remote.SendMsg(&DexMessage{RequestId: req.GetRequestId(), IsResponse: true})
+	}()
+	found, err := store.GetBlockExistsBatch(noWaitCtx, []*block.BlockRef{testDexBlockRef(t, "missing-data")})
+	if err := recvTestDexValue(t, remoteErr, "miss response"); err != nil {
+		t.Fatal(err)
+	}
+	if !errors.Is(err, block.ErrUnavailable) || found[0] {
+		t.Fatalf("existence of a block no connected peer holds = %v, %v; want %v", found, err, block.ErrUnavailable)
 	}
 }
 
