@@ -181,6 +181,11 @@ func (b *backoff) due(now time.Time) bool {
 	return !now.Before(b.at)
 }
 
+// retry reports whether an error waits for an attempt that is due at now.
+func (b *backoff) retry(now time.Time) bool {
+	return b.delay != 0 && b.due(now)
+}
+
 // noteRefusal returns r after an attempt that ended with err, waiting
 // damageRetry once damaged. The caller holds mtx.
 func (d *BodyDriver) noteRefusal(r *StoreRefusal, err error) *StoreRefusal {

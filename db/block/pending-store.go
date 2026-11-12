@@ -87,18 +87,36 @@ type PendingStore struct {
 	// they exist, and uncheckedReport, when set, is told of each such write.
 	unchecked       atomic.Uint64
 	uncheckedReport func(op string, children int, err error)
+	// unfetched holds, by key, each unkept root a Flush left unpinned because
+	// the whole-store lookup could not answer, with the seq at which it was
+	// recorded; RunPins pins them later. Invariant: every root a Flush leaves
+	// unpinned for that reason is here until a pass pins it, a lookup finds a
+	// tier holds it, or DropUnfetched finds its writer no longer names it.
+	// It lives in memory, so a restart drops it.
+	unfetched map[string]unfetchedRoot
+	// pinWake wakes RunPins once a Flush that recorded a root is released.
+	pinWake chan struct{}
+}
+
+// unfetchedRoot is a root a Flush left unpinned, and the seq when it was
+// recorded.
+type unfetchedRoot struct {
+	ref *BlockRef
+	at  uint64
 }
 
 // NewPendingStore returns a PendingStore over inner that keeps at most
 // maxBytes of blocks in memory.
 func NewPendingStore(inner StoreOps, maxBytes int) *PendingStore {
 	return &PendingStore{
-		StoreOps: inner,
-		kept:     make(map[string]*PutBatchEntry),
-		held:     make(map[string]int),
-		flushed:  make(map[string]int),
-		keptAt:   make(map[string]uint64),
-		maxBytes: maxBytes,
+		StoreOps:  inner,
+		kept:      make(map[string]*PutBatchEntry),
+		held:      make(map[string]int),
+		flushed:   make(map[string]int),
+		keptAt:    make(map[string]uint64),
+		maxBytes:  maxBytes,
+		unfetched: make(map[string]unfetchedRoot),
+		pinWake:   make(chan struct{}, 1),
 	}
 }
 

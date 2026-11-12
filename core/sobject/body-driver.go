@@ -95,8 +95,8 @@ type BodyDriver struct {
 	// it, and a repeated step refusal steps again on a new state or then;
 	// the first attempt that stores clears it.
 	stepRefusal, storeRefusal *StoreRefusal
-	// storeFailed backs off the signer's checkpoint store after an error
-	// that is not a refusal, until a store lands.
+	// storeFailed backs off the checkpoint store, the signer's or a vote's,
+	// after an error that is not a refusal, until a store lands.
 	storeFailed backoff
 }
 
@@ -310,18 +310,25 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 }
 
 // vote has the group voter propose or judge again when the step changed what
-// it would answer, or its refused store is due. A device that no longer votes
-// on a checkpoint, as a non-voter or with no stable operation to judge, owes
-// no store, so its refusal clears. The caller holds mtx.
+// it would answer, or its refused or failed store is due. A device that no
+// longer votes on a checkpoint, as a non-voter or with no stable operation to
+// judge, owes no store, so its refusal clears. The caller holds mtx.
 func (d *BodyDriver) vote(ev *OrderEvent, moved bool) {
+	// A driver that signs nothing does not vote.
 	if d.checkpointer == nil {
 		return
 	}
+
+	// Clear what a device that no longer votes owes.
 	if ev.Config.VotingWeight(d.so.GetPeerID().String()) == 0 || ev.Stable == 0 {
-		d.storeRefusal = nil
+		d.storeRefusal, d.storeFailed = nil, backoff{}
 		return
 	}
-	if d.voteWake != nil && (moved || d.storeRefusal != nil && d.storeRefusal.Due(d.now())) {
+
+	// Wake the voter when its answer moved or its store is due.
+	now := d.now()
+	retry := d.storeRefusal != nil && d.storeRefusal.Due(now) || d.storeFailed.retry(now)
+	if d.voteWake != nil && (moved || retry) {
 		d.voteWake()
 	}
 }
@@ -365,7 +372,7 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	// Store it once the body applied the prefix and no refusal or failure
 	// still waits out its retry.
 	now := d.now()
-	if len(d.positions) < ev.Stable || !d.storeRefusal.Due(now) || !d.storeFailed.due(now) {
+	if len(d.positions) < ev.Stable || !d.storeDue(now) {
 		return nil
 	}
 	data, store, err := d.body.Root(ctx, ev.Stable)
@@ -410,15 +417,7 @@ func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, s
 	// to retry the first refusal and publish a repeated one, whose retry
 	// Execute then waits out. Any other failure steps again after the
 	// store's backoff, so a store that fails fast never spins.
-	before := d.storeRefusal
-	d.storeRefusal = d.noteRefusal(d.storeRefusal, stored)
-	var wait time.Duration
-	switch {
-	case err == nil || errors.Is(err, errCheckpointStale):
-		d.storeFailed.reset()
-	case d.storeRefusal == before:
-		wait = d.storeFailed.fail(d.now())
-	}
+	_, wait := d.noteStore(stored, err == nil || errors.Is(err, errCheckpointStale))
 	d.wakeAfter(wait)
 }
 
@@ -469,7 +468,7 @@ func (d *BodyDriver) proposal(ctx context.Context, state *SOState) (*SOOperation
 	// nothing.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	if d.checkpointer == nil || !d.storeRefusal.Due(d.now()) {
+	if d.checkpointer == nil || !d.storeDue(d.now()) {
 		return nil, nil, nil, nil, nil
 	}
 
@@ -488,8 +487,8 @@ func (d *BodyDriver) proposal(ctx context.Context, state *SOState) (*SOOperation
 
 // storeVote runs the store of a vote's proposal or judgment without the
 // body's lock, as the signer's checkpoint store runs beside the apply loop,
-// then notes its refusal. When that changes the damage, it wakes the driver,
-// whose step publishes the health.
+// then notes its outcome as storeCheckpoint does, so the driver's step wakes
+// the voter to store again.
 func (d *BodyDriver) storeVote(ctx context.Context, store func(context.Context) error) error {
 	// Store the vote's checkpoint outside the lock.
 	err := store(ctx)
@@ -497,19 +496,40 @@ func (d *BodyDriver) storeVote(ctx context.Context, store func(context.Context) 
 		return err
 	}
 
-	// Note its refusal. When it changed, wake the driver to publish the
-	// health and plan the voter's retry: at once after a first refusal, once
-	// due after a repeated one. A store that failed otherwise leaves a due
-	// refusal due, which the driver retries on its backoff.
+	// Note its refusal. A refusal that changed wakes the driver at once, to
+	// publish the health and plan the voter's retry: at once after a first
+	// refusal, once due after a repeated one. Any other failure wakes it
+	// after the store's backoff, whose step then wakes the voter, so a store
+	// that fails fast never spins and a quiet Space still retries it.
 	d.mtx.Lock()
-	before := d.storeRefusal
-	d.storeRefusal = d.noteRefusal(d.storeRefusal, err)
-	changed := d.storeRefusal != before
+	changed, wait := d.noteStore(err, err == nil)
 	d.mtx.Unlock()
-	if changed {
-		d.wakeAfter(0)
+	if changed || wait != 0 {
+		d.wakeAfter(wait)
 	}
 	return err
+}
+
+// noteStore notes a checkpoint store, the owner's or a vote's, that ended
+// with the refusal check of refused: a refusal counts, and any other failure
+// takes the next wait of storeFailed, which a store that landed resets. It
+// returns whether the refusal changed and the wait. The caller holds mtx.
+func (d *BodyDriver) noteStore(refused error, landed bool) (changed bool, wait time.Duration) {
+	before := d.storeRefusal
+	d.storeRefusal = d.noteRefusal(d.storeRefusal, refused)
+	switch {
+	case landed:
+		d.storeFailed.reset()
+	case d.storeRefusal == before:
+		wait = d.storeFailed.fail(d.now())
+	}
+	return d.storeRefusal != before, wait
+}
+
+// storeDue reports whether a checkpoint store may run at now: no refusal and
+// no other failure still waits out its retry. The caller holds mtx.
+func (d *BodyDriver) storeDue(now time.Time) bool {
+	return d.storeRefusal.Due(now) && d.storeFailed.due(now)
 }
 
 // JudgeCheckpoint reports whether inner is the checkpoint after the one state
@@ -564,8 +584,9 @@ func (d *BodyDriver) judgment(ctx context.Context, state *SOState, inner *SOChec
 		return nil, nil, nil, true, nil
 	}
 
-	// Take the body's state unless a refusal still waits out its retry.
-	if !d.storeRefusal.Due(d.now()) {
+	// Take the body's state unless a refusal or failure still waits out its
+	// retry.
+	if !d.storeDue(d.now()) {
 		return nil, nil, nil, false, nil
 	}
 	data, store, err := d.body.Root(ctx, n)

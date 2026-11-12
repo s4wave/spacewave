@@ -849,8 +849,8 @@ func TestBodyHostVoterRetriesRefusedStore(t *testing.T) {
 	// Two refused proposals damage the voter; with no new state, the voter
 	// proposes again each time the refusal comes due.
 	waitFor("the damage", func() bool { r := shown.Load(); return r != nil && r.Damage != nil })
-	if n := countFor(time.Second); n < 2 || n > 8 {
-		t.Fatalf("a due refusal stored %d times in 1s, want about one per 200ms", n)
+	if n := countFor(2 * time.Second); n < 2 || n > 16 {
+		t.Fatalf("a due refusal stored %d times in 2s, want about one per 200ms", n)
 	}
 
 	// A store that fails fast while due retries on the backoff, not at once.
@@ -862,6 +862,63 @@ func TestBodyHostVoterRetriesRefusedStore(t *testing.T) {
 	// The cause heals; the next due vote stores and clears the damage.
 	mode.Store(heal)
 	waitFor("the healed health", func() bool { r := shown.Load(); return r != nil && r.Damage == nil })
+}
+
+// TestBodyHostVoterRetriesFailedStore checks, through the BodyHost that wires
+// a group voter's Control to its driver, that a voter whose checkpoint store
+// fails with an error that is not a refusal, with no refusal held, proposes
+// again on its own on a quiet Space: on the store's backoff while it fails,
+// and the group decides the checkpoint once it heals. It fails when the
+// failed store arms no wake, or retries it at once.
+func TestBodyHostVoterRetriesFailedStore(t *testing.T) {
+	// Host a quiet single-voter Space with enough stable operations to
+	// propose, whose store fails fast until healed.
+	ctx := t.Context()
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state := newGroupState(t, peers, 1)
+	for range MinCheckpointOperations {
+		writeTestOp(t, state, keys[0], "x")
+	}
+	g := newGroupHost(ctx, state)
+	var healed atomic.Bool
+	var stores atomic.Int32
+	body := &testBody{storeErr: func() error {
+		stores.Add(1)
+		if healed.Load() {
+			return nil
+		}
+		return errors.New("store unreachable")
+	}}
+	so := &execTestObject{
+		testDriverSharedObject: testDriverSharedObject{peerID: peers[0].GetPeerID()},
+		ctr:                    ccontainer.NewCContainer[SharedObjectStateSnapshot](testHandle(t, state, keys[0])),
+	}
+	h := NewBodyHost(logrus.New().WithField("test", t.Name()), so, nil)
+	h.SetSigner(g.host, keys[0], testStepFactorySet())
+	h.SetContext(ctx)
+	defer h.ClearContext()
+	release, err := h.SetBody(ctx, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// The store fails at 0, then retries after 250ms, 500ms and 1s.
+	time.Sleep(2 * time.Second)
+	if n := stores.Load(); n < 2 || n > 6 {
+		t.Fatalf("a failing vote store stored %d times in 2s, want a backoff", n)
+	}
+
+	// Healed, the next retry stores and the group decides the checkpoint.
+	healed.Store(true)
+	wctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if _, err := g.ctr.WaitValueWithValidator(wctx, func(state *SOState) (bool, error) {
+		return mustHeight(t, state) >= 1, nil
+	}, nil); err != nil {
+		t.Fatalf("no checkpoint decided after the store healed: %v", err)
+	}
 }
 
 // TestBodyDriverVoterDropsUnowedRefusal checks that a group voter's refused
@@ -931,7 +988,8 @@ func TestBodyDriverOwnerStoreBacksOff(t *testing.T) {
 	}
 	g.ctr.SetValue(held)
 
-	// Step on every wake that comes within 100ms: one store, then none.
+	// Step on every wake that comes within 200ms, before the first 250ms
+	// backoff ends: one store, then none.
 	step := func() {
 		t.Helper()
 		if err := d.Step(ctx, testHandle(t, held, keys[0])); err != nil {
@@ -944,7 +1002,7 @@ func TestBodyDriverOwnerStoreBacksOff(t *testing.T) {
 		case <-d.wake:
 			step()
 			continue
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(200 * time.Millisecond):
 		}
 		break
 	}

@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"errors"
 	"sync"
 )
 
@@ -20,7 +19,8 @@ const (
 // store, in puts of at most flushSliceBytes and flushSliceLinks, and pins
 // each root it keeps no block of and the inner store lacks, which brings a
 // root another store backs, such as a peer, into the inner store; a root no
-// store holds is left to the swap. Until release, SetRoots puts no block the
+// store holds is left to the swap, and one whose whole-store lookup cannot
+// answer is recorded for RunPins, which the release wakes. Until release, SetRoots puts no block the
 // flush stored, so a writer that flushes before it takes the lock its root
 // moves need holds that lock, and the inner store's writer, only for the
 // swap: the stage holds the stored blocks until the swap names them. Each
@@ -106,43 +106,29 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		marked, batchBytes, batchLinks = i+1, 0, 0
 	}
 
-	// Pin each unkept root the inner store lacks, copying it in. The local
-	// tier answers first, and its error fails the flush. A root no tier
-	// holds yet, such as a block the swap itself puts, is left to the swap,
-	// and so is one whose other tiers are away, slow or failing: as the child
-	// check does, the whole-store lookup never waits for a peer or past
-	// childProbeWait, since a caller may hold a root set's lock behind it,
-	// and its error counts as unknown while ctx lives.
-	local := s.StoreOps
-	if tiers, ok := s.StoreOps.(LocalStoreGetter); ok && tiers.GetLocalStore() != nil {
-		local = tiers.GetLocalStore()
-	}
+	// Pin each unkept root the inner store lacks, copying it in. A root whose
+	// whole-store lookup cannot answer is recorded for RunPins instead.
+	recorded := false
 	for _, root := range unkept {
-		found, err := local.GetBlockExists(ctx, root)
-		if err == nil && !found && local != s.StoreOps {
-			probe, cancel := childProbe(ctx)
-			found, err = s.StoreOps.GetBlockExists(probe, root)
-			cancel()
-			if err != nil && ctx.Err() == nil {
-				continue
-			}
-		}
+		unpin, unknown, err := s.pinUnkept(ctx, root)
 		if err != nil {
 			cleanup()
 			return nil, err
 		}
-		if found {
-			continue
+		if unknown {
+			s.recordUnfetched(root)
+			recorded = true
 		}
-		unpin, err := PinRoot(ctx, s.StoreOps, root)
-		if errors.Is(err, ErrNotFound) {
-			continue
+		if unpin != nil {
+			pins = append(pins, unpin)
 		}
-		if err != nil {
-			cleanup()
-			return nil, err
+	}
+	if recorded {
+		ready := cleanup
+		cleanup = func() {
+			ready()
+			s.wakePins()
 		}
-		pins = append(pins, unpin)
 	}
 
 	// Unmark them and release the stage once.

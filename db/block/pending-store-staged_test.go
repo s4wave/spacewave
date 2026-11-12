@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -228,8 +229,8 @@ func (s *existsStore) GetLocalStore() block.StoreOps {
 // TestFlushPinProbeSkipsOnlyUnknown checks Flush's lookup of a root it does
 // not keep, as the child check makes it: a local tier error fails the flush,
 // while a whole-store lookup that errs, finds no peer session or runs past
-// the probe's bound is unknown, so the pin is skipped and the flush lands,
-// and a parent cancel during it fails the flush. It fails when a fast remote
+// the probe's bound is unknown, so the pin is skipped, the root is recorded
+// for RunPins and the flush lands, and a parent cancel during it fails the flush. It fails when a fast remote
 // error fails a write, or a local one is taken for a remote one.
 func TestFlushPinProbeSkipsOnlyUnknown(t *testing.T) {
 	root, err := block.BuildBlockRef([]byte("unkept root"), nil)
@@ -271,6 +272,9 @@ func TestFlushPinProbeSkipsOnlyUnknown(t *testing.T) {
 		if waited := time.Since(start); waited > 5*time.Second {
 			t.Fatalf("%s: the flush waited %v on the probe", name, waited)
 		}
+		if n := pages.Unfetched(); n != 1 {
+			t.Fatalf("%s: %d roots recorded for a later pin, want 1", name, n)
+		}
 	}
 
 	// A parent cancel during the whole-store lookup fails the flush.
@@ -293,3 +297,151 @@ func TestFlushPinProbeSkipsOnlyUnknown(t *testing.T) {
 		t.Fatalf("local read error: %v, want %v", err, broken)
 	}
 }
+
+// healingStore is a whole store whose existence lookups fail with a dial
+// error while down, and otherwise find nothing, so a Flush pins the root it
+// does not keep. It counts the lookups and pins.
+type healingStore struct {
+	*sweepingStore
+	local  block.StoreOps
+	mtx    sync.Mutex
+	down   bool
+	probes int
+	pins   int
+}
+
+// GetBlockExists fails while down.
+func (s *healingStore) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.probes++
+	if s.down {
+		return false, errors.New("dial tcp: lookup cloud: no such host")
+	}
+	return false, nil
+}
+
+// PinRoot counts the pin.
+func (s *healingStore) PinRoot(context.Context, *block.BlockRef) (func(), error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.pins++
+	return func() {}, nil
+}
+
+// GetLocalStore returns the local tier.
+func (s *healingStore) GetLocalStore() block.StoreOps {
+	return s.local
+}
+
+// set sets down, and returns the lookups and pins so far.
+func (s *healingStore) set(down bool) (probes, pins int) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.down = down
+	return s.probes, s.pins
+}
+
+// newHealingPages returns a PendingStore over a whole store that is down,
+// with RunPins running until the test ends, and a Flush of root through it.
+func newHealingPages(t *testing.T, root *block.BlockRef) (*block.PendingStore, *healingStore, func()) {
+	local := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, exists: func(context.Context, *block.BlockRef) (bool, error) {
+		return false, nil
+	}}
+	whole := &healingStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, local: local, down: true}
+	pages := block.NewPendingStore(whole, 1<<20)
+	go func() { _ = pages.RunPins(t.Context()) }()
+	flush := func() {
+		release, err := pages.Flush(t.Context(), []*block.BlockRef{root})
+		if err != nil {
+			t.Fatalf("flush with the store down: %v", err)
+		}
+		release()
+	}
+	return pages, whole, flush
+}
+
+// waitFor waits up to five seconds for cond.
+func waitFor(t *testing.T, what string, cond func() bool) {
+	for deadline := time.Now().Add(5 * time.Second); !cond(); {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// TestFlushRecordsUnfetchedRootAndPinsAfterHeal checks the later pin of a
+// root whose Flush met a dial error: the Flush lands without the pin and
+// records the root, and once the store answers RunPins pins it and empties
+// the set, with no Flush to drive it.
+func TestFlushRecordsUnfetchedRootAndPinsAfterHeal(t *testing.T) {
+	root, err := block.BuildBlockRef([]byte("unfetched root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages, whole, flush := newHealingPages(t, root)
+	flush()
+	if n := pages.Unfetched(); n != 1 {
+		t.Fatalf("%d roots recorded after the failed lookup, want 1", n)
+	}
+	if _, pins := whole.set(false); pins != 0 {
+		t.Fatalf("%d pins taken while the store was down", pins)
+	}
+	waitFor(t, "the recorded root to be pinned", func() bool { return pages.Unfetched() == 0 })
+	if _, pins := whole.set(false); pins != 1 {
+		t.Fatalf("%d pins after the heal, want 1", pins)
+	}
+}
+
+// TestDropUnfetchedSkipsSupersededRoot checks that a recorded root its writer
+// no longer names leaves the set with no lookup: after DropUnfetched, the
+// store's lookups stop once a pass in flight ends, and the heal pins
+// nothing.
+func TestDropUnfetchedSkipsSupersededRoot(t *testing.T) {
+	root, err := block.BuildBlockRef([]byte("superseded root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages, whole, flush := newHealingPages(t, root)
+	flush()
+	pages.DropUnfetched(nil, pages.SweepMark())
+	if n := pages.Unfetched(); n != 0 {
+		t.Fatalf("%d roots left after the drop, want 0", n)
+	}
+	time.Sleep(2 * pinRetryWait)
+	probes, _ := whole.set(false)
+	time.Sleep(4 * pinRetryWait)
+	if after, pins := whole.set(false); after != probes || pins != 0 {
+		t.Fatalf("after the drop: %d lookups and %d pins, want none", after-probes, pins)
+	}
+}
+
+// TestUnfetchedRootStaysWhileStoreDown is adversarial: while every lookup
+// fails, the passes keep running and nothing takes a pin or drops the root,
+// so the root is never reported held. A mark taken before the record keeps
+// it too.
+func TestUnfetchedRootStaysWhileStoreDown(t *testing.T) {
+	root, err := block.BuildBlockRef([]byte("down root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages, whole, flush := newHealingPages(t, root)
+	mark := pages.SweepMark()
+	flush()
+	pages.DropUnfetched(nil, mark)
+	first, _ := whole.set(true)
+	waitFor(t, "a later pass", func() bool {
+		probes, _ := whole.set(true)
+		return probes > first+1
+	})
+	if n := pages.Unfetched(); n != 1 {
+		t.Fatalf("%d roots recorded while down, want 1", n)
+	}
+	if _, pins := whole.set(true); pins != 0 {
+		t.Fatalf("%d pins taken while every lookup failed", pins)
+	}
+}
+
+// pinRetryWait is RunPins' shortest wait between passes.
+const pinRetryWait = 250 * time.Millisecond
