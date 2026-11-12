@@ -206,3 +206,66 @@ func TestChildCheckRefusesOnlyOnProof(t *testing.T) {
 		t.Fatalf("freed child: %v, want %v", err, block.ErrMissingChild)
 	}
 }
+
+// existsStore is a sweepingStore whose single-root existence answer is
+// exists'.
+type existsStore struct {
+	*sweepingStore
+	exists func(ctx context.Context, ref *block.BlockRef) (bool, error)
+}
+
+// GetBlockExists answers with exists.
+func (s *existsStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return s.exists(ctx, ref)
+}
+
+// TestFlushPinProbeSkipsOnlyUnknown checks Flush's probe of a root it does
+// not keep: a source with no peer session, or slow past the probe's bound,
+// skips the pin and the flush lands, while a local read error fails the
+// flush rather than being taken for a slow source.
+func TestFlushPinProbeSkipsOnlyUnknown(t *testing.T) {
+	ctx := context.Background()
+	inner := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}}
+	pages := block.NewPendingStore(inner, 1<<20)
+	root, err := block.BuildBlockRef([]byte("unkept root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	flush := func() error {
+		release, err := pages.Flush(ctx, []*block.BlockRef{root})
+		if release != nil {
+			release()
+		}
+		return err
+	}
+
+	// No peer session: skipped.
+	inner.exists = func(context.Context, *block.BlockRef) (bool, error) {
+		return false, errors.Wrap(block.ErrUnavailable, "no peer session")
+	}
+	if err := flush(); err != nil {
+		t.Fatalf("unavailable source: %v", err)
+	}
+
+	// Slow past the bound: skipped once the bound passes.
+	inner.exists = func(ctx context.Context, _ *block.BlockRef) (bool, error) {
+		<-ctx.Done()
+		return false, ctx.Err()
+	}
+	start := time.Now()
+	if err := flush(); err != nil {
+		t.Fatalf("slow source: %v", err)
+	}
+	if waited := time.Since(start); waited > 5*time.Second {
+		t.Fatalf("slow source: the flush waited %v on the probe", waited)
+	}
+
+	// A local read error: the flush fails with it.
+	broken := errors.New("read error")
+	inner.exists = func(context.Context, *block.BlockRef) (bool, error) {
+		return false, broken
+	}
+	if err := flush(); !errors.Is(err, broken) {
+		t.Fatalf("local read error: %v, want %v", err, broken)
+	}
+}

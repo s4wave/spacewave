@@ -649,8 +649,12 @@ type damagedTestBody struct {
 	healed atomic.Bool
 	// damaged reports the damage.
 	damaged atomic.Bool
+	// holds keeps a healed write in flight: it never lands.
+	holds atomic.Bool
 	// retries counts the Retry calls.
 	retries atomic.Int32
+	// due is when the healed write in flight was due, in Unix nanoseconds.
+	due atomic.Int64
 	// wake is the driver's wake.
 	wake func()
 }
@@ -663,15 +667,16 @@ func (b *damagedTestBody) Damaged() *SOStoreDamage {
 	return &SOStoreDamage{Operation: "Flush", Refusals: 2}
 }
 
-// RetryAt returns a retry 50ms ahead while damaged, or an hour ahead once
-// healed, as the healed write is in flight: only the wake that write sends
-// when it lands publishes the heal.
+// RetryAt returns a retry 50ms ahead while damaged, and once healed the time
+// the write in flight was due, which has passed, as a body whose refusal
+// stays due while its write runs: only the wake that write sends when it
+// lands publishes the heal.
 func (b *damagedTestBody) RetryAt() time.Time {
 	switch {
 	case !b.damaged.Load():
 		return time.Time{}
-	case b.healed.Load():
-		return time.Now().Add(time.Hour)
+	case b.healed.Load() && b.due.Load() != 0:
+		return time.Unix(0, b.due.Load())
 	default:
 		return time.Now().Add(50 * time.Millisecond)
 	}
@@ -681,7 +686,7 @@ func (b *damagedTestBody) RetryAt() time.Time {
 // returns, as a background write landing does, then wakes the driver.
 func (b *damagedTestBody) Retry(context.Context) error {
 	b.retries.Add(1)
-	if b.healed.Load() {
+	if b.healed.Load() && b.due.CompareAndSwap(0, time.Now().UnixNano()) && !b.holds.Load() {
 		go func() {
 			time.Sleep(20 * time.Millisecond)
 			b.damaged.Store(false)
@@ -743,6 +748,101 @@ func TestBodyDriverRetriesDamagedBody(t *testing.T) {
 	// it returns, and the health clears.
 	body.healed.Store(true)
 	waitFor("the healed health", func() bool { r := shown.Load(); return r != nil && r.Damage == nil })
+}
+
+// TestBodyDriverBacksOffDueRetryInFlight checks that Execute does not spin
+// when a body's damaged write stays due while its retry runs in the
+// background: the driver wakes on its backoff until the write lands. It
+// fails when the driver wakes at once for a due write the step left due.
+func TestBodyDriverBacksOffDueRetryInFlight(t *testing.T) {
+	// A quiet Space holds one operation; the body's healed write never lands.
+	ctx := t.Context()
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	writeTestOp(t, state, keys[0], "op")
+	body := &damagedTestBody{testBody: &testBody{}}
+	body.damaged.Store(true)
+	body.healed.Store(true)
+	body.holds.Store(true)
+	so := &execTestObject{
+		testDriverSharedObject: testDriverSharedObject{peerID: peers[0].GetPeerID()},
+		ctr:                    ccontainer.NewCContainer[SharedObjectStateSnapshot](testHandle(t, state, keys[0])),
+	}
+	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	ctx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() { done <- d.Execute(ctx) }()
+
+	// Within a second the backoff allows the first step and a few more.
+	time.Sleep(time.Second)
+	cancel()
+	<-done
+	if n := body.retries.Load(); n == 0 || n > 5 {
+		t.Fatalf("the driver stepped %d times in a second on a due write in flight", n)
+	}
+}
+
+// TestBodyDriverVoterRetryWakesVoter checks that a group voter's damaged
+// store wakes the voter once its refusal is due, so a quiet Space, which
+// sends no state change, still proposes again and heals, and that a healed
+// store wakes it no more. It fails when only a state change runs the vote.
+func TestBodyDriverVoterRetryWakesVoter(t *testing.T) {
+	// Host a Space under group control whose body refuses every store.
+	ctx := t.Context()
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state := newGroupState(t, peers, 1)
+	g := newGroupHost(ctx, state)
+	var healed atomic.Bool
+	body := &testBody{storeErr: func() error {
+		if healed.Load() {
+			return nil
+		}
+		return &block.MissingChildError{Op: "Flush", Block: &block.BlockRef{}, Child: &block.BlockRef{}}
+	}}
+	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
+	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	d.damageRetry = 100 * time.Millisecond
+	d.SetCheckpointer(g.host, keys[0], testStepFactorySet())
+	votes := make(chan struct{}, 1)
+	d.SetVoteWake(func() {
+		select {
+		case votes <- struct{}{}:
+		default:
+		}
+	})
+	held := g.ctr.GetValue().Clone()
+	for range MinCheckpointOperations {
+		writeTestOp(t, held, keys[0], "x")
+	}
+	g.ctr.SetValue(held)
+	if err := d.Step(ctx, testHandle(t, held, keys[0])); err != nil {
+		t.Fatal(err)
+	}
+
+	// Two refused proposals damage the body; the voter wakes once it is due.
+	for range 2 {
+		if _, err := d.ProposeCheckpoint(ctx, held); !errors.Is(err, block.ErrMissingChild) {
+			t.Fatalf("proposal = %v, want a refusal", err)
+		}
+	}
+	select {
+	case <-votes:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the due refusal woke no vote")
+	}
+
+	// The woken vote stores and heals, and no further wake comes.
+	healed.Store(true)
+	if inner, err := d.ProposeCheckpoint(ctx, held); err != nil || inner == nil || d.Damaged() != nil {
+		t.Fatalf("proposal after the heal = %v, %v; damage %v", inner, err, d.Damaged())
+	}
+	select {
+	case <-votes:
+		t.Fatal("a healed store woke the vote")
+	case <-time.After(300 * time.Millisecond):
+	}
 }
 
 // TestBodyDriverVoterDamagedByRefusedStore checks that a group voter's

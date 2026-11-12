@@ -57,6 +57,9 @@ type BodyDriver struct {
 	checkpointer *bodyCheckpointer
 	// wake asks Execute to step again without a state change.
 	wake chan error
+	// voteWake has the group voter step again, or is nil. A vote's store
+	// refusal calls it once due, as no state change may come to retry it.
+	voteWake func()
 	// now returns the current time.
 	now func() time.Time
 	// damageRetry is how long a damaged step or checkpoint store waits after
@@ -91,6 +94,9 @@ type BodyDriver struct {
 	// it, and a repeated step refusal steps again on a new state or then;
 	// the first attempt that stores clears it.
 	stepRefusal, storeRefusal *StoreRefusal
+	// voteTimer calls voteWake when a vote's damaged store comes due, or is
+	// nil.
+	voteTimer *time.Timer
 }
 
 // NewBodyDriver returns the driver of body on so. report receives what the
@@ -120,6 +126,13 @@ func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*Bo
 // that encrypt it. Call it before Execute.
 func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *block_transform.StepFactorySet) {
 	d.checkpointer = &bodyCheckpointer{host: host, privKey: privKey, sfs: sfs}
+}
+
+// SetVoteWake has the driver call wake when a group vote's damaged store
+// comes due, so the voter proposes or judges again on a quiet Space. Call it
+// before Execute.
+func (d *BodyDriver) SetVoteWake(wake func()) {
+	d.voteWake = wake
 }
 
 // Execute steps the body to each state of so until ctx ends. After an error
@@ -172,7 +185,8 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 		if snap == nil {
 			continue
 		}
-		if err := d.Step(ctx, snap); err != nil {
+		err = d.Step(ctx, snap)
+		if err != nil {
 			if ctx.Err() != nil {
 				return context.Canceled
 			}
@@ -181,11 +195,22 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 				retry()
 				continue
 			}
-		} else {
+		}
+
+		// Wake when the earliest damaged write comes due. One the step left
+		// due waits on the backoff instead: its retry is in flight, or is
+		// the group voter's, so waking at once would spin.
+		at := d.nextRetry()
+		wait := at.Sub(d.now())
+		if !at.IsZero() && wait <= 0 {
+			retry()
+			continue
+		}
+		if err == nil {
 			delay = bodyRetryMin
 		}
-		if at := d.nextRetry(); !at.IsZero() {
-			wakeAfter(max(0, at.Sub(d.now())))
+		if !at.IsZero() {
+			wakeAfter(wait)
 		}
 	}
 }
@@ -420,16 +445,33 @@ func (d *BodyDriver) storeVote(ctx context.Context, store func(context.Context) 
 		return err
 	}
 
-	// Note its refusal, and wake the driver when the damage changed.
+	// Note its refusal, and wake the voter once a damaged store is due.
 	d.mtx.Lock()
 	before := d.storeRefusal.Damage()
 	d.storeRefusal = d.noteRefusal(d.storeRefusal, err)
 	changed := !before.EqualVT(d.storeRefusal.Damage())
+	d.armVoteWake()
 	d.mtx.Unlock()
+
+	// Wake the driver to publish the health when the damage changed.
 	if changed {
 		d.wakeAfter(0)
 	}
 	return err
+}
+
+// armVoteWake arms voteTimer to wake the voter when the vote's damaged store
+// is due, or stops it while none is damaged. The caller holds mtx.
+func (d *BodyDriver) armVoteWake() {
+	if d.voteTimer != nil {
+		d.voteTimer.Stop()
+		d.voteTimer = nil
+	}
+	at := d.storeRefusal.RetryAt()
+	if d.voteWake == nil || at.IsZero() {
+		return
+	}
+	d.voteTimer = time.AfterFunc(max(0, at.Sub(d.now())), d.voteWake)
 }
 
 // JudgeCheckpoint reports whether inner is the checkpoint after the one state

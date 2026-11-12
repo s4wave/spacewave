@@ -114,8 +114,9 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	for _, root := range unkept {
 		probe, cancel := childProbe(ctx)
 		found, err := s.StoreOps.GetBlockExists(probe, root)
+		late := errors.Is(context.Cause(probe), ErrUnavailable)
 		cancel()
-		if errors.Is(err, ErrUnavailable) || (err != nil && ctx.Err() == nil && probe.Err() != nil) {
+		if errors.Is(err, ErrUnavailable) || (err != nil && ctx.Err() == nil && late) {
 			continue
 		}
 		if err != nil {

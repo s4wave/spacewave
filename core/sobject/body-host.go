@@ -118,6 +118,7 @@ func (h *BodyHost) execute(ctx context.Context, body Body) error {
 	if err != nil {
 		return err
 	}
+	d.SetVoteWake(control.Wake)
 	go func() {
 		if err := control.Execute(ctx); err != nil && ctx.Err() == nil {
 			h.le.WithError(err).Warn("stopped voting in group decisions")
