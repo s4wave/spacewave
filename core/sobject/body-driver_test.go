@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
@@ -35,6 +37,9 @@ type testBody struct {
 	storeGate chan struct{}
 	// storeErr, when set, is the result of each store Root returns.
 	storeErr func() error
+	// applyErr, when set, is the result of each Apply of the "refused"
+	// operation that it does not answer nil.
+	applyErr func() error
 }
 
 // stateAt returns the state after the first n operations.
@@ -83,6 +88,10 @@ func (b *testBody) Apply(_ context.Context, index int, op *OrderedOperation) (st
 	switch {
 	case data == "missing" && b.missing:
 		return "", errTestBodyBlock
+	case data == "refused" && b.applyErr != nil:
+		if err := b.applyErr(); err != nil {
+			return "", err
+		}
 	case data == "solo" && prev != b.base:
 		reason = "solo follows another operation"
 	}
@@ -560,6 +569,65 @@ func TestBodyDriverDamagedByRefusedStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+// execTestObject is the shared object of a driver under Execute.
+type execTestObject struct {
+	testDriverSharedObject
+	// ctr holds the state Execute watches.
+	ctr *ccontainer.CContainer[SharedObjectStateSnapshot]
+}
+
+// AccessSharedObjectState returns the state container.
+func (o *execTestObject) AccessSharedObjectState(context.Context, func()) (ccontainer.Watchable[SharedObjectStateSnapshot], func(), error) {
+	return o.ctr, func() {}, nil
+}
+
+// TestBodyDriverDamagedStepRetries checks that Execute steps a damaged body
+// again after the damage retry delay with no new state, so a Space that sends
+// nothing more clears the damage once its cause heals.
+func TestBodyDriverDamagedStepRetries(t *testing.T) {
+	// A quiet Space holds one operation the body refuses until healed.
+	ctx := t.Context()
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	writeTestOp(t, state, keys[0], "refused")
+	var healed atomic.Bool
+	body := &testBody{applyErr: func() error {
+		if healed.Load() {
+			return nil
+		}
+		return &block.MissingChildError{Op: "Flush", Block: &block.BlockRef{}, Child: &block.BlockRef{}}
+	}}
+	so := &execTestObject{
+		testDriverSharedObject: testDriverSharedObject{peerID: peers[0].GetPeerID()},
+		ctr:                    ccontainer.NewCContainer[SharedObjectStateSnapshot](testHandle(t, state, keys[0])),
+	}
+	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	d.damageRetry = 50 * time.Millisecond
+	ctx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() { done <- d.Execute(ctx) }()
+	defer func() {
+		cancel()
+		<-done
+	}()
+
+	// The refusal repeats and damages the body.
+	waitFor := func(what string, cond func() bool) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); !cond(); time.Sleep(10 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("timed out waiting for %s", what)
+			}
+		}
+	}
+	waitFor("the damage", func() bool { return d.Damaged() != nil })
+
+	// The cause heals with no new state; the retry clears the damage.
+	healed.Store(true)
+	waitFor("the healed step", func() bool { return d.Damaged() == nil })
 }
 
 // TestBodyDriverVoterDamagedByRefusedStore checks that a group voter's

@@ -510,6 +510,14 @@ func TestStoreReadWaitsForPeerSession(t *testing.T) {
 		t.Fatalf("existence without a peer wait = %v, %v; want %v", exists, err, block.ErrUnavailable)
 	}
 
+	// A batch answers the same way, settling the sessions once.
+	if found, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{ref, ref}); err != nil || found[0] || found[1] {
+		t.Fatalf("batch existence = %v, %v", found, err)
+	}
+	if _, err := store.GetBlockExistsBatch(noWaitCtx, []*block.BlockRef{ref, ref}); !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("batch existence without a peer wait = %v; want %v", err, block.ErrUnavailable)
+	}
+
 	// Start a read, which must wait while no peer is connected.
 	type readResult struct {
 		data  []byte

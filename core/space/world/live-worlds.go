@@ -20,6 +20,11 @@ type liveWorlds struct {
 	// still read. A trim holds them under the replay cursor root, and a sweep
 	// keeps their pages.
 	memory []*block.BlockRef
+	// served are the Worlds of memory that are no position: the installed
+	// head, the writer head and the Worlds the served engine's readers may
+	// still read. A cursor save that ends a replay epoch which stored a page
+	// holds them, since the floor covers only the positions.
+	served []*block.BlockRef
 	// candidates are the pending candidates' Worlds. A trim holds them under
 	// the pending root, and a sweep keeps their pages.
 	candidates []*block.BlockRef
@@ -55,7 +60,7 @@ func (a *Adapter) gatherLive() liveWorlds {
 
 	// Add the heads, the candidates and the retained roots.
 	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		l.memory = append(l.memory, a.head.Root, a.writer.Root)
+		l.served = append(l.served, a.head.Root, a.writer.Root)
 		for _, roots := range a.storing {
 			l.memory = append(l.memory, roots...)
 		}
@@ -69,7 +74,8 @@ func (a *Adapter) gatherLive() liveWorlds {
 	})
 
 	// Add the engine readers' Worlds.
-	l.memory = append(l.memory, a.readRoots()...)
+	l.served = append(l.served, a.readRoots()...)
+	l.memory = append(l.memory, l.served...)
 	return l
 }
 

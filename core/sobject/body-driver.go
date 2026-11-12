@@ -59,6 +59,9 @@ type BodyDriver struct {
 	wake chan error
 	// now returns the current time.
 	now func() time.Time
+	// damageRetry is how long a damaged step waits before it steps again on
+	// the held state, storeDamageRetry outside tests.
+	damageRetry time.Duration
 
 	// mtx serializes the body's calls and guards the fields below.
 	mtx sync.Mutex
@@ -84,8 +87,8 @@ type BodyDriver struct {
 	// proposal or judgment, or nil. Once one repeats, or a DamagedBody
 	// reports damage, the report shows the body damaged. A repeated store
 	// refusal stores a checkpoint again only once per storeDamageRetry, and
-	// a repeated step refusal steps again only on a new state; the first
-	// attempt that stores clears it.
+	// a repeated step refusal steps again on a new state or once per
+	// storeDamageRetry; the first attempt that stores clears it.
 	stepRefusal, storeRefusal *StoreRefusal
 }
 
@@ -93,13 +96,14 @@ type BodyDriver struct {
 // health shows of the replay, and may be nil.
 func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*BodyReport)) *BodyDriver {
 	return &BodyDriver{
-		le:      le,
-		so:      so,
-		body:    body,
-		report:  report,
-		applied: make(map[string]struct{}),
-		wake:    make(chan error, 1),
-		now:     time.Now,
+		le:          le,
+		so:          so,
+		body:        body,
+		report:      report,
+		applied:     make(map[string]struct{}),
+		wake:        make(chan error, 1),
+		now:         time.Now,
+		damageRetry: storeDamageRetry,
 	}
 }
 
@@ -123,7 +127,9 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 	defer rel()
 
-	// Wake a failed step after a backoff.
+	// Wake a failed step after a backoff, or a damaged one after
+	// damageRetry, so a cause healed outside replay clears the damage on a
+	// quiet Space that sends no new state.
 	wake := d.wake
 	delay := bodyRetryMin
 	var timer *time.Timer
@@ -132,16 +138,19 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 			timer.Stop()
 		}
 	}()
-	retry := func() {
+	wakeAfter := func(after time.Duration) {
 		if timer != nil {
 			timer.Stop()
 		}
-		timer = time.AfterFunc(delay, func() {
+		timer = time.AfterFunc(after, func() {
 			select {
 			case wake <- errBodyRetry:
 			default:
 			}
 		})
+	}
+	retry := func() {
+		wakeAfter(delay)
 		delay = min(2*delay, bodyRetryMax)
 	}
 
@@ -163,7 +172,9 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 				return context.Canceled
 			}
 			d.le.WithError(err).Warn("replay stopped before the end of the order")
-			if !errors.Is(err, block.ErrMissingChild) || !d.stepDamaged() {
+			if errors.Is(err, block.ErrMissingChild) && d.stepDamaged() {
+				wakeAfter(d.damageRetry)
+			} else {
 				retry()
 			}
 			continue
@@ -173,7 +184,7 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 }
 
 // stepDamaged reports whether the steps' store refusal repeated, so a step
-// refused again waits for the next state instead of a backoff.
+// refused again waits for the next state or damageRetry instead of a backoff.
 func (d *BodyDriver) stepDamaged() bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()

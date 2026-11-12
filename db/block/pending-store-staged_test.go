@@ -164,7 +164,9 @@ func TestChildCheckRefusesOnlyOnProof(t *testing.T) {
 	// Offline or with no peer session: admitted, counted and reported.
 	inner.remote = func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 		if block.GetPeerWait(ctx) == nil {
-			return nil, errors.New("the probe may wait")
+			// A store read that may wait for a peer answers a miss once its
+			// sources are away, so a probe without the marker refuses here.
+			return make([]bool, len(refs)), nil
 		}
 		return nil, errors.Wrap(block.ErrUnavailable, "storage backend not open")
 	}

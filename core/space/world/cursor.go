@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -68,10 +69,16 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 // record never names an unheld World and the driver keeps applying while the
 // World's pages store. It starts the next epoch of the replay stage, and ends
 // the earlier ones once the record lands: until then they hold the pages of
-// the World it saves. When one of them stored a page, the Worlds before the
-// saved one may name a page only it held, so the floor moves up to the saved
-// World as the save starts. One save runs at a time; a save due while another
-// runs waits for the next position. The driver goroutine calls it.
+// the World it saves.
+//
+// When one of the ending epochs stored a page, every live World may name a
+// page only that epoch held. The positions before the saved one are covered
+// by the floor, which moves up to the saved World as the save starts, so
+// replay computes them again. Every other live World gatherLive returns, the
+// served Worlds and the pending candidates, is held in the same root move as
+// the saved World, so no World the adapter still serves or proposes names a
+// page the ended epoch alone held. One save runs at a time; a save due while
+// another runs waits for the next position. The driver goroutine calls it.
 func (a *Adapter) saveCursor(ctx context.Context) error {
 	// Skip while a save runs.
 	if !a.cursorSaving.CompareAndSwap(false, true) {
@@ -84,23 +91,40 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		}
 	}()
 
-	// Hold the payloads, then encode the positions.
+	// Hold the payloads, then encode the positions. A payload the store
+	// refuses counts as a refused save, so replay goes on and the save waits
+	// until the refusal is due again.
 	r := a.replay
 	if err := a.resetPayloads(ctx); err != nil {
-		return err
+		if !errors.Is(err, block.ErrMissingChild) {
+			return err
+		}
+		a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err, a.now()))
+		a.le.WithError(err).Warn("replay cursor not saved")
+		return nil
 	}
 	root, data, err := a.encodeCursor()
 	if err != nil {
 		return err
 	}
 
-	// Hold the head World; a run that ended saves nothing more and opens no
-	// epoch, since it ends the stage once its background stores ended.
-	done, ok := a.startBackground(root)
+	// When an epoch the save ends stored a page, hold the live Worlds that
+	// are no position beside the saved World.
+	stored := r.stage.stored()
+	worlds, candidates := []*block.BlockRef{root}, []*block.BlockRef(nil)
+	if stored {
+		l := a.gatherLive()
+		worlds, candidates = append(worlds, l.served...), l.candidates
+	}
+
+	// Keep them live through the store; a run that ended saves nothing more
+	// and opens no epoch, since it ends the stage once its background stores
+	// ended.
+	done, ok := a.startBackground(slices.Concat(worlds, candidates)...)
 	if !ok {
 		return nil
 	}
-	epochs, stored, err := r.stage.rotate(ctx)
+	epochs, err := r.stage.rotate(ctx)
 	if err != nil {
 		done()
 		return err
@@ -117,7 +141,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		defer a.cursorSaving.Store(false)
 		ctx, cancel := a.backgroundContext(ctx)
 		defer cancel()
-		err := a.writeCursor(ctx, root, data)
+		err := a.writeCursor(ctx, worlds, candidates, data)
 		if ctx.Err() == nil {
 			a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err, a.now()))
 		}
@@ -137,11 +161,15 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 	return nil
 }
 
-// Damaged returns the store refusal of the cursor saves replay could not
-// heal: a save refused twice in a row with a block.MissingChildError, until a
-// later save lands. The body driver shows it in the Space's health.
+// Damaged returns the store refusal of the cursor saves or the trims replay
+// could not heal: a save or a trim refused twice in a row with a
+// block.MissingChildError, until a later one lands. The body driver shows it
+// in the Space's health.
 func (a *Adapter) Damaged() *sobject.SOStoreDamage {
-	return a.saveRefusal.Load().Damage()
+	if damage := a.saveRefusal.Load().Damage(); damage != nil {
+		return damage
+	}
+	return a.trimRefusal.Load().Damage()
 }
 
 // encodeCursor returns the World after the last position and the encoded
@@ -175,15 +203,18 @@ func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
 	return head.GetHeadRef().GetRootRef().Clone(), data, nil
 }
 
-// writeCursor adds root to the replay cursor root, then writes data as the
-// saved cursor.
-func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []byte) error {
-	// Hold the head World beside the earlier cursor Worlds.
-	release, err := a.lockRoots(ctx, root)
+// writeCursor adds worlds, the saved World first, to the replay cursor root
+// and candidates to the pending root, then writes data as the saved cursor.
+func (a *Adapter) writeCursor(ctx context.Context, worlds, candidates []*block.BlockRef, data []byte) error {
+	// Hold them beside the earlier Worlds of each history.
+	release, err := a.lockRoots(ctx, slices.Concat(worlds, candidates)...)
 	if err != nil {
 		return err
 	}
-	err = a.addRoot(ctx, &a.cursorWorlds, root)
+	err = a.appendRoots(ctx, &a.cursorWorlds, worlds)
+	if err == nil {
+		err = a.appendRoots(ctx, &a.pendingWorlds, candidates)
+	}
 	release()
 	if err != nil {
 		return err

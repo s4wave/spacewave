@@ -178,6 +178,11 @@ type Adapter struct {
 	// row, or nil. Once it repeats, Damaged reports it and a cursor save
 	// starts only once it is due again; a save that lands clears it.
 	saveRefusal atomic.Pointer[sobject.StoreRefusal]
+	// trimRefusal is the store refusal the latest trim runs met in a row, or
+	// nil. A refused trim moves nothing: the base and every history stay as
+	// they were, so the old base keeps holding what the refused World needs.
+	// Once it repeats, Damaged reports it; a trim that lands clears it.
+	trimRefusal atomic.Pointer[sobject.StoreRefusal]
 	// now returns the current time.
 	now func() time.Time
 	// uncheckedReported is when reportUnchecked last warned, in Unix nanoseconds.
@@ -1048,7 +1053,11 @@ func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 		}
 		err = a.runTrim(ctx, plan)
 		release()
-		if err == nil || ctx.Err() != nil {
+		if ctx.Err() != nil {
+			return
+		}
+		a.trimRefusal.Store(sobject.NoteStoreRefusal(a.trimRefusal.Load(), err, a.now()))
+		if err == nil {
 			return
 		}
 
@@ -1173,9 +1182,10 @@ func (a *Adapter) admit(adm *spaceAdmission) {
 // the pending root while an open stage stored blocks past the PendingStore's
 // bound, whether Admit's own put or the writer's transaction stored them, so
 // those stages can end, or when the kept pages outgrew memory, so they can
-// leave it. Each hold is one swap that stores the writer's own pages, and
-// waits on the root lock only for another swap, never for the driver's store
-// of its pages.
+// leave it. Each hold flushes the writer's own pages before the root lock, so
+// their child check, which may ask the backend and peers, runs outside it,
+// and the swap under the lock reads only the local tier. It waits on the root
+// lock only for another swap, never for the driver's store of its pages.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
@@ -1189,7 +1199,7 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	if (!a.pages.StagesStored() && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
-	release, err := a.lockRoots(ctx)
+	release, err := a.lockRoots(ctx, adm.candidate.Root)
 	if err != nil {
 		return err
 	}
@@ -1553,7 +1563,7 @@ func (a *Adapter) readRetained(ctx context.Context) error {
 // waits only for another swap. Apply calls it for each operation it applies,
 // which holds nothing new for one this device already holds.
 func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) error {
-	release, err := a.lockRoots(ctx)
+	release, err := a.lockRoots(ctx, extra...)
 	if err != nil {
 		return err
 	}

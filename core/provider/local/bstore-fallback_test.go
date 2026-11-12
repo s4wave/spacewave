@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http/httptest"
 	"runtime"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -630,5 +632,49 @@ func TestReadFallbackFillRacesEviction(t *testing.T) {
 			t.Fatalf("pack store lacks %s", ref.MarshalString())
 		}
 		f.read(ref, data)
+	}
+}
+
+// TestExistenceUnknownWhilePeersAway checks the existence answer of a Space's
+// read chain with no backend placed: before its peers first connect in this
+// process, a miss under WithoutPeerWait is unavailable, since a peer may hold
+// the block, and a miss under any other context reads as absent; with no peers
+// configured at all the local store is the only source, so a miss is proof.
+func TestExistenceUnknownWhilePeersAway(t *testing.T) {
+	f := newFallbackTest(t)
+	recorded := &readRecorder{StoreOps: f.local, reads: &f.p.reads}
+	le := logrus.NewEntry(logrus.New())
+	chain := func(peers block_store.StoreSource) block.StoreOps {
+		reads, _ := f.p.readChains(recorded, f.local, func() block.StoreOps { return nil }, peers, nil)
+		return reads
+	}
+	ref, err := block.BuildBlockRef([]byte("away"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	probe, _ := block.WithoutPeerWait(f.ctx)
+
+	// Peers configured, none connected yet: unknown under the marker.
+	away := chain(newPeerMissSource(le,
+		func() block.StoreOps { return nil },
+		func(context.Context) block.StoreOps { return nil },
+	))
+	if _, err := away.GetBlockExists(probe, ref); !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("exists with peers away = %v, want %v", err, block.ErrUnavailable)
+	}
+	if _, err := away.GetBlockExistsBatch(probe, []*block.BlockRef{ref}); !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("batch with peers away = %v, want %v", err, block.ErrUnavailable)
+	}
+	if found, err := away.GetBlockExists(f.ctx, ref); err != nil || found {
+		t.Fatalf("exists without the marker = %v, %v", found, err)
+	}
+
+	// No peers at all: a local miss is proof.
+	alone := chain(nil)
+	if found, err := alone.GetBlockExists(probe, ref); err != nil || found {
+		t.Fatalf("exists with no peers = %v, %v", found, err)
+	}
+	if found, err := alone.GetBlockExistsBatch(probe, []*block.BlockRef{ref}); err != nil || found[0] {
+		t.Fatalf("batch with no peers = %v, %v", found, err)
 	}
 }

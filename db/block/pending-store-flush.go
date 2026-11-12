@@ -108,9 +108,14 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 
 	// Pin each unkept root the inner store lacks, copying it in. A root no
 	// store holds yet, such as a block the swap itself puts, is left to the
-	// swap.
+	// swap, and so is one whose source is away: the lookup never waits for a
+	// peer, since a caller may hold a root set's lock behind it.
+	probe, _ := WithoutPeerWait(ctx)
 	for _, root := range unkept {
-		found, err := s.StoreOps.GetBlockExists(ctx, root)
+		found, err := s.StoreOps.GetBlockExists(probe, root)
+		if errors.Is(err, ErrUnavailable) {
+			continue
+		}
 		if err != nil {
 			cleanup()
 			return nil, err

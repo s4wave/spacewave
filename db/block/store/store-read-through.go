@@ -2,6 +2,7 @@ package block_store
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -265,9 +266,23 @@ func (s *StoreReadThrough) GetBlockExists(ctx context.Context, ref *block.BlockR
 	// Ask the lower store about a primary miss.
 	lower := s.source(s.lower)
 	if lower == nil {
-		return false, nil
+		return false, s.lowerUnknown(ctx)
 	}
 	return lower.GetBlockExists(ctx, ref)
+}
+
+// lowerUnknown returns the outcome of an existence miss while the lower source
+// resolves to nil. A configured lower source that is not placed yet may hold
+// the block once it is, so a caller that may not wait for a peer, which treats
+// a false answer as proof the block is gone, learns the answer is unknown. Any
+// other caller, or a pipeline without a lower source, reads a miss. A source
+// that is known to hold nothing, such as a Space without peers, resolves to a
+// nil StoreSource rather than a source returning nil.
+func (s *StoreReadThrough) lowerUnknown(ctx context.Context) error {
+	if s.lower == nil || block.GetPeerWait(ctx) == nil {
+		return nil
+	}
+	return errors.Wrap(block.ErrUnavailable, "lower store unavailable")
 }
 
 // GetBlockExistsBatch checks the primary source for every ref, then asks the
@@ -287,6 +302,11 @@ func (s *StoreReadThrough) GetBlockExistsBatch(ctx context.Context, refs []*bloc
 	// Collect the primary misses.
 	lower := s.source(s.lower)
 	if lower == nil {
+		if slices.Contains(out, false) {
+			if err := s.lowerUnknown(ctx); err != nil {
+				return nil, err
+			}
+		}
 		return out, nil
 	}
 	var missIdx []int

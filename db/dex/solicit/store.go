@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
+	"golang.org/x/sync/errgroup"
 )
 
 // Store is a read-only block store view owned by a solicitation Controller.
@@ -84,26 +85,42 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 // every peer answered that it does not have the block, and an error when the
 // exchange failed or no peer was there to ask.
 func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (*DexMessage, error) {
+	// Settle the peer sessions, then ask them for the block.
+	sessions, err := s.settle(ctx, wantPeer, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.ask(ctx, sessions, ref)
+}
+
+// settle returns the settled peer sessions, first waiting for one when
+// wantPeer is set and ctx allows waiting. Under block.WithoutPeerWait with no
+// session, after waiting out a recovering one, it records refs and reports
+// block.ErrUnavailable.
+func (s *Store) settle(ctx context.Context, wantPeer bool, refs ...*block.BlockRef) ([]*peerSession, error) {
 	// Settle the peer sessions, waiting for one only when ctx allows it.
 	peerWait := block.GetPeerWait(ctx)
 	skipWait := wantPeer && peerWait != nil
 	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer && !skipWait)
-	if err != nil {
-		return nil, err
-	}
-	if skipWait && len(sessions) == 0 {
-		// A peer whose session just ended is expected back within seconds,
-		// so wait for its recovery rather than report the block unavailable.
-		sessions, err = s.controller.waitRecovery(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if skipWait && len(sessions) == 0 {
-		peerWait.Skip(ref)
-		return nil, fmt.Errorf("%w: no peer session to ask for block %s", block.ErrUnavailable, ref.MarshalString())
+	if err != nil || !skipWait || len(sessions) != 0 {
+		return sessions, err
 	}
 
+	// A peer whose session just ended is expected back within seconds, so
+	// wait for its recovery rather than report the blocks unavailable.
+	sessions, err = s.controller.waitRecovery(ctx)
+	if err != nil || len(sessions) != 0 {
+		return sessions, err
+	}
+	for _, ref := range refs {
+		peerWait.Skip(ref)
+	}
+	return nil, fmt.Errorf("%w: no peer session to ask for %d blocks", block.ErrUnavailable, len(refs))
+}
+
+// ask requests a block from the settled peer sessions. Returns nil when every
+// peer answered that it does not have the block.
+func (s *Store) ask(ctx context.Context, sessions []*peerSession, ref *block.BlockRef) (*DexMessage, error) {
 	// Ask the settled peer sessions for the block.
 	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil)
 	if err != nil {
@@ -128,15 +145,34 @@ func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, 
 	return found != nil, err
 }
 
-// GetBlockExistsBatch checks whether any connected peer has each block.
+// existsBatchAsks bounds the blocks one existence batch asks the peers about
+// at once.
+const existsBatchAsks = 16
+
+// GetBlockExistsBatch checks whether any connected peer has each block. It
+// settles the sessions once for the batch, then asks about up to
+// existsBatchAsks blocks at once, so a batch waits about as long as its
+// slowest ask rather than the sum of them.
 func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Settle the sessions once.
+	sessions, err := s.settle(ctx, block.GetPeerWait(ctx) != nil, refs...)
+	if err != nil || len(refs) == 0 {
+		return make([]bool, len(refs)), err
+	}
+
+	// Ask about every block, a bounded number at once.
 	out := make([]bool, len(refs))
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(existsBatchAsks)
 	for i, ref := range refs {
-		found, err := s.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
+		g.Go(func() error {
+			found, err := s.ask(gctx, sessions, ref)
+			out[i] = found != nil
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

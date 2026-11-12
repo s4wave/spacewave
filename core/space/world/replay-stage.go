@@ -2,6 +2,7 @@ package space_world
 
 import (
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -80,28 +81,32 @@ func (s *replayStage) ReleaseRoots(context.Context, []*block.BlockRef) error {
 
 // rotate opens the next epoch, for the positions after a save that starts
 // now, and returns the current epoch and the unlanded ones, which the save
-// ends once it lands, and whether any of them stored a page. A nil stage
-// returns none.
-func (s *replayStage) rotate(ctx context.Context) ([]*block.OverflowStage, bool, error) {
+// ends once it lands. A nil stage returns none.
+func (s *replayStage) rotate(ctx context.Context) ([]*block.OverflowStage, error) {
 	// A transient replay has no epochs.
 	if s == nil {
-		return nil, false, nil
+		return nil, nil
 	}
 
 	// Open the next epoch before the current one ends.
 	epoch, err := s.OpenOverflowStage(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// Hand the save every earlier epoch, and put through the new one.
 	epochs := append(s.unlanded, s.epoch)
 	s.unlanded, s.epoch = nil, epoch
-	stored := false
-	for _, e := range epochs {
-		stored = stored || e.Stored()
+	return epochs, nil
+}
+
+// stored reports whether an epoch the next rotate hands over stored a page.
+// A nil stage stored none.
+func (s *replayStage) stored() bool {
+	if s == nil {
+		return false
 	}
-	return epochs, stored, nil
+	return s.epoch.Stored() || slices.ContainsFunc(s.unlanded, (*block.OverflowStage).Stored)
 }
 
 // keep returns the epochs of a save that did not land, for the next save.

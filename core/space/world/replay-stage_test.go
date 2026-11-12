@@ -292,6 +292,40 @@ func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 	}
 }
 
+// TestCursorSaveHoldsServedWorlds checks that a cursor save which ends an
+// epoch that stored a page holds the Worlds the adapter still serves that are
+// no position: the installed head after a reorder cut the positions below
+// it, and a World an engine reader still reads after its head retired. The
+// save names a World that does not reach the page, so a collection after it
+// lands frees the page unless the save holds those Worlds too.
+func TestCursorSaveHoldsServedWorlds(t *testing.T) {
+	for _, served := range []string{"installed head", "reader"} {
+		t.Run(served, func(t *testing.T) {
+			// Replay and serve a World whose page goes past the bound to
+			// the current epoch.
+			f := newReplayFixture(t, 1000)
+			a := f.a
+			f.apply("zero", f.put("zero World", 0))
+			stored := f.put("stored page", 1200)
+			world := f.put("served World", 0, stored)
+			f.apply("served", world)
+			if served == "reader" {
+				a.readers = readRoots{world}
+			} else {
+				a.head.Root = world
+			}
+
+			// A reorder cuts the positions below it, and the save of the
+			// World in its place ends the epoch.
+			a.replay.positions = a.replay.positions[:1]
+			f.apply("reordered", f.put("reordered World", 0))
+			f.save()
+			f.collect()
+			f.requireFound("the "+served+"'s World", world, stored)
+		})
+	}
+}
+
 // peerSpace is a localStateSpace that names its peer.
 type peerSpace struct {
 	*localStateSpace
@@ -307,8 +341,8 @@ func (s *peerSpace) GetPeerID() peer.ID {
 // TestAdoptAfterEpochEnds checks, through Apply, that a candidate
 // built on a replayed World whose page only a replay epoch stored is not
 // adopted once a later save ended that epoch and a reorder puts its
-// operation back after that World: the candidate shares the freed page, so
-// the operation runs again on the World computed again.
+// operation back after that World: the candidate may share a page only the
+// ended epoch held, so the operation runs again on the World computed again.
 func TestAdoptAfterEpochEnds(t *testing.T) {
 	f := newReplayFixture(t, 1000)
 	a, ctx := f.a, t.Context()
@@ -358,9 +392,9 @@ func TestAdoptAfterEpochEnds(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The position does not take the candidate's World, whose page is gone.
-	if root := a.replay.positions[2].state.GetHeadRef().GetRootRef(); refEqual(root, cand.Ref) {
-		f.requireFound("the adopted candidate's World", stored)
+	// The position does not take the candidate's World.
+	if refEqual(a.replay.positions[2].state.GetHeadRef().GetRootRef(), cand.Ref) {
+		t.Fatal("adopted a candidate built on a World below the floor")
 	}
 }
 
@@ -422,6 +456,50 @@ func TestCursorSaveRefusalDamages(t *testing.T) {
 				t.Fatalf("saved at %d, damage %v after the page was restored", r.saved, a.Damaged())
 			}
 		})
+	}
+}
+
+// TestCursorSavePayloadRefusalDamages checks that a cursor save whose payload
+// hold the store refuses counts as a refused save rather than stopping replay:
+// two such saves in a row damage the adapter, naming the missing child.
+func TestCursorSavePayloadRefusalDamages(t *testing.T) {
+	f := newReplayFixture(t, 1<<20)
+	a := f.a
+
+	// The head position's payload names a page no store holds.
+	missing := f.entry("missing payload page", 0)
+	f.apply("head", f.put("head World", 0))
+	a.replay.positions[0].payloads = []*block.BlockRef{f.put("payload", 0, missing.Ref)}
+	f.save()
+	f.save()
+	if damage := a.Damaged(); damage.GetRefusals() != 2 || !damage.GetChild().EqualVT(missing.Ref) {
+		t.Fatalf("damage after two refused payload holds = %v", damage)
+	}
+}
+
+// TestTrimRefusalDamages checks that a trim the store refuses, here a base
+// World naming a page no store holds, moves nothing and, refused again on the
+// retry, damages the adapter instead of only logging.
+func TestTrimRefusalDamages(t *testing.T) {
+	f := newReplayFixture(t, 1<<20)
+	a := f.a
+	missing := f.entry("missing base page", 0)
+	plan := &trimPlan{base: f.put("trim base", 0, missing.Ref), live: map[string]struct{}{}, held: map[string]struct{}{}}
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		a.runTrimNewest(ctx, plan)
+	}()
+	for deadline := time.Now().Add(5 * time.Second); a.Damaged() == nil; time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("a refused trim did not damage the adapter")
+		}
+	}
+	cancel()
+	<-done
+	if damage := a.Damaged(); !damage.GetChild().EqualVT(missing.Ref) || refEqual(a.held[RootReplayBase], plan.base) {
+		t.Fatalf("damage %v, base moved %v", damage, refEqual(a.held[RootReplayBase], plan.base))
 	}
 }
 

@@ -631,7 +631,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	peers := t.peerSource(le, bucketID)
 	if placement.serveOnly {
-		peers = func() block.StoreOps { return nil }
+		peers = nil
 	}
 	reads, copies := placement.readChains(
 		recorded,
