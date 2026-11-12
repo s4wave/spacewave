@@ -260,6 +260,8 @@ describe('plugin JS backend entrypoint startup', () => {
       },
     }
     const abortController = new AbortController()
+    const onFailure = vi.fn()
+    const late = new Error('late failure')
 
     try {
       await startBackendEntrypoint(
@@ -267,10 +269,11 @@ describe('plugin JS backend entrypoint startup', () => {
         backendAPI as never,
         abortController.signal,
         async () => ({
-          default: () => Promise.reject(new Error('late failure')),
+          default: () => Promise.reject(late),
         }),
+        onFailure,
       )
-      await Promise.resolve()
+      await vi.waitFor(() => expect(onFailure).toHaveBeenCalledWith(late))
 
       expect(error).toHaveBeenCalledWith(
         'Backend entrypoint failed after startup /b/pa/spacewave-app/manifest/old-manifest/backend.js#default: late failure',
@@ -278,6 +281,52 @@ describe('plugin JS backend entrypoint startup', () => {
       expect(error).toHaveBeenCalledWith(expect.any(Error))
     } finally {
       abortController.abort()
+      debug.mockRestore()
+      error.mockRestore()
+    }
+  })
+
+  test('does not report a lifecycle ended by abort as a failure', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const backendAPI = {
+      startInfo: { pluginId: 'spacewave-app', manifestRoot: 'old-manifest' },
+      utils: {
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
+      },
+    }
+    const abortController = new AbortController()
+    const onFailure = vi.fn()
+
+    try {
+      // A swap or shutdown aborts the plugin; its lifecycle then rejects.
+      await startBackendEntrypoint(
+        { importPath: '/assets/backend.js', importName: 'default' },
+        backendAPI as never,
+        abortController.signal,
+        async () => ({
+          default: (_api: unknown, signal: AbortSignal) => ({
+            startup: Promise.resolve(),
+            done: new Promise<void>((_resolve, reject) =>
+              signal.addEventListener('abort', () =>
+                reject(new Error('stream closed')),
+              ),
+            ),
+          }),
+        }),
+        onFailure,
+      )
+      abortController.abort()
+      await vi.waitFor(() =>
+        expect(debug).toHaveBeenCalledWith(
+          'Backend entrypoint aborted: /b/pa/spacewave-app/manifest/old-manifest/backend.js#default',
+        ),
+      )
+
+      expect(onFailure).not.toHaveBeenCalled()
+      expect(error).not.toHaveBeenCalled()
+    } finally {
       debug.mockRestore()
       error.mockRestore()
     }

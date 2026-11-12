@@ -28,7 +28,7 @@ test('repository entrypoint uses compiled configuration without build-time globa
   // Empty module sets still complete startup without any compiler or injected constants.
   try {
     const entrypoint = createPluginEntrypoint({ webPluginId: 'web' })
-    await entrypoint(api, signal)
+    await entrypoint(api, signal).startup
     expect(complete).toHaveBeenCalledWith({}, signal)
     expect(release).toHaveBeenCalledOnce()
   } finally {

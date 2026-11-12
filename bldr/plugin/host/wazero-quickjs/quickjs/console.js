@@ -345,9 +345,10 @@ function createQuickjsConsole(originalConsole) {
       const indentStr = ' '.repeat(indent * 2);
       const output = indentStr + msg;
 
-      // Use the original console.log for output
+      // Errors and warnings go to stderr, which the host logs at warn level.
       if (['error', 'trace', 'warn'].includes(logLevel) || isWarn) {
-        originalConsole.log('ERROR:', output);
+        globalThis.std.err.puts(output + '\n');
+        globalThis.std.err.flush();
       } else {
         originalConsole.log(output);
       }

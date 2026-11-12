@@ -415,12 +415,17 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			}
 		}()
 
-		// Log to the logger instead of directly to stderr.
-		debugWriter := le.WriterLevel(logrus.DebugLevel)
+		// Log stdout at debug and stderr, where the plugin writes errors and
+		// warnings, at warn. The last stderr line names why the plugin failed.
+		stdout := le.WriterLevel(logrus.DebugLevel)
+		defer stdout.Close()
+		stderrLog := le.WriterLevel(logrus.WarnLevel)
+		defer stderrLog.Close()
+		stderr := &lastLineWriter{w: stderrLog}
 		moduleConfig := wazero.NewModuleConfig().
 			WithStdin(stdinBuf).
-			WithStdout(debugWriter).
-			WithStderr(debugWriter).
+			WithStdout(stdout).
+			WithStderr(stderr).
 			WithFS(pluginDistIofs).
 			WithFSConfig(fsConfig).
 			WithSysNanosleep().
@@ -474,6 +479,9 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			return context.Canceled
 		}
 		if err != nil {
+			if reason := stderr.lastLine(); reason != "" {
+				return errors.Wrapf(err, "quickjs event loop: %s", reason)
+			}
 			return errors.Wrap(err, "quickjs event loop")
 		}
 
