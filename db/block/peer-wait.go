@@ -16,7 +16,9 @@ type PeerWait struct {
 
 // WithoutPeerWait returns a context whose block reads report ErrUnavailable
 // instead of waiting for a peer to connect, and the record of the first block
-// such a read skipped.
+// such a read skipped. Existence probes under it report ErrUnavailable rather
+// than false when no peer session or storage backend is there to ask, so a
+// caller can tell an unknown answer from a proven absence.
 func WithoutPeerWait(ctx context.Context) (context.Context, *PeerWait) {
 	wait := &PeerWait{}
 	return context.WithValue(ctx, peerWaitContextKey{}, wait), wait

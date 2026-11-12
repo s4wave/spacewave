@@ -620,4 +620,26 @@ func TestBodyDriverVoterDamagedByRefusedStore(t *testing.T) {
 	if err != nil || inner == nil || d.Damaged() != nil {
 		t.Fatalf("proposal after the heal = %v, %v; damage %v", inner, err, d.Damaged())
 	}
+
+	// Judging that proposal over a refusing store counts the same way: two
+	// refusals damage the body, and the next judgment stores nothing.
+	healed, stores = false, 0
+	for i := range 3 {
+		ok, decided, err := d.JudgeCheckpoint(ctx, held, inner)
+		refused := errors.Is(err, block.ErrMissingChild)
+		if ok || decided || refused != (i < 2) || (!refused && err != nil) {
+			t.Fatalf("judgment %d = %v, %v, %v", i, ok, decided, err)
+		}
+	}
+	if stores != 2 || d.Damaged().GetRefusals() != 2 {
+		t.Fatalf("judging: stores %d, damage %v; want 2 stores and the refusal", stores, d.Damaged())
+	}
+
+	// Healed and due again, the judgment accepts and clears the damage.
+	healed = true
+	d.now = func() time.Time { return time.Now().Add(4 * time.Minute) }
+	ok, decided, err := d.JudgeCheckpoint(ctx, held, inner)
+	if !ok || !decided || err != nil || d.Damaged() != nil {
+		t.Fatalf("judgment after the heal = %v, %v, %v; damage %v", ok, decided, err, d.Damaged())
+	}
 }

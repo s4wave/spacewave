@@ -83,6 +83,10 @@ type PendingStore struct {
 	storedStages int
 	// maxBytes bounds keptBytes. A put past it goes to the inner store.
 	maxBytes int
+	// unchecked counts the children the child check admitted without proof
+	// they exist, and uncheckedReport, when set, is told of each such write.
+	unchecked       atomic.Uint64
+	uncheckedReport func(op string, children int, err error)
 }
 
 // NewPendingStore returns a PendingStore over inner that keeps at most

@@ -335,6 +335,15 @@ func (b *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return b.readOwner().GetStoredBlock(ctx, ref)
 }
 
+// GetLocalStore returns the local store the collector frees from when reads
+// also reach a backend, a fallback or peers, or nil when reads see only it.
+func (b *BlockStore) GetLocalStore() block.StoreOps {
+	if b.readStore == nil {
+		return nil
+	}
+	return b.store
+}
+
 // GetBlockExists forwards to the configured Session read store.
 func (b *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.readOwner().GetBlockExists(ctx, ref)

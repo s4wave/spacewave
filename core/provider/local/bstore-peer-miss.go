@@ -113,6 +113,23 @@ func (p *returningPeers) BeginReadOperation(context.Context) (block.StoreOps, fu
 	return p, func() {}, nil
 }
 
+// GetBlockExists answers false, as an empty store, or ErrUnavailable under
+// block.WithoutPeerWait, since no peer session is there to ask.
+func (p *returningPeers) GetBlockExists(ctx context.Context, _ *block.BlockRef) (bool, error) {
+	if block.GetPeerWait(ctx) != nil {
+		return false, fmt.Errorf("%w: no peer session while P2P sync restarts", block.ErrUnavailable)
+	}
+	return false, nil
+}
+
+// GetBlockExistsBatch answers as GetBlockExists for every ref.
+func (p *returningPeers) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	if _, err := p.GetBlockExists(ctx, nil); err != nil {
+		return nil, err
+	}
+	return make([]bool, len(refs)), nil
+}
+
 // GetBlock waits for the peers, then reads the block from them.
 func (p *returningPeers) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	store := p.wait(ctx)

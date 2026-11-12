@@ -477,7 +477,7 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 // TestStoreReadWaitsForPeerSession proves a read on a settled solicitation
 // with no peer waits for a peer session instead of reporting a miss nobody was
 // asked about, while an existence check and a read that may not wait for a
-// peer answer at once.
+// peer answer at once: the existence check false, the others ErrUnavailable.
 func TestStoreReadWaitsForPeerSession(t *testing.T) {
 	// Keep the peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
@@ -503,6 +503,11 @@ func TestStoreReadWaitsForPeerSession(t *testing.T) {
 	}
 	if !peerWait.GetRef().EqualsRef(ref) {
 		t.Fatalf("read without a peer wait recorded %v; want %s", peerWait.GetRef(), ref.MarshalString())
+	}
+
+	// An existence probe that may not wait reports it could not look.
+	if exists, err := store.GetBlockExists(noWaitCtx, ref); exists || !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("existence without a peer wait = %v, %v; want %v", exists, err, block.ErrUnavailable)
 	}
 
 	// Start a read, which must wait while no peer is connected.

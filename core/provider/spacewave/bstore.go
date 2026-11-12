@@ -175,6 +175,12 @@ func (b *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	return b.store.GetStoredBlock(ctx, ref)
 }
 
+// GetLocalStore returns the account's local cache, the tier the local
+// collector frees from, below the Cloud and the Session's peers.
+func (b *BlockStore) GetLocalStore() block.StoreOps {
+	return b.cacheStore
+}
+
 // GetBlockExists forwards to the inner store.
 func (b *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.store.GetBlockExists(ctx, ref)

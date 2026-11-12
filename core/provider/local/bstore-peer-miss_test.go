@@ -17,7 +17,8 @@ import (
 // the bucket ever had peers a miss finds none; once it had them, a read while
 // P2P sync restarts waits for the next lifecycle and reads the block from it,
 // and a restart that does not return within the peer read bound reports the
-// block unavailable, not missing.
+// block unavailable, not missing. An existence probe under
+// block.WithoutPeerWait during the restart reports it could not look.
 func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Build an account and the peer source of one bucket.
@@ -58,6 +59,17 @@ func TestPeerReadsWaitAcrossRestart(t *testing.T) {
 			t.Fatal("a source with peers reads none")
 		}
 		stop()
+
+		// An existence check during the restart answers absent, and a probe
+		// that may not wait reports it could not look.
+		refs := []*block.BlockRef{ref}
+		if found, err := source().GetBlockExistsBatch(ctx, refs); err != nil || found[0] {
+			t.Fatalf("existence during the restart = %v, %v; want absent", found, err)
+		}
+		probe, _ := block.WithoutPeerWait(ctx)
+		if _, err := source().GetBlockExistsBatch(probe, refs); !errors.Is(err, block.ErrUnavailable) {
+			t.Fatalf("existence probe during the restart = %v, want unavailable", err)
+		}
 
 		// A read during the restart waits for the next lifecycle.
 		read := make(chan error, 1)

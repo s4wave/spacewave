@@ -180,6 +180,8 @@ type Adapter struct {
 	saveRefusal atomic.Pointer[sobject.StoreRefusal]
 	// now returns the current time.
 	now func() time.Time
+	// uncheckedReported is when reportUnchecked last warned, in Unix nanoseconds.
+	uncheckedReported atomic.Int64
 	// trimMtx runs the background trims one at a time.
 	trimMtx csync.Mutex
 	// trimSeq numbers the trims the driver gathers; a trim older than the
@@ -246,6 +248,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		payloads:         rootSet{name: RootReplayPayloads},
 	}
+	a.pages.SetUncheckedReport(a.reportUnchecked)
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
 	a.backfill = newSpaceBackfill(a)
@@ -256,6 +259,34 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		close(a.opened)
 	}
 	return a, nil
+}
+
+// uncheckedReportEvery is the shortest interval between two warnings of
+// writes the child check admitted unchecked.
+const uncheckedReportEvery = time.Minute
+
+// reportUnchecked warns, at most once per uncheckedReportEvery, that a write
+// went to the store naming children the child check could not look for, with
+// the running total from the PendingStore's Unchecked.
+func (a *Adapter) reportUnchecked(op string, children int, err error) {
+	// Claim this interval's warning; a caller that loses the claim stays
+	// quiet.
+	now := a.now()
+	last := a.uncheckedReported.Load()
+	if last != 0 && now.Sub(time.Unix(0, last)) < uncheckedReportEvery {
+		return
+	}
+	if !a.uncheckedReported.CompareAndSwap(last, now.UnixNano()) {
+		return
+	}
+
+	// Warn with the running total.
+	a.le.
+		WithError(err).
+		WithField("operation", op).
+		WithField("children", children).
+		WithField("unchecked-total", a.pages.Unchecked()).
+		Warn("admitted a write whose children could not be checked")
 }
 
 // Execute serves the Space World until ctx ends: it claims the Space as the

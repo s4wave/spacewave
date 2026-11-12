@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -227,6 +228,36 @@ func (s *sessionDirectStore) GetStoredBlock(ctx context.Context, ref *block.Bloc
 		wait.Skip(ref)
 	}
 	return nil, err
+}
+
+// GetBlockExists answers as GetBlockExistsBatch for one ref.
+func (s *sessionDirectStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	found, err := s.GetBlockExistsBatch(ctx, []*block.BlockRef{ref})
+	if err != nil {
+		return false, err
+	}
+	return found[0], nil
+}
+
+// GetBlockExistsBatch asks the connected peers, then Cloud when no peer could
+// answer, as GetStoredBlock reads. A block Cloud also lacks keeps the peers'
+// ErrUnavailable, since no peer answered for it.
+func (s *sessionDirectStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Ask the connected peers.
+	found, err := s.StoreOps.GetBlockExistsBatch(ctx, refs)
+	if !errors.Is(err, block.ErrUnavailable) || ctx.Err() != nil {
+		return found, err
+	}
+
+	// Ask Cloud, and report a block it lacks as unavailable.
+	found, cloudErr := s.cloud.GetBlockExistsBatch(ctx, refs)
+	if cloudErr != nil {
+		return nil, cloudErr
+	}
+	if slices.Contains(found, false) {
+		return nil, err
+	}
+	return found, nil
 }
 
 // sessionBlockStore keeps writes and durability on the account-owned store

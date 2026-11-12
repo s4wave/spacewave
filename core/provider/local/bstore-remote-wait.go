@@ -158,9 +158,22 @@ func (r *pendingRemote) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	return remote.GetStoredBlock(ctx, ref)
 }
 
+// probe returns the backend an existence probe asks: under
+// block.WithoutPeerWait only a backend already open, else ErrUnavailable,
+// so the caller learns it could not look; otherwise the one wait returns.
+func (r *pendingRemote) probe(ctx context.Context) (block.StoreOps, error) {
+	if block.GetPeerWait(ctx) == nil {
+		return r.wait(ctx)
+	}
+	if remote, _ := r.t.readBackend(r.p); remote != nil {
+		return remote, nil
+	}
+	return nil, errors.Wrap(block.ErrUnavailable, "storage backend not open")
+}
+
 // GetBlockExists checks the backend for the block once it opens.
 func (r *pendingRemote) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	remote, err := r.wait(ctx)
+	remote, err := r.probe(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -169,7 +182,7 @@ func (r *pendingRemote) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 
 // GetBlockExistsBatch checks the backend for the blocks once it opens.
 func (r *pendingRemote) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	remote, err := r.wait(ctx)
+	remote, err := r.probe(ctx)
 	if err != nil {
 		return nil, err
 	}
