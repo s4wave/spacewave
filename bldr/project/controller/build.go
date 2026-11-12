@@ -79,7 +79,16 @@ func (c *Controller) BuildManifests(
 // manifest IDs, and the builders stay retained until it returns. On a watching
 // controller they rebuild each manifest as its sources change, so hold
 // observes every rebuild until it returns.
-func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType, targetsOverride []string, buildPolicyOverride *manifest_build.BuildPolicy, manifestRevision uint64, hold func(ctx context.Context, manifestIDs []string) error) error {
+func (c *Controller) BuildTargets(
+	ctx context.Context,
+	remote string,
+	targets []string,
+	buildType bldr_manifest.BuildType,
+	targetsOverride []string,
+	buildPolicyOverride *manifest_build.BuildPolicy,
+	manifestRevision uint64,
+	hold func(ctx context.Context, manifestIDs []string) error,
+) error {
 	// Read the project build targets from the current controller configuration.
 	conf := c.conf.Load()
 	projConfig := conf.GetProjectConfig()
@@ -163,8 +172,11 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 // manifestBuilderIDs returns the distinct manifest IDs of confs in order.
 func manifestBuilderIDs(confs []*ManifestBuilderConfig) []string {
 	var ids []string
+	seen := make(map[string]struct{}, len(confs))
 	for _, conf := range confs {
-		if id := conf.GetManifestId(); !slices.Contains(ids, id) {
+		id := conf.GetManifestId()
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
 			ids = append(ids, id)
 		}
 	}
