@@ -7,11 +7,11 @@ import {
   parseReactDevPath,
   ReactDevPicks,
   readReactDevGeneration,
+  readReactDevRelease,
   readReactDevSetting,
   reactDevCacheName,
   reactDevStorageKey,
   serveReactDev,
-  type ReactDevFile,
 } from './react-dev.js'
 
 const origin = 'https://app.test'
@@ -57,16 +57,60 @@ function toURL(key: string | Request): string {
   return typeof key === 'string' ? key : key.url
 }
 
-const files: ReactDevFile[] = [
-  { file: 'react/index.mjs', url: '/dev/react/index.mjs' },
-  { file: 'react-dom/client.mjs', url: '/dev/react-dom/client.mjs' },
-]
+const source = origin + '/entrypoint/abc/react-dev/'
+const devFiles: Record<string, string> = {
+  'react/index.mjs': 'dev react',
+  'react-dom/client.mjs': 'dev react-dom',
+}
 
-function devSource(failAt = ''): (url: string) => Promise<Response> {
-  return async (url) =>
-    url.endsWith(failAt) && failAt
-      ? new Response('gone', { status: 503 })
-      : new Response('dev ' + url)
+async function sha256(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(text),
+  )
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('')
+}
+
+// devSource serves a release's react-dev directory. failAt names a file that
+// answers 503 and alter one whose content differs from its listed hash.
+function devSource(
+  opts: { failAt?: string; alter?: string } = {},
+): (url: string) => Promise<Response> {
+  return async (url) => {
+    const rel = url.slice(source.length)
+    if (rel === 'files.json') {
+      const files: Record<string, string> = {}
+      for (const [file, body] of Object.entries(devFiles)) {
+        files[file] = await sha256(body)
+      }
+      return new Response(JSON.stringify({ files }))
+    }
+    const file = rel.slice('pkgs/'.length)
+    if (file === opts.failAt) {
+      return new Response('gone', { status: 503 })
+    }
+    const body = devFiles[file]
+    if (body === undefined) {
+      return new Response('missing', { status: 404 })
+    }
+    return new Response(file === opts.alter ? body + ' altered' : body)
+  }
+}
+
+function fill(
+  storage: FakeCacheStorage,
+  version = '19.2.0',
+  opts: { failAt?: string; alter?: string } = {},
+): Promise<void> {
+  return fillReactDevGeneration(
+    storage as unknown as CacheStorage,
+    origin,
+    version,
+    source,
+    devSource(opts),
+  )
 }
 
 function newPicks(storage: FakeCacheStorage): ReactDevPicks {
@@ -108,32 +152,21 @@ describe('parseReactDevPath', () => {
 describe('Development React generations', () => {
   it('serves both files from a complete generation', async () => {
     const storage = new FakeCacheStorage()
-    await fillReactDevGeneration(
-      storage as unknown as CacheStorage,
-      origin,
-      '19.2.0',
-      files,
-      devSource(),
-    )
+    await fill(storage)
     const picks = newPicks(storage)
 
-    expect(await load(picks, 'doc', reactPath)).toBe('dev /dev/react/index.mjs')
-    expect(await load(picks, 'doc', domPath)).toBe(
-      'dev /dev/react-dom/client.mjs',
-    )
+    expect(await load(picks, 'doc', reactPath)).toBe('dev react')
+    expect(await load(picks, 'doc', domPath)).toBe('dev react-dom')
   })
 
   it('serves the production files when no generation is complete', async () => {
     const storage = new FakeCacheStorage()
     await expect(
-      fillReactDevGeneration(
-        storage as unknown as CacheStorage,
-        origin,
-        '19.2.0',
-        files,
-        devSource('client.mjs'),
-      ),
+      fill(storage, '19.2.0', { failAt: 'react-dom/client.mjs' }),
     ).rejects.toThrow('HTTP 503')
+    await expect(
+      fill(storage, '19.2.0', { alter: 'react-dom/client.mjs' }),
+    ).rejects.toThrow('hash mismatch')
     const picks = newPicks(storage)
 
     expect(await load(picks, 'doc', reactPath)).toBe('prod ' + reactPath)
@@ -142,13 +175,7 @@ describe('Development React generations', () => {
 
   it('never mixes builds when the generation goes mid-boot', async () => {
     const storage = new FakeCacheStorage()
-    await fillReactDevGeneration(
-      storage as unknown as CacheStorage,
-      origin,
-      '19.2.0',
-      files,
-      devSource(),
-    )
+    await fill(storage)
     const picks = newPicks(storage)
 
     // The document's first file picks the generation; eviction follows.
@@ -163,13 +190,7 @@ describe('Development React generations', () => {
 
   it('treats a generation missing a listed file as absent', async () => {
     const storage = new FakeCacheStorage()
-    await fillReactDevGeneration(
-      storage as unknown as CacheStorage,
-      origin,
-      '19.2.0',
-      files,
-      devSource(),
-    )
+    await fill(storage)
     const cache = await storage.open(reactDevCacheName)
     await cache.delete(origin + '/b/react-dev/19.2.0/react-dom/client.mjs')
     const picks = newPicks(storage)
@@ -181,13 +202,7 @@ describe('Development React generations', () => {
   it('keeps only the latest version and drops closed documents', async () => {
     const storage = new FakeCacheStorage()
     for (const version of ['19.1.0', '19.2.0']) {
-      await fillReactDevGeneration(
-        storage as unknown as CacheStorage,
-        origin,
-        version,
-        files,
-        devSource(),
-      )
+      await fill(storage, version)
     }
     const cache = await storage.open(reactDevCacheName)
     expect(
@@ -308,6 +323,29 @@ describe('shell import map script', () => {
     for (const env of cases) {
       expect(runShell(env)['react']).toBe(prod)
     }
+  })
+})
+
+describe('readReactDevRelease', () => {
+  it('reads the version and the source beside the release packages', () => {
+    const doc = {
+      baseURI: origin + '/',
+      getElementById: () => ({
+        getAttribute: () => '19.2.0',
+        content: {
+          firstElementChild: {
+            textContent: JSON.stringify({
+              imports: { react: './entrypoint/abc/pkgs/react/index.mjs' },
+            }),
+          },
+        },
+      }),
+    } as unknown as Document
+    expect(readReactDevRelease(doc)).toEqual({ version: '19.2.0', source })
+    const bare = {
+      getElementById: () => null,
+    } as unknown as Document
+    expect(readReactDevRelease(bare)).toBeNull()
   })
 })
 

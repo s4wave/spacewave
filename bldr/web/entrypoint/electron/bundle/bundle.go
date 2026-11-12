@@ -254,6 +254,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		// Match browser web-package URLs so import-map and sibling imports share
 		// module identity.
 		"/entrypoint",
+		"",
 		minify,
 		!minify,
 		devMode,
