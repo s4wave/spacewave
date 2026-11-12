@@ -40,7 +40,8 @@ const lockPrefix = "volume-device-idb/"
 type Device struct {
 	// db is the database connection.
 	db js.Value
-	// release releases the Device's Web Lock.
+	// release releases the Device's Web Lock, or is nil once Close released
+	// it. Guarded by mtx.
 	release func()
 
 	// mtx serializes the device calls.
@@ -331,8 +332,17 @@ func (d *Device) List(ctx context.Context) ([]device.File, error) {
 
 // Close closes the database connection and releases the Web Lock.
 func (d *Device) Close() error {
+	// Leave an already closed Device unchanged.
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if d.release == nil {
+		return nil
+	}
+
+	// Close the connection, then release the lock once.
 	d.db.Call("close")
 	d.release()
+	d.release = nil
 	return nil
 }
 

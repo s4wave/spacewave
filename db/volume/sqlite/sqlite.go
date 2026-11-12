@@ -119,7 +119,6 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 		deleteFn,
 	)
 	if err != nil {
-		_ = store.Close()
 		return nil, err
 	}
 	return vol, nil
