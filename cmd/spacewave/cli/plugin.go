@@ -397,8 +397,7 @@ func formatPluginSwap(swap *bldr_plugin.PluginSwap, loc *time.Location) string {
 	if st := swap.GetWaiting(); st != nil {
 		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
 			" waits since " + clock(st.GetSinceAt()) +
-			" for the running worker to answer its activation check;" +
-			" it swaps when the worker answers or exits (a browser worker exits when its page reloads)"
+			" for the running worker to answer its activation check; " + swapWaitingNextStep
 	}
 	if st := swap.GetFailed(); st != nil {
 		next := "retries on the next deploy or host change"
