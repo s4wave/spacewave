@@ -1,0 +1,5 @@
+[
+  {"name": "save holds no engine reader (round four L1)", "replace": [["hold == readers \\cup storing", "hold == storing"]], "expect": "LiveWorldsRead"},
+  {"name": "save holds no background store (finding 2)", "replace": [["hold == readers \\cup storing", "hold == readers"]], "expect": "LiveWorldsRead"},
+  {"name": "Root recomputes only to the asked position (finding 1)", "replace": [["mem' = Recompute(Min(floor, Len(pos)))", "mem' = Recompute(n)"]], "expect": "LiveWorldsRead"}
+]
