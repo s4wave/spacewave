@@ -3,6 +3,7 @@ package status
 import (
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -65,10 +66,20 @@ func pluginStatusRows(
 		return nil
 	}
 
+	// Index each execution's swap by its row id.
+	swaps := make(map[string]*bldr_plugin.PluginSwap, len(snapshot.GetExecutions()))
+	for _, exec := range snapshot.GetExecutions() {
+		swaps[pluginStatusRowID(exec.GetPluginId(), exec.GetInstanceKey())] = exec.GetSwap()
+	}
+
 	// Build one row per plugin and sort them by row id.
 	rows := make([]BldrDevtoolPluginRow, 0, len(snapshot.Plugins))
 	for _, plugin := range snapshot.Plugins {
-		rows = append(rows, pluginStatusRow(plugin))
+		row := pluginStatusRow(plugin)
+		if summary := pluginSwapSummary(swaps[row.ID]); summary != "" {
+			row.Summary = summary
+		}
+		rows = append(rows, row)
 	}
 	slices.SortFunc(rows, func(a, b BldrDevtoolPluginRow) int {
 		return strings.Compare(a.ID, b.ID)
@@ -121,6 +132,30 @@ func pluginStatusRowSummary(state BldrDevtoolPluginState) string {
 	default:
 		return ""
 	}
+}
+
+// pluginSwapSummary describes a swap that is not settled: the candidate rev
+// being prepared, waiting on the running execution, or failed with its retry.
+// It returns empty for a settled or missing swap.
+func pluginSwapSummary(swap *bldr_plugin.PluginSwap) string {
+	if st := swap.GetPreparing(); st != nil {
+		return "preparing rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" since " + pluginStatusTimestamp(st.GetStartedAt())
+	}
+	if st := swap.GetWaiting(); st != nil {
+		return "rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" waits since " + pluginStatusTimestamp(st.GetSinceAt()) +
+			" for the running plugin to answer its activation check"
+	}
+	if st := swap.GetFailed(); st != nil {
+		next := "retries on the next deploy or host change"
+		if st.GetRetryAt() != nil {
+			next = "retry at " + pluginStatusTimestamp(st.GetRetryAt())
+		}
+		return "rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" failed: " + st.GetErrorMessage() + "; " + next
+	}
+	return ""
 }
 
 func pluginStatusTimestamp(ts *timestamp.Timestamp) string {

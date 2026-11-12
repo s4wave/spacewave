@@ -402,6 +402,7 @@ func (r *SpaceContentsResource) WatchState(
 		var requestedIDs []string
 		schedulerStatuses := map[string]*bldr_plugin.PluginStatus{}
 		schedulerManifests := map[string]*bldr_plugin.PluginManifestRecoveryStatus{}
+		schedulerExecutions := map[string]*bldr_plugin.PluginExecutionStatus{}
 		var waitStatusChange, waitHostChange func(context.Context) error
 		if gen != nil {
 			_, hostChanged, hostErr := gen.GetScheduler().GetHostState()
@@ -422,6 +423,7 @@ func (r *SpaceContentsResource) WatchState(
 			statusSnapshot := statusCtr.GetValue()
 			schedulerStatuses = schedulerRowsByPluginID(statusSnapshot.GetPlugins(), r.spaceID)
 			schedulerManifests = schedulerRowsByPluginID(statusSnapshot.GetManifestRecovery(), r.spaceID)
+			schedulerExecutions = schedulerRowsByPluginID(statusSnapshot.GetExecutions(), r.spaceID)
 			waitStatusChange = func(waitCtx context.Context) error {
 				_, err := statusCtr.WaitValueChange(waitCtx, statusSnapshot, nil)
 				return err
@@ -440,6 +442,9 @@ func (r *SpaceContentsResource) WatchState(
 			status.Account = i >= len(pluginIDs)
 			status.ManifestRef = schedulerManifests[pid].GetExecuteManifestRef()
 			status.ManifestRev = schedulerManifests[pid].GetExecuteManifestRev()
+			status.RunningManifestRef = schedulerExecutions[pid].GetRunningManifestRef()
+			status.RunningManifestRev = schedulerExecutions[pid].GetRunningManifestRev()
+			status.Swap = schedulerExecutions[pid].GetSwap()
 			if runtimeErr != nil {
 				status.State = s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED
 				status.Detail = runtimeErr.Error()

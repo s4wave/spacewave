@@ -21,6 +21,7 @@ import {
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
 import { StepConfig } from '../../db/block/transform/transform.pb.js'
 import { Secret, SecretPayload } from '../secret/secret.pb.js'
+import { PluginSwap } from '../../bldr/plugin/plugin.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
@@ -1183,6 +1184,22 @@ export interface SpacePluginStatus {
    * ManifestRev is the build rev of the manifest named by ManifestRef.
    */
   manifestRev?: bigint
+  /**
+   * RunningManifestRef is the content ref of the manifest the admitted
+   * execution runs. It differs from ManifestRef until the selected manifest
+   * is live. Empty while no execution is admitted.
+   */
+  runningManifestRef?: string
+  /**
+   * RunningManifestRev is the build rev of the manifest named by
+   * RunningManifestRef.
+   */
+  runningManifestRev?: bigint
+  /**
+   * Swap is the scheduler's state for the move from the running manifest to
+   * the selected one.
+   */
+  swap?: PluginSwap
 }
 
 export const SpacePluginStatus: MessageType<SpacePluginStatus> =
@@ -1198,6 +1215,9 @@ export const SpacePluginStatus: MessageType<SpacePluginStatus> =
       [8, 'manifest_ref', 9],
       [9, 'account', 8],
       [10, 'manifest_rev', 4],
+      [11, 'running_manifest_ref', 9],
+      [12, 'running_manifest_rev', 4],
+      [13, 'swap', 11, 0, PluginSwap.codec],
     ],
   )
 

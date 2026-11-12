@@ -15,10 +15,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
@@ -344,11 +346,12 @@ func pluginLifecycleStateLabel(state s4wave_space.SpacePluginLifecycleState) str
 	return strings.ToLower(strings.TrimPrefix(state.String(), prefix))
 }
 
-func formatPluginStatus(p *s4wave_space.SpacePluginStatus) string {
-	// Lead with the plugin, its state and the rev of the manifest it runs.
+// formatPluginStatus renders one plugin row, with times in loc.
+func formatPluginStatus(p *s4wave_space.SpacePluginStatus, loc *time.Location) string {
+	// Lead with the plugin, its state, and whether the selected rev is live.
 	fields := []string{p.GetPluginId(), pluginLifecycleStateLabel(p.GetState())}
-	if p.GetManifestRef() != "" {
-		fields = append(fields, "rev "+strconv.FormatUint(p.GetManifestRev(), 10))
+	if revs := formatPluginRevisions(p, loc); revs != "" {
+		fields = append(fields, revs)
 	}
 	if detail := p.GetDetail(); detail != "" {
 		fields = append(fields, detail)
@@ -357,6 +360,55 @@ func formatPluginStatus(p *s4wave_space.SpacePluginStatus) string {
 		fields = append(fields, description)
 	}
 	return strings.Join(fields, "  ") + "\n"
+}
+
+// formatPluginRevisions says whether the selected manifest is the running one
+// and, when not, where the swap between them stands.
+func formatPluginRevisions(p *s4wave_space.SpacePluginStatus, loc *time.Location) string {
+	// Compare the selected and running manifests by ref.
+	selected, running := p.GetManifestRef(), p.GetRunningManifestRef()
+	selectedRev := "rev " + strconv.FormatUint(p.GetManifestRev(), 10)
+	var revs string
+	switch {
+	case selected == "" && running == "":
+		return ""
+	case running == "":
+		revs = selectedRev + " selected, none running"
+	case selected == running:
+		revs = selectedRev + " live"
+	case selected == "":
+		revs = "rev " + strconv.FormatUint(p.GetRunningManifestRev(), 10) + " running, none selected"
+	case p.GetManifestRev() == p.GetRunningManifestRev():
+		revs = selectedRev + " selected, another build of " + selectedRev + " running"
+	default:
+		revs = selectedRev + " selected, rev " + strconv.FormatUint(p.GetRunningManifestRev(), 10) + " running"
+	}
+	return revs + formatPluginSwap(p.GetSwap(), loc)
+}
+
+// formatPluginSwap renders a swap state that has a candidate in flight or
+// failed, naming what it waits for and the next step.
+func formatPluginSwap(swap *bldr_plugin.PluginSwap, loc *time.Location) string {
+	// Render each state with its times as local clock times.
+	clock := func(ts *timestamppb.Timestamp) string { return ts.AsTime().In(loc).Format("15:04:05") }
+	if st := swap.GetPreparing(); st != nil {
+		return "; preparing rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) + " since " + clock(st.GetStartedAt())
+	}
+	if st := swap.GetWaiting(); st != nil {
+		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" waits since " + clock(st.GetSinceAt()) +
+			" for the running worker to answer its activation check;" +
+			" it swaps when the worker answers or exits (a browser worker exits when its page reloads)"
+	}
+	if st := swap.GetFailed(); st != nil {
+		next := "retries on the next deploy or host change"
+		if st.GetRetryAt() != nil {
+			next = "retry at " + clock(st.GetRetryAt())
+		}
+		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" failed at " + clock(st.GetFailedAt()) + ": " + st.GetErrorMessage() + "; " + next
+	}
+	return ""
 }
 
 func marshalPluginListJSON(plugins []*s4wave_space.SpacePluginStatus) ([]byte, error) {
@@ -382,7 +434,7 @@ func buildPluginListCommand() *cli.Command {
 	var outputFormat string
 	return &cli.Command{
 		Name:  "list",
-		Usage: "list plugins and their load state",
+		Usage: "list plugins, their load state, and whether the selected rev is live",
 		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
@@ -465,7 +517,7 @@ func buildPluginListCommand() *cli.Command {
 						w.WriteString("no plugins\n")
 					}
 					for _, p := range plugins {
-						w.WriteString(formatPluginStatus(p))
+						w.WriteString(formatPluginStatus(p, time.Local))
 					}
 					for _, id := range requested {
 						w.WriteString(id + "  requested  not listed; a load is waiting for it\n")

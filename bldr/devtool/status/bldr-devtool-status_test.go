@@ -332,6 +332,14 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 			LastErrorMessage: "download plugin manifest: copy failed",
 			LastErrorAt:      lastErrorAt,
 		}},
+		Executions: []*bldr_plugin.PluginExecutionStatus{{
+			PluginId:    "web",
+			InstanceKey: "right",
+			Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Waiting{Waiting: &bldr_plugin.PluginSwapWaiting{
+				CandidateManifestRev: 6,
+				SinceAt:              lastErrorAt,
+			}}},
+		}},
 	})
 
 	// The errored plugin must sort first with its error and timestamp.
@@ -350,6 +358,10 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 	}
 	if rows[1].ID != "plugin:web/right" || rows[1].State != BldrDevtoolPluginStateRunning {
 		t.Fatalf("unexpected running plugin row: %+v", rows[1])
+	}
+	want := "rev 6 waits since 2026-05-08T14:15:16.000000017Z for the running plugin to answer its activation check"
+	if rows[1].Summary != want {
+		t.Fatalf("unexpected waiting swap summary: %q", rows[1].Summary)
 	}
 
 	// An empty scheduler snapshot must clear the plugin rows.

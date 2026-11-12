@@ -90,13 +90,16 @@ type Controller struct {
 	pluginInstances *keyed.KeyedRefCount[pluginReference, *pluginInstance]
 	// pluginStatusCtr publishes live plugin instance states.
 	pluginStatusCtr *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
-	// pluginStatusMtx guards pluginStatus.
+	// pluginStatusMtx guards the plugin status maps below.
 	pluginStatusMtx sync.Mutex
 	// pluginStatus stores live plugin instance states by pluginInstanceKey.
 	pluginStatus map[string]*bldr_plugin.PluginStatus
 	// pluginManifestRecoveryStatus stores retained Manifest selection and
 	// eligibility facts by pluginInstanceKey.
 	pluginManifestRecoveryStatus map[string]*bldr_plugin.PluginManifestRecoveryStatus
+	// pluginExecutionStatus stores the running manifest and swap state of
+	// each logical plugin instance by pluginInstanceKey.
+	pluginExecutionStatus map[string]*bldr_plugin.PluginExecutionStatus
 }
 
 // hostVol contains a snapshot of the host volume.

@@ -233,6 +233,310 @@ func (x *PluginManifestRecoveryStatus) GetExecuteManifestRev() uint64 {
 	return 0
 }
 
+// PluginExecutionStatus describes the execution a plugin instance runs and the
+// swap that moves it to the selected manifest.
+type PluginExecutionStatus struct {
+	unknownFields []byte
+	// PluginId is the plugin identifier.
+	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// InstanceKey is the optional instance key for instanced plugins.
+	InstanceKey string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
+	// RunningManifestRef is the ref of the manifest the admitted execution runs.
+	// Empty while no execution is admitted.
+	RunningManifestRef string `protobuf:"bytes,3,opt,name=running_manifest_ref,json=runningManifestRef,proto3" json:"runningManifestRef,omitempty"`
+	// RunningManifestRev is the build rev of the manifest named by
+	// RunningManifestRef.
+	RunningManifestRev uint64 `protobuf:"varint,4,opt,name=running_manifest_rev,json=runningManifestRev,proto3" json:"runningManifestRev,omitempty"`
+	// Swap is the state of the move from the running manifest to the selected one.
+	Swap *PluginSwap `protobuf:"bytes,5,opt,name=swap,proto3" json:"swap,omitempty"`
+}
+
+func (x *PluginExecutionStatus) Reset() {
+	*x = PluginExecutionStatus{}
+}
+
+func (*PluginExecutionStatus) ProtoMessage() {}
+
+func (x *PluginExecutionStatus) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginExecutionStatus) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
+}
+
+func (x *PluginExecutionStatus) GetRunningManifestRef() string {
+	if x != nil {
+		return x.RunningManifestRef
+	}
+	return ""
+}
+
+func (x *PluginExecutionStatus) GetRunningManifestRev() uint64 {
+	if x != nil {
+		return x.RunningManifestRev
+	}
+	return 0
+}
+
+func (x *PluginExecutionStatus) GetSwap() *PluginSwap {
+	if x != nil {
+		return x.Swap
+	}
+	return nil
+}
+
+// PluginSwap is the state of a plugin instance's move to its selected manifest.
+// An unset state means no candidate has been tried yet.
+type PluginSwap struct {
+	unknownFields []byte
+	// State is the current swap state.
+	//
+	// Types that are assignable to State:
+	//	*PluginSwap_Settled
+	//	*PluginSwap_Preparing
+	//	*PluginSwap_Waiting
+	//	*PluginSwap_Failed
+	State isPluginSwap_State `protobuf_oneof:"state"`
+}
+
+func (x *PluginSwap) Reset() {
+	*x = PluginSwap{}
+}
+
+func (*PluginSwap) ProtoMessage() {}
+
+func (m *PluginSwap) GetState() isPluginSwap_State {
+	if m != nil {
+		return m.State
+	}
+	return nil
+}
+
+func (x *PluginSwap) GetSettled() *PluginSwapSettled {
+	if x, ok := x.GetState().(*PluginSwap_Settled); ok {
+		return x.Settled
+	}
+	return nil
+}
+
+func (x *PluginSwap) GetPreparing() *PluginSwapPreparing {
+	if x, ok := x.GetState().(*PluginSwap_Preparing); ok {
+		return x.Preparing
+	}
+	return nil
+}
+
+func (x *PluginSwap) GetWaiting() *PluginSwapWaiting {
+	if x, ok := x.GetState().(*PluginSwap_Waiting); ok {
+		return x.Waiting
+	}
+	return nil
+}
+
+func (x *PluginSwap) GetFailed() *PluginSwapFailed {
+	if x, ok := x.GetState().(*PluginSwap_Failed); ok {
+		return x.Failed
+	}
+	return nil
+}
+
+type isPluginSwap_State interface {
+	isPluginSwap_State()
+}
+
+type PluginSwap_Settled struct {
+	// Settled means no candidate is in flight: the admitted execution runs the
+	// last candidate the scheduler admitted.
+	Settled *PluginSwapSettled `protobuf:"bytes,1,opt,name=settled,proto3,oneof"`
+}
+
+type PluginSwap_Preparing struct {
+	// Preparing means a candidate is being fetched and started.
+	Preparing *PluginSwapPreparing `protobuf:"bytes,2,opt,name=preparing,proto3,oneof"`
+}
+
+type PluginSwap_Waiting struct {
+	// Waiting means the candidate waits for the running execution to answer
+	// its activation check.
+	Waiting *PluginSwapWaiting `protobuf:"bytes,3,opt,name=waiting,proto3,oneof"`
+}
+
+type PluginSwap_Failed struct {
+	// Failed means the last candidate failed to start.
+	Failed *PluginSwapFailed `protobuf:"bytes,4,opt,name=failed,proto3,oneof"`
+}
+
+func (*PluginSwap_Settled) isPluginSwap_State() {}
+
+func (*PluginSwap_Preparing) isPluginSwap_State() {}
+
+func (*PluginSwap_Waiting) isPluginSwap_State() {}
+
+func (*PluginSwap_Failed) isPluginSwap_State() {}
+
+// PluginSwapSettled is the swap state with no candidate in flight.
+type PluginSwapSettled struct {
+	unknownFields []byte
+	// AdmittedAt is when the running execution was admitted.
+	AdmittedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=admitted_at,json=admittedAt,proto3" json:"admittedAt,omitempty"`
+}
+
+func (x *PluginSwapSettled) Reset() {
+	*x = PluginSwapSettled{}
+}
+
+func (*PluginSwapSettled) ProtoMessage() {}
+
+func (x *PluginSwapSettled) GetAdmittedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AdmittedAt
+	}
+	return nil
+}
+
+// PluginSwapPreparing is the swap state while a candidate is fetched and
+// started.
+type PluginSwapPreparing struct {
+	unknownFields []byte
+	// CandidateManifestRef is the ref of the manifest being prepared.
+	CandidateManifestRef string `protobuf:"bytes,1,opt,name=candidate_manifest_ref,json=candidateManifestRef,proto3" json:"candidateManifestRef,omitempty"`
+	// CandidateManifestRev is the build rev of the manifest being prepared.
+	CandidateManifestRev uint64 `protobuf:"varint,2,opt,name=candidate_manifest_rev,json=candidateManifestRev,proto3" json:"candidateManifestRev,omitempty"`
+	// StartedAt is when the scheduler began preparing the candidate.
+	StartedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"startedAt,omitempty"`
+}
+
+func (x *PluginSwapPreparing) Reset() {
+	*x = PluginSwapPreparing{}
+}
+
+func (*PluginSwapPreparing) ProtoMessage() {}
+
+func (x *PluginSwapPreparing) GetCandidateManifestRef() string {
+	if x != nil {
+		return x.CandidateManifestRef
+	}
+	return ""
+}
+
+func (x *PluginSwapPreparing) GetCandidateManifestRev() uint64 {
+	if x != nil {
+		return x.CandidateManifestRev
+	}
+	return 0
+}
+
+func (x *PluginSwapPreparing) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+// PluginSwapWaiting is the swap state while the running execution has not
+// answered the candidate's activation check within the slow threshold.
+type PluginSwapWaiting struct {
+	unknownFields []byte
+	// CandidateManifestRef is the ref of the manifest waiting to start.
+	CandidateManifestRef string `protobuf:"bytes,1,opt,name=candidate_manifest_ref,json=candidateManifestRef,proto3" json:"candidateManifestRef,omitempty"`
+	// CandidateManifestRev is the build rev of the manifest waiting to start.
+	CandidateManifestRev uint64 `protobuf:"varint,2,opt,name=candidate_manifest_rev,json=candidateManifestRev,proto3" json:"candidateManifestRev,omitempty"`
+	// SinceAt is when the activation check was sent to the running execution.
+	SinceAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=since_at,json=sinceAt,proto3" json:"sinceAt,omitempty"`
+}
+
+func (x *PluginSwapWaiting) Reset() {
+	*x = PluginSwapWaiting{}
+}
+
+func (*PluginSwapWaiting) ProtoMessage() {}
+
+func (x *PluginSwapWaiting) GetCandidateManifestRef() string {
+	if x != nil {
+		return x.CandidateManifestRef
+	}
+	return ""
+}
+
+func (x *PluginSwapWaiting) GetCandidateManifestRev() uint64 {
+	if x != nil {
+		return x.CandidateManifestRev
+	}
+	return 0
+}
+
+func (x *PluginSwapWaiting) GetSinceAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SinceAt
+	}
+	return nil
+}
+
+// PluginSwapFailed is the swap state after a candidate failed to start. The
+// running execution, if any, is kept.
+type PluginSwapFailed struct {
+	unknownFields []byte
+	// CandidateManifestRef is the ref of the manifest that failed.
+	CandidateManifestRef string `protobuf:"bytes,1,opt,name=candidate_manifest_ref,json=candidateManifestRef,proto3" json:"candidateManifestRef,omitempty"`
+	// CandidateManifestRev is the build rev of the manifest that failed.
+	CandidateManifestRev uint64 `protobuf:"varint,2,opt,name=candidate_manifest_rev,json=candidateManifestRev,proto3" json:"candidateManifestRev,omitempty"`
+	// ErrorMessage is the failure, prefixed with the stage that failed.
+	ErrorMessage string `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+	// FailedAt is when the candidate failed.
+	FailedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=failed_at,json=failedAt,proto3" json:"failedAt,omitempty"`
+	// RetryAt is when the scheduler retries the candidate. Unset when it waits
+	// for a new selection or host instead.
+	RetryAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=retry_at,json=retryAt,proto3" json:"retryAt,omitempty"`
+}
+
+func (x *PluginSwapFailed) Reset() {
+	*x = PluginSwapFailed{}
+}
+
+func (*PluginSwapFailed) ProtoMessage() {}
+
+func (x *PluginSwapFailed) GetCandidateManifestRef() string {
+	if x != nil {
+		return x.CandidateManifestRef
+	}
+	return ""
+}
+
+func (x *PluginSwapFailed) GetCandidateManifestRev() uint64 {
+	if x != nil {
+		return x.CandidateManifestRev
+	}
+	return 0
+}
+
+func (x *PluginSwapFailed) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *PluginSwapFailed) GetFailedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FailedAt
+	}
+	return nil
+}
+
+func (x *PluginSwapFailed) GetRetryAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RetryAt
+	}
+	return nil
+}
+
 // PluginStatusSnapshot describes a plugin host scheduler's plugin instances.
 type PluginStatusSnapshot struct {
 	unknownFields []byte
@@ -241,6 +545,9 @@ type PluginStatusSnapshot struct {
 	// ManifestRecovery lists the per-instance manifest selection facts sorted by
 	// plugin id and instance key.
 	ManifestRecovery []*PluginManifestRecoveryStatus `protobuf:"bytes,2,rep,name=manifest_recovery,json=manifestRecovery,proto3" json:"manifestRecovery,omitempty"`
+	// Executions lists the per-instance running manifests and swap states sorted
+	// by plugin id and instance key.
+	Executions []*PluginExecutionStatus `protobuf:"bytes,3,rep,name=executions,proto3" json:"executions,omitempty"`
 }
 
 func (x *PluginStatusSnapshot) Reset() {
@@ -259,6 +566,13 @@ func (x *PluginStatusSnapshot) GetPlugins() []*PluginStatus {
 func (x *PluginStatusSnapshot) GetManifestRecovery() []*PluginManifestRecoveryStatus {
 	if x != nil {
 		return x.ManifestRecovery
+	}
+	return nil
+}
+
+func (x *PluginStatusSnapshot) GetExecutions() []*PluginExecutionStatus {
+	if x != nil {
+		return x.Executions
 	}
 	return nil
 }
@@ -727,6 +1041,168 @@ func (m *PluginManifestRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMe
 	return m.CloneVT()
 }
 
+func (m *PluginExecutionStatus) CloneVT() *PluginExecutionStatus {
+	if m == nil {
+		return (*PluginExecutionStatus)(nil)
+	}
+	r := new(PluginExecutionStatus)
+	r.PluginId = m.PluginId
+	r.InstanceKey = m.InstanceKey
+	r.RunningManifestRef = m.RunningManifestRef
+	r.RunningManifestRev = m.RunningManifestRev
+	r.Swap = protobuf_go_lite.CloneVTValue(m.Swap)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginExecutionStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginSwap) CloneVT() *PluginSwap {
+	if m == nil {
+		return (*PluginSwap)(nil)
+	}
+	r := new(PluginSwap)
+	if m.State != nil {
+		r.State = m.State.(interface{ CloneOneofVT() isPluginSwap_State }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginSwap) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginSwap_Settled) CloneVT() *PluginSwap_Settled {
+	if m == nil {
+		return (*PluginSwap_Settled)(nil)
+	}
+	r := new(PluginSwap_Settled)
+	r.Settled = protobuf_go_lite.CloneVTValue(m.Settled)
+	return r
+}
+
+func (m *PluginSwap_Settled) CloneOneofVT() isPluginSwap_State {
+	return m.CloneVT()
+}
+
+func (m *PluginSwap_Preparing) CloneVT() *PluginSwap_Preparing {
+	if m == nil {
+		return (*PluginSwap_Preparing)(nil)
+	}
+	r := new(PluginSwap_Preparing)
+	r.Preparing = protobuf_go_lite.CloneVTValue(m.Preparing)
+	return r
+}
+
+func (m *PluginSwap_Preparing) CloneOneofVT() isPluginSwap_State {
+	return m.CloneVT()
+}
+
+func (m *PluginSwap_Waiting) CloneVT() *PluginSwap_Waiting {
+	if m == nil {
+		return (*PluginSwap_Waiting)(nil)
+	}
+	r := new(PluginSwap_Waiting)
+	r.Waiting = protobuf_go_lite.CloneVTValue(m.Waiting)
+	return r
+}
+
+func (m *PluginSwap_Waiting) CloneOneofVT() isPluginSwap_State {
+	return m.CloneVT()
+}
+
+func (m *PluginSwap_Failed) CloneVT() *PluginSwap_Failed {
+	if m == nil {
+		return (*PluginSwap_Failed)(nil)
+	}
+	r := new(PluginSwap_Failed)
+	r.Failed = protobuf_go_lite.CloneVTValue(m.Failed)
+	return r
+}
+
+func (m *PluginSwap_Failed) CloneOneofVT() isPluginSwap_State {
+	return m.CloneVT()
+}
+
+func (m *PluginSwapSettled) CloneVT() *PluginSwapSettled {
+	if m == nil {
+		return (*PluginSwapSettled)(nil)
+	}
+	r := new(PluginSwapSettled)
+	r.AdmittedAt = protobuf_go_lite.CloneVTValue(m.AdmittedAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginSwapSettled) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginSwapPreparing) CloneVT() *PluginSwapPreparing {
+	if m == nil {
+		return (*PluginSwapPreparing)(nil)
+	}
+	r := new(PluginSwapPreparing)
+	r.CandidateManifestRef = m.CandidateManifestRef
+	r.CandidateManifestRev = m.CandidateManifestRev
+	r.StartedAt = protobuf_go_lite.CloneVTValue(m.StartedAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginSwapPreparing) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginSwapWaiting) CloneVT() *PluginSwapWaiting {
+	if m == nil {
+		return (*PluginSwapWaiting)(nil)
+	}
+	r := new(PluginSwapWaiting)
+	r.CandidateManifestRef = m.CandidateManifestRef
+	r.CandidateManifestRev = m.CandidateManifestRev
+	r.SinceAt = protobuf_go_lite.CloneVTValue(m.SinceAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginSwapWaiting) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PluginSwapFailed) CloneVT() *PluginSwapFailed {
+	if m == nil {
+		return (*PluginSwapFailed)(nil)
+	}
+	r := new(PluginSwapFailed)
+	r.CandidateManifestRef = m.CandidateManifestRef
+	r.CandidateManifestRev = m.CandidateManifestRev
+	r.ErrorMessage = m.ErrorMessage
+	r.FailedAt = protobuf_go_lite.CloneVTValue(m.FailedAt)
+	r.RetryAt = protobuf_go_lite.CloneVTValue(m.RetryAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PluginSwapFailed) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PluginStatusSnapshot) CloneVT() *PluginStatusSnapshot {
 	if m == nil {
 		return (*PluginStatusSnapshot)(nil)
@@ -734,6 +1210,7 @@ func (m *PluginStatusSnapshot) CloneVT() *PluginStatusSnapshot {
 	r := new(PluginStatusSnapshot)
 	r.Plugins = protobuf_go_lite.CloneVTSlice(m.Plugins)
 	r.ManifestRecovery = protobuf_go_lite.CloneVTSlice(m.ManifestRecovery)
+	r.Executions = protobuf_go_lite.CloneVTSlice(m.Executions)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1080,6 +1557,237 @@ func (this *PluginManifestRecoveryStatus) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *PluginExecutionStatus) EqualVT(that *PluginExecutionStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.InstanceKey != that.InstanceKey {
+		return false
+	}
+	if this.RunningManifestRef != that.RunningManifestRef {
+		return false
+	}
+	if this.RunningManifestRev != that.RunningManifestRev {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Swap, that.Swap) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginExecutionStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginExecutionStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginSwap) EqualVT(that *PluginSwap) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State == nil && that.State != nil {
+		return false
+	} else if this.State != nil {
+		if that.State == nil {
+			return false
+		}
+		if !this.State.(interface{ EqualVT(isPluginSwap_State) bool }).EqualVT(that.State) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginSwap) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginSwap)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginSwap_Settled) EqualVT(thatIface isPluginSwap_State) bool {
+	that, ok := thatIface.(*PluginSwap_Settled)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Settled, that.Settled, func() *PluginSwapSettled { return &PluginSwapSettled{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *PluginSwap_Preparing) EqualVT(thatIface isPluginSwap_State) bool {
+	that, ok := thatIface.(*PluginSwap_Preparing)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Preparing, that.Preparing, func() *PluginSwapPreparing { return &PluginSwapPreparing{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *PluginSwap_Waiting) EqualVT(thatIface isPluginSwap_State) bool {
+	that, ok := thatIface.(*PluginSwap_Waiting)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Waiting, that.Waiting, func() *PluginSwapWaiting { return &PluginSwapWaiting{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *PluginSwap_Failed) EqualVT(thatIface isPluginSwap_State) bool {
+	that, ok := thatIface.(*PluginSwap_Failed)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Failed, that.Failed, func() *PluginSwapFailed { return &PluginSwapFailed{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *PluginSwapSettled) EqualVT(that *PluginSwapSettled) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.AdmittedAt, that.AdmittedAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginSwapSettled) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginSwapSettled)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginSwapPreparing) EqualVT(that *PluginSwapPreparing) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CandidateManifestRef != that.CandidateManifestRef {
+		return false
+	}
+	if this.CandidateManifestRev != that.CandidateManifestRev {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.StartedAt, that.StartedAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginSwapPreparing) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginSwapPreparing)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginSwapWaiting) EqualVT(that *PluginSwapWaiting) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CandidateManifestRef != that.CandidateManifestRef {
+		return false
+	}
+	if this.CandidateManifestRev != that.CandidateManifestRev {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.SinceAt, that.SinceAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginSwapWaiting) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginSwapWaiting)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PluginSwapFailed) EqualVT(that *PluginSwapFailed) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CandidateManifestRef != that.CandidateManifestRef {
+		return false
+	}
+	if this.CandidateManifestRev != that.CandidateManifestRev {
+		return false
+	}
+	if this.ErrorMessage != that.ErrorMessage {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.FailedAt, that.FailedAt) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RetryAt, that.RetryAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PluginSwapFailed) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PluginSwapFailed)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *PluginStatusSnapshot) EqualVT(that *PluginStatusSnapshot) bool {
 	if this == that {
 		return true
@@ -1090,6 +1798,9 @@ func (this *PluginStatusSnapshot) EqualVT(that *PluginStatusSnapshot) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.ManifestRecovery, that.ManifestRecovery, func() *PluginManifestRecoveryStatus { return &PluginManifestRecoveryStatus{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Executions, that.Executions, func() *PluginExecutionStatus { return &PluginExecutionStatus{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1684,6 +2395,426 @@ func (x *PluginManifestRecoveryStatus) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the PluginExecutionStatus message to JSON.
+func (x *PluginExecutionStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.InstanceKey != "" || s.HasField("instanceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("instanceKey")
+		s.WriteString(x.InstanceKey)
+	}
+	if x.RunningManifestRef != "" || s.HasField("runningManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runningManifestRef")
+		s.WriteString(x.RunningManifestRef)
+	}
+	if x.RunningManifestRev != 0 || s.HasField("runningManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runningManifestRev")
+		s.WriteUint64(x.RunningManifestRev)
+	}
+	if x.Swap != nil || s.HasField("swap") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("swap")
+		x.Swap.MarshalProtoJSON(s.WithField("swap"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginExecutionStatus to JSON.
+func (x *PluginExecutionStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginExecutionStatus message from JSON.
+func (x *PluginExecutionStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "instance_key", "instanceKey":
+			s.AddField("instance_key")
+			x.InstanceKey = s.ReadString()
+		case "running_manifest_ref", "runningManifestRef":
+			s.AddField("running_manifest_ref")
+			x.RunningManifestRef = s.ReadString()
+		case "running_manifest_rev", "runningManifestRev":
+			s.AddField("running_manifest_rev")
+			x.RunningManifestRev = s.ReadUint64()
+		case "swap":
+			if s.ReadNil() {
+				x.Swap = nil
+				return
+			}
+			x.Swap = &PluginSwap{}
+			x.Swap.UnmarshalProtoJSON(s.WithField("swap", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginExecutionStatus from JSON.
+func (x *PluginExecutionStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginSwap message to JSON.
+func (x *PluginSwap) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != nil {
+		switch ov := x.State.(type) {
+		case *PluginSwap_Settled:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("settled")
+			ov.Settled.MarshalProtoJSON(s.WithField("settled"))
+		case *PluginSwap_Preparing:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("preparing")
+			ov.Preparing.MarshalProtoJSON(s.WithField("preparing"))
+		case *PluginSwap_Waiting:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("waiting")
+			ov.Waiting.MarshalProtoJSON(s.WithField("waiting"))
+		case *PluginSwap_Failed:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("failed")
+			ov.Failed.MarshalProtoJSON(s.WithField("failed"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginSwap to JSON.
+func (x *PluginSwap) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginSwap message from JSON.
+func (x *PluginSwap) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "settled":
+			ov := &PluginSwap_Settled{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Settled = nil
+				return
+			}
+			ov.Settled = &PluginSwapSettled{}
+			ov.Settled.UnmarshalProtoJSON(s.WithField("settled", true))
+		case "preparing":
+			ov := &PluginSwap_Preparing{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Preparing = nil
+				return
+			}
+			ov.Preparing = &PluginSwapPreparing{}
+			ov.Preparing.UnmarshalProtoJSON(s.WithField("preparing", true))
+		case "waiting":
+			ov := &PluginSwap_Waiting{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Waiting = nil
+				return
+			}
+			ov.Waiting = &PluginSwapWaiting{}
+			ov.Waiting.UnmarshalProtoJSON(s.WithField("waiting", true))
+		case "failed":
+			ov := &PluginSwap_Failed{}
+			x.State = ov
+			if s.ReadNil() {
+				ov.Failed = nil
+				return
+			}
+			ov.Failed = &PluginSwapFailed{}
+			ov.Failed.UnmarshalProtoJSON(s.WithField("failed", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginSwap from JSON.
+func (x *PluginSwap) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginSwapSettled message to JSON.
+func (x *PluginSwapSettled) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AdmittedAt != nil || s.HasField("admittedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("admittedAt")
+		x.AdmittedAt.MarshalProtoJSON(s.WithField("admittedAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginSwapSettled to JSON.
+func (x *PluginSwapSettled) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginSwapSettled message from JSON.
+func (x *PluginSwapSettled) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "admitted_at", "admittedAt":
+			if s.ReadNil() {
+				x.AdmittedAt = nil
+				return
+			}
+			x.AdmittedAt = &timestamppb.Timestamp{}
+			x.AdmittedAt.UnmarshalProtoJSON(s.WithField("admitted_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginSwapSettled from JSON.
+func (x *PluginSwapSettled) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginSwapPreparing message to JSON.
+func (x *PluginSwapPreparing) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CandidateManifestRef != "" || s.HasField("candidateManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRef")
+		s.WriteString(x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 || s.HasField("candidateManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRev")
+		s.WriteUint64(x.CandidateManifestRev)
+	}
+	if x.StartedAt != nil || s.HasField("startedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startedAt")
+		x.StartedAt.MarshalProtoJSON(s.WithField("startedAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginSwapPreparing to JSON.
+func (x *PluginSwapPreparing) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginSwapPreparing message from JSON.
+func (x *PluginSwapPreparing) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "candidate_manifest_ref", "candidateManifestRef":
+			s.AddField("candidate_manifest_ref")
+			x.CandidateManifestRef = s.ReadString()
+		case "candidate_manifest_rev", "candidateManifestRev":
+			s.AddField("candidate_manifest_rev")
+			x.CandidateManifestRev = s.ReadUint64()
+		case "started_at", "startedAt":
+			if s.ReadNil() {
+				x.StartedAt = nil
+				return
+			}
+			x.StartedAt = &timestamppb.Timestamp{}
+			x.StartedAt.UnmarshalProtoJSON(s.WithField("started_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginSwapPreparing from JSON.
+func (x *PluginSwapPreparing) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginSwapWaiting message to JSON.
+func (x *PluginSwapWaiting) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CandidateManifestRef != "" || s.HasField("candidateManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRef")
+		s.WriteString(x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 || s.HasField("candidateManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRev")
+		s.WriteUint64(x.CandidateManifestRev)
+	}
+	if x.SinceAt != nil || s.HasField("sinceAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sinceAt")
+		x.SinceAt.MarshalProtoJSON(s.WithField("sinceAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginSwapWaiting to JSON.
+func (x *PluginSwapWaiting) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginSwapWaiting message from JSON.
+func (x *PluginSwapWaiting) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "candidate_manifest_ref", "candidateManifestRef":
+			s.AddField("candidate_manifest_ref")
+			x.CandidateManifestRef = s.ReadString()
+		case "candidate_manifest_rev", "candidateManifestRev":
+			s.AddField("candidate_manifest_rev")
+			x.CandidateManifestRev = s.ReadUint64()
+		case "since_at", "sinceAt":
+			if s.ReadNil() {
+				x.SinceAt = nil
+				return
+			}
+			x.SinceAt = &timestamppb.Timestamp{}
+			x.SinceAt.UnmarshalProtoJSON(s.WithField("since_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginSwapWaiting from JSON.
+func (x *PluginSwapWaiting) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PluginSwapFailed message to JSON.
+func (x *PluginSwapFailed) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CandidateManifestRef != "" || s.HasField("candidateManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRef")
+		s.WriteString(x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 || s.HasField("candidateManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("candidateManifestRev")
+		s.WriteUint64(x.CandidateManifestRev)
+	}
+	if x.ErrorMessage != "" || s.HasField("errorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorMessage")
+		s.WriteString(x.ErrorMessage)
+	}
+	if x.FailedAt != nil || s.HasField("failedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failedAt")
+		x.FailedAt.MarshalProtoJSON(s.WithField("failedAt"))
+	}
+	if x.RetryAt != nil || s.HasField("retryAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryAt")
+		x.RetryAt.MarshalProtoJSON(s.WithField("retryAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PluginSwapFailed to JSON.
+func (x *PluginSwapFailed) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PluginSwapFailed message from JSON.
+func (x *PluginSwapFailed) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "candidate_manifest_ref", "candidateManifestRef":
+			s.AddField("candidate_manifest_ref")
+			x.CandidateManifestRef = s.ReadString()
+		case "candidate_manifest_rev", "candidateManifestRev":
+			s.AddField("candidate_manifest_rev")
+			x.CandidateManifestRev = s.ReadUint64()
+		case "error_message", "errorMessage":
+			s.AddField("error_message")
+			x.ErrorMessage = s.ReadString()
+		case "failed_at", "failedAt":
+			if s.ReadNil() {
+				x.FailedAt = nil
+				return
+			}
+			x.FailedAt = &timestamppb.Timestamp{}
+			x.FailedAt.UnmarshalProtoJSON(s.WithField("failed_at", true))
+		case "retry_at", "retryAt":
+			if s.ReadNil() {
+				x.RetryAt = nil
+				return
+			}
+			x.RetryAt = &timestamppb.Timestamp{}
+			x.RetryAt.UnmarshalProtoJSON(s.WithField("retry_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PluginSwapFailed from JSON.
+func (x *PluginSwapFailed) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PluginStatusSnapshot message to JSON.
 func (x *PluginStatusSnapshot) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1711,6 +2842,17 @@ func (x *PluginStatusSnapshot) MarshalProtoJSON(s *json.MarshalState) {
 		for _, element := range x.ManifestRecovery {
 			s.WriteMoreIf(&wroteElement)
 			element.MarshalProtoJSON(s.WithField("manifestRecovery"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Executions) > 0 || s.HasField("executions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("executions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Executions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("executions"))
 		}
 		s.WriteArrayEnd()
 	}
@@ -1766,6 +2908,24 @@ func (x *PluginStatusSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.ManifestRecovery = append(x.ManifestRecovery, v)
+			})
+		case "executions":
+			s.AddField("executions")
+			if s.ReadNil() {
+				x.Executions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Executions = append(x.Executions, nil)
+					return
+				}
+				v := &PluginExecutionStatus{}
+				v.UnmarshalProtoJSON(s.WithField("executions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Executions = append(x.Executions, v)
 			})
 		}
 	})
@@ -2657,6 +3817,418 @@ func (m *PluginManifestRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int,
 	return len(dAtA) - i, nil
 }
 
+func (m *PluginExecutionStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginExecutionStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginExecutionStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Swap != nil {
+		size, err := m.Swap.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.RunningManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RunningManifestRev))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.RunningManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RunningManifestRef)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.InstanceKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.InstanceKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwap) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginSwap) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwap) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.State.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwap_Settled) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwap_Settled) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Settled != nil {
+		size, err := m.Settled.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwap_Preparing) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwap_Preparing) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Preparing != nil {
+		size, err := m.Preparing.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwap_Waiting) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwap_Waiting) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Waiting != nil {
+		size, err := m.Waiting.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwap_Failed) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwap_Failed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Failed != nil {
+		size, err := m.Failed.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwapSettled) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginSwapSettled) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwapSettled) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AdmittedAt != nil {
+		size, err := m.AdmittedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwapPreparing) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginSwapPreparing) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwapPreparing) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.StartedAt != nil {
+		size, err := m.StartedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.CandidateManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CandidateManifestRev))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.CandidateManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CandidateManifestRef)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwapWaiting) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginSwapWaiting) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwapWaiting) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SinceAt != nil {
+		size, err := m.SinceAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.CandidateManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CandidateManifestRev))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.CandidateManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CandidateManifestRef)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PluginSwapFailed) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PluginSwapFailed) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PluginSwapFailed) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RetryAt != nil {
+		size, err := m.RetryAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.FailedAt != nil {
+		size, err := m.FailedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ErrorMessage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMessage)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.CandidateManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CandidateManifestRev))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.CandidateManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CandidateManifestRef)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PluginStatusSnapshot) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2685,6 +4257,18 @@ func (m *PluginStatusSnapshot) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Executions) > 0 {
+		for iNdEx := len(m.Executions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Executions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if len(m.ManifestRecovery) > 0 {
 		for iNdEx := len(m.ManifestRecovery) - 1; iNdEx >= 0; iNdEx-- {
@@ -3395,6 +4979,164 @@ func (m *PluginManifestRecoveryStatus) SizeVT() (n int) {
 	return n
 }
 
+func (m *PluginExecutionStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.InstanceKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RunningManifestRef)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RunningManifestRev)
+	if m.Swap != nil {
+		l = m.Swap.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginSwap) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.State.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginSwap_Settled) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Settled != nil {
+		l = m.Settled.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *PluginSwap_Preparing) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Preparing != nil {
+		l = m.Preparing.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *PluginSwap_Waiting) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Waiting != nil {
+		l = m.Waiting.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *PluginSwap_Failed) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Failed != nil {
+		l = m.Failed.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *PluginSwapSettled) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.AdmittedAt != nil {
+		l = m.AdmittedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginSwapPreparing) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CandidateManifestRef)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CandidateManifestRev)
+	if m.StartedAt != nil {
+		l = m.StartedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginSwapWaiting) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CandidateManifestRef)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CandidateManifestRev)
+	if m.SinceAt != nil {
+		l = m.SinceAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PluginSwapFailed) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CandidateManifestRef)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CandidateManifestRev)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
+	if m.FailedAt != nil {
+		l = m.FailedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.RetryAt != nil {
+		l = m.RetryAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PluginStatusSnapshot) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3406,6 +5148,10 @@ func (m *PluginStatusSnapshot) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	for _, e := range m.ManifestRecovery {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Executions {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
@@ -3699,6 +5445,164 @@ func (x *PluginManifestRecoveryStatus) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *PluginExecutionStatus) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginExecutionStatus")
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	if x.InstanceKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "instance_key")
+		protobuf_go_lite.TextWriteString(&sb, x.InstanceKey)
+	}
+	if x.RunningManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "running_manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.RunningManifestRef)
+	}
+	if x.RunningManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "running_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.RunningManifestRev)
+	}
+	if x.Swap != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "swap")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Swap)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginExecutionStatus) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginSwap) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginSwap")
+	switch body := x.State.(type) {
+	case *PluginSwap_Settled:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "settled")
+		if body.Settled == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginSwapSettled{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Settled)
+		}
+	case *PluginSwap_Preparing:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "preparing")
+		if body.Preparing == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginSwapPreparing{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Preparing)
+		}
+	case *PluginSwap_Waiting:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waiting")
+		if body.Waiting == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginSwapWaiting{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Waiting)
+		}
+	case *PluginSwap_Failed:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failed")
+		if body.Failed == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginSwapFailed{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Failed)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginSwap) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginSwapSettled) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginSwapSettled")
+	if x.AdmittedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "admitted_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.AdmittedAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginSwapSettled) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginSwapPreparing) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginSwapPreparing")
+	if x.CandidateManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.CandidateManifestRev)
+	}
+	if x.StartedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "started_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.StartedAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginSwapPreparing) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginSwapWaiting) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginSwapWaiting")
+	if x.CandidateManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.CandidateManifestRev)
+	}
+	if x.SinceAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "since_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SinceAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginSwapWaiting) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PluginSwapFailed) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginSwapFailed")
+	if x.CandidateManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.CandidateManifestRef)
+	}
+	if x.CandidateManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "candidate_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.CandidateManifestRev)
+	}
+	if x.ErrorMessage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
+		protobuf_go_lite.TextWriteString(&sb, x.ErrorMessage)
+	}
+	if x.FailedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failed_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.FailedAt)
+	}
+	if x.RetryAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RetryAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PluginSwapFailed) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *PluginStatusSnapshot) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginStatusSnapshot")
@@ -3720,6 +5624,18 @@ func (x *PluginStatusSnapshot) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginManifestRecoveryStatus{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Executions) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "executions")
+		for i, v := range x.Executions {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginExecutionStatus{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -4253,6 +6169,540 @@ func (m *PluginManifestRecoveryStatus) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *PluginExecutionStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginExecutionStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginExecutionStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.InstanceKey = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunningManifestRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RunningManifestRef = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunningManifestRev", wireType)
+			}
+			m.RunningManifestRev = 0
+			m.RunningManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Swap", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Swap == nil {
+				m.Swap = &PluginSwap{}
+			}
+			if err := m.Swap.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginSwap) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginSwap: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginSwap: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Settled", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*PluginSwap_Settled); ok {
+				if err := oneof.Settled.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &PluginSwapSettled{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &PluginSwap_Settled{Settled: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Preparing", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*PluginSwap_Preparing); ok {
+				if err := oneof.Preparing.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &PluginSwapPreparing{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &PluginSwap_Preparing{Preparing: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Waiting", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*PluginSwap_Waiting); ok {
+				if err := oneof.Waiting.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &PluginSwapWaiting{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &PluginSwap_Waiting{Waiting: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failed", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.State.(*PluginSwap_Failed); ok {
+				if err := oneof.Failed.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &PluginSwapFailed{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.State = &PluginSwap_Failed{Failed: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginSwapSettled) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginSwapSettled: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginSwapSettled: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AdmittedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.AdmittedAt == nil {
+				m.AdmittedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.AdmittedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginSwapPreparing) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginSwapPreparing: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginSwapPreparing: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CandidateManifestRef = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRev", wireType)
+			}
+			m.CandidateManifestRev = 0
+			m.CandidateManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.StartedAt == nil {
+				m.StartedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.StartedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginSwapWaiting) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginSwapWaiting: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginSwapWaiting: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CandidateManifestRef = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRev", wireType)
+			}
+			m.CandidateManifestRev = 0
+			m.CandidateManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SinceAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.SinceAt == nil {
+				m.SinceAt = &timestamppb.Timestamp{}
+			}
+			if err := m.SinceAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PluginSwapFailed) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PluginSwapFailed: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PluginSwapFailed: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CandidateManifestRef = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CandidateManifestRev", wireType)
+			}
+			m.CandidateManifestRev = 0
+			m.CandidateManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorMessage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ErrorMessage = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FailedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.FailedAt == nil {
+				m.FailedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.FailedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RetryAt == nil {
+				m.RetryAt = &timestamppb.Timestamp{}
+			}
+			if err := m.RetryAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *PluginStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -4296,6 +6746,19 @@ func (m *PluginStatusSnapshot) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ManifestRecovery = append(m.ManifestRecovery, &PluginManifestRecoveryStatus{})
 			if err := m.ManifestRecovery[len(m.ManifestRecovery)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Executions", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Executions = append(m.Executions, &PluginExecutionStatus{})
+			if err := m.Executions[len(m.Executions)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

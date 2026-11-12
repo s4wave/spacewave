@@ -13,6 +13,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	validate "github.com/s4wave/spacewave/bldr/project/validate"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	world "github.com/s4wave/spacewave/core/space/world"
@@ -1457,6 +1458,16 @@ type SpacePluginStatus struct {
 	Account bool `protobuf:"varint,9,opt,name=account,proto3" json:"account,omitempty"`
 	// ManifestRev is the build rev of the manifest named by ManifestRef.
 	ManifestRev uint64 `protobuf:"varint,10,opt,name=manifest_rev,json=manifestRev,proto3" json:"manifestRev,omitempty"`
+	// RunningManifestRef is the content ref of the manifest the admitted
+	// execution runs. It differs from ManifestRef until the selected manifest
+	// is live. Empty while no execution is admitted.
+	RunningManifestRef string `protobuf:"bytes,11,opt,name=running_manifest_ref,json=runningManifestRef,proto3" json:"runningManifestRef,omitempty"`
+	// RunningManifestRev is the build rev of the manifest named by
+	// RunningManifestRef.
+	RunningManifestRev uint64 `protobuf:"varint,12,opt,name=running_manifest_rev,json=runningManifestRev,proto3" json:"runningManifestRev,omitempty"`
+	// Swap is the scheduler's state for the move from the running manifest to
+	// the selected one.
+	Swap *plugin.PluginSwap `protobuf:"bytes,13,opt,name=swap,proto3" json:"swap,omitempty"`
 }
 
 func (x *SpacePluginStatus) Reset() {
@@ -1526,6 +1537,27 @@ func (x *SpacePluginStatus) GetManifestRev() uint64 {
 		return x.ManifestRev
 	}
 	return 0
+}
+
+func (x *SpacePluginStatus) GetRunningManifestRef() string {
+	if x != nil {
+		return x.RunningManifestRef
+	}
+	return ""
+}
+
+func (x *SpacePluginStatus) GetRunningManifestRev() uint64 {
+	if x != nil {
+		return x.RunningManifestRev
+	}
+	return 0
+}
+
+func (x *SpacePluginStatus) GetSwap() *plugin.PluginSwap {
+	if x != nil {
+		return x.Swap
+	}
+	return nil
 }
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.
@@ -2609,6 +2641,9 @@ func (m *SpacePluginStatus) CloneVT() *SpacePluginStatus {
 	r.ManifestRef = m.ManifestRef
 	r.Account = m.Account
 	r.ManifestRev = m.ManifestRev
+	r.RunningManifestRef = m.RunningManifestRef
+	r.RunningManifestRev = m.RunningManifestRev
+	r.Swap = protobuf_go_lite.CloneVTValue(m.Swap)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3871,6 +3906,15 @@ func (this *SpacePluginStatus) EqualVT(that *SpacePluginStatus) bool {
 		return false
 	}
 	if this.ManifestRev != that.ManifestRev {
+		return false
+	}
+	if this.RunningManifestRef != that.RunningManifestRef {
+		return false
+	}
+	if this.RunningManifestRev != that.RunningManifestRev {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Swap, that.Swap) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6662,6 +6706,21 @@ func (x *SpacePluginStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("manifestRev")
 		s.WriteUint64(x.ManifestRev)
 	}
+	if x.RunningManifestRef != "" || s.HasField("runningManifestRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runningManifestRef")
+		s.WriteString(x.RunningManifestRef)
+	}
+	if x.RunningManifestRev != 0 || s.HasField("runningManifestRev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runningManifestRev")
+		s.WriteUint64(x.RunningManifestRev)
+	}
+	if x.Swap != nil || s.HasField("swap") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("swap")
+		x.Swap.MarshalProtoJSON(s.WithField("swap"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6706,6 +6765,19 @@ func (x *SpacePluginStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "manifest_rev", "manifestRev":
 			s.AddField("manifest_rev")
 			x.ManifestRev = s.ReadUint64()
+		case "running_manifest_ref", "runningManifestRef":
+			s.AddField("running_manifest_ref")
+			x.RunningManifestRef = s.ReadString()
+		case "running_manifest_rev", "runningManifestRev":
+			s.AddField("running_manifest_rev")
+			x.RunningManifestRev = s.ReadUint64()
+		case "swap":
+			if s.ReadNil() {
+				x.Swap = nil
+				return
+			}
+			x.Swap = &plugin.PluginSwap{}
+			x.Swap.UnmarshalProtoJSON(s.WithField("swap", true))
 		}
 	})
 }
@@ -9380,6 +9452,26 @@ func (m *SpacePluginStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Swap != nil {
+		size, err := m.Swap.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.RunningManifestRev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RunningManifestRev))
+		i--
+		dAtA[i] = 0x60
+	}
+	if len(m.RunningManifestRef) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RunningManifestRef)
+		i--
+		dAtA[i] = 0x5a
+	}
 	if m.ManifestRev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ManifestRev))
 		i--
@@ -10788,6 +10880,12 @@ func (m *SpacePluginStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestRef)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Account)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ManifestRev)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RunningManifestRef)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RunningManifestRev)
+	if m.Swap != nil {
+		l = m.Swap.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -11932,6 +12030,18 @@ func (x *SpacePluginStatus) MarshalProtoText() string {
 	if x.ManifestRev != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_rev")
 		protobuf_go_lite.TextWriteUint(&sb, x.ManifestRev)
+	}
+	if x.RunningManifestRef != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "running_manifest_ref")
+		protobuf_go_lite.TextWriteString(&sb, x.RunningManifestRef)
+	}
+	if x.RunningManifestRev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "running_manifest_rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.RunningManifestRev)
+	}
+	if x.Swap != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "swap")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Swap)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -14847,6 +14957,40 @@ func (m *SpacePluginStatus) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunningManifestRef", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RunningManifestRef = v
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunningManifestRev", wireType)
+			}
+			m.RunningManifestRev = 0
+			m.RunningManifestRev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Swap", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Swap == nil {
+				m.Swap = &plugin.PluginSwap{}
+			}
+			if err := m.Swap.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
