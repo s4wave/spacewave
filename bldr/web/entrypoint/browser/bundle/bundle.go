@@ -25,6 +25,7 @@ import (
 	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_vite "github.com/s4wave/spacewave/bldr/web/pkg/vite"
 	"github.com/sirupsen/logrus"
@@ -49,24 +50,36 @@ type BrowserBundleResult struct {
 // DefaultManifestBundle describes the browser-discoverable manifest bundle
 // transport for first-boot range reads.
 type DefaultManifestBundle struct {
+	// Metadata is the URL of the bundle's range-read metadata.
 	Metadata string `json:"metadata"`
-	Pack     string `json:"pack"`
+	// Pack is the URL of the bundle's packfile.
+	Pack string `json:"pack"`
 }
 
 // BuildManifest is the manifest.json structure written alongside index.html.
 // The prerender build script reads this to discover asset URLs.
 type BuildManifest struct {
+	// Entrypoint is the URL of the entrypoint script.
 	Entrypoint string `json:"entrypoint"`
 	// EntrypointDecompressedSize is the byte size of Entrypoint after HTTP decompression.
-	EntrypointDecompressedSize int64                  `json:"entrypointDecompressedSize,omitempty"`
-	ServiceWorker              string                 `json:"serviceWorker"`
-	SharedWorker               string                 `json:"sharedWorker"`
-	Wasm                       string                 `json:"wasm,omitempty"`
-	OpfsWorker                 string                 `json:"opfsWorker,omitempty"`
-	RequiredStaticAssets       []string               `json:"requiredStaticAssets,omitempty"`
-	CSS                        []string               `json:"css"`
-	AutoStart                  bool                   `json:"autoStart,omitempty"`
-	DefaultManifestBundle      *DefaultManifestBundle `json:"defaultManifestBundle,omitempty"`
+	EntrypointDecompressedSize int64 `json:"entrypointDecompressedSize,omitempty"`
+	// ServiceWorker is the URL of the service worker script.
+	ServiceWorker string `json:"serviceWorker"`
+	// SharedWorker is the URL of the shared worker script.
+	SharedWorker string `json:"sharedWorker"`
+	// Wasm is the URL of the runtime WebAssembly module, if any.
+	Wasm string `json:"wasm,omitempty"`
+	// OpfsWorker is the URL of the OPFS worker script, if any.
+	OpfsWorker string `json:"opfsWorker,omitempty"`
+	// RequiredStaticAssets lists the URLs the service worker precaches so the
+	// app restarts offline.
+	RequiredStaticAssets []string `json:"requiredStaticAssets,omitempty"`
+	// CSS lists the stylesheet URLs the document loads.
+	CSS []string `json:"css"`
+	// AutoStart starts the app without waiting for a user action.
+	AutoStart bool `json:"autoStart,omitempty"`
+	// DefaultManifestBundle is the first-boot manifest bundle, if any.
+	DefaultManifestBundle *DefaultManifestBundle `json:"defaultManifestBundle,omitempty"`
 }
 
 const stableBootFilename = "boot.mjs"
@@ -79,13 +92,19 @@ const rendererBootPath = "/" + stableBootFilename
 func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	// The entrypoint tree owns the runtime, split modules, web packages, and
 	// immutable kvfile. Every executable asset must survive an offline restart.
+	// Development React is fetched only when its device setting is on, so it
+	// stays out of the required set.
 	var runtimeAssets []string
 	err := fs.WalkDir(os.DirFS(dir), "entrypoint", func(path string, entry fs.DirEntry, err error) error {
+		// A build without an entrypoint tree has no runtime assets.
 		if os.IsNotExist(err) && path == "entrypoint" {
 			return nil
 		}
 		if err != nil {
 			return err
+		}
+		if entry.IsDir() && entry.Name() == ReactDevDir {
+			return fs.SkipDir
 		}
 		if entry.Type().IsRegular() && !strings.HasSuffix(path, ".map") {
 			runtimeAssets = append(runtimeAssets, "/"+path)
@@ -949,9 +968,12 @@ func renderIndexHTML(entrypointPath string, importMap web_entrypoint_index.Impor
 
 // BrowserIceServer is a trusted ICE server embedded in the document shell.
 type BrowserIceServer struct {
-	URLs       []string `json:"urls"`
-	Username   string   `json:"username,omitempty"`
-	Credential string   `json:"credential,omitempty"`
+	// URLs lists the server's STUN or TURN URLs.
+	URLs []string `json:"urls"`
+	// Username is the TURN username, if any.
+	Username string `json:"username,omitempty"`
+	// Credential is the TURN credential, if any.
+	Credential string `json:"credential,omitempty"`
 }
 
 const defaultBrowserStunServer = "stun:stun.l.google.com:19302"
@@ -1233,11 +1255,18 @@ func BuildBrowserBundle(
 	}
 
 	// Build the web packages and collect their import map entries.
-	webPkgImportMap, err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, minify, sourcemaps, devMode)
-	if err != nil {
-		return nil, err
+	// A production build also carries Development React beside its packages,
+	// for the device setting to copy into the service worker's cache; nothing
+	// loads it until that setting is on. A development build already runs it.
+	var reactDevDir, reactVersion string
+	if !devMode {
+		reactDevDir = filepath.Join(entrypointDir, ReactDevDir)
+		reactVersion, err = readReactVersion(buildPkgsDir)
+		if err != nil {
+			return nil, err
+		}
 	}
-	reactVersion, err := readReactVersion(buildPkgsDir)
+	webPkgImportMap, err := BuildWebPkgsBundle(ctx, le, stateDir, bldrNativePlatform, bldrDistRoot, entrypointDir, pkgsPathPrefix, reactDevDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
@@ -1281,13 +1310,24 @@ func BuildBrowserBundle(
 	}, nil
 }
 
+// ReactDevDir is the directory below the entrypoint directory holding the
+// development build of React and React DOM: pkgs/ with the same layout as the
+// release's own pkgs/, and ReactDevFilesName listing every file.
+const ReactDevDir = "react-dev"
+
+// ReactDevFilesName names the list of Development React files, a JSON object
+// whose files field maps each path below pkgs/ to its hex SHA-256.
+const ReactDevFilesName = "files.json"
+
 // BuildWebPkgsBundle builds the web pkg bundle files.
 // devMode selects the package environment independently of minification.
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // pathPrefix is the prefix to prepend to /pkgs/ for pkg paths
+// reactDevDir, when set, also receives the development build of React and
+// React DOM under ReactDevDir's layout.
 // Returns the import map entries mapping logical specifiers to hashed output paths.
-func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix string, minify, sourcemaps, devMode bool) (web_entrypoint_index.ImportMap, error) {
+func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, bldrDistRoot, buildDir, pathPrefix, reactDevDir string, minify, sourcemaps, devMode bool) (web_entrypoint_index.ImportMap, error) {
 	// build to pkgs/
 	outDir := filepath.Join(buildDir, "pkgs")
 
@@ -1314,6 +1354,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 	var importMap web_entrypoint_index.ImportMap
 	viteWorkingPath := filepath.Join(stateDir, "vite-web-pkgs")
 	err = web_pkg_vite.RunOneShot(ctx, le, bldrDistRoot, bldrDistRoot, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+		// Build the production packages and keep their import map entries.
 		_, _, mapEntries, buildErr := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 			ctx,
 			le,
@@ -1329,12 +1370,70 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)
-		if buildErr == nil {
-			importMap = web_pkg_vite.BuildImportMapFromEntries(mapEntries)
+		if buildErr != nil {
+			return buildErr
 		}
-		return buildErr
+		importMap = web_pkg_vite.BuildImportMapFromEntries(mapEntries)
+		if reactDevDir == "" {
+			return nil
+		}
+		return buildReactDevPkgs(ctx, le, buildDir, stateDir, refs, reactDevDir, pathPrefix, client, filepath.Join(viteWorkingPath, "cache"))
 	})
 	return importMap, err
+}
+
+// buildReactDevPkgs builds React and React DOM in development mode into
+// reactDevDir/pkgs and lists the files with their hashes. The packages keep
+// their production entry names, and import each other through the import map,
+// so each file stands in for the production file at the same path.
+func buildReactDevPkgs(ctx context.Context, le *logrus.Entry, buildDir, stateDir string, refs []*web_pkg.WebPkgRef, reactDevDir, pathPrefix string, client bldr_vite.SRPCViteBundlerClient, cacheDir string) error {
+	// Take the React refs the release builds, with their production imports.
+	var reactRefs []*web_pkg.WebPkgRef
+	for _, ref := range refs {
+		if ref.GetWebPkgId() == "react" || ref.GetWebPkgId() == "react-dom" {
+			reactRefs = append(reactRefs, ref)
+		}
+	}
+	pkgsDir := filepath.Join(reactDevDir, "pkgs")
+	if _, _, _, err := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
+		ctx, le, buildDir, stateDir, reactRefs, nil, pkgsDir,
+		pathPrefix+"/"+ReactDevDir+"/pkgs/", false, false, false, client, cacheDir,
+	); err != nil {
+		return errors.Wrap(err, "build development react")
+	}
+
+	// Open the build's pkgs/ tree as a root, so the walk stays inside it.
+	root, err := os.OpenRoot(pkgsDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	pkgs := root.FS()
+
+	// List every file with its hash, so the fill can verify what it copies.
+	var arena fastjson.Arena
+	files := arena.NewObject()
+	err = fs.WalkDir(pkgs, ".", func(path string, d fs.DirEntry, err error) error {
+		// Hash each file under its slash path below pkgs/.
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := fs.ReadFile(pkgs, path)
+		if err != nil {
+			return err
+		}
+		sum := sha256.Sum256(data)
+		files.Set(path, arena.NewString(hex.EncodeToString(sum[:])))
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Write the list beside pkgs/.
+	list := arena.NewObject()
+	list.Set("files", files)
+	return os.WriteFile(filepath.Join(reactDevDir, ReactDevFilesName), list.MarshalTo(nil), 0o644)
 }
 
 // readReactVersion reads the version of the React package the web packages
@@ -1352,6 +1451,9 @@ func readReactVersion(buildPkgsDir string) (string, error) {
 	return string(pkg.GetStringBytes("version")), nil
 }
 
+// EnsureBldrDistDepsInstall installs the web packages bldr distributes into a
+// cache under stateDir and returns the install directory. It skips the install
+// when the dependency manifest is unchanged.
 func EnsureBldrDistDepsInstall(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
 	buildPkgsDir, err := npm.EnsureSharedBunInstall(
 		ctx, le, stateDir,

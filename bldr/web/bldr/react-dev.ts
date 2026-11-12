@@ -3,9 +3,9 @@
 // component stacks. ReactDev.tla specifies the states and their invariants.
 //
 // Two phases. While the app runs, fillReactDevGeneration copies the
-// development files of the release's React version into the service worker's
-// cache as one generation and records it in the device setting. At the next
-// boot the shell's inline script reads that setting and binds React to
+// development files the release carries beside its packages, checked against
+// the release's list, into the service worker's cache as one generation, and
+// the device setting records its version. At the next boot the shell's inline script reads that setting and binds React to
 // /b/react-dev/<version>/<production path> instead of the production path.
 // The service worker answers those URLs through ReactDevPicks: from the
 // generation, read whole on the document's first request, or with the
@@ -109,43 +109,106 @@ function generationURL(origin: string, version: string, file: string): string {
   ).href
 }
 
-// ReactDevFile is one development file to copy into a generation.
-export interface ReactDevFile {
-  // file is the path below the package directory, such as react/index.mjs.
-  file: string
-  // url is where the development build serves it.
-  url: string
+// reactDevDir names the directory beside a release's pkgs/ that holds its
+// Development React build: pkgs/ with the same layout, and filesListName.
+const reactDevDir = 'react-dev/'
+
+// filesListName names the list of Development React files: a JSON object
+// whose files field maps each path below pkgs/ to its hex SHA-256.
+const filesListName = 'files.json'
+
+// ReactDevRelease is what the shell knows about the running release.
+export interface ReactDevRelease {
+  // version is the release's React version, or empty when its shell offers
+  // no Development React.
+  version: string
+  // source is the URL of the release's Development React directory.
+  source: string
 }
 
-// fillReactDevGeneration copies the development files of one React version
-// into the cache and marks the generation complete once every file is in
-// place. A failure leaves no complete generation of that version and keeps any
-// other. Success removes the generations of other versions.
+// readReactDevRelease reads the release's React version and Development React
+// source from the shell's import map template, or returns null in a shell
+// without one, which stays on production React.
+export function readReactDevRelease(doc: Document): ReactDevRelease | null {
+  const data = doc.getElementById('bldr-import-map')
+  const version = data?.getAttribute('data-react-version')
+  const map = (data as HTMLTemplateElement | null)?.content?.firstElementChild
+  if (!version || !map?.textContent) {
+    return null
+  }
+  const imports = (
+    JSON.parse(map.textContent) as { imports?: Record<string, string> }
+  ).imports
+  const react = imports?.['react']
+  if (!react) {
+    return null
+  }
+  const url = new URL(react, doc.baseURI).href
+  const pkgs = url.indexOf(pkgsDir)
+  if (pkgs < 0) {
+    return null
+  }
+  return { version, source: url.slice(0, pkgs + 1) + reactDevDir }
+}
+
+// runningReactDev reports whether this document booted Development React.
+export function runningReactDev(): boolean {
+  return !!(globalThis as { __bldrReactDev?: string }).__bldrReactDev
+}
+
+// sha256Hex returns the hex SHA-256 of a blob.
+async function sha256Hex(blob: Blob): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('')
+}
+
+// fillReactDevGeneration copies a release's Development React files from its
+// source directory into the cache, checking each against the release's list,
+// and marks the generation complete once every file is in place. A missing,
+// partial or altered source leaves no complete generation of that version and
+// keeps any other. Success removes the generations of other versions.
 export async function fillReactDevGeneration(
   storage: CacheStorage,
   origin: string,
   version: string,
-  files: readonly ReactDevFile[],
+  source: string,
   fetchFile: (url: string) => Promise<Response> = (url) => fetch(url),
 ): Promise<void> {
+  const fetchOK = async (url: string): Promise<Response> => {
+    const response = await fetchFile(url)
+    if (!response.ok) {
+      throw new Error(`development React ${url}: HTTP ${response.status}`)
+    }
+    return response
+  }
+  const list = (await (
+    await fetchOK(new URL(filesListName, source).href)
+  ).json()) as { files?: Record<string, string> }
+  const files = Object.entries(list.files ?? {})
+  if (!files.length) {
+    throw new Error('development React file list is empty')
+  }
+
   const cache = await storage.open(reactDevCacheName)
   const marker = generationURL(origin, version, markerName)
   await cache.delete(marker)
-  for (const { file, url } of files) {
-    const response = await fetchFile(url)
-    if (!response.ok) {
-      throw new Error(`development React ${file}: HTTP ${response.status}`)
+  for (const [file, hash] of files) {
+    const body = await (
+      await fetchOK(new URL('pkgs/' + file, source).href)
+    ).blob()
+    if ((await sha256Hex(body)) !== hash) {
+      throw new Error(`development React ${file}: hash mismatch`)
     }
     await cache.put(
       generationURL(origin, version, file),
-      new Response(await response.blob(), {
-        headers: { 'Content-Type': 'text/javascript' },
-      }),
+      new Response(body, { headers: { 'Content-Type': 'text/javascript' } }),
     )
   }
   await cache.put(
     marker,
-    new Response(JSON.stringify(files.map(({ file }) => file)), {
+    new Response(JSON.stringify(files.map(([file]) => file)), {
       headers: { 'Content-Type': 'application/json' },
     }),
   )
@@ -157,6 +220,17 @@ export async function fillReactDevGeneration(
       await cache.delete(request)
     }
   }
+}
+
+// hasReactDevGeneration reports whether the cache holds a complete generation
+// of a version, reading only its marker.
+export async function hasReactDevGeneration(
+  storage: CacheStorage,
+  origin: string,
+  version: string,
+): Promise<boolean> {
+  const cache = await storage.open(reactDevCacheName)
+  return !!(await cache.match(generationURL(origin, version, markerName)))
 }
 
 // ReactDevGeneration is a complete generation read into memory, by file.
