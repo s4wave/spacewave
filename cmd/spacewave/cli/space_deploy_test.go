@@ -161,7 +161,7 @@ func TestFollowDeployStopsStates(t *testing.T) {
 		t.Fatalf("deadline follow error: %v", err)
 	}
 	line := "rev 2 waits since 21:43:00 for the running worker (rev 1) to answer its activation check"
-	if out.String() != line+"\nnot live yet: "+line+"\nnext: "+swapWaitingNextStep+"\n" {
+	if out.String() != line+"\nnot live yet: "+line+"\nnext: "+swapWaitingNextStep("colors")+"\n" {
 		t.Fatalf("deadline follow output:\n%s", out.String())
 	}
 
