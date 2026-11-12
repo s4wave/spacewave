@@ -197,6 +197,7 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 		children = append(children, e.Refs...)
 	}
 	tree := s.reach(children)
+	s.checkHoles(ctx, "put", slices.Concat(tree, rest))
 
 	// Put them first, then the rest, keeping the tree.
 	found, err := dst.PutBlockBatch(ctx, slices.Concat(tree, rest))
@@ -367,6 +368,8 @@ func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, r
 		refs = append(refs, e.Refs...)
 	}
 	tree, keys, _ := s.reachSliced(refs, false)
+	s.checkHoles(ctx, "SetRoots", slices.Concat(tree, entries))
+	s.checkRootHoles(ctx, slices.Concat(tree, entries), roots)
 
 	// Store them with the entries, but those an open flush stored, and move
 	// the roots.
@@ -495,6 +498,7 @@ func (s *PendingStore) Sweep(live []*BlockRef, mark uint64) {
 			s.keptBytes -= len(e.Data)
 			delete(s.kept, key)
 			delete(s.keptAt, key)
+			recordSwept(key)
 			forgot = append(forgot, e.Ref)
 		}
 	}

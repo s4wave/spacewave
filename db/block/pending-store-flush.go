@@ -38,6 +38,7 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	// Gather the kept trees no open flush stored, and the roots kept nowhere
 	// here.
 	tree, keys, stopped := s.reachSliced(roots, true)
+	s.checkHoles(ctx, "Flush", tree)
 	s.mtx.Lock()
 	var unkept []*BlockRef
 	for _, root := range roots {
