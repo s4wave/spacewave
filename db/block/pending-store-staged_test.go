@@ -207,11 +207,12 @@ func TestChildCheckRefusesOnlyOnProof(t *testing.T) {
 	}
 }
 
-// existsStore is a sweepingStore whose single-root existence answer is
-// exists'.
+// existsStore is a store whose existence lookups answer with exists, and
+// whose local tier, when set, is local.
 type existsStore struct {
 	*sweepingStore
 	exists func(ctx context.Context, ref *block.BlockRef) (bool, error)
+	local  block.StoreOps
 }
 
 // GetBlockExists answers with exists.
@@ -219,19 +220,28 @@ func (s *existsStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (
 	return s.exists(ctx, ref)
 }
 
-// TestFlushPinProbeSkipsOnlyUnknown checks Flush's probe of a root it does
-// not keep: a source with no peer session, or slow past the probe's bound,
-// skips the pin and the flush lands, while a local read error fails the
-// flush rather than being taken for a slow source.
+// GetLocalStore returns the local tier.
+func (s *existsStore) GetLocalStore() block.StoreOps {
+	return s.local
+}
+
+// TestFlushPinProbeSkipsOnlyUnknown checks Flush's lookup of a root it does
+// not keep, as the child check makes it: a local tier error fails the flush,
+// while a whole-store lookup that errs, finds no peer session or runs past
+// the probe's bound is unknown, so the pin is skipped and the flush lands,
+// and a parent cancel during it fails the flush. It fails when a fast remote
+// error fails a write, or a local one is taken for a remote one.
 func TestFlushPinProbeSkipsOnlyUnknown(t *testing.T) {
-	ctx := context.Background()
-	inner := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}}
-	pages := block.NewPendingStore(inner, 1<<20)
 	root, err := block.BuildBlockRef([]byte("unkept root"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	flush := func() error {
+	local := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, exists: func(context.Context, *block.BlockRef) (bool, error) {
+		return false, nil
+	}}
+	whole := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, local: local}
+	pages := block.NewPendingStore(whole, 1<<20)
+	flush := func(ctx context.Context) error {
 		release, err := pages.Flush(ctx, []*block.BlockRef{root})
 		if release != nil {
 			release()
@@ -239,33 +249,47 @@ func TestFlushPinProbeSkipsOnlyUnknown(t *testing.T) {
 		return err
 	}
 
-	// No peer session: skipped.
-	inner.exists = func(context.Context, *block.BlockRef) (bool, error) {
-		return false, errors.Wrap(block.ErrUnavailable, "no peer session")
+	// The whole store's unknown answers skip the pin.
+	unknown := map[string]func(context.Context, *block.BlockRef) (bool, error){
+		"no peer session": func(context.Context, *block.BlockRef) (bool, error) {
+			return false, errors.Wrap(block.ErrUnavailable, "no peer session")
+		},
+		"remote error": func(context.Context, *block.BlockRef) (bool, error) {
+			return false, errors.New("cloud: connection reset")
+		},
+		"slow": func(ctx context.Context, _ *block.BlockRef) (bool, error) {
+			<-ctx.Done()
+			return false, ctx.Err()
+		},
 	}
-	if err := flush(); err != nil {
-		t.Fatalf("unavailable source: %v", err)
+	for name, exists := range unknown {
+		whole.exists = exists
+		start := time.Now()
+		if err := flush(t.Context()); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if waited := time.Since(start); waited > 5*time.Second {
+			t.Fatalf("%s: the flush waited %v on the probe", name, waited)
+		}
 	}
 
-	// Slow past the bound: skipped once the bound passes.
-	inner.exists = func(ctx context.Context, _ *block.BlockRef) (bool, error) {
+	// A parent cancel during the whole-store lookup fails the flush.
+	ctx, cancel := context.WithCancel(t.Context())
+	whole.exists = func(ctx context.Context, _ *block.BlockRef) (bool, error) {
+		cancel()
 		<-ctx.Done()
 		return false, ctx.Err()
 	}
-	start := time.Now()
-	if err := flush(); err != nil {
-		t.Fatalf("slow source: %v", err)
-	}
-	if waited := time.Since(start); waited > 5*time.Second {
-		t.Fatalf("slow source: the flush waited %v on the probe", waited)
+	if err := flush(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("parent cancel: %v, want %v", err, context.Canceled)
 	}
 
-	// A local read error: the flush fails with it.
+	// A local tier error fails the flush.
 	broken := errors.New("read error")
-	inner.exists = func(context.Context, *block.BlockRef) (bool, error) {
+	local.exists = func(context.Context, *block.BlockRef) (bool, error) {
 		return false, broken
 	}
-	if err := flush(); !errors.Is(err, broken) {
+	if err := flush(t.Context()); !errors.Is(err, broken) {
 		t.Fatalf("local read error: %v, want %v", err, broken)
 	}
 }

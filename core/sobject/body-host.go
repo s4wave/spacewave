@@ -3,6 +3,7 @@ package sobject
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
@@ -34,6 +35,9 @@ type BodyHost struct {
 	bcast broadcast.Broadcast
 	// body is the attached body, or nil.
 	body Body
+	// damageRetry, when set, replaces the driver's wait before a damaged
+	// write is tried again.
+	damageRetry time.Duration
 }
 
 // NewBodyHost returns the body host of so. report receives what the health
@@ -108,6 +112,9 @@ func (h *BodyHost) SetBody(ctx context.Context, body Body) (release func(), err 
 func (h *BodyHost) execute(ctx context.Context, body Body) error {
 	// Build the driver.
 	d := NewBodyDriver(h.le, h.so, body, h.report)
+	if h.damageRetry != 0 {
+		d.damageRetry = h.damageRetry
+	}
 	if h.host == nil {
 		return d.Execute(ctx)
 	}

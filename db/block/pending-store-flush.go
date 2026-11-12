@@ -106,18 +106,26 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		marked, batchBytes, batchLinks = i+1, 0, 0
 	}
 
-	// Pin each unkept root the inner store lacks, copying it in. A root no
-	// store holds yet, such as a block the swap itself puts, is left to the
-	// swap, and so is one whose source is away or slow: the lookup never
-	// waits for a peer or past childProbeWait, since a caller may hold a
-	// root set's lock behind it.
+	// Pin each unkept root the inner store lacks, copying it in. The local
+	// tier answers first, and its error fails the flush. A root no tier
+	// holds yet, such as a block the swap itself puts, is left to the swap,
+	// and so is one whose other tiers are away, slow or failing: as the child
+	// check does, the whole-store lookup never waits for a peer or past
+	// childProbeWait, since a caller may hold a root set's lock behind it,
+	// and its error counts as unknown while ctx lives.
+	local := s.StoreOps
+	if tiers, ok := s.StoreOps.(LocalStoreGetter); ok && tiers.GetLocalStore() != nil {
+		local = tiers.GetLocalStore()
+	}
 	for _, root := range unkept {
-		probe, cancel := childProbe(ctx)
-		found, err := s.StoreOps.GetBlockExists(probe, root)
-		late := errors.Is(context.Cause(probe), ErrUnavailable)
-		cancel()
-		if errors.Is(err, ErrUnavailable) || (err != nil && ctx.Err() == nil && late) {
-			continue
+		found, err := local.GetBlockExists(ctx, root)
+		if err == nil && !found && local != s.StoreOps {
+			probe, cancel := childProbe(ctx)
+			found, err = s.StoreOps.GetBlockExists(probe, root)
+			cancel()
+			if err != nil && ctx.Err() == nil {
+				continue
+			}
 		}
 		if err != nil {
 			cleanup()

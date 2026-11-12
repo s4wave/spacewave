@@ -128,15 +128,57 @@ type DamagedBody interface {
 	WatchDamage(wake func())
 }
 
-// retryAt returns when the earliest damaged write, the steps', the checkpoint
-// stores' or the body's own, is due for another attempt, or the zero time
-// while none is damaged. The caller holds mtx.
-func (d *BodyDriver) retryAt() time.Time {
-	at := earliest(d.stepRefusal.RetryAt(), d.storeRefusal.RetryAt())
+// retryState returns when the earliest damaged write still waiting out its
+// retry comes due, or the zero time, and whether a refused write, the steps',
+// the checkpoint stores' or the body's own, is due at now. A refused store
+// that has not repeated is due at once. The caller holds mtx.
+func (d *BodyDriver) retryState(now time.Time) (time.Time, bool) {
+	// Collect the retry time of each damaged write.
+	at := []time.Time{d.stepRefusal.RetryAt(), d.storeRefusal.RetryAt()}
 	if b, ok := d.body.(DamagedBody); ok {
-		at = earliest(at, b.RetryAt())
+		at = append(at, b.RetryAt())
 	}
-	return at
+
+	// Sort them into due and still waiting.
+	var waiting time.Time
+	due := d.storeRefusal != nil && d.storeRefusal.Damage() == nil
+	for _, t := range at {
+		switch {
+		case t.IsZero():
+		case !now.Before(t):
+			due = true
+		default:
+			waiting = earliest(waiting, t)
+		}
+	}
+	return waiting, due
+}
+
+// backoff is the wait of a write after errors that are not store refusals:
+// it doubles from bodyRetryMin to bodyRetryMax with each error in a row, and
+// resets once the write lands. The zero value waits for nothing.
+type backoff struct {
+	// delay is the latest wait, or zero before the first error.
+	delay time.Duration
+	// at is when the latest wait ends.
+	at time.Time
+}
+
+// fail notes an error at now and returns the wait before the next attempt.
+func (b *backoff) fail(now time.Time) time.Duration {
+	b.delay = min(max(2*b.delay, bodyRetryMin), bodyRetryMax)
+	b.at = now.Add(b.delay)
+	return b.delay
+}
+
+// reset clears the wait once the write landed.
+func (b *backoff) reset() {
+	*b = backoff{}
+}
+
+// due reports whether the wait ended at now.
+func (b *backoff) due(now time.Time) bool {
+	return !now.Before(b.at)
 }
 
 // noteRefusal returns r after an attempt that ended with err, waiting

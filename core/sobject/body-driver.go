@@ -57,8 +57,9 @@ type BodyDriver struct {
 	checkpointer *bodyCheckpointer
 	// wake asks Execute to step again without a state change.
 	wake chan error
-	// voteWake has the group voter step again, or is nil. A vote's store
-	// refusal calls it once due, as no state change may come to retry it.
+	// voteWake has the group voter step again, or is nil. A step calls it
+	// when what the voter would propose or judge changed, and while a vote's
+	// refused store is due, as no state change may come to retry it.
 	voteWake func()
 	// now returns the current time.
 	now func() time.Time
@@ -94,9 +95,9 @@ type BodyDriver struct {
 	// it, and a repeated step refusal steps again on a new state or then;
 	// the first attempt that stores clears it.
 	stepRefusal, storeRefusal *StoreRefusal
-	// voteTimer calls voteWake when a vote's damaged store comes due, or is
-	// nil.
-	voteTimer *time.Timer
+	// storeFailed backs off the signer's checkpoint store after an error
+	// that is not a refusal, until a store lands.
+	storeFailed backoff
 }
 
 // NewBodyDriver returns the driver of body on so. report receives what the
@@ -128,9 +129,9 @@ func (d *BodyDriver) SetCheckpointer(host *SOHost, privKey crypto.PrivKey, sfs *
 	d.checkpointer = &bodyCheckpointer{host: host, privKey: privKey, sfs: sfs}
 }
 
-// SetVoteWake has the driver call wake when a group vote's damaged store
-// comes due, so the voter proposes or judges again on a quiet Space. Call it
-// before Execute.
+// SetVoteWake has the driver call wake when what the group voter would
+// propose or judge changed, and while a vote's refused store is due, so the
+// voter proposes or judges again on a quiet Space. Call it before Execute.
 func (d *BodyDriver) SetVoteWake(wake func()) {
 	d.voteWake = wake
 }
@@ -145,37 +146,25 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 	defer rel()
 
-	// Wake a failed step after a backoff, and a damaged write when its
-	// refusal is due, so a cause healed outside replay clears the damage on a
-	// quiet Space that sends no new state.
-	wake := d.wake
-	delay := bodyRetryMin
+	// Each damaged write waits out its retry, is due, or healed. A step
+	// attempts every due write it runs itself, so one still due after a step
+	// is in flight, is the group voter's, or failed with an error that is not
+	// a refusal: the driver steps again on a backoff rather than at once. A
+	// write still waiting wakes the driver when it comes due, and a failed
+	// step steps again on its own backoff. Each backoff resets once its cause
+	// clears, so one cause never delays another.
 	var timer *time.Timer
 	defer func() {
 		if timer != nil {
 			timer.Stop()
 		}
 	}()
-	wakeAfter := func(after time.Duration) {
-		if timer != nil {
-			timer.Stop()
-		}
-		timer = time.AfterFunc(after, func() {
-			select {
-			case wake <- errBodyRetry:
-			default:
-			}
-		})
-	}
-	retry := func() {
-		wakeAfter(delay)
-		delay = min(2*delay, bodyRetryMax)
-	}
+	var failed, due backoff
 
-	// Step each new state, and the held one on a retry.
+	// Step each new state, and the held one on a wake.
 	var snap SharedObjectStateSnapshot
 	for {
-		next, err := ctr.WaitValueChange(ctx, snap, wake)
+		next, err := ctr.WaitValueChange(ctx, snap, d.wake)
 		if err != nil && !errors.Is(err, errBodyRetry) {
 			return err
 		}
@@ -191,28 +180,41 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 				return context.Canceled
 			}
 			d.le.WithError(err).Warn("replay stopped before the end of the order")
-			if !errors.Is(err, block.ErrMissingChild) || !d.stepDamaged() {
-				retry()
-				continue
-			}
 		}
 
-		// Wake when the earliest damaged write comes due. One the step left
-		// due waits on the backoff instead: its retry is in flight, or is
-		// the group voter's, so waking at once would spin.
-		at := d.nextRetry()
-		wait := at.Sub(d.now())
-		if !at.IsZero() && wait <= 0 {
-			retry()
-			continue
+		// Plan the next wake: the earliest of the failed step's backoff, the
+		// due writes' backoff and the next write to come due.
+		now := d.now()
+		var wait time.Duration
+		if err != nil && (!errors.Is(err, block.ErrMissingChild) || !d.stepDamaged()) {
+			wait = failed.fail(now)
+		} else {
+			failed.reset()
 		}
-		if err == nil {
-			delay = bodyRetryMin
+		waiting, isDue := d.retries(now)
+		if isDue {
+			wait = earliestWait(wait, due.fail(now))
+		} else {
+			due.reset()
 		}
-		if !at.IsZero() {
-			wakeAfter(wait)
+		if !waiting.IsZero() {
+			wait = earliestWait(wait, waiting.Sub(now))
+		}
+		if timer != nil {
+			timer.Stop()
+		}
+		if wait != 0 {
+			timer = time.AfterFunc(wait, func() { d.wakeAfter(0) })
 		}
 	}
+}
+
+// earliestWait returns the shorter of two waits, where zero is none.
+func earliestWait(a, b time.Duration) time.Duration {
+	if a == 0 || (b != 0 && b < a) {
+		return b
+	}
+	return a
 }
 
 // stepDamaged reports whether the steps' store refusal repeated, so a step
@@ -223,11 +225,12 @@ func (d *BodyDriver) stepDamaged() bool {
 	return d.stepRefusal.Damage() != nil
 }
 
-// nextRetry returns when the earliest damaged write is due, or the zero time.
-func (d *BodyDriver) nextRetry() time.Time {
+// retries returns when the earliest damaged write still waiting out its retry
+// comes due, or the zero time, and whether a refused write is due at now.
+func (d *BodyDriver) retries(now time.Time) (time.Time, bool) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	return d.retryAt()
+	return d.retryState(now)
 }
 
 // Damaged returns the store refusal replay could not heal, or nil.
@@ -262,7 +265,8 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 	}()
 
 	// Install the checkpoint when it moved.
-	if !ev.Checkpoint.EqualVT(d.installed) {
+	moved := !ev.Checkpoint.EqualVT(d.installed)
+	if moved {
 		if err := d.install(ctx, ev); err != nil {
 			return err
 		}
@@ -274,12 +278,14 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 		return err
 	}
 	if follows {
+		d.storeRefusal, d.storeFailed = nil, backoff{}
 		return d.follow(ctx, ev)
 	}
 
 	// Keep the applied operations the order still places first and the
 	// config still admits, and apply the rest.
 	keep := d.admittedPrefix(ev, SharedPrefix(d.hashes(), ev.Order))
+	moved = moved || keep != len(d.positions) || keep != len(ev.Order)
 	d.positions = d.positions[:keep]
 	d.set = ev.Set
 	for i := keep; i < len(ev.Order); i++ {
@@ -295,8 +301,29 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 		}
 	}
 
-	// Sign the checkpoint this device owes.
+	// Sign the checkpoint this device owes, or have the voter vote.
+	if ev.Config.IsGroupControl() {
+		d.vote(ev, moved)
+		return nil
+	}
 	return d.checkpoint(ctx, ev)
+}
+
+// vote has the group voter propose or judge again when the step changed what
+// it would answer, or its refused store is due. A device that no longer votes
+// on a checkpoint, as a non-voter or with no stable operation to judge, owes
+// no store, so its refusal clears. The caller holds mtx.
+func (d *BodyDriver) vote(ev *OrderEvent, moved bool) {
+	if d.checkpointer == nil {
+		return
+	}
+	if ev.Config.VotingWeight(d.so.GetPeerID().String()) == 0 || ev.Stable == 0 {
+		d.storeRefusal = nil
+		return
+	}
+	if d.voteWake != nil && (moved || d.storeRefusal != nil && d.storeRefusal.Due(d.now())) {
+		d.voteWake()
+	}
 }
 
 // checkpoint starts the checkpoint over ev's stable prefix when this device
@@ -305,29 +332,40 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 // so the driver keeps applying and deciding operations meanwhile. The next
 // step installs the checkpoint once it is adopted. A state that moved past
 // the prefix meanwhile skips it, and the driver steps again to checkpoint
-// anew.
+// anew. A device that owes no checkpoint owes no store, so its refusal clears.
 func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	// Only the checkpointer of an owner-controlled Space signs, and not while
-	// handing over or while another checkpoint stores. Group control decides
-	// checkpoints by vote.
+	// another checkpoint stores.
 	c := d.checkpointer
-	self := d.so.GetPeerID().String()
-	if c == nil || d.storing || !d.storeRefusal.Due(d.now()) || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
+	if c == nil || d.storing {
 		return nil
 	}
-	own, err := ev.Snapshot.GetOwnership(ctx)
-	if err != nil || own.Departing(self) {
-		return err
+	self := d.so.GetPeerID().String()
+	owes := ev.Config.Checkpointer() == self
+	if owes {
+		own, err := ev.Snapshot.GetOwnership(ctx)
+		if err != nil {
+			return err
+		}
+		owes = !own.Departing(self)
 	}
 
-	// Wait for enough stable operations the body applied. The leader
-	// checkpoints every ordered batch, since the others install its
-	// checkpoints instead of replaying.
+	// It owes one once enough stable operations wait. The leader checkpoints
+	// every ordered batch, since the others install its checkpoints instead
+	// of replaying.
 	minStable := MinCheckpointOperations
 	if ev.Config.Leader() == self {
 		minStable = 1
 	}
-	if ev.Stable < minStable || len(d.positions) < ev.Stable {
+	if !owes || ev.Stable < minStable {
+		d.storeRefusal, d.storeFailed = nil, backoff{}
+		return nil
+	}
+
+	// Store it once the body applied the prefix and no refusal or failure
+	// still waits out its retry.
+	now := d.now()
+	if len(d.positions) < ev.Stable || !d.storeRefusal.Due(now) || !d.storeFailed.due(now) {
 		return nil
 	}
 	data, store, err := d.body.Root(ctx, ev.Stable)
@@ -359,15 +397,29 @@ func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, s
 		d.le.WithError(err).Warn("checkpoint stopped before it was adopted")
 	}
 
-	// Note a refused store, and let the next step checkpoint again, or,
-	// once the refusal repeated, the step Execute wakes when it is due.
+	// A store the run's end cut short notes nothing.
 	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	d.storing = false
-	if ctx.Err() == nil {
-		d.storeRefusal = d.noteRefusal(d.storeRefusal, stored)
+	if ctx.Err() != nil {
+		return
 	}
-	d.mtx.Unlock()
-	d.wakeAfter(0)
+
+	// Note a refused store. A store that landed or went stale, or a refusal
+	// that changed, steps again at once: to install, to checkpoint anew, or
+	// to retry the first refusal and publish a repeated one, whose retry
+	// Execute then waits out. Any other failure steps again after the
+	// store's backoff, so a store that fails fast never spins.
+	before := d.storeRefusal
+	d.storeRefusal = d.noteRefusal(d.storeRefusal, stored)
+	var wait time.Duration
+	switch {
+	case err == nil || errors.Is(err, errCheckpointStale):
+		d.storeFailed.reset()
+	case d.storeRefusal == before:
+		wait = d.storeFailed.fail(d.now())
+	}
+	d.wakeAfter(wait)
 }
 
 // wakeAfter wakes the driver to step again after delay, unless a wake is
@@ -445,33 +497,19 @@ func (d *BodyDriver) storeVote(ctx context.Context, store func(context.Context) 
 		return err
 	}
 
-	// Note its refusal, and wake the voter once a damaged store is due.
+	// Note its refusal. When it changed, wake the driver to publish the
+	// health and plan the voter's retry: at once after a first refusal, once
+	// due after a repeated one. A store that failed otherwise leaves a due
+	// refusal due, which the driver retries on its backoff.
 	d.mtx.Lock()
-	before := d.storeRefusal.Damage()
+	before := d.storeRefusal
 	d.storeRefusal = d.noteRefusal(d.storeRefusal, err)
-	changed := !before.EqualVT(d.storeRefusal.Damage())
-	d.armVoteWake()
+	changed := d.storeRefusal != before
 	d.mtx.Unlock()
-
-	// Wake the driver to publish the health when the damage changed.
 	if changed {
 		d.wakeAfter(0)
 	}
 	return err
-}
-
-// armVoteWake arms voteTimer to wake the voter when the vote's damaged store
-// is due, or stops it while none is damaged. The caller holds mtx.
-func (d *BodyDriver) armVoteWake() {
-	if d.voteTimer != nil {
-		d.voteTimer.Stop()
-		d.voteTimer = nil
-	}
-	at := d.storeRefusal.RetryAt()
-	if d.voteWake == nil || at.IsZero() {
-		return
-	}
-	d.voteTimer = time.AfterFunc(max(0, at.Sub(d.now())), d.voteWake)
 }
 
 // JudgeCheckpoint reports whether inner is the checkpoint after the one state
@@ -587,6 +625,10 @@ func (d *BodyDriver) install(ctx context.Context, ev *OrderEvent) error {
 		d.positions = slices.Clone(positions[covered:])
 	}
 	d.installed = ev.Checkpoint
+
+	// A refused store built the checkpoint after the one held before; the
+	// next store builds on this one, so the refusal is no longer owed.
+	d.storeRefusal, d.storeFailed = nil, backoff{}
 	return nil
 }
 
