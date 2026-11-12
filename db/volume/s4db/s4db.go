@@ -39,7 +39,7 @@ type Volume = volume_kvtx.Volume
 
 // NewVolume opens the database file named by conf, creating it when absent
 // and converting a bolt Volume file in place.
-func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, error) {
+func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (_ *Volume, err error) {
 	// Check the config.
 	if err := conf.Validate(); err != nil {
 		return nil, volume.Permanent(err)
@@ -67,11 +67,16 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		Families:   prefixes,
 	}
 
-	// Open it, converting a file the previous engine wrote in place first.
+	// Open it, converting a file the previous engine wrote in place first,
+	// and hold it until the Volume owns it, so a failed open releases the
+	// file's claim for the next.
 	db, err := Open(ctx, le, path, opts)
 	if err != nil {
 		return nil, err
 	}
+	var op volume.Opening
+	defer op.Settle(&err)
+	op.Hold(db.Close)
 	var store kvtx.Store = db
 	if conf.GetVerbose() {
 		store = kvtx_vlogger.NewVLogger(le, store)
@@ -88,20 +93,22 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		}
 	}
 	if err != nil {
-		return nil, errors.Join(err, db.Close())
+		return nil, err
 	}
 
-	// Build the Volume.
+	// Build the Volume, which owns the database from here, including when
+	// its build fails.
 	stats := func(ctx context.Context) (*volume.StorageStats, error) {
 		return storageStats(ctx, db, path)
 	}
+	op.Handoff()
 	vol, err := volume_kvtx.NewVolume(
 		ctx, ControllerID, keys, store, conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(), conf.GetNoWriteKey(), stats, db.Close,
 		func() error { return os.Remove(path) },
 	)
 	if err != nil {
-		return nil, errors.Join(err, db.Close())
+		return nil, err
 	}
 
 	// Coordinate writers across processes through the database file, log

@@ -8,18 +8,9 @@ import (
 
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume"
-	"github.com/s4wave/spacewave/db/volume/device"
 	device_opfs "github.com/s4wave/spacewave/db/volume/device/opfs"
 	volume_idb "github.com/s4wave/spacewave/db/volume/idb"
 )
-
-// openedDevice is a device the volume owns until it closes it.
-type openedDevice interface {
-	device.Device
-
-	// Close releases the device.
-	Close() error
-}
 
 // errOPFSUnavailable reports a context where OPFS sync access handles do not
 // work, such as a shared worker or a WebKit private window.

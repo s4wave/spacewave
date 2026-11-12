@@ -143,7 +143,6 @@ func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (vol
 		},
 	)
 	if err != nil {
-		release()
 		return nil, err
 	}
 	return vol, nil
