@@ -339,6 +339,50 @@ func TestCursorSaveHoldsServedWorlds(t *testing.T) {
 	}
 }
 
+// TestCursorSaveFailureKeepsEpochs checks that a cursor save which fails,
+// before its root move or after it with the record unwritten, keeps the epochs
+// it took: a collection after the failure frees no page of the saved World,
+// which the cursor root may not hold, and the next save that lands takes the
+// kept epochs and ends them with its own.
+func TestCursorSaveFailureKeepsEpochs(t *testing.T) {
+	for _, commit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "before the move", true: "after the move"}[commit], func(t *testing.T) {
+			// Replay a World whose page goes past the bound to the current
+			// epoch.
+			f := newReplayFixture(t, 1000)
+			a := f.a
+			stored := f.put("stored page", 1200)
+			world := f.put("saved World", 0, stored)
+			f.apply("saved", world)
+
+			// The save fails; its epochs still hold the page.
+			store := &failSetRootsStore{StoreOps: a.pages.StoreOps, fail: true, commit: commit}
+			a.pages.StoreOps = store
+			f.save()
+			if store.fail {
+				t.Fatal("the save made no root move")
+			}
+			f.collect()
+			f.requireFound("the World of a failed save", world, stored)
+			if !a.replay.stage.stored() {
+				t.Fatal("the next save does not take the kept epoch")
+			}
+
+			// A later save lands, ends the kept epoch with its own, and the
+			// cursor root holds the later World.
+			later := f.put("later page", 1200)
+			next := f.put("later World", 0, later)
+			f.apply("later", next)
+			f.save()
+			if a.replay.stage.stored() {
+				t.Fatal("the landed save left an epoch unended")
+			}
+			f.collect()
+			f.requireFound("the World of the landed save", next, later)
+		})
+	}
+}
+
 // peerSpace is a localStateSpace that names its peer.
 type peerSpace struct {
 	*localStateSpace

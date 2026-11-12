@@ -642,7 +642,7 @@ func TestBodyDriverDamagedStepRetries(t *testing.T) {
 }
 
 // damagedTestBody is a testBody whose own writes are damaged until a Retry
-// after heal.
+// after heal, whose write lands in the background as a cursor save does.
 type damagedTestBody struct {
 	*testBody
 	// healed makes the next Retry clear the damage.
@@ -651,6 +651,8 @@ type damagedTestBody struct {
 	damaged atomic.Bool
 	// retries counts the Retry calls.
 	retries atomic.Int32
+	// wake is the driver's wake.
+	wake func()
 }
 
 // Damaged returns a damage while damaged is set.
@@ -661,19 +663,47 @@ func (b *damagedTestBody) Damaged() *SOStoreDamage {
 	return &SOStoreDamage{Operation: "Flush", Refusals: 2}
 }
 
-// Retry counts the call, and clears the damage once healed.
+// RetryAt returns a retry 50ms ahead while damaged, or an hour ahead once
+// healed, as the healed write is in flight: only the wake that write sends
+// when it lands publishes the heal.
+func (b *damagedTestBody) RetryAt() time.Time {
+	switch {
+	case !b.damaged.Load():
+		return time.Time{}
+	case b.healed.Load():
+		return time.Now().Add(time.Hour)
+	default:
+		return time.Now().Add(50 * time.Millisecond)
+	}
+}
+
+// Retry counts the call, and once healed clears the damage after the call
+// returns, as a background write landing does, then wakes the driver.
 func (b *damagedTestBody) Retry(context.Context) error {
 	b.retries.Add(1)
 	if b.healed.Load() {
-		b.damaged.Store(false)
+		go func() {
+			time.Sleep(20 * time.Millisecond)
+			b.damaged.Store(false)
+			if b.wake != nil {
+				b.wake()
+			}
+		}()
 	}
 	return nil
 }
 
+// WatchDamage keeps the driver's wake.
+func (b *damagedTestBody) WatchDamage(wake func()) {
+	b.wake = wake
+}
+
 // TestBodyDriverRetriesDamagedBody checks that Execute has a body whose own
-// writes are damaged write them again after the damage retry delay on a
-// quiet Space whose steps all succeed, so the damage clears once its cause
-// heals with no new state. It fails when only a failed step wakes the driver.
+// writes are damaged write them again when the body's retry is due on a
+// quiet Space whose steps all succeed, and that the published health clears
+// once the healed write lands in the background, with no new state. It fails
+// when only a failed step wakes the driver, or when the landed write does not
+// wake it to publish.
 func TestBodyDriverRetriesDamagedBody(t *testing.T) {
 	// A quiet Space holds one operation the body applies.
 	ctx := t.Context()
@@ -687,8 +717,8 @@ func TestBodyDriverRetriesDamagedBody(t *testing.T) {
 		testDriverSharedObject: testDriverSharedObject{peerID: peers[0].GetPeerID()},
 		ctr:                    ccontainer.NewCContainer[SharedObjectStateSnapshot](testHandle(t, state, keys[0])),
 	}
-	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
-	d.damageRetry = 50 * time.Millisecond
+	var shown atomic.Pointer[BodyReport]
+	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, func(r *BodyReport) { shown.Store(r) })
 	ctx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
 	go func() { done <- d.Execute(ctx) }()
@@ -707,13 +737,12 @@ func TestBodyDriverRetriesDamagedBody(t *testing.T) {
 		}
 	}
 	waitFor("the first retry", func() bool { return body.retries.Load() != 0 })
-	if d.Damaged() == nil {
-		t.Fatal("the driver shows no damage of a damaged body")
-	}
+	waitFor("the damage in the health", func() bool { r := shown.Load(); return r != nil && r.Damage != nil })
 
-	// The cause heals with no new state; a later retry clears the damage.
+	// The cause heals with no new state; a later retry's write lands after
+	// it returns, and the health clears.
 	body.healed.Store(true)
-	waitFor("the healed retry", func() bool { return d.Damaged() == nil })
+	waitFor("the healed health", func() bool { r := shown.Load(); return r != nil && r.Damage == nil })
 }
 
 // TestBodyDriverVoterDamagedByRefusedStore checks that a group voter's
@@ -730,7 +759,14 @@ func TestBodyDriverVoterDamagedByRefusedStore(t *testing.T) {
 	state := newGroupState(t, peers, 1)
 	g := newGroupHost(ctx, state)
 	stores, healed := 0, false
+	var d *BodyDriver
 	body := &testBody{storeErr: func() error {
+		// The store runs without the body's lock, as the signer's does.
+		if !d.mtx.TryLock() {
+			t.Error("a vote's store ran under the body's lock")
+		} else {
+			d.mtx.Unlock()
+		}
 		stores++
 		if healed {
 			return nil
@@ -738,7 +774,15 @@ func TestBodyDriverVoterDamagedByRefusedStore(t *testing.T) {
 		return &block.MissingChildError{Op: "Flush", Block: &block.BlockRef{}, Child: &block.BlockRef{}}
 	}}
 	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
-	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	d = NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	woken := func() bool {
+		select {
+		case <-d.wake:
+			return true
+		default:
+			return false
+		}
+	}
 	d.SetCheckpointer(g.host, keys[0], testStepFactorySet())
 
 	// Apply enough stable operations to propose a checkpoint.
@@ -765,14 +809,20 @@ func TestBodyDriverVoterDamagedByRefusedStore(t *testing.T) {
 	if stores != 2 || d.Damaged().GetRefusals() != 2 {
 		t.Fatalf("stores %d, damage %v; want 2 stores and the refusal", stores, d.Damaged())
 	}
+	if !woken() {
+		t.Fatal("the damage woke no step to publish the health")
+	}
 
 	// The cause heals; the proposal due after the retry delay stores and
-	// clears the damage.
+	// clears the damage, and wakes a step to publish it.
 	healed = true
 	d.now = func() time.Time { return time.Now().Add(2 * time.Minute) }
 	inner, err := d.ProposeCheckpoint(ctx, held)
 	if err != nil || inner == nil || d.Damaged() != nil {
 		t.Fatalf("proposal after the heal = %v, %v; damage %v", inner, err, d.Damaged())
+	}
+	if !woken() {
+		t.Fatal("the heal woke no step to publish the health")
 	}
 
 	// Judging that proposal over a refusing store counts the same way: two
@@ -795,5 +845,8 @@ func TestBodyDriverVoterDamagedByRefusedStore(t *testing.T) {
 	ok, decided, err := d.JudgeCheckpoint(ctx, held, inner)
 	if !ok || !decided || err != nil || d.Damaged() != nil {
 		t.Fatalf("judgment after the heal = %v, %v, %v; damage %v", ok, decided, err, d.Damaged())
+	}
+	if !woken() {
+		t.Fatal("the judgment's heal woke no step to publish the health")
 	}
 }

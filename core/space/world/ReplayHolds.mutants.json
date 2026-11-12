@@ -1,5 +1,11 @@
 [
-  {"name": "save holds no engine reader (round four L1)", "replace": [["hold == readers \\cup storing", "hold == storing"]], "expect": "LiveWorldsRead"},
-  {"name": "save holds no background store (finding 2)", "replace": [["hold == readers \\cup storing", "hold == readers"]], "expect": "LiveWorldsRead"},
-  {"name": "Root recomputes only to the asked position (finding 1)", "replace": [["mem' = Recompute(Min(floor, Len(pos)))", "mem' = Recompute(n)"]], "expect": "LiveWorldsRead"}
+  {"name": "save holds no engine reader (round four L1)", "replace": [["hold == readers \\cup storing \\cup trimKeep", "hold == storing \\cup trimKeep"]], "expect": "LiveWorldsRead"},
+  {"name": "save holds no background store (finding 2)", "replace": [["hold == readers \\cup storing \\cup trimKeep", "hold == readers \\cup trimKeep"]], "expect": "LiveWorldsRead"},
+  {"name": "save holds no World a pending trim keeps", "replace": [["hold == readers \\cup storing \\cup trimKeep", "hold == readers \\cup storing"]], "expect": "LiveWorldsRead"},
+  {"name": "Root recomputes only to the asked position (finding 1)", "replace": [["mem' = Recompute(Min(floor, Len(pos)))", "mem' = Recompute(n)"]], "expect": "LiveWorldsRead"},
+  {"name": "save's root move stores no page from memory", "replace": [["IF (w \\in saveH /\\ mem[w]) \\/ (w \\in ends", "IF (w \\in ends"]], "expect": "RootsNameStoredWorlds"},
+  {"name": "Admit holds a candidate without flushing its pages", "replace": [["[vol EXCEPT ![c] = IF stored THEN \"vol\" ELSE IF page = \"mem\"", "[vol EXCEPT ![c] = IF page = \"mem\""]], "expect": "RootsNameStoredWorlds"},
+  {"name": "Admit holds nothing after a stage stored a page", "replace": [["/\\ held' = IF stored THEN held \\cup {c} ELSE held", "/\\ held' = held"]], "expect": "LiveWorldsRead"},
+  {"name": "a failed save ends its epochs", "replace": [["ELSE UNCHANGED <<held, vol>>", "ELSE /\\ UNCHANGED held\n        /\\ vol' = [w \\in Worlds |-> IF w \\in ending THEN \"vol\" ELSE vol[w]]"]], "expect": "LiveWorldsRead"},
+  {"name": "the trim plan holds no candidate", "replace": [["/\\ trimKeep' = live \\cup c \\cup {Pos(n - 1)}", "/\\ trimKeep' = live \\cup {Pos(n - 1)}"], ["\\cup live \\cup c} \\cup", "\\cup live} \\cup"]], "expect": "LiveWorldsRead"}
 ]

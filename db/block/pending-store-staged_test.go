@@ -3,6 +3,7 @@ package block_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -119,8 +120,9 @@ func (s *tieredStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Blo
 // TestChildCheckRefusesOnlyOnProof checks the child check of a store with a
 // local tier: a child the local tier holds passes with one local read and no
 // call behind it; a child the whole store could not look for, offline or with
-// no peer session, is admitted and counted unchecked; a child no source holds,
-// as after the local collector freed it, is refused.
+// no peer session, or slow past the probe's bound, is admitted and counted
+// unchecked; a child no source holds, as after the local collector freed it,
+// is refused.
 func TestChildCheckRefusesOnlyOnProof(t *testing.T) {
 	ctx := context.Background()
 	mock := block_mock.NewMockStore(0)
@@ -174,11 +176,25 @@ func TestChildCheckRefusesOnlyOnProof(t *testing.T) {
 		t.Fatalf("unknown child: %v, unchecked %d, reported %d", err, pages.Unchecked(), reported)
 	}
 
+	// A source that never answers: the write waits only the probe's bound,
+	// then is admitted, counted and reported.
+	inner.remote = func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+		<-ctx.Done()
+		return nil, context.Cause(ctx)
+	}
+	start := time.Now()
+	if err := flush("slow", child("slow")); err != nil || pages.Unchecked() != 2 || reported != 2 {
+		t.Fatalf("slow child: %v, unchecked %d, reported %d", err, pages.Unchecked(), reported)
+	}
+	if waited := time.Since(start); waited > 5*time.Second {
+		t.Fatalf("slow child: the write waited %v on the probe", waited)
+	}
+
 	// Held behind the local tier: admitted, not counted.
 	inner.remote = func(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
 		return []bool{true}, nil
 	}
-	if err := flush("remote", child("remote")); err != nil || pages.Unchecked() != 1 {
+	if err := flush("remote", child("remote")); err != nil || pages.Unchecked() != 2 {
 		t.Fatalf("remote child: %v, unchecked %d", err, pages.Unchecked())
 	}
 

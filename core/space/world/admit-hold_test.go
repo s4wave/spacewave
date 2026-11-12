@@ -4,6 +4,7 @@ package space_world
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -222,5 +223,76 @@ func TestRootSetMoveKeepsLostRoot(t *testing.T) {
 	// Adding a lost World is refused.
 	if err := a.appendRoots(ctx, h, []*block.BlockRef{lost("another lost World")}); !errors.Is(err, block.ErrMissingChild) {
 		t.Fatalf("append of a lost World: %v, want %v", err, block.ErrMissingChild)
+	}
+}
+
+// failSetRootsStore fails the next SetRoots, once, before it commits or, with
+// commit set, after, as a store whose commit landed before the connection
+// dropped.
+type failSetRootsStore struct {
+	block.StoreOps
+	fail, commit bool
+}
+
+// SetRoots fails the first time, committing the move first when commit is set.
+func (s *failSetRootsStore) SetRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if !s.fail {
+		return s.StoreOps.SetRoots(ctx, entries, roots)
+	}
+	s.fail = false
+	if s.commit {
+		if err := s.StoreOps.SetRoots(ctx, entries, roots); err != nil {
+			return err
+		}
+	}
+	return errors.New("connection dropped")
+}
+
+// TestRootSetMoveAfterUnknownOutcome checks that a root move whose commit
+// landed but reported an error does not wedge the adapter: the next move
+// reads the roots again, names what the store holds as Previous, lands, and
+// leaves the held roots and set matching the store.
+func TestRootSetMoveAfterUnknownOutcome(t *testing.T) {
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, 4<<10, time.Hour)
+	stored := func(data string) *block.BlockRef {
+		t.Helper()
+		ref, _, err := a.pages.StoreOps.PutBlock(ctx, []byte(data), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	store := &failSetRootsStore{StoreOps: a.pages.StoreOps, fail: true, commit: true}
+	a.pages.StoreOps = store
+	appendWorld := func(w *block.BlockRef) error {
+		release, err := a.lockRootMtx(ctx)
+		if err != nil {
+			return err
+		}
+		defer release()
+		return a.appendRoots(ctx, &a.pendingWorlds, []*block.BlockRef{w})
+	}
+
+	// The first append commits and reports an error.
+	first, second := stored("first World"), stored("second World")
+	if err := appendWorld(first); err == nil {
+		t.Fatal("the failing append reported no error")
+	}
+
+	// The next append lands on the root the store holds.
+	if err := appendWorld(second); err != nil {
+		t.Fatalf("append after a move of unknown outcome: %v", err)
+	}
+	got, err := store.GetRoot(ctx, RootPending)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.EqualVT(a.held[RootPending]) {
+		t.Fatal("the held pending root differs from the store's")
+	}
+	h := &a.pendingWorlds
+	if !h.holds(first) || !h.holds(second) || len(h.roots) != 2 {
+		t.Fatalf("the pending set holds %d roots, first %v, second %v", len(h.roots), h.holds(first), h.holds(second))
 	}
 }

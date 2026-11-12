@@ -3,6 +3,7 @@ package space_world
 import (
 	"bytes"
 	"context"
+	"maps"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -110,6 +111,10 @@ type Adapter struct {
 	// held are the named roots this adapter holds, by name. Guarded by
 	// rootMtx.
 	held map[string]*block.BlockRef
+	// rootsUnknown is set when a move failed with its outcome unknown, so
+	// held and the sets may not match the store. lockRootMtx reads them
+	// again before the next move. Guarded by rootMtx.
+	rootsUnknown bool
 	// payloads are the payload roots the replay payloads root holds.
 	payloads rootSet
 	// retainedHeld are the retained roots the retained root holds. Guarded
@@ -183,6 +188,8 @@ type Adapter struct {
 	// they were, so the old base keeps holding what the refused World needs.
 	// Once it repeats, Damaged reports it; a trim that lands clears it.
 	trimRefusal atomic.Pointer[sobject.StoreRefusal]
+	// damageWake is the body driver's wake WatchDamage set, or nil.
+	damageWake atomic.Pointer[func()]
 	// now returns the current time.
 	now func() time.Time
 	// uncheckedReported is when reportUnchecked last warned, in Unix nanoseconds.
@@ -806,6 +813,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	}
 	r.positions = r.positions[:index]
 	r.floor = min(r.floor, index)
+	r.saved = min(r.saved, index)
 
 	// Find this device's candidate for the operation, and take its World
 	// when it was built on the World before index while that World is in
@@ -985,7 +993,7 @@ func (a *Adapter) gatherTrim(ctx context.Context) (*trimPlan, error) {
 	}
 
 	// Note the Worlds the histories hold now.
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1038,7 +1046,8 @@ func (a *Adapter) trimInBackground(ctx context.Context) error {
 }
 
 // runTrimNewest runs plan under the trim turn while it is the newest plan
-// gathered, trying again with backoff after a failure until ctx ends.
+// gathered, trying again with backoff after a failure until ctx ends, and
+// once its refusal damaged the adapter, when the refusal is due.
 func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 	delay := trimBackoffMin
 	for {
@@ -1056,17 +1065,21 @@ func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 		if ctx.Err() != nil {
 			return
 		}
-		a.trimRefusal.Store(sobject.NoteStoreRefusal(a.trimRefusal.Load(), err, a.now()))
+		a.noteRefusal(&a.trimRefusal, err)
 		if err == nil {
 			return
 		}
 
-		// Wait out the backoff, then try again.
+		// Wait out the backoff, or a damaged trim's retry, then try again.
 		a.le.WithError(err).Warn("histories not trimmed after the install, trying again")
+		wait := delay
+		if at := a.trimRefusal.Load().RetryAt(); !at.IsZero() {
+			wait = max(wait, at.Sub(a.now()))
+		}
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(delay):
+		case <-time.After(wait):
 		}
 		delay = min(2*delay, trimBackoffMax)
 	}
@@ -1463,7 +1476,7 @@ func (a *Adapter) lockRoots(ctx context.Context, reach ...*block.BlockRef) (func
 	}
 
 	// Take the lock for the swap.
-	unlock, err := a.rootMtx.Lock(ctx)
+	unlock, err := a.lockRootMtx(ctx)
 	if err != nil {
 		endFlush()
 		return nil, err
@@ -1503,6 +1516,11 @@ func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries 
 		return nil
 	}
 	if err := store.SetRoots(ctx, entries, moves); err != nil {
+		// A move the store did not refuse before writing may have landed,
+		// so read the roots again before the next move.
+		if !errors.Is(err, block.ErrMissingChild) {
+			a.rootsUnknown = true
+		}
 		return err
 	}
 
@@ -1519,28 +1537,56 @@ func (a *Adapter) moveRootsOn(ctx context.Context, store block.RootOps, entries 
 
 // loadRoots reads the roots an earlier run held.
 func (a *Adapter) loadRoots(ctx context.Context) error {
-	// Take the root lock.
 	release, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
+	return a.reloadRoots(ctx)
+}
 
-	// Read each root, and the payloads and Worlds their blocks name.
-	for _, name := range heldRootNames {
+// lockRootMtx takes rootMtx. When a move's outcome was unknown, it first
+// reads the roots again, so the next move names what the store holds as
+// Previous, and its child check skips only what the sets hold.
+func (a *Adapter) lockRootMtx(ctx context.Context) (func(), error) {
+	// Take the lock; the roots are known unless a move's outcome was not.
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil || !a.rootsUnknown {
+		return release, err
+	}
+
+	// Read them again.
+	if err := a.reloadRoots(ctx); err != nil {
+		release()
+		return nil, err
+	}
+	a.rootsUnknown = false
+	return release, nil
+}
+
+// reloadRoots reads what each root this adapter names holds, and the payloads,
+// Worlds and retained roots their blocks name. The caller holds rootMtx.
+func (a *Adapter) reloadRoots(ctx context.Context) error {
+	// Read each root.
+	for _, name := range slices.Concat(heldRootNames, slices.Collect(maps.Keys(a.held))) {
 		ref, err := a.pages.GetRoot(ctx, name)
 		if err != nil {
 			return err
 		}
-		if !ref.GetEmpty() {
+		if ref.GetEmpty() {
+			delete(a.held, name)
+		} else {
 			a.held[name] = ref
 		}
 	}
+
+	// Read the sets their blocks name.
 	for _, h := range []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds, &a.payloads} {
 		if err := a.readRootSet(ctx, h); err != nil {
 			return err
 		}
 	}
+	a.retainedHeld = nil
 	return a.readRetained(ctx)
 }
 
@@ -1609,7 +1655,7 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 	// Skip a set the root holds already, before storing any page. Only the
 	// driver goroutine changes the held set, so it stays the same after the
 	// check.
-	unlock, err := a.rootMtx.Lock(ctx)
+	unlock, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return err
 	}

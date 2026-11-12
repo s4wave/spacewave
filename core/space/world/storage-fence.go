@@ -180,7 +180,7 @@ func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.B
 	if err != nil {
 		return err
 	}
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (a *Adapter) copyAndHold(ctx context.Context, name string, roots []*block.B
 // releaseFences releases every fence root this device holds.
 func (a *Adapter) releaseFences(ctx context.Context) error {
 	// Find the fence roots.
-	release, err := a.rootMtx.Lock(ctx)
+	release, err := a.lockRootMtx(ctx)
 	if err != nil {
 		return err
 	}

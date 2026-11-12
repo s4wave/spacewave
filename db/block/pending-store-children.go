@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -61,7 +62,7 @@ type LocalStoreGetter interface {
 // Cost: one local existence read of every distinct child the batch names that
 // it neither writes, keeps nor holds already, the frontier between the kept
 // pages and the stored ones, and one read of the whole store for the children
-// the local tier lacks.
+// the local tier lacks, which waits at most childProbeWait.
 func (s *PendingStore) checkChildren(ctx context.Context, op string, batch []*PutBatchEntry) error {
 	// Gather the children neither written with the batch nor kept.
 	seen := make(map[string]struct{}, len(batch))
@@ -105,10 +106,12 @@ func (s *PendingStore) checkChildren(ctx context.Context, op string, batch []*Pu
 		return refuseMissing(op, children, parents)
 	}
 
-	// Ask the whole store about the rest once, without waiting; a probe that
-	// could not look admits the write unchecked.
-	probe, _ := WithoutPeerWait(ctx)
+	// Ask the whole store about the rest once, without waiting for a peer
+	// and for at most childProbeWait; a probe that could not look in time
+	// admits the write unchecked.
+	probe, cancel := childProbe(ctx)
 	found, err = s.StoreOps.GetBlockExistsBatch(probe, children)
+	cancel()
 	if err != nil {
 		if ctx.Err() != nil {
 			return context.Cause(ctx)
@@ -121,6 +124,20 @@ func (s *PendingStore) checkChildren(ctx context.Context, op string, batch []*Pu
 	}
 	children, parents = missedChildren(found, children, parents)
 	return refuseMissing(op, children, parents)
+}
+
+// childProbeWait bounds a whole-store existence probe made for a write. A
+// writer may hold a turn or a root set's lock behind the probe, and the probe
+// may ask peers and a remote backend, so it reports unknown rather than wait
+// past the bound.
+const childProbeWait = 500 * time.Millisecond
+
+// childProbe returns the context of a whole-store existence probe made for a
+// write under ctx: it never waits for a peer to connect and ends after
+// childProbeWait.
+func childProbe(ctx context.Context) (context.Context, context.CancelFunc) {
+	probe, _ := WithoutPeerWait(ctx)
+	return context.WithTimeoutCause(probe, childProbeWait, ErrUnavailable)
 }
 
 // missedChildren returns the children found reports absent, with their parents.

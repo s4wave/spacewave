@@ -3,6 +3,8 @@ package space_world
 import (
 	"context"
 	"slices"
+	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -100,7 +102,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		if !errors.Is(err, block.ErrMissingChild) {
 			return err
 		}
-		a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err, a.now()))
+		a.noteRefusal(&a.saveRefusal, err)
 		a.le.WithError(err).Warn("replay cursor not saved")
 		return nil
 	}
@@ -144,7 +146,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		defer cancel()
 		err := a.writeCursor(ctx, worlds, candidates, data)
 		if ctx.Err() == nil {
-			a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err, a.now()))
+			a.noteRefusal(&a.saveRefusal, err)
 		}
 
 		// End the saved epochs once the cursor root holds their World, or
@@ -171,6 +173,30 @@ func (a *Adapter) Damaged() *sobject.SOStoreDamage {
 		return damage
 	}
 	return a.trimRefusal.Load().Damage()
+}
+
+// RetryAt returns when a damaged cursor save is due for Retry, or the zero
+// time while none is damaged. A damaged trim retries on its own goroutine.
+func (a *Adapter) RetryAt() time.Time {
+	return a.saveRefusal.Load().RetryAt()
+}
+
+// WatchDamage sets wake, which the adapter calls when a cursor save or a
+// trim, which land in the background, changes what Damaged or RetryAt
+// returns.
+func (a *Adapter) WatchDamage(wake func()) {
+	a.damageWake.Store(&wake)
+}
+
+// noteRefusal notes an attempt that ended with err in r, and wakes the body
+// driver when that changed the damage, so the health shows it at once.
+func (a *Adapter) noteRefusal(r *atomic.Pointer[sobject.StoreRefusal], err error) {
+	prev := r.Load()
+	next := sobject.NoteStoreRefusal(prev, err, a.now())
+	r.Store(next)
+	if wake := a.damageWake.Load(); wake != nil && !prev.Damage().EqualVT(next.Damage()) {
+		(*wake)()
+	}
 }
 
 // Retry saves the replay cursor again once its refused saves damaged the
