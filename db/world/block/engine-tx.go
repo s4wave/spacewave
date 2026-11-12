@@ -3,9 +3,11 @@ package world_block
 import (
 	"context"
 	stderrors "errors"
+	"slices"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -42,6 +44,11 @@ type EngineTx struct {
 	// operation is the encoded World operation batch a recording
 	// transaction proposes as its Candidate's Operation, set before Commit.
 	operation []byte
+	// recordedRoots are the object roots operation records, set with it. The
+	// commit keeps each beside the blocks its new root reaches, so a root the
+	// batch set and then replaced or deleted is still stored with the
+	// operation that names it.
+	recordedRoots []*block.BlockRef
 	// turn is the Authority's write turn, held from the open until the commit
 	// is decided or the transaction is discarded. Moved out under the Engine
 	// lock.
@@ -244,10 +251,11 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	next := e.baseHeadRef.Clone()
 	next.RootRef = nroot
 
-	// Borrow the blocks the new root reaches from the write buffer, children
-	// before parents, and read the seqno and root the head's readers need.
+	// Borrow the blocks the new root and the recorded object roots reach
+	// from the write buffer, children before parents, and read the seqno and
+	// root the head's readers need.
 	state := e.writeTx.state
-	batch, err := state.ownedStore.TakeReachable(ctx, nroot)
+	batch, err := state.ownedStore.TakeReachable(ctx, slices.Concat([]*block.BlockRef{nroot}, e.recordedRoots)...)
 	if err != nil {
 		return nil, nil, nil, err
 	}
