@@ -731,6 +731,12 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		defer stopPush()
 	}
 
+	// Adopt packs other writers uploaded to the bucket into this store's
+	// index, as AdoptBucketPack describes.
+	if sqlStore == nil {
+		defer t.registerAdopter(placement)()
+	}
+
 	// Keep the store under its placement's resident budget. A store writing
 	// to its SQL backend leaves the local bucket as it is, and serve mode
 	// evicts nothing.
