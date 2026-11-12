@@ -185,6 +185,11 @@ service SpaceContentsResourceService {
 
   rpc SetProcessBinding(SetProcessBindingRequest) returns (SetProcessBindingResponse) {}
 
+  // RestartPlugin ends the running execution of a plugin in this Space's
+  // runtime, so the scheduler starts the plugin's selected manifest at once.
+  // It ends a worker that neither answers a swap's activation check nor exits.
+  rpc RestartPlugin(RestartSpacePluginRequest) returns (RestartSpacePluginResponse) {}
+
   // BindAttachedRpcService publishes a caller-attached Resource under one
   // private service ID prefix for this Space runtime.
   rpc BindAttachedRpcService(BindAttachedRpcServiceRequest)
@@ -654,6 +659,15 @@ message SetProcessBindingRequest {
 
 // SetProcessBindingResponse is the response for SetProcessBinding.
 message SetProcessBindingResponse {}
+
+// RestartSpacePluginRequest names the plugin to restart.
+message RestartSpacePluginRequest {
+  // PluginId is the plugin manifest ID.
+  string plugin_id = 1;
+}
+
+// RestartSpacePluginResponse is the response to RestartPlugin.
+message RestartSpacePluginResponse {}
 
 // WatchProcessBindingsRequest selects this mounted Space's local bindings.
 message WatchProcessBindingsRequest {

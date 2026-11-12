@@ -41,6 +41,7 @@ func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			buildPluginListCommand(),
 			buildPluginSetCommand(true),
 			buildPluginSetCommand(false),
+			newPluginRestartCommand(),
 			buildPluginBackgroundCommand(),
 			buildPluginImportManifestCommand(getBus),
 		},

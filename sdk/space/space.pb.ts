@@ -1593,6 +1593,37 @@ export const SetProcessBindingResponse: MessageType<SetProcessBindingResponse> =
   )
 
 /**
+ * RestartSpacePluginRequest names the plugin to restart.
+ *
+ * @generated from message s4wave.space.RestartSpacePluginRequest
+ */
+export interface RestartSpacePluginRequest {
+  /**
+   * PluginId is the plugin manifest ID.
+   */
+  pluginId?: string
+}
+
+export const RestartSpacePluginRequest: MessageType<RestartSpacePluginRequest> =
+  /* @__PURE__ */ createMessageType<RestartSpacePluginRequest>(
+    's4wave.space.RestartSpacePluginRequest',
+    () => [[1, 'plugin_id', 9]],
+  )
+
+/**
+ * RestartSpacePluginResponse is the response to RestartPlugin.
+ *
+ * @generated from message s4wave.space.RestartSpacePluginResponse
+ */
+export interface RestartSpacePluginResponse {}
+
+export const RestartSpacePluginResponse: MessageType<RestartSpacePluginResponse> =
+  /* @__PURE__ */ createMessageType<RestartSpacePluginResponse>(
+    's4wave.space.RestartSpacePluginResponse',
+    () => [],
+  )
+
+/**
  * WatchProcessBindingsRequest selects this mounted Space's local bindings.
  *
  * @generated from message s4wave.space.WatchProcessBindingsRequest

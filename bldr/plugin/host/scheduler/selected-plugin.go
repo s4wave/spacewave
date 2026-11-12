@@ -313,6 +313,16 @@ func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), 
 	return admitted
 }
 
+// restart ends the admitted worker and runs the selection attempt again at
+// once, skipping any restart delay. The new attempt finds nothing running, so
+// it starts the selected manifest in place. This is the way out of a swap
+// waiting on a worker that neither answers its activation check nor exits:
+// ending the worker first means the restarted attempt cannot probe it again.
+func (t *pluginInstance) restart() {
+	t.clearExecution(nil)
+	t.executePluginRoutine.RestartRoutine()
+}
+
 // closeExecutions prevents late admission after the logical binding closes.
 func (t *pluginInstance) closeExecutions() {
 	t.pluginUpdateMtx.Lock()
