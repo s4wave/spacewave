@@ -17,7 +17,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const bldrDistRoot =
   process.env['BLDR_DIST_ROOT'] || resolve(__dirname, '.bldr/src')
 
-// resolveBldrSourcePath resolves generated exports and source fallbacks.
+// resolveBldrSourcePath resolves a bldr path to its generated export under
+// bldrDistRoot when one exists, and otherwise to the checked-in bldr source.
+// A fresh checkout or linked worktree has no generated tree, so every alias,
+// patterned or not, must fall back to the source.
 function resolveBldrSourcePath(...segments: string[]) {
   const isPatternReplacement = segments.some((segment) => segment.includes('$'))
   const patternProbeSegments = segments
@@ -43,9 +46,7 @@ function resolveBldrSourcePath(...segments: string[]) {
   ) {
     return distPath
   }
-  return isPatternReplacement
-    ? monorepoPath
-    : resolve(__dirname, 'bldr', ...segments)
+  return resolve(__dirname, 'bldr', ...segments)
 }
 
 export default defineConfig({
