@@ -2601,7 +2601,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/block/tx": {
-      "hash": "b7fbe1ef0754449da5ae7929f9457644f7bfa63c6b379a50c2bd2e3cde0c4ba2",
+      "hash": "361d90276ef2d20aca9c2627d1cab1316f33161f0f0ac277af5c78cec9e6c673",
       "generatedFiles": [
         "db/world/block/tx/tx.pb.go",
         "db/world/block/tx/tx.pb.ts"

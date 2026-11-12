@@ -46,21 +46,6 @@ func (t *TxApplyObjectOp) GetEmpty() bool {
 	return t.GetObjectKey() == "" || t.GetOperationTypeId() == ""
 }
 
-// Clone clones the tx object.
-func (t *TxApplyObjectOp) Clone() *TxApplyObjectOp {
-	if t == nil {
-		return nil
-	}
-	body := make([]byte, len(t.GetOperationBody()))
-	copy(body, t.GetOperationBody())
-	return &TxApplyObjectOp{
-		OperationTypeId: t.GetOperationTypeId(),
-		OperationBody:   body,
-		ObjectKey:       t.GetObjectKey(),
-		OpSender:        t.GetOpSender(),
-	}
-}
-
 // Validate performs a cursory check of the transaction.
 // Note: this should not fetch network data.
 func (t *TxApplyObjectOp) Validate() error {

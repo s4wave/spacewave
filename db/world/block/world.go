@@ -97,6 +97,13 @@ type WorldState struct {
 	// Commit, which stamps them with the seqno it reaches. The last cursor of a
 	// key holds the record in the tree; earlier ones back changelog entries.
 	modObjects map[string][]*block.Cursor
+	// setRoots maps each object key whose root was set since the last take,
+	// Commit or Discard to its final same-bucket root; see noteSetRoot.
+	setRoots map[string]*block.BlockRef
+	// loggedRoots holds each same-bucket root a changelog entry written since
+	// the last take, Commit or Discard links on its new side; see
+	// noteLoggedRoot.
+	loggedRoots []*block.BlockRef
 
 	// seqnoBcast guards below fields
 	seqnoBcast broadcast.Broadcast
@@ -508,6 +515,8 @@ func (t *WorldState) setBlockTransaction(
 	// The rebuilt block state supersedes any transaction-local object memo.
 	t.objectExistsMemo = nil
 	t.modObjects = nil
+	t.setRoots = nil
+	t.loggedRoots = nil
 	subtask.End()
 
 	// Update the sequence number from the new root.
@@ -566,6 +575,8 @@ func (t *WorldState) Discard() {
 	}
 	t.objectExistsMemo = nil
 	t.modObjects = nil
+	t.setRoots = nil
+	t.loggedRoots = nil
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		broadcast()
 	})
@@ -636,6 +647,8 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	}
 	if t.btx == nil {
 		t.modObjects = nil
+		t.setRoots = nil
+		t.loggedRoots = nil
 		return nil
 	}
 

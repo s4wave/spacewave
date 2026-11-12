@@ -72,7 +72,7 @@ func TestWorldState(t *testing.T) {
 	}
 
 	// Fork the state through the transaction wrapper.
-	forkedTx, err := world_block_tx.ForkWorldState(ctx, ws, true)
+	forkedTx, err := forkRecorder(ctx, ws)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -168,7 +168,7 @@ func TestWorldState(t *testing.T) {
 	checkRev(obj, 2)
 
 	// Fork the state again and apply an object-level op.
-	objectTx, err := world_block_tx.ForkWorldState(ctx, ws, true)
+	objectTx, err := forkRecorder(ctx, ws)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -221,7 +221,7 @@ func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	txState, err := world_block_tx.ForkWorldState(ctx, ws, true)
+	txState, err := forkRecorder(ctx, ws)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -234,4 +234,13 @@ func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
 	if err != dbtx.ErrDiscarded {
 		t.Fatalf("GetObjectBodiesBatchPage error = %v, want %v", err, dbtx.ErrDiscarded)
 	}
+}
+
+// forkRecorder forks ws and records the operations applied to the fork.
+func forkRecorder(ctx context.Context, ws *world_block.WorldState) (*world_block_tx.WorldState, error) {
+	fork, err := ws.Fork(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return world_block_tx.NewWorldState(ctx, fork.(*world_block.WorldState), true)
 }

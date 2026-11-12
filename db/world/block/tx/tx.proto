@@ -1,6 +1,7 @@
 syntax = "proto3";
 package world.block.tx;
 
+import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 import "github.com/s4wave/spacewave/db/block/quad/quad.proto";
 
@@ -92,6 +93,10 @@ message TxApplyWorldOp {
   bytes operation_body = 2;
   // OpSender is the peer ID to apply the operation as.
   string op_sender = 3;
+  // SetRoots are the same-bucket object roots the operation set when its
+  // author applied it. Replay holds them while the operation is above the
+  // checkpoint, since it reads them again when it applies the operation.
+  repeated .block.BlockRef set_roots = 4;
 }
 
 // TxApplyObjectOp applies a object operation.
@@ -105,6 +110,9 @@ message TxApplyObjectOp {
   string object_key = 3;
   // OpSender is the peer ID to apply the operation as.
   string op_sender = 4;
+  // SetRoots are the same-bucket object roots the operation set when its
+  // author applied it; see TxApplyWorldOp.set_roots.
+  repeated .block.BlockRef set_roots = 5;
 }
 
 // TxCreateObject creates a new object with a key and ref.
