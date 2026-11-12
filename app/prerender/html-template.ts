@@ -20,7 +20,8 @@ interface PageHtmlOptions {
   mainCssUrl: string
   additionalCssUrls?: string[]
   iconUrl: string
-  importMap?: string
+  // importMapScripts is the bldr shell's import map block, copied verbatim.
+  importMapScripts?: string
   // When false, omits data-prerendered from bldr-root so the bldr
   // entrypoint uses createRoot instead of hydrateRoot.
   prerendered?: boolean
@@ -55,8 +56,8 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   const criticalStyle = opts.criticalCss
     ? `\n  <style>${opts.criticalCss}</style>`
     : ''
-  const importMapTag = opts.importMap
-    ? `\n  <script type="importmap">${opts.importMap}</script>`
+  const importMapTag = opts.importMapScripts
+    ? `\n  ${opts.importMapScripts}`
     : ''
   const stylesheetTags = [opts.mainCssUrl, ...(opts.additionalCssUrls ?? [])]
     .map(

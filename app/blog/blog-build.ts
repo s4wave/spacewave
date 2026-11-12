@@ -259,7 +259,7 @@ export async function buildBlog(
     mainCssUrl: ctx.mainCssUrl,
     additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,
-    importMap: ctx.importMap,
+    importMapScripts: ctx.importMapScripts,
   })
   writeFileSync(join(ctx.outputDir, 'blog.html'), indexHtml)
 
@@ -322,7 +322,7 @@ export async function buildBlog(
       mainCssUrl: ctx.mainCssUrl,
       additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
-      importMap: ctx.importMap,
+      importMapScripts: ctx.importMapScripts,
     })
 
     // Write to dist/blog/YYYY/MM/slug.html
@@ -364,7 +364,7 @@ export async function buildBlog(
       mainCssUrl: ctx.mainCssUrl,
       additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
-      importMap: ctx.importMap,
+      importMapScripts: ctx.importMapScripts,
     })
 
     const tagDir = join(ctx.outputDir, 'blog', 'tag')
