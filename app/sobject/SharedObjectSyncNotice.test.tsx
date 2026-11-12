@@ -121,4 +121,21 @@ describe('SharedObjectSyncNotice', () => {
     rerender(<SharedObjectSyncNotice health={{}} />)
     expect(toast.dismiss).toHaveBeenCalledTimes(1)
   })
+
+  it('shows damaged storage with its next step until it clears', () => {
+    const { rerender } = render(
+      <SharedObjectSyncNotice
+        health={{ storeDamage: { operation: 'Flush', refusals: 2 } }}
+      />,
+    )
+    expect(toast.warning).toHaveBeenCalledWith(
+      "This Space can't save its progress",
+      expect.objectContaining({
+        description: expect.stringContaining('resumes saving once the data is back'),
+        duration: Infinity,
+      }),
+    )
+    rerender(<SharedObjectSyncNotice health={{}} />)
+    expect(toast.dismiss).toHaveBeenCalledTimes(1)
+  })
 })

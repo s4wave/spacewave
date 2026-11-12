@@ -24,6 +24,7 @@ import {
   SharedObjectHealthStatus,
   type SharedObjectHealth,
 } from '@s4wave/core/sobject/sobject.pb.js'
+import { summarizeStoreDamage } from '@s4wave/app/sobject/storeDamage.js'
 import type {
   OrganizationRootStateInfo,
   OrgInviteInfo,
@@ -129,6 +130,16 @@ function getRecoverySummary(health?: SharedObjectHealth | null): {
       description:
         'The organization root failed verification, so Alpha kept the dashboard available in degraded mode instead of looping.',
       hint: 'Repair retries owner-side recovery on the current shared object id. Reinitialize discards the broken state and reseeds the same id in place.',
+    }
+  }
+
+  if (health.storeDamage) {
+    const damaged = summarizeStoreDamage(health.storeDamage)
+    return {
+      tone: 'degraded',
+      title: damaged.title,
+      description: damaged.description,
+      hint: damaged.hint,
     }
   }
 

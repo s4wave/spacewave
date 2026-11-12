@@ -3,7 +3,6 @@ package space_world
 import (
 	"bytes"
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -367,8 +366,10 @@ func TestAdoptAfterEpochEnds(t *testing.T) {
 
 // TestCursorSaveRefusalDamages checks that a cursor save the PendingStore
 // refuses, since the saved World names a page no store holds, is tried once
-// more, then, refused again, damages the adapter, which then starts no save;
-// and that a refusal healed before the second save leaves no damage.
+// more, then, refused again, damages the adapter, which then starts no save
+// until the refusal is due again; that a save after the page is restored
+// clears the damage; and that a refusal healed before the second save leaves
+// no damage.
 func TestCursorSaveRefusalDamages(t *testing.T) {
 	for _, healed := range []bool{false, true} {
 		t.Run(map[bool]string{false: "forever", true: "healed"}[healed], func(t *testing.T) {
@@ -392,7 +393,7 @@ func TestCursorSaveRefusalDamages(t *testing.T) {
 				}
 				return
 			}
-			if !errors.Is(a.Damaged(), block.ErrMissingChild) {
+			if damage := a.Damaged(); damage.GetRefusals() != 2 || !damage.GetChild().EqualVT(missing.Ref) {
 				t.Fatalf("damage after two refused saves = %v", a.Damaged())
 			}
 
@@ -408,6 +409,50 @@ func TestCursorSaveRefusalDamages(t *testing.T) {
 			if r.saved != saved {
 				t.Fatalf("a damaged adapter saved the cursor at %d", r.saved)
 			}
+
+			// The page is restored; the save due after the retry delay lands
+			// and clears the damage.
+			f.put("missing page", 0)
+			a.now = func() time.Time { return time.Now().Add(2 * time.Minute) }
+			if err := a.maybeSaveCursor(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			a.waitBackground()
+			if r.saved == saved || a.Damaged() != nil {
+				t.Fatalf("saved at %d, damage %v after the page was restored", r.saved, a.Damaged())
+			}
 		})
 	}
+}
+
+// TestPendingCandidateHoldsEpochPage checks that a local candidate built on a
+// replayed World whose page only a replay epoch stored keeps that page while
+// it is pending: another device's operation and a cursor save end the epoch,
+// and a collection must not free the page the writer's head still reaches.
+func TestPendingCandidateHoldsEpochPage(t *testing.T) {
+	f := newReplayFixture(t, 1000)
+	a, ctx := f.a, t.Context()
+
+	// Replay a World whose page goes past the bound to the current epoch.
+	f.apply("zero", f.put("zero World", 0))
+	stored := f.put("stored page", 1200)
+	base := f.put("base World", 0, stored)
+	f.apply("base", base)
+	if a.pages.Full() {
+		t.Fatal("pages are full")
+	}
+
+	// A local writer admits a candidate on that World that keeps the page.
+	cand := f.entry("candidate World", 0, stored)
+	adm := a.newAdmission(world.Candidate{Base: base, Root: cand.Ref, Entries: []*block.PutBatchEntry{cand}}, nil, nil)
+	a.admit(adm)
+	if err := a.storeAdmitted(ctx, adm); err != nil {
+		t.Fatal(err)
+	}
+
+	// Another device's operation lands, and its save ends the epoch.
+	f.apply("later", f.put("later World", 0))
+	f.save()
+	f.collect()
+	f.requireFound("the pending candidate's World", stored)
 }

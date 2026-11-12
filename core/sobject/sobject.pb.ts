@@ -6,6 +6,7 @@ import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ProviderResourceRef } from '../provider/provider.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { BlockRef } from '../../db/block/block.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { Signature } from '../../net/peer/peer.pb.js'
 import { Config } from '../../db/block/transform/transform.pb.js'
@@ -658,6 +659,14 @@ export interface SharedObjectHealth {
    * authenticated since the object mounted, sorted by peer ID.
    */
   syncPeers?: SOSyncPeer[]
+  /**
+   * StoreDamage is set while a write of the body is damaged: the store
+   * refused it again because a block it writes names a child no store holds,
+   * which replay cannot restore. The body reads but neither checkpoints nor
+   * saves its replay position until the next mount. Status DEGRADED, layer
+   * BODY, reason BLOCK_NOT_FOUND and hint REPAIR_SOURCE_DATA summarize it.
+   */
+  storeDamage?: SOStoreDamage
 }
 
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
@@ -676,6 +685,49 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
       [10, 'checkpoint_mismatch', 11, 0, SOCheckpointMismatch.codec],
       [11, 'unordered_count', 13],
       [12, 'sync_peers', 11, 1, SOSyncPeer.codec],
+      [13, 'store_damage', 11, 0, SOStoreDamage.codec],
+    ],
+  )
+
+/**
+ * SOStoreDamage is a write of the body the store refused again because a block
+ * it writes names a child no store holds.
+ *
+ * @generated from message sobject.SOStoreDamage
+ */
+export interface SOStoreDamage {
+  /**
+   * Operation names the refused write, such as a Flush or a SetRoots.
+   */
+  operation?: string
+  /**
+   * Block is the refused block.
+   */
+  block?: BlockRef
+  /**
+   * Child is the child of Block no store holds. Restoring it, from a peer or
+   * a backup that holds it, lets the write store on the next mount.
+   */
+  child?: BlockRef
+  /**
+   * Since is when the first refusal of this run happened.
+   */
+  since?: Date
+  /**
+   * Refusals counts the attempts in a row the store refused.
+   */
+  refusals?: number
+}
+
+export const SOStoreDamage: MessageType<SOStoreDamage> =
+  /* @__PURE__ */ createMessageType<SOStoreDamage>(
+    'sobject.SOStoreDamage',
+    () => [
+      [1, 'operation', 9],
+      [2, 'block', 11, 0, BlockRef.codec],
+      [3, 'child', 11, 0, BlockRef.codec],
+      [4, 'since', 11, 0, Timestamp.codec],
+      [5, 'refusals', 13],
     ],
   )
 

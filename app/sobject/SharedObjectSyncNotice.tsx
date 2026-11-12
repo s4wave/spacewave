@@ -6,8 +6,10 @@ import type {
 } from '@s4wave/core/sobject/sobject.pb.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-// SharedObjectSyncNotice presents peer recovery, rejected edits and a wrong
-// checkpoint without interrupting local content.
+import { summarizeStoreDamage } from './storeDamage.js'
+
+// SharedObjectSyncNotice presents peer recovery, rejected edits, a wrong
+// checkpoint and damaged storage without interrupting local content.
 export function SharedObjectSyncNotice({
   health,
 }: {
@@ -17,6 +19,10 @@ export function SharedObjectSyncNotice({
   const recovery = (health?.syncRecoveryPeerIds?.length ?? 0) > 0
   const denied = (health?.syncDeniedPeerIds?.length ?? 0) > 0
   const mismatch = !!health?.checkpointMismatch
+  const damage = health?.storeDamage
+  const damaged = damage ? summarizeStoreDamage(damage) : null
+  const damageTitle = damaged?.title
+  const damageText = damaged ? damaged.description + ' ' + damaged.hint : ''
 
   useEffect(() => {
     if (!recovery && !denied) return
@@ -47,6 +53,20 @@ export function SharedObjectSyncNotice({
       toast.dismiss(mismatchID)
     }
   }, [id, mismatch])
+
+  useEffect(() => {
+    if (!damageTitle) return
+    const damageID = id + ':damage'
+    toast.warning(damageTitle, {
+      id: damageID,
+      description: damageText,
+      duration: Infinity,
+      closeButton: true,
+    })
+    return () => {
+      toast.dismiss(damageID)
+    }
+  }, [damageText, damageTitle, id])
 
   return (health?.rejectedEdits ?? []).map((edit) => {
     const hash = opHashKey(edit.opHash)

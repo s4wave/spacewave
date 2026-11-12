@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -56,6 +57,8 @@ type BodyDriver struct {
 	checkpointer *bodyCheckpointer
 	// wake asks Execute to step again without a state change.
 	wake chan error
+	// now returns the current time.
+	now func() time.Time
 
 	// mtx serializes the body's calls and guards the fields below.
 	mtx sync.Mutex
@@ -77,10 +80,12 @@ type BodyDriver struct {
 	// background, so a step signs no other.
 	storing bool
 	// stepRefusal and storeRefusal are the store refusals the latest steps
-	// and checkpoint stores met in a row, or nil. Once one repeats, or a
-	// DamagedBody reports damage, the body is damaged: the driver signs no
-	// checkpoint and retries a failed step only on a new state, and the
-	// report shows the refusal.
+	// and checkpoint stores met in a row, including the stores of a vote's
+	// proposal or judgment, or nil. Once one repeats, or a DamagedBody
+	// reports damage, the report shows the body damaged. A repeated store
+	// refusal stores a checkpoint again only once per storeDamageRetry, and
+	// a repeated step refusal steps again only on a new state; the first
+	// attempt that stores clears it.
 	stepRefusal, storeRefusal *StoreRefusal
 }
 
@@ -94,6 +99,7 @@ func NewBodyDriver(le *logrus.Entry, so SharedObject, body Body, report func(*Bo
 		report:  report,
 		applied: make(map[string]struct{}),
 		wake:    make(chan error, 1),
+		now:     time.Now,
 	}
 }
 
@@ -157,7 +163,7 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 				return context.Canceled
 			}
 			d.le.WithError(err).Warn("replay stopped before the end of the order")
-			if d.Damaged() == nil {
+			if !errors.Is(err, block.ErrMissingChild) || !d.stepDamaged() {
 				retry()
 			}
 			continue
@@ -166,8 +172,16 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 }
 
+// stepDamaged reports whether the steps' store refusal repeated, so a step
+// refused again waits for the next state instead of a backoff.
+func (d *BodyDriver) stepDamaged() bool {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.stepRefusal.Damage() != nil
+}
+
 // Damaged returns the store refusal replay could not heal, or nil.
-func (d *BodyDriver) Damaged() error {
+func (d *BodyDriver) Damaged() *SOStoreDamage {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.damage()
@@ -193,7 +207,7 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 		return err
 	}
 	defer func() {
-		d.stepRefusal = NoteStoreRefusal(d.stepRefusal, err)
+		d.stepRefusal = NoteStoreRefusal(d.stepRefusal, err, d.now())
 		d.publishReport(ev)
 	}()
 
@@ -241,7 +255,7 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	// checkpoints by vote.
 	c := d.checkpointer
 	self := d.so.GetPeerID().String()
-	if c == nil || d.storing || d.damage() != nil || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
+	if c == nil || d.storing || !d.storeRefusal.Due(d.now()) || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
 		return nil
 	}
 	own, err := ev.Snapshot.GetOwnership(ctx)
@@ -288,29 +302,49 @@ func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, s
 		d.le.WithError(err).Warn("checkpoint stopped before it was adopted")
 	}
 
-	// Note a refused store, and let the next step checkpoint again unless
-	// the refusal repeated.
+	// Note a refused store, and let the next step checkpoint again, or,
+	// once the refusal repeated, the first step after storeDamageRetry.
 	d.mtx.Lock()
 	d.storing = false
 	if ctx.Err() == nil {
-		d.storeRefusal = NoteStoreRefusal(d.storeRefusal, stored)
+		d.storeRefusal = NoteStoreRefusal(d.storeRefusal, stored, d.now())
 	}
+	damaged := d.storeRefusal.Damage() != nil
 	d.mtx.Unlock()
-	select {
-	case d.wake <- errBodyRetry:
-	default:
+	d.wakeAfter(0)
+	if damaged {
+		d.wakeAfter(storeDamageRetry)
 	}
+}
+
+// wakeAfter wakes the driver to step again after delay, unless a wake is
+// already pending.
+func (d *BodyDriver) wakeAfter(delay time.Duration) {
+	wake := func() {
+		select {
+		case d.wake <- errBodyRetry:
+		default:
+		}
+	}
+	if delay <= 0 {
+		wake()
+		return
+	}
+	time.AfterFunc(delay, wake)
 }
 
 // ProposeCheckpoint returns the checkpoint after the one state holds over its
 // stable prefix, with the body's state there, or nil while fewer than
-// MinCheckpointOperations operations are stable or the body has not applied
-// them in that order. The driver of a group voter answers for it.
+// MinCheckpointOperations operations are stable, the body has not applied
+// them in that order, or the body is damaged. The driver of a group voter
+// answers for it. A store refusal counts toward damage as a signed
+// checkpoint's does, so a voter stops proposing over a refused store.
 func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SOCheckpointInner, error) {
-	// Hold the body; a driver without a signer proposes nothing.
+	// Hold the body; a driver without a signer, or a damaged one, proposes
+	// nothing.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	if d.checkpointer == nil {
+	if d.checkpointer == nil || !d.storeRefusal.Due(d.now()) {
 		return nil, nil
 	}
 
@@ -327,7 +361,11 @@ func (d *BodyDriver) ProposeCheckpoint(ctx context.Context, state *SOState) (*SO
 	if err != nil || data == nil {
 		return nil, err
 	}
-	if err := store(ctx); err != nil {
+	err = store(ctx)
+	if ctx.Err() == nil {
+		d.storeRefusal = NoteStoreRefusal(d.storeRefusal, err, d.now())
+	}
+	if err != nil {
 		return nil, err
 	}
 	dataEnc, err := d.checkpointer.encrypt(ctx, d.le, d.so, state, data)
@@ -372,11 +410,20 @@ func (d *BodyDriver) JudgeCheckpoint(ctx context.Context, state *SOState, inner 
 	if err != nil {
 		return false, true, nil
 	}
+
+	// Store the body unless a refusal still waits out its retry.
+	if !d.storeRefusal.Due(d.now()) {
+		return false, false, nil
+	}
 	data, store, err := d.body.Root(ctx, n)
 	if err != nil || data == nil {
 		return false, false, err
 	}
-	if err := store(ctx); err != nil {
+	err = store(ctx)
+	if ctx.Err() == nil {
+		d.storeRefusal = NoteStoreRefusal(d.storeRefusal, err, d.now())
+	}
+	if err != nil {
 		return false, false, err
 	}
 	return bytes.Equal(data, decoded.GetStateData()), true, nil

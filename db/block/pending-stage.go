@@ -25,15 +25,11 @@ type pendingStage struct {
 	counted, released bool
 }
 
-// markStored records that a put went to the stage. A stage that holds its
-// kept blocks counts in StagesStored until its release; an overflow stage's
-// writer reads Stored instead.
+// markStored records that a put went to the stage, and counts the stage in
+// StagesStored once until its release.
 func (p *pendingStage) markStored() {
-	// Record the put, and count a stage that holds its kept blocks once.
+	// Record the put, and count the stage once.
 	p.stored.Store(true)
-	if p.hold == nil {
-		return
-	}
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 	if !p.counted && !p.released {
@@ -110,9 +106,10 @@ func (s *OverflowStage) Stored() bool {
 	return s.stored.Load()
 }
 
-// Release ends the stage. A block only it held is then freed once the grace
-// period passes.
+// Release ends the stage and stops counting it in StagesStored. A block only
+// it held is then freed once the grace period passes.
 func (s *OverflowStage) Release() {
+	s.end()
 	s.release()
 }
 

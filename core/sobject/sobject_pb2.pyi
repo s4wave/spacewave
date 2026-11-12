@@ -2,6 +2,7 @@ import datetime
 
 from net.peer import peer_pb2 as _peer_pb2
 from core.provider import provider_pb2 as _provider_pb2
+from db.block import block_pb2 as _block_pb2
 from db.block.transform import transform_pb2 as _transform_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
@@ -197,7 +198,7 @@ class SharedObjectMeta(_message.Message):
     def __init__(self, body_type: _Optional[str] = ..., body_meta: _Optional[bytes] = ..., account_private: _Optional[bool] = ...) -> None: ...
 
 class SharedObjectHealth(_message.Message):
-    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count", "sync_peers")
+    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count", "sync_peers", "store_damage")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     LAYER_FIELD_NUMBER: _ClassVar[int]
     COMMON_REASON_FIELD_NUMBER: _ClassVar[int]
@@ -210,6 +211,7 @@ class SharedObjectHealth(_message.Message):
     CHECKPOINT_MISMATCH_FIELD_NUMBER: _ClassVar[int]
     UNORDERED_COUNT_FIELD_NUMBER: _ClassVar[int]
     SYNC_PEERS_FIELD_NUMBER: _ClassVar[int]
+    STORE_DAMAGE_FIELD_NUMBER: _ClassVar[int]
     status: SharedObjectHealthStatus
     layer: SharedObjectHealthLayer
     common_reason: SharedObjectHealthCommonReason
@@ -222,7 +224,22 @@ class SharedObjectHealth(_message.Message):
     checkpoint_mismatch: SOCheckpointMismatch
     unordered_count: int
     sync_peers: _containers.RepeatedCompositeFieldContainer[SOSyncPeer]
-    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ...) -> None: ...
+    store_damage: SOStoreDamage
+    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ..., sync_peers: _Optional[_Iterable[_Union[SOSyncPeer, _Mapping]]] = ..., store_damage: _Optional[_Union[SOStoreDamage, _Mapping]] = ...) -> None: ...
+
+class SOStoreDamage(_message.Message):
+    __slots__ = ("operation", "block", "child", "since", "refusals")
+    OPERATION_FIELD_NUMBER: _ClassVar[int]
+    BLOCK_FIELD_NUMBER: _ClassVar[int]
+    CHILD_FIELD_NUMBER: _ClassVar[int]
+    SINCE_FIELD_NUMBER: _ClassVar[int]
+    REFUSALS_FIELD_NUMBER: _ClassVar[int]
+    operation: str
+    block: _block_pb2.BlockRef
+    child: _block_pb2.BlockRef
+    since: _timestamp_pb2.Timestamp
+    refusals: int
+    def __init__(self, operation: _Optional[str] = ..., block: _Optional[_Union[_block_pb2.BlockRef, _Mapping]] = ..., child: _Optional[_Union[_block_pb2.BlockRef, _Mapping]] = ..., since: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., refusals: _Optional[int] = ...) -> None: ...
 
 class SOSyncPeer(_message.Message):
     __slots__ = ("peer_id", "connected", "since", "error")

@@ -5,6 +5,7 @@ import {
   type SharedObjectHealth,
 } from '@s4wave/core/sobject/sobject.pb.js'
 import type { LoadingState, LoadingView } from '@s4wave/web/ui/loading/types.js'
+import { summarizeStoreDamage } from '@s4wave/app/sobject/storeDamage.js'
 
 // toSharedObjectView maps a SharedObjectHealth snapshot onto a LoadingView.
 // LOADING -> 'active' (work in progress), READY -> 'synced', DEGRADED /
@@ -71,6 +72,14 @@ function summariseHealth(health: SharedObjectHealth): HealthSummary {
       state: 'synced',
       title: 'Shared object ready',
       detail: 'Mounted and available.',
+    }
+  }
+  if (health.storeDamage) {
+    const damaged = summarizeStoreDamage(health.storeDamage)
+    return {
+      state: 'error',
+      title: damaged.title,
+      detail: damaged.hint,
     }
   }
   if (health.status === SharedObjectHealthStatus.DEGRADED) {

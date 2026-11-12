@@ -175,9 +175,11 @@ type Adapter struct {
 	// cursorSaving reports that a cursor save runs in the background.
 	cursorSaving atomic.Bool
 	// saveRefusal is the store refusal the latest cursor saves met in a
-	// row, or nil. Once it repeats, no cursor save starts until the next
-	// mount, and Damaged reports it.
+	// row, or nil. Once it repeats, Damaged reports it and a cursor save
+	// starts only once it is due again; a save that lands clears it.
 	saveRefusal atomic.Pointer[sobject.StoreRefusal]
+	// now returns the current time.
+	now func() time.Time
 	// trimMtx runs the background trims one at a time.
 	trimMtx csync.Mutex
 	// trimSeq numbers the trims the driver gathers; a trim older than the
@@ -237,6 +239,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		unmatched: make(map[string]spacePosition),
 		fences:    make(map[string]*spaceFence),
 		held:      make(map[string]*block.BlockRef),
+		now:       time.Now,
 
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
@@ -766,6 +769,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		}
 	}
 	r.positions = r.positions[:index]
+	r.floor = min(r.floor, index)
 
 	// Find this device's candidate for the operation, and take its World
 	// when it was built on the World before index while that World is in

@@ -686,6 +686,7 @@ func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapt
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
 		payloads:         rootSet{name: RootReplayPayloads},
+		now:              time.Now,
 	}
 	return a, collect
 }

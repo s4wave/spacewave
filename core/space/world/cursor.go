@@ -45,8 +45,9 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 		return nil
 	}
 
-	// Save nothing more once saves are refused beyond what replay heals.
-	if a.Damaged() != nil {
+	// Once saves are refused beyond what replay heals, save again only when
+	// the refusal is due for another attempt.
+	if !a.saveRefusal.Load().Due(a.now()) {
 		return nil
 	}
 	if err := a.saveCursor(ctx); err != nil {
@@ -118,7 +119,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		defer cancel()
 		err := a.writeCursor(ctx, root, data)
 		if ctx.Err() == nil {
-			a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err))
+			a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err, a.now()))
 		}
 
 		// End the saved epochs once the cursor root holds their World, or
@@ -137,9 +138,9 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 }
 
 // Damaged returns the store refusal of the cursor saves replay could not
-// heal: a save refused twice in a row with block.ErrMissingChild. The body
-// driver shows it in the Space's health and stops checkpoints with it.
-func (a *Adapter) Damaged() error {
+// heal: a save refused twice in a row with a block.MissingChildError, until a
+// later save lands. The body driver shows it in the Space's health.
+func (a *Adapter) Damaged() *sobject.SOStoreDamage {
 	return a.saveRefusal.Load().Damage()
 }
 

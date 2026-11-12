@@ -479,9 +479,11 @@ func TestBodyHostAttachesOneBody(t *testing.T) {
 }
 
 // TestBodyDriverDamagedByRefusedStore checks that a checkpoint store the body
-// refuses with block.ErrMissingChild is tried once more, then, refused again,
-// damages the body: the driver stores no further checkpoint, so it does not
-// spin, and the report shows the refusal. A store that heals on the second
+// refuses with a block.MissingChildError is tried once more, then, refused again,
+// damages the body: the driver stores no further checkpoint until the
+// refusal is due again, so it does not spin, and the report shows the
+// refusal. Once the cause heals, the store due after the retry delay signs
+// the checkpoint and clears the damage. A store that heals on the second
 // attempt signs the checkpoint and shows no damage.
 func TestBodyDriverDamagedByRefusedStore(t *testing.T) {
 	for _, tc := range []struct {
@@ -500,11 +502,11 @@ func TestBodyDriverDamagedByRefusedStore(t *testing.T) {
 			keys := mustPrivKeys(t, peers)
 			state, _ := newTestSOState(t, peers)
 			g := newGroupHost(ctx, state)
-			refused := fmt.Errorf("Flush: block a names b: %w", block.ErrMissingChild)
-			stores := 0
+			refused := fmt.Errorf("store checkpoint: %w", &block.MissingChildError{Op: "Flush", Block: &block.BlockRef{}, Child: &block.BlockRef{}})
+			stores, healed := 0, false
 			body := &testBody{storeErr: func() error {
 				stores++
-				if tc.refusals < 0 || stores <= tc.refusals {
+				if !healed && (tc.refusals < 0 || stores <= tc.refusals) {
 					return refused
 				}
 				return nil
@@ -521,35 +523,101 @@ func TestBodyDriverDamagedByRefusedStore(t *testing.T) {
 				writeTestOp(t, held, keys[0], "x")
 			}
 			g.ctr.SetValue(held)
-			settled := false
-			for range 10 {
-				if err := d.Step(ctx, testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
-					t.Fatal(err)
+			settle := func() {
+				t.Helper()
+				for range 10 {
+					if err := d.Step(ctx, testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+						t.Fatal(err)
+					}
+					select {
+					case <-d.wake:
+						continue
+					case <-time.After(200 * time.Millisecond):
+						return
+					}
 				}
-				select {
-				case <-d.wake:
-					continue
-				case <-time.After(200 * time.Millisecond):
-					settled = true
-				}
-				break
-			}
-			if !settled {
 				t.Fatalf("the driver kept storing: %d stores", stores)
 			}
+			settle()
 
 			// A refusal that repeats damages the body after two stores; a
 			// healed one signs the checkpoint.
 			damage := reports[len(reports)-1].Damage
 			if tc.refusals < 0 {
-				if stores != 2 || !errors.Is(d.Damaged(), block.ErrMissingChild) || !errors.Is(damage, block.ErrMissingChild) {
+				if stores != 2 || d.Damaged().GetOperation() != "Flush" || d.Damaged().GetRefusals() != 2 || !damage.EqualVT(d.Damaged()) {
 					t.Fatalf("stores %d, damage %v, reported %v; want 2 and the refusal", stores, d.Damaged(), damage)
 				}
-				return
+
+				// The cause heals; the store due after the retry delay
+				// signs the checkpoint and clears the damage.
+				healed = true
+				d.now = func() time.Time { return time.Now().Add(2 * time.Minute) }
+				settle()
+				damage = reports[len(reports)-1].Damage
 			}
 			if d.Damaged() != nil || damage != nil || mustHeight(t, g.ctr.GetValue()) != 1 {
 				t.Fatalf("damage %v, reported %v, height %d after a healed store", d.Damaged(), damage, mustHeight(t, g.ctr.GetValue()))
 			}
 		})
+	}
+}
+
+// TestBodyDriverVoterDamagedByRefusedStore checks that a group voter's
+// proposal counts a refused checkpoint store as a signed checkpoint does: the
+// proposal fails while the refusal is new, and once it repeated the driver
+// proposes nothing and stores no more until the refusal is due again, so a
+// voter neither spins on nor signs a checkpoint over the refused store. Once
+// the cause heals, the proposal due after the retry delay clears the damage.
+func TestBodyDriverVoterDamagedByRefusedStore(t *testing.T) {
+	// Host a Space under group control whose body refuses every store.
+	ctx := t.Context()
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state := newGroupState(t, peers, 1)
+	g := newGroupHost(ctx, state)
+	stores, healed := 0, false
+	body := &testBody{storeErr: func() error {
+		stores++
+		if healed {
+			return nil
+		}
+		return &block.MissingChildError{Op: "Flush", Block: &block.BlockRef{}, Child: &block.BlockRef{}}
+	}}
+	so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
+	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	d.SetCheckpointer(g.host, keys[0], testStepFactorySet())
+
+	// Apply enough stable operations to propose a checkpoint.
+	held := g.ctr.GetValue().Clone()
+	for range MinCheckpointOperations {
+		writeTestOp(t, held, keys[0], "x")
+	}
+	g.ctr.SetValue(held)
+	if err := d.Step(ctx, testHandle(t, held, keys[0])); err != nil {
+		t.Fatal(err)
+	}
+	if stores != 0 {
+		t.Fatalf("a group voter's step stored %d checkpoints", stores)
+	}
+
+	// Each vote asks for a proposal; two refusals damage the body.
+	for i := range 5 {
+		inner, err := d.ProposeCheckpoint(ctx, held)
+		refused := errors.Is(err, block.ErrMissingChild)
+		if inner != nil || refused != (i < 2) || (!refused && err != nil) {
+			t.Fatalf("proposal %d = %v, %v", i, inner, err)
+		}
+	}
+	if stores != 2 || d.Damaged().GetRefusals() != 2 {
+		t.Fatalf("stores %d, damage %v; want 2 stores and the refusal", stores, d.Damaged())
+	}
+
+	// The cause heals; the proposal due after the retry delay stores and
+	// clears the damage.
+	healed = true
+	d.now = func() time.Time { return time.Now().Add(2 * time.Minute) }
+	inner, err := d.ProposeCheckpoint(ctx, held)
+	if err != nil || inner == nil || d.Damaged() != nil {
+		t.Fatalf("proposal after the heal = %v, %v; damage %v", inner, err, d.Damaged())
 	}
 }

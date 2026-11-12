@@ -12,7 +12,29 @@ import (
 // so the roots keep naming what they held.
 var ErrMissingChild = errors.New("block names a child that is neither written, kept nor stored")
 
-// checkChildren refuses batch with ErrMissingChild, naming op, the block and
+// MissingChildError is the refusal of one write: Op names the write, Block the
+// block it refused and Child the child of Block no store holds. It matches
+// ErrMissingChild.
+type MissingChildError struct {
+	// Op names the refused write, such as a Flush or a SetRoots.
+	Op string
+	// Block is the refused block.
+	Block *BlockRef
+	// Child is the child of Block no store holds.
+	Child *BlockRef
+}
+
+// Error names the write, the block and its child.
+func (e *MissingChildError) Error() string {
+	return e.Op + ": block " + e.Block.MarshalString() + " names " + e.Child.MarshalString() + ": " + ErrMissingChild.Error()
+}
+
+// Is reports whether target is ErrMissingChild.
+func (e *MissingChildError) Is(target error) bool {
+	return target == ErrMissingChild
+}
+
+// checkChildren refuses batch with a MissingChildError, naming op, the block and
 // its child by their block references, when a block of batch names a child
 // that is neither in batch, kept, nor in the inner store. A kept child is
 // either written by this write's caller or stored by an open Flush.
@@ -53,7 +75,7 @@ func (s *PendingStore) checkChildren(ctx context.Context, op string, batch []*Pu
 	}
 	for i, ok := range found {
 		if !ok {
-			return errors.Wrapf(ErrMissingChild, "%s: block %s names %s", op, parents[i].MarshalString(), children[i].MarshalString())
+			return &MissingChildError{Op: op, Block: parents[i], Child: children[i]}
 		}
 	}
 	return nil

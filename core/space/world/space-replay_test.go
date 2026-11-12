@@ -45,6 +45,7 @@ func newWorldReplay(t *testing.T) (*spaceReplay, *InnerState) {
 		bucketID: tb.BucketId,
 		pages:    block.NewPendingStore(cursor.GetBucket(), 1<<20),
 		decoded:  block.NewDecodedBlockCache(),
+		now:      time.Now,
 	}
 	r := &spaceReplay{a: a}
 	t.Cleanup(r.close)

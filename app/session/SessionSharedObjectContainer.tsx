@@ -62,6 +62,7 @@ import {
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { SharedObjectBodyContainer } from '@s4wave/app/sobject/SharedObjectBodyContainer.js'
 import { SharedObjectSyncNotice } from '@s4wave/app/sobject/SharedObjectSyncNotice.js'
+import { summarizeStoreDamage } from '@s4wave/app/sobject/storeDamage.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
@@ -124,6 +125,16 @@ function getHealthSummary(health: SharedObjectHealth): {
       title: 'Loading space',
       description: 'Mounting the space.',
       hint: '',
+    }
+  }
+
+  if (health.storeDamage) {
+    const damaged = summarizeStoreDamage(health.storeDamage)
+    return {
+      badge: 'Degraded',
+      title: damaged.title,
+      description: damaged.description,
+      hint: damaged.hint,
     }
   }
 
@@ -415,7 +426,11 @@ function SharedObjectHealthCard({
           <div className="mt-5 space-y-3">
             <HealthIssuePanel
               hint={summary.hint}
-              detail={health.error?.trim() ?? ''}
+              detail={
+                health.storeDamage
+                  ? summarizeStoreDamage(health.storeDamage).detail
+                  : (health.error?.trim() ?? '')
+              }
             />
             <RemediationPanel
               flow={flow}

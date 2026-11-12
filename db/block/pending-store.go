@@ -77,8 +77,8 @@ type PendingStore struct {
 	seq uint64
 	// keptBytes is the total data length of kept.
 	keptBytes int
-	// storedStages counts the open stages OpenStage and PutBlockBatchStaged
-	// opened that put a block to the inner store: blocks only a stage may hold
+	// storedStages counts the open stages OpenStage, OpenOverflowStage and
+	// PutBlockBatchStaged opened that put a block to the inner store: blocks only a stage may hold
 	// until its writer's root does.
 	storedStages int
 	// maxBytes bounds keptBytes. A put past it goes to the inner store.
@@ -106,10 +106,12 @@ func (s *PendingStore) Full() bool {
 	return s.keptBytes >= s.maxBytes/2
 }
 
-// StagesStored reports whether an open stage put a block to the inner store,
-// so a writer that names its root while the stage is open, and ends the stage
-// after, must have a root of the inner store hold that root first: once the
-// stage ends, nothing else holds what it stored.
+// StagesStored reports whether an open stage, an overflow stage included, put
+// a block to the inner store, so a writer that names its root while the stage
+// is open, and ends the stage after, must have a root of the inner store hold
+// that root first: once the stage ends, nothing else holds what it stored. A
+// tree built on another writer's tree may reach that writer's stored blocks,
+// so it needs the same hold.
 func (s *PendingStore) StagesStored() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()

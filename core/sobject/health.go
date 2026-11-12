@@ -180,39 +180,43 @@ func NewSharedObjectClosedHealth(
 	}
 }
 
-// WithStoreDamage shows err, a store refusal replay could not heal, as a
-// degraded body whose block is missing, or, when err is nil, returns a body
-// it showed degraded that way to ready. A loading or closed snapshot keeps its
-// status: the mount's own state comes first.
-func (h *SharedObjectHealth) WithStoreDamage(err error) *SharedObjectHealth {
-	// Find whether the snapshot shows store damage now.
-	shown := h.GetStatus() == SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_DEGRADED &&
-		h.GetLayer() == SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY &&
-		h.GetCommonReason() == SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND
-	ready := h.GetStatus() == SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY
+// WithStoreDamage returns a snapshot reporting damage, a store refusal replay
+// could not heal, or no damage when it is nil. Damage on a ready snapshot
+// summarizes it as a degraded body whose block is missing, to be restored
+// from source data; clearing the damage returns only that summary to ready. A
+// loading, closed or otherwise degraded snapshot keeps its summary: the
+// mount's own state comes first.
+func (h *SharedObjectHealth) WithStoreDamage(damage *SOStoreDamage) *SharedObjectHealth {
+	// Keep the snapshot when the damage is unchanged.
+	prev := h.GetStoreDamage()
+	if prev.EqualVT(damage) {
+		return h
+	}
 
-	// Return a healed body to ready.
-	if err == nil {
-		if !shown {
-			return h
-		}
-		next := h.edit()
+	// Copy the snapshot with the new damage, and set or clear the summary
+	// the damage owns.
+	next := h.edit()
+	next.StoreDamage = damage
+	switch {
+	case damage != nil && next.GetStatus() == SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY:
+		next.Status = SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_DEGRADED
+		next.Layer = SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY
+		next.CommonReason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND
+		next.RemediationHint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA
+	case damage == nil && prev != nil && storeDamageSummary(next):
 		next.Status = SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_READY
 		next.CommonReason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN
 		next.RemediationHint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE
-		next.Error = ""
-		return next
 	}
-
-	// Show the damage on a ready body, or a changed one.
-	if !ready && (!shown || h.GetError() == err.Error()) {
-		return h
-	}
-	next := h.edit()
-	next.Status = SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_DEGRADED
-	next.Layer = SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY
-	next.CommonReason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND
-	next.RemediationHint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA
-	next.Error = err.Error()
 	return next
+}
+
+// storeDamageSummary reports whether h's summary is the one WithStoreDamage
+// sets on a ready snapshot.
+func storeDamageSummary(h *SharedObjectHealth) bool {
+	return h.GetStatus() == SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_DEGRADED &&
+		h.GetLayer() == SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY &&
+		h.GetCommonReason() == SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND &&
+		h.GetRemediationHint() == SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA &&
+		h.GetError() == ""
 }

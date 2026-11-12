@@ -15,6 +15,7 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	provider "github.com/s4wave/spacewave/core/provider"
+	block "github.com/s4wave/spacewave/db/block"
 	transform "github.com/s4wave/spacewave/db/block/transform"
 	peer "github.com/s4wave/spacewave/net/peer"
 )
@@ -716,6 +717,12 @@ type SharedObjectHealth struct {
 	// SyncPeers lists this device's sync stream with each participant it has
 	// authenticated since the object mounted, sorted by peer ID.
 	SyncPeers []*SOSyncPeer `protobuf:"bytes,12,rep,name=sync_peers,json=syncPeers,proto3" json:"syncPeers,omitempty"`
+	// StoreDamage is set while a write of the body is damaged: the store
+	// refused it again because a block it writes names a child no store holds,
+	// which replay cannot restore. The body reads but neither checkpoints nor
+	// saves its replay position until the next mount. Status DEGRADED, layer
+	// BODY, reason BLOCK_NOT_FOUND and hint REPAIR_SOURCE_DATA summarize it.
+	StoreDamage *SOStoreDamage `protobuf:"bytes,13,opt,name=store_damage,json=storeDamage,proto3" json:"storeDamage,omitempty"`
 }
 
 func (x *SharedObjectHealth) Reset() {
@@ -806,6 +813,71 @@ func (x *SharedObjectHealth) GetSyncPeers() []*SOSyncPeer {
 		return x.SyncPeers
 	}
 	return nil
+}
+
+func (x *SharedObjectHealth) GetStoreDamage() *SOStoreDamage {
+	if x != nil {
+		return x.StoreDamage
+	}
+	return nil
+}
+
+// SOStoreDamage is a write of the body the store refused again because a block
+// it writes names a child no store holds.
+type SOStoreDamage struct {
+	unknownFields []byte
+	// Operation names the refused write, such as a Flush or a SetRoots.
+	Operation string `protobuf:"bytes,1,opt,name=operation,proto3" json:"operation,omitempty"`
+	// Block is the refused block.
+	Block *block.BlockRef `protobuf:"bytes,2,opt,name=block,proto3" json:"block,omitempty"`
+	// Child is the child of Block no store holds. Restoring it, from a peer or
+	// a backup that holds it, lets the write store on the next mount.
+	Child *block.BlockRef `protobuf:"bytes,3,opt,name=child,proto3" json:"child,omitempty"`
+	// Since is when the first refusal of this run happened.
+	Since *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=since,proto3" json:"since,omitempty"`
+	// Refusals counts the attempts in a row the store refused.
+	Refusals uint32 `protobuf:"varint,5,opt,name=refusals,proto3" json:"refusals,omitempty"`
+}
+
+func (x *SOStoreDamage) Reset() {
+	*x = SOStoreDamage{}
+}
+
+func (*SOStoreDamage) ProtoMessage() {}
+
+func (x *SOStoreDamage) GetOperation() string {
+	if x != nil {
+		return x.Operation
+	}
+	return ""
+}
+
+func (x *SOStoreDamage) GetBlock() *block.BlockRef {
+	if x != nil {
+		return x.Block
+	}
+	return nil
+}
+
+func (x *SOStoreDamage) GetChild() *block.BlockRef {
+	if x != nil {
+		return x.Child
+	}
+	return nil
+}
+
+func (x *SOStoreDamage) GetSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Since
+	}
+	return nil
+}
+
+func (x *SOStoreDamage) GetRefusals() uint32 {
+	if x != nil {
+		return x.Refusals
+	}
+	return 0
 }
 
 // SOSyncPeer is this device's sync stream with one authenticated participant.
@@ -2857,6 +2929,7 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 	r.RejectedEdits = protobuf_go_lite.CloneVTSlice(m.RejectedEdits)
 	r.CheckpointMismatch = protobuf_go_lite.CloneVTValue(m.CheckpointMismatch)
 	r.SyncPeers = protobuf_go_lite.CloneVTSlice(m.SyncPeers)
+	r.StoreDamage = protobuf_go_lite.CloneVTValue(m.StoreDamage)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2864,6 +2937,26 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 }
 
 func (m *SharedObjectHealth) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOStoreDamage) CloneVT() *SOStoreDamage {
+	if m == nil {
+		return (*SOStoreDamage)(nil)
+	}
+	r := new(SOStoreDamage)
+	r.Operation = m.Operation
+	r.Refusals = m.Refusals
+	r.Block = protobuf_go_lite.CloneVTValue(m.Block)
+	r.Child = protobuf_go_lite.CloneVTValue(m.Child)
+	r.Since = protobuf_go_lite.CloneVTValue(m.Since)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOStoreDamage) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3763,11 +3856,46 @@ func (this *SharedObjectHealth) EqualVT(that *SharedObjectHealth) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.SyncPeers, that.SyncPeers, func() *SOSyncPeer { return &SOSyncPeer{} }) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.StoreDamage, that.StoreDamage) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SharedObjectHealth) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SharedObjectHealth)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOStoreDamage) EqualVT(that *SOStoreDamage) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Operation != that.Operation {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Block, that.Block) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Child, that.Child) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Since, that.Since) {
+		return false
+	}
+	if this.Refusals != that.Refusals {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOStoreDamage) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOStoreDamage)
 	if !ok {
 		return false
 	}
@@ -5724,6 +5852,11 @@ func (x *SharedObjectHealth) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.StoreDamage != nil || s.HasField("storeDamage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storeDamage")
+		x.StoreDamage.MarshalProtoJSON(s.WithField("storeDamage"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5819,12 +5952,105 @@ func (x *SharedObjectHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.SyncPeers = append(x.SyncPeers, v)
 			})
+		case "store_damage", "storeDamage":
+			if s.ReadNil() {
+				x.StoreDamage = nil
+				return
+			}
+			x.StoreDamage = &SOStoreDamage{}
+			x.StoreDamage.UnmarshalProtoJSON(s.WithField("store_damage", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SharedObjectHealth from JSON.
 func (x *SharedObjectHealth) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOStoreDamage message to JSON.
+func (x *SOStoreDamage) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Operation != "" || s.HasField("operation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("operation")
+		s.WriteString(x.Operation)
+	}
+	if x.Block != nil || s.HasField("block") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("block")
+		x.Block.MarshalProtoJSON(s.WithField("block"))
+	}
+	if x.Child != nil || s.HasField("child") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("child")
+		x.Child.MarshalProtoJSON(s.WithField("child"))
+	}
+	if x.Since != nil || s.HasField("since") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("since")
+		x.Since.MarshalProtoJSON(s.WithField("since"))
+	}
+	if x.Refusals != 0 || s.HasField("refusals") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("refusals")
+		s.WriteUint32(x.Refusals)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOStoreDamage to JSON.
+func (x *SOStoreDamage) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOStoreDamage message from JSON.
+func (x *SOStoreDamage) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "operation":
+			s.AddField("operation")
+			x.Operation = s.ReadString()
+		case "block":
+			if s.ReadNil() {
+				x.Block = nil
+				return
+			}
+			x.Block = &block.BlockRef{}
+			x.Block.UnmarshalProtoJSON(s.WithField("block", true))
+		case "child":
+			if s.ReadNil() {
+				x.Child = nil
+				return
+			}
+			x.Child = &block.BlockRef{}
+			x.Child.UnmarshalProtoJSON(s.WithField("child", true))
+		case "since":
+			if s.ReadNil() {
+				x.Since = nil
+				return
+			}
+			x.Since = &timestamppb.Timestamp{}
+			x.Since.UnmarshalProtoJSON(s.WithField("since", true))
+		case "refusals":
+			s.AddField("refusals")
+			x.Refusals = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOStoreDamage from JSON.
+func (x *SOStoreDamage) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -9150,6 +9376,16 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.StoreDamage != nil {
+		size, err := m.StoreDamage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	}
 	if len(m.SyncPeers) > 0 {
 		for iNdEx := len(m.SyncPeers) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.SyncPeers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -9232,6 +9468,78 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOStoreDamage) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOStoreDamage) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOStoreDamage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Refusals != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Refusals))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Since != nil {
+		size, err := m.Since.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Child != nil {
+		size, err := m.Child.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Block != nil {
+		size, err := m.Block.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Operation) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Operation)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -11641,6 +11949,34 @@ func (m *SharedObjectHealth) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.StoreDamage != nil {
+		l = m.StoreDamage.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOStoreDamage) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Operation)
+	if m.Block != nil {
+		l = m.Block.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Child != nil {
+		l = m.Child.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Since != nil {
+		l = m.Since.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Refusals)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12581,10 +12917,44 @@ func (x *SharedObjectHealth) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.StoreDamage != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "store_damage")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.StoreDamage)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SharedObjectHealth) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOStoreDamage) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOStoreDamage")
+	if x.Operation != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operation")
+		protobuf_go_lite.TextWriteString(&sb, x.Operation)
+	}
+	if x.Block != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Block)
+	}
+	if x.Child != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "child")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Child)
+	}
+	if x.Since != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "since")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Since)
+	}
+	if x.Refusals != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refusals")
+		protobuf_go_lite.TextWriteUint(&sb, x.Refusals)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOStoreDamage) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -14241,6 +14611,128 @@ func (m *SharedObjectHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StoreDamage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.StoreDamage == nil {
+				m.StoreDamage = &SOStoreDamage{}
+			}
+			if err := m.StoreDamage.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOStoreDamage) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOStoreDamage: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOStoreDamage: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operation", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Operation = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Block", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Block == nil {
+				m.Block = &block.BlockRef{}
+			}
+			if err := m.Block.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Child", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Child == nil {
+				m.Child = &block.BlockRef{}
+			}
+			if err := m.Child.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Since", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Since == nil {
+				m.Since = &timestamppb.Timestamp{}
+			}
+			if err := m.Since.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Refusals", wireType)
+			}
+			m.Refusals = 0
+			m.Refusals, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
