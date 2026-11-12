@@ -242,8 +242,11 @@ func (h *WebHost) ExecutePlugin(
 	}
 	defer relRpcServiceCtrl()
 
-	// Initialize the rpc client for calling the plugin.
-	pluginRpcClient := srpc.NewClient(webRuntime.GetWebWorkerOpenStream(pluginWebWorkerID))
+	// Initialize the rpc client for calling the plugin. Its calls fail when
+	// the worker is gone and once the execution ends.
+	workerStreams := newWorkerStreams(webRuntime.GetWebWorkerOpenStream(pluginWebWorkerID))
+	defer workerStreams.close(plugin.ErrWorkerGone)
+	pluginRpcClient := srpc.NewClient(workerStreams.OpenStream)
 
 	// There are two operating modes for the below code:
 	// 1. SharedWorker is supported:
@@ -421,8 +424,12 @@ func (h *WebHost) ExecutePlugin(
 			if err != nil {
 				return err
 			}
-			// Release the document's worker ownership when the document closes.
+			// Release the document's worker ownership when the document closes,
+			// failing the calls of the dedicated worker it held.
 			if docStatus.GetClosed() {
+				if workerInstance != nil && !workerInstance.GetShared() {
+					workerStreams.endStreams(plugin.ErrWorkerGone)
+				}
 				unlock, err := cmtx.Lock(ctx)
 				if err != nil {
 					return err
@@ -444,6 +451,7 @@ func (h *WebHost) ExecutePlugin(
 			unlock()
 
 			// Find our worker instance, including workers in background documents.
+			prevInstance := workerInstance
 			workerInstance = nil
 			for _, worker := range docStatus.GetWebWorkers() {
 				if worker.GetDeleted() {
@@ -454,6 +462,14 @@ func (h *WebHost) ExecutePlugin(
 					break
 				}
 			}
+			// Fail the calls of a worker that failed, or of a dedicated worker
+			// that left this document; a shared worker may still serve other
+			// documents. The next calls reach the worker created in its place.
+			gone := workerInstance == nil && prevInstance != nil && !prevInstance.GetShared()
+			if gone || workerInstance.GetFailed() {
+				workerStreams.endStreams(plugin.ErrWorkerGone)
+			}
+
 			// Report a failed worker instance and release its ownership.
 			if workerInstance != nil && workerInstance.GetFailed() {
 				unlock, err := cmtx.Lock(ctx)

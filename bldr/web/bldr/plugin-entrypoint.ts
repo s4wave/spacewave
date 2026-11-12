@@ -1,3 +1,4 @@
+import { Server, createMux } from 'starpc'
 import {
   isBackendEntrypointLifecycle,
   type BackendAPI,
@@ -24,4 +25,12 @@ export async function startWorkerPluginEntrypoint(
   // Observe failures for the full lifetime without blocking startup on shutdown.
   void Promise.resolve(result.done).catch(reportRuntimeFailure)
   await result.startup
+
+  // A started plugin that serves no RPC answers every call as not found, so
+  // host probes such as Activation.Check learn the method is absent instead
+  // of waiting for a handler that never comes.
+  if (!api.handleStreamCtr.value) {
+    const server = new Server(createMux().lookupMethod)
+    api.handleStreamCtr.set(server.handlePacketStream.bind(server))
+  }
 }
