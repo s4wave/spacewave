@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
+
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 )
@@ -37,9 +39,10 @@ func (s *sweepingStore) ReleaseRoots(context.Context, []*block.BlockRef) error {
 
 // TestPutBlockBatchStagedHoldsKeptChildren checks that a sweep between
 // PutBlockBatchStaged keeping a child and storing the parent past the bound
-// that names it cannot drop the child: the stored parent must never name a
-// block neither kept nor stored. The sweep's live root is the parent, as an
-// admitted candidate's would be, and it reaches no kept block.
+// that names it cannot drop the child: the child still reads between the
+// sweep and the store, and the stored parent never names a block neither kept
+// nor stored. The sweep's live root is the parent, as an admitted candidate's
+// would be, and it reaches no kept block.
 func TestPutBlockBatchStagedHoldsKeptChildren(t *testing.T) {
 	ctx := context.Background()
 	inner := &sweepingStore{StoreOps: block_mock.NewMockStore(0)}
@@ -53,7 +56,13 @@ func TestPutBlockBatchStagedHoldsKeptChildren(t *testing.T) {
 	}
 	child := entry([]byte("kept child"))
 	parent := entry(make([]byte, 2<<10), child.Ref)
-	inner.sweep = func() { pages.Sweep([]*block.BlockRef{parent.Ref}, pages.SweepMark()) }
+	var readErr error
+	inner.sweep = func() {
+		pages.Sweep([]*block.BlockRef{parent.Ref}, pages.SweepMark())
+		if _, found, err := pages.GetBlock(ctx, child.Ref); err != nil || !found {
+			readErr = errors.Errorf("the kept child read found=%v err=%v between the sweep and the store", found, err)
+		}
+	}
 
 	release, err := pages.PutBlockBatchStaged(ctx, []*block.PutBatchEntry{child, parent})
 	if err != nil {
@@ -63,6 +72,9 @@ func TestPutBlockBatchStagedHoldsKeptChildren(t *testing.T) {
 		t.Fatal("the parent past the bound opened no stage")
 	}
 	release()
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
 	for _, ref := range []*block.BlockRef{parent.Ref, child.Ref} {
 		found, err := inner.GetBlockExists(ctx, ref)
 		if err != nil {
