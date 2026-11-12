@@ -111,3 +111,116 @@ func TestAdmitHoldsStoredBlocks(t *testing.T) {
 		})
 	}
 }
+
+// TestAdmitAppendsPendingWorlds checks that each admission in a stored epoch
+// appends one block naming its candidate to the pending root, linked to the
+// earlier block, rather than rewriting a block naming every pending World:
+// the write under the root lock stays one root whatever the set holds.
+func TestAdmitAppendsPendingWorlds(t *testing.T) {
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, 4<<10, time.Hour)
+	a.replay = &spaceReplay{a: a, base: &InnerState{}}
+	for i := range 3 {
+		// Admit a candidate whose page goes past the bound.
+		page := []byte("page " + string(rune('a'+i)))
+		page = bytes.Repeat(page, 1<<10)
+		pageRef, err := block.BuildBlockRef(page, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data := []byte("candidate World " + string(rune('a'+i)))
+		root, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		adm := a.newAdmission(world.Candidate{Root: root, Entries: []*block.PutBatchEntry{
+			{Ref: pageRef, Data: page, RefsKnown: true},
+			{Ref: root, Data: data, Refs: []*block.BlockRef{pageRef}, RefsKnown: true},
+		}}, nil, nil)
+		a.admit(adm)
+		if err := a.storeAdmitted(ctx, adm); err != nil {
+			t.Fatal(err)
+		}
+
+		// The pending root's newest block names this candidate alone.
+		if len(a.pendingWorlds.roots) != i+1 || a.pendingWorlds.links != i+1 {
+			t.Fatalf("admission %d: pending root holds %d Worlds in %d blocks", i, len(a.pendingWorlds.roots), a.pendingWorlds.links)
+		}
+		held, found, err := a.pages.GetBlock(ctx, a.held[RootPending])
+		if err != nil || !found {
+			t.Fatalf("admission %d: read the pending root block: %v %v", i, found, err)
+		}
+		msg := &HeldRoots{}
+		if err := msg.UnmarshalVT(held); err != nil {
+			t.Fatal(err)
+		}
+		if len(msg.GetRoots()) != 1 || !msg.GetRoots()[0].EqualsRef(root) {
+			t.Fatalf("admission %d: the pending root block names %d Worlds", i, len(msg.GetRoots()))
+		}
+	}
+}
+
+// TestRootSetMoveKeepsLostRoot checks that a root set whose stored block names
+// a World whose block was lost still moves: a trim that keeps the lost World,
+// an append and a rewrite at the chain bound land, since the child check
+// passes the roots the set held already. A move that adds a lost World is
+// still refused.
+func TestRootSetMoveKeepsLostRoot(t *testing.T) {
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, 4<<10, time.Hour)
+	stored := func(data string) *block.BlockRef {
+		t.Helper()
+		ref, _, err := a.pages.StoreOps.PutBlock(ctx, []byte(data), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	lost := func(data string) *block.BlockRef {
+		t.Helper()
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+
+	// Store a pending root naming a lost World and a stored one, past the
+	// child check, as a set that named the World before its block was lost.
+	hole, kept := lost("lost World"), stored("kept World")
+	entry, err := refsEntry(&HeldRoots{Roots: []*block.BlockRef{hole, kept}}, []*block.BlockRef{hole, kept})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.pages.StoreOps.SetRoots(ctx, []*block.PutBatchEntry{entry}, []block.NamedRoot{{Name: RootPending, Ref: entry.Ref}}); err != nil {
+		t.Fatal(err)
+	}
+	a.held[RootPending] = entry.Ref
+	a.pendingWorlds.roots, a.pendingWorlds.links = []*block.BlockRef{hole, kept}, 1
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// A trim keeping the lost World, an append, and a rewrite at the bound.
+	h := &a.pendingWorlds
+	if err := a.setRootSets(ctx, []*rootSet{h}, [][]*block.BlockRef{{hole}}, nil); err != nil {
+		t.Fatalf("trim keeping a lost World: %v", err)
+	}
+	if err := a.appendRoots(ctx, h, []*block.BlockRef{stored("appended World")}); err != nil {
+		t.Fatalf("append beside a lost World: %v", err)
+	}
+	h.links = maxRootLinks
+	if err := a.appendRoots(ctx, h, []*block.BlockRef{stored("rewritten World")}); err != nil {
+		t.Fatalf("rewrite at the bound keeping a lost World: %v", err)
+	}
+	if h.links != 1 || !h.holds(hole) {
+		t.Fatalf("the rewrite left %d blocks, holding the lost World %v", h.links, h.holds(hole))
+	}
+
+	// Adding a lost World is refused.
+	if err := a.appendRoots(ctx, h, []*block.BlockRef{lost("another lost World")}); !errors.Is(err, block.ErrMissingChild) {
+		t.Fatalf("append of a lost World: %v, want %v", err, block.ErrMissingChild)
+	}
+}

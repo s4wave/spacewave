@@ -92,8 +92,11 @@ func (h *rootSet) held(keep func(*block.BlockRef) bool, live []*block.BlockRef) 
 
 // setRootSets moves each set of hs onto the roots of the same index of next,
 // and roots onto their refs, in one root move with entries, so either every
-// move lands or none does. A set whose roots stay is not moved. The caller
-// holds rootMtx.
+// move lands or none does. A set whose roots stay is not moved. The child
+// check reads only the roots a set adds: those it keeps its stored block held
+// already, so a kept root whose block was lost does not refuse every later
+// move of the set, and a rewrite reads nothing for them. The caller holds
+// rootMtx.
 func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*block.BlockRef, entries []*block.PutBatchEntry, roots ...block.NamedRoot) error {
 	// Encode each changed set as one block naming its roots, or release its
 	// name when it holds none.
@@ -109,6 +112,7 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 		if err != nil {
 			return err
 		}
+		entry.Held = slices.DeleteFunc(slices.Clone(next[i]), func(r *block.BlockRef) bool { return !h.holds(r) })
 		entries = append(entries, entry)
 		roots = append(roots, block.NamedRoot{Name: h.name, Ref: entry.Ref})
 	}
@@ -154,6 +158,9 @@ func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.Bl
 	entry, err := refsEntry(&HeldRoots{Roots: extra, Prev: prev}, refs)
 	if err != nil {
 		return err
+	}
+	if !prev.GetEmpty() {
+		entry.Held = []*block.BlockRef{prev}
 	}
 
 	// Move the root onto it, then record the roots it holds.

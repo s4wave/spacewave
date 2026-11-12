@@ -44,27 +44,32 @@ type LocalStoreGetter interface {
 
 // checkChildren refuses batch with a MissingChildError, naming op, the block and
 // its child by their block references, when a block of batch names a child
-// that is neither in batch, kept, nor in the inner store. A kept child is
-// either written by this write's caller or stored by an open Flush.
+// that is neither in batch, kept, held already (PutBatchEntry.Held), nor in
+// the inner store. A kept child is either written by this write's caller or
+// stored by an open Flush.
 //
 // Invariant: the check refuses only on proof of absence. It never refuses a
 // write for a child it could not look for, and it adds no network round trip
 // to a write whose children are local. It asks the inner store's local tier
 // (LocalStoreGetter) first; only the children that tier lacks go to the whole
-// store, once, under WithoutPeerWait. A source there that cannot look, such as
-// a backend not yet open or peers with no session, answers ErrUnavailable,
+// store, once, under WithoutPeerWait. A source there that cannot look or
+// cannot know, such as a backend not yet open or peers that may not be every
+// device holding the block, answers ErrUnavailable,
 // and any failure of that probe admits the write as unchecked (Unchecked)
 // rather than refuse it. A store with no local tier answers definitely.
 //
 // Cost: one local existence read of every distinct child the batch names that
-// it neither writes nor keeps, the frontier between the kept pages and the
-// stored ones, and one read of the whole store for the children the local
-// tier lacks.
+// it neither writes, keeps nor holds already, the frontier between the kept
+// pages and the stored ones, and one read of the whole store for the children
+// the local tier lacks.
 func (s *PendingStore) checkChildren(ctx context.Context, op string, batch []*PutBatchEntry) error {
 	// Gather the children neither written with the batch nor kept.
 	seen := make(map[string]struct{}, len(batch))
 	for _, e := range batch {
 		seen[pendingKey(e.Ref)] = struct{}{}
+		for _, ref := range e.Held {
+			seen[pendingKey(ref)] = struct{}{}
+		}
 	}
 	var children, parents []*BlockRef
 	s.mtx.RLock()

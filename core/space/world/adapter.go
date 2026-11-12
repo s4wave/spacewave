@@ -1183,9 +1183,12 @@ func (a *Adapter) admit(adm *spaceAdmission) {
 // bound, whether Admit's own put or the writer's transaction stored them, so
 // those stages can end, or when the kept pages outgrew memory, so they can
 // leave it. Each hold flushes the writer's own pages before the root lock, so
-// their child check, which may ask the backend and peers, runs outside it,
-// and the swap under the lock reads only the local tier. It waits on the root
-// lock only for another swap, never for the driver's store of its pages.
+// their child check, which may ask the backend and peers, runs outside it.
+// The swap under the lock appends one block naming the candidate, which the
+// open flush stored, and the set's earlier block, which the root holds, so its
+// child check reads nothing and its write does not grow with the Worlds the
+// set holds. It waits on the root lock only for another swap, never for the
+// driver's store of its pages.
 func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
@@ -1204,7 +1207,7 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 		return err
 	}
 	defer release()
-	return a.addRoot(ctx, &a.pendingWorlds, adm.candidate.Root)
+	return a.appendRoots(ctx, &a.pendingWorlds, []*block.BlockRef{adm.candidate.Root})
 }
 
 // match returns this device's pending admission of op, or nil: the one the

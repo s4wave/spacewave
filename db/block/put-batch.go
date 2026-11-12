@@ -10,6 +10,12 @@ type PutBatchEntry struct {
 	Refs []*BlockRef
 	// RefsKnown declares Refs complete, as PutOpts.RefsKnown does.
 	RefsKnown bool
+	// Held lists refs of Refs that the store holds already through the block
+	// this write replaces, such as the roots a root set's rewrite keeps. The
+	// PendingStore's child check passes them unread: the write names no child
+	// the store did not name before it, so a child already lost is not a
+	// reason to refuse a write that keeps it, and a kept one costs no read.
+	Held []*BlockRef
 	// Tombstone marks the block ref as deleted.
 	Tombstone bool
 	// External marks a block whose bytes the caller keeps in a store of its
