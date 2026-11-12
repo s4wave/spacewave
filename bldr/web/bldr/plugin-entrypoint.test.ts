@@ -68,17 +68,25 @@ describe('startWorkerPluginEntrypoint', () => {
     ).rejects.toBe(err)
   })
 
-  it('answers streams as not found when the plugin serves none', async () => {
-    const handleStreamCtr = new HandleStreamCtr()
-    await startWorkerPluginEntrypoint(
-      () => ({ startup: Promise.resolve() }),
-      { handleStreamCtr } as unknown as BackendAPI,
-      new AbortController().signal,
-      undefined,
-      vi.fn(),
-    )
-    expect(handleStreamCtr.value).toBeDefined()
-  })
+  // A lifecycle entrypoint and a promise one, as plugin builds bundle before
+  // their main returned a lifecycle, both answer when they serve no RPC.
+  it.each([
+    ['lifecycle', () => ({ startup: Promise.resolve() })],
+    ['promise', () => Promise.resolve()],
+  ])(
+    'answers streams as not found when a %s plugin serves none',
+    async (_kind, entrypoint) => {
+      const handleStreamCtr = new HandleStreamCtr()
+      await startWorkerPluginEntrypoint(
+        entrypoint,
+        { handleStreamCtr } as unknown as BackendAPI,
+        new AbortController().signal,
+        undefined,
+        vi.fn(),
+      )
+      expect(handleStreamCtr.value).toBeDefined()
+    },
+  )
 
   it('keeps the handler the plugin registered', async () => {
     const handleStreamCtr = new HandleStreamCtr()
