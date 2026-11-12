@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"time"
@@ -652,9 +653,19 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 // newSpaceDeployCommand builds the space deploy subcommand.
 func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	var spaceID, dbPath, manifestID, objectKey, platformID string
+	var wait time.Duration
+	var noWait bool
 	return &cli.Command{
 		Name:  "deploy",
-		Usage: "deploy a manifest set from a .bldr devtool DB into a space",
+		Usage: "deploy a manifest set from a .bldr devtool DB into a space and wait until it runs",
+		Description: "Writes the manifest set as the space's selection, then follows the plugin's\n" +
+			"listing and prints each state once: preparing, waiting on the running\n" +
+			"worker, failed with its retry time, and live.\n\n" +
+			"Exits 0 once a deployed manifest runs. Exits non-zero when it fails with no\n" +
+			"retry, or when --wait passes or you interrupt it first; it then prints the\n" +
+			"last state and the next step. --no-wait returns once the selection is written.\n\n" +
+			"Example:\n" +
+			"  spacewave space deploy --db .bldr --manifest-id spacewave-core --wait 2m",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "space",
@@ -687,10 +698,21 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				EnvVars:     []string{"SPACEWAVE_OBJECT_KEY"},
 				Destination: &objectKey,
 			},
+			&cli.DurationFlag{
+				Name:        "wait",
+				Usage:       "fail if the deploy is not live this long after the selection is written; 0 waits without limit",
+				Destination: &wait,
+			},
+			&cli.BoolFlag{
+				Name:        "no-wait",
+				Usage:       "return once the selection is written, without following it",
+				Destination: &noWait,
+			},
 		},
 		Action: func(c *cli.Context) error {
-			// Take the command context for the deploy.
-			ctx := c.Context
+			// Stop the deploy or its follow when the person interrupts.
+			ctx, stop := signal.NotifyContext(c.Context, os.Interrupt)
+			defer stop()
 
 			// Resolve the destination object key and output contract.
 			key := objectKey
@@ -759,8 +781,33 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer spaceCleanup()
 
-			// Print the sorted set rows before sending the request.
+			// Watch the listing before the deploy, so the follow starts from
+			// the state the deploy changes and misses no change after it.
 			w := os.Stdout
+			set := &deployedSet{manifestID: manifestID, refs: refs}
+			var strm s4wave_space.SRPCSpaceContentsResourceService_WatchStateClient
+			var start *s4wave_space.SpaceContentsState
+			followCtx, stopFollow := context.WithCancelCause(ctx)
+			defer stopFollow(nil)
+			if !noWait {
+				contentsSvc, contentsCleanup, err := client.mountSpaceContents(followCtx, spaceSvc)
+				if err != nil {
+					return err
+				}
+				defer contentsCleanup()
+				strm, err = contentsSvc.WatchState(followCtx, &s4wave_space.WatchSpaceContentsStateRequest{})
+				if err != nil {
+					return errors.Wrap(err, "watch space contents")
+				}
+				defer strm.Close()
+				start, err = strm.Recv()
+				if err != nil {
+					return errors.Wrap(err, "watch space contents")
+				}
+				warnDeployOverlap(w, findDeployPlugin(start, manifestID), set)
+			}
+
+			// Print the sorted set rows before sending the request.
 			w.WriteString("deploying manifest set " + manifestID + " to space " + sid + " (key=" + key + ")\n")
 			w.WriteString("source: " + dbPath + "\n")
 			for _, ref := range refs {
@@ -775,7 +822,17 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return err
 			}
 			w.WriteString("deploy complete\n")
-			return nil
+			if noWait {
+				return nil
+			}
+
+			// Follow the plugin until the deployed manifest runs or --wait,
+			// counted from the written selection, passes.
+			if wait > 0 {
+				deadline := time.AfterFunc(wait, func() { stopFollow(errDeployWaitPassed) })
+				defer deadline.Stop()
+			}
+			return followDeploy(followCtx, w, start, strm.Recv, set, time.Local)
 		},
 	}
 }
