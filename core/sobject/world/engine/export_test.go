@@ -30,3 +30,10 @@ func ExecuteWorld(ctx context.Context, c *Controller, so sobject.SharedObject) e
 	defer cancel()
 	return c.executeSharedObject(ctx, cancel, so)
 }
+
+// KeepsWorldPages reports whether an engine on conf keeps the World pages of
+// so in memory until a publication names them, rather than storing every page
+// as it computes it.
+func KeepsWorldPages(conf *Config, so sobject.SharedObject) bool {
+	return (&Controller{conf: conf}).newWorldPages(so) != nil
+}

@@ -101,8 +101,9 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		return nil, err
 	}
 
-	// Stamp the record at Commit and open its state.
+	// Stamp the record at Commit, note its root, and open its state.
 	t.markObjectWritten(key, nbcs)
+	t.noteSetRoot(key, obj.GetRootRef())
 	objState, err := NewObjectState(ctx, t, nbcs)
 	if err != nil {
 		return nil, err
@@ -118,6 +119,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	}
 	if changeBcs != nil {
 		changeBcs.SetRef(5, nbcs)
+		t.noteLoggedRoot(obj.GetRootRef())
 	}
 
 	// The object now exists for the rest of the transaction.
@@ -200,6 +202,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 		return nil, err
 	}
 	t.forgetObjectWritten(oldKey)
+	t.moveSetRoot(oldKey, newKey)
 
 	// The old key no longer resolves; drop any stale object memo entry.
 	t.forgetObject(oldKey)
@@ -381,6 +384,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		return true, err
 	}
 	t.forgetObjectWritten(key)
+	t.forgetSetRoot(key)
 
 	// A deleted object no longer exists; drop any stale object memo entry.
 	t.forgetObject(key)
@@ -429,6 +433,7 @@ func (t *WorldState) PurgeObject(ctx context.Context, key string) (bool, error) 
 	}
 	t.forgetObject(key)
 	t.forgetObjectWritten(key)
+	t.forgetSetRoot(key)
 	if err := t.DeleteGraphObject(ctx, key); err != nil {
 		return true, err
 	}

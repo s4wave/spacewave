@@ -76,7 +76,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	forkedTx, err := ForkWorldState(ctx, ws, true)
+	forkedTx, err := forkRecorder(ctx, ws)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -198,7 +198,7 @@ func TestWorldState_RenameObjectDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	forkedTx, err := ForkWorldState(ctx, ws, true)
+	forkedTx, err := forkRecorder(ctx, ws)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

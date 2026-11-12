@@ -509,6 +509,7 @@ func (t *WorldState) ReplaceObjectRecord(ctx context.Context, key string, rootRe
 		return err
 	}
 	t.markObjectWritten(key, nbcs)
+	t.noteSetRoot(key, obj.GetRootRef())
 
 	// Record the write in the changelog and the existence memo.
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
@@ -520,6 +521,7 @@ func (t *WorldState) ReplaceObjectRecord(ctx context.Context, key string, rootRe
 	}
 	if changeBcs != nil {
 		changeBcs.SetRef(5, nbcs)
+		t.noteLoggedRoot(obj.GetRootRef())
 	}
 	t.markObjectExists(key)
 	return nil

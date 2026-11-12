@@ -2,6 +2,7 @@ package world_block_tx
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -114,19 +115,21 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// PayloadRefs returns the payload roots of the transaction, resolving
-// operation types with lookupOp: the roots of World and object operations,
-// see world.PayloadOperation, and the object root a create or set writes,
-// since replay restores that root without the graph beneath it.
+// PayloadRefs returns the roots replay holds while the transaction is above
+// the checkpoint, resolving operation types with lookupOp: the object root a
+// create or set writes, the roots an applied operation set (its SetRoots),
+// and the roots of a world.PayloadOperation. Replay applies the transaction
+// again and reads each of them, and a World stored before the transaction
+// does not reach them.
 func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
 	// Decode the operation, or collect the roots of each batched transaction.
 	var op world.Operation
+	var refs []*block.BlockRef
 	var err error
 	switch t.GetTxType() {
 	case TxType_TxType_CREATE_OBJECT, TxType_TxType_OBJECT_SET:
 		return t.objectRootPayload(), nil
 	case TxType_TxType_BATCH:
-		var refs []*block.BlockRef
 		for i, tx := range t.GetTxBatch().GetTxs() {
 			txRefs, err := tx.PayloadRefs(ctx, lookupOp)
 			if err != nil {
@@ -136,8 +139,10 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		}
 		return refs, nil
 	case TxType_TxType_APPLY_WORLD_OP:
+		refs = slices.Clone(t.GetTxApplyWorldOp().GetSetRoots())
 		op, err = t.GetTxApplyWorldOp().decodeOp(ctx, lookupOp)
 	case TxType_TxType_APPLY_OBJECT_OP:
+		refs = slices.Clone(t.GetTxApplyObjectOp().GetSetRoots())
 		op, err = t.GetTxApplyObjectOp().decodeOp(ctx, lookupOp)
 	default:
 		return nil, nil
@@ -146,11 +151,11 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		return nil, err
 	}
 
-	// Return the roots of a payload operation.
+	// Add the roots of a payload operation.
 	if pop, ok := op.(world.PayloadOperation); ok {
-		return pop.GetPayloadRefs(), nil
+		refs = append(refs, pop.GetPayloadRefs()...)
 	}
-	return nil, nil
+	return refs, nil
 }
 
 // objectRootPayload returns the object root a create or set writes, or nil
