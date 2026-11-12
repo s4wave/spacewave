@@ -67,15 +67,6 @@
       height: 0;
     }
   }
-
-  @keyframes tw-shimmer {
-    from {
-      background-position: 100% 0;
-    }
-    to {
-      background-position: 0 0;
-    }
-  }
 }
 
 @utility scrollbar-thin {
@@ -100,34 +91,6 @@
     #000 88%,
     transparent
   );
-}
-
-/* A running trace title shimmers in the current text color. */
-@utility shimmer {
-  background-image: linear-gradient(
-    110deg,
-    currentColor 40%,
-    color-mix(in oklch, currentColor 20%, transparent) 50%,
-    currentColor 60%
-  );
-  background-repeat: no-repeat;
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: tw-shimmer 2s linear infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    background-image: none;
-    -webkit-text-fill-color: currentColor;
-  }
-}
-
-@utility shimmer-none {
-  animation: none;
-  background-image: none;
-  -webkit-text-fill-color: currentColor;
 }
 
 [data-slot='code-block-content'][data-numbered] {
