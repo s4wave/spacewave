@@ -33,7 +33,8 @@ const (
 	deployFollowing deployOutcome = iota
 	// deployLive means a deployed manifest runs.
 	deployLive
-	// deployFailed means the deployed manifest failed with no retry.
+	// deployFailed means the deployed manifest cannot run without the
+	// person: it failed with no retry, or the space does not list its plugin.
 	deployFailed
 )
 
@@ -95,13 +96,14 @@ func findDeployPlugin(state *s4wave_space.SpaceContentsState, manifestID string)
 // classifyDeploy derives the deploy's state from the plugin's listing row and
 // its swap state, with times as clock times in loc.
 func classifyDeploy(p *s4wave_space.SpacePluginStatus, set *deployedSet, loc *time.Location) deployState {
-	// A plugin the Space does not list never loads.
+	// A plugin the Space does not list never loads, so following ends.
 	clock := func(ts *timestamppb.Timestamp) string { return ts.AsTime().In(loc).Format("15:04:05") }
 	rev := func(r uint64) string { return "rev " + strconv.FormatUint(r, 10) }
 	if p == nil {
 		return deployState{
-			line: set.manifestID + " is not listed in the space",
-			next: "add it with spacewave plugin add " + set.manifestID,
+			outcome: deployFailed,
+			line:    set.manifestID + " is not listed in the space",
+			next:    "the selection is written; add the plugin with spacewave plugin add " + set.manifestID,
 		}
 	}
 	if set.holds(p.GetRunningManifestRef()) {

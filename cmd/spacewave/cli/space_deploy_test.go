@@ -130,18 +130,26 @@ func TestFollowDeployWalksSwapStates(t *testing.T) {
 }
 
 func TestFollowDeployStopsStates(t *testing.T) {
-	// A failure with no retry ends the follow with the error and next step.
+	// A plugin the space does not list ends the follow with the add step.
 	set, deployed, older := deployFixture(t)
+	var out strings.Builder
+	err := followDeploy(context.Background(), &out, &s4wave_space.SpaceContentsState{}, deployStates(io.EOF), set, time.UTC)
+	if err == nil || out.String() != "colors is not listed in the space\n"+
+		"next: the selection is written; add the plugin with spacewave plugin add colors\n" {
+		t.Fatalf("unlisted follow: %v\n%s", err, out.String())
+	}
+
+	// A failure with no retry ends the follow with the error and next step.
 	failed := &s4wave_space.SpacePluginStatus{
 		PluginId: "colors", ManifestRef: deployed, ManifestRev: 2, RunningManifestRef: older, RunningManifestRev: 1,
 		Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Failed{Failed: &bldr_plugin.PluginSwapFailed{
 			CandidateManifestRef: deployed, CandidateManifestRev: 2, ErrorMessage: "startup failed", FailedAt: deployClock(t, "21:42:00"),
 		}}},
 	}
-	var out strings.Builder
-	err := followDeploy(context.Background(), &out, &s4wave_space.SpaceContentsState{}, deployStates(io.EOF, failed), set, time.UTC)
-	if err == nil || out.String() != "colors is not listed in the space\n"+
-		"rev 2 failed at 21:42:00: startup failed\nnext: fix the error and deploy again\n" {
+	out.Reset()
+	start := &s4wave_space.SpaceContentsState{Plugins: []*s4wave_space.SpacePluginStatus{failed}}
+	err = followDeploy(context.Background(), &out, start, deployStates(io.EOF), set, time.UTC)
+	if err == nil || out.String() != "rev 2 failed at 21:42:00: startup failed\nnext: fix the error and deploy again\n" {
 		t.Fatalf("failed follow: %v\n%s", err, out.String())
 	}
 
@@ -155,7 +163,7 @@ func TestFollowDeployStopsStates(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(errDeployWaitPassed)
 	out.Reset()
-	start := &s4wave_space.SpaceContentsState{Plugins: []*s4wave_space.SpacePluginStatus{waiting}}
+	start = &s4wave_space.SpaceContentsState{Plugins: []*s4wave_space.SpacePluginStatus{waiting}}
 	err = followDeploy(ctx, &out, start, deployStates(context.Canceled), set, time.UTC)
 	if err == nil || !strings.Contains(err.Error(), "--wait deadline") {
 		t.Fatalf("deadline follow error: %v", err)

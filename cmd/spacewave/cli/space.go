@@ -662,8 +662,9 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			"listing and prints each state once: preparing, waiting on the running\n" +
 			"worker, failed with its retry time, and live.\n\n" +
 			"Exits 0 once a deployed manifest runs. Exits non-zero when it fails with no\n" +
-			"retry, or when --wait passes or you interrupt it first; it then prints the\n" +
-			"last state and the next step. --no-wait returns once the selection is written.\n\n" +
+			"retry, when the space does not list the plugin, or when --wait passes or you\n" +
+			"interrupt it first; it then prints the last state and the next step.\n" +
+			"--no-wait returns once the selection is written.\n\n" +
 			"Example:\n" +
 			"  spacewave space deploy --db .bldr --manifest-id spacewave-core --wait 2m",
 		Flags: []cli.Flag{
