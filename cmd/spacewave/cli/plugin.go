@@ -5,7 +5,6 @@ package spacewave_cli
 import (
 	"context"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -179,15 +178,18 @@ func runPluginImportManifest(
 	// Replace earlier imports of the manifest, such as another build type at
 	// the same revision, so the store selects exactly the imported builds.
 	imported := make([]string, 0, len(collectedManifests))
+	keep := make(map[string]struct{}, len(collectedManifests))
 	for _, collected := range collectedManifests {
-		imported = append(imported, bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta()))
+		key := bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta())
+		imported = append(imported, key)
+		keep[key] = struct{}{}
 	}
 	previous, _, err := bldr_manifest_world.CollectManifestsForManifestID(ctx, tx, manifestID, nil, objectKey)
 	if err != nil {
 		return errors.Wrap(err, "collect previous manifests")
 	}
 	for _, prev := range previous {
-		if slices.Contains(imported, prev.ManifestKey) {
+		if _, ok := keep[prev.ManifestKey]; ok {
 			continue
 		}
 		if _, err := tx.DeleteObject(ctx, prev.ManifestKey); err != nil {
@@ -287,15 +289,16 @@ func copyManifestBlock(
 			return errors.Wrapf(err, "unmarshal block: %s", refStr)
 		}
 	}
-	if !exists {
-		refs, err := block.ExtractBlockRefs(blk)
-		if err != nil {
-			return errors.Wrapf(err, "get block refs: %s", refStr)
-		}
-		putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}
-		if _, _, err := dest.PutBlock(ctx, data, putOpts); err != nil {
-			return errors.Wrapf(err, "put block: %s", refStr)
-		}
+	refs, err := block.ExtractBlockRefs(blk)
+	if err != nil {
+		return errors.Wrapf(err, "get block refs: %s", refStr)
+	}
+
+	// Put a block the destination holds too: presence does not establish
+	// ownership, and the put is what holds it and its children.
+	putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}
+	if _, _, err := dest.PutBlock(ctx, data, putOpts); err != nil {
+		return errors.Wrapf(err, "put block: %s", refStr)
 	}
 	if blk == nil {
 		return nil

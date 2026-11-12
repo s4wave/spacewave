@@ -410,16 +410,16 @@ func copyBlockWithTransform(
 			return errors.Wrapf(err, "unmarshal block: %s", refStr)
 		}
 	}
-	if !exists {
-		refs, err := block.ExtractBlockRefs(blk)
-		if err != nil {
-			return errors.Wrapf(err, "get block refs: %s", refStr)
-		}
+	refs, err := block.ExtractBlockRefs(blk)
+	if err != nil {
+		return errors.Wrapf(err, "get block refs: %s", refStr)
+	}
 
-		// Write raw data to dest and require content identity.
-		if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}); err != nil {
-			return errors.Wrapf(err, "put block: %s", refStr)
-		}
+	// Write raw data to dest and require content identity. Put a block dest
+	// holds too: presence does not establish ownership, and the put is what
+	// holds it and its children for the manifest.
+	if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}); err != nil {
+		return errors.Wrapf(err, "put block: %s", refStr)
 	}
 	if blk == nil {
 		return nil
