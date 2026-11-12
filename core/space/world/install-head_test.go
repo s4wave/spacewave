@@ -149,13 +149,7 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef), fail: 1}
 	retained := storedWorld(t, store.StoreOps, "retained World")
 	head := storedWorld(t, store.StoreOps, "head World")
-	a := &Adapter{
-		opened: openedNow(),
-		le:     logrus.NewEntry(logrus.New()),
-		pages:  block.NewPendingStore(store, 1<<20),
-		held:   make(map[string]*block.BlockRef),
-		now:    time.Now,
-	}
+	a := openedAdapter(logrus.NewEntry(logrus.New()), store, 1<<20)
 	a.replay = &spaceReplay{a: a, base: &InnerState{
 		HeadRef:       &bucket.ObjectRef{RootRef: head},
 		RetainedRoots: []*RetainedRoot{{Name: "export", RootRef: retained}},
@@ -350,14 +344,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 
 	// An adapter opened again over the same roots reads the payloads the
 	// root holds, and adds a payload beside them.
-	b := &Adapter{
-		le:           a.le,
-		opened:       openedNow(),
-		pages:        block.NewPendingStore(a.pages.StoreOps, 1<<20),
-		held:         make(map[string]*block.BlockRef),
-		cursorWorlds: rootSet{name: RootReplayCursor},
-		payloads:     rootSet{name: RootReplayPayloads},
-	}
+	b := openedAdapter(a.le, a.pages.StoreOps, 1<<20)
 	if err := b.loadRoots(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -440,14 +427,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, name := range []string{RootReplayPayloads, RootReplayCursor} {
-		c := &Adapter{
-			le:           a.le,
-			opened:       openedNow(),
-			pages:        block.NewPendingStore(&hiddenBlockStore{StoreOps: b.pages.StoreOps, hide: b.held[name]}, 1<<20),
-			held:         make(map[string]*block.BlockRef),
-			cursorWorlds: rootSet{name: RootReplayCursor},
-			payloads:     rootSet{name: RootReplayPayloads},
-		}
+		c := openedAdapter(a.le, &hiddenBlockStore{StoreOps: b.pages.StoreOps, hide: b.held[name]}, 1<<20)
 		err := c.loadRoots(ctx)
 		if errors.Is(err, block.ErrNotFound) {
 			continue
@@ -506,16 +486,7 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 	// World, with a position at the later one.
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
-	a := &Adapter{
-		opened:           openedNow(),
-		le:               logrus.NewEntry(logrus.New()),
-		pages:            block.NewPendingStore(store, 1<<20),
-		held:             make(map[string]*block.BlockRef),
-		now:              time.Now,
-		checkpointWorlds: rootSet{name: RootCheckpoint},
-		cursorWorlds:     rootSet{name: RootReplayCursor},
-		pendingWorlds:    rootSet{name: RootPending},
-	}
+	a := openedAdapter(logrus.NewEntry(logrus.New()), store, 1<<20)
 	earlier := storedWorld(t, store.StoreOps, "earlier World")
 	later := storedWorld(t, store.StoreOps, "later World")
 	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: earlier}}}
@@ -680,18 +651,8 @@ func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapt
 	if !ok || !pok {
 		t.Fatal("the bucket holds no roots or proofs")
 	}
-	a := &Adapter{
-		le:               logrus.NewEntry(log),
-		so:               &bucketObject{store: &bucketStore{StoreOps: bkt, LeasedRoots: roots, RootProofs: proofs}},
-		opened:           openedNow(),
-		pages:            block.NewPendingStore(bkt, maxPending),
-		held:             make(map[string]*block.BlockRef),
-		checkpointWorlds: rootSet{name: RootCheckpoint},
-		cursorWorlds:     rootSet{name: RootReplayCursor},
-		pendingWorlds:    rootSet{name: RootPending},
-		payloads:         rootSet{name: RootReplayPayloads},
-		now:              time.Now,
-	}
+	a := openedAdapter(logrus.NewEntry(log), bkt, maxPending)
+	a.so = &bucketObject{store: &bucketStore{StoreOps: bkt, LeasedRoots: roots, RootProofs: proofs}}
 	return a, collect
 }
 
@@ -733,16 +694,7 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 	// no position, head or reader yet.
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
-	a := &Adapter{
-		opened:           openedNow(),
-		le:               logrus.NewEntry(logrus.New()),
-		pages:            block.NewPendingStore(store, 1<<20),
-		held:             make(map[string]*block.BlockRef),
-		now:              time.Now,
-		checkpointWorlds: rootSet{name: RootCheckpoint},
-		cursorWorlds:     rootSet{name: RootReplayCursor},
-		pendingWorlds:    rootSet{name: RootPending},
-	}
+	a := openedAdapter(logrus.NewEntry(logrus.New()), store, 1<<20)
 	base := storedWorld(t, store.StoreOps, "base World")
 	saved := storedWorld(t, store.StoreOps, "saved World")
 	release, err := a.rootMtx.Lock(ctx)
@@ -772,16 +724,7 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 	// of the pending root.
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
-	a := &Adapter{
-		opened:           openedNow(),
-		le:               logrus.NewEntry(logrus.New()),
-		pages:            block.NewPendingStore(store, 1<<20),
-		held:             make(map[string]*block.BlockRef),
-		now:              time.Now,
-		checkpointWorlds: rootSet{name: RootCheckpoint},
-		cursorWorlds:     rootSet{name: RootReplayCursor},
-		pendingWorlds:    rootSet{name: RootPending},
-	}
+	a := openedAdapter(logrus.NewEntry(logrus.New()), store, 1<<20)
 	stored := func(name string) *block.BlockRef { return storedWorld(t, store.StoreOps, name) }
 	covered, head, candidate, base := stored("covered World"), stored("head World"), stored("candidate World"), stored("base World")
 	release, err := a.rootMtx.Lock(ctx)
@@ -836,16 +779,7 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 	// Keep two checkpoint Worlds, each over a page of its own.
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef)}
-	a := &Adapter{
-		opened:           openedNow(),
-		le:               logrus.NewEntry(logrus.New()),
-		pages:            block.NewPendingStore(store, 1<<20),
-		held:             make(map[string]*block.BlockRef),
-		now:              time.Now,
-		checkpointWorlds: rootSet{name: RootCheckpoint},
-		cursorWorlds:     rootSet{name: RootReplayCursor},
-		pendingWorlds:    rootSet{name: RootPending},
-	}
+	a := openedAdapter(logrus.NewEntry(logrus.New()), store, 1<<20)
 	put := func(name string, children ...*block.BlockRef) *block.BlockRef {
 		t.Helper()
 		data := []byte("plan " + name)
@@ -943,11 +877,21 @@ func (r readRoots) ReadRoots() []*block.BlockRef {
 	return r
 }
 
-// openedNow returns the closed opened channel of an adapter a test builds
-// directly, as Execute leaves it once it read the held roots, so Root, Apply
-// and Install run at once.
-func openedNow() chan struct{} {
+// openedAdapter returns an adapter over pages of inner with the clock and
+// root sets NewAdapter gives it, already opened as Execute leaves it once it
+// read the held roots, so Root, Apply and Install run at once.
+func openedAdapter(le *logrus.Entry, inner block.StoreOps, maxPending int) *Adapter {
 	opened := make(chan struct{})
 	close(opened)
-	return opened
+	return &Adapter{
+		le:               le,
+		opened:           opened,
+		pages:            block.NewPendingStore(inner, maxPending),
+		held:             make(map[string]*block.BlockRef),
+		now:              time.Now,
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		payloads:         rootSet{name: RootReplayPayloads},
+	}
 }

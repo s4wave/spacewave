@@ -5,7 +5,8 @@ import "context"
 // HoldsRoots reports whether the underlying store holds roots.
 func (b *StoreRW) HoldsRoots() bool { return HoldsRoots(b.StoreOps) }
 
-// PinRoot forwards a reader pin to the underlying store. It fetches nothing.
+// PinRoot forwards a reader pin to the underlying store. It fetches nothing
+// itself.
 func (b *StoreRW) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	return PinRoot(ctx, b.StoreOps, ref)
 }

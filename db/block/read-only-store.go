@@ -59,7 +59,7 @@ func (s *ReadOnlyStore) SetRoots(context.Context, []*PutBatchEntry, []NamedRoot)
 	return tx.ErrNotWrite
 }
 
-// PinRoot forwards a reader pin to the inner store. It fetches nothing.
+// PinRoot forwards a reader pin to the inner store. It fetches nothing itself.
 func (s *ReadOnlyStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	return PinRoot(ctx, s.StoreOps, ref)
 }

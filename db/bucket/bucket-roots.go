@@ -24,7 +24,8 @@ func (b *bucketRW) SetRoots(ctx context.Context, entries []*block.PutBatchEntry,
 	return b.store.SetRoots(ctx, entries, roots)
 }
 
-// PinRoot forwards a reader pin to the underlying store. It fetches nothing.
+// PinRoot forwards a reader pin to the underlying store. It fetches nothing
+// itself.
 func (b *bucketRW) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, b.store, ref)
 }

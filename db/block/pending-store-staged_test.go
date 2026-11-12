@@ -225,42 +225,26 @@ func (s *existsStore) GetLocalStore() block.StoreOps {
 	return s.local
 }
 
-// TestFlushUnkeptRootReadsLocalOnly checks Flush's lookup of a root it does
-// not keep: a local tier error fails the flush, and a root the local tier
-// lacks lands without a question to the whole store. It fails when Flush
-// waits on a remote tier or takes a local read error for an absent root.
-func TestFlushUnkeptRootReadsLocalOnly(t *testing.T) {
+// TestFlushAsksNoStoreAboutUnkeptRoot checks that Flush asks no tier about a
+// root it does not keep, and lands: whether the swap may name that root is for
+// the swap's child check to decide. It fails when Flush waits on, or fails
+// on, a lookup of such a root.
+func TestFlushAsksNoStoreAboutUnkeptRoot(t *testing.T) {
 	root, err := block.BuildBlockRef([]byte("unkept root"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	local := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, exists: func(context.Context, *block.BlockRef) (bool, error) {
-		return false, nil
-	}}
-	whole := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, local: local, exists: func(context.Context, *block.BlockRef) (bool, error) {
-		t.Error("the flush asked the whole store")
-		return false, errors.New("whole store asked")
-	}}
-	pages := block.NewPendingStore(whole, 1<<20)
-	flush := func() error {
-		release, err := pages.Flush(t.Context(), []*block.BlockRef{root})
-		if release != nil {
-			release()
+	asked := func(tier string) func(context.Context, *block.BlockRef) (bool, error) {
+		return func(context.Context, *block.BlockRef) (bool, error) {
+			t.Errorf("the flush asked the %s about an unkept root", tier)
+			return false, errors.New("asked")
 		}
-		return err
 	}
-
-	// Absent locally: the flush lands.
-	if err := flush(); err != nil {
-		t.Fatalf("absent root: %v", err)
+	local := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, exists: asked("local tier")}
+	whole := &existsStore{sweepingStore: &sweepingStore{StoreOps: block_mock.NewMockStore(0)}, local: local, exists: asked("whole store")}
+	release, err := block.NewPendingStore(whole, 1<<20).Flush(t.Context(), []*block.BlockRef{root})
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	// A local tier error fails the flush.
-	broken := errors.New("read error")
-	local.exists = func(context.Context, *block.BlockRef) (bool, error) {
-		return false, broken
-	}
-	if err := flush(); !errors.Is(err, broken) {
-		t.Fatalf("local read error: %v, want %v", err, broken)
-	}
+	release()
 }

@@ -991,23 +991,24 @@ func TestBodyDriverOwnerStoreBacksOff(t *testing.T) {
 	}
 	g.ctr.SetValue(held)
 
-	// Step on every wake that comes within 200ms, before the first 250ms
-	// backoff ends: one store, then none.
+	// Step on every wake for 100ms after the first step, well before the
+	// first 250ms backoff ends, so load cannot stretch the window past it: a
+	// failure's own wake comes at once, so this sees one store, then none.
 	step := func() {
 		t.Helper()
 		if err := d.Step(ctx, testHandle(t, held, keys[0])); err != nil {
 			t.Fatal(err)
 		}
 	}
+	quiet := time.After(100 * time.Millisecond)
 	step()
-	for range 10 {
+	for waiting := true; waiting; {
 		select {
 		case <-d.wake:
 			step()
-			continue
-		case <-time.After(200 * time.Millisecond):
+		case <-quiet:
+			waiting = false
 		}
-		break
 	}
 	if n := stores.Load(); n != 1 {
 		t.Fatalf("a failing store stored %d times before its backoff", n)

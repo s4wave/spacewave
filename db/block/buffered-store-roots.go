@@ -33,7 +33,7 @@ func (s *BufferedStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, 
 // PinRoot acquires a reader pin on ref. A root still pending here is not in
 // the inner store, so no sweep can collect it: the pin waits in the buffer and
 // becomes an inner pin when the drain writes the root. A pin released before
-// then costs the inner store nothing. It fetches nothing.
+// then costs the inner store nothing. It fetches nothing itself.
 func (s *BufferedStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	// Defer the pin while its root is pending.
 	key, err := marshalRefKey(ref)
