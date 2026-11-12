@@ -29,6 +29,9 @@ type WorldState struct {
 	discarded bool
 	// txBatch is the batch of applied txs so far
 	txBatch *TxBatch
+	// payloads are the payload roots of the payload operations txBatch
+	// records, which its entries carry only inside the encoded operations.
+	payloads []*block.BlockRef
 }
 
 // RecordableWorld is a World state a recorder can apply operations to: it
@@ -181,7 +184,7 @@ func (w *WorldState) ApplyWorldOp(
 	seqno, sysErr, err := w.world.ApplyWorldOp(ctx, op, opSender)
 	if err == nil {
 		t.GetTxApplyWorldOp().SetRoots = w.takeSetRootsLocked()
-		w.recordLocked(t)
+		w.recordLocked(t, op)
 	}
 	return seqno, sysErr, err
 }
@@ -247,7 +250,7 @@ func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	}
 
 	// Record the creation and return the transaction-aware object.
-	w.recordLocked(t)
+	w.recordLocked(t, nil)
 	return NewObjectState(w, key, obj), nil
 }
 
@@ -552,9 +555,25 @@ func (w *WorldState) takeSetRootsLocked() []*block.BlockRef {
 }
 
 // recordLocked appends the batch entry of an applied op or of an object
-// create or set. Caller holds mtx.
-func (w *WorldState) recordLocked(entry *Tx) {
+// create or set, with the payload roots of op when it is a payload operation.
+// Caller holds mtx.
+func (w *WorldState) recordLocked(entry *Tx, op world.Operation) {
 	w.txBatch.Txs = append(w.txBatch.Txs, entry)
+	if pop, ok := op.(world.PayloadOperation); ok {
+		w.payloads = append(w.payloads, pop.GetPayloadRefs()...)
+	}
+}
+
+// PayloadRoots returns every root the recorded batch names as a payload, the
+// roots PayloadRefs of the batch returns, without decoding an operation: the
+// object roots each entry records, including one a later entry replaces or
+// deletes, and the payload roots of each payload operation. The writer stores
+// each of them with the operation, since the committed World need not reach
+// any of them.
+func (w *WorldState) PayloadRoots() []*block.BlockRef {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	return slices.Concat(w.txBatch.objectRoots(), w.payloads)
 }
 
 // Commit commits the transaction to storage.
