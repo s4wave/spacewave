@@ -8,6 +8,7 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -252,7 +253,8 @@ func TestHolesDrainRemote(t *testing.T) {
 				// Serve the engine to a daemon.
 				le := logrus.NewEntry(logrus.New())
 				res := resource_world.NewEngineResource(le, f.tb.Bus, eng, optypes.LookupWorldOp, nil)
-				client, closeClient := resource_testbed.SetupResourceClientWithRoot(ctx, t, res.GetMux())
+				client, closeConn := resource_testbed.SetupResourceClientWithRoot(ctx, t, res.GetMux())
+				closeClient := sync.OnceFunc(closeConn)
 				remote, err := sdk_world_engine.NewSDKEngine(client, client.AccessRootResource())
 				if err != nil {
 					t.Fatal(err)
@@ -278,10 +280,16 @@ func TestHolesDrainRemote(t *testing.T) {
 						closeClient()
 					}()
 				}
+				// The serve's stop ends the serving process, so it drops the
+				// daemon's connection with the engine. While a daemon stays
+				// connected, its Space mount keeps the engine or starts the
+				// successor at once; a released engine with a connected
+				// client and no successor never occurs.
 				if p.stop >= 0 {
 					go func() {
 						time.Sleep(p.stop)
 						ref.Release()
+						closeClient()
 					}()
 				}
 				err = drainWrite(ctx, remote, 1)
