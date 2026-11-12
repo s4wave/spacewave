@@ -253,7 +253,7 @@
   }
 
   .swb-dl-detail--error {
-    color: var(--color-destructive);
+    color: var(--color-error-text);
   }
 
   .swl-canvas {
@@ -357,7 +357,7 @@
   }
 
   .swl-error {
-    color: var(--color-destructive);
+    color: var(--color-error-text);
   }
 
   .swl-phases {
@@ -1651,6 +1651,9 @@
     var(--color-background) 30%
   );
   --color-destructive-foreground: var(--color-primary-foreground);
+  /* Text in the destructive tone uses the error text colour, which reads at
+     AA on every background; fills keep --color-destructive. */
+  --text-color-destructive: var(--color-error-text);
 
   /* Footer */
   --color-footer-bg: oklch(0.15 0 0);
