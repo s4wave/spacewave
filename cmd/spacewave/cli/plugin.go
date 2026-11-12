@@ -106,9 +106,10 @@ func runPluginImportManifest(
 		return errors.New("object-key is required")
 	}
 
-	// Open the devtool volume and look up the manifests.
+	// Open a copy of the source devtool volume, which this only reads, and
+	// look up the manifests.
 	le := cliBus.GetLogger()
-	src, err := devtool_store.OpenVolume(ctx, le, dbPath)
+	src, err := devtool_store.OpenVolumeCopy(ctx, le, dbPath)
 	if err != nil {
 		return errors.Wrap(err, "open devtool storage")
 	}

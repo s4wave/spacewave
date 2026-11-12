@@ -661,9 +661,10 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Description: "Writes the manifest set as the space's selection, then follows the plugin's\n" +
 			"listing and prints each state once: preparing, waiting on the running\n" +
 			"worker, failed with its retry time, and live.\n\n" +
-			"Exits 0 once a deployed manifest runs. Exits non-zero when it fails with no\n" +
-			"retry, when the space does not list the plugin, or when --wait passes or you\n" +
-			"interrupt it first; it then prints the last state and the next step.\n" +
+			"Exits 0 once a deployed manifest runs, or once the selection is written to a\n" +
+			"space that does not list the plugin, printing the plugin add step. Exits\n" +
+			"non-zero when it fails with no retry, or when --wait passes or you interrupt\n" +
+			"it first; it then prints the last state and the next step.\n" +
 			"--no-wait returns once the selection is written.\n\n" +
 			"Example:\n" +
 			"  spacewave space deploy --db .bldr --manifest-id spacewave-core --wait 2m",
@@ -721,9 +722,10 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				key = "plugin-host"
 			}
 
-			// Open the source volume.
+			// Open a copy of the source volume, so the export stays
+			// byte-identical however many times it is deployed.
 			le := logrus.NewEntry(logrus.New())
-			vol, err := devtool_store.OpenVolume(ctx, le, dbPath)
+			vol, err := devtool_store.OpenVolumeCopy(ctx, le, dbPath)
 			if err != nil {
 				return errors.Wrap(err, "open devtool storage")
 			}
