@@ -702,9 +702,10 @@ func buildRendererCached(
 	browserIceServers []BrowserIceServer,
 	browserIceServersEndpoint string,
 	webPkgImportMap web_entrypoint_index.ImportMap,
+	reactVersion string,
 ) ([]string, error) {
 	// Render the index HTML and build the renderer spec.
-	indexHTML, err := renderIndexHTML(rendererBootPath, webPkgImportMap)
+	indexHTML, err := renderIndexHTML(rendererBootPath, webPkgImportMap, reactVersion)
 	if err != nil {
 		return nil, err
 	}

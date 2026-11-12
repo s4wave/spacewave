@@ -159,6 +159,7 @@ func BuildElectronRendererIndex(buildDir string, importMap web_entrypoint_index.
 		buildDir,
 		electronStableBootEntrypointPath,
 		importMap,
+		"",
 	)
 }
 

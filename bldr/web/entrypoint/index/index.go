@@ -26,6 +26,10 @@ type ImportMap struct {
 type IndexData struct {
 	ImportMap      ImportMap
 	EntrypointPath string
+	// ReactVersion is the version of the React build the import map binds.
+	// The shell switches to Development React only when the cached
+	// development generation has this version; empty keeps production.
+	ReactVersion string
 }
 
 // String returns the JSON string representation of ImportMap
@@ -78,16 +82,19 @@ func RenderIndexHTML(data IndexData) (string, error) {
 		importMapToken = "{{ .ImportMap.String }}"
 		// #nosec G101 -- This is a Go template marker, not a credential.
 		entrypointToken = "{{ .EntrypointPath }}"
+		// #nosec G101 -- This is a Go template marker, not a credential.
+		reactVersionToken = "{{ .ReactVersion }}"
 	)
 
 	// Require both template markers before rendering the embedded index.
-	if !strings.Contains(indexHTML, importMapToken) || !strings.Contains(indexHTML, entrypointToken) {
+	if !strings.Contains(indexHTML, importMapToken) || !strings.Contains(indexHTML, entrypointToken) || !strings.Contains(indexHTML, reactVersionToken) {
 		return "", errors.New("index HTML template missing render tokens")
 	}
 
 	// Escape embedded JSON for script content and the entrypoint for HTML.
 	rendered := strings.ReplaceAll(indexHTML, importMapToken, escapeScriptJSON(data.ImportMap.WithWebPkgFallback().String()))
 	rendered = strings.ReplaceAll(rendered, entrypointToken, html.EscapeString(data.EntrypointPath))
+	rendered = strings.ReplaceAll(rendered, reactVersionToken, html.EscapeString(data.ReactVersion))
 	return rendered, nil
 }
 

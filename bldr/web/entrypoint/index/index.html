@@ -125,8 +125,36 @@
         })
       })()
     </script>
-    <script type="importmap">
-      {{ .ImportMap.String }}
+    <template id="bldr-import-map" data-react-version="{{ .ReactVersion }}">
+      <script type="importmap">
+        {{ .ImportMap.String }}
+      </script>
+    </template>
+    <script>
+      // Emit the only import map: Development React when bldr/web/bldr/react-dev.ts
+      // says it applies, the release's production map otherwise.
+      ;(function () {
+        var data = document.getElementById('bldr-import-map')
+        var map = JSON.parse(data.content.firstElementChild.textContent)
+        var v = data.getAttribute('data-react-version')
+        try {
+          var dev = JSON.parse(localStorage.getItem('bldr-react-dev'))
+          var sw = navigator.serviceWorker
+          if (v && dev && dev.enabled && dev.version === v && sw && sw.controller) {
+            for (var k in map.imports) {
+              if (/^react(-dom)?(\/|$)/.test(k)) {
+                map.imports[k] =
+                  '/b/react-dev/' + v + new URL(map.imports[k], document.baseURI).pathname
+              }
+            }
+            window.__bldrReactDev = v
+          }
+        } catch (err) {}
+        var script = document.createElement('script')
+        script.type = 'importmap'
+        script.textContent = JSON.stringify(map)
+        data.after(script)
+      })()
     </script>
     <script type="module" src="{{ .EntrypointPath }}"></script>
     <div id="bldr-root" role="main">
