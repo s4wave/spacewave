@@ -47,8 +47,9 @@ func (tr pendingTree) ref(name string) *block.BlockRef {
 // pin stores the tree it pins, a sweep forgets what no live root reaches, and
 // a tree that outgrows the bound is held under its writer's stage until its
 // root lands, and a flush holds the tree it stores until the move that names
-// it, after which a move stores a tree whose flush ended again. Collection between every step frees no block a root or pin
-// reaches.
+// it, after which a move stores a tree whose flush ended again, and a flush
+// or move of a tree that names a child no store holds is refused. Collection
+// between every step frees no block a root or pin reaches.
 func TestPendingStoreRunThrough(t *testing.T) {
 	f := newVolumeFixture(t)
 	ctx := t.Context()
@@ -438,6 +439,28 @@ func TestPendingStoreRunThrough(t *testing.T) {
 	}
 	if audit.LiveQueued != 0 || audit.Undercount != 0 {
 		t.Fatalf("audit found live blocks at risk: queued=%d undercount=%d", audit.LiveQueued, audit.Undercount)
+	}
+
+	// A tree naming a child no store holds is refused by a flush and by a
+	// move, which stores nothing; once the child is stored, the move lands.
+	tr.add(t, "L")
+	tr.add(t, "PL", "L")
+	put(ps, "PL")
+	if _, err := ps.Flush(ctx, []*block.BlockRef{tr.ref("PL")}); !errors.Is(err, block.ErrMissingChild) {
+		t.Fatalf("flush of a tree naming a lost child: %v", err)
+	}
+	lost := []block.NamedRoot{{Name: "pending-lost", Ref: tr.ref("PL")}}
+	if err := ps.SetRoots(ctx, nil, lost); !errors.Is(err, block.ErrMissingChild) {
+		t.Fatalf("move onto a tree naming a lost child: %v", err)
+	}
+	stored(false, "PL")
+	put(f.store, "L")
+	if err := ps.SetRoots(ctx, nil, lost); err != nil {
+		t.Fatal(err)
+	}
+	stored(true, "L", "PL")
+	if err := ps.SetRoots(ctx, nil, []block.NamedRoot{{Name: "pending-lost", Previous: tr.ref("PL")}}); err != nil {
+		t.Fatal(err)
 	}
 
 	// A pin and its release on a kept tree allocate the same over 1x and

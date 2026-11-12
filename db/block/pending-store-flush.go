@@ -32,8 +32,12 @@ const (
 // lock for at most walkSlice blocks at a time, so readers and writers of kept
 // blocks wait only that long.
 //
-// Cost: one inner put per slice of the kept trees, and one existence read and
-// pin per unkept root, all before the caller's lock.
+// A tree that names a child no store holds is refused with ErrMissingChild
+// before anything is stored.
+//
+// Cost: one existence read of the children the trees name and do not keep,
+// one inner put per slice of the kept trees, and one existence read and pin
+// per unkept root, all before the caller's lock.
 func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release func(), err error) {
 	// Gather the kept trees no open flush stored, and the roots kept nowhere
 	// here.
@@ -47,9 +51,19 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 	}
 	s.mtx.Unlock()
 
-	// Open the stage that holds them until the swap.
-	stage, releaseStage, err := OpenStage(ctx, s.StoreOps)
+	// Refuse a tree that names a child no store holds, then open the stage
+	// that holds the tree until the swap. A refused flush stops relying on
+	// the stages of the blocks it left out.
+	var stage StoreOps
+	var releaseStage func()
+	err = s.checkChildren(ctx, "Flush", tree)
+	if err == nil {
+		stage, releaseStage, err = OpenStage(ctx, s.StoreOps)
+	}
 	if err != nil {
+		if stopped {
+			s.landed()
+		}
 		return nil, err
 	}
 	var pins []func()

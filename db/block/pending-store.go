@@ -435,7 +435,11 @@ func (s *PendingStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 // several kept trees, so the walk starts from each entry's children too. A
 // block an open Flush stored is not put again: its stage holds it until the
 // move names it. The walk still descends through it, since a block kept
-// below it after the flush's walk may be one no store holds.
+// below it after the flush's walk may be one no store holds. A write that
+// names a child no store holds is refused with ErrMissingChild and moves
+// nothing; the existence read it costs covers only the children of the blocks
+// it writes that it neither writes nor keeps, so after a Flush only those of
+// the blocks kept since and of the entries.
 func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
 	// Gather the kept trees under the moved roots and the entries.
 	refs := make([]*BlockRef, 0, len(roots))
@@ -448,15 +452,32 @@ func (s *PendingStore) SetRoots(ctx context.Context, entries []*PutBatchEntry, r
 	tree, keys, _ := s.reachSliced(refs, false)
 
 	// Store them with the entries, but those an open flush stored, and move
-	// the roots.
+	// the roots, refusing a block whose child no store holds.
 	batch, landed := s.unflushed(tree, keys)
-	err := s.StoreOps.SetRoots(ctx, slices.Concat(entries, batch), roots)
+	write := slices.Concat(entries, batch)
+	err := s.checkChildren(ctx, setRootsOp(roots), write)
+	if err == nil {
+		err = s.StoreOps.SetRoots(ctx, write, roots)
+	}
 	landed()
 	if err != nil {
 		return err
 	}
 	s.dropSliced(keys)
 	return nil
+}
+
+// setRootsOp names a SetRoots by the roots it moves, for an error.
+func setRootsOp(roots []NamedRoot) string {
+	op := "SetRoots"
+	for i, root := range roots {
+		sep := ", "
+		if i == 0 {
+			sep = " of "
+		}
+		op += sep + root.Name
+	}
+	return op
 }
 
 // reach returns the kept blocks the roots reach, children before parents.
