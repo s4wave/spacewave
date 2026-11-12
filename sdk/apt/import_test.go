@@ -1,11 +1,17 @@
 package s4wave_apt
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	"github.com/s4wave/spacewave/db/bucket"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -122,6 +128,85 @@ func TestCompleteAptPackageImportRequiresDebRef(t *testing.T) {
 	}
 	if _, err := CompleteAptPackageImport(pkg, nil); err == nil {
 		t.Fatal("expected missing deb_ref error")
+	}
+}
+
+// TestAptPackageRootHoldsDeb writes a deb and its package record the way
+// ImportDebPackage does, the deb under a stage and the record through a block
+// transaction, over a PendingStore. Once the stage is released, a sweep from
+// the package root alone must keep the deb: the root's edges are all that
+// hold it. The repository and build spec refs must be edges too.
+func TestAptPackageRootHoldsDeb(t *testing.T) {
+	ctx := t.Context()
+	inner := block_store_inmem.NewInmemBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	ps := block.NewPendingStore(inner, 1<<20)
+	deb := testBusyboxDeb(t)
+
+	// Stage the deb as the import does.
+	stage, releaseStage, err := ps.OpenStage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	debRef, err := StoreDebPackageBlock(ctx, stage, deb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Write the completed package record and release the stage.
+	parsed, err := ParseDebPackage(deb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg, err := CompleteAptPackageImport(parsed, debRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, bcs := block.NewTransaction(ps, nil, nil, nil)
+	bcs.SetBlock(pkg, true)
+	root, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseStage()
+
+	// A sweep from the package root keeps the deb.
+	ps.Sweep([]*block.BlockRef{root}, ps.SweepMark())
+	got, found, err := ps.GetBlock(ctx, debRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, deb) {
+		t.Fatalf("deb after sweep from the package root: found=%v", found)
+	}
+
+	// The dormant refs are edges of their records.
+	keyRef, err := block.BuildBlockRef([]byte("signing key"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexRef, err := block.BuildBlockRef([]byte("index"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceRef, err := block.BuildBlockRef([]byte("source"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name string
+		blk  any
+		want []*block.BlockRef
+	}{
+		{"repository", &AptRepository{SigningKeyRef: keyRef, IndexRef: &bucket.ObjectRef{RootRef: indexRef}}, []*block.BlockRef{keyRef, indexRef}},
+		{"build spec", &AptBuildSpec{SourceRef: &bucket.ObjectRef{RootRef: sourceRef}}, []*block.BlockRef{sourceRef}},
+	} {
+		refs, err := block.ExtractBlockRefs(c.blk)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.EqualFunc(refs, c.want, (*block.BlockRef).EqualsRef) {
+			t.Fatalf("%s edges = %v, want %v", c.name, refs, c.want)
+		}
 	}
 }
 
