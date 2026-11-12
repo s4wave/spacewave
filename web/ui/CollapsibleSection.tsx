@@ -74,6 +74,7 @@ export function CollapsibleSection({
               </span>
               {badge}
               <LuChevronDown
+                aria-hidden
                 className={cn(
                   'text-foreground-alt/30 size-3.5 shrink-0 transition-transform duration-150',
                   open && 'rotate-180',

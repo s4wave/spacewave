@@ -97,7 +97,10 @@ export function ComponentSelector({
                 >
                   <span>{comp.name}</span>
                   {selected && (
-                    <LuCheck className="text-brand ml-auto size-3.5" />
+                    <LuCheck
+                      aria-hidden
+                      className="text-brand ml-auto size-3.5"
+                    />
                   )}
                 </DropdownMenuItem>
               )

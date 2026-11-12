@@ -103,7 +103,7 @@ function DropdownMenuCheckboxItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <LuCheck className="size-4" />
+          <LuCheck aria-hidden className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -138,7 +138,7 @@ function DropdownMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <LuCircle className="size-2 fill-current" />
+          <LuCircle aria-hidden className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -220,7 +220,7 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <LuChevronRight className="ml-auto size-4" />
+      <LuChevronRight aria-hidden className="ml-auto size-4" />
     </DropdownMenuPrimitive.SubTrigger>
   )
 }
