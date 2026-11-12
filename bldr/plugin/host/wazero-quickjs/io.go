@@ -3,6 +3,7 @@
 package plugin_host_wazero_quickjs
 
 import (
+	"bytes"
 	"crypto/rand"
 	"io"
 	"io/fs"
@@ -140,6 +141,44 @@ func (f *devRandomFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 func (f *devRandomFile) Read(buf []byte) (int, wazero_exp_sys.Errno) {
 	rand.Read(buf)
 	return len(buf), 0
+}
+
+// maxLastLine bounds the stderr line lastLineWriter keeps.
+const maxLastLine = 1024
+
+// lastLineWriter forwards writes to w and keeps the last non-blank line. The
+// plugin writes stderr only while its event loop runs, on the goroutine that
+// reads lastLine after the loop returns, so it needs no lock.
+type lastLineWriter struct {
+	w io.Writer
+	// partial is the unterminated tail of the output, at most maxLastLine bytes.
+	partial []byte
+	// last is the last complete non-blank line.
+	last string
+}
+
+// Write forwards p to w and records its last complete line.
+func (l *lastLineWriter) Write(p []byte) (int, error) {
+	// Record each complete line, then keep the unterminated tail.
+	l.partial = append(l.partial, p...)
+	rest := l.partial
+	for {
+		i := bytes.IndexByte(rest, '\n')
+		if i < 0 {
+			break
+		}
+		if line := bytes.TrimSpace(rest[:i]); len(line) != 0 {
+			l.last = string(line[:min(len(line), maxLastLine)])
+		}
+		rest = rest[i+1:]
+	}
+	l.partial = append(l.partial[:0], rest[:min(len(rest), maxLastLine)]...)
+	return l.w.Write(p)
+}
+
+// lastLine returns the last complete non-blank line written.
+func (l *lastLineWriter) lastLine() string {
+	return l.last
 }
 
 // _ is a type assertion
