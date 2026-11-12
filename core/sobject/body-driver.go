@@ -127,7 +127,7 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 	defer rel()
 
-	// Wake a failed step after a backoff, or a damaged one after
+	// Wake a failed step after a backoff, and a damaged step or body after
 	// damageRetry, so a cause healed outside replay clears the damage on a
 	// quiet Space that sends no new state.
 	wake := d.wake
@@ -180,6 +180,9 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 			continue
 		}
 		delay = bodyRetryMin
+		if b, ok := d.body.(DamagedBody); ok && b.Damaged() != nil {
+			wakeAfter(d.damageRetry)
+		}
 	}
 }
 
@@ -245,6 +248,13 @@ func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (
 	d.set = ev.Set
 	for i := keep; i < len(ev.Order); i++ {
 		if err := d.apply(ctx, ev, i); err != nil {
+			return err
+		}
+	}
+
+	// Write again the body's own refused writes once due.
+	if b, ok := d.body.(DamagedBody); ok && b.Damaged() != nil {
+		if err := b.Retry(ctx); err != nil {
 			return err
 		}
 	}

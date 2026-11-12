@@ -1,6 +1,7 @@
 package sobject
 
 import (
+	"context"
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -82,6 +83,11 @@ type DamagedBody interface {
 	// Damaged returns the store refusal of the body's own writes replay
 	// could not heal, or nil.
 	Damaged() *SOStoreDamage
+	// Retry writes again each of the body's own writes Damaged reports,
+	// once its refusal is due, whatever the body applied since, so a cause
+	// healed outside replay clears the damage on a quiet Space. The driver
+	// calls it on its goroutine, after the body applied the order.
+	Retry(ctx context.Context) error
 }
 
 // damage returns the store refusal that damaged the body, or nil: a step's,

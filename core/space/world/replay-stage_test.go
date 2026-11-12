@@ -295,11 +295,12 @@ func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 // TestCursorSaveHoldsServedWorlds checks that a cursor save which ends an
 // epoch that stored a page holds the Worlds the adapter still serves that are
 // no position: the installed head after a reorder cut the positions below
-// it, and a World an engine reader still reads after its head retired. The
+// it, a World an engine reader still reads after its head retired, and a
+// World a background store, such as a checkpoint's, has not stored yet. The
 // save names a World that does not reach the page, so a collection after it
 // lands frees the page unless the save holds those Worlds too.
 func TestCursorSaveHoldsServedWorlds(t *testing.T) {
-	for _, served := range []string{"installed head", "reader"} {
+	for _, served := range []string{"installed head", "reader", "background store"} {
 		t.Run(served, func(t *testing.T) {
 			// Replay and serve a World whose page goes past the bound to
 			// the current epoch.
@@ -309,9 +310,16 @@ func TestCursorSaveHoldsServedWorlds(t *testing.T) {
 			stored := f.put("stored page", 1200)
 			world := f.put("served World", 0, stored)
 			f.apply("served", world)
-			if served == "reader" {
+			switch served {
+			case "reader":
 				a.readers = readRoots{world}
-			} else {
+			case "background store":
+				done, ok := a.startBackground(world)
+				if !ok {
+					t.Fatal("the adapter refused a background store")
+				}
+				defer done()
+			default:
 				a.head.Root = world
 			}
 
@@ -319,7 +327,12 @@ func TestCursorSaveHoldsServedWorlds(t *testing.T) {
 			// World in its place ends the epoch.
 			a.replay.positions = a.replay.positions[:1]
 			f.apply("reordered", f.put("reordered World", 0))
-			f.save()
+			if err := a.saveCursor(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			for a.cursorSaving.Load() {
+				time.Sleep(time.Millisecond)
+			}
 			f.collect()
 			f.requireFound("the "+served+"'s World", world, stored)
 		})
@@ -474,6 +487,44 @@ func TestCursorSavePayloadRefusalDamages(t *testing.T) {
 	f.save()
 	if damage := a.Damaged(); damage.GetRefusals() != 2 || !damage.GetChild().EqualVT(missing.Ref) {
 		t.Fatalf("damage after two refused payload holds = %v", damage)
+	}
+}
+
+// TestCursorSaveRetryHealsQuietSpace checks that Retry saves the cursor of an
+// adapter its refused saves damaged once the refusal is due, with no position
+// applied since, and not before, so a quiet Space clears the damage once its
+// cause heals. It fails when the retry waits for replayCursorOperations more
+// positions, as a due save does.
+func TestCursorSaveRetryHealsQuietSpace(t *testing.T) {
+	// Two refused saves damage the adapter.
+	f := newReplayFixture(t, 1<<20)
+	a, ctx := f.a, t.Context()
+	missing := f.entry("missing page", 0)
+	f.apply("head", f.put("head World", 0, missing.Ref))
+	f.save()
+	f.save()
+	if a.Damaged() == nil {
+		t.Fatal("two refused saves left no damage")
+	}
+
+	// The page is restored; a retry before the refusal is due tries nothing.
+	f.put("missing page", 0)
+	if err := a.Retry(ctx); err != nil {
+		t.Fatal(err)
+	}
+	a.waitBackground()
+	if a.Damaged() == nil {
+		t.Fatal("a retry saved the cursor before the refusal was due")
+	}
+
+	// Once due, the retry saves and clears the damage.
+	a.now = func() time.Time { return time.Now().Add(2 * time.Minute) }
+	if err := a.Retry(ctx); err != nil {
+		t.Fatal(err)
+	}
+	a.waitBackground()
+	if damage := a.Damaged(); damage != nil {
+		t.Fatalf("damage %v after a due retry of a healed save", damage)
 	}
 }
 

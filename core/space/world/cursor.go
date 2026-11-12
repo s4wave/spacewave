@@ -75,7 +75,8 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 // page only that epoch held. The positions before the saved one are covered
 // by the floor, which moves up to the saved World as the save starts, so
 // replay computes them again. Every other live World gatherLive returns, the
-// served Worlds and the pending candidates, is held in the same root move as
+// served Worlds, the background stores' Worlds and the pending candidates, is
+// held in the same root move as
 // the saved World, so no World the adapter still serves or proposes names a
 // page the ended epoch alone held. One save runs at a time; a save due while
 // another runs waits for the next position. The driver goroutine calls it.
@@ -170,6 +171,27 @@ func (a *Adapter) Damaged() *sobject.SOStoreDamage {
 		return damage
 	}
 	return a.trimRefusal.Load().Damage()
+}
+
+// Retry saves the replay cursor again once its refused saves damaged the
+// adapter and the refusal is due, whatever positions replay applied since the
+// last save, so a cause healed outside replay clears the damage on a quiet
+// Space. A last position below the floor waits for replay, as a save does.
+// The body driver calls it on the driver goroutine.
+func (a *Adapter) Retry(ctx context.Context) error {
+	// Wait for a damaging refusal that is due; a transient replay saves
+	// nothing.
+	refusal := a.saveRefusal.Load()
+	if a.opts.transient || refusal.Damage() == nil || !refusal.Due(a.now()) {
+		return nil
+	}
+
+	// Wait while the last position is below the floor, then save.
+	r := a.replay
+	if len(r.positions) != 0 && len(r.positions) <= r.floor {
+		return nil
+	}
+	return a.saveCursor(ctx)
 }
 
 // encodeCursor returns the World after the last position and the encoded

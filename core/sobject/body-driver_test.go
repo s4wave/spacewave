@@ -584,8 +584,10 @@ func (o *execTestObject) AccessSharedObjectState(context.Context, func()) (ccont
 }
 
 // TestBodyDriverDamagedStepRetries checks that Execute steps a damaged body
-// again after the damage retry delay with no new state, so a Space that sends
-// nothing more clears the damage once its cause heals.
+// again after the damage retry delay with no new state, and not sooner at the
+// failure backoff, so a Space that sends nothing more clears the damage once
+// its cause heals and a refusal that stays costs one step per delay. It fails
+// when a damaged step waits only for the backoff.
 func TestBodyDriverDamagedStepRetries(t *testing.T) {
 	// A quiet Space holds one operation the body refuses until healed.
 	ctx := t.Context()
@@ -594,7 +596,9 @@ func TestBodyDriverDamagedStepRetries(t *testing.T) {
 	state, _ := newTestSOState(t, peers)
 	writeTestOp(t, state, keys[0], "refused")
 	var healed atomic.Bool
+	var attempts atomic.Int32
 	body := &testBody{applyErr: func() error {
+		attempts.Add(1)
 		if healed.Load() {
 			return nil
 		}
@@ -605,7 +609,7 @@ func TestBodyDriverDamagedStepRetries(t *testing.T) {
 		ctr:                    ccontainer.NewCContainer[SharedObjectStateSnapshot](testHandle(t, state, keys[0])),
 	}
 	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
-	d.damageRetry = 50 * time.Millisecond
+	d.damageRetry = 1500 * time.Millisecond
 	ctx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
 	go func() { done <- d.Execute(ctx) }()
@@ -625,9 +629,91 @@ func TestBodyDriverDamagedStepRetries(t *testing.T) {
 	}
 	waitFor("the damage", func() bool { return d.Damaged() != nil })
 
+	// The damaged step waits for the damage retry delay, past the backoff.
+	damaged := attempts.Load()
+	time.Sleep(time.Second)
+	if n := attempts.Load() - damaged; n != 0 {
+		t.Fatalf("a damaged step stepped %d more times within a second", n)
+	}
+
 	// The cause heals with no new state; the retry clears the damage.
 	healed.Store(true)
 	waitFor("the healed step", func() bool { return d.Damaged() == nil })
+}
+
+// damagedTestBody is a testBody whose own writes are damaged until a Retry
+// after heal.
+type damagedTestBody struct {
+	*testBody
+	// healed makes the next Retry clear the damage.
+	healed atomic.Bool
+	// damaged reports the damage.
+	damaged atomic.Bool
+	// retries counts the Retry calls.
+	retries atomic.Int32
+}
+
+// Damaged returns a damage while damaged is set.
+func (b *damagedTestBody) Damaged() *SOStoreDamage {
+	if !b.damaged.Load() {
+		return nil
+	}
+	return &SOStoreDamage{Operation: "Flush", Refusals: 2}
+}
+
+// Retry counts the call, and clears the damage once healed.
+func (b *damagedTestBody) Retry(context.Context) error {
+	b.retries.Add(1)
+	if b.healed.Load() {
+		b.damaged.Store(false)
+	}
+	return nil
+}
+
+// TestBodyDriverRetriesDamagedBody checks that Execute has a body whose own
+// writes are damaged write them again after the damage retry delay on a
+// quiet Space whose steps all succeed, so the damage clears once its cause
+// heals with no new state. It fails when only a failed step wakes the driver.
+func TestBodyDriverRetriesDamagedBody(t *testing.T) {
+	// A quiet Space holds one operation the body applies.
+	ctx := t.Context()
+	peers := createMockPeers(t, 1)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	writeTestOp(t, state, keys[0], "op")
+	body := &damagedTestBody{testBody: &testBody{}}
+	body.damaged.Store(true)
+	so := &execTestObject{
+		testDriverSharedObject: testDriverSharedObject{peerID: peers[0].GetPeerID()},
+		ctr:                    ccontainer.NewCContainer[SharedObjectStateSnapshot](testHandle(t, state, keys[0])),
+	}
+	d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, nil)
+	d.damageRetry = 50 * time.Millisecond
+	ctx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() { done <- d.Execute(ctx) }()
+	defer func() {
+		cancel()
+		<-done
+	}()
+
+	// The first step retries the damaged write, which stays refused.
+	waitFor := func(what string, cond func() bool) {
+		t.Helper()
+		for deadline := time.Now().Add(5 * time.Second); !cond(); time.Sleep(10 * time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatalf("timed out waiting for %s", what)
+			}
+		}
+	}
+	waitFor("the first retry", func() bool { return body.retries.Load() != 0 })
+	if d.Damaged() == nil {
+		t.Fatal("the driver shows no damage of a damaged body")
+	}
+
+	// The cause heals with no new state; a later retry clears the damage.
+	body.healed.Store(true)
+	waitFor("the healed retry", func() bool { return d.Damaged() == nil })
 }
 
 // TestBodyDriverVoterDamagedByRefusedStore checks that a group voter's
