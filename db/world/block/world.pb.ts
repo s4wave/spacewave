@@ -12,6 +12,33 @@ import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Quad } from '../../block/quad/quad.pb.js'
 
 /**
+ * WorldFormat is the stored layout of a World.
+ *
+ * @generated from enum world.block.WorldFormat
+ */
+export enum WorldFormat {
+  /**
+   * WORLD_FORMAT_CAYLEY_KV is the Cayley kv quad store: a primitive log,
+   * posting lists and reference counts.
+   */
+  CAYLEY_KV = 0,
+
+  /**
+   * WORLD_FORMAT_NODE_GRAPH stores each quad as an out key under its subject
+   * and an in key under its object.
+   */
+  NODE_GRAPH = 1,
+}
+
+export const WorldFormat_Enum = /* @__PURE__ */ createEnumType(
+  'world.block.WorldFormat',
+  [
+    [0, 'WORLD_FORMAT_CAYLEY_KV'],
+    [1, 'WORLD_FORMAT_NODE_GRAPH'],
+  ],
+)
+
+/**
  * WorldChangeType is the list of possible change types for the world.
  *
  * @generated from enum world.block.WorldChangeType
@@ -90,6 +117,10 @@ export interface World {
    * settings; this copy lets the World open it without reading them.
    */
   graphSettings?: GraphSettings
+  /**
+   * Format is the stored layout of graph_key_value.
+   */
+  format?: WorldFormat
 }
 
 export const World: MessageType<World> =
@@ -100,6 +131,7 @@ export const World: MessageType<World> =
     [4, 'last_change_disable', 8],
     [7, 'prev_changes', 11, 0, BlockRef.codec],
     [8, 'graph_settings', 11, 0, GraphSettings.codec],
+    [9, 'format', 14, 0, WorldFormat_Enum],
   ])
 
 /**
@@ -140,7 +172,6 @@ export interface Object$ {
    * Rev is the revision nonce of the object.
    * Incremented when a transaction is applied to the object.
    * Incremented when root_ref is changed (SetRootRef).
-   * Incremented when adding or removing a graph quad referencing Object.
    */
   rev?: bigint
   /**

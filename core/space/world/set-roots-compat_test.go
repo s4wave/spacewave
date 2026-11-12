@@ -208,6 +208,7 @@ func compatRoots(ctx context.Context, t *testing.T, eng world.Engine) string {
 		for iter.Next() {
 			obj, _, err := ws.GetObject(ctx, iter.Key())
 			if err != nil {
+				world.ReleaseObjectState(obj)
 				return err
 			}
 			root, _, err := obj.GetRootRef(ctx)

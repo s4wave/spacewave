@@ -410,7 +410,7 @@ func writeRawRoot(ctx context.Context, t *testing.T, tb *testbed.Testbed, rootNa
 	// Write a new empty World when no root is given.
 	if ref == nil {
 		btx, bcs := cursor.BuildTransaction(nil)
-		bcs.SetBlock(world_block.NewWorld(false), true)
+		bcs.SetBlock(world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, false), true)
 		if ref, _, err = btx.Write(ctx, true); err != nil {
 			t.Fatal(err.Error())
 		}
@@ -557,7 +557,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 	if err := func() error {
 		// Build the initial World block and persist its root reference.
 		btx, bcs := bls.BuildTransaction(nil)
-		bcs.SetBlock(world_block.NewWorld(false), true)
+		bcs.SetBlock(world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, false), true)
 		nroot, _, err := btx.Write(ctx, true)
 		if err != nil {
 			return err

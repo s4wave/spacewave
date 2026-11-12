@@ -43,7 +43,7 @@ func testObjectModSeqno(t *testing.T, impl kvtx_block.KVImplType) {
 
 	// Write the root block and point the cursor at it.
 	btx, bcs := ocs.BuildTransaction(nil)
-	root := world_block.NewWorld(false)
+	root := world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, false)
 	root.ObjectKeyValue = kvtx_block.NewKeyValueStore(impl)
 	bcs.SetBlock(root, true)
 	rootRef, _, err := btx.Write(ctx, true)

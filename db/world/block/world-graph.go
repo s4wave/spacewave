@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/cayley/graph"
-	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/cayley/quad"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -78,17 +78,23 @@ func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters [
 		ctx = block.WithReadOperationStore(ctx, store)
 	}
 
-	// Reuse native single-filter collection and cache shared batch lookups.
+	// Use the store's own collector, or share a cached handle across filters.
 	var graphHd world.CayleyHandle = worldGraph
-	collector, _ := worldGraph.QuadStore.(graphQuadBatchCollector)
-	if collector == nil || len(filters) != 1 {
+	collector := t.format.batchCollector(worldGraph.QuadStore, len(filters))
+	if collector == nil {
 		graphHd = world.NewReadOperationCayleyHandle(graphHd)
 	}
 	return lookupGraphQuadsBatch(ctx, graphHd, filters, limitPerFilter, collector)
 }
 
 // lookupGraphQuadsBatch preserves filter order and applies limits independently.
-func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []world.GraphQuad, limitPerFilter uint32, collector graphQuadBatchCollector) ([][]world.GraphQuad, error) {
+func lookupGraphQuadsBatch(
+	ctx context.Context,
+	h world.CayleyHandle,
+	filters []world.GraphQuad,
+	limitPerFilter uint32,
+	collector graphQuadBatchCollector,
+) ([][]world.GraphQuad, error) {
 	// Convert each filter while preserving empty-filter and input-order behavior.
 	cfilters := make([]quad.Quad, len(filters))
 	for i, filter := range filters {
@@ -102,10 +108,10 @@ func lookupGraphQuadsBatch(ctx context.Context, h world.CayleyHandle, filters []
 		cfilters[i] = cq
 	}
 
-	// A single filter uses the native transaction; batches share cached iterator
-	// and name lookups across filters.
+	// The store's collector reads the native transaction; otherwise the
+	// handle's cached iterators and names serve the filters.
 	collect := func() ([][]quad.Quad, error) {
-		if collector != nil && len(cfilters) == 1 {
+		if collector != nil {
 			return collector.CollectFilteredQuadsBatch(ctx, cfilters, limitPerFilter)
 		}
 		return world.CollectFilteredFullQuadsBatch(ctx, h, cfilters, limitPerFilter)
@@ -180,7 +186,7 @@ func (g *graphPathReadOperation) LookupGraphQuads(ctx context.Context, filter wo
 
 // LookupGraphQuadsBatch shares the scoped handle across filters.
 func (g *graphPathReadOperation) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
-	collector, _ := g.WorldState.graphHd.QuadStore.(graphQuadBatchCollector)
+	collector := g.format.batchCollector(g.WorldState.graphHd.QuadStore, len(filters))
 	return lookupGraphQuadsBatch(ctx, g.graphHd, filters, limitPerFilter, collector)
 }
 
@@ -325,8 +331,12 @@ func (t *WorldState) ListObjectsWithType(ctx context.Context, typeID, startAfter
 		ctx = block.WithReadOperationStore(ctx, store)
 	}
 
-	// Enumerate distinct subjects directly in the reverse index's order.
-	return world_types.ListObjectsWithTypeOnGraph(ctx, graphHd.QuadStore.(*cayley_kv.QuadStore), typeID, startAfter, limit)
+	// Enumerate distinct subjects directly in the store's order.
+	pager := world_types.NewSubjectPager(graphHd.QuadStore)
+	if pager == nil {
+		return nil, false, errors.Errorf("graph store %T cannot page subjects", graphHd.QuadStore)
+	}
+	return world_types.ListObjectsWithTypeOnGraph(ctx, pager, typeID, startAfter, limit)
 }
 
 // SetGraphQuad sets a quad in the graph store.

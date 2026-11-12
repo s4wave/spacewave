@@ -363,7 +363,7 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 
 	// Write a World root with the requested storage implementation.
 	btx, bcs := ocs.BuildTransaction(nil)
-	root := world_block.NewWorld(false)
+	root := world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, false)
 	root.ObjectKeyValue = kvtx_block.NewKeyValueStore(impl)
 	root.GraphKeyValue = kvtx_block.NewKeyValueStore(impl)
 	bcs.SetBlock(root, true)
@@ -917,7 +917,7 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 	// Write a World root with changelog recording disabled.
 	btx, bcs := ocs.BuildTransaction(nil)
 	bcs.ClearAllRefs()
-	bcs.SetBlock(world_block.NewWorld(true), true)
+	bcs.SetBlock(world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, true), true)
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1841,6 +1841,117 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 					body,
 					expected,
 				)
+			}
+		}
+	}
+}
+
+// preNodeGraphImpls is the set of tree tags a build that predates the node
+// graph opens: the cases of its KeyValueStore.BuildKvTransaction, with an
+// untagged root read as IAVL. It opens the object tree as it loads a World
+// root, before any read or write, and the graph tree on the first graph call.
+var preNodeGraphImpls = []kvtx_block.KVImplType{
+	kvtx_block.KVImplType_KV_IMPL_TYPE_UNKNOWN,
+	kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL,
+	kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA,
+	kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE,
+}
+
+// TestNodeGraphWorldRefusesOldReader checks that a build that predates the
+// node graph refuses a node graph World as it loads the root, even after a
+// write that never touched the graph, and that this build refuses a root
+// whose format field and tree tags disagree.
+//
+// The older build ignores the format field. Its load opens only the object
+// tree; had only the graph tree been tagged, it could commit an object-only
+// write whose root no longer records the graph tree's blocks.
+func TestNodeGraphWorldRefusesOldReader(t *testing.T) {
+	// Open an empty storage cursor and write a node graph World root.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ocs.Release()
+	btx, bcs := ocs.BuildTransaction(nil)
+	bcs.SetBlock(world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH, false), true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ocs.SetRootRef(rootRef)
+
+	// Commit an object-only write: no graph call opens the graph tree.
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err := ws.CreateObject(ctx, "old/a", &bucket.ObjectRef{BucketId: "test-bucket"})
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	ocs.SetRootRef(ws.GetRootRef())
+	ws.Discard()
+
+	// Load the committed root as the older build does: decode it, ignore the
+	// format field, and open the object tree from storage. Its tag is outside
+	// the older build's set, so that load fails before any read or write; the
+	// graph tree's tag is outside it too.
+	_, bcs = ocs.BuildTransaction(nil)
+	root, err := world_block.UnmarshalWorld(ctx, bcs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trees := map[string]*block.Cursor{"object": bcs.FollowSubBlock(1), "graph": bcs.FollowSubBlock(2)}
+	for name, cursor := range trees {
+		kvs, err := kvtx_block.LoadKeyValueStore(ctx, cursor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if slices.Contains(preNodeGraphImpls, kvs.GetImplType()) {
+			t.Fatalf("%s tree tagged %v, which an older build opens", name, kvs.GetImplType())
+		}
+	}
+
+	// Each disagreement between the format field and the tags is refused by
+	// this build at load, for a read and a write.
+	cases := []struct {
+		name string
+		edit func(w *world_block.World)
+	}{
+		{"kv format", func(w *world_block.World) { w.Format = world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV }},
+		{"untagged object tree", func(w *world_block.World) {
+			w.ObjectKeyValue.ImplType = kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL
+		}},
+		{"untagged graph tree", func(w *world_block.World) {
+			w.GraphKeyValue.ImplType = kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE
+		}},
+	}
+	for _, c := range cases {
+		btx, bcs = ocs.BuildTransaction(nil)
+		edited := root.CloneVT()
+		c.edit(edited)
+		bcs.SetBlock(edited, true)
+		editedRef, _, err := btx.Write(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ocs.SetRootRef(editedRef)
+		for _, write := range []bool{false, true} {
+			editedWS, err := world_block.BuildMockWorldState(ctx, le, write, ocs, false)
+			if err == nil {
+				editedWS.Discard()
+				t.Fatalf("%s, write=%v: root opened", c.name, write)
 			}
 		}
 	}

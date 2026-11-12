@@ -44,7 +44,7 @@ func setupReadCursorWorld(tb testing.TB, impl kvblock.KVImplType) (*Engine, func
 
 	// Select the persisted backend explicitly without changing the product default.
 	bt, cs := base.BuildTransaction(nil)
-	root := NewWorld(false)
+	root := NewWorld(WorldFormat_WORLD_FORMAT_CAYLEY_KV, false)
 	root.ObjectKeyValue = kvblock.NewKeyValueStore(impl)
 	cs.SetBlock(root, true)
 	ref, _, err := bt.Write(ctx, true)

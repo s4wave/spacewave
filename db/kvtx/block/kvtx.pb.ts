@@ -34,6 +34,20 @@ export enum KVImplType {
    * The distinct tag makes readers without inline-value support reject it.
    */
   KV_IMPL_TYPE_OKRA_INLINE = 3,
+
+  /**
+   * KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH is an inline Okra tree holding a
+   * World graph in the node graph layout. A reader that predates the layout
+   * rejects the tag instead of reading the tree as an empty Cayley kv graph.
+   */
+  KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH = 4,
+
+  /**
+   * KV_IMPL_TYPE_IAVL_NODE_GRAPH is an IAVL tree holding the objects of a
+   * World in the node graph layout. A reader that predates the layout rejects
+   * the tag when it opens the object tree, before it reads or writes the World.
+   */
+  KV_IMPL_TYPE_IAVL_NODE_GRAPH = 5,
 }
 
 export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
@@ -43,6 +57,8 @@ export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
     [1, 'KV_IMPL_TYPE_IAVL'],
     [2, 'KV_IMPL_TYPE_OKRA'],
     [3, 'KV_IMPL_TYPE_OKRA_INLINE'],
+    [4, 'KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH'],
+    [5, 'KV_IMPL_TYPE_IAVL_NODE_GRAPH'],
   ],
 )
 

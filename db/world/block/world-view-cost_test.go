@@ -250,13 +250,7 @@ func TestWorldViewCostOnUnrelatedCommit(t *testing.T) {
 	}
 	if err := seedWorldTx(ctx, eng, func(ws world.WorldState) error {
 		// Bump the changed object's revision.
-		obj, err := world.MustGetObject(ctx, ws, changedKey)
-		if err != nil {
-			return err
-		}
-		defer world.ReleaseObjectState(obj)
-		_, err = obj.IncrementRev(ctx)
-		return err
+		return bumpObjectRev(ctx, ws, changedKey)
 	}); err != nil {
 		t.Fatal(err.Error())
 	}

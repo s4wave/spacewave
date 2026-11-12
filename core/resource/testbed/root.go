@@ -14,6 +14,7 @@ import (
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
@@ -104,6 +105,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		nil,
 		false,
 	)
+	engConf.Format = world_block.NewestWorldFormat
 
 	// Start the world engine with the server's context, not the request's,
 	// so the engine outlives the request.
@@ -200,9 +202,6 @@ func (s *TestbedResourceServer) GetMux() srpc.Invoker {
 	return mux
 }
 
-// _ is a type assertion
-var _ s4wave_testbed.SRPCTestbedResourceServiceServer = (*TestbedResourceServer)(nil)
-
 // AccessStateAtom accesses a state atom resource.
 func (s *TestbedResourceServer) AccessStateAtom(
 	ctx context.Context,
@@ -235,3 +234,6 @@ func (s *TestbedResourceServer) AccessStateAtom(
 
 	return &s4wave_testbed.AccessStateAtomResponse{ResourceId: id}, nil
 }
+
+// _ is a type assertion
+var _ s4wave_testbed.SRPCTestbedResourceServiceServer = (*TestbedResourceServer)(nil)

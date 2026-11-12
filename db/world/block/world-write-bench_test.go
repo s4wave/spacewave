@@ -8,6 +8,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -169,14 +170,7 @@ func BenchmarkWorldSeededWrite(b *testing.B) {
 	b.Run("increment-object-rev", func(b *testing.B) {
 		// Bump the revision of an existing object.
 		benchmarkWorldSeededWrite(b, func(ctx context.Context, ws world.WorldState, i int) error {
-			// Look up the object and bump its revision.
-			obj, err := world.MustGetObject(ctx, ws, worldSeedObjectKey(worldSeedPick(i)))
-			if err != nil {
-				return err
-			}
-			defer world.ReleaseObjectState(obj)
-			_, err = obj.IncrementRev(ctx)
-			return err
+			return bumpObjectRev(ctx, ws, worldSeedObjectKey(worldSeedPick(i)))
 		})
 	})
 	b.Run("link-existing-objects", func(b *testing.B) {
@@ -305,7 +299,7 @@ func seedWorld(ctx context.Context, objects int) (*testbed.Testbed, *bucket.Obje
 	if err != nil {
 		return nil, nil, err
 	}
-	ocs, err := tbed.BuildEmptyCursor(ctx)
+	ocs, err := buildNewestWorldCursor(ctx, tbed)
 	if err != nil {
 		tbed.Release()
 		return nil, nil, err
@@ -413,7 +407,7 @@ func setupWorldWriteBench(ctx context.Context, tb testing.TB) (*world_block.Engi
 	if err != nil {
 		tb.Fatal(err.Error())
 	}
-	ocs, err := tbed.BuildEmptyCursor(ctx)
+	ocs, err := buildNewestWorldCursor(ctx, tbed)
 	if err != nil {
 		tbed.Release()
 		tb.Fatal(err.Error())
@@ -444,7 +438,7 @@ func setupWorldState(ctx context.Context, tb testing.TB) (*world_block.WorldStat
 	if err != nil {
 		tb.Fatal(err.Error())
 	}
-	ocs, err := tbed.BuildEmptyCursor(ctx)
+	ocs, err := buildNewestWorldCursor(ctx, tbed)
 	if err != nil {
 		tbed.Release()
 		tb.Fatal(err.Error())
@@ -463,6 +457,26 @@ func setupWorldState(ctx context.Context, tb testing.TB) (*world_block.WorldStat
 		tbed.Release()
 	}
 	return ws, cleanup
+}
+
+// buildNewestWorldCursor returns a cursor of tbed rooted at an empty World in
+// the newest format, as a new World starts.
+func buildNewestWorldCursor(ctx context.Context, tbed *testbed.Testbed) (*bucket_lookup.Cursor, error) {
+	// Open an empty cursor and write the World root to it.
+	ocs, err := tbed.BuildEmptyCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	btx, bcs := ocs.BuildTransaction(nil)
+	root := world_block.NewWorld(world_block.NewestWorldFormat, false)
+	bcs.SetBlock(root, true)
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		ocs.Release()
+		return nil, err
+	}
+	ocs.SetRootRef(rootRef)
+	return ocs, nil
 }
 
 // newWorldWriteBenchTx opens a write transaction on the Engine.
@@ -524,4 +538,15 @@ func (c *worldWriteBenchCounts) report(b *testing.B) {
 	b.ReportMetric(float64(c.readBytes)/denom, "block-read-bytes/op")
 	b.ReportMetric(float64(c.writeCount)/denom, "block-writes/op")
 	b.ReportMetric(float64(c.writeBytes)/denom, "block-write-bytes/op")
+}
+
+// bumpObjectRev increments the revision of the object at key.
+func bumpObjectRev(ctx context.Context, ws world.WorldStateObject, key string) error {
+	obj, err := world.MustGetObject(ctx, ws, key)
+	if err != nil {
+		return err
+	}
+	defer world.ReleaseObjectState(obj)
+	_, revErr := obj.IncrementRev(ctx)
+	return revErr
 }
