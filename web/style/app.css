@@ -2027,6 +2027,10 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* The theme is dark only. Native controls, such as a select's popup,
+     scrollbars and form fields, paint from this scheme, not the browser's
+     light default. */
+  color-scheme: dark;
 }
 
 html,
