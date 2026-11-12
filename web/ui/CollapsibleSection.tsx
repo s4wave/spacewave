@@ -51,7 +51,7 @@ export function CollapsibleSection({
         <div
           className={cn(
             'hover:bg-background-card/50 flex min-h-11 items-center gap-2 transition-colors fine-pointer:min-h-0',
-            compact ? 'px-2.5 sm:py-1.5' : 'px-3.5 sm:py-2.5',
+            compact ? 'px-2.5 sm:py-1.5' : 'px-4 sm:py-3',
             open && 'border-foreground/6 border-b',
           )}
         >
@@ -61,7 +61,7 @@ export function CollapsibleSection({
               onClick={toggle}
               className={cn(
                 'flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch text-left fine-pointer:min-h-0',
-                compact ? 'sm:-my-1.5 sm:py-1.5' : 'sm:-my-2.5 sm:py-2.5',
+                compact ? 'sm:-my-1.5 sm:py-1.5' : 'sm:-my-3 sm:py-3',
               )}
             >
               {icon && (
@@ -89,7 +89,7 @@ export function CollapsibleSection({
           )}
         </div>
         <Collapsible.Content className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-          <div className={cn(compact ? 'p-2.5' : 'p-3.5')}>{children}</div>
+          <div className={cn(compact ? 'p-2.5' : 'p-4')}>{children}</div>
         </Collapsible.Content>
       </section>
     </Collapsible.Root>

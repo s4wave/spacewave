@@ -69,7 +69,7 @@ export function ComponentSelector({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex max-w-full min-w-0 cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+          className="-my-1 flex max-w-full min-w-0 cursor-pointer items-center py-1 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
           {children}
         </button>
