@@ -3,6 +3,7 @@ package kvtx_cayley_nodegraph
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
@@ -146,8 +147,8 @@ func (qs *QuadStore) rollback(ctx context.Context) error {
 		delete(qs.pinned, id)
 	}
 	qs.idMtx.Unlock()
-	for i := len(qs.undo) - 1; i >= 0; i-- {
-		e := qs.undo[i]
+	for _, e := range slices.Backward(qs.undo) {
+
 		var err error
 		if e.had {
 			err = qs.tx.Set(ctx, e.key, e.prev)
