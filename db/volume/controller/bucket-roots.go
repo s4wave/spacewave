@@ -44,7 +44,8 @@ func (b *bucketHandle) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 	return b.v.SetBucketRoots(ctx, b.t.bucketID, entries, roots)
 }
 
-// PinRoot retains a reader's root until the returned release is called.
+// PinRoot retains a reader's root until the returned release is called. It
+// fetches nothing.
 func (b *bucketHandle) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	if !b.HoldsRoots() {
 		return func() {}, nil

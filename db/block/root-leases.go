@@ -28,7 +28,9 @@ func HoldsRoots(store StoreOps) bool {
 }
 
 // PinRoot holds a root until release. The caller must already hold a named
-// root, pin or stage that reaches the root while it takes the pin.
+// root, pin or stage that reaches the root while it takes the pin. Only the
+// local provider's PinRoot fetches a block it lacks; the others pin the ref
+// as it is.
 func PinRoot(ctx context.Context, store StoreOps, ref *BlockRef) (func(), error) {
 	if ref.GetEmpty() || !HoldsRoots(store) {
 		return func() {}, nil

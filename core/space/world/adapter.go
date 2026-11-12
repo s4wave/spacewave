@@ -338,7 +338,6 @@ func (a *Adapter) Execute(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return a.queue.execute(ctx, a.queued) })
 	g.Go(func() error { return a.executeStorageReclaim(ctx) })
-	g.Go(func() error { return a.pages.RunPins(ctx) })
 
 	// Serve the engine once the World is initialized.
 	g.Go(func() error {
@@ -1699,9 +1698,7 @@ func (a *Adapter) holdRetained(ctx context.Context, roots []*RetainedRoot) error
 }
 
 // sweep drops the kept pages no live World reaches: the replay base's, the
-// live Worlds' in memory, and their payloads and retained roots. It also drops
-// the roots waiting for the pages' RunPins that no World of this run names
-// any more, stored and served ones included.
+// live Worlds' in memory, and their payloads and retained roots.
 func (a *Adapter) sweep() {
 	// Mark the pages kept so far, then gather the live Worlds: a page kept
 	// after the mark may belong to a candidate admitted meanwhile.
@@ -1711,7 +1708,6 @@ func (a *Adapter) sweep() {
 	// Drop the pages none of them reaches.
 	base := a.replay.base.GetHeadRef().GetRootRef()
 	a.pages.Sweep(slices.Concat([]*block.BlockRef{base}, l.memory, l.candidates, l.payloads, l.retained), mark)
-	a.pages.DropUnfetched(slices.Concat([]*block.BlockRef{base}, l.memory, l.stored, l.served, l.candidates, l.retained), mark)
 }
 
 // buildLookupOp composes the built-in operations with the bus lookup.

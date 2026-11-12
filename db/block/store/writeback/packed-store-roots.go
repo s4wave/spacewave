@@ -11,7 +11,8 @@ func (s *PackedStore) HoldsRoots() bool {
 	return block.HoldsRoots(s.local)
 }
 
-// PinRoot forwards a reader pin to the local store.
+// PinRoot forwards a reader pin to the local store. It fetches nothing,
+// from the Log or elsewhere.
 func (s *PackedStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, s.local, ref)
 }

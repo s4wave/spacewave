@@ -46,7 +46,7 @@ func (m *MarkingStore) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 	return m.markEntries(ctx, entries)
 }
 
-// PinRoot forwards a reader pin to the inner store.
+// PinRoot forwards a reader pin to the inner store. It fetches nothing.
 func (m *MarkingStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, m.store, ref)
 }

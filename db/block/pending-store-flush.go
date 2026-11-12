@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
@@ -16,11 +17,13 @@ const (
 )
 
 // Flush stores the kept trees the roots reach under a stage of the inner
-// store, in puts of at most flushSliceBytes and flushSliceLinks, and pins
-// each root it keeps no block of and the inner store lacks, which brings a
-// root another store backs, such as a peer, into the inner store; a root no
-// store holds is left to the swap, and one whose whole-store lookup cannot
-// answer is recorded for RunPins, which the release wakes. Until release, SetRoots puts no block the
+// store, in puts of at most flushSliceBytes and flushSliceLinks, and looks up
+// each root it keeps no block of. A root the local tier or the whole store
+// holds is left alone, and so is one whose lookup cannot answer in time. A
+// root every tier answered absent is pinned, which in the local provider reads
+// the root once more through the same read path and so, in practice, finds
+// nothing and leaves the root to the swap, such as a block the swap itself
+// puts. Flush copies no remote root into the inner store. Until release, SetRoots puts no block the
 // flush stored, so a writer that flushes before it takes the lock its root
 // moves need holds that lock, and the inner store's writer, only for the
 // swap: the stage holds the stored blocks until the swap names them. Each
@@ -106,29 +109,43 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		marked, batchBytes, batchLinks = i+1, 0, 0
 	}
 
-	// Pin each unkept root the inner store lacks, copying it in. A root whose
-	// whole-store lookup cannot answer is recorded for RunPins instead.
-	recorded := false
+	// Pin each unkept root no tier holds. The local tier answers first, and
+	// its error fails the flush. A root no tier holds yet, such as a block
+	// the swap itself puts, is left to the swap, and so is one whose other
+	// tiers are away, slow or failing: as the child
+	// check does, the whole-store lookup never waits for a peer or past
+	// childProbeWait, since a caller may hold a root set's lock behind it,
+	// and its error counts as unknown while ctx lives.
+	local := s.StoreOps
+	if tiers, ok := s.StoreOps.(LocalStoreGetter); ok && tiers.GetLocalStore() != nil {
+		local = tiers.GetLocalStore()
+	}
 	for _, root := range unkept {
-		unpin, unknown, err := s.pinUnkept(ctx, root)
+		found, err := local.GetBlockExists(ctx, root)
+		if err == nil && !found && local != s.StoreOps {
+			probe, cancel := childProbe(ctx)
+			found, err = s.StoreOps.GetBlockExists(probe, root)
+			cancel()
+			if err != nil && ctx.Err() == nil {
+				continue
+			}
+		}
 		if err != nil {
 			cleanup()
 			return nil, err
 		}
-		if unknown {
-			s.recordUnfetched(root)
-			recorded = true
+		if found {
+			continue
 		}
-		if unpin != nil {
-			pins = append(pins, unpin)
+		unpin, err := PinRoot(ctx, s.StoreOps, root)
+		if errors.Is(err, ErrNotFound) {
+			continue
 		}
-	}
-	if recorded {
-		ready := cleanup
-		cleanup = func() {
-			ready()
-			s.wakePins()
+		if err != nil {
+			cleanup()
+			return nil, err
 		}
+		pins = append(pins, unpin)
 	}
 
 	// Unmark them and release the stage once.

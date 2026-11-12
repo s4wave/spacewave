@@ -83,7 +83,11 @@ func (b *BlockStore) localRootEntry(ctx context.Context, ref *block.BlockRef) (*
 	return &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}, nil
 }
 
-// PinRoot forwards a reader pin to the underlying store.
+// PinRoot pins ref in the local store. It is the one PinRoot that fetches:
+// when the local store lacks ref, it copies the block and its refs in from
+// the Session read path (backend, fallback and peers, waiting for a peer
+// unless ctx says not to), and fails with ErrNotFound when that path lacks
+// it too. It copies only the root block, not the graph below it.
 func (b *BlockStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	// A peer-backed root may not be local yet. Bring its bytes and refs into
 	// the destination before acquiring a local pin; full graph retention

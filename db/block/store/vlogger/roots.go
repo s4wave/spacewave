@@ -25,7 +25,7 @@ func (s *VLoggerStore) SetRoots(ctx context.Context, entries []*block.PutBatchEn
 	return s.st.SetRoots(ctx, entries, roots)
 }
 
-// PinRoot forwards a reader pin to the underlying store.
+// PinRoot forwards a reader pin to the underlying store. It fetches nothing.
 func (s *VLoggerStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, s.st, ref)
 }

@@ -847,7 +847,10 @@ func TestBodyHostVoterRetriesRefusedStore(t *testing.T) {
 	}
 
 	// Two refused proposals damage the voter; with no new state, the voter
-	// proposes again each time the refusal comes due.
+	// proposes again each time the refusal comes due. A 200ms retry gives
+	// about ten stores in 2s. The window is 2s, not 1s, and the floor 2, so
+	// a loaded test host that delays wakes still passes; 16 still catches a
+	// spin, which stores hundreds of times.
 	waitFor("the damage", func() bool { r := shown.Load(); return r != nil && r.Damage != nil })
 	if n := countFor(2 * time.Second); n < 2 || n > 16 {
 		t.Fatalf("a due refusal stored %d times in 2s, want about one per 200ms", n)
