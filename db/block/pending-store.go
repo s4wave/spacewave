@@ -156,18 +156,56 @@ func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEnt
 // it and stay kept, so the Worlds that name them still find them here.
 // Tombstones are refused: a kept block may be reached by any kept World.
 func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, entries []*PutBatchEntry) ([]bool, bool, error) {
+	out, rest, restIdx, err := s.keep(hold, entries)
+	if err != nil || len(rest) == 0 {
+		return out, false, err
+	}
+	if err := s.store(ctx, dst, out, rest, restIdx); err != nil {
+		return nil, true, err
+	}
+	return out, true, nil
+}
+
+// PutBlockBatchStaged keeps the entries the bound allows and puts the rest to
+// a stage of the inner store, which it opens only when an entry does not fit.
+// The stage holds what it stored until release, which is nil when nothing
+// went past the bound. It holds none of the kept entries against Sweep, so the
+// caller gives Sweep their root until a root of the inner store holds it, and
+// releases the stage only after that root lands.
+func (s *PendingStore) PutBlockBatchStaged(ctx context.Context, entries []*PutBatchEntry) (release func(), err error) {
+	// Keep what fits, done when everything did.
+	out, rest, restIdx, err := s.keep(nil, entries)
+	if err != nil || len(rest) == 0 {
+		return nil, err
+	}
+
+	// Put the rest under a stage that holds them until release.
+	stage, release, err := OpenStage(ctx, s.StoreOps)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.store(ctx, stage, out, rest, restIdx); err != nil {
+		release()
+		return nil, err
+	}
+	return release, nil
+}
+
+// keep keeps each entry with a child list that fits, in order, held through
+// hold when set, and returns whether each was kept already, with the entries
+// that did not fit and their indexes. Tombstones are refused.
+func (s *PendingStore) keep(hold *pendingHold, entries []*PutBatchEntry) (out []bool, rest []*PutBatchEntry, restIdx []int, err error) {
 	// Refuse tombstones before keeping anything.
 	for _, e := range entries {
 		if e.Tombstone {
-			return nil, false, ErrPendingTombstone
+			return nil, nil, nil, ErrPendingTombstone
 		}
 	}
 
 	// Keep each entry with a child list that fits, in order.
-	out := make([]bool, len(entries))
-	var rest []*PutBatchEntry
-	var restIdx []int
+	out = make([]bool, len(entries))
 	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	for i, e := range entries {
 		key := pendingKey(e.Ref)
 		switch {
@@ -185,28 +223,27 @@ func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold,
 			rest, restIdx = append(rest, e), append(restIdx, i)
 		}
 	}
-	s.mtx.Unlock()
+	return out, rest, restIdx, nil
+}
 
-	// Gather the kept blocks the rest name: a block the inner store holds
-	// names only blocks it holds.
-	if len(rest) == 0 {
-		return out, false, nil
-	}
+// store puts rest to dst after the kept blocks they name, since a block the
+// inner store holds names only blocks it holds, keeping that tree, and sets
+// out at restIdx to whether dst held each already.
+func (s *PendingStore) store(ctx context.Context, dst StoreOps, out []bool, rest []*PutBatchEntry, restIdx []int) error {
+	// Put the kept trees the rest name, then the rest.
 	var children []*BlockRef
 	for _, e := range rest {
 		children = append(children, e.Refs...)
 	}
 	tree := s.reach(children)
-
-	// Put them first, then the rest, keeping the tree.
 	found, err := dst.PutBlockBatch(ctx, slices.Concat(tree, rest))
 	if err != nil {
-		return nil, true, err
+		return err
 	}
 	for j, i := range restIdx {
 		out[i] = found[len(tree)+j]
 	}
-	return out, true, nil
+	return nil
 }
 
 // pendingKey returns the key of ref in kept: its hash type and digest. A read

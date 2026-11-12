@@ -27,8 +27,15 @@ func (t *spaceTurn) Base() world.Head {
 
 // Admit registers the candidate, keeps its blocks in the adapter's
 // PendingStore, holds its payloads, makes its root the writer head and
-// appends its operation to the queue. It returns before the operation is queued, with an Admission that
-// waits for the driver to apply it.
+// appends its operation to the queue. It returns before the operation is
+// queued, with an Admission that waits for the driver to apply it.
+//
+// Invariant: every block Admit puts to the inner store is held, by a stage or
+// a root, from before the put until a stored World names it. The blocks past
+// the PendingStore's bound go to a stage opened before their put, and the
+// stage is released only after holdAdmitted moved the pending root onto the
+// candidate, which reaches them; the pending root holds them until a
+// checkpoint or cursor save stores a World that names them.
 func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world.Admission, error) {
 	// Wrap the transaction batch in the Space operation.
 	a := t.a
@@ -52,7 +59,14 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 	// finds its root among the pending candidates once the blocks are kept.
 	adm := a.newAdmission(candidate, op, payloads)
 	a.admit(adm)
-	if _, err := a.pages.PutBlockBatch(ctx, candidate.Entries); err != nil {
+	releaseStage, err := a.pages.PutBlockBatchStaged(ctx, candidate.Entries)
+	if err == nil {
+		err = admitStep(admitStepPut)
+	}
+	if err != nil {
+		if releaseStage != nil {
+			releaseStage()
+		}
 		a.fail(adm, err)
 		return nil, err
 	}
@@ -63,7 +77,14 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 	// one transaction with the root's move, so an appended operation never
 	// names a block the store may drop. A crash after the hold and before the
 	// append leaves only the hold, which the next resetPayloads drops.
-	if err := a.holdAdmitted(ctx, adm); err != nil {
+	err = a.holdAdmitted(ctx, adm, releaseStage != nil)
+	if err == nil {
+		err = admitStep(admitStepHeld)
+	}
+	if releaseStage != nil {
+		releaseStage()
+	}
+	if err != nil {
 		a.fail(adm, err)
 		return nil, err
 	}
@@ -76,6 +97,17 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 func (t *spaceTurn) Release() {
 	t.release()
 }
+
+// admitStepPut and admitStepHeld name the points of Admit a test may stop at:
+// after the put, and after the hold before the stage is released.
+const (
+	admitStepPut  = "put"
+	admitStepHeld = "held"
+)
+
+// admitStep is a test hook run at each named point of Admit. A returned error
+// fails the admission there, as a crash at that point would leave it.
+var admitStep = func(string) error { return nil }
 
 // _ is a type assertion
 var _ world.Turn = (*spaceTurn)(nil)
