@@ -145,3 +145,74 @@ func TestPeerReadDeferred(t *testing.T) {
 		t.Fatalf("read after fetch: %v %v, %d peer reads", blk, err, peers.reads.Load())
 	}
 }
+
+// countedPeerRead reads ref through a peerMissLog over peers that counts in a
+// placement's peer read counts, and returns the placement's read status.
+func countedPeerRead(t *testing.T, peers block.StoreOps) ReadStatus {
+	t.Helper()
+	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
+	src := newPeerMissSource(logrus.NewEntry(logrus.New()), func() block.StoreOps { return peers }, &p.peerReads)
+	_, _ = src().GetStoredBlock(context.Background(), block.NewBlockRef(nil))
+	return p.readStatus()
+}
+
+// TestPeerReadCountsServed checks that a block a peer serves counts once as
+// served.
+func TestPeerReadCountsServed(t *testing.T) {
+	SetPeerReadWait(10 * time.Second)
+	defer SetPeerReadWait(0)
+	st := countedPeerRead(t, &flakyPeers{fails: 1, blk: &block.StoredBlock{Data: []byte("served")}})
+	if st.PeerServed != 1 || st.PeerNotHeld != 0 || st.PeerFailed != 0 {
+		t.Fatalf("counts: %+v", st)
+	}
+}
+
+// TestPeerReadCountsNotHeld checks that the peers' answer that they lack the
+// block counts once as not held.
+func TestPeerReadCountsNotHeld(t *testing.T) {
+	SetPeerReadWait(10 * time.Second)
+	defer SetPeerReadWait(0)
+	st := countedPeerRead(t, &flakyPeers{})
+	if st.PeerServed != 0 || st.PeerNotHeld != 1 || st.PeerFailed != 0 {
+		t.Fatalf("counts: %+v", st)
+	}
+}
+
+// TestPeerReadCountsFailed checks that a read failing until the bound ends
+// counts once as failed, however many times it asked.
+func TestPeerReadCountsFailed(t *testing.T) {
+	SetPeerReadWait(300 * time.Millisecond)
+	defer SetPeerReadWait(0)
+	peers := &flakyPeers{fails: 1 << 30}
+	st := countedPeerRead(t, peers)
+	if st.PeerServed != 0 || st.PeerNotHeld != 0 || st.PeerFailed != 1 || peers.reads.Load() < 2 {
+		t.Fatalf("counts: %+v after %d reads", st, peers.reads.Load())
+	}
+}
+
+// putStore takes a put, or fails it with err.
+type putStore struct {
+	block.StoreOps
+	err error
+}
+
+// PutBlock takes the put or fails it.
+func (s *putStore) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
+	return nil, s.err == nil, s.err
+}
+
+// TestPeerFillCounts checks that a peer fill counts only once it succeeds.
+func TestPeerFillCounts(t *testing.T) {
+	p := &placementState{remote: &atomic.Pointer[openBackend]{}}
+	ref := block.NewBlockRef(nil)
+	stored := &block.StoredBlock{Data: []byte("served"), RefsKnown: true}
+	if err := p.peerFill(&putStore{err: errors.New("disk away")})(context.Background(), nil, ref, stored); err == nil {
+		t.Fatal("failed fill reported no error")
+	}
+	if err := p.peerFill(&putStore{})(context.Background(), nil, ref, stored); err != nil {
+		t.Fatalf("fill: %v", err)
+	}
+	if st := p.readStatus(); st.PeerFilled != 1 || st.PeerServed != 0 {
+		t.Fatalf("counts: %+v", st)
+	}
+}

@@ -11,7 +11,8 @@ import (
 // ReadStatus counts a placed store's block reads by where they were served:
 // the local store, or the storage backend, whose pack store tells the storage
 // node's answers from the bucket's. A read a fill cache served counts in
-// neither; the cache counts its own.
+// neither; the cache counts its own. It also counts the peer reads by outcome
+// and the blocks they filled.
 type ReadStatus struct {
 	// Local counts the blocks the local store served.
 	Local uint64
@@ -19,6 +20,18 @@ type ReadStatus struct {
 	// backend is no pack store. It starts again from zero when the backend
 	// reopens.
 	Backend block_store_s3.ReadCounts
+	// PeerServed counts the peer reads a peer served the block to.
+	PeerServed uint64
+	// PeerNotHeld counts the peer reads every peer asked answered that it
+	// lacks the block.
+	PeerNotHeld uint64
+	// PeerFailed counts the peer reads that failed, outlived the peer read
+	// bound or were canceled.
+	PeerFailed uint64
+	// PeerFilled counts the blocks a peer served that filled the local store.
+	// A block served without its refs fills later, counted in
+	// FallbackStatus.Filled instead.
+	PeerFilled uint64
 }
 
 // readCounter is a backend that counts its block reads by source.
@@ -29,7 +42,13 @@ type readCounter interface {
 
 // readStatus returns the placement's read counts.
 func (p *placementState) readStatus() ReadStatus {
-	st := ReadStatus{Local: p.localHits.Load()}
+	st := ReadStatus{
+		Local:       p.localHits.Load(),
+		PeerServed:  p.peerReads.served.Load(),
+		PeerNotHeld: p.peerReads.notHeld.Load(),
+		PeerFailed:  p.peerReads.failed.Load(),
+		PeerFilled:  p.peerReads.filled.Load(),
+	}
 	if remote := p.remote.Load(); remote != nil {
 		if counter, ok := remote.store.(readCounter); ok {
 			st.Backend = counter.ReadCounts()

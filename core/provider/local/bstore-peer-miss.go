@@ -61,17 +61,20 @@ type peerMissLog struct {
 	// peers returns the unscoped peer store, which a read deferred by
 	// block.WithPeerReads fetches from after its read scope ends.
 	peers func() block.StoreOps
+	// counts counts the outcomes of the peer reads, or is nil.
+	counts *peerReadCounts
 }
 
 // newPeerMissSource wraps peers so each block that reaches it is logged once.
-func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps) func() block.StoreOps {
+// Each peer read counts its outcome in counts, which may be nil.
+func newPeerMissSource(le *logrus.Entry, peers func() block.StoreOps, counts *peerReadCounts) func() block.StoreOps {
 	seen := &sync.Map{}
 	return func() block.StoreOps {
 		store := peers()
 		if store == nil {
 			return nil
 		}
-		return &peerMissLog{StoreOps: store, le: le, seen: seen, peers: peers}
+		return &peerMissLog{StoreOps: store, le: le, seen: seen, peers: peers, counts: counts}
 	}
 }
 
@@ -83,7 +86,7 @@ func (p *peerMissLog) BeginReadOperation(ctx context.Context) (block.StoreOps, f
 	if err != nil {
 		return nil, nil, err
 	}
-	return &peerMissLog{StoreOps: scoped, le: p.le, seen: p.seen, peers: p.peers}, release, nil
+	return &peerMissLog{StoreOps: scoped, le: p.le, seen: p.seen, peers: p.peers, counts: p.counts}, release, nil
 }
 
 // GetBlock logs the miss and reads the block from peers.
@@ -115,7 +118,7 @@ func (p *peerMissLog) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (
 
 	// Log the first miss of the block.
 	p.logMiss(ref)
-	return readPeers(ctx, p.StoreOps, ref)
+	return readPeers(ctx, p.StoreOps, ref, p.counts)
 }
 
 // fetch returns the deferred peer read of ref, which reads the unscoped peer
@@ -128,13 +131,16 @@ func (p *peerMissLog) fetch(ref *block.BlockRef) block.PeerFetch {
 				store = peers
 			}
 		}
-		return readPeers(block.WithPeerReads(ctx, nil), store, ref)
+		return readPeers(block.WithPeerReads(ctx, nil), store, ref, p.counts)
 	}
 }
 
 // readPeers asks the peers in store for ref until one answers, or
-// peerReadLimit ends.
-func readPeers(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (*block.StoredBlock, error) {
+// peerReadLimit ends, and counts the outcome once in counts, which may be nil.
+func readPeers(ctx context.Context, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
+	// Count the read's outcome once it ends.
+	defer func() { counts.record(blk, err) }()
+
 	// Ask the peers until one answers, or the bound ends.
 	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
 	defer cancel()
@@ -152,6 +158,33 @@ func readPeers(ctx context.Context, store block.StoreOps, ref *block.BlockRef) (
 		case <-time.After(pause):
 		}
 		pause = min(pause*2, peerReadPauseMax)
+	}
+}
+
+// peerReadCounts counts a placed store's peer reads by outcome, and the
+// blocks they filled.
+type peerReadCounts struct {
+	// served counts the reads a peer served the block to.
+	served atomic.Uint64
+	// notHeld counts the reads every peer asked answered it lacks the block.
+	notHeld atomic.Uint64
+	// failed counts the reads that failed, timed out or were canceled.
+	failed atomic.Uint64
+	// filled counts the blocks a peer served that filled the local store.
+	filled atomic.Uint64
+}
+
+// record counts the outcome of one peer read. The peer store reports a block
+// every peer lacks as no block and no error, and any failure as an error.
+func (c *peerReadCounts) record(blk *block.StoredBlock, err error) {
+	switch {
+	case c == nil:
+	case err != nil:
+		c.failed.Add(1)
+	case blk != nil:
+		c.served.Add(1)
+	default:
+		c.notHeld.Add(1)
 	}
 }
 

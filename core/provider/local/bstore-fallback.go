@@ -163,14 +163,24 @@ func (p *placementState) packReadsBehind(recorded block.StoreOps, remote block_s
 	)
 }
 
-// peerFill fills the local store with a block read from a peer. A peer is not
-// the durable store, so the block never enters the fill cache.
+// peerFill fills the local store with a block read from a peer, and counts
+// each fill that succeeds. A peer is not the durable store, so the block never
+// enters the fill cache.
 func (p *placementState) peerFill(recorded block.StoreOps) block_store.Fill {
 	return func(ctx context.Context, _ block.StoreOps, ref *block.BlockRef, stored *block.StoredBlock) error {
+		// Store the block as a fallback fill when peer fills upload.
+		var err error
 		if p.peerUpload {
-			return p.fillFromFallback(ctx, ref, stored)
+			err = p.fillFromFallback(ctx, ref, stored)
+		} else {
+			err = p.fill(ctx, recorded, ref, stored)
 		}
-		return p.fill(ctx, recorded, ref, stored)
+
+		// Count a fill that stored the block.
+		if err == nil && !p.serveOnly {
+			p.peerReads.filled.Add(1)
+		}
+		return err
 	}
 }
 

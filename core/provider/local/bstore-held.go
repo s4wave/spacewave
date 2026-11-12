@@ -476,7 +476,7 @@ func spill(ctx context.Context, wb *block_store_writeback.Store, keys, values []
 // peerSource returns the store's peer reads, which a store whose pushed
 // blocks skip its disk reads after asking the node by key: with no peer
 // session, a peer read waits for one, so the node must come first.
-func (t *bstoreTracker) peerSource(le *logrus.Entry, bucketID string) func() block.StoreOps {
+func (t *bstoreTracker) peerSource(le *logrus.Entry, bucketID string, counts *peerReadCounts) func() block.StoreOps {
 	// A store with no peers to ask reads none.
 	conf := t.nodePushConfig()
 	if conf != nil && conf.NoPeers {
@@ -484,7 +484,7 @@ func (t *bstoreTracker) peerSource(le *logrus.Entry, bucketID string) func() blo
 	}
 
 	// One whose pushed blocks skip its disk asks the node first.
-	peers := newPeerMissSource(le, func() block.StoreOps { return t.a.getP2PStore(bucketID) })
+	peers := newPeerMissSource(le, func() block.StoreOps { return t.a.getP2PStore(bucketID) }, counts)
 	if conf != nil && conf.Durable != nil {
 		return nodeBeforePeers(peers, &t.nodeClient, conf.ReadWait)
 	}
