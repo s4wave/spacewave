@@ -31,6 +31,8 @@ export async function startWorkerPluginEntrypoint(
   // of waiting for a handler that never comes.
   if (!api.handleStreamCtr.value) {
     const server = new Server(createMux().lookupMethod)
-    api.handleStreamCtr.set(server.handlePacketStream.bind(server))
+    api.handleStreamCtr.set(async (stream) => {
+      server.handlePacketStream(stream)
+    })
   }
 }
