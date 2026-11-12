@@ -1,5 +1,5 @@
 // Import types generated from protobuf definitions.
-import { Client, isAbortError } from 'starpc'
+import { Client, Server, createMux, isAbortError } from 'starpc'
 import type { JsonValue } from '@aptre/protobuf-es-lite'
 import {
   isBackendEntrypointFunc,
@@ -644,6 +644,21 @@ async function completeInitialCapabilityRegistration(
 }
 
 /**
+ * serveNotFoundUntilHandled answers every call as not found while the plugin
+ * has set no RPC handler, so a host probe such as Activation.Check learns the
+ * method is absent instead of waiting for a handler that never comes. A
+ * handler set later replaces it. The host runtime installs the same fallback
+ * after startup for plugins built before this one.
+ */
+function serveNotFoundUntilHandled(backendAPI: BackendAPI): void {
+  if (backendAPI.handleStreamCtr.value) return
+  const server = new Server(createMux().lookupMethod)
+  backendAPI.handleStreamCtr.set(async (stream) => {
+    server.handlePacketStream(stream)
+  })
+}
+
+/**
  * main starts the backend and frontend modules selected at compile time.
  */
 export default function main(
@@ -753,6 +768,15 @@ async function startPluginEntrypoint(
   )
   const capabilityRegistrationReady = capabilityReady.then(() =>
     completeInitialCapabilityRegistration(backendAPI, abortSignal),
+  )
+
+  // Once the backends have started, their RPC handler is set or never will
+  // be. Answer calls now rather than after the views are ready, which on
+  // QuickJS waits for a browser to attach: a swap's Activation.Check would
+  // otherwise wait on a worker that cannot answer until one does.
+  void capabilityRegistrationReady.then(
+    () => serveNotFoundUntilHandled(backendAPI),
+    () => {},
   )
 
   // Report QuickJS readiness in stages and forward worker setup failures.
