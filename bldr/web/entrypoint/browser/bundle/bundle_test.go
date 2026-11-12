@@ -559,7 +559,7 @@ func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {
 			"react": "/entrypoint/react/index.mjs",
 		},
 	}
-	if err := BuildRendererIndex(dir, "./entrypoint/entrypoint.mjs", importMap); err != nil {
+	if err := BuildRendererIndex(dir, "./entrypoint/entrypoint.mjs", importMap, ""); err != nil {
 		t.Fatal(err)
 	}
 

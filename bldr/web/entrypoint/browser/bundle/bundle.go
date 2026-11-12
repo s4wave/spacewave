@@ -922,11 +922,12 @@ func BuildOpfsWorkerBundle(
 	return filename, err
 }
 
-// BuildRendererIndex builds the web renderer index.html.
+// BuildRendererIndex builds the web renderer index.html. reactVersion is the
+// version of the React build the map binds; empty keeps the shell on it.
 //
 // importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
-func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoint_index.ImportMap) error {
-	indexHTML, err := renderIndexHTML(entrypointPath, importMap)
+func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoint_index.ImportMap, reactVersion string) error {
+	indexHTML, err := renderIndexHTML(entrypointPath, importMap, reactVersion)
 	if err != nil {
 		return err
 	}
@@ -934,10 +935,11 @@ func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoin
 }
 
 // renderIndexHTML renders the web renderer index.html to bytes.
-func renderIndexHTML(entrypointPath string, importMap web_entrypoint_index.ImportMap) ([]byte, error) {
+func renderIndexHTML(entrypointPath string, importMap web_entrypoint_index.ImportMap, reactVersion string) ([]byte, error) {
 	indexHTML, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
 		ImportMap:      importMap,
 		EntrypointPath: entrypointPath,
+		ReactVersion:   reactVersion,
 	})
 	if err != nil {
 		return nil, err
@@ -1085,7 +1087,7 @@ func BuildRendererBundle(
 ) ([]string, error) {
 	// Render the renderer index.html into the build directory.
 	le.Debug("generating web renderer bundle")
-	if err := BuildRendererIndex(buildDir, rendererBootPath, webPkgImportMap); err != nil {
+	if err := BuildRendererIndex(buildDir, rendererBootPath, webPkgImportMap, ""); err != nil {
 		return nil, err
 	}
 
@@ -1235,10 +1237,14 @@ func BuildBrowserBundle(
 	if err != nil {
 		return nil, err
 	}
+	reactVersion, err := readReactVersion(buildPkgsDir)
+	if err != nil {
+		return nil, err
+	}
 
 	// Build the renderer bundle and measure the cached phase.
 	rendererStart := time.Now()
-	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, browserIceServers, browserIceServersEndpoint, webPkgImportMap)
+	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, browserIceServers, browserIceServersEndpoint, webPkgImportMap, reactVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -1329,6 +1335,21 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 		return buildErr
 	})
 	return importMap, err
+}
+
+// readReactVersion reads the version of the React package the web packages
+// were built from, which names the matching Development React build.
+func readReactVersion(buildPkgsDir string) (string, error) {
+	// Read the installed package's manifest and take its version.
+	data, err := os.ReadFile(filepath.Join(buildPkgsDir, "node_modules", "react", "package.json"))
+	if err != nil {
+		return "", err
+	}
+	pkg, err := fastjson.ParseBytes(data)
+	if err != nil {
+		return "", errors.Wrap(err, "react package.json")
+	}
+	return string(pkg.GetStringBytes("version")), nil
 }
 
 func EnsureBldrDistDepsInstall(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {

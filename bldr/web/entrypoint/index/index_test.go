@@ -1,6 +1,7 @@
 package web_entrypoint_index
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -105,6 +106,31 @@ func TestRenderIndexHTMLEscapesEntrypointPath(t *testing.T) {
 	}
 	if !strings.Contains(result, `src="/boot.mjs?x=&#34;bad&#34;&amp;y=&lt;tag&gt;"`) {
 		t.Fatalf("RenderIndexHTML() missing escaped entrypoint path: %s", result)
+	}
+}
+
+// TestRenderIndexHTMLKeepsStaticImportMap checks the shell still carries the
+// map in a static importmap tag, inert inside its template, since released
+// web listeners extract that tag from the deployed shell, and that the React
+// version reaches the inline script escaped.
+func TestRenderIndexHTMLKeepsStaticImportMap(t *testing.T) {
+	result, err := RenderIndexHTML(IndexData{
+		ImportMap:      ImportMap{Imports: map[string]string{"react": "./pkgs/react/index.mjs"}},
+		EntrypointPath: "/boot.mjs",
+		ReactVersion:   `19.2.0"<`,
+	})
+	if err != nil {
+		t.Fatalf("RenderIndexHTML() error = %v", err)
+	}
+	staticMap := regexp.MustCompile(`(?is)<template id="bldr-import-map"[^>]*>\s*<script\s+type=["']importmap["'][^>]*>\s*\{"imports":\{[^<]*"react":"./pkgs/react/index.mjs"[^<]*\}\}\s*</script>\s*</template>`)
+	if !staticMap.MatchString(result) {
+		t.Fatalf("RenderIndexHTML() missing the static import map in its template: %s", result)
+	}
+	if !strings.Contains(result, `data-react-version="19.2.0&#34;&lt;"`) {
+		t.Fatalf("RenderIndexHTML() missing escaped React version: %s", result)
+	}
+	if strings.Count(result, `type="importmap"`) != 1 {
+		t.Fatalf("RenderIndexHTML() rendered more than one static import map")
 	}
 }
 
