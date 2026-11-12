@@ -11,11 +11,22 @@ import (
 // AuthoritativeSyncDenied reports whether a retained owner has denied this
 // object identity. Denial from a non-owner cannot revoke another participant.
 func AuthoritativeSyncDenied(config *SharedObjectConfig, health *SharedObjectHealth) bool {
-	if config == nil || health == nil {
+	// No denial, or no participants to own one, revokes nothing.
+	denied := health.GetSyncDeniedPeerIds()
+	if config == nil || len(denied) == 0 {
 		return false
 	}
-	return slices.ContainsFunc(config.GetParticipants(), func(participant *SOParticipantConfig) bool {
-		return IsOwner(participant.GetRole()) && slices.Contains(health.GetSyncDeniedPeerIds(), participant.GetPeerId())
+
+	// Index the owners once, then look for a denial among them.
+	owners := make(map[string]struct{})
+	for _, participant := range config.GetParticipants() {
+		if IsOwner(participant.GetRole()) {
+			owners[participant.GetPeerId()] = struct{}{}
+		}
+	}
+	return slices.ContainsFunc(denied, func(id string) bool {
+		_, ok := owners[id]
+		return ok
 	})
 }
 
@@ -23,6 +34,7 @@ func AuthoritativeSyncDenied(config *SharedObjectConfig, health *SharedObjectHea
 // admission response without changing local mount readiness or authority.
 // The caller must have verified that peerID is readable under local authority.
 func (h *SharedObjectHealth) WithSyncPeerAdmission(peerID string, accepted bool) *SharedObjectHealth {
+	// Keep the snapshot when it records this decision already.
 	if slices.Contains(h.GetSyncDeniedPeerIds(), peerID) == !accepted {
 		return h
 	}
@@ -53,6 +65,7 @@ func (h *SharedObjectHealth) WithoutSyncDenials() *SharedObjectHealth {
 // WithSyncPeerRecovery records a recovery requirement without closing local access.
 // The caller supplies an authenticated participant; only verified convergence clears it.
 func (h *SharedObjectHealth) WithSyncPeerRecovery(peerID string, required bool) *SharedObjectHealth {
+	// Keep the snapshot when it records this requirement already.
 	if slices.Contains(h.GetSyncRecoveryPeerIds(), peerID) == required {
 		return h
 	}
