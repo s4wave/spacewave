@@ -44,6 +44,11 @@ func (a *Adapter) maybeSaveCursor(ctx context.Context) error {
 	if len(r.positions) <= r.floor {
 		return nil
 	}
+
+	// Save nothing more once saves are refused beyond what replay heals.
+	if a.Damaged() != nil {
+		return nil
+	}
 	if err := a.saveCursor(ctx); err != nil {
 		return err
 	}
@@ -112,6 +117,9 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		ctx, cancel := a.backgroundContext(ctx)
 		defer cancel()
 		err := a.writeCursor(ctx, root, data)
+		if ctx.Err() == nil {
+			a.saveRefusal.Store(sobject.NoteStoreRefusal(a.saveRefusal.Load(), err))
+		}
 
 		// End the saved epochs once the cursor root holds their World, or
 		// keep them for the next save, which retries.
@@ -126,6 +134,13 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 		}
 	}()
 	return nil
+}
+
+// Damaged returns the store refusal of the cursor saves replay could not
+// heal: a save refused twice in a row with block.ErrMissingChild. The body
+// driver shows it in the Space's health and stops checkpoints with it.
+func (a *Adapter) Damaged() error {
+	return a.saveRefusal.Load().Damage()
 }
 
 // encodeCursor returns the World after the last position and the encoded
@@ -245,3 +260,6 @@ func restoredState(prev, head *InnerState, outcome *ReplayCursorOutcome) *InnerS
 func sameRetained(a, b *InnerState) bool {
 	return slices.EqualFunc(a.GetRetainedRoots(), b.GetRetainedRoots(), (*RetainedRoot).EqualVT)
 }
+
+// _ is a type assertion
+var _ sobject.DamagedBody = (*Adapter)(nil)

@@ -104,6 +104,13 @@ func (r *spaceReplay) stateBefore(index int) (*InnerState, uint64) {
 	return pos.state, pos.seqno
 }
 
+// unstored reports whether the World before the position at index may have
+// left memory unstored: a page of it may be one only a released replay epoch
+// stored, so replay computes it again before reading it.
+func (r *spaceReplay) unstored(index int) bool {
+	return index != 0 && index <= r.floor
+}
+
 // head returns the World after the last position and its seqno.
 func (r *spaceReplay) head() (*InnerState, uint64) {
 	return r.stateBefore(len(r.positions))
@@ -137,7 +144,7 @@ func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOpe
 	// The World before index may have left memory unstored. Only running an
 	// operation reads its pages; the other outcomes compare and copy its
 	// InnerState, which computing it again leaves the same.
-	unstored := index != 0 && index <= r.floor
+	unstored := r.unstored(index)
 	prev, prevSeqno := r.stateBefore(index)
 	pos := spacePosition{op: op, state: prev, seqno: prevSeqno, reason: op.Refused}
 

@@ -3,11 +3,13 @@ package sobject
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
@@ -31,6 +33,8 @@ type testBody struct {
 	missing bool
 	// storeGate, when set, holds each store Root returns until it closes.
 	storeGate chan struct{}
+	// storeErr, when set, is the result of each store Root returns.
+	storeErr func() error
 }
 
 // stateAt returns the state after the first n operations.
@@ -46,8 +50,11 @@ func (b *testBody) Root(_ context.Context, n int) ([]byte, func(context.Context)
 	if n > len(b.states) {
 		return nil, nil, nil
 	}
-	gate := b.storeGate
+	gate, storeErr := b.storeGate, b.storeErr
 	return []byte(b.stateAt(n)), func(ctx context.Context) error {
+		if storeErr != nil {
+			return storeErr()
+		}
 		if gate == nil {
 			return nil
 		}
@@ -469,4 +476,80 @@ func TestBodyHostAttachesOneBody(t *testing.T) {
 	}
 	release()
 	(<-attached)()
+}
+
+// TestBodyDriverDamagedByRefusedStore checks that a checkpoint store the body
+// refuses with block.ErrMissingChild is tried once more, then, refused again,
+// damages the body: the driver stores no further checkpoint, so it does not
+// spin, and the report shows the refusal. A store that heals on the second
+// attempt signs the checkpoint and shows no damage.
+func TestBodyDriverDamagedByRefusedStore(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		// refusals is how many stores the body refuses, or -1 for all.
+		refusals int
+	}{
+		{name: "forever", refusals: -1},
+		{name: "healed", refusals: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Host a Space whose only writer is the owner, whose body refuses
+			// its stores.
+			ctx := t.Context()
+			peers := createMockPeers(t, 1)
+			keys := mustPrivKeys(t, peers)
+			state, _ := newTestSOState(t, peers)
+			g := newGroupHost(ctx, state)
+			refused := fmt.Errorf("Flush: block a names b: %w", block.ErrMissingChild)
+			stores := 0
+			body := &testBody{storeErr: func() error {
+				stores++
+				if tc.refusals < 0 || stores <= tc.refusals {
+					return refused
+				}
+				return nil
+			}}
+			var reports []*BodyReport
+			so := &testDriverSharedObject{peerID: peers[0].GetPeerID()}
+			d := NewBodyDriver(logrus.New().WithField("test", t.Name()), so, body, func(r *BodyReport) { reports = append(reports, r) })
+			d.SetCheckpointer(g.host, keys[0], testStepFactorySet())
+
+			// Reach the threshold, then step on every wake a store sends
+			// until none arrives.
+			held := g.ctr.GetValue().Clone()
+			for range MinCheckpointOperations {
+				writeTestOp(t, held, keys[0], "x")
+			}
+			g.ctr.SetValue(held)
+			settled := false
+			for range 10 {
+				if err := d.Step(ctx, testHandle(t, g.ctr.GetValue(), keys[0])); err != nil {
+					t.Fatal(err)
+				}
+				select {
+				case <-d.wake:
+					continue
+				case <-time.After(200 * time.Millisecond):
+					settled = true
+				}
+				break
+			}
+			if !settled {
+				t.Fatalf("the driver kept storing: %d stores", stores)
+			}
+
+			// A refusal that repeats damages the body after two stores; a
+			// healed one signs the checkpoint.
+			damage := reports[len(reports)-1].Damage
+			if tc.refusals < 0 {
+				if stores != 2 || !errors.Is(d.Damaged(), block.ErrMissingChild) || !errors.Is(damage, block.ErrMissingChild) {
+					t.Fatalf("stores %d, damage %v, reported %v; want 2 and the refusal", stores, d.Damaged(), damage)
+				}
+				return
+			}
+			if d.Damaged() != nil || damage != nil || mustHeight(t, g.ctr.GetValue()) != 1 {
+				t.Fatalf("damage %v, reported %v, height %d after a healed store", d.Damaged(), damage, mustHeight(t, g.ctr.GetValue()))
+			}
+		})
+	}
 }

@@ -76,6 +76,12 @@ type BodyDriver struct {
 	// storing reports that a checkpoint's store and signature run in the
 	// background, so a step signs no other.
 	storing bool
+	// stepRefusal and storeRefusal are the store refusals the latest steps
+	// and checkpoint stores met in a row, or nil. Once one repeats, or a
+	// DamagedBody reports damage, the body is damaged: the driver signs no
+	// checkpoint and retries a failed step only on a new state, and the
+	// report shows the refusal.
+	stepRefusal, storeRefusal *StoreRefusal
 }
 
 // NewBodyDriver returns the driver of body on so. report receives what the
@@ -151,11 +157,20 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 				return context.Canceled
 			}
 			d.le.WithError(err).Warn("replay stopped before the end of the order")
-			retry()
+			if d.Damaged() == nil {
+				retry()
+			}
 			continue
 		}
 		delay = bodyRetryMin
 	}
+}
+
+// Damaged returns the store refusal replay could not heal, or nil.
+func (d *BodyDriver) Damaged() error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.damage()
 }
 
 // Step brings the body to the order of snap: it installs snap's checkpoint
@@ -166,13 +181,21 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 	// Hold the body for the step.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
+	return d.step(ctx, snap)
+}
 
+// step is Step with mtx held. It notes the step's store refusal, then
+// publishes the report.
+func (d *BodyDriver) step(ctx context.Context, snap SharedObjectStateSnapshot) (err error) {
 	// Read the order.
 	ev, err := ReadOrder(ctx, snap)
 	if err != nil {
 		return err
 	}
-	defer d.publishReport(ev)
+	defer func() {
+		d.stepRefusal = NoteStoreRefusal(d.stepRefusal, err)
+		d.publishReport(ev)
+	}()
 
 	// Install the checkpoint when it moved.
 	if !ev.Checkpoint.EqualVT(d.installed) {
@@ -218,7 +241,7 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 	// checkpoints by vote.
 	c := d.checkpointer
 	self := d.so.GetPeerID().String()
-	if c == nil || d.storing || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
+	if c == nil || d.storing || d.damage() != nil || ev.Config.IsGroupControl() || ev.Config.Checkpointer() != self {
 		return nil
 	}
 	own, err := ev.Snapshot.GetOwnership(ctx)
@@ -255,6 +278,7 @@ func (d *BodyDriver) checkpoint(ctx context.Context, ev *OrderEvent) error {
 func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, store func(context.Context) error, prefix [][]byte, data []byte, height uint64) {
 	// Store the state, then sign and adopt the checkpoint.
 	err := store(ctx)
+	stored := err
 	if err == nil {
 		err = c.host.UpdateSOState(kvtx.WithOrderedCommitContext(ctx), func(state *SOState) error {
 			return c.adopt(ctx, d.le, d.so, state, prefix, data, height)
@@ -264,9 +288,13 @@ func (d *BodyDriver) storeCheckpoint(ctx context.Context, c *bodyCheckpointer, s
 		d.le.WithError(err).Warn("checkpoint stopped before it was adopted")
 	}
 
-	// Let the next step checkpoint again.
+	// Note a refused store, and let the next step checkpoint again unless
+	// the refusal repeated.
 	d.mtx.Lock()
 	d.storing = false
+	if ctx.Err() == nil {
+		d.storeRefusal = NoteStoreRefusal(d.storeRefusal, stored)
+	}
 	d.mtx.Unlock()
 	select {
 	case d.wake <- errBodyRetry:
@@ -497,7 +525,7 @@ func (d *BodyDriver) publishReport(ev *OrderEvent) {
 
 	// Collect this device's revoked edits.
 	self := d.so.GetPeerID().String()
-	report := &BodyReport{CheckpointMismatch: d.mismatch}
+	report := &BodyReport{CheckpointMismatch: d.mismatch, Damage: d.damage()}
 	if ev.Set.Unordered() > 0 {
 		report.Unordered = uint32(ev.Set.Unordered()) //nolint:gosec // the operations held in memory.
 	}

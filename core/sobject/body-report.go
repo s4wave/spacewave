@@ -15,12 +15,24 @@ type BodyReport struct {
 	CheckpointMismatch *SOCheckpointMismatch
 	// Unordered counts the edits the appointed sequencer has not placed.
 	Unordered uint32
+	// Damage is the store refusal replay could not heal, or nil. It names
+	// the write, the block and its child by their block references.
+	Damage error
 }
 
 // equal reports whether r and other show the same health.
 func (r *BodyReport) equal(other *BodyReport) bool {
 	return other != nil &&
 		r.Unordered == other.Unordered &&
+		errorText(r.Damage) == errorText(other.Damage) &&
 		r.CheckpointMismatch.EqualVT(other.CheckpointMismatch) &&
 		slices.EqualFunc(r.RejectedEdits, other.RejectedEdits, (*SORejectedEdit).EqualVT)
+}
+
+// errorText returns err's text, or empty when err is nil.
+func errorText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }

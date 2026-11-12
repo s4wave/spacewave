@@ -3,6 +3,7 @@ package space_world
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // localStateSpace is a SharedObject that serves only its local state, from
@@ -287,5 +290,124 @@ func TestReplayStageFloorCoversReleasedEpoch(t *testing.T) {
 	r.positions = append(r.positions, pos)
 	if r.floor < len(r.positions) {
 		f.requireFound("the acknowledgment's World", world, stored, kept)
+	}
+}
+
+// peerSpace is a localStateSpace that names its peer.
+type peerSpace struct {
+	*localStateSpace
+	// id is the peer ID.
+	id peer.ID
+}
+
+// GetPeerID returns the peer ID.
+func (s *peerSpace) GetPeerID() peer.ID {
+	return s.id
+}
+
+// TestAdoptAfterEpochEnds checks, through Apply, that a candidate
+// built on a replayed World whose page only a replay epoch stored is not
+// adopted once a later save ended that epoch and a reorder puts its
+// operation back after that World: the candidate shares the freed page, so
+// the operation runs again on the World computed again.
+func TestAdoptAfterEpochEnds(t *testing.T) {
+	f := newReplayFixture(t, 1000)
+	a, ctx := f.a, t.Context()
+	p, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.so = &peerSpace{localStateSpace: a.so.(*localStateSpace), id: p.GetPeerID()}
+	a.missing = make(map[string]struct{})
+
+	// Replay a World whose page goes past the bound to the current epoch.
+	f.apply("zero", f.put("zero World", 0))
+	stored := f.put("stored page", 1200)
+	base := f.put("base World", 0, stored)
+	f.apply("base", base)
+	if a.pages.Full() {
+		t.Fatal("pages are full")
+	}
+
+	// A local writer admits a small candidate on that World that keeps the
+	// stored page.
+	cand := f.entry("candidate World", 0, stored)
+	adm := a.newAdmission(world.Candidate{Base: base, Root: cand.Ref, Entries: []*block.PutBatchEntry{cand}}, nil, nil)
+	a.admit(adm)
+	if err := a.storeAdmitted(ctx, adm); err != nil {
+		t.Fatal(err)
+	}
+	adm.hash = []byte("local")
+
+	// Another device's operation lands first; its World does not reach the
+	// page, and its save ends the epoch.
+	f.apply("later", f.put("later World", 0))
+	f.save()
+	f.collect()
+
+	// A reorder puts this device's operation after the base World.
+	data, err := (&WorldOp{Body: &WorldOp_SetRetainedRoot{SetRetainedRoot: &SetRetainedRootOp{}}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	op := &sobject.OrderedOperation{
+		Hash:  adm.hash,
+		Inner: &sobject.SOOperationInner{PeerId: p.GetPeerID().String()},
+		Data:  data,
+	}
+	if _, err := a.Apply(ctx, 2, op); err != nil {
+		t.Fatal(err)
+	}
+
+	// The position does not take the candidate's World, whose page is gone.
+	if root := a.replay.positions[2].state.GetHeadRef().GetRootRef(); refEqual(root, cand.Ref) {
+		f.requireFound("the adopted candidate's World", stored)
+	}
+}
+
+// TestCursorSaveRefusalDamages checks that a cursor save the PendingStore
+// refuses, since the saved World names a page no store holds, is tried once
+// more, then, refused again, damages the adapter, which then starts no save;
+// and that a refusal healed before the second save leaves no damage.
+func TestCursorSaveRefusalDamages(t *testing.T) {
+	for _, healed := range []bool{false, true} {
+		t.Run(map[bool]string{false: "forever", true: "healed"}[healed], func(t *testing.T) {
+			f := newReplayFixture(t, 1<<20)
+			a := f.a
+
+			// The head World names a page no store holds.
+			missing := f.entry("missing page", 0)
+			f.apply("head", f.put("head World", 0, missing.Ref))
+			f.save()
+			if a.Damaged() != nil {
+				t.Fatalf("one refused save damaged the adapter: %v", a.Damaged())
+			}
+			if healed {
+				f.put("missing page", 0)
+			}
+			f.save()
+			if healed {
+				if a.Damaged() != nil {
+					t.Fatalf("a healed save left damage: %v", a.Damaged())
+				}
+				return
+			}
+			if !errors.Is(a.Damaged(), block.ErrMissingChild) {
+				t.Fatalf("damage after two refused saves = %v", a.Damaged())
+			}
+
+			// Once damaged, a due save does not start.
+			r := a.replay
+			for range replayCursorOperations {
+				f.apply("more", r.positions[0].state.GetHeadRef().GetRootRef())
+			}
+			saved := r.saved
+			if err := a.maybeSaveCursor(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			if r.saved != saved {
+				t.Fatalf("a damaged adapter saved the cursor at %d", r.saved)
+			}
+		})
 	}
 }

@@ -137,13 +137,14 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 
 // showReplay shows in the health what the body driver reports of this
 // device's replay: its revoked edits, a checkpoint whose state differs from
-// the replayed one, and the edits the sequencer has not placed.
+// the replayed one, the edits the sequencer has not placed, and a store
+// refusal replay could not heal.
 func (s *SharedObject) showReplay(r *sobject.BodyReport) {
 	if s.tkr.healthCtr == nil {
 		return
 	}
 	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
-		return health.WithRejectedEdits(r.RejectedEdits).WithCheckpointMismatch(r.CheckpointMismatch).WithUnorderedCount(r.Unordered)
+		return health.WithRejectedEdits(r.RejectedEdits).WithCheckpointMismatch(r.CheckpointMismatch).WithUnorderedCount(r.Unordered).WithStoreDamage(r.Damage)
 	})
 }
 

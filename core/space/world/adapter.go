@@ -174,6 +174,10 @@ type Adapter struct {
 	runCtx context.Context
 	// cursorSaving reports that a cursor save runs in the background.
 	cursorSaving atomic.Bool
+	// saveRefusal is the store refusal the latest cursor saves met in a
+	// row, or nil. Once it repeats, no cursor save starts until the next
+	// mount, and Damaged reports it.
+	saveRefusal atomic.Pointer[sobject.StoreRefusal]
 	// trimMtx runs the background trims one at a time.
 	trimMtx csync.Mutex
 	// trimSeq numbers the trims the driver gathers; a trim older than the
@@ -703,7 +707,7 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 	if n > len(r.positions) {
 		return nil, nil, nil
 	}
-	if n != 0 && n <= r.floor {
+	if r.unstored(n) {
 		// The World after n left memory unstored: compute it again.
 		if err := r.recompute(ctx); err != nil {
 			return nil, nil, err
@@ -764,11 +768,13 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 	r.positions = r.positions[:index]
 
 	// Find this device's candidate for the operation, and take its World
-	// when it was built on the World before index.
+	// when it was built on the World before index while that World is in
+	// memory. Below the floor the candidate may share a page a released
+	// replay epoch alone stored, so the operation runs again instead.
 	adm := a.match(op)
 	prev, _ := r.stateBefore(index)
 	var adopt *spacePosition
-	if c := adm.getCandidate(); c != nil && op.Refused == "" && refEqual(c.Base, prev.GetHeadRef().GetRootRef()) {
+	if c := adm.getCandidate(); c != nil && op.Refused == "" && !r.unstored(index) && refEqual(c.Base, prev.GetHeadRef().GetRootRef()) {
 		state := prev.CloneVT()
 		state.HeadRef.RootRef = c.Root.Clone()
 		state.HeadRef.BucketId = ""
