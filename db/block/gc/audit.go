@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -184,7 +185,7 @@ func (res *AuditResult) checkStored(
 	if unmarked, err := rec.Unmarked(ctx, key); err != nil || unmarked {
 		return err
 	}
-	holders, ripe, err := rec.GetHolders(ctx, ref)
+	holders, pos, err := rec.GetHolders(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -196,7 +197,7 @@ func (res *AuditResult) checkStored(
 
 	// Count a live block the collector would free, and a leak.
 	switch {
-	case mark.Has(ref) && holders == 0 && frees && ripe <= state.GetCursor():
+	case mark.Has(ref) && holders == 0 && frees && pos.ripe <= state.GetCursor():
 		res.LiveQueued++
 		res.LiveQueuedSample = sample(res.LiveQueuedSample, ref)
 	case !mark.Has(ref) && holders != 0 && !pending:
@@ -449,7 +450,7 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 	res.Holes++
 
 	// Raise its netted holders.
-	holders, ripe, err := rec.GetHolders(ctx, h.ref)
+	holders, pos, err := rec.GetHolders(ctx, h.ref)
 	if err != nil {
 		return err
 	}
@@ -474,13 +475,13 @@ func recordHole(ctx context.Context, rec *Records, h holeCount, res *AuditResult
 		if dying {
 			err = uncountCascade(ctx, rec, key)
 		} else {
-			err = rec.tx.Delete(ctx, rec.queueKey(ripe, key))
+			err = rec.tx.Delete(ctx, rec.queueKey(pos, key))
 		}
 		if err != nil {
 			return err
 		}
 	}
-	return rec.SetHolders(ctx, h.ref, next, 0)
+	return rec.SetHolders(ctx, h.ref, next, DeadPos{})
 }
 
 // uncountCascade deletes the cascade record of the block at key, which has
@@ -547,6 +548,353 @@ func AuditFront(ctx context.Context, rec *Records) (missing uint64, sample []*bl
 				return false, err
 			}
 			if holders == 0 {
+				continue
+			}
+			missing++
+			if len(sample) < sampleSize {
+				sample = append(sample, child)
+			}
+		}
+		return true, nil
+	})
+	return missing, sample, err
+}
+
+// AuditSweep checks what the sweep relies on while the generation is
+// Sweeping: no list written from content, of a block that does not read as
+// unmarked, names a block that reads as unmarked, or one swept and not stored
+// again. The flip leaves it true, since the front it waited to empty held
+// every unverified child a held marked list names, and a Dead marked block
+// that names a popped child was Dead at the flip with it, as AuditPopped
+// checks. A hold that lifts such a block to a holder while it names a popped
+// child breaks it, and the sweep then deletes a block a live list names; so
+// does a fill that lands a block naming an unmarked one, since a fill
+// vouches for no child; so the fill writes its list partial, and under a
+// partial list an unmarked or swept child is no loss, since a read fetches
+// it from the fill's source. Such a child must still hold the fill's holder
+// once the collector has netted every fill. It returns how many times such a list names such a
+// block, and at most sampleSize of those blocks; outside Sweeping it checks
+// nothing. It walks every child list and reads each child's records, so it
+// suits a test or a copy host.
+func AuditSweep(ctx context.Context, rec *Records) (missing uint64, sample []*block.BlockRef, err error) {
+	// Check only while Sweeping.
+	gen, err := rec.generation(ctx)
+	if err != nil || gen != Generation_GENERATION_SWEEPING {
+		return 0, nil, err
+	}
+
+	// partialHeld reports whether child, unmarked or swept under a partial
+	// list, keeps the holder the fill gave it: a read fetches it from the
+	// fill's source, and the count the sweep left counts it held. Until the
+	// collector applies every fill's up pairs, each such child passes.
+	fillsDue, err := rec.anyKey(ctx, rec.key(kindFillUps))
+	if err != nil {
+		return 0, nil, err
+	}
+	partialHeld := func(child *block.BlockRef) (bool, error) {
+		if fillsDue {
+			return true, nil
+		}
+		holders, _, err := rec.GetHolders(ctx, child)
+		return holders != 0, err
+	}
+
+	// Check each child of each marked list of a block not unmarked.
+	err = rec.scan(ctx, rec.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Decode a marked list of a block that does not read as unmarked.
+		v, err := value()
+		if err != nil || !listMarked(v) {
+			return err == nil, err
+		}
+		parent, _, err := ParseBlockKey(key)
+		if err != nil {
+			return false, err
+		}
+		parentKey := BlockKey(parent)
+		unmarked, err := rec.Unmarked(ctx, parentKey)
+		if err != nil || unmarked {
+			return err == nil, err
+		}
+
+		// Decode its children, noting a fill's partial list, under which a
+		// read fetches an absent child from the fill's source.
+		children, err := DecodeChildren(v)
+		if err != nil {
+			return false, err
+		}
+		partial := listIsPartial(v)
+
+		// Count each child that reads as unmarked, or that the sweep deleted.
+		for _, child := range children {
+			childKey := BlockKey(child)
+			unmarked, err := rec.Unmarked(ctx, childKey)
+			if err != nil {
+				return false, err
+			}
+			if !unmarked {
+				// A put after the sweep is a birth: its entry stays swept.
+				entry, found, err := rec.tx.Get(ctx, rec.key(kindUnmarked, childKey))
+				if err != nil {
+					return false, err
+				}
+				if !found || !bytes.Equal(entry, runSwept) {
+					continue
+				}
+				listed, err := rec.HasChildren(ctx, child)
+				if err != nil {
+					return false, err
+				}
+				if listed {
+					continue
+				}
+			}
+			if partial {
+				held, err := partialHeld(child)
+				if err != nil {
+					return false, err
+				}
+				if held {
+					continue
+				}
+			}
+			missing++
+			if len(sample) < sampleSize {
+				sample = append(sample, child)
+			}
+		}
+		return true, nil
+	})
+	return missing, sample, err
+}
+
+// AuditPopped checks the order of ripe sequences that lets the flip take a
+// Dead marked block with the children the front popped under it. A popped
+// child is a stored block whose list is unverified, that is off the front
+// and, while Sweeping, that the run does not name: a run entry makes a
+// block unmarked whatever its count, and a fill after the flip may name
+// one as an absent child. Each stored marked list that names one belongs to a block at zero
+// holders, the child is at zero too, and their ripe sequences keep this
+// order.
+//
+//	ripe(parent) <= ripe(child) <= cursor
+//
+// where the cursor is the state's while Open and the Flip's while Sweeping.
+// The front pops a child only once the cursor passes its ripe sequence, and
+// the parent released it, so the parent's zero netted first; a hold onto
+// either returns the child to the front. While Open it checks only an
+// adopted Volume whose journal is netted with no release or cascade due,
+// since a record not yet netted may hold either block; while Sweeping the
+// counts it reads are the ones the flip froze, so the check says that the
+// parent was Dead at the flip with the child, and reads as unmarked.
+//
+// It returns how many popped children break the order, and at most
+// sampleSize of them. It walks every child list, so it suits a test or a
+// copy host.
+func AuditPopped(ctx context.Context, rec *Records) (missing uint64, sample []*block.BlockRef, err error) {
+	// Pick the cursor the order is checked against.
+	state, err := rec.GetState(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	var cursor uint64
+	sweeping := state.GetGeneration() == Generation_GENERATION_SWEEPING
+	switch state.GetGeneration() {
+	case Generation_GENERATION_OPEN:
+		if state.GetAdoption() != Adoption_ADOPTION_ADOPTED || state.GetCursor() != state.GetNextSeq() ||
+			state.GetNetOffset() != 0 || state.GetRelease() != nil || state.GetCascades() != 0 {
+			return 0, nil, nil
+		}
+		cursor = state.GetCursor()
+	case Generation_GENERATION_SWEEPING:
+		if state.GetFlip() == nil {
+			return 0, nil, nil
+		}
+		cursor = state.GetFlip().GetCursor()
+	default:
+		return 0, nil, nil
+	}
+
+	// zeroRipe reads the count record of the block at key: whether it is at
+	// zero, and its ripe sequence if so.
+	zeroRipe := func(key []byte) (bool, uint64, error) {
+		value, found, err := rec.tx.Get(ctx, rec.key(kindCount, key))
+		if err != nil || !found {
+			return false, 0, err
+		}
+		holders, pos, err := decodeHolders(value)
+		return holders == 0, pos.ripe, err
+	}
+
+	// Check each popped child of each marked list.
+	err = rec.scan(ctx, rec.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Decode a marked list.
+		v, err := value()
+		if err != nil || !listMarked(v) {
+			return err == nil, err
+		}
+		parent, _, err := ParseBlockKey(key)
+		if err != nil {
+			return false, err
+		}
+		parentKey := BlockKey(parent)
+		children, err := DecodeChildren(v)
+		if err != nil {
+			return false, err
+		}
+
+		// Check the order for each popped child.
+		var parentZero, read bool
+		var parentRipe uint64
+		for _, child := range children {
+			childKey := BlockKey(child)
+			listed, marked, err := rec.listState(ctx, childKey)
+			if err != nil {
+				return false, err
+			}
+			if !listed || marked {
+				continue
+			}
+			front, err := rec.tx.Exists(ctx, rec.key(kindFront, childKey))
+			if err != nil {
+				return false, err
+			}
+			if front {
+				continue
+			}
+			if sweeping {
+				inRun, err := rec.tx.Exists(ctx, rec.key(kindUnmarked, childKey))
+				if err != nil {
+					return false, err
+				}
+				if inRun {
+					continue
+				}
+			}
+			if !read {
+				parentZero, parentRipe, err = zeroRipe(parentKey)
+				if err != nil {
+					return false, err
+				}
+				read = true
+			}
+			childZero, childRipe, err := zeroRipe(childKey)
+			if err != nil {
+				return false, err
+			}
+			if parentZero && childZero && parentRipe <= childRipe && childRipe <= cursor {
+				continue
+			}
+			missing++
+			if len(sample) < sampleSize {
+				sample = append(sample, child)
+			}
+		}
+		return true, nil
+	})
+	return missing, sample, err
+}
+
+// AuditOrder checks the free order: a writer may find a stored block at
+// zero and hold it again, and the re-hold must find each child it lists
+// stored, so a Dead block, queued or parked, sorts after every stored block
+// that lists it and is at zero with its children released. Such a parent is
+// itself Dead, with a lower order number. The settle's run frees unmarked
+// blocks in its own order, which AuditSweep checks, so an unmarked parent
+// or child is skipped here.
+//
+// It returns how many Dead children break the order, and at most
+// sampleSize of them. It walks every child list, so it suits a test or a
+// copy host.
+func AuditOrder(ctx context.Context, rec *Records) (missing uint64, sample []*block.BlockRef, err error) {
+	// The block a paged release is in progress on has released its first
+	// children while its cascade record is gone.
+	state, err := rec.GetState(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	releasing := state.GetRelease().GetBlock()
+
+	// zeroAt reads the count record of the block at key: whether it is
+	// stored at zero, and if so its place and whether it is Dead there.
+	zeroAt := func(key []byte) (zero bool, pos DeadPos, dead bool, err error) {
+		// Read the count record; only a block at zero has a place.
+		value, found, err := rec.tx.Get(ctx, rec.key(kindCount, key))
+		if err != nil || !found {
+			return false, DeadPos{}, false, err
+		}
+		holders, pos, err := decodeHolders(value)
+		if err != nil || holders != 0 {
+			return false, DeadPos{}, false, err
+		}
+
+		// A Dead block has a queue or a parked key at its place.
+		for _, kind := range []byte{kindQueue, kindParked} {
+			dead, err = rec.tx.Exists(ctx, rec.key(kind, queuePos(pos, key)))
+			if err != nil || dead {
+				return true, pos, dead, err
+			}
+		}
+		return true, pos, false, nil
+	}
+
+	// released reports whether the stored block at key, at zero, released
+	// its children: its down cascade ran or is running.
+	released := func(key []byte) (bool, error) {
+		// The release in progress, or no cascade due, means released.
+		if bytes.Equal(key, releasing) {
+			return true, nil
+		}
+		_, due, err := rec.getCascade(ctx, key)
+		return !due, err
+	}
+
+	// Check each Dead child of each zero, released, marked parent.
+	err = rec.scan(ctx, rec.key(kindChildren), nil, func(key []byte, value func() ([]byte, error)) (bool, error) {
+		// Find a parent at zero that released its children.
+		parent, _, err := ParseBlockKey(key)
+		if err != nil {
+			return false, err
+		}
+		parentKey := BlockKey(parent)
+		zero, parentPos, parentDead, err := zeroAt(parentKey)
+		if err != nil || !zero {
+			return err == nil, err
+		}
+
+		// Skip a parent whose cascade is due or that the sweep frees, then
+		// read its list.
+		if rel, err := released(parentKey); err != nil || !rel {
+			return err == nil, err
+		}
+		if unmarked, err := rec.Unmarked(ctx, parentKey); err != nil || unmarked {
+			return err == nil, err
+		}
+		v, err := value()
+		if err != nil {
+			return false, err
+		}
+		children, err := DecodeChildren(v)
+		if err != nil {
+			return false, err
+		}
+
+		// Each Dead child must sort after the parent.
+		for _, child := range children {
+			childKey := BlockKey(child)
+			_, childPos, childDead, err := zeroAt(childKey)
+			if err != nil {
+				return false, err
+			}
+			if !childDead {
+				continue
+			}
+			if unmarked, err := rec.Unmarked(ctx, childKey); err != nil || unmarked {
+				if err != nil {
+					return false, err
+				}
+				continue
+			}
+			if parentDead && parentPos.order < childPos.order {
 				continue
 			}
 			missing++

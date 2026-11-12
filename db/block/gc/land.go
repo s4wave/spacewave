@@ -96,8 +96,8 @@ type BucketRoots struct {
 // returns its value, and per stored block it puts while Open, its list
 // record, which it may rewrite, with one list read per child of a rewritten
 // one, and per listed block it holds or puts, its count record and, for a
-// zero one, its parked key; while Sweeping, one run entry read per
-// unverified list it meets.
+// zero one, its parked key; while Sweeping, per listed block it holds or
+// puts, its run entry and, for one outside the run, its count record.
 // When it holds a stored block, a root moving onto one or a put of one
 // again, it also seeks the cascade records and reads each such block's count
 // record until one is at zero, to set the hold mark Collector describes. It
@@ -222,10 +222,10 @@ type lander struct {
 	// stored are the first entries of the blocks stored with a child list,
 	// whose lists markStored checks.
 	stored []*block.PutBatchEntry
-	// onStored are the block keys of the stored blocks a root moves onto,
-	// and, while Open, of the unverified stored blocks a born block holds:
-	// the front may pop one at zero on the free proof before the hold nets,
-	// so the hold mark covers it as it covers a root.
+	// onStored are the block keys of the stored blocks a root moves onto or
+	// a born block names. The collector may free one at zero, or the front
+	// pop it, before the hold nets, so the hold mark covers it: a writer
+	// that found a block stored may name it without putting it.
 	// With the touched blocks, they are the blocks the Land holds that the
 	// collector may have at zero, which decide the hold mark.
 	onStored [][]byte
@@ -515,23 +515,20 @@ func (l *lander) holdStored(ctx context.Context, ref *block.BlockRef) (bool, err
 		return listed, err
 	}
 
-	// Refuse a hidden block. A marked list is never unmarked, but a marked
-	// block may die and park.
-	if !marked || l.gen == Generation_GENERATION_OPEN {
-		hidden, err := l.rec.Hidden(ctx, ref)
-		if err != nil {
-			return true, err
-		}
-		if hidden {
-			return true, &AbsentError{Ref: ref}
-		}
+	// Refuse a hidden block: a parked one while Open, and while Sweeping an
+	// unmarked one, which a marked block Dead at the flip is too.
+	hidden, err := l.rec.Hidden(ctx, ref)
+	if err != nil {
+		return true, err
+	}
+	if hidden {
+		return true, &AbsentError{Ref: ref}
 	}
 
 	// Push an unverified block while Open, which the hold mark covers.
 	if marked || l.gen != Generation_GENERATION_OPEN {
 		return true, nil
 	}
-	l.onStored = append(l.onStored, key)
 	return true, l.rec.tx.Set(ctx, l.rec.key(kindFront, key), nil)
 }
 
@@ -560,6 +557,8 @@ func (l *lander) holdChildren(ctx context.Context) error {
 				if err := l.requireListed(ctx, child); err != nil {
 					return err
 				}
+			} else {
+				l.onStored = append(l.onStored, BlockKey(child))
 			}
 			l.up = append(l.up, BlockKey(child))
 		}
@@ -727,16 +726,19 @@ func (l *lander) appendJournal(ctx context.Context, now time.Time) error {
 
 // holdsZero reports whether the Land holds a stored block, of held, that the
 // collector has at zero holders, or may have through a parent: a root moves
-// onto it or the batch puts it again, and either a cascade is due or in
+// onto it, a born block names it, or the batch puts it again, and either a
+// cascade is due or in
 // progress, so a block below a block with holders may have none, or the
 // block's own count record is a zero record. Such a block's children lost
 // its holder when it reached zero, and get it back only through the re-hold
 // that runs once this record nets, which may come after a child's own ripe
 // sequence; the hold mark makes the free wait for it.
 //
-// Cost: nothing for a Land that holds no stored block, the usual commit of
-// a born tree; otherwise one count record read per block until one is at
-// zero, since the state it already read counts the cascade records.
+// Cost: nothing for a Land that holds no stored block, the commit of a
+// wholly born tree; otherwise one count record read per held block until
+// one is at zero, since the state it already read counts the cascade
+// records. An incremental commit reads one per stored child its new blocks
+// name.
 func (l *lander) holdsZero(ctx context.Context, state *LivenessState, held [][]byte) (bool, error) {
 	// A Land that holds no stored block sets no mark.
 	if len(held) == 0 {

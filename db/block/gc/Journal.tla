@@ -487,6 +487,31 @@
 \*              generation is open, as adoption.hold does: the front may have
 \*              popped the child while a short list left it Dead, and the
 \*              recount holds it again. FALSE leaves it off, the mutant.
+\*   FlipDead   TRUE has the flip take every stored block Dead at the flip,
+\*              at zero with its ripe sequence passed, as the code's
+\*              Unmarked predicate reads a zero count whose ripe sequence is
+\*              at or before the flip's cursor: absent to every step from
+\*              there, and freed. A Dead marked block may list a child the
+\*              front popped, which the flip takes, so a hold onto the
+\*              parent after the flip would reach a freed child. FALSE
+\*              leaves it stored until Delete, the mutant.
+\*   FlipHoldMark TRUE has the flip wait until the cursor passes the hold
+\*              mark, as the free does: a hold onto a block at zero
+\*              journaled before the flip nets first. FALSE flips over it,
+\*              the mutant.
+\*   DeadHide   "all" has a writer find absent, in every generation, a
+\*              released block at zero whose ripe sequence the cursor has
+\*              passed, as the code's Hidden reads: Grace is the time in
+\*              which a Dead block may be held again, and after it the free
+\*              may have taken a child the block's release zeroed, so a
+\*              hold onto it is refused and a put gives birth to it again.
+\*              "open" hides it only while the generation is open, and
+\*              "off" never, the mutants.
+\*   FoundSkip  TRUE adds CommitFound, a copy that checks each block's
+\*              existence and puts only the blocks the store reports absent,
+\*              naming a found child without a put or a hold mark, as a
+\*              deploy or plugin copy does. The writer names a child no head
+\*              it observed reaches. FALSE leaves it out.
 \*   FlipReleased TRUE has the flip leave unmarked the blocks a cascade
 \*              released, as oldListHolds does; FALSE unmarks them, so the
 \*              sweep releases their children a second time, the mutant.
@@ -536,7 +561,8 @@ CONSTANTS Writers, MaxTxns, Grace, Window, Lease, MaxHoles,
           ReplacedSkip, CutInit, HoleBlock, Accepts, RootWalk, FrontPop,
           HoldFound, FlipSettled, ParkAbsent, RunAtFlip, PopRecount, RunScan,
           FlipReleased, HoldDue, FlipFront, ScanOrder, ReholdFront, ParkPut,
-          RunBlocks, RecountFront
+          RunBlocks, RecountFront, FlipDead, FlipHoldMark, DeadHide,
+          FoundSkip
 
 None == "none"
 Unmoved == "unmoved"
@@ -799,12 +825,18 @@ Due == {b \in stored : (b \in zero) # (b \in rel)}
 \* born again.
 InRunAtFlip == IF RunAtFlip THEN flipped ELSE unmarked
 
+\* DeadPast is what DeadHide hides: the stored blocks Delete may take, a
+\* released block at zero whose ripe sequence the cursor passed.
+DeadPast ==
+  IF DeadHide = "all" \/ (DeadHide = "open" /\ unverified)
+  THEN {b \in stored \cap zero \cap rel : Ripe => ripe[b] = 0}
+  ELSE {}
 \* Present is what a writer finds stored: with ParkAbsent a parked block is
 \* absent while the generation is Open, until a put gives birth to it again
 \* or it leaves zero, as the code's Hidden reads a zero count whose ripe
-\* sequence names a parked key. From the flip on, Hidden reads only the
-\* unmarked blocks, which the flip took out of stored.
-Present == IF ParkAbsent /\ unverified THEN stored \ parked ELSE stored
+\* sequence names a parked key; with DeadHide so is DeadPast. The flip took
+\* the unmarked blocks out of stored.
+Present == (IF ParkAbsent /\ unverified THEN stored \ parked ELSE stored) \ DeadPast
 
 \* Settled: no cascade is due or running. Then every block below a block
 \* with holders has holders too, since a block's children count it.
@@ -893,8 +925,9 @@ LandCore(batch, moves, holds, rels, keep) ==
   LET \* A parked block the batch puts is born again: its list is written
       \* from content and its count reset as born, so the found pairs hold
       \* its children again.
-      repark == IF ParkAbsent /\ ParkPut = "repark" /\ unverified
-                THEN batch \cap parked ELSE {}
+      \* So is a Dead block DeadHide hides.
+      repark == (IF ParkAbsent /\ ParkPut = "repark" /\ unverified
+                 THEN batch \cap parked ELSE {}) \cup (batch \cap DeadPast)
       \* With ParkPut "plain" the batch finds a parked block it puts stored.
       Found == Present \cup (IF ParkPut = "plain" THEN batch \cap parked ELSE {})
       new == batch \ Found
@@ -1047,6 +1080,17 @@ Commit(w, r) ==
 HoldStored(w, r) ==
   /\ Holds /\ obs[w] # None /\ r # obs[w] /\ r \in Present
   /\ Land({}, {[n |-> "main", from |-> obs[w], to |-> r]})
+  /\ UNCHANGED <<under, pend, pdir, seen, seenAge, holes, runVars,
+                 stageVars, writerVars>>
+
+\* CommitFound moves main from the observed head to r, a block the store
+\* lacks, putting only the pages of r the store reports absent: a copy that
+\* checks each block's existence, names a found one without putting it, and
+\* follows its children. The new r may so name a found child no observed
+\* head reaches. A root onto a stored r is HoldStored's case.
+CommitFound(w, r) ==
+  /\ FoundSkip /\ obs[w] # None /\ r # obs[w] /\ r \notin Present
+  /\ Land(Reach(r) \ Present, {[n |-> "main", from |-> obs[w], to |-> r]})
   /\ UNCHANGED <<under, pend, pdir, seen, seenAge, holes, runVars,
                  stageVars, writerVars>>
 
@@ -1869,8 +1913,15 @@ Flippable ==
   /\ RunScan = "on" => walk.done
   /\ HoleBlock => walk.hit \cap lost = {}
   /\ FlipFills => Unapplied = {}
+  /\ FlipHoldMark => hseq = 0
   \* With RootWalk every push the pass did not decode is accounted for.
   /\ FlipFront /\ RootWalk /\ FrontPop # "unreached" => walk.front = {}
+
+\* DeadAtFlip: the stored blocks at zero whose ripe sequence the cursor has
+\* passed, which the code's Unmarked predicate reads as absent from the flip
+\* on. Flippable holds Settled, so each is released: its children no longer
+\* count it, and taking it takes no holder from them.
+DeadAtFlip == {b \in stored \cap zero : ripe[b] = 0}
 
 \* WalkEnd ends a pass whose front is empty. A dirty pass, or one that
 \* rewrote a list, starts again; with Recount a rewrite returns the Volume
@@ -1889,16 +1940,20 @@ WalkEnd ==
      THEN FrontPop \in {"push", "pushless"} \/ walk.scan = {}
      ELSE walk.front = {}
   /\ IF Flippable
-     THEN LET c == IF RunScan = "off" THEN Unverified
+     THEN LET u == IF RunScan = "off" THEN Unverified
                    ELSE walk.run \cap Unverified
+              \* With FlipDead the Dead blocks join the unverified ones.
+              c == u \cup (IF FlipDead THEN DeadAtFlip ELSE {})
           IN /\ unverified' = FALSE
              \* A block the cascade released already took its holder from its
              \* children, so only the rest release by their lists.
-             /\ unmarked' = IF FlipReleased THEN c \ rel ELSE c
+             /\ unmarked' = IF FlipReleased THEN u \ rel ELSE u
              /\ flipped' = c
              /\ parked' = parked \ c
              /\ stored' = stored \ c
-             /\ UNCHANGED <<young, verified, cut>>
+             /\ young' = young \ c
+             /\ verified' = verified \ c
+             /\ cut' = cut \ c
              /\ freed' = freed \cup c
              /\ freedLive' = (freedLive \/ (c \cap StoredLive) \ ToPutNow # {})
              /\ cnt' = [b \in Blocks |-> IF b \in c THEN 0 ELSE cnt[b]]
@@ -2069,7 +2124,7 @@ Next ==
   \/ \E w \in Writers :
        \/ Observe(w)
        \/ \E r \in MainRoots : Commit(w, r) \/ HoldStored(w, r) \/
-                                      PutStored(w, r)
+                                      PutStored(w, r) \/ CommitFound(w, r)
        \/ \E r \in StageRoots : StageWrite(w, r) \/ AdoptStage(w, r)
        \/ StagePublish(w)
        \/ \E r \in MainRoots : SessionBegin(w, r)
@@ -2154,6 +2209,27 @@ FrontCovers ==
     \A q \in (young \cup verified) \cap stored :
       \A k \in ListKids(q) \cap Unverified : k \in walk.front \/ k \in zero
 
+\* PoppedRipe: while the generation is open and settled, a stored young or
+\* verified block that lists an unverified child off the front is at zero,
+\* as is the child, and the parent's ripe sequence is no later than the
+\* child's. The front pops a child only once the cursor passes its ripe
+\* sequence, so the parent's has passed too, and FlipDead takes the parent
+\* with the child.
+PoppedRipe ==
+  unverified /\ Settled =>
+    \A q \in (young \cup verified) \cap stored :
+      \A k \in (ListKids(q) \cap Unverified) \ walk.front :
+        q \in zero /\ k \in zero /\ ripe[q] <= ripe[k]
+
+\* PoppedRipeFlip is PoppedRipe while the generation sweeps. The model's
+\* flip frees every block it takes in the same step, so the Sweeping form is
+\* a property of that step: no block the flip keeps lists one it frees. By
+\* PoppedRipe a kept marked block listing a popped child had its ripe passed
+\* with the child's, so FlipDead takes it too.
+PoppedRipeFlip ==
+  [][unverified /\ ~unverified' =>
+       \A q \in stored' : ListKids(q) \cap (stored \ stored') = {}]_vars
+
 \* RunCovers: every block the scan's outcome can differ on takes a cursor
 \* position, so RunBlocks skips only blocks whose pass changes nothing.
 RunCovers == Unverified \subseteq RunBlocks
@@ -2213,6 +2289,15 @@ FrontFreeWitness == ~\E f \in walk.front \cap stored : Freeable(f)
 
 \* The free parked a Dead block while the generation was open.
 ParkWitness == parked = {}
+
+\* The window between the flip and a free: the flip can run while a stored
+\* verified or young block lists an unverified child the front popped, so
+\* without FlipDead a hold onto the parent after the flip reaches a child the
+\* flip freed. Both arms reach it, since it reads the state before the flip.
+WindowWitness ==
+  ~(unverified /\ walk.st = "walking" /\ Flippable /\
+    \E q \in (young \cup verified) \cap stored :
+      (ListKids(q) \cap Unverified) \ walk.front # {})
 
 \* A put gave birth again to a parked block, which writers found absent.
 ReparkWitness == revived = {}

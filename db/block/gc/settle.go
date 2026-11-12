@@ -45,9 +45,9 @@ import (
 // unreachable: no seed names it, and no young or verified block does, since
 // the front is empty. The run names exactly those blocks.
 //
-// While Sweeping, an empty run entry names an unmarked block,
-// which every site that asks whether a block is stored answers absent, as
-// Unmarked describes. The flip, which requires no cascade due, freezes each
+// While Sweeping, an unmarked block is one the run names with an empty
+// entry, or one that was Dead at the flip, which every site that asks
+// whether a block is stored answers absent, as Unmarked describes. The flip, which requires no cascade due, freezes each
 // unmarked block's count record, which says whether its old list still holds
 // its children,
 // and counts its holders from the flip on apart, as kindUnmarkedCount
@@ -81,15 +81,59 @@ func (e *AbsentError) Unwrap() error {
 }
 
 // Unmarked reports whether the block at key is unmarked: the generation is
-// Sweeping and the block's run entry is neither reborn nor swept. It reads
-// nothing more than the generation outside Sweeping.
+// Sweeping, and either the run names the block with an entry neither reborn
+// nor swept, or the block has no run entry and was Dead at the flip, its
+// count record zero at a ripe sequence no later than the flip's cursor.
+// Outside Sweeping it reads nothing more than the generation; while
+// Sweeping, the block's run entry and, without one, its count record.
+//
+// Invariant, while Sweeping: a block that does not read unmarked lists no
+// block the sweep deleted, unless a put stored that block again. The flip
+// leaves no unverified block a seed or a young or verified block names,
+// except one the front popped: Dead at a ripe sequence the cursor passed. A
+// marked block that lists a popped child held it, so it released the child
+// when it reached zero itself, at a ripe sequence no later than the child's
+// (the audit checks this order, Journal.tla's PoppedRipe). The flip
+// requires its cursor at or past the hold mark, so no Land past the cursor
+// held either, and both were Dead at the flip and read unmarked together. A
+// Land that holds an unmarked block gets AbsentError, and the writer's put
+// gives birth to it again with a list from content, as rebirth describes.
+//
+// A block that reaches zero after the flip never joins the run this way.
+// Netting is the only writer of a zero count while Sweeping, and it gives a
+// block that reaches zero, or that a record holds again or puts again, the
+// next journal sequence as its ripe, past the record it nets; every record
+// netted after the flip is at or past the flip's cursor. The adoption, the
+// other writer of a ripe, runs only on an unadopted Volume, and nothing
+// unadopts a Sweeping one: the flip requires it adopted, a claim takes only
+// one that is not, and the flip's return to unadopted runs only while Open.
+//
+// A block born after the flip that names a Dead marked block past the grace
+// period follows the grace contract: nothing held the named block when its
+// grace ended, so the Land refuses it and the writer puts it again.
+//
+// The flip is the only writer of Sweeping, and it writes the state's Flip
+// with it; a reachable format copy refuses a Sweeping source. A Sweeping
+// state without a Flip answers by its run entries alone, and the collector
+// deletes nothing in it, as Collector.settle describes.
 func (r *Records) Unmarked(ctx context.Context, key []byte) (bool, error) {
+	// Read the generation, then the run entry.
 	gen, err := r.generation(ctx)
 	if err != nil || gen != Generation_GENERATION_SWEEPING {
 		return false, err
 	}
 	value, found, err := r.tx.Get(ctx, r.key(kindUnmarked, key))
-	return found && len(value) == 0, err
+	if err != nil || found || r.flip == nil {
+		return found && len(value) == 0, err
+	}
+
+	// Without one, read whether the block was Dead at the flip.
+	value, found, err = r.tx.Get(ctx, r.key(kindCount, key))
+	if err != nil || !found {
+		return false, err
+	}
+	holders, pos, err := decodeHolders(value)
+	return holders == 0 && pos.ripe <= r.flip.GetCursor(), err
 }
 
 // countKind returns the kind of the count record of the block at key:
@@ -295,21 +339,32 @@ func (r *Records) outsideRun(ctx context.Context, packed []byte) ([][]byte, erro
 // each in slices: while Open, it builds the run, takes the free-proven
 // entries off the front, and flips when the flip's checks pass; while
 // Sweeping, it sweeps. It reports whether it stopped at past with work left.
+//
+// A Sweeping state without a Flip cannot say which blocks were Dead at the
+// flip, so the pass stalls: it sweeps nothing and the free frees nothing,
+// and it reports StallNoFlip. No flip of this format writes that state.
 func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectResult) (bool, error) {
-	// Read the generation.
-	var gen Generation
+	// Read the generation and the flip.
+	var state *LivenessState
 	err := c.store.View(ctx, func(rec *Records) error {
 		var err error
-		gen, err = rec.generation(ctx)
+		state, err = rec.GetState(ctx)
 		return err
 	})
+	gen := state.GetGeneration()
 	if err != nil || gen == Generation_GENERATION_SETTLED {
 		return false, err
 	}
+	if gen == Generation_GENERATION_SWEEPING && state.GetFlip() == nil {
+		res.Stall = StallNoFlip
+		return false, nil
+	}
 
 	// Sweep a flipped Volume: one pass from the start of the run that
-	// reaches its end deletes every unmarked block, since none is added
-	// while Sweeping, and then the run goes and the state settles.
+	// reaches its end deletes every unmarked block the run names, since
+	// none is added while Sweeping. The parked slice sweeps the parked
+	// blocks, and the free the queued ones, that were Dead at the flip, and
+	// once none is left the run goes and the state settles.
 	if gen == Generation_GENERATION_SWEEPING {
 		if !c.sweptRun {
 			var reached bool
@@ -322,6 +377,12 @@ func (c *Collector) settle(ctx context.Context, past func() bool, res *CollectRe
 				return more, err
 			}
 			c.sweptRun = true
+		}
+		more, err := eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, blocks block.StoreOps, from []byte) ([]byte, bool, error) {
+			return c.parkedSlice(ctx, rec, blocks, res, from)
+		})
+		if err != nil || more {
+			return more, err
 		}
 		return eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
 			return c.dropRunSlice(ctx, rec, res, from)
@@ -474,11 +535,11 @@ func (c *Collector) frontSlice(ctx context.Context, rec *Records, res *CollectRe
 		if err != nil {
 			return from, false, err
 		}
-		holders, ripe, err := rec.GetHolders(ctx, ref)
+		holders, pos, err := rec.GetHolders(ctx, ref)
 		if err != nil {
 			return from, false, err
 		}
-		if !listed || holders != 0 || ripe > cursor || cursor < state.GetHoldMark() {
+		if !listed || holders != 0 || pos.ripe > cursor || cursor < state.GetHoldMark() {
 			continue
 		}
 		if err := rec.tx.Delete(ctx, rec.key(kindFront, key)); err != nil {
@@ -510,6 +571,16 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 	}
 	if ok, err := rec.freeable(ctx, state); err != nil || !ok {
 		return err
+	}
+
+	// Wait for the cursor to reach the hold mark: a Land past the cursor
+	// may hold a block at zero, which the flip would read as Dead. Netting
+	// takes a record only once it is Grace old, so holds of zero blocks
+	// arriving with no gap of Grace hold the flip off, as they do every
+	// free, for as long as they arrive; the writers wait on nothing.
+	if state.GetCursor() < state.GetHoldMark() {
+		res.Stall = StallHoldMark
+		return nil
 	}
 
 	// A rewritten list's new children lack their holders: recount first.
@@ -570,22 +641,66 @@ func (c *Collector) flip(ctx context.Context, rec *Records, res *CollectResult) 
 		return err
 	}
 
-	// Flip.
+	// Flip, recording the cursor that says which blocks were Dead.
 	state.Generation = Generation_GENERATION_SWEEPING
+	state.Flip = &Flip{Cursor: state.GetCursor(), Order: state.GetNextOrder()}
 	res.Flipped = true
 	return rec.SetState(ctx, state)
 }
 
-// sweepSlice deletes each unmarked block of up to a slice of run entries
-// after the key position from, while the generation is Sweeping and the
-// Volume adopted: its bytes, list and proof, with one journal down pair for
-// each child its old list still holds, as releaseOld decides, as a free's
-// cascade releases them, and marks its run entry swept. Its count keeps the
-// holders it gained since the flip, as a free keeps a block's netted
-// holders. It skips a reborn or swept entry. A child inside the run at the
-// flip keeps no holder from the old list, so the sweep of an unmarked
-// parent releases nothing to it, even after a put stored it again. It
-// reports whether it reached the run's end.
+// sweepBlock deletes the unmarked block ref at key: its bytes, list and
+// proof, and marks its run entry swept, which a block Dead at the flip
+// gains here. Its count keeps the holders it gained since the flip, as a
+// free keeps a block's netted holders. It returns the block keys of the
+// children its old list still holds, as releaseOld decides, which the
+// caller journals a down pair for each, as a free's cascade releases them;
+// a block Dead at the flip has none, since its cascade released them. A
+// child inside the run at the flip keeps no holder from the old list, so
+// the sweep of an unmarked parent releases nothing to it, even after a put
+// stored it again. The run sweep, the parked slice and the free call it.
+func (c *Collector) sweepBlock(ctx context.Context, rec *Records, blocks block.StoreOps, ref *block.BlockRef, key []byte, res *CollectResult) ([][]byte, error) {
+	// Release the old list, then delete the block and mark it swept.
+	children, err := rec.releaseOld(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if err := blocks.RmBlock(ctx, ref); err != nil {
+		return nil, err
+	}
+	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
+		if err := del(ctx, ref); err != nil {
+			return nil, err
+		}
+	}
+	res.Swept++
+	return children, rec.tx.Set(ctx, rec.key(kindUnmarked, key), runSwept)
+}
+
+// sweepUnmarked sweeps ref, as sweepBlock describes, when it has a list
+// and reads unmarked, and reports whether it did, with the children its old
+// list released.
+//
+// Cost: the list read and Unmarked's reads, then the sweep.
+func (c *Collector) sweepUnmarked(ctx context.Context, rec *Records, blocks block.StoreOps, ref *block.BlockRef, res *CollectResult) (bool, [][]byte, error) {
+	// Sweep only a listed block that reads unmarked.
+	key := BlockKey(ref)
+	listed, err := rec.HasChildren(ctx, ref)
+	if err != nil || !listed {
+		return false, nil, err
+	}
+	unmarked, err := rec.Unmarked(ctx, key)
+	if err != nil || !unmarked {
+		return false, nil, err
+	}
+	children, err := c.sweepBlock(ctx, rec, blocks, ref, key, res)
+	return true, children, err
+}
+
+// sweepSlice sweeps each unmarked block of up to a slice of run entries
+// after the key position from, as sweepBlock describes, while the
+// generation is Sweeping and the Volume adopted, and journals the down
+// pairs. It skips a reborn or swept entry. It reports whether it reached
+// the run's end.
 //
 // Cost: per unmarked block, its two count reads and cascade read, its list
 // read, the deletes, and one run entry read per child; per slice, one
@@ -617,23 +732,11 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 		if err != nil {
 			return from, false, false, err
 		}
-		children, err := rec.releaseOld(ctx, key)
+		children, err := c.sweepBlock(ctx, rec, blocks, ref, key, res)
 		if err != nil {
 			return from, false, false, err
 		}
 		down = append(down, children...)
-		if err := blocks.RmBlock(ctx, ref); err != nil {
-			return from, false, false, err
-		}
-		for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
-			if err := del(ctx, ref); err != nil {
-				return from, false, false, err
-			}
-		}
-		if err := rec.tx.Set(ctx, rec.key(kindUnmarked, key), runSwept); err != nil {
-			return from, false, false, err
-		}
-		res.Swept++
 	}
 	if len(down) != 0 {
 		return from, full, !full, rec.appendDowns(ctx, state, c.opts.Now(), down)
@@ -641,13 +744,107 @@ func (c *Collector) sweepSlice(ctx context.Context, rec *Records, blocks block.S
 	return from, full, !full, rec.SetState(ctx, state)
 }
 
-// dropRunSlice deletes up to a slice of run entries after the key position
-// from, once a sweep pass left no unmarked block, and, past the last,
-// deletes the completion entry and settles the generation.
-func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
-	// Drop only while Sweeping.
+// parkedSlice takes up to a slice of the parked keys after the key
+// position from while the generation is Sweeping under a Flip and the Volume
+// adopted, and sweeps each block still unmarked, as sweepBlock describes.
+// The free parked each while Open, at a ripe sequence the cursor had
+// passed, so each still at zero at that sequence was Dead at the flip. It
+// deletes each key; one whose block a put gave birth to again, or whose
+// count moved, sweeps nothing. Nothing parks while Sweeping, so the keys
+// only shrink. It reports whether the slice was full.
+//
+// Cost: per key, its list and count reads, the run entry read, and for an
+// unmarked block the sweep; per slice, the state write and any journal
+// record.
+func (c *Collector) parkedSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
+	// Sweep only an adopted Volume under a Flip.
 	state, err := rec.GetState(ctx)
-	if err != nil || state.GetGeneration() != Generation_GENERATION_SWEEPING {
+	if err != nil || state.GetGeneration() != Generation_GENERATION_SWEEPING || state.GetFlip() == nil {
+		return from, false, err
+	}
+	if state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return from, false, nil
+	}
+
+	// Take the next parked entries.
+	var parked []queueEntry
+	full, budget := false, c.share(sliceFrees)
+	err = rec.scanDead(ctx, kindParked, from, func(pos DeadPos, ref *block.BlockRef) (bool, error) {
+		if len(parked) == budget {
+			full = true
+			return false, nil
+		}
+		parked = append(parked, queueEntry{pos: pos, ref: ref})
+		return true, nil
+	})
+	if err != nil {
+		return from, false, err
+	}
+
+	// Delete each key, sweeping its block while it is unmarked.
+	var down [][]byte
+	for _, e := range parked {
+		key := BlockKey(e.ref)
+		from = queuePos(e.pos, key)
+		if err := rec.tx.Delete(ctx, rec.parkedKey(e.pos, key)); err != nil {
+			return from, false, err
+		}
+		_, children, err := c.sweepUnmarked(ctx, rec, blocks, e.ref, res)
+		if err != nil {
+			return from, false, err
+		}
+		down = append(down, children...)
+	}
+	if len(down) != 0 {
+		return from, full, rec.appendDowns(ctx, state, c.opts.Now(), down)
+	}
+	return from, full, nil
+}
+
+// deadLeft reports whether a block Dead at the flip may be left to sweep
+// under state: a parked key, or a queue entry ordered before the flip, at
+// a ripe sequence no later than the flip's cursor. The flip's Dead blocks
+// each hold one or the other, and nothing adds either at such a place
+// while Sweeping: a cascade since the flip takes a later order number, and
+// a block that ripens again takes a later ripe sequence.
+//
+// Cost: two prefix seeks, then one key per entry ordered before the flip
+// that ripened again since, up to the first one left.
+func (r *Records) deadLeft(ctx context.Context, state *LivenessState) (bool, error) {
+	// A parked key is left to sweep.
+	parked, err := r.anyKey(ctx, r.key(kindParked))
+	if err != nil || parked {
+		return parked, err
+	}
+
+	// So is a queue entry ordered before the flip at a ripe sequence no
+	// later than the flip's cursor; one ordered before it at a later ripe
+	// sequence ripened again since, and was not Dead at the flip.
+	flip := state.GetFlip()
+	var left bool
+	err = r.scanDead(ctx, kindQueue, nil, func(pos DeadPos, _ *block.BlockRef) (bool, error) {
+		if pos.order >= flip.GetOrder() {
+			return false, nil
+		}
+		left = pos.ripe <= flip.GetCursor()
+		return !left, nil
+	})
+	return left, err
+}
+
+// dropRunSlice deletes up to a slice of run entries after the key position
+// from, once a sweep pass left no unmarked block the run names and no block
+// Dead at the flip is left, as deadLeft decides, and, past the last, deletes
+// the completion entry, clears the Flip and settles the generation. A block
+// Dead at the flip that a slice swept gained a swept entry first, so the
+// drop deletes it too.
+func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
+	// Drop only while Sweeping, once no Dead block is left.
+	state, err := rec.GetState(ctx)
+	if err != nil || state.GetGeneration() != Generation_GENERATION_SWEEPING || state.GetFlip() == nil {
+		return from, false, err
+	}
+	if left, err := rec.deadLeft(ctx, state); err != nil || left {
 		return from, false, err
 	}
 
@@ -672,6 +869,7 @@ func (c *Collector) dropRunSlice(ctx context.Context, rec *Records, res *Collect
 	}
 	c.sweptRun = false
 	state.Generation = Generation_GENERATION_SETTLED
+	state.Flip = nil
 	res.Settled = true
 	return from, false, rec.SetState(ctx, state)
 }

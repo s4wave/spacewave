@@ -45,10 +45,11 @@ const (
 // this binary supports fails with a permanent error, since only a newer binary
 // can open it.
 //
-// Format 9 keeps liveness in child lists, named roots, count records with
-// zero records for blocks at zero, the ripe queue, cascade records, the
-// journal and fill records; a format 7 or 8 store opens unadopted, as
-// unadoptFormat describes. Format 8 kept a count record only for a block
+// Format 10 keeps liveness in child lists, named roots, count records with
+// zero records for blocks at zero, the free queue in cascade order, cascade
+// records, the journal and fill records; a format 7, 8 or 9 store opens
+// unadopted, as unadoptFormat describes. Format 9 sorted the queue by ripe
+// sequence alone and kept no order number. Format 8 kept a count record only for a block
 // with holders, a queue entry for one without, and an index of the journal's
 // up pairs; format 7 kept fill marks instead of fill records. An empty store
 // starts adopted. Any other store keeps the child lists format 4
@@ -85,11 +86,11 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 		return version, writeFormat(ctx, store, keys, state)
 	}
 
-	// Leave a format 7 or 8 store unadopted with its records as they are:
-	// its counts and queue use the old encoding, and a format 7 fill wrote a
-	// fill mark and gave its block's children no holder, so the adoption
-	// counts every list again and clears the old records.
-	if version == 7 || version == 8 {
+	// Leave a format 7, 8 or 9 store unadopted with its records as they
+	// are: its counts and queue use the old encoding, and a format 7 fill
+	// wrote a fill mark and gave its block's children no holder, so the
+	// adoption counts every list again and clears the old records.
+	if version >= 7 && version <= 9 {
 		return version, unadoptFormat(ctx, store, keys)
 	}
 
@@ -127,11 +128,12 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	return version, writeFormat(ctx, store, keys, state)
 }
 
-// unadoptFormat returns a format 7 or 8 store's liveness state to
+// unadoptFormat returns a format 7, 8 or 9 store's liveness state to
 // unadopted, keeping its journal position and its legacy flags, and records
 // the current format, in one durable commit. It drops the release in
-// progress and the hold mark, which the adoption's recount replaces, and the
-// fields format 9 retired.
+// progress and the hold mark, which the adoption's recount replaces, the
+// order counter, which restarts with the recount's queue, and the fields
+// format 9 retired.
 func unadoptFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
 	// Read the state.
 	tx, err := store.NewTransaction(ctx, false)

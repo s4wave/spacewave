@@ -236,6 +236,17 @@ type LivenessState struct {
 	// adopted: the adoption zeroes it once its clear has deleted the records
 	// an earlier run left, and counts each block it settles Dying.
 	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
+	// Flip is the flip that moved the Volume to Sweeping. The flip writes it
+	// with the generation, and the sweep clears it when it settles, so it is
+	// present exactly while Sweeping. A Sweeping state without it cannot say
+	// which blocks were Dead at the flip, so the collector deletes nothing in
+	// it.
+	Flip *Flip `protobuf:"bytes,17,opt,name=flip,proto3" json:"flip,omitempty"`
+	// NextOrder is the order number the next down cascade takes. A block
+	// takes one when its cascade releases its children, and the free queue
+	// and parked keys sort by it, so a parent is freed before the children
+	// its release brought to zero.
+	NextOrder uint64 `protobuf:"varint,18,opt,name=next_order,json=nextOrder,proto3" json:"nextOrder,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -310,6 +321,54 @@ func (x *LivenessState) GetHoldMark() uint64 {
 func (x *LivenessState) GetCascades() uint64 {
 	if x != nil {
 		return x.Cascades
+	}
+	return 0
+}
+
+func (x *LivenessState) GetFlip() *Flip {
+	if x != nil {
+		return x.Flip
+	}
+	return nil
+}
+
+func (x *LivenessState) GetNextOrder() uint64 {
+	if x != nil {
+		return x.NextOrder
+	}
+	return 0
+}
+
+// Flip is the flip of an old generation to Sweeping.
+type Flip struct {
+	unknownFields []byte
+	// Cursor is the state's cursor when the flip ran. A block whose count
+	// record is zero at a ripe sequence no later than Cursor was Dead at the
+	// flip: the cursor had passed every record that could hold it, so it
+	// joins the run and reads as unmarked until the sweep deletes it.
+	Cursor uint64 `protobuf:"varint,1,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	// Order is the state's NextOrder when the flip ran. A block Dead at the
+	// flip took its order number before then, so the sweep looks for one
+	// only among the queue entries ordered below it.
+	Order uint64 `protobuf:"varint,2,opt,name=order,proto3" json:"order,omitempty"`
+}
+
+func (x *Flip) Reset() {
+	*x = Flip{}
+}
+
+func (*Flip) ProtoMessage() {}
+
+func (x *Flip) GetCursor() uint64 {
+	if x != nil {
+		return x.Cursor
+	}
+	return 0
+}
+
+func (x *Flip) GetOrder() uint64 {
+	if x != nil {
+		return x.Order
 	}
 	return 0
 }
@@ -418,7 +477,9 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.NetOffset = m.NetOffset
 	r.HoldMark = m.HoldMark
 	r.Cascades = m.Cascades
+	r.NextOrder = m.NextOrder
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
+	r.Flip = protobuf_go_lite.CloneVTValue(m.Flip)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -426,6 +487,23 @@ func (m *LivenessState) CloneVT() *LivenessState {
 }
 
 func (m *LivenessState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Flip) CloneVT() *Flip {
+	if m == nil {
+		return (*Flip)(nil)
+	}
+	r := new(Flip)
+	r.Cursor = m.Cursor
+	r.Order = m.Order
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Flip) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -536,6 +614,12 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.Cascades != that.Cascades {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Flip, that.Flip) {
+		return false
+	}
+	if this.NextOrder != that.NextOrder {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -546,7 +630,28 @@ func (this *LivenessState) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+func (this *Flip) EqualVT(that *Flip) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Cursor != that.Cursor {
+		return false
+	}
+	if this.Order != that.Order {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
 
+func (this *Flip) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Flip)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *Release) EqualVT(that *Release) bool {
 	if this == that {
 		return true
@@ -842,6 +947,16 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cascades")
 		s.WriteUint64(x.Cascades)
 	}
+	if x.Flip != nil || s.HasField("flip") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("flip")
+		x.Flip.MarshalProtoJSON(s.WithField("flip"))
+	}
+	if x.NextOrder != 0 || s.HasField("nextOrder") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextOrder")
+		s.WriteUint64(x.NextOrder)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -893,12 +1008,72 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cascades":
 			s.AddField("cascades")
 			x.Cascades = s.ReadUint64()
+		case "flip":
+			if s.ReadNil() {
+				x.Flip = nil
+				return
+			}
+			x.Flip = &Flip{}
+			x.Flip.UnmarshalProtoJSON(s.WithField("flip", true))
+		case "next_order", "nextOrder":
+			s.AddField("next_order")
+			x.NextOrder = s.ReadUint64()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the LivenessState from JSON.
 func (x *LivenessState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Flip message to JSON.
+func (x *Flip) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Cursor != 0 || s.HasField("cursor") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cursor")
+		s.WriteUint64(x.Cursor)
+	}
+	if x.Order != 0 || s.HasField("order") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("order")
+		s.WriteUint64(x.Order)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Flip to JSON.
+func (x *Flip) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Flip message from JSON.
+func (x *Flip) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "cursor":
+			s.AddField("cursor")
+			x.Cursor = s.ReadUint64()
+		case "order":
+			s.AddField("order")
+			x.Order = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Flip from JSON.
+func (x *Flip) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1097,6 +1272,25 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.NextOrder != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextOrder))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
+	if m.Flip != nil {
+		size, err := m.Flip.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
 	if m.Cascades != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cascades))
 		i--
@@ -1149,6 +1343,48 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.Adoption != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Adoption))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Flip) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Flip) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Flip) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Order != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Order))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Cursor != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cursor))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -1252,6 +1488,23 @@ func (m *LivenessState) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
+	if m.Flip != nil {
+		l = m.Flip.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.NextOrder)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Flip) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cursor)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Order)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1377,13 +1630,37 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cascades")
 		protobuf_go_lite.TextWriteUint(&sb, x.Cascades)
 	}
+	if x.Flip != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "flip")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Flip)
+	}
+	if x.NextOrder != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_order")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextOrder)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *LivenessState) String() string {
 	return x.MarshalProtoText()
 }
+func (x *Flip) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Flip")
+	if x.Cursor != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cursor")
+		protobuf_go_lite.TextWriteUint(&sb, x.Cursor)
+	}
+	if x.Order != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "order")
+		protobuf_go_lite.TextWriteUint(&sb, x.Order)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
 
+func (x *Flip) String() string {
+	return x.MarshalProtoText()
+}
 func (x *Release) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Release")
@@ -1674,6 +1951,30 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Flip", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Flip == nil {
+				m.Flip = &Flip{}
+			}
+			if err := m.Flip.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextOrder", wireType)
+			}
+			m.NextOrder = 0
+			m.NextOrder, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1696,7 +1997,66 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *Flip) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Flip: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Flip: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cursor", wireType)
+			}
+			m.Cursor = 0
+			m.Cursor, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Order", wireType)
+			}
+			m.Order = 0
+			m.Order, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
 
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *Release) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

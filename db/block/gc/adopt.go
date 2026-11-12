@@ -325,7 +325,7 @@ func (a *adoption) count(ctx context.Context) error {
 			if n > 1 {
 				a.res.Counted++
 			}
-			return rec.SetHolders(ctx, ref, n, 0)
+			return rec.SetHolders(ctx, ref, n, DeadPos{})
 		}
 
 		// Settle a block no holder names Dying, ripe at the journal's end.
@@ -334,7 +334,7 @@ func (a *adoption) count(ctx context.Context) error {
 			return err
 		}
 		a.res.Queued++
-		if err := rec.SetHolders(ctx, ref, 0, state.GetNextSeq()); err != nil {
+		if err := rec.SetHolders(ctx, ref, 0, DeadPos{ripe: state.GetNextSeq()}); err != nil {
 			return err
 		}
 		if err := rec.addCascade(ctx, state, BlockKey(ref), cascadeDown); err != nil {

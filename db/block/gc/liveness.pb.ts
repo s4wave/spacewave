@@ -2,9 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/db/block/gc/liveness.proto (package block.gc, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from '@aptre/protobuf-es-lite/enum'
-import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { createEnumType } from "@aptre/protobuf-es-lite/enum";
+import type { MessageType } from "@aptre/protobuf-es-lite/message";
+import { createMessageType } from "@aptre/protobuf-es-lite/message";
+
 
 /**
  * Adoption is whether a Volume's counts describe its blocks.
@@ -31,14 +32,7 @@ export enum Adoption {
   ADOPTED = 2,
 }
 
-export const Adoption_Enum = /* @__PURE__ */ createEnumType(
-  'block.gc.Adoption',
-  [
-    [0, 'ADOPTION_UNADOPTED'],
-    [1, 'ADOPTION_ADOPTING'],
-    [2, 'ADOPTION_ADOPTED'],
-  ],
-)
+export const Adoption_Enum = /* @__PURE__ */ createEnumType("block.gc.Adoption", [[0, "ADOPTION_UNADOPTED"], [1, "ADOPTION_ADOPTING"], [2, "ADOPTION_ADOPTED"]]);
 
 /**
  * Generation is how far a Volume has settled the blocks an older store
@@ -72,14 +66,7 @@ export enum Generation {
   SWEEPING = 2,
 }
 
-export const Generation_Enum = /* @__PURE__ */ createEnumType(
-  'block.gc.Generation',
-  [
-    [0, 'GENERATION_SETTLED'],
-    [1, 'GENERATION_OPEN'],
-    [2, 'GENERATION_SWEEPING'],
-  ],
-)
+export const Generation_Enum = /* @__PURE__ */ createEnumType("block.gc.Generation", [[0, "GENERATION_SETTLED"], [1, "GENERATION_OPEN"], [2, "GENERATION_SWEEPING"]]);
 
 /**
  * RootEntry is one named root in a Volume's root table: the block the name
@@ -91,20 +78,19 @@ export interface RootEntry {
   /**
    * Ref is the block the name holds, as its hash type byte and digest.
    */
-  ref?: Uint8Array
+  ref?: Uint8Array;
   /**
    * ExpiresUnixMilli is when the collector releases the root itself, in Unix
    * milliseconds. Zero holds the root until a writer releases it. A holder
    * renews a leased root by setting it again with a later expiry.
    */
-  expiresUnixMilli?: bigint
+  expiresUnixMilli?: bigint;
 }
 
-export const RootEntry: MessageType<RootEntry> =
-  /* @__PURE__ */ createMessageType<RootEntry>('block.gc.RootEntry', () => [
-    [1, 'ref', 12],
-    [2, 'expires_unix_milli', 3],
-  ])
+export const RootEntry: MessageType<RootEntry> = /* @__PURE__ */ createMessageType<RootEntry>("block.gc.RootEntry", () => [
+  [1, "ref", 12],
+  [2, "expires_unix_milli", 3],
+]);
 
 /**
  * JournalRecord is one write transaction's change to the holders of blocks.
@@ -117,35 +103,31 @@ export interface JournalRecord {
    * AtUnixMilli is when the transaction committed, in Unix milliseconds. It
    * never decreases from one record to the next.
    */
-  atUnixMilli?: bigint
+  atUnixMilli?: bigint;
   /**
    * Up names a block once for each holder the transaction added to it beyond
    * the one a block stored by the transaction implies.
    */
-  up?: Uint8Array[]
+  up?: Uint8Array[];
   /**
    * Down names a block once for each named root that moved off it.
    */
-  down?: Uint8Array[]
+  down?: Uint8Array[];
   /**
    * Again names each block the transaction put again while the store held
    * it. It changes no holder, but a block still at zero holders once the
    * record nets takes the journal's end as its ripe sequence again, so the
    * put restarts the block's grace.
    */
-  again?: Uint8Array[]
+  again?: Uint8Array[];
 }
 
-export const JournalRecord: MessageType<JournalRecord> =
-  /* @__PURE__ */ createMessageType<JournalRecord>(
-    'block.gc.JournalRecord',
-    () => [
-      [1, 'at_unix_milli', 3],
-      [2, 'up', 12, 1],
-      [3, 'down', 12, 1],
-      [4, 'again', 12, 1],
-    ],
-  )
+export const JournalRecord: MessageType<JournalRecord> = /* @__PURE__ */ createMessageType<JournalRecord>("block.gc.JournalRecord", () => [
+  [1, "at_unix_milli", 3],
+  [2, "up", 12, 1],
+  [3, "down", 12, 1],
+  [4, "again", 12, 1],
+]);
 
 /**
  * LivenessState is the one record of a Volume's journal position and
@@ -157,46 +139,46 @@ export interface LivenessState {
   /**
    * Adoption is whether the counts describe the Volume's blocks.
    */
-  adoption?: Adoption
+  adoption?: Adoption;
   /**
    * NextSeq is the sequence number the next journal record takes.
    */
-  nextSeq?: bigint
+  nextSeq?: bigint;
   /**
    * Cursor is the sequence number of the oldest record the collector has not
    * netted.
    */
-  cursor?: bigint
+  cursor?: bigint;
   /**
    * LegacyGraph reports that records of the reference graph of a store
    * format before 7 remain, which a background sweep deletes in slices.
    * Nothing reads them.
    */
-  legacyGraph?: boolean
+  legacyGraph?: boolean;
   /**
    * AdoptionRun names the adoption that marked the Volume adopting, or the
    * one that abandoned it. Each transaction of an adoption refuses to write
    * unless the Volume is still in its run, so a run another superseded writes
    * nothing more.
    */
-  adoptionRun?: string
+  adoptionRun?: string;
   /**
    * Generation is how far the Volume has settled its old blocks. A Land,
    * fill or walk that writes a child list from content marks it so, as
    * Records describes, while the generation is not Settled.
    */
-  generation?: Generation
+  generation?: Generation;
   /**
    * NetOffset is how much of the record at the cursor the collector has
    * netted: its up pairs, then its down pairs, then its again entries. A
    * slice does a bounded amount, so it splits a large record across slices.
    */
-  netOffset?: bigint
+  netOffset?: bigint;
   /**
    * Release is the paged release or re-hold in progress of one block's
    * children, unset when none is.
    */
-  release?: Release
+  release?: Release;
   /**
    * HoldMark is one past the sequence of the last journal record of a Land
    * that held a block at zero holders, or one whose children were released,
@@ -205,7 +187,7 @@ export interface LivenessState {
    * collector frees nothing, and the settle pops no front entry, until its
    * cursor reaches the mark.
    */
-  holdMark?: bigint
+  holdMark?: bigint;
   /**
    * Cascades counts the cascade records, the blocks whose cascade is due,
    * so a Land and the free learn whether any is due from this record rather
@@ -213,25 +195,64 @@ export interface LivenessState {
    * adopted: the adoption zeroes it once its clear has deleted the records
    * an earlier run left, and counts each block it settles Dying.
    */
-  cascades?: bigint
+  cascades?: bigint;
+  /**
+   * Flip is the flip that moved the Volume to Sweeping. The flip writes it
+   * with the generation, and the sweep clears it when it settles, so it is
+   * present exactly while Sweeping. A Sweeping state without it cannot say
+   * which blocks were Dead at the flip, so the collector deletes nothing in
+   * it.
+   */
+  flip?: Flip;
+  /**
+   * NextOrder is the order number the next down cascade takes. A block
+   * takes one when its cascade releases its children, and the free queue
+   * and parked keys sort by it, so a parent is freed before the children
+   * its release brought to zero.
+   */
+  nextOrder?: bigint;
 }
 
-export const LivenessState: MessageType<LivenessState> =
-  /* @__PURE__ */ createMessageType<LivenessState>(
-    'block.gc.LivenessState',
-    () => [
-      [1, 'adoption', 14, 0, Adoption_Enum],
-      [2, 'next_seq', 4],
-      [3, 'cursor', 4],
-      [5, 'legacy_graph', 8],
-      [6, 'adoption_run', 9],
-      [7, 'generation', 14, 0, Generation_Enum],
-      [8, 'net_offset', 4],
-      [11, 'release', 11, 0, Release.codec],
-      [12, 'hold_mark', 4],
-      [13, 'cascades', 4],
-    ],
-  )
+export const LivenessState: MessageType<LivenessState> = /* @__PURE__ */ createMessageType<LivenessState>("block.gc.LivenessState", () => [
+  [1, "adoption", 14, 0, Adoption_Enum],
+  [2, "next_seq", 4],
+  [3, "cursor", 4],
+  [5, "legacy_graph", 8],
+  [6, "adoption_run", 9],
+  [7, "generation", 14, 0, Generation_Enum],
+  [8, "net_offset", 4],
+  [11, "release", 11, 0, Release.codec],
+  [12, "hold_mark", 4],
+  [13, "cascades", 4],
+  [17, "flip", 11, 0, Flip.codec],
+  [18, "next_order", 4],
+]);
+
+/**
+ * Flip is the flip of an old generation to Sweeping.
+ *
+ * @generated from message block.gc.Flip
+ */
+export interface Flip {
+  /**
+   * Cursor is the state's cursor when the flip ran. A block whose count
+   * record is zero at a ripe sequence no later than Cursor was Dead at the
+   * flip: the cursor had passed every record that could hold it, so it
+   * joins the run and reads as unmarked until the sweep deletes it.
+   */
+  cursor?: bigint;
+  /**
+   * Order is the state's NextOrder when the flip ran. A block Dead at the
+   * flip took its order number before then, so the sweep looks for one
+   * only among the queue entries ordered below it.
+   */
+  order?: bigint;
+}
+
+export const Flip: MessageType<Flip> = /* @__PURE__ */ createMessageType<Flip>("block.gc.Flip", () => [
+  [1, "cursor", 4],
+  [2, "order", 4],
+]);
 
 /**
  * Release is a cascade whose child list is longer than one collector slice
@@ -248,26 +269,26 @@ export interface Release {
   /**
    * Block is the block, as its hash type byte and digest.
    */
-  block?: Uint8Array
+  block?: Uint8Array;
   /**
    * Next is the index in the list of the first child not moved yet.
    */
-  next?: bigint
+  next?: bigint;
   /**
    * Children is how many children the list names.
    */
-  children?: bigint
+  children?: bigint;
   /**
    * Rehold reports a re-hold: each child gains a holder rather than losing
    * one.
    */
-  rehold?: boolean
+  rehold?: boolean;
 }
 
-export const Release: MessageType<Release> =
-  /* @__PURE__ */ createMessageType<Release>('block.gc.Release', () => [
-    [1, 'block', 12],
-    [2, 'next', 4],
-    [3, 'children', 4],
-    [4, 'rehold', 8],
-  ])
+export const Release: MessageType<Release> = /* @__PURE__ */ createMessageType<Release>("block.gc.Release", () => [
+  [1, "block", 12],
+  [2, "next", 4],
+  [3, "children", 4],
+  [4, "rehold", 8],
+]);
+

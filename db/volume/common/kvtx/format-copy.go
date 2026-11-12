@@ -124,6 +124,12 @@ func copyStore(
 			return err
 		}
 		gen = state.GetGeneration()
+		// A Sweeping source is refused even with AllowUnknown. The copy starts
+		// unadopted and without the source's Flip, so a block Dead at the flip
+		// would read as live there, and no collector would ever settle it.
+		if gen == block_gc.Generation_GENERATION_SWEEPING {
+			return errors.New("the source is sweeping blocks of an older store format; let its collector settle them, then copy it")
+		}
 		if gen != block_gc.Generation_GENERATION_SETTLED && !reachable.AllowUnknown {
 			return errors.New("the child lists come from an older store format and may lack children, which a reachable copy would drop; rebuild them first")
 		}

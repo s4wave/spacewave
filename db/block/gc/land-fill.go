@@ -89,7 +89,7 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 			}
 		}
 		children := normalizeChildren(entry.Refs)
-		if err := rec.PutChildren(ctx, entry.Ref, children); err != nil {
+		if err := rec.PutPartialChildren(ctx, entry.Ref, children); err != nil {
 			return nil, err
 		}
 		if err := rec.putFillRecord(ctx, entry.Ref, children, released, now); err != nil {

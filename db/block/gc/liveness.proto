@@ -107,6 +107,30 @@ message LivenessState {
   // adopted: the adoption zeroes it once its clear has deleted the records
   // an earlier run left, and counts each block it settles Dying.
   uint64 cascades = 13;
+  // Flip is the flip that moved the Volume to Sweeping. The flip writes it
+  // with the generation, and the sweep clears it when it settles, so it is
+  // present exactly while Sweeping. A Sweeping state without it cannot say
+  // which blocks were Dead at the flip, so the collector deletes nothing in
+  // it.
+  Flip flip = 17;
+  // NextOrder is the order number the next down cascade takes. A block
+  // takes one when its cascade releases its children, and the free queue
+  // and parked keys sort by it, so a parent is freed before the children
+  // its release brought to zero.
+  uint64 next_order = 18;
+}
+
+// Flip is the flip of an old generation to Sweeping.
+message Flip {
+  // Cursor is the state's cursor when the flip ran. A block whose count
+  // record is zero at a ripe sequence no later than Cursor was Dead at the
+  // flip: the cursor had passed every record that could hold it, so it
+  // joins the run and reads as unmarked until the sweep deletes it.
+  uint64 cursor = 1;
+  // Order is the state's NextOrder when the flip ran. A block Dead at the
+  // flip took its order number before then, so the sweep looks for one
+  // only among the queue entries ordered below it.
+  uint64 order = 2;
 }
 
 // Release is a cascade whose child list is longer than one collector slice

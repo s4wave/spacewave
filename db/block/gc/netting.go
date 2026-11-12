@@ -90,10 +90,14 @@ type node struct {
 	// queued reports that the node waits in downs or rest.
 	queued bool
 
-	// read reports that holders0 and ripe0 hold its count record.
+	// read reports that holders0 and pos0 hold its count record.
 	read bool
-	// holders0 and ripe0 are its count record when the slice read it.
-	holders0, ripe0 uint64
+	// holders0 and pos0 are its count record when the slice read it.
+	holders0 uint64
+	pos0     DeadPos
+	// order is its order number: pos0's until a down cascade in the slice
+	// takes the next one.
+	order uint64
 	// holders are its holders now, below zero while the walk runs when a
 	// down reached it before an up.
 	holders int64
@@ -303,11 +307,11 @@ func (n *netting) apply(ctx context.Context, nd *node) error {
 
 	// Read its count record once, and apply its delta.
 	if !nd.read {
-		holders, ripe, err := n.rec.GetHolders(ctx, nd.ref)
+		holders, pos, err := n.rec.GetHolders(ctx, nd.ref)
 		if err != nil {
 			return err
 		}
-		nd.read, nd.holders0, nd.ripe0 = true, holders, ripe
+		nd.read, nd.holders0, nd.pos0, nd.order = true, holders, pos, pos.order
 		nd.holders = int64(holders) //nolint:gosec // counts stay far below the int64 range.
 	}
 	nd.holders += nd.delta
@@ -396,10 +400,14 @@ func (n *netting) cascade(ctx context.Context, nd *node) error {
 	// Move the children of a list that fits. A release first drops the
 	// block's completion proof: its children may be freed once they settle,
 	// before the block itself, so the proof no longer holds. A leaf's proof
-	// stays true until the free deletes it.
+	// stays true until the free deletes it. A release also takes the next
+	// order number, before any child it brings to zero can take one, so the
+	// free reaches the block first.
 	dir := int64(1)
 	if nd.holders <= 0 {
 		dir = -1
+		nd.order = n.state.GetNextOrder()
+		n.state.NextOrder++
 		if len(nd.children) != 0 {
 			if err := n.rec.DeleteProof(ctx, nd.ref); err != nil {
 				return err
@@ -582,12 +590,13 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 		holders = 1
 	}
 
-	// Ripen a block at zero that could have gained a holder.
-	var ripe uint64
+	// Ripen a block at zero that could have gained a holder. It keeps its
+	// order number, and with it its place before its children.
+	var pos DeadPos
 	if holders == 0 {
-		ripe = nd.ripe0
+		pos = DeadPos{order: nd.order, ripe: nd.pos0.ripe}
 		if nd.holders0 != 0 || nd.raised || nd.again {
-			ripe = n.state.GetNextSeq()
+			pos.ripe = n.state.GetNextSeq()
 		}
 		if nd.holders0 != 0 {
 			n.res.Queued++
@@ -595,9 +604,9 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 	}
 
 	// Write the count record when it changed.
-	if holders != nd.holders0 || ripe != nd.ripe0 {
+	if holders != nd.holders0 || pos != nd.pos0 {
 		n.res.Counted++
-		if err := n.rec.SetHolders(ctx, nd.ref, holders, ripe); err != nil {
+		if err := n.rec.SetHolders(ctx, nd.ref, holders, pos); err != nil {
 			return err
 		}
 	}
@@ -631,16 +640,16 @@ func (n *netting) writeNode(ctx context.Context, nd *node) error {
 	}
 
 	// Move its queue entry when it turned Dead, stopped being Dead or
-	// ripened again.
+	// changed place.
 	dead0 := nd.holders0 == 0 && nd.rel0
 	dead := holders == 0 && nd.rel
-	if dead0 && (!dead || ripe != nd.ripe0) {
-		if err := n.rec.tx.Delete(ctx, n.rec.queueKey(nd.ripe0, nd.key)); err != nil {
+	if dead0 && (!dead || pos != nd.pos0) {
+		if err := n.rec.tx.Delete(ctx, n.rec.queueKey(nd.pos0, nd.key)); err != nil {
 			return err
 		}
 	}
-	if dead && (!dead0 || ripe != nd.ripe0) {
-		if err := n.rec.tx.Set(ctx, n.rec.queueKey(ripe, nd.key), nil); err != nil {
+	if dead && (!dead0 || pos != nd.pos0) {
+		if err := n.rec.tx.Set(ctx, n.rec.queueKey(pos, nd.key), nil); err != nil {
 			return err
 		}
 	}

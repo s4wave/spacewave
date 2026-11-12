@@ -68,6 +68,13 @@ func TestSettleWaitsForNetting(t *testing.T) {
 		{"an unapplied fill up", func(rec *Records, _ *LivenessState) error {
 			return rec.tx.Set(ctx, rec.key(kindFillUps, key), []byte{0})
 		}},
+		// A Land held a Dead block while Open in the record at the cursor,
+		// which nets only after a flip taken now would have read the block
+		// as Dead at the flip.
+		{"a hold not yet netted", func(_ *Records, state *LivenessState) error {
+			state.NextSeq, state.HoldMark = 11, 11
+			return nil
+		}},
 		{"nothing", nil},
 	}
 	for _, bc := range blockers {
@@ -87,7 +94,7 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			}
 			for _, err := range []error{
 				rec.PutChildren(ctx, ref, nil),
-				rec.SetHolders(ctx, ref, 0, 5),
+				rec.SetHolders(ctx, ref, 0, DeadPos{ripe: 5}),
 				tx.Set(ctx, rec.key(kindFront, key), nil),
 				tx.Set(ctx, rec.key(kindUnmarked, runComplete), nil),
 			} {
@@ -119,6 +126,13 @@ func TestSettleWaitsForNetting(t *testing.T) {
 			}
 			if !held && (res.Popped != 1 || !res.Flipped) {
 				t.Fatalf("with netting done, popped %d and flipped %v; want the pop and the flip", res.Popped, res.Flipped)
+			}
+			got, err := rec.GetState(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if held != (got.GetFlip() == nil) || (!held && got.GetFlip().GetCursor() != 10) {
+				t.Fatalf("with %s, flip %v; want one at cursor 10 only once netting is done", bc.name, got.GetFlip())
 			}
 		})
 	}

@@ -31,7 +31,11 @@ import (
 // record with its ripe sequence and a key in the ripe queue, a due cascade
 // keeps a cascade record, and the journal keeps no up index, so a version 7
 // or 8 store opens unadopted and its adoption counts in the new encoding.
-const FormatVersion = 9
+// Version 10 keys are those of version 9. A zero count record also keeps
+// the order number its block's down cascade took, and the free queue and
+// parked keys sort by it before the ripe sequence, so a version 9 store
+// opens unadopted and its adoption counts in the new encoding.
+const FormatVersion = 10
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

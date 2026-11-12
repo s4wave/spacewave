@@ -25,9 +25,10 @@ const (
 	// exists from the put that stored the block until the collector frees it,
 	// so its presence is what "stored" means here. A list written from the
 	// block's content, by Land, a fill or the settle walk, begins with
-	// listMark; one an older store wrote does not, and may lack a child, as
-	// Generation_GENERATION_OPEN describes. A block key never begins with a
-	// zero byte, so the two cannot be confused.
+	// listMark, or listPartial for a fill's; one an older store wrote does
+	// not, and may lack a child, as Generation_GENERATION_OPEN describes. A
+	// block key begins with its hash type, never 0 or 0xff, so a mark cannot
+	// be confused with a key.
 	kindChildren byte = 'c'
 	// kindCount keys the count record of a block by the block. A block with
 	// no record has one holder, and a uvarint value n above zero gives it
@@ -44,9 +45,11 @@ const (
 	// value is a JournalRecord.
 	kindJournal byte = 'J'
 	// kindQueue keys a Dead block, one at zero holders whose children no
-	// longer count it, by its big-endian ripe sequence, then the block. It
-	// holds no value, and the free walks it in ripe order, stopping at the
-	// first entry the cursor has not passed.
+	// longer count it, by its place as queuePos encodes it: the big-endian
+	// order number of its down cascade, its big-endian ripe sequence, then
+	// the block. It holds no value, and the free walks it in cascade order,
+	// stopping at the first entry the cursor has not passed, so a parent is
+	// freed before the children its release brought to zero.
 	kindQueue byte = 'Q'
 	// kindCascade keys a block whose cascade is due by the block: a Dying
 	// block, at zero holders while its children still count it, whose value
@@ -102,10 +105,9 @@ const (
 	// own implied holder back.
 	kindFillBorn byte = 'M'
 	// kindParked keys a Dead block the free held back while the generation
-	// is Open, by its big-endian ripe sequence, then the block, as the free
-	// queue keys it. It holds no value. Once the generation leaves Open the
-	// collector moves each back onto the free queue, where the free checks
-	// the block again.
+	// is Open, by its place, as the free queue keys it. It holds no value.
+	// Once the flip leaves Open, the settle's parked slice deletes each in
+	// that order and sweeps its block while it is unmarked.
 	kindParked byte = 'X'
 	// kindFront keys a block on the settle's front, by the block: a stored
 	// block whose list may lack a child, named by a young or verified block,
@@ -168,6 +170,18 @@ const (
 
 // listMark begins a child list written from its block's content.
 const listMark byte = 0
+
+// listPartial begins a child list a fill wrote from its block's content. The
+// list is partial: a fill stores a block without its subtree, so a child it
+// names may be absent, and a read fetches it from the fill's source. Only
+// LandFill writes it; a Land that writes the list writes listMark, which
+// clears it.
+//
+// LandFill runs only for a put a read-through store marks as a cache fill of
+// a block it read from another store, so no path writes a partial list on a
+// Volume with no source. Were one there, a missing child under it would be a
+// loss as under any other list: the fetch has nowhere to go.
+const listPartial byte = 0xff
 
 // The unmarked run's values, and the key of its completion entry.
 var (
@@ -255,6 +269,8 @@ type Records struct {
 	genKnown bool
 	// gen is the generation when genKnown is set.
 	gen Generation
+	// flip is the state's Flip when genKnown is set, nil outside Sweeping.
+	flip *Flip
 }
 
 // AssumeSettled tells the records that the Volume's generation is
@@ -262,7 +278,7 @@ type Records struct {
 // so the transaction reads no state to learn it. Settled is the last
 // generation, so the knowledge never goes stale.
 func (r *Records) AssumeSettled() {
-	r.genKnown, r.gen = true, Generation_GENERATION_SETTLED
+	r.genKnown, r.gen, r.flip = true, Generation_GENERATION_SETTLED, nil
 }
 
 // Settled reports whether the transaction has seen the Volume's generation
@@ -343,15 +359,27 @@ func (r *Records) PutChildren(ctx context.Context, ref *block.BlockRef, children
 	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), markList(EncodeChildren(children)))
 }
 
+// PutPartialChildren writes the child list of ref from its content, with
+// listPartial, for a fill.
+func (r *Records) PutPartialChildren(ctx context.Context, ref *block.BlockRef, children []*block.BlockRef) error {
+	return r.tx.Set(ctx, r.key(kindChildren, BlockKey(ref)), append([]byte{listPartial}, EncodeChildren(children)...))
+}
+
 // markList returns the packed block keys as a list value written from
 // content.
 func markList(packed []byte) []byte {
 	return append([]byte{listMark}, packed...)
 }
 
-// listMarked reports whether the list value was written from content.
+// listMarked reports whether the list value was written from content, by a
+// Land, the walk or a fill.
 func listMarked(value []byte) bool {
-	return len(value) != 0 && value[0] == listMark
+	return len(value) != 0 && (value[0] == listMark || value[0] == listPartial)
+}
+
+// listIsPartial reports whether the list value is a fill's partial list.
+func listIsPartial(value []byte) bool {
+	return len(value) != 0 && value[0] == listPartial
 }
 
 // listKeys returns the packed block keys of a list value, without its mark.
@@ -485,50 +513,54 @@ func DecodeChildren(value []byte) ([]*block.BlockRef, error) {
 }
 
 // GetHolders returns the netted holders of ref and, at zero holders, its
-// ripe sequence: the cursor must pass it before the collector frees ref. An
-// unmarked block's holders are the ones since the flip, as
-// kindUnmarkedCount describes.
-func (r *Records) GetHolders(ctx context.Context, ref *block.BlockRef) (holders, ripe uint64, err error) {
+// place on the free queue. An unmarked block's holders are the ones since
+// the flip, as kindUnmarkedCount describes.
+func (r *Records) GetHolders(ctx context.Context, ref *block.BlockRef) (uint64, DeadPos, error) {
 	// Read the record of the kind the block's state picks.
 	key := BlockKey(ref)
 	kind, err := r.countKind(ctx, key)
 	if err != nil {
-		return 0, 0, err
+		return 0, DeadPos{}, err
 	}
 	value, found, err := r.tx.Get(ctx, r.key(kind, key))
 	if err != nil || !found {
-		return 1, 0, err
+		return 1, DeadPos{}, err
 	}
 	return decodeHolders(value)
 }
 
 // decodeHolders decodes a count record value as GetHolders returns it.
-func decodeHolders(value []byte) (holders, ripe uint64, err error) {
-	// A zero record holds the ripe sequence after its zero byte.
+func decodeHolders(value []byte) (uint64, DeadPos, error) {
+	// A zero record holds the ripe sequence, then the order, after its zero
+	// byte.
 	if len(value) != 0 && value[0] == 0 {
 		ripe, size := binary.Uvarint(value[1:])
 		if size <= 0 {
-			return 0, 0, errCountMalformed
+			return 0, DeadPos{}, errCountMalformed
 		}
-		return 0, ripe, nil
+		order, osize := binary.Uvarint(value[1+size:])
+		if osize <= 0 || 1+size+osize != len(value) {
+			return 0, DeadPos{}, errCountMalformed
+		}
+		return 0, DeadPos{order: order, ripe: ripe}, nil
 	}
 
 	// Any other holds the holders beyond the implied one.
 	n, size := binary.Uvarint(value)
 	if size <= 0 {
-		return 0, 0, errCountMalformed
+		return 0, DeadPos{}, errCountMalformed
 	}
-	return n + 1, 0, nil
+	return n + 1, DeadPos{}, nil
 }
 
 // errCountMalformed reports a count record that decodes to nothing.
 var errCountMalformed = errors.New("liveness count record is malformed")
 
 // SetHolders writes the count record of ref with holders, deleting it at one,
-// the implied holder, and writing a zero record with ripe at none. Only a
+// the implied holder, and writing a zero record with pos at none. Only a
 // block with a child list may be set to zero. An unmarked block's record is
 // its kindUnmarkedCount record.
-func (r *Records) SetHolders(ctx context.Context, ref *block.BlockRef, holders, ripe uint64) error {
+func (r *Records) SetHolders(ctx context.Context, ref *block.BlockRef, holders uint64, pos DeadPos) error {
 	// Write the record of the kind the block's state picks.
 	bkey := BlockKey(ref)
 	kind, err := r.countKind(ctx, bkey)
@@ -538,7 +570,7 @@ func (r *Records) SetHolders(ctx context.Context, ref *block.BlockRef, holders, 
 	key := r.key(kind, bkey)
 	switch holders {
 	case 0:
-		return r.tx.Set(ctx, key, binary.AppendUvarint([]byte{0}, ripe))
+		return r.tx.Set(ctx, key, binary.AppendUvarint(binary.AppendUvarint([]byte{0}, pos.ripe), pos.order))
 	case 1:
 		return r.tx.Delete(ctx, key)
 	}
@@ -581,7 +613,7 @@ func (r *Records) Hidden(ctx context.Context, ref *block.BlockRef) (bool, error)
 }
 
 // parked reports whether the free parked the block at key: its count is a
-// zero record whose ripe sequence names a parked key. Call it only while
+// zero record whose place names a parked key. Call it only while
 // Open, when its count is the kindCount record and every parked key waits
 // for the flip.
 func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
@@ -590,11 +622,11 @@ func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
 	if err != nil || !found {
 		return false, err
 	}
-	holders, ripe, err := decodeHolders(value)
+	holders, pos, err := decodeHolders(value)
 	if err != nil || holders != 0 {
 		return false, err
 	}
-	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
+	return r.tx.Exists(ctx, r.parkedKey(pos, key))
 }
 
 // repark takes the parked block at key back from the free, while Open, so
@@ -604,18 +636,18 @@ func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
 // caller writes its list from content and journals a holder for each child
 // as for a born block.
 func (r *Records) repark(ctx context.Context, key []byte) error {
-	// Read the ripe sequence that keys the parked entry.
+	// Read the place that keys the parked entry.
 	value, _, err := r.tx.Get(ctx, r.key(kindCount, key))
 	if err != nil {
 		return err
 	}
-	_, ripe, err := decodeHolders(value)
+	_, pos, err := decodeHolders(value)
 	if err != nil {
 		return err
 	}
 
 	// Delete the count, the parked key, the run entry and the front entry.
-	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(ripe, key), r.key(kindUnmarked, key), r.key(kindFront, key)} {
+	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(pos, key), r.key(kindUnmarked, key), r.key(kindFront, key)} {
 		if err := r.tx.Delete(ctx, del); err != nil {
 			return err
 		}
@@ -810,36 +842,34 @@ func (r *Records) ScanJournal(ctx context.Context, from uint64, fn func(seq uint
 	})
 }
 
-// queueKey returns the queue key of the Dead block at key with ripe.
-func (r *Records) queueKey(ripe uint64, key []byte) []byte {
-	return r.key(kindQueue, binary.BigEndian.AppendUint64(nil, ripe), key)
+// queueKey returns the queue key of the Dead block at key at pos.
+func (r *Records) queueKey(pos DeadPos, key []byte) []byte {
+	return r.key(kindQueue, queuePos(pos, key))
 }
 
-// parkedKey returns the parked key of the Dead block at key with ripe.
-func (r *Records) parkedKey(ripe uint64, key []byte) []byte {
-	return r.key(kindParked, binary.BigEndian.AppendUint64(nil, ripe), key)
+// parkedKey returns the parked key of the Dead block at key at pos.
+func (r *Records) parkedKey(pos DeadPos, key []byte) []byte {
+	return r.key(kindParked, queuePos(pos, key))
 }
 
-// queuePos returns the position on the free queue of the block at key,
-// ripe at ripe: its queue key without the prefix and kind.
-func queuePos(ripe uint64, key []byte) []byte {
-	return append(binary.BigEndian.AppendUint64(nil, ripe), key...)
-}
-
-// scanQueue calls fn with each Dead block on the free queue in ripe order,
-// from the entry at or after the queue position from, a ripe sequence and
-// block key as queuePos returns, or from the start when from is nil, until
-// fn returns false or an error.
-func (r *Records) scanQueue(ctx context.Context, from []byte, fn func(ripe uint64, ref *block.BlockRef) (bool, error)) error {
-	return r.scan(ctx, r.key(kindQueue), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
-		if len(key) < 8 {
+// scanDead calls fn with each Dead block of kind, the free queue or the
+// parked keys, in cascade order, from the entry at or after the position
+// from, as queuePos returns, or from the start when from is nil, until fn
+// returns false or an error.
+func (r *Records) scanDead(ctx context.Context, kind byte, from []byte, fn func(pos DeadPos, ref *block.BlockRef) (bool, error)) error {
+	return r.scan(ctx, r.key(kind), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
+		// Parse the block key past the order and the ripe sequence.
+		if len(key) < 16 {
 			return false, errBadBlockKey
 		}
-		ref, rest, err := ParseBlockKey(key[8:])
+		ref, rest, err := ParseBlockKey(key[16:])
 		if err != nil || len(rest) != 0 {
 			return false, errBadBlockKey
 		}
-		return fn(binary.BigEndian.Uint64(key), ref)
+
+		// Decode the place the key sorts by and pass the block on.
+		pos := DeadPos{order: binary.BigEndian.Uint64(key), ripe: binary.BigEndian.Uint64(key[8:])}
+		return fn(pos, ref)
 	})
 }
 
@@ -955,7 +985,7 @@ func (r *Records) GetState(ctx context.Context) (*LivenessState, error) {
 		return state, err
 	}
 	retireSuspectLists(state)
-	r.genKnown, r.gen = true, state.GetGeneration()
+	r.know(state)
 	return state, nil
 }
 
@@ -1007,8 +1037,14 @@ func (r *Records) SetState(ctx context.Context, state *LivenessState) error {
 	if err != nil {
 		return err
 	}
-	r.genKnown, r.gen = true, state.GetGeneration()
+	r.know(state)
 	return r.tx.Set(ctx, r.key(kindState), value)
+}
+
+// know notes the generation and flip of state, read or written by the
+// transaction.
+func (r *Records) know(state *LivenessState) {
+	r.genKnown, r.gen, r.flip = true, state.GetGeneration(), state.GetFlip()
 }
 
 // releasePageKey returns the key of release page page.

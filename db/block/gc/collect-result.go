@@ -2,6 +2,38 @@ package block_gc
 
 import "time"
 
+// Stall is why a collection pass deleted nothing it would have.
+type Stall uint8
+
+// The reasons a pass stalls.
+const (
+	// StallNone is a pass that did not stall.
+	StallNone Stall = iota
+	// StallNoFlip is a Volume Sweeping with no Flip in its state: nothing
+	// says which blocks were Dead at the flip, so the pass sweeps nothing and
+	// frees nothing. No flip of this format writes that state.
+	StallNoFlip
+	// StallHoldMark is a pass whose flip or free waited on the hold mark: a
+	// Land past the cursor held a block at zero, and nothing frees or flips
+	// until that record nets, at least Grace after it committed. Holds of
+	// zero blocks arriving with no gap of Grace keep the Volume here; the
+	// writers wait on nothing.
+	StallHoldMark
+)
+
+// String names the stall.
+func (s Stall) String() string {
+	switch s {
+	case StallNone:
+		return "none"
+	case StallNoFlip:
+		return "sweeping with no flip cursor"
+	case StallHoldMark:
+		return "waiting on the hold mark"
+	}
+	return "unknown"
+}
+
 // CollectResult is one collection pass's accounting.
 type CollectResult struct {
 	// Netted counts the journal records the pass netted.
@@ -15,9 +47,6 @@ type CollectResult struct {
 	// Parked counts the Dead blocks the free held back because the Volume's
 	// old generation is Open, when nothing is deleted.
 	Parked uint64
-	// Requeued counts the parked blocks the pass moved back onto the free
-	// queue once the generation flipped.
-	Requeued uint64
 	// Unmarked counts the unverified lists the pass entered in the unmarked
 	// run.
 	Unmarked uint64
@@ -42,6 +71,9 @@ type CollectResult struct {
 	// Settled reports that the pass deleted the run and settled the
 	// generation.
 	Settled bool
+	// Stall is why the pass deleted nothing it would have, StallNone when
+	// it did not stall.
+	Stall Stall
 	// Kept counts the times a free found Dead blocks waiting on their ripe
 	// sequence or the hold mark.
 	Kept uint64
@@ -63,6 +95,8 @@ type CollectResult struct {
 	// mark that moved since the last pass shows such a Land; the free and the
 	// settle's pop wait while the cursor trails it.
 	HoldMark uint64
+	// Cursor is the cursor the pass read with the hold mark.
+	Cursor uint64
 	// More reports that the pass stopped with work left.
 	More bool
 	// Duration is the time the pass took.

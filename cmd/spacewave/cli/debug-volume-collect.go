@@ -81,7 +81,10 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 		sum.Freed += res.Freed
 		sum.Kept += res.Kept
 		sum.Parked += res.Parked
-		sum.Requeued += res.Requeued
+		sum.Swept += res.Swept
+		if res.Stall != block_gc.StallNone {
+			sum.Stall = res.Stall
+		}
 		sum.Leaked += res.Leaked
 		sum.Stranded += res.Stranded
 		sum.Underflows += res.Underflows
@@ -105,7 +108,8 @@ func collectFields(path string, frees bool, passes int, res block_gc.CollectResu
 		{"Freed", strconv.FormatUint(res.Freed, 10)},
 		{"Kept", strconv.FormatUint(res.Kept, 10)},
 		{"Parked older blocks", strconv.FormatUint(res.Parked, 10)},
-		{"Requeued parked blocks", strconv.FormatUint(res.Requeued, 10)},
+		{"Swept older blocks", strconv.FormatUint(res.Swept, 10)},
+		{"Stall", res.Stall.String()},
 		{"Leaked", strconv.FormatUint(res.Leaked, 10)},
 		{"Stranded releases", strconv.FormatUint(res.Stranded, 10)},
 		{"Underflows refused", strconv.FormatUint(res.Underflows, 10)},

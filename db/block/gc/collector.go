@@ -264,7 +264,7 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 	err = c.store.View(ctx, func(rec *Records) error {
 		state, err := rec.GetState(ctx)
 		adopted = state.GetAdoption() == Adoption_ADOPTION_ADOPTED
-		res.HoldMark = state.GetHoldMark()
+		res.HoldMark, res.Cursor = state.GetHoldMark(), state.GetCursor()
 		return err
 	})
 	if err != nil {
@@ -288,17 +288,10 @@ func (c *Collector) Collect(ctx context.Context) (res CollectResult, err error) 
 		}
 	}
 
-	// Run the settle's steps, then free the queued blocks, after moving the
-	// parked ones back onto the queue once the generation flipped.
+	// Run the settle's steps, then free the queued blocks.
 	if c.opts.Frees {
 		defer c.phase(PhaseSweep)()
 		res.More, err = c.settle(ctx, past, &res)
-		if err != nil || res.More {
-			return res, err
-		}
-		res.More, err = eachSlice(ctx, c.update, []byte(nil), past, func(rec *Records, _ block.StoreOps, from []byte) ([]byte, bool, error) {
-			return c.requeueSlice(ctx, rec, &res, from)
-		})
 		if err != nil || res.More {
 			return res, err
 		}
@@ -653,12 +646,17 @@ func (c *Collector) dropFills(ctx context.Context, past func() bool) (bool, erro
 }
 
 // freeSlice frees up to sliceFrees ripe Dead blocks in one transaction, in
-// ripe order, stopping at the first block the cursor has not passed and at
-// the next block once a writer waits. It frees nothing while a cascade is
+// cascade order, stopping at the first block the cursor has not passed and
+// at the next block once a writer waits. Stopping there keeps a parent
+// stored no longer than its children: a parent that ripened again holds
+// back the children its release brought to zero, which a re-hold of the
+// parent must still find stored. It frees nothing while a cascade is
 // due or in progress, while a fill's up pairs are unapplied, or until the
 // cursor passes the hold mark, as Collector describes. A free deletes the
 // block's bytes, child list, queue entry, proof and count record, and
-// changes no other count: its children lost its holder when it died. It
+// changes no other count: its children lost its holder when it died. While
+// Sweeping, an unmarked block is swept instead, as freeBlock describes, and
+// the slice journals the release of any child its old list held. It
 // reports whether the slice was full.
 //
 // It starts at the queue position from and returns the position past the
@@ -667,10 +665,9 @@ func (c *Collector) dropFills(ctx context.Context, past func() bool) (bool, erro
 // entries again each slice. The resume lasts only the pass's free step:
 // within it, nothing adds a queue entry before the resume. The free deletes
 // entries and adds none, a writer's Land and a fill write only journal and
-// fill records, and the only path that adds an entry below the cursor, a
-// Dying block whose cascade finishes and turns it Dead at its old ripe
-// sequence, is netting, which runs before the free step, never between its
-// slices. A cascade a slice finds due stops the step.
+// fill records, and the only path that moves an entry, netting, which
+// ripens a block again in place, runs before the free step, never between
+// its slices. A cascade a slice finds due stops the step.
 func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.StoreOps, res *CollectResult, from []byte) ([]byte, bool, error) {
 	// Free only in an adopted Volume with every cascade and fill up netted.
 	state, err := rec.GetState(ctx)
@@ -689,81 +686,52 @@ func (c *Collector) freeSlice(ctx context.Context, rec *Records, blocks block.St
 	if c.waiting() {
 		frees = 1
 	}
-	err = rec.scanQueue(ctx, from, func(seq uint64, ref *block.BlockRef) (bool, error) {
+	err = rec.scanDead(ctx, kindQueue, from, func(pos DeadPos, ref *block.BlockRef) (bool, error) {
 		switch {
-		case seq > cursor || cursor < state.GetHoldMark():
+		case cursor < state.GetHoldMark():
+			res.Kept++
+			res.Stall = StallHoldMark
+			return false, nil
+		case pos.ripe > cursor:
 			res.Kept++
 			return false, nil
 		case len(ripe) == frees:
 			full = true
 			return false, nil
 		}
-		ripe = append(ripe, queueEntry{ripe: seq, ref: ref})
+		ripe = append(ripe, queueEntry{pos: pos, ref: ref})
 		return true, nil
 	})
 	if err != nil {
 		return from, false, err
 	}
 
-	// Free each until a writer waits; the next slice resumes there.
+	// Free each until a writer waits, then journal the release of any
+	// child a swept block's old list held; the next slice resumes there.
 	more := full
+	var down [][]byte
 	for i, e := range ripe {
 		if i != 0 && c.waiting() {
 			more = true
 			break
 		}
-		if err := c.freeBlock(ctx, rec, blocks, state, e, res); err != nil {
+		children, err := c.freeBlock(ctx, rec, blocks, state, e, res)
+		if err != nil {
 			return from, false, err
 		}
-		from = queuePos(e.ripe, BlockKey(e.ref))
+		down = append(down, children...)
+		from = queuePos(e.pos, BlockKey(e.ref))
+	}
+	if len(down) != 0 {
+		return from, more, rec.appendDowns(ctx, state, c.opts.Now(), down)
 	}
 	return from, more, nil
 }
 
-// requeueSlice moves up to a slice of parked blocks back onto the free queue
-// once the generation flipped, from the parked key position from, and
-// reports whether the slice was full. Each keeps its ripe sequence, which the
-// cursor passed before the free parked it, so the free step that follows
-// takes it, checking it is still Dead at that sequence, and drops an
-// unmarked one, which the sweep deletes. While the generation is Open, or the
-// Volume is not adopted, it moves nothing.
-func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *CollectResult, from []byte) ([]byte, bool, error) {
-	// Requeue only once an adopted Volume's generation flipped.
-	state, err := rec.GetState(ctx)
-	if err != nil || state.GetGeneration() == Generation_GENERATION_OPEN || state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
-		return from, false, err
-	}
-
-	// Take the next parked keys, then move each.
-	var keys [][]byte
-	full, budget := false, c.share(sliceFrees)
-	err = rec.scan(ctx, rec.key(kindParked), from, func(key []byte, _ func() ([]byte, error)) (bool, error) {
-		if len(keys) == budget {
-			full = true
-			return false, nil
-		}
-		keys = append(keys, slices.Clone(key))
-		return true, nil
-	})
-	if err != nil {
-		return from, false, err
-	}
-	for _, key := range keys {
-		if err := rec.tx.Delete(ctx, rec.key(kindParked, key)); err != nil {
-			return from, false, err
-		}
-		if err := rec.tx.Set(ctx, rec.key(kindQueue, key), nil); err != nil {
-			return from, false, err
-		}
-		res.Requeued++
-		from = key
-	}
-	return from, full, nil
-}
-
 // freeable reports whether the free may run in rec, apart from the hold
 // mark, which it checks per entry: the Volume is adopted, no cascade is due
-// or in progress, and no fill up is unapplied. A cascade is due although
+// or in progress, no fill up is unapplied, and a Sweeping state has its
+// Flip, without which nothing says which blocks were Dead at the flip. A cascade is due although
 // the pass's netting found no work left when an adoption marked the Volume
 // adopted since, its zero blocks Dying, or when the store lost a Holding
 // block, whose re-hold waits for a put to refill its list. A fill's up pairs
@@ -771,6 +739,9 @@ func (c *Collector) requeueSlice(ctx context.Context, rec *Records, res *Collect
 func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, error) {
 	// Check the state, then the cascade and fill up records.
 	if state.GetAdoption() != Adoption_ADOPTION_ADOPTED {
+		return false, nil
+	}
+	if state.GetGeneration() == Generation_GENERATION_SWEEPING && state.GetFlip() == nil {
 		return false, nil
 	}
 	settled, err := r.settled(ctx, state)
@@ -781,10 +752,10 @@ func (r *Records) freeable(ctx context.Context, state *LivenessState) (bool, err
 	return !ups, err
 }
 
-// queueEntry is a block on the free queue at its ripe sequence.
+// queueEntry is a block on the free queue at its place.
 type queueEntry struct {
-	// ripe is the block's ripe sequence.
-	ripe uint64
+	// pos is the block's place.
+	pos DeadPos
 	// ref is the block.
 	ref *block.BlockRef
 }
@@ -792,51 +763,52 @@ type queueEntry struct {
 // freeBlock frees the Dead block of queue entry e: its bytes, child list,
 // queue entry, proof and count record. It deletes only the queue entry when
 // the entry is stale: the block has no child list or no zero record at e's
-// ripe sequence, or it is unmarked, which the sweep deletes. While the
-// generation is Open it deletes nothing, and parks the block instead, as the
-// settle describes.
-func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, e queueEntry, res *CollectResult) error {
-	// Check the block is stored, Dead and at the entry's ripe sequence.
-	ripe, ref := e.ripe, e.ref
+// place. While the generation is Open it deletes nothing, and parks
+// the block instead, as the settle describes. While Sweeping it sweeps an
+// unmarked block, as sweepUnmarked describes, which for a block Dead at the
+// flip is the only path besides the parked slice, since the run does not
+// name it, and returns the children its old list released.
+func (c *Collector) freeBlock(ctx context.Context, rec *Records, blocks block.StoreOps, state *LivenessState, e queueEntry, res *CollectResult) ([][]byte, error) {
+	// Check the block is stored, Dead and at the entry's place.
+	pos, ref := e.pos, e.ref
 	key := BlockKey(ref)
-	if err := rec.tx.Delete(ctx, rec.queueKey(ripe, key)); err != nil {
-		return err
+	if err := rec.tx.Delete(ctx, rec.queueKey(pos, key)); err != nil {
+		return nil, err
+	}
+	if state.GetGeneration() == Generation_GENERATION_SWEEPING {
+		swept, children, err := c.sweepUnmarked(ctx, rec, blocks, ref, res)
+		if err != nil || swept {
+			return children, err
+		}
 	}
 	listed, err := rec.HasChildren(ctx, ref)
 	if err != nil || !listed {
-		return err
+		return nil, err
 	}
 
 	// Check its count. The netting moves a block's queue entry whenever it
-	// changes the block's ripe sequence, so at differs from ripe only when
-	// damage left the records apart, and the block is kept.
+	// changes the block's place, so at differs from pos only when damage
+	// left the records apart, and the block is kept.
 	holders, at, err := rec.GetHolders(ctx, ref)
-	if err != nil || holders != 0 || at != ripe {
-		return err
+	if err != nil || holders != 0 || at != pos {
+		return nil, err
 	}
 
-	// Park it while the generation is Open, and leave an unmarked one to
-	// the sweep.
-	switch state.GetGeneration() {
-	case Generation_GENERATION_OPEN:
+	// Park it while the generation is Open.
+	if state.GetGeneration() == Generation_GENERATION_OPEN {
 		res.Parked++
-		return rec.tx.Set(ctx, rec.parkedKey(ripe, key), nil)
-	case Generation_GENERATION_SWEEPING:
-		unmarked, err := rec.Unmarked(ctx, key)
-		if err != nil || unmarked {
-			return err
-		}
+		return nil, rec.tx.Set(ctx, rec.parkedKey(pos, key), nil)
 	}
 
 	// Free its bytes and records.
 	if err := blocks.RmBlock(ctx, ref); err != nil {
-		return err
+		return nil, err
 	}
 	for _, del := range []func(context.Context, *block.BlockRef) error{rec.DeleteChildren, rec.DeleteProof} {
 		if err := del(ctx, ref); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	res.Freed++
-	return rec.SetHolders(ctx, ref, 1, 0)
+	return nil, rec.SetHolders(ctx, ref, 1, DeadPos{})
 }
