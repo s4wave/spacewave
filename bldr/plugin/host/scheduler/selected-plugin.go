@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
@@ -88,12 +89,9 @@ func (t *pluginInstance) incompatibleManifest(ref *bucket.ObjectRef) bool {
 }
 
 // activationProbeSlow is how long a running worker may take to answer
-// Activation.Check before the plugin's status says the swap is waiting on it.
+// Activation.Check before the plugin's swap state says it waits on it.
 // Tests shorten it.
 var activationProbeSlow = 5 * time.Second
-
-// activationCheckStage names the status a slow activation check records.
-const activationCheckStage = "activation check"
 
 // probeActivation asks the running worker whether it supports prepared
 // activation. It waits for an answer, since a healthy worker can be slow: the
@@ -104,12 +102,13 @@ const activationCheckStage = "activation check"
 //   - worker gone: unprepared, nothing is left to keep.
 //   - transport error: returned and recorded; the worker is preserved.
 //
-// While no answer has come after activationProbeSlow, the plugin's status
-// says the swap waits on the running worker; the answer clears it.
+// While no answer has come after activationProbeSlow, the swap state is
+// waiting; the answer returns it to preparing.
 //
 // Go and JavaScript RPC servers report an absent method differently.
-func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.RunningPlugin) (bool, error) {
-	// Say the update waits on the worker once it has been slow.
+func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.RunningPlugin, candidate swapCandidate) (bool, error) {
+	// Say the swap waits on the worker once it has been slow.
+	sentAt := timestamp.Now()
 	recorded := make(chan struct{})
 	slow := time.AfterFunc(activationProbeSlow, func() {
 		defer close(recorded)
@@ -118,18 +117,14 @@ func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.Run
 			"instance-key": t.instanceKey,
 			"waited":       activationProbeSlow.String(),
 		}).Warn("running plugin has not answered activation check; waiting")
-		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, activationCheckStage, errors.Errorf(
-			"running plugin has not answered after %s; the update waits for it",
-			activationProbeSlow,
-		))
+		t.setSwapWaiting(candidate, sentAt)
 	})
 
-	// Wait for the answer, then clear any waiting status.
+	// Wait for the answer, then leave the waiting state once it was written.
 	_, err := plugin.NewSRPCActivationClient(current.GetRpcClient()).Check(ctx, &plugin.CheckActivationRequest{})
 	if !slow.Stop() {
-		// The status was recorded or is being recorded; clear it once written.
 		<-recorded
-		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, activationCheckStage)
+		t.setSwapPreparing(candidate)
 	}
 
 	// Map the answer to the replacement mode.
@@ -169,9 +164,20 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	if args.serveAssets {
 		return t.serveAssets(ctx, args)
 	}
+
+	// Publish the swap state: preparing now, failed when the attempt fails.
+	candidate := newSwapCandidate(args)
+	t.setSwapPreparing(candidate)
+	defer func() {
+		if rerr != nil && ctx.Err() == nil && !errors.Is(rerr, context.Canceled) {
+			t.setSwapFailed(candidate, "prepare plugin: "+rerr.Error())
+		}
+	}()
 	if args.pluginHost == nil {
 		// A host change selects the candidate again; retrying finds no host.
-		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", errors.New("installed plugin has no compatible host"))
+		err := errors.New("installed plugin has no compatible host")
+		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", err)
+		t.setSwapFailed(candidate, "prepare plugin: "+err.Error())
 		return nil
 	}
 
@@ -180,7 +186,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	prepared := false
 	if current := t.runningPluginCtr.GetValue(); current != nil && t.manifestRoot == "" {
 		var err error
-		prepared, err = t.probeActivation(ctx, current)
+		prepared, err = t.probeActivation(ctx, current, candidate)
 		if err != nil {
 			return err
 		}
@@ -247,6 +253,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	}
 	t.stopStartupWaitBudget()
 	admittedAt := time.Now()
+	t.setSwapSettled(admittedAt)
 
 	// The worker's callback keeps public state current even while another
 	// candidate is preparing. A crashed admitted worker is released before retry.
@@ -269,7 +276,8 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 }
 
 // admitExecution switches the family alias and filesystem access to a worker.
-// Its load-state lock precedes pluginUpdateMtx, matching the worker callback.
+// Its load-state lock precedes pluginUpdateMtx, matching the worker callback;
+// the scheduler's status mutex comes after both.
 func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), args *executePluginArgs) bool {
 	// Swap the admitted worker under the load-state lock.
 	var previous func()
@@ -291,6 +299,10 @@ func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), 
 		t.distAccess.SetCurrent(worker.distAccess.AccessUnixFS)
 		t.assetsAccess.SetCurrent(worker.assetsAccess.AccessUnixFS)
 		t.updatePluginLoadState(func(plugin.PluginLoadState) plugin.PluginLoadState { return state })
+
+		// Publish the running manifest in the same critical section, so a
+		// concurrent clear cannot be overwritten by a stale admission.
+		t.setRunningManifest(args)
 		return state
 	})
 
@@ -326,6 +338,9 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	t.distAccess.SetBlocked()
 	t.assetsAccess.SetBlocked()
 	t.beginInitialCapabilityRegistration()
+
+	// Publish that nothing runs before another admission can take the lock.
+	t.setRunningManifest(nil)
 	t.pluginUpdateMtx.Unlock()
 
 	// Release the replaced worker outside the update lock.

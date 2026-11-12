@@ -2,7 +2,6 @@ package plugin_host_scheduler
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -59,6 +58,27 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+
+	// waitExecution waits for the colors execution status to satisfy ok and
+	// logs the swap state it reached.
+	waitExecution := func(phase string, ok func(*plugin.PluginExecutionStatus) bool) {
+		t.Helper()
+		snap, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				if st.GetPluginId() == "colors" && ok(st) {
+					return true, nil
+				}
+			}
+			return false, nil
+		}, nil)
+		if err != nil {
+			t.Fatalf("%s: %v", phase, err)
+		}
+		for _, st := range snap.GetExecutions() {
+			t.Logf("%s: running rev %d, swap %s", phase, st.GetRunningManifestRev(), st.GetSwap().MarshalProtoText())
+		}
+	}
 
 	// Declare the execution record and the channel reporting started workers.
 	type execution struct {
@@ -135,6 +155,9 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	waitExecution("first admitted", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 1 && st.GetSwap().GetSettled() != nil
+	})
 	stopOld()
 	<-doneOld
 	select {
@@ -149,10 +172,16 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if !failed.worker.prepared || instance.runningPluginCtr.GetValue() != initial {
 		t.Fatal("preparing candidate replaced the admitted worker")
 	}
+	waitExecution("candidate preparing", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 1 && st.GetSwap().GetPreparing().GetCandidateManifestRev() == 2
+	})
 	failed.start <- false
 	if err := <-doneFailed; err == nil {
 		t.Fatal("failed startup succeeded")
 	}
+	waitExecution("candidate failed", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 1 && st.GetSwap().GetFailed().GetCandidateManifestRev() == 2
+	})
 	wait(failed.closed)
 	if instance.runningPluginCtr.GetValue() != initial {
 		t.Fatal("failed candidate removed the admitted worker")
@@ -183,19 +212,23 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if instance.runningPluginCtr.GetValue() == nil {
 		t.Fatal("retired teardown cleared the replacement")
 	}
+	waitExecution("replacement admitted", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 4 && st.GetSwap().GetSettled() != nil
+	})
 
 	stopNext()
 	<-doneNext
 
-	// A slow worker is never replaced for slowness: the plugin's status says
-	// the update waits on it, and its late answer stages the candidate.
+	// A slow worker is never replaced for slowness: the swap state says the
+	// candidate waits on it, and its late answer stages the candidate.
 	prevSlow := activationProbeSlow
 	activationProbeSlow = 20 * time.Millisecond
 	defer func() { activationProbeSlow = prevSlow }()
 	waitingStatus := func(want bool) error {
 		_, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
-			for _, st := range snap.GetPlugins() {
-				if st.GetPluginId() == "colors" && strings.HasPrefix(st.GetLastErrorMessage(), activationCheckStage+": ") {
+			for _, st := range snap.GetExecutions() {
+				if st.GetPluginId() == "colors" && st.GetSwap().GetWaiting() != nil {
+					t.Logf("candidate waiting: running rev %d, swap %s", st.GetRunningManifestRev(), st.GetSwap().MarshalProtoText())
 					return want, nil
 				}
 			}
@@ -272,6 +305,7 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "sample"})
+	c.setPluginStatus("sample", "", plugin.PluginState_PluginState_REQUESTED)
 	starts := make(chan time.Time, 8)
 	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
 		_, worker := instance.newExecution(key)
@@ -308,4 +342,18 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 		}
 		prev = next
 	}
+
+	// The failed swap state carries when the routine retries.
+	snap, err := c.pluginStatusCtr.WaitValueWithValidator(t.Context(), func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		for _, st := range snap.GetExecutions() {
+			if st.GetSwap().GetFailed().GetRetryAt() != nil {
+				return true, nil
+			}
+		}
+		return false, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("candidate failed with retry: %s", snap.GetExecutions()[0].GetSwap().MarshalProtoText())
 }

@@ -157,6 +157,202 @@ export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoverySta
   )
 
 /**
+ * PluginExecutionStatus describes the execution a plugin instance runs and the
+ * swap that moves it to the selected manifest.
+ *
+ * @generated from message bldr.plugin.PluginExecutionStatus
+ */
+export interface PluginExecutionStatus {
+  /**
+   * PluginId is the plugin identifier.
+   */
+  pluginId?: string
+  /**
+   * InstanceKey is the optional instance key for instanced plugins.
+   */
+  instanceKey?: string
+  /**
+   * RunningManifestRef is the ref of the manifest the admitted execution runs.
+   * Empty while no execution is admitted.
+   */
+  runningManifestRef?: string
+  /**
+   * RunningManifestRev is the build rev of the manifest named by
+   * RunningManifestRef.
+   */
+  runningManifestRev?: bigint
+  /**
+   * Swap is the state of the move from the running manifest to the selected one.
+   */
+  swap?: PluginSwap
+}
+
+export const PluginExecutionStatus: MessageType<PluginExecutionStatus> =
+  /* @__PURE__ */ createMessageType<PluginExecutionStatus>(
+    'bldr.plugin.PluginExecutionStatus',
+    () => [
+      [1, 'plugin_id', 9],
+      [2, 'instance_key', 9],
+      [3, 'running_manifest_ref', 9],
+      [4, 'running_manifest_rev', 4],
+      [5, 'swap', 11, 0, PluginSwap.codec],
+    ],
+  )
+
+/**
+ * PluginSwap is the state of a plugin instance's move to its selected manifest.
+ * An unset state means no candidate has been tried yet.
+ *
+ * @generated from message bldr.plugin.PluginSwap
+ */
+export interface PluginSwap {
+  /**
+   * State is the current swap state.
+   *
+   * @generated from oneof bldr.plugin.PluginSwap.state
+   */
+  state?:
+    | { value?: undefined; case: undefined }
+    | { value: PluginSwapSettled; case: 'settled' }
+    | { value: PluginSwapPreparing; case: 'preparing' }
+    | { value: PluginSwapWaiting; case: 'waiting' }
+    | { value: PluginSwapFailed; case: 'failed' }
+}
+
+export const PluginSwap: MessageType<PluginSwap> =
+  /* @__PURE__ */ createMessageType<PluginSwap>(
+    'bldr.plugin.PluginSwap',
+    () => [
+      [1, 'settled', 11, 0, PluginSwapSettled.codec, 'state'],
+      [2, 'preparing', 11, 0, PluginSwapPreparing.codec, 'state'],
+      [3, 'waiting', 11, 0, PluginSwapWaiting.codec, 'state'],
+      [4, 'failed', 11, 0, PluginSwapFailed.codec, 'state'],
+    ],
+  )
+
+/**
+ * PluginSwapSettled is the swap state with no candidate in flight.
+ *
+ * @generated from message bldr.plugin.PluginSwapSettled
+ */
+export interface PluginSwapSettled {
+  /**
+   * AdmittedAt is when the running execution was admitted.
+   */
+  admittedAt?: Date
+}
+
+export const PluginSwapSettled: MessageType<PluginSwapSettled> =
+  /* @__PURE__ */ createMessageType<PluginSwapSettled>(
+    'bldr.plugin.PluginSwapSettled',
+    () => [[1, 'admitted_at', 11, 0, Timestamp.codec]],
+  )
+
+/**
+ * PluginSwapPreparing is the swap state while a candidate is fetched and
+ * started.
+ *
+ * @generated from message bldr.plugin.PluginSwapPreparing
+ */
+export interface PluginSwapPreparing {
+  /**
+   * CandidateManifestRef is the ref of the manifest being prepared.
+   */
+  candidateManifestRef?: string
+  /**
+   * CandidateManifestRev is the build rev of the manifest being prepared.
+   */
+  candidateManifestRev?: bigint
+  /**
+   * StartedAt is when the scheduler began preparing the candidate.
+   */
+  startedAt?: Date
+}
+
+export const PluginSwapPreparing: MessageType<PluginSwapPreparing> =
+  /* @__PURE__ */ createMessageType<PluginSwapPreparing>(
+    'bldr.plugin.PluginSwapPreparing',
+    () => [
+      [1, 'candidate_manifest_ref', 9],
+      [2, 'candidate_manifest_rev', 4],
+      [3, 'started_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
+ * PluginSwapWaiting is the swap state while the running execution has not
+ * answered the candidate's activation check within the slow threshold.
+ *
+ * @generated from message bldr.plugin.PluginSwapWaiting
+ */
+export interface PluginSwapWaiting {
+  /**
+   * CandidateManifestRef is the ref of the manifest waiting to start.
+   */
+  candidateManifestRef?: string
+  /**
+   * CandidateManifestRev is the build rev of the manifest waiting to start.
+   */
+  candidateManifestRev?: bigint
+  /**
+   * SinceAt is when the activation check was sent to the running execution.
+   */
+  sinceAt?: Date
+}
+
+export const PluginSwapWaiting: MessageType<PluginSwapWaiting> =
+  /* @__PURE__ */ createMessageType<PluginSwapWaiting>(
+    'bldr.plugin.PluginSwapWaiting',
+    () => [
+      [1, 'candidate_manifest_ref', 9],
+      [2, 'candidate_manifest_rev', 4],
+      [3, 'since_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
+ * PluginSwapFailed is the swap state after a candidate failed to start. The
+ * running execution, if any, is kept.
+ *
+ * @generated from message bldr.plugin.PluginSwapFailed
+ */
+export interface PluginSwapFailed {
+  /**
+   * CandidateManifestRef is the ref of the manifest that failed.
+   */
+  candidateManifestRef?: string
+  /**
+   * CandidateManifestRev is the build rev of the manifest that failed.
+   */
+  candidateManifestRev?: bigint
+  /**
+   * ErrorMessage is the failure, prefixed with the stage that failed.
+   */
+  errorMessage?: string
+  /**
+   * FailedAt is when the candidate failed.
+   */
+  failedAt?: Date
+  /**
+   * RetryAt is when the scheduler retries the candidate. Unset when it waits
+   * for a new selection or host instead.
+   */
+  retryAt?: Date
+}
+
+export const PluginSwapFailed: MessageType<PluginSwapFailed> =
+  /* @__PURE__ */ createMessageType<PluginSwapFailed>(
+    'bldr.plugin.PluginSwapFailed',
+    () => [
+      [1, 'candidate_manifest_ref', 9],
+      [2, 'candidate_manifest_rev', 4],
+      [3, 'error_message', 9],
+      [4, 'failed_at', 11, 0, Timestamp.codec],
+      [5, 'retry_at', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
  * PluginStatusSnapshot describes a plugin host scheduler's plugin instances.
  *
  * @generated from message bldr.plugin.PluginStatusSnapshot
@@ -171,6 +367,11 @@ export interface PluginStatusSnapshot {
    * plugin id and instance key.
    */
   manifestRecovery?: PluginManifestRecoveryStatus[]
+  /**
+   * Executions lists the per-instance running manifests and swap states sorted
+   * by plugin id and instance key.
+   */
+  executions?: PluginExecutionStatus[]
 }
 
 export const PluginStatusSnapshot: MessageType<PluginStatusSnapshot> =
@@ -179,6 +380,7 @@ export const PluginStatusSnapshot: MessageType<PluginStatusSnapshot> =
     () => [
       [1, 'plugins', 11, 1, PluginStatus.codec],
       [2, 'manifest_recovery', 11, 1, PluginManifestRecoveryStatus.codec],
+      [3, 'executions', 11, 1, PluginExecutionStatus.codec],
     ],
   )
 
