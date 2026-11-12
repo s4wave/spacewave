@@ -124,6 +124,20 @@ func trimNow(t *testing.T, a *Adapter) {
 	a.waitBackground()
 }
 
+// storedWorld stores a World block named name in store and returns its ref:
+// a root set names only Worlds some store holds.
+func storedWorld(t *testing.T, store block.StoreOps, name string) *block.BlockRef {
+	t.Helper()
+	ref, err := block.BuildBlockRef([]byte(name), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBlockBatch(t.Context(), []*block.PutBatchEntry{{Ref: ref, Data: []byte(name), RefsKnown: true}}); err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
 // TestInstallHeadRetriesRetainedHold checks that a head whose retained-root
 // hold failed is held and reported to the watchers by the next install, that
 // its placed candidate is decided only then, and that a later install of the
@@ -133,19 +147,14 @@ func TestInstallHeadRetriesRetainedHold(t *testing.T) {
 	// fails the first root move.
 	ctx := t.Context()
 	store := &flakyRootStore{StoreOps: block_mock.NewMockStore(0), roots: make(map[string]*block.BlockRef), fail: 1}
-	retained, err := block.BuildBlockRef([]byte("retained World"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	head, err := block.BuildBlockRef([]byte("head World"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	retained := storedWorld(t, store.StoreOps, "retained World")
+	head := storedWorld(t, store.StoreOps, "head World")
 	a := &Adapter{
 		opened: openedNow(),
 		le:     logrus.NewEntry(logrus.New()),
 		pages:  block.NewPendingStore(store, 1<<20),
 		held:   make(map[string]*block.BlockRef),
+		now:    time.Now,
 	}
 	a.replay = &spaceReplay{a: a, base: &InnerState{
 		HeadRef:       &bucket.ObjectRef{RootRef: head},
@@ -502,18 +511,13 @@ func TestInstallKeepsLaterCheckpointWorlds(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
+		now:              time.Now,
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
 	}
-	earlier, err := block.BuildBlockRef([]byte("earlier World"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	later, err := block.BuildBlockRef([]byte("later World"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	earlier := storedWorld(t, store.StoreOps, "earlier World")
+	later := storedWorld(t, store.StoreOps, "later World")
 	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: earlier}}}
 	a.replay.positions = []spacePosition{{state: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: later}}}}
 	release, err := a.rootMtx.Lock(ctx)
@@ -734,18 +738,13 @@ func TestTrimKeepsRestoredWorlds(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
+		now:              time.Now,
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
 	}
-	base, err := block.BuildBlockRef([]byte("base World"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	saved, err := block.BuildBlockRef([]byte("saved World"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	base := storedWorld(t, store.StoreOps, "base World")
+	saved := storedWorld(t, store.StoreOps, "saved World")
 	release, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -778,19 +777,13 @@ func TestTrimMovesRootsTogether(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
+		now:              time.Now,
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
 	}
-	ref := func(name string) *block.BlockRef {
-		t.Helper()
-		r, err := block.BuildBlockRef([]byte(name), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return r
-	}
-	covered, head, candidate, base := ref("covered World"), ref("head World"), ref("candidate World"), ref("base World")
+	stored := func(name string) *block.BlockRef { return storedWorld(t, store.StoreOps, name) }
+	covered, head, candidate, base := stored("covered World"), stored("head World"), stored("candidate World"), stored("base World")
 	release, err := a.rootMtx.Lock(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -848,6 +841,7 @@ func TestTrimKeepsItsBaseAndSkipsOlderPlans(t *testing.T) {
 		le:               logrus.NewEntry(logrus.New()),
 		pages:            block.NewPendingStore(store, 1<<20),
 		held:             make(map[string]*block.BlockRef),
+		now:              time.Now,
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
