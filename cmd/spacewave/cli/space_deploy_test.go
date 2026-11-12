@@ -130,11 +130,12 @@ func TestFollowDeployWalksSwapStates(t *testing.T) {
 }
 
 func TestFollowDeployStopsStates(t *testing.T) {
-	// A plugin the space does not list ends the follow with the add step.
+	// A plugin the space does not list ends the follow with the add step,
+	// and succeeds, since the selection is written.
 	set, deployed, older := deployFixture(t)
 	var out strings.Builder
 	err := followDeploy(context.Background(), &out, &s4wave_space.SpaceContentsState{}, deployStates(io.EOF), set, time.UTC)
-	if err == nil || out.String() != "colors is not listed in the space\n"+
+	if err != nil || out.String() != "colors is not listed in the space\n"+
 		"next: the selection is written; add the plugin with spacewave plugin add colors\n" {
 		t.Fatalf("unlisted follow: %v\n%s", err, out.String())
 	}

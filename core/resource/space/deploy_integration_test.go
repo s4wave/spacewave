@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -567,6 +568,13 @@ func TestDeployManifestsFromExport(t *testing.T) {
 	dir, built := writeExportedManifest(t, ctx, le)
 	root := built.GetManifestRef().GetRootRef()
 
+	// Record the export's bytes, which no deploy may change.
+	exportPath := filepath.Join(dir, devtool_store.FileName)
+	exportBytes, err := os.ReadFile(exportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Open the export as space deploy --db does and list the blocks it names.
 	exportVol, refs := openExport(t, ctx, le, dir, built)
 	exported, exportedRefs := readManifestGraph(t, ctx, le, exportBucket(exportVol), root)
@@ -620,6 +628,15 @@ func TestDeployManifestsFromExport(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Both deploys left the export byte for byte as it was written.
+	after, err := os.ReadFile(exportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(after, exportBytes) {
+		t.Fatal("deploying the export rewrote it")
 	}
 }
 
@@ -685,7 +702,7 @@ func writeExportedManifest(t *testing.T, ctx context.Context, le *logrus.Entry) 
 func openExport(t *testing.T, ctx context.Context, le *logrus.Entry, dir string, built *bldr_manifest.ManifestRef) (volume.Volume, []*bldr_manifest.ManifestRef) {
 	// Open the volume and close it when the test ends.
 	t.Helper()
-	vol, err := devtool_store.OpenVolume(ctx, le, dir)
+	vol, err := devtool_store.OpenVolumeCopy(ctx, le, dir)
 	if err != nil {
 		t.Fatal(err)
 	}

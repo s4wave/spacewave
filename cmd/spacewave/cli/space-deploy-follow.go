@@ -33,9 +33,11 @@ const (
 	deployFollowing deployOutcome = iota
 	// deployLive means a deployed manifest runs.
 	deployLive
-	// deployFailed means the deployed manifest cannot run without the
-	// person: it failed with no retry, or the space does not list its plugin.
+	// deployFailed means the deployed manifest failed with no retry.
 	deployFailed
+	// deployStored means the selection is written but the space does not
+	// list the plugin, so nothing loads it until the person adds the plugin.
+	deployStored
 )
 
 // deployState is one state of the deployed manifest set on its plugin, as the
@@ -96,12 +98,13 @@ func findDeployPlugin(state *s4wave_space.SpaceContentsState, manifestID string)
 // classifyDeploy derives the deploy's state from the plugin's listing row and
 // its swap state, with times as clock times in loc.
 func classifyDeploy(p *s4wave_space.SpacePluginStatus, set *deployedSet, loc *time.Location) deployState {
-	// A plugin the Space does not list never loads, so following ends.
+	// A plugin the Space does not list never loads, so following ends with
+	// the stored selection and the step that loads it.
 	clock := func(ts *timestamppb.Timestamp) string { return ts.AsTime().In(loc).Format("15:04:05") }
 	rev := func(r uint64) string { return "rev " + strconv.FormatUint(r, 10) }
 	if p == nil {
 		return deployState{
-			outcome: deployFailed,
+			outcome: deployStored,
 			line:    set.manifestID + " is not listed in the space",
 			next:    "the selection is written; add the plugin with spacewave plugin add " + set.manifestID,
 		}
@@ -172,9 +175,10 @@ func warnDeployOverlap(w io.Writer, p *s4wave_space.SpacePluginStatus, set *depl
 
 // followDeploy prints the deploy's state from start and from each listing
 // state recv returns, each change once. It returns nil once a deployed
-// manifest runs. When the swap fails with no retry, or recv stops because ctx
-// ended (errDeployWaitPassed as its cause for the deadline) or the stream
-// broke, it prints the last state and its next step and returns an error.
+// manifest runs, or with the add step when the space does not list the
+// plugin, since the selection is written. When the swap fails with no retry,
+// or recv stops because ctx ended (errDeployWaitPassed as its cause for the
+// deadline) or the stream broke, it prints the last state and its next step and returns an error.
 func followDeploy(
 	ctx context.Context,
 	w io.Writer,
@@ -193,7 +197,12 @@ func followDeploy(
 		}
 		last = next
 		switch last.outcome {
+		case deployFollowing:
+			// Read the next state below.
 		case deployLive:
+			return nil
+		case deployStored:
+			_, _ = io.WriteString(w, "next: "+last.next+"\n")
 			return nil
 		case deployFailed:
 			_, _ = io.WriteString(w, "next: "+last.next+"\n")
