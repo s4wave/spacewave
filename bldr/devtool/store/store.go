@@ -49,7 +49,11 @@ func OpenVolume(ctx context.Context, le *logrus.Entry, bldrPath string) (volume.
 // export directory at bldrPath, for a reader that must leave the source
 // byte-identical, such as a deploy from an export whose checksums are
 // recorded. Any s4db open writes the file, even a read-only one, which takes a
-// reader slot and writes its pins. Close removes the copy.
+// reader slot and writes its pins. The copy is a copy-on-write clone where the
+// OS temp dir shares a cloning filesystem with the source, such as APFS on
+// macOS, and a byte copy otherwise. It stays in the OS temp dir, which the OS
+// cleans when a killed command leaves it behind, so the source directory never
+// gains a file. Close removes the copy.
 func OpenVolumeCopy(ctx context.Context, le *logrus.Entry, bldrPath string) (volume.Volume, error) {
 	// Copy the database into a new temporary directory.
 	dir, err := os.MkdirTemp("", "devtool-copy-")
@@ -86,9 +90,15 @@ func (v *copyVolume) Close() error {
 	return err
 }
 
-// copyFile copies the file at src to a new file at dst.
+// copyFile copies the file at src to a new file at dst, as a clone when the
+// filesystem can make one.
 func copyFile(src, dst string) error {
-	// Open the source and create the copy.
+	// Clone the source, which shares its blocks in constant time.
+	if cloneFile(src, dst) == nil {
+		return nil
+	}
+
+	// Otherwise open the source and create the copy.
 	in, err := os.Open(src)
 	if err != nil {
 		return errors.Errorf("devtool database not found at %s", src)
