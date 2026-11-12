@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,10 +19,23 @@ import (
 // candidateActivation exposes the ready candidate's admission boundary.
 type candidateActivation struct {
 	activated chan struct{}
+	// answer, when set before the check, holds Check until it yields the
+	// call's result, like a worker that is busy or leaves.
+	answer chan error
 }
 
-// Check declares support for staged replacement.
-func (a *candidateActivation) Check(context.Context, *plugin.CheckActivationRequest) (*plugin.CheckActivationResponse, error) {
+// Check declares support for staged replacement, after answer when set.
+func (a *candidateActivation) Check(ctx context.Context, _ *plugin.CheckActivationRequest) (*plugin.CheckActivationResponse, error) {
+	if a.answer != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case err := <-a.answer:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	return &plugin.CheckActivationResponse{}, nil
 }
 
@@ -170,15 +184,76 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		t.Fatal("retired teardown cleared the replacement")
 	}
 
-	// Releasing the binding ends the remaining worker.
 	stopNext()
 	<-doneNext
-	instance.closeExecutions()
+
+	// A slow worker is never replaced for slowness: the plugin's status says
+	// the update waits on it, and its late answer stages the candidate.
+	prevSlow := activationProbeSlow
+	activationProbeSlow = 20 * time.Millisecond
+	defer func() { activationProbeSlow = prevSlow }()
+	waitingStatus := func(want bool) error {
+		_, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetPlugins() {
+				if st.GetPluginId() == "colors" && strings.HasPrefix(st.GetLastErrorMessage(), activationCheckStage+": ") {
+					return want, nil
+				}
+			}
+			return !want, nil
+		}, nil)
+		return err
+	}
+	// answer yields result from a's check once the status says it waits.
+	answer := func(a *candidateActivation, result error) {
+		go func() {
+			if waitingStatus(true) == nil {
+				a.answer <- result
+			}
+		}()
+	}
+	next.activation.answer = make(chan error)
+	answer(next.activation, nil)
+	slow, stopSlow, doneSlow := start(5)
+	if !slow.worker.prepared {
+		t.Fatal("slow worker was replaced in place")
+	}
+	select {
+	case <-next.closed:
+		t.Fatal("slow worker stopped before the candidate activated")
+	default:
+	}
+	slow.start <- true
+	wait(slow.activation.activated)
 	wait(next.closed)
+	if err := waitingStatus(false); err != nil {
+		t.Fatal(err)
+	}
+	stopSlow()
+	<-doneSlow
+
+	// A worker that leaves while the check waits is replaced in place.
+	slow.activation.answer = make(chan error)
+	answer(slow.activation, plugin.ErrWorkerGone)
+	current := instance.runningPluginCtr.GetValue()
+	last, stopLast, doneLast := start(6)
+	if last.worker.prepared {
+		t.Fatal("departed worker was treated as prepared")
+	}
+	wait(slow.closed)
+	last.start <- true
+	if _, err := instance.runningPluginCtr.WaitValueChange(ctx, current, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// Releasing the binding ends the remaining worker.
+	stopLast()
+	<-doneLast
+	instance.closeExecutions()
+	wait(last.closed)
 	if len(instance.executions.GetKeys()) != 0 {
 		t.Fatal("released binding retained worker references")
 	}
-	if instance.admitExecution(next.worker, func() {}, nil) {
+	if instance.admitExecution(last.worker, func() {}, nil) {
 		t.Fatal("closed binding admitted a late candidate")
 	}
 }

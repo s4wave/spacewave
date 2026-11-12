@@ -10,6 +10,7 @@ import (
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/sirupsen/logrus"
 )
 
 // executionReference identifies a candidate and its registration startup mode.
@@ -86,6 +87,66 @@ func (t *pluginInstance) incompatibleManifest(ref *bucket.ObjectRef) bool {
 	return ok
 }
 
+// activationProbeSlow is how long a running worker may take to answer
+// Activation.Check before the plugin's status says the swap is waiting on it.
+// Tests shorten it.
+var activationProbeSlow = 5 * time.Second
+
+// activationCheckStage names the status a slow activation check records.
+const activationCheckStage = "activation check"
+
+// probeActivation asks the running worker whether it supports prepared
+// activation. It waits for an answer, since a healthy worker can be slow: the
+// check runs on the plugin's own event loop, behind any long task, and a
+// background tab may pause it. Each outcome ends the probe:
+//   - answered: prepared, the candidate starts beside the worker.
+//   - absent method: unprepared, the candidate replaces the worker in place.
+//   - worker gone: unprepared, nothing is left to keep.
+//   - transport error: returned and recorded; the worker is preserved.
+//
+// While no answer has come after activationProbeSlow, the plugin's status
+// says the swap waits on the running worker; the answer clears it.
+//
+// Go and JavaScript RPC servers report an absent method differently.
+func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.RunningPlugin) (bool, error) {
+	// Say the update waits on the worker once it has been slow.
+	recorded := make(chan struct{})
+	slow := time.AfterFunc(activationProbeSlow, func() {
+		defer close(recorded)
+		t.le.WithFields(logrus.Fields{
+			"plugin-id":    t.pluginID,
+			"instance-key": t.instanceKey,
+			"waited":       activationProbeSlow.String(),
+		}).Warn("running plugin has not answered activation check; waiting")
+		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, activationCheckStage, errors.Errorf(
+			"running plugin has not answered after %s; the update waits for it",
+			activationProbeSlow,
+		))
+	})
+
+	// Wait for the answer, then clear any waiting status.
+	_, err := plugin.NewSRPCActivationClient(current.GetRpcClient()).Check(ctx, &plugin.CheckActivationRequest{})
+	if !slow.Stop() {
+		// The status was recorded or is being recorded; clear it once written.
+		<-recorded
+		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, activationCheckStage)
+	}
+
+	// Map the answer to the replacement mode.
+	switch {
+	case err == nil:
+		return true, nil
+	case err.Error() == srpc.ErrUnimplemented.Error(),
+		err.Error() == "not found: bldr.plugin.Activation/Check",
+		plugin.IsWorkerGone(err):
+		return false, nil
+	case ctx.Err() != nil:
+		return false, ctx.Err()
+	default:
+		return false, err
+	}
+}
+
 // execSelectedCandidate prepares a candidate while retaining the admitted worker.
 // Legacy plugins retain their in-place replacement contract; typed plugins
 // publish their complete registration scope only after startup succeeds.
@@ -114,17 +175,15 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		return nil
 	}
 
-	// Probe the current worker's declared admission contract. Go and JavaScript
-	// RPC servers report an absent method differently. Transport failures preserve
-	// the worker; an absent activation method selects in-place replacement.
+	// Probe the current worker's declared admission contract. A prepared worker
+	// stays until the candidate activates; otherwise it is replaced in place.
 	prepared := false
 	if current := t.runningPluginCtr.GetValue(); current != nil && t.manifestRoot == "" {
-		_, err := plugin.NewSRPCActivationClient(current.GetRpcClient()).Check(ctx, &plugin.CheckActivationRequest{})
-		if err != nil && err.Error() != srpc.ErrUnimplemented.Error() &&
-			err.Error() != "not found: bldr.plugin.Activation/Check" {
+		var err error
+		prepared, err = t.probeActivation(ctx, current)
+		if err != nil {
 			return err
 		}
-		prepared = err == nil
 	}
 	if !prepared {
 		t.clearExecution(nil)
