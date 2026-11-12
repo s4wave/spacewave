@@ -20,7 +20,7 @@ type swapCandidate struct {
 func newSwapCandidate(args *executePluginArgs) swapCandidate {
 	return swapCandidate{
 		ref:       manifestSnapshotRefString(args.manifestSnapshot),
-		rev:       args.manifestSnapshot.GetManifest().GetMeta().GetRev(),
+		rev:       args.rev,
 		startedAt: timestamp.Now(),
 	}
 }
@@ -91,7 +91,7 @@ func (t *pluginInstance) setRunningManifest(args *executePluginArgs) {
 	var rev uint64
 	if args != nil {
 		ref = manifestSnapshotRefString(args.manifestSnapshot)
-		rev = args.manifestSnapshot.GetManifest().GetMeta().GetRev()
+		rev = args.rev
 	}
 	t.c.updatePluginExecutionStatus(t.pluginID, t.instanceKey, func(status *bldr_plugin.PluginExecutionStatus) {
 		status.RunningManifestRef = ref
