@@ -30,7 +30,8 @@ func newRecordedTx(ctx context.Context, etx *EngineTx) (*recordedTx, error) {
 
 // Commit closes the recorder, encodes its batch with the engine's bucket ID
 // cleared from its object roots, so a replaying member resolves them in its
-// own bucket, and commits the engine transaction with it as the Operation.
+// own bucket, and commits the engine transaction with it as the Operation and
+// with the object roots it records, which the commit stores with it.
 func (t *recordedTx) Commit(ctx context.Context) error {
 	// Close the recorder.
 	if err := t.WorldState.Commit(ctx); err != nil {
@@ -45,6 +46,7 @@ func (t *recordedTx) Commit(ctx context.Context) error {
 		op, err := world_block_tx.NewTxBatch(batch)
 		if err == nil {
 			t.etx.operation, err = op.MarshalVT()
+			t.etx.recordedRoots = op.ObjectRoots()
 		}
 		if err != nil {
 			t.etx.Discard()

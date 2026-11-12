@@ -377,3 +377,54 @@ func TestSetRootKeepsFinalRoot(t *testing.T) {
 		})
 	}
 }
+
+// TestSetRootReplacedInTx records roots that one transaction sets and then
+// replaces or deletes, as a GLaDOS drain does when it creates a light and then
+// updates it. The stored batch names each recorded root, so each must be
+// durable even though the committed World reaches none of them.
+func TestSetRootReplacedInTx(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer engRef.Release()
+	so := f.space(t)
+
+	// Create an object, then replace its root.
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, _, err := world.CreateWorldObject(ctx, ws, "light", func(bcs *block.Cursor) error {
+			bcs.SetBlock(&block_mock.Example{Msg: "green"}, true)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		defer world.ReleaseObjectState(obj)
+		_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+			bcs.ClearAllRefs()
+			bcs.SetBlock(&block_mock.Example{Msg: "yellow"}, true)
+			return nil
+		})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create an object, then delete it.
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, _, err := world.CreateWorldObject(ctx, ws, "scratch", func(bcs *block.Cursor) error {
+			bcs.SetBlock(&block_mock.Example{Msg: "scratch"}, true)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		world.ReleaseObjectState(obj)
+		_, err = ws.DeleteObject(ctx, "scratch")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	requireDurableSetRoots(ctx, t, so, optypes.LookupWorldOp)
+}
