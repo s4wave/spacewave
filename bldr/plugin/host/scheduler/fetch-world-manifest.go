@@ -361,6 +361,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			}
 			t.setExecutePluginState(&executePluginArgs{
 				manifestSnapshot: snapshot,
+				rev:              best.ref.GetMeta().GetRev(),
 				pluginHost:       best.host,
 				serveAssets:      best.host == nil,
 			})

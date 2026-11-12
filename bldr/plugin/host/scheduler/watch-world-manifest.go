@@ -372,6 +372,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			if executeManifest != nil {
 				changed := t.setExecutePluginState(&executePluginArgs{
 					manifestSnapshot: executeManifest,
+					rev:              executeManifest.GetManifest().GetMeta().GetRev(),
 					pluginHost:       executeManifestHost,
 					serveAssets:      executeManifestHost == nil,
 				})

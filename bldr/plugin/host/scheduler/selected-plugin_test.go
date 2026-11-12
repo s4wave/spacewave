@@ -120,11 +120,11 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	defer instance.executions.ClearContext()
 	defer instance.clearExecution(nil)
 
-	// candidate builds the args selecting the given revision.
+	// candidate builds the args selecting the given revision as the world
+	// selection does: a ManifestRef and its rev, with no fetched Manifest.
 	candidate := func(rev uint64) *executePluginArgs {
-		return &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, manifestSnapshot: &manifest.ManifestSnapshot{
+		return &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, rev: rev, manifestSnapshot: &manifest.ManifestSnapshot{
 			ManifestRef: newTestManifestRef("colors", "js", rev, "candidate").GetManifestRef(),
-			Manifest:    &manifest.Manifest{Meta: manifest.NewManifestMeta("colors", manifest.BuildType_DEV, "js", rev)},
 		}}
 	}
 	// nextStarted waits for the next worker to start.
