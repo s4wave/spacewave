@@ -12,8 +12,6 @@ import (
 	"sync/atomic"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
@@ -402,50 +400,44 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		startupBuilderResult,
 	)
 
-	// Start the builder controller and attach this tracker as its sink.
+	// Run the builder controller and republish each build it finishes. A
+	// watching build stays up through a failed build, which the next source
+	// change rebuilds; a finite build ends with its first failure.
 	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "starting builder controller", nil)
-	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*manifest_builder_controller.Controller](
+	watch := ctrlConf.GetWatch()
+	var buildErr error
+	err = manifest_builder_controller.FollowBuilder(
 		ctx,
 		t.c.bus,
-		resolver.NewLoadControllerWithConfig(builderConf),
-		nil,
-	)
-	if err != nil {
-		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "start builder controller", err)
-		t.resultPromiseCtr.SetResult(nil, err)
-		return err
-	}
-	defer ctrlRef.Release()
-	builderCtrl.SetManifestBuilderLifecycleSink(t)
-
-	// Await each builder result and republish it until the context ends.
-	for {
-		resultPromiseCtr := builderCtrl.GetResultPromise()
-		resultPromise, resultPromiseChanged := resultPromiseCtr.GetPromise()
-		if resultPromise != nil {
-			result, err := resultPromise.Await(ctx)
+		builderConf,
+		func(builderCtrl *manifest_builder_controller.Controller) {
+			builderCtrl.SetManifestBuilderLifecycleSink(t)
+			t.setManifestBuilderStatus(ManifestBuilderStatusStateQueued, "waiting for builder result", nil)
+		},
+		func(result *bldr_manifest_builder.BuilderResult, err error) error {
 			if err != nil {
-				t.setManifestBuilderTerminalStatus(ctx, "build failed", err)
+				t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "build failed", err)
 				t.resultPromiseCtr.SetResult(nil, err)
+				if watch {
+					return nil
+				}
+				buildErr = err
 				return err
 			}
 			t.setManifestBuilderStatus(ManifestBuilderStatusStateDone, "build complete", nil)
 			t.resultPromiseCtr.SetResult(NewManifestBuilderResult(manifestBuilderConf, result), nil)
-		}
-		if resultPromise == nil {
-			// No result yet.
-			t.setManifestBuilderStatus(ManifestBuilderStatusStateQueued, "waiting for builder result", nil)
-			t.resultPromiseCtr.SetPromise(nil)
-		}
-
-		select {
-		case <-ctx.Done():
-			t.setManifestBuilderStatus(ManifestBuilderStatusStateCanceled, "build canceled", ctx.Err())
-			return context.Canceled
-		case <-resultPromiseChanged:
-			// re-check (manifest was rebuilt)
-		}
+			return nil
+		},
+	)
+	if ctx.Err() != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateCanceled, "build canceled", ctx.Err())
+		return context.Canceled
 	}
+	if err != nil && err != buildErr {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "start builder controller", err)
+		t.resultPromiseCtr.SetResult(nil, err)
+	}
+	return err
 }
 
 // applyBuilderConfigOverride applies a build-scoped builder config override to
@@ -496,20 +488,6 @@ func (t *manifestBuilderTracker) setManifestBuilderStatus(
 		next.Error = ""
 	}
 	t.storeManifestBuilderStatus(next)
-}
-
-// setManifestBuilderTerminalStatus records the final build state,
-// mapping context cancellation to a canceled status.
-func (t *manifestBuilderTracker) setManifestBuilderTerminalStatus(
-	ctx context.Context,
-	summary string,
-	err error,
-) {
-	if ctx.Err() != nil {
-		t.setManifestBuilderStatus(ManifestBuilderStatusStateCanceled, "build canceled", ctx.Err())
-		return
-	}
-	t.setManifestBuilderStatus(ManifestBuilderStatusStateError, summary, err)
 }
 
 // currentManifestBuilderStatus returns the current status snapshot.

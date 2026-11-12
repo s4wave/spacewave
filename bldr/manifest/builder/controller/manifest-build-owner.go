@@ -14,6 +14,20 @@ import (
 // manifestBuildOwner owns the manifest build lifecycle: it serializes
 // attempts, tracks the previous result and rebuild reason, and publishes
 // results to the world state.
+//
+// Each attempt installs a fresh result promise and moves through these states:
+//
+//   - building: BuildManifest and the result store run under the attempt
+//     context.
+//   - canceled: a newer change, a source edit or a sub-manifest result,
+//     restarted the attempt. Its promise stays unresolved and the loop begins
+//     a new attempt on the newest input, whose promise replaces it.
+//   - built or failed: the promise resolves with the result or the build
+//     error. A watching controller then waits for the next change; a failed
+//     build keeps the previous result's inputs watched.
+//
+// A promise therefore resolves only with a finished build, never with the
+// cancellation of one, and followers move to the replacement promise.
 type manifestBuildOwner struct {
 	c             *Controller
 	builderConfig *bldr_manifest_builder.BuilderConfig
@@ -143,12 +157,17 @@ func (o *manifestBuildOwner) publishResult(
 	// Snapshot the rebuild reason recorded for this build.
 	rebuildReason := o.rebuildReasonSnapshot()
 
-	// On success, validate and store the result, then resolve the promise.
+	// On success, validate and store the result, then resolve the promise. A
+	// store that a newer change cancels resolves nothing: the next attempt
+	// builds the newest input and resolves its own promise.
 	if err == nil {
 		if result != nil {
 			if err := result.Validate(); err != nil {
 				le.WithError(err).Debug("skipping world-backed manifest build result")
 			} else if err := o.c.storeManifestBuildResult(ctx, le, result); err != nil {
+				if ctx.Err() != nil {
+					return context.Canceled
+				}
 				resultPromise.SetResult(nil, err)
 				o.prevErr = err
 				return err

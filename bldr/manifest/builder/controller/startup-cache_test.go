@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/enabled"
 	"github.com/go-git/go-billy/v6/memfs"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
@@ -37,7 +38,11 @@ var testStartupCacheBuilderState struct {
 	cacheSafe        atomic.Bool
 	buildCalls       atomic.Int32
 	buildSubManifest atomic.Bool
+	failBuild        atomic.Bool
 }
+
+// errTestBuildFailed is the error a test build returns while failBuild is set.
+var errTestBuildFailed = errors.New("test build failed")
 
 type testStartupCacheBuilderConfig struct{}
 
@@ -109,6 +114,9 @@ func (c *testStartupCacheBuilder) BuildManifest(
 ) (*bldr_manifest_builder.BuilderResult, error) {
 	// Count the build call and derive the input path and bucket from the meta.
 	testStartupCacheBuilderState.buildCalls.Add(1)
+	if testStartupCacheBuilderState.failBuild.Load() {
+		return nil, errTestBuildFailed
+	}
 	builderConfig := args.GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta().CloneVT()
 	inputPath := "main.go"
@@ -1006,6 +1014,155 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	cancel()
 	if execErr := waitForControllerExecuteExit(t, errCh); execErr != nil && execErr != context.Canceled {
 		t.Fatalf("execute: %v", execErr)
+	}
+}
+
+// TestPublishResultCanceledStoreLeavesPromisePending checks that a result
+// store a newer change cancels leaves the result promise pending. Resolving it
+// with the cancellation made watch followers treat a superseded build as a
+// failed one and stop following the builder.
+func TestPublishResultCanceledStoreLeavesPromisePending(t *testing.T) {
+	// Build the testbed and a valid result stored in its World.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	builderControllerConfig := newTestBuilderControllerProto(t)
+	result := buildStoredStartupBuilderResult(t, tb, tmpDir, builderControllerConfig)
+
+	// Publish through an owner whose attempt a newer change canceled.
+	ctrl := NewController(tb.GetLogger(), tb.GetBus(), NewConfig(
+		&bldr_manifest_builder.BuilderConfig{
+			ManifestMeta: result.GetManifest().GetMeta().CloneVT(),
+			EngineId:     tb.GetWorldEngineID(),
+		},
+		builderControllerConfig,
+		nil,
+		true,
+		nil,
+	))
+	owner := newManifestBuildOwner(ctrl, ctrl.GetConfig().GetBuilderConfig())
+	resultPromise := owner.nextResultPromise()
+	attempt := owner.beginAttempt(ctx)
+	attempt.restart("sub-manifest changed: child")
+	err = owner.publishResult(attempt.ctx, tb.GetLogger(), resultPromise, result, nil, false, false, true)
+	if err != context.Canceled {
+		t.Fatalf("publish under a canceled attempt = %v, want context.Canceled", err)
+	}
+
+	// The superseded build must not resolve the promise.
+	pendingCtx, pendingCancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer pendingCancel()
+	if _, err := resultPromise.Await(pendingCtx); err != context.Canceled || ctx.Err() != nil {
+		t.Fatalf("superseded build resolved the result promise: %v", err)
+	}
+}
+
+// TestFollowBuilderWatchSurvivesFailedBuild runs a watching builder through
+// FollowBuilder: a failed build is delivered and the next source change
+// rebuilds and delivers a result, so the follower keeps the watch alive.
+func TestFollowBuilderWatchSurvivesFailedBuild(t *testing.T) {
+	// Write the watched source file.
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "main.go")
+	if err := os.WriteFile(filePath, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Build the testbed and register the builder factories.
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	testStartupCacheBuilderState.cacheSafe.Store(true)
+	testStartupCacheBuilderState.buildCalls.Store(0)
+	testStartupCacheBuilderState.failBuild.Store(false)
+	defer testStartupCacheBuilderState.failBuild.Store(false)
+	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+	tb.GetStaticResolver().AddFactory(NewFactory(tb.GetBus()))
+
+	// Follow a watching builder, passing each delivered build to the test.
+	type delivered struct {
+		result *bldr_manifest_builder.BuilderResult
+		err    error
+	}
+	deliveries := make(chan delivered, 8)
+	conf := NewConfig(
+		&bldr_manifest_builder.BuilderConfig{
+			ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
+			SourcePath:   tmpDir,
+		},
+		newTestBuilderControllerProto(t),
+		nil,
+		true,
+		nil,
+	)
+	followErr := make(chan error, 1)
+	go func() {
+		followErr <- FollowBuilder(ctx, tb.GetBus(), conf, nil, func(result *bldr_manifest_builder.BuilderResult, err error) error {
+			deliveries <- delivered{result, err}
+			return nil
+		})
+	}()
+
+	// until writes the watched file, when write is set, until the follower
+	// delivers a build that ok accepts. A change written before the switch
+	// may deliver one more build of the earlier kind, which is skipped.
+	writes := 0
+	until := func(write bool, ok func(delivered) bool) {
+		t.Helper()
+		retry := time.NewTicker(300 * time.Millisecond)
+		defer retry.Stop()
+		for {
+			select {
+			case d := <-deliveries:
+				if ok(d) {
+					return
+				}
+			case err := <-followErr:
+				t.Fatalf("follower stopped: %v", err)
+			case <-ctx.Done():
+				t.Fatal("timed out waiting for a delivered build")
+			case <-retry.C:
+				if !write {
+					continue
+				}
+				writes++
+				content := []byte("package main\n// changed " + strconv.Itoa(writes) + "\n")
+				if err := os.WriteFile(filePath, content, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+	}
+	built := func(d delivered) bool { return d.err == nil && d.result != nil }
+
+	// Built, then failed, then built again after the next change.
+	until(false, func(d delivered) bool {
+		if !built(d) {
+			t.Fatalf("first build: %v", d.err)
+		}
+		return true
+	})
+	testStartupCacheBuilderState.failBuild.Store(true)
+	until(true, func(d delivered) bool { return errors.Is(d.err, errTestBuildFailed) })
+	testStartupCacheBuilderState.failBuild.Store(false)
+	until(true, built)
+
+	// Cancel and wait for the follower to stop.
+	cancel()
+	if err := <-followErr; err != context.Canceled {
+		t.Fatalf("follow: %v", err)
 	}
 }
 

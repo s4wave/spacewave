@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aperturerobotics/controllerbus/controller/loader"
-	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
@@ -94,52 +92,24 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 		startupBuilderResult,
 	)
 
-	// Load and run the sub-manifest builder controller.
-	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](
-		ctx,
-		t.c.bus,
-		resolver.NewLoadControllerWithConfig(builderConf),
-		nil,
-	)
-	if ctrlRef != nil {
-		defer ctrlRef.Release()
-	}
+	// Run the sub-manifest builder and publish each build it finishes on the
+	// owner's promise. A watching build stays up through a failed build; a
+	// finite build ends with its first failure.
+	watch := ctrlConf.GetWatch()
+	var buildErr error
+	err := FollowBuilder(ctx, t.c.bus, builderConf, nil, func(result *bldr_manifest_builder.BuilderResult, err error) error {
+		t.build.setResult(result, err)
+		if err != nil && !watch {
+			buildErr = err
+			return err
+		}
+		return nil
+	})
 	if ctx.Err() != nil {
 		return context.Canceled
 	}
-	if err != nil {
+	if err != nil && err != buildErr {
 		t.build.setResult(nil, err)
-		return err
 	}
-
-	// Wait for each builder result and republish it until the context ends.
-	for {
-		// Read the builder's current result promise.
-		resultPromiseCtr := builderCtrl.GetResultPromise()
-		resultPromise, resultPromiseChanged := resultPromiseCtr.GetPromise()
-
-		// Publish each builder result on the owner's promise.
-		if resultPromise != nil {
-			result, err := resultPromise.Await(ctx)
-			if ctx.Err() != nil {
-				return context.Canceled
-			}
-			if err != nil {
-				t.build.setResult(nil, err)
-			} else {
-				t.build.setResult(result, nil)
-			}
-			if err != nil {
-				return err
-			}
-		}
-
-		// Wait for the next rebuild or context cancellation.
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-resultPromiseChanged:
-			// re-check (manifest was rebuilt)
-		}
-	}
+	return err
 }

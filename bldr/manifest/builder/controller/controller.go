@@ -308,6 +308,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 			)
 			if acquireErr != nil {
 				attempt.release()
+				if attempt.wasRestarted() {
+					continue
+				}
 				return acquireErr
 			}
 
