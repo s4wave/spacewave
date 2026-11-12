@@ -398,10 +398,10 @@ func TestSetRootReplacedInTx(t *testing.T) {
 			bcs.SetBlock(&block_mock.Example{Msg: "green"}, true)
 			return nil
 		})
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
-		defer world.ReleaseObjectState(obj)
 		_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 			bcs.ClearAllRefs()
 			bcs.SetBlock(&block_mock.Example{Msg: "yellow"}, true)
@@ -418,10 +418,10 @@ func TestSetRootReplacedInTx(t *testing.T) {
 			bcs.SetBlock(&block_mock.Example{Msg: "scratch"}, true)
 			return nil
 		})
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
-		world.ReleaseObjectState(obj)
 		_, err = ws.DeleteObject(ctx, "scratch")
 		return err
 	}); err != nil {
@@ -450,10 +450,10 @@ func TestPayloadBuiltInTx(t *testing.T) {
 			return err
 		}
 		obj, _, err := ws.GetObject(ctx, "fs")
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
-		defer world.ReleaseObjectState(obj)
 		_, _, err = unixfs_world.FsMknod(ctx, obj, "", unixfs_world.FSType_FSType_FS_NODE, [][]string{{"f"}}, unixfs.NewFSCursorNodeType_File(), 0o644, ts)
 		return err
 	}); err != nil {
@@ -463,10 +463,10 @@ func TestPayloadBuiltInTx(t *testing.T) {
 	// Append to the file, building the payload blob in the transaction.
 	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
 		obj, _, err := ws.GetObject(ctx, "fs")
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
-		defer world.ReleaseObjectState(obj)
 		_, _, err = unixfs_world.FsWriteAt(ctx, ws, obj, "", unixfs_world.FSType_FSType_FS_NODE, []string{"f"}, 0, []byte("appended"), ts)
 		return err
 	}); err != nil {

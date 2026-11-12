@@ -151,7 +151,8 @@ func openHead(
 			// Write a new empty World.
 			btx, bcs := cursor.BuildTransaction(nil)
 			bcs.ClearAllRefs()
-			bcs.SetBlock(world_block.NewWorld(false), true)
+			initial := world_block.NewWorld(world_block.NewestWorldFormat, false)
+			bcs.SetBlock(initial, true)
 			root, _, err := btx.Write(ctx, true)
 			return root, errors.Wrap(err, "write initial world")
 		},

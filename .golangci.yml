@@ -95,6 +95,8 @@ linters:
           check-paths: true
           resources:
             - type: github.com/s4wave/spacewave/db/world.ObjectState
+              nil-on-error-functions:
+                - github.com/s4wave/spacewave/db/world.MustGetObject
               nil-on-false-functions:
                 - github.com/s4wave/spacewave/db/world.WorldStateObject.GetObject
                 - github.com/s4wave/spacewave/db/world/block.WorldState.GetObject

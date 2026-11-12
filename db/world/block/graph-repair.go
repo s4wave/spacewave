@@ -33,30 +33,24 @@ type GraphRepair struct {
 	Seqno uint64
 }
 
-// GraphHoleFill is what an older World held in the key range of one hole.
-type GraphHoleFill struct {
-	// Root is the World root the keys came from, or nil when no root held
-	// the whole range.
-	Root *block.BlockRef
-	// Keys is the number of keys the range held in Root.
-	Keys int
-	// Tried are the roots that did not hold the whole range, with why.
-	Tried []string
-	// entries are the keys of the range.
-	entries []kvtx_block_okra.BuildEntry
-}
-
 // RepairGraphTree finds the graph tree's missing pages and fills each one's
 // key range from the first of fillRoots whose graph tree reads that whole
 // range. With apply set it replaces the graph tree with every readable key
 // plus the fills. It refuses to apply while a hole has no fill, unless
-// dropHoles is set, which drops those ranges.
+// dropHoles is set, which drops those ranges. It refuses a node graph World:
+// a fill from an older root could bring back a smaller next ID or one key of
+// an edge pair.
 func (t *WorldState) RepairGraphTree(
 	ctx context.Context,
 	fillRoots []*block.BlockRef,
 	apply bool,
 	dropHoles bool,
 ) (*GraphRepair, error) {
+	// Refuse a node graph World, which older roots cannot fill.
+	if t.format == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
+		return nil, errors.New("node graph World cannot be repaired from older roots")
+	}
+
 	// Apply held graph writes so the walk sees the current tree.
 	if err := t.flushGraphWrites(ctx); err != nil {
 		return nil, errors.Wrap(err, "graph write flush")
@@ -285,15 +279,19 @@ func salvageEntries(
 	fill func(kvtx_block_okra.SalvageHole) ([]kvtx_block_okra.BuildEntry, error),
 ) iter.Seq2[kvtx_block_okra.BuildEntry, error] {
 	return func(yield func(kvtx_block_okra.BuildEntry, error) bool) {
+		// Yield each readable entry, and each hole's fill in its place.
 		stopped := false
 		var fillErr error
 		err := tree.Salvage(ctx, nil, nil, func(entry kvtx_block_okra.BuildEntry) bool {
 			stopped = !yield(entry, nil)
 			return !stopped
 		}, func(hole kvtx_block_okra.SalvageHole) bool {
+			// Without a fill the hole is dropped.
 			if fill == nil {
 				return true
 			}
+
+			// Yield the fill's entries in the hole's place.
 			var entries []kvtx_block_okra.BuildEntry
 			entries, fillErr = fill(hole)
 			if fillErr != nil {
@@ -424,6 +422,7 @@ func (t *WorldState) DumpObjectTree(
 	record func(key string, err error) error,
 	hole func(kvtx_block_okra.SalvageHole) error,
 ) error {
+	// Salvage reads only an Okra tree.
 	tree, ok := t.objTree.(*kvtx_block_okra.Tx)
 	if !ok {
 		return errors.Errorf("object tree is %T, not an okra tree", t.objTree)
@@ -549,10 +548,14 @@ func (t *WorldState) ReplaceObjectRecord(ctx context.Context, key string, rootRe
 // object prefix, calling entry for each readable key and hole for each page
 // that reads as missing. Empty bounds are open.
 func (t *WorldState) SalvageObjectRange(ctx context.Context, low, high string, entry func(key string) error, hole func(kvtx_block_okra.SalvageHole) error) error {
+	// Salvage reads only an Okra tree.
 	tree, ok := t.objTree.(*kvtx_block_okra.Tx)
 	if !ok {
 		return errors.Errorf("object tree is %T, not an okra tree", t.objTree)
 	}
+
+	// Bound the walk to the object keys in range; an open high bound ends
+	// at the first key past the object prefix.
 	var lo, hi []byte
 	if low != "" {
 		lo = []byte(objectKeyPrefix + low)
@@ -562,6 +565,8 @@ func (t *WorldState) SalvageObjectRange(ctx context.Context, low, high string, e
 	} else {
 		hi = []byte(objectKeyPrefix[:len(objectKeyPrefix)-1] + string(rune(objectKeyPrefix[len(objectKeyPrefix)-1]+1)))
 	}
+
+	// Pass each object key and hole to the callbacks.
 	var cbErr error
 	err := tree.Salvage(ctx, lo, hi, func(e kvtx_block_okra.BuildEntry) bool {
 		if key, ok := bytes.CutPrefix(e.Key, []byte(objectKeyPrefix)); ok {

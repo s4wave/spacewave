@@ -86,6 +86,15 @@ func (t *WorldState) StepGraphSettings(ctx context.Context, target *GraphSetting
 	if err != nil {
 		return false, false, err
 	}
+
+	// A node graph has fixed edge ranges: it already matches the defaults and
+	// takes no other settings.
+	if t.format == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
+		if indexes != nil {
+			return false, false, errors.New("node graph World takes no graph settings")
+		}
+		return true, false, nil
+	}
 	if indexes == nil {
 		indexes = cayley_kv.DefaultQuadIndexes
 	}

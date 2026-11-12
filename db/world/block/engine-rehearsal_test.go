@@ -197,11 +197,15 @@ func TestRehearsalScales(t *testing.T) {
 	t.Logf("n=%d: rehearsal %.0f allocs, %d reads; write %.0f allocs, %d reads", worldSeedObjects/10, small.allocs, small.reads, smallWrite.allocs, smallWrite.reads)
 	t.Logf("n=%d: rehearsal %.0f allocs, %d reads; write %.0f allocs, %d reads", worldSeedObjects, large.allocs, large.reads, largeWrite.allocs, largeWrite.reads)
 
-	// The rehearsal grows no faster than the write it warms.
-	allocGrowth, writeAllocGrowth := large.allocs/small.allocs, largeWrite.allocs/smallWrite.allocs
+	// The rehearsal reads no more of the larger tree than the write it warms,
+	// and its allocations grow by the extra tree level alone: under twice,
+	// where a cost in the World's size or its square root grows 10 or 3.2
+	// times. The write's own allocations are no yardstick, since its commit
+	// work does not depend on the World's size and can hide the level.
+	allocGrowth := large.allocs / small.allocs
 	readGrowth, writeReadGrowth := float64(large.reads)/float64(small.reads), float64(largeWrite.reads)/float64(smallWrite.reads)
-	if allocGrowth > writeAllocGrowth*1.1 || readGrowth > writeReadGrowth*1.1 {
-		t.Fatalf("rehearsal grew %.2fx allocs, %.2fx reads against the write's %.2fx, %.2fx", allocGrowth, readGrowth, writeAllocGrowth, writeReadGrowth)
+	if allocGrowth >= 2 || readGrowth > writeReadGrowth*1.1 {
+		t.Fatalf("rehearsal grew %.2fx allocs, %.2fx reads against the write's %.2fx reads", allocGrowth, readGrowth, writeReadGrowth)
 	}
 }
 

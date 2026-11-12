@@ -44,7 +44,7 @@ func (k *KeyValueStore) ApplySubBlock(id uint32, next block.SubBlock) error {
 // May return nil, and values may also be nil.
 func (k *KeyValueStore) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
-	switch k.GetImplType() {
+	switch k.GetImplType().layout() {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		m[2] = k.GetIavlRoot()
 	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:

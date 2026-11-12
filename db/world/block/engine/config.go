@@ -28,8 +28,7 @@ func NewConfig(
 	}
 }
 
-// Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks that the configuration's values look correct.
 func (c *Config) Validate() error {
 	// Determine whether the World configuration supplies an initial head.
 	initRef := c.GetInitHeadRef()
@@ -44,8 +43,8 @@ func (c *Config) Validate() error {
 	if err := c.GetStateTransformConf().Validate(); err != nil {
 		return errors.Wrap(err, "state_transform_conf")
 	}
-	if err := c.GetGraphSettings().ValidateInitial(); err != nil {
-		return errors.Wrap(err, "graph_settings")
+	if err := c.GetFormat().ValidateInitial(c.GetGraphSettings()); err != nil {
+		return errors.Wrap(err, "format")
 	}
 
 	return nil

@@ -4,7 +4,8 @@
 
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Config as Config$1 } from '../../../block/transform/transform.pb.js'
-import { GraphSettings } from '../world.pb.js'
+import type { WorldFormat } from '../world.pb.js'
+import { GraphSettings, WorldFormat_Enum } from '../world.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
@@ -77,6 +78,11 @@ export interface Config {
    */
   graphSettings?: GraphSettings
   /**
+   * Format is the stored layout a new World starts with. An existing World
+   * keeps the format it has.
+   */
+  format?: WorldFormat
+  /**
    * DisableLookup disables looking up anything on the bus via directives.
    * Implies both DisableApplyWorldOp and DisableApplyObjectOp.
    */
@@ -125,6 +131,7 @@ export const Config: MessageType<Config> =
     [14, 'recover_missing_persisted_head', 8],
     [15, 'graph_settings', 11, 0, GraphSettings.codec],
     [16, 'ephemeral', 8],
+    [17, 'format', 14, 0, WorldFormat_Enum],
   ])
 
 /**

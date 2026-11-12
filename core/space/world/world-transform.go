@@ -40,12 +40,12 @@ func NewInitWorldOp(base *InitWorldOp) (*InitWorldOp, error) {
 	return op, nil
 }
 
-// Validate checks the operation's transform and graph settings.
+// Validate checks the operation's transform, format and graph settings.
 func (i *InitWorldOp) Validate() error {
 	if err := i.GetTransformConf().Validate(); err != nil {
 		return err
 	}
-	return i.GetGraphSettings().ValidateInitial()
+	return i.GetFormat().ValidateInitial(i.GetGraphSettings())
 }
 
 // BuildInitialInnerState builds the empty World initOp initializes. initOp

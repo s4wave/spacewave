@@ -12,8 +12,17 @@ import (
 // The world starts with an empty changelog head so the root always encodes to
 // at least one byte: an all-zero World stores as an empty reference, which
 // reads as no World at all.
-func NewWorld(disableChangelog bool) *World {
-	return &World{LastChange: &ChangeLogLL{}, LastChangeDisable: disableChangelog}
+//
+// A node graph World starts with the roots of both trees, which carry the
+// format's tags, so a build that does not know the format refuses the World
+// from its first commit on.
+func NewWorld(format WorldFormat, disableChangelog bool) *World {
+	w := &World{LastChange: &ChangeLogLL{}, LastChangeDisable: disableChangelog, Format: format}
+	if format == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
+		w.ObjectKeyValue = format.newObjectTree()
+		w.GraphKeyValue = block_kvtx.NewKeyValueStore(format.graphImpl())
+	}
+	return w
 }
 
 // NewWorldBlock constructs a new world state block.
@@ -97,11 +106,19 @@ func (w *World) GetSubBlocks() map[uint32]block.SubBlock {
 func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
-		return block_kvtx.NewKeyValueStoreSubBlockCtor(&w.ObjectKeyValue)
+		return func(create bool) block.SubBlock {
+			if w.ObjectKeyValue == nil && create {
+				w.ObjectKeyValue = w.GetFormat().newObjectTree()
+			}
+			if w.ObjectKeyValue == nil {
+				return nil
+			}
+			return w.ObjectKeyValue
+		}
 	case 2:
 		return func(create bool) block.SubBlock {
 			if w.GraphKeyValue == nil && create {
-				w.GraphKeyValue = block_kvtx.NewKeyValueStoreForWorkload(block_kvtx.WorkloadClassGraphPrefixRead)
+				w.GraphKeyValue = block_kvtx.NewKeyValueStore(w.GetFormat().graphImpl())
 			}
 			if w.GraphKeyValue == nil {
 				return nil

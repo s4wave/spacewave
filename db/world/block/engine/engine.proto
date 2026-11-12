@@ -49,6 +49,9 @@ message Config {
   // Empty leaves an existing World's settings unchanged and starts a new World
   // with the default settings; list the default indexes to return to them.
   .world.block.GraphSettings graph_settings = 15;
+  // Format is the stored layout a new World starts with. An existing World
+  // keeps the format it has.
+  .world.block.WorldFormat format = 17;
 
   // DisableLookup disables looking up anything on the bus via directives.
   // Implies both DisableApplyWorldOp and DisableApplyObjectOp.

@@ -105,16 +105,28 @@ func BuildKvTransaction(ctx context.Context, bcs *block.Cursor, write bool) (kvt
 	return kvs.BuildKvTransaction(taskCtx, bcs, write)
 }
 
+// layout returns the tree layout an implementation stores: IAVL, Okra or
+// inline Okra, or 0 when the implementation is unknown. The node graph tags
+// store the same layouts; they exist so a build that predates the node graph
+// World rejects its trees.
+func (i KVImplType) layout() KVImplType {
+	switch i {
+	case KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
+		return KVImplType_KV_IMPL_TYPE_IAVL
+	case KVImplType_KV_IMPL_TYPE_OKRA:
+		return KVImplType_KV_IMPL_TYPE_OKRA
+	case KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH:
+		return KVImplType_KV_IMPL_TYPE_OKRA_INLINE
+	}
+	return 0
+}
+
 // Validate checks if the implementation is in the known set.
 func (i KVImplType) Validate() error {
-	switch i {
-	case KVImplType_KV_IMPL_TYPE_IAVL:
-		return nil
-	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
-		return nil
-	default:
+	if i.layout() == 0 {
 		return NewErrUnknownImpl(i)
 	}
+	return nil
 }
 
 // Validate performs cursory checks of the KeyValueStore object.
@@ -122,7 +134,7 @@ func (k *KeyValueStore) Validate() error {
 	if err := k.GetImplType().Validate(); err != nil {
 		return err
 	}
-	switch k.GetImplType() {
+	switch k.GetImplType().layout() {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		if err := k.GetIavlRoot().Validate(); err != nil {
 			return errors.Wrap(err, "iavl_root")
@@ -141,7 +153,7 @@ func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Curso
 	defer task.End()
 
 	impl := k.GetImplType()
-	switch impl {
+	switch impl.layout() {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		treeBcs := bcs.FollowSubBlock(2)
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction/iavl-new-tx")
@@ -154,7 +166,7 @@ func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Curso
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction/okra-new-tx")
 		defer subtask.End()
 		newTx := okra.NewTx
-		if impl == KVImplType_KV_IMPL_TYPE_OKRA_INLINE {
+		if impl.layout() == KVImplType_KV_IMPL_TYPE_OKRA_INLINE {
 			newTx = okra.NewTxWithInlineValues
 		}
 		return newTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {

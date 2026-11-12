@@ -29,6 +29,14 @@ const (
 	// KV_IMPL_TYPE_OKRA_INLINE packs small byte values into Okra pages.
 	// The distinct tag makes readers without inline-value support reject it.
 	KVImplType_KV_IMPL_TYPE_OKRA_INLINE KVImplType = 3
+	// KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH is an inline Okra tree holding a
+	// World graph in the node graph layout. A reader that predates the layout
+	// rejects the tag instead of reading the tree as an empty Cayley kv graph.
+	KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH KVImplType = 4
+	// KV_IMPL_TYPE_IAVL_NODE_GRAPH is an IAVL tree holding the objects of a
+	// World in the node graph layout. A reader that predates the layout rejects
+	// the tag when it opens the object tree, before it reads or writes the World.
+	KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH KVImplType = 5
 )
 
 // Enum value maps for KVImplType.
@@ -38,12 +46,16 @@ var (
 		1: "KV_IMPL_TYPE_IAVL",
 		2: "KV_IMPL_TYPE_OKRA",
 		3: "KV_IMPL_TYPE_OKRA_INLINE",
+		4: "KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH",
+		5: "KV_IMPL_TYPE_IAVL_NODE_GRAPH",
 	}
 	KVImplType_value = map[string]int32{
-		"KV_IMPL_TYPE_UNKNOWN":     0,
-		"KV_IMPL_TYPE_IAVL":        1,
-		"KV_IMPL_TYPE_OKRA":        2,
-		"KV_IMPL_TYPE_OKRA_INLINE": 3,
+		"KV_IMPL_TYPE_UNKNOWN":                0,
+		"KV_IMPL_TYPE_IAVL":                   1,
+		"KV_IMPL_TYPE_OKRA":                   2,
+		"KV_IMPL_TYPE_OKRA_INLINE":            3,
+		"KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH": 4,
+		"KV_IMPL_TYPE_IAVL_NODE_GRAPH":        5,
 	}
 )
 
