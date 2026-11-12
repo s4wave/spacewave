@@ -17,6 +17,8 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -421,6 +423,51 @@ func TestSetRootReplacedInTx(t *testing.T) {
 		}
 		world.ReleaseObjectState(obj)
 		_, err = ws.DeleteObject(ctx, "scratch")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	f.collect(t)
+	requireDurableSetRoots(ctx, t, so, optypes.LookupWorldOp)
+}
+
+// TestPayloadBuiltInTx applies a payload operation whose payload the
+// transaction builds and the committed World does not reach: an append to a
+// file re-chunks the written blob into the file. The stored operation names
+// the blob's root, so it must be durable.
+func TestPayloadBuiltInTx(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, opTypes: &space_world.OpTypes{Lookup: optypes.LookupWorldOp}})
+	eng, engRef := f.start(t)
+	defer engRef.Release()
+	so := f.space(t)
+
+	// Create the filesystem and a file in it.
+	ts := time.Now()
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		if _, _, err := unixfs_world.FsInit(ctx, ws, "", "fs", unixfs_world.FSType_FSType_FS_NODE, nil, false, ts); err != nil {
+			return err
+		}
+		obj, _, err := ws.GetObject(ctx, "fs")
+		if err != nil {
+			return err
+		}
+		defer world.ReleaseObjectState(obj)
+		_, _, err = unixfs_world.FsMknod(ctx, obj, "", unixfs_world.FSType_FSType_FS_NODE, [][]string{{"f"}}, unixfs.NewFSCursorNodeType_File(), 0o644, ts)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Append to the file, building the payload blob in the transaction.
+	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, _, err := ws.GetObject(ctx, "fs")
+		if err != nil {
+			return err
+		}
+		defer world.ReleaseObjectState(obj)
+		_, _, err = unixfs_world.FsWriteAt(ctx, ws, obj, "", unixfs_world.FSType_FSType_FS_NODE, []string{"f"}, 0, []byte("appended"), ts)
 		return err
 	}); err != nil {
 		t.Fatal(err)

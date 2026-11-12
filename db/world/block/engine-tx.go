@@ -44,10 +44,10 @@ type EngineTx struct {
 	// operation is the encoded World operation batch a recording
 	// transaction proposes as its Candidate's Operation, set before Commit.
 	operation []byte
-	// recordedRoots are the object roots operation records, set with it. The
-	// commit keeps each beside the blocks its new root reaches, so a root the
-	// batch set and then replaced or deleted is still stored with the
-	// operation that names it.
+	// recordedRoots are the roots operation names as payloads, set with it.
+	// The commit keeps each beside the blocks its new root reaches, so a root
+	// the batch set and then replaced or deleted, or a payload the World does
+	// not reach, is still stored with the operation that names it.
 	recordedRoots []*block.BlockRef
 	// turn is the Authority's write turn, held from the open until the commit
 	// is decided or the transaction is discarded. Moved out under the Engine
@@ -251,7 +251,7 @@ func (e *EngineTx) admit(ctx context.Context, turn world.Turn) (*bucket.ObjectRe
 	next := e.baseHeadRef.Clone()
 	next.RootRef = nroot
 
-	// Borrow the blocks the new root and the recorded object roots reach
+	// Borrow the blocks the new root and the recorded payload roots reach
 	// from the write buffer, children before parents, and read the seqno and
 	// root the head's readers need.
 	state := e.writeTx.state

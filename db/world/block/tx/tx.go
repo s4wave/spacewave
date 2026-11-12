@@ -128,7 +128,7 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 	var err error
 	switch t.GetTxType() {
 	case TxType_TxType_CREATE_OBJECT, TxType_TxType_OBJECT_SET:
-		return t.ObjectRoots(), nil
+		return t.objectRoots(), nil
 	case TxType_TxType_BATCH:
 		for i, tx := range t.GetTxBatch().GetTxs() {
 			txRefs, err := tx.PayloadRefs(ctx, lookupOp)
@@ -139,10 +139,10 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		}
 		return refs, nil
 	case TxType_TxType_APPLY_WORLD_OP:
-		refs = t.ObjectRoots()
+		refs = t.objectRoots()
 		op, err = t.GetTxApplyWorldOp().decodeOp(ctx, lookupOp)
 	case TxType_TxType_APPLY_OBJECT_OP:
-		refs = t.ObjectRoots()
+		refs = t.objectRoots()
 		op, err = t.GetTxApplyObjectOp().decodeOp(ctx, lookupOp)
 	default:
 		return nil, nil
@@ -158,12 +158,12 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 	return refs, nil
 }
 
-// ObjectRoots returns the object roots the transaction records, without
+// objectRoots returns the object roots the transaction records, without
 // decoding an applied operation: the root a create or set writes and the roots
 // an applied operation set, through every batched transaction. PayloadRefs
 // names each of them even when a later transaction in the batch replaces or
-// deletes it, so the writer stores each one with the operation.
-func (t *Tx) ObjectRoots() []*block.BlockRef {
+// deletes it.
+func (t *Tx) objectRoots() []*block.BlockRef {
 	switch t.GetTxType() {
 	case TxType_TxType_CREATE_OBJECT, TxType_TxType_OBJECT_SET:
 		return t.objectRootPayload()
@@ -172,13 +172,18 @@ func (t *Tx) ObjectRoots() []*block.BlockRef {
 	case TxType_TxType_APPLY_OBJECT_OP:
 		return slices.Clone(t.GetTxApplyObjectOp().GetSetRoots())
 	case TxType_TxType_BATCH:
-		var refs []*block.BlockRef
-		for _, tx := range t.GetTxBatch().GetTxs() {
-			refs = append(refs, tx.ObjectRoots()...)
-		}
-		return refs
+		return t.GetTxBatch().objectRoots()
 	}
 	return nil
+}
+
+// objectRoots returns the object roots each transaction in the batch records.
+func (b *TxBatch) objectRoots() []*block.BlockRef {
+	var refs []*block.BlockRef
+	for _, tx := range b.GetTxs() {
+		refs = append(refs, tx.objectRoots()...)
+	}
+	return refs
 }
 
 // objectRootPayload returns the object root a create or set writes, or nil
