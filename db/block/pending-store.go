@@ -77,6 +77,10 @@ type PendingStore struct {
 	seq uint64
 	// keptBytes is the total data length of kept.
 	keptBytes int
+	// storedStages counts the open stages OpenStage and PutBlockBatchStaged
+	// opened that put a block to the inner store: blocks only a stage may hold
+	// until its writer's root does.
+	storedStages int
 	// maxBytes bounds keptBytes. A put past it goes to the inner store.
 	maxBytes int
 }
@@ -100,6 +104,16 @@ func (s *PendingStore) Full() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	return s.keptBytes >= s.maxBytes/2
+}
+
+// StagesStored reports whether an open stage put a block to the inner store,
+// so a writer that names its root while the stage is open, and ends the stage
+// after, must have a root of the inner store hold that root first: once the
+// stage ends, nothing else holds what it stored.
+func (s *PendingStore) StagesStored() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.storedStages != 0
 }
 
 // KeptBytes returns the total data length of the kept blocks.
@@ -152,65 +166,89 @@ func (s *PendingStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEnt
 
 // put keeps the entries it can and puts the rest to dst, reporting whether
 // it put any. Each entry kept through hold, when set, is held until the hold
-// is released. The kept blocks an entry past the bound names are stored with
-// it and stay kept, so the Worlds that name them still find them here.
-// Tombstones are refused: a kept block may be reached by any kept World.
+// is released; with none, the put holds what it keeps until it returns. The
+// kept blocks an entry past the bound names are stored with it and stay kept,
+// so the Worlds that name them still find them here. Tombstones are refused:
+// a kept block may be reached by any kept World.
 func (s *PendingStore) put(ctx context.Context, dst StoreOps, hold *pendingHold, entries []*PutBatchEntry) ([]bool, bool, error) {
-	out, rest, restIdx, err := s.keep(hold, entries)
-	if err != nil || len(rest) == 0 {
-		return out, false, err
+	// Keep what fits, held through the put when the caller holds nothing.
+	if hold == nil {
+		hold = newPendingHold()
+		defer s.release(hold)
 	}
-	if err := s.store(ctx, dst, out, rest, restIdx); err != nil {
+	k, err := s.keep(hold, entries)
+	if err != nil || len(k.rest) == 0 {
+		return k.out, false, err
+	}
+	if err := s.store(ctx, dst, k); err != nil {
 		return nil, true, err
 	}
-	return out, true, nil
+	return k.out, true, nil
 }
 
 // PutBlockBatchStaged keeps the entries the bound allows and puts the rest to
 // a stage of the inner store, which it opens only when an entry does not fit.
 // The stage holds what it stored until release, which is nil when nothing
-// went past the bound. It holds none of the kept entries against Sweep, so the
+// went past the bound, and StagesStored reports it while it is open. The kept
+// entries are held against Sweep only until the rest are stored, so the
 // caller gives Sweep their root until a root of the inner store holds it, and
 // releases the stage only after that root lands.
 func (s *PendingStore) PutBlockBatchStaged(ctx context.Context, entries []*PutBatchEntry) (release func(), err error) {
 	// Keep what fits, done when everything did.
-	out, rest, restIdx, err := s.keep(nil, entries)
-	if err != nil || len(rest) == 0 {
+	hold := newPendingHold()
+	defer s.release(hold)
+	k, err := s.keep(hold, entries)
+	if err != nil || len(k.rest) == 0 {
 		return nil, err
 	}
 
 	// Put the rest under a stage that holds them until release.
-	stage, release, err := OpenStage(ctx, s.StoreOps)
+	stage, release, err := s.OpenStage(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := s.store(ctx, stage, out, rest, restIdx); err != nil {
+	ps := stage.(*pendingStage)
+	ps.markStored()
+	if err := s.store(ctx, ps.stage, k); err != nil {
 		release()
 		return nil, err
 	}
 	return release, nil
 }
 
-// keep keeps each entry with a child list that fits, in order, held through
-// hold when set, and returns whether each was kept already, with the entries
-// that did not fit and their indexes. Tombstones are refused.
-func (s *PendingStore) keep(hold *pendingHold, entries []*PutBatchEntry) (out []bool, rest []*PutBatchEntry, restIdx []int, err error) {
+// pendingKept is the result of keep: whether each entry was kept already, the
+// entries that did not fit with their indexes, and the kept blocks those name,
+// children before parents.
+type pendingKept struct {
+	out     []bool
+	rest    []*PutBatchEntry
+	restIdx []int
+	tree    []*PutBatchEntry
+}
+
+// keep keeps each entry with a child list that fits, in order, and gathers
+// the kept tree the entries that did not fit name. It holds the kept entries
+// and that tree through hold, under the lock it keeps them with, so no sweep
+// drops a kept child before store puts it beside the parent that names it:
+// Sweep walks from its live roots through kept blocks only, and a parent past
+// the bound is not kept. Tombstones are refused.
+func (s *PendingStore) keep(hold *pendingHold, entries []*PutBatchEntry) (pendingKept, error) {
 	// Refuse tombstones before keeping anything.
 	for _, e := range entries {
 		if e.Tombstone {
-			return nil, nil, nil, ErrPendingTombstone
+			return pendingKept{}, ErrPendingTombstone
 		}
 	}
 
 	// Keep each entry with a child list that fits, in order.
-	out = make([]bool, len(entries))
+	k := pendingKept{out: make([]bool, len(entries))}
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for i, e := range entries {
 		key := pendingKey(e.Ref)
 		switch {
 		case s.kept[key] != nil:
-			out[i] = true
+			k.out[i] = true
 			s.seq++
 			s.keptAt[key] = s.seq
 			s.holdLocked(hold, key)
@@ -220,28 +258,32 @@ func (s *PendingStore) keep(hold *pendingHold, entries []*PutBatchEntry) (out []
 			s.keptBytes += len(e.Data)
 			s.holdLocked(hold, key)
 		default:
-			rest, restIdx = append(rest, e), append(restIdx, i)
+			k.rest, k.restIdx = append(k.rest, e), append(k.restIdx, i)
 		}
 	}
-	return out, rest, restIdx, nil
-}
 
-// store puts rest to dst after the kept blocks they name, since a block the
-// inner store holds names only blocks it holds, keeping that tree, and sets
-// out at restIdx to whether dst held each already.
-func (s *PendingStore) store(ctx context.Context, dst StoreOps, out []bool, rest []*PutBatchEntry, restIdx []int) error {
-	// Put the kept trees the rest name, then the rest.
+	// Hold the kept trees the rest name.
 	var children []*BlockRef
-	for _, e := range rest {
+	for _, e := range k.rest {
 		children = append(children, e.Refs...)
 	}
-	tree := s.reach(children)
-	found, err := dst.PutBlockBatch(ctx, slices.Concat(tree, rest))
+	k.tree = s.reachLocked(children, make(map[string]struct{}))
+	for _, e := range k.tree {
+		s.holdLocked(hold, pendingKey(e.Ref))
+	}
+	return k, nil
+}
+
+// store puts k's rest to dst after the kept trees they name, since a block
+// the inner store holds names only blocks it holds, keeping that tree, and
+// sets k.out at the rest's indexes to whether dst held each already.
+func (s *PendingStore) store(ctx context.Context, dst StoreOps, k pendingKept) error {
+	found, err := dst.PutBlockBatch(ctx, slices.Concat(k.tree, k.rest))
 	if err != nil {
 		return err
 	}
-	for j, i := range restIdx {
-		out[i] = found[len(tree)+j]
+	for j, i := range k.restIdx {
+		k.out[i] = found[len(k.tree)+j]
 	}
 	return nil
 }
@@ -577,6 +619,7 @@ func (s *PendingStore) OpenStage(ctx context.Context) (StoreOps, func(), error) 
 	}
 	ps := &pendingStage{PendingStore: s, stage: stage, hold: newPendingHold()}
 	return ps, func() {
+		ps.end()
 		s.release(ps.hold)
 		release()
 	}, nil

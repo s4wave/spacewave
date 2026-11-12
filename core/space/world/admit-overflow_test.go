@@ -3,10 +3,13 @@ package space_world_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"testing"
 	"time"
 
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/block"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -19,10 +22,10 @@ var errAdmitCrash = errors.New("crash at admit step")
 
 // TestAdmitOverflowHeld tries to lose a block Admit put past the
 // PendingStore's bound. A commit far larger than the bound, with no payloads,
-// runs with a collection at a 1 ns grace after its put, after its hold and
-// after it returns, a commit of another repository crashes before its hold,
-// and after a collection and a remount every block of the first must still
-// read.
+// runs with a collection at a 1 ns grace after its put, after its hold, after
+// its stage is released and after it returns, a commit of another repository
+// crashes before its hold, and after a collection and a remount every block of
+// the first must still read.
 func TestAdmitOverflowHeld(t *testing.T) {
 	lookup := world.NewSchema(git_world.GitTypes, unixfs_world.UnixfsTypes).LookupOp
 	f := newAdapterFixtureOn(t, fixtureOpts{frees: true, maxPending: 64 << 10, opTypes: &space_world.OpTypes{Lookup: lookup}})
@@ -43,10 +46,19 @@ func TestAdmitOverflowHeld(t *testing.T) {
 		return errors.New("collection did not finish")
 	}
 
-	// Commit the clone, collecting between each step of its Admit.
+	// Commit the clone, collecting between each step of its Admit. After the
+	// stage's release, another writer's plain put first carries the release
+	// into the Volume, which defers it to the next changing direct
+	// transaction.
 	var steps []string
 	restore := space_world.SetAdmitStep(func(step string) error {
 		steps = append(steps, step)
+		if step == "released" {
+			data := fmt.Appendf(nil, "another writer %d", len(steps))
+			if _, _, err := f.volume.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
+				return err
+			}
+		}
 		return collect()
 	})
 	clone := func(key, src string) error {
@@ -61,8 +73,8 @@ func TestAdmitOverflowHeld(t *testing.T) {
 		t.Fatal(err)
 	}
 	restore()
-	if len(steps) == 0 {
-		t.Fatal("the commit ran no Admit step")
+	if !slices.Contains(steps, "released") {
+		t.Fatalf("the commit ran Admit steps %v, none after a release", steps)
 	}
 	if err := collect(); err != nil {
 		t.Fatal(err)

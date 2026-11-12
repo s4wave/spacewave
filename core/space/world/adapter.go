@@ -1129,12 +1129,13 @@ func (a *Adapter) admit(adm *spaceAdmission) {
 
 // holdAdmitted holds what adm's queued operation needs once it is durable:
 // its payloads under the replay payloads root, and its candidate's World under
-// the pending root when its put stored blocks past the PendingStore's bound,
-// so the stage that holds them can end, or when the kept pages outgrew
-// memory, so they can leave it. Each hold is one swap that stores the
-// writer's own pages, and waits on the root lock only for another swap, never
-// for the driver's store of its pages.
-func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored bool) error {
+// the pending root while an open stage stored blocks past the PendingStore's
+// bound, whether Admit's own put or the writer's transaction stored them, so
+// those stages can end, or when the kept pages outgrew memory, so they can
+// leave it. Each hold is one swap that stores the writer's own pages, and
+// waits on the root lock only for another swap, never for the driver's store
+// of its pages.
+func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission) error {
 	// Hold the payloads before the operation that names them is queued.
 	if len(adm.payloads) != 0 {
 		if err := a.addPayloads(ctx, adm.payloads); err != nil {
@@ -1144,7 +1145,7 @@ func (a *Adapter) holdAdmitted(ctx context.Context, adm *spaceAdmission, stored 
 
 	// Hold a candidate that overflowed or outgrew memory beside the earlier
 	// ones.
-	if (!stored && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
+	if (!a.pages.StagesStored() && !a.pages.Full()) || adm.candidate.Root.GetEmpty() {
 		return nil
 	}
 	release, err := a.lockRoots(ctx)

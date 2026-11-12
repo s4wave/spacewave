@@ -82,7 +82,7 @@ func measureAdmitWait(t *testing.T, mib int) (wait, store time.Duration) {
 	time.Sleep(2 * time.Millisecond)
 	adm := &spaceAdmission{payloads: []*block.BlockRef{payload}, done: make(chan struct{})}
 	held := time.Now()
-	if err := a.holdAdmitted(ctx, adm, false); err != nil {
+	if err := a.holdAdmitted(ctx, adm); err != nil {
 		t.Fatal(err)
 	}
 	wait = time.Since(held)

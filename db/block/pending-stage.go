@@ -20,6 +20,38 @@ type pendingStage struct {
 	// stored records that a put went to stage, including one that failed
 	// there.
 	stored atomic.Bool
+	// counted records that the stage is counted in storedStages, and released
+	// that its release ran. Both are guarded by the PendingStore's mtx.
+	counted, released bool
+}
+
+// markStored records that a put went to the stage. A stage that holds its
+// kept blocks counts in StagesStored until its release; an overflow stage's
+// writer reads Stored instead.
+func (p *pendingStage) markStored() {
+	// Record the put, and count a stage that holds its kept blocks once.
+	p.stored.Store(true)
+	if p.hold == nil {
+		return
+	}
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if !p.counted && !p.released {
+		p.counted = true
+		p.storedStages++
+	}
+}
+
+// end stops counting the stage in StagesStored.
+func (p *pendingStage) end() {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if !p.released {
+		p.released = true
+		if p.counted {
+			p.storedStages--
+		}
+	}
 }
 
 // PutBlock keeps a block whose refs are known while the bound allows, and
@@ -27,7 +59,7 @@ type pendingStage struct {
 func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error) {
 	// Hand a block without its child list to the stage.
 	if !opts.GetRefsKnown() || opts.GetSync() {
-		p.stored.Store(true)
+		p.markStored()
 		return p.stage.PutBlock(ctx, data, opts)
 	}
 
@@ -48,7 +80,7 @@ func (p *pendingStage) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 func (p *pendingStage) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	existed, stored, err := p.put(ctx, p.stage, p.hold, entries)
 	if stored {
-		p.stored.Store(true)
+		p.markStored()
 	}
 	return existed, err
 }
