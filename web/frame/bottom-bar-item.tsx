@@ -209,7 +209,7 @@ export function BottomBarItem({
     trailing ? 'pr-1' : 'px-1',
     disabled ? 'cursor-not-allowed' : 'cursor-pointer',
     selected &&
-      'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected border-t-primary border-t',
+      'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected shadow-bar-item-selected',
     className,
   )
 

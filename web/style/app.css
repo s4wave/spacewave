@@ -1802,6 +1802,7 @@
   --color-bar-item-selected: oklch(0.45 0.06 10 / 0.4);
   --color-bar-item-selected-text: oklch(1 0 0);
   --text-shadow-bar-item-selected: 0 0 3px oklch(0 0 0 / 0.8);
+  --shadow-bar-item-selected: inset 0 1px 0 var(--color-primary);
   --color-window-bar: oklch(0.209 0 0);
   --color-editor-bar: oklch(0.2881 0.0038 8.07);
   --color-frame-overlay-border: var(--color-primary);
@@ -2094,6 +2095,14 @@ body,
 
 .hero-button:hover {
   @apply border-brand/50 bg-brand/10 -translate-y-[1px];
+}
+
+/* Viewer bottom bar items fill the bar's height, so a 24px bar gives every
+   item the 24px minimum target on a fine pointer. A coarse pointer raises it
+   to 44px below. */
+.viewer-bottom-bar {
+  height: 24px;
+  min-height: 24px;
 }
 
 @media (pointer: coarse) {
