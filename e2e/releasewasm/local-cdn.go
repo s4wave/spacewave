@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -305,6 +306,9 @@ type localCDNHandler struct {
 	packBytes atomic.Int64
 	// cdnDown drops every CDN connection, as when the CDN is unreachable.
 	cdnDown atomic.Bool
+	// cdnHeld, when set, holds every CDN request until the channel closes, as
+	// when the CDN accepts connections and never answers.
+	cdnHeld atomic.Pointer[chan struct{}]
 	// delay holds each CDN request before its response, as a round trip to
 	// a distant CDN does.
 	delay time.Duration
@@ -327,6 +331,15 @@ func (h *localCDNHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Hold CDN requests while the CDN is stalled.
+	if held := h.cdnHeld.Load(); held != nil && cdnPath {
+		select {
+		case <-req.Context().Done():
+			return
+		case <-*held:
+		}
+	}
+
 	// Hold CDN requests for the modeled round trip.
 	if h.delay > 0 && cdnPath {
 		select {
@@ -347,6 +360,16 @@ func (h *localCDNHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		rw = &countingResponseWriter{ResponseWriter: rw, n: &h.packBytes}
 	}
 	h.next.ServeHTTP(rw, req)
+}
+
+// holdCDN stalls every CDN request until the returned release runs.
+func (h *localCDNHandler) holdCDN() (release func()) {
+	held := make(chan struct{})
+	h.cdnHeld.Store(&held)
+	return sync.OnceFunc(func() {
+		h.cdnHeld.Store(nil)
+		close(held)
+	})
 }
 
 // countingResponseWriter adds each delivered body byte to n.
