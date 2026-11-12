@@ -28,17 +28,21 @@ if [ -z "$files" ]; then
 	exit 0
 fi
 
-# node_bin holds the JS tools. A linked worktree has no node_modules, so it
-# runs the main checkout's tools.
-node_bin=$(pwd)/node_modules/.bin
-if [ ! -d node_modules ]; then
+# A linked worktree has no node_modules of its own. The JS tools run from
+# there, and oxlint.config.ts imports its packages relative to the worktree,
+# so a worktree without one links the main checkout's. It is gitignored.
+if [ ! -e node_modules ] && [ ! -L node_modules ]; then
 	# A submodule's common directory names its checkout in core.worktree; a
 	# clone's common directory is the .git directory inside its checkout.
 	common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
 	main_dir=$(command git -C "$common_dir" rev-parse --show-toplevel 2>/dev/null) ||
 		main_dir=$(dirname "$common_dir")
-	node_bin=$main_dir/node_modules/.bin
+	if [ -d "$main_dir/node_modules" ]; then
+		ln -s "$main_dir/node_modules" node_modules
+		printf 'pre-commit: linked node_modules to %s/node_modules\n' "$main_dir" >&2
+	fi
 fi
+node_bin=$(pwd)/node_modules/.bin
 PATH=$node_bin:$PATH
 
 # Format and restage only files whose worktree matches the index. Restaging a
