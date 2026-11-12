@@ -313,6 +313,18 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // user plugin resolveId hooks fire. The external require plugin owns
     // imports from installed dependencies.
     const externalPkgs = request.externalPkgs ?? []
+
+    // An external React is the host's: its import map serves the host's own
+    // build, production on a release host. Production React exports jsxDEV
+    // as undefined, so compile JSX against react/jsx-runtime, which every
+    // React build exports. Development builds stay unminified.
+    if (externalPkgs.includes('react') && mergedConfig.oxc !== false) {
+      const oxc = mergedConfig.oxc ?? {}
+      if (typeof oxc.jsx !== 'string') {
+        mergedConfig.oxc = { ...oxc, jsx: { ...oxc.jsx, development: false } }
+      }
+    }
+
     const webPkgIDs: string[] = (request.webPkgs ?? []).flatMap((pkg) =>
       pkg.id ? [pkg.id] : [],
     )
