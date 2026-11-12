@@ -195,8 +195,8 @@ func TestFormatPluginSwapStates(t *testing.T) {
 		},
 		want: "colors  loaded  rev 6 selected, rev 5 running; rev 6 waits since 21:41:01 for the running worker" +
 			" to answer its activation check; it swaps when the worker answers or exits" +
-			" (a browser worker exits when its page reloads); if it does neither, restart it with" +
-			" spacewave plugin remove colors then spacewave plugin add colors\n",
+			" (a browser worker exits when its page reloads); if it does neither, run" +
+			" spacewave plugin restart colors\n",
 	}, {
 		name: "failed",
 		status: &s4wave_space.SpacePluginStatus{

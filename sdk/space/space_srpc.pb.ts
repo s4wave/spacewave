@@ -30,6 +30,8 @@ import {
   ReadSecretPayloadResponse,
   RemoveSpacePluginRequest,
   RemoveSpacePluginResponse,
+  RestartSpacePluginRequest,
+  RestartSpacePluginResponse,
   SetProcessBindingRequest,
   SetProcessBindingResponse,
   SetSpaceBackfillRequest,
@@ -1386,6 +1388,19 @@ export const SpaceContentsResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RestartPlugin ends the running execution of a plugin in this Space's
+     * runtime, so the scheduler starts the plugin's selected manifest at once.
+     * It ends a worker that neither answers a swap's activation check nor exits.
+     *
+     * @generated from rpc s4wave.space.SpaceContentsResourceService.RestartPlugin
+     */
+    RestartPlugin: {
+      name: 'RestartPlugin',
+      I: RestartSpacePluginRequest,
+      O: RestartSpacePluginResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * BindAttachedRpcService publishes a caller-attached Resource under one
      * private service ID prefix for this Space runtime.
      *
@@ -1419,6 +1434,18 @@ export interface SpaceContentsResourceService {
     request: SetProcessBindingRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetProcessBindingResponse>
+
+  /**
+   * RestartPlugin ends the running execution of a plugin in this Space's
+   * runtime, so the scheduler starts the plugin's selected manifest at once.
+   * It ends a worker that neither answers a swap's activation check nor exits.
+   *
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.RestartPlugin
+   */
+  RestartPlugin(
+    request: RestartSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RestartSpacePluginResponse>
 
   /**
    * BindAttachedRpcService publishes a caller-attached Resource under one
@@ -1455,6 +1482,19 @@ export interface SpaceContentsResourceServiceHandler {
   ): Promise<SetProcessBindingResponse>
 
   /**
+   * RestartPlugin ends the running execution of a plugin in this Space's
+   * runtime, so the scheduler starts the plugin's selected manifest at once.
+   * It ends a worker that neither answers a swap's activation check nor exits.
+   *
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.RestartPlugin
+   */
+  RestartPlugin(
+    request: RestartSpacePluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RestartSpacePluginResponse>
+
+  /**
    * BindAttachedRpcService publishes a caller-attached Resource under one
    * private service ID prefix for this Space runtime.
    *
@@ -1478,6 +1518,7 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
     this.rpc = rpc
     this.WatchState = this.WatchState.bind(this)
     this.SetProcessBinding = this.SetProcessBinding.bind(this)
+    this.RestartPlugin = this.RestartPlugin.bind(this)
     this.BindAttachedRpcService = this.BindAttachedRpcService.bind(this)
   }
   /**
@@ -1512,6 +1553,27 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
       abortSignal || undefined,
     )
     return SetProcessBindingResponse.fromBinary(result)
+  }
+
+  /**
+   * RestartPlugin ends the running execution of a plugin in this Space's
+   * runtime, so the scheduler starts the plugin's selected manifest at once.
+   * It ends a worker that neither answers a swap's activation check nor exits.
+   *
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.RestartPlugin
+   */
+  async RestartPlugin(
+    request: RestartSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RestartSpacePluginResponse> {
+    const requestMsg = RestartSpacePluginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceContentsResourceServiceDefinition.methods.RestartPlugin.name,
+      RestartSpacePluginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RestartSpacePluginResponse.fromBinary(result)
   }
 
   /**

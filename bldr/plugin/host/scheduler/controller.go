@@ -424,6 +424,18 @@ func (c *Controller) AddPluginReference(pluginID, instanceKey string) (bldr_plug
 	return plg, ref.Release
 }
 
+// RestartPlugin ends the running execution of the plugin's binding under
+// instanceKey, so the scheduler starts the binding's selected manifest at once.
+// Pinned executions are not restarted. Returns false when no reference holds
+// the binding.
+func (c *Controller) RestartPlugin(pluginID, instanceKey string) bool {
+	plg, ok := c.pluginInstances.GetKey(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
+	if ok {
+		plg.restart()
+	}
+	return ok
+}
+
 // AddPinnedPluginReference retains an exact manifest in a separate host worker.
 func (c *Controller) AddPinnedPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func()) {
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{

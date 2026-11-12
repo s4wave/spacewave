@@ -871,6 +871,33 @@ func cloneAvailablePlugins(in []*s4wave_space.AvailablePlugin) []*s4wave_space.A
 	return out
 }
 
+// RestartPlugin ends the running execution of a plugin in the Space runtime,
+// so the scheduler starts the plugin's selected manifest at once.
+func (r *SpaceContentsResource) RestartPlugin(
+	ctx context.Context,
+	req *s4wave_space.RestartSpacePluginRequest,
+) (*s4wave_space.RestartSpacePluginResponse, error) {
+	// Require a plugin identity.
+	pluginID := req.GetPluginId()
+	if pluginID == "" {
+		return nil, errors.New("plugin_id is required")
+	}
+
+	// Restart the binding in the running runtime generation.
+	gen, _, err := r.runtime.GetGeneration()
+	if err != nil {
+		return nil, err
+	}
+	if gen == nil {
+		return nil, errors.New("space plugin runtime is not running")
+	}
+	if !gen.GetScheduler().RestartPlugin(pluginID, r.spaceID) {
+		return nil, errors.Errorf("plugin %s is not loaded in this space", pluginID)
+	}
+	r.le.Infof("restarted plugin %s", pluginID)
+	return &s4wave_space.RestartSpacePluginResponse{}, nil
+}
+
 // SetProcessBinding sets the state for a process binding.
 func (r *SpaceContentsResource) SetProcessBinding(
 	ctx context.Context,

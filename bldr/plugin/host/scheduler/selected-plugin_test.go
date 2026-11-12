@@ -120,24 +120,34 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	defer instance.executions.ClearContext()
 	defer instance.clearExecution(nil)
 
-	// start launches a candidate at the given revision and waits for it to start.
-	start := func(rev uint64) (*execution, context.CancelFunc, <-chan error) {
-		// Build the candidate args and run selection in the background.
-		t.Helper()
-		attempt, stop := context.WithCancel(ctx)
-		args := &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, manifestSnapshot: &manifest.ManifestSnapshot{
+	// candidate builds the args selecting the given revision.
+	candidate := func(rev uint64) *executePluginArgs {
+		return &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, manifestSnapshot: &manifest.ManifestSnapshot{
 			ManifestRef: newTestManifestRef("colors", "js", rev, "candidate").GetManifestRef(),
 			Manifest:    &manifest.Manifest{Meta: manifest.NewManifestMeta("colors", manifest.BuildType_DEV, "js", rev)},
 		}}
-		done := make(chan error, 1)
-		go func() { done <- instance.execSelectedPlugin(attempt, args) }()
+	}
+	// nextStarted waits for the next worker to start.
+	nextStarted := func() *execution {
+		t.Helper()
 		select {
 		case run := <-started:
-			return run, stop, done
+			return run
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
-			return nil, nil, nil
+			return nil
 		}
+	}
+
+	// start launches a candidate at the given revision and waits for it to start.
+	start := func(rev uint64) (*execution, context.CancelFunc, <-chan error) {
+		// Run selection in the background.
+		t.Helper()
+		attempt, stop := context.WithCancel(ctx)
+		args := candidate(rev)
+		done := make(chan error, 1)
+		go func() { done <- instance.execSelectedPlugin(attempt, args) }()
+		return nextStarted(), stop, done
 	}
 	wait := func(closed <-chan struct{}) {
 		t.Helper()
@@ -278,11 +288,35 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Releasing the binding ends the remaining worker.
 	stopLast()
 	<-doneLast
-	instance.closeExecutions()
+
+	// A worker that never answers keeps the swap waiting until a restart ends
+	// it; the execute routine then starts the candidate in its place.
+	if _, err := instance.runningPluginCtr.WaitValue(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	last.activation.answer = make(chan error)
+	instance.executePluginRoutine.SetContext(ctx, true)
+	instance.executePluginRoutine.SetState(candidate(7))
+	if err := waitingStatus(true); err != nil {
+		t.Fatal(err)
+	}
+	instance.restart()
 	wait(last.closed)
+	restarted := nextStarted()
+	if restarted.worker.prepared {
+		t.Fatal("restart staged the candidate beside the ended worker")
+	}
+	restarted.start <- true
+	waitExecution("restarted", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 7 && st.GetSwap().GetSettled() != nil
+	})
+	instance.executePluginRoutine.ClearContext()
+
+	// Releasing the binding ends the remaining worker.
+	instance.closeExecutions()
+	wait(restarted.closed)
 	if len(instance.executions.GetKeys()) != 0 {
 		t.Fatal("released binding retained worker references")
 	}

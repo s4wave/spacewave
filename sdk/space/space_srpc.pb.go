@@ -1228,6 +1228,10 @@ type SRPCSpaceContentsResourceServiceClient interface {
 	WatchState(ctx context.Context, in *WatchSpaceContentsStateRequest) (SRPCSpaceContentsResourceService_WatchStateClient, error)
 
 	SetProcessBinding(ctx context.Context, in *SetProcessBindingRequest) (*SetProcessBindingResponse, error)
+	// RestartPlugin ends the running execution of a plugin in this Space's
+	// runtime, so the scheduler starts the plugin's selected manifest at once.
+	// It ends a worker that neither answers a swap's activation check nor exits.
+	RestartPlugin(ctx context.Context, in *RestartSpacePluginRequest) (*RestartSpacePluginResponse, error)
 	// BindAttachedRpcService publishes a caller-attached Resource under one
 	// private service ID prefix for this Space runtime.
 	BindAttachedRpcService(ctx context.Context, in *BindAttachedRpcServiceRequest) (SRPCSpaceContentsResourceService_BindAttachedRpcServiceClient, error)
@@ -1293,6 +1297,15 @@ func (c *srpcSpaceContentsResourceServiceClient) SetProcessBinding(ctx context.C
 	return out, nil
 }
 
+func (c *srpcSpaceContentsResourceServiceClient) RestartPlugin(ctx context.Context, in *RestartSpacePluginRequest) (*RestartSpacePluginResponse, error) {
+	out := new(RestartSpacePluginResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RestartPlugin", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceContentsResourceServiceClient) BindAttachedRpcService(ctx context.Context, in *BindAttachedRpcServiceRequest) (SRPCSpaceContentsResourceService_BindAttachedRpcServiceClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "BindAttachedRpcService", in)
 	if err != nil {
@@ -1330,6 +1343,10 @@ type SRPCSpaceContentsResourceServiceServer interface {
 	WatchState(*WatchSpaceContentsStateRequest, SRPCSpaceContentsResourceService_WatchStateStream) error
 
 	SetProcessBinding(context.Context, *SetProcessBindingRequest) (*SetProcessBindingResponse, error)
+	// RestartPlugin ends the running execution of a plugin in this Space's
+	// runtime, so the scheduler starts the plugin's selected manifest at once.
+	// It ends a worker that neither answers a swap's activation check nor exits.
+	RestartPlugin(context.Context, *RestartSpacePluginRequest) (*RestartSpacePluginResponse, error)
 	// BindAttachedRpcService publishes a caller-attached Resource under one
 	// private service ID prefix for this Space runtime.
 	BindAttachedRpcService(*BindAttachedRpcServiceRequest, SRPCSpaceContentsResourceService_BindAttachedRpcServiceStream) error
@@ -1363,6 +1380,7 @@ func (SRPCSpaceContentsResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchState",
 		"SetProcessBinding",
+		"RestartPlugin",
 		"BindAttachedRpcService",
 	}
 }
@@ -1380,6 +1398,8 @@ func (d *SRPCSpaceContentsResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchState(d.impl, strm)
 	case "SetProcessBinding":
 		return true, d.InvokeMethod_SetProcessBinding(d.impl, strm)
+	case "RestartPlugin":
+		return true, d.InvokeMethod_RestartPlugin(d.impl, strm)
 	case "BindAttachedRpcService":
 		return true, d.InvokeMethod_BindAttachedRpcService(d.impl, strm)
 	default:
@@ -1402,6 +1422,18 @@ func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_SetProcessBinding(im
 		return err
 	}
 	out, err := impl.SetProcessBinding(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_RestartPlugin(impl SRPCSpaceContentsResourceServiceServer, strm srpc.Stream) error {
+	req := new(RestartSpacePluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RestartPlugin(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1445,6 +1477,14 @@ type SRPCSpaceContentsResourceService_SetProcessBindingStream interface {
 }
 
 type srpcSpaceContentsResourceService_SetProcessBindingStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceContentsResourceService_RestartPluginStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceContentsResourceService_RestartPluginStream struct {
 	srpc.Stream
 }
 

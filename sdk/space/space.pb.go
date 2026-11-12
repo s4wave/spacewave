@@ -1957,6 +1957,37 @@ func (x *SetProcessBindingResponse) Reset() {
 
 func (*SetProcessBindingResponse) ProtoMessage() {}
 
+// RestartSpacePluginRequest names the plugin to restart.
+type RestartSpacePluginRequest struct {
+	unknownFields []byte
+	// PluginId is the plugin manifest ID.
+	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+}
+
+func (x *RestartSpacePluginRequest) Reset() {
+	*x = RestartSpacePluginRequest{}
+}
+
+func (*RestartSpacePluginRequest) ProtoMessage() {}
+
+func (x *RestartSpacePluginRequest) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+// RestartSpacePluginResponse is the response to RestartPlugin.
+type RestartSpacePluginResponse struct {
+	unknownFields []byte
+}
+
+func (x *RestartSpacePluginResponse) Reset() {
+	*x = RestartSpacePluginResponse{}
+}
+
+func (*RestartSpacePluginResponse) ProtoMessage() {}
+
 // WatchProcessBindingsRequest selects this mounted Space's local bindings.
 type WatchProcessBindingsRequest struct {
 	unknownFields []byte
@@ -2970,6 +3001,37 @@ func (m *SetProcessBindingResponse) CloneVT() *SetProcessBindingResponse {
 }
 
 func (m *SetProcessBindingResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RestartSpacePluginRequest) CloneVT() *RestartSpacePluginRequest {
+	if m == nil {
+		return (*RestartSpacePluginRequest)(nil)
+	}
+	r := new(RestartSpacePluginRequest)
+	r.PluginId = m.PluginId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RestartSpacePluginRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RestartSpacePluginResponse) CloneVT() *RestartSpacePluginResponse {
+	if m == nil {
+		return (*RestartSpacePluginResponse)(nil)
+	}
+	r := new(RestartSpacePluginResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RestartSpacePluginResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4319,6 +4381,43 @@ func (this *SetProcessBindingResponse) EqualVT(that *SetProcessBindingResponse) 
 
 func (this *SetProcessBindingResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetProcessBindingResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RestartSpacePluginRequest) EqualVT(that *RestartSpacePluginRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RestartSpacePluginRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RestartSpacePluginRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RestartSpacePluginResponse) EqualVT(that *RestartSpacePluginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RestartSpacePluginResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RestartSpacePluginResponse)
 	if !ok {
 		return false
 	}
@@ -7595,6 +7694,78 @@ func (x *SetProcessBindingResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the RestartSpacePluginRequest message to JSON.
+func (x *RestartSpacePluginRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RestartSpacePluginRequest to JSON.
+func (x *RestartSpacePluginRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RestartSpacePluginRequest message from JSON.
+func (x *RestartSpacePluginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RestartSpacePluginRequest from JSON.
+func (x *RestartSpacePluginRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RestartSpacePluginResponse message to JSON.
+func (x *RestartSpacePluginResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RestartSpacePluginResponse to JSON.
+func (x *RestartSpacePluginResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RestartSpacePluginResponse message from JSON.
+func (x *RestartSpacePluginResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RestartSpacePluginResponse from JSON.
+func (x *RestartSpacePluginResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WatchProcessBindingsRequest message to JSON.
 func (x *WatchProcessBindingsRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -10257,6 +10428,75 @@ func (m *SetProcessBindingResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *RestartSpacePluginRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RestartSpacePluginRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RestartSpacePluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RestartSpacePluginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RestartSpacePluginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RestartSpacePluginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchProcessBindingsRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -11100,6 +11340,27 @@ func (m *SetProcessBindingRequest) SizeVT() (n int) {
 }
 
 func (m *SetProcessBindingResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RestartSpacePluginRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RestartSpacePluginResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -12327,6 +12588,30 @@ func (x *SetProcessBindingResponse) MarshalProtoText() string {
 }
 
 func (x *SetProcessBindingResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RestartSpacePluginRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RestartSpacePluginRequest")
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RestartSpacePluginRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RestartSpacePluginResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "RestartSpacePluginResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RestartSpacePluginResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -16038,6 +16323,102 @@ func (m *SetProcessBindingResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SetProcessBindingResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RestartSpacePluginRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RestartSpacePluginRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RestartSpacePluginRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RestartSpacePluginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RestartSpacePluginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RestartSpacePluginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

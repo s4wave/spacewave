@@ -16,11 +16,10 @@ import (
 // swapWaitingNextStep says how a swap of pluginID waiting on the running
 // worker ends. The listing cannot name the host kind: js plugins run both in
 // browser workers and in the desktop quickjs host. A worker that never answers
-// nor exits stays until the plugin is removed and added again.
+// nor exits stays until the plugin is restarted.
 func swapWaitingNextStep(pluginID string) string {
 	return "it swaps when the worker answers or exits (a browser worker exits when its page reloads);" +
-		" if it does neither, restart it with spacewave plugin remove " + pluginID +
-		" then spacewave plugin add " + pluginID
+		" if it does neither, run spacewave plugin restart " + pluginID
 }
 
 // errDeployWaitPassed ends a deploy follow whose --wait deadline passed.
