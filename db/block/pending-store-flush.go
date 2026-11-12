@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"errors"
 	"sync"
 )
 
@@ -16,31 +15,27 @@ const (
 	flushSliceLinks = 2048
 )
 
-// Flush stores the kept trees the roots reach under a stage of the inner
-// store, in puts of at most flushSliceBytes and flushSliceLinks, and looks up
-// each root it keeps no block of. A root the local tier or the whole store
-// holds is left alone, and so is one whose lookup cannot answer in time. A
-// root every tier answered absent is pinned, which in the local provider reads
-// the root once more through the same read path and so, in practice, finds
-// nothing and leaves the root to the swap, such as a block the swap itself
-// puts. Flush copies no remote root into the inner store. Until release, SetRoots puts no block the
-// flush stored, so a writer that flushes before it takes the lock its root
-// moves need holds that lock, and the inner store's writer, only for the
-// swap: the stage holds the stored blocks until the swap names them. Each
-// slice is marked once stored, so a concurrent flush stores it no second
-// time, and a flush that left out another's block keeps that flush's stage
-// until its own release. The flushed blocks stay kept, so the Worlds that name them still read
-// them from memory, and leave memory with the SetRoots that names them.
-// Release after that SetRoots returns. The walks hold the PendingStore's
-// lock for at most walkSlice blocks at a time, so readers and writers of kept
-// blocks wait only that long.
+// Flush stores the kept trees the roots reach under a stage of the inner store,
+// in puts of at most flushSliceBytes and flushSliceLinks. It takes no pin on a
+// root it keeps no block of and copies no remote root in: it only fails when
+// the local tier cannot read such a root. Until release, SetRoots puts no block
+// the flush stored, so a writer that flushes before it takes the lock its root
+// moves need holds that lock, and the inner store's writer, only for the swap:
+// the stage holds the stored blocks until the swap names them. Each slice is
+// marked once stored, so a concurrent flush stores it no second time, and a
+// flush that left out another's block keeps that flush's stage until its own
+// release. The flushed blocks stay kept, so the Worlds that name them still
+// read them from memory, and leave memory with the SetRoots that names them.
+// Release after that SetRoots returns. The walks hold the PendingStore's lock
+// for at most walkSlice blocks at a time, so readers and writers of kept blocks
+// wait only that long.
 //
 // A tree that names a child no store holds is refused with ErrMissingChild
 // before anything is stored.
 //
 // Cost: one existence read of the children the trees name and do not keep,
-// one inner put per slice of the kept trees, and one existence read and pin
-// per unkept root, all before the caller's lock.
+// one inner put per slice of the kept trees, and one local existence read per
+// unkept root, all before the caller's lock.
 func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release func(), err error) {
 	// Gather the kept trees no open flush stored, and the roots kept nowhere
 	// here.
@@ -69,11 +64,10 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		}
 		return nil, err
 	}
-	var pins []func()
 	marked := 0
 	cleanup := func() {
 		// Unmark, end this flush's reliance on the stages of the blocks it
-		// left out, then release the stage and pins once no SetRoots or
+		// left out, then release the stage once no SetRoots or
 		// Flush that left out a flushed block is open: that SetRoots names
 		// the block without storing it, so the stage holds it until it
 		// lands.
@@ -81,12 +75,7 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		if stopped {
 			s.landed()
 		}
-		s.afterSkips(func() {
-			for _, unpin := range pins {
-				unpin()
-			}
-			releaseStage()
-		})
+		s.afterSkips(releaseStage)
 	}
 
 	// Store the trees in slices, children before parents, marking each
@@ -109,43 +98,18 @@ func (s *PendingStore) Flush(ctx context.Context, roots []*BlockRef) (release fu
 		marked, batchBytes, batchLinks = i+1, 0, 0
 	}
 
-	// Pin each unkept root no tier holds. The local tier answers first, and
-	// its error fails the flush. A root no tier holds yet, such as a block
-	// the swap itself puts, is left to the swap, and so is one whose other
-	// tiers are away, slow or failing: as the child
-	// check does, the whole-store lookup never waits for a peer or past
-	// childProbeWait, since a caller may hold a root set's lock behind it,
-	// and its error counts as unknown while ctx lives.
+	// Fail the flush when the local tier cannot read an unkept root. Flush
+	// takes no pin and asks no other tier: the store keeps such a root, or
+	// not, exactly as it would without this flush.
 	local := s.StoreOps
 	if tiers, ok := s.StoreOps.(LocalStoreGetter); ok && tiers.GetLocalStore() != nil {
 		local = tiers.GetLocalStore()
 	}
 	for _, root := range unkept {
-		found, err := local.GetBlockExists(ctx, root)
-		if err == nil && !found && local != s.StoreOps {
-			probe, cancel := childProbe(ctx)
-			found, err = s.StoreOps.GetBlockExists(probe, root)
-			cancel()
-			if err != nil && ctx.Err() == nil {
-				continue
-			}
-		}
-		if err != nil {
+		if _, err := local.GetBlockExists(ctx, root); err != nil {
 			cleanup()
 			return nil, err
 		}
-		if found {
-			continue
-		}
-		unpin, err := PinRoot(ctx, s.StoreOps, root)
-		if errors.Is(err, ErrNotFound) {
-			continue
-		}
-		if err != nil {
-			cleanup()
-			return nil, err
-		}
-		pins = append(pins, unpin)
 	}
 
 	// Unmark them and release the stage once.
