@@ -12,6 +12,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
 	quad "github.com/s4wave/spacewave/db/block/quad"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 )
@@ -234,6 +235,10 @@ type TxApplyWorldOp struct {
 	OperationBody []byte `protobuf:"bytes,2,opt,name=operation_body,json=operationBody,proto3" json:"operationBody,omitempty"`
 	// OpSender is the peer ID to apply the operation as.
 	OpSender string `protobuf:"bytes,3,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
+	// SetRoots are the same-bucket object roots the operation set when its
+	// author applied it. Replay holds them while the operation is above the
+	// checkpoint, since it reads them again when it applies the operation.
+	SetRoots []*block.BlockRef `protobuf:"bytes,4,rep,name=set_roots,json=setRoots,proto3" json:"setRoots,omitempty"`
 }
 
 func (x *TxApplyWorldOp) Reset() {
@@ -263,6 +268,13 @@ func (x *TxApplyWorldOp) GetOpSender() string {
 	return ""
 }
 
+func (x *TxApplyWorldOp) GetSetRoots() []*block.BlockRef {
+	if x != nil {
+		return x.SetRoots
+	}
+	return nil
+}
+
 // TxApplyObjectOp applies a object operation.
 // TxType: TxType_APPLY_OBJECT_OP
 type TxApplyObjectOp struct {
@@ -275,6 +287,9 @@ type TxApplyObjectOp struct {
 	ObjectKey string `protobuf:"bytes,3,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// OpSender is the peer ID to apply the operation as.
 	OpSender string `protobuf:"bytes,4,opt,name=op_sender,json=opSender,proto3" json:"opSender,omitempty"`
+	// SetRoots are the same-bucket object roots the operation set when its
+	// author applied it; see TxApplyWorldOp.set_roots.
+	SetRoots []*block.BlockRef `protobuf:"bytes,5,rep,name=set_roots,json=setRoots,proto3" json:"setRoots,omitempty"`
 }
 
 func (x *TxApplyObjectOp) Reset() {
@@ -309,6 +324,13 @@ func (x *TxApplyObjectOp) GetOpSender() string {
 		return x.OpSender
 	}
 	return ""
+}
+
+func (x *TxApplyObjectOp) GetSetRoots() []*block.BlockRef {
+	if x != nil {
+		return x.SetRoots
+	}
+	return nil
 }
 
 // TxCreateObject creates a new object with a key and ref.
@@ -544,6 +566,7 @@ func (m *TxApplyWorldOp) CloneVT() *TxApplyWorldOp {
 	r.OperationTypeId = m.OperationTypeId
 	r.OpSender = m.OpSender
 	r.OperationBody = protobuf_go_lite.CloneBytes(m.OperationBody)
+	r.SetRoots = protobuf_go_lite.CloneVTSlice(m.SetRoots)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -563,6 +586,7 @@ func (m *TxApplyObjectOp) CloneVT() *TxApplyObjectOp {
 	r.ObjectKey = m.ObjectKey
 	r.OpSender = m.OpSender
 	r.OperationBody = protobuf_go_lite.CloneBytes(m.OperationBody)
+	r.SetRoots = protobuf_go_lite.CloneVTSlice(m.SetRoots)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -774,6 +798,9 @@ func (this *TxApplyWorldOp) EqualVT(that *TxApplyWorldOp) bool {
 	if this.OpSender != that.OpSender {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.SetRoots, that.SetRoots, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -801,6 +828,9 @@ func (this *TxApplyObjectOp) EqualVT(that *TxApplyObjectOp) bool {
 		return false
 	}
 	if this.OpSender != that.OpSender {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.SetRoots, that.SetRoots, func() *block.BlockRef { return &block.BlockRef{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1254,6 +1284,17 @@ func (x *TxApplyWorldOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("opSender")
 		s.WriteString(x.OpSender)
 	}
+	if len(x.SetRoots) > 0 || s.HasField("setRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("setRoots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.SetRoots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("setRoots"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1280,6 +1321,24 @@ func (x *TxApplyWorldOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "op_sender", "opSender":
 			s.AddField("op_sender")
 			x.OpSender = s.ReadString()
+		case "set_roots", "setRoots":
+			s.AddField("set_roots")
+			if s.ReadNil() {
+				x.SetRoots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.SetRoots = append(x.SetRoots, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("set_roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.SetRoots = append(x.SetRoots, v)
+			})
 		}
 	})
 }
@@ -1317,6 +1376,17 @@ func (x *TxApplyObjectOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("opSender")
 		s.WriteString(x.OpSender)
 	}
+	if len(x.SetRoots) > 0 || s.HasField("setRoots") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("setRoots")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.SetRoots {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("setRoots"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1346,6 +1416,24 @@ func (x *TxApplyObjectOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "op_sender", "opSender":
 			s.AddField("op_sender")
 			x.OpSender = s.ReadString()
+		case "set_roots", "setRoots":
+			s.AddField("set_roots")
+			if s.ReadNil() {
+				x.SetRoots = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.SetRoots = append(x.SetRoots, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("set_roots", false))
+				if s.Err() != nil {
+					return
+				}
+				x.SetRoots = append(x.SetRoots, v)
+			})
 		}
 	})
 }
@@ -1907,6 +1995,18 @@ func (m *TxApplyWorldOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SetRoots) > 0 {
+		for iNdEx := len(m.SetRoots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.SetRoots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if len(m.OpSender) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpSender)
 		i--
@@ -1953,6 +2053,18 @@ func (m *TxApplyObjectOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SetRoots) > 0 {
+		for iNdEx := len(m.SetRoots) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.SetRoots[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
 	}
 	if len(m.OpSender) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpSender)
@@ -2350,6 +2462,10 @@ func (m *TxApplyWorldOp) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OperationTypeId)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OperationBody)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpSender)
+	for _, e := range m.SetRoots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2364,6 +2480,10 @@ func (m *TxApplyObjectOp) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OperationBody)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpSender)
+	for _, e := range m.SetRoots {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2556,6 +2676,18 @@ func (x *TxApplyWorldOp) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_sender")
 		protobuf_go_lite.TextWriteString(&sb, x.OpSender)
 	}
+	if len(x.SetRoots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "set_roots")
+		for i, v := range x.SetRoots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2581,6 +2713,18 @@ func (x *TxApplyObjectOp) MarshalProtoText() string {
 	if x.OpSender != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_sender")
 		protobuf_go_lite.TextWriteString(&sb, x.OpSender)
+	}
+	if len(x.SetRoots) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "set_roots")
+		for i, v := range x.SetRoots {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3011,6 +3155,19 @@ func (m *TxApplyWorldOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.OpSender = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SetRoots = append(m.SetRoots, &block.BlockRef{})
+			if err := m.SetRoots[len(m.SetRoots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3092,6 +3249,19 @@ func (m *TxApplyObjectOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.OpSender = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetRoots", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SetRoots = append(m.SetRoots, &block.BlockRef{})
+			if err := m.SetRoots[len(m.SetRoots)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

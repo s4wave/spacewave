@@ -99,7 +99,7 @@ func (t *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	}
 
 	// Record the successful object root change in the transaction batch.
-	t.w.recordLocked(tt, nil)
+	t.w.recordLocked(tt)
 	return seqno, nil
 }
 
@@ -130,10 +130,12 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 		return 0, false, tx.ErrDiscarded
 	}
 
-	// Apply the op, then record it and its payload.
+	// Apply the op, then record it with the roots it set.
+	t.w.takeSetRootsLocked()
 	objRev, sysErr, err := t.o.ApplyObjectOp(ctx, op, opSender)
 	if err == nil {
-		t.w.recordLocked(tt, op)
+		tt.GetTxApplyObjectOp().SetRoots = t.w.takeSetRootsLocked()
+		t.w.recordLocked(tt)
 	}
 	return objRev, sysErr, err
 }

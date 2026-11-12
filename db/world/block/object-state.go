@@ -98,6 +98,7 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	if err := o.setRoot(ctx, root); err != nil {
 		return 0, err
 	}
+	o.w.noteSetRoot(o.key, nref)
 
 	// Queue the object-set change and link the current and previous roots.
 	changeBcs, err := o.w.queueWorldChange(ctx, &WorldChange{
@@ -113,6 +114,7 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
 		prevBcs.SetBlock(prevBlk, true)
 		changeBcs.SetRef(6, prevBcs)
+		o.w.noteLoggedRoot(nref)
 	}
 
 	return r, nil
