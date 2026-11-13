@@ -58,6 +58,7 @@ type args struct {
 	progress, flushInterval          time.Duration
 	reqRate, byteRate                float64
 	order, keepSet, keepLog, dropLog string
+	wholePacks                       string
 	orderOverhead, keepMaxSize       uint64
 }
 
@@ -101,6 +102,7 @@ func main() {
 		&cli.Uint64Flag{Name: "order-overhead", Usage: "bytes a pack's request time is worth, for --order keys-per-time: the per-pack time times the session byte rate", Value: 10_304_340, Destination: &a.orderOverhead},
 		&cli.IntFlag{Name: "max-packs", Usage: "take only the first this many packs in --order, leaving the rest's refs for a later run; 0 takes all", Destination: &a.maxPacks},
 		&cli.StringFlag{Name: "keep-set", Usage: "list of hex block keys or 16-byte tails: blocks of a whole pack kept beside the wanted, verified against their keys; whole packs only", Destination: &a.keepSet},
+		&cli.StringFlag{Name: "whole-packs", Usage: "list of pack ids, one a line, read whole after every pack the refs place, in list order, for their --keep-set blocks: packs no h row places; needs --keep-set, refuses --ranges", Destination: &a.wholePacks},
 		&cli.Uint64Flag{Name: "keep-max-size", Usage: "drop a keep-set block larger than this many bytes, listing it in --drop-log; 0 is no cut", Destination: &a.keepMaxSize},
 		&cli.StringFlag{Name: "keep-log", Usage: "file appended one \"<pack id> <hex key> <size>\" line per keep-set block stored; default {out}/kept.tsv", Destination: &a.keepLog},
 		&cli.StringFlag{Name: "drop-log", Usage: "file appended one \"<pack id> <hex key> <offset> <size>\" line per keep-set block past --keep-max-size; default {out}/dropped.tsv", Destination: &a.dropLog},
@@ -154,6 +156,21 @@ func (a *args) run() error {
 	}
 	if a.order != orderWanted && a.order != orderTime {
 		return errors.New("--order must be wanted or keys-per-time")
+	}
+
+	// Read the listed whole packs, which need the keep set and whole reads.
+	var wholePacks []string
+	if a.wholePacks != "" {
+		if a.ranges {
+			return errors.New("--whole-packs reads whole packs: drop --ranges")
+		}
+		if a.keepSet == "" {
+			return errors.New("--whole-packs needs --keep-set: a listed pack no ref places gives only keep set blocks")
+		}
+		var err error
+		if wholePacks, err = readPackList(a.wholePacks); err != nil {
+			return err
+		}
 	}
 
 	// Read the keep set and open its kept and dropped logs, whole packs only.
@@ -236,6 +253,7 @@ func (a *args) run() error {
 		MaxPacks:      a.maxPacks,
 		OrderOverhead: a.orderOverhead,
 		Keep:          keep,
+		WholePacks:    wholePacks,
 		MaxPackBytes:  a.maxPackMiB << 20,
 		Fetch: fetchOptions{
 			Timeout: a.timeout, Retries: a.retries, Backoff: a.backoff, MaxBackoff: a.maxBackoff,
