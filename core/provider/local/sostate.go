@@ -39,10 +39,34 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	)
 	soRc.SetContext(rctx, true)
 
+	// awaitLoaded waits for ent's loaded state. An ended mount errors at once,
+	// even when another handle keeps its entry loaded, so a lock or a watch
+	// never starts for it. No entry loads once the mount ends, so the wait
+	// ends with rctx too and returns its error, rather than holding the caller
+	// until ctx ends. The mount can still end after this returns, so the write
+	// transaction checks rctx again.
+	awaitLoaded := func(ctx context.Context, ent *soStateEntry) error {
+		// Refuse an ended mount before waiting.
+		if err := rctx.Err(); err != nil {
+			return err
+		}
+
+		// Wait for the load, ending the wait when the mount ends.
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stop := context.AfterFunc(rctx, cancel)
+		defer stop()
+		_, err := ent.stateProm.Await(ctx)
+		if rerr := rctx.Err(); err != nil && rerr != nil {
+			return rerr
+		}
+		return err
+	}
+
 	// Bind the watched state of the entry to the caller's reference lifetime.
 	watchFn = func(ctx context.Context, sharedObjectID string, _ func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
 		ref, ent, _ := soRc.AddKeyRef(sharedObjectID)
-		if _, err := ent.stateProm.Await(ctx); err != nil {
+		if err := awaitLoaded(ctx, ent); err != nil {
 			ref.Release()
 			return nil, nil, err
 		}
@@ -54,7 +78,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	newLock := func(ctx context.Context, sharedObjectID string, checkpoint, peerImport bool) (sobject.SOStateLock, error) {
 		// Retain the loaded state entry until the write lock is released.
 		ref, ent, _ := soRc.AddKeyRef(sharedObjectID)
-		if _, err := ent.stateProm.Await(ctx); err != nil {
+		if err := awaitLoaded(ctx, ent); err != nil {
 			ref.Release()
 			return nil, err
 		}
@@ -84,6 +108,22 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						return objStore.NewTransaction(ctx, true)
 					},
 					func(ctx context.Context, tx kvtx.Tx) error {
+						// A deleted object stays deleted. A handle from a mount that
+						// has ended cannot write: a delete restarts the mount before
+						// releasing the account lock a relist needs, so a stale
+						// handle never writes over a relisted object. A write that
+						// raced the delete finds no state and fails.
+						if err := rctx.Err(); err != nil {
+							return err
+						}
+						found, err := tx.Exists(ctx, ent.key)
+						if err != nil {
+							return err
+						}
+						if !found {
+							return sobject.ErrSharedObjectNotFound
+						}
+
 						// Record the config history and the read checkpoint with the state.
 						if checkpoint {
 							if err := WriteSOConfigLineage(ctx, tx, sharedObjectID, state.GetConfig(), changes); err != nil {

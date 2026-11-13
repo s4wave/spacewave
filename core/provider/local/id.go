@@ -54,6 +54,13 @@ func SobjectBlockStoreID(sobjectID string) string {
 	return sobjectID
 }
 
+// SobjectObjectStorePrefix returns the object store prefix under which every
+// key of the shared object with the given id lives. Ids are DNS labels, so the
+// prefix holds no other object's keys.
+func SobjectObjectStorePrefix(sharedObjectID string) []byte {
+	return []byte("so/" + sharedObjectID + "/")
+}
+
 // SobjectObjectStoreHostStateKey returns the object store key for a shared object with the given id.
 func SobjectObjectStoreHostStateKey(sharedObjectID string) []byte {
 	return []byte(strings.Join([]string{

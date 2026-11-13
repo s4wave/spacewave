@@ -9,9 +9,6 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/object"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
@@ -79,51 +76,9 @@ func (t *LocalTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.
 }
 
 // WriteSharedObjectState replaces the state and config history of a shared
-// object in the target's object store.
+// object the target lists.
 func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte) error {
-	// Build the genesis and open the object store.
-	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, stateData)
-	if err != nil {
-		return err
-	}
-	objStore, rel, err := t.buildObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer rel()
-
-	// Write the genesis state and its history.
-	data, err := state.MarshalVT()
-	if err != nil {
-		return err
-	}
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			// The genesis starts a new lineage, so drop the old history checkpoint.
-			if err := tx.Delete(ctx, provider_local.SOConfigHistoryCheckpointKey(sharedObjectID)); err != nil {
-				return err
-			}
-			if err := provider_local.WriteSOConfigHistory(ctx, tx, sharedObjectID, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
-				return err
-			}
-			return tx.Set(ctx, provider_local.SobjectObjectStoreHostStateKey(sharedObjectID), data)
-		},
-	)
-}
-
-// buildObjectStore builds an object store handle for the target account.
-func (t *LocalTransferTarget) buildObjectStore(ctx context.Context) (object.ObjectStore, func(), error) {
-	// Build an object-store handle for the target account.
-	objStoreID := provider_local.SobjectObjectStoreID(t.providerID, t.accountID)
-	volID := t.account.GetVolume().GetID()
-	handle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, t.b, false, objStoreID, volID, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	return handle.GetObjectStore(), diRef.Release, nil
+	return t.account.ReplaceSharedObjectState(ctx, le, sharedObjectID, owner, stateData)
 }
 
 // _ is a type assertion
