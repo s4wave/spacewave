@@ -540,7 +540,8 @@ func walkQuadChanges(ctx context.Context, format WorldFormat, before, after *blo
 }
 
 // graft writes the head's World with target's graph tree, format and graph
-// settings, and returns the delta writer on it.
+// settings, its object tree tagged for that format, and returns the delta
+// writer on it.
 func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, target *block.BlockRef) (*regenGraft, error) {
 	// Read target's graph tree and the head's World.
 	_, tw, err := r.readWorld(ctx, store, target)
@@ -552,9 +553,12 @@ func (r *Regenerator) graft(ctx context.Context, store block.StoreOps, head, tar
 		return nil, errors.Wrap(err, "load head World")
 	}
 
-	// Replace the head World's graph with target's.
+	// Replace the head World's graph with target's, and tag its object tree
+	// for target's format in the same write.
 	w.GraphKeyValue = tw.GetGraphKeyValue().CloneVT()
-	w.Format = tw.GetFormat()
+	if err := w.setFormat(tw.GetFormat()); err != nil {
+		return nil, err
+	}
 	w.GraphSettings = tw.GetGraphSettings().CloneVT()
 	worldCursor.SetBlock(w, true)
 	ref, _, err := tx.Write(ctx, true)
