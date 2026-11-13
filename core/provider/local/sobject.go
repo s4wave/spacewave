@@ -157,7 +157,7 @@ func (s *SharedObject) localStatePrefix(storeID string) []byte {
 // GetSharedObjectState returns a snapshot of the shared object state.
 func (s *SharedObject) GetSharedObjectState(ctx context.Context) (sobject.SharedObjectStateSnapshot, error) {
 	// Retain the local state watch until it supplies a usable snapshot.
-	stateCtr, relStateCtr, err := s.lsoHost.AccessSharedObjectState(ctx, nil)
+	stateCtr, relStateCtr, err := s.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,12 @@ func (s *SharedObject) GetSharedObjectState(ctx context.Context) (sobject.Shared
 
 // AccessSharedObjectState adds a reference to the state and returns the state container.
 // Returns a release function. Accepts a function that is called if the Watchable becomes invalid.
+// An ended mount, such as one a delete restarted, serves no state and
+// returns context.Canceled, as its writes do.
 func (s *SharedObject) AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
+	if err := s.ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 	return s.lsoHost.AccessSharedObjectState(ctx, released)
 }
 
@@ -701,7 +706,17 @@ func (a *ProviderAccount) MountSharedObject(ctx context.Context, ref *sobject.Sh
 		tkrRef.Release()
 		return nil, nil, err
 	}
-	return ws, tkrRef.Release, nil
+	if released == nil {
+		return ws, tkrRef.Release, nil
+	}
+
+	// Report the handle invalid once its mount run ends, such as after a
+	// delete restarts the tracker, so no caller keeps reading an ended mount.
+	stop := context.AfterFunc(ws.ctx, released)
+	return ws, func() {
+		stop()
+		tkrRef.Release()
+	}, nil
 }
 
 // AccessSharedObjectHealth adds a reference to shared object health by ref.
