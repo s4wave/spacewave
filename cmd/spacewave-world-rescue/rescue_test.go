@@ -1168,3 +1168,47 @@ func TestSettle(t *testing.T) {
 		t.Fatal("z: a ref of one pack records its result")
 	}
 }
+
+// redialServer is a fakeServer that keeps the redial hook the fetcher sets.
+type redialServer struct {
+	*fakeServer
+	hook func(ctx context.Context, err error) error
+}
+
+// OnRedial keeps fn for the test to call.
+func (r *redialServer) OnRedial(fn func(ctx context.Context, err error) error) {
+	r.hook = fn
+}
+
+// TestFetcherRedialHook checks that a redial logs one line and takes a
+// request token, and that a redial refused by the rate limit returns its
+// error.
+func TestFetcherRedialHook(t *testing.T) {
+	// Build a fetcher at one request per second that logs to a buffer.
+	srv := &redialServer{fakeServer: &fakeServer{dir: t.TempDir()}}
+	var log bytes.Buffer
+	newFetcher(srv, "b", fetchOptions{RequestsPerSec: 1, CapBytes: 1 << 20, Log: &log}, 0)
+	if srv.hook == nil {
+		t.Fatal("no redial hook set")
+	}
+
+	// The first redial takes the one token at once and logs the error.
+	cerr := errors.New("connection reset by peer")
+	if err := srv.hook(context.Background(), cerr); err != nil {
+		t.Fatalf("first redial: %v", err)
+	}
+	want := "ftps redial after a connection error: connection reset by peer\n"
+	if log.String() != want {
+		t.Fatalf("log %q, want %q", log.String(), want)
+	}
+
+	// A second redial must wait for a token; under a short deadline it fails.
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if err := srv.hook(ctx, cerr); err == nil {
+		t.Fatal("second redial took no token")
+	}
+	if n := strings.Count(log.String(), "\n"); n != 2 {
+		t.Fatalf("%d log lines, want 2", n)
+	}
+}

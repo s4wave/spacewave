@@ -304,3 +304,51 @@ func TestIsFull(t *testing.T) {
 		t.Fatal("a bad login is not full")
 	}
 }
+
+// TestClientOnRedial checks that a call whose pooled session the server closed
+// runs the OnRedial hook once before it redials, and makes no dial when the
+// hook refuses.
+func TestClientOnRedial(t *testing.T) {
+	ctx := t.Context()
+	addr, tlsConf, srv := startCountingServer(t)
+
+	// Write an object through one session, which stays pooled.
+	client := NewClient(Config{Addr: addr, Logins: []Login{{User: "user", Password: "pass"}}, TLSConfig: tlsConf, MaxSessions: 1})
+	t.Cleanup(client.Close)
+	if err := client.PutObject(ctx, "b", "o", []byte("payload"), ""); err != nil {
+		t.Fatal(err)
+	}
+	var calls []error
+	refuse := errors.New("redial refused")
+	client.OnRedial(func(_ context.Context, err error) error {
+		calls = append(calls, err)
+		if len(calls) > 1 {
+			return refuse
+		}
+		return nil
+	})
+
+	// Close the pooled session server-side: the read redials once, after
+	// the hook saw the connection's error.
+	srv.closeSessions()
+	got, err := client.GetObjectRange(ctx, "b", "o", 0, 7)
+	if err != nil || string(got) != "payload" || len(calls) != 1 || calls[0] == nil {
+		t.Fatalf("read = %q, %v, hook calls %d; want the object after one hook call", got, err, len(calls))
+	}
+
+	// Close it again: the hook refuses, so the read fails with its error
+	// and no login is made.
+	srv.mtx.Lock()
+	logins := srv.logins["user"]
+	srv.mtx.Unlock()
+	srv.closeSessions()
+	if _, err := client.GetObjectRange(ctx, "b", "o", 0, 7); !errors.Is(err, refuse) {
+		t.Fatalf("read after refusal = %v; want the hook's error", err)
+	}
+	srv.mtx.Lock()
+	after := srv.logins["user"]
+	srv.mtx.Unlock()
+	if after != logins || len(calls) != 2 {
+		t.Fatalf("logins %d to %d, hook calls %d; want no new login and two calls", logins, after, len(calls))
+	}
+}

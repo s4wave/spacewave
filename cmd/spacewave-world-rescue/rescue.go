@@ -240,6 +240,7 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	defer out.Close()
 	fo := o.Fetch
 	fo.Reserved = l.reserve
+	fo.Log = cmp.Or[io.Writer](fo.Log, o.Log)
 	r := &rescuer{
 		o: o, le: le, ledger: l, out: out, multi: make(map[string]int), multiDone: make(map[string]bool), limits: out.GetBatchLimits(), start: time.Now(),
 		fetch: newFetcher(client, o.Bucket, fo, l.bytes), bytes0: l.bytes,

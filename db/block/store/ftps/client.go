@@ -85,6 +85,8 @@ type Client struct {
 	sess sessions
 	// onSpareError receives the error of a failed spare dial.
 	onSpareError atomic.Pointer[func(error)]
+	// onRedial runs before a call redials after a connection error.
+	onRedial atomic.Pointer[func(context.Context, error) error]
 	// leaks counts per login the tokens never to free: those of sessions
 	// whose close the server did not confirm.
 	leaks []atomic.Int32
@@ -210,6 +212,15 @@ func (c *Client) CloseAll() {
 // sees it there.
 func (c *Client) OnSpareError(fn func(error)) {
 	c.onSpareError.Store(&fn)
+}
+
+// OnRedial sets fn to run before each redial a call makes when its pooled
+// connection failed, with the call's context and the connection's error. A
+// caller logs and rates the extra dial there; when fn returns an error the
+// call makes no redial and returns that error. Without fn a call redials at
+// once, as before.
+func (c *Client) OnRedial(fn func(ctx context.Context, err error) error) {
+	c.onRedial.Store(&fn)
 }
 
 // PutObject writes the object under a temporary name in its directory and
@@ -452,8 +463,9 @@ var errSpent = errors.New("ftps connection spent")
 
 // do runs fn on a pooled connection. When fn fails on the connection itself,
 // rather than with a server reply, it runs once more on a fresh connection,
-// since an idle connection the server closed fails only on first use. When fn
-// returns errSpent, the connection is dropped and do returns nil.
+// since an idle connection the server closed fails only on first use; the
+// OnRedial hook runs before that redial. When fn returns errSpent, the
+// connection is dropped and do returns nil.
 func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) error) error {
 	// Take a slot with a connection from the pool.
 	s, err := c.acquire(ctx)
@@ -474,9 +486,20 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 	// session's token is freed once its close is confirmed, or kept for good
 	// when it is not, and the new connection takes a token of its own.
 	if err != nil && err != errSpent && !isReply(err) && !errors.Is(err, ErrTooLarge) && ctx.Err() == nil && !c.sess.isDead() {
+		// Drop the failed session.
 		c.sess.quit(conn)
 		s.conn = nil
 		c.free(s.login)
+
+		// Let the OnRedial hook log and rate the redial, or refuse it.
+		if fn := c.onRedial.Load(); fn != nil {
+			if herr := (*fn)(ctx, err); herr != nil {
+				c.release(s, nil)
+				return herr
+			}
+		}
+
+		// Dial a fresh session under a token of its own and run fn again.
 		if err = c.take(ctx, s.login); err != nil {
 			c.release(s, nil)
 			return err

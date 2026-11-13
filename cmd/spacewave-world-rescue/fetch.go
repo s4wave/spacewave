@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/textproto"
 	"regexp"
@@ -59,6 +60,17 @@ type spareWatcher interface {
 	// OnSpareError sets the receiver of a failed spare dial's error.
 	OnSpareError(fn func(error))
 }
+
+// redialWatcher runs a hook before each redial a request makes after its
+// pooled connection failed. *block_store_ftps.Client implements it.
+type redialWatcher interface {
+	// OnRedial sets the hook; an error from it refuses the redial.
+	OnRedial(fn func(ctx context.Context, err error) error)
+}
+
+// redialLine is the line logged before each redial. The rescue watchdog stops
+// the run on it, as it matches the watchdog's redial pattern.
+const redialLine = "ftps redial after a connection error: %v\n"
 
 // errNoSizer reports that the client cannot ask for an object's size.
 var errNoSizer = errors.New("the client cannot ask for an object's size")
@@ -165,6 +177,8 @@ type fetchOptions struct {
 	// Reserved, when set, makes the byte total durable before each request
 	// that reads bytes, so a crash mid-request loses no charged bytes.
 	Reserved func(total uint64) error
+	// Log, when set, receives one line per redial of a failed connection.
+	Log io.Writer
 }
 
 // reqStats times the requests made under a context that carries it, from
@@ -251,6 +265,20 @@ func newFetcher(client objectReader, bucket string, opts fetchOptions, fetched u
 			if isHardStop(err) {
 				f.hardStop(err)
 			}
+		})
+	}
+
+	// Log each redial of a failed connection and charge it a request token,
+	// so a redial is seen and counts against the request rate.
+	if w, ok := client.(redialWatcher); ok {
+		w.OnRedial(func(ctx context.Context, err error) error {
+			if opts.Log != nil {
+				_, _ = fmt.Fprintf(opts.Log, redialLine, err)
+			}
+			if f.reqs != nil {
+				return f.reqs.Wait(ctx)
+			}
+			return nil
 		})
 	}
 

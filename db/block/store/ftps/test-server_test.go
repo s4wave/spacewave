@@ -200,3 +200,29 @@ func (f *spendFile) Close() error {
 func (s *testServer) GetTLSConfig() (*tls.Config, error) {
 	return s.tlsConf, nil
 }
+
+// closeSessions closes every logged in session from the server side and waits
+// until the server has counted them closed.
+func (s *testServer) closeSessions() {
+	// Close each session's control connection.
+	s.mtx.Lock()
+	ccs := make([]ftpserver.ClientContext, 0, len(s.users))
+	for cc := range s.users {
+		ccs = append(ccs, cc)
+	}
+	s.mtx.Unlock()
+	for _, cc := range ccs {
+		_ = cc.Close()
+	}
+
+	// Wait for the server to count them gone.
+	for range 200 {
+		s.mtx.Lock()
+		n := s.total
+		s.mtx.Unlock()
+		if n == 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
