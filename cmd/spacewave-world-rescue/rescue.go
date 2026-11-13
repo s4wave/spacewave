@@ -68,6 +68,12 @@ type options struct {
 	Packs map[string]bool
 	// Keep keeps the keep set's blocks of each whole pack beside the wanted.
 	Keep keepOptions
+	// WholePacks are pack ids read whole even when no wanted ref places a
+	// block in them, for their keep set blocks: packs the index cannot
+	// place, such as the unindexed and those of a shared number. They go
+	// after every pack the refs place, in list order. They need Keep.Set
+	// and refuse Plan.Ranges.
+	WholePacks []string
 	// Fetch bounds the requests.
 	Fetch fetchOptions
 	// DiskFloorBytes stops the run when OutDir's file system has less free.
@@ -188,6 +194,10 @@ type rescuer struct {
 	// stored. Only the flush reads and writes them after group.
 	multi     map[string]int
 	multiDone map[string]bool
+	// written holds the tails of the keep set's keys stored this run,
+	// wanted or kept, so the flush stores each at most once. Only the flush
+	// reads and writes it.
+	written map[keyTail]struct{}
 	// statsMtx guards the plan counts the workers add.
 	statsMtx sync.Mutex
 }
@@ -203,6 +213,14 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	}
 	if o.Log == nil {
 		o.Log = io.Discard
+	}
+	if len(o.WholePacks) != 0 {
+		if o.Plan.Ranges {
+			return nil, errors.New("--whole-packs reads whole packs: drop --ranges")
+		}
+		if o.Keep.Set == nil {
+			return nil, errors.New("--whole-packs needs --keep-set: a listed pack no ref places gives only keep set blocks")
+		}
 	}
 
 	// Choose the output layout, finishing the pairs a crash left staged in
@@ -247,7 +265,7 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	r := &rescuer{
 		o: o, le: le, ledger: l, out: out, multi: make(map[string]int), multiDone: make(map[string]bool), limits: out.GetBatchLimits(), start: time.Now(),
 		fetch: newFetcher(client, o.Bucket, fo, l.bytes), bytes0: l.bytes,
-		keep: newKeeper(o.Keep),
+		keep: newKeeper(o.Keep), written: make(map[keyTail]struct{}),
 	}
 	for _, s := range l.refs {
 		r.count(s, 1)
@@ -432,15 +450,42 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 		return nil, err
 	}
 
-	// Drop the packs left empty; defer, unrecorded, the packs outside Packs;
-	// record the refs of packs the plan cannot read; defer the packs at or
-	// below MinWanted. A pack the ledger
+	// Add the listed whole packs no ref placed, each with its entry, nil
+	// when it has no e row: the server's SIZE sizes it then.
+	listed := make(map[string]bool, len(r.o.WholePacks))
+	if len(r.o.WholePacks) != 0 {
+		tx, err := r.o.Index.NewTransaction(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		for _, id := range r.o.WholePacks {
+			listed[id] = true
+			if byID[id] != nil {
+				continue
+			}
+			p := &packWork{id: id}
+			if p.entry, err = block_store_s3.ReadIndexEntry(ctx, tx, id); err != nil {
+				tx.Discard()
+				return nil, err
+			}
+			byID[id] = p
+		}
+		tx.Discard()
+	}
+
+	// Drop the packs left empty; defer, unrecorded, the packs outside Packs,
+	// listed whole packs included; record the refs of packs the plan cannot
+	// read; defer the packs at or below MinWanted. A pack the ledger
 	// finished is kept when it has wants: they are refs no earlier run
 	// recorded, added to the list since, and every candidate pack of a ref
-	// stays counted in r.multi.
+	// stays counted in r.multi. A listed whole pack is neither dropped
+	// empty nor deferred, unless the ledger finished it and it has no
+	// wants; one the refs alone would not take goes to the tail.
 	packs := make([]*packWork, 0, len(byID))
+	tail := make(map[string]*packWork)
 	for _, p := range byID {
-		if len(p.wants) == 0 {
+		whole := listed[p.id]
+		if len(p.wants) == 0 && (!whole || r.ledger.packs[p.id]) {
 			continue
 		}
 		if r.o.Packs != nil && !r.o.Packs[p.id] {
@@ -448,6 +493,9 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 			continue
 		}
 		if _, _, ok := choosePlan(p, r.o.Plan); !ok && !r.canSize() {
+			if len(p.wants) == 0 {
+				r.le.Warn("a listed whole pack has no entry and the client has no SIZE; not fetched")
+			}
 			for _, w := range p.wants {
 				if !r.settle(w.key, false) {
 					continue
@@ -458,18 +506,32 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 			}
 			continue
 		}
+		_, noExt := p.counts()
 		if len(p.wants) <= r.o.MinWanted {
-			r.res.Deferred += len(p.wants)
+			if !whole {
+				r.res.Deferred += len(p.wants)
+				continue
+			}
+			r.res.NoExtent += noExt
+			tail[p.id] = p
 			continue
 		}
-		_, noExt := p.counts()
 		r.res.NoExtent += noExt
 		packs = append(packs, p)
 	}
 	if err := r.ledger.sync(); err != nil {
 		return nil, err
 	}
+
+	// Order the packs the refs place, then add the listed tail in list
+	// order: it never moves a placed pack, and --max-packs counts it last.
 	orderPacksBy(packs, r.o.Order, r.o.OrderOverhead)
+	for _, id := range r.o.WholePacks {
+		if p := tail[id]; p != nil {
+			packs = append(packs, p)
+			delete(tail, id)
+		}
+	}
 	if r.o.MaxPacks > 0 && len(packs) > r.o.MaxPacks {
 		for _, p := range packs[r.o.MaxPacks:] {
 			r.res.Deferred += len(p.wants)
@@ -682,6 +744,10 @@ func (r *rescuer) flush(ctx context.Context) error {
 				}
 				stored[k] = true
 			}
+			// Store a keep set key once in the run, wanted or kept.
+			if r.keep != nil && r.keep.o.Set.has(res.keys[i]) && !r.once(res.keys[i]) {
+				continue
+			}
 			if len(batch) != 0 && (batchBytes+int64(len(b.Data)) > r.limits.Bytes || len(batch) >= r.limits.Blocks) {
 				if err := put(); err != nil {
 					return err
@@ -690,8 +756,13 @@ func (r *rescuer) flush(ctx context.Context) error {
 			batch = append(batch, b)
 			batchBytes += int64(len(b.Data))
 		}
-		for _, x := range res.extras {
+		for j := range res.extras {
+			x := &res.extras[j]
 			if x.blk == nil {
+				continue
+			}
+			if !r.once(x.key) {
+				x.dup = true
 				continue
 			}
 			if len(batch) != 0 && (batchBytes+int64(len(x.blk.Data)) > r.limits.Bytes || len(batch) >= r.limits.Blocks) {
@@ -752,6 +823,17 @@ func (r *rescuer) flush(ctx context.Context) error {
 	}
 	r.pending, r.pendingBytes, r.pendingCount = nil, 0, 0
 	return r.ledger.sync()
+}
+
+// once reports whether key is a keep set key not yet stored this run, and
+// marks it stored.
+func (r *rescuer) once(key []byte) bool {
+	t := tailOf(key)
+	if _, ok := r.written[t]; ok {
+		return false
+	}
+	r.written[t] = struct{}{}
+	return true
 }
 
 // settle reports whether a pack's result for key is the ref's to record. A

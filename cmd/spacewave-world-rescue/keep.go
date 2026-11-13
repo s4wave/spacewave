@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/identity"
 )
 
 // Pack orders --order takes.
@@ -82,6 +83,43 @@ func readKeepSet(path string) (keepSet, error) {
 	return slices.Compact(s), nil
 }
 
+// readWholePackList reads a list of pack ids, one a line, the first
+// tab-separated field taken, in file order without repeats. Blank lines and
+// lines starting with # are skipped; any other line must be a v1 pack id.
+func readWholePackList(path string) ([]string, error) {
+	// Open the list.
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	// Take each id once, refusing a line that is not one.
+	var ids []string
+	seen := make(map[string]bool)
+	sc := bufio.NewScanner(f)
+	for n := 1; sc.Scan(); n++ {
+		field, _, _ := strings.Cut(strings.TrimSpace(sc.Text()), "\t")
+		if field == "" || strings.HasPrefix(field, "#") {
+			continue
+		}
+		if err := identity.ValidatePackID(field); err != nil {
+			return nil, errors.Wrapf(err, "%s:%d", path, n)
+		}
+		if !seen[field] {
+			seen[field] = true
+			ids = append(ids, field)
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, errors.Errorf("%s: no pack ids", path)
+	}
+	return ids, nil
+}
+
 // keepOptions choose the blocks of a whole pack kept beside the wanted.
 type keepOptions struct {
 	// Set is the blocks to keep; nil keeps the wanted alone.
@@ -102,6 +140,9 @@ type extra struct {
 	size uint64
 	// blk is the verified block, nil when dropped by size.
 	blk *block.PutBatchEntry
+	// dup is set by the flush when the run already stored the key, wanted
+	// or kept from another pack, so it is not stored again.
+	dup bool
 }
 
 // keeper takes the keep set's blocks out of whole packs, each block once
@@ -110,9 +151,10 @@ type keeper struct {
 	o    keepOptions
 	mtx  sync.Mutex
 	seen map[keyTail]struct{}
-	// Kept, Dropped and Failed count blocks; KeptBytes the kept data.
-	Kept, Dropped, Failed int
-	KeptBytes             uint64
+	// Kept, Dropped and Failed count blocks; Dup those the run had already
+	// stored; KeptBytes the kept data.
+	Kept, Dropped, Failed, Dup int
+	KeptBytes                  uint64
 }
 
 // newKeeper returns a keeper, nil when the options keep nothing.
@@ -176,6 +218,10 @@ func (k *keeper) record(id string, xs []extra) error {
 	k.mtx.Lock()
 	defer k.mtx.Unlock()
 	for _, x := range xs {
+		if x.dup {
+			k.Dup++
+			continue
+		}
 		if x.blk == nil {
 			k.Dropped++
 			if k.o.Dropped != nil {
