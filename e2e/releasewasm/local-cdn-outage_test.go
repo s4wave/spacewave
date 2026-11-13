@@ -158,7 +158,7 @@ func openRuntimeFailure(t *testing.T, ctx playwright.BrowserContext, timeoutMS f
 	if _, err := page.Goto(testHarness.getBaseURL() + "/#/quickstart/local"); err != nil {
 		t.Fatal(err)
 	}
-	if err := button(page, "Retry").WaitFor(playwright.LocatorWaitForOptions{Timeout: playwright.Float(timeoutMS)}); err != nil {
+	if err := button(page, "Retry").WaitFor(playwright.LocatorWaitForOptions{Timeout: new(timeoutMS)}); err != nil {
 		t.Fatalf("runtime panic did not offer Retry: %v", err)
 	}
 	text, err := page.Locator("body").InnerText()
