@@ -4,6 +4,7 @@ import type { PacketStream } from 'starpc'
 import type { BackendAPI, BackendEntrypointLifecycle } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { messagePortPacketStream } from '../../entrypoint/browser/message-port-packet-stream.js'
+import { onGoScriptFatal } from './fatal.js'
 
 type GoPushableSink = {
   push: (message: Uint8Array) => void
@@ -62,6 +63,8 @@ class GoScriptPluginGeneration {
       host.env = { ...host.env, ...env }
     }
 
+    // A panic that escapes any goroutine ends the plugin process, as in Go.
+    onGoScriptFatal((err) => this.fail(err))
     void Promise.resolve()
       .then(() => loadPluginMain())
       .then((pluginMain) => pluginMain())

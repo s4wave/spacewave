@@ -12,6 +12,7 @@ import {
 } from '../../bldr/web-runtime.js'
 import { messagePortPacketStream } from './message-port-packet-stream.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
+import { onGoScriptFatal } from '../../runtime/goscript/fatal.js'
 
 // GoScriptRuntimeMain runs the compiled process until it exits.
 export type GoScriptRuntimeMain = () => void | Promise<void>
@@ -130,6 +131,18 @@ function startGoRpcStreams() {
 }
 
 let goStarted = false
+let runtimeFailed = false
+
+// failRuntime reports the end of the Go process to the attached documents as
+// the terminal runtime.failed startup mark, which their startup surface shows
+// as a failure with Retry. Go ends once, so only the first report is sent.
+function failRuntime(err: Error) {
+  if (runtimeFailed) {
+    return
+  }
+  runtimeFailed = true
+  webRuntime.broadcastStartupMark('runtime.failed', { reason: err.message })
+}
 
 // startGoScriptRuntime starts the process once, after its host configuration is installed.
 // GoScript's os.Getenv reads process.env, so env is merged there before Go starts.
@@ -152,6 +165,8 @@ async function startGoScriptRuntime(
   })
   startGoRpcStreams()
 
+  // A panic that escapes any goroutine ends the runtime, as in Go.
+  onGoScriptFatal(failRuntime)
   const distMain = await loadDistMain()
   await Promise.resolve()
     .then(() => distMain())
@@ -212,8 +227,9 @@ export default function runGoScriptRuntime(
         }
         runtimeStarted = true
         await startGoScriptRuntime(loadDistMain, webRuntimeId, env)
-      })().catch((err) => {
+      })().catch((err: unknown) => {
         console.warn('runtime-goscript: error running web runtime', err)
+        failRuntime(err instanceof Error ? err : new Error(String(err)))
       })
     }
 

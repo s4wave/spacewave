@@ -20,6 +20,7 @@ var distCompleteRoots = []string{
 	"web/boot/",
 	"web/electron/",
 	"web/entrypoint/",
+	"web/runtime/goscript/",
 }
 
 // TestDistSourcesExcludeTests checks that no test source ships in the binary.

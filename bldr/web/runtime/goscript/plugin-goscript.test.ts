@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HandleStreamCtr, type PacketStream } from 'starpc'
 import type { BackendAPI } from '@aptre/bldr-sdk'
 
+import { go, panic } from '@goscript/builtin/index.js'
+
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import main from './plugin-goscript.js'
 
@@ -35,6 +37,24 @@ describe('plugin-goscript generation lifecycle', () => {
     )
     await expect(Promise.resolve(lifecycle.startup)).rejects.toBe(err)
     await expect(Promise.resolve(lifecycle.done)).rejects.toBe(err)
+  })
+
+  it('fails the generation with the panic text when a goroutine panics', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const api = buildBackendAPI()
+
+    const lifecycle = main(api, async () => async () => {
+      go(() => panic('boom'))
+      await new Promise<void>(() => {})
+    })
+
+    await expect(Promise.resolve(lifecycle.done)).rejects.toThrow(
+      /^panic: boom$/,
+    )
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringMatching(/^panic: boom\n\ngoroutine \d+ \[running\]:/),
+    )
+    consoleError.mockRestore()
   })
 
   it('exposes the runtime env to the plugin before Go starts', async () => {
