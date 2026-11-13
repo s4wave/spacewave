@@ -8,7 +8,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -88,6 +90,28 @@ type options struct {
 	RetryFailed bool
 	// Log receives the progress lines.
 	Log io.Writer
+	// PlanOut, when set, plans only: the run writes the plan there, with the
+	// ledger lines planning writes, and returns with no request. The client
+	// is ignored, so no request, dial or redial hook can happen.
+	PlanOut string
+	// PlanIn, when set, takes the plan from that file instead of planning:
+	// neither the ref list nor Index is read to plan, and Index may be nil.
+	PlanIn string
+	// IndexPath is the index file, whose identity the plan's inputs hash
+	// holds; empty names no index.
+	IndexPath string
+	// IndexID is the --index-id sidecar, sha256sum's output for the index
+	// and its -wal; see readIndexID. When set, the plan's inputs hold its
+	// hashes in place of IndexPath's path, size and modification time.
+	// PlanOut and PlanIn need it; PlanOut hashes IndexPath and its -wal and
+	// refuses a sidecar that differs, and PlanIn trusts it.
+	IndexID string
+	// IndexTable and StoreID name the index rows planning reads; the plan's
+	// inputs hold them.
+	IndexTable, StoreID string
+	// PlanSize is whether the fetch's client will have SIZE, which planning
+	// with no client, under PlanOut, assumes.
+	PlanSize bool
 }
 
 // Stop reasons of a run that ended early but cleanly.
@@ -198,6 +222,10 @@ type rescuer struct {
 	// wanted or kept, so the flush stores each at most once. Only the flush
 	// reads and writes it.
 	written map[keyTail]struct{}
+	// dropped are the --packs ids the plan does not fetch, by id.
+	dropped []droppedPack
+	// index is the run's index identity, read once by runIndexIdentity.
+	index string
 	// statsMtx guards the plan counts the workers add.
 	statsMtx sync.Mutex
 }
@@ -214,6 +242,12 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	if o.Log == nil {
 		o.Log = io.Discard
 	}
+	if o.PlanOut != "" && o.PlanIn != "" {
+		return nil, errors.New("--plan-out and --plan-in exclude each other")
+	}
+	if (o.PlanOut != "" || o.PlanIn != "") && o.IndexID == "" {
+		return nil, errors.New("--plan-out and --plan-in need --index-id")
+	}
 	if len(o.WholePacks) != 0 {
 		if o.Plan.Ranges {
 			return nil, errors.New("--whole-packs reads whole packs: drop --ranges")
@@ -224,6 +258,19 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 		if err := wholeInPacks(o.WholePacks, o.Packs); err != nil {
 			return nil, err
 		}
+	}
+
+	// Read the index identity once, checking a plan out's sidecar against
+	// the index file and its -wal.
+	index, err := runIndexIdentity(o)
+	if err != nil {
+		return nil, err
+	}
+
+	// Drop the client when planning only, so nothing past here can reach
+	// the server: the fetcher gets no client and installs no hook.
+	if o.PlanOut != "" {
+		client = nil
 	}
 
 	// Choose the output layout, finishing the pairs a crash left staged in
@@ -268,21 +315,30 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	r := &rescuer{
 		o: o, le: le, ledger: l, out: out, multi: make(map[string]int), multiDone: make(map[string]bool), limits: out.GetBatchLimits(), start: time.Now(),
 		fetch: newFetcher(client, o.Bucket, fo, l.bytes), bytes0: l.bytes,
-		keep: newKeeper(o.Keep), written: make(map[keyTail]struct{}),
+		keep: newKeeper(o.Keep), written: make(map[keyTail]struct{}), index: index,
 	}
 	for _, s := range l.refs {
 		r.count(s, 1)
 	}
 
-	// Stop before fetching when the disk is already at its floor.
-	if stop, err := r.belowFloor(0); err != nil || stop {
-		r.res.Stop = stopDiskFloor
-		return r.finish(), err
+	// Stop before fetching when the disk is already at its floor; a plan
+	// only writes no blocks.
+	if o.PlanOut == "" {
+		if stop, err := r.belowFloor(0); err != nil || stop {
+			r.res.Stop = stopDiskFloor
+			return r.finish(), err
+		}
 	}
 
-	// Group the unfinished refs by pack, recording those the index lacks.
-	packs, err := r.group(ctx)
-	if err != nil {
+	// Load the plan, or group the unfinished refs by pack, recording those
+	// the index lacks; a plan only ends here.
+	var packs []*packWork
+	if o.PlanIn != "" {
+		packs, err = r.loadPlan()
+	} else {
+		packs, err = r.plan(ctx)
+	}
+	if err != nil || o.PlanOut != "" {
 		return r.finish(), err
 	}
 	r.res.PacksTotal = len(packs)
@@ -490,6 +546,7 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 	for _, p := range byID {
 		whole := listed[p.id]
 		if len(p.wants) == 0 && (!whole || r.ledger.packs[p.id]) {
+			r.drop(p.id, dropNoWants, 0)
 			continue
 		}
 		if r.o.Packs != nil && !r.o.Packs[p.id] {
@@ -508,12 +565,14 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 					return nil, err
 				}
 			}
+			r.drop(p.id, dropNoEntry, len(p.wants))
 			continue
 		}
 		_, noExt := p.counts()
 		if len(p.wants) <= r.o.MinWanted {
 			if !whole {
 				r.res.Deferred += len(p.wants)
+				r.drop(p.id, dropMinWanted, len(p.wants))
 				continue
 			}
 			r.res.NoExtent += noExt
@@ -539,15 +598,149 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 	if r.o.MaxPacks > 0 && len(packs) > r.o.MaxPacks {
 		for _, p := range packs[r.o.MaxPacks:] {
 			r.res.Deferred += len(p.wants)
+			r.drop(p.id, dropMaxPacks, len(p.wants))
 		}
 		packs = packs[:r.o.MaxPacks]
 	}
+
+	// Record the --packs ids no ref placed as having no wants, then sort the
+	// drops by id.
+	for id := range r.o.Packs {
+		if byID[id] == nil {
+			r.drop(id, dropNoWants, 0)
+		}
+	}
+	slices.SortFunc(r.dropped, func(a, b droppedPack) int { return cmp.Compare(a.id, b.id) })
 	return packs, nil
+}
+
+// drop records a --packs id the plan does not fetch; other packs are not
+// recorded.
+func (r *rescuer) drop(id, reason string, wants int) {
+	if r.o.Packs[id] {
+		r.dropped = append(r.dropped, droppedPack{id: id, reason: reason, wants: wants})
+	}
+}
+
+// plan groups the refs, prints the plan line and, under PlanOut, writes the
+// plan; else it writes the dropped --packs ids to OutDir, as the plan line
+// names none.
+func (r *rescuer) plan(ctx context.Context) ([]*packWork, error) {
+	// Group, noting the counters planning adds.
+	base := r.res
+	packs, err := r.group(ctx)
+	if err != nil {
+		return nil, err
+	}
+	inputs, parts, err := planInputs(r.o, r.canSize(), r.index)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the plan, or the dropped ids of an in-process plan.
+	if r.o.PlanOut != "" {
+		pf := &planFile{
+			Inputs: inputs, Parts: parts, Packs: packs, Multi: r.multi, Dropped: r.dropped,
+			Counts: planCounts{
+				Absent: r.res.Absent - base.Absent, Deferred: r.res.Deferred - base.Deferred,
+				SharedNum: r.res.SharedNum - base.SharedNum, NoExtent: r.res.NoExtent - base.NoExtent,
+				Ambiguous: r.res.Ambiguous - base.Ambiguous,
+			},
+		}
+		pf.Wanted, pf.Bytes = planTotals(packs, r.o.Plan, r.multi)
+		if err := writePlanFile(r.o.PlanOut, pf); err != nil {
+			return nil, err
+		}
+	} else if len(r.dropped) != 0 {
+		if err := writeDropped(filepath.Join(r.o.OutDir, droppedListName), r.dropped); err != nil {
+			return nil, err
+		}
+	}
+
+	// Print the plan line.
+	_, _ = io.WriteString(r.o.Log, planLine(packs, r.o.Plan, r.multi, r.dropped, inputs))
+	return packs, nil
+}
+
+// loadPlan reads the PlanIn plan, checks it was made from this run's inputs,
+// and leaves out what the ledger finished since, as group would: each
+// finished want, and each pack left with none unless it is a listed whole
+// pack the ledger has not finished. It prints the plan line.
+func (r *rescuer) loadPlan() ([]*packWork, error) {
+	// Name the ledger the plan resumes against, as the inputs do not hold
+	// it: its path, the packs it has p lines for and the refs it has r
+	// lines for.
+	r.ledger.mtx.Lock()
+	donePacks, doneRefs := len(r.ledger.packs), len(r.ledger.refs)
+	r.ledger.mtx.Unlock()
+	_, _ = fmt.Fprintf(r.o.Log, "plan ledger %s p %d r %d\n", r.o.Ledger, donePacks, doneRefs)
+
+	// Read the plan and check its inputs and its --packs set.
+	pf, err := checkPlan(r.o, r.canSize(), r.index)
+	if err != nil {
+		return nil, err
+	}
+
+	// Leave out the finished wants and the packs left empty.
+	listed := make(map[string]bool, len(r.o.WholePacks))
+	for _, id := range r.o.WholePacks {
+		listed[id] = true
+	}
+	gone := make(map[string]bool)
+	var goneNoExt int
+	packs := make([]*packWork, 0, len(pf.Packs))
+	for _, p := range pf.Packs {
+		kept := p.wants[:0]
+		for _, w := range p.wants {
+			if !r.skip(w.key) {
+				kept = append(kept, w)
+				continue
+			}
+			if !w.extent {
+				goneNoExt++
+			}
+			if _, ok := pf.Multi[string(w.key)]; ok {
+				gone[string(w.key)] = true
+			}
+		}
+		p.wants = kept
+		if len(p.wants) == 0 && (!listed[p.id] || r.ledger.packs[p.id]) {
+			continue
+		}
+		packs = append(packs, p)
+	}
+	for k := range gone {
+		delete(pf.Multi, k)
+	}
+
+	// Take the plan's shared numbers and the counters the ledger lacks.
+	r.multi = pf.Multi
+	r.dropped = pf.Dropped
+	r.res.Deferred += pf.Counts.Deferred
+	r.res.SharedNum += max(pf.Counts.SharedNum-len(gone), 0)
+	r.res.NoExtent += max(pf.Counts.NoExtent-goneNoExt, 0)
+
+	// Print the plan line.
+	_, _ = io.WriteString(r.o.Log, planLine(packs, r.o.Plan, r.multi, r.dropped, pf.Inputs))
+	return packs, nil
+}
+
+// writeDropped writes the dropped ids, one a line as id, reason and wants,
+// tab separated, replacing the file atomically.
+func writeDropped(path string, dropped []droppedPack) error {
+	var b strings.Builder
+	for _, d := range dropped {
+		_, _ = fmt.Fprintf(&b, "%s\t%s\t%d\n", d.id, d.reason, d.wants)
+	}
+	return dirObjects{}.PutObject(context.Background(), filepath.Dir(path), filepath.Base(path), []byte(b.String()), "")
 }
 
 // canSize reports whether the client can ask the server for a pack's size,
 // for a pack the index gives none.
 func (r *rescuer) canSize() bool {
+	if r.fetch.client == nil {
+		return r.o.PlanSize
+	}
 	_, ok := r.fetch.client.(objectSizer)
 	return ok
 }

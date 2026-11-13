@@ -61,6 +61,7 @@ type args struct {
 	reqRate, byteRate                float64
 	order, keepSet, keepLog, dropLog string
 	wholePacks                       string
+	planOut, planIn, indexID         string
 	orderOverhead, keepMaxSize       uint64
 }
 
@@ -108,6 +109,9 @@ func main() {
 		&cli.IntFlag{Name: "max-packs", Usage: "take only the first this many packs in --order, leaving the rest's refs for a later run; 0 takes all", Destination: &a.maxPacks},
 		&cli.StringFlag{Name: "keep-set", Usage: "list of hex block keys or 16-byte tails: blocks of a whole pack kept beside the wanted, verified against their keys; whole packs only", Destination: &a.keepSet},
 		&cli.StringFlag{Name: "whole-packs", Usage: "list of pack ids, one a line, read whole after every pack the refs place, in list order, for their --keep-set blocks: packs no h row places; needs --keep-set, refuses --ranges", Destination: &a.wholePacks},
+		&cli.StringFlag{Name: "plan-out", Usage: "plan only: write the plan, the packs in order with every wanted ref, to this file, write the ledger lines planning writes, print the plan line and exit 0, with no netrc read and no dial", Destination: &a.planOut},
+		&cli.StringFlag{Name: "plan-in", Usage: "take the plan from this --plan-out file instead of planning, with no index read; refuses a plan made from other refs, --packs, --whole-packs, --index-id, --index-table, --store-id or plan flags, and leaves out what the ledger finished since", Destination: &a.planIn},
+		&cli.StringFlag{Name: "index-id", Usage: "sidecar naming the index by content: sha256sum's output for the --index file and its -wal (sha256sum view.db view.db-wal > view.db.id), or the file alone when it has no -wal; the plan's inputs hold it in place of the index path, so a byte-identical copy elsewhere matches; needed by --plan-out, which hashes the index and -wal and refuses a sidecar that differs, and by --plan-in, which trusts it", Destination: &a.indexID},
 		&cli.Uint64Flag{Name: "keep-max-size", Usage: "drop a keep-set block larger than this many bytes, listing it in --drop-log; 0 is no cut", Destination: &a.keepMaxSize},
 		&cli.StringFlag{Name: "keep-log", Usage: "file appended one \"<pack id> <hex key> <size>\" line per keep-set block stored; default {out}/kept.tsv", Destination: &a.keepLog},
 		&cli.StringFlag{Name: "drop-log", Usage: "file appended one \"<pack id> <hex key> <offset> <size>\" line per keep-set block past --keep-max-size; default {out}/dropped.tsv", Destination: &a.dropLog},
@@ -158,6 +162,12 @@ func (a *args) run() error {
 	}
 	if a.maxPacks < 0 || a.maxDials < 0 {
 		return errors.New("--max-packs and --max-dials must not be negative")
+	}
+	if a.planOut != "" && a.planIn != "" {
+		return errors.New("--plan-out and --plan-in exclude each other")
+	}
+	if (a.planOut != "" || a.planIn != "") && a.indexID == "" {
+		return errors.New("--plan-out and --plan-in need --index-id")
 	}
 
 	// Read the pack list that bounds the plan.
@@ -220,46 +230,13 @@ func (a *args) run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// Open the index copy read-only through a view that leaves its files,
-	// -wal and -shm included, as they are.
-	if _, err := os.Stat(a.index); err != nil {
-		return err
-	}
-	store, err := openIndexView(ctx, a.index, cmp.Or(a.indexScratch, filepath.Join(filepath.Dir(a.index), "rescue-index-view")), a.indexTable)
-	if err != nil {
-		return err
-	}
-	defer store.Close()
-	index := kvtx_prefixer.NewPrefixer(store, block_store_s3.PackIndexPrefix(a.storeID))
-
-	// Log in from the netrc. The logins are never printed.
-	host := a.addr
-	if h, _, err := net.SplitHostPort(a.addr); err == nil {
-		host = h
-	}
-	logins, err := block_store_ftps.ReadNetrc(a.netrc, host)
-	if err != nil {
-		return err
-	}
-	client := block_store_ftps.NewClient(block_store_ftps.Config{
-		Addr:          a.addr,
-		Logins:        logins,
-		MaxSessions:   a.sessions,
-		ConnsPerLogin: a.sessions,
-		NoFullRetry:   true,
-		CloseOnDone:   true,
-		MaxDials:      a.maxDials,
-	})
-	defer client.Close()
-
-	// Run.
+	// Build the run's options; the index and the client come after.
 	if err := os.MkdirAll(a.out, 0o755); err != nil {
 		return err
 	}
-	res, err := run(ctx, &options{
+	o := &options{
 		Bucket:        a.root,
 		Prefix:        a.prefix,
-		Index:         index,
 		RefList:       a.refs,
 		Ledger:        cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
 		OutDir:        a.out,
@@ -284,7 +261,71 @@ func (a *args) run() error {
 		FlushInterval:  a.flushInterval,
 		RetryFailed:    a.retryFailed,
 		Log:            os.Stderr,
-	}, client)
+		PlanOut:        a.planOut,
+		PlanIn:         a.planIn,
+		IndexPath:      a.index,
+		IndexID:        a.indexID,
+		IndexTable:     a.indexTable,
+		StoreID:        a.storeID,
+		// The FTPS client answers SIZE.
+		PlanSize: true,
+	}
+
+	// Open the index copy read-only through a view that leaves its files,
+	// -wal and -shm included, as they are; a run with a plan reads none of
+	// it, and trusts the --index-id sidecar for its identity.
+	if _, err := os.Stat(a.index); err != nil {
+		return err
+	}
+	if a.planIn == "" {
+		store, err := openIndexView(ctx, a.index, cmp.Or(a.indexScratch, filepath.Join(filepath.Dir(a.index), "rescue-index-view")), a.indexTable)
+		if err != nil {
+			return err
+		}
+		defer store.Close()
+		o.Index = kvtx_prefixer.NewPrefixer(store, block_store_s3.PackIndexPrefix(a.storeID))
+	}
+
+	// Plan only with no client, before the netrc is read or a client built.
+	if a.planOut != "" {
+		_, err := run(ctx, o, nil)
+		return err
+	}
+
+	// Refuse a plan made from other inputs before the netrc is read or a
+	// client built; the run checks it again before using it.
+	if a.planIn != "" {
+		index, err := readIndexID(o.IndexID)
+		if err != nil {
+			return err
+		}
+		if _, err := checkPlan(o, o.PlanSize, index); err != nil {
+			return err
+		}
+	}
+
+	// Log in from the netrc. The logins are never printed.
+	host := a.addr
+	if h, _, err := net.SplitHostPort(a.addr); err == nil {
+		host = h
+	}
+	logins, err := block_store_ftps.ReadNetrc(a.netrc, host)
+	if err != nil {
+		return err
+	}
+	client := block_store_ftps.NewClient(block_store_ftps.Config{
+		Addr:          a.addr,
+		Logins:        logins,
+		MaxSessions:   a.sessions,
+		ConnsPerLogin: a.sessions,
+		NoFullRetry:   true,
+		CloseOnDone:   true,
+		MaxDials:      a.maxDials,
+	})
+	defer client.Close()
+
+	// Run.
+	res, err := run(ctx, o, client)
 	if err != nil {
 		return err
 	}
