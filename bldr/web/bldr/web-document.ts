@@ -830,6 +830,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private pluginSingletonAcquired = false
   // singletonAbort aborts the singleton lock request on close.
   private singletonAbort?: AbortController
+  // singletonRelease returns a held plugin singleton lock. Aborting the
+  // request only cancels a request that is still waiting.
+  private singletonRelease?: () => void
   // firstWorkerCreationMarked records the first worker boundary once per document.
   private firstWorkerCreationMarked = false
   // firstWorkerReadyMarked records the first ready boundary once per document.
@@ -1046,6 +1049,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.webDocumentUuid,
         this.waitForRuntimeConnected.bind(this),
         () => this.storageDurabilityOwner.noteMeaningfulWrite(),
+        (reason) => this.handleRuntimeFailed(reason),
       )
     }
 
@@ -2119,6 +2123,29 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     return localPort
   }
 
+  // handleRuntimeFailed ends this document's dedicated host term once the
+  // runtime it hosted or attached to has failed. The document ends the dead
+  // runtime's worker and the plugin workers it scheduled for it, releasing
+  // their storage handles, then returns the election lease and the plugin
+  // singleton, so the next election starts a fresh runtime whose plugins can
+  // run. The failure itself stays on this document's startup surface; its
+  // Retry reloads into that election.
+  private handleRuntimeFailed(reason: string) {
+    if (!this.dedicatedRuntimeHost) {
+      return
+    }
+    if (this.runtimeWorker) {
+      this.runtimeWorker.terminate()
+      this.runtimeWorker = undefined
+    }
+    for (const workerId in this.webWorkers) {
+      void this.webWorkers[workerId].close()
+      delete this.webWorkers[workerId]
+    }
+    this.releasePluginSingletonLock()
+    this.dedicatedRuntimeHost.fail(reason)
+  }
+
   // sendWebRuntimeOpenClient sends the message to the web runtime to open a client.
   // Only used in non-saucer mode (Electron/SharedWorker).
   private sendWebRuntimeOpenClient(
@@ -2228,13 +2255,21 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.singletonAbort.abort()
       this.singletonAbort = undefined
     }
+    this.singletonRelease?.()
+    this.singletonRelease = undefined
     if (this.pluginSingletonLockEnabled) {
       this.pluginSingletonReady = new Promise<void>(() => {})
     }
   }
 
   private refreshPluginSingletonLock() {
-    if (!this.pluginSingletonLockEnabled || this.closed) {
+    // A document whose runtime failed schedules no plugin workers for the
+    // next runtime; only its Retry, a new document, contends again.
+    if (
+      !this.pluginSingletonLockEnabled ||
+      this.closed ||
+      this.dedicatedRuntimeHost?.role === 'failed'
+    ) {
       return
     }
     if (this.singletonAbort) {
@@ -2262,7 +2297,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
               runtimeId: this.webRuntimeId,
             })
             resolve()
-            return new Promise<void>(() => {})
+            return new Promise<void>((release) => {
+              this.singletonRelease = release
+            })
           },
         )
         .catch((err: unknown) => {

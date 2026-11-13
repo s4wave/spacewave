@@ -102,48 +102,83 @@ if (localStorage.getItem('e2e-runtime-fault') !== 'off') {
 
 // TestLocalCDNRuntimePanicOffersRetry verifies that a runtime whose Go program
 // panics fails every document at once, including one that attaches after the
-// panic, and that Retry boots a new runtime once the fault clears. The pages
-// have no console diagnostics, since the panic is logged.
+// panic, and that Retry in either document boots a new runtime once the fault
+// clears, while the other document stays open on the failure. That document's
+// own Retry then joins the new runtime. The pages have no console diagnostics,
+// since the panic is logged.
 func TestLocalCDNRuntimePanicOffersRetry(t *testing.T) {
 	// Require the local CDN fixture, which serves the release.
 	if os.Getenv(localCDNEnv) != "1" {
 		t.Skip("set " + localCDNEnv + "=1 to build and serve the local startup CDN")
 	}
-	ctx := testHarness.newBrowserContext(t)
-	script := runtimeFaultScript
-	if err := ctx.AddInitScript(playwright.Script{Content: &script}); err != nil {
-		t.Fatal(err)
-	}
+	for _, tc := range []struct {
+		name      string
+		hostRetry bool
+	}{
+		{name: "host retries", hostRetry: true},
+		{name: "attached retries", hostRetry: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := testHarness.newBrowserContext(t)
+			script := runtimeFaultScript
+			if err := ctx.AddInitScript(playwright.Script{Content: &script}); err != nil {
+				t.Fatal(err)
+			}
 
-	// The first document's runtime panics after it starts.
-	first := openRuntimeFailure(t, ctx, 150_000)
-	if os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1" {
-		first.OnConsole(func(msg playwright.ConsoleMessage) {
-			t.Logf("first page %s: %s", msg.Type(), msg.Text())
+			// The host document's runtime panics after it starts, and a
+			// document that attaches after the panic fails at once, well
+			// before the web view deadline.
+			host := openRuntimeFailure(t, ctx, 150_000)
+			if os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1" {
+				host.OnConsole(func(msg playwright.ConsoleMessage) {
+					t.Logf("host page %s: %s", msg.Type(), msg.Text())
+				})
+			}
+			attached := openRuntimeFailure(t, ctx, 45_000)
+
+			retrying, survivor := attached, host
+			if tc.hostRetry {
+				retrying, survivor = host, attached
+			}
+
+			// Retry, with the fault cleared, boots a new runtime while the
+			// other document stays open.
+			if _, err := retrying.Evaluate(`() => localStorage.setItem('e2e-runtime-fault', 'off')`); err != nil {
+				t.Fatal(err)
+			}
+			retryIntoSession(t, "retrying", retrying)
+
+			// The survivor still shows the failure; its Retry joins the new
+			// runtime.
+			text, err := survivor.Locator("body").InnerText()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(text, "Unable to open Spacewave") {
+				t.Fatalf("survivor left the failure screen: %q", text)
+			}
+			retryIntoSession(t, "survivor", survivor)
 		})
 	}
+}
 
-	// A document that attaches after the panic fails at once, well before
-	// the web view deadline.
-	second := openRuntimeFailure(t, ctx, 45_000)
-	if err := second.Close(); err != nil {
+// retryIntoSession presses Retry on the page named role and waits for the
+// live app. On a timeout it reports the last hash the wait sampled and the
+// page's address.
+func retryIntoSession(t *testing.T, role string, page playwright.Page) {
+	t.Helper()
+	if err := button(page, "Retry").Click(); err != nil {
 		t.Fatal(err)
 	}
-
-	// Retry, with the fault cleared, boots a new runtime.
-	if _, err := first.Evaluate(`() => localStorage.setItem('e2e-runtime-fault', 'off')`); err != nil {
-		t.Fatal(err)
-	}
-	if err := button(first, "Retry").Click(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := first.WaitForFunction(`() => /^#\/u\/\d+\/?$/.test(location.hash)`, nil, playwright.PageWaitForFunctionOptions{
+	if _, err := page.WaitForFunction(`() => { globalThis.__e2eLastHash = location.hash; return /^#\/u\/\d+\/?$/.test(location.hash) }`, nil, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(180_000),
 	}); err != nil {
-		text, _ := first.Locator("body").InnerText()
-		t.Fatalf("Retry did not create a session: %v; page shows %q", err, text)
+		last, _ := page.Evaluate(`() => globalThis.__e2eLastHash`)
+		href, _ := page.Evaluate(`() => location.href`)
+		text, _ := page.Locator("body").InnerText()
+		t.Fatalf("%s Retry did not create a session: %v; last sampled hash %v; href %v; page shows %q", role, err, last, href, text)
 	}
-	waitForLiveApp(t, first)
+	waitForLiveApp(t, page)
 }
 
 // openRuntimeFailure opens the quickstart in a new page of ctx and waits for
