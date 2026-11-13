@@ -163,20 +163,27 @@ func TestLocalCDNRuntimePanicOffersRetry(t *testing.T) {
 }
 
 // retryIntoSession presses Retry on the page named role and waits for the
-// live app. On a timeout it reports the last hash the wait sampled and the
-// page's address.
+// live app.
 func retryIntoSession(t *testing.T, role string, page playwright.Page) {
 	t.Helper()
 	if err := button(page, "Retry").Click(); err != nil {
 		t.Fatal(err)
 	}
+	waitForSession(t, role+" Retry", page)
+}
+
+// waitForSession waits for the page named role to reach a session and the
+// live app. On a timeout it reports the last hash the wait sampled and the
+// page's address.
+func waitForSession(t *testing.T, role string, page playwright.Page) {
+	t.Helper()
 	if _, err := page.WaitForFunction(`() => { globalThis.__e2eLastHash = location.hash; return /^#\/u\/\d+\/?$/.test(location.hash) }`, nil, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(180_000),
 	}); err != nil {
 		last, _ := page.Evaluate(`() => globalThis.__e2eLastHash`)
 		href, _ := page.Evaluate(`() => location.href`)
 		text, _ := page.Locator("body").InnerText()
-		t.Fatalf("%s Retry did not create a session: %v; last sampled hash %v; href %v; page shows %q", role, err, last, href, text)
+		t.Fatalf("%s did not create a session: %v; last sampled hash %v; href %v; page shows %q", role, err, last, href, text)
 	}
 	waitForLiveApp(t, page)
 }
@@ -205,4 +212,24 @@ func openRuntimeFailure(t *testing.T, ctx playwright.BrowserContext, timeoutMS f
 	}
 	t.Logf("runtime panic shows %q", text)
 	return page
+}
+
+// TestLocalCDNSecondTabQuickstart verifies that a second document, attached to
+// the runtime another document hosts, completes the local quickstart.
+func TestLocalCDNSecondTabQuickstart(t *testing.T) {
+	// Require the local CDN fixture, which serves the release.
+	if os.Getenv(localCDNEnv) != "1" {
+		t.Skip("set " + localCDNEnv + "=1 to build and serve the local startup CDN")
+	}
+	ctx := testHarness.newBrowserContext(t)
+	for _, role := range []string{"host", "attached"} {
+		page, err := ctx.NewPage()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := page.Goto(testHarness.getBaseURL() + "/#/quickstart/local"); err != nil {
+			t.Fatal(err)
+		}
+		waitForSession(t, role, page)
+	}
 }

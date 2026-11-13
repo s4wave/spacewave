@@ -29,11 +29,16 @@ describe('ShellDocumentEntry', () => {
 
   it('classifies reload and history restoration as continuation entries', () => {
     for (const navigationType of ['reload', 'back_forward'] as const) {
+      const storage = memoryStorage()
+      writeShellDocumentState(
+        { incarnation: navigationType, activeTabId: 'tab-1' },
+        storage,
+      )
       const entry = classifyShellDocumentEntry({
         path: '/docs',
         params: { spaceId: 'space-1' },
         navigationType,
-        incarnation: navigationType,
+        storage,
       })
 
       expect(entry).toMatchObject({
@@ -51,9 +56,15 @@ describe('ShellDocumentEntry', () => {
       { sameEntry: true, incarnation: 'same-entry' },
       { persisted: true, incarnation: 'persisted-entry' },
     ]) {
+      const storage = memoryStorage()
+      writeShellDocumentState(
+        { incarnation: options.incarnation, activeTabId: 'tab-1' },
+        storage,
+      )
       const entry = classifyShellDocumentEntry({
         path: '/docs',
         navigationType: 'navigate',
+        storage,
         ...options,
       })
       expect(entry).toMatchObject({
@@ -62,6 +73,17 @@ describe('ShellDocumentEntry', () => {
         incarnation: options.incarnation,
       })
       expect(isShellDocumentContinuation(entry)).toBe(true)
+    }
+  })
+
+  it('classifies a restore that saved no Shell state as fresh', () => {
+    for (const navigationType of ['reload', 'back_forward'] as const) {
+      const entry = classifyShellDocumentEntry({
+        path: '/quickstart/local',
+        navigationType,
+        storage: memoryStorage(),
+      })
+      expect(entry).toMatchObject({ kind: 'fresh', path: '/quickstart/local' })
     }
   })
 
