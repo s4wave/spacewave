@@ -25,7 +25,11 @@ function Trace({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-/** TraceLine is one step, with an optional running, done, error, or pending status. */
+/**
+ * TraceLine is one step, with an optional running, done, error, or pending
+ * status. A running line pulses its icon; its title stays plain text so it
+ * keeps full contrast.
+ */
 function TraceLine({
   className,
   status,
@@ -38,7 +42,7 @@ function TraceLine({
       data-slot="trace-line"
       data-status={status}
       className={cn(
-        'flex w-fit max-w-full min-w-0 items-center gap-2 text-sm text-muted-foreground transition-colors in-[a,button]:cursor-pointer in-[a:hover,button:hover]:text-foreground data-[status=error]:text-destructive data-[status=error]:in-[a:hover,button:hover]:text-destructive data-[status=pending]:opacity-60 data-[status=running]:*:data-[slot=trace-title]:shimmer',
+        'flex w-fit max-w-full min-w-0 items-center gap-2 text-sm text-muted-foreground transition-colors in-[a,button]:cursor-pointer in-[a:hover,button:hover]:text-foreground data-[status=error]:text-destructive data-[status=error]:in-[a:hover,button:hover]:text-destructive data-[status=pending]:opacity-60 data-[status=running]:*:data-[slot=trace-icon]:animate-pulse data-[status=running]:*:data-[slot=trace-icon]:motion-reduce:animate-none',
         className,
       )}
       {...props}
@@ -61,12 +65,12 @@ function TraceIcon({ className, ...props }: React.ComponentProps<'span'>) {
   )
 }
 
-/** TraceTitle is the step name. A running line shimmers this text. */
+/** TraceTitle is the step name. A running line pulses its icon, not this text. */
 function TraceTitle({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       data-slot="trace-title"
-      className={cn('min-w-0 truncate motion-reduce:shimmer-none', className)}
+      className={cn('min-w-0 truncate', className)}
       {...props}
     />
   )
@@ -122,7 +126,7 @@ function TraceCollapsibleTrigger({
     <CollapsibleTrigger
       data-slot="trace-collapsible-trigger"
       className={cn(
-        'group/trace-collapsible-trigger flex w-fit max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-md text-left text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 has-[[data-status=error]]:text-destructive',
+        'group/trace-collapsible-trigger flex min-h-6 w-fit max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-md text-left text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 has-[[data-status=error]]:text-destructive',
         className,
       )}
       {...props}

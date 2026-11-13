@@ -10,9 +10,9 @@ import (
 )
 
 // openRegisteredSource shares process-level descriptor ownership with the engine.
-func openRegisteredSource(path string) (*os.File, func() error, error) {
+func openRegisteredSource(path string, opener func(string) (*os.File, error)) (*os.File, func() error, error) {
 	// Treat another local descriptor exactly like another process's source lock.
-	f, closeFile, err := s4db.OpenFile(path, openSource)
+	f, closeFile, err := s4db.OpenFile(path, opener)
 	if errors.Is(err, s4db.ErrOpenInProcess) {
 		return nil, nil, ErrInUse
 	}

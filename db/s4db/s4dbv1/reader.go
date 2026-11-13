@@ -3,92 +3,131 @@ package s4dbv1
 import (
 	"bytes"
 	"context"
+	"errors"
+	"io"
 	"os"
 
 	"github.com/s4wave/spacewave/db/s4db/filelock"
+	"github.com/tidwall/btree"
 )
 
-// Reader is an open previous-format database file. It holds the engine's
-// writer lock and one reader slot from Open to Close, so no process of the
-// previous engine writes the file while it is read, and Open refuses a file
-// another process already has open.
+// Reader is an open previous-format database file. It reads the file only
+// through an io.ReaderAt, so nothing it does can write, truncate or sync the
+// file. A Reader is not safe for concurrent use.
 type Reader struct {
-	// f is the file.
-	f *os.File
-	// closeFile closes the descriptor and releases the shared process claim.
-	closeFile func() error
-	// slot is the reader slot held, or -1.
-	slot int
-	// writer reports that the writer lock is held.
-	writer bool
-	// sb is the checkpoint the stream starts from.
+	// r reads the file.
+	r io.ReaderAt
+	// release drops the locks and closes the file, nil once closed.
+	release func() error
+	// sb is the checkpoint reads start from.
 	sb superblock
 	// live estimates the bytes a copy of the file's contents takes.
 	live int64
+	// ov holds the log after the checkpoint once replayed, nil before.
+	ov *btree.BTreeG[oentry]
 }
 
-// Open opens the previous-format database at path for one streaming read.
-// It fails with ErrInUse when another process has the file open, with
-// ErrUnsupported when the file is not in the previous engine's format, and
-// with ErrCorrupt when no superblock reads.
+// Open opens the previous-format database at path read-only: the file is
+// opened only for reading and holds a shared lock on the engine's writer byte
+// until Close. Readers share the file; a process of the previous engine
+// cannot commit to it and an in-place conversion cannot replace it meanwhile.
+// It fails with ErrInUse when a writer or a conversion holds the file or
+// this process has it open, with ErrUnsupported when the file is not in the
+// previous engine's format, and with ErrCorrupt when no superblock reads.
 func Open(path string) (*Reader, error) {
+	return open(path, openSourceReadOnly, lockShared)
+}
+
+// OpenExclusive opens the previous-format database at path for the in-place
+// conversion, which replaces the file. It holds the engine's writer lock and
+// one reader slot until Close, so it fails with ErrInUse when any other
+// handle has the file open, readers included. Its descriptor is writable only
+// because a write lock needs one; the Reader still only reads.
+func OpenExclusive(path string) (*Reader, error) {
+	return open(path, openSource, lockExclusive)
+}
+
+// open opens path with opener, takes lock, and reads the header, the
+// superblock and the live size, releasing everything on failure.
+func open(path string, opener func(string) (*os.File, error), lock func(*os.File) (func() error, error)) (*Reader, error) {
 	// Share descriptor ownership with the new engine: a rejected probe must
 	// never close another descriptor of the locked source on Darwin.
-	f, closeFile, err := openRegisteredSource(path)
+	f, closeFile, err := openRegisteredSource(path, opener)
 	if err != nil {
 		return nil, err
 	}
-	r := &Reader{f: f, closeFile: closeFile, slot: -1}
+	unlock, err := lock(f)
+	if err != nil {
+		return nil, errors.Join(err, closeFile())
+	}
+	r := &Reader{r: f, release: func() error { return errors.Join(unlock(), closeFile()) }}
 
-	// Load under the old engine's locks, releasing the claim on failure.
+	// Load under the locks, releasing them on failure.
 	if err := r.load(); err != nil {
-		_ = r.Close()
-		return nil, err
+		return nil, errors.Join(err, r.Close())
 	}
 	return r, nil
 }
 
-// load excludes other processes, then reads the header, the superblock and
-// the live size.
-func (r *Reader) load() error {
-	// Take the writer lock without waiting, so a process mid-transaction
-	// refuses the open, then check every slot and take one.
-	ok, err := filelock.Lock(r.f, lockWriter, false)
+// lockShared takes a read lock on the writer byte, which excludes the
+// previous engine's commits and an exclusive open.
+func lockShared(f *os.File) (func() error, error) {
+	ok, err := filelock.LockShared(f, lockWriter)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !ok {
-		return ErrInUse
+		return nil, ErrInUse
 	}
-	r.writer = true
-	for i := range slots {
-		held, err := filelock.Held(r.f, lockSlot+int64(i))
-		if err != nil {
-			return err
-		}
-		if held {
-			return ErrInUse
-		}
-	}
-	if _, err := filelock.Lock(r.f, lockSlot, false); err != nil {
-		return err
-	}
-	r.slot = 0
+	return func() error { return filelock.Unlock(f, lockWriter) }, nil
+}
 
+// lockExclusive takes the writer lock without waiting, so a process
+// mid-transaction refuses the open, then checks every slot and takes one.
+func lockExclusive(f *os.File) (func() error, error) {
+	// Take the writer lock.
+	ok, err := filelock.Lock(f, lockWriter, false)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrInUse
+	}
+	unlockWriter := func() error { return filelock.Unlock(f, lockWriter) }
+
+	// Refuse a file any reader slot holds, then take slot 0.
+	for i := range slots {
+		held, err := filelock.Held(f, lockSlot+int64(i))
+		if err == nil && held {
+			err = ErrInUse
+		}
+		if err != nil {
+			return nil, errors.Join(err, unlockWriter())
+		}
+	}
+	if _, err := filelock.Lock(f, lockSlot, false); err != nil {
+		return nil, errors.Join(err, unlockWriter())
+	}
+	return func() error { return errors.Join(filelock.Unlock(f, lockSlot), unlockWriter()) }, nil
+}
+
+// load reads the header, the superblock and the live size.
+func (r *Reader) load() error {
 	// Check the header and read the checkpoint.
 	page := make([]byte, pageSize)
-	if _, err := r.f.ReadAt(page, pageOff(headerPage)); err != nil {
+	if _, err := r.r.ReadAt(page, pageOff(headerPage)); err != nil {
 		return err
 	}
 	if err := checkHeader(page); err != nil {
 		return err
 	}
-	if r.sb, err = readSuper(r.f); err != nil {
+	var err error
+	if r.sb, err = readSuper(r.r); err != nil {
 		return err
 	}
 
 	// Estimate the live size: the tree pages and the live value bytes.
-	live, err := liveValueBytes(r.f, r.sb)
+	live, err := liveValueBytes(r.r, r.sb)
 	if err != nil {
 		return err
 	}
@@ -103,19 +142,70 @@ func (r *Reader) LiveBytes() int64 {
 	return r.live
 }
 
+// Checkpoint returns the checkpoint the reader reads from.
+func (r *Reader) Checkpoint() Checkpoint {
+	return Checkpoint{
+		Seq:         r.sb.seq,
+		Keys:        r.sb.count,
+		TreePages:   r.sb.treePages,
+		LogRunBytes: r.sb.logEnd - r.sb.logPos,
+	}
+}
+
+// overlay returns the log after the checkpoint, replaying it on first use.
+func (r *Reader) overlay() (*btree.BTreeG[oentry], error) {
+	if r.ov == nil {
+		ov, err := replayLog(r.r, r.sb)
+		if err != nil {
+			return nil, err
+		}
+		r.ov = ov
+	}
+	return r.ov, nil
+}
+
+// Get returns the value of key and whether the file holds it: the log after
+// the checkpoint decides when it changed the key, else the checkpointed
+// tree. The first Get or Stream replays that log; after it each Get reads
+// one page per tree level and the value's extent.
+func (r *Reader) Get(key []byte) ([]byte, bool, error) {
+	// Look in the log, then descend the tree.
+	ov, err := r.overlay()
+	if err != nil {
+		return nil, false, err
+	}
+	e, ok := ov.Get(oentry{key: key})
+	v := e.val
+	if !ok {
+		if v, ok, err = findInTree(r.r, r.sb.root, key); err != nil || !ok {
+			return nil, false, err
+		}
+	}
+	if v.del {
+		return nil, false, nil
+	}
+
+	// Read the value.
+	data, err := v.read(r.r)
+	if err != nil {
+		return nil, false, err
+	}
+	return data, true, nil
+}
+
 // Stream calls fn with every key and its value in ascending key order,
 // merging the checkpointed tree with the log after it and reading each
 // referenced extent. The key and value last only through the call. Stream
 // stops at the first error fn returns, or when ctx ends.
 func (r *Reader) Stream(ctx context.Context, fn func(key, value []byte) error) error {
 	// Replay the log, then walk the tree beside it.
-	ov, err := replayLog(r.f, r.sb)
+	ov, err := r.overlay()
 	if err != nil {
 		return err
 	}
 	oit := ov.Iter()
 	ook := oit.First()
-	tw := newTreeWalk(r.f, r.sb.root)
+	tw := newTreeWalk(r.r, r.sb.root)
 	tk, tv, tok := tw.next()
 
 	// Emit the smaller key of the two streams; at a tie the log wins.
@@ -154,35 +244,19 @@ func (r *Reader) emit(key []byte, v value, fn func(key, value []byte) error) err
 	if v.del {
 		return nil
 	}
-	data, err := v.read(r.f)
+	data, err := v.read(r.r)
 	if err != nil {
 		return err
 	}
 	return fn(key, data)
 }
 
-// Close releases the locks and the file.
+// Close releases the locks and the file. Closing twice does nothing.
 func (r *Reader) Close() error {
-	// An explicitly closed reader leaves no descriptor or claim to release.
-	if r.f == nil {
+	if r.release == nil {
 		return nil
 	}
-
-	// Release the slot, then the writer lock, then the file.
-	var err error
-	if r.slot >= 0 {
-		err = filelock.Unlock(r.f, lockSlot+int64(r.slot))
-		r.slot = -1
-	}
-	if r.writer {
-		if uerr := filelock.Unlock(r.f, lockWriter); err == nil {
-			err = uerr
-		}
-		r.writer = false
-	}
-	if cerr := r.closeFile(); err == nil {
-		err = cerr
-	}
-	r.f = nil
+	err := r.release()
+	r.release, r.r, r.ov = nil, nil, nil
 	return err
 }

@@ -5,7 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"os"
-	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,10 +15,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
@@ -39,6 +41,7 @@ func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			buildPluginListCommand(),
 			buildPluginSetCommand(true),
 			buildPluginSetCommand(false),
+			newPluginRestartCommand(),
 			buildPluginBackgroundCommand(),
 			buildPluginImportManifestCommand(getBus),
 		},
@@ -103,9 +106,10 @@ func runPluginImportManifest(
 		return errors.New("object-key is required")
 	}
 
-	// Open the devtool volume and look up the manifests.
+	// Open a copy of the source devtool volume, which this only reads, and
+	// look up the manifests.
 	le := cliBus.GetLogger()
-	src, err := devtool_store.OpenVolume(ctx, le, dbPath)
+	src, err := devtool_store.OpenVolumeCopy(ctx, le, dbPath)
 	if err != nil {
 		return errors.Wrap(err, "open devtool storage")
 	}
@@ -178,15 +182,18 @@ func runPluginImportManifest(
 	// Replace earlier imports of the manifest, such as another build type at
 	// the same revision, so the store selects exactly the imported builds.
 	imported := make([]string, 0, len(collectedManifests))
+	keep := make(map[string]struct{}, len(collectedManifests))
 	for _, collected := range collectedManifests {
-		imported = append(imported, bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta()))
+		key := bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta())
+		imported = append(imported, key)
+		keep[key] = struct{}{}
 	}
 	previous, _, err := bldr_manifest_world.CollectManifestsForManifestID(ctx, tx, manifestID, nil, objectKey)
 	if err != nil {
 		return errors.Wrap(err, "collect previous manifests")
 	}
 	for _, prev := range previous {
-		if slices.Contains(imported, prev.ManifestKey) {
+		if _, ok := keep[prev.ManifestKey]; ok {
 			continue
 		}
 		if _, err := tx.DeleteObject(ctx, prev.ManifestKey); err != nil {
@@ -286,15 +293,16 @@ func copyManifestBlock(
 			return errors.Wrapf(err, "unmarshal block: %s", refStr)
 		}
 	}
-	if !exists {
-		refs, err := block.ExtractBlockRefs(blk)
-		if err != nil {
-			return errors.Wrapf(err, "get block refs: %s", refStr)
-		}
-		putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}
-		if _, _, err := dest.PutBlock(ctx, data, putOpts); err != nil {
-			return errors.Wrapf(err, "put block: %s", refStr)
-		}
+	refs, err := block.ExtractBlockRefs(blk)
+	if err != nil {
+		return errors.Wrapf(err, "get block refs: %s", refStr)
+	}
+
+	// Put a block the destination holds too: presence does not establish
+	// ownership, and the put is what holds it and its children.
+	putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}
+	if _, _, err := dest.PutBlock(ctx, data, putOpts); err != nil {
+		return errors.Wrapf(err, "put block: %s", refStr)
 	}
 	if blk == nil {
 		return nil
@@ -340,8 +348,13 @@ func pluginLifecycleStateLabel(state s4wave_space.SpacePluginLifecycleState) str
 	return strings.ToLower(strings.TrimPrefix(state.String(), prefix))
 }
 
-func formatPluginStatus(p *s4wave_space.SpacePluginStatus) string {
+// formatPluginStatus renders one plugin row, with times in loc.
+func formatPluginStatus(p *s4wave_space.SpacePluginStatus, loc *time.Location) string {
+	// Lead with the plugin, its state, and whether the selected rev is live.
 	fields := []string{p.GetPluginId(), pluginLifecycleStateLabel(p.GetState())}
+	if revs := formatPluginRevisions(p, loc); revs != "" {
+		fields = append(fields, revs)
+	}
 	if detail := p.GetDetail(); detail != "" {
 		fields = append(fields, detail)
 	}
@@ -349,6 +362,54 @@ func formatPluginStatus(p *s4wave_space.SpacePluginStatus) string {
 		fields = append(fields, description)
 	}
 	return strings.Join(fields, "  ") + "\n"
+}
+
+// formatPluginRevisions says whether the selected manifest is the running one
+// and, when not, where the swap between them stands.
+func formatPluginRevisions(p *s4wave_space.SpacePluginStatus, loc *time.Location) string {
+	// Compare the selected and running manifests by ref.
+	selected, running := p.GetManifestRef(), p.GetRunningManifestRef()
+	selectedRev := "rev " + strconv.FormatUint(p.GetManifestRev(), 10)
+	var revs string
+	switch {
+	case selected == "" && running == "":
+		return ""
+	case running == "":
+		revs = selectedRev + " selected, none running"
+	case selected == running:
+		revs = selectedRev + " live"
+	case selected == "":
+		revs = "rev " + strconv.FormatUint(p.GetRunningManifestRev(), 10) + " running, none selected"
+	case p.GetManifestRev() == p.GetRunningManifestRev():
+		revs = selectedRev + " selected, another build of " + selectedRev + " running"
+	default:
+		revs = selectedRev + " selected, rev " + strconv.FormatUint(p.GetRunningManifestRev(), 10) + " running"
+	}
+	return revs + formatPluginSwap(p.GetPluginId(), p.GetSwap(), loc)
+}
+
+// formatPluginSwap renders a swap state that has a candidate in flight or
+// failed, naming what it waits for and the next step.
+func formatPluginSwap(pluginID string, swap *bldr_plugin.PluginSwap, loc *time.Location) string {
+	// Render each state with its times as local clock times.
+	clock := func(ts *timestamppb.Timestamp) string { return ts.AsTime().In(loc).Format("15:04:05") }
+	if st := swap.GetPreparing(); st != nil {
+		return "; preparing rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) + " since " + clock(st.GetStartedAt())
+	}
+	if st := swap.GetWaiting(); st != nil {
+		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" waits since " + clock(st.GetSinceAt()) +
+			" for the running worker to answer its activation check; " + swapWaitingNextStep(pluginID)
+	}
+	if st := swap.GetFailed(); st != nil {
+		next := "retries on the next deploy or host change"
+		if st.GetRetryAt() != nil {
+			next = "retry at " + clock(st.GetRetryAt())
+		}
+		return "; rev " + strconv.FormatUint(st.GetCandidateManifestRev(), 10) +
+			" failed at " + clock(st.GetFailedAt()) + ": " + st.GetErrorMessage() + "; " + next
+	}
+	return ""
 }
 
 func marshalPluginListJSON(plugins []*s4wave_space.SpacePluginStatus) ([]byte, error) {
@@ -374,7 +435,7 @@ func buildPluginListCommand() *cli.Command {
 	var outputFormat string
 	return &cli.Command{
 		Name:  "list",
-		Usage: "list plugins and their load state",
+		Usage: "list plugins, their load state, and whether the selected rev is live",
 		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "space",
@@ -457,7 +518,7 @@ func buildPluginListCommand() *cli.Command {
 						w.WriteString("no plugins\n")
 					}
 					for _, p := range plugins {
-						w.WriteString(formatPluginStatus(p))
+						w.WriteString(formatPluginStatus(p, time.Local))
 					}
 					for _, id := range requested {
 						w.WriteString(id + "  requested  not listed; a load is waiting for it\n")

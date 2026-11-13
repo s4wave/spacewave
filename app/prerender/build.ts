@@ -79,7 +79,7 @@ export interface PrerenderContext {
   iconUrl: string
   // ogImageUrl is the absolute URL of the default link preview image.
   ogImageUrl: string
-  importMap: string
+  importMapScripts: string
   bootstrapScript: string
   hydrateScriptTag: string
   siteOrigin: string
@@ -165,21 +165,24 @@ export function buildPrerenderContext(
     `Read manifest: entrypoint=${manifest.entrypoint}, wasm=${manifest.wasm ?? ''}`,
   )
 
-  // Extract importmap from bldr dist index.html.
+  // Copy the bldr shell's import map block from dist index.html: the inert
+  // template and the script that emits the only import map from it, choosing
+  // Development React when the setting applies. Pages live at nested paths, so
+  // entrypoint URLs become absolute.
   const distIndexPath = join(DIST_DIR, 'index.html')
-  let importMap = ''
+  let importMapScripts = ''
   if (existsSync(distIndexPath)) {
     const distHtml = readFileSync(distIndexPath, 'utf-8')
     const match = distHtml.match(
-      /<script type="importmap">\s*([\s\S]*?)\s*<\/script>/,
+      /<template id="bldr-import-map"[\s\S]*?<\/template>\s*<script>[\s\S]*?<\/script>/,
     )
     if (match) {
-      importMap = match[1].replaceAll('"./entrypoint/', '"/entrypoint/')
-      log('Extracted importmap from dist index.html')
+      importMapScripts = match[0].replaceAll('"./entrypoint/', '"/entrypoint/')
+      log('Extracted import map block from dist index.html')
     }
   }
-  if (!importMap) {
-    console.error('importmap not found in dist index.html')
+  if (!importMapScripts) {
+    console.error('import map block not found in dist index.html')
     process.exit(1)
   }
 
@@ -248,7 +251,7 @@ export function buildPrerenderContext(
     hydrateCssUrls: staticAssets.additionalCssUrls,
     iconUrl: staticAssets.iconUrl,
     ogImageUrl: SITE_ORIGIN + staticAssets.ogImageUrl,
-    importMap,
+    importMapScripts,
     bootstrapScript,
     hydrateScriptTag,
     siteOrigin: SITE_ORIGIN,
@@ -296,7 +299,7 @@ async function main() {
       mainCssUrl: ctx.mainCssUrl,
       additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
-      importMap: ctx.importMap,
+      importMapScripts: ctx.importMapScripts,
     })
 
     const filename = page.path.slice(1) + '.html'
@@ -380,7 +383,7 @@ async function buildRootTemplate(ctx: PrerenderContext) {
     mainCssUrl: ctx.mainCssUrl,
     additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,
-    importMap: ctx.importMap,
+    importMapScripts: ctx.importMapScripts,
   })
 
   const outputPath = join(ctx.outputDir, 'index.html')

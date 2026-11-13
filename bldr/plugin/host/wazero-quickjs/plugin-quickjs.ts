@@ -13,16 +13,16 @@ import { PluginHostRoot } from '../../../sdk/plugin/host/plugin-host-root.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { startWorkerPluginEntrypoint } from '../../../web/bldr/plugin-entrypoint.js'
 
-// Utility function to properly log errors
+// logError logs err's stack, then message and err's message on one line.
+// Every caller exits right after, and the host reports the last stderr line
+// as the reason the plugin failed.
 function logError(message: string, err: unknown): void {
-  console.error(message)
-  console.error(
-    ('message' in (err as Error) ? (err as Error)?.message : null) ??
-      String(err),
-  )
   if (err && typeof err === 'object' && 'stack' in err) {
     console.error((err as Error).stack)
   }
+  const errMessage =
+    err instanceof Error ? err.message : err != null ? String(err) : ''
+  console.error(errMessage ? message + ': ' + errMessage : message)
 }
 
 const quickjsGlobalThis = globalThis as typeof globalThis &

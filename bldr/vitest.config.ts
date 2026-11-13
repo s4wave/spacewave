@@ -52,6 +52,15 @@ const bldrAliases = [
     find: /^web\/(.*)$/,
     replacement: resolve(__dirname, 'web/$1'),
   },
+  {
+    // The GoScript runtime, which the compiled Go programs and their hosts
+    // share, from the vendored GoScript module.
+    find: /^@goscript\/(.*)\.js$/,
+    replacement: resolve(
+      repoRoot,
+      'vendor/github.com/s4wave/goscript/gs/$1.ts',
+    ),
+  },
 ]
 
 export default defineConfig({

@@ -22,24 +22,34 @@ type ReadCursor struct {
 	cache *DecodedBlockCache
 	// ref identifies this immutable stored block.
 	ref *BlockRef
-	// link memoizes the current pool slot, when a parent has a typed edge.
+	// link memoizes this reference and its pool slot, when the parent is loaded.
 	link *decodedBlockReadLink
 }
 
 // NewReadCursor borrows source for a nonempty immutable reference. It returns
-// nil only for writable transactions and missing references, whose pages live
-// on the mutable cursor tree. A transaction without an enabled borrowed scope
-// reads through its own private scope in the process-wide pool, so a scopeless
-// reader still decodes a page once rather than on every follow.
+// nil for a missing reference, and for a writable transaction whose source
+// cursor is dirty: that subtree's pages live on the mutable cursor tree, and a
+// read of it sees the uncommitted pages and retains them on the tree. A clean
+// source has a clean subtree, so its reference names stored blocks no later
+// write changes, and the reader is a snapshot of the subtree as of its open,
+// on a writable transaction as on a read-only one. The reader takes the
+// context's scope, else the transaction's enabled borrowed scope, else its
+// private scope in the process-wide pool, so a scopeless reader still decodes
+// a page once rather than on every follow.
 func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCursor {
-	// Require an immutable transaction and a stored reference.
-	if source == nil || source.t == nil || !source.t.readOnly.Load() || ref.GetEmpty() {
+	// Require a stored reference beneath an immutable or clean source.
+	if source == nil || source.t == nil || ref.GetEmpty() {
+		return nil
+	}
+	if !source.t.readOnly.Load() && source.IsDirty() {
 		return nil
 	}
 
-	// Capture the source's cache scope without retaining an operation context.
-	ctx = source.decodedBlockCacheContext(ctx)
+	// Capture the reader's cache scope without retaining an operation context.
 	cache := decodedBlockCacheFromContext(ctx)
+	if cache == nil {
+		cache = source.t.readerCache()
+	}
 	out := &ReadCursor{source: source, cache: cache, ref: ref.Clone()}
 	if cache.enabled() {
 		out.link = &decodedBlockReadLink{}
@@ -47,8 +57,9 @@ func NewReadCursor(ctx context.Context, source *Cursor, ref *BlockRef) *ReadCurs
 	return out
 }
 
-// FollowRef returns a reader at ref. A typed edge of the loaded immutable
-// parent shares its memoized slot; raw or unknown edges need no retained link.
+// FollowRef returns a reader at ref. An edge of the loaded immutable parent
+// shares its memoized reference, and a typed edge its slot; an unknown edge
+// clones ref.
 func (r ReadCursor) FollowRef(id uint32, ref *BlockRef) ReadCursor {
 	// Borrow only a link whose stored reference matches this exact parent edge.
 	link := r.edge(id)
@@ -73,12 +84,38 @@ func (r ReadCursor) FollowDigest(id uint32, hashType hash.HashType, digest []byt
 		}
 	}
 
-	// Unmemoized references own a copy of the digest.
-	ref := &BlockRef{Hash: &hash.Hash{HashType: hashType, Hash: bytes.Clone(digest)}}
-	return ReadCursor{source: r.source, cache: r.cache, ref: ref}
+	// Unmemoized references own a copy of the digest, in one allocation.
+	return ReadCursor{source: r.source, cache: r.cache, ref: newDigestRef(hashType, digest)}
 }
 
-// edge returns the parent's memoized link for the typed edge id, or nil when
+// digestRef holds a BlockRef with its Hash and digest bytes, so a reference
+// built from a flat digest costs one allocation rather than three.
+type digestRef struct {
+	ref    BlockRef
+	hash   hash.Hash
+	digest [digestRefLen]byte
+}
+
+// digestRefLen is the longest digest of a supported hash type.
+const digestRefLen = 32
+
+// newDigestRef returns a reference to the block with hashType and a copy of
+// digest. A digest longer than every supported hash type is copied apart.
+func newDigestRef(hashType hash.HashType, digest []byte) *BlockRef {
+	// Hold the digest inline when it fits, so the reference is one allocation.
+	out := &digestRef{}
+	out.hash.HashType = hashType
+	if len(digest) <= digestRefLen {
+		out.hash.Hash = out.digest[:len(digest):len(digest)]
+		copy(out.hash.Hash, digest)
+	} else {
+		out.hash.Hash = bytes.Clone(digest)
+	}
+	out.ref.Hash = &out.hash
+	return &out.ref
+}
+
+// edge returns the parent's memoized link for the edge id, or nil when
 // the parent is not loaded or has no such edge.
 func (r ReadCursor) edge(id uint32) *decodedBlockReadLink {
 	// An uncached reader or an evicted parent has no edges to share.
@@ -100,10 +137,7 @@ func (r ReadCursor) edge(id uint32) *decodedBlockReadLink {
 // view, as Cursor.FetchLeaf does. Raw values are not retained by the
 // decoded-node graph.
 func (r ReadCursor) FetchLeaf(ctx context.Context) ([]byte, bool, error) {
-	if r.source == nil {
-		return nil, false, nil
-	}
-	return r.loadCursor().FetchLeaf(ctx)
+	return r.source.fetchLeafAt(ctx, r.ref)
 }
 
 // Cursor materializes a private position in the borrowed transaction, without
@@ -129,7 +163,7 @@ func (r ReadCursor) current(ctx context.Context) *decodedBlockReadData {
 	}
 	cache := decodedBlockCacheFromContext(ctx)
 	if cache == nil {
-		cache = r.source.t.readCache()
+		cache = r.source.t.readerCache()
 	}
 	if cache != r.cache {
 		return nil
@@ -158,6 +192,13 @@ func UnmarshalReadBlock[T any, PT Ptr[T]](ctx context.Context, reader ReadCursor
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+
+	// A writer's own reads skip its private scope; a reader on it reads through
+	// the transaction's current reader scope, so a later scope change still
+	// bypasses what the old scope retained.
+	if !reader.source.t.readOnly.Load() && decodedBlockCacheFromContext(ctx) == nil {
+		ctx = WithDecodedBlockCache(ctx, reader.source.t.readerCache())
 	}
 	store := reader.source.readStore(ctx)
 	if freshener, ok := store.(DecodedBlockCacheFreshener); ok {

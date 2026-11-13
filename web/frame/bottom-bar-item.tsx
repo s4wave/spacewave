@@ -206,10 +206,10 @@ export function BottomBarItem({
 
   const itemClassName = cn(
     'glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full shrink-0 flex-row items-center justify-start overflow-hidden whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1',
-    trailing ? 'pr-1.25' : 'px-1.25',
+    trailing ? 'pr-1' : 'px-1',
     disabled ? 'cursor-not-allowed' : 'cursor-pointer',
     selected &&
-      'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected border-t-primary border-t',
+      'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected shadow-bar-item-selected',
     className,
   )
 
@@ -233,7 +233,7 @@ export function BottomBarItem({
       className={
         trailing
           ? cn(
-              'flex h-full min-w-0 flex-row items-center pl-1.25 whitespace-pre',
+              'flex h-full min-w-0 flex-row items-center pl-1 whitespace-pre',
               disabled ? 'cursor-not-allowed' : 'cursor-pointer',
             )
           : itemClassName

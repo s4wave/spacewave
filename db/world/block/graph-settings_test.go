@@ -130,7 +130,7 @@ func newSettingsTestWorld(t *testing.T, ctx context.Context, settings *GraphSett
 
 	// Write the initial World root with the settings.
 	btx, bcs := ocs.BuildTransaction(nil)
-	root := NewWorld(false)
+	root := NewWorld(WorldFormat_WORLD_FORMAT_CAYLEY_KV, false)
 	root.GraphSettings = settings.CloneVT()
 	bcs.SetBlock(root, true)
 	rootRef, _, err := btx.Write(ctx, true)

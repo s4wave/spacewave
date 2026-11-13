@@ -287,13 +287,16 @@ func (c *Controller) BuildManifestBuilderConfigs(
 	if err != nil {
 		return nil, nil, err
 	}
-	defer func() {
-		for _, ref := range refs {
-			ref.Release()
-		}
-	}()
+	defer releaseManifestBuilderRefs(refs)
+	return awaitManifestBuilderRefs(ctx, refs)
+}
 
-	// Await each retained build and preserve completed results on failure.
+// awaitManifestBuilderRefs awaits each retained build and returns the
+// manifest refs and object keys, keeping completed results on failure.
+func awaitManifestBuilderRefs(
+	ctx context.Context,
+	refs []*ManifestBuilderRef,
+) ([]*bldr_manifest.ManifestRef, []string, error) {
 	var manifestObjKeys []string
 	var manifestRefs []*bldr_manifest.ManifestRef
 	for _, ref := range refs {
@@ -307,6 +310,13 @@ func (c *Controller) BuildManifestBuilderConfigs(
 	}
 
 	return manifestRefs, manifestObjKeys, nil
+}
+
+// releaseManifestBuilderRefs releases each retained build.
+func releaseManifestBuilderRefs(refs []*ManifestBuilderRef) {
+	for _, ref := range refs {
+		ref.Release()
+	}
 }
 
 // AddManifestBuilderRef adds a reference to a manifest compiler.

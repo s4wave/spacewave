@@ -130,9 +130,11 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 		return 0, false, tx.ErrDiscarded
 	}
 
-	// Apply the op, then record it and its payload.
+	// Apply the op, then record it with the roots it set.
+	t.w.takeSetRootsLocked()
 	objRev, sysErr, err := t.o.ApplyObjectOp(ctx, op, opSender)
 	if err == nil {
+		tt.GetTxApplyObjectOp().SetRoots = t.w.takeSetRootsLocked()
 		t.w.recordLocked(tt, op)
 	}
 	return objRev, sysErr, err

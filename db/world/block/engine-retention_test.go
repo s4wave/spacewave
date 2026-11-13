@@ -29,7 +29,7 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 		// Disable explicit history for the fixed-state workload.
 		w := fixtureWriter(t, f.engine)
 		if i == 0 {
-			w.writeTx.state.bcs.SetBlock(NewWorld(true), true)
+			w.writeTx.state.bcs.SetBlock(NewWorld(WorldFormat_WORLD_FORMAT_CAYLEY_KV, true), true)
 		}
 
 		// Replace the object with a distinct, fixed-size body.

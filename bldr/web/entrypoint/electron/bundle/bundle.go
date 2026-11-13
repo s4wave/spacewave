@@ -159,6 +159,7 @@ func BuildElectronRendererIndex(buildDir string, importMap web_entrypoint_index.
 		buildDir,
 		electronStableBootEntrypointPath,
 		importMap,
+		"",
 	)
 }
 
@@ -253,6 +254,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		// Match browser web-package URLs so import-map and sibling imports share
 		// module identity.
 		"/entrypoint",
+		"",
 		minify,
 		!minify,
 		devMode,

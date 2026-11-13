@@ -1,4 +1,5 @@
 import { Route } from '@s4wave/web/router/router.js'
+import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
@@ -57,6 +58,12 @@ const debugRouteEntries = [
     title: 'Canvas graph links',
     description: 'Exercise graph link rendering on canvas.',
     element: <CanvasGraphLinksDebug />,
+  },
+  {
+    path: '/debug/ui/account-rows',
+    title: 'Account rows',
+    description: 'Review the session picker account row in each state.',
+    element: <AccountRowsDebug />,
   },
   {
     path: '/debug/ui/session-settings',

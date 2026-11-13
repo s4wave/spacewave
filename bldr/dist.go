@@ -28,7 +28,8 @@ import (
 //go:embed web/bldr/frontend.ts web/bldr/index.ts web/bldr/it-state.ts
 //go:embed web/bldr/message-port-bridge.ts web/bldr/opfs-worker.ts
 //go:embed web/bldr/path.ts web/bldr/plugin-entrypoint.ts
-//go:embed web/bldr/plugin-transport.ts web/bldr/random-id.ts web/bldr/retry.ts
+//go:embed web/bldr/plugin-transport.ts web/bldr/random-id.ts
+//go:embed web/bldr/react-dev.ts web/bldr/retry.ts
 //go:embed web/bldr/sab-pair-broker.ts web/bldr/sab-ring-stream.ts
 //go:embed web/bldr/service-worker-fetch-tracker.ts web/bldr/service-worker.ts
 //go:embed web/bldr/shared-worker.ts web/bldr/shutdown.ts
@@ -105,6 +106,7 @@ import (
 //go:embed web/runtime/runtime_srpc.pb.ts
 //go:embed web/runtime/sw/*.ts
 //go:embed web/saucer/*.ts
+//go:embed web/runtime/goscript/fatal.ts
 //go:embed web/runtime/goscript/open-stream-contract.ts
 //go:embed web/runtime/goscript/plugin-goscript-cloudflare.ts
 //go:embed web/runtime/goscript/plugin-goscript.ts

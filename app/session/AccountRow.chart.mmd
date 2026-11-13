@@ -1,0 +1,32 @@
+---
+title: "Session picker: one account row"
+---
+stateDiagram-v2
+  s0: Loading
+  s1: Cloud account
+  s2: Unnamed local account
+  s3: Named
+  s4: Locked: named after unlocking
+  s5: Editing the name
+  s6: Saving
+  s7: Save failed
+  [*] --> s0
+  s0 --> s1: metadata arrives
+  s0 --> s2: metadata arrives
+  s0 --> s3: metadata arrives
+  s0 --> s4: metadata arrives
+  s2 --> s3: renamed elsewhere
+  s2 --> s5: presses Name
+  s3 --> s2: renamed elsewhere
+  s3 --> s5: presses Name
+  s4 --> s3: renamed elsewhere
+  s3 --> s4: renamed elsewhere
+  s5 --> s2: presses Cancel
+  s5 --> s3: presses Cancel
+  s5 --> s6: presses Save
+  s6 --> s2: the watch shows the name
+  s6 --> s7: the save fails
+  s6 --> s3: the watch shows the name
+  s7 --> s3: presses Cancel
+  s7 --> s6: presses Save
+  s7 --> s2: presses Cancel

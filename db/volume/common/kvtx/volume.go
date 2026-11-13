@@ -170,7 +170,9 @@ type KvtxVolume interface {
 
 // NewVolume builds a new key-value volume.
 //
-// store /may/ optionally also be a store_kvtx.Store.
+// store /may/ optionally also be a store_kvtx.Store. The Volume owns closeFn
+// from the call on: Close calls it, and a NewVolume that fails, whether by an
+// error or a panic, calls it before it returns, so the caller never does.
 func NewVolume(
 	ctx context.Context,
 	storeID string,
@@ -182,7 +184,14 @@ func NewVolume(
 	statsFn StatsFn,
 	closeFn func() error,
 	deleteFn ...func() error,
-) (*Volume, error) {
+) (_ *Volume, err error) {
+	// Own closeFn until the Volume is built.
+	var op volume.Opening
+	defer op.Settle(&err)
+	if closeFn != nil {
+		op.Hold(closeFn)
+	}
+
 	// Build the Volume around its key-value store and cleanup callbacks. A
 	// BlockDomain serves the blocks outside a transaction.
 	v := &Volume{
@@ -201,7 +210,7 @@ func NewVolume(
 	}
 
 	// Load or claim the Volume identity and initialize its storage.
-	v, err := initVolume(ctx, v, storeID, noGenerateKey, noWriteKey)
+	v, err = initVolume(ctx, v, storeID, noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
@@ -225,6 +234,7 @@ func NewVolume(
 			return nil, err
 		}
 	}
+	op.Handoff()
 	return v, nil
 }
 

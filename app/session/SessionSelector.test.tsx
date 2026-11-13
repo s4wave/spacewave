@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
 import {
@@ -15,6 +21,7 @@ const mockUseSessionList = vi.hoisted(() => vi.fn())
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
 const mockUseSessionAccountStatuses = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
+const mockMountSession = vi.hoisted(() => vi.fn())
 const mockUseSpaceRootAliases = vi.hoisted(() =>
   vi.fn(() => ({
     loading: false,
@@ -50,6 +57,10 @@ vi.mock('@s4wave/app/hooks/useSpaceRootAliases.js', () => ({
 
 vi.mock('@s4wave/app/hooks/useSpaceRootRuntime.js', () => ({
   useSpaceRootRuntime: mockUseSpaceRootRuntime,
+}))
+
+vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
+  useRootResource: () => ({ value: { mountSession: mockMountSession } }),
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
@@ -223,5 +234,49 @@ describe('SessionSelector', () => {
     fireEvent.click(screen.getByText('Work'))
 
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/12/' })
+  })
+
+  it('names an unnamed local account from its row', async () => {
+    mockUseSessionList.mockReturnValue({
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+      value: {
+        sessions: [
+          { sessionIndex: 3, sessionRef: { providerResourceRef: {} } },
+        ],
+      },
+    })
+    mockUseSessionMetadata.mockReturnValue({
+      providerId: 'local',
+      providerAccountId: 'acct-abcdef123456',
+      createdAt: 1_700_000_000_000n,
+    })
+    mockUseSessionAccountStatuses.mockReturnValue(new Map())
+    const setDisplayName = vi.fn(() => Promise.resolve({}))
+    const release = vi.fn()
+    mockMountSession.mockResolvedValue({
+      localProvider: { setDisplayName },
+      [Symbol.dispose]: release,
+    })
+
+    render(<SessionSelector />)
+    expect(screen.getByText(/^Local account, created /)).toBeTruthy()
+    expect(screen.getByText('Local · Session 3 · 123456')).toBeTruthy()
+
+    // Name opens the field in the row; Save mounts the session for the write.
+    fireEvent.click(screen.getByText('Name'))
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '  Work  laptop ' },
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() =>
+      expect(setDisplayName).toHaveBeenCalledWith({
+        displayName: 'Work laptop',
+      }),
+    )
+    expect(release).toHaveBeenCalled()
+    expect(mockNavigate).not.toHaveBeenCalled()
+    expect(screen.getByText('Saving…')).toBeTruthy()
   })
 })

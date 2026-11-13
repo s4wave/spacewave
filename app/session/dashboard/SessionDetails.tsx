@@ -38,6 +38,7 @@ import {
 import { AccountDashboardStateProvider } from './AccountDashboardStateContext.js'
 import { AuthMethodsSection } from './AuthMethodsSection.js'
 import { CryptoKeysSection } from './CryptoKeysSection.js'
+import { DeveloperSection } from './DeveloperSection.js'
 import { DisplayNameCard } from './DisplayNameCard.js'
 import { EmailSection } from './EmailSection.js'
 import { IdentifiersSection } from './IdentifiersSection.js'
@@ -70,6 +71,7 @@ type SessionOpenSection =
   | 'storage'
   | 'crypto'
   | 'identifiers'
+  | 'developer'
 
 // SectionProps binds a collapsible section to the shared open section.
 type SectionProps = (section: SessionOpenSection) => {
@@ -490,6 +492,7 @@ function SettingsSections({
       />
       <CryptoKeysSection {...sectionProps('crypto')} />
       <IdentifiersSection {...sectionProps('identifiers')} />
+      <DeveloperSection {...sectionProps('developer')} />
     </>
   )
 }

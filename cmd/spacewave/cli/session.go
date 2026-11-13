@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/cli"
-	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -27,6 +26,7 @@ func newSessionCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newSessionListCommand(),
 			newSessionInfoCommand(),
+			newSessionNameCommand(),
 			newSessionAttachLocalCommand(),
 			newSessionPairCommand(),
 			newSessionLogoutCommand(),
@@ -66,13 +66,20 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 		return errors.Wrap(err, "list sessions")
 	}
 
-	// Print structured output as is.
-	if outputFormat == "json" || outputFormat == "yaml" {
-		data, err := protojson.MarshalSlice(protojson.MarshalerConfig{}, sessions)
+	// Read each Session's name: a Spacewave username, or the name given a
+	// local account.
+	names := make([]string, len(sessions))
+	for i, s := range sessions {
+		meta, _, err := client.root.GetSessionMetadata(ctx, s.GetSessionIndex())
 		if err != nil {
-			return err
+			return errors.Wrap(err, "get session metadata")
 		}
-		return formatOutput(data, outputFormat)
+		names[i] = meta.GetDisplayName()
+	}
+
+	// Print structured output: each list entry's fields and its name.
+	if outputFormat == "json" || outputFormat == "yaml" {
+		return formatOutput(marshalSessionListJSON(sessions, names), outputFormat)
 	}
 
 	// Print the table, or a note when there are no Sessions.
@@ -80,30 +87,46 @@ func runSessionList(c *cli.Context, statePath, outputFormat string) error {
 		os.Stdout.WriteString("no sessions\n")
 		return nil
 	}
-	rows := [][]string{{"INDEX", "SESSION", "PROVIDER", "ACCOUNT", "USERNAME"}}
-	for _, s := range sessions {
-		// Spacewave Sessions store the account username as their display name.
+	rows := [][]string{{"INDEX", "SESSION", "PROVIDER", "ACCOUNT", "NAME"}}
+	for i, s := range sessions {
 		ref := s.GetSessionRef().GetProviderResourceRef()
-		var username string
-		if ref.GetProviderId() == "spacewave" {
-			meta, _, err := client.root.GetSessionMetadata(ctx, s.GetSessionIndex())
-			if err != nil {
-				return errors.Wrap(err, "get session metadata")
-			}
-			username = meta.GetDisplayName()
-		}
-
-		// Add the Session row.
 		rows = append(rows, []string{
 			strconv.FormatUint(uint64(s.GetSessionIndex()), 10),
 			truncateID(ref.GetId(), 8),
 			ref.GetProviderId(),
 			ref.GetProviderAccountId(),
-			username,
+			names[i],
 		})
 	}
 	writeTable(os.Stdout, "", rows)
 	return nil
+}
+
+// marshalSessionListJSON writes the Session list as a JSON array whose
+// entries carry the SessionListEntry fields and the Session's name.
+// names holds one name per entry, in the same order.
+func marshalSessionListJSON(sessions []*core_session.SessionListEntry, names []string) []byte {
+	// Write one object per entry: its index, its ref and its name.
+	buf, ms := newMarshalBuf()
+	ms.WriteArrayStart()
+	var more bool
+	for i, s := range sessions {
+		ms.WriteMoreIf(&more)
+		ms.WriteObjectStart()
+		var f bool
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("sessionIndex")
+		ms.WriteUint32(s.GetSessionIndex())
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("sessionRef")
+		s.GetSessionRef().MarshalProtoJSON(ms)
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("name")
+		ms.WriteString(names[i])
+		ms.WriteObjectEnd()
+	}
+	ms.WriteArrayEnd()
+	return buf.Bytes()
 }
 
 // newSessionInfoCommand builds the session info command.

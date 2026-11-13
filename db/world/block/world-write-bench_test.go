@@ -170,14 +170,7 @@ func BenchmarkWorldSeededWrite(b *testing.B) {
 	b.Run("increment-object-rev", func(b *testing.B) {
 		// Bump the revision of an existing object.
 		benchmarkWorldSeededWrite(b, func(ctx context.Context, ws world.WorldState, i int) error {
-			// Look up the object and bump its revision.
-			obj, err := world.MustGetObject(ctx, ws, worldSeedObjectKey(worldSeedPick(i)))
-			if err != nil {
-				return err
-			}
-			defer world.ReleaseObjectState(obj)
-			_, err = obj.IncrementRev(ctx)
-			return err
+			return bumpObjectRev(ctx, ws, worldSeedObjectKey(worldSeedPick(i)))
 		})
 	})
 	b.Run("link-existing-objects", func(b *testing.B) {
@@ -475,8 +468,7 @@ func buildNewestWorldCursor(ctx context.Context, tbed *testbed.Testbed) (*bucket
 		return nil, err
 	}
 	btx, bcs := ocs.BuildTransaction(nil)
-	root := world_block.NewWorld(false)
-	root.Format = world_block.NewestWorldFormat
+	root := world_block.NewWorld(world_block.NewestWorldFormat, false)
 	bcs.SetBlock(root, true)
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {
@@ -546,4 +538,15 @@ func (c *worldWriteBenchCounts) report(b *testing.B) {
 	b.ReportMetric(float64(c.readBytes)/denom, "block-read-bytes/op")
 	b.ReportMetric(float64(c.writeCount)/denom, "block-writes/op")
 	b.ReportMetric(float64(c.writeBytes)/denom, "block-write-bytes/op")
+}
+
+// bumpObjectRev increments the revision of the object at key.
+func bumpObjectRev(ctx context.Context, ws world.WorldStateObject, key string) error {
+	obj, err := world.MustGetObject(ctx, ws, key)
+	if err != nil {
+		return err
+	}
+	defer world.ReleaseObjectState(obj)
+	_, revErr := obj.IncrementRev(ctx)
+	return revErr
 }

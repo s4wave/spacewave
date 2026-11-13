@@ -1,7 +1,6 @@
 import { useCallback, useState, type ComponentProps } from 'react'
 import {
   LuChevronDown,
-  LuChevronRight,
   LuFolderOpen,
   LuFolderPlus,
   LuHardDrive,
@@ -39,7 +38,9 @@ import {
   type WatchSpaceRootRuntimeResponse,
 } from '@s4wave/sdk/root/root.pb.js'
 
+import { AccountRow, accountRowState } from './AccountRow.js'
 import { accountDescription, accountTitle } from './account-presentation.js'
+import { useDisplayNameEditor } from './DisplayNameEditor.js'
 
 // SessionSelector displays a full-page session picker for users with multiple sessions.
 export function SessionSelector() {
@@ -452,74 +453,47 @@ function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
   )
 }
 
-// SessionCard renders a single session entry in the selector list.
+// SessionCard renders a single session entry in the selector list, and names
+// an unnamed local account in place.
 function SessionCard(props: {
   session: SessionListEntry
   accountStatus?: ProviderAccountStatus
 }) {
   const selectAccount = useSelectAccount()
+  const root = useRootResource().value
   const meta = useSessionMetadata(props.session.sessionIndex ?? null)
-  const isCloudProvider = meta?.providerId === 'spacewave'
-  const isLinked = meta?.providerId === 'local' && !!meta?.cloudAccountId
-  const isInactive =
-    props.accountStatus === ProviderAccountStatus.ProviderAccountStatus_DORMANT
+  const sessionRef = props.session.sessionRef
   const sessionIndex = props.session.sessionIndex ?? 0
-  const title = accountTitle(meta, sessionIndex)
-  const subtitle = accountDescription(meta, sessionIndex)
 
-  const handleSessionSelect = useCallback(() => {
+  // Mount the session only for the write, and release it after.
+  const setName = useCallback(
+    async (displayName: string) => {
+      if (!root || !sessionRef) throw new Error('The account is not ready')
+      using session = await root.mountSession({ sessionRef })
+      await session.localProvider.setDisplayName({ displayName })
+    },
+    [root, sessionRef],
+  )
+  const editor = useDisplayNameEditor(meta?.displayName ?? '', setName)
+
+  const handleSelect = useCallback(() => {
     if (sessionIndex) selectAccount(sessionIndex)
   }, [selectAccount, sessionIndex])
 
-  const handleSessionSelectKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handleSessionSelect()
-    },
-    [handleSessionSelect],
-  )
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      data-testid="session-card"
-      data-session-index={props.session.sessionIndex ?? ''}
-      onClick={handleSessionSelect}
-      onKeyDown={handleSessionSelectKeyDown}
-      className={cn(
-        'border-foreground/10 hover:bg-foreground/5 flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
-        isLinked && 'opacity-50',
-      )}
-    >
-      <div className="bg-foreground/5 flex size-9 items-center justify-center rounded-lg">
-        <LuUser className="size-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground text-sm font-medium">{title}</span>
-          {isCloudProvider && (
-            <span className="bg-brand/15 text-brand micro-nine rounded-full px-1.5 py-0.5 font-semibold tracking-wider uppercase">
-              Cloud
-            </span>
-          )}
-          {isLinked && (
-            <span className="text-foreground-alt/80 micro-ten rounded-full px-1.5 py-0.5 font-medium">
-              (linked)
-            </span>
-          )}
-          {isInactive && (
-            <span className="bg-foreground/6 text-foreground-alt/75 micro-ten rounded-full px-1.5 py-0.5 font-medium">
-              (Inactive)
-            </span>
-          )}
-        </div>
-        <div className="text-foreground-alt/60 truncate text-xs">
-          {subtitle}
-        </div>
-      </div>
-      <LuChevronRight className="text-foreground-alt/40 size-4" />
-    </div>
+    <AccountRow
+      row={accountRowState(meta, editor.state)}
+      sessionIndex={sessionIndex}
+      title={accountTitle(meta, sessionIndex)}
+      subtitle={accountDescription(meta, sessionIndex)}
+      cloud={meta?.providerId === 'spacewave'}
+      linked={meta?.providerId === 'local' && !!meta?.cloudAccountId}
+      inactive={
+        props.accountStatus ===
+        ProviderAccountStatus.ProviderAccountStatus_DORMANT
+      }
+      editor={editor}
+      onSelect={handleSelect}
+    />
   )
 }

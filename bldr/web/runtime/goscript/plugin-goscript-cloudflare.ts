@@ -6,6 +6,7 @@ import {
   packetStreamToOpenStreamCallbacks,
   type OpenStreamFunc,
 } from './open-stream-contract.js'
+import { onGoScriptFatal } from './fatal.js'
 
 // GoScriptPluginMain is the plugin's main entrypoint function.
 export type GoScriptPluginMain = () => void | Promise<void>
@@ -49,6 +50,8 @@ class GoScriptCloudflarePluginGeneration {
     )
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
+    // A panic that escapes any goroutine ends the plugin process, as in Go.
+    onGoScriptFatal((err) => this.fail(err))
     void Promise.resolve()
       .then(() => loadPluginMain())
       .then((pluginMain) => pluginMain())

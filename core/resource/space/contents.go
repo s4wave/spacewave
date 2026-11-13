@@ -401,6 +401,8 @@ func (r *SpaceContentsResource) WatchState(
 		var loadedCh, requestedCh <-chan struct{}
 		var requestedIDs []string
 		schedulerStatuses := map[string]*bldr_plugin.PluginStatus{}
+		schedulerManifests := map[string]*bldr_plugin.PluginManifestRecoveryStatus{}
+		schedulerExecutions := map[string]*bldr_plugin.PluginExecutionStatus{}
 		var waitStatusChange, waitHostChange func(context.Context) error
 		if gen != nil {
 			_, hostChanged, hostErr := gen.GetScheduler().GetHostState()
@@ -419,7 +421,9 @@ func (r *SpaceContentsResource) WatchState(
 
 			statusCtr := gen.GetScheduler().GetPluginStatusCtr()
 			statusSnapshot := statusCtr.GetValue()
-			schedulerStatuses = spacePluginStatusesByID(statusSnapshot, r.spaceID)
+			schedulerStatuses = schedulerRowsByPluginID(statusSnapshot.GetPlugins(), r.spaceID)
+			schedulerManifests = schedulerRowsByPluginID(statusSnapshot.GetManifestRecovery(), r.spaceID)
+			schedulerExecutions = schedulerRowsByPluginID(statusSnapshot.GetExecutions(), r.spaceID)
 			waitStatusChange = func(waitCtx context.Context) error {
 				_, err := statusCtr.WaitValueChange(waitCtx, statusSnapshot, nil)
 				return err
@@ -436,6 +440,11 @@ func (r *SpaceContentsResource) WatchState(
 				schedulerStatuses[pid],
 			)
 			status.Account = i >= len(pluginIDs)
+			status.ManifestRef = schedulerManifests[pid].GetExecuteManifestRef()
+			status.ManifestRev = schedulerManifests[pid].GetExecuteManifestRev()
+			status.RunningManifestRef = schedulerExecutions[pid].GetRunningManifestRef()
+			status.RunningManifestRev = schedulerExecutions[pid].GetRunningManifestRev()
+			status.Swap = schedulerExecutions[pid].GetSwap()
 			if runtimeErr != nil {
 				status.State = s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED
 				status.Detail = runtimeErr.Error()
@@ -527,23 +536,22 @@ func waitSpaceContentsSources(
 	return nil
 }
 
-// spacePluginStatusesByID indexes the scheduler statuses of instanceKey by
-// plugin ID.
-func spacePluginStatusesByID(
-	snapshot *bldr_plugin.PluginStatusSnapshot,
-	instanceKey string,
-) map[string]*bldr_plugin.PluginStatus {
-	statuses := map[string]*bldr_plugin.PluginStatus{}
-	if snapshot == nil {
-		return statuses
-	}
-	for _, plugin := range snapshot.Plugins {
-		if plugin == nil || plugin.GetInstanceKey() != instanceKey {
+// schedulerRowsByPluginID indexes the scheduler rows of instanceKey, such as
+// plugin statuses or manifest selections, by plugin ID.
+func schedulerRowsByPluginID[T interface {
+	comparable
+	GetPluginId() string
+	GetInstanceKey() string
+}](rows []T, instanceKey string) map[string]T {
+	var zero T
+	byID := make(map[string]T, len(rows))
+	for _, row := range rows {
+		if row == zero || row.GetInstanceKey() != instanceKey {
 			continue
 		}
-		statuses[plugin.GetPluginId()] = plugin
+		byID[row.GetPluginId()] = row
 	}
-	return statuses
+	return byID
 }
 
 // buildSpacePluginStatus projects the loaded state and scheduler status of one
@@ -861,6 +869,33 @@ func cloneAvailablePlugins(in []*s4wave_space.AvailablePlugin) []*s4wave_space.A
 		out = append(out, plugin.CloneVT())
 	}
 	return out
+}
+
+// RestartPlugin ends the running execution of a plugin in the Space runtime,
+// so the scheduler starts the plugin's selected manifest at once.
+func (r *SpaceContentsResource) RestartPlugin(
+	ctx context.Context,
+	req *s4wave_space.RestartSpacePluginRequest,
+) (*s4wave_space.RestartSpacePluginResponse, error) {
+	// Require a plugin identity.
+	pluginID := req.GetPluginId()
+	if pluginID == "" {
+		return nil, errors.New("plugin_id is required")
+	}
+
+	// Restart the binding in the running runtime generation.
+	gen, _, err := r.runtime.GetGeneration()
+	if err != nil {
+		return nil, err
+	}
+	if gen == nil {
+		return nil, errors.New("space plugin runtime is not running")
+	}
+	if !gen.GetScheduler().RestartPlugin(pluginID, r.spaceID) {
+		return nil, errors.Errorf("plugin %s is not loaded in this space", pluginID)
+	}
+	r.le.Infof("restarted plugin %s", pluginID)
+	return &s4wave_space.RestartSpacePluginResponse{}, nil
 }
 
 // SetProcessBinding sets the state for a process binding.

@@ -196,7 +196,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			t.finishInitialCapabilityRegistration(false)
 		}
 		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
-		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, nil, candidateEligibility)
+		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, 0, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
 		// Don't clear states that the fetch handler set.
@@ -355,6 +355,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				t.pluginID,
 				t.instanceKey,
 				executeManifest,
+				executeManifest.GetManifest().GetMeta().GetRev(),
 				downloadManifest,
 				candidateEligibility,
 			)
@@ -371,6 +372,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			if executeManifest != nil {
 				changed := t.setExecutePluginState(&executePluginArgs{
 					manifestSnapshot: executeManifest,
+					rev:              executeManifest.GetManifest().GetMeta().GetRev(),
 					pluginHost:       executeManifestHost,
 					serveAssets:      executeManifestHost == nil,
 				})

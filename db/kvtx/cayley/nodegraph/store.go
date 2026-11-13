@@ -25,6 +25,11 @@ import (
 // ErrInvalidQuad is returned for a quad without a subject, predicate or object.
 var ErrInvalidQuad = errors.New("node graph: quad needs a subject, predicate and object")
 
+// ErrMissingNextID is returned for a tree that holds nodes but no next ID,
+// which no store writes, since counting on from its highest live ID could
+// allocate a deleted node's ID again.
+var ErrMissingNextID = errors.New("node graph: tree holds nodes but no next ID")
+
 // QuadStore is a node graph quad store over one transaction.
 //
 // Concurrent calls are safe only for readers; one writer at a time calls
@@ -33,14 +38,19 @@ type QuadStore struct {
 	// tx holds the graph keys, including this transaction's held writes.
 	tx kvtx.TxOps
 
-	// idMtx guards nextID, storedID and pinned.
+	// idMtx guards nextID and pinned.
 	idMtx sync.Mutex
-	// nextID is the next node ID to allocate, or 0 before loadNextID.
+	// nextID is the next node ID to allocate, which the tree's next ID key
+	// also holds, or 0 before loadNextID.
 	nextID uint64
-	// storedID is the next ID the tree's key holds, as read or last written.
-	storedID uint64
 	// pinned holds the nodes this transaction has seen pinned.
 	pinned map[uint64]struct{}
+
+	// undo holds the inverse of each write of the running ApplyDeltas call,
+	// in order, and undoPins the nodes it marked pinned; only the one writer
+	// touches them.
+	undo     []undoEntry
+	undoPins []uint64
 }
 
 // NewQuadStore opens the store over tx.
@@ -120,7 +130,7 @@ func (qs *QuadStore) ValueOf(ctx context.Context, v quad.Value) (graph.Ref, erro
 	if v == nil {
 		return nil, nil
 	}
-	id, err := qs.lookupID(ctx, v.String())
+	id, err := qs.lookupID(ctx, valueText(v))
 	if err != nil || id == 0 {
 		return nil, err
 	}

@@ -541,10 +541,24 @@ func (l *lockCheckingLease) Release(ctx context.Context) error {
 	return l.WriteLease.Release(ctx)
 }
 
+// newRetirementTestEngine opens an Engine on an empty World in the newest
+// format, as a new World starts.
 func newRetirementTestEngine(
 	t *testing.T,
 	ctx context.Context,
 	coordinator coord.Coordinator,
+) *Engine {
+	t.Helper()
+	return newFormatTestEngine(t, ctx, coordinator, NewestWorldFormat)
+}
+
+// newFormatTestEngine opens an Engine on an empty World in format, over a
+// local authority on coordinator when one is given.
+func newFormatTestEngine(
+	t *testing.T,
+	ctx context.Context,
+	coordinator coord.Coordinator,
+	format WorldFormat,
 ) *Engine {
 	// Open the engine testbed.
 	t.Helper()
@@ -555,15 +569,14 @@ func newRetirementTestEngine(
 	}
 	t.Cleanup(tb.Release)
 
-	// Build the engine root, an empty World in the newest format.
+	// Build the engine root, an empty World in format.
 	base, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(base.Release)
 	btx, bcs := base.BuildTransaction(nil)
-	root := NewWorld(false)
-	root.Format = NewestWorldFormat
+	root := NewWorld(format, false)
 	bcs.SetBlock(root, true)
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {

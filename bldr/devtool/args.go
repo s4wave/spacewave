@@ -67,8 +67,15 @@ type DevtoolArgs struct {
 	// Usually "dev" or "release".
 	// If running "dist" this is forced to "release".
 	BuildType string
-	// ManifestRevision is the minimum revision for manifests in a finite build.
+	// ManifestRevision is the minimum revision for manifests in a build.
 	ManifestRevision uint64
+	// BuildWatch keeps a build's builders running, rebuilding each manifest
+	// as its sources change, until the command ends.
+	BuildWatch bool
+	// ExportDir receives a devtool database holding only the latest manifest
+	// sets of the built manifests, written once the build finishes and, with
+	// BuildWatch, rewritten whenever their roots change.
+	ExportDir string
 	// MinifyEntrypoint configures if we will minify the entrypoint files.
 	MinifyEntrypoint bool
 	// JSMinification controls build-scoped JavaScript minification.
@@ -494,6 +501,16 @@ func (a *DevtoolArgs) BuildBuildCommand() *cli.Command {
 				Usage:       "minimum manifest revision (builds still advance past stored revisions)",
 				Value:       a.ManifestRevision,
 				Destination: &a.ManifestRevision,
+			},
+			&cli.BoolFlag{
+				Name:        "watch",
+				Usage:       "keep building: rebuild each manifest as its sources change",
+				Destination: &a.BuildWatch,
+			},
+			&cli.StringFlag{
+				Name:        "export-dir",
+				Usage:       "write a devtool database of only the latest built manifests here for space deploy --db; with --watch, keep it current",
+				Destination: &a.ExportDir,
 			},
 			&cli.StringFlag{
 				Name:        "build",

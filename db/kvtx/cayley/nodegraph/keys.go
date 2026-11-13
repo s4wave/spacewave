@@ -2,6 +2,9 @@ package kvtx_cayley_nodegraph
 
 import (
 	"encoding/binary"
+	"time"
+
+	"github.com/aperturerobotics/cayley/quad"
 )
 
 // Key layout. Every node has an 8-byte big-endian ID, allocated from the
@@ -40,6 +43,16 @@ var (
 	// nodePrefix prefixes the node ranges.
 	nodePrefix = []byte("g/")
 )
+
+// valueText returns the text that keys a value in the ID map. A time is
+// written in UTC, the zone the stored meta decodes it in, so a node's key
+// derives the same from the value it was created with and from its meta.
+func valueText(v quad.Value) string {
+	if t, ok := v.(quad.Time); ok {
+		v = quad.Time(time.Time(t).UTC())
+	}
+	return v.String()
+}
 
 // valueKey returns the ID map key of a value's text.
 func valueKey(text string) []byte {

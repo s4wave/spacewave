@@ -29,6 +29,23 @@ func Lock(f *os.File, off int64, wait bool) (bool, error) {
 	return false, err
 }
 
+// LockShared takes a shared lock on the byte at off without waiting,
+// reporting false when another holder has an exclusive lock on it. Shared
+// locks exclude only exclusive ones, and the handle may be open only for
+// reading.
+func LockShared(f *os.File, off int64) (bool, error) {
+	// Take the lock; a violation means an exclusive holder has it.
+	ov := overlapped(off)
+	err := windows.LockFileEx(windows.Handle(f.Fd()), windows.LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &ov)
+	switch err {
+	case nil:
+		return true, nil
+	case windows.ERROR_LOCK_VIOLATION, windows.ERROR_IO_PENDING:
+		return false, nil
+	}
+	return false, err
+}
+
 // Unlock releases the lock on the byte at off.
 func Unlock(f *os.File, off int64) error {
 	ov := overlapped(off)

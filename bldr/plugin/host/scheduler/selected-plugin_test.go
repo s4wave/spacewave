@@ -18,10 +18,23 @@ import (
 // candidateActivation exposes the ready candidate's admission boundary.
 type candidateActivation struct {
 	activated chan struct{}
+	// answer, when set before the check, holds Check until it yields the
+	// call's result, like a worker that is busy or leaves.
+	answer chan error
 }
 
-// Check declares support for staged replacement.
-func (a *candidateActivation) Check(context.Context, *plugin.CheckActivationRequest) (*plugin.CheckActivationResponse, error) {
+// Check declares support for staged replacement, after answer when set.
+func (a *candidateActivation) Check(ctx context.Context, _ *plugin.CheckActivationRequest) (*plugin.CheckActivationResponse, error) {
+	if a.answer != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case err := <-a.answer:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	return &plugin.CheckActivationResponse{}, nil
 }
 
@@ -45,6 +58,27 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+	c.setPluginStatus("colors", "", plugin.PluginState_PluginState_REQUESTED)
+
+	// waitExecution waits for the colors execution status to satisfy ok and
+	// logs the swap state it reached.
+	waitExecution := func(phase string, ok func(*plugin.PluginExecutionStatus) bool) {
+		t.Helper()
+		snap, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				if st.GetPluginId() == "colors" && ok(st) {
+					return true, nil
+				}
+			}
+			return false, nil
+		}, nil)
+		if err != nil {
+			t.Fatalf("%s: %v", phase, err)
+		}
+		for _, st := range snap.GetExecutions() {
+			t.Logf("%s: running rev %d, swap %s", phase, st.GetRunningManifestRev(), st.GetSwap().MarshalProtoText())
+		}
+	}
 
 	// Declare the execution record and the channel reporting started workers.
 	type execution struct {
@@ -86,24 +120,34 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	defer instance.executions.ClearContext()
 	defer instance.clearExecution(nil)
 
-	// start launches a candidate at the given revision and waits for it to start.
-	start := func(rev uint64) (*execution, context.CancelFunc, <-chan error) {
-		// Build the candidate args and run selection in the background.
-		t.Helper()
-		attempt, stop := context.WithCancel(ctx)
-		args := &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, manifestSnapshot: &manifest.ManifestSnapshot{
+	// candidate builds the args selecting the given revision as the world
+	// selection does: a ManifestRef and its rev, with no fetched Manifest.
+	candidate := func(rev uint64) *executePluginArgs {
+		return &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, rev: rev, manifestSnapshot: &manifest.ManifestSnapshot{
 			ManifestRef: newTestManifestRef("colors", "js", rev, "candidate").GetManifestRef(),
-			Manifest:    &manifest.Manifest{Meta: manifest.NewManifestMeta("colors", manifest.BuildType_DEV, "js", rev)},
 		}}
-		done := make(chan error, 1)
-		go func() { done <- instance.execSelectedPlugin(attempt, args) }()
+	}
+	// nextStarted waits for the next worker to start.
+	nextStarted := func() *execution {
+		t.Helper()
 		select {
 		case run := <-started:
-			return run, stop, done
+			return run
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
-			return nil, nil, nil
+			return nil
 		}
+	}
+
+	// start launches a candidate at the given revision and waits for it to start.
+	start := func(rev uint64) (*execution, context.CancelFunc, <-chan error) {
+		// Run selection in the background.
+		t.Helper()
+		attempt, stop := context.WithCancel(ctx)
+		args := candidate(rev)
+		done := make(chan error, 1)
+		go func() { done <- instance.execSelectedPlugin(attempt, args) }()
+		return nextStarted(), stop, done
 	}
 	wait := func(closed <-chan struct{}) {
 		t.Helper()
@@ -121,6 +165,9 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	waitExecution("first admitted", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 1 && st.GetSwap().GetSettled() != nil
+	})
 	stopOld()
 	<-doneOld
 	select {
@@ -135,10 +182,16 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if !failed.worker.prepared || instance.runningPluginCtr.GetValue() != initial {
 		t.Fatal("preparing candidate replaced the admitted worker")
 	}
+	waitExecution("candidate preparing", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 1 && st.GetSwap().GetPreparing().GetCandidateManifestRev() == 2
+	})
 	failed.start <- false
 	if err := <-doneFailed; err == nil {
 		t.Fatal("failed startup succeeded")
 	}
+	waitExecution("candidate failed", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 1 && st.GetSwap().GetFailed().GetCandidateManifestRev() == 2
+	})
 	wait(failed.closed)
 	if instance.runningPluginCtr.GetValue() != initial {
 		t.Fatal("failed candidate removed the admitted worker")
@@ -169,16 +222,105 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if instance.runningPluginCtr.GetValue() == nil {
 		t.Fatal("retired teardown cleared the replacement")
 	}
+	waitExecution("replacement admitted", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 4 && st.GetSwap().GetSettled() != nil
+	})
 
-	// Releasing the binding ends the remaining worker.
 	stopNext()
 	<-doneNext
-	instance.closeExecutions()
+
+	// A slow worker is never replaced for slowness: the swap state says the
+	// candidate waits on it, and its late answer stages the candidate.
+	prevSlow := activationProbeSlow
+	activationProbeSlow = 20 * time.Millisecond
+	defer func() { activationProbeSlow = prevSlow }()
+	waitingStatus := func(want bool) error {
+		_, err := c.pluginStatusCtr.WaitValueWithValidator(ctx, func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+			for _, st := range snap.GetExecutions() {
+				if st.GetPluginId() == "colors" && st.GetSwap().GetWaiting() != nil {
+					t.Logf("candidate waiting: running rev %d, swap %s", st.GetRunningManifestRev(), st.GetSwap().MarshalProtoText())
+					return want, nil
+				}
+			}
+			return !want, nil
+		}, nil)
+		return err
+	}
+	// answer yields result from a's check once the status says it waits.
+	answer := func(a *candidateActivation, result error) {
+		go func() {
+			if waitingStatus(true) == nil {
+				a.answer <- result
+			}
+		}()
+	}
+	next.activation.answer = make(chan error)
+	answer(next.activation, nil)
+	slow, stopSlow, doneSlow := start(5)
+	if !slow.worker.prepared {
+		t.Fatal("slow worker was replaced in place")
+	}
+	select {
+	case <-next.closed:
+		t.Fatal("slow worker stopped before the candidate activated")
+	default:
+	}
+	slow.start <- true
+	wait(slow.activation.activated)
 	wait(next.closed)
+	if err := waitingStatus(false); err != nil {
+		t.Fatal(err)
+	}
+	stopSlow()
+	<-doneSlow
+
+	// A worker that leaves while the check waits is replaced in place.
+	slow.activation.answer = make(chan error)
+	answer(slow.activation, plugin.ErrWorkerGone)
+	current := instance.runningPluginCtr.GetValue()
+	last, stopLast, doneLast := start(6)
+	if last.worker.prepared {
+		t.Fatal("departed worker was treated as prepared")
+	}
+	wait(slow.closed)
+	last.start <- true
+	if _, err := instance.runningPluginCtr.WaitValueChange(ctx, current, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	stopLast()
+	<-doneLast
+
+	// A worker that never answers keeps the swap waiting until a restart ends
+	// it; the execute routine then starts the candidate in its place.
+	if _, err := instance.runningPluginCtr.WaitValue(ctx, nil); err != nil {
+		t.Fatal(err)
+	}
+	last.activation.answer = make(chan error)
+	instance.executePluginRoutine.SetContext(ctx, true)
+	instance.executePluginRoutine.SetState(candidate(7))
+	if err := waitingStatus(true); err != nil {
+		t.Fatal(err)
+	}
+	instance.restart()
+	wait(last.closed)
+	restarted := nextStarted()
+	if restarted.worker.prepared {
+		t.Fatal("restart staged the candidate beside the ended worker")
+	}
+	restarted.start <- true
+	waitExecution("restarted", func(st *plugin.PluginExecutionStatus) bool {
+		return st.GetRunningManifestRev() == 7 && st.GetSwap().GetSettled() != nil
+	})
+	instance.executePluginRoutine.ClearContext()
+
+	// Releasing the binding ends the remaining worker.
+	instance.closeExecutions()
+	wait(restarted.closed)
 	if len(instance.executions.GetKeys()) != 0 {
 		t.Fatal("released binding retained worker references")
 	}
-	if instance.admitExecution(next.worker, func() {}, nil) {
+	if instance.admitExecution(last.worker, func() {}, nil) {
 		t.Fatal("closed binding admitted a late candidate")
 	}
 }
@@ -197,6 +339,7 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "sample"})
+	c.setPluginStatus("sample", "", plugin.PluginState_PluginState_REQUESTED)
 	starts := make(chan time.Time, 8)
 	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
 		_, worker := instance.newExecution(key)
@@ -233,4 +376,18 @@ func TestFailingPluginRestartBacksOff(t *testing.T) {
 		}
 		prev = next
 	}
+
+	// The failed swap state carries when the routine retries.
+	snap, err := c.pluginStatusCtr.WaitValueWithValidator(t.Context(), func(snap *plugin.PluginStatusSnapshot) (bool, error) {
+		for _, st := range snap.GetExecutions() {
+			if st.GetSwap().GetFailed().GetRetryAt() != nil {
+				return true, nil
+			}
+		}
+		return false, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("candidate failed with retry: %s", snap.GetExecutions()[0].GetSwap().MarshalProtoText())
 }

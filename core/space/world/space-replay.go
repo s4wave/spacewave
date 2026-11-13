@@ -169,7 +169,7 @@ func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOpe
 	// Compute the World before index again when it left memory unstored, then
 	// run the operation on it.
 	if unstored {
-		if err := r.recompute(ctx, index); err != nil {
+		if err := r.recompute(ctx); err != nil {
 			return spacePosition{}, err
 		}
 		pos.state, pos.seqno = r.stateBefore(index)
@@ -179,10 +179,12 @@ func (r *spaceReplay) run(ctx context.Context, index int, op *sobject.OrderedOpe
 	return r.apply(ctx, pos, op)
 }
 
-// recompute runs the positions before index again from base, after their
-// Worlds left memory unstored.
-func (r *spaceReplay) recompute(ctx context.Context, index int) error {
-	for i := range index {
+// recompute runs every position below the floor again from base, after their
+// Worlds left memory unstored, and then clears the floor. It never stops short
+// of the floor: a position it skipped would read as computed with its pages
+// gone.
+func (r *spaceReplay) recompute(ctx context.Context) error {
+	for i := range min(r.floor, len(r.positions)) {
 		state, seqno := r.stateBefore(i)
 		pos, err := r.apply(ctx, spacePosition{op: r.positions[i].op, state: state, seqno: seqno}, r.positions[i].op)
 		if err != nil {
@@ -282,8 +284,8 @@ func (r *spaceReplay) applyInit(ctx context.Context, initOp *InitWorldOp, prev *
 
 	// Write it to the kept pages.
 	btx, bcs := block.NewTransaction(r.store(), xfrm, nil, nil)
-	root := world_block.NewWorld(initOp.GetLastChangeDisable())
-	root.GraphSettings, root.Format = settings.CloneVT(), format
+	root := world_block.NewWorld(format, initOp.GetLastChangeDisable())
+	root.GraphSettings = settings.CloneVT()
 	bcs.SetBlock(root, true)
 	rootRef, _, err := btx.Write(ctx, true)
 	if err != nil {

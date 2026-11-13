@@ -1,8 +1,10 @@
 package s4dbv1
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
+	"sort"
 
 	"github.com/pkg/errors"
 )
@@ -67,6 +69,12 @@ func (n *node) entry(i int) decoder {
 	return decoder{b: n.page[n.offs[i] : pageSize-4]}
 }
 
+// key returns the key of entry i.
+func (n *node) key(i int) []byte {
+	d := n.entry(i)
+	return d.bytes()
+}
+
 // pair returns the key and value of leaf entry i.
 func (n *node) pair(i int) ([]byte, value) {
 	d := n.entry(i)
@@ -79,6 +87,38 @@ func (n *node) kid(i int) uint64 {
 	d := n.entry(i)
 	d.bytes()
 	return d.u64()
+}
+
+// findInTree descends the tree at root to key, reading one page per level,
+// and returns its value, or false when the tree does not hold it. Inner
+// entry i leads to the keys from its key up to entry i+1's, and the first
+// inner key is empty.
+func findInTree(r io.ReaderAt, root uint64, key []byte) (value, bool, error) {
+	// An empty tree holds nothing.
+	if root == 0 {
+		return value{}, false, nil
+	}
+	for page := root; ; {
+		// Find the last entry at or below key.
+		n, err := readNode(r, page)
+		if err != nil {
+			return value{}, false, err
+		}
+		i := sort.Search(len(n.offs), func(i int) bool { return bytes.Compare(n.key(i), key) > 0 }) - 1
+
+		// Take the leaf entry, or descend into the child.
+		if n.leaf {
+			if i < 0 {
+				return value{}, false, nil
+			}
+			k, v := n.pair(i)
+			return v, bytes.Equal(k, key), nil
+		}
+		if i < 0 {
+			return value{}, false, errors.Wrapf(ErrCorrupt, "page %d has no entry at or below the key", page)
+		}
+		page = n.kid(i)
+	}
 }
 
 // treeWalk streams a tree's leaf entries in key order, holding one page per

@@ -172,7 +172,7 @@ func (c *Controller) initialRoot(ctx context.Context, cursor *bucket_lookup.Curs
 
 	// Write a new empty World. The authority's Install holds it.
 	btx, bcs := init.BuildTransaction(nil)
-	worldRoot := world_block.NewWorld(c.conf.GetDisableChangelog())
+	worldRoot := world_block.NewWorld(c.conf.GetFormat(), c.conf.GetDisableChangelog())
 	worldRoot.GraphSettings = c.conf.GetGraphSettings().CloneVT()
 	worldRoot.Format = c.conf.GetFormat()
 	bcs.ClearAllRefs()

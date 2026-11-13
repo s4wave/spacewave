@@ -56,6 +56,87 @@ message PluginManifestRecoveryStatus {
   uint32 quarantined_candidate_count = 9;
   // QuarantinedCandidateSummary summarizes the quarantined candidates.
   string quarantined_candidate_summary = 10;
+  // ExecuteManifestRev is the rev of the manifest selected for execution.
+  uint64 execute_manifest_rev = 11;
+}
+
+// PluginExecutionStatus describes the execution a plugin instance runs and the
+// swap that moves it to the selected manifest.
+message PluginExecutionStatus {
+  // PluginId is the plugin identifier.
+  string plugin_id = 1;
+  // InstanceKey is the optional instance key for instanced plugins.
+  string instance_key = 2;
+  // RunningManifestRef is the ref of the manifest the admitted execution runs.
+  // Empty while no execution is admitted.
+  string running_manifest_ref = 3;
+  // RunningManifestRev is the build rev of the manifest named by
+  // RunningManifestRef.
+  uint64 running_manifest_rev = 4;
+  // Swap is the state of the move from the running manifest to the selected one.
+  PluginSwap swap = 5;
+}
+
+// PluginSwap is the state of a plugin instance's move to its selected manifest.
+// An unset state means no candidate has been tried yet.
+message PluginSwap {
+  // State is the current swap state.
+  oneof state {
+    // Settled means no candidate is in flight: the admitted execution runs the
+    // last candidate the scheduler admitted.
+    PluginSwapSettled settled = 1;
+    // Preparing means a candidate is being fetched and started.
+    PluginSwapPreparing preparing = 2;
+    // Waiting means the candidate waits for the running execution to answer
+    // its activation check.
+    PluginSwapWaiting waiting = 3;
+    // Failed means the last candidate failed to start.
+    PluginSwapFailed failed = 4;
+  }
+}
+
+// PluginSwapSettled is the swap state with no candidate in flight.
+message PluginSwapSettled {
+  // AdmittedAt is when the running execution was admitted.
+  google.protobuf.Timestamp admitted_at = 1;
+}
+
+// PluginSwapPreparing is the swap state while a candidate is fetched and
+// started.
+message PluginSwapPreparing {
+  // CandidateManifestRef is the ref of the manifest being prepared.
+  string candidate_manifest_ref = 1;
+  // CandidateManifestRev is the build rev of the manifest being prepared.
+  uint64 candidate_manifest_rev = 2;
+  // StartedAt is when the scheduler began preparing the candidate.
+  google.protobuf.Timestamp started_at = 3;
+}
+
+// PluginSwapWaiting is the swap state while the running execution has not
+// answered the candidate's activation check within the slow threshold.
+message PluginSwapWaiting {
+  // CandidateManifestRef is the ref of the manifest waiting to start.
+  string candidate_manifest_ref = 1;
+  // CandidateManifestRev is the build rev of the manifest waiting to start.
+  uint64 candidate_manifest_rev = 2;
+  // SinceAt is when the activation check was sent to the running execution.
+  google.protobuf.Timestamp since_at = 3;
+}
+
+// PluginSwapFailed is the swap state after a candidate failed to start. The
+// running execution, if any, is kept.
+message PluginSwapFailed {
+  // CandidateManifestRef is the ref of the manifest that failed.
+  string candidate_manifest_ref = 1;
+  // CandidateManifestRev is the build rev of the manifest that failed.
+  uint64 candidate_manifest_rev = 2;
+  // ErrorMessage is the failure, prefixed with the stage that failed.
+  string error_message = 3;
+  // FailedAt is when the candidate failed.
+  google.protobuf.Timestamp failed_at = 4;
+  // RetryAt is when the scheduler retries the candidate. Unset when it waits
+  // for a new selection or host instead.
+  google.protobuf.Timestamp retry_at = 5;
 }
 
 // PluginStatusSnapshot describes a plugin host scheduler's plugin instances.
@@ -65,6 +146,9 @@ message PluginStatusSnapshot {
   // ManifestRecovery lists the per-instance manifest selection facts sorted by
   // plugin id and instance key.
   repeated PluginManifestRecoveryStatus manifest_recovery = 2;
+  // Executions lists the per-instance running manifests and swap states sorted
+  // by plugin id and instance key.
+  repeated PluginExecutionStatus executions = 3;
 }
 
 // PluginHost is the service exposed by the plugin host.

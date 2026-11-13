@@ -72,9 +72,9 @@ func ImportSnapshot(
 	return result, nil
 }
 
-// importFormat is the format an imported World takes: the format a World
-// engine creates when its config names none, the zero format. When that
-// default moves to NewestWorldFormat, this moves with it.
+// importFormat is the format an imported World takes. A user imports a
+// snapshot, so the import follows the Engine's default creation format, and
+// moves to NewestWorldFormat with it.
 const importFormat = WorldFormat_WORLD_FORMAT_CAYLEY_KV
 
 // importWorld builds the World blocks of an import and returns its root. The
@@ -111,8 +111,7 @@ func importWorld(
 	// transaction and referenced within the World, as CreateObject does for
 	// same-bucket bodies.
 	transaction, worldCursor := bucketCursor.BuildTransactionAtRef(nil, nil)
-	worldRoot := NewWorld(true)
-	worldRoot.Format = importFormat
+	worldRoot := NewWorld(importFormat, true)
 	worldCursor.SetBlock(worldRoot, true)
 	objectCursor := worldCursor.Detach(false)
 	objectCursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA), true)
@@ -232,9 +231,10 @@ func writeGraphIndex(ctx context.Context, worldCursor *block.Cursor, index *hash
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/import-snapshot/write-graph")
 	defer task.End()
 
-	// Open an okra-inline transaction over the World's graph sub-block.
+	// Open an okra-inline transaction over the World's graph sub-block, tagged
+	// with the import format's graph implementation.
 	cursor := worldCursor.Detach(false)
-	cursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE), true)
+	cursor.SetBlock(kvtx_block.NewKeyValueStore(importFormat.graphImpl()), true)
 	graphTx, err := kvtx_block.BuildKvTransaction(ctx, cursor, true)
 	if err != nil {
 		return err

@@ -90,13 +90,16 @@ type Controller struct {
 	pluginInstances *keyed.KeyedRefCount[pluginReference, *pluginInstance]
 	// pluginStatusCtr publishes live plugin instance states.
 	pluginStatusCtr *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
-	// pluginStatusMtx guards pluginStatus.
+	// pluginStatusMtx guards the plugin status maps below.
 	pluginStatusMtx sync.Mutex
 	// pluginStatus stores live plugin instance states by pluginInstanceKey.
 	pluginStatus map[string]*bldr_plugin.PluginStatus
 	// pluginManifestRecoveryStatus stores retained Manifest selection and
 	// eligibility facts by pluginInstanceKey.
 	pluginManifestRecoveryStatus map[string]*bldr_plugin.PluginManifestRecoveryStatus
+	// pluginExecutionStatus stores the running manifest and swap state of
+	// each logical plugin instance by pluginInstanceKey.
+	pluginExecutionStatus map[string]*bldr_plugin.PluginExecutionStatus
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -419,6 +422,18 @@ func (c *Controller) AddPluginReference(pluginID, instanceKey string) (bldr_plug
 	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
 	plg.start.SetValue(true)
 	return plg, ref.Release
+}
+
+// RestartPlugin ends the running execution of the plugin's binding under
+// instanceKey, so the scheduler starts the binding's selected manifest at once.
+// Pinned executions are not restarted. Returns false when no reference holds
+// the binding.
+func (c *Controller) RestartPlugin(pluginID, instanceKey string) bool {
+	plg, ok := c.pluginInstances.GetKey(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
+	if ok {
+		plg.restart()
+	}
+	return ok
 }
 
 // AddPinnedPluginReference retains an exact manifest in a separate host worker.

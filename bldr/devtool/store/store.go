@@ -7,6 +7,7 @@ package devtool_store
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -42,6 +43,78 @@ const (
 // without generating or writing its key.
 func OpenVolume(ctx context.Context, le *logrus.Entry, bldrPath string) (volume.Volume, error) {
 	return OpenVolumeFile(ctx, le, filepath.Join(bldrPath, FileName), false)
+}
+
+// OpenVolumeCopy opens a private copy of the devtool database of the .bldr or
+// export directory at bldrPath, for a reader that must leave the source
+// byte-identical, such as a deploy from an export whose checksums are
+// recorded. Any s4db open writes the file, even a read-only one, which takes a
+// reader slot and writes its pins. The copy is a copy-on-write clone where the
+// OS temp dir shares a cloning filesystem with the source, such as APFS on
+// macOS, and a byte copy otherwise. It stays in the OS temp dir, which the OS
+// cleans when a killed command leaves it behind, so the source directory never
+// gains a file. Close removes the copy.
+func OpenVolumeCopy(ctx context.Context, le *logrus.Entry, bldrPath string) (volume.Volume, error) {
+	// Copy the database into a new temporary directory.
+	dir, err := os.MkdirTemp("", "devtool-copy-")
+	if err != nil {
+		return nil, errors.Wrap(err, "create copy dir")
+	}
+	path := filepath.Join(dir, FileName)
+	if err := copyFile(filepath.Join(bldrPath, FileName), path); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, err
+	}
+
+	// Open the copy and remove it with the volume.
+	vol, err := OpenVolumeFile(ctx, le, path, false)
+	if err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, err
+	}
+	return &copyVolume{Volume: vol, dir: dir}, nil
+}
+
+// copyVolume is a volume over a private copy of a database file.
+type copyVolume struct {
+	volume.Volume
+	dir string
+}
+
+// Close closes the volume and removes its copy.
+func (v *copyVolume) Close() error {
+	err := v.Volume.Close()
+	if rerr := os.RemoveAll(v.dir); err == nil {
+		err = rerr
+	}
+	return err
+}
+
+// copyFile copies the file at src to a new file at dst, as a clone when the
+// filesystem can make one.
+func copyFile(src, dst string) error {
+	// Clone the source, which shares its blocks in constant time.
+	if cloneFile(src, dst) == nil {
+		return nil
+	}
+
+	// Otherwise open the source and create the copy.
+	in, err := os.Open(src)
+	if err != nil {
+		return errors.Errorf("devtool database not found at %s", src)
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return errors.Wrap(err, "create devtool database copy")
+	}
+
+	// Copy the bytes and close the copy.
+	_, err = io.Copy(out, in)
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	return errors.Wrap(err, "copy devtool database")
 }
 
 // OpenVolumeFile opens the devtool database file at path. An existing file is
@@ -151,8 +224,7 @@ func openHead(
 			// Write a new empty World.
 			btx, bcs := cursor.BuildTransaction(nil)
 			bcs.ClearAllRefs()
-			initial := world_block.NewWorld(false)
-			initial.Format = world_block.NewestWorldFormat
+			initial := world_block.NewWorld(world_block.NewestWorldFormat, false)
 			bcs.SetBlock(initial, true)
 			root, _, err := btx.Write(ctx, true)
 			return root, errors.Wrap(err, "write initial world")

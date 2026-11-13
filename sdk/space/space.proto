@@ -1,6 +1,7 @@
 syntax = "proto3";
 package s4wave.space;
 
+import "github.com/s4wave/spacewave/bldr/plugin/plugin.proto";
 import "github.com/s4wave/spacewave/bldr/project/validate/validate.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/world/world.proto";
@@ -183,6 +184,11 @@ service SpaceContentsResourceService {
   rpc WatchState(WatchSpaceContentsStateRequest) returns (stream SpaceContentsState) {}
 
   rpc SetProcessBinding(SetProcessBindingRequest) returns (SetProcessBindingResponse) {}
+
+  // RestartPlugin ends the running execution of a plugin in this Space's
+  // runtime, so the scheduler starts the plugin's selected manifest at once.
+  // It ends a worker that neither answers a swap's activation check nor exits.
+  rpc RestartPlugin(RestartSpacePluginRequest) returns (RestartSpacePluginResponse) {}
 
   // BindAttachedRpcService publishes a caller-attached Resource under one
   // private service ID prefix for this Space runtime.
@@ -517,11 +523,24 @@ message SpacePluginStatus {
   string detail = 6;
   // RetryCount is reserved for future scheduler retry projection.
   uint32 retry_count = 7;
-  // Revision is reserved for future manifest-version projection.
-  string revision = 8;
+  // ManifestRef is the content ref of the manifest the plugin host selected to
+  // run, which names its build exactly. Empty until a manifest is selected.
+  string manifest_ref = 8;
   // Account reports that the plugin comes from the account plugin list rather
   // than the Space settings, so the Space cannot remove it.
   bool account = 9;
+  // ManifestRev is the build rev of the manifest named by ManifestRef.
+  uint64 manifest_rev = 10;
+  // RunningManifestRef is the content ref of the manifest the admitted
+  // execution runs. It differs from ManifestRef until the selected manifest
+  // is live. Empty while no execution is admitted.
+  string running_manifest_ref = 11;
+  // RunningManifestRev is the build rev of the manifest named by
+  // RunningManifestRef.
+  uint64 running_manifest_rev = 12;
+  // Swap is the scheduler's state for the move from the running manifest to
+  // the selected one.
+  bldr.plugin.PluginSwap swap = 13;
 }
 
 // AddSpacePluginRequest is a request to add a plugin to the space settings.
@@ -640,6 +659,15 @@ message SetProcessBindingRequest {
 
 // SetProcessBindingResponse is the response for SetProcessBinding.
 message SetProcessBindingResponse {}
+
+// RestartSpacePluginRequest names the plugin to restart.
+message RestartSpacePluginRequest {
+  // PluginId is the plugin manifest ID.
+  string plugin_id = 1;
+}
+
+// RestartSpacePluginResponse is the response to RestartPlugin.
+message RestartSpacePluginResponse {}
 
 // WatchProcessBindingsRequest selects this mounted Space's local bindings.
 message WatchProcessBindingsRequest {

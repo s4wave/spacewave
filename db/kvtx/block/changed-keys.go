@@ -288,17 +288,18 @@ func newDiffTree(ctx context.Context, cursor *block.Cursor) ([]*diffTreeNode, er
 	if err != nil {
 		return nil, err
 	}
-	switch root.GetImplType() {
+	kind := root.GetImplType().layout()
+	switch kind {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		if root.GetIavlRoot().GetSize() == 0 {
 			return nil, nil
 		}
-		return []*diffTreeNode{{cursor: cursor.FollowSubBlock(2), kind: root.GetImplType()}}, nil
+		return []*diffTreeNode{{cursor: cursor.FollowSubBlock(2), kind: kind}}, nil
 	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
 		if root.GetOkraRoot().GetSize() == 0 {
 			return nil, nil
 		}
-		return []*diffTreeNode{{cursor: cursor.FollowSubBlock(3).FollowRef(4, root.GetOkraRoot().GetRootPageRef()), kind: root.GetImplType()}}, nil
+		return []*diffTreeNode{{cursor: cursor.FollowSubBlock(3).FollowRef(4, root.GetOkraRoot().GetRootPageRef()), kind: kind}}, nil
 	default:
 		return nil, NewErrUnknownImpl(root.GetImplType())
 	}

@@ -5,6 +5,7 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { BlockRef } from '../../../block/block.pb.js'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Quad } from '../../../block/quad/quad.pb.js'
 
@@ -196,6 +197,12 @@ export interface TxApplyWorldOp {
    * OpSender is the peer ID to apply the operation as.
    */
   opSender?: string
+  /**
+   * SetRoots are the same-bucket object roots the operation set when its
+   * author applied it. Replay holds them while the operation is above the
+   * checkpoint, since it reads them again when it applies the operation.
+   */
+  setRoots?: BlockRef[]
 }
 
 export const TxApplyWorldOp: MessageType<TxApplyWorldOp> =
@@ -205,6 +212,7 @@ export const TxApplyWorldOp: MessageType<TxApplyWorldOp> =
       [1, 'operation_type_id', 9],
       [2, 'operation_body', 12],
       [3, 'op_sender', 9],
+      [4, 'set_roots', 11, 1, BlockRef.codec],
     ],
   )
 
@@ -231,6 +239,11 @@ export interface TxApplyObjectOp {
    * OpSender is the peer ID to apply the operation as.
    */
   opSender?: string
+  /**
+   * SetRoots are the same-bucket object roots the operation set when its
+   * author applied it; see TxApplyWorldOp.set_roots.
+   */
+  setRoots?: BlockRef[]
 }
 
 export const TxApplyObjectOp: MessageType<TxApplyObjectOp> =
@@ -241,6 +254,7 @@ export const TxApplyObjectOp: MessageType<TxApplyObjectOp> =
       [2, 'operation_body', 12],
       [3, 'object_key', 9],
       [4, 'op_sender', 9],
+      [5, 'set_roots', 11, 1, BlockRef.codec],
     ],
   )
 

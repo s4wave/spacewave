@@ -100,6 +100,7 @@ func installedManifestCandidates(selected *installedManifests, platforms map[str
 		candidate := rankedCandidate{
 			args: &executePluginArgs{
 				manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: ref.GetManifestRef()},
+				rev:              ref.GetMeta().GetRev(),
 				pluginHost:       pluginHost,
 				serveAssets:      pluginHost == nil,
 				installation:     selected,
@@ -127,6 +128,7 @@ func installedManifestCandidates(selected *installedManifests, platforms map[str
 	// Report the newest artifact as unrunnable and keep the admitted worker.
 	return []*executePluginArgs{{
 		manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: selected.refs[0].GetManifestRef()},
+		rev:              selected.refs[0].GetMeta().GetRev(),
 		installation:     selected,
 	}}
 }

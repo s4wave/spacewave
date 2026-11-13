@@ -50,13 +50,13 @@ const continuationEntry = {
   incarnation: 'test-document',
 }
 
-function NoopPathUpdateProbe() {
+function NoopPathUpdateProbe({ onCommitted }: { onCommitted?: () => void }) {
   const { tabs, updateTabPath } = useShellTabs()
 
   useEffect(() => {
     if (tabs.length === 0) return
-    void updateTabPath(tabs[0].id, tabs[0].path)
-  }, [tabs, updateTabPath])
+    void updateTabPath(tabs[0].id, tabs[0].path, onCommitted)
+  }, [tabs, updateTabPath, onCommitted])
 
   return <div data-testid="tab-count">{tabs.length}</div>
 }
@@ -217,16 +217,19 @@ describe('ShellTabContext', () => {
     resetBrowserShellTabsStoreForTests()
   })
 
-  it('treats same-path tab updates as a no-op', () => {
+  it('treats same-path tab updates as a committed no-op', () => {
     seedShellTabs([{ id: 'tab-1', name: 'Home', path: '/' }])
+    const onCommitted = vi.fn()
 
     render(
       <ShellTabsProvider entry={continuationEntry}>
-        <NoopPathUpdateProbe />
+        <NoopPathUpdateProbe onCommitted={onCommitted} />
       </ShellTabsProvider>,
     )
 
     expect(screen.getByTestId('tab-count').textContent).toBe('1')
+    // The record already holds the path, so the hash must still follow it.
+    expect(onCommitted).toHaveBeenCalled()
   })
 
   it('keeps semantically equal local arrays from mutating shared records', async () => {
@@ -754,6 +757,45 @@ describe('ShellTabContext', () => {
       incarnation: 'reload-incarnation',
       activeTabId: 'tab-2',
     })
+    expect(
+      readShellTabsSnapshot().records.map(({ id, path }) => ({ id, path })),
+    ).toEqual([
+      { id: 'tab-1', path: '/' },
+      { id: 'tab-2', path: '/docs' },
+    ])
+  })
+
+  it('creates its own tab when a reload saved no state beside another document', async () => {
+    // Another document's live record; this document failed before its Shell
+    // mounted, so its reload carries no saved Shell state.
+    seedShellTabs([{ id: 'other-tab', name: 'Session', path: '/u/0' }])
+    const reloadEntry = classifyShellDocumentEntry({
+      path: '/quickstart/local',
+      navigationType: 'reload',
+    })
+    expect(reloadEntry.kind).toBe('fresh')
+
+    render(
+      <ShellTabsProvider entry={reloadEntry}>
+        <ActiveTabProbe />
+        <TabPathProbe />
+      </ShellTabsProvider>,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-paths').textContent).toBe(
+        '/u/0|/quickstart/local',
+      ),
+    )
+    const own = readShellTabsSnapshot().records.find(
+      (record) => record.id !== 'other-tab',
+    )
+    expect(screen.getByTestId('active-tab-id').textContent).toBe(own?.id)
+    expect(
+      readShellTabsSnapshot().records.find(
+        (record) => record.id === 'other-tab',
+      )?.path,
+    ).toBe('/u/0')
   })
 
   it('creates a fresh entry despite cloned session state and removes old combined state', async () => {

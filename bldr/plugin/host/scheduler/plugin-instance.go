@@ -118,13 +118,20 @@ type pluginInstance struct {
 type restartBackoff struct {
 	mtx sync.Mutex
 	bo  cbackoff.BackOff
+	// onNext, when set, receives each drawn delay outside mtx.
+	onNext func(delay time.Duration)
 }
 
 // NextBackOff returns the delay before the next restart.
 func (b *restartBackoff) NextBackOff() time.Duration {
+	// Draw the delay, then report it outside the lock.
 	b.mtx.Lock()
-	defer b.mtx.Unlock()
-	return b.bo.NextBackOff()
+	delay := b.bo.NextBackOff()
+	b.mtx.Unlock()
+	if b.onNext != nil {
+		b.onNext(delay)
+	}
+	return delay
 }
 
 // Reset restores the initial restart delay.
@@ -166,7 +173,7 @@ func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *plu
 
 	// Build the retry backoff policies from the config.
 	fetchBackoff := c.conf.BuildFetchBackoff()
-	tr.execBackoff = &restartBackoff{bo: c.conf.BuildExecBackoff().Construct()}
+	tr.execBackoff = &restartBackoff{bo: c.conf.BuildExecBackoff().Construct(), onNext: tr.setSwapRetry}
 
 	// Create the fetch, watch, and download manifest routines.
 	tr.fetchWorldManifestRoutine = routine.NewStateRoutineContainerWithLogger(pluginHostSetEqual, le, routine.WithRetry(fetchBackoff))

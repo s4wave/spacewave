@@ -23,6 +23,13 @@ import {
 } from './browser-release-state.js'
 import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
 import { randomId } from './random-id.js'
+import {
+  parseReactDevPath,
+  reactDevCacheName,
+  ReactDevPicks,
+  readReactDevGeneration,
+  serveReactDev,
+} from './react-dev.js'
 import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
 import {
   WebDocumentTracker,
@@ -211,6 +218,23 @@ export function resetServiceWorkerTestState(): void {
   desiredPluginRoots.clear()
   pluginRootUpdates.clear()
   pluginRootAnnouncementSeqs.clear()
+  reactDevPicks = newReactDevPicks()
+}
+
+// newReactDevPicks reads each document's Development React generation from
+// this origin's cache.
+function newReactDevPicks(): ReactDevPicks {
+  return new ReactDevPicks((version) =>
+    readReactDevGeneration(caches, self.location.origin, version),
+  )
+}
+
+let reactDevPicks = newReactDevPicks()
+
+// retainReactDevPicks drops the decisions of closed documents.
+async function retainReactDevPicks(): Promise<void> {
+  const clients = await self.clients.matchAll({ includeUncontrolled: true })
+  reactDevPicks.retain(new Set(clients.map((client) => client.id)))
 }
 
 let browserReleaseSyncInFlight: Promise<void> | null = null
@@ -574,7 +598,7 @@ async function stageBrowserRelease(
 }
 
 async function pruneReleaseCaches(state: BrowserReleaseState): Promise<void> {
-  const retainedCaches = new Set<string>([controlCacheName])
+  const retainedCaches = new Set<string>([controlCacheName, reactDevCacheName])
   if (devFrontendCache) {
     retainedCaches.add(devFrontendCache.name)
   }
@@ -1954,6 +1978,21 @@ export async function swFetch(
     return handleBrowserReleaseRequest(ev)
   }
 
+  // Development React answers from the document's generation, or with the
+  // production file it stands in for, fetched as the page would.
+  const reactDev = source.sameOrigin ? parseReactDevPath(requestPath) : null
+  if (reactDev && request.method === 'GET') {
+    if (reactDevPicks.size > 1) {
+      ev.waitUntil(retainReactDevPicks())
+    }
+    return serveReactDev(reactDevPicks, ev.clientId, reactDev, (prodPath) =>
+      swFetch(
+        withRequest(ev, new Request(new URL(prodPath, requestURL.origin))),
+        matchPrefixes,
+      ),
+    )
+  }
+
   // TODO: Browsers do not cancel request.signal when the request is canceled.
   // This is a long-standing browser bug and is not yet fixed.
   // See: https://github.com/w3c/ServiceWorker/issues/1544
@@ -2058,6 +2097,18 @@ export async function swFetch(
     return fetchWebPkgFromRuntime(ev, request, source, matchPrefixes)
   }
   return fetchFromRuntime(ev, request, source)
+}
+
+// withRequest returns the fetch event with another request, for answering one
+// request with the response the worker gives another.
+function withRequest(ev: FetchEvent, request: Request): FetchEvent {
+  return {
+    request,
+    clientId: ev.clientId,
+    resultingClientId: ev.resultingClientId,
+    preloadResponse: Promise.resolve(undefined),
+    waitUntil: (promise: Promise<unknown>) => ev.waitUntil(promise),
+  } as unknown as FetchEvent
 }
 
 // fetchWebPkgFromRuntime serves a shared web package file under the URL the

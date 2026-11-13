@@ -137,7 +137,7 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 	// Write the replacement World root through the bucket cursor.
 	currentTx, currentBlocks := currentCursor.BuildTransaction(nil)
 	currentBlocks.ClearAllRefs()
-	currentBlocks.SetBlock(world_block.NewWorld(true), true)
+	currentBlocks.SetBlock(world_block.NewWorld(world_block.WorldFormat_WORLD_FORMAT_CAYLEY_KV, true), true)
 	currentRootRef, _, err := currentTx.Write(ctx, true)
 	currentCursor.Release()
 	if err != nil {

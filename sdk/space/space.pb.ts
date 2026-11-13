@@ -21,6 +21,7 @@ import {
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
 import { StepConfig } from '../../db/block/transform/transform.pb.js'
 import { Secret, SecretPayload } from '../secret/secret.pb.js'
+import { PluginSwap } from '../../bldr/plugin/plugin.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
@@ -1170,14 +1171,35 @@ export interface SpacePluginStatus {
    */
   retryCount?: number
   /**
-   * Revision is reserved for future manifest-version projection.
+   * ManifestRef is the content ref of the manifest the plugin host selected to
+   * run, which names its build exactly. Empty until a manifest is selected.
    */
-  revision?: string
+  manifestRef?: string
   /**
    * Account reports that the plugin comes from the account plugin list rather
    * than the Space settings, so the Space cannot remove it.
    */
   account?: boolean
+  /**
+   * ManifestRev is the build rev of the manifest named by ManifestRef.
+   */
+  manifestRev?: bigint
+  /**
+   * RunningManifestRef is the content ref of the manifest the admitted
+   * execution runs. It differs from ManifestRef until the selected manifest
+   * is live. Empty while no execution is admitted.
+   */
+  runningManifestRef?: string
+  /**
+   * RunningManifestRev is the build rev of the manifest named by
+   * RunningManifestRef.
+   */
+  runningManifestRev?: bigint
+  /**
+   * Swap is the scheduler's state for the move from the running manifest to
+   * the selected one.
+   */
+  swap?: PluginSwap
 }
 
 export const SpacePluginStatus: MessageType<SpacePluginStatus> =
@@ -1190,8 +1212,12 @@ export const SpacePluginStatus: MessageType<SpacePluginStatus> =
       [5, 'state', 14, 0, SpacePluginLifecycleState_Enum],
       [6, 'detail', 9],
       [7, 'retry_count', 13],
-      [8, 'revision', 9],
+      [8, 'manifest_ref', 9],
       [9, 'account', 8],
+      [10, 'manifest_rev', 4],
+      [11, 'running_manifest_ref', 9],
+      [12, 'running_manifest_rev', 4],
+      [13, 'swap', 11, 0, PluginSwap.codec],
     ],
   )
 
@@ -1563,6 +1589,37 @@ export interface SetProcessBindingResponse {}
 export const SetProcessBindingResponse: MessageType<SetProcessBindingResponse> =
   /* @__PURE__ */ createMessageType<SetProcessBindingResponse>(
     's4wave.space.SetProcessBindingResponse',
+    () => [],
+  )
+
+/**
+ * RestartSpacePluginRequest names the plugin to restart.
+ *
+ * @generated from message s4wave.space.RestartSpacePluginRequest
+ */
+export interface RestartSpacePluginRequest {
+  /**
+   * PluginId is the plugin manifest ID.
+   */
+  pluginId?: string
+}
+
+export const RestartSpacePluginRequest: MessageType<RestartSpacePluginRequest> =
+  /* @__PURE__ */ createMessageType<RestartSpacePluginRequest>(
+    's4wave.space.RestartSpacePluginRequest',
+    () => [[1, 'plugin_id', 9]],
+  )
+
+/**
+ * RestartSpacePluginResponse is the response to RestartPlugin.
+ *
+ * @generated from message s4wave.space.RestartSpacePluginResponse
+ */
+export interface RestartSpacePluginResponse {}
+
+export const RestartSpacePluginResponse: MessageType<RestartSpacePluginResponse> =
+  /* @__PURE__ */ createMessageType<RestartSpacePluginResponse>(
+    's4wave.space.RestartSpacePluginResponse',
     () => [],
   )
 

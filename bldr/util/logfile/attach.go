@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -29,7 +30,10 @@ func ParseLogFileSpecs(raw []string, ts time.Time) ([]LogFileSpec, error) {
 	return specs, nil
 }
 
-// AttachLogFiles opens log files and attaches hooks to the logger.
+// AttachLogFiles opens log files and attaches hooks to the logger. The first
+// file also receives the process's fatal errors and unhandled panics, beside
+// standard error, so a crash leaves its stack in the log; that lasts past
+// cleanup, until a later call sets another file.
 // Returns a cleanup function that closes all hooks and files.
 func AttachLogFiles(logger *logrus.Logger, specs []LogFileSpec) (func(), error) {
 	var hooks []*FileHook
@@ -58,6 +62,13 @@ func AttachLogFiles(logger *logrus.Logger, specs []LogFileSpec) (func(), error) 
 
 		// Mark the file in use so concurrent prunes keep it while open.
 		markLogInUse(f)
+
+		// Send crash output to the first file. The runtime holds its own
+		// descriptor, so closing f leaves it valid; a failure leaves
+		// standard error alone.
+		if len(hooks) == 0 {
+			_ = debug.SetCrashOutput(f, debug.CrashOptions{})
+		}
 
 		h := NewFileHook(f, spec.Level, spec.Format)
 		logger.AddHook(h)

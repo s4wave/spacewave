@@ -20,6 +20,9 @@ export interface ShellDocumentEntryOptions {
   sameEntry?: boolean
   persisted?: boolean
   incarnation?: string
+  // storage is the document storage that holds this document's saved Shell
+  // state. Defaults to sessionStorage.
+  storage?: Storage
 }
 
 function createIncarnation(): string {
@@ -61,11 +64,16 @@ export function classifyShellDocumentEntry(
   const hasValidExplicitId =
     tabId !== undefined && isSyntacticallyValidTabId(tabId)
   const navigationType = options.navigationType ?? inferredNavigationType()
-  const isContinuation =
+  const restored =
     options.sameEntry === true ||
     options.persisted === true ||
     navigationType === 'reload' ||
     navigationType === 'back_forward'
+  // A restored document continues only the Shell state it saved itself. One
+  // that saved none, such as a page that failed before its Shell mounted and
+  // then reloaded, has no tab to continue and enters fresh: continuing would
+  // adopt a record another document owns.
+  const saved = restored ? readShellDocumentState(options.storage) : null
 
   if (hasValidExplicitId) {
     return {
@@ -77,13 +85,11 @@ export function classifyShellDocumentEntry(
     }
   }
   return {
-    kind: isContinuation ? 'continuation' : 'fresh',
+    kind: saved ? 'continuation' : 'fresh',
     path: navigation.path,
     params: navigation.params,
     incarnation:
-      options.incarnation ??
-      (isContinuation ? readShellDocumentState()?.incarnation : undefined) ??
-      createIncarnation(),
+      options.incarnation ?? saved?.incarnation ?? createIncarnation(),
   }
 }
 

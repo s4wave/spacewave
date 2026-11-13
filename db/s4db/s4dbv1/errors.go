@@ -12,6 +12,8 @@ var (
 	ErrUnsupported = errors.New("not a previous-format s4wave database")
 	// ErrCorrupt is returned when stored bytes fail their checksum.
 	ErrCorrupt = errors.New("s4wave database checksum mismatch")
-	// ErrInUse is returned when another process has the file open.
+	// ErrInUse is returned when another handle holds the file in a way the
+	// open excludes: a writer or a conversion for Open, any handle for
+	// OpenExclusive.
 	ErrInUse = errors.New("another process has the database open")
 )

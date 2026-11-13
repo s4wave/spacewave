@@ -7,8 +7,11 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/cli"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
@@ -118,9 +121,11 @@ func TestFormatPluginStatusPreservesLifecycleState(t *testing.T) {
 				State:       tt.state,
 				Detail:      detail,
 				Description: "description",
+				ManifestRef: "manifest-ref",
+				ManifestRev: 7,
 			}
-			want := "plugin-id  " + tt.label + "  " + detail + "  description\n"
-			if got := formatPluginStatus(status); got != want {
+			want := "plugin-id  " + tt.label + "  rev 7 selected, none running  " + detail + "  description\n"
+			if got := formatPluginStatus(status, time.UTC); got != want {
 				t.Fatalf("formatted row = %q, want %q", got, want)
 			}
 		})
@@ -129,17 +134,107 @@ func TestFormatPluginStatusPreservesLifecycleState(t *testing.T) {
 
 func TestMarshalPluginListJSONIncludesLifecycleFields(t *testing.T) {
 	data, err := marshalPluginListJSON([]*s4wave_space.SpacePluginStatus{{
-		PluginId: "plugin-id",
-		State:    s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING,
-		Detail:   "connected-awaiting-registration",
+		PluginId:    "plugin-id",
+		State:       s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADING,
+		Detail:      "connected-awaiting-registration",
+		ManifestRef: "manifest-ref",
+		ManifestRev: 42,
 	}})
 	if err != nil {
 		t.Fatalf("marshal plugin list: %v", err)
 	}
 	got := string(data)
-	for _, field := range []string{`"state":"SpacePluginLifecycleState_LOADING"`, `"detail":"connected-awaiting-registration"`} {
+	for _, field := range []string{`"state":"SpacePluginLifecycleState_LOADING"`, `"detail":"connected-awaiting-registration"`, `"manifestRef":"manifest-ref"`, `"manifestRev":`} {
 		if !strings.Contains(got, field) {
 			t.Fatalf("JSON = %s, missing %s", got, field)
 		}
+	}
+}
+
+// TestFormatPluginSwapStates checks the row plugin list prints for each swap
+// state between the selected and running manifests.
+func TestFormatPluginSwapStates(t *testing.T) {
+	at := func(clock string) *timestamppb.Timestamp {
+		ts, err := time.Parse(time.TimeOnly, clock)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return timestamppb.New(ts)
+	}
+	loaded := s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED
+	tests := []struct {
+		name   string
+		status *s4wave_space.SpacePluginStatus
+		want   string
+	}{{
+		name: "live",
+		status: &s4wave_space.SpacePluginStatus{
+			PluginId: "colors", State: loaded,
+			ManifestRef: "ref-5", ManifestRev: 5, RunningManifestRef: "ref-5", RunningManifestRev: 5,
+			Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Settled{Settled: &bldr_plugin.PluginSwapSettled{AdmittedAt: at("21:40:00")}}},
+		},
+		want: "colors  loaded  rev 5 live\n",
+	}, {
+		name: "preparing",
+		status: &s4wave_space.SpacePluginStatus{
+			PluginId: "colors", State: loaded,
+			ManifestRef: "ref-6", ManifestRev: 6, RunningManifestRef: "ref-5", RunningManifestRev: 5,
+			Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Preparing{Preparing: &bldr_plugin.PluginSwapPreparing{
+				CandidateManifestRef: "ref-6", CandidateManifestRev: 6, StartedAt: at("21:41:00"),
+			}}},
+		},
+		want: "colors  loaded  rev 6 selected, rev 5 running; preparing rev 6 since 21:41:00\n",
+	}, {
+		name: "waiting",
+		status: &s4wave_space.SpacePluginStatus{
+			PluginId: "colors", State: loaded,
+			ManifestRef: "ref-6", ManifestRev: 6, RunningManifestRef: "ref-5", RunningManifestRev: 5,
+			Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Waiting{Waiting: &bldr_plugin.PluginSwapWaiting{
+				CandidateManifestRef: "ref-6", CandidateManifestRev: 6, SinceAt: at("21:41:01"),
+			}}},
+		},
+		want: "colors  loaded  rev 6 selected, rev 5 running; rev 6 waits since 21:41:01 for the running worker" +
+			" to answer its activation check; it swaps when the worker answers or exits" +
+			" (a browser worker exits when its page reloads); if it does neither, run" +
+			" spacewave plugin restart colors\n",
+	}, {
+		name: "failed",
+		status: &s4wave_space.SpacePluginStatus{
+			PluginId: "colors", State: loaded,
+			ManifestRef: "ref-6", ManifestRev: 6, RunningManifestRef: "ref-5", RunningManifestRev: 5,
+			Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Failed{Failed: &bldr_plugin.PluginSwapFailed{
+				CandidateManifestRef: "ref-6", CandidateManifestRev: 6,
+				ErrorMessage: "prepare plugin: startup failed", FailedAt: at("21:42:00"), RetryAt: at("21:42:30"),
+			}}},
+		},
+		want: "colors  loaded  rev 6 selected, rev 5 running; rev 6 failed at 21:42:00: prepare plugin: startup failed; retry at 21:42:30\n",
+	}, {
+		name: "failed without retry",
+		status: &s4wave_space.SpacePluginStatus{
+			PluginId: "colors", State: s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED,
+			ManifestRef: "ref-6", ManifestRev: 6,
+			Swap: &bldr_plugin.PluginSwap{State: &bldr_plugin.PluginSwap_Failed{Failed: &bldr_plugin.PluginSwapFailed{
+				CandidateManifestRef: "ref-6", CandidateManifestRev: 6,
+				ErrorMessage: "prepare plugin: installed plugin has no compatible host", FailedAt: at("21:43:00"),
+			}}},
+		},
+		want: "colors  failed  rev 6 selected, none running; rev 6 failed at 21:43:00: prepare plugin:" +
+			" installed plugin has no compatible host; retries on the next deploy or host change\n",
+	}, {
+		name: "same rev, other build",
+		status: &s4wave_space.SpacePluginStatus{
+			PluginId: "colors", State: loaded,
+			ManifestRef: "ref-6b", ManifestRev: 6, RunningManifestRef: "ref-6a", RunningManifestRev: 6,
+		},
+		want: "colors  loaded  rev 6 selected, another build of rev 6 running\n",
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatPluginStatus(tt.status, time.UTC)
+			t.Logf("%s: %s", tt.name, strings.TrimSuffix(got, "\n"))
+			if got != tt.want {
+				t.Fatalf("formatted row = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

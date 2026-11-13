@@ -457,6 +457,14 @@ function applyStartupMark(
     case 'plugin.normal-stop':
       advancePluginGeneration(state, 'normal-stop')
       break
+    case 'runtime.failed':
+      advanceRuntimeClient(state, 'failed')
+      state.terminalFailure = {
+        owner: 'runtime-client',
+        phase: 'runtime',
+        detail: formatFailureDetail(mark.detail.reason),
+      }
+      break
     case 'plugin.terminal-failure':
       advancePluginGeneration(state, 'terminal-failure')
       state.terminalFailure = {

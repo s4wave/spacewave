@@ -48,7 +48,7 @@ func (b *Builder) AddNode(id uint64, v *pquads.Value) error {
 		return err
 	}
 	b.val = binary.BigEndian.AppendUint64(b.val[:0], id)
-	if err := b.add(appendValueKey(b.key[:0], nv.String()), b.val); err != nil {
+	if err := b.add(appendValueKey(b.key[:0], valueText(nv)), b.val); err != nil {
 		return err
 	}
 	b.maxID = max(b.maxID, id)

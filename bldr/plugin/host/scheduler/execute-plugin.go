@@ -24,7 +24,10 @@ import (
 // executePluginArgs contains the arguments for executing a plugin.
 type executePluginArgs struct {
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
-	pluginHost       bldr_plugin_host.PluginHost
+	// rev is the selected manifest's build rev. The selection reads it from the
+	// ManifestRef meta, since manifestSnapshot holds no Manifest until it is fetched.
+	rev        uint64
+	pluginHost bldr_plugin_host.PluginHost
 	// serveAssets mounts the manifest's files without a host to run it.
 	serveAssets  bool
 	installation *installedManifests

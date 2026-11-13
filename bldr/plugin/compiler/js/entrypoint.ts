@@ -1,10 +1,11 @@
 // Import types generated from protobuf definitions.
-import { Client, isAbortError } from 'starpc'
+import { Client, Server, createMux, isAbortError } from 'starpc'
 import type { JsonValue } from '@aptre/protobuf-es-lite'
 import {
   isBackendEntrypointFunc,
   isBackendEntrypointLifecycle,
   type BackendAPI,
+  type BackendEntrypointLifecycle,
 } from '@aptre/bldr-sdk'
 import { BackendEntrypoint, Config, FrontendEntrypoint } from './compiler.pb.js'
 import { ConfigSet } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
@@ -128,16 +129,28 @@ function importBackendEntrypointModule(
   return import(/* @vite-ignore */ importPath)
 }
 
+// BackendEntrypointFailureFunc receives a started entrypoint's failure. It is
+// not called when the entrypoint ends because the plugin was aborted.
+export type BackendEntrypointFailureFunc = (error: unknown) => void
+
 function observeBackendEntrypointCompletion(
   entrypointId: string,
   entrypointPromise: Promise<void> | void,
+  abortSignal: AbortSignal,
+  onFailure: BackendEntrypointFailureFunc,
 ): void {
   Promise.resolve(entrypointPromise)
     .then(() => {
       console.debug(`Backend entrypoint finished: ${entrypointId}`)
     })
     .catch((error: unknown) => {
+      // A swap or shutdown aborts every entrypoint; that is not a failure.
+      if (abortSignal.aborted || isAbortError(error)) {
+        console.debug(`Backend entrypoint aborted: ${entrypointId}`)
+        return
+      }
       logError(`Backend entrypoint failed after startup ${entrypointId}`, error)
+      onFailure(error)
     })
 }
 
@@ -146,6 +159,8 @@ function observeBackendEntrypointCompletion(
  * @param entrypoint - The backend entrypoint configuration.
  * @param backendAPI - The backend API object to pass to the entrypoint function.
  * @param abortSignal - The abort signal to pass to the entrypoint function.
+ * @param loadModule - Imports the entrypoint's module.
+ * @param onFailure - Receives a failure of the entrypoint after startup.
  * @returns A promise that resolves when the entrypoint function starts, or rejects on startup error.
  */
 export async function startBackendEntrypoint(
@@ -153,6 +168,7 @@ export async function startBackendEntrypoint(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
   loadModule: BackendEntrypointModuleLoader = importBackendEntrypointModule,
+  onFailure: BackendEntrypointFailureFunc = () => {},
 ): Promise<void> {
   // Require a module path before resolving the worker's immutable asset URL.
   if (!entrypoint?.importPath) {
@@ -188,10 +204,20 @@ export async function startBackendEntrypoint(
     const entrypointResult = modFunc(backendAPI, abortSignal)
     if (isBackendEntrypointLifecycle(entrypointResult)) {
       await entrypointResult.startup
-      observeBackendEntrypointCompletion(entrypointId, entrypointResult.done)
+      observeBackendEntrypointCompletion(
+        entrypointId,
+        entrypointResult.done,
+        abortSignal,
+        onFailure,
+      )
       return
     }
-    observeBackendEntrypointCompletion(entrypointId, entrypointResult)
+    observeBackendEntrypointCompletion(
+      entrypointId,
+      entrypointResult,
+      abortSignal,
+      onFailure,
+    )
   } catch (error) {
     logError(
       `Failed to load or start backend entrypoint ${entrypointId}`,
@@ -203,13 +229,15 @@ export async function startBackendEntrypoint(
 
 /**
  * loadBackendEntrypoints starts each configured backend module in order.
- * It resolves after startup, while module lifetimes continue until abort.
+ * It resolves after startup, while module lifetimes continue until abort;
+ * onFailure receives the first module that fails after startup.
  */
 export async function loadBackendEntrypoints(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
   backendEntrypoints: BackendEntrypoint[] = [],
   loadModule: BackendEntrypointModuleLoader = importBackendEntrypointModule,
+  onFailure: BackendEntrypointFailureFunc = () => {},
 ): Promise<void> {
   // Empty module sets make backend readiness immediate.
   if (backendEntrypoints.length === 0) {
@@ -230,6 +258,7 @@ export async function loadBackendEntrypoints(
       backendAPI,
       abortSignal,
       loadModule,
+      onFailure,
     )
   }
   console.debug('All backend entrypoints started successfully.')
@@ -615,12 +644,27 @@ async function completeInitialCapabilityRegistration(
 }
 
 /**
+ * serveNotFoundUntilHandled answers every call as not found while the plugin
+ * has set no RPC handler, so a host probe such as Activation.Check learns the
+ * method is absent instead of waiting for a handler that never comes. A
+ * handler set later replaces it. The host runtime installs the same fallback
+ * after startup for plugins built before this one.
+ */
+function serveNotFoundUntilHandled(backendAPI: BackendAPI): void {
+  if (backendAPI.handleStreamCtr.value) return
+  const server = new Server(createMux().lookupMethod)
+  backendAPI.handleStreamCtr.set(async (stream) => {
+    server.handlePacketStream(stream)
+  })
+}
+
+/**
  * main starts the backend and frontend modules selected at compile time.
  */
-export default async function main(
+export default function main(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
-) {
+): BackendEntrypointLifecycle {
   return runPluginEntrypoint(
     backendAPI,
     abortSignal,
@@ -646,13 +690,40 @@ export function createPluginEntrypoint(configJSON: JsonValue) {
 
 /**
  * runPluginEntrypoint starts the plugin's configured capabilities and views.
+ * Its startup resolves once they are ready; its done rejects with the first
+ * failure after startup and otherwise stays pending until the plugin exits,
+ * so the host can end the execution as failed.
  */
-async function runPluginEntrypoint(
+function runPluginEntrypoint(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
   config: Config,
   handleWebPkgs?: HandleWebPkgsViaPluginAssetsRequest,
-) {
+): BackendEntrypointLifecycle {
+  const failed = Promise.withResolvers<void>()
+  return {
+    startup: startPluginEntrypoint(
+      backendAPI,
+      abortSignal,
+      config,
+      handleWebPkgs,
+      failed.reject,
+    ),
+    done: failed.promise,
+  }
+}
+
+/**
+ * startPluginEntrypoint starts the plugin's capabilities and views and resolves
+ * when they are ready. onFailure receives a failure after startup.
+ */
+async function startPluginEntrypoint(
+  backendAPI: BackendAPI,
+  abortSignal: AbortSignal,
+  config: Config,
+  handleWebPkgs: HandleWebPkgsViaPluginAssetsRequest | undefined,
+  onFailure: BackendEntrypointFailureFunc,
+): Promise<void> {
   // Resolve the plugin's exact runtime identity before starting its modules.
   console.debug('Starting Bldr JS plugin entrypoint...')
   const pluginInfo = await backendAPI.pluginHost.GetPluginInfo({})
@@ -692,9 +763,20 @@ async function runPluginEntrypoint(
     backendAPI,
     abortSignal,
     config.backendEntrypoints ?? [],
+    undefined,
+    onFailure,
   )
   const capabilityRegistrationReady = capabilityReady.then(() =>
     completeInitialCapabilityRegistration(backendAPI, abortSignal),
+  )
+
+  // Once the backends have started, their RPC handler is set or never will
+  // be. Answer calls now rather than after the views are ready, which on
+  // QuickJS waits for a browser to attach: a swap's Activation.Check would
+  // otherwise wait on a worker that cannot answer until one does.
+  void capabilityRegistrationReady.then(
+    () => serveNotFoundUntilHandled(backendAPI),
+    () => {},
   )
 
   // Report QuickJS readiness in stages and forward worker setup failures.
@@ -708,11 +790,7 @@ async function runPluginEntrypoint(
     reportQuickJSReadiness(quickJSPluginCapabilityReadyMarker)
   } else {
     void frontendReady.catch((err) => {
-      if (abortSignal.aborted) return
-      const globals = globalThis as typeof globalThis & {
-        BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
-      }
-      globals.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(err)
+      if (!abortSignal.aborted) onFailure(err)
     })
     await capabilityRegistrationReady
   }

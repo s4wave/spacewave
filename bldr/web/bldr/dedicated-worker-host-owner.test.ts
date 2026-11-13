@@ -205,6 +205,40 @@ describe('DedicatedWorkerHostOwner', () => {
     attached.close()
   })
 
+  it('a failed runtime ends every term so the next document hosts fresh', async () => {
+    const locks = new TestLockManager()
+    vi.stubGlobal('navigator', { locks })
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    host.start(buildCallbacks())
+    await flushPromises()
+    const attached = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
+    const attachedCallbacks = buildCallbacks()
+    attached.start(attachedCallbacks)
+    await flushPromises()
+
+    // The attached document learns of the failure first and withdraws, so the
+    // host's release cannot promote a document that shows the failure.
+    attached.fail('panic: boom')
+    host.fail('panic: boom')
+    await flushPromises()
+
+    expect(host.role).toBe('failed')
+    expect(attached.role).toBe('failed')
+    expect(attachedCallbacks.promoteToHost).not.toHaveBeenCalled()
+
+    const reloaded = new DedicatedWorkerHostOwner('runtime-1', 'document-3')
+    const reloadedCallbacks = buildCallbacks()
+    reloaded.start(reloadedCallbacks)
+    await flushPromises()
+
+    expect(reloaded.role).toBe('host')
+    expect(reloadedCallbacks.startHost).toHaveBeenCalledOnce()
+
+    reloaded.close()
+    attached.close()
+    host.close()
+  })
+
   it('cancels a pending attached relay when the document becomes host', async () => {
     const locks = new TestLockManager()
     const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')

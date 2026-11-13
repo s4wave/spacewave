@@ -83,4 +83,5 @@ spacewave plugin list --space <space-id>
 
 `plugin import-manifest` copies a built manifest into the local plugin store.
 `plugin add` writes the manifest ID into the Space's settings. `plugin list`
-shows whether each plugin is loading or loaded.
+shows whether each plugin is loading or loaded, and the rev of the manifest it
+runs.

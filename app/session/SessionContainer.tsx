@@ -91,6 +91,7 @@ import { ReAuthOverlay } from './ReAuthOverlay.js'
 import { SessionFlowFrame } from './SessionFlowFrame.js'
 import { PinUnlockOverlay } from './PinUnlockOverlay.js'
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
+import { ReactDevStatusButton } from './ReactDevStatusButton.js'
 import { SessionSyncStatusProvider } from './SessionSyncStatusContext.js'
 import { SessionStorageStatsProvider } from './SessionStorageStatsContext.js'
 import { SessionBackgroundPluginsButton } from './SessionBackgroundPluginsButton.js'
@@ -438,6 +439,7 @@ export function SessionContainer(props: SessionContainerProps) {
                     <SessionSelfEnrollmentStatusButton />
                     <SessionBackgroundPluginsButton />
                     <SessionSyncStatusButton />
+                    <ReactDevStatusButton />
                     <AgentConnectButton />
                     <SystemStatusButton />
                     <SessionUploadIndicator />

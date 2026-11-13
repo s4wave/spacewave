@@ -136,6 +136,9 @@ export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 // mutation fenced durable.
 export type HandleDurableMutationFn = () => void
 
+// HandleRuntimeFailedFn handles the runtime's terminal failed state.
+export type HandleRuntimeFailedFn = (reason: string) => void
+
 // WaitForStreamOpenGateFn waits for a startup gate that must be ready before
 // stream-open can proceed.
 export type WaitForStreamOpenGateFn =
@@ -234,6 +237,7 @@ export class WebRuntimeClient {
     private logicalClientId?: string,
     private waitForStreamOpenGateFn?: WaitForStreamOpenGateFn,
     private handleDurableMutation?: HandleDurableMutationFn,
+    private handleRuntimeFailed?: HandleRuntimeFailedFn,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
     this.generation = {
@@ -522,6 +526,12 @@ export class WebRuntimeClient {
         clientType: this.clientType,
         ...msg.startupMark.detail,
       })
+      if (msg.startupMark.label === 'runtime.failed') {
+        const reason = msg.startupMark.detail?.reason
+        this.handleRuntimeFailed?.(
+          typeof reason === 'string' ? reason : 'runtime failed',
+        )
+      }
     }
     if (msg.durableMutation) {
       this.handleDurableMutation?.()

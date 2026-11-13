@@ -5,11 +5,15 @@ package devtool_store
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -135,6 +139,93 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 	if err := build(true); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestExportManifestSetsRoundTrip checks that an export opens like the
+// devtool database it came from: LookupManifestSet returns the exported refs,
+// their blocks read from the exported volume, and a later export replaces the
+// earlier one without leaving its temporary file. The source is a devtool
+// World, as in a build, so its refs name the devtool bucket and transform.
+func TestExportManifestSetsRoundTrip(t *testing.T) {
+	// Open the source devtool World.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	srcVol, err := OpenVolumeFile(ctx, le, filepath.Join(t.TempDir(), FileName), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srcVol.Close()
+	srcEng, err := OpenWorld(ctx, le, srcVol, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srcEng.Close()
+	ws := world.NewEngineWorldState(srcEng, true)
+
+	// Export each revision and read it back from the closed file.
+	dir := t.TempDir()
+	for rev := uint64(1); rev <= 2; rev++ {
+		refs := []*manifest.ManifestRef{
+			writeWorldManifest(t, ctx, srcEng, &manifest.ManifestMeta{ManifestId: "gizmo-web", BuildType: "production", PlatformId: "js", Rev: rev}),
+		}
+		if err := ExportManifestSets(ctx, le, ws, refs, dir); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(filepath.Join(dir, FileName+".tmp")); !os.IsNotExist(err) {
+			t.Fatalf("temporary export left behind: %v", err)
+		}
+
+		vol, err := OpenVolume(ctx, le, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := LookupManifestSet(ctx, le, vol, "gizmo-web")
+		if err == nil && (len(got) != 1 || !got[0].EqualVT(refs[0])) {
+			err = fmt.Errorf("rev %d: exported set = %v", rev, got)
+		}
+		if err == nil {
+			_, found, gerr := vol.GetBlock(ctx, refs[0].GetManifestRef().GetRootRef())
+			if gerr == nil && !found {
+				gerr = fmt.Errorf("rev %d: manifest block missing from export", rev)
+			}
+			err = gerr
+		}
+		if cerr := vol.Close(); err == nil {
+			err = cerr
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// writeWorldManifest writes a manifest block into the World's bucket through a
+// stage held until the test ends, as a build does, and returns its ref.
+func writeWorldManifest(t *testing.T, ctx context.Context, eng *world_block.Engine, meta *manifest.ManifestMeta) *manifest.ManifestRef {
+	// Open the stage and write the block through its bucket cursor.
+	t.Helper()
+	stage, err := eng.StageWorldState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stage.Release)
+	var ref *manifest.ManifestRef
+	err = stage.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
+		bcs.SetBlock(manifest.NewManifest(meta, fmt.Sprintf("js-%d", meta.GetRev())), true)
+		root, _, err := btx.Write(ctx, true)
+		if err != nil {
+			return err
+		}
+		objRef := bls.GetRef().Clone()
+		objRef.RootRef = root
+		ref = manifest.NewManifestRef(meta, objRef)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
 }
 
 func createTestManifestRefVariant(t *testing.T, ctx context.Context, tb *testbed.Testbed, manifestID, platformID string, rev uint64) *manifest.ManifestRef {

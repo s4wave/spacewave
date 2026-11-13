@@ -1,3 +1,4 @@
+import { Server, createMux } from 'starpc'
 import {
   isBackendEntrypointLifecycle,
   type BackendAPI,
@@ -14,14 +15,24 @@ export async function startWorkerPluginEntrypoint(
   runtimeWasmEnv: Record<string, string> | undefined,
   reportRuntimeFailure: (err: unknown) => void,
 ): Promise<void> {
-  // Start the plugin and wait for its existing readiness contract.
+  // Start the plugin and wait for its readiness contract, observing a
+  // lifecycle's failures for its full lifetime without blocking startup.
   const result = entrypoint(api, abortSignal, runtimeWasmEnv)
-  if (!isBackendEntrypointLifecycle(result)) {
+  if (isBackendEntrypointLifecycle(result)) {
+    void Promise.resolve(result.done).catch(reportRuntimeFailure)
+    await result.startup
+  } else {
     await result
-    return
   }
 
-  // Observe failures for the full lifetime without blocking startup on shutdown.
-  void Promise.resolve(result.done).catch(reportRuntimeFailure)
-  await result.startup
+  // A started plugin that serves no RPC answers every call as not found, so
+  // host probes such as Activation.Check learn the method is absent instead
+  // of waiting for a handler that never comes. This holds for any plugin
+  // build, since the host runtime, not the plugin bundle, runs it.
+  if (!api.handleStreamCtr.value) {
+    const server = new Server(createMux().lookupMethod)
+    api.handleStreamCtr.set(async (stream) => {
+      server.handlePacketStream(stream)
+    })
+  }
 }

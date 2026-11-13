@@ -55,7 +55,7 @@ explains when the service starts and stops.
 - `login`, `logout`, `whoami`
 - `login local`, `login browser`, `login file <path>`, `login p2p` (alias
   `pair`)
-- `session list|info|logout|revoke`
+- `session list|info|name|logout|revoke`
 - `account list|info|create local|create spacewave`
 - `provider list|info`
 - `auth method|passwd|lock|unlock|threshold|backup`
@@ -64,7 +64,9 @@ explains when the service starts and stops.
 `login` accepts a username and password, a PEM key file, or a browser handoff.
 `login local` creates a local account that works offline. `login file` opens an existing
 `.s4wave` session file. `login p2p` adds an account using a code from another
-device. `auth backup generate` writes a PEM backup key.
+device. `session name <name>` names the local account of the session that
+`--session-index` picks; `session list` shows each account's name. `auth backup
+generate` writes a PEM backup key.
 
 ## Spaces and objects
 
@@ -89,10 +91,11 @@ UnixFS, Git, and Canvas, as well as other object types.
 - `vm list|info|create|start|stop|watch|image|run`
 - `debug trace|cpu-profile|mem-profile|goroutine-profile`
 
-`plugin list --watch` keeps printing plugin state as it changes. `device
-approve` approves a device's link ticket for a Space. `device policy` manages
-this machine's device settings, such as the Forge Worker it offers and the
-Flowgraph node types it may run.
+`plugin list` shows each plugin's state and the rev of the manifest it runs;
+`-o json` adds that manifest's ref. `plugin list --watch` keeps printing plugin
+state as it changes. `device approve` approves a device's link ticket for a
+Space. `device policy` manages this machine's device settings, such as the Forge
+Worker it offers and the Flowgraph node types it may run.
 `apt import-deb` imports a Debian package into an Apt repository object.
 
 `bifrost` and `hydra` are advanced command groups built into the binary from

@@ -705,7 +705,7 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 	}
 	if n != 0 && n <= r.floor {
 		// The World after n left memory unstored: compute it again.
-		if err := r.recompute(ctx, n); err != nil {
+		if err := r.recompute(ctx); err != nil {
 			return nil, nil, err
 		}
 	}

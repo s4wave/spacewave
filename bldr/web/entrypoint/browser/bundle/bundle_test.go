@@ -559,7 +559,7 @@ func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {
 			"react": "/entrypoint/react/index.mjs",
 		},
 	}
-	if err := BuildRendererIndex(dir, "./entrypoint/entrypoint.mjs", importMap); err != nil {
+	if err := BuildRendererIndex(dir, "./entrypoint/entrypoint.mjs", importMap, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -582,11 +582,13 @@ func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {
 func TestWriteBuildManifestOfflineRuntimeAssets(t *testing.T) {
 	// Prepare runtime assets and manifests for an offline inventory.
 	dir := t.TempDir()
-	root := filepath.Join(dir, "entrypoint", "test", "chunks")
-	if err := os.MkdirAll(root, 0o755); err != nil {
-		t.Fatal(err)
+	// Development React loads only on request and must stay out of the set.
+	for _, sub := range []string{"chunks", ReactDevDir + "/pkgs/react"} {
+		if err := os.MkdirAll(filepath.Join(dir, "entrypoint", "test", sub), 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
-	for _, path := range []string{"entrypoint/test/assets.kvfile", "entrypoint/test/runtime-goscript.mjs", "entrypoint/test/chunks/lazy.js", "entrypoint/test/chunks/lazy.js.map"} {
+	for _, path := range []string{"entrypoint/test/assets.kvfile", "entrypoint/test/runtime-goscript.mjs", "entrypoint/test/chunks/lazy.js", "entrypoint/test/chunks/lazy.js.map", "entrypoint/test/react-dev/files.json", "entrypoint/test/react-dev/pkgs/react/index.mjs"} {
 		if err := os.WriteFile(filepath.Join(dir, path), []byte("asset"), 0o644); err != nil {
 			t.Fatal(err)
 		}

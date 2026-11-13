@@ -4,12 +4,14 @@ import (
 	"context"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/sirupsen/logrus"
 )
 
 // executionReference identifies a candidate and its registration startup mode.
@@ -86,6 +88,60 @@ func (t *pluginInstance) incompatibleManifest(ref *bucket.ObjectRef) bool {
 	return ok
 }
 
+// activationProbeSlow is how long a running worker may take to answer
+// Activation.Check before the plugin's swap state says it waits on it.
+// Tests shorten it.
+var activationProbeSlow = 5 * time.Second
+
+// probeActivation asks the running worker whether it supports prepared
+// activation. It waits for an answer, since a healthy worker can be slow: the
+// check runs on the plugin's own event loop, behind any long task, and a
+// background tab may pause it. Each outcome ends the probe:
+//   - answered: prepared, the candidate starts beside the worker.
+//   - absent method: unprepared, the candidate replaces the worker in place.
+//   - worker gone: unprepared, nothing is left to keep.
+//   - transport error: returned and recorded; the worker is preserved.
+//
+// While no answer has come after activationProbeSlow, the swap state is
+// waiting; the answer returns it to preparing.
+//
+// Go and JavaScript RPC servers report an absent method differently.
+func (t *pluginInstance) probeActivation(ctx context.Context, current plugin.RunningPlugin, candidate swapCandidate) (bool, error) {
+	// Say the swap waits on the worker once it has been slow.
+	sentAt := timestamp.Now()
+	recorded := make(chan struct{})
+	slow := time.AfterFunc(activationProbeSlow, func() {
+		defer close(recorded)
+		t.le.WithFields(logrus.Fields{
+			"plugin-id":    t.pluginID,
+			"instance-key": t.instanceKey,
+			"waited":       activationProbeSlow.String(),
+		}).Warn("running plugin has not answered activation check; waiting")
+		t.setSwapWaiting(candidate, sentAt)
+	})
+
+	// Wait for the answer, then leave the waiting state once it was written.
+	_, err := plugin.NewSRPCActivationClient(current.GetRpcClient()).Check(ctx, &plugin.CheckActivationRequest{})
+	if !slow.Stop() {
+		<-recorded
+		t.setSwapPreparing(candidate)
+	}
+
+	// Map the answer to the replacement mode.
+	switch {
+	case err == nil:
+		return true, nil
+	case err.Error() == srpc.ErrUnimplemented.Error(),
+		err.Error() == "not found: bldr.plugin.Activation/Check",
+		plugin.IsWorkerGone(err):
+		return false, nil
+	case ctx.Err() != nil:
+		return false, ctx.Err()
+	default:
+		return false, err
+	}
+}
+
 // execSelectedCandidate prepares a candidate while retaining the admitted worker.
 // Legacy plugins retain their in-place replacement contract; typed plugins
 // publish their complete registration scope only after startup succeeds.
@@ -108,23 +164,32 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	if args.serveAssets {
 		return t.serveAssets(ctx, args)
 	}
+
+	// Publish the swap state: preparing now, failed when the attempt fails.
+	candidate := newSwapCandidate(args)
+	t.setSwapPreparing(candidate)
+	defer func() {
+		if rerr != nil && ctx.Err() == nil && !errors.Is(rerr, context.Canceled) {
+			t.setSwapFailed(candidate, "prepare plugin: "+rerr.Error())
+		}
+	}()
 	if args.pluginHost == nil {
 		// A host change selects the candidate again; retrying finds no host.
-		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", errors.New("installed plugin has no compatible host"))
+		err := errors.New("installed plugin has no compatible host")
+		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", err)
+		t.setSwapFailed(candidate, "prepare plugin: "+err.Error())
 		return nil
 	}
 
-	// Probe the current worker's declared admission contract. Go and JavaScript
-	// RPC servers report an absent method differently. Transport failures preserve
-	// the worker; an absent activation method selects in-place replacement.
+	// Probe the current worker's declared admission contract. A prepared worker
+	// stays until the candidate activates; otherwise it is replaced in place.
 	prepared := false
 	if current := t.runningPluginCtr.GetValue(); current != nil && t.manifestRoot == "" {
-		_, err := plugin.NewSRPCActivationClient(current.GetRpcClient()).Check(ctx, &plugin.CheckActivationRequest{})
-		if err != nil && err.Error() != srpc.ErrUnimplemented.Error() &&
-			err.Error() != "not found: bldr.plugin.Activation/Check" {
+		var err error
+		prepared, err = t.probeActivation(ctx, current, candidate)
+		if err != nil {
 			return err
 		}
-		prepared = err == nil
 	}
 	if !prepared {
 		t.clearExecution(nil)
@@ -188,6 +253,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	}
 	t.stopStartupWaitBudget()
 	admittedAt := time.Now()
+	t.setSwapSettled(admittedAt)
 
 	// The worker's callback keeps public state current even while another
 	// candidate is preparing. A crashed admitted worker is released before retry.
@@ -210,7 +276,8 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 }
 
 // admitExecution switches the family alias and filesystem access to a worker.
-// Its load-state lock precedes pluginUpdateMtx, matching the worker callback.
+// Its load-state lock precedes pluginUpdateMtx, matching the worker callback;
+// the scheduler's status mutex comes after both.
 func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), args *executePluginArgs) bool {
 	// Swap the admitted worker under the load-state lock.
 	var previous func()
@@ -232,6 +299,10 @@ func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), 
 		t.distAccess.SetCurrent(worker.distAccess.AccessUnixFS)
 		t.assetsAccess.SetCurrent(worker.assetsAccess.AccessUnixFS)
 		t.updatePluginLoadState(func(plugin.PluginLoadState) plugin.PluginLoadState { return state })
+
+		// Publish the running manifest in the same critical section, so a
+		// concurrent clear cannot be overwritten by a stale admission.
+		t.setRunningManifest(args)
 		return state
 	})
 
@@ -240,6 +311,16 @@ func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), 
 		previous()
 	}
 	return admitted
+}
+
+// restart ends the admitted worker and runs the selection attempt again at
+// once, skipping any restart delay. The new attempt finds nothing running, so
+// it starts the selected manifest in place. This is the way out of a swap
+// waiting on a worker that neither answers its activation check nor exits:
+// ending the worker first means the restarted attempt cannot probe it again.
+func (t *pluginInstance) restart() {
+	t.clearExecution(nil)
+	t.executePluginRoutine.RestartRoutine()
 }
 
 // closeExecutions prevents late admission after the logical binding closes.
@@ -267,6 +348,9 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	t.distAccess.SetBlocked()
 	t.assetsAccess.SetBlocked()
 	t.beginInitialCapabilityRegistration()
+
+	// Publish that nothing runs before another admission can take the lock.
+	t.setRunningManifest(nil)
 	t.pluginUpdateMtx.Unlock()
 
 	// Release the replaced worker outside the update lock.

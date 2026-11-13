@@ -146,6 +146,15 @@ function StylesheetLink({ id, href, onLoad }: IStylesheetLinkProps) {
   )
 }
 
+// unrevealedStep names the first reveal step an unrevealed view lacks.
+function unrevealedStep(state: IWebViewState, componentReady: boolean): string {
+  if (!state.ready) return 'no web document'
+  if (!state.scriptPath) return 'no render mode'
+  if (!componentReady) return 'component not ready'
+  if (!state.cssLoaded) return 'stylesheets not loaded'
+  return 'runtime not presented'
+}
+
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export const WebView: React.FC<IWebViewProps> = (props) => {
@@ -560,26 +569,6 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     webViewState.refreshNonce,
   ])
 
-  // Boot-ladder deadline: if this startup-critical view never receives a
-  // render mode, html links, or component readiness, the loading screen would
-  // wait forever behind a frozen progress bar. After webViewRevealDeadlineMillis
-  // without progress, surface a terminal boot-download failure instead.
-  useEffect(() => {
-    if (!props.startupProgress || !webViewState.ready || isComponentReady) {
-      return
-    }
-    const timer = setTimeout(() => {
-      if (markedRevealedRef.current || markedComponentReadyRef.current) {
-        return
-      }
-      const message = `web view did not become ready within ${webViewRevealDeadlineMillis / 1000}s (no render mode, html links, or component-ready)`
-      console.error(`WebView ${uuid}: ${message}`)
-      beginBootDownload('webview-frame', 'Interface frame')
-      failBootDownload('webview-frame', message)
-    }, webViewRevealDeadlineMillis)
-    return () => clearTimeout(timer)
-  }, [props.startupProgress, uuid, webViewState.ready, isComponentReady])
-
   const handleComponentReady = useCallback(() => {
     setIsComponentReady(true)
     if (markedComponentReadyRef.current) {
@@ -646,6 +635,34 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const activityVisible = runtimePresentationOwner
     ? runtimePresentation?.neutralFrame === true
     : webViewState.cssLoaded
+  // loadingShown is the view's unrevealed state: no document registration,
+  // render mode, stylesheets, component readiness or runtime reveal yet.
+  const loadingShown = runtimePresentationOwner
+    ? !runtimeTransitionActive
+    : !webViewState.ready || !webViewState.cssLoaded || !isComponentReady
+
+  // Boot deadline: a startup-critical view that stays unrevealed for
+  // webViewRevealDeadlineMillis, at whatever step it stopped, fails the boot
+  // so the loading screen offers Retry instead of waiting forever. The timer
+  // runs only while the loading screen shows and is cancelled on reveal.
+  const bootDeadlineArmed = props.startupProgress === true && loadingShown
+  useEffect(() => {
+    if (!bootDeadlineArmed) {
+      return
+    }
+    const timer = setTimeout(() => {
+      const step = unrevealedStep(
+        webViewStateRef.current,
+        markedComponentReadyRef.current,
+      )
+      const message = `web view did not become ready within ${webViewRevealDeadlineMillis / 1000}s (${step})`
+      console.error(`WebView ${uuid}: ${message}`)
+      beginBootDownload('webview-frame', 'Interface frame')
+      failBootDownload('webview-frame', message)
+    }, webViewRevealDeadlineMillis)
+    return () => clearTimeout(timer)
+  }, [bootDeadlineArmed, uuid])
+
   return (
     <BldrContext.Provider value={childContext}>
       {props.showDebugInfo ? (

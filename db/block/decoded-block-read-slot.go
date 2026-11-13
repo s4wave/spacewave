@@ -11,11 +11,14 @@ type decodedBlockReadSlot struct {
 	recent atomic.Bool
 }
 
-// decodedBlockReadLink remembers a child slot without retaining its payload.
+// decodedBlockReadLink remembers a child's reference and slot without retaining
+// its payload. A raw edge, such as a leaf value, has no decoder and so never
+// gets a slot: its link memoizes only the reference, so following it again
+// allocates nothing.
 type decodedBlockReadLink struct {
 	// ref is the immutable reference stored in the parent block.
 	ref *BlockRef
-	// slot is the most recently admitted child entry.
+	// slot is the most recently admitted child entry; nil for a raw edge.
 	slot atomic.Pointer[decodedBlockReadSlot]
 }
 
@@ -34,14 +37,15 @@ type decodedBlockReadData struct {
 	durableGen uint64
 	// cost is the pool budget charged for this metadata at attachment.
 	cost int64
-	// links indexes typed child references by their immutable field IDs.
+	// links indexes child references by their immutable field IDs.
 	links map[uint32]*decodedBlockReadLink
 	// edges owns the contiguous child link allocation.
 	edges []decodedBlockReadLink
 }
 
 // newDecodedBlockReadData builds child metadata outside every cache shard lock.
-// Raw references have no decoder and need no memoized decoded-node slot.
+// Every nonempty reference gets a link; only a typed one can later hold a slot,
+// so a raw one is charged for its reference alone.
 func newDecodedBlockReadData(cache *DecodedBlockCache, key decodedBlockCacheKey, entry decodedBlockCacheEntry) (*decodedBlockReadData, int64) {
 	// Preserve the exact cache identity and its durable-admission state.
 	data := &decodedBlockReadData{block: entry.block, cache: cache, refKey: key.ref, epochs: entry.epochs, durableGen: entry.durableGen}
@@ -51,14 +55,14 @@ func newDecodedBlockReadData(cache *DecodedBlockCache, key decodedBlockCacheKey,
 		return data, cost
 	}
 
-	// Inspect typed reference descriptors without loading their target blocks.
+	// Inspect reference descriptors without loading their target blocks.
 	refs, err := withRefs.GetBlockRefs()
 	if err != nil {
 		return nil, 0
 	}
 	var count int
-	for id, ref := range refs {
-		if !ref.GetEmpty() && withRefs.GetBlockRefCtor(id) != nil {
+	for _, ref := range refs {
+		if !ref.GetEmpty() {
 			count++
 		}
 	}
@@ -66,19 +70,23 @@ func newDecodedBlockReadData(cache *DecodedBlockCache, key decodedBlockCacheKey,
 		return data, cost
 	}
 
-	// Reserve and charge every possible memoized typed edge before attachment.
+	// Reserve and charge every memoized edge before attachment.
 	data.links = make(map[uint32]*decodedBlockReadLink, count)
 	data.edges = make([]decodedBlockReadLink, count)
 	index := 0
 	var edgeCost int64
 	for id, ref := range refs {
-		if !ref.GetEmpty() && withRefs.GetBlockRefCtor(id) != nil {
-			edge := &data.edges[index]
-			edge.ref = ref.Clone()
-			edgeCost += 256 + 2*int64(ref.SizeVT())
-			data.links[id] = edge
-			index++
+		if ref.GetEmpty() {
+			continue
 		}
+		edge := &data.edges[index]
+		edge.ref = ref.Clone()
+		edgeCost += 64 + 2*int64(ref.SizeVT())
+		if withRefs.GetBlockRefCtor(id) != nil {
+			edgeCost += 192
+		}
+		data.links[id] = edge
+		index++
 	}
 	return data, cost + edgeCost
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { HandleStreamCtr, type HandleStreamFunc } from 'starpc'
 import type { BackendAPI } from '@aptre/bldr-sdk'
 
 import { startWorkerPluginEntrypoint } from './plugin-entrypoint.js'
@@ -9,7 +10,7 @@ describe('startWorkerPluginEntrypoint', () => {
     let started = false
     const start = startWorkerPluginEntrypoint(
       () => lifetime.promise,
-      {} as BackendAPI,
+      { handleStreamCtr: new HandleStreamCtr() } as unknown as BackendAPI,
       new AbortController().signal,
       undefined,
       vi.fn(),
@@ -32,7 +33,7 @@ describe('startWorkerPluginEntrypoint', () => {
     let started = false
     const start = startWorkerPluginEntrypoint(
       () => ({ startup: startup.promise, done: done.promise }),
-      {} as BackendAPI,
+      { handleStreamCtr: new HandleStreamCtr() } as unknown as BackendAPI,
       new AbortController().signal,
       undefined,
       reportRuntimeFailure,
@@ -59,11 +60,47 @@ describe('startWorkerPluginEntrypoint', () => {
     await expect(
       startWorkerPluginEntrypoint(
         () => ({ startup: Promise.reject(err) }),
-        {} as BackendAPI,
+        { handleStreamCtr: new HandleStreamCtr() } as unknown as BackendAPI,
         new AbortController().signal,
         undefined,
         vi.fn(),
       ),
     ).rejects.toBe(err)
+  })
+
+  // A lifecycle entrypoint and a promise one, as plugin builds bundle before
+  // their main returned a lifecycle, both answer when they serve no RPC.
+  it.each([
+    ['lifecycle', () => ({ startup: Promise.resolve() })],
+    ['promise', () => Promise.resolve()],
+  ])(
+    'answers streams as not found when a %s plugin serves none',
+    async (_kind, entrypoint) => {
+      const handleStreamCtr = new HandleStreamCtr()
+      await startWorkerPluginEntrypoint(
+        entrypoint,
+        { handleStreamCtr } as unknown as BackendAPI,
+        new AbortController().signal,
+        undefined,
+        vi.fn(),
+      )
+      expect(handleStreamCtr.value).toBeDefined()
+    },
+  )
+
+  it('keeps the handler the plugin registered', async () => {
+    const handleStreamCtr = new HandleStreamCtr()
+    const handler: HandleStreamFunc = vi.fn()
+    await startWorkerPluginEntrypoint(
+      (api) => {
+        api.handleStreamCtr.set(handler)
+        return { startup: Promise.resolve() }
+      },
+      { handleStreamCtr } as unknown as BackendAPI,
+      new AbortController().signal,
+      undefined,
+      vi.fn(),
+    )
+    expect(handleStreamCtr.value).toBe(handler)
   })
 })

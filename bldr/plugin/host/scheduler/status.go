@@ -225,11 +225,13 @@ func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage st
 }
 
 // recordPluginManifestRecoveryStatus records manifest selection facts for
-// a plugin.
+// a plugin. executeRev is the build rev of executeManifest, which callers read
+// from the fetched Manifest or, before it is fetched, from its ManifestRef meta.
 func (c *Controller) recordPluginManifestRecoveryStatus(
 	pluginID,
 	instanceKey string,
-	executeManifest,
+	executeManifest *bldr_manifest.ManifestSnapshot,
+	executeRev uint64,
 	downloadManifest *bldr_manifest.ManifestSnapshot,
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 ) {
@@ -250,7 +252,41 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 		IgnoredCandidateSummary:     summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityIgnored),
 		QuarantinedCandidateCount:   countStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
 		QuarantinedCandidateSummary: summarizeStartupManifestEligibilityKind(candidates, bldr_manifest_world.StartupManifestEligibilityQuarantined),
+		ExecuteManifestRev:          executeRev,
 	}
+	snapshot := c.buildPluginStatusSnapshotLocked()
+	c.pluginStatusMtx.Unlock()
+	if c.pluginStatusCtr != nil {
+		c.pluginStatusCtr.SetValue(snapshot)
+	}
+}
+
+// updatePluginExecutionStatus applies apply to a live plugin instance's
+// execution status and publishes the snapshot. It does nothing once the
+// instance's status entry is gone, so a late update cannot revive it.
+func (c *Controller) updatePluginExecutionStatus(
+	pluginID,
+	instanceKey string,
+	apply func(status *bldr_plugin.PluginExecutionStatus),
+) {
+	// Skip an instance whose status entry is gone.
+	key := pluginInstanceKey(pluginID, instanceKey)
+	c.pluginStatusMtx.Lock()
+	if c.pluginStatus[key] == nil {
+		c.pluginStatusMtx.Unlock()
+		return
+	}
+
+	// Apply the mutation to a copy of the row and publish the snapshot.
+	if c.pluginExecutionStatus == nil {
+		c.pluginExecutionStatus = make(map[string]*bldr_plugin.PluginExecutionStatus)
+	}
+	next := c.pluginExecutionStatus[key].CloneVT()
+	if next == nil {
+		next = &bldr_plugin.PluginExecutionStatus{PluginId: pluginID, InstanceKey: instanceKey}
+	}
+	apply(next)
+	c.pluginExecutionStatus[key] = next
 	snapshot := c.buildPluginStatusSnapshotLocked()
 	c.pluginStatusMtx.Unlock()
 	if c.pluginStatusCtr != nil {
@@ -278,6 +314,7 @@ func (c *Controller) updatePluginStatus(
 	if state == bldr_plugin.PluginState_PluginState_UNKNOWN && !recordError && !clearError {
 		delete(c.pluginStatus, key)
 		delete(c.pluginManifestRecoveryStatus, key)
+		delete(c.pluginExecutionStatus, key)
 	} else if state == bldr_plugin.PluginState_PluginState_UNKNOWN && clearError && current == nil {
 		// Successful completion can race with plugin reference cleanup. If the
 		// instance is already gone, clearing metadata should not recreate it.
@@ -327,20 +364,7 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatus
 
 	// Sort the plugin statuses by plugin and instance key.
 	slices.SortFunc(plugins, func(a, b *bldr_plugin.PluginStatus) int {
-		// Compare by plugin ID, then instance key.
-		if a.PluginId < b.PluginId {
-			return -1
-		}
-		if a.PluginId > b.PluginId {
-			return 1
-		}
-		if a.InstanceKey < b.InstanceKey {
-			return -1
-		}
-		if a.InstanceKey > b.InstanceKey {
-			return 1
-		}
-		return 0
+		return comparePluginInstance(a.GetPluginId(), a.GetInstanceKey(), b.GetPluginId(), b.GetInstanceKey())
 	})
 
 	// Clone the manifest recovery statuses and sort them the same way.
@@ -354,22 +378,33 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatus
 
 	// Sort the recovery statuses by plugin and instance key.
 	slices.SortFunc(recovery, func(a, b *bldr_plugin.PluginManifestRecoveryStatus) int {
-		// Compare by plugin ID, then instance key.
-		if a.PluginId < b.PluginId {
-			return -1
-		}
-		if a.PluginId > b.PluginId {
-			return 1
-		}
-		if a.InstanceKey < b.InstanceKey {
-			return -1
-		}
-		if a.InstanceKey > b.InstanceKey {
-			return 1
-		}
-		return 0
+		return comparePluginInstance(a.GetPluginId(), a.GetInstanceKey(), b.GetPluginId(), b.GetInstanceKey())
 	})
-	return &bldr_plugin.PluginStatusSnapshot{Plugins: plugins, ManifestRecovery: recovery}
+
+	// Clone the execution statuses and sort them the same way.
+	executions := make([]*bldr_plugin.PluginExecutionStatus, 0, len(c.pluginExecutionStatus))
+	for _, row := range c.pluginExecutionStatus {
+		if row == nil {
+			continue
+		}
+		executions = append(executions, row.CloneVT())
+	}
+	slices.SortFunc(executions, func(a, b *bldr_plugin.PluginExecutionStatus) int {
+		return comparePluginInstance(a.GetPluginId(), a.GetInstanceKey(), b.GetPluginId(), b.GetInstanceKey())
+	})
+	return &bldr_plugin.PluginStatusSnapshot{
+		Plugins:          plugins,
+		ManifestRecovery: recovery,
+		Executions:       executions,
+	}
+}
+
+// comparePluginInstance orders plugin instances by plugin ID, then instance key.
+func comparePluginInstance(aPluginID, aInstanceKey, bPluginID, bInstanceKey string) int {
+	if c := strings.Compare(aPluginID, bPluginID); c != 0 {
+		return c
+	}
+	return strings.Compare(aInstanceKey, bInstanceKey)
 }
 
 // manifestSnapshotRefString renders a manifest snapshot's ref as a string.

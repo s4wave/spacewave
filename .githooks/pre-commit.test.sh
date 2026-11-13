@@ -322,6 +322,26 @@ test_worktree_go_without_git_dir() {
 	cleanup
 }
 
+test_worktree_links_main_node_modules() {
+	label='worktree: a JS commit links the main checkout node_modules and lints with it'
+	new_repo
+	git -C "$test_dir/repo" config core.hooksPath "$test_dir/repo/.git/hooks"
+	printf 'node_modules\n' >"$test_dir/repo/.gitignore"
+	mkdir -p "$test_dir/repo/web"
+	printf 'export const a = 1\n' >"$test_dir/repo/web/a.ts"
+	seed_commit
+	git -C "$test_dir/repo" worktree add -q "$test_dir/wt"
+	printf 'export const a = 2\n' >"$test_dir/wt/web/a.ts"
+	git -C "$test_dir/wt" add web/a.ts
+	try_commit ok wt &&
+		log_has 'oxlint 2 web/a.ts' &&
+		[ -L "$test_dir/wt/node_modules" ] &&
+		[ "$(cd -P "$test_dir/wt/node_modules" && pwd)" = "$(cd -P "$test_dir/repo/node_modules" && pwd)" ] &&
+		[ -z "$(git -C "$test_dir/wt" status --porcelain)" ]
+	note_result $? "$label"
+	cleanup
+}
+
 test_commit_all_reads_temporary_index() {
 	label='commit -a: the hook reads the temporary index git commits'
 	new_repo
@@ -352,6 +372,7 @@ for t in \
 	test_go_paragraphs_gate \
 	test_docs_skip_go_paragraphs \
 	test_worktree_go_without_git_dir \
+	test_worktree_links_main_node_modules \
 	test_commit_all_reads_temporary_index
 do
 	"$t"

@@ -83,47 +83,60 @@ func TestWatchChanges(t *testing.T) {
 
 // TestWatchChangesImportedRoot checks that a head installed from outside the
 // Engine, as a SharedObject replay or a snapshot import installs it, yields a
-// precise ChangeSet.
+// precise ChangeSet when it shares the head's format, and an unknown one when
+// it does not, since every graph key differs between formats.
 func TestWatchChangesImportedRoot(t *testing.T) {
-	// Watch from the head the Engine opens at.
-	ctx := t.Context()
-	e := newRetirementTestEngine(t, ctx, nil)
-	after := headSeqno(t, ctx, e)
+	for _, format := range []WorldFormat{WorldFormat_WORLD_FORMAT_CAYLEY_KV, WorldFormat_WORLD_FORMAT_NODE_GRAPH} {
+		t.Run(format.String(), func(t *testing.T) {
+			// Watch from the head the Engine opens at.
+			ctx := t.Context()
+			e := newFormatTestEngine(t, ctx, nil, format)
+			after := headSeqno(t, ctx, e)
 
-	// Import a World with more operations than the head and install it.
-	stage, err := e.StageWorldState(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer stage.Release()
-	keys := []string{"import/a", "import/b", "import/c"}
-	quads := []world.GraphQuad{
-		world.NewGraphQuadWithKeys("import/a", "<p>", "import/b", ""),
-		world.NewGraphQuadWithKeys("import/b", "<p>", "import/c", ""),
-	}
-	ref, err := ImportSnapshot(ctx, stage, func(yield func(string, block.Block) bool) {
-		for _, key := range keys {
-			if !yield(key, block_mock.NewExample(key)) {
+			// Import a World with more operations than the head and install it.
+			stage, err := e.StageWorldState(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer stage.Release()
+			keys := []string{"import/a", "import/b", "import/c"}
+			quads := []world.GraphQuad{
+				world.NewGraphQuadWithKeys("import/a", "<p>", "import/b", ""),
+				world.NewGraphQuadWithKeys("import/b", "<p>", "import/c", ""),
+			}
+			ref, err := ImportSnapshot(ctx, stage, func(yield func(string, block.Block) bool) {
+				for _, key := range keys {
+					if !yield(key, block_mock.NewExample(key)) {
+						return
+					}
+				}
+			}, quads)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := e.SetRootRef(ctx, ref); err != nil {
+				t.Fatal(err)
+			}
+
+			// An import in another format than the head is unknown.
+			_, changes := readChangeWindow(t, ctx, e, after)
+			if format != importFormat {
+				if !changes.Unknown {
+					t.Fatalf("changes from a %v head to a %v import are known", format, importFormat)
+				}
 				return
 			}
-		}
-	}, quads)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := e.SetRootRef(ctx, ref); err != nil {
-		t.Fatal(err)
-	}
 
-	// Expect the objects of both Worlds and the imported quads.
-	_, changes := readChangeWindow(t, ctx, e, after)
-	if changes.Unknown {
-		t.Fatal("changes to an imported root are unknown")
+			// Otherwise expect the objects of both Worlds and the imported quads.
+			if changes.Unknown {
+				t.Fatal("changes to an imported root are unknown")
+			}
+			if got := slices.Sorted(slices.Values(changes.Keys)); !slices.Equal(got, keys) {
+				t.Fatalf("changed keys %q, want %q", got, keys)
+			}
+			checkQuads(t, changes.Quads, quads...)
+		})
 	}
-	if got := slices.Sorted(slices.Values(changes.Keys)); !slices.Equal(got, keys) {
-		t.Fatalf("changed keys %q, want %q", got, keys)
-	}
-	checkQuads(t, changes.Quads, quads...)
 }
 
 // TestWatchChangesLive checks that the change watch hands each commit to

@@ -16,8 +16,9 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Node
-	// readBranches reads the two stored children of a read transaction's inline
-	// root. They are nil for writers and staged children, which live on bcs.
+	// readBranches reads the two stored children of a read-only block
+	// transaction's inline root. They are nil for writers, for a read on a
+	// writable block transaction and for staged children, which live on bcs.
 	readBranches [2]*block.ReadCursor
 
 	t          *AVLTree
@@ -61,8 +62,10 @@ func NewTx(
 		rootChangedCb: rootChangedCb,
 	}
 
-	// Bind stored children only for immutable readonly transactions.
-	if !write && !rn.IsLeaf() {
+	// Bind stored children only for a read-only block transaction. On a
+	// writable one a writer changes the root Node in place, and the iterator
+	// and scans walk bcs, so a reader there reads bcs throughout.
+	if !write && !rn.IsLeaf() && bcs.GetTransaction().IsReadOnly() {
 		out.readBranches[0] = block.NewReadCursor(ctx, bcs, rn.GetLeftChildRef())
 		out.readBranches[1] = block.NewReadCursor(ctx, bcs, rn.GetRightChildRef())
 	}

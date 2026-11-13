@@ -9,12 +9,17 @@ import { randomId } from './random-id.js'
 import { markStartupBoundary } from './startup-marks.js'
 
 // DedicatedWorkerHostRole is the host-election role of this document in the
-// dedicated worker fallback.
+// dedicated worker fallback. A runtime failure ends the term of every document
+// that hosted or attached to that runtime: failed holds no lease and waits for
+// none, so the next election, from a reloaded document, starts a fresh runtime
+// instead of reconnecting to the dead one or promoting a document that shows
+// the failure.
 export type DedicatedWorkerHostRole =
   | 'pending'
   | 'host'
   | 'attached'
   | 'unavailable'
+  | 'failed'
   | 'closed'
 
 // DedicatedWorkerHostCallbacks receives host-state transitions.
@@ -94,14 +99,16 @@ export class DedicatedWorkerHostOwner {
         lockName,
         { signal: this.standingAbort.signal },
         async () => {
-          this.onLockGranted()
+          if (!this.onLockGranted()) {
+            return
+          }
           await new Promise<void>((resolve) => {
             this.closeLease = resolve
           })
         },
       ),
     ).catch((err: unknown) => {
-      if (this.closed) {
+      if (this.closed || this.role === 'failed') {
         return
       }
       markStartupBoundary('dedicated-host.election-failed', {
@@ -137,13 +144,11 @@ export class DedicatedWorkerHostOwner {
     })
   }
 
-  private onLockGranted(): void {
-    if (this.role === 'closed') {
-      this.closeLease?.()
-      return
-    }
+  // onLockGranted takes the host role and reports whether this document now
+  // holds the lease. A document that closed or failed first returns the lease.
+  private onLockGranted(): boolean {
     if (this.role !== 'pending' && this.role !== 'attached') {
-      return
+      return false
     }
 
     const promoted = this.role === 'attached'
@@ -165,9 +170,37 @@ export class DedicatedWorkerHostOwner {
         'attached runtime host relay promoted to host',
       )
       this.callbacks?.promoteToHost()
-      return
+      return true
     }
     this.callbacks?.startHost(this.generation)
+    return true
+  }
+
+  // fail ends this document's term after the runtime it hosted or attached to
+  // failed. A host returns its lease, so call fail only after the dead runtime
+  // worker is ended and holds no storage handles; an attached or pending
+  // document withdraws its queued request.
+  public fail(reason: string): void {
+    if (this.closed || this.role === 'failed') {
+      return
+    }
+    const from = this.role
+    this.role = 'failed'
+    this.connectedHostDocumentId = undefined
+    this.connectedHostGeneration = undefined
+    this.cancelPendingClientChannels('dedicated runtime host failed')
+    this.standingAbort?.abort()
+    this.standingAbort = undefined
+    this.closeLease?.()
+    this.closeLease = undefined
+    markStartupBoundary('dedicated-host.failed', {
+      source: 'browser',
+      documentId: this.webDocumentId,
+      runtimeId: this.webRuntimeId,
+      generation: this.generation,
+      from,
+      reason,
+    })
   }
 
   public async openClientChannel(

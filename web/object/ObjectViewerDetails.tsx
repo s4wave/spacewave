@@ -75,7 +75,7 @@ export function ObjectViewerDetails({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <div className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <RxCube className="size-4 shrink-0" />
+          <RxCube aria-hidden className="size-4 shrink-0" />
           <span className="truncate tracking-tight">{objectKey}</span>
           <span className="text-foreground-alt shrink-0">· Object</span>
         </div>
@@ -83,7 +83,8 @@ export function ObjectViewerDetails({
           <Tooltip>
             <TooltipTrigger asChild>
               <DashboardButton
-                icon={<LuX className="size-4" />}
+                icon={<LuX aria-hidden className="size-4" />}
+                aria-label="Close"
                 onClick={onCloseClick}
               />
             </TooltipTrigger>
@@ -93,13 +94,13 @@ export function ObjectViewerDetails({
       </div>
 
       <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="mx-auto w-full max-w-5xl">
-          <div className="grid gap-4 lg:grid-cols-2">
+        <div className="flex justify-center">
+          <div className="grid w-full max-w-2xl gap-3">
             <div className="min-w-0 space-y-3">
               <section>
                 <div className="mb-2 flex items-center justify-between">
-                  <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                    <LuInfo className="size-3.5" />
+                  <h2 className="text-foreground flex items-center gap-2 text-xs font-medium select-none">
+                    <LuInfo aria-hidden className="size-3.5" />
                     About this object
                   </h2>
                 </div>
@@ -119,7 +120,7 @@ export function ObjectViewerDetails({
 
               <CollapsibleSection
                 title="Technical details"
-                icon={<LuInfo className="size-3.5" />}
+                icon={<LuInfo aria-hidden className="size-3.5" />}
                 open={technicalDetailsOpen}
                 onOpenChange={setTechnicalDetailsOpen}
               >
@@ -138,14 +139,14 @@ export function ObjectViewerDetails({
               {availableComponents.length > 0 && (
                 <section>
                   <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                      <LuEye className="size-3.5" />
+                    <h2 className="text-foreground flex items-center gap-2 text-xs font-medium select-none">
+                      <LuEye aria-hidden className="size-3.5" />
                       Viewer
                     </h2>
                   </div>
 
                   <InfoCard>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {availableComponents.map((component) => {
                         const isSelected =
                           displayedSelectedComponentID === component.componentID
@@ -156,7 +157,7 @@ export function ObjectViewerDetails({
                             aria-pressed={isSelected}
                             onClick={() => handleComponentSelect(component)}
                             className={cn(
-                              'border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border p-2.5 text-left transition-colors',
+                              'border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border p-3 text-left transition-colors',
                               isSelected && 'border-brand/30 bg-brand/10',
                             )}
                           >
@@ -166,12 +167,12 @@ export function ObjectViewerDetails({
                                   {component.name}
                                 </p>
                                 {isSelected && (
-                                  <span className="border-brand/30 bg-brand/10 text-brand micro-label shrink-0 rounded border px-1.5 py-0.5 font-medium select-none">
+                                  <span className="border-brand/30 bg-brand/10 text-brand shrink-0 rounded border px-2 py-0.5 text-xs font-medium select-none">
                                     Active
                                   </span>
                                 )}
                               </div>
-                              <p className="text-foreground-alt/50 micro-text font-mono break-all select-none">
+                              <p className="text-foreground-alt font-mono text-xs break-all select-none">
                                 ID: {component.componentID}
                               </p>
                             </div>
@@ -184,9 +185,9 @@ export function ObjectViewerDetails({
                       <button
                         type="button"
                         onClick={onCloseClick}
-                        className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/15 mt-3 flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors"
+                        className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/15 mt-3 flex h-7 w-full cursor-pointer items-center justify-center gap-2 rounded-md border text-xs font-medium transition-colors"
                       >
-                        <LuEye className="size-3.5" />
+                        <LuEye aria-hidden className="size-3.5" />
                         Open viewer
                       </button>
                     )}
@@ -231,8 +232,8 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuDownload className="size-3.5" />
+        <h2 className="text-foreground flex items-center gap-2 text-xs font-medium select-none">
+          <LuDownload aria-hidden className="size-3.5" />
           Data
         </h2>
       </div>
@@ -243,10 +244,10 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
           onClick={() => void handleExport()}
           disabled={status === 'busy' || status === 'success'}
           aria-busy={status === 'busy'}
-          className="border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex h-14 w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors disabled:cursor-default disabled:opacity-100"
+          className="border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex h-14 w-full cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors disabled:cursor-default disabled:opacity-100"
         >
           <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-            <LuDownload className="text-foreground size-3.5" />
+            <LuDownload aria-hidden className="text-foreground size-3.5" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <h4 className="text-foreground text-sm font-medium select-none">
@@ -271,7 +272,7 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
         </button>
 
         {status === 'failure' && (
-          <div className="border-destructive/15 bg-destructive/5 flex items-center justify-between gap-3 rounded-lg border p-2.5 text-xs">
+          <div className="border-destructive/15 bg-destructive/5 flex items-center justify-between gap-3 rounded-lg border p-3 text-xs">
             <p className="text-destructive leading-relaxed">
               Export could not be prepared.
             </p>
@@ -334,10 +335,10 @@ function DangerZoneSection({
         <button
           type="button"
           onClick={() => setDialogOpen(true)}
-          className="border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors"
+          className="border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3 text-left transition-colors"
         >
           <div className="bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
-            <LuTrash2 className="text-destructive size-3.5" />
+            <LuTrash2 aria-hidden className="text-destructive size-3.5" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <h4 className="text-destructive text-xs font-medium select-none">

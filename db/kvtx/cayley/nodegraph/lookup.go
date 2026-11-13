@@ -62,7 +62,7 @@ func (c *nameCache) resolveFilter(ctx context.Context, f quad.Quad) (quadRef, bo
 		if v == nil {
 			continue
 		}
-		id, err := c.qs.lookupID(ctx, v.String())
+		id, err := c.qs.lookupID(ctx, valueText(v))
 		if err != nil || id == 0 {
 			return quadRef{}, false, err
 		}

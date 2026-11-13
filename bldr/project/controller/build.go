@@ -72,9 +72,23 @@ func (c *Controller) BuildManifests(
 //
 // If the targets list is empty, builds all targets.
 // If targetsOverride is specified, it overrides the targets field in all build configs.
-// manifestRevision raises the configured revision floor for this finite build,
+// manifestRevision raises the configured revision floor for this build,
 // including manifests compiled on demand as dependencies. Zero keeps configured floors.
-func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType, targetsOverride []string, buildPolicyOverride *manifest_build.BuildPolicy, manifestRevision uint64) error {
+//
+// A non-nil hold runs after the first results land, with the selected
+// manifest IDs, and the builders stay retained until it returns. On a watching
+// controller they rebuild each manifest as its sources change, so hold
+// observes every rebuild until it returns.
+func (c *Controller) BuildTargets(
+	ctx context.Context,
+	remote string,
+	targets []string,
+	buildType bldr_manifest.BuildType,
+	targetsOverride []string,
+	buildPolicyOverride *manifest_build.BuildPolicy,
+	manifestRevision uint64,
+	hold func(ctx context.Context, manifestIDs []string) error,
+) error {
 	// Read the project build targets from the current controller configuration.
 	conf := c.conf.Load()
 	projConfig := conf.GetProjectConfig()
@@ -139,9 +153,34 @@ func (c *Controller) BuildTargets(ctx context.Context, remote string, targets []
 		}
 	}
 
-	// Build the complete set of selected manifest configurations.
-	_, _, err := c.BuildManifestBuilderConfigs(ctx, manifestBuilderConfs)
-	return err
+	// Build the complete set of selected manifest configurations, retained
+	// through the hold.
+	refs, err := c.addManifestBuilderRefs(manifestBuilderConfs, false)
+	if err != nil {
+		return err
+	}
+	defer releaseManifestBuilderRefs(refs)
+	if _, _, err := awaitManifestBuilderRefs(ctx, refs); err != nil {
+		return err
+	}
+	if hold == nil {
+		return nil
+	}
+	return hold(ctx, manifestBuilderIDs(manifestBuilderConfs))
+}
+
+// manifestBuilderIDs returns the distinct manifest IDs of confs in order.
+func manifestBuilderIDs(confs []*ManifestBuilderConfig) []string {
+	var ids []string
+	seen := make(map[string]struct{}, len(confs))
+	for _, conf := range confs {
+		id := conf.GetManifestId()
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // ResolveBuildTarget resolves a build target with command-line overrides.

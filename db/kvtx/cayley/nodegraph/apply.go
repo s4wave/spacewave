@@ -3,6 +3,7 @@ package kvtx_cayley_nodegraph
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
@@ -17,7 +18,7 @@ func textOf(q quad.Quad) quadText {
 	var t quadText
 	for i, d := range quad.Directions {
 		if v := q.Get(d); v != nil {
-			t[i] = v.String()
+			t[i] = valueText(v)
 		}
 	}
 	return t
@@ -26,11 +27,13 @@ func textOf(q quad.Quad) quadText {
 // ApplyDeltas adds and removes quads.
 //
 // Every delta is checked before any key is written, so a rejected call
-// changes nothing. A node left without edges is deleted with its ID map entry
-// in the same call, unless it is pinned as a predicate or label. The next ID
-// is stored on every return after an allocation, also when a write fails
-// midway, so an ID whose keys reached the buffer is never handed out again.
-func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts graph.IgnoreOpts) (err error) {
+// changes nothing. A write that fails later in the call is undone with the
+// call's other writes, all but the next ID key, which only grows, so the
+// transaction holds no quad with one of its two keys and no node without its
+// ID map entry even when its owner commits it after the error. A node left
+// without edges is deleted with its ID map entry in the same call, unless it
+// is pinned as a predicate or label.
+func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts graph.IgnoreOpts) error {
 	// An empty call writes nothing; otherwise one batch resolves each value once.
 	if len(in) == 0 {
 		return nil
@@ -72,18 +75,26 @@ func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts gra
 		apply[i] = true
 	}
 
-	// Write the accepted deltas, then delete the nodes they left empty, and
-	// store the next ID however the writes end.
-	defer func() {
-		if serr := qs.storeNextID(ctx); err == nil {
-			err = serr
+	// Write the accepted deltas, undoing the call's writes when one fails.
+	err := b.write(ctx, in, apply)
+	if err != nil {
+		if rerr := qs.rollback(context.WithoutCancel(ctx)); rerr != nil {
+			return errors.Wrapf(err, "node graph: undo failed: %v", rerr)
 		}
-	}()
+	}
+	clear(qs.undo)
+	qs.undo, qs.undoPins = qs.undo[:0], qs.undoPins[:0]
+	return err
+}
+
+// write writes the accepted deltas, then deletes the nodes they left empty.
+func (b *deltaBatch) write(ctx context.Context, in []graph.Delta, apply []bool) error {
 	emptied := make(map[uint64]struct{})
 	for i, d := range in {
 		if !apply[i] {
 			continue
 		}
+		var err error
 		if d.Action == graph.Add {
 			err = b.add(ctx, d.Quad)
 		} else {
@@ -94,7 +105,57 @@ func (qs *QuadStore) ApplyDeltas(ctx context.Context, in []graph.Delta, opts gra
 		}
 	}
 	for id := range emptied {
-		if err := qs.deleteIfEmpty(ctx, id); err != nil {
+		if err := b.qs.deleteIfEmpty(ctx, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// undoEntry restores one key a running ApplyDeltas call wrote: it sets the key
+// back to prev when the key held it, and deletes it otherwise.
+type undoEntry struct {
+	key  []byte
+	prev []byte
+	had  bool
+}
+
+// set writes a key that held prev when had is set, and records its undo.
+func (qs *QuadStore) set(ctx context.Context, key, value, prev []byte, had bool) error {
+	if err := qs.tx.Set(ctx, key, value); err != nil {
+		return err
+	}
+	qs.undo = append(qs.undo, undoEntry{key: key, prev: prev, had: had})
+	return nil
+}
+
+// del deletes a key that held prev, and records its undo.
+func (qs *QuadStore) del(ctx context.Context, key, prev []byte) error {
+	if err := qs.tx.Delete(ctx, key); err != nil {
+		return err
+	}
+	qs.undo = append(qs.undo, undoEntry{key: key, prev: prev, had: true})
+	return nil
+}
+
+// rollback undoes the running call's writes, newest first, and forgets the
+// pins it marked, so a later pin in the transaction writes its meta again.
+func (qs *QuadStore) rollback(ctx context.Context) error {
+	// Forget the pins, then restore each key's prior value.
+	qs.idMtx.Lock()
+	for _, id := range qs.undoPins {
+		delete(qs.pinned, id)
+	}
+	qs.idMtx.Unlock()
+	for _, e := range slices.Backward(qs.undo) {
+
+		var err error
+		if e.had {
+			err = qs.tx.Set(ctx, e.key, e.prev)
+		} else {
+			err = qs.tx.Delete(ctx, e.key)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -117,7 +178,7 @@ func (b *deltaBatch) lookup(ctx context.Context, v quad.Value) (uint64, error) {
 	if v == nil {
 		return 0, nil
 	}
-	text := v.String()
+	text := valueText(v)
 	if id, ok := b.ids[text]; ok {
 		return id, nil
 	}
@@ -182,7 +243,7 @@ func (b *deltaBatch) node(ctx context.Context, v quad.Value, pin bool) (uint64, 
 		if err != nil {
 			return 0, err
 		}
-		b.ids[v.String()] = id
+		b.ids[valueText(v)] = id
 		return id, nil
 	}
 	if pin {
@@ -213,10 +274,10 @@ func (b *deltaBatch) add(ctx context.Context, q quad.Quad) error {
 
 	// Write the edge under both endpoints.
 	out, in := edgeKeys(qr)
-	if err := b.qs.tx.Set(ctx, out, []byte{}); err != nil {
+	if err := b.qs.set(ctx, out, []byte{}, nil, false); err != nil {
 		return err
 	}
-	return b.qs.tx.Set(ctx, in, []byte{})
+	return b.qs.set(ctx, in, []byte{}, nil, false)
 }
 
 // remove deletes the out and in keys of a quad that exists, and adds its
@@ -233,10 +294,10 @@ func (b *deltaBatch) remove(ctx context.Context, q quad.Quad, emptied map[uint64
 
 	// Delete the edge under both endpoints.
 	out, in := edgeKeys(qr)
-	if err := b.qs.tx.Delete(ctx, out); err != nil {
+	if err := b.qs.del(ctx, out, []byte{}); err != nil {
 		return err
 	}
-	if err := b.qs.tx.Delete(ctx, in); err != nil {
+	if err := b.qs.del(ctx, in, []byte{}); err != nil {
 		return err
 	}
 
@@ -259,10 +320,10 @@ func (qs *QuadStore) createNode(ctx context.Context, v quad.Value, pinned bool) 
 	}
 
 	// Write the ID map entry and the meta, and remember a pin.
-	if err := qs.tx.Set(ctx, valueKey(v.String()), encodeID(id)); err != nil {
+	if err := qs.set(ctx, valueKey(valueText(v)), encodeID(id), nil, false); err != nil {
 		return 0, err
 	}
-	if err := qs.tx.Set(ctx, metaKey(id), meta); err != nil {
+	if err := qs.set(ctx, metaKey(id), meta, nil, false); err != nil {
 		return 0, err
 	}
 	if pinned {
@@ -287,12 +348,16 @@ func (qs *QuadStore) pin(ctx context.Context, id uint64) error {
 
 	// Set the pin in the meta once, and remember it.
 	if !meta.GetPinned() {
+		prev, err := meta.MarshalVT()
+		if err != nil {
+			return err
+		}
 		meta.Pinned = true
 		data, err := meta.MarshalVT()
 		if err != nil {
 			return err
 		}
-		if err := qs.tx.Set(ctx, metaKey(id), data); err != nil {
+		if err := qs.set(ctx, metaKey(id), data, prev, true); err != nil {
 			return err
 		}
 	}
@@ -315,10 +380,17 @@ func (qs *QuadStore) markPinned(id uint64) {
 	if qs.pinned == nil {
 		qs.pinned = make(map[uint64]struct{})
 	}
-	qs.pinned[id] = struct{}{}
+	if _, ok := qs.pinned[id]; !ok {
+		qs.pinned[id] = struct{}{}
+		qs.undoPins = append(qs.undoPins, id)
+	}
 }
 
-// allocID returns a new node ID, the tree's next ID, which it advances.
+// allocID returns a new node ID, the tree's next ID, and advances the tree's
+// next ID key before the caller writes any key of the node. The key goes to
+// the transaction's write buffer, so a run of allocations costs one tree
+// write; writing it first means a call that fails after the allocation, and a
+// caller that commits anyway, still leaves the ID behind the key.
 func (qs *QuadStore) allocID(ctx context.Context) (uint64, error) {
 	// Load the next ID under the lock on first use.
 	qs.idMtx.Lock()
@@ -327,8 +399,11 @@ func (qs *QuadStore) allocID(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 
-	// Take it and advance.
+	// Store the advanced mark, then take the ID.
 	id := qs.nextID
+	if err := qs.tx.Set(ctx, nextIDKey, encodeID(id+1)); err != nil {
+		return 0, err
+	}
 	qs.nextID++
 	return id, nil
 }
@@ -347,43 +422,41 @@ func (qs *QuadStore) nodeEstimate(ctx context.Context) (int64, error) {
 // loadNextID sets nextID on first use from the tree's next ID key: one read
 // per store, through the write buffer without flushing it. A tree without the
 // key never held a node, so its next ID is 1. The caller holds idMtx.
+//
+// A tree with nodes but no next ID key is refused rather than repaired: its
+// highest live ID is no bound on the IDs deleted nodes held, so counting on
+// from it could allocate one of them again.
 func (qs *QuadStore) loadNextID(ctx context.Context) error {
 	// Loaded once per store.
 	if qs.nextID != 0 {
 		return nil
 	}
 
-	// Read the stored mark, or start an empty tree at 1.
+	// Read the stored mark.
 	v, found, err := qs.tx.Get(ctx, nextIDKey)
 	if err != nil {
 		return err
 	}
-	qs.nextID, qs.storedID = 1, 1
+
+	// Start a tree without it at 1, once one seek per prefix shows it empty.
 	if !found {
+		for _, prefix := range [][]byte{nodePrefix, valuePrefix} {
+			held, err := qs.hasKeyUnder(ctx, prefix)
+			if err != nil {
+				return err
+			}
+			if held {
+				return ErrMissingNextID
+			}
+		}
+		qs.nextID = 1
 		return nil
 	}
 	id, ok := decodeID(v)
 	if !ok || id == 0 {
 		return errors.Errorf("node graph: invalid next ID %x", v)
 	}
-	qs.nextID, qs.storedID = id, id
-	return nil
-}
-
-// storeNextID writes the next ID key when this store allocated an ID since
-// it last wrote it, so a later transaction never allocates an ID again, even
-// one whose node was deleted.
-func (qs *QuadStore) storeNextID(ctx context.Context) error {
-	// Write only after an allocation.
-	qs.idMtx.Lock()
-	defer qs.idMtx.Unlock()
-	if qs.nextID == qs.storedID {
-		return nil
-	}
-	if err := qs.tx.Set(ctx, nextIDKey, encodeID(qs.nextID)); err != nil {
-		return err
-	}
-	qs.storedID = qs.nextID
+	qs.nextID = id
 	return nil
 }
 
@@ -403,10 +476,24 @@ func (qs *QuadStore) deleteIfEmpty(ctx context.Context, id uint64) error {
 	}
 
 	// Delete its meta and its ID map entry.
-	if err := qs.tx.Delete(ctx, metaKey(id)); err != nil {
+	prev, err := meta.MarshalVT()
+	if err != nil {
 		return err
 	}
-	return qs.tx.Delete(ctx, valueKey(meta.GetValue().ToNative().String()))
+	if err := qs.del(ctx, metaKey(id), prev); err != nil {
+		return err
+	}
+	return qs.del(ctx, valueKey(valueText(meta.GetValue().ToNative())), encodeID(id))
+}
+
+// hasKeyUnder reports whether the tree holds a key with prefix.
+func (qs *QuadStore) hasKeyUnder(ctx context.Context, prefix []byte) (bool, error) {
+	it := qs.tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+	if !it.Next() {
+		return false, it.Err()
+	}
+	return true, nil
 }
 
 // hasEdges reports whether a node has an out or in key.

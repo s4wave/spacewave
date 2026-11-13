@@ -116,13 +116,7 @@ func TestWorldScaling(t *testing.T) {
 			return err
 		}},
 		{"revise an object", true, func(ctx context.Context, w *scaledWorld, ws world.WorldState, i int) error {
-			obj, err := world.MustGetObject(ctx, ws, worldSeedObjectKey(w.pick(i)))
-			if err != nil {
-				return err
-			}
-			defer world.ReleaseObjectState(obj)
-			_, err = obj.IncrementRev(ctx)
-			return err
+			return bumpObjectRev(ctx, ws, worldSeedObjectKey(w.pick(i)))
 		}},
 	}
 	for _, o := range ops {
@@ -197,11 +191,7 @@ func measureWorldDiff(t *testing.T, ctx context.Context, w *scaledWorld) scaleCo
 			t.Fatal(err)
 		}
 		k := w.pick(i)
-		obj, err := world.MustGetObject(ctx, tx, worldSeedObjectKey(k))
-		if err == nil {
-			_, err = obj.IncrementRev(ctx)
-			world.ReleaseObjectState(obj)
-		}
+		err = bumpObjectRev(ctx, tx, worldSeedObjectKey(k))
 		if err == nil {
 			err = tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(worldSeedObjectKey(k), "<bench/scale/diff>", worldSeedTypeKey(k), ""))
 		}

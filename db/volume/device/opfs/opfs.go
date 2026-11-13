@@ -20,6 +20,9 @@ import (
 	"github.com/s4wave/spacewave/db/volume/device"
 )
 
+// errDeviceClosed reports a call on a Device after Close.
+var errDeviceClosed = errors.New("device is closed")
+
 // lockPrefix prefixes the name of the Web Lock each Device holds.
 const lockPrefix = "volume-device-opfs/"
 
@@ -27,7 +30,8 @@ const lockPrefix = "volume-device-opfs/"
 type Device struct {
 	// dir is the directory handle.
 	dir js.Value
-	// release releases the Device's Web Lock.
+	// release releases the Device's Web Lock, or is nil once Close released
+	// it. Guarded by mtx.
 	release func()
 
 	// mtx serializes the device calls.
@@ -224,19 +228,32 @@ func (d *Device) List(ctx context.Context) ([]device.File, error) {
 
 // Close closes every handle and releases the Web Lock.
 func (d *Device) Close() error {
+	// Leave an already closed Device unchanged.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
+	if d.release == nil {
+		return nil
+	}
+
+	// Close the handles, then release the lock once.
 	for name, f := range d.files {
 		_ = f.Close()
 		delete(d.files, name)
 	}
 	d.release()
+	d.release = nil
 	return nil
 }
 
 // open returns the handle of name, opening it on first use. A missing file
 // returns nil unless create is set.
 func (d *Device) open(name string, create bool) (*opfs.SyncFile, error) {
+	// A closed Device no longer holds the lock, so it opens nothing.
+	if d.release == nil {
+		return nil, errDeviceClosed
+	}
+
+	// Reuse the open handle, or open the file.
 	if f := d.files[name]; f != nil {
 		return f, nil
 	}

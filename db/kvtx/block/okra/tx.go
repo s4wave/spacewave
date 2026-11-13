@@ -17,7 +17,8 @@ type Tx struct {
 	bcs   *block.Cursor
 	root  *Root
 	// readRoot reads a read transaction's stored root page. It is nil for
-	// writers and staged roots, whose pages live on bcs.
+	// writers and for a root left dirty by an earlier write in the block
+	// transaction, whose pages live on bcs.
 	readRoot *block.ReadCursor
 	// inlineValues permits the layout selected by the owning store's format tag.
 	inlineValues bool
@@ -62,6 +63,11 @@ func NewTx(
 		tx:            btx,
 		rootChangedCb: rootChangedCb,
 	}
+
+	// A read of a clean root is a snapshot as of this open: later writes to the
+	// subtree replace the root rather than change it, and the reader follows
+	// only stored pages. A read of a dirty root walks bcs, seeing uncommitted
+	// pages and retaining every page it loads.
 	if !write {
 		out.readRoot = block.NewReadCursor(ctx, bcs, root.GetRootPageRef())
 	}

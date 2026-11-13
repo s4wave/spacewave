@@ -1,9 +1,9 @@
 // Package s4dbv1 reads a database file the previous s4db engine wrote: a
 // commit log over a copy-on-write B+tree with values over the inline bound
-// packed into page-allocated extents. It only reads, and it reads once: a
-// Reader streams every pair in key order, merging the checkpointed tree
-// with the log after it, so the s4db bulk builder can write the file in the
-// current format. Every page, record and extent is checked against its
+// packed into page-allocated extents. It only reads: a Reader streams every
+// pair in key order, merging the checkpointed tree with the log after it, so
+// the s4db bulk builder can write the file in the current format, or looks
+// up single keys, as a recovery reads a few blocks from an old copy. Every page, record and extent is checked against its
 // checksum, and a torn log tail is cut as the previous engine's own recovery
 // would have cut it.
 package s4dbv1

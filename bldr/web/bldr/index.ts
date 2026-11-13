@@ -83,3 +83,12 @@ export type {
   BootProgressStatus,
   BootProgressStep,
 } from './boot-progress.js'
+export {
+  fillReactDevGeneration,
+  hasReactDevGeneration,
+  readReactDevRelease,
+  readReactDevSetting,
+  runningReactDev,
+  writeReactDevSetting,
+} from './react-dev.js'
+export type { ReactDevRelease, ReactDevSetting } from './react-dev.js'
