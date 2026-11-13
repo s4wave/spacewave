@@ -662,7 +662,7 @@ func TestStateWritesRefuseUnownedIds(t *testing.T) {
 	// An enrollment with an id that is not a DNS label fails before writing.
 	// Its ref check is the only one before the placeholder write: the genesis
 	// builder does not validate the id, so without it keys land under so/a/.
-	err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", newSOGeneration(), &sobject.SOState{}, nil)
+	_, err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, &sobject.SOState{}, nil)
 	if err == nil {
 		t.Fatal("an enrollment with an invalid id succeeded")
 	}
@@ -843,6 +843,67 @@ func TestReconcileKeepsRecreatedObject(t *testing.T) {
 	reconcile()
 	if testListed(a, "legacy") {
 		t.Fatal("an empty tombstone did not remove an object without a generation")
+	}
+}
+
+// TestDeleteSharedObjectKeepsRecreatedObject removes an object and creates
+// one under the same id after a delete published its tombstone and before its
+// local cleanup, as a catalog replay and a create in that window would. The
+// delete's cleanup leaves the newer object and its acknowledged write alone.
+func TestDeleteSharedObjectKeepsRecreatedObject(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	ref := createTestSharedObject(ctx, t, a, "race")
+
+	// Remove the object and create it again once the delete has published.
+	var hookErr error
+	testHookDeletePublished = func(id string) {
+		if id != "race" {
+			return
+		}
+		relMtx, err := a.mtx.Lock(ctx)
+		if err != nil {
+			hookErr = err
+			return
+		}
+		err = a.deleteSharedObjectLocked(ctx, id)
+		relMtx()
+		if err != nil {
+			hookErr = err
+			return
+		}
+		if _, err := a.CreateSharedObject(ctx, id, &sobject.SharedObjectMeta{BodyType: "space"}, "", ""); err != nil {
+			hookErr = err
+			return
+		}
+		fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
+		hookErr = tryWriteTestStateData(ctx, fresh, []byte("fake-new"))
+		releaseFresh()
+	}
+	t.Cleanup(func() { testHookDeletePublished = nil })
+	err := a.DeleteSharedObject(ctx, "race")
+	testHookDeletePublished = nil
+	if err != nil || hookErr != nil {
+		t.Fatalf("the delete returned %v, the re-create %v", err, hookErr)
+	}
+
+	// The newer object is listed, cataloged live and reads its write.
+	if !testListed(a, "race") {
+		t.Fatal("the delete removed the object created after its publish")
+	}
+	settings, err := a.readAccountSettings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry := settings.FindCatalogEntry("race"); entry.GetDeleted() || entry.GetEntry().GetGeneration() != a.listedSharedObjectEntry("race").GetGeneration() {
+		t.Fatalf("the catalog does not hold the recreated object live: %v", entry)
+	}
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
+	defer releaseFresh()
+	if got := readTestStateData(ctx, t, fresh); !bytes.Equal(got, []byte("fake-new")) {
+		t.Fatalf("the recreated object reads %q after the delete", got)
 	}
 }
 

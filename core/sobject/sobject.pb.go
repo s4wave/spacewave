@@ -595,10 +595,11 @@ type SharedObjectListEntry struct {
 	// The account dials each one while the object stays listed.
 	UdpPeerAddrs map[string]string `protobuf:"bytes,6,rep,name=udp_peer_addrs,json=udpPeerAddrs,proto3" json:"udpPeerAddrs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Generation names one lifetime of the object under its id: the local
-	// provider sets a new one in the list write that creates or joins the
-	// object, and every install from the account catalog carries it unchanged,
-	// so a tombstone removes an object only of the lifetime it names. Empty on
-	// entries made before generations, and on other providers.
+	// provider mints it in the list write that first lists the object, every
+	// install from the account catalog carries the catalog's unchanged, and
+	// every later write and publish reads it from the list. A tombstone removes
+	// only the lifetime it names, and a deleted lifetime stays deleted. Empty
+	// on entries made before generations, and on other providers.
 	Generation string `protobuf:"bytes,7,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 

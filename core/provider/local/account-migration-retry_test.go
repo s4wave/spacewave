@@ -99,6 +99,17 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 		t.Fatalf("retry did not retain destination data: found=%v err=%v", found, err)
 	}
 
+	// Check that the retry kept the listed generation and the catalog names it.
+	targetSettings, err := target.readAccountSettings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed := target.listedSharedObjectEntry(object.GetSharedObjectID())
+	cataloged := targetSettings.FindCatalogEntry(object.GetSharedObjectID())
+	if listed == nil || cataloged.GetDeleted() || cataloged.GetEntry().GetGeneration() != listed.GetGeneration() {
+		t.Fatalf("retry left list generation %q and catalog record %v", listed.GetGeneration(), cataloged)
+	}
+
 	// Check that the copy kept the external reader's access.
 	state, err := copied.(sobject.InviteHost).GetSOHost().GetHostState(ctx)
 	if err != nil {

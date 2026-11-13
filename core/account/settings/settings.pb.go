@@ -781,6 +781,11 @@ type AccountCatalogEntry struct {
 	Entry *sobject.SharedObjectListEntry `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
 	// Deleted prevents an offline replica from rediscovering a removed object.
 	Deleted bool `protobuf:"varint,2,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	// DeletedGenerations lists, sorted, every generation of this id a
+	// tombstone deleted, the empty generation included. The settings fold
+	// keeps it across every replacement of the record and ignores the field on
+	// an incoming op: a deleted generation stays deleted for good.
+	DeletedGenerations []string `protobuf:"bytes,3,rep,name=deleted_generations,json=deletedGenerations,proto3" json:"deletedGenerations,omitempty"`
 }
 
 func (x *AccountCatalogEntry) Reset() {
@@ -801,6 +806,13 @@ func (x *AccountCatalogEntry) GetDeleted() bool {
 		return x.Deleted
 	}
 	return false
+}
+
+func (x *AccountCatalogEntry) GetDeletedGenerations() []string {
+	if x != nil {
+		return x.DeletedGenerations
+	}
+	return nil
 }
 
 // PairedDevice is a device that has been paired with this account via P2P.
@@ -1629,6 +1641,7 @@ func (m *AccountCatalogEntry) CloneVT() *AccountCatalogEntry {
 	r := new(AccountCatalogEntry)
 	r.Deleted = m.Deleted
 	r.Entry = protobuf_go_lite.CloneVTValue(m.Entry)
+	r.DeletedGenerations = protobuf_go_lite.CloneSlice(m.DeletedGenerations)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2443,6 +2456,9 @@ func (this *AccountCatalogEntry) EqualVT(that *AccountCatalogEntry) bool {
 		return false
 	}
 	if this.Deleted != that.Deleted {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.DeletedGenerations, that.DeletedGenerations) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4107,6 +4123,11 @@ func (x *AccountCatalogEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("deleted")
 		s.WriteBool(x.Deleted)
 	}
+	if len(x.DeletedGenerations) > 0 || s.HasField("deletedGenerations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deletedGenerations")
+		s.WriteStringArray(x.DeletedGenerations)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4134,6 +4155,13 @@ func (x *AccountCatalogEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "deleted":
 			s.AddField("deleted")
 			x.Deleted = s.ReadBool()
+		case "deleted_generations", "deletedGenerations":
+			s.AddField("deleted_generations")
+			if s.ReadNil() {
+				x.DeletedGenerations = nil
+				return
+			}
+			x.DeletedGenerations = s.ReadStringArray()
 		}
 	})
 }
@@ -5698,6 +5726,13 @@ func (m *AccountCatalogEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.DeletedGenerations) > 0 {
+		for iNdEx := len(m.DeletedGenerations) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.DeletedGenerations[iNdEx])
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.Deleted {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Deleted)
 		i--
@@ -6926,6 +6961,7 @@ func (m *AccountCatalogEntry) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Deleted)
+	n += protobuf_go_lite.SizeStringSlice(1, m.DeletedGenerations)
 	n += len(m.unknownFields)
 	return n
 }
@@ -7805,6 +7841,14 @@ func (x *AccountCatalogEntry) MarshalProtoText() string {
 	if x.Deleted != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deleted")
 		protobuf_go_lite.TextWriteBool(&sb, x.Deleted)
+	}
+	if len(x.DeletedGenerations) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "deleted_generations")
+		for i, v := range x.DeletedGenerations {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -9246,6 +9290,16 @@ func (m *AccountCatalogEntry) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Deleted = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeletedGenerations", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DeletedGenerations = append(m.DeletedGenerations, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

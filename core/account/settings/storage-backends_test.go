@@ -257,10 +257,11 @@ func TestBlockStoreFallbackPlacement(t *testing.T) {
 	}
 }
 
-// TestCatalogTombstoneGenerations applies a tombstone of one generation and a
-// live entry of a later generation of the same id in both orders; both end
-// with the later object live. A late write of the deleted generation leaves
-// its tombstone in place.
+// TestCatalogTombstoneGenerations folds tombstones and live entries of the
+// same id in several delivery orders. Each multiset ends with the same
+// deleted set and the same live generation, or a tombstone, in every order,
+// and a deleted generation never returns, including one a tombstone record
+// written before deleted sets names.
 func TestCatalogTombstoneGenerations(t *testing.T) {
 	entry := func(generation string, deleted bool) *AccountSettingsOp {
 		ref := &sobject.SharedObjectRef{
@@ -272,24 +273,52 @@ func TestCatalogTombstoneGenerations(t *testing.T) {
 			Deleted: deleted,
 		}}}
 	}
-	for _, c := range []struct {
+	live := func(generation string) *AccountSettingsOp { return entry(generation, false) }
+	del := func(generation string) *AccountSettingsOp { return entry(generation, true) }
+	for i, c := range []struct {
+		legacy     bool
 		ops        []*AccountSettingsOp
 		generation string
-		deleted    bool
+		deleted    []string
 	}{
-		{[]*AccountSettingsOp{entry("g1", false), entry("g1", true), entry("g2", false)}, "g2", false},
-		{[]*AccountSettingsOp{entry("g1", false), entry("g2", false), entry("g1", true)}, "g2", false},
-		{[]*AccountSettingsOp{entry("g1", false), entry("g1", true), entry("g1", false)}, "g1", true},
+		{false, []*AccountSettingsOp{live("g1"), del("g1"), live("g2")}, "g2", []string{"g1"}},
+		{false, []*AccountSettingsOp{live("g1"), live("g2"), del("g1")}, "g2", []string{"g1"}},
+		{false, []*AccountSettingsOp{live("g2"), del("g1")}, "g2", []string{"g1"}},
+		{false, []*AccountSettingsOp{live("g1"), del("g1"), live("g1")}, "", []string{"g1"}},
+		{false, []*AccountSettingsOp{del("g1"), live("g2"), live("g1")}, "g2", []string{"g1"}},
+		{false, []*AccountSettingsOp{live("g2"), del("g1"), live("g1")}, "g2", []string{"g1"}},
+		{false, []*AccountSettingsOp{del("g1"), del("g2"), live("g2")}, "", []string{"g1", "g2"}},
+		{false, []*AccountSettingsOp{live("g2"), del("g2"), del("g1")}, "", []string{"g1", "g2"}},
+		{false, []*AccountSettingsOp{del("g2"), live("g2"), del("g1")}, "", []string{"g1", "g2"}},
+		{false, []*AccountSettingsOp{live("g1"), del("g2"), del("g1")}, "", []string{"g1", "g2"}},
+		{false, []*AccountSettingsOp{live("g1"), del("g1"), del("g2")}, "", []string{"g1", "g2"}},
+		{false, []*AccountSettingsOp{live(""), del(""), live("")}, "", []string{""}},
+		{true, []*AccountSettingsOp{live("g1")}, "", nil},
+		{true, []*AccountSettingsOp{live("g2"), live("g1")}, "g2", []string{"g1"}},
 	} {
 		s := &AccountSettings{}
+		if c.legacy {
+			// A tombstone of g1 from a binary before deleted sets.
+			tombstone := del("g1").GetUpsertCatalogEntry()
+			s.Catalog = []*AccountCatalogEntry{tombstone}
+		}
 		for _, op := range c.ops {
 			if err := applyOp(t, s, op); err != nil {
 				t.Fatal(err)
 			}
 		}
 		got := s.FindCatalogEntry("space-1")
-		if got.GetDeleted() != c.deleted || got.GetEntry().GetGeneration() != c.generation {
-			t.Fatalf("expected generation %s deleted %v, got %v", c.generation, c.deleted, got)
+		if !slices.Equal(got.GetDeletedGenerations(), c.deleted) {
+			t.Fatalf("case %d: deleted generations %v, expected %v", i, got.GetDeletedGenerations(), c.deleted)
+		}
+		if c.generation == "" {
+			if !got.GetDeleted() {
+				t.Fatalf("case %d: expected a tombstone, got %v", i, got)
+			}
+			continue
+		}
+		if got.GetDeleted() || got.GetEntry().GetGeneration() != c.generation {
+			t.Fatalf("case %d: expected generation %s live, got %v", i, c.generation, got)
 		}
 	}
 }

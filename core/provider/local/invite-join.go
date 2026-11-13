@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -276,63 +275,89 @@ func (a *ProviderAccount) mountInvitedSO(
 	if soID == "" {
 		return errors.New("invite result has no shared object ID")
 	}
-	return a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", newSOGeneration(), result.SharedObjectState, result.ConfigLineage)
+	_, err := a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, result.SharedObjectState, result.ConfigLineage)
+	return err
 }
 
 // mountEnrolledSO persists a checkpoint received through an authorized enrollment
-// exchange with the config lineage leading to its config, oldest first. The
-// SharedObject host validates the state and the lineage. generation is the
-// list entry's generation: a new one for a new lifetime in this account, the
-// catalog entry's for an install from the account catalog.
+// exchange with the config lineage leading to its config, oldest first, and
+// returns the generation the object is listed under. The SharedObject host
+// validates the state and the lineage.
+//
+// generation is the catalog entry's generation for an install from the
+// account catalog, or nil for a join. A join into a listed object merges into
+// it and keeps its generation; otherwise the list write mints one. An install
+// merges only into the same generation: a listed object of another
+// generation is kept untouched and logged, and nothing is installed.
+//
+// The state write and the list write run in one critical section under the
+// account lock, after a check that the id is still listed as it was when the
+// enrollment decided between merge and install. A create, delete or other
+// enrollment of the id in between fails the enrollment before it writes, so
+// it never writes one lifetime's state into another. The placeholder and the
+// mount precede the lock: an enrollment that fails leaves the id unlisted
+// and a retry reuses the placeholder. A create or delete of the id replaces
+// or removes the placeholder and restarts the mount, so no handle builds on
+// it afterwards.
 func (a *ProviderAccount) mountEnrolledSO(
 	ctx context.Context,
 	soID string,
 	meta *sobject.SharedObjectMeta,
 	source string,
-	generation string,
+	generation *string,
 	state *sobject.SOState,
 	lineage []*sobject.SOConfigChange,
-) error {
+) (string, error) {
 	// Name the object in this account.
 	providerID := a.t.accountInfo.GetProviderId()
 	accountID := a.t.accountInfo.GetProviderAccountId()
 	blockStoreID := SobjectBlockStoreID(soID)
 	ref := sobject.NewSharedObjectRef(providerID, accountID, soID, blockStoreID)
 	if err := ref.Validate(); err != nil {
-		return errors.Wrap(err, "enrolled shared object ref")
+		return "", errors.Wrap(err, "enrolled shared object ref")
+	}
+
+	// Decide under the account lock whether the state merges into a listed
+	// object or installs a new one.
+	relMtx, err := a.mtx.Lock(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "lock account mutex")
+	}
+	listed := a.listedSharedObjectEntry(soID).CloneVT()
+	relMtx()
+	if listed != nil && generation != nil && listed.GetGeneration() != *generation {
+		a.le.WithField("sobject-id", soID).Warn("keeping local shared object of another generation than the enrolled one")
+		return listed.GetGeneration(), nil
 	}
 
 	// Store a placeholder genesis for the received state to replace, unless
 	// the account already holds state for the object, then mount it. The
-	// install below goes through the mount, so the placeholder precedes the
-	// list write rather than joining it; an enrollment that fails before the
-	// list write leaves it unlisted, a retry of the same object reuses it, and
-	// a create of the id clears it.
+	// install below goes through the mount.
 	if err := a.writeGenesisSOState(ctx, soID); err != nil {
-		return errors.Wrap(err, "store placeholder shared object state")
+		return "", errors.Wrap(err, "store placeholder shared object state")
 	}
 	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
-		return errors.Wrap(err, "mount shared object")
+		return "", errors.Wrap(err, "mount shared object")
 	}
 	defer relSO()
 
 	// Resolve the local shared object the invited state installs into.
 	localSO, ok := so.(*SharedObject)
 	if !ok {
-		return errors.New("unexpected shared object type")
+		return "", errors.New("unexpected shared object type")
 	}
 
-	// Install the invited state and lineage, whose grant lets the invitee
-	// decrypt the SO data. An account that lists the object holds it, so the
-	// state merges into the held one. Otherwise it replaces the placeholder
-	// stored above.
-	install := localSO.soHost.InstallInviteSnapshot
-	if listsSharedObject(a.soListCtr.GetValue(), soID) {
-		install = localSO.soHost.MergeInviteSnapshot
+	// Hold the account lock from the check through the list write, so no
+	// create, delete or other enrollment of the id runs in between.
+	relMtx, err = a.mtx.Lock(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "lock account mutex")
 	}
-	if err := install(ctx, state, lineage); err != nil {
-		return errors.Wrap(err, "install owner shared object state")
+	listedGen, err := a.writeEnrolledSO(ctx, localSO, ref, meta, source, generation, listed, state, lineage)
+	relMtx()
+	if err != nil {
+		return "", err
 	}
 
 	// Denials answered the previous grant, not the checkpoint just installed.
@@ -340,45 +365,60 @@ func (a *ProviderAccount) mountEnrolledSO(
 
 	// Admission is complete only when body mounts can observe the accepted grant.
 	if err := localSO.lsoHost.waitPublishedConfig(ctx, state.GetConfig()); err != nil {
-		return errors.Wrap(err, "publish invited shared object state")
+		return "", errors.Wrap(err, "publish invited shared object state")
+	}
+	return listedGen, nil
+}
+
+// writeEnrolledSO writes the enrolled state into the mounted object and lists
+// a newly installed one, if the id is still listed as listed was. Assumes mtx
+// is locked.
+func (a *ProviderAccount) writeEnrolledSO(
+	ctx context.Context,
+	localSO *SharedObject,
+	ref *sobject.SharedObjectRef,
+	meta *sobject.SharedObjectMeta,
+	source string,
+	generation *string,
+	listed *sobject.SharedObjectListEntry,
+	state *sobject.SOState,
+	lineage []*sobject.SOConfigChange,
+) (string, error) {
+	// Refuse a lifetime other than the one the enrollment decided against.
+	soID := ref.GetProviderResourceRef().GetId()
+	current := a.listedSharedObjectEntry(soID)
+	if (current == nil) != (listed == nil) || (current != nil && current.GetGeneration() != listed.GetGeneration()) {
+		return "", errors.Errorf("shared object %s changed during the enrollment", soID)
 	}
 
-	// Persist the SO to the account's SO list so it survives restarts
-	// and is included in P2P sync. Follows createSharedObjectLocked pattern.
-	relMtx, err := a.mtx.Lock(ctx)
-	if err != nil {
-		return errors.Wrap(err, "lock account mutex")
+	// Install the invited state and lineage, whose grant lets the invitee
+	// decrypt the SO data. A listed object of the same lifetime holds it, so
+	// the state merges into the held one. Otherwise it replaces the
+	// placeholder.
+	install := localSO.soHost.InstallInviteSnapshot
+	if listed != nil {
+		install = localSO.soHost.MergeInviteSnapshot
 	}
-	defer relMtx()
+	if err := install(ctx, state, lineage); err != nil {
+		return "", errors.Wrap(err, "install owner shared object state")
+	}
+	if listed != nil {
+		return listed.GetGeneration(), nil
+	}
 
-	// Load the account's object list.
+	// List a new object in ID order, so it survives restarts and joins P2P
+	// sync. Follows createSharedObjectLocked.
 	soList := a.soListCtr.GetValue().CloneVT()
 	if soList == nil {
 		soList = &sobject.SharedObjectList{}
 	}
-
-	// An existing participant accepting a new invite is already listed.
-	if listsSharedObject(soList, soID) {
-		return nil
-	}
-
-	// Otherwise add the object in ID order.
-	soList.SharedObjects = append(soList.SharedObjects, &sobject.SharedObjectListEntry{
-		Ref:        ref.CloneVT(),
-		Source:     source,
-		Meta:       meta.CloneVT(),
-		Generation: generation,
-	})
-	slices.SortFunc(soList.SharedObjects, func(a, b *sobject.SharedObjectListEntry) int {
-		return strings.Compare(a.GetRef().GetProviderResourceRef().GetId(), b.GetRef().GetProviderResourceRef().GetId())
-	})
-
-	// Persist the list and publish it.
+	entry := newListEntry(ref, meta, source, generation)
+	insertListEntry(soList, entry)
 	if err := a.writeSharedObjectList(ctx, soList); err != nil {
-		return errors.Wrap(err, "persist SO list")
+		return "", errors.Wrap(err, "persist SO list")
 	}
 	a.soListCtr.SetValue(soList)
-	return nil
+	return entry.GetGeneration(), nil
 }
 
 // listsSharedObject reports whether the list has an entry for the object.
@@ -407,20 +447,24 @@ func (a *ProviderAccount) setSharedObjectUDPPeer(ctx context.Context, soID strin
 // editListedSharedObject applies edit to the object's list entry, and
 // persists and publishes the list when edit reports a change.
 func (a *ProviderAccount) editListedSharedObject(ctx context.Context, soID string, edit func(*sobject.SharedObjectListEntry) bool) error {
-	// Hold the account lock while editing its object list.
 	relMtx, err := a.mtx.Lock(ctx)
 	if err != nil {
 		return errors.Wrap(err, "lock account mutex")
 	}
 	defer relMtx()
+	return a.editListedSharedObjectLocked(ctx, soID, edit)
+}
 
+// editListedSharedObjectLocked is editListedSharedObject with mtx held. An
+// unlisted object returns ErrSharedObjectNotFound.
+func (a *ProviderAccount) editListedSharedObjectLocked(ctx context.Context, soID string, edit func(*sobject.SharedObjectListEntry) bool) error {
 	// Edit a copy of the listed entry.
 	soList := a.soListCtr.GetValue().CloneVT()
 	idx := slices.IndexFunc(soList.GetSharedObjects(), func(entry *sobject.SharedObjectListEntry) bool {
 		return entry.GetRef().GetProviderResourceRef().GetId() == soID
 	})
 	if idx < 0 {
-		return errors.Errorf("shared object %s is not listed", soID)
+		return sobject.ErrSharedObjectNotFound
 	}
 	if !edit(soList.SharedObjects[idx]) {
 		return nil
