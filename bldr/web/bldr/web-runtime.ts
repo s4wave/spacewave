@@ -564,6 +564,10 @@ export class WebRuntime {
 
   // closed indicates the instance is closed.
   private closed?: true
+  // failure is the reason the runtime's process ended. Failed is a terminal
+  // state the runtime holds: every document that attaches afterwards is told
+  // at once, rather than waiting on a process that will never answer.
+  private failure?: string
 
   // isClosed checks if the instance is closed.
   public get isClosed(): boolean {
@@ -637,6 +641,18 @@ export class WebRuntime {
       this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost),
     )
   }
+  // fail moves the runtime to its failed state after its process ended, and
+  // tells every attached document with the terminal runtime.failed startup
+  // mark, which their startup surface shows as a failure with Retry. Only the
+  // first failure is kept.
+  public fail(reason: string): void {
+    if (this.failure !== undefined) {
+      return
+    }
+    this.failure = reason
+    this.broadcastStartupMark('runtime.failed', { reason })
+  }
+
   // broadcastStartupMark forwards compact runtime accounting to attached documents.
   public broadcastStartupMark(
     label: string,
@@ -855,6 +871,19 @@ export class WebRuntime {
         snapshot: false,
         closed: false,
         webDocuments: [status],
+      })
+    }
+
+    // A document that attaches to a failed runtime learns of it first.
+    if (
+      this.failure !== undefined &&
+      msg.clientType === WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
+    ) {
+      client.postMessage({
+        startupMark: {
+          label: 'runtime.failed',
+          detail: { reason: this.failure },
+        },
       })
     }
   }

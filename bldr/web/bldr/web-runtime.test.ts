@@ -514,6 +514,53 @@ describe('WebRuntime', () => {
     expect(workerPost).not.toHaveBeenCalled()
   })
 
+  it('holds the failed state for documents that attach later', async () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const early = new MessageChannel()
+    runtime.handleClient(
+      {
+        clientUuid: 'document-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      early.port1,
+    )
+    const earlyPost = vi.spyOn(
+      runtime.lookupClient('document-1')!,
+      'postMessage',
+    )
+
+    runtime.fail('panic: boom')
+    runtime.fail('panic: later')
+    const failed = {
+      startupMark: {
+        label: 'runtime.failed',
+        detail: { reason: 'panic: boom' },
+      },
+    }
+    expect(earlyPost).toHaveBeenCalledTimes(1)
+    expect(earlyPost).toHaveBeenCalledWith(failed)
+
+    const late = new MessageChannel()
+    const received = new Promise<unknown>((resolve) => {
+      // The connection ack comes first.
+      late.port2.onmessage = (ev) => {
+        if (ev.data?.startupMark) {
+          resolve(ev.data)
+        }
+      }
+    })
+    runtime.handleClient(
+      {
+        clientUuid: 'document-2',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      late.port1,
+    )
+    expect(await received).toEqual(failed)
+    late.port2.close()
+    early.port2.close()
+  })
+
   it('removes active clients when invalidated', () => {
     const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
     const { port1 } = new MessageChannel()
