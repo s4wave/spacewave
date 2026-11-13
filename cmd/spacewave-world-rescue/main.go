@@ -185,6 +185,9 @@ func (a *args) run() error {
 		if wholePacks, err = readWholePackList(a.wholePacks); err != nil {
 			return err
 		}
+		if err := wholeInPacks(wholePacks, packs); err != nil {
+			return err
+		}
 	}
 
 	// Read the keep set and open its kept and dropped logs, whole packs only.

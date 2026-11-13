@@ -299,3 +299,27 @@ func orderPacksBy(packs []*packWork, mode string, overhead uint64) {
 		return cmp.Compare(a.id, b.id)
 	})
 }
+
+// wholeInPacks fails when packs bounds the plan and a listed whole pack is
+// outside it, as the plan would skip it in silence. The error counts the
+// missing ids and names none.
+func wholeInPacks(whole []string, packs map[string]bool) error {
+	// Pass when no pack list bounds the plan.
+	if packs == nil {
+		return nil
+	}
+
+	// Count the listed whole packs outside the pack list.
+	var n int
+	for _, id := range whole {
+		if !packs[id] {
+			n++
+		}
+	}
+
+	// Refuse any, naming none.
+	if n != 0 {
+		return errors.Errorf("whole pack not in --packs: %d of %d --whole-packs ids are not in the --packs list; add them or drop them", n, len(whole))
+	}
+	return nil
+}

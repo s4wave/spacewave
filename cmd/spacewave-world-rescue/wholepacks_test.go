@@ -329,12 +329,12 @@ func TestReadWholePackList(t *testing.T) {
 // TestRescueWholePacksStopOnDrop drops the connection on the read of a
 // listed pack the refs do not place: the run stops at once with the drop
 // line, the listed pack is not finished, and a restart reads it alone and
-// keeps its keep set blocks once. A listed pack outside --packs is not read.
+// keeps its keep set blocks once.
 func TestRescueWholePacksStopOnDrop(t *testing.T) {
 	// Drop the second request, the listed pack's read after the placed one.
 	src := newSource(t)
 	a, b := src.pack(3), src.pack(5)
-	idA, idB := packOf(t, src, a[0]), packOf(t, src, b[0])
+	idB := packOf(t, src, b[0])
 	src.dropHashRows(b)
 	out := t.TempDir()
 	list := writeList(t, out, a)
@@ -378,20 +378,60 @@ func TestRescueWholePacksStopOnDrop(t *testing.T) {
 		}
 	}
 
-	// A listed pack outside --packs is not read.
-	out2 := t.TempDir()
-	o := dropOptions(src, writeList(t, out2, a), out2, &bytes.Buffer{})
+}
+
+// TestRescueWholePacksNotInPacks fails at startup when --packs bounds the
+// plan and a listed whole pack is outside it, rather than skip it in
+// silence: the command fails before it opens the index or reads the netrc,
+// and run fails before any request. The message names no pack id.
+func TestRescueWholePacksNotInPacks(t *testing.T) {
+	src := newSource(t)
+	a, b := src.pack(3), src.pack(5)
+	idA, idB := packOf(t, src, a[0]), packOf(t, src, b[0])
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	keepPath := filepath.Join(dir, "keep.tails")
+	writeKeys(t, keepPath, b[:3])
+	const want = "whole pack not in --packs"
+
+	// The command refuses before the index and the netrc, both missing.
+	cmd := &args{
+		refs: filepath.Join(dir, "no-refs"), index: filepath.Join(dir, "no-index"),
+		netrc: filepath.Join(dir, "no-netrc"), out: filepath.Join(dir, "out"),
+		layout: layoutPackStore, order: orderWanted, sessions: 1, maxBytes: 1 << 20, maxPackMiB: 1,
+		packList: write("packs", idA+"\n"), wholePacks: write("whole", idB+"\n"), keepSet: keepPath,
+	}
+	err := cmd.run()
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("command: %v, want %q", err, want)
+	}
+	if strings.Contains(err.Error(), idB) {
+		t.Fatalf("message %q names the pack", err)
+	}
+
+	// A list that holds every whole pack passes the check.
+	cmd.packList = write("packs2", idA+"\n"+idB+"\n")
+	if err := cmd.run(); err == nil || strings.Contains(err.Error(), want) {
+		t.Fatalf("command with both packs: %v, want a later error", err)
+	}
+
+	// run refuses before any request.
+	out := t.TempDir()
+	o := testOptions(src, writeList(t, out, a), out)
 	o.Keep = keepOf(t, b[:3], &bytes.Buffer{}, &bytes.Buffer{})
 	o.WholePacks = []string{idB}
 	o.Packs = map[string]bool{idA: true}
-	third := &fakeServer{dir: src.dir}
-	if _, err := run(context.Background(), o, third); err != nil {
-		t.Fatal(err)
+	srv := &fakeServer{dir: src.dir}
+	if _, err := run(context.Background(), o, srv); err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("run: %v, want %q", err, want)
 	}
-	if calls, _ := third.count(); calls != 1 {
-		t.Fatalf("with --packs: %d calls, want 1", calls)
-	}
-	if n := checkOutput(t, out2, b); n != 0 {
-		t.Fatalf("with --packs: %d listed pack blocks stored", n)
+	if calls, _ := srv.count(); calls != 0 {
+		t.Fatalf("run: %d calls, want 0", calls)
 	}
 }

@@ -221,6 +221,9 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 		if o.Keep.Set == nil {
 			return nil, errors.New("--whole-packs needs --keep-set: a listed pack no ref places gives only keep set blocks")
 		}
+		if err := wholeInPacks(o.WholePacks, o.Packs); err != nil {
+			return nil, err
+		}
 	}
 
 	// Choose the output layout, finishing the pairs a crash left staged in
@@ -474,8 +477,9 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 	}
 
 	// Drop the packs left empty; defer, unrecorded, the packs outside Packs,
-	// listed whole packs included; record the refs of packs the plan cannot
-	// read; defer the packs at or below MinWanted. A pack the ledger
+	// which run made hold every listed whole pack; record the refs of packs
+	// the plan cannot read; defer the packs at or below MinWanted. A pack
+	// the ledger
 	// finished is kept when it has wants: they are refs no earlier run
 	// recorded, added to the list since, and every candidate pack of a ref
 	// stays counted in r.multi. A listed whole pack is neither dropped
