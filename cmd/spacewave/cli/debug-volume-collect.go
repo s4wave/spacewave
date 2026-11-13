@@ -80,10 +80,9 @@ func collectVolume(ctx context.Context, le *logrus.Entry, path string, conf *sto
 		sum.Queued += res.Queued
 		sum.Freed += res.Freed
 		sum.Kept += res.Kept
-		sum.Parked += res.Parked
-		sum.Requeued += res.Requeued
+		sum.Dying += res.Dying
+		sum.Revived += res.Revived
 		sum.Leaked += res.Leaked
-		sum.Stranded += res.Stranded
 		sum.Underflows += res.Underflows
 		sum.Lapsed += res.Lapsed
 		sum.Duration = time.Since(start)
@@ -104,10 +103,9 @@ func collectFields(path string, frees bool, passes int, res block_gc.CollectResu
 		{"Queued to free", strconv.FormatUint(res.Queued, 10)},
 		{"Freed", strconv.FormatUint(res.Freed, 10)},
 		{"Kept", strconv.FormatUint(res.Kept, 10)},
-		{"Parked older blocks", strconv.FormatUint(res.Parked, 10)},
-		{"Requeued parked blocks", strconv.FormatUint(res.Requeued, 10)},
+		{"Freed in pages", strconv.FormatUint(res.Dying, 10)},
+		{"Held again while freeing", strconv.FormatUint(res.Revived, 10)},
 		{"Leaked", strconv.FormatUint(res.Leaked, 10)},
-		{"Stranded releases", strconv.FormatUint(res.Stranded, 10)},
 		{"Underflows refused", strconv.FormatUint(res.Underflows, 10)},
 		{"Lapsed leases", strconv.FormatUint(res.Lapsed, 10)},
 		{"Duration", res.Duration.String()},

@@ -32,9 +32,7 @@ import (
 //
 // Until the Volume's old generation settles, a fill keeps the settle's
 // barrier as Land does: while Open it pushes onto the front each unverified
-// child of a block it gives birth to or refills, and a fill of a block the
-// free parked gives birth to it again, as Records.repark describes; while
-// Sweeping a fill of an unmarked block gives birth to it again, as
+// child of a block it gives birth to or refills; while Sweeping a fill of an unmarked block gives birth to it again, as
 // Records.rebirth describes, with the old list's children outside the run
 // in the record's down pairs. A fill refuses no hold, since it serves a read. Learning the
 // generation reads the state record until the transaction knows the Volume
@@ -45,18 +43,13 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 	// recorded holes it refills.
 	var born, refills []*block.PutBatchEntry
 	reborn := make(map[string]bool)
-	var reparked []*block.PutBatchEntry
 	err := classifyPuts(ctx, rec, blocks, entries, func(entry *block.PutBatchEntry, kind putKind) {
 		switch kind {
 		case putBorn:
 			born = append(born, entry)
-		case putReborn, putRepark:
+		case putReborn:
 			born = append(born, entry)
-			if kind == putReborn {
-				reborn[string(BlockKey(entry.Ref))] = true
-			} else {
-				reparked = append(reparked, entry)
-			}
+			reborn[string(BlockKey(entry.Ref))] = true
 		case putRefill:
 			refills = append(refills, entry)
 		}
@@ -73,11 +66,6 @@ func LandFill(ctx context.Context, rec *Records, blocks block.StoreOps, now time
 	}
 	for _, entry := range refills {
 		if err := rec.refill(ctx, entry); err != nil {
-			return nil, err
-		}
-	}
-	for _, entry := range reparked {
-		if err := rec.repark(ctx, BlockKey(entry.Ref)); err != nil {
 			return nil, err
 		}
 	}

@@ -221,21 +221,19 @@ type LivenessState struct {
 	// slice does a bounded amount, so it splits a large record across slices.
 	NetOffset uint64 `protobuf:"varint,8,opt,name=net_offset,json=netOffset,proto3" json:"netOffset,omitempty"`
 	// Release is the paged release or re-hold in progress of one block's
-	// children, unset when none is.
+	// children, unset when none is. A release names the Dying block, whose
+	// bytes and list stay stored until the free ends it.
 	Release *Release `protobuf:"bytes,11,opt,name=release,proto3" json:"release,omitempty"`
 	// HoldMark is one past the sequence of the last journal record of a Land
-	// that held a block at zero holders, or one whose children were released,
-	// or any block while a cascade was due: a block below it may have no
-	// holder until that record nets and the re-hold it brings runs. The
-	// collector frees nothing, and the settle pops no front entry, until its
-	// cursor reaches the mark.
+	// that held a stored block at zero holders, or any stored block while a
+	// release was in progress: the block may be freed before that record
+	// nets. The collector frees nothing until its cursor reaches the mark.
 	HoldMark uint64 `protobuf:"varint,12,opt,name=hold_mark,json=holdMark,proto3" json:"holdMark,omitempty"`
-	// Cascades counts the cascade records, the blocks whose cascade is due,
-	// so a Land and the free learn whether any is due from this record rather
-	// than a seek past the deleted ones. It is exact while the Volume is
-	// adopted: the adoption zeroes it once its clear has deleted the records
-	// an earlier run left, and counts each block it settles Dying.
-	Cascades uint64 `protobuf:"varint,13,opt,name=cascades,proto3" json:"cascades,omitempty"`
+	// FoundMarks counts the hold marks a Land set only because a block it
+	// found stored, and named as a child without putting it, was at zero or
+	// a release was in progress: the marks the found rule adds beyond those a
+	// root move or a put again sets.
+	FoundMarks uint64 `protobuf:"varint,17,opt,name=found_marks,json=foundMarks,proto3" json:"foundMarks,omitempty"`
 }
 
 func (x *LivenessState) Reset() {
@@ -307,20 +305,21 @@ func (x *LivenessState) GetHoldMark() uint64 {
 	return 0
 }
 
-func (x *LivenessState) GetCascades() uint64 {
+func (x *LivenessState) GetFoundMarks() uint64 {
 	if x != nil {
-		return x.Cascades
+		return x.FoundMarks
 	}
 	return 0
 }
 
-// Release is a cascade whose child list is longer than one collector slice
-// moves: the release of the children of a block that lost its last holder,
-// or the re-hold of the children of one that gained a holder after its
-// release. The slice that starts it moves the list to release pages and
-// marks the block released or held; each later slice moves the next
-// children's holders by one and moves Next in the same transaction, and the
-// last deletes the pages and clears the release.
+// Release is the paged release of the children of a Dying block, one the
+// free took whose list is longer than one slice moves, or the re-hold of the
+// children of one held again while Dying. The transaction that starts it
+// moves the list to release pages; each later netting slice moves the next
+// children's holders by one and moves Next in the same transaction. A
+// re-hold ends with its last child. A release stays with Next at its end
+// until the free deletes the block, or starts its re-hold when a writer
+// held it meanwhile.
 type Release struct {
 	unknownFields []byte
 	// Block is the block, as its hash type byte and digest.
@@ -329,8 +328,8 @@ type Release struct {
 	Next uint64 `protobuf:"varint,2,opt,name=next,proto3" json:"next,omitempty"`
 	// Children is how many children the list names.
 	Children uint64 `protobuf:"varint,3,opt,name=children,proto3" json:"children,omitempty"`
-	// Rehold reports a re-hold: each child gains a holder rather than losing
-	// one.
+	// Rehold reports a re-hold: each child gains a holder back rather than
+	// losing one.
 	Rehold bool `protobuf:"varint,4,opt,name=rehold,proto3" json:"rehold,omitempty"`
 }
 
@@ -417,7 +416,7 @@ func (m *LivenessState) CloneVT() *LivenessState {
 	r.Generation = m.Generation
 	r.NetOffset = m.NetOffset
 	r.HoldMark = m.HoldMark
-	r.Cascades = m.Cascades
+	r.FoundMarks = m.FoundMarks
 	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -533,7 +532,7 @@ func (this *LivenessState) EqualVT(that *LivenessState) bool {
 	if this.HoldMark != that.HoldMark {
 		return false
 	}
-	if this.Cascades != that.Cascades {
+	if this.FoundMarks != that.FoundMarks {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -837,10 +836,10 @@ func (x *LivenessState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("holdMark")
 		s.WriteUint64(x.HoldMark)
 	}
-	if x.Cascades != 0 || s.HasField("cascades") {
+	if x.FoundMarks != 0 || s.HasField("foundMarks") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("cascades")
-		s.WriteUint64(x.Cascades)
+		s.WriteObjectField("foundMarks")
+		s.WriteUint64(x.FoundMarks)
 	}
 	s.WriteObjectEnd()
 }
@@ -890,9 +889,9 @@ func (x *LivenessState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "hold_mark", "holdMark":
 			s.AddField("hold_mark")
 			x.HoldMark = s.ReadUint64()
-		case "cascades":
-			s.AddField("cascades")
-			x.Cascades = s.ReadUint64()
+		case "found_marks", "foundMarks":
+			s.AddField("found_marks")
+			x.FoundMarks = s.ReadUint64()
 		}
 	})
 }
@@ -1097,10 +1096,12 @@ func (m *LivenessState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Cascades != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Cascades))
+	if m.FoundMarks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FoundMarks))
 		i--
-		dAtA[i] = 0x68
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
 	}
 	if m.HoldMark != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HoldMark))
@@ -1251,7 +1252,7 @@ func (m *LivenessState) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HoldMark)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Cascades)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.FoundMarks)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1373,9 +1374,9 @@ func (x *LivenessState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hold_mark")
 		protobuf_go_lite.TextWriteUint(&sb, x.HoldMark)
 	}
-	if x.Cascades != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cascades")
-		protobuf_go_lite.TextWriteUint(&sb, x.Cascades)
+	if x.FoundMarks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "found_marks")
+		protobuf_go_lite.TextWriteUint(&sb, x.FoundMarks)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1665,12 +1666,12 @@ func (m *LivenessState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 13:
+		case 17:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Cascades", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field FoundMarks", wireType)
 			}
-			m.Cascades = 0
-			m.Cascades, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.FoundMarks = 0
+			m.FoundMarks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

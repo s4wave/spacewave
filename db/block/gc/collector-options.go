@@ -6,7 +6,7 @@ import "time"
 type Phase int
 
 const (
-	// PhaseNet nets the journal into the counts and runs the cascades.
+	// PhaseNet nets the journal into the counts and pages a Dying block's release.
 	PhaseNet Phase = iota
 	// PhaseSweep frees the ripe Dead blocks.
 	PhaseSweep
@@ -35,7 +35,7 @@ type CollectorOptions struct {
 	Phase func(Phase) func()
 	// ForegroundWaiting reports that a foreground writer waits on the store,
 	// as kvtx.ForegroundWaiting does; nil reports none. The free loop stops at
-	// the next block, and a paged cascade at the next page, once one waits.
+	// the next block, and a paged release at the next page, once one waits.
 	ForegroundWaiting func() bool
 }
 
@@ -54,8 +54,7 @@ const DefaultGrace = 15 * time.Minute
 // DefaultBudget is the time budget of a Collect that sets none.
 const DefaultBudget = time.Second
 
-// sliceRecords bounds the journal records one net transaction nets, and the
-// cascade records it loads.
+// sliceRecords bounds the journal records one net transaction nets.
 const sliceRecords = 256
 
 // slicePairs bounds the journal entries one net transaction applies, and
@@ -66,17 +65,17 @@ const slicePairs = 4096
 // sliceFrees bounds the Dead blocks one free transaction frees.
 const sliceFrees = 128
 
-// sliceReleases bounds the children one net transaction's cascades move. A
-// block with more children moves them across transactions, through release
-// pages, as continueRelease describes. A moved child costs about five
-// operations when it reaches zero, its count, cascade and list reads and
-// its zero record and queue key, so a slice of moves is about 15,400.
+// sliceReleases bounds the children one free or net transaction releases. A
+// block with more children turns Dying and moves them across transactions,
+// through release pages, as continueRelease describes. A moved child costs
+// about four operations when it reaches zero, its count and list reads and
+// its zero record and queue key, so a slice of moves is about 12,300.
 const sliceReleases = 3072
 
 // releasePageChildren is how many children one release page holds, so a
-// net transaction that resumes a paged cascade reads only the pages it
-// moves. It is also the slice's moves while a writer waits: a cascade
-// beside a waiting writer moves one page, about 5,100 operations, per
+// net transaction that resumes a paged release reads only the pages it
+// moves. It is also the slice's moves while a writer waits: a release
+// beside a waiting writer moves one page, about 4,100 operations, per
 // transaction.
 const releasePageChildren = 1024
 

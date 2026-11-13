@@ -37,13 +37,13 @@ func TestNormalizeChildrenAllocs(t *testing.T) {
 }
 
 // TestSettleWaitsForNetting checks that neither the front pop nor the flip
-// runs while netting owes a write: a due down or up cascade or a paged
-// release (the model's FlipSettled, mutant rps-noflipsettled), or an
-// unapplied fill up (FlipFills, mutant adopt-revive-fill-noflipfills). Each
-// blocker leaves a counted block at zero on a ripe sequence past nothing, so
-// the free proof would pop it and the flip would follow, unless the check
-// holds. Collect nets before the settle runs, so no writer reaches these
-// states today; the test writes them as a netting step cut short would.
+// runs while a paged release is in progress (the model's FreeWhole, mutant
+// l67-nowhole) or a fill up is unapplied (FlipFills, mutant
+// adopt-revive-fill-noflipfills). Each blocker leaves a counted block at zero
+// on a ripe sequence past nothing, so the free proof would pop it and the
+// flip would follow, unless the check holds. Nothing frees while Open and
+// Collect nets before the settle runs, so no writer reaches these states
+// today; the test writes them directly.
 func TestSettleWaitsForNetting(t *testing.T) {
 	ctx := context.Background()
 	ref, err := block.BuildBlockRef([]byte("front block"), nil)
@@ -55,12 +55,6 @@ func TestSettleWaitsForNetting(t *testing.T) {
 		name  string
 		block func(rec *Records, state *LivenessState) error
 	}{
-		{"a down cascade", func(rec *Records, state *LivenessState) error {
-			return rec.addCascade(ctx, state, key, cascadeDown)
-		}},
-		{"an up cascade", func(rec *Records, state *LivenessState) error {
-			return rec.addCascade(ctx, state, key, cascadeUp)
-		}},
 		{"a paged release", func(_ *Records, state *LivenessState) error {
 			state.Release = &Release{Block: key}
 			return nil

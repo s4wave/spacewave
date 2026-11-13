@@ -122,7 +122,7 @@ func Adopt(ctx context.Context, store Store) (AdoptResult, error) {
 		cursor = state.GetNextSeq()
 		state.Adoption = Adoption_ADOPTION_ADOPTING
 		state.AdoptionRun = run
-		state.Cursor, state.NetOffset, state.Cascades = cursor, 0, 0
+		state.Cursor, state.NetOffset = cursor, 0
 		return rec.SetState(ctx, state)
 	})
 	if err != nil {
@@ -328,19 +328,18 @@ func (a *adoption) count(ctx context.Context) error {
 			return rec.SetHolders(ctx, ref, n, 0)
 		}
 
-		// Settle a block no holder names Dying, ripe at the journal's end.
+		// Settle a block no holder names Dead, ripe at the journal's end. Its
+		// children keep the holder the count gave them until its free.
 		state, err := rec.GetState(ctx)
 		if err != nil {
 			return err
 		}
 		a.res.Queued++
-		if err := rec.SetHolders(ctx, ref, 0, state.GetNextSeq()); err != nil {
+		seq := state.GetNextSeq()
+		if err := rec.SetHolders(ctx, ref, 0, seq); err != nil {
 			return err
 		}
-		if err := rec.addCascade(ctx, state, BlockKey(ref), cascadeDown); err != nil {
-			return err
-		}
-		return rec.SetState(ctx, state)
+		return rec.tx.Set(ctx, rec.queueKey(seq, BlockKey(ref)), nil)
 	})
 }
 
@@ -505,14 +504,14 @@ func deleteJournalBefore(ctx context.Context, store Store, run string, cursor ui
 
 // adoptionKinds are the kinds of record an adoption writes or replaces, which
 // it clears before it counts the lists and after a failed run: the counts,
-// free queue, parked and cascade records, its marks, release pages, unapplied
-// fill ups, the up index a format 8 store left, the record that a recount
-// is due, and the retired marks an older store wrote.
+// free queue, its marks, release pages, unapplied fill ups, the up index a
+// format 8 store left, the record that a recount is due, and the retired
+// records an older store wrote.
 var adoptionKinds = []byte{
-	kindCount, kindQueue, kindParked, kindCascade, kindAdoptBorn, kindAdoptRoot,
+	kindCount, kindQueue, kindAdoptBorn, kindAdoptRoot,
 	kindFillMark, kindReleasePage, kindFillUps, kindUpIndex, kindRewritten,
 	kindVerifiedRetired, kindLandedRetired, kindReachedRetired, kindSuspectRetired,
-	kindUnmarkedCount,
+	kindCascadeRetired, kindParkedRetired, kindUnmarkedCount,
 }
 
 // claimedBy reports whether state is unadopted under run's claim.

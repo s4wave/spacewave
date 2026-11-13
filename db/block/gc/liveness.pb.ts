@@ -194,26 +194,24 @@ export interface LivenessState {
   netOffset?: bigint
   /**
    * Release is the paged release or re-hold in progress of one block's
-   * children, unset when none is.
+   * children, unset when none is. A release names the Dying block, whose
+   * bytes and list stay stored until the free ends it.
    */
   release?: Release
   /**
    * HoldMark is one past the sequence of the last journal record of a Land
-   * that held a block at zero holders, or one whose children were released,
-   * or any block while a cascade was due: a block below it may have no
-   * holder until that record nets and the re-hold it brings runs. The
-   * collector frees nothing, and the settle pops no front entry, until its
-   * cursor reaches the mark.
+   * that held a stored block at zero holders, or any stored block while a
+   * release was in progress: the block may be freed before that record
+   * nets. The collector frees nothing until its cursor reaches the mark.
    */
   holdMark?: bigint
   /**
-   * Cascades counts the cascade records, the blocks whose cascade is due,
-   * so a Land and the free learn whether any is due from this record rather
-   * than a seek past the deleted ones. It is exact while the Volume is
-   * adopted: the adoption zeroes it once its clear has deleted the records
-   * an earlier run left, and counts each block it settles Dying.
+   * FoundMarks counts the hold marks a Land set only because a block it
+   * found stored, and named as a child without putting it, was at zero or
+   * a release was in progress: the marks the found rule adds beyond those a
+   * root move or a put again sets.
    */
-  cascades?: bigint
+  foundMarks?: bigint
 }
 
 export const LivenessState: MessageType<LivenessState> =
@@ -229,18 +227,19 @@ export const LivenessState: MessageType<LivenessState> =
       [8, 'net_offset', 4],
       [11, 'release', 11, 0, Release.codec],
       [12, 'hold_mark', 4],
-      [13, 'cascades', 4],
+      [17, 'found_marks', 4],
     ],
   )
 
 /**
- * Release is a cascade whose child list is longer than one collector slice
- * moves: the release of the children of a block that lost its last holder,
- * or the re-hold of the children of one that gained a holder after its
- * release. The slice that starts it moves the list to release pages and
- * marks the block released or held; each later slice moves the next
- * children's holders by one and moves Next in the same transaction, and the
- * last deletes the pages and clears the release.
+ * Release is the paged release of the children of a Dying block, one the
+ * free took whose list is longer than one slice moves, or the re-hold of the
+ * children of one held again while Dying. The transaction that starts it
+ * moves the list to release pages; each later netting slice moves the next
+ * children's holders by one and moves Next in the same transaction. A
+ * re-hold ends with its last child. A release stays with Next at its end
+ * until the free deletes the block, or starts its re-hold when a writer
+ * held it meanwhile.
  *
  * @generated from message block.gc.Release
  */
@@ -258,8 +257,8 @@ export interface Release {
    */
   children?: bigint
   /**
-   * Rehold reports a re-hold: each child gains a holder rather than losing
-   * one.
+   * Rehold reports a re-hold: each child gains a holder back rather than
+   * losing one.
    */
   rehold?: boolean
 }

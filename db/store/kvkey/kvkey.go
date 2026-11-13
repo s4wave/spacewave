@@ -31,7 +31,14 @@ import (
 // record with its ripe sequence and a key in the ripe queue, a due cascade
 // keeps a cascade record, and the journal keeps no up index, so a version 7
 // or 8 store opens unadopted and its adoption counts in the new encoding.
-const FormatVersion = 9
+// Version 10 keys are those of version 9. A block's children keep its count
+// until its free, which releases them inline or, for a Dying block, through
+// release pages, and the store keeps no cascade or parked records. A version
+// 9 store may hold a block whose children already lost its count, so a
+// version 7 to 9 store opens unadopted and its adoption counts every list
+// again. Setting the version of a version 10 store to 8 lets version 9 code
+// open it the same way.
+const FormatVersion = 10
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

@@ -43,18 +43,11 @@ const (
 	// kindJournal keys a journal record by its big-endian sequence number. Its
 	// value is a JournalRecord.
 	kindJournal byte = 'J'
-	// kindQueue keys a Dead block, one at zero holders whose children no
-	// longer count it, by its big-endian ripe sequence, then the block. It
-	// holds no value, and the free walks it in ripe order, stopping at the
-	// first entry the cursor has not passed.
+	// kindQueue keys a Dead block, one at zero holders whose children still
+	// count it, by its big-endian ripe sequence, then the block. It holds no
+	// value, and the free walks it in ripe order, stopping at the first entry
+	// the cursor has not passed.
 	kindQueue byte = 'Q'
-	// kindCascade keys a block whose cascade is due by the block: a Dying
-	// block, at zero holders while its children still count it, whose value
-	// is cascadeDown, or a Holding one, with holders while its children do
-	// not count it, whose value is cascadeUp. Netting writes it only when a
-	// slice cannot run the cascade itself, and the free waits while any
-	// exists.
-	kindCascade byte = 'C'
 	// kindProof keys the completion proof of a block by the block: the graph
 	// under it is stored. It holds no value and goes with the block.
 	kindProof byte = 'P'
@@ -101,12 +94,6 @@ const (
 	// born, since the record supplies its children's holders and takes its
 	// own implied holder back.
 	kindFillBorn byte = 'M'
-	// kindParked keys a Dead block the free held back while the generation
-	// is Open, by its big-endian ripe sequence, then the block, as the free
-	// queue keys it. It holds no value. Once the generation leaves Open the
-	// collector moves each back onto the free queue, where the free checks
-	// the block again.
-	kindParked byte = 'X'
 	// kindFront keys a block on the settle's front, by the block: a stored
 	// block whose list may lack a child, named by a young or verified block,
 	// a root or a recent down pair, which the walk still has to decode. It
@@ -127,10 +114,9 @@ const (
 	kindUnmarked byte = 'I'
 	// kindUnmarkedCount keys the count record of an unmarked block by the
 	// block, in kindCount's encoding, while the generation is Sweeping. The
-	// flip freezes an unmarked block's kindCount record, which says whether
-	// its old list still holds its children, as
-	// Records.oldListHolds reads them; every holder the block gains or loses
-	// after the flip lands here instead, as Records.countKind routes it. A
+	// flip freezes an unmarked block's kindCount record; every holder the
+	// block gains or loses after the flip lands here instead, as
+	// Records.countKind routes it. A
 	// block without one has its implied holder alone, as at its birth. When
 	// the block leaves the run, by the sweep or a rebirth, Records.releaseOld
 	// moves the record over the frozen one.
@@ -144,10 +130,10 @@ const (
 	// adoption ends.
 	kindAdoptRoot byte = 'A'
 	// kindReleasePage keys a page of the child list of the block whose paged
-	// cascade is in progress, by its big-endian page number. Its value packs
-	// up to releasePageChildren block keys, as a child list does. The pages
-	// exist from the slice that starts the cascade until the slice that
-	// moves their last child.
+	// release or re-hold is in progress, by its big-endian page number. Its
+	// value packs up to releasePageChildren block keys, as a child list does.
+	// The pages exist from the transaction that starts the release until the
+	// slice that moves their last child.
 	kindReleasePage byte = 'D'
 	// kindRewritten is one record, with no key past the kind and no value,
 	// that a list rebuild or a Land writes when a list gains a child on a
@@ -156,14 +142,17 @@ const (
 	// settle's flip returns the Volume to unadopted when it finds it, and the
 	// adoption that follows deletes it with the counts.
 	kindRewritten byte = 'Y'
-	// kindVerifiedRetired, kindLandedRetired, kindReachedRetired and
-	// kindSuspectRetired are the verified and landed marks, the walk's
-	// reached marks and the suspect records an older store wrote. Nothing
-	// reads them; an adoption's clear deletes them.
+	// kindVerifiedRetired, kindLandedRetired, kindReachedRetired,
+	// kindSuspectRetired, kindCascadeRetired and kindParkedRetired are the
+	// verified and landed marks, the walk's reached marks, the suspect
+	// records, the cascade records and the parked blocks an older store
+	// wrote. Nothing reads them; an adoption's clear deletes them.
 	kindVerifiedRetired byte = 'V'
 	kindLandedRetired   byte = 'W'
 	kindReachedRetired  byte = 'K'
 	kindSuspectRetired  byte = 'Z'
+	kindCascadeRetired  byte = 'C'
+	kindParkedRetired   byte = 'X'
 )
 
 // listMark begins a child list written from its block's content.
@@ -184,14 +173,6 @@ var (
 	// names every block the store holds without a list from content. A block
 	// key is never empty, so no block's entry has this key.
 	runComplete = []byte{}
-)
-
-// The values of a cascade record: the direction its block's children move.
-const (
-	// cascadeDown marks a Dying block: each child loses its holder.
-	cascadeDown byte = 'd'
-	// cascadeUp marks a Holding block: each child gains its holder back.
-	cascadeUp byte = 'u'
 )
 
 // The kinds a copy of a Volume's liveness records reads.
@@ -560,67 +541,14 @@ func (r *Records) Present(ctx context.Context, ref *block.BlockRef) (bool, error
 
 // Hidden reports whether ref, a block with a child list, reads absent until
 // a put stores it again: while Sweeping, an unmarked block, whose put gives
-// birth to it again, as Records.rebirth describes; while Open, a parked one,
-// whose cascade released its children while the settle's front may have
-// popped them, so a hold onto it would revive a list whose children the
-// flip can leave in the run. Settled, it reads only the generation; while
-// Sweeping, one run entry; while Open, the count record and, for a zero
-// one, its parked key.
+// birth to it again, as Records.rebirth describes. Outside Sweeping it reads
+// only the generation; while Sweeping, one run entry.
 func (r *Records) Hidden(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	gen, err := r.generation(ctx)
-	if err != nil {
+	if err != nil || gen != Generation_GENERATION_SWEEPING {
 		return false, err
 	}
-	switch gen {
-	case Generation_GENERATION_OPEN:
-		return r.parked(ctx, BlockKey(ref))
-	case Generation_GENERATION_SWEEPING:
-		return r.Unmarked(ctx, BlockKey(ref))
-	}
-	return false, nil
-}
-
-// parked reports whether the free parked the block at key: its count is a
-// zero record whose ripe sequence names a parked key. Call it only while
-// Open, when its count is the kindCount record and every parked key waits
-// for the flip.
-func (r *Records) parked(ctx context.Context, key []byte) (bool, error) {
-	// Read the count, and for a zero one its parked key.
-	value, found, err := r.tx.Get(ctx, r.key(kindCount, key))
-	if err != nil || !found {
-		return false, err
-	}
-	holders, ripe, err := decodeHolders(value)
-	if err != nil || holders != 0 {
-		return false, err
-	}
-	return r.tx.Exists(ctx, r.parkedKey(ripe, key))
-}
-
-// repark takes the parked block at key back from the free, while Open, so
-// a put can give birth to it again: it deletes its zero count, which leaves
-// it the implied holder of a born block, its parked key, its run entry and
-// its front entry. Its cascade released its children already, so the
-// caller writes its list from content and journals a holder for each child
-// as for a born block.
-func (r *Records) repark(ctx context.Context, key []byte) error {
-	// Read the ripe sequence that keys the parked entry.
-	value, _, err := r.tx.Get(ctx, r.key(kindCount, key))
-	if err != nil {
-		return err
-	}
-	_, ripe, err := decodeHolders(value)
-	if err != nil {
-		return err
-	}
-
-	// Delete the count, the parked key, the run entry and the front entry.
-	for _, del := range [][]byte{r.key(kindCount, key), r.parkedKey(ripe, key), r.key(kindUnmarked, key), r.key(kindFront, key)} {
-		if err := r.tx.Delete(ctx, del); err != nil {
-			return err
-		}
-	}
-	return nil
+	return r.Unmarked(ctx, BlockKey(ref))
 }
 
 // Held reports whether ref is present with holders: its count record is not
@@ -815,11 +743,6 @@ func (r *Records) queueKey(ripe uint64, key []byte) []byte {
 	return r.key(kindQueue, binary.BigEndian.AppendUint64(nil, ripe), key)
 }
 
-// parkedKey returns the parked key of the Dead block at key with ripe.
-func (r *Records) parkedKey(ripe uint64, key []byte) []byte {
-	return r.key(kindParked, binary.BigEndian.AppendUint64(nil, ripe), key)
-}
-
 // queuePos returns the position on the free queue of the block at key,
 // ripe at ripe: its queue key without the prefix and kind.
 func queuePos(ripe uint64, key []byte) []byte {
@@ -841,83 +764,6 @@ func (r *Records) scanQueue(ctx context.Context, from []byte, fn func(ripe uint6
 		}
 		return fn(binary.BigEndian.Uint64(key), ref)
 	})
-}
-
-// cascadeKey returns the cascade key of the block at key.
-func (r *Records) cascadeKey(key []byte) []byte {
-	return r.key(kindCascade, key)
-}
-
-// getCascade returns the direction of the cascade due on the block at key,
-// and whether one is.
-func (r *Records) getCascade(ctx context.Context, key []byte) (byte, bool, error) {
-	value, found, err := r.tx.Get(ctx, r.cascadeKey(key))
-	if err != nil || !found {
-		return 0, false, err
-	}
-	if len(value) != 1 || (value[0] != cascadeDown && value[0] != cascadeUp) {
-		return 0, false, errors.New("liveness cascade record is malformed")
-	}
-	return value[0], true, nil
-}
-
-// addCascade writes the cascade record of the block at key, which has none,
-// with dir, and counts it in state, which the caller writes.
-func (r *Records) addCascade(ctx context.Context, state *LivenessState, key []byte, dir byte) error {
-	state.Cascades++
-	return r.tx.Set(ctx, r.cascadeKey(key), []byte{dir})
-}
-
-// deleteCascade deletes the cascade record of the block at key, which has
-// one, and uncounts it in state, which the caller writes. A count already
-// at zero while it is kept is an error: the records and the count disagree,
-// and a free trusting the count could run while a cascade is due.
-func (r *Records) deleteCascade(ctx context.Context, state *LivenessState, key []byte) error {
-	switch {
-	case state.GetCascades() != 0:
-		state.Cascades--
-	case cascadesCounted(state):
-		return errors.New("liveness cascade count is below its records")
-	}
-	return r.tx.Delete(ctx, r.cascadeKey(key))
-}
-
-// cascadesCounted reports whether state's cascade count is exact: from the
-// transaction that marks an adoption run adopting, after its clear, on.
-func cascadesCounted(state *LivenessState) bool {
-	return state.GetAdoption() != Adoption_ADOPTION_UNADOPTED
-}
-
-// scanCascades calls fn with the block key and direction of each due
-// cascade in key order from the block key from, or from the first when from
-// is nil, until fn returns false or an error.
-func (r *Records) scanCascades(ctx context.Context, from []byte, fn func(key []byte, dir byte) (bool, error)) error {
-	return r.scan(ctx, r.key(kindCascade), from, func(key []byte, value func() ([]byte, error)) (bool, error) {
-		v, err := value()
-		if err != nil {
-			return false, err
-		}
-		if len(v) != 1 {
-			return false, errors.New("liveness cascade record is malformed")
-		}
-		return fn(bytes.Clone(key), v[0])
-	})
-}
-
-// settled reports whether no cascade is due or in progress: no cascade
-// record exists and the state names no paged cascade. Then every block below
-// a block with holders has holders too. It reads the state's count of the
-// records where it is exact, so a Land pays no seek past the records a long
-// cascade deleted, and seeks the records otherwise.
-func (r *Records) settled(ctx context.Context, state *LivenessState) (bool, error) {
-	switch {
-	case state.GetRelease() != nil:
-		return false, nil
-	case cascadesCounted(state):
-		return state.GetCascades() == 0, nil
-	}
-	due, err := r.anyKey(ctx, r.key(kindCascade))
-	return !due, err
 }
 
 // HasProof reports whether ref has a completion proof, which says the store
@@ -1063,7 +909,7 @@ func (r *Records) scanReleasePending(ctx context.Context, rel *Release, fn func(
 	}
 }
 
-// releaseCursor walks the children of a paged cascade not moved yet in block
+// releaseCursor walks the children of a paged release not moved yet in block
 // key order, the order of its block's child list, holding one release page
 // at a time.
 type releaseCursor struct {
@@ -1129,7 +975,7 @@ func (c *releaseCursor) has(ctx context.Context, key []byte) (bool, error) {
 
 // errReleasePageMissing reports that release page page of rel is missing or
 // ends before the release's Next, naming its block, so an operator can find
-// the damaged cascade. No child moves until a repair.
+// the damaged release. No child moves until a repair.
 func errReleasePageMissing(rel *Release, page uint64) error {
 	name := "a block of unknown key"
 	if ref, _, err := ParseBlockKey(rel.GetBlock()); err == nil {
