@@ -495,3 +495,79 @@ func TestSQLiteWALBound(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// TestSQLiteWALRestartHold commits as fast as one writer can, with ordered
+// commits as a Volume makes them, past a 16 MiB write-ahead log bound while a
+// reader keeps reading, and checks that no
+// commit waits long behind the checkpoint that restarts the log and that the
+// log stays within a small multiple of its bound.
+func TestSQLiteWALRestartHold(t *testing.T) {
+	// Open a database whose log is bounded at 16 MiB.
+	ctx := context.Background()
+	tp := newTempDBPath(t, "hydra-test-sqlite-wal-hold-*.sqlite")
+	const bound = 16 << 20
+	db, err := OpenWithPragmas(ctx, tp, "test_wal", Pragmas{WALCheckpointBytes: bound})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer db.Close()
+
+	// Read constantly while the writes run, as lookups do.
+	stop := make(chan struct{})
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		for i := 0; ; i++ {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if tx, err := db.NewTransaction(ctx, false); err == nil {
+				_, _, _ = tx.Get(ctx, []byte("key-"+strconv.Itoa(i%20000)))
+				tx.Discard()
+			}
+		}
+	}()
+
+	// Commit 16 rows of 4 KiB at a time over 20,000 keys for 6 s, timing
+	// each commit and the log after it.
+	value := make([]byte, 4096)
+	var longest time.Duration
+	var peak int64
+	commits := 0
+	start := time.Now()
+	for time.Since(start) < 6*time.Second {
+		began := time.Now()
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		for range 16 {
+			if err := tx.Set(ctx, []byte("key-"+strconv.Itoa(commits*16%20000)), value); err != nil {
+				t.Fatal(err.Error())
+			}
+			commits++
+		}
+		if err := tx.Commit(kvtx.WithOrderedCommitContext(ctx)); err != nil {
+			t.Fatal(err.Error())
+		}
+		longest = max(longest, time.Since(began))
+		if info, err := os.Stat(tp + "-wal"); err == nil {
+			peak = max(peak, info.Size())
+		}
+	}
+	close(stop)
+	<-readDone
+
+	// The checkpoint holds the writer turn for a bounded remainder only, and
+	// the passes keep the log near its bound.
+	took := time.Since(start)
+	t.Logf("%d commits in %v, %.0f MiB/s, longest %v, log peak %d bytes, %.2fx its bound", commits/16, took.Round(time.Millisecond), float64(commits)*4096/(1<<20)/took.Seconds(), longest, peak, float64(peak)/bound)
+	if longest > 100*time.Millisecond {
+		t.Errorf("longest commit waited %v, want at most 100ms", longest)
+	}
+	if peak > 4*bound {
+		t.Errorf("write-ahead log peaked at %d bytes, want at most %d", peak, 4*bound)
+	}
+}
