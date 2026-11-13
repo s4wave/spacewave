@@ -18,6 +18,10 @@ import (
 type CreateSecretOptions struct {
 	// ObjectKey is the parent World object key.
 	ObjectKey string
+	// SpaceID is the Space whose World holds ObjectKey. It is written into
+	// the payload as its owner, so only a Secret delete in this Space can
+	// remove the payload.
+	SpaceID string
 	// DisplayName is the parent Secret display name.
 	DisplayName string
 	// Kind is the Secret kind.
@@ -77,8 +81,9 @@ func CreateSecret(
 
 // CreateSecretObject creates the nested SharedObject holding a Secret payload
 // and returns the redacted Secret metadata. It writes no World object, so the
-// caller records the metadata wherever the Secret is used. opts.ObjectKey is
-// ignored.
+// caller records the metadata wherever the Secret is used. The payload names
+// opts.SpaceID as its owner; without one it names no owner and a Secret delete
+// keeps it.
 func CreateSecretObject(
 	ctx context.Context,
 	b bus.Bus,
@@ -108,6 +113,7 @@ func CreateSecretObject(
 		Version:     1,
 		UpdatedAt:   timestamppb.New(opts.Timestamp),
 	}
+	payload.OwnerSpaceId = opts.SpaceID
 	if err := StoreSecretPayload(ctx, b, nestedRef, payload); err != nil {
 		return nil, errors.Wrap(err, "store secret payload")
 	}

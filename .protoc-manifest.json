@@ -4113,7 +4113,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/secret": {
-      "hash": "363ea6b55aafdd8c0f794fb482e485b1b52e981575a6dfa5e04c34769e79e80f",
+      "hash": "3fafd1a64323e32cc6352df6fe82919fb94915f6557b5861a915693286e7b2f5",
       "generatedFiles": [
         "sdk/secret/secret.pb.go",
         "sdk/secret/secret.pb.ts",
@@ -4164,7 +4164,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "42bf60cc6ebb472fd5744580265a929d8d34f431c4a30c55f4c9304b94e0b4e3",
+      "hash": "776522445dd427a7c78bc6d16be4c98c8077da3467199a4b2c52e20763103e4e",
       "generatedFiles": [
         "sdk/space/space.pb.go",
         "sdk/space/space.pb.ts",

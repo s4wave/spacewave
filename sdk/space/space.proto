@@ -38,6 +38,10 @@ service SpaceResourceService {
   // AddSecretParticipant grants a peer read or write access to an existing
   // Secret's payload, signed by the mounted session.
   rpc AddSecretParticipant(AddSecretParticipantRequest) returns (AddSecretParticipantResponse) {}
+  // DeleteSecret deletes a Secret: the payload copy in each account this
+  // device holds, then its World object. An interrupted delete leaves the
+  // Secret named, and running it again completes it.
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse) {}
 
   rpc DeployManifests(stream .s4wave.deploy.DeployManifestsMessage) returns (stream .s4wave.deploy.DeployManifestsMessage) {}
 
@@ -406,6 +410,24 @@ message WriteSecretPayloadRequest {
 
 // WriteSecretPayloadResponse acknowledges durable nested payload storage.
 message WriteSecretPayloadResponse {
+}
+
+// DeleteSecretRequest deletes the Secret at a key.
+message DeleteSecretRequest {
+  // ObjectKey identifies the Secret.
+  string object_key = 1;
+}
+
+// DeleteSecretResponse reports what a Secret delete removed.
+message DeleteSecretResponse {
+  // Found is true when a Secret was at the key and is now deleted.
+  bool found = 1;
+  // Removed lists the payload copies deleted on this device, one per account.
+  repeated .sobject.SharedObjectRef removed = 2;
+  // OthersMayExist is true when a copy this device cannot reach may remain,
+  // such as in the creator's account elsewhere or with a peer it was shared
+  // with.
+  bool others_may_exist = 3;
 }
 
 // AddSecretParticipantRequest grants a peer access to an existing Secret.
