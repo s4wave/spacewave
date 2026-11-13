@@ -18,12 +18,14 @@ import (
 // A World's format is stored in the root's format field and in the
 // implementation tags of both of its trees, and they must agree:
 //
-//   - A node graph World's object tree is tagged KV_IMPL_TYPE_IAVL_NODE_GRAPH
-//     and its graph tree KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH, both from
-//     creation (NewWorld). A build that predates the node graph ignores the
-//     format field, which proto3 allows, but opens the object tree as it
-//     loads the root and rejects its unknown tag there, so it refuses the
-//     World before any read or write. Tagging the graph tree alone would not
+//   - A node graph World's object tree is tagged KV_IMPL_TYPE_IAVL_NODE_GRAPH,
+//     or KV_IMPL_TYPE_OKRA_NODE_GRAPH when it is in the Okra layout, as an
+//     imported World's is; its graph tree is tagged
+//     KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH. NewWorld tags both from creation,
+//     and regeneration retags the object tree in place. A build that predates
+//     the node graph ignores the format field, which proto3 allows, but opens
+//     the object tree as it loads the root and rejects its unknown tag there,
+//     so it refuses the World before any read or write. Tagging the graph tree alone would not
 //     do: such a build opens the graph only on a graph call, so an object-only
 //     write would commit a root whose unknown graph tag hides the graph
 //     tree's blocks from that build's reference walk.
@@ -46,11 +48,33 @@ func (f WorldFormat) newObjectTree() *kvtx_block.KeyValueStore {
 	return &kvtx_block.KeyValueStore{}
 }
 
-// setFormat sets the World's format and tags its object tree as newObjectTree
-// tags a new one. Both formats keep the object tree in the IAVL layout, so
-// only the tag changes; the tree's root sits inside the World block, so the
-// World's next write rewrites that block alone. The caller sets a graph tree
-// of the format.
+// objectTreeImpl returns the tag an object tree tagged impl takes in a World
+// of the format. Each object tree layout has a kv tag and a node graph tag that
+// store the same bytes, so changing format retags the tree without rewriting
+// it: an IAVL tree is untagged in a kv World, as NewWorld leaves it, and an
+// Okra tree keeps KV_IMPL_TYPE_OKRA.
+func (f WorldFormat) objectTreeImpl(impl kvtx_block.KVImplType) (kvtx_block.KVImplType, error) {
+	// Map the tree's layout to that layout's tag for the format.
+	graph := f == WorldFormat_WORLD_FORMAT_NODE_GRAPH
+	switch impl {
+	case 0, kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL, kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
+		if graph {
+			return kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH, nil
+		}
+		return 0, nil
+	case kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA, kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH:
+		if graph {
+			return kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH, nil
+		}
+		return kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA, nil
+	}
+	return 0, errors.Errorf("retag a %v object tree", impl)
+}
+
+// setFormat sets the World's format and retags its object tree for it, as
+// objectTreeImpl maps the tag. Only the tag changes, and the tree's root sits
+// inside the World block, so the World's next write rewrites that block
+// alone. The caller sets a graph tree of the format.
 func (w *World) setFormat(f WorldFormat) error {
 	// A World with no object tree yet gets an empty one to tag.
 	kv := w.GetObjectKeyValue()
@@ -59,15 +83,12 @@ func (w *World) setFormat(f WorldFormat) error {
 		w.ObjectKeyValue = kv
 	}
 
-	// Only a tree in the IAVL layout can change format by its tag alone.
-	switch impl := kv.GetImplType(); impl {
-	case 0, kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL, kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
-	default:
-		return errors.Errorf("retag a %v object tree", impl)
+	// Retag the tree in its own layout and set the format.
+	impl, err := f.objectTreeImpl(kv.GetImplType())
+	if err != nil {
+		return err
 	}
-
-	// Tag the tree as a new one of the format and set the format.
-	kv.ImplType = f.newObjectTree().GetImplType()
+	kv.ImplType = impl
 	w.Format = f
 	return nil
 }
@@ -84,8 +105,12 @@ func (f WorldFormat) graphImpl() kvtx_block.KVImplType {
 // both of a node graph World's trees are tagged as such, and neither of a kv
 // World's is.
 func (w *World) checkTreeImpls() error {
-	objTagged := w.GetObjectKeyValue().GetImplType() == kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH
+	// Read whether each tree carries a node graph tag, in either layout.
+	objImpl := w.GetObjectKeyValue().GetImplType()
+	objTagged := objImpl == kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH || objImpl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH
 	graphTagged := w.GetGraphKeyValue().GetImplType() == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH
+
+	// Require the tags the format names.
 	switch w.GetFormat() {
 	case WorldFormat_WORLD_FORMAT_CAYLEY_KV:
 		if objTagged || graphTagged {
