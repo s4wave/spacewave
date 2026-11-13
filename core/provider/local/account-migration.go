@@ -227,11 +227,13 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 			return err
 		}
 	}
-	if err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), state, lineage); err != nil {
+	generation := newSOGeneration()
+	if err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), generation, state, lineage); err != nil {
 		return err
 	}
 	next := entry.CloneVT()
 	next.Ref = ref
+	next.Generation = generation
 	return a.publishAccountCatalogEntry(ctx, next, false)
 }
 

@@ -113,13 +113,15 @@ func (a *ProviderAccount) EnsureAccountSettingsSO(ctx context.Context) (*sobject
 	// Create a unique settings shared object and bind it, cleaning up on failure.
 	meta := account_settings.NewSharedObjectMeta()
 	for {
-		ref, err = a.createSharedObjectLocked(ctx, ulid.NewULID(), meta)
+		var entry *sobject.SharedObjectListEntry
+		entry, err = a.createSharedObjectLocked(ctx, ulid.NewULID(), meta)
 		if err == sobject.ErrSharedObjectExists {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
+		ref = entry.GetRef()
 		if err := a.writeAccountSettingsRef(ctx, ref); err != nil {
 			if delErr := a.deleteSharedObjectLocked(ctx, ref.GetProviderResourceRef().GetId()); delErr != nil {
 				a.le.WithError(delErr).Warn("failed to clean up unbound account settings shared object")

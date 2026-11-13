@@ -55,6 +55,13 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 	if entry == nil || entry.GetDeleted() {
 		return nil, errors.New("requested object is absent from the account catalog")
 	}
+
+	// Serve only the lifetime the catalog names, not a local object of
+	// another generation under the same id.
+	listed := a.listedSharedObjectEntry(request.GetObjectId())
+	if listed == nil || listed.GetGeneration() != entry.GetEntry().GetGeneration() {
+		return nil, errors.New("requested object's catalog generation is not held here")
+	}
 	return a.enrollAccountMemberObject(ctx, entry.GetEntry(), member)
 }
 

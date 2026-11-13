@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
@@ -28,7 +29,13 @@ type LocalSOHost struct {
 	sfs *block_transform.StepFactorySet
 	// soHost owns the shared object state.
 	soHost *sobject.SOHost
-	// stateSnapCtr holds the snapshot of the latest committed host state.
+	// snapMtx orders end with each snapshot Execute publishes.
+	snapMtx sync.Mutex
+	// ended is set by end; no snapshot is published after it. Guarded by
+	// snapMtx.
+	ended bool
+	// stateSnapCtr holds the snapshot of the latest committed host state,
+	// and nil once the host has ended.
 	stateSnapCtr *ccontainer.CContainer[sobject.SharedObjectStateSnapshot]
 	// publishedConfigCtr holds the config of the latest published snapshot.
 	publishedConfigCtr *ccontainer.CContainer[*sobject.SharedObjectConfig]
@@ -73,6 +80,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		return err
 	}
 	defer relStateCtr()
+	defer l.end()
 
 	// Publish a snapshot and the config of each.
 	var state *sobject.SOState
@@ -81,9 +89,29 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		l.stateSnapCtr.SetValue(l.buildSnapshot(state))
+		l.publishSnapshot(l.buildSnapshot(state))
 		l.publishedConfigCtr.SetValue(state.GetConfig().CloneVT())
 	}
+}
+
+// publishSnapshot sets the state snapshot unless the host has ended.
+func (l *LocalSOHost) publishSnapshot(snap sobject.SharedObjectStateSnapshot) {
+	l.snapMtx.Lock()
+	defer l.snapMtx.Unlock()
+	if !l.ended {
+		l.stateSnapCtr.SetValue(snap)
+	}
+}
+
+// end clears the state snapshot for good, so a holder of the state watchable
+// stops seeing the state once the mount has ended. The tracker calls it when
+// it retires the mount's run, before a delete returns, and Execute calls it
+// as it exits.
+func (l *LocalSOHost) end() {
+	l.snapMtx.Lock()
+	defer l.snapMtx.Unlock()
+	l.ended = true
+	l.stateSnapCtr.SetValue(nil)
 }
 
 // buildSnapshot returns the local participant's snapshot of state.
@@ -126,9 +154,14 @@ func (l *LocalSOHost) waitPublishedConfig(ctx context.Context, target *sobject.S
 }
 
 // AccessSharedObjectState adds a reference to the durable state and returns
-// the state container.
+// the state container. released is called once the host's lifetime ends; the
+// container then holds nil.
 func (l *LocalSOHost) AccessSharedObjectState(ctx context.Context, released func()) (ccontainer.Watchable[sobject.SharedObjectStateSnapshot], func(), error) {
-	return l.stateSnapCtr, func() {}, nil
+	if released == nil {
+		return l.stateSnapCtr, func() {}, nil
+	}
+	stop := context.AfterFunc(l.lifetime, released)
+	return l.stateSnapCtr, func() { stop() }, nil
 }
 
 // detach returns ctx's values without its cancellation, ended when the host's

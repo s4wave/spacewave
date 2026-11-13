@@ -546,6 +546,14 @@ export interface SharedObjectListEntry {
    * The account dials each one while the object stays listed.
    */
   udpPeerAddrs?: { [key: string]: string }
+  /**
+   * Generation names one lifetime of the object under its id: the local
+   * provider sets a new one in the list write that creates or joins the
+   * object, and every install from the account catalog carries it unchanged,
+   * so a tombstone removes an object only of the lifetime it names. Empty on
+   * entries made before generations, and on other providers.
+   */
+  generation?: string
 }
 
 export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
@@ -557,6 +565,7 @@ export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
       [3, 'source', 9],
       [5, 'updated_at', 3],
       [6, 'udp_peer_addrs', 9, 584],
+      [7, 'generation', 9],
     ],
   )
 

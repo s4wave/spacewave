@@ -256,3 +256,40 @@ func TestBlockStoreFallbackPlacement(t *testing.T) {
 		t.Fatalf("expected ErrStorageBackendInUse, got %v", err)
 	}
 }
+
+// TestCatalogTombstoneGenerations applies a tombstone of one generation and a
+// live entry of a later generation of the same id in both orders; both end
+// with the later object live. A late write of the deleted generation leaves
+// its tombstone in place.
+func TestCatalogTombstoneGenerations(t *testing.T) {
+	entry := func(generation string, deleted bool) *AccountSettingsOp {
+		ref := &sobject.SharedObjectRef{
+			ProviderResourceRef: &provider.ProviderResourceRef{Id: "space-1", ProviderId: "local", ProviderAccountId: "account"},
+			BlockStoreId:        "space-1",
+		}
+		return &AccountSettingsOp{Op: &AccountSettingsOp_UpsertCatalogEntry{UpsertCatalogEntry: &AccountCatalogEntry{
+			Entry:   &sobject.SharedObjectListEntry{Ref: ref, Meta: &sobject.SharedObjectMeta{BodyType: "space"}, Generation: generation},
+			Deleted: deleted,
+		}}}
+	}
+	for _, c := range []struct {
+		ops        []*AccountSettingsOp
+		generation string
+		deleted    bool
+	}{
+		{[]*AccountSettingsOp{entry("g1", false), entry("g1", true), entry("g2", false)}, "g2", false},
+		{[]*AccountSettingsOp{entry("g1", false), entry("g2", false), entry("g1", true)}, "g2", false},
+		{[]*AccountSettingsOp{entry("g1", false), entry("g1", true), entry("g1", false)}, "g1", true},
+	} {
+		s := &AccountSettings{}
+		for _, op := range c.ops {
+			if err := applyOp(t, s, op); err != nil {
+				t.Fatal(err)
+			}
+		}
+		got := s.FindCatalogEntry("space-1")
+		if got.GetDeleted() != c.deleted || got.GetEntry().GetGeneration() != c.generation {
+			t.Fatalf("expected generation %s deleted %v, got %v", c.generation, c.deleted, got)
+		}
+	}
+}

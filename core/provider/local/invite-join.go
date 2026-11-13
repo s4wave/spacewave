@@ -276,17 +276,20 @@ func (a *ProviderAccount) mountInvitedSO(
 	if soID == "" {
 		return errors.New("invite result has no shared object ID")
 	}
-	return a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", result.SharedObjectState, result.ConfigLineage)
+	return a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", newSOGeneration(), result.SharedObjectState, result.ConfigLineage)
 }
 
 // mountEnrolledSO persists a checkpoint received through an authorized enrollment
 // exchange with the config lineage leading to its config, oldest first. The
-// SharedObject host validates the state and the lineage.
+// SharedObject host validates the state and the lineage. generation is the
+// list entry's generation: a new one for a new lifetime in this account, the
+// catalog entry's for an install from the account catalog.
 func (a *ProviderAccount) mountEnrolledSO(
 	ctx context.Context,
 	soID string,
 	meta *sobject.SharedObjectMeta,
 	source string,
+	generation string,
 	state *sobject.SOState,
 	lineage []*sobject.SOConfigChange,
 ) error {
@@ -361,9 +364,10 @@ func (a *ProviderAccount) mountEnrolledSO(
 
 	// Otherwise add the object in ID order.
 	soList.SharedObjects = append(soList.SharedObjects, &sobject.SharedObjectListEntry{
-		Ref:    ref.CloneVT(),
-		Source: source,
-		Meta:   meta.CloneVT(),
+		Ref:        ref.CloneVT(),
+		Source:     source,
+		Meta:       meta.CloneVT(),
+		Generation: generation,
 	})
 	slices.SortFunc(soList.SharedObjects, func(a, b *sobject.SharedObjectListEntry) int {
 		return strings.Compare(a.GetRef().GetProviderResourceRef().GetId(), b.GetRef().GetProviderResourceRef().GetId())

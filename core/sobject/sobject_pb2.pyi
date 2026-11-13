@@ -166,7 +166,7 @@ class SharedObjectList(_message.Message):
     def __init__(self, shared_objects: _Optional[_Iterable[_Union[SharedObjectListEntry, _Mapping]]] = ...) -> None: ...
 
 class SharedObjectListEntry(_message.Message):
-    __slots__ = ("ref", "meta", "source", "updated_at", "udp_peer_addrs")
+    __slots__ = ("ref", "meta", "source", "updated_at", "udp_peer_addrs", "generation")
     class UdpPeerAddrsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -179,12 +179,14 @@ class SharedObjectListEntry(_message.Message):
     SOURCE_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     UDP_PEER_ADDRS_FIELD_NUMBER: _ClassVar[int]
+    GENERATION_FIELD_NUMBER: _ClassVar[int]
     ref: SharedObjectRef
     meta: SharedObjectMeta
     source: str
     updated_at: int
     udp_peer_addrs: _containers.ScalarMap[str, str]
-    def __init__(self, ref: _Optional[_Union[SharedObjectRef, _Mapping]] = ..., meta: _Optional[_Union[SharedObjectMeta, _Mapping]] = ..., source: _Optional[str] = ..., updated_at: _Optional[int] = ..., udp_peer_addrs: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    generation: str
+    def __init__(self, ref: _Optional[_Union[SharedObjectRef, _Mapping]] = ..., meta: _Optional[_Union[SharedObjectMeta, _Mapping]] = ..., source: _Optional[str] = ..., updated_at: _Optional[int] = ..., udp_peer_addrs: _Optional[_Mapping[str, str]] = ..., generation: _Optional[str] = ...) -> None: ...
 
 class SharedObjectMeta(_message.Message):
     __slots__ = ("body_type", "body_meta", "account_private")

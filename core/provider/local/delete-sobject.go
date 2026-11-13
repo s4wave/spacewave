@@ -11,17 +11,25 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// DeleteStateEnv names the environment variable that, set to "off", restores
-// the delete before stored state was removed: delete unlists the object and
-// releases its block roots but keeps its keys under so/<id>/ and its live
-// mount, and a mount that finds no stored state writes a fresh genesis.
+// DeleteStateEnv names the environment variable that, set to "off", turns off
+// the removal of a deleted object's stored state and the paths that keep
+// stored state in step with the list:
+//   - delete unlists the object and releases its block roots, but keeps its
+//     keys under so/<id>/ and does not restart its live mount;
+//   - create writes only the list, without clearing the prefix or writing a
+//     genesis;
+//   - a mount of an unlisted id is not refused, and a mount that finds no
+//     stored state writes a genesis without clearing the prefix.
+//
+// It does not turn off what loses no data and keeps handles honest: the host
+// key checks on state and local state writes, the refusals of an ended mount's
+// reads and writes, the released callback of a mount, the placeholder genesis
+// of a listed object with no state, the transfer refusal of an unlisted id,
+// and the catalog generations.
 const DeleteStateEnv = "SPACEWAVE_SOBJECT_DELETE_STATE"
 
-// deleteStateOff selects the old behavior on every path that otherwise
-// keeps stored state in step with the list: delete keeps the state and the
-// live mount, create writes only the list, and a mount of any id with no
-// stored state writes a genesis without clearing the prefix. It is read once,
-// here, at startup.
+// deleteStateOff selects DeleteStateEnv's old behavior. It is read once, here,
+// at startup.
 var deleteStateOff = os.Getenv(DeleteStateEnv) == "off"
 
 // Test hooks that force an interleaving; nil outside tests.
@@ -50,16 +58,20 @@ var (
 // settings object.
 var errCannotDeleteSettings = errors.New("cannot delete the account settings shared object")
 
+// listedSharedObjectEntry returns the account list's entry for id, or nil.
+func (a *ProviderAccount) listedSharedObjectEntry(id string) *sobject.SharedObjectListEntry {
+	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
+		if entry.GetRef().GetProviderResourceRef().GetId() == id {
+			return entry
+		}
+	}
+	return nil
+}
+
 // DeleteSharedObject deletes the shared object with the given id.
 func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) error {
 	// Publish the deletion first so interrupted cleanup cannot resurrect it.
-	var entry *sobject.SharedObjectListEntry
-	for _, candidate := range a.soListCtr.GetValue().GetSharedObjects() {
-		if candidate.GetRef().GetProviderResourceRef().GetId() == id {
-			entry = candidate
-			break
-		}
-	}
+	entry := a.listedSharedObjectEntry(id)
 	if entry == nil {
 		return sobject.ErrSharedObjectNotFound
 	}
@@ -117,6 +129,18 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //     refusal rather than the ended handle; a handle of the ended mount fails
 //     every write, so it cannot write into an object a later create lists
 //     under the same id.
+//   - No holder of an old handle reads the deleted state after the delete
+//     returns. The restart retires the run, which clears the host's state
+//     snapshot under its lock, and ends the mount's context, both before the
+//     delete returns. From then on a state watchable taken earlier holds
+//     nil, the ended handle's state and local state reads return
+//     context.Canceled, and MountSharedObject calls each resolver's released
+//     callback, so the bus drops the ended handle and resolves again to the
+//     refusal. A read that took its snapshot before the commit keeps that
+//     snapshot; nothing reads one after.
+//   - The catalog reconcile removes a local object only when a tombstone
+//     names its generation, checked again under mtx; see
+//     reconcileAccountCatalog.
 //   - Root release follows the commit and is not part of it. A crash after
 //     the commit and before the release leaves the roots held, and a rerun
 //     finds the object unlisted and returns ErrSharedObjectNotFound without

@@ -43,9 +43,31 @@ func TestDeleteSharedObjectRemovesOnlyItsState(t *testing.T) {
 	releaseKept()
 	keptKeys := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("so1x"))
 
+	// Hold the state watchable and a local state store across the delete.
+	stateCtr, relStateCtr, err := stale.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relStateCtr()
+	localStore, relLocalStore, err := stale.AccessLocalStateStore(ctx, "test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relLocalStore()
+
 	// Delete the first object.
 	if err := a.DeleteSharedObject(ctx, "so1"); err != nil {
 		t.Fatal(err)
+	}
+
+	// Neither the watchable nor the local store taken before the delete
+	// serves the deleted state once it returns.
+	if snap := stateCtr.GetValue(); snap != nil {
+		t.Fatal("a state watchable taken before the delete still holds its snapshot")
+	}
+	if tx, err := localStore.NewTransaction(ctx, false); err == nil {
+		tx.Discard()
+		t.Fatal("a local store taken before the delete still reads")
 	}
 
 	// Only the first object's keys and list entry are gone.
@@ -640,7 +662,7 @@ func TestStateWritesRefuseUnownedIds(t *testing.T) {
 	// An enrollment with an id that is not a DNS label fails before writing.
 	// Its ref check is the only one before the placeholder write: the genesis
 	// builder does not validate the id, so without it keys land under so/a/.
-	err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", &sobject.SOState{}, nil)
+	err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", newSOGeneration(), &sobject.SOState{}, nil)
 	if err == nil {
 		t.Fatal("an enrollment with an invalid id succeeded")
 	}
@@ -720,6 +742,107 @@ func expectTestResultCleared(ctx context.Context, t *testing.T, tkr *sobjectTrac
 	so, err := tkr.res.await(wctx)
 	if !errors.Is(err, context.Canceled) || wctx.Err() == nil {
 		t.Fatalf("the tracker holds a result: %v, %v", so != nil, err)
+	}
+}
+
+// TestReconcileKeepsRecreatedObject deletes an object, creates one under the
+// same id without publishing it, as a crash between the create's commit and
+// its catalog publish leaves it, writes to it, and runs the catalog reconcile
+// before and after the republish, as a restart would. The newer object and
+// its acknowledged write survive the older object's tombstone. An object
+// without a generation is still removed by its tombstone, which has none.
+func TestReconcileKeepsRecreatedObject(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	settingsRef, err := a.GetAccountSettingsRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settingsID := settingsRef.GetProviderResourceRef().GetId()
+	reconcile := func() {
+		t.Helper()
+		settings, err := a.readAccountSettings(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := a.reconcileAccountCatalog(ctx, settingsID, settings, a.soListCtr.GetValue()); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Delete the first object, leaving its tombstone in the catalog.
+	ref := createTestSharedObject(ctx, t, a, "reuse")
+	if err := a.DeleteSharedObject(ctx, "reuse"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create the id again and commit it without the catalog publish.
+	relMtx, err := a.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = a.createSharedObjectLocked(ctx, "reuse", &sobject.SharedObjectMeta{BodyType: "space"})
+	relMtx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fresh, releaseFresh := mountTestSharedObject(ctx, t, a, ref)
+	writeTestStateData(ctx, t, fresh, []byte("fake-new"))
+	releaseFresh()
+
+	// The reconcile republishes the newer object over the tombstone, and a
+	// later reconcile, as after a restart, finds it live.
+	reconcile()
+	reconcile()
+	settings, err := a.readAccountSettings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry := settings.FindCatalogEntry("reuse"); entry == nil || entry.GetDeleted() {
+		t.Fatal("the reconcile left the recreated object tombstoned in the catalog")
+	}
+	if !testListed(a, "reuse") {
+		t.Fatal("the reconcile removed the recreated object")
+	}
+	fresh, releaseFresh = mountTestSharedObject(ctx, t, a, ref)
+	defer releaseFresh()
+	if got := readTestStateData(ctx, t, fresh); !bytes.Equal(got, []byte("fake-new")) {
+		t.Fatalf("the recreated object reads %q after the reconcile", got)
+	}
+
+	// An object listed and cataloged without a generation, as before
+	// generations, is still removed by its tombstone, also without one.
+	legacyRef := createTestSharedObject(ctx, t, a, "legacy")
+	relMtx, err = a.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := a.soListCtr.GetValue().CloneVT()
+	var legacy *sobject.SharedObjectListEntry
+	for _, entry := range list.GetSharedObjects() {
+		if entry.GetRef().EqualVT(legacyRef) {
+			entry.Generation = ""
+			legacy = entry.CloneVT()
+		}
+	}
+	err = a.writeSharedObjectList(ctx, list)
+	if err == nil {
+		a.soListCtr.SetValue(list)
+	}
+	relMtx()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, deleted := range []bool{false, true} {
+		if err := a.publishAccountCatalogEntry(ctx, legacy, deleted); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reconcile()
+	if testListed(a, "legacy") {
+		t.Fatal("an empty tombstone did not remove an object without a generation")
 	}
 }
 

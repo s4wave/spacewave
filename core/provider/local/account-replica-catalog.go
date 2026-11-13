@@ -146,49 +146,13 @@ func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2
 		members = append(members, member)
 	}
 
-	// Recover locally created objects whose catalog publication was interrupted.
-	local := make(map[string]*sobject.SharedObjectListEntry, len(list.GetSharedObjects()))
-	for _, entry := range list.GetSharedObjects() {
-		id := entry.GetRef().GetProviderResourceRef().GetId()
-		local[id] = entry
-		if settings.FindCatalogEntry(id) == nil && id != settingsID {
-			if err := a.publishAccountCatalogEntry(ctx, entry, false); err != nil {
-				return err
-			}
-		}
+	// Apply the catalog to the local list, then fetch the objects it lacks.
+	missing, err := a.reconcileAccountCatalog(ctx, settingsID, settings, list)
+	if err != nil {
+		return err
 	}
-
-	// Reconcile deletions, presentation changes, and authorized new checkpoints.
 	installed := false
-	for _, catalog := range settings.GetCatalog() {
-		entry := catalog.GetEntry()
-		id := entry.GetRef().GetProviderResourceRef().GetId()
-		if entry.GetRef().GetProviderResourceRef().GetProviderAccountId() != a.GetAccountID() || entry.GetRef().GetProviderResourceRef().GetProviderId() != a.GetProviderID() {
-			return errors.New("catalog object belongs to another account")
-		}
-		current := local[id]
-		if catalog.GetDeleted() {
-			if current != nil && id != settingsID {
-				release, err := a.mtx.Lock(ctx)
-				if err != nil {
-					return err
-				}
-				err = a.deleteSharedObjectLocked(ctx, id)
-				release()
-				if err != nil && !errors.Is(err, sobject.ErrSharedObjectNotFound) {
-					return err
-				}
-			}
-			continue
-		}
-		if current != nil {
-			if !current.GetMeta().EqualVT(entry.GetMeta()) {
-				if err := a.updateSharedObjectMeta(ctx, id, entry.GetMeta(), false); err != nil {
-					return err
-				}
-			}
-			continue
-		}
+	for _, entry := range missing {
 		if err := a.fetchAccountReplicaObject(ctx, state, settingsID, entry, members); err != nil {
 			return err
 		}
@@ -202,6 +166,89 @@ func (a *ProviderAccount) reconcileAccountReplica(ctx context.Context, state *p2
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// reconcileAccountCatalog republishes local objects the catalog lacks,
+// removes local objects whose tombstone names their generation, applies
+// catalog metadata, and returns the live catalog entries not held locally.
+//
+// The reconcile removes a local object only when a tombstone names its
+// generation; empty equals empty for objects made before generations. A local
+// object of another generation than the catalog's is kept untouched, deleted
+// or live: a delete is not carried to it, and the catalog's object is not
+// installed over it. The generation is checked again under the account lock,
+// so a create that lands after list was read is never removed.
+func (a *ProviderAccount) reconcileAccountCatalog(ctx context.Context, settingsID string, settings *account_settings.AccountSettings, list *sobject.SharedObjectList) ([]*sobject.SharedObjectListEntry, error) {
+	// Recover locally created objects whose catalog publication was
+	// interrupted: an object the catalog lacks, or one created under the id
+	// of an earlier object whose tombstone names another generation.
+	local := make(map[string]*sobject.SharedObjectListEntry, len(list.GetSharedObjects()))
+	for _, entry := range list.GetSharedObjects() {
+		id := entry.GetRef().GetProviderResourceRef().GetId()
+		local[id] = entry
+		catalog := settings.FindCatalogEntry(id)
+		unpublished := catalog == nil || (catalog.GetDeleted() && catalog.GetEntry().GetGeneration() != entry.GetGeneration())
+		if unpublished && id != settingsID {
+			if err := a.publishAccountCatalogEntry(ctx, entry, false); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Reconcile deletions and presentation changes, collecting new objects.
+	var missing []*sobject.SharedObjectListEntry
+	for _, catalog := range settings.GetCatalog() {
+		entry := catalog.GetEntry()
+		id := entry.GetRef().GetProviderResourceRef().GetId()
+		if entry.GetRef().GetProviderResourceRef().GetProviderAccountId() != a.GetAccountID() || entry.GetRef().GetProviderResourceRef().GetProviderId() != a.GetProviderID() {
+			return nil, errors.New("catalog object belongs to another account")
+		}
+		current := local[id]
+		if current != nil && id != settingsID && current.GetGeneration() != entry.GetGeneration() {
+			a.le.WithField("sobject-id", id).Warn("keeping local shared object of another generation than the account catalog's")
+			continue
+		}
+		if catalog.GetDeleted() {
+			if current != nil && id != settingsID {
+				if err := a.deleteCatalogTombstoned(ctx, id, entry.GetGeneration()); err != nil {
+					return nil, err
+				}
+			}
+			continue
+		}
+		if current != nil {
+			if !current.GetMeta().EqualVT(entry.GetMeta()) {
+				if err := a.updateSharedObjectMeta(ctx, id, entry.GetMeta(), false); err != nil {
+					return nil, err
+				}
+			}
+			continue
+		}
+		missing = append(missing, entry)
+	}
+	return missing, nil
+}
+
+// deleteCatalogTombstoned removes the local object id if it is still of the
+// tombstone's generation once the account lock is held.
+func (a *ProviderAccount) deleteCatalogTombstoned(ctx context.Context, id, generation string) error {
+	// Recheck the generation under the lock a create holds.
+	release, err := a.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	listed := a.listedSharedObjectEntry(id)
+	if listed == nil || listed.GetGeneration() != generation {
+		return nil
+	}
+
+	// Remove the object the tombstone names.
+	err = a.deleteSharedObjectLocked(ctx, id)
+	if err != nil && !errors.Is(err, sobject.ErrSharedObjectNotFound) {
+		return err
 	}
 	return nil
 }

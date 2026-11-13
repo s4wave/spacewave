@@ -594,6 +594,12 @@ type SharedObjectListEntry struct {
 	// for an owner reached outside signaling, such as over a private network.
 	// The account dials each one while the object stays listed.
 	UdpPeerAddrs map[string]string `protobuf:"bytes,6,rep,name=udp_peer_addrs,json=udpPeerAddrs,proto3" json:"udpPeerAddrs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Generation names one lifetime of the object under its id: the local
+	// provider sets a new one in the list write that creates or joins the
+	// object, and every install from the account catalog carries it unchanged,
+	// so a tombstone removes an object only of the lifetime it names. Empty on
+	// entries made before generations, and on other providers.
+	Generation string `protobuf:"bytes,7,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 
 func (x *SharedObjectListEntry) Reset() {
@@ -635,6 +641,13 @@ func (x *SharedObjectListEntry) GetUdpPeerAddrs() map[string]string {
 		return x.UdpPeerAddrs
 	}
 	return nil
+}
+
+func (x *SharedObjectListEntry) GetGeneration() string {
+	if x != nil {
+		return x.Generation
+	}
+	return ""
 }
 
 // SharedObjectMeta is the contents of the provider_feature_meta field for a SharedObject.
@@ -2809,6 +2822,7 @@ func (m *SharedObjectListEntry) CloneVT() *SharedObjectListEntry {
 	r := new(SharedObjectListEntry)
 	r.Source = m.Source
 	r.UpdatedAt = m.UpdatedAt
+	r.Generation = m.Generation
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Meta = protobuf_go_lite.CloneVTValue(m.Meta)
 	r.UdpPeerAddrs = protobuf_go_lite.CloneMap(m.UdpPeerAddrs)
@@ -3682,6 +3696,9 @@ func (this *SharedObjectListEntry) EqualVT(that *SharedObjectListEntry) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualMap(this.UdpPeerAddrs, that.UdpPeerAddrs) {
+		return false
+	}
+	if this.Generation != that.Generation {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5530,6 +5547,11 @@ func (x *SharedObjectListEntry) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteObjectEnd()
 	}
+	if x.Generation != "" || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteString(x.Generation)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5577,6 +5599,9 @@ func (x *SharedObjectListEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.ReadStringMap(func(key string) {
 				x.UdpPeerAddrs[key] = s.ReadString()
 			})
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadString()
 		}
 	})
 }
@@ -9026,6 +9051,11 @@ func (m *SharedObjectListEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Generation) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Generation)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if len(m.UdpPeerAddrs) > 0 {
 		for k := range m.UdpPeerAddrs {
 			v := m.UdpPeerAddrs[k]
@@ -11597,6 +11627,7 @@ func (m *SharedObjectListEntry) SizeVT() (n int) {
 		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
 		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Generation)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12476,6 +12507,10 @@ func (x *SharedObjectListEntry) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.Generation != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteString(&sb, x.Generation)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -13995,6 +14030,16 @@ func (m *SharedObjectListEntry) UnmarshalVT(dAtA []byte) error {
 			}
 			m.UdpPeerAddrs[mapkey] = mapvalue
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Generation = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

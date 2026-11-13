@@ -38,6 +38,12 @@ message SharedObjectListEntry {
   // for an owner reached outside signaling, such as over a private network.
   // The account dials each one while the object stays listed.
   map<string, string> udp_peer_addrs = 6;
+  // Generation names one lifetime of the object under its id: the local
+  // provider sets a new one in the list write that creates or joins the
+  // object, and every install from the account catalog carries it unchanged,
+  // so a tombstone removes an object only of the lifetime it names. Empty on
+  // entries made before generations, and on other providers.
+  string generation = 7;
 }
 
 // SharedObjectMeta is the contents of the provider_feature_meta field for a SharedObject.
