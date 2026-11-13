@@ -139,7 +139,7 @@ func (p *peerMissLog) fetch(ref *block.BlockRef) block.PeerFetch {
 // peerReadLimit ends, and counts the outcome once in counts, which may be nil.
 func readPeers(ctx context.Context, store block.StoreOps, ref *block.BlockRef, counts *peerReadCounts) (blk *block.StoredBlock, err error) {
 	// Count the read's outcome once it ends.
-	defer func() { counts.record(blk, err) }()
+	defer func() { counts.record(ref, blk, err) }()
 
 	// Ask the peers until one answers, or the bound ends.
 	readCtx, cancel := context.WithTimeout(ctx, peerReadLimit())
@@ -172,17 +172,24 @@ type peerReadCounts struct {
 	failed atomic.Uint64
 	// filled counts the blocks a peer served that filled the local store.
 	filled atomic.Uint64
+	// classes counts the served blocks by peerClass.
+	classes [peerClassCount]atomic.Uint64
+	// queue takes the served blocks to classify, or is nil when the
+	// placement classifies none.
+	queue chan *block.BlockRef
 }
 
-// record counts the outcome of one peer read. The peer store reports a block
-// every peer lacks as no block and no error, and any failure as an error.
-func (c *peerReadCounts) record(blk *block.StoredBlock, err error) {
+// record counts the outcome of one peer read of ref, and hands a served block
+// to the classifier. The peer store reports a block every peer lacks as no
+// block and no error, and any failure as an error.
+func (c *peerReadCounts) record(ref *block.BlockRef, blk *block.StoredBlock, err error) {
 	switch {
 	case c == nil:
 	case err != nil:
 		c.failed.Add(1)
 	case blk != nil:
 		c.served.Add(1)
+		c.classify(ref)
 	default:
 		c.notHeld.Add(1)
 	}

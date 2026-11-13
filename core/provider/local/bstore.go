@@ -571,6 +571,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
 	placement.serveOnly = serveOnly.Load()
 	placement.peerUpload = !placement.serveOnly && peerFillsUpload.Load()
+
+	// Classify the blocks peers serve the placement until the mount ends.
+	placement.startPeerClassify(ctx)
 	if backend != nil {
 		if !placement.serveOnly {
 			placement.cache = t.fillCache()

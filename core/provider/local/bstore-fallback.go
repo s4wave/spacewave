@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 )
 
 // fallbackFillSlots bounds the fills of one placed store that run at once.
@@ -230,28 +229,7 @@ func (p *placementState) fillFromFallback(ctx context.Context, ref *block.BlockR
 // reports false, so the block keeps its marker: a block uploaded twice is
 // only stored twice. Only a block the index places costs the probe.
 func (p *placementState) backendPlaces(ctx context.Context, ref *block.BlockRef) bool {
-	// Ask only the open backend of the current placement.
-	if p.remote == nil {
-		return false
-	}
-	remote := p.remote.Load()
-	if remote == nil || !remote.backend.EqualVT(p.backend.Load()) {
-		return false
-	}
-	locator, ok := remote.store.(block_store_writeback.BlockLocator)
-	if !ok || !locator.KeepsBlocks() {
-		return false
-	}
-
-	// Look the block up in the index.
-	placed, err := locator.LocateBlocks(ctx, []*block.BlockRef{ref})
-	if err != nil || len(placed) != 1 || !placed[0] {
-		return false
-	}
-
-	// Confirm the block in the backend's packs.
-	held, err := remote.store.GetBlockExists(ctx, ref)
-	return err == nil && held
+	return p.locateBlock(ctx, ref) == peerIndexedHeld
 }
 
 // fallbackFills is the state of a placed store's fallback fills, shared by the
