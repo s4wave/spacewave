@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -70,6 +71,26 @@ func (s *session) idle() {
 	}
 	_ = s.conns[0].SetDeadline(time.Time{})
 	s.conns = s.conns[:1]
+}
+
+// closeData closes the data connections of the session's call at once and
+// returns its control connection, or nil when it has none or is closed.
+func (s *session) closeData() net.Conn {
+	// Take the data connections, keeping the control connection.
+	s.mtx.Lock()
+	if s.closed || len(s.conns) == 0 {
+		s.mtx.Unlock()
+		return nil
+	}
+	ctl, data := s.conns[0], slices.Clone(s.conns[1:])
+	s.conns = s.conns[:1]
+	s.mtx.Unlock()
+
+	// Close them; the server answers on the control connection.
+	for _, conn := range data {
+		_ = conn.Close()
+	}
+	return ctl
 }
 
 // dialFunc returns the dial function of the session: the first dial is the
@@ -262,6 +283,13 @@ func (ss *sessions) idle(conn *ftp.ServerConn) {
 	if s != nil {
 		s.idle()
 	}
+}
+
+// lookup returns conn's session, or nil.
+func (ss *sessions) lookup(conn *ftp.ServerConn) *session {
+	ss.mtx.Lock()
+	defer ss.mtx.Unlock()
+	return ss.byConn[conn]
 }
 
 // kill closes the sockets of conn's session, waiting for their close, and

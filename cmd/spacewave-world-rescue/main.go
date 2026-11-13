@@ -42,6 +42,9 @@ const defaultIndexTable = "pack_index"
 const (
 	exitHardStop = 2
 	exitStopped  = 3
+	// exitSlowStop is a hard stop at a slow transfer's close that ended
+	// the session under --stop-on-drop.
+	exitSlowStop = 4
 )
 
 // args are the command's flags.
@@ -63,6 +66,9 @@ type args struct {
 	wholePacks                       string
 	planOut, planIn, indexID         string
 	orderOverhead, keepMaxSize       uint64
+	slowRate                         int64
+	slowGrace                        time.Duration
+	slowReasks                       int
 }
 
 // main runs the command and exits with a code that tells a hard stop and a
@@ -115,6 +121,9 @@ func main() {
 		&cli.Uint64Flag{Name: "keep-max-size", Usage: "drop a keep-set block larger than this many bytes, listing it in --drop-log; 0 is no cut", Destination: &a.keepMaxSize},
 		&cli.StringFlag{Name: "keep-log", Usage: "file appended one \"<pack id> <hex key> <size>\" line per keep-set block stored; default {out}/kept.tsv", Destination: &a.keepLog},
 		&cli.StringFlag{Name: "drop-log", Usage: "file appended one \"<pack id> <hex key> <offset> <size>\" line per keep-set block past --keep-max-size; default {out}/dropped.tsv", Destination: &a.dropLog},
+		&cli.Int64Flag{Name: "slow-rate", Usage: "with --slow-grace and --slow-reasks: abandon a whole pack's transfer still under this many bytes per second after the grace, and ask for the pack again on the same session when the server's replies show it in step; 0 is off", Destination: &a.slowRate},
+		&cli.DurationFlag{Name: "slow-grace", Usage: "the time a transfer runs before --slow-rate is checked, once, such as 3s; 0 is off", Destination: &a.slowGrace},
+		&cli.IntFlag{Name: "slow-reasks", Usage: "the most re-asks of one pack for --slow-rate; the last ask reads to the end at any rate; 0 is off", Destination: &a.slowReasks},
 		&cli.DurationFlag{Name: "progress", Usage: "time between progress lines", Value: 30 * time.Second, Destination: &a.progress},
 	}
 	app.Action = func(*cli.Context) error { return a.run() }
@@ -123,6 +132,9 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		var hard *hardStopError
+		if errors.As(err, &hard) && errors.Is(err, block_store_ftps.ErrSlowEnded) {
+			os.Exit(exitSlowStop)
+		}
 		if errors.As(err, &hard) {
 			os.Exit(exitHardStop)
 		}
@@ -162,6 +174,9 @@ func (a *args) run() error {
 	}
 	if a.maxPacks < 0 || a.maxDials < 0 {
 		return errors.New("--max-packs and --max-dials must not be negative")
+	}
+	if on := a.slowRate > 0 || a.slowGrace > 0 || a.slowReasks > 0; on && (a.slowRate <= 0 || a.slowGrace <= 0 || a.slowReasks <= 0) {
+		return errors.New("--slow-rate, --slow-grace and --slow-reasks go together, each above 0")
 	}
 	if a.planOut != "" && a.planIn != "" {
 		return errors.New("--plan-out and --plan-in exclude each other")
@@ -255,6 +270,7 @@ func (a *args) run() error {
 			Timeout: a.timeout, Retries: a.retries, Backoff: a.backoff, MaxBackoff: a.maxBackoff,
 			RequestsPerSec: a.reqRate, BytesPerSec: a.byteRate, CapBytes: a.maxBytes,
 			StopOnDrop: a.stopOnDrop,
+			SlowRate:   a.slowRate, SlowGrace: a.slowGrace, SlowReasks: a.slowReasks,
 		},
 		DiskFloorBytes: uint64(a.diskFloorGB * (1 << 30)),
 		Progress:       a.progress,

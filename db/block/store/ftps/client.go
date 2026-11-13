@@ -487,7 +487,7 @@ func (c *Client) do(ctx context.Context, fn func(conn *ftp.ServerConn, s *slot) 
 	// Retry on a fresh connection when the pooled one failed. The failed
 	// session's token is freed once its close is confirmed, or kept for good
 	// when it is not, and the new connection takes a token of its own.
-	if err != nil && err != errSpent && !isReply(err) && !errors.Is(err, ErrTooLarge) && ctx.Err() == nil && !c.sess.isDead() {
+	if err != nil && err != errSpent && !isReply(err) && !errors.Is(err, ErrTooLarge) && !errors.Is(err, ErrSlow) && ctx.Err() == nil && !c.sess.isDead() {
 		// Drop the failed session.
 		c.sess.quit(conn)
 		s.conn = nil
@@ -631,7 +631,7 @@ func (c *Client) acquire(ctx context.Context) (*slot, error) {
 // the connection failed or spent. A connection that outlived its range read
 // makes the spare dialed for it surplus.
 func (c *Client) release(s *slot, err error) {
-	if s.conn != nil && err != nil && (!isReply(err) || endsSession(err)) {
+	if s.conn != nil && err != nil && (!isReply(err) || endsSession(err)) && !slowKept(err) {
 		c.sess.quit(s.conn)
 		s.conn = nil
 		c.free(s.login)

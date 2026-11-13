@@ -46,4 +46,8 @@ type Config struct {
 	// session it does not answer in time keeps its token for good, since the
 	// server may still count it.
 	CloseConfirmWait time.Duration
+	// SlowCloseWait bounds the wait, after GetObjectMaxSlow closes a slow
+	// transfer, for the server's replies that show the session in step;
+	// zero is 2 seconds. A session not shown in step in time is ended.
+	SlowCloseWait time.Duration
 }

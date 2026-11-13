@@ -35,6 +35,11 @@ type miniFTPS struct {
 	userResp string // reply to USER, default 331
 	// onRetr runs a RETR: ctl writes replies, dc is the data conn.
 	onRetr func(m *miniFTPS, ctl *bufio.Writer, raw net.Conn, dc net.Conn, rest int64)
+	// object, when set, serves SIZE and RETR by path name in place of data
+	// and onRetr: it returns the object's body, or false for a 550. Its
+	// RETR runs onObject when set, else sends the body and 226.
+	object   func(name string) ([]byte, bool)
+	onObject func(m *miniFTPS, ctl *bufio.Writer, dc net.Conn, name string, body []byte, rest int64)
 	// closeLag keeps a session counted that long after its control ends.
 	// closeLag delays the close of a session whose control connection ended,
 	// as a server slow to drop a session.
@@ -172,7 +177,7 @@ func (m *miniFTPS) serve(raw net.Conn) {
 			reply("230 in")
 		case "FEAT":
 			reply("502 no")
-		case "TYPE", "PBSZ", "PROT":
+		case "TYPE", "PBSZ", "PROT", "NOOP":
 			reply("200 ok")
 		case "EPSV":
 			dl, _ = net.Listen("tcp", "127.0.0.1:0")
@@ -181,8 +186,24 @@ func (m *miniFTPS) serve(raw net.Conn) {
 			_, _ = fmt.Sscan(arg, &rest)
 			reply("350 ok")
 		case "SIZE":
+			if m.object != nil {
+				if body, ok := m.object(arg); ok {
+					reply(fmt.Sprintf("213 %d", len(body)))
+				} else {
+					reply("550 no such file")
+				}
+				continue
+			}
 			reply(fmt.Sprintf("213 %d", len(m.data)))
 		case "RETR":
+			var body []byte
+			if m.object != nil {
+				var ok bool
+				if body, ok = m.object(arg); !ok {
+					reply("550 no such file")
+					continue
+				}
+			}
 			if m.retr421 != nil {
 				m.mtx.Lock()
 				*m.retr421 = time.Now()
@@ -198,7 +219,17 @@ func (m *miniFTPS) serve(raw net.Conn) {
 			}
 			m.sock(1)
 			tdc := tls.Server(dc, m.tlsConf)
-			m.onRetr(m, w, raw, tdc, rest)
+			switch {
+			case m.object == nil:
+				m.onRetr(m, w, raw, tdc, rest)
+			case m.onObject != nil:
+				m.onObject(m, w, tdc, arg, body, rest)
+			default:
+				_, _ = tdc.Write(body[min(rest, int64(len(body))):])
+				_ = tdc.Close()
+				_, _ = w.WriteString("226 done\r\n")
+				_ = w.Flush()
+			}
 			_ = dc.Close()
 			m.sock(-1)
 			rest = 0

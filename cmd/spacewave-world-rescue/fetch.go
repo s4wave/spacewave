@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/textproto"
+	"path"
 	"regexp"
 	"strings"
 	"sync"
@@ -99,6 +100,31 @@ var errRedialRefused = errors.New("redial refused: no redials in this run")
 // dropLine is the line logged when a lost connection stops the run under
 // StopOnDrop; run-s1.sh reads it as the drop exit class.
 const dropLine = "stop: connection dropped: %v\n"
+
+// slowEndLine is the line logged when a slow transfer's close ended the
+// session under StopOnDrop, a stop told apart from a drop: it matches no
+// drop pattern, and the run exits exitSlowStop.
+const slowEndLine = "stop: slow close ended the session: %v\n"
+
+// reaskLine is the line logged before each re-ask of a slow pack: the
+// re-ask's number and the cap, the pack id, then the abandoned transfer's
+// bytes, milliseconds and bytes per second, and the reply shape of its
+// close: 426, 226 or 426+226, each followed by the NOOP's 200.
+const reaskLine = "slow re-ask %d/%d pack %s bytes %d ms %d rate %d close %s\n"
+
+// reaskDoneLine is the line logged when a pack re-asked at least once is
+// read whole: the pack id, the number of the ask that read it, counting the
+// first ask as 1, and that ask's own bytes, milliseconds and bytes per
+// second.
+const reaskDoneLine = "slow re-ask done pack %s ask %d bytes %d ms %d rate %d\n"
+
+// objectSlowReader reads a whole object as objectMaxReader does,
+// abandoning a slow transfer. *block_store_ftps.Client implements it.
+type objectSlowReader interface {
+	// GetObjectMaxSlow reads the whole object, failing one past limit bytes
+	// and abandoning one under slow's rate after its grace.
+	GetObjectMaxSlow(ctx context.Context, bucket, key string, limit int64, slow block_store_ftps.SlowCheck) ([]byte, error)
+}
 
 // isDrop reports whether a failed request lost its connection rather than
 // got a server answer: a drop, reset, EOF or timeout, a refused redial or a
@@ -219,6 +245,22 @@ type fetchOptions struct {
 	// redial, and a request that fails without a server answer is a hard
 	// stop logged as dropLine.
 	StopOnDrop bool
+	// SlowRate is the least bytes per second a whole pack's transfer may
+	// run at past SlowGrace; a slower one is abandoned and the pack asked
+	// for again on the same session. Zero, or a zero SlowGrace or
+	// SlowReasks, is no check.
+	SlowRate int64
+	// SlowGrace is the time a transfer runs before SlowRate is checked,
+	// once.
+	SlowGrace time.Duration
+	// SlowReasks is the most re-asks of one pack; the last ask reads to
+	// the end at any rate, so no pack fails for being slow.
+	SlowReasks int
+}
+
+// slowOn reports whether the slow check is asked for.
+func (o fetchOptions) slowOn() bool {
+	return o.SlowRate > 0 && o.SlowGrace > 0 && o.SlowReasks > 0
 }
 
 // reqStats times the requests made under a context that carries it, from
@@ -409,7 +451,7 @@ func (f *fetcher) whole(ctx context.Context, key string, size uint64) ([]byte, e
 	return f.do(ctx, size, func(ctx context.Context) ([]byte, error) {
 		// Read through the client's own limit when it has one.
 		if mr, ok := f.client.(objectMaxReader); ok {
-			data, err := mr.GetObjectMax(ctx, f.bucket, key, int64(size)) //nolint:gosec // pack sizes fit int64.
+			data, err := f.wholeMax(ctx, mr, key, size)
 			if errors.Is(err, block_store_ftps.ErrTooLarge) {
 				return nil, errors.Wrap(errOverSize, key)
 			}
@@ -433,6 +475,51 @@ func (f *fetcher) whole(ctx context.Context, key string, size uint64) ([]byte, e
 		}
 		return buf.Bytes(), err
 	})
+}
+
+// wholeMax reads the whole object through the client's limit. With the slow
+// check on and a client that has it, a slow transfer whose session is kept
+// is asked for again on that session, within this one attempt, so the pack
+// is charged against the cap once; each re-ask is logged and takes a
+// request token. The last ask has no check, so no pack fails for being slow.
+func (f *fetcher) wholeMax(ctx context.Context, mr objectMaxReader, key string, size uint64) ([]byte, error) {
+	// Read as before with the check off.
+	sr, ok := f.client.(objectSlowReader)
+	if !ok || !f.opts.slowOn() {
+		return mr.GetObjectMax(ctx, f.bucket, key, int64(size)) //nolint:gosec // pack sizes fit int64.
+	}
+
+	// Ask, re-asking a slow transfer whose session is kept.
+	id := path.Base(key)
+	for n := 0; ; n++ {
+		var chk block_store_ftps.SlowCheck
+		if n < f.opts.SlowReasks {
+			chk = block_store_ftps.SlowCheck{Rate: f.opts.SlowRate, Grace: f.opts.SlowGrace}
+		}
+		start := time.Now()
+		data, err := sr.GetObjectMaxSlow(ctx, f.bucket, key, int64(size), chk) //nolint:gosec // pack sizes fit int64.
+		var se *block_store_ftps.SlowError
+		if !errors.As(err, &se) || se.Ended {
+			// Log the ask that read a re-asked pack whole.
+			if err == nil && n != 0 {
+				ms := time.Since(start).Milliseconds()
+				f.logf(reaskDoneLine, id, n+1, len(data), ms, int64(len(data))*1000/max(ms, 1))
+			}
+			return data, err
+		}
+
+		// Log the re-ask and wait for its request token.
+		f.logf(reaskLine, n+1, f.opts.SlowReasks, id, se.Bytes, se.Elapsed.Milliseconds(), se.Rate(), se.Close)
+		if f.stopped.Load() {
+			return nil, errHardStopped
+		}
+		f.requests.Add(1)
+		if f.reqs != nil {
+			if err := f.reqs.Wait(ctx); err != nil {
+				return nil, err
+			}
+		}
+	}
 }
 
 // size asks the server for the object's size, with the retries and stops of
@@ -497,6 +584,10 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 		st.begin()
 		data, err := f.attempt(ctx, fn)
 		st.end()
+		if f.opts.StopOnDrop && ctx.Err() == nil && !f.stopped.Load() && errors.Is(err, block_store_ftps.ErrSlowEnded) {
+			f.logf(slowEndLine, err)
+			return nil, f.hardStop(err)
+		}
 		if f.opts.StopOnDrop && ctx.Err() == nil && !f.stopped.Load() && !isHardStop(err) && isDrop(err) {
 			f.logf(dropLine, err)
 			return nil, f.hardStop(err)
