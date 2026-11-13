@@ -1342,7 +1342,7 @@
     },
     {
       "name": "github.com/mxschmitt/playwright-go",
-      "version": "v0.6201.1",
+      "version": "v0.6401.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/mxschmitt/playwright-go",
