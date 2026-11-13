@@ -211,6 +211,7 @@ func (p *flatPage) decodeEntry(s flatSpan) (flatEntry, error) {
 func (p *flatPage) decodeRef(s flatSpan) (flatRef, error) {
 	var ref flatRef
 	err := forEachField(p.buf[s.off:s.off+s.n], s.off, func(num uint64, wire int, _ uint64, h flatSpan) error {
+		// Only field 1, the hash message, carries the reference.
 		if num != 1 || wire != 2 {
 			return nil
 		}
@@ -232,6 +233,7 @@ func (p *flatPage) decodeRef(s flatSpan) (flatRef, error) {
 
 // decodeBlob records the inline blob message at s on e.
 func (p *flatPage) decodeBlob(e *flatEntry, s flatSpan) error {
+	// Mark the entry inline and read the blob's type and raw payload.
 	e.flags |= flatInlineBlob
 	var blobType uint64
 	var raw flatSpan
@@ -430,6 +432,7 @@ func (p *flatPage) ValidateDecodedBlock() error {
 
 // validateEntryRefs checks the references permitted for entry idx.
 func (p *flatPage) validateEntryRefs(idx int) error {
+	// A leaf entry has no child; an internal entry has no value.
 	e := &p.entries[idx]
 	inline := p.hasInlineBlob(idx)
 	if p.level == 0 {
@@ -457,6 +460,7 @@ func (p *flatPage) validateEntryRefs(idx int) error {
 
 // validateBounds checks the page bounds and size against its entries.
 func (p *flatPage) validateBounds(firstKey []byte, size uint64) error {
+	// The anchor flag, both bounds and the size must match the entries.
 	if p.startsAtAnchor != p.isAnchor(0) {
 		return errors.Wrap(ErrUnexpectedPageMetadata, "starts_at_anchor mismatch")
 	}
