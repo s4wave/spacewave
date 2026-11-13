@@ -202,9 +202,6 @@ func (s *TestbedResourceServer) GetMux() srpc.Invoker {
 	return mux
 }
 
-// _ is a type assertion
-var _ s4wave_testbed.SRPCTestbedResourceServiceServer = (*TestbedResourceServer)(nil)
-
 // AccessStateAtom accesses a state atom resource.
 func (s *TestbedResourceServer) AccessStateAtom(
 	ctx context.Context,
@@ -237,3 +234,6 @@ func (s *TestbedResourceServer) AccessStateAtom(
 
 	return &s4wave_testbed.AccessStateAtomResponse{ResourceId: id}, nil
 }
+
+// _ is a type assertion
+var _ s4wave_testbed.SRPCTestbedResourceServiceServer = (*TestbedResourceServer)(nil)

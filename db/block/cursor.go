@@ -613,6 +613,7 @@ func (c *Cursor) FetchLeaf(ctx context.Context) ([]byte, bool, error) {
 // with the refs of the block it decodes from data, as Unmarshal does, or drops
 // it when it cannot decode the block.
 func (c *Cursor) FetchWithKeep(ctx context.Context) (data []byte, keep func(context.Context, []*BlockRef), found bool, err error) {
+	// A nil cursor reads nothing.
 	if c == nil {
 		return nil, nil, false, nil
 	}
