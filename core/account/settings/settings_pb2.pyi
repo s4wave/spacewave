@@ -175,12 +175,14 @@ class AccountSession(_message.Message):
     def __init__(self, peer_id: _Optional[str] = ..., storage_peer_id: _Optional[str] = ..., revoked: _Optional[bool] = ..., revoked_by_storage_peer_id: _Optional[str] = ...) -> None: ...
 
 class AccountCatalogEntry(_message.Message):
-    __slots__ = ("entry", "deleted")
+    __slots__ = ("entry", "deleted", "deleted_generations")
     ENTRY_FIELD_NUMBER: _ClassVar[int]
     DELETED_FIELD_NUMBER: _ClassVar[int]
+    DELETED_GENERATIONS_FIELD_NUMBER: _ClassVar[int]
     entry: _sobject_pb2.SharedObjectListEntry
     deleted: bool
-    def __init__(self, entry: _Optional[_Union[_sobject_pb2.SharedObjectListEntry, _Mapping]] = ..., deleted: _Optional[bool] = ...) -> None: ...
+    deleted_generations: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, entry: _Optional[_Union[_sobject_pb2.SharedObjectListEntry, _Mapping]] = ..., deleted: _Optional[bool] = ..., deleted_generations: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class PairedDevice(_message.Message):
     __slots__ = ("peer_id", "display_name", "paired_at")

@@ -258,6 +258,11 @@ message AccountCatalogEntry {
   .sobject.SharedObjectListEntry entry = 1;
   // Deleted prevents an offline replica from rediscovering a removed object.
   bool deleted = 2;
+  // DeletedGenerations lists, sorted, every generation of this id a
+  // tombstone deleted, the empty generation included. The settings fold
+  // keeps it across every replacement of the record and ignores the field on
+  // an incoming op: a deleted generation stays deleted for good.
+  repeated string deleted_generations = 3;
 }
 
 // PairedDevice is a device that has been paired with this account via P2P.

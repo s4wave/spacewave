@@ -57,12 +57,27 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 	}
 
 	// Serve only the lifetime the catalog names, not a local object of
-	// another generation under the same id.
-	listed := a.listedSharedObjectEntry(request.GetObjectId())
-	if listed == nil || listed.GetGeneration() != entry.GetEntry().GetGeneration() {
-		return nil, errors.New("requested object's catalog generation is not held here")
+	// another generation under the same id. The object is read by ref, so
+	// the check runs again after the read: a delete or create in between
+	// changes the listed generation, since generations are never reused.
+	held := func() error {
+		listed := a.listedSharedObjectEntry(request.GetObjectId())
+		if listed == nil || listed.GetGeneration() != entry.GetEntry().GetGeneration() {
+			return errors.New("requested object's catalog generation is not held here")
+		}
+		return nil
 	}
-	return a.enrollAccountMemberObject(ctx, entry.GetEntry(), member)
+	if err := held(); err != nil {
+		return nil, err
+	}
+	object, err := a.enrollAccountMemberObject(ctx, entry.GetEntry(), member)
+	if err != nil {
+		return nil, err
+	}
+	if err := held(); err != nil {
+		return nil, err
+	}
+	return object, nil
 }
 
 // startAccountReplicaSync attaches the replica, migration and participant

@@ -162,7 +162,12 @@ func (s *SharedObject) GetSharedObjectState(ctx context.Context) (sobject.Shared
 		return nil, err
 	}
 	defer relStateCtr()
-	val, err := stateCtr.WaitValue(ctx, nil)
+
+	// Wait no longer than the mount lives: an ended host publishes no value.
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	defer context.AfterFunc(s.ctx, cancel)()
+	val, err := stateCtr.WaitValue(waitCtx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -602,15 +607,8 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 	}
 
 	// Append to the list of shared objects.
-	entry := &sobject.SharedObjectListEntry{
-		Ref:        sobjectRef.CloneVT(),
-		Meta:       meta.CloneVT(),
-		Generation: newSOGeneration(),
-	}
-	sharedObjectList.SharedObjects = append(sharedObjectList.SharedObjects, entry.CloneVT())
-	slices.SortFunc(sharedObjectList.SharedObjects, func(a, b *sobject.SharedObjectListEntry) int {
-		return strings.Compare(a.GetRef().GetProviderResourceRef().GetId(), b.GetRef().GetProviderResourceRef().GetId())
-	})
+	entry := newListEntry(sobjectRef, meta, "", nil)
+	insertListEntry(sharedObjectList, entry)
 
 	// Persist the genesis state with the complete list, so a new object always
 	// has state, before publishing the in-memory snapshot. An unlisted id owns
@@ -632,14 +630,39 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 		return nil, err
 	}
 	a.soListCtr.SetValue(sharedObjectList)
-	a.reviveRefusedSharedObject(id)
+
+	// Restart any live mount of the id after the commit, as a delete does,
+	// so no handle keeps building on state the create replaced, such as an
+	// enrollment's placeholder, and a mount that refused loads the genesis.
+	a.restartSharedObject(id, nil)
 	return entry, nil
 }
 
-// newSOGeneration returns a new generation for a list entry. See
-// SharedObjectListEntry.Generation.
-func newSOGeneration() string {
-	return ulid.NewULID()
+// newListEntry returns the list entry that first lists an object in this
+// account. generation is the account catalog's for an install of a
+// cataloged lifetime; nil mints a new one. This is the only place a
+// generation is minted: every later write and publish reads it from the list.
+// See SharedObjectListEntry.Generation.
+func newListEntry(ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, source string, generation *string) *sobject.SharedObjectListEntry {
+	entry := &sobject.SharedObjectListEntry{
+		Ref:    ref.CloneVT(),
+		Source: source,
+		Meta:   meta.CloneVT(),
+	}
+	if generation != nil {
+		entry.Generation = *generation
+	} else {
+		entry.Generation = ulid.NewULID()
+	}
+	return entry
+}
+
+// insertListEntry adds a copy of entry to list in id order.
+func insertListEntry(list *sobject.SharedObjectList, entry *sobject.SharedObjectListEntry) {
+	list.SharedObjects = append(list.SharedObjects, entry.CloneVT())
+	slices.SortFunc(list.SharedObjects, func(a, b *sobject.SharedObjectListEntry) int {
+		return strings.Compare(a.GetRef().GetProviderResourceRef().GetId(), b.GetRef().GetProviderResourceRef().GetId())
+	})
 }
 
 // CreateSharedObject creates a new sobject with the given details.
@@ -656,56 +679,30 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 	}
 
 	// Publish canonical account membership after the local mutation commits,
-	// with the entry's generation, so the publish replaces a tombstone of an
-	// earlier object under this id rather than matching it.
+	// with the entry's new generation, which no tombstone has deleted.
 	if err := a.publishAccountCatalogEntry(ctx, entry, false); err != nil {
 		return nil, err
 	}
 	return entry.GetRef(), nil
 }
 
-// UpdateSharedObjectMeta updates the metadata for an existing shared object.
+// UpdateSharedObjectMeta updates the metadata for an existing shared object
+// and publishes the edited entry, generation included, to the catalog.
 func (a *ProviderAccount) UpdateSharedObjectMeta(ctx context.Context, id string, meta *sobject.SharedObjectMeta) error {
-	return a.updateSharedObjectMeta(ctx, id, meta, true)
-}
-
-// updateSharedObjectMeta applies either an explicit edit or canonical catalog metadata.
-func (a *ProviderAccount) updateSharedObjectMeta(ctx context.Context, id string, meta *sobject.SharedObjectMeta, publish bool) error {
-	// Find the existing object under the account mutation lock.
+	// Edit the listed entry, then publish the edit.
 	if err := meta.Validate(); err != nil {
 		return err
 	}
-	relMtx, err := a.mtx.Lock(ctx)
+	var edited *sobject.SharedObjectListEntry
+	err := a.editListedSharedObject(ctx, id, func(entry *sobject.SharedObjectListEntry) bool {
+		entry.Meta = meta.CloneVT()
+		edited = entry.CloneVT()
+		return true
+	})
 	if err != nil {
 		return err
 	}
-	sharedObjectList := a.soListCtr.GetValue().CloneVT()
-	if sharedObjectList == nil {
-		relMtx()
-		return sobject.ErrSharedObjectNotFound
-	}
-	idx := slices.IndexFunc(sharedObjectList.GetSharedObjects(), func(entry *sobject.SharedObjectListEntry) bool {
-		return entry.GetRef().GetProviderResourceRef().GetId() == id
-	})
-	if idx == -1 {
-		relMtx()
-		return sobject.ErrSharedObjectNotFound
-	}
-
-	// Persist and publish the replacement metadata before releasing serialization.
-	sharedObjectList.SharedObjects[idx].Meta = meta.CloneVT()
-	if err := a.writeSharedObjectList(ctx, sharedObjectList); err != nil {
-		relMtx()
-		return err
-	}
-	a.soListCtr.SetValue(sharedObjectList)
-	relMtx()
-
-	// Explicit edits also update the canonical catalog; catalog replay does not.
-	if publish {
-		return a.publishAccountCatalogEntry(ctx, sharedObjectList.SharedObjects[idx], false)
-	}
-	return nil
+	return a.publishAccountCatalogEntry(ctx, edited, false)
 }
 
 // MountSharedObject retains a ready SharedObject until the returned release runs.

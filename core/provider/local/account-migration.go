@@ -227,8 +227,8 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 			return err
 		}
 	}
-	generation := newSOGeneration()
-	if err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), generation, state, lineage); err != nil {
+	generation, err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), nil, state, lineage)
+	if err != nil {
 		return err
 	}
 	next := entry.CloneVT()

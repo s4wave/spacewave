@@ -62,8 +62,21 @@ func (s *AccountSettings) applyAccountSession(member *AccountSession) error {
 	return nil
 }
 
-// applyCatalogEntry prevents an offline inventory from resurrecting a deletion.
-// A deletion also releases the object's block store placement.
+// applyCatalogEntry folds one catalog op into the object's record. A tombstone
+// of generation g adds g to the record's deleted generations, and becomes the
+// record only if the record is absent or is generation g; a live entry of a
+// deleted generation is ignored; a live entry of any other generation replaces
+// the record. The deleted set survives every replacement. Whether each
+// generation is deleted does not depend on the order of the ops, and with at
+// most one live generation among them neither does whether the record is live;
+// two live generations are last writer wins. A tombstone record's entry is the
+// tombstone that replaced it, so which generation it names does depend on the
+// order: readers rely on Deleted and the deleted set, never on a tombstone
+// record's generation. Entries made before generations carry none; the empty
+// generation is a member like any other. A tombstone record written before
+// deleted sets counts as deleting its own generation; see DeletesGeneration. A
+// tombstone that becomes the record also releases the block store placement,
+// which belongs to the id and so to every lifetime of it.
 func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 	// Validate the entry's resource reference and metadata.
 	ref := entry.GetEntry().GetRef()
@@ -74,29 +87,66 @@ func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 		return err
 	}
 
-	// A tombstone holds against later entries of the generation it deleted,
-	// so a late write of that object cannot revive it, and removes only that
-	// generation, so a late tombstone of an earlier object cannot remove one
-	// created later under the same id. A live entry of another generation
-	// replaces the record. Entries made before generations carry none; empty
-	// equals empty.
+	// Look up the generation in the record's deleted set.
 	objectID := ref.GetProviderResourceRef().GetId()
-	if current := s.FindCatalogEntry(objectID); current != nil {
-		same := current.GetEntry().GetGeneration() == entry.GetEntry().GetGeneration()
-		if same && current.GetDeleted() || !same && entry.GetDeleted() {
-			return nil
+	generation := entry.GetEntry().GetGeneration()
+	current := s.FindCatalogEntry(objectID)
+	deleted := current.deletedGenerations()
+	idx, found := slices.BinarySearch(deleted, generation)
+
+	// A live entry replaces the record unless its generation was deleted.
+	if !entry.GetDeleted() {
+		if !found {
+			s.setCatalogRecord(objectID, &AccountCatalogEntry{Entry: entry.GetEntry().CloneVT(), DeletedGenerations: deleted})
 		}
+		return nil
 	}
 
-	// Replace the object's catalog record with the incoming entry.
+	// A tombstone joins the deleted set, and replaces the record only when
+	// the record is absent or is its generation.
+	if !found {
+		deleted = slices.Insert(deleted, idx, generation)
+	}
+	if current != nil && current.GetEntry().GetGeneration() != generation {
+		current.DeletedGenerations = deleted
+		return nil
+	}
+	s.setCatalogRecord(objectID, &AccountCatalogEntry{Entry: entry.GetEntry().CloneVT(), Deleted: true, DeletedGenerations: deleted})
+
+	// A deleted object's blocks no longer need a storage backend.
+	s.unplaceBlockStore(ref.GetBlockStoreId())
+	return nil
+}
+
+// setCatalogRecord replaces the catalog record for objectID with record.
+func (s *AccountSettings) setCatalogRecord(objectID string, record *AccountCatalogEntry) {
 	s.Catalog = slices.DeleteFunc(s.Catalog, func(current *AccountCatalogEntry) bool {
 		return current.GetEntry().GetRef().GetProviderResourceRef().GetId() == objectID
 	})
-	s.Catalog = append(s.Catalog, entry.CloneVT())
+	s.Catalog = append(s.Catalog, record)
+}
 
-	// A deleted object's blocks no longer need a storage backend.
-	if entry.GetDeleted() {
-		s.unplaceBlockStore(ref.GetBlockStoreId())
+// DeletesGeneration reports whether a tombstone deleted generation of this
+// record's id: the deleted set holds it, or the record is a tombstone of it.
+// A tombstone record written before deleted sets existed has an empty set,
+// so its own generation counts as deleted too.
+func (e *AccountCatalogEntry) DeletesGeneration(generation string) bool {
+	_, found := slices.BinarySearch(e.deletedGenerations(), generation)
+	return found
+}
+
+// deletedGenerations returns a sorted copy of the generations deleted under
+// this record's id, the record's own generation included when it is a
+// tombstone. See DeletesGeneration.
+func (e *AccountCatalogEntry) deletedGenerations() []string {
+	// Add a tombstone record's own generation to its set.
+	deleted := slices.Clone(e.GetDeletedGenerations())
+	if !e.GetDeleted() {
+		return deleted
 	}
-	return nil
+	generation := e.GetEntry().GetGeneration()
+	if idx, found := slices.BinarySearch(deleted, generation); !found {
+		deleted = slices.Insert(deleted, idx, generation)
+	}
+	return deleted
 }

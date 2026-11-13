@@ -25,7 +25,7 @@ import (
 // key checks on state and local state writes, the refusals of an ended mount's
 // reads and writes, the released callback of a mount, the placeholder genesis
 // of a listed object with no state, the transfer refusal of an unlisted id,
-// and the catalog generations.
+// and the catalog generations with their deleted sets.
 const DeleteStateEnv = "SPACEWAVE_SOBJECT_DELETE_STATE"
 
 // deleteStateOff selects DeleteStateEnv's old behavior. It is read once, here,
@@ -68,6 +68,38 @@ func (a *ProviderAccount) listedSharedObjectEntry(id string) *sobject.SharedObje
 	return nil
 }
 
+// onListedGeneration calls fn under the account lock if the list entry for id
+// is still of generation, and does nothing otherwise. An
+// action planned against one lifetime of an id, such as a delete or a catalog
+// metadata replay, decides through it, so it never reaches an object created
+// later under the same id: a create holds the same lock and mints a new
+// generation.
+func (a *ProviderAccount) onListedGeneration(ctx context.Context, id, generation string, fn func() error) error {
+	// Hold the lock a create holds while the generation decides.
+	relMtx, err := a.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer relMtx()
+	entry := a.listedSharedObjectEntry(id)
+	if entry == nil || entry.GetGeneration() != generation {
+		return nil
+	}
+	return fn()
+}
+
+// deleteListedGeneration removes the local object id if it is still of
+// generation. An object created since under the id stays.
+func (a *ProviderAccount) deleteListedGeneration(ctx context.Context, id, generation string) error {
+	return a.onListedGeneration(ctx, id, generation, func() error {
+		err := a.deleteSharedObjectLocked(ctx, id)
+		if errors.Is(err, sobject.ErrSharedObjectNotFound) {
+			return nil
+		}
+		return err
+	})
+}
+
 // DeleteSharedObject deletes the shared object with the given id.
 func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) error {
 	// Publish the deletion first so interrupted cleanup cannot resurrect it.
@@ -82,18 +114,9 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 		testHookDeletePublished(id)
 	}
 
-	// Local cleanup follows the committed account decision.
-	relMtx, err := a.mtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer relMtx()
-
-	// Delete the shared object unless another cleanup already removed it.
-	if err := a.deleteSharedObjectLocked(ctx, id); err != nil && err != sobject.ErrSharedObjectNotFound {
-		return err
-	}
-	return nil
+	// Local cleanup follows the committed account decision, and removes only
+	// the generation the tombstone names.
+	return a.deleteListedGeneration(ctx, id, entry.GetGeneration())
 }
 
 // deleteSharedObjectLocked deletes a shared object. Assumes mtx is locked.
@@ -138,8 +161,11 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 //     callback, so the bus drops the ended handle and resolves again to the
 //     refusal. A read that took its snapshot before the commit keeps that
 //     snapshot; nothing reads one after.
-//   - The catalog reconcile removes a local object only when a tombstone
-//     names its generation, checked again under mtx; see
+//   - Every caller removes only the generation it planned against, decided
+//     under mtx through onListedGeneration: a delete removes the generation
+//     its tombstone names, and the catalog reconcile removes a local object
+//     only when its generation is in the catalog's deleted set. A create in
+//     between mints a new generation, so it is never removed. See
 //     reconcileAccountCatalog.
 //   - Root release follows the commit and is not part of it. A crash after
 //     the commit and before the release leaves the roots held, and a rerun

@@ -552,6 +552,13 @@ export interface AccountCatalogEntry {
    * Deleted prevents an offline replica from rediscovering a removed object.
    */
   deleted?: boolean
+  /**
+   * DeletedGenerations lists, sorted, every generation of this id a
+   * tombstone deleted, the empty generation included. The settings fold
+   * keeps it across every replacement of the record and ignores the field on
+   * an incoming op: a deleted generation stays deleted for good.
+   */
+  deletedGenerations?: string[]
 }
 
 export const AccountCatalogEntry: MessageType<AccountCatalogEntry> =
@@ -560,6 +567,7 @@ export const AccountCatalogEntry: MessageType<AccountCatalogEntry> =
     () => [
       [1, 'entry', 11, 0, SharedObjectListEntry.codec],
       [2, 'deleted', 8],
+      [3, 'deleted_generations', 9, 1],
     ],
   )
 
