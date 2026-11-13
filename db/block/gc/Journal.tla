@@ -2018,7 +2018,9 @@ WalkEnd ==
              /\ stored' = stored \ c
              /\ young' = young \ c
              /\ verified' = verified \ c
-             /\ cut' = cut \ c
+             \* An unmarked block's sweep releases by its stored list, so
+             \* a short list stays short until SweepDel reads it.
+             /\ cut' = cut \ (c \ unmarked')
              /\ freed' = freed \cup c
              /\ freedLive' = (freedLive \/ (c \cap StoredLive) \ ToPutNow # {})
              /\ cnt' = [b \in Blocks |-> IF b \in c THEN 0 ELSE cnt[b]]
@@ -2258,12 +2260,15 @@ NoFreedRead == (LiveSet \cap freed) \subseteq ToPut
 \* the store does not hold, where NoFreedRead walks every child.
 NoFreedStoredRead == ~freedLive
 
-\* FillRebornProbe fails once a peer fills a block the flip unmarked: a
-\* probe that the fill configs reach the rebirth case.
-\* No young or verified stored block lists an unmarked child, so a child the
-\* Replaced skip vouches for is never unmarked.
+\* No young or verified stored block the flip left stored lists an unmarked
+\* child, so the flip never takes a child a live list names and a child the
+\* Replaced skip vouches for is never unmarked. A block the flip freed and a
+\* fill stored again is exempt: the flip had already freed its unmarked
+\* children, which it may name as any fill names a child the store lacks,
+\* its up pairs holding them. A put again of one refuses an unmarked child.
 VouchMarked ==
-  \A q \in (young \cup verified) \cap stored : ListKids(q) \cap unmarked = {}
+  \A q \in ((young \cup verified) \cap stored) \ flipped :
+    ListKids(q) \cap unmarked = {}
 
 \* FrontCovers: while the generation is open on an adopted Volume, each
 \* unverified block a stored young or verified list names is on the front
@@ -2289,6 +2294,11 @@ HeldByLister ==
 DyingWitness ==
   ~\E b \in stored \cap rel \cap zero :
      pdir = -1 /\ pend # {} /\ pend # Decrement(b)
+
+\* Settled states with a short list stored: CountsCover checks one, and
+\* PoppedRipe one while the generation is open.
+CutCoverWitness == ~(Adopted /\ Settled /\ ~rewritten /\ cut \cap stored # {})
+CutOpenWitness == ~(unverified /\ Settled /\ cut \cap stored # {})
 
 \* A Dying block was held again before its last page.
 ReviveWitness == ~\E b \in stored \cap rel : b \notin zero /\ pend # {}
@@ -2442,6 +2452,8 @@ RecountBothWitness ==
      /\ \E q \in CutInit \cap verified \cap stored : b \in ListKids(q)
      /\ \E n \in Names : root[n] = b
 
+\* FillRebornProbe fails once a peer fills a block the flip unmarked: a
+\* probe that the fill configs reach the rebirth case.
 FillRebornProbe == ~\E r \in fj : r.b \in flipped
 
 \* At most one fill record names a block, so keying the records by block
