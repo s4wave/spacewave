@@ -135,10 +135,11 @@ if [ -n "$go_files" ]; then
 		*/testdata | */testdata/*) continue ;;
 		esac
 		# Nested tool modules own their dependency graph and have no aptre setup.
-		# Check them from their package directory instead of the root module.
+		# Check them from their package directory instead of the root module;
+		# go vet type-checks the package with its tests without linking them.
 		module_file=$(cd "$go_pkg_dir" && go env GOMOD)
 		if [ "$module_file" != "$(pwd)/go.mod" ]; then
-			(cd "$go_pkg_dir" && go test -run '^$' . && go vet .)
+			(cd "$go_pkg_dir" && go vet .)
 			continue
 		fi
 		# Keep stderr only from a failed listing; a successful one may still
@@ -162,30 +163,18 @@ fi
 if [ "$#" -gt 0 ]; then
 	# go fix runs in the Go Fix workflow on master, not here: its analyzers walk
 	# every dependency of the package, which made a cold commit take over ten
-	# seconds. The purego build is checked by the aptre lint below and by CI.
+	# seconds.
 	#
-	# The compile check (tests included) and the aptre lint both read the same
-	# packages, so run them in parallel. Capture each output and fail the commit
-	# if either fails, printing both logs. The lint loads packages from vendor/
-	# (.golangci.yml), which a linked worktree lacks until it is vendored.
+	# The aptre lint is the compile check: golangci-lint type-checks each
+	# staged package with its tests and fails on a type error, without linking
+	# a test binary per package. It builds with -tags=purego, which selects no
+	# file of this module, only files of its dependencies; CI builds without it.
+	# It loads packages from vendor/ (.golangci.yml), which a linked worktree
+	# lacks until it is vendored.
 	if [ ! -d vendor ]; then
 		go mod vendor
 	fi
-	compile_out=$(mktemp)
-	lint_out=$(mktemp)
-	GOFLAGS="-mod=mod" go test -run '^$' "$@" >"$compile_out" 2>&1 &
-	compile_pid=$!
-	bun run go:aptre -- lint "$@" >"$lint_out" 2>&1 &
-	lint_pid=$!
-	go_rc=0
-	wait "$compile_pid" || go_rc=1
-	wait "$lint_pid" || go_rc=1
-	if [ "$go_rc" -ne 0 ]; then
-		cat "$compile_out" "$lint_out" >&2
-		rm -f "$compile_out" "$lint_out"
-		exit 1
-	fi
-	rm -f "$compile_out" "$lint_out"
+	bun run go:aptre -- lint "$@"
 fi
 
 # Check the staged go.mod. The check runs go, so it reads the file instead of
