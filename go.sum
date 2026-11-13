@@ -230,8 +230,8 @@ github.com/multiformats/go-varint v0.0.7 h1:sWSGR+f/eu5ABZA2ZpYKBILXTTs9JWpdEM/n
 github.com/multiformats/go-varint v0.0.7/go.mod h1:r8PUYw/fD/SjBCiKOoDlGF6QawOELpZAu9eioSos/OU=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/mxschmitt/playwright-go v0.6201.1 h1:KBBDopE+IIdjAp2FIk6zhLcKCCSSx/T6rGjKZmfo/Bs=
-github.com/mxschmitt/playwright-go v0.6201.1/go.mod h1:vLBP2yVO1gokUlb9ENA+YE3VQaVqf2A9BGxcb7aPjMI=
+github.com/mxschmitt/playwright-go v0.6401.0 h1:PQbHqgzMQiY6pq8YsBBM5AXYnOs9TnlyzNVcGOznYJ8=
+github.com/mxschmitt/playwright-go v0.6401.0/go.mod h1:vLBP2yVO1gokUlb9ENA+YE3VQaVqf2A9BGxcb7aPjMI=
 github.com/ncruces/go-sqlite3 v0.36.0 h1:/tmetPB+789WApzUWWfXVlDRtraPKil2iopXlQbET4A=
 github.com/ncruces/go-sqlite3 v0.36.0/go.mod h1:HhzaJ0fX5RHXe+09Nfz7pKiNuJVexXTAqX0/gNmA06w=
 github.com/ncruces/go-sqlite3-wasm/v6 v6.4.35401 h1:CJ7ClSmm84xWaefcVSbiMlU3luCiMfC/eJ0vaPntbhQ=
