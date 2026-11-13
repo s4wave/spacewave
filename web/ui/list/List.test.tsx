@@ -16,10 +16,16 @@ function TestRow<T>({ item, style, ariaAttributes }: RowComponentProps<T>) {
   )
 }
 
-// TestList owns the list state the way an application component does.
+// TestList owns the list state the way an application component does and
+// shows the selected ids.
 function TestList<T>(props: Omit<ListProps<T>, 'state'>) {
   const state = useListState(null, 'list')
-  return <List {...props} state={state} />
+  return (
+    <>
+      <List {...props} state={state} />
+      <output data-testid="selection">{state[0].selectedIds?.join(',')}</output>
+    </>
+  )
 }
 
 const mockItems: ListItem[] = [
@@ -78,20 +84,36 @@ describe('List', () => {
   })
 
   describe('keyboard handling', () => {
-    it.each(['ArrowDown', 'ArrowUp'])('%s prevents default', (key) => {
+    it('Home and End select the first and last item', () => {
       render(<TestList items={mockItems} rowComponent={TestRow} />)
       const rowgroup = screen.getByRole('rowgroup')
-      rowgroup.focus()
+      const selection = screen.getByTestId('selection')
 
-      const event = new KeyboardEvent('keydown', {
-        key,
-        bubbles: true,
-        cancelable: true,
-      })
-      const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
-      rowgroup.dispatchEvent(event)
-      expect(preventDefaultSpy).toHaveBeenCalled()
+      fireEvent.keyDown(rowgroup, { key: 'End' })
+      expect(selection.textContent).toBe('item-3')
+      fireEvent.keyDown(rowgroup, { key: 'Home' })
+      expect(selection.textContent).toBe('item-1')
+      fireEvent.keyDown(rowgroup, { key: 'End', shiftKey: true })
+      expect(selection.textContent).toBe('item-1,item-2,item-3')
     })
+
+    it.each(['ArrowDown', 'ArrowUp', 'Home', 'End'])(
+      '%s prevents default',
+      (key) => {
+        render(<TestList items={mockItems} rowComponent={TestRow} />)
+        const rowgroup = screen.getByRole('rowgroup')
+        rowgroup.focus()
+
+        const event = new KeyboardEvent('keydown', {
+          key,
+          bubbles: true,
+          cancelable: true,
+        })
+        const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
+        rowgroup.dispatchEvent(event)
+        expect(preventDefaultSpy).toHaveBeenCalled()
+      },
+    )
   })
 })
 
