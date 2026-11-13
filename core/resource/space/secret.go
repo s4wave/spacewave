@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -83,6 +84,7 @@ func (r *SpaceResource) CreateSecret(
 	}
 	secret, err := s4wave_secret.CreateSecret(ctx, r.b, soProvider, r.space.GetWorldEngine(), s4wave_secret.CreateSecretOptions{
 		ObjectKey:   req.GetObjectKey(),
+		SpaceID:     r.space.GetSharedObjectRef().GetProviderResourceRef().GetId(),
 		DisplayName: req.GetDisplayName(),
 		Kind:        req.GetKind(),
 		ContentType: req.GetContentType(),
@@ -272,4 +274,53 @@ func (r *SpaceResource) bindSecret(ctx context.Context, secret *s4wave_secret.Se
 	bound := secret.CloneVT()
 	bound.Ref = ref
 	return bound, nil
+}
+
+// DeleteSecret deletes the Secret at a key: the payload copy in each account
+// this device holds, then its name, under the same mounted Space authority as
+// CreateSecret. The held accounts are the Space's own and every account a
+// local session names; no other account is opened.
+func (r *SpaceResource) DeleteSecret(ctx context.Context, req *s4wave_space.DeleteSecretRequest) (*s4wave_space.DeleteSecretResponse, error) {
+	// Require the Secret identity.
+	if req.GetObjectKey() == "" {
+		return nil, errors.New("object_key cannot be empty")
+	}
+
+	// List the accounts this device holds.
+	held, err := r.heldAccounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete it through the Secret component.
+	spaceID := r.space.GetSharedObjectRef().GetProviderResourceRef().GetId()
+	res, err := s4wave_secret.DeleteSecret(ctx, r.b, r.space.GetWorldEngine(), spaceID, req.GetObjectKey(), held)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.DeleteSecretResponse{
+		Found:          res.Found,
+		Removed:        res.Removed,
+		OthersMayExist: res.OthersMayExist,
+	}, nil
+}
+
+// heldAccounts returns the account holding the Space, then the account of
+// each session stored on this device.
+func (r *SpaceResource) heldAccounts(ctx context.Context) ([]*provider.ProviderResourceRef, error) {
+	// Start from the Space's account, then add each local session's.
+	held := []*provider.ProviderResourceRef{r.space.GetSharedObjectRef().GetProviderResourceRef()}
+	ctrl, ctrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer ctrlRef.Release()
+	sessions, err := ctrl.ListSessions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range sessions {
+		held = append(held, entry.GetSessionRef().GetProviderResourceRef())
+	}
+	return held, nil
 }

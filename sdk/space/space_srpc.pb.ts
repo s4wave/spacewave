@@ -17,6 +17,8 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  DeleteSecretRequest,
+  DeleteSecretResponse,
   FetchPluginRepositoryRequest,
   FetchPluginRepositoryResponse,
   HoldNodeTypePluginsRequest,
@@ -173,6 +175,19 @@ export const SpaceResourceServiceDefinition = {
       name: 'AddSecretParticipant',
       I: AddSecretParticipantRequest,
       O: AddSecretParticipantResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * DeleteSecret deletes a Secret: the payload copy in each account this
+     * device holds, then its World object. An interrupted delete leaves the
+     * Secret named, and running it again completes it.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+     */
+    DeleteSecret: {
+      name: 'DeleteSecret',
+      I: DeleteSecretRequest,
+      O: DeleteSecretResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -442,6 +457,18 @@ export interface SpaceResourceService {
   ): Promise<AddSecretParticipantResponse>
 
   /**
+   * DeleteSecret deletes a Secret: the payload copy in each account this
+   * device holds, then its World object. An interrupted delete leaves the
+   * Secret named, and running it again completes it.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+   */
+  DeleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeleteSecretResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
   DeployManifests(
@@ -702,6 +729,19 @@ export interface SpaceResourceServiceHandler {
   ): Promise<AddSecretParticipantResponse>
 
   /**
+   * DeleteSecret deletes a Secret: the payload copy in each account this
+   * device holds, then its World object. An interrupted delete leaves the
+   * Secret named, and running it again completes it.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+   */
+  DeleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteSecretResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
   DeployManifests(
@@ -888,6 +928,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.ReadSecretPayload = this.ReadSecretPayload.bind(this)
     this.WriteSecretPayload = this.WriteSecretPayload.bind(this)
     this.AddSecretParticipant = this.AddSecretParticipant.bind(this)
+    this.DeleteSecret = this.DeleteSecret.bind(this)
     this.DeployManifests = this.DeployManifests.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.ImportSpacePlugin = this.ImportSpacePlugin.bind(this)
@@ -1083,6 +1124,27 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return AddSecretParticipantResponse.fromBinary(result)
+  }
+
+  /**
+   * DeleteSecret deletes a Secret: the payload copy in each account this
+   * device holds, then its World object. An interrupted delete leaves the
+   * Secret named, and running it again completes it.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+   */
+  async DeleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeleteSecretResponse> {
+    const requestMsg = DeleteSecretRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.DeleteSecret.name,
+      DeleteSecretRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return DeleteSecretResponse.fromBinary(result)
   }
 
   /**

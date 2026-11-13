@@ -382,9 +382,13 @@ func inspectSecretPayload(secret *s4wave_secret.Secret) (*Inspection, error) {
 		return out, nil
 	}
 
-	// Record the Secret envelope nested SharedObject identity.
+	// Record the Secret envelope nested SharedObject identities: the id field
+	// and the ref readers mount, which a valid envelope sets to the same id.
 	if secret.GetNestedSharedObjectId() != "" {
 		out.References = append(out.References, TypedReference{Kind: ReferenceNestedSharedObject, Value: secret.GetNestedSharedObjectId()})
+	}
+	if id := secret.GetRef().GetProviderResourceRef().GetId(); id != "" && id != secret.GetNestedSharedObjectId() {
+		out.References = append(out.References, TypedReference{Kind: ReferenceNestedSharedObject, Value: id})
 	}
 
 	// Require and record the Secret envelope block-store reference.
@@ -835,6 +839,16 @@ func rewriteSecret(ctx context.Context, object *ObjectDescriptor, mapping *Ident
 			return nil, errors.Errorf("unmapped nested SharedObject identity %s", secret.NestedSharedObjectId)
 		}
 		secret.NestedSharedObjectId = mapped
+	}
+
+	// Remap the nested SharedObject identity the ref names, which readers
+	// and delete mount, with the same mapping as the id field.
+	if prr := secret.GetRef().GetProviderResourceRef(); prr.GetId() != "" {
+		mapped := mapping.NestedSharedObjects[prr.GetId()]
+		if mapped == "" {
+			return nil, errors.Errorf("unmapped nested SharedObject identity %s", prr.GetId())
+		}
+		prr.Id = mapped
 	}
 
 	// Remap the Secret envelope block-store identity.

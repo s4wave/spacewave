@@ -38,6 +38,10 @@ type SRPCSpaceResourceServiceClient interface {
 	// AddSecretParticipant grants a peer read or write access to an existing
 	// Secret's payload, signed by the mounted session.
 	AddSecretParticipant(ctx context.Context, in *AddSecretParticipantRequest) (*AddSecretParticipantResponse, error)
+	// DeleteSecret deletes a Secret: the payload copy in each account this
+	// device holds, then its World object. An interrupted delete leaves the
+	// Secret named, and running it again completes it.
+	DeleteSecret(ctx context.Context, in *DeleteSecretRequest) (*DeleteSecretResponse, error)
 
 	DeployManifests(ctx context.Context) (SRPCSpaceResourceService_DeployManifestsClient, error)
 
@@ -291,6 +295,15 @@ func (c *srpcSpaceResourceServiceClient) AddSecretParticipant(ctx context.Contex
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) DeleteSecret(ctx context.Context, in *DeleteSecretRequest) (*DeleteSecretResponse, error) {
+	out := new(DeleteSecretResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "DeleteSecret", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceResourceServiceClient) DeployManifests(ctx context.Context) (SRPCSpaceResourceService_DeployManifestsClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "DeployManifests", nil)
 	if err != nil {
@@ -495,6 +508,10 @@ type SRPCSpaceResourceServiceServer interface {
 	// AddSecretParticipant grants a peer read or write access to an existing
 	// Secret's payload, signed by the mounted session.
 	AddSecretParticipant(context.Context, *AddSecretParticipantRequest) (*AddSecretParticipantResponse, error)
+	// DeleteSecret deletes a Secret: the payload copy in each account this
+	// device holds, then its World object. An interrupted delete leaves the
+	// Secret named, and running it again completes it.
+	DeleteSecret(context.Context, *DeleteSecretRequest) (*DeleteSecretResponse, error)
 
 	DeployManifests(SRPCSpaceResourceService_DeployManifestsStream) error
 
@@ -580,6 +597,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"ReadSecretPayload",
 		"WriteSecretPayload",
 		"AddSecretParticipant",
+		"DeleteSecret",
 		"DeployManifests",
 		"AddSpacePlugin",
 		"ImportSpacePlugin",
@@ -626,6 +644,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WriteSecretPayload(d.impl, strm)
 	case "AddSecretParticipant":
 		return true, d.InvokeMethod_AddSecretParticipant(d.impl, strm)
+	case "DeleteSecret":
+		return true, d.InvokeMethod_DeleteSecret(d.impl, strm)
 	case "DeployManifests":
 		return true, d.InvokeMethod_DeployManifests(d.impl, strm)
 	case "AddSpacePlugin":
@@ -761,6 +781,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_AddSecretParticipant(impl SR
 		return err
 	}
 	out, err := impl.AddSecretParticipant(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_DeleteSecret(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(DeleteSecretRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.DeleteSecret(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1062,6 +1094,14 @@ type SRPCSpaceResourceService_AddSecretParticipantStream interface {
 }
 
 type srpcSpaceResourceService_AddSecretParticipantStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_DeleteSecretStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_DeleteSecretStream struct {
 	srpc.Stream
 }
 

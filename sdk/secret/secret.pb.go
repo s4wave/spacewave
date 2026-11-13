@@ -92,6 +92,11 @@ type SecretPayload struct {
 	Version uint64 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	// UpdatedAt is when Value was last replaced.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// OwnerSpaceId is the Space that owns this payload. The payload's first
+	// state sets it and no later write can change it, so a writer of another
+	// Space cannot have its Secret delete remove this payload. Empty on a
+	// payload created outside a Space, which a Secret delete always keeps.
+	OwnerSpaceId string `protobuf:"bytes,5,opt,name=owner_space_id,json=ownerSpaceId,proto3" json:"ownerSpaceId,omitempty"`
 }
 
 func (x *SecretPayload) Reset() {
@@ -126,6 +131,13 @@ func (x *SecretPayload) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *SecretPayload) GetOwnerSpaceId() string {
+	if x != nil {
+		return x.OwnerSpaceId
+	}
+	return ""
 }
 
 // SecretGrantStatus describes the current peer's nested SharedObject grant.
@@ -489,6 +501,7 @@ func (m *SecretPayload) CloneVT() *SecretPayload {
 	r := new(SecretPayload)
 	r.ContentType = m.ContentType
 	r.Version = m.Version
+	r.OwnerSpaceId = m.OwnerSpaceId
 	r.Value = protobuf_go_lite.CloneBytes(m.Value)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
 	if len(m.unknownFields) > 0 {
@@ -713,6 +726,9 @@ func (this *SecretPayload) EqualVT(that *SecretPayload) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
+		return false
+	}
+	if this.OwnerSpaceId != that.OwnerSpaceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1079,6 +1095,11 @@ func (x *SecretPayload) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
 	}
+	if x.OwnerSpaceId != "" || s.HasField("ownerSpaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ownerSpaceId")
+		s.WriteString(x.OwnerSpaceId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1112,6 +1133,9 @@ func (x *SecretPayload) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "owner_space_id", "ownerSpaceId":
+			s.AddField("owner_space_id")
+			x.OwnerSpaceId = s.ReadString()
 		}
 	})
 }
@@ -1773,6 +1797,11 @@ func (m *SecretPayload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.OwnerSpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OwnerSpaceId)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.UpdatedAt != nil {
 		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2302,6 +2331,7 @@ func (m *SecretPayload) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OwnerSpaceId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2501,6 +2531,10 @@ func (x *SecretPayload) MarshalProtoText() string {
 	if x.UpdatedAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
+	}
+	if x.OwnerSpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "owner_space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.OwnerSpaceId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2883,6 +2917,16 @@ func (m *SecretPayload) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OwnerSpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OwnerSpaceId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

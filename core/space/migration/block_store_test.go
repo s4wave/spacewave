@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	provider "github.com/s4wave/spacewave/core/provider"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	space_migration "github.com/s4wave/spacewave/core/space/migration"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -56,5 +57,48 @@ func TestPlannerBlocksTypedBlockStoreMismatch(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("missing block-store mismatch blocker: %#v", preview.GetBlockers())
+	}
+}
+
+// TestSecretRewriteRemapsRefIdentity rewrites a Secret and checks that the ref
+// readers and delete mount names the same remapped SharedObject as the id
+// field, so the migrated Secret never points at the source Space's payload.
+func TestSecretRewriteRemapsRefIdentity(t *testing.T) {
+	// Store a Secret whose id field and ref name one nested SharedObject.
+	ctx := context.Background()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	setObjectBlock(t, ctx, tb.WorldState, "secret", s4wave_secret.SecretTypeID, &s4wave_secret.Secret{
+		NestedSharedObjectId: "nested-secret",
+		Ref: &sobject.SharedObjectRef{
+			ProviderResourceRef: &provider.ProviderResourceRef{Id: "nested-secret", ProviderId: "local", ProviderAccountId: "acct"},
+			BlockStoreId:        "source-store",
+		},
+	})
+
+	// Rewrite it under a mapping that renames the nested SharedObject.
+	registry, err := space_migration.BuiltInRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapping := space_migration.NewIdentityMap()
+	mapping.NestedSharedObjects["nested-secret"] = "moved-secret"
+	mapping.BlockStoreIDs["source-store"] = "destination-store"
+	object := &space_migration.ObjectDescriptor{ObjectKey: "secret", ObjectType: s4wave_secret.SecretTypeID, World: tb.WorldState}
+	result, err := registry.Lookup(s4wave_secret.SecretTypeID).Rewrite(ctx, object, mapping)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify both identities moved together.
+	rewritten := &s4wave_secret.Secret{}
+	if err := rewritten.UnmarshalVT(result.Payload); err != nil {
+		t.Fatal(err)
+	}
+	if rewritten.GetNestedSharedObjectId() != "moved-secret" || rewritten.GetRef().GetProviderResourceRef().GetId() != "moved-secret" {
+		t.Fatalf("rewrite left the identities apart: %v", rewritten)
 	}
 }

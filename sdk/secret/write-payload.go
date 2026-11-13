@@ -59,5 +59,6 @@ func WriteSecretPayloadForPeer(ctx context.Context, b bus.Bus, secret *Secret, e
 	}
 	payload := newSecretPayload(value, contentType, time.Now())
 	payload.Version = previous.GetVersion() + 1
+	payload.OwnerSpaceId = previous.GetOwnerSpaceId()
 	return StoreSecretPayload(ctx, b, secret.GetRef(), payload)
 }

@@ -12,6 +12,7 @@ import type {
   SOParticipantRole,
 } from '../../core/sobject/sobject.pb.js'
 import {
+  SharedObjectRef,
   SOConfigChangeType_Enum,
   SOInvite,
   SOJoinRequest,
@@ -907,6 +908,56 @@ export const WriteSecretPayloadResponse: MessageType<WriteSecretPayloadResponse>
   /* @__PURE__ */ createMessageType<WriteSecretPayloadResponse>(
     's4wave.space.WriteSecretPayloadResponse',
     () => [],
+  )
+
+/**
+ * DeleteSecretRequest deletes the Secret at a key.
+ *
+ * @generated from message s4wave.space.DeleteSecretRequest
+ */
+export interface DeleteSecretRequest {
+  /**
+   * ObjectKey identifies the Secret.
+   */
+  objectKey?: string
+}
+
+export const DeleteSecretRequest: MessageType<DeleteSecretRequest> =
+  /* @__PURE__ */ createMessageType<DeleteSecretRequest>(
+    's4wave.space.DeleteSecretRequest',
+    () => [[1, 'object_key', 9]],
+  )
+
+/**
+ * DeleteSecretResponse reports what a Secret delete removed.
+ *
+ * @generated from message s4wave.space.DeleteSecretResponse
+ */
+export interface DeleteSecretResponse {
+  /**
+   * Found is true when a Secret was at the key and is now deleted.
+   */
+  found?: boolean
+  /**
+   * Removed lists the payload copies deleted on this device, one per account.
+   */
+  removed?: SharedObjectRef[]
+  /**
+   * OthersMayExist is true when a copy this device cannot reach may remain,
+   * such as in the creator's account elsewhere or with a peer it was shared
+   * with.
+   */
+  othersMayExist?: boolean
+}
+
+export const DeleteSecretResponse: MessageType<DeleteSecretResponse> =
+  /* @__PURE__ */ createMessageType<DeleteSecretResponse>(
+    's4wave.space.DeleteSecretResponse',
+    () => [
+      [1, 'found', 8],
+      [2, 'removed', 11, 1, SharedObjectRef.codec],
+      [3, 'others_may_exist', 8],
+    ],
   )
 
 /**

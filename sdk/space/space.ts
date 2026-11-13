@@ -14,6 +14,8 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  DeleteSecretRequest,
+  DeleteSecretResponse,
   FetchPluginRepositoryRequest,
   FetchPluginRepositoryResponse,
   SetSpaceBackfillResponse,
@@ -175,6 +177,16 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<CreateSecretResponse> {
     return await this.service.CreateSecret(request, abortSignal)
+  }
+
+  // deleteSecret deletes a Secret: its nested payload SharedObject, then its
+  // World object. An interrupted delete leaves the Secret named, and calling
+  // it again completes it.
+  public async deleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeleteSecretResponse> {
+    return await this.service.DeleteSecret(request, abortSignal)
   }
 
   // setSpaceSequencer chooses who orders the Space's edits: an owner under

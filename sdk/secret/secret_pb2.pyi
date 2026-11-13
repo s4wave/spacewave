@@ -27,16 +27,18 @@ class Secret(_message.Message):
     def __init__(self, display_name: _Optional[str] = ..., kind: _Optional[str] = ..., nested_shared_object_id: _Optional[str] = ..., ref: _Optional[_Union[_sobject_pb2.SharedObjectRef, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class SecretPayload(_message.Message):
-    __slots__ = ("value", "content_type", "version", "updated_at")
+    __slots__ = ("value", "content_type", "version", "updated_at", "owner_space_id")
     VALUE_FIELD_NUMBER: _ClassVar[int]
     CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
+    OWNER_SPACE_ID_FIELD_NUMBER: _ClassVar[int]
     value: bytes
     content_type: str
     version: int
     updated_at: _timestamp_pb2.Timestamp
-    def __init__(self, value: _Optional[bytes] = ..., content_type: _Optional[str] = ..., version: _Optional[int] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    owner_space_id: str
+    def __init__(self, value: _Optional[bytes] = ..., content_type: _Optional[str] = ..., version: _Optional[int] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., owner_space_id: _Optional[str] = ...) -> None: ...
 
 class SecretGrantStatus(_message.Message):
     __slots__ = ("peer_id", "participant", "readable", "role", "grant_count")

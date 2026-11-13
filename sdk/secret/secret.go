@@ -367,6 +367,20 @@ func buildSecretStateFromSnapshot(
 	return state
 }
 
+// replaceSecretPayload folds payload replacements: each operation carries the
+// whole next payload. The first state fixes the payload's owner for good. An
+// operation that names another owner is rejected, including one that gives an
+// unowned payload an owner, so no writer of the payload can bind it to a
+// Space whose Secret delete would then remove it. An operation that names no
+// owner keeps the current one, as a writer on a build that predates owners
+// writes it. Every member folds with this function, so every device keeps
+// the first owner.
+//
+// An empty state is the only sign that no payload was written yet, so an
+// operation whose payload encodes to nothing is rejected too; otherwise a
+// writer could empty the state and then set any owner. Undecodable operation
+// data is rejected rather than stopping the fold, so one writer cannot make
+// the payload unreadable to every member.
 func replaceSecretPayload(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
@@ -376,11 +390,20 @@ func replaceSecretPayload(
 	nextStateData := currentStateData
 	opResults := make([]*sobject.SOOperationResult, 0, len(ops))
 	for _, op := range ops {
-		payload := &SecretPayload{}
-		if err := payload.UnmarshalVT(op.GetOpData()); err != nil {
+		next, reason, err := checkSecretPayloadOp(nextStateData, op.GetOpData())
+		if err != nil {
 			return nil, nil, err
 		}
-		nextStateData = bytes.Clone(op.GetOpData())
+		if reason != "" {
+			opResults = append(opResults, sobject.BuildSOOperationResult(
+				op.GetPeerId(),
+				op.GetNonce(),
+				false,
+				&sobject.SOOperationRejectionErrorDetails{ErrorMsg: reason},
+			))
+			continue
+		}
+		nextStateData = next
 		opResults = append(opResults, sobject.BuildSOOperationResult(
 			op.GetPeerId(),
 			op.GetNonce(),
@@ -389,6 +412,39 @@ func replaceSecretPayload(
 		))
 	}
 	return &nextStateData, opResults, nil
+}
+
+// checkSecretPayloadOp returns the state after opData replaces the payload
+// in stateData, or why it cannot. See replaceSecretPayload.
+func checkSecretPayloadOp(stateData, opData []byte) ([]byte, string, error) {
+	// Require a decodable, non-empty payload.
+	if len(opData) == 0 {
+		return nil, "the secret payload is empty", nil
+	}
+	next := &SecretPayload{}
+	if err := next.UnmarshalVT(opData); err != nil {
+		return nil, "the secret payload could not be decoded", nil
+	}
+
+	// The first state sets the owner; every later one keeps it.
+	if len(stateData) == 0 {
+		return bytes.Clone(opData), "", nil
+	}
+	current := &SecretPayload{}
+	if err := current.UnmarshalVT(stateData); err != nil {
+		return nil, "", errors.Wrap(err, "decode current secret payload")
+	}
+	owner := current.GetOwnerSpaceId()
+	switch next.GetOwnerSpaceId() {
+	case owner:
+		return bytes.Clone(opData), "", nil
+	case "":
+		next.OwnerSpaceId = owner
+		data, err := next.MarshalVT()
+		return data, "", err
+	default:
+		return nil, "the secret payload's owner cannot change", nil
+	}
 }
 
 func mountSecretInviteHost(

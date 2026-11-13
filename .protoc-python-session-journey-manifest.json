@@ -146,7 +146,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/secret": {
-      "hash": "363ea6b55aafdd8c0f794fb482e485b1b52e981575a6dfa5e04c34769e79e80f",
+      "hash": "3fafd1a64323e32cc6352df6fe82919fb94915f6557b5861a915693286e7b2f5",
       "generatedFiles": [
         "sdk/secret/secret_pb2.py",
         "sdk/secret/secret_pb2.pyi",

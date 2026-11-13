@@ -77,6 +77,13 @@ export interface SecretPayload {
    * UpdatedAt is when Value was last replaced.
    */
   updatedAt?: Date
+  /**
+   * OwnerSpaceId is the Space that owns this payload. The payload's first
+   * state sets it and no later write can change it, so a writer of another
+   * Space cannot have its Secret delete remove this payload. Empty on a
+   * payload created outside a Space, which a Secret delete always keeps.
+   */
+  ownerSpaceId?: string
 }
 
 export const SecretPayload: MessageType<SecretPayload> =
@@ -87,6 +94,7 @@ export const SecretPayload: MessageType<SecretPayload> =
       [2, 'content_type', 9],
       [3, 'version', 4],
       [4, 'updated_at', 11, 0, Timestamp.codec],
+      [5, 'owner_space_id', 9],
     ],
   )
 
