@@ -56,6 +56,15 @@ type options struct {
 	// MinWanted takes only the packs holding more than MinWanted wanted
 	// refs this run; the rest stay unrecorded for a later run.
 	MinWanted int
+	// Order is the pack order, orderWanted or orderTime; OrderOverhead the
+	// per-pack bytes orderTime adds to each pack's size.
+	Order         string
+	OrderOverhead uint64
+	// MaxPacks takes only the first MaxPacks packs in order, leaving the
+	// rest's refs for a later run; 0 takes all.
+	MaxPacks int
+	// Keep keeps the keep set's blocks of each whole pack beside the wanted.
+	Keep keepOptions
 	// Fetch bounds the requests.
 	Fetch fetchOptions
 	// DiskFloorBytes stops the run when OutDir's file system has less free.
@@ -138,6 +147,8 @@ type packResult struct {
 	reqs reqStats
 	// skip says why the pack was not fetched, empty when it was.
 	skip string
+	// extras are the keep set's blocks of the pack.
+	extras []extra
 }
 
 // notInPack returns the refs that failed as not in the pack.
@@ -153,7 +164,9 @@ func (res *packResult) notInPack() int {
 
 // rescuer runs one rescue.
 type rescuer struct {
-	o      *options
+	o *options
+	// keep takes the keep set's blocks, nil for none.
+	keep   *keeper
 	le     *logrus.Entry
 	fetch  *fetcher
 	ledger *ledger
@@ -230,6 +243,7 @@ func run(ctx context.Context, o *options, client objectReader) (*result, error) 
 	r := &rescuer{
 		o: o, le: le, ledger: l, out: out, multi: make(map[string]int), multiDone: make(map[string]bool), limits: out.GetBatchLimits(), start: time.Now(),
 		fetch: newFetcher(client, o.Bucket, fo, l.bytes), bytes0: l.bytes,
+		keep: newKeeper(o.Keep),
 	}
 	for _, s := range l.refs {
 		r.count(s, 1)
@@ -446,7 +460,13 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 	if err := r.ledger.sync(); err != nil {
 		return nil, err
 	}
-	orderPacks(packs)
+	orderPacksBy(packs, r.o.Order, r.o.OrderOverhead)
+	if r.o.MaxPacks > 0 && len(packs) > r.o.MaxPacks {
+		for _, p := range packs[r.o.MaxPacks:] {
+			r.res.Deferred += len(p.wants)
+		}
+		packs = packs[:r.o.MaxPacks]
+	}
 	return packs, nil
 }
 
@@ -661,6 +681,18 @@ func (r *rescuer) flush(ctx context.Context) error {
 			batch = append(batch, b)
 			batchBytes += int64(len(b.Data))
 		}
+		for _, x := range res.extras {
+			if x.blk == nil {
+				continue
+			}
+			if len(batch) != 0 && (batchBytes+int64(len(x.blk.Data)) > r.limits.Bytes || len(batch) >= r.limits.Blocks) {
+				if err := put(); err != nil {
+					return err
+				}
+			}
+			batch = append(batch, x.blk)
+			batchBytes += int64(len(x.blk.Data))
+		}
 	}
 	if err := put(); err != nil {
 		return err
@@ -686,6 +718,11 @@ func (r *rescuer) flush(ctx context.Context) error {
 				return err
 			}
 			r.count(f.state, 1)
+		}
+		if r.keep != nil && len(res.extras) != 0 {
+			if err := r.keep.record(res.id, res.extras); err != nil {
+				return err
+			}
 		}
 		if res.complete {
 			if err := r.ledger.pack(res.id, res.fetched, len(res.keys), res.notInPack(), res.skip); err != nil {
@@ -834,6 +871,20 @@ func (r *rescuer) fetchPack(ctx context.Context, p *packWork) (*packResult, erro
 			continue
 		}
 		res.take(w, data[e.off:e.off+e.size])
+	}
+
+	// Take the keep set's other blocks of the pack.
+	if r.keep != nil {
+		wanted := make(map[string]bool, len(p.wants))
+		for _, w := range p.wants {
+			wanted[string(w.key)] = true
+		}
+		res.extras = r.keep.take(index, data, wanted)
+		for _, x := range res.extras {
+			if x.blk != nil {
+				res.bytes += int64(len(x.blk.Data))
+			}
+		}
 	}
 	res.complete = true
 	return res, nil

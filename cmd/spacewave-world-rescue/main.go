@@ -50,12 +50,15 @@ type args struct {
 	addr, netrc, root, prefix        string
 	out, ledgerPath, layout          string
 	sessions, minWanted, retries     int
+	maxPacks                         int
 	ranges, retryFailed              bool
 	overhead, maxBytes, maxPackMiB   uint64
 	diskFloorGB                      float64
 	timeout, backoff, maxBackoff     time.Duration
 	progress, flushInterval          time.Duration
 	reqRate, byteRate                float64
+	order, keepSet, keepLog, dropLog string
+	orderOverhead, keepMaxSize       uint64
 }
 
 // main runs the command and exits with a code that tells a hard stop and a
@@ -94,6 +97,13 @@ func main() {
 		&cli.Float64Flag{Name: "bytes-per-sec", Usage: "byte rate cap across sessions; 0 is none", Value: 20 << 20, Destination: &a.byteRate},
 		&cli.BoolFlag{Name: "retry-failed", Usage: "fetch again the refs and packs the ledger records as failed", Destination: &a.retryFailed},
 		&cli.DurationFlag{Name: "flush-interval", Usage: "longest wait of verified blocks for their write to the output and their ref lines; each flush closes a synthetic pack. The byte total is synced after every pack", Value: 10 * time.Minute, Destination: &a.flushInterval},
+		&cli.StringFlag{Name: "order", Usage: "pack order: wanted (most wanted refs first) or keys-per-time (wanted refs per pack size plus --order-overhead, most first)", Value: orderWanted, Destination: &a.order},
+		&cli.Uint64Flag{Name: "order-overhead", Usage: "bytes a pack's request time is worth, for --order keys-per-time: the per-pack time times the session byte rate", Value: 10_304_340, Destination: &a.orderOverhead},
+		&cli.IntFlag{Name: "max-packs", Usage: "take only the first this many packs in --order, leaving the rest's refs for a later run; 0 takes all", Destination: &a.maxPacks},
+		&cli.StringFlag{Name: "keep-set", Usage: "list of hex block keys or 16-byte tails: blocks of a whole pack kept beside the wanted, verified against their keys; whole packs only", Destination: &a.keepSet},
+		&cli.Uint64Flag{Name: "keep-max-size", Usage: "drop a keep-set block larger than this many bytes, listing it in --drop-log; 0 is no cut", Destination: &a.keepMaxSize},
+		&cli.StringFlag{Name: "keep-log", Usage: "file appended one \"<pack id> <hex key> <size>\" line per keep-set block stored; default {out}/kept.tsv", Destination: &a.keepLog},
+		&cli.StringFlag{Name: "drop-log", Usage: "file appended one \"<pack id> <hex key> <offset> <size>\" line per keep-set block past --keep-max-size; default {out}/dropped.tsv", Destination: &a.dropLog},
 		&cli.DurationFlag{Name: "progress", Usage: "time between progress lines", Value: 30 * time.Second, Destination: &a.progress},
 	}
 	app.Action = func(*cli.Context) error { return a.run() }
@@ -134,9 +144,45 @@ func (a *args) run() error {
 	if a.minWanted < 0 {
 		return errors.New("--min-wanted must not be negative")
 	}
+
+	// Refuse an unknown output layout or pack order, or a negative pack cap.
 	if a.layout != layoutPackStore && a.layout != layoutAdopt {
 		return errors.New("--layout must be packstore or adopt")
 	}
+	if a.maxPacks < 0 {
+		return errors.New("--max-packs must not be negative")
+	}
+	if a.order != orderWanted && a.order != orderTime {
+		return errors.New("--order must be wanted or keys-per-time")
+	}
+
+	// Read the keep set and open its kept and dropped logs, whole packs only.
+	var keep keepOptions
+	if a.keepSet != "" {
+		if a.ranges {
+			return errors.New("--keep-set reads whole packs: drop --ranges")
+		}
+		set, err := readKeepSet(a.keepSet)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(a.out, 0o755); err != nil {
+			return err
+		}
+		kept, err := os.OpenFile(cmp.Or(a.keepLog, filepath.Join(a.out, "kept.tsv")), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+		if err != nil {
+			return err
+		}
+		defer kept.Close()
+		dropped, err := os.OpenFile(cmp.Or(a.dropLog, filepath.Join(a.out, "dropped.tsv")), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+		if err != nil {
+			return err
+		}
+		defer dropped.Close()
+		keep = keepOptions{Set: set, MaxSize: a.keepMaxSize, Kept: kept, Dropped: dropped}
+	}
+
+	// Stop cleanly on an interrupt or a TERM.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -176,17 +222,21 @@ func (a *args) run() error {
 		return err
 	}
 	res, err := run(ctx, &options{
-		Bucket:       a.root,
-		Prefix:       a.prefix,
-		Index:        index,
-		RefList:      a.refs,
-		Ledger:       cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
-		OutDir:       a.out,
-		Layout:       a.layout,
-		Sessions:     a.sessions,
-		Plan:         planOptions{Ranges: a.ranges, Overhead: a.overhead},
-		MinWanted:    a.minWanted,
-		MaxPackBytes: a.maxPackMiB << 20,
+		Bucket:        a.root,
+		Prefix:        a.prefix,
+		Index:         index,
+		RefList:       a.refs,
+		Ledger:        cmp.Or(a.ledgerPath, filepath.Join(a.out, "rescue.ledger")),
+		OutDir:        a.out,
+		Layout:        a.layout,
+		Sessions:      a.sessions,
+		Plan:          planOptions{Ranges: a.ranges, Overhead: a.overhead},
+		MinWanted:     a.minWanted,
+		Order:         a.order,
+		MaxPacks:      a.maxPacks,
+		OrderOverhead: a.orderOverhead,
+		Keep:          keep,
+		MaxPackBytes:  a.maxPackMiB << 20,
 		Fetch: fetchOptions{
 			Timeout: a.timeout, Retries: a.retries, Backoff: a.backoff, MaxBackoff: a.maxBackoff,
 			RequestsPerSec: a.reqRate, BytesPerSec: a.byteRate, CapBytes: a.maxBytes,
