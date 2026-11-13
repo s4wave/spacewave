@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -50,8 +51,9 @@ type args struct {
 	addr, netrc, root, prefix        string
 	out, ledgerPath, layout          string
 	sessions, minWanted, retries     int
-	maxPacks                         int
-	ranges, retryFailed              bool
+	maxPacks, maxDials               int
+	ranges, retryFailed, stopOnDrop  bool
+	packList                         string
 	overhead, maxBytes, maxPackMiB   uint64
 	diskFloorGB                      float64
 	timeout, backoff, maxBackoff     time.Duration
@@ -99,6 +101,9 @@ func main() {
 		&cli.DurationFlag{Name: "flush-interval", Usage: "longest wait of verified blocks for their write to the output and their ref lines; each flush closes a synthetic pack. The byte total is synced after every pack", Value: 10 * time.Minute, Destination: &a.flushInterval},
 		&cli.StringFlag{Name: "order", Usage: "pack order: wanted (most wanted refs first) or keys-per-time (wanted refs per pack size plus --order-overhead, most first)", Value: orderWanted, Destination: &a.order},
 		&cli.Uint64Flag{Name: "order-overhead", Usage: "bytes a pack's request time is worth, for --order keys-per-time: the per-pack time times the session byte rate", Value: 10_304_340, Destination: &a.orderOverhead},
+		&cli.StringFlag{Name: "packs", Usage: "file of pack ids, the first field of each line: plan only these packs, leaving the other packs' refs for a later run, so a restart takes the same packs", Destination: &a.packList},
+		&cli.BoolFlag{Name: "stop-on-drop", Usage: "stop the run when a connection drops without a server answer, with no redial and no new session, logging \"stop: connection dropped\"", Destination: &a.stopOnDrop},
+		&cli.IntFlag{Name: "max-dials", Usage: "most FTPS sessions dialed in the run, redials included; past it a dial is refused and the run stops; 0 is no limit", Destination: &a.maxDials},
 		&cli.IntFlag{Name: "max-packs", Usage: "take only the first this many packs in --order, leaving the rest's refs for a later run; 0 takes all", Destination: &a.maxPacks},
 		&cli.StringFlag{Name: "keep-set", Usage: "list of hex block keys or 16-byte tails: blocks of a whole pack kept beside the wanted, verified against their keys; whole packs only", Destination: &a.keepSet},
 		&cli.Uint64Flag{Name: "keep-max-size", Usage: "drop a keep-set block larger than this many bytes, listing it in --drop-log; 0 is no cut", Destination: &a.keepMaxSize},
@@ -149,8 +154,17 @@ func (a *args) run() error {
 	if a.layout != layoutPackStore && a.layout != layoutAdopt {
 		return errors.New("--layout must be packstore or adopt")
 	}
-	if a.maxPacks < 0 {
-		return errors.New("--max-packs must not be negative")
+	if a.maxPacks < 0 || a.maxDials < 0 {
+		return errors.New("--max-packs and --max-dials must not be negative")
+	}
+
+	// Read the pack list that bounds the plan.
+	var packs map[string]bool
+	if a.packList != "" {
+		var err error
+		if packs, err = readPackList(a.packList); err != nil {
+			return err
+		}
 	}
 	if a.order != orderWanted && a.order != orderTime {
 		return errors.New("--order must be wanted or keys-per-time")
@@ -214,6 +228,7 @@ func (a *args) run() error {
 		ConnsPerLogin: a.sessions,
 		NoFullRetry:   true,
 		CloseOnDone:   true,
+		MaxDials:      a.maxDials,
 	})
 	defer client.Close()
 
@@ -234,12 +249,14 @@ func (a *args) run() error {
 		MinWanted:     a.minWanted,
 		Order:         a.order,
 		MaxPacks:      a.maxPacks,
+		Packs:         packs,
 		OrderOverhead: a.orderOverhead,
 		Keep:          keep,
 		MaxPackBytes:  a.maxPackMiB << 20,
 		Fetch: fetchOptions{
 			Timeout: a.timeout, Retries: a.retries, Backoff: a.backoff, MaxBackoff: a.maxBackoff,
 			RequestsPerSec: a.reqRate, BytesPerSec: a.byteRate, CapBytes: a.maxBytes,
+			StopOnDrop: a.stopOnDrop,
 		},
 		DiskFloorBytes: uint64(a.diskFloorGB * (1 << 30)),
 		Progress:       a.progress,
@@ -254,4 +271,26 @@ func (a *args) run() error {
 		return stoppedError(res.Stop)
 	}
 	return nil
+}
+
+// readPackList reads a file of pack ids, the first field of each non-empty
+// line, and fails on an empty list.
+func readPackList(path string) (map[string]bool, error) {
+	// Read the file.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Take the first field of each line.
+	packs := make(map[string]bool)
+	for line := range strings.Lines(string(data)) {
+		if f := strings.Fields(line); len(f) != 0 {
+			packs[f[0]] = true
+		}
+	}
+	if len(packs) == 0 {
+		return nil, errors.New(path + ": no pack ids")
+	}
+	return packs, nil
 }

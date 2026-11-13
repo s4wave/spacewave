@@ -104,6 +104,8 @@ type Client struct {
 	// stopCtx ends at CloseAll, cancelling the spare dials.
 	stopCtx context.Context
 	stop    context.CancelFunc
+	// dials counts the dial attempts against Config.MaxDials.
+	dials atomic.Int64
 }
 
 // slot is a pool entry. conn and spare each hold a token of the slot's login.
@@ -797,8 +799,16 @@ func (c *Client) dial(ctx context.Context, login int) (*ftp.ServerConn, error) {
 	}
 }
 
+// ErrDialsSpent refuses a dial past Config.MaxDials.
+var ErrDialsSpent = errors.New("ftps dial refused: the client's dials are spent")
+
 // dialOnce makes one attempt to dial.
 func (c *Client) dialOnce(ctx context.Context, login int) (*ftp.ServerConn, error) {
+	// Refuse the dial past the lifetime limit, before any connection.
+	if c.conf.MaxDials > 0 && c.dials.Add(1) > int64(c.conf.MaxDials) {
+		return nil, ErrDialsSpent
+	}
+
 	// Track the session's sockets, closing them if ctx ends mid-dial under
 	// CloseOnDone or at CloseAll, which refuses the dial once it ran.
 	sess := newSession(c.tlsConf, cmp.Or(c.conf.CloseConfirmWait, closeConfirmWait), func() { c.leaks[login].Add(1) })

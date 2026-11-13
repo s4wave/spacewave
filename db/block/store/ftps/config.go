@@ -27,6 +27,10 @@ type Config struct {
 	// fail at once instead of waiting and dialing again, for a caller that
 	// must stop on that answer.
 	NoFullRetry bool
+	// MaxDials is the most sessions the client dials in its lifetime,
+	// redials and spares included; zero is no limit. A dial past it fails
+	// with ErrDialsSpent before it connects.
+	MaxDials int
 	// CloseOnDone closes a session's control and data connections when the
 	// context of the call using it ends first, so a stalled command does not
 	// keep its session open. The session's token is freed only once its

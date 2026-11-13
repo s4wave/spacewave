@@ -1180,14 +1180,15 @@ func (r *redialServer) OnRedial(fn func(ctx context.Context, err error) error) {
 	r.hook = fn
 }
 
-// TestFetcherRedialHook checks that a redial logs one line and takes a
-// request token, and that a redial refused by the rate limit returns its
-// error.
+// TestFetcherRedialHook checks that a redial logs one line, counts as a
+// request and takes a request token, that a redial the rate limit holds back
+// returns its error, and that under StopOnDrop the hook refuses the redial
+// with no token.
 func TestFetcherRedialHook(t *testing.T) {
 	// Build a fetcher at one request per second that logs to a buffer.
 	srv := &redialServer{fakeServer: &fakeServer{dir: t.TempDir()}}
 	var log bytes.Buffer
-	newFetcher(srv, "b", fetchOptions{RequestsPerSec: 1, CapBytes: 1 << 20, Log: &log}, 0)
+	f := newFetcher(srv, "b", fetchOptions{RequestsPerSec: 1, CapBytes: 1 << 20, Log: &log}, 0)
 	if srv.hook == nil {
 		t.Fatal("no redial hook set")
 	}
@@ -1198,8 +1199,8 @@ func TestFetcherRedialHook(t *testing.T) {
 		t.Fatalf("first redial: %v", err)
 	}
 	want := "ftps redial after a connection error: connection reset by peer\n"
-	if log.String() != want {
-		t.Fatalf("log %q, want %q", log.String(), want)
+	if log.String() != want || f.requests.Load() != 1 {
+		t.Fatalf("log %q, requests %d; want %q and 1", log.String(), f.requests.Load(), want)
 	}
 
 	// A second redial must wait for a token; under a short deadline it fails.
@@ -1210,5 +1211,229 @@ func TestFetcherRedialHook(t *testing.T) {
 	}
 	if n := strings.Count(log.String(), "\n"); n != 2 {
 		t.Fatalf("%d log lines, want 2", n)
+	}
+
+	// Under StopOnDrop the hook refuses at once and logs the refusal.
+	log.Reset()
+	newFetcher(srv, "b", fetchOptions{RequestsPerSec: 1, CapBytes: 1 << 20, Log: &log, StopOnDrop: true}, 0)
+	err := srv.hook(context.Background(), cerr)
+	want = "ftps redial refused after a connection error: connection reset by peer\n"
+	if !errors.Is(err, errRedialRefused) || !isDrop(err) || log.String() != want {
+		t.Fatalf("refused redial %v, log %q; want errRedialRefused and %q", err, log.String(), want)
+	}
+}
+
+// dropOptions returns testOptions with no retries and StopOnDrop, logging to
+// log.
+func dropOptions(src *source, list, out string, log io.Writer) *options {
+	o := testOptions(src, list, out)
+	o.Fetch.Retries = 0
+	o.Fetch.StopOnDrop = true
+	o.Log = log
+	return o
+}
+
+// TestRescueStopOnDrop drops the connection on the second of three packs:
+// the run stops at once with the drop line, the third pack is never asked
+// for, the dropped pack's refs stay unrecorded, and a restart on the same
+// output and ledger fetches the second and third packs only.
+func TestRescueStopOnDrop(t *testing.T) {
+	// Fail the second request as a lost connection fails, with no reply.
+	src := newSource(t)
+	var refs []*block.BlockRef
+	for range 3 {
+		refs = append(refs, src.pack(4)...)
+	}
+	out := t.TempDir()
+	list := writeList(t, out, refs)
+	first := &fakeServer{dir: src.dir, hook: func(n int) (time.Duration, error) {
+		if n == 2 {
+			return 0, io.ErrUnexpectedEOF
+		}
+		return 0, nil
+	}}
+	var log bytes.Buffer
+	res1, err := run(context.Background(), dropOptions(src, list, out, &log), first)
+
+	// The drop is a hard stop after two requests, logged once.
+	var hard *hardStopError
+	if !errors.As(err, &hard) || res1.Done != 4 || res1.PacksDone != 1 {
+		t.Fatalf("first run: %v, %+v", err, res1)
+	}
+	if calls, _ := first.count(); calls != 2 {
+		t.Fatalf("first run: %d calls, want 2: no pack after the drop", calls)
+	}
+	if n := strings.Count(log.String(), "stop: connection dropped: "); n != 1 {
+		t.Fatalf("%d drop lines in %q, want 1", n, log.String())
+	}
+
+	// The restart fetches the dropped pack again and the one after it.
+	second := &fakeServer{dir: src.dir}
+	res2, err := run(context.Background(), dropOptions(src, list, out, io.Discard), second)
+	if calls, _ := second.count(); err != nil || calls != 2 || res2.Done != 12 || res2.PacksTotal != 2 {
+		t.Fatalf("restart: %v, calls %d, %+v", err, calls, res2)
+	}
+	if n := checkOutput(t, out, refs); n != 12 {
+		t.Fatalf("output holds %d of 12", n)
+	}
+}
+
+// TestRescueResumeAfterKill leaves in the adopt output what a kill -9 in the
+// middle of a pack's write leaves: a half written temporary file, a staged
+// pack with no staged entry, and a ledger line for one of the pack's refs
+// cut before its newline. The restart counts none of them: it fetches the
+// pack again, stores its refs and records them, and every published pack
+// verifies.
+func TestRescueResumeAfterKill(t *testing.T) {
+	// Run until the second pack's request drops: the first pack is done.
+	src := newSource(t)
+	a, b := src.pack(4), src.pack(4)
+	refs := append(append([]*block.BlockRef{}, a...), b...)
+	out := t.TempDir()
+	list := writeList(t, out, refs)
+	srv := &fakeServer{dir: src.dir, hook: func(n int) (time.Duration, error) {
+		if n == 2 {
+			return 0, io.ErrUnexpectedEOF
+		}
+		return 0, nil
+	}}
+	o := dropOptions(src, list, out, io.Discard)
+	o.Layout = layoutAdopt
+	if res, err := run(context.Background(), o, srv); err == nil || res.Done != 4 {
+		t.Fatalf("first run: %v, %+v", err, res)
+	}
+	packs0, keys0 := checkAdoptDir(t, out)
+
+	// Leave a kill's debris for the second pack: a torn temporary file, a
+	// staged pack of half its bytes with no entry, and a torn ledger line.
+	names, err := os.ReadDir(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var published string
+	for _, n := range names {
+		if id, ok := strings.CutSuffix(n.Name(), adoptEntrySuffix); ok {
+			published = id
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(out, published))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, dirTempPrefix+"killed"), data[:len(data)/2], 0o644); err != nil {
+		t.Fatal(err)
+	}
+	staged := "pfv1_killedmidwrite" + adoptPartSuffix
+	if err := os.WriteFile(filepath.Join(out, staged), data[:len(data)/2], 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lf, err := os.OpenFile(filepath.Join(out, "rescue.ledger"), os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = fmt.Fprintf(lf, "r %s done", hex.EncodeToString(packfile.BlockKey(b[0].GetHash())))
+	if cerr := lf.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The restart counts only the first pack's refs as done and fetches the
+	// second pack again.
+	again := &fakeServer{dir: src.dir}
+	res, err := run(context.Background(), o, again)
+	if calls, _ := again.count(); err != nil || calls != 1 || res.Done != 8 || res.PacksTotal != 1 || res.PacksDone != 1 {
+		t.Fatalf("restart: %v, calls %d, %+v", err, calls, res)
+	}
+
+	// Every published pack verifies, and they hold the eight refs once more
+	// than before: the second pack's four.
+	packs1, keys1 := checkAdoptDir(t, out)
+	if packs1 != packs0+1 || keys1 != keys0+4 {
+		t.Fatalf("packs %d to %d, keys %d to %d", packs0, packs1, keys0, keys1)
+	}
+	got := make(map[string]bool)
+	names, err = os.ReadDir(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range names {
+		id, ok := strings.CutSuffix(n.Name(), adoptEntrySuffix)
+		if !ok {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(out, id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		index, err := packfile.ReadIndex(bytes.NewReader(data), uint64(len(data)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ie := range index {
+			off, size := ie.GetOffset(), ie.GetSize()
+			if _, ok := verifyKeyed(ie.GetKey(), data[off:off+size]); !ok {
+				t.Fatalf("pack %s holds a block that does not verify", id)
+			}
+			got[string(ie.GetKey())] = true
+		}
+	}
+	for _, ref := range refs {
+		if !got[string(packfile.BlockKey(ref.GetHash()))] {
+			t.Fatalf("ref %s missing from the output", ref.MarshalString())
+		}
+	}
+}
+
+// TestRescuePackList plans only the pack the list names: the other packs'
+// refs are deferred with no ledger line.
+func TestRescuePackList(t *testing.T) {
+	// Write three packs and name the one holding the first.
+	src := newSource(t)
+	a := src.pack(4)
+	refs := append(append(append([]*block.BlockRef{}, a...), src.pack(4)...), src.pack(4)...)
+	out := t.TempDir()
+	list := writeList(t, out, refs)
+	ctx := context.Background()
+	tx, err := src.index.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids, err := block_store_s3.ReadIndexPackIDs(ctx, tx)
+	if err != nil || len(ids) != 3 {
+		t.Fatalf("pack ids %v, %v", ids, err)
+	}
+	value, ok, err := tx.Get(ctx, block_store_s3.IndexHashRowKey(packfile.BlockKey(a[0].GetHash())))
+	tx.Discard()
+	row, parsed := block_store_s3.ParseIndexHashRow(value)
+	if err != nil || !ok || !parsed || len(ids[row.Num]) != 1 {
+		t.Fatalf("h row of the first ref: %v %v %v", ok, parsed, err)
+	}
+	named := ids[row.Num][0]
+
+	// Only that pack is fetched; the rest are deferred, unrecorded.
+	o := testOptions(src, list, out)
+	o.Packs = map[string]bool{named: true}
+	srv := &fakeServer{dir: src.dir}
+	res, err := run(context.Background(), o, srv)
+	if calls, _ := srv.count(); err != nil || calls != 1 || res.Done != 4 || res.Deferred != 8 || res.PacksTotal != 1 {
+		t.Fatalf("%v, calls %d, %+v", err, calls, res)
+	}
+	if n := checkOutput(t, out, a); n != 4 {
+		t.Fatalf("output holds %d of 4", n)
+	}
+	raw, err := os.ReadFile(filepath.Join(out, "rescue.ledger"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	for line := range strings.Lines(string(raw)) {
+		if strings.HasPrefix(line, "r ") {
+			n++
+		}
+	}
+	if n != 4 {
+		t.Fatalf("%d ref lines in the ledger, want 4", n)
 	}
 }

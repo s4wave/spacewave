@@ -63,6 +63,9 @@ type options struct {
 	// MaxPacks takes only the first MaxPacks packs in order, leaving the
 	// rest's refs for a later run; 0 takes all.
 	MaxPacks int
+	// Packs, when set, plans only the packs it names, leaving the other
+	// packs' refs for a later run, so a restart takes the same packs.
+	Packs map[string]bool
 	// Keep keeps the keep set's blocks of each whole pack beside the wanted.
 	Keep keepOptions
 	// Fetch bounds the requests.
@@ -429,14 +432,19 @@ func (r *rescuer) group(ctx context.Context) ([]*packWork, error) {
 		return nil, err
 	}
 
-	// Drop the packs left empty; record the refs of packs the plan cannot
-	// read; defer the packs at or below MinWanted. A pack the ledger
+	// Drop the packs left empty; defer, unrecorded, the packs outside Packs;
+	// record the refs of packs the plan cannot read; defer the packs at or
+	// below MinWanted. A pack the ledger
 	// finished is kept when it has wants: they are refs no earlier run
 	// recorded, added to the list since, and every candidate pack of a ref
 	// stays counted in r.multi.
 	packs := make([]*packWork, 0, len(byID))
 	for _, p := range byID {
 		if len(p.wants) == 0 {
+			continue
+		}
+		if r.o.Packs != nil && !r.o.Packs[p.id] {
+			r.res.Deferred += len(p.wants)
 			continue
 		}
 		if _, _, ok := choosePlan(p, r.o.Plan); !ok && !r.canSize() {

@@ -68,9 +68,13 @@ type redialWatcher interface {
 	OnRedial(fn func(ctx context.Context, err error) error)
 }
 
-// redialLine is the line logged before each redial. The rescue watchdog stops
-// the run on it, as it matches the watchdog's redial pattern.
-const redialLine = "ftps redial after a connection error: %v\n"
+// redialLine is the line logged before each redial, and refusedRedialLine
+// the one logged instead under StopOnDrop. The rescue watchdog stops the run
+// on either, as both match its redial pattern.
+const (
+	redialLine        = "ftps redial after a connection error: %v\n"
+	refusedRedialLine = "ftps redial refused after a connection error: %v\n"
+)
 
 // errNoSizer reports that the client cannot ask for an object's size.
 var errNoSizer = errors.New("the client cannot ask for an object's size")
@@ -87,6 +91,37 @@ var errCut = errors.Wrap(errHardStopped, "cut at the hard stop")
 
 // errTimeout reports that a request outlived its timeout.
 var errTimeout = errors.New("request timed out")
+
+// errRedialRefused refuses the redial of a failed connection under
+// StopOnDrop.
+var errRedialRefused = errors.New("redial refused: no redials in this run")
+
+// dropLine is the line logged when a lost connection stops the run under
+// StopOnDrop; run-s1.sh reads it as the drop exit class.
+const dropLine = "stop: connection dropped: %v\n"
+
+// isDrop reports whether a failed request lost its connection rather than
+// got a server answer: a drop, reset, EOF or timeout, a refused redial or a
+// spent dial. A missing object, an object past its size and a cancelled
+// run are not drops; neither is any FTP reply, which isHardStop judges.
+func isDrop(err error) bool {
+	// Rule out no error, a cancel and a refusal after a stop.
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, errHardStopped) {
+		return false
+	}
+
+	// A refused redial or a spent dial follows a lost connection.
+	if errors.Is(err, errRedialRefused) || errors.Is(err, block_store_ftps.ErrDialsSpent) {
+		return true
+	}
+
+	// Any other error but a missing or over-size object and an FTP reply.
+	if errors.Is(err, block_store_s3.ErrNotFound) || errors.Is(err, errOverSize) || errors.Is(err, block_store_ftps.ErrTooLarge) {
+		return false
+	}
+	var reply *textproto.Error
+	return !errors.As(err, &reply)
+}
 
 // hardStopError wraps a server answer that stops the run with no retry.
 type hardStopError struct{ err error }
@@ -129,7 +164,7 @@ func isHardStop(err error) bool {
 	// Match any refused login, whose reply code the FTP library may drop,
 	// and the loss of every session token to unconfirmed closes, after which
 	// no session can be dialed within the server's limit.
-	if errors.Is(err, block_store_ftps.ErrLoginRefused) || errors.Is(err, block_store_ftps.ErrSessionsLost) {
+	if errors.Is(err, block_store_ftps.ErrLoginRefused) || errors.Is(err, block_store_ftps.ErrSessionsLost) || errors.Is(err, block_store_ftps.ErrDialsSpent) {
 		return true
 	}
 
@@ -177,8 +212,13 @@ type fetchOptions struct {
 	// Reserved, when set, makes the byte total durable before each request
 	// that reads bytes, so a crash mid-request loses no charged bytes.
 	Reserved func(total uint64) error
-	// Log, when set, receives one line per redial of a failed connection.
+	// Log, when set, receives one line per redial of a failed connection
+	// and the line of a stop on a drop.
 	Log io.Writer
+	// StopOnDrop makes a lost connection stop the run: a call refuses to
+	// redial, and a request that fails without a server answer is a hard
+	// stop logged as dropLine.
+	StopOnDrop bool
 }
 
 // reqStats times the requests made under a context that carries it, from
@@ -268,13 +308,20 @@ func newFetcher(client objectReader, bucket string, opts fetchOptions, fetched u
 		})
 	}
 
-	// Log each redial of a failed connection and charge it a request token,
-	// so a redial is seen and counts against the request rate.
+	// Log each redial of a failed connection. Under StopOnDrop refuse it;
+	// otherwise count it as a request and charge it a request token, so a
+	// redial is seen and counts against the request rate.
 	if w, ok := client.(redialWatcher); ok {
 		w.OnRedial(func(ctx context.Context, err error) error {
-			if opts.Log != nil {
-				_, _ = fmt.Fprintf(opts.Log, redialLine, err)
+			// Refuse the redial under StopOnDrop.
+			if opts.StopOnDrop {
+				f.logf(refusedRedialLine, err)
+				return errors.Wrap(errRedialRefused, err.Error())
 			}
+
+			// Otherwise count it and wait for a request token.
+			f.logf(redialLine, err)
+			f.requests.Add(1)
 			if f.reqs != nil {
 				return f.reqs.Wait(ctx)
 			}
@@ -290,6 +337,13 @@ func newFetcher(client objectReader, bucket string, opts fetchOptions, fetched u
 		f.bytes = rate.NewLimiter(rate.Limit(opts.BytesPerSec), max(int(opts.BytesPerSec), 1<<20))
 	}
 	return f
+}
+
+// logf writes a line to the log, when there is one.
+func (f *fetcher) logf(format string, args ...any) {
+	if f.opts.Log != nil {
+		_, _ = fmt.Fprintf(f.opts.Log, format, args...)
+	}
 }
 
 // hardStop stops the run at a hard stop: no request starts after it, and
@@ -443,6 +497,10 @@ func (f *fetcher) do(ctx context.Context, n uint64, fn func(context.Context) ([]
 		st.begin()
 		data, err := f.attempt(ctx, fn)
 		st.end()
+		if f.opts.StopOnDrop && ctx.Err() == nil && !f.stopped.Load() && !isHardStop(err) && isDrop(err) {
+			f.logf(dropLine, err)
+			return nil, f.hardStop(err)
+		}
 		if isHardStop(err) {
 			return nil, f.hardStop(err)
 		}

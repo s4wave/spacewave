@@ -352,3 +352,35 @@ func TestClientOnRedial(t *testing.T) {
 		t.Fatalf("logins %d to %d, hook calls %d; want no new login and two calls", logins, after, len(calls))
 	}
 }
+
+// TestClientMaxDials checks that a client dials at most MaxDials sessions:
+// once its one session is lost, a redial fails with ErrDialsSpent and no
+// login reaches the server.
+func TestClientMaxDials(t *testing.T) {
+	ctx := t.Context()
+	addr, tlsConf, srv := startCountingServer(t)
+
+	// Write an object through the one session the client may dial.
+	client := NewClient(Config{Addr: addr, Logins: []Login{{User: "user", Password: "pass"}}, TLSConfig: tlsConf, MaxSessions: 1, MaxDials: 1})
+	t.Cleanup(client.Close)
+	if err := client.PutObject(ctx, "b", "o", []byte("payload"), ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Close it server-side: the read's redial is refused before it connects.
+	srv.closeSessions()
+	if _, err := client.GetObjectRange(ctx, "b", "o", 0, 7); !errors.Is(err, ErrDialsSpent) {
+		t.Fatalf("read after the lost session = %v; want ErrDialsSpent", err)
+	}
+
+	// A later call dials no session either.
+	if _, err := client.GetObjectRange(ctx, "b", "o", 0, 7); !errors.Is(err, ErrDialsSpent) {
+		t.Fatalf("second read = %v; want ErrDialsSpent", err)
+	}
+	srv.mtx.Lock()
+	logins := srv.logins["user"]
+	srv.mtx.Unlock()
+	if logins != 1 {
+		t.Fatalf("%d logins; want 1", logins)
+	}
+}

@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -566,5 +567,45 @@ func TestReviewOverSize421(t *testing.T) {
 	var hard *hardStopError
 	if !errors.As(err, &hard) {
 		t.Fatalf("over-size 421: err %v", err)
+	}
+}
+
+// TestReviewDropStops drops the control connection mid-transfer with no
+// reply, under stage 1's settings (one session, --max-dials 1, no retries,
+// --stop-on-drop): the redial is refused, the drop is a hard stop with its
+// log line, the next pack is refused unrequested, and the server saw one
+// connection, one login and one RETR in all.
+func TestReviewDropStops(t *testing.T) {
+	// Send part of the object, then close both connections with no reply.
+	m := newMini(t)
+	m.onRetr = func(m *miniFTPS, _ *bufio.Writer, raw net.Conn, dc net.Conn, _ int64) {
+		_, _ = dc.Write(m.data[:1000])
+		rstData(dc)
+		_ = raw.Close()
+	}
+	c := block_store_ftps.NewClient(block_store_ftps.Config{
+		Addr: m.ln.Addr().String(), TLSConfig: m.cliTLS,
+		Logins:      []block_store_ftps.Login{{User: "u", Password: "p"}},
+		MaxSessions: 1, ConnsPerLogin: 1, NoFullRetry: true, CloseOnDone: true, MaxDials: 1,
+	})
+	t.Cleanup(c.Close)
+	var log bytes.Buffer
+	f := newFetcher(c, "b", fetchOptions{Timeout: 3 * time.Second, CapBytes: 1 << 40, StopOnDrop: true, Log: &log}, 0)
+
+	// The first pack's drop stops the run; the second is never requested.
+	_, err1 := f.whole(context.Background(), "k1", uint64(len(m.data)))
+	_, err2 := f.whole(context.Background(), "k2", uint64(len(m.data)))
+	var hard *hardStopError
+	if !errors.As(err1, &hard) || !errors.Is(err2, errHardStopped) {
+		t.Fatalf("first pack %v, second %v", err1, err2)
+	}
+	if !strings.Contains(log.String(), "ftps redial refused after a connection error: ") || strings.Count(log.String(), "stop: connection dropped: ") != 1 {
+		t.Fatalf("log %q", log.String())
+	}
+	m.mtx.Lock()
+	conns := m.conns
+	m.mtx.Unlock()
+	if _, logins, users, _ := m.counts(); conns != 1 || logins != 1 || users != 1 || m.retrs() != 1 || f.requests.Load() != 1 {
+		t.Fatalf("conns %d, logins %d, users %d, retrs %d, requests %d; want one each", conns, logins, users, m.retrs(), f.requests.Load())
 	}
 }
