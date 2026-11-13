@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -111,6 +112,11 @@ func TestBuildNodeGraphRootKeepsWorld(t *testing.T) {
 			root, err = state.GetRoot(ctx)
 			if f := root.GetFormat(); err == nil && f != world_block.WorldFormat_WORLD_FORMAT_NODE_GRAPH {
 				t.Fatalf("built World has format %v", f)
+			}
+			// The import's Okra object tree keeps its layout under the node
+			// graph's Okra tag.
+			if impl := root.GetObjectKeyValue().GetImplType(); err == nil && impl != kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH {
+				t.Fatalf("built World's object tree is %v", impl)
 			}
 		}
 	})
