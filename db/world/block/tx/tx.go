@@ -178,9 +178,9 @@ func (t *Tx) objectRoots() []*block.BlockRef {
 }
 
 // objectRoots returns the object roots each transaction in the batch records.
-func (b *TxBatch) objectRoots() []*block.BlockRef {
+func (t *TxBatch) objectRoots() []*block.BlockRef {
 	var refs []*block.BlockRef
-	for _, tx := range b.GetTxs() {
+	for _, tx := range t.GetTxs() {
 		refs = append(refs, tx.objectRoots()...)
 	}
 	return refs
