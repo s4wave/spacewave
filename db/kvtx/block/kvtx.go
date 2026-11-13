@@ -113,7 +113,7 @@ func (i KVImplType) layout() KVImplType {
 	switch i {
 	case KVImplType_KV_IMPL_TYPE_IAVL, KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
 		return KVImplType_KV_IMPL_TYPE_IAVL
-	case KVImplType_KV_IMPL_TYPE_OKRA:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH:
 		return KVImplType_KV_IMPL_TYPE_OKRA
 	case KVImplType_KV_IMPL_TYPE_OKRA_INLINE, KVImplType_KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH:
 		return KVImplType_KV_IMPL_TYPE_OKRA_INLINE

@@ -237,8 +237,21 @@ func (rf *regenFixture) checkBuilt(t *testing.T, r *Regenerator, s regenState) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if impl := hw.GetObjectKeyValue().GetImplType(); impl == kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH {
-		t.Fatal("kv head's object tree is tagged")
+	if err := hw.checkTreeImpls(); err != nil {
+		t.Fatalf("kv head: %v", err)
+	}
+
+	// A kv World whose object tree carries either layout's node graph tag is
+	// refused at load.
+	for _, impl := range []kvtx_block.KVImplType{
+		kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH,
+		kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_NODE_GRAPH,
+	} {
+		tagged := hw.CloneVT()
+		tagged.ObjectKeyValue.ImplType = impl
+		if tagged.checkTreeImpls() == nil {
+			t.Fatalf("kv World with a %v object tree loads", impl)
+		}
 	}
 	_, bw, err := r.readWorld(ctx, r.a.store, s.built)
 	if err == nil {

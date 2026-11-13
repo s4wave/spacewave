@@ -48,6 +48,14 @@ export enum KVImplType {
    * the tag when it opens the object tree, before it reads or writes the World.
    */
   KV_IMPL_TYPE_IAVL_NODE_GRAPH = 5,
+
+  /**
+   * KV_IMPL_TYPE_OKRA_NODE_GRAPH is an Okra tree holding the objects of a
+   * World in the node graph layout. It stores the same bytes as
+   * KV_IMPL_TYPE_OKRA; only the World's meaning differs, so a reader that
+   * predates the layout rejects the tag as it does KV_IMPL_TYPE_IAVL_NODE_GRAPH.
+   */
+  KV_IMPL_TYPE_OKRA_NODE_GRAPH = 6,
 }
 
 export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
@@ -59,6 +67,7 @@ export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
     [3, 'KV_IMPL_TYPE_OKRA_INLINE'],
     [4, 'KV_IMPL_TYPE_OKRA_INLINE_NODE_GRAPH'],
     [5, 'KV_IMPL_TYPE_IAVL_NODE_GRAPH'],
+    [6, 'KV_IMPL_TYPE_OKRA_NODE_GRAPH'],
   ],
 )
 
