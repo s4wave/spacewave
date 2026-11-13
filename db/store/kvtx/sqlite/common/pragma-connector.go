@@ -16,6 +16,9 @@ type PragmaConnector struct {
 	connector driver.Connector
 	// pragmas run on every new connection, in order.
 	pragmas []string
+	// file is the Store's hold on its database file, nil for one in memory.
+	// Each connection takes a hold of its own from it for its life.
+	file *fileHold
 }
 
 // NewPragmaConnector returns a connector that opens dsn through drv and runs
@@ -33,22 +36,26 @@ func NewPragmaConnector(drv driver.Driver, dsn string, pragmas []string) (*Pragm
 	return &PragmaConnector{connector: connector, pragmas: pragmas}, nil
 }
 
-// Connect opens a connection, runs the pragmas on it, and keeps its prepared
-// statements for reuse.
+// Connect opens a connection holding the database file, runs the pragmas on
+// it, and keeps its prepared statements for reuse.
 func (c *PragmaConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	// Open the driver connection.
+	// Hold the file before the connection opens it, then open it.
+	hold := c.file.again()
 	conn, err := c.connector.Connect(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, hold.release())
+	}
+	if _, ok := conn.(driver.ConnPrepareContext); !ok {
+		return nil, errors.Join(errors.New("sqlite: the driver cannot prepare statements with a context"), conn.Close(), hold.release())
 	}
 
 	// Run each pragma, closing the connection if one fails.
 	for _, pragma := range c.pragmas {
 		if err := execConn(ctx, conn, pragma); err != nil {
-			return nil, errors.Join(err, conn.Close())
+			return nil, errors.Join(err, conn.Close(), hold.release())
 		}
 	}
-	return newStmtCacheConn(conn), nil
+	return newStmtCacheConn(conn, hold), nil
 }
 
 // Driver returns the underlying driver.

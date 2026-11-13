@@ -20,6 +20,9 @@ type stmtCacheConn struct {
 	driver.Conn
 	// stmts holds the prepared statement of each query run on the connection.
 	stmts map[string]*cachedStmt
+	// hold is the connection's hold on its database file, released after the
+	// connection closes.
+	hold *fileHold
 }
 
 // cachedStmt is one prepared statement and whether rows of it are open.
@@ -30,14 +33,10 @@ type cachedStmt struct {
 	busy bool
 }
 
-// newStmtCacheConn wraps conn with a statement cache when it supports the
-// context methods the cache runs statements through; otherwise it returns
-// conn unchanged.
-func newStmtCacheConn(conn driver.Conn) driver.Conn {
-	if _, ok := conn.(driver.ConnPrepareContext); !ok {
-		return conn
-	}
-	return &stmtCacheConn{Conn: conn, stmts: make(map[string]*cachedStmt)}
+// newStmtCacheConn wraps conn, which prepares statements with contexts, with
+// a statement cache, and releases hold when it closes.
+func newStmtCacheConn(conn driver.Conn, hold *fileHold) driver.Conn {
+	return &stmtCacheConn{Conn: conn, stmts: make(map[string]*cachedStmt), hold: hold}
 }
 
 // cached returns the idle cached statement of query, preparing it on first
@@ -68,6 +67,7 @@ func (c *stmtCacheConn) cached(ctx context.Context, query string) (*cachedStmt, 
 // connection when that statement is busy. Closing the rows resets the
 // statement.
 func (c *stmtCacheConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	// Take the cached statement, or query uncached when it is busy.
 	st, err := c.cached(ctx, query)
 	if err != nil {
 		return nil, err
@@ -149,12 +149,13 @@ func (c *stmtCacheConn) CheckNamedValue(value *driver.NamedValue) error {
 
 // Close closes the cached statements, then the connection.
 func (c *stmtCacheConn) Close() error {
+	// Close the statements and the connection, then release the file.
 	errs := make([]error, 0, len(c.stmts)+1)
 	for _, st := range c.stmts {
 		errs = append(errs, st.stmt.Close())
 	}
 	c.stmts = nil
-	errs = append(errs, c.Conn.Close())
+	errs = append(errs, c.Conn.Close(), c.hold.release())
 	return errors.Join(errs...)
 }
 
