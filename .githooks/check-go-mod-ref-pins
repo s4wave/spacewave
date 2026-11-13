@@ -30,6 +30,8 @@ make_tmp
 outdated=$tmp_file
 make_tmp
 errors=$tmp_file
+make_tmp
+stderr=$tmp_file
 
 awk '
 function trim(s) {
@@ -112,8 +114,10 @@ function emit(kind, old, module, version, ref) {
 
 while IFS='	' read -r kind old module version ref; do
 	[ -n "$module" ] || continue
-	if ! resolved=$(go list -m -mod=readonly -f '{{.Version}}' "$module@$ref" 2>&1); then
-		err=$(printf "%s" "$resolved" | tr '\n' ' ')
+	# go list gets no stdin, so a wrapper that forwards it, such as ssh to a build
+	# host, cannot consume the pins; its stderr stays out of the version.
+	if ! resolved=$(go list -m -mod=readonly -f '{{.Version}}' "$module@$ref" </dev/null 2>"$stderr"); then
+		err=$(tr '\n' ' ' <"$stderr")
 		printf "%s\t%s\t%s\t%s\n" "$module" "$ref" "$version" "$err" >>"$errors"
 		continue
 	fi
