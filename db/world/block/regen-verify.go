@@ -34,8 +34,7 @@ func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/regen/verify")
 	defer task.End()
 
-	// Compare the Worlds apart from their graphs. The object tree and the
-	// changelog are content addressed, so equal refs hold equal records.
+	// Each side's trees must carry its format's tags.
 	sides := [2]*block.BlockRef{s.base, s.built}
 	var worlds [2]*World
 	var cursors [2]*block.Cursor
@@ -44,13 +43,24 @@ func (r *Regenerator) verify(ctx context.Context, s regenState) error {
 		if cursors[i], worlds[i], err = r.readWorld(ctx, r.a.store, ref); err != nil {
 			return err
 		}
+		if err := worlds[i].checkTreeImpls(); err != nil {
+			return errors.Wrap(ErrRegenMismatch, err.Error())
+		}
 	}
-	strip := func(w *World) *World {
+
+	// Compare the Worlds apart from their graphs, with the object tree's tag
+	// normalised to a kv World's. The object tree and the changelog are
+	// content addressed, so equal refs hold equal records.
+	var stripped [2]*World
+	for i, w := range worlds {
 		w = w.CloneVT()
-		w.GraphKeyValue, w.Format, w.GraphSettings = nil, 0, nil
-		return w
+		w.GraphKeyValue, w.GraphSettings = nil, nil
+		if err := w.setFormat(WorldFormat_WORLD_FORMAT_CAYLEY_KV); err != nil {
+			return errors.Wrap(ErrRegenMismatch, err.Error())
+		}
+		stripped[i] = w
 	}
-	if !strip(worlds[0]).EqualVT(strip(worlds[1])) {
+	if !stripped[0].EqualVT(stripped[1]) {
 		return errors.Wrap(ErrRegenMismatch, "Worlds differ outside the graph")
 	}
 

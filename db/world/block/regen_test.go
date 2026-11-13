@@ -3,6 +3,7 @@
 package world_block
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/s4wave/spacewave/db/block"
+	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -209,6 +211,67 @@ func (rf *regenFixture) switchTo(t *testing.T, fault func(r *Regenerator, s rege
 	return r
 }
 
+// reload opens an engine afresh on the head, as a restart does, which loads
+// the head World through checkTreeImpls, and checks that it reads format and
+// holds exactly what was committed.
+func (rf *regenFixture) reload(t *testing.T, format WorldFormat) {
+	t.Helper()
+	reopened := rf.openEngine(t, rf.volumeFixture.authority())
+	if f := headFormat(t, reopened); f != format {
+		t.Fatalf("reloaded head is %v, want %v", f, format)
+	}
+	rf.m.check(t, reopened)
+}
+
+// checkBuilt checks the state a crash between build and graft leaves: an
+// engine opened afresh loads the head as the kv World it was, its object tree
+// untagged, while the built root carries the node graph's tags. It then
+// grafts the head onto the built root, which must write the World block alone,
+// since retagging the object tree changes only its root inside that block.
+func (rf *regenFixture) checkBuilt(t *testing.T, r *Regenerator, s regenState) {
+	t.Helper()
+	ctx := t.Context()
+	rf.reload(t, WorldFormat_WORLD_FORMAT_CAYLEY_KV)
+	head := rf.worldRoot(t)
+	_, hw, err := r.readWorld(ctx, r.a.store, head)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if impl := hw.GetObjectKeyValue().GetImplType(); impl == kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH {
+		t.Fatal("kv head's object tree is tagged")
+	}
+	_, bw, err := r.readWorld(ctx, r.a.store, s.built)
+	if err == nil {
+		err = bw.checkTreeImpls()
+	}
+	if err != nil || bw.GetFormat() != WorldFormat_WORLD_FORMAT_NODE_GRAPH {
+		t.Fatalf("built World is %v: %v", bw.GetFormat(), err)
+	}
+
+	// Graft through a store that counts the blocks written.
+	var puts int
+	counted := newReadThroughStore(r.a.store, ReadThrough{
+		Get: func(ctx context.Context, store block.StoreOps, ref *block.BlockRef) ([]byte, bool, error) {
+			return store.GetBlock(ctx, ref)
+		},
+		Put: func(*block.BlockRef) { puts++ },
+	})
+	g, err := r.graft(ctx, counted, head, s.built)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if puts != 1 {
+		t.Fatalf("graft wrote %d blocks, want the World block alone", puts)
+	}
+	_, gw, err := r.readWorld(ctx, r.a.store, g.ref)
+	if err == nil {
+		err = gw.checkTreeImpls()
+	}
+	if err != nil {
+		t.Fatalf("grafted World: %v", err)
+	}
+}
+
 // TestRegeneratorSwapsWhileCommitting regenerates a kv World on a Volume that
 // frees at once while a writer commits between every step, through a
 // restart at each stage, and checks that the head becomes a node graph World
@@ -246,6 +309,7 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	if err := r.build(ctx, stage(r, RegenBuilding)); err != nil {
 		t.Fatal(err)
 	}
+	rf.checkBuilt(t, r, stage(r, RegenCatchingUp))
 	f.collect(t)
 	m.commit(t, engine, func(w *EngineTx, add, del func(world.GraphQuad)) {
 		m.create(t, w, "late-1")
@@ -262,6 +326,8 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	if head := f.worldRoot(t); !s.base.EqualsRef(head) {
 		t.Fatalf("round left base %v behind head %v", s.base, head)
 	}
+	// A crash before the switch reloads the head as the old kv World.
+	rf.reload(t, WorldFormat_WORLD_FORMAT_CAYLEY_KV)
 	f.collect(t)
 	m.commit(t, engine, func(_ *EngineTx, add, del func(world.GraphQuad)) {
 		del(regenQuad(keys[6], "<p0>", keys[3], ""))
@@ -299,6 +365,9 @@ func TestRegeneratorSwapsWhileCommitting(t *testing.T) {
 	stage(r, RegenDone)
 	f.collect(t)
 	m.check(t, engine)
+
+	// A restart loads the finished World through checkTreeImpls.
+	rf.reload(t, WorldFormat_WORLD_FORMAT_NODE_GRAPH)
 }
 
 // TestRegeneratorSwitchesBack commits on a switched World, including

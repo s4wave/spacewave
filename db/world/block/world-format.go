@@ -46,6 +46,32 @@ func (f WorldFormat) newObjectTree() *kvtx_block.KeyValueStore {
 	return &kvtx_block.KeyValueStore{}
 }
 
+// setFormat sets the World's format and tags its object tree as newObjectTree
+// tags a new one. Both formats keep the object tree in the IAVL layout, so
+// only the tag changes; the tree's root sits inside the World block, so the
+// World's next write rewrites that block alone. The caller sets a graph tree
+// of the format.
+func (w *World) setFormat(f WorldFormat) error {
+	// A World with no object tree yet gets an empty one to tag.
+	kv := w.GetObjectKeyValue()
+	if kv == nil {
+		kv = &kvtx_block.KeyValueStore{}
+		w.ObjectKeyValue = kv
+	}
+
+	// Only a tree in the IAVL layout can change format by its tag alone.
+	switch impl := kv.GetImplType(); impl {
+	case 0, kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL, kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL_NODE_GRAPH:
+	default:
+		return errors.Errorf("retag a %v object tree", impl)
+	}
+
+	// Tag the tree as a new one of the format and set the format.
+	kv.ImplType = f.newObjectTree().GetImplType()
+	w.Format = f
+	return nil
+}
+
 // graphImpl returns the implementation a new graph tree of the format takes.
 func (f WorldFormat) graphImpl() kvtx_block.KVImplType {
 	if f == WorldFormat_WORLD_FORMAT_NODE_GRAPH {
