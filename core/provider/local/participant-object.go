@@ -149,7 +149,7 @@ func (a *ProviderAccount) EnrollParticipantObject(ctx context.Context, id string
 		}
 
 		// Install the checkpoint like an invite join, then sync it.
-		if err := a.mountEnrolledSO(ctx, id, meta, "shared", object.GetState(), object.GetConfigLineage()); err != nil {
+		if err := a.mountEnrolledSO(ctx, id, meta, "shared", newSOGeneration(), object.GetState(), object.GetConfigLineage()); err != nil {
 			return nil, err
 		}
 		a.RetrySharedObjectSync(id)
@@ -166,22 +166,25 @@ func (a *ProviderAccount) EnrollParticipantObject(ctx context.Context, id string
 func (a *ProviderAccount) knownP2PPeers(st *transport.SessionTransport) []peer.ID {
 	// Order the linked peers first, since they answer without a dial.
 	var peers []peer.ID
+	seen := map[peer.ID]bool{st.GetPeerID(): true}
+	add := func(id peer.ID) {
+		if !seen[id] {
+			seen[id] = true
+			peers = append(peers, id)
+		}
+	}
 	links, _ := st.GetLinkSnapshotsWithWait()
 	for _, linked := range links {
-		if !slices.Contains(peers, linked.RemotePeerID) {
-			peers = append(peers, linked.RemotePeerID)
-		}
+		add(linked.RemotePeerID)
 	}
 
 	// Append the retained peers that are not linked.
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, id := range a.p2pPeerIDs {
-			if !slices.Contains(peers, id) {
-				peers = append(peers, id)
-			}
+			add(id)
 		}
 	})
-	return slices.DeleteFunc(peers, func(id peer.ID) bool { return id == st.GetPeerID() })
+	return peers
 }
 
 // fetchParticipantObject requests one peer's checkpoint of the object.

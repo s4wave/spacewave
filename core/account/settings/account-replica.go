@@ -74,10 +74,18 @@ func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 		return err
 	}
 
-	// Keep an already-deleted object's catalog record unchanged.
+	// A tombstone holds against later entries of the generation it deleted,
+	// so a late write of that object cannot revive it, and removes only that
+	// generation, so a late tombstone of an earlier object cannot remove one
+	// created later under the same id. A live entry of another generation
+	// replaces the record. Entries made before generations carry none; empty
+	// equals empty.
 	objectID := ref.GetProviderResourceRef().GetId()
-	if current := s.FindCatalogEntry(objectID); current != nil && current.GetDeleted() {
-		return nil
+	if current := s.FindCatalogEntry(objectID); current != nil {
+		same := current.GetEntry().GetGeneration() == entry.GetEntry().GetGeneration()
+		if same && current.GetDeleted() || !same && entry.GetDeleted() {
+			return nil
+		}
 	}
 
 	// Replace the object's catalog record with the incoming entry.

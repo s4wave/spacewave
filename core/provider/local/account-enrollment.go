@@ -47,7 +47,7 @@ func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairi
 	}
 
 	// Mount the enrolled object with its config lineage.
-	return a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), object.GetState(), object.GetConfigLineage())
+	return a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), entry.GetGeneration(), object.GetState(), object.GetConfigLineage())
 }
 
 // bindPairingSettings replaces only the empty settings object created while

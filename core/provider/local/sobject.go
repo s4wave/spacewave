@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -122,14 +123,13 @@ type mountStore struct {
 // stored state. A write transaction holds the store's writer from open to
 // end, so no delete commits between the check and the write's commit.
 func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	// Reads need no check: they cannot change the object.
-	if !write {
-		return m.ObjectStore.NewTransaction(ctx, false)
-	}
-
-	// Refuse a handle whose mount has ended.
+	// Refuse a handle whose mount has ended, so it neither reads nor writes
+	// the keys of an object a later create lists under the same id.
 	if err := m.ctx.Err(); err != nil {
 		return nil, err
+	}
+	if !write {
+		return m.ObjectStore.NewTransaction(ctx, false)
 	}
 
 	// Refuse a write to an object deleted since the mount began.
@@ -275,6 +275,8 @@ type sobjectResult struct {
 	gen uint64
 	// prom holds the newest run's mount result.
 	prom *promise.PromiseContainer[*SharedObject]
+	// so is the SharedObject prom holds, if any; reset ends its host.
+	so *SharedObject
 	// health holds the newest run's health snapshot.
 	health *ccontainer.CContainer[*sobject.SharedObjectHealth]
 }
@@ -332,8 +334,13 @@ func (r *sobjectResult) retire() {
 	r.reset()
 }
 
-// reset clears the mount result and reports loading. The caller holds mtx.
+// reset ends the published SharedObject's state snapshot, clears the mount
+// result and reports loading. The caller holds mtx.
 func (r *sobjectResult) reset() {
+	if r.so != nil {
+		r.so.lsoHost.end()
+		r.so = nil
+	}
 	r.prom.SetPromise(nil)
 	r.health.SetValue(sobject.NewSharedObjectLoadingHealth(
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -355,6 +362,7 @@ func (h *sobjectRun) publish(health *sobject.SharedObjectHealth, so *SharedObjec
 		return
 	}
 	h.res.health.SetValue(health)
+	h.res.so = so
 	h.res.prom.SetResult(so, err)
 }
 
@@ -558,9 +566,9 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	return <-errCh
 }
 
-// createSharedObjectLocked creates a new sobject with the given details.
-// Assumes p.mtx is locked.
-func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id string, meta *sobject.SharedObjectMeta) (*sobject.SharedObjectRef, error) {
+// createSharedObjectLocked creates a new sobject with the given details and a
+// new generation, and returns its list entry. Assumes p.mtx is locked.
+func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id string, meta *sobject.SharedObjectMeta) (*sobject.SharedObjectListEntry, error) {
 	// Derive the SharedObject and block-store references from account identity.
 	providerID := a.t.accountInfo.GetProviderId()
 	providerAccountID := a.t.accountInfo.GetProviderAccountId()
@@ -594,10 +602,12 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 	}
 
 	// Append to the list of shared objects.
-	sharedObjectList.SharedObjects = append(sharedObjectList.SharedObjects, &sobject.SharedObjectListEntry{
-		Ref:  sobjectRef.CloneVT(),
-		Meta: meta.CloneVT(),
-	})
+	entry := &sobject.SharedObjectListEntry{
+		Ref:        sobjectRef.CloneVT(),
+		Meta:       meta.CloneVT(),
+		Generation: newSOGeneration(),
+	}
+	sharedObjectList.SharedObjects = append(sharedObjectList.SharedObjects, entry.CloneVT())
 	slices.SortFunc(sharedObjectList.SharedObjects, func(a, b *sobject.SharedObjectListEntry) int {
 		return strings.Compare(a.GetRef().GetProviderResourceRef().GetId(), b.GetRef().GetProviderResourceRef().GetId())
 	})
@@ -623,7 +633,13 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 	}
 	a.soListCtr.SetValue(sharedObjectList)
 	a.reviveRefusedSharedObject(id)
-	return sobjectRef, nil
+	return entry, nil
+}
+
+// newSOGeneration returns a new generation for a list entry. See
+// SharedObjectListEntry.Generation.
+func newSOGeneration() string {
+	return ulid.NewULID()
 }
 
 // CreateSharedObject creates a new sobject with the given details.
@@ -633,17 +649,19 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 	if err != nil {
 		return nil, err
 	}
-	ref, err := a.createSharedObjectLocked(ctx, id, meta)
+	entry, err := a.createSharedObjectLocked(ctx, id, meta)
 	relMtx()
 	if err != nil {
 		return nil, err
 	}
 
-	// Publish canonical account membership after the local mutation commits.
-	if err := a.publishAccountCatalogEntry(ctx, &sobject.SharedObjectListEntry{Ref: ref, Meta: meta}, false); err != nil {
+	// Publish canonical account membership after the local mutation commits,
+	// with the entry's generation, so the publish replaces a tombstone of an
+	// earlier object under this id rather than matching it.
+	if err := a.publishAccountCatalogEntry(ctx, entry, false); err != nil {
 		return nil, err
 	}
-	return ref, nil
+	return entry.GetRef(), nil
 }
 
 // UpdateSharedObjectMeta updates the metadata for an existing shared object.
