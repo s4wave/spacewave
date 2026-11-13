@@ -131,8 +131,10 @@ func buildNodeGraphRoot(
 		return nil, errors.Wrap(err, "write node graph")
 	}
 
-	// Mark the World a node graph and write its block.
-	w.Format = WorldFormat_WORLD_FORMAT_NODE_GRAPH
+	// Mark the World a node graph, tag its object tree, and write its block.
+	if err := w.setFormat(WorldFormat_WORLD_FORMAT_NODE_GRAPH); err != nil {
+		return nil, err
+	}
 	w.GraphSettings = nil
 	worldCursor.SetBlock(w, true)
 	newRoot, _, err := transaction.Write(ctx, true)
@@ -142,12 +144,12 @@ func buildNodeGraphRoot(
 	return newRoot, nil
 }
 
-// writeBuiltGraph writes builder's key stream as a new OKRA_INLINE tree and
+// writeBuiltGraph writes builder's key stream as a new node graph tree and
 // sets it as worldCursor's graph sub-block, counting the stream against floor.
 func writeBuiltGraph(ctx context.Context, worldCursor *block.Cursor, builder *kvtx_cayley_nodegraph.Builder, floor *regenFloor) error {
 	// Open an empty tree on a detached cursor.
 	cursor := worldCursor.Detach(false)
-	cursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE), true)
+	cursor.SetBlock(kvtx_block.NewKeyValueStore(WorldFormat_WORLD_FORMAT_NODE_GRAPH.graphImpl()), true)
 	graphTx, err := kvtx_block.BuildKvTransaction(ctx, cursor, true)
 	if err != nil {
 		return err
