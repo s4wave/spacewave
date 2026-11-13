@@ -117,8 +117,9 @@ function MyComponent() {
 ## Keyboard Shortcuts
 
 - **Arrow Up/Down** or **j/k** - Navigate items
-- **Shift+Arrow** or **J/K** - Range selection
-- **Ctrl/Cmd+Arrow** - Focus without selecting
+- **Home/End** - Jump to the first or last item
+- **Shift+Arrow**, **Shift+Home/End** or **J/K** - Range selection
+- **Ctrl/Cmd+Arrow** or **Ctrl/Cmd+Home/End** - Focus without selecting
 - **Enter** or **Space** - Open selected items (or toggle selection with Ctrl/Cmd)
 - **Ctrl/Cmd+A** - Select all
 

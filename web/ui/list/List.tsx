@@ -211,6 +211,7 @@ export function List<T>({
       let focus = ctrlKey || metaKey
       let toggle = false
       let offset: number | undefined
+      let id: string | undefined
 
       switch (key) {
         case 'a':
@@ -248,6 +249,16 @@ export function List<T>({
           offset = 1
           break
 
+        case 'Home':
+          id = sortedItemsRef.current[0]?.id
+          if (id === undefined) return
+          break
+
+        case 'End':
+          id = sortedItemsRef.current.at(-1)?.id
+          if (id === undefined) return
+          break
+
         case ' ':
         case 'Enter':
           if (ctrlKey || metaKey) {
@@ -268,6 +279,7 @@ export function List<T>({
       e.preventDefault()
       dispatch({
         type: 'SELECT_ITEM',
+        id,
         offset,
         toggle,
         focus,

@@ -394,12 +394,12 @@ function FileEntryRow({
             path: currentPath ?? '/',
           })
         : defaultNode}
-      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
+      <div className="text-foreground-alt/60 w-35 min-w-25 shrink text-xs">
         {entryDetails?.modTime
           ? format(entryDetails.modTime, 'MMM dd, yyyy')
           : '—'}
       </div>
-      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
+      <div className="text-foreground-alt/60 w-17.5 min-w-12.5 shrink text-right text-xs">
         {entrySizeLabel(entry, entryDetails)}
       </div>
       <button
