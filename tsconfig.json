@@ -15,6 +15,7 @@
     "paths": {
       "@go/github.com/s4wave/spacewave/*": ["./*"],
       "@go/*": ["./vendor/*"],
+      "@goscript/*": ["./vendor/github.com/s4wave/goscript/gs/*"],
       "@aptre/bldr": ["./bldr/web/bldr/index.js"],
       "@aptre/bldr-react": ["./bldr/web/bldr-react/index.js"],
       "@aptre/bldr-sdk": ["./bldr/sdk/plugin.ts"],

@@ -106,6 +106,7 @@ import (
 //go:embed web/runtime/runtime_srpc.pb.ts
 //go:embed web/runtime/sw/*.ts
 //go:embed web/saucer/*.ts
+//go:embed web/runtime/goscript/fatal.ts
 //go:embed web/runtime/goscript/open-stream-contract.ts
 //go:embed web/runtime/goscript/plugin-goscript-cloudflare.ts
 //go:embed web/runtime/goscript/plugin-goscript.ts
