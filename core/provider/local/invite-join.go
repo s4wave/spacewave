@@ -295,8 +295,19 @@ func (a *ProviderAccount) mountEnrolledSO(
 	accountID := a.t.accountInfo.GetProviderAccountId()
 	blockStoreID := SobjectBlockStoreID(soID)
 	ref := sobject.NewSharedObjectRef(providerID, accountID, soID, blockStoreID)
+	if err := ref.Validate(); err != nil {
+		return errors.Wrap(err, "enrolled shared object ref")
+	}
 
-	// Mount the SO. If it already exists, this is a no-op.
+	// Store a placeholder genesis for the received state to replace, unless
+	// the account already holds state for the object, then mount it. The
+	// install below goes through the mount, so the placeholder precedes the
+	// list write rather than joining it; an enrollment that fails before the
+	// list write leaves it unlisted, a retry of the same object reuses it, and
+	// a create of the id clears it.
+	if err := a.writeGenesisSOState(ctx, soID); err != nil {
+		return errors.Wrap(err, "store placeholder shared object state")
+	}
 	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		return errors.Wrap(err, "mount shared object")
@@ -311,8 +322,8 @@ func (a *ProviderAccount) mountEnrolledSO(
 
 	// Install the invited state and lineage, whose grant lets the invitee
 	// decrypt the SO data. An account that lists the object holds it, so the
-	// state merges into the held one. Otherwise mounting only minted a
-	// placeholder to replace.
+	// state merges into the held one. Otherwise it replaces the placeholder
+	// stored above.
 	install := localSO.soHost.InstallInviteSnapshot
 	if listsSharedObject(a.soListCtr.GetValue(), soID) {
 		install = localSO.soHost.MergeInviteSnapshot
@@ -322,7 +333,7 @@ func (a *ProviderAccount) mountEnrolledSO(
 	}
 
 	// Denials answered the previous grant, not the checkpoint just installed.
-	localSO.tkr.healthCtr.SwapValue((*sobject.SharedObjectHealth).WithoutSyncDenials)
+	localSO.run.swapHealth((*sobject.SharedObjectHealth).WithoutSyncDenials)
 
 	// Admission is complete only when body mounts can observe the accepted grant.
 	if err := localSO.lsoHost.waitPublishedConfig(ctx, state.GetConfig()); err != nil {

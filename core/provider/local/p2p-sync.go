@@ -1140,20 +1140,20 @@ func (a *ProviderAccount) startSOSync(
 		localSO.localPriv,
 		localSO.soHost,
 		func(remoteID peer.ID, accepted bool) {
-			localSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+			localSO.run.swapHealth(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 				return health.WithSyncPeerAdmission(remoteID.String(), accepted)
 			})
 		},
 		validateSnapshotAccess,
 	)
 	soSync.SetPeerRecoveryObserver(func(remoteID peer.ID, required bool) {
-		localSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		localSO.run.swapHealth(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 			return health.WithSyncPeerRecovery(remoteID.String(), required)
 		})
 	})
 	soSync.SetPeerStateObserver(localSO.tkr.recordPeerState)
 	soSync.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
-		localSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		localSO.run.swapHealth(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 			return health.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())
 		})
 	})

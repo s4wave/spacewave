@@ -113,10 +113,20 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 		return err
 	}
 
-	// Commit the new binding and list, then publish them in memory.
+	// The offered settings arrive later as a checkpoint; until then the
+	// binding names a placeholder genesis, so every mount of it succeeds.
+	writeGenesis, err := a.genesisSOStateWriter(ctx, offer.GetSettingsId())
+	if err != nil {
+		return err
+	}
+
+	// Commit the placeholder, binding and list, then publish them in memory.
 	if err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return store.NewTransaction(ctx, true)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
+		if err := writeGenesis(ctx, tx); err != nil {
+			return err
+		}
 		if err := tx.Set(ctx, SobjectBindingKey(accountSettingsBindingPurpose), binding); err != nil {
 			return err
 		}
@@ -127,5 +137,6 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 
 	// Publish the new list in memory.
 	a.soListCtr.SetValue(next)
+	a.reviveRefusedSharedObject(offer.GetSettingsId())
 	return nil
 }
