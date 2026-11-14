@@ -14,6 +14,7 @@ type organizationMemberNotFoundError struct {
 	orgID     string
 }
 
+// Error names the account and the organization it is missing from.
 func (e *organizationMemberNotFoundError) Error() string {
 	return "account " + e.accountID + " is not a member of organization " + e.orgID
 }
@@ -26,15 +27,18 @@ func isOrganizationMemberNotFound(err error) bool {
 // reconcileOwnedOrganizationSpaces enrolls org members into spaces for which
 // this account holds the organization owner role.
 func (a *ProviderAccount) reconcileOwnedOrganizationSpaces(ctx context.Context, orgID string) error {
+	// Only a session that may change Cloud objects reconciles.
 	if !a.canMutateCloudObjects() {
 		return nil
 	}
 
+	// Read the organizations this account belongs to.
 	orgs, err := a.getOrganizationList(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Reconcile each organization this account owns, or only orgID when set.
 	for _, org := range orgs {
 		if orgID != "" && org.GetId() != orgID {
 			continue
@@ -53,6 +57,7 @@ func (a *ProviderAccount) reconcileOwnedOrganizationSpaces(ctx context.Context, 
 // reconcilePendingParticipant enrolls a single account into a shared object
 // after the cloud worker notifies the authorized organization session.
 func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID, accountID string) error {
+	// Require the shared object, the account and a session that may enroll.
 	if soID == "" {
 		return errors.New("shared object id is required")
 	}
@@ -67,6 +72,7 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 		return errors.New("session client not available")
 	}
 
+	// Resolve the organization that owns the shared object.
 	orgID, ok := a.GetCachedSharedObjectOrganizationID(soID)
 	if !ok {
 		meta, err := a.GetSharedObjectMetadata(ctx, soID)
@@ -82,6 +88,7 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 		return nil
 	}
 
+	// Read the member's role, refreshing the organization once on a miss.
 	role, err := a.getOrganizationMemberRole(ctx, orgID, accountID)
 	if err != nil {
 		if !isOrganizationMemberNotFound(err) {
@@ -106,6 +113,7 @@ func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID,
 		}
 	}
 
+	// Enroll the member into the mounted shared object.
 	swSO, rel, err := a.mountSpaceSO(ctx, soID)
 	if err != nil {
 		return err
@@ -161,14 +169,7 @@ func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, acco
 		sobject.SOParticipantRole_SOParticipantRole_WRITER,
 	)
 	if accountID == a.GetAccountID() {
-		localRole := participantRoleForPeer(
-			state.GetConfig(),
-			swSO.GetPeerID().String(),
-			sobject.SOParticipantRole_SOParticipantRole_UNKNOWN,
-		)
-		if localRole > role {
-			role = localRole
-		}
+		role = max(role, state.GetConfig().GetParticipantRole(swSO.GetPeerID().String()))
 	}
 	return a.enrollMountedSpaceMember(ctx, cli, swSO, soID, accountID, role)
 }
@@ -177,6 +178,8 @@ func (a *ProviderAccount) reconcileMemberSession(ctx context.Context, soID, acco
 // member_session_removed notification. Mounts the SO and calls
 // RemoveSOParticipant with SESSION_REVOKED revocation reason.
 func (a *ProviderAccount) revokeMemberSession(ctx context.Context, soID, sessionPeerID string) error {
+	// Require the shared object, the session peer and a session that may
+	// change Cloud objects.
 	if soID == "" {
 		return errors.New("shared object id is required")
 	}
@@ -187,12 +190,14 @@ func (a *ProviderAccount) revokeMemberSession(ctx context.Context, soID, session
 		return nil
 	}
 
+	// Mount the shared object.
 	swSO, rel, err := a.mountSpaceSO(ctx, soID)
 	if err != nil {
 		return err
 	}
 	defer rel()
 
+	// Remove the session's peer with the session revoked reason.
 	revInfo := &sobject.SORevocationInfo{
 		Reason: sobject.SORevocationReason_SO_REVOCATION_REASON_SESSION_REVOKED,
 	}
@@ -203,6 +208,7 @@ func (a *ProviderAccount) revokeMemberSession(ctx context.Context, soID, session
 // getOrganizationList returns the cached org list when available, otherwise it
 // fetches it from the cloud.
 func (a *ProviderAccount) getOrganizationList(ctx context.Context) ([]*api.OrgResponse, error) {
+	// Use the cached list when it is valid.
 	var orgs []*api.OrgResponse
 	var valid bool
 	a.orgBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -213,16 +219,19 @@ func (a *ProviderAccount) getOrganizationList(ctx context.Context) ([]*api.OrgRe
 		return orgs, nil
 	}
 
+	// Otherwise fetch it from the Cloud.
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return nil, errors.New("session client not available")
 	}
 
+	// List the organizations.
 	data, err := cli.ListOrganizations(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list organizations")
 	}
 
+	// Decode the list.
 	resp := &api.ListOrgsResponse{}
 	if err := resp.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal organization list")
@@ -233,21 +242,25 @@ func (a *ProviderAccount) getOrganizationList(ctx context.Context) ([]*api.OrgRe
 // reconcileOrganization enrolls members for every space owned by a single
 // organization.
 func (a *ProviderAccount) reconcileOrganization(ctx context.Context, orgID string) error {
+	// Read the organization's members and spaces.
 	info, err := a.getOrganizationInfo(ctx, orgID)
 	if err != nil {
 		return err
 	}
 
+	// Map the members to roles; with none there is nothing to enroll.
 	memberRoles := buildOrganizationMemberRoleMap(info)
 	if len(memberRoles) == 0 {
 		return nil
 	}
 
+	// Require a session client for the enrollments.
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return errors.New("session client not available")
 	}
 
+	// Reconcile each space with its own mount.
 	for _, space := range info.GetSpaces() {
 		spaceID := space.GetId()
 		if spaceID == "" {
@@ -277,16 +290,19 @@ func (a *ProviderAccount) reconcileOrganization(ctx context.Context, orgID strin
 
 // getOrganizationInfo retrieves full org info including members and spaces.
 func (a *ProviderAccount) getOrganizationInfo(ctx context.Context, orgID string) (*api.GetOrgResponse, error) {
+	// Require a session client.
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return nil, errors.New("session client not available")
 	}
 
+	// Fetch the organization.
 	data, err := cli.GetOrganization(ctx, orgID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "get organization %s", orgID)
 	}
 
+	// Decode it.
 	info := &api.GetOrgResponse{}
 	if err := info.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal organization info")
@@ -332,11 +348,13 @@ func (a *ProviderAccount) reconcileMountedOrganizationSpace(
 	spaceID string,
 	memberRoles map[string]sobject.SOParticipantRole,
 ) error {
+	// Read the current state, before the enrollments below change it.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current SO state")
 	}
 
+	// Enroll every member but this account.
 	for accountID, role := range memberRoles {
 		if accountID == a.GetAccountID() {
 			continue
@@ -404,6 +422,7 @@ func (a *ProviderAccount) mountSpaceSO(
 	ctx context.Context,
 	spaceID string,
 ) (*SharedObject, func(), error) {
+	// Mount the shared object through its reference.
 	ref := sobject.NewSharedObjectRef(
 		a.GetProviderID(),
 		a.GetAccountID(),
@@ -415,6 +434,7 @@ func (a *ProviderAccount) mountSpaceSO(
 		return nil, nil, errors.Wrap(err, "mount shared object")
 	}
 
+	// Accept only a Spacewave shared object.
 	swSO, ok := so.(*SharedObject)
 	if !ok {
 		rel()
@@ -466,6 +486,8 @@ func OrganizationMemberRoleToSOParticipantRole(
 	return organizationMemberRoleToSOParticipantRole(roleID)
 }
 
+// participantRoleForAccount returns the highest role any peer of accountID
+// holds in cfg, or fallback when it is higher or the account has none.
 func participantRoleForAccount(
 	cfg *sobject.SharedObjectConfig,
 	accountID string,
@@ -485,21 +507,4 @@ func participantRoleForAccount(
 		}
 	}
 	return role
-}
-
-func participantRoleForPeer(
-	cfg *sobject.SharedObjectConfig,
-	peerID string,
-	fallback sobject.SOParticipantRole,
-) sobject.SOParticipantRole {
-	if cfg == nil || peerID == "" {
-		return fallback
-	}
-
-	for _, participant := range cfg.GetParticipants() {
-		if participant.GetPeerId() == peerID {
-			return participant.GetRole()
-		}
-	}
-	return fallback
 }

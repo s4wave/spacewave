@@ -87,7 +87,7 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_READER, "external-reader", ""); err != nil {
+	if _, _, _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_READER, "external-reader", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -183,7 +183,7 @@ func TestAccountMergeExternalOwnerBlocker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_OWNER, "external-owner", ""); err != nil {
+	if _, _, _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), externalID.String(), external, sobject.SOParticipantRole_SOParticipantRole_OWNER, "external-owner", ""); err != nil {
 		t.Fatal(err)
 	}
 

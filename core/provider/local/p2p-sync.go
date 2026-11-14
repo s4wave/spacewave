@@ -1271,7 +1271,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		if err != nil {
 			return nil, err
 		}
-		grant, err := sobject.AddSOParticipant(
+		grant, _, _, err := sobject.AddSOParticipant(
 			ctx,
 			result.Host,
 			result.SharedObjectID,
@@ -1287,7 +1287,8 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			return nil, err
 		}
 
-		// Return the existing grant when the invitee was already added.
+		// Return the existing grant when the invitee was already a participant,
+		// whose role the add raised to the invite's when it was lower.
 		if grant == nil {
 			state, err := result.Host.GetHostState(ctx)
 			if err != nil {

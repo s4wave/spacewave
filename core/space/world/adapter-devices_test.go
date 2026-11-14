@@ -41,7 +41,7 @@ func addDevice(t *testing.T, so sobject.SharedObject) *testDevice {
 		t.Fatal(err)
 	}
 	host := so.(sobject.InviteHost)
-	_, err = sobject.AddSOParticipant(t.Context(), host.GetSOHost(), so.GetSharedObjectID(), host.GetPrivKey(), so.GetPeerID().String(),
+	_, _, _, err = sobject.AddSOParticipant(t.Context(), host.GetSOHost(), so.GetSharedObjectID(), host.GetPrivKey(), so.GetPeerID().String(),
 		p.GetPeerID().String(), p.GetPubKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "", "")
 	if err != nil {
 		t.Fatal(err)

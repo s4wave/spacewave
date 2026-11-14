@@ -7840,10 +7840,12 @@ type EnrollSpaceMemberResult struct {
 	unknownFields []byte
 	// PeerId is the session peer ID (base58).
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
-	// Enrolled is true if the peer was successfully enrolled.
-	Enrolled bool `protobuf:"varint,2,opt,name=enrolled,proto3" json:"enrolled,omitempty"`
-	// AlreadyParticipant is true if the peer was already a participant (no-op).
-	AlreadyParticipant bool `protobuf:"varint,3,opt,name=already_participant,json=alreadyParticipant,proto3" json:"alreadyParticipant,omitempty"`
+	// Outcome says whether the call added the peer, raised its role, or found
+	// it already holding the role asked for or a higher one. It is UNKNOWN when
+	// the enrollment failed and error is set.
+	Outcome sobject.SOParticipantAddOutcome `protobuf:"varint,2,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// ParticipantRole is the role the peer holds after the call.
+	ParticipantRole sobject.SOParticipantRole `protobuf:"varint,3,opt,name=participant_role,json=participantRole,proto3" json:"participantRole,omitempty"`
 	// Error is set if enrollment failed for this peer.
 	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
 }
@@ -7861,18 +7863,18 @@ func (x *EnrollSpaceMemberResult) GetPeerId() string {
 	return ""
 }
 
-func (x *EnrollSpaceMemberResult) GetEnrolled() bool {
+func (x *EnrollSpaceMemberResult) GetOutcome() sobject.SOParticipantAddOutcome {
 	if x != nil {
-		return x.Enrolled
+		return x.Outcome
 	}
-	return false
+	return sobject.SOParticipantAddOutcome(0)
 }
 
-func (x *EnrollSpaceMemberResult) GetAlreadyParticipant() bool {
+func (x *EnrollSpaceMemberResult) GetParticipantRole() sobject.SOParticipantRole {
 	if x != nil {
-		return x.AlreadyParticipant
+		return x.ParticipantRole
 	}
-	return false
+	return sobject.SOParticipantRole(0)
 }
 
 func (x *EnrollSpaceMemberResult) GetError() string {
@@ -12778,8 +12780,8 @@ func (m *EnrollSpaceMemberResult) CloneVT() *EnrollSpaceMemberResult {
 	}
 	r := new(EnrollSpaceMemberResult)
 	r.PeerId = m.PeerId
-	r.Enrolled = m.Enrolled
-	r.AlreadyParticipant = m.AlreadyParticipant
+	r.Outcome = m.Outcome
+	r.ParticipantRole = m.ParticipantRole
 	r.Error = m.Error
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -18819,10 +18821,10 @@ func (this *EnrollSpaceMemberResult) EqualVT(that *EnrollSpaceMemberResult) bool
 	if this.PeerId != that.PeerId {
 		return false
 	}
-	if this.Enrolled != that.Enrolled {
+	if this.Outcome != that.Outcome {
 		return false
 	}
-	if this.AlreadyParticipant != that.AlreadyParticipant {
+	if this.ParticipantRole != that.ParticipantRole {
 		return false
 	}
 	if this.Error != that.Error {
@@ -31867,15 +31869,15 @@ func (x *EnrollSpaceMemberResult) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("peerId")
 		s.WriteString(x.PeerId)
 	}
-	if x.Enrolled || s.HasField("enrolled") {
+	if x.Outcome != 0 || s.HasField("outcome") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enrolled")
-		s.WriteBool(x.Enrolled)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
 	}
-	if x.AlreadyParticipant || s.HasField("alreadyParticipant") {
+	if x.ParticipantRole != 0 || s.HasField("participantRole") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("alreadyParticipant")
-		s.WriteBool(x.AlreadyParticipant)
+		s.WriteObjectField("participantRole")
+		x.ParticipantRole.MarshalProtoJSON(s)
 	}
 	if x.Error != "" || s.HasField("error") {
 		s.WriteMoreIf(&wroteField)
@@ -31902,12 +31904,12 @@ func (x *EnrollSpaceMemberResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "peer_id", "peerId":
 			s.AddField("peer_id")
 			x.PeerId = s.ReadString()
-		case "enrolled":
-			s.AddField("enrolled")
-			x.Enrolled = s.ReadBool()
-		case "already_participant", "alreadyParticipant":
-			s.AddField("already_participant")
-			x.AlreadyParticipant = s.ReadBool()
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		case "participant_role", "participantRole":
+			s.AddField("participant_role")
+			x.ParticipantRole.UnmarshalProtoJSON(s)
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
@@ -43580,13 +43582,13 @@ func (m *EnrollSpaceMemberResult) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i--
 		dAtA[i] = 0x22
 	}
-	if m.AlreadyParticipant {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AlreadyParticipant)
+	if m.ParticipantRole != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ParticipantRole))
 		i--
 		dAtA[i] = 0x18
 	}
-	if m.Enrolled {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enrolled)
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -47693,8 +47695,8 @@ func (m *EnrollSpaceMemberResult) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enrolled)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.AlreadyParticipant)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ParticipantRole)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += len(m.unknownFields)
 	return n
@@ -52464,13 +52466,13 @@ func (x *EnrollSpaceMemberResult) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
 	}
-	if x.Enrolled != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enrolled")
-		protobuf_go_lite.TextWriteBool(&sb, x.Enrolled)
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantAddOutcome(x.Outcome))
 	}
-	if x.AlreadyParticipant != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "already_participant")
-		protobuf_go_lite.TextWriteBool(&sb, x.AlreadyParticipant)
+	if x.ParticipantRole != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "participant_role")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantRole(x.ParticipantRole))
 	}
 	if x.Error != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
@@ -68077,24 +68079,26 @@ func (m *EnrollSpaceMemberResult) UnmarshalVT(dAtA []byte) error {
 			m.PeerId = v
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Enrolled", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
 			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = sobject.SOParticipantAddOutcome(_v)
 			if err != nil {
 				return err
 			}
-			m.Enrolled = bool(v)
 		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AlreadyParticipant", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ParticipantRole", wireType)
 			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			m.ParticipantRole = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ParticipantRole = sobject.SOParticipantRole(_v)
 			if err != nil {
 				return err
 			}
-			m.AlreadyParticipant = bool(v)
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)

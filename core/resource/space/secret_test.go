@@ -301,7 +301,7 @@ func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s4wave_secret.AddSecretParticipant(ctx, tb.Bus, created.GetSecret(), reader.String(), pub, sobject.SOParticipantRole_SOParticipantRole_READER, ""); err != nil {
+	if _, _, err = s4wave_secret.AddSecretParticipant(ctx, tb.Bus, created.GetSecret(), reader.String(), pub, sobject.SOParticipantRole_SOParticipantRole_READER, ""); err != nil {
 		t.Fatal(err)
 	}
 	resource.sessionPeerID = reader.String()
@@ -311,8 +311,8 @@ func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
 	}
 }
 
-// TestSpaceResourceAddSecretParticipantGrantsPeer covers granting a second
-// peer, such as a Device, on an existing Secret.
+// TestSpaceResourceAddSecretParticipantGrantsPeer covers granting and raising
+// a second peer, such as a Device, on an existing Secret.
 func TestSpaceResourceAddSecretParticipantGrantsPeer(t *testing.T) {
 	// Mount a provider-backed Space and create a Secret for the Session.
 	ctx := t.Context()
@@ -322,7 +322,7 @@ func TestSpaceResourceAddSecretParticipantGrantsPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Grant a new peer writer access through the Space resource.
+	// Make a new peer to grant.
 	_, pub, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -331,8 +331,23 @@ func TestSpaceResourceAddSecretParticipantGrantsPeer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_WRITER}); err != nil {
+
+	// Grant it read access, then raise it to writer.
+	reader := sobject.SOParticipantRole_SOParticipantRole_READER
+	writer := sobject.SOParticipantRole_SOParticipantRole_WRITER
+	added, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: reader})
+	if err != nil {
 		t.Fatalf("AddSecretParticipant: %v", err)
+	}
+	if added.GetOutcome() != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED || added.GetParticipantRole() != reader {
+		t.Fatalf("grant: outcome %v role %v", added.GetOutcome(), added.GetParticipantRole())
+	}
+	raised, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: writer})
+	if err != nil {
+		t.Fatalf("raise AddSecretParticipant: %v", err)
+	}
+	if raised.GetOutcome() != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED || raised.GetParticipantRole() != writer {
+		t.Fatalf("raise: outcome %v role %v", raised.GetOutcome(), raised.GetParticipantRole())
 	}
 
 	// The granted peer reads and replaces the payload.
@@ -348,9 +363,13 @@ func TestSpaceResourceAddSecretParticipantGrantsPeer(t *testing.T) {
 		t.Fatalf("payload mismatch: %q", got)
 	}
 
-	// A second grant to the same peer reports that its role is unchanged.
-	if _, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_READER}); err == nil {
-		t.Fatal("expected a repeated grant to be reported")
+	// A lower grant to the same peer leaves the role it holds.
+	again, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: reader})
+	if err != nil {
+		t.Fatalf("repeated AddSecretParticipant: %v", err)
+	}
+	if again.GetOutcome() != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED || again.GetParticipantRole() != writer {
+		t.Fatalf("repeated grant: outcome %v role %v", again.GetOutcome(), again.GetParticipantRole())
 	}
 
 	// An owner role is not grantable here.

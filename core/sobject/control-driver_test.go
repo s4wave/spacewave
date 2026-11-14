@@ -418,7 +418,7 @@ func TestGroupControlSplitDishonestRestart(t *testing.T) {
 
 	// A, B and D agree to admit N; B, C and D agree to remove R.
 	admit := func(h *groupHost, key crypto.PrivKey) {
-		_, err := AddSOParticipant(ctx, h.host, mockSharedObjectID, key, "", ids[5], peers[5].GetPubKey(), SOParticipantRole_SOParticipantRole_WRITER, "", "")
+		_, _, _, err := AddSOParticipant(ctx, h.host, mockSharedObjectID, key, "", ids[5], peers[5].GetPubKey(), SOParticipantRole_SOParticipantRole_WRITER, "", "")
 		if !errors.Is(err, ErrAwaitingGroup) {
 			t.Fatalf("admit: %v", err)
 		}
@@ -542,7 +542,7 @@ func TestGroupControlThreeVotersWaitForAll(t *testing.T) {
 
 	// Each voter agrees to admit N on its own device.
 	admit := func(i int) {
-		_, err := AddSOParticipant(ctx, hosts[i].host, mockSharedObjectID, keys[i], "", newID, peers[3].GetPubKey(), SOParticipantRole_SOParticipantRole_WRITER, "", "")
+		_, _, _, err := AddSOParticipant(ctx, hosts[i].host, mockSharedObjectID, keys[i], "", newID, peers[3].GetPubKey(), SOParticipantRole_SOParticipantRole_WRITER, "", "")
 		if !errors.Is(err, ErrAwaitingGroup) {
 			t.Fatalf("admit: %v", err)
 		}

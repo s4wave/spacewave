@@ -40,6 +40,31 @@ func MaxSOParticipantRole(a, b SOParticipantRole) SOParticipantRole {
 	return a
 }
 
+// GetParticipantRole returns the role of peerID in the config, or UNKNOWN when
+// it is not a participant.
+func (c *SharedObjectConfig) GetParticipantRole(peerID string) SOParticipantRole {
+	for _, p := range c.GetParticipants() {
+		if p.GetPeerId() == peerID {
+			return p.GetRole()
+		}
+	}
+	return SOParticipantRole_SOParticipantRole_UNKNOWN
+}
+
+// ParticipantAddOutcome returns the outcome of adding a peer at role when it
+// held the role held before, UNKNOWN when it was not a participant. An add
+// raises a lower role and never lowers one.
+func ParticipantAddOutcome(held, role SOParticipantRole) SOParticipantAddOutcome {
+	switch {
+	case held == SOParticipantRole_SOParticipantRole_UNKNOWN:
+		return SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED
+	case held < role:
+		return SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED
+	default:
+		return SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED
+	}
+}
+
 // Validate performs cursory checks on the SOParticipant.
 func (p *SOParticipantConfig) Validate() error {
 	if _, err := p.ParsePeerID(); err != nil {

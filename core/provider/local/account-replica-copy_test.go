@@ -103,7 +103,7 @@ func TestAccountReplicaCopyFollowsParticipantGrants(t *testing.T) {
 	starts := peers.exchanges[1].GetSessionStarts()
 
 	// Restore the same Session's grant on the same published graph and stream.
-	if _, err := sobject.AddSOParticipant(ctx, owner.soHost, owner.GetSharedObjectID(), owner.GetPrivKey(), owner.GetPeerID().String(), requester, peers.sessions[1].GetPrivKey().GetPublic(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "", ""); err != nil {
+	if _, _, _, err := sobject.AddSOParticipant(ctx, owner.soHost, owner.GetSharedObjectID(), owner.GetPrivKey(), owner.GetPeerID().String(), requester, peers.sessions[1].GetPrivKey().GetPublic(), sobject.SOParticipantRole_SOParticipantRole_WRITER, "", ""); err != nil {
 		t.Fatal(err)
 	}
 	completed := waitProgress(true)

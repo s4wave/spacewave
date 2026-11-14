@@ -19,11 +19,15 @@ import {
 
 import {
   SOInviteMessage,
+  SOParticipantAddOutcome,
   SOParticipantRole,
 } from '@s4wave/core/sobject/sobject.pb.js'
 import type { CreateSpaceInviteResponse } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
-import type { OrgMemberInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import type {
+  EnrollSpaceMemberResult,
+  OrgMemberInfo,
+} from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -572,6 +576,41 @@ export function AddUserDialog({
   )
 }
 
+// participantRoleNames names each role in the enrollment outcome text.
+const participantRoleNames: Record<number, string> = {
+  [SOParticipantRole.SOParticipantRole_READER]: 'reader',
+  [SOParticipantRole.SOParticipantRole_WRITER]: 'writer',
+  [SOParticipantRole.SOParticipantRole_OWNER]: 'owner',
+}
+
+// enrollOutcomeText describes what enrolling an account did across its
+// session peers, or returns null when no peer reports an outcome. Added wins
+// over raised, which wins over unchanged; the role is the highest held.
+export function enrollOutcomeText(
+  name: string,
+  results: EnrollSpaceMemberResult[],
+): string | null {
+  const outcomes = results.map((r) => r.outcome ?? 0)
+  const held = Math.max(0, ...results.map((r) => r.participantRole ?? 0))
+  const role = participantRoleNames[held] ?? 'unknown'
+  if (
+    outcomes.includes(SOParticipantAddOutcome.SOParticipantAddOutcome_ADDED)
+  ) {
+    return `Added ${name} as ${role}`
+  }
+  if (
+    outcomes.includes(SOParticipantAddOutcome.SOParticipantAddOutcome_RAISED)
+  ) {
+    return `${name} is now a ${role}`
+  }
+  if (
+    outcomes.includes(SOParticipantAddOutcome.SOParticipantAddOutcome_UNCHANGED)
+  ) {
+    return `${name} already has ${role} access`
+  }
+  return null
+}
+
 interface OrgMembersTabProps {
   session: Session | null
   spaceId: string
@@ -590,7 +629,7 @@ function OrgMembersTab({
 }: OrgMembersTabProps) {
   const [search, setSearch] = useState('')
   const [enrolling, setEnrolling] = useState<string | null>(null)
-  const [enrolled, setEnrolled] = useState<Set<string>>(new Set())
+  const [enrolled, setEnrolled] = useState<Map<string, string>>(new Map())
   const [enrollError, setEnrollError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
@@ -605,7 +644,7 @@ function OrgMembersTab({
   }, [members, search])
 
   const handleEnroll = useCallback(
-    async (accountId: string) => {
+    async (accountId: string, name: string) => {
       if (!session || enrolling) return
       setEnrolling(accountId)
       setEnrollError(null)
@@ -625,13 +664,11 @@ function OrgMembersTab({
         if (failed?.error) {
           throw new Error(failed.error)
         }
-        const anyApplied = results.some(
-          (r) => (r.enrolled ?? false) || (r.alreadyParticipant ?? false),
-        )
-        if (!anyApplied) {
+        const outcome = enrollOutcomeText(name, results)
+        if (!outcome) {
           throw new Error('Failed to enroll member')
         }
-        setEnrolled((prev) => new Set(prev).add(accountId))
+        setEnrolled((prev) => new Map(prev).set(accountId, outcome))
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : 'Failed to enroll member'
@@ -684,14 +721,15 @@ function OrgMembersTab({
           const accountId = member.subjectId ?? ''
           const primaryLabel = getOrgMemberPrimaryLabel(member)
           const secondaryLabel = getOrgMemberSecondaryLabel(member)
-          const isEnrolled = enrolled.has(accountId)
+          const outcome = enrolled.get(accountId)
+          const isEnrolled = outcome !== undefined
           const isEnrolling = enrolling === accountId
           return (
             <button
               type="button"
               key={member.id}
               disabled={isEnrolled || isEnrolling || !session}
-              onClick={() => void handleEnroll(accountId)}
+              onClick={() => void handleEnroll(accountId, primaryLabel)}
               className={cn(
                 'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
                 'hover:bg-foreground/5 disabled:cursor-default disabled:opacity-60',
@@ -708,7 +746,8 @@ function OrgMembersTab({
                   </div>
                 )}
                 <div className="text-foreground-alt/50 micro-ten">
-                  {member.roleId === 'org:owner' ? 'Owner' : 'Member'}
+                  {outcome ??
+                    (member.roleId === 'org:owner' ? 'Owner' : 'Member')}
                 </div>
               </div>
               <div className="shrink-0">

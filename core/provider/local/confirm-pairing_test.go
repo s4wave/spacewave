@@ -166,7 +166,7 @@ func TestUnlinkDevice(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = sobject.AddSOParticipant(ctx, so.(*SharedObject).soHost, entry.GetRef().GetProviderResourceRef().GetId(), storageKey, storagePeer.GetPeerID().String(), remotePeerIDStr, remotePriv.GetPublic(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "", "")
+		_, _, _, err = sobject.AddSOParticipant(ctx, so.(*SharedObject).soHost, entry.GetRef().GetProviderResourceRef().GetId(), storageKey, storagePeer.GetPeerID().String(), remotePeerIDStr, remotePriv.GetPublic(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "", "")
 		releaseSO()
 		if err != nil {
 			t.Fatal(err)

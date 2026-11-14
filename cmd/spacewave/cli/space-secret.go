@@ -84,14 +84,27 @@ func newSpaceSecretGrantCommand(statePath *string, sessionIdx *uint, spaceID *st
 				return err
 			}
 			defer spaceCleanup()
-			if _, err := spaceSvc.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{
+			resp, err := spaceSvc.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{
 				ObjectKey:       objectKey,
 				PeerId:          peerID,
 				ParticipantRole: participantRole,
-			}); err != nil {
+			})
+			if err != nil {
 				return errors.Wrap(err, "grant Secret")
 			}
-			os.Stdout.WriteString("granted " + peerID + " " + role + " access to " + objectKey + "\n")
+
+			// Report whether the call added the peer, raised it, or left it.
+			held := formatParticipantRole(resp.GetParticipantRole())
+			switch resp.GetOutcome() {
+			case sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED:
+				os.Stdout.WriteString("granted " + peerID + " " + held + " access to " + objectKey + "\n")
+			case sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED:
+				os.Stdout.WriteString("raised " + peerID + " to " + held + " access to " + objectKey + "\n")
+			case sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED:
+				os.Stdout.WriteString(peerID + " already has " + held + " access to " + objectKey + "; unchanged\n")
+			default:
+				return errors.Errorf("grant Secret: unknown outcome %v", resp.GetOutcome())
+			}
 			return nil
 		},
 	}

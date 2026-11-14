@@ -135,3 +135,40 @@ func TestTargetedInviteRefusedAfterRemoval(t *testing.T) {
 		t.Fatalf("repeat redemption error = %v, want a revoked invite", err)
 	}
 }
+
+// TestReaderRedeemsWriterInviteRaised proves a reader that redeems a writer
+// invite is raised to writer, since the owner signed the invite at that role,
+// and that the redemption spends one use.
+func TestReaderRedeemsWriterInviteRaised(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+	f := newTargetedInvite(ctx, t)
+
+	// The owner adds the invited session as a reader first.
+	readerID := f.readerSession.GetPeerId()
+	readerPub, err := readerID.ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerID := f.host.(sobject.SharedObject).GetPeerID().String()
+	if _, _, _, err := sobject.AddSOParticipant(ctx, f.host.GetSOHost(), f.invite.GetSharedObjectId(), f.host.GetPrivKey(), ownerID, readerID.String(), readerPub, sobject.SOParticipantRole_SOParticipantRole_READER, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// The reader redeems the writer invite.
+	if _, err := f.reader.JoinViaInvite(ctx, f.readerSession.GetPrivKey(), f.invite, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// The reader is now a writer and the invite spent one use.
+	state, err := f.host.GetSOHost().GetHostState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if role := state.GetConfig().GetParticipantRole(readerID.String()); role != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		t.Fatalf("role after redeeming a writer invite = %v, want writer", role)
+	}
+	if uses := sobject.FindInvite(state, f.invite.GetInviteId()).GetUses(); uses != 1 {
+		t.Fatalf("invite uses = %d, want 1", uses)
+	}
+}

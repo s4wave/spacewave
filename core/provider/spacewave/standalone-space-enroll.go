@@ -64,7 +64,7 @@ func (c *SessionClient) EnrollSpaceMember(
 			results = append(results, result)
 			continue
 		}
-		grant, err := c.addStandaloneParticipant(
+		outcome, held, err := c.addStandaloneParticipant(
 			ctx,
 			spaceID,
 			accountID,
@@ -78,8 +78,7 @@ func (c *SessionClient) EnrollSpaceMember(
 			results = append(results, result)
 			continue
 		}
-		result.AlreadyParticipant = grant == nil
-		result.Enrolled = grant != nil
+		result.Outcome, result.ParticipantRole = outcome, held
 		results = append(results, result)
 	}
 	return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{Results: results}, nil
@@ -121,9 +120,9 @@ func (c *SessionClient) EnrollSpacePeer(
 }
 
 // addStandaloneParticipant adds or updates a participant with a current key
-// epoch grant.
-// It keeps a higher existing role and fills a missing entity or username.
-// Returns nil when the participant and its grant are already current.
+// epoch grant. It raises a lower existing role to role, keeps a higher one, and
+// fills a missing entity or username. It returns the outcome for the role and
+// the role the participant holds after the call.
 func (c *SessionClient) addStandaloneParticipant(
 	ctx context.Context,
 	spaceID string,
@@ -132,21 +131,19 @@ func (c *SessionClient) addStandaloneParticipant(
 	targetPeerID string,
 	targetPub crypto.PubKey,
 	role sobject.SOParticipantRole,
-) (*sobject.SOGrant, error) {
+) (sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
 	// Write the change against the latest config, retrying on a conflict.
 	for attempt := range maxWriteRetries {
 		// Load the latest config and key epochs.
 		state, currentCfg, epochs, err := c.loadStandaloneConfigState(ctx, spaceID)
 		if err != nil {
-			return nil, err
+			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 		}
 
 		// Find the participant and whether it lacks the role, entity or username.
-		role = max(role, participantRoleForPeer(
-			currentCfg,
-			targetPeerID,
-			sobject.SOParticipantRole_SOParticipantRole_UNKNOWN,
-		))
+		held := currentCfg.GetParticipantRole(targetPeerID)
+		next := max(role, held)
+		outcome := sobject.ParticipantAddOutcome(held, role)
 		participantIdx := slices.IndexFunc(currentCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
 			return p.GetPeerId() == targetPeerID
 		})
@@ -154,7 +151,7 @@ func (c *SessionClient) addStandaloneParticipant(
 		participantNeedsUpdate := false
 		if participantExists {
 			current := currentCfg.GetParticipants()[participantIdx]
-			participantNeedsUpdate = current.GetRole() != role ||
+			participantNeedsUpdate = current.GetRole() != next ||
 				(current.GetEntityId() == "" && accountID != "") ||
 				(current.GetUsername() == "" && username != "")
 		}
@@ -162,17 +159,17 @@ func (c *SessionClient) addStandaloneParticipant(
 		// Return early when the participant and its grant are current.
 		epoch := currentEpochWithFallback(state, epochs)
 		if epoch == nil {
-			return nil, errSharedObjectCurrentKeyEpochMissing
+			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errSharedObjectCurrentKeyEpochMissing
 		}
 		grantExists := epoch.FindGrant(targetPeerID) != nil
 		if participantExists && !participantNeedsUpdate && grantExists {
-			return nil, nil
+			return outcome, next, nil
 		}
 
 		// Decrypt the local grant to re-encrypt it for the target.
 		grantInner, err := c.decryptLocalEpochGrant(spaceID, epoch)
 		if err != nil {
-			return nil, err
+			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 		}
 
 		var entry *sobject.SOConfigChange
@@ -181,7 +178,7 @@ func (c *SessionClient) addStandaloneParticipant(
 			nextCfg := currentCfg.CloneVT()
 			nextParticipant := &sobject.SOParticipantConfig{
 				PeerId:   targetPeerID,
-				Role:     role,
+				Role:     next,
 				EntityId: accountID,
 				Username: username,
 			}
@@ -206,11 +203,11 @@ func (c *SessionClient) addStandaloneParticipant(
 				nil,
 			)
 			if err != nil {
-				return nil, errors.Wrap(err, "build config change")
+				return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.Wrap(err, "build config change")
 			}
 			entryData, err = entry.MarshalVT()
 			if err != nil {
-				return nil, errors.Wrap(err, "marshal config change")
+				return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.Wrap(err, "marshal config change")
 			}
 		}
 
@@ -220,7 +217,7 @@ func (c *SessionClient) addStandaloneParticipant(
 		if !grantExists {
 			grant, err = sobject.EncryptSOGrant(c.priv, targetPub, spaceID, grantInner)
 			if err != nil {
-				return nil, errors.Wrap(err, "encrypt grant for target peer")
+				return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.Wrap(err, "encrypt grant for target peer")
 			}
 			postedEpoch = epoch
 			postedEpoch.Grants = append(postedEpoch.GetGrants(), grant)
@@ -228,7 +225,7 @@ func (c *SessionClient) addStandaloneParticipant(
 
 		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
 		if err != nil {
-			return nil, errors.Wrap(err, "build recovery config snapshot")
+			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.Wrap(err, "build recovery config snapshot")
 		}
 		recoveryKeyEpoch := epoch.GetEpoch()
 		recoveryEnvelopes, err := buildSORecoveryEnvelopes(
@@ -243,7 +240,7 @@ func (c *SessionClient) addStandaloneParticipant(
 			var missingErr *missingRecoveryKeypairsError
 			if !errors.As(err, &missingErr) || missingErr.entityID != accountID ||
 				sobject.CanReadState(readableParticipantRoleForEntity(currentCfg, accountID)) {
-				return nil, err
+				return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 			}
 			recoveryEnvelopes, err = buildSORecoveryEnvelopes(
 				ctx,
@@ -254,7 +251,7 @@ func (c *SessionClient) addStandaloneParticipant(
 				grantInner,
 			)
 			if err != nil {
-				return nil, err
+				return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 			}
 		}
 
@@ -265,12 +262,12 @@ func (c *SessionClient) addStandaloneParticipant(
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 		}
-		return grant, nil
+		return outcome, next, nil
 	}
 
-	return nil, errors.New("add participant failed after max retries due to config conflicts")
+	return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, errors.New("add participant failed after max retries due to config conflicts")
 }
 
 // addStandalonePeerParticipant sets the peer's participant entry to the role,

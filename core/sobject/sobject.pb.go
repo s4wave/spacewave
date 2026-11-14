@@ -265,6 +265,54 @@ func (x SOParticipantRole) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// SOParticipantAddOutcome is what adding a participant did. An add raises an
+// existing participant to the role asked for and never lowers it.
+type SOParticipantAddOutcome int32
+
+const (
+	// SOParticipantAddOutcome_UNKNOWN is the zero value: the add did not finish.
+	SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN SOParticipantAddOutcome = 0
+	// SOParticipantAddOutcome_ADDED means the peer was not a participant and
+	// now holds the role asked for.
+	SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED SOParticipantAddOutcome = 1
+	// SOParticipantAddOutcome_RAISED means the peer held a lower role and now
+	// holds the role asked for.
+	SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED SOParticipantAddOutcome = 2
+	// SOParticipantAddOutcome_UNCHANGED means the peer already held the role
+	// asked for or a higher one; nothing was written.
+	SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED SOParticipantAddOutcome = 3
+)
+
+// Enum value maps for SOParticipantAddOutcome.
+var (
+	SOParticipantAddOutcome_name = map[int32]string{
+		0: "SOParticipantAddOutcome_UNKNOWN",
+		1: "SOParticipantAddOutcome_ADDED",
+		2: "SOParticipantAddOutcome_RAISED",
+		3: "SOParticipantAddOutcome_UNCHANGED",
+	}
+	SOParticipantAddOutcome_value = map[string]int32{
+		"SOParticipantAddOutcome_UNKNOWN":   0,
+		"SOParticipantAddOutcome_ADDED":     1,
+		"SOParticipantAddOutcome_RAISED":    2,
+		"SOParticipantAddOutcome_UNCHANGED": 3,
+	}
+)
+
+func (x SOParticipantAddOutcome) Enum() *SOParticipantAddOutcome {
+	p := new(SOParticipantAddOutcome)
+	*p = x
+	return p
+}
+
+func (x SOParticipantAddOutcome) String() string {
+	name, valid := SOParticipantAddOutcome_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SOControl says who changes a config and signs checkpoints.
 type SOControl int32
 
@@ -5137,6 +5185,46 @@ func (x *SOParticipantRole) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the SOParticipantRole from JSON.
 func (x *SOParticipantRole) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOParticipantAddOutcome to JSON.
+func (x SOParticipantAddOutcome) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOParticipantAddOutcome_name)
+}
+
+// MarshalText marshals the SOParticipantAddOutcome to text.
+func (x SOParticipantAddOutcome) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOParticipantAddOutcome_name)), nil
+}
+
+// MarshalJSON marshals the SOParticipantAddOutcome to JSON.
+func (x SOParticipantAddOutcome) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOParticipantAddOutcome from JSON.
+func (x *SOParticipantAddOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOParticipantAddOutcome_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOParticipantAddOutcome enum: %v", err)
+		return
+	}
+	*x = SOParticipantAddOutcome(v)
+}
+
+// UnmarshalText unmarshals the SOParticipantAddOutcome from text.
+func (x *SOParticipantAddOutcome) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOParticipantAddOutcome_value)
+	if err != nil {
+		return err
+	}
+	*x = SOParticipantAddOutcome(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOParticipantAddOutcome from JSON.
+func (x *SOParticipantAddOutcome) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -12398,6 +12486,10 @@ func (x SharedObjectHealthRemediationHint) MarshalProtoText() string {
 }
 
 func (x SOParticipantRole) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOParticipantAddOutcome) MarshalProtoText() string {
 	return x.String()
 }
 

@@ -82,7 +82,7 @@ func AuthorizeObject(ctx context.Context, object sobject.SharedObject, peers []s
 		}); ok {
 			_, err = remote.AddParticipant(ctx, id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
 		} else {
-			_, err = sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
+			_, _, _, err = sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
 		}
 		if err != nil {
 			return nil, err

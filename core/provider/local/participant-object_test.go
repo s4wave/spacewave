@@ -84,7 +84,7 @@ func TestEnrollParticipantObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sobject.AddSOParticipant(ctx, ownerSecret.GetSOHost(), "secret-enroll", ownerSecret.GetPrivKey(), ownerSecret.GetPeerID().String(), memberPeer.String(), memberPub, sobject.SOParticipantRole_SOParticipantRole_READER, "", ""); err != nil {
+	if _, _, _, err := sobject.AddSOParticipant(ctx, ownerSecret.GetSOHost(), "secret-enroll", ownerSecret.GetPrivKey(), ownerSecret.GetPeerID().String(), memberPeer.String(), memberPub, sobject.SOParticipantRole_SOParticipantRole_READER, "", ""); err != nil {
 		t.Fatal(err)
 	}
 

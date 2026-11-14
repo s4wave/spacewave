@@ -112,8 +112,8 @@ func TestSessionClientEnrollSpaceMember(t *testing.T) {
 	if result.GetPeerId() != targetPID.String() {
 		t.Fatalf("peer id = %q", result.GetPeerId())
 	}
-	if !result.GetEnrolled() {
-		t.Fatalf("expected enrolled result, got %+v", result)
+	if result.GetOutcome() != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED || result.GetParticipantRole() != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		t.Fatalf("expected added writer result, got %+v", result)
 	}
 
 	// The posted config change adds the target with a key grant.

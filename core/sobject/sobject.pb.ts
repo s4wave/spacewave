@@ -230,6 +230,47 @@ export const SOParticipantRole_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * SOParticipantAddOutcome is what adding a participant did. An add raises an
+ * existing participant to the role asked for and never lowers it.
+ *
+ * @generated from enum sobject.SOParticipantAddOutcome
+ */
+export enum SOParticipantAddOutcome {
+  /**
+   * SOParticipantAddOutcome_UNKNOWN is the zero value: the add did not finish.
+   */
+  SOParticipantAddOutcome_UNKNOWN = 0,
+
+  /**
+   * SOParticipantAddOutcome_ADDED means the peer was not a participant and
+   * now holds the role asked for.
+   */
+  SOParticipantAddOutcome_ADDED = 1,
+
+  /**
+   * SOParticipantAddOutcome_RAISED means the peer held a lower role and now
+   * holds the role asked for.
+   */
+  SOParticipantAddOutcome_RAISED = 2,
+
+  /**
+   * SOParticipantAddOutcome_UNCHANGED means the peer already held the role
+   * asked for or a higher one; nothing was written.
+   */
+  SOParticipantAddOutcome_UNCHANGED = 3,
+}
+
+export const SOParticipantAddOutcome_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOParticipantAddOutcome',
+  [
+    [0, 'SOParticipantAddOutcome_UNKNOWN'],
+    [1, 'SOParticipantAddOutcome_ADDED'],
+    [2, 'SOParticipantAddOutcome_RAISED'],
+    [3, 'SOParticipantAddOutcome_UNCHANGED'],
+  ],
+)
+
+/**
  * SOControl says who changes a config and signs checkpoints.
  *
  * @generated from enum sobject.SOControl

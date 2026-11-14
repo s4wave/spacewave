@@ -152,7 +152,7 @@ func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *
 			if err != nil {
 				return nil, err
 			}
-			if _, err := sobject.AddSOParticipant(ctx, local.soHost, so.GetSharedObjectID(), key, owner.GetPeerID().String(), participant.String(), publicKey, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
+			if _, _, _, err := sobject.AddSOParticipant(ctx, local.soHost, so.GetSharedObjectID(), key, owner.GetPeerID().String(), participant.String(), publicKey, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
 				return nil, err
 			}
 		}

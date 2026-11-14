@@ -45,15 +45,15 @@ func (s *scaleSpace) join(t testing.TB, p peer.Peer) {
 
 	// Add the peer as the owner.
 	id := p.GetPeerID().String()
-	grant, err := AddSOParticipant(
+	grant, outcome, _, err := AddSOParticipant(
 		t.Context(), s.host, mockSharedObjectID, s.keys[0], s.peers[0].GetPeerID().String(),
 		id, p.GetPubKey(), SOParticipantRole_SOParticipantRole_WRITER, "", "",
 	)
 	if err != nil {
 		t.Fatalf("join %s: %v", id, err)
 	}
-	if grant == nil {
-		t.Fatalf("join %s: peer was already a participant", id)
+	if grant == nil || outcome != SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED {
+		t.Fatalf("join %s: outcome %v", id, outcome)
 	}
 }
 
@@ -169,5 +169,73 @@ func BenchmarkParticipantScale(b *testing.B) {
 				b.ReportMetric(time.Since(start).Seconds(), "s/depart")
 			}
 		})
+	}
+}
+
+// TestAddSOParticipantRaiseNeedsOwner proves that only an owner raises a
+// participant: a writer's attempt to raise a reader to writer fails at the
+// host's verification and leaves the config as it was, and the owner's
+// succeeds and reports RAISED.
+func TestAddSOParticipantRaiseNeedsOwner(t *testing.T) {
+	// Hold a Space of an owner, a writer and a reader.
+	peers := createMockPeers(t, 3)
+	keys := mustPrivKeys(t, peers)
+	initial, genesis := newTestSOState(t, peers, SOParticipantRole_SOParticipantRole_OWNER, SOParticipantRole_SOParticipantRole_WRITER, SOParticipantRole_SOParticipantRole_READER)
+	host, state := newLeaveTestHost(t, initial.GetConfig(), genesis)
+	*state = initial
+	reader := peers[2].GetPeerID().String()
+	writer := SOParticipantRole_SOParticipantRole_WRITER
+
+	// The writer cannot raise the reader.
+	before := (*state).GetConfig().GetConfigChainSeqno()
+	_, outcome, _, err := AddSOParticipant(t.Context(), host, mockSharedObjectID, keys[1], peers[1].GetPeerID().String(), reader, peers[2].GetPubKey(), writer, "", "")
+	if err == nil {
+		t.Fatalf("writer raised the reader: outcome %v", outcome)
+	}
+	if got := (*state).GetConfig().GetParticipantRole(reader); got != SOParticipantRole_SOParticipantRole_READER {
+		t.Fatalf("reader role after a refused raise is %v", got)
+	}
+	if got := (*state).GetConfig().GetConfigChainSeqno(); got != before {
+		t.Fatalf("refused raise moved the config from %d to %d", before, got)
+	}
+
+	// The owner raises it.
+	grant, outcome, held, err := AddSOParticipant(t.Context(), host, mockSharedObjectID, keys[0], peers[0].GetPeerID().String(), reader, peers[2].GetPubKey(), writer, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome != SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED || held != writer || grant != nil {
+		t.Fatalf("owner raise: outcome %v held %v grant %v", outcome, held, grant != nil)
+	}
+	if got := (*state).GetConfig().GetParticipantRole(reader); got != writer {
+		t.Fatalf("reader role after the raise is %v", got)
+	}
+	if err := (*state).Validate(mockSharedObjectID); err != nil {
+		t.Fatalf("state after the raise does not validate: %v", err)
+	}
+}
+
+// TestAddSOParticipantLowerRoleUnchanged proves that adding a participant at a
+// lower role than it holds reports UNCHANGED with the held role and writes
+// nothing.
+func TestAddSOParticipantLowerRoleUnchanged(t *testing.T) {
+	// Hold a Space of an owner and a writer.
+	space := newScaleSpace(t, 2, 2)
+	before := *space.state
+	target := space.peers[1].GetPeerID().String()
+
+	// Add the writer again as a reader.
+	grant, outcome, held, err := AddSOParticipant(
+		t.Context(), space.host, mockSharedObjectID, space.keys[0], space.peers[0].GetPeerID().String(),
+		target, space.peers[1].GetPubKey(), SOParticipantRole_SOParticipantRole_READER, "", "",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome != SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED || held != SOParticipantRole_SOParticipantRole_WRITER || grant != nil {
+		t.Fatalf("lower add: outcome %v held %v grant %v", outcome, held, grant != nil)
+	}
+	if *space.state != before {
+		t.Fatal("lower add wrote a new state")
 	}
 }
