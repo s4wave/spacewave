@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { LuBox } from 'react-icons/lu'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import {
   parseObjectUri,
   SUBPATH_DELIMITER,
@@ -136,11 +137,13 @@ export function SpaceIndex() {
   const repairedIndexPathRef = useRef<string | null>(null)
 
   const indexPath = spaceState.settings?.indexPath
-  const indexResolution = useWorldQuery(
-    spaceWorldResource,
-    (world, signal) => resolveSpaceIndex(world, indexPath, signal),
-    [indexPath],
-  ).value
+  const indexResolution = resourceContent(
+    useWorldQuery(
+      spaceWorldResource,
+      (world, signal) => resolveSpaceIndex(world, indexPath, signal),
+      [indexPath],
+    ),
+  )
   const redirectPath =
     indexResolution?.path && indexResolution.path !== '/'
       ? indexResolution.path

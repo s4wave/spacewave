@@ -1,5 +1,6 @@
 import { lazy, useId, useMemo, useState } from 'react'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import type { BuildSpacePluginRequest } from '@s4wave/sdk/space/space.pb.js'
 import {
   SpaceContext,
@@ -64,19 +65,22 @@ export function SpacePluginWorkbench({
   const [sourcePath, setSourcePath] = useState('/')
   const [entry, setEntry] = useState('')
   const [objectKey, setObjectKey] = useState('')
-  const objectKeys = useWorldQuery(
-    spaceWorldResource,
-    async (world, signal) => {
-      const page = await world.listObjects(
-        { limit: previewObjectLimit },
-        signal,
-      )
-      return (page.objects ?? []).map((object) => object.objectKey ?? '')
-    },
-    [],
-  ).value
-  const selectedType = useObjectMetadata(spaceWorldResource, objectKey).value
-    ?.typeId
+  const objectKeys = resourceContent(
+    useWorldQuery(
+      spaceWorldResource,
+      async (world, signal) => {
+        const page = await world.listObjects(
+          { limit: previewObjectLimit },
+          signal,
+        )
+        return (page.objects ?? []).map((object) => object.objectKey ?? '')
+      },
+      [],
+    ),
+  )
+  const selectedType = resourceContent(
+    useObjectMetadata(spaceWorldResource, objectKey),
+  )?.typeId
   const entrypoints = frontend.value?.session.entrypoints ?? []
   const entrypoint = entrypoints.includes(entry) ? entry : entrypoints[0]
 

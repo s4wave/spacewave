@@ -8,9 +8,11 @@ EXTENDS FiniteSets
 \* one failure from the watch and draws it once. Until a canvas arrives, a
 \* wait or a failure takes the body. A watch that fails after a canvas
 \* reopens after a backoff and keeps the canvas, with a line saying it reads
-\* again; it never reports that failure, however long it lasts. A handle
-\* that fails or reloads, as on a lost connection, drops the watch's canvas:
-\* its failure takes the body with the handle's Retry, its reload the wait.
+\* again. Once the backoff reaches its cap the watch reports the failure
+\* with Retry over the canvas it kept, and keeps reopening; a failed canvas
+\* never claims to be empty. A handle that reloads, as on a lost
+\* connection, keeps the canvas with the line. A handle that fails keeps
+\* the canvas under its failure; its Retry drops the canvas for the wait.
 \* The edits the person made stay queued in the viewer while the canvas is
 \* gone and draw again on the canvas that next arrives.
 \*
@@ -28,7 +30,8 @@ Buttons == {"retryHandle", "retryWatch", "edit", "dismiss"}
 VARIABLES
   handle,  \* the object handle: waiting, open or failed
   watch,   \* the watch on an open handle: none, waiting, arrived,
-           \* reconnecting or failed
+           \* reconnecting, capped (failed past its backoff, reopening)
+           \* or failed
   kept,    \* a canvas arrived and the watch still holds it
   nodes,   \* the canvas holds at least one node
   pending, \* edits drawn but not yet confirmed
@@ -38,7 +41,7 @@ vars == <<handle, watch, kept, nodes, pending, action>>
 \* The failure the viewer reads from the watch: its parent's first.
 Reported ==
   CASE handle = "failed" -> "handle"
-    [] watch = "failed" -> "watch"
+    [] watch \in {"failed", "capped"} -> "watch"
     [] OTHER -> "none"
 
 \* The body: the stage once a canvas arrived, else the wait or the failure.
@@ -47,24 +50,29 @@ Body ==
     [] Reported # "none" -> "failed"
     [] OTHER -> "waiting"
 
-\* The line over the stage while the watch reopens.
-Rereading == Body = "stage" /\ watch = "reconnecting"
+\* The line over the stage while the watch or the handle reopens.
+Rereading ==
+  Body = "stage" /\ Reported = "none"
+    /\ (watch = "reconnecting" \/ handle = "waiting")
 
-\* The stage's own hint: a canvas with no node says how to add one.
-Hint0 == Body = "stage" /\ ~nodes
+\* The stage's own hint: a canvas with no node says how to add one. A
+\* failed canvas makes no such claim.
+Hint0 == Body = "stage" /\ ~nodes /\ Reported = "none"
 
 \* The failure each element draws, or none.
 Draws(e) ==
   CASE e = "body" -> IF Body = "failed" THEN Reported ELSE "none"
+    [] e = "notice" -> IF Body = "stage" THEN Reported ELSE "none"
     [] e = "action" -> IF Body = "stage" /\ action = "failed"
                        THEN "send" ELSE "none"
-Elements == {"body", "action"}
+Elements == {"body", "notice", "action"}
 
 \* The failures the viewer can draw: a failed source, and a failed send once
 \* a canvas is on the stage to draw its notice over.
 Failed ==
   (IF handle = "failed" THEN {"handle"} ELSE {})
-    \cup (IF handle = "open" /\ watch = "failed" THEN {"watch"} ELSE {})
+    \cup (IF handle = "open" /\ watch \in {"failed", "capped"}
+            THEN {"watch"} ELSE {})
     \cup (IF action = "failed" /\ Body = "stage" THEN {"send"} ELSE {})
 
 Shown(p) ==
@@ -77,7 +85,7 @@ Shown(p) ==
 \* canvas, and while the handle is gone its send fails and rolls back.
 Allowed(p, b) ==
   \/ b = "retryHandle" /\ handle = "failed"
-  \/ b = "retryWatch" /\ handle = "open" /\ watch = "failed"
+  \/ b = "retryWatch" /\ handle = "open" /\ watch \in {"failed", "capped"}
   \/ b = "edit" /\ kept
   \/ b = "dismiss" /\ action = "failed"
 
@@ -101,40 +109,48 @@ HandleOpen ==
   /\ handle' = "open"
   /\ watch' = "waiting"
   /\ UNCHANGED <<kept, nodes, pending, action>>
-\* The handle fails, before or after it opened; the watch stops and drops
-\* the canvas it held, while the queued edits stay.
+\* The handle fails, before or after it opened; the watch stops and keeps
+\* the canvas it held as its last, under the handle's failure, while the
+\* queued edits stay.
 HandleFail ==
   /\ handle \in {"waiting", "open"}
   /\ handle' = "failed"
   /\ watch' = "none"
-  /\ kept' = FALSE
-  /\ UNCHANGED <<nodes, pending, action>>
+  /\ UNCHANGED <<kept, nodes, pending, action>>
 \* The open handle reloads, as on a lost connection; the watch stops and
-\* drops the canvas it held until the new handle's watch yields.
+\* keeps the canvas it held, loading, until the new handle's watch yields.
 HandleReload ==
   /\ handle = "open"
   /\ handle' = "waiting"
   /\ watch' = "none"
-  /\ kept' = FALSE
-  /\ UNCHANGED <<nodes, pending, action>>
+  /\ UNCHANGED <<kept, nodes, pending, action>>
+\* Retry of the handle reads it afresh: the watch's last canvas goes, and
+\* the wait takes the body.
 RetryHandle(p) ==
   /\ "retryHandle" \in Shown(p)
   /\ handle' = "waiting"
-  /\ UNCHANGED <<watch, kept, nodes, pending, action>>
+  /\ kept' = FALSE
+  /\ UNCHANGED <<watch, nodes, pending, action>>
 \* The watch yields the canvas, again on each change.
 WatchArrive ==
   /\ handle = "open"
-  /\ watch \in {"waiting", "arrived", "reconnecting"}
+  /\ watch \in {"waiting", "arrived", "reconnecting", "capped"}
   /\ watch' = "arrived"
   /\ kept' = TRUE
   /\ nodes' \in BOOLEAN
   /\ UNCHANGED <<handle, pending, action>>
-\* The watch fails after a value and reconnects, keeping the value. It
-\* reconnects for as long as it fails and never reports the failure.
+\* The watch fails after a value and reconnects, keeping the value.
 WatchDrop ==
   /\ handle = "open"
   /\ watch = "arrived"
   /\ watch' = "reconnecting"
+  /\ UNCHANGED <<handle, kept, nodes, pending, action>>
+\* The reconnecting watch reaches its backoff cap: it reports the failure
+\* over the canvas it kept and keeps reopening at the cap.
+WatchCap ==
+  /\ handle = "open"
+  /\ watch = "reconnecting"
+  /\ watch' = "capped"
   /\ UNCHANGED <<handle, kept, nodes, pending, action>>
 \* The watch fails before its first value and reports it.
 WatchFail ==
@@ -143,9 +159,11 @@ WatchFail ==
   /\ ~kept
   /\ watch' = "failed"
   /\ UNCHANGED <<handle, kept, nodes, pending, action>>
+\* Retry reopens the watch at once. A watch with no canvas waits again; a
+\* capped one stays failed over its canvas until the reopened watch yields.
 RetryWatch(p) ==
   /\ "retryWatch" \in Shown(p)
-  /\ watch' = "waiting"
+  /\ watch' = IF watch = "capped" THEN "capped" ELSE "waiting"
   /\ UNCHANGED <<handle, kept, nodes, pending, action>>
 \* The person edits the canvas: the edit draws at once, and the notice of an
 \* earlier failed send stays.
@@ -179,6 +197,7 @@ Next ==
   \/ HandleReload
   \/ WatchArrive
   \/ WatchDrop
+  \/ WatchCap
   \/ WatchFail
   \/ Saved
   \/ SendFail
@@ -197,6 +216,15 @@ NothingDrawnUnfailed ==
   \A e \in Elements : Draws(e) = "none" \/ Draws(e) \in Failed
 \* A canvas the watch holds is on the stage, under any reconnecting line.
 ArrivedStaysDrawn == kept => Body = "stage"
+\* A watch past its backoff cap keeps its canvas on the stage under its
+\* failure, with Retry.
+CappedKeepsCanvas ==
+  watch = "capped" =>
+    /\ Body = "stage"
+    /\ Draws("notice") = "watch"
+    /\ "retryWatch" \in Shown("person")
+\* A failed canvas never draws the empty hint.
+NoEmptyFromFailed == Hint0 => Reported = "none"
 \* A failed send's notice leaves only by Dismiss or a later save, never on
 \* an edit, so a drag cannot hide it before the person reads it.
 SendNoticeStays ==
@@ -204,7 +232,8 @@ SendNoticeStays ==
        Saved \/ \E p \in People : Dismiss(p)]_vars
 TypeOK ==
   /\ handle \in {"waiting", "open", "failed"}
-  /\ watch \in {"none", "waiting", "arrived", "reconnecting", "failed"}
+  /\ watch \in {"none", "waiting", "arrived", "reconnecting", "capped",
+                "failed"}
   /\ kept \in BOOLEAN
   /\ nodes \in BOOLEAN
   /\ pending \in BOOLEAN

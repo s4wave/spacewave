@@ -18,13 +18,19 @@ export const state = (v: Gallery) => {
   if (v.indexPath === 'none') {
     return v.watch === 'failed' ? 'Could not read, Retry shown' : 'Loading'
   }
+  // A failed watch or handle draws its notice above the kept index, which
+  // then makes no empty claim.
+  const failing = v.watch === 'failed' || v.watch === 'capped'
   const body = v.found
     ? v.session && v.space
       ? 'Tiles'
       : 'Tiles, no previews note'
-    : 'No images'
+    : failing
+      ? 'No tiles'
+      : 'No images'
   const notes = [
-    v.watch === 'reconnecting' ? 'reading again' : '',
+    failing ? 'Could not read notice, Retry shown' : '',
+    v.watch === 'reconnecting' || v.watch === 'waiting' ? 'reading again' : '',
     v.truncated ? 'limit note' : '',
     v.issues ? 'issues note' : '',
   ].filter(Boolean)
@@ -39,6 +45,7 @@ export const step = (action: string, from: Gallery, to: Gallery) => {
   if (action === 'Yield') return 'index arrives'
   if (action === 'Fail') return 'read fails'
   if (action === 'Drop') return 'watch drops'
+  if (action === 'Cap') return 'backoff reaches its cap'
   if (action === 'RootFail') return 'folder handle fails'
   if (action === 'RootReload') return 'folder handle reloads'
   if (action === 'Detach') return 'session leaves'

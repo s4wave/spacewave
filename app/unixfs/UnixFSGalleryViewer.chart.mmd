@@ -12,22 +12,34 @@ stateDiagram-v2
   s7: Tiles, limit note
   s8: Tiles, issues note
   s9: Tiles, limit note, issues note
-  s10: No images, reading again
-  s11: No images, reading again, limit note
-  s12: No images, reading again, issues note
-  s13: No images, reading again, limit note, issues note
-  s14: Tiles, no previews note
-  s15: Tiles, no previews note, limit note
-  s16: Tiles, reading again
-  s17: Tiles, reading again, limit note
-  s18: Tiles, no previews note, issues note
-  s19: Tiles, no previews note, limit note, issues note
-  s20: Tiles, reading again, issues note
-  s21: Tiles, reading again, limit note, issues note
-  s22: Tiles, no previews note, reading again
-  s23: Tiles, no previews note, reading again, limit note
-  s24: Tiles, no previews note, reading again, issues note
-  s25: Tiles, no previews note, reading again, limit note, issues note
+  s10: No tiles, Could not read notice, Retry shown
+  s11: No images, reading again
+  s12: No tiles, Could not read notice, Retry shown, limit note
+  s13: No images, reading again, limit note
+  s14: No tiles, Could not read notice, Retry shown, issues note
+  s15: No images, reading again, issues note
+  s16: No tiles, Could not read notice, Retry shown, limit note, issues note
+  s17: No images, reading again, limit note, issues note
+  s18: Tiles, no previews note
+  s19: Tiles, no previews note, limit note
+  s20: Tiles, Could not read notice, Retry shown
+  s21: Tiles, reading again
+  s22: Tiles, Could not read notice, Retry shown, limit note
+  s23: Tiles, reading again, limit note
+  s24: Tiles, no previews note, issues note
+  s25: Tiles, no previews note, limit note, issues note
+  s26: Tiles, Could not read notice, Retry shown, issues note
+  s27: Tiles, reading again, issues note
+  s28: Tiles, Could not read notice, Retry shown, limit note, issues note
+  s29: Tiles, reading again, limit note, issues note
+  s30: Tiles, no previews note, Could not read notice, Retry shown
+  s31: Tiles, no previews note, reading again
+  s32: Tiles, no previews note, Could not read notice, Retry shown, limit note
+  s33: Tiles, no previews note, reading again, limit note
+  s34: Tiles, no previews note, Could not read notice, Retry shown, issues note
+  s35: Tiles, no previews note, reading again, issues note
+  s36: Tiles, no previews note, Could not read notice, Retry shown, limit note, issues note
+  s37: Tiles, no previews note, reading again, limit note, issues note
   [*] --> s0
   s0 --> s1: index arrives
   s0 --> s2: index arrives
@@ -38,288 +50,428 @@ stateDiagram-v2
   s0 --> s7: index arrives
   s0 --> s8: index arrives
   s0 --> s9: index arrives
-  s1 --> s0: folder handle reloads or opens another folder
   s1 --> s2: index arrives
   s1 --> s3: index arrives
   s1 --> s4: index arrives
-  s1 --> s5: folder handle fails
+  s1 --> s0: opens another folder
   s1 --> s6: index arrives
   s1 --> s7: index arrives
   s1 --> s8: index arrives
   s1 --> s9: index arrives
-  s1 --> s10: watch drops
-  s2 --> s0: folder handle reloads or opens another folder
+  s1 --> s10: folder handle fails
+  s1 --> s11: watch drops or folder handle reloads
   s2 --> s1: index arrives
   s2 --> s3: index arrives
   s2 --> s4: index arrives
-  s2 --> s5: folder handle fails
+  s2 --> s0: opens another folder
   s2 --> s6: index arrives
   s2 --> s7: index arrives
   s2 --> s8: index arrives
   s2 --> s9: index arrives
-  s2 --> s11: watch drops
-  s3 --> s0: folder handle reloads or opens another folder
+  s2 --> s12: folder handle fails
+  s2 --> s13: watch drops or folder handle reloads
   s3 --> s1: index arrives
   s3 --> s2: index arrives
   s3 --> s4: index arrives
-  s3 --> s5: folder handle fails
+  s3 --> s0: opens another folder
   s3 --> s6: index arrives
   s3 --> s7: index arrives
   s3 --> s8: index arrives
   s3 --> s9: index arrives
-  s3 --> s12: watch drops
-  s4 --> s0: folder handle reloads or opens another folder
+  s3 --> s14: folder handle fails
+  s3 --> s15: watch drops or folder handle reloads
   s4 --> s1: index arrives
   s4 --> s2: index arrives
   s4 --> s3: index arrives
-  s4 --> s5: folder handle fails
+  s4 --> s0: opens another folder
   s4 --> s6: index arrives
   s4 --> s7: index arrives
   s4 --> s8: index arrives
   s4 --> s9: index arrives
-  s4 --> s13: watch drops
-  s0 --> s14: index arrives
-  s0 --> s15: index arrives
+  s4 --> s16: folder handle fails
+  s4 --> s17: watch drops or folder handle reloads
   s0 --> s18: index arrives
   s0 --> s19: index arrives
+  s0 --> s24: index arrives
+  s0 --> s25: index arrives
   s5 --> s0: presses Retry or folder handle reloads or opens another folder
-  s6 --> s0: folder handle reloads or opens another folder
   s6 --> s1: index arrives
   s6 --> s2: index arrives
   s6 --> s3: index arrives
   s6 --> s4: index arrives
-  s6 --> s5: folder handle fails
+  s6 --> s0: opens another folder
   s6 --> s7: index arrives
   s6 --> s8: index arrives
   s6 --> s9: index arrives
-  s6 --> s14: session leaves or outside a Space
-  s6 --> s16: watch drops
-  s7 --> s0: folder handle reloads or opens another folder
+  s6 --> s18: session leaves or outside a Space
+  s6 --> s20: folder handle fails
+  s6 --> s21: watch drops or folder handle reloads
   s7 --> s1: index arrives
   s7 --> s2: index arrives
   s7 --> s3: index arrives
   s7 --> s4: index arrives
-  s7 --> s5: folder handle fails
+  s7 --> s0: opens another folder
   s7 --> s6: index arrives
   s7 --> s8: index arrives
   s7 --> s9: index arrives
-  s7 --> s15: session leaves or outside a Space
-  s7 --> s17: watch drops
-  s8 --> s0: folder handle reloads or opens another folder
+  s7 --> s19: session leaves or outside a Space
+  s7 --> s22: folder handle fails
+  s7 --> s23: watch drops or folder handle reloads
   s8 --> s1: index arrives
   s8 --> s2: index arrives
   s8 --> s3: index arrives
   s8 --> s4: index arrives
-  s8 --> s5: folder handle fails
+  s8 --> s0: opens another folder
   s8 --> s6: index arrives
   s8 --> s7: index arrives
   s8 --> s9: index arrives
-  s8 --> s18: session leaves or outside a Space
-  s8 --> s20: watch drops
-  s9 --> s0: folder handle reloads or opens another folder
+  s8 --> s24: session leaves or outside a Space
+  s8 --> s26: folder handle fails
+  s8 --> s27: watch drops or folder handle reloads
   s9 --> s1: index arrives
   s9 --> s2: index arrives
   s9 --> s3: index arrives
   s9 --> s4: index arrives
-  s9 --> s5: folder handle fails
+  s9 --> s0: opens another folder
   s9 --> s6: index arrives
   s9 --> s7: index arrives
   s9 --> s8: index arrives
-  s9 --> s19: session leaves or outside a Space
-  s9 --> s21: watch drops
-  s1 --> s14: index arrives
-  s1 --> s15: index arrives
+  s9 --> s25: session leaves or outside a Space
+  s9 --> s28: folder handle fails
+  s9 --> s29: watch drops or folder handle reloads
   s1 --> s18: index arrives
   s1 --> s19: index arrives
-  s2 --> s14: index arrives
-  s2 --> s15: index arrives
+  s1 --> s24: index arrives
+  s1 --> s25: index arrives
   s2 --> s18: index arrives
   s2 --> s19: index arrives
-  s10 --> s0: folder handle reloads or opens another folder
-  s10 --> s1: index arrives
-  s10 --> s2: index arrives
-  s10 --> s3: index arrives
-  s10 --> s4: index arrives
-  s10 --> s5: folder handle fails
-  s10 --> s6: index arrives
-  s10 --> s7: index arrives
-  s10 --> s8: index arrives
-  s10 --> s9: index arrives
-  s11 --> s0: folder handle reloads or opens another folder
+  s2 --> s24: index arrives
+  s2 --> s25: index arrives
+  s10 --> s0: presses Retry or opens another folder
+  s10 --> s11: folder handle reloads
   s11 --> s1: index arrives
   s11 --> s2: index arrives
   s11 --> s3: index arrives
   s11 --> s4: index arrives
-  s11 --> s5: folder handle fails
+  s11 --> s0: opens another folder
   s11 --> s6: index arrives
   s11 --> s7: index arrives
   s11 --> s8: index arrives
   s11 --> s9: index arrives
-  s3 --> s14: index arrives
-  s3 --> s15: index arrives
-  s3 --> s18: index arrives
-  s3 --> s19: index arrives
-  s4 --> s14: index arrives
-  s4 --> s15: index arrives
-  s4 --> s18: index arrives
-  s4 --> s19: index arrives
-  s12 --> s0: folder handle reloads or opens another folder
-  s12 --> s1: index arrives
-  s12 --> s2: index arrives
-  s12 --> s3: index arrives
-  s12 --> s4: index arrives
-  s12 --> s5: folder handle fails
-  s12 --> s6: index arrives
-  s12 --> s7: index arrives
-  s12 --> s8: index arrives
-  s12 --> s9: index arrives
-  s13 --> s0: folder handle reloads or opens another folder
+  s11 --> s10: folder handle fails or backoff reaches its cap
+  s12 --> s0: presses Retry or opens another folder
+  s12 --> s13: folder handle reloads
   s13 --> s1: index arrives
   s13 --> s2: index arrives
   s13 --> s3: index arrives
   s13 --> s4: index arrives
-  s13 --> s5: folder handle fails
+  s13 --> s0: opens another folder
   s13 --> s6: index arrives
   s13 --> s7: index arrives
   s13 --> s8: index arrives
   s13 --> s9: index arrives
-  s14 --> s0: folder handle reloads or opens another folder
-  s14 --> s1: index arrives
-  s14 --> s2: index arrives
-  s14 --> s3: index arrives
-  s14 --> s4: index arrives
-  s14 --> s5: folder handle fails
-  s14 --> s15: index arrives
-  s14 --> s18: index arrives
-  s14 --> s19: index arrives
-  s14 --> s22: watch drops
-  s15 --> s0: folder handle reloads or opens another folder
+  s13 --> s12: folder handle fails or backoff reaches its cap
+  s3 --> s18: index arrives
+  s3 --> s19: index arrives
+  s3 --> s24: index arrives
+  s3 --> s25: index arrives
+  s4 --> s18: index arrives
+  s4 --> s19: index arrives
+  s4 --> s24: index arrives
+  s4 --> s25: index arrives
+  s14 --> s0: presses Retry or opens another folder
+  s14 --> s15: folder handle reloads
   s15 --> s1: index arrives
   s15 --> s2: index arrives
   s15 --> s3: index arrives
   s15 --> s4: index arrives
-  s15 --> s5: folder handle fails
-  s15 --> s14: index arrives
-  s15 --> s18: index arrives
-  s15 --> s19: index arrives
-  s15 --> s23: watch drops
-  s16 --> s0: folder handle reloads or opens another folder
-  s16 --> s1: index arrives
-  s16 --> s2: index arrives
-  s16 --> s3: index arrives
-  s16 --> s4: index arrives
-  s16 --> s5: folder handle fails
-  s16 --> s6: index arrives
-  s16 --> s7: index arrives
-  s16 --> s8: index arrives
-  s16 --> s9: index arrives
-  s16 --> s22: session leaves or outside a Space
-  s17 --> s0: folder handle reloads or opens another folder
+  s15 --> s0: opens another folder
+  s15 --> s6: index arrives
+  s15 --> s7: index arrives
+  s15 --> s8: index arrives
+  s15 --> s9: index arrives
+  s15 --> s14: folder handle fails or backoff reaches its cap
+  s16 --> s0: presses Retry or opens another folder
+  s16 --> s17: folder handle reloads
   s17 --> s1: index arrives
   s17 --> s2: index arrives
   s17 --> s3: index arrives
   s17 --> s4: index arrives
-  s17 --> s5: folder handle fails
+  s17 --> s0: opens another folder
   s17 --> s6: index arrives
   s17 --> s7: index arrives
   s17 --> s8: index arrives
   s17 --> s9: index arrives
-  s17 --> s23: session leaves or outside a Space
-  s18 --> s0: folder handle reloads or opens another folder
+  s17 --> s16: folder handle fails or backoff reaches its cap
   s18 --> s1: index arrives
   s18 --> s2: index arrives
   s18 --> s3: index arrives
   s18 --> s4: index arrives
-  s18 --> s5: folder handle fails
-  s18 --> s14: index arrives
-  s18 --> s15: index arrives
+  s18 --> s0: opens another folder
   s18 --> s19: index arrives
-  s18 --> s24: watch drops
-  s19 --> s0: folder handle reloads or opens another folder
+  s18 --> s24: index arrives
+  s18 --> s25: index arrives
+  s18 --> s30: folder handle fails
+  s18 --> s31: watch drops or folder handle reloads
   s19 --> s1: index arrives
   s19 --> s2: index arrives
   s19 --> s3: index arrives
   s19 --> s4: index arrives
-  s19 --> s5: folder handle fails
-  s19 --> s14: index arrives
-  s19 --> s15: index arrives
+  s19 --> s0: opens another folder
   s19 --> s18: index arrives
-  s19 --> s25: watch drops
-  s20 --> s0: folder handle reloads or opens another folder
-  s20 --> s1: index arrives
-  s20 --> s2: index arrives
-  s20 --> s3: index arrives
-  s20 --> s4: index arrives
-  s20 --> s5: folder handle fails
-  s20 --> s6: index arrives
-  s20 --> s7: index arrives
-  s20 --> s8: index arrives
-  s20 --> s9: index arrives
-  s20 --> s24: session leaves or outside a Space
-  s21 --> s0: folder handle reloads or opens another folder
+  s19 --> s24: index arrives
+  s19 --> s25: index arrives
+  s19 --> s32: folder handle fails
+  s19 --> s33: watch drops or folder handle reloads
+  s20 --> s0: presses Retry or opens another folder
+  s20 --> s21: folder handle reloads
+  s20 --> s30: session leaves or outside a Space
   s21 --> s1: index arrives
   s21 --> s2: index arrives
   s21 --> s3: index arrives
   s21 --> s4: index arrives
-  s21 --> s5: folder handle fails
+  s21 --> s0: opens another folder
   s21 --> s6: index arrives
   s21 --> s7: index arrives
   s21 --> s8: index arrives
   s21 --> s9: index arrives
-  s21 --> s25: session leaves or outside a Space
-  s10 --> s14: index arrives
-  s10 --> s15: index arrives
-  s10 --> s18: index arrives
-  s10 --> s19: index arrives
-  s11 --> s14: index arrives
-  s11 --> s15: index arrives
-  s11 --> s18: index arrives
-  s11 --> s19: index arrives
-  s12 --> s14: index arrives
-  s12 --> s15: index arrives
-  s12 --> s18: index arrives
-  s12 --> s19: index arrives
-  s13 --> s14: index arrives
-  s13 --> s15: index arrives
-  s13 --> s18: index arrives
-  s13 --> s19: index arrives
-  s22 --> s0: folder handle reloads or opens another folder
-  s22 --> s1: index arrives
-  s22 --> s2: index arrives
-  s22 --> s3: index arrives
-  s22 --> s4: index arrives
-  s22 --> s5: folder handle fails
-  s22 --> s14: index arrives
-  s22 --> s15: index arrives
-  s22 --> s18: index arrives
-  s22 --> s19: index arrives
-  s23 --> s0: folder handle reloads or opens another folder
+  s21 --> s20: folder handle fails or backoff reaches its cap
+  s21 --> s31: session leaves or outside a Space
+  s22 --> s0: presses Retry or opens another folder
+  s22 --> s23: folder handle reloads
+  s22 --> s32: session leaves or outside a Space
   s23 --> s1: index arrives
   s23 --> s2: index arrives
   s23 --> s3: index arrives
   s23 --> s4: index arrives
-  s23 --> s5: folder handle fails
-  s23 --> s14: index arrives
-  s23 --> s15: index arrives
-  s23 --> s18: index arrives
-  s23 --> s19: index arrives
-  s24 --> s0: folder handle reloads or opens another folder
+  s23 --> s0: opens another folder
+  s23 --> s6: index arrives
+  s23 --> s7: index arrives
+  s23 --> s8: index arrives
+  s23 --> s9: index arrives
+  s23 --> s22: folder handle fails or backoff reaches its cap
+  s23 --> s33: session leaves or outside a Space
   s24 --> s1: index arrives
   s24 --> s2: index arrives
   s24 --> s3: index arrives
   s24 --> s4: index arrives
-  s24 --> s5: folder handle fails
-  s24 --> s14: index arrives
-  s24 --> s15: index arrives
+  s24 --> s0: opens another folder
   s24 --> s18: index arrives
   s24 --> s19: index arrives
-  s25 --> s0: folder handle reloads or opens another folder
+  s24 --> s25: index arrives
+  s24 --> s34: folder handle fails
+  s24 --> s35: watch drops or folder handle reloads
   s25 --> s1: index arrives
   s25 --> s2: index arrives
   s25 --> s3: index arrives
   s25 --> s4: index arrives
-  s25 --> s5: folder handle fails
-  s25 --> s14: index arrives
-  s25 --> s15: index arrives
+  s25 --> s0: opens another folder
   s25 --> s18: index arrives
   s25 --> s19: index arrives
+  s25 --> s24: index arrives
+  s25 --> s36: folder handle fails
+  s25 --> s37: watch drops or folder handle reloads
+  s26 --> s0: presses Retry or opens another folder
+  s26 --> s27: folder handle reloads
+  s26 --> s34: session leaves or outside a Space
+  s27 --> s1: index arrives
+  s27 --> s2: index arrives
+  s27 --> s3: index arrives
+  s27 --> s4: index arrives
+  s27 --> s0: opens another folder
+  s27 --> s6: index arrives
+  s27 --> s7: index arrives
+  s27 --> s8: index arrives
+  s27 --> s9: index arrives
+  s27 --> s26: folder handle fails or backoff reaches its cap
+  s27 --> s35: session leaves or outside a Space
+  s28 --> s0: presses Retry or opens another folder
+  s28 --> s29: folder handle reloads
+  s28 --> s36: session leaves or outside a Space
+  s29 --> s1: index arrives
+  s29 --> s2: index arrives
+  s29 --> s3: index arrives
+  s29 --> s4: index arrives
+  s29 --> s0: opens another folder
+  s29 --> s6: index arrives
+  s29 --> s7: index arrives
+  s29 --> s8: index arrives
+  s29 --> s9: index arrives
+  s29 --> s28: folder handle fails or backoff reaches its cap
+  s29 --> s37: session leaves or outside a Space
+  s11 --> s18: index arrives
+  s11 --> s19: index arrives
+  s11 --> s24: index arrives
+  s11 --> s25: index arrives
+  s13 --> s18: index arrives
+  s13 --> s19: index arrives
+  s13 --> s24: index arrives
+  s13 --> s25: index arrives
+  s10 --> s1: index arrives
+  s10 --> s2: index arrives
+  s10 --> s3: index arrives
+  s10 --> s4: index arrives
+  s10 --> s6: index arrives
+  s10 --> s7: index arrives
+  s10 --> s8: index arrives
+  s10 --> s9: index arrives
+  s12 --> s1: index arrives
+  s12 --> s2: index arrives
+  s12 --> s3: index arrives
+  s12 --> s4: index arrives
+  s12 --> s6: index arrives
+  s12 --> s7: index arrives
+  s12 --> s8: index arrives
+  s12 --> s9: index arrives
+  s15 --> s18: index arrives
+  s15 --> s19: index arrives
+  s15 --> s24: index arrives
+  s15 --> s25: index arrives
+  s17 --> s18: index arrives
+  s17 --> s19: index arrives
+  s17 --> s24: index arrives
+  s17 --> s25: index arrives
+  s14 --> s1: index arrives
+  s14 --> s2: index arrives
+  s14 --> s3: index arrives
+  s14 --> s4: index arrives
+  s14 --> s6: index arrives
+  s14 --> s7: index arrives
+  s14 --> s8: index arrives
+  s14 --> s9: index arrives
+  s16 --> s1: index arrives
+  s16 --> s2: index arrives
+  s16 --> s3: index arrives
+  s16 --> s4: index arrives
+  s16 --> s6: index arrives
+  s16 --> s7: index arrives
+  s16 --> s8: index arrives
+  s16 --> s9: index arrives
+  s30 --> s0: presses Retry or opens another folder
+  s30 --> s31: folder handle reloads
+  s31 --> s1: index arrives
+  s31 --> s2: index arrives
+  s31 --> s3: index arrives
+  s31 --> s4: index arrives
+  s31 --> s0: opens another folder
+  s31 --> s18: index arrives
+  s31 --> s19: index arrives
+  s31 --> s24: index arrives
+  s31 --> s25: index arrives
+  s31 --> s30: folder handle fails or backoff reaches its cap
+  s32 --> s0: presses Retry or opens another folder
+  s32 --> s33: folder handle reloads
+  s33 --> s1: index arrives
+  s33 --> s2: index arrives
+  s33 --> s3: index arrives
+  s33 --> s4: index arrives
+  s33 --> s0: opens another folder
+  s33 --> s18: index arrives
+  s33 --> s19: index arrives
+  s33 --> s24: index arrives
+  s33 --> s25: index arrives
+  s33 --> s32: folder handle fails or backoff reaches its cap
+  s20 --> s1: index arrives
+  s20 --> s2: index arrives
+  s20 --> s3: index arrives
+  s20 --> s4: index arrives
+  s20 --> s6: index arrives
+  s20 --> s7: index arrives
+  s20 --> s8: index arrives
+  s20 --> s9: index arrives
+  s22 --> s1: index arrives
+  s22 --> s2: index arrives
+  s22 --> s3: index arrives
+  s22 --> s4: index arrives
+  s22 --> s6: index arrives
+  s22 --> s7: index arrives
+  s22 --> s8: index arrives
+  s22 --> s9: index arrives
+  s34 --> s0: presses Retry or opens another folder
+  s34 --> s35: folder handle reloads
+  s35 --> s1: index arrives
+  s35 --> s2: index arrives
+  s35 --> s3: index arrives
+  s35 --> s4: index arrives
+  s35 --> s0: opens another folder
+  s35 --> s18: index arrives
+  s35 --> s19: index arrives
+  s35 --> s24: index arrives
+  s35 --> s25: index arrives
+  s35 --> s34: folder handle fails or backoff reaches its cap
+  s36 --> s0: presses Retry or opens another folder
+  s36 --> s37: folder handle reloads
+  s37 --> s1: index arrives
+  s37 --> s2: index arrives
+  s37 --> s3: index arrives
+  s37 --> s4: index arrives
+  s37 --> s0: opens another folder
+  s37 --> s18: index arrives
+  s37 --> s19: index arrives
+  s37 --> s24: index arrives
+  s37 --> s25: index arrives
+  s37 --> s36: folder handle fails or backoff reaches its cap
+  s26 --> s1: index arrives
+  s26 --> s2: index arrives
+  s26 --> s3: index arrives
+  s26 --> s4: index arrives
+  s26 --> s6: index arrives
+  s26 --> s7: index arrives
+  s26 --> s8: index arrives
+  s26 --> s9: index arrives
+  s28 --> s1: index arrives
+  s28 --> s2: index arrives
+  s28 --> s3: index arrives
+  s28 --> s4: index arrives
+  s28 --> s6: index arrives
+  s28 --> s7: index arrives
+  s28 --> s8: index arrives
+  s28 --> s9: index arrives
+  s10 --> s18: index arrives
+  s10 --> s19: index arrives
+  s10 --> s24: index arrives
+  s10 --> s25: index arrives
+  s12 --> s18: index arrives
+  s12 --> s19: index arrives
+  s12 --> s24: index arrives
+  s12 --> s25: index arrives
+  s14 --> s18: index arrives
+  s14 --> s19: index arrives
+  s14 --> s24: index arrives
+  s14 --> s25: index arrives
+  s16 --> s18: index arrives
+  s16 --> s19: index arrives
+  s16 --> s24: index arrives
+  s16 --> s25: index arrives
+  s30 --> s1: index arrives
+  s30 --> s2: index arrives
+  s30 --> s3: index arrives
+  s30 --> s4: index arrives
+  s30 --> s18: index arrives
+  s30 --> s19: index arrives
+  s30 --> s24: index arrives
+  s30 --> s25: index arrives
+  s32 --> s1: index arrives
+  s32 --> s2: index arrives
+  s32 --> s3: index arrives
+  s32 --> s4: index arrives
+  s32 --> s18: index arrives
+  s32 --> s19: index arrives
+  s32 --> s24: index arrives
+  s32 --> s25: index arrives
+  s34 --> s1: index arrives
+  s34 --> s2: index arrives
+  s34 --> s3: index arrives
+  s34 --> s4: index arrives
+  s34 --> s18: index arrives
+  s34 --> s19: index arrives
+  s34 --> s24: index arrives
+  s34 --> s25: index arrives
+  s36 --> s1: index arrives
+  s36 --> s2: index arrives
+  s36 --> s3: index arrives
+  s36 --> s4: index arrives
+  s36 --> s18: index arrives
+  s36 --> s19: index arrives
+  s36 --> s24: index arrives
+  s36 --> s25: index arrives

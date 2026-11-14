@@ -8,7 +8,11 @@ import {
 } from '@s4wave/core/sobject/sobject.pb.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
-import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type {
+  Resource,
+  ResourceFields,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 
 import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatusContext.js'
 
@@ -56,14 +60,14 @@ function fakeSyncStatus(
   }
 }
 
-function fakeResource<T>(overrides: Partial<Resource<T>>): Resource<T> {
-  return {
+function fakeResource<T>(overrides: Partial<ResourceFields<T>>): Resource<T> {
+  return resourceOf({
     value: null,
     loading: true,
     error: null,
     retry: () => {},
     ...overrides,
-  }
+  })
 }
 
 // Tests ----------------------------------------------------------------------

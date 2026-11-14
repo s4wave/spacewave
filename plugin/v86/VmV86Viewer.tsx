@@ -11,6 +11,7 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 import { formatV86ImageLabel, readV86Image } from '@s4wave/app/vm/v86-images.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { SetV86StateOp, VmState, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
@@ -156,9 +157,11 @@ function useVmV86(
   // Default every field that has not loaded yet.
   const vm = vmResource.value ?? VmV86.create()
   useObjectName(vm.name)
-  const edges = edgesResource.value
+  // Hold the view while the edges for this VM first load, so no default
+  // image stands in for them; a reconnect keeps the edges it had.
+  const edges = resourceContent(edgesResource)
   return {
-    loaded: !!vmResource.value,
+    loaded: !!vmResource.value && (edges !== null || !edgesResource.loading),
     loadError: vmResource.error,
     name: vm.name || objectKey,
     state: vm.observedState ?? VmState.VmState_STOPPED,

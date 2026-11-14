@@ -1,0 +1,127 @@
+[
+  {
+    "name": "a failure keeps its value and reports it",
+    "replace": [
+      ["RValue == IF RStatus = \"failed\" THEN 0 ELSE val", "RValue == val"],
+      [
+        "  /\\ val' = 0 /\\ valRel' = FALSE /\\ keepable' = TRUE\n  /\\ last' = LastOf",
+        "  /\\ UNCHANGED <<val, valRel, keepable>>\n  /\\ last' = LastOf"
+      ]
+    ],
+    "expect": "NoValueBesideError"
+  },
+  {
+    "name": "a released handle becomes last",
+    "replace": [
+      ["  ELSE IF keepable /\\ ~valRel THEN val ELSE 0", "  ELSE val"]
+    ],
+    "expect": "NoReleasedHandleKept"
+  },
+  {
+    "name": "a deps change keeps the value without the option",
+    "replace": [
+      [
+        "  /\\ IF carry /\\ val # 0\n       THEN",
+        "  /\\ IF val # 0\n       THEN"
+      ]
+    ],
+    "expect": "KeptValueIsThisKey"
+  },
+  {
+    "name": "a deps change keeps last",
+    "replace": [
+      [
+        "  /\\ last' = 0 /\\ lastRel' = FALSE\n  /\\ status' = \"loading\"\n  /\\ stream' = \"held\"",
+        "  /\\ UNCHANGED <<last, lastRel>>\n  /\\ status' = \"loading\"\n  /\\ stream' = \"held\""
+      ]
+    ],
+    "expect": "LastIsThisKey"
+  },
+  {
+    "name": "a kept value becomes last under the new deps",
+    "replace": [
+      [
+        "       THEN /\\ keepable' = FALSE /\\ UNCHANGED <<val, valRel>>",
+        "       THEN UNCHANGED <<val, valRel, keepable>>"
+      ]
+    ],
+    "expect": "LastIsThisKey"
+  },
+  {
+    "name": "a child keeps running under a failed parent",
+    "replace": [
+      [
+        "  /\\ parent' = \"failed\"\n  /\\ stream' = \"held\"",
+        "  /\\ parent' = \"failed\"\n  /\\ UNCHANGED stream"
+      ]
+    ],
+    "expect": "NoChildOnFailedParent"
+  },
+  {
+    "name": "a parent reload leaves the child failed",
+    "replace": [
+      [
+        "  /\\ parent' = \"loading\"\n  /\\ stream' = \"held\" /\\ status' = \"loading\"",
+        "  /\\ parent' = \"loading\"\n  /\\ stream' = \"held\" /\\ UNCHANGED status"
+      ]
+    ],
+    "expect": "FailedHasRetry"
+  },
+  {
+    "name": "a reconnecting stream never reports its cap",
+    "replace": [
+      ["            /\\ IF fails + 1 >= Cap", "            /\\ IF FALSE"]
+    ],
+    "expect": "CappedReportsFailed"
+  },
+  {
+    "name": "Retry over a kept value shows the wait",
+    "replace": [["  /\\ Begin(LastOf # 0)", "  /\\ Begin(FALSE)"]],
+    "expect": "OwnFailureKeepsContent"
+  },
+  {
+    "name": "a child of a failed parent settles with no value",
+    "replace": [["  /\\ ToLast(\"loading\")", "  /\\ ToLast(\"ready\")"]],
+    "expect": "NoFalseEmpty"
+  },
+  {
+    "name": "the backoff drops the value while reconnecting",
+    "replace": [
+      [
+        "                 ELSE /\\ status' = \"loading\"\n                      /\\ UNCHANGED <<val, valRel, keepable, last, lastRel>>",
+        "                 ELSE ToLast(\"loading\")"
+      ]
+    ],
+    "expect": "OwnFailureKeepsContent"
+  },
+  {
+    "name": "reaches: fail then recover",
+    "replace": [["Unreached == TRUE", "Unreached == ~FailThenRecover"]],
+    "expect": "Unreached"
+  },
+  {
+    "name": "reaches: fail over a kept value, then a deps change",
+    "replace": [["Unreached == TRUE", "Unreached == ~FailKeptThenDeps"]],
+    "expect": "Unreached"
+  },
+  {
+    "name": "reaches: reconnect to the cap, failed with Retry",
+    "replace": [["Unreached == TRUE", "Unreached == ~CappedWithRetry"]],
+    "expect": "Unreached"
+  },
+  {
+    "name": "reaches: release during a kept-value failure",
+    "replace": [["Unreached == TRUE", "Unreached == ~ReleaseUnderKept"]],
+    "expect": "Unreached"
+  },
+  {
+    "name": "reaches: a parent fails while the child holds a value",
+    "replace": [["Unreached == TRUE", "Unreached == ~ParentFailsOverValue"]],
+    "expect": "Unreached"
+  },
+  {
+    "name": "reaches: a kept value shows while new deps load",
+    "replace": [["Unreached == TRUE", "Unreached == ~CarriedWhileLoading"]],
+    "expect": "Unreached"
+  }
+]

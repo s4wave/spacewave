@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { LuChevronLeft, LuChevronRight, LuCheck } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import {
@@ -50,7 +51,8 @@ export function ObjectKeySelector({
   }, [])
 
   const prefix = objectLevelPrefix(path.at(-1) ?? '')
-  const level = useWorldQuery(
+  // Drilling in keeps the previous level on screen while the next one reads.
+  const levelResource = useWorldQuery(
     world,
     async (state, signal) =>
       open
@@ -63,7 +65,9 @@ export function ObjectKeySelector({
           )
         : null,
     [open, prefix, metadataById],
-  ).value
+    { keepWhileLoading: true },
+  )
+  const level = resourceContent(levelResource)
   const currentNodes = level?.nodes ?? []
 
   const handleDrillIn = useCallback((id: string) => {

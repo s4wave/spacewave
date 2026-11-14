@@ -1,6 +1,7 @@
 import React, { createContext, use, useMemo, type ReactNode } from 'react'
 import type { Resource as SDKResource } from '../resource/resource.js'
 import type { Resource } from './useResource.js'
+import { resourceOf } from './resourceTransitionState.js'
 
 export interface ResourceContextType<T extends SDKResource> {
   Provider: React.FC<{ resource: Resource<T>; children: ReactNode }>
@@ -24,7 +25,7 @@ export function createResourceContext<
 
     return useMemo(() => {
       if (!resource) {
-        return {
+        return resourceOf<T>({
           value: null,
           loading: false,
           error: new Error(
@@ -33,7 +34,7 @@ export function createResourceContext<
           retry: () => {},
           // Include a sentinel devtools ID so child resources don't appear as orphans
           __devtools: { id: '_context_not_found_' },
-        }
+        })
       }
 
       return resource

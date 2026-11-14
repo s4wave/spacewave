@@ -1,4 +1,8 @@
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import {
+  resourceContent,
+  resourceOf,
+} from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useParams } from '@s4wave/web/router/router.js'
 
 import type {
@@ -71,9 +75,13 @@ function index(
 // watch is the watch's resource in one state.
 function watch(
   value: UnixFSGalleryDiscoveryState | null,
-  { loading = false, error = null as Error | null } = {},
+  {
+    loading = false,
+    error = null as Error | null,
+    last = null as UnixFSGalleryDiscoveryState | null,
+  } = {},
 ): Resource<UnixFSGalleryDiscoveryState> {
-  return { value, loading, error, retry: noop }
+  return resourceOf({ value, last, loading, error, retry: noop })
 }
 
 interface GalleryFixture {
@@ -91,6 +99,13 @@ const fixtures: Record<string, GalleryFixture> = {
   },
   again: {
     galleryState: watch(index(), { loading: true }),
+    source: session,
+  },
+  'failed-kept': {
+    galleryState: watch(null, {
+      error: new Error('stream closed'),
+      last: index(),
+    }),
     source: session,
   },
   empty: { galleryState: watch(index({ items: [] })), source: session },
@@ -121,7 +136,8 @@ function stillURL(i: number): string {
  * GalleryViewerDebug renders the gallery body in one fixture state, with the
  * viewport as the pane under the file browser's bar, for the viewer sweep:
  * tiles, waiting, failed (before the first index, with Retry), again (the
- * tiles while the watch reads again), empty, limit (the index stopped at its
+ * tiles while the watch reads again), failed-kept (the last tiles under the
+ * watch's failure past its backoff, with Retry), empty, limit (the index stopped at its
  * limit), issues (some folders unreadable), no-session and no-space. An
  * unknown or missing state shows tiles. The body derives its rows from the watch's
  * resource as the viewer does; only the previews are stand-ins.
@@ -132,7 +148,7 @@ export function GalleryViewerDebug() {
   const fixture = fixtures[state] ?? fixtures.tiles
   const { galleryState, source } = fixture
   const items = galleryPreviewItems(
-    galleryState.value?.items ?? [],
+    resourceContent(galleryState)?.items ?? [],
     source,
   ).map((item, i) =>
     item.previewURL ? { ...item, previewURL: stillURL(i) } : item,
@@ -143,7 +159,7 @@ export function GalleryViewerDebug() {
       <GalleryBody
         galleryState={galleryState}
         items={items}
-        scopePath={galleryState.value?.scopePath ?? scopePath}
+        scopePath={resourceContent(galleryState)?.scopePath ?? scopePath}
         onOpen={noop}
       />
     </div>

@@ -15,7 +15,10 @@ import {
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import type { ObjectTreeNode } from '@s4wave/web/space/object-tree.js'
-import { useObjectTree } from '@s4wave/web/space/useObjectTree.js'
+import {
+  useObjectTree,
+  type ObjectTree,
+} from '@s4wave/web/space/useObjectTree.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -332,8 +335,17 @@ function useSpaceObjectBrowserController() {
     setMenuState,
     setRenameValue,
     treeNodes,
+    treePlaceholder: objectTreePlaceholder(tree),
     treeState,
   }
+}
+
+// objectTreePlaceholder is what an object tree with no nodes shows: it claims
+// no objects only once the tree read settled.
+function objectTreePlaceholder(tree: ObjectTree): string {
+  if (tree.error) return 'Objects could not load'
+  if (tree.loading) return 'Loading objects'
+  return 'No objects'
 }
 
 type SpaceObjectBrowserController = ReturnType<
@@ -376,6 +388,7 @@ function SpaceObjectBrowserView({
     setMenuState,
     setRenameValue,
     treeNodes,
+    treePlaceholder,
     treeState,
   } = controller
 
@@ -386,7 +399,7 @@ function SpaceObjectBrowserView({
         onRowDefaultAction={handleOpen}
         onRowContextMenu={handleContextMenu}
         state={treeState}
-        placeholder="No objects"
+        placeholder={treePlaceholder}
         className="max-h-75"
       />
     </InfoCard>

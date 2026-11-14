@@ -11,6 +11,8 @@ import { isAbortError } from 'starpc'
 import { exponentialBackoff } from '../../web/bldr/retry.js'
 import type { Resource } from './useResource.js'
 import {
+  lastOf,
+  resourceOf,
   useResourceTransitionState,
   useResourceTransitionVersion,
 } from './resourceTransitionState.js'
@@ -23,11 +25,22 @@ export interface UseStreamingResourceOptions<T> {
    */
   equals?: (prev: T, next: T) => boolean
   /**
-   * reconnect reopens a stream that fails after yielding, keeping the last
-   * value while it backs off exponentially. Each yielded value resets the
-   * backoff. A stream that fails before its first value reports the error.
+   * reconnect reopens a stream that fails after yielding, keeping the value
+   * while it backs off exponentially. Once the backoff reaches its maximum,
+   * the resource reports failed, with the value as last and Retry, and keeps
+   * reopening at that wait without leaving the failed state. Each yielded
+   * value resets the backoff and settles the resource. Retry reopens at once.
+   * A stream that fails before its first value reports the error.
    */
   reconnect?: boolean
+  /**
+   * keepWhileLoading keeps the value of the previous deps while the stream
+   * for new deps loads, for a query that grows in steps, such as a tree
+   * level expanding. The kept value goes on the first value, failure or
+   * empty settle, and never becomes last. Without it a deps change shows no
+   * value while loading.
+   */
+  keepWhileLoading?: boolean
 }
 
 /**
@@ -49,12 +62,17 @@ export function useStreamingResource<P, T>(
   const [retryCount, setRetryCount] = useState(0)
   const abortRetriedParentValueChangeRef = useRef<number | null>(null)
   const valueRef = useRef<T | null>(null)
+  // reconnectingRef is set once the stream yielded under the current key;
+  // quietRef is set while a failed stream reopens in the background.
   const reconnectingRef = useRef(false)
+  const quietRef = useRef(false)
   const [backoff] = useState(exponentialBackoff)
 
-  // Restart the stream when the factory or the parent value changes.
+  // Restart the stream when the factory or the parent value changes. key
+  // changes with the factory: a value never outlives its key.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableFactory = useCallback(streamFactory, deps)
+  const key = useResourceTransitionVersion([stableFactory])
   const transitionVersion = useResourceTransitionVersion([
     stableFactory,
     parentValueChangeCount,
@@ -63,32 +81,41 @@ export function useStreamingResource<P, T>(
   // Track the current run and the value it reports.
   const {
     state,
-    begin,
+    startAfter,
     complete,
     fail,
     isCurrent,
     isPending,
-    setLoading,
-    settleNull,
-  } = useResourceTransitionState<T>(true)
+    waitAgain,
+  } = useResourceTransitionState<T>(
+    true,
+    key,
+    options?.keepWhileLoading ?? false,
+  )
   const effectiveLoading =
     parent.loading || isPending(transitionVersion) || state.loading
 
+  const keyRef = useRef(key)
+
   // Follow the stream for the current parent value and factory.
   useEffect(() => {
+    // A new key starts over: no value, no reconnect, a fresh backoff.
+    if (keyRef.current !== key) {
+      keyRef.current = key
+      valueRef.current = null
+      reconnectingRef.current = false
+      quietRef.current = false
+      backoff.reset()
+    }
+
     // Wait for the parent before opening the stream.
     const parentValue = parent.value
-    if (parentValue === null) {
-      settleNull(transitionVersion, parent.loading)
-      return
-    }
-    if (parent.loading) {
-      setLoading()
+    const run = startAfter([parent], transitionVersion, key, quietRef.current)
+    if (!run || parentValue === null) {
       return
     }
 
     // Follow the stream, keeping the current value for an equal item.
-    const run = begin(transitionVersion)
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined
     void (async () => {
       let emitted = false
@@ -99,6 +126,7 @@ export function useStreamingResource<P, T>(
           }
           backoff.reset()
           reconnectingRef.current = false
+          quietRef.current = false
           if (
             abortRetriedParentValueChangeRef.current === parentValueChangeCount
           ) {
@@ -132,14 +160,20 @@ export function useStreamingResource<P, T>(
           return
         }
 
-        // Reopen after a backoff, keeping the last value while waiting.
+        // Reopen after a backoff, keeping the value while waiting. At the
+        // maximum wait, report the failure and keep reopening quietly.
         if (reconnect && (emitted || reconnectingRef.current)) {
           reconnectingRef.current = true
-          setLoading()
-          reconnectTimer = setTimeout(
-            () => setRetryCount((c) => c + 1),
-            backoff(),
-          )
+          const wait = backoff()
+          if (backoff.capped()) {
+            fail(run, e)
+          } else {
+            waitAgain(key)
+          }
+          reconnectTimer = setTimeout(() => {
+            quietRef.current = backoff.capped()
+            setRetryCount((c) => c + 1)
+          }, wait)
           return
         }
         fail(run, e)
@@ -150,43 +184,45 @@ export function useStreamingResource<P, T>(
       run.abort()
       clearTimeout(reconnectTimer)
     }
+    // parent stands for its value, loading and error, listed below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     backoff,
     reconnect,
     parent.loading,
     parent.value,
+    parent.error,
     parentValueChangeCount,
     retryCount,
     transitionVersion,
-    begin,
+    key,
+    startAfter,
     complete,
     fail,
     isCurrent,
-    setLoading,
-    settleNull,
+    waitAgain,
     stableFactory,
   ])
 
-  // Restart the stream on request.
+  // Reopen the stream at once on request. A stream that failed with nothing
+  // kept shows loading again; one that kept a value stays failed over it
+  // until the reopened stream yields, so its content never blanks.
+  const kept = state.error !== null && state.last !== null
   const retry = useCallback(() => {
+    quietRef.current = kept
     setRetryCount((c) => c + 1)
-  }, [])
+  }, [kept])
 
   // Report the parent's error ahead of the stream's own.
   return useMemo(
-    () => ({
-      value: state.value,
-      loading: effectiveLoading,
-      error: parent.error ?? state.error,
-      retry: parent.error ? parent.retry : retry,
-    }),
-    [
-      state.value,
-      effectiveLoading,
-      state.error,
-      retry,
-      parent.error,
-      parent.retry,
-    ],
+    () =>
+      resourceOf<T>({
+        value: state.value,
+        last: lastOf(state),
+        loading: effectiveLoading,
+        error: parent.error ?? state.error,
+        retry: parent.error ? parent.retry : retry,
+      }),
+    [state, effectiveLoading, retry, parent.error, parent.retry],
   )
 }

@@ -14,6 +14,7 @@ import {
 import { useResourcesContext } from './ResourcesContext.js'
 import { useResourceDevToolsContext } from './ResourceDevToolsContext.js'
 import type { RegisterCleanup, Resource } from './useResource.js'
+import { resourceOf, resourceReady } from './resourceTransitionState.js'
 
 // detachedShared serves components rendered outside a ResourcesProvider,
 // such as isolated tests. It has no client, so it does not follow releases.
@@ -63,14 +64,12 @@ export function useSharedResource<P extends SharedParent, T>(
   ) => Promise<T | null>,
   options?: UseSharedResourceOptions<T>,
 ): Resource<T> {
-  // Key the entry under a live parent; a released parent has no key yet.
+  // Key the entry under a ready parent; a released parent has no key yet.
   const shared = useSharedResources()
-  const parentValue = parent.value
-  const parentReleased = parentValue?.released ?? false
+  const parentValue = resourceReady(parent) ? parent.value : null
+  const parentReleased = parent.value?.released ?? false
   const key =
-    parentValue && !parentReleased && name !== null
-      ? sharedResourceKey(parentValue, name)
-      : null
+    parentValue && name !== null ? sharedResourceKey(parentValue, name) : null
   const generation = options?.generation ?? ''
 
   // Read the entry synchronously so a held mount renders on the first pass.
@@ -136,14 +135,16 @@ export function useSharedResource<P extends SharedParent, T>(
     error,
   )
 
+  // A shared entry owns its value's handles, so a failure keeps no last.
   return useMemo(
-    () => ({
-      value,
-      loading,
-      error,
-      retry,
-      __devtools: devtoolsId ? { id: devtoolsId } : undefined,
-    }),
+    () =>
+      resourceOf<T>({
+        value,
+        loading,
+        error,
+        retry,
+        __devtools: devtoolsId ? { id: devtoolsId } : undefined,
+      }),
     [value, loading, error, retry, devtoolsId],
   )
 }

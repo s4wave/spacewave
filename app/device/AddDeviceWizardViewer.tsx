@@ -10,6 +10,7 @@ import {
 } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import {
   SpaceLinkCallback,
   SpaceLinkCompletionMode,
@@ -156,17 +157,19 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const completeCommand = completion
     ? `spacewave device complete --completion ${quoteShellArg(completion)}`
     : 'spacewave device complete --completion <completion>'
-  const computers = useWorldQuery(
-    spaceWorldResource,
-    async (world, signal) => {
-      const [devices, dashboards] = await Promise.all([
-        world.listObjectsWithType(DeviceTypeID, signal),
-        world.listObjectsWithType(ComputersDashboardTypeID, signal),
-      ])
-      return { devices, dashboards }
-    },
-    [],
-  ).value
+  const computers = resourceContent(
+    useWorldQuery(
+      spaceWorldResource,
+      async (world, signal) => {
+        const [devices, dashboards] = await Promise.all([
+          world.listObjectsWithType(DeviceTypeID, signal),
+          world.listObjectsWithType(ComputersDashboardTypeID, signal),
+        ])
+        return { devices, dashboards }
+      },
+      [],
+    ),
+  )
   const deviceKeys = computers?.devices ?? noKeys
   const dashboardKey = computers?.dashboards[0] ?? ''
 

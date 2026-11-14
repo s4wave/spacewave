@@ -9,6 +9,7 @@ import { LuMonitor, LuPlus } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -47,18 +48,20 @@ export function ComputersDashboardViewer({
   const { navigateToObjects, spaceWorld, spaceWorldResource } =
     SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
-  const computers = useWorldQuery(
-    spaceWorldResource,
-    async (world, signal) => {
-      const [devices, hosts, wizards] = await Promise.all([
-        world.listObjectsWithType(DeviceTypeID, signal),
-        world.listObjectsWithType(SshHostTypeID, signal),
-        world.listObjectsWithType(AddDeviceWizardTypeID, signal),
-      ])
-      return { devices, hosts, wizards }
-    },
-    [],
-  ).value
+  const computers = resourceContent(
+    useWorldQuery(
+      spaceWorldResource,
+      async (world, signal) => {
+        const [devices, hosts, wizards] = await Promise.all([
+          world.listObjectsWithType(DeviceTypeID, signal),
+          world.listObjectsWithType(SshHostTypeID, signal),
+          world.listObjectsWithType(AddDeviceWizardTypeID, signal),
+        ])
+        return { devices, hosts, wizards }
+      },
+      [],
+    ),
+  )
   const devices = computers?.devices ?? noKeys
   const hosts = computers?.hosts ?? noKeys
   const seededAddDeviceWizardKey = computers?.wizards[0] ?? ''

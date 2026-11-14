@@ -12,6 +12,8 @@ import { castToError } from 'starpc'
 import { useResourceDevToolsContext } from './ResourceDevToolsContext.js'
 import { useResourcesClient } from './useResourcesClient.js'
 import {
+  lastOf,
+  resourceOf,
   useResourceTransitionState,
   useResourceTransitionVersion,
   type ResourceTransitionRun,
@@ -65,21 +67,59 @@ export interface UseResourceOptions<TValue> {
       }
 }
 
-/**
- * Resource object returned by useResource hook.
- */
-export interface Resource<T> {
-  /** The loaded resource value, or null if not ready */
-  value: T | null
-  /** True while the resource is being loaded */
-  loading: boolean
-  /** Error object if the resource failed to load */
-  error: Error | null
+/** ResourceBase holds the fields every Resource state carries. */
+interface ResourceBase {
   /** Function to retry loading the resource */
   retry: () => void
   /** DevTools tracking metadata - only present when DevTools context is active */
   __devtools?: { id: string }
 }
+
+/**
+ * ResourceLoading is a resource being loaded. value is the previous value
+ * while the resource loads again for the same dependencies, or null.
+ */
+export interface ResourceLoading<T> extends ResourceBase {
+  value: T | null
+  loading: true
+  error: null
+}
+
+/** ResourceSettled is a loaded resource; value is null when it has none. */
+export interface ResourceSettled<T> extends ResourceBase {
+  value: T | null
+  loading: false
+  error: null
+}
+
+/**
+ * ResourceFailed is a resource whose load, or whose parent's load, failed.
+ * value is always null, so a caller that reads only value draws nothing.
+ * last is the most recent value for the current dependencies, kept for a
+ * caller that draws the failure over what had arrived. It is never a released
+ * handle, and a change of dependencies clears it.
+ */
+export interface ResourceFailed<T> extends ResourceBase {
+  value: null
+  loading: false
+  error: Error
+  last: T | null
+}
+
+/**
+ * Resource is the state of a resource hook. No state has a value beside an
+ * error, and only the failed state carries last.
+ */
+export type Resource<T> = ResourceLoading<T> | ResourceSettled<T> | ResourceFailed<T>
+
+/** ResourceFields are the loose fields resourceOf builds a Resource from. */
+export interface ResourceFields<T> extends ResourceBase {
+  value: T | null
+  loading: boolean
+  error: Error | null
+  last?: T | null
+}
+
 
 type NoParentFactory<T> = (
   signal: AbortSignal,
@@ -378,12 +418,22 @@ export function useResource<T>(
     parsed.deps,
   )
 
+  // key changes with the dependencies: a value never outlives its key.
+  const key = useResourceTransitionVersion([stableFactory])
   const transitionVersion = useResourceTransitionVersion([
     stableFactory,
     parentValuesChangeCount,
   ])
-  const { state, begin, complete, fail, isPending, resetForRetry, settleNull } =
-    useResourceTransitionState<T>(enabled && !parent.loading)
+  const {
+    state,
+    startAfter,
+    complete,
+    fail,
+    disposed,
+    isPending,
+    restart,
+    settleEmpty,
+  } = useResourceTransitionState<T>(enabled && !parent.loading, key)
   const effectiveLoading = isPending(transitionVersion) || state.loading
   const [retryCount, setRetryCount] = useState(0)
 
@@ -399,9 +449,9 @@ export function useResource<T>(
 
   const retry = useCallback(() => {
     parent.failedRetries.forEach((r) => r())
-    resetForRetry()
+    restart(key)
     setRetryCount((c) => c + 1)
-  }, [parent.failedRetries, resetForRetry])
+  }, [parent.failedRetries, restart, key])
 
   const releasedResourceRetryReasons = useMemo(
     () => getReleasedResourceRetryReasons(parsed.options),
@@ -513,29 +563,19 @@ export function useResource<T>(
     devtools.update(trackingId, currentState, state.value, state.error)
   }, [devtools, trackingId, state.loading, state.error, state.value])
 
+  const parentFailed = parent.error !== null
   useEffect(() => {
     if (!enabled) {
-      settleNull(transitionVersion, false)
+      settleEmpty(transitionVersion, key)
       return
     }
-    if (parent.values.some((v) => v === null)) {
-      settleNull(transitionVersion, parent.loading)
+    const started = startAfter(parsed.parents, transitionVersion, key)
+    if (!started) {
       return
     }
-    if (parent.loading) {
-      return
-    }
-    if (
-      parent.values.some(
-        (value) => value instanceof SDKResource && value.released,
-      )
-    ) {
-      settleNull(transitionVersion, true)
-      return
-    }
+    const run: ResourceTransitionRun = started
 
     const cleanupResources: { [Symbol.dispose](): void }[] = []
-    const run = begin(transitionVersion)
     activeRunRef.current = run
     let cleanedUp = false
 
@@ -589,10 +629,14 @@ export function useResource<T>(
       if (activeRunRef.current === run) {
         activeRunRef.current = null
       }
+      const owned = cleanupResources.length !== 0
       disposeAll()
+      if (owned) {
+        disposed(run)
+      }
     }
     // Intentionally excluding parsed, parent.values, onSuccess, onError from deps:
-    // - stableFactory: Changes when deps change (via useCallback)
+    // - stableFactory: Changes when deps change (via useCallback), and so key
     // - parent.values: Changes tracked via parentValuesChangeCount
     // - onSuccess/onError: useEffectEvent makes them stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -600,11 +644,14 @@ export function useResource<T>(
     retryCount,
     enabled,
     parent.loading,
+    parentFailed,
     transitionVersion,
-    begin,
+    key,
+    startAfter,
     complete,
     fail,
-    settleNull,
+    disposed,
+    settleEmpty,
   ])
 
   useEffect(() => {
@@ -639,19 +686,21 @@ export function useResource<T>(
     state.loading,
   ])
 
+  // Report the parent's error ahead of the resource's own.
   return useMemo(
-    () => ({
-      value: enabled ? state.value : null,
-      loading: enabled && (parent.loading || effectiveLoading),
-      error: enabled ? parent.error || state.error : null,
-      retry,
-      __devtools: devtools ? { id: trackingId } : undefined,
-    }),
+    () =>
+      resourceOf<T>({
+        value: enabled ? state.value : null,
+        last: enabled ? lastOf(state) : null,
+        loading: enabled && (parent.loading || effectiveLoading),
+        error: enabled ? parent.error || state.error : null,
+        retry,
+        __devtools: devtools ? { id: trackingId } : undefined,
+      }),
     [
       enabled,
-      state.value,
+      state,
       effectiveLoading,
-      state.error,
       parent.loading,
       parent.error,
       retry,
@@ -685,6 +734,7 @@ export function useResourceResults<T extends unknown[]>(
 /**
  * Extracts the value from a resource with simplified semantics.
  * Returns the value when ready, null while loading, undefined if error occurred.
+ * A failed resource's last value is not returned: undefined means failed.
  *
  * @example
  * ```tsx

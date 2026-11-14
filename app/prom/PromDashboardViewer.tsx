@@ -2,6 +2,7 @@ import { useCallback, useMemo, useReducer } from 'react'
 import { LuChartLine, LuPlus } from 'react-icons/lu'
 
 import { isDesktop } from '@aptre/bldr'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   DashboardTypeID,
@@ -192,7 +193,12 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
     [],
     { reconnect: true },
   )
-  const panels = dash.value?.panels ?? []
+  // Past their reconnect backoff the watches fail and keep their last
+  // records, drawn under the failure notice.
+  const dashValue = resourceContent(dash)
+  const targetsValue = resourceContent(targets)
+  const failure = resourceStatus('the Dashboard', dash, targets)
+  const panels = dashValue?.panels ?? []
 
   // Run a panel action, keeping its failure on screen.
   const act = useCallback(async (fn: () => Promise<void>) => {
@@ -224,6 +230,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
   const editingPanelId = editing.state === 'panel' ? editing.panelId : undefined
   const status = renderStatus()
   const body = status ? null : renderBody()
+  const notice = !status && failure ? <ViewerStatus {...failure} /> : null
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-3 border-b px-4">
@@ -231,7 +238,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
           <LuChartLine className="text-foreground-alt size-3.5" aria-hidden />
           Dashboard
         </div>
-        <UpdatedAt targets={targets.value} />
+        <UpdatedAt targets={targetsValue} />
         <div
           className="ml-auto flex items-center gap-0.5"
           role="group"
@@ -272,6 +279,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
           />
         </div>
       ) : null}
+      {notice}
       {status ? (
         <div className="min-h-0 flex-1">{status}</div>
       ) : (
@@ -282,20 +290,20 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
 
   // renderStatus renders the Dashboard's read state until it and its targets
   // arrive, flush with the pane under its header. The body needs both
-  // records, so a failure of either replaces it.
+  // records, so a failure of either replaces it until both arrived; after
+  // that the failure is a notice above the kept records.
   function renderStatus() {
-    const status = resourceStatus('the Dashboard', dash, targets)
-    if (status) return <ViewerStatus {...status} />
-    if (!dash.value || !targets.value) {
-      return <ViewerStatus state="waiting" what="the Dashboard" />
-    }
-    return null
+    if (dashValue && targetsValue) return null
+    if (failure) return <ViewerStatus {...failure} />
+    return <ViewerStatus state="waiting" what="the Dashboard" />
   }
 
   // renderBody renders the Dashboard once it and its targets arrive.
   function renderBody() {
-    // Draw nothing until the status gives way to both records.
-    if (!dash.value || !targets.value) return null
+    // Draw nothing until the status gives way to both records. Kept records
+    // under a failure make no empty claim.
+    if (!dashValue || !targetsValue) return null
+    const failed = failure?.state === 'failed'
     if (editing.state === 'target') {
       return (
         <PromTargetForm
@@ -308,7 +316,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
         />
       )
     }
-    if (targets.value.size === 0) {
+    if (targetsValue.size === 0 && !failed) {
       return (
         <EmptyState
           icon={<LuChartLine className="text-foreground-alt size-5" />}
@@ -324,7 +332,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
         />
       )
     }
-    if (panels.length === 0 && editingPanelId === undefined) {
+    if (panels.length === 0 && editingPanelId === undefined && !failed) {
       return (
         <EmptyState
           icon={<LuChartLine className="text-foreground-alt size-5" />}
@@ -355,7 +363,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
                 dashboard={dashboard}
                 panel={panel}
                 removed={false}
-                targets={targets.value}
+                targets={targetsValue}
                 range={range}
                 nowMs={nowMs}
                 onClose={closeEditor}
@@ -366,7 +374,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
                 query={dashboard}
                 panel={panel}
                 range={range}
-                targets={targets.value}
+                targets={targetsValue}
                 nowMs={nowMs}
                 hoverMs={view.hoverMs}
                 onHover={onHover}
@@ -381,7 +389,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
               dashboard={dashboard}
               panel={null}
               removed={editedRemoved}
-              targets={targets.value}
+              targets={targetsValue}
               range={range}
               nowMs={nowMs}
               onClose={closeEditor}

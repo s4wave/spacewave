@@ -4,6 +4,7 @@ import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { getObjectType } from '@s4wave/sdk/world/types/types.js'
@@ -55,11 +56,12 @@ export function useObjectViewerSetup(
   const objectStateIsCurrent =
     rawObjectStateValue == null || rawObjectStateValue.getKey() === objectKey
   const objectState = useMemo<Resource<IObjectState | null>>(
-    () => ({
-      ...rawObjectState,
-      value: objectStateIsCurrent ? rawObjectStateValue : null,
-      loading: rawObjectState.loading || !objectStateIsCurrent,
-    }),
+    () =>
+      resourceOf({
+        ...rawObjectState,
+        value: objectStateIsCurrent ? rawObjectStateValue : null,
+        loading: rawObjectState.loading || !objectStateIsCurrent,
+      }),
     [rawObjectState, rawObjectStateValue, objectStateIsCurrent],
   )
 

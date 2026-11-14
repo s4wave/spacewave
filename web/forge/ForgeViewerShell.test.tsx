@@ -4,6 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 
 import { forgeBlockStatus, ForgeViewerShell } from './ForgeViewerShell.js'
 
@@ -16,7 +17,7 @@ function block(
   loading: boolean,
   error: Error | null = null,
 ): Resource<unknown> {
-  return { value, loading, error, retry }
+  return resourceOf({ value, loading, error, retry })
 }
 
 describe('forgeBlockStatus', () => {

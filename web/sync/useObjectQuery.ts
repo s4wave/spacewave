@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   watchObjectQuery,
@@ -39,10 +40,8 @@ export function useObjectQuery<T>(
 
   // Hide a replaced source immediately while its first snapshot is loading.
   return useMemo(
-    () => ({
-      ...result,
-      value: result.loading ? null : result.value,
-    }),
+    () =>
+      resourceOf({ ...result, value: result.loading ? null : result.value }),
     [result],
   )
 }

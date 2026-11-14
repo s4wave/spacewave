@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { PromDashboardViewer } from './PromDashboardViewer.js'
@@ -44,8 +45,9 @@ function resource(
   value: unknown,
   error: Error | null = null,
   loading = false,
+  last: unknown = null,
 ): Resource<unknown> {
-  return { value, loading, error, retry: vi.fn() }
+  return resourceOf({ value, last, loading, error, retry: vi.fn() })
 }
 
 function renderViewer() {
@@ -79,6 +81,29 @@ describe('PromDashboardViewer', () => {
       screen.getByText('Could not read the Dashboard: targets stream closed'),
     ).toBeDefined()
     expect(screen.queryByText('Loading the Dashboard')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(reads.targets.retry).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the read records under a later targets failure, claiming nothing empty', () => {
+    // Both records arrived, then the targets stream failed past its backoff.
+    reads.dash = resource({ panels: [] })
+    reads.targets = resource(
+      null,
+      new Error('targets stream closed'),
+      false,
+      new Map(),
+    )
+    renderViewer()
+
+    // The failure is a notice with Retry; the empty states stay unclaimed.
+    expect(
+      screen.getByText('Could not read the Dashboard: targets stream closed'),
+    ).toBeDefined()
+    expect(
+      screen.queryByText('No Scrape targets in this Space yet.'),
+    ).toBeNull()
+    expect(screen.queryByText('This Dashboard has no panels.')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(reads.targets.retry).toHaveBeenCalledTimes(1)
   })

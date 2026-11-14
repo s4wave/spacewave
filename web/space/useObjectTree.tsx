@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { LuEllipsis } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
@@ -20,8 +21,12 @@ export const objectLevelPageSize = 200
 // ObjectTree is the loaded part of a Space's object tree.
 export interface ObjectTree {
   // nodes are the root nodes with the children of each expanded node, or null
-  // while the root level loads.
+  // while the root level loads. Under a failure they are the last nodes read.
   nodes: TreeNode<ObjectTreeNode>[] | null
+  // loading is set while a level reads, including the first read.
+  loading: boolean
+  // error is the failure of the levels' watch, or null.
+  error: Error | null
   // loadMore reads one more page of the level under prefix.
   loadMore: (prefix: string) => void
 }
@@ -42,7 +47,8 @@ export function useObjectTree(
     [expandedIds],
   )
 
-  const levels = useWorldQuery(
+  // A level expanding keeps the loaded levels on screen while it reads.
+  const levelsResource = useWorldQuery(
     world,
     async (state, signal) => {
       const entries = await Promise.all(
@@ -63,7 +69,9 @@ export function useObjectTree(
       return new Map(entries)
     },
     [prefixes, limits, metadataById],
-  ).value
+    { keepWhileLoading: true },
+  )
+  const levels = resourceContent(levelsResource)
 
   const loadMore = useCallback((prefix: string) => {
     setLimits((prev) =>
@@ -79,7 +87,12 @@ export function useObjectTree(
     [levels, loadMore],
   )
 
-  return { nodes, loadMore }
+  return {
+    nodes,
+    loading: levelsResource.loading,
+    error: levelsResource.error,
+    loadMore,
+  }
 }
 
 // attachLevels returns the nodes of the level under prefix, nesting the loaded

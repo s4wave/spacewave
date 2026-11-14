@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { ViewerStage } from '@s4wave/web/object/ViewerFloat.js'
 import {
@@ -14,8 +15,8 @@ export const sendFailedMessage =
 
 // CanvasViewState is what the Canvas viewer draws, derived from its canvas
 // watch as CanvasViewer.tla models it: the watch's status in place of the
-// stage until a canvas arrives, then the stage with at most a line while the
-// watch reconnects and a notice for a failed edit.
+// stage until a canvas arrives, then the stage with at most one line over it
+// while the watch reads again or has failed, and a notice for a failed edit.
 export type CanvasViewState =
   | { body: 'status'; status: ViewerStatusProps }
   | {
@@ -27,17 +28,20 @@ export type CanvasViewState =
 
 /**
  * canvasViewState derives the drawn state from the canvas watch, the failed
- * edit's message, and whether the canvas the person sees holds no node. The
- * watch reports a failure only with no canvas held: once one arrived it
- * reconnects with the canvas kept, which draws as a waiting line.
+ * edit's message, and whether the canvas the person sees holds no node. Until
+ * a canvas arrives the watch's wait or failure takes the body. Once one
+ * arrived the stage keeps it: a watch reading again draws a waiting line over
+ * it, and a failed watch, such as one past its reconnect backoff, draws its
+ * failure with Retry over the last canvas. A failed canvas never claims to be
+ * empty.
  */
 export function canvasViewState(
   watch: Resource<unknown>,
   actionError: string | null,
   empty: boolean,
 ): CanvasViewState {
-  if (watch.value == null) {
-    const status = resourceStatus('the canvas', watch)
+  const status = resourceStatus('the canvas', watch)
+  if (resourceContent(watch) == null) {
     return {
       body: 'status',
       status:
@@ -46,14 +50,17 @@ export function canvasViewState(
           : { state: 'waiting', what: 'the canvas', rows: 0 },
     }
   }
-  const notice: ViewerStatusProps | undefined = watch.loading
-    ? { state: 'waiting', what: 'the canvas again', rows: 0 }
-    : undefined
+  const notice: ViewerStatusProps | undefined =
+    status?.state === 'failed'
+      ? status
+      : watch.loading
+        ? { state: 'waiting', what: 'the canvas again', rows: 0 }
+        : undefined
   return {
     body: 'stage',
     notice,
     action: actionError ?? undefined,
-    empty,
+    empty: empty && !watch.error,
   }
 }
 

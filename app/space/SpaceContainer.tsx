@@ -24,6 +24,7 @@ import {
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { StateNamespaceProvider } from '@s4wave/web/state/index.js'
 import {
   parseObjectUri,
@@ -309,12 +310,14 @@ function useSpaceContainerController() {
     spaceState?.engineId,
   )
   const spaceObjectTargets =
-    useWorldQuery(
-      spaceWorldResource,
-      (world, signal) =>
-        listSpaceObjectTargets(world, objectTypeMetadataById, signal),
-      [objectTypeMetadataById],
-    ).value ?? noSpaceObjectTargets
+    resourceContent(
+      useWorldQuery(
+        spaceWorldResource,
+        (world, signal) =>
+          listSpaceObjectTargets(world, objectTypeMetadataById, signal),
+        [objectTypeMetadataById],
+      ),
+    ) ?? noSpaceObjectTargets
 
   const handleRenameStart = useCallback(() => {
     if (!canRename) return

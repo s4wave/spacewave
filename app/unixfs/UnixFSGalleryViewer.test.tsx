@@ -518,6 +518,67 @@ describe('UnixFSGalleryViewer', () => {
     expect(retry).toHaveBeenCalledOnce()
   })
 
+  it('keeps the last tiles pressable under the failure once the watch gives up backing off', () => {
+    const retry = vi.fn()
+    h.galleryState = {
+      value: null as unknown as UnixFSGalleryDiscoveryState,
+      last: {
+        scopePath: '/gallery',
+        items: buildItems(2),
+        errors: [],
+        truncated: false,
+      },
+      loading: false,
+      error: new Error('watch closed') as unknown as null,
+      retry,
+    } as ReturnType<typeof buildGalleryState>
+
+    render(
+      <UnixFSGalleryViewer
+        objectInfo={{
+          info: {
+            case: 'unixfsObjectInfo',
+            value: { unixfsId: 'files', path: '/gallery' },
+          },
+        }}
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not read the images under /gallery: watch closed',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(retry).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: 'Open 1.png' }))
+    expect(h.photoSliderProps).toMatchObject({ index: 1, visible: true })
+  })
+
+  it('makes no empty claim for a failed index with no image', () => {
+    h.galleryState = {
+      value: null as unknown as UnixFSGalleryDiscoveryState,
+      last: { scopePath: '/gallery', items: [], errors: [], truncated: false },
+      loading: false,
+      error: new Error('watch closed') as unknown as null,
+      retry: vi.fn(),
+    } as ReturnType<typeof buildGalleryState>
+
+    render(
+      <UnixFSGalleryViewer
+        objectInfo={{
+          info: {
+            case: 'unixfsObjectInfo',
+            value: { unixfsId: 'files', path: '/gallery' },
+          },
+        }}
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toBeDefined()
+    expect(screen.queryByText('No images under this path.')).toBeNull()
+  })
+
   it('names the missing Space and keeps tiles unpressable without previews', () => {
     h.spaceId = null
     h.galleryState = buildGalleryState({

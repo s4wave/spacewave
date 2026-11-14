@@ -1,5 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
@@ -54,17 +55,19 @@ interface BuildSelections {
 function useBuildChoices(
   spaceWorldResource: SpaceContainerContextValue['spaceWorldResource'],
 ) {
-  const choices = useWorldQuery(
-    spaceWorldResource,
-    async (world, signal) => {
-      const [sources, devices] = await Promise.all([
-        world.listObjectsWithType('unixfs/fs-node', signal),
-        world.listObjectsWithType(DeviceTypeID, signal),
-      ])
-      return { sources, devices }
-    },
-    [],
-  ).value
+  const choices = resourceContent(
+    useWorldQuery(
+      spaceWorldResource,
+      async (world, signal) => {
+        const [sources, devices] = await Promise.all([
+          world.listObjectsWithType('unixfs/fs-node', signal),
+          world.listObjectsWithType(DeviceTypeID, signal),
+        ])
+        return { sources, devices }
+      },
+      [],
+    ),
+  )
 
   return { sources: choices?.sources ?? [], devices: choices?.devices ?? [] }
 }

@@ -14,6 +14,7 @@ import {
 
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
@@ -221,13 +222,14 @@ export function CanvasViewer({
     string | null
   >(null)
 
-  const unixfsObjectKey =
+  const unixfsObjectKey = resourceContent(
     useWorldQuery(
       worldState,
       async (world, signal) =>
         (await world.listObjectsWithType(UnixFSTypeID, signal, 1))[0] ?? null,
       [],
-    ).value ?? null
+    ),
+  )
   const unixfsRoot = useUnixFSRootHandle(worldState, unixfsObjectKey)
   const imageSubItems: SubItemsCallback = useCallback(
     (query, signal) =>
@@ -245,9 +247,10 @@ export function CanvasViewer({
 
   // Watch canvas state via streaming RPC. The watch reports the handle's
   // failure as its own, with the handle's Retry, so the viewer reads one
-  // failure from it; a failed or reloading handle drops the canvas. After a
-  // canvas the watch reconnects on a failure, keeping the canvas drawn while
-  // it backs off. CanvasViewer.tla holds these states.
+  // failure from it. After a canvas the watch reconnects on a failure,
+  // keeping the canvas drawn while it backs off; past the backoff it fails
+  // and the canvas stays drawn from its last value under the failure.
+  // CanvasViewer.tla holds these states.
   const canvasStateResource = useStreamingResource(
     canvasResource,
     (handle, signal) => handle.watchState(signal),
@@ -255,17 +258,18 @@ export function CanvasViewer({
     canvasWatchOptions,
   )
 
+  const canvasState = resourceContent(canvasStateResource)
   const canvasStateData = useMemo(
     () =>
-      canvasStateResource.value
+      canvasState
         ? protoToCanvasState(
-            canvasStateResource.value.nodes ?? {},
-            canvasStateResource.value.edges ?? [],
-            canvasStateResource.value.hiddenGraphLinks ?? [],
-            canvasStateResource.value.layoutMetadata ?? {},
+            canvasState.nodes ?? {},
+            canvasState.edges ?? [],
+            canvasState.hiddenGraphLinks ?? [],
+            canvasState.layoutMetadata ?? {},
           )
         : null,
-    [canvasStateResource.value],
+    [canvasState],
   )
 
   // Pre-index canvas nodes by objectKey for O(1) lookup.
@@ -600,8 +604,9 @@ export function CanvasViewer({
 
   // Until a canvas arrives, its wait or its failure takes the body.
   // Once one arrived the stage keeps it, with the edits the person made, and
-  // a reconnecting watch is a line over it. The queue lives here, so edits
-  // still pending when the handle fails draw again on the next canvas.
+  // a reconnecting or failed watch is a line over it. The queue lives here,
+  // so edits still pending when the handle fails stay drawn on the kept
+  // canvas and on the next one.
   const view = canvasViewState(
     canvasStateResource,
     graphLinkActionError,

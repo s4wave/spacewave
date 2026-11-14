@@ -14,6 +14,9 @@ export function constantBackoff(waitMs: number = 500): BackoffFn {
 export interface ExponentialBackoff extends BackoffFn {
   // reset returns the wait to its initial value, such as after a success.
   reset(): void
+  // capped reports whether the last wait returned was the maximum, so a
+  // caller can stop treating a failure that keeps happening as transient.
+  capped(): boolean
 }
 
 // exponentialBackoff constructs a new ExponentialBackoff.
@@ -26,15 +29,19 @@ export function exponentialBackoff(
   maxMs: number = 5000,
 ): ExponentialBackoff {
   let current = initialMs
+  let last = 0
   const backoff = () => {
     const wait = current
+    last = wait
     current = Math.min(current * 2, maxMs)
     return wait / 2 + (Math.random() * wait) / 2
   }
   return Object.assign(backoff, {
     reset: () => {
       current = initialMs
+      last = 0
     },
+    capped: () => last >= maxMs,
   })
 }
 

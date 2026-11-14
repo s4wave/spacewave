@@ -6,6 +6,7 @@ import {
   useResourceValue,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { PromQuery, TargetTypeID } from '@s4wave/sdk/prom/prom.js'
 import { PanelKind, PanelUnit, type Panel } from '@s4wave/sdk/prom/prom.pb.js'
@@ -154,8 +155,11 @@ function TargetBody({
     contentsState.value?.processBindings?.find((b) => b.objectKey === objectKey)
       ?.approved ?? false
 
-  // Derive the state now; the clock moves a silent target to stale.
-  const info = targets.value?.get(objectKey)
+  // Derive the state now; the clock moves a silent target to stale. Past
+  // its reconnect backoff the targets watch fails and keeps its last record,
+  // drawn under the failure.
+  const targetsValue = resourceContent(targets)
+  const info = targetsValue?.get(objectKey)
   const nowMs = useClock(clockPeriodMs)
   const state = targetState(info, approved, myPeerId, nowMs)
   const action = targetAction(state, approved, canWrite && isDesktop)
@@ -200,45 +204,48 @@ function TargetBody({
     [myPeerId],
   )
 
-  if (targets.error) {
-    return (
-      <ViewerStatus
-        state="failed"
-        message={`Could not read the Scrape target: ${targets.error.message}`}
-        retry={targets.retry}
-      />
-    )
-  }
-  if (!targets.value) {
-    return <ViewerStatus state="waiting" what="the Scrape target" />
+  const failure = targets.error ? (
+    <ViewerStatus
+      state="failed"
+      message={`Could not read the Scrape target: ${targets.error.message}`}
+      retry={targets.retry}
+    />
+  ) : null
+  if (!targetsValue) {
+    return failure ?? <ViewerStatus state="waiting" what="the Scrape target" />
   }
   return (
-    <PromTargetView
-      objectKey={objectKey}
-      info={info}
-      state={state}
-      action={action}
-      deviceName={deviceName}
-      nowMs={nowMs}
-      saving={approval.state === 'saving'}
-      saveError={approval.state === 'failed' ? approval.reason : null}
-      onAction={() => void onAction()}
-      chart={
-        chartPanel && (state.state === 'up' || state.state === 'down') ? (
-          <div className="max-w-2xl">
-            <PromPanel
-              query={query}
-              panel={chartPanel}
-              range={defaultTimeRange}
-              targets={targets.value}
-              nowMs={nowMs}
-              hoverMs={null}
-              onHover={noop}
-            />
-          </div>
-        ) : null
-      }
-    />
+    <div className="flex h-full w-full flex-col">
+      {failure}
+      <div className="min-h-0 flex-1">
+        <PromTargetView
+          objectKey={objectKey}
+          info={info}
+          state={state}
+          action={action}
+          deviceName={deviceName}
+          nowMs={nowMs}
+          saving={approval.state === 'saving'}
+          saveError={approval.state === 'failed' ? approval.reason : null}
+          onAction={() => void onAction()}
+          chart={
+            chartPanel && (state.state === 'up' || state.state === 'down') ? (
+              <div className="max-w-2xl">
+                <PromPanel
+                  query={query}
+                  panel={chartPanel}
+                  range={defaultTimeRange}
+                  targets={targetsValue}
+                  nowMs={nowMs}
+                  hoverMs={null}
+                  onHover={noop}
+                />
+              </div>
+            ) : null
+          }
+        />
+      </div>
+    </div>
   )
 }
 

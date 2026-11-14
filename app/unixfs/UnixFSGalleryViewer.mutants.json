@@ -3,8 +3,8 @@
     "name": "a failure after an index drops the tiles",
     "replace": [
       [
-        "  CASE Kept /\\ found -> \"tiles\"\n    [] Kept -> \"empty\"\n    [] watch = \"failed\" -> \"failed\"",
-        "  CASE watch \\in {\"failed\", \"reconnecting\"} -> \"failed\"\n    [] Kept /\\ found -> \"tiles\"\n    [] Kept -> \"empty\""
+        "  CASE Kept /\\ found -> \"tiles\"\n    [] Kept /\\ ~Failing -> \"empty\"\n    [] Kept -> \"none\"\n    [] watch = \"failed\" -> \"failed\"",
+        "  CASE watch \\in {\"failed\", \"reconnecting\"} -> \"failed\"\n    [] Kept /\\ found -> \"tiles\"\n    [] Kept /\\ ~Failing -> \"empty\"\n    [] Kept -> \"none\""
       ]
     ],
     "expect": "EveryShownActionWorks"
@@ -38,5 +38,35 @@
       ]
     ],
     "expect": "TilesOfCurrentPath"
+  },
+  {
+    "name": "a capped watch drops the tiles",
+    "replace": [
+      [
+        "  /\\ watch' = \"capped\"\n  /\\ UNCHANGED <<path, indexPath, found, truncated, issues, session, space>>",
+        "  /\\ watch' = \"capped\"\n  /\\ indexPath' = \"none\"\n  /\\ found' = FALSE\n  /\\ UNCHANGED <<path, truncated, issues, session, space>>"
+      ]
+    ],
+    "expect": "CappedKeepsTiles"
+  },
+  {
+    "name": "a failed index with no image says it is empty",
+    "replace": [
+      [
+        "    [] Kept /\\ ~Failing -> \"empty\"\n    [] Kept -> \"none\"\n",
+        "    [] Kept -> \"empty\"\n"
+      ]
+    ],
+    "expect": "NoEmptyFromFailed"
+  },
+  {
+    "name": "no Retry above a failed index",
+    "replace": [
+      [
+        "    \\cup (IF Body = \"failed\" \\/ Notice THEN {\"retry\"} ELSE {})",
+        "    \\cup (IF Body = \"failed\" THEN {\"retry\"} ELSE {})"
+      ]
+    ],
+    "expect": "NobodyIsStuck"
   }
 ]

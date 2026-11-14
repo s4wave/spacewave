@@ -1,4 +1,8 @@
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import {
+  resourceContent,
+  resourceOf,
+} from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useParams } from '@s4wave/web/router/router.js'
 
 import { Canvas } from '@s4wave/app/canvas/Canvas.js'
@@ -83,9 +87,13 @@ interface CanvasFixture {
 // watch is the canvas watch in one state.
 function watch(
   value: CanvasStateData | null,
-  { loading = false, error = null as Error | null } = {},
+  {
+    loading = false,
+    error = null as Error | null,
+    last = null as CanvasStateData | null,
+  } = {},
 ): Resource<CanvasStateData> {
-  return { value, loading, error, retry: noop }
+  return resourceOf({ value, last, loading, error, retry: noop })
 }
 
 // fixtures are the states of CanvasViewer.tla, as the watch reports them.
@@ -98,6 +106,10 @@ const fixtures: Record<string, CanvasFixture> = {
   },
   empty: { watch: watch(emptyCanvas), actionError: null },
   again: { watch: watch(populated, { loading: true }), actionError: null },
+  'failed-kept': {
+    watch: watch(null, { error: new Error('stream closed'), last: populated }),
+    actionError: null,
+  },
   'save-failed': {
     watch: watch(populated),
     actionError: sendFailedMessage,
@@ -108,7 +120,8 @@ const fixtures: Record<string, CanvasFixture> = {
  * CanvasViewerDebug renders the Canvas viewer in one fixture state, with the
  * viewport as the pane, for the viewer sweep: populated, waiting, failed
  * (the first read or the handle failed, with Retry), empty (with the hint),
- * again (the canvas while the watch reconnects) and save-failed (the canvas under the failed edit's
+ * again (the canvas while the watch reconnects), failed-kept (the last
+ * canvas under the watch's failure past its backoff, with Retry) and save-failed (the canvas under the failed edit's
  * notice). An unknown or missing state shows populated. The view derives
  * from the watch's resource as the viewer's does.
  */
@@ -116,7 +129,7 @@ export function CanvasViewerDebug() {
   // Read the fixture state from the route.
   const { state = 'populated' } = useParams()
   const fixture = fixtures[state] ?? fixtures.populated
-  const canvas = fixture.watch.value ?? emptyCanvas
+  const canvas = resourceContent(fixture.watch) ?? emptyCanvas
   const view = canvasViewState(
     fixture.watch,
     fixture.actionError,

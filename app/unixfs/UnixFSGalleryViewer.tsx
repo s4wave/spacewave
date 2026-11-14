@@ -7,6 +7,7 @@ import { LuDownload, LuExternalLink, LuImage } from 'react-icons/lu'
 import { PhotoSlider } from 'react-photo-view'
 import { List, type RowComponentProps } from 'react-window'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { usePath } from '@s4wave/web/router/router.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -232,7 +233,8 @@ export function galleryPreviewItems(
 }
 
 // galleryWatchOptions reopens the index watch after a failure and keeps the
-// last index, so the tiles found stay pressable while it reads again.
+// last index, so the tiles found stay pressable while it reads again and
+// after it fails past its backoff.
 const galleryWatchOptions = { reconnect: true }
 
 interface GalleryScan {
@@ -269,7 +271,8 @@ function useGalleryScan(
       [currentPath],
       galleryWatchOptions,
     )
-  const galleryItems = galleryState.value?.items ?? emptyGalleryItems
+  const index = resourceContent(galleryState)
+  const galleryItems = index?.items ?? emptyGalleryItems
   const previewItems: GalleryPreviewItem[] = useMemo(
     () =>
       galleryPreviewItems(galleryItems, {
@@ -289,7 +292,7 @@ function useGalleryScan(
     galleryState,
     previewItems,
     lightboxItems,
-    scopePath: galleryState.value?.scopePath ?? currentPath,
+    scopePath: index?.scopePath ?? currentPath,
     spaceId,
     sessionIndex,
     httpPathPrefix,
@@ -387,7 +390,9 @@ export interface GalleryBodyProps {
  * GalleryBody draws the states of UnixFSGalleryViewer.tla: the wait or the
  * failure until the first index, then the tiles, or a row saying the index
  * holds no image. An index once arrived stays while the watch reads again,
- * so the tiles found stay pressable; notes above them say the index stopped
+ * and under the watch's failure once it gives up backing off, so the tiles
+ * found stay pressable; a failed index never says it holds no image. Notes
+ * above the tiles say the index stopped
  * at its limit, some folders could not be read, or previews need a session
  * and a Space: a tile opens only with a preview to show.
  */
@@ -397,7 +402,7 @@ export function GalleryBody({
   scopePath,
   onOpen,
 }: GalleryBodyProps) {
-  const index = galleryState.value
+  const index = resourceContent(galleryState)
   if (!index) {
     if (galleryState.error) {
       return (
@@ -419,6 +424,13 @@ export function GalleryBody({
 
   return (
     <>
+      {galleryState.error && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the images under ${scopePath}: ${galleryState.error.message}`}
+          retry={galleryState.retry}
+        />
+      )}
       {galleryState.loading && (
         <ViewerStatus
           state="waiting"
@@ -451,11 +463,13 @@ export function GalleryBody({
         </p>
       )}
       {items.length === 0 ? (
-        <ViewerStatus
-          state="empty"
-          icon={<LuImage />}
-          message="No images under this path."
-        />
+        !galleryState.error && (
+          <ViewerStatus
+            state="empty"
+            icon={<LuImage />}
+            message="No images under this path."
+          />
+        )
       ) : (
         <div className="viewer-inset-x min-h-0 flex-1 pt-1">
           <GalleryGrid items={items} onOpen={onOpen} />

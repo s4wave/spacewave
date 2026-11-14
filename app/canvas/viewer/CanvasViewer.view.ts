@@ -20,11 +20,26 @@ export const state = (v: Canvas) => {
     if (v.watch === 'failed') return 'Could not read, Retry shown' + queued
     return 'Loading the canvas' + queued
   }
-  const stage = v.nodes ? 'Canvas' : 'Empty canvas, hint shown'
-  const read = v.watch === 'reconnecting' ? ', reconnecting line' : ''
+  // A failed source draws its notice over the kept canvas, which makes no
+  // empty claim; a source reading again draws a line.
+  const failed =
+    v.handle === 'failed'
+      ? ', Could not open notice, Retry shown'
+      : v.watch === 'capped'
+        ? ', Could not read notice, Retry shown'
+        : ''
+  const stage = v.nodes
+    ? 'Canvas'
+    : failed
+      ? 'Empty canvas'
+      : 'Empty canvas, hint shown'
+  const read =
+    !failed && (v.watch === 'reconnecting' || v.handle === 'waiting')
+      ? ', reconnecting line'
+      : ''
   const edits = v.pending ? ', edits sending' : ''
   const sent = v.action === 'failed' ? ', send failed notice' : ''
-  return stage + read + edits + sent
+  return stage + failed + read + edits + sent
 }
 
 export const step = (action: string, from: Canvas, to: Canvas) => {
@@ -38,6 +53,7 @@ export const step = (action: string, from: Canvas, to: Canvas) => {
   if (action === 'RetryHandle') return 'presses Retry'
   if (action === 'WatchArrive') return 'canvas arrives'
   if (action === 'WatchDrop') return 'watch drops'
+  if (action === 'WatchCap') return 'backoff reaches its cap'
   if (action === 'WatchFail') return 'watch fails'
   if (action === 'RetryWatch') return 'retries the read'
   if (action === 'Edit') return 'edits'

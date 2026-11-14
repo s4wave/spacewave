@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createRoot, type Root } from 'react-dom/client'
 import { ResourcesProvider } from './ResourcesContext.js'
 import { useResource, type Resource } from './useResource.js'
+import { resourceOf } from './resourceTransitionState.js'
 import {
   useStreamingResource,
   type UseStreamingResourceOptions,
@@ -47,6 +48,11 @@ function buildHandle(id: number): FakeSDKHandle {
   return new FakeSDKHandle(ref)
 }
 
+/** lastOf returns the last value a failed resource keeps, or null. */
+function lastOf<T>(resource: Resource<T>): T | null {
+  return resource.error ? resource.last : null
+}
+
 function TestHandle(props: {
   factory: () => Promise<FakeSDKHandle>
   retryOnReleasedResource?: boolean
@@ -61,8 +67,16 @@ function TestHandle(props: {
 
   return React.createElement(
     'div',
-    { 'data-handle-id': resource.value?.id ?? 0 },
-    String(resource.value?.id ?? 0),
+    {
+      'data-handle-id': resource.value?.id ?? 0,
+      'data-last-id': lastOf(resource)?.id ?? 0,
+      'data-error': resource.error?.message ?? '',
+    },
+    React.createElement(
+      'button',
+      { type: 'button', onClick: resource.retry },
+      'retry',
+    ),
   )
 }
 
@@ -102,17 +116,30 @@ function TestRetryChild(props: {
 function TestValue(props: {
   factory: (version: number) => Promise<string>
   version: number
+  renders?: string[]
 }) {
   const resource = useResource(
     async () => props.factory(props.version),
     [props.version],
   )
+  props.renders?.push(
+    `${props.version}:${resource.value ?? ''}:${lastOf(resource) ?? ''}:${resource.loading}`,
+  )
 
-  return React.createElement('div', {
-    'data-loading': String(resource.loading),
-    'data-value': resource.value ?? '',
-    'data-error': resource.error?.message ?? '',
-  })
+  return React.createElement(
+    'div',
+    {
+      'data-loading': String(resource.loading),
+      'data-value': resource.value ?? '',
+      'data-last': lastOf(resource) ?? '',
+      'data-error': resource.error?.message ?? '',
+    },
+    React.createElement(
+      'button',
+      { type: 'button', onClick: resource.retry },
+      'retry',
+    ),
+  )
 }
 
 async function* streamValue(value: string): AsyncIterable<string> {
@@ -158,6 +185,7 @@ function TestStreamingFromParent(props: {
   return React.createElement('div', {
     'data-loading': String(resource.loading),
     'data-value': resource.value ?? '',
+    'data-last': lastOf(resource) ?? '',
     'data-error': resource.error?.message ?? '',
   })
 }
@@ -177,6 +205,7 @@ function TestMappedValue(props: {
     {
       'data-loading': String(resource.loading),
       'data-value': resource.value ?? '',
+      'data-last': lastOf(resource) ?? '',
       'data-error': resource.error?.message ?? '',
     },
     React.createElement(
@@ -195,13 +224,14 @@ function TestStreamOptions(props: {
   streamFactory: () => AsyncIterable<Row>
   options: UseStreamingResourceOptions<Row>
   seen: Row[]
+  version?: number
 }) {
-  // Stream rows from a trivial parent.
+  // Stream rows from a trivial parent; version is the stream's only dep.
   const parent = useResource(async () => ({}), [])
   const resource = useStreamingResource(
     parent,
     () => props.streamFactory(),
-    [],
+    [props.version],
     props.options,
   )
 
@@ -213,11 +243,20 @@ function TestStreamOptions(props: {
     }
   }, [resource.value, seen])
 
-  return React.createElement('div', {
-    'data-loading': String(resource.loading),
-    'data-value': resource.value?.label ?? '',
-    'data-error': resource.error?.message ?? '',
-  })
+  return React.createElement(
+    'div',
+    {
+      'data-loading': String(resource.loading),
+      'data-value': resource.value?.label ?? '',
+      'data-last': lastOf(resource)?.label ?? '',
+      'data-error': resource.error?.message ?? '',
+    },
+    React.createElement(
+      'button',
+      { type: 'button', onClick: resource.retry },
+      'retry',
+    ),
+  )
 }
 
 /** ManualAsyncIterableController pushes, fails or ends a manual stream. */
@@ -319,6 +358,20 @@ function deferredFactory<T>() {
     return next.promise
   })
   return { pending, factory }
+}
+
+/** settledByHand returns a factory whose nth call the test resolves or fails. */
+function settledByHand() {
+  const results: Array<(value: string) => void> = []
+  const errors: Array<(err: Error) => void> = []
+  const factory = vi.fn(
+    (_version: number) =>
+      new Promise<string>((resolve, reject) => {
+        results.push(resolve)
+        errors.push(reject)
+      }),
+  )
+  return { results, errors, factory }
 }
 
 /** manualStreams returns a stream factory that records each manual stream. */
@@ -434,7 +487,7 @@ describe('useResource', () => {
     const factory = vi.fn(async (value: string) => `child:${value}`)
     const parent = (value: string | null, error: Error | null) =>
       React.createElement(TestRetryChild, {
-        parent: { value, loading: false, error, retry: parentRetry },
+        parent: resourceOf({ value, loading: false, error, retry: parentRetry }),
         factory,
       })
     mount()
@@ -490,24 +543,97 @@ describe('useResource', () => {
     })
   })
 
-  it('keeps the previous resource value visible while a dependency reload is pending', async () => {
+  it('drops the previous value on the first render of new dependencies', async () => {
     // Load the first version.
     const { pending, factory } = deferredFactory<string>()
+    const renders: string[] = []
     mount()
-    await render(React.createElement(TestValue, { factory, version: 1 }))
+    await render(React.createElement(TestValue, { factory, version: 1, renders }))
     await update(() => pending.get(1)?.resolve('value-1'))
     expect(view('data-value')).toBe('value-1')
     expect(view('data-loading')).toBe('false')
 
-    // The pending reload keeps the first value.
-    await render(React.createElement(TestValue, { factory, version: 2 }))
-    expect(view('data-value')).toBe('value-1')
+    // No render under the second version shows the first value.
+    await render(React.createElement(TestValue, { factory, version: 2, renders }))
+    expect(view('data-value')).toBe('')
     expect(view('data-loading')).toBe('true')
+    const second = renders.filter((r) => r.startsWith('2:'))
+    expect(second.length).toBeGreaterThan(0)
+    expect(second.every((r) => r === '2:::true')).toBe(true)
 
-    // The second value replaces it.
+    // The second value arrives.
     await update(() => pending.get(2)?.resolve('value-2'))
     expect(view('data-value')).toBe('value-2')
     expect(view('data-loading')).toBe('false')
+  })
+
+  it('keeps a failed value as last and drops it on new dependencies', async () => {
+    // Load the first version, then fail its retried read.
+    const { results, errors, factory } = settledByHand()
+    const renders: string[] = []
+    mount()
+    await render(React.createElement(TestValue, { factory, version: 1, renders }))
+    await update(() => results[0]('value-1'))
+    await click()
+    await update(() => errors[1](new Error('read failed')))
+
+    // The failure reads null, keeping the value as last.
+    expect(view('data-value')).toBe('')
+    expect(view('data-last')).toBe('value-1')
+    expect(view('data-error')).toBe('read failed')
+    expect(view('data-loading')).toBe('false')
+
+    // New dependencies clear value and last on their first render.
+    renders.length = 0
+    await render(
+      React.createElement(TestValue, { factory, version: 2, renders }),
+    )
+    expect(renders.length).toBeGreaterThan(0)
+    expect(renders.every((r) => r === '2:::true')).toBe(true)
+    expect(view('data-error')).toBe('')
+    expect(view('data-loading')).toBe('true')
+  })
+
+  it('recovers from a failure on Retry', async () => {
+    // Load a value, then fail a retried read.
+    const { results, errors, factory } = settledByHand()
+    mount()
+    await render(React.createElement(TestValue, { factory, version: 1 }))
+    await update(() => results[0]('value-1'))
+    await click()
+    await update(() => errors[1](new Error('read failed')))
+    expect(view('data-last')).toBe('value-1')
+    expect(view('data-error')).toBe('read failed')
+
+    // Retry loads again with no value, then the new value settles.
+    await click()
+    expect(factory).toHaveBeenCalledTimes(3)
+    expect(view('data-loading')).toBe('true')
+    expect(view('data-value')).toBe('')
+    expect(view('data-error')).toBe('')
+    await update(() => results[2]('value-2'))
+    expect(view('data-value')).toBe('value-2')
+    expect(view('data-last')).toBe('')
+    expect(view('data-loading')).toBe('false')
+  })
+
+  it('keeps no released handle as last after a failure', async () => {
+    // Load a handle, then fail the retried read.
+    let calls = 0
+    const factory = vi.fn(async () => {
+      calls += 1
+      if (calls > 1) throw new Error('mount failed')
+      return buildHandle(1)
+    })
+    mount()
+    await render(React.createElement(TestHandle, { factory }))
+    expect(view('data-handle-id')).toBe('1')
+
+    // The retry disposed the handle, so the failure keeps nothing.
+    await click()
+    expect(view('data-error')).toBe('mount failed')
+    expect(view('data-handle-id')).toBe('0')
+    expect(view('data-last-id')).toBe('0')
   })
 
   it('suppresses stale async completions after a dependency reload', async () => {
@@ -710,7 +836,7 @@ describe('useResource', () => {
   })
 
   it('propagates mapped resource loading, error, and retry while mapping non-null values', async () => {
-    // Map a loading, failed source with a value.
+    // Map a source that loads again with a value.
     let retryCalls = 0
     const retry = () => {
       retryCalls += 1
@@ -719,22 +845,36 @@ describe('useResource', () => {
     mount()
     await render(
       React.createElement(TestMappedValue, {
-        source: {
+        source: resourceOf({
           value: 'source-value',
           loading: true,
-          error: new Error('source failed'),
+          error: null,
           retry,
-        },
+        }),
         mapValue,
       }),
     )
-
-    // The mapped resource carries the source's state and mapped value.
     expect(view('data-loading')).toBe('true')
     expect(view('data-value')).toBe('mapped:source-value')
-    expect(view('data-error')).toBe('source failed')
-    expect(mapValue).toHaveBeenCalledTimes(1)
     expect(mapValue).toHaveBeenCalledWith('source-value')
+
+    // A failed source maps its last value and passes its error.
+    await render(
+      React.createElement(TestMappedValue, {
+        source: resourceOf({
+          value: null,
+          last: 'source-value',
+          loading: false,
+          error: new Error('source failed'),
+          retry,
+        }),
+        mapValue,
+      }),
+    )
+    expect(view('data-loading')).toBe('false')
+    expect(view('data-value')).toBe('')
+    expect(view('data-last')).toBe('mapped:source-value')
+    expect(view('data-error')).toBe('source failed')
 
     // A retry reaches the source.
     await click()
@@ -744,7 +884,7 @@ describe('useResource', () => {
     mapValue.mockClear()
     await render(
       React.createElement(TestMappedValue, {
-        source: { value: null, loading: false, error: null, retry },
+        source: resourceOf({ value: null, loading: false, error: null, retry }),
         mapValue,
       }),
     )
@@ -829,5 +969,133 @@ describe('useResource', () => {
 
     // The error shows instead of an endless reconnect.
     expect(view('data-error')).toBe('refused')
+  })
+  it('fails a child stream over its last value when its parent fails', async () => {
+    // Stream a value under a ready parent.
+    const { streams, streamFactory } = manualStreams<string>()
+    const renderParent = (parent: Resource<{ version: number }>) =>
+      render(React.createElement(TestStreamingFromParent, { parent, streamFactory }))
+    const ready = resourceOf({
+      value: { version: 1 },
+      loading: false,
+      error: null,
+      retry: () => {},
+    })
+    mount()
+    await renderParent(ready)
+    await update(() => streams[0].push('stream-1'))
+    expect(view('data-value')).toBe('stream-1')
+
+    // The parent's failure reads null, with the stream's data as last.
+    await renderParent(
+      resourceOf({
+        value: null,
+        loading: false,
+        error: new Error('parent failed'),
+        retry: () => {},
+      }),
+    )
+    expect(view('data-value')).toBe('')
+    expect(view('data-last')).toBe('stream-1')
+    expect(view('data-error')).toBe('parent failed')
+    expect(streamFactory).toHaveBeenCalledTimes(1)
+
+    // The parent's recovery opens the stream again.
+    await renderParent(ready)
+    expect(streamFactory).toHaveBeenCalledTimes(2)
+    await update(() => streams[1].push('stream-2'))
+    expect(view('data-value')).toBe('stream-2')
+    expect(view('data-error')).toBe('')
+  })
+
+  it('keeps the previous value while new dependencies load only with keepWhileLoading', async () => {
+    const { streams, streamFactory } = manualStreams<Row>()
+    const options = { keepWhileLoading: true }
+    mount()
+    await render(
+      React.createElement(TestStreamOptions, {
+        streamFactory,
+        options,
+        seen: [],
+        version: 1,
+      }),
+      2,
+    )
+    await update(() => streams[0].push({ id: 1, label: 'first' }))
+
+    // New dependencies show the previous value while they load.
+    await render(
+      React.createElement(TestStreamOptions, {
+        streamFactory,
+        options,
+        seen: [],
+        version: 2,
+      }),
+    )
+    expect(view('data-value')).toBe('first')
+    expect(view('data-loading')).toBe('true')
+
+    // A failure of the new stream drops it and keeps no last.
+    await update(() => streams[1].fail(new Error('dropped')))
+    expect(view('data-value')).toBe('')
+    expect(view('data-last')).toBe('')
+    expect(view('data-error')).toBe('dropped')
+  })
+
+  it('reports a reconnecting stream failed at the backoff cap', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      // Open a reconnecting stream and read its first value.
+      const { streams, streamFactory } = manualStreams<Row>()
+      mount()
+      await render(
+        React.createElement(TestStreamOptions, {
+          streamFactory,
+          options: { reconnect: true },
+          seen: [],
+        }),
+        2,
+      )
+      await update(() => streams[0].push({ id: 1, label: 'first' }))
+      const reopen = () =>
+        act(async () => {
+          await vi.advanceTimersByTimeAsync(5000)
+        })
+
+      // Failures below the cap keep the value, loading, with no error.
+      for (let i = 0; i < 6; i++) {
+        await update(() => streams[i].fail(new Error('dropped')))
+        expect(view('data-value')).toBe('first')
+        expect(view('data-loading')).toBe('true')
+        expect(view('data-error')).toBe('')
+        await reopen()
+      }
+
+      // The failure at the cap reports failed, with the value as last.
+      await update(() => streams[6].fail(new Error('dropped')))
+      expect(view('data-value')).toBe('')
+      expect(view('data-last')).toBe('first')
+      expect(view('data-error')).toBe('dropped')
+      expect(view('data-loading')).toBe('false')
+
+      // It keeps reopening without leaving the failed state.
+      await reopen()
+      expect(streamFactory).toHaveBeenCalledTimes(8)
+      expect(view('data-error')).toBe('dropped')
+      expect(view('data-loading')).toBe('false')
+
+      // Retry reopens at once, still failed over the kept value so it never
+      // blanks; a value settles it.
+      await click()
+      expect(streamFactory).toHaveBeenCalledTimes(9)
+      expect(view('data-last')).toBe('first')
+      expect(view('data-error')).toBe('dropped')
+      await update(() => streams[8].push({ id: 2, label: 'second' }))
+      expect(view('data-value')).toBe('second')
+      expect(view('data-last')).toBe('')
+      expect(view('data-error')).toBe('')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

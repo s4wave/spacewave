@@ -24,6 +24,7 @@ const blocks: Record<string, Resource<unknown>> = {
     value: null,
     loading: false,
     error: new Error('block not found'),
+    last: null,
     retry: noop,
   },
   empty: { value: null, loading: false, error: null, retry: noop },

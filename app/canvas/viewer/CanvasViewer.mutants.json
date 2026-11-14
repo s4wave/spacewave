@@ -48,5 +48,35 @@
       ]
     ],
     "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a capped watch drops the canvas",
+    "replace": [
+      [
+        "  /\\ watch' = \"capped\"\n  /\\ UNCHANGED <<handle, kept, nodes, pending, action>>",
+        "  /\\ watch' = \"capped\"\n  /\\ kept' = FALSE\n  /\\ UNCHANGED <<handle, nodes, pending, action>>"
+      ]
+    ],
+    "expect": "CappedKeepsCanvas"
+  },
+  {
+    "name": "the empty hint shows over a failed canvas",
+    "replace": [
+      [
+        "Hint0 == Body = \"stage\" /\\ ~nodes /\\ Reported = \"none\"",
+        "Hint0 == Body = \"stage\" /\\ ~nodes"
+      ]
+    ],
+    "expect": "NoEmptyFromFailed"
+  },
+  {
+    "name": "a failure over the kept canvas is not drawn",
+    "replace": [
+      [
+        "    [] e = \"notice\" -> IF Body = \"stage\" THEN Reported ELSE \"none\"\n",
+        "    [] e = \"notice\" -> \"none\"\n"
+      ]
+    ],
+    "expect": "EachFailureDrawnOnce"
   }
 ]

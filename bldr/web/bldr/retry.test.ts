@@ -183,10 +183,12 @@ describe('Retry', () => {
       const wait = backoff()
       expect(wait).toBeGreaterThanOrEqual(bound / 2)
       expect(wait).toBeLessThanOrEqual(bound)
+      expect(backoff.capped()).toBe(bound === 400)
     }
 
     // A reset returns to the initial bound.
     backoff.reset()
+    expect(backoff.capped()).toBe(false)
     expect(backoff()).toBeLessThanOrEqual(100)
   })
 })

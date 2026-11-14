@@ -27,6 +27,7 @@ import {
 } from '@s4wave/sdk/session/session.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import {
   SessionContext,
@@ -392,7 +393,7 @@ function useDisplayController() {
     spaceWorldResource,
     parsedPath.objectKey,
   )
-  const objectEntry = objectEntryResource.value
+  const objectEntry = resourceContent(objectEntryResource)
   const objectType = objectEntry?.typeId ?? ''
   const objectInfo: ObjectInfo = useMemo(
     () => ({
@@ -638,9 +639,28 @@ function DisplayViewer({
 // to the requested object viewer.
 function DisplayContent({ controller }: { controller: DisplayController }) {
   const status = resolveDisplayStatus(controller)
-  const { parsedPath, objectEntry, displayTarget, spaceState } = controller
+  const {
+    parsedPath,
+    objectEntry,
+    objectEntryResource,
+    displayTarget,
+    spaceState,
+  } = controller
   if (status || !spaceState) {
     return <DisplayStatusCard {...(status ?? SPACE_LOADING_STATUS)} />
+  }
+
+  // A failed read claims nothing about the object; the kept entry, if any,
+  // still opens it.
+  if (objectEntryResource.error && !objectEntry) {
+    return (
+      <DisplayStatusCard
+        state="error"
+        title="Failed to read the object"
+        error={objectEntryResource.error.message}
+        onRetry={objectEntryResource.retry}
+      />
+    )
   }
 
   if (!parsedPath.objectKey || !objectEntry) {

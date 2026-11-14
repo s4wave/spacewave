@@ -111,7 +111,7 @@ describe('CanvasViewer', () => {
     h.canvas = null
   })
 
-  it('draws queued edits again on the canvas after a handle failure and Retry', async () => {
+  it('keeps the canvas and queued edits through a handle failure and Retry', async () => {
     const handle = openHandle()
     const { rerender } = await renderWithCanvas(handle)
 
@@ -129,12 +129,13 @@ describe('CanvasViewer', () => {
     })
     expect(handle.update).toHaveBeenCalledTimes(1)
 
-    // The handle fails: the watch drops the canvas, so the failure takes the
-    // body with the handle's Retry.
+    // The handle fails: the watch keeps its canvas as last, drawn with the
+    // queued edits under the handle's failure and its Retry.
     const retry = vi.fn()
     h.handleResource = handleState(null, new Error('stream reset'), retry)
     rerender(viewer())
-    expect(screen.queryByTestId('canvas')).toBeNull()
+    expect(screen.getByTestId('canvas')).toBeTruthy()
+    expect(h.canvas!.state.nodes.size).toBe(2)
     expect(
       screen.getAllByText('Could not read the canvas: stream reset'),
     ).toHaveLength(1)
@@ -183,6 +184,57 @@ describe('CanvasViewer', () => {
     expect(screen.getByText(/Could not save the last change/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
     expect(screen.queryByTestId('canvas-notices')).toBeNull()
+  })
+
+  it('keeps the canvas under the failure once the watch reaches its backoff cap', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      // The first watch yields a canvas and drops; every reopen fails.
+      let opened = 0
+      const handle: Handle = {
+        update: vi.fn(() => Promise.resolve()),
+        async *watchState() {
+          opened++
+          if (opened === 1) {
+            yield { nodes: { a: { x: 1, y: 2 } } }
+            await Promise.resolve()
+          }
+          throw new Error('stream reset')
+        },
+      }
+      h.handleResource = handleState(handle)
+      render(viewer())
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(screen.getByTestId('canvas')).toBeTruthy()
+
+      // Below the cap a line says the canvas reads again; at the cap the
+      // failure shows with Retry over the same canvas, never the empty hint.
+      for (let i = 0; i < 7; i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5000)
+        })
+      }
+      expect(opened).toBeGreaterThanOrEqual(7)
+      expect(screen.getByTestId('canvas')).toBeTruthy()
+      expect(h.canvas!.state.nodes.get('a')).toMatchObject({ x: 1, y: 2 })
+      expect(
+        screen.getByText('Could not read the canvas: stream reset'),
+      ).toBeTruthy()
+      expect(screen.queryByText(/Empty canvas/)).toBeNull()
+
+      // Retry reopens at once and keeps the canvas drawn.
+      const before = opened
+      fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(opened).toBe(before + 1)
+      expect(screen.getByTestId('canvas')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('offers Retry in place of the stage when the first read fails', () => {
