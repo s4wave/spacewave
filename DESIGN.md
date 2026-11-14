@@ -709,8 +709,14 @@ the bar holds the title, Details where the viewer has one, and More; from
 since it never folds into More, and a fourth folds at `md`; from `@pane-md` the labeled presses together
 stay under 16rem, and a press that would pass it folds at `md` or `menu`. A
 disabled press is one whose action is running, and its label says so, such as
-"Opening Add Device…"; it stays focusable and ignores presses. A press that cannot work in the object's state is left
-out of the bar, so More never lists a dead end alone.
+"Opening Add Device…"; it stays focusable and ignores presses. A press that
+cannot work in the object's state is left out of the bar, so More never lists a
+dead end alone.
+
+The budget assumes a fine pointer. With a coarse pointer each icon press and
+More grow to 44px, so three icon presses and More take about 188px, and beside a
+state badge they push the title under its floor in a pane under about 23rem. A
+viewer with a state badge and three icon presses folds its third at `md`.
 
 The bar's title is an `h2`, wherever the viewer mounts: a viewer can sit in a
 grid beside others, so each bar names one section of a page whose `h1` belongs

@@ -2335,14 +2335,13 @@ body,
   transform: scale(0.98);
 }
 
-/* Focus visible improvements */
-.focus-ring {
-  @apply outline-none;
-}
-
-.focus-ring:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
+/* focus-ring draws the brand outline only for keyboard focus. */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
 }
 
 /* Reduced motion support */

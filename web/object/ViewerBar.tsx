@@ -132,6 +132,16 @@ interface MoreList {
   note: boolean
 }
 
+// sameList reports whether two More lists show the same presses and note.
+function sameList(a: MoreList | null, b: MoreList | null): boolean {
+  if (!a || !b) return a === b
+  return (
+    a.note === b.note &&
+    a.ids.length === b.ids.length &&
+    a.ids.every((id, i) => id === b.ids[i])
+  )
+}
+
 function isHidden(el: Element | null | undefined): boolean {
   return !el || el.getClientRects().length === 0
 }
@@ -345,7 +355,14 @@ function ViewerBarMore({
     const next = readFolded()
     return next.ids.length > 0 || next.note ? next : null
   }
-  const onReread = useEffectEvent(() => setListed(read()))
+  // Keep the current list when the reread matches it, so a class change that
+  // folds nothing new does not render the menu again.
+  const onReread = useEffectEvent(() =>
+    setListed((prev) => {
+      const next = read()
+      return sameList(prev, next) ? prev : next
+    }),
+  )
 
   // While open, reread when the bar resizes, and when a press joins, leaves,
   // or changes its fold class. The menu renders in a portal, so its own
