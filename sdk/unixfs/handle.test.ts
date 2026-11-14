@@ -286,7 +286,7 @@ describe('FSHandle uploadTree', () => {
     const totalProgress: bigint[] = []
     const response = await handle.uploadTree(
       [
-        { kind: 'directory', path: 'nested' },
+        { kind: 'directory', path: 'nested', expectMissing: true },
         {
           kind: 'file',
           path: 'nested/large.bin',
@@ -323,6 +323,7 @@ describe('FSHandle uploadTree', () => {
       value: {
         path: 'nested',
         mode: 0o755,
+        expectMissing: true,
       },
     })
     expect(sent[1]?.body).toEqual({

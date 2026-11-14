@@ -1019,6 +1019,11 @@ type HandleUploadTreeDirectory struct {
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// Mode is the directory permissions.
 	Mode uint32 `protobuf:"varint,2,opt,name=mode,proto3" json:"mode,omitempty"`
+	// ExpectMissing creates the directory only if the path holds nothing when
+	// the upload commits, checked in the commit's transaction; otherwise the
+	// upload ends in a conflict and nothing is committed. Unset, an existing
+	// directory at the path is reused and the entries under it merge into it.
+	ExpectMissing bool `protobuf:"varint,3,opt,name=expect_missing,json=expectMissing,proto3" json:"expectMissing,omitempty"`
 }
 
 func (x *HandleUploadTreeDirectory) Reset() {
@@ -1039,6 +1044,13 @@ func (x *HandleUploadTreeDirectory) GetMode() uint32 {
 		return x.Mode
 	}
 	return 0
+}
+
+func (x *HandleUploadTreeDirectory) GetExpectMissing() bool {
+	if x != nil {
+		return x.ExpectMissing
+	}
+	return false
 }
 
 // HandleUploadTreeFileStart starts one file in UploadTree.
@@ -1268,7 +1280,7 @@ type HandleUploadTreeResponse_Written struct {
 }
 
 type HandleUploadTreeResponse_Conflict struct {
-	// Conflict is set when a file's expectation failed: nothing committed.
+	// Conflict is set when an entry's expectation failed: nothing committed.
 	Conflict *HandleUploadTreeConflict `protobuf:"bytes,5,opt,name=conflict,proto3,oneof"`
 }
 
@@ -1353,11 +1365,11 @@ func (x *HandleUploadTreeFileVersion) GetVersion() []byte {
 	return nil
 }
 
-// HandleUploadTreeConflict names the first file whose path did not hold what
+// HandleUploadTreeConflict names the first entry whose path did not hold what
 // the upload expected.
 type HandleUploadTreeConflict struct {
 	unknownFields []byte
-	// Path is the file's slash-separated path relative to the handle.
+	// Path is the entry's slash-separated path relative to the handle.
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// Version is the version of the file the path holds now, empty when the
 	// path holds no file.
@@ -2157,6 +2169,7 @@ func (m *HandleUploadTreeDirectory) CloneVT() *HandleUploadTreeDirectory {
 	r := new(HandleUploadTreeDirectory)
 	r.Path = m.Path
 	r.Mode = m.Mode
+	r.ExpectMissing = m.ExpectMissing
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3288,6 +3301,9 @@ func (this *HandleUploadTreeDirectory) EqualVT(that *HandleUploadTreeDirectory) 
 		return false
 	}
 	if this.Mode != that.Mode {
+		return false
+	}
+	if this.ExpectMissing != that.ExpectMissing {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5517,6 +5533,11 @@ func (x *HandleUploadTreeDirectory) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("mode")
 		s.WriteUint32(x.Mode)
 	}
+	if x.ExpectMissing || s.HasField("expectMissing") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectMissing")
+		s.WriteBool(x.ExpectMissing)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5540,6 +5561,9 @@ func (x *HandleUploadTreeDirectory) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "mode":
 			s.AddField("mode")
 			x.Mode = s.ReadUint32()
+		case "expect_missing", "expectMissing":
+			s.AddField("expect_missing")
+			x.ExpectMissing = s.ReadBool()
 		}
 	})
 }
@@ -7801,6 +7825,11 @@ func (m *HandleUploadTreeDirectory) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ExpectMissing {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ExpectMissing)
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Mode != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Mode))
 		i--
@@ -8895,6 +8924,7 @@ func (m *HandleUploadTreeDirectory) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Mode)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ExpectMissing)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9773,6 +9803,10 @@ func (x *HandleUploadTreeDirectory) MarshalProtoText() string {
 	if x.Mode != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "mode")
 		protobuf_go_lite.TextWriteUint(&sb, x.Mode)
+	}
+	if x.ExpectMissing != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expect_missing")
+		protobuf_go_lite.TextWriteBool(&sb, x.ExpectMissing)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -12321,6 +12355,16 @@ func (m *HandleUploadTreeDirectory) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectMissing", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ExpectMissing = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

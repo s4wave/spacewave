@@ -10,9 +10,9 @@ import (
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 )
 
-// fileExpect is what a file path must hold when Commit applies the batch.
+// fileExpect is what a path must hold when Commit applies the batch.
 type fileExpect struct {
-	// path is the full path of the file.
+	// path is the full path of the entry.
 	path []string
 	// version is the node reference the file must have, or nil when the path
 	// must hold nothing.
@@ -20,18 +20,18 @@ type fileExpect struct {
 }
 
 // FileConflictError is returned by Commit when a path did not hold what
-// ExpectFile required. Nothing was committed.
+// ExpectFile or ExpectMissing required. Nothing was committed.
 type FileConflictError struct {
-	// Path is the full path of the file.
+	// Path is the full path of the entry.
 	Path []string
 	// Version is the node reference of the file the path holds, or nil when it
-	// holds no file.
+	// holds no file, such as a directory.
 	Version *block.BlockRef
 }
 
 // Error describes the conflict.
 func (e *FileConflictError) Error() string {
-	return "file changed by another writer: " + strings.Join(e.Path, "/")
+	return "path changed by another writer: " + strings.Join(e.Path, "/")
 }
 
 // checkFileExpect returns a *FileConflictError unless the tree at root holds

@@ -192,7 +192,7 @@ func expectUploadTreeFile(
 		}
 		return b.ExpectFile(parentPath, name, version)
 	default:
-		return b.ExpectFile(parentPath, name, nil)
+		return b.ExpectMissing(parentPath, name)
 	}
 }
 
@@ -215,6 +215,12 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 		}
 		if err := r.ensureUploadTreeParents(ctx, state, parts[:len(parts)-1]); err != nil {
 			return err
+		}
+		if dir.GetExpectMissing() {
+			parentPath := slices.Concat(r.path, parts[:len(parts)-1])
+			if err := state.b.ExpectMissing(parentPath, parts[len(parts)-1]); err != nil {
+				return err
+			}
 		}
 		if err := r.addUploadTreeDir(
 			ctx,

@@ -21,6 +21,7 @@ import (
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	unixfs_sdk "github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -1972,4 +1973,68 @@ func TestFSHandleResourceUploadTreeMissingRefusesExisting(t *testing.T) {
 	if perm := fs.FileMode(info.GetInfo().GetMode()).Perm(); perm != 0o600 {
 		t.Fatalf("mode after a save without one = %v, want the other writer's 0600", perm)
 	}
+
+	// A create-only directory over an existing one is refused, and nothing
+	// under it is written into the existing directory.
+	resp = uploadTreeDirFile(t, ctx, rootSvc, "src", true, "src/dropped.txt", []byte("dropped"))
+	if conflict := resp.GetConflict(); conflict.GetPath() != "src" || len(conflict.GetVersion()) != 0 {
+		t.Fatalf("create over existing directory result = %v, want conflict at src", resp.GetResult())
+	}
+	if _, _, err := rootRes.handle.LookupPath(ctx, "src/dropped.txt"); !errors.Is(err, unixfs_errors.ErrNotExist) {
+		t.Fatalf("lookup of a file under a refused directory: %v, want not exist", err)
+	}
+
+	// A create-only directory at a new path is written with its contents.
+	resp = uploadTreeDirFile(t, ctx, rootSvc, "src (2)", true, "src (2)/dropped.txt", []byte("dropped"))
+	assertUploadTreeCounters(t, resp, int64(len("dropped")), 1, 1)
+
+	// A directory with no expectation merges into the existing one.
+	resp = uploadTreeDirFile(t, ctx, rootSvc, "src", false, "src/merged.txt", []byte("merged"))
+	assertUploadTreeCounters(t, resp, int64(len("merged")), 1, 1)
+	checkSvc, releaseMerged := openFileService(t, ctx, resClient, rootSvc, "src/merged.txt")
+	defer releaseMerged()
+	if data, _ := readFileVersion(t, ctx, checkSvc); string(data) != "merged" {
+		t.Fatalf("merged file = %q", data)
+	}
+}
+
+// uploadTreeDirFile sends one directory, create-only when expectMissing is
+// set, and one overwriting file in a single UploadTree and returns the result.
+func uploadTreeDirFile(
+	t *testing.T,
+	ctx context.Context,
+	rootSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	dir string,
+	expectMissing bool,
+	name string,
+	data []byte,
+) *s4wave_unixfs.HandleUploadTreeResponse {
+	t.Helper()
+	strm, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	msgs := []*s4wave_unixfs.HandleUploadTreeRequest{
+		{Body: &s4wave_unixfs.HandleUploadTreeRequest_Directory{
+			Directory: &s4wave_unixfs.HandleUploadTreeDirectory{Path: dir, ExpectMissing: expectMissing},
+		}},
+		{Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      name,
+				TotalSize: int64(len(data)),
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
+			},
+		}},
+		{Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{Data: data}},
+	}
+	for _, msg := range msgs {
+		if err := strm.Send(msg); err != nil {
+			t.Fatal(err)
+		}
+	}
+	resp, err := strm.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return resp
 }

@@ -880,6 +880,13 @@ export interface HandleUploadTreeDirectory {
    * Mode is the directory permissions.
    */
   mode?: number
+  /**
+   * ExpectMissing creates the directory only if the path holds nothing when
+   * the upload commits, checked in the commit's transaction; otherwise the
+   * upload ends in a conflict and nothing is committed. Unset, an existing
+   * directory at the path is reused and the entries under it merge into it.
+   */
+  expectMissing?: boolean
 }
 
 export const HandleUploadTreeDirectory: MessageType<HandleUploadTreeDirectory> =
@@ -888,6 +895,7 @@ export const HandleUploadTreeDirectory: MessageType<HandleUploadTreeDirectory> =
     () => [
       [1, 'path', 9],
       [2, 'mode', 13],
+      [3, 'expect_missing', 8],
     ],
   )
 
@@ -1064,14 +1072,14 @@ export const HandleUploadTreeFileVersion: MessageType<HandleUploadTreeFileVersio
   )
 
 /**
- * HandleUploadTreeConflict names the first file whose path did not hold what
+ * HandleUploadTreeConflict names the first entry whose path did not hold what
  * the upload expected.
  *
  * @generated from message s4wave.unixfs.HandleUploadTreeConflict
  */
 export interface HandleUploadTreeConflict {
   /**
-   * Path is the file's slash-separated path relative to the handle.
+   * Path is the entry's slash-separated path relative to the handle.
    */
   path?: string
   /**
