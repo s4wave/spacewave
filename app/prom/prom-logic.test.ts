@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { TargetInfo } from '@s4wave/sdk/prom/prom.pb.js'
 
 import { suggestContext } from './expr-suggest.js'
+import { formatLabels, seriesNames } from './prom-view.js'
 import { targetAction, targetState } from './target-state.js'
 
 describe('suggestContext', () => {
@@ -68,5 +69,27 @@ describe('targetState', () => {
     expect(targetAction(standby, true, true)).toBe('stop')
     // The writer itself going silent stays stale.
     expect(targetState(info, true, 'writer', silent).state).toBe('stale')
+  })
+})
+
+describe('formatLabels', () => {
+  it('quotes each value as a PromQL string', () => {
+    // A backslash, a double quote and a newline are escaped, so the selector
+    // parses back to the same values.
+    const labels = {
+      labels: [
+        { name: 'path', value: 'C:\\logs' },
+        { name: 'msg', value: 'say "hi"\nbye' },
+      ],
+    }
+    expect(formatLabels(labels)).toBe(
+      '{path="C:\\\\logs", msg="say \\"hi\\"\\nbye"}',
+    )
+    expect(
+      seriesNames([
+        { labels },
+        { labels: { labels: [{ name: 'path', value: 'a"b' }] } },
+      ]),
+    ).toEqual(['path="C:\\\\logs"', 'path="a\\"b"'])
   })
 })

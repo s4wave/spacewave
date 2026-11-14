@@ -38,14 +38,20 @@ export function RefSelector({
         <button
           type="button"
           className={cn(
-            'text-topbar-menu text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover flex h-5 items-center gap-1 rounded px-1 select-none',
+            'text-topbar-menu text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover flex h-6 items-center pointer-coarse:h-11 gap-1 rounded px-1 select-none',
             loading && 'opacity-60',
           )}
           disabled={loading}
         >
-          <LuGitBranch className="text-foreground-alt size-3.5 shrink-0" />
+          <LuGitBranch
+            aria-hidden
+            className="text-foreground-alt size-3.5 shrink-0"
+          />
           <span className="max-w-30 truncate">{displayName}</span>
-          <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
+          <LuChevronDown
+            aria-hidden
+            className="text-foreground-alt size-3 shrink-0"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

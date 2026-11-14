@@ -49,6 +49,10 @@ vi.mock('@s4wave/web/debug/ViewerSideDebug.js', () => ({
   ViewerSideDebug: () => <div data-testid="viewer-side-debug" />,
 }))
 
+vi.mock('@s4wave/app/debug/git/GitSideDebug.js', () => ({
+  GitSideDebug: () => <div data-testid="git-side-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/FileListDebug.js', () => ({
   FileListDebug: () => <div data-testid="file-list-debug" />,
 }))
@@ -74,6 +78,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/file-list', testId: 'file-list-debug' },
   { path: '/debug/ui/facts', testId: 'fact-list-debug' },
   { path: '/debug/ui/side', testId: 'viewer-side-debug' },
+  { path: '/debug/ui/git-side', testId: 'git-side-debug' },
 ]
 
 function renderDebugRoute(path: string) {
@@ -90,8 +95,10 @@ describe('DebugRoutes', () => {
   })
 
   it('renders a visible /debug index with links to every debug child route', () => {
+    // Open the index.
     renderDebugRoute('/debug')
 
+    // It links every child route, each with a visible name.
     const links = screen.getAllByRole('link')
     const linkTargets = links.map((link) => link.getAttribute('href'))
     expect(linkTargets).toEqual(
@@ -118,6 +125,12 @@ describe('DebugRoutes', () => {
     renderDebugRoute('/debug/ui/side/rail')
 
     expect(screen.getByTestId('viewer-side-debug')).toBeDefined()
+  })
+
+  it('resolves a Git side column fixture state to its debug page', () => {
+    renderDebugRoute('/debug/ui/git-side/empty')
+
+    expect(screen.getByTestId('git-side-debug')).toBeDefined()
   })
 
   it.each(debugChildRoutes)(

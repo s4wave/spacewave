@@ -1,5 +1,10 @@
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
-import { useDeferredValue, useState, type ComponentProps } from 'react'
+import {
+  useDeferredValue,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from 'react'
 
 import {
   useResource,
@@ -9,6 +14,7 @@ import { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
+import type { ViewerSideState } from '@s4wave/web/object/ViewerSide.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
@@ -21,6 +27,11 @@ import { CommitDetail } from './commits/CommitDetail.js'
 import { CommitLog } from './commits/CommitLog.js'
 import { FileTree } from './files/FileTree.js'
 import { FileViewer } from './files/FileViewer.js'
+import {
+  GitCloneAction,
+  GitRepoFacts,
+  gitCloneAddress,
+} from './GitRepoFacts.js'
 import { GitViewerCenteredState, GitViewerFrame } from './GitViewerShell.js'
 import { ReadmeSection } from './layout/ReadmeSection.js'
 import { useGitBrowsingState } from './useGitBrowsingState.js'
@@ -36,12 +47,15 @@ function useGitRepoController({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
+  // Read the object's address and the app's routing.
   const objectKey = getObjectKey(objectInfo)
   const sessionIndex = useSessionIndex()
   const { httpPathPrefix } = useAppEnvironment()
   const spaceCtx = SpaceContainerContext.useContextSafe()
   const navigate = useNavigate()
   const history = useHistory()
+
+  // Open the repository and load its info and refs.
   const gitResource = useAccessTypedHandle(worldState, objectKey, GitRepoHandle)
   const repoInfoResource = useResource(
     gitResource,
@@ -59,6 +73,8 @@ function useGitRepoController({
     },
     [],
   )
+
+  // Resolve the route to a ref and the path's entries.
   const browsing = useGitBrowsingState(
     gitResource,
     repoInfoResource.value?.headRef,
@@ -77,8 +93,12 @@ function useGitRepoController({
     fileEntries,
     readmeContent,
   } = files
+
+  // Hold the entry being opened and the last listing while the next loads.
   const [pendingName, setPendingName] = useState<string | null>(null)
   const staleEntries = useDeferredValue(fileEntries)
+
+  // A file opens inline from its projected URL.
   const inlineFileURL =
     route.mode === 'commit' || isDir !== false || !statResource.value
       ? undefined
@@ -91,6 +111,8 @@ function useGitRepoController({
             objectKey,
             path: displayPath,
           })
+
+  // Wire navigation into the toolbar.
   const nav = useGitNavigation({
     route,
     effectiveRef,
@@ -112,6 +134,22 @@ function useGitRepoController({
     canGoBack: history?.canGoBack ?? false,
     canGoForward: history?.canGoForward ?? false,
   }
+
+  // List the repository's facts for its side column and Details, and hold
+  // the column's state across the views that have no column.
+  const cloneAddress = gitCloneAddress(
+    sessionIndex,
+    spaceCtx?.spaceId,
+    objectKey,
+  )
+  const repoInfo = repoInfoResource.value
+  const [side, setSide] = useState<ViewerSideState>('open')
+  const facts: ReactNode =
+    repoInfo?.headCommitHash || cloneAddress ? (
+      <GitRepoFacts info={repoInfo} cloneAddress={cloneAddress} />
+    ) : undefined
+
+  // The ref bar shows the tip commit and links to its views.
   const tipCommit = tipCommitResource.value
   const tipCommitHash = tipCommit?.hash ?? null
   const refBarProps = {
@@ -130,8 +168,12 @@ function useGitRepoController({
   }
 
   return {
+    cloneAddress,
+    side,
+    setSide,
     displayPath,
     effectiveRef,
+    facts,
     entriesResource,
     fileEntries,
     gitResource,
@@ -215,6 +257,7 @@ type FileView = 'file' | 'loading' | 'error' | 'ready'
 
 /** fileViewFor picks what the path shows in place of its directory tree. */
 function fileViewFor(c: GitRepoController): FileView {
+  // A commit shows its own view; a file shows once it is stat'd.
   if (c.route.mode === 'commit') return 'ready'
   if (c.isDir === false && c.statResource.value) return 'file'
   const isLoading =
@@ -236,8 +279,10 @@ interface GitRepoFileStatusProps {
 
 /** GitRepoFileStatus renders the file, loading, or error view of the path. */
 function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
+  // Take the pieces each status frame draws.
   const {
     displayPath,
+    facts,
     inlineFileURL,
     nav,
     pendingName,
@@ -249,8 +294,9 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
     statResource,
     toolbarProps,
   } = controller
-  const bareFrameProps: FrameProps = { toolbarProps, refBarProps }
+  const bareFrameProps: FrameProps = { toolbarProps, refBarProps, facts }
 
+  // A file shows in the file viewer, framed with the repository's facts.
   if (view === 'file' && statResource.value) {
     return (
       <GitViewerFrame
@@ -269,6 +315,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
     )
   }
 
+  // While the path loads, show a centered loading state.
   if (view === 'loading') {
     return (
       <GitViewerFrame {...bareFrameProps}>
@@ -289,6 +336,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
     )
   }
 
+  // Otherwise name the first resource that failed.
   const failed = fileResources(controller).find((resource) => resource.error)
   return (
     <GitViewerFrame {...bareFrameProps}>
@@ -369,7 +417,10 @@ function GitRepoRouteBody({ controller, handle }: GitRepoRouteBodyProps) {
 // GitRepoContent selects the repository state and renders the corresponding
 // file, commit, loading, or failure surface.
 function GitRepoContent({ controller }: { controller: GitRepoController }) {
+  // Take the pieces each repository surface draws.
   const {
+    cloneAddress,
+    facts,
     gitResource,
     nav,
     objectKey,
@@ -377,34 +428,47 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
     refBarProps,
     repoInfoResource,
     route,
+    setSide,
+    side,
     toolbarProps,
   } = controller
 
+  // An empty repository has nothing to browse but can be cloned.
   if (repoInfoResource.value?.isEmpty) {
     return (
       <GitViewerCenteredState
         title="Empty Repository"
         subtitle={objectKey}
         detail="This repository has no commits yet."
+        action={<GitCloneAction address={cloneAddress} />}
       />
     )
   }
 
+  // Until the repository opens, show its load state.
   const handle = gitResource.value
   if (gitResource.loading || gitResource.error || !handle) {
     return <GitRepoLoadState controller={controller} />
   }
 
+  // A path that is not a ready directory shows its file or status view.
   const view = fileViewFor(controller)
   if (view !== 'ready') {
     return <GitRepoFileStatus controller={controller} view={view} />
   }
 
+  // The browsing views keep the facts in a side column; the log and a commit
+  // give the pane to their list and open the facts from Details.
   const isCommit = route.mode === 'commit'
   return (
     <GitViewerFrame
       toolbarProps={{ ...toolbarProps, showPath: route.mode === 'files' }}
       refBarProps={refBarProps}
+      facts={facts}
+      side={
+        route.mode === 'files' || route.mode === 'readme' ? side : undefined
+      }
+      onSideChange={setSide}
       mode={isCommit ? undefined : route.mode}
       onModeChange={isCommit ? undefined : nav.handleModeChange}
       hasReadme={!!readmePath}
@@ -429,6 +493,7 @@ export function GitRepoViewer(props: ObjectViewerComponentProps) {
           title="Git Repository"
           subtitle={controller.objectKey}
           detail="Make panel larger to view"
+          action={<GitCloneAction address={controller.cloneAddress} />}
         />
       }
     >

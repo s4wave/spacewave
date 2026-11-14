@@ -103,7 +103,7 @@ export function seriesNames(series: readonly Series[]): string[] {
       return labelValue(s.labels, '__name__') || formatLabels(s.labels)
     }
     return distinct
-      .map((name) => `${name}="${labelValue(s.labels, name)}"`)
+      .map((name) => labelMatcher(name, labelValue(s.labels, name)))
       .join(', ')
   })
 }
@@ -112,7 +112,18 @@ export function seriesNames(series: readonly Series[]): string[] {
 export function formatLabels(set: LabelSet | undefined): string {
   const labels = set?.labels ?? []
   if (labels.length === 0) return '{}'
-  return `{${labels.map((l) => `${l.name}="${l.value}"`).join(', ')}}`
+  return `{${labels.map((l) => labelMatcher(l.name ?? '', l.value ?? '')).join(', ')}}`
+}
+
+// labelMatcher writes name="value" with the value quoted as a PromQL string:
+// backslash, double quote and newline escaped, so the selector parses back to
+// the same value.
+function labelMatcher(name: string, value: string): string {
+  const quoted = value
+    .replaceAll('\\', '\\\\')
+    .replaceAll('"', '\\"')
+    .replaceAll('\n', '\\n')
+  return `${name}="${quoted}"`
 }
 
 // staleTargets returns the stale targets whose labels every series of

@@ -7,16 +7,27 @@ import { cn } from '@s4wave/web/style/utils.js'
 // FactListProps configures a FactList.
 export interface FactListProps {
   children?: ReactNode
+  // dense packs the rows at viewer-row, 24px or 44px under a coarse pointer,
+  // for a side column or popover; a list in the body keeps viewer-fact-row.
+  // A row's copy press is 24px either way, so it meets the target floor.
+  dense?: boolean
   // className is appended to the list's class list.
   className?: string
 }
 
 // FactList holds FactRows and is the inline-size container facts they read,
 // so each row lays out by the list's own width, not the pane's or window's:
-// below 13rem a row's label sits over its value.
-export function FactList({ children, className }: FactListProps) {
+// below 13rem a row's label sits over its value. A dense list sets --fact-row,
+// the height of each row's line, which is viewer-fact-row unset.
+export function FactList({ children, dense, className }: FactListProps) {
   return (
-    <div className={cn('@container/facts flex flex-col', className)}>
+    <div
+      className={cn(
+        '@container/facts flex flex-col',
+        dense && '[--fact-row:var(--spacing-viewer-row)]',
+        className,
+      )}
+    >
       {children}
     </div>
   )
@@ -61,11 +72,11 @@ const stacked = {
 }
 
 // FactRow is one fact as one line of label, value and control,
-// viewer-fact-row tall. Nothing in it wraps: a value that does not fit is
-// shortened, an id in its middle and text at its end, so one-fact rows share
-// one height and two-fact rows another, and every control sits on one right
-// edge. The data-fact, data-fact-value and data-fact-sub attributes mark the
-// parts for the viewer clip check.
+// viewer-fact-row tall, or viewer-row in a dense FactList. Nothing in it
+// wraps: a value that does not fit is shortened, an id in its middle and text
+// at its end, so one-fact rows share one height and two-fact rows another,
+// and every control sits on one right edge. The data-fact, data-fact-value
+// and data-fact-sub attributes mark the parts for the viewer clip check.
 export function FactRow({
   label,
   value,
@@ -92,7 +103,7 @@ export function FactRow({
     >
       <span
         className={cn(
-          'text-foreground-alt h-viewer-fact-row col-start-1 row-start-1 flex min-w-0 items-center select-none',
+          'text-foreground-alt h-[var(--fact-row,var(--spacing-viewer-fact-row))] col-start-1 row-start-1 flex min-w-0 items-center select-none',
           stacked.label,
         )}
       >
@@ -103,7 +114,7 @@ export function FactRow({
       <span
         data-fact-value={kind}
         className={cn(
-          'text-foreground h-viewer-fact-row col-start-2 row-start-1 flex min-w-0 items-center overflow-hidden',
+          'text-foreground h-[var(--fact-row,var(--spacing-viewer-fact-row))] col-start-2 row-start-1 flex min-w-0 items-center overflow-hidden',
           stacked.value,
         )}
       >
@@ -117,7 +128,7 @@ export function FactRow({
       </span>
       <span
         className={cn(
-          'h-viewer-fact-row col-start-3 row-start-1 flex items-center',
+          'h-[var(--fact-row,var(--spacing-viewer-fact-row))] col-start-3 row-start-1 flex items-center',
           stacked.control,
         )}
       >

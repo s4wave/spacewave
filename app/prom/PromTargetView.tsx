@@ -2,16 +2,22 @@ import type { ReactNode } from 'react'
 import { LuActivity } from 'react-icons/lu'
 
 import type {
-  Label,
+  LabelSet,
   TargetInfo,
   TargetStatus,
 } from '@s4wave/sdk/prom/prom.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
-import { formatAgo, formatClock, targetName } from './prom-view.js'
+import {
+  formatAgo,
+  formatClock,
+  formatLabels,
+  targetName,
+} from './prom-view.js'
 import type { TargetAction, TargetState } from './target-state.js'
 
 // actionLabels are the approval buttons' labels.
@@ -99,7 +105,7 @@ export function PromTargetView({
             kind="text"
             control={null}
           />
-          <TargetLabels labels={info?.meta?.labels?.labels ?? []} />
+          <TargetLabels set={info?.meta?.labels} />
           <FactRow
             label="Keeps"
             value={`${Math.round(retentionMs / 86_400_000)} days`}
@@ -112,21 +118,33 @@ export function PromTargetView({
   )
 }
 
-// TargetLabels lists a target's labels one per row, the name as the row's
-// label and the value copyable, so a long set never hides a label behind a
-// cut. A target with no labels shows None.
-function TargetLabels({ labels }: { labels: readonly Label[] }) {
+// TargetLabels lists a target's labels: first the whole set as a selector
+// with one press that copies it for a query, then one row per label, the name
+// as the row's label and the value copyable, so a long set never hides a
+// label behind a cut. A target with no labels shows None.
+function TargetLabels({ set }: { set: LabelSet | undefined }) {
+  const labels = set?.labels ?? []
   if (labels.length === 0) {
     return <FactRow label="Labels" value="None" kind="text" control={null} />
   }
-  return labels.map((l) => (
-    <FactRow
-      key={l.name}
-      label={l.name ?? ''}
-      value={l.value ?? ''}
-      kind="text"
-    />
-  ))
+  const selector = formatLabels(set)
+  return (
+    <>
+      <FactRow
+        label="Labels"
+        value={selector}
+        control={<CopyButton text={selector} label="Copy selector" />}
+      />
+      {labels.map((l) => (
+        <FactRow
+          key={l.name}
+          label={l.name ?? ''}
+          value={l.value ?? ''}
+          kind="text"
+        />
+      ))}
+    </>
+  )
 }
 
 // describeState writes the sentence for the target's state.

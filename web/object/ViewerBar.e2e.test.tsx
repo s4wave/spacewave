@@ -40,6 +40,24 @@ function SidePane({ width }: { width: string }) {
   )
 }
 
+// NestedPane is a viewer with narrow Details and no side column of its own,
+// holding an inner viewer that has one.
+function NestedPane({ width }: { width: string }) {
+  const facts = <FactRow label="Setup" value="Ready" kind="text" />
+  return (
+    <div className={`viewer-pane flex h-60 flex-col ${width}`}>
+      <ViewerBar
+        title="outer"
+        details={{ label: 'Outer', facts, narrow: true }}
+      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <ViewerBar title="inner" />
+        <ViewerSide label="Inner" facts={facts} />
+      </div>
+    </div>
+  )
+}
+
 function press(id: string, extra?: Partial<ViewerBarAction>): ViewerBarAction {
   return { id, label: id, onClick: vi.fn(), ...extra }
 }
@@ -158,5 +176,21 @@ describe('ViewerBar', () => {
     // to the column's Collapse press rather than the page.
     await screen.rerender(<SidePane width="w-192" />)
     await expect.poll(focused).toBe('Collapse device')
+  })
+
+  it('keeps focus in its own viewer when an inner viewer has a side column', async () => {
+    // Open the outer viewer's Details and focus its copy press.
+    const screen = await render(<NestedPane width={narrow} />)
+    await userEvent.click(page.getByRole('button', { name: 'Details' }))
+    const copy = page.getByRole('button', { name: 'Copy Setup' })
+    ;(copy.element() as HTMLElement).focus()
+
+    // Widening closes Details; the inner Collapse belongs to another viewer,
+    // so focus goes to the outer bar.
+    await screen.rerender(<NestedPane width="w-192" />)
+    await expect
+      .poll(() => document.activeElement?.textContent ?? '')
+      .toContain('outer')
+    expect(document.activeElement?.tagName).toBe('HEADER')
   })
 })

@@ -1,4 +1,5 @@
 import { Route } from '@s4wave/web/router/router.js'
+import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
 import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
@@ -116,6 +117,12 @@ const debugRouteEntries = [
     description: 'Open the side column in one state; add /rail, /details.',
     element: <ViewerSideDebug />,
   },
+  {
+    path: '/debug/ui/git-side',
+    title: 'Git side column',
+    description: 'Open the Git repository facts; add /rail, /details, /log...',
+    element: <GitSideDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -137,6 +144,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/side/:state">
       <ViewerSideDebug />
+    </Route>
+    <Route path="/debug/ui/git-side/:state">
+      <GitSideDebug />
     </Route>
   </>
 )

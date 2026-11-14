@@ -20,6 +20,9 @@ export interface ViewerSideProps {
   rail?: ReactNode
   // initial is the column's first state. Defaults to open.
   initial?: ViewerSideState
+  // onChange hears each Collapse and Expand, so a viewer that unmounts the
+  // column, such as on a view switch, can pass the state back as initial.
+  onChange?: (side: ViewerSideState) => void
   // children is the viewer's work beside the column; it scrolls on its own.
   children?: ReactNode
 }
@@ -38,14 +41,16 @@ const pressClass =
  *
  * Collapse and Expand replace each other in place, and focus follows the
  * press, so a keyboard user can toggle the column without losing their place.
- * Each carries data-viewer-side-press, where ViewerBar sends focus when a
- * widening pane closes its Details popover.
+ * Each carries data-viewer-side-press, and the column's root data-viewer-side,
+ * where ViewerBar sends focus when a widening pane closes its Details popover;
+ * ViewerBar looks only in a column that is its own sibling.
  */
 export function ViewerSide({
   label,
   facts,
   rail,
   initial = 'open',
+  onChange,
   children,
 }: ViewerSideProps) {
   // Hold the column's state and the press that toggles it.
@@ -65,10 +70,11 @@ export function ViewerSide({
   const toggle = (next: ViewerSideState) => {
     pressedRef.current = true
     setSide(next)
+    onChange?.(next)
   }
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div data-viewer-side className="flex min-h-0 flex-1">
       {side === 'open' ? (
         <aside
           aria-label={label}
@@ -88,7 +94,9 @@ export function ViewerSide({
               <LuChevronLeft aria-hidden />
             </button>
           </div>
-          <FactList className="ms-2 me-1">{facts}</FactList>
+          <FactList dense className="ms-2 me-1">
+            {facts}
+          </FactList>
         </aside>
       ) : (
         <aside

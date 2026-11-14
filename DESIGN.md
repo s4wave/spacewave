@@ -749,7 +749,9 @@ menu press on a touch screen:
 | Table | 16, 22, 28, 40rem | Further columns appear in the order the reader needs them; a state column is a glyph until 22rem |
 
 `FactList` is the container `facts`, and each `FactRow` in it is one line of
-label, value and copy press. A fact never wraps. An identifier, such as a hash,
+label, value and copy press, `viewer-fact-row` tall in the body. A `dense`
+list, as in a side column or the Details popover, packs its rows at
+`viewer-row`; the copy press stays 24px, the target floor. A fact never wraps. An identifier, such as a hash,
 key, peer ID, path or URL, is a `MiddleEllipsis`: it shortens in its middle to
 fit, as in `12D3KooWQx7Hc4…N2mXq9` or `github.com…/spacewave`, keeping at least
 four head characters and its last path segment or six characters, and always

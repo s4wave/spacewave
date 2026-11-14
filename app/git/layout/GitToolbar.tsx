@@ -1,8 +1,13 @@
+import { useRef } from 'react'
 import { LuChevronLeft, LuChevronRight, LuChevronUp } from 'react-icons/lu'
 
 import type { ListRefsResponse } from '@s4wave/sdk/git/repo.pb.js'
 
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
+import {
+  ViewerDetailsPress,
+  type ViewerBarDetails,
+} from '@s4wave/web/object/ViewerBar.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { RefSelector } from '../refs/RefSelector.js'
@@ -21,6 +26,9 @@ export interface GitToolbarProps {
   canGoBack: boolean
   canGoForward: boolean
   showPath?: boolean
+  // details puts a Details press at the toolbar's end that opens the
+  // repository's facts.
+  details?: ViewerBarDetails
 }
 
 // GitToolbar renders the toolbar with branch selector and path navigation.
@@ -37,9 +45,16 @@ export function GitToolbar({
   canGoBack,
   canGoForward,
   showPath = true,
+  details,
 }: GitToolbarProps) {
+  // Hold the toolbar, where a closing Details popover may send focus.
+  const barRef = useRef<HTMLDivElement>(null)
   return (
-    <div className="bg-panel-header border-foreground/8 flex h-7 items-center border-b px-1">
+    <div
+      ref={barRef}
+      tabIndex={-1}
+      className="bg-panel-header border-foreground/8 focus-ring flex h-7 items-center border-b px-1 pointer-coarse:h-auto"
+    >
       <RefSelector
         effectiveRef={effectiveRef}
         refsResponse={refsResponse}
@@ -53,11 +68,11 @@ export function GitToolbar({
           onClick={onBack}
           disabled={!canGoBack}
           className={cn(
-            'rounded p-0.5',
+            'flex size-6 items-center justify-center rounded pointer-coarse:size-11',
             canGoBack ? 'hover:bg-pulldown-hover' : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronLeft className="text-foreground-alt size-4" />
+          <LuChevronLeft aria-hidden className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
@@ -65,13 +80,13 @@ export function GitToolbar({
           onClick={onForward}
           disabled={!canGoForward}
           className={cn(
-            'rounded p-0.5',
+            'flex size-6 items-center justify-center rounded pointer-coarse:size-11',
             canGoForward
               ? 'hover:bg-pulldown-hover'
               : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronRight className="text-foreground-alt size-4" />
+          <LuChevronRight aria-hidden className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
@@ -79,13 +94,13 @@ export function GitToolbar({
           onClick={onUp}
           disabled={currentPath === '/'}
           className={cn(
-            'rounded p-0.5',
+            'flex size-6 items-center justify-center rounded pointer-coarse:size-11',
             currentPath !== '/'
               ? 'hover:bg-pulldown-hover'
               : 'cursor-default opacity-40',
           )}
         >
-          <LuChevronUp className="text-foreground-alt size-4" />
+          <LuChevronUp aria-hidden className="text-foreground-alt size-4" />
         </button>
       </div>
       {showPath && (
@@ -99,6 +114,11 @@ export function GitToolbar({
           />
         </div>
       )}
+      {details ? (
+        <div className="ms-auto flex shrink-0 items-center">
+          <ViewerDetailsPress barRef={barRef} {...details} />
+        </div>
+      ) : null}
     </div>
   )
 }

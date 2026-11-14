@@ -145,14 +145,22 @@ function focusBar(header: HTMLElement | null) {
   ;(first ?? header).focus()
 }
 
-// focusSide moves focus to the side column's Collapse or Expand press beside
-// the bar, marked data-viewer-side-press, or to the bar when the pane shows
-// none, so a popover closed by a widening pane never drops focus to the page.
+// focusSide moves focus to the Collapse or Expand press of the side column
+// beside the bar, a sibling marked data-viewer-side, or to the bar when the
+// pane shows none, so a popover closed by a widening pane never drops focus
+// to the page. A column of a viewer embedded deeper in the body is not the
+// bar's, so its press is skipped.
 function focusSide(header: HTMLElement | null) {
-  const press = header?.parentElement?.querySelector<HTMLElement>(
+  const parent = header?.parentElement
+  const presses = parent?.querySelectorAll<HTMLElement>(
     '[data-viewer-side-press]',
   )
-  if (press && !isHidden(press)) press.focus()
+  const press = Array.from(presses ?? []).find(
+    (el) =>
+      el.closest('[data-viewer-side]')?.parentElement === parent &&
+      !isHidden(el),
+  )
+  if (press) press.focus()
   else focusBar(header)
 }
 
@@ -248,7 +256,7 @@ export function ViewerBar({
             />
           ))}
           {details ? (
-            <ViewerBarDetailsPress headerRef={headerRef} {...details} />
+            <ViewerDetailsPress barRef={headerRef} {...details} />
           ) : null}
           {more ? (
             <ViewerBarMore
@@ -419,19 +427,23 @@ function ViewerBarMore({
   )
 }
 
-// ViewerBarDetailsPress is the Details press and its popover of facts. The
-// popover is the Popover primitive's: opening moves focus into it, Escape or
-// a click away closes it and returns focus to the press. While open it
-// watches the bar and closes once the press leaves it, as a narrow press
-// does from a 42rem pane, where the side column shows the facts; focus then
-// goes to the column's press, or the bar.
-function ViewerBarDetailsPress({
-  headerRef,
+/**
+ * ViewerDetailsPress is the Details press and its popover of facts, for
+ * ViewerBar or another viewer header such as a toolbar. The popover is the
+ * Popover primitive's: opening moves focus into it, Escape or a click away
+ * closes it and returns focus to the press. While open it watches the bar
+ * and closes once the press leaves it, as a narrow press does from a 42rem
+ * pane, where the side column shows the facts; focus then goes to the
+ * column's press, found beside the bar, or to the bar, which must take focus
+ * with tabIndex -1.
+ */
+export function ViewerDetailsPress({
+  barRef,
   label,
   facts,
   narrow,
   defaultOpen = false,
-}: ViewerBarDetails & { headerRef: RefObject<HTMLElement | null> }) {
+}: ViewerBarDetails & { barRef: RefObject<HTMLElement | null> }) {
   // Hold the press, to see when it leaves the bar, and whether it is open.
   const pressRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(defaultOpen)
@@ -442,13 +454,13 @@ function ViewerBarDetailsPress({
   // Close the popover once the pane folds its press out of the bar.
   useEffect(() => {
     // Watch the bar only while the popover is open.
-    const header = headerRef.current
+    const header = barRef.current
     if (!open || !header) return
     onResize()
     const observer = new ResizeObserver(() => onResize())
     observer.observe(header)
     return () => observer.disconnect()
-  }, [open, headerRef])
+  }, [open, barRef])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -475,14 +487,16 @@ function ViewerBarDetailsPress({
         onCloseAutoFocus={(e) => {
           if (!isHidden(pressRef.current)) return
           e.preventDefault()
-          focusSide(headerRef.current)
+          focusSide(barRef.current)
         }}
       >
         <div className="pb-1">
           <div className="h-viewer-row text-foreground-alt flex items-center px-3 text-xs font-medium select-none">
             {label}
           </div>
-          <FactList className="ms-3 me-2">{facts}</FactList>
+          <FactList dense className="ms-3 me-2">
+            {facts}
+          </FactList>
         </div>
       </PopoverContent>
     </Popover>
