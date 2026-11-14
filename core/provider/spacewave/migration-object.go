@@ -119,7 +119,9 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 			return err
 		}
 		defer release()
-		if err := provider_migration.CopyWorld(ctx, object, world, store); err != nil {
+		// The cloud store holds no roots and keeps every block it stores,
+		// so the copy returns no stage.
+		if _, err := provider_migration.CopyWorld(ctx, object, world, store); err != nil {
 			return err
 		}
 		if err := store.(*BlockStore).ForceSync(ctx); err != nil {
@@ -217,6 +219,7 @@ func (s *SharedObject) ReadSharedObjectFullConfigHistory(ctx context.Context, ta
 
 // ReadSharedObjectConfigHistory exposes the same lineage to a local destination.
 func (s *SharedObject) ReadSharedObjectConfigHistory(ctx context.Context, target *sobject.SharedObjectConfig) (*sobject.SharedObjectConfig, []*sobject.SOConfigChange, error) {
+	// Read the full lineage up to target.
 	changes, err := s.ReadSharedObjectFullConfigHistory(ctx, target)
 	if err != nil {
 		return nil, nil, err

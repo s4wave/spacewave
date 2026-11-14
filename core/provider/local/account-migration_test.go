@@ -18,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/transport/inproc"
+	"github.com/s4wave/spacewave/testbed"
 )
 
 // TestAccountMergeReturningSession keeps a source replica offline during merge,
@@ -213,10 +214,11 @@ func waitReplicaMigrationAdmission(ctx context.Context, t *testing.T, account *P
 	}
 }
 
-// setupMigrationClient starts an independent account with retained Session routing.
-func setupMigrationClient(ctx context.Context, t *testing.T, network *inproc.Network) (*ProviderAccount, *Session, session.SessionController) {
+// setupMigrationClient starts an independent account with retained Session
+// routing, on a testbed built with tbOpts.
+func setupMigrationClient(ctx context.Context, t *testing.T, network *inproc.Network, tbOpts ...testbed.Option) (*ProviderAccount, *Session, session.SessionController) {
 	// Connect the provider to the test network under its original Session key.
-	tb, _, account, mounted, release := setupProviderAndSessionInternal(ctx, t, func(p *Provider) {
+	tb, _, account, mounted, release := setupProviderAndSessionOn(ctx, t, tbOpts, func(p *Provider) {
 		p.localNetwork = transport.WithInprocNetwork(network)
 	})
 	t.Cleanup(release)

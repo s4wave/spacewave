@@ -119,6 +119,10 @@ type Adapter struct {
 	// replay cursor, pending and checkpoint roots hold, each until a
 	// checkpoint covers them.
 	cursorWorlds, pendingWorlds, checkpointWorlds rootSet
+	// imported are the roots the import root holds for writers outside the
+	// Adapter, each until a trim holds it under the replay base or finds the
+	// payloads root holding it (see HoldImport).
+	imported rootSet
 	// watchMtx serializes the head watchers' callbacks.
 	watchMtx sync.Mutex
 	// reported is the last head reported to the watchers. Guarded by
@@ -237,6 +241,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
 		checkpointWorlds: rootSet{name: RootCheckpoint},
+		imported:         rootSet{name: RootImport},
 		payloads:         rootSet{name: RootReplayPayloads},
 	}
 	a.lookupOp = a.buildLookupOp()
@@ -735,10 +740,12 @@ func (a *Adapter) Root(ctx context.Context, n int) ([]byte, func(context.Context
 			return err
 		}
 		defer release()
-		if refEqual(a.held[RootReplayBase], root) {
-			return nil
-		}
-		return a.addRoot(ctx, &a.checkpointWorlds, root)
+		return a.retryMovedLocked(ctx, func() error {
+			if refEqual(a.held[RootReplayBase], root) {
+				return nil
+			}
+			return a.addRoot(ctx, &a.checkpointWorlds, root)
+		})
 	}
 	return data, store, nil
 }
@@ -1036,32 +1043,48 @@ func (a *Adapter) runTrimNewest(ctx context.Context, plan *trimPlan) {
 // root. The Worlds whose pages left memory stay where a history holds them.
 // The base, the holds and every release are one root move, so the trim
 // releases only Worlds that no held or live World reaches through its child
-// lists, and a failed move releases nothing.
+// lists, and a failed move releases nothing. The same move releases each
+// imported root the Adapter now holds itself (see HoldImport).
 //
 // Cost per install: one pass over the live Worlds, keyed by ref, and one
 // root move that stores the kept pages of the live Worlds.
 func (a *Adapter) runTrim(ctx context.Context, p *trimPlan) error {
-	// Leave the roots alone when the base stays and no history releases a
-	// World.
+	// Take the root lock, keeping what the plan does not release.
 	keep := func(root *block.BlockRef) bool { return !p.releases(root) }
 	release, err := a.lockRoots(ctx, slices.Concat(p.memory, p.candidates, []*block.BlockRef{p.base})...)
 	if err != nil {
 		return err
 	}
 	defer release()
-	histories := []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds}
-	moved := !refEqual(a.held[RootReplayBase], p.base)
-	if !moved && !slices.ContainsFunc(histories, func(h *rootSet) bool { return h.releases(keep) }) {
-		return nil
-	}
+	return a.retryMovedLocked(ctx, func() error {
+		// Read the roots an import appended since the last move.
+		if err := a.readImportLocked(ctx); err != nil {
+			return err
+		}
 
-	// Hold the live Worlds, release the rest and move the base together.
-	next := [][]*block.BlockRef{
-		a.cursorWorlds.held(keep, p.memory),
-		a.pendingWorlds.held(keep, p.candidates),
-		a.checkpointWorlds.held(keep, nil),
-	}
-	return a.setRootSets(ctx, histories, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
+		// Leave the roots alone when the base stays and no history
+		// releases a World. An imported root is released only when this
+		// move holds it under the replay base or the payloads root holds it
+		// now, read under the root lock, so a plan gathered before an import
+		// appended a root never releases it.
+		keepImported := func(root *block.BlockRef) bool {
+			return !refEqual(root, p.base) && !a.payloads.holds(root)
+		}
+		sets := []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds, &a.imported}
+		moved := !refEqual(a.held[RootReplayBase], p.base)
+		if !moved && !slices.ContainsFunc(sets[:3], func(h *rootSet) bool { return h.releases(keep) }) && !a.imported.releases(keepImported) {
+			return nil
+		}
+
+		// Hold the live Worlds, release the rest and move the base together.
+		next := [][]*block.BlockRef{
+			a.cursorWorlds.held(keep, p.memory),
+			a.pendingWorlds.held(keep, p.candidates),
+			a.checkpointWorlds.held(keep, nil),
+			a.imported.held(keepImported, nil),
+		}
+		return a.setRootSets(ctx, sets, next, nil, block.NamedRoot{Name: RootReplayBase, Ref: p.base})
+	})
 }
 
 // missAbove notes as missing every applied position whose operation is still
@@ -1470,21 +1493,153 @@ func (a *Adapter) loadRoots(ctx context.Context) error {
 	defer release()
 
 	// Read each root, and the payloads and Worlds their blocks name.
-	for _, name := range heldRootNames {
+	if err := a.readHeldRoots(ctx, heldRootNames); err != nil {
+		return err
+	}
+	if err := a.readRootSets(ctx); err != nil {
+		return err
+	}
+	return a.readRetained(ctx)
+}
+
+// readHeldRoots reads what each of names holds into held. The caller holds
+// rootMtx.
+func (a *Adapter) readHeldRoots(ctx context.Context, names []string) error {
+	for _, name := range names {
 		ref, err := a.pages.GetRoot(ctx, name)
 		if err != nil {
 			return err
 		}
-		if !ref.GetEmpty() {
-			a.held[name] = ref
+		if ref.GetEmpty() {
+			delete(a.held, name)
+			continue
 		}
+		a.held[name] = ref
 	}
-	for _, h := range []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds, &a.payloads} {
+	return nil
+}
+
+// readRootSets reads the roots each history and the payloads root holds. The
+// caller holds rootMtx.
+func (a *Adapter) readRootSets(ctx context.Context) error {
+	for _, h := range []*rootSet{&a.cursorWorlds, &a.pendingWorlds, &a.checkpointWorlds, &a.imported, &a.payloads} {
 		if err := a.readRootSet(ctx, h); err != nil {
 			return err
 		}
 	}
-	return a.readRetained(ctx)
+	return nil
+}
+
+// ownRoots are the roots only the Adapter moves. Another writer moving one
+// of them, such as a stale Adapter left on the same bucket by a restart,
+// means the Adapter's view is wrong, so a move that lost to it fails rather
+// than move a root back over a newer value.
+var ownRoots = []string{
+	RootReplayBase,
+	RootCheckpoint,
+	RootReplayCursor,
+	RootReplayPayloads,
+	RootPending,
+}
+
+// retryMovedLocked runs move, and when it failed with ErrRootMoved because
+// the import root alone moved by appending, reads that root again and runs
+// move once more. The caller holds rootMtx.
+//
+// Invariant: the retry runs only when every root in ownRoots still holds what
+// held says, and the import root's new block reaches the block held names
+// through its Prev links, so every root the Adapter read is still held.
+// HoldImport is the one writer outside an Adapter, and it only appends that
+// way. move releases an imported root only when it reads, at the move, that
+// the Adapter holds it elsewhere, so the retry keeps every root the append
+// added. Any other move, such as a stale Adapter's rewrite of a root alone,
+// returns ErrRootMoved unchanged and the move changes nothing: that rewrite
+// may have released a root the move would name.
+func (a *Adapter) retryMovedLocked(ctx context.Context, move func() error) error {
+	// Move, and return unless another writer moved a root first.
+	err := move()
+	if !errors.Is(err, block.ErrRootMoved) {
+		return err
+	}
+
+	// Fail unless the import root is the only root that moved.
+	for _, name := range ownRoots {
+		ref, rerr := a.pages.GetRoot(ctx, name)
+		if rerr != nil {
+			return rerr
+		}
+		if !refEqual(ref, a.held[name]) {
+			return err
+		}
+	}
+	imported, rerr := a.pages.GetRoot(ctx, RootImport)
+	if rerr != nil {
+		return rerr
+	}
+	appended, rerr := a.appendsTo(ctx, imported, a.held[RootImport])
+	if rerr != nil {
+		return rerr
+	}
+	if !appended {
+		return err
+	}
+
+	// Read the import root again and move once more.
+	if err := a.readImportLocked(ctx); err != nil {
+		return err
+	}
+	return move()
+}
+
+// readImportLocked reads the import root again when another writer moved it
+// since the Adapter last read it, so a trim weighs every root an import holds.
+// Only HoldImport and the Adapter's trims move the root, so the stored chain is
+// the truth. Cost: one root read per trim, and one chain read after an import.
+// The caller holds rootMtx.
+func (a *Adapter) readImportLocked(ctx context.Context) error {
+	// Leave the roots in memory when the stored root has not moved.
+	ref, err := a.pages.GetRoot(ctx, RootImport)
+	if err != nil {
+		return err
+	}
+	if refEqual(ref, a.held[RootImport]) {
+		return nil
+	}
+
+	// Read the moved chain.
+	if err := a.readHeldRoots(ctx, []string{RootImport}); err != nil {
+		return err
+	}
+	return a.readRootSet(ctx, &a.imported)
+}
+
+// appendsTo reports whether the import root block ref differs from held and
+// reaches it through at most maxRootLinks Prev links, as the blocks HoldImport
+// appends do. A chain that ends, or runs longer, before
+// reaching held is not an append the retry can trust. The caller holds
+// rootMtx.
+func (a *Adapter) appendsTo(ctx context.Context, ref, held *block.BlockRef) (bool, error) {
+	if refEqual(ref, held) {
+		return false, nil
+	}
+	for range maxRootLinks {
+		if ref.GetEmpty() {
+			return false, nil
+		}
+		data, err := a.readRootBlock(ctx, RootImport, ref)
+		if err != nil {
+			return false, err
+		}
+		msg := &HeldRoots{}
+		if err := msg.UnmarshalVT(data); err != nil {
+			return false, err
+		}
+		ref = msg.GetPrev()
+		if refEqual(ref, held) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // readRetained reads the retained roots the retained root holds. The caller

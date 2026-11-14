@@ -107,6 +107,8 @@ type ProviderAccount struct {
 	gcCleanupRunner *provider_gccleanup.Runner
 	// gcCleanupCollect overrides cleanup collection in tests.
 	gcCleanupCollect provider_gccleanup.CollectFunc
+	// migrationHook runs in tests at each step of a migration import.
+	migrationHook func(context.Context, migrationStep) error
 	// evictAdmit paces the eviction passes of the placed block stores, or
 	// holds nil.
 	evictAdmit atomic.Pointer[block_store_writeback.EvictAdmit]

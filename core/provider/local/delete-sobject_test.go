@@ -781,7 +781,7 @@ func TestStateWritesRefuseUnownedIds(t *testing.T) {
 	// An enrollment with an id that is not a DNS label fails before writing.
 	// Its ref check is the only one before the placeholder write: the genesis
 	// builder does not validate the id, so without it keys land under so/a/.
-	_, err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, &sobject.SOState{}, nil)
+	_, err = a.mountEnrolledSO(ctx, "a/x", &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, &sobject.SOState{}, nil, nil)
 	if err == nil {
 		t.Fatal("an enrollment with an invalid id succeeded")
 	}
