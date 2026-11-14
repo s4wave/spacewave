@@ -62,8 +62,6 @@ export interface VmCreationRequest {
   networking: boolean
   sessionPeerId: string
   wizardObjectKey: string
-  // spaceIndexPath is the Space index the wizard read when Finish started.
-  spaceIndexPath: string
   root?: Root
 }
 
@@ -153,7 +151,6 @@ export interface BuildVmCreationRequestArgs {
   vmName: string
   sessionPeerId: string
   wizardObjectKey: string
-  spaceIndexPath: string
   root: Root | null | undefined
   cdnImage: V86Image | undefined
   spaceWorld: IWorldState
@@ -166,7 +163,6 @@ export async function buildVmCreationRequest({
   vmName,
   sessionPeerId,
   wizardObjectKey,
-  spaceIndexPath,
   root,
   cdnImage,
   spaceWorld,
@@ -189,7 +185,6 @@ export async function buildVmCreationRequest({
     networking: cfg.networking ?? false,
     sessionPeerId,
     wizardObjectKey,
-    spaceIndexPath,
     root: root ?? undefined,
   }
 }
@@ -279,7 +274,6 @@ export async function* runVmCreation(
       spaceWorld: world,
       objectKey: request.wizardObjectKey,
       sessionPeerId: request.sessionPeerId,
-      spaceSettings: { indexPath: request.spaceIndexPath },
     },
     {
       creates: [

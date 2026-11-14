@@ -10,7 +10,7 @@
     "name": "the delete lands without the index move",
     "replace": [
       [
-        "       /\\ index' = IF r = \"wizard\" /\\ index = r THEN \"object\" ELSE index",
+        "       /\\ index' = IF index = \"wizard\" THEN \"object\" ELSE index",
         "       /\\ index' = index"
       ]
     ],
@@ -27,16 +27,28 @@
     "expect": "AtMostOneObject"
   },
   {
-    "name": "the index move ignores the index the tab read",
-    "replace": [["IF r = \"wizard\" /\\ index = r THEN", "IF TRUE THEN"]],
+    "name": "the index move trusts what the tab's lagging watch showed",
+    "replace": [
+      [
+        "IF index = \"wizard\" THEN \"object\"",
+        "IF r = \"wizard\" /\\ index = r THEN \"object\""
+      ]
+    ],
+    "expect": "IndexNamesLive"
+  },
+  {
+    "name": "the index move ignores the World's index",
+    "replace": [
+      ["IF index = \"wizard\" THEN \"object\"", "IF TRUE THEN \"object\""]
+    ],
     "expect": "MovedIndexStays"
   },
   {
     "name": "a discard keeps what the list staged",
     "replace": [
       [
-        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ UNCHANGED <<read, orphan, wizard, objects, index, moved>>",
-        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ objects' = objects + 1\n  /\\ UNCHANGED <<read, orphan, wizard, index, moved>>"
+        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>",
+        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ objects' = objects + 1\n  /\\ UNCHANGED <<seen, orphan, wizard, index, moved>>"
       ]
     ],
     "expect": "WizardXorObject"
@@ -65,5 +77,15 @@
     "name": "a gone wizard offers nothing",
     "replace": [["    \\cup (IF Gone(t) THEN {\"close\"} ELSE {})", ""]],
     "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "a refused list offers Retry",
+    "replace": [
+      [
+        "    \\cup (IF control[t] = \"failed\" /\\ wizard THEN {\"retry\"} ELSE {})",
+        "    \\cup (IF control[t] \\in {\"failed\", \"gone\"} /\\ ~live[t] THEN {\"retry\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
   }
 ]

@@ -10,13 +10,17 @@ EXTENDS Naturals
 \*
 \* idle offers Finish; finishing waits on the list; failed says what failed
 \* and offers Retry, which prepares and applies the whole list again; done
-\* opens the object. A tab whose wizard is gone, finished or cancelled
-\* elsewhere, says so and offers to close the tab.
+\* opens the object; gone says the wizard was finished or cancelled elsewhere
+\* and offers to close the tab. A list refused because the wizard is gone
+\* goes to gone directly, and a tab that sees the wizard gone shows gone.
 \*
-\* Another writer may move the index off the wizard at any time; the index
-\* move expects the index the tab read, so the commit leaves a moved index
-\* alone. A reload drops the tab's control back to idle while its list may
-\* still commit or discard on the server.
+\* Another writer may move the index off the wizard at any time. The index
+\* move always goes in the list and expects the wizard, so the World decides
+\* inside the commit: it moves an index that names the wizard and leaves a
+\* moved one alone. The tab's settings watch may not have loaded, or may lag,
+\* so what the tab saw when it pressed decides nothing. A reload drops the
+\* tab's control back to idle while its list may still commit or discard on
+\* the server.
 
 Tabs == {"a", "b"}
 People == Tabs
@@ -25,25 +29,30 @@ People == Tabs
 \* close closes a tab whose wizard is gone.
 Buttons == {"finish", "retry", "close"}
 
-Controls == {"idle", "finishing", "failed", "done"}
+Controls == {"idle", "finishing", "failed", "done", "gone"}
 
 \* The Space index names the wizard, the object Finish made, or something
 \* another writer chose.
 Indexes == {"wizard", "object", "other"}
 
+\* What a tab's settings watch shows: an index, or nothing before it loads.
+Seen == {"unloaded"} \cup Indexes
+
 VARIABLES
   control, \* each tab's Finish control
   live,    \* whether the tab's control waits on a list in flight
-  read,    \* the index each tab read when it pressed
-  orphan,  \* the index read by a list in flight from a tab that reloaded,
-           \* or none
+  seen,    \* the index the tabs' settings watch shows, which may lag;
+           \* one watch for both tabs shows the lag with fewer states
+  orphan,  \* whether a list is still in flight from a tab that reloaded
   wizard,  \* whether the wizard object exists
   objects, \* how many objects Finish made
   index,   \* what the Space index names
   moved    \* history: another writer moved the index
-vars == <<control, live, read, orphan, wizard, objects, index, moved>>
+vars == <<control, live, seen, orphan, wizard, objects, index, moved>>
 
-Gone(t) == ~wizard /\ control[t] \in {"idle", "failed"}
+Gone(t) ==
+  \/ control[t] = "gone"
+  \/ ~wizard /\ control[t] \in {"idle", "failed"}
 
 Shown(t) ==
   (IF control[t] = "idle" /\ wizard THEN {"finish"} ELSE {})
@@ -66,38 +75,46 @@ Hint(t) ==
 Init ==
   /\ control = [t \in Tabs |-> "idle"]
   /\ live = [t \in Tabs |-> FALSE]
-  /\ read = [t \in Tabs |-> "wizard"]
-  /\ orphan = "none"
+  /\ seen = "unloaded"
+  /\ orphan = FALSE
   /\ wizard = TRUE
   /\ objects = 0
   /\ index \in {"wizard", "other"}
   /\ moved = FALSE
 
-\* Finish or Retry prepares the list and hands it to the executor.
+\* The settings watch catches up with the World's index. Until it does it
+\* lags every write, which is the case the list must survive.
+Watch ==
+  /\ seen' = index
+  /\ UNCHANGED <<control, live, orphan, wizard, objects, index, moved>>
+
+\* Finish or Retry prepares the list and hands it to the executor. The list
+\* reads nothing from the tab's settings watch.
 Press(t) ==
   /\ Shown(t) \cap {"finish", "retry"} # {}
   /\ control' = [control EXCEPT ![t] = "finishing"]
   /\ live' = [live EXCEPT ![t] = TRUE]
-  /\ read' = [read EXCEPT ![t] = index]
-  /\ UNCHANGED <<orphan, wizard, objects, index, moved>>
+  /\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>
 
 \* Apply is the executor's one atomic step: the creates, the index move and
-\* the delete commit together. A list that creates refuses itself when the
-\* wizard is already gone, so a second tab makes no second object.
+\* the delete commit together. The index move reads the World's index in the
+\* commit, not r, what the tab's watch shows. A list that creates refuses itself when
+\* the wizard is already gone, so a second tab makes no second object.
 Apply(r) ==
   IF wizard
   THEN /\ objects' = objects + 1
        /\ wizard' = FALSE
-       /\ index' = IF r = "wizard" /\ index = r THEN "object" ELSE index
+       /\ index' = IF index = "wizard" THEN "object" ELSE index
   ELSE UNCHANGED <<objects, wizard, index>>
 
-\* The tab's own list commits, or is refused, and the control shows which.
+\* The tab's own list commits, or is refused because the wizard is gone, and
+\* the control shows which.
 Commit(t) ==
   /\ live[t]
-  /\ Apply(read[t])
-  /\ control' = [control EXCEPT ![t] = IF wizard THEN "done" ELSE "failed"]
+  /\ Apply(seen)
+  /\ control' = [control EXCEPT ![t] = IF wizard THEN "done" ELSE "gone"]
   /\ live' = [live EXCEPT ![t] = FALSE]
-  /\ UNCHANGED <<read, orphan, moved>>
+  /\ UNCHANGED <<seen, orphan, moved>>
 
 \* A write in the list throws, or the tab closes, and the executor discards
 \* the list: nothing it staged lands.
@@ -105,31 +122,31 @@ Discard(t) ==
   /\ live[t]
   /\ control' = [control EXCEPT ![t] = "failed"]
   /\ live' = [live EXCEPT ![t] = FALSE]
-  /\ UNCHANGED <<read, orphan, wizard, objects, index, moved>>
+  /\ UNCHANGED <<seen, orphan, wizard, objects, index, moved>>
 
 \* The tab reloads; a list in flight carries on without it.
 Reload(t) ==
   /\ control' = [control EXCEPT ![t] = "idle"]
   /\ live' = [live EXCEPT ![t] = FALSE]
-  /\ ~(live[t] /\ orphan # "none")
-  /\ orphan' = IF live[t] THEN read[t] ELSE orphan
-  /\ UNCHANGED <<read, wizard, objects, index, moved>>
+  /\ ~(live[t] /\ orphan)
+  /\ orphan' = (orphan \/ live[t])
+  /\ UNCHANGED <<seen, wizard, objects, index, moved>>
 
 \* A list whose tab reloaded commits, is refused or discards on the server,
-\* with the index its tab read before the reload.
+\* the same way.
 OrphanEnds ==
-  /\ orphan # "none"
-  /\ orphan' = "none"
-  /\ \/ Apply(orphan)
+  /\ orphan
+  /\ orphan' = FALSE
+  /\ \/ Apply(seen)
      \/ UNCHANGED <<wizard, objects, index>>
-  /\ UNCHANGED <<control, live, read, moved>>
+  /\ UNCHANGED <<control, live, seen, moved>>
 
 \* Another writer points the index somewhere else.
 MoveIndex ==
   /\ index # "other"
   /\ index' = "other"
   /\ moved' = TRUE
-  /\ UNCHANGED <<control, live, read, orphan, wizard, objects>>
+  /\ UNCHANGED <<control, live, seen, orphan, wizard, objects>>
 
 \* Close leaves the tab on nothing; the next tab opens elsewhere.
 Close(t) ==
@@ -139,6 +156,7 @@ Close(t) ==
 Next ==
   \/ \E t \in Tabs : Press(t) \/ Commit(t) \/ Discard(t) \/ Reload(t)
   \/ \E t \in Tabs : Close(t)
+  \/ Watch
   \/ OrphanEnds
   \/ MoveIndex
 
@@ -163,8 +181,8 @@ DoneMeansMade == \A t \in Tabs : control[t] = "done" => objects = 1
 TypeOK ==
   /\ control \in [Tabs -> Controls]
   /\ live \in [Tabs -> BOOLEAN]
-  /\ read \in [Tabs -> Indexes]
-  /\ orphan \in {"none"} \cup Indexes
+  /\ seen \in Seen
+  /\ orphan \in BOOLEAN
   /\ wizard \in BOOLEAN
   /\ objects \in 0..2
   /\ index \in Indexes

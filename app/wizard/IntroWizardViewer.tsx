@@ -9,6 +9,7 @@ import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { useWizardState } from './useWizardState.js'
 import { useWizardFinish } from './wizard-finish.js'
+import { WizardGone } from './WizardGone.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
 import { IntroWizardPresentationContext } from './intro-context.js'
 
@@ -61,6 +62,10 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
     }
   }, [finish, state, ws, targetObjectKey])
 
+  // A wizard removed elsewhere can only be closed, even before it loads.
+  if (finish.state.status === 'gone') return <WizardGone />
+
+  // The overlay waits for the wizard state.
   if (!state) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">

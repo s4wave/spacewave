@@ -14,7 +14,7 @@ import {
 
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
-import { useWizardFinish } from './wizard-finish.js'
+import { useWizardFinish, WizardInputError } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const GitRepoWizardTypeID = 'wizard/git/repo'
@@ -128,7 +128,8 @@ function useGitRepoFinalize(
       async () => {
         // Check and save the draft and choose the key before the write
         // transaction opens, so it holds the writer only for the writes.
-        if (!ws.localName.trim()) throw new Error('Name the repository')
+        if (!ws.localName.trim())
+          throw new WizardInputError('Name the repository')
         await ws.persistDraftState()
         const repoKey = await buildObjectKey(
           ws.spaceWorld,

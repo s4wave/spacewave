@@ -16,7 +16,9 @@ export interface WizardWorldState {
 // publish it only on commit, as the World engine does. calls lists each call
 // in order, and opData and senders each op's data and sender by op id, last
 // write wins. failOn names the one call that throws: an op id, 'delete' or
-// 'commit'. A commit waits for commitGate when one is set.
+// 'commit'. A commit waits for commitGate when one is set; given a signal
+// that aborted meanwhile, it lands and then rejects, as a commit call whose
+// caller gave up after sending it does.
 export interface WizardTestWorld {
   world: EngineWorldState
   state: WizardWorldState
@@ -80,10 +82,11 @@ export function wizardTestWorld(
         fail('delete')
         return Promise.resolve({ deleted: staged.objects.delete(objectKey) })
       },
-      commit: async () => {
+      commit: async (signal?: AbortSignal) => {
         await t.commitGate
         fail('commit')
         t.state = staged
+        signal?.throwIfAborted()
       },
       discard: () => {
         t.calls.push('discard')

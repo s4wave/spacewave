@@ -8,6 +8,7 @@ import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { WizardField } from './WizardField.js'
+import { WizardGone } from './WizardGone.js'
 import type { WizardFinishState } from './wizard-finish.js'
 
 export interface WizardShellProps {
@@ -113,10 +114,18 @@ function WizardNameField({
 }
 
 /**
- * WizardFinishNotice says why the last Finish press failed. The wizard and
- * the person's input stay as they were, and Retry runs the Finish again.
+ * WizardFinishNotice says why the last Finish press did not finish. An input
+ * the person can fix shows beside Finish; a failure keeps the wizard and the
+ * input as they were, and Retry runs the Finish again.
  */
 function WizardFinishNotice({ finish }: { finish: WizardFinishState }) {
+  if (finish.status === 'idle' && finish.message) {
+    return (
+      <p role="alert" className="text-destructive text-xs">
+        {finish.message}
+      </p>
+    )
+  }
   if (finish.status !== 'failed') return null
   return (
     <ViewerStatus
@@ -226,6 +235,9 @@ export function WizardShell({
   width = 'default',
   ...rest
 }: WizardShellProps) {
+  // A wizard removed elsewhere can only be closed.
+  if (rest.finish.status === 'gone') return <WizardGone />
+
   const stepLabel =
     totalSteps !== undefined
       ? `Step ${step + 1} of ${totalSteps}`

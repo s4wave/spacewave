@@ -420,6 +420,22 @@ describe('WizardViewer', () => {
     expect(mocks.t.state.creates).toEqual(['space/world/init-canvas'])
   })
 
+  it('shows the gone state, with no Retry, when another tab removed the wizard', async () => {
+    // Another tab finished first; this tab's watch has not caught up.
+    const user = userEvent.setup()
+    mocks.t.state.objects.delete('wizard/test-canvas')
+    renderViewer()
+
+    // The refused Finish goes straight to the gone state, whose only way out
+    // is to close the tab.
+    await user.click(screen.getByRole('button', { name: /create/i }))
+    expect(await screen.findByText('Wizard deleted')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /retry/i })).toBeNull()
+    expect(mocks.t.state.creates).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Close tab' }))
+    expect(mocks.closeShellTab).toHaveBeenCalledWith('tab-1')
+  })
+
   it('keeps loading while the object watch has not settled', () => {
     watchedObject = { value: null, loading: true, error: null }
     currentState = undefined as never

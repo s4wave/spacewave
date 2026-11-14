@@ -9,12 +9,12 @@ stateDiagram-v2
   s4: Failed, says why, Retry shown
   [*] --> s0
   s0 --> s1: presses Finish or Retry
-  s0 --> s2: list commits or is refused or a list from before a reload ends
-  s1 --> s3: list commits or is refused
+  s0 --> s2: list commits, or is refused as gone or a list from before a reload ends
+  s1 --> s3: list commits, or is refused as gone
   s1 --> s4: a write fails, list discarded
   s1 --> s0: tab reloads
   s3 --> s2: tab reloads
-  s4 --> s1: presses Finish or Retry
   s4 --> s0: tab reloads
-  s1 --> s2: list commits or is refused or a write fails, list discarded or tab reloads
-  s4 --> s2: list commits or is refused or a list from before a reload ends
+  s4 --> s1: presses Finish or Retry
+  s1 --> s2: a write fails, list discarded or list commits, or is refused as gone or tab reloads
+  s4 --> s2: list commits, or is refused as gone or a list from before a reload ends

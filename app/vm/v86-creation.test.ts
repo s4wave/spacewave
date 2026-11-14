@@ -18,7 +18,6 @@ const request: VmCreationRequest = {
   networking: false,
   sessionPeerId: 'peer-1',
   wizardObjectKey: 'wizard/vm-1',
-  spaceIndexPath: 'wizard/vm-1',
 }
 
 // drain runs the creation stream to its end and returns the stages.

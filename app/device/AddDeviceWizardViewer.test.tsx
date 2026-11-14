@@ -629,7 +629,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     fireEvent.click(await enabledButton(/open terminal/i))
     expect(
       await screen.findByText(
-        'Could not finish: commit failed. Already added to this Space: SSH Host build-host-1, secret build-host-ssh-password-1, terminal build-host-terminal-1. Retry with the same input reuses them; after an edit they stay in the Space and Retry adds new ones.',
+        'Could not finish: commit failed. Added so far: SSH Host build-host-1, secret build-host-ssh-password-1, terminal build-host-terminal-1. Retry reuses them unless you change the form.',
       ),
     ).toBeTruthy()
     expect(h.navigateToObjects).not.toHaveBeenCalled()

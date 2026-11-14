@@ -1,24 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
 
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 
 import {
   cancelWizard,
   finishWizard,
-  wizardGoneMessage,
+  useWizardFinish,
+  WizardGoneError,
+  WizardInputError,
   type WizardRef,
 } from './wizard-finish.js'
 import { wizardTestWorld } from './wizard-test-world.js'
 
 const createOpId = 'test/create'
 
-// wizardIn builds a ref to wizard/one in a test World whose index names it.
+// wizardIn builds a ref to wizard/one in a test World. The ref carries no
+// read of the Space index: the World decides the index move.
 function wizardIn(t: ReturnType<typeof wizardTestWorld>): WizardRef {
   return {
     spaceWorld: t.world,
     objectKey: 'wizard/one',
     sessionPeerId: 'peer-1',
-    spaceSettings: { indexPath: 'wizard/one' },
   }
 }
 
@@ -73,12 +76,42 @@ describe('finishWizard', () => {
   it('refuses the whole Finish when another tab already removed the wizard', async () => {
     // Another tab finished: its object exists and the wizard is gone.
     const t = wizardTestWorld(['obj/other'], 'obj/other')
-    const stale = { ...wizardIn(t), spaceSettings: { indexPath: 'wizard/one' } }
-    await expect(finishWizard(stale, plan)).rejects.toThrow(wizardGoneMessage)
+    await expect(finishWizard(wizardIn(t), plan)).rejects.toThrow(
+      WizardGoneError,
+    )
 
     // No second object, and the other tab's index stands.
     expect(t.state.creates).toEqual([])
     expect(t.state.indexPath).toBe('obj/other')
+  })
+
+  it('moves an index that names the wizard though no settings were read', async () => {
+    // The settings watch had not loaded, or lagged a write that pointed the
+    // index at the wizard: the World still names the wizard when the list
+    // applies, so the index moves to the target.
+    const t = wizardTestWorld(['wizard/one'], 'canvas/main')
+    t.state.indexPath = 'wizard/one'
+    await finishWizard(wizardIn(t), plan)
+
+    expect(t.state.indexPath).toBe('obj/one')
+    expect(t.state.objects.has('wizard/one')).toBe(false)
+  })
+
+  it('reports a Finish whose commit was sent before an abort as done', async () => {
+    // The caller aborts while the commit is in flight; the commit lands.
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    let open = () => {}
+    t.commitGate = new Promise((resolve) => (open = resolve))
+    const abort = new AbortController()
+    const finishing = finishWizard(wizardIn(t), plan, abort.signal)
+    await vi.waitFor(() => expect(t.calls).toContain('delete'))
+    abort.abort()
+    open()
+
+    // The outcome is the commit's: it landed, so the Finish resolves.
+    await expect(finishing).resolves.toBeUndefined()
+    expect(t.calls).not.toContain('discard')
+    expect(t.state.creates).toEqual([createOpId])
   })
 
   it('leaves an index another writer moved', async () => {
@@ -101,8 +134,46 @@ describe('cancelWizard', () => {
 
   it('counts a wizard already deleted as cancelled', async () => {
     const t = wizardTestWorld([], '')
-    await cancelWizard({ ...wizardIn(t), spaceSettings: {} }, '')
+    await cancelWizard(wizardIn(t), '')
 
     expect(t.calls).toContain('commit')
+  })
+})
+
+describe('useWizardFinish', () => {
+  it('returns to idle with the message when prepare refuses the input', async () => {
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
+
+    // Nothing was attempted: the press offers Finish again, not Retry.
+    await act(() =>
+      result.current.finish(() => {
+        throw new WizardInputError('Enter a name')
+      }, vi.fn()),
+    )
+    expect(result.current.state).toEqual({
+      status: 'idle',
+      message: 'Enter a name',
+    })
+    expect(t.calls).toEqual([])
+  })
+
+  it('commits but does not navigate once the wizard unmounted', async () => {
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
+    let open = () => {}
+    t.commitGate = new Promise((resolve) => (open = resolve))
+    const onDone = vi.fn()
+    const { result, unmount } = renderHook(() => useWizardFinish(wizardIn(t)))
+
+    // The view closes while the commit is in flight.
+    const pressed = result.current.finish(() => Promise.resolve(plan), onDone)
+    await vi.waitFor(() => expect(t.calls).toContain('delete'))
+    unmount()
+    open()
+
+    // The Finish landed, and nothing navigates from the closed view.
+    await expect(pressed).resolves.toEqual({ status: 'done' })
+    expect(t.state.creates).toEqual([createOpId])
+    expect(onDone).not.toHaveBeenCalled()
   })
 })

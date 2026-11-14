@@ -46,6 +46,7 @@ import { V86SourceStep } from './V86SourceStep.js'
 import { VmCreationProgressScreen } from './VmCreationProgressScreen.js'
 import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
+import { wizardFinishView } from './wizard-finish.js'
 
 // decodeConfig reads the wizard config, or an empty one when it is missing or
 // does not decode.
@@ -380,7 +381,6 @@ interface UseV86FinalizeArgs {
   localName: string
   sessionPeerId: string
   objectKey: string
-  spaceIndexPath: string
   cdnImage: V86Image | undefined
   persistDraftState: () => Promise<void>
   startCreation: (request: VmCreationRequest) => void
@@ -397,7 +397,6 @@ function useV86Finalize({
   localName,
   sessionPeerId,
   objectKey,
-  spaceIndexPath,
   cdnImage,
   persistDraftState,
   startCreation,
@@ -433,7 +432,6 @@ function useV86Finalize({
           vmName: localName,
           sessionPeerId,
           wizardObjectKey: objectKey,
-          spaceIndexPath,
           root,
           cdnImage,
           spaceWorld,
@@ -453,7 +451,6 @@ function useV86Finalize({
     root,
     cdnImage,
     objectKey,
-    spaceIndexPath,
     spaceWorld,
     persistDraftState,
     startCreation,
@@ -558,8 +555,8 @@ export function VmV86WizardViewer({
     objectKey,
     persistDraftState,
     sessionPeerId,
-    spaceSettings,
     state,
+    wizardGone,
     wizardResource,
   } = useWizardState({ objectInfo, worldState }, undefined)
   const cfg = useMemo(() => decodeConfig(configData), [configData])
@@ -595,7 +592,6 @@ export function VmV86WizardViewer({
     localName,
     sessionPeerId,
     objectKey,
-    spaceIndexPath: spaceSettings?.indexPath ?? '',
     cdnImage,
     persistDraftState,
     startCreation,
@@ -636,7 +632,10 @@ export function VmV86WizardViewer({
         nameLabel="VM name"
         namePlaceholder="e.g. debian-lab"
         nameStep={1}
-        finish={creating ? { status: 'finishing' } : { status: 'idle' }}
+        finish={wizardFinishView(
+          creating ? { status: 'finishing' } : { status: 'idle' },
+          wizardGone,
+        )}
         creatingLabel="Starting VM creation…"
         onFinalize={finalizeClick}
         canFinalize={!finalizeBlocker(cfg, cdnImage, sessionPeerId)}

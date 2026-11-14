@@ -8,7 +8,7 @@ import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
-import { useWizardFinish } from './wizard-finish.js'
+import { useWizardFinish, WizardInputError } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const ForgeJobWizardTypeID = 'wizard/forge/job'
@@ -42,9 +42,10 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
           return name ? [{ ...task, name }] : []
         })
         if (!selectedCluster || !ws.localName.trim()) {
-          throw new Error('Choose a cluster and name the job')
+          throw new WizardInputError('Choose a cluster and name the job')
         }
-        if (validTasks.length === 0) throw new Error('Add a named task')
+        if (validTasks.length === 0)
+          throw new WizardInputError('Add a named task')
         await ws.persistDraftState()
         const jobKey = await buildForgeObjectKey(
           ws.spaceWorld,

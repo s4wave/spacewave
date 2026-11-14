@@ -8,7 +8,7 @@ import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
-import { useWizardFinish } from './wizard-finish.js'
+import { useWizardFinish, WizardInputError } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const ForgeTaskWizardTypeID = 'wizard/forge/task'
@@ -45,7 +45,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
         // Check and save the draft and choose the key before the write
         // transaction opens, so it holds the writer only for the writes.
         if (!selectedJob || !ws.localName.trim()) {
-          throw new Error('Choose a job and name the task')
+          throw new WizardInputError('Choose a job and name the task')
         }
         await ws.persistDraftState()
         const taskKey = await buildForgeObjectKey(

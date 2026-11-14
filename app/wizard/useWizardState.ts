@@ -11,6 +11,7 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
+import { useObjectQuery } from '@s4wave/web/sync/useObjectQuery.js'
 import type { WizardState } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 
@@ -20,6 +21,9 @@ import { cancelWizard } from './wizard-finish.js'
 export interface UseWizardStateResult {
   objectKey: string
   state: WizardState | undefined
+  // wizardGone is true once a settled watch on the wizard object finds it
+  // removed, by this view's own Finish or by another writer.
+  wizardGone: boolean
   localName: string
   sessionPeerId: string
   spaceWorld: ReturnType<typeof SpaceContainerContext.useContext>['spaceWorld']
@@ -39,6 +43,9 @@ export interface UseWizardStateResult {
   // omitted.
   handleCancel: (indexPath?: string) => Promise<void>
 }
+
+// objectExists projects a present wizard object to true.
+const objectExists = () => Promise.resolve(true)
 
 // useWizardState encapsulates the shared wizard resource access, local name
 // sync, cancel, back, and config-data-change logic used by all wizard viewers.
@@ -129,17 +136,20 @@ export function useWizardState(
   const spaceSettings = spaceState.settings
   const handleCancel = useCallback(
     async (indexPath = '') => {
-      await cancelWizard(
-        { objectKey, spaceWorld, spaceSettings, sessionPeerId },
-        indexPath,
-      )
+      await cancelWizard({ objectKey, spaceWorld, sessionPeerId }, indexPath)
     },
-    [objectKey, sessionPeerId, spaceSettings, spaceWorld],
+    [objectKey, sessionPeerId, spaceWorld],
   )
+
+  // The watch reports null once the wizard object is gone.
+  const watched = useObjectQuery(worldState, objectKey, objectExists)
+  const wizardGone =
+    !watched.loading && !watched.error && watched.value === null
 
   return {
     objectKey,
     state,
+    wizardGone,
     localName,
     sessionPeerId,
     spaceWorld,

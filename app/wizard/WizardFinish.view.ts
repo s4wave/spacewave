@@ -11,7 +11,7 @@ export const title = 'Wizard Finish: one atomic list'
 export const state = (v: Finish) => {
   // The chart follows tab a; tab b acts as the other writer.
   const c = v.control.a
-  if (!v.wizard && (c === 'idle' || c === 'failed')) {
+  if (c === 'gone' || (!v.wizard && (c === 'idle' || c === 'failed'))) {
     return 'Wizard gone, Close tab shown'
   }
   if (c === 'idle') return 'Finish shown'
@@ -26,10 +26,11 @@ export const step = (action: string, from: Finish, to: Finish) => {
 
   // Each action names the edge it draws.
   if (action === 'Press') return 'presses Finish or Retry'
-  if (action === 'Commit') return 'list commits or is refused'
+  if (action === 'Commit') return 'list commits, or is refused as gone'
   if (action === 'Discard') return 'a write fails, list discarded'
   if (action === 'Reload') return 'tab reloads'
   if (action === 'OrphanEnds') return 'a list from before a reload ends'
   if (action === 'MoveIndex') return 'another writer moves the index'
+  if (action === 'Watch') return null
   return null
 }

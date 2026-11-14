@@ -169,7 +169,7 @@ function describeSshAttempt(attempt: SshAddAttempt): string {
   if (attempt.terminalObjectKey) {
     keys.push(`terminal ${attempt.terminalObjectKey}`)
   }
-  return `Already added to this Space: ${keys.join(', ')}. Retry with the same input reuses them; after an edit they stay in the Space and Retry adds new ones.`
+  return `Added so far: ${keys.join(', ')}. Retry reuses them unless you change the form.`
 }
 
 interface SshCredentialDraft {

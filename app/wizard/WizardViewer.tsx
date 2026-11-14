@@ -4,8 +4,6 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { useObjectQuery } from '@s4wave/web/sync/useObjectQuery.js'
-import { useShellTabs, useTabId } from '../ShellTabContext.js'
 import {
   lookupCreateOpBuilder,
   buildForgeObjectKey,
@@ -16,7 +14,8 @@ import { normalizeObjectWizards } from '../space/object-wizards.js'
 import { useObjectWizards } from '../space/useObjectWizards.js'
 
 import { useWizardState } from './useWizardState.js'
-import { useWizardFinish } from './wizard-finish.js'
+import { useWizardFinish, WizardInputError } from './wizard-finish.js'
+import { WizardGone } from './WizardGone.js'
 import { WizardShell } from './WizardShell.js'
 
 export const WizardTypePrefix = 'wizard/'
@@ -30,35 +29,6 @@ function validateTargetName(targetTypeId: string | undefined, name: string) {
   return 'Use 1–63 lowercase letters, numbers, or hyphens; start and end with a letter or number.'
 }
 
-// objectExists projects a present wizard object to true. The watch reports null
-// once the object is gone.
-const objectExists = () => Promise.resolve(true)
-
-// WizardDeleted tells the person the watched wizard object is gone and offers
-// to close the shell tab that showed it.
-function WizardDeleted() {
-  const tabId = useTabId()
-  const { closeShellTab } = useShellTabs()
-  const closeTab = useCallback(() => {
-    if (tabId) closeShellTab(tabId)
-  }, [tabId, closeShellTab])
-  return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <LoadingCard
-          view={{
-            state: 'error',
-            title: 'Wizard deleted',
-            detail: 'This wizard no longer exists.',
-            onCancel: tabId ? closeTab : undefined,
-            cancelLabel: 'Close tab',
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
 export function WizardViewer(props: ObjectViewerComponentProps) {
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const wizards = useObjectWizards().value?.wizards
@@ -67,17 +37,6 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
   const ws = useWizardState(props, undefined)
   const { state } = ws
   const finish = useWizardFinish(ws)
-  const finishing =
-    finish.state.status === 'finishing' || finish.state.status === 'done'
-
-  // The watched object decides the deleted state: a settled watch that finds
-  // no object means the wizard is gone, whatever state was last streamed.
-  // Finish deletes the wizard itself before it navigates away, so the watch
-  // can report the object gone once the Finish commits; that is not a
-  // deletion to show.
-  const watched = useObjectQuery(props.worldState, ws.objectKey, objectExists)
-  const deleted =
-    !finishing && !watched.loading && !watched.error && watched.value === null
 
   // Resolve configTypeId from the wizard state and use a separate config editor.
   const configEditor = useConfigEditor(
@@ -109,7 +68,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
         const nameError = name
           ? validateTargetName(state.targetTypeId, name)
           : 'Enter a name'
-        if (nameError) throw new Error(nameError)
+        if (nameError) throw new WizardInputError(nameError)
         await ws.persistDraftState()
         const key = await (
           state.targetTypeId?.startsWith('forge/')
@@ -137,7 +96,9 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
     void ws.handleCancel()
   }, [ws])
 
-  if (deleted) return <WizardDeleted />
+  // The gone state shows before the wizard state loads, since a removed
+  // wizard may never stream one.
+  if (finish.state.status === 'gone') return <WizardGone />
 
   if (!state) {
     return (
