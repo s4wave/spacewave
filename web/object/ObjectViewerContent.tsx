@@ -162,7 +162,11 @@ function MissingViewerCard({
   )
 }
 
-// MountedViewer mounts the selected viewer component with the object it shows.
+// MountedViewer mounts the selected viewer component with the object it shows,
+// in a slot that is the size container named pane. A viewer lays out by the
+// pane's width and height through the @pane-* variants, since it sits in a grid
+// cell the person resizes on both axes. The slot fills its parent, which must
+// give it a definite height: a size container ignores its content's size.
 function MountedViewer({
   component,
   standalone,
@@ -177,7 +181,7 @@ function MountedViewer({
   return (
     <div
       className={cn(
-        'flex h-full w-full flex-col overflow-hidden',
+        'viewer-pane flex h-full w-full flex-col overflow-hidden',
         !disablePadding && 'p-1.25',
       )}
     >

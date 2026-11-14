@@ -85,6 +85,12 @@ typography:
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: 0
+  viewer-title:
+    fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontSize: 13px
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: 0
   section-title:
     fontFamily: "Manrope Variable, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
     fontSize: 12px
@@ -148,6 +154,14 @@ spacing:
   xxl: 48px
   shell-header: 28px
   panel-header: 36px
+  viewer-bar: 28px
+  viewer-press: 24px
+  viewer-pad: 8px
+  viewer-pad-roomy: 12px
+  viewer-row: 24px
+  viewer-row-coarse: 44px
+  viewer-fact-row: 28px
+  viewer-rail: 32px
 
 components:
   app-canvas:
@@ -623,6 +637,74 @@ Rules:
   page-scale title.
 - Do not show empty placeholder sections above sections with real content.
 
+An object viewer's own bar is not a panel header; it follows Viewer Pane.
+
+### Viewer Pane
+
+An object viewer shows one object in a grid cell the person resizes on both
+axes, from a 200x120 tile to a full tab. `MountedViewer` in
+`web/object/ObjectViewerContent.tsx` mounts every viewer in a slot with the
+`viewer-pane` utility, which makes it the size container named `pane` (inline
+and block size). A viewer reads that pane, never the window: write each
+breakpoint with an `@pane-*` variant or `@container pane`. Size containment
+ignores the slot's content, so whatever mounts a viewer gives the slot a
+definite height (a stretching flex row, a sized box, or a definite `h-full`
+chain); otherwise the pane collapses to nothing. A container query cannot
+style its own container, so padding and tracks that step with the pane go on
+the viewer's children. The slot's own `p-1.25` inset sits outside the pane:
+queries measure the width and height inside it.
+
+A larger pane shows more of the work (rows, columns, a side column), never
+larger type or taller rows. Every size below is a `--spacing-viewer-*` token in
+`web/style/app.css`, so Tailwind gives `h-viewer-bar`, `w-viewer-side`,
+`max-w-viewer-table` and the like.
+
+| Token | Value | Use |
+|---|---:|---|
+| `viewer-bar` | 28px | One-line viewer bar; matches `shell-header` |
+| `viewer-press` | 24px | Each press in the bar |
+| `viewer-pad` | 8px | Bar and body inset, so the title and first column share an edge |
+| `viewer-pad-roomy` | 12px | The same inset from `@pane-roomy` |
+| `viewer-row` | 24px, 44px coarse | List and table rows; a coarse pointer raises it |
+| `viewer-fact-row` | 28px | A one-fact row in the body; a side column or dock packs facts in `viewer-row` |
+| `viewer-fact-label` | 4.5rem | A fact's label; also in a side column or dock |
+| `viewer-fact-label-roomy` | 6rem | A body fact's label from `@pane-roomy` |
+| `viewer-name` | 7.5rem | Least width a list row's name keeps, about 16 characters |
+| `viewer-side` | `clamp(14rem, 28cqw, 24rem)` | Side column at the pane's left edge |
+| `viewer-outline` | `clamp(10rem, 18cqw, 16rem)` | Outline side column |
+| `viewer-rail` | 32px | A side column collapsed to state glyphs |
+| `viewer-table` | 48rem | Widest a table runs; less when its columns are short |
+| `viewer-chat` | 40rem | Chat transcript and composer column |
+
+The bar is one `viewer-bar` line at every size: icon, title in
+`{typography.viewer-title}`, state, one muted line of what the object is, then
+the views or pager, the presses, Details and More. A two-fact row adds one muted
+line under its value, so one-fact rows share one height and two-fact rows
+another.
+
+The pane thresholds, each an `@pane-*` variant in `web/style/app.css`:
+
+| Variant | Pane | Changes |
+|---|---|---|
+| below `@pane-xs` | width < 20rem | Only the title and More remain in the bar |
+| `@pane-xs` | width >= 20rem | Pager and presses return to the bar |
+| `@pane-md` | width >= 28rem | The bar's muted line shows; presses unfold from More |
+| `@pane-roomy` | width >= 28rem and height >= 20rem | Inset steps from `viewer-pad` to `viewer-pad-roomy`; body fact labels widen |
+| `@pane-xl` | width >= 36rem | Views inside the object become tabs in the bar |
+| `@pane-2xl` | width >= 42rem | Side column and docked selection details; below it, Details opens them |
+| `@pane-low` | height < 12rem | The selection details sheet hides |
+| `@pane-cramped` | width < 20rem or height < 12rem | Floats over content keep only essential presses |
+
+A list, table or fact list sheds by its own width, through its own
+inline-size container, since it may sit beside a side column:
+
+| Part | Own width | Changes |
+|---|---|---|
+| List rows | < 24rem | The date column leaves with its track |
+| List rows | < 15.5rem | Size and More leave, so the name keeps `viewer-name` |
+| Fact rows | < 13rem | The label sits over its value |
+| Table | 16, 22, 28, 40rem | Further columns appear in the order the reader needs them; a state column is a glyph until 22rem |
+
 ### Focused Pages
 
 Use focused centered pages for route-level account, billing, setup, or recovery
@@ -905,11 +987,12 @@ Spacewave uses container queries and viewport-height variants heavily.
 | `@3xl` | container min-width 48rem | Fine-grained component scale-up |
 | `@4xl` | container min-width 56rem | Fine-grained component scale-up |
 | `@5xl` | container min-width 64rem | Fine-grained component scale-up |
+| `@pane-*` | the viewer pane's width and height | Object viewers; see Viewer Pane |
 
 ### Rules
 
 - App panels must work inside split panes; design for container width, not only
-  viewport width.
+  viewport width. An object viewer designs for the pane's width and height.
 - Stable chrome dimensions prevent layout shift: fixed tab heights, fixed
   header heights, fixed icon boxes, fixed progress widths.
 - Landing hides or compresses decorative content before controls overlap.
@@ -972,6 +1055,8 @@ Spacewave uses container queries and viewport-height variants heavily.
 - `web/ui/Button.tsx` and `web/ui/Input.tsx`: shadcn-compatible low-level
   primitives; polished app action/input patterns are applied through wrappers
   or source-owned class overrides.
+- `web/object/ObjectViewerContent.tsx`: the viewer slot, the `pane` size
+  container.
 - `web/ui/InfoCard.tsx`: standard static card.
 - `web/ui/DashboardButton.tsx`: compact panel action button.
 - `web/ui/RadioOption.tsx`: selected/unselected choice row.

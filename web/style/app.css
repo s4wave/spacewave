@@ -37,6 +37,18 @@
 @custom-variant @4xl (@container (min-width: 56rem));
 @custom-variant @5xl (@container (min-width: 64rem));
 
+/* Pane variants read the viewer slot, the size container named pane that the
+   viewer-pane utility makes, on both axes: a viewer sits in a grid cell the
+   person resizes, so it lays out by that cell and never by the window.
+   DESIGN.md "Viewer Pane" gives what each threshold changes. */
+@custom-variant @pane-xs (@container pane (width >= 20rem));
+@custom-variant @pane-md (@container pane (width >= 28rem));
+@custom-variant @pane-xl (@container pane (width >= 36rem));
+@custom-variant @pane-2xl (@container pane (width >= 42rem));
+@custom-variant @pane-roomy (@container pane (width >= 28rem) and (height >= 20rem));
+@custom-variant @pane-low (@container pane (height < 12rem));
+@custom-variant @pane-cramped (@container pane (width < 20rem) or (height < 12rem));
+
 @theme {
   --max-height-wizard: 80vh;
   --max-width-viewport-control: calc(100vw - 1rem);
@@ -1248,6 +1260,14 @@
   grid-template-rows: 0fr;
 }
 
+/* viewer-pane makes a viewer's slot the size container named pane, whose
+   inline and block size the @pane-* variants and cqw units read. Size
+   containment ignores the slot's content, so the slot's parent must give it a
+   definite height, or the pane collapses to nothing. */
+@utility viewer-pane {
+  container: pane / size;
+}
+
 @utility font-no-ligatures {
   font-variant-ligatures: none;
 }
@@ -1796,6 +1816,25 @@
   --spacing-bar: 22px;
   --spacing-shell-header: 28px;
   --spacing-app-logo-inset: 3.5px;
+
+  /* Viewer pane: the sizes every viewer shares at every pane size, so a larger
+     pane shows more rows and columns, never larger type or rows. The bar
+     matches the shell header. Side column and outline widths resolve cqw
+     against the pane. DESIGN.md "Viewer Pane" gives each one's use. */
+  --spacing-viewer-bar: var(--spacing-shell-header);
+  --spacing-viewer-press: 24px;
+  --spacing-viewer-pad: 8px;
+  --spacing-viewer-pad-roomy: 12px;
+  --spacing-viewer-row: 24px;
+  --spacing-viewer-fact-row: 28px;
+  --spacing-viewer-fact-label: 4.5rem;
+  --spacing-viewer-fact-label-roomy: 6rem;
+  --spacing-viewer-name: 7.5rem;
+  --spacing-viewer-side: clamp(14rem, 28cqw, 24rem);
+  --spacing-viewer-outline: clamp(10rem, 18cqw, 16rem);
+  --spacing-viewer-rail: 32px;
+  --spacing-viewer-table: 48rem;
+  --spacing-viewer-chat: 40rem;
   --color-bar: oklch(0.1776 0 0);
   --color-bar-font: oklch(1 0 0);
   --color-bar-border-top: oklch(1 0 0 / 0.1);
@@ -2112,6 +2151,11 @@ body,
 @media (pointer: coarse) {
   .hero-button {
     min-height: 2.75rem;
+  }
+
+  /* A viewer's list and table rows reach the 44px touch target. */
+  :root {
+    --spacing-viewer-row: 44px;
   }
 }
 
