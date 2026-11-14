@@ -31,6 +31,8 @@ import {
   WatchSpaceBackfillRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
+  WriteSecretPayloadRequest,
+  WriteSecretPayloadResponse,
 } from './space.pb.js'
 
 // Space is a World (Engine) wrapped into a SharedObject which contains objects.
@@ -177,6 +179,15 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<CreateSecretResponse> {
     return await this.service.CreateSecret(request, abortSignal)
+  }
+
+  // writeSecretPayload replaces an existing Secret's payload under the
+  // mounted session's writer grant, keeping the Secret and its grants.
+  public async writeSecretPayload(
+    request: WriteSecretPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WriteSecretPayloadResponse> {
+    return await this.service.WriteSecretPayload(request, abortSignal)
   }
 
   // deleteSecret deletes a Secret: its nested payload SharedObject, then its

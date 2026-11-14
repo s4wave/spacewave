@@ -227,7 +227,9 @@ function buildObjectKeyBase(prefix: string): string {
   return slugObjectKeySegment(prefixBase || 'object')
 }
 
-function slugObjectKeySegment(value: string): string {
+// slugObjectKeySegment reduces value to lowercase letters, digits and single
+// dashes for use in an object key.
+export function slugObjectKeySegment(value: string): string {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

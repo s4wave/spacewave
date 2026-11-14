@@ -37,8 +37,8 @@ export function isOpenableTerminalCapability(
 }
 
 // buildTerminalOpData encodes one CreateTerminalOp for a resolved terminal
-// target, named with a free key read from world; labelFallback names the
-// target kind when the source has no label.
+// target, at objectKey when given, else at a free key read from world;
+// labelFallback names the target kind when the source has no label.
 async function buildTerminalOpData({
   label,
   labelFallback,
@@ -47,6 +47,7 @@ async function buildTerminalOpData({
   sshHostObjectKey,
   deviceObjectKey,
   command,
+  objectKey: fixedKey,
   world,
 }: {
   label: string
@@ -56,10 +57,11 @@ async function buildTerminalOpData({
   sshHostObjectKey?: string
   deviceObjectKey?: string
   command?: string
+  objectKey?: string
   world: IWorldState
 }): Promise<TerminalOpData> {
   const name = `${label || labelFallback} Terminal`
-  const objectKey = await buildObjectKey(world, 'terminal/', name)
+  const objectKey = fixedKey || (await buildObjectKey(world, 'terminal/', name))
   return {
     objectKey,
     opData: CreateTerminalOp.toBinary({
@@ -102,11 +104,13 @@ export async function buildCreateSshHostTerminalOpData({
   hostObjectKey,
   world,
   command,
+  objectKey,
 }: {
   host: SshHost
   hostObjectKey: string
   world: IWorldState
   command?: string
+  objectKey?: string
 }): Promise<TerminalOpData | undefined> {
   if (!hostObjectKey) return undefined
   return buildTerminalOpData({
@@ -115,6 +119,7 @@ export async function buildCreateSshHostTerminalOpData({
     targetKind: TerminalTargetKind.SSH_HOST,
     sshHostObjectKey: hostObjectKey,
     command,
+    objectKey,
     world,
   })
 }

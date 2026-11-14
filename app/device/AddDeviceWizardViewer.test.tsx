@@ -21,6 +21,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 
+import { SOParticipantRole } from '@s4wave/core/sobject/sobject.pb.js'
 import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import {
@@ -46,11 +47,14 @@ import {
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import type { Quad } from '@go/github.com/s4wave/spacewave/db/block/quad/quad.pb.js'
+import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 import { Device } from '@s4wave/sdk/device/device.pb.js'
 import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 
 import { ComputersDashboardTypeID } from './computers.js'
+import { deriveSshHostKeys } from './ssh-host-keys.js'
+import { PRED_WIZARD_SSH_HOST } from './ssh-host-made.js'
 
 const h = vi.hoisted(() => ({
   computersError: null as Error | null,
@@ -67,7 +71,10 @@ const h = vi.hoisted(() => ({
   setCreating: vi.fn(),
   previewSpaceLink: vi.fn(),
   approveSpaceLink: vi.fn(),
-  createSecret: vi.fn().mockResolvedValue({ secret: {} }),
+  createSecret: vi.fn(),
+  writeSecretPayload: vi.fn().mockResolvedValue({}),
+  // secrets holds the keys of the Secrets created so far.
+  secrets: new Set<string>(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   currentStep: 1,
@@ -86,6 +93,16 @@ const h = vi.hoisted(() => ({
   bodies: {} as Record<string, Uint8Array>,
 }))
 
+// createSecret refuses a key that holds a Secret, as the Space does.
+h.createSecret.mockImplementation((req: { objectKey?: string }) => {
+  const key = req.objectKey ?? ''
+  if (h.secrets.has(key)) {
+    return Promise.reject(new Error('object already exists'))
+  }
+  h.secrets.add(key)
+  return Promise.resolve({ secret: {} })
+})
+
 // batchThroughSpies applies a Finish batch through the hoisted spies, in
 // order, and lands it through commit. An SSH Host or terminal it creates, and
 // a quad it sets, become readable only once the commit lands.
@@ -96,6 +113,16 @@ async function batchThroughSpies(mutations: WorldMutation[]) {
     if (m.mutation?.case === 'op') {
       const op = m.mutation.value
       await h.applyWorldOp(op.opTypeId, op.opData, op.opSender)
+      // A create under a key that exists is refused, as its op refuses it.
+      const created =
+        op.opTypeId === CREATE_SSH_HOST_OP_ID && op.opData
+          ? CreateSshHostOp.fromBinary(op.opData).objectKey
+          : op.opTypeId === CREATE_TERMINAL_OP_ID && op.opData
+            ? CreateTerminalOp.fromBinary(op.opData).objectKey
+            : undefined
+      if (created && h.bodies[created]) {
+        throw new Error('object already exists')
+      }
       if (op.opTypeId === CREATE_SSH_HOST_OP_ID && op.opData) {
         const host = CreateSshHostOp.fromBinary(op.opData)
         bodies[host.objectKey ?? ''] = SshHost.toBinary({
@@ -173,6 +200,12 @@ vi.mock('../wizard/useWizardState.js', () => ({
       ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
+      getObject: (key: string) =>
+        Promise.resolve(
+          h.bodies[key] || h.secrets.has(key)
+            ? { [Symbol.dispose]: () => {} }
+            : null,
+        ),
       ...linkedWorld,
       getEngine: () => ({ executeWorldBatch: batchThroughSpies }),
     },
@@ -212,6 +245,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
     useContext: () => ({
       value: {
         createSecret: h.createSecret,
+        writeSecretPayload: h.writeSecretPayload,
       },
     }),
   },
@@ -353,6 +387,7 @@ describe('AddDeviceWizardViewer', () => {
     h.devicePeers = { 'devices/build-host': buildHostPeer }
     h.quads = []
     h.bodies = {}
+    h.secrets.clear()
     h.worldObjects = [
       { objectKey: 'computers', objectType: ComputersDashboardTypeID },
       { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
@@ -713,9 +748,10 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     })
     fireEvent.click(await enabledButton(/open terminal/i))
 
+    const keys = await sshKeys()
     await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
     expect(h.createSecret).toHaveBeenCalledWith({
-      objectKey: 'build-host-ssh-password-1',
+      objectKey: keys.password,
       displayName: 'Build Host SSH password',
       kind: SecretKindSSHPassword,
       contentType: SSHTextCredentialContentType,
@@ -723,6 +759,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       readerPublicKeyPem: new TextEncoder().encode(
         '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
       ),
+      participantRole: SOParticipantRole.SOParticipantRole_WRITER,
     })
 
     const hostCall = h.applyWorldOp.mock.calls.find(
@@ -734,14 +771,14 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       throw new Error('expected SSH Host op bytes')
     }
     const hostOp = CreateSshHostOp.fromBinary(hostOpData)
-    expect(hostOp.objectKey).toBe('build-host-1')
+    expect(hostOp.objectKey).toBe(keys.host)
     expect(hostOp.endpoint).toEqual({
       host: 'build.example.com',
       port: 2222,
       username: 'ubuntu',
     })
     expect(hostOp.credentials).toEqual({
-      passwordSecretObjectKey: 'build-host-ssh-password-1',
+      passwordSecretObjectKey: keys.password,
     })
     expect(JSON.stringify(hostOp)).not.toContain('raw-secret-value')
 
@@ -755,7 +792,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     }
     const terminalOp = CreateTerminalOp.fromBinary(terminalOpData)
     expect(terminalOp.targetKind).toBe(TerminalTargetKind.SSH_HOST)
-    expect(terminalOp.sshHostObjectKey).toBe('build-host-1')
+    expect(terminalOp.sshHostObjectKey).toBe(keys.host)
     expect(terminalOp.deviceObjectKey ?? '').toBe('')
     expect(terminalOp.devicePeerId ?? '').toBe('')
     expect(JSON.stringify(terminalOp)).not.toContain('raw-secret-value')
@@ -766,7 +803,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       ),
     ).toBe(false)
     expectIndexMovedBeforeDelete('computers')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith([`${keys.host}-terminal`])
   })
 
   it('keeps the SSH Host and terminal it made when Finish fails, and Retry creates neither again', async () => {
@@ -788,10 +825,9 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
 
     // Retry resumes after the terminal: one secret, host and terminal.
     fireEvent.click(await enabledButton(/retry/i))
+    const terminalKey = `${(await sshKeys()).host}-terminal`
     await waitFor(() =>
-      expect(h.navigateToObjects).toHaveBeenCalledWith([
-        'build-host-terminal-1',
-      ]),
+      expect(h.navigateToObjects).toHaveBeenCalledWith([terminalKey]),
     )
     const count = (id: string) =>
       h.applyWorldOp.mock.calls.filter(([opId]) => opId === id).length
@@ -851,16 +887,91 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
 
     // Finish opens the terminal made before and creates nothing again.
     fireEvent.click(await enabledButton(/open terminal/i))
+    const terminalKey = `${(await sshKeys()).host}-terminal`
     await waitFor(() =>
-      expect(h.navigateToObjects).toHaveBeenCalledWith([
-        'build-host-terminal-1',
-      ]),
+      expect(h.navigateToObjects).toHaveBeenCalledWith([terminalKey]),
     )
     const count = (id: string) =>
       h.applyWorldOp.mock.calls.filter(([opId]) => opId === id).length
     expect(h.createSecret).toHaveBeenCalledTimes(1)
     expect(sshHostEndpoints()).toEqual(['build.example.com'])
     expect(count(CREATE_TERMINAL_OP_ID)).toBe(1)
+  })
+
+  it('replaces the Secret with the corrected password when the host create failed', async () => {
+    // The person entered a host and a wrong password.
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'wrong-fake-password' },
+    })
+
+    // The Secret lands, then the host create fails.
+    h.commit.mockRejectedValueOnce(new Error('host create failed'))
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText(/^Could not finish: host create failed/),
+    ).toBeTruthy()
+
+    // The person corrects the password and presses again: the Secret under
+    // the same key takes the corrected payload, and the host lands once.
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'corrected-fake-password' },
+    })
+    fireEvent.click(await enabledButton(/retry/i))
+    const keys = await sshKeys()
+    const terminalKey = `${keys.host}-terminal`
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith([terminalKey]),
+    )
+    expect(h.createSecret).toHaveBeenCalledTimes(1)
+    expect(h.writeSecretPayload).toHaveBeenCalledTimes(1)
+    expect(h.writeSecretPayload).toHaveBeenCalledWith({
+      objectKey: keys.password,
+      expectedKind: SecretKindSSHPassword,
+      contentType: SSHTextCredentialContentType,
+      value: new TextEncoder().encode('corrected-fake-password'),
+    })
+    expect(Object.keys(h.bodies).sort()).toEqual([keys.host, terminalKey])
+  })
+
+  it('keeps one Secret, host and terminal when another tab creates them first', async () => {
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'fake-password' },
+    })
+
+    // Another tab with the same entries lands the Secret, then the host
+    // with the wizard's link, while this press runs.
+    const keys = await sshKeys()
+    h.createSecret.mockImplementationOnce((req: { objectKey?: string }) => {
+      h.secrets.add(req.objectKey ?? '')
+      h.bodies[keys.host] = SshHost.toBinary({
+        label: 'Build Host',
+        endpoint: { host: 'build.example.com', port: 2222, username: 'ubuntu' },
+        credentials: { passwordSecretObjectKey: keys.password },
+      })
+      h.quads.push({
+        subject: keyToIRI('wizard/device-setup'),
+        predicate: PRED_WIZARD_SSH_HOST,
+        obj: keyToIRI(keys.host),
+      })
+      return Promise.reject(new Error('object already exists'))
+    })
+    fireEvent.click(await enabledButton(/open terminal/i))
+
+    // This press writes its payload to the Secret and opens the host the
+    // other tab made.
+    const terminalKey = `${keys.host}-terminal`
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith([terminalKey]),
+    )
+    expect([...h.secrets]).toEqual([keys.password])
+    expect(h.writeSecretPayload).toHaveBeenCalledTimes(1)
+    expect(Object.keys(h.bodies).sort()).toEqual([keys.host, terminalKey])
   })
 
   it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
@@ -887,6 +998,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     ).toBeTruthy()
     fireEvent.click(await enabledButton(/open terminal/i))
 
+    const keys = await sshKeys('build.example.com', 22)
     await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
     expect(h.createSecret).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -899,7 +1011,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
         ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
       ),
     ).toBe(true)
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith([`${keys.host}-terminal`])
   })
 
   it('allows private-key auth without passphrase or prefilled host key trust', async () => {
@@ -928,9 +1040,10 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     )
     fireEvent.click(await enabledButton(/open terminal/i))
 
+    const keys = await sshKeys('192.168.1.15', 1940, 'root')
     await waitFor(() => expect(h.createSecret).toHaveBeenCalledTimes(1))
     expect(h.createSecret).toHaveBeenCalledWith({
-      objectKey: 'build-host-ssh-private-key-1',
+      objectKey: keys.privateKey,
       displayName: 'Build Host SSH private key',
       kind: SecretKindSSHPrivateKey,
       contentType: SSHPrivateKeyContentType,
@@ -938,6 +1051,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       readerPublicKeyPem: new TextEncoder().encode(
         '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
       ),
+      participantRole: SOParticipantRole.SOParticipantRole_WRITER,
     })
 
     const hostCall = h.applyWorldOp.mock.calls.find(
@@ -955,7 +1069,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       username: 'root',
     })
     expect(hostOp.credentials).toEqual({
-      privateKeySecretObjectKey: 'build-host-ssh-private-key-1',
+      privateKeySecretObjectKey: keys.privateKey,
     })
     expect(hostOp.hostKeyPins ?? []).toHaveLength(0)
   })
@@ -1172,6 +1286,16 @@ function failWizardRemoval() {
     .mockResolvedValueOnce(undefined)
     .mockResolvedValueOnce(undefined)
     .mockRejectedValueOnce(new Error('commit failed'))
+}
+
+// sshKeys derives the keys the wizard writes for the Build Host label and
+// the endpoint given.
+function sshKeys(host = 'build.example.com', port = 2222, username = 'ubuntu') {
+  return deriveSshHostKeys('wizard/device-setup', 'Build Host', {
+    host,
+    port,
+    username,
+  })
 }
 
 // sshConfigData is an SSH Host wizard's config for the host given.
