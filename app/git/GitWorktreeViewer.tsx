@@ -202,7 +202,10 @@ function useWorktreeResources(
   }
 }
 
-/** useStatusEntryRenderer decorates file entries with their change letter. */
+/**
+ * useStatusEntryRenderer adds each changed entry's change letter at the end of
+ * its name cell.
+ */
 function useStatusEntryRenderer(statusEntries: StatusEntry[]) {
   const statusMap = useMemo(() => {
     const map = new Map<string, StatusEntry>()
@@ -225,17 +228,17 @@ function useStatusEntryRenderer(statusEntries: StatusEntry[]) {
       if (!code) return props.defaultNode
 
       return (
-        <div className="flex w-full items-center">
-          <div className="min-w-0 flex-1">{props.defaultNode}</div>
+        <>
+          {props.defaultNode}
           <span
             className={cn(
-              'mr-2 shrink-0 font-mono text-xs font-medium',
+              'ms-auto me-2 shrink-0 font-mono text-xs font-medium',
               statusCodeToColor(code),
             )}
           >
             {statusCodeToLetter(code)}
           </span>
-        </div>
+        </>
       )
     },
     [statusMap],

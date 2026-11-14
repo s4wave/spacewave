@@ -25,7 +25,7 @@ import {
 } from '@s4wave/web/ui/list'
 import type { AppDragEnvelope } from '@s4wave/web/dnd/app-drag.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
-import { FileEntry, GetFileEntryDetailsCallback } from './types.js'
+import type { FileEntry, FileEntryDetailsMap } from './types.js'
 import { SortColumn, sortFileEntries } from './FileListState.js'
 import { FileListEntry } from './FileListEntry.js'
 import type { RenderEntryCallback } from './FileListEntry.js'
@@ -36,7 +36,9 @@ export interface FileListDragEnvelopeContext {
 
 interface FileListProps {
   entries: FileEntry[]
-  getEntryDetails?: GetFileEntryDetailsCallback
+  // entryDetails are each entry's date and size; a list without them, such as
+  // a git tree, offers no Date or Size column.
+  entryDetails?: FileEntryDetailsMap
   onOpen?: (entries: FileEntry[]) => void
   onContextMenu?: (item: ListItem<FileEntry>, event: MouseEvent) => void
   // state is the List state from useFileListState.
@@ -68,7 +70,7 @@ interface FileListProps {
 
 type FileListRowConfig = Pick<
   FileListProps,
-  | 'getEntryDetails'
+  | 'entryDetails'
   | 'loadingId'
   | 'renderEntry'
   | 'currentPath'
@@ -97,14 +99,31 @@ function isSortColumn(key: string): key is SortColumn {
   return key === 'name' || key === 'date' || key === 'size'
 }
 
-// sortFn adapts sortFileEntries to the ListSortFn interface.
-const sortFn: ListSortFn<FileEntry> = (items, sortKey, sortDirection) => {
-  const entriesWithData = items.flatMap((item) =>
-    item.data ? [item.data] : [],
-  )
-  const column = isSortColumn(sortKey) ? sortKey : 'name'
-  const sorted = sortFileEntries(entriesWithData, column, sortDirection)
-  return sorted.map((entry) => ({ id: entry.id, data: entry }))
+// sortColumn reads the column a list sorts by. A list without entry details
+// has no Date or Size column, so a date or size sort, which the file browser
+// state shares between lists, sorts it by name.
+function sortColumn(key: string | undefined, details: boolean): SortColumn {
+  if (!key || !isSortColumn(key)) return 'name'
+  return details ? key : 'name'
+}
+
+// buildSortFn adapts sortFileEntries to the ListSortFn interface, sorting by
+// the same details the cells draw: one map lookup per entry, none per
+// comparison.
+function buildSortFn(
+  details: FileEntryDetailsMap | undefined,
+): ListSortFn<FileEntry> {
+  return (items, sortKey, sortDirection) => {
+    const column = sortColumn(sortKey, !!details)
+    const sortable = items.flatMap((item) =>
+      item.data ? [{ ...item.data, details: details?.get(item.id) }] : [],
+    )
+    const sorted = sortFileEntries(sortable, column, sortDirection)
+    return sorted.map(({ details: _, ...entry }) => ({
+      id: entry.id,
+      data: entry,
+    }))
+  }
 }
 
 // useFileListState keeps a FileList's selection and sort in the file browser
@@ -120,7 +139,7 @@ export function useFileListState(): ListStateHandle {
 // FileList renders a file browser list with column headers.
 export function FileList({
   entries,
-  getEntryDetails,
+  entryDetails,
   onOpen,
   onContextMenu,
   state,
@@ -165,7 +184,7 @@ export function FileList({
   // Collect what every row reads, so rows rerender only when it changes.
   const rowConfig = useMemo<FileListRowConfig>(
     () => ({
-      getEntryDetails,
+      entryDetails,
       loadingId,
       renderEntry,
       currentPath,
@@ -181,7 +200,7 @@ export function FileList({
       dropTargetEntryId,
       getDragEnvelope,
       getDownloadDragTarget,
-      getEntryDetails,
+      entryDetails,
       loadingId,
       onEntryDragLeave,
       onEntryDragOver,
@@ -190,70 +209,86 @@ export function FileList({
     ],
   )
 
+  // Offer Date and Size only when the caller can fill them.
+  const hasDetails = !!entryDetails
+  const sortFn = useMemo(() => buildSortFn(entryDetails), [entryDetails])
+
   // Draw the column headers the list's width shows, with the sort chevron.
-  const renderHeader = useCallback(({ state, dispatch }: RenderHeaderProps) => {
-    // Read the sort the header shows, defaulting to name ascending.
-    const key = state.sortKey ?? 'name'
-    const sortKey: SortColumn = isSortColumn(key) ? key : 'name'
-    const sortDirection = state.sortDirection ?? 'asc'
-    const SortChevron = sortDirection === 'asc' ? LuChevronDown : LuChevronUp
+  const renderHeader = useCallback(
+    ({ state, dispatch }: RenderHeaderProps) => {
+      // Read the sort the header shows, defaulting to name ascending.
+      const sortKey = sortColumn(state.sortKey, hasDetails)
+      const sortDirection = state.sortDirection ?? 'asc'
+      const SortChevron = sortDirection === 'asc' ? LuChevronDown : LuChevronUp
 
-    // Sort by a column; the List flips direction when it is already sorted.
-    const handleSort = (column: SortColumn) => {
-      dispatch({ type: 'SET_SORT', sortKey: column })
-    }
+      // Sort by a column; the List flips direction when it is already sorted.
+      const handleSort = (column: SortColumn) => {
+        dispatch({ type: 'SET_SORT', sortKey: column })
+      }
 
-    return (
-      <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3.5 text-xs select-none">
-        <button
-          type="button"
-          className={cn(
-            'flex min-w-viewer-name flex-1 cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
-            sortKey === 'name' && 'text-foreground',
-          )}
-          onClick={() => handleSort('name')}
-        >
-          <span>Name</span>
-          {sortKey === 'name' && <SortChevron aria-hidden className="size-3" />}
-          {sortKey !== 'name' && (
-            <span
-              className={cn(
-                'text-foreground-alt flex items-center gap-1',
-                sortKey === 'date' && '@min-[24rem]/file-list:hidden',
-                sortKey === 'size' && '@min-[15.5rem]/file-list:hidden',
-              )}
-            >
-              by {sortKey === 'date' ? 'date' : 'size'}
+      return (
+        <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3.5 text-xs select-none">
+          <button
+            type="button"
+            className={cn(
+              'flex min-w-viewer-name flex-1 cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+              sortKey === 'name' && 'text-foreground',
+            )}
+            onClick={() => handleSort('name')}
+          >
+            <span>Name</span>
+            {sortKey === 'name' && (
               <SortChevron aria-hidden className="size-3" />
-            </span>
+            )}
+            {sortKey !== 'name' && (
+              <span
+                className={cn(
+                  'text-foreground-alt flex items-center gap-1',
+                  sortKey === 'date' && '@min-[24rem]/file-list:hidden',
+                  sortKey === 'size' && '@min-[15.5rem]/file-list:hidden',
+                )}
+              >
+                by {sortKey === 'date' ? 'date' : 'size'}
+                <SortChevron aria-hidden className="size-3" />
+              </span>
+            )}
+          </button>
+          {hasDetails && (
+            <>
+              <button
+                type="button"
+                className={cn(
+                  'hidden w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left text-xs @min-[24rem]/file-list:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+                  sortKey === 'date' && 'text-foreground',
+                )}
+                onClick={() => handleSort('date')}
+              >
+                <span>Date Modified</span>
+                {sortKey === 'date' && (
+                  <SortChevron aria-hidden className="size-3" />
+                )}
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'hidden w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent px-0 py-1.5 text-left text-xs @min-[15.5rem]/file-list:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
+                  sortKey === 'size' && 'text-foreground',
+                )}
+                onClick={() => handleSort('size')}
+              >
+                {sortKey === 'size' && (
+                  <SortChevron aria-hidden className="size-3" />
+                )}
+                <span>Size</span>
+              </button>
+            </>
           )}
-        </button>
-        <button
-          type="button"
-          className={cn(
-            'hidden w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent px-0 py-1.5 text-left text-xs @min-[24rem]/file-list:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
-            sortKey === 'date' && 'text-foreground',
-          )}
-          onClick={() => handleSort('date')}
-        >
-          <span>Date Modified</span>
-          {sortKey === 'date' && <SortChevron aria-hidden className="size-3" />}
-        </button>
-        <button
-          type="button"
-          className={cn(
-            'hidden w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent px-0 py-1.5 text-left text-xs @min-[15.5rem]/file-list:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-0',
-            sortKey === 'size' && 'text-foreground',
-          )}
-          onClick={() => handleSort('size')}
-        >
-          {sortKey === 'size' && <SortChevron aria-hidden className="size-3" />}
-          <span>Size</span>
-        </button>
-        <div className="w-8 shrink-0 [@media(pointer:coarse)]:w-11" />
-      </div>
-    )
-  }, [])
+          <div className="w-8 shrink-0 [@media(pointer:coarse)]:w-11" />
+        </div>
+      )
+    },
+    [hasDetails],
+  )
 
   return (
     <FileListRowConfigContext.Provider value={rowConfig}>

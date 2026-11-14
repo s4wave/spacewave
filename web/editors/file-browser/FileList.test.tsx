@@ -55,12 +55,48 @@ describe('FileList', () => {
   })
 
   it('should render the file list container and header', () => {
-    render(<TestFileList entries={mockEntries} />)
+    // A list given entry details offers all three columns.
+    render(
+      <TestFileList
+        entries={mockEntries}
+        entryDetails={new Map([['1', { size: 1 }]])}
+      />,
+    )
 
+    // The header names every column.
     expect(screen.getByRole('rowgroup')).toBeTruthy()
     expect(screen.getByText('Name')).toBeTruthy()
     expect(screen.getByText('Date Modified')).toBeTruthy()
     expect(screen.getByText('Size')).toBeTruthy()
+  })
+
+  it('offers no Date or Size, and sorts by name, without entry details', async () => {
+    // Start with details, as the shared file browser state may have.
+    const user = userEvent.setup()
+    const details = new Map([['1', { size: 1 }]])
+    const { rerender } = render(
+      <TestFileList entries={longFilenameEntries} entryDetails={details} />,
+    )
+
+    // Sort by date while the list can, then lose the details.
+    await user.click(screen.getByText('Date Modified'))
+    rerender(<TestFileList entries={longFilenameEntries} />)
+
+    // The header names no column it cannot fill, nor the date sort.
+    expect(screen.queryByText('Date Modified')).toBeNull()
+    expect(screen.queryByText('Size')).toBeNull()
+    expect(screen.queryByText(/by date/)).toBeNull()
+
+    // Each row has only its name cell, in name order.
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row')
+      expect(rows[0].querySelectorAll('[role="cell"]')).toHaveLength(1)
+      expect(rows.map((row) => row.textContent)).toEqual([
+        'getting-started.md',
+        'short.txt',
+        'this-is-a-very-long-filename-that-should-be-truncated-with-ellipsis.txt',
+      ])
+    })
   })
 
   it('should render file entries', async () => {
@@ -474,6 +510,82 @@ describe('FileList', () => {
         .getAllByRole('row')
         .filter((row) => row.className.includes('bg-brand/10'))
       expect(selectedRows.length).toBeGreaterThan(1)
+    })
+  })
+
+  it('sorts by the details the cells draw, and re-sorts as they arrive', async () => {
+    // Three files; c.txt has no size yet.
+    const user = userEvent.setup()
+    const entries = ['a.txt', 'b.txt', 'c.txt'].map((name) => ({
+      id: name,
+      name,
+      isDir: false,
+    }))
+    const sizes = (c?: number) =>
+      new Map([
+        ['a.txt', { size: 30 }],
+        ['b.txt', { size: 10 }],
+        ['c.txt', { size: c }],
+      ])
+    const { rerender } = render(
+      <TestFileList entries={entries} entryDetails={sizes()} />,
+    )
+
+    // Sort by size: known sizes in order, then the entry without one.
+    const names = () =>
+      screen
+        .getAllByRole('row')
+        .map((r) => r.querySelector('.truncate')?.textContent)
+    await user.click(screen.getByText('Size'))
+    await waitFor(() => expect(names()).toEqual(['b.txt', 'a.txt', 'c.txt']))
+
+    // Select c.txt, then give it a size in the next listing.
+    const row = (name: string) =>
+      screen.getAllByText(name)[0].closest<HTMLElement>('[role="row"]')!
+    await user.click(row('c.txt'))
+    rerender(<TestFileList entries={entries} entryDetails={sizes(5)} />)
+    expect(names()).toEqual(['c.txt', 'b.txt', 'a.txt'])
+
+    // The selection and the Shift anchor stayed on c.txt as it moved.
+    expect(row('c.txt').className).toContain('bg-brand/10')
+    fireEvent.click(row('b.txt'), { shiftKey: true })
+    await waitFor(() => {
+      const selected = screen
+        .getAllByRole('row')
+        .filter((r) => r.className.includes('bg-brand/10'))
+        .map((r) => r.querySelector('.truncate')?.textContent)
+      expect(selected).toEqual(['c.txt', 'b.txt'])
+    })
+  })
+
+  it('keeps the Shift range anchor on its row when entries change', async () => {
+    // List three files.
+    const user = userEvent.setup()
+    const files = (names: string[]) =>
+      names.map((name) => ({ id: name, name, isDir: false }))
+    const { rerender } = render(
+      <TestFileList entries={files(['a.txt', 'c.txt', 'e.txt'])} />,
+    )
+
+    // Select c.txt, which becomes the Shift range anchor.
+    const row = (name: string) =>
+      screen.getAllByText(name)[0].closest<HTMLElement>('[role="row"]')!
+    await user.click(row('c.txt'))
+
+    // Another writer adds b.txt above the anchor, moving c.txt down one row.
+    rerender(
+      <TestFileList entries={files(['a.txt', 'b.txt', 'c.txt', 'e.txt'])} />,
+    )
+    await waitFor(() => expect(row('b.txt')).toBeTruthy())
+    fireEvent.click(row('e.txt'), { shiftKey: true })
+
+    // The range runs from c.txt, not from the row now at its old index.
+    await waitFor(() => {
+      const selected = screen
+        .getAllByRole('row')
+        .filter((r) => r.className.includes('bg-brand/10'))
+        .map((r) => r.textContent)
+      expect(selected).toEqual(['c.txt', 'e.txt'])
     })
   })
 

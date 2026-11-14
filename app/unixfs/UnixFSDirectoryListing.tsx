@@ -5,7 +5,7 @@ import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 import type {
   FileEntry,
-  GetFileEntryDetailsCallback,
+  FileEntryDetailsMap,
 } from '@s4wave/web/editors/file-browser/types.js'
 import type { AppDragEnvelope } from '@s4wave/web/dnd/app-drag.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
@@ -63,7 +63,7 @@ interface UnixFSDirectoryListingProps {
   loadingId?: string | null
   placeholder?: ReactNode
   renderEntry?: RenderEntryCallback
-  getEntryDetails?: GetFileEntryDetailsCallback
+  entryDetails?: FileEntryDetailsMap
   onOpen: (entries: FileEntry[]) => void
   onContextMenu: (item: ListItem<FileEntry>, event: MouseEvent) => void
   // listState is the file list's selection and sort, owned by the browser.
@@ -95,7 +95,7 @@ export function UnixFSDirectoryListing({
   loadingId,
   placeholder,
   renderEntry,
-  getEntryDetails,
+  entryDetails,
   onOpen,
   onContextMenu,
   listState,
@@ -134,7 +134,7 @@ export function UnixFSDirectoryListing({
           )
         }
         renderEntry={renderEntry}
-        getEntryDetails={getEntryDetails}
+        entryDetails={entryDetails}
         currentPath={currentPath}
         getDragEnvelope={getDragEnvelope}
         getDownloadDragTarget={getDownloadDragTarget}

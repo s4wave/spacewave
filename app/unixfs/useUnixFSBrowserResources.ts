@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useMappedResource } from '@aptre/bldr-sdk/hooks/useMappedResource.js'
@@ -6,9 +6,8 @@ import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type {
-  FileEntry,
   FileEntryDetails,
-  GetFileEntryDetailsCallback,
+  FileEntryDetailsMap,
 } from '@s4wave/web/editors/file-browser/types.js'
 import {
   useUnixFSRootHandle,
@@ -80,9 +79,10 @@ export function useUnixFSBrowserResources({
     [entriesResource.value],
   )
 
-  // The listing already carries per-entry size and mod time, so the
-  // Date/Size columns resolve from it instead of a per-row stat round trip.
-  const entryDetails = useMemo(() => {
+  // The Date and Size columns read each entry's size and mod time from the
+  // listing, in one pass per listing value with no per-row stat round trip;
+  // an entry the listing sent without them shows a dash.
+  const entryDetails = useMemo<FileEntryDetailsMap>(() => {
     const details = new Map<string, FileEntryDetails>()
     for (const entry of listingResource.value?.entries ?? []) {
       if (!entry.name) continue
@@ -94,11 +94,6 @@ export function useUnixFSBrowserResources({
     }
     return details
   }, [listingResource.value])
-  const getEntryDetails = useCallback<GetFileEntryDetailsCallback>(
-    (_index: number, entry: FileEntry) =>
-      Promise.resolve(entryDetails.get(entry.id) ?? null),
-    [entryDetails],
-  )
 
   return {
     rootHandle,
@@ -106,7 +101,7 @@ export function useUnixFSBrowserResources({
     statResource,
     entriesResource,
     fileEntries,
-    getEntryDetails,
+    entryDetails,
     isDir,
   }
 }

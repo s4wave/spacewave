@@ -14,7 +14,6 @@ import {
   ListStateContext,
   type RowComponentProps,
 } from '@s4wave/web/ui/list'
-import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import {
   clearActiveAppDragEnvelope,
   type AppDragEnvelope,
@@ -27,7 +26,7 @@ import {
 import {
   FileEntry,
   FileEntryDetails,
-  GetFileEntryDetailsCallback,
+  type FileEntryDetailsMap,
 } from './types.js'
 import type { FileListDragEnvelopeContext } from './FileList.js'
 
@@ -41,7 +40,9 @@ function formatBytes(bytes: number, decimals = 0): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
 
-// RenderEntryCallback receives the default row node and entry context.
+// RenderEntryCallback draws the content of an entry's name cell, given the
+// default content (the icon and name) and the entry's directory path. The row
+// owns the cell itself, so every row sizes its columns as the header does.
 export type RenderEntryCallback = (props: {
   entry: FileEntry
   defaultNode: ReactNode
@@ -49,7 +50,7 @@ export type RenderEntryCallback = (props: {
 }) => ReactNode
 
 interface FileListEntryProps extends RowComponentProps<FileEntry> {
-  getEntryDetails?: GetFileEntryDetailsCallback
+  entryDetails?: FileEntryDetailsMap
   loadingId?: string | null
   renderEntry?: RenderEntryCallback
   currentPath?: string
@@ -200,7 +201,8 @@ function useMorePress(
   )
 }
 
-// FileEntryName renders the default icon and name of an entry.
+// FileEntryName renders the default icon and name of an entry, the content of
+// its name cell.
 function FileEntryName({
   entry,
   loading,
@@ -235,13 +237,10 @@ function FileEntryName({
   if (loading) icon = <Spinner variant="brand" className="shrink-0" />
 
   return (
-    <div
-      role="cell"
-      className="min-w-viewer-name flex flex-1 items-center gap-2 overflow-hidden"
-    >
+    <>
       {icon}
       <span className="truncate">{entry.name || entry.id}</span>
-    </div>
+    </>
   )
 }
 
@@ -258,7 +257,7 @@ function FileEntryRow({
   entry,
   item,
   itemIndex,
-  getEntryDetails,
+  entryDetails,
   loadingId,
   renderEntry,
   currentPath,
@@ -286,21 +285,11 @@ function FileEntryRow({
     onEntryDrop,
   })
 
-  // Load the entry's date and size when the caller provides them.
-  const fetchDetails = useCallback(
-    (signal: AbortSignal) => {
-      if (!getEntryDetails) {
-        return Promise.resolve(null)
-      }
-      return getEntryDetails(itemIndex, entry, signal)
-    },
-    [entry, itemIndex, getEntryDetails],
-  )
+  // Read the entry's date and size from the list; the cells show a dash until
+  // they arrive, and a list without details draws no Date or Size cells.
+  const details = entryDetails?.get(entry.id)
 
-  // Show the details once they arrive; the cells show a dash until then.
-  const { data: entryDetails } = usePromise(fetchDetails)
-
-  // Draw the icon and name unless the caller renders the entry.
+  // Draw the icon and name in the name cell unless the caller renders it.
   const defaultNode = (
     <FileEntryName
       entry={entry}
@@ -325,27 +314,34 @@ function FileEntryRow({
       onDragLeave={drag.onDragLeave}
       onDrop={drag.onDrop}
     >
-      {renderEntry
-        ? renderEntry({
-            entry,
-            defaultNode,
-            path: currentPath ?? '/',
-          })
-        : defaultNode}
       <div
         role="cell"
-        className="text-foreground-alt/60 hidden w-35 min-w-25 shrink text-xs @min-[24rem]/file-list:block"
+        className="min-w-viewer-name flex flex-1 items-center gap-2 overflow-hidden"
       >
-        {entryDetails?.modTime
-          ? format(entryDetails.modTime, 'MMM dd, yyyy')
-          : '—'}
+        {renderEntry
+          ? renderEntry({
+              entry,
+              defaultNode,
+              path: currentPath ?? '/',
+            })
+          : defaultNode}
       </div>
-      <div
-        role="cell"
-        className="text-foreground-alt/60 hidden w-17.5 min-w-12.5 shrink text-right text-xs @min-[15.5rem]/file-list:block"
-      >
-        {entrySizeLabel(entry, entryDetails)}
-      </div>
+      {entryDetails && (
+        <>
+          <div
+            role="cell"
+            className="text-foreground-alt/60 hidden w-35 min-w-25 shrink text-xs @min-[24rem]/file-list:block"
+          >
+            {details?.modTime ? format(details.modTime, 'MMM dd, yyyy') : '—'}
+          </div>
+          <div
+            role="cell"
+            className="text-foreground-alt/60 hidden w-17.5 min-w-12.5 shrink text-right text-xs @min-[15.5rem]/file-list:block"
+          >
+            {entrySizeLabel(entry, details)}
+          </div>
+        </>
+      )}
       <button
         type="button"
         aria-label={`More actions for ${entry.name || entry.id}`}

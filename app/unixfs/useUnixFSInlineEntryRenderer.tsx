@@ -49,8 +49,7 @@ export function useUnixFSInlineEntryRenderer({
       if (isRenaming) {
         return (
           <div
-            role="presentation"
-            className="flex min-w-30 flex-1 items-center gap-0.5 overflow-hidden"
+            className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
             data-rename-actions="true"
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
@@ -130,8 +129,7 @@ export function useUnixFSInlineEntryRenderer({
 
       return (
         <div
-          role="presentation"
-          className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden"
+          className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
           onClick={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
         >

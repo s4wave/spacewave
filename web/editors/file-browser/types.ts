@@ -12,8 +12,7 @@ export interface FileEntryDetails {
   size?: number
 }
 
-export type GetFileEntryDetailsCallback = (
-  index: number,
-  entry: FileEntry,
-  signal: AbortSignal,
-) => Promise<FileEntryDetails | null>
+// FileEntryDetailsMap holds each entry's date and size by entry id. An entry
+// absent from it, or without a date or size, draws a dash in that column and
+// sorts after the entries that have one.
+export type FileEntryDetailsMap = ReadonlyMap<string, FileEntryDetails>

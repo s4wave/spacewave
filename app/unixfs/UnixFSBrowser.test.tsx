@@ -14,7 +14,7 @@ import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type {
   FileEntry,
-  GetFileEntryDetailsCallback,
+  FileEntryDetailsMap,
 } from '@s4wave/web/editors/file-browser/types.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 import type { ListStateHandle } from '@s4wave/web/ui/list'
@@ -67,7 +67,7 @@ interface MockFileListProps {
   placeholder?: ReactNode
   dropTargetEntryId?: string | null
   renderEntry?: RenderEntryCallback
-  getEntryDetails?: GetFileEntryDetailsCallback
+  entryDetails?: FileEntryDetailsMap
   getDragEnvelope?: (
     entry: FileEntry,
     context: { selectedIds: string[] },
@@ -719,28 +719,21 @@ describe('UnixFSBrowser drag gating', () => {
       },
     ]
     renderBrowser()
-    const getEntryDetails = h.latestFileListProps?.getEntryDetails
-    if (!getEntryDetails) {
-      throw new Error('file list did not provide getEntryDetails')
+    const details = h.latestFileListProps?.entryDetails
+    if (!details) {
+      throw new Error('file list did not get entryDetails')
     }
-    const signal = new AbortController().signal
 
     // Each entry's details come from its own listing metadata.
-    await expect(
-      getEntryDetails(0, h.mockFileEntries[1], signal),
-    ).resolves.toEqual({
+    expect(details.get(h.mockFileEntries[1].id)).toEqual({
       size: 4_096,
       modTime: new Date(1_725_000_000_000),
     })
-    await expect(
-      getEntryDetails(2, h.mockFileEntries[2], signal),
-    ).resolves.toEqual({
+    expect(details.get(h.mockFileEntries[2].id)).toEqual({
       size: 8,
       modTime: undefined,
     })
-    await expect(
-      getEntryDetails(3, h.mockFileEntries[3], signal),
-    ).resolves.toEqual({
+    expect(details.get(h.mockFileEntries[3].id)).toEqual({
       size: 1,
       modTime: undefined,
     })

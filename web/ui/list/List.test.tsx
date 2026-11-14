@@ -2,7 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { List, type ListProps } from './List.js'
 import { ListRow } from './ListRow.js'
-import { ListStateContext, useListState } from './ListState.js'
+import {
+  ListStateContext,
+  translateIndicesToNewOrder,
+  useListState,
+} from './ListState.js'
 import type { ListState } from './ListState.js'
 import type { RowComponentProps } from './List.js'
 import type { ListItem } from './ListItem.js'
@@ -244,5 +248,42 @@ describe('ListRow', () => {
       expect(evt.nativeEvent).toBeInstanceOf(MouseEvent)
       expect(preventDefaultSpy).toHaveBeenCalled()
     })
+  })
+})
+
+describe('translateIndicesToNewOrder', () => {
+  it('moves indices held while the list was empty to the selected row', () => {
+    // A persisted focus and anchor name no row of an empty list.
+    const stale: ListState = { focusedIndex: 2, lastSelectedIndex: 1 }
+
+    // With one selected id among the arrived items, both follow its row.
+    expect(
+      translateIndicesToNewOrder(
+        { ...stale, selectedIds: ['item-2'] },
+        [],
+        mockItems,
+      ),
+    ).toEqual({ focusedIndex: 1, lastSelectedIndex: 1 })
+
+    // With no selection, several, or one that did not arrive, both clear.
+    const cleared = { focusedIndex: undefined, lastSelectedIndex: undefined }
+    expect(translateIndicesToNewOrder(stale, [], mockItems)).toEqual(cleared)
+    expect(
+      translateIndicesToNewOrder(
+        { ...stale, selectedIds: ['item-1', 'item-3'] },
+        [],
+        mockItems,
+      ),
+    ).toEqual(cleared)
+    expect(
+      translateIndicesToNewOrder(
+        { ...stale, selectedIds: ['gone'] },
+        [],
+        mockItems,
+      ),
+    ).toEqual(cleared)
+
+    // Nothing to change returns null.
+    expect(translateIndicesToNewOrder({}, [], mockItems)).toBeNull()
   })
 })

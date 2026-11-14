@@ -9,6 +9,9 @@ EXTENDS Naturals
 \*   narrow  (under 15.5rem):        Name
 \*
 \* Date leaves first, then Size, so the name is the last thing to lose width.
+\* A list whose caller gives no entry details, such as a Git tree, has only
+\* Name at every width, and sorts by name whatever sort the shared file
+\* browser state holds.
 \* Each row keeps its More press in every width: it is the only menu target on
 \* a touch screen. Selection and focus are the List's, from listReducer; the
 \* keys here are the ones List handles, each one SELECT_ITEM action.
@@ -22,20 +25,34 @@ Buttons == {"sortName", "sortDate", "sortSize", "more",
 
 VARIABLES
   width,    \* the list's own width class
+  details,  \* whether the caller gives each entry's date and size
   n,        \* how many rows the list holds; another writer changes it
   sort,     \* the column the rows are sorted by
   sel,      \* the selected rows
   focus,    \* the focused row, 0 for none
   anchor    \* where a Shift range starts, 0 for none
-vars == <<width, n, sort, sel, focus, anchor>>
+vars == <<width, details, n, sort, sel, focus, anchor>>
 
 Indices == 1..n
 
 \* Columns are the column headers and cells the list draws at its width.
 Columns ==
+  IF ~details THEN {"name"} ELSE
   CASE width = "wide" -> {"name", "date", "size"}
     [] width = "medium" -> {"name", "size"}
     [] width = "narrow" -> {"name"}
+
+\* Sorted is the column the rows are in: the stored sort, or name when the
+\* list has no Date or Size column to sort by.
+Sorted == IF details THEN sort ELSE "name"
+
+\* Label is the "by date" or "by size" beside Name, read the way the header
+\* draws it: shown for a date or size sort and hidden from the width where
+\* that column's own header shows (24rem for Date, 15.5rem for Size).
+Label ==
+  CASE Sorted = "date" /\ width # "wide" -> "date"
+    [] Sorted = "size" /\ width = "narrow" -> "size"
+    [] OTHER -> "none"
 
 SortButton == [name |-> "sortName", date |-> "sortDate", size |-> "sortSize"]
 
@@ -64,21 +81,28 @@ Hint(p) == IF n = 0 THEN "This folder is empty" ELSE ""
 
 Init ==
   /\ width = "wide"
+  /\ details \in BOOLEAN
   /\ n = Rows
-  /\ sort = "name"
+  \* The sort is shared with other lists, so a list without details can open
+  \* on a date or size sort it cannot draw; one with details reaches every
+  \* sort from its own header.
+  /\ sort \in IF details THEN {"name"} ELSE Sorts
   /\ sel = {} /\ focus = 0 /\ anchor = 0
 
-\* The person resizes the pane, or the layout moves the list to another one.
+\* The person resizes the pane, or the layout moves the list to another one. A
+\* list without details draws Name alone at every width, so the model keeps it
+\* at one width.
 Resize ==
+  /\ details
   /\ \E w \in Widths : w # width /\ width' = w
-  /\ UNCHANGED <<n, sort, sel, focus, anchor>>
+  /\ UNCHANGED <<details, n, sort, sel, focus, anchor>>
 
 \* Sort by a column header the width shows.
 Sort(p) ==
   /\ \E s \in Columns :
        /\ SortButton[s] \in Shown(p)
        /\ sort' = s
-  /\ UNCHANGED <<width, n, sel, focus, anchor>>
+  /\ UNCHANGED <<width, details, n, sel, focus, anchor>>
 
 \* Range is every row between two indices, inclusive.
 Range(a, b) == IF a <= b THEN a..b ELSE b..a
@@ -91,22 +115,22 @@ Extend(to) ==
   IN sel' = Range(from, to) /\ focus' = to /\ anchor' = from
 FocusOnly(to) == focus' = to /\ UNCHANGED <<sel, anchor>>
 
-Home(p) == "home" \in Shown(p) /\ Select(1) /\ UNCHANGED <<width, n, sort>>
-End(p) == "end" \in Shown(p) /\ Select(n) /\ UNCHANGED <<width, n, sort>>
+Home(p) == "home" \in Shown(p) /\ Select(1) /\ UNCHANGED <<width, details, n, sort>>
+End(p) == "end" \in Shown(p) /\ Select(n) /\ UNCHANGED <<width, details, n, sort>>
 ShiftHome(p) ==
-  "shiftHome" \in Shown(p) /\ Extend(1) /\ UNCHANGED <<width, n, sort>>
+  "shiftHome" \in Shown(p) /\ Extend(1) /\ UNCHANGED <<width, details, n, sort>>
 ShiftEnd(p) ==
-  "shiftEnd" \in Shown(p) /\ Extend(n) /\ UNCHANGED <<width, n, sort>>
+  "shiftEnd" \in Shown(p) /\ Extend(n) /\ UNCHANGED <<width, details, n, sort>>
 ModHome(p) ==
-  "modHome" \in Shown(p) /\ FocusOnly(1) /\ UNCHANGED <<width, n, sort>>
+  "modHome" \in Shown(p) /\ FocusOnly(1) /\ UNCHANGED <<width, details, n, sort>>
 ModEnd(p) ==
-  "modEnd" \in Shown(p) /\ FocusOnly(n) /\ UNCHANGED <<width, n, sort>>
+  "modEnd" \in Shown(p) /\ FocusOnly(n) /\ UNCHANGED <<width, details, n, sort>>
 
 \* More opens the row's menu and selects the row it belongs to.
 More(p) ==
   /\ "more" \in Shown(p)
   /\ \E i \in Indices : sel' = IF i \in sel THEN sel ELSE {i}
-  /\ UNCHANGED <<width, n, sort, focus, anchor>>
+  /\ UNCHANGED <<width, details, n, sort, focus, anchor>>
 
 \* Another writer adds or removes files. The List keeps selection by id and
 \* translates indices; here rows that no longer exist leave the selection.
@@ -115,7 +139,7 @@ Changed ==
   /\ sel' = {i \in sel : i <= n'}
   /\ focus' = IF focus <= n' THEN focus ELSE 0
   /\ anchor' = IF anchor <= n' THEN anchor ELSE 0
-  /\ UNCHANGED <<width, sort>>
+  /\ UNCHANGED <<width, details, sort>>
 
 Next ==
   \/ Resize \/ Changed
@@ -132,6 +156,10 @@ NobodyIsStuck == S!NobodyIsStuck
 NameAlwaysShows == "name" \in Columns
 \* Date leaves before Size: a list that shows Date shows Size.
 DateLeavesFirst == "date" \in Columns => "size" \in Columns
+\* A sort by a column the list does not show says so beside Name, and a sort
+\* by a shown column says nothing there.
+HiddenSortLabelled ==
+  Label = IF Sorted \in Columns THEN "none" ELSE Sorted
 \* Focus and selection only name rows that exist.
 SelectionInRows == sel \subseteq Indices /\ focus \in 0..n /\ anchor \in 0..n
 ====

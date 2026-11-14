@@ -204,13 +204,28 @@ export function selectRange<T>(
   return items.slice(range[0], range[1] + 1).map((item) => item.id)
 }
 
-// translateIndicesToNewOrder finds new indices after sort order changes.
+// translateIndicesToNewOrder finds new indices after sort order changes. An
+// index held while the list was empty names no row, such as one restored from
+// persisted state before the items arrived: focus and the Shift anchor move to
+// the one selected id's row when it arrived, and clear otherwise.
 export function translateIndicesToNewOrder<T>(
   state: ListState,
   oldItems: ListItem<T>[],
   newItems: ListItem<T>[],
 ): { focusedIndex?: number; lastSelectedIndex?: number } | null {
-  if (oldItems === newItems || oldItems.length === 0) return null
+  if (oldItems === newItems) return null
+  if (oldItems.length === 0) {
+    const selected = state.selectedIds ?? []
+    const found =
+      selected.length === 1
+        ? newItems.findIndex((item) => item.id === selected[0])
+        : -1
+    const index = found >= 0 ? found : undefined
+    if (state.focusedIndex === index && state.lastSelectedIndex === index) {
+      return null
+    }
+    return { focusedIndex: index, lastSelectedIndex: index }
+  }
 
   let newFocusedIndex: number | undefined = state.focusedIndex
   let newLastSelectedIndex: number | undefined = state.lastSelectedIndex

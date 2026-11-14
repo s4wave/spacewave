@@ -1,10 +1,11 @@
+import { useMemo } from 'react'
 import { useParams } from '@s4wave/web/router/router.js'
 import { useListState, type ListState } from '@s4wave/web/ui/list'
 import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type {
   FileEntry,
   FileEntryDetails,
-  GetFileEntryDetailsCallback,
+  FileEntryDetailsMap,
 } from '@s4wave/web/editors/file-browser/types.js'
 
 // FileListFixture is one state of the file list the debug page can open.
@@ -62,13 +63,17 @@ const fixtures: Record<string, FileListFixture> = {
   empty: { entries: [] },
 }
 
-// getEntryDetails gives each fixture entry a fixed date and, for files, a size.
-const getEntryDetails: GetFileEntryDetailsCallback = (index, entry) => {
-  const details: FileEntryDetails = {
-    modTime: new Date(2026, 10, 1 + ((index * 7) % 28)),
-  }
-  if (!entry.isDir) details.size = 37 * 1024 ** (index % 4) * (index + 1)
-  return Promise.resolve(details)
+// entryDetails gives each fixture entry a fixed date and, for files, a size.
+function entryDetails(entries: FileEntry[]): FileEntryDetailsMap {
+  return new Map(
+    entries.map((entry, index) => {
+      const details: FileEntryDetails = {
+        modTime: new Date(2026, 10, 1 + ((index * 7) % 28)),
+      }
+      if (!entry.isDir) details.size = 37 * 1024 ** (index % 4) * (index + 1)
+      return [entry.id, details]
+    }),
+  )
 }
 
 // FileListDebug renders the real FileList in one fixture state, with the
@@ -87,11 +92,17 @@ function FileListFixtureView({ fixture }: { fixture: FileListFixture }) {
     sortDirection: 'asc',
     ...fixture.list,
   })
+
+  // Give the fixture's entries their dates and sizes once.
+  const details = useMemo(
+    () => entryDetails(fixture.entries),
+    [fixture.entries],
+  )
   return (
     <div className="bg-background flex h-full w-full flex-col">
       <FileList
         entries={fixture.entries}
-        getEntryDetails={getEntryDetails}
+        entryDetails={details}
         state={state}
         loadingId={fixture.loadingId}
         placeholder="This folder is empty"

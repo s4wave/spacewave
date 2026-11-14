@@ -30,16 +30,28 @@ interface MutationError {
   message: string
 }
 
-// PaneEvent moves the right pane: create opens the create form; select is any
-// change to the list's selection; close is Cancel.
-type PaneEvent = 'create' | 'select' | 'close'
+// PaneEvent moves the right pane: create opens the create form; select is a
+// change to the list's selection, carrying how many keys it now names; close
+// is Cancel.
+type PaneEvent =
+  | { type: 'create' }
+  | { type: 'select'; keys: number }
+  | { type: 'close' }
 
 // creatingAfter is whether the right pane shows the create form after event.
-// The form opens on an empty selection, and any selection change closes it, so
-// it never waits behind a selected key to return when the selection empties.
-// A draft in the form is dropped when a key is selected.
-function creatingAfter(_: boolean, event: PaneEvent): boolean {
-  return event === 'create'
+// The form opens on an empty selection. Selecting one key closes it, since that
+// key's detail takes the pane, so the form never waits behind a selected key
+// to return when the selection empties; its draft is dropped then. Selecting
+// several keys or none leaves the pane to the form and keeps its draft.
+function creatingAfter(creating: boolean, event: PaneEvent): boolean {
+  switch (event.type) {
+    case 'create':
+      return true
+    case 'select':
+      return creating && event.keys !== 1
+    case 'close':
+      return false
+  }
 }
 
 // KvStoreViewer is the full kv/store viewer: a watch-driven table of keys with
@@ -87,21 +99,24 @@ export function KvStoreViewer({
     list.selectedIds?.length === 1 ? list.selectedIds[0] : null
 
   // updateSelection is the list update every change goes through, the table's
-  // and the viewer's own. A change to the selection closes the create form and
-  // drops the last write error, since the editor it belonged to is gone. The
-  // list's update runs its function before it returns.
+  // and the viewer's own. Selecting one key gives the pane to its detail, which
+  // closes the create form and drops the last write error, since the editor it
+  // belonged to is gone. The list's update runs its function before it
+  // returns.
   const updateSelection = useCallback<ListUpdate>(
     (update) => {
-      // Apply the change, noting whether it replaced the selection.
-      let changed = false
+      // Apply the change, noting how many keys a new selection names.
+      let keys: number | null = null
       updateList((state) => {
         const next = update(state)
-        changed = next.selectedIds !== state.selectedIds
+        if (next.selectedIds !== state.selectedIds) {
+          keys = next.selectedIds?.length ?? 0
+        }
         return next
       })
-      if (!changed) return
-      paneEvent('select')
-      setMutationError(null)
+      if (keys === null) return
+      paneEvent({ type: 'select', keys })
+      if (keys === 1) setMutationError(null)
     },
     [updateList],
   )
@@ -153,7 +168,7 @@ export function KvStoreViewer({
   const handleStartCreate = useCallback(() => {
     select(null)
     setMutationError(null)
-    paneEvent('create')
+    paneEvent({ type: 'create' })
   }, [select])
 
   // runMutation applies a write for key, null for a create, then reloads the
@@ -282,7 +297,7 @@ export function KvStoreViewer({
             <div className="overflow-auto p-3">
               <KvCreateKeyForm
                 onCreate={handleCreate}
-                onCancel={() => paneEvent('close')}
+                onCancel={() => paneEvent({ type: 'close' })}
                 mutationError={shownError}
               />
             </div>

@@ -166,7 +166,7 @@ function useUnixFSBrowserModel({
     statResource,
     entriesResource,
     fileEntries,
-    getEntryDetails,
+    entryDetails,
     isDir,
   } = useUnixFSBrowserResources({ worldState, unixfsId, displayPath })
 
@@ -432,7 +432,7 @@ function useUnixFSBrowserModel({
     },
     listingProps: {
       currentPath: displayPath,
-      getEntryDetails,
+      entryDetails,
       onOpen: navigation.handleOpen,
       onContextMenu: contextMenu.handleContextMenu,
       listState,

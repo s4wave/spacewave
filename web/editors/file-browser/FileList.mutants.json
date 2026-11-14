@@ -1,0 +1,29 @@
+[
+  {
+    "name": "the size label shows at the medium width, where Size shows",
+    "replace": [
+      [
+        "[] Sorted = \"size\" /\\ width = \"narrow\" -> \"size\"",
+        "[] Sorted = \"size\" /\\ width # \"wide\" -> \"size\""
+      ]
+    ],
+    "expect": "HiddenSortLabelled"
+  },
+  {
+    "name": "the date label hides at the medium width, where Date is gone",
+    "replace": [
+      [
+        "CASE Sorted = \"date\" /\\ width # \"wide\" -> \"date\"",
+        "CASE Sorted = \"date\" /\\ width = \"narrow\" -> \"date\""
+      ]
+    ],
+    "expect": "HiddenSortLabelled"
+  },
+  {
+    "name": "a list without details sorts by the shared stored sort",
+    "replace": [
+      ["Sorted == IF details THEN sort ELSE \"name\"", "Sorted == sort"]
+    ],
+    "expect": "HiddenSortLabelled"
+  }
+]

@@ -2,6 +2,7 @@
 
 type FileList = {
   width: string
+  details: boolean
   n: number
   sort: string
   sel: number[]
@@ -24,7 +25,8 @@ export const state = (v: FileList) => {
   else if (v.sel.length > 1) rows = 'a range selected'
   else if (v.sel.length === 1) rows = 'one row selected'
   else if (v.focus !== 0) rows = 'one row focused'
-  return { Columns: columns[v.width] ?? v.width, Rows: rows }
+  const shown = v.details ? (columns[v.width] ?? v.width) : 'Name, no details'
+  return { Columns: shown, Rows: rows }
 }
 
 const steps: Record<string, string> = {

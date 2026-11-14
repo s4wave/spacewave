@@ -273,6 +273,32 @@ describe('KvStoreViewer', () => {
     expect(screen.queryByLabelText('New key')).toBeNull()
   })
 
+  it('keeps the create draft when every key is selected', async () => {
+    // Show two keys.
+    fakeStore = new FakeKvStore({ alpha: 'a', beta: 'b' })
+    const user = userEvent.setup()
+    renderViewer()
+
+    // Start a key and type a draft name.
+    await waitFor(() => expect(screen.getByTitle('beta')).toBeTruthy())
+    await user.click(screen.getByRole('button', { name: 'New Key' }))
+    await user.type(screen.getByLabelText('New key'), 'draft')
+
+    // Ctrl+A in the key list selects both keys, which names no one key.
+    screen.getAllByRole('row')[0].closest<HTMLElement>('[tabindex]')?.focus()
+    await user.keyboard('{Control>}a{/Control}')
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('row')
+          .filter((row) => row.getAttribute('aria-selected') === 'true'),
+      ).toHaveLength(2),
+    )
+
+    // The form and its draft stay.
+    expect(screen.getByLabelText('New key')).toHaveProperty('value', 'draft')
+  })
+
   it('surfaces an inline error when a write transaction fails', async () => {
     fakeStore = new FakeKvStore({ name: 'old' })
     fakeStore.failNextWrite = true
