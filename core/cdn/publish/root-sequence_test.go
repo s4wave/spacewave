@@ -27,7 +27,7 @@ func TestPostCheckpointFollowsAuthoritativeState(t *testing.T) {
 	// Serve the genesis snapshot, whose checkpoint the CDN pointer does not hold yet.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
-	genesis, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), sfs, "test-space", key, nil)
+	genesis, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), sfs, "test-space", key, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

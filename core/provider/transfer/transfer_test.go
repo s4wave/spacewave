@@ -1168,7 +1168,7 @@ func targetSpaceState(ctx context.Context, t *testing.T, store object.ObjectStor
 // with a new valid state, as an edit made on the target does, and returns it.
 func editTargetSpace(ctx context.Context, t *testing.T, store object.ObjectStore, acc *provider_local.ProviderAccount, id string) []byte {
 	t.Helper()
-	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.StandardLogger()), nil, id, ownerKey(ctx, t, acc), nil)
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.StandardLogger()), nil, id, ownerKey(ctx, t, acc), "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
