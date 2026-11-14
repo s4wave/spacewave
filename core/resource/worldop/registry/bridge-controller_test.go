@@ -14,6 +14,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block/quad"
@@ -299,39 +300,17 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 	}
 	defer rel()
 
-	// Register the plugin operation and attach its registry bridge.
-	registry := NewWorldOpRegistryResource(nil)
-	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
-		OperationTypeId: "test/plugin-op",
-		RegistrationId:  1,
-		PluginId:        "test-plugin",
-	}
-	rel, err = tb.Bus.AddController(ctx, NewWorldOpRegistryBridgeController(le, tb.Bus, registry), nil)
-	if err != nil {
-		t.Fatalf("AddController bridge: %v", err)
-	}
-	defer rel()
-
-	// Resolve and decode the plugin operation.
-	vs, _, ref, err := world.ExLookupWorldOp(ctx, tb.Bus, le, "test/plugin-op", tb.EngineID)
-	if err != nil {
-		t.Fatalf("ExLookupWorldOp: %v", err)
-	}
-	defer ref.Release()
-	op, err := vs[0](ctx, "test/plugin-op")
-	if err != nil {
-		t.Fatalf("lookup op: %v", err)
-	}
-	if err := op.UnmarshalVT([]byte("op-data")); err != nil {
-		t.Fatalf("UnmarshalVT: %v", err)
-	}
-
-	// Apply the operation through the engine, which holds the writer for it.
+	// Apply the operation through the World resource over the engine, which
+	// holds the writer for it.
 	ws := world.NewEngineWorldState(tb.Engine, true)
-	applied := make(chan error, 1)
+	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookupPluginOp(ctx, t, tb, le), resource_world.WithSessionPeerID(tb.Volume.GetPeerID()))
+	applied := make(chan *s4wave_world.ApplyWorldOpResponse, 1)
 	go func() {
-		_, _, err := ws.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID())
-		applied <- err
+		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+		if err != nil {
+			t.Errorf("ApplyWorldOp: %v", err)
+		}
+		applied <- resp
 	}()
 	<-handler.entered
 
@@ -345,15 +324,85 @@ func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
 	}
 	assertWorldObjectExists(t, ctx, tb.Engine, "test/second-writer")
 
-	// The stalled operation ends with the typed timeout.
-	err = <-applied
-	var timeout *PluginOpTimeoutError
-	if !errors.As(err, &timeout) || !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("ApplyWorldOp error = %v, want PluginOpTimeoutError", err)
+	// The stalled operation ends with the timeout code: nothing written.
+	if code := (<-applied).GetErrorCode(); code != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT {
+		t.Fatalf("ApplyWorldOp error code = %v, want WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT", code)
 	}
-	if timeout.PluginID != "test-plugin" || timeout.OperationTypeID != "test/plugin-op" {
-		t.Fatalf("timeout = %+v", timeout)
+}
+
+func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
+	// Start a World testbed whose plugin never finishes loading.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
+	t.Cleanup(tb.Release)
+	loading := make(chan struct{}, 1)
+	rel, err := tb.Bus.AddController(ctx, &hangPluginLoadController{loading: loading}, nil)
+	if err != nil {
+		t.Fatalf("AddController plugin load: %v", err)
+	}
+	defer rel()
+
+	// Apply the operation through the engine while its plugin loads.
+	op, err := lookupPluginOp(ctx, t, tb, le)(ctx, "test/plugin-op")
+	if err != nil {
+		t.Fatalf("lookup op: %v", err)
+	}
+	if err := op.UnmarshalVT([]byte("op-data")); err != nil {
+		t.Fatalf("UnmarshalVT: %v", err)
+	}
+	ws := world.NewEngineWorldState(tb.Engine, true)
+	applyCtx, cancelApply := context.WithCancel(ctx)
+	defer cancelApply()
+	applied := make(chan error, 1)
+	go func() {
+		_, _, err := ws.ApplyWorldOp(applyCtx, op, tb.Volume.GetPeerID())
+		applied <- err
+	}()
+	<-loading
+
+	// A second writer proceeds at once: the load holds no writer, so the
+	// second writer waits on no plugin deadline.
+	writeCtx, cancel := context.WithTimeout(ctx, pluginOpDeadline/2)
+	defer cancel()
+	obj, err := ws.CreateObject(writeCtx, "test/second-writer", nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatalf("second writer: %v", err)
+	}
+	assertWorldObjectExists(t, ctx, tb.Engine, "test/second-writer")
+
+	// The operation waits on the load until its caller gives up.
+	cancelApply()
+	if err := <-applied; !errors.Is(err, context.Canceled) {
+		t.Fatalf("ApplyWorldOp error = %v, want context.Canceled", err)
+	}
+}
+
+// lookupPluginOp registers test/plugin-op for test-plugin, attaches the
+// registry bridge to the bus of tb, and returns the lookup it resolves.
+func lookupPluginOp(ctx context.Context, t *testing.T, tb *world_testbed.Testbed, le *logrus.Entry) world.LookupOp {
+	t.Helper()
+	registry := NewWorldOpRegistryResource(nil)
+	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
+		OperationTypeId: "test/plugin-op",
+		RegistrationId:  1,
+		PluginId:        "test-plugin",
+	}
+	rel, err := tb.Bus.AddController(ctx, NewWorldOpRegistryBridgeController(le, tb.Bus, registry), nil)
+	if err != nil {
+		t.Fatalf("AddController bridge: %v", err)
+	}
+	t.Cleanup(rel)
+	vs, _, ref, err := world.ExLookupWorldOp(ctx, tb.Bus, le, "test/plugin-op", tb.EngineID)
+	if err != nil {
+		t.Fatalf("ExLookupWorldOp: %v", err)
+	}
+	t.Cleanup(ref.Release)
+	return vs[0]
 }
 
 func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Engine, key string) {
@@ -646,4 +695,39 @@ func (h *stallWorldOpHandler) ApplyWorldOp(
 	h.entered <- struct{}{}
 	<-h.stall
 	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
+
+// hangPluginLoadController resolves the load of test-plugin with a resolver
+// that never yields the running plugin, like a cold load that hangs. It
+// signals loading when the load starts.
+type hangPluginLoadController struct {
+	loading chan struct{}
+}
+
+func (c *hangPluginLoadController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/worldop-plugin-hang", controller.MustParseVersion("0.0.1"), "test worldop plugin load that never completes")
+}
+
+func (c *hangPluginLoadController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return nil
+}
+
+func (c *hangPluginLoadController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
+	if !ok || dir.LoadPluginID() != "test-plugin" {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, _ directive.ResolverHandler) error {
+		select {
+		case c.loading <- struct{}{}:
+		default:
+		}
+		<-ctx.Done()
+		return context.Cause(ctx)
+	}), nil)
+}
+
+func (c *hangPluginLoadController) Close() error {
+	return nil
 }

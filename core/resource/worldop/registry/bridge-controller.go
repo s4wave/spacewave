@@ -28,6 +28,11 @@ import (
 // notes/blog/create with its seed, make a few dozen in-process calls on the
 // attached World state and none over the network, so ten seconds is far above
 // what a working handler needs and short enough that a stall ends.
+//
+// An operation applied through an engine World state connects to its plugin
+// before the writer, in PrepareApply, under the caller's context alone. One
+// that was not prepared, in a replay or inside a caller's transaction,
+// connects under this deadline too, so a cold load that hangs ends with it.
 const pluginOpDeadline = 10 * time.Second
 
 // bridgeControllerID is the controller ID.
@@ -175,6 +180,8 @@ type bridgeOperation struct {
 	// manifestRoot pins the executable; empty uses a registered native/legacy handler.
 	manifestRoot string
 	opData       []byte
+	// prepared is the plugin connection PrepareApply made, until its release.
+	prepared *s4wave_plugin.PluginResources
 }
 
 // newBridgeOperation creates a new bridgeOperation.
@@ -235,17 +242,22 @@ func (o *bridgeOperation) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
-	// Connect to the plugin resources for the World operation call.
-	resources, err := o.connectPlugin(ctx)
+	// Bound the plugin's load, when not prepared, and every call into its
+	// worker while the writer is held.
+	ctx, cancel := o.withDeadline(ctx)
+	defer cancel()
+
+	// Use the prepared plugin connection, or connect.
+	resources, release, err := o.acquirePlugin(ctx)
 	if err != nil {
 		return true, errors.Wrapf(
-			err,
+			callErr(ctx, err),
 			"apply world op plugin_id=%s capability=world_state path=ApplyWorldOp operation_type_id=%s",
 			o.reg.GetPluginId(),
 			o.opTypeID,
 		)
 	}
-	defer resources.Release()
+	defer release()
 
 	// Acquire the plugin handler service for the duration of the call.
 	svc, cleanup, err := o.getHandlerService(resources)
@@ -258,10 +270,6 @@ func (o *bridgeOperation) ApplyWorldOp(
 		)
 	}
 	defer cleanup()
-
-	// Bound every call into the plugin's worker while the writer is held.
-	ctx, cancel := o.withDeadline(ctx)
-	defer cancel()
 
 	// Validate the encoded World operation before exposing mutable state.
 	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
@@ -316,12 +324,17 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 	os world.ObjectState,
 	sender peer.ID,
 ) (bool, error) {
-	// Connect to the plugin resources for the object operation call.
-	resources, err := o.connectPlugin(ctx)
+	// Bound the plugin's load, when not prepared, and every call into its
+	// worker while the writer is held.
+	ctx, cancel := o.withDeadline(ctx)
+	defer cancel()
+
+	// Use the prepared plugin connection, or connect.
+	resources, release, err := o.acquirePlugin(ctx)
 	if err != nil {
-		return true, err
+		return true, callErr(ctx, err)
 	}
-	defer resources.Release()
+	defer release()
 
 	// Acquire the plugin handler service for the duration of the call.
 	svc, cleanup, err := o.getHandlerService(resources)
@@ -329,10 +342,6 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 		return true, err
 	}
 	defer cleanup()
-
-	// Bound every call into the plugin's worker while the writer is held.
-	ctx, cancel := o.withDeadline(ctx)
-	defer cancel()
 
 	// Validate the encoded object operation before exposing mutable state.
 	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
@@ -365,25 +374,55 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 
 	// Translate the plugin rejection into a World operation rejection.
 	if resp.GetRejectionCode() != "" {
-		// Translate the plugin rejection into a World operation rejection.
 		return false, &world.OperationRejection{Code: resp.GetRejectionCode(), Message: resp.GetRejectionMessage()}
 	}
 	return resp.GetSystemError(), nil
 }
 
+// PrepareApply connects to the plugin before the engine takes its writer, so a
+// cold plugin load costs the caller time while other writers proceed. ctx
+// bounds the load, and the connection lives on ctx until release.
+func (o *bridgeOperation) PrepareApply(ctx context.Context) (func(), error) {
+	resources, err := o.connectPlugin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	o.prepared = resources
+	return func() {
+		o.prepared = nil
+		resources.Release()
+	}, nil
+}
+
+// acquirePlugin returns the connection PrepareApply made, or connects on ctx
+// when the operation was not prepared, as in a replay or inside a transaction
+// the caller holds open. The writer is already held then, so ctx must carry
+// the operation's deadline. Call release after the apply.
+func (o *bridgeOperation) acquirePlugin(ctx context.Context) (*s4wave_plugin.PluginResources, func(), error) {
+	if o.prepared != nil {
+		return o.prepared, func() {}, nil
+	}
+	resources, err := o.connectPlugin(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return resources, resources.Release, nil
+}
+
 // withDeadline returns ctx bounded by pluginOpDeadline, with a
-// PluginOpTimeoutError for this operation as the cause when it expires.
+// world.PluginOpTimeoutError for this operation as the cause when it expires.
 func (o *bridgeOperation) withDeadline(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeoutCause(ctx, pluginOpDeadline, &PluginOpTimeoutError{
+	return context.WithTimeoutCause(ctx, pluginOpDeadline, &world.PluginOpTimeoutError{
 		PluginID:        o.reg.GetPluginId(),
 		OperationTypeID: o.opTypeID,
+		Deadline:        pluginOpDeadline,
 	})
 }
 
-// callErr returns the PluginOpTimeoutError when the deadline from
+// callErr returns the world.PluginOpTimeoutError when the deadline from
 // withDeadline ended the failed call, and err otherwise.
 func callErr(ctx context.Context, err error) error {
-	var timeout *PluginOpTimeoutError
+	var timeout *world.PluginOpTimeoutError
 	if err != nil && errors.As(context.Cause(ctx), &timeout) {
 		return timeout
 	}
@@ -418,12 +457,19 @@ func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.Plu
 		return resources, nil
 	}
 
-	// Reject the operation when its pinned executable is unavailable.
+	// Reject the operation when its pinned executable is unavailable. The
+	// rejection is shown to people, so it names the plugin and operation, and
+	// the manifest ref goes to the log.
 	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.manifestRoot)
 	if err != nil {
+		o.le.WithError(err).
+			WithField("plugin-id", o.reg.GetPluginId()).
+			WithField("operation-type-id", o.opTypeID).
+			WithField("manifest-root", o.manifestRoot).
+			Warn("pinned plugin executable unavailable")
 		return nil, &world.OperationRejection{
 			Code:    "UNAVAILABLE",
-			Message: "The exact application executable is unavailable: " + o.manifestRoot,
+			Message: "The application " + o.reg.GetPluginId() + " that applies " + o.opTypeID + " is unavailable.",
 		}
 	}
 	return resources, nil
@@ -448,7 +494,7 @@ func (o *bridgeOperation) getHandlerService(resources *s4wave_plugin.PluginResou
 }
 
 // _ is a type assertion
-var _ world.Operation = (*bridgeOperation)(nil)
+var _ world.PreparedOperation = (*bridgeOperation)(nil)
 
 // _ is a type assertion
 var _ controller.Controller = (*WorldOpRegistryBridgeController)(nil)

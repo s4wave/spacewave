@@ -111,9 +111,17 @@ func (e *engineWorldState) ApplyWorldOp(
 	op Operation,
 	sender peer.ID,
 ) (uint64, bool, error) {
+	// Prepare the operation before the transaction takes the writer.
+	release, err := PrepareOp(ctx, op)
+	if err != nil {
+		return 0, true, err
+	}
+	defer release()
+
+	// Apply it in a transaction of its own.
 	var outSeqno uint64
 	var outSysErr bool
-	err := e.performOp(ctx, true, func(tx Tx) error {
+	err = e.performOp(ctx, true, func(tx Tx) error {
 		var berr error
 		outSeqno, outSysErr, berr = tx.ApplyWorldOp(ctx, op, sender)
 		return berr
@@ -296,6 +304,19 @@ func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, err
 // invalid.
 func retryWorldOp(err error) bool {
 	return IsSuperseded(err) || kvtx.RetryInvalidSnapshot(err)
+}
+
+// AppliesAtomically reports whether ApplyWorldOp or ApplyObjectOp on ws runs
+// each operation in a transaction of its own and discards that transaction
+// when the operation fails, so a failed operation kept nothing it wrote. It
+// holds for the World and object states NewEngineWorldState builds, and for no
+// state a caller's transaction backs.
+func AppliesAtomically(ws any) bool {
+	switch ws.(type) {
+	case *engineWorldState, *engineWorldStateObject:
+		return true
+	}
+	return false
 }
 
 // performOp replays a complete operation in a fresh transaction after either a
