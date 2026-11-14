@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 
@@ -14,11 +14,12 @@ export type SourceEdit =
   | { kind: 'remove'; index: number; source: NotebookSource }
   | { kind: 'reorder'; order: number[]; seen: NotebookSource[] }
 
-// SourceEditState is the source edit control's state. idle offers every edit;
-// sending disables the edit's confirm; changed means the edit was refused
-// because another writer changed the sources first, and the watch already
-// shows their list; failed holds the request and what failed, and offers
-// the same request again. changed and failed last until the next edit
+// SourceEditState is the source edit control's state. One edit runs at a
+// time: idle offers every edit; sending disables every control that starts
+// an edit and keeps the sending edit's dialog open to show its result;
+// changed means the edit was refused because another writer changed the
+// sources first, and the watch already shows their list; failed holds the
+// request and what failed, and offers the same request again. changed and failed last until the next edit
 // starts, or until the person closes the dialog that shows them.
 export type SourceEditState =
   | { status: 'idle' }
@@ -39,7 +40,11 @@ function sourceEditReducer(
 ): SourceEditState {
   switch (event.type) {
     case 'send':
-      return { status: 'sending', edit: event.edit }
+      // A second edit while one sends is refused, so one edit's result is
+      // never shown as another's.
+      return state.status === 'sending'
+        ? state
+        : { status: 'sending', edit: event.edit }
     case 'applied':
       return state.status === 'sending' ? { status: 'idle' } : state
     case 'changed':
@@ -105,9 +110,23 @@ export function useNotebookViewerState({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [addSourceOpen, setAddSourceOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null)
-  const [sourceEdit, dispatchSourceEdit] = useReducer(sourceEditReducer, {
-    status: 'idle',
-  })
+  // The edit state lives in a ref as well as in React state, so a send
+  // refused by the reducer is known at once, before the next render.
+  const sourceEditRef = useRef<SourceEditState>({ status: 'idle' })
+  const [sourceEdit, setSourceEdit] = useState(sourceEditRef.current)
+  const dispatchSourceEdit = useCallback((event: SourceEditEvent) => {
+    const next = sourceEditReducer(sourceEditRef.current, event)
+    sourceEditRef.current = next
+    setSourceEdit(next)
+    return next
+  }, [])
+  const editSending = sourceEdit.status === 'sending'
+
+  // addedSource is the source an applied Add made, selected once the watch
+  // shows it, so a concurrent edit by another writer cannot shift which
+  // source gets selected. It changes nothing shown until then, so it is a
+  // ref, and the selection it waits for is written to the persisted atom.
+  const addedSource = useRef<NotebookSource | null>(null)
 
   const currentSource = sources[selectedSource]
 
@@ -147,9 +166,11 @@ export function useNotebookViewerState({
   )
 
   // sendSourceEdit applies one edit and moves the edit state by its result.
+  // It returns busy, sending nothing, when another edit is still sending.
   const sendSourceEdit = useCallback(
-    async (edit: SourceEdit): Promise<SourceEditState['status']> => {
-      dispatchSourceEdit({ type: 'send', edit })
+    async (edit: SourceEdit): Promise<SourceEditState['status'] | 'busy'> => {
+      const sent = dispatchSourceEdit({ type: 'send', edit })
+      if (sent.status !== 'sending' || sent.edit !== edit) return 'busy'
       if (!notebookHandle) {
         dispatchSourceEdit({
           type: 'failed',
@@ -172,46 +193,59 @@ export function useNotebookViewerState({
       dispatchSourceEdit({ type: 'applied' })
       return 'idle'
     },
-    [notebookHandle],
+    [notebookHandle, dispatchSourceEdit],
   )
 
   const handleAddSource = useCallback(() => {
-    dispatchSourceEdit({ type: 'dismiss' })
+    if (dispatchSourceEdit({ type: 'dismiss' }).status === 'sending') return
     setAddSourceOpen(true)
-  }, [])
+  }, [dispatchSourceEdit])
 
   // handleAddSourceOpenChange closes the Add dialog and drops a failure it
-  // showed; the dialog stays open while its edit is sending.
-  const handleAddSourceOpenChange = useCallback((open: boolean) => {
-    if (open) return
-    dispatchSourceEdit({ type: 'dismiss' })
-    setAddSourceOpen(false)
-  }, [])
+  // showed. It refuses while an edit sends, so the dialog stays to show the
+  // result.
+  const handleAddSourceOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) return
+      if (dispatchSourceEdit({ type: 'dismiss' }).status === 'sending') return
+      setAddSourceOpen(false)
+    },
+    [dispatchSourceEdit],
+  )
+
+  // Select the added source once the watch shows it. The last source with
+  // its name and ref is the one just added.
+  useEffect(() => {
+    const added = addedSource.current
+    if (!added) return
+    const index = sources.findLastIndex(
+      (source) => source.ref === added.ref && source.name === added.name,
+    )
+    if (index < 0) return
+    addedSource.current = null
+    setSelectedSource(index)
+  }, [sources, setSelectedSource])
 
   const handleConfirmAddSource = useCallback(
     async ({ name, ref }: { name: string; ref: string }) => {
       if (!ref) return
-      const result = await sendSourceEdit({
-        kind: 'add',
-        source: { name, ref },
-      })
-      if (result !== 'idle') return
+      const source = { name, ref }
+      // Wait for the source before the send, since the watch may show it
+      // before the send returns.
+      addedSource.current = source
+      const result = await sendSourceEdit({ kind: 'add', source })
+      if (result !== 'idle') {
+        if (addedSource.current === source) addedSource.current = null
+        return
+      }
       setAddSourceOpen(false)
-      setSelectedSource(sources.length)
       setCurrentPath('')
       setSelectedNote('')
       setEditing(false)
       setFilterTag(undefined)
       setFilterStatus(undefined)
     },
-    [
-      sendSourceEdit,
-      setSelectedSource,
-      setCurrentPath,
-      setSelectedNote,
-      setEditing,
-      sources.length,
-    ],
+    [sendSourceEdit, setCurrentPath, setSelectedNote, setEditing],
   )
 
   // handleRemoveSource holds the source the person clicked with its index,
@@ -220,26 +254,30 @@ export function useNotebookViewerState({
     (index: number) => {
       const source = sources[index]
       if (!source) return
-      dispatchSourceEdit({ type: 'dismiss' })
+      if (dispatchSourceEdit({ type: 'dismiss' }).status === 'sending') return
       setRemoveTarget({ index, source })
     },
-    [sources],
+    [sources, dispatchSourceEdit],
   )
 
   // handleRemoveSourceOpenChange closes the Remove dialog and drops a failure
-  // it showed.
-  const handleRemoveSourceOpenChange = useCallback((open: boolean) => {
-    if (open) return
-    dispatchSourceEdit({ type: 'dismiss' })
-    setRemoveTarget(null)
-  }, [])
+  // it showed. It refuses while an edit sends, so the dialog stays to show
+  // the result.
+  const handleRemoveSourceOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) return
+      if (dispatchSourceEdit({ type: 'dismiss' }).status === 'sending') return
+      setRemoveTarget(null)
+    },
+    [dispatchSourceEdit],
+  )
 
   const handleConfirmRemoveSource = useCallback(async () => {
     if (!removeTarget) return
     const { index, source } = removeTarget
     // A failed Remove keeps its dialog open, so its confirm tries again.
     const result = await sendSourceEdit({ kind: 'remove', index, source })
-    if (result === 'failed') return
+    if (result === 'failed' || result === 'busy') return
     setRemoveTarget(null)
     if (result !== 'idle') return
     setSelectedSource((prev) => {
@@ -346,6 +384,7 @@ export function useNotebookViewerState({
     addSourceOpen,
     removeTarget,
     sourceEdit,
+    editSending,
     currentSource,
     setFilterTag,
     setFilterStatus,

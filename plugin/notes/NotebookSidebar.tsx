@@ -97,7 +97,8 @@ function NotebookSidebar({
         <span>No sources configured</span>
         <button
           type="button"
-          className="border-border text-foreground hover:bg-list-hover-background min-h-11 rounded-md border px-3 py-1.5 text-xs font-medium md:pointer-fine:min-h-0"
+          className="border-border text-foreground hover:bg-list-hover-background min-h-11 rounded-md border px-3 py-1.5 text-xs font-medium disabled:opacity-50 md:pointer-fine:min-h-0"
+          disabled={sending}
           onClick={onAddSource}
         >
           Add source
@@ -113,8 +114,9 @@ function NotebookSidebar({
           <span>Sources</span>
           <button
             type="button"
-            className="hover:bg-list-hover-background text-foreground-alt hover:text-foreground flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+            className="hover:bg-list-hover-background text-foreground-alt hover:text-foreground flex size-11 items-center justify-center rounded disabled:opacity-50 md:pointer-fine:size-auto md:pointer-fine:p-1"
             title="Add source"
+            disabled={sending}
             onClick={onAddSource}
           >
             <LuPlus className="size-3" />

@@ -484,4 +484,104 @@ describe('NotebookViewer', () => {
       screen.queryByText('Could not move the source: stream closed'),
     ).toBeNull()
   })
+  it('sends no Add while a Reorder is held, and shows the Reorder failure by the list', async () => {
+    const notebook = fakeNotebook([A, B])
+    watchSources([A, B])
+    let fail!: (err: Error) => void
+    notebook.reorderSources.mockImplementationOnce(
+      () => new Promise((_, reject) => (fail = reject)),
+    )
+    renderViewer()
+
+    // The person opens Add and types, then moves a source behind the dialog.
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'Docs' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: 'key/-/docs' },
+    })
+    fireEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Move source down',
+        hidden: true,
+      })[0],
+    )
+
+    // While the Reorder sends, every control that starts an edit is off.
+    const addButtons = () =>
+      screen.getAllByRole('button', {
+        name: 'Add source',
+        hidden: true,
+      }) as HTMLButtonElement[]
+    await waitFor(() => {
+      expect(addButtons().every((button) => button.disabled)).toBe(true)
+    })
+    fireEvent.click(addButtons()[addButtons().length - 1])
+    expect(notebook.addSource).not.toHaveBeenCalled()
+
+    // The Reorder's failure shows by the list, never in the Add dialog.
+    fail(new Error('stream closed'))
+    expect(
+      await screen.findByText('Could not move the source: stream closed'),
+    ).toBeDefined()
+    expect(screen.queryByText(/Could not add the source/)).toBeNull()
+    expect(notebook.addSource).not.toHaveBeenCalled()
+    expect(notebook.stored).toEqual([A, B])
+  })
+
+  it('keeps the Remove dialog open on Escape while it sends, to show the result', async () => {
+    const notebook = fakeNotebook([A, B])
+    watchSources([A, B])
+    let fail!: (err: Error) => void
+    notebook.removeSource.mockImplementationOnce(
+      () => new Promise((_, reject) => (fail = reject)),
+    )
+    renderViewer()
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove source' })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    await waitFor(() => {
+      expect(
+        (screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true)
+    })
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(screen.getByText('Remove “B” from the notebook?')).toBeDefined()
+
+    fail(new Error('stream closed'))
+    expect(
+      await screen.findByText('Could not remove “B”: stream closed'),
+    ).toBeDefined()
+  })
+
+  it('selects the added source by identity when another writer added one too', async () => {
+    const notebook = fakeNotebook([A])
+    watchSources([A])
+    const view = renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'C' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: C.ref },
+    })
+    const addButtons = screen.getAllByRole('button', { name: 'Add source' })
+    fireEvent.click(addButtons[addButtons.length - 1])
+    await waitFor(() => {
+      expect(notebook.stored).toEqual([A, C])
+    })
+
+    // Another writer's B lands before ours in the watched list.
+    watchSources([A, B, C])
+    view.rerender()
+    // The bar names the selected source beside its sidebar entry.
+    await waitFor(() => {
+      expect(screen.getAllByText('C')).toHaveLength(2)
+    })
+    expect(screen.getAllByText('B')).toHaveLength(1)
+  })
 })

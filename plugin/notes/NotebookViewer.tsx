@@ -271,6 +271,7 @@ function SourceEditDialogs({
 }) {
   const {
     sourceEdit,
+    editSending,
     addSourceOpen,
     removeTarget,
     handleAddSourceOpenChange,
@@ -283,7 +284,7 @@ function SourceEditDialogs({
     <>
       <SourceInputDialog
         open={addSourceOpen}
-        sending={editSending(sourceEdit, 'add')}
+        sending={editSending}
         error={editError(sourceEdit, 'add')}
         onOpenChange={handleAddSourceOpenChange}
         onConfirm={(source) => void handleConfirmAddSource(source)}
@@ -293,7 +294,7 @@ function SourceEditDialogs({
         title="Remove source"
         description={`Remove ${sourceLabel(removeTarget)} from the notebook?`}
         confirmLabel="Remove"
-        sending={editSending(sourceEdit, 'remove')}
+        sending={editSending}
         error={
           removeError &&
           `Could not remove ${sourceLabel(removeTarget)}: ${removeError}`
@@ -303,11 +304,6 @@ function SourceEditDialogs({
       />
     </>
   )
-}
-
-// editSending reports whether an edit of kind is sending.
-function editSending(state: SourceEditState, kind: SourceEdit['kind']) {
-  return state.status === 'sending' && state.edit.kind === kind
 }
 
 // editError returns what failed in an edit of kind, if it failed.

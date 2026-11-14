@@ -101,7 +101,7 @@ function EditError({ error }: { error?: string }) {
 
 interface SourceInputDialogProps {
   open: boolean
-  // sending disables the confirm while the edit is applied.
+  // sending disables the confirm and Cancel while an edit is applied.
   sending?: boolean
   // error says what failed; the inputs keep what the person typed.
   error?: string
@@ -161,6 +161,7 @@ export function SourceInputDialog({
           <DialogFooter className="mt-4">
             <button
               type="button"
+              disabled={sending}
               onClick={() => onOpenChange(false)}
               className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
             >
@@ -185,7 +186,7 @@ interface ConfirmActionDialogProps {
   title: string
   description: string
   confirmLabel: string
-  // sending disables the confirm while the action runs.
+  // sending disables the confirm and Cancel while the action runs.
   sending?: boolean
   // error says what failed; the confirm then tries the action again.
   error?: string
@@ -214,6 +215,7 @@ export function ConfirmActionDialog({
         <DialogFooter>
           <button
             type="button"
+            disabled={sending}
             onClick={() => onOpenChange(false)}
             className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors"
           >
