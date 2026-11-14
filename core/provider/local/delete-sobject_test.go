@@ -585,12 +585,34 @@ func TestCreateSharedObjectStaleKeys(t *testing.T) {
 		expectFresh(t, "stale")
 	})
 
-	t.Run("abandoned-placeholder", func(t *testing.T) {
-		// An enrollment that returned without listing the id left it.
-		if err := a.writeGenesisSOState(ctx, "abandoned"); err != nil {
+	// leaveEnrolled writes a placeholder for id and holds a root in its
+	// bucket, as an import does before it lists the id.
+	leaveEnrolled := func(t *testing.T, id string) {
+		if err := a.writeGenesisSOState(ctx, id); err != nil {
 			t.Fatal(err)
 		}
+		ref := sobject.NewSharedObjectRef(a.GetProviderID(), a.GetAccountID(), id, SobjectBlockStoreID(id))
+		so, rel := mountTestSharedObject(ctx, t, a, ref)
+		putRehearsalTree(ctx, t, so, id, "rehearsal")
+		rel()
+		requireRehearsalRoot(ctx, t, a, id, true)
+	}
+
+	t.Run("abandoned-placeholder", func(t *testing.T) {
+		// An enrollment that returned without listing the id left it and
+		// its hold, which the create releases.
+		leaveEnrolled(t, "abandoned")
 		expectFresh(t, "abandoned")
+		requireRehearsalRoot(ctx, t, a, "abandoned", false)
+	})
+
+	t.Run("abandoned-placeholder-off-mode", func(t *testing.T) {
+		// The old behavior keeps the hold.
+		leaveEnrolled(t, "abandoned-off")
+		setTestDeleteStateOff(t, true)
+		defer setTestDeleteStateOff(t, false)
+		createTestSharedObject(ctx, t, a, "abandoned-off")
+		requireRehearsalRoot(ctx, t, a, "abandoned-off", true)
 	})
 
 	t.Run("enrollment-in-flight", func(t *testing.T) {
@@ -601,13 +623,12 @@ func TestCreateSharedObjectStaleKeys(t *testing.T) {
 		}
 		end := a.beginEnrollmentLocked("enrolling")
 		relMtx()
-		if err := a.writeGenesisSOState(ctx, "enrolling"); err != nil {
-			t.Fatal(err)
-		}
+		leaveEnrolled(t, "enrolling")
 		_, err = a.CreateSharedObject(ctx, "enrolling", &sobject.SharedObjectMeta{BodyType: "test"}, "", "")
 		if !errors.Is(err, errSOEnrolling) {
 			t.Fatalf("a create during an enrollment returned %v", err)
 		}
+		requireRehearsalRoot(ctx, t, a, "enrolling", true)
 		if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("enrolling")); n != want {
 			t.Fatalf("the refused create left %d keys, want %d", n, want)
 		}
@@ -619,6 +640,7 @@ func TestCreateSharedObjectStaleKeys(t *testing.T) {
 		// abandoned.
 		end()
 		expectFresh(t, "enrolling")
+		requireRehearsalRoot(ctx, t, a, "enrolling", false)
 	})
 
 	t.Run("no-state", func(t *testing.T) {

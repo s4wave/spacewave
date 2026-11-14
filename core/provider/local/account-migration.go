@@ -243,7 +243,10 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		//  2. The hold is written after the object's first host state and
 		//     before its listing, so a crash or error between them leaves an
 		//     unlisted id with state and held roots, which a retry adopts,
-		//     and never a listed Space nothing holds. A delete releases the
+		//     and never a listed Space nothing holds. A create of the id
+		//     after the import returned releases those roots with the
+		//     abandoned state, so its new lifetime starts with an empty
+		//     bucket; it fails while the import runs. A delete releases the
 		//     bucket's roots only after it unlists the id, and one that runs
 		//     between the hold and the listing fails the listing, so no
 		//     listed Space loses the hold. The stage's roots live outside
