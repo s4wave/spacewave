@@ -21,6 +21,10 @@ type soStateEntry struct {
 	stateProm *promise.PromiseContainer[*sobject.SOState]
 	// stateCtr publishes the committed state.
 	stateCtr *ccontainer.CContainer[*sobject.SOState]
+	// data is the stored encoding of the state in stateCtr, which the next
+	// write requires storage still to hold. It is set before stateProm
+	// completes, and then only under writeMtx.
+	data []byte
 	// writeMtx serializes the state writes while the entry is retained.
 	writeMtx csync.Mutex
 }
@@ -67,14 +71,17 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 	}
 
 	// Publish it to waiters and watches, and hold the entry.
+	e.data = data
 	e.stateCtr.SetValue(val)
 	e.stateProm.SetResult(val, nil)
 	<-ctx.Done()
 	return nil
 }
 
-// commit publishes state, written to storage. The caller holds writeMtx.
-func (e *soStateEntry) commit(state *sobject.SOState) {
+// commit publishes state, written to storage as data. The caller holds
+// writeMtx.
+func (e *soStateEntry) commit(state *sobject.SOState, data []byte) {
+	e.data = data
 	e.stateCtr.SetValue(state)
 	e.stateProm.SetResult(state, nil)
 }

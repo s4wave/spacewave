@@ -193,6 +193,93 @@ func TestDeleteSharedObjectRacingHandleWriteFails(t *testing.T) {
 	expectTestMountNotFound(ctx, t, a, ref)
 }
 
+// TestReplaceSharedObjectRacingHandleWrite races a mounted handle's state
+// writes against a replace from both sides. A write acknowledged after the
+// caller read the state makes the replace refuse, so the write is not lost; a
+// write between the replace's commit and its restart of the mount fails, so
+// the replaced lineage does not come back.
+func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	peer, err := a.vol.GetPeer(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner, err := peer.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mount the object, read it as a transfer does, then acknowledge a write.
+	ref := createTestSharedObject(ctx, t, a, "replaced")
+	so, rel := mountTestSharedObject(ctx, t, a, ref)
+	defer rel()
+	read := func() *ReplaceOrigin {
+		stored, err := a.ReadStoredSharedObject(ctx, "replaced")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
+	}
+	stale := read()
+	writeTestStateData(ctx, t, so, []byte("fake-acked"))
+
+	// A replace planned before the acknowledged write refuses and keeps it.
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "replaced", owner, []byte("fake-moved"), stale); !errors.Is(err, ErrStateChanged) {
+		t.Fatalf("a replace over an acknowledged write returned %v", err)
+	}
+	if got := readTestStateData(ctx, t, so); !bytes.Equal(got, []byte("fake-acked")) {
+		t.Fatalf("the acknowledged write reads %q after the refused replace", got)
+	}
+
+	// Write through the live handle after the replace commits, before it
+	// restarts the mount.
+	var hookErr error
+	var ranHook bool
+	testHookReplaceCommitted = func(id string) {
+		if id != "replaced" {
+			return
+		}
+		ranHook = true
+		if so.ctx.Err() != nil {
+			t.Error("the mount ended before the replace restarted it")
+		}
+		hookErr = tryWriteTestStateData(ctx, so, []byte("fake-resurrected"))
+	}
+	t.Cleanup(func() { testHookReplaceCommitted = nil })
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "replaced", owner, []byte("fake-moved"), read()); err != nil {
+		t.Fatal(err)
+	}
+
+	// The racing write failed, storage holds the replace, and a new mount
+	// reads it.
+	if !ranHook {
+		t.Fatal("the replace did not reach its commit hook")
+	}
+	if !errors.Is(hookErr, ErrStateChanged) {
+		t.Fatalf("a write racing the replace returned %v, want ErrStateChanged", hookErr)
+	}
+	stored, err := a.ReadStoredSharedObject(ctx, "replaced")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.Unchanged() {
+		t.Fatal("the stored state is not the one the replace wrote")
+	}
+	mctx, mcancel := context.WithTimeout(ctx, 10*time.Second)
+	defer mcancel()
+	next, relNext, err := a.MountSharedObject(mctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relNext()
+	if got := readTestStateData(ctx, t, next.(*SharedObject)); !bytes.Equal(got, []byte("fake-moved")) {
+		t.Fatalf("the replaced object reads %q", got)
+	}
+}
+
 // TestRefusedMountRevivesOnCreate holds a mount between reading that its
 // object has no state and publishing the refusal, creates the object there,
 // and checks that the tracker restarts and mounts the new object while the

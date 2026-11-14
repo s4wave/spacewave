@@ -1,6 +1,7 @@
 package provider_local
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -14,7 +15,9 @@ import (
 
 // NewObjectStoreSOStateFuncs constructs a SOHostState backed by an object store and in-memory locks.
 //
-// Assumes no other writers will access the object store.
+// Each state write is a compare-and-set against the state this mount loaded
+// or last wrote: it fails with ErrStateChanged when another writer, such as
+// ReplaceSharedObjectState, changed the stored state since.
 // rctx is the context to use for looking up states from the object store.
 // localPeer binds private read checkpoints to the local participant; empty disables retention.
 // watchFn watches the committed state.
@@ -116,12 +119,21 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if err := rctx.Err(); err != nil {
 							return err
 						}
-						found, err := tx.Exists(ctx, ent.key)
+						stored, found, err := tx.Get(ctx, ent.key)
 						if err != nil {
 							return err
 						}
 						if !found {
 							return sobject.ErrSharedObjectNotFound
+						}
+
+						// A replaced object stays replaced. The write builds on the
+						// state this entry holds, so it commits only over those
+						// bytes. A replace commits between the mount's last write
+						// and its restart; a write in that window finds the new
+						// state and fails rather than writing the old lineage back.
+						if !bytes.Equal(stored, ent.data) {
+							return ErrStateChanged
 						}
 
 						// Record the config history and the read checkpoint with the state.
@@ -151,7 +163,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				}
 
 				// Make the committed snapshot visible only after the transaction succeeds.
-				ent.commit(state)
+				ent.commit(state, data)
 				return nil
 			},
 			func() {

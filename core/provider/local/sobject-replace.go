@@ -32,6 +32,23 @@ type ReplaceOrigin struct {
 // origin names, else returns ErrStateChanged and writes nothing, and stores
 // a written SharedObjectOrigin with the new state's hash in the same
 // transaction.
+//
+// Invariants:
+//   - No writer mounted on the target commits over or under a replace. Write
+//     transactions on the account store hold its writer from open to end, so
+//     each mounted write commits wholly before or wholly after the replace.
+//     A mounted state write commits only over the stored bytes its mount
+//     loaded or last wrote (NewObjectStoreSOStateFuncs), so one after the
+//     replace finds the new state and fails with ErrStateChanged, from the
+//     commit until the restart below ends the mount, and the restarted
+//     mount loads the new state.
+//   - A replace never commits over a state newer than the one its caller
+//     read. With origin set, a mounted write acknowledged before the replace
+//     changed the stored bytes, so the replace returns ErrStateChanged and
+//     writes nothing; the caller reads again and decides. Without origin, as
+//     in the tests, the replace overwrites whatever is stored.
+//   - Keys a mount writes outside the host state, its local state stores
+//     and join requests, are not part of the replace and are kept.
 func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte, origin *ReplaceOrigin) error {
 	// Build the genesis before the transaction.
 	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, owner, stateData)
@@ -89,6 +106,9 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
 	}); err != nil {
 		return err
+	}
+	if testHookReplaceCommitted != nil {
+		testHookReplaceCommitted(id)
 	}
 	a.restartSharedObject(id, nil)
 	return nil
