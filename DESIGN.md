@@ -158,7 +158,7 @@ spacing:
   viewer-press: 24px
   viewer-pad: 8px
   viewer-pad-roomy: 12px
-  viewer-title: 4rem
+  viewer-title: 4.5rem
   viewer-row: 24px
   viewer-fact-row: 28px
   viewer-rail: 32px
@@ -667,7 +667,7 @@ larger type or taller rows. Every size below is a `--spacing-viewer-*` token in
 | `viewer-press` | 24px | Each press in the bar |
 | `viewer-pad` | 8px | Bar and body inset, so the title and first column share an edge |
 | `viewer-pad-roomy` | 12px | The same inset from `@pane-roomy` |
-| `viewer-title` | 4rem | Least width the bar's title keeps, about 8 characters |
+| `viewer-title` | 4.5rem | Least width the bar's title keeps: 8 characters and an ellipsis of most titles |
 | `viewer-row` | 24px, 44px coarse | List and table rows; a coarse pointer raises it |
 | `viewer-fact-row` | 28px | A one-fact row in the body; a side column or dock packs facts in `viewer-row` |
 | `viewer-fact-label` | 4.5rem | A fact's label; also in a side column or dock |
@@ -697,8 +697,9 @@ from `@pane-md` and are icons below it, named by their tooltip. Each press
 names where it folds into More: `xs` below `@pane-xs`, `md` below `@pane-md`,
 or `menu` always. The variants alone hide a folded press, so nothing flashes
 and no script measures the pane; More shows exactly while something is folded,
-lists what the pane hides when it opens and on each resize while open, and
-closes when a wider pane folds nothing. Outside a pane every press folds into
+lists what the pane hides when it opens and on each resize or change of the
+presses while open, and closes when a wider pane folds nothing, sending focus
+to the first shown press or the bar. Outside a pane every press folds into
 More, so each stays reachable. The frame's bottom bar carries the viewer
 selector, so the bar never repeats it.
 
@@ -707,7 +708,7 @@ the bar holds only More; from `@pane-xs` at most three icon presses sit in the
 bar, and a fourth folds at `md`; from `@pane-md` the labeled presses together
 stay under 16rem, and a press that would pass it folds at `md` or `menu`. A
 disabled press is one whose action is running, and its label says so, such as
-"Opening Add Device…"; a press that cannot work in the object's state is left
+"Opening Add Device…"; it stays focusable and ignores presses. A press that cannot work in the object's state is left
 out of the bar, so More never lists a dead end alone.
 
 The bar's title is an `h2`, wherever the viewer mounts: a viewer can sit in a
