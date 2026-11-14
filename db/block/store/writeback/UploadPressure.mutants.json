@@ -2,10 +2,7 @@
   {
     "name": "A failed round drops the marker",
     "replace": [
-      [
-        "        /\\ UNCHANGED pending\n",
-        "        /\\ pending' = FALSE\n"
-      ]
+      ["        /\\ UNCHANGED pending\n", "        /\\ pending' = FALSE\n"]
     ],
     "expect": "KeptUntilUploaded"
   }

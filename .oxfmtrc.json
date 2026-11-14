@@ -12,6 +12,12 @@
     ".#*",
     ".*.swp",
     ".vs",
-    "lean/lake-manifest.json"
+    "lean/lake-manifest.json",
+    // bun run gen writes the protoc manifests; formatting would churn on each gen.
+    ".protoc-*manifest.json",
+    // The Go vector test rewrites this file and compares its bytes exactly.
+    "core/sobject/testdata/operation-log-vectors.json",
+    // A recorded Cloudflare response, kept byte for byte as the API sent it.
+    "net/transport/webrtc/relay/cloudflare/testdata/generate-ice-servers.json"
   ]
 }

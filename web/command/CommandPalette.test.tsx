@@ -85,13 +85,8 @@ vi.mock('./useCommand.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/command.js', () => ({
-  CommandDialog: ({
-    open,
-    children,
-  }: {
-    open: boolean
-    children: ReactNode
-  }) => (open ? <div role="dialog">{children}</div> : null),
+  CommandDialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
+    open ? <div role="dialog">{children}</div> : null,
   CommandEmpty: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
