@@ -268,9 +268,13 @@ func (t *SpacewaveTransferTarget) create(ctx context.Context, le *logrus.Entry, 
 	if err != nil {
 		return err
 	}
+	envelopes, err := t.account.GenesisRecoveryEnvelopes(ctx, sharedObjectID, owner, state)
+	if err != nil {
+		return err
+	}
 
 	// Encode the config, checkpoint and origin the request carries.
-	config, err := (&api.PostConfigStateRequest{ConfigChange: genesisData, KeyEpoch: state.CurrentKeyEpoch()}).MarshalVT()
+	config, err := (&api.PostConfigStateRequest{ConfigChange: genesisData, KeyEpoch: state.CurrentKeyEpoch(), RecoveryEnvelopes: envelopes}).MarshalVT()
 	if err != nil {
 		return err
 	}
@@ -365,11 +369,15 @@ func (t *SpacewaveTransferTarget) writeGenesis(ctx context.Context, le *logrus.E
 	if err != nil {
 		return err
 	}
+	envelopes, err := t.account.GenesisRecoveryEnvelopes(ctx, sharedObjectID, owner, state)
+	if err != nil {
+		return err
+	}
 
 	// Post its config, which the cloud refuses on a configured Space, then
 	// its checkpoint.
 	cli := t.account.GetSessionClient()
-	if err := cli.PostConfigState(ctx, sharedObjectID, genesisData, nil, state.CurrentKeyEpoch(), nil); err != nil {
+	if err := cli.PostConfigState(ctx, sharedObjectID, genesisData, nil, state.CurrentKeyEpoch(), envelopes); err != nil {
 		return err
 	}
 	return cli.PostCheckpoint(ctx, sharedObjectID, state.GetCheckpoint())
