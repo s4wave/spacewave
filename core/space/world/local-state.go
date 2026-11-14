@@ -4,14 +4,21 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // readLocal returns the value of key in the SharedObject's local state store
 // storeID, and whether it is set.
 func (a *Adapter) readLocal(ctx context.Context, storeID string, key []byte) ([]byte, bool, error) {
+	return readLocalState(ctx, a.so, storeID, key)
+}
+
+// readLocalState returns the value of key in the local state store storeID
+// of so, and whether it is set.
+func readLocalState(ctx context.Context, so sobject.SharedObject, storeID string, key []byte) ([]byte, bool, error) {
 	// Open the store.
-	store, release, err := a.so.AccessLocalStateStore(ctx, storeID, nil)
+	store, release, err := so.AccessLocalStateStore(ctx, storeID, nil)
 	if err != nil {
 		return nil, false, err
 	}

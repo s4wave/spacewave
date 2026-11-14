@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
@@ -16,16 +17,26 @@ import (
 
 // Info identifies the provider's current account authority before migration.
 type Info struct {
-	Settings          *sobject.SharedObjectRef
-	Endpoint          string
+	// Settings is the account settings object.
+	Settings *sobject.SharedObjectRef
+	// Endpoint is the cloud endpoint the account lives on, empty for a local
+	// account.
+	Endpoint string
+	// ParticipantEntity is the entity a migrated object authorizes as the
+	// account's participant, empty for a local account.
 	ParticipantEntity string
 	// ParticipantUsername is the username of ParticipantEntity.
 	ParticipantUsername string
-	SessionPeers        []string
+	// SessionPeers are the peers of the account's Sessions.
+	SessionPeers []string
 	// PendingSessionPeers still need to attach after an earlier local migration.
 	PendingSessionPeers []string
-	ParticipantPeers    []string
-	Transition          *provider.AccountTransition
+	// ParticipantPeers are the peers a migrated object must admit as
+	// participants: the Session peers and, for a local account, the storage
+	// peers that hold its objects.
+	ParticipantPeers []string
+	// Transition is the account's committed transition, nil before one.
+	Transition *provider.AccountTransition
 }
 
 // Account owns migration storage, Session authority, and returning-client enrollment.
@@ -34,19 +45,39 @@ type Account interface {
 	provider.ProviderAccount
 	sobject.SharedObjectProvider
 	session.SessionProvider
+	// GetProviderID returns the identifier of the account's provider.
 	GetProviderID() string
+	// GetAccountID returns the account's identifier within its provider.
 	GetAccountID() string
+	// MigrationInfo returns the account's current authority, as the Session
+	// holding key sees it.
 	MigrationInfo(context.Context, crypto.PrivKey) (*Info, error)
+	// CheckMigrationSessions refuses a transition this destination cannot
+	// take, such as a conflict or an overflow, before any data moves.
 	CheckMigrationSessions(context.Context, *provider.AccountTransition, crypto.PrivKey, crypto.PrivKey) error
+	// AcceptMigrationSessions durably authorizes the returning Session peers
+	// of the transition before the source retires.
 	AcceptMigrationSessions(context.Context, *provider.AccountTransition, crypto.PrivKey, crypto.PrivKey) error
+	// ImportMigrationObject copies an object of the source account into this
+	// one with its accepted state, before the transition commits.
 	ImportMigrationObject(context.Context, Account, sobject.SharedObject, *sobject.SharedObjectListEntry, *sobject.SOState) error
+	// SpaceBus returns the bus this account's Spaces resolve their operation
+	// types on, so an import from it names the payloads of a plugin running
+	// beside the source.
+	SpaceBus() bus.Bus
+	// CommitAccountTransition publishes the transition while the source
+	// keeps its data for recovery.
 	CommitAccountTransition(context.Context, *provider.AccountTransition, crypto.PrivKey, crypto.PrivKey) error
+	// AttachMigratedSession attaches a Session of the source to this account
+	// under the transition, keeping its key.
 	AttachMigratedSession(context.Context, session.Session, *provider.AccountTransition) (*session.SessionRef, error)
 }
 
 // CredentialSource exposes only the mounted Session's own credential store.
 // Its retained Session handle owns the store lifetime through migration.
 type CredentialSource interface {
+	// SessionCredentialStore returns the store of the Session's own
+	// encrypted credential.
 	SessionCredentialStore() object.ObjectStore
 	// RetireAccountTransport releases this credential's old account connection.
 	// It is called after the pairing receipt and before the destination starts it.

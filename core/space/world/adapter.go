@@ -8,11 +8,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
@@ -1740,22 +1743,14 @@ func (a *Adapter) sweep() {
 	a.pages.Sweep(slices.Concat([]*block.BlockRef{base}, l.memory, l.candidates, l.payloads, l.retained), mark)
 }
 
-// buildLookupOp composes the built-in operations with the bus lookup.
+// buildLookupOp resolves operation types as OpTypes.LookupOn does, on the
+// bus unless lookup is disabled.
 func (a *Adapter) buildLookupOp() world.LookupOp {
-	var busLookup world.LookupOp
-	if !a.opts.DisableLookup && a.opts.Bus != nil {
-		busLookup = world.BuildLookupWorldOpFunc(a.opts.Bus, a.le, a.opts.EngineID)
+	b := a.opts.Bus
+	if a.opts.DisableLookup {
+		b = nil
 	}
-	return func(ctx context.Context, opTypeID string) (world.Operation, error) {
-		var lookups []world.LookupOp
-		if a.opts.OpTypes.Lookup != nil {
-			lookups = append(lookups, a.opts.OpTypes.Lookup)
-		}
-		if busLookup != nil {
-			lookups = append(lookups, busLookup)
-		}
-		return world.LookupOpSlice(lookups).LookupOp(ctx, opTypeID)
-	}
+	return a.opts.OpTypes.LookupOn(b, a.le, a.opts.EngineID)
 }
 
 // bucketRef returns head bound to the SharedObject block store's bucket.
@@ -1772,21 +1767,41 @@ func (a *Adapter) bucketRef(head *bucket.ObjectRef) *bucket.ObjectRef {
 // that reads it, with the head's transform and the shared decoded block
 // cache.
 func (a *Adapter) newCursor(ctx context.Context, store block.StoreOps, head *bucket.ObjectRef) (*bucket_lookup.Cursor, error) {
+	return newWorldCursor(ctx, a.le, a.opts.Bus, a.opts.StepFactorySet, store, a.bucketID, a.decoded, head)
+}
+
+// newWorldCursor builds a cursor at the Space World head over store, whose
+// bucket is bucketID, with the head's transform and the decoded block cache
+// decoded, which may be nil.
+func newWorldCursor(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	sfs *block_transform.StepFactorySet,
+	store block.StoreOps,
+	bucketID string,
+	decoded *block.DecodedBlockCache,
+	head *bucket.ObjectRef,
+) (*bucket_lookup.Cursor, error) {
 	// Build the transformer of the head's transform.
 	conf := head.GetTransformConf()
 	if len(conf.GetSteps()) == 0 {
 		return nil, sobject.ErrEmptyTransformConfig
 	}
-	xfrm, err := a.newTransformer(conf)
+	xfrm, err := newWorldTransformer(controller.ConstructOpts{Logger: le}, sfs, conf)
 	if err != nil {
 		return nil, err
 	}
 
 	// Bind the cursor to the bucket, resolving implicit references through it.
-	cursor := bucket_lookup.NewCursor(ctx, a.opts.Bus, a.le, a.opts.StepFactorySet, store, xfrm, a.bucketRef(head),
-		&bucket.BucketOpArgs{BucketId: a.bucketID, VolumeId: a.bucketID}, conf)
-	cursor.SetBucketIDOverride(a.bucketID)
-	cursor.SetDecodedBlockCache(a.decoded)
+	ref := head.CloneVT()
+	ref.BucketId = bucketID
+	cursor := bucket_lookup.NewCursor(ctx, b, le, sfs, store, xfrm, ref,
+		&bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, conf)
+	cursor.SetBucketIDOverride(bucketID)
+	if decoded != nil {
+		cursor.SetDecodedBlockCache(decoded)
+	}
 	return cursor, nil
 }
 

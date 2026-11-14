@@ -182,12 +182,8 @@ func (a *Adapter) writeCursor(ctx context.Context, root *block.BlockRef, data []
 // does not hold, or whose outcomes do not lead to its head, is ignored.
 func (a *Adapter) loadCursor(ctx context.Context) error {
 	// Read the saved cursor.
-	data, found, err := a.readLocal(ctx, replayCursorStoreID, replayCursorKey)
-	if err != nil || !found {
-		return err
-	}
-	cursor := &ReplayCursor{}
-	if err := cursor.UnmarshalVT(data); err != nil {
+	cursor, err := readSavedCursor(ctx, a.so)
+	if cursor == nil {
 		return err
 	}
 
@@ -198,25 +194,53 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 	}
 
 	// Restore the World after each outcome.
-	positions := make([]spacePosition, len(cursor.GetOutcomes()))
-	state := cursor.GetBase()
+	states, ok := cursor.states()
+	if !ok {
+		a.le.Warn("saved replay does not lead to its head, replaying from the checkpoint")
+		return nil
+	}
+	positions := make([]spacePosition, len(states))
 	for i, outcome := range cursor.GetOutcomes() {
-		state = restoredState(state, head, outcome)
 		positions[i] = spacePosition{
 			op:       &sobject.OrderedOperation{Hash: outcome.GetHash()},
 			reason:   outcome.GetReason(),
-			state:    state,
+			state:    states[i],
 			seqno:    outcome.GetSeqno(),
 			payloads: outcome.GetPayloads(),
 		}
 	}
-	if !state.EqualVT(head) {
-		a.le.Warn("saved replay does not lead to its head, replaying from the checkpoint")
-		return nil
-	}
 	a.replay.restored = positions
 	a.replay.restoredFrom = cursor.GetBase()
 	return nil
+}
+
+// readSavedCursor reads the replay cursor the Adapter of so saved, or nil
+// when none is saved.
+func readSavedCursor(ctx context.Context, so sobject.SharedObject) (*ReplayCursor, error) {
+	// Read and decode the record.
+	data, found, err := readLocalState(ctx, so, replayCursorStoreID, replayCursorKey)
+	if err != nil || !found {
+		return nil, err
+	}
+	cursor := &ReplayCursor{}
+	if err := cursor.UnmarshalVT(data); err != nil {
+		return nil, err
+	}
+	return cursor, nil
+}
+
+// states returns the World after each outcome of the cursor, and whether the
+// last is its head, as a cursor that is not corrupt leads.
+func (c *ReplayCursor) states() ([]*InnerState, bool) {
+	// Follow the outcomes from the base.
+	head := c.GetHead()
+	states := make([]*InnerState, len(c.GetOutcomes()))
+	state := c.GetBase()
+	for i, outcome := range c.GetOutcomes() {
+		state = restoredState(state, head, outcome)
+		states[i] = state
+	}
+	return states, state.EqualVT(head)
 }
 
 // restoredState returns the World after the saved outcome of the operation

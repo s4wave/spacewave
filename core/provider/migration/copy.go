@@ -3,26 +3,34 @@ package provider_migration
 import (
 	"context"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/sirupsen/logrus"
 )
 
-// Roots returns the roots a migration of the Space object copies, so its
-// target replays the accepted state unchanged without the source: the World
-// of the state's checkpoint and the payloads of the operations above it. The
-// state is one consistent read, so an operation or checkpoint the source
-// accepts later is left to the merge that follows. It fails with
-// space_world.ErrUnresolvedOp while an operation's type does not resolve.
+// Roots returns the roots a migration of the Space object at ref copies, so
+// its target replays the accepted state unchanged without the source: the
+// World of the state's checkpoint and the payloads of the operations above it.
+// The state is one consistent read, so an operation or checkpoint the source
+// accepts later is left to the merge that follows. Operation types resolve as
+// the source Space's Adapter resolves them on b, the source account's bus
+// (Account.SpaceBus), so a running plugin's operations name their payloads.
+// It fails with space_world.ErrUnresolvedOp while an operation's type
+// resolves nowhere and the source's replay does not refuse it, such as a
+// plugin's that is not running (space_world.ImportRoots).
 func Roots(
 	ctx context.Context,
 	le *logrus.Entry,
+	b bus.Bus,
 	factories *block_transform.StepFactorySet,
 	object sobject.SharedObject,
+	ref *sobject.SharedObjectRef,
 	accepted *sobject.SOState,
 ) ([]*block.BlockRef, error) {
 	// Read the state as the source's participant.
@@ -35,7 +43,7 @@ func Roots(
 		WithConfigHistory(soHost.ReadConfigEntry).
 		WithOperationVerifier(soHost.GetOperationVerifier()).
 		WithGrantKeyring(soHost.GetGrantKeyring())
-	return space_world.ImportRoots(ctx, snap, space_world_optypes.LookupWorldOp)
+	return space_world.ImportRoots(ctx, le, b, factories, object, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
 }
 
 // CopyRoots copies every block reachable from roots out of object into
