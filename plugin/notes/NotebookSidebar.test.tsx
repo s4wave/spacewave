@@ -3,6 +3,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 import type { NotebookSource } from './proto/notebook.pb.js'
 import NotebookSidebar from './NotebookSidebar.js'
+import type { SourceEditState } from './useNotebookViewerState.js'
 
 function makeSources(...names: string[]): NotebookSource[] {
   return names.map((name) => ({ name, ref: `obj/-/${name.toLowerCase()}` }))
@@ -16,6 +17,7 @@ function renderSidebar(
     onAddSource: () => void
     onRemoveSource: (index: number) => void
     onMoveSource: (index: number, delta: -1 | 1) => void
+    sourceEdit: SourceEditState
   }> = {},
 ) {
   const rootAtom = atom<Record<string, unknown>>({})
@@ -28,6 +30,7 @@ function renderSidebar(
         onAddSource={props.onAddSource ?? vi.fn()}
         onRemoveSource={props.onRemoveSource ?? vi.fn()}
         onMoveSource={props.onMoveSource ?? vi.fn()}
+        sourceEdit={props.sourceEdit}
         namespace={{ namespace: ['test'], stateAtom: rootAtom }}
       />
     </StateNamespaceProvider>,
@@ -123,5 +126,22 @@ describe('NotebookSidebar', () => {
     const moveDownButtons = screen.getAllByTitle('Move source down')
     fireEvent.click(moveDownButtons[0])
     expect(onMoveSource).toHaveBeenCalledWith(0, 1)
+  })
+
+  it('says when an edit was refused because the sources changed', () => {
+    renderSidebar({ sources: makeSources('Docs') })
+    expect(screen.queryByRole('status')).toBeNull()
+    cleanup()
+    const [docs] = makeSources('Docs')
+    renderSidebar({
+      sources: [docs],
+      sourceEdit: {
+        status: 'changed',
+        edit: { kind: 'remove', index: 0, source: docs },
+      },
+    })
+    expect(screen.getByRole('status').textContent).toBe(
+      'The sources changed before this edit, so it was not applied.',
+    )
   })
 })

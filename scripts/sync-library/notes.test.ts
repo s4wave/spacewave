@@ -8,10 +8,7 @@ import { Application } from '../../core/sync/application.js'
 import { openNodeEngine } from '../../core/sync/node/host.js'
 import { watchObjectQuery } from '../../sdk/sync/object-query.js'
 import { accessObjectRootWorldState } from '../../sdk/world/utils.js'
-import {
-  createObjectWithBlockData,
-  setObjectBlockData,
-} from '../../plugin/notes/object-block.js'
+import { createObjectWithBlockData } from '../../plugin/notes/object-block.js'
 import { Notebook } from '../../plugin/notes/proto/notebook.pb.js'
 import {
   notebookViews,
@@ -106,10 +103,13 @@ test(
       const update = await owner.engine.newTransaction(true)
       try {
         using object = await update.getObject('notebook')
-        await setObjectBlockData(
-          object!,
-          Notebook.toBinary({ ...notebook, name: 'Renamed Notebook' }),
-        )
+        const current = await object!.getRootRef()
+        using cursor = await object!.accessWorldState(current.rootRef)
+        const written = await cursor.putBlock({
+          data: Notebook.toBinary({ ...notebook, name: 'Renamed Notebook' }),
+          opts: { refsKnown: true },
+        })
+        await object!.setRootRef({ ...current.rootRef, rootRef: written.ref })
         await update.commit()
       } finally {
         await update.discard()

@@ -88,14 +88,31 @@ export function TextInputDialog({
   )
 }
 
+// EditError is the line a dialog shows when its edit failed; its confirm
+// tries the same input again.
+function EditError({ error }: { error?: string }) {
+  if (!error) return null
+  return (
+    <p role="alert" className="text-destructive mt-3 text-xs">
+      {error}
+    </p>
+  )
+}
+
 interface SourceInputDialogProps {
   open: boolean
+  // sending disables the confirm while the edit is applied.
+  sending?: boolean
+  // error says what failed; the inputs keep what the person typed.
+  error?: string
   onOpenChange: (open: boolean) => void
   onConfirm: (source: { name: string; ref: string }) => void
 }
 
 export function SourceInputDialog({
   open,
+  sending,
+  error,
   onOpenChange,
   onConfirm,
 }: SourceInputDialogProps) {
@@ -140,6 +157,7 @@ export function SourceInputDialog({
               />
             </label>
           </div>
+          <EditError error={error && `Could not add the source: ${error}`} />
           <DialogFooter className="mt-4">
             <button
               type="button"
@@ -150,9 +168,10 @@ export function SourceInputDialog({
             </button>
             <button
               type="submit"
-              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
+              disabled={sending}
+              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150 disabled:opacity-50"
             >
-              Add source
+              {error ? 'Try again' : 'Add source'}
             </button>
           </DialogFooter>
         </form>
@@ -166,6 +185,10 @@ interface ConfirmActionDialogProps {
   title: string
   description: string
   confirmLabel: string
+  // sending disables the confirm while the action runs.
+  sending?: boolean
+  // error says what failed; the confirm then tries the action again.
+  error?: string
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
 }
@@ -175,6 +198,8 @@ export function ConfirmActionDialog({
   title,
   description,
   confirmLabel,
+  sending,
+  error,
   onOpenChange,
   onConfirm,
 }: ConfirmActionDialogProps) {
@@ -185,6 +210,7 @@ export function ConfirmActionDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        <EditError error={error} />
         <DialogFooter>
           <button
             type="button"
@@ -195,10 +221,11 @@ export function ConfirmActionDialog({
           </button>
           <button
             type="button"
+            disabled={sending}
             onClick={onConfirm}
-            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
+            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150 disabled:opacity-50"
           >
-            {confirmLabel}
+            {error ? 'Try again' : confirmLabel}
           </button>
         </DialogFooter>
       </DialogContent>

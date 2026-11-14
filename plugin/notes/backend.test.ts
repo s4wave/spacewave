@@ -327,6 +327,7 @@ describe('notes backend registration', () => {
         pluginId: 'spacewave-notes',
       })),
       { operationTypeId: 'notes/notebook/init', pluginId: 'spacewave-notes' },
+      { operationTypeId: 'notes/notebook/edit', pluginId: 'spacewave-notes' },
       { operationTypeId: 'notes/blog/create', pluginId: 'spacewave-notes' },
       { operationTypeId: 'notes/docs/create', pluginId: 'spacewave-notes' },
     ])
@@ -458,9 +459,10 @@ describe('notes backend registration', () => {
     ])
     expect(h.activatedScopes).toEqual([h.scopeRef])
     expect(h.rootRef.createRef).not.toHaveBeenCalled()
-    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(21)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(22)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).not.toHaveBeenCalled()
@@ -605,9 +607,9 @@ describe('notes backend registration', () => {
       h.wizardRegistrations.map((registration) => registration.typeId),
     ).toEqual(['notes/notebook', 'notes/docs', 'notes/blog'])
     expect(h.viewerRegistrations).toHaveLength(1)
-    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(12)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(13)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
@@ -641,9 +643,9 @@ describe('notes backend registration', () => {
     ).toEqual(['notebook', 'docs', 'blog'])
     expect(h.activatedScopes).toHaveLength(0)
     expect(h.viewerRegistrations).toHaveLength(6)
-    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(20)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(21)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)

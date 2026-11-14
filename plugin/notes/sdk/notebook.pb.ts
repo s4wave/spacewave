@@ -2,9 +2,44 @@
 // @generated from file github.com/s4wave/spacewave/plugin/notes/sdk/notebook.proto (package notes, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
+
+/**
+ * NotebookEditOutcome is what became of a Notebook edit that carried the
+ * sources its caller saw.
+ *
+ * @generated from enum notes.NotebookEditOutcome
+ */
+export enum NotebookEditOutcome {
+  /**
+   * NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome.
+   */
+  UNKNOWN = 0,
+
+  /**
+   * NOTEBOOK_EDIT_OUTCOME_APPLIED means the edit was written.
+   */
+  APPLIED = 1,
+
+  /**
+   * NOTEBOOK_EDIT_OUTCOME_CHANGED means the Notebook no longer held the sources
+   * the caller saw, so nothing was written; the caller refreshes instead of
+   * resending.
+   */
+  CHANGED = 2,
+}
+
+export const NotebookEditOutcome_Enum = /* @__PURE__ */ createEnumType(
+  'notes.NotebookEditOutcome',
+  [
+    [0, 'NOTEBOOK_EDIT_OUTCOME_UNKNOWN'],
+    [1, 'NOTEBOOK_EDIT_OUTCOME_APPLIED'],
+    [2, 'NOTEBOOK_EDIT_OUTCOME_CHANGED'],
+  ],
+)
 
 /**
  * WatchNotebookRequest is the request for WatchNotebook.
@@ -78,12 +113,20 @@ export interface RemoveSourceRequest {
    * Index is the source index to remove.
    */
   index?: number
+  /**
+   * Source is the source the caller saw at index; the remove applies only
+   * while the stored source at index equals it.
+   */
+  source?: NotebookSource
 }
 
 export const RemoveSourceRequest: MessageType<RemoveSourceRequest> =
   /* @__PURE__ */ createMessageType<RemoveSourceRequest>(
     'notes.RemoveSourceRequest',
-    () => [[1, 'index', 13]],
+    () => [
+      [1, 'index', 13],
+      [2, 'source', 11, 0, NotebookSource.codec],
+    ],
   )
 
 /**
@@ -91,12 +134,17 @@ export const RemoveSourceRequest: MessageType<RemoveSourceRequest> =
  *
  * @generated from message notes.RemoveSourceResponse
  */
-export interface RemoveSourceResponse {}
+export interface RemoveSourceResponse {
+  /**
+   * Outcome is what became of the edit.
+   */
+  outcome?: NotebookEditOutcome
+}
 
 export const RemoveSourceResponse: MessageType<RemoveSourceResponse> =
   /* @__PURE__ */ createMessageType<RemoveSourceResponse>(
     'notes.RemoveSourceResponse',
-    () => [],
+    () => [[1, 'outcome', 14, 0, NotebookEditOutcome_Enum]],
   )
 
 /**
@@ -109,12 +157,20 @@ export interface ReorderSourcesRequest {
    * Order is the new index ordering.
    */
   order?: number[]
+  /**
+   * Sources is the source list the caller saw; the reorder applies only
+   * while the stored list equals it.
+   */
+  sources?: NotebookSource[]
 }
 
 export const ReorderSourcesRequest: MessageType<ReorderSourcesRequest> =
   /* @__PURE__ */ createMessageType<ReorderSourcesRequest>(
     'notes.ReorderSourcesRequest',
-    () => [[1, 'order', 13, 3]],
+    () => [
+      [1, 'order', 13, 3],
+      [2, 'sources', 11, 1, NotebookSource.codec],
+    ],
   )
 
 /**
@@ -122,12 +178,17 @@ export const ReorderSourcesRequest: MessageType<ReorderSourcesRequest> =
  *
  * @generated from message notes.ReorderSourcesResponse
  */
-export interface ReorderSourcesResponse {}
+export interface ReorderSourcesResponse {
+  /**
+   * Outcome is what became of the edit.
+   */
+  outcome?: NotebookEditOutcome
+}
 
 export const ReorderSourcesResponse: MessageType<ReorderSourcesResponse> =
   /* @__PURE__ */ createMessageType<ReorderSourcesResponse>(
     'notes.ReorderSourcesResponse',
-    () => [],
+    () => [[1, 'outcome', 14, 0, NotebookEditOutcome_Enum]],
   )
 
 /**

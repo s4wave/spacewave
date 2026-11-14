@@ -35,23 +35,48 @@ message AddSourceRequest {
 // AddSourceResponse is the response for AddSource.
 message AddSourceResponse {}
 
+// NotebookEditOutcome is what became of a Notebook edit that carried the
+// sources its caller saw.
+enum NotebookEditOutcome {
+  // NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome.
+  NOTEBOOK_EDIT_OUTCOME_UNKNOWN = 0;
+  // NOTEBOOK_EDIT_OUTCOME_APPLIED means the edit was written.
+  NOTEBOOK_EDIT_OUTCOME_APPLIED = 1;
+  // NOTEBOOK_EDIT_OUTCOME_CHANGED means the Notebook no longer held the sources
+  // the caller saw, so nothing was written; the caller refreshes instead of
+  // resending.
+  NOTEBOOK_EDIT_OUTCOME_CHANGED = 2;
+}
+
 // RemoveSourceRequest is the request for RemoveSource.
 message RemoveSourceRequest {
   // Index is the source index to remove.
   uint32 index = 1;
+  // Source is the source the caller saw at index; the remove applies only
+  // while the stored source at index equals it.
+  NotebookSource source = 2;
 }
 
 // RemoveSourceResponse is the response for RemoveSource.
-message RemoveSourceResponse {}
+message RemoveSourceResponse {
+  // Outcome is what became of the edit.
+  NotebookEditOutcome outcome = 1;
+}
 
 // ReorderSourcesRequest is the request for ReorderSources.
 message ReorderSourcesRequest {
   // Order is the new index ordering.
   repeated uint32 order = 1;
+  // Sources is the source list the caller saw; the reorder applies only
+  // while the stored list equals it.
+  repeated NotebookSource sources = 2;
 }
 
 // ReorderSourcesResponse is the response for ReorderSources.
-message ReorderSourcesResponse {}
+message ReorderSourcesResponse {
+  // Outcome is what became of the edit.
+  NotebookEditOutcome outcome = 1;
+}
 
 // GetSavedViewsAppRequest requests the additive saved-view application binding.
 message GetSavedViewsAppRequest {}

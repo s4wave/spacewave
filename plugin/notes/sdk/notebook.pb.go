@@ -8,11 +8,55 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	proto "github.com/s4wave/spacewave/plugin/notes/proto"
 )
+
+// NotebookEditOutcome is what became of a Notebook edit that carried the
+// sources its caller saw.
+type NotebookEditOutcome int32
+
+const (
+	// NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome.
+	NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_UNKNOWN NotebookEditOutcome = 0
+	// NOTEBOOK_EDIT_OUTCOME_APPLIED means the edit was written.
+	NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_APPLIED NotebookEditOutcome = 1
+	// NOTEBOOK_EDIT_OUTCOME_CHANGED means the Notebook no longer held the sources
+	// the caller saw, so nothing was written; the caller refreshes instead of
+	// resending.
+	NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_CHANGED NotebookEditOutcome = 2
+)
+
+// Enum value maps for NotebookEditOutcome.
+var (
+	NotebookEditOutcome_name = map[int32]string{
+		0: "NOTEBOOK_EDIT_OUTCOME_UNKNOWN",
+		1: "NOTEBOOK_EDIT_OUTCOME_APPLIED",
+		2: "NOTEBOOK_EDIT_OUTCOME_CHANGED",
+	}
+	NotebookEditOutcome_value = map[string]int32{
+		"NOTEBOOK_EDIT_OUTCOME_UNKNOWN": 0,
+		"NOTEBOOK_EDIT_OUTCOME_APPLIED": 1,
+		"NOTEBOOK_EDIT_OUTCOME_CHANGED": 2,
+	}
+)
+
+func (x NotebookEditOutcome) Enum() *NotebookEditOutcome {
+	p := new(NotebookEditOutcome)
+	*p = x
+	return p
+}
+
+func (x NotebookEditOutcome) String() string {
+	name, valid := NotebookEditOutcome_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // WatchNotebookRequest is the request for WatchNotebook.
 type WatchNotebookRequest struct {
@@ -81,6 +125,9 @@ type RemoveSourceRequest struct {
 	unknownFields []byte
 	// Index is the source index to remove.
 	Index uint32 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	// Source is the source the caller saw at index; the remove applies only
+	// while the stored source at index equals it.
+	Source *proto.NotebookSource `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 }
 
 func (x *RemoveSourceRequest) Reset() {
@@ -96,9 +143,18 @@ func (x *RemoveSourceRequest) GetIndex() uint32 {
 	return 0
 }
 
+func (x *RemoveSourceRequest) GetSource() *proto.NotebookSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
 // RemoveSourceResponse is the response for RemoveSource.
 type RemoveSourceResponse struct {
 	unknownFields []byte
+	// Outcome is what became of the edit.
+	Outcome NotebookEditOutcome `protobuf:"varint,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
 }
 
 func (x *RemoveSourceResponse) Reset() {
@@ -107,11 +163,21 @@ func (x *RemoveSourceResponse) Reset() {
 
 func (*RemoveSourceResponse) ProtoMessage() {}
 
+func (x *RemoveSourceResponse) GetOutcome() NotebookEditOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_UNKNOWN
+}
+
 // ReorderSourcesRequest is the request for ReorderSources.
 type ReorderSourcesRequest struct {
 	unknownFields []byte
 	// Order is the new index ordering.
 	Order []uint32 `protobuf:"varint,1,rep,packed,name=order,proto3" json:"order,omitempty"`
+	// Sources is the source list the caller saw; the reorder applies only
+	// while the stored list equals it.
+	Sources []*proto.NotebookSource `protobuf:"bytes,2,rep,name=sources,proto3" json:"sources,omitempty"`
 }
 
 func (x *ReorderSourcesRequest) Reset() {
@@ -127,9 +193,18 @@ func (x *ReorderSourcesRequest) GetOrder() []uint32 {
 	return nil
 }
 
+func (x *ReorderSourcesRequest) GetSources() []*proto.NotebookSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
 // ReorderSourcesResponse is the response for ReorderSources.
 type ReorderSourcesResponse struct {
 	unknownFields []byte
+	// Outcome is what became of the edit.
+	Outcome NotebookEditOutcome `protobuf:"varint,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
 }
 
 func (x *ReorderSourcesResponse) Reset() {
@@ -137,6 +212,13 @@ func (x *ReorderSourcesResponse) Reset() {
 }
 
 func (*ReorderSourcesResponse) ProtoMessage() {}
+
+func (x *ReorderSourcesResponse) GetOutcome() NotebookEditOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return NotebookEditOutcome_NOTEBOOK_EDIT_OUTCOME_UNKNOWN
+}
 
 // GetSavedViewsAppRequest requests the additive saved-view application binding.
 type GetSavedViewsAppRequest struct {
@@ -256,6 +338,7 @@ func (m *RemoveSourceRequest) CloneVT() *RemoveSourceRequest {
 	}
 	r := new(RemoveSourceRequest)
 	r.Index = m.Index
+	r.Source = protobuf_go_lite.CloneVTValue(m.Source)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -271,6 +354,7 @@ func (m *RemoveSourceResponse) CloneVT() *RemoveSourceResponse {
 		return (*RemoveSourceResponse)(nil)
 	}
 	r := new(RemoveSourceResponse)
+	r.Outcome = m.Outcome
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -287,6 +371,7 @@ func (m *ReorderSourcesRequest) CloneVT() *ReorderSourcesRequest {
 	}
 	r := new(ReorderSourcesRequest)
 	r.Order = protobuf_go_lite.CloneSlice(m.Order)
+	r.Sources = protobuf_go_lite.CloneVTSlice(m.Sources)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -302,6 +387,7 @@ func (m *ReorderSourcesResponse) CloneVT() *ReorderSourcesResponse {
 		return (*ReorderSourcesResponse)(nil)
 	}
 	r := new(ReorderSourcesResponse)
+	r.Outcome = m.Outcome
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -428,6 +514,9 @@ func (this *RemoveSourceRequest) EqualVT(that *RemoveSourceRequest) bool {
 	if this.Index != that.Index {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Source, that.Source) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -443,6 +532,9 @@ func (this *RemoveSourceResponse) EqualVT(that *RemoveSourceResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Outcome != that.Outcome {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -465,6 +557,9 @@ func (this *ReorderSourcesRequest) EqualVT(that *ReorderSourcesRequest) bool {
 	if !protobuf_go_lite.EqualSlice(this.Order, that.Order) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Sources, that.Sources, func() *proto.NotebookSource { return &proto.NotebookSource{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -480,6 +575,9 @@ func (this *ReorderSourcesResponse) EqualVT(that *ReorderSourcesResponse) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Outcome != that.Outcome {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -534,6 +632,46 @@ func (this *GetSavedViewsAppResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the NotebookEditOutcome to JSON.
+func (x NotebookEditOutcome) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), NotebookEditOutcome_name)
+}
+
+// MarshalText marshals the NotebookEditOutcome to text.
+func (x NotebookEditOutcome) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), NotebookEditOutcome_name)), nil
+}
+
+// MarshalJSON marshals the NotebookEditOutcome to JSON.
+func (x NotebookEditOutcome) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NotebookEditOutcome from JSON.
+func (x *NotebookEditOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(NotebookEditOutcome_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read NotebookEditOutcome enum: %v", err)
+		return
+	}
+	*x = NotebookEditOutcome(v)
+}
+
+// UnmarshalText unmarshals the NotebookEditOutcome from text.
+func (x *NotebookEditOutcome) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), NotebookEditOutcome_value)
+	if err != nil {
+		return err
+	}
+	*x = NotebookEditOutcome(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the NotebookEditOutcome from JSON.
+func (x *NotebookEditOutcome) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WatchNotebookRequest message to JSON.
@@ -701,6 +839,11 @@ func (x *RemoveSourceRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("index")
 		s.WriteUint32(x.Index)
 	}
+	if x.Source != nil || s.HasField("source") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("source")
+		x.Source.MarshalProtoJSON(s.WithField("source"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -721,6 +864,13 @@ func (x *RemoveSourceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "index":
 			s.AddField("index")
 			x.Index = s.ReadUint32()
+		case "source":
+			if s.ReadNil() {
+				x.Source = nil
+				return
+			}
+			x.Source = &proto.NotebookSource{}
+			x.Source.UnmarshalProtoJSON(s.WithField("source", true))
 		}
 	})
 }
@@ -737,6 +887,12 @@ func (x *RemoveSourceResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -751,7 +907,13 @@ func (x *RemoveSourceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -772,6 +934,17 @@ func (x *ReorderSourcesRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("order")
 		s.WriteUint32Array(x.Order)
+	}
+	if len(x.Sources) > 0 || s.HasField("sources") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sources")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sources {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sources"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -797,6 +970,24 @@ func (x *ReorderSourcesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.Order = s.ReadUint32Array()
+		case "sources":
+			s.AddField("sources")
+			if s.ReadNil() {
+				x.Sources = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sources = append(x.Sources, nil)
+					return
+				}
+				v := &proto.NotebookSource{}
+				v.UnmarshalProtoJSON(s.WithField("sources", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sources = append(x.Sources, v)
+			})
 		}
 	})
 }
@@ -813,6 +1004,12 @@ func (x *ReorderSourcesResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -827,7 +1024,13 @@ func (x *ReorderSourcesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -1101,6 +1304,16 @@ func (m *RemoveSourceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Source != nil {
+		size, err := m.Source.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.Index != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Index))
 		i--
@@ -1138,6 +1351,11 @@ func (m *RemoveSourceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -1169,6 +1387,18 @@ func (m *ReorderSourcesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Sources) > 0 {
+		for iNdEx := len(m.Sources) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sources[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
 	}
 	if len(m.Order) > 0 {
 		i = protobuf_go_lite.EncodeVarintPacked(dAtA, i, m.Order)
@@ -1206,6 +1436,11 @@ func (m *ReorderSourcesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -1344,6 +1579,10 @@ func (m *RemoveSourceRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Index)
+	if m.Source != nil {
+		l = m.Source.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1354,6 +1593,7 @@ func (m *RemoveSourceResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1365,6 +1605,10 @@ func (m *ReorderSourcesRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintPacked(1, m.Order)
+	for _, e := range m.Sources {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1375,6 +1619,7 @@ func (m *ReorderSourcesResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1400,6 +1645,10 @@ func (m *GetSavedViewsAppResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestRoot)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x NotebookEditOutcome) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *WatchNotebookRequest) MarshalProtoText() string {
@@ -1457,6 +1706,10 @@ func (x *RemoveSourceRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index")
 		protobuf_go_lite.TextWriteUint(&sb, x.Index)
 	}
+	if x.Source != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Source)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1466,7 +1719,11 @@ func (x *RemoveSourceRequest) String() string {
 
 func (x *RemoveSourceResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "RemoveSourceResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RemoveSourceResponse")
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, NotebookEditOutcome(x.Outcome))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1485,6 +1742,18 @@ func (x *ReorderSourcesRequest) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.Sources) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "sources")
+		for i, v := range x.Sources {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &proto.NotebookSource{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1494,7 +1763,11 @@ func (x *ReorderSourcesRequest) String() string {
 
 func (x *ReorderSourcesResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "ReorderSourcesResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReorderSourcesResponse")
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, NotebookEditOutcome(x.Outcome))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1765,6 +2038,21 @@ func (m *RemoveSourceRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Source == nil {
+				m.Source = &proto.NotebookSource{}
+			}
+			if err := m.Source.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1808,6 +2096,17 @@ func (m *RemoveSourceResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: RemoveSourceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = NotebookEditOutcome(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1881,6 +2180,19 @@ func (m *ReorderSourcesRequest) UnmarshalVT(dAtA []byte) error {
 			} else {
 				return fmt.Errorf("proto: wrong wireType = %d for field Order", wireType)
 			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sources", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Sources = append(m.Sources, &proto.NotebookSource{})
+			if err := m.Sources[len(m.Sources)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1924,6 +2236,17 @@ func (m *ReorderSourcesResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: ReorderSourcesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = NotebookEditOutcome(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

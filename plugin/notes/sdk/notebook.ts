@@ -2,8 +2,11 @@ import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
 import { NotebookResourceServiceClient } from './notebook_srpc.pb.js'
 import type { Notebook, NotebookSource } from '../proto/notebook.pb.js'
-import type { WatchNotebookResponse } from './notebook.pb.js'
-import type { GetSavedViewsAppResponse } from './notebook.pb.js'
+import type {
+  GetSavedViewsAppResponse,
+  NotebookEditOutcome,
+  WatchNotebookResponse,
+} from './notebook.pb.js'
 
 // NotebookTypeID is the type identifier for notebook objects.
 export const NotebookTypeID = 'notes/notebook'
@@ -19,11 +22,19 @@ export interface INotebookHandle {
   // addSource adds a source to the notebook.
   addSource(source: NotebookSource, abortSignal?: AbortSignal): Promise<void>
 
-  // removeSource removes a source by index.
-  removeSource(index: number, abortSignal?: AbortSignal): Promise<void>
+  // removeSource removes the source at index while it is still source.
+  removeSource(
+    index: number,
+    source: NotebookSource,
+    abortSignal?: AbortSignal,
+  ): Promise<NotebookEditOutcome>
 
-  // reorderSources reorders the source list.
-  reorderSources(order: number[], abortSignal?: AbortSignal): Promise<void>
+  // reorderSources reorders sources by order while the list is still sources.
+  reorderSources(
+    order: number[],
+    sources: NotebookSource[],
+    abortSignal?: AbortSignal,
+  ): Promise<NotebookEditOutcome>
 
   // release releases the resource.
   release(): void
@@ -69,19 +80,26 @@ export class NotebookHandle extends Resource implements INotebookHandle {
     await this.service.AddSource({ source }, abortSignal)
   }
 
-  // removeSource removes a source by index.
+  // removeSource removes the source at index while it is still source.
   public async removeSource(
     index: number,
+    source: NotebookSource,
     abortSignal?: AbortSignal,
-  ): Promise<void> {
-    await this.service.RemoveSource({ index }, abortSignal)
+  ): Promise<NotebookEditOutcome> {
+    const resp = await this.service.RemoveSource({ index, source }, abortSignal)
+    return resp.outcome ?? 0
   }
 
-  // reorderSources reorders the source list.
+  // reorderSources reorders sources by order while the list is still sources.
   public async reorderSources(
     order: number[],
+    sources: NotebookSource[],
     abortSignal?: AbortSignal,
-  ): Promise<void> {
-    await this.service.ReorderSources({ order }, abortSignal)
+  ): Promise<NotebookEditOutcome> {
+    const resp = await this.service.ReorderSources(
+      { order, sources },
+      abortSignal,
+    )
+    return resp.outcome ?? 0
   }
 }

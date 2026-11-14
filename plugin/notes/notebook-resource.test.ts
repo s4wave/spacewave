@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Notebook, NotebookSource } from './proto/notebook.pb.js'
+import {
+  Notebook,
+  NotebookEditOp,
+  NotebookSource,
+} from './proto/notebook.pb.js'
+import { NotebookEditOutcome } from './sdk/notebook.pb.js'
 
 // Mock cursor returned by objectState.accessWorldState().
 function createMockCursor(blockData?: Uint8Array) {
@@ -49,19 +54,6 @@ function createMockObjectState(
   }
 }
 
-// Mock Tx returned by engine.newTransaction().
-function createMockTx(
-  objectState?: ReturnType<typeof createMockObjectState> | null,
-) {
-  return {
-    getSeqno: vi.fn(() => Promise.resolve({ seqno: 1n })),
-    getObject: vi.fn(() => Promise.resolve(objectState ?? null)),
-    commit: vi.fn(() => Promise.resolve()),
-    discard: vi.fn(() => Promise.resolve()),
-    release: vi.fn(),
-  }
-}
-
 // Mock read snapshot yielded by engine.watchWorldState().
 function createMockSnapshot(
   objectState?: ReturnType<typeof createMockObjectState> | null,
@@ -85,14 +77,20 @@ function abortError() {
 
 // Mock Engine created from engineRef. Its watch yields each queued snapshot,
 // then waits for the next push until the signal aborts.
-function createMockEngine(
-  tx?: ReturnType<typeof createMockTx>,
-  snapshots: MockSnapshot[] = [],
-) {
+function createMockEngine(snapshots: MockSnapshot[] = []) {
   const queue = [...snapshots]
   let wake: (() => void) | undefined
   return {
-    newTransaction: vi.fn(() => Promise.resolve(tx ?? createMockTx())),
+    newTransaction: vi.fn(),
+    executeWorldOp: vi.fn(
+      (_opTypeId: string, _opData: Uint8Array, _signal?: AbortSignal) =>
+        Promise.resolve<{
+          seqno?: bigint
+          sysErr?: boolean
+          rejectionCode?: string
+          rejectionMessage?: string
+        }>({ seqno: 2n }),
+    ),
     watchWorldState: vi.fn(async function* (signal?: AbortSignal) {
       for (;;) {
         const next = queue.shift()
@@ -136,6 +134,8 @@ vi.mock('@s4wave/sdk/world/engine.js', () => ({
 
 // Import after mocking.
 const { NotebookResource } = await import('./notebook-resource.js')
+const { NOTEBOOK_CONFLICT_CODE, NOTEBOOK_EDIT_OP_ID } =
+  await import('./notebook-edit.js')
 
 function createMockEngineRef() {
   return {
@@ -175,7 +175,7 @@ describe('NotebookResource', () => {
       const cursor = createMockCursor(notebookData)
       const objectState = createMockObjectState(cursor)
       const snapshot = createMockSnapshot(objectState)
-      mockEngineInstance = createMockEngine(undefined, [snapshot])
+      mockEngineInstance = createMockEngine([snapshot])
 
       const engineRef = createMockEngineRef()
       const resource = new NotebookResource('my-notebook', engineRef as never)
@@ -209,7 +209,7 @@ describe('NotebookResource', () => {
       const cursor = createMockCursor(notebookData)
       const objectState = createMockObjectState(cursor)
       const snapshot = createMockSnapshot(objectState)
-      mockEngineInstance = createMockEngine(undefined, [snapshot])
+      mockEngineInstance = createMockEngine([snapshot])
 
       const engineRef = createMockEngineRef()
       const resource = new NotebookResource('key', engineRef as never)
@@ -227,7 +227,7 @@ describe('NotebookResource', () => {
 
     it('yields no Notebook when the object is not found', async () => {
       const snapshot = createMockSnapshot(null)
-      mockEngineInstance = createMockEngine(undefined, [snapshot])
+      mockEngineInstance = createMockEngine([snapshot])
 
       const engineRef = createMockEngineRef()
       const resource = new NotebookResource('missing', engineRef as never)
@@ -246,9 +246,7 @@ describe('NotebookResource', () => {
     it('yields nothing when block data is missing', async () => {
       const cursor = createMockCursor(undefined)
       const objectState = createMockObjectState(cursor)
-      mockEngineInstance = createMockEngine(undefined, [
-        createMockSnapshot(objectState),
-      ])
+      mockEngineInstance = createMockEngine([createMockSnapshot(objectState)])
 
       const engineRef = createMockEngineRef()
       const resource = new NotebookResource('no-block', engineRef as never)
@@ -279,9 +277,7 @@ describe('NotebookResource', () => {
           rootRef: { hash: { hash: new Uint8Array([2]) } },
         },
       })
-      mockEngineInstance = createMockEngine(undefined, [
-        createMockSnapshot(first),
-      ])
+      mockEngineInstance = createMockEngine([createMockSnapshot(first)])
       const ac = new AbortController()
       const resource = new NotebookResource(
         'key',
@@ -307,7 +303,7 @@ describe('NotebookResource', () => {
       const object = createMockObjectState(cursor)
       const first = createMockSnapshot(object)
       const second = createMockSnapshot(object, 2n)
-      mockEngineInstance = createMockEngine(undefined, [first])
+      mockEngineInstance = createMockEngine([first])
       const engineRef = createMockEngineRef()
       const resource = new NotebookResource('key', engineRef as never)
       const controller = new AbortController()
@@ -332,74 +328,87 @@ describe('NotebookResource', () => {
   })
 
   describe('mutations', () => {
-    it('AddSource validates the source ref', async () => {
-      const resource = new NotebookResource('key', undefined)
+    // sentOp decodes the one edit op the resource executed.
+    function sentOp() {
+      expect(mockEngineInstance.executeWorldOp).toHaveBeenCalledOnce()
+      const [opTypeId, opData] = mockEngineInstance.executeWorldOp.mock
+        .calls[0] as [string, Uint8Array]
+      expect(opTypeId).toBe(NOTEBOOK_EDIT_OP_ID)
+      return NotebookEditOp.fromBinary(opData)
+    }
+
+    it('AddSource executes one add op', async () => {
+      mockEngineInstance = createMockEngine()
+      const resource = new NotebookResource(
+        'key',
+        createMockEngineRef() as never,
+      )
+      const source = { name: 'Archive', ref: 'fs/-/archive' }
+      await resource.AddSource({ source })
+      expect(sentOp()).toEqual({
+        objectKey: 'key',
+        edit: { case: 'add', value: { source } },
+      })
+      expect(mockEngineInstance.newTransaction).not.toHaveBeenCalled()
+    })
+
+    it('AddSource throws the op rejection', async () => {
+      mockEngineInstance = createMockEngine()
+      mockEngineInstance.executeWorldOp.mockResolvedValueOnce({
+        rejectionCode: 'notes/notebook/source',
+        rejectionMessage: 'source ref is required',
+      })
+      const resource = new NotebookResource(
+        'key',
+        createMockEngineRef() as never,
+      )
       await expect(resource.AddSource({ source: undefined })).rejects.toThrow(
         'source ref is required',
       )
     })
 
-    it('AddSource appends a source and commits the transaction', async () => {
-      const notebookData = makeNotebookBytes('Notebook', [
-        NotebookSource.create({ name: 'Docs', ref: 'fs/-/docs' }),
-      ])
-      const readCursor = createMockCursor(notebookData)
-      const writeCursor = createMockCursor()
-      const objectState = createMockObjectState([readCursor, writeCursor])
-      const tx = createMockTx(objectState)
-      mockEngineInstance = createMockEngine(tx)
-
-      const engineRef = createMockEngineRef()
-      const resource = new NotebookResource('key', engineRef as never)
-      await resource.AddSource({
-        source: { name: 'Archive', ref: 'fs/-/archive' },
-      })
-
-      expect(writeCursor.putBlock).toHaveBeenCalledTimes(1)
-      const req = writeCursor.putBlock.mock.calls[0]?.[0] as {
-        data: Uint8Array
-      }
-      const nextNotebook = Notebook.fromBinary(req.data)
-      expect(nextNotebook.sources).toHaveLength(2)
-      expect(nextNotebook.sources?.[1]?.ref).toBe('fs/-/archive')
-      expect(objectState.setRootRef).toHaveBeenCalledWith(
-        {
-          bucketId: 'test',
-          rootRef: { hash: { hash: new Uint8Array([1, 2, 3]) } },
-        },
-        undefined,
+    it('RemoveSource carries the source the caller saw', async () => {
+      mockEngineInstance = createMockEngine()
+      const resource = new NotebookResource(
+        'key',
+        createMockEngineRef() as never,
       )
-      expect(tx.commit).toHaveBeenCalled()
+      const source = { name: 'One', ref: 'fs/-/one' }
+      const resp = await resource.RemoveSource({ index: 1, source })
+      expect(resp.outcome).toBe(NotebookEditOutcome.APPLIED)
+      expect(sentOp().edit).toEqual({
+        case: 'remove',
+        value: { index: 1, source },
+      })
     })
 
-    it('RemoveSource rejects an out-of-range index', async () => {
+    it('ReorderSources reports a conflict as the changed outcome', async () => {
+      mockEngineInstance = createMockEngine()
+      mockEngineInstance.executeWorldOp.mockResolvedValueOnce({
+        rejectionCode: NOTEBOOK_CONFLICT_CODE,
+        rejectionMessage: 'the notebook changed',
+      })
+      const resource = new NotebookResource(
+        'key',
+        createMockEngineRef() as never,
+      )
+      const sources = [
+        { name: 'One', ref: 'fs/-/one' },
+        { name: 'Two', ref: 'fs/-/two' },
+      ]
+      const resp = await resource.ReorderSources({ order: [1, 0], sources })
+      expect(resp.outcome).toBe(NotebookEditOutcome.CHANGED)
+      expect(sentOp().edit).toEqual({
+        case: 'reorder',
+        value: { order: [1, 0], sources },
+      })
+    })
+
+    it('RemoveSource needs the engine', async () => {
       const resource = new NotebookResource('key', undefined)
       await expect(resource.RemoveSource({ index: 0 })).rejects.toThrow(
         'Notebook engine is not available',
       )
-    })
-
-    it('ReorderSources rewrites the notebook source order', async () => {
-      const notebookData = makeNotebookBytes('Notebook', [
-        NotebookSource.create({ name: 'One', ref: 'fs/-/one' }),
-        NotebookSource.create({ name: 'Two', ref: 'fs/-/two' }),
-      ])
-      const readCursor = createMockCursor(notebookData)
-      const writeCursor = createMockCursor()
-      const objectState = createMockObjectState([readCursor, writeCursor])
-      const tx = createMockTx(objectState)
-      mockEngineInstance = createMockEngine(tx)
-
-      const engineRef = createMockEngineRef()
-      const resource = new NotebookResource('key', engineRef as never)
-      await resource.ReorderSources({ order: [1, 0] })
-
-      const req = writeCursor.putBlock.mock.calls[0]?.[0] as {
-        data: Uint8Array
-      }
-      const nextNotebook = Notebook.fromBinary(req.data)
-      expect(nextNotebook.sources?.[0]?.ref).toBe('fs/-/two')
-      expect(nextNotebook.sources?.[1]?.ref).toBe('fs/-/one')
     })
   })
 

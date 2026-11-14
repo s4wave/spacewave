@@ -1,6 +1,7 @@
-import { useCallback } from 'react'
+import { useCallback, type ReactNode } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
+import type { SourceEditState } from './useNotebookViewerState.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStateAtom, type StateNamespace } from '@s4wave/web/state/index.js'
 import {
@@ -20,6 +21,10 @@ interface NotebookSidebarProps {
   onAddSource?: () => void
   onRemoveSource?: (index: number) => void
   onMoveSource?: (index: number, delta: -1 | 1) => void
+  // sourceEdit is the source edit control's state; the sidebar shows a
+  // refused edit and a failed Reorder, and disables edits while one sends.
+  sourceEdit?: SourceEditState
+  onRetryReorder?: () => void
   namespace: StateNamespace
 }
 
@@ -31,8 +36,11 @@ function NotebookSidebar({
   onAddSource,
   onRemoveSource,
   onMoveSource,
+  sourceEdit = { status: 'idle' },
+  onRetryReorder,
   namespace,
 }: NotebookSidebarProps) {
+  const sending = sourceEdit.status === 'sending'
   const [expandedSources, setExpandedSources] = useStateAtom<
     Record<number, boolean>
   >(namespace, 'expandedSources', {})
@@ -47,9 +55,45 @@ function NotebookSidebar({
     [setExpandedSources],
   )
 
+  // A refused edit and a failed Reorder show by the list; a failed Add or
+  // Remove shows in its own dialog.
+  let editNotice: ReactNode = null
+  if (sourceEdit.status === 'changed') {
+    editNotice = (
+      <div
+        role="status"
+        className="text-muted-foreground border-border border-b px-3 py-1.5 text-xs"
+      >
+        The sources changed before this edit, so it was not applied.
+      </div>
+    )
+  } else if (
+    sourceEdit.status === 'failed' &&
+    sourceEdit.edit.kind === 'reorder'
+  ) {
+    editNotice = (
+      <div
+        role="alert"
+        className="text-destructive border-border flex items-center justify-between gap-2 border-b px-3 py-1.5 text-xs"
+      >
+        <span className="min-w-0">
+          Could not move the source: {sourceEdit.error}
+        </span>
+        <button
+          type="button"
+          className="text-foreground hover:bg-list-hover-background min-h-11 shrink-0 rounded px-2 font-medium md:pointer-fine:min-h-0 md:pointer-fine:py-0.5"
+          onClick={onRetryReorder}
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
+
   if (sources.length === 0) {
     return (
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 p-4 text-center text-xs">
+        {editNotice}
         <span>No sources configured</span>
         <button
           type="button"
@@ -77,6 +121,7 @@ function NotebookSidebar({
           </button>
         </div>
       </div>
+      {editNotice}
       <div className="flex-1 overflow-y-auto">
         {sources.map((source, index) => {
           const expanded = expandedSources[index] ?? true
@@ -114,7 +159,7 @@ function NotebookSidebar({
                     type="button"
                     className="hover:bg-list-hover-background flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-0.5"
                     title="Move source up"
-                    disabled={index === 0}
+                    disabled={sending || index === 0}
                     onClick={(e) => {
                       e.stopPropagation()
                       onMoveSource?.(index, -1)
@@ -126,7 +171,7 @@ function NotebookSidebar({
                     type="button"
                     className="hover:bg-list-hover-background flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-0.5"
                     title="Move source down"
-                    disabled={index === sources.length - 1}
+                    disabled={sending || index === sources.length - 1}
                     onClick={(e) => {
                       e.stopPropagation()
                       onMoveSource?.(index, 1)
@@ -138,6 +183,7 @@ function NotebookSidebar({
                     type="button"
                     className="hover:bg-list-hover-background flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-0.5"
                     title="Remove source"
+                    disabled={sending}
                     onClick={(e) => {
                       e.stopPropagation()
                       onRemoveSource?.(index)

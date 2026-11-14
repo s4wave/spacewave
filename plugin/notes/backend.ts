@@ -65,6 +65,7 @@ import type { AppRevision } from '@s4wave/sdk/sync/instance.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
+import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
 import {
   INIT_UNIXFS_OP_ID,
@@ -99,7 +100,12 @@ import {
 } from './proto/init-notebook.js'
 import { BLOG_OBJECT_KEY, CREATE_BLOG_OP_ID } from './proto/create-blog.js'
 import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
-import { InitNotebookOp, Notebook } from './proto/notebook.pb.js'
+import {
+  InitNotebookOp,
+  Notebook,
+  NotebookEditOp,
+} from './proto/notebook.pb.js'
+import { applyNotebookEdit, NOTEBOOK_EDIT_OP_ID } from './notebook-edit.js'
 import { CreateBlogOp } from './proto/blog.pb.js'
 import { CreateDocumentationOp, Documentation } from './proto/docs.pb.js'
 import { uploadSeedTree } from './unixfs-seed.js'
@@ -275,21 +281,19 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
 
   async ApplyWorldOp(
     request: ApplyWorldOpRequest,
-    _abortSignal: AbortSignal,
+    abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const opTypeId = request.operationTypeId ?? ''
     if (this.savedViews.handles(opTypeId)) {
-      return this.savedViews.handler.ApplyWorldOp(
-        request,
-        _abortSignal,
-        context,
-      )
+      return this.savedViews.handler.ApplyWorldOp(request, abortSignal, context)
     }
 
     switch (opTypeId) {
       case INIT_NOTEBOOK_OP_ID:
         return this.applyInitNotebook(request, context)
+      case NOTEBOOK_EDIT_OP_ID:
+        return this.applyNotebookEdit(request, abortSignal, context)
       case CREATE_BLOG_OP_ID:
         return this.applyCreateBlog(request, context)
       case CREATE_DOCS_OP_ID:
@@ -378,6 +382,32 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
       await setObjectType(ws, notebookKey, 'notes/notebook')
 
       return {}
+    } finally {
+      ws.release()
+      wsRef.release()
+    }
+  }
+
+  // applyNotebookEdit handles the notebook-edit operation. A refused edit is a
+  // rejection carrying its code, which the World reports to the caller.
+  private async applyNotebookEdit(
+    request: ApplyWorldOpRequest,
+    signal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyWorldOpResponse> {
+    const engineId = request.attachedWorldStateResourceId ?? 0
+    if (!engineId) {
+      throw new Error('attachedWorldStateResourceId is required')
+    }
+    const op = NotebookEditOp.fromBinary(request.opData ?? new Uint8Array())
+    const wsRef = getResourceCall(context).getAttachedRef(engineId)
+    const ws = new WorldStateResource(wsRef)
+    try {
+      await applyNotebookEdit(ws, op, signal)
+      return {}
+    } catch (err) {
+      if (!(err instanceof WorldOperationRejection)) throw err
+      return { rejectionCode: err.code, rejectionMessage: err.message }
     } finally {
       ws.release()
       wsRef.release()
@@ -719,6 +749,13 @@ export function startNotesBackend(
     )
     refs.push(
       retainRegistration(initNotebookOp.resourceId, 'init notebook world op'),
+    )
+    const notebookEditOp = await woSvc.RegisterWorldOp(
+      { operationTypeId: NOTEBOOK_EDIT_OP_ID, pluginId },
+      signal,
+    )
+    refs.push(
+      retainRegistration(notebookEditOp.resourceId, 'notebook edit world op'),
     )
     const createBlogOp = await woSvc.RegisterWorldOp(
       { operationTypeId: CREATE_BLOG_OP_ID, pluginId },

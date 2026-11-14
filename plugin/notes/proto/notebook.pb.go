@@ -111,6 +111,169 @@ func (x *InitNotebookOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+// NotebookEditOp changes one Notebook's source list in a single World
+// transaction. Remove and Reorder carry the sources the editor saw and apply
+// only while the stored list still matches them, so an edit made against a
+// stale view is refused instead of hitting the wrong source.
+type NotebookEditOp struct {
+	unknownFields []byte
+	// ObjectKey is the world object key of the Notebook.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Edit is the change to apply.
+	//
+	// Types that are assignable to Edit:
+	//	*NotebookEditOp_Add
+	//	*NotebookEditOp_Remove
+	//	*NotebookEditOp_Reorder
+	Edit isNotebookEditOp_Edit `protobuf_oneof:"edit"`
+}
+
+func (x *NotebookEditOp) Reset() {
+	*x = NotebookEditOp{}
+}
+
+func (*NotebookEditOp) ProtoMessage() {}
+
+func (x *NotebookEditOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (m *NotebookEditOp) GetEdit() isNotebookEditOp_Edit {
+	if m != nil {
+		return m.Edit
+	}
+	return nil
+}
+
+func (x *NotebookEditOp) GetAdd() *NotebookAddSource {
+	if x, ok := x.GetEdit().(*NotebookEditOp_Add); ok {
+		return x.Add
+	}
+	return nil
+}
+
+func (x *NotebookEditOp) GetRemove() *NotebookRemoveSource {
+	if x, ok := x.GetEdit().(*NotebookEditOp_Remove); ok {
+		return x.Remove
+	}
+	return nil
+}
+
+func (x *NotebookEditOp) GetReorder() *NotebookReorderSources {
+	if x, ok := x.GetEdit().(*NotebookEditOp_Reorder); ok {
+		return x.Reorder
+	}
+	return nil
+}
+
+type isNotebookEditOp_Edit interface {
+	isNotebookEditOp_Edit()
+}
+
+type NotebookEditOp_Add struct {
+	// Add appends a source.
+	Add *NotebookAddSource `protobuf:"bytes,2,opt,name=add,proto3,oneof"`
+}
+
+type NotebookEditOp_Remove struct {
+	// Remove removes the source at an index.
+	Remove *NotebookRemoveSource `protobuf:"bytes,3,opt,name=remove,proto3,oneof"`
+}
+
+type NotebookEditOp_Reorder struct {
+	// Reorder permutes the sources.
+	Reorder *NotebookReorderSources `protobuf:"bytes,4,opt,name=reorder,proto3,oneof"`
+}
+
+func (*NotebookEditOp_Add) isNotebookEditOp_Edit() {}
+
+func (*NotebookEditOp_Remove) isNotebookEditOp_Edit() {}
+
+func (*NotebookEditOp_Reorder) isNotebookEditOp_Edit() {}
+
+// NotebookAddSource appends a source to a Notebook.
+type NotebookAddSource struct {
+	unknownFields []byte
+	// Source is the source to append; its ref is required.
+	Source *NotebookSource `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+}
+
+func (x *NotebookAddSource) Reset() {
+	*x = NotebookAddSource{}
+}
+
+func (*NotebookAddSource) ProtoMessage() {}
+
+func (x *NotebookAddSource) GetSource() *NotebookSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+// NotebookRemoveSource removes the source at index, only while the stored
+// source at that index equals source.
+type NotebookRemoveSource struct {
+	unknownFields []byte
+	// Index is the position of the source to remove.
+	Index uint32 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	// Source is the source the editor saw at index.
+	Source *NotebookSource `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+}
+
+func (x *NotebookRemoveSource) Reset() {
+	*x = NotebookRemoveSource{}
+}
+
+func (*NotebookRemoveSource) ProtoMessage() {}
+
+func (x *NotebookRemoveSource) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *NotebookRemoveSource) GetSource() *NotebookSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+// NotebookReorderSources reorders the sources, only while the stored list
+// equals sources.
+type NotebookReorderSources struct {
+	unknownFields []byte
+	// Order lists, for each new position, the index of the source in sources.
+	Order []uint32 `protobuf:"varint,1,rep,packed,name=order,proto3" json:"order,omitempty"`
+	// Sources is the source list the editor saw.
+	Sources []*NotebookSource `protobuf:"bytes,2,rep,name=sources,proto3" json:"sources,omitempty"`
+}
+
+func (x *NotebookReorderSources) Reset() {
+	*x = NotebookReorderSources{}
+}
+
+func (*NotebookReorderSources) ProtoMessage() {}
+
+func (x *NotebookReorderSources) GetOrder() []uint32 {
+	if x != nil {
+		return x.Order
+	}
+	return nil
+}
+
+func (x *NotebookReorderSources) GetSources() []*NotebookSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
 func (m *Notebook) CloneVT() *Notebook {
 	if m == nil {
 		return (*Notebook)(nil)
@@ -160,6 +323,114 @@ func (m *InitNotebookOp) CloneVT() *InitNotebookOp {
 }
 
 func (m *InitNotebookOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NotebookEditOp) CloneVT() *NotebookEditOp {
+	if m == nil {
+		return (*NotebookEditOp)(nil)
+	}
+	r := new(NotebookEditOp)
+	r.ObjectKey = m.ObjectKey
+	if m.Edit != nil {
+		r.Edit = m.Edit.(interface{ CloneOneofVT() isNotebookEditOp_Edit }).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NotebookEditOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NotebookEditOp_Add) CloneVT() *NotebookEditOp_Add {
+	if m == nil {
+		return (*NotebookEditOp_Add)(nil)
+	}
+	r := new(NotebookEditOp_Add)
+	r.Add = protobuf_go_lite.CloneVTValue(m.Add)
+	return r
+}
+
+func (m *NotebookEditOp_Add) CloneOneofVT() isNotebookEditOp_Edit {
+	return m.CloneVT()
+}
+
+func (m *NotebookEditOp_Remove) CloneVT() *NotebookEditOp_Remove {
+	if m == nil {
+		return (*NotebookEditOp_Remove)(nil)
+	}
+	r := new(NotebookEditOp_Remove)
+	r.Remove = protobuf_go_lite.CloneVTValue(m.Remove)
+	return r
+}
+
+func (m *NotebookEditOp_Remove) CloneOneofVT() isNotebookEditOp_Edit {
+	return m.CloneVT()
+}
+
+func (m *NotebookEditOp_Reorder) CloneVT() *NotebookEditOp_Reorder {
+	if m == nil {
+		return (*NotebookEditOp_Reorder)(nil)
+	}
+	r := new(NotebookEditOp_Reorder)
+	r.Reorder = protobuf_go_lite.CloneVTValue(m.Reorder)
+	return r
+}
+
+func (m *NotebookEditOp_Reorder) CloneOneofVT() isNotebookEditOp_Edit {
+	return m.CloneVT()
+}
+
+func (m *NotebookAddSource) CloneVT() *NotebookAddSource {
+	if m == nil {
+		return (*NotebookAddSource)(nil)
+	}
+	r := new(NotebookAddSource)
+	r.Source = protobuf_go_lite.CloneVTValue(m.Source)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NotebookAddSource) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NotebookRemoveSource) CloneVT() *NotebookRemoveSource {
+	if m == nil {
+		return (*NotebookRemoveSource)(nil)
+	}
+	r := new(NotebookRemoveSource)
+	r.Index = m.Index
+	r.Source = protobuf_go_lite.CloneVTValue(m.Source)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NotebookRemoveSource) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *NotebookReorderSources) CloneVT() *NotebookReorderSources {
+	if m == nil {
+		return (*NotebookReorderSources)(nil)
+	}
+	r := new(NotebookReorderSources)
+	r.Order = protobuf_go_lite.CloneSlice(m.Order)
+	r.Sources = protobuf_go_lite.CloneVTSlice(m.Sources)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NotebookReorderSources) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -229,6 +500,155 @@ func (this *InitNotebookOp) EqualVT(that *InitNotebookOp) bool {
 
 func (this *InitNotebookOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*InitNotebookOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NotebookEditOp) EqualVT(that *NotebookEditOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Edit == nil && that.Edit != nil {
+		return false
+	} else if this.Edit != nil {
+		if that.Edit == nil {
+			return false
+		}
+		if !this.Edit.(interface {
+			EqualVT(isNotebookEditOp_Edit) bool
+		}).EqualVT(that.Edit) {
+			return false
+		}
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NotebookEditOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NotebookEditOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NotebookEditOp_Add) EqualVT(thatIface isNotebookEditOp_Edit) bool {
+	that, ok := thatIface.(*NotebookEditOp_Add)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Add, that.Add, func() *NotebookAddSource { return &NotebookAddSource{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *NotebookEditOp_Remove) EqualVT(thatIface isNotebookEditOp_Edit) bool {
+	that, ok := thatIface.(*NotebookEditOp_Remove)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Remove, that.Remove, func() *NotebookRemoveSource { return &NotebookRemoveSource{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *NotebookEditOp_Reorder) EqualVT(thatIface isNotebookEditOp_Edit) bool {
+	that, ok := thatIface.(*NotebookEditOp_Reorder)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Reorder, that.Reorder, func() *NotebookReorderSources { return &NotebookReorderSources{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *NotebookAddSource) EqualVT(that *NotebookAddSource) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Source, that.Source) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NotebookAddSource) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NotebookAddSource)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NotebookRemoveSource) EqualVT(that *NotebookRemoveSource) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Index != that.Index {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Source, that.Source) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NotebookRemoveSource) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NotebookRemoveSource)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *NotebookReorderSources) EqualVT(that *NotebookReorderSources) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Order, that.Order) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Sources, that.Sources, func() *NotebookSource { return &NotebookSource{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NotebookReorderSources) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NotebookReorderSources)
 	if !ok {
 		return false
 	}
@@ -418,6 +838,266 @@ func (x *InitNotebookOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the NotebookEditOp message to JSON.
+func (x *NotebookEditOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.Edit != nil {
+		switch ov := x.Edit.(type) {
+		case *NotebookEditOp_Add:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("add")
+			ov.Add.MarshalProtoJSON(s.WithField("add"))
+		case *NotebookEditOp_Remove:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("remove")
+			ov.Remove.MarshalProtoJSON(s.WithField("remove"))
+		case *NotebookEditOp_Reorder:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("reorder")
+			ov.Reorder.MarshalProtoJSON(s.WithField("reorder"))
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NotebookEditOp to JSON.
+func (x *NotebookEditOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NotebookEditOp message from JSON.
+func (x *NotebookEditOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "add":
+			ov := &NotebookEditOp_Add{}
+			x.Edit = ov
+			if s.ReadNil() {
+				ov.Add = nil
+				return
+			}
+			ov.Add = &NotebookAddSource{}
+			ov.Add.UnmarshalProtoJSON(s.WithField("add", true))
+		case "remove":
+			ov := &NotebookEditOp_Remove{}
+			x.Edit = ov
+			if s.ReadNil() {
+				ov.Remove = nil
+				return
+			}
+			ov.Remove = &NotebookRemoveSource{}
+			ov.Remove.UnmarshalProtoJSON(s.WithField("remove", true))
+		case "reorder":
+			ov := &NotebookEditOp_Reorder{}
+			x.Edit = ov
+			if s.ReadNil() {
+				ov.Reorder = nil
+				return
+			}
+			ov.Reorder = &NotebookReorderSources{}
+			ov.Reorder.UnmarshalProtoJSON(s.WithField("reorder", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NotebookEditOp from JSON.
+func (x *NotebookEditOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NotebookAddSource message to JSON.
+func (x *NotebookAddSource) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Source != nil || s.HasField("source") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("source")
+		x.Source.MarshalProtoJSON(s.WithField("source"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NotebookAddSource to JSON.
+func (x *NotebookAddSource) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NotebookAddSource message from JSON.
+func (x *NotebookAddSource) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "source":
+			if s.ReadNil() {
+				x.Source = nil
+				return
+			}
+			x.Source = &NotebookSource{}
+			x.Source.UnmarshalProtoJSON(s.WithField("source", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NotebookAddSource from JSON.
+func (x *NotebookAddSource) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NotebookRemoveSource message to JSON.
+func (x *NotebookRemoveSource) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Index != 0 || s.HasField("index") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("index")
+		s.WriteUint32(x.Index)
+	}
+	if x.Source != nil || s.HasField("source") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("source")
+		x.Source.MarshalProtoJSON(s.WithField("source"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NotebookRemoveSource to JSON.
+func (x *NotebookRemoveSource) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NotebookRemoveSource message from JSON.
+func (x *NotebookRemoveSource) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "index":
+			s.AddField("index")
+			x.Index = s.ReadUint32()
+		case "source":
+			if s.ReadNil() {
+				x.Source = nil
+				return
+			}
+			x.Source = &NotebookSource{}
+			x.Source.UnmarshalProtoJSON(s.WithField("source", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NotebookRemoveSource from JSON.
+func (x *NotebookRemoveSource) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the NotebookReorderSources message to JSON.
+func (x *NotebookReorderSources) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Order) > 0 || s.HasField("order") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("order")
+		s.WriteUint32Array(x.Order)
+	}
+	if len(x.Sources) > 0 || s.HasField("sources") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sources")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Sources {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("sources"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NotebookReorderSources to JSON.
+func (x *NotebookReorderSources) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NotebookReorderSources message from JSON.
+func (x *NotebookReorderSources) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "order":
+			s.AddField("order")
+			if s.ReadNil() {
+				x.Order = nil
+				return
+			}
+			x.Order = s.ReadUint32Array()
+		case "sources":
+			s.AddField("sources")
+			if s.ReadNil() {
+				x.Sources = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Sources = append(x.Sources, nil)
+					return
+				}
+				v := &NotebookSource{}
+				v.UnmarshalProtoJSON(s.WithField("sources", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Sources = append(x.Sources, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NotebookReorderSources from JSON.
+func (x *NotebookReorderSources) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Notebook) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -561,6 +1241,262 @@ func (m *InitNotebookOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *NotebookEditOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NotebookEditOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookEditOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Edit.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NotebookEditOp_Add) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookEditOp_Add) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Add != nil {
+		size, err := m.Add.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NotebookEditOp_Remove) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookEditOp_Remove) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Remove != nil {
+		size, err := m.Remove.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NotebookEditOp_Reorder) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookEditOp_Reorder) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Reorder != nil {
+		size, err := m.Reorder.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NotebookAddSource) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NotebookAddSource) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookAddSource) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Source != nil {
+		size, err := m.Source.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NotebookRemoveSource) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NotebookRemoveSource) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookRemoveSource) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Source != nil {
+		size, err := m.Source.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Index != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *NotebookReorderSources) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NotebookReorderSources) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NotebookReorderSources) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Sources) > 0 {
+		for iNdEx := len(m.Sources) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Sources[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Order) > 0 {
+		i = protobuf_go_lite.EncodeVarintPacked(dAtA, i, m.Order)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Notebook) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -598,6 +1534,109 @@ func (m *InitNotebookOp) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UnixfsObjectKey)
 	if m.Timestamp != nil {
 		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NotebookEditOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if vtmsg, ok := m.Edit.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NotebookEditOp_Add) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Add != nil {
+		l = m.Add.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *NotebookEditOp_Remove) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Remove != nil {
+		l = m.Remove.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *NotebookEditOp_Reorder) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Reorder != nil {
+		l = m.Reorder.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *NotebookAddSource) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Source != nil {
+		l = m.Source.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NotebookRemoveSource) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Index)
+	if m.Source != nil {
+		l = m.Source.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *NotebookReorderSources) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintPacked(1, m.Order)
+	for _, e := range m.Sources {
+		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -667,6 +1706,105 @@ func (x *InitNotebookOp) MarshalProtoText() string {
 }
 
 func (x *InitNotebookOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NotebookEditOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NotebookEditOp")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	switch body := x.Edit.(type) {
+	case *NotebookEditOp_Add:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "add")
+		if body.Add == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &NotebookAddSource{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Add)
+		}
+	case *NotebookEditOp_Remove:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remove")
+		if body.Remove == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &NotebookRemoveSource{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Remove)
+		}
+	case *NotebookEditOp_Reorder:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reorder")
+		if body.Reorder == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &NotebookReorderSources{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Reorder)
+		}
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NotebookEditOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NotebookAddSource) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NotebookAddSource")
+	if x.Source != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Source)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NotebookAddSource) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NotebookRemoveSource) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NotebookRemoveSource")
+	if x.Index != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index")
+		protobuf_go_lite.TextWriteUint(&sb, x.Index)
+	}
+	if x.Source != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Source)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NotebookRemoveSource) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *NotebookReorderSources) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NotebookReorderSources")
+	if len(x.Order) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "order")
+		for i, v := range x.Order {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteUint(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Sources) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "sources")
+		for i, v := range x.Sources {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &NotebookSource{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NotebookReorderSources) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -851,6 +1989,330 @@ func (m *InitNotebookOp) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NotebookEditOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NotebookEditOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NotebookEditOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Add", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Edit.(*NotebookEditOp_Add); ok {
+				if err := oneof.Add.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &NotebookAddSource{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Edit = &NotebookEditOp_Add{Add: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Remove", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Edit.(*NotebookEditOp_Remove); ok {
+				if err := oneof.Remove.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &NotebookRemoveSource{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Edit = &NotebookEditOp_Remove{Remove: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reorder", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Edit.(*NotebookEditOp_Reorder); ok {
+				if err := oneof.Reorder.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &NotebookReorderSources{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Edit = &NotebookEditOp_Reorder{Reorder: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NotebookAddSource) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NotebookAddSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NotebookAddSource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Source == nil {
+				m.Source = &NotebookSource{}
+			}
+			if err := m.Source.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NotebookRemoveSource) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NotebookRemoveSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NotebookRemoveSource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			m.Index, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Source == nil {
+				m.Source = &NotebookSource{}
+			}
+			if err := m.Source.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *NotebookReorderSources) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NotebookReorderSources: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NotebookReorderSources: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType == 0 {
+				var v uint32
+				v, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				m.Order = append(m.Order, v)
+			} else if wireType == 2 {
+				packedStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				iNdEx = packedStart
+				var elementCount int
+				elementCount = protobuf_go_lite.PackedVarintElementCount(dAtA[iNdEx:postIndex])
+				if elementCount != 0 && len(m.Order) == 0 {
+					m.Order = make([]uint32, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint32
+					v, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					m.Order = append(m.Order, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Order", wireType)
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sources", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Sources = append(m.Sources, &NotebookSource{})
+			if err := m.Sources[len(m.Sources)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

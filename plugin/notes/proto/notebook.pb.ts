@@ -83,3 +83,109 @@ export const InitNotebookOp: MessageType<InitNotebookOp> =
       [3, 'timestamp', 11, 0, Timestamp.codec],
     ],
   )
+
+/**
+ * NotebookEditOp changes one Notebook's source list in a single World
+ * transaction. Remove and Reorder carry the sources the editor saw and apply
+ * only while the stored list still matches them, so an edit made against a
+ * stale view is refused instead of hitting the wrong source.
+ *
+ * @generated from message notes.NotebookEditOp
+ */
+export interface NotebookEditOp {
+  /**
+   * ObjectKey is the world object key of the Notebook.
+   */
+  objectKey?: string
+  /**
+   * Edit is the change to apply.
+   *
+   * @generated from oneof notes.NotebookEditOp.edit
+   */
+  edit?:
+    | { value?: undefined; case: undefined }
+    | { value: NotebookAddSource; case: 'add' }
+    | { value: NotebookRemoveSource; case: 'remove' }
+    | { value: NotebookReorderSources; case: 'reorder' }
+}
+
+export const NotebookEditOp: MessageType<NotebookEditOp> =
+  /* @__PURE__ */ createMessageType<NotebookEditOp>(
+    'notes.NotebookEditOp',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'add', 11, 0, NotebookAddSource.codec, 'edit'],
+      [3, 'remove', 11, 0, NotebookRemoveSource.codec, 'edit'],
+      [4, 'reorder', 11, 0, NotebookReorderSources.codec, 'edit'],
+    ],
+  )
+
+/**
+ * NotebookAddSource appends a source to a Notebook.
+ *
+ * @generated from message notes.NotebookAddSource
+ */
+export interface NotebookAddSource {
+  /**
+   * Source is the source to append; its ref is required.
+   */
+  source?: NotebookSource
+}
+
+export const NotebookAddSource: MessageType<NotebookAddSource> =
+  /* @__PURE__ */ createMessageType<NotebookAddSource>(
+    'notes.NotebookAddSource',
+    () => [[1, 'source', 11, 0, NotebookSource.codec]],
+  )
+
+/**
+ * NotebookRemoveSource removes the source at index, only while the stored
+ * source at that index equals source.
+ *
+ * @generated from message notes.NotebookRemoveSource
+ */
+export interface NotebookRemoveSource {
+  /**
+   * Index is the position of the source to remove.
+   */
+  index?: number
+  /**
+   * Source is the source the editor saw at index.
+   */
+  source?: NotebookSource
+}
+
+export const NotebookRemoveSource: MessageType<NotebookRemoveSource> =
+  /* @__PURE__ */ createMessageType<NotebookRemoveSource>(
+    'notes.NotebookRemoveSource',
+    () => [
+      [1, 'index', 13],
+      [2, 'source', 11, 0, NotebookSource.codec],
+    ],
+  )
+
+/**
+ * NotebookReorderSources reorders the sources, only while the stored list
+ * equals sources.
+ *
+ * @generated from message notes.NotebookReorderSources
+ */
+export interface NotebookReorderSources {
+  /**
+   * Order lists, for each new position, the index of the source in sources.
+   */
+  order?: number[]
+  /**
+   * Sources is the source list the editor saw.
+   */
+  sources?: NotebookSource[]
+}
+
+export const NotebookReorderSources: MessageType<NotebookReorderSources> =
+  /* @__PURE__ */ createMessageType<NotebookReorderSources>(
+    'notes.NotebookReorderSources',
+    () => [
+      [1, 'order', 13, 3],
+      [2, 'sources', 11, 1, NotebookSource.codec],
+    ],
+  )

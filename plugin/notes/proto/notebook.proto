@@ -29,3 +29,45 @@ message InitNotebookOp {
   // Timestamp is the creation timestamp.
   google.protobuf.Timestamp timestamp = 3;
 }
+
+// NotebookEditOp changes one Notebook's source list in a single World
+// transaction. Remove and Reorder carry the sources the editor saw and apply
+// only while the stored list still matches them, so an edit made against a
+// stale view is refused instead of hitting the wrong source.
+message NotebookEditOp {
+  // ObjectKey is the world object key of the Notebook.
+  string object_key = 1;
+  // Edit is the change to apply.
+  oneof edit {
+    // Add appends a source.
+    NotebookAddSource add = 2;
+    // Remove removes the source at an index.
+    NotebookRemoveSource remove = 3;
+    // Reorder permutes the sources.
+    NotebookReorderSources reorder = 4;
+  }
+}
+
+// NotebookAddSource appends a source to a Notebook.
+message NotebookAddSource {
+  // Source is the source to append; its ref is required.
+  NotebookSource source = 1;
+}
+
+// NotebookRemoveSource removes the source at index, only while the stored
+// source at that index equals source.
+message NotebookRemoveSource {
+  // Index is the position of the source to remove.
+  uint32 index = 1;
+  // Source is the source the editor saw at index.
+  NotebookSource source = 2;
+}
+
+// NotebookReorderSources reorders the sources, only while the stored list
+// equals sources.
+message NotebookReorderSources {
+  // Order lists, for each new position, the index of the source in sources.
+  repeated uint32 order = 1;
+  // Sources is the source list the editor saw.
+  repeated NotebookSource sources = 2;
+}

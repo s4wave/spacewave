@@ -17,7 +17,12 @@ import { ConfirmActionDialog, SourceInputDialog } from './NoteDialogs.js'
 import NotebookSidebar from './NotebookSidebar.js'
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
-import { useNotebookViewerState } from './useNotebookViewerState.js'
+import {
+  useNotebookViewerState,
+  type RemoveTarget,
+  type SourceEdit,
+  type SourceEditState,
+} from './useNotebookViewerState.js'
 import NotebookSavedViews from './NotebookSavedViews.js'
 
 /** NotebookViewer presents the notebook's source, note list, and active note. */
@@ -87,20 +92,16 @@ function NotebookView({
     setSort,
     handleLoadView,
     sidebarOpen,
-    addSourceOpen,
-    removeSourceIndex,
+    sourceEdit,
     currentSource,
     setFilterTag,
     setFilterStatus,
     setSidebarOpen,
-    setAddSourceOpen,
-    setRemoveSourceIndex,
     handleSelectSource,
     handleAddSource,
-    handleConfirmAddSource,
     handleRemoveSource,
-    handleConfirmRemoveSource,
     handleMoveSource,
+    handleRetryReorder,
     handleSelectNote,
     handleChangePath,
     handleNoteRenamed,
@@ -172,6 +173,8 @@ function NotebookView({
           onAddSource={handleAddSource}
           onRemoveSource={handleRemoveSource}
           onMoveSource={(index, delta) => void handleMoveSource(index, delta)}
+          sourceEdit={sourceEdit}
+          onRetryReorder={handleRetryReorder}
           namespace={ns}
         />
       </div>
@@ -255,23 +258,69 @@ function NotebookView({
           onClick={() => setSidebarOpen(false)}
         />
       )}
+      <SourceEditDialogs viewerState={viewerState} />
+    </div>
+  )
+}
+
+/** SourceEditDialogs holds the Add and Remove source dialogs and their edit state. */
+function SourceEditDialogs({
+  viewerState,
+}: {
+  viewerState: ReturnType<typeof useNotebookViewerState>
+}) {
+  const {
+    sourceEdit,
+    addSourceOpen,
+    removeTarget,
+    handleAddSourceOpenChange,
+    handleConfirmAddSource,
+    handleRemoveSourceOpenChange,
+    handleConfirmRemoveSource,
+  } = viewerState
+  const removeError = editError(sourceEdit, 'remove')
+  return (
+    <>
       <SourceInputDialog
         open={addSourceOpen}
-        onOpenChange={setAddSourceOpen}
+        sending={editSending(sourceEdit, 'add')}
+        error={editError(sourceEdit, 'add')}
+        onOpenChange={handleAddSourceOpenChange}
         onConfirm={(source) => void handleConfirmAddSource(source)}
       />
       <ConfirmActionDialog
-        open={removeSourceIndex !== null}
+        open={removeTarget !== null}
         title="Remove source"
-        description="Remove this source from the notebook?"
+        description={`Remove ${sourceLabel(removeTarget)} from the notebook?`}
         confirmLabel="Remove"
-        onOpenChange={(open) => {
-          if (!open) setRemoveSourceIndex(null)
-        }}
+        sending={editSending(sourceEdit, 'remove')}
+        error={
+          removeError &&
+          `Could not remove ${sourceLabel(removeTarget)}: ${removeError}`
+        }
+        onOpenChange={handleRemoveSourceOpenChange}
         onConfirm={() => void handleConfirmRemoveSource()}
       />
-    </div>
+    </>
   )
+}
+
+// editSending reports whether an edit of kind is sending.
+function editSending(state: SourceEditState, kind: SourceEdit['kind']) {
+  return state.status === 'sending' && state.edit.kind === kind
+}
+
+// editError returns what failed in an edit of kind, if it failed.
+function editError(state: SourceEditState, kind: SourceEdit['kind']) {
+  return state.status === 'failed' && state.edit.kind === kind
+    ? state.error
+    : undefined
+}
+
+// sourceLabel names a source in a sentence the way the sidebar shows it.
+function sourceLabel(target: RemoveTarget | null): string {
+  if (!target) return 'this source'
+  return `“${target.source.name || `Source ${target.index + 1}`}”`
 }
 
 export { NotebookViewer }

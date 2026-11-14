@@ -12,31 +12,6 @@ export async function readObjectBlockData(
   return block.found && block.data ? block.data : null
 }
 
-/**
- * setObjectBlockData replaces an opaque Notes protobuf through its existing bucket.
- * These blocks contain no nested block references and need no mutable block tree.
- * The supplied World transaction owns acceptance of the new object root.
- */
-export async function setObjectBlockData(
-  objectState: IObjectState,
-  data: Uint8Array,
-  signal?: AbortSignal,
-): Promise<void> {
-  // Write bytes using the object's existing bucket and transform configuration.
-  const current = await objectState.getRootRef(signal)
-  using cursor = await objectState.accessWorldState(current.rootRef, signal)
-  const written = await cursor.putBlock(
-    { data, opts: { refsKnown: true } },
-    signal,
-  )
-
-  // Publish the reference only after the block is available in storage.
-  await objectState.setRootRef(
-    { ...current.rootRef, rootRef: written.ref },
-    signal,
-  )
-}
-
 /** createObjectWithBlockData creates an opaque Notes block in the supplied World transaction. */
 export async function createObjectWithBlockData(
   worldState: IWorldState,
