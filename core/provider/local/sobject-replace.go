@@ -37,14 +37,14 @@ type ReplaceOrigin struct {
 //   - No writer mounted on the target commits over or under a replace. Write
 //     transactions on the account store hold its writer from open to end, so
 //     each mounted write commits wholly before or wholly after the replace.
-//     A mounted state write commits only over the stored bytes its mount
+//     A mounted state write commits only over the stored version its mount
 //     loaded or last wrote (NewObjectStoreSOStateFuncs), so one after the
 //     replace finds the new state and fails with ErrStateChanged, from the
 //     commit until the restart below ends the mount, and the restarted
 //     mount loads the new state.
 //   - A replace never commits over a state newer than the one its caller
 //     read. A mounted write acknowledged before the replace changed the
-//     stored bytes, so the replace returns ErrStateChanged and writes
+//     stored state, so the replace returns ErrStateChanged and writes
 //     nothing; the caller reads again and decides.
 //   - Every mount reads the stored state after the replace returns, even
 //     when the commit returned an error after storing it: such a replace
@@ -82,7 +82,7 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		if err != nil {
 			return err
 		}
-		stored, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+		stored, found, err := readSOStateEncoded(ctx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,8 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
-		return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
+		_, err = storeNewSOState(ctx, tx, id, state, data)
+		return err
 	})
 	if errors.Is(err, ErrStateChanged) || errors.Is(err, sobject.ErrSharedObjectNotFound) {
 		return err
@@ -126,7 +127,7 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		var found bool
 		rerr := a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
 			var err error
-			stored, found, err = tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+			stored, found, err = readSOStateEncoded(ctx, tx, id)
 			return err
 		})
 		switch {

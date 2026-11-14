@@ -122,8 +122,8 @@ type mountStore struct {
 	object.ObjectStore
 	// ctx is the mount's lifetime.
 	ctx context.Context
-	// hostKey is the object's stored state key.
-	hostKey []byte
+	// id is the shared object id.
+	id string
 }
 
 // NewTransaction opens a transaction. A write fails with context.Canceled once
@@ -145,7 +145,7 @@ func (m mountStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 	if err != nil {
 		return nil, err
 	}
-	found, err := tx.Exists(ctx, m.hostKey)
+	found, err := soStateExists(ctx, tx, m.id)
 	if err == nil && !found {
 		err = sobject.ErrSharedObjectNotFound
 	}
@@ -592,7 +592,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		blkStore:     blkStore,
 		soHost:       soHost,
 		lsoHost:      lsoHost,
-		objStore:     mountStore{ObjectStore: objStore, ctx: ctx, hostKey: SobjectObjectStoreHostStateKey(sharedObjectID)},
+		objStore:     mountStore{ObjectStore: objStore, ctx: ctx, id: sharedObjectID},
 		objStoreID:   objectStoreID,
 		localPriv:    localPriv,
 		localPid:     localPeerID,
@@ -869,7 +869,6 @@ func (a *ProviderAccount) RefreshSharedObjectList(context.Context) error {
 // no stored state gets a genesis.
 func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore object.ObjectStore, sharedObjectID string) error {
 	// Validate the stored state, or learn whether the object is listed.
-	key := SobjectObjectStoreHostStateKey(sharedObjectID)
 	var found, listed bool
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -882,15 +881,11 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 			}
 
 			// Read the stored state; with none, read whether it is listed.
-			data, ok, err := tx.Get(ctx, key)
+			val, _, ok, err := readSOState(ctx, tx, sharedObjectID)
 			if err != nil {
 				return err
 			}
 			if found = ok; found {
-				val := &sobject.SOState{}
-				if err := val.UnmarshalVT(data); err != nil {
-					return err
-				}
 				return val.Validate(sharedObjectID)
 			}
 			listed, err = storedListsSharedObject(ctx, tx, sharedObjectID)
@@ -1027,10 +1022,9 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 	}
 
 	// Store it with its history unless state is already stored.
-	key := SobjectObjectStoreHostStateKey(id)
 	return func(ctx context.Context, tx kvtx.Tx) error {
 		// Keep state already stored; refuse keys an earlier lifetime left.
-		found, err := tx.Exists(ctx, key)
+		found, err := soStateExists(ctx, tx, id)
 		if err != nil || found {
 			return err
 		}
@@ -1042,7 +1036,8 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
 			return err
 		}
-		return tx.Set(ctx, key, data)
+		_, err = storeNewSOState(ctx, tx, id, state, data)
+		return err
 	}, nil
 }
 
