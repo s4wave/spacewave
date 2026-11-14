@@ -205,17 +205,14 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 	}
 	defer release()
 
-	// Checkpoint and copy a Space.
+	// Copy the World and payloads of a Space, which keeps its state.
 	var hold func(context.Context) error
 	if entry.GetMeta().GetBodyType() == "space" {
-		var world *space_world.InnerState
-		var releaseWorld func()
-		state, world, releaseWorld, err = provider_migration.Checkpoint(ctx, a.le, a.t.p.b, a.t.p.sfs, entry.GetRef(), object, state)
+		roots, err := provider_migration.Roots(ctx, a.le, a.t.p.sfs, object, state)
 		if err != nil {
 			return err
 		}
-		defer releaseWorld()
-		copied, err := provider_migration.CopyWorld(ctx, object, world, blocks)
+		copied, err := provider_migration.CopyRoots(ctx, object, roots, blocks)
 		if err != nil {
 			return err
 		}
@@ -226,19 +223,19 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 			return err
 		}
 
-		// Hold the copied World under the import root before the object is
-		// listed, until the Space's Adapter holds it under its replay base.
+		// Hold the copied World and payloads under the import root before
+		// the object is listed, until the Space's Adapter holds each.
 		//
 		// Invariants, which the Volume's collector relies on to free
 		// nothing the migrated Space needs:
 		//
 		//  1. The copy's stage holds every copied block from its first put
-		//     until the import root holds the World: the stage is released
+		//     until the import root holds its root: the stage is released
 		//     only by the deferred release, after the hold is written and
 		//     the stage is checked.
 		//  2. The hold is written after the object's first host state and
 		//     before its listing, so a crash or error between them leaves an
-		//     unlisted id with state and a held World, which a retry adopts,
+		//     unlisted id with state and held roots, which a retry adopts,
 		//     and never a listed Space nothing holds. A delete releases the
 		//     bucket's roots only after it unlists the id, and one that runs
 		//     between the hold and the listing fails the listing, so no
@@ -248,20 +245,20 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 		//     past the stage's lease and the grace period may have lost the
 		//     copied graph, and the import then fails before listing, so a
 		//     retry copies again.
-		//  4. The import adds a hold and releases none, and only the
-		//     Adapter's trim that moves the replay base onto the World
-		//     releases it (space_world.HoldImport). A trim of an earlier
-		//     install, even one gathered before the hold or landing after
-		//     the import returns, keeps it. So every failure after the
-		//     listing, such as the catalog write's, leaves the listed id
-		//     holding the World, and a retry finds it held.
-		head := world.GetHeadRef().GetRootRef()
+		//  4. The import adds holds and releases none. The Adapter's trim
+		//     releases the World only when it moves the replay base onto it,
+		//     and a payload only when the replay payloads root holds it
+		//     (space_world.HoldImport), read under the root lock at the
+		//     move. A trim of an earlier install, even one gathered before
+		//     the hold or landing after the import returns, keeps them. So
+		//     every failure after the listing, such as the catalog write's,
+		//     leaves the listed id holding them, and a retry finds them held.
 		hold = func(ctx context.Context) error {
-			if err := space_world.HoldImport(ctx, blocks, head); err != nil {
+			if err := space_world.HoldImport(ctx, blocks, roots...); err != nil {
 				return err
 			}
 			if copied != nil {
-				if err := copied.CheckHeld(ctx, head); err != nil {
+				if err := copied.CheckHeld(ctx, roots...); err != nil {
 					return err
 				}
 			}

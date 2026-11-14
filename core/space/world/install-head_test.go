@@ -1554,3 +1554,90 @@ func timeResetPayloads(t *testing.T, n, drop int) {
 	}
 	t.Logf("save of %d held payloads dropping %d: %v, longest rootMtx wait %v", n+drop, drop, total, longest)
 }
+
+// TestTrimReleasesImportedPayloadOnceHeld checks, on a Volume that frees at
+// once, that a payload a migration holds under the import root stays held
+// until the replay payloads root holds it: a cursor save that drops it from
+// the payloads root while the import root holds it leaves it imported, and
+// only the trim after the payloads root holds it again releases it there.
+func TestTrimReleasesImportedPayloadOnceHeld(t *testing.T) {
+	// Another writer stores a World and a payload under a stage and holds
+	// both under the import root, and the Adapter reads them.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	store := a.so.GetBlockStore()
+	staged, endStage, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated := putPayloads(ctx, t, staged, "imported World ", 1)[0]
+	payload := putPayloads(ctx, t, staged, "imported payload ", 1)[0]
+	if err := HoldImport(ctx, store, migrated, payload); err != nil {
+		t.Fatal(err)
+	}
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = a.readHeldRoots(ctx, heldRootNames)
+	if err == nil {
+		err = a.readRootSets(ctx)
+	}
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	endStage()
+	placeholder := putPayloads(ctx, t, a.pages, "placeholder World ", 1)[0]
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: placeholder}}}
+	trim := func() {
+		t.Helper()
+		plan, err := a.gatherTrim(ctx)
+		if err == nil {
+			err = runTrimLocked(ctx, a, plan)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	requireImported := func(step string, want bool) {
+		t.Helper()
+		collect()
+		if _, found, err := store.GetBlock(ctx, payload); err != nil || !found {
+			t.Fatalf("%s: collection freed the imported payload: %v, %v", step, found, err)
+		}
+		if a.imported.holds(payload) != want {
+			t.Fatalf("%s: import root %v, want it holding the payload %v", step, a.imported.roots, want)
+		}
+	}
+
+	// A trim before the payloads root holds it keeps it imported.
+	trim()
+	requireImported("trim before the payloads root holds it", true)
+
+	// A save that drops it from the payloads root keeps it imported, and so
+	// does the next trim.
+	if err := a.addPayloads(ctx, []*block.BlockRef{payload}); err != nil {
+		t.Fatal(err)
+	}
+	holdOrder(a, placeholder, nil, false)
+	if err := a.resetPayloads(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	if a.payloads.holds(payload) {
+		t.Fatalf("payload set %v after the save, want the payload dropped", a.payloads.roots)
+	}
+	requireImported("save that dropped it", true)
+	trim()
+	requireImported("trim after the save", true)
+
+	// Once the payloads root holds it, the trim releases it there.
+	if err := a.addPayloads(ctx, []*block.BlockRef{payload}); err != nil {
+		t.Fatal(err)
+	}
+	trim()
+	requireImported("trim once the payloads root holds it", false)
+	if !a.imported.holds(migrated) {
+		t.Fatalf("import root %v, want it still holding the migrated World", a.imported.roots)
+	}
+}
