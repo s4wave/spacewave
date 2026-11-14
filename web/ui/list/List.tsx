@@ -62,6 +62,8 @@ export interface ListProps<T = void> {
   // state is the selection, focus, and sort the List shows and changes, from
   // useListState.
   state: ListStateHandle
+  // label is the list's accessible name.
+  label?: string
   onRowContextMenu?: (item: ListItem<T>, event: React.MouseEvent) => void
 }
 
@@ -77,6 +79,7 @@ export function List<T>({
   renderHeader,
   sortFn,
   state: [state, update],
+  label = 'List',
   onRowContextMenu,
 }: ListProps<T>) {
   const listRef = useRef<ListImperativeAPI | null>(null)
@@ -383,7 +386,7 @@ export function List<T>({
             className,
           )}
           role="group"
-          aria-label="List"
+          aria-label={label}
         >
           {headerContent}
 

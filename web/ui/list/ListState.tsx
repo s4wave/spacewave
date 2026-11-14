@@ -37,7 +37,8 @@ export type ListAction = SelectItemAction | SetSortAction | UpdateIndicesAction
 
 export type ListDispatch = (action: ListAction) => void
 
-// ListUpdate applies a change to the latest List state.
+// ListUpdate applies a change to the latest List state. It runs update before
+// it returns, so a caller can compare the state it was given with the next.
 export type ListUpdate = (update: (state: ListState) => ListState) => void
 
 // ListStateHandle is the state a List shows and the update that changes it.

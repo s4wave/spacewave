@@ -17,6 +17,7 @@ import { LayoutDebug } from '@s4wave/web/debug/LayoutDebug.js'
 import { LayoutColorsDebug } from '@s4wave/web/debug/LayoutColorsDebug.js'
 import { LoadingDebug } from '@s4wave/web/debug/LoadingDebug.js'
 import { SessionSettingsDebug } from '@s4wave/web/debug/SessionSettingsDebug.js'
+import { TableDebug } from '@s4wave/web/debug/TableDebug.js'
 import { UnixFSBrowserDebug } from '@s4wave/web/debug/UnixFSBrowserDebug.js'
 
 import { DebugIndex } from './DebugIndex.js'
@@ -109,6 +110,12 @@ const debugRouteEntries = [
     element: <FileListDebug />,
   },
   {
+    path: '/debug/ui/table',
+    title: 'Table',
+    description: 'Open the table in one state; add /selected, /by-latency...',
+    element: <TableDebug />,
+  },
+  {
     path: '/debug/ui/facts',
     title: 'Facts',
     description: 'Open fact rows in one state; add /text, /two-fact.',
@@ -159,6 +166,9 @@ export const DebugRoutes = (
     ))}
     <Route path="/debug/ui/file-list/:state">
       <FileListDebug />
+    </Route>
+    <Route path="/debug/ui/table/:state">
+      <TableDebug />
     </Route>
     <Route path="/debug/ui/facts/:state">
       <FactListDebug />

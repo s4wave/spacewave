@@ -768,6 +768,18 @@ menu press on a touch screen:
 | Fact rows | < 13rem | The label sits over its value |
 | Table | 16, 22, 28, 40rem | Further columns appear in the order the reader needs them; a state column is a glyph until 22rem |
 
+`Table` draws records as `List` rows, with the list's keys, selection and
+selected-row look, under a header of sortable columns. It is the container
+`table`. Its first column identifies the row, never sheds, and keeps
+`viewer-name`; an identifier there shortens in its middle. Each further column
+has a width and a priority, and shows from the first step that holds it with
+every column of higher priority, never by clipping a cell. A column no step
+holds shows only as a fact. The one selected row's shed values show as dense
+facts under the rows, each leaving as its column returns. A sort by a shed
+column reads "by" and its label beside the first header, as `FileList` does.
+The states are in `web/ui/table/Table.tla`. A query result whose columns are
+the data's own, not designed, scrolls sideways as a grid instead.
+
 `FactList` is the container `facts`, and each `FactRow` in it is one line of
 label, value and copy press, `viewer-fact-row` tall in the body. A `dense`
 list, as in a side column or the Details popover, packs its rows at

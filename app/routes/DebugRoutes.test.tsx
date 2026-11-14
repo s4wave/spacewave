@@ -57,6 +57,10 @@ vi.mock('@s4wave/app/debug/git/GitSideDebug.js', () => ({
   GitSideDebug: () => <div data-testid="git-side-debug" />,
 }))
 
+vi.mock('@s4wave/web/debug/TableDebug.js', () => ({
+  TableDebug: () => <div data-testid="table-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/FileListDebug.js', () => ({
   FileListDebug: () => <div data-testid="file-list-debug" />,
 }))
@@ -88,6 +92,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/forge-viewer', testId: 'forge-viewer-debug' },
   { path: '/debug/ui/unixfs-browser', testId: 'unixfs-browser-debug' },
   { path: '/debug/ui/file-list', testId: 'file-list-debug' },
+  { path: '/debug/ui/table', testId: 'table-debug' },
   { path: '/debug/ui/facts', testId: 'fact-list-debug' },
   { path: '/debug/ui/side', testId: 'viewer-side-debug' },
   { path: '/debug/ui/git-side', testId: 'git-side-debug' },
@@ -140,6 +145,12 @@ describe('DebugRoutes', () => {
     renderDebugRoute('/debug/ui/wizard/invalid')
 
     expect(screen.getByTestId('wizard-shell-debug')).toBeDefined()
+  })
+
+  it('resolves a table fixture state to the table debug page', () => {
+    renderDebugRoute('/debug/ui/table/by-latency')
+
+    expect(screen.getByTestId('table-debug')).toBeDefined()
   })
 
   it('resolves a facts fixture state to the facts debug page', () => {

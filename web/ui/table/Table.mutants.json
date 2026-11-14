@@ -1,0 +1,32 @@
+[
+  {
+    "name": "a shed column's value is dropped, not shown as a fact",
+    "replace": [["Facts == IF OneSelected THEN Shed ELSE {}", "Facts == {}"]],
+    "expect": "ShedValuesReachable"
+  },
+  {
+    "name": "a later column shows before an earlier one",
+    "replace": [["owner |-> 28", "owner |-> 0"]],
+    "expect": "ShedInPriorityOrder"
+  },
+  {
+    "name": "the identifying column sheds in a narrow table",
+    "replace": [["Step == [name |-> 0", "Step == [name |-> 16"]],
+    "expect": "NameAlwaysShows"
+  },
+  {
+    "name": "a sort by a shed column is not named",
+    "replace": [
+      [
+        "SortLabel == IF sort \\in Shed THEN sort ELSE \"\"",
+        "SortLabel == \"\""
+      ]
+    ],
+    "expect": "ShedSortNamed"
+  },
+  {
+    "name": "facts repeat every column, shown or not",
+    "replace": [["THEN Shed ELSE {}", "THEN Cols ELSE {}"]],
+    "expect": "FactsOnlyShed"
+  }
+]

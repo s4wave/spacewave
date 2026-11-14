@@ -62,6 +62,14 @@
 @custom-variant @pane-low (@container pane (height < 12rem));
 @custom-variant @pane-cramped (@container pane (width < 20rem) or (height < 12rem));
 
+/* Table variants read the nearest table container, the one Table in
+   web/ui/table makes, at DESIGN.md's table steps: a further column shows from
+   the step that holds it with the columns before it. */
+@custom-variant @table-16 (@container table (width >= 16rem));
+@custom-variant @table-22 (@container table (width >= 22rem));
+@custom-variant @table-28 (@container table (width >= 28rem));
+@custom-variant @table-40 (@container table (width >= 40rem));
+
 @theme {
   --max-height-wizard: 80vh;
   --max-width-viewport-control: calc(100vw - 1rem);

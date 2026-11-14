@@ -1,0 +1,112 @@
+---
+title: "Table: columns by width, shed facts, and the keys"
+---
+stateDiagram-v2
+  state "Columns Name" as s0 {
+    state "Facts none" as s1 {
+      s2: Rows none selected
+      s3: Rows No rows
+      s4: Rows one row focused
+      s5: Rows a range selected
+    }
+    state "Facts State, Owner, Note" as s6 {
+      s7: Rows one row selected
+    }
+  }
+  state "Columns Name, State" as s8 {
+    state "Facts none" as s9 {
+      s10: Rows none selected
+      s11: Rows No rows
+      s12: Rows one row focused
+      s13: Rows a range selected
+    }
+    state "Facts Owner, Note" as s14 {
+      s15: Rows one row selected
+    }
+  }
+  state "Columns Name, State, Owner" as s16 {
+    state "Facts none" as s17 {
+      s18: Rows none selected
+      s19: Rows No rows
+      s20: Rows one row focused
+      s21: Rows a range selected
+    }
+    state "Facts Note" as s22 {
+      s23: Rows one row selected
+    }
+  }
+  [*] --> s2
+  [*] --> s10
+  [*] --> s18
+  s2 --> s10: the pane is resized
+  s2 --> s18: the pane is resized
+  s2 --> s3: another writer changes the records
+  s2 --> s4: presses Ctrl+Home or presses Ctrl+End
+  s2 --> s7: presses Home or presses Shift+Home or presses End or presses Shift+End
+  s10 --> s2: the pane is resized
+  s10 --> s18: the pane is resized
+  s10 --> s11: another writer changes the records
+  s10 --> s12: presses Ctrl+Home or presses Ctrl+End
+  s10 --> s15: presses Home or presses Shift+Home or presses End or presses Shift+End
+  s18 --> s2: the pane is resized
+  s18 --> s10: the pane is resized
+  s18 --> s19: another writer changes the records
+  s18 --> s20: presses Ctrl+Home or presses Ctrl+End
+  s18 --> s23: presses Home or presses Shift+Home or presses End or presses Shift+End
+  s3 --> s2: another writer changes the records
+  s3 --> s11: the pane is resized
+  s3 --> s19: the pane is resized
+  s11 --> s10: another writer changes the records
+  s11 --> s3: the pane is resized
+  s11 --> s19: the pane is resized
+  s19 --> s18: another writer changes the records
+  s19 --> s3: the pane is resized
+  s19 --> s11: the pane is resized
+  s4 --> s3: another writer changes the records
+  s4 --> s12: the pane is resized
+  s4 --> s20: the pane is resized
+  s4 --> s7: presses Home or presses Shift+Home or presses End or presses Shift+End
+  s4 --> s5: presses Shift+End or presses Shift+Home
+  s12 --> s11: another writer changes the records
+  s12 --> s4: the pane is resized
+  s12 --> s20: the pane is resized
+  s12 --> s15: presses Home or presses Shift+Home or presses End or presses Shift+End
+  s12 --> s13: presses Shift+End or presses Shift+Home
+  s20 --> s19: another writer changes the records
+  s20 --> s4: the pane is resized
+  s20 --> s12: the pane is resized
+  s20 --> s23: presses Home or presses Shift+Home or presses End or presses Shift+End
+  s20 --> s21: presses Shift+End or presses Shift+Home
+  s4 --> s2: another writer changes the records
+  s12 --> s10: another writer changes the records
+  s20 --> s18: another writer changes the records
+  s7 --> s3: another writer changes the records
+  s7 --> s15: the pane is resized
+  s7 --> s23: the pane is resized
+  s7 --> s5: presses Shift+End or presses Shift+Home
+  s15 --> s11: another writer changes the records
+  s15 --> s7: the pane is resized
+  s15 --> s23: the pane is resized
+  s15 --> s13: presses Shift+End or presses Shift+Home
+  s23 --> s19: another writer changes the records
+  s23 --> s7: the pane is resized
+  s23 --> s15: the pane is resized
+  s23 --> s21: presses Shift+End or presses Shift+Home
+  s7 --> s2: another writer changes the records
+  s15 --> s10: another writer changes the records
+  s23 --> s18: another writer changes the records
+  s5 --> s3: another writer changes the records
+  s5 --> s7: presses Home or presses Shift+Home or presses End or another writer changes the records or presses Shift+End
+  s5 --> s13: the pane is resized
+  s5 --> s21: the pane is resized
+  s13 --> s11: another writer changes the records
+  s13 --> s15: presses Home or presses Shift+Home or presses End or another writer changes the records or presses Shift+End
+  s13 --> s5: the pane is resized
+  s13 --> s21: the pane is resized
+  s21 --> s19: another writer changes the records
+  s21 --> s23: presses Home or presses Shift+Home or presses End or another writer changes the records or presses Shift+End
+  s21 --> s5: the pane is resized
+  s21 --> s13: the pane is resized
+  s7 --> s4: another writer changes the records
+  s15 --> s12: another writer changes the records
+  s23 --> s20: another writer changes the records
