@@ -258,7 +258,7 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 }
 
 // TestWriteStoredRawBlobKeepsReference verifies a file written from a stored raw
-// blob over maxInlineRawBlobSize references it instead of copying its bytes
+// blob over MaxInlineRawBlobSize references it instead of copying its bytes
 // into the file block.
 func TestWriteStoredRawBlobKeepsReference(t *testing.T) {
 	// Prepare a stored raw blob larger than the inline limit.
