@@ -6,16 +6,16 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { useSpaceCreates, type CreatePlan } from './useSpaceCreates.js'
 
-// planFor plans a layout at key; each test uses its own key, since sonner
-// keeps every toast id it has seen in one module-wide store.
-const planFor = (objectKey: string): CreatePlan => ({
+// plan creates a layout. Each create has its own toast id, so the tests
+// share one key.
+const plan: CreatePlan = {
   name: 'Layout',
-  objectKey,
+  objectKey: 'layout-1',
   objectType: 'alpha/object-layout',
   opId: 'op',
   opData: new Uint8Array([1]),
   persistent: false,
-})
+}
 
 // fakeWorld fails each send with the next of failures, then succeeds; a
 // repeat finds no object at the planned key.
@@ -24,9 +24,12 @@ function fakeWorld(failures: Error[]) {
     const err = failures.shift()
     return err ? Promise.reject(err) : Promise.resolve({ seqno: 1n })
   })
-  const listObjects = vi.fn(() => Promise.resolve({ objects: [] }))
+  const listObjects = vi.fn<IWorldState['listObjects']>(() =>
+    Promise.resolve({ objects: [] }),
+  )
   return { applyWorldOp, listObjects } as unknown as IWorldState & {
     applyWorldOp: typeof applyWorldOp
+    listObjects: typeof listObjects
   }
 }
 
@@ -34,28 +37,21 @@ function fakeWorld(failures: Error[]) {
 // action runs through sonner's own click handling.
 function Harness(props: {
   world: IWorldState | null
-  objectKey: string
   onReady: (create: () => void) => void
 }) {
   const creates = useSpaceCreates('space-1', props.world, () => undefined)
-  props.onReady(() =>
-    creates.create('Layout', () => Promise.resolve(planFor(props.objectKey))),
-  )
+  props.onReady(() => creates.create('Layout', () => Promise.resolve(plan)))
   return <Toaster />
 }
 
-function mount(world: IWorldState | null, objectKey: string) {
+function mount(world: IWorldState | null) {
   let create = () => undefined as void
   const onReady = (next: () => void) => (create = next)
-  const view = render(
-    <Harness world={world} objectKey={objectKey} onReady={onReady} />,
-  )
+  const view = render(<Harness world={world} onReady={onReady} />)
   return {
     create: () => act(() => create()),
     setWorld: (next: IWorldState | null) =>
-      view.rerender(
-        <Harness world={next} objectKey={objectKey} onReady={onReady} />,
-      ),
+      view.rerender(<Harness world={next} onReady={onReady} />),
   }
 }
 
@@ -70,7 +66,7 @@ afterEach(() => {
 describe('useSpaceCreates with the real Toaster', () => {
   it('keeps the failure and its Try again when the retry fails at once', async () => {
     const world = fakeWorld([new Error('offline'), new Error('offline')])
-    const view = mount(world, 'layout-fast')
+    const view = mount(world)
     view.create()
 
     fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
@@ -79,11 +75,35 @@ describe('useSpaceCreates with the real Toaster', () => {
     expect(world.applyWorldOp).toHaveBeenCalledTimes(2)
     expect(screen.getByText('Could not create Layout')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeDefined()
+  })
+
+  it('closes a refused create with its Dismiss, freeing its key', async () => {
+    const world = fakeWorld([new Error('offline')])
+    world.listObjects
+      .mockResolvedValueOnce({
+        objects: [{ objectKey: plan.objectKey, typeId: 'other/type' }],
+      })
+      .mockResolvedValue({ objects: [] })
+    const view = mount(world)
+    view.create()
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
+    await past()
+
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    await past()
+    expect(screen.queryByText('Could not create Layout')).toBeNull()
+
+    // The key is free, so the next create of it sends rather than joining.
+    view.create()
+    await past()
+    expect(world.applyWorldOp).toHaveBeenCalledTimes(2)
   })
 
   it('shows a Try again pressed while the world reloads as waiting, and Cancel returns to it', async () => {
     const world = fakeWorld([new Error('offline')])
-    const view = mount(world, 'layout-wait')
+    const view = mount(world)
     view.create()
     const retry = await screen.findByRole('button', { name: 'Try again' })
 

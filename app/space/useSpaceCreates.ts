@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
+import {
+  PluginOpTimeoutError,
+  WorldOperationRejection,
+} from '@s4wave/sdk/world/errors.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // CreatePlan is one create command's object key and op, built once.
@@ -38,25 +41,29 @@ export function useSpaceCreatesContext(): SpaceCreates {
 }
 
 // OpenSpace is one open Space's creates: the dispatch of each create still
-// open, which closing the Space sends close, and the runs waiting for the
-// Space's world to return.
+// open, which closing the Space sends close; the runs waiting for the Space's
+// world to return; and the create that holds each planned key while it is
+// running, waiting or failed, which a later create of that key joins.
 interface OpenSpace {
   jobs: Set<(event: CreateEvent) => void>
   waiting: Map<CreateJob, (world: IWorldState) => void>
+  keys: Map<string, CreateJob>
 }
 
 // CreateState is one create's state. running sends the create, after a
 // failure if failure is set; waiting holds a pressed Try again until the
 // Space's world returns; failed offers Try again; refused means another
 // object holds the planned key, so trying again cannot help; done and closed
-// are final. failure is the last failure's description, which a cancelled
-// wait shows again.
+// are final; joined is final for a create whose planned key another create
+// in this Space already holds, which reports the one outcome. failure is the
+// last failure's description, which a cancelled wait shows again.
 export type CreateState =
   | { status: 'running'; failure?: string }
   | { status: 'waiting'; failure?: string }
   | { status: 'failed'; failure: string }
   | { status: 'refused'; failure: string }
   | { status: 'done' }
+  | { status: 'joined' }
   | { status: 'closed' }
 
 // CreateEvent moves one create between its states.
@@ -67,6 +74,7 @@ export type CreateEvent =
   | { type: 'cancel' }
   | { type: 'fail'; failure: string; retry: boolean }
   | { type: 'done' }
+  | { type: 'join' }
   | { type: 'close' }
 
 // createReducer returns the state after event. An event that does not apply
@@ -103,8 +111,12 @@ export function createReducer(
         : { status: 'refused', failure: event.failure }
     case 'done':
       return state.status === 'running' ? { status: 'done' } : state
+    case 'join':
+      return state.status === 'running' ? { status: 'joined' } : state
     case 'close':
-      return state.status === 'done' ? state : { status: 'closed' }
+      return state.status === 'done' || state.status === 'joined'
+        ? state
+        : { status: 'closed' }
   }
 }
 
@@ -112,14 +124,15 @@ export function createReducer(
 // default keeps sonner from deleting the toast id the action replaces.
 type ToastPress = { preventDefault(): void } | undefined
 
-// CreateJob is one create: its state, its plan once prepared, whether its op
-// was ever sent, and the one toast that shows its state.
+// CreateJob is one create: its state, its plan once prepared, whether an op
+// it sent may have been written, and the id of the one toast that shows its
+// state, unique to this create.
 interface CreateJob {
   name: string
   state: CreateState
   plan: CreatePlan | null
   sent: boolean
-  toastId: string | null
+  toastId: string
 }
 
 // showCreateToast replaces job's toast with the one its state shows. Every
@@ -134,53 +147,68 @@ function showCreateToast(
     click?.preventDefault()
     dispatch(event)
   }
+  // A failure the person closes, by its Dismiss or a swipe, ends its create.
+  // sonner deletes the toast after a cancel press, which close does too.
+  const onDismiss = () => dispatch({ type: 'close' })
+  const dismiss = { label: 'Dismiss', onClick: onDismiss }
   switch (state.status) {
     case 'running':
       // The first run shows nothing until it fails or finishes.
       if (state.failure === undefined) return
       toast.loading(`Creating ${job.name}`, {
-        id: createToastId(job),
+        id: job.toastId,
         description: undefined,
         duration: Infinity,
         action: undefined,
+        cancel: undefined,
+        onDismiss: undefined,
       })
       return
     case 'waiting':
       toast.loading(`Creating ${job.name}`, {
-        id: createToastId(job),
+        id: job.toastId,
         description: 'Waiting for the Space to reconnect.',
         duration: Infinity,
         action: { label: 'Cancel', onClick: press({ type: 'cancel' }) },
+        cancel: undefined,
+        onDismiss: undefined,
       })
       return
     case 'failed':
       toast.error(`Could not create ${job.name}`, {
-        id: createToastId(job),
+        id: job.toastId,
         description: state.failure,
         duration: Infinity,
         action: { label: 'Try again', onClick: press({ type: 'retry' }) },
+        cancel: dismiss,
+        onDismiss,
       })
       return
     case 'refused':
       toast.error(`Could not create ${job.name}`, {
-        id: createToastId(job),
+        id: job.toastId,
         description: state.failure,
-        duration: undefined,
+        duration: Infinity,
         action: undefined,
+        cancel: dismiss,
+        onDismiss,
       })
       return
     case 'done':
     case 'closed':
-      if (job.toastId) toast.dismiss(job.toastId)
+      toast.dismiss(job.toastId)
+      return
+    case 'joined':
       return
   }
 }
 
-// createToastId names job's one toast by its planned key, fixed at the first
-// toast it shows.
-function createToastId(job: CreateJob): string {
-  job.toastId ??= `create-object:${job.plan?.objectKey ?? crypto.randomUUID()}`
-  return job.toastId
+// createFailure describes why a create's send failed.
+function createFailure(err: unknown): string {
+  if (err instanceof WorldOperationRejection) return err.message
+  if (err instanceof PluginOpTimeoutError)
+    return 'The plugin did not finish in time, so nothing was changed.'
+  return 'The Space could not finish the change.'
 }
 
 // readObjectType returns the type of the object at key, '' for an object
@@ -215,7 +243,11 @@ export function useSpaceCreates(
   }, [navigateToObjects])
 
   useEffect(() => {
-    const space: OpenSpace = { jobs: new Set(), waiting: new Map() }
+    const space: OpenSpace = {
+      jobs: new Set(),
+      waiting: new Map(),
+      keys: new Map(),
+    }
     open.current = space
     return () => {
       space.waiting.clear()
@@ -243,7 +275,7 @@ export function useSpaceCreates(
           state: { status: 'running' },
           plan: null,
           sent: false,
-          toastId: null,
+          toastId: `create-object:${crypto.randomUUID()}`,
         }
 
         // dispatch moves job to its next state, shows that state's toast and
@@ -255,8 +287,12 @@ export function useSpaceCreates(
           const next = createReducer(prev, event)
           if (next === prev) return
           job.state = next
-          if (next.status === 'done' || next.status === 'closed')
-            space.jobs.delete(dispatch)
+          const final =
+            next.status === 'done' ||
+            next.status === 'joined' ||
+            next.status === 'closed'
+          if (final) space.jobs.delete(dispatch)
+          if (final || next.status === 'refused') releaseKey()
           if (prev.status === 'waiting') space.waiting.delete(job)
           showCreateToast(job, dispatch)
           if (event.type === 'retry') start()
@@ -273,12 +309,23 @@ export function useSpaceCreates(
             dispatch({ type: 'resume' })
           }
           if (job.state.status !== 'running') return
-          job.plan ??= await prepare(world)
-          const plan = job.plan
-          if (!plan) {
-            dispatch({ type: 'close' })
-            return
+          if (!job.plan) {
+            const plan = await prepare(world)
+            // Nothing to create, or the Space closed while this planned.
+            if (!plan || job.state.status !== 'running') {
+              dispatch({ type: 'close' })
+              return
+            }
+            // A create whose key another create here holds joins it, so one
+            // object is sent and reported once.
+            if (space.keys.has(plan.objectKey)) {
+              dispatch({ type: 'join' })
+              return
+            }
+            job.plan = plan
+            space.keys.set(plan.objectKey, job)
           }
+          const plan = job.plan
           // Contract: a create whose reply was lost may still have committed,
           // and the op does not yet treat an identical repeat as a no-op, so
           // a repeat first reads its key. The object there is either this
@@ -296,6 +343,9 @@ export function useSpaceCreates(
             }
             if (found !== null) return finish(plan)
           }
+          // Only a create still running sends: its Space may have closed
+          // while it planned or read its key.
+          if (job.state.status !== 'running') return
           job.sent = true
           await world.applyWorldOp(plan.opId, plan.opData, '')
           finish(plan)
@@ -306,15 +356,21 @@ export function useSpaceCreates(
           if (!plan.persistent) toast.success(`Created ${plan.name}`)
           navigate.current([plan.objectKey])
         }
+        const releaseKey = () => {
+          const key = job.plan?.objectKey
+          if (key !== undefined && space.keys.get(key) === job)
+            space.keys.delete(key)
+        }
         const start = () => {
           run().catch((err: unknown) => {
             console.error('failed to create object', err)
+            // The host discarded a timed out op, so it wrote nothing, and
+            // the read before this send already settled any earlier one: a
+            // retry sends without reading the key first.
+            if (err instanceof PluginOpTimeoutError) job.sent = false
             dispatch({
               type: 'fail',
-              failure:
-                err instanceof WorldOperationRejection
-                  ? err.message
-                  : 'The Space could not finish the change.',
+              failure: createFailure(err),
               retry: true,
             })
           })

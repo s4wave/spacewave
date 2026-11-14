@@ -25,7 +25,10 @@ import {
   AddDeviceWizardTargetKeyPrefix,
   AddDeviceWizardTypeID,
 } from '../device/add-device-wizard.js'
-import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
+import {
+  PluginOpTimeoutError,
+  WorldOperationRejection,
+} from '@s4wave/sdk/world/errors.js'
 import { SpaceCommands } from './SpaceCommands.js'
 import { SpaceCreatesContext, useSpaceCreates } from './useSpaceCreates.js'
 
@@ -519,6 +522,7 @@ describe('SpaceCommands', () => {
         description: string
         duration?: number
         action?: { label: string; onClick: () => void }
+        onDismiss?: () => void
       },
     ]
   }
@@ -612,9 +616,138 @@ describe('SpaceCommands', () => {
       expect(h.toast.error).toHaveBeenCalledTimes(2)
     })
 
-    expect(failedCreateToast(0)[1].id).toBe('create-object:layout-1')
-    expect(failedCreateToast(1)[1].id).toBe('create-object:layout-1')
+    expect(failedCreateToast(0)[1].id).toMatch(/^create-object:/)
+    expect(failedCreateToast(1)[1].id).toBe(failedCreateToast(0)[1].id)
     expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+  })
+
+  it('gives each create its own toast', async () => {
+    h.applyWorldOp
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockRejectedValueOnce(new Error('offline'))
+    renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    // Closing the failure frees its key, so the next press plans it again.
+    failedCreateToast()[1].onDismiss?.()
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(2)
+    })
+    expect(failedCreateToast(1)[1].id).not.toBe(failedCreateToast(0)[1].id)
+  })
+
+  it('joins a second press of a create to the first, sending and reporting it once', async () => {
+    let settle: () => void = () => undefined
+    h.applyWorldOp.mockImplementationOnce(
+      () =>
+        new Promise<ApplyWorldOpResult>((resolve) => {
+          settle = () => resolve({ seqno: 1n, sysErr: false })
+        }),
+    )
+    renderCommands()
+
+    const { handler } = getCreateObjectCommandHandlers()
+    handler({ subItemId: 'alpha/object-layout' })
+    handler({ subItemId: 'alpha/object-layout' })
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    settle()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+    expect(h.toast.success).toHaveBeenCalledTimes(1)
+    expect(h.toast.error).not.toHaveBeenCalled()
+    expect(h.toast.loading).not.toHaveBeenCalled()
+  })
+
+  it('says a timed out create changed nothing and resends it without reading its key', async () => {
+    const world = keysWorld([])
+    const listObjects = vi.spyOn(world, 'listObjects')
+    h.applyWorldOp.mockRejectedValueOnce(new PluginOpTimeoutError())
+    renderCommands({ world })
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const [, options] = failedCreateToast()
+    expect(options.description).toBe(
+      'The plugin did not finish in time, so nothing was changed.',
+    )
+    const reads = listObjects.mock.calls.length
+
+    options.action?.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+    expect(listObjects).toHaveBeenCalledTimes(reads)
+  })
+
+  it('sends nothing for a resend whose Space closes while it reads its key', async () => {
+    const world = keysWorld([])
+    const list = world.listObjects.bind(world)
+    let reading = false
+    let release: () => void = () => undefined
+    const read = new Promise<void>((resolve) => (release = resolve))
+    vi.spyOn(world, 'listObjects').mockImplementation(async (req) => {
+      if (reading) await read
+      return list(req)
+    })
+    h.applyWorldOp.mockRejectedValueOnce(new Error('offline'))
+    const view = renderCommands({ world })
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    reading = true
+    failedCreateToast()[1].action?.onClick()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    view.switchSpace('space-2')
+    release()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing for a create whose Space closes while it plans', async () => {
+    const world = keysWorld([])
+    const list = world.listObjects.bind(world)
+    let release: () => void = () => undefined
+    const planning = new Promise<void>((resolve) => (release = resolve))
+    vi.spyOn(world, 'listObjects').mockImplementation(async (req) => {
+      await planning
+      return list(req)
+    })
+    const view = renderCommands({ world })
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    view.switchSpace('space-2')
+    release()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(h.applyWorldOp).not.toHaveBeenCalled()
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
   })
 
   // inFlight makes the next send hang until settle runs, which may record
@@ -676,7 +809,7 @@ describe('SpaceCommands', () => {
     expect(nextApply).toHaveBeenCalledTimes(1)
     const [opId, opData] = h.applyWorldOp.mock.calls[0]
     expect(nextApply.mock.calls[0]).toEqual([opId, opData, ''])
-    expect(h.toast.dismiss).toHaveBeenCalledWith('create-object:layout-1')
+    expect(h.toast.dismiss).toHaveBeenCalledWith(options.id)
     expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
   })
 
@@ -695,7 +828,7 @@ describe('SpaceCommands', () => {
       expect(h.toast.loading).toHaveBeenCalledTimes(2)
     })
     expect(h.toast.loading.mock.calls[1][1]).toMatchObject({
-      id: 'create-object:layout-1',
+      id: failedCreateToast()[1].id,
       description: 'Waiting for the Space to reconnect.',
       action: { label: 'Cancel' },
     })
@@ -747,7 +880,7 @@ describe('SpaceCommands', () => {
     })
 
     view.switchSpace('space-2')
-    expect(h.toast.dismiss).toHaveBeenCalledWith('create-object:layout-1')
+    expect(h.toast.dismiss).toHaveBeenCalledWith(failedCreateToast()[1].id)
     const nextApply = resolvedApply()
     view.setWorld(keysWorld([]), nextApply)
     await new Promise((resolve) => setTimeout(resolve, 0))
