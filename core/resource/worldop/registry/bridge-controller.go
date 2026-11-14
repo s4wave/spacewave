@@ -2,6 +2,7 @@ package resource_worldop_registry
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -18,6 +19,16 @@ import (
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 	"github.com/sirupsen/logrus"
 )
+
+// pluginOpDeadline bounds the calls into a plugin's worker for one World
+// operation: validate, attach, apply and detach. The operation runs inside a
+// write transaction that holds the World engine's writer, so a worker that
+// stalls but stays alive would otherwise block every write to the Space until
+// the caller gives up. The slowest plugin handlers today, such as
+// notes/blog/create with its seed, make a few dozen in-process calls on the
+// attached World state and none over the network, so ten seconds is far above
+// what a working handler needs and short enough that a stall ends.
+const pluginOpDeadline = 10 * time.Second
 
 // bridgeControllerID is the controller ID.
 const bridgeControllerID = "resource/worldop-registry-bridge"
@@ -248,9 +259,13 @@ func (o *bridgeOperation) ApplyWorldOp(
 	}
 	defer cleanup()
 
+	// Bound every call into the plugin's worker while the writer is held.
+	ctx, cancel := o.withDeadline(ctx)
+	defer cancel()
+
 	// Validate the encoded World operation before exposing mutable state.
 	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
-		return sysErr, err
+		return sysErr, callErr(ctx, err)
 	}
 
 	// Attach a WorldStateResource so the TS handler can mutate world state.
@@ -270,7 +285,7 @@ func (o *bridgeOperation) ApplyWorldOp(
 	// Attach the operation-scoped World services and detach them after the call.
 	worldStateResourceID, err := resources.Client.AttachResource(ctx, "world-state", stateMux)
 	if err != nil {
-		return true, errors.Wrap(err, "attach world state resource")
+		return true, callErr(ctx, errors.Wrap(err, "attach world state resource"))
 	}
 	defer func() {
 		_ = resources.Client.DetachResource(ctx, worldStateResourceID)
@@ -284,7 +299,7 @@ func (o *bridgeOperation) ApplyWorldOp(
 		Sender:                       sender.String(),
 	})
 	if err != nil {
-		return true, err
+		return true, callErr(ctx, err)
 	}
 
 	// Translate the plugin rejection into a World operation rejection.
@@ -315,9 +330,13 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 	}
 	defer cleanup()
 
+	// Bound every call into the plugin's worker while the writer is held.
+	ctx, cancel := o.withDeadline(ctx)
+	defer cancel()
+
 	// Validate the encoded object operation before exposing mutable state.
 	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
-		return sysErr, err
+		return sysErr, callErr(ctx, err)
 	}
 
 	// Attach an ObjectStateResource so the TS handler can mutate the object and
@@ -326,7 +345,7 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, lookupOp, resource_world.WithSessionPeerID(sender))
 	objectStateResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
 	if err != nil {
-		return true, errors.Wrap(err, "attach object state resource")
+		return true, callErr(ctx, errors.Wrap(err, "attach object state resource"))
 	}
 	defer func() {
 		_ = resources.Client.DetachResource(ctx, objectStateResourceID)
@@ -341,7 +360,7 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 		Sender:                        sender.String(),
 	})
 	if err != nil {
-		return true, err
+		return true, callErr(ctx, err)
 	}
 
 	// Translate the plugin rejection into a World operation rejection.
@@ -350,6 +369,25 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 		return false, &world.OperationRejection{Code: resp.GetRejectionCode(), Message: resp.GetRejectionMessage()}
 	}
 	return resp.GetSystemError(), nil
+}
+
+// withDeadline returns ctx bounded by pluginOpDeadline, with a
+// PluginOpTimeoutError for this operation as the cause when it expires.
+func (o *bridgeOperation) withDeadline(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeoutCause(ctx, pluginOpDeadline, &PluginOpTimeoutError{
+		PluginID:        o.reg.GetPluginId(),
+		OperationTypeID: o.opTypeID,
+	})
+}
+
+// callErr returns the PluginOpTimeoutError when the deadline from
+// withDeadline ended the failed call, and err otherwise.
+func callErr(ctx context.Context, err error) error {
+	var timeout *PluginOpTimeoutError
+	if err != nil && errors.As(context.Cause(ctx), &timeout) {
+		return timeout
+	}
+	return err
 }
 
 func (o *bridgeOperation) validateWithService(
