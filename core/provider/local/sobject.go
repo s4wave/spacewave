@@ -26,7 +26,9 @@ import (
 
 // ErrStateChanged is returned by ReplaceSharedObjectState when the object's
 // listed generation or stored state is not the one the caller read: someone
-// wrote, deleted or created it again since.
+// wrote, deleted or created it again since. A mounted state write returns it
+// when the stored state is not the one the mount holds: a replace committed
+// since.
 var ErrStateChanged = errors.New("shared object state changed")
 
 // SharedObject implements the sobject interface attached to sobjectTracker.

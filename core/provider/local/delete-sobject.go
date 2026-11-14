@@ -52,6 +52,9 @@ var (
 	// testHookDeleteCommitted runs after a delete commits, before it restarts
 	// the live mount.
 	testHookDeleteCommitted func(id string)
+	// testHookReplaceCommitted runs after a replace commits, before it
+	// restarts the live mount.
+	testHookReplaceCommitted func(id string)
 	// testHookStateRefused runs after a mount finds no state it may use,
 	// before it publishes the refusal.
 	testHookStateRefused func(id string)
