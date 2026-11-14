@@ -2,10 +2,16 @@
 // @generated from file github.com/s4wave/spacewave/core/sobject/invite/invite.proto (package sobject.invite, syntax proto3)
 /* eslint-disable */
 
+import type {
+  SOParticipantAddOutcome,
+  SOParticipantRole,
+} from '../sobject.pb.js'
 import {
   SOConfigChange,
   SOGrant,
   SOJoinResponse,
+  SOParticipantAddOutcome_Enum,
+  SOParticipantRole_Enum,
   SOState,
 } from '../sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
@@ -75,6 +81,15 @@ export interface AcceptInviteResponse {
    * the config of every operation the state holds.
    */
   configLineage?: SOConfigChange[]
+  /**
+   * Outcome says whether the owner added the invitee, raised its role to the
+   * invite's, or found it already holding that role or a higher one.
+   */
+  outcome?: SOParticipantAddOutcome
+  /**
+   * ParticipantRole is the role the invitee holds after enrollment.
+   */
+  participantRole?: SOParticipantRole
 }
 
 export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
@@ -86,6 +101,8 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
       [4, 'shared_object_state', 11, 0, SOState.codec],
       [5, 'pending', 8],
       [6, 'config_lineage', 11, 1, SOConfigChange.codec],
+      [7, 'outcome', 14, 0, SOParticipantAddOutcome_Enum],
+      [8, 'participant_role', 14, 0, SOParticipantRole_Enum],
     ],
   )
 

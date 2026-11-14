@@ -73,6 +73,11 @@ type AcceptInviteResponse struct {
 	// config of shared_object_state, oldest first. It lets the invitee resolve
 	// the config of every operation the state holds.
 	ConfigLineage []*sobject.SOConfigChange `protobuf:"bytes,6,rep,name=config_lineage,json=configLineage,proto3" json:"configLineage,omitempty"`
+	// Outcome says whether the owner added the invitee, raised its role to the
+	// invite's, or found it already holding that role or a higher one.
+	Outcome sobject.SOParticipantAddOutcome `protobuf:"varint,7,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// ParticipantRole is the role the invitee holds after enrollment.
+	ParticipantRole sobject.SOParticipantRole `protobuf:"varint,8,opt,name=participant_role,json=participantRole,proto3" json:"participantRole,omitempty"`
 }
 
 func (x *AcceptInviteResponse) Reset() {
@@ -114,6 +119,20 @@ func (x *AcceptInviteResponse) GetConfigLineage() []*sobject.SOConfigChange {
 		return x.ConfigLineage
 	}
 	return nil
+}
+
+func (x *AcceptInviteResponse) GetOutcome() sobject.SOParticipantAddOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return sobject.SOParticipantAddOutcome(0)
+}
+
+func (x *AcceptInviteResponse) GetParticipantRole() sobject.SOParticipantRole {
+	if x != nil {
+		return x.ParticipantRole
+	}
+	return sobject.SOParticipantRole(0)
 }
 
 // WithdrawJoinRequestRequest is sent by a requester to the owner. The owner
@@ -174,6 +193,8 @@ func (m *AcceptInviteResponse) CloneVT() *AcceptInviteResponse {
 	r := new(AcceptInviteResponse)
 	r.SharedObjectId = m.SharedObjectId
 	r.Pending = m.Pending
+	r.Outcome = m.Outcome
+	r.ParticipantRole = m.ParticipantRole
 	r.Grant = protobuf_go_lite.CloneVTValue(m.Grant)
 	r.SharedObjectState = protobuf_go_lite.CloneVTValue(m.SharedObjectState)
 	r.ConfigLineage = protobuf_go_lite.CloneVTSlice(m.ConfigLineage)
@@ -263,6 +284,12 @@ func (this *AcceptInviteResponse) EqualVT(that *AcceptInviteResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.ConfigLineage, that.ConfigLineage, func() *sobject.SOConfigChange { return &sobject.SOConfigChange{} }) {
+		return false
+	}
+	if this.Outcome != that.Outcome {
+		return false
+	}
+	if this.ParticipantRole != that.ParticipantRole {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -418,6 +445,16 @@ func (x *AcceptInviteResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
+	if x.ParticipantRole != 0 || s.HasField("participantRole") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("participantRole")
+		x.ParticipantRole.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -473,6 +510,12 @@ func (x *AcceptInviteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.ConfigLineage = append(x.ConfigLineage, v)
 			})
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		case "participant_role", "participantRole":
+			s.AddField("participant_role")
+			x.ParticipantRole.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -640,6 +683,16 @@ func (m *AcceptInviteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ParticipantRole != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ParticipantRole))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x38
+	}
 	if len(m.ConfigLineage) > 0 {
 		for iNdEx := len(m.ConfigLineage) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.ConfigLineage[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -793,6 +846,8 @@ func (m *AcceptInviteResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ParticipantRole)
 	n += len(m.unknownFields)
 	return n
 }
@@ -870,6 +925,14 @@ func (x *AcceptInviteResponse) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantAddOutcome(x.Outcome))
+	}
+	if x.ParticipantRole != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "participant_role")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantRole(x.ParticipantRole))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1066,6 +1129,28 @@ func (m *AcceptInviteResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = sobject.SOParticipantAddOutcome(_v)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParticipantRole", wireType)
+			}
+			m.ParticipantRole = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ParticipantRole = sobject.SOParticipantRole(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

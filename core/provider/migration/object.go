@@ -78,9 +78,9 @@ func AuthorizeObject(ctx context.Context, object sobject.SharedObject, peers []s
 			return nil, err
 		}
 		if remote, ok := object.(interface {
-			AddParticipant(context.Context, string, crypto.PubKey, sobject.SOParticipantRole, string, string) (*sobject.SOGrant, error)
+			AddParticipant(context.Context, string, crypto.PubKey, sobject.SOParticipantRole, string, string) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error)
 		}); ok {
-			_, err = remote.AddParticipant(ctx, id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
+			_, _, _, err = remote.AddParticipant(ctx, id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
 		} else {
 			_, _, _, err = sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), id, public, sobject.SOParticipantRole_SOParticipantRole_OWNER, entityID, username)
 		}

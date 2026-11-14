@@ -92,6 +92,9 @@ func TestTargetedInviteRedeemedAgain(t *testing.T) {
 	if again.Grant.GetPeerId() != first.Grant.GetPeerId() {
 		t.Fatalf("repeat grant peer = %q, want %q", again.Grant.GetPeerId(), first.Grant.GetPeerId())
 	}
+	if first.Outcome != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED || again.Outcome != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED {
+		t.Fatalf("outcomes = %v then %v, want added then unchanged", first.Outcome, again.Outcome)
+	}
 
 	// The repeat leaves the use count at the first redemption.
 	state, err := f.host.GetSOHost().GetHostState(ctx)
@@ -155,9 +158,13 @@ func TestReaderRedeemsWriterInviteRaised(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The reader redeems the writer invite.
-	if _, err := f.reader.JoinViaInvite(ctx, f.readerSession.GetPrivKey(), f.invite, ""); err != nil {
+	// The reader redeems the writer invite and is told it was raised.
+	joined, err := f.reader.JoinViaInvite(ctx, f.readerSession.GetPrivKey(), f.invite, "")
+	if err != nil {
 		t.Fatal(err)
+	}
+	if joined.Outcome != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED || joined.ParticipantRole != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		t.Fatalf("join reply = %v as %v, want raised to writer", joined.Outcome, joined.ParticipantRole)
 	}
 
 	// The reader is now a writer and the invite spent one use.

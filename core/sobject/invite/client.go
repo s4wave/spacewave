@@ -28,6 +28,11 @@ type JoinResult struct {
 	// Pending is set when the owner queued the redemption for approval
 	// instead of enrolling the invitee.
 	Pending bool
+	// Outcome says whether the owner added the invitee, raised its role, or
+	// left it unchanged. It is UNKNOWN when Pending is set.
+	Outcome sobject.SOParticipantAddOutcome
+	// ParticipantRole is the role the invitee holds after enrollment.
+	ParticipantRole sobject.SOParticipantRole
 }
 
 // JoinViaInvite executes the invitee side of the invite handshake.
@@ -91,6 +96,8 @@ func JoinViaInvite(
 		SharedObjectState: resp.GetSharedObjectState(),
 		ConfigLineage:     resp.GetConfigLineage(),
 		Pending:           resp.GetPending(),
+		Outcome:           resp.GetOutcome(),
+		ParticipantRole:   resp.GetParticipantRole(),
 	}, nil
 }
 
@@ -114,11 +121,13 @@ func WithdrawJoinRequest(ctx context.Context, childBus bus.Bus, localPeerID, own
 // BuildJoinResponse constructs and signs a SOJoinResponse for an invite.
 // The invitee calls this with their private key and the invite details.
 func BuildJoinResponse(inviteID string, privKey crypto.PrivKey) (*sobject.SOJoinResponse, error) {
+	// Derive the responder's peer ID.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive peer ID")
 	}
 
+	// Encode the responder's public key.
 	pubKey := privKey.GetPublic()
 	pubKeyBytes, err := crypto.MarshalPublicKey(pubKey)
 	if err != nil {
@@ -136,11 +145,13 @@ func BuildJoinResponse(inviteID string, privKey crypto.PrivKey) (*sobject.SOJoin
 		return nil, errors.Wrap(err, "marshal join response for signing")
 	}
 
+	// Sign the unsigned message.
 	sig, err := peer.NewSignature("sobject join response", privKey, hash.RecommendedHashType, signData, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "sign join response")
 	}
 
+	// Attach the signature.
 	unsigned.Signature = sig
 	return unsigned, nil
 }

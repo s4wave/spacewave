@@ -25,7 +25,9 @@ const FriendDmChannelObjectKey = "chat/channel/dm"
 
 // FriendDmOpenResult contains the mounted-space identity for a friend DM.
 type FriendDmOpenResult struct {
-	SharedObjectRef  *sobject.SharedObjectRef
+	// SharedObjectRef references the friend DM Space.
+	SharedObjectRef *sobject.SharedObjectRef
+	// SharedObjectMeta is the friend DM Space's metadata.
 	SharedObjectMeta *sobject.SharedObjectMeta
 }
 
@@ -422,7 +424,7 @@ func reconcileFriendDmParticipants(
 
 	// Add each planned participant with its role and account.
 	for _, participant := range plan.additions {
-		if _, err := swSO.AddParticipant(
+		if _, _, _, err := swSO.AddParticipant(
 			ctx,
 			participant.peerID,
 			parsedPubs[participant.peerID],
