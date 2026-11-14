@@ -133,7 +133,7 @@
     "format:go": "bun run go:aptre -- format && cross-env \"GOFLAGS=-mod=mod -tags=purego\" go fix -embedlit=false ./...",
     "format:config": "oxfmt '*.json' '.github/**/*.json' '.github/**/*.yml' '.oxfmtrc.json' '.golangci.yml' 'tsconfig.json' 'tsconfig.net.json'",
     "vitecheck": "vite build --outDir vite-check",
-    "typecheck": "tsrs --noEmit -p tsconfig.json --runExternalCode",
+    "typecheck": "bun scripts/vendor-ts.ts && tsrs --noEmit -p tsconfig.json --runExternalCode",
     "lint": "bun run lint:js && bun run lint:go",
     "lint:go": "bun run lint:go:auth && bun run lint:go:db && bun run lint:go:e2e && bun run lint:go:forge && bun run lint:go:identity && bun run lint:go:net",
     "lint:js": "oxlint .",
