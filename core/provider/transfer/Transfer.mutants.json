@@ -23,8 +23,8 @@
     "name": "a re-sync copies over an edited target",
     "replace": [
       [
-        "          [] o.ph = \"written\" /\\ t = Src(o.h) ->",
-        "          [] o.ph = \"written\" ->"
+        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
+        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\""
       ]
     ],
     "expect": "NoEditOverwritten"
@@ -33,8 +33,8 @@
     "name": "a listed Space with no origin counts as this source's",
     "replace": [
       [
-        "          [] o = Added /\\ t = Empty ->",
-        "          [] o \\in {Added, NoOrigin} ->"
+        "Arriving(t, o) == t = Empty /\\ (cloudTgt \\/ o = Added)",
+        "Arriving(t, o) == t = Empty /\\ (cloudTgt \\/ o \\in {Added, NoOrigin})"
       ]
     ],
     "expect": "NoEditOverwritten"
@@ -43,8 +43,8 @@
     "name": "a written Space is skipped whatever the source head",
     "replace": [
       [
-        "          [] o.ph = \"written\" /\\ o.h = ver[cur] ->",
-        "          [] o.ph = \"written\" ->"
+        "/\\ t.k = \"src\" /\\ t.v = ver[cur] /\\ t.e = 0",
+        "/\\ t.k = \"src\" /\\ t.e = 0"
       ]
     ],
     "expect": "CleanupAtHead"
@@ -117,5 +117,35 @@
       ]
     ],
     "expect": "MigrateKeepsKey"
+  },
+  {
+    "name": "a cloud target reads a configured Space at the source head as another's",
+    "replace": [
+      [
+        "AtSourceHead(t, o) == (cloudTgt \\/ o.ph = \"written\")",
+        "AtSourceHead(t, o) == (~cloudTgt /\\ o.ph = \"written\")"
+      ]
+    ],
+    "expect": "NotMovedJustified"
+  },
+  {
+    "name": "a re-sync copies over a target whose membership changed",
+    "replace": [
+      [
+        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
+        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t.k = \"src\" /\\ t.v = o.h /\\ t.e = 0"
+      ]
+    ],
+    "expect": "NoEditOverwritten"
+  },
+  {
+    "name": "a run that leaves a Space not moved deletes the source session",
+    "replace": [
+      [
+        "DeleteSession ==\n  /\\ pc = \"session\"\n",
+        "DeleteSession ==\n  /\\ pc \\in {\"session\", \"notmoved\"}\n"
+      ]
+    ],
+    "expect": "NotMovedKeepsSource"
   }
 ]
