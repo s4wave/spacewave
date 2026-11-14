@@ -587,11 +587,23 @@ describe('quickstart create', () => {
       pluginIds: ['gizmo-core', 'gizmo-web'],
     })
     const { world, applyWorldOp } = buildQuickstartWorld()
-    await executeDynamicQuickstart({ client: {} } as never, 'gizmo-workspace', {
-      space: { id: 42 },
-      spaceWorld: world,
-      spaceContents: {},
-    } as never)
+    const timing: QuickstartSetupTiming = {
+      quickstartId: 'notebook',
+      state: 'loading',
+      startedMs: 0,
+      phases: [],
+    }
+    await executeDynamicQuickstart(
+      { client: {} } as never,
+      'gizmo-workspace',
+      {
+        space: { id: 42 },
+        spaceWorld: world,
+        spaceContents: {},
+      } as never,
+      undefined,
+      timing,
+    )
 
     expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
       { quickstartId: 'gizmo-workspace', spaceResourceId: 42 },
@@ -604,6 +616,10 @@ describe('quickstart create', () => {
     )
     const settings = SetSpaceSettingsOp.fromBinary(settingsCall?.[1]).settings
     expect(settings?.pluginIds).toEqual(['gizmo-core', 'gizmo-web'])
+    // The plugin's seed is timed as its own phase.
+    expect(timing.phases.map((phase) => phase.name)).toEqual([
+      'execute-quickstart',
+    ])
   })
 
   it('waits for the Notes plugin quickstart before executing public Notes launchers', async () => {
