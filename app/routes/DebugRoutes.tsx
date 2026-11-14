@@ -3,6 +3,8 @@ import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
 import { ForgeViewerStatesDebug } from '@s4wave/app/debug/forge/ForgeViewerStatesDebug.js'
 import { TerminalViewerDebug } from '@s4wave/app/debug/terminal/TerminalViewerDebug.js'
 import { DeviceCapabilityDebug } from '@s4wave/app/debug/device/DeviceCapabilityDebug.js'
+import { GalleryViewerDebug } from '@s4wave/app/debug/gallery/GalleryViewerDebug.js'
+import { CanvasViewerDebug } from '@s4wave/app/debug/canvas/CanvasViewerDebug.js'
 import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
@@ -156,6 +158,18 @@ const debugRouteEntries = [
     element: <DeviceCapabilityDebug />,
   },
   {
+    path: '/debug/ui/gallery',
+    title: 'Gallery',
+    description: 'Open the image gallery in one state; add /again, /failed...',
+    element: <GalleryViewerDebug />,
+  },
+  {
+    path: '/debug/ui/canvas',
+    title: 'Canvas',
+    description: 'Open a canvas in one state; add /save-failed, /empty...',
+    element: <CanvasViewerDebug />,
+  },
+  {
     path: '/debug/ui/viewer-status',
     title: 'Viewer status',
     description: 'Open a viewer waiting, failed or empty; add /failed, /empty.',
@@ -209,6 +223,12 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/device-capabilities/:state">
       <DeviceCapabilityDebug />
+    </Route>
+    <Route path="/debug/ui/gallery/:state">
+      <GalleryViewerDebug />
+    </Route>
+    <Route path="/debug/ui/canvas/:state">
+      <CanvasViewerDebug />
     </Route>
     <Route path="/debug/ui/viewer-status/:state">
       <ViewerStatusDebug />

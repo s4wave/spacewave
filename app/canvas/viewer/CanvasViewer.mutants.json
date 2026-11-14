@@ -1,23 +1,13 @@
 [
   {
-    "name": "a handle failure drops the canvas it held",
+    "name": "a failed send draws over the failed body",
     "replace": [
       [
-        "  /\\ watch' = \"none\"\n  /\\ UNCHANGED <<kept, nodes, pending, action>>",
-        "  /\\ watch' = \"none\"\n  /\\ kept' = FALSE\n  /\\ UNCHANGED <<nodes, pending, action>>"
+        "    [] e = \"action\" -> IF Body = \"stage\" /\\ action = \"failed\"",
+        "    [] e = \"action\" -> IF action = \"failed\""
       ]
     ],
-    "expect": "PendingDrawn"
-  },
-  {
-    "name": "the notice and the body both draw a failure",
-    "replace": [
-      [
-        "  CASE Body # \"stage\" -> \"none\"\n    [] Reported # \"none\" -> \"failed\"",
-        "  CASE Reported # \"none\" -> \"failed\"\n    [] Body # \"stage\" -> \"none\""
-      ]
-    ],
-    "expect": "EachFailureDrawnOnce"
+    "expect": "NothingDrawnUnfailed"
   },
   {
     "name": "an edit shows before a canvas arrives",
@@ -35,6 +25,26 @@
       [
         "    \\cup (IF Reported = \"watch\" THEN {\"retryWatch\"} ELSE {})",
         "    \\cup (IF watch = \"failed\" \\/ handle = \"failed\" THEN {\"retryWatch\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "an edit clears the failed send's notice",
+    "replace": [
+      [
+        "  /\\ nodes' \\in BOOLEAN\n  /\\ UNCHANGED <<handle, watch, kept, action>>",
+        "  /\\ nodes' \\in BOOLEAN\n  /\\ action' = \"none\"\n  /\\ UNCHANGED <<handle, watch, kept>>"
+      ]
+    ],
+    "expect": "SendNoticeStays"
+  },
+  {
+    "name": "Dismiss shows with no failed send",
+    "replace": [
+      [
+        "    \\cup (IF Draws(\"action\") = \"send\" THEN {\"dismiss\"} ELSE {})",
+        "    \\cup (IF Body = \"stage\" THEN {\"dismiss\"} ELSE {})"
       ]
     ],
     "expect": "EveryShownActionWorks"

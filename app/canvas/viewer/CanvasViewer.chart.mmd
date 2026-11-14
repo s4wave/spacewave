@@ -7,107 +7,150 @@ stateDiagram-v2
   s2: Could not read, Retry shown
   s3: Empty canvas, hint shown
   s4: Canvas
-  s5: Empty canvas, hint shown, open failed notice with Retry
-  s6: Canvas, open failed notice with Retry
-  s7: Empty canvas, hint shown, reconnecting line
-  s8: Empty canvas, hint shown, edits sending
-  s9: Canvas, reconnecting line
-  s10: Canvas, edits sending
-  s11: Empty canvas, hint shown, send failed notice
-  s12: Canvas, send failed notice
-  s13: Empty canvas, hint shown, open failed notice with Retry, edits sending
-  s14: Canvas, open failed notice with Retry, edits sending
-  s15: Empty canvas, hint shown, reconnecting line, edits sending
-  s16: Canvas, reconnecting line, edits sending
-  s17: Empty canvas, hint shown, open failed notice with Retry, send failed notice
-  s18: Canvas, open failed notice with Retry, send failed notice
-  s19: Empty canvas, hint shown, reconnecting line, send failed notice
-  s20: Canvas, reconnecting line, send failed notice
+  s5: Empty canvas, hint shown, reconnecting line
+  s6: Empty canvas, hint shown, edits sending
+  s7: Canvas, reconnecting line
+  s8: Canvas, edits sending
+  s9: Empty canvas, hint shown, send failed notice
+  s10: Canvas, send failed notice
+  s11: Could not open, Retry shown, edits queued
+  s12: Empty canvas, hint shown, reconnecting line, edits sending
+  s13: Canvas, reconnecting line, edits sending
+  s14: Loading the canvas, edits queued
+  s15: Empty canvas, hint shown, reconnecting line, send failed notice
+  s16: Empty canvas, hint shown, edits sending, send failed notice
+  s17: Canvas, reconnecting line, send failed notice
+  s18: Canvas, edits sending, send failed notice
+  s19: Empty canvas, hint shown, reconnecting line, edits sending, send failed notice
+  s20: Canvas, reconnecting line, edits sending, send failed notice
+  s21: Could not read, Retry shown, edits queued
   [*] --> s0
   s0 --> s1: handle fails
   s1 --> s0: presses Retry
   s0 --> s2: watch fails
   s0 --> s3: canvas arrives
   s0 --> s4: canvas arrives
+  s2 --> s0: handle reloads or retries the read
   s2 --> s1: handle fails
-  s2 --> s0: retries the read
+  s3 --> s0: handle reloads
+  s3 --> s1: handle fails
   s3 --> s4: canvas arrives
-  s3 --> s5: handle fails
-  s3 --> s7: watch drops
+  s3 --> s5: watch drops
+  s3 --> s6: edits
   s3 --> s8: edits
-  s3 --> s10: edits
   s4 --> s3: canvas arrives
-  s4 --> s6: handle fails
+  s4 --> s1: handle fails
+  s4 --> s6: edits
+  s4 --> s7: watch drops
   s4 --> s8: edits
-  s4 --> s9: watch drops
-  s4 --> s10: edits
+  s4 --> s0: handle reloads
+  s5 --> s0: handle reloads
+  s5 --> s1: handle fails
+  s5 --> s3: canvas arrives
+  s5 --> s4: canvas arrives
+  s5 --> s12: edits
   s5 --> s13: edits
-  s5 --> s14: edits
-  s5 --> s3: presses Retry
-  s6 --> s13: edits
-  s6 --> s14: edits
-  s6 --> s4: presses Retry
+  s6 --> s3: edits saved
+  s6 --> s8: edits or canvas arrives
+  s6 --> s9: send fails
+  s6 --> s11: handle fails
+  s6 --> s12: watch drops
+  s6 --> s14: handle reloads
   s7 --> s3: canvas arrives
   s7 --> s4: canvas arrives
-  s7 --> s5: handle fails
-  s7 --> s15: edits
-  s7 --> s16: edits
-  s8 --> s3: edits saved
-  s8 --> s10: edits or canvas arrives
-  s8 --> s11: send fails
-  s8 --> s13: handle fails
-  s8 --> s15: watch drops
-  s9 --> s3: canvas arrives
-  s9 --> s4: canvas arrives
-  s9 --> s6: handle fails
-  s9 --> s15: edits
+  s7 --> s1: handle fails
+  s7 --> s0: handle reloads
+  s7 --> s12: edits
+  s7 --> s13: edits
+  s8 --> s4: edits saved
+  s8 --> s6: edits or canvas arrives
+  s8 --> s10: send fails
+  s8 --> s11: handle fails
+  s8 --> s13: watch drops
+  s8 --> s14: handle reloads
+  s9 --> s3: dismisses
+  s9 --> s10: canvas arrives
+  s9 --> s1: handle fails
+  s9 --> s15: watch drops
   s9 --> s16: edits
-  s10 --> s4: edits saved
-  s10 --> s8: edits or canvas arrives
-  s10 --> s12: send fails
-  s10 --> s14: handle fails
-  s10 --> s16: watch drops
-  s11 --> s8: edits
-  s11 --> s10: edits
-  s11 --> s12: canvas arrives
-  s11 --> s17: handle fails
-  s11 --> s19: watch drops
-  s12 --> s8: edits
-  s12 --> s10: edits
-  s12 --> s11: canvas arrives
-  s12 --> s18: handle fails
-  s12 --> s20: watch drops
-  s13 --> s14: edits
+  s9 --> s18: edits
+  s9 --> s0: handle reloads
+  s10 --> s4: dismisses
+  s10 --> s9: canvas arrives
+  s10 --> s1: handle fails
+  s10 --> s16: edits
+  s10 --> s17: watch drops
+  s10 --> s18: edits
+  s10 --> s0: handle reloads
+  s11 --> s14: presses Retry
+  s11 --> s1: send fails
+  s12 --> s5: edits saved
+  s12 --> s6: canvas arrives
+  s12 --> s8: canvas arrives
+  s12 --> s11: handle fails
+  s12 --> s13: edits
+  s12 --> s14: handle reloads
+  s12 --> s15: send fails
+  s13 --> s6: canvas arrives
+  s13 --> s7: edits saved
+  s13 --> s8: canvas arrives
+  s13 --> s11: handle fails
+  s13 --> s12: edits
+  s13 --> s14: handle reloads
   s13 --> s17: send fails
-  s13 --> s8: presses Retry
-  s14 --> s13: edits
-  s14 --> s18: send fails
-  s14 --> s10: presses Retry
-  s15 --> s7: edits saved
-  s15 --> s8: canvas arrives
+  s14 --> s11: handle fails
+  s14 --> s0: send fails or edits saved
+  s15 --> s5: dismisses
+  s15 --> s9: canvas arrives
   s15 --> s10: canvas arrives
-  s15 --> s13: handle fails
-  s15 --> s16: edits
-  s15 --> s19: send fails
-  s16 --> s8: canvas arrives
-  s16 --> s9: edits saved
-  s16 --> s10: canvas arrives
-  s16 --> s14: handle fails
-  s16 --> s15: edits
-  s16 --> s20: send fails
-  s17 --> s13: edits
-  s17 --> s14: edits
-  s17 --> s11: presses Retry
-  s18 --> s13: edits
-  s18 --> s14: edits
-  s18 --> s12: presses Retry
-  s19 --> s11: canvas arrives
-  s19 --> s12: canvas arrives
-  s19 --> s15: edits
-  s19 --> s16: edits
-  s19 --> s17: handle fails
-  s20 --> s11: canvas arrives
-  s20 --> s12: canvas arrives
-  s20 --> s15: edits
-  s20 --> s16: edits
-  s20 --> s18: handle fails
+  s15 --> s1: handle fails
+  s15 --> s0: handle reloads
+  s15 --> s19: edits
+  s15 --> s20: edits
+  s16 --> s3: edits saved
+  s16 --> s6: dismisses
+  s16 --> s9: send fails
+  s16 --> s18: edits or canvas arrives
+  s16 --> s11: handle fails
+  s16 --> s19: watch drops
+  s16 --> s14: handle reloads
+  s17 --> s7: dismisses
+  s17 --> s9: canvas arrives
+  s17 --> s10: canvas arrives
+  s17 --> s1: handle fails
+  s17 --> s0: handle reloads
+  s17 --> s19: edits
+  s17 --> s20: edits
+  s18 --> s4: edits saved
+  s18 --> s8: dismisses
+  s18 --> s10: send fails
+  s18 --> s16: edits or canvas arrives
+  s18 --> s11: handle fails
+  s18 --> s20: watch drops
+  s18 --> s14: handle reloads
+  s14 --> s6: canvas arrives
+  s14 --> s8: canvas arrives
+  s14 --> s21: watch fails
+  s0 --> s9: canvas arrives
+  s0 --> s10: canvas arrives
+  s19 --> s5: edits saved
+  s19 --> s12: dismisses
+  s19 --> s15: send fails
+  s19 --> s16: canvas arrives
+  s19 --> s18: canvas arrives
+  s19 --> s11: handle fails
+  s19 --> s20: edits
+  s19 --> s14: handle reloads
+  s20 --> s7: edits saved
+  s20 --> s13: dismisses
+  s20 --> s16: canvas arrives
+  s20 --> s17: send fails
+  s20 --> s18: canvas arrives
+  s20 --> s11: handle fails
+  s20 --> s19: edits
+  s20 --> s14: handle reloads
+  s21 --> s2: edits saved or send fails
+  s21 --> s11: handle fails
+  s21 --> s14: handle reloads or retries the read
+  s14 --> s16: canvas arrives
+  s14 --> s18: canvas arrives
