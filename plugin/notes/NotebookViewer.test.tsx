@@ -27,31 +27,25 @@ vi.mock('@s4wave/web/object/object.js', () => ({
   getObjectKey: vi.fn(() => 'mock-object-key'),
 }))
 
+// The UnixFS hooks return the same resource on every render, as the real
+// hooks do while nothing changes. A fresh object per render would change the
+// note list's memoized entries each render and restart its note read without
+// end.
+const unixfs = vi.hoisted(() => {
+  const empty = (value: unknown) => ({
+    value,
+    loading: false,
+    error: null,
+    retry: () => {},
+  })
+  return { handle: empty(null), entries: empty([]), text: empty(null) }
+})
+
 vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
-  useUnixFSRootHandle: vi.fn(() => ({
-    value: null,
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  })),
-  useUnixFSHandle: vi.fn(() => ({
-    value: null,
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  })),
-  useUnixFSHandleEntries: vi.fn(() => ({
-    value: [],
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  })),
-  useUnixFSHandleTextContent: vi.fn(() => ({
-    value: null,
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  })),
+  useUnixFSRootHandle: vi.fn(() => unixfs.handle),
+  useUnixFSHandle: vi.fn(() => unixfs.handle),
+  useUnixFSHandleEntries: vi.fn(() => unixfs.entries),
+  useUnixFSHandleTextContent: vi.fn(() => unixfs.text),
 }))
 
 vi.mock('@s4wave/sdk/space/object-uri.js', () => ({
