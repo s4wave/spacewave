@@ -9,12 +9,14 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 type missingRecoveryKeypairsError struct {
 	entityID string
 }
 
+// Error names the entity that has no recovery keypairs.
 func (e *missingRecoveryKeypairsError) Error() string {
 	return "missing recovery keypairs for entity " + e.entityID
 }
@@ -86,6 +88,38 @@ func buildSORecoveryEnvelopes(
 		envs = append(envs, env)
 	}
 	return envs, nil
+}
+
+// GenesisRecoveryEnvelopes seals the grant a genesis state gives its owner
+// to the recovery keys of each entity that may read the Space, for a write
+// that sends that genesis to the cloud. owner is the genesis signer, whose own
+// grant it opens. An account with no recovery keypairs yet gets no envelope,
+// as when it creates a Space in the cloud directly.
+func (a *ProviderAccount) GenesisRecoveryEnvelopes(ctx context.Context, sharedObjectID string, owner crypto.PrivKey, state *sobject.SOState) ([]*sobject.SOEntityRecoveryEnvelope, error) {
+	// Open the owner's grant in the genesis key epoch.
+	ownerID, err := peer.IDFromPrivateKey(owner)
+	if err != nil {
+		return nil, err
+	}
+	epoch := state.CurrentKeyEpoch()
+	idx := slices.IndexFunc(epoch.GetGrants(), func(g *sobject.SOGrant) bool {
+		return g.GetPeerId() == ownerID.String()
+	})
+	if idx < 0 {
+		return nil, errors.New("genesis has no grant for its owner")
+	}
+	inner, err := epoch.GetGrants()[idx].DecryptInnerData(owner, sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Seal it to each readable entity's recovery keys.
+	envs, err := buildSORecoveryEnvelopes(ctx, a.GetSessionClient(), sharedObjectID, state.GetConfig(), epoch.GetEpoch(), inner)
+	var missing *missingRecoveryKeypairsError
+	if errors.As(err, &missing) && missing.entityID == a.accountID {
+		return nil, nil
+	}
+	return envs, err
 }
 
 // listReadableEntityRoles returns the highest readable role for each entity.
