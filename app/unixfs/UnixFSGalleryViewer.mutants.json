@@ -1,0 +1,32 @@
+[
+  {
+    "name": "a failure after an index drops the tiles",
+    "replace": [
+      [
+        "  CASE kept /\\ found -> \"tiles\"\n    [] kept -> \"empty\"\n    [] watch = \"failed\" -> \"failed\"",
+        "  CASE watch \\in {\"failed\", \"reconnecting\"} -> \"failed\"\n    [] kept /\\ found -> \"tiles\"\n    [] kept -> \"empty\""
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a tile opens without a session",
+    "replace": [
+      [
+        "  (IF Body = \"tiles\" /\\ session THEN {\"open\"} ELSE {})",
+        "  (IF Body = \"tiles\" THEN {\"open\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "an empty index says nothing",
+    "replace": [
+      [
+        "    [] Body = \"empty\" -> \"Says no images are under this path\"\n",
+        ""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  }
+]

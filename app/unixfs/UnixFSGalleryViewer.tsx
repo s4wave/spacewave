@@ -7,7 +7,6 @@ import { LuDownload, LuExternalLink, LuImage } from 'react-icons/lu'
 import { PhotoSlider } from 'react-photo-view'
 import { List, type RowComponentProps } from 'react-window'
 
-import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { usePath } from '@s4wave/web/router/router.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -19,6 +18,8 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { joinUnixFSDisplayPath } from '@s4wave/sdk/unixfs/path.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
+import { viewerFloatPressClass } from '@s4wave/web/object/ViewerFloat.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import {
   buildUnixFSFileDownloadURL,
   buildUnixFSFileInlineURL,
@@ -105,7 +106,8 @@ function GalleryTile({
     <button
       data-testid="unixfs-gallery-item"
       type="button"
-      className={cn(className, 'cursor-zoom-in text-left')}
+      aria-label={`Open ${item.label}`}
+      className={cn(className, 'focus-ring cursor-zoom-in text-left')}
       onClick={onClick}
     >
       {body}
@@ -113,8 +115,12 @@ function GalleryTile({
   )
 }
 
-const lightboxButtonClassName =
-  'rounded-full border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20'
+// lightboxButtonClassName draws a lightbox press as a viewer float press,
+// light on the lightbox's dark backdrop.
+const lightboxButtonClassName = cn(
+  viewerFloatPressClass,
+  'w-viewer-press px-0 text-white hover:bg-white/15 pointer-coarse:min-w-11',
+)
 
 interface LightboxSource {
   spaceId: string | null
@@ -143,22 +149,24 @@ function LightboxToolbar({
   }
 
   return (
-    <div className="mr-2 flex items-center gap-2">
+    <div className="mr-2 flex items-center gap-0.5">
       <button
         type="button"
         className={lightboxButtonClassName}
         onClick={() => window.open(previewURL, '_blank', 'noopener,noreferrer')}
-        title="Open In Browser"
+        aria-label="Open in browser"
+        title="Open in browser"
       >
-        <LuExternalLink className="size-4" />
+        <LuExternalLink aria-hidden />
       </button>
       <button
         type="button"
         className={lightboxButtonClassName}
         onClick={handleDownload}
+        aria-label="Download"
         title="Download"
       >
-        <LuDownload className="size-4" />
+        <LuDownload aria-hidden />
       </button>
     </div>
   )
@@ -191,12 +199,15 @@ function lightboxToolbarRender(
   }
 }
 
+// galleryWatchOptions reopens the index watch after a failure and keeps the
+// last index, so the tiles found stay pressable while it reads again.
+const galleryWatchOptions = { reconnect: true }
+
 interface GalleryScan {
   galleryState: Resource<UnixFSGalleryDiscoveryState>
   previewItems: GalleryPreviewItem[]
   lightboxItems: GalleryPreviewItem[]
   scopePath: string
-  isScanning: boolean
   spaceId: string | null
   sessionIndex: number | null
   httpPathPrefix: string
@@ -224,6 +235,7 @@ function useGalleryScan(
         [currentPath],
       ),
       [currentPath],
+      galleryWatchOptions,
     )
   const galleryItems = galleryState.value?.items ?? emptyGalleryItems
   const previewItems: GalleryPreviewItem[] = useMemo(
@@ -256,64 +268,15 @@ function useGalleryScan(
     previewItems,
     lightboxItems,
     scopePath: galleryState.value?.scopePath ?? currentPath,
-    isScanning: !galleryState.value && !galleryState.error,
     spaceId,
     sessionIndex,
     httpPathPrefix,
   }
 }
 
-interface GalleryHeaderProps {
-  imageCount: number
-  scopePath: string
-  issueCount: number
-  isScanning: boolean
-}
-
-/** GalleryHeader summarizes the discovered image count, scan issues, and scan progress. */
-function GalleryHeader({
-  imageCount,
-  scopePath,
-  issueCount,
-  isScanning,
-}: GalleryHeaderProps) {
-  return (
-    <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
-      <div className="text-foreground-alt/60 min-w-0 truncate text-xs">
-        {imageCount} image
-        {imageCount === 1 ? '' : 's'} under {scopePath}
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {issueCount > 0 && (
-          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-full border px-2 py-0.5 text-xs font-medium">
-            {issueCount} issue
-            {issueCount === 1 ? '' : 's'}
-          </div>
-        )}
-        {isScanning && (
-          <div className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium">
-            <Spinner size="sm" />
-            Scanning
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/** GalleryEmptyState explains an empty gallery: still scanning, or no images found. */
-function GalleryEmptyState({ isScanning }: { isScanning: boolean }) {
-  return (
-    <div className="flex h-full min-h-48 items-center justify-center">
-      <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
-        <LuImage className="text-foreground-alt size-5" />
-        <div className="text-foreground text-sm font-semibold">
-          {isScanning ? 'Scanning for images' : 'No images under this path'}
-        </div>
-      </div>
-    </div>
-  )
-}
+// galleryNoteClass is a muted note row above the tiles, padded as the bar.
+const galleryNoteClass =
+  'min-h-viewer-fact-row text-foreground-alt/70 ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy flex shrink-0 items-center text-xs'
 
 interface GalleryRowProps {
   items: GalleryPreviewItem[]
@@ -391,6 +354,96 @@ function GalleryGrid({
   )
 }
 
+interface GalleryBodyProps {
+  galleryState: Resource<UnixFSGalleryDiscoveryState>
+  items: GalleryPreviewItem[]
+  scopePath: string
+  hasSession: boolean
+  onOpen: (path: string) => void
+}
+
+/**
+ * GalleryBody draws the states of UnixFSGalleryViewer.tla: the wait or the
+ * failure until the first index, then the tiles, or a row saying the index
+ * holds no image. An index once arrived stays while the watch reads again,
+ * so the tiles found stay pressable; notes above them say the index stopped
+ * at its limit, some folders could not be read, or previews need a session.
+ */
+function GalleryBody({
+  galleryState,
+  items,
+  scopePath,
+  hasSession,
+  onOpen,
+}: GalleryBodyProps) {
+  const index = galleryState.value
+  if (!index) {
+    if (galleryState.error) {
+      return (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the images under ${scopePath}: ${galleryState.error.message}`}
+          retry={galleryState.retry}
+        />
+      )
+    }
+    return (
+      <ViewerStatus
+        state="waiting"
+        what={`the images under ${scopePath}`}
+        rows={0}
+      />
+    )
+  }
+
+  return (
+    <>
+      {galleryState.loading && (
+        <ViewerStatus
+          state="waiting"
+          what={`the images under ${scopePath} again`}
+          rows={0}
+        />
+      )}
+      {items.length > 0 && (
+        <p className={galleryNoteClass}>
+          <span className="truncate">
+            {items.length} image{items.length === 1 ? '' : 's'} under{' '}
+            {scopePath}
+          </span>
+        </p>
+      )}
+      {index.truncated && (
+        <p className={galleryNoteClass}>
+          Showing the first {items.length} images. Open a folder inside to see
+          the rest.
+        </p>
+      )}
+      {index.errors.length > 0 && (
+        <p className={galleryNoteClass}>
+          Some folders could not be read; the images found are shown.
+        </p>
+      )}
+      {items.length > 0 && !hasSession && (
+        <p className={galleryNoteClass}>
+          Previews need a session; open this folder from a Space to see them.
+        </p>
+      )}
+      {items.length === 0 ? (
+        <ViewerStatus
+          state="empty"
+          icon={<LuImage />}
+          message="No images under this path."
+        />
+      ) : (
+        <div className="ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy min-h-0 flex-1 pt-1">
+          <GalleryGrid items={items} onOpen={onOpen} />
+        </div>
+      )}
+    </>
+  )
+}
+
 /**
  * UnixFSGalleryBody shows the image index of the current path as a gallery
  * grid, and opens a lightbox over the images with a preview.
@@ -405,10 +458,8 @@ function UnixFSGalleryBody({
   )
   const [lightboxPath, setLightboxPath] = useState<string | null>(null)
   const scan = useGalleryScan(rootHandle, currentPath, unixfsId)
-  const { galleryState, previewItems, lightboxItems, isScanning } = scan
+  const { galleryState, previewItems, lightboxItems } = scan
   const { spaceId, sessionIndex, httpPathPrefix } = scan
-  const galleryErrors = galleryState.value?.errors ?? []
-  const hasItems = previewItems.length > 0
   const handlePortalContainer = useCallback((el: HTMLDivElement | null) => {
     setPortalContainer(el)
   }, [])
@@ -439,48 +490,23 @@ function UnixFSGalleryBody({
     [lightboxItems, spaceId, sessionIndex, unixfsId, httpPathPrefix],
   )
 
+  const body = (
+    <GalleryBody
+      galleryState={galleryState}
+      items={previewItems}
+      scopePath={scan.scopePath}
+      hasSession={!!sessionIndex}
+      onOpen={setLightboxPath}
+    />
+  )
+
   return (
     <div
       data-testid="unixfs-gallery-viewer"
       ref={handlePortalContainer}
-      className="relative flex h-full w-full flex-col px-4 py-3"
+      className="relative flex h-full w-full flex-col"
     >
-      <GalleryHeader
-        imageCount={previewItems.length}
-        scopePath={scan.scopePath}
-        issueCount={galleryErrors.length}
-        isScanning={isScanning}
-      />
-      {galleryState.error && (
-        <div className="text-destructive rounded-lg border border-current/20 bg-current/10 px-3 py-2 text-xs">
-          {galleryState.error.message}
-        </div>
-      )}
-      {!galleryState.error && galleryState.value?.truncated && (
-        <div className="text-foreground-alt/60 mb-3 text-xs">
-          Showing the first {previewItems.length} images. Open a subdirectory to
-          see the rest.
-        </div>
-      )}
-      {!galleryState.error && galleryErrors.length > 0 && (
-        <div className="text-foreground-alt/60 mb-3 text-xs">
-          Some descendants could not be scanned. Discovered images remain
-          visible.
-        </div>
-      )}
-      {!galleryState.error && !sessionIndex && (
-        <div className="text-foreground-alt/60 mb-3 text-xs">
-          Inline previews require a mounted session context.
-        </div>
-      )}
-      <div className="min-h-0 flex-1">
-        {!galleryState.error && !hasItems && (
-          <GalleryEmptyState isScanning={isScanning} />
-        )}
-        {hasItems && (
-          <GalleryGrid items={previewItems} onOpen={setLightboxPath} />
-        )}
-      </div>
+      {body}
       <PhotoSlider
         className="!absolute inset-0 h-full w-full"
         images={lightboxImages}

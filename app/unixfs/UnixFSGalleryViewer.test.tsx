@@ -183,7 +183,7 @@ describe('UnixFSGalleryViewer', () => {
 
     expect(screen.getByTestId('unixfs-browser')).toBeDefined()
     expect(screen.getByText('Toolbar')).toBeDefined()
-    expect(screen.getByText('No images under this path')).toBeDefined()
+    expect(screen.getByText('No images under this path.')).toBeDefined()
     expect(
       screen.queryByRole('button', { name: 'Switch to Browser' }),
     ).toBeNull()
@@ -261,7 +261,7 @@ describe('UnixFSGalleryViewer', () => {
     )
 
     fireEvent.click(screen.getAllByTestId('unixfs-gallery-item')[1])
-    fireEvent.click(screen.getByTitle('Open In Browser'))
+    fireEvent.click(screen.getByRole('button', { name: 'Open in browser' }))
     fireEvent.click(screen.getByTitle('Download'))
 
     expect(openSpy).toHaveBeenCalledWith(
@@ -414,5 +414,68 @@ describe('UnixFSGalleryViewer', () => {
     fireEvent.click(screen.getByTestId('unixfs-gallery-item'))
 
     expect(h.photoSliderProps).toMatchObject({ index: 0, visible: true })
+  })
+
+  it('names each tile by its file and keeps the tiles pressable while the index reads again', () => {
+    h.galleryState = {
+      ...buildGalleryState({
+        scopePath: '/gallery',
+        items: buildItems(2),
+        errors: ['/gallery/locked'],
+        truncated: false,
+      }),
+      loading: true,
+    }
+
+    render(
+      <UnixFSGalleryViewer
+        objectInfo={{
+          info: {
+            case: 'unixfsObjectInfo',
+            value: { unixfsId: 'files', path: '/gallery' },
+          },
+        }}
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByRole('status').textContent).toBe(
+      'Loading the images under /gallery again',
+    )
+    expect(
+      screen.getByText(
+        'Some folders could not be read; the images found are shown.',
+      ),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Open 1.png' }))
+    expect(h.photoSliderProps).toMatchObject({ index: 1, visible: true })
+  })
+
+  it('offers Retry when the first read fails', () => {
+    const retry = vi.fn()
+    h.galleryState = {
+      value: null as unknown as UnixFSGalleryDiscoveryState,
+      loading: false,
+      error: new Error('watch closed') as unknown as null,
+      retry,
+    }
+
+    render(
+      <UnixFSGalleryViewer
+        objectInfo={{
+          info: {
+            case: 'unixfsObjectInfo',
+            value: { unixfsId: 'files', path: '/gallery' },
+          },
+        }}
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not read the images under /gallery: watch closed',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(retry).toHaveBeenCalledOnce()
   })
 })
