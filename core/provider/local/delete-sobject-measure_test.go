@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -336,8 +337,8 @@ func openRehearsalAccount(ctx context.Context, t *testing.T, dir string, sessRef
 	}
 	rels := []func(){tb.Release}
 	release := func() {
-		for i := len(rels) - 1; i >= 0; i-- {
-			rels[i]()
+		for _, rel := range slices.Backward(rels) {
+			rel()
 		}
 	}
 	fail := func(err error) {
