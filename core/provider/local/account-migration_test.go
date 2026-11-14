@@ -217,6 +217,13 @@ func waitReplicaMigrationAdmission(ctx context.Context, t *testing.T, account *P
 // setupMigrationClient starts an independent account with retained Session
 // routing, on a testbed built with tbOpts.
 func setupMigrationClient(ctx context.Context, t *testing.T, network *inproc.Network, tbOpts ...testbed.Option) (*ProviderAccount, *Session, session.SessionController) {
+	_, account, mounted, controller := setupMigrationTestbed(ctx, t, network, tbOpts...)
+	return account, mounted, controller
+}
+
+// setupMigrationTestbed is setupMigrationClient that also returns the
+// account's testbed.
+func setupMigrationTestbed(ctx context.Context, t *testing.T, network *inproc.Network, tbOpts ...testbed.Option) (*testbed.Testbed, *ProviderAccount, *Session, session.SessionController) {
 	// Connect the provider to the test network under its original Session key.
 	tb, _, account, mounted, release := setupProviderAndSessionOn(ctx, t, tbOpts, func(p *Provider) {
 		p.localNetwork = transport.WithInprocNetwork(network)
@@ -243,5 +250,5 @@ func setupMigrationClient(ctx context.Context, t *testing.T, network *inproc.Net
 	if _, err := controller.RegisterSession(ctx, mounted.GetSessionRef(), nil); err != nil {
 		t.Fatal(err)
 	}
-	return account, mounted, controller
+	return tb, account, mounted, controller
 }

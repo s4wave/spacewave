@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/sirupsen/logrus"
 )
 
 // OpTypes resolves the World operation types a Space engine applies.
@@ -20,6 +21,39 @@ type OpTypes struct {
 	// and rejects one of an undeclared type. It must read only ws, so every
 	// replica decides alike. Nil declares none.
 	Declared func(ctx context.Context, ws world.WorldState, opTypeID string) ([]string, error)
+}
+
+// LookupOn returns the lookup a Space's Adapter applies operations with: Lookup
+// first, then the handlers registered on b for the World engine engineID,
+// such as a running plugin's. A nil b resolves with Lookup alone. A type
+// neither resolves resolves to nothing.
+func (t OpTypes) LookupOn(b bus.Bus, le *logrus.Entry, engineID string) world.LookupOp {
+	var lookups world.LookupOpSlice
+	if t.Lookup != nil {
+		lookups = append(lookups, t.Lookup)
+	}
+	if b != nil {
+		lookups = append(lookups, world.BuildLookupWorldOpFunc(b, le, engineID))
+	}
+	return lookups.LookupOp
+}
+
+// HeldLookupOn returns the lookup LookupOn returns, with the bus lookup made
+// once per type and held until release (world.BuildHeldLookupWorldOpFunc),
+// for a walk over many operations that must see one set of handlers.
+func (t OpTypes) HeldLookupOn(b bus.Bus, le *logrus.Entry, engineID string) (world.LookupOp, func()) {
+	// Try the static lookup first, then the held bus lookup.
+	var lookups world.LookupOpSlice
+	if t.Lookup != nil {
+		lookups = append(lookups, t.Lookup)
+	}
+	release := func() {}
+	if b != nil {
+		var held world.LookupOp
+		held, release = world.BuildHeldLookupWorldOpFunc(b, le, engineID)
+		lookups = append(lookups, held)
+	}
+	return lookups.LookupOp, release
 }
 
 // pendingOpError reports an operation whose type the World declares a plugin

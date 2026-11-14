@@ -7,6 +7,7 @@ import (
 	"path"
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -22,6 +23,12 @@ import (
 // the cloud keeps its state, then takes the checkpoint and operations posted
 // after the copy.
 var ErrMigrationTargetExists = errors.New("cloud already holds the migrated object")
+
+// SpaceBus returns the bus this account's Spaces resolve their operation
+// types on.
+func (a *ProviderAccount) SpaceBus() bus.Bus {
+	return a.p.b
+}
 
 // ImportMigrationObject preserves the resource ID, signed history, and accepted
 // state. Cloud resources retain their existing store; local resources are copied
@@ -68,7 +75,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	var roots []*block.BlockRef
 	space := entry.GetMeta().GetBodyType() == "space"
 	if space {
-		roots, err = provider_migration.Roots(ctx, a.le, a.p.sfs, object, state)
+		roots, err = provider_migration.Roots(ctx, a.le, source.SpaceBus(), a.p.sfs, object, entry.GetRef(), state)
 		if err != nil {
 			return err
 		}

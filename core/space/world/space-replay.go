@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -538,9 +537,4 @@ func operationPerson(participant *sobject.SOParticipantConfig) string {
 		return person
 	}
 	return participant.GetPeerId()
-}
-
-// newTransformer builds the transformer of a World transform.
-func (a *Adapter) newTransformer(conf *block_transform.Config) (*block_transform.Transformer, error) {
-	return newWorldTransformer(controller.ConstructOpts{Logger: a.le}, a.opts.StepFactorySet, conf)
 }

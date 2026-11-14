@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/bstore"
@@ -170,6 +171,12 @@ func (a *ProviderAccount) commitMigrationSettings(ctx context.Context, op *accou
 	return commitAccountSettingsOp(ctx, object, op)
 }
 
+// SpaceBus returns the bus this account's Spaces resolve their operation
+// types on.
+func (a *ProviderAccount) SpaceBus() bus.Bus {
+	return a.t.p.b
+}
+
 func (a *ProviderAccount) validateMigrationDestination(ctx context.Context, transition *provider.AccountTransition) error {
 	// Validate the transition and require this account as the destination.
 	if err := transition.Validate(); err != nil {
@@ -187,7 +194,7 @@ func (a *ProviderAccount) validateMigrationDestination(ctx context.Context, tran
 
 // ImportMigrationObject copies the accepted data before publishing its verified
 // checkpoint. Source blocks and grants remain available after failure or retry.
-func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_migration.Account, object sobject.SharedObject, entry *sobject.SharedObjectListEntry, state *sobject.SOState) error {
+func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source provider_migration.Account, object sobject.SharedObject, entry *sobject.SharedObjectListEntry, state *sobject.SOState) error {
 	// Create the destination block store for the migrated object.
 	id := entry.GetRef().GetProviderResourceRef().GetId()
 	blockID := SobjectBlockStoreID(id)
@@ -208,7 +215,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 	// Copy the World and payloads of a Space, which keeps its state.
 	var hold func(context.Context) error
 	if entry.GetMeta().GetBodyType() == "space" {
-		roots, err := provider_migration.Roots(ctx, a.le, a.t.p.sfs, object, state)
+		roots, err := provider_migration.Roots(ctx, a.le, source.SpaceBus(), a.t.p.sfs, object, entry.GetRef(), state)
 		if err != nil {
 			return err
 		}
