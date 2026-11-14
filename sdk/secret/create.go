@@ -37,6 +37,10 @@ type CreateSecretOptions struct {
 }
 
 // CreateSecret creates a parent World object plus nested SharedObject payload.
+// It returns world.ErrObjectExists when opts.ObjectKey is taken, so a caller
+// that keys its Secrets can create one again by key and, on that error,
+// replace the payload of the one that exists instead. A caller that lost the
+// race for the key leaves no nested SharedObject behind.
 func CreateSecret(
 	ctx context.Context,
 	b bus.Bus,
@@ -44,9 +48,12 @@ func CreateSecret(
 	engine world.Engine,
 	opts CreateSecretOptions,
 ) (*Secret, error) {
-	// Require the parent World object key before creating the nested payload.
+	// Require a free parent World object key before creating the nested payload.
 	if opts.ObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "object_key")
+	}
+	if err := checkSecretKeyFree(ctx, engine, opts.ObjectKey); err != nil {
+		return nil, err
 	}
 
 	// Create the nested SharedObject and its payload.
@@ -54,29 +61,61 @@ func CreateSecret(
 	if err != nil {
 		return nil, err
 	}
-
-	// Write the redacted Secret metadata as the parent World object.
-	wtx, err := engine.NewTransaction(ctx, true)
-	if err != nil {
+	if err := commitSecretObject(ctx, engine, opts.ObjectKey, secret); err != nil {
+		// Another caller took the key between the check and this commit, so
+		// no World object names this nested SharedObject: remove it.
+		if errors.Is(err, world.ErrObjectExists) {
+			if derr := soProvider.DeleteSharedObject(ctx, secret.GetNestedSharedObjectId()); derr != nil {
+				return nil, errors.Wrap(derr, "remove unused nested shared object")
+			}
+		}
 		return nil, err
 	}
-	createdObject, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
+	return secret, nil
+}
+
+// checkSecretKeyFree returns world.ErrObjectExists when objectKey names an
+// object in the World.
+func checkSecretKeyFree(ctx context.Context, engine world.Engine, objectKey string) error {
+	// Read the key in a read-only transaction.
+	tx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	obj, found, err := tx.GetObject(ctx, objectKey)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
+	if found {
+		return errors.Wrap(world.ErrObjectExists, objectKey)
+	}
+	return nil
+}
+
+// commitSecretObject writes the redacted Secret metadata as the parent World
+// object at objectKey, typed as a Secret, in one transaction.
+func commitSecretObject(ctx context.Context, engine world.Engine, objectKey string, secret *Secret) error {
+	// Create the object and set its type in one write transaction.
+	wtx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	createdObject, _, err := world.CreateWorldObject(ctx, wtx, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(secret, true)
 		return nil
 	})
 	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		wtx.Discard()
-		return nil, err
+		return err
 	}
-	if err := world_types.SetObjectType(ctx, wtx, opts.ObjectKey, SecretTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, wtx, objectKey, SecretTypeID); err != nil {
 		wtx.Discard()
-		return nil, err
+		return err
 	}
-	if err := wtx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return secret, nil
+	return wtx.Commit(ctx)
 }
 
 // CreateSecretObject creates the nested SharedObject holding a Secret payload

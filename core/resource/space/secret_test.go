@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -376,4 +377,74 @@ func TestSpaceResourceAddSecretParticipantGrantsPeer(t *testing.T) {
 	if _, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_OWNER}); err == nil {
 		t.Fatal("expected owner grant to be rejected")
 	}
+}
+
+// TestSpaceResourceCreateSecretSameKeyKeepsOne covers two callers creating a
+// Secret under one key, as two wizard tabs do: one creates it, the other gets
+// world.ErrObjectExists and leaves no nested SharedObject behind, and a later
+// create under the key is refused before it makes one.
+func TestSpaceResourceCreateSecretSameKeyKeepsOne(t *testing.T) {
+	ctx := t.Context()
+	_, resource, release := setupSecretSpaceResourceTest(ctx, t)
+	defer release()
+
+	// Two callers create under one key at once.
+	const key = "secret/host-ssh-password"
+	errs := make([]error, 2)
+	var wg sync.WaitGroup
+	for i := range errs {
+		wg.Go(func() {
+			_, errs[i] = resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{ObjectKey: key, Kind: s4wave_secret.SecretKindSSHPassword, Value: []byte{byte(i)}})
+		})
+	}
+	wg.Wait()
+	created := 0
+	for _, err := range errs {
+		switch {
+		case err == nil:
+			created++
+		case !errors.Is(err, world.ErrObjectExists):
+			t.Fatalf("create: unexpected error class %T", err)
+		}
+	}
+	if created != 1 {
+		t.Fatalf("created %d Secrets under one key, want 1", created)
+	}
+
+	// A later create under the key is refused.
+	_, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{ObjectKey: key, Kind: s4wave_secret.SecretKindSSHPassword, Value: []byte{2}})
+	if !errors.Is(err, world.ErrObjectExists) {
+		t.Fatal("repeated create was not refused as existing")
+	}
+	if n := countSecretPayloads(ctx, t, resource); n != 1 {
+		t.Fatalf("provider holds %d Secret payloads, want 1", n)
+	}
+}
+
+// countSecretPayloads counts the Secret payload SharedObjects the resource's
+// provider account lists.
+func countSecretPayloads(ctx context.Context, t *testing.T, resource *SpaceResource) int {
+	t.Helper()
+	provRef := resource.space.GetSharedObjectRef().GetProviderResourceRef()
+	provAcc, rel, err := provider.ExAccessProviderAccount(ctx, resource.b, provRef.GetProviderId(), provRef.GetProviderAccountId(), false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel.Release()
+	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list, relList, err := soProvider.AccessSharedObjectList(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relList()
+	n := 0
+	for _, entry := range list.GetValue().GetSharedObjects() {
+		if entry.GetMeta().GetBodyType() == s4wave_secret.SecretBodyType {
+			n++
+		}
+	}
+	return n
 }

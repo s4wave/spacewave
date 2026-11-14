@@ -54,7 +54,6 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 
-import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
 import {
   applyWizardMutations,
@@ -67,6 +66,12 @@ import { WizardField } from '../wizard/WizardField.js'
 import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
+import {
+  deriveSshHostKeys,
+  objectExists,
+  putKeyedSecret,
+  type SshHostKeys,
+} from './ssh-host-keys.js'
 import {
   findSshHostMade,
   PRED_WIZARD_SSH_HOST,
@@ -348,10 +353,24 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     ws,
   ])
 
-  // createSshHost writes the credential secrets, then the SSH Host object
-  // with the wizard's link to it in one list.
+  // readSshHostMade reads the SSH Host this wizard made for the label and
+  // endpoint, with its terminal, or undefined when none landed.
+  const readSshHostMade = useCallback(
+    async (label: string, endpoint: SshHostEndpoint) =>
+      findSshHostMade(
+        await readSshHostsMade(ws.spaceWorld, ws.objectKey),
+        label,
+        endpoint,
+      ),
+    [ws],
+  )
+
+  // createSshHost writes the credential Secrets, then the SSH Host with the
+  // wizard's link to it in one list, all under keys derived from the wizard,
+  // label and endpoint. A host another tab landed first under those keys is
+  // returned in place of this press's.
   const createSshHost = useCallback(
-    async (label: string, endpoint: SshHostEndpoint) => {
+    async (label: string, endpoint: SshHostEndpoint): Promise<SshHostMade> => {
       if (!space) throw new Error('Space resource is not ready')
       const readerPublicKeyPem =
         sessionInfo?.cryptoInfo?.publicKeyPem?.trim() ?? ''
@@ -359,18 +378,29 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         throw new Error('Session public key is not available')
       }
 
+      // A host at the derived key that this wizard does not link was made
+      // by an earlier wizard under the same key; take the next keys.
+      let keys = await deriveSshHostKeys(ws.objectKey, label, endpoint)
+      for (
+        let round = 1;
+        await objectExists(ws.spaceWorld, keys.host);
+        round++
+      ) {
+        const made = await readSshHostMade(label, endpoint)
+        if (made) return made
+        keys = await deriveSshHostKeys(ws.objectKey, label, endpoint, round)
+      }
+
       const timestamp = new Date()
-      const [hostObjectKey, credentials] = await Promise.all([
-        buildObjectKey(ws.spaceWorld, 'ssh-host/', label),
-        createSshCredentialSecrets({
-          space,
-          label,
-          config: sshConfig,
-          draft: sshCredentialDraft,
-          world: ws.spaceWorld,
-          readerPublicKeyPem,
-        }),
-      ])
+      const credentials = await createSshCredentialSecrets({
+        space,
+        label,
+        config: sshConfig,
+        draft: sshCredentialDraft,
+        world: ws.spaceWorld,
+        readerPublicKeyPem,
+        keys,
+      })
       const hostKeyPins = buildSshHostKeyPins(
         sshConfig,
         ws.sessionPeerId,
@@ -384,29 +414,37 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         createdAt: timestamp,
         updatedAt: timestamp,
       }
-      await applyWizardMutations(ws.spaceWorld, ws.sessionPeerId, [
-        {
-          kind: 'op',
-          opId: CREATE_SSH_HOST_OP_ID,
-          opData: CreateSshHostOp.toBinary({
-            objectKey: hostObjectKey,
-            label,
-            endpoint,
-            credentials,
-            hostKeyPins,
-            timestamp,
-          }),
-        },
-        {
-          kind: 'link',
-          subjectKey: ws.objectKey,
-          predicate: PRED_WIZARD_SSH_HOST,
-          objectKey: hostObjectKey,
-        },
-      ])
-      return { host, hostObjectKey }
+      try {
+        await applyWizardMutations(ws.spaceWorld, ws.sessionPeerId, [
+          {
+            kind: 'op',
+            opId: CREATE_SSH_HOST_OP_ID,
+            opData: CreateSshHostOp.toBinary({
+              objectKey: keys.host,
+              label,
+              endpoint,
+              credentials,
+              hostKeyPins,
+              timestamp,
+            }),
+          },
+          {
+            kind: 'link',
+            subjectKey: ws.objectKey,
+            predicate: PRED_WIZARD_SSH_HOST,
+            objectKey: keys.host,
+          },
+        ])
+      } catch (err) {
+        // The create is refused when another tab landed the host first.
+        const made = await readSshHostMade(label, endpoint)
+        if (made) return made
+        throw err
+      }
+      return { host, hostObjectKey: keys.host, terminalObjectKey: '' }
     },
     [
+      readSshHostMade,
       sessionInfo?.cryptoInfo?.publicKeyPem,
       space,
       sshConfig,
@@ -415,63 +453,68 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     ],
   )
 
-  // createSshHostTerminal creates the terminal that opens the host, with the
-  // wizard's link to it in one list, and returns its key, or an empty key
-  // when the host has no terminal.
+  // createSshHostTerminal creates the terminal that opens the host, under a
+  // key derived from the host's, with the wizard's link to it in one list,
+  // and returns its key, or an empty key when the host has no terminal. A
+  // terminal another tab landed first is returned in place of this one.
   const createSshHostTerminal = useCallback(
-    async (host: SshHost, hostObjectKey: string) => {
+    async (made: SshHostMade, label: string, endpoint: SshHostEndpoint) => {
       const terminal = await buildCreateSshHostTerminalOpData({
-        host,
-        hostObjectKey,
+        host: made.host,
+        hostObjectKey: made.hostObjectKey,
         world: ws.spaceWorld,
+        objectKey: `${made.hostObjectKey}-terminal`,
       })
       if (!terminal) return ''
-      await applyWizardMutations(ws.spaceWorld, ws.sessionPeerId, [
-        { kind: 'op', opId: CREATE_TERMINAL_OP_ID, opData: terminal.opData },
-        {
-          kind: 'link',
-          subjectKey: ws.objectKey,
-          predicate: PRED_WIZARD_SSH_TERMINAL,
-          objectKey: terminal.objectKey,
-        },
-      ])
+      try {
+        await applyWizardMutations(ws.spaceWorld, ws.sessionPeerId, [
+          { kind: 'op', opId: CREATE_TERMINAL_OP_ID, opData: terminal.opData },
+          {
+            kind: 'link',
+            subjectKey: ws.objectKey,
+            predicate: PRED_WIZARD_SSH_TERMINAL,
+            objectKey: terminal.objectKey,
+          },
+        ])
+      } catch (err) {
+        const landed = (await readSshHostMade(label, endpoint))
+          ?.terminalObjectKey
+        if (landed) return landed
+        throw err
+      }
       return terminal.objectKey
     },
-    [ws],
+    [readSshHostMade, ws],
   )
 
-  // Adding an SSH Host writes its credential secrets and host, then reads the
-  // World to build the terminal, so it cannot be one list. Each create
-  // commits with the wizard's link to what it made, so a press reads the
-  // links first and carries on from the step that has not landed, whether
-  // after a failed Finish, a reload or in another tab. A host the person
-  // entered differently is new, and the one made before stays.
+  // Adding an SSH Host writes its credential Secrets and host, then reads
+  // the World to build the terminal, so it cannot be one list. Each create
+  // commits with the wizard's link to what it made, under a key derived from
+  // the wizard and what the person entered, so a press reads the links first
+  // and carries on from the step that has not landed, whether after a failed
+  // Finish, a reload or in another tab. A host the person entered
+  // differently is new, and the one made before stays.
   const handleCreateSshHost = useCallback(async () => {
     if (!state || !computersKnown) return
     setOperationError('')
     await finish.finish(
       async () => {
         const endpoint = sshEndpoint(sshConfig)
-        const made = findSshHostMade(
-          await readSshHostsMade(ws.spaceWorld, ws.objectKey),
-          sshLabel,
-          endpoint,
-        )
+        let made = await readSshHostMade(sshLabel, endpoint)
         if (!made) {
           const error = getSshCreateError(sshConfig, sshCredentialDraft)
           if (error) throw new WizardInputError(error)
+          made = await createSshHost(sshLabel, endpoint)
         }
-        const { host, hostObjectKey } =
-          made ?? (await createSshHost(sshLabel, endpoint))
         const terminalObjectKey =
-          made?.terminalObjectKey ||
-          (await createSshHostTerminal(host, hostObjectKey))
+          made.terminalObjectKey ||
+          (await createSshHostTerminal(made, sshLabel, endpoint))
         // The host and terminal exist before the list, so they open even
         // when the wizard is already gone.
         return {
           creates: [],
           target: {
-            openKey: terminalObjectKey || hostObjectKey,
+            openKey: terminalObjectKey || made.hostObjectKey,
             indexPath: dashboardKey,
           },
           targetMade: true,
@@ -488,6 +531,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     createSshHostTerminal,
     dashboardKey,
     finish,
+    readSshHostMade,
     sshConfig,
     sshCredentialDraft,
     sshLabel,
@@ -1562,6 +1606,8 @@ function isUnimplementedRpcError(error: unknown): boolean {
   )
 }
 
+// createSshCredentialSecrets stores the credentials the person entered as
+// Secrets under the derived keys and returns their references.
 async function createSshCredentialSecrets({
   space,
   label,
@@ -1569,6 +1615,7 @@ async function createSshCredentialSecrets({
   draft,
   world,
   readerPublicKeyPem,
+  keys,
 }: {
   space: Space
   label: string
@@ -1576,81 +1623,55 @@ async function createSshCredentialSecrets({
   draft: SshCredentialDraft
   world: IWorldState
   readerPublicKeyPem: string
+  keys: SshHostKeys
 }): Promise<SshHostCredentialRefs> {
-  const authMode = config.authMode ?? 'password'
-  const credentials: SshHostCredentialRefs = {}
-  if (authMode === 'private-key') {
-    credentials.privateKeySecretObjectKey = await createSshCredentialSecret({
-      space,
-      label,
-      suffix: 'private key',
-      kind: SecretKindSSHPrivateKey,
-      contentType: SSHPrivateKeyContentType,
-      value: draft.privateKey,
-      world,
-      readerPublicKeyPem,
+  const put = async (
+    objectKey: string,
+    suffix: string,
+    kind: string,
+    contentType: string,
+    value: string,
+  ) => {
+    await putKeyedSecret(space, world, {
+      objectKey,
+      displayName: `${label} SSH ${suffix}`,
+      kind,
+      contentType,
+      value: new TextEncoder().encode(value),
+      readerPublicKeyPem: new TextEncoder().encode(readerPublicKeyPem),
     })
-    if (draft.passphrase.trim()) {
-      credentials.passphraseSecretObjectKey = await createSshCredentialSecret({
-        space,
-        label,
-        suffix: 'passphrase',
-        kind: SecretKindSSHPassphrase,
-        contentType: SSHTextCredentialContentType,
-        value: draft.passphrase,
-        world,
-        readerPublicKeyPem,
-      })
-    }
-    return credentials
+    return objectKey
   }
-
-  credentials.passwordSecretObjectKey = await createSshCredentialSecret({
-    space,
-    label,
-    suffix: 'password',
-    kind: SecretKindSSHPassword,
-    contentType: SSHTextCredentialContentType,
-    value: draft.password,
-    world,
-    readerPublicKeyPem,
-  })
+  if ((config.authMode ?? 'password') !== 'private-key') {
+    return {
+      passwordSecretObjectKey: await put(
+        keys.password,
+        'password',
+        SecretKindSSHPassword,
+        SSHTextCredentialContentType,
+        draft.password,
+      ),
+    }
+  }
+  const credentials: SshHostCredentialRefs = {
+    privateKeySecretObjectKey: await put(
+      keys.privateKey,
+      'private key',
+      SecretKindSSHPrivateKey,
+      SSHPrivateKeyContentType,
+      draft.privateKey,
+    ),
+  }
+  if (draft.passphrase.trim()) {
+    credentials.passphraseSecretObjectKey = await put(
+      keys.passphrase,
+      'passphrase',
+      SecretKindSSHPassphrase,
+      SSHTextCredentialContentType,
+      draft.passphrase,
+    )
+  }
   return credentials
-}
-
-async function createSshCredentialSecret({
-  space,
-  label,
-  suffix,
-  kind,
-  contentType,
-  value,
-  world,
-  readerPublicKeyPem,
-}: {
-  space: Space
-  label: string
-  suffix: string
-  kind: string
-  contentType: string
-  value: string
-  world: IWorldState
-  readerPublicKeyPem: string
-}): Promise<string> {
-  const objectKey = await buildObjectKey(
-    world,
-    'secret/',
-    `${label} SSH ${suffix}`,
-  )
-  await space.createSecret({
-    objectKey,
-    displayName: `${label} SSH ${suffix}`,
-    kind,
-    contentType,
-    value: new TextEncoder().encode(value),
-    readerPublicKeyPem: new TextEncoder().encode(readerPublicKeyPem),
-  })
-  return objectKey
 }
 
 function buildSshHostKeyPins(
