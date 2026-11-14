@@ -69,6 +69,6 @@
     "replace": [
       ["  /\\ IF disk \\in {base, \"gone\"}\n", "  /\\ IF disk = base\n"]
     ],
-    "expect": "TypeOK"
+    "expect": "RemovedFileSaves"
   }
 ]

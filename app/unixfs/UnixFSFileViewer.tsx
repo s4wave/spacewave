@@ -50,8 +50,9 @@ export interface UnixFSFileViewerProps {
   stat: StatResult
   // rootHandle is the root FSHandle resource for reading file content.
   rootHandle: Resource<FSHandle>
-  // objectKey is the World object holding the file, such as the UnixFS or
-  // Git worktree object.
+  // objectKey names the World object holding the file, such as the UnixFS
+  // object, and the tree within it when one object holds several, such as a
+  // Git worktree's working directory and its commits.
   objectKey: string
   // hideToolbar suppresses the built-in toolbar when an outer component
   // (e.g. GitToolbar) already provides navigation.

@@ -8,7 +8,7 @@ export interface FileViewerProps {
   path: string
   stat: StatResult
   rootHandle: Resource<FSHandle>
-  // objectKey is the Git object holding the file.
+  // objectKey names the Git object and tree holding the file.
   objectKey: string
   inlineFileURL?: string
   // readOnly says why the file cannot be written, such as a commit's files.

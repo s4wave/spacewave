@@ -137,8 +137,8 @@ function TextFilePresses({ actions }: { actions: ViewerBarAction[] }) {
  * UnixFSTextFileViewer shows a text file and edits it in a draft saved
  * through one atomic World upload. text-file.ts derives what it shows. The
  * draft lives in this viewer's state, so it lasts while the viewer stays
- * mounted; UnixFSFileViewer keys it by the Space id and path. Only Discard
- * edits or a landed save end it.
+ * mounted; UnixFSFileViewer keys it by the Space id, object key and path.
+ * Only Discard edits or a landed save end it.
  */
 export function UnixFSTextFileViewer({
   rootHandle,

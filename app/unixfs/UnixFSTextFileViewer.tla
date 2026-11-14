@@ -262,6 +262,10 @@ DraftNeverDropped == ~dropped
 \* No save writes over a version the draft did not start from unless the
 \* person pressed Save over theirs.
 NoBlindOverwrite == mode = "saving" /\ ~overwrite => over = base
+\* A draft over a removed file can save: the read at the press never takes
+\* the removal for another writer's version, which would leave only Save over
+\* theirs or Discard edits.
+RemovedFileSaves == Drafted => seen # "gone"
 \* A plain save writes only after its read at the press found the draft's
 \* base. Another writer between that read and the write is the storage
 \* layer's to refuse.
