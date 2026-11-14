@@ -1,0 +1,65 @@
+[
+  {
+    "name": "a Delete that deletes nothing still reports cancelled",
+    "replace": [
+      ["IF wizard THEN \"cancelled\" ELSE \"gone\"", "\"cancelled\""]
+    ],
+    "expect": "NotBothWin"
+  },
+  {
+    "name": "a Finish that creates nothing succeeds after the wizard is gone",
+    "config": "WizardCancel-intro.cfg",
+    "replace": [["MustExist == TRUE", "MustExist == Creates"]],
+    "expect": "NotBothWin"
+  },
+  {
+    "name": "Delete presses again while its list runs",
+    "replace": [
+      [
+        "  /\\ \"delete\" \\in Shown(t)\n",
+        "  /\\ wizard /\\ cancel[t] # \"cancelled\"\n"
+      ]
+    ],
+    "expect": "OneDeletePerPress"
+  },
+  {
+    "name": "Delete shows while its list runs",
+    "replace": [
+      [
+        "               /\\ cancel[t] \\in {\"idle\", \"failed\"}\n",
+        "               /\\ cancel[t] \\in {\"idle\", \"failed\", \"cancelling\"}\n"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a discarded Delete removes the wizard",
+    "replace": [
+      [
+        "  /\\ cancel' = [cancel EXCEPT ![t] = \"failed\"]\n  /\\ clive' = [clive EXCEPT ![t] = clive[t] - 1]\n  /\\ UNCHANGED <<control, live, orphan, corphan, wizard, objects, cancels,",
+        "  /\\ cancel' = [cancel EXCEPT ![t] = \"failed\"]\n  /\\ clive' = [clive EXCEPT ![t] = clive[t] - 1]\n  /\\ wizard' = FALSE\n  /\\ UNCHANGED <<control, live, orphan, corphan, objects, cancels,"
+      ]
+    ],
+    "expect": "ExactlyOneEnding"
+  },
+  {
+    "name": "a failed Delete hides Delete",
+    "replace": [
+      [
+        "               /\\ cancel[t] \\in {\"idle\", \"failed\"}\n",
+        "               /\\ cancel[t] = \"idle\"\n"
+      ]
+    ],
+    "expect": "FailedCancelOffersDelete"
+  },
+  {
+    "name": "a Delete runs when the wizard is gone",
+    "replace": [
+      [
+        "  IF wizard\n  THEN /\\ cancels' = cancels + 1",
+        "  IF TRUE\n  THEN /\\ cancels' = cancels + 1"
+      ]
+    ],
+    "expect": "ExactlyOneEnding"
+  }
+]

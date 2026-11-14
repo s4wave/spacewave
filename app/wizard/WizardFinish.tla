@@ -98,7 +98,7 @@ Press(t) ==
 
 \* Apply is the executor's one atomic step: the creates, the index move and
 \* the delete commit together. The index move reads the World's index in the
-\* commit, not r, what the tab's watch shows. A list that creates refuses itself when
+\* commit, not r, what the tab's watch shows. Every list refuses itself when
 \* the wizard is already gone, so a second tab makes no second object.
 Apply(r) ==
   IF wizard

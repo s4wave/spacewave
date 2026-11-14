@@ -243,6 +243,11 @@ export function WizardShell({
   // A wizard removed elsewhere can only be closed.
   if (rest.finish.status === 'gone') return <WizardGone />
 
+  // Delete is offered only while this view's own Finish is not removing the
+  // wizard; a Finish in another tab makes the delete refuse as gone.
+  const deleteOffered =
+    rest.finish.status !== 'finishing' && rest.finish.status !== 'done'
+
   const stepLabel =
     totalSteps !== undefined
       ? `Step ${step + 1} of ${totalSteps}`
@@ -253,20 +258,24 @@ export function WizardShell({
       <ViewerBar
         icon={icon}
         title={title}
-        actions={[
-          {
-            id: 'delete',
-            label:
-              cancel.status === 'cancelling'
-                ? 'Deleting wizard…'
-                : 'Delete wizard',
-            icon: <LuTrash2 />,
-            iconOnly: true,
-            variant: 'destructive',
-            disabled: cancel.status === 'cancelling',
-            onClick: onCancel,
-          },
-        ]}
+        actions={
+          deleteOffered
+            ? [
+                {
+                  id: 'delete',
+                  label:
+                    cancel.status === 'cancelling'
+                      ? 'Deleting wizard…'
+                      : 'Delete wizard',
+                  icon: <LuTrash2 />,
+                  iconOnly: true,
+                  variant: 'destructive',
+                  disabled: cancel.status === 'cancelling',
+                  onClick: onCancel,
+                },
+              ]
+            : []
+        }
       />
       {cancel.status === 'failed' && (
         <ViewerStatus
