@@ -219,7 +219,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		if err != nil {
 			return err
 		}
-		copied, err := provider_migration.CopyRoots(ctx, object, roots, blocks)
+		copied, err := provider_migration.CopyRoots(ctx, object.GetBlockStore(), roots, blocks, nil)
 		if err != nil {
 			return err
 		}

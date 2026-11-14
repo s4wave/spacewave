@@ -114,13 +114,10 @@ export interface SpaceTransferState {
    */
   phase?: TransferPhase
   /**
-   * BlocksCopied is the number of blocks copied so far.
+   * BlocksCopied is the number of blocks of the Space's World copied so far.
+   * The copy walks the World's graph, so no total is known before it ends.
    */
   blocksCopied?: bigint
-  /**
-   * BlocksTotal is the total number of blocks to copy (0 if not yet scanned).
-   */
-  blocksTotal?: bigint
   /**
    * ErrorMessage contains the error if phase is FAILED.
    */
@@ -138,7 +135,6 @@ export const SpaceTransferState: MessageType<SpaceTransferState> =
       [1, 'shared_object_id', 9],
       [2, 'phase', 14, 0, TransferPhase_Enum],
       [3, 'blocks_copied', 4],
-      [4, 'blocks_total', 4],
       [5, 'error_message', 9],
       [6, 'meta', 11, 0, SharedObjectMeta.codec],
     ],

@@ -46,8 +46,9 @@ func Roots(
 	return space_world.ImportRoots(ctx, le, b, factories, object, space.SpaceEngineId(ref), space_world_engine.OpTypes, snap)
 }
 
-// CopyRoots copies every block reachable from roots out of object into
-// destination and fences the destination. A cache inventory cannot establish
+// CopyRoots copies every block reachable from roots out of src into
+// destination and fences the destination. visited, if set, observes each
+// block the copy reads. A cache inventory cannot establish
 // completeness, and content-addressed blocks make a retry safe after any
 // interrupted write.
 //
@@ -61,12 +62,18 @@ func Roots(
 // A store that holds no roots, such as a cloud block store, keeps every block
 // it stores. CopyRoots copies every block into it, trusting no presence check,
 // and returns nil.
-func CopyRoots(ctx context.Context, object sobject.SharedObject, roots []*block.BlockRef, destination block.StoreOps) (*block.StageCopy, error) {
+func CopyRoots(
+	ctx context.Context,
+	src block.StoreOps,
+	roots []*block.BlockRef,
+	destination block.StoreOps,
+	visited func(ref *block.BlockRef, data []byte),
+) (*block.StageCopy, error) {
 	// Copy every block into a store that holds no roots.
-	src := object.GetBlockStore()
+	opts := block.GraphCopyOptions{Visited: visited}
 	if !block.HoldsRoots(destination) {
 		for _, root := range roots {
-			if err := block.CopyGraph(ctx, src, destination, root, nil); err != nil {
+			if err := block.CopyGraph(ctx, src, destination, root, &opts); err != nil {
 				return nil, err
 			}
 		}
@@ -79,7 +86,7 @@ func CopyRoots(ctx context.Context, object sobject.SharedObject, roots []*block.
 		return nil, err
 	}
 	for _, root := range roots {
-		if err = c.Copy(ctx, src, root, block.GraphCopyOptions{}); err != nil {
+		if err = c.Copy(ctx, src, root, opts); err != nil {
 			break
 		}
 	}

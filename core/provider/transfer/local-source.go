@@ -67,11 +67,6 @@ func (s *LocalTransferSource) GetBlockStore(ctx context.Context, ref *sobject.Sh
 	return bs, rel, nil
 }
 
-// GetBlockRefs returns all block refs tracked for a shared object's block store.
-func (s *LocalTransferSource) GetBlockRefs(ctx context.Context, ref *sobject.SharedObjectRef) ([]*block.BlockRef, error) {
-	return s.account.ListBlockStoreRefs(ctx, ref.GetBlockStoreId())
-}
-
 // DeleteSharedObject deletes a shared object from the source account.
 func (s *LocalTransferSource) DeleteSharedObject(ctx context.Context, soID string) error {
 	return s.account.DeleteSharedObject(ctx, soID)

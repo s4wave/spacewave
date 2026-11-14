@@ -20,13 +20,11 @@ type TransferSource interface {
 	GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error)
 	// ReplaySharedObject returns the World of a Space after its last
 	// operation. Replay writes the blocks it creates to the Space's block
-	// store and holds them until release, so the blocks are copied before
-	// release.
+	// store and holds them until release, so the transfer copies the graphs
+	// under the World's roots before release.
 	ReplaySharedObject(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) (*space_world.InnerState, func(), error)
 	// GetBlockStore returns the block store ops for a shared object's block store.
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
-	// GetBlockRefs returns every block ref of a shared object's block store.
-	GetBlockRefs(ctx context.Context, ref *sobject.SharedObjectRef) ([]*block.BlockRef, error)
 }
 
 // CleanupSource handles post-merge cleanup of the source account.

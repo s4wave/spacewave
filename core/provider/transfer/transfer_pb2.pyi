@@ -37,20 +37,18 @@ TransferPhase_COMPLETE: TransferPhase
 TransferPhase_FAILED: TransferPhase
 
 class SpaceTransferState(_message.Message):
-    __slots__ = ("shared_object_id", "phase", "blocks_copied", "blocks_total", "error_message", "meta")
+    __slots__ = ("shared_object_id", "phase", "blocks_copied", "error_message", "meta")
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     BLOCKS_COPIED_FIELD_NUMBER: _ClassVar[int]
-    BLOCKS_TOTAL_FIELD_NUMBER: _ClassVar[int]
     ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     META_FIELD_NUMBER: _ClassVar[int]
     shared_object_id: str
     phase: TransferPhase
     blocks_copied: int
-    blocks_total: int
     error_message: str
     meta: _sobject_pb2.SharedObjectMeta
-    def __init__(self, shared_object_id: _Optional[str] = ..., phase: _Optional[_Union[TransferPhase, str]] = ..., blocks_copied: _Optional[int] = ..., blocks_total: _Optional[int] = ..., error_message: _Optional[str] = ..., meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ...) -> None: ...
+    def __init__(self, shared_object_id: _Optional[str] = ..., phase: _Optional[_Union[TransferPhase, str]] = ..., blocks_copied: _Optional[int] = ..., error_message: _Optional[str] = ..., meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ...) -> None: ...
 
 class TransferState(_message.Message):
     __slots__ = ("mode", "phase", "source_session_index", "target_session_index", "spaces", "error_message")

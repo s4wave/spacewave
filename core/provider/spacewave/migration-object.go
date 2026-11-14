@@ -143,7 +143,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		defer release()
 		// The cloud store holds no roots and keeps every block it stores,
 		// so the copy returns no stage.
-		if _, err := provider_migration.CopyRoots(ctx, object, roots, store); err != nil {
+		if _, err := provider_migration.CopyRoots(ctx, object.GetBlockStore(), roots, store, nil); err != nil {
 			return err
 		}
 		if err := store.(*BlockStore).ForceSync(ctx); err != nil {

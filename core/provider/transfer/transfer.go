@@ -7,7 +7,9 @@ import (
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	"github.com/s4wave/spacewave/core/sobject"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
@@ -176,10 +178,9 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		broadcast()
 	})
 
-	// Phase: replaying and copying blocks per space. Replay writes the blocks
-	// of the replayed World, so it runs before the copy.
+	// Phase: copying. Move each Space whole before the next, so a run that
+	// stops leaves each Space checkpointed or for a retry to move again.
 	t.setPhase(TransferPhase_TransferPhase_COPYING_BLOCKS)
-	worlds := make([][]byte, len(entries))
 	for i, entry := range entries {
 		if _, ok := done[spaceIDs[i]]; ok {
 			continue
@@ -187,66 +188,16 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		if err := ctx.Err(); err != nil {
 			return t.fail(err)
 		}
-		soRef := entry.GetRef()
-		soID := soRef.GetProviderResourceRef().GetId()
-		le := t.le.WithField("so-id", soID)
-
-		t.setSpacePhase(i, TransferPhase_TransferPhase_COPYING_BLOCKS)
-		le.Debug("replaying space")
-		world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
-		if err != nil {
-			return t.fail(errors.Wrapf(err, "replay: %s", soID))
+		soID := spaceIDs[i]
+		if err := t.moveSpace(ctx, i, entry); err != nil {
+			return t.fail(errors.Wrapf(err, "transfer space %s", soID))
 		}
-		worlds[i], err = world.MarshalVT()
-		if err != nil {
-			releaseWorld()
-			return t.fail(err)
-		}
-
-		le.Debug("copying blocks for space")
-		err = t.copyBlocksForSpace(ctx, i, soRef)
-		releaseWorld()
-		if err != nil {
-			return t.fail(errors.Wrapf(err, "copy blocks: %s", soID))
-		}
-
-		le.Debug("block copy complete for space")
-	}
-
-	// Phase: copying SO state and adding to target list.
-	t.setPhase(TransferPhase_TransferPhase_COPYING_SO)
-	for i, entry := range entries {
-		if _, ok := done[spaceIDs[i]]; ok {
-			continue
-		}
-		if err := ctx.Err(); err != nil {
-			return t.fail(err)
-		}
-		soRef := entry.GetRef()
-		soID := soRef.GetProviderResourceRef().GetId()
-		meta := entry.GetMeta()
-		le := t.le.WithField("so-id", soID)
-
-		t.setSpacePhase(i, TransferPhase_TransferPhase_COPYING_SO)
-		le.Debug("copying SO state and adding to target list")
-
-		// Add the SO to the target before writing state so targets that enforce
-		// resource existence and RBAC on state writes can accept the update.
-		if err := t.target.AddSharedObject(ctx, soRef, meta); err != nil {
-			return t.fail(errors.Wrapf(err, "add SO to target list: %s", soID))
-		}
-
-		// Start the target lineage at the replayed World.
-		if err := t.target.WriteSharedObjectState(ctx, le, soID, t.owner, worlds[i]); err != nil {
-			return t.fail(errors.Wrapf(err, "write target SO state: %s", soID))
-		}
-
-		t.setSpacePhase(i, TransferPhase_TransferPhase_COMPLETE)
 
 		// Save checkpoint after each completed space.
+		t.setSpacePhase(i, TransferPhase_TransferPhase_COMPLETE)
 		done[soID] = struct{}{}
 		t.saveCheckpoint(ctx, done)
-		le.Debug("SO merge complete for space")
+		t.le.WithField("so-id", soID).Debug("space transfer complete")
 	}
 
 	// Give the target the identity its Spaces are signed with while the source
@@ -291,69 +242,127 @@ func (t *Transfer) Execute(ctx context.Context) error {
 	return nil
 }
 
-// copyBlocksForSpace copies all blocks for a single SO from source to target.
-func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *sobject.SharedObjectRef) error {
-	// Get block refs from the source's GC ref graph.
-	blockRefs, err := t.source.GetBlockRefs(ctx, soRef)
-	if err != nil {
-		return errors.Wrap(err, "get block refs")
-	}
+// moveSpace copies the World a Space's source replays to the target, holds
+// it there, and starts the target's lineage at it.
+//
+// Invariants, which the target's collector relies on to free nothing the
+// moved Space needs (Transfer.tla checks them as StateHeld):
+//
+//  1. The copy's stage holds every copied block from its first put until
+//     the import root holds the World's roots: the stage is released only by
+//     the deferred release, after the hold is written and checked.
+//  2. The hold is written after AddSharedObject, because adding an id the
+//     target does not list releases every root of its bucket, as a create of
+//     an abandoned id does. A retry finds the id listed, so the add releases
+//     nothing and the hold appends to what an earlier run held.
+//  3. The stage is checked after the hold: a run that stalled past the
+//     stage's lease and the collector's grace may have lost the copy, and
+//     the Space then fails before its state is written, so a retry copies
+//     again.
+//  4. The state is written only after the check, so the target never names
+//     a World it does not hold. A Space is checkpointed only after its state
+//     is written, and the source is cleaned up only after every Space is
+//     checkpointed.
+//  5. The hold releases nothing. A retained root the target's Adapter never
+//     takes from the import root stays held until the Space is deleted.
+//
+// A target that holds no roots, such as a cloud block store, keeps every
+// block it stores, so its copy needs no stage and no hold.
+func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry) error {
+	// Name the Space for the target and the log.
+	soRef := entry.GetRef()
+	soID := soRef.GetProviderResourceRef().GetId()
+	le := t.le.WithField("so-id", soID)
 
-	// Skip block copying when the source has no block references.
-	if len(blockRefs) == 0 {
-		return nil
-	}
-
-	// Publish the total block count for this space.
-	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		t.state.Spaces[spaceIdx].BlocksTotal = uint64(len(blockRefs))
-		broadcast()
-	})
-
-	// Mount the source block store for reading blocks.
-	srcBlocks, srcRel, err := t.source.GetBlockStore(ctx, soRef)
-	if err != nil {
-		return errors.Wrap(err, "mount source block store")
-	}
-	defer srcRel()
-
-	// Mount the target block store for writing blocks.
-	dstBlocks, dstRel, err := t.target.GetBlockStore(ctx, soRef)
+	// Replay the World and copy it to the target under a stage.
+	t.setSpacePhase(idx, TransferPhase_TransferPhase_COPYING_BLOCKS)
+	le.Debug("replaying and copying space")
+	dst, releaseDst, err := t.target.GetBlockStore(ctx, soRef)
 	if err != nil {
 		return errors.Wrap(err, "mount target block store")
 	}
-	defer dstRel()
-
-	// Copy each block and publish its progress.
-	var copied uint64
-	for _, ref := range blockRefs {
-		if err := ctx.Err(); err != nil {
-			return t.fail(err)
-		}
-
-		// Require the source refs so the destination can retain each block's children.
-		stored, err := srcBlocks.GetStoredBlock(ctx, ref)
-		if err != nil {
-			return errors.Wrapf(err, "read block %s", ref.MarshalString())
-		}
-		if stored == nil {
-			continue
-		}
-		if !stored.RefsKnown {
-			return errors.Wrapf(block.ErrRefsUnknown, "read block %s", ref.MarshalString())
-		}
-
-		if _, _, err := dstBlocks.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
-			return errors.Wrapf(err, "write block %s", ref.MarshalString())
-		}
-
-		copied++
-		t.setSpaceBlocksCopied(spaceIdx, copied)
+	defer releaseDst()
+	world, roots, stage, err := t.copyWorld(ctx, le, idx, soRef, dst)
+	if err != nil {
+		return err
+	}
+	if stage != nil {
+		defer stage.Release()
 	}
 
-	// Flush the destination block store after copying.
-	_, err = dstBlocks.Sync(ctx)
-	return err
+	// Add the Space to the target, then hold its World there and check the
+	// stage held the copy until then.
+	t.setSpacePhase(idx, TransferPhase_TransferPhase_COPYING_SO)
+	if err := t.target.AddSharedObject(ctx, soRef, entry.GetMeta()); err != nil {
+		return errors.Wrap(err, "add SO to target list")
+	}
+	if stage != nil {
+		if err := space_world.HoldImport(ctx, dst, roots...); err != nil {
+			return errors.Wrap(err, "hold copied World")
+		}
+		if err := stage.CheckHeld(ctx, roots...); err != nil {
+			return errors.Wrap(err, "check copied World")
+		}
+	}
+
+	// Start the target lineage at the replayed World.
+	if err := t.target.WriteSharedObjectState(ctx, le, soID, t.owner, world); err != nil {
+		return errors.Wrap(err, "write target SO state")
+	}
+	return nil
+}
+
+// copyWorld replays the World of the Space at soRef on the source and copies
+// every block it reaches into dst, publishing the count. It returns the
+// encoded World, its roots and the copy's stage, nil on a store that holds no
+// roots. The replay holds the World on the source until the copy ends.
+func (t *Transfer) copyWorld(
+	ctx context.Context,
+	le *logrus.Entry,
+	idx int,
+	soRef *sobject.SharedObjectRef,
+	dst block.StoreOps,
+) ([]byte, []*block.BlockRef, *block.StageCopy, error) {
+	// Replay the World.
+	world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "replay")
+	}
+	defer releaseWorld()
+
+	// Encode the World and list the roots its state names.
+	data, err := world.MarshalVT()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var roots []*block.BlockRef
+	if root := world.GetHeadRef().GetRootRef(); !root.GetEmpty() {
+		roots = append(roots, root)
+	}
+	for _, retained := range world.GetRetainedRoots() {
+		if root := retained.GetRootRef(); !root.GetEmpty() {
+			roots = append(roots, root)
+		}
+	}
+	if len(roots) == 0 {
+		return data, nil, nil, nil
+	}
+
+	// Copy the World's graphs.
+	src, releaseSrc, err := t.source.GetBlockStore(ctx, soRef)
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "mount source block store")
+	}
+	defer releaseSrc()
+	var copied uint64
+	stage, err := provider_migration.CopyRoots(ctx, src, roots, dst, func(*block.BlockRef, []byte) {
+		copied++
+		t.setSpaceBlocksCopied(idx, copied)
+	})
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "copy blocks")
+	}
+	return data, roots, stage, nil
 }
 
 // loadCompletedSpaces returns the IDs of spaces a previous run of this same

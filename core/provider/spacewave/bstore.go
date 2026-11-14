@@ -2,14 +2,12 @@ package provider_spacewave
 
 import (
 	"context"
-	"math"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
@@ -784,74 +782,6 @@ func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.Block
 		return nil, nil, err
 	}
 	return bs, tkrRef.Release, nil
-}
-
-// EnumerateBlockRefs returns all block refs from the cloud block store by pulling
-// the packfile manifest and scanning each packfile's index entries.
-func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID string) ([]*block.BlockRef, error) {
-	// Retain a synchronized signing-client snapshot throughout enumeration.
-	cli, _, _, err := a.getReadySessionClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Read every page of the cloud catalog.
-	resp, err := packfile.PullCatalog(ctx, cli, bstoreID)
-	if err != nil {
-		return nil, errors.Wrap(err, "sync pull")
-	}
-
-	// Collect the packs that replacement events removed.
-	replaced := make(map[string]bool)
-	for _, event := range resp.GetReplacementEvents() {
-		for _, id := range event.GetReplacedPackIds() {
-			replaced[id] = true
-		}
-	}
-
-	// Scan the index of each active pack, keeping each block once.
-	opener := a.BuildBlockStoreOpener(bstoreID)
-	seen := make(map[string]bool)
-	var refs []*block.BlockRef
-	for _, entry := range resp.GetEntries() {
-		if entry.IsSuperseded() || replaced[entry.GetId()] {
-			continue
-		}
-		if entry.GetSizeBytes() > math.MaxInt64 {
-			return nil, errors.Errorf("packfile %s size exceeds int64 range: %d", entry.GetId(), entry.GetSizeBytes())
-		}
-		size := int64(entry.GetSizeBytes()) //nolint:gosec // the explicit MaxInt64 check protects the int64 opener API.
-		if size <= 0 {
-			continue
-		}
-		rd, err := opener(entry.GetId(), size)
-		if err != nil {
-			return nil, errors.Wrapf(err, "open packfile %s", entry.GetId())
-		}
-		reader, err := kvfile.BuildReader(rd.ReaderAt(ctx), uint64(size))
-		if err == nil {
-			err = reader.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
-				// Keep each parseable block key once.
-				key := string(ie.GetKey())
-				if seen[key] {
-					return nil
-				}
-				h, err := packfile.ParseBlockKey(ie.GetKey())
-				if err != nil {
-					return nil
-				}
-				seen[key] = true
-				refs = append(refs, block.NewBlockRef(h))
-				return nil
-			})
-		}
-		rd.Close()
-		if err != nil {
-			return nil, errors.Wrapf(err, "scan index entries for packfile %s", entry.GetId())
-		}
-	}
-
-	return refs, nil
 }
 
 // GetRoot reads the root from the inner store.

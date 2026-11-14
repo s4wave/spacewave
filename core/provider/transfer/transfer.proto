@@ -39,10 +39,9 @@ message SpaceTransferState {
   string shared_object_id = 1;
   // Phase is the current transfer phase for this space.
   TransferPhase phase = 2;
-  // BlocksCopied is the number of blocks copied so far.
+  // BlocksCopied is the number of blocks of the Space's World copied so far.
+  // The copy walks the World's graph, so no total is known before it ends.
   uint64 blocks_copied = 3;
-  // BlocksTotal is the total number of blocks to copy (0 if not yet scanned).
-  uint64 blocks_total = 4;
   // ErrorMessage contains the error if phase is FAILED.
   string error_message = 5;
   // Meta is the shared object metadata from the source.
