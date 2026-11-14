@@ -8,6 +8,8 @@ import { CreateWasiVmOp } from '@s4wave/sdk/vm/wasivm.pb.js'
 import { CREATE_WASIVM_OP_ID } from '@s4wave/sdk/vm/wasivm.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/vmv86.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
+import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
+import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // WizardWorldState is what a wizard test World holds: the object keys, the
@@ -48,13 +50,13 @@ function applyCreate(
 }
 
 // WizardTestWorld is a Space World held in memory for wizard Finish tests.
-// Writes go through write transactions that stage a copy of the state and
-// publish it only on commit, as the World engine does. calls lists each call
-// in order, and opData and senders each op's data and sender by op id, last
-// write wins. failOn names the one call that throws: an op id, 'delete' or
-// 'commit'. A commit waits for commitGate when one is set; given a signal
-// that aborted meanwhile, it lands and then rejects, as a commit call whose
-// caller gave up after sending it does.
+// A batch stages a copy of the state and publishes it only when every
+// mutation applied, as the World engine does. calls lists each call in order:
+// 'batch', then each op id or 'delete', then 'commit' when the batch lands.
+// opData and senders hold each op's data and sender by op id, last write
+// wins. failOn names the one call that throws: an op id, 'delete' or
+// 'commit'. A batch waits for commitGate, once its mutations applied, when
+// one is set.
 export interface WizardTestWorld {
   world: EngineWorldState
   state: WizardWorldState
@@ -88,53 +90,61 @@ export function wizardTestWorld(
     if (t.failOn === call) throw new Error(`${call} failed`)
   }
 
-  // newTransaction stages a copy that commit publishes.
-  const newTransaction = () => {
+  // applyMutation stages one batch mutation, returning the code the World
+  // refuses it with, if any.
+  const applyMutation = (staged: WizardWorldState, m: WorldMutation) => {
+    switch (m.mutation?.case) {
+      case 'op': {
+        const {
+          opTypeId = '',
+          opData = new Uint8Array(),
+          opSender = '',
+        } = m.mutation.value
+        fail(opTypeId)
+        t.opData.set(opTypeId, opData)
+        t.senders.set(opTypeId, opSender)
+        if (opTypeId !== SET_SPACE_INDEX_PATH_OP_ID) {
+          applyCreate(staged, opTypeId, opData)
+          return
+        }
+        // The World refuses, without error, an index move that expects an
+        // index another writer has since changed; a move that expects
+        // nothing is unconditional.
+        const op = SetSpaceIndexPathOp.fromBinary(opData)
+        const expected = op.expectedIndexPath
+        if (expected === undefined || expected === staged.indexPath) {
+          staged.indexPath = op.indexPath ?? ''
+        }
+        return
+      }
+      case 'deleteObject':
+        fail('delete')
+        if (!staged.objects.delete(m.mutation.value.objectKey ?? '')) {
+          return WorldErrorCode.OBJECT_NOT_FOUND
+        }
+        return
+      default:
+        throw new Error('unexpected mutation ' + m.mutation?.case)
+    }
+  }
+
+  // executeWorldBatch stages a copy, applies each mutation, and publishes the
+  // copy only when none was refused.
+  const executeWorldBatch = async (mutations: WorldMutation[]) => {
     const staged: WizardWorldState = {
       objects: new Set(t.state.objects),
       indexPath: t.state.indexPath,
       creates: [...t.state.creates],
     }
-    t.calls.push('open')
-    const tx = {
-      applyWorldOp: (opId: string, opData: Uint8Array, sender: string) => {
-        // Record the op, then stage what it writes.
-        fail(opId)
-        t.opData.set(opId, opData)
-        t.senders.set(opId, sender)
-        if (opId !== SET_SPACE_INDEX_PATH_OP_ID) {
-          applyCreate(staged, opId, opData)
-        } else {
-          // The World refuses, without error, an index move that expects an
-          // index another writer has since changed; a move that expects
-          // nothing is unconditional.
-          const op = SetSpaceIndexPathOp.fromBinary(opData)
-          const expected = op.expectedIndexPath
-          if (expected === undefined || expected === staged.indexPath) {
-            staged.indexPath = op.indexPath ?? ''
-          }
-        }
-        return Promise.resolve({ seqno: 1n, sysErr: false })
-      },
-      deleteObject: (objectKey: string) => {
-        fail('delete')
-        return Promise.resolve({ deleted: staged.objects.delete(objectKey) })
-      },
-      commit: async (signal?: AbortSignal) => {
-        await t.commitGate
-        fail('commit')
-        t.state = staged
-        signal?.throwIfAborted()
-      },
-      discard: () => {
-        t.calls.push('discard')
-        return Promise.resolve()
-      },
-      release: () => {
-        t.calls.push('release')
-      },
+    t.calls.push('batch')
+    for (const [failedIndex, m] of mutations.entries()) {
+      const errorCode = applyMutation(staged, m)
+      if (errorCode) return { failedIndex, errorCode }
     }
-    return Promise.resolve(tx)
+    await t.commitGate
+    fail('commit')
+    t.state = staged
+    return { seqno: 1n }
   }
 
   // A write on the World itself commits on its own, as a one-op
@@ -145,7 +155,7 @@ export function wizardTestWorld(
         t.state.objects.has(key) ? { [Symbol.dispose]: () => {} } : null,
       ),
     ...base,
-    getEngine: () => ({ newTransaction }),
+    getEngine: () => ({ executeWorldBatch }),
     applyWorldOp: (opId: string, opData: Uint8Array, sender: string) => {
       // Record the op and publish what it writes.
       fail(opId)

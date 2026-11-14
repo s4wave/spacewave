@@ -17,8 +17,6 @@ import {
   CloseGraphPathQueryResponse,
   CloseRequest,
   CloseResponse,
-  CommitMutationsRequest,
-  CommitMutationsResponse,
   CommitRequest,
   CommitResponse,
   CompareObjectRecordsRequest,
@@ -35,6 +33,8 @@ import {
   DiscardResponse,
   ErrRequest,
   ErrResponse,
+  ExecuteWorldBatchRequest,
+  ExecuteWorldBatchResponse,
   GetEngineInfoRequest,
   GetEngineInfoResponse,
   GetKeyRequest,
@@ -195,6 +195,19 @@ export const EngineResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ExecuteWorldBatch applies a list of writes in one write transaction and
+     * commits it, or writes nothing when any mutation is refused or fails. The
+     * writer is held only inside the call, never across client round trips.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldBatch
+     */
+    ExecuteWorldBatch: {
+      name: 'ExecuteWorldBatch',
+      I: ExecuteWorldBatchRequest,
+      O: ExecuteWorldBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.EngineResourceService.Sync
      */
     Sync: {
@@ -352,6 +365,18 @@ export interface EngineResourceService {
   ): Promise<ApplyWorldOpResponse>
 
   /**
+   * ExecuteWorldBatch applies a list of writes in one write transaction and
+   * commits it, or writes nothing when any mutation is refused or fails. The
+   * writer is held only inside the call, never across client round trips.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldBatch
+   */
+  ExecuteWorldBatch(
+    request: ExecuteWorldBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ExecuteWorldBatchResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.Sync
    */
   Sync(request: SyncRequest, abortSignal?: AbortSignal): Promise<SyncResponse>
@@ -501,6 +526,19 @@ export interface EngineResourceServiceHandler {
   ): Promise<ApplyWorldOpResponse>
 
   /**
+   * ExecuteWorldBatch applies a list of writes in one write transaction and
+   * commits it, or writes nothing when any mutation is refused or fails. The
+   * writer is held only inside the call, never across client round trips.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldBatch
+   */
+  ExecuteWorldBatch(
+    request: ExecuteWorldBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ExecuteWorldBatchResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.Sync
    */
   Sync(
@@ -611,6 +649,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.SetRetainedRoot = this.SetRetainedRoot.bind(this)
     this.NewTransaction = this.NewTransaction.bind(this)
     this.ExecuteWorldOp = this.ExecuteWorldOp.bind(this)
+    this.ExecuteWorldBatch = this.ExecuteWorldBatch.bind(this)
     this.Sync = this.Sync.bind(this)
     this.SyncThrough = this.SyncThrough.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
@@ -728,6 +767,27 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return ApplyWorldOpResponse.fromBinary(result)
+  }
+
+  /**
+   * ExecuteWorldBatch applies a list of writes in one write transaction and
+   * commits it, or writes nothing when any mutation is refused or fails. The
+   * writer is held only inside the call, never across client round trips.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldBatch
+   */
+  async ExecuteWorldBatch(
+    request: ExecuteWorldBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ExecuteWorldBatchResponse> {
+    const requestMsg = ExecuteWorldBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.ExecuteWorldBatch.name,
+      ExecuteWorldBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ExecuteWorldBatchResponse.fromBinary(result)
   }
 
   /**
@@ -2472,17 +2532,6 @@ export const TxResourceServiceDefinition = {
   typeName: 's4wave.world.TxResourceService',
   methods: {
     /**
-     * CommitMutations applies ordered mutations and atomically commits the transaction.
-     *
-     * @generated from rpc s4wave.world.TxResourceService.CommitMutations
-     */
-    CommitMutations: {
-      name: 'CommitMutations',
-      I: CommitMutationsRequest,
-      O: CommitMutationsResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Commit atomically publishes the retained transaction.
      *
      * @generated from rpc s4wave.world.TxResourceService.Commit
@@ -2514,16 +2563,6 @@ export const TxResourceServiceDefinition = {
  */
 export interface TxResourceService {
   /**
-   * CommitMutations applies ordered mutations and atomically commits the transaction.
-   *
-   * @generated from rpc s4wave.world.TxResourceService.CommitMutations
-   */
-  CommitMutations(
-    request: CommitMutationsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CommitMutationsResponse>
-
-  /**
    * Commit atomically publishes the retained transaction.
    *
    * @generated from rpc s4wave.world.TxResourceService.Commit
@@ -2550,17 +2589,6 @@ export interface TxResourceService {
  * @generated from service s4wave.world.TxResourceService
  */
 export interface TxResourceServiceHandler {
-  /**
-   * CommitMutations applies ordered mutations and atomically commits the transaction.
-   *
-   * @generated from rpc s4wave.world.TxResourceService.CommitMutations
-   */
-  CommitMutations(
-    request: CommitMutationsRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<CommitMutationsResponse>
-
   /**
    * Commit atomically publishes the retained transaction.
    *
@@ -2592,29 +2620,9 @@ export class TxResourceServiceClient implements TxResourceService {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || TxResourceServiceServiceName
     this.rpc = rpc
-    this.CommitMutations = this.CommitMutations.bind(this)
     this.Commit = this.Commit.bind(this)
     this.Discard = this.Discard.bind(this)
   }
-  /**
-   * CommitMutations applies ordered mutations and atomically commits the transaction.
-   *
-   * @generated from rpc s4wave.world.TxResourceService.CommitMutations
-   */
-  async CommitMutations(
-    request: CommitMutationsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CommitMutationsResponse> {
-    const requestMsg = CommitMutationsRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      TxResourceServiceDefinition.methods.CommitMutations.name,
-      CommitMutationsRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return CommitMutationsResponse.fromBinary(result)
-  }
-
   /**
    * Commit atomically publishes the retained transaction.
    *

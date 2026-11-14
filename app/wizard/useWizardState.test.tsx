@@ -141,11 +141,10 @@ describe('useWizardState', () => {
     // The index move and the delete committed together.
     await waitFor(() => expect(t.calls).toContain('commit'))
     expect(t.calls).toEqual([
-      'open',
+      'batch',
       SET_SPACE_INDEX_PATH_OP_ID,
       'delete',
       'commit',
-      'release',
     ])
     expect(t.state).toEqual({
       objects: new Set(),

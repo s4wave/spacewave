@@ -231,8 +231,8 @@ func BrowserFromQuickstartTiming(contentReadyMs int, raw map[string]any) Browser
 
 // CountDriveSeedResourceCalls counts the timed Resource SDK calls that the
 // Drive quickstart seed issues after populate-space begins and before content is
-// ready. Wrapper phases such as populate-space and init-drive-unixfs are omitted
-// because their leaf transaction phases carry the actual RPC calls.
+// ready. The populate-space wrapper is omitted because its leaf phases carry
+// the actual RPC calls.
 func CountDriveSeedResourceCalls(phases []Phase) int {
 	count := 0
 	for _, phase := range phases {
@@ -639,17 +639,9 @@ func setOptionalIntJSONField(arena *fastjson.Arena, obj *fastjson.Value, key str
 }
 
 var driveSeedResourcePhaseNames = []string{
-	"init-drive-unixfs-new-transaction",
-	"init-drive-unixfs-apply-op",
-	"init-drive-unixfs-commit",
-	"init-drive-unixfs-discard",
+	"init-drive-batch",
 	"write-drive-starter-guide-access",
 	"write-drive-starter-guide-upload",
-	"create-drive-settings-get-object",
-	"create-drive-settings-new-transaction",
-	"create-drive-settings-apply-op",
-	"create-drive-settings-commit",
-	"create-drive-settings-discard",
 }
 
 // ParseStartupMarks parses the page startup-mark timeline captured with
@@ -736,8 +728,7 @@ func setDriveSeedWindow(browser *Browser) {
 	var finish *int
 	for _, phase := range browser.QuickstartPhases {
 		if !strings.HasPrefix(phase.Name, "init-drive-") &&
-			!strings.HasPrefix(phase.Name, "write-drive-starter-guide-") &&
-			!strings.HasPrefix(phase.Name, "create-drive-settings") {
+			!strings.HasPrefix(phase.Name, "write-drive-starter-guide-") {
 			continue
 		}
 		started := phase.StartedMs

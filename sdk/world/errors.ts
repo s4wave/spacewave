@@ -43,3 +43,32 @@ export function throwOperationError(response: OperationResponse): void {
   if (response.errorCode === WorldErrorCode.UNHANDLED_OP)
     throw new Error('remote world operation unhandled')
 }
+
+// WorldBatchRefusal refuses a World batch with a built-in code, such as an
+// absent object a delete expected. failedIndex names the refused mutation.
+export class WorldBatchRefusal extends Error {
+  override readonly name = 'WorldBatchRefusal'
+
+  constructor(
+    readonly failedIndex: number,
+    readonly code: WorldErrorCode,
+  ) {
+    super(
+      `world batch mutation ${failedIndex} refused: ${WorldErrorCode[code]}`,
+    )
+  }
+}
+
+// BatchResponse is the error part of a World batch response.
+export interface BatchResponse extends OperationResponse {
+  failedIndex?: number
+}
+
+// throwBatchError throws the refusal a batch response carries: an op's
+// rejection as WorldOperationRejection, and a built-in code as
+// WorldBatchRefusal.
+export function throwBatchError(response: BatchResponse): void {
+  if (response.rejectionCode) throwOperationError(response)
+  if (response.errorCode)
+    throw new WorldBatchRefusal(response.failedIndex ?? 0, response.errorCode)
+}

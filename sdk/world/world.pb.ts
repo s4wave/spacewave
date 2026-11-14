@@ -748,169 +748,6 @@ export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
   )
 
 /**
- * CommitMutationsRequest is the request type for CommitMutations.
- *
- * @generated from message s4wave.world.CommitMutationsRequest
- */
-export interface CommitMutationsRequest {
-  /**
-   * Mutations are applied in request order before the transaction commits.
-   */
-  mutations?: TransactionMutation[]
-}
-
-export const CommitMutationsRequest: MessageType<CommitMutationsRequest> =
-  /* @__PURE__ */ createMessageType<CommitMutationsRequest>(
-    's4wave.world.CommitMutationsRequest',
-    () => [[1, 'mutations', 11, 1, TransactionMutation.codec]],
-  )
-
-/**
- * TransactionMutation applies one World mutation.
- *
- * @generated from message s4wave.world.TransactionMutation
- */
-export interface TransactionMutation {
-  /**
-   * @generated from oneof s4wave.world.TransactionMutation.mutation
-   */
-  mutation?:
-    | { value?: undefined; case: undefined }
-    | { value: CreateObjectRequest; case: 'createObject' }
-    | { value: SetObjectRootMutation; case: 'setObjectRoot' }
-    | { value: SetGraphQuadRequest; case: 'setGraphQuad' }
-}
-
-export const TransactionMutation: MessageType<TransactionMutation> =
-  /* @__PURE__ */ createMessageType<TransactionMutation>(
-    's4wave.world.TransactionMutation',
-    () => [
-      [1, 'create_object', 11, 0, CreateObjectRequest.codec, 'mutation'],
-      [2, 'set_object_root', 11, 0, SetObjectRootMutation.codec, 'mutation'],
-      [3, 'set_graph_quad', 11, 0, SetGraphQuadRequest.codec, 'mutation'],
-    ],
-  )
-
-/**
- * SetObjectRootMutation replaces an object's root by its exact key.
- *
- * @generated from message s4wave.world.SetObjectRootMutation
- */
-export interface SetObjectRootMutation {
-  /**
-   * ObjectKey identifies the exact object inside this transaction.
-   */
-  objectKey?: string
-  /**
-   * RootRef is the replacement immutable object root.
-   */
-  rootRef?: ObjectRef
-}
-
-export const SetObjectRootMutation: MessageType<SetObjectRootMutation> =
-  /* @__PURE__ */ createMessageType<SetObjectRootMutation>(
-    's4wave.world.SetObjectRootMutation',
-    () => [
-      [1, 'object_key', 9],
-      [2, 'root_ref', 11, 0, ObjectRef.codec],
-    ],
-  )
-
-/**
- * TransactionMutationResult returns the value from one transaction mutation.
- *
- * @generated from message s4wave.world.TransactionMutationResult
- */
-export interface TransactionMutationResult {
-  /**
-   * @generated from oneof s4wave.world.TransactionMutationResult.result
-   */
-  result?:
-    | { value?: undefined; case: undefined }
-    | { value: CreateObjectMutationResult; case: 'createObject' }
-    | { value: SetObjectRootMutationResult; case: 'setObjectRoot' }
-    | { value: SetGraphQuadResponse; case: 'setGraphQuad' }
-}
-
-export const TransactionMutationResult: MessageType<TransactionMutationResult> =
-  /* @__PURE__ */ createMessageType<TransactionMutationResult>(
-    's4wave.world.TransactionMutationResult',
-    () => [
-      [1, 'create_object', 11, 0, CreateObjectMutationResult.codec, 'result'],
-      [
-        2,
-        'set_object_root',
-        11,
-        0,
-        SetObjectRootMutationResult.codec,
-        'result',
-      ],
-      [3, 'set_graph_quad', 11, 0, SetGraphQuadResponse.codec, 'result'],
-    ],
-  )
-
-/**
- * CreateObjectMutationResult returns the created object's key.
- *
- * @generated from message s4wave.world.CreateObjectMutationResult
- */
-export interface CreateObjectMutationResult {
-  /**
-   * ObjectKey identifies the created object.
-   */
-  objectKey?: string
-  /**
-   * Rev is the created object's committed revision.
-   */
-  rev?: bigint
-}
-
-export const CreateObjectMutationResult: MessageType<CreateObjectMutationResult> =
-  /* @__PURE__ */ createMessageType<CreateObjectMutationResult>(
-    's4wave.world.CreateObjectMutationResult',
-    () => [
-      [1, 'object_key', 9],
-      [2, 'rev', 4],
-    ],
-  )
-
-/**
- * SetObjectRootMutationResult returns the object's new revision.
- *
- * @generated from message s4wave.world.SetObjectRootMutationResult
- */
-export interface SetObjectRootMutationResult {
-  /**
-   * Rev is the object's revision after the root replacement.
-   */
-  rev?: bigint
-}
-
-export const SetObjectRootMutationResult: MessageType<SetObjectRootMutationResult> =
-  /* @__PURE__ */ createMessageType<SetObjectRootMutationResult>(
-    's4wave.world.SetObjectRootMutationResult',
-    () => [[1, 'rev', 4]],
-  )
-
-/**
- * CommitMutationsResponse is the response type for CommitMutations.
- *
- * @generated from message s4wave.world.CommitMutationsResponse
- */
-export interface CommitMutationsResponse {
-  /**
-   * Results correspond one-for-one with the ordered request mutations.
-   */
-  results?: TransactionMutationResult[]
-}
-
-export const CommitMutationsResponse: MessageType<CommitMutationsResponse> =
-  /* @__PURE__ */ createMessageType<CommitMutationsResponse>(
-    's4wave.world.CommitMutationsResponse',
-    () => [[1, 'results', 11, 1, TransactionMutationResult.codec]],
-  )
-
-/**
  * CommitRequest is the request type for Commit.
  *
  * @generated from message s4wave.world.CommitRequest
@@ -2094,6 +1931,94 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
     () => [
       [1, 'seqno', 4],
       [2, 'sys_err', 8],
+      [3, 'error_code', 14, 0, WorldErrorCode_Enum],
+      [4, 'rejection_code', 9],
+      [5, 'rejection_message', 9],
+    ],
+  )
+
+/**
+ * WorldMutation is one write in an ExecuteWorldBatch list.
+ *
+ * @generated from message s4wave.world.WorldMutation
+ */
+export interface WorldMutation {
+  /**
+   * @generated from oneof s4wave.world.WorldMutation.mutation
+   */
+  mutation?:
+    | { value?: undefined; case: undefined }
+    | { value: ApplyWorldOpRequest; case: 'op' }
+    | { value: CreateObjectRequest; case: 'createObject' }
+    | { value: SetGraphQuadRequest; case: 'setGraphQuad' }
+    | { value: DeleteObjectRequest; case: 'deleteObject' }
+}
+
+export const WorldMutation: MessageType<WorldMutation> =
+  /* @__PURE__ */ createMessageType<WorldMutation>(
+    's4wave.world.WorldMutation',
+    () => [
+      [1, 'op', 11, 0, ApplyWorldOpRequest.codec, 'mutation'],
+      [2, 'create_object', 11, 0, CreateObjectRequest.codec, 'mutation'],
+      [3, 'set_graph_quad', 11, 0, SetGraphQuadRequest.codec, 'mutation'],
+      [4, 'delete_object', 11, 0, DeleteObjectRequest.codec, 'mutation'],
+    ],
+  )
+
+/**
+ * ExecuteWorldBatchRequest is the request type for ExecuteWorldBatch.
+ *
+ * @generated from message s4wave.world.ExecuteWorldBatchRequest
+ */
+export interface ExecuteWorldBatchRequest {
+  /**
+   * Mutations apply in order in one write transaction.
+   */
+  mutations?: WorldMutation[]
+}
+
+export const ExecuteWorldBatchRequest: MessageType<ExecuteWorldBatchRequest> =
+  /* @__PURE__ */ createMessageType<ExecuteWorldBatchRequest>(
+    's4wave.world.ExecuteWorldBatchRequest',
+    () => [[1, 'mutations', 11, 1, WorldMutation.codec]],
+  )
+
+/**
+ * ExecuteWorldBatchResponse is the response type for ExecuteWorldBatch.
+ * A refused batch wrote nothing, and names the mutation that refused it with
+ * error_code or rejection_code; an applied batch carries neither.
+ *
+ * @generated from message s4wave.world.ExecuteWorldBatchResponse
+ */
+export interface ExecuteWorldBatchResponse {
+  /**
+   * Seqno is the World sequence number after an applied batch.
+   */
+  seqno?: bigint
+  /**
+   * FailedIndex is the index of the mutation that refused a refused batch.
+   */
+  failedIndex?: number
+  /**
+   * ErrorCode identifies a built-in World refusal.
+   */
+  errorCode?: WorldErrorCode
+  /**
+   * RejectionCode is the stable application-defined code of a rejected op.
+   */
+  rejectionCode?: string
+  /**
+   * RejectionMessage is the safe explanation of a rejected op.
+   */
+  rejectionMessage?: string
+}
+
+export const ExecuteWorldBatchResponse: MessageType<ExecuteWorldBatchResponse> =
+  /* @__PURE__ */ createMessageType<ExecuteWorldBatchResponse>(
+    's4wave.world.ExecuteWorldBatchResponse',
+    () => [
+      [1, 'seqno', 4],
+      [2, 'failed_index', 13],
       [3, 'error_code', 14, 0, WorldErrorCode_Enum],
       [4, 'rejection_code', 9],
       [5, 'rejection_message', 9],

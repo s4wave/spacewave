@@ -52,18 +52,17 @@ async function run(
 }
 
 describe('runVmCreation', () => {
-  it('creates the VM, moves the index and deletes the wizard in one transaction', async () => {
+  it('creates the VM, moves the index and deletes the wizard in one batch', async () => {
     const t = wizardTestWorld(['wizard/vm-1'], 'wizard/vm-1')
     expect(await drain(t)).toEqual(['creating', 'ready'])
 
     // The VM create, the index move and the delete commit together.
     expect(t.calls).toEqual([
-      'open',
+      'batch',
       CREATE_VM_V86_OP_ID,
       SET_SPACE_INDEX_PATH_OP_ID,
       'delete',
       'commit',
-      'release',
     ])
     expect(t.state).toEqual({
       objects: new Set(['vm/v86/debian']),
