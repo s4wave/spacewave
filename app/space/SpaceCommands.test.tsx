@@ -10,7 +10,12 @@ import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { keysWorld } from '@s4wave/web/test/world-query.js'
+import {
+  keysWorld,
+  listingWorld,
+  type TypedObject,
+} from '@s4wave/web/test/world-query.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import {
   EXPERIMENTAL_CREATORS_STORAGE_KEY,
   setExperimentalCreatorsEnabled,
@@ -20,6 +25,7 @@ import {
   AddDeviceWizardTargetKeyPrefix,
   AddDeviceWizardTypeID,
 } from '../device/add-device-wizard.js'
+import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
 import { SpaceCommands } from './SpaceCommands.js'
 
 interface RegisteredCommand {
@@ -179,9 +185,11 @@ describe('SpaceCommands', () => {
   function renderCommands({
     canShare = true,
     onShareSpace = vi.fn(),
+    world = keysWorld([]),
   }: {
     canShare?: boolean
     onShareSpace?: () => void
+    world?: IWorldState
   } = {}) {
     return render(
       <SharedObjectContext.Provider
@@ -201,9 +209,7 @@ describe('SpaceCommands', () => {
             error: null,
             retry: vi.fn(),
           }}
-          spaceWorld={
-            { ...keysWorld([]), applyWorldOp: h.applyWorldOp } as never
-          }
+          spaceWorld={{ ...world, applyWorldOp: h.applyWorldOp } as never}
           navigateToRoot={vi.fn()}
           navigateToObjects={h.navigateToObjects}
           buildObjectUrls={vi.fn()}
@@ -451,6 +457,116 @@ describe('SpaceCommands', () => {
     const decoded = InitObjectLayoutOp.fromBinary(opData)
     expect(decoded.objectKey).toBe('layout-1')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
+
+  // failedCreateToast returns the nth failure toast's title and options.
+  function failedCreateToast(n = 0) {
+    return h.toast.error.mock.calls[n] as unknown as [
+      string,
+      {
+        description: string
+        duration?: number
+        action?: { label: string; onClick: () => void }
+      },
+    ]
+  }
+
+  it('shows a refused create with its reason and offers the same create again', async () => {
+    h.applyWorldOp.mockRejectedValueOnce(
+      new WorldOperationRejection(
+        'space/layout/exists',
+        'A layout with this name already exists.',
+      ),
+    )
+    renderCommands()
+
+    const { handler } = getCreateObjectCommandHandlers()
+    handler({ subItemId: 'alpha/object-layout' })
+
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const [title, options] = failedCreateToast()
+    expect(title).toBe('Could not create Layout')
+    expect(options.description).toBe('A layout with this name already exists.')
+    expect(options.duration).toBe(Infinity)
+    expect(options.action?.label).toBe('Try again')
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+
+    options.action?.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+    const [first, second] = h.applyWorldOp.mock.calls
+    expect(second[0]).toBe(first[0])
+    expect(second[1]).toEqual(first[1])
+    expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
+  })
+
+  it.each([
+    ['alpha/object-layout', 'alpha/object-layout', 'Created Layout'],
+    ['notes/notebook', 'wizard/notes/notebook', null],
+  ])(
+    'finishes a %s create whose reply was lost without creating it twice',
+    async (typeId, objectType, success) => {
+      const objects: TypedObject[] = []
+      h.applyWorldOp.mockImplementationOnce((opTypeId, opData) => {
+        const objectKey =
+          opTypeId === CREATE_WIZARD_OBJECT_OP_ID
+            ? CreateWizardObjectOp.fromBinary(opData).objectKey
+            : InitObjectLayoutOp.fromBinary(opData).objectKey
+        objects.push({ objectKey: objectKey ?? '', objectType })
+        return Promise.reject(new Error('reply lost'))
+      })
+      renderCommands({ world: listingWorld(() => objects) })
+
+      getCreateObjectCommandHandlers().handler({ subItemId: typeId })
+      await waitFor(() => {
+        expect(h.toast.error).toHaveBeenCalledTimes(1)
+      })
+      const [, options] = failedCreateToast()
+      expect(options.description).toBe('The Space could not finish the change.')
+
+      options.action?.onClick()
+      await waitFor(() => {
+        expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+      })
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+      expect(objects).toHaveLength(1)
+      expect(objects[0].objectKey).not.toBe('')
+      expect(h.navigateToObjects).toHaveBeenCalledWith([objects[0].objectKey])
+      if (success) expect(h.toast.success).toHaveBeenCalledWith(success)
+      else expect(h.toast.success).not.toHaveBeenCalled()
+    },
+  )
+
+  it('does not retry a create whose key another object took', async () => {
+    const objects: TypedObject[] = []
+    h.applyWorldOp.mockImplementationOnce((_opTypeId, opData) => {
+      const objectKey = InitObjectLayoutOp.fromBinary(opData).objectKey ?? ''
+      objects.push({ objectKey, objectType: 'other/type' })
+      return Promise.reject(new Error('reply lost'))
+    })
+    renderCommands({ world: listingWorld(() => objects) })
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    failedCreateToast()[1].action?.onClick()
+
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(2)
+    })
+    const [title, options] = failedCreateToast(1)
+    expect(title).toBe('Could not create Layout')
+    expect(options.description).toBe('The Space could not finish the change.')
+    expect(options.action).toBeUndefined()
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
   })
 
   it('launches a persistent forge task wizard from the create-object command', async () => {
