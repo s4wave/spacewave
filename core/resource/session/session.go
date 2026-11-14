@@ -1165,7 +1165,7 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 		return nil, errors.Wrap(err, "lookup session controller")
 	}
 	defer sessionCtrlRef.Release()
-	if err := deleteProviderAccount(ctx, r.le, r.b, sessionCtrl, providerID, providerAccountID, objectStoreID, vol); err != nil {
+	if err := deleteProviderAccount(ctx, r.le, r.b, sessionCtrl, providerID, providerAccountID, objectStoreID, vol, nil); err != nil {
 		return nil, err
 	}
 	return &s4wave_session.DeleteAccountResponse{}, nil

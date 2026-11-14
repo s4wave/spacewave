@@ -1,6 +1,7 @@
 syntax = "proto3";
 package provider.transfer;
 
+import "github.com/s4wave/spacewave/core/provider/provider.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 
 // TransferMode defines the type of transfer operation.
@@ -79,6 +80,12 @@ message TransferCheckpoint {
   // SpaceIds is the selection the run was started with, empty for every
   // Space.
   repeated string space_ids = 2;
+  // SourceSession names the source session the run was started with. Session
+  // indexes are reused, so a resume runs only while its indexes still name
+  // this session and TargetSession.
+  provider.ProviderResourceRef source_session = 3;
+  // TargetSession names the target session the run was started with.
+  provider.ProviderResourceRef target_session = 4;
 }
 
 // TransferOrigin records, on the target, the source a transfer moved a Space

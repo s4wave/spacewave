@@ -33,10 +33,14 @@ const unlinkTimeout = 30 * time.Second
 // open. A stop between the sessions and the volume leaves an unlisted volume
 // on disk, which loses nothing the person kept.
 //
+// keep, when set, runs before the first change and again just before the
+// volume delete; an error from it keeps the volume and returns. A transfer
+// passes a check that the source lists no Space the run did not move.
+//
 // Once the first session delete starts, the rest runs to its end even if ctx
-// is cancelled. Steps that follow the volume delete are best effort: a failed volume delete
-// or cloud unlink is logged and returns nil, because the account is already
-// gone from the session list and a retry has nothing to resume from.
+// is cancelled. A failed volume delete is returned. The cloud unlinks that
+// follow it are best effort: a failure is logged, because the account is
+// already gone.
 //
 // objectStoreID names the session object store on vol that holds the
 // sessions' keys and, for a local account, their linked-cloud account ids.
@@ -47,6 +51,7 @@ func deleteProviderAccount(
 	sessCtrl session.SessionController,
 	providerID, accountID, objectStoreID string,
 	vol volume.Volume,
+	keep func(context.Context) error,
 ) error {
 	// List the account's sessions, and keep the full list to find the cloud
 	// sessions to unlink after the volume is gone.
@@ -55,6 +60,11 @@ func deleteProviderAccount(
 		return errors.Wrap(err, "list sessions")
 	}
 	accountSessions := filterAccountSessions(allSessions, providerID, accountID)
+
+	// Keep the account whole when it holds something the caller must keep.
+	if err := runKeep(ctx, keep); err != nil {
+		return err
+	}
 
 	// Read the linked-cloud ids and delete the session keys while the object
 	// store is open; both live on the volume.
@@ -79,15 +89,18 @@ func deleteProviderAccount(
 	if n := len(filterAccountSessions(remaining, providerID, accountID)); n != 0 {
 		return errors.Errorf("%d sessions of the account are still listed", n)
 	}
+	if err := runKeep(ctx, keep); err != nil {
+		return errors.Wrap(err, "keep the account volume")
+	}
 	if err := vol.Delete(); err != nil {
-		le.WithError(err).Warn("failed to delete volume backing store")
+		return errors.Wrap(err, "delete the account volume")
 	}
 
 	// Unlink the cloud side's linked-local keys, each within a deadline since
 	// ctx no longer ends.
 	for _, cloudAccountID := range linkedCloudIDs {
 		uctx, cancel := context.WithTimeout(ctx, unlinkTimeout)
-		err := unlinkCloudSession(uctx, b, allSessions, cloudAccountID)
+		err := unlinkCloudSession(uctx, b, allSessions, accountSessions, cloudAccountID)
 		cancel()
 		if err != nil {
 			le.WithError(err).WithField("cloud-account-id", cloudAccountID).
@@ -95,6 +108,14 @@ func deleteProviderAccount(
 		}
 	}
 	return nil
+}
+
+// runKeep runs keep, if set.
+func runKeep(ctx context.Context, keep func(context.Context) error) error {
+	if keep == nil {
+		return nil
+	}
+	return keep(ctx)
 }
 
 // filterAccountSessions returns the entries of sessions naming the account.
@@ -174,11 +195,13 @@ func clearSessionKeys(
 	return linked, nil
 }
 
-// unlinkCloudSession deletes the linked-local key that the cloud session of
-// cloudAccountID keeps for its local session. It does nothing when no listed
-// cloud session names that account.
-func unlinkCloudSession(ctx context.Context, b bus.Bus, sessions []*session.SessionListEntry, cloudAccountID string) error {
-	// Find the cloud session that names the account.
+// unlinkCloudSession deletes the linked-local key that each cloud session of
+// cloudAccountID keeps, when the local session index it stores is one of
+// deleted. A key naming another local session, such as one the cloud account
+// was linked to since, stays. It does nothing when no listed cloud session
+// names the account.
+func unlinkCloudSession(ctx context.Context, b bus.Bus, sessions []*session.SessionListEntry, deleted []*session.SessionListEntry, cloudAccountID string) error {
+	// Find the cloud sessions that name the account.
 	cloud := filterAccountSessions(sessions, provider_spacewave.ProviderID, cloudAccountID)
 	if len(cloud) == 0 {
 		return nil
@@ -198,6 +221,24 @@ func unlinkCloudSession(ctx context.Context, b bus.Bus, sessions []*session.Sess
 		return errors.New("cloud account is not a spacewave account")
 	}
 
-	// Delete the cloud session's linked-local key.
-	return swAcc.DeleteLinkedLocalSession(ctx, cloud[0].GetSessionRef().GetProviderResourceRef().GetId())
+	// Delete each linked-local key that names a deleted session. Reading a
+	// key whose index is no longer listed already removes it.
+	gone := make(map[uint32]struct{}, len(deleted))
+	for _, e := range deleted {
+		gone[e.GetSessionIndex()] = struct{}{}
+	}
+	for _, entry := range cloud {
+		sid := entry.GetSessionRef().GetProviderResourceRef().GetId()
+		found, idx, err := swAcc.GetLinkedLocalSession(ctx, sid)
+		if err != nil {
+			return err
+		}
+		if _, ok := gone[idx]; !found || !ok {
+			continue
+		}
+		if err := swAcc.DeleteLinkedLocalSession(ctx, sid); err != nil {
+			return err
+		}
+	}
+	return nil
 }

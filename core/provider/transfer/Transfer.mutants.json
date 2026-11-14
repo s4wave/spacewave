@@ -191,5 +191,19 @@
       ]
     ],
     "expect": "MigrateKeepsKey"
+  },
+  {
+    "name": "cleanup deletes a Space the target no longer holds",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [
+      ["ELSE origin[s] = Written(ver[s])", "ELSE origin[s].h = ver[s]"]
+    ],
+    "expect": "CleanupAtHead"
+  },
+  {
+    "name": "the volume delete does not list the source again",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [["  /\\ src = {}\n", ""]],
+    "expect": "NewSpaceKept"
   }
 ]

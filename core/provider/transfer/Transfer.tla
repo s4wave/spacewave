@@ -36,7 +36,9 @@
 \* write on the target during the copy makes the Space not moved. A run with
 \* any Space not moved ends with that list and cleans up nothing. Cleanup
 \* checks each Space again just before deleting it; a Space whose source moved
-\* since its copy is moved again first.
+\* since its copy is moved again first. The delete also needs the target to
+\* hold the Space as moved; one the target no longer lists as written there,
+\* such as one deleted on the target since, stays on the source, not moved.
 \*
 \* A cloud target stores no origin. It reads a listed Space with no config as
 \* arriving, and a configured one as moved only when its World is the
@@ -53,7 +55,10 @@
 \*
 \* The source account may have several sessions, and the person may start a
 \* run from any session still listed. A run started from a session whose
-\* volume is gone remounts it empty, under a new peer key.
+\* volume is gone remounts it empty, under a new peer key. While a session is
+\* listed the person may create a Space on the source, NewSpace, which no run
+\* picked; the volume delete lists the source again and keeps the volume, and
+\* fails the run, while it holds any Space.
 \*
 \* The target's collector frees a copied World at any time once neither the
 \* stage nor the import root holds it. A stall past the stage's lease ends the
@@ -72,6 +77,8 @@ EXTENDS Naturals, FiniteSets
 CONSTANTS TgtCloud, SrcCloud, SharedA, SharedB
 
 Spaces == {"a", "b"}
+\* A Space the person creates on the source during a run, under a new id.
+NewSpace == "c"
 Modes == {"merge", "migrate", "mirror"}
 \* The source account's sessions.
 Sessions == {"s1", "s2"}
@@ -133,11 +140,12 @@ VARIABLES
   shared,   \* the source Spaces held as a member of another's shared object
   cloudSrc, \* the source is a cloud account
   alive,    \* the shared objects a second member still reads
-  keyLost   \* the target lacks the source's peer key after a Migrate deleted the
+  keyLost,  \* the target lacks the source's peer key after a Migrate deleted the
             \* source volume, or holds a new key copied over it
+  newLost   \* the volume delete removed a Space the source created during a run
 run == <<pc, entries, cur, step, expect, cv, moved, notMoved, staged>>
 target == <<blocks, held, tc, origin, lost, touched, touches, cloudTgt, unjust>>
-source == <<src, ver, delOk, vol, sessions, key, fresh, shared, cloudSrc, alive, keyLost>>
+source == <<src, ver, delOk, vol, sessions, key, fresh, shared, cloudSrc, alive, keyLost, newLost>>
 vars == <<mode, picked, run, target, source, runs, faults>>
 
 Deletes == mode \in {"merge", "migrate"}
@@ -178,6 +186,7 @@ Init ==
   /\ key = FALSE
   /\ fresh = FALSE
   /\ keyLost = FALSE
+  /\ newLost = FALSE
   /\ faults = 0
 
 \* Clear this run's memory and go to pc.
@@ -194,7 +203,7 @@ Start ==
   /\ entries' = src \cap picked
   /\ IF vol THEN UNCHANGED fresh ELSE fresh' = TRUE
   /\ vol' = TRUE
-  /\ UNCHANGED <<mode, picked, cur, step, expect, cv, moved, notMoved, staged, target, src, ver, delOk, sessions, key, shared, cloudSrc, alive, keyLost, runs, faults>>
+  /\ UNCHANGED <<mode, picked, cur, step, expect, cv, moved, notMoved, staged, target, src, ver, delOk, sessions, key, shared, cloudSrc, alive, keyLost, newLost, runs, faults>>
 
 \* Merge and Migrate refuse to start when the pick leaves out a Space, since
 \* deleting the volume would delete it.
@@ -341,7 +350,7 @@ CopyKey ==
   /\ key' = TRUE
   /\ keyLost' = (keyLost \/ fresh)
   /\ pc' = "cleanup"
-  /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, moved, notMoved, staged, target, src, ver, delOk, vol, sessions, fresh, runs, faults, shared, cloudSrc, alive>>
+  /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, moved, notMoved, staged, target, src, ver, delOk, vol, sessions, fresh, runs, faults, shared, cloudSrc, alive, newLost>>
 
 \* The target holds the Space as written from its current source head, or is
 \* a member of the shared object a local source holds.
@@ -355,29 +364,49 @@ DeleteSpace(s) ==
   /\ delOk' = [delOk EXCEPT ![s] =
        IF s \in shared THEN tc[s] = Member ELSE tc[s].k = "src" /\ tc[s].v = ver[s]]
   /\ alive' = IF s \in shared /\ cloudSrc THEN alive \ {s} ELSE alive
-  /\ UNCHANGED <<mode, picked, run, target, ver, vol, sessions, key, fresh, runs, faults, shared, cloudSrc, keyLost>>
+  /\ UNCHANGED <<mode, picked, run, target, ver, vol, sessions, key, fresh, runs, faults, shared, cloudSrc, keyLost, newLost>>
 
 \* A Space whose source moved since its copy goes back to be decided again.
 Recheck(s) ==
-  /\ pc = "cleanup" /\ s \in entries \cap src /\ ~AtHead(s)
+  /\ pc = "cleanup" /\ s \in entries \cap src /\ ~AtHead(s) /\ origin[s].ph = "written"
   /\ pc' = "spaces"
   /\ moved' = moved \ {s}
   /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, notMoved, staged, target, source, runs, faults>>
+
+\* A Space the target no longer holds as moved stays on the source, and the
+\* run ends with it not moved. When the source also moved, the code may move
+\* it again instead, as Recheck does.
+TargetLost(s) ==
+  /\ pc = "cleanup" /\ s \in entries \cap src /\ ~AtHead(s)
+  /\ (s \in shared \/ origin[s].ph # "written")
+  /\ pc' = "notmoved"
+  /\ moved' = moved \ {s} /\ notMoved' = notMoved \cup {s}
+  /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, staged, target, source, runs, faults>>
 
 \* Then it deletes every session of the source account, after every Space.
 DeleteSession(x) ==
   /\ pc = "cleanup" /\ entries \cap src = {} /\ x \in sessions
   /\ sessions' = sessions \ {x}
-  /\ UNCHANGED <<mode, picked, run, target, src, ver, delOk, vol, key, fresh, runs, faults, shared, cloudSrc, alive, keyLost>>
+  /\ UNCHANGED <<mode, picked, run, target, src, ver, delOk, vol, key, fresh, runs, faults, shared, cloudSrc, alive, keyLost, newLost>>
 
-\* Last it deletes the source volume, once no session lists it.
+\* Last it deletes the source volume, once no session lists it and it holds
+\* no Space.
 DeleteVolume ==
   /\ pc = "cleanup" /\ entries \cap src = {} /\ sessions = {}
+  /\ src = {}
   /\ vol' = FALSE /\ src' = {}
   /\ alive' = IF cloudSrc THEN alive \ (src \cap shared) ELSE alive
   /\ keyLost' = (keyLost \/ (mode = "migrate" /\ ~key))
+  /\ newLost' = (newLost \/ NewSpace \in src)
   /\ pc' = "done"
   /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, moved, notMoved, staged, target, ver, delOk, sessions, key, fresh, runs, faults, shared, cloudSrc>>
+
+\* The volume delete finds a Space the run did not move, keeps the volume and
+\* fails the run; the sessions already deleted leave it Stranded.
+KeepVolume ==
+  /\ pc = "cleanup" /\ entries \cap src = {} /\ sessions = {} /\ src # {}
+  /\ Stop("idle")
+  /\ UNCHANGED <<mode, picked, target, source, runs, faults>>
 
 \* The routine stops at any step, by a crash, a cancel or a failed copy,
 \* losing what it held in memory and ending its stage. The person may start
@@ -403,11 +432,17 @@ Free(s) ==
   /\ blocks' = blocks \ {s}
   /\ UNCHANGED <<mode, picked, run, held, tc, origin, lost, touched, touches, cloudTgt, unjust, source, runs, faults>>
 
+\* The person creates a Space on the source through a listed session.
+SourceCreate ==
+  /\ vol /\ sessions # {} /\ NewSpace \notin src
+  /\ src' = src \cup {NewSpace}
+  /\ UNCHANGED <<mode, picked, run, target, ver, delOk, vol, sessions, key, fresh, runs, faults, shared, cloudSrc, alive, keyLost, newLost>>
+
 \* The person writes to a source Space, except during cleanup.
 SourceWrite(s) ==
   /\ s \in src /\ ver[s] < MaxEdits /\ pc # "cleanup"
   /\ ver' = [ver EXCEPT ![s] = @ + 1]
-  /\ UNCHANGED <<mode, picked, run, target, src, delOk, vol, sessions, key, fresh, runs, faults, shared, cloudSrc, alive, keyLost>>
+  /\ UNCHANGED <<mode, picked, run, target, src, delOk, vol, sessions, key, fresh, runs, faults, shared, cloudSrc, alive, keyLost, newLost>>
 
 \* The person writes to a Space the target lists; the target holds its World.
 \* A Space the transfer added and has not written is arriving: the target
@@ -466,11 +501,11 @@ Done == (pc \in Ends \/ Stranded) /\ UNCHANGED vars
 
 Progress ==
   \/ Start \/ Refuse \/ Decide \/ Copy \/ Hold \/ Check \/ Write \/ Release
-  \/ SpacesDone \/ CopyKey \/ DeleteVolume
+  \/ SpacesDone \/ CopyKey \/ DeleteVolume \/ KeepVolume
   \/ \E x \in Sessions : DeleteSession(x)
-  \/ \E s \in Spaces : Begin(s) \/ DeleteSpace(s) \/ Recheck(s)
+  \/ \E s \in Spaces : Begin(s) \/ DeleteSpace(s) \/ Recheck(s) \/ TargetLost(s)
 Next ==
-  \/ Progress \/ Fault \/ Lapse \/ Done \/ NewRun
+  \/ Progress \/ Fault \/ Lapse \/ Done \/ NewRun \/ SourceCreate
   \/ \E s \in Spaces :
        Free(s) \/ SourceWrite(s) \/ TargetWrite(s) \/ TargetDelete(s) \/ TargetCreate(s)
        \/ TargetConfig(s)
@@ -506,6 +541,8 @@ StateHeld == \A s \in Spaces : tc[s].k = "src" => s \in held /\ s \in blocks
 \* Migrate deletes the source volume only after the target holds its peer key,
 \* and no later run copies a different key over it.
 MigrateKeepsKey == ~keyLost
+\* The volume delete never removes a Space the run did not move.
+NewSpaceKept == ~newLost
 \* Every run ends: done, not moved, refused, or stranded.
 Finishes == [](pc \notin Ends => <>(pc \in Ends \/ Stranded))
 ====
