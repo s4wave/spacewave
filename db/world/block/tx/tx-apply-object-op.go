@@ -99,8 +99,8 @@ func (t *TxApplyObjectOp) ExecuteTx(
 	if err != nil {
 		return false, err
 	}
-	_, _, err = obj.ApplyObjectOp(ctx, op, sender)
-	return false, nameMissingBlock(err, t.GetOperationTypeId()+" on "+t.GetObjectKey(), op)
+	_, sysErr, err = obj.ApplyObjectOp(ctx, op, sender)
+	return sysErr, nameMissingBlock(err, t.GetOperationTypeId()+" on "+t.GetObjectKey(), op)
 }
 
 // decodeOp validates the transaction and decodes its operation, resolving the

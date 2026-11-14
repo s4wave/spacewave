@@ -45,7 +45,6 @@ func FsRename(
 }
 
 // NewFsRenameOp constructs a new FsRenameOp block.
-// repoRef, worktreeArgs can be empty
 func NewFsRenameOp(
 	objKey string,
 	fsType FSType,
@@ -77,6 +76,12 @@ func (o *FsRenameOp) Validate() error {
 		return err
 	}
 	return nil
+}
+
+// WriteObjectKeys returns the filesystem object: the op renames from one path
+// to another inside it, and writes no other object.
+func (o *FsRenameOp) WriteObjectKeys() []string {
+	return []string{o.GetObjectKey()}
 }
 
 // ApplyWorldOp applies the operation as a world operation.
@@ -135,4 +140,4 @@ func (o *FsRenameOp) ApplyWorldObjectOp(
 }
 
 // _ is a type assertion
-var _ world.Operation = (*FsRenameOp)(nil)
+var _ world.WriteKeysOperation = (*FsRenameOp)(nil)

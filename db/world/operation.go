@@ -52,6 +52,18 @@ type ObjectOperation interface {
 	) (sysErr bool, err error)
 }
 
+// WriteKeysOperation is an Operation that names, before it applies, every
+// object key its World apply can write, including keys it derives from its
+// fields. A guarded WorldState checks these keys before the op applies. An op
+// that cannot name every key it can write in advance does not implement it,
+// and a guard that limits writes refuses it.
+type WriteKeysOperation interface {
+	Operation
+
+	// WriteObjectKeys returns every object key ApplyWorldOp can write.
+	WriteObjectKeys() []string
+}
+
 // ValidateOp validates op when it implements ValidatedOperation.
 func ValidateOp(op Operation) error {
 	if v, ok := op.(ValidatedOperation); ok {

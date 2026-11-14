@@ -309,12 +309,16 @@ func retryWorldOp(err error) bool {
 // AppliesAtomically reports whether ApplyWorldOp or ApplyObjectOp on ws runs
 // each operation in a transaction of its own and discards that transaction
 // when the operation fails, so a failed operation kept nothing it wrote. It
-// holds for the World and object states NewEngineWorldState builds, and for no
-// state a caller's transaction backs.
+// holds for the World and object states NewEngineWorldState builds, and the
+// guarded states wrapping them, and for no state a caller's transaction backs.
 func AppliesAtomically(ws any) bool {
-	switch ws.(type) {
+	switch s := ws.(type) {
 	case *engineWorldState, *engineWorldStateObject:
 		return true
+	case *guardedWorldState:
+		return AppliesAtomically(s.ws)
+	case *guardedObjectState:
+		return AppliesAtomically(s.obj)
 	}
 	return false
 }

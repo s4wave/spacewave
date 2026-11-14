@@ -25,8 +25,12 @@ type EngineResource struct {
 	b bus.Bus
 	// mux serves the mounted Resource RPCs.
 	mux srpc.Invoker
-	// engine retains the granted transactional World capability.
+	// engine retains the granted transactional World capability, guarded when
+	// the mount has a write guard.
 	engine world.Engine
+	// retainer is the unguarded engine, used only to retain roots: retaining a
+	// root writes no World object, so the write guard does not cover it.
+	retainer world.Engine
 	// lookupOp resolves World operations under the granting mount.
 	lookupOp world.LookupOp
 	// engineInfo describes the engine selected by the granting mount.
@@ -51,11 +55,18 @@ func NewEngineResource(
 		opts = append(opts, WithEngineID(engineInfo.GetEngineId()))
 	}
 
+	// Guard the engine itself, so no handle or factory under this mount can
+	// open a transaction past the mount's write guard.
+	access := new(WorldStateResource)
+	applyWorldStateResourceOptions(access, opts...)
+	retainer, w := w, world.GuardEngine(w, access.writeGuard)
+
 	// Capture trusted access options and initialize the resource wrapper.
 	engineResource := &EngineResource{
 		le:                le,
 		b:                 b,
 		engine:            w,
+		retainer:          retainer,
 		lookupOp:          lookupOp,
 		engineInfo:        engineInfo,
 		worldStateOptions: opts,
@@ -127,7 +138,7 @@ func (r *EngineResource) GetWorldRootSnapshot(ctx context.Context, req *s4wave_w
 
 // SetRetainedRoot retains a World root in an engine that supports retention.
 func (r *EngineResource) SetRetainedRoot(ctx context.Context, req *s4wave_world.SetRetainedRootRequest) (*s4wave_world.SetRetainedRootResponse, error) {
-	err := world.AccessEngine(ctx, r.engine, func(ctx context.Context, eng world.Engine) error {
+	err := world.AccessEngine(ctx, r.retainer, func(ctx context.Context, eng world.Engine) error {
 		retainer, ok := eng.(rootRetainingEngine)
 		if !ok {
 			return errors.New("world engine does not retain roots")

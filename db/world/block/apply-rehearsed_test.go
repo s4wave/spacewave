@@ -60,6 +60,36 @@ func TestApplyRehearsedRejectsWithoutSlot(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
+
+	// A guarded engine still rehearses, with the guard on the rehearsal's
+	// writes: a refused operation returns while another write holds the slot.
+	guarded := world.GuardEngine(eng, refuseAllGuard{})
+	if _, ok := guarded.(world.RehearsalEngine); !ok {
+		t.Fatalf("guarded engine %T does not rehearse", guarded)
+	}
+	holder, err = eng.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer holder.Discard()
+	gctx, gcancel := context.WithTimeout(ctx, 5*time.Second)
+	defer gcancel()
+	_, _, err = world.ApplyRehearsed(gctx, world.NewEngineWorldState(guarded, true), world_mock.NewMockWorldOp("rehearsed/present", "guarded"), "")
+	if !errors.Is(err, errGuardRefused) || gctx.Err() != nil {
+		t.Fatalf("guarded operation returned %v, want the guard's refusal without the slot", err)
+	}
+}
+
+// errGuardRefused is the refusal of refuseAllGuard. A guard refuses only with
+// an OperationRejection; any other error is a failure to decide.
+var errGuardRefused = &world.OperationRejection{Code: "test/refused", Message: "refused by the test guard"}
+
+// refuseAllGuard refuses every write.
+type refuseAllGuard struct{}
+
+// CheckWrite refuses w.
+func (refuseAllGuard) CheckWrite(context.Context, world.WorldState, *world.GuardedWrite) error {
+	return errGuardRefused
 }
 
 // TestSqlCommitRehearsed measures the writer slot held by a SQL commit, the

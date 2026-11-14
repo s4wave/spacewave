@@ -45,7 +45,6 @@ func FsCopy(
 }
 
 // NewFsCopyOp constructs a new FsCopyOp block.
-// repoRef, worktreeArgs can be empty
 func NewFsCopyOp(
 	objKey string,
 	fsType FSType,
@@ -77,6 +76,12 @@ func (o *FsCopyOp) Validate() error {
 		return err
 	}
 	return nil
+}
+
+// WriteObjectKeys returns the filesystem object: the op copies from one path
+// to another inside it, and writes no other object.
+func (o *FsCopyOp) WriteObjectKeys() []string {
+	return []string{o.GetObjectKey()}
 }
 
 // ApplyWorldOp applies the operation as a world operation.
@@ -135,4 +140,4 @@ func (o *FsCopyOp) ApplyWorldObjectOp(
 }
 
 // _ is a type assertion
-var _ world.Operation = (*FsCopyOp)(nil)
+var _ world.WriteKeysOperation = (*FsCopyOp)(nil)

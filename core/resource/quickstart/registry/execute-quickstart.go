@@ -6,6 +6,8 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
+	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 )
@@ -55,8 +57,11 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	}
 	defer resources.Release()
 
-	// Attach the Space world engine to the Quickstart plugin for this request.
-	engineResource, err := spaceResource.NewWorldEngineResource()
+	// Attach the Space world engine to the Quickstart plugin for this request,
+	// writing as that plugin.
+	engineResource, err := spaceResource.NewWorldEngineResource(
+		resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(reg.GetPluginId())),
+	)
 	if err != nil {
 		return nil, err
 	}

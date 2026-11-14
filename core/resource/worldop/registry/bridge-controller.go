@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -239,6 +240,12 @@ func (o *bridgeOperation) TypeID() string {
 	return o.opTypeID
 }
 
+// WriteObjectKeys returns no keys: the op writes only through the World handle
+// its handler plugin receives, which guards each write as that plugin's.
+func (o *bridgeOperation) WriteObjectKeys() []string {
+	return nil
+}
+
 func bridgeOperationEngineID(op world.Operation) (string, bool) {
 	bridgeOp, ok := op.(*bridgeOperation)
 	if !ok {
@@ -268,11 +275,32 @@ func (o *bridgeOperation) UnmarshalVT(data []byte) error {
 }
 
 // ApplyWorldOp applies the operation as a world operation by proxying to the TS plugin.
+//
+// The handler's writes are guarded as its plugin's. An op the Space replays
+// from its log records the writes the guard would refuse instead, since its
+// author's run already admitted it.
 func (o *bridgeOperation) ApplyWorldOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
 	sender peer.ID,
+) (bool, error) {
+	guard := newHandlerWriteGuard(
+		o.le,
+		space_world_optypes.NewPluginWriteGuard(o.reg.GetPluginId()),
+		o.opTypeID,
+		space_world.IsReplay(ctx),
+	)
+	return o.applyWorldOp(ctx, ws, sender, guard)
+}
+
+// applyWorldOp applies the op through its plugin's handler, with every write
+// the handler makes checked by guard.
+func (o *bridgeOperation) applyWorldOp(
+	ctx context.Context,
+	ws world.WorldState,
+	sender peer.ID,
+	guard *handlerWriteGuard,
 ) (bool, error) {
 	// Bound the plugin's load, when not prepared, and every call into its
 	// worker while the writer is held.
@@ -311,10 +339,15 @@ func (o *bridgeOperation) ApplyWorldOp(
 	// Attach a WorldStateResource so the TS handler can mutate world state.
 	// Include built-in Space ops before the bus-backed dynamic registry so TS
 	// handlers can call applyWorldOp recursively (e.g. to init UnixFS objects).
+	// The handler writes as its own plugin, whoever applied the op.
 	lookupOp := space_world_optypes.BuildSpaceLookupOp(o.b, o.le, o.engineID)
-	wsResource := resource_world.NewWorldStateResource(o.le, o.b, ws, lookupOp, resource_world.WithSessionPeerID(sender))
+	opts := []resource_world.WorldStateResourceOption{
+		resource_world.WithSessionPeerID(sender),
+		resource_world.WithWriteGuard(guard),
+	}
+	wsResource := resource_world.NewWorldStateResource(o.le, o.b, ws, lookupOp, opts...)
 	typedResource := resource_world.NewTypedObjectResourceWithContext(
-		objecttype.WithSessionPeerID(ctx, sender), o.le, o.b, ws, nil,
+		objecttype.WithSessionPeerID(ctx, sender), o.le, o.b, ws, nil, opts...,
 	)
 	defer typedResource.Close()
 	stateMux := srpc.NewMux(wsResource.GetMux())
@@ -338,6 +371,12 @@ func (o *bridgeOperation) ApplyWorldOp(
 		AttachedWorldStateResourceId: worldStateResourceID,
 		Sender:                       sender.String(),
 	})
+
+	// Fail the op on a refused or undecided write, even one the handler caught
+	// or returned over RPC, which drops the error's type.
+	if sysErr, gerr := guard.result(); gerr != nil {
+		return sysErr, gerr
+	}
 	if err != nil {
 		return true, callErr(ctx, err)
 	}
@@ -349,12 +388,36 @@ func (o *bridgeOperation) ApplyWorldOp(
 	return resp.GetSystemError(), nil
 }
 
-// ApplyWorldObjectOp applies the operation to a world object by proxying to the TS plugin.
+// ApplyWorldObjectOp applies the operation to a world object by proxying to the
+// TS plugin. The handler's writes to the object are guarded as ApplyWorldOp
+// guards a World op's: as its plugin's, recorded instead of refused on replay.
 func (o *bridgeOperation) ApplyWorldObjectOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	os world.ObjectState,
 	sender peer.ID,
+) (bool, error) {
+	// The guard reads the World that holds the object.
+	holder, ok := os.(world.WorldStateGetter)
+	if !ok {
+		return true, errors.Errorf("apply world object op operation_type_id=%s: object state %T does not report its World", o.opTypeID, os)
+	}
+	guard := newHandlerWriteGuard(
+		o.le,
+		space_world_optypes.NewPluginWriteGuard(o.reg.GetPluginId()),
+		o.opTypeID,
+		space_world.IsReplay(ctx),
+	)
+	return o.applyWorldObjectOp(ctx, world.GuardObjectState(os, holder.GetWorldState(), guard), sender, guard)
+}
+
+// applyWorldObjectOp applies the op to os through its plugin's handler, with
+// every write the handler makes checked by guard, which os carries.
+func (o *bridgeOperation) applyWorldObjectOp(
+	ctx context.Context,
+	os world.ObjectState,
+	sender peer.ID,
+	guard *handlerWriteGuard,
 ) (bool, error) {
 	// Bound the plugin's load, when not prepared, and every call into its
 	// worker while the writer is held.
@@ -382,6 +445,7 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 
 	// Attach an ObjectStateResource so the TS handler can mutate the object and
 	// apply nested object operations through the same lookup chain as world ops.
+	// The handler reaches only os, the object its caller targeted.
 	lookupOp := space_world_optypes.BuildSpaceLookupOp(o.b, o.le, o.engineID)
 	objResource := resource_world.NewObjectStateResource(o.le, o.b, os, lookupOp, resource_world.WithSessionPeerID(sender))
 	objectStateResourceID, err := resources.Client.AttachResource(ctx, "object-state", objResource.GetMux())
@@ -400,6 +464,12 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 		AttachedObjectStateResourceId: objectStateResourceID,
 		Sender:                        sender.String(),
 	})
+
+	// Fail the op on a refused or undecided write, even one the handler caught
+	// or returned over RPC, which drops the error's type.
+	if sysErr, gerr := guard.result(); gerr != nil {
+		return sysErr, gerr
+	}
 	if err != nil {
 		return true, callErr(ctx, err)
 	}
@@ -555,7 +625,10 @@ func (o *bridgeOperation) getHandlerService(resources *s4wave_plugin.PluginResou
 }
 
 // _ is a type assertion
-var _ world.PreparedOperation = (*bridgeOperation)(nil)
+var (
+	_ world.PreparedOperation  = (*bridgeOperation)(nil)
+	_ world.WriteKeysOperation = (*bridgeOperation)(nil)
+)
 
 // _ is a type assertion
 var _ controller.Controller = (*WorldOpRegistryBridgeController)(nil)

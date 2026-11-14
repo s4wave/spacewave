@@ -38,7 +38,9 @@ type batchOp struct {
 func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_world.ExecuteWorldBatchRequest) (*s4wave_world.ExecuteWorldBatchResponse, error) {
 	// Resolve and prepare every op before the transaction takes the writer.
 	mutations := req.GetMutations()
-	ops, refused, release, err := r.prepareBatchOps(ctx, mutations)
+	access := &WorldStateResource{lookupOp: r.lookupOp}
+	applyWorldStateResourceOptions(access, r.worldStateOptions...)
+	ops, refused, release, err := prepareBatchOps(ctx, access, mutations)
 	defer release()
 	if err != nil || refused != nil {
 		return refused, err
@@ -48,9 +50,13 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 	var resp *s4wave_world.ExecuteWorldBatchResponse
 	err = world.ExecTransaction(ctx, r.engine, true, func(ctx context.Context, wtx world.WorldState) error {
 		// Name the failed index on a refusal and discard the transaction.
+		ws := world.GuardWorldState(wtx, access.writeGuard)
 		results := make([]*s4wave_world.WorldMutationResult, len(mutations))
 		for i, m := range mutations {
-			rev, refusal, err := applyWorldMutation(ctx, wtx, m, ops[i])
+			rev, refusal, err := applyWorldMutation(ctx, ws, m, ops[i])
+			if err != nil {
+				refusal, err = batchOpRefusal(err)
+			}
 			if err != nil {
 				return errors.Wrapf(err, "mutations[%d]", i)
 			}
@@ -77,20 +83,18 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 }
 
 // prepareBatchOps resolves, decodes and prepares the World and object op
-// entries of mutations in order, outside any transaction. ops is indexed like
+// entries of mutations in order, outside any transaction, with access holding
+// the mount options ExecuteWorldOp resolves ops with. ops is indexed like
 // mutations and holds nil for entries that are not ops. The first op the
 // mount cannot resolve, or whose preparation is refused, such as by a
 // rejection or an unavailable plugin, stops the walk and is returned as the
 // refusal at its index, and the batch then opens no transaction. release
 // frees every prepared op and must be called once the transaction has ended.
-func (r *EngineResource) prepareBatchOps(
+func prepareBatchOps(
 	ctx context.Context,
+	access *WorldStateResource,
 	mutations []*s4wave_world.WorldMutation,
 ) (ops []*batchOp, refused *s4wave_world.ExecuteWorldBatchResponse, release func(), err error) {
-	// Resolve ops with the same mount options as ExecuteWorldOp.
-	access := &WorldStateResource{lookupOp: r.lookupOp}
-	applyWorldStateResourceOptions(access, r.worldStateOptions...)
-
 	// Prepare each op in order, collecting the releases.
 	var releases []func()
 	release = func() {
@@ -136,8 +140,8 @@ func (r *EngineResource) prepareBatchOps(
 
 // applyWorldMutation applies one mutation to ws, with op holding the prepared
 // operation of an op entry. It returns the object revision an object mutation
-// leaves, and the refusal for a mutation the World refused, or nil once
-// applied.
+// leaves, and the refusal for an entry whose object is absent. The caller
+// classifies a returned error with batchOpRefusal.
 func applyWorldMutation(
 	ctx context.Context,
 	ws world.WorldState,
@@ -146,11 +150,8 @@ func applyWorldMutation(
 ) (uint64, *s4wave_world.ExecuteWorldBatchResponse, error) {
 	switch m := m.GetMutation().(type) {
 	case *s4wave_world.WorldMutation_Op:
-		// The batch discards its transaction on any refusal, so a plugin
-		// timeout here kept nothing and is reported as a code.
 		_, _, err := ws.ApplyWorldOp(ctx, op.op, op.sender)
-		refusal, err := batchOpRefusal(err)
-		return 0, refusal, err
+		return 0, nil, err
 	case *s4wave_world.WorldMutation_CreateObject:
 		obj, err := ws.CreateObject(ctx, m.CreateObject.GetObjectKey(), m.CreateObject.GetRootRef())
 		world.ReleaseObjectState(obj)
@@ -190,14 +191,10 @@ func applyWorldMutation(
 			return obj.SetRootRef(ctx, m.SetRootRef.GetRootRef())
 		})
 	case *s4wave_world.WorldMutation_ApplyObjectOp:
-		rev, refusal, err := applyObjectMutation(ctx, ws, m.ApplyObjectOp.GetObjectKey(), func(obj world.ObjectState) (uint64, error) {
+		return applyObjectMutation(ctx, ws, m.ApplyObjectOp.GetObjectKey(), func(obj world.ObjectState) (uint64, error) {
 			rev, _, err := obj.ApplyObjectOp(ctx, op.op, op.sender)
 			return rev, err
 		})
-		if err != nil {
-			refusal, err = batchOpRefusal(err)
-		}
-		return rev, refusal, err
 	case *s4wave_world.WorldMutation_IncrementRev:
 		return applyObjectMutation(ctx, ws, m.IncrementRev.GetObjectKey(), func(obj world.ObjectState) (uint64, error) {
 			return obj.IncrementRev(ctx)
@@ -228,9 +225,10 @@ func applyObjectMutation(
 	return rev, nil, err
 }
 
-// batchOpRefusal returns the refusal an op entry's error carries, or the error
-// when it carries none. The batch discards its transaction on any refusal, so
-// a plugin timeout is a refusal: nothing was kept.
+// batchOpRefusal returns the refusal an entry's error carries, such as a
+// rejection by the op or the mount's write guard, or the error when it carries
+// none. The batch discards its transaction on any refusal, so a plugin timeout
+// is a refusal: nothing was kept.
 func batchOpRefusal(err error) (*s4wave_world.ExecuteWorldBatchResponse, error) {
 	// Classify the error, passing on one that carries no refusal.
 	if err == nil {

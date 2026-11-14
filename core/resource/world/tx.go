@@ -49,6 +49,7 @@ func NewTxResource(
 	// Construct the transaction Resource with the granting World options.
 	wsResource := NewWorldStateResource(le, b, tx, lookupOp, opts...)
 	if engine != nil {
+		engine = world.GuardEngine(engine, wsResource.writeGuard)
 		wsResource.storage = engine
 	}
 	mux := wsResource.mux.(srpc.Mux)

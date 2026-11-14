@@ -82,6 +82,12 @@ func WithOuterEngine(engine world.Engine) WorldStateResourceOption {
 	return func(r *WorldStateResource) { r.outerEngine = engine }
 }
 
+// WithWriteGuard checks every write through the mount, and through every World,
+// object and typed handle opened under it, with guard first.
+func WithWriteGuard(guard world.WriteGuard) WorldStateResourceOption {
+	return func(r *WorldStateResource) { r.writeGuard = guard }
+}
+
 // applyWorldStateResourceOptions applies the granting component's access options.
 func applyWorldStateResourceOptions(r *WorldStateResource, opts ...WorldStateResourceOption) {
 	for _, opt := range opts {

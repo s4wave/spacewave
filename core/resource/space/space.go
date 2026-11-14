@@ -582,7 +582,8 @@ func (r *SpaceResource) AccessWorld(
 
 // NewWorldEngineResource carries this mounted Space's session authority into an
 // Engine capability. The receiving Resource connection owns the capability.
-func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource, error) {
+// opts add to the session's options, such as a plugin's write guard.
+func (r *SpaceResource) NewWorldEngineResource(opts ...resource_world.WorldStateResourceOption) (*resource_world.EngineResource, error) {
 	// Decode the mounted session peer ID for the new World engine capability.
 	sessionPeerID := peer.ID("")
 	if r.sessionPeerID != "" {
@@ -599,12 +600,7 @@ func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource
 		EngineId: r.space.GetWorldEngineID(),
 		BucketId: r.space.GetWorldEngineBucketID(),
 	}
-	return resource_world.NewEngineResource(
-		r.le,
-		r.b,
-		r.space.GetWorldEngine(),
-		lookupOp,
-		engineInfo,
+	sessionOpts := append([]resource_world.WorldStateResourceOption{
 		resource_world.WithSessionPeerID(sessionPeerID),
 		resource_world.WithCallerParticipantLookup(func(ctx context.Context, caller peer.ID) (*sobject.SOParticipantConfig, error) {
 			// Resolve caller identity from the mounted SharedObject's accepted
@@ -623,7 +619,8 @@ func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource
 			}
 			return state.GetParticipantConfigForPeer(ctx, caller.String())
 		}),
-	), nil
+	}, opts...)
+	return resource_world.NewEngineResource(r.le, r.b, r.space.GetWorldEngine(), lookupOp, engineInfo, sessionOpts...), nil
 }
 
 // MountSpaceContents mounts the shared plugin runtime of the space and returns a

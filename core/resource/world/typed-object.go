@@ -68,7 +68,7 @@ func NewTypedObjectResourceWithContext(ctx context.Context, le *logrus.Entry, b 
 	applyWorldStateResourceOptions(access, opts...)
 	lifecycleCtx, lifecycleCancel := context.WithCancelCause(ctx)
 	r := &TypedObjectResource{
-		le: le, b: b, ws: ws, engine: engine,
+		le: le, b: b, ws: world.GuardWorldState(ws, access.writeGuard), engine: world.GuardEngine(engine, access.writeGuard),
 		lifecycleCtx: lifecycleCtx, lifecycleCancel: lifecycleCancel,
 		retirementCause: errors.WithStack(s4wave_world.ErrTypedObjectGrantRetired),
 		sessionPeerID:   access.sessionPeerID, sessionPeerIDBound: access.sessionPeerIDBound,

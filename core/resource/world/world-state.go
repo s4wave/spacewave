@@ -59,6 +59,8 @@ type WorldStateResource struct {
 	participantLookup func(context.Context, peer.ID) (*sobject.SOParticipantConfig, error)
 	// operationObserver receives operation accounting for this mount.
 	operationObserver WorldStateOperationObserver
+	// writeGuard checks every write through ws, when set.
+	writeGuard world.WriteGuard
 }
 
 // NewWorldStateResource creates a new WorldStateResource.
@@ -96,12 +98,13 @@ func newWorldStateResource(
 	opts ...WorldStateResourceOption,
 ) *WorldStateResource {
 	// Select the granting storage and capture its trusted Resource options.
-	storage := world.WorldStorage(ws)
-	if engine != nil {
-		storage = engine
-	}
-	wsResource := &WorldStateResource{le: le, b: b, ws: ws, lookupOp: lookupOp, storage: storage, options: opts}
+	wsResource := &WorldStateResource{le: le, b: b, lookupOp: lookupOp, storage: world.WorldStorage(ws), options: opts}
 	applyWorldStateResourceOptions(wsResource, opts...)
+	wsResource.ws = world.GuardWorldState(ws, wsResource.writeGuard)
+	if engine != nil {
+		engine = world.GuardEngine(engine, wsResource.writeGuard)
+		wsResource.storage = engine
+	}
 
 	// Register World and optional typed access on the same Resource mux.
 	register := []func(srpc.Mux) error{

@@ -379,7 +379,8 @@ func (s *pluginResourceSession) connectLocked(ctx context.Context) error {
 	s.releaseResources = releaseResources
 	s.alive = alive
 
-	// Lend the selected engine with its trusted registry scope.
+	// Lend the selected engine with its trusted registry scope, writing as the
+	// handler's plugin.
 	if s.engine != nil {
 		var callerPeer peer.ID
 		if s.caller.PeerID != "" {
@@ -395,6 +396,7 @@ func (s *pluginResourceSession) connectLocked(ctx context.Context) error {
 			resource_world.WithCallerParticipantLookup(func(context.Context, peer.ID) (*sobject.SOParticipantConfig, error) {
 				return s.caller.Participant.CloneVT(), nil
 			}),
+			resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(s.reg.GetPluginId())),
 		)
 		s.engineResourceID, err = client.AttachResource(ctx, "world-engine", s.engineResource.GetMux())
 		if err != nil {

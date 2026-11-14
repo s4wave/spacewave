@@ -41,6 +41,11 @@ func (o *ObjectState) GetKey() string {
 	return o.key
 }
 
+// GetWorldState returns the World state that holds the object.
+func (o *ObjectState) GetWorldState() world.WorldState {
+	return o.w
+}
+
 // GetRootRef returns the root reference of the object.
 func (o *ObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
 	root, err := o.GetRoot(ctx)
@@ -285,4 +290,7 @@ func (o *ObjectState) getCursor(ctx context.Context) (*block.Cursor, error) {
 }
 
 // _ is a type assertion.
-var _ world.ObjectState = (*ObjectState)(nil)
+var (
+	_ world.ObjectState      = (*ObjectState)(nil)
+	_ world.WorldStateGetter = (*ObjectState)(nil)
+)

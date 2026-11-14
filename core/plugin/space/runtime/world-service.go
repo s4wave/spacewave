@@ -2,11 +2,13 @@ package plugin_space_runtime
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
@@ -54,18 +56,30 @@ func (s *worldService) Execute(context.Context) error {
 	return nil
 }
 
-// HandleDirective serves the World to a plugin's lookup of the service.
+// HandleDirective serves the World to a plugin's lookup of the service. The
+// plugin host names the looking-up plugin in the lookup's server ID; a lookup
+// that names no plugin gets no World.
 func (s *worldService) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Match a lookup of the Space World service.
 	d, ok := di.GetDirective().(bifrost_rpc.LookupRpcService)
 	if !ok || d.LookupRpcServiceID() != sdk_world_engine.SpaceWorldServiceID {
 		return nil, nil
 	}
-	return directive.R(directive.NewFuncResolver(s.resolve), nil)
+
+	// Serve the World to the plugin the lookup names.
+	pluginID, ok := strings.CutPrefix(d.LookupRpcServerID(), bldr_plugin.PluginServerIDPrefix)
+	if !ok || pluginID == "" {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		return s.resolve(ctx, handler, pluginID)
+	}), nil)
 }
 
-// resolve serves the World until the lookup ends. Each lookup holds the
-// engine and a Resource server whose root is the engine's Resource.
-func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHandler) error {
+// resolve serves the World to the plugin pluginID until the lookup ends. Each
+// lookup holds the engine and a Resource server whose root is the engine's
+// Resource.
+func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHandler, pluginID string) error {
 	// Hold the Space's World engine, which the bridge resolves on the parent.
 	engine, _, engineRef, err := world.ExLookupWorldEngine(ctx, s.b, false, s.engineID, nil)
 	if err != nil {
@@ -73,7 +87,8 @@ func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHa
 	}
 	defer engineRef.Release()
 
-	// Serve the engine as the root Resource, writing as the Space's mount.
+	// Serve the engine as the root Resource, writing as the Space's mount
+	// within what the plugin may write.
 	root := resource_world.NewEngineResource(
 		s.le,
 		s.b,
@@ -81,6 +96,7 @@ func (s *worldService) resolve(ctx context.Context, handler directive.ResolverHa
 		space_world_optypes.BuildSpaceLookupOp(s.b, s.le, s.engineID),
 		&s4wave_world.EngineInfo{EngineId: s.engineID},
 		resource_world.WithSessionPeerID(s.sessionPeerID),
+		resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(pluginID)),
 	)
 	defer root.Close()
 	server := resource_server.NewResourceServer(root.GetMux())

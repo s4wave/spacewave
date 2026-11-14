@@ -8,6 +8,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	sdk_world "github.com/s4wave/spacewave/sdk/world"
 )
@@ -60,7 +61,8 @@ func (h *pluginExecHandler) openPluginResources(ctx context.Context, client SRPC
 }
 
 // executeWithWorld lends the execution's World through a client-owned Resource
-// tree. Closing the client withdraws the capability and joins outstanding RPCs.
+// tree, writing as the execution's plugin. Closing the client withdraws the
+// capability and joins outstanding RPCs.
 func (h *pluginExecHandler) executeWithWorld(ctx context.Context, client SRPCPluginExecServiceClient, req *PluginExecRequest) error {
 	// Resolve the World already granted to this execution.
 	input, ok := h.inputs["world"].(forge_target.InputValueWorld)
@@ -70,7 +72,10 @@ func (h *pluginExecHandler) executeWithWorld(ctx context.Context, client SRPCPlu
 	if err := input.Validate(); err != nil {
 		return err
 	}
-	engine := resource_world.NewEngineResource(h.le, h.b, input.GetWorldEngine(), nil, &sdk_world.EngineInfo{EngineId: input.GetWorldEngineID()})
+	engine := resource_world.NewEngineResource(
+		h.le, h.b, input.GetWorldEngine(), nil, &sdk_world.EngineInfo{EngineId: input.GetWorldEngineID()},
+		resource_world.WithWriteGuard(space_world_optypes.NewPluginWriteGuard(h.conf.GetPluginId())),
+	)
 	defer engine.Close()
 
 	// Open the plugin's Resource service through its execution-service route.

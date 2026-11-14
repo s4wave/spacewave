@@ -246,7 +246,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	if err != nil {
 		return pos, err
 	}
-	ctx = withOperationAuthor(ctx, op.Author)
+	ctx = withReplay(withOperationAuthor(ctx, op.Author))
 
 	// Apply it by type.
 	prev := pos.state
@@ -554,6 +554,24 @@ func validateGraphSettingsStep(target *world_block.GraphSettings, max int) error
 		return errors.Errorf("graph settings step max must be 1 to %d", maxGraphSettingsStep)
 	}
 	return target.ValidateInitial()
+}
+
+// replayKey is the context key of the replay mark. Its type is unexported and
+// spaceReplay.apply is the only caller of withReplay, so no plugin, handle or
+// other package can mark a context.
+type replayKey struct{}
+
+// withReplay marks ctx as applying an operation from the Space's ordered log.
+func withReplay(ctx context.Context) context.Context {
+	return context.WithValue(ctx, replayKey{}, struct{}{})
+}
+
+// IsReplay reports whether ctx applies an operation the Space replays from its
+// ordered log. Every transaction in the log was admitted by its author's own
+// run, so a check that refuses at admission records on replay instead: a
+// replay that refused what the author admitted would build another World.
+func IsReplay(ctx context.Context) bool {
+	return ctx.Value(replayKey{}) != nil
 }
 
 // withOperationAuthor binds the person a participant's operation runs as and
