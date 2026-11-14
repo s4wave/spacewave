@@ -67,3 +67,4 @@ __pycache__/
 
 # Built WasiVM root filesystem.
 /plugin/wasivm/rootfs/out/
+
