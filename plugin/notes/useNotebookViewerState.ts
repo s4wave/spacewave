@@ -166,11 +166,17 @@ export function useNotebookViewerState({
   )
 
   // sendSourceEdit applies one edit and moves the edit state by its result.
-  // It returns busy, sending nothing, when another edit is still sending.
+  // It returns busy, sending nothing, when another edit is still sending. An
+  // accepted edit drops the source an earlier Add still waits for, whose
+  // source the watch never showed, and sets the one this Add waits for.
   const sendSourceEdit = useCallback(
-    async (edit: SourceEdit): Promise<SourceEditState['status'] | 'busy'> => {
+    async (
+      edit: SourceEdit,
+      added?: NotebookSource,
+    ): Promise<SourceEditState['status'] | 'busy'> => {
       const sent = dispatchSourceEdit({ type: 'send', edit })
       if (sent.status !== 'sending' || sent.edit !== edit) return 'busy'
+      addedSource.current = added ?? null
       if (!notebookHandle) {
         dispatchSourceEdit({
           type: 'failed',
@@ -230,10 +236,9 @@ export function useNotebookViewerState({
     async ({ name, ref }: { name: string; ref: string }) => {
       if (!ref) return
       const source = { name, ref }
-      // Wait for the source before the send, since the watch may show it
-      // before the send returns.
-      addedSource.current = source
-      const result = await sendSourceEdit({ kind: 'add', source })
+      // Wait for the source from the moment the send is accepted, since the
+      // watch may show it before the send returns.
+      const result = await sendSourceEdit({ kind: 'add', source }, source)
       if (result !== 'idle') {
         if (addedSource.current === source) addedSource.current = null
         return

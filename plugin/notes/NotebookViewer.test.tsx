@@ -484,6 +484,36 @@ describe('NotebookViewer', () => {
       screen.queryByText('Could not move the source: stream closed'),
     ).toBeNull()
   })
+  it('shows a plugin op timeout as a failed edit that changed nothing, and resends it', async () => {
+    const notebook = fakeNotebook([A, B])
+    watchSources([A, B])
+    // The bridge's PluginOpTimeoutError reaches TS only as the text of
+    // starpc's RemoteRPCError, which starpc does not export.
+    const timeout =
+      'plugin spacewave-notes did not apply operation notes/notebook/edit within 10s'
+    notebook.reorderSources.mockRejectedValueOnce(
+      Object.assign(new Error(timeout), {
+        name: 'RemoteRPCError',
+        rpcService: 's4wave.world.EngineResourceService',
+        rpcMethod: 'ExecuteWorldOp',
+        rpcError: timeout,
+      }),
+    )
+    renderViewer()
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Move source down' })[0],
+    )
+    expect(
+      await screen.findByText(`Could not move the source: ${timeout}`),
+    ).toBeDefined()
+    expect(notebook.stored).toEqual([A, B])
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => {
+      expect(notebook.stored).toEqual([B, A])
+    })
+  })
+
   it('sends no Add while a Reorder is held, and shows the Reorder failure by the list', async () => {
     const notebook = fakeNotebook([A, B])
     watchSources([A, B])

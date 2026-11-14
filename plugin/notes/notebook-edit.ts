@@ -33,8 +33,10 @@ export const NOTEBOOK_EMPTY_CODE = 'notes/notebook/empty'
  * writer is held from the read to the write and no other edit lands between.
  * It makes six calls on that state: getObject, getRootRef, accessWorldState,
  * getBlock, putBlock and setRootRef; a refused edit stops after getBlock and
- * writes nothing. It calls nothing else while the writer is held. A refusal
- * throws a WorldOperationRejection carrying one of the codes above.
+ * writes nothing. It calls nothing else while the writer is held. The host
+ * bounds the hold: it discards an op whose plugin calls run past its 10 s
+ * deadline, but loading the plugin before the op is outside that deadline. A
+ * refusal throws a WorldOperationRejection carrying one of the codes above.
  */
 export async function applyNotebookEdit(
   ws: IWorldState,
