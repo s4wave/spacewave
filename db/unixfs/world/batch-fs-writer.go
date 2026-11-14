@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/block/file"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -22,6 +23,12 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
+
+// maxHeldFileBytes bounds the small file contents a batch holds as bytes
+// until Commit, the same as the blob buffer's default pending bytes. Past it a
+// small file is built as a blob, which the file node embeds and the stage
+// holds until Commit returns.
+const maxHeldFileBytes = 64 << 20
 
 // pendingEntry is one accumulated dirent waiting to be merged at Commit.
 type pendingEntry struct {
@@ -33,8 +40,12 @@ type pendingEntry struct {
 	permissions fs.FileMode
 	// ts is the entry mtime.
 	ts *timestamppb.Timestamp
-	// blobRef is the file content blob (FILE entries only).
+	// blobRef is the file content blob (FILE entries only), unset when data
+	// holds the contents.
 	blobRef *block.BlockRef
+	// data holds the contents of a FILE entry the file node embeds, so no
+	// blob block is built for it.
+	data []byte
 	// symlink is the symlink payload (SYMLINK entries only).
 	symlink *unixfs_block.FSSymlink
 }
@@ -54,7 +65,9 @@ type pendingDir struct {
 //
 // File blobs are buffered in memory and written into the writer's stage once
 // at Commit, before the tree merge. The buffer drains into the stage early
-// only when it reaches its capacity bounds.
+// only when it reaches its capacity bounds. A file the file node embeds, at
+// most file.MaxInlineRawBlobSize bytes, is held as bytes instead, up to
+// maxHeldFileBytes per batch, and written into its node by the merge.
 //
 // Local-only: Commit bypasses ApplyWorldOp and mutates the world object via
 // AccessObjectState directly. Remote peers learn of the result only via
@@ -96,6 +109,9 @@ type BatchFSWriter struct {
 	storage *bucket_lookup.Cursor
 	// blobs buffers blob blocks until Commit writes them into the stage.
 	blobs *block.BufferedStore
+	// heldBytes counts the small file contents pending entries hold as data,
+	// at most maxHeldFileBytes.
+	heldBytes int
 
 	metricsRecorder BatchFSWriterMetricsRecorder
 }
@@ -119,8 +135,9 @@ func NewBatchFSWriter(
 
 // AddFile records a regular file entry to be created under parentPath at
 // Commit time. The file blob is built eagerly into the writer's blob buffer;
-// only the blob ref and entry metadata are accumulated. No parent directory
-// mutation happens until Commit.
+// only the blob ref and entry metadata are accumulated. Contents the file
+// node embeds are held as bytes instead, as the BatchFSWriter doc describes.
+// No parent directory mutation happens until Commit.
 func (b *BatchFSWriter) AddFile(
 	ctx context.Context,
 	parentPath []string,
@@ -148,10 +165,21 @@ func (b *BatchFSWriter) AddFile(
 		Bytes: dataLen,
 	})
 
-	// Build the blob in an isolated transaction whose writes stay in the
-	// blob buffer. The parent dir is NOT touched.
+	// Keep contents the file node will embed as bytes, while the batch holds
+	// less than maxHeldFileBytes of them: a blob block built for them would
+	// never be named, and the stage would hold it until Commit returns.
+	// Build other contents as a blob in an isolated transaction whose writes
+	// stay in the blob buffer. The parent dir is NOT touched.
 	var blobRef *block.BlockRef
-	if dataLen > 0 {
+	var data []byte
+	switch {
+	case dataLen > 0 && dataLen <= file.MaxInlineRawBlobSize && b.heldBytes+int(dataLen) <= maxHeldFileBytes:
+		data = make([]byte, dataLen)
+		if _, err := io.ReadFull(rdr, data); err != nil {
+			return err
+		}
+		b.heldBytes += len(data)
+	case dataLen > 0:
 		var err error
 		blobRef, err = b.buildBlob(ctx, dataLen, rdr)
 		if err != nil {
@@ -167,6 +195,7 @@ func (b *BatchFSWriter) AddFile(
 		permissions: permissions.Perm(),
 		ts:          unixfs_block.ToTimestamp(ts, true),
 		blobRef:     blobRef,
+		data:        data,
 	})
 
 	// Record the pending directory and entry counts after accepting the file.
@@ -374,13 +403,15 @@ func (b *BatchFSWriter) AddSymlink(
 // AccessObjectState call. Touched directories are merged in depth-ascending
 // order so a parent directory exists in the FSTree before any of its children
 // are written. The buffered blob blocks are written once into the writer's
-// stage first, and each merge attempt names them by reference.
+// stage first, and each staged merge attempt builds through the same stage and
+// names them by reference.
 //
 // Invariants: the upload publishes all of its entries or none. An attempt
 // that lost the race to another writer merges again onto the new root and
 // checks every expectation there, so it never overwrites a write it did not
-// merge onto. The stage holds the staged blobs from staging until Commit
-// returns, on every exit, including an error and a cancelled context.
+// merge onto. The stage holds the staged blobs, and the staged merges that
+// name them, from staging until Commit returns, on every exit, including an
+// error and a cancelled context.
 func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	// Claim the BatchFSWriter commit and release its storage when it finishes.
 	if b.released {
@@ -427,9 +458,22 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 		}
 	}
 
-	// Merge the buffered entries onto the object root, once per attempt.
+	// Merge onto the object root through the blob stage, so each put that
+	// names a blob releases the stage's root on it inside the upload's own
+	// commit, and the stage releases only the top of the tree.
+	//
+	// Invariants: every blob stays held from its put until the published root
+	// names it or the stage is released, on every attempt and every exit. A
+	// lost attempt's directories stay in the stage until Commit returns and
+	// hold the blobs they named, so a retry never finds a blob unheld. The
+	// attempt under the writer builds through its transaction, and the stage
+	// keeps holding the blobs it has not released until Commit returns.
+	var build world.AccessWorldStateFunc
+	if b.storage != nil {
+		build = world.NewAccessWorldStateFunc(b.storage)
+	}
 	var attempt int
-	published, _, err := world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+	published, _, err := world.AccessObjectStateThrough(ctx, obj, build, func(bcs *block.Cursor) error {
 		// Count the attempt for the commit-merged metric.
 		attempt++
 
@@ -559,7 +603,7 @@ func (b *BatchFSWriter) mergePendingDir(
 				// syncExistingFile rewrites content while preserving the
 				// inode. A successful overwrite must not end the merge:
 				// entries recorded after it in the same batch still apply.
-				if err := b.syncExistingFile(ctx, root, childPath, e.blobRef, e.ts); err != nil {
+				if err := b.syncExistingFile(ctx, root, childPath, e); err != nil {
 					return err
 				}
 				continue
@@ -578,10 +622,8 @@ func (b *BatchFSWriter) mergePendingDir(
 			if _, err := dir.Mknod(e.name, e.nodeType, nil, e.permissions, e.ts); err != nil {
 				return err
 			}
-			if !e.blobRef.GetEmpty() {
-				if err := unixfs_block.WriteBlob(ctx, root, childPath, 0, e.blobRef, false, true, e.ts); err != nil {
-					return err
-				}
+			if err := writeEntryContents(ctx, root, childPath, e, true); err != nil {
+				return err
 			}
 		case unixfs_block.NodeType_NodeType_SYMLINK:
 			// Symlink(checkExist=false) already replaces an existing
@@ -617,8 +659,7 @@ func (b *BatchFSWriter) syncExistingFile(
 	ctx context.Context,
 	root *unixfs_block.FSTree,
 	path []string,
-	blobRef *block.BlockRef,
-	ts *timestamppb.Timestamp,
+	e *pendingEntry,
 ) error {
 	// Prepare an existing-file reader for comparing the incoming blob.
 	readExisting := func(offset int64, p []byte) (int, error) {
@@ -652,12 +693,16 @@ func (b *BatchFSWriter) syncExistingFile(
 		return err
 	}
 
-	// Open the incoming blob and determine its file size.
+	// Open the incoming contents and determine their file size.
 	var srcSize int64
 	var srcRdr io.ReadCloser
-	if !blobRef.GetEmpty() {
+	switch {
+	case e.data != nil:
+		srcSize = int64(len(e.data))
+		srcRdr = io.NopCloser(bytes.NewReader(e.data))
+	case !e.blobRef.GetEmpty():
 		blobCs := node.GetCursor().DetachTransaction()
-		blobCs.SetRefAtCursor(blobRef, true)
+		blobCs.SetRefAtCursor(e.blobRef, true)
 		srcBlob, err := blob.UnmarshalBlob(ctx, blobCs)
 		if err != nil {
 			return err
@@ -674,7 +719,7 @@ func (b *BatchFSWriter) syncExistingFile(
 	}
 
 	// Match the existing file length to the incoming blob before comparing content.
-	if err := unixfs_block.TruncateFile(ctx, root, path, srcSize, ts); err != nil {
+	if err := unixfs_block.TruncateFile(ctx, root, path, srcSize, e.ts); err != nil {
 		return err
 	}
 	if srcSize == 0 {
@@ -715,10 +760,7 @@ func (b *BatchFSWriter) syncExistingFile(
 			// TruncateFile already matched the source size above, so writing the
 			// incoming blob as an overlay preserves the per-op range history
 			// without leaving stale tail ranges behind it.
-			if err := unixfs_block.WriteBlob(ctx, root, path, 0, blobRef, false, false, ts); err != nil {
-				return err
-			}
-			return nil
+			return writeEntryContents(ctx, root, path, e, false)
 		}
 
 		// Advance the comparison until the incoming blob reaches EOF.
@@ -726,6 +768,20 @@ func (b *BatchFSWriter) syncExistingFile(
 		if err == io.EOF {
 			break
 		}
+	}
+	return nil
+}
+
+// writeEntryContents writes the contents of the FILE entry e at the start of
+// the file at path: its held bytes, or its blob as a range of the file.
+// forceUseBlob keeps the blob as its own range instead of merging it with the
+// range before it.
+func writeEntryContents(ctx context.Context, root *unixfs_block.FSTree, path []string, e *pendingEntry, forceUseBlob bool) error {
+	switch {
+	case e.data != nil:
+		return unixfs_block.WriteAt(ctx, root, nil, path, 0, int64(len(e.data)), bytes.NewReader(e.data), e.ts)
+	case !e.blobRef.GetEmpty():
+		return unixfs_block.WriteBlob(ctx, root, path, 0, e.blobRef, false, forceUseBlob, e.ts)
 	}
 	return nil
 }

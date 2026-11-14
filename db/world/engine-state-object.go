@@ -123,10 +123,13 @@ const stagedAccessAttempts = 3
 // of the object.
 //
 // Without updateWorld the caller publishes the returned root itself, so the
-// build is not staged here.
+// build is not staged here. A staged attempt builds through build when it is
+// set, and the caller holds its writes; otherwise each attempt opens a stage of
+// its own. The attempt under the writer builds through its transaction.
 func (e *engineWorldStateObject) accessObjectState(
 	ctx context.Context,
 	updateWorld bool,
+	build AccessWorldStateFunc,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
 	// Build against the current root for a caller that publishes it.
@@ -144,7 +147,7 @@ func (e *engineWorldStateObject) accessObjectState(
 		if err := ctx.Err(); err != nil {
 			return nil, false, err
 		}
-		outRef, dirty, err := e.publishObjectState(ctx, cb)
+		outRef, dirty, err := e.publishObjectState(ctx, build, cb)
 		if !errors.Is(err, errRootRefChanged) {
 			return outRef, dirty, err
 		}
@@ -166,26 +169,31 @@ func (e *engineWorldStateObject) accessObjectState(
 	return outRef, dirty, err
 }
 
-// publishObjectState builds through a World stage and publishes the result
-// onto the revision the build read. The stage keeps the build alive until the
-// publishing transaction returns; a conflicting or failed publication leaves
-// the build to the sweep.
-func (e *engineWorldStateObject) publishObjectState(ctx context.Context, cb AccessObjectCb) (*bucket.ObjectRef, bool, error) {
+// publishObjectState builds through build, or a World stage of its own when
+// build is nil, and publishes the result onto the revision the build read. The
+// stage keeps the build alive until the publishing transaction returns; a
+// conflicting or failed publication leaves the build to the sweep once the
+// stage is released.
+func (e *engineWorldStateObject) publishObjectState(ctx context.Context, build AccessWorldStateFunc, cb AccessObjectCb) (*bucket.ObjectRef, bool, error) {
 	// Read the current root and revision.
 	initRef, initRev, err := e.GetRootRef(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 
-	// Build through a stage held until publication returns.
-	stage, err := e.e.e.StageWorldState(ctx)
-	if err != nil {
-		return nil, false, err
+	// Build through a stage held until publication returns, unless the
+	// caller holds the build.
+	if build == nil {
+		stage, err := e.e.e.StageWorldState(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+		defer stage.Release()
+		build = stage.AccessWorldState
 	}
-	defer stage.Release()
 
 	// Build the object state through the stage.
-	outRef, dirty, err := accessObjectRoot(ctx, stage.AccessWorldState, initRef, cb)
+	outRef, dirty, err := accessObjectRoot(ctx, build, initRef, cb)
 	if err != nil || !dirty {
 		return outRef, dirty, err
 	}

@@ -21,9 +21,7 @@ type Writer struct {
 	buildBlobOpts *blob.BuildBlobOpts
 }
 
-// NewWriter builds a new writer handle.
-// btx can be nil
-// buildBlobOpts can be nil
+// NewWriter builds a new writer handle. btx and buildBlobOpts can be nil.
 func NewWriter(
 	h *Handle,
 	btx *block.Transaction,
@@ -494,15 +492,17 @@ func (w *Writer) moveRootBlobToRange() error {
 	return nil
 }
 
-// maxInlineRawBlobSize is the largest raw blob a file block embeds as its root
+// MaxInlineRawBlobSize is the largest raw blob a file block embeds as its root
 // blob. A larger raw blob is stored as its own block and referenced by a range,
-// so a file written from an already stored blob does not copy its bytes.
-const maxInlineRawBlobSize = 4096
+// so a file written from an already stored blob does not copy its bytes. A
+// writer that builds a file's contents ahead of the file can keep contents of
+// this size or less as bytes, since a blob block built for them is never named.
+const MaxInlineRawBlobSize = 4096
 
 // inlineBlob returns whether the file block embeds b as its root blob.
 // A chunked blob embeds its chunk index, which stays small.
 func inlineBlob(b *blob.Blob) bool {
-	return b.GetBlobType() != blob.BlobType_BlobType_RAW || b.GetTotalSize() <= maxInlineRawBlobSize
+	return b.GetBlobType() != blob.BlobType_BlobType_RAW || b.GetTotalSize() <= MaxInlineRawBlobSize
 }
 
 // normalize places the file contents in their canonical shape, which depends

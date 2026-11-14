@@ -461,6 +461,33 @@ func AccessObjectState(
 	updateWorld bool,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
+	return accessObjectStateThrough(ctx, obj, updateWorld, nil, cb)
+}
+
+// AccessObjectStateThrough is AccessObjectState with updateWorld set, where an
+// engine object builds each attempt off the writer through build instead of a
+// stage of its own. The caller holds build's writes until the call returns, so
+// blocks it wrote before the call, and every attempt's build, stay held across
+// the attempts; puts through one volume stage that name blocks it holds
+// release those roots. Other objects build as AccessObjectState does.
+func AccessObjectStateThrough(
+	ctx context.Context,
+	obj ObjectState,
+	build AccessWorldStateFunc,
+	cb AccessObjectCb,
+) (*bucket.ObjectRef, bool, error) {
+	return accessObjectStateThrough(ctx, obj, true, build, cb)
+}
+
+// accessObjectStateThrough implements AccessObjectState, building an engine
+// object's staged attempts through build when it is set.
+func accessObjectStateThrough(
+	ctx context.Context,
+	obj ObjectState,
+	updateWorld bool,
+	build AccessWorldStateFunc,
+	cb AccessObjectCb,
+) (*bucket.ObjectRef, bool, error) {
 	// Trace access to the object root through callback completion.
 	ctx, task := trace.NewTask(ctx, "hydra/world/access-object-state")
 	defer task.End()
@@ -473,7 +500,7 @@ func AccessObjectState(
 	// Engine objects read and publish in separate transactions, so they
 	// guard publication against concurrent writers themselves.
 	if engineObj, ok := obj.(*engineWorldStateObject); ok {
-		return engineObj.accessObjectState(ctx, updateWorld, cb)
+		return engineObj.accessObjectState(ctx, updateWorld, build, cb)
 	}
 
 	// Read the current object root before applying the callback.

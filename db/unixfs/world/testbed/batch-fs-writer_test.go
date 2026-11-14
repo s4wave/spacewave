@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/file"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
@@ -832,5 +835,117 @@ func TestBatchFSWriter_CancelledCommitLeavesRoot(t *testing.T) {
 	}
 	if _, ok := readRaceFile(ctx, t, fsHandle, "upload.txt"); ok {
 		t.Fatal("upload.txt was written by a cancelled Commit")
+	}
+}
+
+// stageRootCounter counts the Volume's stage roots when a Commit publishes,
+// before the writer releases its stage.
+type stageRootCounter struct {
+	ctx   context.Context
+	t     *testing.T
+	wtb   *world_testbed.Testbed
+	roots int
+}
+
+func (c *stageRootCounter) RecordBatchFSWriterMetric(metric unixfs_world.BatchFSWriterMetric) {
+	if metric.Stage != "commit-complete" {
+		return
+	}
+	err := c.wtb.Volume.ListRoots(c.ctx, "stage:", func(block.NamedRoot) error {
+		c.roots++
+		return nil
+	})
+	if err != nil {
+		c.t.Errorf("ListRoots: %v", err)
+	}
+}
+
+// TestBatchFSWriter_StageHoldsTreeTop uploads 30,000 files in 300 directories
+// and counts the stage roots left when the upload publishes: once with every
+// file small enough for its file node to embed, which builds no blob, and once
+// with every tenth file over that size, whose blob its directory's put names
+// through the stage that holds it. Either way the stage keeps only the top of
+// the tree for its release, not a root per file.
+func TestBatchFSWriter_StageHoldsTreeTop(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		// largeEvery makes every largeEvery-th file larger than
+		// file.MaxInlineRawBlobSize, or none when zero.
+		largeEvery int
+	}{
+		{name: "small"},
+		{name: "mixed", largeEvery: 10},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			testStageHoldsTreeTop(t, tc.largeEvery)
+		})
+	}
+}
+
+// testStageHoldsTreeTop runs TestBatchFSWriter_StageHoldsTreeTop with every
+// largeEvery-th file over file.MaxInlineRawBlobSize.
+func testStageHoldsTreeTop(t *testing.T, largeEvery int) {
+	// Start a filesystem and an upload of 30,000 files.
+	const n, perDir = 30000, 100
+	ctx := context.Background()
+	wtb, fsHandle := newRaceTestbed(ctx, t)
+	bw := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID())
+	defer bw.Release()
+	now := time.Now()
+	content := func(i int) string {
+		c := fmt.Sprintf("file %d", i)
+		if largeEvery != 0 && i%largeEvery == 0 {
+			c += strings.Repeat(".", file.MaxInlineRawBlobSize)
+		}
+		return c
+	}
+	for i := range n {
+		dir := fmt.Sprintf("d%d", i/perDir)
+		if i%perDir == 0 {
+			if err := bw.AddDir(ctx, nil, dir, 0o755, now); err != nil {
+				t.Fatal(err)
+			}
+		}
+		c := content(i)
+		if err := bw.AddFile(ctx, []string{dir}, fmt.Sprintf("f%d", i), unixfs.NewFSCursorNodeType_File(), int64(len(c)), strings.NewReader(c), 0o644, now); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Publish, counting the stage roots before the stage is released.
+	counter := &stageRootCounter{ctx: ctx, t: t, wtb: wtb}
+	if err := bw.Commit(unixfs_world.WithBatchFSWriterMetricsRecorder(ctx, counter)); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+	if counter.roots >= 1000 {
+		t.Fatalf("stage holds %d roots at release for %d files, want under 1,000", counter.roots, n)
+	}
+	t.Logf("stage holds %d roots at release for %d files", counter.roots, n)
+
+	// The last small file and the last large one read back through their
+	// directories.
+	for _, i := range []int{n - 1, n - largeEvery} {
+		if i >= n {
+			continue
+		}
+		dir, err := fsHandle.Lookup(ctx, fmt.Sprintf("d%d", i/perDir))
+		if err != nil {
+			t.Fatal(err)
+		}
+		fh, err := dir.Lookup(ctx, fmt.Sprintf("f%d", i))
+		dir.Release()
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := content(i)
+		buf := make([]byte, len(want)+1)
+		got, err := fh.ReadAt(ctx, 0, buf)
+		fh.Release()
+		if err != nil && !errors.Is(err, io.EOF) {
+			t.Fatal(err)
+		}
+		if string(buf[:got]) != want {
+			t.Fatalf("file %d holds %d bytes, want %d", i, got, len(want))
+		}
 	}
 }
