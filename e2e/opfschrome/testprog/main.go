@@ -830,7 +830,7 @@ func runWorldInitUnixFS(ctx context.Context, c *config) error {
 	defer releaseWorld()
 
 	// Read the root back and check that it is empty.
-	handle, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
+	handle, _, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
 	if err != nil {
 		return err
 	}
@@ -901,14 +901,15 @@ func initUnixFSWorld(
 	return ws, release, nil
 }
 
-// openUnixFSHandle opens a handle on the UnixFS root "files" in ws. The
-// release frees the handle and its cursor.
+// openUnixFSHandle opens a handle on the UnixFS root "files" in ws and returns
+// the World cursor it reads through. The release frees the handle and its
+// cursor.
 func openUnixFSHandle(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
 	sender peer.ID,
-) (*unixfs_sdk.FSHandle, func(), error) {
+) (*unixfs_sdk.FSHandle, *unixfs_world.FSCursor, func(), error) {
 	// Follow the root, then open a handle on the cursor.
 	fsCursor, err := unixfs_world.FollowUnixfsRef(
 		ctx,
@@ -922,14 +923,14 @@ func openUnixFSHandle(
 		true,
 	)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "follow unixfs")
+		return nil, nil, nil, errors.Wrap(err, "follow unixfs")
 	}
 	handle, err := unixfs_sdk.NewFSHandle(fsCursor)
 	if err != nil {
 		fsCursor.Release()
-		return nil, nil, errors.Wrap(err, "open fs handle")
+		return nil, nil, nil, errors.Wrap(err, "open fs handle")
 	}
-	return handle, func() {
+	return handle, fsCursor, func() {
 		handle.Release()
 		fsCursor.Release()
 	}, nil
@@ -1141,7 +1142,7 @@ func runWorldLargeUnixFSUpload(ctx context.Context, c *config) error {
 	}
 
 	// Read the file back through a handle on the root.
-	handle, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
+	handle, _, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
 	if err != nil {
 		return err
 	}
@@ -1180,7 +1181,7 @@ func runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx context.Context, c *c
 	defer releaseWorld()
 
 	// Serve the root as a UnixFS resource.
-	handle, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
+	handle, fsCursor, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
 	if err != nil {
 		return err
 	}
@@ -1188,6 +1189,7 @@ func runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx context.Context, c *c
 	rootResource := resource_unixfs.NewFSHandleObjectResource(
 		logrus.NewEntry(logrus.StandardLogger()),
 		handle,
+		fsCursor,
 		nil,
 		ws,
 		"files",
@@ -1281,7 +1283,7 @@ func runWorldResourceLargeUnixFSUploadOnBucket(
 	defer releaseWorld()
 
 	// Serve the root as a UnixFS resource through a resource client.
-	handle, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
+	handle, fsCursor, releaseHandle, err := openUnixFSHandle(ctx, le, ws, vol.GetPeerID())
 	if err != nil {
 		return err
 	}
@@ -1289,6 +1291,7 @@ func runWorldResourceLargeUnixFSUploadOnBucket(
 	rootResource := resource_unixfs.NewFSHandleObjectResource(
 		logrus.NewEntry(logrus.StandardLogger()),
 		handle,
+		fsCursor,
 		nil,
 		ws,
 		"files",

@@ -83,7 +83,7 @@ func (r *FSHandleResource) UploadTree(
 		}
 	}
 
-	// Blob ingestion can overlap, but the commit, handle reload, and change
+	// Blob ingestion can overlap, but the commit, handle wait, and change
 	// broadcast run under writeMtx so this root republication serializes against
 	// every other writer on this resource tree. The handle barrier additionally
 	// keeps reads on the prior generation from overlapping publication. Commit
@@ -107,21 +107,26 @@ func (r *FSHandleResource) UploadTree(
 	if state.ordered {
 		commitCtx = world.WithOrderedCommit(ctx)
 	}
-	if err := state.b.Commit(commitCtx); err != nil {
-		var conflict *unixfs_world.FileConflictError
-		if errors.As(err, &conflict) {
-			return r.uploadTreeConflict(conflict)
-		}
-		return nil, err
+	commitErr := state.b.Commit(commitCtx)
+	if commitErr == nil {
+		recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
 	}
-	recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
 
-	// Reload the handle onto the published root.
+	// Move every handle in the resource tree to the root storage holds,
+	// whether the commit published it, refused onto another writer's, or
+	// failed, so a read after any answer sees what storage holds.
 	recordUploadMetric(ctx, UploadMetric{Stage: "reload-start"})
-	if err := r.reloadHandleLocked(ctx); err != nil {
+	if err := r.awaitStorageLocked(ctx); err != nil {
 		return nil, err
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "reload-complete"})
+	if commitErr != nil {
+		var conflict *unixfs_world.FileConflictError
+		if errors.As(commitErr, &conflict) {
+			return r.uploadTreeConflict(conflict)
+		}
+		return nil, commitErr
+	}
 
 	// Notify watchers of the new root.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
