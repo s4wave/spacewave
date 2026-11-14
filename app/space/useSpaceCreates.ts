@@ -37,12 +37,150 @@ export function useSpaceCreatesContext(): SpaceCreates {
   return creates
 }
 
-// OpenSpace is one open Space's creates: their failure toasts, and the
-// presses of Try again waiting for the Space's world to return.
+// OpenSpace is one open Space's creates: the dispatch of each create still
+// open, which closing the Space sends close, and the runs waiting for the
+// Space's world to return.
 interface OpenSpace {
-  closed: boolean
-  toasts: Set<string>
-  waiting: Array<(world: IWorldState) => void>
+  jobs: Set<(event: CreateEvent) => void>
+  waiting: Map<CreateJob, (world: IWorldState) => void>
+}
+
+// CreateState is one create's state. running sends the create, after a
+// failure if failure is set; waiting holds a pressed Try again until the
+// Space's world returns; failed offers Try again; refused means another
+// object holds the planned key, so trying again cannot help; done and closed
+// are final. failure is the last failure's description, which a cancelled
+// wait shows again.
+export type CreateState =
+  | { status: 'running'; failure?: string }
+  | { status: 'waiting'; failure?: string }
+  | { status: 'failed'; failure: string }
+  | { status: 'refused'; failure: string }
+  | { status: 'done' }
+  | { status: 'closed' }
+
+// CreateEvent moves one create between its states.
+export type CreateEvent =
+  | { type: 'retry' }
+  | { type: 'wait' }
+  | { type: 'resume' }
+  | { type: 'cancel' }
+  | { type: 'fail'; failure: string; retry: boolean }
+  | { type: 'done' }
+  | { type: 'close' }
+
+// createReducer returns the state after event. An event that does not apply
+// to the state leaves it, so a Try again or Cancel pressed twice, or a run
+// finishing after its Space closed, changes nothing.
+export function createReducer(
+  state: CreateState,
+  event: CreateEvent,
+): CreateState {
+  switch (event.type) {
+    case 'retry':
+      return state.status === 'failed'
+        ? { status: 'running', failure: state.failure }
+        : state
+    case 'wait':
+      return state.status === 'running'
+        ? { status: 'waiting', failure: state.failure }
+        : state
+    case 'resume':
+      return state.status === 'waiting'
+        ? { status: 'running', failure: state.failure }
+        : state
+    case 'cancel':
+      return state.status === 'waiting'
+        ? {
+            status: 'failed',
+            failure: state.failure ?? 'The Space was reconnecting.',
+          }
+        : state
+    case 'fail':
+      if (state.status !== 'running') return state
+      return event.retry
+        ? { status: 'failed', failure: event.failure }
+        : { status: 'refused', failure: event.failure }
+    case 'done':
+      return state.status === 'running' ? { status: 'done' } : state
+    case 'close':
+      return state.status === 'done' ? state : { status: 'closed' }
+  }
+}
+
+// ToastPress is the click sonner passes a toast action. Preventing its
+// default keeps sonner from deleting the toast id the action replaces.
+type ToastPress = { preventDefault(): void } | undefined
+
+// CreateJob is one create: its state, its plan once prepared, whether its op
+// was ever sent, and the one toast that shows its state.
+interface CreateJob {
+  name: string
+  state: CreateState
+  plan: CreatePlan | null
+  sent: boolean
+  toastId: string | null
+}
+
+// showCreateToast replaces job's toast with the one its state shows. Every
+// toast passes every option, since sonner merges an update into the toast
+// under the same id.
+function showCreateToast(
+  job: CreateJob,
+  dispatch: (event: CreateEvent) => void,
+) {
+  const state = job.state
+  const press = (event: CreateEvent) => (click: ToastPress) => {
+    click?.preventDefault()
+    dispatch(event)
+  }
+  switch (state.status) {
+    case 'running':
+      // The first run shows nothing until it fails or finishes.
+      if (state.failure === undefined) return
+      toast.loading(`Creating ${job.name}`, {
+        id: createToastId(job),
+        description: undefined,
+        duration: Infinity,
+        action: undefined,
+      })
+      return
+    case 'waiting':
+      toast.loading(`Creating ${job.name}`, {
+        id: createToastId(job),
+        description: 'Waiting for the Space to reconnect.',
+        duration: Infinity,
+        action: { label: 'Cancel', onClick: press({ type: 'cancel' }) },
+      })
+      return
+    case 'failed':
+      toast.error(`Could not create ${job.name}`, {
+        id: createToastId(job),
+        description: state.failure,
+        duration: Infinity,
+        action: { label: 'Try again', onClick: press({ type: 'retry' }) },
+      })
+      return
+    case 'refused':
+      toast.error(`Could not create ${job.name}`, {
+        id: createToastId(job),
+        description: state.failure,
+        duration: undefined,
+        action: undefined,
+      })
+      return
+    case 'done':
+    case 'closed':
+      if (job.toastId) toast.dismiss(job.toastId)
+      return
+  }
+}
+
+// createToastId names job's one toast by its planned key, fixed at the first
+// toast it shows.
+function createToastId(job: CreateJob): string {
+  job.toastId ??= `create-object:${job.plan?.objectKey ?? crypto.randomUUID()}`
+  return job.toastId
 }
 
 // readObjectType returns the type of the object at key, '' for an object
@@ -77,13 +215,11 @@ export function useSpaceCreates(
   }, [navigateToObjects])
 
   useEffect(() => {
-    const space: OpenSpace = { closed: false, toasts: new Set(), waiting: [] }
+    const space: OpenSpace = { jobs: new Set(), waiting: new Map() }
     open.current = space
     return () => {
-      space.closed = true
-      space.waiting = []
-      for (const id of space.toasts) toast.dismiss(id)
-      space.toasts.clear()
+      space.waiting.clear()
+      for (const dispatch of space.jobs) dispatch({ type: 'close' })
       if (open.current === space) open.current = null
     }
   }, [spaceId])
@@ -92,8 +228,8 @@ export function useSpaceCreates(
     liveWorld.current = world
     const space = open.current
     if (!world || !space) return
-    const waiting = space.waiting
-    space.waiting = []
+    const waiting = [...space.waiting.values()]
+    space.waiting.clear()
     for (const resume of waiting) resume(world)
   }, [world])
 
@@ -102,82 +238,89 @@ export function useSpaceCreates(
       create(name, prepare) {
         const space = open.current
         if (!space) return
-        let plan: CreatePlan | null = null
-        let sent = false
-        let toastId: string | undefined
+        const job: CreateJob = {
+          name,
+          state: { status: 'running' },
+          plan: null,
+          sent: false,
+          toastId: null,
+        }
 
-        const show = () => {
-          toastId ??= `create-object:${plan?.objectKey ?? crypto.randomUUID()}`
-          space.toasts.add(toastId)
-          return toastId
+        // dispatch moves job to its next state, shows that state's toast and
+        // starts the run a Try again or a returned world asks for. Only
+        // running sends, and only retry and resume enter it, from states
+        // with no run in flight, so one create never runs twice at once.
+        const dispatch = (event: CreateEvent) => {
+          const prev = job.state
+          const next = createReducer(prev, event)
+          if (next === prev) return
+          job.state = next
+          if (next.status === 'done' || next.status === 'closed')
+            space.jobs.delete(dispatch)
+          if (prev.status === 'waiting') space.waiting.delete(job)
+          showCreateToast(job, dispatch)
+          if (event.type === 'retry') start()
         }
-        const nextWorld = () =>
-          liveWorld.current ??
-          new Promise<IWorldState>((resume) => {
-            toast.loading(`Creating ${name}`, {
-              id: show(),
-              description: 'Waiting for the Space to reconnect.',
-              duration: Infinity,
-            })
-            space.waiting.push(resume)
-          })
-        const done = (created: CreatePlan) => {
-          if (space.closed) return
-          if (toastId) {
-            toast.dismiss(toastId)
-            space.toasts.delete(toastId)
-          }
-          if (!created.persistent) toast.success(`Created ${created.name}`)
-          navigate.current([created.objectKey])
-        }
-        const fail = (err: unknown, retry: boolean) => {
-          if (space.closed) return
-          toast.error(`Could not create ${name}`, {
-            id: show(),
-            description:
-              err instanceof WorldOperationRejection
-                ? err.message
-                : 'The Space could not finish the change.',
-            ...(retry && {
-              duration: Infinity,
-              action: { label: 'Try again', onClick: attempt },
-            }),
-          })
-        }
-        // run waits for the Space's world; a closed Space drops its waiting
-        // presses, so a run that resumes acts while the Space is open.
+        // run sends the create on the Space's world, waiting for it while it
+        // reloads.
         const run = async () => {
-          if (space.closed) return
-          const world = await nextWorld()
-          plan ??= await prepare(world)
-          if (!plan) return
+          let world = liveWorld.current
+          if (!world) {
+            dispatch({ type: 'wait' })
+            world = await new Promise<IWorldState>((resume) =>
+              space.waiting.set(job, resume),
+            )
+            dispatch({ type: 'resume' })
+          }
+          if (job.state.status !== 'running') return
+          job.plan ??= await prepare(world)
+          const plan = job.plan
+          if (!plan) {
+            dispatch({ type: 'close' })
+            return
+          }
           // Contract: a create whose reply was lost may still have committed,
           // and the op does not yet treat an identical repeat as a no-op, so
           // a repeat first reads its key. The object there is either this
           // create landing, or another writer's object that this create must
           // not touch.
-          if (sent) {
+          if (job.sent) {
             const found = await readObjectType(world, plan.objectKey)
-            if (found === plan.objectType) {
-              done(plan)
+            if (found !== null && found !== plan.objectType) {
+              dispatch({
+                type: 'fail',
+                failure: 'The Space could not finish the change.',
+                retry: false,
+              })
               return
             }
-            if (found !== null) {
-              fail(null, false)
-              return
-            }
+            if (found !== null) return finish(plan)
           }
-          sent = true
+          job.sent = true
           await world.applyWorldOp(plan.opId, plan.opData, '')
-          done(plan)
+          finish(plan)
         }
-        const attempt = () => {
+        const finish = (plan: CreatePlan) => {
+          if (job.state.status !== 'running') return
+          dispatch({ type: 'done' })
+          if (!plan.persistent) toast.success(`Created ${plan.name}`)
+          navigate.current([plan.objectKey])
+        }
+        const start = () => {
           run().catch((err: unknown) => {
             console.error('failed to create object', err)
-            fail(err, true)
+            dispatch({
+              type: 'fail',
+              failure:
+                err instanceof WorldOperationRejection
+                  ? err.message
+                  : 'The Space could not finish the change.',
+              retry: true,
+            })
           })
         }
-        attempt()
+        space.jobs.add(dispatch)
+        start()
       },
     }),
     [],

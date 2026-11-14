@@ -688,13 +688,16 @@ describe('SpaceCommands', () => {
       expect(h.toast.error).toHaveBeenCalledTimes(1)
     })
 
+    // The press replaces the failure with a loading toast at once, then
+    // with the wait for the world.
     failedCreateToast()[1].action?.onClick()
     await waitFor(() => {
-      expect(h.toast.loading).toHaveBeenCalledTimes(1)
+      expect(h.toast.loading).toHaveBeenCalledTimes(2)
     })
-    expect(h.toast.loading.mock.calls[0][1]).toMatchObject({
+    expect(h.toast.loading.mock.calls[1][1]).toMatchObject({
       id: 'create-object:layout-1',
       description: 'Waiting for the Space to reconnect.',
+      action: { label: 'Cancel' },
     })
     expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
 
@@ -740,7 +743,7 @@ describe('SpaceCommands', () => {
     })
     failedCreateToast()[1].action?.onClick()
     await waitFor(() => {
-      expect(h.toast.loading).toHaveBeenCalledTimes(1)
+      expect(h.toast.loading).toHaveBeenCalledTimes(2)
     })
 
     view.switchSpace('space-2')
