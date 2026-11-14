@@ -47,8 +47,9 @@ type ReplaceOrigin struct {
 //     stored bytes, so the replace returns ErrStateChanged and writes
 //     nothing; the caller reads again and decides.
 //   - Every mount reads the stored state after the replace returns, even
-//     when the commit returned an error after storing it: any failure but a
-//     refusal restarts the mount too.
+//     when the commit returned an error after storing it: such a replace
+//     returns nil, and a failure whose effect storage cannot show restarts
+//     the mount too. A failure that wrote nothing leaves the mount alone.
 //   - Keys a mount writes outside the host state, its local state stores
 //     and join requests, are not part of the replace and are kept.
 func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte, origin ReplaceOrigin) error {
@@ -112,9 +113,26 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 		err = testHookReplaceCommitted(id)
 	}
 
-	// Restart the mount whether the commit succeeded or failed: a commit
-	// error can follow a stored write, and the restarted mount reads
-	// whatever storage holds.
+	// Any other failure may have stored the write: a commit error can follow
+	// it. Storage holding this genesis, whose signature no other write
+	// repeats, means the replace committed. Unless storage shows no write,
+	// restart the mount so it reads whatever storage holds.
+	if err != nil {
+		var stored []byte
+		var found bool
+		rerr := a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			stored, found, err = tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+			return err
+		})
+		switch {
+		case rerr != nil:
+		case !found || !bytes.Equal(stored, data):
+			return err
+		default:
+			err = nil
+		}
+	}
 	a.restartSharedObject(id, nil)
 	return err
 }

@@ -284,9 +284,10 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 }
 
 // TestMountReloadsAfterAmbiguousCommit fails a mounted write's commit, and
-// then a replace's, after each stored its state, and checks that the mount
-// reloads by itself: the failed caller gets the commit error once, a new
-// mount shows the stored state, and writes go on.
+// then a replace's, after each stored its state, and checks that each reads
+// as committed: the write returns nil and the same mount writes on, and the
+// replace returns nil and a new mount shows it. A commit error that finds
+// another writer's state stored instead returns the error and reloads.
 func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -306,14 +307,39 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		return err
 	}
 	t.Cleanup(func() { testHookStateCommitted = nil })
-	if err := tryWriteTestStateData(ctx, so, []byte("fake-b")); !errors.Is(err, errAmbiguous) {
-		t.Fatalf("the ambiguous write returned %v", err)
+	if err := tryWriteTestStateData(ctx, so, []byte("fake-b")); err != nil {
+		t.Fatalf("the stored write returned %v", err)
 	}
+	if so.ctx.Err() != nil {
+		t.Fatal("a stored write restarted the mount")
+	}
+	waitTestStateData(ctx, t, so, []byte("fake-b"))
+	other, err := a.ReadStoredSharedObject(ctx, "ambiguous")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestStateData(ctx, t, so, []byte("fake-c"))
+
+	// A commit error after another writer stored an earlier state reloads.
+	key := SobjectObjectStoreHostStateKey("ambiguous")
+	testHookStateCommitted = func(id string) error {
+		err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, key, other.State)
+		})
+		if err != nil {
+			return err
+		}
+		return errAmbiguous
+	}
+	if err := tryWriteTestStateData(ctx, so, []byte("fake-lost")); !errors.Is(err, errAmbiguous) {
+		t.Fatalf("the overwritten write returned %v", err)
+	}
+	testHookStateCommitted = nil
 	expectTestMountEnded(ctx, t, so)
 	next, relNext := mountTestSharedObject(ctx, t, a, ref)
 	defer relNext()
 	waitTestStateData(ctx, t, next, []byte("fake-b"))
-	writeTestStateData(ctx, t, next, []byte("fake-c"))
+	writeTestStateData(ctx, t, next, []byte("fake-d"))
 
 	// A replace stores its state, then its commit fails.
 	peer, err := a.vol.GetPeer(ctx, true)
@@ -331,20 +357,20 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	origin := ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
-	if err := a.ReplaceSharedObjectState(ctx, a.le, "ambiguous", owner, []byte("fake-moved"), origin); !errors.Is(err, errAmbiguous) {
-		t.Fatalf("the ambiguous replace returned %v", err)
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "ambiguous", owner, []byte("fake-moved"), origin); err != nil {
+		t.Fatalf("the stored replace returned %v", err)
 	}
 	expectTestMountEnded(ctx, t, next)
 	moved, relMoved := mountTestSharedObject(ctx, t, a, ref)
 	defer relMoved()
 	waitTestStateData(ctx, t, moved, []byte("fake-moved"))
-	writeTestStateData(ctx, t, moved, []byte("fake-d"))
+	writeTestStateData(ctx, t, moved, []byte("fake-e"))
 }
 
-// TestMountReloadsOnceAfterStoreChange changes the stored state behind a
-// mount and checks that the next write fails with ErrStateChanged once and
-// reloads the mount, and that the same stored state does not reload it again.
-func TestMountReloadsOnceAfterStoreChange(t *testing.T) {
+// TestMountReloadsAfterStoreChange changes the stored state behind a mount
+// and checks that the next write fails with ErrStateChanged once and reloads
+// the mount in one new run, which then takes writes.
+func TestMountReloadsAfterStoreChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
@@ -387,11 +413,6 @@ func TestMountReloadsOnceAfterStoreChange(t *testing.T) {
 	defer relNext()
 	waitTestStateData(ctx, t, next, []byte("fake-a"))
 
-	// The same stored state does not restart the mount again.
-	so.tkr.reload(first.State)
-	if next.ctx.Err() != nil {
-		t.Fatal("a second reload for the same stored state restarted the mount")
-	}
 	mtx.Lock()
 	n := runs
 	mtx.Unlock()

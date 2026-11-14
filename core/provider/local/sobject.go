@@ -2,7 +2,6 @@ package provider_local
 
 import (
 	"context"
-	"crypto/sha256"
 	"slices"
 	"strings"
 	"sync"
@@ -241,11 +240,6 @@ type sobjectTracker struct {
 	awaitingState atomic.Bool
 	// runs joins the state funcs of this tracker's mount runs.
 	runs SOStateRuns
-	// reloadMtx guards reloadedFor.
-	reloadMtx sync.Mutex
-	// reloadedFor is the hash of the stored state the last reload restarted
-	// the tracker for, so a mount restarts at most once per stored state.
-	reloadedFor [sha256.Size]byte
 	// peerStateBcast guards peerStates.
 	peerStateBcast broadcast.Broadcast
 	// peerStates maps each sync peer to the digest of the last state it
@@ -253,21 +247,9 @@ type sobjectTracker struct {
 	peerStates map[string][]byte
 }
 
-// reload restarts the tracker so its mount loads stored, the state storage
-// holds in place of the one the mount loaded or last wrote. It restarts once
-// per stored state: a mount that finds the same stored bytes again after
-// reloading for them is left as it is, so a store that disagrees with the
-// mount's own load cannot restart it in a loop.
-func (t *sobjectTracker) reload(stored []byte) {
-	// Skip a reload for the state the last one loaded.
-	sum := sha256.Sum256(stored)
-	t.reloadMtx.Lock()
-	again := t.reloadedFor == sum
-	t.reloadedFor = sum
-	t.reloadMtx.Unlock()
-	if again {
-		return
-	}
+// reload restarts the tracker so its mount loads the state storage holds in
+// place of the one the mount loaded or last wrote.
+func (t *sobjectTracker) reload() {
 	t.a.restartSharedObject(t.id, func(cur *sobjectTracker) bool {
 		return cur == t
 	})

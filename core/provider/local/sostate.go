@@ -24,12 +24,12 @@ type SOStateRuns struct {
 	// inside its write transaction, until the transaction ends. Each load
 	// takes it alone and releases it at once, as a barrier.
 	Writes csync.RWMutex
-	// Reload restarts the mount with the stored state, when set. It is
-	// called when storage holds other bytes than the mount loaded or last
-	// wrote: after a write fails its compare, or after a commit error that
-	// may have stored the write anyway. The mount cannot write again until
-	// it reloads.
-	Reload func(stored []byte)
+	// Reload restarts the mount so it loads the stored state, when set. It
+	// is called when storage holds other bytes than the mount loaded or last
+	// wrote: after a write fails its compare, or after a failure that may
+	// have committed finds neither the write nor the state under it. The
+	// mount cannot write again until it reloads.
+	Reload func()
 }
 
 // NewObjectStoreSOStateFuncs constructs a SOHostState backed by an object store and in-memory locks.
@@ -39,7 +39,8 @@ type SOStateRuns struct {
 // ReplaceSharedObjectState, changed the stored state since.
 // rctx is the context to use for looking up states from the object store.
 // localPeer binds private read checkpoints to the local participant; empty disables retention.
-// runs, if set, is shared by every run of the object's mount (SOStateRuns).
+// runs is shared by every run of the object's mount (SOStateRuns); a mount
+// with no other runs passes its own.
 // watchFn watches the committed state.
 func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStore, localPeer peer.ID, runs *SOStateRuns) (
 	watchFn sobject.SOStateWatchFunc,
@@ -86,13 +87,16 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return err
 	}
 
-	// reloadStale calls reload when a write that failed with err leaves
-	// storage holding other bytes than ent. A failed compare read them as
-	// stored. Any other failure but a refusal may have committed, so read
-	// what storage holds now. The caller holds ent.writeMtx.
-	reloadStale := func(ent *soStateEntry, stored []byte, err error) {
-		if runs == nil || runs.Reload == nil || rctx.Err() != nil || errors.Is(err, sobject.ErrSharedObjectNotFound) {
-			return
+	// committed settles a write of data that failed with err: it reports
+	// whether the write committed anyway, and reloads the mount when storage
+	// holds another writer's state. A refusal stored nothing. A failed
+	// compare read another writer's state as stored. Any other failure may
+	// have committed, so read what storage holds now: data means the write
+	// committed, and the state under it means it did not. The caller holds
+	// ent.writeMtx.
+	committed := func(ent *soStateEntry, data, stored []byte, err error) bool {
+		if rctx.Err() != nil || errors.Is(err, sobject.ErrSharedObjectNotFound) {
+			return false
 		}
 		if !errors.Is(err, ErrStateChanged) {
 			var found bool
@@ -106,11 +110,20 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 					return err
 				},
 			)
-			if rerr != nil || !found || bytes.Equal(stored, ent.data) {
-				return
+			if rerr != nil || !found {
+				return false
+			}
+			if bytes.Equal(stored, data) {
+				return true
+			}
+			if bytes.Equal(stored, ent.data) {
+				return false
 			}
 		}
-		runs.Reload(stored)
+		if runs.Reload != nil {
+			runs.Reload()
+		}
+		return false
 	}
 
 	// Bind the watched state of the entry to the caller's reference lifetime.
@@ -172,18 +185,18 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						return objStore.NewTransaction(ctx, true)
 					},
 					func(ctx context.Context, tx kvtx.Tx) error {
+						// Hold off a restarted run's load until this transaction ends.
+						rel, err := runs.Writes.Lock(ctx, false)
+						if err != nil {
+							return err
+						}
+						relWrites = rel
+
 						// A deleted object stays deleted. A handle from a mount that
 						// has ended cannot write: a delete restarts the mount before
 						// releasing the account lock a relist needs, so a stale
 						// handle never writes over a relisted object. A write that
 						// raced the delete finds no state and fails.
-						if runs != nil {
-							rel, err := runs.Writes.Lock(ctx, false)
-							if err != nil {
-								return err
-							}
-							relWrites = rel
-						}
 						if err := rctx.Err(); err != nil {
 							return err
 						}
@@ -237,12 +250,11 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				if err == nil && testHookStateCommitted != nil {
 					err = testHookStateCommitted(sharedObjectID)
 				}
-				if err != nil {
-					reloadStale(ent, stored, err)
+				if err != nil && !committed(ent, data, stored, err) {
 					return err
 				}
 
-				// Make the committed snapshot visible only after the transaction succeeds.
+				// Make the committed snapshot visible only after the write commits.
 				ent.commit(state, data)
 				return nil
 			},
