@@ -16,6 +16,7 @@ import { downloadURL } from '@s4wave/web/download.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
+import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from './object-wizards.js'
@@ -204,15 +205,40 @@ export function SpaceCommands({
     [spaceWorld, navigateToObjects, wizards, loadWizards],
   )
 
+  // createObject runs a create and shows a failed one as a toast that offers
+  // the same create again; a refusal shows the op's own explanation.
+  const createObject = useCallback(
+    (typeId: string) => {
+      const run = () => {
+        createFromWizard(typeId).catch((err: unknown) => {
+          console.error('failed to create object', err)
+          const wizard = wizards.find((w) => w.typeId === typeId)
+          toast.error(
+            `Could not create ${wizard?.displayName || 'the object'}`,
+            {
+              description:
+                err instanceof WorldOperationRejection
+                  ? err.message
+                  : 'The Space could not finish the change.',
+              action: { label: 'Try again', onClick: run },
+            },
+          )
+        })
+      }
+      run()
+    },
+    [createFromWizard, wizards],
+  )
+
   const handleCreateObject = useCallback(
     (args: Record<string, string>) => {
       if (args.subItemId) {
-        void createFromWizard(args.subItemId)
+        createObject(args.subItemId)
         return
       }
       openCommand('spacewave.create-object')
     },
-    [openCommand, createFromWizard],
+    [openCommand, createObject],
   )
 
   useCommand({

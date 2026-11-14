@@ -20,6 +20,7 @@ import {
   AddDeviceWizardTargetKeyPrefix,
   AddDeviceWizardTypeID,
 } from '../device/add-device-wizard.js'
+import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
 import { SpaceCommands } from './SpaceCommands.js'
 
 interface RegisteredCommand {
@@ -451,6 +452,38 @@ describe('SpaceCommands', () => {
     const decoded = InitObjectLayoutOp.fromBinary(opData)
     expect(decoded.objectKey).toBe('layout-1')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
+
+  it('shows a refused create with its reason and offers it again', async () => {
+    h.applyWorldOp.mockRejectedValueOnce(
+      new WorldOperationRejection(
+        'space/layout/exists',
+        'A layout with this name already exists.',
+      ),
+    )
+    renderCommands()
+
+    const { handler } = getCreateObjectCommandHandlers()
+    handler({ subItemId: 'alpha/object-layout' })
+
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const [title, options] = h.toast.error.mock.calls[0] as unknown as [
+      string,
+      { description: string; action: { label: string; onClick: () => void } },
+    ]
+    expect(title).toBe('Could not create Object Layout')
+    expect(options.description).toBe('A layout with this name already exists.')
+    expect(options.action.label).toBe('Try again')
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+
+    options.action.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+    expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
   })
 
   it('launches a persistent forge task wizard from the create-object command', async () => {
