@@ -2,6 +2,7 @@ package resource_worldop_registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -268,6 +269,91 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 		t.Fatal("validation error should not be reported as a system error")
 	}
 	assertWorldObjectMissing(t, ctx, tb.Engine, "test/world-op-created")
+}
+
+func TestWorldOpRegistryBridgeControllerDeadlineReleasesWriter(t *testing.T) {
+	// Start a World testbed whose plugin never answers ApplyWorldOp.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	handler := &stallWorldOpHandler{entered: make(chan struct{}, 1), stall: make(chan struct{})}
+	t.Cleanup(func() { close(handler.stall) })
+
+	// Expose the stalling handler through the plugin Resource server.
+	pluginRoot := srpc.NewMux()
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, handler); err != nil {
+		t.Fatal(err)
+	}
+	pluginResourceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
+	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
+	if err != nil {
+		t.Fatalf("AddController plugin load: %v", err)
+	}
+	defer rel()
+
+	// Register the plugin operation and attach its registry bridge.
+	registry := NewWorldOpRegistryResource(nil)
+	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
+		OperationTypeId: "test/plugin-op",
+		RegistrationId:  1,
+		PluginId:        "test-plugin",
+	}
+	rel, err = tb.Bus.AddController(ctx, NewWorldOpRegistryBridgeController(le, tb.Bus, registry), nil)
+	if err != nil {
+		t.Fatalf("AddController bridge: %v", err)
+	}
+	defer rel()
+
+	// Resolve and decode the plugin operation.
+	vs, _, ref, err := world.ExLookupWorldOp(ctx, tb.Bus, le, "test/plugin-op", tb.EngineID)
+	if err != nil {
+		t.Fatalf("ExLookupWorldOp: %v", err)
+	}
+	defer ref.Release()
+	op, err := vs[0](ctx, "test/plugin-op")
+	if err != nil {
+		t.Fatalf("lookup op: %v", err)
+	}
+	if err := op.UnmarshalVT([]byte("op-data")); err != nil {
+		t.Fatalf("UnmarshalVT: %v", err)
+	}
+
+	// Apply the operation through the engine, which holds the writer for it.
+	ws := world.NewEngineWorldState(tb.Engine, true)
+	applied := make(chan error, 1)
+	go func() {
+		_, _, err := ws.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID())
+		applied <- err
+	}()
+	<-handler.entered
+
+	// A second writer proceeds once the deadline releases the writer.
+	writeCtx, cancel := context.WithTimeout(ctx, 3*pluginOpDeadline)
+	defer cancel()
+	obj, err := ws.CreateObject(writeCtx, "test/second-writer", nil)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatalf("second writer: %v", err)
+	}
+	assertWorldObjectExists(t, ctx, tb.Engine, "test/second-writer")
+
+	// The stalled operation ends with the typed timeout.
+	err = <-applied
+	var timeout *PluginOpTimeoutError
+	if !errors.As(err, &timeout) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("ApplyWorldOp error = %v, want PluginOpTimeoutError", err)
+	}
+	if timeout.PluginID != "test-plugin" || timeout.OperationTypeID != "test/plugin-op" {
+		t.Fatalf("timeout = %+v", timeout)
+	}
 }
 
 func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Engine, key string) {
@@ -544,3 +630,20 @@ var (
 	_ controller.Controller                                   = (*testWorldOpPluginLoadController)(nil)
 	_ s4wave_worldop_registry.SRPCWorldOpHandlerServiceServer = (*testWorldOpHandler)(nil)
 )
+
+// stallWorldOpHandler validates every operation and never answers
+// ApplyWorldOp until stall closes, ignoring its context like a stalled worker.
+type stallWorldOpHandler struct {
+	testWorldOpHandler
+	entered chan struct{}
+	stall   chan struct{}
+}
+
+func (h *stallWorldOpHandler) ApplyWorldOp(
+	context.Context,
+	*s4wave_worldop_registry.ApplyWorldOpRequest,
+) (*s4wave_worldop_registry.ApplyWorldOpResponse, error) {
+	h.entered <- struct{}{}
+	<-h.stall
+	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
+}
