@@ -43,10 +43,10 @@ func (b *batchCountBucket) count() int {
 	return b.batches
 }
 
-// TestBatchFSWriter_CommitWritesBlobsWithTree checks that AddFile keeps a
-// chunked blob out of the bucket and Commit writes it in the same block batch
-// as the tree that references it.
-func TestBatchFSWriter_CommitWritesBlobsWithTree(t *testing.T) {
+// TestBatchFSWriter_CommitWritesBlobsOnce checks that AddFile keeps a chunked
+// blob out of the bucket and Commit writes it in one block batch of its own,
+// before the tree that references it, so a merge attempt never writes it again.
+func TestBatchFSWriter_CommitWritesBlobsOnce(t *testing.T) {
 	// Start the storage testbed for counting blob and tree writes.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -116,12 +116,12 @@ func TestBatchFSWriter_CommitWritesBlobsWithTree(t *testing.T) {
 		t.Fatalf("AddFile batches: got %d want 0", got)
 	}
 
-	// The tree write carries the blob; the engine's publication is the other.
+	// The blob, the tree, and the engine's publication each write one batch.
 	if err := bw.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := counter.count() - before; got != 2 {
-		t.Fatalf("Commit batches: got %d want 2", got)
+	if got := counter.count() - before; got != 3 {
+		t.Fatalf("Commit batches: got %d want 3", got)
 	}
 
 	// The committed file reads back from the bucket.

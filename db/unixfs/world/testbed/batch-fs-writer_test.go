@@ -3,13 +3,16 @@ package unixfs_world_testbed
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	"github.com/sirupsen/logrus"
@@ -617,4 +620,217 @@ func TestBatchFSWriter_DirFileConflictInvalidatesResolvedDir(t *testing.T) {
 		t.Fatal("Commit succeeded after replacing a pending directory with a file")
 	}
 	bw.Release()
+}
+
+// commitMergedHook calls its function with the attempt number each time a
+// Commit finishes merging, before the merge is published.
+type commitMergedHook func(attempt int)
+
+func (h commitMergedHook) RecordBatchFSWriterMetric(metric unixfs_world.BatchFSWriterMetric) {
+	if metric.Stage == "commit-merged" {
+		h(metric.Attempt)
+	}
+}
+
+// newRaceTestbed starts a World engine with an initialized filesystem at
+// objKey and returns its World testbed and filesystem handle.
+func newRaceTestbed(ctx context.Context, t *testing.T) (*world_testbed.Testbed, *unixfs.FSHandle) {
+	t.Helper()
+	le := logrus.NewEntry(logrus.New())
+	htb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	wtb, err := world_testbed.NewTestbed(htb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(fsHandle.Release)
+	return wtb, fsHandle
+}
+
+// addRaceFile adds a root file holding content to bw.
+func addRaceFile(ctx context.Context, t *testing.T, bw *unixfs_world.BatchFSWriter, name, content string) {
+	t.Helper()
+	if err := bw.AddFile(
+		ctx,
+		nil,
+		name,
+		unixfs.NewFSCursorNodeType_File(),
+		int64(len(content)),
+		strings.NewReader(content),
+		0o644,
+		time.Now(),
+	); err != nil {
+		t.Fatalf("AddFile %s: %v", name, err)
+	}
+}
+
+// commitRaceFiles commits the root files in files as a second writer.
+func commitRaceFiles(ctx context.Context, t *testing.T, wtb *world_testbed.Testbed, files map[string]string) {
+	t.Helper()
+	bw := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID())
+	defer bw.Release()
+	for name, content := range files {
+		addRaceFile(ctx, t, bw, name, content)
+	}
+	if err := bw.Commit(ctx); err != nil {
+		t.Errorf("second writer Commit: %v", err)
+	}
+}
+
+// readRaceFile returns the content of a root file and whether it exists.
+func readRaceFile(ctx context.Context, t *testing.T, fsHandle *unixfs.FSHandle, name string) (string, bool) {
+	t.Helper()
+	fh, err := fsHandle.Lookup(ctx, name)
+	if errors.Is(err, unixfs_errors.ErrNotExist) {
+		return "", false
+	}
+	if err != nil {
+		t.Fatalf("Lookup %s: %v", name, err)
+	}
+	defer fh.Release()
+	size, err := fh.GetSize(ctx)
+	if err != nil {
+		t.Fatalf("GetSize %s: %v", name, err)
+	}
+	buf := make([]byte, size)
+	n, err := fh.ReadAt(ctx, 0, buf)
+	if err != nil {
+		t.Fatalf("ReadAt %s: %v", name, err)
+	}
+	return string(buf[:n]), true
+}
+
+// TestBatchFSWriter_RaceConflictRefuses has a second writer create a path the
+// upload expects missing, just before each of the upload's four attempts, with
+// unrelated writes losing the races before it. The upload must refuse with a
+// FileConflictError and leave the other writer's bytes in place.
+func TestBatchFSWriter_RaceConflictRefuses(t *testing.T) {
+	for k := 1; k <= 4; k++ {
+		t.Run(fmt.Sprintf("attempt-%d", k), func(t *testing.T) {
+			// Start a filesystem and an upload that expects conflict.txt missing.
+			ctx := context.Background()
+			wtb, fsHandle := newRaceTestbed(ctx, t)
+			bw := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID())
+			defer bw.Release()
+			if err := bw.ExpectMissing(nil, "conflict.txt"); err != nil {
+				t.Fatal(err)
+			}
+			addRaceFile(ctx, t, bw, "conflict.txt", "upload")
+			addRaceFile(ctx, t, bw, "upload.txt", "upload")
+
+			// Make attempt k see the conflict and each earlier attempt lose a race.
+			second := func(attempt int) {
+				if attempt+1 == k {
+					commitRaceFiles(ctx, t, wtb, map[string]string{"conflict.txt": "other"})
+					return
+				}
+				commitRaceFiles(ctx, t, wtb, map[string]string{fmt.Sprintf("other-%d.txt", attempt): "other"})
+			}
+			if k == 1 {
+				second(0)
+			}
+			var last int
+			hook := commitMergedHook(func(attempt int) {
+				last = attempt
+				if attempt < k {
+					second(attempt)
+				}
+			})
+
+			// The upload refuses with the conflicting path.
+			err := bw.Commit(unixfs_world.WithBatchFSWriterMetricsRecorder(ctx, hook))
+			var conflict *unixfs_world.FileConflictError
+			if !errors.As(err, &conflict) {
+				t.Fatalf("Commit: want FileConflictError, got %v", err)
+			}
+			if last != k-1 {
+				t.Fatalf("merged %d attempts before the conflict, want %d", last, k-1)
+			}
+
+			// The other writer's bytes remain and none of the upload's were written.
+			if got, _ := readRaceFile(ctx, t, fsHandle, "conflict.txt"); got != "other" {
+				t.Fatalf("conflict.txt holds %q, want the other writer's bytes", got)
+			}
+			if _, ok := readRaceFile(ctx, t, fsHandle, "upload.txt"); ok {
+				t.Fatal("upload.txt was written by a refused upload")
+			}
+		})
+	}
+}
+
+// TestBatchFSWriter_RaceUnrelatedPublishes has a second writer write unrelated
+// paths after each of the upload's three staged attempts, so the upload loses
+// every race and publishes on its fourth attempt, under the writer. Both
+// writers' files must read back.
+func TestBatchFSWriter_RaceUnrelatedPublishes(t *testing.T) {
+	// Start a filesystem and an upload of two files.
+	ctx := context.Background()
+	wtb, fsHandle := newRaceTestbed(ctx, t)
+	bw := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID())
+	defer bw.Release()
+	addRaceFile(ctx, t, bw, "upload-a.txt", "a")
+	addRaceFile(ctx, t, bw, "upload-b.txt", "b")
+
+	// Lose the first three races to unrelated writes.
+	var last int
+	hook := commitMergedHook(func(attempt int) {
+		last = attempt
+		if attempt <= 3 {
+			commitRaceFiles(ctx, t, wtb, map[string]string{fmt.Sprintf("other-%d.txt", attempt): "other"})
+		}
+	})
+	if err := bw.Commit(unixfs_world.WithBatchFSWriterMetricsRecorder(ctx, hook)); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+	if last != 4 {
+		t.Fatalf("published on attempt %d, want 4", last)
+	}
+
+	// Both writers' files read back.
+	want := map[string]string{
+		"upload-a.txt": "a",
+		"upload-b.txt": "b",
+		"other-1.txt":  "other",
+		"other-2.txt":  "other",
+		"other-3.txt":  "other",
+	}
+	for name, content := range want {
+		if got, ok := readRaceFile(ctx, t, fsHandle, name); !ok || got != content {
+			t.Fatalf("%s holds %q (exists %v), want %q", name, got, ok, content)
+		}
+	}
+}
+
+// TestBatchFSWriter_CancelledCommitLeavesRoot cancels a Commit after its merge
+// and before its publication; the filesystem root must not change.
+func TestBatchFSWriter_CancelledCommitLeavesRoot(t *testing.T) {
+	// Start a filesystem and an upload, and record the root before it.
+	ctx := context.Background()
+	wtb, fsHandle := newRaceTestbed(ctx, t)
+	before := readRootRef(ctx, t, wtb.WorldState, objKey)
+	bw := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, unixfs_world.FSType_FSType_FS_NODE, wtb.Volume.GetPeerID())
+	defer bw.Release()
+	addRaceFile(ctx, t, bw, "upload.txt", "upload")
+
+	// Cancel the commit once its first merge finishes.
+	commitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	hook := commitMergedHook(func(int) { cancel() })
+	if err := bw.Commit(unixfs_world.WithBatchFSWriterMetricsRecorder(commitCtx, hook)); err == nil {
+		t.Fatal("cancelled Commit succeeded")
+	}
+
+	// The root is unchanged and the upload's file is absent.
+	if after := readRootRef(ctx, t, wtb.WorldState, objKey); !after.EqualsRef(before) {
+		t.Fatalf("root changed from %v to %v", before, after)
+	}
+	if _, ok := readRaceFile(ctx, t, fsHandle, "upload.txt"); ok {
+		t.Fatal("upload.txt was written by a cancelled Commit")
+	}
 }

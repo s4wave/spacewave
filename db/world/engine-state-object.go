@@ -103,10 +103,24 @@ func (e *engineWorldStateObject) SetRootRef(ctx context.Context, nref *bucket.Ob
 // the read and the publication of an accessObjectState attempt.
 var errRootRefChanged = errors.New("object root changed during access")
 
+// stagedAccessAttempts is how many times accessObjectState builds off the
+// writer before it builds under it. Each lost race costs the caller one build;
+// past this many, steady writers to the object could starve it, so the last
+// attempt holds the writer for one build and always publishes.
+const stagedAccessAttempts = 3
+
 // accessObjectState applies cb to the object root and publishes the result
 // only when the object still has the revision cb read. Reading and publishing
-// are separate transactions so cb never runs under the engine write lock; a
-// concurrent change replays cb against the new root instead of overwriting it.
+// are separate transactions so cb runs off the engine writer; a concurrent
+// change replays cb against the new root instead of overwriting it. After
+// stagedAccessAttempts lost races, cb runs once more inside a write
+// transaction, where no other writer can move the root.
+//
+// Invariants: the object publishes the whole result of one cb run or nothing,
+// and cb's result is published only onto the root that run read, so an
+// attempt never overwrites a write it did not merge onto. cb runs once per
+// attempt and must check against the root it is given whatever it requires
+// of the object.
 //
 // Without updateWorld the caller publishes the returned root itself, so the
 // build is not staged here.
@@ -124,8 +138,9 @@ func (e *engineWorldStateObject) accessObjectState(
 		return accessObjectRoot(ctx, e.AccessWorldState, initRef, cb)
 	}
 
-	// Replay the build until it publishes onto the revision it read.
-	for {
+	// Build off the writer until the build publishes onto the revision it
+	// read, or it has lost stagedAccessAttempts races.
+	for range stagedAccessAttempts {
 		if err := ctx.Err(); err != nil {
 			return nil, false, err
 		}
@@ -134,6 +149,21 @@ func (e *engineWorldStateObject) accessObjectState(
 			return outRef, dirty, err
 		}
 	}
+
+	// Build and publish under the writer, which no other writer can race.
+	var outRef *bucket.ObjectRef
+	var dirty bool
+	err := e.e.performOp(ctx, true, func(tx Tx) error {
+		// Build onto the transaction's object, which publishes with the commit.
+		obj, err := MustGetObject(ctx, tx, e.key)
+		defer ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+		outRef, dirty, err = AccessObjectState(ctx, obj, true, cb)
+		return err
+	})
+	return outRef, dirty, err
 }
 
 // publishObjectState builds through a World stage and publishes the result
