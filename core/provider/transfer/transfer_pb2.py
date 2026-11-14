@@ -25,21 +25,23 @@ _sym_db = _symbol_database.Default()
 from core.sobject import sobject_pb2 as github_dot_com_dot_s4wave_dot_spacewave_dot_core_dot_sobject_dot_sobject__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\nAgithub.com/s4wave/spacewave/core/provider/transfer/transfer.proto\x12\x11provider.transfer\x1a\x36github.com/s4wave/spacewave/core/sobject/sobject.proto\"\xb6\x01\n\x12SpaceTransferState\x12\x18\n\x10shared_object_id\x18\x01 \x01(\t\x12/\n\x05phase\x18\x02 \x01(\x0e\x32 .provider.transfer.TransferPhase\x12\x15\n\rblocks_copied\x18\x03 \x01(\x04\x12\x15\n\rerror_message\x18\x05 \x01(\t\x12\'\n\x04meta\x18\x06 \x01(\x0b\x32\x19.sobject.SharedObjectMeta\"\xf9\x01\n\rTransferState\x12-\n\x04mode\x18\x01 \x01(\x0e\x32\x1f.provider.transfer.TransferMode\x12/\n\x05phase\x18\x02 \x01(\x0e\x32 .provider.transfer.TransferPhase\x12\x1c\n\x14source_session_index\x18\x03 \x01(\r\x12\x1c\n\x14target_session_index\x18\x04 \x01(\r\x12\x35\n\x06spaces\x18\x05 \x03(\x0b\x32%.provider.transfer.SpaceTransferState\x12\x15\n\rerror_message\x18\x06 \x01(\t\"u\n\x12TransferCheckpoint\x12/\n\x05state\x18\x01 \x01(\x0b\x32 .provider.transfer.TransferState\x12\x11\n\tspace_ids\x18\x02 \x03(\t\x12\x1b\n\x13\x63urrent_space_index\x18\x03 \x01(\r*s\n\x0cTransferMode\x12\x18\n\x14TransferMode_UNKNOWN\x10\x00\x12\x16\n\x12TransferMode_MERGE\x10\x01\x12\x18\n\x14TransferMode_MIGRATE\x10\x02\x12\x17\n\x13TransferMode_MIRROR\x10\x03*\xd4\x01\n\rTransferPhase\x12\x16\n\x12TransferPhase_IDLE\x10\x00\x12\x1a\n\x16TransferPhase_SCANNING\x10\x01\x12 \n\x1cTransferPhase_COPYING_BLOCKS\x10\x02\x12\x1c\n\x18TransferPhase_COPYING_SO\x10\x03\x12\x19\n\x15TransferPhase_CLEANUP\x10\x04\x12\x1a\n\x16TransferPhase_COMPLETE\x10\x05\x12\x18\n\x14TransferPhase_FAILED\x10\x06\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\nAgithub.com/s4wave/spacewave/core/provider/transfer/transfer.proto\x12\x11provider.transfer\x1a\x36github.com/s4wave/spacewave/core/sobject/sobject.proto\"\xd0\x01\n\x12SpaceTransferState\x12\x18\n\x10shared_object_id\x18\x01 \x01(\t\x12/\n\x05phase\x18\x02 \x01(\x0e\x32 .provider.transfer.TransferPhase\x12\x15\n\rblocks_copied\x18\x03 \x01(\x04\x12\x15\n\rerror_message\x18\x05 \x01(\t\x12\'\n\x04meta\x18\x06 \x01(\x0b\x32\x19.sobject.SharedObjectMeta\x12\x18\n\x10not_moved_reason\x18\x07 \x01(\t\"\xf9\x01\n\rTransferState\x12-\n\x04mode\x18\x01 \x01(\x0e\x32\x1f.provider.transfer.TransferMode\x12/\n\x05phase\x18\x02 \x01(\x0e\x32 .provider.transfer.TransferPhase\x12\x1c\n\x14source_session_index\x18\x03 \x01(\r\x12\x1c\n\x14target_session_index\x18\x04 \x01(\r\x12\x35\n\x06spaces\x18\x05 \x03(\x0b\x32%.provider.transfer.SpaceTransferState\x12\x15\n\rerror_message\x18\x06 \x01(\t\"X\n\x12TransferCheckpoint\x12/\n\x05state\x18\x01 \x01(\x0b\x32 .provider.transfer.TransferState\x12\x11\n\tspace_ids\x18\x02 \x03(\t\"\\\n\x0eTransferOrigin\x12\x1a\n\x12source_provider_id\x18\x01 \x01(\t\x12\x19\n\x11source_account_id\x18\x02 \x01(\t\x12\x13\n\x0bsource_head\x18\x03 \x01(\x0c*s\n\x0cTransferMode\x12\x18\n\x14TransferMode_UNKNOWN\x10\x00\x12\x16\n\x12TransferMode_MERGE\x10\x01\x12\x18\n\x14TransferMode_MIGRATE\x10\x02\x12\x17\n\x13TransferMode_MIRROR\x10\x03*\xf1\x01\n\rTransferPhase\x12\x16\n\x12TransferPhase_IDLE\x10\x00\x12\x1a\n\x16TransferPhase_SCANNING\x10\x01\x12 \n\x1cTransferPhase_COPYING_BLOCKS\x10\x02\x12\x1c\n\x18TransferPhase_COPYING_SO\x10\x03\x12\x19\n\x15TransferPhase_CLEANUP\x10\x04\x12\x1a\n\x16TransferPhase_COMPLETE\x10\x05\x12\x18\n\x14TransferPhase_FAILED\x10\x06\x12\x1b\n\x17TransferPhase_NOT_MOVED\x10\x07\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'github.com.s4wave.spacewave.core.provider.transfer.transfer_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_TRANSFERMODE']._serialized_start=700
-  _globals['_TRANSFERMODE']._serialized_end=815
-  _globals['_TRANSFERPHASE']._serialized_start=818
-  _globals['_TRANSFERPHASE']._serialized_end=1030
+  _globals['_TRANSFERMODE']._serialized_start=791
+  _globals['_TRANSFERMODE']._serialized_end=906
+  _globals['_TRANSFERPHASE']._serialized_start=909
+  _globals['_TRANSFERPHASE']._serialized_end=1150
   _globals['_SPACETRANSFERSTATE']._serialized_start=145
-  _globals['_SPACETRANSFERSTATE']._serialized_end=327
-  _globals['_TRANSFERSTATE']._serialized_start=330
-  _globals['_TRANSFERSTATE']._serialized_end=579
-  _globals['_TRANSFERCHECKPOINT']._serialized_start=581
-  _globals['_TRANSFERCHECKPOINT']._serialized_end=698
+  _globals['_SPACETRANSFERSTATE']._serialized_end=353
+  _globals['_TRANSFERSTATE']._serialized_start=356
+  _globals['_TRANSFERSTATE']._serialized_end=605
+  _globals['_TRANSFERCHECKPOINT']._serialized_start=607
+  _globals['_TRANSFERCHECKPOINT']._serialized_end=695
+  _globals['_TRANSFERORIGIN']._serialized_start=697
+  _globals['_TRANSFERORIGIN']._serialized_end=789
 # @@protoc_insertion_point(module_scope)

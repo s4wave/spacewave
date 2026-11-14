@@ -35,6 +35,17 @@ func NewSpacewaveTransferSource(
 	}
 }
 
+// GetOrigin returns the origin naming the source account.
+func (s *SpacewaveTransferSource) GetOrigin() *TransferOrigin {
+	return &TransferOrigin{SourceProviderId: s.providerID, SourceAccountId: s.accountID}
+}
+
+// LeavesSharedObjects returns false: the cloud deletes a Space for every
+// member.
+func (s *SpacewaveTransferSource) LeavesSharedObjects() bool {
+	return false
+}
+
 // GetAccount returns the underlying spacewave provider account.
 func (s *SpacewaveTransferSource) GetAccount() *provider_spacewave.ProviderAccount {
 	return s.account

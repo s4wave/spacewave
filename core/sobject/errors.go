@@ -12,6 +12,11 @@ var (
 	// ErrSharedObjectNotFound is returned if the sobject was not found.
 	ErrSharedObjectNotFound = errors.New("shared object not found")
 
+	// ErrSharedObjectArriving is returned when mounting a shared object a
+	// transfer has listed and not yet written: nothing may write to it until
+	// the transfer does.
+	ErrSharedObjectArriving = errors.New("this Space is still arriving from a transfer")
+
 	// ErrInvalidSOParticipantRole is returned if the shared object participant role is invalid.
 	ErrInvalidSOParticipantRole = errors.New("invalid shared object participant role")
 

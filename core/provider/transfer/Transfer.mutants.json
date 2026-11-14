@@ -10,23 +10,112 @@
     "expect": "StateHeld"
   },
   {
-    "name": "the hold runs before the add, whose release drops it",
-    "replace": [
-      ["  /\\ step' = \"add\"\n", "  /\\ step' = \"hold\"\n"],
-      [
-        "  /\\ step' = \"hold\"\n  /\\ UNCHANGED <<mode, picked, pc, entries, cur, staged, blocks, tstate",
-        "  /\\ step' = \"check\"\n  /\\ UNCHANGED <<mode, picked, pc, entries, cur, staged, blocks, tstate"
-      ],
-      [
-        "  /\\ held' = held \\cup {cur}\n  /\\ step' = \"check\"",
-        "  /\\ held' = held \\cup {cur}\n  /\\ step' = \"add\""
-      ]
-    ],
-    "expect": "StateHeld"
-  },
-  {
     "name": "the state is written without checking the stage",
     "replace": [["  /\\ IF cur \\in blocks\n", "  /\\ IF TRUE\n"]],
     "expect": "StateHeld"
+  },
+  {
+    "name": "the write replaces whatever the target holds",
+    "replace": [["  /\\ IF tc[cur] = expect\n", "  /\\ IF TRUE\n"]],
+    "expect": "StateHeld"
+  },
+  {
+    "name": "a re-sync copies over an edited target",
+    "replace": [
+      [
+        "          [] o.ph = \"written\" /\\ t = Src(o.h) ->",
+        "          [] o.ph = \"written\" ->"
+      ]
+    ],
+    "expect": "NoEditOverwritten"
+  },
+  {
+    "name": "a listed Space with no origin counts as this source's",
+    "replace": [
+      [
+        "          [] o = Added /\\ t = Empty ->",
+        "          [] o \\in {Added, NoOrigin} ->"
+      ]
+    ],
+    "expect": "NoEditOverwritten"
+  },
+  {
+    "name": "a written Space is skipped whatever the source head",
+    "replace": [
+      [
+        "          [] o.ph = \"written\" /\\ o.h = ver[cur] ->",
+        "          [] o.ph = \"written\" ->"
+      ]
+    ],
+    "expect": "CleanupAtHead"
+  },
+  {
+    "name": "cleanup deletes without checking the head",
+    "replace": [
+      [
+        "  /\\ pc = \"cleanup\" /\\ s \\in entries \\cap src /\\ AtHead(s)\n",
+        "  /\\ pc = \"cleanup\" /\\ s \\in entries \\cap src\n"
+      ]
+    ],
+    "expect": "CleanupAtHead"
+  },
+  {
+    "name": "a delete on the target keeps the origin",
+    "replace": [
+      [
+        "  /\\ origin' = [origin EXCEPT ![s] = NoOrigin]\n",
+        "  /\\ UNCHANGED origin\n"
+      ]
+    ],
+    "expect": "ArrivingUntouched"
+  },
+  {
+    "name": "a source moved during the run leaves the Space not moved",
+    "replace": [
+      [
+        "  /\\ pc' = \"spaces\"\n  /\\ moved' = moved \\ {s}\n  /\\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, notMoved,",
+        "  /\\ pc' = \"notmoved\"\n  /\\ moved' = moved \\ {s} /\\ notMoved' = notMoved \\cup {s}\n  /\\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv,"
+      ]
+    ],
+    "expect": "NotMovedJustified"
+  },
+  {
+    "name": "a shared Space is copied",
+    "replace": [["     IN CASE cur \\in shared ->", "     IN CASE FALSE ->"]],
+    "expect": "SharedNotCopied"
+  },
+  {
+    "name": "a cloud source deletes a shared Space the target is a member of",
+    "replace": [
+      [
+        "               /\\ IF t = Member /\\ ~cloudSrc\n",
+        "               /\\ IF t = Member\n"
+      ],
+      [
+        "  IF s \\in shared THEN tc[s] = Member /\\ ~cloudSrc ELSE",
+        "  IF s \\in shared THEN tc[s] = Member ELSE"
+      ]
+    ],
+    "expect": "MembersKeepShared"
+  },
+  {
+    "name": "an arriving Space can be written by the person",
+    "replace": [
+      [
+        "  /\\ Listed(s) /\\ touches < MaxTouches /\\ origin[s] # Added",
+        "  /\\ Listed(s) /\\ touches < MaxTouches"
+      ]
+    ],
+    "expect": "ArrivingUntouched"
+  },
+  {
+    "name": "Migrate cleans up without copying the key",
+    "replace": [
+      [
+        "CASE mode = \"migrate\" -> \"key\" [] Deletes",
+        "CASE mode = \"migrate\" -> \"cleanup\" [] Deletes"
+      ]
+    ],
+    "expect": "MigrateKeepsKey"
   }
 ]

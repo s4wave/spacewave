@@ -24,6 +24,7 @@ class TransferPhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TransferPhase_CLEANUP: _ClassVar[TransferPhase]
     TransferPhase_COMPLETE: _ClassVar[TransferPhase]
     TransferPhase_FAILED: _ClassVar[TransferPhase]
+    TransferPhase_NOT_MOVED: _ClassVar[TransferPhase]
 TransferMode_UNKNOWN: TransferMode
 TransferMode_MERGE: TransferMode
 TransferMode_MIGRATE: TransferMode
@@ -35,20 +36,23 @@ TransferPhase_COPYING_SO: TransferPhase
 TransferPhase_CLEANUP: TransferPhase
 TransferPhase_COMPLETE: TransferPhase
 TransferPhase_FAILED: TransferPhase
+TransferPhase_NOT_MOVED: TransferPhase
 
 class SpaceTransferState(_message.Message):
-    __slots__ = ("shared_object_id", "phase", "blocks_copied", "error_message", "meta")
+    __slots__ = ("shared_object_id", "phase", "blocks_copied", "error_message", "meta", "not_moved_reason")
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     BLOCKS_COPIED_FIELD_NUMBER: _ClassVar[int]
     ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     META_FIELD_NUMBER: _ClassVar[int]
+    NOT_MOVED_REASON_FIELD_NUMBER: _ClassVar[int]
     shared_object_id: str
     phase: TransferPhase
     blocks_copied: int
     error_message: str
     meta: _sobject_pb2.SharedObjectMeta
-    def __init__(self, shared_object_id: _Optional[str] = ..., phase: _Optional[_Union[TransferPhase, str]] = ..., blocks_copied: _Optional[int] = ..., error_message: _Optional[str] = ..., meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ...) -> None: ...
+    not_moved_reason: str
+    def __init__(self, shared_object_id: _Optional[str] = ..., phase: _Optional[_Union[TransferPhase, str]] = ..., blocks_copied: _Optional[int] = ..., error_message: _Optional[str] = ..., meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ..., not_moved_reason: _Optional[str] = ...) -> None: ...
 
 class TransferState(_message.Message):
     __slots__ = ("mode", "phase", "source_session_index", "target_session_index", "spaces", "error_message")
@@ -67,11 +71,19 @@ class TransferState(_message.Message):
     def __init__(self, mode: _Optional[_Union[TransferMode, str]] = ..., phase: _Optional[_Union[TransferPhase, str]] = ..., source_session_index: _Optional[int] = ..., target_session_index: _Optional[int] = ..., spaces: _Optional[_Iterable[_Union[SpaceTransferState, _Mapping]]] = ..., error_message: _Optional[str] = ...) -> None: ...
 
 class TransferCheckpoint(_message.Message):
-    __slots__ = ("state", "space_ids", "current_space_index")
+    __slots__ = ("state", "space_ids")
     STATE_FIELD_NUMBER: _ClassVar[int]
     SPACE_IDS_FIELD_NUMBER: _ClassVar[int]
-    CURRENT_SPACE_INDEX_FIELD_NUMBER: _ClassVar[int]
     state: TransferState
     space_ids: _containers.RepeatedScalarFieldContainer[str]
-    current_space_index: int
-    def __init__(self, state: _Optional[_Union[TransferState, _Mapping]] = ..., space_ids: _Optional[_Iterable[str]] = ..., current_space_index: _Optional[int] = ...) -> None: ...
+    def __init__(self, state: _Optional[_Union[TransferState, _Mapping]] = ..., space_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class TransferOrigin(_message.Message):
+    __slots__ = ("source_provider_id", "source_account_id", "source_head")
+    SOURCE_PROVIDER_ID_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_HEAD_FIELD_NUMBER: _ClassVar[int]
+    source_provider_id: str
+    source_account_id: str
+    source_head: bytes
+    def __init__(self, source_provider_id: _Optional[str] = ..., source_account_id: _Optional[str] = ..., source_head: _Optional[bytes] = ...) -> None: ...
