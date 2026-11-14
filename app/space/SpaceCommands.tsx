@@ -144,20 +144,28 @@ export function SpaceCommands({
     [experimentalCreatorsEnabled, listWizards],
   )
 
-  // failureToasts holds the ids of this world's create failure toasts. Their
-  // Try again acts on spaceWorld, so they are dismissed when the world is
-  // released or replaced, and when the commands unmount with their Space.
+  // liveWorld is the Space's current world. The mount may release and
+  // replace it while the Space stays open, so a create reads it at each send
+  // and retry rather than keeping the world it started on.
+  const liveWorld = useRef<IWorldState>(spaceWorld)
+  useEffect(() => {
+    liveWorld.current = spaceWorld
+  }, [spaceWorld])
+
+  // failureToasts holds the ids of this Space's create failure toasts. They
+  // are dismissed when the commands unmount with their Space, after which
+  // mounted is false and a create that settles reports nothing.
   const failureToasts = useRef(new Set<string>())
-  const liveWorld = useRef<IWorldState | null>(null)
+  const mounted = useRef(false)
   useEffect(() => {
     const ids = failureToasts.current
-    liveWorld.current = spaceWorld
+    mounted.current = true
     return () => {
-      liveWorld.current = null
+      mounted.current = false
       for (const id of ids) toast.dismiss(id)
       ids.clear()
     }
-  }, [spaceWorld])
+  }, [])
 
   const handleCloseSpace = useCallback(() => {
     navigateSession({ path: '' })
@@ -260,8 +268,9 @@ export function SpaceCommands({
   // createObject runs one create command. The key and op are built once, so
   // Try again repeats the same create instead of choosing a new key. A failed
   // create shows one toast, replaced by each later failure, that stays until
-  // dismissed, retried or its world is released; a refusal shows the op's
-  // own explanation.
+  // dismissed, retried or its Space closes; a refusal shows the op's own
+  // explanation. The plan holds only the key, type and encoded op, no world
+  // handle, so it stays valid when the Space's world is replaced.
   const createObject = useCallback(
     (typeId: string) => {
       let name = ''
@@ -269,11 +278,10 @@ export function SpaceCommands({
       let sent = false
       let toastId: string | undefined
 
-      // A create that settles after its world was released shows nothing and
+      // A create that settles after its Space closed shows nothing and
       // navigates nowhere: the person has left that Space.
-      const released = () => liveWorld.current !== spaceWorld
       const done = (created: CreatePlan) => {
-        if (released()) return
+        if (!mounted.current) return
         if (toastId) {
           toast.dismiss(toastId)
           failureToasts.current.delete(toastId)
@@ -282,7 +290,7 @@ export function SpaceCommands({
         navigateToObjects([created.objectKey])
       }
       const fail = (err: unknown, retry: boolean) => {
-        if (released()) return
+        if (!mounted.current) return
         toastId ??= `create-object:${plan?.objectKey ?? crypto.randomUUID()}`
         failureToasts.current.add(toastId)
         toast.error(`Could not create ${name || 'the object'}`, {
@@ -305,7 +313,7 @@ export function SpaceCommands({
           }
           if (!wizard) return
           name = createName(wizard)
-          plan = await planCreate(spaceWorld, wizard, name)
+          plan = await planCreate(liveWorld.current, wizard, name)
           if (!plan) return
         }
         // Contract: a create whose reply was lost may still have committed,
@@ -314,7 +322,7 @@ export function SpaceCommands({
         // landing, or another writer's object that this create must not
         // touch.
         if (sent) {
-          const found = await readObjectType(spaceWorld, plan.objectKey)
+          const found = await readObjectType(liveWorld.current, plan.objectKey)
           if (found === plan.objectType) {
             done(plan)
             return
@@ -325,7 +333,7 @@ export function SpaceCommands({
           }
         }
         sent = true
-        await spaceWorld.applyWorldOp(plan.opId, plan.opData, '')
+        await liveWorld.current.applyWorldOp(plan.opId, plan.opData, '')
         done(plan)
       }
       const attempt = () => {
@@ -336,7 +344,7 @@ export function SpaceCommands({
       }
       attempt()
     },
-    [spaceWorld, navigateToObjects, wizards, loadWizards],
+    [navigateToObjects, wizards, loadWizards],
   )
 
   const handleCreateObject = useCallback(

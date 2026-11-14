@@ -191,7 +191,10 @@ describe('SpaceCommands', () => {
     onShareSpace?: () => void
     world?: IWorldState
   } = {}) {
-    return render(
+    // tree renders the commands on world, whose writes go to apply. A
+    // rerender with another world models the mount replacing the Space's
+    // world while the Space stays open.
+    const tree = (w: IWorldState, apply = h.applyWorldOp) => (
       <SharedObjectContext.Provider
         resource={{
           value: { meta: { sharedObjectId: 'so-1' } } as never,
@@ -209,7 +212,7 @@ describe('SpaceCommands', () => {
             error: null,
             retry: vi.fn(),
           }}
-          spaceWorld={{ ...world, applyWorldOp: h.applyWorldOp } as never}
+          spaceWorld={{ ...w, applyWorldOp: apply } as never}
           navigateToRoot={vi.fn()}
           navigateToObjects={h.navigateToObjects}
           buildObjectUrls={vi.fn()}
@@ -222,8 +225,13 @@ describe('SpaceCommands', () => {
             onShareSpace={onShareSpace}
           />
         </SpaceContainerContext.Provider>
-      </SharedObjectContext.Provider>,
+      </SharedObjectContext.Provider>
     )
+    const view = render(tree(world))
+    return Object.assign(view, {
+      replaceWorld: (w: IWorldState, apply: typeof h.applyWorldOp) =>
+        view.rerender(tree(w, apply)),
+    })
   }
 
   function getShareSpaceCommand() {
@@ -564,6 +572,89 @@ describe('SpaceCommands', () => {
     expect(failedCreateToast(0)[1].id).toBe('create-object:layout-1')
     expect(failedCreateToast(1)[1].id).toBe('create-object:layout-1')
     expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+  })
+
+  // inFlight makes the next send hang until settle runs, which may record
+  // the object as landed before the send rejects as a lost reply.
+  function inFlight() {
+    let settle: () => void = () => undefined
+    h.applyWorldOp.mockImplementationOnce(
+      () =>
+        new Promise<ApplyWorldOpResult>((_resolve, reject) => {
+          settle = () => reject(new Error('reply lost'))
+        }),
+    )
+    return () => settle()
+  }
+
+  it('reports a create that fails after its world was replaced and retries on the new world', async () => {
+    const settle = inFlight()
+    const view = renderCommands()
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+
+    const nextApply = vi.fn(() =>
+      Promise.resolve<ApplyWorldOpResult>({ seqno: 2n, sysErr: false }),
+    )
+    view.replaceWorld(keysWorld([]), nextApply)
+    settle()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const [, options] = failedCreateToast()
+    expect(options.action?.label).toBe('Try again')
+
+    options.action?.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(nextApply).toHaveBeenCalledTimes(1)
+    const [opId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(nextApply.mock.calls[0]).toEqual([opId, opData, ''])
+    expect(InitObjectLayoutOp.fromBinary(opData).objectKey).toBe('layout-1')
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['layout-1'])
+    expect(h.toast.dismiss).toHaveBeenCalledWith('create-object:layout-1')
+  })
+
+  it('opens a create that landed before its world was replaced', async () => {
+    const objects: TypedObject[] = []
+    const settle = inFlight()
+    const view = renderCommands()
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+
+    const nextApply = vi.fn(() =>
+      Promise.resolve<ApplyWorldOpResult>({ seqno: 2n, sysErr: false }),
+    )
+    view.replaceWorld(
+      listingWorld(() => objects),
+      nextApply,
+    )
+    const objectKey =
+      InitObjectLayoutOp.fromBinary(h.applyWorldOp.mock.calls[0][1])
+        .objectKey ?? ''
+    objects.push({ objectKey, objectType: 'alpha/object-layout' })
+    settle()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+
+    failedCreateToast()[1].action?.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledWith([objectKey])
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(nextApply).not.toHaveBeenCalled()
+    expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
   })
 
   it('dismisses a failed create toast when its Space closes', async () => {
