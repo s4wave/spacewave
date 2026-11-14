@@ -4,16 +4,26 @@ import "context"
 
 // BatchFSWriterMetric records one memory-relevant batch upload stage.
 type BatchFSWriterMetric struct {
-	Stage          string
-	Bytes          int64
-	PendingDirs    int
+	// Stage names the point in the batch lifecycle the metric was taken at.
+	Stage string
+	// Bytes is the size of the file ingested, on the ingest stages.
+	Bytes int64
+	// PendingDirs is how many directories the batch touches.
+	PendingDirs int
+	// PendingEntries is how many entries the batch holds.
 	PendingEntries int
-	Released       bool
-	Committed      bool
+	// Released is set once the writer was released.
+	Released bool
+	// Committed is set once the batch was published or found empty.
+	Committed bool
+	// Attempt counts the merges of one Commit, from 1, on commit-merged.
+	Attempt int
 }
 
 // BatchFSWriterMetricsRecorder consumes batch writer metrics.
 type BatchFSWriterMetricsRecorder interface {
+	// RecordBatchFSWriterMetric records one metric; it runs on the writer's
+	// goroutine, inside the commit's merge for commit-merged.
 	RecordBatchFSWriterMetric(BatchFSWriterMetric)
 }
 

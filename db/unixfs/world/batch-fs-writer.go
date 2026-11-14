@@ -52,9 +52,9 @@ type pendingDir struct {
 // BatchFSWriter accumulates file, directory, and symlink entries keyed by
 // parent path and commits them under a single world transaction.
 //
-// File blobs are buffered in memory and published with the tree in one block
-// batch at Commit. The buffer drains to the world's block store early only
-// when it reaches its capacity bounds.
+// File blobs are buffered in memory and written into the writer's stage once
+// at Commit, before the tree merge. The buffer drains into the stage early
+// only when it reaches its capacity bounds.
 //
 // Local-only: Commit bypasses ApplyWorldOp and mutates the world object via
 // AccessObjectState directly. Remote peers learn of the result only via
@@ -94,7 +94,7 @@ type BatchFSWriter struct {
 	// storage is the staged world storage cursor blobs are built against,
 	// opened by the first AddFile with data and released by Commit or Release.
 	storage *bucket_lookup.Cursor
-	// blobs buffers blob blocks until Commit stages them into the tree.
+	// blobs buffers blob blocks until Commit writes them into the stage.
 	blobs *block.BufferedStore
 
 	metricsRecorder BatchFSWriterMetricsRecorder
@@ -371,12 +371,17 @@ func (b *BatchFSWriter) AddSymlink(
 }
 
 // Commit flushes every accumulated entry to the world object under a single
-// AccessObjectState transaction. Touched directories are merged in
-// depth-ascending order so a parent directory exists in the FSTree before
-// any of its children are written. The buffered blob blocks are staged into
-// the tree transaction, so the trailing btx.Write inside AccessObjectState
-// publishes them with the tree in one batch and a single root-ref update.
-func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
+// AccessObjectState call. Touched directories are merged in depth-ascending
+// order so a parent directory exists in the FSTree before any of its children
+// are written. The buffered blob blocks are written once into the writer's
+// stage first, and each merge attempt names them by reference.
+//
+// Invariants: the upload publishes all of its entries or none. An attempt
+// that lost the race to another writer merges again onto the new root and
+// checks every expectation there, so it never overwrites a write it did not
+// merge onto. The stage holds the staged blobs from staging until Commit
+// returns, on every exit, including an error and a cancelled context.
+func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	// Claim the BatchFSWriter commit and release its storage when it finishes.
 	if b.released {
 		return errors.New("batch writer released")
@@ -414,25 +419,19 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		return unixfs_errors.ErrNotExist
 	}
 
-	// Borrow the buffered blob blocks until the tree write publishes them.
-	var blobs *block.PendingBatch
+	// Write the buffered blobs into the stage once, so no attempt writes them
+	// again; the stage holds them until releaseStorage.
 	if b.blobs != nil {
-		blobs, err = b.blobs.TakePending(ctx)
-		if err != nil {
+		if err := b.blobs.Flush(ctx); err != nil {
 			return err
 		}
-		defer func() { blobs.Complete(rerr) }()
 	}
 
-	// Merge the buffered entries into the World object in one transaction.
+	// Merge the buffered entries onto the object root, once per attempt.
+	var attempt int
 	published, _, err := world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
-		// Stage the blobs on every attempt: a replay runs on a new transaction.
-		if blobs != nil && len(blobs.Entries) != 0 {
-			btx := bcs.GetTransaction()
-			if _, err := btx.StageWrites(ctx, btx.GetStoreOps()).PutBlockBatch(ctx, blobs.Entries); err != nil {
-				return err
-			}
-		}
+		// Count the attempt for the commit-merged metric.
+		attempt++
 
 		// Open the filesystem tree and merge parent directories before their children.
 		root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
@@ -457,6 +456,12 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 				return err
 			}
 		}
+		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
+			Stage:          "commit-merged",
+			PendingDirs:    pendingDirs,
+			PendingEntries: pendingEntries,
+			Attempt:        attempt,
+		})
 		return nil
 	})
 
