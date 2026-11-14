@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 )
 
 // The replay payloads root holds the payloads the Space's operations name, so
@@ -117,10 +118,14 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 		ops:   make(map[string]opHold, len(ev.Order)),
 	}
 
-	// Read the payloads of the operations the last order did not hold.
+	// Read the payloads of the operations the last order did not hold. The
+	// first Hold of a run takes them from the saved cursor where it recorded
+	// them, so a remount resolves only what the cursor lacks.
 	prev := a.stateHold
+	var saved map[string][]*block.BlockRef
 	if prev == nil {
 		prev = &payloadState{keys: make(map[string]int)}
+		saved = a.replay.savedPayloads()
 	}
 	var extra []*block.BlockRef
 	var added []string
@@ -131,7 +136,11 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 			next.ops[key] = op
 			continue
 		}
-		refs, known, err := opPayloads(ctx, ev.Snapshot, ev.Set, h, a.lookupOp)
+		refs, known := saved[key]
+		var err error
+		if !known {
+			refs, known, err = opPayloads(ctx, ev.Snapshot, ev.Set, h, a.lookupOp)
+		}
 		if err != nil && ctx.Err() != nil {
 			return context.Cause(ctx)
 		}
@@ -172,6 +181,21 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 	}
 	a.stateHold = next
 	return nil
+}
+
+// txPayloads returns the payload roots of tx, the transaction of the
+// operation h: the roots Hold read for h, or, for an operation Hold did not
+// resolve or a transient replay, the roots read from tx. Hold reads every
+// operation of the order before the driver applies it, so a replay resolves
+// each operation's type once to run it and not again for its payloads. The
+// driver goroutine calls it.
+func (a *Adapter) txPayloads(ctx context.Context, h []byte, tx *world_block_tx.Tx) ([]*block.BlockRef, error) {
+	if a.stateHold != nil {
+		if op, ok := a.stateHold.ops[string(h)]; ok {
+			return op.refs, nil
+		}
+	}
+	return tx.PayloadRefs(ctx, a.lookupOp)
 }
 
 // noteUnresolved marks next unresolved, with n operations unresolved, and

@@ -108,6 +108,19 @@ func (r *spaceReplay) head() (*InnerState, uint64) {
 	return r.stateBefore(len(r.positions))
 }
 
+// savedPayloads returns the payload roots of the restored positions that
+// applied, by operation hash. A payload depends only on the operation, so it
+// holds wherever the operation lands in the order.
+func (r *spaceReplay) savedPayloads() map[string][]*block.BlockRef {
+	out := make(map[string][]*block.BlockRef, len(r.restored))
+	for _, pos := range r.restored {
+		if pos.reason == "" {
+			out[string(pos.op.Hash)] = pos.payloads
+		}
+	}
+	return out
+}
+
 // restoredAt returns the saved position at index when it records op after the
 // same World, or nil.
 func (r *spaceReplay) restoredAt(index int, op *sobject.OrderedOperation, prev *InnerState) *spacePosition {
@@ -225,7 +238,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	case *WorldOp_ApplyTxOp:
 		next, reason, err = r.applyTx(ctx, body.ApplyTxOp, prev, peerID)
 		if err == nil && reason == "" {
-			pos.payloads, err = body.ApplyTxOp.GetTx().PayloadRefs(ctx, r.a.lookupOp)
+			pos.payloads, err = r.a.txPayloads(ctx, op.Hash, body.ApplyTxOp.GetTx())
 		}
 	case *WorldOp_SetRetainedRoot:
 		next, reason = applySetRetainedRoot(body.SetRetainedRoot, prev)
