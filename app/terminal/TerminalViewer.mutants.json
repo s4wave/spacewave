@@ -1,0 +1,42 @@
+[
+  {
+    "name": "the notice reads the watch while the handle has failed",
+    "replace": [
+      [
+        "  IF handle = \"open\" /\\ WatchReported = \"failed\" THEN \"watch\" ELSE \"none\"",
+        "  IF WatchReported = \"failed\" THEN \"watch\" ELSE \"none\""
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "the bar names the object's own key before the state arrives",
+    "replace": [
+      [
+        "Described == handle = \"open\" /\\ watch = \"arrived\"",
+        "Described == handle = \"open\""
+      ]
+    ],
+    "expect": "TargetOnlyFromSession"
+  },
+  {
+    "name": "the screen offers input while it connects",
+    "replace": [
+      [
+        "    \\cup (IF Body = \"screen\" /\\ Card = \"none\" THEN {\"type\"} ELSE {})",
+        "    \\cup (IF Body = \"screen\" THEN {\"type\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "waiting for the handle says nothing",
+    "replace": [
+      [
+        "  CASE handle = \"waiting\" -> \"Names the terminal it opens\"\n    [] ",
+        "  CASE "
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  }
+]

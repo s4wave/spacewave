@@ -32,6 +32,10 @@ const h = vi.hoisted(() => {
     resolveClose: closeWaiter.resolve,
     abortObservedBeforeExit: true,
     connectCalls: 0,
+    handleError: null as Error | null,
+    handleRetry: vi.fn<() => void>(),
+    watchError: null as Error | null,
+    watchRetry: vi.fn<() => void>(),
   }
 })
 
@@ -104,7 +108,19 @@ async function* terminalFrames(
 }
 
 vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
-  useAccessTypedHandle: () => ({
+  useAccessTypedHandle: () =>
+    h.handleError
+      ? {
+          value: null,
+          loading: false,
+          error: h.handleError,
+          retry: h.handleRetry,
+        }
+      : handleResource(),
+}))
+
+function handleResource() {
+  return {
     value: {
       watchTerminalState: vi.fn(),
       connectTerminal: vi.fn(
@@ -128,16 +144,24 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
     loading: false,
     error: null,
     retry: vi.fn(),
-  }),
-}))
+  }
+}
 
+// The watch reports its parent's error ahead of its own and drops its value
+// on a failure, as useStreamingResource does.
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
-  useStreamingResource: () => ({
-    value: currentState,
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  }),
+  useStreamingResource: (parent: {
+    error: Error | null
+    retry: () => void
+  }) => {
+    const error = parent.error ?? h.watchError
+    return {
+      value: error ? null : currentState,
+      loading: false,
+      error,
+      retry: parent.error ? parent.retry : h.watchRetry,
+    }
+  },
 }))
 
 import { TerminalViewer } from './TerminalViewer.js'
@@ -153,6 +177,8 @@ describe('TerminalViewer', () => {
     })
     h.abortObservedBeforeExit = true
     h.connectCalls = 0
+    h.handleError = null
+    h.watchError = null
     currentState = {
       name: 'Build Host Terminal',
       deviceObjectKey: 'devices/build-host',
@@ -406,4 +432,65 @@ describe('TerminalViewer', () => {
     )
     unmount()
   })
+
+  it('draws a failed handle once, with one Retry that reopens it', () => {
+    // A handle that failed to open draws its status alone.
+    h.handleError = new Error('access denied')
+    renderViewer()
+
+    // The failure shows once, under the handle's message.
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(
+      screen.getByText('Could not open the terminal: access denied'),
+    ).toBeTruthy()
+
+    // Its one Retry reopens the handle; no screen connects.
+    const retries = screen.getAllByRole('button', { name: 'Retry' })
+    expect(retries).toHaveLength(1)
+    fireEvent.click(retries[0])
+    expect(h.handleRetry).toHaveBeenCalledTimes(1)
+    expect(h.open).not.toHaveBeenCalled()
+  })
+
+  it('shows a failed state watch as a notice above the running screen', async () => {
+    // The handle opens but the state watch fails.
+    h.watchError = new Error('stream reset')
+    renderViewer()
+
+    // The notice shows once, and the bar names no target it has not read.
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(
+      screen.getByText('Could not read the session state: stream reset'),
+    ).toBeTruthy()
+    expect(screen.getByText('Terminal')).toBeTruthy()
+    expect(screen.queryByText('devices/build-host')).toBeNull()
+
+    // Its Retry restarts the watch while the screen still connects.
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(h.watchRetry).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(h.open).toHaveBeenCalled())
+  })
 })
+
+// renderViewer renders the viewer on a Terminal object.
+function renderViewer() {
+  return render(
+    <TerminalViewer
+      objectInfo={{
+        info: {
+          case: 'worldObjectInfo',
+          value: {
+            objectKey: 'terminal/build-host',
+            objectType: 'spacewave/terminal',
+          },
+        },
+      }}
+      worldState={{
+        value: null,
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      }}
+    />,
+  )
+}

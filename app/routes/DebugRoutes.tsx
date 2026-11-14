@@ -1,5 +1,6 @@
 import { Route } from '@s4wave/web/router/router.js'
 import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
+import { TerminalViewerDebug } from '@s4wave/app/debug/terminal/TerminalViewerDebug.js'
 import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
@@ -134,6 +135,12 @@ const debugRouteEntries = [
     element: <GitSideDebug />,
   },
   {
+    path: '/debug/ui/terminal',
+    title: 'Terminal',
+    description: 'Open a terminal in one state; add /details, /watch-failed...',
+    element: <TerminalViewerDebug />,
+  },
+  {
     path: '/debug/ui/viewer-status',
     title: 'Viewer status',
     description: 'Open a viewer waiting, failed or empty; add /failed, /empty.',
@@ -178,6 +185,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/git-side/:state">
       <GitSideDebug />
+    </Route>
+    <Route path="/debug/ui/terminal/:state">
+      <TerminalViewerDebug />
     </Route>
     <Route path="/debug/ui/viewer-status/:state">
       <ViewerStatusDebug />

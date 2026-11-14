@@ -1,0 +1,46 @@
+---
+title: "Terminal viewer: handle, state watch and connection"
+---
+stateDiagram-v2
+  s0: Opening the terminal
+  s1: Screen connecting
+  s2: Could not open, Retry shown
+  s3: Screen live
+  s4: Screen connecting, state notice with Retry
+  s5: Screen failed, Retry shown
+  s6: Screen live, state notice with Retry
+  s7: Screen closed, Retry shown
+  s8: Screen failed, Retry shown, state notice with Retry
+  s9: Screen closed, Retry shown, state notice with Retry
+  [*] --> s0
+  s0 --> s1: handle opens
+  s0 --> s2: handle fails
+  s1 --> s2: handle fails
+  s1 --> s3: connection changes
+  s1 --> s4: state watch fails
+  s1 --> s5: connection changes
+  s2 --> s0: presses Retry
+  s3 --> s2: handle fails
+  s3 --> s5: connection changes
+  s3 --> s6: state watch fails
+  s3 --> s7: connection changes
+  s4 --> s1: retries the state
+  s4 --> s2: handle fails
+  s4 --> s6: connection changes
+  s4 --> s8: connection changes
+  s5 --> s1: retries the screen
+  s5 --> s2: handle fails
+  s5 --> s8: state watch fails
+  s6 --> s2: handle fails
+  s6 --> s3: retries the state
+  s6 --> s8: connection changes
+  s6 --> s9: connection changes
+  s7 --> s1: retries the screen
+  s7 --> s2: handle fails
+  s7 --> s9: state watch fails
+  s8 --> s2: handle fails
+  s8 --> s4: retries the screen
+  s8 --> s5: retries the state
+  s9 --> s2: handle fails
+  s9 --> s4: retries the screen
+  s9 --> s7: retries the state

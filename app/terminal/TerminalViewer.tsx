@@ -1,39 +1,37 @@
 import { useCallback, useMemo } from 'react'
-import { LuTerminal } from 'react-icons/lu'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
-import {
-  TerminalSessionState,
-  TerminalTargetKind,
-  type Terminal,
-} from '@s4wave/sdk/terminal/terminal.pb.js'
+import type { Terminal } from '@s4wave/sdk/terminal/terminal.pb.js'
 import {
   TerminalHandle,
   TerminalTypeID,
 } from '@s4wave/sdk/terminal/terminal.js'
 import {
   TerminalPane,
-  safeTerminalFailureDetail,
   type TerminalPaneConnector,
   type TerminalPaneTrustChallengeRenderer,
 } from './TerminalPane.js'
 import { TerminalSshTrustPanel } from './TerminalSshTrustPanel.js'
+import { TerminalView, type TerminalViewState } from './TerminalView.js'
 
 export { TerminalTypeID }
 
+// TerminalViewer shows a Terminal object: its session state in the bar and
+// its screen connected through the object handle.
 export function TerminalViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
+  // Resolve the object key the handle and the fallback target read.
   const objectKey = getObjectKey(objectInfo)
 
+  // Open the typed handle the screen and the state watch both use.
   const handle = useAccessTypedHandle(
     worldState,
     objectKey,
@@ -42,6 +40,7 @@ export function TerminalViewer({
   )
   const terminalHandle = handle.value
 
+  // Watch the session state for the bar, Details and the pane title.
   const streamFactory = useCallback(
     (h: TerminalHandle, signal: AbortSignal) => h.watchTerminalState(signal),
     [],
@@ -50,11 +49,13 @@ export function TerminalViewer({
   const state: Terminal | undefined = stateResource.value ?? undefined
   useObjectName(state?.name)
 
+  // Connect the screen through the handle once it opens.
   const connectTerminal = useMemo<TerminalPaneConnector | undefined>(() => {
     if (!terminalHandle) return undefined
     return (frames, signal) => terminalHandle.connectTerminal(frames, signal)
   }, [terminalHandle])
 
+  // Ask about an unknown SSH host key in the trust panel.
   const renderTrustChallenge = useCallback<TerminalPaneTrustChallengeRenderer>(
     (challenge, onRespond) => {
       return (
@@ -64,84 +65,53 @@ export function TerminalViewer({
     [],
   )
 
+  // Draw one state derived from the handle and the state watch.
+  const view = terminalViewState(handle, stateResource)
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <ViewerBar
-        icon={<LuTerminal />}
-        title={state?.name || 'Terminal'}
-        state={
-          <span className="text-foreground-alt text-xs">
-            {formatTerminalState(state?.state)}
-          </span>
-        }
-      />
-      <div className="border-foreground/8 flex h-8 shrink-0 items-center gap-4 border-b px-4 text-xs">
-        <span className="text-muted-foreground min-w-0 truncate">
-          {formatTerminalTargetLabel(state)}{' '}
-          <span className="text-foreground font-mono">
-            {formatTerminalTargetObjectKey(state, objectKey)}
-          </span>
-        </span>
-        {state?.command && (
-          <span className="text-muted-foreground min-w-0 truncate">
-            command <span className="text-foreground">{state.command}</span>
-          </span>
-        )}
-      </div>
-      {stateResource.loading && !state && (
-        <div className="p-4">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading terminal',
-              detail: 'Reading terminal state.',
-            }}
-          />
-        </div>
-      )}
-      {state?.error && !connectTerminal && (
-        <div className="border-destructive/30 bg-destructive/10 text-destructive border-b px-4 py-2 text-sm">
-          {safeTerminalFailureDetail(state.error)}
-        </div>
-      )}
+    <TerminalView view={view}>
       <TerminalPane
         session="terminal"
         connectTerminal={connectTerminal}
         renderTrustChallenge={renderTrustChallenge}
       />
-    </div>
+    </TerminalView>
   )
 }
 
-function formatTerminalTargetLabel(state?: Terminal): string {
-  return state?.targetKind === TerminalTargetKind.SSH_HOST
-    ? 'ssh host'
-    : 'device'
-}
-
-function formatTerminalTargetObjectKey(
-  state: Terminal | undefined,
-  fallback: string,
-): string {
-  if (state?.targetKind === TerminalTargetKind.SSH_HOST) {
-    return state.sshHostObjectKey || fallback
+// terminalViewState derives what the viewer draws, as TerminalViewer.tla
+// models it. The handle's status takes the body until it opens. The watch
+// reports its parent's failure as its own, so it is read only on an open
+// handle, where its failure is a notice above the screen with its own Retry.
+// The screen's connection draws its own card inside TerminalPane.
+export function terminalViewState(
+  handle: Resource<TerminalHandle>,
+  watch: Resource<Terminal | undefined>,
+): TerminalViewState {
+  if (handle.error) {
+    return {
+      body: 'status',
+      status: {
+        state: 'failed',
+        message: `Could not open the terminal: ${handle.error.message}`,
+        retry: handle.retry,
+      },
+    }
   }
-  return state?.deviceObjectKey || fallback
-}
-
-function formatTerminalState(state?: TerminalSessionState): string {
-  switch (state) {
-    case TerminalSessionState.CONNECTING:
-      return 'Connecting'
-    case TerminalSessionState.ACTIVE:
-      return 'Active'
-    case TerminalSessionState.FAILED:
-      return 'Failed'
-    case TerminalSessionState.CLOSED:
-      return 'Closed'
-    case TerminalSessionState.DISCONNECTED:
-      return 'Disconnected'
-    default:
-      return 'Idle'
+  if (!handle.value) {
+    return {
+      body: 'status',
+      status: { state: 'waiting', what: 'the terminal', rows: 0 },
+    }
   }
+  if (watch.error) {
+    return {
+      body: 'screen',
+      notice: {
+        state: 'failed',
+        message: `Could not read the session state: ${watch.error.message}`,
+        retry: watch.retry,
+      },
+    }
+  }
+  return { body: 'screen', session: watch.value ?? undefined }
 }

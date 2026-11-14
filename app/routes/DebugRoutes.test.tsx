@@ -57,6 +57,10 @@ vi.mock('@s4wave/app/debug/git/GitSideDebug.js', () => ({
   GitSideDebug: () => <div data-testid="git-side-debug" />,
 }))
 
+vi.mock('@s4wave/app/debug/terminal/TerminalViewerDebug.js', () => ({
+  TerminalViewerDebug: () => <div data-testid="terminal-viewer-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/TableDebug.js', () => ({
   TableDebug: () => <div data-testid="table-debug" />,
 }))
@@ -96,6 +100,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/facts', testId: 'fact-list-debug' },
   { path: '/debug/ui/side', testId: 'viewer-side-debug' },
   { path: '/debug/ui/git-side', testId: 'git-side-debug' },
+  { path: '/debug/ui/terminal', testId: 'terminal-viewer-debug' },
   { path: '/debug/ui/viewer-status', testId: 'viewer-status-debug' },
   { path: '/debug/ui/viewer-float', testId: 'viewer-float-debug' },
   { path: '/debug/ui/wizard', testId: 'wizard-shell-debug' },
