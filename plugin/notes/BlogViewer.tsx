@@ -34,9 +34,11 @@ import NoteContentView from './NoteContentView.js'
 // BlogViewer is the viewer for Notes Blog objects.
 // Supports reading mode (blog reading view) and editing mode (NoteList + NoteContentView).
 function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
+  // The Blog object and its namespace for this viewer's persisted state.
   const objectKey = getObjectKey(objectInfo)
   const ns = useStateNamespace(['blog'])
 
+  // Watch the Blog object and name the tab after it.
   const { state, sources } = useWorldObjectMessageState(
     worldState,
     objectKey,
@@ -52,6 +54,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     return parseObjectUri(firstSourceRef)
   }, [firstSourceRef])
 
+  // The source's UnixFS object and the folder inside it.
   const sourceObjectKey = parsed?.objectKey ?? ''
   const sourceSubpath = parsed?.path ?? ''
 
@@ -62,6 +65,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     enabled: !!sourceObjectKey,
   })
 
+  // Bumped on each save so the post list rereads.
   const [contentVersion, setContentVersion] = useState(0)
 
   // Parse all md files into blog post data for reading view.
@@ -105,6 +109,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     [blogPosts, selectedPostName],
   )
 
+  // Picking a post in the reading view opens it.
   const handleSelectPostReading = useCallback(
     (post: BlogPostData | null) => {
       setSelectedPostName(post?.name ?? '')
@@ -112,6 +117,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     [setSelectedPostName],
   )
 
+  // Picking a post in the editing list opens it for reading first.
   const handleSelectPostEditing = useCallback(
     (path: string) => {
       setSelectedPostName(path)
@@ -120,14 +126,17 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     [setSelectedPostName, setEditing],
   )
 
+  // The edit press toggles the selected post's editor.
   const handleToggleEdit = useCallback(() => {
     setEditing((prev) => !prev)
   }, [setEditing])
 
+  // The mode press switches to reading.
   const handleSetReading = useCallback(() => {
     setMode('reading')
   }, [setMode])
 
+  // The mode press switches to editing.
   const handleSetEditing = useCallback(() => {
     setMode('editing')
   }, [setMode])
@@ -156,9 +165,11 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
 
   // Create a new blog post with frontmatter template.
   const handleCreateBlogPost = useCallback(async () => {
+    // A post needs the source folder open.
     const handle = pathHandle.value
     if (!handle) return
 
+    // Pick the first new-post name no Markdown file holds.
     const existing = new Set(
       (entriesResource.value ?? []).flatMap((e) =>
         !e.isDir && e.name.endsWith('.md') ? [e.name] : [],
@@ -171,6 +182,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
       counter++
     }
 
+    // A draft dated today, so it stays off the reading view until published.
     const dateStr = new Date().toISOString().slice(0, 10)
     const template =
       '---\n' +
@@ -187,14 +199,17 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
       '# New Post\n' +
       '\n'
 
+    // Write the post and open it.
     await createTextFile(handle, name, template)
     handleSelectPostEditing(name)
   }, [pathHandle.value, entriesResource.value, handleSelectPostEditing])
 
+  // The new post press creates a post from the template.
   const handleCreateBlogPostClick = useCallback(() => {
     void handleCreateBlogPost()
   }, [handleCreateBlogPost])
 
+  // A save rereads the posts.
   const handleContentSaved = useCallback(() => {
     setContentVersion((prev) => prev + 1)
   }, [])

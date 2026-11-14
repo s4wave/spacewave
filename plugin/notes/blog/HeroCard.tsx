@@ -58,7 +58,10 @@ export function HeroCard({
 
           <div className="text-brand flex items-center gap-2 text-sm font-medium opacity-0 transition duration-300 group-hover:opacity-100">
             Read post
-            <LuArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+            <LuArrowRight
+              aria-hidden
+              className="size-4 transition-transform duration-300 group-hover:translate-x-1"
+            />
           </div>
         </div>
 

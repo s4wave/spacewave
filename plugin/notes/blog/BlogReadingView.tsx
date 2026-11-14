@@ -24,6 +24,7 @@ export function BlogReadingView({
   onSelectPost,
   authorRegistry,
 }: BlogReadingViewProps) {
+  // The tag the post list is filtered by, or null for every post.
   const [tagFilter, setTagFilter] = useState<string | null>(null)
 
   // Filter out drafts and posts without dates, sort by date descending.
@@ -50,18 +51,22 @@ export function BlogReadingView({
     return Array.from(tags).sort()
   }, [posts])
 
+  // A tag press filters by that tag, or clears the filter when it is active.
   const handleSelectTag = useCallback((tag: string) => {
     setTagFilter((prev) => (prev === tag ? null : tag))
   }, [])
 
+  // Clear drops the tag filter.
   const handleClearFilter = useCallback(() => {
     setTagFilter(null)
   }, [])
 
+  // Back returns from a post to the list.
   const handleBack = useCallback(() => {
     onSelectPost(null)
   }, [onSelectPost])
 
+  // Only a published post opens; a draft or a removed post shows the list.
   const selectedPublishedPost =
     selectedPost &&
     publishedPosts.some((post) => post.name === selectedPost.name)
@@ -108,7 +113,7 @@ export function BlogReadingView({
                 key={tag}
                 onClick={() => handleSelectTag(tag)}
                 className={cn(
-                  'cursor-pointer rounded-md border px-2 py-0.5 text-xs font-medium transition-all duration-200',
+                  'cursor-pointer rounded-md border px-2 py-1 text-xs font-medium transition-all duration-200',
                   tagFilter === tag
                     ? 'border-brand/40 bg-brand/10 text-brand'
                     : 'text-foreground-alt/70 hover:text-brand hover:border-brand/30 hover:bg-brand/5 border-white/8',

@@ -41,10 +41,13 @@ function PostListItem({ post, onSelectPost }: PostListItemProps) {
         ))}
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <time className="text-foreground-alt/50 text-xs tabular-nums">
+        <time className="text-foreground-alt text-xs tabular-nums">
           {post.date}
         </time>
-        <LuArrowRight className="text-foreground-alt/30 group-hover:text-brand size-3.5 transition duration-200 group-hover:translate-x-0.5" />
+        <LuArrowRight
+          aria-hidden
+          className="text-foreground-alt/30 group-hover:text-brand size-3.5 transition duration-200 group-hover:translate-x-0.5"
+        />
       </div>
     </article>
   )
