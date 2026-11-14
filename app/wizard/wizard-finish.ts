@@ -4,6 +4,7 @@ import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { throwBatchError } from '@s4wave/sdk/world/errors.js'
+import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import {
   type WorldMutation,
   WorldErrorCode,
@@ -19,17 +20,23 @@ export interface WizardRef {
 }
 
 // WizardMutation is one write a wizard's Finish or Cancel applies. op applies
-// a World operation as the session peer; delete removes an object, and fails
-// the whole list with WizardGoneError when the object is gone. Both are plain
-// data, so the list crosses to the World as one request.
+// a World operation as the session peer; link sets the graph quad from one
+// object to another under predicate, an IRI; delete removes an object and its
+// quads, and fails the whole list with WizardGoneError when the object is
+// gone. Each is plain data, so the list crosses to the World as one request.
 export type WizardMutation =
   | { kind: 'op'; opId: string; opData: Uint8Array }
+  | { kind: 'link'; subjectKey: string; predicate: string; objectKey: string }
   | { kind: 'delete'; objectKey: string }
 
 // applyWizardMutations applies the list as one World batch: the World opens
 // one write transaction, applies each entry and commits, or writes nothing
 // when an entry is refused or fails. The World's writer is held only inside
 // that call, never across a round trip to this tab.
+//
+// A link from a wizard commits with the create it records, so a reload or
+// another tab finds what the wizard made, and a wizard already gone refuses
+// the create with WizardGoneError.
 //
 // signal cancels the list before it is sent, so an abort before then lands
 // nothing. The batch itself does not take it: once it is sent, its result is
@@ -44,10 +51,12 @@ export async function applyWizardMutations(
   const response = await world
     .getEngine()
     .executeWorldBatch(mutations.map((m) => wizardWorldMutation(sender, m)))
+  // A delete or link refused for a missing object names the wizard: a list
+  // links only from the wizard to an object it creates earlier in the list.
   const refused = mutations[response.failedIndex ?? 0]
   if (
     response.errorCode === WorldErrorCode.OBJECT_NOT_FOUND &&
-    refused?.kind === 'delete'
+    (refused?.kind === 'delete' || refused?.kind === 'link')
   ) {
     throw new WizardGoneError()
   }
@@ -62,6 +71,19 @@ function wizardWorldMutation(sender: string, m: WizardMutation): WorldMutation {
         mutation: {
           case: 'op',
           value: { opTypeId: m.opId, opData: m.opData, opSender: sender },
+        },
+      }
+    case 'link':
+      return {
+        mutation: {
+          case: 'setGraphQuad',
+          value: {
+            quad: {
+              subject: keyToIRI(m.subjectKey),
+              predicate: m.predicate,
+              obj: keyToIRI(m.objectKey),
+            },
+          },
         },
       }
     case 'delete':

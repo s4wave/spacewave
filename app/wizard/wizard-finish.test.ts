@@ -4,6 +4,7 @@ import { act, renderHook } from '@testing-library/react'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 
 import {
+  applyWizardMutations,
   cancelWizard,
   finishWizard,
   useWizardFinish,
@@ -80,6 +81,24 @@ describe('finishWizard', () => {
     // No second object, and the other tab's index stands.
     expect(t.state.creates).toEqual([])
     expect(t.state.indexPath).toBe('obj/other')
+  })
+
+  it('refuses a create linked from a wizard another tab removed', async () => {
+    // The wizard is gone, so the link from it fails and the create with it.
+    const t = wizardTestWorld(['obj/other'], 'obj/other')
+    const created = [
+      { kind: 'op' as const, opId: createOpId, opData: new Uint8Array() },
+      {
+        kind: 'link' as const,
+        subjectKey: 'wizard/one',
+        predicate: '<wizard/made>',
+        objectKey: 'obj/other',
+      },
+    ]
+    await expect(
+      applyWizardMutations(t.world, 'peer-1', created),
+    ).rejects.toThrow(WizardGoneError)
+    expect(t.state.creates).toEqual([])
   })
 
   it('moves an index that names the wizard though no settings were read', async () => {
