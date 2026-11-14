@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, type ReactNode } from 'react'
+import { useCallback, useMemo, useReducer } from 'react'
 import { LuChartLine, LuPlus } from 'react-icons/lu'
 
 import { isDesktop } from '@aptre/bldr'
@@ -19,8 +19,11 @@ import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import { AlarmStrip } from '@s4wave/app/alarm/AlarmStrip.js'
 
@@ -79,58 +82,37 @@ function DashboardHandle({
   const value = handle.value
   if (handle.error) {
     return (
-      <Frame>
-        <ErrorState
-          title="Dashboard unavailable"
-          message={handle.error.message}
-          onRetry={handle.retry}
-        />
-      </Frame>
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the Dashboard: ${handle.error.message}`}
+        retry={handle.retry}
+      />
     )
   }
   if (!value) {
-    return (
-      <Frame>
-        <LoadingInline label="Opening the Dashboard" />
-      </Frame>
-    )
+    return <ViewerStatus state="waiting" what="the Dashboard" />
   }
   switch (value.state) {
     case 'absent':
       return (
-        <Frame>
-          <EmptyState
-            icon={<LuChartLine className="text-foreground-alt size-5" />}
-            title="This Dashboard no longer exists."
-          />
-        </Frame>
+        <ViewerStatus
+          state="failed"
+          message="This Dashboard no longer exists."
+        />
       )
     case 'no-handler':
-      return (
-        <Frame>
-          {isDesktop ? (
-            <LoadingInline label="Starting the metrics plugin" />
-          ) : (
-            <EmptyState
-              icon={<LuChartLine className="text-foreground-alt size-5" />}
-              title="Metrics queries run on a desktop Device."
-              description="Open this Space in the Spacewave desktop app to see these panels."
-            />
-          )}
-        </Frame>
+      return isDesktop ? (
+        <ViewerStatus state="waiting" what="the metrics plugin" />
+      ) : (
+        <ViewerStatus
+          state="empty"
+          icon={<LuChartLine />}
+          message="Metrics queries run on a desktop Device. Open this Space in the Spacewave desktop app to see these panels."
+        />
       )
     case 'ready':
       return <DashboardBody dashboard={value.handle} />
   }
-}
-
-// Frame centers a viewer-wide message.
-function Frame({ children }: { children: ReactNode }) {
-  return (
-    <div className="bg-background-primary flex h-full w-full items-center justify-center p-6">
-      {children}
-    </div>
-  )
 }
 
 // View is the Dashboard's local state: what the writer is editing, the
@@ -240,7 +222,8 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
 
   const editing = view.editing
   const editingPanelId = editing.state === 'panel' ? editing.panelId : undefined
-  const body = renderBody()
+  const status = renderStatus()
+  const body = status ? null : renderBody()
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-3 border-b px-4">
@@ -289,24 +272,30 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
           />
         </div>
       ) : null}
-      <div className="min-h-0 flex-1 overflow-auto p-3">{body}</div>
+      {status ? (
+        <div className="min-h-0 flex-1">{status}</div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto p-3">{body}</div>
+      )}
     </div>
   )
 
-  // renderBody renders the Dashboard's state below its header.
-  function renderBody() {
-    if (dash.error) {
-      return (
-        <ErrorState
-          title="Dashboard unavailable"
-          message={dash.error.message}
-          onRetry={dash.retry}
-        />
-      )
-    }
+  // renderStatus renders the Dashboard's read state until it and its targets
+  // arrive, flush with the pane under its header. The body needs both
+  // records, so a failure of either replaces it.
+  function renderStatus() {
+    const status = resourceStatus('the Dashboard', dash, targets)
+    if (status) return <ViewerStatus {...status} />
     if (!dash.value || !targets.value) {
-      return <LoadingInline label="Loading the Dashboard" />
+      return <ViewerStatus state="waiting" what="the Dashboard" />
     }
+    return null
+  }
+
+  // renderBody renders the Dashboard once it and its targets arrive.
+  function renderBody() {
+    // Draw nothing until the status gives way to both records.
+    if (!dash.value || !targets.value) return null
     if (editing.state === 'target') {
       return (
         <PromTargetForm

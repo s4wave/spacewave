@@ -281,8 +281,8 @@ describe('KvStoreViewer', () => {
     renderViewer()
 
     await waitFor(() =>
-      expect(screen.getByText('KV store unavailable')).toBeTruthy(),
+      expect(screen.getByText('Could not read the keys: boom')).toBeTruthy(),
     )
-    expect(screen.getByText('Error: boom')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 })

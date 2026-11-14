@@ -13,7 +13,11 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+  type ViewerStatusProps,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
@@ -77,6 +81,18 @@ export function SqlDbViewer({
   }, [container, creating, objectKey])
 
   const schemas = schemasResource.value ?? []
+  const read = resourceStatus('the database', schemasResource)
+  let status: ViewerStatusProps | null = null
+  if (read && (read.state === 'failed' || schemas.length === 0)) status = read
+  else if (schemas.length === 0) {
+    status = {
+      state: 'empty',
+      icon: <LuDatabase />,
+      message: container
+        ? 'This database has no schemas yet. Open the Query Editor and run CREATE DATABASE to add one.'
+        : 'This database has no schemas yet.',
+    }
+  }
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -109,35 +125,19 @@ export function SqlDbViewer({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        {schemasResource.loading && schemas.length === 0 ? (
-          <LoadingInline label="Loading schemas" tone="muted" />
-        ) : null}
-        {schemasResource.error ? (
-          <ErrorState
-            title="SQL database unavailable"
-            message={String(schemasResource.error)}
-            onRetry={schemasResource.retry}
-          />
-        ) : null}
-        {!schemasResource.loading &&
-        !schemasResource.error &&
-        schemas.length === 0 ? (
-          <EmptyState
-            variant="compact"
-            icon={<LuDatabase className="text-foreground-alt size-5" />}
-            title="No schemas"
-            description="This database has no schemas yet."
-          />
-        ) : null}
-        {schemas.length > 0 ? (
+      {status ? (
+        <div className="min-h-0 flex-1">
+          <ViewerStatus {...status} />
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
           <div role="tree" aria-label="Schemas" className="space-y-0.5">
             {schemas.map((schema) => (
               <SchemaTreeNode key={schema} handle={handle} schema={schema} />
             ))}
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

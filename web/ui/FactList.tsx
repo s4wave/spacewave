@@ -60,6 +60,14 @@ export interface FactRowProps {
 const labelWidth =
   '[--fact-label:var(--spacing-viewer-fact-label)] @min-[28rem]/facts:[--fact-label:var(--spacing-viewer-fact-label-roomy)]'
 
+// factGrid lays a row out in the label, value and control columns, the label
+// as wide as labelWidth sets. A placeholder row inside a FactList, such as a
+// loading skeleton, uses it to keep the facts' columns.
+export const factGrid = cn(
+  'grid grid-cols-[var(--fact-label)_minmax(0,1fr)_auto] gap-x-2',
+  labelWidth,
+)
+
 // stacked moves a cell to the layout under 13rem of the list's width, where
 // the label sits over the value and the control stays beside the value.
 const stacked = {
@@ -95,11 +103,7 @@ export function FactRow({
   return (
     <div
       data-fact
-      className={cn(
-        'grid grid-cols-[var(--fact-label)_minmax(0,1fr)_auto] gap-x-2 text-xs whitespace-nowrap',
-        labelWidth,
-        stacked.row,
-      )}
+      className={cn(factGrid, 'text-xs whitespace-nowrap', stacked.row)}
     >
       <span
         className={cn(

@@ -8,6 +8,7 @@ import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
 import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
 import { ViewerSideDebug } from '@s4wave/web/debug/ViewerSideDebug.js'
 import { FileListDebug } from '@s4wave/web/debug/FileListDebug.js'
+import { ViewerStatusDebug } from '@s4wave/web/debug/ViewerStatusDebug.js'
 import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
 import { HDRDebug } from '@s4wave/web/debug/HDRDebug.js'
 import { LayoutDebug } from '@s4wave/web/debug/LayoutDebug.js'
@@ -123,6 +124,12 @@ const debugRouteEntries = [
     description: 'Open the Git repository facts; add /rail, /details, /log...',
     element: <GitSideDebug />,
   },
+  {
+    path: '/debug/ui/viewer-status',
+    title: 'Viewer status',
+    description: 'Open a viewer waiting, failed or empty; add /failed, /empty.',
+    element: <ViewerStatusDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -147,6 +154,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/git-side/:state">
       <GitSideDebug />
+    </Route>
+    <Route path="/debug/ui/viewer-status/:state">
+      <ViewerStatusDebug />
     </Route>
   </>
 )

@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Retry shows on a failure no read can fix",
+    "replace": [
+      [
+        "  (IF status = \"failed\" /\\ retryable THEN {\"retry\"} ELSE {})",
+        "  (IF status = \"failed\" THEN {\"retry\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a press on the record shows while it is read",
+    "replace": [
+      [
+        "    \\cup (IF Arrived \\/ drawn THEN {\"act\"} ELSE {})",
+        "    \\cup (IF status # \"failed\" THEN {\"act\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a final failure says nothing",
+    "replace": [
+      [
+        "    [] status = \"failed\" /\\ ~retryable -> \"Says why reading again cannot help\"\n",
+        ""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  },
+  {
+    "name": "a failure hides a kept record",
+    "replace": [["  /\\ drawn' = (drawn /\\ keeps)", "  /\\ drawn' = FALSE"]],
+    "expect": "ArrivedStaysDrawn"
+  },
+  {
+    "name": "a re-read blanks the record",
+    "replace": [
+      [
+        "  /\\ status' = \"waiting\"\n  /\\ UNCHANGED <<retryable, drawn, got, standing, keeps>>",
+        "  /\\ status' = \"waiting\"\n  /\\ drawn' = FALSE\n  /\\ UNCHANGED <<retryable, got, standing, keeps>>"
+      ]
+    ],
+    "expect": "ArrivedStaysDrawn"
+  },
+  {
+    "name": "a failed one-shot read still draws its record",
+    "replace": [["  /\\ drawn' = (drawn /\\ keeps)", "  /\\ UNCHANGED drawn"]],
+    "expect": "DroppedFailureDrawsNothing"
+  }
+]

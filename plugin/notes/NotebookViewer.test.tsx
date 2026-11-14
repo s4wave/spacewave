@@ -110,7 +110,7 @@ describe('NotebookViewer', () => {
       retry: vi.fn(),
     })
     renderViewer()
-    expect(screen.getByText('Loading notebook...')).toBeDefined()
+    expect(screen.getByText('Loading the notebook')).toBeDefined()
   })
 
   it('renders content while notebook mutation handle is loading', () => {
@@ -154,7 +154,10 @@ describe('NotebookViewer', () => {
     })
 
     renderViewer()
-    expect(screen.getByText('Connection refused')).toBeDefined()
+    expect(
+      screen.getByText('Could not read the notebook: Connection refused'),
+    ).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined()
   })
 
   it('renders empty sources message when notebook has no sources', () => {

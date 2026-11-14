@@ -5,8 +5,7 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/kv.js'
@@ -55,6 +54,11 @@ export function KvStoreViewer({
   const [mutationError, setMutationError] = useState<string | null>(null)
 
   const rows = useMemo(() => keysResource.value ?? [], [keysResource.value])
+
+  // arrived is true once a read of the keys has succeeded; New Key shows only
+  // then, as a viewer's presses act on a record that has arrived.
+  const arrived =
+    !keysResource.error && !(keysResource.loading && rows.length === 0)
 
   const visibleRows = useMemo(() => {
     const filtered = prefix
@@ -153,72 +157,74 @@ export function KvStoreViewer({
         icon={<LuDatabase />}
         title="Key/Value Store"
         description={`${rows.length} ${rows.length === 1 ? 'key' : 'keys'}`}
-        actions={[
-          {
-            id: 'new-key',
-            label: 'New Key',
-            icon: <LuPlus />,
-            onClick: handleStartCreate,
-          },
-        ]}
+        actions={
+          arrived
+            ? [
+                {
+                  id: 'new-key',
+                  label: 'New Key',
+                  icon: <LuPlus />,
+                  onClick: handleStartCreate,
+                },
+              ]
+            : []
+        }
       />
 
-      {keysResource.error ? (
-        <div className="p-4">
-          <ErrorState
-            title="KV store unavailable"
-            message={String(keysResource.error)}
-            onRetry={keysResource.retry}
+      <div className="flex min-h-0 flex-1">
+        <div className="border-foreground/8 flex w-1/3 min-w-48 flex-col border-r">
+          <KvKeyListToolbar
+            prefix={prefix}
+            onPrefixChange={setPrefix}
+            sortDirection={sortDirection}
+            onToggleSortDirection={toggleSortDirection}
           />
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <div className="border-foreground/8 flex w-1/3 min-w-48 flex-col border-r">
-            <KvKeyListToolbar
-              prefix={prefix}
-              onPrefixChange={setPrefix}
-              sortDirection={sortDirection}
-              onToggleSortDirection={toggleSortDirection}
-            />
-            {keysResource.loading && rows.length === 0 ? (
-              <div className="p-3">
-                <LoadingInline label="Loading keys" tone="muted" />
-              </div>
-            ) : (
-              <KvKeyList
-                rows={visibleRows}
-                selectedKey={selectedKey}
-                onSelectKey={handleSelectKey}
-                filtered={prefix.length > 0}
+          {keysResource.error ? (
+            <div className="min-h-0 flex-1">
+              <ViewerStatus
+                state="failed"
+                message={`Could not read the keys: ${keysResource.error.message}`}
+                retry={keysResource.retry}
               />
-            )}
-          </div>
+            </div>
+          ) : keysResource.loading && rows.length === 0 ? (
+            <div className="min-h-0 flex-1">
+              <ViewerStatus state="waiting" what="the keys" rows={4} />
+            </div>
+          ) : (
+            <KvKeyList
+              rows={visibleRows}
+              selectedKey={selectedKey}
+              onSelectKey={handleSelectKey}
+              filtered={prefix.length > 0}
+            />
+          )}
+        </div>
 
-          <div className="min-w-0 flex-1">
-            {creating ? (
-              <div className="overflow-auto p-3">
-                <KvCreateKeyForm
-                  onCreate={handleCreate}
-                  onCancel={() => setCreating(false)}
-                  mutationError={mutationError}
-                />
-              </div>
-            ) : selectedRow ? (
-              <KvKeyDetail
-                handle={handle}
-                row={selectedRow}
-                onSave={handleSave}
-                onDelete={handleDelete}
+        <div className="min-w-0 flex-1">
+          {creating ? (
+            <div className="overflow-auto p-3">
+              <KvCreateKeyForm
+                onCreate={handleCreate}
+                onCancel={() => setCreating(false)}
                 mutationError={mutationError}
               />
-            ) : (
-              <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
-                Select a key to view its value.
-              </div>
-            )}
-          </div>
+            </div>
+          ) : selectedRow ? (
+            <KvKeyDetail
+              handle={handle}
+              row={selectedRow}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              mutationError={mutationError}
+            />
+          ) : (
+            <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
+              Select a key to view its value.
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

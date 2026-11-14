@@ -1,0 +1,41 @@
+---
+title: "Object viewer: waiting, failed and empty"
+---
+stateDiagram-v2
+  s0: Waiting for the record
+  s1: Failed for good
+  s2: Failed, Retry shown
+  s3: Empty
+  s4: Ready
+  s5: Reading again, record kept
+  s6: Failed for good, record kept
+  s7: Failed, Retry shown, record kept
+  [*] --> s0
+  s0 --> s1: read fails
+  s0 --> s2: read fails
+  s0 --> s3: record arrives
+  s0 --> s4: record arrives
+  s1 --> s0: another object opens
+  s2 --> s0: another object opens or presses Retry
+  s3 --> s0: another object opens
+  s3 --> s1: read fails
+  s3 --> s2: read fails
+  s3 --> s5: reads again
+  s4 --> s0: another object opens
+  s4 --> s1: read fails
+  s4 --> s2: read fails
+  s4 --> s5: reads again
+  s3 --> s6: read fails
+  s3 --> s7: read fails
+  s4 --> s6: read fails
+  s4 --> s7: read fails
+  s5 --> s0: another object opens
+  s5 --> s3: record arrives
+  s5 --> s4: record arrives
+  s5 --> s1: read fails
+  s5 --> s2: read fails
+  s6 --> s0: another object opens
+  s5 --> s6: read fails
+  s5 --> s7: read fails
+  s7 --> s0: another object opens
+  s7 --> s5: presses Retry

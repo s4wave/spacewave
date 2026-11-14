@@ -8,8 +8,10 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
@@ -141,47 +143,35 @@ interface TableViewBodyProps {
   csvFileName: string
 }
 
-/** TableViewBody shows the error and loading states, then the row grid once rows arrive. */
+/**
+ * TableViewBody shows the row grid once rows arrive, and the read's state
+ * until then. A failed read takes the body only when no rows arrived;
+ * otherwise its notice sits above the grid, so a failed metadata read never
+ * hides rows. A resource keeps its value while it is read again and drops it
+ * when that read fails, so a failed refresh shows the failure with its Retry.
+ */
 function TableViewBody({
   metaResource,
   rowsResource,
   data,
   csvFileName,
 }: TableViewBodyProps) {
+  // Without rows, the read's state is the whole body.
+  const status = resourceStatus('the table view', metaResource, rowsResource)
+  if (!data) return status ? <ViewerStatus {...status} /> : null
+
+  // With rows, a failure is a notice above the grid.
   return (
-    <>
-      {metaResource.error ? (
-        <div className="p-4">
-          <ErrorState
-            title="Table view unavailable"
-            message={String(metaResource.error)}
-            onRetry={metaResource.retry}
-          />
-        </div>
-      ) : null}
-      {(metaResource.loading || rowsResource.loading) && data == null ? (
-        <div className="p-4">
-          <LoadingInline label="Loading rows" tone="muted" />
-        </div>
-      ) : null}
-      {rowsResource.error ? (
-        <div className="p-4">
-          <ErrorState
-            variant="inline"
-            title="Could not fetch rows"
-            message={String(rowsResource.error)}
-            onRetry={rowsResource.retry}
-          />
-        </div>
-      ) : null}
-      {data ? (
+    <div className="flex h-full min-h-0 flex-col">
+      {status?.state === 'failed' ? <ViewerStatus {...status} /> : null}
+      <div className="min-h-0 flex-1">
         <SqlResultGrid
           data={data}
           csvFileName={csvFileName}
           emptyTitle="No matching rows"
           emptyDescription="No rows match this view's filter."
         />
-      ) : null}
-    </>
+      </div>
+    </div>
   )
 }

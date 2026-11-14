@@ -107,7 +107,11 @@ describe('SqlQueryResultViewer', () => {
     })
     renderViewer()
     await waitFor(() =>
-      expect(screen.getByText('syntax error near SELCT')).toBeTruthy(),
+      expect(
+        screen.getByText('The query failed: syntax error near SELCT'),
+      ).toBeTruthy(),
     )
+    // Reading the result again returns the same failure, so no Retry shows.
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
   })
 })

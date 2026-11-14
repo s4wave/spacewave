@@ -17,8 +17,11 @@ import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
@@ -64,6 +67,7 @@ export function SqlWorkbenchViewer({
   const [mutationError, setMutationError] = useState<string | null>(null)
 
   const workbench = workbenchResource.value?.workbench
+  const status = resourceStatus('the workbench', workbenchResource)
   useObjectName(workbench?.displayName)
   const targetDbKey = workbench?.targetDbObjectKey ?? ''
   const pins = useMemo(
@@ -169,22 +173,11 @@ export function SqlWorkbenchViewer({
         </div>
       ) : null}
 
-      {workbenchResource.loading && workbench == null ? (
-        <div className="p-4">
-          <LoadingInline label="Loading workbench" tone="muted" />
+      {status && (status.state === 'failed' || workbench == null) ? (
+        <div className="min-h-0 flex-1">
+          <ViewerStatus {...status} />
         </div>
-      ) : null}
-      {workbenchResource.error ? (
-        <div className="p-4">
-          <ErrorState
-            title="SQL workbench unavailable"
-            message={String(workbenchResource.error)}
-            onRetry={workbenchResource.retry}
-          />
-        </div>
-      ) : null}
-
-      {workbench ? (
+      ) : workbench ? (
         <div className="flex min-h-0 flex-1">
           <WorkbenchSidebar
             width={sidebarWidth}

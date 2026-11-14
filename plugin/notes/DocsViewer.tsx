@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { ViewerStatusShell } from '@s4wave/web/object/ViewerStatusShell.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import {
@@ -96,51 +99,55 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     setEditing((prev) => !prev)
   }, [setEditing])
 
+  // Show the read's status, or the empty documentation, before its pages.
+  const status = resourceStatus('the documentation', state)
+  if (status) return <ViewerStatus {...status} />
+  if (sources.length === 0) {
+    return (
+      <ViewerStatus
+        state="empty"
+        message="This documentation has no sources yet."
+      />
+    )
+  }
+
   return (
-    <ViewerStatusShell
-      resource={state}
-      state={state}
-      loadingText="Loading documentation..."
-      emptyText="No sources configured for this documentation"
-      sources={sources}
-    >
-      <div className="bg-background-primary flex h-full w-full overflow-hidden">
-        {/* Tree sidebar */}
-        <div className="border-border w-55 min-w-55 border-r">
-          <DocsSidebar
-            source={firstSource}
+    <div className="bg-background-primary flex h-full w-full overflow-hidden">
+      {/* Tree sidebar */}
+      <div className="border-border w-55 min-w-55 border-r">
+        <DocsSidebar
+          source={firstSource}
+          worldState={worldState}
+          selectedPage={selectedPage}
+          onSelectPage={handleSelectPage}
+          namespace={ns}
+        />
+      </div>
+
+      {/* Content area */}
+      <div className="min-w-0 flex-1">
+        {firstSource?.ref && selectedPage ? (
+          <NoteContentView
             worldState={worldState}
-            selectedPage={selectedPage}
-            onSelectPage={handleSelectPage}
-            namespace={ns}
+            sourceRef={firstSource.ref}
+            noteName={selectedPage}
+            editing={editing}
+            onToggleEdit={handleToggleEdit}
           />
-        </div>
-
-        {/* Content area */}
-        <div className="min-w-0 flex-1">
-          {firstSource?.ref && selectedPage ? (
-            <NoteContentView
-              worldState={worldState}
-              sourceRef={firstSource.ref}
-              noteName={selectedPage}
-              editing={editing}
-              onToggleEdit={handleToggleEdit}
-            />
-          ) : (
-            <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-              Select a page to view
-            </div>
-          )}
-        </div>
-
-        {/* TOC panel (shown when viewing a page with headings, not editing) */}
-        {selectedPage && !editing && tocContent && (
-          <div className="border-border w-45 min-w-45 border-l">
-            <DocsToc content={tocContent} format={selectedPageFormat} />
+        ) : (
+          <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+            Select a page to view
           </div>
         )}
       </div>
-    </ViewerStatusShell>
+
+      {/* TOC panel (shown when viewing a page with headings, not editing) */}
+      {selectedPage && !editing && tocContent && (
+        <div className="border-border w-45 min-w-45 border-l">
+          <DocsToc content={tocContent} format={selectedPageFormat} />
+        </div>
+      )}
+    </div>
   )
 }
 

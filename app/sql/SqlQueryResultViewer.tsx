@@ -1,23 +1,71 @@
 import { LuExternalLink, LuTableProperties } from 'react-icons/lu'
 
-import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import {
+  useResource,
+  type Resource,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
   SqlQueryResult,
   SqlQueryResultTypeID,
 } from '@s4wave/sdk/sql/query-result/query-result.js'
+import type { GetResultGridResponse } from '@s4wave/sdk/sql/query-result/query-result.pb.js'
 
 import { flattenRowBatches } from './sql-cell.js'
 import { SqlResultGrid } from './SqlResultGrid.js'
 
 export { SqlQueryResultTypeID }
+
+// QueryResultBody shows the result's waiting or failed state, the query's own
+// failure, or the result grid.
+function QueryResultBody({
+  gridResource,
+  csvFileName,
+}: {
+  gridResource: Resource<GetResultGridResponse | null>
+  csvFileName: string
+}) {
+  // A failed or pending read of the grid shows in place of the result.
+  const grid = gridResource.value
+  if (gridResource.error) {
+    return (
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the query result: ${gridResource.error.message}`}
+        retry={gridResource.retry}
+      />
+    )
+  }
+  if (!grid) {
+    if (!gridResource.loading) return null
+    return <ViewerStatus state="waiting" what="the query result" />
+  }
+  if (grid.error?.message) {
+    return (
+      <ViewerStatus
+        state="failed"
+        message={`The query failed: ${grid.error.message}`}
+      />
+    )
+  }
+  return (
+    <SqlResultGrid
+      data={{
+        columns: grid.columns ?? [],
+        rows: flattenRowBatches(grid.rowBatches),
+        truncated: grid.truncated ?? false,
+      }}
+      csvFileName={csvFileName}
+      emptyDescription="The query completed without returning rows."
+    />
+  )
+}
 
 // SqlQueryResultViewer is the full sql/query-result viewer: a typed result grid
 // over the persisted rows with NULL rendering, paging, and CSV export, plus
@@ -45,13 +93,6 @@ export function SqlQueryResultViewer({
   )
 
   const grid = gridResource.value
-  const data = grid
-    ? {
-        columns: grid.columns ?? [],
-        rows: flattenRowBatches(grid.rowBatches),
-        truncated: grid.truncated ?? false,
-      }
-    : null
 
   const navigate = (key: string | undefined) => {
     if (container && key) container.navigateToObjects([key])
@@ -92,36 +133,10 @@ export function SqlQueryResultViewer({
       />
 
       <div className="min-h-0 flex-1">
-        {gridResource.loading && grid == null ? (
-          <div className="p-4">
-            <LoadingInline label="Loading result" tone="muted" />
-          </div>
-        ) : null}
-        {gridResource.error ? (
-          <div className="p-4">
-            <ErrorState
-              title="Query result unavailable"
-              message={String(gridResource.error)}
-              onRetry={gridResource.retry}
-            />
-          </div>
-        ) : null}
-        {grid?.error?.message ? (
-          <div className="p-4">
-            <ErrorState
-              variant="inline"
-              title="Query execution failed"
-              message={grid.error.message}
-            />
-          </div>
-        ) : null}
-        {data && !grid?.error?.message ? (
-          <SqlResultGrid
-            data={data}
-            csvFileName={`${objectKey.replaceAll('/', '-')}.csv`}
-            emptyDescription="The query completed without returning rows."
-          />
-        ) : null}
+        <QueryResultBody
+          gridResource={gridResource}
+          csvFileName={`${objectKey.replaceAll('/', '-')}.csv`}
+        />
       </div>
     </div>
   )

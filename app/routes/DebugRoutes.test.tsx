@@ -57,6 +57,10 @@ vi.mock('@s4wave/web/debug/FileListDebug.js', () => ({
   FileListDebug: () => <div data-testid="file-list-debug" />,
 }))
 
+vi.mock('@s4wave/web/debug/ViewerStatusDebug.js', () => ({
+  ViewerStatusDebug: () => <div data-testid="viewer-status-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/UnixFSBrowserDebug.js', () => ({
   UnixFSBrowserDebug: () => <div data-testid="unixfs-browser-debug" />,
 }))
@@ -79,6 +83,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/facts', testId: 'fact-list-debug' },
   { path: '/debug/ui/side', testId: 'viewer-side-debug' },
   { path: '/debug/ui/git-side', testId: 'git-side-debug' },
+  { path: '/debug/ui/viewer-status', testId: 'viewer-status-debug' },
 ]
 
 function renderDebugRoute(path: string) {
@@ -113,6 +118,12 @@ describe('DebugRoutes', () => {
     renderDebugRoute('/debug/ui/file-list/selected')
 
     expect(screen.getByTestId('file-list-debug')).toBeDefined()
+  })
+
+  it('resolves a viewer status fixture state to its debug page', () => {
+    renderDebugRoute('/debug/ui/viewer-status/failed')
+
+    expect(screen.getByTestId('viewer-status-debug')).toBeDefined()
   })
 
   it('resolves a facts fixture state to the facts debug page', () => {

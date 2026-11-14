@@ -11,7 +11,7 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 import { formatV86ImageLabel, readV86Image } from '@s4wave/app/vm/v86-images.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { SetV86StateOp, VmState, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
@@ -24,7 +24,6 @@ import {
   VmV86TypeID,
 } from '@s4wave/sdk/vm/vmv86.js'
 
-import { VmErrorBanner } from '@s4wave/app/vm/VmErrorBanner.js'
 import { VmHeader } from '@s4wave/app/vm/VmHeader.js'
 import { useVmRequest, watchVmObject } from '@s4wave/app/vm/vm-object.js'
 
@@ -199,21 +198,14 @@ export default function VmV86Viewer({
   // Hold the view until the VM record loads, so no default stands in for it.
   if (!vm.loaded) {
     return (
-      <div className="bg-background-primary flex h-full w-full items-center justify-center p-4">
+      <div className="bg-background-primary h-full w-full">
         {vm.loadError ? (
-          <VmErrorBanner
-            title="Could not load this virtual machine"
-            message={vm.loadError.message}
+          <ViewerStatus
+            state="failed"
+            message={`Could not read the virtual machine: ${vm.loadError.message}`}
           />
         ) : (
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading virtual machine',
-              detail: 'Reading its settings from this Space.',
-            }}
-            className="w-full max-w-sm"
-          />
+          <ViewerStatus state="waiting" what="the virtual machine" />
         )}
       </div>
     )

@@ -12,7 +12,9 @@ const strVal = (s: string): SqlValue => ({
 class FakeTableView {
   public readonly id = 1
   public fetchCalls = 0
+  public metaError: Error | null = null
   getTableView(): Promise<unknown> {
+    if (this.metaError) return Promise.reject(this.metaError)
     return Promise.resolve({
       tableView: {
         targetTableName: 'people',
@@ -41,16 +43,24 @@ function useResourceMock<P, T>(
 ) {
   const [value, setValue] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
   const [generation, setGeneration] = useState(0)
   const parentValue = parent.value
   useEffect(() => {
     let cancelled = false
     if (parentValue == null) return
-    void factory(parentValue, new AbortController().signal).then((result) => {
-      if (cancelled) return
-      setValue(result)
-      setLoading(false)
-    })
+    factory(parentValue, new AbortController().signal).then(
+      (result) => {
+        if (cancelled) return
+        setValue(result)
+        setLoading(false)
+      },
+      (err: Error) => {
+        if (cancelled) return
+        setError(err)
+        setLoading(false)
+      },
+    )
     return () => {
       cancelled = true
     }
@@ -59,7 +69,7 @@ function useResourceMock<P, T>(
   return {
     value,
     loading,
-    error: null,
+    error,
     retry: () => setGeneration((g) => g + 1),
   }
 }
@@ -101,6 +111,20 @@ describe('SqlTableViewViewer', () => {
     await waitFor(() => expect(screen.getByText('ada')).toBeTruthy())
     expect(screen.getByText('role = ?')).toBeTruthy()
     expect(screen.getByText('name', { selector: 'span' })).toBeTruthy()
+  })
+
+  it('keeps arrived rows under a failed metadata read', async () => {
+    // The rows arrive while the view record fails to read.
+    fakeTableView = new FakeTableView()
+    fakeTableView.metaError = new Error('view record unreadable')
+    renderViewer()
+
+    // The grid stays, under the failure's notice and its Retry.
+    await waitFor(() => expect(screen.getByText('ada')).toBeTruthy())
+    expect(
+      screen.getByText('Could not read the table view: view record unreadable'),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 
   it('refetches rows on refresh', async () => {

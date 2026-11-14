@@ -37,6 +37,7 @@ import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 import { useVmRequest, watchVmObject } from '@s4wave/app/vm/vm-object.js'
 import { VmErrorBanner } from '@s4wave/app/vm/VmErrorBanner.js'
@@ -252,21 +253,14 @@ function WasiVmShowDesktopButton({ onClick }: { onClick: () => void }) {
 // stands in for it.
 function WasiVmLoadingView({ loadError }: { loadError?: Error | null }) {
   return (
-    <div className="bg-background-primary flex h-full w-full items-center justify-center p-4">
+    <div className="bg-background-primary h-full w-full">
       {loadError ? (
-        <VmErrorBanner
-          title="Could not load this virtual machine"
-          message={loadError.message}
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the virtual machine: ${loadError.message}`}
         />
       ) : (
-        <LoadingCard
-          view={{
-            state: 'active',
-            title: 'Loading virtual machine',
-            detail: 'Reading its settings from this Space.',
-          }}
-          className="w-full max-w-sm"
-        />
+        <ViewerStatus state="waiting" what="the virtual machine" />
       )}
     </div>
   )

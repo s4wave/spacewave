@@ -1,5 +1,4 @@
 import { useCallback, useReducer } from 'react'
-import { LuSiren } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { AlarmState, AcknowledgeAlarmOp } from '@s4wave/sdk/alarm/alarm.pb.js'
@@ -13,9 +12,7 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
-import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 import { shortPeer } from '@s4wave/app/prom/prom-view.js'
 
@@ -104,23 +101,20 @@ export function AlarmViewer({
 
   if (alarm.error) {
     return (
-      <ErrorState
-        title="Alarm unavailable"
-        message={alarm.error.message}
-        onRetry={alarm.retry}
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the Alarm: ${alarm.error.message}`}
+        retry={alarm.retry}
       />
     )
   }
   if (!alarm.value) {
-    return <LoadingInline label="Opening the Alarm" />
+    return <ViewerStatus state="waiting" what="the Alarm" />
   }
   const value = alarm.value.alarm
   if (!value) {
     return (
-      <EmptyState
-        icon={<LuSiren className="text-foreground-alt size-5" />}
-        title="This Alarm no longer exists."
-      />
+      <ViewerStatus state="failed" message="This Alarm no longer exists." />
     )
   }
   const firing = value.state === AlarmState.FIRING

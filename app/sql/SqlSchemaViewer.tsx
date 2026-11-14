@@ -7,9 +7,12 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+  type ViewerStatusProps,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { createWorldObject } from '@s4wave/sdk/world/utils.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
@@ -96,6 +99,17 @@ export function SqlSchemaViewer({
   )
 
   const schema = schemaResource.value
+  const read = resourceStatus('the schema', schemaResource)
+  let status: ViewerStatusProps | null = null
+  if (read && (read.state === 'failed' || schema == null)) status = read
+  else if (schema && schema.tables.length === 0) {
+    status = {
+      state: 'empty',
+      icon: <LuTable />,
+      message:
+        'This schema has no tables yet. Run CREATE TABLE in the Query Editor of its database to add one.',
+    }
+  }
   const schemaName = schema?.metadata?.schemaName ?? ''
 
   return (
@@ -116,40 +130,28 @@ export function SqlSchemaViewer({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        {schemaResource.loading && schema == null ? (
-          <LoadingInline label="Loading schema" tone="muted" />
-        ) : null}
-        {schemaResource.error ? (
-          <ErrorState
-            title="SQL schema unavailable"
-            message={String(schemaResource.error)}
-            onRetry={schemaResource.retry}
-          />
-        ) : null}
-        {schema && schema.tables.length === 0 ? (
-          <EmptyState
-            variant="compact"
-            icon={<LuTable className="text-foreground-alt size-5" />}
-            title="No tables"
-            description="This schema has no tables yet."
-          />
-        ) : null}
-        {schema && schema.tables.length > 0 ? (
-          <div className="border-foreground/8 divide-foreground/8 divide-y rounded-lg border">
-            {schema.tables.map((table) => (
-              <TableRow
-                key={table.name ?? ''}
-                tableName={table.name ?? ''}
-                schemaName={schemaName}
-                dbHandle={dbHandle}
-                canOpen={container != null}
-                onOpen={handleOpenTable}
-              />
-            ))}
-          </div>
-        ) : null}
-      </div>
+      {status ? (
+        <div className="min-h-0 flex-1">
+          <ViewerStatus {...status} />
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          {schema && schema.tables.length > 0 ? (
+            <div className="border-foreground/8 divide-foreground/8 divide-y rounded-lg border">
+              {schema.tables.map((table) => (
+                <TableRow
+                  key={table.name ?? ''}
+                  tableName={table.name ?? ''}
+                  schemaName={schemaName}
+                  dbHandle={dbHandle}
+                  canOpen={container != null}
+                  onOpen={handleOpenTable}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }

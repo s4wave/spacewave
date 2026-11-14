@@ -195,7 +195,8 @@ describe('VmV86Viewer', () => {
       />,
     )
 
-    expect(screen.getByText('Loading virtual machine')).toBeDefined()
+    // The viewer waits for the VM record and offers no Start yet.
+    expect(screen.getByText('Loading the virtual machine')).toBeDefined()
     expect(screen.queryByText('vm/v86/test')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Start' })).toBeNull()
   })

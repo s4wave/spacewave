@@ -18,6 +18,10 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
@@ -140,7 +144,7 @@ export function SqlQueryViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <ViewerBar icon={<LuFileText />} title="SQL Query" />
-      <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="min-h-0 flex-1 overflow-auto">
         <SqlQueryBody
           objectKey={objectKey}
           handle={handle}
@@ -159,7 +163,7 @@ interface SqlQueryBodyProps {
   targetResolution: TargetResolution
 }
 
-/** SqlQueryBody shows the loading and error states, then the editor once the query and its target resolve. */
+/** SqlQueryBody shows the query's waiting or failed state, then the editor once the query and its target resolve. */
 function SqlQueryBody({
   objectKey,
   handle,
@@ -167,30 +171,22 @@ function SqlQueryBody({
   targetResolution,
 }: SqlQueryBodyProps) {
   const loaded = queryResource.value
+  if (!loaded) {
+    const status = resourceStatus('the query', queryResource)
+    return status ? <ViewerStatus {...status} /> : null
+  }
+  if (targetResolution.loading) {
+    return <ViewerStatus state="waiting" what="the query's database" />
+  }
   return (
-    <>
-      {queryResource.loading && loaded == null ? (
-        <LoadingInline label="Loading query" tone="muted" />
-      ) : null}
-      {queryResource.error ? (
-        <ErrorState
-          title="SQL query unavailable"
-          message={String(queryResource.error)}
-          onRetry={queryResource.retry}
-        />
-      ) : null}
-      {loaded && targetResolution.loading ? (
-        <LoadingInline label="Resolving SQL database target" tone="muted" />
-      ) : null}
-      {loaded && !targetResolution.loading ? (
-        <ResolvedSqlQueryEditor
-          objectKey={objectKey}
-          handle={handle}
-          loaded={loaded}
-          targetResolution={targetResolution}
-        />
-      ) : null}
-    </>
+    <div className="p-4">
+      <ResolvedSqlQueryEditor
+        objectKey={objectKey}
+        handle={handle}
+        loaded={loaded}
+        targetResolution={targetResolution}
+      />
+    </div>
   )
 }
 

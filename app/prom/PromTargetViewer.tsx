@@ -21,9 +21,7 @@ import { useClock } from '@s4wave/web/hooks/useClock.js'
 import { useWatchTypedHandle } from '@s4wave/web/hooks/useWatchTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
-import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 import { PromPanel } from './PromPanel.js'
 import { PromTargetView } from './PromTargetView.js'
@@ -51,30 +49,30 @@ export function PromTargetViewer({
   const value = handle.value
   if (handle.error) {
     return (
-      <ErrorState
-        title="Scrape target unavailable"
-        message={handle.error.message}
-        onRetry={handle.retry}
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the Scrape target: ${handle.error.message}`}
+        retry={handle.retry}
       />
     )
   }
-  if (!value) return <LoadingInline label="Opening the Scrape target" />
+  if (!value) return <ViewerStatus state="waiting" what="the Scrape target" />
   switch (value.state) {
     case 'absent':
       return (
-        <EmptyState
-          icon={<LuActivity className="text-foreground-alt size-5" />}
-          title="This Scrape target no longer exists."
+        <ViewerStatus
+          state="failed"
+          message="This Scrape target no longer exists."
         />
       )
     case 'no-handler':
       return isDesktop ? (
-        <LoadingInline label="Starting the metrics plugin" />
+        <ViewerStatus state="waiting" what="the metrics plugin" />
       ) : (
-        <EmptyState
-          icon={<LuActivity className="text-foreground-alt size-5" />}
-          title="Scrape targets run on a desktop Device."
-          description="Open this Space in the Spacewave desktop app to see and approve this target."
+        <ViewerStatus
+          state="empty"
+          icon={<LuActivity />}
+          message="Scrape targets run on a desktop Device. Open this Space in the Spacewave desktop app to see and approve this target."
         />
       )
     case 'ready':
@@ -204,14 +202,16 @@ function TargetBody({
 
   if (targets.error) {
     return (
-      <ErrorState
-        title="Scrape target unavailable"
-        message={targets.error.message}
-        onRetry={targets.retry}
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the Scrape target: ${targets.error.message}`}
+        retry={targets.retry}
       />
     )
   }
-  if (!targets.value) return <LoadingInline label="Loading the Scrape target" />
+  if (!targets.value) {
+    return <ViewerStatus state="waiting" what="the Scrape target" />
+  }
   return (
     <PromTargetView
       objectKey={objectKey}

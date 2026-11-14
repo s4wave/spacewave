@@ -706,12 +706,12 @@ selector, so the bar never repeats it.
 The fold points keep the title's floor only within a budget: below `@pane-xs`
 the bar holds the title, Details where the viewer has one, and More; from
 `@pane-xs` at most three icon presses sit in the bar, Details counting as one
-since it never folds into More, and a fourth folds at `md`; from `@pane-md` the labeled presses together
-stay under 16rem, and a press that would pass it folds at `md` or `menu`. A
-disabled press is one whose action is running, and its label says so, such as
-"Opening Add Device…"; it stays focusable and ignores presses. A press that
-cannot work in the object's state is left out of the bar, so More never lists a
-dead end alone.
+since it never folds into More, and a fourth folds at `md`; from `@pane-md`
+the labeled presses together stay under 16rem, and a press that would pass it
+folds at `md` or `menu`. A disabled press is one whose action is running, and
+its label says so, such as "Opening Add Device…"; it stays focusable and
+ignores presses. A press that cannot work in the object's state is left out of
+the bar, so More never lists a dead end alone.
 
 The budget assumes a fine pointer. With a coarse pointer each icon press and
 More grow to 44px, so three icon presses and More take about 188px, and beside a
@@ -765,6 +765,24 @@ drawing an ellipsis where it cuts. A URL shows without its scheme; its title
 and copy keep the whole value. Plain text ends in an ellipsis. A placeholder
 for a missing value, such as `Unknown` or `None`, is a plain text fact with no
 copy press, never a mono identifier.
+
+Before and instead of its object, a viewer draws `ViewerStatus` from
+`web/object/ViewerStatus.tsx` under its bar, in one of three states. Waiting
+names what it reads, as in "Loading the notebook", over skeleton rows in a
+`FactList`, so their label column is the one the viewer's facts take at the
+same width. Failed is a notice row: a destructive mark, a sentence saying what
+failed, and Retry only when reading again can succeed; a record of the wrong
+kind or a query's own error offers none. A failure takes the body only when
+nothing arrived; otherwise its notice sits above what did. Empty is one muted
+row of a mark and a sentence that, where one exists, names the press that
+fills it. Every row sizes by the pane, never the window. The bar keeps its icon
+and title throughout. Each press shows in the states where it can succeed: a
+press on the record once the record is drawn, and a standing press, such as
+Refresh or Query Editor, in every state. `resourceStatus` maps a viewer's
+resources to failed with the failed one's retry, or to waiting while one is
+read with nothing arrived; a resource read again keeps its value. The states
+are in `web/object/ViewerStatus.tla`, and `/debug/ui/viewer-status/:state`
+shows each (`waiting`, `failed`, `final`, `long`, `empty`).
 
 ### Focused Pages
 
