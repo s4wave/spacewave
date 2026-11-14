@@ -179,9 +179,12 @@ func isDistProductionSource(slashPath string) bool {
 	return !isDistTestSource(slashPath)
 }
 
-// isDistTestSource reports whether slashPath is a test source or fixture.
+// isDistTestSource reports whether slashPath is a test source, fixture or
+// spec view. A TLA+ spec's .view.ts lives beside the code it models and never
+// ships.
 func isDistTestSource(slashPath string) bool {
 	return strings.HasSuffix(slashPath, ".test.ts") ||
+		strings.HasSuffix(slashPath, ".view.ts") ||
 		strings.HasSuffix(slashPath, ".test.tsx") ||
 		strings.HasSuffix(slashPath, "_test.go") ||
 		strings.Contains(slashPath, "/testdata/")
