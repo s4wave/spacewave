@@ -592,7 +592,7 @@ func newTestGenesisState(t *testing.T) (*sobject.SOState, crypto.PrivKey) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), testSharedObjectID, priv, nil)
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), testSharedObjectID, priv, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1018,7 +1018,7 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 	// Build the genesis state.
 	le := a.le.WithField("sobject-id", id)
 	le.Debug("initializing shared object with empty state")
-	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, priv, nil)
+	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, priv, "", "", nil)
 	if err != nil {
 		return nil, err
 	}

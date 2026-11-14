@@ -231,16 +231,17 @@ func (t *SpacewaveTransferTarget) AddSharedObject(_ context.Context, _ *sobject.
 // with its state and origin, a checkpoint over the transfer's own unchanged
 // write, or a genesis on a listed Space with no origin and no config. Each is
 // a compare-and-set the cloud refuses when the Space changed, which returns
-// ErrTargetChanged.
-func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, origin *TransferOrigin, expect *TargetSpace) error {
+// ErrTargetChanged. The Space's owner is the account's own session, the only
+// owner the cloud accepts, so the transfer's owner key is unused.
+func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, _ crypto.PrivKey, stateData []byte, origin *TransferOrigin, expect *TargetSpace) error {
 	var err error
 	switch exp := expect.GetExpect().(type) {
 	case cloudCreate:
-		err = t.create(ctx, le, sharedObjectID, owner, stateData, origin, exp.meta)
+		err = t.create(ctx, le, sharedObjectID, stateData, origin, exp.meta)
 	case cloudResync:
-		err = t.resync(ctx, le, sharedObjectID, owner, stateData, origin, exp.head)
+		err = t.resync(ctx, le, sharedObjectID, stateData, origin, exp.head)
 	case cloudGenesis:
-		err = t.writeGenesis(ctx, le, sharedObjectID, owner, stateData)
+		err = t.writeGenesis(ctx, le, sharedObjectID, stateData)
 	default:
 		return ErrTargetChanged
 	}
@@ -252,9 +253,13 @@ func (t *SpacewaveTransferTarget) WriteSharedObjectState(ctx context.Context, le
 
 // create creates the Space with a genesis holding stateData and the
 // transfer's origin, in one request.
-func (t *SpacewaveTransferTarget) create(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, origin *TransferOrigin, meta *sobject.SharedObjectMeta) error {
-	// Build the genesis.
-	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, stateData)
+func (t *SpacewaveTransferTarget) create(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte, origin *TransferOrigin, meta *sobject.SharedObjectMeta) error {
+	// Build the genesis naming the account's session as owner.
+	owner, entityID, username, err := t.account.GetSpaceOwner(ctx)
+	if err != nil {
+		return err
+	}
+	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, entityID, username, stateData)
 	if err != nil {
 		return err
 	}
@@ -291,9 +296,15 @@ func (t *SpacewaveTransferTarget) create(ctx context.Context, le *logrus.Entry, 
 
 // resync posts a checkpoint holding stateData over the transfer's own write,
 // which the cloud takes only while the Space's written head is still head.
-// That write's genesis named owner alone, and nothing changed the Space
-// since, so owner holds the current key epoch's grant.
-func (t *SpacewaveTransferTarget) resync(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, origin *TransferOrigin, head []byte) error {
+// That write's genesis named the account's session alone, and nothing changed
+// the Space since, so the session holds the current key epoch's grant.
+func (t *SpacewaveTransferTarget) resync(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte, origin *TransferOrigin, head []byte) error {
+	// Sign as the account's session.
+	owner, _, _, err := t.account.GetSpaceOwner(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Read the state the checkpoint follows.
 	cli := t.account.GetSessionClient()
 	data, err := cli.GetSOState(ctx, sharedObjectID, 0, provider_spacewave.SeedReasonColdSeed)
@@ -338,9 +349,13 @@ func (t *SpacewaveTransferTarget) resync(ctx context.Context, le *logrus.Entry, 
 // writeGenesis writes the genesis config holding stateData to a listed Space
 // with no config, then its checkpoint. The cloud refuses a genesis config on
 // a configured Space.
-func (t *SpacewaveTransferTarget) writeGenesis(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte) error {
-	// Build the genesis.
-	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, stateData)
+func (t *SpacewaveTransferTarget) writeGenesis(ctx context.Context, le *logrus.Entry, sharedObjectID string, stateData []byte) error {
+	// Build the genesis naming the account's session as owner.
+	owner, entityID, username, err := t.account.GetSpaceOwner(ctx)
+	if err != nil {
+		return err
+	}
+	state, genesis, err := sobject.BuildGenesisSOState(le, t.account.GetStepFactorySet(), sharedObjectID, owner, entityID, username, stateData)
 	if err != nil {
 		return err
 	}

@@ -279,7 +279,7 @@ func TestSessionClientInitEmptyStandaloneSpaceRejectsGrantlessCheckpoint(t *test
 		accountID = "test-account"
 	)
 	localPriv, localPID := generateTestKeypair(t)
-	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), soID, localPriv, nil)
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), soID, localPriv, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
