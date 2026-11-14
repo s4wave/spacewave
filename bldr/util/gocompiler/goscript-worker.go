@@ -6,16 +6,25 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	bldr_buildbudget "github.com/s4wave/spacewave/bldr/util/buildbudget"
 	"github.com/sirupsen/logrus"
 )
 
 // goScriptWorkerEnv marks a process that ExecGoScriptCompile started to run
 // one GoScript compile.
 const goScriptWorkerEnv = "BLDR_GOSCRIPT_COMPILE_WORKER"
+
+// goScriptWorkerMemoryLimitMiB is the worker's default GOMEMLIMIT in MiB: four
+// fifths of the GoScriptCompileWeight GiB its compile reserves from the build
+// budget. Without a limit the Go collector lets a cold compile's heap grow to
+// about twice its live set; with one, its peak RSS runs about a fifth over the
+// limit, so four fifths keeps the worker inside its reservation.
+const goScriptWorkerMemoryLimitMiB = bldr_buildbudget.GoScriptCompileWeight << 10 * 4 / 5
 
 // init turns a process started with goScriptWorkerEnv into the compile
 // worker before main runs. The worker reads its request as JSON from stdin,
@@ -30,12 +39,16 @@ func init() {
 // current executable and returns its failure.
 func runGoScriptWorker(ctx context.Context, le *logrus.Entry, opts GoScriptCompileOptions) error {
 	// Start the current executable as a worker with the options' environment.
+	// The default memory limit comes first, so a GOMEMLIMIT in the environment
+	// or the options replaces it: exec keeps the last value of a key.
 	exe, err := os.Executable()
 	if err != nil {
 		return errors.Wrap(err, "find the executable for the goscript worker")
 	}
 	cmd := exec.CommandContext(ctx, exe)
-	cmd.Env = append(os.Environ(), opts.Env...)
+	memoryLimit := "GOMEMLIMIT=" + strconv.FormatInt(goScriptWorkerMemoryLimitMiB, 10) + "MiB"
+	cmd.Env = append([]string{memoryLimit}, os.Environ()...)
+	cmd.Env = append(cmd.Env, opts.Env...)
 	cmd.Env = append(cmd.Env, goScriptWorkerEnv+"=1")
 
 	// Send the request, forward the worker's logs, and keep its failure.
