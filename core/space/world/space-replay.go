@@ -276,7 +276,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	}
 	if pos.handlers == nil {
 		// An operation without a transaction names no payloads.
-		pos.handlers = &PayloadHandlers{}
+		pos.handlers = newPayloadHandlers(nil)
 	}
 
 	// Record the outcome, and the seqno of a changed World.

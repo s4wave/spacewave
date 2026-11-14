@@ -15,3 +15,12 @@ func ReadSavedCursor(ctx context.Context, so sobject.SharedObject) (*ReplayCurso
 func DeleteSavedCursor(ctx context.Context, so sobject.SharedObject) error {
 	return writeLocalState(ctx, so, replayCursorStoreID, replayCursorKey, nil)
 }
+
+// WriteSavedCursor saves cursor as the replay cursor of the Adapter of so.
+func WriteSavedCursor(ctx context.Context, so sobject.SharedObject, cursor *ReplayCursor) error {
+	data, err := cursor.MarshalVT()
+	if err != nil {
+		return err
+	}
+	return writeLocalState(ctx, so, replayCursorStoreID, replayCursorKey, data)
+}

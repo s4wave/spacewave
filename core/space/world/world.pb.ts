@@ -647,12 +647,21 @@ export interface PayloadHandlers {
    * once and sorted by type.
    */
   handlers?: PayloadHandler[]
+  /**
+   * TxVersion is the PayloadRefsVersion of the transaction rules that named
+   * the transaction's own roots. Zero, as in handlers saved before it was
+   * recorded, is never current.
+   */
+  txVersion?: number
 }
 
 export const PayloadHandlers: MessageType<PayloadHandlers> =
   /* @__PURE__ */ createMessageType<PayloadHandlers>(
     'space.world.PayloadHandlers',
-    () => [[1, 'handlers', 11, 1, PayloadHandler.codec]],
+    () => [
+      [1, 'handlers', 11, 1, PayloadHandler.codec],
+      [2, 'tx_version', 13],
+    ],
   )
 
 /**

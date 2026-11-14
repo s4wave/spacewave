@@ -463,10 +463,10 @@ func runPayloadHandlers(t *testing.T) {
 	}
 	waitCursor("after the writes")
 
-	// remount empties the payloads root, optionally removes the saved
-	// cursor, remounts, and returns the payloads root's roots once the last
-	// object reads.
-	remount := func(dropCursor bool) map[string]struct{} {
+	// remount empties the payloads root, calls setCursor if set to change
+	// the saved cursor, remounts, and returns the payloads root's roots once
+	// the last object reads.
+	remount := func(setCursor func() error) map[string]struct{} {
 		t.Helper()
 		var served *space_world.Engine
 		if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
@@ -486,8 +486,8 @@ func runPayloadHandlers(t *testing.T) {
 		if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: space_world.RootReplayPayloads, Previous: held}}); err != nil {
 			t.Fatal(err)
 		}
-		if dropCursor {
-			if err := space_world.DeleteSavedCursor(ctx, so); err != nil {
+		if setCursor != nil {
+			if err := setCursor(); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -510,25 +510,56 @@ func runPayloadHandlers(t *testing.T) {
 		}
 	}
 
-	// The same handlers hold the same roots with the cursor and without it.
-	withCursor := remount(false)
-	requireHeld("with the cursor", withCursor, false)
-	withoutCursor := remount(true)
-	if len(withCursor) != len(withoutCursor) {
-		t.Fatalf("a remount held %d roots with the cursor and %d without it", len(withCursor), len(withoutCursor))
-	}
-	for key := range withCursor {
-		if _, ok := withoutCursor[key]; !ok {
-			t.Fatal("a remount with the cursor held a root the one without it did not")
+	requireSame := func(step string, want, got map[string]struct{}) {
+		t.Helper()
+		if len(want) != len(got) {
+			t.Fatalf("%s: a remount held %d roots, the first %d", step, len(got), len(want))
+		}
+		for key := range want {
+			if _, ok := got[key]; !ok {
+				t.Fatalf("%s: a remount did not hold a root the first held", step)
+			}
 		}
 	}
 
+	// The same handlers hold the same roots with the cursor and without it.
+	withCursor := remount(nil)
+	requireHeld("with the cursor", withCursor, false)
+	requireSame("without the cursor", withCursor, remount(func() error {
+		return space_world.DeleteSavedCursor(ctx, so)
+	}))
+
+	// A cursor an older build saved, whose handlers lack the transaction
+	// rules' version, holds the same roots after the upgrade, by resolving
+	// its outcomes again once: a handler that names one more root under the
+	// same version holds it, which the reused roots of a current cursor
+	// would not. The current cursor is then put back.
+	waitCursor("after the remount")
+	current, err := space_world.ReadSavedCursor(ctx, so)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := current.CloneVT()
+	for _, outcome := range legacy.GetOutcomes() {
+		if outcome.GetPayloadHandlers().GetTxVersion() == 0 {
+			t.Fatal("a saved outcome records no transaction rules version")
+		}
+		outcome.GetPayloadHandlers().TxVersion = 0
+	}
+	writeLegacy := func() error { return space_world.WriteSavedCursor(ctx, so, legacy) }
+	requireSame("after the upgrade", withCursor, remount(writeLegacy))
+	extra.Store(true)
+	requireHeld("after the upgrade resolved again", remount(writeLegacy), true)
+	extra.Store(false)
+	requireSame("with the current cursor put back", withCursor, remount(func() error {
+		return space_world.WriteSavedCursor(ctx, so, current)
+	}))
+
 	// A handler that names one more root under a bumped version holds it
 	// although the cursor recorded the old handler's roots.
-	waitCursor("after the remount")
 	extra.Store(true)
 	version.Store(2)
-	requireHeld("after the handler changed", remount(false), true)
+	requireHeld("after the handler changed", remount(nil), true)
 	engRef.Release()
 }
 

@@ -10,6 +10,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blocktest"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -19,7 +20,8 @@ import (
 // payloadRefsGolden records, for each payload operation type the static table
 // resolves, a fixture operation and the payload roots GetPayloadRefs names for
 // it under PayloadRefsVersion. Each fixture sets every block reference the
-// operation carries to a distinct named root, and refs lists the names of the
+// operation carries to a distinct named root, which the test checks by walking
+// the fixture, and refs lists the names of the
 // roots GetPayloadRefs returns, in order.
 //
 // A saved replay cursor reuses an operation's payload roots only under the
@@ -75,7 +77,7 @@ var payloadRefsGolden = map[string]struct {
 }
 
 // TestPayloadRefsGolden checks that every payload operation type in the static
-// table has a golden fixture, and that what its GetPayloadRefs names changes
+// table has a golden fixture that sets every block reference it carries, and that what its GetPayloadRefs names changes
 // only together with its PayloadRefsVersion.
 func TestPayloadRefsGolden(t *testing.T) {
 	ids := make([]string, 0, len(schema))
@@ -116,6 +118,9 @@ func TestPayloadRefsGolden(t *testing.T) {
 		if got := op.TypeID(); got != id {
 			t.Errorf("%s: fixture builds a %s operation", id, got)
 			continue
+		}
+		if unset := blocktest.UnsetRefs(op); len(unset) != 0 {
+			t.Errorf("%s: fixture leaves block references unset: %v", id, unset)
 		}
 		var refs []string
 		for _, r := range op.GetPayloadRefs() {
