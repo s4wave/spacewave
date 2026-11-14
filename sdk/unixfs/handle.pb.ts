@@ -330,12 +330,24 @@ export interface HandleReadStreamResponse {
    * Data is the next bytes of the file.
    */
   data?: Uint8Array
+  /**
+   * Version identifies the file's node as of the first response's data, and
+   * is set only there. It is the marshaled block reference of the node, which
+   * every write to the file changes. Pass it back as an UploadTree file's
+   * expected version to replace only that version. Data in later responses may
+   * come from a newer version, so a write expecting this one is refused rather
+   * than overwriting it.
+   */
+  version?: Uint8Array
 }
 
 export const HandleReadStreamResponse: MessageType<HandleReadStreamResponse> =
   /* @__PURE__ */ createMessageType<HandleReadStreamResponse>(
     's4wave.unixfs.HandleReadStreamResponse',
-    () => [[1, 'data', 12]],
+    () => [
+      [1, 'data', 12],
+      [2, 'version', 12],
+    ],
   )
 
 /**
@@ -897,6 +909,17 @@ export interface HandleUploadTreeFileStart {
    * Mode is the file permissions.
    */
   mode?: number
+  /**
+   * Expect is what the path must hold when the upload commits, checked in
+   * the commit's transaction against the root it applies to. With neither
+   * set, the path must hold nothing: the file is created only if missing.
+   *
+   * @generated from oneof s4wave.unixfs.HandleUploadTreeFileStart.expect
+   */
+  expect?:
+    | { value?: undefined; case: undefined }
+    | { value: Uint8Array; case: 'version' }
+    | { value: boolean; case: 'overwrite' }
 }
 
 export const HandleUploadTreeFileStart: MessageType<HandleUploadTreeFileStart> =
@@ -906,6 +929,8 @@ export const HandleUploadTreeFileStart: MessageType<HandleUploadTreeFileStart> =
       [1, 'path', 9],
       [2, 'total_size', 3],
       [3, 'mode', 13],
+      [4, 'version', 12, 0, 0, 'expect'],
+      [5, 'overwrite', 8, 0, 0, 'expect'],
     ],
   )
 
@@ -949,6 +974,32 @@ export const HandleUploadTreeRequest: MessageType<HandleUploadTreeRequest> =
  */
 export interface HandleUploadTreeResponse {
   /**
+   * Result is how the upload ended.
+   *
+   * @generated from oneof s4wave.unixfs.HandleUploadTreeResponse.result
+   */
+  result?:
+    | { value?: undefined; case: undefined }
+    | { value: HandleUploadTreeWritten; case: 'written' }
+    | { value: HandleUploadTreeConflict; case: 'conflict' }
+}
+
+export const HandleUploadTreeResponse: MessageType<HandleUploadTreeResponse> =
+  /* @__PURE__ */ createMessageType<HandleUploadTreeResponse>(
+    's4wave.unixfs.HandleUploadTreeResponse',
+    () => [
+      [4, 'written', 11, 0, HandleUploadTreeWritten.codec, 'result'],
+      [5, 'conflict', 11, 0, HandleUploadTreeConflict.codec, 'result'],
+    ],
+  )
+
+/**
+ * HandleUploadTreeWritten counts what a committed UploadTree applied.
+ *
+ * @generated from message s4wave.unixfs.HandleUploadTreeWritten
+ */
+export interface HandleUploadTreeWritten {
+  /**
    * BytesWritten is the total file payload bytes written.
    */
   bytesWritten?: bigint
@@ -962,13 +1013,40 @@ export interface HandleUploadTreeResponse {
   directoriesWritten?: bigint
 }
 
-export const HandleUploadTreeResponse: MessageType<HandleUploadTreeResponse> =
-  /* @__PURE__ */ createMessageType<HandleUploadTreeResponse>(
-    's4wave.unixfs.HandleUploadTreeResponse',
+export const HandleUploadTreeWritten: MessageType<HandleUploadTreeWritten> =
+  /* @__PURE__ */ createMessageType<HandleUploadTreeWritten>(
+    's4wave.unixfs.HandleUploadTreeWritten',
     () => [
       [1, 'bytes_written', 3],
       [2, 'files_written', 3],
       [3, 'directories_written', 3],
+    ],
+  )
+
+/**
+ * HandleUploadTreeConflict names the first file whose path did not hold what
+ * the upload expected.
+ *
+ * @generated from message s4wave.unixfs.HandleUploadTreeConflict
+ */
+export interface HandleUploadTreeConflict {
+  /**
+   * Path is the file's slash-separated path relative to the handle.
+   */
+  path?: string
+  /**
+   * Version is the version of the file the path holds now, empty when the
+   * path holds no file.
+   */
+  version?: Uint8Array
+}
+
+export const HandleUploadTreeConflict: MessageType<HandleUploadTreeConflict> =
+  /* @__PURE__ */ createMessageType<HandleUploadTreeConflict>(
+    's4wave.unixfs.HandleUploadTreeConflict',
+    () => [
+      [1, 'path', 9],
+      [2, 'version', 12],
     ],
   )
 

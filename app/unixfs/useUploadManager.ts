@@ -165,6 +165,7 @@ export function useUploadManager(): UploadManager {
             ? {
                 kind: 'file',
                 path: item.path,
+                expect: { kind: 'overwrite' },
                 totalSize: BigInt(item.totalSize),
                 stream: item.file.stream(),
                 onProgress: (bytesWritten) => {

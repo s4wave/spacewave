@@ -36,6 +36,7 @@ export async function driveDemo(
       return {
         kind: 'file' as const,
         path,
+        expect: { kind: 'overwrite' as const },
         totalSize: BigInt(data.length),
         stream: new ReadableStream<Uint8Array>({
           start(controller) {

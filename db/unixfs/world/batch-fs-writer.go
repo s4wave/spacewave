@@ -79,6 +79,8 @@ type BatchFSWriter struct {
 	// pending maps a joined parent-path key to accumulated entries under
 	// that parent. The key encoding is produced by joinPathKey.
 	pending map[string]*pendingDir
+	// expects are the files Commit checks before it merges anything.
+	expects []fileExpect
 
 	// stage owns the blob blocks the buffer drains before Commit publishes
 	// them, opened with storage and released by Commit or Release.
@@ -200,6 +202,26 @@ func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Rea
 	}
 	ref, _, err := btx.Write(ctx, true)
 	return ref, err
+}
+
+// ExpectFile makes Commit refuse the whole batch with a *FileConflictError
+// unless the file at parentPath/name has the node reference version, or, with
+// version nil, unless the path holds nothing. Commit checks every expectation
+// in its transaction against the root it publishes onto, before merging any
+// entry, so a write committed first through any writer is never replaced
+// unseen.
+func (b *BatchFSWriter) ExpectFile(parentPath []string, name string, version *block.BlockRef) error {
+	if err := b.checkOpen(); err != nil {
+		return err
+	}
+	if name == "" {
+		return unixfs_errors.ErrEmptyPath
+	}
+	b.expects = append(b.expects, fileExpect{
+		path:    append(slices.Clone(parentPath), name),
+		version: version.Clone(),
+	})
+	return nil
 }
 
 // AddDir records an explicit directory entry under parentPath. The sync
@@ -348,6 +370,13 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		}
 		resolvedDirs := map[string]*unixfs_block.FSTree{
 			joinPathKey(nil): root,
+		}
+
+		// Refuse the batch unless every expected file is as the writer read it.
+		for _, e := range b.expects {
+			if err := checkFileExpect(root, e); err != nil {
+				return err
+			}
 		}
 
 		// Merge the pending directories in parent-first order.

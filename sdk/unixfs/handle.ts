@@ -16,6 +16,7 @@ import type {
   MknodType,
   DirEntry,
   HandleUploadFileRequest,
+  HandleUploadTreeFileStart,
   HandleUploadTreeRequest,
 } from './handle.pb.js'
 import { applyReaddirChange } from './listing.js'
@@ -38,10 +39,20 @@ export interface TreeUploadDirectory {
   mode?: number
 }
 
+// TreeUploadExpect states what a tree upload file may replace. missing
+// creates the file only when the path holds nothing. version replaces the
+// file only while it still has the version readAt returned. overwrite
+// replaces whatever the path holds.
+export type TreeUploadExpect =
+  | { kind: 'missing' }
+  | { kind: 'version'; version: Uint8Array }
+  | { kind: 'overwrite' }
+
 // TreeUploadFile is one streamed file in a tree upload.
 export interface TreeUploadFile {
   kind: 'file'
   path: string
+  expect: TreeUploadExpect
   totalSize: bigint
   stream: ReadableStream<Uint8Array>
   mode?: number
@@ -50,6 +61,33 @@ export interface TreeUploadFile {
 
 // TreeUploadEntry is one tree upload entry.
 export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
+
+// TreeUploadResult is the outcome of a tree upload. conflict means a file's
+// expectation failed and nothing was committed; path is relative to the
+// upload handle and version is the file's current version, absent when the
+// path holds no file.
+export type TreeUploadResult =
+  | {
+      kind: 'written'
+      bytesWritten: bigint
+      filesWritten: bigint
+      directoriesWritten: bigint
+    }
+  | { kind: 'conflict'; path: string; version?: Uint8Array }
+
+// uploadExpect maps a tree upload expectation to its wire form.
+function uploadExpect(
+  expect: TreeUploadExpect,
+): HandleUploadTreeFileStart['expect'] {
+  switch (expect.kind) {
+    case 'missing':
+      return { case: undefined }
+    case 'version':
+      return { case: 'version', value: expect.version }
+    case 'overwrite':
+      return { case: 'overwrite', value: true }
+  }
+}
 
 const uploadDataFrameMaxBytes = 64 * 1024
 
@@ -225,11 +263,7 @@ export interface IFSHandle {
     entries: TreeUploadEntry[],
     onProgress?: (bytesWritten: bigint) => void,
     abortSignal?: AbortSignal,
-  ): Promise<{
-    bytesWritten: bigint
-    filesWritten: bigint
-    directoriesWritten: bigint
-  }>
+  ): Promise<TreeUploadResult>
 
   // clone creates a copy of this handle pointing to the same location.
   clone(abortSignal?: AbortSignal): Promise<FSHandle>
@@ -362,16 +396,26 @@ export class FSHandle extends Resource implements IFSHandle {
   // is not positive. The daemon streams the range in order on one handle, so
   // the file's chunk read-ahead overlaps block fetches with the transfer. eof
   // reports that the read reached the end of the file before filling length.
+  // version is the file version the first bytes were read at; pass it to
+  // uploadTree as a version expectation to save without overwriting another
+  // writer's change.
   public async readAt(
     offset: bigint,
     length: bigint,
     abortSignal?: AbortSignal,
-  ): Promise<{ data: Uint8Array; bytesRead: bigint; eof: boolean }> {
+  ): Promise<{
+    data: Uint8Array
+    bytesRead: bigint
+    eof: boolean
+    version: Uint8Array
+  }> {
     // Collect the frames in file order.
     const chunks: Uint8Array[] = []
     let bytesRead = 0n
+    let version: Uint8Array | undefined
     const stream = this.service.ReadStream({ offset, length }, abortSignal)
     for await (const resp of stream as AsyncIterable<HandleReadStreamResponse>) {
+      version ??= resp.version ?? new Uint8Array()
       const data = resp.data
       if (!data?.byteLength) {
         continue
@@ -384,6 +428,7 @@ export class FSHandle extends Resource implements IFSHandle {
       data: concatReadChunks(chunks, bytesRead),
       bytesRead,
       eof: length <= 0n || bytesRead < length,
+      version: version ?? new Uint8Array(),
     }
   }
 
@@ -577,11 +622,7 @@ export class FSHandle extends Resource implements IFSHandle {
     entries: TreeUploadEntry[],
     onProgress?: (bytesWritten: bigint) => void,
     abortSignal?: AbortSignal,
-  ): Promise<{
-    bytesWritten: bigint
-    filesWritten: bigint
-    directoriesWritten: bigint
-  }> {
+  ): Promise<TreeUploadResult> {
     let totalBytesWritten = 0n
 
     async function* generateMessages(): AsyncIterable<HandleUploadTreeRequest> {
@@ -606,6 +647,7 @@ export class FSHandle extends Resource implements IFSHandle {
               path: entry.path,
               totalSize: entry.totalSize,
               mode: entry.mode ?? 0,
+              expect: uploadExpect(entry.expect),
             },
           },
         }
@@ -625,10 +667,23 @@ export class FSHandle extends Resource implements IFSHandle {
       generateMessages(),
       abortSignal,
     )
+    const result = response.result
+    if (result?.case === 'conflict') {
+      const version = result.value.version
+      return {
+        kind: 'conflict',
+        path: result.value.path ?? '',
+        version: version?.byteLength ? version : undefined,
+      }
+    }
+    if (result?.case !== 'written') {
+      throw new Error('upload tree response has no result')
+    }
     return {
-      bytesWritten: response.bytesWritten ?? 0n,
-      filesWritten: response.filesWritten ?? 0n,
-      directoriesWritten: response.directoriesWritten ?? 0n,
+      kind: 'written',
+      bytesWritten: result.value.bytesWritten ?? 0n,
+      filesWritten: result.value.filesWritten ?? 0n,
+      directoriesWritten: result.value.directoriesWritten ?? 0n,
     }
   }
 

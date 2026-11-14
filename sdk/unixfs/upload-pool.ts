@@ -51,7 +51,14 @@ export class TreeUploadPool {
 
   private async upload(task: TreeUploadTask): Promise<void> {
     try {
-      await task.handle.uploadTree([task.entry], undefined, task.signal)
+      const result = await task.handle.uploadTree(
+        [task.entry],
+        undefined,
+        task.signal,
+      )
+      if (result.kind === 'conflict') {
+        throw new Error(`${result.path} was changed by another writer`)
+      }
       if (!task.signal?.aborted) task.callbacks.onComplete?.()
     } catch (err) {
       if (!task.signal?.aborted) task.callbacks.onError?.(err)

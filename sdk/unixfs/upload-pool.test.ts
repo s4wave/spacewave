@@ -13,6 +13,7 @@ function fileEntry(path: string): TreeUploadEntry {
   return {
     kind: 'file',
     path,
+    expect: { kind: 'missing' },
     totalSize: 1n,
     stream: new ReadableStream<Uint8Array>(),
   }
@@ -43,6 +44,7 @@ function deferredHandle(
       })
       await deferred.promise
       return {
+        kind: 'written',
         bytesWritten: entry.kind === 'file' ? entry.totalSize : 0n,
         filesWritten: entry.kind === 'file' ? 1n : 0n,
         directoriesWritten: entry.kind === 'directory' ? 1n : 0n,

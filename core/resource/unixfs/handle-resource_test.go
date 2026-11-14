@@ -110,14 +110,18 @@ func assertUploadTreeCounters(
 	directoriesWritten int64,
 ) {
 	t.Helper()
-	if resp.GetBytesWritten() != bytesWritten {
-		t.Fatalf("bytes_written = %d, want %d", resp.GetBytesWritten(), bytesWritten)
+	written := resp.GetWritten()
+	if written == nil {
+		t.Fatalf("upload did not commit: %v", resp.GetConflict())
 	}
-	if resp.GetFilesWritten() != filesWritten {
-		t.Fatalf("files_written = %d, want %d", resp.GetFilesWritten(), filesWritten)
+	if written.GetBytesWritten() != bytesWritten {
+		t.Fatalf("bytes_written = %d, want %d", written.GetBytesWritten(), bytesWritten)
 	}
-	if resp.GetDirectoriesWritten() != directoriesWritten {
-		t.Fatalf("directories_written = %d, want %d", resp.GetDirectoriesWritten(), directoriesWritten)
+	if written.GetFilesWritten() != filesWritten {
+		t.Fatalf("files_written = %d, want %d", written.GetFilesWritten(), filesWritten)
+	}
+	if written.GetDirectoriesWritten() != directoriesWritten {
+		t.Fatalf("directories_written = %d, want %d", written.GetDirectoriesWritten(), directoriesWritten)
 	}
 }
 
@@ -134,6 +138,7 @@ func sendUploadTreeFile(
 				Path:      path,
 				TotalSize: int64(len(data)),
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 	}); err != nil {
@@ -690,6 +695,7 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 				Path:      "nested/child.txt",
 				TotalSize: 5,
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 	}); err != nil {
@@ -710,6 +716,7 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 				Path:      "top.txt",
 				TotalSize: 3,
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 	}); err != nil {
@@ -1167,6 +1174,7 @@ func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
 						Path:      "metric-dir/file.txt",
 						TotalSize: 5,
 						Mode:      0o644,
+						Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 					},
 				},
 			},
@@ -1238,8 +1246,8 @@ func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {
 			"metric workload=resource-upload-tree file_class=resource-unixfs stage=%s bytes_written=%d files_written=%d directories_written=%d",
 			metric.Stage,
 			metric.Bytes,
-			resp.GetFilesWritten(),
-			resp.GetDirectoriesWritten(),
+			resp.GetWritten().GetFilesWritten(),
+			resp.GetWritten().GetDirectoriesWritten(),
 		)
 	}
 }
@@ -1369,6 +1377,7 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 				Path:      "large.bin",
 				TotalSize: int64(len(data)),
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 	}); err != nil {
@@ -1536,20 +1545,32 @@ func uploadTreeFileViaResource(
 	name string,
 	data []byte,
 ) *s4wave_unixfs.HandleUploadTreeResponse {
+	t.Helper()
+	return uploadTreeFileExpect(t, ctx, rootSvc, name, data, &s4wave_unixfs.HandleUploadTreeFileStart{
+		Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
+	})
+}
+
+// uploadTreeFileExpect uploads one file with the expectation start carries;
+// it fills the path, size and mode. An unset expectation asks for the path
+// to hold nothing.
+func uploadTreeFileExpect(
+	t *testing.T,
+	ctx context.Context,
+	rootSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	name string,
+	data []byte,
+	start *s4wave_unixfs.HandleUploadTreeFileStart,
+) *s4wave_unixfs.HandleUploadTreeResponse {
 	// Open an upload stream and send the file metadata.
 	t.Helper()
+	start.Path, start.TotalSize, start.Mode = name, int64(len(data)), 0o644
 	strm, err := rootSvc.UploadTree(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
-		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
-			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
-				Path:      name,
-				TotalSize: int64(len(data)),
-				Mode:      0o644,
-			},
-		},
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{FileStart: start},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -1645,6 +1666,7 @@ func TestFSHandleResourceUploadTreeRejectsOversizedData(t *testing.T) {
 				Path:      "oversized.txt",
 				TotalSize: uploadDataFrameMaxBytes + 1,
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 	}); err != nil {
@@ -1744,4 +1766,156 @@ func extractEntryNames(entries []*s4wave_unixfs.DirEntry) []string {
 	}
 	slices.Sort(names)
 	return names
+}
+
+// openFileService looks up path from the root and opens a new file resource.
+func openFileService(
+	t *testing.T,
+	ctx context.Context,
+	resClient *resource_client.Client,
+	rootSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	path string,
+) (s4wave_unixfs.SRPCFSHandleResourceServiceClient, func()) {
+	t.Helper()
+	resp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := resClient.CreateResourceReference(resp.GetResourceId())
+	client, err := ref.GetClient()
+	if err != nil {
+		ref.Release()
+		t.Fatal(err)
+	}
+	return s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(client), ref.Release
+}
+
+// readFileVersion reads a whole file through ReadStream and returns its
+// contents with the version the first frame carried.
+func readFileVersion(
+	t *testing.T,
+	ctx context.Context,
+	fileSvc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+) ([]byte, []byte) {
+	t.Helper()
+	strm, err := fileSvc.ReadStream(ctx, &s4wave_unixfs.HandleReadStreamRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer strm.Close()
+	var data, version []byte
+	for first := true; ; first = false {
+		frame, err := strm.Recv()
+		if err == io.EOF {
+			return data, version
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first {
+			version = frame.GetVersion()
+		} else if len(frame.GetVersion()) != 0 {
+			t.Fatal("version set after the first read frame")
+		}
+		data = append(data, frame.GetData()...)
+	}
+}
+
+func TestFSHandleResourceUploadTreeRefusesStaleVersion(t *testing.T) {
+	// Start the filesystem resource testbed with one saved document.
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	uploadTreeFileViaResource(t, ctx, rootSvc, "doc.txt", []byte("base text"))
+
+	// The first writer reads the document and the version it was read at.
+	readerSvc, releaseReader := openFileService(t, ctx, resClient, rootSvc, "doc.txt")
+	defer releaseReader()
+	data, readVersion := readFileVersion(t, ctx, readerSvc)
+	if string(data) != "base text" || len(readVersion) == 0 {
+		t.Fatalf("first read = %q with %d version bytes", data, len(readVersion))
+	}
+
+	// A second writer changes the document through its own file resource.
+	writerSvc, releaseWriter := openFileService(t, ctx, resClient, rootSvc, "doc.txt")
+	defer releaseWriter()
+	if _, err := writerSvc.WriteAt(ctx, &s4wave_unixfs.HandleWriteAtRequest{
+		Data: []byte("SECOND"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writerSvc.Sync(ctx, &s4wave_unixfs.HandleSyncRequest{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The first writer's save at the stale version must be refused.
+	resp := uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("first draft"),
+		&s4wave_unixfs.HandleUploadTreeFileStart{
+			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: readVersion},
+		})
+	conflict := resp.GetConflict()
+	if conflict == nil {
+		t.Fatalf("stale save result = %v, want conflict", resp.GetResult())
+	}
+	if conflict.GetPath() != "doc.txt" {
+		t.Fatalf("conflict path = %q", conflict.GetPath())
+	}
+
+	// The second writer's content survives and its version is the one reported.
+	checkSvc, releaseCheck := openFileService(t, ctx, resClient, rootSvc, "doc.txt")
+	data, currentVersion := readFileVersion(t, ctx, checkSvc)
+	releaseCheck()
+	if string(data) != "SECONDext" {
+		t.Fatalf("after refused save = %q, want the second writer's content", data)
+	}
+	if !slices.Equal(conflict.GetVersion(), currentVersion) || slices.Equal(currentVersion, readVersion) {
+		t.Fatal("conflict version does not match the current file version")
+	}
+
+	// A save at the current version succeeds.
+	resp = uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("merged text"),
+		&s4wave_unixfs.HandleUploadTreeFileStart{
+			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: currentVersion},
+		})
+	assertUploadTreeCounters(t, resp, int64(len("merged text")), 1, 0)
+	checkSvc, releaseCheck = openFileService(t, ctx, resClient, rootSvc, "doc.txt")
+	data, _ = readFileVersion(t, ctx, checkSvc)
+	releaseCheck()
+	if string(data) != "merged text" {
+		t.Fatalf("after current-version save = %q", data)
+	}
+}
+
+func TestFSHandleResourceUploadTreeMissingRefusesExisting(t *testing.T) {
+	// Start the filesystem resource testbed for create-only uploads.
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	// A create-only upload of a new path writes the file.
+	resp := uploadTreeFileExpect(t, ctx, rootSvc, "new.txt", []byte("new"), &s4wave_unixfs.HandleUploadTreeFileStart{})
+	assertUploadTreeCounters(t, resp, 3, 1, 0)
+
+	// A create-only upload over an existing file is refused and keeps it.
+	resp = uploadTreeFileExpect(t, ctx, rootSvc, "src/file.txt", []byte("clobber"), &s4wave_unixfs.HandleUploadTreeFileStart{})
+	if conflict := resp.GetConflict(); conflict == nil || len(conflict.GetVersion()) == 0 {
+		t.Fatalf("create over existing file result = %v, want conflict with version", resp.GetResult())
+	}
+	checkSvc, releaseCheck := openFileService(t, ctx, resClient, rootSvc, "src/file.txt")
+	defer releaseCheck()
+	if data, _ := readFileVersion(t, ctx, checkSvc); string(data) != "hello" {
+		t.Fatalf("existing file = %q after refused create", data)
+	}
 }

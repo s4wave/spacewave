@@ -1202,12 +1202,13 @@ func runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx context.Context, c *c
 	if err != nil {
 		return errors.Wrap(err, "direct UploadTree")
 	}
-	postProgress(c, "direct-upload-tree-complete", int(resp.GetBytesWritten()), totalSize)
-	if resp.GetBytesWritten() != int64(totalSize) {
-		return errors.Errorf("UploadTree bytes_written=%d want=%d", resp.GetBytesWritten(), totalSize)
+	written := resp.GetWritten()
+	postProgress(c, "direct-upload-tree-complete", int(written.GetBytesWritten()), totalSize)
+	if written.GetBytesWritten() != int64(totalSize) {
+		return errors.Errorf("UploadTree bytes_written=%d want=%d", written.GetBytesWritten(), totalSize)
 	}
-	if resp.GetFilesWritten() != 1 {
-		return errors.Errorf("UploadTree files_written=%d want=1", resp.GetFilesWritten())
+	if written.GetFilesWritten() != 1 {
+		return errors.Errorf("UploadTree files_written=%d want=1", written.GetFilesWritten())
 	}
 
 	// Read the file back through the resource's handle.
@@ -2100,6 +2101,7 @@ func uploadDeterministicResourceFile(
 				Path:      name,
 				TotalSize: int64(totalSize),
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 	}); err != nil {
@@ -2130,11 +2132,12 @@ func uploadDeterministicResourceFile(
 		return errors.Wrap(err, "close UploadTree stream")
 	}
 	postProgress(c, "resource-upload-close-complete", totalSize, totalSize)
-	if resp.GetBytesWritten() != int64(totalSize) {
-		return errors.Errorf("UploadTree bytes_written=%d want=%d", resp.GetBytesWritten(), totalSize)
+	written := resp.GetWritten()
+	if written.GetBytesWritten() != int64(totalSize) {
+		return errors.Errorf("UploadTree bytes_written=%d want=%d", written.GetBytesWritten(), totalSize)
 	}
-	if resp.GetFilesWritten() != 1 {
-		return errors.Errorf("UploadTree files_written=%d want=1", resp.GetFilesWritten())
+	if written.GetFilesWritten() != 1 {
+		return errors.Errorf("UploadTree files_written=%d want=1", written.GetFilesWritten())
 	}
 	return nil
 }
@@ -2366,6 +2369,7 @@ func (s *generatedUploadTreeStream) Recv() (*s4wave_unixfs.HandleUploadTreeReque
 					Path:      s.name,
 					TotalSize: int64(s.totalSize),
 					Mode:      0o644,
+					Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 				},
 			},
 		}, nil
