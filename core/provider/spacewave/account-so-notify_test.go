@@ -48,7 +48,7 @@ func TestHandleAccountSONotifyMetadataAppliesCaches(t *testing.T) {
 	if list == nil || len(list.GetSharedObjects()) != 1 {
 		t.Fatalf("expected cached shared object list entry, got %#v", list)
 	}
-	if got := getSharedObjectDisplayName(list.GetSharedObjects()[0].GetMeta()); got != "New Space" {
+	if got := space.SharedObjectName(list.GetSharedObjects()[0].GetMeta()); got != "New Space" {
 		t.Fatalf("unexpected patched list display name: %q", got)
 	}
 }
@@ -127,7 +127,7 @@ func TestHandleAccountSONotifyStateEventKeepsKnownCaches(t *testing.T) {
 	if list == nil || len(list.GetSharedObjects()) != 1 {
 		t.Fatalf("expected known shared object to stay cached, got %#v", list)
 	}
-	if got := getSharedObjectDisplayName(list.GetSharedObjects()[0].GetMeta()); got != "Known Space" {
+	if got := space.SharedObjectName(list.GetSharedObjects()[0].GetMeta()); got != "Known Space" {
 		t.Fatalf("unexpected list display name: %q", got)
 	}
 }

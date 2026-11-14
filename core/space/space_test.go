@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/space"
 )
 
@@ -65,5 +66,19 @@ func TestFixupSpaceName(t *testing.T) {
 				t.Fatalf("FixupSpaceName(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
+	}
+}
+
+// TestSharedObjectName reads the name a Space's meta carries.
+func TestSharedObjectName(t *testing.T) {
+	meta, err := space.NewSharedObjectMeta("My Space")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := space.SharedObjectName(meta); got != "My Space" {
+		t.Fatalf("SharedObjectName = %q, want %q", got, "My Space")
+	}
+	if got := space.SharedObjectName(&sobject.SharedObjectMeta{BodyType: "counter"}); got != "" {
+		t.Fatalf("SharedObjectName of a counter = %q, want none", got)
 	}
 }

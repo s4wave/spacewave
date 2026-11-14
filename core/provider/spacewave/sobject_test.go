@@ -197,24 +197,6 @@ func TestCreateSharedObject_ServerError(t *testing.T) {
 	}
 }
 
-// TestGetSharedObjectDisplayName uses the cached shared object name.
-func TestGetSharedObjectDisplayName(t *testing.T) {
-	soMeta, err := space.NewSharedObjectMeta("My Space")
-	if err != nil {
-		t.Fatalf("NewSharedObjectMeta: %v", err)
-	}
-
-	if got := getSharedObjectDisplayName(soMeta); got != "My Space" {
-		t.Fatalf("expected display name %q, got %q", "My Space", got)
-	}
-
-	if got := getSharedObjectDisplayName(&sobject.SharedObjectMeta{
-		BodyType: "counter",
-	}); got != "" {
-		t.Fatalf("expected empty display name for non-space meta, got %q", got)
-	}
-}
-
 // TestEnsureAccountSettingsSharedObject_AlreadyExists reuses the existing settings object.
 func TestEnsureAccountSettingsSharedObject_AlreadyExists(t *testing.T) {
 	var calls []string
