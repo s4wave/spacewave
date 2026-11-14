@@ -12,10 +12,7 @@
   {
     "name": "the hold runs before the add, whose release drops it",
     "replace": [
-      [
-        "  /\\ step' = \"add\"\n",
-        "  /\\ step' = \"hold\"\n"
-      ],
+      ["  /\\ step' = \"add\"\n", "  /\\ step' = \"hold\"\n"],
       [
         "  /\\ step' = \"hold\"\n  /\\ UNCHANGED <<mode, picked, pc, entries, cur, staged, blocks, tstate",
         "  /\\ step' = \"check\"\n  /\\ UNCHANGED <<mode, picked, pc, entries, cur, staged, blocks, tstate"
@@ -29,12 +26,7 @@
   },
   {
     "name": "the state is written without checking the stage",
-    "replace": [
-      [
-        "  /\\ IF cur \\in blocks\n",
-        "  /\\ IF TRUE\n"
-      ]
-    ],
+    "replace": [["  /\\ IF cur \\in blocks\n", "  /\\ IF TRUE\n"]],
     "expect": "StateHeld"
   }
 ]
