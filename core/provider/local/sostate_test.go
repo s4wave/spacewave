@@ -51,7 +51,7 @@ func newTestGenesisHost(t *testing.T, store kvtx.Store) (*sobject.SOHost, crypto
 	// Seed a genesis store and host it.
 	t.Helper()
 	_, _, priv := seedTestGenesisState(t, store)
-	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "", nil)
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "", &SOStateRuns{})
 	host := sobject.NewSOHost(t.Context(), watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
 	return host, priv

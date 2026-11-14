@@ -67,9 +67,9 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 	return nil
 }
 
-// load reads the stored state. With runs set, it first takes runs.Writes
-// alone and releases it at once, so it waits for the state writes of this
-// object past their mount check, including those of the mount run before it,
+// load reads the stored state. It first takes runs.Writes alone and
+// releases it at once, so it waits for the state writes of this object past
+// their mount check, including those of the mount run before it,
 // and for no other writer. A restart can start the load while such a write
 // has yet to commit; the load then reads that write rather than the state
 // under it. A write of the old run that takes the gate later finds its mount
@@ -77,13 +77,11 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 // read holds no lock, so it orders after no write transaction.
 func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns) (data []byte, found bool, err error) {
 	// Wait for the writes of this object past their mount check.
-	if runs != nil {
-		release, err := runs.Writes.Lock(ctx, true)
-		if err != nil {
-			return nil, false, err
-		}
-		release()
+	release, err := runs.Writes.Lock(ctx, true)
+	if err != nil {
+		return nil, false, err
 	}
+	release()
 
 	// Read the state through the store transaction boundary.
 	err = kvtx.RunTransaction(ctx, false,
