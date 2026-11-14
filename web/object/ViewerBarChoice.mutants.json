@@ -1,0 +1,19 @@
+[
+  {
+    "name": "the menu stays open as the pane widens",
+    "replace": [
+      ["  /\\ IF menu = \"open\" /\\ width' = \"wide\"", "  /\\ IF FALSE"]
+    ],
+    "expect": "MenuOnlyNarrow"
+  },
+  {
+    "name": "picking in the menu leaves focus on the gone menu",
+    "replace": [
+      [
+        "  /\\ focus' = IF menu = \"open\" THEN \"press\" ELSE \"pick\"",
+        "  /\\ focus' = IF menu = \"open\" THEN \"menu\" ELSE \"pick\""
+      ]
+    ],
+    "expect": "FocusShown"
+  }
+]

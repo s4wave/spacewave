@@ -65,6 +65,11 @@ vi.mock('@s4wave/web/debug/ViewerStatusDebug.js', () => ({
   ViewerStatusDebug: () => <div data-testid="viewer-status-debug" />,
 }))
 
+vi.mock('@s4wave/web/debug/ViewerBarSlotsDebug.js', () => ({
+  PromBarDebug: () => <div data-testid="bar-prom-debug" />,
+  DocsBarDebug: () => <div data-testid="bar-docs-debug" />,
+  DriveBarDebug: () => <div data-testid="bar-drive-debug" />,
+}))
 vi.mock('@s4wave/app/debug/wizard/WizardShellDebug.js', () => ({
   WizardShellDebug: () => <div data-testid="wizard-shell-debug" />,
 }))
@@ -94,6 +99,9 @@ const debugChildRoutes = [
   { path: '/debug/ui/viewer-status', testId: 'viewer-status-debug' },
   { path: '/debug/ui/viewer-float', testId: 'viewer-float-debug' },
   { path: '/debug/ui/wizard', testId: 'wizard-shell-debug' },
+  { path: '/debug/ui/bar-prom', testId: 'bar-prom-debug' },
+  { path: '/debug/ui/bar-docs', testId: 'bar-docs-debug' },
+  { path: '/debug/ui/bar-drive', testId: 'bar-drive-debug' },
 ]
 
 function renderDebugRoute(path: string) {

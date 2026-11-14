@@ -10,6 +10,11 @@ import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
 import { ViewerSideDebug } from '@s4wave/web/debug/ViewerSideDebug.js'
 import { ViewerFloatDebug } from '@s4wave/web/debug/ViewerFloatDebug.js'
 import { FileListDebug } from '@s4wave/web/debug/FileListDebug.js'
+import {
+  DocsBarDebug,
+  DriveBarDebug,
+  PromBarDebug,
+} from '@s4wave/web/debug/ViewerBarSlotsDebug.js'
 import { ViewerStatusDebug } from '@s4wave/web/debug/ViewerStatusDebug.js'
 import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
 import { HDRDebug } from '@s4wave/web/debug/HDRDebug.js'
@@ -144,6 +149,24 @@ const debugRouteEntries = [
     description: 'Open a wizard in one state; add /invalid, /final...',
     element: <WizardShellDebug />,
   },
+  {
+    path: '/debug/ui/bar-prom',
+    title: 'Dashboard bar',
+    description: 'A time range choice in the viewer bar; add /readonly.',
+    element: <PromBarDebug />,
+  },
+  {
+    path: '/debug/ui/bar-docs',
+    title: 'Documentation bar',
+    description: 'A narrow Pages press beside the page list; add /editing.',
+    element: <DocsBarDebug />,
+  },
+  {
+    path: '/debug/ui/bar-drive',
+    title: 'Drive toolbar',
+    description: 'The file toolbar at the viewer bar height; add /current.',
+    element: <DriveBarDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -177,6 +200,15 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/wizard/:state">
       <WizardShellDebug />
+    </Route>
+    <Route path="/debug/ui/bar-prom/:state">
+      <PromBarDebug />
+    </Route>
+    <Route path="/debug/ui/bar-docs/:state">
+      <DocsBarDebug />
+    </Route>
+    <Route path="/debug/ui/bar-drive/:state">
+      <DriveBarDebug />
     </Route>
   </>
 )
