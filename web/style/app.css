@@ -8,9 +8,19 @@
 @custom-variant short (@media (max-height: 580px));
 @custom-variant very-short (@media (max-height: 470px));
 @custom-variant ultra-short (@media (max-height: 390px));
-@custom-variant auth-short (@container (max-height: 740px));
-@custom-variant auth-very-short (@container (max-height: 580px));
-@custom-variant auth-short-narrow (@container (max-height: 740px) and (max-width: 950px));
+/* The sign-in screens' short layouts read the screen's own box, the auth size
+   container on AuthScreenLayout's root, so they hold whether the screen fills
+   the window or sits in the session frame under its bars. */
+@custom-variant auth-short (@container auth (max-height: 740px));
+@custom-variant auth-very-short (@container auth (max-height: 580px));
+@custom-variant auth-short-narrow (@container auth (max-height: 740px) and (max-width: 950px));
+
+/* auth-screen makes AuthScreenLayout's root the size container named auth.
+   Size containment drops its content's height, so the root must take its
+   height from its parent, as a flex item does. */
+@utility auth-screen {
+  container: auth / size;
+}
 
 /* Custom variants for width-based responsive design */
 @custom-variant narrow (@media (max-width: 640px));
