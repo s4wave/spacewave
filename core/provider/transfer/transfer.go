@@ -129,6 +129,7 @@ const (
 	reasonSharedCloud   = "shared Space on a cloud account; moving it is not supported yet"
 	reasonTargetHolds   = "the target holds a different version of this Space: created there, moved from another account, or changed since it was moved"
 	reasonTargetChanged = "the Space changed on the target during the transfer"
+	reasonNoOrigin      = "the cloud account holds an earlier copy of this Space or a different one, and cannot tell which yet; both copies stay as they are"
 	reasonSourceMoving  = "the Space kept changing on the source during cleanup"
 )
 
@@ -415,8 +416,11 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 	if err != nil {
 		return nil, "", errors.Wrap(err, "read the target's space")
 	}
-	if tgt.Holds == TargetHoldsShared || tgt.Holds == TargetHoldsOther {
+	switch tgt.Holds {
+	case TargetHoldsShared, TargetHoldsOther:
 		return nil, reasonTargetHolds, nil
+	case TargetHoldsNoOrigin:
+		return nil, reasonNoOrigin, nil
 	}
 	if tgt.Holds == TargetHoldsWritten && bytes.Equal(tgt.Head, head) {
 		le.Debug("target holds the space at the source's head, skipping")

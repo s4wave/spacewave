@@ -68,7 +68,8 @@ func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobjec
 // ReadSharedObject reads what the cloud holds under sharedObjectID. The
 // cloud records no origin, so a configured Space counts as written only when
 // its World is the source's current one, which needs no write; anything else
-// configured is held for another reason, and the transfer never writes it. A
+// configured holds no origin to say whose it is, and the transfer never
+// writes it. A
 // listed Space with no config is arriving, since a write to it loses nothing
 // and the cloud refuses a second genesis.
 func (t *SpacewaveTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error) {
@@ -107,13 +108,14 @@ func (t *SpacewaveTransferTarget) ReadSharedObject(ctx context.Context, le *logr
 		return &TargetSpace{Holds: TargetHoldsArriving}, nil
 	}
 
-	// A configured Space holds the source's current World or is another's.
+	// A configured Space holds the source's current World, or a World the
+	// cloud cannot attribute.
 	head, err := t.replayHead(ctx, le, entry.GetRef())
 	if err != nil {
 		return nil, err
 	}
 	if head == nil || len(origin.GetSourceHead()) == 0 || !bytes.Equal(head, origin.GetSourceHead()) {
-		return &TargetSpace{Holds: TargetHoldsOther}, nil
+		return &TargetSpace{Holds: TargetHoldsNoOrigin}, nil
 	}
 	return &TargetSpace{Holds: TargetHoldsWritten, Head: head}, nil
 }

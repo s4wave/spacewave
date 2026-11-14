@@ -40,7 +40,9 @@
 \*
 \* A cloud target stores no origin. It reads a listed Space with no config as
 \* arriving, and a configured one as moved only when its World is the
-\* source's current World; it never writes a configured Space.
+\* source's current World; it never writes a configured Space, so a Space it
+\* holds from an earlier run is left not moved once the source moves on
+\* (CloudLimit).
 \*
 \* The person may write to the source at any time except during cleanup, and
 \* may write to, delete or create a Space on the target at any time, or change
@@ -56,6 +58,14 @@
 \* add.
 
 EXTENDS Naturals, FiniteSets
+
+\* The initial choices a config checks, each a nonempty subset of BOOLEAN:
+\* the kind of target and of source (TRUE for a cloud account), and whether
+\* the source holds Space a, and Space b, as a member of another's shared
+\* object. Each is chosen at Init and never changes, so the configs that split
+\* them check, together, exactly the behaviors of the model with all four set
+\* to BOOLEAN.
+CONSTANTS TgtCloud, SrcCloud, SharedA, SharedB
 
 Spaces == {"a", "b"}
 Modes == {"merge", "migrate", "mirror"}
@@ -139,8 +149,8 @@ Init ==
   /\ notMoved = {}
   /\ staged = {}
   \* The target may already list a Space the transfer did not write.
-  /\ shared \in SUBSET Spaces
-  /\ cloudSrc \in BOOLEAN
+  /\ shared \in {S \in SUBSET Spaces : ("a" \in S) \in SharedA /\ ("b" \in S) \in SharedB}
+  /\ cloudSrc \in SrcCloud
   /\ alive = shared
   /\ tc \in [Spaces -> {None, Other, Member}]
   /\ blocks = {s \in Spaces : Listed(s)}
@@ -149,7 +159,7 @@ Init ==
   /\ lost = FALSE
   /\ touched = [s \in Spaces |-> Listed(s)]
   /\ touches = 0
-  /\ cloudTgt \in BOOLEAN
+  /\ cloudTgt \in TgtCloud
   /\ unjust = FALSE
   /\ runs = 0
   /\ src = Spaces
@@ -199,6 +209,16 @@ AtSourceHead(t, o) == (cloudTgt \/ o.ph = "written") /\ t.k = "src" /\ t.v = ver
 \* A local target holds a state this source wrote and nothing changed since,
 \* so a write replaces only the World the transfer wrote.
 Rewritable(t, o) == ~cloudTgt /\ o.ph = "written" /\ t = Src(o.h)
+\* CloudLimit is a limit of the cloud target, not a choice. It stores no
+\* origin, so it cannot tell an earlier copy this source wrote from a Space
+\* someone else wrote, and leaves both alone. A retry after a fault, or a
+\* second Merge or Mirror, whose source moved on since the cloud copy was
+\* written therefore leaves the Space not moved although the person changed
+\* nothing. No data is lost: the cloud keeps its older copy, and the source
+\* keeps the Space, since a run with a Space not moved cleans up nothing.
+\* NotMovedJustified accepts this case and no other; delete CloudLimit and
+\* the cloud case of Decide when the cloud target stores the origin.
+CloudLimit(s) == cloudTgt /\ tc[s].k = "src" /\ tc[s].v < ver[s]
 
 \* Decide the Space from its target state, its origin and the source head.
 \* Listing an id the target does not list releases every root of its bucket.
@@ -227,6 +247,11 @@ Decide ==
                /\ moved' = moved \cup {cur}
                /\ cur' = "none" /\ step' = "none"
                /\ UNCHANGED <<tc, origin, held, expect, notMoved, unjust>>
+          [] cloudTgt ->
+               /\ notMoved' = notMoved \cup {cur}
+               /\ unjust' = (unjust \/ ~(touched[cur] \/ CloudLimit(cur)))
+               /\ cur' = "none" /\ step' = "none"
+               /\ UNCHANGED <<tc, origin, held, expect, moved>>
           [] Rewritable(t, o) ->
                /\ expect' = t /\ step' = "copy"
                /\ UNCHANGED <<tc, origin, held, cur, moved, notMoved, unjust>>
@@ -448,9 +473,12 @@ CleanupAtHead == \A s \in Spaces \ src : delOk[s]
 ArrivingUntouched == \A s \in Spaces : origin[s] = Added => tc[s] = Empty
 \* A Space is left not moved only when the target lists a version the person
 \* changed there, or it is a shared object the transfer must not copy, never
-\* for a reason the transfer could resolve itself. The excuse is judged when
-\* the run leaves the Space; a Space the person deleted is moved again.
-NotMovedJustified == ~unjust /\ \A s \in notMoved : touched[s] \/ s \in shared
+\* for a reason the transfer could resolve itself, except the cloud target's
+\* named limit, CloudLimit. The excuse is judged when the run leaves the Space;
+\* a Space the person deleted is moved again.
+NotMovedJustified ==
+  /\ ~unjust
+  /\ \A s \in notMoved : touched[s] \/ s \in shared \/ CloudLimit(s)
 \* A second member of a shared object the source holds keeps reading it.
 MembersKeepShared == alive = shared
 \* No Space the source holds as a member is ever written on the target.
