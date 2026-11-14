@@ -68,7 +68,7 @@ import "embed"
 //go:embed sdk/space/space.pb.ts sdk/space/space.ts sdk/space/space_srpc.pb.ts sdk/space/plugin-frontend.ts sdk/status/status.pb.ts
 //go:embed sdk/status/status.ts sdk/status/status_srpc.pb.ts sdk/unixfs/file-kind.ts sdk/unixfs/fs-cursor.ts
 //go:embed sdk/unixfs/handle.pb.ts sdk/unixfs/handle.ts sdk/unixfs/handle_srpc.pb.ts sdk/unixfs/index.ts
-//go:embed sdk/unixfs/path.ts sdk/unixfs/type.ts sdk/viewer/registry/registry.pb.ts
+//go:embed sdk/unixfs/listing.ts sdk/unixfs/path.ts sdk/unixfs/type.ts sdk/viewer/registry/registry.pb.ts
 //go:embed sdk/viewer/registry/registry_srpc.pb.ts sdk/vm/v86-wizard.pb.ts sdk/vm/v86.pb.ts
 //go:embed sdk/vm/vmv86.ts
 //go:embed sdk/world/engine-state.ts sdk/world/engine.ts sdk/world/errors.ts sdk/world/graph-utils.ts
