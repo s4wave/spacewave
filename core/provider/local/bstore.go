@@ -819,6 +819,20 @@ func (a *ProviderAccount) CreateBlockStore(ctx context.Context, id string) (*bst
 // MountBlockStore attempts to mount a BlockStore returning the bstore and a release function.
 //
 // usually called by the provider controller
+//
+// It is gated only by the ref: it mounts the block store of an id the account
+// does not list. The provider controller serves it to every MountBlockStore
+// bus directive, so any bus client can mount an unlisted id's store. A
+// bucket's named roots move only through BlockStore.SetRoots, the volume's
+// ReleaseBucket and the collector. The issuers in this tree that set roots
+// are shared object bodies, which the local and spacewave trackers mount
+// after the state load, and the transfer and migration copies write blocks
+// without roots. The pending release depends on this: a new lifetime of an
+// id calls finishPendingReleaseLocked before it lists the id or stores its
+// first state, and a mount refuses an id that has neither, so no root lands
+// in a bucket between its delete and the release. Nothing here enforces it:
+// a directive issuer that set roots on an unlisted id's store would break
+// it. See resumeSharedObjectDeletes.
 func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.BlockStoreRef, released func()) (bstore.BlockStore, func(), error) {
 	// Reject a block-store reference that does not validate.
 	if err := ref.Validate(); err != nil {

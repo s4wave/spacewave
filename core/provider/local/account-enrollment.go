@@ -55,6 +55,17 @@ func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairi
 // bindPairingSettings replaces only the empty settings object created while
 // opening a fresh replica. Existing account data prevents an identity change.
 func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairing.AccountOffer) error {
+	// Clear keys an earlier lifetime of the offered id left outside the lock,
+	// then bind under it.
+	return a.withClearedSOKeys(ctx, offer.GetSettingsId(), a.clearStaleSOKeys, func() error {
+		return a.bindPairingSettingsOnce(ctx, offer)
+	})
+}
+
+// bindPairingSettingsOnce binds the offered settings under mtx, refusing keys
+// an earlier lifetime left under its id with errStaleSOKeys. Assumes mtx is
+// not locked.
+func (a *ProviderAccount) bindPairingSettingsOnce(ctx context.Context, offer *pairing.AccountOffer) error {
 	// Serialize the persisted binding and local list update with account mutations.
 	release, err := a.mtx.Lock(ctx)
 	if err != nil {
@@ -100,12 +111,7 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 		return entry.GetRef().GetProviderResourceRef().GetId() == current.GetProviderResourceRef().GetId()
 	})
 
-	// Open the object store and marshal the new binding and list.
-	store, releaseStore, err := a.buildSoObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer releaseStore()
+	// Marshal the new binding and list.
 	binding, err := ref.MarshalVT()
 	if err != nil {
 		return err
@@ -117,15 +123,18 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 
 	// The offered settings arrive later as a checkpoint; until then the
 	// binding names a placeholder genesis, so every mount of it succeeds.
+	// Finish an earlier lifetime's pending release first, so the placeholder
+	// does not adopt its roots.
 	writeGenesis, err := a.genesisSOStateWriter(ctx, offer.GetSettingsId())
 	if err != nil {
 		return err
 	}
+	if err := a.finishPendingReleaseLocked(ctx, offer.GetSettingsId()); err != nil {
+		return err
+	}
 
 	// Commit the placeholder, binding and list, then publish them in memory.
-	if err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
-		return store.NewTransaction(ctx, true)
-	}, func(ctx context.Context, tx kvtx.Tx) error {
+	if err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
 		if err := writeGenesis(ctx, tx); err != nil {
 			return err
 		}

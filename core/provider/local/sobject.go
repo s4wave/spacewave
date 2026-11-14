@@ -572,7 +572,9 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 }
 
 // createSharedObjectLocked creates a new sobject with the given details and a
-// new generation, and returns its list entry. Assumes p.mtx is locked.
+// new generation, and returns its list entry. An id an enrollment is writing
+// fails with errSOEnrolling, and one with keys under its prefix fails with
+// errStaleSOKeys; see withClearedSOKeys. Assumes p.mtx is locked.
 func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id string, meta *sobject.SharedObjectMeta) (*sobject.SharedObjectListEntry, error) {
 	// Derive the SharedObject and block-store references from account identity.
 	providerID := a.t.accountInfo.GetProviderId()
@@ -601,6 +603,11 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 		}
 	}
 
+	// Leave an id an enrollment is writing to the enrollment.
+	if a.enrolling[id] != 0 {
+		return nil, errors.Wrapf(errSOEnrolling, "shared object %s", id)
+	}
+
 	// Create backing storage before publishing the SharedObject.
 	if _, err := a.createBlockStoreLocked(ctx, blockStoreID); err != nil {
 		return nil, err
@@ -610,21 +617,24 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 	entry := newListEntry(sobjectRef, meta, "", nil)
 	insertListEntry(sharedObjectList, entry)
 
+	// Finish an earlier lifetime's pending release, so the new object does
+	// not adopt its roots.
+	if err := a.finishPendingReleaseLocked(ctx, id); err != nil {
+		return nil, err
+	}
+
 	// Persist the genesis state with the complete list, so a new object always
-	// has state, before publishing the in-memory snapshot. An unlisted id owns
-	// nothing, so clear its prefix first: state an earlier delete kept, or a
-	// stale handle left, is not part of the new object. The old behavior
-	// writes only the list.
+	// has state, before publishing the in-memory snapshot. An unlisted id
+	// that no enrollment writes owns no key, so the write refuses any it
+	// finds, which the caller clears first. The old behavior writes only the
+	// list.
 	var steps []func(context.Context, kvtx.Tx) error
 	if !deleteStateOff {
 		writeGenesis, err := a.genesisSOStateWriter(ctx, id)
 		if err != nil {
 			return nil, err
 		}
-		clearPrefix := func(ctx context.Context, tx kvtx.Tx) error {
-			return deleteKeysWithPrefix(ctx, tx, SobjectObjectStorePrefix(id))
-		}
-		steps = append(steps, clearPrefix, writeGenesis)
+		steps = append(steps, refuseStaleSOKeys(id), writeGenesis)
 	}
 	if err := a.writeSharedObjectList(ctx, sharedObjectList, steps...); err != nil {
 		return nil, err
@@ -667,13 +677,20 @@ func insertListEntry(list *sobject.SharedObjectList, entry *sobject.SharedObject
 
 // CreateSharedObject creates a new sobject with the given details.
 func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, _, _ string) (*sobject.SharedObjectRef, error) {
-	// Serialize local storage creation with the account's other mutations.
-	relMtx, err := a.mtx.Lock(ctx)
-	if err != nil {
-		return nil, err
-	}
-	entry, err := a.createSharedObjectLocked(ctx, id, meta)
-	relMtx()
+	// Clear the state an earlier lifetime abandoned, a bounded batch per hold
+	// of the lock, then serialize local storage creation with the account's
+	// other mutations.
+	var entry *sobject.SharedObjectListEntry
+	err := a.withClearedSOKeys(ctx, id, a.clearAbandonedSOKeys, func() error {
+		// Create under the lock.
+		relMtx, err := a.mtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		defer relMtx()
+		entry, err = a.createSharedObjectLocked(ctx, id, meta)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -807,7 +824,8 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 		return sobject.ErrSharedObjectNotFound
 	}
 
-	// Store a genesis while the object is still listed.
+	// Store a genesis while the object is still listed, after clearing keys
+	// an earlier lifetime left.
 	if testHookStateListed != nil {
 		testHookStateListed(sharedObjectID)
 	}
@@ -815,46 +833,53 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 	if err != nil {
 		return err
 	}
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			if !deleteStateOff {
-				listed, err := storedListsSharedObject(ctx, tx, sharedObjectID)
-				if err != nil {
-					return err
+	return t.a.withClearedSOKeys(ctx, sharedObjectID, t.a.clearStaleSOKeys, func() error {
+		return kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, true)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				if !deleteStateOff {
+					listed, err := storedListsSharedObject(ctx, tx, sharedObjectID)
+					if err != nil {
+						return err
+					}
+					if !listed {
+						return sobject.ErrSharedObjectNotFound
+					}
 				}
-				if !listed {
-					return sobject.ErrSharedObjectNotFound
-				}
-			}
-			return write(ctx, tx)
-		},
-	)
+				return write(ctx, tx)
+			},
+		)
+	})
 }
 
 // writeGenesisSOState stores a genesis state for id unless state is already
-// stored, in its own transaction.
+// stored, in its own transaction under mtx. Enrollment uses it for the
+// placeholder it mounts before it lists the object. Assumes mtx is not locked.
 func (a *ProviderAccount) writeGenesisSOState(ctx context.Context, id string) error {
-	// Build the genesis before the transaction.
+	// Build the genesis outside the lock.
 	write, err := a.genesisSOStateWriter(ctx, id)
 	if err != nil {
 		return err
 	}
-	objStore, release, err := a.buildSoObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
 
-	// Store it unless state is already there.
-	if err := kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, true)
-		},
-		write,
-	); err != nil {
+	// After clearing keys an earlier lifetime left, under the lock, finish
+	// its pending release, then store the genesis unless state is already
+	// there, so a mount of the placeholder never adopts its roots.
+	err = a.withClearedSOKeys(ctx, id, a.clearStaleSOKeys, func() error {
+		// Release and write under the lock.
+		relMtx, err := a.mtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		defer relMtx()
+		if err := a.finishPendingReleaseLocked(ctx, id); err != nil {
+			return err
+		}
+		return a.runSoObjectStoreTx(ctx, true, write)
+	})
+	if err != nil {
 		return err
 	}
 	a.reviveRefusedSharedObject(id)
@@ -877,37 +902,27 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 	if err != nil {
 		return err
 	}
-	objStore, release, err := a.buildSoObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
 
 	// Replace the state of the listed object.
-	if err := kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			// Write only an object the account lists.
-			listed, err := storedListsSharedObject(ctx, tx, id)
-			if err != nil {
-				return err
-			}
-			if !listed {
-				return sobject.ErrSharedObjectNotFound
-			}
+	if err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		// Write only an object the account lists.
+		listed, err := storedListsSharedObject(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if !listed {
+			return sobject.ErrSharedObjectNotFound
+		}
 
-			// The genesis starts a new lineage, so drop the old history checkpoint.
-			if err := tx.Delete(ctx, SOConfigHistoryCheckpointKey(id)); err != nil {
-				return err
-			}
-			if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
-				return err
-			}
-			return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
-		},
-	); err != nil {
+		// The genesis starts a new lineage, so drop the old history checkpoint.
+		if err := tx.Delete(ctx, SOConfigHistoryCheckpointKey(id)); err != nil {
+			return err
+		}
+		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
+			return err
+		}
+		return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
+	}); err != nil {
 		return err
 	}
 	a.restartSharedObject(id, nil)
@@ -946,10 +961,11 @@ func (a *ProviderAccount) reviveRefusedSharedObject(id string) {
 // storage peer and pinned to its signed genesis, and returns a transaction
 // step that stores it with its config history unless state is already
 // stored. Every path that gives an object its first state uses it. Keys under
-// the prefix with no stored state belong to no object, such as writes a
-// stale handle made after a delete, so the step removes them first. The
-// genesis is built here, outside the step, so a retried transaction stores
-// the same state rather than minting new key material.
+// the prefix with no stored state belong to no object, so the step refuses
+// them with errStaleSOKeys rather than deleting an unbounded prefix in the
+// caller's transaction; the caller runs it through withClearedSOKeys.
+// The genesis is built here, outside the step, so a retried transaction
+// stores the same state rather than minting new key material.
 func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (func(context.Context, kvtx.Tx) error, error) {
 	// Resolve the storage peer's key.
 	storagePeer, err := a.vol.GetPeer(ctx, true)
@@ -976,13 +992,13 @@ func (a *ProviderAccount) genesisSOStateWriter(ctx context.Context, id string) (
 	// Store it with its history unless state is already stored.
 	key := SobjectObjectStoreHostStateKey(id)
 	return func(ctx context.Context, tx kvtx.Tx) error {
-		// Keep state already stored; otherwise clear the prefix first.
+		// Keep state already stored; refuse keys an earlier lifetime left.
 		found, err := tx.Exists(ctx, key)
 		if err != nil || found {
 			return err
 		}
 		if !deleteStateOff {
-			if err := deleteKeysWithPrefix(ctx, tx, SobjectObjectStorePrefix(id)); err != nil {
+			if err := refuseStaleSOKeys(id)(ctx, tx); err != nil {
 				return err
 			}
 		}
@@ -1016,27 +1032,27 @@ func (a *ProviderAccount) buildSoObjectStore(ctx context.Context) (object.Object
 	return objStoreHandle.GetObjectStore(), diRef.Release, nil
 }
 
-// readSharedObjectList reads and returns the shared object list from storage.
-func (a *ProviderAccount) readSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error) {
-	// Retain the account's store for a consistent list snapshot.
-	objStore, release, err := a.buildSoObjectStore(ctx)
+// runSoObjectStoreTx runs fn in one transaction on the account object store,
+// committing it when write is set.
+func (a *ProviderAccount) runSoObjectStoreTx(ctx context.Context, write bool, fn func(context.Context, kvtx.Tx) error) error {
+	store, release, err := a.buildSoObjectStore(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer release()
+	return kvtx.RunTransaction(ctx, write, func(ctx context.Context) (kvtx.Tx, error) {
+		return store.NewTransaction(ctx, write)
+	}, fn)
+}
 
-	// Decode the list inside the existing transaction retry boundary.
+// readSharedObjectList reads and returns the shared object list from storage.
+func (a *ProviderAccount) readSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error) {
 	var list *sobject.SharedObjectList
-	err = kvtx.RunTransaction(ctx, false,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, false)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			var err error
-			list, err = readStoredSharedObjectList(ctx, tx)
-			return err
-		},
-	)
+	err := a.runSoObjectStoreTx(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
+		var err error
+		list, err = readStoredSharedObjectList(ctx, tx)
+		return err
+	})
 	return list, err
 }
 
@@ -1069,31 +1085,19 @@ func storedListsSharedObject(ctx context.Context, tx kvtx.Tx, id string) (bool, 
 // writeSharedObjectList writes the shared object list to storage, running
 // each step in the same transaction.
 func (a *ProviderAccount) writeSharedObjectList(ctx context.Context, list *sobject.SharedObjectList, steps ...func(context.Context, kvtx.Tx) error) error {
-	// Retain the account's store while persisting the replacement list.
-	objStore, release, err := a.buildSoObjectStore(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
-
 	// Encode once and retry only the transactional write.
 	data, err := list.MarshalVT()
 	if err != nil {
 		return err
 	}
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			for _, step := range steps {
-				if err := step(ctx, tx); err != nil {
-					return err
-				}
+	return a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		for _, step := range steps {
+			if err := step(ctx, tx); err != nil {
+				return err
 			}
-			return tx.Set(ctx, SobjectObjectStoreListKey(), data)
-		},
-	)
+		}
+		return tx.Set(ctx, SobjectObjectStoreListKey(), data)
+	})
 }
 
 // GetSOHost returns the SOHost for invite operations.

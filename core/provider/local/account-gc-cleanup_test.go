@@ -73,7 +73,7 @@ func TestLocalGCCleanupRunnerCoalescesTriggerDuringSweep(t *testing.T) {
 	}
 }
 
-func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
+func TestReleaseBucketRootsRemovesLocalBucketRoots(t *testing.T) {
 	// Hold a root in a shared object's bucket.
 	ctx := context.Background()
 	vol, err := kvtx_volume.NewVolume(ctx, "test/local-gc", store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), &store_kvtx.Config{}, false, false, nil, nil)
@@ -92,7 +92,9 @@ func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
 	}
 
 	// Deleting the shared object releases the bucket's roots.
-	acc.removeSharedObjectGCRefs(ctx, "local", bucketID, acc.le)
+	if err := acc.releaseBucketRoots(ctx, bucketID); err != nil {
+		t.Fatal(err)
+	}
 	var roots []block.NamedRoot
 	err = vol.ListBucketRoots(ctx, bucketID, "", func(root block.NamedRoot) error {
 		roots = append(roots, root)
