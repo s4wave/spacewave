@@ -1,0 +1,421 @@
+---- MODULE UnixFSTextFileSave ----
+\* The text file viewer's saves against the store's version check, in more
+\* detail than UnixFSTextFileViewer.tla can chart: versions with their text,
+\* whole and preview reads, and the file's own handle still reading the
+\* version a landed save replaced.
+\*
+\* The read is a one-shot read of the file through the file's own handle, run
+\* again by Retry or a new file handle; it is waiting, failed or shown. Nothing
+\* watches the file, so another writer's commit shows at such a read or when
+\* the store refuses a Save. A read is whole, or a preview: cut at the read
+\* limit or decoded with replacements, whose text is not the file's. A failed
+\* read drops what it read, so with no draft the failure takes the body and
+\* Retry reads again.
+\*
+\* Edit opens a draft from the text shown, only on a file the person may write
+\* and that was read whole as UTF-8 text. The draft belongs to the viewer: a
+\* read that runs again, fails, or brings another writer's text never replaces
+\* or hides it. Only Discard edits and a save that lands end it.
+\*
+\* The draft remembers the version it started from. A whole read with the
+\* draft's text at another version moves the draft onto it. Any other read at
+\* a different version is another writer's: plain Save leaves, and the person
+\* picks Save over theirs, Show theirs or Discard edits. A plain save expects
+\* the draft's version, and the store checks it inside the commit: another
+\* version stops it unwritten, and the viewer reads their version back through
+\* the root, offering Save over theirs meanwhile and Read again when that read
+\* fails; a file removed since is recreated from the draft only while nothing
+\* holds the path.
+\*
+\* A landed save carries no version. The viewer shows the saved text, reads it
+\* back through the root, and until a read shows the new version a plain Save
+\* waits. The file's own handle can still read the version the save replaced;
+\* such a read is from before the save and is not taken. The model lets the
+\* lagging handle answer only while the viewer waits for the saved version.
+
+People == {"person"}
+
+\* Versions name the file's contents in storage, each with its text: "a" and
+\* "c" hold the same text. "none" is no read yet, "pending" a landed save no
+\* read has shown, and "gone" a file another writer removed.
+Versions == {"a", "b", "c"}
+Texts == {"x", "y"}
+Text(v) == IF v = "b" THEN "y" ELSE "x"
+
+Buttons == {"edit", "save", "saveover", "discard", "retry", "theirs", "mine",
+            "readagain"}
+
+VARIABLES
+  read,      \* the read: waiting, failed or shown
+  disk,      \* the version in storage
+  seen,      \* the version the viewer knows: a read's, or "pending"
+  mode,      \* reading, editing or saving
+  base,      \* the version the draft started from, or "pending"
+  dirty,     \* the draft differs from its base
+  saveFailed, \* the last save failed
+  theirs,    \* the body shows the other writer's text in place of the draft
+  overwrite, \* the save in flight was Save over theirs
+  over,      \* the version seen when the save in flight was pressed
+  writable,  \* the person may write the file
+  whole,     \* the last read held the whole file, not a preview
+  refused,   \* the store refused a plain save on the draft's version
+  back,      \* the read after a save: idle, reading or failed
+  written,   \* the version the last landed save wrote
+  replaced,  \* the versions the viewer knew before the last landed save
+  lag,       \* the version the file's own handle may still read, or "none"
+  origin,    \* history: the text the draft started from
+  dropped,   \* history: a draft ended other than by Discard or a landed save
+  clobbered  \* history: a plain save replaced text the draft did not start from
+vars == <<read, disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
+          over, writable, whole, refused, back, written, replaced, lag, origin,
+          dropped, clobbered>>
+
+Editing == mode = "editing"
+Drafted == mode \in {"editing", "saving"}
+\* BaseText is the text the draft stands on: a read's, or the text saved.
+BaseText == IF base = "pending" THEN Text(written) ELSE Text(base)
+\* A read brought a version other than the draft's.
+ChangedRead == Drafted /\ seen \in Versions /\ seen # base
+\* Another writer's version is under the draft: read, or only refused.
+Changed == ChangedRead \/ (Drafted /\ refused)
+\* The viewer waits for a read: a landed save's version, or theirs.
+Awaiting ==
+  \/ ~Drafted /\ seen = "pending"
+  \/ Drafted /\ base = "pending" /\ ~Changed
+  \/ Drafted /\ refused /\ ~ChangedRead
+\* A read at v is from before what the viewer knows.
+Stale(v) ==
+  \/ (seen = "pending" \/ base = "pending") /\ v \in replaced
+  \/ Drafted /\ refused /\ v = base
+
+\* SaveAccepted is the reducer's guard on a plain save.
+SaveAccepted == Editing /\ dirty /\ ~Changed /\ base # "pending"
+
+\* Keep records a draft that ends by any step but Discard or a landed save.
+Keep ==
+  /\ dropped' = (dropped \/ (Drafted /\ mode' = "reading"))
+  /\ UNCHANGED clobbered
+
+\* ReadText is the text a read of v shows: the file's when whole, else the
+\* preview's t, which may equal any text.
+ReadText(v, w, t) == IF w THEN Text(v) ELSE t
+
+\* Land takes a read of v that is not stale: whole, or a preview showing t.
+\* A whole read with the draft's text moves a draft no save holds onto v; a
+\* save in flight keeps the version it expected, so its refusal names it.
+Land(v, w, t) ==
+  /\ seen' = v
+  /\ whole' = w
+  /\ IF Editing /\ w /\ ReadText(v, w, t) = BaseText
+       THEN base' = v /\ refused' = FALSE
+       ELSE UNCHANGED <<base, refused>>
+
+Shown(p) ==
+  (IF mode = "reading" /\ read = "shown" /\ writable /\ whole
+     THEN {"edit"} ELSE {})
+    \cup (IF SaveAccepted THEN {"save"} ELSE {})
+    \cup (IF Editing /\ dirty /\ Changed THEN {"saveover"} ELSE {})
+    \cup (IF Editing THEN {"discard"} ELSE {})
+    \cup (IF read = "failed" THEN {"retry"} ELSE {})
+    \cup (IF Editing /\ ChangedRead /\ ~theirs THEN {"theirs"} ELSE {})
+    \cup (IF Editing /\ theirs THEN {"mine"} ELSE {})
+    \cup (IF Awaiting /\ back = "failed" THEN {"readagain"} ELSE {})
+
+Allowed(p, b) ==
+  \/ b = "edit" /\ mode = "reading" /\ read = "shown" /\ writable /\ whole
+  \/ b = "save" /\ SaveAccepted
+  \/ b = "saveover" /\ Editing /\ dirty /\ Changed
+  \/ b = "discard" /\ Editing
+  \/ b = "retry" /\ read = "failed"
+  \/ b = "theirs" /\ Editing /\ ChangedRead /\ ~theirs
+  \/ b = "mine" /\ Editing /\ theirs
+  \/ b = "readagain" /\ back = "failed"
+
+\* What a state tells the person beside its presses.
+Hint(p) ==
+  CASE read = "waiting" /\ ~Drafted -> "Names the file it is reading"
+    [] mode = "saving" -> "Saving"
+    [] Awaiting /\ back = "reading" -> "Says what the read after the save is for"
+    [] mode = "reading" /\ read = "shown" /\ ~writable -> "Says why it is read-only"
+    [] mode = "reading" /\ read = "shown" /\ ~whole -> "Says why it cannot be edited"
+    [] OTHER -> ""
+
+Init ==
+  /\ read = "waiting"
+  /\ disk = "a"
+  /\ seen = "none"
+  /\ mode = "reading"
+  /\ base = "none"
+  /\ dirty = FALSE
+  /\ saveFailed = FALSE
+  /\ theirs = FALSE
+  /\ overwrite = FALSE
+  /\ over = "none"
+  /\ writable \in BOOLEAN
+  /\ whole = TRUE
+  /\ refused = FALSE
+  /\ back = "idle"
+  /\ written = "none"
+  /\ replaced = {}
+  /\ lag = "none"
+  /\ origin = "none"
+  /\ dropped = FALSE
+  /\ clobbered = FALSE
+
+\* The viewer's own read lands: the version in storage, or the one its handle
+\* still holds while the viewer waits for a save's version. A removed file
+\* only fails. A stale read changes nothing the viewer knows.
+Arrive ==
+  /\ read = "waiting"
+  /\ disk # "gone"
+  /\ read' = "shown"
+  /\ \E v \in {disk} \cup (IF lag # "none" /\ Awaiting THEN {lag} ELSE {}),
+        w \in BOOLEAN, t \in Texts :
+       IF Stale(v)
+         THEN UNCHANGED <<seen, whole, base, refused>>
+         ELSE Land(v, w, t)
+  /\ UNCHANGED <<disk, mode, dirty, saveFailed, theirs, overwrite, over,
+                 writable, back, written, replaced, lag, origin>>
+  /\ Keep
+\* The read fails; a draft stays as it was.
+Fail ==
+  /\ read = "waiting"
+  /\ read' = "failed"
+  /\ UNCHANGED <<disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+\* Retry or a new file handle reads the file again.
+Reread ==
+  /\ read = "shown"
+  /\ read' = "waiting"
+  /\ UNCHANGED <<disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+\* Another writer saves or removes the file.
+OtherWrite ==
+  /\ disk' \in (Versions \cup {"gone"}) \ {disk}
+  /\ UNCHANGED <<read, seen, mode, base, dirty, saveFailed, theirs, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+\* The file's own handle catches up with storage.
+CatchUp ==
+  /\ lag # "none"
+  /\ lag' = "none"
+  /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, theirs,
+                 overwrite, over, writable, whole, refused, back, written,
+                 replaced, origin>>
+  /\ Keep
+\* The read after a save lands through the root, which the upload left on the
+\* committed version; a read still from before the save fails with Read again.
+BackRead ==
+  /\ back = "reading"
+  /\ disk # "gone"
+  /\ \E w \in BOOLEAN, t \in Texts :
+       IF Stale(disk)
+         THEN back' = "failed" /\ UNCHANGED <<seen, whole, base, refused>>
+         ELSE back' = "idle" /\ Land(disk, w, t)
+  /\ UNCHANGED <<read, disk, mode, dirty, saveFailed, theirs, overwrite, over,
+                 writable, written, replaced, lag, origin>>
+  /\ Keep
+BackFail ==
+  /\ back = "reading"
+  /\ back' = "failed"
+  /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, theirs,
+                 overwrite, over, writable, whole, refused, written, replaced,
+                 lag, origin>>
+  /\ Keep
+Retry(p) ==
+  /\ "retry" \in Shown(p)
+  /\ read' = "waiting"
+  /\ UNCHANGED <<disk, seen, mode, base, dirty, saveFailed, theirs, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+ReadAgain(p) ==
+  /\ "readagain" \in Shown(p)
+  /\ back' = "reading"
+  /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, theirs,
+                 overwrite, over, writable, whole, refused, written, replaced,
+                 lag, origin>>
+  /\ Keep
+\* Edit drafts from what the viewer knows: a whole read, or a landed save.
+Edit(p) ==
+  /\ "edit" \in Shown(p)
+  /\ mode' = "editing"
+  /\ base' = seen
+  /\ dirty' = FALSE
+  /\ refused' = FALSE
+  /\ origin' = IF seen = "pending" THEN Text(written) ELSE Text(seen)
+  /\ UNCHANGED <<read, disk, seen, saveFailed, theirs, overwrite, over,
+                 writable, whole, back, written, replaced, lag>>
+  /\ Keep
+Type(p) ==
+  /\ Editing
+  /\ ~theirs
+  /\ dirty' = TRUE
+  /\ UNCHANGED <<read, disk, seen, mode, base, saveFailed, theirs, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+\* A plain save is any dispatch the reducer accepts, shown or not. It expects
+\* the draft's version.
+Save(p) ==
+  /\ SaveAccepted
+  /\ mode' = "saving"
+  /\ overwrite' = FALSE
+  /\ over' = seen
+  /\ saveFailed' = FALSE
+  /\ theirs' = FALSE
+  /\ UNCHANGED <<read, disk, seen, base, dirty, writable, whole, refused, back,
+                 written, replaced, lag, origin>>
+  /\ Keep
+SaveOver(p) ==
+  /\ "saveover" \in Shown(p)
+  /\ mode' = "saving"
+  /\ overwrite' = TRUE
+  /\ over' = seen
+  /\ saveFailed' = FALSE
+  /\ theirs' = FALSE
+  /\ UNCHANGED <<read, disk, seen, base, dirty, writable, whole, refused, back,
+                 written, replaced, lag, origin>>
+  /\ Keep
+\* The store commits the save in one step with its check: Save over theirs
+\* always, a plain save only over its version or, recreating the file, over
+\* nothing. The viewer shows the saved text and reads its version back; the
+\* file's own handle may still read the version the save replaced, which the
+\* viewer read through it.
+SaveDone ==
+  /\ mode = "saving"
+  /\ overwrite \/ disk \in {base, "gone"}
+  /\ clobbered' = (clobbered \/
+                   (~overwrite /\ disk # "gone" /\ Text(disk) # origin))
+  /\ disk' \in Versions \ {disk}
+  /\ written' = disk'
+  /\ replaced' = ({seen, base} \cap Versions) \cup
+                 (IF "pending" \in {seen, base} THEN replaced ELSE {})
+  /\ lag' = IF disk \in {seen, base} THEN disk ELSE "none"
+  /\ seen' = "pending"
+  /\ back' = "reading"
+  /\ mode' = "reading"
+  /\ base' = "none"
+  /\ dirty' = FALSE
+  /\ refused' = FALSE
+  /\ overwrite' = FALSE
+  /\ over' = "none"
+  /\ UNCHANGED <<read, saveFailed, theirs, writable, whole, origin, dropped>>
+\* The store refuses a plain save over another writer's version; nothing is
+\* written, and the viewer reads theirs back.
+Refused ==
+  /\ mode = "saving"
+  /\ ~overwrite
+  /\ disk \notin {base, "gone"}
+  /\ mode' = "editing"
+  /\ refused' = TRUE
+  /\ back' = "reading"
+  /\ over' = "none"
+  /\ UNCHANGED <<read, disk, seen, base, dirty, saveFailed, theirs, overwrite,
+                 writable, whole, written, replaced, lag, origin>>
+  /\ Keep
+\* The save fails; the draft stays and Save is offered again.
+SaveFail ==
+  /\ mode = "saving"
+  /\ mode' = "editing"
+  /\ saveFailed' = TRUE
+  /\ overwrite' = FALSE
+  /\ over' = "none"
+  /\ UNCHANGED <<read, disk, seen, base, dirty, theirs, writable, whole,
+                 refused, back, written, replaced, lag, origin>>
+  /\ Keep
+\* Discard edits ends the draft; the body shows what the viewer knows.
+Discard(p) ==
+  /\ "discard" \in Shown(p)
+  /\ mode' = "reading"
+  /\ base' = "none"
+  /\ dirty' = FALSE
+  /\ saveFailed' = FALSE
+  /\ theirs' = FALSE
+  /\ refused' = FALSE
+  /\ UNCHANGED <<read, disk, seen, overwrite, over, writable, whole, back,
+                 written, replaced, lag, origin, dropped, clobbered>>
+ShowTheirs(p) ==
+  /\ "theirs" \in Shown(p)
+  /\ theirs' = TRUE
+  /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+BackToMine(p) ==
+  /\ "mine" \in Shown(p)
+  /\ theirs' = FALSE
+  /\ UNCHANGED <<read, disk, seen, mode, base, dirty, saveFailed, overwrite,
+                 over, writable, whole, refused, back, written, replaced, lag,
+                 origin>>
+  /\ Keep
+
+Next ==
+  \/ Arrive
+  \/ Fail
+  \/ Reread
+  \/ OtherWrite
+  \/ CatchUp
+  \/ BackRead
+  \/ BackFail
+  \/ SaveDone
+  \/ Refused
+  \/ SaveFail
+  \/ \E p \in People :
+       Retry(p) \/ ReadAgain(p) \/ Edit(p) \/ Type(p) \/ Save(p)
+       \/ SaveOver(p) \/ Discard(p) \/ ShowTheirs(p) \/ BackToMine(p)
+
+S == INSTANCE Surface WITH Actions <- Buttons, Next <- Hint
+EveryShownActionWorks == S!EveryShownActionWorks
+NobodyIsStuck == S!NobodyIsStuck
+
+\* A draft ends only by Discard edits or a save that lands.
+DraftNeverDropped == ~dropped
+\* No save writes over a version the draft did not start from unless the
+\* person pressed Save over theirs.
+NoBlindOverwrite == mode = "saving" /\ ~overwrite => over = base
+\* A draft over a removed file can save: the store's refusal never takes the
+\* removal for another writer's version, which would leave only Save over
+\* theirs or Discard edits.
+RemovedFileSaves == disk = "gone" => ~ENABLED Refused
+\* A plain save replaces only the text the draft started from, or nothing:
+\* the store checks the version inside the commit, and the draft moves only
+\* onto a whole read of its own text.
+NoWriteOverTheirs == ~clobbered
+\* After a landed save the viewer never takes the version it replaced, still
+\* on the file's own handle, for what is on disk.
+SavedNeverReverts == lag # "none" /\ "pending" \in {seen, base} => seen # lag
+\* After the store refuses a plain save, Save over theirs stands in for Save
+\* until a read shows what refused it.
+RefusalOffersOver == Editing /\ refused /\ dirty => "saveover" \in Shown("person")
+\* Edit shows only where the draft could be saved.
+EditOnlyWhereWritable == "edit" \in Shown("person") => writable /\ whole
+TypeOK ==
+  /\ read \in {"waiting", "failed", "shown"}
+  /\ disk \in Versions \cup {"gone"}
+  /\ seen \in Versions \cup {"none", "pending"}
+  /\ mode \in {"reading", "editing", "saving"}
+  /\ base \in Versions \cup {"none", "pending"}
+  /\ dirty \in BOOLEAN
+  /\ saveFailed \in BOOLEAN
+  /\ theirs \in BOOLEAN
+  /\ overwrite \in BOOLEAN
+  /\ over \in Versions \cup {"none", "pending"}
+  /\ writable \in BOOLEAN
+  /\ whole \in BOOLEAN
+  /\ refused \in BOOLEAN
+  /\ back \in {"idle", "reading", "failed"}
+  /\ written \in Versions \cup {"none"}
+  /\ replaced \subseteq Versions
+  /\ lag \in Versions \cup {"none"}
+  /\ origin \in Texts \cup {"none"}
+  /\ dropped \in BOOLEAN
+  /\ clobbered \in BOOLEAN
+\* Only a draft carries a base.
+BaseOnlyDrafted == (base # "none") <=> Drafted
+====

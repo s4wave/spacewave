@@ -4,8 +4,8 @@ title: "Text file: reading, editing and saving"
 stateDiagram-v2
   s0: Reading the file
   s1: Read failed, Retry shown
-  s2: Shown, read-only
-  s3: Preview, cannot be edited
+  s2: Preview, cannot be edited
+  s3: Shown, read-only
   s4: Shown, Edit offered
   s5: Editing, no changes
   s6: Editing, not saved
@@ -13,7 +13,12 @@ stateDiagram-v2
   s8: Saving
   s9: Changed by another writer
   s10: Save failed, draft kept
-  s11: Changed by another writer, theirs shown
+  s11: Saved, reading its version
+  s12: Changed by another writer, theirs shown
+  s13: Refused, Save over theirs shown, reading theirs
+  s14: Saved, version unread, Read again shown
+  s15: Editing a save, Save waits for its version
+  s16: Refused, Save over theirs and Read again shown
   [*] --> s0
   s0 --> s1: read fails
   s0 --> s2: read lands
@@ -35,39 +40,57 @@ stateDiagram-v2
   s5 --> s9: read lands
   s6 --> s0: presses Discard edits
   s6 --> s7: read fails
-  s8 --> s4: save lands
   s8 --> s10: save fails
+  s8 --> s11: save lands
   s9 --> s4: presses Discard edits
-  s9 --> s11: presses Show theirs
+  s9 --> s12: presses Show theirs
   s7 --> s6: presses Retry
   s7 --> s8: presses Save or presses Save over theirs
   s10 --> s4: presses Discard edits
   s10 --> s8: presses Save
-  s8 --> s0: save lands
   s6 --> s9: read lands
-  s8 --> s9: the store refuses the save or save fails
-  s11 --> s4: presses Discard edits
-  s11 --> s9: presses Back to my edits
+  s8 --> s13: the store refuses the save
+  s11 --> s4: read lands
+  s11 --> s14: read fails
+  s11 --> s15: presses Edit
+  s12 --> s4: presses Discard edits
+  s12 --> s9: presses Back to my edits
   s9 --> s0: presses Discard edits
   s9 --> s7: read fails
   s10 --> s0: presses Discard edits
   s10 --> s7: read fails
-  s8 --> s1: save lands
-  s8 --> s7: save fails or the store refuses the save
+  s8 --> s7: save fails
   s9 --> s8: presses Save over theirs
+  s13 --> s0: presses Discard edits
+  s13 --> s16: read fails
+  s13 --> s9: read lands
+  s13 --> s8: presses Save over theirs
+  s14 --> s11: presses Retry
+  s14 --> s7: presses Edit
+  s15 --> s5: read lands
+  s15 --> s11: presses Discard edits
+  s15 --> s7: read fails
   s9 --> s5: read lands
   s7 --> s9: presses Retry
-  s11 --> s0: presses Discard edits
-  s11 --> s7: read fails
+  s12 --> s0: presses Discard edits
+  s12 --> s7: read fails
   s7 --> s10: presses Retry
-  s11 --> s8: presses Save over theirs
+  s16 --> s1: presses Discard edits
+  s16 --> s13: presses Retry
+  s16 --> s8: presses Save over theirs
+  s12 --> s8: presses Save over theirs
   s10 --> s9: read lands
-  s11 --> s5: read lands
-  s7 --> s11: presses Retry
+  s8 --> s9: save fails or the store refuses the save
+  s7 --> s14: presses Discard edits
+  s7 --> s15: presses Retry
+  s15 --> s6: read lands
+  s12 --> s5: read lands
+  s7 --> s12: presses Retry
+  s13 --> s4: presses Discard edits
   s9 --> s6: read lands
-  s11 --> s6: read lands
+  s12 --> s6: read lands
   s9 --> s10: read lands
-  s5 --> s11: read lands
-  s11 --> s10: read lands
-  s6 --> s11: read lands
-  s10 --> s11: read lands
+  s5 --> s12: read lands
+  s12 --> s10: read lands
+  s6 --> s12: read lands
+  s10 --> s12: read lands

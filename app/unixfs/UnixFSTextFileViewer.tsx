@@ -29,6 +29,7 @@ import {
   initialTextFileState,
   reduceTextFile,
   type TextContent,
+  type TextFileAwait,
   type TextFileEvent,
   type TextFilePress,
   type TextFileView,
@@ -93,6 +94,26 @@ export async function readTextContent(
   } catch {
     const text = new TextDecoder().decode(data)
     return { text, preview: 'encoding', version }
+  }
+}
+
+/**
+ * readFresh reads the file at path through a new lookup under root. After an
+ * upload through root, the lookup stands on the committed root, while a
+ * handle opened before it can still read the earlier version.
+ */
+async function readFresh(
+  root: FSHandle,
+  path: string,
+  signal: AbortSignal,
+): Promise<TextContent> {
+  const lookupPath = normalizeUnixFSLookupPath(path)
+  if (!lookupPath) return readTextContent(root, signal)
+  const { handle } = await root.lookupPath(lookupPath, signal)
+  try {
+    return await readTextContent(handle, signal)
+  } finally {
+    handle.release()
   }
 }
 
@@ -209,17 +230,23 @@ export function UnixFSTextFileViewer({
     const handle = file.value
     const draft = state.draft
     if (!root || !handle || !draft || draft.saving || signal.aborted) return
-    dispatch({ type: 'save', over })
 
     // A plain Save expects the version the draft started from, and the store
-    // refuses it inside the commit when another writer saved since.
+    // refuses it inside the commit when another writer saved since. It waits
+    // while that version is a save no read has shown.
+    let expect: TreeUploadExpect = { kind: 'overwrite' }
+    if (!over) {
+      if (!draft.from.version) return
+      expect = { kind: 'version', version: draft.from.version }
+    }
+    dispatch({ type: 'save', over })
+
+    // Write the text as UTF-8 stores it, so the read back compares equal.
+    const text = new TextDecoder().decode(new TextEncoder().encode(draft.text))
     let result: TreeUploadResult
     try {
-      const expect: TreeUploadExpect = over
-        ? { kind: 'overwrite' }
-        : { kind: 'version', version: draft.from.version }
       const mode = handle.getInfo().mode ?? 0o644
-      result = await writeText(root, path, draft.text, mode, expect, signal)
+      result = await writeText(root, path, text, mode, expect, signal)
     } catch (cause) {
       if (!signal.aborted) {
         dispatch({ type: 'save-failed', error: errorText(cause) })
@@ -228,26 +255,30 @@ export function UnixFSTextFileViewer({
     }
     if (signal.aborted) return
 
-    // Read the file back: a landed save learns its new version, and a
-    // refused one shows the other writer's text with Save over theirs.
-    let latest: TextContent
-    try {
-      latest = await readTextContent(handle, signal)
-    } catch (cause) {
-      if (signal.aborted) return
-      if (result.kind === 'written') {
-        // The write landed; the viewer's own read brings its version.
-        dispatch({ type: 'saved', content: null })
-        content.retry()
-        return
-      }
-      const error = `another writer saved the file, and reading it failed: ${errorText(cause)}`
-      dispatch({ type: 'save-failed', error })
-      return
+    // A landed save shows its text and reads its version back; a refused one
+    // offers Save over theirs and reads their version back.
+    if (result.kind === 'written') {
+      dispatch({ type: 'saved', text })
+    } else {
+      dispatch({ type: 'refused' })
     }
-    if (signal.aborted) return
-    const type = result.kind === 'written' ? 'saved' : 'refused'
-    dispatch({ type, content: latest })
+    await readBack()
+  }
+
+  // readBack reads the file through the root the upload committed on, since
+  // the file's own handle may still show the version before the save.
+  async function readBack() {
+    const root = rootHandle.value
+    if (!root || signal.aborted) return
+    dispatch({ type: 'back-reading' })
+    try {
+      const content = await readFresh(root, path, signal)
+      if (!signal.aborted) dispatch({ type: 'back-read', content })
+    } catch (cause) {
+      if (!signal.aborted) {
+        dispatch({ type: 'back-failed', error: errorText(cause) })
+      }
+    }
   }
 
   return (
@@ -260,6 +291,7 @@ export function UnixFSTextFileViewer({
       dispatch={dispatch}
       onSave={(over) => void save(over)}
       retryRead={content.retry}
+      readBack={() => void readBack()}
     />
   )
 }
@@ -273,6 +305,7 @@ export interface TextFileFrameProps {
   dispatch: (event: TextFileEvent) => void
   onSave: (over: boolean) => void
   retryRead: () => void
+  readBack: () => void
 }
 
 /**
@@ -288,6 +321,7 @@ export function TextFileFrame({
   dispatch,
   onSave,
   retryRead,
+  readBack,
 }: TextFileFrameProps) {
   // Map each press the view offers to its bar action.
   const dirty =
@@ -306,6 +340,14 @@ export function TextFileFrame({
       icon: <LuSave />,
       variant: 'primary',
       onClick: () => onSave(false),
+    },
+    savewait: {
+      id: 'save',
+      label: 'Save',
+      icon: <LuSave />,
+      variant: 'primary',
+      disabled: true,
+      onClick: () => {},
     },
     saveover: {
       id: 'save',
@@ -361,6 +403,7 @@ export function TextFileFrame({
         view={view}
         readOnly={readOnly}
         retryRead={retryRead}
+        readBack={readBack}
         onType={(text) => dispatch({ type: 'type', text })}
         onSave={onSave}
         onTheirs={(show) => dispatch({ type: 'theirs', show })}
@@ -373,6 +416,7 @@ interface TextFileBodyProps {
   view: TextFileView
   readOnly?: string
   retryRead: () => void
+  readBack: () => void
   onType: (text: string) => void
   onSave: (over: boolean) => void
   onTheirs: (show: boolean) => void
@@ -380,6 +424,47 @@ interface TextFileBodyProps {
 
 const textClass =
   'text-foreground viewer-inset min-h-0 min-w-0 flex-1 overflow-auto font-mono text-xs whitespace-pre-wrap max-sm:text-sm max-sm:leading-6 max-sm:break-words'
+
+// awaitNote says what the read after a save is for, while it runs and after
+// it failed.
+const awaitNote: Record<TextFileAwait['what'], [string, string]> = {
+  saved: [
+    'Saved. Reading its new version before the next Save.',
+    'Saved, but its new version could not be read',
+  ],
+  theirs: ['Reading their version.', 'Could not read their version'],
+}
+
+/**
+ * AwaitRow tells the person what the read after a save is for. When it failed
+ * or still read as before the save, Read again runs it once more.
+ */
+function AwaitRow({
+  awaits,
+  readBack,
+}: {
+  awaits: TextFileAwait
+  readBack: () => void
+}) {
+  const [reading, failed] = awaitNote[awaits.what]
+  const { back } = awaits
+  if (back.state === 'reading') {
+    return (
+      <p role="status" className={cn(rowClass, 'text-foreground-alt')}>
+        {reading}
+      </p>
+    )
+  }
+  const error = back.state === 'failed' ? `: ${back.error}` : ''
+  return (
+    <ViewerStatus
+      state="failed"
+      message={`${failed}${error}.`}
+      retry={readBack}
+      retryLabel="Read again"
+    />
+  )
+}
 
 /** TextFileBody draws the file, or its draft with the notices above it. */
 function TextFileBody({ view, ...props }: TextFileBodyProps) {
@@ -392,6 +477,7 @@ function ReadBody({
   view,
   readOnly,
   retryRead,
+  readBack,
 }: Omit<TextFileBodyProps, 'view'> & {
   view: Exclude<TextFileView, { state: 'editing' }>
 }) {
@@ -420,6 +506,7 @@ function ReadBody({
   }
   return (
     <>
+      {view.awaits && <AwaitRow awaits={view.awaits} readBack={readBack} />}
       {view.preview && (
         <p className={cn(rowClass, 'text-foreground-alt')}>
           {previewNote[view.preview]}
@@ -444,15 +531,17 @@ function ReadBody({
 function DraftBody({
   view,
   retryRead,
+  readBack,
   onSave,
   onTheirs,
   onType,
 }: Omit<TextFileBodyProps, 'view'> & {
   view: Extract<TextFileView, { state: 'editing' }>
 }) {
-  const { draft, changed, readError } = view
+  const { draft, changed, readError, awaits } = view
   const over = changed !== null
-  const showTheirs = draft.theirs && over
+  const theirText = changed?.text ?? null
+  const showTheirs = draft.theirs && theirText !== null
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {readError && (
@@ -470,6 +559,7 @@ function DraftBody({
           retryLabel={over ? 'Save over theirs' : 'Retry'}
         />
       )}
+      {awaits && <AwaitRow awaits={awaits} readBack={readBack} />}
       {over && (
         <div
           role="alert"
@@ -478,20 +568,22 @@ function DraftBody({
           <span className="max-w-prose min-w-0 flex-1 leading-snug">
             Another writer saved this file after you began editing.
           </span>
-          <Button
-            variant="outline"
-            size="xs"
-            className="shrink-0"
-            disabled={!!draft.saving}
-            onClick={() => onTheirs(!draft.theirs)}
-          >
-            {draft.theirs ? 'Back to my edits' : 'Show theirs'}
-          </Button>
+          {theirText !== null && (
+            <Button
+              variant="outline"
+              size="xs"
+              className="shrink-0"
+              disabled={!!draft.saving}
+              onClick={() => onTheirs(!draft.theirs)}
+            >
+              {draft.theirs ? 'Back to my edits' : 'Show theirs'}
+            </Button>
+          )}
         </div>
       )}
       {showTheirs && (
         <pre aria-label="Their version" className={textClass}>
-          {changed}
+          {theirText}
         </pre>
       )}
       <textarea

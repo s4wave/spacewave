@@ -13,8 +13,8 @@
     "name": "another writer's read replaces the draft",
     "replace": [
       [
-        "  /\\ seen' = disk\n  /\\ UNCHANGED <<disk, mode, base,",
-        "  /\\ seen' = disk\n  /\\ mode' = IF seen # \"none\" /\\ disk # seen THEN \"reading\" ELSE mode\n  /\\ base' = IF seen # \"none\" /\\ disk # seen THEN \"none\" ELSE base\n  /\\ UNCHANGED <<disk,"
+        "  /\\ Land\n  /\\ UNCHANGED <<disk, mode, dirty,",
+        "  /\\ Land\n  /\\ mode' = IF Drafted /\\ disk # base THEN \"reading\" ELSE mode\n  /\\ UNCHANGED <<disk, dirty,"
       ]
     ],
     "expect": "DraftNeverDropped"
@@ -23,7 +23,7 @@
     "name": "Save shows over another writer's version",
     "replace": [
       [
-        "    \\cup (IF Editing /\\ dirty /\\ ~Changed THEN {\"save\"} ELSE {})",
+        "    \\cup (IF SaveAccepted THEN {\"save\"} ELSE {})",
         "    \\cup (IF Editing /\\ dirty THEN {\"save\"} ELSE {})"
       ]
     ],
@@ -33,11 +33,11 @@
     "name": "Edit shows on a read-only file",
     "replace": [
       [
-        "  (IF mode = \"reading\" /\\ read = \"shown\" /\\ writable /\\ whole",
-        "  (IF mode = \"reading\" /\\ read = \"shown\" /\\ whole"
+        "  /\\ mode = \"reading\" /\\ writable /\\ whole\n",
+        "  /\\ mode = \"reading\" /\\ whole\n"
       ]
     ],
-    "expect": "EveryShownActionWorks"
+    "expect": "EditOnlyWhereWritable"
   },
   {
     "name": "a read-only file says nothing",
@@ -53,8 +53,8 @@
     "name": "the reducer accepts a plain Save over another writer's version",
     "replace": [
       [
-        "SaveAccepted == Editing /\\ dirty /\\ seen = base",
-        "SaveAccepted == Editing /\\ dirty"
+        "SaveAccepted == Editing /\\ dirty /\\ ~Changed /\\ base # \"pending\"",
+        "SaveAccepted == Editing /\\ dirty /\\ base # \"pending\""
       ]
     ],
     "expect": "NoBlindOverwrite"
@@ -75,5 +75,15 @@
       ]
     ],
     "expect": "RemovedFileSaves"
+  },
+  {
+    "name": "a refusal is not a change until a read shows theirs",
+    "replace": [
+      [
+        "Changed == ChangedRead \\/ (Drafted /\\ refused)",
+        "Changed == ChangedRead"
+      ]
+    ],
+    "expect": "RefusalOffersOver"
   }
 ]

@@ -100,10 +100,30 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
+      { type: 'saved', text: mine },
       {
-        type: 'saved',
+        type: 'back-read',
         content: { text: mine, preview: null, version: new Uint8Array([3]) },
       },
+    ],
+  },
+  confirming: {
+    reads: [shown(notes)],
+    events: [
+      edit,
+      type,
+      { type: 'save', over: false },
+      { type: 'saved', text: mine },
+    ],
+  },
+  refused: {
+    reads: [shown(notes)],
+    events: [
+      edit,
+      type,
+      { type: 'save', over: false },
+      { type: 'refused' },
+      { type: 'back-failed', error: 'stream closed' },
     ],
   },
   'read-failed': {
@@ -156,7 +176,7 @@ function renderNavigator(presses: ReactNode) {
  * the viewport as the pane, for the viewer sweep. Each state is built through
  * the viewer's reducer and derivation: waiting, failed, shown, preview,
  * encoding, empty, readonly, rereading, editing, dirty, saving, save-failed,
- * just-saved, read-failed, changed and theirs; nav and nav-dirty draw the
+ * just-saved, confirming, refused, read-failed, changed and theirs; nav and nav-dirty draw the
  * presses in the file browser's navigator. An unknown or missing state shows
  * shown.
  */
@@ -176,6 +196,7 @@ export function TextFileStatesDebug() {
         dispatch={noop}
         onSave={noop}
         retryRead={noop}
+        readBack={noop}
       />
     </div>
   )
