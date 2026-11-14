@@ -116,7 +116,7 @@ export function SqlDbViewer({
       />
 
       {createError ? (
-        <div className="px-4 pt-3">
+        <div className="viewer-inset-x pt-3">
           <ErrorState
             variant="inline"
             title="Could not open query editor"
@@ -130,7 +130,7 @@ export function SqlDbViewer({
           <ViewerStatus {...status} />
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="viewer-inset min-h-0 flex-1 overflow-auto">
           <div role="tree" aria-label="Schemas" className="space-y-0.5">
             {schemas.map((schema) => (
               <SchemaTreeNode key={schema} handle={handle} schema={schema} />

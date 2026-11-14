@@ -132,7 +132,7 @@ export function ManifestViewer({
         title="Manifest"
         description={headerMeta || undefined}
       />
-      <div className="flex-1 overflow-auto px-4 py-3">
+      <div className="viewer-inset flex-1 overflow-auto">
         <div className="space-y-3">
           {isEmpty && (
             <InfoCard>

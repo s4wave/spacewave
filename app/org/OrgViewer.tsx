@@ -49,7 +49,7 @@ export function OrgViewer({
           <ViewerStatus {...status} />
         </div>
       ) : (
-        <div className="flex-1 p-4">
+        <div className="viewer-inset flex-1">
           {state && (
             <div className="space-y-2">
               <div className="text-foreground text-lg font-semibold">

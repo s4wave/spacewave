@@ -48,7 +48,7 @@ export function DebugObjectViewer({
     <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
       <ViewerBar icon={<LuBug />} title="Debug Viewer" />
 
-      <div className="flex-1 overflow-auto px-4 py-3">
+      <div className="viewer-inset flex-1 overflow-auto">
         <div className="mx-auto max-w-3xl space-y-3">
           {untyped && (
             <div className="border-foreground/6 bg-background-card/30 flex items-start gap-3 rounded-lg border p-3.5">

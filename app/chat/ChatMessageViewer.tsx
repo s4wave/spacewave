@@ -22,7 +22,7 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <ViewerBar icon={<LuMessageCircle />} title="Message" />
-      <div className="flex-1 overflow-auto px-4 py-3">
+      <div className="viewer-inset flex-1 overflow-auto">
         <InfoCard>
           <FactList>
             {message?.senderPeerId && (

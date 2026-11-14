@@ -121,7 +121,7 @@ export function SqlSchemaViewer({
       />
 
       {openError ? (
-        <div className="px-4 pt-3">
+        <div className="viewer-inset-x pt-3">
           <ErrorState
             variant="inline"
             title="Could not open table"
@@ -135,7 +135,7 @@ export function SqlSchemaViewer({
           <ViewerStatus {...status} />
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="viewer-inset min-h-0 flex-1 overflow-auto">
           {schema && schema.tables.length > 0 ? (
             <div className="border-foreground/8 divide-foreground/8 divide-y rounded-lg border">
               {schema.tables.map((table) => (

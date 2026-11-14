@@ -179,7 +179,7 @@ function SqlQueryBody({
     return <ViewerStatus state="waiting" what="the query's database" />
   }
   return (
-    <div className="p-4">
+    <div className="viewer-inset">
       <ResolvedSqlQueryEditor
         objectKey={objectKey}
         handle={handle}

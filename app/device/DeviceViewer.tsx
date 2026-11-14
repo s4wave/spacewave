@@ -126,7 +126,7 @@ export function DeviceViewer({
       {statusError ? (
         <div
           role="alert"
-          className="border-foreground/8 text-destructive flex shrink-0 items-center gap-2 border-b px-2 py-1 text-xs [&_svg]:size-3.5"
+          className="border-foreground/8 text-destructive viewer-inset-x flex shrink-0 items-center gap-2 border-b py-1 text-xs [&_svg]:size-3.5"
         >
           <LuTriangleAlert aria-hidden className="shrink-0" />
           <span className="min-w-0">{statusError}</span>

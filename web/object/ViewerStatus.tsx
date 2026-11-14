@@ -61,8 +61,7 @@ export function resourceStatus(
 }
 
 // padClass insets a row from the pane's edge as the bar is.
-const padClass =
-  'ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy'
+const padClass = 'viewer-inset-x'
 
 // rowClass is one row of the viewer body: a fact row tall, padded as the bar.
 const rowClass = cn(

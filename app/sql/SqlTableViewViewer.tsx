@@ -112,7 +112,7 @@ export function SqlTableViewViewer({
 function TableViewFilterBar({ view }: { view: TableView }) {
   const projected = view.projectedColumns ?? []
   return (
-    <div className="border-foreground/8 text-foreground-alt/70 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-1.5 text-xs">
+    <div className="border-foreground/8 text-foreground-alt/70 viewer-inset-x flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b py-1.5 text-xs">
       <span>
         columns:{' '}
         <span className="text-foreground font-mono">

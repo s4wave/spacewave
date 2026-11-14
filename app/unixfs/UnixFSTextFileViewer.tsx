@@ -46,7 +46,7 @@ function TextFileToolbar({
   // Never turn a truncated preview into a replacement for the complete file,
   // and never start a draft from text a re-read is about to replace.
   return (
-    <div className="border-foreground/10 flex items-center gap-2 border-b p-2">
+    <div className="border-foreground/10 viewer-inset-x flex items-center gap-2 border-b py-2">
       {draft === null ? (
         <Button
           size="default"
@@ -197,7 +197,7 @@ export function UnixFSTextFileViewer({
         </div>
       )}
       {draft === null ? (
-        <pre className="text-foreground min-h-0 min-w-0 flex-1 overflow-auto p-4 font-mono text-xs whitespace-pre-wrap max-sm:text-sm max-sm:leading-6 max-sm:break-words">
+        <pre className="text-foreground viewer-inset min-h-0 min-w-0 flex-1 overflow-auto font-mono text-xs whitespace-pre-wrap max-sm:text-sm max-sm:leading-6 max-sm:break-words">
           {text}
         </pre>
       ) : (
@@ -207,7 +207,7 @@ export function UnixFSTextFileViewer({
           disabled={saving}
           onChange={(event) => setDraft(event.target.value)}
           spellCheck={false}
-          className="bg-background text-foreground min-h-0 min-w-0 flex-1 resize-none p-4 font-mono text-xs focus-visible:outline-none pointer-coarse:text-base pointer-coarse:leading-6"
+          className="bg-background text-foreground viewer-inset min-h-0 min-w-0 flex-1 resize-none font-mono text-xs focus-visible:outline-none pointer-coarse:text-base pointer-coarse:leading-6"
         />
       )}
     </div>

@@ -102,7 +102,7 @@ export function TerminalViewerDebug() {
         <div
           role="log"
           aria-label="Terminal screen"
-          className="bg-background-dark text-foreground ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy min-h-0 flex-1 overflow-hidden py-1 font-mono text-xs break-all whitespace-pre-wrap"
+          className="bg-background-dark text-foreground viewer-inset-x min-h-0 flex-1 overflow-hidden py-1 font-mono text-xs break-all whitespace-pre-wrap"
         >
           {screenLines.join('\n')}
         </div>

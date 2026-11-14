@@ -87,7 +87,7 @@ export function FactListDebug() {
   const rows = fixtures[name ?? ''] ?? fixtures.ids
   return (
     <div className="bg-background viewer-pane h-full w-full">
-      <div className="p-viewer-pad @pane-roomy:p-viewer-pad-roomy">
+      <div className="viewer-inset">
         <FactList
           className={
             name === 'narrow' ? 'w-28' : name === 'tight' ? 'w-24' : undefined

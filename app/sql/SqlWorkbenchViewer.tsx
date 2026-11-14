@@ -168,7 +168,7 @@ export function SqlWorkbenchViewer({
       />
 
       {mutationError ? (
-        <div className="px-4 pt-2">
+        <div className="viewer-inset-x pt-2">
           <ErrorState variant="inline" message={mutationError} />
         </div>
       ) : null}

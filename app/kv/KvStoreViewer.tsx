@@ -294,7 +294,7 @@ export function KvStoreViewer({
               mutationError={shownError}
             />
           ) : creating ? (
-            <div className="overflow-auto p-3">
+            <div className="viewer-inset overflow-auto">
               <KvCreateKeyForm
                 onCreate={handleCreate}
                 onCancel={() => paneEvent({ type: 'close' })}

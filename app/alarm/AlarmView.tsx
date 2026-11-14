@@ -49,7 +49,7 @@ export function AlarmView({
         state={<AlarmBadge word={status.word} tone={status.tone} />}
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className="viewer-inset min-h-0 flex-1 space-y-4 overflow-auto">
         <div className="space-y-1">
           <p className="text-foreground text-sm">{status.line}</p>
           {alarm.summary ? (

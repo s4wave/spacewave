@@ -80,7 +80,7 @@ export function ViewerSide({
           aria-label={label}
           className="border-foreground/8 w-viewer-side @pane-2xl:flex hidden shrink-0 flex-col overflow-y-auto border-e"
         >
-          <div className="h-viewer-row text-foreground-alt bg-background-primary sticky top-0 z-10 flex shrink-0 items-center justify-between ps-2 pe-1 text-xs font-medium select-none">
+          <div className="h-viewer-row text-foreground-alt bg-background-primary ps-viewer-pad @pane-roomy:ps-viewer-pad-roomy sticky top-0 z-10 flex shrink-0 items-center justify-between pe-1 text-xs font-medium select-none">
             <span className="min-w-0 truncate">{label}</span>
             <button
               ref={pressRef}
@@ -94,7 +94,10 @@ export function ViewerSide({
               <LuChevronLeft aria-hidden />
             </button>
           </div>
-          <FactList dense className="ms-2 me-1">
+          <FactList
+            dense
+            className="ms-viewer-pad @pane-roomy:ms-viewer-pad-roomy me-1"
+          >
             {facts}
           </FactList>
         </aside>

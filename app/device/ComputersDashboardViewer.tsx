@@ -161,7 +161,7 @@ export function ComputersDashboardViewer({
             : []
         }
       />
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+      <div className="viewer-inset min-h-0 flex-1 overflow-auto">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
           {openingError && (
             <div

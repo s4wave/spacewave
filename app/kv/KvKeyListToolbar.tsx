@@ -21,7 +21,7 @@ export function KvKeyListToolbar({
   )
 
   return (
-    <div className="border-foreground/8 flex shrink-0 items-center gap-2 border-b px-2 py-1.5">
+    <div className="border-foreground/8 viewer-inset-x flex shrink-0 items-center gap-2 border-b py-1.5">
       <Input
         value={prefix}
         onChange={handlePrefixChange}

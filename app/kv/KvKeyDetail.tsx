@@ -50,7 +50,7 @@ export function KvKeyDetail({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-foreground/8 flex shrink-0 items-center gap-2 border-b px-3 py-2">
+      <div className="border-foreground/8 viewer-inset-x flex shrink-0 items-center gap-2 border-b py-2">
         <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
           {row.label}
         </span>
@@ -58,7 +58,7 @@ export function KvKeyDetail({
           {row.byteLength} B
         </span>
       </div>
-      <div className="flex-1 overflow-auto p-3">
+      <div className="viewer-inset flex-1 overflow-auto">
         {valueResource.loading && !loadedValue ? (
           <LoadingInline label="Loading value" tone="muted" />
         ) : null}
