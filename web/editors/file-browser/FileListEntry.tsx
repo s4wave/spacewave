@@ -39,6 +39,7 @@ function isEditableElement(el: Element | null): el is HTMLElement {
 }
 
 function formatBytes(bytes: number, decimals = 0): string {
+  // Zero has no unit to scale.
   if (bytes === 0) return '0 Bytes'
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals
@@ -104,6 +105,7 @@ function useEntryDrag(
   // cancels the drag when the entry offers none.
   const handleDragStart = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
+      // Ask the caller what this entry and the selection carry when dragged.
       const selection = { selectedIds }
       const dragEnvelope = getDragEnvelope?.(entry, selection) ?? null
       const downloadDragTarget =
@@ -113,6 +115,7 @@ function useEntryDrag(
         return
       }
 
+      // Write each payload the caller offered.
       if (dragEnvelope) {
         writeAppDragEnvelope(e.dataTransfer, dragEnvelope)
       }
@@ -128,10 +131,12 @@ function useEntryDrag(
     [selectedIds, entry, getDownloadDragTarget, getDragEnvelope],
   )
 
+  // Drop the in-app envelope once the drag ends either way.
   const handleDragEnd = useCallback(() => {
     clearActiveAppDragEnvelope()
   }, [])
 
+  // Accept a drag over a folder the caller says can take it.
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       if (!onEntryDragOver?.(entry, e)) return
@@ -142,6 +147,7 @@ function useEntryDrag(
     [entry, onEntryDragOver],
   )
 
+  // Tell the caller the drag left this entry.
   const handleDragLeave = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       onEntryDragLeave?.(entry, e)
@@ -149,6 +155,7 @@ function useEntryDrag(
     [entry, onEntryDragLeave],
   )
 
+  // Drop onto this entry only when the caller accepts it.
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       if (!onEntryDragOver?.(entry, e)) return
@@ -174,6 +181,7 @@ function useEntryDrag(
 function useFocusRow(focused: boolean) {
   const divRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    // Focus the row unless it holds an input the user may be typing in.
     if (!focused || !divRef.current) return
     const hasInput = divRef.current.querySelector(
       'input, textarea, select, [contenteditable="true"]',
@@ -209,6 +217,7 @@ function useRowHandlers(
   onRowClick: RowHandlerProps['onRowClick'],
   onContextMenu: RowHandlerProps['onContextMenu'],
 ) {
+  // Report a single click to the List, which selects by its modifier keys.
   const select = useCallback(
     (e: MouseEvent) => {
       onRowClick?.(itemIndex, item, e, 1)
@@ -216,6 +225,7 @@ function useRowHandlers(
     [itemIndex, item, onRowClick],
   )
 
+  // Open the row on a double click.
   const doubleClick = useCallback(
     (e: MouseEvent) => {
       onRowClick?.(itemIndex, item, e, 2)
@@ -223,6 +233,7 @@ function useRowHandlers(
     [itemIndex, item, onRowClick],
   )
 
+  // Enter and Space act as a single click on the row.
   const keyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key !== 'Enter' && e.key !== ' ') return
@@ -232,6 +243,7 @@ function useRowHandlers(
     [itemIndex, item, onRowClick],
   )
 
+  // Open the row's menu at the pointer.
   const contextMenu = useCallback(
     (e: MouseEvent) => {
       e.preventDefault()
@@ -241,6 +253,7 @@ function useRowHandlers(
     [itemIndex, item, onContextMenu],
   )
 
+  // Open the row's menu from More without the click reaching the row.
   const dotsClick = useCallback(
     (e: MouseEvent) => {
       e.stopPropagation()
@@ -264,6 +277,7 @@ function FileEntryName({
 }) {
   let icon = (
     <LuFile
+      aria-hidden
       className={cn(
         'file-entry-color size-4 shrink-0',
         selected ? 'text-foreground' : 'text-foreground-alt/60',
@@ -274,6 +288,7 @@ function FileEntryName({
   if (entry.isDir) {
     icon = (
       <LuFolder
+        aria-hidden
         className={cn(
           'file-entry-color size-4 shrink-0',
           selected ? 'text-brand' : 'text-foreground-alt/80',
@@ -285,7 +300,10 @@ function FileEntryName({
   if (loading) icon = <Spinner variant="brand" className="shrink-0" />
 
   return (
-    <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
+    <div
+      role="cell"
+      className="min-w-viewer-name flex flex-1 items-center gap-2 overflow-hidden"
+    >
       {icon}
       <span className="truncate">{entry.name || entry.id}</span>
     </div>
@@ -320,6 +338,7 @@ function FileEntryRow({
   style,
   ariaAttributes,
 }: FileListEntryProps & { entry: FileEntry }) {
+  // Read the row's selection and focus from the List.
   const context = use(ListStateContext)
   const selectedIds = context?.selectedIds
   const selected = selectedIds?.includes(entry.id) ?? false
@@ -334,6 +353,7 @@ function FileEntryRow({
     onEntryDrop,
   })
 
+  // Load the entry's date and size when the caller provides them.
   const fetchDetails = useCallback(
     (signal: AbortSignal) => {
       if (!getEntryDetails) {
@@ -344,8 +364,10 @@ function FileEntryRow({
     [entry, itemIndex, getEntryDetails],
   )
 
+  // Show the details once they arrive; the cells show a dash until then.
   const { data: entryDetails } = usePromise(fetchDetails)
 
+  // Draw the icon and name unless the caller renders the entry.
   const defaultNode = (
     <FileEntryName
       entry={entry}
@@ -394,18 +416,24 @@ function FileEntryRow({
             path: currentPath ?? '/',
           })
         : defaultNode}
-      <div className="text-foreground-alt/60 w-35 min-w-25 shrink text-xs">
+      <div
+        role="cell"
+        className="text-foreground-alt/60 hidden w-35 min-w-25 shrink text-xs @min-[24rem]/file-list:block"
+      >
         {entryDetails?.modTime
           ? format(entryDetails.modTime, 'MMM dd, yyyy')
           : '—'}
       </div>
-      <div className="text-foreground-alt/60 w-17.5 min-w-12.5 shrink text-right text-xs">
+      <div
+        role="cell"
+        className="text-foreground-alt/60 hidden w-17.5 min-w-12.5 shrink text-right text-xs @min-[15.5rem]/file-list:block"
+      >
         {entrySizeLabel(entry, entryDetails)}
       </div>
       <button
         type="button"
         aria-label={`More actions for ${entry.name || entry.id}`}
-        className="flex h-full w-8 shrink-0 items-center justify-center [@media(pointer:coarse)]:size-11"
+        className="-my-1.5 flex w-8 shrink-0 items-center justify-center self-stretch [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:size-11"
         onClick={row.dotsClick}
         onDoubleClick={(e) => {
           e.stopPropagation()
@@ -413,7 +441,10 @@ function FileEntryRow({
         }}
         onContextMenu={row.dotsClick}
       >
-        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100" />
+        <LuEllipsis
+          aria-hidden
+          className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
+        />
       </button>
     </div>
   )

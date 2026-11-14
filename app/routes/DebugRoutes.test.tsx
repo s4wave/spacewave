@@ -41,6 +41,10 @@ vi.mock('@s4wave/web/debug/SessionSettingsDebug.js', () => ({
   SessionSettingsDebug: () => <div data-testid="session-settings-debug" />,
 }))
 
+vi.mock('@s4wave/web/debug/FileListDebug.js', () => ({
+  FileListDebug: () => <div data-testid="file-list-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/UnixFSBrowserDebug.js', () => ({
   UnixFSBrowserDebug: () => <div data-testid="unixfs-browser-debug" />,
 }))
@@ -59,6 +63,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/loading', testId: 'loading-debug' },
   { path: '/debug/ui/forge-viewer', testId: 'forge-viewer-debug' },
   { path: '/debug/ui/unixfs-browser', testId: 'unixfs-browser-debug' },
+  { path: '/debug/ui/file-list', testId: 'file-list-debug' },
 ]
 
 function renderDebugRoute(path: string) {
@@ -85,6 +90,12 @@ describe('DebugRoutes', () => {
     for (const link of links) {
       expect(link.textContent?.trim()).not.toBe('')
     }
+  })
+
+  it('resolves a file list fixture state to the file list debug page', () => {
+    renderDebugRoute('/debug/ui/file-list/selected')
+
+    expect(screen.getByTestId('file-list-debug')).toBeDefined()
   })
 
   it.each(debugChildRoutes)(

@@ -696,12 +696,15 @@ The pane thresholds, each an `@pane-*` variant in `web/style/app.css`:
 | `@pane-cramped` | width < 20rem or height < 12rem | Floats over content keep only essential presses |
 
 A list, table or fact list sheds by its own width, through its own
-inline-size container, since it may sit beside a side column:
+inline-size container, since it may sit beside a side column. `FileList` is the
+container `file-list` and sheds as below; a sort by a column it hid reads "by
+date" or "by size" beside Name. More stays at every width, since it is the only
+menu press on a touch screen:
 
 | Part | Own width | Changes |
 |---|---|---|
-| List rows | < 24rem | The date column leaves with its track |
-| List rows | < 15.5rem | Size and More leave, so the name keeps `viewer-name` |
+| List rows | < 24rem | The date column leaves with its header |
+| List rows | < 15.5rem | The size column leaves, so the name keeps `viewer-name` |
 | Fact rows | < 13rem | The label sits over its value |
 | Table | 16, 22, 28, 40rem | Further columns appear in the order the reader needs them; a state column is a glyph until 22rem |
 

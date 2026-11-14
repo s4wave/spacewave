@@ -1,0 +1,43 @@
+---
+title: "File list: columns by width, and the keys"
+---
+stateDiagram-v2
+  direction LR
+  state "At the same time" as all {
+    state "Columns" as r0 {
+      s0: Name, Date Modified, Size
+      s1: Name, Size
+      s2: Name
+      [*] --> s0
+      s0 --> s1: the pane is resized
+      s0 --> s2: the pane is resized
+      s1 --> s0: the pane is resized
+      s1 --> s2: the pane is resized
+      s2 --> s0: the pane is resized
+      s2 --> s1: the pane is resized
+    }
+    --
+    state "Rows" as r1 {
+      s3: none selected
+      s4: This folder is empty
+      s5: one row selected
+      s6: one row focused
+      s7: a range selected
+      [*] --> s3
+      s3 --> s4: another writer changes the folder
+      s3 --> s5: presses More on a row or presses Home or presses Shift+Home or presses End or presses Shift+End
+      s3 --> s6: presses Ctrl+Home or presses Ctrl+End
+      s4 --> s3: another writer changes the folder
+      s5 --> s4: another writer changes the folder
+      s5 --> s3: another writer changes the folder
+      s6 --> s4: another writer changes the folder
+      s6 --> s5: presses Home or presses Shift+Home or presses End or presses More on a row or presses Shift+End
+      s6 --> s7: presses Shift+End or presses Shift+Home
+      s6 --> s3: another writer changes the folder
+      s5 --> s7: presses Shift+End or presses Shift+Home
+      s5 --> s6: another writer changes the folder
+      s7 --> s4: another writer changes the folder
+      s7 --> s5: presses Home or presses Shift+Home or presses End or another writer changes the folder or presses Shift+End
+      s3 --> s7: presses Shift+End
+    }
+  }
