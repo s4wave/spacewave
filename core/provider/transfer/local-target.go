@@ -180,7 +180,7 @@ func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *lo
 	if err != nil {
 		return err
 	}
-	err = t.account.ReplaceSharedObjectState(ctx, le, sharedObjectID, owner, stateData, &provider_local.ReplaceOrigin{
+	err = t.account.ReplaceSharedObjectState(ctx, le, sharedObjectID, owner, stateData, provider_local.ReplaceOrigin{
 		Generation: stored.Entry.GetGeneration(),
 		State:      stored.State,
 		Source:     src,

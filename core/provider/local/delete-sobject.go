@@ -53,8 +53,16 @@ var (
 	// the live mount.
 	testHookDeleteCommitted func(id string)
 	// testHookReplaceCommitted runs after a replace commits, before it
-	// restarts the live mount.
-	testHookReplaceCommitted func(id string)
+	// restarts the live mount; an error it returns is the replace's, as from
+	// a commit that stored the state and then failed.
+	testHookReplaceCommitted func(id string) error
+	// testHookStateWriting runs in a mounted state write's transaction,
+	// after its mount check, before it reads the stored state.
+	testHookStateWriting func(id string)
+	// testHookStateCommitted runs after a mounted state write commits; an
+	// error it returns is the write's, as from a commit that stored the
+	// state and then failed.
+	testHookStateCommitted func(id string) error
 	// testHookStateRefused runs after a mount finds no state it may use,
 	// before it publishes the refusal.
 	testHookStateRefused func(id string)
