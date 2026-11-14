@@ -72,7 +72,9 @@ function main() {
     const content = readFileSync(bldrStarPath, 'utf-8')
     const updatedContent = updateBldrStar(content)
     if (!updatedContent) {
-      console.error('Failed to find and increment spacewave-app rev in bldr.star')
+      console.error(
+        'Failed to find and increment spacewave-app rev in bldr.star',
+      )
       process.exit(1)
     }
     writeUpdatedFile(bldrStarPath, updatedContent, 'bldr.star')

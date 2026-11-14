@@ -430,9 +430,9 @@ function summarizeTraceWindow(
   topCount: number,
 ): TraceWindowSummary {
   const elapsedMs =
-    typeof startMs === 'number' && typeof endMs === 'number' ?
-      roundMs(Math.max(0, endMs - startMs))
-    : null
+    typeof startMs === 'number' && typeof endMs === 'number'
+      ? roundMs(Math.max(0, endMs - startMs))
+      : null
   if (!events || traceOffsetMs === null || startMs === null || endMs === null) {
     return {
       name,
@@ -478,9 +478,9 @@ function summarizeTraceWindow(
     term.eventCount++
     term.totalMs += overlap
     term.selfMs +=
-      typeof event.tdur === 'number' ?
-        Math.min(overlap, event.tdur / 1000)
-      : overlap
+      typeof event.tdur === 'number'
+        ? Math.min(overlap, event.tdur / 1000)
+        : overlap
     term.maxMs = Math.max(term.maxMs, overlap)
   }
 
@@ -551,9 +551,11 @@ function traceRegionFromAcceptedOp(
   const startMs = numberOrNull(op.startedMs)
   const endMs = numberOrNull(op.finishedMs)
   const elapsedMs =
-    typeof op.elapsedMs === 'number' ? roundMs(op.elapsedMs)
-    : startMs !== null && endMs !== null ? roundMs(Math.max(0, endMs - startMs))
-    : null
+    typeof op.elapsedMs === 'number'
+      ? roundMs(op.elapsedMs)
+      : startMs !== null && endMs !== null
+        ? roundMs(Math.max(0, endMs - startMs))
+        : null
   return {
     name,
     startMs,
@@ -612,9 +614,8 @@ function buildReport(opts: CliOptions): BaselineReport {
   }
   const smoke = readJson<QuickstartSmokeArtifact>(opts.smokePath)
   const traceEvents = extractTraceEvents(opts.tracePath)
-  const traceOffsetMs =
-    traceEvents ?
-      findTraceOffsetMs(traceEvents, smoke.startupMarks ?? [])
+  const traceOffsetMs = traceEvents
+    ? findTraceOffsetMs(traceEvents, smoke.startupMarks ?? [])
     : null
   const traceAligned = traceEvents !== null && traceOffsetMs !== null
 
@@ -647,8 +648,9 @@ function buildReport(opts: CliOptions): BaselineReport {
     finalURL: smoke.finalURL,
     coldStartDriveSeed: {
       segment: seedSegment ? concreteSegment(seedSegment) : null,
-      adjacentDriveRenderSegment:
-        renderSegment ? concreteSegment(renderSegment) : null,
+      adjacentDriveRenderSegment: renderSegment
+        ? concreteSegment(renderSegment)
+        : null,
       quickstartSeedPhases: seedPhases(smoke, seedStartMs, seedEndMs),
       longestStartupSegments: longestSegments(smoke, 6),
       runtimeTraceRegions: runtimeTraceRegions(
@@ -782,10 +784,9 @@ function toMarkdown(report: BaselineReport): string {
   const seed = report.coldStartDriveSeed.segment
   const render = report.coldStartDriveSeed.adjacentDriveRenderSegment
   const post = report.postLoadAcceptedOpThroughput
-  const traceState =
-    report.inputs.traceFound ?
-      report.inputs.traceAligned ?
-        `aligned with offset ${formatMs(report.inputs.traceOffsetMs)}`
+  const traceState = report.inputs.traceFound
+    ? report.inputs.traceAligned
+      ? `aligned with offset ${formatMs(report.inputs.traceOffsetMs)}`
       : 'found but not aligned to performance marks'
     : 'not found'
 

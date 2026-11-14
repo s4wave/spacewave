@@ -7,13 +7,7 @@
 // No flags = generate both + merge.
 
 import { spawn } from 'child_process'
-import {
-  existsSync,
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-  rmSync,
-} from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { build } from 'vite'
@@ -178,12 +172,11 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
 
   const raw: GoLicenseEntry[] = []
   for (const { goos, goarch, cgo } of platforms) {
-    const result = await run(
-      binPath,
-      ['./...'],
-      rootDir,
-      { GOOS: goos, GOARCH: goarch, CGO_ENABLED: cgo },
-    )
+    const result = await run(binPath, ['./...'], rootDir, {
+      GOOS: goos,
+      GOARCH: goarch,
+      CGO_ENABLED: cgo,
+    })
 
     if (result.code !== 0) {
       console.error(`go-licenses failed for ${goos}/${goarch}:`, result.stderr)
@@ -194,7 +187,9 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
     try {
       entries = JSON.parse(result.stdout)
     } catch {
-      console.error(`Failed to parse go-licenses JSON output for ${goos}/${goarch}`)
+      console.error(
+        `Failed to parse go-licenses JSON output for ${goos}/${goarch}`,
+      )
       console.error('stdout (first 500 chars):', result.stdout.slice(0, 500))
       process.exit(1)
     }
@@ -210,7 +205,10 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
 
   // Parse vendor/modules.txt for version mapping
   const versions: Record<string, string> = {}
-  const modulesTxt = readFileSync(join(rootDir, 'vendor', 'modules.txt'), 'utf-8')
+  const modulesTxt = readFileSync(
+    join(rootDir, 'vendor', 'modules.txt'),
+    'utf-8',
+  )
   for (const line of modulesTxt.split('\n')) {
     const m = line.match(/^# (\S+) (\S+)/)
     if (m) versions[m[1]] = m[2]
@@ -241,7 +239,10 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
       if (!existing.licenseText && entry.licenseText) {
         existing.licenseText = entry.licenseText
       }
-      if (existing.licenseName === 'Unknown' && entry.licenseName !== 'Unknown') {
+      if (
+        existing.licenseName === 'Unknown' &&
+        entry.licenseName !== 'Unknown'
+      ) {
         existing.licenseName = entry.licenseName
       }
     }
@@ -252,7 +253,10 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   )
 
   mkdirSync(outDir, { recursive: true })
-  writeFileSync(join(outDir, 'go-licenses.json'), JSON.stringify(goLicenses, null, 2) + '\n')
+  writeFileSync(
+    join(outDir, 'go-licenses.json'),
+    JSON.stringify(goLicenses, null, 2) + '\n',
+  )
 
   const withText = goLicenses.filter((e) => e.licenseText).length
   console.log(`Go: ${goLicenses.length} modules, ${withText} with license text`)
@@ -291,10 +295,15 @@ async function generateJsLicenses(): Promise<JsLicenseEntry[]> {
   jsLicenses.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
 
   mkdirSync(outDir, { recursive: true })
-  writeFileSync(join(outDir, 'js-licenses.json'), JSON.stringify(jsLicenses, null, 2) + '\n')
+  writeFileSync(
+    join(outDir, 'js-licenses.json'),
+    JSON.stringify(jsLicenses, null, 2) + '\n',
+  )
 
   const withText = jsLicenses.filter((e) => e.text).length
-  console.log(`JS: ${jsLicenses.length} packages, ${withText} with license text`)
+  console.log(
+    `JS: ${jsLicenses.length} packages, ${withText} with license text`,
+  )
   return jsLicenses
 }
 
@@ -334,9 +343,9 @@ function jsPackageRepo(name: string): string | undefined {
 function normalize(text: string): string {
   return text
     .replace(/\r\n/g, '\n')
-    .replace(/\n\n+/g, '\x00')       // preserve paragraph breaks
-    .replace(/\s+/g, ' ')             // collapse all whitespace
-    .replace(/\x00/g, '\n\n')         // restore paragraph breaks
+    .replace(/\n\n+/g, '\x00') // preserve paragraph breaks
+    .replace(/\s+/g, ' ') // collapse all whitespace
+    .replace(/\x00/g, '\n\n') // restore paragraph breaks
     .trim()
 }
 
@@ -420,11 +429,16 @@ function extractBases(
 }
 
 // Merge Go and JS licenses into unified schema with SPDX base text dedup.
-function mergeLicenses(goData: GoLicenseEntry[], jsData: JsLicenseEntry[]): LicensesJson {
+function mergeLicenses(
+  goData: GoLicenseEntry[],
+  jsData: JsLicenseEntry[],
+): LicensesJson {
   console.log('Merging licenses...')
 
   // Read package.json devDependencies for isDev marking.
-  const pkgJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8'))
+  const pkgJson = JSON.parse(
+    readFileSync(join(rootDir, 'package.json'), 'utf-8'),
+  )
   const devDeps = new Set(Object.keys(pkgJson.devDependencies || {}))
 
   // First pass: collect all entries with their raw text
@@ -507,7 +521,10 @@ function mergeLicenses(goData: GoLicenseEntry[], jsData: JsLicenseEntry[]): Lice
 
   const result: LicensesJson = { bases, entries }
 
-  writeFileSync(join(outDir, 'licenses.json'), JSON.stringify(result, null, 2) + '\n')
+  writeFileSync(
+    join(outDir, 'licenses.json'),
+    JSON.stringify(result, null, 2) + '\n',
+  )
 
   const spdxSet = new Set(entries.map((e) => e.spdx))
   console.log(
@@ -525,8 +542,18 @@ async function main() {
   let goData: GoLicenseEntry[] | undefined
   let jsData: JsLicenseEntry[] | undefined
   const tasks: Promise<void>[] = []
-  if (doGo) tasks.push(generateGoLicenses().then((d) => { goData = d }))
-  if (doJs) tasks.push(generateJsLicenses().then((d) => { jsData = d }))
+  if (doGo)
+    tasks.push(
+      generateGoLicenses().then((d) => {
+        goData = d
+      }),
+    )
+  if (doJs)
+    tasks.push(
+      generateJsLicenses().then((d) => {
+        jsData = d
+      }),
+    )
   await Promise.all(tasks)
 
   if (doMerge) {
@@ -540,10 +567,14 @@ async function main() {
     }
     const result = mergeLicenses(goData!, jsData!)
     const bytes = Buffer.byteLength(JSON.stringify(result))
-    const fullBytes = Buffer.byteLength(JSON.stringify(
-      result.entries.map((e) => ({ ...e, text: e.fullText || '' })),
-    ))
-    console.log(`Size: ${(bytes / 1024).toFixed(0)} KB (vs ${(fullBytes / 1024).toFixed(0)} KB without dedup)`)
+    const fullBytes = Buffer.byteLength(
+      JSON.stringify(
+        result.entries.map((e) => ({ ...e, text: e.fullText || '' })),
+      ),
+    )
+    console.log(
+      `Size: ${(bytes / 1024).toFixed(0)} KB (vs ${(fullBytes / 1024).toFixed(0)} KB without dedup)`,
+    )
   }
 
   console.log('Done. Output: app/licenses/')

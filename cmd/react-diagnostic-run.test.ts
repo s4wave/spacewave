@@ -214,8 +214,12 @@ describe('react diagnostic run wrapper', () => {
 
     expect(summary).toContain('React Doctor completed with diagnostics')
     expect(summary).toContain('Mode: full (offline)')
-    expect(summary).toContain('Summary: 0 errors, 1 warning, 1 affected file, 82/100 Good')
-    expect(summary).toContain('- warning react-doctor/memoized-context-value (1 site, Performance)')
+    expect(summary).toContain(
+      'Summary: 0 errors, 1 warning, 1 affected file, 82/100 Good',
+    )
+    expect(summary).toContain(
+      '- warning react-doctor/memoized-context-value (1 site, Performance)',
+    )
     expect(summary).toContain('app/view.tsx:42')
     expect(summary).toContain('Machine contract: schema-versioned JSON report.')
   })
@@ -248,7 +252,9 @@ describe('react diagnostic run wrapper', () => {
     )
 
     expect(summary).toContain('React Doctor failed')
-    expect(summary).toContain('Summary: 0 errors, 0 warnings, 0 affected files, score unavailable')
+    expect(summary).toContain(
+      'Summary: 0 errors, 0 warnings, 0 affected files, score unavailable',
+    )
     expect(summary).toContain('react doctor failed')
   })
 })

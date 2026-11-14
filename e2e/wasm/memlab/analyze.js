@@ -5,7 +5,9 @@ import { getFullHeapFromFile } from '@memlab/heap-analysis'
 function parseArgs() {
   const idx = process.argv.indexOf('--snapshots')
   if (idx === -1 || idx + 1 >= process.argv.length) {
-    throw new Error('usage: node analyze.js --snapshots label1=path1,label2=path2')
+    throw new Error(
+      'usage: node analyze.js --snapshots label1=path1,label2=path2',
+    )
   }
   const pairs = process.argv[idx + 1].split(',')
   return pairs.map((p) => {
@@ -31,8 +33,12 @@ async function analyzeSnapshot(label, filePath) {
 
     if (name === 'ClientRPC') {
       counts.clientRpc++
-      const svc = node.getReferenceNode('service', 'property') || node.getReferenceNode('service')
-      const mtd = node.getReferenceNode('method', 'property') || node.getReferenceNode('method')
+      const svc =
+        node.getReferenceNode('service', 'property') ||
+        node.getReferenceNode('service')
+      const mtd =
+        node.getReferenceNode('method', 'property') ||
+        node.getReferenceNode('method')
       const pair = `${svc?.name || '?'}/${mtd?.name || '?'}`
       clientRpcPairs.set(pair, (clientRpcPairs.get(pair) || 0) + 1)
       return
@@ -62,7 +68,11 @@ async function analyzeSnapshot(label, filePath) {
     .slice(0, 20)
     .map(([key, count]) => {
       const slash = key.lastIndexOf('/')
-      return { service: key.slice(0, slash), method: key.slice(slash + 1), count }
+      return {
+        service: key.slice(0, slash),
+        method: key.slice(slash + 1),
+        count,
+      }
     })
 
   return {
@@ -86,13 +96,15 @@ function buildPairDeltas(firstPairs, lastPairs) {
       const delta = finalCount - baselineCount
       if (delta === 0) return []
       const slash = key.lastIndexOf('/')
-      return [{
-        service: key.slice(0, slash),
-        method: key.slice(slash + 1),
-        baselineCount,
-        finalCount,
-        delta,
-      }]
+      return [
+        {
+          service: key.slice(0, slash),
+          method: key.slice(slash + 1),
+          baselineCount,
+          finalCount,
+          delta,
+        },
+      ]
     })
     .sort((a, b) => {
       if (a.delta !== b.delta) {
@@ -101,7 +113,9 @@ function buildPairDeltas(firstPairs, lastPairs) {
       if (a.finalCount !== b.finalCount) {
         return b.finalCount - a.finalCount
       }
-      return `${a.service}/${a.method}`.localeCompare(`${b.service}/${b.method}`)
+      return `${a.service}/${a.method}`.localeCompare(
+        `${b.service}/${b.method}`,
+      )
     })
     .slice(0, 20)
 }

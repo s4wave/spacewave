@@ -25,8 +25,7 @@ const pack = (v: PackAhead) => {
   return 'open'
 }
 
-export const state = (v: PackAhead) =>
-  v.up ? pack(v) : `${pack(v)}, crashed`
+export const state = (v: PackAhead) => (v.up ? pack(v) : `${pack(v)}, crashed`)
 
 export const step = (action: string, from: PackAhead, to: PackAhead) => {
   if (state(from) === state(to)) return null

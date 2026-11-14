@@ -181,7 +181,9 @@ export default async function deviceQuickstartHelper(args: ActionArgs) {
       case 'seed-device':
         return await seedDevice(args, signal)
       default:
-        throw new Error(`unsupported action ${(args as { action?: string }).action}`)
+        throw new Error(
+          `unsupported action ${(args as { action?: string }).action}`,
+        )
     }
   })
 }

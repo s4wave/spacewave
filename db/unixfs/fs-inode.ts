@@ -1,4 +1,3 @@
-
 import {
   AsyncRWMutex,
   type RWMutexLock,
@@ -298,10 +297,7 @@ export class FsInode {
       }
     }
 
-    if (
-      lastErr !== null &&
-      !isUnixFSError(lastErr, UnixFSErrorType.RELEASED)
-    ) {
+    if (lastErr !== null && !isUnixFSError(lastErr, UnixFSErrorType.RELEASED)) {
       // lastErr is mutated inside handleErr's closure, so eslint cannot
       // narrow its type past null even after the !== null guard above.
       // eslint-disable-next-line @typescript-eslint/only-throw-error

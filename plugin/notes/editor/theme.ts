@@ -30,12 +30,10 @@ const editorTheme: EditorThemeClasses = {
     },
   },
   link: 'text-brand underline cursor-pointer hover:opacity-80',
-  quote:
-    'border-l-4 border-border pl-4 italic text-muted-foreground my-3',
+  quote: 'border-l-4 border-border pl-4 italic text-muted-foreground my-3',
   code: 'bg-muted rounded-md p-4 font-mono text-[0.9em] my-3 block overflow-x-auto',
   table: 'border-collapse w-full my-3',
-  tableCell:
-    'border border-border px-3 py-2 text-left align-top',
+  tableCell: 'border border-border px-3 py-2 text-left align-top',
   tableCellHeader:
     'border border-border bg-muted px-3 py-2 text-left font-semibold',
   tableRow: '',

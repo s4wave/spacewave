@@ -1,9 +1,6 @@
 import { useCallback } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import {
-  $getSelection,
-  $isRangeSelection,
-} from 'lexical'
+import { $getSelection, $isRangeSelection } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
 import { $createCodeNode } from '@lexical/code'
@@ -15,7 +12,10 @@ import {
 import { TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { INSERT_TABLE_COMMAND } from '@lexical/table'
 import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode'
-import { CommandFocusContext, CommandSurface } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandFocusContext,
+  CommandSurface,
+} from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'

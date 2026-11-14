@@ -1,4 +1,3 @@
-
 /**
  * boot.ts - v86 boot script for forge bun subprocess controller.
  *
@@ -21,9 +20,7 @@ import path from 'node:path'
 import url from 'node:url'
 import fs from 'node:fs'
 import { StreamConn } from 'starpc'
-import {
-  connectToPipe,
-} from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
+import { connectToPipe } from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
 import { createV86fsSrpcAdapter } from './v86fs-bridge.js'
 import {
   installLocalFetchPatch,
@@ -99,13 +96,20 @@ function parseArgs(): {
     }
   }
 
-  return { socket, memory, outputDir, commands, bzimage, v86Dir, v86fsDir, mounts }
+  return {
+    socket,
+    memory,
+    outputDir,
+    commands,
+    bzimage,
+    v86Dir,
+    v86fsDir,
+    mounts,
+  }
 }
 
 // Connect to SRPC unix socket and create v86fs adapter.
-async function connectV86fsSrpc(
-  socketPath: string,
-): Promise<V86fsBridge> {
+async function connectV86fsSrpc(socketPath: string): Promise<V86fsBridge> {
   const streamConn = new StreamConn(undefined, { direction: 'outbound' })
   const client = streamConn.buildClient()
 

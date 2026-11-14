@@ -65,7 +65,7 @@ export class SpacewaveEmbedNode extends DecoratorNode<JSX.Element> {
 
   decorate(_editor: LexicalEditor, _config: EditorConfig): JSX.Element {
     const filename = this.__path.split('/').pop() ?? this.__path
-    const ext = filename.includes('.') ? filename.split('.').pop() ?? '' : ''
+    const ext = filename.includes('.') ? (filename.split('.').pop() ?? '') : ''
 
     return (
       <div className="bg-card border-border flex items-center gap-3 rounded-lg border p-3">

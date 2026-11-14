@@ -77,10 +77,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
     }
   })().catch(() => {})
 
-  function send(
-    body: V86fsMessageType['body'],
-    handler: ReplyHandler,
-  ): void {
+  function send(body: V86fsMessageType['body'], handler: ReplyHandler): void {
     const tag = nextTag++
     pending.set(tag, handler)
     outgoing.push({ tag, body })
@@ -204,17 +201,13 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
             reply(msg.body.value.status ?? 5, 0)
             return
           }
-          const r =
-            msg.body?.case === 'openReply' ? msg.body.value : undefined
+          const r = msg.body?.case === 'openReply' ? msg.body.value : undefined
           reply(r?.status ?? 0, Number(r?.handleId ?? 0n))
         },
       )
     },
 
-    onClose(
-      handle_id: number,
-      reply: (status: number) => void,
-    ): void {
+    onClose(handle_id: number, reply: (status: number) => void): void {
       send(
         { case: 'closeRequest', value: { handleId: BigInt(handle_id) } },
         (msg) => {
@@ -222,8 +215,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
             reply(msg.body.value.status ?? 5)
             return
           }
-          const r =
-            msg.body?.case === 'closeReply' ? msg.body.value : undefined
+          const r = msg.body?.case === 'closeReply' ? msg.body.value : undefined
           reply(r?.status ?? 0)
         },
       )
@@ -249,8 +241,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
             reply(msg.body.value.status ?? 5, new Uint8Array(0))
             return
           }
-          const r =
-            msg.body?.case === 'readReply' ? msg.body.value : undefined
+          const r = msg.body?.case === 'readReply' ? msg.body.value : undefined
           reply(r?.status ?? 0, r?.data ?? new Uint8Array(0))
         },
       )
@@ -295,8 +286,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
             reply(msg.body.value.status ?? 5, 0)
             return
           }
-          const r =
-            msg.body?.case === 'writeReply' ? msg.body.value : undefined
+          const r = msg.body?.case === 'writeReply' ? msg.body.value : undefined
           reply(r?.status ?? 0, r?.bytesWritten ?? 0)
         },
       )
@@ -318,8 +308,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
             reply(msg.body.value.status ?? 5, 0, 0)
             return
           }
-          const r =
-            msg.body?.case === 'mkdirReply' ? msg.body.value : undefined
+          const r = msg.body?.case === 'mkdirReply' ? msg.body.value : undefined
           reply(r?.status ?? 0, Number(r?.inodeId ?? 0n), r?.mode ?? 0)
         },
       )
@@ -362,8 +351,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
             reply(msg.body.value.status ?? 5)
             return
           }
-          const r =
-            msg.body?.case === 'fsyncReply' ? msg.body.value : undefined
+          const r = msg.body?.case === 'fsyncReply' ? msg.body.value : undefined
           reply(r?.status ?? 0)
         },
       )
@@ -477,8 +465,7 @@ export function createV86fsSrpcAdapterForClient(client: V86fsRelayClient): {
           reply(msg.body.value.status ?? 5, 0, 0, 0, 0, 0, 0)
           return
         }
-        const r =
-          msg.body?.case === 'statfsReply' ? msg.body.value : undefined
+        const r = msg.body?.case === 'statfsReply' ? msg.body.value : undefined
         reply(
           r?.status ?? 0,
           Number(r?.blocks ?? 0n),

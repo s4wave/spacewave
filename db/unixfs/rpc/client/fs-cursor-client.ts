@@ -1,4 +1,3 @@
-
 import type { FSCursorChange } from '../../fs-cursor.js'
 import { ErrReleased, UnixFSError } from '../../errors/errors.js'
 import type { NodeType } from '../../block/fstree.pb.js'

@@ -59,8 +59,7 @@ export function useBlogPosts(
         let authorName: string | undefined
         if (Array.isArray(author)) {
           const [firstAuthor] = author as unknown[]
-          authorName =
-            typeof firstAuthor === 'string' ? firstAuthor : undefined
+          authorName = typeof firstAuthor === 'string' ? firstAuthor : undefined
         } else if (typeof author === 'string') {
           authorName = author
         }

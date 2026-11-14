@@ -1,8 +1,6 @@
 // Polls until the blog quickstart finishes navigation to a space route and the
 // reading-mode viewer controls are visible.
-export default async function (args: {
-  deadlineMs: number
-}): Promise<null> {
+export default async function (args: { deadlineMs: number }): Promise<null> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + args.deadlineMs
     const ready = () => {
@@ -26,9 +24,7 @@ export default async function (args: {
           globalThis.__s4wave_debug?.quickstartTiming ??
           null
         const body =
-          document.body?.innerText
-            ?.replace(/\s+/g, ' ')
-            .slice(0, 240) ?? ''
+          document.body?.innerText?.replace(/\s+/g, ' ').slice(0, 240) ?? ''
         reject(
           new Error(
             `blog quickstart did not reach the blog viewer (hash=${window.location.hash}, timing=${JSON.stringify(timing)}, body=${body})`,
