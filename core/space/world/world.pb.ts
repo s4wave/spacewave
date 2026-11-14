@@ -613,6 +613,12 @@ export interface ReplayCursorOutcome {
    * Seqno is the World seqno after the operation.
    */
   seqno?: bigint
+  /**
+   * PayloadHandlers identifies the handlers that named Payloads. A remount
+   * reuses Payloads only when every handler still names the same roots, and
+   * resolves the operation again when this is unset.
+   */
+  payloadHandlers?: PayloadHandlers
 }
 
 export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
@@ -625,6 +631,54 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
       [6, 'payloads', 11, 1, BlockRef.codec],
       [7, 'retained_roots', 11, 0, RetainedRootSet.codec],
       [8, 'seqno', 4],
+      [9, 'payload_handlers', 11, 0, PayloadHandlers.codec],
+    ],
+  )
+
+/**
+ * PayloadHandlers identifies the handlers that named an operation's payload
+ * roots.
+ *
+ * @generated from message space.world.PayloadHandlers
+ */
+export interface PayloadHandlers {
+  /**
+   * Handlers are the operation types of the operation's transaction, each
+   * once and sorted by type.
+   */
+  handlers?: PayloadHandler[]
+}
+
+export const PayloadHandlers: MessageType<PayloadHandlers> =
+  /* @__PURE__ */ createMessageType<PayloadHandlers>(
+    'space.world.PayloadHandlers',
+    () => [[1, 'handlers', 11, 1, PayloadHandler.codec]],
+  )
+
+/**
+ * PayloadHandler is the handler of one operation type, as far as the payload
+ * roots it names.
+ *
+ * @generated from message space.world.PayloadHandler
+ */
+export interface PayloadHandler {
+  /**
+   * OpTypeId is the operation type.
+   */
+  opTypeId?: string
+  /**
+   * Version is the PayloadRefsVersion of the type's handler, or zero for a
+   * type that names no payload roots of its own.
+   */
+  version?: number
+}
+
+export const PayloadHandler: MessageType<PayloadHandler> =
+  /* @__PURE__ */ createMessageType<PayloadHandler>(
+    'space.world.PayloadHandler',
+    () => [
+      [1, 'op_type_id', 9],
+      [2, 'version', 13],
     ],
   )
 

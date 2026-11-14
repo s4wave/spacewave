@@ -37,8 +37,14 @@ func readLocalState(ctx context.Context, so sobject.SharedObject, storeID string
 // writeLocal sets key to value in the SharedObject's local state store
 // storeID, or deletes it when value is nil.
 func (a *Adapter) writeLocal(ctx context.Context, storeID string, key, value []byte) error {
+	return writeLocalState(ctx, a.so, storeID, key, value)
+}
+
+// writeLocalState sets key to value in the local state store storeID of so,
+// or deletes it when value is nil.
+func writeLocalState(ctx context.Context, so sobject.SharedObject, storeID string, key, value []byte) error {
 	// Open the store.
-	store, release, err := a.so.AccessLocalStateStore(ctx, storeID, nil)
+	store, release, err := so.AccessLocalStateStore(ctx, storeID, nil)
 	if err != nil {
 		return err
 	}

@@ -21,6 +21,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	bucket_lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
@@ -77,7 +78,7 @@ func OpenStore(ctx context.Context, le *logrus.Entry, conf *StoreConfig, create 
 	sr.AddFactory(storage_volume.NewFactory(b))
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(provider_local.NewFactory(b))
-	sr.AddFactory(space_world.NewFactory(b, space_world.OpTypes{}))
+	sr.AddFactory(space_world.NewFactory(b, space_world_engine.OpTypes))
 
 	// Start the node and configset controllers.
 	for _, c := range []config.Config{&node_controller.Config{}, &configset_controller.Config{}} {

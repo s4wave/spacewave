@@ -24,9 +24,12 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -479,8 +482,8 @@ func readImportRoots(ctx context.Context, t *testing.T, store block.StoreOps) []
 
 // TestAccountMergeRefusedOpAboveCheckpoint migrates a Space whose first
 // operation above its checkpoint has a type nothing resolves or declares,
-// followed by a create. The export skips the refused operation's payloads, and
-// the target replays past it to the create.
+// followed by a create. The export copies the create's payload, and the target
+// replays past the refused operation to the create.
 func TestAccountMergeRefusedOpAboveCheckpoint(t *testing.T) {
 	// Start a source and a target account running no plugin.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -494,12 +497,12 @@ func TestAccountMergeRefusedOpAboveCheckpoint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	so := pauseAboveCheckpoint(ctx, t, sourceTB, source, ref)
-	missing := &payloadOp{MockWorldOp: world_mock.MockWorldOp{ObjectKey: "base", NextMsg: absentRef(t).MarshalString()}}
+	so := pauseAboveCheckpoint(ctx, t, sourceTB, source, ref, nil)
+	missing := newPluginOp("base")
 	after := putPayload(ctx, t, so, "after")
 	queueTxs(ctx, t, so, applyWorldOpTx(t, so, missing), createTx(t, "after", after.ref))
 
-	// The merge copies the Space without the refused operation's payload.
+	// The merge copies the Space past the refused operation.
 	if _, err := source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef()); err != nil {
 		t.Fatal(err)
 	}
@@ -514,28 +517,59 @@ func TestAccountMergeRefusedOpAboveCheckpoint(t *testing.T) {
 
 // TestAccountMergeOpsAboveCheckpoint migrates a Space whose operations above
 // its checkpoint are a create and then a running plugin's operation on the
-// created object, onto a target whose Volume frees at once, collecting between
-// the copy and the listing. The target replays both and reads every payload
-// after more collection.
+// created object, whose handler resolves on the bus.
 func TestAccountMergeOpsAboveCheckpoint(t *testing.T) {
-	// Start a source and a target account running the plugin, the target's
-	// Volume freeing at once.
+	mergeOpsAboveCheckpoint(t, false)
+}
+
+// TestAccountMergePayloadOpAboveCheckpoint migrates a Space whose operations
+// above its checkpoint are a built-in operation naming a payload, writing a
+// file whose content was built outside the World, and then a create.
+func TestAccountMergePayloadOpAboveCheckpoint(t *testing.T) {
+	mergeOpsAboveCheckpoint(t, true)
+}
+
+// mergeOpsAboveCheckpoint migrates a Space with operations above its
+// checkpoint onto a target whose Volume frees at once, collecting between the
+// copy and the listing. Without payload they are a create and a running
+// plugin's operation; with payload they are a write of a file whose content
+// only the operation names, resolved by the static table, and a create. The
+// target replays them and reads every payload after more collection.
+func mergeOpsAboveCheckpoint(t *testing.T, payload bool) {
+	// Start a source and a target account, the target's Volume freeing at
+	// once, running the plugin unless the operation is built in.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 	network := inproc.NewNetwork()
 	sourceTB, source, sourceSession, _ := setupMigrationTestbed(ctx, t, network)
 	storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
 	target, targetSession, _ := setupMigrationClient(ctx, t, network, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
-	defer startPayloadOpPlugin(ctx, t, sourceTB.Bus)()
-	defer startPayloadOpPlugin(ctx, t, target.t.p.b)()
+	if !payload {
+		defer startPluginOp(ctx, t, sourceTB.Bus)()
+		defer startPluginOp(ctx, t, target.t.p.b)()
+	}
 
-	// Write the create and the plugin's operation above the checkpoint.
+	// Write the operations above the checkpoint.
 	ref, err := source.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	so := pauseAboveCheckpoint(ctx, t, sourceTB, source, ref)
-	payloads := writeCreateThenPluginOp(ctx, t, so)
+	var payloads map[string]seededPayload
+	var key string
+	if payload {
+		var content *block.BlockRef
+		so := pauseAboveCheckpoint(ctx, t, sourceTB, source, ref, func(eng world.Engine, so *SharedObject) {
+			content = initFsWithContent(ctx, t, eng, so)
+		})
+		file := readPayload(ctx, t, so, content)
+		after := putPayload(ctx, t, so, "after")
+		op := unixfs_world.NewFsMknodWithContentOp(fsObjectKey, unixfs_world.FSType_FSType_FS_NODE, unixfs_block.NewFSPath([]string{"file"}, false), unixfs_block.NodeType_NodeType_FILE, 0o644, time.Unix(1, 0), content)
+		queueTxs(ctx, t, so, applyWorldOpTx(t, so, op), createTx(t, "after", after.ref))
+		payloads, key = map[string]seededPayload{"file": file, "after": after}, "after"
+	} else {
+		so := pauseAboveCheckpoint(ctx, t, sourceTB, source, ref, nil)
+		payloads = writeCreateThenPluginOp(ctx, t, so)
+	}
 
 	// Migrate, collecting twice while the copy's stage alone holds the
 	// payloads.
@@ -545,9 +579,9 @@ func TestAccountMergeOpsAboveCheckpoint(t *testing.T) {
 	}
 	target.migrationHook = nil
 
-	// Replay at the target until the plugin's operation applied, collect
-	// again past the grace, then read every payload.
-	store, _ := openMigratedSpace(ctx, t, target, ref, "")
+	// Replay at the target until the last operation applied, collect again
+	// past the grace, then read every payload.
+	store, _ := openMigratedSpace(ctx, t, target, ref, key)
 	if err := collectTwice(ctx, target); err != nil {
 		t.Fatal(err)
 	}
@@ -557,6 +591,50 @@ func TestAccountMergeOpsAboveCheckpoint(t *testing.T) {
 			t.Fatalf("migration lost the %s payload: found=%v err=%v", name, found, err)
 		}
 	}
+}
+
+// fsObjectKey is the UnixFS object initFsWithContent creates.
+const fsObjectKey = "fs"
+
+// initFsWithContent creates the UnixFS object fsObjectKey in the World of eng,
+// writes file content to the block store of so outside any object, as a writer
+// does before naming it in an operation, and returns the content's root. The
+// content goes through a cursor on the World's storage, so it carries the
+// World's transform, but lands in the store of so directly: a World
+// transaction keeps its blocks in the Space's kept pages, which the export
+// does not read.
+func initFsWithContent(ctx context.Context, t *testing.T, eng world.Engine, so *SharedObject) *block.BlockRef {
+	t.Helper()
+	ws := world.NewEngineWorldState(eng, true)
+	if _, _, err := ws.ApplyWorldOp(ctx, unixfs_world.NewFsInitOp(fsObjectKey, unixfs_world.FSType_FSType_FS_NODE, nil, false, time.Unix(1, 0)), ""); err != nil {
+		t.Fatal(err)
+	}
+	data := []byte("file content built outside the World\n")
+	var content *block.BlockRef
+	err := eng.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		btx, bcs := cursor.BuildTransactionWithStore(nil, so.GetBlockStore())
+		bcs.SetRefAtCursor(nil, true)
+		if _, err := blob.BuildBlob(ctx, int64(len(data)), bytes.NewReader(data), bcs, nil); err != nil {
+			return err
+		}
+		var err error
+		content, _, err = btx.Write(ctx, true)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return content
+}
+
+// readPayload returns the payload at ref as the block store of so holds it.
+func readPayload(ctx context.Context, t *testing.T, so sobject.SharedObject, ref *block.BlockRef) seededPayload {
+	t.Helper()
+	data, found, err := so.GetBlockStore().GetBlock(ctx, ref)
+	if err != nil || !found {
+		t.Fatalf("the source does not hold the content it built: found=%v err=%v", found, err)
+	}
+	return seededPayload{ref: ref, data: data}
 }
 
 // TestAccountMergeUnloadedOpPlugin checks that a Space with a create and then
@@ -575,7 +653,7 @@ func TestAccountMergeUnloadedOpPlugin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeCreateThenPluginOp(ctx, t, pauseAboveCheckpoint(ctx, t, sourceTB, source, ref))
+	writeCreateThenPluginOp(ctx, t, pauseAboveCheckpoint(ctx, t, sourceTB, source, ref, nil))
 
 	// The merge fails naming the unresolved operation, before any listing.
 	_, err = source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef())
@@ -593,10 +671,9 @@ func TestAccountMergeUnloadedOpPlugin(t *testing.T) {
 
 // TestAccountMergeSavedRefusal migrates a Space whose source replay saved a
 // cursor recording a create and then a refused operation of a type nothing
-// resolves or declares, whose payload no store holds, batched with a create
-// whose root the source holds. The export follows the cursor past the create,
-// copies the refused transaction's object root but not the payload it cannot
-// name, and the target replays it as refused.
+// resolves or declares, batched with a create whose root the source holds. The
+// export follows the cursor past the create, copies the refused transaction's
+// object root, and the target replays it as refused.
 func TestAccountMergeSavedRefusal(t *testing.T) {
 	// Start a source and a target account running no plugin.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -611,12 +688,12 @@ func TestAccountMergeSavedRefusal(t *testing.T) {
 
 	// Replay the operations at the source until it saves a cursor recording
 	// the refusal.
-	cursor, _, root := saveRefusalCursor(ctx, t, source, ref, false)
+	cursor, root := saveRefusalCursor(ctx, t, source, ref)
 	if cursor.GetOutcomes()[0].GetReason() != "" || cursor.GetOutcomes()[1].GetReason() == "" {
 		t.Fatalf("saved outcomes %v, want the create applied and the operation refused", cursor.GetOutcomes()[:2])
 	}
 
-	// The merge copies the Space without the refused operation's payload.
+	// The merge copies the Space past the refused operation.
 	if _, err := source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef()); err != nil {
 		t.Fatal(err)
 	}
@@ -649,7 +726,7 @@ func TestAccountMergeReorderedCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cursor, _, _ := saveRefusalCursor(ctx, t, source, ref, false)
+	cursor, _ := saveRefusalCursor(ctx, t, source, ref)
 
 	// Swap the first two outcomes' operations, as a reorder would place them.
 	outcomes := cursor.GetOutcomes()
@@ -669,7 +746,7 @@ func TestAccountMergeReorderedCursor(t *testing.T) {
 // TestAccountMergeSavedRefusalResolved migrates a Space whose source replay
 // saved a cursor recording an operation as refused for want of a handler, and
 // whose plugin runs on both accounts by the merge. The export copies the
-// operation's payload, and the target, which has the handler, applies it.
+// operation's transaction, and the target, which has the handler, applies it.
 func TestAccountMergeSavedRefusalResolved(t *testing.T) {
 	// Save the cursor recording the refusal with no plugin running.
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
@@ -681,23 +758,24 @@ func TestAccountMergeSavedRefusalResolved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cursor, payload, _ := saveRefusalCursor(ctx, t, source, ref, true)
+	cursor, root := saveRefusalCursor(ctx, t, source, ref)
 	if cursor.GetOutcomes()[1].GetReason() == "" {
 		t.Fatalf("saved outcome %v, want the operation refused", cursor.GetOutcomes()[1])
 	}
 
 	// Start the plugin on both accounts and migrate.
-	defer startPayloadOpPlugin(ctx, t, sourceTB.Bus)()
-	defer startPayloadOpPlugin(ctx, t, target.t.p.b)()
+	defer startPluginOp(ctx, t, sourceTB.Bus)()
+	defer startPluginOp(ctx, t, target.t.p.b)()
 	if _, err := source.MergePairingAccount(ctx, sourceSession, target, targetSession.GetSessionRef()); err != nil {
 		t.Fatal(err)
 	}
 
-	// The target applies the operation and holds its payload.
+	// The target applies the operation and holds the root of the create
+	// batched with it.
 	store, _ := openMigratedSpace(ctx, t, target, ref, "")
-	data, found, err := store.store.GetBlock(ctx, payload.ref)
-	if err != nil || !found || !bytes.Equal(data, payload.data) {
-		t.Fatalf("migration lost the refused operation's payload: found=%v err=%v", found, err)
+	data, found, err := store.store.GetBlock(ctx, root.ref)
+	if err != nil || !found || !bytes.Equal(data, root.data) {
+		t.Fatalf("migration lost the refused transaction's object root: found=%v err=%v", found, err)
 	}
 }
 
@@ -713,14 +791,12 @@ func refusalFillerKey(i int) string {
 
 // saveRefusalCursor runs a Space world Adapter on the Space at ref with
 // account's owner as its sequencer until its World is checkpointed, then holds
-// every later checkpoint and writes a create of the object "z", a payloadOp on
+// every later checkpoint and writes a create of the object "z", a pluginOp on
 // it whose type nothing resolves or declares, batched with a create of the
-// object "y", and refusalFillers creates. The payloadOp's payload is stored in
-// the Space's block store when stored is set, and in no store otherwise; the
-// root of "y" is always stored. It waits for the Adapter to save a replay
-// cursor recording the first two transactions, stops the Adapter, and returns
-// the cursor, the payload and the root of "y".
-func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccount, ref *sobject.SharedObjectRef, stored bool) (*space_world.ReplayCursor, seededPayload, seededPayload) {
+// object "y" whose root is stored, and refusalFillers creates. It waits for the
+// Adapter to save a replay cursor recording the first two transactions, stops
+// the Adapter, and returns the cursor and the root of "y".
+func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccount, ref *sobject.SharedObjectRef) (*space_world.ReplayCursor, seededPayload) {
 	// Hold the Space as its sequencer and run the Adapter as the Space
 	// controller does.
 	t.Helper()
@@ -780,11 +856,7 @@ func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccou
 	// Write the create, the refused operation and the creates after it.
 	z := putPayload(ctx, t, so, "z")
 	filler := putPayload(ctx, t, so, "filler")
-	payload := seededPayload{ref: absentRef(t)}
-	if stored {
-		payload = putPayload(ctx, t, so, "refused")
-	}
-	refused := &payloadOp{MockWorldOp: world_mock.MockWorldOp{ObjectKey: "z", NextMsg: payload.ref.MarshalString()}}
+	refused := newPluginOp("z")
 	root := putPayload(ctx, t, so, "y")
 	batch, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: []*world_block_tx.Tx{applyWorldOpTx(t, so, refused), createTx(t, "y", root.ref)}})
 	if err != nil {
@@ -800,7 +872,7 @@ func saveRefusalCursor(ctx context.Context, t *testing.T, account *ProviderAccou
 	for {
 		cursor := readSavedCursor(ctx, t, so)
 		if len(cursor.GetOutcomes()) >= 2 {
-			return cursor, payload, root
+			return cursor, root
 		}
 		select {
 		case <-ctx.Done():
@@ -907,16 +979,14 @@ type seededPayload struct {
 	data []byte
 }
 
-// writeCreateThenPluginOp writes to so a create of the object "z" and then a
-// payloadOp on it, each naming a payload, and returns each payload by the
-// operation that names it.
+// writeCreateThenPluginOp writes to so a create of the object "z" naming a
+// payload and then a pluginOp on it, and returns the payload by its object.
 func writeCreateThenPluginOp(ctx context.Context, t *testing.T, so *SharedObject) map[string]seededPayload {
 	t.Helper()
 	z := putPayload(ctx, t, so, "z")
-	plugin := putPayload(ctx, t, so, "plugin")
-	op := &payloadOp{MockWorldOp: world_mock.MockWorldOp{ObjectKey: "z", NextMsg: plugin.ref.MarshalString()}}
+	op := newPluginOp("z")
 	queueTxs(ctx, t, so, createTx(t, "z", z.ref), applyWorldOpTx(t, so, op))
-	return map[string]seededPayload{"z": z, "plugin": plugin}
+	return map[string]seededPayload{"z": z}
 }
 
 // pausedBody is a Space body that never finishes applying an operation, so
@@ -948,9 +1018,10 @@ func (pausedBody) Hold(context.Context, *sobject.OrderEvent) error {
 
 // pauseAboveCheckpoint mounts the Space at ref for the rest of the test with
 // account's owner as its sequencer, creates the object "base" through the
-// Space body, waits for the checkpoint over it, then swaps the body for a
-// pausedBody. Operations written after it stay above the checkpoint.
-func pauseAboveCheckpoint(ctx context.Context, t *testing.T, tb *testbed.Testbed, account *ProviderAccount, ref *sobject.SharedObjectRef) *SharedObject {
+// Space body, calls prepare with the body's World engine when set, waits for
+// the checkpoint over both, then swaps the body for a pausedBody. Operations
+// written after it stay above the checkpoint.
+func pauseAboveCheckpoint(ctx context.Context, t *testing.T, tb *testbed.Testbed, account *ProviderAccount, ref *sobject.SharedObjectRef, prepare func(world.Engine, *SharedObject)) *SharedObject {
 	// Hold the Space and checkpoint as its owner.
 	t.Helper()
 	mounted, releaseSO, err := account.MountSharedObject(ctx, ref, nil)
@@ -988,6 +1059,9 @@ func pauseAboveCheckpoint(ctx context.Context, t *testing.T, tb *testbed.Testbed
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
+	}
+	if prepare != nil {
+		prepare(engine, so)
 	}
 	var derived *block.BlockRef
 	if err := engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
@@ -1042,20 +1116,6 @@ func putPayload(ctx context.Context, t *testing.T, so sobject.SharedObject, key 
 	return seededPayload{ref: ref, data: data}
 }
 
-// absentRef returns the ref of a block no store holds.
-func absentRef(t *testing.T) *block.BlockRef {
-	t.Helper()
-	data := make([]byte, 32)
-	if _, err := rand.Read(data); err != nil {
-		t.Fatal(err)
-	}
-	ref, err := block.BuildBlockRef(data, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return ref
-}
-
 // createTx returns the transaction creating the object key with root ref.
 func createTx(t *testing.T, key string, ref *block.BlockRef) *world_block_tx.Tx {
 	t.Helper()
@@ -1092,7 +1152,7 @@ func queueTxs(ctx context.Context, t *testing.T, so *SharedObject, txs ...*world
 
 // openMigratedSpace mounts the Space ref migrated to target for the rest of
 // the test, starts its World engine, and waits until its World holds the
-// object key, or for an empty key until the object "z" carries payloadOp's
+// object key, or for an empty key until the object "z" carries pluginOp's
 // link. It returns the Space's block store and its World engine.
 func openMigratedSpace(ctx context.Context, t *testing.T, target *ProviderAccount, ref *sobject.SharedObjectRef, key string) (*BlockStore, world.Engine) {
 	// Mount the copy and open its World.
@@ -1123,7 +1183,7 @@ func openMigratedSpace(ctx context.Context, t *testing.T, target *ProviderAccoun
 }
 
 // replayedTo reports whether the World of eng holds the object key, or for an
-// empty key whether the object "z" carries payloadOp's link.
+// empty key whether the object "z" carries pluginOp's link.
 func replayedTo(ctx context.Context, t *testing.T, eng world.Engine, key string) bool {
 	t.Helper()
 	tx, err := eng.NewTransaction(ctx, false)
@@ -1139,61 +1199,54 @@ func replayedTo(ctx context.Context, t *testing.T, eng world.Engine, key string)
 		}
 		return found
 	}
-	quads, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("z", payloadOpTypeID, "z", ""), 1)
+	quads, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("z", pluginOpTypeID, "z", ""), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return len(quads) != 0
 }
 
-// payloadOpTypeID is the type of payloadOp, which only its running plugin
+// pluginOpTypeID is the type of pluginOp, which only its running plugin
 // resolves.
-const payloadOpTypeID = "test/migration-payload-op"
+const pluginOpTypeID = "test/migration-plugin-op"
 
-// payloadOp is a plugin's World operation naming a payload written outside
-// the World, whose ref its message encodes. Its apply links its object to
-// itself, since a transaction that leaves the World unchanged proposes no
-// operation.
-type payloadOp struct {
+// pluginOp is a plugin's World operation, resolved on the bus while its
+// plugin runs. It names only the object roots of its transaction, as every
+// operation the bus resolves must. Its apply links its object to itself, since
+// a transaction that leaves the World unchanged proposes no operation.
+type pluginOp struct {
 	world_mock.MockWorldOp
 }
 
 // TypeID returns the operation type identifier.
-func (*payloadOp) TypeID() string {
-	return payloadOpTypeID
+func (*pluginOp) TypeID() string {
+	return pluginOpTypeID
 }
 
 // ApplyWorldOp links the operation's object to itself.
-func (o *payloadOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, _ peer.ID) (bool, error) {
+func (o *pluginOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, _ peer.ID) (bool, error) {
 	key := o.GetObjectKey()
-	return false, ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(key, payloadOpTypeID, key, ""))
+	return false, ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(key, pluginOpTypeID, key, ""))
 }
 
-// GetPayloadRefs returns the payload the message encodes.
-func (o *payloadOp) GetPayloadRefs() []*block.BlockRef {
-	ref, err := block.UnmarshalBlockRefB58(o.GetNextMsg())
-	if err != nil || ref == nil {
-		return nil
-	}
-	return []*block.BlockRef{ref}
+// newPluginOp returns a pluginOp on the object key.
+func newPluginOp(key string) *pluginOp {
+	return &pluginOp{MockWorldOp: world_mock.MockWorldOp{ObjectKey: key, NextMsg: "plugin"}}
 }
 
-// startPayloadOpPlugin registers payloadOp's handler on b for every engine, as
-// its plugin does while it runs, and returns the release that stops it.
-func startPayloadOpPlugin(ctx context.Context, t *testing.T, b bus.Bus) func() {
+// startPluginOp registers pluginOp's handler on b for every engine, as its
+// plugin does while it runs, and returns the release that stops it.
+func startPluginOp(ctx context.Context, t *testing.T, b bus.Bus) func() {
 	t.Helper()
 	lookup := func(_ context.Context, opTypeID string) (world.Operation, error) {
-		if opTypeID != payloadOpTypeID {
+		if opTypeID != pluginOpTypeID {
 			return nil, nil
 		}
-		return &payloadOp{}, nil
+		return &pluginOp{}, nil
 	}
-	release, err := b.AddController(ctx, world.NewLookupOpController("test-payload-op-plugin", "", lookup), nil)
+	release, err := b.AddController(ctx, world.NewLookupOpController("test-plugin-op", "", lookup), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return release
 }
-
-// _ is a type assertion
-var _ world.PayloadOperation = (*payloadOp)(nil)

@@ -43,6 +43,9 @@ type spacePosition struct {
 	// payloads are the roots of the operation's payload, which replay reads
 	// again while the operation is above the checkpoint.
 	payloads []*block.BlockRef
+	// handlers identifies the handlers that named payloads, or is nil when
+	// payloads are not known to be what they name now.
+	handlers *PayloadHandlers
 }
 
 // spaceReplay computes the Worlds of the positions above the installed
@@ -108,21 +111,24 @@ func (r *spaceReplay) head() (*InnerState, uint64) {
 	return r.stateBefore(len(r.positions))
 }
 
-// savedPayloads returns the payload roots of the restored positions that
-// applied, by operation hash. A payload depends only on the operation, so it
-// holds wherever the operation lands in the order.
-func (r *spaceReplay) savedPayloads() map[string][]*block.BlockRef {
-	out := make(map[string][]*block.BlockRef, len(r.restored))
+// savedPayloads returns the payloads of the restored positions that applied,
+// by operation hash, where the handlers that named them name the same roots
+// now (invariant 6 of the payload hold). A payload depends only on the
+// operation and its handlers, so it holds wherever the operation lands in the
+// order.
+func (r *spaceReplay) savedPayloads() map[string]opHold {
+	out := make(map[string]opHold, len(r.restored))
 	for _, pos := range r.restored {
-		if pos.reason == "" {
-			out[string(pos.op.Hash)] = pos.payloads
+		if pos.reason == "" && pos.handlers != nil {
+			out[string(pos.op.Hash)] = newOpHold(pos.payloads, pos.handlers)
 		}
 	}
 	return out
 }
 
 // restoredAt returns the saved position at index when it records op after the
-// same World, or nil.
+// same World, or nil. A position whose handlers name other roots now takes the
+// payloads Hold resolved for op, and is nil when Hold did not resolve them.
 func (r *spaceReplay) restoredAt(index int, op *sobject.OrderedOperation, prev *InnerState) *spacePosition {
 	// The saved position must record op.
 	if index >= len(r.restored) || !bytes.Equal(r.restored[index].op.Hash, op.Hash) {
@@ -139,6 +145,20 @@ func (r *spaceReplay) restoredAt(index int, op *sobject.OrderedOperation, prev *
 	}
 	pos := r.restored[index]
 	pos.op = op
+
+	// Take the payloads Hold resolved when the saved ones may be stale, or
+	// run op again when Hold did not resolve it.
+	if pos.reason == "" && pos.handlers == nil {
+		var held opHold
+		var ok bool
+		if r.a.stateHold != nil {
+			held, ok = r.a.stateHold.ops[string(op.Hash)]
+		}
+		if !ok {
+			return nil
+		}
+		pos.payloads, pos.handlers = held.refs, held.handlers
+	}
 	return &pos
 }
 
@@ -238,7 +258,7 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	case *WorldOp_ApplyTxOp:
 		next, reason, err = r.applyTx(ctx, body.ApplyTxOp, prev, peerID)
 		if err == nil && reason == "" {
-			pos.payloads, err = r.a.txPayloads(ctx, op.Hash, body.ApplyTxOp.GetTx())
+			pos.payloads, pos.handlers, err = r.a.txPayloads(ctx, op.Hash, body.ApplyTxOp.GetTx())
 		}
 	case *WorldOp_SetRetainedRoot:
 		next, reason = applySetRetainedRoot(body.SetRetainedRoot, prev)
@@ -253,6 +273,10 @@ func (r *spaceReplay) apply(ctx context.Context, pos spacePosition, op *sobject.
 	}
 	if err != nil {
 		return pos, err
+	}
+	if pos.handlers == nil {
+		// An operation without a transaction names no payloads.
+		pos.handlers = &PayloadHandlers{}
 	}
 
 	// Record the outcome, and the seqno of a changed World.

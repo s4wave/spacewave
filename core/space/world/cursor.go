@@ -138,11 +138,12 @@ func (a *Adapter) encodeCursor() (*block.BlockRef, []byte, error) {
 	prev := r.base
 	for _, pos := range r.positions {
 		outcome := &ReplayCursorOutcome{
-			Hash:     pos.op.Hash,
-			Reason:   pos.reason,
-			World:    pos.state.GetHeadRef().GetRootRef(),
-			Payloads: pos.payloads,
-			Seqno:    pos.seqno,
+			Hash:            pos.op.Hash,
+			Reason:          pos.reason,
+			World:           pos.state.GetHeadRef().GetRootRef(),
+			Payloads:        pos.payloads,
+			Seqno:           pos.seqno,
+			PayloadHandlers: pos.handlers,
 		}
 		if !sameRetained(prev, pos.state) {
 			outcome.RetainedRoots = &RetainedRootSet{Roots: pos.state.GetRetainedRoots()}
@@ -199,6 +200,9 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 		a.le.Warn("saved replay does not lead to its head, replaying from the checkpoint")
 		return nil
 	}
+
+	// Keep each outcome's payloads as known only while its handlers name the
+	// same roots (invariant 6 of the payload hold).
 	positions := make([]spacePosition, len(states))
 	for i, outcome := range cursor.GetOutcomes() {
 		positions[i] = spacePosition{
@@ -207,6 +211,9 @@ func (a *Adapter) loadCursor(ctx context.Context) error {
 			state:    states[i],
 			seqno:    outcome.GetSeqno(),
 			payloads: outcome.GetPayloads(),
+		}
+		if a.handlersCurrent(ctx, outcome.GetPayloadHandlers()) {
+			positions[i].handlers = outcome.GetPayloadHandlers()
 		}
 	}
 	a.replay.restored = positions

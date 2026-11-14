@@ -327,6 +327,7 @@ func TestAdapterRunThrough(t *testing.T) {
 	// A local commit stores no block over 1x and 10x objects, as the Phase 4
 	// path walk says: its one Volume write is the SharedObject's state, and
 	// the World's pages wait in memory for the next stored World.
+	t.Run("payload-handlers", runPayloadHandlers)
 	t.Run("scaling", func(t *testing.T) {
 		small, large := measureAdapterCommit(t, 20), measureAdapterCommit(t, 200)
 		t.Logf("a local commit stored %d blocks over 1x objects and %d over 10x", small, large)
@@ -345,6 +346,216 @@ func TestAdapterRunThrough(t *testing.T) {
 			t.Fatalf("a remount resolved the mock type %d times over 40 operations above the checkpoint and %d over 300, want at most 256", small, large)
 		}
 	})
+}
+
+// payloadMockOp is a mock World operation that names payload roots derived
+// from its object key: the first, and the second too once extra is set, as a
+// new build of its handler would, under the version in version.
+type payloadMockOp struct {
+	*world_mock.MockWorldOp
+	// extra is set when the handler names the second root.
+	extra *atomic.Bool
+	// version is the handler's PayloadRefsVersion.
+	version *atomic.Uint32
+}
+
+// PayloadRefsVersion identifies what GetPayloadRefs names.
+func (o *payloadMockOp) PayloadRefsVersion() uint32 {
+	return o.version.Load()
+}
+
+// GetPayloadRefs returns the operation's payload roots.
+func (o *payloadMockOp) GetPayloadRefs() []*block.BlockRef {
+	refs := []*block.BlockRef{payloadRef("first " + o.GetObjectKey())}
+	if o.extra.Load() {
+		refs = append(refs, payloadRef("second "+o.GetObjectKey()))
+	}
+	return refs
+}
+
+// payloadRef returns the ref of the payload block holding data.
+func payloadRef(data string) *block.BlockRef {
+	ref, err := block.BuildBlockRef([]byte(data), nil)
+	if err != nil {
+		panic(err)
+	}
+	return ref
+}
+
+// runPayloadHandlers checks invariant 6 of the payload hold: after a remount,
+// the payloads root holds every root the registered handlers name for every
+// operation above the checkpoint. A remount with the saved cursor, which
+// reuses its roots under the same handler version, holds the same roots as one
+// with the cursor removed, and a remount after the handler changed to name one
+// more root under a bumped version holds that root, although the cursor
+// recorded the old handler's roots. Each remount starts from an empty payloads
+// root, so only what it held counts.
+func runPayloadHandlers(t *testing.T) {
+	// Serve the operations through a handler whose roots and identity the
+	// test switches.
+	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
+	defer cancel()
+	var extra atomic.Bool
+	var version atomic.Uint32
+	version.Store(1)
+	newOp := func(key string) *payloadMockOp {
+		return &payloadMockOp{MockWorldOp: world_mock.NewMockWorldOp(key, "payload"), extra: &extra, version: &version}
+	}
+	f := newAdapterFixtureOn(t, fixtureOpts{opTypes: &space_world.OpTypes{
+		Lookup: func(ctx context.Context, opTypeID string) (world.Operation, error) {
+			if opTypeID == world_mock.MockWorldOpTypeID {
+				return newOp(""), nil
+			}
+			return world_mock.LookupMockOp(ctx, opTypeID)
+		},
+	}})
+	eng, engRef := f.start(t)
+	so := f.space(t)
+	store := so.GetBlockStore()
+	addDevice(t, so)
+
+	// Store both payloads of each operation, then write more operations
+	// than a cursor save covers, which the silent device keeps above the
+	// checkpoint.
+	const n = 70
+	keys := make([]string, n)
+	var entries []*block.PutBatchEntry
+	for i := range n {
+		keys[i] = "payload-op-" + strconv.Itoa(i)
+		for _, data := range []string{"first " + keys[i], "second " + keys[i]} {
+			entries = append(entries, &block.PutBatchEntry{Ref: payloadRef(data), Data: []byte(data), RefsKnown: true})
+		}
+	}
+	if err := store.SetRoots(ctx, entries, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range keys {
+		err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
+			obj, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+			_, _, err = ws.ApplyWorldOp(ctx, newOp(key), "")
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitCursor := func(step string) {
+		t.Helper()
+		for {
+			cursor, err := space_world.ReadSavedCursor(ctx, so)
+			if err != nil {
+				t.Fatal(err)
+			}
+			outcomes := cursor.GetOutcomes()
+			if len(outcomes) != 0 && outcomes[len(outcomes)-1].GetPayloadHandlers() != nil {
+				return
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("no replay cursor saved %s", step)
+			case <-time.After(10 * time.Millisecond):
+			}
+		}
+	}
+	waitCursor("after the writes")
+
+	// remount empties the payloads root, optionally removes the saved
+	// cursor, remounts, and returns the payloads root's roots once the last
+	// object reads.
+	remount := func(dropCursor bool) map[string]struct{} {
+		t.Helper()
+		var served *space_world.Engine
+		if err := world.AccessEngine(ctx, eng, func(_ context.Context, eng world.Engine) error {
+			served = eng.(*space_world.Engine)
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		engRef.Release()
+		if _, err := served.WaitSeqno(ctx, math.MaxUint64); !world.IsSuperseded(err) {
+			t.Fatalf("waiting for the released engine to retire: %v", err)
+		}
+		held, err := store.GetRoot(ctx, space_world.RootReplayPayloads)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := store.SetRoots(ctx, nil, []block.NamedRoot{{Name: space_world.RootReplayPayloads, Previous: held}}); err != nil {
+			t.Fatal(err)
+		}
+		if dropCursor {
+			if err := space_world.DeleteSavedCursor(ctx, so); err != nil {
+				t.Fatal(err)
+			}
+		}
+		eng, engRef = f.start(t)
+		waitObjects(ctx, t, eng, keys[n-1])
+		return heldRoots(ctx, t, store, space_world.RootReplayPayloads)
+	}
+	requireHeld := func(step string, held map[string]struct{}, second bool) {
+		t.Helper()
+		for _, key := range keys {
+			want := []string{"first " + key}
+			if second {
+				want = append(want, "second "+key)
+			}
+			for _, data := range want {
+				if _, ok := held[payloadRef(data).MarshalString()]; !ok {
+					t.Fatalf("%s: the payloads root does not hold %q", step, data)
+				}
+			}
+		}
+	}
+
+	// The same handlers hold the same roots with the cursor and without it.
+	withCursor := remount(false)
+	requireHeld("with the cursor", withCursor, false)
+	withoutCursor := remount(true)
+	if len(withCursor) != len(withoutCursor) {
+		t.Fatalf("a remount held %d roots with the cursor and %d without it", len(withCursor), len(withoutCursor))
+	}
+	for key := range withCursor {
+		if _, ok := withoutCursor[key]; !ok {
+			t.Fatal("a remount with the cursor held a root the one without it did not")
+		}
+	}
+
+	// A handler that names one more root under a bumped version holds it
+	// although the cursor recorded the old handler's roots.
+	waitCursor("after the remount")
+	extra.Store(true)
+	version.Store(2)
+	requireHeld("after the handler changed", remount(false), true)
+	engRef.Release()
+}
+
+// heldRoots returns the roots the HeldRoots chain under the root name holds,
+// by key.
+func heldRoots(ctx context.Context, t *testing.T, store block.StoreOps, name string) map[string]struct{} {
+	t.Helper()
+	out := make(map[string]struct{})
+	ref, err := store.GetRoot(ctx, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for !ref.GetEmpty() {
+		data, found, err := store.GetBlock(ctx, ref)
+		if err != nil || !found {
+			t.Fatalf("reading the held roots block: %v, %v", found, err)
+		}
+		held := &space_world.HeldRoots{}
+		if err := held.UnmarshalVT(data); err != nil {
+			t.Fatal(err)
+		}
+		for _, root := range held.GetRoots() {
+			out[root.MarshalString()] = struct{}{}
+		}
+		ref = held.GetPrev()
+	}
+	return out
 }
 
 // measureRemountReplay writes n World operations to a Space whose stable

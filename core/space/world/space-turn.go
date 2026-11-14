@@ -27,8 +27,8 @@ func (t *spaceTurn) Base() world.Head {
 
 // Admit registers the candidate, keeps its blocks in the adapter's
 // PendingStore, holds its payloads, makes its root the writer head and
-// appends its operation to the queue. It returns before the operation is queued, with an Admission that
-// waits for the driver to apply it.
+// appends its operation to the queue. It returns before the operation is
+// queued, with an Admission that waits for the driver to apply it.
 func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world.Admission, error) {
 	// Wrap the transaction batch in the Space operation.
 	a := t.a
@@ -43,14 +43,20 @@ func (t *spaceTurn) Admit(ctx context.Context, candidate world.Candidate) (world
 	if err != nil {
 		return nil, err
 	}
+
+	// Read the payload roots it names and the handlers that name them.
 	payloads, err := tx.PayloadRefs(ctx, a.lookupOp)
+	if err != nil {
+		return nil, err
+	}
+	handlers, err := a.payloadHandlers(ctx, tx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Admit it before keeping its blocks, so a sweep on the driver goroutine
 	// finds its root among the pending candidates once the blocks are kept.
-	adm := a.newAdmission(candidate, op, payloads)
+	adm := a.newAdmission(candidate, op, payloads, handlers)
 	a.admit(adm)
 	if _, err := a.pages.PutBlockBatch(ctx, candidate.Entries); err != nil {
 		a.fail(adm, err)

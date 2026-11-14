@@ -54,6 +54,7 @@ import (
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
+	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	background "github.com/s4wave/spacewave/db/background"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
@@ -218,7 +219,7 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{signaling_rpc_client.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{space_world.NewFactory(b, space_world.OpTypes{})}
+	return []controller.Factory{space_world.NewFactory(b, space_world_engine.OpTypes)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{space_http_download.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
