@@ -20,7 +20,7 @@ func TestMergeInviteSnapshotKeepsHeldOperations(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	backend := store_inmem.NewStore()
 	held, genesis, owner := seedTestGenesisState(t, backend)
-	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, backend, "", &SOStateRuns{})
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, backend, "", &SOStateRuns{Reload: func() {}})
 	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
 	if _, _, err := host.AddLocalOperation(ctx, le, testStepFactorySet(), owner, []byte("unshared")); err != nil {

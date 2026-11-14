@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/broadcast"
@@ -240,6 +241,14 @@ type sobjectTracker struct {
 	awaitingState atomic.Bool
 	// runs joins the state funcs of this tracker's mount runs.
 	runs SOStateRuns
+	// reloadMtx guards reloadPending, reloadDelay and reloadLast.
+	reloadMtx sync.Mutex
+	// reloadPending is set while a reload waits out its delay.
+	reloadPending bool
+	// reloadDelay is the delay of the last reload.
+	reloadDelay time.Duration
+	// reloadLast is when the last reload restarted the mount.
+	reloadLast time.Time
 	// peerStateBcast guards peerStates.
 	peerStateBcast broadcast.Broadcast
 	// peerStates maps each sync peer to the digest of the last state it
@@ -247,12 +256,47 @@ type sobjectTracker struct {
 	peerStates map[string][]byte
 }
 
+// reloadBackoffMin and reloadBackoffMax bound the delay of a reload that
+// follows another within reloadBackoffMax.
+const (
+	reloadBackoffMin = 50 * time.Millisecond
+	reloadBackoffMax = 5 * time.Second
+)
+
 // reload restarts the tracker so its mount loads the state storage holds in
-// place of the one the mount loaded or last wrote.
+// place of the one the mount loaded or last wrote. A reload soon after the
+// last one waits, twice as long each time up to reloadBackoffMax, so two
+// mounts of one store that keep changing it under each other pause between
+// rounds. It never blocks: a delayed reload runs on a timer, and a reload
+// while one waits joins it.
 func (t *sobjectTracker) reload() {
-	t.a.restartSharedObject(t.id, func(cur *sobjectTracker) bool {
-		return cur == t
-	})
+	// Pick the delay, or join a waiting reload.
+	t.reloadMtx.Lock()
+	if t.reloadPending {
+		t.reloadMtx.Unlock()
+		return
+	}
+	var delay time.Duration
+	if !t.reloadLast.IsZero() && time.Since(t.reloadLast) < reloadBackoffMax {
+		delay = min(max(2*t.reloadDelay, reloadBackoffMin), reloadBackoffMax)
+	}
+	t.reloadDelay, t.reloadPending = delay, true
+	t.reloadMtx.Unlock()
+
+	// Restart the mount once the delay passes.
+	restart := func() {
+		t.reloadMtx.Lock()
+		t.reloadPending, t.reloadLast = false, time.Now()
+		t.reloadMtx.Unlock()
+		t.a.restartSharedObject(t.id, func(cur *sobjectTracker) bool {
+			return cur == t
+		})
+	}
+	if delay == 0 {
+		restart()
+		return
+	}
+	time.AfterFunc(delay, restart)
 }
 
 // recordPeerState records the digest of a state a sync peer advertised.

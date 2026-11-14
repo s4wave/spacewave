@@ -87,4 +87,11 @@ var (
 	// ErrHandingOver is returned when an owner that is handing over asks to
 	// leave again. Its successor commits the departure it already requested.
 	ErrHandingOver = errors.New("shared object owner is already handing over")
+
+	// ErrStateWriteUnknown is returned by a state write that failed after it
+	// may have committed, when storage could not be read to settle whether it
+	// did. The write may be durable, so a caller must not send it again
+	// blindly: it re-reads the state and looks for its write first. The
+	// mount reloads the state storage holds.
+	ErrStateWriteUnknown = errors.New("shared object state write outcome unknown")
 )
