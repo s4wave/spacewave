@@ -25,6 +25,7 @@ import (
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	bifcrypto "github.com/s4wave/spacewave/net/crypto"
@@ -889,12 +890,21 @@ func TestWizardGitCloneProgressWatchSendsTerminalOnce(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
+	// Create the wizard object StartGitClone requires before it clones.
+	const wizardKey = "wizard/git/test"
+	tb := world_testbed.MustDefault(t, t.Context(), world_testbed.WithWorldVerbose(false))
+	wizardObj, err := tb.WorldState.CreateObject(ctx, wizardKey, nil)
+	world.ReleaseObjectState(wizardObj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Create the wizard resource for the invalid clone request.
-	r := wizard_resource.NewWizardResource(nil, nil, "wizard/git/test", &s4wave_wizard.WizardState{})
+	r := wizard_resource.NewWizardResource(nil, tb.Engine, wizardKey, &s4wave_wizard.WizardState{})
 	defer r.Close()
 
 	// Start a Git clone with an invalid configuration.
-	_, err := r.StartGitClone(ctx, &s4wave_wizard.StartGitCloneRequest{
+	_, err = r.StartGitClone(ctx, &s4wave_wizard.StartGitCloneRequest{
 		ObjectKey:  "git/repo/test",
 		Name:       "Test Repo",
 		ConfigData: []byte{0xff},
