@@ -1,0 +1,69 @@
+[
+  {
+    "name": "the create commits apart from the wizard delete",
+    "replace": [
+      ["       /\\ wizard' = FALSE\n", "       /\\ wizard' \\in BOOLEAN\n"]
+    ],
+    "expect": "WizardXorObject"
+  },
+  {
+    "name": "the delete lands without the index move",
+    "replace": [
+      [
+        "       /\\ index' = IF r = \"wizard\" /\\ index = r THEN \"object\" ELSE index",
+        "       /\\ index' = index"
+      ]
+    ],
+    "expect": "IndexNamesLive"
+  },
+  {
+    "name": "a list that creates runs when the wizard is gone",
+    "replace": [
+      [
+        "  IF wizard\n  THEN /\\ objects' = objects + 1",
+        "  IF TRUE\n  THEN /\\ objects' = objects + 1"
+      ]
+    ],
+    "expect": "AtMostOneObject"
+  },
+  {
+    "name": "the index move ignores the index the tab read",
+    "replace": [["IF r = \"wizard\" /\\ index = r THEN", "IF TRUE THEN"]],
+    "expect": "MovedIndexStays"
+  },
+  {
+    "name": "a discard keeps what the list staged",
+    "replace": [
+      [
+        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ UNCHANGED <<read, orphan, wizard, objects, index, moved>>",
+        "  /\\ live' = [live EXCEPT ![t] = FALSE]\n  /\\ objects' = objects + 1\n  /\\ UNCHANGED <<read, orphan, wizard, index, moved>>"
+      ]
+    ],
+    "expect": "WizardXorObject"
+  },
+  {
+    "name": "Finish shows while a press runs",
+    "replace": [
+      [
+        "  (IF control[t] = \"idle\" /\\ wizard THEN {\"finish\"} ELSE {})",
+        "  (IF control[t] \\in {\"idle\", \"finishing\"} /\\ wizard THEN {\"finish\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "Retry shows after the wizard is gone",
+    "replace": [
+      [
+        "    \\cup (IF control[t] = \"failed\" /\\ wizard THEN {\"retry\"} ELSE {})",
+        "    \\cup (IF control[t] = \"failed\" THEN {\"retry\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a gone wizard offers nothing",
+    "replace": [["    \\cup (IF Gone(t) THEN {\"close\"} ELSE {})", ""]],
+    "expect": "NobodyIsStuck"
+  }
+]

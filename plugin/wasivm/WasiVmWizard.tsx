@@ -18,7 +18,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
-import { deleteWizard } from '@s4wave/app/wizard/wizard-space-index.js'
+import { useWizardFinish } from '@s4wave/app/wizard/wizard-finish.js'
 import { WizardField } from '@s4wave/app/wizard/WizardField.js'
 import { WizardFieldFrame } from '@s4wave/app/wizard/WizardFieldFrame.js'
 import { wizardInputClassName } from '@s4wave/app/wizard/wizard-field-styles.js'
@@ -77,46 +77,52 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
   const name = ws.localName.trim()
   const root = rootResource.value
 
-  // Link the published image when one is chosen, create the VM, then replace
-  // the wizard with it.
+  // Link the published image when one is chosen, before the write
+  // transaction opens since the link reads the CDN and skips an image already
+  // linked; then create the VM and replace the wizard with it in one list.
+  const finish = useWizardFinish(ws)
   const handleFinalize = useCallback(async () => {
-    if (!state || ws.creating || !name || (!image && !rootfsKey)) return
-    ws.setCreating(true)
-    try {
-      await ws.persistDraftState()
-      if (image) {
-        if (!root) throw new Error('root resource not ready')
-        await linkCdnWasiVmImage(
+    if (!state) return
+    await finish.finish(
+      async () => {
+        if (!name || (!image && !rootfsKey)) {
+          throw new Error('Name the VM and choose an image')
+        }
+        await ws.persistDraftState()
+        if (image) {
+          if (!root) throw new Error('root resource not ready')
+          await linkCdnWasiVmImage(
+            ws.spaceWorld,
+            root,
+            image,
+            ws.sessionPeerId,
+            new AbortController().signal,
+          )
+        }
+        const objectKey = await buildObjectKey(
           ws.spaceWorld,
-          root,
-          image,
-          ws.sessionPeerId,
-          new AbortController().signal,
+          'vm/wasivm/',
+          name,
         )
-      }
-      const objectKey = await buildObjectKey(ws.spaceWorld, 'vm/wasivm/', name)
-      const op = CreateWasiVmOp.create({
-        objectKey,
-        name,
-        rootfsObjectKey: rootfsKey,
-        imageObjectKey: image?.objectKey ?? '',
-        config: { initPath: initPath.trim() },
-        timestamp: new Date(),
-      })
-      await ws.spaceWorld.applyWorldOp(
-        CREATE_WASIVM_OP_ID,
-        CreateWasiVmOp.toBinary(op),
-        ws.sessionPeerId,
-      )
-      await deleteWizard(ws, objectKey)
-      toast.success(`Created ${name}`)
-      ws.navigateToObjects([objectKey])
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create VM')
-    } finally {
-      ws.setCreating(false)
-    }
-  }, [state, ws, name, image, rootfsKey, root, initPath])
+        const opData = CreateWasiVmOp.toBinary({
+          objectKey,
+          name,
+          rootfsObjectKey: rootfsKey,
+          imageObjectKey: image?.objectKey ?? '',
+          config: { initPath: initPath.trim() },
+          timestamp: new Date(),
+        })
+        return {
+          creates: [{ kind: 'op', opId: CREATE_WASIVM_OP_ID, opData }],
+          target: { openKey: objectKey, indexPath: objectKey, name },
+        }
+      },
+      (target) => {
+        toast.success(`Created ${target.name}`)
+        ws.navigateToObjects([target.openKey])
+      },
+    )
+  }, [finish, state, ws, name, image, rootfsKey, root, initPath])
 
   if (!state) {
     return (
@@ -143,7 +149,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
       onBack={() => void ws.handleBack()}
       onCancel={() => void ws.handleCancel()}
       nameLabel="VM name"
-      creating={ws.creating}
+      finish={finish.state}
       onFinalize={() => void handleFinalize()}
       canFinalize={!!name && (!!image || !!rootfsKey)}
     >

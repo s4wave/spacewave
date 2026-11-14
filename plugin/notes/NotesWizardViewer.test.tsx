@@ -5,14 +5,22 @@ import userEvent from '@testing-library/user-event'
 
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
+// seed stands in for a seeder: it writes one op to the World it is handed,
+// so a test sees whether that write landed with the Finish.
+const seed = (world: {
+  applyWorldOp: (id: string, d: Uint8Array) => unknown
+}) =>
+  Promise.resolve(world.applyWorldOp('notes/seed', new Uint8Array())).then(
+    () => undefined,
+  )
+
 const h = vi.hoisted(() => ({
-  createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
-  createDocsClientSide: vi.fn().mockResolvedValue(undefined),
-  createBlogClientSide: vi.fn().mockResolvedValue(undefined),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  createNotebookClientSide: vi.fn(),
+  createDocsClientSide: vi.fn(),
+  createBlogClientSide: vi.fn(),
+  t: undefined as unknown as WizardTestWorld,
   navigateToObjects: vi.fn(),
   persistDraftState: vi.fn().mockResolvedValue(undefined),
-  setCreating: vi.fn(),
   handleUpdateName: vi.fn(),
   handleBack: vi.fn(),
   handleCancel: vi.fn().mockResolvedValue(undefined),
@@ -33,12 +41,9 @@ vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
     objectKey: 'wizard/notes/test',
     state: h.state,
     localName: h.localName,
-    creating: false,
-    setCreating: h.setCreating,
-    spaceWorld: {
-      ...keysWorld(() => h.worldKeys),
-      deleteObject: h.deleteObject,
-    },
+    sessionPeerId: 'peer-1',
+    spaceSettings: { indexPath: 'wizard/notes/test' },
+    spaceWorld: h.t.world,
     navigateToObjects: h.navigateToObjects,
     persistDraftState: h.persistDraftState,
     handleUpdateName: h.handleUpdateName,
@@ -52,19 +57,24 @@ vi.mock('@s4wave/app/wizard/WizardShell.js', () => ({
     title,
     canFinalize,
     onFinalize,
+    finish,
   }: {
     title: React.ReactNode
     canFinalize?: boolean
     onFinalize: () => void
+    finish: WizardFinishState
   }) => (
-    <button
-      type="button"
-      aria-label="create"
-      disabled={!canFinalize}
-      onClick={onFinalize}
-    >
-      {title}
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label="create"
+        disabled={!canFinalize}
+        onClick={onFinalize}
+      >
+        {title}
+      </button>
+      {finish.status === 'failed' && <div role="alert">{finish.error}</div>}
+    </>
   ),
 }))
 
@@ -91,18 +101,12 @@ vi.mock('./blog-seed.js', () => ({
   createBlogClientSide: h.createBlogClientSide,
 }))
 
-// deleteWizard is spied on, passing through, to check each Finish hands it
-// the wizard and the object that replaces it in the Space index.
-vi.mock('@s4wave/app/wizard/wizard-space-index.js', async (importOriginal) => {
-  const mod =
-    await importOriginal<
-      typeof import('@s4wave/app/wizard/wizard-space-index.js')
-    >()
-  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
-})
-
+import type { WizardFinishState } from '@s4wave/app/wizard/wizard-finish.js'
+import {
+  wizardTestWorld,
+  type WizardTestWorld,
+} from '@s4wave/app/wizard/wizard-test-world.js'
 import { NotesWizardViewer } from './NotesWizardViewer.js'
-import { deleteWizard } from '@s4wave/app/wizard/wizard-space-index.js'
 
 describe('NotesWizardViewer', () => {
   beforeEach(() => {
@@ -114,6 +118,12 @@ describe('NotesWizardViewer', () => {
     }
     h.localName = 'Notebook'
     h.worldKeys = []
+    h.t = wizardTestWorld(['wizard/notes/test'], 'wizard/notes/test', {
+      ...keysWorld(() => h.worldKeys),
+    })
+    h.createNotebookClientSide.mockImplementation(seed)
+    h.createDocsClientSide.mockImplementation(seed)
+    h.createBlogClientSide.mockImplementation(seed)
   })
 
   afterEach(() => {
@@ -145,18 +155,19 @@ describe('NotesWizardViewer', () => {
       expect(h.createNotebookClientSide).toHaveBeenCalledTimes(1)
     })
     expect(h.createNotebookClientSide).toHaveBeenCalledWith(
-      expect.objectContaining({ deleteObject: h.deleteObject }),
+      expect.not.objectContaining({ getEngine: expect.anything() }),
       'notebook-1',
       'notebook-1-fs',
       'Notebook',
       expect.any(Date),
     )
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/notes/test')
+    // The seed, the index move and the wizard delete commit together.
+    expect(h.t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'notebook-1',
+      creates: ['notes/seed'],
+    })
     expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
-    expect(deleteWizard).toHaveBeenCalledWith(
-      expect.objectContaining({ objectKey: 'wizard/notes/test' }),
-      'notebook-1',
-    )
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Notebook')
   })
 
@@ -178,13 +189,13 @@ describe('NotesWizardViewer', () => {
       expect(h.createDocsClientSide).toHaveBeenCalledTimes(1)
     })
     expect(h.createDocsClientSide).toHaveBeenCalledWith(
-      expect.objectContaining({ deleteObject: h.deleteObject }),
+      expect.not.objectContaining({ getEngine: expect.anything() }),
       'documentation-2',
       'Documentation',
       '',
       expect.any(Date),
     )
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/notes/test')
+    expect(h.t.state.indexPath).toBe('documentation-2')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['documentation-2'])
   })
 
@@ -205,15 +216,39 @@ describe('NotesWizardViewer', () => {
       expect(h.createBlogClientSide).toHaveBeenCalledTimes(1)
     })
     expect(h.createBlogClientSide).toHaveBeenCalledWith(
-      expect.objectContaining({ deleteObject: h.deleteObject }),
+      expect.not.objectContaining({ getEngine: expect.anything() }),
       'blog-1',
       'Blog',
       '',
       '',
       expect.any(Date),
     )
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/notes/test')
+    expect(h.t.state.indexPath).toBe('blog-1')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['blog-1'])
+  })
+
+  it('keeps the wizard and writes nothing when the wizard delete fails, then Retry finishes once', async () => {
+    const user = userEvent.setup()
+    h.t.failOn = 'delete'
+    renderViewer()
+
+    // The seed ran, but the failed delete discards it with the rest.
+    await user.click(screen.getByRole('button', { name: 'create' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('delete failed')
+    expect(h.t.state).toEqual({
+      objects: new Set(['wizard/notes/test']),
+      indexPath: 'wizard/notes/test',
+      creates: [],
+    })
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+
+    // Retry runs the whole Finish again and creates one notebook.
+    h.t.failOn = undefined
+    await user.click(screen.getByRole('button', { name: 'create' }))
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
+    })
+    expect(h.t.state.creates).toEqual(['notes/seed'])
   })
 
   it('does not finalize unknown notes wizard targets', async () => {

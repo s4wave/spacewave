@@ -4,30 +4,19 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
-import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import {
   GitCloneProgressState,
   type GitCloneProgress,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
-// deleteWizard is spied on, passing through, to check each Finish hands it
-// the wizard and the object that replaces it in the Space index.
-vi.mock('./wizard-space-index.js', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
-  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
-})
-
 import { GitRepoWizardViewer } from './GitRepoWizardViewer.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { wizardTestWorld, type WizardTestWorld } from './wizard-test-world.js'
 
 const h = vi.hoisted(() => ({
   isDesktop: false,
-  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  t: undefined as unknown as WizardTestWorld,
   navigateToObjects: vi.fn(),
-  setCreating: vi.fn(),
   updateState: vi.fn().mockResolvedValue({}),
   startGitClone: vi.fn().mockResolvedValue({}),
   persistDraftState: vi.fn().mockResolvedValue(undefined),
@@ -68,14 +57,8 @@ vi.mock('./useWizardState.js', () => ({
       name: localName,
     },
     localName,
-    creating: false,
-    setCreating: h.setCreating,
     sessionPeerId: '12D3KooWGitPeer',
-    spaceWorld: {
-      ...keysWorld(() => []),
-      applyWorldOp: h.applyWorldOp,
-      deleteObject: h.deleteObject,
-    },
+    spaceWorld: h.t.world,
     spaceSettings: {
       indexPath: spaceSettingsIndexPath,
       pluginIds: ['spacewave-web'],
@@ -119,6 +102,11 @@ describe('GitRepoWizardViewer', () => {
       clone: true,
       cloneOpts: { url: 'https://github.com/urfave/cli' },
     }
+    h.t = wizardTestWorld(
+      ['wizard/git/repo/test'],
+      'wizard/git/repo/test',
+      keysWorld(() => []),
+    )
   })
 
   afterEach(() => {
@@ -185,7 +173,7 @@ describe('GitRepoWizardViewer', () => {
     await user.click(screen.getByRole('button', { name: /clone/i }))
 
     expect(h.updateState).toHaveBeenCalledWith({ step: 2 })
-    expect(h.applyWorldOp).not.toHaveBeenCalled()
+    expect(h.t.calls).toEqual([])
     expect(h.startGitClone).toHaveBeenCalledTimes(1)
     const [req] = h.startGitClone.mock.calls[0] as [
       {
@@ -274,19 +262,15 @@ describe('GitRepoWizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
-    expect(h.applyWorldOp.mock.calls[1]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
-    const settingsOp = SetSpaceIndexPathOp.fromBinary(
-      h.applyWorldOp.mock.calls[1]?.[1] as Uint8Array,
+    // The repo, the index move and the wizard delete committed together.
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1']),
     )
-    expect(settingsOp.indexPath).toBe('cli-1')
-
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1'])
-    expect(deleteWizard).toHaveBeenCalledWith(
-      expect.objectContaining({ objectKey: 'wizard/git/repo/test' }),
-      'cli-1',
-    )
+    expect(h.t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'cli-1',
+      creates: ['spacewave/git/repo/create'],
+    })
   })
 
   it('does not promote a created repo when the wizard is not the indexed surface', async () => {
@@ -295,6 +279,11 @@ describe('GitRepoWizardViewer', () => {
     localName = 'cli'
     spaceSettingsIndexPath = 'canvas/main'
     configValue = { clone: false }
+    h.t = wizardTestWorld(
+      ['wizard/git/repo/test'],
+      'canvas/main',
+      keysWorld(() => []),
+    )
 
     render(
       <GitRepoWizardViewer
@@ -310,10 +299,14 @@ describe('GitRepoWizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
-    expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe('spacewave/git/repo/create')
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1'])
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1']),
+    )
+    expect(h.t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'canvas/main',
+      creates: ['spacewave/git/repo/create'],
+    })
   })
 
   it('navigates to the repo when clone progress completes', async () => {

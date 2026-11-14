@@ -5,21 +5,13 @@ import userEvent from '@testing-library/user-event'
 
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
-// deleteWizard is spied on, passing through, to check each Finish hands it
-// the wizard and the object that replaces it in the Space index.
-vi.mock('./wizard-space-index.js', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
-  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
-})
 
 import { ForgeJobWizardViewer } from './ForgeJobWizardViewer.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { wizardTestWorld, type WizardTestWorld } from './wizard-test-world.js'
 
 const h = vi.hoisted(() => ({
-  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  t: undefined as unknown as WizardTestWorld,
   navigateToObjects: vi.fn(),
-  setCreating: vi.fn(),
   updateState: vi.fn(),
   handleUpdateName: vi.fn(),
   handleBack: vi.fn(),
@@ -40,14 +32,9 @@ vi.mock('./useWizardState.js', () => ({
       name: 'Build Job',
     },
     localName: 'Build Job',
-    creating: false,
-    setCreating: h.setCreating,
     sessionPeerId: '12D3KooWJobPeer',
-    spaceWorld: {
-      ...keysWorld(() => []),
-      applyWorldOp: h.applyWorldOp,
-      deleteObject: h.deleteObject,
-    },
+    spaceSettings: { indexPath: 'wizard/forge/job/test' },
+    spaceWorld: h.t.world,
     navigateToObjects: h.navigateToObjects,
     wizardResource: {
       value: {
@@ -83,6 +70,11 @@ describe('ForgeJobWizardViewer', () => {
 
   beforeEach(() => {
     currentStep = 0
+    h.t = wizardTestWorld(
+      ['wizard/forge/job/test'],
+      'wizard/forge/job/test',
+      keysWorld(() => []),
+    )
   })
 
   it('advances from config step when cluster and tasks are configured', async () => {
@@ -121,24 +113,20 @@ describe('ForgeJobWizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
-    const [opTypeId, opData, sender] = h.applyWorldOp.mock.calls[0] as [
-      string,
-      Uint8Array,
-      string,
-    ]
-    expect(opTypeId).toBe('spacewave/forge/job/create')
-    expect(sender).toBe('12D3KooWJobPeer')
-
-    const decoded = ForgeJobCreateOp.fromBinary(opData)
+    // One Finish applied the job create.
+    await vi.waitFor(() => expect(h.navigateToObjects).toHaveBeenCalled())
+    const opData = h.t.opData.get('spacewave/forge/job/create')
+    const decoded = ForgeJobCreateOp.fromBinary(opData ?? new Uint8Array())
     expect(decoded.jobKey).toBe('build-job')
     expect(decoded.clusterKey).toBe('forge/cluster/main')
     expect(decoded.taskDefs?.map((td) => td.name)).toEqual(['compile', 'test'])
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/forge/job/test')
-    expect(deleteWizard).toHaveBeenCalledWith(
-      expect.objectContaining({ objectKey: 'wizard/forge/job/test' }),
-      decoded.jobKey,
-    )
+
+    // The job, the index move and the wizard delete committed together.
+    expect(h.t.state).toEqual({
+      objects: new Set(),
+      indexPath: decoded.jobKey,
+      creates: ['spacewave/forge/job/create'],
+    })
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.jobKey])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Build Job')
   })

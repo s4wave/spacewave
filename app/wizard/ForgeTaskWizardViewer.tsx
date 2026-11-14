@@ -8,7 +8,7 @@ import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { useWizardFinish } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const ForgeTaskWizardTypeID = 'wizard/forge/task'
@@ -17,6 +17,7 @@ export const ForgeTaskWizardTypeID = 'wizard/forge/task'
 // Step 0: select a job. Step 1: task name. Finalize creates the task linked to the job.
 export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
   const ws = useWizardState(props, 'forge/task')
+  const finish = useWizardFinish(ws)
   const { state, configEditor } = ws
 
   const config = configEditor.value as ForgeTaskCreateOp | undefined
@@ -38,36 +39,39 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
   }, [selectedJob, ws])
 
   const handleFinalize = useCallback(async () => {
-    if (!state || ws.creating || !selectedJob || !ws.localName.trim()) return
-
-    ws.setCreating(true)
-    try {
-      await ws.persistDraftState()
-      const taskKey = await buildForgeObjectKey(
-        ws.spaceWorld,
-        'forge/task/',
-        ws.localName,
-      )
-      const opData = ForgeTaskCreateOp.toBinary({
-        taskKey,
-        name: ws.localName,
-        jobKey: selectedJob,
-        timestamp: new Date(),
-      })
-      await ws.spaceWorld.applyWorldOp(
-        'spacewave/forge/task/create',
-        opData,
-        ws.sessionPeerId,
-      )
-      await deleteWizard(ws, taskKey)
-      toast.success(`Created task ${ws.localName}`)
-      ws.navigateToObjects([taskKey])
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create task')
-    } finally {
-      ws.setCreating(false)
-    }
-  }, [state, ws, selectedJob])
+    if (!state) return
+    await finish.finish(
+      async () => {
+        // Check and save the draft and choose the key before the write
+        // transaction opens, so it holds the writer only for the writes.
+        if (!selectedJob || !ws.localName.trim()) {
+          throw new Error('Choose a job and name the task')
+        }
+        await ws.persistDraftState()
+        const taskKey = await buildForgeObjectKey(
+          ws.spaceWorld,
+          'forge/task/',
+          ws.localName,
+        )
+        const opData = ForgeTaskCreateOp.toBinary({
+          taskKey,
+          name: ws.localName,
+          jobKey: selectedJob,
+          timestamp: new Date(),
+        })
+        return {
+          creates: [
+            { kind: 'op', opId: 'spacewave/forge/task/create', opData },
+          ],
+          target: { openKey: taskKey, indexPath: taskKey, name: ws.localName },
+        }
+      },
+      (target) => {
+        toast.success(`Created task ${target.name}`)
+        ws.navigateToObjects([target.openKey])
+      },
+    )
+  }, [finish, state, ws, selectedJob])
 
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()
@@ -106,7 +110,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
       namePlaceholder="Enter task name (DNS label)..."
       nameHelp="Must be a valid DNS label (lowercase alphanumeric and hyphens)."
       nameStep={1}
-      creating={ws.creating}
+      finish={finish.state}
       onFinalize={handleFinalizeClick}
       finalizeStep={1}
     >

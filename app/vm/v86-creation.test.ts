@@ -1,57 +1,73 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/vmv86.js'
 
+import { wizardTestWorld } from '../wizard/wizard-test-world.js'
 import { runVmCreation, type VmCreationRequest } from './v86-creation.js'
 
+const request: VmCreationRequest = {
+  linkCdnImage: false,
+  cdnId: '',
+  cdnSourceObjectKey: '',
+  imageObjectKey: 'vm/image/debian',
+  vmKey: 'vm/v86/debian',
+  vmName: 'Debian',
+  memoryMb: 256,
+  vgaMemoryMb: 8,
+  networking: false,
+  sessionPeerId: 'peer-1',
+  wizardObjectKey: 'wizard/vm-1',
+  spaceIndexPath: 'wizard/vm-1',
+}
+
+// drain runs the creation stream to its end and returns the stages.
+async function drain(t: ReturnType<typeof wizardTestWorld>) {
+  const stages: string[] = []
+  const signal = new AbortController().signal
+  for await (const p of runVmCreation(t.world, request, signal)) {
+    stages.push(p.stage)
+  }
+  return stages
+}
+
 describe('runVmCreation', () => {
-  it('creates the VM, moves an index naming the wizard to it, then deletes the wizard', async () => {
-    // A fake World records each op and delete in the order they arrive.
-    const calls: string[] = []
-    const applyWorldOp = vi.fn((opId: string, opData: Uint8Array) => {
-      calls.push(opId)
-      if (opId === SET_SPACE_INDEX_PATH_OP_ID) {
-        const op = SetSpaceIndexPathOp.fromBinary(opData)
-        calls.push(`index ${op.indexPath} from ${op.expectedIndexPath ?? ''}`)
-      }
-      return Promise.resolve({ seqno: 1n, sysErr: false })
-    })
-    const deleteObject = vi.fn((objectKey: string) => {
-      calls.push(`delete ${objectKey}`)
-      return Promise.resolve({ deleted: true })
-    })
-    const world = { applyWorldOp, deleteObject } as never
-    const request: VmCreationRequest = {
-      linkCdnImage: false,
-      cdnId: '',
-      cdnSourceObjectKey: '',
-      imageObjectKey: 'vm/image/debian',
-      vmKey: 'vm/v86/debian',
-      vmName: 'Debian',
-      memoryMb: 256,
-      vgaMemoryMb: 8,
-      networking: false,
-      sessionPeerId: 'peer-1',
-      wizardObjectKey: 'wizard/vm-1',
-      spaceIndexPath: 'wizard/vm-1',
-    }
+  it('creates the VM, moves the index and deletes the wizard in one transaction', async () => {
+    const t = wizardTestWorld(['wizard/vm-1'], 'wizard/vm-1')
+    expect(await drain(t)).toEqual(['creating', 'ready'])
 
-    // Drain the stream; its last stage is ready.
-    const stages: string[] = []
-    const signal = new AbortController().signal
-    for await (const p of runVmCreation(world, request, signal)) {
-      stages.push(p.stage)
-    }
-    expect(stages).toEqual(['creating', 'ready'])
-
-    // The VM exists before the index names it, and the wizard goes last.
-    expect(calls).toEqual([
+    // The VM create, the index move and the delete commit together.
+    expect(t.calls).toEqual([
+      'open',
       CREATE_VM_V86_OP_ID,
       SET_SPACE_INDEX_PATH_OP_ID,
-      'index vm/v86/debian from wizard/vm-1',
-      'delete wizard/vm-1',
+      'delete',
+      'commit',
+      'release',
     ])
+    expect(t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'vm/v86/debian',
+      creates: [CREATE_VM_V86_OP_ID],
+    })
+  })
+
+  it('writes nothing when the wizard delete fails, so a retry with the same key creates once', async () => {
+    // The delete throws after the create staged.
+    const t = wizardTestWorld(['wizard/vm-1'], 'wizard/vm-1')
+    t.failOn = 'delete'
+    await expect(drain(t)).rejects.toThrow('delete failed')
+
+    // No VM, the index still names the wizard, and the wizard is there.
+    expect(t.state).toEqual({
+      objects: new Set(['wizard/vm-1']),
+      indexPath: 'wizard/vm-1',
+      creates: [],
+    })
+
+    // The retry reruns the stream with the same request and creates one VM.
+    t.failOn = undefined
+    expect(await drain(t)).toEqual(['creating', 'ready'])
+    expect(t.state.creates).toEqual([CREATE_VM_V86_OP_ID])
   })
 })

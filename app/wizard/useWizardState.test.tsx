@@ -7,12 +7,15 @@ import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-spa
 import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useWizardState } from './useWizardState.js'
+import { wizardTestWorld } from './wizard-test-world.js'
 
 const h = vi.hoisted(() => ({
   updateState: vi.fn().mockResolvedValue({}),
-  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
 }))
+
+// t is the Space World each test starts from: the wizard exists and the
+// Space index names it.
+let t = wizardTestWorld(['wizard/git/repo/test'], 'wizard/git/repo/test')
 
 let currentConfigData = new Uint8Array()
 let currentWizardName = 'Repo'
@@ -66,6 +69,7 @@ describe('useWizardState', () => {
     currentWizardName = 'Repo'
     cleanup()
     vi.clearAllMocks()
+    t = wizardTestWorld(['wizard/git/repo/test'], 'wizard/git/repo/test')
     vi.unstubAllGlobals()
   })
 
@@ -134,23 +138,25 @@ describe('useWizardState', () => {
     renderHarness()
     await user.click(screen.getByRole('button', { name: /cancel/i }))
 
-    // The wizard is deleted after one index write.
-    await waitFor(() => expect(h.deleteObject).toHaveBeenCalled())
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
-    expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
+    // The index move and the delete committed together.
+    await waitFor(() => expect(t.calls).toContain('commit'))
+    expect(t.calls).toEqual([
+      'open',
+      SET_SPACE_INDEX_PATH_OP_ID,
+      'delete',
+      'commit',
+      'release',
+    ])
+    expect(t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'git/repo/next',
+      creates: [],
+    })
 
-    // The write names the replacement and guards on the wizard's path.
-    const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
-    if (!(opData instanceof Uint8Array)) throw new Error('expected op bytes')
-    const op = SetSpaceIndexPathOp.fromBinary(opData)
-    expect(op.indexPath).toBe('git/repo/next')
+    // The write guards on the wizard's path.
+    const opData = t.opData.get(SET_SPACE_INDEX_PATH_OP_ID)
+    const op = SetSpaceIndexPathOp.fromBinary(opData ?? new Uint8Array())
     expect(op.expectedIndexPath).toBe('wizard/git/repo/test')
-
-    // The index write lands before the delete.
-    expect(h.applyWorldOp.mock.invocationCallOrder[0]).toBeLessThan(
-      h.deleteObject.mock.invocationCallOrder[0] ?? 0,
-    )
   })
 })
 
@@ -159,10 +165,6 @@ function renderHarness() {
 }
 
 function HarnessTree() {
-  const spaceWorld = {
-    applyWorldOp: h.applyWorldOp,
-    deleteObject: h.deleteObject,
-  }
   return (
     <SpaceContainerContext.Provider
       spaceId="space-1"
@@ -171,12 +173,12 @@ function HarnessTree() {
         settings: { indexPath: 'wizard/git/repo/test' },
       }}
       spaceWorldResource={{
-        value: spaceWorld as never,
+        value: t.world,
         loading: false,
         error: null,
         retry: vi.fn(),
       }}
-      spaceWorld={spaceWorld as never}
+      spaceWorld={t.world}
       navigateToRoot={vi.fn()}
       navigateToObjects={vi.fn()}
       buildObjectUrls={vi.fn()}

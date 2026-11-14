@@ -14,15 +14,13 @@ import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import type { WizardState } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 
-import { deleteWizard } from './wizard-space-index.js'
+import { cancelWizard } from './wizard-finish.js'
 
 // UseWizardStateResult is the return type of useWizardState.
 export interface UseWizardStateResult {
   objectKey: string
   state: WizardState | undefined
   localName: string
-  creating: boolean
-  setCreating: (v: boolean) => void
   sessionPeerId: string
   spaceWorld: ReturnType<typeof SpaceContainerContext.useContext>['spaceWorld']
   spaceSettings: SpaceSettings | undefined
@@ -36,8 +34,9 @@ export interface UseWizardStateResult {
   handleConfigDataChange: (data: Uint8Array) => void
   handleUpdateName: (name: string) => void
   handleBack: () => Promise<void>
-  // handleCancel deletes the wizard. A Space index that names the wizard moves
-  // to indexPath first, or is cleared when indexPath is omitted.
+  // handleCancel deletes the wizard in one write transaction. A Space index
+  // that names the wizard moves to indexPath, or is cleared when indexPath is
+  // omitted.
   handleCancel: (indexPath?: string) => Promise<void>
 }
 
@@ -75,7 +74,6 @@ export function useWizardState(
   const [draftConfig, setDraftConfig] = useState<{
     data: Uint8Array
   } | null>(null)
-  const [creating, setCreating] = useState(false)
   if (draftName !== null && draftName === remoteName) setDraftName(null)
   if (draftConfig && bytesEqual(draftConfig.data, remoteConfigData)) {
     setDraftConfig(null)
@@ -131,7 +129,7 @@ export function useWizardState(
   const spaceSettings = spaceState.settings
   const handleCancel = useCallback(
     async (indexPath = '') => {
-      await deleteWizard(
+      await cancelWizard(
         { objectKey, spaceWorld, spaceSettings, sessionPeerId },
         indexPath,
       )
@@ -143,8 +141,6 @@ export function useWizardState(
     objectKey,
     state,
     localName,
-    creating,
-    setCreating,
     sessionPeerId,
     spaceWorld,
     spaceSettings,

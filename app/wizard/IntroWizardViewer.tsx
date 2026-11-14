@@ -8,7 +8,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { useWizardState } from './useWizardState.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { useWizardFinish } from './wizard-finish.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
 import { IntroWizardPresentationContext } from './intro-context.js'
 
@@ -42,18 +42,24 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
     [targetObjectKey, state?.targetTypeId],
   )
 
+  // Finish moves the Space index to the introduced object and deletes the
+  // wizard in one list; it creates nothing. The overlay has no notice of its
+  // own, so a failure shows as a toast and the overlay offers Finish again.
+  const finish = useWizardFinish(ws)
   const handleFinish = useCallback(async () => {
-    if (!state || ws.creating || !targetObjectKey) return
-    ws.setCreating(true)
-    try {
-      await deleteWizard(ws, targetObjectKey)
-      ws.navigateToObjects([targetObjectKey])
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to finish intro')
-    } finally {
-      ws.setCreating(false)
+    if (!state || !targetObjectKey) return
+    const result = await finish.finish(
+      () =>
+        Promise.resolve({
+          creates: [],
+          target: { openKey: targetObjectKey, indexPath: targetObjectKey },
+        }),
+      (target) => ws.navigateToObjects([target.openKey]),
+    )
+    if (result?.status === 'failed') {
+      toast.error(result.error)
     }
-  }, [state, ws, targetObjectKey])
+  }, [finish, state, ws, targetObjectKey])
 
   if (!state) {
     return (
@@ -87,7 +93,9 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
         subhead={config?.subhead ?? ''}
         finishLabel={config?.finishLabel || 'Continue'}
         callouts={config?.callouts ?? []}
-        finishing={ws.creating}
+        finishing={
+          finish.state.status === 'finishing' || finish.state.status === 'done'
+        }
         onFinish={() => void handleFinish()}
         onSkip={() => void handleFinish()}
       />

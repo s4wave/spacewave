@@ -4,28 +4,17 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
-// deleteWizard is spied on, passing through, to check each Finish hands it
-// the wizard and the object that replaces it in the Space index.
-vi.mock('./wizard-space-index.js', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
-  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
-})
-
 import { IntroWizardViewer } from './IntroWizardViewer.js'
-import { deleteWizard } from './wizard-space-index.js'
 import { driveIntroConfig } from './intro.js'
+import { wizardTestWorld, type WizardTestWorld } from './wizard-test-world.js'
 
 const h = vi.hoisted(() => ({
-  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  t: undefined as unknown as WizardTestWorld,
   hasState: true,
   navigateToObjects: vi.fn(),
   spaceSettingsIndexPath: 'wizard/welcome-1',
-  setCreating: vi.fn(),
   handleCancel: vi.fn(),
   toastError: vi.fn(),
 }))
@@ -43,13 +32,8 @@ vi.mock('./useWizardState.js', () => ({
         }
       : undefined,
     localName: 'Welcome',
-    creating: false,
-    setCreating: h.setCreating,
     sessionPeerId: '12D3KooWIntroPeer',
-    spaceWorld: {
-      applyWorldOp: h.applyWorldOp,
-      deleteObject: h.deleteObject,
-    },
+    spaceWorld: h.t.world,
     spaceSettings: {
       indexPath: h.spaceSettingsIndexPath,
       pluginIds: ['spacewave-web'],
@@ -97,23 +81,24 @@ async function advanceToFinish(user: ReturnType<typeof userEvent.setup>) {
   )
 }
 
-function expectAppliedIndexPath(indexPath: string) {
-  expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
-  expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
-  const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
-  if (!(opData instanceof Uint8Array)) {
-    throw new Error('expected settings op bytes')
-  }
-  const settingsOp = SetSpaceIndexPathOp.fromBinary(opData)
-  expect(settingsOp.indexPath).toBe(indexPath)
+// expectFinished checks the index names the introduced object and the
+// wizard is gone, with nothing created.
+async function expectFinished() {
+  await waitFor(() =>
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
+  )
+  expect(h.t.state).toEqual({
+    objects: new Set(['files']),
+    indexPath: 'files',
+    creates: [],
+  })
 }
 
 describe('IntroWizardViewer', () => {
   beforeEach(() => {
     h.hasState = true
     h.spaceSettingsIndexPath = 'wizard/welcome-1'
-    h.applyWorldOp.mockResolvedValue({ seqno: 1n, sysErr: false })
-    h.deleteObject.mockResolvedValue({ deleted: true })
+    h.t = wizardTestWorld(['wizard/welcome-1', 'files'], 'wizard/welcome-1')
   })
 
   afterEach(() => {
@@ -138,52 +123,25 @@ describe('IntroWizardViewer', () => {
 
     await advanceToFinish(user)
 
-    expectAppliedIndexPath('files')
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
-    expect(deleteWizard).toHaveBeenCalledWith(
-      expect.objectContaining({ objectKey: 'wizard/welcome-1' }),
-      'files',
-    )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['files'])
+    await expectFinished()
   })
 
-  it('treats already-deleted wizard cleanup as success when the index already points at the target', async () => {
+  it('counts a wizard another tab already finished as finished', async () => {
     const user = userEvent.setup()
     h.spaceSettingsIndexPath = 'files'
-    h.deleteObject.mockResolvedValueOnce({ deleted: false })
+    h.t = wizardTestWorld(['files'], 'files')
 
     render(<IntroWizardViewer {...viewerProps} />)
 
     await advanceToFinish(user)
 
-    await waitFor(() =>
-      expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
-    )
-    expect(h.applyWorldOp).not.toHaveBeenCalled()
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
-    expect(h.toastError).not.toHaveBeenCalled()
-  })
-
-  it('treats object-not-found wizard cleanup rejection as success for second finishers', async () => {
-    const user = userEvent.setup()
-    h.spaceSettingsIndexPath = 'files'
-    h.deleteObject.mockRejectedValueOnce(new Error('object not found'))
-
-    render(<IntroWizardViewer {...viewerProps} />)
-
-    await advanceToFinish(user)
-
-    await waitFor(() =>
-      expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
-    )
-    expect(h.applyWorldOp).not.toHaveBeenCalled()
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    await expectFinished()
     expect(h.toastError).not.toHaveBeenCalled()
   })
 
   it('keeps the user on the wizard and surfaces real delete failures', async () => {
     const user = userEvent.setup()
-    h.deleteObject.mockRejectedValueOnce(new Error('delete failed'))
+    h.t.failOn = 'delete'
 
     render(<IntroWizardViewer {...viewerProps} />)
 
@@ -193,6 +151,8 @@ describe('IntroWizardViewer', () => {
       expect(h.toastError).toHaveBeenCalledWith('delete failed'),
     )
     expect(h.navigateToObjects).not.toHaveBeenCalled()
+    expect(h.t.state.indexPath).toBe('wizard/welcome-1')
+    expect(h.t.state.objects.has('wizard/welcome-1')).toBe(true)
   })
 
   it('skips the introduction through the same guarded cleanup path as Finish', async () => {
@@ -202,11 +162,7 @@ describe('IntroWizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /skip/i }))
 
-    await waitFor(() =>
-      expect(h.navigateToObjects).toHaveBeenCalledWith(['files']),
-    )
-    expectAppliedIndexPath('files')
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    await expectFinished()
     expect(h.handleCancel).not.toHaveBeenCalled()
     expect(h.toastError).not.toHaveBeenCalled()
   })

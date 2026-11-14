@@ -8,10 +8,14 @@ import {
 } from '@testing-library/react'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
+import { CREATE_WASIVM_OP_ID } from '@s4wave/sdk/vm/wasivm.js'
+import {
+  wizardTestWorld,
+  type WizardTestWorld,
+} from '@s4wave/app/wizard/wizard-test-world.js'
 
 const h = vi.hoisted(() => ({
-  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  t: undefined as unknown as WizardTestWorld,
   navigateToObjects: vi.fn(),
   rootResource: { value: undefined },
 }))
@@ -21,10 +25,8 @@ vi.mock('@s4wave/app/wizard/useWizardState.js', () => ({
     objectKey: 'wizard/wasivm-1',
     state: { step: 0 },
     localName: 'Shell',
-    creating: false,
-    setCreating: vi.fn(),
     sessionPeerId: 'peer-1',
-    spaceWorld: { applyWorldOp: h.applyWorldOp, deleteObject: h.deleteObject },
+    spaceWorld: h.t.world,
     spaceSettings: { indexPath: 'wizard/wasivm-1' },
     navigateToObjects: h.navigateToObjects,
     persistDraftState: vi.fn().mockResolvedValue(undefined),
@@ -52,17 +54,6 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-// deleteWizard is spied on, passing through, to check Finish hands it the
-// wizard and the VM that replaces it in the Space index.
-vi.mock('@s4wave/app/wizard/wizard-space-index.js', async (importOriginal) => {
-  const mod =
-    await importOriginal<
-      typeof import('@s4wave/app/wizard/wizard-space-index.js')
-    >()
-  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
-})
-
-import { deleteWizard } from '@s4wave/app/wizard/wizard-space-index.js'
 import WasiVmWizard from './WasiVmWizard.js'
 
 describe('WasiVmWizard', () => {
@@ -72,6 +63,9 @@ describe('WasiVmWizard', () => {
   })
 
   it('replaces the wizard with the created VM in the Space index', async () => {
+    // The index names the wizard.
+    h.t = wizardTestWorld(['wizard/wasivm-1'], 'wizard/wasivm-1')
+
     // The wizard opens on its only step.
     render(
       <WasiVmWizard
@@ -82,14 +76,14 @@ describe('WasiVmWizard', () => {
     // Finish creates the VM.
     fireEvent.click(screen.getByRole('button', { name: /create/i }))
 
-    // The wizard is deleted through deleteWizard, naming the VM as the index.
+    // The VM, the index move and the wizard delete committed together.
     await waitFor(() =>
-      expect(h.deleteObject).toHaveBeenCalledWith('wizard/wasivm-1'),
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['vm/wasivm/shell']),
     )
-    expect(deleteWizard).toHaveBeenCalledWith(
-      expect.objectContaining({ objectKey: 'wizard/wasivm-1' }),
-      'vm/wasivm/shell',
-    )
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['vm/wasivm/shell'])
+    expect(h.t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'vm/wasivm/shell',
+      creates: [CREATE_WASIVM_OP_ID],
+    })
   })
 })

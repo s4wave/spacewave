@@ -16,7 +16,7 @@ import { normalizeObjectWizards } from '../space/object-wizards.js'
 import { useObjectWizards } from '../space/useObjectWizards.js'
 
 import { useWizardState } from './useWizardState.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { useWizardFinish } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const WizardTypePrefix = 'wizard/'
@@ -66,14 +66,18 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
   // Pass undefined configTypeId: the generic viewer resolves it dynamically.
   const ws = useWizardState(props, undefined)
   const { state } = ws
+  const finish = useWizardFinish(ws)
+  const finishing =
+    finish.state.status === 'finishing' || finish.state.status === 'done'
 
   // The watched object decides the deleted state: a settled watch that finds
   // no object means the wizard is gone, whatever state was last streamed.
-  // Create deletes the wizard itself before it navigates away, so the watch
-  // can report the object gone while creating; that is not a deletion to show.
+  // Finish deletes the wizard itself before it navigates away, so the watch
+  // can report the object gone once the Finish commits; that is not a
+  // deletion to show.
   const watched = useObjectQuery(props.worldState, ws.objectKey, objectExists)
   const deleted =
-    !ws.creating && !watched.loading && !watched.error && watched.value === null
+    !finishing && !watched.loading && !watched.error && watched.value === null
 
   // Resolve configTypeId from the wizard state and use a separate config editor.
   const configEditor = useConfigEditor(
@@ -91,47 +95,39 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
   )
 
   const handleFinalize = useCallback(async () => {
-    if (!state || !targetWizard?.createOpId || ws.creating) return
-    const name = ws.localName || state.name
-    const targetKeyPrefix = state.targetKeyPrefix ?? ''
-    if (!name) return
-    const nameError = validateTargetName(state.targetTypeId, name)
-    if (nameError) {
-      toast.error(nameError)
-      return
-    }
-
-    const builder = lookupCreateOpBuilder(targetWizard.createOpId)
-    if (!builder) {
-      toast.error('No builder for this object type')
-      return
-    }
-
-    ws.setCreating(true)
-    try {
-      await ws.persistDraftState()
-      const targetKey = await (
-        state.targetTypeId?.startsWith('forge/')
-          ? buildForgeObjectKey
-          : buildObjectKey
-      )(ws.spaceWorld, targetKeyPrefix, name)
-      const opData = builder(targetKey, name, state.configData)
-      await ws.spaceWorld.applyWorldOp(
-        targetWizard.createOpId,
-        opData,
-        ws.sessionPeerId,
-      )
-      await deleteWizard(ws, targetKey)
-      toast.success(`Created ${name}`)
-      ws.navigateToObjects([targetKey])
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create object',
-      )
-    } finally {
-      ws.setCreating(false)
-    }
-  }, [state, targetWizard, ws])
+    if (!state) return
+    await finish.finish(
+      async () => {
+        // Check and save the draft and choose the key before the write
+        // transaction opens, so it holds the writer only for the writes.
+        const createOpId = targetWizard?.createOpId
+        const builder = createOpId && lookupCreateOpBuilder(createOpId)
+        if (!createOpId || !builder) {
+          throw new Error('No builder for this object type')
+        }
+        const name = ws.localName || state.name || ''
+        const nameError = name
+          ? validateTargetName(state.targetTypeId, name)
+          : 'Enter a name'
+        if (nameError) throw new Error(nameError)
+        await ws.persistDraftState()
+        const key = await (
+          state.targetTypeId?.startsWith('forge/')
+            ? buildForgeObjectKey
+            : buildObjectKey
+        )(ws.spaceWorld, state.targetKeyPrefix ?? '', name)
+        const opData = builder(key, name, state.configData)
+        return {
+          creates: [{ kind: 'op', opId: createOpId, opData }],
+          target: { openKey: key, indexPath: key, name },
+        }
+      },
+      (target) => {
+        toast.success(`Created ${target.name}`)
+        ws.navigateToObjects([target.openKey])
+      },
+    )
+  }, [finish, state, targetWizard, ws])
 
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()
@@ -172,7 +168,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
       nameError={nameError}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
-      creating={ws.creating}
+      finish={finish.state}
       onFinalize={handleFinalizeClick}
       canFinalize={!nameError}
     >

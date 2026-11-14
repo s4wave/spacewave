@@ -21,7 +21,7 @@ const base: WizardShellProps = {
   onUpdateName: noop,
   onBack: noop,
   onCancel: noop,
-  creating: false,
+  finish: { status: 'idle' },
   onFinalize: noop,
   finalizeStep: 1,
   onNext: noop,
@@ -34,7 +34,18 @@ const fixtures: Record<string, Partial<WizardShellProps>> = {
   name: {},
   invalid: { localName: '', nameError: 'Name the repository to continue.' },
   final: { step: 1, stepName: 'Review', canBack: true },
-  creating: { step: 1, stepName: 'Review', canBack: true, creating: true },
+  creating: {
+    step: 1,
+    stepName: 'Review',
+    canBack: true,
+    finish: { status: 'finishing' },
+  },
+  failed: {
+    step: 1,
+    stepName: 'Review',
+    canBack: true,
+    finish: { status: 'failed', error: 'the repository name is taken' },
+  },
 }
 
 // WizardShellDebug renders WizardShell in one fixture state, with the viewport

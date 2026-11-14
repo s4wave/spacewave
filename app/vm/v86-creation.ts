@@ -25,7 +25,7 @@ import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
-import { deleteWizard } from '../wizard/wizard-space-index.js'
+import { finishWizard } from '../wizard/wizard-finish.js'
 import {
   DEFAULT_V86_MEMORY_MB,
   DEFAULT_V86_VGA_MEMORY_MB,
@@ -244,9 +244,11 @@ async function linkCdnV86Image(
   )
 }
 
-// runVmCreation links the CDN image when requested, creates the VM, and
-// deletes the wizard, moving a Space index that names the wizard to the VM
-// first. It yields each stage as it starts.
+// runVmCreation links the CDN image when requested, then creates the VM and
+// removes the wizard as one list, moving a Space index that names the wizard
+// to the VM. The link runs first, outside the list, since it reads the CDN and
+// reuses an image already linked. A failed create writes nothing, so a retry
+// runs the stream again with the same key. It yields each stage as it starts.
 export async function* runVmCreation(
   world: EngineWorldState,
   request: VmCreationRequest,
@@ -272,20 +274,23 @@ export async function* runVmCreation(
       mounts: [],
     },
   }
-  await world.applyWorldOp(
-    CREATE_VM_V86_OP_ID,
-    CreateVmV86Op.toBinary(op),
-    request.sessionPeerId,
-    signal,
-  )
-  await deleteWizard(
+  await finishWizard(
     {
       spaceWorld: world,
       objectKey: request.wizardObjectKey,
       sessionPeerId: request.sessionPeerId,
       spaceSettings: { indexPath: request.spaceIndexPath },
     },
-    request.vmKey,
+    {
+      creates: [
+        {
+          kind: 'op',
+          opId: CREATE_VM_V86_OP_ID,
+          opData: CreateVmV86Op.toBinary(op),
+        },
+      ],
+      target: { openKey: request.vmKey, indexPath: request.vmKey },
+    },
     signal,
   )
   yield { stage: 'ready' }

@@ -636,7 +636,7 @@ export function VmV86WizardViewer({
         nameLabel="VM name"
         namePlaceholder="e.g. debian-lab"
         nameStep={1}
-        creating={creating}
+        finish={creating ? { status: 'finishing' } : { status: 'idle' }}
         creatingLabel="Starting VM creation…"
         onFinalize={finalizeClick}
         canFinalize={!finalizeBlocker(cfg, cdnImage, sessionPeerId)}

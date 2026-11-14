@@ -18,8 +18,7 @@ const mocks = vi.hoisted(() => ({
   navigateToObjects: vi.fn(),
   setOpenMenu: vi.fn(),
   openCommand: vi.fn(),
-  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
-  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  t: undefined as unknown as WizardTestWorld,
   updateState: vi.fn().mockResolvedValue({}),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
@@ -100,24 +99,11 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
   },
 }))
 
-// deleteWizard is spied on, passing through, to check each Finish hands it
-// the wizard and the object that replaces it in the Space index.
-vi.mock('./wizard-space-index.js', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
-  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
-})
-
 import { WizardViewer } from './WizardViewer.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { wizardTestWorld, type WizardTestWorld } from './wizard-test-world.js'
 
 describe('WizardViewer', () => {
   const mockSpace = {}
-
-  const mockSpaceWorld = {
-    ...keysWorld([]),
-    applyWorldOp: mocks.applyWorldOp,
-    deleteObject: mocks.deleteObject,
-  }
 
   function renderViewer() {
     return render(viewer())
@@ -137,12 +123,12 @@ describe('WizardViewer', () => {
           spaceId="space-1"
           spaceState={{ ready: true }}
           spaceWorldResource={{
-            value: mockSpaceWorld as never,
+            value: mocks.t.world,
             loading: false,
             error: null,
             retry: vi.fn(),
           }}
-          spaceWorld={mockSpaceWorld as never}
+          spaceWorld={mocks.t.world}
           navigateToRoot={vi.fn()}
           navigateToObjects={mocks.navigateToObjects}
           buildObjectUrls={vi.fn()}
@@ -188,6 +174,7 @@ describe('WizardViewer', () => {
     currentPeerId = ''
     watchedObject = { value: true, loading: false, error: null }
     vi.clearAllMocks()
+    mocks.t = wizardTestWorld(['wizard/test-canvas'], '', keysWorld([]))
   })
 
   afterEach(() => {
@@ -227,23 +214,18 @@ describe('WizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(mocks.applyWorldOp).toHaveBeenCalledTimes(1)
-    const [opTypeId, opData, sender] = mocks.applyWorldOp.mock.calls[0] as [
-      string,
-      Uint8Array,
-      string,
-    ]
-    expect(opTypeId).toBe('space/world/init-canvas')
-    expect(sender).toBe('')
-
-    const decoded = CanvasInitOp.fromBinary(opData)
+    // The canvas and the wizard delete committed together.
+    await waitFor(() => expect(mocks.navigateToObjects).toHaveBeenCalled())
+    expect(mocks.t.senders.get('space/world/init-canvas')).toBe('')
+    const opData = mocks.t.opData.get('space/world/init-canvas')
+    const decoded = CanvasInitOp.fromBinary(opData ?? new Uint8Array())
     expect(decoded.objectKey).toBe('demo-canvas-1')
-    expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
+    expect(mocks.t.state).toEqual({
+      objects: new Set(),
+      indexPath: '',
+      creates: ['space/world/init-canvas'],
+    })
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
-    expect(deleteWizard).toHaveBeenCalledWith(
-      expect.objectContaining({ objectKey: 'wizard/test-canvas' }),
-      decoded.objectKey,
-    )
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Created Demo Canvas')
   })
 
@@ -269,20 +251,14 @@ describe('WizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(mocks.applyWorldOp).toHaveBeenCalledTimes(1)
-    const [opTypeId, opData, sender] = mocks.applyWorldOp.mock.calls[0] as [
-      string,
-      Uint8Array,
-      string,
-    ]
-    expect(opTypeId).toBe('forge/cluster/create')
-    expect(sender).toBe(currentPeerId)
-
-    const decoded = ClusterCreateOp.fromBinary(opData)
+    await waitFor(() => expect(mocks.navigateToObjects).toHaveBeenCalled())
+    expect(mocks.t.senders.get('forge/cluster/create')).toBe(currentPeerId)
+    const opData = mocks.t.opData.get('forge/cluster/create')
+    const decoded = ClusterCreateOp.fromBinary(opData ?? new Uint8Array())
     expect(decoded.clusterKey).toBe('test-cluster')
     expect(decoded.name).toBe('test-cluster')
     expect(decoded.peerId ?? '').toBe('')
-    expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
+    expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(false)
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.clusterKey])
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Created test-cluster')
   })
@@ -314,7 +290,7 @@ describe('WizardViewer', () => {
       (screen.getByRole('button', { name: /create/i }) as HTMLButtonElement)
         .disabled,
     ).toBe(true)
-    expect(mocks.applyWorldOp).not.toHaveBeenCalled()
+    expect(mocks.t.calls).toEqual([])
   })
 
   it('does not finalize an experimental target wizard before browser opt-in', async () => {
@@ -334,7 +310,7 @@ describe('WizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(mocks.applyWorldOp).not.toHaveBeenCalled()
+    expect(mocks.t.calls).toEqual([])
   })
 
   it('finalizes an experimental target wizard after browser opt-in', async () => {
@@ -355,7 +331,9 @@ describe('WizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /create/i }))
 
-    expect(mocks.applyWorldOp).toHaveBeenCalledTimes(1)
+    await waitFor(() =>
+      expect(mocks.t.state.creates).toEqual(['space/world/init-canvas']),
+    )
   })
 
   it('cancels by deleting the wizard object without reopening the creation drawer', async () => {
@@ -364,7 +342,9 @@ describe('WizardViewer', () => {
 
     await user.click(screen.getByRole('button', { name: /delete wizard/i }))
 
-    expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
+    await waitFor(() =>
+      expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(false),
+    )
     expect(mocks.openCommand).not.toHaveBeenCalled()
     expect(mocks.navigateToObjects).not.toHaveBeenCalled()
   })
@@ -391,29 +371,53 @@ describe('WizardViewer', () => {
     expect(screen.queryByText('Loading wizard')).toBeNull()
   })
 
-  it('does not show the deleted state while Create removes the wizard', async () => {
+  it('does not show the deleted state while Finish removes the wizard', async () => {
     const user = userEvent.setup()
-    let finishDelete = () => {}
-    mocks.deleteObject.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finishDelete = () => resolve({ deleted: true })
-        }),
-    )
+    let finishCommit = () => {}
+    mocks.t.commitGate = new Promise((resolve) => {
+      finishCommit = resolve
+    })
     const view = renderViewer()
 
+    // The watch can see the wizard gone before the commit call returns.
     await user.click(screen.getByRole('button', { name: /create/i }))
     await waitFor(() => {
-      expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
+      expect(mocks.t.calls).toContain('delete')
     })
     watchedObject = { value: null, loading: false, error: null }
     view.rerender(viewer())
     expect(screen.queryByText('Wizard deleted')).toBeNull()
 
-    finishDelete()
+    finishCommit()
     await waitFor(() => {
       expect(mocks.navigateToObjects).toHaveBeenCalledWith(['demo-canvas-1'])
     })
+  })
+
+  it('keeps the input and shows Retry when Finish fails, then creates once', async () => {
+    const user = userEvent.setup()
+    mocks.t.failOn = 'delete'
+    renderViewer()
+
+    // The failed Finish wrote nothing and says why.
+    await user.click(screen.getByRole('button', { name: /create/i }))
+    expect(
+      await screen.findByText('Could not finish: delete failed'),
+    ).toBeTruthy()
+    expect(mocks.t.state.creates).toEqual([])
+    expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(true)
+    expect(
+      (screen.getByPlaceholderText('Enter a name...') as HTMLInputElement)
+        .value,
+    ).toBe('Demo Canvas')
+
+    // Retry runs the whole Finish again and creates one canvas.
+    mocks.t.failOn = undefined
+    await user.click(screen.getByRole('button', { name: /retry/i }))
+    await waitFor(() => {
+      expect(mocks.navigateToObjects).toHaveBeenCalledWith(['demo-canvas-1'])
+    })
+    expect(mocks.t.state.creates).toEqual(['space/world/init-canvas'])
   })
 
   it('keeps loading while the object watch has not settled', () => {

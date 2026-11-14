@@ -8,7 +8,7 @@ import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { useWizardFinish } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const ForgeJobWizardTypeID = 'wizard/forge/job'
@@ -18,6 +18,7 @@ export const ForgeJobWizardTypeID = 'wizard/forge/job'
 export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
   const ws = useWizardState(props, 'forge/job')
   const { state, configEditor } = ws
+  const finish = useWizardFinish(ws)
 
   const config = configEditor.value as ForgeJobCreateOp | undefined
   const selectedCluster = config?.clusterKey ?? ''
@@ -31,42 +32,42 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
   }, [ws])
 
   const handleFinalize = useCallback(async () => {
-    if (!state || ws.creating || !selectedCluster || !ws.localName.trim())
-      return
-    const validTasks = taskDefs.flatMap((task) => {
-      const name = task.name?.trim()
-      return name ? [{ ...task, name }] : []
-    })
-    if (validTasks.length === 0) return
-
-    ws.setCreating(true)
-    try {
-      await ws.persistDraftState()
-      const jobKey = await buildForgeObjectKey(
-        ws.spaceWorld,
-        'forge/job/',
-        ws.localName,
-      )
-      const opData = ForgeJobCreateOp.toBinary({
-        jobKey,
-        clusterKey: selectedCluster,
-        taskDefs: validTasks,
-        timestamp: new Date(),
-      })
-      await ws.spaceWorld.applyWorldOp(
-        'spacewave/forge/job/create',
-        opData,
-        ws.sessionPeerId,
-      )
-      await deleteWizard(ws, jobKey)
-      toast.success(`Created ${ws.localName}`)
-      ws.navigateToObjects([jobKey])
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create job')
-    } finally {
-      ws.setCreating(false)
-    }
-  }, [state, ws, selectedCluster, taskDefs])
+    if (!state) return
+    await finish.finish(
+      async () => {
+        // Check and save the draft and choose the key before the write
+        // transaction opens, so it holds the writer only for the writes.
+        const validTasks = taskDefs.flatMap((task) => {
+          const name = task.name?.trim()
+          return name ? [{ ...task, name }] : []
+        })
+        if (!selectedCluster || !ws.localName.trim()) {
+          throw new Error('Choose a cluster and name the job')
+        }
+        if (validTasks.length === 0) throw new Error('Add a named task')
+        await ws.persistDraftState()
+        const jobKey = await buildForgeObjectKey(
+          ws.spaceWorld,
+          'forge/job/',
+          ws.localName,
+        )
+        const opData = ForgeJobCreateOp.toBinary({
+          jobKey,
+          clusterKey: selectedCluster,
+          taskDefs: validTasks,
+          timestamp: new Date(),
+        })
+        return {
+          creates: [{ kind: 'op', opId: 'spacewave/forge/job/create', opData }],
+          target: { openKey: jobKey, indexPath: jobKey, name: ws.localName },
+        }
+      },
+      (target) => {
+        toast.success(`Created ${target.name}`)
+        ws.navigateToObjects([target.openKey])
+      },
+    )
+  }, [finish, state, ws, selectedCluster, taskDefs])
 
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()
@@ -106,7 +107,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
       namePlaceholder="Enter job name..."
       nameHelp="This display name is separate from the stable Job object key."
       nameStep={1}
-      creating={ws.creating}
+      finish={finish.state}
       onFinalize={handleFinalizeClick}
       onNext={() => void handleNext()}
       canNext={

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { LuGitBranch, LuTriangleAlert } from 'react-icons/lu'
 
@@ -14,7 +14,7 @@ import {
 
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
-import { deleteWizard } from './wizard-space-index.js'
+import { useWizardFinish } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
 
 export const GitRepoWizardTypeID = 'wizard/git/repo'
@@ -60,9 +60,33 @@ function useCloneCompletion(
   }, [objectKey, cloneState, ws])
 }
 
+// gitRepoCreateOp builds the create op for a new or cloned repository.
+function gitRepoCreateOp(
+  repoKey: string,
+  name: string,
+  isClone: boolean,
+  cloneOpts: GitCloneOpts,
+) {
+  return CreateGitRepoWizardOp.toBinary({
+    objectKey: repoKey,
+    name,
+    clone: isClone,
+    cloneOpts: isClone
+      ? {
+          url: cloneOpts?.url,
+          ref: cloneOpts?.ref || undefined,
+          depth: cloneOpts?.depth || undefined,
+          recursive: cloneOpts?.recursive || undefined,
+        }
+      : undefined,
+    timestamp: new Date(),
+  })
+}
+
 /**
- * useGitRepoFinalize returns the click handler that creates the repository,
- * or starts the clone, from the wizard's draft.
+ * useGitRepoFinalize returns the Finish state and the click handler that
+ * creates the repository through the shared finish, or starts the clone,
+ * which the clone job finishes on its own.
  */
 function useGitRepoFinalize(
   ws: WizardState,
@@ -70,66 +94,66 @@ function useGitRepoFinalize(
   cloneOpts: GitCloneOpts,
 ) {
   const { state } = ws
+  const finish = useWizardFinish(ws)
+  const [starting, setStarting] = useState(false)
 
-  const handleFinalize = useCallback(async () => {
-    if (!state || ws.creating || !ws.localName.trim()) return
-    if (isClone && !cloneOpts?.url?.trim()) return
-
-    ws.setCreating(true)
+  const startClone = useCallback(async () => {
+    const handle = ws.wizardResource.value
+    if (starting || !handle || !ws.localName.trim()) return
+    if (!cloneOpts?.url?.trim()) return
+    setStarting(true)
     try {
       await ws.persistDraftState()
-      const handle = ws.wizardResource.value
       const repoKey = await buildObjectKey(
         ws.spaceWorld,
         'git/repo/',
         ws.localName,
       )
-      const opData = CreateGitRepoWizardOp.toBinary({
+      await handle.updateState({ step: 2 })
+      await handle.startGitClone({
         objectKey: repoKey,
         name: ws.localName,
-        clone: isClone,
-        cloneOpts: isClone
-          ? {
-              url: cloneOpts?.url,
-              ref: cloneOpts?.ref || undefined,
-              depth: cloneOpts?.depth || undefined,
-              recursive: cloneOpts?.recursive || undefined,
-            }
-          : undefined,
-        timestamp: new Date(),
+        configData: gitRepoCreateOp(repoKey, ws.localName, true, cloneOpts),
+        opSender: ws.sessionPeerId,
       })
-      if (isClone) {
-        if (!handle) return
-        await handle.updateState({ step: 2 })
-        await handle.startGitClone({
-          objectKey: repoKey,
-          name: ws.localName,
-          configData: opData,
-          opSender: ws.sessionPeerId,
-        })
-        return
-      }
-      // eslint-disable-next-line react-doctor/async-parallel
-      await ws.spaceWorld.applyWorldOp(
-        'spacewave/git/repo/create',
-        opData,
-        ws.sessionPeerId,
-      )
-      await deleteWizard(ws, repoKey)
-      toast.success(`Created ${ws.localName}`)
-      ws.navigateToObjects([repoKey])
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create repository',
-      )
+      toast.error(err instanceof Error ? err.message : 'Failed to clone')
     } finally {
-      ws.setCreating(false)
+      setStarting(false)
     }
-  }, [state, ws, isClone, cloneOpts])
+  }, [cloneOpts, starting, ws])
 
-  return useCallback(() => {
-    void handleFinalize()
-  }, [handleFinalize])
+  const create = useCallback(async () => {
+    await finish.finish(
+      async () => {
+        // Check and save the draft and choose the key before the write
+        // transaction opens, so it holds the writer only for the writes.
+        if (!ws.localName.trim()) throw new Error('Name the repository')
+        await ws.persistDraftState()
+        const repoKey = await buildObjectKey(
+          ws.spaceWorld,
+          'git/repo/',
+          ws.localName,
+        )
+        const opData = gitRepoCreateOp(repoKey, ws.localName, false, cloneOpts)
+        return {
+          creates: [{ kind: 'op', opId: 'spacewave/git/repo/create', opData }],
+          target: { openKey: repoKey, indexPath: repoKey, name: ws.localName },
+        }
+      },
+      (target) => {
+        toast.success(`Created ${target.name}`)
+        ws.navigateToObjects([target.openKey])
+      },
+    )
+  }, [cloneOpts, finish, ws])
+
+  const click = useCallback(() => {
+    if (!state) return
+    void (isClone ? startClone() : create())
+  }, [create, isClone, startClone, state])
+
+  return { finish: finish.state, starting, click }
 }
 
 /** useGitCloneProgress watches the wizard's clone progress stream. */
@@ -192,7 +216,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
 
   useCloneAutoName(ws, isClone, inferredCloneName)
   useCloneCompletion(ws, progress)
-  const handleFinalizeClick = useGitRepoFinalize(ws, isClone, cloneOpts)
+  const finalize = useGitRepoFinalize(ws, isClone, cloneOpts)
 
   const handleNext = useCallback(async () => {
     const handle = ws.wizardResource.value
@@ -222,10 +246,12 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       namePlaceholder="Enter repository name..."
       nameStep={1}
       selectNameOnFocus
-      creating={ws.creating || cloning}
+      finish={
+        cloning || finalize.starting ? { status: 'finishing' } : finalize.finish
+      }
       createLabel={isClone ? 'Clone' : 'Create'}
       creatingLabel={isClone ? 'Cloning...' : 'Creating...'}
-      onFinalize={handleFinalizeClick}
+      onFinalize={finalize.click}
       canFinalize={(!isClone || !!cloneOpts?.url?.trim()) && !cloning}
       onNext={() => void handleNext()}
       canNext={!cloneUrlError}

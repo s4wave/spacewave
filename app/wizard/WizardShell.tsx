@@ -2,11 +2,13 @@ import { useCallback, type FocusEvent, type ReactNode } from 'react'
 import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
 
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { WizardField } from './WizardField.js'
+import type { WizardFinishState } from './wizard-finish.js'
 
 export interface WizardShellProps {
   // icon marks the kind of object the wizard creates.
@@ -31,8 +33,9 @@ export interface WizardShellProps {
   nameStep?: number
   // Selects the existing default name when the name input receives focus.
   selectNameOnFocus?: boolean
-  // Primary action button.
-  creating: boolean
+  // Primary action button, derived from the Finish control's state: Finish
+  // while idle, busy while finishing or done, Retry once failed.
+  finish: WizardFinishState
   createLabel?: string
   creatingLabel?: string
   onFinalize: () => void
@@ -109,12 +112,26 @@ function WizardNameField({
   )
 }
 
+/**
+ * WizardFinishNotice says why the last Finish press failed. The wizard and
+ * the person's input stay as they were, and Retry runs the Finish again.
+ */
+function WizardFinishNotice({ finish }: { finish: WizardFinishState }) {
+  if (finish.status !== 'failed') return null
+  return (
+    <ViewerStatus
+      state="failed"
+      message={`Could not finish: ${finish.error}`}
+    />
+  )
+}
+
 type WizardFooterProps = Pick<
   WizardShellProps,
   | 'step'
   | 'onBack'
   | 'canBack'
-  | 'creating'
+  | 'finish'
   | 'createLabel'
   | 'creatingLabel'
   | 'onFinalize'
@@ -132,7 +149,7 @@ function WizardFooter({
   step,
   onBack,
   canBack = true,
-  creating,
+  finish,
   createLabel = 'Create',
   creatingLabel = 'Creating...',
   onFinalize,
@@ -145,7 +162,14 @@ function WizardFooter({
   finalizeStep,
   canSubmit,
 }: WizardFooterProps) {
+  // Finish shows on its step, or on every step when none is named.
   const showFinalize = finalizeStep === undefined || step === finalizeStep
+
+  // Retry runs the whole Finish again on the kept input, so it needs the
+  // same valid draft as Finish; Back waits while a Finish runs.
+  const busy = finish.status === 'finishing' || finish.status === 'done'
+  const retry = finish.status === 'failed'
+  const finalizeLabel = busy ? creatingLabel : retry ? 'Retry' : createLabel
 
   return (
     <div className="border-foreground/8 flex items-center justify-between gap-2 border-t px-4 py-3">
@@ -154,7 +178,7 @@ function WizardFooter({
           <DashboardButton
             icon={<LuArrowLeft className="size-3.5" aria-hidden />}
             onClick={onBack}
-            disabled={!canBack}
+            disabled={!canBack || busy}
           >
             Back
           </DashboardButton>
@@ -174,12 +198,12 @@ function WizardFooter({
         {showFinalize && (
           <Button
             onClick={onFinalize}
-            disabled={creating || !canSubmit || !canFinalize}
+            disabled={busy || !canSubmit || !canFinalize}
             variant="brandOutline"
             size="toolbarWide"
           >
             <LuCheck className="size-3.5" aria-hidden />
-            {creating ? creatingLabel : createLabel}
+            {finalizeLabel}
           </Button>
         )}
       </div>
@@ -244,6 +268,8 @@ export function WizardShell({
               {step === nameStep && <WizardNameField {...rest} />}
 
               {children}
+
+              <WizardFinishNotice finish={rest.finish} />
             </div>
           </div>
 

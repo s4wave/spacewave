@@ -51,6 +51,7 @@ const h = vi.hoisted(() => ({
   computersRetry: vi.fn(),
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  commit: vi.fn().mockResolvedValue(undefined),
   handleCancel: vi.fn().mockResolvedValue(undefined),
   navigateToObjects: vi.fn(),
   navigate: vi.fn(),
@@ -87,10 +88,22 @@ vi.mock('../wizard/useWizardState.js', () => ({
     creating: false,
     setCreating: h.setCreating,
     sessionPeerId: '12D3KooWSession',
+    // Finish writes through a transaction that passes each write to the
+    // same spies, so a test reads one call order across both.
     spaceWorld: {
       ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
+      getEngine: () => ({
+        newTransaction: () =>
+          Promise.resolve({
+            applyWorldOp: h.applyWorldOp,
+            deleteObject: h.deleteObject,
+            commit: h.commit,
+            discard: () => Promise.resolve(),
+            release: () => {},
+          }),
+      }),
     },
     spaceSettings: {
       indexPath: h.spaceSettingsIndexPath,
@@ -210,10 +223,14 @@ function expectIndexMovedBeforeDelete(indexPath: string) {
   expect(SetSpaceIndexPathOp.fromBinary(opData).indexPath).toBe(indexPath)
   expect(sender).toBe('12D3KooWSession')
 
-  // The index write lands before the wizard is deleted.
-  expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
+  // The index write lands before the wizard is deleted, and both commit
+  // together.
+  expect(h.deleteObject.mock.calls[0]?.[0]).toBe('wizard/device-setup')
   expect(h.applyWorldOp.mock.invocationCallOrder[at]).toBeLessThan(
     h.deleteObject.mock.invocationCallOrder[0] ?? 0,
+  )
+  expect(h.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
+    h.commit.mock.invocationCallOrder[0] ?? 0,
   )
 }
 
@@ -595,6 +612,49 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     ).toBe(false)
     expectIndexMovedBeforeDelete('computers')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+  })
+
+  it('keeps the SSH Host and terminal it made when Finish fails, and Retry creates neither again', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'build.example.com',
+          port: 2222,
+          username: 'ubuntu',
+          authMode: 'password',
+          setupMode: 'host',
+          hostKeyAlgorithm: 'ssh-ed25519',
+          hostKeyFingerprint: 'SHA256:trusted-host',
+        },
+      }),
+    )
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'raw-secret-value' },
+    })
+
+    // The host and terminal land, then the wizard removal fails.
+    h.commit.mockRejectedValueOnce(new Error('commit failed'))
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText('Could not finish: commit failed'),
+    ).toBeTruthy()
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+
+    // Retry resumes after the terminal: one secret, host and terminal.
+    fireEvent.click(await enabledButton(/retry/i))
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith([
+        'build-host-terminal-1',
+      ]),
+    )
+    const count = (id: string) =>
+      h.applyWorldOp.mock.calls.filter(([opId]) => opId === id).length
+    expect(h.createSecret).toHaveBeenCalledTimes(1)
+    expect(count(CREATE_SSH_HOST_OP_ID)).toBe(1)
+    expect(count(CREATE_TERMINAL_OP_ID)).toBe(1)
   })
 
   it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
