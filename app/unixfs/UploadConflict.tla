@@ -13,7 +13,10 @@
 \*
 \* A dropped folder whose name holds a folder asks once whether to merge
 \* into it; what the drop holds inside it waits on that answer, and its
-\* files then ask as files do, which this module leaves to the file names.
+\* files then ask as files do. Contents are the files dropped inside a
+\* config's one folder: they wait while it asks, arrive as files once it is
+\* answered, and end with it on Skip. Cancelling a folder's row cancels it
+\* and everything inside it, whatever state each is in.
 \* A dropped folder whose name holds a file or link offers only Keep both
 \* and Skip; one sent as missing that another writer's file beat fails at
 \* the store, which refuses a folder over a file, and offers Retry.
@@ -36,8 +39,11 @@ People == {"person"}
 \* Folders are the dropped names that are folders; the rest are files.
 \* Starts is what a name may hold before the drop, and Writes what another
 \* writer may leave it holding.
-CONSTANTS Drop1, Drop2, Folders, Starts, Writes
+CONSTANTS Drop1, Drop2, Folders, Contents, Starts, Writes
 Names == Drop1 \cup Drop2
+\* Top is the folder the Contents were dropped in, and Inside(f) what f holds.
+Top == CHOOSE f \in Folders : TRUE
+Inside(f) == IF f = Top THEN Contents ELSE {}
 
 \* What a name holds in the folder: nothing, another writer's file at version
 \* "a" or "b", the dropped file once written ("m"), or a folder or link.
@@ -50,11 +56,13 @@ AllOf == [a \in Answers |->
              [] a = "merge" -> "mergeall"
              [] a = "keep" -> "keepall"
              [] a = "skip" -> "skipall"]
-Buttons == Answers \cup {AllOf[a] : a \in Answers} \cup {"retry", "cancel"}
+Buttons == Answers \cup {AllOf[a] : a \in Answers}
+             \cup {"retry", "cancel", "cancelfolder"}
 
 VARIABLES
   disk,     \* what each name holds in the folder
-  item,     \* each name's upload: out, sending, asking, failed, done, skipped, cancelled
+  item,     \* each name's upload: out, waiting, sending, asking, failed, done,
+            \* skipped, cancelled
   expect,   \* what a send expects the name to hold: missing, a version,
             \* merge into a folder, or keep
   shown,    \* the version a question shows, or "dir" for a folder or link
@@ -81,7 +89,7 @@ Offers(n) ==
 \* The names of the question's drop asking the same question.
 Alike == {n \in Asking(QDrop) : Offers(n) = Offers(Current)}
 Others == Alike \ {Current}
-Busy == {n \in Names : item[n] \in {"sending", "asking", "failed"}}
+Busy == {n \in Names : item[n] \in {"waiting", "sending", "asking", "failed"}}
 
 Shown(p) ==
   (IF Asked THEN Offers(Current) ELSE {})
@@ -89,6 +97,7 @@ Shown(p) ==
           ELSE {})
     \cup (IF \E n \in Names : item[n] = "failed" THEN {"retry"} ELSE {})
     \cup (IF Busy # {} THEN {"cancel"} ELSE {})
+    \cup (IF Folders \cap Busy # {} THEN {"cancelfolder"} ELSE {})
 
 \* What the store can do with an answer for the asking name n: Replace a
 \* file it shows, Merge a folder into a folder.
@@ -104,6 +113,7 @@ Allowed(p, b) ==
                          /\ \A n \in Alike : Works(n, a)
   \/ b = "retry" /\ \E n \in Names : item[n] = "failed"
   \/ b = "cancel" /\ Busy # {}
+  \/ b = "cancelfolder" /\ Folders \cap Busy # {}
 
 \* What the screen says with nothing to press.
 Hint(p) ==
@@ -115,14 +125,18 @@ Hint(p) ==
 Arrive(n) ==
   IF disk[n] = "none" THEN <<"sending", "missing", "none">>
   ELSE <<"asking", "none", IF disk[n] \in Files THEN disk[n] ELSE "dir">>
+\* A content waits while its folder asks, and otherwise arrives with it.
+Start(n) ==
+  IF n \in Contents /\ Arrive(Top)[1] = "asking" THEN <<"waiting", "none", "none">>
+  ELSE Arrive(n)
 
 Drop(d) ==
   /\ d # {}
   /\ \A n \in d : item[n] = "out"
   /\ d = Drop1 \/ \A n \in Drop1 : item[n] # "out"
-  /\ item' = [n \in Names |-> IF n \in d THEN Arrive(n)[1] ELSE item[n]]
-  /\ expect' = [n \in Names |-> IF n \in d THEN Arrive(n)[2] ELSE expect[n]]
-  /\ shown' = [n \in Names |-> IF n \in d THEN Arrive(n)[3] ELSE shown[n]]
+  /\ item' = [n \in Names |-> IF n \in d THEN Start(n)[1] ELSE item[n]]
+  /\ expect' = [n \in Names |-> IF n \in d THEN Start(n)[2] ELSE expect[n]]
+  /\ shown' = [n \in Names |-> IF n \in d THEN Start(n)[3] ELSE shown[n]]
   /\ UNCHANGED <<disk, answer, raced, clobbered, merged, wasted>>
 
 \* Another writer creates, changes, replaces or removes a name.
@@ -182,19 +196,26 @@ Retry(p) ==
        /\ item' = [item EXCEPT ![n] = "sending"]
   /\ UNCHANGED <<disk, expect, shown, answer, raced, clobbered, merged, wasted>>
 
-\* An answer to the asking names ns.
+\* An answer to the asking names ns. What waits inside an answered folder
+\* arrives as files do, or is skipped with it.
+Freed(ns, n) == n \in Contents /\ item[n] = "waiting" /\ Top \in ns
 Answer(ns, a) ==
   /\ item' = [n \in Names |->
-               IF n \notin ns THEN item[n]
+               IF Freed(ns, n) THEN (IF a = "skip" THEN "skipped" ELSE Arrive(n)[1])
+               ELSE IF n \notin ns THEN item[n]
                ELSE IF a = "skip" THEN "skipped" ELSE "sending"]
   /\ expect' = [n \in Names |->
-                 IF n \notin ns THEN expect[n]
+                 IF Freed(ns, n) THEN (IF a = "skip" THEN "none" ELSE Arrive(n)[2])
+                 ELSE IF n \notin ns THEN expect[n]
                  ELSE IF a = "replace" THEN shown[n]
                  ELSE IF a \in {"keep", "merge"} THEN a ELSE "none"]
   /\ answer' = [n \in Names |->
-                 IF n \notin ns THEN answer[n]
+                 IF Freed(ns, n) THEN (IF a = "skip" THEN "skip" ELSE answer[n])
+                 ELSE IF n \notin ns THEN answer[n]
                  ELSE IF a = "replace" THEN shown[n] ELSE a]
-  /\ shown' = [n \in Names |-> IF n \in ns THEN "none" ELSE shown[n]]
+  /\ shown' = [n \in Names |->
+                 IF Freed(ns, n) THEN (IF a = "skip" THEN "none" ELSE Arrive(n)[3])
+                 ELSE IF n \in ns THEN "none" ELSE shown[n]]
   /\ UNCHANGED <<disk, raced, clobbered, merged, wasted>>
 
 Press(p, b) ==
@@ -210,8 +231,20 @@ CancelAll(p) ==
   /\ shown' = [n \in Names |-> IF n \in Busy THEN "none" ELSE shown[n]]
   /\ UNCHANGED <<disk, answer, raced, clobbered, merged, wasted>>
 
+\* Cancelling a folder's row cancels it and everything inside it.
+CancelFolder(p) ==
+  /\ "cancelfolder" \in Shown(p)
+  /\ \E f \in Folders \cap Busy :
+       LET gone == ({f} \cup Inside(f)) \cap Busy
+       IN /\ item' = [n \in Names |-> IF n \in gone THEN "cancelled" ELSE item[n]]
+          /\ expect' = [n \in Names |-> IF n \in gone THEN "none" ELSE expect[n]]
+          /\ shown' = [n \in Names |-> IF n \in gone THEN "none" ELSE shown[n]]
+  /\ UNCHANGED <<disk, answer, raced, clobbered, merged, wasted>>
+
 Init ==
   /\ disk \in [Names -> Starts]
+  \* A content's name holds something only inside a folder that exists.
+  /\ \A n \in Contents : disk[Top] # "dir" => disk[n] = "none"
   /\ item = [n \in Names |-> "out"]
   /\ expect = [n \in Names |-> "none"]
   /\ shown = [n \in Names |-> "none"]
@@ -225,8 +258,8 @@ Next ==
   \/ Drop(Drop1) \/ Drop(Drop2)
   \/ \E n \in Names : OtherWrite(n) \/ Land(n) \/ Refuse(n) \/ Fail(n)
   \/ \E p \in People :
-       Retry(p) \/ CancelAll(p)
-       \/ \E b \in Buttons \ {"retry", "cancel"} : Press(p, b)
+       Retry(p) \/ CancelAll(p) \/ CancelFolder(p)
+       \/ \E b \in Buttons \ {"retry", "cancel", "cancelfolder"} : Press(p, b)
 
 S == INSTANCE Surface WITH Actions <- Buttons, Next <- Hint
 EveryShownActionWorks == S!EveryShownActionWorks
@@ -242,10 +275,13 @@ AskBeforeSending == ~wasted
 \* No dropped folder merges into a folder its name held at the drop unless
 \* the person pressed Merge.
 NoMergeWithoutAnswer == ~merged
+\* What a folder holds waits only while the folder asks.
+NothingWaitsOnAnEndedFolder ==
+  \A n \in Contents : item[n] = "waiting" => item[Top] = "asking"
 
 TypeOK ==
   /\ disk \in [Names -> Holds]
-  /\ item \in [Names -> {"out", "sending", "asking", "failed", "done",
+  /\ item \in [Names -> {"out", "waiting", "sending", "asking", "failed", "done",
                          "skipped", "cancelled"}]
   /\ expect \in [Names -> {"none", "missing", "merge", "keep"} \cup Files]
   /\ shown \in [Names -> {"none", "dir"} \cup Files]

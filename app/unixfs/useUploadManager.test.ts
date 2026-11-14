@@ -376,6 +376,34 @@ describe('useUploadManager', () => {
     })
   })
 
+  it('takes a new clone on Retry after the drop could not clone its folder', async () => {
+    const folder = fakeFolder({})
+    let clones = 0
+    const handle = {
+      ...folder.handle,
+      clone: () =>
+        clones++ ? folder.handle.clone() : Promise.reject(new Error('gone')),
+    } as FSHandle
+    const { result } = renderHook(() => useUploadManager())
+    drop(result.current, { handle }, ['a.txt', 'b.txt'])
+    await waitFor(() => {
+      expect(result.current.items.map((item) => item.status)).toEqual([
+        'error',
+        'error',
+      ])
+    })
+
+    act(() => {
+      result.current.retryUpload(result.current.items[0].id)
+    })
+    await done(result)
+    expect(clones).toBe(2)
+    expect(folder.sent().sort()).toEqual([
+      ['a.txt', { kind: 'missing' }],
+      ['b.txt', { kind: 'missing' }],
+    ])
+  })
+
   describe('a dropped folder whose name the folder already holds', () => {
     it('asks once, and merges its files asking as files do', async () => {
       const folder = fakeFolder({ photos: 'dir', 'photos/a.jpg': 1 })
@@ -422,6 +450,70 @@ describe('useUploadManager', () => {
         result.current.items.every((item) => item.status === 'skipped'),
       ).toBe(true)
       expect(folder.sent()).toEqual([])
+    })
+
+    it('keeps both from two drops under two names', async () => {
+      const folder = fakeFolder({ photos: 'dir' })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['photos/a.jpg'])
+      dropTree(result.current, folder, ['photos/b.jpg'])
+      await asked(result, 'photos')
+
+      // Both drops answer before either folder is written.
+      const ids = result.current.items
+        .filter((item) => item.kind === 'directory')
+        .map((item) => item.id)
+      act(() => {
+        for (const id of ids) result.current.answer(id, 'keep', false)
+      })
+      await waitFor(() => {
+        expect(folder.sent()).toHaveLength(4)
+      })
+      expect(folder.sent().sort()).toEqual([
+        ['photos (2)', { kind: 'directory' }],
+        ['photos (2)/a.jpg', { kind: 'missing' }],
+        ['photos (3)', { kind: 'directory' }],
+        ['photos (3)/b.jpg', { kind: 'missing' }],
+      ])
+    })
+
+    it('cancels what it holds with it while it asks', async () => {
+      const folder = fakeFolder({ photos: 'dir' })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['photos/a.jpg', 'photos/b.jpg'])
+      await asked(result, 'photos')
+
+      act(() => {
+        result.current.cancelUpload(result.current.question!.item.id)
+      })
+      expect(result.current.items).toEqual([])
+      await waitFor(() => {
+        expect(folder.held()).toBe(1)
+      })
+      expect(folder.sent()).toEqual([])
+    })
+
+    it('asks about a subfolder whose name a file holds in a merge', async () => {
+      const folder = fakeFolder({ photos: 'dir', 'photos/raw': 1 })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['photos/raw/a.jpg', 'photos/b.jpg'])
+      await asked(result, 'photos')
+
+      press(result, 'merge')
+      await asked(result, 'raw')
+      expect(result.current.question?.item.conflict?.holds).toBe('file')
+      expect(answersFor(result.current.question!.item)).toEqual([
+        'keep',
+        'skip',
+      ])
+      press(result, 'keep')
+      await done(result)
+      expect(folder.sent().sort()).toEqual([
+        ['photos', { kind: 'directory' }],
+        ['photos/b.jpg', { kind: 'missing' }],
+        ['photos/raw (2)', { kind: 'directory' }],
+        ['photos/raw (2)/a.jpg', { kind: 'missing' }],
+      ])
     })
 
     it('never replaces a file of its name', async () => {

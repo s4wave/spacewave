@@ -38,6 +38,7 @@ const steps: Record<string, string> = {
   Fail: 'a send fails',
   Retry: 'presses Retry',
   CancelAll: 'presses Cancel all',
+  CancelFolder: "cancels a folder's row",
   Press: 'answers',
 }
 

@@ -23,8 +23,8 @@
     "name": "Replace expects the live version, not the one shown",
     "replace": [
       [
-        "                 IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN shown[n]",
-        "                 IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN (IF disk[n] \\in Files THEN disk[n] ELSE shown[n])"
+        "                 ELSE IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN shown[n]",
+        "                 ELSE IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN (IF disk[n] \\in Files THEN disk[n] ELSE shown[n])"
       ]
     ],
     "expect": "NoReplaceWithoutAnswer"
@@ -80,5 +80,13 @@
       ]
     ],
     "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "cancelling a folder leaves what it holds waiting",
+    "config": "UploadConflictRaces-folders.cfg",
+    "replace": [
+      ["LET gone == ({f} \\cup Inside(f)) \\cap Busy", "LET gone == {f}"]
+    ],
+    "expect": "NothingWaitsOnAnEndedFolder"
   }
 ]
