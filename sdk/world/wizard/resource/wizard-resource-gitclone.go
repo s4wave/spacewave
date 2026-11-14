@@ -9,8 +9,9 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	s4wave_git "github.com/s4wave/spacewave/core/git"
+	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
-	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 )
@@ -56,8 +57,7 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 		return
 	}
 
-	// Prepare the World view and repository timestamp.
-	ws := world.NewEngineWorldState(r.engine, true)
+	// Prepare the repository timestamp.
 	ts := op.GetTimestamp()
 	if ts == nil {
 		ts = timestamppb.Now()
@@ -83,35 +83,9 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 		return
 	}
 
-	// Open a transaction to publish the cloned repository.
-	wtx, err := r.engine.NewTransaction(ctx, true)
-	if err != nil {
+	// Publish the staged clone and retire the wizard together.
+	if err := r.publishGitClone(ctx, req.GetObjectKey(), repoRef, ts, sender); err != nil {
 		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but publish failed.", err)
-		return
-	}
-	defer wtx.Discard()
-
-	// Initialize and commit the repository object in the World.
-	initOp := git_world.NewGitInitOp(req.GetObjectKey(), repoRef, true, nil, ts)
-	_, _, err = wtx.ApplyWorldOp(ctx, initOp, sender)
-	if err != nil {
-		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but publish failed.", err)
-		return
-	}
-	if err := wtx.Commit(ctx); err != nil {
-		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but publish failed.", err)
-		return
-	}
-
-	// Point the Space index at the repository when this wizard is current.
-	if err := r.replaceSpaceIndexIfWizardIsCurrent(ctx, ws, req.GetObjectKey()); err != nil {
-		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but space index update failed.", err)
-		return
-	}
-
-	// Remove the wizard object after publishing its repository.
-	if _, err := ws.DeleteObject(ctx, r.objKey); err != nil {
-		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but wizard cleanup failed.", err)
 		return
 	}
 
@@ -123,11 +97,61 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 	})
 }
 
+// publishGitClone creates the repository object at objectKey from the staged
+// clone at repoRef, points the Space index at it while the index names this
+// wizard, and deletes the wizard, all in one World transaction.
+//
+// Invariant: the repository object, the index change and the wizard deletion
+// commit together or not at all. A failure leaves no repository object and
+// the wizard present, so a retry clones and publishes once, never beside an
+// earlier repository.
+//
+// The transaction holds the World writer only for local reads and writes:
+// validating the staged repository root, creating the object and its type,
+// the Space settings write and the delete. The network clone finished before
+// it opened. The caller holds the stage until this returns.
+func (r *WizardResource) publishGitClone(
+	ctx context.Context,
+	objectKey string,
+	repoRef *bucket.ObjectRef,
+	ts *timestamppb.Timestamp,
+	sender peer.ID,
+) error {
+	// Open the write transaction; a return before Commit discards it.
+	wtx, err := r.engine.NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer wtx.Discard()
+
+	// Create the repository object over the staged clone.
+	initOp := git_world.NewGitInitOp(objectKey, repoRef, true, nil, ts)
+	if _, _, err := wtx.ApplyWorldOp(ctx, initOp, sender); err != nil {
+		return err
+	}
+
+	// Point the Space index at the repository when this wizard is current.
+	if err := r.replaceSpaceIndexIfWizardIsCurrent(ctx, wtx, objectKey); err != nil {
+		return errors.Wrap(err, "update space index")
+	}
+
+	// Delete the wizard that the repository replaces.
+	if _, err := wtx.DeleteObject(ctx, r.objKey); err != nil {
+		return errors.Wrap(err, "delete wizard")
+	}
+
+	return wtx.Commit(ctx)
+}
+
+// gitCloneProgressWriter forwards git clone progress output into the
+// wizard's clone progress state.
 type gitCloneProgressWriter struct {
 	resource  *WizardResource
 	objectKey string
 }
 
+// Write publishes each non-empty line of clone progress as the running
+// state and reports every byte as written, so progress never fails the clone.
 func (w *gitCloneProgressWriter) Write(p []byte) (int, error) {
 	message := strings.TrimSpace(string(p))
 	if message != "" {
