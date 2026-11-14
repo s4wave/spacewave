@@ -116,8 +116,8 @@ describe('UnixFSPdfFileViewer', () => {
       '/p/spacewave-core/fs/u/1/so/space-test/-/docs/demo/-/guide.pdf?inline=1',
     )
     expect(screen.getByText('Page 1 of 3')).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDefined()
     expect(h.pageNumber).toBe(1)
     expect(h.pageWidth).toBeGreaterThan(0)
     expect(h.workerSrc).toContain('pdf.worker.min.mjs')
@@ -131,11 +131,11 @@ describe('UnixFSPdfFileViewer', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
     expect(screen.getByText('Page 2 of 3')).toBeDefined()
     expect(h.pageNumber).toBe(2)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }))
     expect(screen.getByText('Page 1 of 3')).toBeDefined()
     expect(h.pageNumber).toBe(1)
   })

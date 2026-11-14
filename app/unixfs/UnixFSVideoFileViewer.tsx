@@ -6,11 +6,16 @@ import {
   useRef,
   useState,
 } from 'react'
-import { LuTriangleAlert } from 'react-icons/lu'
+import { LuDownload, LuTriangleAlert } from 'react-icons/lu'
 import { createPlayer } from '@videojs/react'
 import { Video, videoFeatures, VideoSkin } from '@videojs/react/video'
 import '@videojs/react/video/skin.css'
 
+import {
+  ViewerFloat,
+  ViewerFloatLink,
+  ViewerStage,
+} from '@s4wave/web/object/ViewerFloat.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
@@ -96,6 +101,10 @@ function UnixFSVideoPlayerSurface({
     initialVideoPreviewState,
   )
 
+  // playing moves the stage's media, so the floats leave while the video
+  // plays and the pointer is still, as the video's own controls do.
+  const [playing, setPlaying] = useState(false)
+
   const handleReady = useCallback(() => {
     setState((prev) => {
       if (prev.status === 'ready' && !prev.buffering) {
@@ -160,7 +169,10 @@ function UnixFSVideoPlayerSurface({
   const showBuffering = state.status === 'ready' && state.buffering
 
   return (
-    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black/80">
+    <ViewerStage
+      media={state.status === 'error' ? 'failed' : playing ? 'moving' : 'still'}
+      className="items-center justify-center bg-black/80"
+    >
       {showLoading && (
         <div
           data-testid="unixfs-video-loading"
@@ -219,6 +231,9 @@ function UnixFSVideoPlayerSurface({
             onError={handleError}
             onLoadedMetadata={handleReady}
             onLoadStart={handleLoadStart}
+            onEnded={() => setPlaying(false)}
+            onPause={() => setPlaying(false)}
+            onPlay={() => setPlaying(true)}
             onPlaying={handleReady}
             onSeeked={handleReady}
             onSeeking={handleBuffering}
@@ -230,7 +245,17 @@ function UnixFSVideoPlayerSurface({
           />
         </VideoSkin>
       </Player.Player>
-    </div>
+
+      <ViewerFloat at="tl" label="Video">
+        <ViewerFloatLink
+          label="Download"
+          icon={<LuDownload aria-hidden />}
+          essential
+          href={inlineFileURL}
+          download={title}
+        />
+      </ViewerFloat>
+    </ViewerStage>
   )
 }
 

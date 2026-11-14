@@ -1,11 +1,13 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   LuArrowRight,
+  LuDownload,
   LuFile,
   LuFileText,
   LuImage,
   LuLink,
   LuMusic,
+  LuScan,
   LuVideo,
 } from 'react-icons/lu'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -26,6 +28,13 @@ import {
   useHistory,
 } from '@s4wave/web/router/HistoryRouter.js'
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
+import {
+  ViewerFloat,
+  ViewerFloatLink,
+  ViewerFloatPress,
+  ViewerStage,
+} from '@s4wave/web/object/ViewerFloat.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { UnixFSAudioFileViewer } from './UnixFSAudioFileViewer.js'
 import { UnixFSPdfFileViewer } from './UnixFSPdfFileViewer.js'
 import { UnixFSVideoFileViewer } from './UnixFSVideoFileViewer.js'
@@ -101,6 +110,8 @@ function BinaryFileViewer({ mimeType }: { mimeType: string }) {
   )
 }
 
+// ImageFileViewer fills the pane with the image, fitted to it or at its own
+// size, with the size press and Download floating over it.
 function ImageFileViewer({
   alt,
   inlineFileURL,
@@ -108,14 +119,44 @@ function ImageFileViewer({
   alt: string
   inlineFileURL?: string
 }) {
+  const [actual, setActual] = useState(false)
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
-      <img
-        alt={alt}
-        className="max-h-full max-w-full object-contain"
-        src={inlineFileURL}
-      />
-    </div>
+    <ViewerStage media="still">
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 overflow-auto',
+          !actual && 'items-center justify-center p-4',
+        )}
+      >
+        <img
+          alt={alt}
+          className={cn(
+            'shrink-0',
+            actual
+              ? 'm-auto max-w-none'
+              : 'max-h-full max-w-full object-contain',
+          )}
+          src={inlineFileURL}
+        />
+      </div>
+      <ViewerFloat at="tr" label="Image">
+        <ViewerFloatPress
+          label="Actual size"
+          icon={<LuScan aria-hidden />}
+          aria-pressed={actual}
+          onClick={() => setActual((v) => !v)}
+        />
+        {inlineFileURL && (
+          <ViewerFloatLink
+            label="Download"
+            icon={<LuDownload aria-hidden />}
+            essential
+            href={inlineFileURL}
+            download={alt}
+          />
+        )}
+      </ViewerFloat>
+    </ViewerStage>
   )
 }
 

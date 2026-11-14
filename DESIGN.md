@@ -741,6 +741,20 @@ emits them in this order, so where two match, the lower row wins:
 | `@pane-low` | height < 12rem | The selection details sheet hides |
 | `@pane-cramped` | width < 20rem or height < 12rem | Floats over content keep only essential presses |
 
+A viewer whose content is the object, such as an image, a video or a PDF
+page, gives the pane to the content and floats its presses over it in
+`ViewerFloat` toolbars inside a `ViewerStage`, both in
+`web/object/ViewerFloat.tsx`. A float is a nearly opaque card at a corner or
+the bottom center, so its text keeps contrast over any media, and holds
+`viewer-press` presses that grow to 44px under a coarse pointer. Over still or
+failed content the floats always show. A video that starts to play keeps them
+for one idle window; then they fade once the pointer is still or gone, never
+while focus is in them, and return at once on a pointer move or key press. A
+faded float stays in the tab order, so Tab brings it back. Only the way out
+fades, and not under reduced motion.
+In a `@pane-cramped` pane only presses marked essential stay. The states are
+in `web/object/ViewerFloat.tla`.
+
 A list, table or fact list sheds by its own width, through its own
 inline-size container, since it may sit beside a side column. `FileList` is the
 container `file-list` and sheds as below; a sort by a column it hid reads "by

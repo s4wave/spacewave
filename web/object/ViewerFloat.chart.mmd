@@ -1,0 +1,26 @@
+---
+title: "Floating controls: shown or faded over the content"
+---
+stateDiagram-v2
+  direction LR
+  state "At the same time" as all {
+    state "Content" as r0 {
+      s0: moving
+      s1: still
+      s2: failed
+      [*] --> s0
+      [*] --> s1
+      s0 --> s1: the video pauses
+      s0 --> s2: the media fails
+      s1 --> s0: the video plays
+      s1 --> s2: the media fails
+    }
+    --
+    state "Floats" as r1 {
+      s3: shown
+      s4: faded
+      [*] --> s3
+      s3 --> s4: the pointer goes still or away or tabs out of the floats [when moving]
+      s4 --> s3: moves the pointer or presses a key or the video pauses or tabs into the floats or the media fails
+    }
+  }

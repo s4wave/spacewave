@@ -1,0 +1,12 @@
+[
+  {
+    "name": "a hidden float leaves the tab order",
+    "replace": [["HiddenStyle == \"faded\"", "HiddenStyle == \"removed\""]],
+    "expect": "KeyboardReturns"
+  },
+  {
+    "name": "focus inside the floats does not hold them",
+    "replace": [["  \\/ focus = \"inside\"\n", ""]],
+    "expect": "FocusedShown"
+  }
+]

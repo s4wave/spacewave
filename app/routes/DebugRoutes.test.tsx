@@ -49,6 +49,10 @@ vi.mock('@s4wave/web/debug/ViewerSideDebug.js', () => ({
   ViewerSideDebug: () => <div data-testid="viewer-side-debug" />,
 }))
 
+vi.mock('@s4wave/web/debug/ViewerFloatDebug.js', () => ({
+  ViewerFloatDebug: () => <div data-testid="viewer-float-debug" />,
+}))
+
 vi.mock('@s4wave/app/debug/git/GitSideDebug.js', () => ({
   GitSideDebug: () => <div data-testid="git-side-debug" />,
 }))
@@ -84,6 +88,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/side', testId: 'viewer-side-debug' },
   { path: '/debug/ui/git-side', testId: 'git-side-debug' },
   { path: '/debug/ui/viewer-status', testId: 'viewer-status-debug' },
+  { path: '/debug/ui/viewer-float', testId: 'viewer-float-debug' },
 ]
 
 function renderDebugRoute(path: string) {
@@ -142,6 +147,12 @@ describe('DebugRoutes', () => {
     renderDebugRoute('/debug/ui/git-side/empty')
 
     expect(screen.getByTestId('git-side-debug')).toBeDefined()
+  })
+
+  it('resolves a viewer float fixture state to its debug page', () => {
+    renderDebugRoute('/debug/ui/viewer-float/hidden')
+
+    expect(screen.getByTestId('viewer-float-debug')).toBeDefined()
   })
 
   it.each(debugChildRoutes)(

@@ -7,6 +7,7 @@ import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.j
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
 import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
 import { ViewerSideDebug } from '@s4wave/web/debug/ViewerSideDebug.js'
+import { ViewerFloatDebug } from '@s4wave/web/debug/ViewerFloatDebug.js'
 import { FileListDebug } from '@s4wave/web/debug/FileListDebug.js'
 import { ViewerStatusDebug } from '@s4wave/web/debug/ViewerStatusDebug.js'
 import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
@@ -130,6 +131,12 @@ const debugRouteEntries = [
     description: 'Open a viewer waiting, failed or empty; add /failed, /empty.',
     element: <ViewerStatusDebug />,
   },
+  {
+    path: '/debug/ui/viewer-float',
+    title: 'Viewer floats',
+    description: 'Floating viewer controls; add /hidden, /pointer, /focused...',
+    element: <ViewerFloatDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -157,6 +164,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/viewer-status/:state">
       <ViewerStatusDebug />
+    </Route>
+    <Route path="/debug/ui/viewer-float/:state">
+      <ViewerFloatDebug />
     </Route>
   </>
 )

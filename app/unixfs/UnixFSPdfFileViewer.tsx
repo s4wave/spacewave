@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
-import { LuTriangleAlert } from 'react-icons/lu'
+import { LuChevronLeft, LuChevronRight, LuTriangleAlert } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import {
+  ViewerFloat,
+  ViewerFloatPress,
+  ViewerStage,
+} from '@s4wave/web/object/ViewerFloat.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -179,97 +183,83 @@ function UnixFSPdfViewerSurface({
   })
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-      <div className="flex min-h-0 w-full max-w-5xl flex-1 flex-col">
-        <div className="border-foreground/6 bg-background-card/30 flex min-h-0 flex-1 overflow-hidden rounded-lg border">
-          <div
-            ref={frameRef}
-            aria-label={`PDF preview: ${title}`}
-            className="relative flex min-h-80 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4"
-          >
-            {!!state.numPages && (
-              <div className="border-foreground/10 bg-background/78 text-foreground absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border px-2 py-1.5 shadow-sm backdrop-blur-sm select-none">
-                <button
-                  type="button"
-                  className={cn(
-                    'border-foreground/8 bg-background-card/60 hover:bg-background-card/80 hover:border-foreground/15 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 select-none',
-                    !canGoPrev &&
-                      'text-foreground-alt/40 cursor-not-allowed opacity-50',
-                  )}
-                  disabled={!canGoPrev}
-                  onClick={() => handleChangePage(-1)}
-                >
-                  Previous
-                </button>
-                <div className="text-foreground-alt min-w-20 text-center text-xs font-medium select-none">
-                  Page {state.pageNumber || 1} of {state.numPages}
-                </div>
-                <button
-                  type="button"
-                  className={cn(
-                    'border-foreground/8 bg-background-card/60 hover:bg-background-card/80 hover:border-foreground/15 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 select-none',
-                    !canGoNext &&
-                      'text-foreground-alt/40 cursor-not-allowed opacity-50',
-                  )}
-                  disabled={!canGoNext}
-                  onClick={() => handleChangePage(1)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-
-            {state.error && (
-              <div
-                data-testid="unixfs-pdf-error"
-                className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
-              >
-                <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
-                  <LuTriangleAlert className="size-5" />
-                </div>
-                <div className="text-foreground text-sm font-semibold">
-                  PDF preview unavailable
-                </div>
-                <div className="text-foreground-alt max-w-md text-xs">
-                  {state.error}
-                </div>
-              </div>
-            )}
-
-            <Document
-              file={inlineFileURL}
-              loading={
-                <div
-                  data-testid="unixfs-pdf-loading"
-                  className="flex min-h-60 items-center justify-center p-6"
-                >
-                  <div className="w-full max-w-sm">
-                    <LoadingCard
-                      view={{
-                        state: 'active',
-                        title: 'Loading preview',
-                        detail: 'Waiting for PDF metadata.',
-                      }}
-                    />
-                  </div>
-                </div>
-              }
-              onLoadError={handleDocumentLoadError}
-              onLoadSuccess={handleDocumentLoadSuccess}
+    <ViewerStage media={state.error ? 'failed' : 'still'}>
+      <div
+        ref={frameRef}
+        aria-label={`PDF preview: ${title}`}
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4"
+      >
+        <Document
+          file={inlineFileURL}
+          loading={
+            <div
+              data-testid="unixfs-pdf-loading"
+              className="flex min-h-60 items-center justify-center p-6"
             >
-              <Page
-                className="max-h-full max-w-full"
-                onLoadSuccess={handlePageLoadSuccess}
-                pageNumber={state.pageNumber}
-                renderAnnotationLayer={false}
-                renderTextLayer={false}
-                width={fittedPageWidth}
-              />
-            </Document>
+              <div className="w-full max-w-sm">
+                <LoadingCard
+                  view={{
+                    state: 'active',
+                    title: 'Loading preview',
+                    detail: 'Waiting for PDF metadata.',
+                  }}
+                />
+              </div>
+            </div>
+          }
+          onLoadError={handleDocumentLoadError}
+          onLoadSuccess={handleDocumentLoadSuccess}
+        >
+          <Page
+            className="max-h-full max-w-full"
+            onLoadSuccess={handlePageLoadSuccess}
+            pageNumber={state.pageNumber}
+            renderAnnotationLayer={false}
+            renderTextLayer={false}
+            width={fittedPageWidth}
+          />
+        </Document>
+      </div>
+
+      {!!state.numPages && (
+        <ViewerFloat at="bc" label="Pages">
+          <ViewerFloatPress
+            label="Previous page"
+            icon={<LuChevronLeft aria-hidden />}
+            essential
+            disabled={!canGoPrev}
+            onClick={() => handleChangePage(-1)}
+          />
+          <span className="text-foreground-alt px-1 text-xs tabular-nums">
+            Page {state.pageNumber || 1} of {state.numPages}
+          </span>
+          <ViewerFloatPress
+            label="Next page"
+            icon={<LuChevronRight aria-hidden />}
+            essential
+            disabled={!canGoNext}
+            onClick={() => handleChangePage(1)}
+          />
+        </ViewerFloat>
+      )}
+
+      {state.error && (
+        <div
+          data-testid="unixfs-pdf-error"
+          className="bg-background/82 absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 p-6 text-center backdrop-blur-sm"
+        >
+          <div className="bg-destructive/10 text-destructive flex size-10 items-center justify-center rounded-full">
+            <LuTriangleAlert className="size-5" />
+          </div>
+          <div className="text-foreground text-sm font-semibold">
+            PDF preview unavailable
+          </div>
+          <div className="text-foreground-alt max-w-md text-xs">
+            {state.error}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </ViewerStage>
   )
 }
 
