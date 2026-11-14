@@ -1,0 +1,14 @@
+---
+title: "Object viewer: the bar choice"
+---
+stateDiagram-v2
+  s0: One press
+  s1: Options in the bar
+  s2: Menu open
+  [*] --> s0
+  [*] --> s1
+  s0 --> s1: pane widens
+  s0 --> s2: presses the choice
+  s1 --> s0: pane narrows
+  s2 --> s1: pane widens
+  s2 --> s0: Escape or click away or picks an option

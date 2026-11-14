@@ -88,6 +88,18 @@ const ViewerStatusDebug = debugPage(
   () => import('@s4wave/web/debug/ViewerStatusDebug.js'),
   'ViewerStatusDebug',
 )
+const PromBarDebug = debugPage(
+  () => import('@s4wave/web/debug/ViewerBarSlotsDebug.js'),
+  'PromBarDebug',
+)
+const DocsBarDebug = debugPage(
+  () => import('@s4wave/web/debug/ViewerBarSlotsDebug.js'),
+  'DocsBarDebug',
+)
+const DriveBarDebug = debugPage(
+  () => import('@s4wave/web/debug/ViewerBarSlotsDebug.js'),
+  'DriveBarDebug',
+)
 const ForgeViewerDebug = debugPage(
   () => import('@s4wave/web/debug/ForgeViewerDebug.js'),
   'ForgeViewerDebug',
@@ -285,6 +297,24 @@ const debugRouteEntries = [
     description: 'Open a wizard in one state; add /invalid, /final...',
     element: <WizardShellDebug />,
   },
+  {
+    path: '/debug/ui/bar-prom',
+    title: 'Dashboard bar',
+    description: 'A time range choice in the viewer bar; add /readonly.',
+    element: <PromBarDebug />,
+  },
+  {
+    path: '/debug/ui/bar-docs',
+    title: 'Documentation bar',
+    description: 'A narrow Pages press beside the page list; add /editing.',
+    element: <DocsBarDebug />,
+  },
+  {
+    path: '/debug/ui/bar-drive',
+    title: 'Drive toolbar',
+    description: 'The file toolbar at the viewer bar height; add /current.',
+    element: <DriveBarDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -339,6 +369,15 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/wizard/:state">
       <WizardShellDebug />
+    </Route>
+    <Route path="/debug/ui/bar-prom/:state">
+      <PromBarDebug />
+    </Route>
+    <Route path="/debug/ui/bar-docs/:state">
+      <DocsBarDebug />
+    </Route>
+    <Route path="/debug/ui/bar-drive/:state">
+      <DriveBarDebug />
     </Route>
   </>
 )

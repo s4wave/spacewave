@@ -30,8 +30,8 @@ import {
  */
 export type ViewerBarFold = 'xs' | 'md' | 'menu'
 
-/** ViewerBarAction is one press on the object a viewer shows. */
-export interface ViewerBarAction {
+/** ViewerBarActionBase is what every press on the object a viewer shows has. */
+interface ViewerBarActionBase {
   // id keys the press; it stays fixed while the label changes.
   id: string
   // label names the press, its menu item, and its tooltip while the bar draws
@@ -47,8 +47,45 @@ export interface ViewerBarAction {
   // iconOnly draws the press as its icon alone at every width. Otherwise a
   // press with an icon shows its label from a 28rem pane.
   iconOnly?: boolean
-  // fold defaults to "xs".
-  fold?: ViewerBarFold
+}
+
+/**
+ * ViewerBarAction is one press on the object a viewer shows. A narrow press
+ * shows only below a 42rem pane, where the side column it opens is gone, such
+ * as a Pages press beside a page list; from 42rem it is gone, not folded, so
+ * More never lists it. A narrow press folds at "xs" or "md", never "menu",
+ * since More would then show at 42rem with nothing to list.
+ */
+export type ViewerBarAction = ViewerBarActionBase &
+  (
+    | {
+        narrow?: false
+        // fold defaults to "xs".
+        fold?: ViewerBarFold
+      }
+    | { narrow: true; fold?: 'xs' | 'md' }
+  )
+
+/** ViewerBarOption is one option of a choice. */
+export interface ViewerBarOption {
+  id: string
+  label: string
+}
+
+/**
+ * ViewerBarChoice is a group of exclusive options in the bar, such as a time
+ * range. From a 28rem pane the options sit in the bar, the current one
+ * pressed; below it one press names the current option and opens a menu of
+ * them. The choice never folds into More. ViewerBarChoice.tla holds its
+ * states.
+ */
+export interface ViewerBarChoice {
+  // label names the group, its press and its menu, such as "Time range".
+  label: string
+  options: ViewerBarOption[]
+  // value is the current option's id.
+  value: string
+  onChange: (id: string) => void
 }
 
 interface ViewerBarProps {
@@ -64,6 +101,8 @@ interface ViewerBarProps {
   // below that More shows it above the folded presses.
   description?: ReactNode
   actions?: ViewerBarAction[]
+  // choice puts a group of exclusive options before the presses.
+  choice?: ViewerBarChoice
   // details puts a Details press before More that opens the object's facts.
   details?: ViewerBarDetails
   className?: string
@@ -146,6 +185,16 @@ function isHidden(el: Element | null | undefined): boolean {
   return !el || el.getClientRects().length === 0
 }
 
+// isGone reports whether a narrow press has left the bar at a 42rem pane, as
+// opposed to folding into More.
+function isGone(el: Element | null | undefined): boolean {
+  const wrap = el?.parentElement
+  return (
+    !!wrap?.hasAttribute('data-viewer-narrow') &&
+    getComputedStyle(wrap).display === 'none'
+  )
+}
+
 // focusBar moves focus to the bar's first shown press, or to the bar itself
 // when it shows none, so focus never falls to the page.
 function focusBar(header: HTMLElement | null) {
@@ -197,6 +246,7 @@ export function ViewerBar({
   state,
   description,
   actions = [],
+  choice,
   details,
   className,
 }: ViewerBarProps) {
@@ -209,7 +259,10 @@ export function ViewerBar({
   // readFolded lists the presses and description the pane hides now.
   const readFolded = (): MoreList => ({
     ids: actions
-      .filter((a) => isHidden(pressRefs.current.get(a.id)))
+      .filter((a) => {
+        const el = pressRefs.current.get(a.id)
+        return isHidden(el) && !isGone(el)
+      })
       .map((a) => a.id),
     note: !!description && isHidden(noteRef.current),
   })
@@ -253,18 +306,31 @@ export function ViewerBar({
           </p>
         ) : null}
       </div>
-      {actions.length > 0 || more || details ? (
+      {actions.length > 0 || more || details || choice ? (
         <div className="flex shrink-0 items-center gap-1">
-          {actions.map((action) => (
-            <ViewerBarPress
-              key={action.id}
-              action={action}
-              pressRef={(el) => {
-                if (el) pressRefs.current.set(action.id, el)
-                else pressRefs.current.delete(action.id)
-              }}
-            />
-          ))}
+          {choice ? <ViewerChoice barRef={headerRef} {...choice} /> : null}
+          {actions.map((action) => {
+            const press = (
+              <ViewerBarPress
+                key={action.id}
+                action={action}
+                pressRef={(el) => {
+                  if (el) pressRefs.current.set(action.id, el)
+                  else pressRefs.current.delete(action.id)
+                }}
+              />
+            )
+            if (!action.narrow) return press
+            return (
+              <span
+                key={action.id}
+                data-viewer-narrow
+                className="@pane-2xl:hidden contents"
+              >
+                {press}
+              </span>
+            )
+          })}
           {details ? (
             <ViewerDetailsPress barRef={headerRef} {...details} />
           ) : null}
@@ -327,6 +393,111 @@ function ViewerBarPress({
   )
 }
 
+// ViewerChoice is the bar's choice: its options as pressed buttons from a
+// 28rem pane, and below it one press naming the current option that opens a
+// menu of them. While the menu is open it watches the bar and closes once the
+// press leaves it, sending focus to the current option, which the wider pane
+// now shows.
+function ViewerChoice({
+  barRef,
+  label,
+  options,
+  value,
+  onChange,
+}: ViewerBarChoice & { barRef: RefObject<HTMLElement | null> }) {
+  // Hold the press, to see when it leaves the bar, and the group, to focus the
+  // current option then.
+  const pressRef = useRef<HTMLButtonElement>(null)
+  const groupRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const onResize = useEffectEvent(() => {
+    if (isHidden(pressRef.current)) setOpen(false)
+  })
+
+  // Close the menu once the pane widens its press out of the bar.
+  useEffect(() => {
+    // Watch the bar only while the menu is open.
+    const header = barRef.current
+    if (!open || !header) return
+    const observer = new ResizeObserver(() => onResize())
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [open, barRef])
+
+  // Draw the group from 28rem and the press below it; both name the current
+  // option.
+  const current = options.find((o) => o.id === value)
+  return (
+    <>
+      <div
+        ref={groupRef}
+        role="group"
+        aria-label={label}
+        className="@pane-md:flex hidden items-center gap-0.5"
+      >
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={o.id === value}
+            onClick={() => onChange(o.id)}
+            className={cn(
+              pressClass,
+              'inline-flex px-1.5 tabular-nums',
+              o.id === value
+                ? 'bg-foreground/10 text-foreground'
+                : pressTone.default,
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            ref={pressRef}
+            type="button"
+            aria-label={`${label}: ${current?.label ?? ''}`}
+            title={label}
+            className={cn(
+              pressClass,
+              pressTone.default,
+              '@pane-md:hidden inline-flex tabular-nums',
+            )}
+          >
+            {current?.label}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          variant="compact"
+          aria-label={label}
+          onCloseAutoFocus={(e) => {
+            if (!isHidden(pressRef.current)) return
+            e.preventDefault()
+            groupRef.current
+              ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+              ?.focus()
+          }}
+        >
+          {options.map((o) => (
+            <DropdownMenuItem
+              key={o.id}
+              role="menuitemradio"
+              aria-checked={o.id === value}
+              variant={o.id === value ? 'selected' : 'default'}
+              onSelect={() => onChange(o.id)}
+            >
+              {o.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  )
+}
+
 // ViewerBarMore is the bar's More press and menu. While open it rereads what
 // the pane folds on each resize of the bar and each change of the presses, and
 // closes once its own press leaves the bar or nothing is folded. Closing with
@@ -355,6 +526,7 @@ function ViewerBarMore({
     const next = readFolded()
     return next.ids.length > 0 || next.note ? next : null
   }
+
   // Keep the current list when the reread matches it, so a class change that
   // folds nothing new does not render the menu again.
   const onReread = useEffectEvent(() =>
