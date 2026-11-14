@@ -8,39 +8,44 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
 
 /**
- * NotebookEditOutcome is what became of a Notebook source edit.
+ * NotebookEditOutcome is what became of a Notebook source edit. The Notebook
+ * resource's editNotebook produces every value from the result of its one
+ * notes/notebook/edit World op.
  *
  * @generated from enum notes.NotebookEditOutcome
  */
 export enum NotebookEditOutcome {
   /**
-   * NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome.
+   * NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome; no producer sets it.
    */
   UNKNOWN = 0,
 
   /**
-   * NOTEBOOK_EDIT_OUTCOME_APPLIED means the edit was written.
+   * NOTEBOOK_EDIT_OUTCOME_APPLIED means the edit was written. The op returned
+   * without an error.
    */
   APPLIED = 1,
 
   /**
    * NOTEBOOK_EDIT_OUTCOME_CHANGED means the Notebook no longer held the sources
    * the caller saw, so nothing was written; the caller refreshes instead of
-   * resending.
+   * resending. The op's own conflict rejection produces it.
    */
   CHANGED = 2,
 
   /**
    * NOTEBOOK_EDIT_OUTCOME_TIMED_OUT means the plugin did not finish the edit in
    * time and the host discarded its transaction, so nothing was written and
-   * sending the same edit again is safe.
+   * sending the same edit again is safe. The host's
+   * WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT produces it.
    */
   TIMED_OUT = 3,
 
   /**
    * NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE means the host could not reach the
    * plugin that applies the edit, so nothing was sent to apply and sending the
-   * same edit again is safe.
+   * same edit again is safe. The host's WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE
+   * produces it.
    */
   PLUGIN_UNAVAILABLE = 4,
 }

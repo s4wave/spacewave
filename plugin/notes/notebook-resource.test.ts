@@ -369,28 +369,37 @@ describe('NotebookResource', () => {
       )
     })
 
-    it('reports a plugin op timeout as the timed out outcome on every edit', async () => {
-      mockEngineInstance = createMockEngine()
-      const timedOut = { errorCode: WorldErrorCode.PLUGIN_OP_TIMEOUT }
-      mockEngineInstance.executeWorldOp
-        .mockResolvedValueOnce(timedOut)
-        .mockResolvedValueOnce(timedOut)
-        .mockResolvedValueOnce(timedOut)
-      const resource = new NotebookResource(
-        'key',
-        createMockEngineRef() as never,
-      )
-      const outcome = { outcome: NotebookEditOutcome.TIMED_OUT }
-      await expect(resource.AddSource({ source: undefined })).resolves.toEqual(
-        outcome,
-      )
-      await expect(
-        resource.RemoveSource({ index: 0, source: undefined }),
-      ).resolves.toEqual(outcome)
-      await expect(
-        resource.ReorderSources({ order: [1, 0], sources: [] }),
-      ).resolves.toEqual(outcome)
-    })
+    it.each([
+      [WorldErrorCode.PLUGIN_OP_TIMEOUT, NotebookEditOutcome.TIMED_OUT],
+      [
+        WorldErrorCode.PLUGIN_UNAVAILABLE,
+        NotebookEditOutcome.PLUGIN_UNAVAILABLE,
+      ],
+    ])(
+      'reports World error code %s as edit outcome %s on every edit',
+      async (errorCode, editOutcome) => {
+        mockEngineInstance = createMockEngine()
+        const notWritten = { errorCode }
+        mockEngineInstance.executeWorldOp
+          .mockResolvedValueOnce(notWritten)
+          .mockResolvedValueOnce(notWritten)
+          .mockResolvedValueOnce(notWritten)
+        const resource = new NotebookResource(
+          'key',
+          createMockEngineRef() as never,
+        )
+        const outcome = { outcome: editOutcome }
+        await expect(
+          resource.AddSource({ source: undefined }),
+        ).resolves.toEqual(outcome)
+        await expect(
+          resource.RemoveSource({ index: 0, source: undefined }),
+        ).resolves.toEqual(outcome)
+        await expect(
+          resource.ReorderSources({ order: [1, 0], sources: [] }),
+        ).resolves.toEqual(outcome)
+      },
+    )
 
     it('RemoveSource carries the source the caller saw', async () => {
       mockEngineInstance = createMockEngine()

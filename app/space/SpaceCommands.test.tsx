@@ -27,6 +27,7 @@ import {
 } from '../device/add-device-wizard.js'
 import {
   PluginOpTimeoutError,
+  PluginUnavailableError,
   WorldOperationRejection,
 } from '@s4wave/sdk/world/errors.js'
 import { SpaceCommands } from './SpaceCommands.js'
@@ -673,31 +674,43 @@ describe('SpaceCommands', () => {
     expect(h.toast.loading).not.toHaveBeenCalled()
   })
 
-  it('says a timed out create changed nothing and resends it without reading its key', async () => {
-    const world = keysWorld([])
-    const listObjects = vi.spyOn(world, 'listObjects')
-    h.applyWorldOp.mockRejectedValueOnce(new PluginOpTimeoutError())
-    renderCommands({ world })
-
-    getCreateObjectCommandHandlers().handler({
-      subItemId: 'alpha/object-layout',
-    })
-    await waitFor(() => {
-      expect(h.toast.error).toHaveBeenCalledTimes(1)
-    })
-    const [, options] = failedCreateToast()
-    expect(options.description).toBe(
+  it.each([
+    [
+      'a timed out create changed nothing',
+      new PluginOpTimeoutError(),
       'The plugin did not finish in time, so nothing was changed.',
-    )
-    const reads = listObjects.mock.calls.length
+    ],
+    [
+      'an unavailable plugin was sent nothing',
+      new PluginUnavailableError(),
+      'The plugin could not be reached, so nothing was sent.',
+    ],
+  ])(
+    'says %s and resends it without reading its key',
+    async (_, err, description) => {
+      const world = keysWorld([])
+      const listObjects = vi.spyOn(world, 'listObjects')
+      h.applyWorldOp.mockRejectedValueOnce(err)
+      renderCommands({ world })
 
-    options.action?.onClick()
-    await waitFor(() => {
-      expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
-    })
-    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
-    expect(listObjects).toHaveBeenCalledTimes(reads)
-  })
+      getCreateObjectCommandHandlers().handler({
+        subItemId: 'alpha/object-layout',
+      })
+      await waitFor(() => {
+        expect(h.toast.error).toHaveBeenCalledTimes(1)
+      })
+      const [, options] = failedCreateToast()
+      expect(options.description).toBe(description)
+      const reads = listObjects.mock.calls.length
+
+      options.action?.onClick()
+      await waitFor(() => {
+        expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+      })
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+      expect(listObjects).toHaveBeenCalledTimes(reads)
+    },
+  )
 
   it('sends nothing for a resend whose Space closes while it reads its key', async () => {
     const world = keysWorld([])

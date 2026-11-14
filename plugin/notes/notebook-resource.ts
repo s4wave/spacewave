@@ -4,6 +4,7 @@ import type { MessageStream } from 'starpc'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import {
   PluginOpTimeoutError,
+  PluginUnavailableError,
   throwOperationError,
 } from '@s4wave/sdk/world/errors.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
@@ -88,7 +89,9 @@ class NotebookResource implements NotebookResourceService {
    * edit made against sources the Notebook no longer holds comes back as the
    * changed outcome; the caller refreshes from its watch and does not resend.
    * An edit the host discarded without writing comes back as the timed out
-   * outcome, which the caller may resend.
+   * outcome, and an edit the host never sent because it could not load the
+   * plugin comes back as the plugin unavailable outcome; the caller may resend
+   * either.
    */
   private async editNotebook(
     edit: NotebookEditOp['edit'],
@@ -113,6 +116,9 @@ class NotebookResource implements NotebookResourceService {
     } catch (err) {
       if (err instanceof PluginOpTimeoutError) {
         return NotebookEditOutcome.TIMED_OUT
+      }
+      if (err instanceof PluginUnavailableError) {
+        return NotebookEditOutcome.PLUGIN_UNAVAILABLE
       }
       throw err
     }

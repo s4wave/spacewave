@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import {
   PluginOpTimeoutError,
+  PluginUnavailableError,
   WorldOperationRejection,
 } from '@s4wave/sdk/world/errors.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -208,6 +209,8 @@ function createFailure(err: unknown): string {
   if (err instanceof WorldOperationRejection) return err.message
   if (err instanceof PluginOpTimeoutError)
     return 'The plugin did not finish in time, so nothing was changed.'
+  if (err instanceof PluginUnavailableError)
+    return 'The plugin could not be reached, so nothing was sent.'
   return 'The Space could not finish the change.'
 }
 
@@ -364,10 +367,15 @@ export function useSpaceCreates(
         const start = () => {
           run().catch((err: unknown) => {
             console.error('failed to create object', err)
-            // The host discarded a timed out op, so it wrote nothing, and
-            // the read before this send already settled any earlier one: a
-            // retry sends without reading the key first.
-            if (err instanceof PluginOpTimeoutError) job.sent = false
+            // The host discarded a timed out op and never sent one whose
+            // plugin it could not load, so either wrote nothing, and the read
+            // before this send already settled any earlier one: a retry sends
+            // without reading the key first.
+            if (
+              err instanceof PluginOpTimeoutError ||
+              err instanceof PluginUnavailableError
+            )
+              job.sent = false
             dispatch({
               type: 'fail',
               failure: createFailure(err),
