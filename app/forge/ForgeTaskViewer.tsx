@@ -14,9 +14,10 @@ import {
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
 import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
+  forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
@@ -25,7 +26,7 @@ import { PRED_TASK_TO_PASS } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
+import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 
@@ -74,7 +75,8 @@ export function ForgeTaskViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const task = useForgeBlockData(objectState, ForgeTaskTypeID, Task)
+  const block = useForgeBlock(objectState, ForgeTaskTypeID, Task)
+  const task = block.value ?? undefined
   useObjectName(task?.name)
 
   const { entities: passes, loading: passesLoading } = useForgeLinkedEntities(
@@ -128,24 +130,6 @@ export function ForgeTaskViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            <InfoCard>
-              <FactList>
-                {task?.name && (
-                  <FactRow kind="text" label="Name" value={task.name} />
-                )}
-                {task?.peerId && (
-                  <FactRow label="Assigned To" value={task.peerId} />
-                )}
-                {task?.timestamp && (
-                  <FactRow
-                    kind="text"
-                    label="Created"
-                    value={task.timestamp.toISOString()}
-                  />
-                )}
-                <FactRow label="Object Key" value={objectKey} />
-              </FactList>
-            </InfoCard>
             <FigureStrip
               figures={[
                 {
@@ -161,7 +145,12 @@ export function ForgeTaskViewer({
               ]}
             />
             <InfoCard
-              icon={<LuActivity className="text-foreground-alt/60 size-3.5" />}
+              icon={
+                <LuActivity
+                  aria-hidden
+                  className="text-foreground-alt/60 size-3.5"
+                />
+              }
               title="Current Execution"
             >
               {!currentPass && (
@@ -292,7 +281,6 @@ export function ForgeTaskViewer({
       currentExecution,
       currentPass,
       decodedPassesLoading,
-      objectKey,
       passes,
       passesLoading,
       sortedPasses,
@@ -300,13 +288,31 @@ export function ForgeTaskViewer({
     ],
   )
 
+  // Details lists the task's identity behind the bar.
+  const facts = (
+    <>
+      {task?.name && <FactRow kind="text" label="Name" value={task.name} />}
+      {task?.peerId && <FactRow label="Assigned To" value={task.peerId} />}
+      {task?.timestamp && (
+        <FactRow
+          kind="text"
+          label="Created"
+          value={task.timestamp.toISOString()}
+        />
+      )}
+      <FactRow label="Object Key" value={objectKey} />
+    </>
+  )
+
   return (
     <ForgeViewerShell
       stateKey={objectKey}
       icon={<LuListTodo className="size-4" />}
       title={task?.name || 'Task'}
-      state={task?.taskState ?? 0}
+      state={task?.taskState}
       stateLabels={taskStateLabels}
+      details={{ label: 'Task', facts }}
+      status={forgeBlockStatus('the task', block)}
       tabs={tabs}
     />
   )

@@ -13,14 +13,18 @@ import { ForgeClusterViewer } from './ForgeClusterViewer.js'
 const mockVisibleWizardTypeSet = new Set(['forge/job'])
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
+  forgeBlockStatus: () => null,
   ForgeViewerShell: ({
+    details,
     tabs,
   }: {
+    details?: { facts: React.ReactNode }
     tabs?: Array<{ id: string; label: string; content: React.ReactNode }>
   }) => {
     const [activeTab, setActiveTab] = React.useState(tabs?.[0]?.id)
     return (
       <div data-testid="forge-viewer-shell">
+        {details?.facts}
         <div role="tablist">
           {tabs?.map((tab) => (
             <button
@@ -41,9 +45,14 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
-  useForgeBlockData: () => ({
-    name: 'Build Cluster',
-    peerId: '12D3KooWCluster',
+  useForgeBlock: () => ({
+    value: {
+      name: 'Build Cluster',
+      peerId: '12D3KooWCluster',
+    },
+    loading: false,
+    error: null,
+    retry: () => {},
   }),
 }))
 
@@ -170,8 +179,8 @@ describe('ForgeClusterViewer', () => {
     expect(screen.queryByText(/Loading jobs/i)).toBeNull()
     expect(screen.getByText('No jobs in cluster')).toBeTruthy()
 
-    await user.click(screen.getByRole('tab', { name: 'Settings' }))
-    expect(screen.getByText('Cluster identity')).toBeTruthy()
+    // The identity the Settings tab held is now in Details.
+    expect(screen.queryByRole('tab', { name: 'Settings' })).toBeNull()
     expect(screen.getByText('Object Key')).toBeTruthy()
     expect(screen.getByTitle('forge/cluster/main')).toBeTruthy()
   })

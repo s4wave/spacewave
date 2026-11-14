@@ -19,9 +19,10 @@ import { State as TaskState } from '@go/github.com/s4wave/spacewave/forge/task/t
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
 import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
+  forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
@@ -34,7 +35,7 @@ import {
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
+import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -71,7 +72,8 @@ export function ForgeClusterViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const cluster = useForgeBlockData(objectState, ForgeClusterTypeID, Cluster)
+  const block = useForgeBlock(objectState, ForgeClusterTypeID, Cluster)
+  const cluster = block.value ?? undefined
   useObjectName(cluster?.name)
   const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
   const [creatingJob, setCreatingJob] = useState(false)
@@ -176,18 +178,6 @@ export function ForgeClusterViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            {(cluster?.name || cluster?.peerId) && (
-              <InfoCard title="Cluster identity">
-                <FactList>
-                  {cluster.name && (
-                    <FactRow kind="text" label="Name" value={cluster.name} />
-                  )}
-                  {cluster.peerId && (
-                    <FactRow label="Peer ID" value={cluster.peerId} />
-                  )}
-                </FactList>
-              </InfoCard>
-            )}
             <FigureStrip
               figures={[
                 {
@@ -198,7 +188,12 @@ export function ForgeClusterViewer({
               ]}
             />
             <InfoCard
-              icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
+              icon={
+                <LuListTodo
+                  aria-hidden
+                  className="text-foreground-alt/60 size-3.5"
+                />
+              }
               title="Task States"
             >
               {snapshotError ? (
@@ -388,44 +383,14 @@ export function ForgeClusterViewer({
           </div>
         ),
       },
-      {
-        id: 'settings',
-        label: 'Settings',
-        content: (
-          <InfoCard title="Cluster identity">
-            <div className="space-y-2">
-              <p className="text-foreground-alt/60 text-xs leading-relaxed">
-                The object key identifies this Cluster in the Space graph.
-              </p>
-              <FactList>
-                {cluster?.name && (
-                  <FactRow kind="text" label="Name" value={cluster.name} />
-                )}
-                <FactRow label="Object Key" value={objectKey} />
-                {cluster?.peerId && (
-                  <FactRow label="Peer ID" value={cluster.peerId} />
-                )}
-              </FactList>
-              {!cluster?.peerId && (
-                <p className="text-foreground-alt/60 text-xs leading-relaxed">
-                  No peer ID is assigned. Workers can join this Cluster without
-                  a Cluster peer identity.
-                </p>
-              )}
-            </div>
-          </InfoCard>
-        ),
-      },
     ],
     [
-      cluster,
       canCreateJob,
       creatingJob,
       handleCreateJob,
       handleStartJob,
       jobs,
       jobsLoading,
-      objectKey,
       retrySnapshot,
       snapshotError,
       snapshot.jobs,
@@ -440,11 +405,29 @@ export function ForgeClusterViewer({
     ],
   )
 
+  // Details lists the cluster's identity behind the bar. Workers can join
+  // a cluster that has no peer ID of its own.
+  const facts = (
+    <>
+      {cluster?.name && (
+        <FactRow kind="text" label="Name" value={cluster.name} />
+      )}
+      <FactRow label="Object Key" value={objectKey} />
+      {cluster?.peerId ? (
+        <FactRow label="Peer ID" value={cluster.peerId} />
+      ) : (
+        <FactRow kind="text" label="Peer ID" value="None assigned" />
+      )}
+    </>
+  )
+
   return (
     <ForgeViewerShell
       stateKey={objectKey}
       icon={<LuServer className="size-4" />}
       title={cluster?.name || 'Cluster'}
+      details={{ label: 'Cluster', facts }}
+      status={forgeBlockStatus('the cluster', block)}
       tabs={tabs}
     />
   )

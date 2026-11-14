@@ -9,9 +9,10 @@ import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execu
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
 import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
+  forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
@@ -21,7 +22,7 @@ import { PRED_PASS_TO_EXECUTION } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
+import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetPanels } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 
@@ -61,7 +62,8 @@ export function ForgePassViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const pass = useForgeBlockData(objectState, ForgePassTypeID, Pass)
+  const block = useForgeBlock(objectState, ForgePassTypeID, Pass)
+  const pass = block.value ?? undefined
 
   const { entities: executions, loading: executionsLoading } =
     useForgeLinkedEntities(worldState, objectKey, PRED_PASS_TO_EXECUTION)
@@ -75,26 +77,6 @@ export function ForgePassViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            <InfoCard>
-              <FactList>
-                {pass?.peerId && (
-                  <FactRow label="Peer ID" value={pass.peerId} />
-                )}
-                {pass?.timestamp && (
-                  <FactRow
-                    kind="text"
-                    label="Created"
-                    value={pass.timestamp.toISOString()}
-                  />
-                )}
-                <FactRow
-                  kind="text"
-                  label="Pass Nonce"
-                  value={pass?.passNonce?.toString() ?? '0'}
-                />
-                <FactRow label="Object Key" value={objectKey} />
-              </FactList>
-            </InfoCard>
             <FigureStrip
               figures={[
                 { label: 'Replicas', value: pass?.replicas ?? 0 },
@@ -161,8 +143,8 @@ export function ForgePassViewer({
           ),
       },
       {
-        id: 'details',
-        label: 'Details',
+        id: 'values',
+        label: 'Values',
         content: (
           <div className="space-y-3">
             <ForgeValueSetPanels
@@ -185,9 +167,28 @@ export function ForgePassViewer({
       decodedExecutionsLoading,
       executions,
       executionsLoading,
-      objectKey,
       pass,
     ],
+  )
+
+  // Details lists the pass's identity behind the bar.
+  const facts = (
+    <>
+      {pass?.peerId && <FactRow label="Peer ID" value={pass.peerId} />}
+      {pass?.timestamp && (
+        <FactRow
+          kind="text"
+          label="Created"
+          value={pass.timestamp.toISOString()}
+        />
+      )}
+      <FactRow
+        kind="text"
+        label="Pass Nonce"
+        value={pass?.passNonce?.toString() ?? '0'}
+      />
+      <FactRow label="Object Key" value={objectKey} />
+    </>
   )
 
   return (
@@ -195,7 +196,9 @@ export function ForgePassViewer({
       stateKey={objectKey}
       icon={<LuPlay className="size-4" />}
       title="Pass"
-      state={pass?.passState ?? 0}
+      state={pass?.passState}
+      details={{ label: 'Pass', facts }}
+      status={forgeBlockStatus('the pass', block)}
       stateLabels={passStateLabels}
       tabs={tabs}
     />

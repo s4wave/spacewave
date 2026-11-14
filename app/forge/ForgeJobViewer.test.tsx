@@ -13,12 +13,16 @@ import { ForgeJobViewer } from './ForgeJobViewer.js'
 const mockVisibleWizardTypeSet = new Set(['forge/task'])
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
+  forgeBlockStatus: () => null,
   ForgeViewerShell: ({
+    details,
     tabs,
   }: {
+    details?: { facts: React.ReactNode }
     tabs?: Array<{ id: string; content: React.ReactNode }>
   }) => (
     <div data-testid="forge-viewer-shell">
+      {details?.facts}
       {tabs?.map((tab) => (
         <div key={tab.id}>{tab.content}</div>
       ))}
@@ -27,9 +31,14 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
-  useForgeBlockData: () => ({
-    timestamp: new Date('2026-04-17T00:00:00Z'),
-    jobState: 1,
+  useForgeBlock: () => ({
+    value: {
+      timestamp: new Date('2026-04-17T00:00:00Z'),
+      jobState: 1,
+    },
+    loading: false,
+    error: null,
+    retry: () => {},
   }),
 }))
 

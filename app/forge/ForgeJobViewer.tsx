@@ -16,9 +16,10 @@ import {
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
 import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
+  forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
@@ -27,7 +28,7 @@ import { PRED_JOB_TO_TASK } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
+import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -64,7 +65,8 @@ export function ForgeJobViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const job = useForgeBlockData(objectState, ForgeJobTypeID, Job)
+  const block = useForgeBlock(objectState, ForgeJobTypeID, Job)
+  const job = block.value ?? undefined
   const { spaceWorld, navigateToObjects } = SpaceContainerContext.useContext()
   const [creatingTask, setCreatingTask] = useState(false)
   const [tasksView, setTasksView] = useState<'list' | 'dag'>('list')
@@ -256,20 +258,13 @@ export function ForgeJobViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            <InfoCard>
-              <FactList>
-                <FactRow label="Object Key" value={objectKey} />
-                {job?.timestamp && (
-                  <FactRow
-                    kind="text"
-                    label="Created"
-                    value={job.timestamp.toISOString()}
-                  />
-                )}
-              </FactList>
-            </InfoCard>
             <InfoCard
-              icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
+              icon={
+                <LuListTodo
+                  aria-hidden
+                  className="text-foreground-alt/60 size-3.5"
+                />
+              }
               title="Tasks"
             >
               <div className="text-foreground text-2xl font-semibold">
@@ -344,8 +339,6 @@ export function ForgeJobViewer({
       completeTaskCount,
       creatingTask,
       handleAddTask,
-      job,
-      objectKey,
       progressPercent,
       tasks.length,
       tasksContent,
@@ -354,12 +347,28 @@ export function ForgeJobViewer({
     ],
   )
 
+  // Details lists the job's identity behind the bar.
+  const facts = (
+    <>
+      <FactRow label="Object Key" value={objectKey} />
+      {job?.timestamp && (
+        <FactRow
+          kind="text"
+          label="Created"
+          value={job.timestamp.toISOString()}
+        />
+      )}
+    </>
+  )
+
   return (
     <ForgeViewerShell
       stateKey={objectKey}
       icon={<LuBriefcase className="size-4" />}
       title="Job"
-      state={job?.jobState ?? 0}
+      state={job?.jobState}
+      details={{ label: 'Job', facts }}
+      status={forgeBlockStatus('the job', block)}
       stateLabels={jobStateLabels}
       tabs={tabs}
     />

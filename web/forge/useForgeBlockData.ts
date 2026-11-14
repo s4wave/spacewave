@@ -6,14 +6,15 @@ import {
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import type { MessageType, Message } from '@aptre/protobuf-es-lite'
 
-// useForgeBlockData reads and decodes a forge entity's block data from objectState.
-// Returns the decoded proto message or undefined if loading/missing.
-export function useForgeBlockData<T extends Message<T>>(
+// useForgeBlock reads and decodes a forge entity's block data from
+// objectState. The resource's value is null when the object holds no block,
+// and its loading and error say why a value has not arrived.
+export function useForgeBlock<T extends Message<T>>(
   objectState: IObjectState | undefined,
   blockTypeID: string,
   messageType: MessageType<T>,
-): T | undefined {
-  const resource: Resource<T | null> = useResource(
+): Resource<T | null> {
+  return useResource(
     async (signal) => {
       if (!objectState) return null
       using cursor = await objectState.accessWorldState(undefined, signal)
@@ -23,5 +24,16 @@ export function useForgeBlockData<T extends Message<T>>(
     },
     [objectState, blockTypeID, messageType],
   )
+}
+
+// useForgeBlockData is useForgeBlock's value alone, for a viewer that shows
+// nothing different while the block loads or fails: the decoded message, or
+// undefined if loading, failed or missing.
+export function useForgeBlockData<T extends Message<T>>(
+  objectState: IObjectState | undefined,
+  blockTypeID: string,
+  messageType: MessageType<T>,
+): T | undefined {
+  const resource = useForgeBlock(objectState, blockTypeID, messageType)
   return useMemo(() => resource.value ?? undefined, [resource.value])
 }

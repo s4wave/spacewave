@@ -11,9 +11,10 @@ import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { useForgeBlock } from '@s4wave/web/forge/useForgeBlockData.js'
 import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 import {
+  forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
@@ -41,7 +42,8 @@ export function ForgeWorkerViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const worker = useForgeBlockData(objectState, ForgeWorkerTypeID, Worker)
+  const block = useForgeBlock(objectState, ForgeWorkerTypeID, Worker)
+  const worker = block.value ?? undefined
   useObjectName(worker?.name)
 
   const { entities: clusters, loading: clustersLoading } =
@@ -129,14 +131,6 @@ export function ForgeWorkerViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            <InfoCard>
-              <FactList>
-                {worker?.name && (
-                  <FactRow kind="text" label="Name" value={worker.name} />
-                )}
-                <FactRow label="Object Key" value={objectKey} />
-              </FactList>
-            </InfoCard>
             <FigureStrip
               figures={[
                 {
@@ -278,11 +272,17 @@ export function ForgeWorkerViewer({
       clusters,
       clustersLoading,
       completeExecutions,
-      objectKey,
       peerIds,
       snapshotLoading,
-      worker,
     ],
+  )
+
+  // Details lists the worker's identity behind the bar.
+  const facts = (
+    <>
+      {worker?.name && <FactRow kind="text" label="Name" value={worker.name} />}
+      <FactRow label="Object Key" value={objectKey} />
+    </>
   )
 
   return (
@@ -290,6 +290,8 @@ export function ForgeWorkerViewer({
       stateKey={objectKey}
       icon={<LuCpu className="size-4" />}
       title={worker?.name || 'Worker'}
+      details={{ label: 'Worker', facts }}
+      status={forgeBlockStatus('the worker', block)}
       tabs={tabs}
       actions={actions}
     />

@@ -37,14 +37,18 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 }))
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
+  forgeBlockStatus: () => null,
   ForgeViewerShell: ({
+    details,
     tabs,
     actions,
   }: {
+    details?: { facts: React.ReactNode }
     tabs?: Array<{ id: string; content: React.ReactNode }>
     actions?: Array<{ label: string; onClick: () => void }>
   }) => (
     <div data-testid="forge-viewer-shell">
+      {details?.facts}
       {tabs?.map((tab) => (
         <div key={tab.id}>{tab.content}</div>
       ))}
@@ -58,8 +62,13 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
-  useForgeBlockData: () => ({
-    name: 'session-worker',
+  useForgeBlock: () => ({
+    value: {
+      name: 'session-worker',
+    },
+    loading: false,
+    error: null,
+    retry: () => {},
   }),
 }))
 

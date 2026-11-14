@@ -1,5 +1,6 @@
 import { Route } from '@s4wave/web/router/router.js'
 import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
+import { ForgeViewerStatesDebug } from '@s4wave/app/debug/forge/ForgeViewerStatesDebug.js'
 import { TerminalViewerDebug } from '@s4wave/app/debug/terminal/TerminalViewerDebug.js'
 import { DeviceCapabilityDebug } from '@s4wave/app/debug/device/DeviceCapabilityDebug.js'
 import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
@@ -136,6 +137,13 @@ const debugRouteEntries = [
     element: <GitSideDebug />,
   },
   {
+    path: '/debug/ui/forge-states',
+    title: 'Forge viewer states',
+    description: 'Open a Forge viewer in one state; add /log, /waiting...',
+    element: <ForgeViewerStatesDebug />,
+  },
+
+  {
     path: '/debug/ui/terminal',
     title: 'Terminal',
     description: 'Open a terminal in one state; add /details, /watch-failed...',
@@ -192,6 +200,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/git-side/:state">
       <GitSideDebug />
+    </Route>
+    <Route path="/debug/ui/forge-states/:state">
+      <ForgeViewerStatesDebug />
     </Route>
     <Route path="/debug/ui/terminal/:state">
       <TerminalViewerDebug />

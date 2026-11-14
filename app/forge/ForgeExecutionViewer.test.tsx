@@ -5,12 +5,16 @@ import { render, screen } from '@testing-library/react'
 import { ForgeExecutionViewer } from './ForgeExecutionViewer.js'
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
+  forgeBlockStatus: () => null,
   ForgeViewerShell: ({
+    details,
     tabs,
   }: {
+    details?: { facts: React.ReactNode }
     tabs?: Array<{ id: string; content: React.ReactNode }>
   }) => (
     <div data-testid="forge-viewer-shell">
+      {details?.facts}
       {tabs?.map((tab) => (
         <div key={tab.id}>{tab.content}</div>
       ))}
@@ -19,28 +23,33 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
-  useForgeBlockData: () => ({
-    peerId: '12D3KooWExec',
-    executionState: 2,
-    timestamp: new Date('2026-04-17T12:00:00Z'),
-    valueSet: {
-      inputs: [
+  useForgeBlock: () => ({
+    value: {
+      peerId: '12D3KooWExec',
+      executionState: 2,
+      timestamp: new Date('2026-04-17T12:00:00Z'),
+      valueSet: {
+        inputs: [
+          {
+            name: 'source',
+          },
+        ],
+        outputs: [
+          {
+            name: 'artifact',
+          },
+        ],
+      },
+      logEntries: [
         {
-          name: 'source',
-        },
-      ],
-      outputs: [
-        {
-          name: 'artifact',
+          level: 'info',
+          message: 'started noop execution',
         },
       ],
     },
-    logEntries: [
-      {
-        level: 'info',
-        message: 'started noop execution',
-      },
-    ],
+    loading: false,
+    error: null,
+    retry: () => {},
   }),
 }))
 

@@ -5,12 +5,16 @@ import { render, screen } from '@testing-library/react'
 import { ForgeTaskViewer } from './ForgeTaskViewer.js'
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
+  forgeBlockStatus: () => null,
   ForgeViewerShell: ({
+    details,
     tabs,
   }: {
+    details?: { facts: React.ReactNode }
     tabs?: Array<{ id: string; content: React.ReactNode }>
   }) => (
     <div data-testid="forge-viewer-shell">
+      {details?.facts}
       {tabs?.map((tab) => (
         <div key={tab.id}>{tab.content}</div>
       ))}
@@ -19,22 +23,27 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
-  useForgeBlockData: () => ({
-    name: 'Publish artifact',
-    peerId: '12D3KooWTask',
-    passNonce: 2n,
-    taskState: 2,
-    timestamp: new Date('2026-04-17T12:00:00Z'),
-    valueSet: {
-      outputs: [
-        {
-          name: 'bundle',
-        },
-      ],
+  useForgeBlock: () => ({
+    value: {
+      name: 'Publish artifact',
+      peerId: '12D3KooWTask',
+      passNonce: 2n,
+      taskState: 2,
+      timestamp: new Date('2026-04-17T12:00:00Z'),
+      valueSet: {
+        outputs: [
+          {
+            name: 'bundle',
+          },
+        ],
+      },
+      result: {
+        success: true,
+      },
     },
-    result: {
-      success: true,
-    },
+    loading: false,
+    error: null,
+    retry: () => {},
   }),
 }))
 
