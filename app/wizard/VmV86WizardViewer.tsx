@@ -16,12 +16,12 @@ import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { markQuickstartStartupBoundary } from '../quickstart/startup-boundary.js'
 import {
   buildVmCreationRequest,
+  creationRefusedAsGone,
   finalizeBlocker,
   listExistingVms,
   runVmCreation,
@@ -47,6 +47,8 @@ import { VmCreationProgressScreen } from './VmCreationProgressScreen.js'
 import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
 import { wizardFinishView } from './wizard-finish.js'
+import { WizardGone } from './WizardGone.js'
+import { WizardLoading } from './WizardLoading.js'
 
 // decodeConfig reads the wizard config, or an empty one when it is missing or
 // does not decode.
@@ -502,23 +504,6 @@ function VmCreationScreen({ request, resource }: VmCreationScreenProps) {
   )
 }
 
-/** WizardLoading shows the loading card until the wizard state arrives. */
-function WizardLoading() {
-  return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <LoadingCard
-          view={{
-            state: 'active',
-            title: 'Loading wizard',
-            detail: 'Preparing the VM creation workflow.',
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
 /** OperationErrorAlert shows why VM creation could not proceed. */
 function OperationErrorAlert({ message }: { message: string }) {
   return (
@@ -610,11 +595,24 @@ export function VmV86WizardViewer({
   }, [handleCancel])
 
   if (creationRequest) {
+    // A creation that ended without landing shows gone once the wizard is
+    // gone; while it runs or after it lands, the wizard's absence is its own
+    // delete.
+    if (creationRefusedAsGone(creationResource.error, wizardGone)) {
+      return <WizardGone />
+    }
     return (
       <VmCreationScreen request={creationRequest} resource={creationResource} />
     )
   }
-  if (!state) return <WizardLoading />
+  if (!state) {
+    return (
+      <WizardLoading
+        wizardGone={wizardGone}
+        detail="Preparing the VM creation workflow."
+      />
+    )
+  }
 
   const step = state.step ?? 0
   return (

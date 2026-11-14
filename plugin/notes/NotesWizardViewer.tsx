@@ -3,18 +3,21 @@ import { useCallback } from 'react'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { WizardShell } from '@s4wave/app/wizard/WizardShell.js'
 import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
-import { useWizardFinish } from '@s4wave/app/wizard/wizard-finish.js'
+import {
+  useWizardFinish,
+  WizardInputError,
+} from '@s4wave/app/wizard/wizard-finish.js'
 import { createBlogClientSide } from './blog-seed.js'
 import {
   buildNotebookUnixfsObjectKey,
   createDocsClientSide,
   createNotebookClientSide,
 } from './content-seed.js'
+import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 
 export const NotesNotebookWizardTypeID = 'wizard/notes/notebook'
 export const NotesDocsWizardTypeID = 'wizard/notes/docs'
@@ -74,7 +77,7 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
     await finish.finish(
       async () => {
         const name = ws.localName || state.name
-        if (!name) throw new Error('Enter a name')
+        if (!name) throw new WizardInputError('Enter a name')
         if (!isNotesTargetTypeId(targetTypeId)) {
           throw new Error('Unknown notes type ' + targetTypeId)
         }
@@ -115,17 +118,10 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading wizard',
-              detail: 'Preparing the configuration workflow.',
-            }}
-          />
-        </div>
-      </div>
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        detail="Preparing the configuration workflow."
+      />
     )
   }
 

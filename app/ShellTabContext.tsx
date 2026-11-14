@@ -227,6 +227,12 @@ export function useShellTabs(): ShellTabsContextValue {
   return context
 }
 
+// useShellTabsIfPresent returns the shell tabs, or null outside a
+// ShellTabsProvider, for code that also runs without a tab strip.
+export function useShellTabsIfPresent(): ShellTabsContextValue | null {
+  return use(ShellTabsContext)
+}
+
 function recordAsShellTab(record: BrowserShellTabRecord): ShellTab {
   return {
     id: record.id,

@@ -30,9 +30,10 @@ export type WizardMutation =
 // carries everything prepared: no entry reads the network, a CDN or the
 // person. It is the one place that touches the transaction.
 //
-// signal cancels the list until the commit starts. The commit itself does not
-// take it: once it is sent, its result is the outcome, so an abort that races
-// the commit can never report a Finish that landed as failed.
+// signal cancels the list until the commit starts, checked once more just
+// before it, so an abort before the commit lands nothing. The commit itself
+// does not take it: once it is sent, its result is the outcome, so an abort
+// that races the commit can never report a Finish that landed as failed.
 export async function applyWizardMutations(
   world: EngineWorldState,
   sender: string,
@@ -46,6 +47,7 @@ export async function applyWizardMutations(
       // eslint-disable-next-line react-doctor/async-await-in-loop -- the list applies in order: the index move before the delete.
       await applyWizardMutation(tx, sender, m, signal)
     }
+    signal?.throwIfAborted()
     await tx.commit()
     committed = true
   } finally {
@@ -82,7 +84,7 @@ async function applyWizardMutation(
 // never succeed, so the Finish control shows the gone state.
 export class WizardGoneError extends Error {
   constructor() {
-    super('This wizard was already finished or deleted elsewhere')
+    super('This wizard no longer exists')
     this.name = 'WizardGoneError'
   }
 }

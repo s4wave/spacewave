@@ -70,6 +70,7 @@ vi.mock('@s4wave/web/sync/useObjectQuery.js', () => ({
 vi.mock('../ShellTabContext.js', () => ({
   useTabId: () => 'tab-1',
   useShellTabs: () => ({ closeShellTab: mocks.closeShellTab }),
+  useShellTabsIfPresent: () => ({ closeShellTab: mocks.closeShellTab }),
 }))
 
 vi.mock('../space/useObjectWizards.js', () => ({
@@ -336,15 +337,16 @@ describe('WizardViewer', () => {
     )
   })
 
-  it('cancels by deleting the wizard object without reopening the creation drawer', async () => {
+  it('cancels by deleting the wizard object, then closes its tab', async () => {
     const user = userEvent.setup()
     renderViewer()
 
     await user.click(screen.getByRole('button', { name: /delete wizard/i }))
 
     await waitFor(() =>
-      expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(false),
+      expect(mocks.closeShellTab).toHaveBeenCalledWith('tab-1'),
     )
+    expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(false)
     expect(mocks.openCommand).not.toHaveBeenCalled()
     expect(mocks.navigateToObjects).not.toHaveBeenCalled()
   })

@@ -28,6 +28,8 @@ const h = vi.hoisted(() => ({
 }))
 
 let currentStep = 0
+let stateLoaded = true
+let wizardGone = false
 let localName = 'Repository'
 let currentProgress: GitCloneProgress | null = null
 let spaceSettingsIndexPath = 'wizard/git/repo/test'
@@ -50,12 +52,15 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
 vi.mock('./useWizardState.js', () => ({
   useWizardState: () => ({
     objectKey: 'wizard/git/repo/test',
-    state: {
-      step: currentStep,
-      targetTypeId: 'git/repo',
-      targetKeyPrefix: 'git/repo/',
-      name: localName,
-    },
+    state: stateLoaded
+      ? {
+          step: currentStep,
+          targetTypeId: 'git/repo',
+          targetKeyPrefix: 'git/repo/',
+          name: localName,
+        }
+      : undefined,
+    wizardGone,
     localName,
     sessionPeerId: '12D3KooWGitPeer',
     spaceWorld: h.t.world,
@@ -94,6 +99,8 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 describe('GitRepoWizardViewer', () => {
   beforeEach(() => {
     h.isDesktop = true
+    stateLoaded = true
+    wizardGone = false
     currentStep = 0
     localName = 'Repository'
     currentProgress = null
@@ -362,5 +369,25 @@ describe('GitRepoWizardViewer', () => {
         /GitHub does not set the required cross-origin headers/i,
       ),
     ).toBeTruthy()
+  })
+
+  it('shows the gone state for a wizard removed before its state streamed', () => {
+    stateLoaded = false
+    wizardGone = true
+
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByText('This wizard no longer exists.')).toBeTruthy()
+    expect(screen.queryByText('Loading wizard')).toBeNull()
   })
 })

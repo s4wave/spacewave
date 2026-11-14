@@ -3,13 +3,13 @@ import { LuBriefcase } from 'react-icons/lu'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
 import { useWizardFinish, WizardInputError } from './wizard-finish.js'
 import { WizardShell } from './WizardShell.js'
+import { WizardLoading } from './WizardLoading.js'
 
 export const ForgeJobWizardTypeID = 'wizard/forge/job'
 
@@ -80,16 +80,10 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <LoadingCard
-          view={{
-            state: 'loading',
-            title: 'Loading wizard',
-            detail: 'Initializing Forge job configuration.',
-          }}
-          className="w-full max-w-sm"
-        />
-      </div>
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        detail="Initializing Forge job configuration."
+      />
     )
   }
 

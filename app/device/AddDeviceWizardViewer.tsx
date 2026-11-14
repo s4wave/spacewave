@@ -70,6 +70,7 @@ import { WizardField } from '../wizard/WizardField.js'
 import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
+import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 
 const DEFAULT_SSH_PORT = 22
 const DEVICE_APPROVAL_CLOUD_REQUIRED =
@@ -828,17 +829,11 @@ function AddDeviceWizardContent({
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading Add Device',
-              detail: 'Preparing the Device setup wizard.',
-            }}
-          />
-        </div>
-      </div>
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        title="Loading Add Device"
+        detail="Preparing the Device setup wizard."
+      />
     )
   }
 

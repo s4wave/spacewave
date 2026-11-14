@@ -15,6 +15,7 @@ import {
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
 import { useWizardFinish, WizardInputError } from './wizard-finish.js'
+import { WizardLoading } from './WizardLoading.js'
 import { WizardShell } from './WizardShell.js'
 
 export const GitRepoWizardTypeID = 'wizard/git/repo'
@@ -181,23 +182,6 @@ function cloneUrlErrorFor(isClone: boolean, url: string): string {
     : ''
 }
 
-/** GitRepoWizardLoading is shown until the wizard state arrives. */
-function GitRepoWizardLoading() {
-  return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <LoadingCard
-          view={{
-            state: 'active',
-            title: 'Loading wizard',
-            detail: 'Preparing the Git repository workflow.',
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
 // GitRepoWizardViewer is a custom wizard viewer for creating Git repositories.
 // Step 0: config editor (mode toggle + clone options). Step 1: repository name.
 export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
@@ -230,7 +214,14 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     void ws.handleCancel()
   }, [ws])
 
-  if (!state) return <GitRepoWizardLoading />
+  if (!state) {
+    return (
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        detail="Preparing the Git repository workflow."
+      />
+    )
+  }
 
   return (
     <WizardShell

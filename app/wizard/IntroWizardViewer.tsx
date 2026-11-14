@@ -3,7 +3,6 @@ import { useCallback, useMemo } from 'react'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
@@ -12,6 +11,7 @@ import { useWizardFinish } from './wizard-finish.js'
 import { WizardGone } from './WizardGone.js'
 import { IntroWizardOverlay } from './IntroWizardOverlay.js'
 import { IntroWizardPresentationContext } from './intro-context.js'
+import { WizardLoading } from './WizardLoading.js'
 
 // IntroWizardViewer is the generic new-user introduction viewer. It contains
 // the introduced object's standalone ObjectViewer (its own window frame) and
@@ -68,17 +68,11 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
   // The overlay waits for the wizard state.
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading',
-              detail: 'Preparing your introduction.',
-            }}
-          />
-        </div>
-      </div>
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        title="Loading"
+        detail="Preparing your introduction."
+      />
     )
   }
 

@@ -25,7 +25,7 @@ import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
-import { finishWizard } from '../wizard/wizard-finish.js'
+import { finishWizard, WizardGoneError } from '../wizard/wizard-finish.js'
 import {
   DEFAULT_V86_MEMORY_MB,
   DEFAULT_V86_VGA_MEMORY_MB,
@@ -269,23 +269,44 @@ export async function* runVmCreation(
       mounts: [],
     },
   }
-  await finishWizard(
-    {
-      spaceWorld: world,
-      objectKey: request.wizardObjectKey,
-      sessionPeerId: request.sessionPeerId,
-    },
-    {
-      creates: [
-        {
-          kind: 'op',
-          opId: CREATE_VM_V86_OP_ID,
-          opData: CreateVmV86Op.toBinary(op),
-        },
-      ],
-      target: { openKey: request.vmKey, indexPath: request.vmKey },
-    },
-    signal,
-  )
+  try {
+    await finishWizard(
+      {
+        spaceWorld: world,
+        objectKey: request.wizardObjectKey,
+        sessionPeerId: request.sessionPeerId,
+      },
+      {
+        creates: [
+          {
+            kind: 'op',
+            opId: CREATE_VM_V86_OP_ID,
+            opData: CreateVmV86Op.toBinary(op),
+          },
+        ],
+        target: { openKey: request.vmKey, indexPath: request.vmKey },
+      },
+      signal,
+    )
+  } catch (err) {
+    // A rerun after this request's own commit landed finds the wizard gone
+    // and the VM at its key: the creation is done, not refused.
+    if (!(err instanceof WizardGoneError)) throw err
+    using vm = await world.getObject(request.vmKey, signal)
+    if (!vm) throw err
+  }
   yield { stage: 'ready' }
+}
+
+/**
+ * creationRefusedAsGone reports whether a creation that failed did so because
+ * the wizard is gone: refused as gone, or failed while another writer removed
+ * it, so Retry could never succeed.
+ */
+export function creationRefusedAsGone(
+  error: Error | null | undefined,
+  wizardGone: boolean,
+): boolean {
+  if (!error) return false
+  return wizardGone || error instanceof WizardGoneError
 }

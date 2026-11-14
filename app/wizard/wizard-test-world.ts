@@ -70,9 +70,11 @@ export function wizardTestWorld(
           staged.creates.push(opId)
         } else {
           // The World refuses, without error, an index move that expects an
-          // index another writer has since changed.
+          // index another writer has since changed; a move that expects
+          // nothing is unconditional.
           const op = SetSpaceIndexPathOp.fromBinary(opData)
-          if ((op.expectedIndexPath ?? '') === staged.indexPath) {
+          const expected = op.expectedIndexPath
+          if (expected === undefined || expected === staged.indexPath) {
             staged.indexPath = op.indexPath ?? ''
           }
         }

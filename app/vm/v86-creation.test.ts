@@ -4,7 +4,12 @@ import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-spa
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/vmv86.js'
 
 import { wizardTestWorld } from '../wizard/wizard-test-world.js'
-import { runVmCreation, type VmCreationRequest } from './v86-creation.js'
+import { WizardGoneError } from '../wizard/wizard-finish.js'
+import {
+  creationRefusedAsGone,
+  runVmCreation,
+  type VmCreationRequest,
+} from './v86-creation.js'
 
 const request: VmCreationRequest = {
   linkCdnImage: false,
@@ -18,6 +23,18 @@ const request: VmCreationRequest = {
   networking: false,
   sessionPeerId: 'peer-1',
   wizardObjectKey: 'wizard/vm-1',
+}
+
+// vmLookup is a World read that finds the VM once its create committed.
+function vmLookup(t: () => ReturnType<typeof wizardTestWorld>) {
+  return {
+    getObject: (key: string) =>
+      Promise.resolve(
+        key === request.vmKey && t().state.creates.includes(CREATE_VM_V86_OP_ID)
+          ? { [Symbol.dispose]: () => {} }
+          : null,
+      ),
+  } as never
 }
 
 // drain runs the creation stream to its end and returns the stages.
@@ -68,5 +85,40 @@ describe('runVmCreation', () => {
     t.failOn = undefined
     expect(await drain(t)).toEqual(['creating', 'ready'])
     expect(t.state.creates).toEqual([CREATE_VM_V86_OP_ID])
+  })
+
+  it('shows done for a rerun after its own commit landed', async () => {
+    // The stream restarts after the commit, as a new World value does.
+    const t: ReturnType<typeof wizardTestWorld> = wizardTestWorld(
+      ['wizard/vm-1'],
+      'wizard/vm-1',
+      vmLookup(() => t),
+    )
+    expect(await drain(t)).toEqual(['creating', 'ready'])
+    expect(await drain(t)).toEqual(['creating', 'ready'])
+
+    // The rerun wrote nothing: one VM, and the index names it.
+    expect(t.state).toEqual({
+      objects: new Set(),
+      indexPath: 'vm/v86/debian',
+      creates: [CREATE_VM_V86_OP_ID],
+    })
+  })
+
+  it('refuses as gone when another writer removed the wizard', async () => {
+    const t: ReturnType<typeof wizardTestWorld> = wizardTestWorld(
+      [],
+      '',
+      vmLookup(() => t),
+    )
+    const err = await drain(t).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(WizardGoneError)
+    expect(t.state.creates).toEqual([])
+
+    // The viewer shows gone, not Retry, for this failure.
+    expect(creationRefusedAsGone(err as Error, false)).toBe(true)
+    expect(creationRefusedAsGone(new Error('link failed'), true)).toBe(true)
+    expect(creationRefusedAsGone(new Error('link failed'), false)).toBe(false)
+    expect(creationRefusedAsGone(null, true)).toBe(false)
   })
 })

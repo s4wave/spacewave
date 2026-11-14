@@ -13,12 +13,14 @@ import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
-import { useWizardFinish } from '@s4wave/app/wizard/wizard-finish.js'
+import {
+  useWizardFinish,
+  WizardInputError,
+} from '@s4wave/app/wizard/wizard-finish.js'
 import { WizardField } from '@s4wave/app/wizard/WizardField.js'
 import { WizardFieldFrame } from '@s4wave/app/wizard/WizardFieldFrame.js'
 import { wizardInputClassName } from '@s4wave/app/wizard/wizard-field-styles.js'
@@ -29,6 +31,7 @@ import {
   linkCdnWasiVmImage,
   listCdnWasiVmImages,
 } from './wasivm-images.js'
+import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 
 // imageChoicePrefix and fsChoicePrefix mark a root filesystem choice as a
 // published image or a filesystem in this Space.
@@ -86,7 +89,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
     await finish.finish(
       async () => {
         if (!name || (!image && !rootfsKey)) {
-          throw new Error('Name the VM and choose an image')
+          throw new WizardInputError('Name the VM and choose an image')
         }
         await ws.persistDraftState()
         if (image) {
@@ -126,16 +129,10 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <LoadingCard
-          view={{
-            state: 'active',
-            title: 'Loading wizard',
-            detail: 'Preparing the virtual machine settings.',
-          }}
-          className="w-full max-w-sm"
-        />
-      </div>
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        detail="Preparing the virtual machine settings."
+      />
     )
   }
 

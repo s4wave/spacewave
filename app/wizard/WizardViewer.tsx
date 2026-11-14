@@ -3,7 +3,6 @@ import { useCallback, useMemo } from 'react'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import {
   lookupCreateOpBuilder,
   buildForgeObjectKey,
@@ -17,6 +16,7 @@ import { useWizardState } from './useWizardState.js'
 import { useWizardFinish, WizardInputError } from './wizard-finish.js'
 import { WizardGone } from './WizardGone.js'
 import { WizardShell } from './WizardShell.js'
+import { WizardLoading } from './WizardLoading.js'
 
 export const WizardTypePrefix = 'wizard/'
 
@@ -102,17 +102,10 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading wizard',
-              detail: 'Preparing the configuration workflow.',
-            }}
-          />
-        </div>
-      </div>
+      <WizardLoading
+        wizardGone={ws.wizardGone}
+        detail="Preparing the configuration workflow."
+      />
     )
   }
 
