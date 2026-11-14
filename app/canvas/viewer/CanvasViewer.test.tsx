@@ -148,6 +148,14 @@ describe('CanvasViewer', () => {
     fireEvent.click(screen.getByRole('button', { name: /retry/i }))
     expect(retry).toHaveBeenCalledTimes(1)
 
+    // The Retry reloads the handle: the canvas stays drawn, still read-only,
+    // and never blanks to the wait.
+    h.handleResource = { value: null, loading: true, error: null, retry }
+    rerender(viewer())
+    expect(screen.getByTestId('canvas')).toBeTruthy()
+    expect(h.canvas!.state.nodes.size).toBe(2)
+    expect(h.canvas!.readOnly).toBe(true)
+
     // A new handle yields the canvas; the queued edits draw on it, unsent,
     // and editing returns.
     const reopened = openHandle()

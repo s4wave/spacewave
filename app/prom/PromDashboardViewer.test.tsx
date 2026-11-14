@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -59,13 +59,23 @@ function resource(
 
 const worldState = resource({} as IWorldState) as Resource<IWorldState>
 
-function viewerElement() {
+// promHandle builds a Dashboard handle whose queries never answer.
+function promHandle() {
+  const pending = () => new Promise<never>(() => {})
+  return {
+    labelValues: vi.fn(pending),
+    labelNames: vi.fn(pending),
+    query: vi.fn(pending),
+  }
+}
+
+function viewerElement(objectKey = 'dash/forge') {
   return (
     <PromDashboardViewer
       objectInfo={{
         info: {
           case: 'worldObjectInfo',
-          value: { objectKey: 'dash/forge', objectType: 'prom/dashboard' },
+          value: { objectKey, objectType: 'prom/dashboard' },
         },
       }}
       worldState={worldState}
@@ -157,6 +167,66 @@ describe('PromDashboardViewer', () => {
     expect(
       screen.getByText('Could not read the Dashboard: plugin stream closed'),
     ).toBeDefined()
+
+    // The held handle never crosses to another Dashboard.
+    view.rerender(viewerElement('dash/other'))
+    expect(screen.queryByLabelText('Title')).toBeNull()
+    container.canDeleteObjects = false
+  })
+
+  it('keeps an open draft through a handle Retry and the handle returning', async () => {
+    // A writer opens the new panel editor on the first handle and types.
+    container.canDeleteObjects = true
+    const first = promHandle()
+    reads.handle = resource({ state: 'ready', handle: first })
+    reads.dash = resource({ panels: [] })
+    reads.targets = resource(new Map([['target/forge', {}]]))
+    const view = renderViewer()
+    fireEvent.click(screen.getByRole('button', { name: 'Add panel' }))
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Load' },
+    })
+    const firstQueries = first.labelValues.mock.calls.length
+
+    // The handle fails, then its Retry reloads it. The record watches stay
+    // failed over their last records until the next handle's watches yield.
+    const lost = new Error('plugin stream closed')
+    const kept = (last: unknown) => resource(null, lost, false, last)
+    reads.handle = resource(null, lost)
+    reads.dash = kept({ panels: [] })
+    reads.targets = kept(new Map([['target/forge', {}]]))
+    view.rerender(viewerElement())
+    reads.handle = resource(null, null, true)
+    view.rerender(viewerElement())
+
+    // The draft stays under the reload, Save withheld, and typing a
+    // selector runs no suggestion query on the released handle.
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+      'Load',
+    )
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    const expr = screen.getByLabelText('Expression') as HTMLTextAreaElement
+    fireEvent.change(expr, { target: { value: 'up{j', selectionStart: 4 } })
+    await act(async () => {})
+    expect(first.labelValues.mock.calls.length).toBe(firstQueries)
+    expect(first.labelNames).not.toHaveBeenCalled()
+
+    // The next handle arrives, then its record watches yield.
+    const next = promHandle()
+    reads.handle = resource({ state: 'ready', handle: next })
+    view.rerender(viewerElement())
+    reads.dash = resource({ panels: [] })
+    reads.targets = resource(new Map([['target/forge', {}]]))
+    view.rerender(viewerElement())
+
+    // The draft is still open, Save returns, and suggestions query the
+    // next handle.
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+      'Load',
+    )
+    await act(async () => {})
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDefined()
+    expect(next.labelValues).toHaveBeenCalled()
     container.canDeleteObjects = false
   })
 

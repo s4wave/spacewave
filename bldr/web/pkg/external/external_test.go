@@ -84,9 +84,13 @@ func TestBldrSdkImportsCoverBrowserModules(t *testing.T) {
 			return err
 		}
 
-		// Ignore non-TypeScript files and SDK test sources.
+		// Ignore non-TypeScript files, SDK test sources and spec views. A
+		// TLA+ spec's .view.ts lives beside the code it models and never
+		// ships.
 		ext := filepath.Ext(path)
-		if ext != ".ts" && ext != ".tsx" || strings.HasSuffix(path, ".test.ts") {
+		if ext != ".ts" && ext != ".tsx" ||
+			strings.HasSuffix(path, ".test.ts") ||
+			strings.HasSuffix(path, ".view.ts") {
 			return nil
 		}
 

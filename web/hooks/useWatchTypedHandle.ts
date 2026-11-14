@@ -44,23 +44,62 @@ export function useWatchTypedHandle<T extends SDKResource>(
   )
 }
 
+/** HeldTypedHandle is the handle a viewer draws its body on. */
+export type HeldTypedHandle<T> = {
+  handle: T
+  // live is set while handle is the watch's ready handle. Otherwise it is
+  // the last ready handle, already released: the body reads it only through
+  // watches that report the loss, runs no query on it, and offers no write.
+  live: boolean
+}
+
 /**
  * useHeldTypedHandle returns the handle a viewer draws its body on: the
- * ready one, or while the watch has failed the last one that was ready, so
- * the body and the drafts in it stay mounted under the failure. A held
- * handle is released; the body reads it only through watches that report
- * the watch's failure, and offers no write on it. It is null while the
- * object is absent, has no handler, or has not been ready.
+ * ready one, or while the watch has failed or reloads after a failure the
+ * last one that was ready for objectKey, so the body and the drafts in it
+ * stay mounted until the next handle arrives. A held handle never crosses
+ * to another object. It is null while the object is absent, has no
+ * handler, or has not been ready.
  */
 export function useHeldTypedHandle<T>(
   handle: Resource<TypedHandle<T>>,
-): T | null {
+  objectKey: string,
+): HeldTypedHandle<T> | null {
   const value = handle.value
   const ready = value?.state === 'ready' ? value.handle : null
-  const [last, setLast] = useState<T | null>(null)
-  const held = ready ?? (handle.error ? last : null)
-  if (held !== last) setLast(held)
-  return held
+  const [last, setLast] = useState<{ key: string; handle: T } | null>(null)
+  const kept =
+    value === null &&
+    (handle.error || handle.loading) &&
+    last?.key === objectKey
+      ? last.handle
+      : null
+  const held = ready ?? kept
+  if (held !== (last?.handle ?? null) || (held && last?.key !== objectKey)) {
+    setLast(held ? { key: objectKey, handle: held } : null)
+  }
+  return held ? { handle: held, live: held === ready } : null
+}
+
+/**
+ * useLiveDeps returns deps while live, otherwise the deps of the last live
+ * render, so a resource keyed on them runs no query on a held handle and
+ * keeps its answer until the next handle arrives. A resource first mounted
+ * while not live still runs once; its factory returns null then.
+ */
+export function useLiveDeps(
+  live: boolean,
+  deps: React.DependencyList,
+): React.DependencyList {
+  const [last, setLast] = useState(deps)
+  if (live && !sameDeps(last, deps)) setLast(deps)
+  return live ? deps : last
+}
+
+// sameDeps reports whether a and b hold the same values, as React compares
+// a dependency list.
+function sameDeps(a: React.DependencyList, b: React.DependencyList): boolean {
+  return a.length === b.length && a.every((v, i) => Object.is(v, b[i]))
 }
 
 // watchTypedHandle yields the typed handler state of objectKey until signal

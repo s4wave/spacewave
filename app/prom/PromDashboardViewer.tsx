@@ -86,11 +86,12 @@ function DashboardHandle({
   )
 
   const value = handle.value
-  const held = useHeldTypedHandle(handle)
+  const held = useHeldTypedHandle(handle, objectKey)
   if (held) {
     return (
       <DashboardBody
-        dashboard={held}
+        dashboard={held.handle}
+        live={held.live}
         lost={handle.error}
         retryHandle={handle.retry}
       />
@@ -173,20 +174,23 @@ const initialView: View = {
 }
 
 // DashboardBody shows the Dashboard's panels over the time range in the
-// view's path, rerunning them as targets commit. lost is the failure of the
-// handle watch while dashboard is the last handle it served: the records and
-// any open editor stay, drawn under the failure, and no write is offered.
+// view's path, rerunning them as targets commit. Unless live, dashboard is
+// the last handle the watch served, which failed with lost or reloads: the
+// records and any open editor stay, drawn under the failure, and no query
+// or write is offered.
 function DashboardBody({
   dashboard,
+  live,
   lost,
   retryHandle,
 }: {
   dashboard: PromDashboard
+  live: boolean
   lost: Error | null
   retryHandle: () => void
 }) {
   const container = SpaceContainerContext.useContextSafe()
-  const canSave = !lost
+  const canSave = live
   const canWrite = (container?.canDeleteObjects ?? false) && canSave
   const range = parseTimeRange(usePath())
   const navigate = useNavigate()
@@ -194,16 +198,18 @@ function DashboardBody({
   const nowMs = useClock(clockPeriodMs)
 
   // Follow the Dashboard and the Space's targets. A lost handle fails both
-  // watches over their last records, and their Retry watches the handle.
+  // watches over their last records, and their Retry watches the handle;
+  // they stay failed over them while it reloads, until the next handle's
+  // watches yield.
   const dashResource = useMemo(
     () =>
       resourceOf({
         value: dashboard,
-        loading: false,
+        loading: !live && !lost,
         error: lost,
         retry: lost ? retryHandle : noop,
       }),
-    [dashboard, lost, retryHandle],
+    [dashboard, live, lost, retryHandle],
   )
   const dash = useStreamingResource(
     dashResource,
@@ -392,7 +398,7 @@ function DashboardBody({
               <PromPanelEditor
                 key={panel.id}
                 dashboard={dashboard}
-                canSave={canSave}
+                live={live}
                 panel={panel}
                 removed={false}
                 targets={targetsValue}
@@ -404,6 +410,7 @@ function DashboardBody({
               <PromPanel
                 key={panel.id}
                 query={dashboard}
+                live={live}
                 panel={panel}
                 range={range}
                 targets={targetsValue}
@@ -419,7 +426,7 @@ function DashboardBody({
             <PromPanelEditor
               key={editingPanelId ?? 'new'}
               dashboard={dashboard}
-              canSave={canSave}
+              live={live}
               panel={null}
               removed={editedRemoved}
               targets={targetsValue}

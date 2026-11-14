@@ -113,6 +113,23 @@ function TestRetryChild(props: {
   )
 }
 
+function TestParentChild(props: {
+  parent: Resource<string>
+  factory: (value: string) => Promise<string>
+}) {
+  const resource = useResource(
+    props.parent,
+    async (value) => props.factory(value),
+    [],
+  )
+
+  return React.createElement('div', {
+    'data-value': resource.value ?? '',
+    'data-last': lastOf(resource) ?? '',
+    'data-error': resource.error?.message ?? '',
+  })
+}
+
 function TestValue(props: {
   factory: (version: number) => Promise<string>
   version: number
@@ -503,6 +520,40 @@ describe('useResource', () => {
     await render(parent(null, new Error('parent failed')))
     await click()
     expect(parentRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a child failed over its last through its parent recovering', async () => {
+    // A child reads a value under a ready parent.
+    const results: Array<(value: string) => void> = []
+    const factory = vi.fn(
+      (_value: string) =>
+        new Promise<string>((resolve) => {
+          results.push(resolve)
+        }),
+    )
+    const parent = (value: string | null, error: Error | null) =>
+      React.createElement(TestParentChild, {
+        parent: resourceOf({ value, loading: false, error, retry: () => {} }),
+        factory,
+      })
+    mount()
+    await render(parent('p1', null))
+    await update(() => results[0]('child-1'))
+    expect(view('data-value')).toBe('child-1')
+
+    // The parent fails, then recovers with a new value: the child's run
+    // starts failed over its last, never blank.
+    await render(parent(null, new Error('parent failed')))
+    expect(view('data-last')).toBe('child-1')
+    await render(parent('p2', null))
+    expect(factory).toHaveBeenCalledTimes(2)
+    expect(view('data-last')).toBe('child-1')
+    expect(view('data-error')).toBe('parent failed')
+
+    // The run's value returns it to ready.
+    await update(() => results[1]('child-2'))
+    expect(view('data-value')).toBe('child-2')
+    expect(view('data-error')).toBe('')
   })
 
   it('aborts child work when its SDK parent is released', async () => {
@@ -1007,9 +1058,12 @@ describe('useResource', () => {
     expect(view('data-error')).toBe('parent failed')
     expect(streamFactory).toHaveBeenCalledTimes(1)
 
-    // The parent's recovery opens the stream again.
+    // The parent's recovery opens the stream again, failed over its last
+    // until the stream yields, never blank.
     await renderParent(ready)
     expect(streamFactory).toHaveBeenCalledTimes(2)
+    expect(view('data-last')).toBe('stream-1')
+    expect(view('data-error')).toBe('parent failed')
     await update(() => streams[1].push('stream-2'))
     expect(view('data-value')).toBe('stream-2')
     expect(view('data-error')).toBe('')

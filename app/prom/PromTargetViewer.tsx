@@ -51,14 +51,15 @@ export function PromTargetViewer({
   const contextContents = SpaceContentsContext.useContext()
 
   // Past its reconnect backoff the watch fails; the target it last served
-  // stays drawn under the failure.
+  // stays drawn under the failure and through the reload after it.
   const value = handle.value
-  const held = useHeldTypedHandle(handle)
+  const held = useHeldTypedHandle(handle, objectKey)
   if (held) {
     return (
       <TargetBody
         objectKey={objectKey}
-        query={held}
+        query={held.handle}
+        live={held.live}
         lost={handle.error}
         retryHandle={handle.retry}
         contents={spaceContents ?? contextContents}
@@ -121,19 +122,21 @@ function reduceApproval(_: Approval, ev: ApprovalEvent): Approval {
   }
 }
 
-// TargetBody follows the target's info and this Device's binding. lost is
-// the failure of the handle watch while query is the last handle it served:
-// the targets watch fails over its last record, and its Retry watches the
-// handle.
+// TargetBody follows the target's info and this Device's binding. Unless
+// live, query is the last handle the watch served, which failed with lost
+// or reloads: the targets watch stays failed over its last record, its
+// Retry watches the handle, and the chart runs no query.
 function TargetBody({
   objectKey,
   query,
+  live,
   lost,
   retryHandle,
   contents,
 }: {
   objectKey: string
   query: PromQuery
+  live: boolean
   lost: Error | null
   retryHandle: () => void
   contents: Resource<SpaceContents>
@@ -151,11 +154,11 @@ function TargetBody({
     () =>
       resourceOf({
         value: query,
-        loading: false,
+        loading: !live && !lost,
         error: lost,
         retry: lost ? retryHandle : noop,
       }),
-    [query, lost, retryHandle],
+    [query, live, lost, retryHandle],
   )
   const targets = useStreamingResource(
     queryResource,
@@ -256,6 +259,7 @@ function TargetBody({
               <div className="max-w-2xl">
                 <PromPanel
                   query={query}
+                  live={live}
                   panel={chartPanel}
                   range={defaultTimeRange}
                   targets={targetsValue}

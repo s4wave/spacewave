@@ -351,6 +351,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
     menuPath: 'Tools/Add Text Node',
     menuGroup: 2,
     menuOrder: 1,
+    writes: true,
     active: (ctx) => ctx.isTabActive && !!ctx.onAddText,
     enabled: (ctx) => !!ctx.onAddText,
     run: (ctx) => ctx.onAddText?.(),
@@ -363,6 +364,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
     menuOrder: 2,
     hasSubItems: true,
     subItems: (ctx) => ctx.addObjectSubItems,
+    writes: true,
     active: (ctx) =>
       ctx.isTabActive && !!ctx.onAddObject && !!ctx.addObjectSubItems,
     enabled: (ctx) => !!ctx.onAddObject && !!ctx.addObjectSubItems,
@@ -384,6 +386,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
     menuOrder: 3,
     hasSubItems: true,
     subItems: (ctx) => ctx.addImageSubItems,
+    writes: true,
     active: (ctx) =>
       ctx.isTabActive && !!ctx.onAddImage && !!ctx.addImageSubItems,
     enabled: (ctx) => !!ctx.onAddImage && !!ctx.addImageSubItems,

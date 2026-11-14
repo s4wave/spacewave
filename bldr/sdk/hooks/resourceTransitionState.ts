@@ -53,8 +53,9 @@ export function isReleasedHandle(value: unknown): boolean {
 
 /**
  * resourceReady reports whether a child may start on resource: it holds a
- * live value and is neither loading nor failed. Every hook that starts a
- * child gates on this predicate alone.
+ * live value and is neither loading nor failed. Every hook that runs a child
+ * through startAfter gates on this predicate alone; useSharedResource keys a
+ * lease on any live parent value instead, so a parent reload keeps it.
  */
 export function resourceReady(resource: ParentState): boolean {
   return (
@@ -210,13 +211,16 @@ export function useResourceTransitionState<T>(
   }, [])
 
   /**
-   * waitAgain marks the resource loading, keeping its value. A quiet wait
-   * keeps a failed state as it is.
+   * waitAgain marks the resource loading, keeping its value. A failure that
+   * kept a last, or a quiet wait over any failure, stays failed as it is, so
+   * a wait or a run that follows never blanks kept content; the run's first
+   * value, failure or empty settle replaces it.
    */
   const waitAgain = useCallback(
     (key: number, quiet = false) =>
       update(key, (prev) =>
-        (quiet && prev.error !== null) || (prev.loading && prev.error === null)
+        (prev.error !== null && (quiet || lastOf(prev) !== null)) ||
+        (prev.loading && prev.error === null)
           ? prev
           : { ...prev, loading: true, error: null },
       ),
@@ -262,8 +266,9 @@ export function useResourceTransitionState<T>(
   )
 
   /**
-   * begin starts a run under key, keeping the value while it loads. A quiet
-   * run keeps a failed state as it is until the run yields a value.
+   * begin starts a run under key from waitAgain: it keeps the value while it
+   * loads, and a failure that kept a last, or a quiet run's failure, stays
+   * as it is until the run settles.
    */
   const begin = useCallback(
     (version: number, key: number, quiet = false): ResourceTransitionRun => {
@@ -282,10 +287,11 @@ export function useResourceTransitionState<T>(
 
   /**
    * startAfter begins a run once every parent is ready. Otherwise it holds
-   * the child: under a failed parent its value moves to last and it waits,
-   * so it reports the parent's failure and, once the parent turns ready,
-   * loading until its run starts, never empty; loading under a loading or
-   * released parent; and empty under a parent that settled with no value.
+   * the child: under a failed parent its value moves to last and the child
+   * takes the parent's failure as its own, so it stays failed over that last
+   * through the parent's reload and recovery until its own run settles,
+   * never empty or blank; loading under a loading or released parent; and
+   * empty under a parent that settled with no value.
    */
   const startAfter = useCallback(
     (
@@ -297,9 +303,10 @@ export function useResourceTransitionState<T>(
       if (parents.every(resourceReady)) {
         return begin(version, key, quiet)
       }
-      if (parents.some((parent) => parent.error !== null)) {
+      const failed = parents.find((parent) => parent.error !== null)
+      if (failed) {
         settle(version)
-        toLast(key, true, null)
+        toLast(key, false, failed.error)
         return null
       }
       if (

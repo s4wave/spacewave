@@ -63,7 +63,8 @@ export function useStreamingResource<P, T>(
   const abortRetriedParentValueChangeRef = useRef<number | null>(null)
   const valueRef = useRef<T | null>(null)
   // reconnectingRef is set once the stream yielded under the current key;
-  // quietRef is set while a failed stream reopens in the background.
+  // quietRef is set while a capped stream reopens in the background, so it
+  // stays failed even with nothing kept.
   const reconnectingRef = useRef(false)
   const quietRef = useRef(false)
   const [backoff] = useState(exponentialBackoff)
@@ -206,12 +207,12 @@ export function useStreamingResource<P, T>(
 
   // Reopen the stream at once on request. A stream that failed with nothing
   // kept shows loading again; one that kept a value stays failed over it
-  // until the reopened stream yields, so its content never blanks.
-  const kept = state.error !== null && state.last !== null
+  // until the reopened stream yields, as startAfter keeps it, so its content
+  // never blanks.
   const retry = useCallback(() => {
-    quietRef.current = kept
+    quietRef.current = false
     setRetryCount((c) => c + 1)
-  }, [kept])
+  }, [])
 
   // Report the parent's error ahead of the stream's own.
   return useMemo(

@@ -77,7 +77,9 @@ export function AlarmViewer({
     { key: `alarm:${objectKey}` },
   )
 
-  // Acknowledge it as this member.
+  // Acknowledge it as this member. The write needs the live World: while it
+  // has failed or reloads, Acknowledge is withheld and the Alarm's failure
+  // notice, which carries the World's, says why.
   const world = worldState.value
   const onAcknowledge = useCallback(async () => {
     if (!world) return
@@ -131,7 +133,7 @@ export function AlarmViewer({
       alarm={value}
       nowMs={nowMs}
       who={who}
-      canAcknowledge={canWrite}
+      canAcknowledge={canWrite && world !== null}
       saving={ack.state === 'saving'}
       ackError={ackError}
       onAcknowledge={() => void onAcknowledge()}

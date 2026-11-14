@@ -11,7 +11,7 @@ stateDiagram-v2
   s6: Loading over value, previous deps
   [*] --> s0
   s0 --> s1: parent fails or run fails
-  s1 --> s0: Retry the parent or parent ready or parent reloads or presses Retry or deps change
+  s1 --> s0: Retry the parent or parent reloads or presses Retry or run starts or deps change or parent ready
   s0 --> s2: source holds nothing
   s0 --> s3: value arrives
   s2 --> s0: parent reloads or deps change
@@ -23,7 +23,7 @@ stateDiagram-v2
   s4 --> s0: deps change
   s4 --> s5: parent fails or run fails
   s5 --> s1: deps change or handle released
-  s5 --> s0: Retry the parent or parent ready or deps change or parent reloads
+  s5 --> s0: deps change
   s3 --> s1: parent fails or run fails
   s6 --> s1: parent fails or run fails
   s4 --> s6: deps change
@@ -31,7 +31,6 @@ stateDiagram-v2
   s5 --> s3: value arrives
   s4 --> s3: value arrives
   s4 --> s2: source holds nothing
-  s0 --> s5: parent fails or run fails
   s4 --> s1: parent fails or run fails
   s6 --> s2: source holds nothing
   s6 --> s3: value arrives

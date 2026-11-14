@@ -9,13 +9,18 @@ import {
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { PromDashboard, PromTargets } from '@s4wave/sdk/prom/prom.js'
 import { PanelKind, PanelUnit, type Panel } from '@s4wave/sdk/prom/prom.pb.js'
+import { useLiveDeps } from '@s4wave/web/hooks/useWatchTypedHandle.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import { PromPanel } from './PromPanel.js'
-import { filterSuggestions, suggestContext } from './expr-suggest.js'
+import {
+  filterSuggestions,
+  suggestContext,
+  type SuggestContext,
+} from './expr-suggest.js'
 import type { TimeRange } from './prom-view.js'
 
 // unitOptions are the units offered for a panel, in menu order.
@@ -79,9 +84,10 @@ function reduce(ed: Editor, ev: EditorEvent): Editor {
 
 export interface PromPanelEditorProps {
   dashboard: PromDashboard
-  // canSave is unset while the Dashboard's handle is lost: the draft stays
-  // and Save returns with the next handle.
-  canSave: boolean
+  // live is unset while dashboard is a held handle, lost or reloading: the
+  // draft stays, no suggestion or preview query runs on it, and Save
+  // returns with the next handle.
+  live: boolean
   // panel is the panel being edited, or null for a new one.
   panel: Panel | null
   // removed is set when another member removed the edited panel.
@@ -92,11 +98,42 @@ export interface PromPanelEditorProps {
   onClose: () => void
 }
 
+// useSuggestions returns the metric or label names to offer at ctx, looked
+// up on dashboard while live, and whether the first lookup is under way.
+function useSuggestions(
+  dashboard: PromDashboard,
+  live: boolean,
+  ctx: SuggestContext,
+): { names: string[]; loading: boolean } {
+  const metric = ctx.kind === 'label' ? ctx.metric : null
+  const metricNames = useResource(
+    async (signal) =>
+      live ? dashboard.labelValues('__name__', [], signal) : null,
+    useLiveDeps(live, [dashboard]),
+  )
+  const labelNames = useResource(
+    async (signal) => {
+      if (!live || metric === null) return null
+      return dashboard.labelNames(metric ? [metric] : [], signal)
+    },
+    useLiveDeps(live, [dashboard, metric]),
+  )
+  const names = ctx.kind === 'label' ? labelNames : metricNames
+  const offered = useMemo(
+    () =>
+      ctx.kind === 'none'
+        ? []
+        : filterSuggestions(names.value ?? [], ctx.prefix),
+    [ctx, names.value],
+  )
+  return { names: offered, loading: names.loading && !names.value }
+}
+
 // PromPanelEditor edits a panel's title, expression, unit and kind with
 // metric and label suggestions and a live preview, and stores it on Save.
 export function PromPanelEditor({
   dashboard,
-  canSave,
+  live,
   panel,
   removed,
   targets,
@@ -121,26 +158,7 @@ export function PromPanelEditor({
 
   // Look up the names a suggestion can offer at the caret.
   const ctx = suggestContext(ed.draft.expr ?? '', ed.caret)
-  const metric = ctx.kind === 'label' ? ctx.metric : null
-  const metricNames = useResource(
-    (signal) => dashboard.labelValues('__name__', [], signal),
-    [dashboard],
-  )
-  const labelNames = useResource(
-    async (signal) => {
-      if (metric === null) return null
-      return dashboard.labelNames(metric ? [metric] : [], signal)
-    },
-    [dashboard, metric],
-  )
-  const names = ctx.kind === 'label' ? labelNames : metricNames
-  const suggestions = useMemo(
-    () =>
-      ctx.kind === 'none'
-        ? []
-        : filterSuggestions(names.value ?? [], ctx.prefix),
-    [ctx, names.value],
-  )
+  const suggestions = useSuggestions(dashboard, live, ctx)
 
   // Replace the word at the caret with a picked name.
   const pick = useCallback(
@@ -254,8 +272,8 @@ export function PromPanelEditor({
         </label>
         {ed.focused && ctx.kind !== 'none' ? (
           <Suggestions
-            loading={names.loading && !names.value}
-            names={suggestions}
+            loading={suggestions.loading}
+            names={suggestions.names}
             onPick={pick}
           />
         ) : null}
@@ -270,13 +288,13 @@ export function PromPanelEditor({
             Could not save the panel: {ed.save.reason}.
           </p>
         ) : null}
-        {!canSave ? (
+        {!live ? (
           <p className="text-foreground-alt text-xs">
             Save returns once the Dashboard is read again.
           </p>
         ) : null}
         <div className="flex gap-2">
-          {canSave ? (
+          {live ? (
             <Button
               size="sm"
               disabled={titleMissing || saving}
@@ -301,6 +319,7 @@ export function PromPanelEditor({
 
       <PromPanel
         query={dashboard}
+        live={live}
         panel={previewPanel}
         range={range}
         targets={targets}

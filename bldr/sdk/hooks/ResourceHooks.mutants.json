@@ -58,14 +58,14 @@
     "expect": "NoChildOnFailedParent"
   },
   {
-    "name": "a parent reload leaves the child failed",
+    "name": "a parent reload drops kept content",
     "replace": [
       [
-        "  /\\ parent' = \"loading\"\n  /\\ stream' = \"held\" /\\ status' = \"loading\"",
-        "  /\\ parent' = \"loading\"\n  /\\ stream' = \"held\" /\\ UNCHANGED status"
+        "  /\\ parent' = \"loading\"\n  /\\ stream' = \"held\" /\\ Wait(FALSE)",
+        "  /\\ parent' = \"loading\"\n  /\\ stream' = \"held\" /\\ status' = \"loading\""
       ]
     ],
-    "expect": "FailedHasRetry"
+    "expect": "OwnFailureKeepsContent"
   },
   {
     "name": "a reconnecting stream never reports its cap",
@@ -76,12 +76,32 @@
   },
   {
     "name": "Retry over a kept value shows the wait",
-    "replace": [["  /\\ Begin(LastOf # 0)", "  /\\ Begin(FALSE)"]],
+    "replace": [
+      [
+        "Retry ==\n  /\\ parent = \"ready\" /\\ status = \"failed\"\n  /\\ Begin(FALSE)",
+        "Retry ==\n  /\\ parent = \"ready\" /\\ status = \"failed\"\n  /\\ stream' = \"open\" /\\ emitted' = FALSE /\\ status' = \"loading\""
+      ]
+    ],
+    "expect": "OwnFailureKeepsContent"
+  },
+  {
+    "name": "recovery over a kept value shows the wait",
+    "replace": [
+      [
+        "  /\\ parent = \"ready\" /\\ stream = \"held\"\n  /\\ Begin(FALSE)",
+        "  /\\ parent = \"ready\" /\\ stream = \"held\"\n  /\\ stream' = \"open\" /\\ emitted' = FALSE /\\ status' = \"loading\""
+      ]
+    ],
     "expect": "OwnFailureKeepsContent"
   },
   {
     "name": "a child of a failed parent settles with no value",
-    "replace": [["  /\\ ToLast(\"loading\")", "  /\\ ToLast(\"ready\")"]],
+    "replace": [
+      [
+        "  /\\ stream' = \"held\"\n  /\\ ToLast(\"failed\")",
+        "  /\\ stream' = \"held\"\n  /\\ ToLast(\"ready\")"
+      ]
+    ],
     "expect": "NoFalseEmpty"
   },
   {
@@ -122,6 +142,11 @@
   {
     "name": "reaches: a kept value shows while new deps load",
     "replace": [["Unreached == TRUE", "Unreached == ~CarriedWhileLoading"]],
+    "expect": "Unreached"
+  },
+  {
+    "name": "reaches: a run starts failed over a kept last after a parent failure",
+    "replace": [["Unreached == TRUE", "Unreached == ~RecoversOverKept"]],
     "expect": "Unreached"
   }
 ]

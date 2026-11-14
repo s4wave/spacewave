@@ -4,6 +4,7 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { PromQuery, PromTargets } from '@s4wave/sdk/prom/prom.js'
 import { PanelKind, type Panel } from '@s4wave/sdk/prom/prom.pb.js'
 import { useContainerDensity } from '@s4wave/web/hooks/useContainerDensity.js'
+import { useLiveDeps } from '@s4wave/web/hooks/useWatchTypedHandle.js'
 
 import {
   PromPanelView,
@@ -24,6 +25,9 @@ const widthBucket = 100
 
 export interface PromPanelProps {
   query: PromQuery
+  // live is unset while query is a held handle: no query runs on it, and
+  // the last answer stays until the next handle arrives.
+  live: boolean
   panel: Panel
   range: TimeRange
   // targets is the latest target set; each new set reruns the query, since a
@@ -42,6 +46,7 @@ export interface PromPanelProps {
 // while the next one runs.
 export function PromPanel({
   query,
+  live,
   panel,
   range,
   targets,
@@ -57,10 +62,11 @@ export function PromPanel({
   const minStep = minScrapeIntervalMs(targets)
   const expr = panel.expr ?? ''
 
-  // Rerun on each change of the expression, range, width or targets.
+  // Rerun on each change of the expression, range, width or targets while
+  // the handle is live.
   const result = useResource(
     async (signal) => {
-      if (!measured || !expr) return null
+      if (!live || !measured || !expr) return null
       const endMs = Date.now()
       const startMs = endMs - range.ms
       const stepMs = isValue ? 0 : panelStepMs(range.ms, bucket, minStep)
@@ -77,7 +83,16 @@ export function PromPanel({
       )
       return { resp, startMs, endMs, stepMs }
     },
-    [query, expr, isValue, range.ms, bucket, minStep, measured, targets],
+    useLiveDeps(live, [
+      query,
+      expr,
+      isValue,
+      range.ms,
+      bucket,
+      minStep,
+      measured,
+      targets,
+    ]),
   )
 
   // Map the resource to the panel's answer state.

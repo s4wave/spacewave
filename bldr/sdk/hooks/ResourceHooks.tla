@@ -7,7 +7,9 @@
 \* settled empty. Failed shows no value: only the last value of the current
 \* deps, which may be stale, with Retry. A failed parent fails the child,
 \* which keeps its value as last and runs nothing until the parent is ready.
-\* A parent reload keeps the value. A deps change starts loading with no
+\* A failure that kept a last stays failed over it through a parent reload,
+\* the parent's recovery and the run that follows, until the run yields, so
+\* recovery never blanks kept content. A parent reload keeps the value. A deps change starts loading with no
 \* value and no last, unless the hook keeps the value while loading, as a
 \* tree expanding a level does: then the previous deps' value shows only
 \* while loading, and never becomes last.
@@ -102,10 +104,16 @@ ToLast(st) ==
   /\ last' = LastOf /\ lastRel' = LastOfRel
   /\ status' = st
 
-\* Begin opens a run; a quiet run keeps a failed state as it is.
+\* Wait sets the state a run or a wait starts from: a failure that kept a
+\* last, or a quiet one, stays failed; anything else loads.
+Wait(q) ==
+  status' = IF status = "failed" /\ (q \/ LastOf # 0) THEN "failed"
+            ELSE "loading"
+
+\* Begin opens a run from Wait(q).
 Begin(q) ==
   /\ stream' = "open" /\ emitted' = FALSE
-  /\ status' = IF q /\ status = "failed" THEN "failed" ELSE "loading"
+  /\ Wait(q)
 
 \* The parent turns ready; the child renders once before its effect runs.
 ParentReady ==
@@ -115,8 +123,8 @@ ParentReady ==
                  emitted, fails>>
   /\ Fixed
 
-\* The hook's effect starts the held run on a ready parent. A held child is
-\* never failed itself, so the run starts loading.
+\* The hook's effect starts the held run on a ready parent. After a parent
+\* failure the child starts failed over its kept last.
 Start ==
   /\ parent = "ready" /\ stream = "held"
   /\ Begin(FALSE)
@@ -127,7 +135,7 @@ Start ==
 ParentLoad ==
   /\ parent = "ready"
   /\ parent' = "loading"
-  /\ stream' = "held" /\ status' = "loading"
+  /\ stream' = "held" /\ Wait(FALSE)
   /\ UNCHANGED <<val, valRel, keepable, last, lastRel, emitted, fails>>
   /\ Fixed
 
@@ -137,15 +145,16 @@ ParentFail ==
   /\ parent \in {"loading", "ready"}
   /\ parent' = "failed"
   /\ stream' = "held"
-  /\ ToLast("loading")
+  /\ ToLast("failed")
   /\ UNCHANGED <<emitted, fails>>
   /\ Fixed
 
 ParentRetry ==
   /\ parent = "failed"
   /\ parent' = "loading"
-  /\ UNCHANGED <<status, val, valRel, keepable, last, lastRel, stream,
-                 emitted, fails>>
+  /\ Wait(FALSE)
+  /\ UNCHANGED <<val, valRel, keepable, last, lastRel, stream, emitted,
+                 fails>>
   /\ Fixed
 
 \* The run yields a value of the current deps.
@@ -193,7 +202,7 @@ Reopen ==
 \* Retry in either hook reads again at once, staying failed over a kept last.
 Retry ==
   /\ parent = "ready" /\ status = "failed"
-  /\ Begin(LastOf # 0)
+  /\ Begin(FALSE)
   /\ UNCHANGED <<parent, val, valRel, keepable, last, lastRel, fails>>
   /\ Fixed
 
@@ -247,7 +256,11 @@ LastIsThisKey == RLast # 0 => RLast = key
 NoChildOnFailedParent == parent # "ready" => stream # "open"
 
 \* Every failed state offers Retry.
-FailedHasRetry == RStatus = "failed" => (ENABLED Retry \/ ENABLED ParentRetry)
+FailedHasRetry ==
+  RStatus = "failed" =>
+    \/ ENABLED Retry \/ ENABLED ParentRetry
+    \* A reloading parent is the Retry under way; the child follows it.
+    \/ parent = "loading"
 
 \* A reconnecting stream past its cap reports failed.
 CappedReportsFailed == stream = "backoff" /\ fails >= Cap => RStatus = "failed"
@@ -257,9 +270,12 @@ CappedReportsFailed == stream = "backoff" /\ fails >= Cap => RStatus = "failed"
 NoFalseEmpty == RStatus = "ready" /\ RValue = 0 => Empty
 
 \* Content of the current deps stays through the stream's own failures, the
-\* cap and Retry, unless its handle was released.
+\* cap, Retry, and a parent's failure, reload and recovery, unless its
+\* handle was released.
 OwnFailureKeepsContent ==
-  [][(Content = key /\ ~ContentRel /\ (StreamFail \/ Reopen \/ Retry))
+  [][(Content = key /\ ~ContentRel /\
+      (StreamFail \/ Reopen \/ Retry \/ ParentFail \/ ParentLoad \/
+       ParentRetry \/ ParentReady \/ Start))
        => Content' # 0]_vars
 
 \* A value returns a failed hook to ready.
@@ -277,6 +293,8 @@ CappedWithRetry ==
 ReleaseUnderKept ==
   RStatus = "failed" /\ RLast # 0 /\ ENABLED Release
 ParentFailsOverValue == parent = "failed" /\ RLast # 0
+RecoversOverKept ==
+  parent = "ready" /\ stream = "open" /\ RStatus = "failed" /\ RLast # 0
 CarriedWhileLoading == RStatus = "loading" /\ val # 0 /\ val # key
 Unreached == TRUE
 

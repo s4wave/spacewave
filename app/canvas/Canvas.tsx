@@ -777,6 +777,17 @@ interface CanvasProps {
   className?: string
 }
 
+// useCanvasTool holds the active tool: toolProp when the parent controls it,
+// otherwise the canvas's own choice. A read-only canvas keeps select, and
+// onToolChange is set only while the canvas chooses its own tool.
+function useCanvasTool(toolProp: CanvasTool | undefined, readOnly: boolean) {
+  const [own, setOwn] = useState<CanvasTool>('select')
+  const selectTool = useCallback(() => setOwn('select'), [])
+  if (readOnly) return { tool: 'select' as const, selectTool }
+  if (toolProp !== undefined) return { tool: toolProp, selectTool }
+  return { tool: own, onToolChange: setOwn, selectTool }
+}
+
 // Canvas is the main canvas container that composes all canvas sub-components.
 export function Canvas({
   state,
@@ -791,12 +802,8 @@ export function Canvas({
   readOnly = false,
   className,
 }: CanvasProps) {
-  const [toolInternal, setToolInternal] = useState<CanvasTool>('select')
+  const { tool, onToolChange, selectTool } = useCanvasTool(toolProp, readOnly)
   const [drawingColor, setDrawingColor] = useState(DEFAULT_CANVAS_COLOR)
-  const tool = readOnly ? 'select' : (toolProp ?? toolInternal)
-  const onToolChange =
-    toolProp === undefined && !readOnly ? setToolInternal : undefined
-  const selectTool = useCallback(() => setToolInternal('select'), [])
 
   const viewportContainerRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef({ x: 0, y: 0, scale: 1 })
@@ -925,11 +932,11 @@ export function Canvas({
     onCancelDrag: cancelDrag,
     onSetFocus: selection.setFocus,
     readOnly,
-    onAddText: readOnly ? undefined : handleCommandAddText,
-    onAddObject: readOnly ? undefined : addObjectAt,
-    addObjectSubItems: readOnly ? undefined : objectSubItems,
-    onAddImage: readOnly ? undefined : addImageAt,
-    addImageSubItems: readOnly ? undefined : imageSubItems,
+    onAddText: handleCommandAddText,
+    onAddObject: addObjectAt,
+    addObjectSubItems: objectSubItems,
+    onAddImage: addImageAt,
+    addImageSubItems: imageSubItems,
   })
 
   const canAddObject = !!callbacks.onPinObject && !!objectSubItems

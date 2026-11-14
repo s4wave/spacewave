@@ -13,7 +13,7 @@ export interface AlarmViewProps {
   nowMs: number
   // who names the member of a peer ID.
   who: (peerId: string) => string
-  // canAcknowledge is set for a writer.
+  // canAcknowledge is set for a writer while the World is live.
   canAcknowledge: boolean
   saving: boolean
   // ackError is why the last acknowledgement failed.
