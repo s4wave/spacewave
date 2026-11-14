@@ -1093,8 +1093,28 @@ export async function initUnixFS(
   await spaceWorld.applyWorldOp(opTypeId, opData, '', abortSignal)
 }
 
+// hasDriveFile reports whether the Drive root holds name. A failed lookup
+// counts as missing; the upload that follows reports any real fault.
+async function hasDriveFile(
+  root: FSHandle,
+  name: string,
+  abortSignal?: AbortSignal,
+): Promise<boolean> {
+  try {
+    const child = await root.lookup(name, abortSignal)
+    child.release()
+    return true
+  } catch {
+    return false
+  }
+}
+
+// writeDriveStarterGuide uploads the starter guide to the Drive root. On a
+// repeated seed it leaves a guide that is already there, so a retry never
+// overwrites a person's edits.
 async function writeDriveStarterGuide(
   spaceWorld: EngineWorldState,
+  repeat: boolean,
   abortSignal?: AbortSignal,
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
@@ -1115,6 +1135,12 @@ async function writeDriveStarterGuide(
   const ref = spaceWorld.getResourceRef().createRef(access.resourceId)
   const root = new FSHandle(ref)
   try {
+    if (
+      repeat &&
+      (await hasDriveFile(root, DRIVE_STARTER_GUIDE_NAME, abortSignal))
+    ) {
+      return
+    }
     const data = new TextEncoder().encode(DRIVE_STARTER_GUIDE_CONTENT)
     await timeQuickstartPhase(timing, 'write-drive-starter-guide-upload', () =>
       root.uploadFile(
@@ -1412,21 +1438,32 @@ async function prepareNotesQuickstart(
   )
 }
 
-// createDrive sets up a drive with UnixFS content.
+// createDrive sets up a drive with UnixFS content. The index goes in last, so
+// a Space whose guide upload failed stays unseeded and a retry finishes it; a
+// retry keeps the filesystem and any guide already in it.
 export async function createDrive(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
-  // Publish the filesystem and its index together before opening file storage.
-  await timeQuickstartPhase(timing, 'init-drive-batch', () =>
+  const repeat = await hasSeedObject(spaceWorld, UNIXFS_OBJECT_KEY, abortSignal)
+  if (!repeat) {
+    await timeQuickstartPhase(timing, 'init-drive-batch', () =>
+      applyQuickstartBatch(
+        spaceWorld.getEngine(),
+        [initUnixFSMutation()],
+        abortSignal,
+      ),
+    )
+  }
+  await writeDriveStarterGuide(spaceWorld, repeat, abortSignal, timing)
+  await timeQuickstartPhase(timing, 'index-drive-batch', () =>
     applyQuickstartBatch(
       spaceWorld.getEngine(),
-      [initUnixFSMutation(), indexPathMutation(UNIXFS_OBJECT_KEY)],
+      [indexPathMutation(UNIXFS_OBJECT_KEY)],
       abortSignal,
     ),
   )
-  await writeDriveStarterGuide(spaceWorld, abortSignal, timing)
 }
 
 // QuickstartOp is one World op a quickstart applies.

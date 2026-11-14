@@ -1143,6 +1143,37 @@ describe('quickstart create', () => {
       'kv/store',
     )
     expect(getSettingsIndexPath(applyWorldOp)).toBe('kv/store')
+
+    // A Drive whose guide upload failed is not indexed, so it stays unseeded;
+    // the retry keeps the filesystem, uploads the missing guide, then indexes.
+    const drive = buildQuickstartWorld()
+    fsHandleMocks.uploadFile.mockRejectedValueOnce(new Error('upload failed'))
+    await expect(createDrive(drive.world as never)).rejects.toThrow(
+      'upload failed',
+    )
+    expect(drive.applyWorldOp.mock.calls.map((call) => call[0])).toEqual([
+      INIT_UNIXFS_OP_ID,
+    ])
+
+    storeObjects(drive.world, [UNIXFS_OBJECT_KEY])
+    drive.applyWorldOp.mockClear()
+    fsHandleMocks.lookup.mockRejectedValueOnce(new Error('not found'))
+    await createDrive(drive.world as never)
+    expect(fsHandleMocks.lookup).toHaveBeenCalledWith(
+      'getting-started.md',
+      undefined,
+    )
+    expect(uploadedFiles.map((file) => file.name)).toEqual([
+      'getting-started.md',
+    ])
+    expect(getSettingsIndexPath(drive.applyWorldOp)).toBe(UNIXFS_OBJECT_KEY)
+    expect(drive.applyWorldOp.mock.calls.map((call) => call[0])).toEqual([
+      SET_SPACE_INDEX_PATH_OP_ID,
+    ])
+
+    // A retry that finds the guide in place leaves it for the person's edits.
+    await createDrive(drive.world as never)
+    expect(uploadedFiles).toHaveLength(1)
   })
 
   it('creates a new quickstart space when no matching space exists', async () => {
@@ -1209,7 +1240,7 @@ describe('quickstart create', () => {
 
     await createDrive(spaceWorld as never)
 
-    expect(spaceWorld.getEngine().executeWorldBatch).toHaveBeenCalledTimes(1)
+    expect(spaceWorld.getEngine().executeWorldBatch).toHaveBeenCalledTimes(2)
     expect(applyWorldOp).toHaveBeenCalledTimes(2)
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
 
@@ -1416,7 +1447,7 @@ to try first.
 
     await createDrive(spaceWorld as never, undefined, timing)
 
-    expect(executeWorldBatch).toHaveBeenCalledTimes(1)
+    expect(executeWorldBatch).toHaveBeenCalledTimes(2)
     expect(applyWorldOp.mock.calls.map((call) => call[0])).toEqual([
       INIT_UNIXFS_OP_ID,
       SET_SPACE_INDEX_PATH_OP_ID,
@@ -1425,9 +1456,14 @@ to try first.
       'init-drive-batch',
       'write-drive-starter-guide-access',
       'write-drive-starter-guide-upload',
+      'index-drive-batch',
     ])
+    const uploadOrder = fsHandleMocks.uploadFile.mock.invocationCallOrder[0]
     expect(executeWorldBatch.mock.invocationCallOrder[0]).toBeLessThan(
-      fsHandleMocks.uploadFile.mock.invocationCallOrder[0] ?? 0,
+      uploadOrder ?? 0,
+    )
+    expect(executeWorldBatch.mock.invocationCallOrder[1]).toBeGreaterThan(
+      uploadOrder ?? Infinity,
     )
   })
 
