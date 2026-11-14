@@ -5,19 +5,7 @@ import userEvent from '@testing-library/user-event'
 
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
-// seed stands in for a seeder: it writes one op to the World it is handed,
-// so a test sees whether that write landed with the Finish.
-const seed = (world: {
-  applyWorldOp: (id: string, d: Uint8Array) => unknown
-}) =>
-  Promise.resolve(world.applyWorldOp('notes/seed', new Uint8Array())).then(
-    () => undefined,
-  )
-
 const h = vi.hoisted(() => ({
-  createNotebookClientSide: vi.fn(),
-  createDocsClientSide: vi.fn(),
-  createBlogClientSide: vi.fn(),
   t: undefined as unknown as WizardTestWorld,
   navigateToObjects: vi.fn(),
   persistDraftState: vi.fn().mockResolvedValue(undefined),
@@ -92,22 +80,18 @@ vi.mock('@s4wave/web/ui/loading/LoadingCard.js', () => ({
   ),
 }))
 
-vi.mock('./content-seed.js', () => ({
-  buildNotebookUnixfsObjectKey: (objectKey: string) => objectKey + '-fs',
-  createDocsClientSide: h.createDocsClientSide,
-  createNotebookClientSide: h.createNotebookClientSide,
-}))
-
-vi.mock('./blog-seed.js', () => ({
-  createBlogClientSide: h.createBlogClientSide,
-}))
-
 import type { WizardFinishState } from '@s4wave/app/wizard/wizard-finish.js'
 import {
   wizardTestWorld,
   type WizardTestWorld,
 } from '@s4wave/app/wizard/wizard-test-world.js'
 import { NotesWizardViewer } from './NotesWizardViewer.js'
+import { CREATE_BLOG_OP_ID } from './proto/create-blog.js'
+import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
+import { INIT_NOTEBOOK_OP_ID } from './proto/init-notebook.js'
+import { CreateBlogOp } from './proto/blog.pb.js'
+import { CreateDocumentationOp } from './proto/docs.pb.js'
+import { InitNotebookOp } from './proto/notebook.pb.js'
 
 describe('NotesWizardViewer', () => {
   beforeEach(() => {
@@ -122,15 +106,19 @@ describe('NotesWizardViewer', () => {
     h.t = wizardTestWorld(['wizard/notes/test'], 'wizard/notes/test', {
       ...keysWorld(() => h.worldKeys),
     })
-    h.createNotebookClientSide.mockImplementation(seed)
-    h.createDocsClientSide.mockImplementation(seed)
-    h.createBlogClientSide.mockImplementation(seed)
   })
 
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
   })
+
+  // opData returns the data of the op the Finish applied, by op id.
+  function opData(opId: string) {
+    const data = h.t.opData.get(opId)
+    if (!data) throw new Error('expected op ' + opId)
+    return data
+  }
 
   function renderViewer() {
     return render(
@@ -146,33 +134,32 @@ describe('NotesWizardViewer', () => {
     )
   }
 
-  it('finalizes a notebook through plugin-owned seed creation', async () => {
+  it('finalizes a notebook through the plugin-owned create op', async () => {
     const user = userEvent.setup()
     renderViewer()
 
     await user.click(screen.getByRole('button', { name: 'create' }))
 
     await waitFor(() => {
-      expect(h.createNotebookClientSide).toHaveBeenCalledTimes(1)
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     })
-    expect(h.createNotebookClientSide).toHaveBeenCalledWith(
-      expect.not.objectContaining({ getEngine: expect.anything() }),
-      'notebook-1',
-      'notebook-1-fs',
-      'Notebook',
-      expect.any(Date),
-    )
-    // The seed, the index move and the wizard delete commit together.
+    expect(InitNotebookOp.fromBinary(opData(INIT_NOTEBOOK_OP_ID))).toEqual({
+      notebookObjectKey: 'notebook-1',
+      unixfsObjectKey: 'notebook-1-fs',
+      name: 'Notebook',
+      timestamp: expect.any(Date),
+    })
+    // The create, the index move and the wizard delete commit together.
     expect(h.t.state).toEqual({
       objects: new Set(),
       indexPath: 'notebook-1',
-      creates: ['notes/seed'],
+      creates: [INIT_NOTEBOOK_OP_ID],
     })
     expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Notebook')
   })
 
-  it('finalizes documentation through plugin-owned seed creation', async () => {
+  it('finalizes documentation through the plugin-owned create op', async () => {
     const user = userEvent.setup()
     h.state = {
       step: 0,
@@ -187,20 +174,19 @@ describe('NotesWizardViewer', () => {
     await user.click(screen.getByRole('button', { name: 'create' }))
 
     await waitFor(() => {
-      expect(h.createDocsClientSide).toHaveBeenCalledTimes(1)
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['documentation-2'])
     })
-    expect(h.createDocsClientSide).toHaveBeenCalledWith(
-      expect.not.objectContaining({ getEngine: expect.anything() }),
-      'documentation-2',
-      'Documentation',
-      '',
-      expect.any(Date),
+    expect(CreateDocumentationOp.fromBinary(opData(CREATE_DOCS_OP_ID))).toEqual(
+      {
+        objectKey: 'documentation-2',
+        name: 'Documentation',
+        timestamp: expect.any(Date),
+      },
     )
     expect(h.t.state.indexPath).toBe('documentation-2')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['documentation-2'])
   })
 
-  it('finalizes a blog through plugin-owned seed creation', async () => {
+  it('finalizes a blog through the plugin-owned create op', async () => {
     const user = userEvent.setup()
     h.state = {
       step: 0,
@@ -214,18 +200,14 @@ describe('NotesWizardViewer', () => {
     await user.click(screen.getByRole('button', { name: 'create' }))
 
     await waitFor(() => {
-      expect(h.createBlogClientSide).toHaveBeenCalledTimes(1)
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['blog-1'])
     })
-    expect(h.createBlogClientSide).toHaveBeenCalledWith(
-      expect.not.objectContaining({ getEngine: expect.anything() }),
-      'blog-1',
-      'Blog',
-      '',
-      '',
-      expect.any(Date),
-    )
+    expect(CreateBlogOp.fromBinary(opData(CREATE_BLOG_OP_ID))).toEqual({
+      objectKey: 'blog-1',
+      name: 'Blog',
+      timestamp: expect.any(Date),
+    })
     expect(h.t.state.indexPath).toBe('blog-1')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['blog-1'])
   })
 
   it('keeps the wizard and writes nothing when the wizard delete fails, then Retry finishes once', async () => {
@@ -233,7 +215,7 @@ describe('NotesWizardViewer', () => {
     h.t.failOn = 'delete'
     renderViewer()
 
-    // The seed ran, but the failed delete discards it with the rest.
+    // The create applied, but the failed delete discards it with the rest.
     await user.click(screen.getByRole('button', { name: 'create' }))
     expect((await screen.findByRole('alert')).textContent).toBe('delete failed')
     expect(h.t.state).toEqual({
@@ -249,7 +231,7 @@ describe('NotesWizardViewer', () => {
     await waitFor(() => {
       expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
     })
-    expect(h.t.state.creates).toEqual(['notes/seed'])
+    expect(h.t.state.creates).toEqual([INIT_NOTEBOOK_OP_ID])
   })
 
   it('does not finalize unknown notes wizard targets', async () => {
@@ -269,8 +251,6 @@ describe('NotesWizardViewer', () => {
     expect(button.disabled).toBe(true)
     await user.click(button)
 
-    expect(h.createNotebookClientSide).not.toHaveBeenCalled()
-    expect(h.createDocsClientSide).not.toHaveBeenCalled()
-    expect(h.createBlogClientSide).not.toHaveBeenCalled()
+    expect(h.t.calls).toEqual([])
   })
 })

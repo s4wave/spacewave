@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import { TypePred, buildTypeObjectKey } from '@s4wave/sdk/world/types/types.js'
 import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import {
+  SET_SPACE_INDEX_PATH_OP_ID,
+  SET_SPACE_SETTINGS_OP_ID,
+} from '@s4wave/core/space/world/ops/set-space-settings.js'
+import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
 import { SPACE_SETTINGS_BLOCK_TYPE } from '@s4wave/core/space/world/world.js'
 import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
@@ -13,6 +17,7 @@ import {
 import {
   InitCanvasDemoOp,
   InitUnixFSOp,
+  SetSpaceIndexPathOp,
   SetSpaceSettingsOp,
 } from '@s4wave/core/space/world/ops/ops.pb.js'
 import {
@@ -210,9 +215,14 @@ function buildQuickstartWorld(
     commit: vi.fn().mockResolvedValue(undefined),
     discard: vi.fn().mockResolvedValue(undefined),
   })
+  const executeWorldBatch = batchThrough(applyWorldOp)
   return {
     world: {
-      getEngine: vi.fn(() => ({ newTransaction, getEngineInfo })),
+      getEngine: vi.fn(() => ({
+        newTransaction,
+        executeWorldBatch,
+        getEngineInfo,
+      })),
       applyWorldOp,
       getObject,
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
@@ -247,6 +257,25 @@ function buildQuickstartWorld(
   }
 }
 
+// batchThrough mocks executeWorldBatch by applying each op through applyWorldOp,
+// so a test reads batch entries and single ops from one call list.
+function batchThrough(applyWorldOp: ReturnType<typeof vi.fn<ApplyWorldOp>>) {
+  return vi.fn(async (mutations: WorldMutation[]) => {
+    for (const m of mutations) {
+      if (m.mutation?.case !== 'op') {
+        throw new Error('unexpected batch mutation ' + m.mutation?.case)
+      }
+      const op = m.mutation.value
+      await applyWorldOp(
+        op.opTypeId ?? '',
+        op.opData ?? new Uint8Array(),
+        op.opSender ?? '',
+      )
+    }
+    return { seqno: 1n }
+  })
+}
+
 function loadedSpaceContents(...pluginIds: string[]) {
   const release = vi.fn()
   return {
@@ -260,7 +289,19 @@ function loadedSpaceContents(...pluginIds: string[]) {
   }
 }
 
+// getSettingsIndexPath returns the index path the last settings write set,
+// whether it wrote the whole settings or only the index path.
 function getSettingsIndexPath(applyWorldOp: ReturnType<typeof vi.fn>) {
+  const call = applyWorldOp.mock.calls
+    .filter(
+      (call) =>
+        call[0] === SET_SPACE_SETTINGS_OP_ID ||
+        call[0] === SET_SPACE_INDEX_PATH_OP_ID,
+    )
+    .at(-1)
+  if (call?.[0] === SET_SPACE_INDEX_PATH_OP_ID) {
+    return SetSpaceIndexPathOp.fromBinary(call[1] as Uint8Array).indexPath ?? ''
+  }
   return getLastSettings(applyWorldOp).indexPath ?? ''
 }
 
@@ -1062,19 +1103,18 @@ describe('quickstart create', () => {
 
     await createDrive(spaceWorld as never)
 
+    expect(spaceWorld.getEngine().executeWorldBatch).toHaveBeenCalledTimes(1)
     expect(applyWorldOp).toHaveBeenCalledTimes(2)
     expect(applyWorldOp.mock.calls[0]?.[0]).toBe(INIT_UNIXFS_OP_ID)
 
-    const settingsCall = applyWorldOp.mock.calls[1]
-    if (!settingsCall) {
-      throw new Error('expected settings op call')
+    const indexCall = applyWorldOp.mock.calls[1]
+    if (!indexCall) {
+      throw new Error('expected index path op call')
     }
-    expect(settingsCall[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
-    if (!settings) {
-      throw new Error('expected settings')
-    }
-    expect(settings.indexPath).toBe(UNIXFS_OBJECT_KEY)
+    expect(indexCall[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
+    expect(SetSpaceIndexPathOp.fromBinary(indexCall[1]).indexPath).toBe(
+      UNIXFS_OBJECT_KEY,
+    )
     expect(spaceWorld.accessTypedObject).toHaveBeenCalledWith(
       UNIXFS_OBJECT_KEY,
       undefined,
@@ -1238,25 +1278,14 @@ to try first.
     expect(getSettingsIndexPath(applyWorldOp)).toBe('sql/db')
   })
 
-  it('records Drive UnixFS transaction subphases when timing is available', async () => {
-    const txApplyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
+  it('records the Drive batch phase when timing is available', async () => {
+    const applyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
       seqno: 1n,
       sysErr: false,
     })
-    const commit = vi.fn().mockResolvedValue(undefined)
-    const discard = vi.fn().mockResolvedValue(undefined)
-    const newTransaction = vi.fn().mockResolvedValue({
-      applyWorldOp: txApplyWorldOp,
-      getObject: vi.fn().mockResolvedValue(null),
-      commit,
-      discard,
-    })
-    const applyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
-      seqno: 2n,
-      sysErr: false,
-    })
+    const executeWorldBatch = batchThrough(applyWorldOp)
     const spaceWorld = {
-      getEngine: vi.fn(() => ({ newTransaction, getEngineInfo })),
+      getEngine: vi.fn(() => ({ executeWorldBatch, getEngineInfo })),
       getObject: vi.fn(() => Promise.resolve(null)),
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       setGraphQuad: vi.fn().mockResolvedValue(undefined),
@@ -1281,36 +1310,17 @@ to try first.
 
     await createDrive(spaceWorld as never, undefined, timing)
 
-    expect(newTransaction).toHaveBeenCalledTimes(1)
-    expect(newTransaction).toHaveBeenCalledWith(true, undefined)
-    expect(txApplyWorldOp).toHaveBeenNthCalledWith(
-      1,
+    expect(executeWorldBatch).toHaveBeenCalledTimes(1)
+    expect(applyWorldOp.mock.calls.map((call) => call[0])).toEqual([
       INIT_UNIXFS_OP_ID,
-      expect.any(Uint8Array),
-      '',
-      undefined,
-    )
-    expect(txApplyWorldOp).toHaveBeenNthCalledWith(
-      2,
-      SET_SPACE_SETTINGS_OP_ID,
-      expect.any(Uint8Array),
-      '',
-      undefined,
-    )
-    expect(commit).toHaveBeenCalledTimes(1)
-    expect(discard).toHaveBeenCalledTimes(1)
-    expect(applyWorldOp).not.toHaveBeenCalled()
+      SET_SPACE_INDEX_PATH_OP_ID,
+    ])
     expect(timing.phases.map((phase) => phase.name)).toEqual([
-      'init-drive-new-transaction',
-      'init-drive-unixfs',
-      'create-drive-settings',
-      'create-drive-settings-get-object',
-      'init-drive-commit',
-      'init-drive-discard',
+      'init-drive-batch',
       'write-drive-starter-guide-access',
       'write-drive-starter-guide-upload',
     ])
-    expect(commit.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(executeWorldBatch.mock.invocationCallOrder[0]).toBeLessThan(
       fsHandleMocks.uploadFile.mock.invocationCallOrder[0] ?? 0,
     )
   })
@@ -1407,7 +1417,7 @@ to try first.
         UNIXFS_OBJECT_KEY,
       )
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
-        (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
+        (call) => call[0] === SET_SPACE_INDEX_PATH_OP_ID,
       )
       const unixfsIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === INIT_UNIXFS_OP_ID,
@@ -1446,7 +1456,7 @@ to try first.
         InitCanvasDemoOp.fromBinary(canvasCall?.[1] as Uint8Array).objectKey,
       ).toBe(CANVAS_DEMO_OBJECT_KEY)
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
-        (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
+        (call) => call[0] === SET_SPACE_INDEX_PATH_OP_ID,
       )
       const canvasIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === INIT_CANVAS_DEMO_OP_ID,

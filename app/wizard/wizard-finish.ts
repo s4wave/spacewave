@@ -3,7 +3,11 @@ import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
-import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { throwBatchError } from '@s4wave/sdk/world/errors.js'
+import {
+  type WorldMutation,
+  WorldErrorCode,
+} from '@s4wave/sdk/world/world.pb.js'
 
 // WizardRef names a wizard object in a Space World and the peer that writes
 // as the session. A useWizardState result satisfies it, and creation code
@@ -16,66 +20,54 @@ export interface WizardRef {
 
 // WizardMutation is one write a wizard's Finish or Cancel applies. op applies
 // a World operation as the session peer; delete removes an object, and fails
-// the whole list with WizardGoneError when the object is gone. write runs a
-// writer that needs a World to call, for seeders that read back what they
-// wrote; it is the one entry that is not plain data.
+// the whole list with WizardGoneError when the object is gone. Both are plain
+// data, so the list crosses to the World as one request.
 export type WizardMutation =
   | { kind: 'op'; opId: string; opData: Uint8Array }
   | { kind: 'delete'; objectKey: string }
-  | { kind: 'write'; run: (world: IWorldState) => Promise<void> }
 
-// applyWizardMutations applies the list in one write transaction and commits
-// it, or discards it on a throw, so either every write lands or none does.
-// The transaction holds the World's writer from open to commit, so the list
-// carries everything prepared: no entry reads the network, a CDN or the
-// person. It is the one place that touches the transaction.
+// applyWizardMutations applies the list as one World batch: the World opens
+// one write transaction, applies each entry and commits, or writes nothing
+// when an entry is refused or fails. The World's writer is held only inside
+// that call, never across a round trip to this tab.
 //
-// signal cancels the list until the commit starts, checked once more just
-// before it, so an abort before the commit lands nothing. The commit itself
-// does not take it: once it is sent, its result is the outcome, so an abort
-// that races the commit can never report a Finish that landed as failed.
+// signal cancels the list before it is sent, so an abort before then lands
+// nothing. The batch itself does not take it: once it is sent, its result is
+// the outcome, so an abort can never report a Finish that landed as failed.
 export async function applyWizardMutations(
   world: EngineWorldState,
   sender: string,
   mutations: WizardMutation[],
   signal?: AbortSignal,
 ) {
-  const tx = await world.getEngine().newTransaction(true, signal)
-  let committed = false
-  try {
-    for (const m of mutations) {
-      // eslint-disable-next-line react-doctor/async-await-in-loop -- the list applies in order: the index move before the delete.
-      await applyWizardMutation(tx, sender, m, signal)
-    }
-    signal?.throwIfAborted()
-    await tx.commit()
-    committed = true
-  } finally {
-    // A discard that fails leaves the release to drop the transaction.
-    if (!committed) await tx.discard().catch(() => {})
-    tx.release()
+  signal?.throwIfAborted()
+  const response = await world
+    .getEngine()
+    .executeWorldBatch(mutations.map((m) => wizardWorldMutation(sender, m)))
+  const refused = mutations[response.failedIndex ?? 0]
+  if (
+    response.errorCode === WorldErrorCode.OBJECT_NOT_FOUND &&
+    refused?.kind === 'delete'
+  ) {
+    throw new WizardGoneError()
   }
+  throwBatchError(response)
 }
 
-// applyWizardMutation applies one entry of the list on the transaction.
-async function applyWizardMutation(
-  tx: IWorldState,
-  sender: string,
-  m: WizardMutation,
-  signal?: AbortSignal,
-) {
+// wizardWorldMutation is the World mutation for one entry of the list.
+function wizardWorldMutation(sender: string, m: WizardMutation): WorldMutation {
   switch (m.kind) {
     case 'op':
-      await tx.applyWorldOp(m.opId, m.opData, sender, signal)
-      return
-    case 'delete': {
-      const { deleted } = await tx.deleteObject(m.objectKey, signal)
-      if (!deleted) throw new WizardGoneError()
-      return
-    }
-    case 'write':
-      await m.run(tx)
-      return
+      return {
+        mutation: {
+          case: 'op',
+          value: { opTypeId: m.opId, opData: m.opData, opSender: sender },
+        },
+      }
+    case 'delete':
+      return {
+        mutation: { case: 'deleteObject', value: { objectKey: m.objectKey } },
+      }
   }
 }
 

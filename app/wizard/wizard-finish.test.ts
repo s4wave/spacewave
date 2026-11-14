@@ -38,14 +38,13 @@ describe('finishWizard', () => {
     const t = wizardTestWorld(['wizard/one'], 'wizard/one')
     await finishWizard(wizardIn(t), plan)
 
-    // Every write ran inside one transaction that committed.
+    // Every write ran inside one batch that committed.
     expect(t.calls).toEqual([
-      'open',
+      'batch',
       createOpId,
       SET_SPACE_INDEX_PATH_OP_ID,
       'delete',
       'commit',
-      'release',
     ])
     expect(t.state).toEqual({
       objects: new Set(),
@@ -62,9 +61,7 @@ describe('finishWizard', () => {
       t.failOn = failOn
       await expect(finishWizard(wizardIn(t), plan)).rejects.toThrow(failOn)
 
-      // The transaction was discarded, so nothing it staged was published.
-      expect(t.calls).toContain('discard')
-      expect(t.calls.at(-1)).toBe('release')
+      // The batch failed, so nothing it staged was published.
       expect(t.state).toEqual({
         objects: new Set(['wizard/one']),
         indexPath: 'wizard/one',
@@ -108,9 +105,8 @@ describe('finishWizard', () => {
     abort.abort()
     open()
 
-    // The outcome is the commit's: it landed, so the Finish resolves.
+    // The outcome is the batch's: it landed, so the Finish resolves.
     await expect(finishing).resolves.toBeUndefined()
-    expect(t.calls).not.toContain('discard')
     expect(t.state.creates).toEqual([createOpId])
   })
 
@@ -154,7 +150,6 @@ describe('cancelWizard', () => {
 
     // Nothing committed, so Cancel cannot report success beside Finish.
     expect(t.calls).not.toContain('commit')
-    expect(t.calls).toContain('discard')
     expect(t.state.indexPath).toBe('obj/other')
     expect(t.state.objects.has('obj/other')).toBe(true)
   })

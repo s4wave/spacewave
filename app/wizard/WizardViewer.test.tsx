@@ -472,6 +472,22 @@ describe('WizardViewer', () => {
     expect(mocks.t.state.creates).toEqual(['space/world/init-canvas'])
   })
 
+  it('says nothing changed and shows Retry when a plugin times out', async () => {
+    const user = userEvent.setup()
+    mocks.t.timeoutOn = 'space/world/init-canvas'
+    renderViewer()
+
+    await user.click(screen.getByRole('button', { name: /create/i }))
+    expect(
+      await screen.findByText(
+        'Could not finish: the plugin did not finish in time, so nothing was changed',
+      ),
+    ).toBeTruthy()
+    expect(mocks.t.state.creates).toEqual([])
+    expect(mocks.t.state.objects.has('wizard/test-canvas')).toBe(true)
+    expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy()
+  })
+
   it('shows the gone state, with no Retry, when another tab removed the wizard', async () => {
     // Another tab finished first; this tab's watch has not caught up.
     const user = userEvent.setup()

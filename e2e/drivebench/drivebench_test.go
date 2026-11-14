@@ -153,34 +153,22 @@ func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
 				"elapsedMs":  float64(150),
 			},
 			map[string]any{
-				"name":       "init-drive-unixfs",
+				"name":       "init-drive-batch",
 				"startedMs":  float64(101),
 				"finishedMs": float64(130),
 				"elapsedMs":  float64(29),
 			},
 			map[string]any{
-				"name":       "init-drive-unixfs-new-transaction",
-				"startedMs":  float64(102),
-				"finishedMs": float64(105),
-				"elapsedMs":  float64(3),
+				"name":       "write-drive-starter-guide-access",
+				"startedMs":  float64(135),
+				"finishedMs": float64(140),
+				"elapsedMs":  float64(5),
 			},
 			map[string]any{
 				"name":       "write-drive-starter-guide-upload",
 				"startedMs":  float64(140),
 				"finishedMs": float64(145),
 				"elapsedMs":  float64(5),
-			},
-			map[string]any{
-				"name":       "create-drive-settings-get-object",
-				"startedMs":  float64(220),
-				"finishedMs": float64(225),
-				"elapsedMs":  float64(5),
-			},
-			map[string]any{
-				"name":       "create-drive-settings-commit",
-				"startedMs":  float64(230),
-				"finishedMs": float64(240),
-				"elapsedMs":  float64(10),
 			},
 		},
 	}
@@ -192,8 +180,8 @@ func TestBrowserFromQuickstartTimingCountsDriveSeedResourceCalls(t *testing.T) {
 	if browser.QuickstartState != "content-ready" {
 		t.Fatalf("quickstart state = %q", browser.QuickstartState)
 	}
-	if got := browser.DriveSeedResourceCalls; got != 4 {
-		t.Fatalf("drive seed resource calls = %d, want 4", got)
+	if got := browser.DriveSeedResourceCalls; got != 3 {
+		t.Fatalf("drive seed resource calls = %d, want 3", got)
 	}
 	if browser.DriveSeedStartedMs == nil || *browser.DriveSeedStartedMs != 100 {
 		t.Fatalf("drive seed started = %v, want 100", browser.DriveSeedStartedMs)

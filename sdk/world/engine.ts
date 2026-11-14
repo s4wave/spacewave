@@ -9,6 +9,7 @@ import {
   WatchWorldStateResourceServiceClient,
   TypedObjectResourceServiceClient,
 } from './world_srpc.pb.js'
+import type { WorldMutation } from './world.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { WorldStage } from './stage.js'
 import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
@@ -84,6 +85,19 @@ export class Engine extends Resource {
     abortSignal?: AbortSignal,
   ) {
     return this.service.ExecuteWorldOp({ opTypeId, opData }, abortSignal)
+  }
+
+  /**
+   * executeWorldBatch applies the mutations in order in one write
+   * transaction, held only inside the call, and commits it. A refused
+   * mutation writes nothing; the response names it with failedIndex and its
+   * code, and throwBatchError turns it into an error.
+   */
+  public async executeWorldBatch(
+    mutations: WorldMutation[],
+    abortSignal?: AbortSignal,
+  ) {
+    return this.service.ExecuteWorldBatch({ mutations }, abortSignal)
   }
 
   // GetSeqno returns the current sequence number of the world state.

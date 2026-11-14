@@ -125,12 +125,7 @@ func collectQuickstartPerformanceProofSummary(t testing.TB, page playwright.Page
 			'mount-space',
 			'access-space-world',
 			'populate-space',
-			'init-drive-unixfs-new-transaction',
-			'init-drive-unixfs-apply-op',
-			'init-drive-unixfs-commit',
-			'create-drive-settings-new-transaction',
-			'create-drive-settings-apply-op',
-			'create-drive-settings-commit',
+			'init-drive-batch',
 		]
 		const missingPhaseNames = requiredPhaseNames.filter((name) => !phaseByName.has(name))
 		if (missingPhaseNames.length !== 0) {
@@ -191,9 +186,7 @@ func collectQuickstartPerformanceProofSummary(t testing.TB, page playwright.Page
 			attribution: {
 				createSpacePhase: summarizePhase('create-space'),
 				populateSpacePhase: summarizePhase('populate-space'),
-				driveCommitPhases: requiredPhaseNames
-					.filter((name) => name.endsWith('-commit'))
-					.map(summarizePhase),
+				driveCommitPhases: [summarizePhase('init-drive-batch')],
 				gap: 'create-space does not split Envelope or peer crypto from other SharedObject setup in this harness',
 			},
 		}

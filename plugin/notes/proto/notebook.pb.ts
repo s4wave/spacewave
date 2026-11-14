@@ -72,6 +72,10 @@ export interface InitNotebookOp {
    * Timestamp is the creation timestamp.
    */
   timestamp?: Date
+  /**
+   * Name is the notebook's display name; empty names it Notes.
+   */
+  name?: string
 }
 
 export const InitNotebookOp: MessageType<InitNotebookOp> =
@@ -81,6 +85,7 @@ export const InitNotebookOp: MessageType<InitNotebookOp> =
       [1, 'notebook_object_key', 9],
       [2, 'unixfs_object_key', 9],
       [3, 'timestamp', 11, 0, Timestamp.codec],
+      [4, 'name', 9],
     ],
   )
 

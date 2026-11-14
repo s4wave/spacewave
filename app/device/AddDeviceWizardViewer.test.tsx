@@ -38,6 +38,8 @@ import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
 import { CreateSshHostOp } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
+import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
+import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
 import {
   CreateTerminalOp,
   TerminalTargetKind,
@@ -79,6 +81,24 @@ const h = vi.hoisted(() => ({
   devicePeers: {} as Record<string, string>,
 }))
 
+// batchThroughSpies applies a Finish batch through the hoisted spies, in
+// order, and lands it through commit.
+async function batchThroughSpies(mutations: WorldMutation[]) {
+  for (const [failedIndex, m] of mutations.entries()) {
+    if (m.mutation?.case === 'op') {
+      const op = m.mutation.value
+      await h.applyWorldOp(op.opTypeId, op.opData, op.opSender)
+    } else if (m.mutation?.case === 'deleteObject') {
+      const { deleted } = await h.deleteObject(m.mutation.value.objectKey)
+      if (!deleted) {
+        return { failedIndex, errorCode: WorldErrorCode.OBJECT_NOT_FOUND }
+      }
+    }
+  }
+  await h.commit()
+  return { seqno: 1n }
+}
+
 vi.mock('../wizard/useWizardState.js', () => ({
   useWizardState: () => ({
     objectKey: 'wizard/device-setup',
@@ -92,8 +112,9 @@ vi.mock('../wizard/useWizardState.js', () => ({
     creating: false,
     setCreating: h.setCreating,
     sessionPeerId: '12D3KooWSession',
-    // Finish writes through a transaction that passes each write to the
-    // same spies, so a test reads one call order across both.
+    // Finish writes through a batch that passes each write to the same
+    // spies, then lands through commit, so a test reads one call order
+    // across both.
     spaceWorld: {
       ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
@@ -111,16 +132,7 @@ vi.mock('../wizard/useWizardState.js', () => ({
                 }
           }),
         ),
-      getEngine: () => ({
-        newTransaction: () =>
-          Promise.resolve({
-            applyWorldOp: h.applyWorldOp,
-            deleteObject: h.deleteObject,
-            commit: h.commit,
-            discard: () => Promise.resolve(),
-            release: () => {},
-          }),
-      }),
+      getEngine: () => ({ executeWorldBatch: batchThroughSpies }),
     },
     spaceSettings: {
       indexPath: h.spaceSettingsIndexPath,

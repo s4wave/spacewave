@@ -26,9 +26,14 @@ import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
   InitUnixFSOp,
   InitObjectLayoutOp,
+  SetSpaceIndexPathOp,
   SetSpaceSettingsOp,
 } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import {
+  SET_SPACE_INDEX_PATH_OP_ID,
+  SET_SPACE_SETTINGS_OP_ID,
+} from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { throwBatchError } from '@s4wave/sdk/world/errors.js'
 import {
   INIT_UNIXFS_OP_ID,
   UNIXFS_OBJECT_KEY,
@@ -1028,23 +1033,9 @@ async function waitForQuickstartRegistration(
 export async function initUnixFS(
   spaceWorld: IWorldState,
   abortSignal?: AbortSignal,
-  timing?: QuickstartSetupTiming,
 ): Promise<void> {
-  const op: InitUnixFSOp = {
-    objectKey: UNIXFS_OBJECT_KEY,
-    timestamp: new Date(),
-  }
-
-  const opData = InitUnixFSOp.toBinary(op)
-  await applyQuickstartWorldOp(
-    spaceWorld,
-    INIT_UNIXFS_OP_ID,
-    opData,
-    '',
-    abortSignal,
-    timing,
-    'init-drive-unixfs',
-  )
+  const { opTypeId, opData } = initUnixFSMutation()
+  await spaceWorld.applyWorldOp(opTypeId, opData, '', abortSignal)
 }
 
 async function writeDriveStarterGuide(
@@ -1109,19 +1100,6 @@ export async function initObjectLayout(
   )
 }
 
-// initCanvasDemo initializes a Canvas with demo content.
-export async function initCanvasDemo(
-  spaceWorld: IWorldState,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  const op: InitCanvasDemoOp = {
-    objectKey: CANVAS_DEMO_OBJECT_KEY,
-    timestamp: new Date(),
-  }
-  const opData = InitCanvasDemoOp.toBinary(op)
-  await spaceWorld.applyWorldOp(INIT_CANVAS_DEMO_OP_ID, opData, '', abortSignal)
-}
-
 // populateSpace populates the space based on the quickstart type.
 export async function populateSpace(
   quickstartId: QuickstartSpaceCreateId,
@@ -1142,40 +1120,26 @@ export async function populateSpace(
     case 'notebook':
       await initNotesQuickstart(setup, quickstartId, abortSignal)
       break
-    case 'canvas': {
+    case 'canvas':
       // Publish the Canvas, reference filesystem, and initial route together.
-      const tx = await timeQuickstartPhase(
-        timing,
-        'init-canvas-new-transaction',
-        () => setup.spaceWorld.getEngine().newTransaction(true, abortSignal),
+      await timeQuickstartPhase(timing, 'init-canvas-batch', () =>
+        applyQuickstartBatch(
+          setup.spaceWorld,
+          [
+            initUnixFSMutation(),
+            {
+              opTypeId: INIT_CANVAS_DEMO_OP_ID,
+              opData: InitCanvasDemoOp.toBinary({
+                objectKey: CANVAS_DEMO_OBJECT_KEY,
+                timestamp: new Date(),
+              }),
+            },
+            indexPathMutation(CANVAS_DEMO_OBJECT_KEY),
+          ],
+          abortSignal,
+        ),
       )
-      try {
-        await timeQuickstartPhase(timing, 'init-canvas-unixfs', () =>
-          initUnixFS(tx, abortSignal, timing),
-        )
-        await timeQuickstartPhase(timing, 'init-canvas-demo', () =>
-          initCanvasDemo(tx, abortSignal),
-        )
-        await timeQuickstartPhase(timing, 'create-canvas-settings', () =>
-          createSpaceSettingsObject(
-            tx,
-            abortSignal,
-            CANVAS_DEMO_OBJECT_KEY,
-            undefined,
-            timing,
-            'create-canvas-settings',
-          ),
-        )
-        await timeQuickstartPhase(timing, 'init-canvas-commit', () =>
-          tx.commit(abortSignal),
-        )
-      } finally {
-        await timeQuickstartPhase(timing, 'init-canvas-discard', () =>
-          tx.discard(),
-        )
-      }
       break
-    }
     case 'chat':
       await initChatQuickstart(setup.spaceWorld, abortSignal)
       break
@@ -1396,32 +1360,54 @@ export async function createDrive(
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
   // Publish the filesystem and its index together before opening file storage.
-  const tx = await timeQuickstartPhase(
-    timing,
-    'init-drive-new-transaction',
-    () => spaceWorld.getEngine().newTransaction(true, abortSignal),
+  await timeQuickstartPhase(timing, 'init-drive-batch', () =>
+    applyQuickstartBatch(
+      spaceWorld,
+      [initUnixFSMutation(), indexPathMutation(UNIXFS_OBJECT_KEY)],
+      abortSignal,
+    ),
   )
-  try {
-    await timeQuickstartPhase(timing, 'init-drive-unixfs', () =>
-      initUnixFS(tx, abortSignal, timing),
-    )
-    await timeQuickstartPhase(timing, 'create-drive-settings', () =>
-      createSpaceSettingsObject(
-        tx,
-        abortSignal,
-        UNIXFS_OBJECT_KEY,
-        undefined,
-        timing,
-        'create-drive-settings',
-      ),
-    )
-    await timeQuickstartPhase(timing, 'init-drive-commit', () =>
-      tx.commit(abortSignal),
-    )
-  } finally {
-    await timeQuickstartPhase(timing, 'init-drive-discard', () => tx.discard())
-  }
   await writeDriveStarterGuide(spaceWorld, abortSignal, timing)
+}
+
+// QuickstartOp is one World op a quickstart applies.
+interface QuickstartOp {
+  opTypeId: string
+  opData: Uint8Array
+}
+
+// applyQuickstartBatch applies a quickstart's ops as one World batch, so they
+// land together or not at all and hold the World's writer only for the call.
+async function applyQuickstartBatch(
+  spaceWorld: EngineWorldState,
+  ops: QuickstartOp[],
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const response = await spaceWorld.getEngine().executeWorldBatch(
+    ops.map((value) => ({ mutation: { case: 'op', value } })),
+    abortSignal,
+  )
+  throwBatchError(response)
+}
+
+// initUnixFSMutation creates the quickstart's root filesystem.
+function initUnixFSMutation(): QuickstartOp {
+  return {
+    opTypeId: INIT_UNIXFS_OP_ID,
+    opData: InitUnixFSOp.toBinary({
+      objectKey: UNIXFS_OBJECT_KEY,
+      timestamp: new Date(),
+    }),
+  }
+}
+
+// indexPathMutation points the Space index at indexPath, creating the Space
+// settings when they are missing and keeping their plugins.
+function indexPathMutation(indexPath: string): QuickstartOp {
+  return {
+    opTypeId: SET_SPACE_INDEX_PATH_OP_ID,
+    opData: SetSpaceIndexPathOp.toBinary({ indexPath, timestamp: new Date() }),
+  }
 }
 
 async function applyQuickstartWorldOp(
