@@ -2,9 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import {
   existsSync,
   mkdirSync,
+  rmSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -17,6 +19,7 @@ import {
   escapePath,
   goImports,
   hash1,
+  isSafeRelativePath,
   modulesImported,
   parseGoMod,
   parseGoSum,
@@ -33,7 +36,12 @@ import {
 const testdata = join(import.meta.dir, 'testdata', 'vendor-ts')
 
 // makeZip builds a zip archive, deflating each file when deflate is set.
-function makeZip(files: ZipFile[], deflate = false): Uint8Array {
+// declared overrides the uncompressed size the central directory states.
+function makeZip(
+  files: ZipFile[],
+  deflate = false,
+  declared: (file: ZipFile) => number = (f) => f.data.length,
+): Uint8Array {
   const encoder = new TextEncoder()
   const locals: Uint8Array[] = []
   const centrals: Uint8Array[] = []
@@ -55,7 +63,7 @@ function makeZip(files: ZipFile[], deflate = false): Uint8Array {
     cv.setUint32(0, 0x02014b50, true)
     cv.setUint16(10, deflate ? 8 : 0, true)
     cv.setUint32(20, body.length, true)
-    cv.setUint32(24, file.data.length, true)
+    cv.setUint32(24, declared(file), true)
     cv.setUint16(28, name.length, true)
     cv.setUint32(42, offset, true)
     central.set(name, 46)
@@ -271,6 +279,57 @@ describe('verifiedFiles', () => {
   })
 })
 
+describe('zip bounds and entry paths', () => {
+  const prefix = 'example.com/a@v1.2.0/'
+  const files = [
+    file(prefix + 'go.mod', 'module example.com/a\n'),
+    file(prefix + 'x.ts', 'export const x = "' + 'x'.repeat(4096) + '"\n'),
+  ]
+
+  test.each([
+    '../../escaped.ts',
+    '/abs.ts',
+    'a/../../escaped.ts',
+    './x.ts',
+    'a//x.ts',
+    'a\\x.ts',
+  ])('refuses the whole module for entry %s', (rest) => {
+    const evil = [...files, file(prefix + rest, 'export {}\n')]
+    const sums = new Map([['example.com/a v1.2.0', hash1(evil)]])
+    expect(() =>
+      verifiedFiles(makeZip(evil, true), 'example.com/a', 'v1.2.0', sums),
+    ).toThrow('is unsafe')
+  })
+
+  test('isSafeRelativePath accepts plain paths only', () => {
+    expect(isSafeRelativePath('pkg/a.pb.ts')).toBe(true)
+    expect(isSafeRelativePath('')).toBe(false)
+    expect(isSafeRelativePath('pkg/..')).toBe(false)
+  })
+
+  test('refuses an entry that inflates past its declared size', () => {
+    const zip = makeZip(files, true, (f) =>
+      f.name.endsWith('x.ts') ? 16 : f.data.length,
+    )
+    expect(() => readZip(zip)).toThrow('does not inflate to its declared')
+  })
+
+  test('refuses a module whose declared total exceeds the bound', () => {
+    expect(() => readZip(makeZip(files, true), 1024)).toThrow(
+      'uncompressed size exceeds 1024 bytes',
+    )
+  })
+
+  test('refuses zip64 sizes and duplicate names', () => {
+    expect(() => readZip(makeZip(files, false, () => 0xffffffff))).toThrow(
+      'zip64 archives are not supported',
+    )
+    expect(() => readZip(makeZip([files[0], files[0]]))).toThrow(
+      'duplicate entry ' + prefix + 'go.mod',
+    )
+  })
+})
+
 describe('staleness', () => {
   const mod = parseGoMod(goMod, '/work/main')
 
@@ -383,27 +442,84 @@ describe('syncVendor', () => {
     expect(existsSync(join(root, 'vendor/example.com/a/x.ts'))).toBe(true)
   })
 
-  test('leaves a stale go mod vendor tree alone', async () => {
+  test('refuses a module with an escaping entry and writes nothing', async () => {
     const root = mkdtempSync(join(tmpdir(), 'vendor-ts-'))
-    mkdirSync(join(root, 'vendor/example.com/a'), { recursive: true })
-    writeFileSync(join(root, 'vendor/modules.txt'), '# example.com/a v1.0.0\n')
-    writeFileSync(join(root, 'vendor/example.com/a/x.ts'), 'export {}\n')
-    fetched.length = 0
+    const evil = [
+      file('example.com/a@v1.0.0/go.mod', 'module example.com/a\n'),
+      file('example.com/a@v1.0.0/../../escaped.ts', 'export {}\n'),
+    ]
+    const evilSums = new Map([['example.com/a v1.0.0', hash1(evil)]])
     await expect(
-      syncVendor({ root, mod: mainMod('v1.1.0'), sums, sources, get }),
-    ).rejects.toThrow(
-      'vendor/ came from go mod vendor and is stale for example.com/a',
+      syncVendor({
+        root,
+        mod: mainMod('v1.0.0'),
+        sums: evilSums,
+        sources,
+        get: () => Promise.resolve(makeZip(evil, true)),
+      }),
+    ).rejects.toThrow('example.com/a v1.0.0: zip entry')
+    expect(existsSync(join(root, 'escaped.ts'))).toBe(false)
+    expect(existsSync(join(root, 'vendor', 'escaped.ts'))).toBe(false)
+    expect(existsSync(join(root, 'vendor', 'example.com'))).toBe(false)
+  })
+
+  test('fetches a recorded module whose directory is gone', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'vendor-ts-'))
+    await syncVendor({ root, mod: mainMod('v1.0.0'), sums, sources, get })
+    rmSync(join(root, 'vendor/example.com/a'), { recursive: true })
+    const again = await syncVendor({
+      root,
+      mod: mainMod('v1.0.0'),
+      sums,
+      sources,
+      get,
+    })
+    expect(again.fetched).toEqual(['example.com/a'])
+    expect(existsSync(join(root, 'vendor/example.com/a/x.ts'))).toBe(true)
+  })
+
+  test('warns on a stale go mod vendor tree and leaves it alone', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'vendor-ts-'))
+    const vendorDir = join(root, 'vendor')
+    mkdirSync(join(vendorDir, 'example.com/a'), { recursive: true })
+    writeFileSync(join(vendorDir, 'modules.txt'), '# example.com/a v1.0.0\n')
+    writeFileSync(join(vendorDir, 'example.com/a/x.ts'), 'export {}\n')
+    const snapshot = () =>
+      new Map(
+        readdirSync(vendorDir, { recursive: true, encoding: 'utf8' }).map(
+          (name) => {
+            const file = join(vendorDir, name)
+            return [
+              name,
+              statSync(file).isDirectory() ? null : readFileSync(file),
+            ] as const
+          },
+        ),
+      )
+    const before = snapshot()
+    fetched.length = 0
+    const result = await syncVendor({
+      root,
+      mod: mainMod('v1.1.0'),
+      sums,
+      sources,
+      get,
+    })
+    expect(result.fetched).toEqual([])
+    expect(result.warning).toBe(
+      `${vendorDir} came from go mod vendor and is stale for example.com/a; run bun run prepare where Go runs, or remove vendor/ to fetch TypeScript only`,
     )
     expect(fetched).toEqual([])
-    expect(existsSync(join(root, 'vendor', recordName))).toBe(false)
+    expect(snapshot()).toEqual(before)
 
-    await syncVendor({
+    const current = await syncVendor({
       root,
       mod: mainMod('v1.0.0'),
       sums,
       sources: [`export {}\n`],
       get,
     })
+    expect(current.warning).toBeUndefined()
     expect(fetched).toEqual([])
   })
 })

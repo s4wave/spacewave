@@ -234,29 +234,64 @@ export interface ZipFile {
   data: Uint8Array
 }
 
-// readZip returns the files of a zip archive, stored or deflated.
-export function readZip(zip: Uint8Array): ZipFile[] {
+// maxModuleBytes bounds a module's uncompressed size, as Go's module zip
+// rules do.
+export const maxModuleBytes = 500 << 20
+
+// readZip returns the files of a zip archive, stored or deflated. It refuses
+// zip64 archives, duplicate names, and archives whose declared sizes exceed
+// maxTotal, before inflating anything; no entry inflates past its declared
+// size.
+export function readZip(zip: Uint8Array, maxTotal = maxModuleBytes): ZipFile[] {
   const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
   let end = zip.byteLength - 22
   while (end >= 0 && view.getUint32(end, true) !== 0x06054b50) end--
   if (end < 0) throw new Error('zip: no end of central directory')
   const count = view.getUint16(end + 10, true)
   let at = view.getUint32(end + 16, true)
+  if (count === 0xffff || at === 0xffffffff) {
+    throw new Error('zip: zip64 archives are not supported')
+  }
+
+  // Read the central directory and check the declared sizes first.
   const decoder = new TextDecoder()
-  const files: ZipFile[] = []
+  const entries: {
+    name: string
+    method: number
+    size: number
+    usize: number
+    local: number
+  }[] = []
+  const names = new Set<string>()
+  let total = 0
   for (let i = 0; i < count; i++) {
     if (view.getUint32(at, true) !== 0x02014b50) {
       throw new Error('zip: bad central directory entry')
     }
     const method = view.getUint16(at + 10, true)
     const size = view.getUint32(at + 20, true)
+    const usize = view.getUint32(at + 24, true)
     const nameLen = view.getUint16(at + 28, true)
     const extraLen = view.getUint16(at + 30, true)
     const commentLen = view.getUint16(at + 32, true)
     const local = view.getUint32(at + 42, true)
     const name = decoder.decode(zip.subarray(at + 46, at + 46 + nameLen))
     at += 46 + nameLen + extraLen + commentLen
+    if (size === 0xffffffff || usize === 0xffffffff || local === 0xffffffff) {
+      throw new Error('zip: zip64 archives are not supported')
+    }
+    if (names.has(name)) throw new Error(`zip: duplicate entry ${name}`)
+    names.add(name)
+    total += usize
+    if (total > maxTotal) {
+      throw new Error(`zip: uncompressed size exceeds ${maxTotal} bytes`)
+    }
+    entries.push({ name, method, size, usize, local })
+  }
 
+  const files: ZipFile[] = []
+  for (const { name, method, size, usize, local } of entries) {
+    if (name.endsWith('/')) continue
     if (view.getUint32(local, true) !== 0x04034b50) {
       throw new Error(`zip: bad local header for ${name}`)
     }
@@ -266,10 +301,22 @@ export function readZip(zip: Uint8Array): ZipFile[] {
       view.getUint16(local + 26, true) +
       view.getUint16(local + 28, true)
     const body = zip.subarray(start, start + size)
-    if (name.endsWith('/')) continue
-    if (method === 0) files.push({ name, data: body })
-    else if (method === 8) files.push({ name, data: inflateRawSync(body) })
-    else throw new Error(`zip: ${name} uses compression method ${method}`)
+    let data: Uint8Array
+    if (method === 0) data = body
+    else if (method === 8) {
+      try {
+        data = inflateRawSync(body, { maxOutputLength: Math.max(usize, 1) })
+      } catch (err) {
+        throw new Error(
+          `zip: ${name} does not inflate to its declared ${usize} bytes`,
+          { cause: err },
+        )
+      }
+    } else throw new Error(`zip: ${name} uses compression method ${method}`)
+    if (data.byteLength !== usize) {
+      throw new Error(`zip: ${name} is not its declared ${usize} bytes`)
+    }
+    files.push({ name, data })
   }
   return files
 }
@@ -289,9 +336,20 @@ export function hash1(files: ZipFile[]): string {
   return 'h1:' + createHash('sha256').update(lines.join('')).digest('base64')
 }
 
+// isSafeRelativePath reports whether a path within a module stays below the
+// module's directory: not empty, not absolute, no backslash, and no empty,
+// . or .. segment.
+export function isSafeRelativePath(rest: string): boolean {
+  if (rest.includes('\\')) return false
+  return rest
+    .split('/')
+    .every((segment) => segment !== '' && segment !== '.' && segment !== '..')
+}
+
 // verifiedFiles checks a module zip against its go.sum hash and returns its
-// .ts files by path within the module. A missing or different hash throws
-// naming the module, before any file is returned.
+// .ts files by path within the module. A missing or different hash, or any
+// entry outside the module's directory, throws naming the module before any
+// file is returned.
 export function verifiedFiles(
   zip: Uint8Array,
   path: string,
@@ -310,12 +368,13 @@ export function verifiedFiles(
   const prefix = `${path}@${version}/`
   const ts = new Map<string, Uint8Array>()
   for (const file of files) {
-    if (!file.name.startsWith(prefix)) {
-      throw new Error(`${path} ${version}: zip holds ${file.name}`)
+    const rest = file.name.startsWith(prefix)
+      ? file.name.slice(prefix.length)
+      : null
+    if (rest === null || !isSafeRelativePath(rest)) {
+      throw new Error(`${path} ${version}: zip entry ${file.name} is unsafe`)
     }
-    if (file.name.endsWith('.ts')) {
-      ts.set(file.name.slice(prefix.length), file.data)
-    }
+    if (rest.endsWith('.ts')) ts.set(rest, file.data)
   }
   return ts
 }
@@ -466,11 +525,16 @@ function writeRecord(vendorDir: string, record: Record) {
 export interface SyncResult {
   fetched: string[]
   bytes: number
+  // warning names a stale vendor/ that `go mod vendor` produced. The sync
+  // leaves such a tree untouched, since Go owns it, and the type check runs
+  // against it as it stands.
+  warning?: string
 }
 
 // syncVendor brings vendor/ up to the import closure of sources. It
-// throws, naming what to run, when vendor/ came from `go mod vendor` and
-// is stale, or when a module cannot be fetched or verified.
+// throws, naming what to run, when a module cannot be fetched or verified.
+// A vendor/ that `go mod vendor` produced is never written; when it is stale
+// the result carries a warning instead.
 export async function syncVendor(opts: {
   root: string
   mod: GoMod
@@ -504,12 +568,12 @@ export async function syncVendor(opts: {
       }
     }
     const stale = staleModules(mod, wanted, vendored)
-    if (stale.length) {
-      throw new Error(
-        `vendor/ came from go mod vendor and is stale for ${stale.join(', ')}; run bun run prepare where Go runs, or remove vendor/ to fetch TypeScript only`,
-      )
+    if (!stale.length) return { fetched: [], bytes: 0 }
+    return {
+      fetched: [],
+      bytes: 0,
+      warning: `${vendorDir} came from go mod vendor and is stale for ${stale.join(', ')}; run bun run prepare where Go runs, or remove vendor/ to fetch TypeScript only`,
     }
-    return { fetched: [], bytes: 0 }
   }
 
   record ??= {}
@@ -527,7 +591,14 @@ export async function syncVendor(opts: {
     const source = sourceOf(mod, path)
     const key = sourceKey(source)
     let entry = record[path]
-    if (!entry || entry.source !== key || source.kind === 'local') {
+    // A recorded module whose directory is gone, deleted or caught between
+    // install's renames, is fetched again.
+    if (
+      !entry ||
+      entry.source !== key ||
+      source.kind === 'local' ||
+      !existsSync(join(vendorDir, path))
+    ) {
       const { files, bytes } = await moduleFiles(path, source, sums, get)
       mkdirSync(vendorDir, { recursive: true })
       install(vendorDir, path, files)
@@ -607,6 +678,7 @@ async function main() {
       sums,
       sources: includedSources(root),
     })
+    if (result.warning) console.warn(`vendor-ts: warning: ${result.warning}`)
     if (result.fetched.length) {
       const seconds = ((performance.now() - started) / 1000).toFixed(1)
       console.log(
