@@ -104,6 +104,20 @@ func TestCloudTransferSourceEmptyList(t *testing.T) {
 	}
 }
 
+// serveTestAccountState answers the account state request the cloud target
+// reads its owner's username from, and reports whether r was that request.
+func serveTestAccountState(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+	if r.URL.Path != "/api/account/state" {
+		return false
+	}
+	data, err := (&api.AccountStateResponse{AccountId: "test-account", EntityId: "alice"}).MarshalVT()
+	if err != nil {
+		t.Error(err)
+	}
+	_, _ = w.Write(data)
+	return true
+}
+
 // buildTestTransferTarget creates a SpacewaveTransferTarget backed by a
 // ProviderAccount pointing at the given test server URL.
 func buildTestTransferTarget(t *testing.T, srvURL string) *provider_transfer.SpacewaveTransferTarget {
@@ -120,6 +134,9 @@ func TestCloudTransferTarget(t *testing.T) {
 	var paths []string
 	var created []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if serveTestAccountState(t, w, r) {
+			return
+		}
 		paths = append(paths, r.URL.Path)
 		if r.URL.Path != "/api/sobject/test-so/create-with-state" {
 			w.WriteHeader(http.StatusNotFound)
@@ -183,6 +200,20 @@ func TestCloudTransferTarget(t *testing.T) {
 	if inner.GetHeight() != 0 || inner.GetSharedObjectId() != "test-so" {
 		t.Fatalf("posted checkpoint is not the genesis: %+v", inner)
 	}
+
+	// The genesis names the account's session as owner, with its account.
+	config := &api.PostConfigStateRequest{}
+	if err := config.UnmarshalVT(req.GetConfigState()); err != nil {
+		t.Fatal(err)
+	}
+	genesis := &sobject.SOConfigChange{}
+	if err := genesis.UnmarshalVT(config.GetConfigChange()); err != nil {
+		t.Fatal(err)
+	}
+	owners := genesis.GetConfig().GetParticipants()
+	if len(owners) != 1 || owners[0].GetPeerId() != tgt.GetAccount().GetCurrentSessionPeerID().String() || owners[0].GetEntityId() != "test-account" || owners[0].GetUsername() != "alice" {
+		t.Fatalf("genesis owners %v, want the account's session", owners)
+	}
 }
 
 // TestCloudTransferTargetRefusesListedSpace checks that the cloud target
@@ -191,6 +222,9 @@ func TestCloudTransferTarget(t *testing.T) {
 func TestCloudTransferTargetRefusesListedSpace(t *testing.T) {
 	// Answer every create with a conflict.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if serveTestAccountState(t, w, r) {
+			return
+		}
 		if !strings.HasSuffix(r.URL.Path, "/create-with-state") {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}

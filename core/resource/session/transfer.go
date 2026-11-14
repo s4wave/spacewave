@@ -203,9 +203,11 @@ func (r *SessionResource) StartTransfer(
 		return nil, errors.Wrap(err, "load transfer owner key")
 	}
 
-	// Migrate gives the target the source's identity before deleting the source.
+	// Migrate gives a local target the source's identity before deleting the
+	// source. A cloud account keeps its own: its Spaces name its session, and
+	// its volume's peer key unlocks the stored session key.
 	var copyIdentity func(context.Context) error
-	if mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
+	if _, cloud := target.(*provider_transfer.SpacewaveTransferTarget); !cloud && mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
 		srcVol, tgtVol := getTransferSourceVolume(source), getTransferTargetVolume(target)
 		if srcVol == nil || tgtVol == nil {
 			return nil, errors.New("migrate needs source and target volumes")
@@ -539,13 +541,19 @@ func buildCheckpointStore(
 
 // transferOwnerKey returns the key of the peer that owns the transferred
 // Spaces: the source peer for MIGRATE, which copies the source keypair to the
-// target, and the target peer otherwise.
+// target, and the target peer otherwise. A cloud target names its account's
+// session itself, so it gets none.
 func transferOwnerKey(
 	ctx context.Context,
 	mode provider_transfer.TransferMode,
 	source provider_transfer.TransferSource,
 	target provider_transfer.TransferTarget,
 ) (crypto.PrivKey, error) {
+	// A cloud target signs as its own session.
+	if _, cloud := target.(*provider_transfer.SpacewaveTransferTarget); cloud {
+		return nil, nil
+	}
+
 	// Pick the volume whose peer owns the transfer.
 	vol := getTransferTargetVolume(target)
 	if mode == provider_transfer.TransferMode_TransferMode_MIGRATE {

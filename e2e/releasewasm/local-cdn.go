@@ -225,7 +225,7 @@ func exportLocalCDN(ctx context.Context, le *logrus.Entry, stateDir, distDir str
 
 	// Sign a genesis checkpoint of the head under the key's owner config and
 	// write the pointer. The CDN head is public, so the state stays plaintext.
-	genesis, _, err := sobject.BuildGenesisSOState(le, nil, localCDNSpaceID, key, nil)
+	genesis, _, err := sobject.BuildGenesisSOState(le, nil, localCDNSpaceID, key, "", "", nil)
 	if err != nil {
 		return err
 	}

@@ -125,8 +125,8 @@
     "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
-        "CASE mode = \"migrate\" -> \"key\" [] Deletes",
-        "CASE mode = \"migrate\" -> \"cleanup\" [] Deletes"
+        "CASE mode = \"migrate\" /\\ ~cloudTgt -> \"key\" [] Deletes",
+        "CASE mode = \"migrate\" /\\ ~cloudTgt -> \"cleanup\" [] Deletes"
       ]
     ],
     "expect": "MigrateKeepsKey"

@@ -71,7 +71,8 @@ type TransferTarget interface {
 	// The ref should already have the target's provider resource ref.
 	AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, origin *TransferOrigin) (*TargetSpace, error)
 	// WriteSharedObjectState replaces the state of a Space with a new lineage
-	// owned solely by owner whose checkpoint holds stateData, and records
+	// owned solely by owner, or on a cloud target by the account's own
+	// session, whose checkpoint holds stateData, and records
 	// origin, whose head names that World, in the same write. It writes only
 	// while the target holds the state expect read, and otherwise returns
 	// ErrTargetChanged, writing nothing.

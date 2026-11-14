@@ -18,12 +18,14 @@ import (
 // BuildGenesisSOState returns the state of a new shared object owned solely by
 // privKey, with the signed genesis config change its config history starts
 // from. The checkpoint holds stateData encrypted with a fresh key of epoch 0,
-// granted to the owner.
+// granted to the owner. entityID and username name the account the owner
+// belongs to, which a cloud requires of every owner; empty names none.
 func BuildGenesisSOState(
 	le *logrus.Entry,
 	sfs *block_transform.StepFactorySet,
 	sharedObjectID string,
 	privKey crypto.PrivKey,
+	entityID, username string,
 	stateData []byte,
 ) (*SOState, *SOConfigChange, error) {
 	// Sign the genesis config naming the owner.
@@ -33,8 +35,10 @@ func BuildGenesisSOState(
 	}
 	initial := &SharedObjectConfig{
 		Participants: []*SOParticipantConfig{{
-			PeerId: peerID.String(),
-			Role:   SOParticipantRole_SOParticipantRole_OWNER,
+			PeerId:   peerID.String(),
+			Role:     SOParticipantRole_SOParticipantRole_OWNER,
+			EntityId: entityID,
+			Username: username,
 		}},
 	}
 	genesis, err := BuildSOConfigChange(sharedObjectID, initial, initial, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS, privKey, nil)

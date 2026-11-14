@@ -117,7 +117,7 @@ VARIABLES
   lost,     \* a write replaced an edited or foreign target state
   touched,  \* the Spaces the person wrote, deleted, created or changed on the target
   touches,
-  cloudTgt, \* the target is a cloud account, which stores no origin
+  cloudTgt, \* the target is a cloud account
   unjust,   \* a run left a Space not moved that the person did not change
   runs,
   vol,      \* the source volume exists
@@ -127,7 +127,7 @@ VARIABLES
   shared,   \* the source Spaces held as a member of another's shared object
   cloudSrc, \* the source is a cloud account
   alive,    \* the shared objects a second member still reads
-  keyLost   \* a Migrate deleted the source volume before the target held its key
+  keyLost   \* a Migrate deleted the source volume before a local target held its key
 run == <<pc, entries, cur, step, expect, cv, moved, notMoved, staged>>
 target == <<blocks, held, tc, origin, lost, touched, touches, cloudTgt, unjust>>
 source == <<src, ver, delOk, vol, session, key, shared, cloudSrc, alive, keyLost>>
@@ -321,11 +321,12 @@ SpacesDone ==
   /\ IF notMoved # {}
        THEN /\ pc' = "notmoved"
             /\ UNCHANGED <<entries, cur, step, expect, cv, moved, notMoved, staged>>
-       ELSE /\ pc' = CASE mode = "migrate" -> "key" [] Deletes -> "cleanup" [] OTHER -> "done"
+       ELSE /\ pc' = CASE mode = "migrate" /\ ~cloudTgt -> "key" [] Deletes -> "cleanup" [] OTHER -> "done"
             /\ UNCHANGED <<entries, cur, step, expect, cv, moved, notMoved, staged>>
   /\ UNCHANGED <<mode, picked, target, source, runs, faults>>
 
-\* Migrate gives the target the source's peer key while the source holds it.
+\* Migrate gives a local target the source's peer key while the source holds
+\* it. A cloud target keeps its own: its Spaces name its account's session.
 CopyKey ==
   /\ pc = "key"
   /\ key' = TRUE
@@ -361,7 +362,7 @@ DeleteVolume ==
   /\ pc = "cleanup" /\ entries \cap src = {}
   /\ vol' = FALSE /\ src' = {}
   /\ alive' = IF cloudSrc THEN alive \ (src \cap shared) ELSE alive
-  /\ keyLost' = (mode = "migrate" /\ ~key)
+  /\ keyLost' = (mode = "migrate" /\ ~cloudTgt /\ ~key)
   /\ pc' = "session"
   /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, moved, notMoved, staged, target, ver, delOk, session, key, runs, faults, shared, cloudSrc>>
 

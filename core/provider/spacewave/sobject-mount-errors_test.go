@@ -57,7 +57,7 @@ func buildMountErrorGenesisState(t *testing.T) *sobject.SOState {
 	// Build a genesis for a new owner.
 	t.Helper()
 	priv, _ := generateTestKeypair(t)
-	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), "so-invalid", priv, nil)
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), "so-invalid", priv, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
