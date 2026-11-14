@@ -596,13 +596,6 @@ func rehearseDeleteDuringStart(t *testing.T) {
 	}
 }
 
-// requireNoReleaseMark fails if id has a release mark.
-func requireNoReleaseMark(ctx context.Context, t *testing.T, a *ProviderAccount, id string) {
-	if n := countTestKeys(ctx, t, a, SobjectReleaseMarkKey(id)); n != 0 {
-		t.Fatalf("%s has a release mark, want none", id)
-	}
-}
-
 // putRehearsalObjects creates each id with state and a tree under the root
 // "rehearsal".
 func putRehearsalObjects(ctx context.Context, t *testing.T, a *ProviderAccount, ids ...string) {
@@ -634,30 +627,6 @@ func crashRehearsalDeletes(ctx context.Context, t *testing.T, a *ProviderAccount
 			t.Fatalf("the stopped delete left %s listed", id)
 		}
 		requireRehearsalRoot(ctx, t, a, id, true)
-	}
-}
-
-// rehearsalBucket returns the bucket of id's block store.
-func rehearsalBucket(a *ProviderAccount, id string) string {
-	return BlockStoreBucketID(a.GetProviderID(), a.GetAccountID(), SobjectBlockStoreID(id))
-}
-
-// requireRehearsalRoot fails unless id's "rehearsal" root is held as want.
-func requireRehearsalRoot(ctx context.Context, t *testing.T, a *ProviderAccount, id string, want bool) {
-	root, err := a.GetVolume().GetBucketRoot(ctx, rehearsalBucket(a, id), "rehearsal")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if (root != nil) != want {
-		t.Fatalf("%s's rehearsal root held is %v, want %v", id, root != nil, want)
-	}
-}
-
-// waitDeleteResume waits for the account's delete resume to exit. With
-// notRunning set it returns at once when the resume never started.
-func waitDeleteResume(ctx context.Context, t *testing.T, a *ProviderAccount, notRunning bool) {
-	if err := a.deleteResume.WaitExited(ctx, notRunning, nil); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -865,38 +834,6 @@ func openRehearsalAccount(ctx context.Context, t *testing.T, dir string, sessRef
 	}
 	rels = append(rels, sessRel)
 	return a, sessRef, release
-}
-
-// putRehearsalTree stores a two-block tree under the named root root of the
-// object's block store: a parent naming id over a leaf naming id and a
-// leaf every object shares. It returns the blocks only this object reaches,
-// and the shared leaf.
-func putRehearsalTree(ctx context.Context, t *testing.T, so *SharedObject, id, root string) ([]*block.BlockRef, *block.BlockRef) {
-	t.Helper()
-	leaf := []byte("fake-leaf-" + id)
-	shared := []byte("fake-shared-leaf")
-	parent := []byte("fake-parent-" + id)
-	leafRef, err := block.BuildBlockRef(leaf, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sharedRef, err := block.BuildBlockRef(shared, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	parentRef, err := block.BuildBlockRef(parent, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = so.GetBlockStore().SetRoots(ctx, []*block.PutBatchEntry{
-		{Ref: leafRef, Data: leaf, RefsKnown: true},
-		{Ref: sharedRef, Data: shared, RefsKnown: true},
-		{Ref: parentRef, Data: parent, Refs: []*block.BlockRef{leafRef, sharedRef}, RefsKnown: true},
-	}, []block.NamedRoot{{Name: root, Ref: parentRef}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return []*block.BlockRef{parentRef, leafRef}, sharedRef
 }
 
 // listRehearsalKeys returns the account object store keys under so/, less
