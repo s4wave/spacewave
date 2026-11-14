@@ -114,11 +114,13 @@ export interface TextDraft {
 
 /**
  * BackRead is the viewer's read after the store refused a plain save: it
- * learns what refused it. Read again runs it once more.
+ * learns what refused it. Read again runs it once more. Each read carries the
+ * number the viewer gave it, and only its own result lands: a save that lands
+ * ends the read, so a result taken before that save never shows over it.
  */
 export type BackRead =
   | { state: 'idle' }
-  | { state: 'reading' }
+  | { state: 'reading'; read: number }
   | { state: 'failed'; error: string }
 
 /** TextFileState is what the viewer holds beside the file's read. */
@@ -142,10 +144,10 @@ export type TextFileEvent =
   | { type: 'save'; over: boolean }
   | { type: 'saved'; text: string; crlf: boolean; version: Uint8Array }
   | { type: 'save-failed'; error: string }
-  | { type: 'refused' }
-  | { type: 'back-reading' }
-  | { type: 'back-read'; content: TextContent }
-  | { type: 'back-failed'; error: string }
+  | { type: 'refused'; read: number }
+  | { type: 'back-reading'; read: number }
+  | { type: 'back-read'; read: number; content: TextContent }
+  | { type: 'back-failed'; read: number; error: string }
   | { type: 'discard' }
   | { type: 'theirs'; show: boolean }
 
@@ -163,6 +165,11 @@ function stale(state: TextFileState, content: TextContent): boolean {
   if (state.replaced.some((v) => sameVersion(v, content.version))) return true
   const refused = draft?.refused ? draft.from.version : null
   return !!refused && sameVersion(refused, content.version)
+}
+
+// awaits reports whether the viewer waits for the read back numbered read.
+function awaits(state: TextFileState, read: number): boolean {
+  return state.back.state === 'reading' && state.back.read === read
 }
 
 // land takes a read that is not stale. A whole read of the text the draft
@@ -254,19 +261,21 @@ export function reduceTextFile(
       return {
         ...state,
         draft: { ...draft, saving: null, refused: true },
-        back: { state: 'reading' },
+        back: { state: 'reading', read: event.read },
       }
     case 'back-reading':
-      return { ...state, back: { state: 'reading' } }
+      return { ...state, back: { state: 'reading', read: event.read } }
     case 'back-read':
-      // A read at the version the store refused is not the read the viewer
-      // waits for.
+      // Only the read the viewer waits for lands, and a read at the version
+      // the store refused is not it.
+      if (!awaits(state, event.read)) return state
       if (stale(state, event.content)) {
         const error = 'the file still reads as the version your save expected'
         return { ...state, back: { state: 'failed', error } }
       }
       return { ...land(state, event.content), back: { state: 'idle' } }
     case 'back-failed':
+      if (!awaits(state, event.read)) return state
       return { ...state, back: { state: 'failed', error: event.error } }
     case 'discard':
       if (!draft || draft.saving) return state

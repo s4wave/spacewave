@@ -59,8 +59,8 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'refused' },
-      { type: 'back-read', content: theirs },
+      { type: 'refused', read: 1 },
+      { type: 'back-read', read: 1, content: theirs },
     )
 
     // The draft stays, not saving, shows their text, and a second plain
@@ -79,8 +79,8 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'refused' },
-      { type: 'back-read', content: same },
+      { type: 'refused', read: 1 },
+      { type: 'back-read', read: 1, content: same },
     )
 
     // The draft moves onto that version, so plain Save expects it.
@@ -97,8 +97,8 @@ describe('reduceTextFile', () => {
       ...drafted,
       { type: 'save', over: false },
       { type: 'read', content: same },
-      { type: 'refused' },
-      { type: 'back-read', content: same },
+      { type: 'refused', read: 1 },
+      { type: 'back-read', read: 1, content: same },
     )
 
     // The refusal named the expected version, so the read back is not stale.
@@ -163,8 +163,8 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'refused' },
-      { type: 'back-failed', error: 'offline' },
+      { type: 'refused', read: 1 },
+      { type: 'back-failed', read: 1, error: 'offline' },
     )
 
     // Save over theirs and Read again are offered; plain Save is refused,
@@ -227,8 +227,8 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'refused' },
-      { type: 'back-read', content: chmod },
+      { type: 'refused', read: 1 },
+      { type: 'back-read', read: 1, content: chmod },
     )
 
     // No change is claimed; plain Save writes again over the new version.
@@ -239,6 +239,43 @@ describe('reduceTextFile', () => {
     expect(
       reduceTextFile(state, { type: 'save', over: false }).draft?.retouched,
     ).toBe(false)
+  })
+
+  it('never shows a read back taken before a save over that landed', () => {
+    // The store refuses a plain save; while their version is read back, the
+    // person saves over theirs and the save lands.
+    const saved = replay(
+      ...drafted,
+      { type: 'save', over: false },
+      { type: 'refused', read: 1 },
+      { type: 'save', over: true },
+      { type: 'saved', text: 'mine', crlf: false, version: v(4) },
+    )
+
+    // The read back, taken before the save, returns their version late; the
+    // saved text stays, as does the read's failure.
+    const late = reduceTextFile(saved, {
+      type: 'back-read',
+      read: 1,
+      content: read('theirs', 3),
+    })
+    expect(late).toBe(saved)
+    expect(late.seen).toMatchObject({ text: 'mine', version: v(4) })
+    expect(
+      reduceTextFile(saved, { type: 'back-failed', read: 1, error: 'gone' }),
+    ).toBe(saved)
+
+    // Nor does it land in a later refusal's read back.
+    const next: TextFileEvent[] = [
+      { type: 'edit' },
+      { type: 'type', text: 'mine again' },
+      { type: 'save', over: false },
+      { type: 'refused', read: 2 },
+      { type: 'back-read', read: 1, content: read('theirs', 3) },
+    ]
+    const again = next.reduce(reduceTextFile, saved)
+    expect(again.back).toEqual({ state: 'reading', read: 2 })
+    expect(again.seen?.version).toEqual(v(4))
   })
 })
 

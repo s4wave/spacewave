@@ -111,8 +111,8 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
-      { type: 'refused' },
-      { type: 'back-failed', error: 'stream closed' },
+      { type: 'refused', read: 1 },
+      { type: 'back-failed', read: 1, error: 'stream closed' },
     ],
   },
   retouched: {
@@ -121,9 +121,10 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
-      { type: 'refused' },
+      { type: 'refused', read: 1 },
       {
         type: 'back-read',
+        read: 1,
         content: { ...notes, version: new Uint8Array([4]) },
       },
     ],

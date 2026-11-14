@@ -1,4 +1,4 @@
-import { useEffect, useReducer, type ReactNode } from 'react'
+import { useEffect, useReducer, useRef, type ReactNode } from 'react'
 import { LuFileText, LuLoader, LuPencil, LuSave, LuX } from 'react-icons/lu'
 import { useAbortSignal } from '@aptre/bldr-react'
 import {
@@ -205,6 +205,9 @@ export function UnixFSTextFileViewer({
   )
   const [state, dispatch] = useReducer(reduceTextFile, initialTextFileState)
   const signal = useAbortSignal([path])
+  // backRead is the read back in flight: its number, which ties its result to
+  // it in the reducer, and its abort, pressed when a save lands past it.
+  const backRead = useRef<{ read: number; abort: AbortController } | null>(null)
 
   // Each landed read is the version a draft compares against, kept through a
   // later failed read.
@@ -253,26 +256,29 @@ export function UnixFSTextFileViewer({
         dispatch({ type: 'save-failed', error: 'the save returned no version' })
         return
       }
+      backRead.current?.abort.abort()
       dispatch({ type: 'saved', text, crlf, version })
       return
     }
-    dispatch({ type: 'refused' })
-    await readBack()
+    await readBack(root, 'refused')
   }
 
   // readBack reads the version that refused a save through the root the
   // upload checked against, since the file's own handle may still show the
-  // version before it.
-  async function readBack() {
-    const root = rootHandle.value
-    if (!root || signal.aborted) return
-    dispatch({ type: 'back-reading' })
+  // version before it. The refusal starts it, and Read again runs it once
+  // more.
+  async function readBack(root: FSHandle, start: 'refused' | 'back-reading') {
+    const read = (backRead.current?.read ?? 0) + 1
+    const abort = new AbortController()
+    backRead.current = { read, abort }
+    dispatch({ type: start, read })
+    const readSignal = AbortSignal.any([signal, abort.signal])
     try {
-      const content = await readFresh(root, path, signal)
-      if (!signal.aborted) dispatch({ type: 'back-read', content })
+      const content = await readFresh(root, path, readSignal)
+      if (!readSignal.aborted) dispatch({ type: 'back-read', read, content })
     } catch (cause) {
-      if (!signal.aborted) {
-        dispatch({ type: 'back-failed', error: errorText(cause) })
+      if (!readSignal.aborted) {
+        dispatch({ type: 'back-failed', read, error: errorText(cause) })
       }
     }
   }
@@ -287,7 +293,10 @@ export function UnixFSTextFileViewer({
       dispatch={dispatch}
       onSave={(over) => void save(over)}
       retryRead={content.retry}
-      readBack={() => void readBack()}
+      readBack={() => {
+        const root = rootHandle.value
+        if (root && !signal.aborted) void readBack(root, 'back-reading')
+      }}
     />
   )
 }

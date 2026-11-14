@@ -57,5 +57,15 @@
       ]
     ],
     "expect": "RemovedFileSaves"
+  },
+  {
+    "name": "a read-back started before a save lands after it",
+    "replace": [
+      [
+        "  /\\ back' = \"idle\"\n  /\\ backAt' = \"none\"\n  /\\ mode' = \"reading\"\n",
+        "  /\\ UNCHANGED <<back, backAt>>\n  /\\ mode' = \"reading\"\n"
+      ]
+    ],
+    "expect": "SavedNeverReverts"
   }
 ]

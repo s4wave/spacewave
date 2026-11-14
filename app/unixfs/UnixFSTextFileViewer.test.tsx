@@ -444,6 +444,75 @@ describe('UnixFS text editing', () => {
     })
   })
 
+  it('keeps the draft when a landed save returns no version', async () => {
+    // The store commits the save but names no version it wrote.
+    readsText('original')
+    const upload = vi
+      .fn()
+      .mockResolvedValue({ ...writtenAt('mine'), versions: [] })
+    render(
+      <UnixFSTextFileViewer
+        rootHandle={rootResource(upload)}
+        path="/notes.md"
+      />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    typeInto('mine')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // The save fails with the reason, and the draft stays to save again.
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'the save returned no version',
+    )
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+      'mine',
+    )
+  })
+
+  it('shows a save over theirs past their version read back before it', async () => {
+    // A plain save is refused; the read back of their version hangs.
+    readsText('original')
+    const upload = vi
+      .fn()
+      .mockResolvedValueOnce({
+        kind: 'conflict',
+        path: 'notes.md',
+        version: versionOf('theirs'),
+      })
+      .mockResolvedValueOnce(writtenAt('mine'))
+    let backSignal: AbortSignal | undefined
+    let land: (value: unknown) => void = () => {}
+    const root = rootResource(upload)
+    root.value = {
+      uploadTree: upload,
+      lookupPath: (_path: unknown, signal: AbortSignal) => {
+        backSignal = signal
+        return Promise.resolve({
+          handle: {
+            readAt: () => new Promise((resolve) => (land = resolve)),
+            release: () => {},
+          },
+        })
+      },
+    } as unknown as FSHandle
+    render(<UnixFSTextFileViewer rootHandle={root} path="/notes.md" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    typeInto('mine')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Reading their version.')
+
+    // Save over theirs lands while the read runs; the read is aborted.
+    fireEvent.click(screen.getByRole('button', { name: 'Save over theirs' }))
+    await screen.findByText('mine')
+    expect(backSignal?.aborted).toBe(true)
+
+    // Their version arriving late leaves the saved text shown.
+    land(readOf('theirs'))
+    await Promise.resolve()
+    expect(screen.queryByText('theirs')).toBeNull()
+    expect(screen.getByText('mine')).toBeDefined()
+  })
+
   it('offers no Edit on a file that is not UTF-8', async () => {
     // A whole file with an invalid byte is a preview.
     handles.file = {
