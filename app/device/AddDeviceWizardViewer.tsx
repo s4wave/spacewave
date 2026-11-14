@@ -36,6 +36,8 @@ import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
+import { Device } from '@s4wave/sdk/device/device.pb.js'
+import { base58Encode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import {
   SecretKindSSHPassword,
   SecretKindSSHPrivateKey,
@@ -235,6 +237,12 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const isSshInstallMode = mode === 'ssh' && sshSetupMode === 'install-agent'
   const ticket = config.ticket ?? ''
   const completion = config.completion ?? ''
+  // pairedPeerId is the printable peer ID of the device the approved ticket
+  // came from, the peer ID its Device object records.
+  const pairedPeerId = useMemo(() => {
+    const raw = config.preview?.agentPeerId
+    return raw ? base58Encode(base64ToBytes(raw)) : ''
+  }, [config.preview?.agentPeerId])
   const setupCommand = buildSetupCommand(
     ws.localName || 'Device',
     sharedObjectId,
@@ -346,11 +354,17 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       async () => {
         await ws.persistDraftState()
         // The device was paired before Finish, so it opens even when the
-        // wizard is already gone.
+        // wizard is already gone. Until the paired device has enrolled, the
+        // Computers dashboard opens in its place.
+        const deviceKey = await findPairedDevice(
+          ws.spaceWorld,
+          deviceKeys,
+          pairedPeerId,
+        )
         return {
           creates: [],
           target: {
-            openKey: deviceKeys[0] || dashboardKey,
+            openKey: deviceKey || dashboardKey,
             indexPath: dashboardKey,
           },
           targetMade: true,
@@ -360,7 +374,15 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         if (target.openKey) ws.navigateToObjects([target.openKey])
       },
     )
-  }, [computersKnown, dashboardKey, deviceKeys, finish, state, ws])
+  }, [
+    computersKnown,
+    dashboardKey,
+    deviceKeys,
+    finish,
+    pairedPeerId,
+    state,
+    ws,
+  ])
 
   // createSshHost writes the credential secrets and the SSH Host object.
   const createSshHost = useCallback(async () => {
@@ -1752,6 +1774,23 @@ function buildDeviceSetupArgs(label: string, sharedObjectId: string): string {
 function quoteShellArg(value: string): string {
   if (/^[a-zA-Z0-9_./:@%+=,-]+$/.test(value)) return value
   return `'${value.replaceAll("'", "'\"'\"'")}'`
+}
+
+// findPairedDevice returns the key of the Device among keys whose peer ID is
+// peerId, or '' when none has enrolled with it.
+async function findPairedDevice(
+  world: IWorldState,
+  keys: string[],
+  peerId: string,
+): Promise<string> {
+  if (!peerId || keys.length === 0) return ''
+  const bodies = await world.getObjectBodies(keys)
+  const paired = bodies.find(
+    (body) =>
+      body.exists &&
+      Device.fromBinary(body.body ?? new Uint8Array()).peerId === peerId,
+  )
+  return paired?.objectKey ?? ''
 }
 
 function base64ToBytes(value: string): Uint8Array {

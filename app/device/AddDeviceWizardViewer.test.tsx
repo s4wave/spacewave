@@ -43,6 +43,8 @@ import {
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
+import { Device } from '@s4wave/sdk/device/device.pb.js'
+import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 
 import { ComputersDashboardTypeID } from './computers.js'
 
@@ -73,6 +75,8 @@ const h = vi.hoisted(() => ({
     { objectKey: 'computers', objectType: 'spacewave/computers' },
     { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
   ],
+  // devicePeers maps each Device key to the peer ID its body records.
+  devicePeers: {} as Record<string, string>,
 }))
 
 vi.mock('../wizard/useWizardState.js', () => ({
@@ -94,6 +98,19 @@ vi.mock('../wizard/useWizardState.js', () => ({
       ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
+      getObjectBodies: (keys: string[]) =>
+        Promise.resolve(
+          keys.map((objectKey) => {
+            const peerId = h.devicePeers[objectKey]
+            return peerId === undefined
+              ? { objectKey, exists: false }
+              : {
+                  objectKey,
+                  exists: true,
+                  body: Device.toBinary({ peerId, label: objectKey }),
+                }
+          }),
+        ),
       getEngine: () => ({
         newTransaction: () =>
           Promise.resolve({
@@ -208,6 +225,21 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 
 import { AddDeviceWizardViewer } from './AddDeviceWizardViewer.js'
 
+// buildHostPeer is the peer ID of the device that printed the approved
+// ticket; pairedConfig is the wizard config after that ticket's approval.
+const buildHostPeer = '12D3KooWRBy97UB99e3J6hiPesre1MZeuNQvfan4gBziswrRJsNK'
+h.devicePeers = { 'devices/build-host': buildHostPeer }
+
+function pairedConfig(): Uint8Array {
+  const raw = base58Decode(buildHostPeer)
+  return new TextEncoder().encode(
+    JSON.stringify({
+      completion: 'completion',
+      preview: { agentPeerId: bytesToBase64(raw) },
+    }),
+  )
+}
+
 // expectIndexMovedBeforeDelete asserts that Finish moved the Space index off
 // the wizard to indexPath, as the session, before it deleted the wizard.
 function expectIndexMovedBeforeDelete(indexPath: string) {
@@ -255,6 +287,7 @@ describe('AddDeviceWizardViewer', () => {
     h.providerId = 'spacewave'
     h.sessionInfoLoading = false
     h.spaceSettingsIndexPath = 'wizard/device-setup'
+    h.devicePeers = { 'devices/build-host': buildHostPeer }
     h.worldObjects = [
       { objectKey: 'computers', objectType: ComputersDashboardTypeID },
       { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
@@ -480,9 +513,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
 
   it('promotes Computers after completion and opens the created Device object', async () => {
     h.currentStep = 2
-    h.configData = new TextEncoder().encode(
-      JSON.stringify({ completion: 'completion' }),
-    )
+    h.configData = pairedConfig()
     renderViewer()
 
     expect(await screen.findByText('Device Objects')).toBeTruthy()
@@ -497,9 +528,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     // Another tab cancelled the wizard after this tab paired the device.
     h.deleteObject.mockResolvedValueOnce({ deleted: false })
     h.currentStep = 2
-    h.configData = new TextEncoder().encode(
-      JSON.stringify({ completion: 'completion' }),
-    )
+    h.configData = pairedConfig()
     renderViewer()
 
     expect(await screen.findByText('Device Objects')).toBeTruthy()
@@ -511,6 +540,46 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     )
     expect(h.commit).not.toHaveBeenCalled()
     expect(screen.queryByText(/Could not finish/)).toBeNull()
+  })
+
+  it('opens the Device the approved ticket paired, not the first Device', async () => {
+    h.worldObjects = [
+      { objectKey: 'computers', objectType: ComputersDashboardTypeID },
+      { objectKey: 'devices/aaa-laptop', objectType: 'spacewave/device' },
+      { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
+    ]
+    h.devicePeers = {
+      'devices/aaa-laptop': '12D3KooWLaptopPeerDoesNotMatchTheTicket',
+      'devices/build-host': buildHostPeer,
+    }
+    h.currentStep = 2
+    h.configData = pairedConfig()
+    renderViewer()
+
+    expect(await screen.findByText('devices/aaa-laptop')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /open device/i }))
+
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host']),
+    )
+    expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens Computers when the paired Device has not enrolled yet', async () => {
+    h.devicePeers = {
+      'devices/build-host': '12D3KooWAnotherDeviceThatIsNotTheTicket',
+    }
+    h.currentStep = 2
+    h.configData = pairedConfig()
+    renderViewer()
+
+    expect(await screen.findByText('Device Objects')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /open device/i }))
+
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['computers']),
+    )
+    expect(h.navigateToObjects).toHaveBeenCalledTimes(1)
   })
 
   it('holds Finish while the computers read failed, so the index never names a deleted wizard', () => {
