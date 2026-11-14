@@ -278,6 +278,12 @@ OwnFailureKeepsContent ==
        ParentRetry \/ ParentReady \/ Start))
        => Content' # 0]_vars
 
+\* A run with nothing kept shows its wait: a run opens failed only over a
+\* kept last, or as the capped stream's quiet reopen.
+NothingKeptLoads ==
+  [][(stream # "open" /\ stream' = "open" /\ status' = "failed")
+       => (LastOf' # 0 \/ fails >= Cap)]_vars
+
 \* A value returns a failed hook to ready.
 ValueRecovers == [][RStatus = "failed" /\ Emit => RStatus' = "ready"]_vars
 

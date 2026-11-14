@@ -124,6 +124,7 @@ function TestParentChild(props: {
   )
 
   return React.createElement('div', {
+    'data-loading': String(resource.loading),
     'data-value': resource.value ?? '',
     'data-last': lastOf(resource) ?? '',
     'data-error': resource.error?.message ?? '',
@@ -554,6 +555,27 @@ describe('useResource', () => {
     await update(() => results[1]('child-2'))
     expect(view('data-value')).toBe('child-2')
     expect(view('data-error')).toBe('')
+  })
+
+  it('shows a child loading on its parent recovering before it had a value', async () => {
+    // The parent fails before the child's first run yields.
+    const factory = vi.fn((_value: string) => new Promise<string>(() => {}))
+    const parent = (value: string | null, error: Error | null) =>
+      React.createElement(TestParentChild, {
+        parent: resourceOf({ value, loading: false, error, retry: () => {} }),
+        factory,
+      })
+    mount()
+    await render(parent('p1', null))
+    await render(parent(null, new Error('parent failed')))
+    expect(view('data-error')).toBe('parent failed')
+    expect(view('data-last')).toBe('')
+
+    // With nothing kept, the recovered parent's run shows its wait.
+    await render(parent('p2', null))
+    expect(factory).toHaveBeenCalledTimes(2)
+    expect(view('data-error')).toBe('')
+    expect(view('data-loading')).toBe('true')
   })
 
   it('aborts child work when its SDK parent is released', async () => {
@@ -1027,6 +1049,29 @@ describe('useResource', () => {
 
     // The error shows instead of an endless reconnect.
     expect(view('data-error')).toBe('refused')
+  })
+
+  it('shows a stream loading on Retry after failing with no value', async () => {
+    // A stream fails before its first value.
+    const { streams, streamFactory } = manualStreams<Row>()
+    mount()
+    await render(
+      React.createElement(TestStreamOptions, {
+        streamFactory,
+        options: {},
+        seen: [],
+      }),
+      2,
+    )
+    await update(() => streams[0].fail(new Error('refused')))
+    expect(view('data-error')).toBe('refused')
+    expect(view('data-last')).toBe('')
+
+    // With nothing kept, Retry shows the wait, not the old failure.
+    await click()
+    expect(streamFactory).toHaveBeenCalledTimes(2)
+    expect(view('data-error')).toBe('')
+    expect(view('data-loading')).toBe('true')
   })
   it('fails a child stream over its last value when its parent fails', async () => {
     // Stream a value under a ready parent.

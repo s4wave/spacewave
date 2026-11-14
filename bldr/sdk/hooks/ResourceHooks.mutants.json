@@ -115,6 +115,16 @@
     "expect": "OwnFailureKeepsContent"
   },
   {
+    "name": "recovery with nothing kept stays failed",
+    "replace": [
+      [
+        "  status' = IF status = \"failed\" /\\ (q \\/ LastOf # 0) THEN \"failed\"",
+        "  status' = IF status = \"failed\" THEN \"failed\""
+      ]
+    ],
+    "expect": "NothingKeptLoads"
+  },
+  {
     "name": "reaches: fail then recover",
     "replace": [["Unreached == TRUE", "Unreached == ~FailThenRecover"]],
     "expect": "Unreached"
