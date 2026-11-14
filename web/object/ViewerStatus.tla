@@ -14,12 +14,14 @@
 \* Refresh or opening a query editor, needs no record, so it shows in every
 \* state; some viewers have none.
 \*
-\* A re-read of the same record keeps it on screen while it runs. A failure
-\* keeps it only where the source keeps its value: a reconnecting stream holds
-\* its last value while it backs off, so its record stays under the failure's
-\* notice; a one-shot read drops its value when it fails, so its failure takes
-\* the body and the record returns only when a Retry reads it again. Another
-\* object in the pane clears the record either way.
+\* A re-read of the same record keeps it on screen while it runs. A failed
+\* resource reports no value, only the last one it had, so a failure keeps
+\* the record only where the viewer opts in by drawing that last value: the
+\* record stays under the failure's notice and makes no empty claim there,
+\* and its Retry reads again behind the notice, which stays until the read
+\* returns. A viewer that draws only the value lets the failure take the
+\* body; its record returns only when a Retry reads it again, and that Retry
+\* waits. Another object in the pane clears the record either way.
 
 People == {"person"}
 
@@ -35,7 +37,7 @@ VARIABLES
   drawn,     \* whether the viewer draws a record that arrived
   got,       \* history: a record arrived since the pane last changed
   standing,  \* whether this viewer has a standing press
-  keeps      \* whether the source keeps its value when a read fails
+  keeps      \* whether the viewer draws a failed resource's last value
 vars == <<status, retryable, drawn, got, standing, keeps>>
 
 Arrived == status \in {"empty", "ready"}
@@ -66,16 +68,17 @@ Init ==
   /\ standing \in BOOLEAN
   /\ keeps \in BOOLEAN
 
-\* The read finishes with the record, which may hold nothing to show.
+\* The read finishes with the record, which may hold nothing to show. A read
+\* behind the notice over a kept record finishes the same way.
 Arrive ==
-  /\ status = "waiting"
+  /\ status = "waiting" \/ (status = "failed" /\ drawn)
   /\ status' \in {"empty", "ready"}
   /\ retryable' = FALSE
   /\ drawn' = TRUE
   /\ got' = TRUE
   /\ UNCHANGED <<standing, keeps>>
 \* The read fails, or a watched record fails after it arrived. What was drawn
-\* stays under the notice only when the source keeps its value.
+\* stays under the notice only when the viewer draws the last value.
 Fail ==
   /\ status # "failed"
   /\ status' = "failed"
@@ -96,10 +99,11 @@ Change ==
   /\ got' = FALSE
   /\ standing' \in BOOLEAN
   /\ keeps' \in BOOLEAN
+\* Retry reads again: behind the notice over a kept record, else in a wait.
 Retry(p) ==
   /\ "retry" \in Shown(p)
-  /\ status' = "waiting"
-  /\ retryable' = FALSE
+  /\ status' = IF drawn THEN "failed" ELSE "waiting"
+  /\ retryable' = drawn
   /\ UNCHANGED <<drawn, got, standing, keeps>>
 
 Next ==
@@ -116,10 +120,10 @@ NobodyIsStuck == S!NobodyIsStuck
 \* Retry shows exactly where a read can run again.
 RetryWhereItCanSucceed ==
   "retry" \in Shown("person") <=> status = "failed" /\ retryable
-\* From a source that keeps its value, a record that arrived stays drawn until
-\* another object opens.
+\* In a viewer that draws the last value, a record that arrived stays drawn
+\* until another object opens.
 ArrivedStaysDrawn == keeps /\ got => drawn
-\* From a source that drops its value, a failure draws no record.
+\* In a viewer that draws only the value, a failure draws no record.
 DroppedFailureDrawsNothing == ~keeps /\ status = "failed" => ~drawn
 TypeOK ==
   /\ status \in Statuses

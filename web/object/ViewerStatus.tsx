@@ -22,7 +22,8 @@ import { FactList, factGrid } from '@s4wave/web/ui/FactList.js'
  *   where one exists, names the press that fills it.
  *
  * ViewerStatus.tla checks that each press shows where it can succeed and that
- * a record that arrived stays drawn through a failure or a re-read.
+ * a record that arrived stays drawn through a re-read, and through a failure
+ * in a viewer that draws resourceContent.
  */
 export type ViewerStatusProps =
   | { state: 'waiting'; what: string; rows?: number }
@@ -37,10 +38,13 @@ export type ViewerStatusProps =
 /**
  * resourceStatus returns the status of the resources a viewer reads: failed
  * with the failed resource's retry, waiting while one is read with nothing
- * arrived yet, or null. A resource read again keeps its last value while the
- * read runs, so it does not wait. A failed resource holds no value; when other
- * resources hold data, the caller draws the failure above that data. what
- * names the record, such as "the notebook".
+ * arrived yet, or null. A resource read again keeps its value while the read
+ * runs, so it does not wait. A failed resource holds no value, only the last
+ * value it had. A viewer opts in to keeping its record through a failure by
+ * drawing resourceContent: then it draws this failure as a notice above that
+ * stale record, never an empty claim from it, and the notice's Retry reads
+ * again behind it. A viewer that draws only the value lets the failure take
+ * the body. what names the record, such as "the notebook".
  */
 export function resourceStatus(
   what: string,

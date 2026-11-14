@@ -35,7 +35,10 @@ stateDiagram-v2
   s5 --> s1: read fails
   s5 --> s2: read fails
   s6 --> s0: another object opens
+  s6 --> s3: record arrives
+  s6 --> s4: record arrives
   s5 --> s6: read fails
   s5 --> s7: read fails
   s7 --> s0: another object opens
-  s7 --> s5: presses Retry
+  s7 --> s3: record arrives
+  s7 --> s4: record arrives

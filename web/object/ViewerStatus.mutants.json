@@ -45,8 +45,18 @@
     "expect": "ArrivedStaysDrawn"
   },
   {
-    "name": "a failed one-shot read still draws its record",
+    "name": "a viewer of the value alone draws a failed record",
     "replace": [["  /\\ drawn' = (drawn /\\ keeps)", "  /\\ UNCHANGED drawn"]],
     "expect": "DroppedFailureDrawsNothing"
+  },
+  {
+    "name": "Retry over a kept record blanks it",
+    "replace": [
+      [
+        "  /\\ status' = IF drawn THEN \"failed\" ELSE \"waiting\"\n  /\\ retryable' = drawn\n  /\\ UNCHANGED <<drawn, got, standing, keeps>>",
+        "  /\\ status' = \"waiting\"\n  /\\ retryable' = FALSE\n  /\\ drawn' = FALSE\n  /\\ UNCHANGED <<got, standing, keeps>>"
+      ]
+    ],
+    "expect": "ArrivedStaysDrawn"
   }
 ]
