@@ -33,8 +33,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// orderTestSource lists list and replays an empty World. A cloud source
+// does not leave its shared Spaces to their other members.
 type orderTestSource struct {
-	list *sobject.SharedObjectList
+	list  *sobject.SharedObjectList
+	cloud bool
 }
 
 func (s *orderTestSource) GetSharedObjectList(context.Context) (*sobject.SharedObjectList, error) {
@@ -49,20 +52,34 @@ func (s *orderTestSource) GetBlockStore(context.Context, *sobject.SharedObjectRe
 	return nil, func() {}, nil
 }
 
+func (s *orderTestSource) GetOrigin() *provider_transfer.TransferOrigin {
+	return &provider_transfer.TransferOrigin{SourceProviderId: "order", SourceAccountId: "source"}
+}
+
+func (s *orderTestSource) LeavesSharedObjects() bool {
+	return !s.cloud
+}
+
+// orderTestTarget records its calls and reads holds under every id.
 type orderTestTarget struct {
 	calls []string
+	holds provider_transfer.TargetHolds
 }
 
 func (t *orderTestTarget) GetBlockStore(context.Context, *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
 	return nil, func() {}, nil
 }
 
-func (t *orderTestTarget) AddSharedObject(_ context.Context, ref *sobject.SharedObjectRef, _ *sobject.SharedObjectMeta) error {
-	t.calls = append(t.calls, "add:"+ref.GetProviderResourceRef().GetId())
-	return nil
+func (t *orderTestTarget) ReadSharedObject(context.Context, *logrus.Entry, string, *provider_transfer.TransferOrigin) (*provider_transfer.TargetSpace, error) {
+	return &provider_transfer.TargetSpace{Holds: t.holds}, nil
 }
 
-func (t *orderTestTarget) WriteSharedObjectState(_ context.Context, _ *logrus.Entry, sharedObjectID string, _ crypto.PrivKey, _ []byte) error {
+func (t *orderTestTarget) AddSharedObject(_ context.Context, ref *sobject.SharedObjectRef, _ *sobject.SharedObjectMeta, _ *provider_transfer.TransferOrigin) (*provider_transfer.TargetSpace, error) {
+	t.calls = append(t.calls, "add:"+ref.GetProviderResourceRef().GetId())
+	return &provider_transfer.TargetSpace{Holds: provider_transfer.TargetHoldsArriving}, nil
+}
+
+func (t *orderTestTarget) WriteSharedObjectState(_ context.Context, _ *logrus.Entry, sharedObjectID string, _ crypto.PrivKey, _ []byte, _ *provider_transfer.TransferOrigin, _ *provider_transfer.TargetSpace) error {
 	t.calls = append(t.calls, "write:"+sharedObjectID)
 	return nil
 }
@@ -287,6 +304,56 @@ type storeTestTarget struct {
 
 func (t *storeTestTarget) GetBlockStore(context.Context, *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
 	return t.store, func() {}, nil
+}
+
+// TestTransferSharedSpaces checks each row of the shared Space table: a
+// shared Space counts as moved only when the target already lists it as
+// shared and the source leaves it to its other members, and the transfer
+// never adds or writes one.
+func TestTransferSharedSpaces(t *testing.T) {
+	ref := &sobject.SharedObjectRef{
+		ProviderResourceRef: &provider.ProviderResourceRef{Id: "space-a", ProviderId: "local", ProviderAccountId: "source-account"},
+		BlockStoreId:        "space-a",
+	}
+	for _, tc := range []struct {
+		name  string
+		cloud bool
+		holds provider_transfer.TargetHolds
+		want  provider_transfer.TransferPhase
+	}{
+		{"target not a member", false, provider_transfer.TargetHoldsNothing, provider_transfer.TransferPhase_TransferPhase_NOT_MOVED},
+		{"target a member, local source", false, provider_transfer.TargetHoldsShared, provider_transfer.TransferPhase_TransferPhase_COMPLETE},
+		{"target a member, cloud source", true, provider_transfer.TargetHoldsShared, provider_transfer.TransferPhase_TransferPhase_NOT_MOVED},
+		{"target holds its own Space", false, provider_transfer.TargetHoldsOther, provider_transfer.TransferPhase_TransferPhase_NOT_MOVED},
+		{"target holds a moved Space", false, provider_transfer.TargetHoldsWritten, provider_transfer.TransferPhase_TransferPhase_NOT_MOVED},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := &orderTestSource{
+				list: &sobject.SharedObjectList{SharedObjects: []*sobject.SharedObjectListEntry{{
+					Ref:    ref,
+					Meta:   &sobject.SharedObjectMeta{BodyType: "space"},
+					Source: "shared",
+				}}},
+				cloud: tc.cloud,
+			}
+			tgt := &orderTestTarget{holds: tc.holds}
+			xfer := provider_transfer.NewTransfer(logrus.NewEntry(logrus.StandardLogger()), provider_transfer.TransferMode_TransferMode_MIRROR, src, tgt, nil, 1, 2, nil)
+			if err := xfer.Execute(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			state := xfer.GetState()
+			if state.GetPhase() != tc.want {
+				t.Fatalf("phase = %s, want %s", state.GetPhase(), tc.want)
+			}
+			space := state.GetSpaces()[0]
+			if space.GetPhase() != tc.want || (tc.want == provider_transfer.TransferPhase_TransferPhase_NOT_MOVED) != (space.GetNotMovedReason() != "") {
+				t.Fatalf("space = %s %q, want %s with a reason only when not moved", space.GetPhase(), space.GetNotMovedReason(), tc.want)
+			}
+			if len(tgt.calls) != 0 {
+				t.Fatalf("target calls %v, want none for a shared Space", tgt.calls)
+			}
+		})
+	}
 }
 
 // TestTransferRejectsUnknownRefs checks that a block the source holds without
@@ -515,10 +582,12 @@ func TestLocalMergeSoList(t *testing.T) {
 	}
 }
 
-// TestLocalMergeResume verifies that a transfer can resume from a checkpoint
-// after being interrupted mid-copy.
-func TestLocalMergeResume(t *testing.T) {
-	// Start a testbed with a local provider.
+// TestLocalMergeLeavesSpaceCreatedOnTarget checks that a Merge into a target
+// that created a Space under the same id moves the other Spaces, leaves that
+// one not moved with a reason, keeps the target's Space, and deletes nothing
+// from the source.
+func TestLocalMergeLeavesSpaceCreatedOnTarget(t *testing.T) {
+	// Start a source with three Spaces and a target that created one of them.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -528,85 +597,73 @@ func TestLocalMergeResume(t *testing.T) {
 	providerID := "local"
 	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
 	defer provRel()
-
-	// Create source and target accounts.
 	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
 	defer srcRel()
 	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
 	defer tgtRel()
+	for _, id := range []string{"space-a", "space-b", "space-c"} {
+		createTestSpace(ctx, t, srcAcc, id)
+	}
+	createTestSpace(ctx, t, tgtAcc, "space-a")
+	tgtStore, tgtStoreRel, err := buildTestObjectStore(ctx, tb, tgtAcc, providerID, tgtAccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tgtStoreRel()
+	created := targetSpaceState(ctx, t, tgtStore, "space-a", nil)
 
-	// Create 3 SOs on source.
-	createTestSpace(ctx, t, srcAcc, "space-a")
-	createTestSpace(ctx, t, srcAcc, "space-b")
-	createTestSpace(ctx, t, srcAcc, "space-c")
-
-	// Build the source and target.
-	le := logrus.NewEntry(logrus.StandardLogger())
-	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
-	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
-
-	// Build a checkpoint store using the source account's object store.
+	// Merge with a checkpoint on the source.
 	srcObjStore, srcObjRel, err := buildTestObjectStore(ctx, tb, srcAcc, providerID, srcAccountID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer srcObjRel()
 	cpStore := provider_transfer.NewObjectStoreCheckpoint(srcObjStore)
-
-	// Simulate a partial transfer: save a checkpoint at index 1 (space-a done).
-	cp := &provider_transfer.TransferCheckpoint{
-		State: &provider_transfer.TransferState{
-			Mode:               provider_transfer.TransferMode_TransferMode_MERGE,
-			Phase:              provider_transfer.TransferPhase_TransferPhase_COPYING_SO,
-			SourceSessionIndex: 1,
-			TargetSessionIndex: 2,
-		},
-		SpaceIds:          []string{"space-a", "space-b", "space-c"},
-		CurrentSpaceIndex: 1,
-	}
-	if err := cpStore.SaveCheckpoint(ctx, cp); err != nil {
-		t.Fatal(err)
-	}
-
-	// Manually add space-a to target (simulating it was done before interrupt).
-	createTestSpace(ctx, t, tgtAcc, "space-a")
-
-	// Run the transfer with the checkpoint. It should skip space-a.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Checkpoint: cpStore})
+	le := logrus.NewEntry(logrus.StandardLogger())
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
+	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Checkpoint: cpStore, Cleanup: src})
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify the checkpoint was deleted on success.
-	loaded, err := cpStore.LoadCheckpoint(ctx)
+	// The run finished with space-a not moved and the others moved, and left
+	// nothing to resume.
+	state := xfer.GetState()
+	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
+		t.Fatalf("phase = %s, want NOT_MOVED", state.GetPhase())
+	}
+	for _, space := range state.GetSpaces() {
+		want := provider_transfer.TransferPhase_TransferPhase_COMPLETE
+		if space.GetSharedObjectId() == "space-a" {
+			want = provider_transfer.TransferPhase_TransferPhase_NOT_MOVED
+			if space.GetNotMovedReason() == "" {
+				t.Fatal("space-a not moved without a reason")
+			}
+		}
+		if space.GetPhase() != want {
+			t.Fatalf("%s phase = %s, want %s", space.GetSharedObjectId(), space.GetPhase(), want)
+		}
+	}
+	if loaded, err := cpStore.LoadCheckpoint(ctx); err != nil || loaded != nil {
+		t.Fatalf("checkpoint after the run = %v, %v; want none", loaded, err)
+	}
+
+	// The target keeps its own space-a, and the source keeps every Space.
+	if got := targetSpaceState(ctx, t, tgtStore, "space-a", nil); !bytes.Equal(got, created) {
+		t.Fatal("the Merge replaced the Space the target created")
+	}
+	srcList, err := src.GetSharedObjectList(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded != nil {
-		t.Fatal("expected checkpoint to be deleted after successful transfer")
-	}
-
-	// Verify target has all 3 SOs (space-a from manual add + space-b, space-c from resume).
-	tgtSrc := provider_transfer.NewLocalTransferSource(tgtAcc, tb.Bus)
-	tgtList, err := tgtSrc.GetSharedObjectList(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// The target holds the three Spaces and its settings object.
-	entries := tgtList.GetSharedObjects()
-	if len(entries) != 4 {
-		t.Fatalf("expected 4 SOs on target (3 spaces + account-settings), got %d", len(entries))
-	}
-
-	// Each source Space is present.
 	ids := make(map[string]bool)
-	for _, entry := range entries {
+	for _, entry := range srcList.GetSharedObjects() {
 		ids[entry.GetRef().GetProviderResourceRef().GetId()] = true
 	}
-	for _, expected := range []string{"space-a", "space-b", "space-c"} {
-		if !ids[expected] {
-			t.Fatalf("expected %q in target SO list, got %v", expected, ids)
+	for _, id := range []string{"space-a", "space-b", "space-c"} {
+		if !ids[id] {
+			t.Fatalf("the Merge deleted %s from the source", id)
 		}
 	}
 }
@@ -749,27 +806,21 @@ func mustParseBlockRef(t *testing.T, s string) *block.BlockRef {
 	return ref
 }
 
-// worldTestSource is a local source whose Spaces replay world.
+// worldTestSource is a local source whose Spaces replay world. released, if
+// set, runs when the transfer releases a replay, after the copy and before
+// the hold, while the copy's stage alone holds the World on the target.
 type worldTestSource struct {
 	*provider_transfer.LocalTransferSource
-	world *space_world.InnerState
+	world    *space_world.InnerState
+	released func()
 }
 
 func (s *worldTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*space_world.InnerState, func(), error) {
-	return s.world.CloneVT(), func() {}, nil
-}
-
-// collectingTarget is a local target that collects its account's Volume
-// before each Space is added, while the copy's stage alone holds the World.
-type collectingTarget struct {
-	*provider_transfer.LocalTransferTarget
-	t   *testing.T
-	acc *provider_local.ProviderAccount
-}
-
-func (c *collectingTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta) error {
-	collectVolume(ctx, c.t, c.acc)
-	return c.LocalTransferTarget.AddSharedObject(ctx, ref, meta)
+	release := func() {}
+	if s.released != nil {
+		release = s.released
+	}
+	return s.world.CloneVT(), release, nil
 }
 
 // collectVolume runs two full collections of the account's Volume, so a
@@ -791,6 +842,30 @@ func collectVolume(ctx context.Context, t *testing.T, acc *provider_local.Provid
 			}
 		}
 	}
+}
+
+// putTestWorld stores a World of a root and a leaf holding payload in the
+// block store of the Space soRef on acc, held by a root, and returns the root
+// and the leaf.
+func putTestWorld(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, providerID, accountID string, soRef *sobject.SharedObjectRef, payload []byte) (*block.BlockRef, *block.BlockRef) {
+	t.Helper()
+	bs, rel, err := acc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, accountID, soRef.GetBlockStoreId()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+	leaf, _, err := bs.PutBlock(ctx, payload, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, _, err := block.PutBlock(ctx, bs, &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: leaf}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := bs.SetRoots(ctx, nil, []block.NamedRoot{{Name: "test/world", Ref: root}}); err != nil {
+		t.Fatal(err)
+	}
+	return root, leaf
 }
 
 // TestLocalTransferHoldsWorldPastGrace checks, on a target Volume that frees
@@ -817,38 +892,17 @@ func TestLocalTransferHoldsWorldPastGrace(t *testing.T) {
 
 	// Store a World of a root and a leaf on the source, held by a root.
 	soRef := createTestSpace(ctx, t, srcAcc, "held-space")
-	srcBS, srcBSRel, err := srcAcc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, srcAccountID, soRef.GetBlockStoreId()), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
 	payload := []byte("the transferred World's leaf")
-	leaf, _, err := srcBS.PutBlock(ctx, payload, &block.PutOpts{RefsKnown: true})
-	if err != nil {
-		srcBSRel()
-		t.Fatal(err)
-	}
-	root, _, err := block.PutBlock(ctx, srcBS, &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: leaf}})
-	if err != nil {
-		srcBSRel()
-		t.Fatal(err)
-	}
-	if err := srcBS.SetRoots(ctx, nil, []block.NamedRoot{{Name: "test/world", Ref: root}}); err != nil {
-		srcBSRel()
-		t.Fatal(err)
-	}
-	srcBSRel()
+	root, leaf := putTestWorld(ctx, t, srcAcc, providerID, srcAccountID, soRef, payload)
 
 	// Transfer the Space, collecting the target after the copy.
 	le := logrus.NewEntry(logrus.StandardLogger())
 	src := &worldTestSource{
 		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
 		world:               &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}},
+		released:            func() { collectVolume(ctx, t, tgtAcc) },
 	}
-	tgt := &collectingTarget{
-		LocalTransferTarget: provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus),
-		t:                   t,
-		acc:                 tgtAcc,
-	}
+	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MIRROR, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{FilterSpaceIDs: []string{"held-space"}})
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
@@ -1055,5 +1109,205 @@ func TestLocalMergeCopiesWorldContent(t *testing.T) {
 	}
 	if found, err := tgtBS.GetBlockExists(ctx, stray); err != nil || found {
 		t.Fatalf("stray block on the target: found=%v err=%v", found, err)
+	}
+}
+
+// faultTarget is a local target whose next state write fails, before writing
+// when failBefore is set, as a crash between the hold and the write does, or
+// after writing when failAfter is set, as a crash before the checkpoint does.
+type faultTarget struct {
+	*provider_transfer.LocalTransferTarget
+	failBefore, failAfter bool
+}
+
+func (f *faultTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte, origin *provider_transfer.TransferOrigin, expect *provider_transfer.TargetSpace) error {
+	if f.failBefore {
+		f.failBefore = false
+		return errors.New("crash before the state write")
+	}
+	if err := f.LocalTransferTarget.WriteSharedObjectState(ctx, le, id, owner, stateData, origin, expect); err != nil {
+		return err
+	}
+	if f.failAfter {
+		f.failAfter = false
+		return errors.New("crash after the state write")
+	}
+	return nil
+}
+
+// targetSpaceState reads, or with set writes, the stored state of the Space
+// id on the target, where every edit of the Space lands.
+func targetSpaceState(ctx context.Context, t *testing.T, store object.ObjectStore, id string, set []byte) []byte {
+	t.Helper()
+	tx, err := store.NewTransaction(ctx, set != nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	key := provider_local.SobjectObjectStoreHostStateKey(id)
+	if set != nil {
+		if err := tx.Set(ctx, key, set); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		return set
+	}
+	data, found, err := tx.Get(ctx, key)
+	if err != nil || !found {
+		t.Fatalf("read target state of %s: found=%v err=%v", id, found, err)
+	}
+	return bytes.Clone(data)
+}
+
+// editTargetSpace replaces the stored state of the Space id on the target
+// with a new valid state, as an edit made on the target does, and returns it.
+func editTargetSpace(ctx context.Context, t *testing.T, store object.ObjectStore, acc *provider_local.ProviderAccount, id string) []byte {
+	t.Helper()
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.StandardLogger()), nil, id, ownerKey(ctx, t, acc), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := state.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return targetSpaceState(ctx, t, store, id, data)
+}
+
+// TestLocalTransferRetryKeepsWrittenState retries a run through both crash
+// windows: between the hold and the state write the retry copies the Space
+// again, and after the state write it finds the Space written at the source's
+// head and skips it. An edit made on the target after that leaves the Space
+// not moved on the next run, with the edit kept.
+func TestLocalTransferRetryKeepsWrittenState(t *testing.T) {
+	// Start a source with one Space and a target.
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	defer provRel()
+	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	defer srcRel()
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	defer tgtRel()
+	soRef := createTestSpace(ctx, t, srcAcc, "space-a")
+	root, _ := putTestWorld(ctx, t, srcAcc, providerID, srcAccountID, soRef, []byte("space-a's leaf"))
+	tgtStore, tgtStoreRel, err := buildTestObjectStore(ctx, tb, tgtAcc, providerID, tgtAccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tgtStoreRel()
+	le := logrus.NewEntry(logrus.StandardLogger())
+	src := &worldTestSource{
+		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
+		world:               &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}},
+	}
+	tgt := &faultTarget{LocalTransferTarget: provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)}
+	run := func() (provider_transfer.TransferPhase, error) {
+		xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MIRROR, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, nil)
+		err := xfer.Execute(ctx)
+		return xfer.GetState().GetPhase(), err
+	}
+
+	// The run stops before the state write; the retry copies the Space again,
+	// writes it, and stops after the write.
+	tgt.failBefore = true
+	if _, err := run(); err == nil {
+		t.Fatal("expected the run to stop before the state write")
+	}
+	tgt.failAfter = true
+	if _, err := run(); err == nil {
+		t.Fatal("expected the retry to stop after the state write")
+	}
+	written := targetSpaceState(ctx, t, tgtStore, "space-a", nil)
+
+	// The next retry finds the Space written at the source's head and
+	// finishes without writing it again.
+	if phase, err := run(); err != nil || phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE {
+		t.Fatalf("retry after the write = %s, %v; want COMPLETE", phase, err)
+	}
+	if got := targetSpaceState(ctx, t, tgtStore, "space-a", nil); !bytes.Equal(got, written) {
+		t.Fatal("the retry wrote a Space the target held at the source's head")
+	}
+
+	// The Space is edited on the target: the next run leaves it not moved and
+	// keeps the edit.
+	edited := editTargetSpace(ctx, t, tgtStore, tgtAcc, "space-a")
+	if phase, err := run(); err != nil || phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
+		t.Fatalf("run after the edit = %s, %v; want NOT_MOVED", phase, err)
+	}
+	if got := targetSpaceState(ctx, t, tgtStore, "space-a", nil); !bytes.Equal(got, edited) {
+		t.Fatal("the run replaced the edit made on the target")
+	}
+}
+
+// TestLocalMergeKeepsEditOfMovedSpace runs a Merge that writes a Space and
+// stops, after which the Space is edited on the target: a new Merge from the
+// same source leaves the Space not moved, keeps the edit, and deletes nothing
+// from the source.
+func TestLocalMergeKeepsEditOfMovedSpace(t *testing.T) {
+	// Start a source with one Space and a target.
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	defer provRel()
+	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	defer srcRel()
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	defer tgtRel()
+	soRef := createTestSpace(ctx, t, srcAcc, "space-a")
+	root, _ := putTestWorld(ctx, t, srcAcc, providerID, srcAccountID, soRef, []byte("space-a's leaf"))
+	tgtStore, tgtStoreRel, err := buildTestObjectStore(ctx, tb, tgtAcc, providerID, tgtAccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tgtStoreRel()
+	le := logrus.NewEntry(logrus.StandardLogger())
+	src := &worldTestSource{
+		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
+		world:               &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}},
+	}
+	tgt := &faultTarget{LocalTransferTarget: provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)}
+	run := func() (provider_transfer.TransferPhase, error) {
+		xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
+		err := xfer.Execute(ctx)
+		return xfer.GetState().GetPhase(), err
+	}
+
+	// A run writes the Space and stops; the Space is edited on the target.
+	tgt.failAfter = true
+	if _, err := run(); err == nil {
+		t.Fatal("expected the run to stop after the state write")
+	}
+	edited := editTargetSpace(ctx, t, tgtStore, tgtAcc, "space-a")
+
+	// A new run leaves the Space not moved and keeps the edit and the source.
+	if phase, err := run(); err != nil || phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
+		t.Fatalf("run after the edit = %s, %v; want NOT_MOVED", phase, err)
+	}
+	if got := targetSpaceState(ctx, t, tgtStore, "space-a", nil); !bytes.Equal(got, edited) {
+		t.Fatal("the new run replaced the state the target held")
+	}
+	srcList, err := src.GetSharedObjectList(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, entry := range srcList.GetSharedObjects() {
+		found = found || entry.GetRef().GetProviderResourceRef().GetId() == "space-a"
+	}
+	if !found {
+		t.Fatal("the run deleted the source Space")
 	}
 }

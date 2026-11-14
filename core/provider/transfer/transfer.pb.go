@@ -77,6 +77,10 @@ const (
 	TransferPhase_TransferPhase_COMPLETE TransferPhase = 5
 	// TransferPhase_FAILED indicates the transfer encountered an unrecoverable error.
 	TransferPhase_TransferPhase_FAILED TransferPhase = 6
+	// TransferPhase_NOT_MOVED marks a Space the transfer left where it is, for
+	// the reason its state gives, and a transfer that finished with at least
+	// one such Space. Such a transfer cleans up nothing.
+	TransferPhase_TransferPhase_NOT_MOVED TransferPhase = 7
 )
 
 // Enum value maps for TransferPhase.
@@ -89,6 +93,7 @@ var (
 		4: "TransferPhase_CLEANUP",
 		5: "TransferPhase_COMPLETE",
 		6: "TransferPhase_FAILED",
+		7: "TransferPhase_NOT_MOVED",
 	}
 	TransferPhase_value = map[string]int32{
 		"TransferPhase_IDLE":           0,
@@ -98,6 +103,7 @@ var (
 		"TransferPhase_CLEANUP":        4,
 		"TransferPhase_COMPLETE":       5,
 		"TransferPhase_FAILED":         6,
+		"TransferPhase_NOT_MOVED":      7,
 	}
 )
 
@@ -129,6 +135,8 @@ type SpaceTransferState struct {
 	ErrorMessage string `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
 	// Meta is the shared object metadata from the source.
 	Meta *sobject.SharedObjectMeta `protobuf:"bytes,6,opt,name=meta,proto3" json:"meta,omitempty"`
+	// NotMovedReason says why the Space was not moved, if phase is NOT_MOVED.
+	NotMovedReason string `protobuf:"bytes,7,opt,name=not_moved_reason,json=notMovedReason,proto3" json:"notMovedReason,omitempty"`
 }
 
 func (x *SpaceTransferState) Reset() {
@@ -170,6 +178,13 @@ func (x *SpaceTransferState) GetMeta() *sobject.SharedObjectMeta {
 		return x.Meta
 	}
 	return nil
+}
+
+func (x *SpaceTransferState) GetNotMovedReason() string {
+	if x != nil {
+		return x.NotMovedReason
+	}
+	return ""
 }
 
 // TransferState tracks the overall transfer operation state.
@@ -237,15 +252,16 @@ func (x *TransferState) GetErrorMessage() string {
 	return ""
 }
 
-// TransferCheckpoint persists transfer progress for resumability.
+// TransferCheckpoint records a transfer the person started, on its source,
+// so the wizard resumes it after a restart. It records no progress: on every
+// run the target's TransferOrigin of each Space decides what the run does.
 type TransferCheckpoint struct {
 	unknownFields []byte
-	// State is the current transfer state snapshot.
+	// State is the transfer state when the run started.
 	State *TransferState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
-	// SpaceIds is the ordered list of space IDs to transfer.
+	// SpaceIds is the selection the run was started with, empty for every
+	// Space.
 	SpaceIds []string `protobuf:"bytes,2,rep,name=space_ids,json=spaceIds,proto3" json:"spaceIds,omitempty"`
-	// CurrentSpaceIndex is the index into space_ids currently being processed.
-	CurrentSpaceIndex uint32 `protobuf:"varint,3,opt,name=current_space_index,json=currentSpaceIndex,proto3" json:"currentSpaceIndex,omitempty"`
 }
 
 func (x *TransferCheckpoint) Reset() {
@@ -268,11 +284,47 @@ func (x *TransferCheckpoint) GetSpaceIds() []string {
 	return nil
 }
 
-func (x *TransferCheckpoint) GetCurrentSpaceIndex() uint32 {
+// TransferOrigin records, on the target, the source a transfer moved a Space
+// from and the World it copied. The target stores it with the Space when the
+// transfer lists it and replaces it when the transfer writes the Space's
+// state, so a later transfer can tell a Space it moved, unchanged since, from
+// any other Space the target holds.
+type TransferOrigin struct {
+	unknownFields []byte
+	// SourceProviderId is the provider of the source account.
+	SourceProviderId string `protobuf:"bytes,1,opt,name=source_provider_id,json=sourceProviderId,proto3" json:"sourceProviderId,omitempty"`
+	// SourceAccountId is the provider account the Space was moved from.
+	SourceAccountId string `protobuf:"bytes,2,opt,name=source_account_id,json=sourceAccountId,proto3" json:"sourceAccountId,omitempty"`
+	// SourceHead is the SHA-256 of the encoded World the source replayed for
+	// the copy, empty until the transfer writes the Space's state.
+	SourceHead []byte `protobuf:"bytes,3,opt,name=source_head,json=sourceHead,proto3" json:"sourceHead,omitempty"`
+}
+
+func (x *TransferOrigin) Reset() {
+	*x = TransferOrigin{}
+}
+
+func (*TransferOrigin) ProtoMessage() {}
+
+func (x *TransferOrigin) GetSourceProviderId() string {
 	if x != nil {
-		return x.CurrentSpaceIndex
+		return x.SourceProviderId
 	}
-	return 0
+	return ""
+}
+
+func (x *TransferOrigin) GetSourceAccountId() string {
+	if x != nil {
+		return x.SourceAccountId
+	}
+	return ""
+}
+
+func (x *TransferOrigin) GetSourceHead() []byte {
+	if x != nil {
+		return x.SourceHead
+	}
+	return nil
 }
 
 func (m *SpaceTransferState) CloneVT() *SpaceTransferState {
@@ -284,6 +336,7 @@ func (m *SpaceTransferState) CloneVT() *SpaceTransferState {
 	r.Phase = m.Phase
 	r.BlocksCopied = m.BlocksCopied
 	r.ErrorMessage = m.ErrorMessage
+	r.NotMovedReason = m.NotMovedReason
 	r.Meta = protobuf_go_lite.CloneVTValue(m.Meta)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -321,7 +374,6 @@ func (m *TransferCheckpoint) CloneVT() *TransferCheckpoint {
 		return (*TransferCheckpoint)(nil)
 	}
 	r := new(TransferCheckpoint)
-	r.CurrentSpaceIndex = m.CurrentSpaceIndex
 	r.State = protobuf_go_lite.CloneVTValue(m.State)
 	r.SpaceIds = protobuf_go_lite.CloneSlice(m.SpaceIds)
 	if len(m.unknownFields) > 0 {
@@ -331,6 +383,24 @@ func (m *TransferCheckpoint) CloneVT() *TransferCheckpoint {
 }
 
 func (m *TransferCheckpoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TransferOrigin) CloneVT() *TransferOrigin {
+	if m == nil {
+		return (*TransferOrigin)(nil)
+	}
+	r := new(TransferOrigin)
+	r.SourceProviderId = m.SourceProviderId
+	r.SourceAccountId = m.SourceAccountId
+	r.SourceHead = protobuf_go_lite.CloneBytes(m.SourceHead)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TransferOrigin) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -353,6 +423,9 @@ func (this *SpaceTransferState) EqualVT(that *SpaceTransferState) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Meta, that.Meta) {
+		return false
+	}
+	if this.NotMovedReason != that.NotMovedReason {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -413,14 +486,37 @@ func (this *TransferCheckpoint) EqualVT(that *TransferCheckpoint) bool {
 	if !protobuf_go_lite.EqualSlice(this.SpaceIds, that.SpaceIds) {
 		return false
 	}
-	if this.CurrentSpaceIndex != that.CurrentSpaceIndex {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *TransferCheckpoint) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*TransferCheckpoint)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TransferOrigin) EqualVT(that *TransferOrigin) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SourceProviderId != that.SourceProviderId {
+		return false
+	}
+	if this.SourceAccountId != that.SourceAccountId {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.SourceHead, that.SourceHead) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TransferOrigin) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TransferOrigin)
 	if !ok {
 		return false
 	}
@@ -540,6 +636,11 @@ func (x *SpaceTransferState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("meta")
 		x.Meta.MarshalProtoJSON(s.WithField("meta"))
 	}
+	if x.NotMovedReason != "" || s.HasField("notMovedReason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("notMovedReason")
+		s.WriteString(x.NotMovedReason)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -576,6 +677,9 @@ func (x *SpaceTransferState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Meta = &sobject.SharedObjectMeta{}
 			x.Meta.UnmarshalProtoJSON(s.WithField("meta", true))
+		case "not_moved_reason", "notMovedReason":
+			s.AddField("not_moved_reason")
+			x.NotMovedReason = s.ReadString()
 		}
 	})
 }
@@ -706,11 +810,6 @@ func (x *TransferCheckpoint) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("spaceIds")
 		s.WriteStringArray(x.SpaceIds)
 	}
-	if x.CurrentSpaceIndex != 0 || s.HasField("currentSpaceIndex") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("currentSpaceIndex")
-		s.WriteUint32(x.CurrentSpaceIndex)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -742,15 +841,70 @@ func (x *TransferCheckpoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.SpaceIds = s.ReadStringArray()
-		case "current_space_index", "currentSpaceIndex":
-			s.AddField("current_space_index")
-			x.CurrentSpaceIndex = s.ReadUint32()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the TransferCheckpoint from JSON.
 func (x *TransferCheckpoint) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TransferOrigin message to JSON.
+func (x *TransferOrigin) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SourceProviderId != "" || s.HasField("sourceProviderId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceProviderId")
+		s.WriteString(x.SourceProviderId)
+	}
+	if x.SourceAccountId != "" || s.HasField("sourceAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceAccountId")
+		s.WriteString(x.SourceAccountId)
+	}
+	if len(x.SourceHead) > 0 || s.HasField("sourceHead") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceHead")
+		s.WriteBytes(x.SourceHead)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TransferOrigin to JSON.
+func (x *TransferOrigin) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TransferOrigin message from JSON.
+func (x *TransferOrigin) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "source_provider_id", "sourceProviderId":
+			s.AddField("source_provider_id")
+			x.SourceProviderId = s.ReadString()
+		case "source_account_id", "sourceAccountId":
+			s.AddField("source_account_id")
+			x.SourceAccountId = s.ReadString()
+		case "source_head", "sourceHead":
+			s.AddField("source_head")
+			x.SourceHead = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TransferOrigin from JSON.
+func (x *TransferOrigin) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -782,6 +936,11 @@ func (m *SpaceTransferState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.NotMovedReason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NotMovedReason)
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.Meta != nil {
 		size, err := m.Meta.MarshalToSizedBufferVT(dAtA[:i])
@@ -914,11 +1073,6 @@ func (m *TransferCheckpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.CurrentSpaceIndex != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CurrentSpaceIndex))
-		i--
-		dAtA[i] = 0x18
-	}
 	if len(m.SpaceIds) > 0 {
 		for iNdEx := len(m.SpaceIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceIds[iNdEx])
@@ -939,6 +1093,53 @@ func (m *TransferCheckpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TransferOrigin) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TransferOrigin) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TransferOrigin) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SourceHead) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.SourceHead)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SourceAccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourceAccountId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SourceProviderId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourceProviderId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SpaceTransferState) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -953,6 +1154,7 @@ func (m *SpaceTransferState) SizeVT() (n int) {
 		l = m.Meta.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NotMovedReason)
 	n += len(m.unknownFields)
 	return n
 }
@@ -987,7 +1189,19 @@ func (m *TransferCheckpoint) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringSlice(1, m.SpaceIds)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.CurrentSpaceIndex)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TransferOrigin) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourceProviderId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourceAccountId)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.SourceHead)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1022,6 +1236,10 @@ func (x *SpaceTransferState) MarshalProtoText() string {
 	if x.Meta != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "meta")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Meta)
+	}
+	if x.NotMovedReason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "not_moved_reason")
+		protobuf_go_lite.TextWriteString(&sb, x.NotMovedReason)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1087,14 +1305,32 @@ func (x *TransferCheckpoint) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
-	if x.CurrentSpaceIndex != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "current_space_index")
-		protobuf_go_lite.TextWriteUint(&sb, x.CurrentSpaceIndex)
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *TransferCheckpoint) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TransferOrigin) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TransferOrigin")
+	if x.SourceProviderId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_provider_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SourceProviderId)
+	}
+	if x.SourceAccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SourceAccountId)
+	}
+	if len(x.SourceHead) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_head")
+		protobuf_go_lite.TextWriteBytes(&sb, x.SourceHead)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TransferOrigin) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1173,6 +1409,16 @@ func (m *SpaceTransferState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotMovedReason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NotMovedReason = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1347,12 +1593,74 @@ func (m *TransferCheckpoint) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SpaceIds = append(m.SpaceIds, v)
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CurrentSpaceIndex", wireType)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
 			}
-			m.CurrentSpaceIndex = 0
-			m.CurrentSpaceIndex, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TransferOrigin) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TransferOrigin: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TransferOrigin: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceProviderId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SourceProviderId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceAccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SourceAccountId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceHead", wireType)
+			}
+			m.SourceHead, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.SourceHead, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

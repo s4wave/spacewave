@@ -31,6 +31,17 @@ func (s *LocalTransferSource) GetAccount() *provider_local.ProviderAccount {
 	return s.account
 }
 
+// GetOrigin returns the origin naming the source account.
+func (s *LocalTransferSource) GetOrigin() *TransferOrigin {
+	return &TransferOrigin{SourceProviderId: s.account.GetProviderID(), SourceAccountId: s.account.GetAccountID()}
+}
+
+// LeavesSharedObjects returns true: a local delete removes the Space from
+// this account only and sends no leave, so other members keep reading it.
+func (s *LocalTransferSource) LeavesSharedObjects() bool {
+	return true
+}
+
 // GetSharedObjectList returns the list of shared objects on the source account.
 func (s *LocalTransferSource) GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error) {
 	// Open the local provider account's shared-object list.

@@ -16,6 +16,12 @@ import (
 
 // TransferSource provides read access to a provider account for transfer.
 type TransferSource interface {
+	// GetOrigin returns the origin naming the source account, with no head.
+	GetOrigin() *TransferOrigin
+	// LeavesSharedObjects reports whether deleting a shared Space from the
+	// source removes only this account from it, leaving its other members
+	// their Space.
+	LeavesSharedObjects() bool
 	// GetSharedObjectList returns the list of shared objects on the source.
 	GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error)
 	// ReplaySharedObject returns the World of a Space after its last

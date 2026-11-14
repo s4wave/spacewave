@@ -343,7 +343,7 @@ func TestRestartChainKeepsNewestMount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.ReplaceSharedObjectState(ctx, a.le, "chain", owner, []byte("fake-transfer")); err != nil {
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "chain", owner, []byte("fake-transfer"), nil); err != nil {
 		t.Fatal(err)
 	}
 	actx, acancel := context.WithTimeout(ctx, 10*time.Second)
@@ -792,7 +792,7 @@ func TestStateWritesRefuseUnownedIds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = a.ReplaceSharedObjectState(ctx, a.le, "unlisted", owner, []byte("fake-world"))
+	err = a.ReplaceSharedObjectState(ctx, a.le, "unlisted", owner, []byte("fake-world"), nil)
 	if !errors.Is(err, sobject.ErrSharedObjectNotFound) {
 		t.Fatalf("a transfer write to an unlisted id returned %v", err)
 	}
@@ -1214,4 +1214,88 @@ func testListed(a *ProviderAccount, id string) bool {
 		}
 	}
 	return false
+}
+
+// TestArrivingObjectMountsOnceWritten checks that an object a transfer lists
+// as arriving refuses mounts with ErrSharedObjectArriving until the
+// transfer's write, which a write expecting another state cannot make, and
+// that a delete removes an arriving object so a create of its id starts
+// fresh.
+func TestArrivingObjectMountsOnceWritten(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+
+	// Write as the account's volume peer, which a transfer signs with.
+	peer, err := a.vol.GetPeer(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner, err := peer.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta := &sobject.SharedObjectMeta{BodyType: "space"}
+	mount := func(id string) (*SharedObject, func(), error) {
+		mctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		ref := sobject.NewSharedObjectRef(a.t.accountInfo.GetProviderId(), a.t.accountInfo.GetProviderAccountId(), id, SobjectBlockStoreID(id))
+		so, rel, err := a.MountSharedObject(mctx, ref, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		return so.(*SharedObject), rel, nil
+	}
+
+	// An arriving object refuses mounts.
+	if err := a.CreateArrivingSharedObject(ctx, "arriving", meta, []byte("source")); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := mount("arriving"); !errors.Is(err, sobject.ErrSharedObjectArriving) {
+		t.Fatalf("a mount of an arriving object returned %v", err)
+	}
+
+	// A write expecting another state writes nothing; the write expecting the
+	// arriving state lets it mount with the written state.
+	stored, err := a.ReadStoredSharedObject(ctx, "arriving")
+	if err != nil || !stored.Origin.GetArriving() {
+		t.Fatalf("read arriving object: %v %v", stored, err)
+	}
+	stale := &ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: []byte("another state"), Source: []byte("source")}
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "arriving", owner, []byte("moved"), stale); !errors.Is(err, ErrStateChanged) {
+		t.Fatalf("a write expecting another state returned %v", err)
+	}
+	expect := &ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "arriving", owner, []byte("moved"), expect); err != nil {
+		t.Fatal(err)
+	}
+	so, rel, err := mount("arriving")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := readTestStateData(ctx, t, so); !bytes.Equal(got, []byte("moved")) {
+		t.Fatalf("the written object reads %q", got)
+	}
+	rel()
+	if written, err := a.ReadStoredSharedObject(ctx, "arriving"); err != nil || written.Origin.GetArriving() || !written.Unchanged() {
+		t.Fatalf("written origin = %v, %v; want written and unchanged", written.Origin, err)
+	}
+
+	// A delete removes an arriving object, and a create of its id mounts.
+	if err := a.CreateArrivingSharedObject(ctx, "dropped", meta, []byte("source")); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.DeleteSharedObject(ctx, "dropped"); err != nil {
+		t.Fatal(err)
+	}
+	if n := countTestKeys(ctx, t, a, SobjectObjectStorePrefix("dropped")); n != 0 {
+		t.Fatalf("the deleted arriving object left %d keys", n)
+	}
+	createTestSharedObject(ctx, t, a, "dropped")
+	_, rel, err = mount("dropped")
+	if err != nil {
+		t.Fatalf("a create of a deleted arriving id does not mount: %v", err)
+	}
+	rel()
 }

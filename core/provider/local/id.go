@@ -70,6 +70,18 @@ func SobjectObjectStoreHostStateKey(sharedObjectID string) []byte {
 	}, "/"))
 }
 
+// SobjectOriginKey returns the object store key of the origin a shared object
+// was created with, such as the transfer run that added it. Its value is
+// opaque to the account. It lives under the object's prefix, so deleting the
+// object deletes it.
+func SobjectOriginKey(sharedObjectID string) []byte {
+	return []byte(strings.Join([]string{
+		"so",
+		sharedObjectID,
+		"origin",
+	}, "/"))
+}
+
 // SobjectObjectStoreJoinRequestsKey returns the object store key for the
 // pending join requests of a shared object.
 func SobjectObjectStoreJoinRequestsKey(sharedObjectID string) []byte {

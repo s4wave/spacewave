@@ -3,6 +3,7 @@ package provider_spacewave_test
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -148,9 +149,12 @@ func TestCloudTransferTarget(t *testing.T) {
 	meta := &sobject.SharedObjectMeta{BodyType: "space"}
 
 	// Create the shared object.
-	err := tgt.AddSharedObject(context.Background(), ref, meta)
+	space, err := tgt.AddSharedObject(context.Background(), ref, meta, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("AddSharedObject: %v", err)
+	}
+	if space.Holds != provider_transfer.TargetHoldsArriving {
+		t.Fatalf("AddSharedObject: holds %v, want arriving", space.Holds)
 	}
 	if createdID != "test-so" {
 		t.Fatalf("expected SO ID test-so, got %q", createdID)
@@ -162,7 +166,7 @@ func TestCloudTransferTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	le := logrus.NewEntry(logrus.New())
-	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world")); err != nil {
+	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world"), nil, space); err != nil {
 		t.Fatal(err)
 	}
 	if !configPosted {
@@ -183,16 +187,25 @@ func TestCloudTransferTarget(t *testing.T) {
 	}
 }
 
-func TestCloudTransferTargetAddSharedObjectAlreadyExists(t *testing.T) {
+// TestCloudTransferTargetRefusesListedSpace checks that the cloud target
+// writes nothing over a Space the cloud already lists: a create on a listed id
+// returns sobject.ErrSharedObjectExists, and a genesis config on a Space that
+// has one returns ErrTargetChanged.
+func TestCloudTransferTargetRefusesListedSpace(t *testing.T) {
+	// Answer every create and config write with a conflict.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.URL.Path, "/create") {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/create"), strings.HasSuffix(r.URL.Path, "/config-state"):
+			w.WriteHeader(http.StatusConflict)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
 		}
-		w.WriteHeader(http.StatusConflict)
 	}))
 	defer srv.Close()
-
 	tgt := buildTestTransferTarget(t, srv.URL)
+
+	// The create on a listed id is refused.
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "test-so",
@@ -202,8 +215,18 @@ func TestCloudTransferTargetAddSharedObjectAlreadyExists(t *testing.T) {
 		BlockStoreId: "test-so",
 	}
 	meta := &sobject.SharedObjectMeta{BodyType: "space"}
+	if _, err := tgt.AddSharedObject(context.Background(), ref, meta, nil); !errors.Is(err, sobject.ErrSharedObjectExists) {
+		t.Fatalf("AddSharedObject: expected ErrSharedObjectExists, got %v", err)
+	}
 
-	if err := tgt.AddSharedObject(context.Background(), ref, meta); err != nil {
-		t.Fatalf("AddSharedObject: %v", err)
+	// The genesis config on a configured Space is refused.
+	owner, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	le := logrus.NewEntry(logrus.New())
+	expect := &provider_transfer.TargetSpace{Holds: provider_transfer.TargetHoldsArriving}
+	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world"), nil, expect); !errors.Is(err, provider_transfer.ErrTargetChanged) {
+		t.Fatalf("WriteSharedObjectState: expected ErrTargetChanged, got %v", err)
 	}
 }

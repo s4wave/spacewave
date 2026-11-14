@@ -31,6 +31,10 @@ enum TransferPhase {
   TransferPhase_COMPLETE = 5;
   // TransferPhase_FAILED indicates the transfer encountered an unrecoverable error.
   TransferPhase_FAILED = 6;
+  // TransferPhase_NOT_MOVED marks a Space the transfer left where it is, for
+  // the reason its state gives, and a transfer that finished with at least
+  // one such Space. Such a transfer cleans up nothing.
+  TransferPhase_NOT_MOVED = 7;
 }
 
 // SpaceTransferState tracks the transfer progress for a single shared object.
@@ -46,6 +50,8 @@ message SpaceTransferState {
   string error_message = 5;
   // Meta is the shared object metadata from the source.
   .sobject.SharedObjectMeta meta = 6;
+  // NotMovedReason says why the Space was not moved, if phase is NOT_MOVED.
+  string not_moved_reason = 7;
 }
 
 // TransferState tracks the overall transfer operation state.
@@ -64,12 +70,28 @@ message TransferState {
   string error_message = 6;
 }
 
-// TransferCheckpoint persists transfer progress for resumability.
+// TransferCheckpoint records a transfer the person started, on its source,
+// so the wizard resumes it after a restart. It records no progress: on every
+// run the target's TransferOrigin of each Space decides what the run does.
 message TransferCheckpoint {
-  // State is the current transfer state snapshot.
+  // State is the transfer state when the run started.
   TransferState state = 1;
-  // SpaceIds is the ordered list of space IDs to transfer.
+  // SpaceIds is the selection the run was started with, empty for every
+  // Space.
   repeated string space_ids = 2;
-  // CurrentSpaceIndex is the index into space_ids currently being processed.
-  uint32 current_space_index = 3;
+}
+
+// TransferOrigin records, on the target, the source a transfer moved a Space
+// from and the World it copied. The target stores it with the Space when the
+// transfer lists it and replaces it when the transfer writes the Space's
+// state, so a later transfer can tell a Space it moved, unchanged since, from
+// any other Space the target holds.
+message TransferOrigin {
+  // SourceProviderId is the provider of the source account.
+  string source_provider_id = 1;
+  // SourceAccountId is the provider account the Space was moved from.
+  string source_account_id = 2;
+  // SourceHead is the SHA-256 of the encoded World the source replayed for
+  // the copy, empty until the transfer writes the Space's state.
+  bytes source_head = 3;
 }

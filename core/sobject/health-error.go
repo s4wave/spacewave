@@ -32,18 +32,20 @@ func BuildSharedObjectHealthFromError(
 	layer SharedObjectHealthLayer,
 	err error,
 ) *SharedObjectHealth {
-	if err == nil {
+	// No error, or an arriving object its transfer has not written, is loading.
+	if err == nil || errors.Is(err, ErrSharedObjectArriving) {
 		return NewSharedObjectLoadingHealth(layer)
 	}
 
+	// An error that carries its health reports that health.
 	if health, ok := GetSharedObjectHealthFromError(err); ok {
 		return health
 	}
 
+	// Classify a known cause and give the person a next step.
 	hint := SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE
 	reason := SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN
 	msg := err.Error()
-
 	switch {
 	case errors.Is(err, ErrSharedObjectNotFound):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND
