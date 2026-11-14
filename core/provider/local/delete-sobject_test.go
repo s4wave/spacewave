@@ -11,7 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
 )
@@ -480,7 +482,7 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 	// A retired run's publish is dropped.
 	old := res.start(t.Context())
 	res.retire()
-	old.publish(sobject.NewSharedObjectReadyHealth(layer), &SharedObject{}, nil)
+	old.publish(sobject.NewSharedObjectReadyHealth(layer), newTestRunSharedObject(), nil)
 	expectTestResultCleared(ctx, t, &sobjectTracker{res: res})
 	if res.watchHealth().GetValue().GetStatus() == ready {
 		t.Fatal("a retired run published its health")
@@ -488,7 +490,7 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 
 	// The newest run publishes, and the retired run cannot change or clear it.
 	run := res.start(t.Context())
-	want := &SharedObject{}
+	want := newTestRunSharedObject()
 	run.publish(sobject.NewSharedObjectReadyHealth(layer), want, nil)
 	old.swapHealth(func(*sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 		return sobject.NewSharedObjectLoadingHealth(layer)
@@ -509,6 +511,17 @@ func TestRetiredRunWritesNothing(t *testing.T) {
 	if res.watchHealth().GetValue().GetStatus() != sobject.SharedObjectHealthStatus_SHARED_OBJECT_HEALTH_STATUS_LOADING {
 		t.Fatal("a retire left the retired run's health")
 	}
+	if !want.lsoHost.ended {
+		t.Fatal("a retire left the retired run's state snapshot published")
+	}
+}
+
+// newTestRunSharedObject returns a SharedObject with only the host a run's
+// result ends on retire.
+func newTestRunSharedObject() *SharedObject {
+	return &SharedObject{lsoHost: &LocalSOHost{
+		stateSnapCtr: ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](nil),
+	}}
 }
 
 // TestDeleteSharedObjectInterruptedCompletesOnRerun stops a delete between its
@@ -1385,4 +1398,67 @@ func TestArrivingObjectMountsOnceWritten(t *testing.T) {
 		t.Fatalf("a create of a deleted arriving id does not mount: %v", err)
 	}
 	rel()
+}
+
+// requireNoReleaseMark fails if id has a release mark.
+func requireNoReleaseMark(ctx context.Context, t *testing.T, a *ProviderAccount, id string) {
+	if n := countTestKeys(ctx, t, a, SobjectReleaseMarkKey(id)); n != 0 {
+		t.Fatalf("%s has a release mark, want none", id)
+	}
+}
+
+// rehearsalBucket returns the bucket of id's block store.
+func rehearsalBucket(a *ProviderAccount, id string) string {
+	return BlockStoreBucketID(a.GetProviderID(), a.GetAccountID(), SobjectBlockStoreID(id))
+}
+
+// requireRehearsalRoot fails unless id's "rehearsal" root is held as want.
+func requireRehearsalRoot(ctx context.Context, t *testing.T, a *ProviderAccount, id string, want bool) {
+	root, err := a.GetVolume().GetBucketRoot(ctx, rehearsalBucket(a, id), "rehearsal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if (root != nil) != want {
+		t.Fatalf("%s's rehearsal root held is %v, want %v", id, root != nil, want)
+	}
+}
+
+// waitDeleteResume waits for the account's delete resume to exit. With
+// notRunning set it returns at once when the resume never started.
+func waitDeleteResume(ctx context.Context, t *testing.T, a *ProviderAccount, notRunning bool) {
+	if err := a.deleteResume.WaitExited(ctx, notRunning, nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// putRehearsalTree stores a two-block tree under the named root root of the
+// object's block store: a parent naming id over a leaf naming id and a
+// leaf every object shares. It returns the blocks only this object reaches,
+// and the shared leaf.
+func putRehearsalTree(ctx context.Context, t *testing.T, so *SharedObject, id, root string) ([]*block.BlockRef, *block.BlockRef) {
+	t.Helper()
+	leaf := []byte("fake-leaf-" + id)
+	shared := []byte("fake-shared-leaf")
+	parent := []byte("fake-parent-" + id)
+	leafRef, err := block.BuildBlockRef(leaf, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sharedRef, err := block.BuildBlockRef(shared, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentRef, err := block.BuildBlockRef(parent, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = so.GetBlockStore().SetRoots(ctx, []*block.PutBatchEntry{
+		{Ref: leafRef, Data: leaf, RefsKnown: true},
+		{Ref: sharedRef, Data: shared, RefsKnown: true},
+		{Ref: parentRef, Data: parent, Refs: []*block.BlockRef{leafRef, sharedRef}, RefsKnown: true},
+	}, []block.NamedRoot{{Name: root, Ref: parentRef}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return []*block.BlockRef{parentRef, leafRef}, sharedRef
 }
