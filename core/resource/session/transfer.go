@@ -169,6 +169,12 @@ func (r *SessionResource) StartTransfer(
 		return nil, errors.Wrap(err, "build transfer target")
 	}
 
+	// Refuse Migrate to a cloud account: copying the source key over the
+	// account volume's peer key would lock its stored session key.
+	if _, cloud := target.(*provider_transfer.SpacewaveTransferTarget); cloud && mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
+		return nil, errors.New("migrate to a cloud account is not supported")
+	}
+
 	// Build checkpoint store on source account.
 	checkpoint, err := buildCheckpointStore(ctx, r.b, srcEntry)
 	if err != nil {
