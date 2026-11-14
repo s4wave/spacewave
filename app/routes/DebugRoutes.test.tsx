@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -124,7 +125,9 @@ const debugChildRoutes = [
 function renderDebugRoute(path: string) {
   render(
     <RouterProvider path={path} onNavigate={vi.fn()}>
-      <Routes fullPath>{DebugRoutes}</Routes>
+      <Suspense fallback={null}>
+        <Routes fullPath>{DebugRoutes}</Routes>
+      </Suspense>
     </RouterProvider>,
   )
 }
@@ -149,60 +152,60 @@ describe('DebugRoutes', () => {
     }
   })
 
-  it('resolves a file list fixture state to the file list debug page', () => {
+  it('resolves a file list fixture state to the file list debug page', async () => {
     renderDebugRoute('/debug/ui/file-list/selected')
 
-    expect(screen.getByTestId('file-list-debug')).toBeDefined()
+    expect(await screen.findByTestId('file-list-debug')).toBeDefined()
   })
 
-  it('resolves a viewer status fixture state to its debug page', () => {
+  it('resolves a viewer status fixture state to its debug page', async () => {
     renderDebugRoute('/debug/ui/viewer-status/failed')
 
-    expect(screen.getByTestId('viewer-status-debug')).toBeDefined()
+    expect(await screen.findByTestId('viewer-status-debug')).toBeDefined()
   })
 
-  it('resolves a wizard fixture state to the wizard debug page', () => {
+  it('resolves a wizard fixture state to the wizard debug page', async () => {
     renderDebugRoute('/debug/ui/wizard/invalid')
 
-    expect(screen.getByTestId('wizard-shell-debug')).toBeDefined()
+    expect(await screen.findByTestId('wizard-shell-debug')).toBeDefined()
   })
 
-  it('resolves a table fixture state to the table debug page', () => {
+  it('resolves a table fixture state to the table debug page', async () => {
     renderDebugRoute('/debug/ui/table/by-latency')
 
-    expect(screen.getByTestId('table-debug')).toBeDefined()
+    expect(await screen.findByTestId('table-debug')).toBeDefined()
   })
 
-  it('resolves a facts fixture state to the facts debug page', () => {
+  it('resolves a facts fixture state to the facts debug page', async () => {
     renderDebugRoute('/debug/ui/facts/two-fact')
 
-    expect(screen.getByTestId('fact-list-debug')).toBeDefined()
+    expect(await screen.findByTestId('fact-list-debug')).toBeDefined()
   })
 
-  it('resolves a side column fixture state to the side column debug page', () => {
+  it('resolves a side column fixture state to the side column debug page', async () => {
     renderDebugRoute('/debug/ui/side/rail')
 
-    expect(screen.getByTestId('viewer-side-debug')).toBeDefined()
+    expect(await screen.findByTestId('viewer-side-debug')).toBeDefined()
   })
 
-  it('resolves a Git side column fixture state to its debug page', () => {
+  it('resolves a Git side column fixture state to its debug page', async () => {
     renderDebugRoute('/debug/ui/git-side/empty')
 
-    expect(screen.getByTestId('git-side-debug')).toBeDefined()
+    expect(await screen.findByTestId('git-side-debug')).toBeDefined()
   })
 
-  it('resolves a viewer float fixture state to its debug page', () => {
+  it('resolves a viewer float fixture state to its debug page', async () => {
     renderDebugRoute('/debug/ui/viewer-float/hidden')
 
-    expect(screen.getByTestId('viewer-float-debug')).toBeDefined()
+    expect(await screen.findByTestId('viewer-float-debug')).toBeDefined()
   })
 
   it.each(debugChildRoutes)(
     'resolves $path to its debug child route',
-    (route) => {
+    async (route) => {
       renderDebugRoute(route.path)
 
-      expect(screen.getByTestId(route.testId)).toBeDefined()
+      expect(await screen.findByTestId(route.testId)).toBeDefined()
     },
   )
 })
