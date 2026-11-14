@@ -20,11 +20,14 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/object"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
@@ -878,5 +881,179 @@ func TestLocalTransferHoldsWorldPastGrace(t *testing.T) {
 	held, err := tgtBS.GetRoot(ctx, space_world.RootImport)
 	if err != nil || held.GetEmpty() {
 		t.Fatalf("import root after the transfer = %v, %v; want it to hold the World", held, err)
+	}
+}
+
+// putObjectContent stores content for key on store as a two-block object, a
+// root pointing at a leaf holding the content, and returns the root.
+func putObjectContent(ctx context.Context, t *testing.T, store block.StoreOps, key string) *block.BlockRef {
+	t.Helper()
+	leaf, _, err := store.PutBlock(ctx, objectContent(key), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, _, err := block.PutBlock(ctx, store, &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: leaf}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// objectContent returns the content putObjectContent stores for key.
+func objectContent(key string) []byte {
+	return bytes.Repeat([]byte("content of "+key+"\n"), 512)
+}
+
+// readObjectContent reads the content of the object key in the World rooted
+// at worldRef on store, following the object's root to its leaf.
+func readObjectContent(ctx context.Context, t *testing.T, store block.StoreOps, worldRef *block.BlockRef, key string) []byte {
+	// Open the World read-only on store.
+	t.Helper()
+	le := logrus.NewEntry(logrus.StandardLogger())
+	cursor := bucket_lookup.NewCursor(ctx, nil, le, nil, store, nil, &bucket.ObjectRef{RootRef: worldRef}, nil, nil)
+	defer cursor.Release()
+	ws, err := world_block.BuildMockWorldState(ctx, le, false, cursor, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ws.Discard()
+
+	// Look up the object's root.
+	obj, found, err := ws.GetObject(ctx, key)
+	if err != nil || !found {
+		t.Fatalf("object %q in World %s: found=%v err=%v", key, worldRef.MarshalString(), found, err)
+	}
+	ref, _, err := obj.GetRootRef(ctx)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Follow the root to its leaf.
+	data, found, err := store.GetBlock(ctx, ref.GetRootRef())
+	if err != nil || !found {
+		t.Fatalf("root of %q: found=%v err=%v", key, found, err)
+	}
+	root := &block_mock.Root{}
+	if err := root.UnmarshalVT(data); err != nil {
+		t.Fatal(err)
+	}
+	data, found, err = store.GetBlock(ctx, root.GetExampleSubBlock().GetExamplePtr())
+	if err != nil || !found {
+		t.Fatalf("leaf of %q: found=%v err=%v", key, found, err)
+	}
+	return data
+}
+
+// TestLocalMergeCopiesWorldContent merges a Space holding a block World of
+// several objects, each a root and a leaf, and an older World it retains,
+// with cleanup, so the source Space is deleted. Every object of both Worlds
+// reads its content through the target's World, including the object only
+// the retained World holds, and a block no World reaches is not copied.
+func TestLocalMergeCopiesWorldContent(t *testing.T) {
+	// Start a testbed with a local provider and two accounts.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	defer provRel()
+	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	defer srcRel()
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	defer tgtRel()
+
+	// Mount the source Space's block store.
+	soRef := createTestSpace(ctx, t, srcAcc, "content-space")
+	srcBS, srcBSRel, err := srcAcc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, srcAccountID, soRef.GetBlockStoreId()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	le := logrus.NewEntry(logrus.StandardLogger())
+	cursor := bucket_lookup.NewCursor(ctx, nil, le, nil, srcBS, nil, nil, nil, nil)
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, cursor, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit := func(create []string, remove ...string) *block.BlockRef {
+		t.Helper()
+		for _, key := range create {
+			obj, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{RootRef: putObjectContent(ctx, t, srcBS, key)})
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		for _, key := range remove {
+			if _, err := ws.DeleteObject(ctx, key); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := ws.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		return ws.GetRootRef().CloneVT()
+	}
+
+	// Write the retained World holding a and b, then the head, which drops a
+	// and adds c, and a stray block no World reaches. Roots of the store
+	// hold both Worlds.
+	retained := commit([]string{"a", "b"})
+	head := commit([]string{"c"}, "a")
+	ws.Discard()
+	cursor.Release()
+	stray, _, err := srcBS.PutBlock(ctx, []byte("stray block no World reaches"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := srcBS.SetRoots(ctx, nil, []block.NamedRoot{{Name: "test/head", Ref: head}, {Name: "test/retained", Ref: retained}}); err != nil {
+		t.Fatal(err)
+	}
+	srcBSRel()
+
+	// Merge with cleanup.
+	src := &worldTestSource{
+		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
+		world: &space_world.InnerState{
+			HeadRef:       &bucket.ObjectRef{RootRef: head},
+			RetainedRoots: []*space_world.RetainedRoot{{Name: "test/retained", RootRef: retained}},
+		},
+	}
+	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
+	if err := xfer.Execute(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// The source lists only its account settings.
+	srcList, err := src.GetSharedObjectList(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := len(srcList.GetSharedObjects()); n != 1 {
+		t.Fatalf("source lists %d objects after cleanup, want its account settings", n)
+	}
+
+	// Every object of both Worlds reads its content on the target, and the
+	// stray block is absent.
+	tgtBS, tgtBSRel, err := tgtAcc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, tgtAccountID, soRef.GetBlockStoreId()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tgtBSRel()
+	for _, read := range []struct {
+		world *block.BlockRef
+		key   string
+	}{{head, "b"}, {head, "c"}, {retained, "a"}, {retained, "b"}} {
+		if got := readObjectContent(ctx, t, tgtBS, read.world, read.key); !bytes.Equal(got, objectContent(read.key)) {
+			t.Fatalf("object %q reads %d bytes on the target, want its content", read.key, len(got))
+		}
+	}
+	if found, err := tgtBS.GetBlockExists(ctx, stray); err != nil || found {
+		t.Fatalf("stray block on the target: found=%v err=%v", found, err)
 	}
 }
