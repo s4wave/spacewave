@@ -104,6 +104,20 @@ func TestCloudTransferSourceEmptyList(t *testing.T) {
 	}
 }
 
+// serveTestAccountState answers the account state request the cloud target
+// reads its owner's username from, and reports whether r was that request.
+func serveTestAccountState(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+	if r.URL.Path != "/api/account/state" {
+		return false
+	}
+	data, err := (&api.AccountStateResponse{AccountId: "test-account", EntityId: "alice"}).MarshalVT()
+	if err != nil {
+		t.Error(err)
+	}
+	_, _ = w.Write(data)
+	return true
+}
+
 // buildTestTransferTarget creates a SpacewaveTransferTarget backed by a
 // ProviderAccount pointing at the given test server URL.
 func buildTestTransferTarget(t *testing.T, srvURL string) *provider_transfer.SpacewaveTransferTarget {
@@ -113,30 +127,27 @@ func buildTestTransferTarget(t *testing.T, srvURL string) *provider_transfer.Spa
 }
 
 // TestCloudTransferTarget verifies that the spacewave transfer target creates
-// shared objects and writes their genesis config and checkpoint to the cloud.
+// a Space with its genesis config, checkpoint and transfer origin in one
+// create-with-state request, and lists nothing before it.
 func TestCloudTransferTarget(t *testing.T) {
 	// Record what the fake cloud receives.
-	var createdID string
-	var configPosted bool
-	var postedCheckpoint []byte
+	var paths []string
+	var created []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.Contains(r.URL.Path, "/create"):
-			createdID = strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/sobject/"), "/create")
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/sobject/test-so/config-state":
-			configPosted = true
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/sobject/test-so/checkpoint":
-			postedCheckpoint, _ = io.ReadAll(r.Body)
-			w.WriteHeader(http.StatusOK)
-		default:
-			w.WriteHeader(http.StatusNotFound)
+		if serveTestAccountState(t, w, r) {
+			return
 		}
+		paths = append(paths, r.URL.Path)
+		if r.URL.Path != "/api/sobject/test-so/create-with-state" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		created, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
 
-	// Target the fake cloud with a Space.
+	// Add the Space, which sends nothing.
 	tgt := buildTestTransferTarget(t, srv.URL)
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
@@ -147,17 +158,12 @@ func TestCloudTransferTarget(t *testing.T) {
 		BlockStoreId: "test-so",
 	}
 	meta := &sobject.SharedObjectMeta{BodyType: "space"}
-
-	// Create the shared object.
 	space, err := tgt.AddSharedObject(context.Background(), ref, meta, nil)
 	if err != nil {
 		t.Fatalf("AddSharedObject: %v", err)
 	}
-	if space.Holds != provider_transfer.TargetHoldsArriving {
-		t.Fatalf("AddSharedObject: holds %v, want arriving", space.Holds)
-	}
-	if createdID != "test-so" {
-		t.Fatalf("expected SO ID test-so, got %q", createdID)
+	if space.Holds != provider_transfer.TargetHoldsArriving || len(paths) != 0 {
+		t.Fatalf("AddSharedObject: holds %v after %v, want arriving after nothing", space.Holds, paths)
 	}
 
 	// Write its state as a genesis owned by a new key.
@@ -166,46 +172,68 @@ func TestCloudTransferTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	le := logrus.NewEntry(logrus.New())
-	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world"), nil, space); err != nil {
+	origin := &provider_transfer.TransferOrigin{SourceProviderId: "local", SourceAccountId: "src", SourceHead: []byte("head")}
+	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world"), origin, space); err != nil {
 		t.Fatal(err)
 	}
-	if !configPosted {
-		t.Fatal("expected the genesis config to be posted")
+	if len(paths) != 1 {
+		t.Fatalf("expected one create-with-state request, got %v", paths)
 	}
 
-	// The posted checkpoint is the genesis checkpoint.
-	req := &api.PostCheckpointRequest{}
-	if err := req.UnmarshalVT(postedCheckpoint); err != nil {
-		t.Fatalf("unmarshal posted checkpoint request: %v", err)
+	// The request carries the origin and the genesis checkpoint.
+	req := &api.CreateWithStateRequest{}
+	if err := req.UnmarshalVT(created); err != nil {
+		t.Fatalf("unmarshal create-with-state request: %v", err)
 	}
-	inner, err := req.GetCheckpoint().UnmarshalInner()
+	sent := &provider_transfer.TransferOrigin{}
+	if err := sent.UnmarshalVT(req.GetTransferOrigin()); err != nil || !sent.EqualVT(origin) {
+		t.Fatalf("create-with-state carries origin %v, want %v", sent, origin)
+	}
+	checkpoint := &api.PostCheckpointRequest{}
+	if err := checkpoint.UnmarshalVT(req.GetCheckpointState()); err != nil {
+		t.Fatal(err)
+	}
+	inner, err := checkpoint.GetCheckpoint().UnmarshalInner()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if inner.GetHeight() != 0 || inner.GetSharedObjectId() != "test-so" {
 		t.Fatalf("posted checkpoint is not the genesis: %+v", inner)
 	}
+
+	// The genesis names the account's session as owner, with its account.
+	config := &api.PostConfigStateRequest{}
+	if err := config.UnmarshalVT(req.GetConfigState()); err != nil {
+		t.Fatal(err)
+	}
+	genesis := &sobject.SOConfigChange{}
+	if err := genesis.UnmarshalVT(config.GetConfigChange()); err != nil {
+		t.Fatal(err)
+	}
+	owners := genesis.GetConfig().GetParticipants()
+	if len(owners) != 1 || owners[0].GetPeerId() != tgt.GetAccount().GetCurrentSessionPeerID().String() || owners[0].GetEntityId() != "test-account" || owners[0].GetUsername() != "alice" {
+		t.Fatalf("genesis owners %v, want the account's session", owners)
+	}
 }
 
 // TestCloudTransferTargetRefusesListedSpace checks that the cloud target
-// writes nothing over a Space the cloud already lists: a create on a listed id
-// returns sobject.ErrSharedObjectExists, and a genesis config on a Space that
-// has one returns ErrTargetChanged.
+// writes nothing over a Space the cloud holds: a create-with-state the cloud
+// refuses, and a write no read chose, each return ErrTargetChanged.
 func TestCloudTransferTargetRefusesListedSpace(t *testing.T) {
-	// Answer every create and config write with a conflict.
+	// Answer every create with a conflict.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/create"), strings.HasSuffix(r.URL.Path, "/config-state"):
-			w.WriteHeader(http.StatusConflict)
-		default:
-			t.Errorf("unexpected path: %s", r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
+		if serveTestAccountState(t, w, r) {
+			return
 		}
+		if !strings.HasSuffix(r.URL.Path, "/create-with-state") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusConflict)
 	}))
 	defer srv.Close()
 	tgt := buildTestTransferTarget(t, srv.URL)
 
-	// The create on a listed id is refused.
+	// The create on a held id is refused.
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "test-so",
@@ -215,16 +243,20 @@ func TestCloudTransferTargetRefusesListedSpace(t *testing.T) {
 		BlockStoreId: "test-so",
 	}
 	meta := &sobject.SharedObjectMeta{BodyType: "space"}
-	if _, err := tgt.AddSharedObject(context.Background(), ref, meta, nil); !errors.Is(err, sobject.ErrSharedObjectExists) {
-		t.Fatalf("AddSharedObject: expected ErrSharedObjectExists, got %v", err)
+	space, err := tgt.AddSharedObject(context.Background(), ref, meta, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	// The genesis config on a configured Space is refused.
 	owner, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	le := logrus.NewEntry(logrus.New())
+	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world"), nil, space); !errors.Is(err, provider_transfer.ErrTargetChanged) {
+		t.Fatalf("WriteSharedObjectState: expected ErrTargetChanged, got %v", err)
+	}
+
+	// A write no read chose sends nothing.
 	expect := &provider_transfer.TargetSpace{Holds: provider_transfer.TargetHoldsArriving}
 	if err := tgt.WriteSharedObjectState(context.Background(), le, "test-so", owner, []byte("world"), nil, expect); !errors.Is(err, provider_transfer.ErrTargetChanged) {
 		t.Fatalf("WriteSharedObjectState: expected ErrTargetChanged, got %v", err)

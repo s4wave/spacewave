@@ -31,7 +31,7 @@ func TestCloudPeerImportCommitsWithoutPublication(t *testing.T) {
 	ctx := t.Context()
 	priv, pid := generateTestKeypair(t)
 	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	initial, genesis, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), testSharedObjectID, priv, nil)
+	initial, genesis, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), testSharedObjectID, priv, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

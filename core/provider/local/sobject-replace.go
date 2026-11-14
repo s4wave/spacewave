@@ -55,7 +55,7 @@ type ReplaceOrigin struct {
 //     and join requests, are not part of the replace and are kept.
 func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte, origin ReplaceOrigin) error {
 	// Build the genesis before the transaction.
-	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, owner, stateData)
+	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, owner, "", "", stateData)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ func seedTestGenesisState(t *testing.T, store kvtx.Store) (*sobject.SOState, *so
 		t.Fatal(err)
 	}
 	le := logrus.NewEntry(logrus.New())
-	state, genesis, err := sobject.BuildGenesisSOState(le, testStepFactorySet(), testSharedObjectID, priv, nil)
+	state, genesis, err := sobject.BuildGenesisSOState(le, testStepFactorySet(), testSharedObjectID, priv, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

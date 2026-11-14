@@ -430,7 +430,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 		return nil, err
 	}
 	ownerType, ownerID = a.normalizeSharedObjectCreateOwner(ownerType, ownerID)
-	displayName := getSharedObjectDisplayName(meta)
+	displayName := space.SharedObjectName(meta)
 	objectType := meta.GetBodyType()
 
 	// Create the object in the Cloud catalog.
@@ -648,21 +648,6 @@ func sharedObjectListMetaFromMetadata(
 	default:
 		return nil, false
 	}
-}
-
-// getSharedObjectDisplayName extracts the display name from a space SO's
-// metadata.
-func getSharedObjectDisplayName(meta *sobject.SharedObjectMeta) string {
-	if meta.GetBodyType() != space.SpaceBodyType {
-		return ""
-	}
-
-	spaceMeta := &space.SpaceSoMeta{}
-	if err := spaceMeta.UnmarshalVT(meta.GetBodyMeta()); err != nil {
-		return ""
-	}
-
-	return spaceMeta.GetName()
 }
 
 // DeleteSharedObject deletes the shared object with the given ID.
