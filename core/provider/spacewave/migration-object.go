@@ -141,8 +141,9 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 			return err
 		}
 		defer release()
-		// The cloud store holds no roots and keeps every block it stores,
-		// so the copy returns no stage.
+		// The cloud store holds no roots, so the copy returns no stage and
+		// nothing holds the copy until the Space's Adapter does. Pack reclaim,
+		// off by default, is what keeps a pass from trashing it meanwhile.
 		if _, err := provider_migration.CopyRoots(ctx, object.GetBlockStore(), roots, store, nil); err != nil {
 			return err
 		}

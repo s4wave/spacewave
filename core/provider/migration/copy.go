@@ -59,9 +59,13 @@ func Roots(
 // copy that stops early, or a process that dies, leaves only the stage's
 // lease, which lapses, and a retry copies again.
 //
-// A store that holds no roots, such as a cloud block store, keeps every block
-// it stores. CopyRoots copies every block into it, trusting no presence check,
-// and returns nil.
+// A store that holds no roots, such as a cloud block store, takes no stage:
+// CopyRoots copies every block into it, trusting no presence check, and
+// returns nil. Such a copy is safe today only because Spacewave pack reclaim
+// is off by default (SetPackReclaim). A reclaim pass trashes a pack at least
+// half dead by the roots a fence reports, and this copy holds nothing a fence
+// reports; a trashed pack stays readable, and a pass retires it only after
+// packfile.TrashAge, rescuing first the blocks that are live again.
 func CopyRoots(
 	ctx context.Context,
 	src block.StoreOps,

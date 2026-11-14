@@ -266,8 +266,13 @@ func (t *Transfer) Execute(ctx context.Context) error {
 //  5. The hold releases nothing. A retained root the target's Adapter never
 //     takes from the import root stays held until the Space is deleted.
 //
-// A target that holds no roots, such as a cloud block store, keeps every
-// block it stores, so its copy needs no stage and no hold.
+// A target that holds no roots, such as a cloud block store, takes the copy
+// with no stage and no hold. Such a copy is safe today only because Spacewave
+// pack reclaim is off by default (SetPackReclaim). A reclaim pass trashes a
+// pack at least half dead by the roots a fence reports, and this copy holds
+// nothing a fence reports; a trashed pack stays readable, and a pass retires
+// it only after packfile.TrashAge, rescuing first the blocks that are live
+// again.
 func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry) error {
 	// Name the Space for the target and the log.
 	soRef := entry.GetRef()
