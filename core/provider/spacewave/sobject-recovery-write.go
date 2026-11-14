@@ -63,8 +63,21 @@ func buildSORecoveryEnvelopes(
 		}
 		pubKeysByEntity[entity.GetEntityId()] = pubs
 	}
+	return sealSORecoveryEnvelopes(cfg, keyEpoch, grantInner, entityRoles, pubKeysByEntity)
+}
 
-	// Seal the grant to each entity's keypairs.
+// sealSORecoveryEnvelopes seals grantInner to the keys of each entity of
+// entityRoles, the readable entities of cfg, in entity order. An entity with
+// no keys fails with missingRecoveryKeypairsError.
+func sealSORecoveryEnvelopes(
+	cfg *sobject.SharedObjectConfig,
+	keyEpoch uint64,
+	grantInner *sobject.SOGrantInner,
+	entityRoles map[string]sobject.SOParticipantRole,
+	pubKeysByEntity map[string][]crypto.PubKey,
+) ([]*sobject.SOEntityRecoveryEnvelope, error) {
+	// Seal the grant to each entity's keypairs, in entity order.
+	entityIDs := slices.Sorted(maps.Keys(entityRoles))
 	envs := make([]*sobject.SOEntityRecoveryEnvelope, 0, len(entityIDs))
 	for _, entityID := range entityIDs {
 		pubKeys := pubKeysByEntity[entityID]
@@ -93,8 +106,9 @@ func buildSORecoveryEnvelopes(
 // GenesisRecoveryEnvelopes seals the grant a genesis state gives its owner
 // to the recovery keys of each entity that may read the Space, for a write
 // that sends that genesis to the cloud. owner is the genesis signer, whose own
-// grant it opens. An account with no recovery keypairs yet gets no envelope,
-// as when it creates a Space in the cloud directly.
+// grant it opens. The keys are the account's own, since a genesis names only
+// the account. An account with no recovery keypairs yet gets no envelope, as
+// when it creates a Space in the cloud directly.
 func (a *ProviderAccount) GenesisRecoveryEnvelopes(ctx context.Context, sharedObjectID string, owner crypto.PrivKey, state *sobject.SOState) ([]*sobject.SOEntityRecoveryEnvelope, error) {
 	// Open the owner's grant in the genesis key epoch.
 	ownerID, err := peer.IDFromPrivateKey(owner)
@@ -113,13 +127,34 @@ func (a *ProviderAccount) GenesisRecoveryEnvelopes(ctx context.Context, sharedOb
 		return nil, err
 	}
 
-	// Seal it to each readable entity's recovery keys.
-	envs, err := buildSORecoveryEnvelopes(ctx, a.GetSessionClient(), sharedObjectID, state.GetConfig(), epoch.GetEpoch(), inner)
-	var missing *missingRecoveryKeypairsError
-	if errors.As(err, &missing) && missing.entityID == a.accountID {
+	// Require a genesis that names only the account as a reader.
+	cfg := state.GetConfig()
+	entityRoles := listReadableEntityRoles(cfg)
+	for entityID := range entityRoles {
+		if entityID != a.accountID {
+			return nil, errors.Errorf("genesis names entity %s besides the account", entityID)
+		}
+	}
+	if len(entityRoles) == 0 {
 		return nil, nil
 	}
-	return envs, err
+
+	// Read the account's own keys: the cloud lists a Space's entity keys
+	// only once the Space exists.
+	keypairs, err := a.GetSessionClient().ListKeypairs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pubs, err := pubKeysFromEntityKeypairs(keypairs)
+	if err != nil {
+		return nil, errors.Wrap(err, "extract account pubkey")
+	}
+	if len(pubs) == 0 {
+		return nil, nil
+	}
+
+	// Seal it to them.
+	return sealSORecoveryEnvelopes(cfg, epoch.GetEpoch(), inner, entityRoles, map[string][]crypto.PubKey{a.accountID: pubs})
 }
 
 // listReadableEntityRoles returns the highest readable role for each entity.
