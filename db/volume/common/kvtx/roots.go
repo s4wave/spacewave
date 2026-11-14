@@ -80,6 +80,13 @@ func (v *Volume) HasChildLists(ctx context.Context, refs []*block.BlockRef) ([]b
 	return listed, err
 }
 
+// EachRoot calls fn with every named root of every bucket of the Volume, as
+// block_gc.EachRoot describes: in slices, with no snapshot open while fn
+// runs.
+func (v *Volume) EachRoot(ctx context.Context, fn func(bucketID, name string, ref *block.BlockRef) error) error {
+	return block_gc.EachRoot(ctx, collectorStore{v: v}, fn)
+}
+
 // GetBucketRoot returns the block the bucket's root name holds, or nil when
 // the name is free.
 func (v *Volume) GetBucketRoot(ctx context.Context, bucketID, name string) (*block.BlockRef, error) {
