@@ -63,7 +63,7 @@ func (a *ProviderAccount) ReadStoredSharedObject(ctx context.Context, id string)
 		out.Entry, out.Origin = entry, origin
 
 		// Read the stored state in the same transaction.
-		data, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+		data, found, err := readSOStateEncoded(ctx, tx, id)
 		if found {
 			out.State = slices.Clone(data)
 		}

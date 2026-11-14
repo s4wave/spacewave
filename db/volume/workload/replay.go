@@ -22,9 +22,20 @@ type Target interface {
 	block.StoreOps
 }
 
-// headSuffix ends the key of a shared object's head, whose commit publishes
-// the blocks and state before it.
-const headSuffix = "/host"
+// headSuffixes end the key of a shared object's head, whose commit publishes
+// the blocks and state before it: the whole state's host key, or the split
+// state layout's head.
+var headSuffixes = [][]byte{[]byte("/host"), []byte("/st/h")}
+
+// isHeadKey reports whether key is a shared object's head.
+func isHeadKey(key []byte) bool {
+	for _, suffix := range headSuffixes {
+		if bytes.HasSuffix(key, suffix) {
+			return true
+		}
+	}
+	return false
+}
 
 // Replay replays a recorded workload against a Target. Values and block
 // payloads are regenerated from their recorded lengths; a block keeps one
@@ -405,10 +416,10 @@ func (run *replayRun) applyTx(ctx context.Context, rec Record) error {
 		return err
 	case OpSet:
 		run.result.ValueBytes += rec.Size
-		run.heads[id] = run.heads[id] || bytes.HasSuffix(rec.Key, []byte(headSuffix))
+		run.heads[id] = run.heads[id] || isHeadKey(rec.Key)
 		return tx.Set(ctx, rec.Key, run.replay.values[:rec.Size])
 	case OpDelete:
-		run.heads[id] = run.heads[id] || bytes.HasSuffix(rec.Key, []byte(headSuffix))
+		run.heads[id] = run.heads[id] || isHeadKey(rec.Key)
 		return tx.Delete(ctx, rec.Key)
 	case OpIterate:
 		run.iters[rec.ID] = tx.Iterate(ctx, rec.Key, true, rec.Size == 1)
