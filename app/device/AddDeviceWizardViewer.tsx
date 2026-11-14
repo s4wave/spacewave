@@ -60,7 +60,10 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
-import { useWizardFinish } from '../wizard/wizard-finish.js'
+import {
+  useWizardFinish,
+  type WizardFinishState,
+} from '../wizard/wizard-finish.js'
 import type { UseWizardStateResult } from '../wizard/useWizardState.js'
 import { WizardShell } from '../wizard/WizardShell.js'
 import { WizardField } from '../wizard/WizardField.js'
@@ -93,10 +96,80 @@ interface SshHostWizardConfig {
 
 // SshAddAttempt records the steps of an SSH Host Finish that have written,
 // so Retry skips them: the host with its secrets, then the terminal, whose
-// key is empty when the host has none.
+// key is empty when the host has none. input is the person's input the
+// steps were made from; an attempt made from other input is not reused.
 interface SshAddAttempt {
+  input: string
   host?: { host: SshHost; hostObjectKey: string }
   terminalObjectKey?: string
+}
+
+// sshAttemptInput is the input an SSH Host attempt is made from: the label,
+// the host settings and the credentials. It stays in memory only.
+function sshAttemptInput(
+  label: string,
+  config: SshHostWizardConfig,
+  draft: SshCredentialDraft,
+): string {
+  return JSON.stringify([label, config, draft])
+}
+
+// useSshAddAttempt holds the SSH Host attempt for the person's current input.
+// begin returns the attempt made from that input, or starts a new one; an
+// edit after a failure starts a new one and leaves what the old one added,
+// since those objects may already be named elsewhere, such as the host by its
+// terminal. end clears a finished attempt, and finishState adds what a failed
+// attempt left in the Space to the failed notice.
+function useSshAddAttempt(state: WizardFinishState) {
+  // The attempt changes inside a press; what it left shows on a failure.
+  const ref = useRef<SshAddAttempt>({ input: '' })
+  const [leftBehind, setLeftBehind] = useState('')
+
+  // A press reuses the attempt only for the same input.
+  const begin = useCallback((input: string) => {
+    setLeftBehind('')
+    if (ref.current.input !== input) ref.current = { input }
+    return ref.current
+  }, [])
+  const end = useCallback(
+    (attempt: SshAddAttempt, result: WizardFinishState | undefined) => {
+      if (result?.status === 'done') ref.current = { input: '' }
+      setLeftBehind(
+        result?.status === 'failed' ? describeSshAttempt(attempt) : '',
+      )
+    },
+    [],
+  )
+
+  // Only a failure names what was left behind.
+  const finishState = useMemo<WizardFinishState>(
+    () =>
+      state.status === 'failed' && leftBehind
+        ? { ...state, error: `${state.error}. ${leftBehind}` }
+        : state,
+    [leftBehind, state],
+  )
+  return useMemo(() => ({ begin, end, finishState }), [begin, end, finishState])
+}
+
+// describeSshAttempt names the objects an attempt added, for the failed
+// notice, or returns '' when it added none.
+function describeSshAttempt(attempt: SshAddAttempt): string {
+  // An attempt that failed before the host added nothing.
+  if (!attempt.host) return ''
+
+  // List the host, its secrets, then the terminal.
+  const { host, hostObjectKey } = attempt.host
+  const keys = [
+    `SSH Host ${hostObjectKey}`,
+    ...Object.values(host.credentials ?? {})
+      .filter((key): key is string => typeof key === 'string' && !!key)
+      .map((key) => `secret ${key}`),
+  ]
+  if (attempt.terminalObjectKey) {
+    keys.push(`terminal ${attempt.terminalObjectKey}`)
+  }
+  return `Already added to this Space: ${keys.join(', ')}. Retry with the same input reuses them; after an edit they stay in the Space and Retry adds new ones.`
 }
 
 interface SshCredentialDraft {
@@ -374,7 +447,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   // failed instead of adding a second host; the wizard's own removal is then
   // one list. A reload drops the attempt, so a host made before a reload
   // stays and a later Finish adds another.
-  const sshAttemptRef = useRef<SshAddAttempt>({})
+  const sshAttempt = useSshAddAttempt(finish.state)
   const handleCreateSshHost = useCallback(async () => {
     if (!state || !computersKnown) return
     const error = getSshCreateError(sshConfig, sshCredentialDraft)
@@ -385,7 +458,10 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     }
 
     setOperationError('')
-    const attempt = sshAttemptRef.current
+    const label = (ws.localName || state.name || 'SSH Host').trim()
+    const attempt = sshAttempt.begin(
+      sshAttemptInput(label, sshConfig, sshCredentialDraft),
+    )
     const result = await finish.finish(
       async () => {
         attempt.host ??= await createSshHost()
@@ -407,13 +483,14 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         ws.navigateToObjects([target.openKey])
       },
     )
-    if (result?.status === 'done') sshAttemptRef.current = {}
+    sshAttempt.end(attempt, result)
   }, [
     computersKnown,
     createSshHost,
     createSshHostTerminal,
     dashboardKey,
     finish,
+    sshAttempt,
     sshConfig,
     sshCredentialDraft,
     state,
@@ -454,7 +531,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     config,
     currentStep,
     deviceKeys,
-    finish: finish.state,
+    finish: sshAttempt.finishState,
     handleCancel,
     handleConfigUpdate,
     handleFinalize,

@@ -615,31 +615,22 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
   })
 
   it('keeps the SSH Host and terminal it made when Finish fails, and Retry creates neither again', async () => {
+    // The person entered a host and its password.
     h.currentStep = 1
-    h.configData = new TextEncoder().encode(
-      JSON.stringify({
-        mode: 'ssh',
-        ssh: {
-          host: 'build.example.com',
-          port: 2222,
-          username: 'ubuntu',
-          authMode: 'password',
-          setupMode: 'host',
-          hostKeyAlgorithm: 'ssh-ed25519',
-          hostKeyFingerprint: 'SHA256:trusted-host',
-        },
-      }),
-    )
+    h.configData = sshConfigData('build.example.com')
     renderViewer()
     fireEvent.change(screen.getByPlaceholderText('SSH password'), {
       target: { value: 'raw-secret-value' },
     })
 
-    // The host and terminal land, then the wizard removal fails.
+    // The host and terminal land, then the wizard removal fails, and the
+    // notice names what was added.
     h.commit.mockRejectedValueOnce(new Error('commit failed'))
     fireEvent.click(await enabledButton(/open terminal/i))
     expect(
-      await screen.findByText('Could not finish: commit failed'),
+      await screen.findByText(
+        'Could not finish: commit failed. Already added to this Space: SSH Host build-host-1, secret build-host-ssh-password-1, terminal build-host-terminal-1. Retry with the same input reuses them; after an edit they stay in the Space and Retry adds new ones.',
+      ),
     ).toBeTruthy()
     expect(h.navigateToObjects).not.toHaveBeenCalled()
 
@@ -653,8 +644,36 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     const count = (id: string) =>
       h.applyWorldOp.mock.calls.filter(([opId]) => opId === id).length
     expect(h.createSecret).toHaveBeenCalledTimes(1)
-    expect(count(CREATE_SSH_HOST_OP_ID)).toBe(1)
+    expect(sshHostEndpoints()).toEqual(['build.example.com'])
     expect(count(CREATE_TERMINAL_OP_ID)).toBe(1)
+  })
+
+  it('adds the host the person entered when they edit it after a failed Finish', async () => {
+    // The person entered a host and its password.
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    const view = renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'raw-secret-value' },
+    })
+
+    // The first host lands, then the wizard removal fails.
+    h.commit.mockRejectedValueOnce(new Error('commit failed'))
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText(/^Could not finish: commit failed/),
+    ).toBeTruthy()
+
+    // The person enters another host, and Retry adds that one.
+    h.configData = sshConfigData('other.example.com')
+    view.rerender(viewer())
+    fireEvent.click(await enabledButton(/retry/i))
+    await waitFor(() => expect(h.navigateToObjects).toHaveBeenCalled())
+    expect(sshHostEndpoints()).toEqual([
+      'build.example.com',
+      'other.example.com',
+    ])
+    expect(h.createSecret).toHaveBeenCalledTimes(2)
   })
 
   it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
@@ -942,7 +961,11 @@ async function enabledButton(name: RegExp): Promise<HTMLElement> {
 }
 
 function renderViewer() {
-  render(
+  return render(viewer())
+}
+
+function viewer() {
+  return (
     <AddDeviceWizardViewer
       objectInfo={{}}
       worldState={{
@@ -951,8 +974,36 @@ function renderViewer() {
         error: null,
         retry: vi.fn(),
       }}
-    />,
+    />
   )
+}
+
+// sshConfigData is an SSH Host wizard's config for the host given.
+function sshConfigData(host: string) {
+  return new TextEncoder().encode(
+    JSON.stringify({
+      mode: 'ssh',
+      ssh: {
+        host,
+        port: 2222,
+        username: 'ubuntu',
+        authMode: 'password',
+        setupMode: 'host',
+        hostKeyAlgorithm: 'ssh-ed25519',
+        hostKeyFingerprint: 'SHA256:trusted-host',
+      },
+    }),
+  )
+}
+
+// sshHostEndpoints lists the host of each SSH Host create op, in order.
+function sshHostEndpoints() {
+  return h.applyWorldOp.mock.calls
+    .filter(([opId]) => opId === CREATE_SSH_HOST_OP_ID)
+    .map(([, opData]) => {
+      if (!(opData instanceof Uint8Array)) throw new Error('expected op bytes')
+      return CreateSshHostOp.fromBinary(opData).endpoint?.host
+    })
 }
 
 function expectNoInstallAgentSideEffects() {
