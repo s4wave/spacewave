@@ -52,16 +52,20 @@ type FSHandleResource struct {
 	// merges onto the other's committed root. Shared across child resources so
 	// an edit on a child and an upload on its parent serialize together.
 	writeMtx *sync.Mutex
-	// handleMtx fences read RPCs across batch root publication and the following
-	// handle reload. Readers hold RLock for the complete handle operation;
-	// UploadTree holds Lock from before Commit until the replacement handle is
-	// installed. Shared across child resources because one commit invalidates
-	// cursors throughout the resource tree.
+	// handleMtx fences read RPCs across batch root publication. Readers hold
+	// RLock for the complete handle operation; UploadTree holds Lock from before
+	// Commit until cursor shows what storage holds. Shared across child
+	// resources because one commit moves every handle in the resource tree.
 	handleMtx *sync.RWMutex
-	ws        world.WorldState
-	objKey    string
-	fsType    unixfs_world.FSType
-	path      []string
+	// cursor is the World cursor every handle in the resource tree reads
+	// through. It follows the World object by its watch; a writer that
+	// publishes outside it waits for it to reach the published revision.
+	// Nil for a handle with no backing World object.
+	cursor *unixfs_world.FSCursor
+	ws     world.WorldState
+	objKey string
+	fsType unixfs_world.FSType
+	path   []string
 }
 
 // NewFSHandleResource creates a new FSHandleResource.
@@ -69,21 +73,24 @@ type FSHandleResource struct {
 // The handle-only form never constructs an object-backed cursor, so no logger
 // entry is needed.
 func NewFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
-	return newFSHandleResource(nil, handle, nil, nil, nil, nil, "", 0, nil)
+	return newFSHandleResource(nil, handle, nil, nil, nil, nil, nil, "", 0, nil)
 }
 
 // NewFSHandleObjectResource creates a new FSHandleResource bound to a world
 // object path so batch tree uploads can target the same filesystem subtree.
+// handle reads through cursor, a watching cursor on objKey in ws, which the
+// caller keeps until the resource is released.
 func NewFSHandleObjectResource(
 	le *logrus.Entry,
 	handle *unixfs.FSHandle,
+	cursor *unixfs_world.FSCursor,
 	bcast *broadcast.Broadcast,
 	ws world.WorldState,
 	objKey string,
 	fsType unixfs_world.FSType,
 	path []string,
 ) *FSHandleResource {
-	return newFSHandleResource(le, handle, bcast, nil, nil, ws, objKey, fsType, path)
+	return newFSHandleResource(le, handle, bcast, nil, nil, cursor, ws, objKey, fsType, path)
 }
 
 func newFSHandleResource(
@@ -92,6 +99,7 @@ func newFSHandleResource(
 	bcast *broadcast.Broadcast,
 	writeMtx *sync.Mutex,
 	handleMtx *sync.RWMutex,
+	cursor *unixfs_world.FSCursor,
 	ws world.WorldState,
 	objKey string,
 	fsType unixfs_world.FSType,
@@ -115,6 +123,7 @@ func newFSHandleResource(
 		bcast:     bcast,
 		writeMtx:  writeMtx,
 		handleMtx: handleMtx,
+		cursor:    cursor,
 		ws:        ws,
 		objKey:    objKey,
 		fsType:    fsType,
@@ -156,6 +165,7 @@ func (r *FSHandleResource) registerChildResource(
 		r.bcast,
 		r.writeMtx,
 		r.handleMtx,
+		r.cursor,
 		r.ws,
 		r.objKey,
 		r.fsType,
@@ -217,8 +227,8 @@ func (r *FSHandleResource) mutate(fn func() error) error {
 
 // borrowHandle returns an independent clone while retaining the resource-tree
 // read barrier. The caller invokes the returned release function after the
-// complete handle operation so UploadTree cannot publish a new root and
-// invalidate the borrowed cursor before it installs the replacement handle.
+// complete handle operation so UploadTree cannot publish a new root while the
+// borrowed handle reads the old one.
 func (r *FSHandleResource) borrowHandle(
 	ctx context.Context,
 ) (*unixfs.FSHandle, func(), error) {
@@ -234,26 +244,33 @@ func (r *FSHandleResource) borrowHandle(
 	}, nil
 }
 
-// reloadHandleLocked reloads the current handle from world state at r.path.
-// The caller holds writeMtx and handleMtx from before publishing the new root,
-// so neither another writer nor a read operation can observe the invalidated
-// handle generation before this replacement is installed.
-func (r *FSHandleResource) reloadHandleLocked(ctx context.Context) error {
-	// Keep detached filesystem handles on their current cursor.
-	if r.ws == nil || r.objKey == "" {
+// awaitStorageLocked waits until the resource tree's cursor shows the root
+// storage holds now, so every handle in the tree, this one and each child a
+// lookup registered, reads it. The caller holds writeMtx and handleMtx, so no
+// writer through this tree moves the root and no read sees the old one.
+func (r *FSHandleResource) awaitStorageLocked(ctx context.Context) error {
+	// Skip detached handles, and read-only trees, which publish nothing and
+	// may read through a cursor that does not watch.
+	if r.cursor == nil || r.ws == nil || r.objKey == "" || r.ws.GetReadOnly() {
 		return nil
 	}
 
-	// Open a replacement handle on the current World root.
-	nextHandle, _, err := r.newObjectFSHandle(ctx)
+	// Read the revision storage holds for the filesystem object.
+	obj, exists, err := r.ws.GetObject(ctx, r.objKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil || !exists {
+		return err
+	}
+	_, rev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Replace the resource handle and release its previous cursor.
-	prev := r.handle
-	r.handle = nextHandle
-	prev.Release()
+	// Wait for the cursor's watch to apply it. A released cursor reports
+	// itself released to every handle on it.
+	if err := r.cursor.WaitObjectRev(ctx, rev); err != nil && !errors.Is(err, unixfs_errors.ErrReleased) {
+		return err
+	}
 	return nil
 }
 

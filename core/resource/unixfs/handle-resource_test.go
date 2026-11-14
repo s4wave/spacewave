@@ -251,6 +251,7 @@ func setupFSHandleResourceClient(
 	rootResource := NewFSHandleObjectResource(
 		logrus.NewEntry(log),
 		rootHandle,
+		rootCursor,
 		nil,
 		ws,
 		"test-fs",
@@ -1912,6 +1913,82 @@ func TestFSHandleResourceUploadTreeRefusesStaleVersion(t *testing.T) {
 	assertUploadTreeCounters(t, resp, int64(len("next text")), 1, 0)
 	if len(resp.GetWritten().GetVersions()) != 0 {
 		t.Fatal("a save that asked for no version reported one")
+	}
+}
+
+func TestFSHandleResourceUploadTreeMovesOpenHandles(t *testing.T) {
+	// Save a document and open a file resource on it before any write.
+	ctx, resClient, _, rootRes, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+	uploadTreeFileViaResource(t, ctx, rootSvc, "doc.txt", []byte("base text"))
+	readerSvc, releaseReader := openFileService(t, ctx, resClient, rootSvc, "doc.txt")
+	defer releaseReader()
+	_, readVersion := readFileVersion(t, ctx, readerSvc)
+
+	// Another writer changes the document through its own World cursor,
+	// which the resource tree learns of only through its watch.
+	otherCursor, err := unixfs_world.FollowUnixfsRef(
+		ctx,
+		logrus.NewEntry(logrus.New()),
+		rootRes.ws,
+		&unixfs_world.UnixfsRef{ObjectKey: "test-fs"},
+		"",
+		true,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer otherCursor.Release()
+	otherRoot, err := unixfs_sdk.NewFSHandle(otherCursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer otherRoot.Release()
+	otherDoc, err := otherRoot.Lookup(ctx, "doc.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := otherDoc.WriteAt(ctx, 0, []byte("OTHER"), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := otherDoc.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	otherDoc.Release()
+
+	// A save at the version read first is refused, and a read through the
+	// file resource opened before it returns the other writer's bytes.
+	resp := uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("first draft"),
+		&s4wave_unixfs.HandleUploadTreeFileStart{
+			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: readVersion},
+		})
+	conflict := resp.GetConflict()
+	if conflict == nil {
+		t.Fatalf("stale save result = %v, want conflict", resp.GetResult())
+	}
+	data, currentVersion := readFileVersion(t, ctx, readerSvc)
+	if string(data) != "OTHERtext" {
+		t.Fatalf("read after refused save = %q, want the other writer's bytes", data)
+	}
+	if !slices.Equal(currentVersion, conflict.GetVersion()) {
+		t.Fatal("read version differs from the version the refusal reported")
+	}
+
+	// A save at the current version is read back through the same resource.
+	resp = uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("merged text"),
+		&s4wave_unixfs.HandleUploadTreeFileStart{
+			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: currentVersion},
+		})
+	assertUploadTreeCounters(t, resp, int64(len("merged text")), 1, 0)
+	if data, _ := readFileVersion(t, ctx, readerSvc); string(data) != "merged text" {
+		t.Fatalf("read after save = %q, want the saved bytes", data)
 	}
 }
 
