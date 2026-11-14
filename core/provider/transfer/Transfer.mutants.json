@@ -1,6 +1,7 @@
 [
   {
     "name": "the import root never holds the copied World",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "  /\\ held' = held \\cup {cur}\n  /\\ step' = \"check\"",
@@ -11,16 +12,19 @@
   },
   {
     "name": "the state is written without checking the stage",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [["  /\\ IF cur \\in blocks\n", "  /\\ IF TRUE\n"]],
     "expect": "StateHeld"
   },
   {
     "name": "the write replaces whatever the target holds",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [["  /\\ IF tc[cur] = expect\n", "  /\\ IF TRUE\n"]],
     "expect": "StateHeld"
   },
   {
     "name": "a re-sync copies over an edited target",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
@@ -31,26 +35,29 @@
   },
   {
     "name": "a listed Space with no origin counts as this source's",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
-        "Arriving(t, o) == t = Empty /\\ (cloudTgt \\/ o = Added)",
-        "Arriving(t, o) == t = Empty /\\ (cloudTgt \\/ o \\in {Added, NoOrigin})"
+        "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
+        "Rewritable(t, o) == ~cloudTgt /\\ ((o.ph = \"written\" /\\ t = Src(o.h)) \\/ o = NoOrigin)"
       ]
     ],
     "expect": "NoEditOverwritten"
   },
   {
     "name": "a written Space is skipped whatever the source head",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "/\\ t.k = \"src\" /\\ t.v = ver[cur] /\\ t.e = 0",
         "/\\ t.k = \"src\" /\\ t.e = 0"
       ]
     ],
-    "expect": "CleanupAtHead"
+    "expect": "Finishes"
   },
   {
     "name": "cleanup deletes without checking the head",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "  /\\ pc = \"cleanup\" /\\ s \\in entries \\cap src /\\ AtHead(s)\n",
@@ -61,6 +68,7 @@
   },
   {
     "name": "a delete on the target keeps the origin",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "  /\\ origin' = [origin EXCEPT ![s] = NoOrigin]\n",
@@ -71,6 +79,7 @@
   },
   {
     "name": "a source moved during the run leaves the Space not moved",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "  /\\ pc' = \"spaces\"\n  /\\ moved' = moved \\ {s}\n  /\\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, notMoved,",
@@ -81,11 +90,13 @@
   },
   {
     "name": "a shared Space is copied",
+    "config": "Transfer-tgt-local-src-local-shared-a.cfg",
     "replace": [["     IN CASE cur \\in shared ->", "     IN CASE FALSE ->"]],
     "expect": "SharedNotCopied"
   },
   {
     "name": "a cloud source deletes a shared Space the target is a member of",
+    "config": "Transfer-tgt-local-src-cloud-shared-a.cfg",
     "replace": [
       [
         "               /\\ IF t = Member /\\ ~cloudSrc\n",
@@ -100,6 +111,7 @@
   },
   {
     "name": "an arriving Space can be written by the person",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "  /\\ Listed(s) /\\ touches < MaxTouches /\\ origin[s] # Added",
@@ -110,6 +122,7 @@
   },
   {
     "name": "Migrate cleans up without copying the key",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "CASE mode = \"migrate\" -> \"key\" [] Deletes",
@@ -120,6 +133,7 @@
   },
   {
     "name": "a cloud target reads a configured Space at the source head as another's",
+    "config": "Transfer-tgt-cloud-src-local-shared-none.cfg",
     "replace": [
       [
         "AtSourceHead(t, o) == (cloudTgt \\/ o.ph = \"written\")",
@@ -129,7 +143,14 @@
     "expect": "NotMovedJustified"
   },
   {
+    "name": "the cloud limit leaves a local target's Space not moved",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [["          [] cloudTgt ->\n", "          [] TRUE ->\n"]],
+    "expect": "NotMovedJustified"
+  },
+  {
     "name": "a re-sync copies over a target whose membership changed",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "Rewritable(t, o) == ~cloudTgt /\\ o.ph = \"written\" /\\ t = Src(o.h)",
@@ -140,6 +161,7 @@
   },
   {
     "name": "a run that leaves a Space not moved deletes the source session",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
         "DeleteSession ==\n  /\\ pc = \"session\"\n",

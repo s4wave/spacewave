@@ -33,6 +33,13 @@ const (
 	// TargetHoldsOther means anything else: a Space created on the target,
 	// moved from another source, or changed since a transfer wrote it.
 	TargetHoldsOther
+	// TargetHoldsNoOrigin means a target that stores no origin, such as a
+	// cloud account, holds a configured Space whose World is not the source's
+	// current one. It cannot tell an earlier copy this source wrote from any
+	// other Space, so the transfer writes nothing over it. Transfer.tla names
+	// the case CloudLimit; it goes away when the cloud target stores the
+	// origin.
+	TargetHoldsNoOrigin
 )
 
 // TargetSpace is what a target holds under a Space's id, read before the
