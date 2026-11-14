@@ -27,6 +27,7 @@ import "embed"
 //go:embed db/block/block.pb.ts db/block/quad/quad.pb.ts db/block/transform/transform.pb.ts
 //go:embed db/bucket/bucket.pb.ts db/git/block/git.pb.ts db/kvtx/block/iavl/iavl.pb.ts
 //go:embed db/kvtx/block/kvtx.pb.ts db/kvtx/block/okra/okra.pb.ts db/kvtx/rpc/kvtx.pb.ts
+//go:embed db/world/block/tx/tx.pb.ts db/world/block/world.pb.ts
 //go:embed db/kvtx/rpc/kvtx_srpc.pb.ts net/hash/hash.pb.ts net/peer/peer.pb.ts sdk/account/account.pb.ts
 //go:embed sdk/account/account.ts sdk/account/account_srpc.pb.ts sdk/block/cursor/cursor.pb.ts
 //go:embed sdk/block/cursor/cursor.ts sdk/block/cursor/cursor_srpc.pb.ts
