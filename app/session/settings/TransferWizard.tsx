@@ -696,6 +696,13 @@ function ProgressStep({
 }) {
   const phase = transferState?.phase ?? TransferPhase.TransferPhase_IDLE
   const spaceStates = transferState?.spaces ?? []
+  // The transfer moves Spaces in order, so the current one is the first
+  // that has not completed.
+  const current = spaceStates.findIndex(
+    (sp) => sp.phase !== TransferPhase.TransferPhase_COMPLETE,
+  )
+  const copying =
+    phase === TransferPhase.TransferPhase_COPYING_BLOCKS && current >= 0
 
   return (
     <div>
@@ -713,13 +720,18 @@ function ProgressStep({
         <p className="text-foreground text-sm font-medium">
           {phaseLabel(phase)}
         </p>
+        {copying && (
+          <p className="text-foreground-alt text-xs">
+            Space {current + 1} of {spaceStates.length},{' '}
+            {Number(spaceStates[current].blocksCopied ?? 0n)} blocks copied
+          </p>
+        )}
       </div>
 
       {spaceStates.length > 0 && (
         <div className="space-y-2">
           {spaceStates.map((sp) => {
             const spPhase = sp.phase ?? TransferPhase.TransferPhase_IDLE
-            const copied = Number(sp.blocksCopied ?? 0n)
 
             return (
               <div
@@ -732,11 +744,6 @@ function ProgressStep({
                     {phaseLabel(spPhase)}
                   </p>
                 </div>
-                {spPhase === TransferPhase.TransferPhase_COPYING_BLOCKS && (
-                  <p className="text-foreground-alt mt-1 text-xs">
-                    {copied} blocks copied
-                  </p>
-                )}
               </div>
             )
           })}
