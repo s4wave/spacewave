@@ -1,34 +1,125 @@
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
+
 import { Route } from '@s4wave/web/router/router.js'
-import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
-import { ForgeViewerStatesDebug } from '@s4wave/app/debug/forge/ForgeViewerStatesDebug.js'
-import { TerminalViewerDebug } from '@s4wave/app/debug/terminal/TerminalViewerDebug.js'
-import { DeviceCapabilityDebug } from '@s4wave/app/debug/device/DeviceCapabilityDebug.js'
-import { GalleryViewerDebug } from '@s4wave/app/debug/gallery/GalleryViewerDebug.js'
-import { CanvasViewerDebug } from '@s4wave/app/debug/canvas/CanvasViewerDebug.js'
-import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
-import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
-import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
-import { WizardShellDebug } from '@s4wave/app/debug/wizard/WizardShellDebug.js'
-import { TextFileStatesDebug } from '@s4wave/app/debug/unixfs/TextFileStatesDebug.js'
-import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
-import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
-import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
-import { ViewerSideDebug } from '@s4wave/web/debug/ViewerSideDebug.js'
-import { ViewerFloatDebug } from '@s4wave/web/debug/ViewerFloatDebug.js'
-import { FileListDebug } from '@s4wave/web/debug/FileListDebug.js'
-import { ViewerStatusDebug } from '@s4wave/web/debug/ViewerStatusDebug.js'
-import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
-import { HDRDebug } from '@s4wave/web/debug/HDRDebug.js'
-import { LayoutDebug } from '@s4wave/web/debug/LayoutDebug.js'
-import { LayoutColorsDebug } from '@s4wave/web/debug/LayoutColorsDebug.js'
-import { LoadingDebug } from '@s4wave/web/debug/LoadingDebug.js'
-import { SessionSettingsDebug } from '@s4wave/web/debug/SessionSettingsDebug.js'
-import { TableDebug } from '@s4wave/web/debug/TableDebug.js'
-import { UnixFSBrowserDebug } from '@s4wave/web/debug/UnixFSBrowserDebug.js'
 
 import { DebugIndex } from './DebugIndex.js'
 import { appScenarios } from '../debug/scenarios/registry.js'
 import { ScenarioPage } from '../debug/scenarios/ScenarioPage.js'
+
+// debugPage returns a component that loads the debug page named name from its
+// module when it first renders, so the debug index loads no page. The route
+// table renders inside AppRoutes' Suspense boundary.
+function debugPage<K extends string>(
+  load: () => Promise<Record<K, ComponentType>>,
+  name: K,
+): LazyExoticComponent<ComponentType> {
+  return lazy<ComponentType>(async () => ({ default: (await load())[name] }))
+}
+
+const GitSideDebug = debugPage(
+  () => import('@s4wave/app/debug/git/GitSideDebug.js'),
+  'GitSideDebug',
+)
+const ForgeViewerStatesDebug = debugPage(
+  () => import('@s4wave/app/debug/forge/ForgeViewerStatesDebug.js'),
+  'ForgeViewerStatesDebug',
+)
+const TerminalViewerDebug = debugPage(
+  () => import('@s4wave/app/debug/terminal/TerminalViewerDebug.js'),
+  'TerminalViewerDebug',
+)
+const DeviceCapabilityDebug = debugPage(
+  () => import('@s4wave/app/debug/device/DeviceCapabilityDebug.js'),
+  'DeviceCapabilityDebug',
+)
+const GalleryViewerDebug = debugPage(
+  () => import('@s4wave/app/debug/gallery/GalleryViewerDebug.js'),
+  'GalleryViewerDebug',
+)
+const CanvasViewerDebug = debugPage(
+  () => import('@s4wave/app/debug/canvas/CanvasViewerDebug.js'),
+  'CanvasViewerDebug',
+)
+const AccountRowsDebug = debugPage(
+  () => import('@s4wave/app/debug/account-rows/AccountRowsDebug.js'),
+  'AccountRowsDebug',
+)
+const KeybindingsDebug = debugPage(
+  () => import('@s4wave/app/debug/keybindings/KeybindingsDebug.js'),
+  'KeybindingsDebug',
+)
+const PromViewerDebug = debugPage(
+  () => import('@s4wave/app/debug/prom/PromViewerDebug.js'),
+  'PromViewerDebug',
+)
+const WizardShellDebug = debugPage(
+  () => import('@s4wave/app/debug/wizard/WizardShellDebug.js'),
+  'WizardShellDebug',
+)
+const TextFileStatesDebug = debugPage(
+  () => import('@s4wave/app/debug/unixfs/TextFileStatesDebug.js'),
+  'TextFileStatesDebug',
+)
+const CanvasGraphLinksDebug = debugPage(
+  () => import('@s4wave/web/debug/CanvasGraphLinksDebug.js'),
+  'CanvasGraphLinksDebug',
+)
+const DebugDbBench = debugPage(
+  () => import('@s4wave/web/debug/DebugDbBench.js'),
+  'DebugDbBench',
+)
+const FactListDebug = debugPage(
+  () => import('@s4wave/web/debug/FactListDebug.js'),
+  'FactListDebug',
+)
+const ViewerSideDebug = debugPage(
+  () => import('@s4wave/web/debug/ViewerSideDebug.js'),
+  'ViewerSideDebug',
+)
+const ViewerFloatDebug = debugPage(
+  () => import('@s4wave/web/debug/ViewerFloatDebug.js'),
+  'ViewerFloatDebug',
+)
+const FileListDebug = debugPage(
+  () => import('@s4wave/web/debug/FileListDebug.js'),
+  'FileListDebug',
+)
+const ViewerStatusDebug = debugPage(
+  () => import('@s4wave/web/debug/ViewerStatusDebug.js'),
+  'ViewerStatusDebug',
+)
+const ForgeViewerDebug = debugPage(
+  () => import('@s4wave/web/debug/ForgeViewerDebug.js'),
+  'ForgeViewerDebug',
+)
+const HDRDebug = debugPage(
+  () => import('@s4wave/web/debug/HDRDebug.js'),
+  'HDRDebug',
+)
+const LayoutDebug = debugPage(
+  () => import('@s4wave/web/debug/LayoutDebug.js'),
+  'LayoutDebug',
+)
+const LayoutColorsDebug = debugPage(
+  () => import('@s4wave/web/debug/LayoutColorsDebug.js'),
+  'LayoutColorsDebug',
+)
+const LoadingDebug = debugPage(
+  () => import('@s4wave/web/debug/LoadingDebug.js'),
+  'LoadingDebug',
+)
+const SessionSettingsDebug = debugPage(
+  () => import('@s4wave/web/debug/SessionSettingsDebug.js'),
+  'SessionSettingsDebug',
+)
+const TableDebug = debugPage(
+  () => import('@s4wave/web/debug/TableDebug.js'),
+  'TableDebug',
+)
+const UnixFSBrowserDebug = debugPage(
+  () => import('@s4wave/web/debug/UnixFSBrowserDebug.js'),
+  'UnixFSBrowserDebug',
+)
 
 const debugRouteEntries = [
   ...appScenarios.map((scenario) => ({

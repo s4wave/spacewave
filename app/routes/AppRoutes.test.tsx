@@ -67,42 +67,6 @@ vi.mock('../AppSignup.js', () => ({
   AppSignup: () => null,
 }))
 
-vi.mock('@s4wave/web/debug/CanvasGraphLinksDebug.js', () => ({
-  CanvasGraphLinksDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/DebugDbBench.js', () => ({
-  DebugDbBench: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/ForgeViewerDebug.js', () => ({
-  ForgeViewerDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/HDRDebug.js', () => ({
-  HDRDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/LayoutDebug.js', () => ({
-  LayoutDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/LayoutColorsDebug.js', () => ({
-  LayoutColorsDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/LoadingDebug.js', () => ({
-  LoadingDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/SessionSettingsDebug.js', () => ({
-  SessionSettingsDebug: () => null,
-}))
-
-vi.mock('@s4wave/web/debug/UnixFSBrowserDebug.js', () => ({
-  UnixFSBrowserDebug: () => null,
-}))
-
 const debugIndexTargets = [
   '#/debug/db/bench',
   '#/debug/hdr',
