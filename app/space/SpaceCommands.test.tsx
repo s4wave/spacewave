@@ -27,6 +27,7 @@ import {
 } from '../device/add-device-wizard.js'
 import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
 import { SpaceCommands } from './SpaceCommands.js'
+import { SpaceCreatesContext, useSpaceCreates } from './useSpaceCreates.js'
 
 interface RegisteredCommand {
   commandId?: string
@@ -52,7 +53,12 @@ const h = vi.hoisted(() => ({
   navigateToObjects: vi.fn((_objectKeys: string[]) => undefined),
   openCommand: vi.fn((_commandId: string) => undefined),
   navigate: vi.fn((_opts: unknown) => undefined),
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+    dismiss: vi.fn(),
+    loading: vi.fn(),
+  },
   wizards: [] as unknown[],
   listWizards: vi.fn((_signal?: AbortSignal) =>
     Promise.resolve(h.wizards as never),
@@ -104,6 +110,57 @@ vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => {
     useSessionNavigate: () => h.navigate,
   }
 })
+
+function SpaceHarness({
+  spaceId,
+  world,
+  canShare,
+  onShareSpace,
+}: {
+  spaceId: string
+  world: IWorldState | null
+  canShare: boolean
+  onShareSpace: () => void
+}) {
+  const creates = useSpaceCreates(spaceId, world, h.navigateToObjects)
+  return (
+    <SharedObjectContext.Provider
+      resource={{
+        value: { meta: { sharedObjectId: 'so-1' } } as never,
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      }}
+    >
+      <SpaceCreatesContext.Provider value={creates}>
+        {world ? (
+          <SpaceContainerContext.Provider
+            spaceId={spaceId}
+            spaceState={{ ready: true }}
+            spaceWorldResource={{
+              value: world as never,
+              loading: false,
+              error: null,
+              retry: vi.fn(),
+            }}
+            spaceWorld={world as never}
+            navigateToRoot={vi.fn()}
+            navigateToObjects={h.navigateToObjects}
+            buildObjectUrls={vi.fn()}
+            navigateToSubPath={vi.fn()}
+          >
+            <SpaceCommands
+              canRename={true}
+              canShare={canShare}
+              onRenameSpace={vi.fn()}
+              onShareSpace={onShareSpace}
+            />
+          </SpaceContainerContext.Provider>
+        ) : null}
+      </SpaceCreatesContext.Provider>
+    </SharedObjectContext.Provider>
+  )
+}
 
 describe('SpaceCommands', () => {
   beforeEach(() => {
@@ -191,39 +248,33 @@ describe('SpaceCommands', () => {
     onShareSpace?: () => void
     world?: IWorldState
   } = {}) {
-    return render(
-      <SharedObjectContext.Provider
-        resource={{
-          value: { meta: { sharedObjectId: 'so-1' } } as never,
-          loading: false,
-          error: null,
-          retry: vi.fn(),
-        }}
-      >
-        <SpaceContainerContext.Provider
-          spaceId="space-1"
-          spaceState={{ ready: true }}
-          spaceWorldResource={{
-            value: { applyWorldOp: h.applyWorldOp } as never,
-            loading: false,
-            error: null,
-            retry: vi.fn(),
-          }}
-          spaceWorld={{ ...world, applyWorldOp: h.applyWorldOp } as never}
-          navigateToRoot={vi.fn()}
-          navigateToObjects={h.navigateToObjects}
-          buildObjectUrls={vi.fn()}
-          navigateToSubPath={vi.fn()}
-        >
-          <SpaceCommands
-            canRename={true}
-            canShare={canShare}
-            onRenameSpace={vi.fn()}
-            onShareSpace={onShareSpace}
-          />
-        </SpaceContainerContext.Provider>
-      </SharedObjectContext.Provider>,
+    // tree renders the commands as SpaceContainer does: the Space's create
+    // owner above a guard that unmounts SpaceCommands while the world is
+    // null (loading). setWorld models the world mount going to loading and
+    // a new world arriving; switchSpace models the Space id changing.
+    const withApply = (w: IWorldState, apply = h.applyWorldOp) =>
+      ({ ...w, applyWorldOp: apply }) as IWorldState
+    let current: IWorldState | null = withApply(world)
+    let spaceId = 'space-1'
+    const tree = () => (
+      <SpaceHarness
+        spaceId={spaceId}
+        world={current}
+        canShare={canShare}
+        onShareSpace={onShareSpace}
+      />
     )
+    const view = render(tree())
+    return Object.assign(view, {
+      setWorld: (w: IWorldState | null, apply?: typeof h.applyWorldOp) => {
+        current = w && withApply(w, apply)
+        view.rerender(tree())
+      },
+      switchSpace: (id: string) => {
+        spaceId = id
+        view.rerender(tree())
+      },
+    })
   }
 
   function getShareSpaceCommand() {
@@ -464,6 +515,7 @@ describe('SpaceCommands', () => {
     return h.toast.error.mock.calls[n] as unknown as [
       string,
       {
+        id?: string
         description: string
         duration?: number
         action?: { label: string; onClick: () => void }
@@ -540,6 +592,209 @@ describe('SpaceCommands', () => {
       else expect(h.toast.success).not.toHaveBeenCalled()
     },
   )
+
+  it('keeps one toast per create across failed retries', async () => {
+    const refusal = new WorldOperationRejection(
+      'space/layout/exists',
+      'A layout with this name already exists.',
+    )
+    h.applyWorldOp.mockRejectedValueOnce(refusal).mockRejectedValueOnce(refusal)
+    renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    failedCreateToast()[1].action?.onClick()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(2)
+    })
+
+    expect(failedCreateToast(0)[1].id).toBe('create-object:layout-1')
+    expect(failedCreateToast(1)[1].id).toBe('create-object:layout-1')
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+  })
+
+  // inFlight makes the next send hang until settle runs, which may record
+  // the object as landed before the send rejects as a lost reply.
+  function inFlight() {
+    let settle: () => void = () => undefined
+    h.applyWorldOp.mockImplementationOnce(
+      () =>
+        new Promise<ApplyWorldOpResult>((_resolve, reject) => {
+          settle = () => reject(new Error('reply lost'))
+        }),
+    )
+    return () => settle()
+  }
+
+  // startInFlight starts a layout create whose send hangs, and waits until
+  // it is sent.
+  async function startInFlight() {
+    const settle = inFlight()
+    const view = renderCommands()
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+    const opData = h.applyWorldOp.mock.calls[0][1]
+    const objectKey = InitObjectLayoutOp.fromBinary(opData).objectKey ?? ''
+    return { view, settle, objectKey }
+  }
+
+  const resolvedApply = () =>
+    vi.fn((_opTypeId: string, _opData: Uint8Array, _sender?: string) =>
+      Promise.resolve<ApplyWorldOpResult>({ seqno: 2n, sysErr: false }),
+    )
+
+  it('reports a create that fails while its world reloads and retries on the new world', async () => {
+    const { view, settle, objectKey } = await startInFlight()
+
+    // The transport fails: the world goes to loading, the guard unmounts
+    // SpaceCommands, and the send rejects.
+    view.setWorld(null)
+    settle()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const [title, options] = failedCreateToast()
+    expect(title).toBe('Could not create Layout')
+    expect(options.action?.label).toBe('Try again')
+
+    const nextApply = resolvedApply()
+    view.setWorld(keysWorld([]), nextApply)
+    options.action?.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledWith([objectKey])
+    })
+    expect(objectKey).toBe('layout-1')
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(nextApply).toHaveBeenCalledTimes(1)
+    const [opId, opData] = h.applyWorldOp.mock.calls[0]
+    expect(nextApply.mock.calls[0]).toEqual([opId, opData, ''])
+    expect(h.toast.dismiss).toHaveBeenCalledWith('create-object:layout-1')
+    expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
+  })
+
+  it('holds a Try again pressed while the world loads until it returns', async () => {
+    const { view, settle, objectKey } = await startInFlight()
+    view.setWorld(null)
+    settle()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+
+    // The press replaces the failure with a loading toast at once, then
+    // with the wait for the world.
+    failedCreateToast()[1].action?.onClick()
+    await waitFor(() => {
+      expect(h.toast.loading).toHaveBeenCalledTimes(2)
+    })
+    expect(h.toast.loading.mock.calls[1][1]).toMatchObject({
+      id: 'create-object:layout-1',
+      description: 'Waiting for the Space to reconnect.',
+      action: { label: 'Cancel' },
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+
+    const nextApply = resolvedApply()
+    view.setWorld(keysWorld([]), nextApply)
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledWith([objectKey])
+    })
+    expect(nextApply).toHaveBeenCalledTimes(1)
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens a create that landed while its world reloaded', async () => {
+    const objects: TypedObject[] = []
+    const { view, settle, objectKey } = await startInFlight()
+    objects.push({ objectKey, objectType: 'alpha/object-layout' })
+    view.setWorld(null)
+    settle()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+
+    const nextApply = resolvedApply()
+    view.setWorld(
+      listingWorld(() => objects),
+      nextApply,
+    )
+    failedCreateToast()[1].action?.onClick()
+    await waitFor(() => {
+      expect(h.navigateToObjects).toHaveBeenCalledWith([objectKey])
+    })
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(nextApply).not.toHaveBeenCalled()
+    expect(h.toast.success).toHaveBeenCalledWith('Created Layout')
+  })
+
+  it('dismisses and silences a create when the Space switches', async () => {
+    const { view, settle } = await startInFlight()
+    view.setWorld(null)
+    settle()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    failedCreateToast()[1].action?.onClick()
+    await waitFor(() => {
+      expect(h.toast.loading).toHaveBeenCalledTimes(2)
+    })
+
+    view.switchSpace('space-2')
+    expect(h.toast.dismiss).toHaveBeenCalledWith('create-object:layout-1')
+    const nextApply = resolvedApply()
+    view.setWorld(keysWorld([]), nextApply)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(nextApply).not.toHaveBeenCalled()
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
+    expect(h.toast.error).toHaveBeenCalledTimes(1)
+  })
+
+  it('dismisses a failed create toast when its Space closes', async () => {
+    h.applyWorldOp.mockRejectedValueOnce(new Error('offline'))
+    const view = renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const id = failedCreateToast()[1].id
+    expect(h.toast.dismiss).not.toHaveBeenCalled()
+
+    view.unmount()
+    expect(h.toast.dismiss).toHaveBeenCalledWith(id)
+  })
+
+  it('shows no failure toast for a create that fails after its Space closed', async () => {
+    let reject: (err: Error) => void = () => undefined
+    h.applyWorldOp.mockImplementationOnce(
+      () =>
+        new Promise<ApplyWorldOpResult>((_resolve, rejectOp) => {
+          reject = rejectOp
+        }),
+    )
+    const view = renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+    view.unmount()
+    reject(new Error('world released'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(h.toast.error).not.toHaveBeenCalled()
+  })
 
   it('does not retry a create whose key another object took', async () => {
     const objects: TypedObject[] = []
