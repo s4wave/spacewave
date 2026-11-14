@@ -192,14 +192,16 @@ type lander struct {
 // checkRoots refuses a root named twice, or one whose Previous differs from
 // the block it holds, and returns the block each root holds.
 func (l *lander) checkRoots(ctx context.Context, bucketID string, roots []block.NamedRoot) ([]*block.BlockRef, error) {
+	// A change that moves one root name twice is refused whole, before
+	// anything lands; the name set keeps the check linear in the roots.
 	held := make([]*block.BlockRef, len(roots))
+	names := make(map[string]struct{}, len(roots))
 	for i, root := range roots {
 		// Refuse a name the change moves twice.
-		for _, prior := range roots[:i] {
-			if prior.Name == root.Name {
-				return nil, errors.Errorf("root %q moves twice in one change", root.Name)
-			}
+		if _, ok := names[root.Name]; ok {
+			return nil, errors.Errorf("root %q moves twice in one change", root.Name)
 		}
+		names[root.Name] = struct{}{}
 
 		// Compare the held block with the writer's Previous.
 		entry, err := l.rec.GetRoot(ctx, bucketID, root.Name)
