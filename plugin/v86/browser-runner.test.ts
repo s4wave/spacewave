@@ -39,6 +39,15 @@ class FakeBroadcastChannel {
   }
 }
 
+// fakeV86fs stands in for the guest filesystem device the runner hands to
+// attachV86fsNotifier.
+const fakeV86fs = {
+  invalidate_inode_range: vi.fn(),
+  invalidate_dir: vi.fn(),
+  mount_notify: vi.fn(),
+  umount_notify: vi.fn(),
+}
+
 class FakeV86 {
   add_listener = vi.fn((event: string, listener: (byte: number) => void) => {
     if (event === 'serial0-output-byte') {
@@ -48,7 +57,12 @@ class FakeV86 {
   serial0_send = vi.fn()
   stop = vi.fn()
   destroy = vi.fn()
-  v86 = { cpu: { devices: { virtio_v86fs: { tag: 'device' } } } }
+  screen_fill_buffer = vi.fn()
+  screen_redraw = vi.fn()
+  keyboard_send_event = vi.fn()
+  keyboard_release_all = vi.fn()
+  keyboard_send_scancodes = vi.fn(() => Promise.resolve())
+  v86 = { cpu: { devices: { virtio_v86fs: fakeV86fs } } }
 
   constructor(options: Record<string, unknown>) {
     h.constructors.push(options)
@@ -125,7 +139,7 @@ describe('browser V86 runner', () => {
       h.serialOutputListener?.(byte)
     }
     await runtime.ready
-    expect(attachV86fsNotifier).toHaveBeenCalledWith({ tag: 'device' })
+    expect(attachV86fsNotifier).toHaveBeenCalledWith(fakeV86fs)
 
     const channel = h.broadcastChannels[0]
     channel?.messages.splice(0)

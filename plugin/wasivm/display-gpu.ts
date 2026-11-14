@@ -56,7 +56,7 @@ export async function openGpuRenderer(
   if (!adapter) return null
   const device = await adapter.requestDevice()
   const ctx = canvas.getContext('webgpu')
-  if (!ctx) {
+  if (!(ctx instanceof GPUCanvasContext)) {
     device.destroy()
     return null
   }

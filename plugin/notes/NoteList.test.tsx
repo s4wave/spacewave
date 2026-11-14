@@ -167,6 +167,7 @@ describe('NoteList', () => {
       value: null,
       loading: false,
       error: new Error('Network failure'),
+      last: null,
       retry: vi.fn(),
     })
 

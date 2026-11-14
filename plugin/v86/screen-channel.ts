@@ -92,6 +92,9 @@ export class ScreenRelay {
   private calls: ScreenCall[] = []
   private flushQueued = false
   private state = new Map<ReplayCall, ScreenCall>()
+  // fontPlane is the relay's copy of the last font plane, replayed with the
+  // set_font_bitmap state.
+  private fontPlane: Uint8Array | null = null
   private emulator: ScreenEmulator | undefined
 
   constructor(private channel: BroadcastChannel) {
@@ -140,8 +143,10 @@ export class ScreenRelay {
     bitmapChanged: boolean,
   ): void {
     // Keep the font with its own copy of the plane for replay.
-    const prev = this.state.get('set_font_bitmap')
-    const plane = bitmapChanged || !prev ? bitmap.slice() : prev[5]
+    const prev = this.fontPlane
+    const plane = bitmapChanged || !prev ? bitmap.slice() : prev
+    const fresh = plane !== prev
+    this.fontPlane = plane
     this.state.set('set_font_bitmap', [
       'set_font_bitmap',
       height,
@@ -159,8 +164,8 @@ export class ScreenRelay {
       width9px,
       widthDbl,
       copy8thCol,
-      bitmapChanged || !prev ? plane : null,
-      bitmapChanged || !prev,
+      fresh ? plane : null,
+      fresh,
     ])
   }
 

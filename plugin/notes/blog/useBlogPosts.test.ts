@@ -3,9 +3,11 @@ import React, { useMemo } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+
 import { useBlogPosts } from './useBlogPosts.js'
 
-function buildResource<T>(value: T) {
+function buildResource<T>(value: T): Resource<T> {
   return {
     value,
     loading: false,

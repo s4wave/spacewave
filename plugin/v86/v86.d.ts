@@ -6,6 +6,24 @@ declare module '@aptre/v86' {
 
   export class V86 {
     constructor(options: Record<string, unknown>)
+    // v86 is the emulator internals; the runner reaches the VirtioV86FS
+    // device through it to push host notifications into the guest.
+    v86: {
+      cpu: {
+        devices: {
+          virtio_v86fs: {
+            invalidate_inode_range(
+              inode_id: number,
+              offset: number,
+              size: number,
+            ): void
+            invalidate_dir(inode_id: number): void
+            mount_notify(name: string, mount_path: string): void
+            umount_notify(mount_path: string): void
+          }
+        }
+      }
+    }
     add_listener(
       event: 'serial0-output-byte',
       callback: (data: number) => void,

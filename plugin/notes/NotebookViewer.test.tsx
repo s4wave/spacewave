@@ -201,8 +201,9 @@ describe('NotebookViewer', () => {
   it('renders error state when notebook state has error', () => {
     vi.mocked(useAccessTypedHandle).mockReturnValue({
       value: null,
-      loading: true,
+      loading: false,
       error: new Error('Connection refused'),
+      last: null,
       retry: vi.fn(),
     })
     mockUseWorldObjectMessageState.mockReturnValue({

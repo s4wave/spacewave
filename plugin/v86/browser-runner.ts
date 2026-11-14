@@ -126,11 +126,19 @@ async function loadV86Module(
   }
 }
 
+// viewBuffer returns an ArrayBuffer holding exactly data's bytes, reusing the
+// backing buffer when data spans all of it. A SharedArrayBuffer is copied,
+// because v86 and WebAssembly.instantiate take an ArrayBuffer.
 function viewBuffer(data: Uint8Array): ArrayBuffer {
-  if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
-    return data.buffer
+  const { buffer } = data
+  if (
+    buffer instanceof ArrayBuffer &&
+    data.byteOffset === 0 &&
+    data.byteLength === buffer.byteLength
+  ) {
+    return buffer
   }
-  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+  return data.slice().buffer
 }
 
 function preGrowV86WasmMemory(
@@ -226,7 +234,7 @@ export async function startBrowserV86Runtime(
     const minimumWasmMemoryBytes =
       guestMemoryBytes + vgaMemoryBytes + v86WasmMemoryHeadroomBytes
 
-    emulator = new V86({
+    const vm = new V86({
       wasm_fn: ({ env }: { env: WebAssembly.ModuleImports }) =>
         instantiateV86Wasm(
           options.assets.wasm,
@@ -247,24 +255,24 @@ export async function startBrowserV86Runtime(
       disable_speaker: true,
       autostart: true,
     })
+    emulator = vm
 
-    screen.attach(emulator)
-    emulator.add_listener('serial0-output-byte', (byte: number) => {
+    screen.attach(vm)
+    vm.add_listener('serial0-output-byte', (byte: number) => {
       if (serialBatch.length === 0) queueMicrotask(flushSerialBatch)
       serialBatch.push(byte)
     })
-    const running = emulator
     void ready.then(
       () => {
         if (stopped) return
-        options.attachV86fsNotifier?.(running.v86.cpu.devices.virtio_v86fs)
+        options.attachV86fsNotifier?.(vm.v86.cpu.devices.virtio_v86fs)
       },
       () => {},
     )
     serialChannel.onmessage = (ev: MessageEvent<SerialFrame>) => {
       const frame = ev.data
       if (!frame || frame.dir !== 'in') return
-      if (frame.text) emulator.serial0_send(frame.text)
+      if (frame.text) vm.serial0_send(frame.text)
     }
 
     return {
@@ -276,8 +284,8 @@ export async function startBrowserV86Runtime(
         settleReady()
         serialChannel.close()
         screenChannel.close()
-        emulator.stop()
-        emulator.destroy()
+        vm.stop()
+        vm.destroy()
       },
     }
   } catch (err) {

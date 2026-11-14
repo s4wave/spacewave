@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SetV86StateOp, VmState, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 const mockContents = vi.hoisted(() => ({
   setProcessBinding: vi.fn().mockResolvedValue({}),
@@ -86,7 +87,10 @@ function disposable<T extends object>(
 
 function buildWorld(vm: VmV86) {
   mockVmResource.value = vm
-  const applyWorldOp = vi.fn(() => Promise.resolve({ sysErr: false }))
+  const applyWorldOp = vi.fn<IWorldState['applyWorldOp']>(() =>
+    Promise.resolve({ seqno: 0n, sysErr: false }),
+  )
+  // world fakes only the calls the viewer makes.
   const world = {
     getObject: vi.fn(() =>
       Promise.resolve(
@@ -108,7 +112,7 @@ function buildWorld(vm: VmV86) {
     ),
     lookupGraphQuads: vi.fn(() => Promise.resolve({ quads: [] })),
     applyWorldOp,
-  }
+  } as unknown as IWorldState
   return { world, applyWorldOp }
 }
 
@@ -236,7 +240,7 @@ describe('VmV86Viewer', () => {
     await waitFor(() => {
       expect(applyWorldOp).toHaveBeenCalled()
     })
-    const [, opData] = applyWorldOp.mock.calls[0] as [string, Uint8Array]
+    const [, opData] = applyWorldOp.mock.calls[0]
     const op = SetV86StateOp.fromBinary(opData)
     expect(op.objectKey).toBe('vm/v86/test')
     expect(op.state ?? VmState.VmState_STOPPED).toBe(VmState.VmState_STOPPED)
@@ -276,7 +280,7 @@ describe('VmV86Viewer', () => {
       )
       expect(applyWorldOp).toHaveBeenCalled()
     })
-    const [, opData] = applyWorldOp.mock.calls[0] as [string, Uint8Array]
+    const [, opData] = applyWorldOp.mock.calls[0]
     const op = SetV86StateOp.fromBinary(opData)
     expect(op.objectKey).toBe('vm/v86/test')
     expect(op.state ?? VmState.VmState_STOPPED).toBe(VmState.VmState_RUNNING)

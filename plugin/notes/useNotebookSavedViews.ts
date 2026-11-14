@@ -4,7 +4,11 @@ import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { attachApp, createAppInstance } from '@s4wave/sdk/sync/attachment.js'
+import {
+  attachApp,
+  createAppInstance,
+  type AppAttachment,
+} from '@s4wave/sdk/sync/attachment.js'
 import { SyncError } from '@s4wave/sdk/sync/errors.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useAppAttachment } from '@s4wave/web/sync/useAppAttachment.js'
@@ -116,7 +120,9 @@ function useFirstSavedView(
 
 // useSavedViewOperations binds the named save, rename, and delete operations
 // and reports their combined pending and error state.
-function useSavedViewOperations(app: ReturnType<typeof useAppAttachment>) {
+function useSavedViewOperations(
+  app: Resource<AppAttachment<typeof notebookViews.schema>>,
+) {
   const save = useAppMutation(app.value, 'saveView')
   const rename = useAppMutation(app.value, 'renameView')
   const remove = useAppMutation(app.value, 'deleteView')
@@ -166,7 +172,8 @@ export function useNotebookSavedViews(
   // Query results remain the sole shared state; first-save intent retains its retry ID.
   return {
     views: views.status === 'current' ? views.value : [],
-    loading: exists.loading || (exists.value && views.status === 'pending'),
+    loading:
+      exists.loading || (exists.value === true && views.status === 'pending'),
     pending: first.pending || operations.pending,
     error: failure?.error ?? null,
     ready:

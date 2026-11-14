@@ -568,11 +568,11 @@ describe('notes backend registration', () => {
       })
     const lifecycle = main(buildApi('spacewave-notes') as never, abort.signal)
     let started = false
-    const startup = lifecycle.startup.then(() => {
+    const startup = Promise.resolve(lifecycle.startup).then(() => {
       started = true
     })
     let doneResolved = false
-    const done = lifecycle.done.then(() => {
+    const done = Promise.resolve(lifecycle.done).then(() => {
       doneResolved = true
     })
 

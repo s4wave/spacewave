@@ -232,6 +232,7 @@ describe('NoteContentView', () => {
       value: null,
       loading: false,
       error: new Error('Permission denied'),
+      last: null,
       retry: vi.fn(),
     })
 
@@ -606,6 +607,7 @@ describe('NoteContentView', () => {
       value: null,
       loading: false,
       error: new Error('Permission denied'),
+      last: null,
       retry,
     })
 
