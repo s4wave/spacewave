@@ -59,6 +59,53 @@ func (x GitCloneProgressState) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// GitCloneFailure is the cause of a failed wizard Git clone.
+type GitCloneFailure int32
+
+const (
+	// GIT_CLONE_FAILURE_UNKNOWN means the clone has not failed.
+	GitCloneFailure_GIT_CLONE_FAILURE_UNKNOWN GitCloneFailure = 0
+	// GIT_CLONE_FAILURE_OTHER means the clone or its publish failed, and a new
+	// clone may succeed.
+	GitCloneFailure_GIT_CLONE_FAILURE_OTHER GitCloneFailure = 1
+	// GIT_CLONE_FAILURE_WIZARD_GONE means the wizard was removed elsewhere, so
+	// nothing was published and no clone can succeed from it.
+	GitCloneFailure_GIT_CLONE_FAILURE_WIZARD_GONE GitCloneFailure = 2
+	// GIT_CLONE_FAILURE_KEY_TAKEN means another object holds the repository
+	// key, so a clone under a new name may succeed.
+	GitCloneFailure_GIT_CLONE_FAILURE_KEY_TAKEN GitCloneFailure = 3
+)
+
+// Enum value maps for GitCloneFailure.
+var (
+	GitCloneFailure_name = map[int32]string{
+		0: "GIT_CLONE_FAILURE_UNKNOWN",
+		1: "GIT_CLONE_FAILURE_OTHER",
+		2: "GIT_CLONE_FAILURE_WIZARD_GONE",
+		3: "GIT_CLONE_FAILURE_KEY_TAKEN",
+	}
+	GitCloneFailure_value = map[string]int32{
+		"GIT_CLONE_FAILURE_UNKNOWN":     0,
+		"GIT_CLONE_FAILURE_OTHER":       1,
+		"GIT_CLONE_FAILURE_WIZARD_GONE": 2,
+		"GIT_CLONE_FAILURE_KEY_TAKEN":   3,
+	}
+)
+
+func (x GitCloneFailure) Enum() *GitCloneFailure {
+	p := new(GitCloneFailure)
+	*p = x
+	return p
+}
+
+func (x GitCloneFailure) String() string {
+	name, valid := GitCloneFailure_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // IntroWizardRegion is a region of the object viewer frame an intro callout
 // points at.
 type IntroWizardRegion int32
@@ -315,6 +362,9 @@ type GitCloneProgress struct {
 	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	// ObjectKey is the created git/repo object key when known.
 	ObjectKey string `protobuf:"bytes,4,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Failure is the cause of a FAILED clone, so a viewer offers the way out
+	// that cause allows.
+	Failure GitCloneFailure `protobuf:"varint,5,opt,name=failure,proto3" json:"failure,omitempty"`
 }
 
 func (x *GitCloneProgress) Reset() {
@@ -349,6 +399,13 @@ func (x *GitCloneProgress) GetObjectKey() string {
 		return x.ObjectKey
 	}
 	return ""
+}
+
+func (x *GitCloneProgress) GetFailure() GitCloneFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return GitCloneFailure_GIT_CLONE_FAILURE_UNKNOWN
 }
 
 // ListWizardsRequest is the request for ListWizards.
@@ -970,6 +1027,7 @@ func (m *GitCloneProgress) CloneVT() *GitCloneProgress {
 	r.Message = m.Message
 	r.Error = m.Error
 	r.ObjectKey = m.ObjectKey
+	r.Failure = m.Failure
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1374,6 +1432,9 @@ func (this *GitCloneProgress) EqualVT(that *GitCloneProgress) bool {
 	if this.ObjectKey != that.ObjectKey {
 		return false
 	}
+	if this.Failure != that.Failure {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1726,6 +1787,46 @@ func (x *GitCloneProgressState) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the GitCloneProgressState from JSON.
 func (x *GitCloneProgressState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GitCloneFailure to JSON.
+func (x GitCloneFailure) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), GitCloneFailure_name)
+}
+
+// MarshalText marshals the GitCloneFailure to text.
+func (x GitCloneFailure) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), GitCloneFailure_name)), nil
+}
+
+// MarshalJSON marshals the GitCloneFailure to JSON.
+func (x GitCloneFailure) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GitCloneFailure from JSON.
+func (x *GitCloneFailure) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(GitCloneFailure_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read GitCloneFailure enum: %v", err)
+		return
+	}
+	*x = GitCloneFailure(v)
+}
+
+// UnmarshalText unmarshals the GitCloneFailure from text.
+func (x *GitCloneFailure) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), GitCloneFailure_value)
+	if err != nil {
+		return err
+	}
+	*x = GitCloneFailure(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the GitCloneFailure from JSON.
+func (x *GitCloneFailure) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2173,6 +2274,11 @@ func (x *GitCloneProgress) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKey")
 		s.WriteString(x.ObjectKey)
 	}
+	if x.Failure != 0 || s.HasField("failure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2202,6 +2308,9 @@ func (x *GitCloneProgress) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_key", "objectKey":
 			s.AddField("object_key")
 			x.ObjectKey = s.ReadString()
+		case "failure":
+			s.AddField("failure")
+			x.Failure.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3333,6 +3442,11 @@ func (m *GitCloneProgress) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Failure != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Failure))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
@@ -4048,6 +4162,7 @@ func (m *GitCloneProgress) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Message)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Failure)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4220,6 +4335,10 @@ func (x GitCloneProgressState) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x GitCloneFailure) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x IntroWizardRegion) MarshalProtoText() string {
 	return x.String()
 }
@@ -4370,6 +4489,10 @@ func (x *GitCloneProgress) MarshalProtoText() string {
 	if x.ObjectKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.Failure != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteStringer(&sb, GitCloneFailure(x.Failure))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5208,6 +5331,17 @@ func (m *GitCloneProgress) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKey = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+			}
+			m.Failure = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Failure = GitCloneFailure(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -6,7 +6,7 @@ var errGitCloneProgressComplete = errors.New("git clone progress complete")
 
 // ErrWizardGone reports a wizard that was finished or deleted elsewhere, so
 // the work it would publish has nothing left to replace.
-var ErrWizardGone = errors.New("this wizard was already finished or deleted elsewhere")
+var ErrWizardGone = errors.New("this wizard no longer exists")
 
 // GitRepoKeyTakenError refuses a clone publish whose repository key another
 // object already holds.

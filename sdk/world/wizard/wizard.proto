@@ -83,6 +83,9 @@ message GitCloneProgress {
   string error = 3;
   // ObjectKey is the created git/repo object key when known.
   string object_key = 4;
+  // Failure is the cause of a FAILED clone, so a viewer offers the way out
+  // that cause allows.
+  GitCloneFailure failure = 5;
 }
 
 // GitCloneProgressState is the lifecycle state for a wizard Git clone.
@@ -95,6 +98,21 @@ enum GitCloneProgressState {
   GIT_CLONE_PROGRESS_STATE_DONE = 2;
   // GIT_CLONE_PROGRESS_STATE_FAILED means the clone failed.
   GIT_CLONE_PROGRESS_STATE_FAILED = 3;
+}
+
+// GitCloneFailure is the cause of a failed wizard Git clone.
+enum GitCloneFailure {
+  // GIT_CLONE_FAILURE_UNKNOWN means the clone has not failed.
+  GIT_CLONE_FAILURE_UNKNOWN = 0;
+  // GIT_CLONE_FAILURE_OTHER means the clone or its publish failed, and a new
+  // clone may succeed.
+  GIT_CLONE_FAILURE_OTHER = 1;
+  // GIT_CLONE_FAILURE_WIZARD_GONE means the wizard was removed elsewhere, so
+  // nothing was published and no clone can succeed from it.
+  GIT_CLONE_FAILURE_WIZARD_GONE = 2;
+  // GIT_CLONE_FAILURE_KEY_TAKEN means another object holds the repository
+  // key, so a clone under a new name may succeed.
+  GIT_CLONE_FAILURE_KEY_TAKEN = 3;
 }
 
 // ListWizardsRequest is the request for ListWizards.

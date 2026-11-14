@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
 import {
+  GitCloneFailure,
   GitCloneProgressState,
   type GitCloneProgress,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -396,6 +397,7 @@ describe('GitRepoWizardViewer', () => {
     localName = 'cli'
     currentProgress = {
       state: GitCloneProgressState.FAILED,
+      failure: GitCloneFailure.KEY_TAKEN,
       message:
         'A repository already exists at git/repo/cli. Clone again to use a new name.',
       objectKey: 'git/repo/cli',
@@ -417,5 +419,31 @@ describe('GitRepoWizardViewer', () => {
       screen.getByText(/A repository already exists at git\/repo\/cli/),
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: /clone/i })).toBeTruthy()
+  })
+
+  it('shows the gone state for a clone refused because the wizard is gone', () => {
+    currentStep = 2
+    localName = 'cli'
+    currentProgress = {
+      state: GitCloneProgressState.FAILED,
+      failure: GitCloneFailure.WIZARD_GONE,
+      message: 'This wizard no longer exists.',
+      objectKey: 'git/repo/cli',
+    }
+
+    render(
+      <GitRepoWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByText('This wizard no longer exists.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /clone/i })).toBeNull()
   })
 })
