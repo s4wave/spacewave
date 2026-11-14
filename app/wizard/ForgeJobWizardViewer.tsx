@@ -92,12 +92,8 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
-      title={
-        <>
-          <LuBriefcase className="mr-2 size-4 shrink-0" />
-          New Forge Job
-        </>
-      }
+      icon={<LuBriefcase />}
+      title="New Forge Job"
       step={state.step ?? 0}
       totalSteps={2}
       stepName={(state.step ?? 0) === 0 ? 'Cluster and tasks' : 'Job identity'}

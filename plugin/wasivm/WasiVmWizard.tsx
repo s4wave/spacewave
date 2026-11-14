@@ -134,12 +134,8 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
-      title={
-        <>
-          <LuTerminal className="mr-2 size-4 shrink-0" />
-          New WebAssembly VM
-        </>
-      }
+      icon={<LuTerminal />}
+      title="New WebAssembly VM"
       step={state.step ?? 0}
       localName={ws.localName}
       onUpdateName={ws.handleUpdateName}

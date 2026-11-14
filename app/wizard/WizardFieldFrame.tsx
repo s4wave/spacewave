@@ -21,7 +21,7 @@ export function WizardFieldFrame({
     <label className={cn('block min-w-0 space-y-1.5', fieldClassName)}>
       <span
         className={cn(
-          'text-foreground-alt/70 block micro-label font-medium',
+          'text-foreground-alt block text-xs font-medium',
           labelClassName,
         )}
       >
@@ -29,7 +29,7 @@ export function WizardFieldFrame({
       </span>
       {children}
       {help && (
-        <span className="text-foreground-alt/50 micro-label block leading-relaxed">
+        <span className="text-foreground-alt block text-xs leading-relaxed">
           {help}
         </span>
       )}

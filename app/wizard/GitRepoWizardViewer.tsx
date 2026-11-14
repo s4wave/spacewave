@@ -211,12 +211,8 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
-      title={
-        <>
-          <LuGitBranch className="mr-2 size-4 shrink-0" />
-          New Git Repository
-        </>
-      }
+      icon={<LuGitBranch />}
+      title="New Git Repository"
       step={currentStep}
       totalSteps={isClone ? 3 : 2}
       localName={ws.localName}

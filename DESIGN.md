@@ -976,11 +976,12 @@ description.
 
 **`wizard-shell`** is the persistent object-creation shell.
 
-- Outer: centered, `px-4 py-10`, scrollable.
-- Card: `max-w-lg rounded-xl border-foreground/6 bg-background-card/30`.
-- Header: `h-9 border-b border-foreground/8 px-4`.
-- Step label: `text-foreground-alt/50 text-[0.6rem] font-medium
-  tracking-widest uppercase`.
+- Bar: `ViewerBar` across the pane, with the kind's icon, the wizard's title
+  and Delete wizard, as every viewer's bar.
+- Outer: under the bar, centered, `px-4 py-10`, scrollable.
+- Card: `max-w-lg rounded-xl border-foreground/6 bg-background-card/30`,
+  holding the steps without a header of its own.
+- Step label: `text-foreground-alt text-xs font-medium`, at the 12px floor.
 - Body: `px-4 py-3 space-y-3`.
 - Footer: `border-t border-foreground/8 px-4 py-3`.
 - Long-running work becomes a progress step with watched status, not a stuck

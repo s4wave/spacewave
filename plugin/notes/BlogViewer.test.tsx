@@ -170,7 +170,7 @@ describe('BlogViewer', () => {
 
     renderViewer()
 
-    fireEvent.click(screen.getByTitle('Editing mode'))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit posts' }))
     fireEvent.click(screen.getByTitle('New note'))
 
     await waitFor(() => {
@@ -209,7 +209,7 @@ describe('BlogViewer', () => {
 
     renderViewer()
 
-    fireEvent.click(screen.getByTitle('Editing mode'))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit posts' }))
     fireEvent.click(screen.getByTitle('Select post'))
     fireEvent.click(screen.getByTestId('note-content-view'))
 

@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { LuBookOpen, LuPenLine } from 'react-icons/lu'
+import { LuBookOpen, LuNewspaper, LuPenLine } from 'react-icons/lu'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import {
   ViewerStatus,
   resourceStatus,
+  type ViewerStatusProps,
 } from '@s4wave/web/object/ViewerStatus.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
@@ -16,7 +18,6 @@ import {
   useUnixFSHandle,
   useUnixFSHandleEntries,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import { Blog } from './proto/blog.pb.js'
 import { BlogTypeID } from './sdk/blog.js'
@@ -198,55 +199,41 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     setContentVersion((prev) => prev + 1)
   }, [])
 
-  // Show the read's status, or the empty blog, before its posts.
-  const status = resourceStatus('the blog', state)
-  if (status) return <ViewerStatus {...status} />
-  if (sources.length === 0) {
-    return (
-      <ViewerStatus state="empty" message="This blog has no sources yet." />
-    )
-  }
+  // Show the read's status, or the empty blog, under the bar before its
+  // posts. The mode press names the other mode, since switching to the
+  // current one does nothing.
+  const status: ViewerStatusProps | null =
+    resourceStatus('the blog', state) ??
+    (sources.length === 0
+      ? { state: 'empty', message: 'This blog has no sources yet.' }
+      : null)
+  const modeAction =
+    mode === 'reading'
+      ? {
+          id: 'mode',
+          label: 'Edit posts',
+          icon: <LuPenLine />,
+          onClick: handleSetEditing,
+        }
+      : {
+          id: 'mode',
+          label: 'Read posts',
+          icon: <LuBookOpen />,
+          onClick: handleSetReading,
+        }
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
-      {/* Mode toggle header */}
-      <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-3">
-        <span className="text-foreground text-xs font-medium">
-          {state.value?.name ?? 'Blog'}
-        </span>
-        <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={handleSetReading}
-            className={cn(
-              'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-              'hover:bg-list-hover-background',
-              mode === 'reading' ? 'text-brand' : 'text-foreground-alt',
-            )}
-            title="Reading mode"
-          >
-            <LuBookOpen className="size-3" />
-            Read
-          </button>
-          <button
-            type="button"
-            onClick={handleSetEditing}
-            className={cn(
-              'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-              'hover:bg-list-hover-background',
-              mode === 'editing' ? 'text-brand' : 'text-foreground-alt',
-            )}
-            title="Editing mode"
-          >
-            <LuPenLine className="size-3" />
-            Edit
-          </button>
-        </div>
-      </div>
+      <ViewerBar
+        icon={<LuNewspaper />}
+        title={state.value?.name || 'Blog'}
+        actions={status ? [] : [modeAction]}
+      />
 
-      {/* Content area */}
       <div className="min-h-0 flex-1">
-        {mode === 'reading' ? (
+        {status ? (
+          <ViewerStatus {...status} />
+        ) : mode === 'reading' ? (
           <BlogReadingView
             posts={blogPosts}
             selectedPost={selectedPost}

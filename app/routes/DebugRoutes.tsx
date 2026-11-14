@@ -3,6 +3,7 @@ import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
 import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
+import { WizardShellDebug } from '@s4wave/app/debug/wizard/WizardShellDebug.js'
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
 import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
@@ -137,6 +138,12 @@ const debugRouteEntries = [
     description: 'Floating viewer controls; add /hidden, /pointer, /focused...',
     element: <ViewerFloatDebug />,
   },
+  {
+    path: '/debug/ui/wizard',
+    title: 'Wizard',
+    description: 'Open a wizard in one state; add /invalid, /final...',
+    element: <WizardShellDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -167,6 +174,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/viewer-float/:state">
       <ViewerFloatDebug />
+    </Route>
+    <Route path="/debug/ui/wizard/:state">
+      <WizardShellDebug />
     </Route>
   </>
 )

@@ -65,6 +65,10 @@ vi.mock('@s4wave/web/debug/ViewerStatusDebug.js', () => ({
   ViewerStatusDebug: () => <div data-testid="viewer-status-debug" />,
 }))
 
+vi.mock('@s4wave/app/debug/wizard/WizardShellDebug.js', () => ({
+  WizardShellDebug: () => <div data-testid="wizard-shell-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/UnixFSBrowserDebug.js', () => ({
   UnixFSBrowserDebug: () => <div data-testid="unixfs-browser-debug" />,
 }))
@@ -89,6 +93,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/git-side', testId: 'git-side-debug' },
   { path: '/debug/ui/viewer-status', testId: 'viewer-status-debug' },
   { path: '/debug/ui/viewer-float', testId: 'viewer-float-debug' },
+  { path: '/debug/ui/wizard', testId: 'wizard-shell-debug' },
 ]
 
 function renderDebugRoute(path: string) {
@@ -129,6 +134,12 @@ describe('DebugRoutes', () => {
     renderDebugRoute('/debug/ui/viewer-status/failed')
 
     expect(screen.getByTestId('viewer-status-debug')).toBeDefined()
+  })
+
+  it('resolves a wizard fixture state to the wizard debug page', () => {
+    renderDebugRoute('/debug/ui/wizard/invalid')
+
+    expect(screen.getByTestId('wizard-shell-debug')).toBeDefined()
   })
 
   it('resolves a facts fixture state to the facts debug page', () => {

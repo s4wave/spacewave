@@ -158,12 +158,13 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
     )
   }
 
-  const displayName = targetWizard?.displayName ?? state.targetTypeId
+  const displayName =
+    targetWizard?.displayName || state.targetTypeId || 'object'
   const nameError = validateTargetName(state.targetTypeId, ws.localName)
 
   return (
     <WizardShell
-      title={<>New {displayName}</>}
+      title={`New ${displayName}`}
       step={state.step ?? 0}
       localName={ws.localName}
       onUpdateName={ws.handleUpdateName}

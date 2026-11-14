@@ -618,12 +618,8 @@ export function VmV86WizardViewer({
   return (
     <>
       <WizardShell
-        title={
-          <>
-            <LuMonitor className="mr-2 size-4 shrink-0" />
-            New virtual machine
-          </>
-        }
+        icon={<LuMonitor />}
+        title="New virtual machine"
         step={step}
         totalSteps={2}
         stepName={step === 0 ? 'Choose image' : 'Configure VM'}

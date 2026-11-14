@@ -1,19 +1,17 @@
 import { useCallback, type FocusEvent, type ReactNode } from 'react'
 import { LuArrowLeft, LuCheck, LuTrash2 } from 'react-icons/lu'
 
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@s4wave/web/ui/tooltip.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { WizardField } from './WizardField.js'
 
 export interface WizardShellProps {
-  title: ReactNode
+  // icon marks the kind of object the wizard creates.
+  icon?: ReactNode
+  title: string
   step: number
   totalSteps?: number
   stepName?: string
@@ -49,31 +47,6 @@ export interface WizardShellProps {
   finalizeStep?: number
   // Long-form steps can opt into the established wide wizard width.
   width?: 'default' | 'wide'
-}
-
-/** WizardHeader renders the title bar with the delete action. */
-function WizardHeader({
-  title,
-  onCancel,
-}: Pick<WizardShellProps, 'title' | 'onCancel'>) {
-  return (
-    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between border-b px-4">
-      <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
-        {title}
-      </h2>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DashboardButton
-            icon={<LuTrash2 className="size-3.5" />}
-            onClick={onCancel}
-            aria-label="Delete wizard"
-            variant="destructive"
-          />
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Delete wizard</TooltipContent>
-      </Tooltip>
-    </div>
-  )
 }
 
 type WizardNameFieldProps = Pick<
@@ -179,7 +152,7 @@ function WizardFooter({
       <div>
         {step > 0 && (
           <DashboardButton
-            icon={<LuArrowLeft className="size-3.5" />}
+            icon={<LuArrowLeft className="size-3.5" aria-hidden />}
             onClick={onBack}
             disabled={!canBack}
           >
@@ -205,7 +178,7 @@ function WizardFooter({
             variant="brandOutline"
             size="toolbarWide"
           >
-            <LuCheck className="size-3.5" />
+            <LuCheck className="size-3.5" aria-hidden />
             {creating ? creatingLabel : createLabel}
           </Button>
         )}
@@ -218,6 +191,7 @@ function WizardFooter({
 // content slot, name input, and button grid. The content scrolls between the
 // header and the buttons, so a short window keeps the buttons in reach.
 export function WizardShell({
+  icon,
   title,
   step,
   totalSteps,
@@ -234,39 +208,51 @@ export function WizardShell({
       : `Step ${step + 1}`
 
   return (
-    <div className="very-short:py-2 flex h-full w-full items-start justify-center px-4 py-10">
-      <div
-        className={cn(
-          'border-foreground/6 bg-background-card/30 flex max-h-full w-full flex-col overflow-hidden rounded-xl border',
-          width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
-        )}
-      >
-        <WizardHeader title={title} onCancel={onCancel} />
+    <div className="flex h-full w-full flex-col">
+      <ViewerBar
+        icon={icon}
+        title={title}
+        actions={[
+          {
+            id: 'delete',
+            label: 'Delete wizard',
+            icon: <LuTrash2 />,
+            iconOnly: true,
+            variant: 'destructive',
+            onClick: onCancel,
+          },
+        ]}
+      />
+      <div className="very-short:py-2 flex min-h-0 w-full flex-1 items-start justify-center px-4 py-10">
+        <div
+          className={cn(
+            'border-foreground/6 bg-background-card/30 flex max-h-full w-full flex-col overflow-hidden rounded-xl border',
+            width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
+          )}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+            <div className="space-y-3">
+              <div className="text-foreground-alt flex items-center gap-2 text-xs select-none">
+                <span className="font-medium">{stepLabel}</span>
+                {stepName && (
+                  <span className="text-foreground text-xs font-medium">
+                    {stepName}
+                  </span>
+                )}
+              </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-          <div className="space-y-3">
-            <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
-              <span className="micro-text font-medium tracking-widest uppercase">
-                {stepLabel}
-              </span>
-              {stepName && (
-                <span className="text-foreground-alt/80 text-xs font-medium">
-                  {stepName}
-                </span>
-              )}
+              {step === nameStep && <WizardNameField {...rest} />}
+
+              {children}
             </div>
-
-            {step === nameStep && <WizardNameField {...rest} />}
-
-            {children}
           </div>
-        </div>
 
-        <WizardFooter
-          step={step}
-          canSubmit={!!rest.localName.trim()}
-          {...rest}
-        />
+          <WizardFooter
+            step={step}
+            canSubmit={!!rest.localName.trim()}
+            {...rest}
+          />
+        </div>
       </div>
     </div>
   )

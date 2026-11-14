@@ -686,12 +686,8 @@ function AddDeviceWizardContent({
   const copy = wizardCopy(mode, currentStep, isSshInstallMode)
   return (
     <WizardShell
-      title={
-        <>
-          <LuHardDrive className="mr-2 size-4 shrink-0" />
-          Add Device
-        </>
-      }
+      icon={<LuHardDrive />}
+      title="Add Device"
       step={currentStep}
       totalSteps={copy.totalSteps}
       stepName={copy.stepName}

@@ -93,12 +93,8 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
-      title={
-        <>
-          <LuListTodo className="mr-2 size-4 shrink-0" />
-          New Forge Task
-        </>
-      }
+      icon={<LuListTodo />}
+      title="New Forge Task"
       step={state.step ?? 0}
       totalSteps={2}
       localName={ws.localName}

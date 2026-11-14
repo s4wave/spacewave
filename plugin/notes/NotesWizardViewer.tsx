@@ -123,7 +123,7 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
 
   return (
     <WizardShell
-      title={<>New {displayName}</>}
+      title={`New ${displayName}`}
       step={state.step ?? 0}
       localName={ws.localName}
       onUpdateName={ws.handleUpdateName}
