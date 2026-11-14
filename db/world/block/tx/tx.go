@@ -120,7 +120,10 @@ func (t *Tx) LocateTx() (Transaction, error) {
 // create or set writes, the roots an applied operation set (its SetRoots),
 // and the roots of a world.PayloadOperation. Replay applies the transaction
 // again and reads each of them, and a World stored before the transaction
-// does not reach them.
+// does not reach them. When an operation does not decode, such as one whose
+// type lookupOp does not resolve yet, it returns the error with every root it
+// read without decoding: the object roots of each transaction, so a hold of
+// those keeps them until the type resolves and names the rest.
 func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
 	// Decode the operation, or collect the roots of each batched transaction.
 	var op world.Operation
@@ -131,13 +134,13 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		return t.objectRoots(), nil
 	case TxType_TxType_BATCH:
 		for i, tx := range t.GetTxBatch().GetTxs() {
-			txRefs, err := tx.PayloadRefs(ctx, lookupOp)
-			if err != nil {
-				return nil, errors.Wrapf(err, "tx_batch[%d]", i)
+			txRefs, txErr := tx.PayloadRefs(ctx, lookupOp)
+			if txErr != nil && err == nil {
+				err = errors.Wrapf(txErr, "tx_batch[%d]", i)
 			}
 			refs = append(refs, txRefs...)
 		}
-		return refs, nil
+		return refs, err
 	case TxType_TxType_APPLY_WORLD_OP:
 		refs = t.objectRoots()
 		op, err = t.GetTxApplyWorldOp().decodeOp(ctx, lookupOp)
@@ -148,7 +151,7 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return refs, err
 	}
 
 	// Add the roots of a payload operation.

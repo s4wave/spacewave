@@ -42,6 +42,13 @@ type Body interface {
 	// after the covered operations equals the checkpoint's; otherwise the
 	// driver applies every operation above checkpoint again.
 	Install(ctx context.Context, checkpoint *SOCheckpointInner, covered int) (bool, error)
+	// Hold keeps what the operations of ev above its checkpoint read, such as
+	// their payloads, readable on this device whether or not the body applies
+	// them, until the body's state covers them. The driver calls it for each
+	// order before it installs or applies anything of it, so a body never
+	// sees an operation whose data it does not hold, and an operation another
+	// device wrote stays readable here without that device.
+	Hold(ctx context.Context, ev *OrderEvent) error
 }
 
 // OrderedOperation is one operation of the agreed order, as a Body applies it.

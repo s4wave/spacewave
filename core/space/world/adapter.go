@@ -112,6 +112,13 @@ type Adapter struct {
 	held map[string]*block.BlockRef
 	// payloads are the payload roots the replay payloads root holds.
 	payloads rootSet
+	// stateHold is what the payload hold knows of the last order Hold saw,
+	// nil before the first. The driver goroutine uses it.
+	stateHold *payloadState
+	// resetPlanned, when set, runs after resetPayloads plans a drop and
+	// before it takes rootMtx for the move, so a test can admit a writer
+	// there. Nil outside tests.
+	resetPlanned func()
 	// retainedHeld are the retained roots the retained root holds. Guarded
 	// by rootMtx.
 	retainedHeld []*RetainedRoot
@@ -875,10 +882,10 @@ func (a *Adapter) Install(ctx context.Context, checkpoint *sobject.SOCheckpointI
 	}
 
 	// Release the payloads of the operations it covers, which replay reads
-	// no more. Operations a missed install leaves above it keep theirs until
-	// replay applies them again.
+	// no more and whose effect the kept World holds. Operations a missed
+	// install leaves above it keep theirs, as the state still holds them.
 	if paid {
-		if err := a.resetPayloads(ctx); err != nil {
+		if err := a.resetPayloads(ctx, true); err != nil {
 			return false, err
 		}
 	}
@@ -1670,35 +1677,6 @@ func (a *Adapter) addPayloads(ctx context.Context, extra []*block.BlockRef) erro
 	}
 	defer release()
 	return a.appendRoots(ctx, &a.payloads, extra)
-}
-
-// resetPayloads holds the payloads of the positions above the checkpoint and
-// of the pending admissions, dropping those a checkpoint covered. The driver
-// goroutine calls it.
-func (a *Adapter) resetPayloads(ctx context.Context) error {
-	// Store the payloads gathered now, then take the root lock before the
-	// gather, so an admission is either pending at the gather or adds its
-	// payloads after the reset.
-	release, err := a.lockRoots(ctx, a.gatherPayloads()...)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Gather and hold them.
-	return a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{a.gatherPayloads()}, nil)
-}
-
-// gatherPayloads returns the payloads of the positions above the checkpoint
-// and of the pending admissions. The driver goroutine calls it.
-func (a *Adapter) gatherPayloads() []*block.BlockRef {
-	payloads := a.replay.payloads()
-	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, adm := range a.pending {
-			payloads = append(payloads, adm.payloads...)
-		}
-	})
-	return payloads
 }
 
 // holdRetained holds the retained roots under the retained root, or releases

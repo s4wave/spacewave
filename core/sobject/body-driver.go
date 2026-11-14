@@ -158,8 +158,8 @@ func (d *BodyDriver) Execute(ctx context.Context) error {
 	}
 }
 
-// Step brings the body to the order of snap: it installs snap's checkpoint
-// when it moved, then applies every operation above it the body has not
+// Step brings the body to the order of snap: it has the body hold what snap's
+// operations read, installs snap's checkpoint when it moved, then applies every operation above it the body has not
 // applied in this order. It returns the first error, with the body at the
 // operations before it.
 func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) error {
@@ -174,7 +174,11 @@ func (d *BodyDriver) Step(ctx context.Context, snap SharedObjectStateSnapshot) e
 	}
 	defer d.publishReport(ev)
 
-	// Install the checkpoint when it moved.
+	// Hold what the operations read, then install the checkpoint when it
+	// moved.
+	if err := d.body.Hold(ctx, ev); err != nil {
+		return err
+	}
 	if !ev.Checkpoint.EqualVT(d.installed) {
 		if err := d.install(ctx, ev); err != nil {
 			return err
