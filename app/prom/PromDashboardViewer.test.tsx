@@ -15,6 +15,7 @@ const { reads } = vi.hoisted(() => ({
     calls: 0,
     dash: null as unknown as Resource<unknown>,
     targets: null as unknown as Resource<unknown>,
+    handle: null as unknown as Resource<unknown>,
   },
 }))
 
@@ -23,13 +24,18 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
     reads.calls++ % 2 === 0 ? reads.dash : reads.targets,
 }))
 
-vi.mock('@s4wave/web/hooks/useWatchTypedHandle.js', () => ({
-  useWatchTypedHandle: () => ({
-    value: { state: 'ready', handle: {} },
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  }),
+vi.mock('@s4wave/web/hooks/useWatchTypedHandle.js', async (importActual) => ({
+  ...(await importActual<object>()),
+  useWatchTypedHandle: () => reads.handle,
+}))
+
+// container is the Space context the viewer reads its write access from.
+const { container } = vi.hoisted(() => ({
+  container: { canDeleteObjects: false } as Record<string, unknown>,
+}))
+
+vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
+  SpaceContainerContext: { useContextSafe: () => container },
 }))
 
 vi.mock('@s4wave/app/alarm/AlarmStrip.js', () => ({
@@ -51,8 +57,10 @@ function resource(
   return resourceOf({ value, last, loading, error, retry: vi.fn() })
 }
 
-function renderViewer() {
-  return render(
+const worldState = resource({} as IWorldState) as Resource<IWorldState>
+
+function viewerElement() {
+  return (
     <PromDashboardViewer
       objectInfo={{
         info: {
@@ -60,14 +68,19 @@ function renderViewer() {
           value: { objectKey: 'dash/forge', objectType: 'prom/dashboard' },
         },
       }}
-      worldState={resource({} as IWorldState) as Resource<IWorldState>}
-    />,
+      worldState={worldState}
+    />
   )
+}
+
+function renderViewer() {
+  return render(viewerElement())
 }
 
 describe('PromDashboardViewer', () => {
   beforeEach(() => {
     reads.calls = 0
+    reads.handle = resource({ state: 'ready', handle: {} })
   })
   afterEach(cleanup)
 
@@ -114,6 +127,37 @@ describe('PromDashboardViewer', () => {
     expect(screen.queryByText('This Dashboard has no panels.')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(reads.targets.retry).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps an open draft under a lost handle, offering no Save', () => {
+    // A writer opens the new panel editor and types a title.
+    container.canDeleteObjects = true
+    reads.dash = resource({ panels: [] })
+    reads.targets = resource(new Map([['target/forge', {}]]))
+    const view = renderViewer()
+    fireEvent.click(screen.getByRole('button', { name: 'Add panel' }))
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Load' },
+    })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDefined()
+
+    // The handle watch fails past its backoff, failing both record watches
+    // over their last records.
+    const lost = new Error('plugin stream closed')
+    reads.handle = resource(null, lost)
+    reads.dash = resource(null, lost, false, { panels: [] })
+    reads.targets = resource(null, lost, false, new Map([['target/forge', {}]]))
+    view.rerender(viewerElement())
+
+    // The draft stays; Save is withheld and the notice says why.
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe(
+      'Load',
+    )
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(
+      screen.getByText('Could not read the Dashboard: plugin stream closed'),
+    ).toBeDefined()
+    container.canDeleteObjects = false
   })
 
   it('waits while either record has not arrived', () => {

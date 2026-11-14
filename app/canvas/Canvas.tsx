@@ -770,6 +770,10 @@ interface CanvasProps {
   imageObjectKey?: string
   imageSubItems?: SubItemsCallback
   focusNodeId?: string | null
+  // readOnly offers no tool, drag, resize, text edit or menu, as while the
+  // viewer has no live handle to save an edit to. Selection, pan and zoom
+  // stay.
+  readOnly?: boolean
   className?: string
 }
 
@@ -784,12 +788,14 @@ export function Canvas({
   imageObjectKey,
   imageSubItems,
   focusNodeId,
+  readOnly = false,
   className,
 }: CanvasProps) {
   const [toolInternal, setToolInternal] = useState<CanvasTool>('select')
   const [drawingColor, setDrawingColor] = useState(DEFAULT_CANVAS_COLOR)
-  const tool = toolProp ?? toolInternal
-  const onToolChange = toolProp === undefined ? setToolInternal : undefined
+  const tool = readOnly ? 'select' : (toolProp ?? toolInternal)
+  const onToolChange =
+    toolProp === undefined && !readOnly ? setToolInternal : undefined
   const selectTool = useCallback(() => setToolInternal('select'), [])
 
   const viewportContainerRef = useRef<HTMLDivElement | null>(null)
@@ -918,11 +924,11 @@ export function Canvas({
     onToolChange,
     onCancelDrag: cancelDrag,
     onSetFocus: selection.setFocus,
-    onAddText: handleCommandAddText,
-    onAddObject: addObjectAt,
-    addObjectSubItems: objectSubItems,
-    onAddImage: addImageAt,
-    addImageSubItems: imageSubItems,
+    onAddText: readOnly ? undefined : handleCommandAddText,
+    onAddObject: readOnly ? undefined : addObjectAt,
+    addObjectSubItems: readOnly ? undefined : objectSubItems,
+    onAddImage: readOnly ? undefined : addImageAt,
+    addImageSubItems: readOnly ? undefined : imageSubItems,
   })
 
   const canAddObject = !!callbacks.onPinObject && !!objectSubItems
@@ -976,15 +982,19 @@ export function Canvas({
 
   return (
     <div className={cn('flex h-full outline-none', className)}>
-      <CanvasToolbar
-        tool={tool}
-        color={drawingColor}
-        onToolChange={onToolChange ?? (() => {})}
-        onColorChange={setDrawingColor}
-        actions={actions}
-        onAddObject={canAddObject ? () => requestObjectPicker(null) : undefined}
-        onAddImage={canAddImage ? requestImagePicker : undefined}
-      />
+      {readOnly ? null : (
+        <CanvasToolbar
+          tool={tool}
+          color={drawingColor}
+          onToolChange={onToolChange ?? (() => {})}
+          onColorChange={setDrawingColor}
+          actions={actions}
+          onAddObject={
+            canAddObject ? () => requestObjectPicker(null) : undefined
+          }
+          onAddImage={canAddImage ? requestImagePicker : undefined}
+        />
+      )}
       <div
         ref={viewportContainerRef}
         data-testid="canvas-viewport"
@@ -995,7 +1005,7 @@ export function Canvas({
           (tool === 'text' || tool === 'object') && 'cursor-crosshair',
         )}
         onClick={handleBackgroundClick}
-        onContextMenu={handleBackgroundContextMenu}
+        onContextMenu={readOnly ? undefined : handleBackgroundContextMenu}
         onPointerDown={handleBackgroundPointerDown}
         onPointerMove={objectDrag.handlePointerMove}
         onPointerUp={objectDrag.handlePointerUp}
@@ -1033,7 +1043,8 @@ export function Canvas({
               onSelectWithFocus={selection.selectWithFocus}
               onMove={handleNodeMove}
               onMoveEnd={handleNodeMoveEnd}
-              onResize={handleNodeResize}
+              onResize={readOnly ? undefined : handleNodeResize}
+              readOnly={readOnly}
             />
           ))}
           {pendingText && (

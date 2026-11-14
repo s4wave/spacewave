@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
@@ -42,6 +42,25 @@ export function useWatchTypedHandle<T extends SDKResource>(
     () => (watch.error ? resourceOf({ ...watch, last: null }) : watch),
     [watch],
   )
+}
+
+/**
+ * useHeldTypedHandle returns the handle a viewer draws its body on: the
+ * ready one, or while the watch has failed the last one that was ready, so
+ * the body and the drafts in it stay mounted under the failure. A held
+ * handle is released; the body reads it only through watches that report
+ * the watch's failure, and offers no write on it. It is null while the
+ * object is absent, has no handler, or has not been ready.
+ */
+export function useHeldTypedHandle<T>(
+  handle: Resource<TypedHandle<T>>,
+): T | null {
+  const value = handle.value
+  const ready = value?.state === 'ready' ? value.handle : null
+  const [last, setLast] = useState<T | null>(null)
+  const held = ready ?? (handle.error ? last : null)
+  if (held !== last) setLast(held)
+  return held
 }
 
 // watchTypedHandle yields the typed handler state of objectKey until signal

@@ -17,6 +17,8 @@ export const sendFailedMessage =
 // watch as CanvasViewer.tla models it: the watch's status in place of the
 // stage until a canvas arrives, then the stage with at most one line over it
 // while the watch reads again or has failed, and a notice for a failed edit.
+// readOnly is set while the canvas handle is not live: the stage offers no
+// edit and a line says why.
 export type CanvasViewState =
   | { body: 'status'; status: ViewerStatusProps }
   | {
@@ -24,11 +26,16 @@ export type CanvasViewState =
       notice?: ViewerStatusProps
       action?: string
       empty: boolean
+      readOnly: boolean
     }
 
+// readOnlyMessage says why a kept canvas offers no edit.
+export const readOnlyMessage = 'Editing returns once the canvas is read again.'
+
 /**
- * canvasViewState derives the drawn state from the canvas watch, the failed
- * edit's message, and whether the canvas the person sees holds no node. Until
+ * canvasViewState derives the drawn state from the canvas watch, whether the
+ * canvas handle is live to send edits on, the failed edit's message, and
+ * whether the canvas the person sees holds no node. Until
  * a canvas arrives the watch's wait or failure takes the body. Once one
  * arrived the stage keeps it: a watch reading again draws a waiting line over
  * it, and a failed watch, such as one past its reconnect backoff, draws its
@@ -37,6 +44,7 @@ export type CanvasViewState =
  */
 export function canvasViewState(
   watch: Resource<unknown>,
+  live: boolean,
   actionError: string | null,
   empty: boolean,
 ): CanvasViewState {
@@ -60,7 +68,8 @@ export function canvasViewState(
     body: 'stage',
     notice,
     action: actionError ?? undefined,
-    empty: empty && !watch.error,
+    empty: empty && !watch.error && live,
+    readOnly: !live,
   }
 }
 
@@ -85,7 +94,7 @@ const noticesClass =
 // empty canvas.
 export function CanvasView({ view, onDismiss, children }: CanvasViewProps) {
   if (view.body === 'status') return <ViewerStatus {...view.status} />
-  const notices = view.notice || view.action
+  const notices = view.notice || view.action || view.readOnly
   return (
     <ViewerStage media="still">
       {view.empty && (
@@ -97,6 +106,11 @@ export function CanvasView({ view, onDismiss, children }: CanvasViewProps) {
       {notices ? (
         <div data-testid="canvas-notices" className={noticesClass}>
           {view.notice ? <ViewerStatus {...view.notice} /> : null}
+          {view.readOnly ? (
+            <p className="text-foreground-alt viewer-inset-x min-h-viewer-fact-row flex items-center text-xs">
+              {readOnlyMessage}
+            </p>
+          ) : null}
           {view.action ? (
             <ViewerStatus
               state="failed"

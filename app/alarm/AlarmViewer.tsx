@@ -1,5 +1,6 @@
 import { useCallback, useReducer } from 'react'
 
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { AlarmState, AcknowledgeAlarmOp } from '@s4wave/sdk/alarm/alarm.pb.js'
 import { AcknowledgeAlarmOpTypeID } from '@s4wave/sdk/alarm/alarm_typeid.pb.js'
@@ -12,7 +13,10 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 
 import { shortPeer } from '@s4wave/app/prom/prom-view.js'
 
@@ -99,19 +103,17 @@ export function AlarmViewer({
     [sharing, myPeerId],
   )
 
-  if (alarm.error) {
-    return (
-      <ViewerStatus
-        state="failed"
-        message={`Could not read the Alarm: ${alarm.error.message}`}
-        retry={alarm.retry}
-      />
-    )
+  // Past its reconnect backoff the watch fails and keeps the last Alarm it
+  // read, drawn under the failure notice. A failure with nothing kept, or
+  // with a kept read that found no Alarm, takes the body.
+  const value = resourceContent(alarm)?.alarm
+  const failure = resourceStatus('the Alarm', alarm)
+  if (failure && !value) {
+    return <ViewerStatus {...failure} />
   }
-  if (!alarm.value) {
+  if (!alarm.value && !value) {
     return <ViewerStatus state="waiting" what="the Alarm" />
   }
-  const value = alarm.value.alarm
   if (!value) {
     return (
       <ViewerStatus state="failed" message="This Alarm no longer exists." />
@@ -133,6 +135,7 @@ export function AlarmViewer({
       saving={ack.state === 'saving'}
       ackError={ackError}
       onAcknowledge={() => void onAcknowledge()}
+      notice={failure ? <ViewerStatus {...failure} /> : null}
     />
   )
 }

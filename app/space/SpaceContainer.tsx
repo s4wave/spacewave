@@ -81,7 +81,6 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import {
   getObjectDisplayName,
   listSpaceObjectTargets,
-  type SpaceObjectTargets,
 } from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
@@ -93,9 +92,6 @@ import {
   useSpaceMount,
   useSpaceWorldMount,
 } from '@s4wave/app/hooks/useSharedMounts.js'
-
-// noSpaceObjectTargets stands in for the object targets while they load.
-const noSpaceObjectTargets: SpaceObjectTargets = { targets: [], more: false }
 
 // useSpaceContainerController owns Space mounting, route projection, object
 // navigation, sharing policy, and destructive mutations.
@@ -309,6 +305,8 @@ function useSpaceContainerController() {
     rootResource,
     spaceState?.engineId,
   )
+  // The targets are null until a read arrives, and under a failure with
+  // nothing kept: a count drawn from them claims nothing until then.
   const spaceObjectTargets =
     resourceContent(
       useWorldQuery(
@@ -317,7 +315,7 @@ function useSpaceContainerController() {
           listSpaceObjectTargets(world, objectTypeMetadataById, signal),
         [objectTypeMetadataById],
       ),
-    ) ?? noSpaceObjectTargets
+    ) ?? undefined
 
   const handleRenameStart = useCallback(() => {
     if (!canRename) return
@@ -393,8 +391,8 @@ function useSpaceContainerController() {
     () =>
       ready
         ? createSpaceObjectNavigationActions({
-            targets: spaceObjectTargets.targets,
-            moreTargets: spaceObjectTargets.more,
+            targets: spaceObjectTargets?.targets ?? [],
+            moreTargets: spaceObjectTargets?.more ?? false,
             currentObjectKey: objectKey,
             openDetails: () => {},
             openObject: handleOpenSpaceObject,

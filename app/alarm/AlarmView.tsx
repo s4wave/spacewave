@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { LuSiren } from 'react-icons/lu'
 
 import type { Alarm, AlarmOption } from '@s4wave/sdk/alarm/alarm.pb.js'
@@ -18,6 +19,8 @@ export interface AlarmViewProps {
   // ackError is why the last acknowledgement failed.
   ackError: string | null
   onAcknowledge: () => void
+  // notice is drawn under the bar, such as a failed read over a kept Alarm.
+  notice?: ReactNode
 }
 
 // AlarmView shows an Alarm: its state, the condition, the actions that would
@@ -30,6 +33,7 @@ export function AlarmView({
   saving,
   ackError,
   onAcknowledge,
+  notice,
 }: AlarmViewProps) {
   const status = alarmStatus(alarm, nowMs, who)
   return (
@@ -48,6 +52,7 @@ export function AlarmView({
         tone={status.tone === 'alert' ? 'alert' : undefined}
         state={<AlarmBadge word={status.word} tone={status.tone} />}
       />
+      {notice}
 
       <div className="viewer-inset min-h-0 flex-1 space-y-4 overflow-auto">
         <div className="space-y-1">

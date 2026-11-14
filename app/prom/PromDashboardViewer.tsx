@@ -2,7 +2,7 @@ import { useCallback, useMemo, useReducer } from 'react'
 import { LuChartLine, LuPlus } from 'react-icons/lu'
 
 import { isDesktop } from '@aptre/bldr'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import { resourceContent, resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   DashboardTypeID,
@@ -12,7 +12,10 @@ import {
 import { Dashboard, type Panel } from '@s4wave/sdk/prom/prom.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useClock } from '@s4wave/web/hooks/useClock.js'
-import { useWatchTypedHandle } from '@s4wave/web/hooks/useWatchTypedHandle.js'
+import {
+  useHeldTypedHandle,
+  useWatchTypedHandle,
+} from '@s4wave/web/hooks/useWatchTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { localNavigation } from '@s4wave/web/router/HistoryRouter.js'
@@ -67,7 +70,9 @@ export function PromDashboardViewer(props: ObjectViewerComponentProps) {
 }
 
 // DashboardHandle follows whether the metrics plugin serves the Dashboard
-// here and shows it when it does.
+// here and shows it when it does. Past its reconnect backoff the watch fails;
+// the Dashboard it last served stays mounted under the failure, so an open
+// editor keeps its draft, and writes wait for the next handle.
 function DashboardHandle({
   objectInfo,
   worldState,
@@ -81,6 +86,16 @@ function DashboardHandle({
   )
 
   const value = handle.value
+  const held = useHeldTypedHandle(handle)
+  if (held) {
+    return (
+      <DashboardBody
+        dashboard={held}
+        lost={handle.error}
+        retryHandle={handle.retry}
+      />
+    )
+  }
   if (handle.error) {
     return (
       <ViewerStatus
@@ -90,10 +105,7 @@ function DashboardHandle({
       />
     )
   }
-  if (!value) {
-    return <ViewerStatus state="waiting" what="the Dashboard" />
-  }
-  switch (value.state) {
+  switch (value?.state) {
     case 'absent':
       return (
         <ViewerStatus
@@ -111,8 +123,8 @@ function DashboardHandle({
           message="Metrics queries run on a desktop Device. Open this Space in the Spacewave desktop app to see these panels."
         />
       )
-    case 'ready':
-      return <DashboardBody dashboard={value.handle} />
+    default:
+      return <ViewerStatus state="waiting" what="the Dashboard" />
   }
 }
 
@@ -161,19 +173,37 @@ const initialView: View = {
 }
 
 // DashboardBody shows the Dashboard's panels over the time range in the
-// view's path, rerunning them as targets commit.
-function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
+// view's path, rerunning them as targets commit. lost is the failure of the
+// handle watch while dashboard is the last handle it served: the records and
+// any open editor stay, drawn under the failure, and no write is offered.
+function DashboardBody({
+  dashboard,
+  lost,
+  retryHandle,
+}: {
+  dashboard: PromDashboard
+  lost: Error | null
+  retryHandle: () => void
+}) {
   const container = SpaceContainerContext.useContextSafe()
-  const canWrite = container?.canDeleteObjects ?? false
+  const canSave = !lost
+  const canWrite = (container?.canDeleteObjects ?? false) && canSave
   const range = parseTimeRange(usePath())
   const navigate = useNavigate()
   const [view, dispatch] = useReducer(reduce, initialView)
   const nowMs = useClock(clockPeriodMs)
 
-  // Follow the Dashboard and the Space's targets.
+  // Follow the Dashboard and the Space's targets. A lost handle fails both
+  // watches over their last records, and their Retry watches the handle.
   const dashResource = useMemo(
-    () => ({ value: dashboard, loading: false, error: null, retry: noop }),
-    [dashboard],
+    () =>
+      resourceOf({
+        value: dashboard,
+        loading: false,
+        error: lost,
+        retry: lost ? retryHandle : noop,
+      }),
+    [dashboard, lost, retryHandle],
   )
   const dash = useStreamingResource(
     dashResource,
@@ -308,6 +338,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
       return (
         <PromTargetForm
           dashboard={dashboard}
+          canSave={canSave}
           onCancel={closeEditor}
           onCreated={(key) => {
             closeEditor()
@@ -361,6 +392,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
               <PromPanelEditor
                 key={panel.id}
                 dashboard={dashboard}
+                canSave={canSave}
                 panel={panel}
                 removed={false}
                 targets={targetsValue}
@@ -387,6 +419,7 @@ function DashboardBody({ dashboard }: { dashboard: PromDashboard }) {
             <PromPanelEditor
               key={editingPanelId ?? 'new'}
               dashboard={dashboard}
+              canSave={canSave}
               panel={null}
               removed={editedRemoved}
               targets={targetsValue}

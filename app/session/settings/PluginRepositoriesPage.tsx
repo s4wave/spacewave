@@ -1,5 +1,6 @@
 import { useCallback, useId, useState } from 'react'
 import { LuArrowLeft, LuGitBranch } from 'react-icons/lu'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import {
   useResource,
   type Resource,
@@ -38,11 +39,14 @@ const BUILD_MEMORY_BYTES = 2n << 30n
  */
 export function PluginRepositoriesPage() {
   // Read the developer Space's Devices and repositories on each revision.
+  // Past its reconnect backoff the watch fails and keeps its last read,
+  // drawn under the error line; only a live read claims no Devices.
   const navigate = useNavigate()
   const { spaceResource, worldResource } = useDeveloperSpace()
   const inventory = useWorldQuery(worldResource, readPluginRepositories, [])
-  const devices = inventory.value?.devices ?? []
-  const repositories = inventory.value?.repositories ?? []
+  const inventoryContent = resourceContent(inventory)
+  const devices = inventoryContent?.devices ?? []
+  const repositories = inventoryContent?.repositories ?? []
 
   // Fetch and build on the chosen Device, or the only one.
   const [deviceKey, setDeviceKey] = useState('')

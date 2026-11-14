@@ -79,6 +79,8 @@ interface CanvasFixture {
   watch: Resource<CanvasStateData>
   // actionError is the failed edit's message.
   actionError: string | null
+  // readOnly is set while the canvas handle reopens: no edit is offered.
+  readOnly?: boolean
 }
 
 // watch is the canvas watch in one state.
@@ -111,6 +113,11 @@ const fixtures: Record<string, CanvasFixture> = {
     watch: watch(populated),
     actionError: sendFailedMessage,
   },
+  'read-only': {
+    watch: watch(populated, { loading: true }),
+    actionError: null,
+    readOnly: true,
+  },
 }
 
 /**
@@ -118,8 +125,9 @@ const fixtures: Record<string, CanvasFixture> = {
  * viewport as the pane, for the viewer sweep: populated, waiting, failed
  * (the first read or the handle failed, with Retry), empty (with the hint),
  * again (the canvas while the watch reconnects), failed-kept (the last
- * canvas under the watch's failure past its backoff, with Retry) and save-failed (the canvas under the failed edit's
- * notice). An unknown or missing state shows populated. The view derives
+ * canvas under the watch's failure past its backoff, with Retry), save-failed (the canvas under the failed edit's
+ * notice) and read-only (the canvas while its handle reopens, offering no
+ * edit). An unknown or missing state shows populated. The view derives
  * from the watch's resource as the viewer's does.
  */
 export function CanvasViewerDebug() {
@@ -129,6 +137,7 @@ export function CanvasViewerDebug() {
   const canvas = resourceContent(fixture.watch) ?? emptyCanvas
   const view = canvasViewState(
     fixture.watch,
+    !fixture.readOnly,
     fixture.actionError,
     canvas.nodes.size === 0,
   )
@@ -139,6 +148,7 @@ export function CanvasViewerDebug() {
         <Canvas
           state={canvas}
           callbacks={callbacks}
+          readOnly={fixture.readOnly}
           className="h-full w-full"
         />
       </CanvasView>

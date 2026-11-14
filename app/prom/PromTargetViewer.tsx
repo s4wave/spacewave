@@ -6,7 +6,7 @@ import {
   useResourceValue,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import { resourceContent, resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { PromQuery, TargetTypeID } from '@s4wave/sdk/prom/prom.js'
 import { PanelKind, PanelUnit, type Panel } from '@s4wave/sdk/prom/prom.pb.js'
@@ -19,7 +19,10 @@ import {
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useClock } from '@s4wave/web/hooks/useClock.js'
-import { useWatchTypedHandle } from '@s4wave/web/hooks/useWatchTypedHandle.js'
+import {
+  useHeldTypedHandle,
+  useWatchTypedHandle,
+} from '@s4wave/web/hooks/useWatchTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
@@ -47,7 +50,21 @@ export function PromTargetViewer({
   )
   const contextContents = SpaceContentsContext.useContext()
 
+  // Past its reconnect backoff the watch fails; the target it last served
+  // stays drawn under the failure.
   const value = handle.value
+  const held = useHeldTypedHandle(handle)
+  if (held) {
+    return (
+      <TargetBody
+        objectKey={objectKey}
+        query={held}
+        lost={handle.error}
+        retryHandle={handle.retry}
+        contents={spaceContents ?? contextContents}
+      />
+    )
+  }
   if (handle.error) {
     return (
       <ViewerStatus
@@ -57,8 +74,7 @@ export function PromTargetViewer({
       />
     )
   }
-  if (!value) return <ViewerStatus state="waiting" what="the Scrape target" />
-  switch (value.state) {
+  switch (value?.state) {
     case 'absent':
       return (
         <ViewerStatus
@@ -76,14 +92,8 @@ export function PromTargetViewer({
           message="Scrape targets run on a desktop Device. Open this Space in the Spacewave desktop app to see and approve this target."
         />
       )
-    case 'ready':
-      return (
-        <TargetBody
-          objectKey={objectKey}
-          query={value.handle}
-          contents={spaceContents ?? contextContents}
-        />
-      )
+    default:
+      return <ViewerStatus state="waiting" what="the Scrape target" />
   }
 }
 
@@ -111,14 +121,21 @@ function reduceApproval(_: Approval, ev: ApprovalEvent): Approval {
   }
 }
 
-// TargetBody follows the target's info and this Device's binding.
+// TargetBody follows the target's info and this Device's binding. lost is
+// the failure of the handle watch while query is the last handle it served:
+// the targets watch fails over its last record, and its Retry watches the
+// handle.
 function TargetBody({
   objectKey,
   query,
+  lost,
+  retryHandle,
   contents,
 }: {
   objectKey: string
   query: PromQuery
+  lost: Error | null
+  retryHandle: () => void
   contents: Resource<SpaceContents>
 }) {
   const container = SpaceContainerContext.useContextSafe()
@@ -131,8 +148,14 @@ function TargetBody({
 
   // Follow the targets and this Device's process bindings.
   const queryResource = useMemo(
-    () => ({ value: query, loading: false, error: null, retry: noop }),
-    [query],
+    () =>
+      resourceOf({
+        value: query,
+        loading: false,
+        error: lost,
+        retry: lost ? retryHandle : noop,
+      }),
+    [query, lost, retryHandle],
   )
   const targets = useStreamingResource(
     queryResource,

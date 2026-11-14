@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { readOnlyMessage } from './CanvasView.js'
 import { isCanvasInsertableObject } from './object-picker.js'
 
 // CanvasProto is the slice of the canvas watch's message the viewer reads.
@@ -25,6 +26,7 @@ interface HandleResource {
 interface CanvasProps {
   state: { nodes: Map<string, { x: number; y: number }> }
   callbacks: { onNodesChange?: (nodes: Map<string, unknown>) => void }
+  readOnly?: boolean
 }
 
 const h = vi.hoisted(() => ({
@@ -128,9 +130,11 @@ describe('CanvasViewer', () => {
       )
     })
     expect(handle.update).toHaveBeenCalledTimes(1)
+    expect(h.canvas!.readOnly).toBe(false)
 
     // The handle fails: the watch keeps its canvas as last, drawn with the
-    // queued edits under the handle's failure and its Retry.
+    // queued edits under the handle's failure and its Retry. With no handle
+    // to send on, the canvas is read-only and says why.
     const retry = vi.fn()
     h.handleResource = handleState(null, new Error('stream reset'), retry)
     rerender(viewer())
@@ -139,10 +143,13 @@ describe('CanvasViewer', () => {
     expect(
       screen.getAllByText('Could not read the canvas: stream reset'),
     ).toHaveLength(1)
+    expect(h.canvas!.readOnly).toBe(true)
+    expect(screen.getByText(readOnlyMessage)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /retry/i }))
     expect(retry).toHaveBeenCalledTimes(1)
 
-    // A new handle yields the canvas; the queued edits draw on it, unsent.
+    // A new handle yields the canvas; the queued edits draw on it, unsent,
+    // and editing returns.
     const reopened = openHandle()
     h.handleResource = handleState(reopened)
     rerender(viewer())
@@ -152,6 +159,8 @@ describe('CanvasViewer', () => {
     expect(drawn.get('a')).toMatchObject({ x: 300, y: 400 })
     expect(drawn.get('b')).toMatchObject({ x: 50, y: 60 })
     expect(reopened.update).not.toHaveBeenCalled()
+    expect(h.canvas!.readOnly).toBe(false)
+    expect(screen.queryByText(readOnlyMessage)).toBeNull()
   })
 
   it('draws a failed save over the stage, leaving the stage unchanged', async () => {

@@ -79,6 +79,9 @@ function reduce(ed: Editor, ev: EditorEvent): Editor {
 
 export interface PromPanelEditorProps {
   dashboard: PromDashboard
+  // canSave is unset while the Dashboard's handle is lost: the draft stays
+  // and Save returns with the next handle.
+  canSave: boolean
   // panel is the panel being edited, or null for a new one.
   panel: Panel | null
   // removed is set when another member removed the edited panel.
@@ -93,6 +96,7 @@ export interface PromPanelEditorProps {
 // metric and label suggestions and a live preview, and stores it on Save.
 export function PromPanelEditor({
   dashboard,
+  canSave,
   panel,
   removed,
   targets,
@@ -266,14 +270,21 @@ export function PromPanelEditor({
             Could not save the panel: {ed.save.reason}.
           </p>
         ) : null}
+        {!canSave ? (
+          <p className="text-foreground-alt text-xs">
+            Save returns once the Dashboard is read again.
+          </p>
+        ) : null}
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            disabled={titleMissing || saving}
-            onClick={() => void save()}
-          >
-            {ed.save.state === 'failed' ? 'Retry' : 'Save'}
-          </Button>
+          {canSave ? (
+            <Button
+              size="sm"
+              disabled={titleMissing || saving}
+              onClick={() => void save()}
+            >
+              {ed.save.state === 'failed' ? 'Retry' : 'Save'}
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={onClose}>
             {ed.save.state === 'failed' ? 'Discard' : 'Cancel'}
           </Button>

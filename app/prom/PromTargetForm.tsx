@@ -49,6 +49,9 @@ const initialForm: Form = {
 
 export interface PromTargetFormProps {
   dashboard: PromDashboard
+  // canSave is unset while the Dashboard's handle is lost: the form keeps
+  // its fields and offers no submit until the next handle.
+  canSave: boolean
   // onCreated receives the new target's object key.
   onCreated: (objectKey: string) => void
   onCancel: () => void
@@ -58,6 +61,7 @@ export interface PromTargetFormProps {
 // label and interval. The name becomes the target's key and instance label.
 export function PromTargetForm({
   dashboard,
+  canSave,
   onCreated,
   onCancel,
 }: PromTargetFormProps) {
@@ -101,7 +105,7 @@ export function PromTargetForm({
       className="border-foreground/8 mx-auto grid w-full max-w-md gap-2 rounded-md border p-3"
       onSubmit={(e) => {
         e.preventDefault()
-        if (valid) void create()
+        if (valid && canSave) void create()
       }}
     >
       <label className={label}>
@@ -153,14 +157,21 @@ export function PromTargetForm({
           Could not save: {form.save.reason}.
         </p>
       ) : null}
+      {!canSave ? (
+        <p className="text-foreground-alt text-xs">
+          Adding returns once the Dashboard is read again.
+        </p>
+      ) : null}
       <div className="flex gap-2">
-        <Button
-          type="submit"
-          size="sm"
-          disabled={!valid || form.save.state === 'saving'}
-        >
-          {form.save.state === 'failed' ? 'Retry' : 'Add Scrape target'}
-        </Button>
+        {canSave ? (
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!valid || form.save.state === 'saving'}
+          >
+            {form.save.state === 'failed' ? 'Retry' : 'Add Scrape target'}
+          </Button>
+        ) : null}
         <Button type="button" variant="outline" size="sm" onClick={onCancel}>
           Cancel
         </Button>

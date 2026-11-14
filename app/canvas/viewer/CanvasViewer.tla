@@ -14,7 +14,10 @@ EXTENDS FiniteSets
 \* connection, keeps the canvas with the line. A handle that fails keeps
 \* the canvas under its failure; its Retry drops the canvas for the wait.
 \* The edits the person made stay queued in the viewer while the canvas is
-\* gone and draw again on the canvas that next arrives.
+\* gone and draw again on the canvas that next arrives. An edit is offered
+\* only on an open handle: while the handle reopens or has failed, the kept
+\* canvas is read-only, offers no tool, drag or text edit, and says that
+\* editing returns once the canvas is read again.
 \*
 \* An edit is drawn at once and sent; a send that fails rolls the edit back
 \* and leaves a notice over the stage, so the stage's box never changes. The
@@ -55,9 +58,12 @@ Rereading ==
   Body = "stage" /\ Reported = "none"
     /\ (watch = "reconnecting" \/ handle = "waiting")
 
+\* The kept canvas is read-only while its handle is not open.
+ReadOnly == Body = "stage" /\ handle # "open"
+
 \* The stage's own hint: a canvas with no node says how to add one. A
-\* failed canvas makes no such claim.
-Hint0 == Body = "stage" /\ ~nodes /\ Reported = "none"
+\* failed or read-only canvas makes no such claim.
+Hint0 == Body = "stage" /\ ~nodes /\ Reported = "none" /\ ~ReadOnly
 
 \* The failure each element draws, or none.
 Draws(e) ==
@@ -78,20 +84,21 @@ Failed ==
 Shown(p) ==
   (IF Reported = "handle" THEN {"retryHandle"} ELSE {})
     \cup (IF Reported = "watch" THEN {"retryWatch"} ELSE {})
-    \cup (IF Body = "stage" THEN {"edit"} ELSE {})
+    \cup (IF Body = "stage" /\ ~ReadOnly THEN {"edit"} ELSE {})
     \cup (IF Draws("action") = "send" THEN {"dismiss"} ELSE {})
 
 \* Each Retry works on its own failed source; an edit works on a drawn
-\* canvas, and while the handle is gone its send fails and rolls back.
+\* canvas with an open handle to send it on.
 Allowed(p, b) ==
   \/ b = "retryHandle" /\ handle = "failed"
   \/ b = "retryWatch" /\ handle = "open" /\ watch \in {"failed", "capped"}
-  \/ b = "edit" /\ kept
+  \/ b = "edit" /\ kept /\ handle = "open"
   \/ b = "dismiss" /\ action = "failed"
 
 \* What a state with nothing to press tells the person.
 Hint(p) ==
   CASE Body = "waiting" -> "Names the canvas it reads"
+    [] ReadOnly -> "Says editing returns once the canvas is read again"
     [] Hint0 -> "Says how to add an object"
     [] OTHER -> ""
 
@@ -238,6 +245,11 @@ TypeOK ==
   /\ nodes \in BOOLEAN
   /\ pending \in BOOLEAN
   /\ action \in {"none", "failed"}
+\* A read-only canvas offers no edit and says why.
+ReadOnlySaysWhy ==
+  ReadOnly =>
+    /\ "edit" \notin Shown("person")
+    /\ Hint("person") = "Says editing returns once the canvas is read again"
 \* The watch runs only on an open handle.
 WatchNeedsHandle == watch # "none" => handle = "open"
 ====

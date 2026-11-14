@@ -13,11 +13,31 @@
     "name": "an edit shows before a canvas arrives",
     "replace": [
       [
-        "    \\cup (IF Body = \"stage\" THEN {\"edit\"} ELSE {})",
+        "    \\cup (IF Body = \"stage\" /\\ ~ReadOnly THEN {\"edit\"} ELSE {})",
         "    \\cup (IF Body # \"failed\" THEN {\"edit\"} ELSE {})"
       ]
     ],
     "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "an edit shows on a kept canvas with no open handle",
+    "replace": [
+      [
+        "    \\cup (IF Body = \"stage\" /\\ ~ReadOnly THEN {\"edit\"} ELSE {})",
+        "    \\cup (IF Body = \"stage\" THEN {\"edit\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a read-only canvas does not say why",
+    "replace": [
+      [
+        "    [] ReadOnly -> \"Says editing returns once the canvas is read again\"\n",
+        ""
+      ]
+    ],
+    "expect": "ReadOnlySaysWhy"
   },
   {
     "name": "Retry of the watch shows while the handle has failed",

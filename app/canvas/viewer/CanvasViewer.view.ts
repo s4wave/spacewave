@@ -30,16 +30,17 @@ export const state = (v: Canvas) => {
         : ''
   const stage = v.nodes
     ? 'Canvas'
-    : failed
+    : failed || v.handle !== 'open'
       ? 'Empty canvas'
       : 'Empty canvas, hint shown'
   const read =
     !failed && (v.watch === 'reconnecting' || v.handle === 'waiting')
       ? ', reconnecting line'
       : ''
+  const readOnly = v.handle === 'open' ? '' : ', read-only line'
   const edits = v.pending ? ', edits sending' : ''
   const sent = v.action === 'failed' ? ', send failed notice' : ''
-  return stage + failed + read + edits + sent
+  return stage + failed + read + readOnly + edits + sent
 }
 
 export const step = (action: string, from: Canvas, to: Canvas) => {

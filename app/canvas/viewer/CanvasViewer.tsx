@@ -14,7 +14,7 @@ import {
 
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
+import { resourceContent, resourceReady } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
@@ -334,6 +334,10 @@ export function CanvasViewer({
     [canvasResource.value],
   )
 
+  // The canvas takes edits only on a live handle: while the handle reopens
+  // or has failed, the kept canvas is read-only and says why, rather than
+  // drawing edits it cannot send.
+  const live = resourceReady(canvasResource)
   const {
     effectiveState,
     enqueueNodesChange,
@@ -341,10 +345,8 @@ export function CanvasViewer({
     enqueueEdgesAdd,
     enqueueHiddenGraphLinksAdd,
     pending,
-  } = useCanvasMutationQueue(
-    canvasStateData,
-    canvasResource.value ? sendMutation : null,
-    () => setGraphLinkActionError(sendFailedMessage),
+  } = useCanvasMutationQueue(canvasStateData, live ? sendMutation : null, () =>
+    setGraphLinkActionError(sendFailedMessage),
   )
 
   // Query ephemeral edges for selected world_object nodes.
@@ -609,6 +611,7 @@ export function CanvasViewer({
   // canvas and on the next one.
   const view = canvasViewState(
     canvasStateResource,
+    live,
     graphLinkActionError,
     effectiveState.nodes.size === 0,
   )
@@ -625,6 +628,7 @@ export function CanvasViewer({
         }
         imageSubItems={unixfsRoot.value ? imageSubItems : undefined}
         focusNodeId={focusNodeId}
+        readOnly={view.body === 'stage' && view.readOnly}
         className="h-full w-full"
       />
     </CanvasView>

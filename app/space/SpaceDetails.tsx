@@ -82,10 +82,12 @@ export function SpaceDetails({
         ) : undefined
       }
       objectsBadge={
-        <span className="text-foreground-alt/50 text-xs">
-          {spaceObjectTargets?.targets.length ?? 0}
-          {spaceObjectTargets?.more ? '+' : ''}
-        </span>
+        spaceObjectTargets ? (
+          <span className="text-foreground-alt/50 text-xs">
+            {spaceObjectTargets.targets.length}
+            {spaceObjectTargets.more ? '+' : ''}
+          </span>
+        ) : undefined
       }
       objectsActions={
         <button

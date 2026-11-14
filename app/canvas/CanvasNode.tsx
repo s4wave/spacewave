@@ -35,6 +35,8 @@ interface CanvasNodeProps {
   onMove: (id: string, dx: number, dy: number) => void
   onMoveEnd: () => void
   onResize?: (id: string, node: CanvasNodeData) => void
+  // readOnly selects the node but offers no drag, resize or text edit.
+  readOnly?: boolean
 }
 
 // ResizeHandleProps are the props for ResizeHandle.
@@ -108,6 +110,7 @@ function useCanvasNodeController({
   onMove,
   onMoveEnd,
   onResize,
+  readOnly = false,
 }: CanvasNodeProps) {
   const [mountedAfterHide, setMountedAfterHide] = useState(false)
   const wasVisible = useRef(visible)
@@ -154,6 +157,7 @@ function useCanvasNodeController({
             : false
         onSelectWithFocus(node.id, shiftKey, 'border')
       }
+      if (readOnly) return
       if (dx !== 0 || dy !== 0) {
         onMove(node.id, dx / scale, dy / scale)
       }
@@ -231,7 +235,8 @@ function useCanvasNodeController({
     node.width < SIZE_THRESHOLD_WIDTH || node.height < SIZE_THRESHOLD_HEIGHT
   const isContentFocused =
     selected && focus === 'content' && hasInteractiveContent
-  const showsBorderDragHandles = node.type === 'world_object' && !isOutlineOnly
+  const showsBorderDragHandles =
+    node.type === 'world_object' && !isOutlineOnly && !readOnly
 
   // When zoomed past 100%, counter-scale the content so it stays at native
   // pixel size. The node border grows from the canvas zoom, giving the
@@ -331,8 +336,8 @@ function useCanvasNodeController({
     callbacks,
     handleNodeKeyDown,
     handleNodeSelect,
-    handleResizeDelta,
-    handleTextChange,
+    handleResizeDelta: readOnly ? undefined : handleResizeDelta,
+    handleTextChange: readOnly ? undefined : handleTextChange,
     hasInteractiveContent,
     internalScale,
     isCompact,
@@ -355,7 +360,8 @@ interface CanvasNodeContentProps {
   callbacks: CanvasCallbacks
   isOutlineOnly: boolean
   isCompact: boolean
-  onTextChange: (content: string) => void
+  // onTextChange is unset on a read-only canvas, whose text is not editable.
+  onTextChange?: (content: string) => void
 }
 
 /** CanvasNodeContent renders the body of a node by its type and zoom level. */
@@ -456,7 +462,8 @@ function CanvasNodeBorderHandles() {
 interface CanvasNodeSelectionProps {
   scale: number
   isContentFocused: boolean
-  onResizeDelta: ResizeHandleProps['onResizeDelta']
+  // onResizeDelta is unset on a read-only canvas, which draws no handles.
+  onResizeDelta?: ResizeHandleProps['onResizeDelta']
 }
 
 /** CanvasNodeSelection renders the selection ring and the resize handles. */
@@ -473,14 +480,16 @@ function CanvasNodeSelection({
           isContentFocused ? 'ring-brand/30' : 'ring-brand/50',
         )}
       />
-      {(['ne', 'se', 'sw', 'nw'] as const).map((direction) => (
-        <ResizeHandle
-          key={direction}
-          direction={direction}
-          scale={scale}
-          onResizeDelta={onResizeDelta}
-        />
-      ))}
+      {onResizeDelta
+        ? (['ne', 'se', 'sw', 'nw'] as const).map((direction) => (
+            <ResizeHandle
+              key={direction}
+              direction={direction}
+              scale={scale}
+              onResizeDelta={onResizeDelta}
+            />
+          ))
+        : null}
     </>
   )
 }
