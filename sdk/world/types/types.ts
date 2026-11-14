@@ -155,6 +155,12 @@ export async function setObjectType(
     throw new Error('empty object key or type ID')
   }
 
+  // A state that types an object in one write avoids the separate writes.
+  if (ws.setObjectType) {
+    await ws.setObjectType(key, typeID, abortSignal)
+    return
+  }
+
   const nextQuad = buildTypeQuad(key, typeID)
 
   // Look up existing type quads for this object

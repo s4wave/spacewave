@@ -233,6 +233,15 @@ export interface IWorldState {
   // Note: value should be the object key, NOT the object key <iri> format
   deleteGraphObject(objectKey: string, abortSignal?: AbortSignal): Promise<void>
 
+  // setObjectType, when present, sets an object's one type in one write:
+  // it creates the type's object when absent and removes any other type.
+  // setObjectType in types.ts uses it in place of its separate writes.
+  setObjectType?(
+    objectKey: string,
+    typeID: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void>
+
   // ApplyWorldOp applies a batch operation at the world level.
   // The handling of the operation is operation-type specific.
   // Returns the seqno following the operation execution.

@@ -393,6 +393,19 @@ export class EngineWorldState implements IWorldState {
     )
   }
 
+  // setObjectType sets an object's one type in one batch.
+  public async setObjectType(
+    objectKey: string,
+    typeID: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await applyMutation(
+      this,
+      { case: 'setObjectType', value: { objectKey, typeId: typeID } },
+      abortSignal,
+    )
+  }
+
   // accessTypedObject looks up an object, determines its type via graph quad,
   // and returns access to a typed resource that implements the type-specific RPC service.
   // The returned resourceId can be used with resourceRef.createRef() to access the typed resource.
