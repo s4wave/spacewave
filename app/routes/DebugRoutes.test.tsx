@@ -61,6 +61,10 @@ vi.mock('@s4wave/app/debug/forge/ForgeViewerStatesDebug.js', () => ({
   ForgeViewerStatesDebug: () => <div data-testid="forge-states-debug" />,
 }))
 
+vi.mock('@s4wave/app/debug/unixfs/TextFileStatesDebug.js', () => ({
+  TextFileStatesDebug: () => <div data-testid="text-file-states-debug" />,
+}))
+
 vi.mock('@s4wave/app/debug/terminal/TerminalViewerDebug.js', () => ({
   TerminalViewerDebug: () => <div data-testid="terminal-viewer-debug" />,
 }))
@@ -104,6 +108,7 @@ const debugChildRoutes = [
   { path: '/debug/ui/forge-viewer', testId: 'forge-viewer-debug' },
   { path: '/debug/ui/unixfs-browser', testId: 'unixfs-browser-debug' },
   { path: '/debug/ui/file-list', testId: 'file-list-debug' },
+  { path: '/debug/ui/text-file', testId: 'text-file-states-debug' },
   { path: '/debug/ui/table', testId: 'table-debug' },
   { path: '/debug/ui/facts', testId: 'fact-list-debug' },
   { path: '/debug/ui/side', testId: 'viewer-side-debug' },

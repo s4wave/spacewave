@@ -1,0 +1,71 @@
+---
+title: "Text file: reading, editing and saving"
+---
+stateDiagram-v2
+  s0: Reading the file
+  s1: Read failed, Retry shown
+  s2: Shown, read-only
+  s3: Preview, too large to edit
+  s4: Shown, Edit offered
+  s5: Editing, no changes
+  s6: Editing, not saved
+  s7: Editing, read failed, draft kept
+  s8: Saving
+  s9: Changed by another writer
+  s10: Save failed, draft kept
+  s11: Changed by another writer, theirs shown
+  [*] --> s0
+  s0 --> s1: read fails
+  s0 --> s2: read lands
+  s0 --> s3: read lands
+  s0 --> s4: read lands
+  s1 --> s0: presses Retry
+  s2 --> s0: reads again
+  s3 --> s0: reads again
+  s4 --> s5: presses Edit
+  s4 --> s0: reads again
+  s5 --> s4: presses Discard edits
+  s5 --> s6: types
+  s5 --> s0: presses Discard edits
+  s5 --> s7: read fails
+  s6 --> s4: presses Discard edits
+  s6 --> s8: presses Save
+  s7 --> s5: presses Retry
+  s7 --> s1: presses Discard edits
+  s5 --> s9: read lands
+  s6 --> s0: presses Discard edits
+  s6 --> s7: read fails
+  s8 --> s0: save lands
+  s8 --> s10: save fails
+  s9 --> s4: presses Discard edits
+  s9 --> s11: presses Show theirs
+  s7 --> s6: presses Retry
+  s7 --> s8: presses Save or presses Save over theirs
+  s10 --> s4: presses Discard edits
+  s10 --> s8: presses Save
+  s6 --> s9: read lands
+  s11 --> s4: presses Discard edits
+  s11 --> s9: presses Back to my edits
+  s9 --> s0: presses Discard edits
+  s9 --> s7: read fails
+  s10 --> s0: presses Discard edits
+  s10 --> s7: read fails
+  s8 --> s7: save fails
+  s9 --> s8: presses Save over theirs
+  s9 --> s5: read lands
+  s7 --> s9: presses Retry
+  s11 --> s0: presses Discard edits
+  s11 --> s7: read fails
+  s7 --> s10: presses Retry
+  s11 --> s8: presses Save over theirs
+  s10 --> s9: read lands
+  s8 --> s9: save fails
+  s11 --> s5: read lands
+  s7 --> s11: presses Retry
+  s9 --> s6: read lands
+  s11 --> s6: read lands
+  s9 --> s10: read lands
+  s5 --> s11: read lands
+  s11 --> s10: read lands
+  s6 --> s11: read lands
+  s10 --> s11: read lands

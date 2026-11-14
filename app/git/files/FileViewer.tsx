@@ -9,7 +9,12 @@ export interface FileViewerProps {
   stat: StatResult
   rootHandle: Resource<FSHandle>
   inlineFileURL?: string
+  // readOnly says why the file cannot be written, such as a commit's files.
+  readOnly?: string
 }
+
+// commitReadOnly is why a file in a commit offers no Edit.
+export const commitReadOnly = 'Read-only: a file in a commit'
 
 // FileViewer delegates to UnixFSFileViewer for rendering file content.
 // Hides the built-in toolbar since GitToolbar provides navigation.
@@ -18,6 +23,7 @@ export function FileViewer({
   stat,
   rootHandle,
   inlineFileURL,
+  readOnly,
 }: FileViewerProps) {
   return (
     <UnixFSFileViewer
@@ -26,6 +32,7 @@ export function FileViewer({
       rootHandle={rootHandle}
       hideToolbar
       inlineFileURL={inlineFileURL}
+      readOnly={readOnly}
     />
   )
 }

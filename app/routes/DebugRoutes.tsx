@@ -9,6 +9,7 @@ import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebu
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
 import { WizardShellDebug } from '@s4wave/app/debug/wizard/WizardShellDebug.js'
+import { TextFileStatesDebug } from '@s4wave/app/debug/unixfs/TextFileStatesDebug.js'
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
 import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
@@ -115,6 +116,12 @@ const debugRouteEntries = [
     element: <FileListDebug />,
   },
   {
+    path: '/debug/ui/text-file',
+    title: 'Text file',
+    description: 'Open a text file in one state; add /dirty, /changed...',
+    element: <TextFileStatesDebug />,
+  },
+  {
     path: '/debug/ui/table',
     title: 'Table',
     description: 'Open the table in one state; add /selected, /by-latency...',
@@ -202,6 +209,9 @@ export const DebugRoutes = (
     ))}
     <Route path="/debug/ui/file-list/:state">
       <FileListDebug />
+    </Route>
+    <Route path="/debug/ui/text-file/:state">
+      <TextFileStatesDebug />
     </Route>
     <Route path="/debug/ui/table/:state">
       <TableDebug />

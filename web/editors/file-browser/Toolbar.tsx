@@ -60,6 +60,9 @@ interface ToolbarProps {
   onPathTargetDrop?: PathTargetDrop
   height?: number
   hideNav?: boolean
+  // actions are the shown object's presses, drawn before Search; a file
+  // viewer puts its Edit and Save here. Nothing is drawn without them.
+  actions?: ReactNode
 }
 
 // upDropHandlers makes a control accept drops onto the parent folder, when
@@ -199,6 +202,7 @@ export function Toolbar({
   onPathTargetDrop,
   height,
   hideNav,
+  actions,
 }: ToolbarProps) {
   const { collapseLevel, toolbarRef } = useCollapseLevel()
   const [searchActive, setSearchActive] = useState(false)
@@ -275,6 +279,8 @@ export function Toolbar({
         onNewFolder={onNewFolder}
         onUploadFiles={onUploadFiles}
       />
+
+      {actions}
 
       {search}
     </PanelHeader>

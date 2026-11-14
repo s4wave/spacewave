@@ -1,0 +1,56 @@
+[
+  {
+    "name": "a failed read drops the draft",
+    "replace": [
+      [
+        "  /\\ read' = \"failed\"\n  /\\ UNCHANGED <<disk, seen, mode, base,",
+        "  /\\ read' = \"failed\"\n  /\\ mode' = \"reading\"\n  /\\ base' = \"none\"\n  /\\ UNCHANGED <<disk, seen,"
+      ]
+    ],
+    "expect": "DraftNeverDropped"
+  },
+  {
+    "name": "another writer's read replaces the draft",
+    "replace": [
+      [
+        "  /\\ seen' = disk\n  /\\ UNCHANGED <<disk, mode, base,",
+        "  /\\ seen' = disk\n  /\\ mode' = IF seen # \"none\" /\\ disk # seen THEN \"reading\" ELSE mode\n  /\\ base' = IF seen # \"none\" /\\ disk # seen THEN \"none\" ELSE base\n  /\\ UNCHANGED <<disk,"
+      ]
+    ],
+    "expect": "DraftNeverDropped"
+  },
+  {
+    "name": "plain Save writes over another writer's version",
+    "replace": [
+      [
+        "    \\cup (IF Editing /\\ dirty /\\ ~Changed THEN {\"save\"} ELSE {})",
+        "    \\cup (IF Editing /\\ dirty THEN {\"save\"} ELSE {})"
+      ],
+      [
+        "  \\/ b = \"save\" /\\ Editing /\\ dirty /\\ seen = base",
+        "  \\/ b = \"save\" /\\ Editing /\\ dirty"
+      ]
+    ],
+    "expect": "NoBlindOverwrite"
+  },
+  {
+    "name": "Edit shows on a read-only file",
+    "replace": [
+      [
+        "  (IF mode = \"reading\" /\\ read = \"shown\" /\\ writable /\\ whole",
+        "  (IF mode = \"reading\" /\\ read = \"shown\" /\\ whole"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a read-only file says nothing",
+    "replace": [
+      [
+        "    [] mode = \"reading\" /\\ read = \"shown\" /\\ ~writable -> \"Says why it is read-only\"\n",
+        ""
+      ]
+    ],
+    "expect": "NobodyIsStuck"
+  }
+]

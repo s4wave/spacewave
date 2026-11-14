@@ -40,7 +40,7 @@ import {
 import { CommitDetail } from './commits/CommitDetail.js'
 import { CommitLog } from './commits/CommitLog.js'
 import { FileTree } from './files/FileTree.js'
-import { FileViewer } from './files/FileViewer.js'
+import { commitReadOnly, FileViewer } from './files/FileViewer.js'
 import { GitViewerCenteredState, GitViewerFrame } from './GitViewerShell.js'
 import { getGitWorktreeInlinePreviewObjectKey } from './inline-preview.js'
 import { ReadmeSection } from './layout/ReadmeSection.js'
@@ -499,6 +499,7 @@ function WorktreeSourceStatus({
           stat={stat}
           rootHandle={source.handle}
           inlineFileURL={source.inlineFileURL}
+          readOnly={route.mode === 'workdir' ? undefined : commitReadOnly}
         />
       </GitViewerFrame>
     )

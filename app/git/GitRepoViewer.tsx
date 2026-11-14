@@ -26,7 +26,7 @@ import { buildProjectedFileInlineURL } from '@s4wave/app/space/projected-url.js'
 import { CommitDetail } from './commits/CommitDetail.js'
 import { CommitLog } from './commits/CommitLog.js'
 import { FileTree } from './files/FileTree.js'
-import { FileViewer } from './files/FileViewer.js'
+import { commitReadOnly, FileViewer } from './files/FileViewer.js'
 import {
   GitCloneAction,
   GitRepoFacts,
@@ -310,6 +310,7 @@ function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
           stat={statResource.value}
           rootHandle={rootHandleResource}
           inlineFileURL={inlineFileURL}
+          readOnly={commitReadOnly}
         />
       </GitViewerFrame>
     )

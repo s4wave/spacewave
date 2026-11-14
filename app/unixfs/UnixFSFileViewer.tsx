@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   LuArrowRight,
   LuDownload,
@@ -54,6 +54,9 @@ export interface UnixFSFileViewerProps {
   hideToolbar?: boolean
   // inlineFileURL is the projected raw file URL for inline previews.
   inlineFileURL?: string
+  // readOnly says why the file cannot be written, such as a commit's files;
+  // the text viewer then offers no Edit.
+  readOnly?: string
 }
 
 // FileIcon returns the appropriate icon for a mime type.
@@ -354,13 +357,10 @@ function FileBody({
   path,
   stat,
   rootHandle,
-  inlineFileURL,
-}: Pick<
-  UnixFSFileViewerProps,
-  'path' | 'stat' | 'rootHandle' | 'inlineFileURL'
->) {
-  const body = fileBodyKindFor(stat, inlineFileURL)
-
+  body,
+}: Pick<UnixFSFileViewerProps, 'path' | 'stat' | 'rootHandle'> & {
+  body: Exclude<FileBodyKind, { kind: 'text' }>
+}) {
   switch (body.kind) {
     case 'symlink':
       return <SymlinkBody rootHandle={rootHandle} path={path} />
@@ -392,21 +392,16 @@ function FileBody({
           inlineFileURL={body.url}
         />
       )
-    case 'text':
-      return (
-        <UnixFSTextFileViewer
-          key={`${rootHandle.value?.id}/${path}`}
-          rootHandle={rootHandle}
-          path={path}
-        />
-      )
     case 'binary':
       return <BinaryFileViewer mimeType={stat.mimeType} />
   }
 }
 
-/** FileToolbar renders the path toolbar with history and parent navigation. */
-function FileToolbar({ path }: { path: string }) {
+/**
+ * FileToolbar renders the path toolbar with history and parent navigation,
+ * and the shown file's presses in its actions slot.
+ */
+function FileToolbar({ path, actions }: { path: string; actions?: ReactNode }) {
   const navigate = useNavigate()
   const history = useHistory()
 
@@ -440,6 +435,7 @@ function FileToolbar({ path }: { path: string }) {
       canGoBack={history?.canGoBack ?? false}
       canGoForward={history?.canGoForward ?? false}
       canGoUp={path !== '/'}
+      actions={actions}
     />
   )
 }
@@ -451,7 +447,32 @@ export function UnixFSFileViewer({
   rootHandle,
   hideToolbar,
   inlineFileURL,
+  readOnly,
 }: UnixFSFileViewerProps) {
+  // A text file puts its presses in the navigator, the pane's one bar, or
+  // draws its own bar where an outer component owns navigation.
+  const body = fileBodyKindFor(stat, inlineFileURL)
+  if (body.kind === 'text') {
+    const renderToolbar = (presses: ReactNode) => (
+      <FileToolbar path={path} actions={presses} />
+    )
+    return (
+      <div
+        data-testid="unixfs-browser"
+        className="bg-file-back flex h-full w-full flex-col overflow-hidden"
+      >
+        <UnixFSTextFileViewer
+          key={`${rootHandle.value?.id}/${path}`}
+          rootHandle={rootHandle}
+          path={path}
+          readOnly={readOnly}
+          description={stat.mimeType}
+          renderBar={hideToolbar ? undefined : renderToolbar}
+        />
+      </div>
+    )
+  }
+
   return (
     <div
       data-testid="unixfs-browser"
@@ -461,12 +482,7 @@ export function UnixFSFileViewer({
 
       {/* File content */}
       <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
-        <FileBody
-          path={path}
-          stat={stat}
-          rootHandle={rootHandle}
-          inlineFileURL={inlineFileURL}
-        />
+        <FileBody path={path} stat={stat} rootHandle={rootHandle} body={body} />
       </div>
     </div>
   )
