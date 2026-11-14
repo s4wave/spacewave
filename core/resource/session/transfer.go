@@ -184,10 +184,14 @@ func (r *SessionResource) StartTransfer(
 		return nil, errors.New("migrate to a cloud account is not supported")
 	}
 
-	// Build checkpoint store on source account.
+	// Build checkpoint store on source account, and refuse to resume a run
+	// whose indexes no longer name its sessions.
 	checkpoint, err := buildCheckpointStore(ctx, r.b, srcEntry)
 	if err != nil {
 		return nil, errors.Wrap(err, "build checkpoint store")
+	}
+	if err := checkResume(ctx, checkpoint, srcIdx, tgtIdx, srcProv, tgtProv); err != nil {
+		return nil, err
 	}
 
 	// Log the transfer with its source and target sessions.
@@ -217,19 +221,19 @@ func (r *SessionResource) StartTransfer(
 
 	// Merge and Migrate delete a local source account once every Space moved,
 	// its sessions before its volume.
-	var deleteSource func(context.Context) error
+	var deleteSource func(context.Context, func(context.Context) error) error
 	if src, ok := cleanup.(*provider_transfer.LocalTransferSource); ok {
 		provRef := srcEntry.GetSessionRef().GetProviderResourceRef()
 		provID, accountID := provRef.GetProviderId(), provRef.GetProviderAccountId()
 		objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
 		vol := src.GetAccount().GetVolume()
-		deleteSource = func(ctx context.Context) error {
+		deleteSource = func(ctx context.Context, keep func(context.Context) error) error {
 			sessCtrl, sessCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 			if err != nil {
 				return errors.Wrap(err, "lookup session controller")
 			}
 			defer sessCtrlRef.Release()
-			return deleteProviderAccount(ctx, le, r.b, sessCtrl, provID, accountID, objectStoreID, vol)
+			return deleteProviderAccount(ctx, le, r.b, sessCtrl, provID, accountID, objectStoreID, vol, keep)
 		}
 	}
 
@@ -246,6 +250,8 @@ func (r *SessionResource) StartTransfer(
 			Cleanup:        cleanup,
 			DeleteSource:   deleteSource,
 			Checkpoint:     checkpoint,
+			SourceSession:  srcProv,
+			TargetSession:  tgtProv,
 			FilterSpaceIDs: req.GetSpaceIds(),
 			CopyIdentity:   copyIdentity,
 		},
@@ -488,6 +494,42 @@ func buildTransferTarget(
 	default:
 		return nil, errors.New("unsupported provider type for transfer target")
 	}
+}
+
+// checkResume refuses a start that resumes the interrupted run checkpoint
+// records, by its session indexes, when those indexes no longer name the
+// sessions it was started with: indexes are reused, and a Merge into another
+// account would delete the source. The refusal drops the checkpoint, so the
+// person can start a new run. A start with other indexes is a new run.
+func checkResume(
+	ctx context.Context,
+	checkpoint provider_transfer.CheckpointStore,
+	srcIdx, tgtIdx uint32,
+	srcProv, tgtProv *provider.ProviderResourceRef,
+) error {
+	// Load the interrupted run, if any.
+	if checkpoint == nil {
+		return nil
+	}
+	cp, err := checkpoint.LoadCheckpoint(ctx)
+	if err != nil {
+		return errors.Wrap(err, "load transfer checkpoint")
+	}
+
+	// A start with other indexes is a new run, and one naming the same
+	// sessions resumes.
+	if cp.GetState().GetSourceSessionIndex() != srcIdx || cp.GetState().GetTargetSessionIndex() != tgtIdx {
+		return nil
+	}
+	if cp.GetSourceSession().EqualVT(srcProv) && cp.GetTargetSession().EqualVT(tgtProv) {
+		return nil
+	}
+
+	// Drop the run whose indexes now name other sessions, and refuse.
+	if err := checkpoint.DeleteCheckpoint(ctx); err != nil {
+		return errors.Wrap(err, "drop stale transfer checkpoint")
+	}
+	return errors.New("the interrupted transfer's sessions changed since it started; start a new transfer")
 }
 
 // buildCheckpointStore creates a CheckpointStore from a session entry.

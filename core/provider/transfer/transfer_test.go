@@ -1528,3 +1528,93 @@ func sourceOpCount(ctx context.Context, t *testing.T, so sobject.SharedObject) i
 	}
 	return len(set.Order())
 }
+
+// mergeWithHook runs a Merge of a source holding the Space "moved-space"
+// into a second account, with hook run between the moves and cleanup, and a
+// source delete that records whether it got past its keep check. It returns
+// whether the delete ran, the source, and the run's error.
+func mergeWithHook(t *testing.T, hook func(ctx context.Context, src, tgt *provider_local.ProviderAccount)) (bool, *provider_transfer.LocalTransferSource, error) {
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	t.Cleanup(provRel)
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
+	t.Cleanup(srcRel)
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	t.Cleanup(tgtRel)
+	createTestSpace(ctx, t, srcAcc, "moved-space")
+
+	le := logrus.NewEntry(logrus.StandardLogger())
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
+	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	var deleted bool
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{
+		Cleanup: src,
+		CopyIdentity: func(ctx context.Context) error {
+			hook(ctx, srcAcc, tgtAcc)
+			return nil
+		},
+		DeleteSource: func(ctx context.Context, keep func(context.Context) error) error {
+			if err := keep(ctx); err != nil {
+				return err
+			}
+			deleted = true
+			return nil
+		},
+	})
+	err = xfer.Execute(ctx)
+	return deleted, src, err
+}
+
+// listsSpace reports whether src lists the Space id.
+func listsSpace(t *testing.T, src *provider_transfer.LocalTransferSource, id string) bool {
+	t.Helper()
+	list, err := src.GetSharedObjectList(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range list.GetSharedObjects() {
+		if entry.GetRef().GetProviderResourceRef().GetId() == id {
+			return true
+		}
+	}
+	return false
+}
+
+// TestLocalMergeKeepsSourceWhenTargetLost checks that a Space deleted from
+// the target after its move stays on the source, and the account with it.
+func TestLocalMergeKeepsSourceWhenTargetLost(t *testing.T) {
+	deleted, src, err := mergeWithHook(t, func(ctx context.Context, _, tgt *provider_local.ProviderAccount) {
+		if err := tgt.DeleteSharedObject(ctx, "moved-space"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted {
+		t.Fatal("the run deleted the source account after the target lost the Space")
+	}
+	if !listsSpace(t, src, "moved-space") {
+		t.Fatal("the run deleted the source's only copy of the Space")
+	}
+}
+
+// TestLocalMergeKeepsSpaceCreatedOnSource checks that a Space created on the
+// source during the run keeps the source account.
+func TestLocalMergeKeepsSpaceCreatedOnSource(t *testing.T) {
+	deleted, src, err := mergeWithHook(t, func(ctx context.Context, srcAcc, _ *provider_local.ProviderAccount) {
+		createTestSpace(ctx, t, srcAcc, "new-space")
+	})
+	if err == nil || deleted {
+		t.Fatalf("run = %v, deleted = %v; want an error and the account kept", err, deleted)
+	}
+	if !listsSpace(t, src, "new-space") {
+		t.Fatal("the run deleted the Space created during it")
+	}
+}

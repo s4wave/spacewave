@@ -546,3 +546,58 @@ func TestTransferRefusesSameAccount(t *testing.T) {
 	}
 	otx.Discard()
 }
+
+// TestTransferRefusesResumeIntoReusedIndex checks that a start resuming an
+// interrupted Merge by its session indexes is refused, and the source kept,
+// when the target index now names another account than the one the run
+// started with.
+func TestTransferRefusesResumeIntoReusedIndex(t *testing.T) {
+	// Create a source with one Space and a target that took a reused index.
+	ctx := context.Background()
+	env := setupTestEnv(ctx, t)
+	srcRef, srcIdx := env.createSession(ctx, t)
+	srcAcc := env.accessAccount(ctx, t, srcRef)
+	env.createSpaceOnAccount(ctx, t, srcAcc, "ResumeSpace")
+	tgtRef, tgtIdx := env.createSession(ctx, t)
+	_ = env.accessAccount(ctx, t, tgtRef)
+
+	// Record an interrupted Merge at those indexes into an account since gone.
+	provRef := srcRef.GetProviderResourceRef()
+	checkpoint := provider_transfer.NewObjectStoreCheckpointLazy(
+		env.tb.Bus,
+		provider_local.SobjectObjectStoreID(provRef.GetProviderId(), provRef.GetProviderAccountId()),
+		srcAcc.GetVolume().GetID(),
+	)
+	gone := tgtRef.GetProviderResourceRef().CloneVT()
+	gone.Id, gone.ProviderAccountId = ulid.NewULID(), ulid.NewULID()
+	err := checkpoint.SaveCheckpoint(ctx, &provider_transfer.TransferCheckpoint{
+		State: &provider_transfer.TransferState{
+			Mode:               provider_transfer.TransferMode_TransferMode_MERGE,
+			Phase:              provider_transfer.TransferPhase_TransferPhase_COPYING_BLOCKS,
+			SourceSessionIndex: srcIdx,
+			TargetSessionIndex: tgtIdx,
+		},
+		SourceSession: provRef.CloneVT(),
+		TargetSession: gone,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The resume is refused, drops the checkpoint and keeps the source.
+	resource := env.buildSessionResource(ctx, t, tgtRef)
+	_, err = resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
+		SourceSessionIndex: srcIdx,
+		TargetSessionIndex: tgtIdx,
+		Mode:               provider_transfer.TransferMode_TransferMode_MERGE,
+	})
+	if err == nil || !strings.Contains(err.Error(), "sessions changed") {
+		t.Fatalf("resume into a reused index: expected a refusal, got %v", err)
+	}
+	if cp, err := checkpoint.LoadCheckpoint(ctx); err != nil || cp != nil {
+		t.Fatalf("checkpoint after the refusal = %v, %v; want none", cp, err)
+	}
+	if entry, err := env.sessCtrl.GetSessionByIdx(ctx, srcIdx); err != nil || entry == nil {
+		t.Fatalf("source session after the refusal = %v, %v; want listed", entry, err)
+	}
+}

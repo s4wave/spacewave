@@ -12,6 +12,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	provider "github.com/s4wave/spacewave/core/provider"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 )
 
@@ -262,6 +263,12 @@ type TransferCheckpoint struct {
 	// SpaceIds is the selection the run was started with, empty for every
 	// Space.
 	SpaceIds []string `protobuf:"bytes,2,rep,name=space_ids,json=spaceIds,proto3" json:"spaceIds,omitempty"`
+	// SourceSession names the source session the run was started with. Session
+	// indexes are reused, so a resume runs only while its indexes still name
+	// this session and TargetSession.
+	SourceSession *provider.ProviderResourceRef `protobuf:"bytes,3,opt,name=source_session,json=sourceSession,proto3" json:"sourceSession,omitempty"`
+	// TargetSession names the target session the run was started with.
+	TargetSession *provider.ProviderResourceRef `protobuf:"bytes,4,opt,name=target_session,json=targetSession,proto3" json:"targetSession,omitempty"`
 }
 
 func (x *TransferCheckpoint) Reset() {
@@ -280,6 +287,20 @@ func (x *TransferCheckpoint) GetState() *TransferState {
 func (x *TransferCheckpoint) GetSpaceIds() []string {
 	if x != nil {
 		return x.SpaceIds
+	}
+	return nil
+}
+
+func (x *TransferCheckpoint) GetSourceSession() *provider.ProviderResourceRef {
+	if x != nil {
+		return x.SourceSession
+	}
+	return nil
+}
+
+func (x *TransferCheckpoint) GetTargetSession() *provider.ProviderResourceRef {
+	if x != nil {
+		return x.TargetSession
 	}
 	return nil
 }
@@ -376,6 +397,8 @@ func (m *TransferCheckpoint) CloneVT() *TransferCheckpoint {
 	r := new(TransferCheckpoint)
 	r.State = protobuf_go_lite.CloneVTValue(m.State)
 	r.SpaceIds = protobuf_go_lite.CloneSlice(m.SpaceIds)
+	r.SourceSession = protobuf_go_lite.CloneVTValue(m.SourceSession)
+	r.TargetSession = protobuf_go_lite.CloneVTValue(m.TargetSession)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -484,6 +507,12 @@ func (this *TransferCheckpoint) EqualVT(that *TransferCheckpoint) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.SpaceIds, that.SpaceIds) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.SourceSession, that.SourceSession) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TargetSession, that.TargetSession) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -810,6 +839,16 @@ func (x *TransferCheckpoint) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("spaceIds")
 		s.WriteStringArray(x.SpaceIds)
 	}
+	if x.SourceSession != nil || s.HasField("sourceSession") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceSession")
+		x.SourceSession.MarshalProtoJSON(s.WithField("sourceSession"))
+	}
+	if x.TargetSession != nil || s.HasField("targetSession") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetSession")
+		x.TargetSession.MarshalProtoJSON(s.WithField("targetSession"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -841,6 +880,20 @@ func (x *TransferCheckpoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.SpaceIds = s.ReadStringArray()
+		case "source_session", "sourceSession":
+			if s.ReadNil() {
+				x.SourceSession = nil
+				return
+			}
+			x.SourceSession = &provider.ProviderResourceRef{}
+			x.SourceSession.UnmarshalProtoJSON(s.WithField("source_session", true))
+		case "target_session", "targetSession":
+			if s.ReadNil() {
+				x.TargetSession = nil
+				return
+			}
+			x.TargetSession = &provider.ProviderResourceRef{}
+			x.TargetSession.UnmarshalProtoJSON(s.WithField("target_session", true))
 		}
 	})
 }
@@ -1073,6 +1126,26 @@ func (m *TransferCheckpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TargetSession != nil {
+		size, err := m.TargetSession.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.SourceSession != nil {
+		size, err := m.SourceSession.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.SpaceIds) > 0 {
 		for iNdEx := len(m.SpaceIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceIds[iNdEx])
@@ -1189,6 +1262,14 @@ func (m *TransferCheckpoint) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringSlice(1, m.SpaceIds)
+	if m.SourceSession != nil {
+		l = m.SourceSession.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.TargetSession != nil {
+		l = m.TargetSession.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1304,6 +1385,14 @@ func (x *TransferCheckpoint) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.SourceSession != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_session")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SourceSession)
+	}
+	if x.TargetSession != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target_session")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TargetSession)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1593,6 +1682,36 @@ func (m *TransferCheckpoint) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SpaceIds = append(m.SpaceIds, v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceSession", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.SourceSession == nil {
+				m.SourceSession = &provider.ProviderResourceRef{}
+			}
+			if err := m.SourceSession.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetSession", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TargetSession == nil {
+				m.TargetSession = &provider.ProviderResourceRef{}
+			}
+			if err := m.TargetSession.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
