@@ -294,7 +294,7 @@ func (a *ProviderAccount) acceptMailboxEntry(
 	}
 
 	// Add the responder participant and consume invite uses.
-	grant, err := swSO.AddParticipant(
+	grant, _, _, err := swSO.AddParticipant(
 		ctx,
 		responderPeerID.String(),
 		responderPub,
@@ -335,10 +335,14 @@ func (a *ProviderAccount) heldSpaceConfigs(ctx context.Context, invite *sobject.
 	if err := a.EnsureSharedObjectListLoaded(ctx); err != nil {
 		return nil, err
 	}
+	named := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		named[id] = struct{}{}
+	}
 	held := make(map[string]*sobject.SharedObjectConfig, len(ids))
 	for _, listed := range a.soListCtr.GetValue().GetSharedObjects() {
 		id := listed.GetRef().GetProviderResourceRef().GetId()
-		if !slices.Contains(ids, id) {
+		if _, ok := named[id]; !ok {
 			continue
 		}
 		config, err := a.readSpaceConfig(ctx, id)

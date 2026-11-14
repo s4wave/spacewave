@@ -1265,13 +1265,13 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 	}
 
 	// Build enroll function: add the invitee as a participant.
-	enrollFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, inviteePeerID peer.ID, inviteePubKey crypto.PubKey) (*sobject.SOGrant, error) {
+	enrollFn := func(ctx context.Context, result *sobject_invite.InviteLookupResult, inviteePeerID peer.ID, inviteePubKey crypto.PubKey) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
 		// Add the invitee under the owner key. Local participants have no entity.
 		ownerPeerIDStr, err := peer.IDFromPrivateKey(result.OwnerPrivKey)
 		if err != nil {
-			return nil, err
+			return nil, 0, 0, err
 		}
-		grant, _, _, err := sobject.AddSOParticipant(
+		grant, outcome, held, err := sobject.AddSOParticipant(
 			ctx,
 			result.Host,
 			result.SharedObjectID,
@@ -1284,20 +1284,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			"",
 		)
 		if err != nil {
-			return nil, err
-		}
-
-		// Return the existing grant when the invitee was already a participant,
-		// whose role the add raised to the invite's when it was lower.
-		if grant == nil {
-			state, err := result.Host.GetHostState(ctx)
-			if err != nil {
-				return nil, err
-			}
-			grant = state.CurrentKeyEpoch().FindGrant(inviteePeerID.String())
-			if grant == nil {
-				return nil, errors.New("participant exists without a current key epoch grant")
-			}
+			return nil, 0, 0, err
 		}
 
 		// Keep the invitee connected once enrolled, whether or not the invite
@@ -1305,9 +1292,9 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		// storage peer enrolls here too and waits in signaling until it dials.
 		a.clearP2PPendingEnrollPeer(inviteePeerID)
 		if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {
-			return nil, errors.Wrap(err, "retain enrolled peer")
+			return nil, 0, 0, errors.Wrap(err, "retain enrolled peer")
 		}
-		return grant, nil
+		return grant, outcome, held, nil
 	}
 
 	// Build queue function: hold a redemption for the owner's approval.

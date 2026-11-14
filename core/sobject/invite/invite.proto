@@ -47,6 +47,11 @@ message AcceptInviteResponse {
   // config of shared_object_state, oldest first. It lets the invitee resolve
   // the config of every operation the state holds.
   repeated .sobject.SOConfigChange config_lineage = 6;
+  // Outcome says whether the owner added the invitee, raised its role to the
+  // invite's, or found it already holding that role or a higher one.
+  .sobject.SOParticipantAddOutcome outcome = 7;
+  // ParticipantRole is the role the invitee holds after enrollment.
+  .sobject.SOParticipantRole participant_role = 8;
 }
 
 // WithdrawJoinRequestRequest is sent by a requester to the owner. The owner

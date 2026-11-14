@@ -1476,7 +1476,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/sobject/invite": {
-      "hash": "3995cc15319d124f9b202bd967b761c7e5d709924da6d111746729a6a5a29b34",
+      "hash": "14864beeb50f4e3fbb59d51aa790c2a394c46fe9c88509a0180c75d6a76f56ac",
       "generatedFiles": [
         "core/sobject/invite/invite.pb.go",
         "core/sobject/invite/invite.pb.ts",

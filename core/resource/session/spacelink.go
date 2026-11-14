@@ -29,11 +29,14 @@ type verifiedSpaceLinkTicket struct {
 }
 
 type spaceLinkNonceConsumer interface {
+	// ConsumeSpaceLinkNonce spends an agent's link nonce once, before it expires.
 	ConsumeSpaceLinkNonce(ctx context.Context, agentPeerID, nonce, payload []byte, expiresAt time.Time) error
 }
 
 type spaceLinkSessionRegistrar interface {
+	// RegisterSessionWithRequest registers a session with the cloud.
 	RegisterSessionWithRequest(ctx context.Context, req *api.RegisterSessionRequest, turnstileToken string) (*api.RegisterSessionResponse, error)
+	// RollbackSessionRegistration removes a session registration that did not complete.
 	RollbackSessionRegistration(ctx context.Context, sessionPeerID string) error
 }
 
@@ -58,7 +61,7 @@ func (m mountedSpaceLinkTargetSpace) addParticipant(
 	accountID string,
 	username string,
 ) error {
-	_, err := m.swSO.AddParticipant(ctx, peerID, pub, role, accountID, username)
+	_, _, _, err := m.swSO.AddParticipant(ctx, peerID, pub, role, accountID, username)
 	return err
 }
 

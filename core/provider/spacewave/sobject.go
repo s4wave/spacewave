@@ -832,9 +832,11 @@ func SobjectBlockStoreID(soID string) string {
 	return soID
 }
 
-// AddParticipant adds a participant to the shared object. username is the
-// provider username of entityID; it fills a missing username on an existing
-// participant.
+// AddParticipant adds a participant to the shared object, raising a lower role
+// and never lowering one. It returns the grant it made, nil when the peer
+// already held one, the outcome and the role the peer holds after the call.
+// username is the provider username of entityID; it fills a missing username
+// on an existing participant.
 func (s *SharedObject) AddParticipant(
 	ctx context.Context,
 	targetPeerIDStr string,
@@ -842,21 +844,21 @@ func (s *SharedObject) AddParticipant(
 	role sobject.SOParticipantRole,
 	entityID string,
 	username string,
-) (*sobject.SOGrant, error) {
+) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
 	// Reject roles a participant add may not grant.
 	if err := sobject.ValidateSOParticipantRole(role, false); err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	// Serialize writes to this object and take a write session.
 	relLock, err := s.host.writeMu.Lock(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
 	defer relLock()
 	cli, err := s.getReadyWriteSessionClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	// Write the change against the latest config, retrying on a conflict.
@@ -864,7 +866,7 @@ func (s *SharedObject) AddParticipant(
 		// Load the latest config and key epochs.
 		state, currentCfg, epochs, err := s.loadLatestConfigState(ctx)
 		if err != nil {
-			return nil, err
+			return nil, 0, 0, err
 		}
 
 		// Find the participant and whether it lacks the role, entity or username.
@@ -873,45 +875,45 @@ func (s *SharedObject) AddParticipant(
 		})
 		participantExists := participantIdx >= 0
 		participantNeedsUpdate := false
+		var heldBefore sobject.SOParticipantRole
 		if participantExists {
 			current := currentCfg.GetParticipants()[participantIdx]
-			participantNeedsUpdate = current.GetRole() != sobject.MaxSOParticipantRole(current.GetRole(), role) ||
+			heldBefore = current.GetRole()
+			participantNeedsUpdate = heldBefore < role ||
 				(current.GetEntityId() == "" && entityID != "") ||
 				(current.GetUsername() == "" && username != "")
 		}
+		outcome := sobject.ParticipantAddOutcome(heldBefore, role)
+		held := max(heldBefore, role)
 
 		// Return early when the participant and its grant are current.
 		epoch := currentEpochWithFallback(state, epochs)
 		if epoch == nil {
-			return nil, errors.New("current key epoch missing")
+			return nil, 0, 0, errors.New("current key epoch missing")
 		}
 		grantExists := epoch.FindGrant(targetPeerIDStr) != nil
 		if participantExists && !participantNeedsUpdate && grantExists {
-			return nil, nil
+			return nil, outcome, held, nil
 		}
 
 		// Recover the read key from the local grant.
 		localGrant := epoch.FindGrant(s.localPid.String())
 		if localGrant == nil {
-			return nil, errors.New("local grant not found")
+			return nil, 0, 0, errors.New("local grant not found")
 		}
 
 		grantInner, err := localGrant.DecryptInnerData(s.privKey, s.GetSharedObjectID())
 		if err != nil {
-			return nil, errors.Wrap(err, "decrypt local grant")
+			return nil, 0, 0, errors.Wrap(err, "decrypt local grant")
 		}
 
 		var entry *sobject.SOConfigChange
 		var entryData []byte
 		if !participantExists || participantNeedsUpdate {
 			nextCfg := currentCfg.CloneVT()
-			nextRole := role
-			if participantExists {
-				nextRole = sobject.MaxSOParticipantRole(currentCfg.GetParticipants()[participantIdx].GetRole(), role)
-			}
 			nextParticipant := &sobject.SOParticipantConfig{
 				PeerId:   targetPeerIDStr,
-				Role:     nextRole,
+				Role:     held,
 				EntityId: entityID,
 				Username: username,
 			}
@@ -936,11 +938,11 @@ func (s *SharedObject) AddParticipant(
 				nil,
 			)
 			if err != nil {
-				return nil, errors.Wrap(err, "build config change")
+				return nil, 0, 0, errors.Wrap(err, "build config change")
 			}
 			entryData, err = entry.MarshalVT()
 			if err != nil {
-				return nil, errors.Wrap(err, "marshal config change")
+				return nil, 0, 0, errors.Wrap(err, "marshal config change")
 			}
 		}
 
@@ -953,7 +955,7 @@ func (s *SharedObject) AddParticipant(
 				grantInner,
 			)
 			if err != nil {
-				return nil, errors.Wrap(err, "encrypt grant for target peer")
+				return nil, 0, 0, errors.Wrap(err, "encrypt grant for target peer")
 			}
 			epoch.Grants = append(epoch.GetGrants(), grant)
 		}
@@ -965,7 +967,7 @@ func (s *SharedObject) AddParticipant(
 
 		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
 		if err != nil {
-			return nil, errors.Wrap(err, "build recovery config snapshot")
+			return nil, 0, 0, errors.Wrap(err, "build recovery config snapshot")
 		}
 		recoveryKeyEpoch := epoch.GetEpoch()
 		recoveryEnvelopes, err := s.buildRecoveryEnvelopesForConfig(
@@ -979,7 +981,7 @@ func (s *SharedObject) AddParticipant(
 			var missingErr *missingRecoveryKeypairsError
 			if !errors.As(err, &missingErr) || missingErr.entityID != entityID ||
 				sobject.CanReadState(readableParticipantRoleForEntity(currentCfg, entityID)) {
-				return nil, err
+				return nil, 0, 0, err
 			}
 			recoveryEnvelopes, err = s.buildRecoveryEnvelopesForConfig(
 				ctx,
@@ -989,7 +991,7 @@ func (s *SharedObject) AddParticipant(
 				recoveryKeyEpoch,
 			)
 			if err != nil {
-				return nil, err
+				return nil, 0, 0, err
 			}
 		}
 
@@ -1004,7 +1006,7 @@ func (s *SharedObject) AddParticipant(
 			); err != nil {
 				var ce *cloudError
 				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-					return nil, err
+					return nil, 0, 0, err
 				}
 				continue
 			}
@@ -1017,23 +1019,23 @@ func (s *SharedObject) AddParticipant(
 			); err != nil {
 				var ce *cloudError
 				if !errors.As(err, &ce) || ce.StatusCode != 409 || attempt+1 == maxWriteRetries {
-					return nil, err
+					return nil, 0, 0, err
 				}
 				continue
 			}
 		}
 		if entry != nil {
 			if err := s.host.applyConfigMutation(ctx, entry, nil, postedEpoch); err != nil {
-				return nil, err
+				return nil, 0, 0, err
 			}
 		} else if postedEpoch != nil {
 			s.host.applyKeyEpoch(ctx, postedEpoch)
 		}
 
-		return grant, nil
+		return grant, outcome, held, nil
 	}
 
-	return nil, errors.New("add participant failed after max retries due to config conflicts")
+	return nil, 0, 0, errors.New("add participant failed after max retries due to config conflicts")
 }
 
 func (s *SharedObject) getReadyWriteSessionClient(ctx context.Context) (*SessionClient, error) {

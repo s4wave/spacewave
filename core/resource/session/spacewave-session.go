@@ -2178,20 +2178,6 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 		return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{}, nil
 	}
 
-	// Index the current participant roles by peer.
-	state, err := swSO.GetSOHost().GetHostState(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get current SO state")
-	}
-	existingRoles := make(map[string]sobject.SOParticipantRole)
-	for _, participant := range state.GetConfig().GetParticipants() {
-		peerID := participant.GetPeerId()
-		if peerID == "" {
-			continue
-		}
-		existingRoles[peerID] = participant.GetRole()
-	}
-
 	// Add each peer, keeping a higher existing role, and record the outcome.
 	role := req.GetRole()
 	results := make([]*s4wave_provider_spacewave.EnrollSpaceMemberResult, 0, len(peers))
@@ -2206,15 +2192,14 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 		}
 
 		// Add the peer, raising a lower existing role and keeping a higher one.
-		held := existingRoles[peerID]
-		participantRole := max(role, held)
-		if _, err := swSO.AddParticipant(ctx, peerID, targetPub, participantRole, accountID, member.GetEntityId()); err != nil {
+		_, outcome, held, err := swSO.AddParticipant(ctx, peerID, targetPub, role, accountID, member.GetEntityId())
+		if err != nil {
 			result.Error = err.Error()
 			results = append(results, result)
 			continue
 		}
-		result.Outcome = sobject.ParticipantAddOutcome(held, role)
-		result.ParticipantRole = participantRole
+		result.Outcome = outcome
+		result.ParticipantRole = held
 		results = append(results, result)
 	}
 	return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{Results: results}, nil

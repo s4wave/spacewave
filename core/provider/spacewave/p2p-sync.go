@@ -60,6 +60,7 @@ type p2pSyncState struct {
 func (s *p2pSyncState) beginRoutine(key *p2pSyncSpaceKey) bool {
 	var admitted bool
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Refuse new routines once teardown has begun.
 		if s.closing {
 			return
 		}
@@ -175,6 +176,8 @@ func (a *ProviderAccount) startP2PSyncForSession(ctx context.Context, sessionID 
 	a.stopP2PSyncForSession(sessionID)
 	syncCtx, cancel := context.WithCancel(ctx)
 	state := &p2pSyncState{cancel: cancel, watcher: newNamedRoutineContainer(a.le, "p2p-space-list")}
+
+	// Serve account migration recovery to the Session's peer.
 	recoveryServer, err := stream_srpc_server.NewServer(childBus, a.le,
 		controller.NewInfo("alpha/account-migration", Version, "account migration recovery"),
 		[]stream_srpc_server.RegisterFn{func(mux srpc.Mux) error { return provider_migration.SRPCRegisterAccountMigrationService(mux, a) }},
@@ -189,6 +192,8 @@ func (a *ProviderAccount) startP2PSyncForSession(ctx context.Context, sessionID 
 		return err
 	}
 	state.addRelease(releaseRecovery)
+
+	// Run one synchronization routine per Space, retrying with backoff.
 	objects := keyed.NewKeyed(func(key p2pSyncSpaceKey) (keyed.Routine, struct{}) {
 		return func(ctx context.Context) error {
 			if !state.beginRoutine(&key) {
@@ -264,10 +269,13 @@ func (a *ProviderAccount) StopP2PSync() {
 
 // stopP2PSyncForSession withdraws direct reads before draining their controllers.
 func (a *ProviderAccount) stopP2PSyncForSession(sessionID string) {
+	// Take the Session's composition out of the account.
 	a.p2pSyncMtx.Lock()
 	state := a.p2pSyncs[sessionID]
 	delete(a.p2pSyncs, sessionID)
 	a.p2pSyncMtx.Unlock()
+
+	// Drain it outside the lock.
 	if state != nil {
 		state.stop()
 	}
@@ -299,6 +307,8 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, sta
 	if !ok {
 		return errors.New("unexpected session shared object type")
 	}
+
+	// Synchronize signed state, reporting each peer's health on the Space.
 	validateSnapshotAccess := func(ctx context.Context, state *sobject.SOState) error {
 		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.p.sfs, key.id, state, swSO.privKey, swSO.localPid)
 		_, err := snapshot.GetCheckpoint(ctx)
@@ -328,6 +338,7 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, sta
 
 // getSessionDEXStore reads the live adapter without retaining a stopped composition.
 func (a *ProviderAccount) getSessionDEXStore(sessionID, bucketID string) block.StoreOps {
+	// Find the Session's composition, if one is running.
 	a.p2pSyncMtx.Lock()
 	state := a.p2pSyncs[sessionID]
 	a.p2pSyncMtx.Unlock()
@@ -394,10 +405,10 @@ func (a *ProviderAccount) startInviteServer(
 		result *sobject_invite.InviteLookupResult,
 		inviteePeerID peer.ID,
 		inviteePubKey crypto.PubKey,
-	) (*sobject.SOGrant, error) {
+	) (*sobject.SOGrant, sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
 		swSO, relSO, err := a.mountSpaceSO(ctx, result.SharedObjectID)
 		if err != nil {
-			return nil, err
+			return nil, 0, 0, err
 		}
 		defer relSO()
 		return swSO.AddParticipant(
