@@ -1,31 +1,20 @@
-import { LuCircleAlert } from 'react-icons/lu'
+import { ViewerStatus } from './ViewerStatus.js'
 
 export interface ObjectViewerNotFoundStateProps {
   objectKey?: string
 }
 
-// ObjectViewerNotFoundState renders the shared missing-object viewer surface.
+// ObjectViewerNotFoundState fills a viewer's place when its object is gone.
+// Reading again cannot bring it back, so it offers no Retry.
 export function ObjectViewerNotFoundState({
   objectKey,
 }: ObjectViewerNotFoundStateProps) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-4">
-      <div className="border-foreground/6 bg-background-card/30 flex max-w-sm items-start gap-3 rounded-lg border p-3.5">
-        <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-          <LuCircleAlert
-            aria-hidden
-            className="text-foreground-alt/50 size-4"
-          />
-        </div>
-        <div className="min-w-0">
-          <p className="text-foreground text-sm font-semibold tracking-tight select-none">
-            Object not found
-          </p>
-          <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed break-words">
-            {objectKey || 'The selected object'} is no longer available.
-          </p>
-        </div>
-      </div>
+    <div className="bg-background-primary viewer-pane flex h-full w-full flex-1 flex-col">
+      <ViewerStatus
+        state="failed"
+        message={`Object not found: ${objectKey || 'the selected object'} is no longer available.`}
+      />
     </div>
   )
 }

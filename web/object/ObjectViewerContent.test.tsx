@@ -98,7 +98,7 @@ describe('ObjectViewerContent', () => {
       />,
     )
 
-    expect(screen.getByText('Loading object')).toBeDefined()
+    expect(screen.getByText('Loading the object')).toBeDefined()
     expect(screen.queryByText('LlmSession loaded')).toBeNull()
   })
 
@@ -190,7 +190,11 @@ describe('ObjectViewerContent', () => {
         },
       ],
     })
-    expect(await screen.findByText('Loading plugins')).toBeDefined()
+    expect(
+      await screen.findByText(
+        'Loading the Space plugins that open this object',
+      ),
+    ).toBeDefined()
 
     contents.push({
       ready: true,

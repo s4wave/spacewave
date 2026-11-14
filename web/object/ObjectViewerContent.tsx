@@ -92,10 +92,7 @@ function MissingViewerCard({
     !pluginsSettled(contentsState.value)
   ) {
     return (
-      <ObjectViewerLoadingState
-        title="Loading plugins"
-        detail="Waiting for the Space plugins that open this object."
-      />
+      <ObjectViewerLoadingState what="the Space plugins that open this object" />
     )
   }
 

@@ -118,10 +118,7 @@ describe('SecretViewer', () => {
   it('shows retryable unavailable state when the stream completes without state', () => {
     renderViewer()
 
-    expect(screen.getByText('Secret metadata unavailable')).toBeDefined()
-    expect(
-      screen.getByText('The Secret resource returned no state.'),
-    ).toBeDefined()
+    expect(screen.getByText('The Secret returned no metadata.')).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(hookState.retry).toHaveBeenCalledTimes(1)
   })
@@ -131,7 +128,9 @@ describe('SecretViewer', () => {
     hookState.error = new Error('stream failed')
     renderViewer()
 
-    expect(screen.getByText('Secret metadata unavailable')).toBeDefined()
+    expect(
+      screen.getByText('Could not read the secret metadata.'),
+    ).toBeDefined()
     expect(screen.queryByText('Matrix bot token')).toBeNull()
     expect(screen.queryByText('stream failed')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))

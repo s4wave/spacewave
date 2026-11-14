@@ -147,7 +147,7 @@ describe('ObjectViewer', () => {
       />,
     )
 
-    expect(screen.getByText('Loading object')).toBeDefined()
+    expect(screen.getByText('Loading the object')).toBeDefined()
     expect(screen.queryByTestId('object-viewer-content')).toBeNull()
   })
 
@@ -178,7 +178,7 @@ describe('ObjectViewer', () => {
 
     expect(screen.getByTestId('object-viewer-content')).toBeDefined()
     expect(screen.getByTestId('content-standalone').textContent).toBe('false')
-    expect(screen.queryByText('Loading object')).toBeNull()
+    expect(screen.queryByText('Loading the object')).toBeNull()
   })
 
   it('renders typed world viewers that do not require the generic object handle', () => {
@@ -219,8 +219,8 @@ describe('ObjectViewer', () => {
     )
 
     expect(screen.getByTestId('object-viewer-content')).toBeDefined()
-    expect(screen.queryByText('Loading object')).toBeNull()
-    expect(screen.queryByText('Object not found')).toBeNull()
+    expect(screen.queryByText('Loading the object')).toBeNull()
+    expect(screen.queryByText(/^Object not found/)).toBeNull()
   })
 
   it('renders not found when a world object lookup resolves missing', () => {
@@ -253,9 +253,9 @@ describe('ObjectViewer', () => {
       />,
     )
 
-    expect(screen.getByText('Object not found')).toBeDefined()
+    expect(screen.getByText(/^Object not found/)).toBeDefined()
     expect(screen.getByText(/wizard\/git\/repo\/test/)).toBeDefined()
-    expect(screen.queryByText('Loading object')).toBeNull()
+    expect(screen.queryByText('Loading the object')).toBeNull()
   })
 
   it('leaves loading when a world object lookup transitions to missing', () => {
@@ -285,7 +285,7 @@ describe('ObjectViewer', () => {
       <ObjectViewer objectInfo={objectInfo} worldState={worldState} />,
     )
 
-    expect(screen.getByText('Loading object')).toBeDefined()
+    expect(screen.getByText('Loading the object')).toBeDefined()
     mockUseObjectViewer.mockReturnValue(
       buildViewerResult({
         objectKey: 'files',
@@ -300,8 +300,8 @@ describe('ObjectViewer', () => {
 
     rerender(<ObjectViewer objectInfo={objectInfo} worldState={worldState} />)
 
-    expect(screen.getByText('Object not found')).toBeDefined()
-    expect(screen.queryByText('Loading object')).toBeNull()
+    expect(screen.getByText(/^Object not found/)).toBeDefined()
+    expect(screen.queryByText('Loading the object')).toBeNull()
   })
 
   it('does not use standalone mode when the selected viewer disables padding', () => {

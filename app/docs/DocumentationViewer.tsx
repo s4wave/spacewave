@@ -36,8 +36,12 @@ import {
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import {
+  resourceStatus,
+  ViewerStatus,
+  type ViewerStatusProps,
+} from '@s4wave/web/object/ViewerStatus.js'
 
 import { docsMarkdownOverrides } from './markdown-overrides.js'
 
@@ -54,7 +58,7 @@ type DocTextResource = ReturnType<typeof useUnixFSHandleTextContent>
 
 /**
  * useDocSource resolves the doc/source graph edge to the linked UnixFS object
- * key. sourceKey is empty while resolving or when nothing is linked.
+ * key. Its value is null while resolving or when nothing is linked.
  */
 function useDocSource(
   worldState: ObjectViewerComponentProps['worldState'],
@@ -80,7 +84,7 @@ function useDocSource(
     [objectKey],
   )
 
-  return { sourceKey: linkedSource.value ?? '', loading: linkedSource.loading }
+  return linkedSource
 }
 
 /** createUntitledPage creates the next free untitled page and returns its name. */
@@ -173,20 +177,17 @@ function useDocPage(
 /** DocPlaceholder shows the documentation title bar over a single centered body. */
 function DocPlaceholder({
   title,
-  children,
+  status,
 }: {
   title: string
-  children: ReactNode
+  status: ViewerStatusProps
 }) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuBookOpen className="size-4" />
-          <span className="tracking-tight">{title}</span>
-        </div>
+    <div className="bg-background-primary viewer-pane flex h-full w-full flex-col">
+      <ViewerBar icon={<LuBookOpen />} title={title} />
+      <div className="min-h-0 flex-1">
+        <ViewerStatus {...status} />
       </div>
-      {children}
     </div>
   )
 }
@@ -361,20 +362,11 @@ function DocPageBody({
   editContent,
   onEditContentChange,
 }: DocPageBodyProps) {
-  if (textResource.loading) {
+  const status = resourceStatus('the page', textResource)
+  if (status) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <LoadingInline label="Loading page" tone="muted" size="sm" />
-      </div>
-    )
-  }
-  if (textResource.error) {
-    return (
-      <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
-        <span>Failed to load page</span>
-        <span className="text-foreground-alt/50 text-xs">
-          {textResource.error.message}
-        </span>
+      <div className="min-h-0 flex-1">
+        <ViewerStatus {...status} />
       </div>
     )
   }
@@ -473,10 +465,8 @@ export function DocumentationViewer({
   const objectKey = getObjectKey(objectInfo)
   const ns = useStateNamespace(['docs', objectKey])
   const doc = useForgeBlockData(objectState, DocumentationTypeID, Documentation)
-  const { sourceKey, loading: sourceLoading } = useDocSource(
-    worldState,
-    objectKey,
-  )
+  const linkedSource = useDocSource(worldState, objectKey)
+  const sourceKey = linkedSource.value ?? ''
 
   // Access the UnixFS root and list directory entries.
   const rootHandle = useUnixFSRootHandle(worldState, sourceKey)
@@ -522,34 +512,26 @@ export function DocumentationViewer({
 
   const title = doc?.name || 'Documentation'
 
-  // Gate the viewer on the doc source resource: while the linked UnixFS source
-  // is resolving (or the initial directory listing has not arrived yet), show a
-  // single LoadingCard in the content chrome instead of flashing partial UI.
-  if (sourceLoading || (!!sourceKey && entries.loading && !entries.value)) {
-    return (
-      <DocPlaceholder title={title}>
-        <div className="flex flex-1 items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <LoadingCard
-              view={{
-                state: 'active',
-                title: 'Loading documentation',
-                detail: 'Resolving the source and reading pages.',
-              }}
-            />
-          </div>
-        </div>
-      </DocPlaceholder>
-    )
-  }
+  // Gate the viewer on the doc source: while the link resolves, or until the
+  // first directory listing arrives, show one status under the bar instead of
+  // flashing partial UI. A failed listing is a notice over the page, which
+  // reads on its own.
+  const status: ViewerStatusProps | null =
+    resourceStatus('the documentation', linkedSource) ??
+    (sourceKey && entries.loading && !entries.value
+      ? { state: 'waiting', what: 'the documentation' }
+      : null)
+  if (status) return <DocPlaceholder title={title} status={status} />
 
   if (!sourceKey) {
     return (
-      <DocPlaceholder title={title}>
-        <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-          No documentation source linked
-        </div>
-      </DocPlaceholder>
+      <DocPlaceholder
+        title={title}
+        status={{
+          state: 'empty',
+          message: 'This documentation has no source linked yet.',
+        }}
+      />
     )
   }
 
@@ -593,6 +575,13 @@ export function DocumentationViewer({
 
         {/* Content area */}
         <div className="flex min-w-0 flex-1 flex-col">
+          {entries.error ? (
+            <ViewerStatus
+              state="failed"
+              message={`Could not list the pages: ${entries.error.message}`}
+              retry={entries.retry}
+            />
+          ) : null}
           <DocContent
             selectedPage={page.selectedPage}
             editing={page.editing}

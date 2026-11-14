@@ -1,23 +1,17 @@
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerStatus } from './ViewerStatus.js'
 
-// ObjectViewerLoadingState renders the shared object-viewer loading surface.
+// ObjectViewerLoadingState fills a viewer's place while the object, its type
+// or the plugin that views it loads. what names what is read, such as "the
+// object". It brings its own pane container, since it may stand before any
+// viewer pane exists.
 export function ObjectViewerLoadingState({
-  title = 'Loading object',
-  detail = 'Resolving object type and preparing the viewer.',
+  what = 'the object',
 }: {
-  title?: string
-  detail?: string
+  what?: string
 }) {
   return (
-    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-4">
-      <LoadingCard
-        view={{
-          state: 'loading',
-          title,
-          detail,
-        }}
-        className="w-full max-w-sm"
-      />
+    <div className="bg-background-primary viewer-pane flex h-full w-full flex-1 flex-col">
+      <ViewerStatus state="waiting" what={what} />
     </div>
   )
 }

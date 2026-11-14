@@ -54,7 +54,7 @@ describe('ChatChannelViewer', () => {
       />,
     )
     expect(screen.getByText('Start the conversation')).toBeDefined()
-    expect(screen.queryByText('Loading messages')).toBeNull()
+    expect(screen.queryByText('Loading the messages')).toBeNull()
   })
 
   it('does not carry a populated channel into a newly selected empty channel', async () => {
@@ -115,7 +115,10 @@ describe('ChatChannelViewer', () => {
         worldState={worldState as never}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(
+      screen.getByText('Could not read the messages: offline'),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(retry).toHaveBeenCalledOnce()
   })
 })

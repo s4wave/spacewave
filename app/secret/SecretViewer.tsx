@@ -12,8 +12,8 @@ import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 export { SecretTypeID }
 
@@ -186,7 +186,11 @@ function SecretDetails({
   )
 }
 
-/** SecretBody renders the state stream as an error, loading card, or the details. */
+/**
+ * SecretBody renders the state stream's status, or the details once read. A
+ * failure never shows the stream's error text, which could carry more than
+ * the redacted state does.
+ */
 function SecretBody({
   error,
   loading,
@@ -202,37 +206,29 @@ function SecretBody({
 }) {
   if (error) {
     return (
-      <LoadingCard
-        view={{
-          state: 'error',
-          title: 'Secret metadata unavailable',
-          detail: 'The redacted Secret state stream stopped unexpectedly.',
-          onRetry: retry,
-        }}
+      <ViewerStatus
+        state="failed"
+        message="Could not read the secret metadata."
+        retry={retry}
       />
     )
   }
   if (!state) {
     return loading ? (
-      <LoadingCard
-        view={{
-          state: 'active',
-          title: 'Loading secret metadata',
-          detail: 'Reading the authorized, redacted Secret state.',
-        }}
-      />
+      <ViewerStatus state="waiting" what="the secret metadata" />
     ) : (
-      <LoadingCard
-        view={{
-          state: 'error',
-          title: 'Secret metadata unavailable',
-          detail: 'The Secret resource returned no state.',
-          onRetry: retry,
-        }}
+      <ViewerStatus
+        state="failed"
+        message="The Secret returned no metadata."
+        retry={retry}
       />
     )
   }
-  return <SecretDetails state={state} objectKey={objectKey} />
+  return (
+    <div className="px-4 py-3">
+      <SecretDetails state={state} objectKey={objectKey} />
+    </div>
+  )
 }
 
 // SecretViewer displays only the browser-safe metadata stream. Payload reads
@@ -261,7 +257,7 @@ export function SecretViewer({
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <ViewerBar icon={<LuKeyRound />} title={title || 'Secret'} />
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+      <div className="min-h-0 flex-1 overflow-auto">
         <SecretBody
           error={stateResource.error}
           loading={stateResource.loading}

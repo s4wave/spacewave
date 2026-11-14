@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import {
   DeviceAvailabilityState,
@@ -18,6 +18,7 @@ import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 const h = vi.hoisted(() => ({
+  streamRetry: vi.fn(),
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   navigateToObjects: vi.fn(),
   objects: [{ objectKey: 'terminal/build-host-terminal-1' }],
@@ -82,7 +83,7 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
       : undefined,
     loading: false,
     error: null,
-    retry: vi.fn(),
+    retry: h.streamRetry,
   }),
 }))
 
@@ -242,5 +243,31 @@ describe('DeviceViewer', () => {
     )
 
     expect(screen.queryByRole('button', { name: /open terminal/i })).toBeNull()
+  })
+
+  it('offers Retry when the stream ends without a device', () => {
+    render(
+      <DeviceViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'devices/build-host',
+              objectType: 'spacewave/device',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByText('The Device returned no details.')).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(h.streamRetry).toHaveBeenCalledTimes(1)
   })
 })

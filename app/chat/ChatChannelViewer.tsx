@@ -1,4 +1,4 @@
-import { LuCircleAlert, LuHash, LuRefreshCw } from 'react-icons/lu'
+import { LuHash } from 'react-icons/lu'
 import { useCallback, useEffect, useState } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
@@ -6,6 +6,7 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
+import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 import { ChatHandle, ChatChannelTypeID } from '@s4wave/sdk/chat/chat.js'
 import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'
@@ -97,49 +98,17 @@ function ChatChannelContent({
         </div>
       </header>
 
-      {loading ? (
-        <div
-          className="flex flex-1 items-center justify-center p-6"
-          role="status"
-        >
-          <div className="flex items-center gap-3 text-sm">
-            <div className="border-brand/30 border-t-brand size-5 animate-spin rounded-full border-2" />
-            <div>
-              <div className="text-foreground font-medium">
-                Loading messages
-              </div>
-              <div className="text-muted-foreground text-xs">
-                Reading conversation history…
-              </div>
-            </div>
-          </div>
+      {error ? (
+        <div className="min-h-0 flex-1">
+          <ViewerStatus
+            state="failed"
+            message={`Could not read the messages: ${error.message}`}
+            retry={messagesResource.retry}
+          />
         </div>
-      ) : error ? (
-        <div
-          className="flex flex-1 items-center justify-center p-6"
-          role="alert"
-        >
-          <div className="border-error/30 bg-background-card max-w-sm rounded-md border p-5 text-center">
-            <LuCircleAlert
-              className="text-error-text mx-auto size-6"
-              aria-hidden="true"
-            />
-            <h2 className="text-foreground mt-3 text-sm font-semibold">
-              Messages unavailable
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-5">
-              The channel history could not be read. Check the connection and
-              try again.
-            </p>
-            <button
-              type="button"
-              onClick={messagesResource.retry}
-              className="border-foreground/15 bg-background-tertiary text-foreground hover:bg-background-panel focus-visible:ring-primary mx-auto mt-4 flex items-center gap-2 rounded-sm border px-3 py-2 text-xs font-semibold focus-visible:ring-2"
-            >
-              <LuRefreshCw className="size-3.5" aria-hidden="true" />
-              Try again
-            </button>
-          </div>
+      ) : loading ? (
+        <div className="min-h-0 flex-1">
+          <ViewerStatus state="waiting" what="the messages" />
         </div>
       ) : (
         <MessageList messages={messages} />

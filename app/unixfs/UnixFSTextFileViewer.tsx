@@ -12,12 +12,16 @@ import {
   unixFSHandleTextContentMaxBytes,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { Button } from '@s4wave/web/ui/button.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import {
+  resourceStatus,
+  ViewerStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 
 interface TextFileToolbarProps {
   draft: string | null
   text: string
   complete: boolean
+  reading: boolean
   saved: boolean
   saving: boolean
   canSave: boolean
@@ -31,6 +35,7 @@ function TextFileToolbar({
   draft,
   text,
   complete,
+  reading,
   saved,
   saving,
   canSave,
@@ -38,6 +43,8 @@ function TextFileToolbar({
   onSave,
   onCancel,
 }: TextFileToolbarProps) {
+  // Never turn a truncated preview into a replacement for the complete file,
+  // and never start a draft from text a re-read is about to replace.
   return (
     <div className="border-foreground/10 flex items-center gap-2 border-b p-2">
       {draft === null ? (
@@ -45,7 +52,7 @@ function TextFileToolbar({
           size="default"
           variant="ghost"
           className="pointer-coarse:min-h-11"
-          disabled={!complete}
+          disabled={!complete || reading}
           onClick={onEdit}
         >
           Edit file
@@ -73,6 +80,9 @@ function TextFileToolbar({
       )}
       {!complete && (
         <span className="text-xs">This preview is too large to edit here.</span>
+      )}
+      {complete && reading && draft === null && (
+        <span className="text-xs">Reading the file again…</span>
       )}
       {saved && !saving && (
         <span role="status" className="text-xs">
@@ -147,23 +157,9 @@ export function UnixFSTextFileViewer({
     }
   }
 
-  // Never turn a truncated preview into a replacement for the complete file.
-  if (content.loading || content.error) {
-    return (
-      <LoadingCard
-        view={
-          content.error
-            ? {
-                state: 'error',
-                title: 'Unable to read text file',
-                error: content.error.message,
-                onRetry: content.retry,
-              }
-            : { state: 'active', title: 'Loading file' }
-        }
-      />
-    )
-  }
+  // A re-read keeps the old text drawn; the toolbar holds Edit until it lands.
+  const status = resourceStatus('the file', content)
+  if (status) return <ViewerStatus {...status} />
   if (!content.value) return null
   const text = acceptedText ?? content.value.text
 
@@ -174,6 +170,7 @@ export function UnixFSTextFileViewer({
         draft={draft}
         text={text}
         complete={content.value.complete}
+        reading={content.loading}
         saved={acceptedText !== null && acceptedText === draft && !error}
         saving={saving}
         canSave={!!rootHandle.value}

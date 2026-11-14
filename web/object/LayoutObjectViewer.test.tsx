@@ -301,12 +301,21 @@ describe('LayoutObjectViewer', () => {
       />,
     )
 
-    expect(screen.getByText('Loading layout')).toBeDefined()
+    expect(screen.getByText('Loading the layout')).toBeDefined()
   })
 
   it('renders failure state when the layout host failed to load', () => {
+    // The layout's handle failed with no layout drawn.
+    const retry = vi.fn()
+    mockUseAccessTypedHandle.mockReturnValue({
+      value: null,
+      loading: false,
+      error: new Error('not a layout'),
+      retry,
+    })
     mockUseResourceValue.mockReturnValue(undefined)
 
+    // Open the viewer on that layout.
     render(
       <LayoutObjectViewer
         objectInfo={objectInfo as never}
@@ -314,7 +323,12 @@ describe('LayoutObjectViewer', () => {
       />,
     )
 
-    expect(screen.getByText('Failed to load layout')).toBeDefined()
+    // The failure names the cause and its Retry reads again.
+    expect(
+      screen.getByText('Could not read the layout: not a layout'),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(retry).toHaveBeenCalledOnce()
   })
 
   it('passes an external-drag handler into BaseLayout when the host is ready', () => {

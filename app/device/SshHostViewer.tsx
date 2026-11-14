@@ -22,10 +22,14 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import {
+  resourceStatus,
+  ViewerStatus,
+  type ViewerStatusProps,
+} from '@s4wave/web/object/ViewerStatus.js'
 
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 
@@ -105,6 +109,16 @@ export function SshHostViewer({
   )
   const pins = state?.hostKeyPins ?? []
 
+  // Until the host arrives, show what is read or why it failed; a stream
+  // that ends without a host offers to read it again.
+  const readStatus: ViewerStatusProps | null = state
+    ? null
+    : (resourceStatus('the SSH Host', stateResource) ?? {
+        state: 'failed',
+        message: 'The SSH Host returned no details.',
+        retry: stateResource.retry,
+      })
+
   const handleOpenTerminal = async () => {
     if (!state) return
     try {
@@ -143,16 +157,8 @@ export function SshHostViewer({
             : []
         }
       />
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-        {stateResource.loading && !state && (
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading SSH Host',
-              detail: 'Reading SSH Host state.',
-            }}
-          />
-        )}
+      <div className={cn('min-h-0 flex-1 overflow-auto', state && 'px-4 py-3')}>
+        {readStatus ? <ViewerStatus {...readStatus} /> : null}
         {state && (
           <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
             <InfoCard>

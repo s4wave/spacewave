@@ -20,6 +20,7 @@ import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
 const h = vi.hoisted(() => ({
+  streamRetry: vi.fn(),
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   navigateToObjects: vi.fn(),
   objects: [{ objectKey: 'terminal/prod-ssh-terminal-1' }],
@@ -69,7 +70,7 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
     value: currentState,
     loading: false,
     error: null,
-    retry: vi.fn(),
+    retry: h.streamRetry,
   }),
 }))
 
@@ -220,5 +221,32 @@ describe('SshHostViewer', () => {
     expect(op.deviceObjectKey ?? '').toBe('')
     expect(op.devicePeerId ?? '').toBe('')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['prod-ssh-terminal-1'])
+  })
+
+  it('offers Retry when the stream ends without a host', () => {
+    currentState = undefined
+    render(
+      <SshHostViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'hosts/prod',
+              objectType: 'spacewave/ssh-host',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByText('The SSH Host returned no details.')).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(h.streamRetry).toHaveBeenCalledTimes(1)
   })
 })

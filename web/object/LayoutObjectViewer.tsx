@@ -31,13 +31,13 @@ import {
   type FlexTabContextMenuState,
 } from '@s4wave/web/layout/FlexTabContextMenu.js'
 import { FlexTabNameInput } from '@s4wave/web/layout/FlexTabNameInput.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state'
 import { DocumentTitleFocusContext } from '@s4wave/web/title/DocumentTitleFocusContext.js'
 
 import type { ObjectViewerComponentProps } from './object.js'
 import { getObjectKey } from './object.js'
 import { TabContentContainer } from './TabContent.js'
+import { resourceStatus, ViewerStatus } from './ViewerStatus.js'
 import { buildObjectLayoutExternalDrag } from './layout-object-app-drag.js'
 
 // ObjectLayoutTypeID is the type identifier for ObjectLayout objects.
@@ -381,6 +381,7 @@ function useObjectLayoutController({
     focusedTabId,
     handleLocalStateChange,
     layoutHost,
+    layoutStatus: resourceStatus('the layout', typedObjectResource),
     memoizedLocalState,
     renderTab,
     setContextMenu,
@@ -399,27 +400,18 @@ export function LayoutObjectViewer({
     focusedTabId,
     handleLocalStateChange,
     layoutHost,
+    layoutStatus,
     memoizedLocalState,
     renderTab,
     setContextMenu,
   } = useObjectLayoutController({ objectInfo, worldState })
 
-  if (layoutHost === null) {
+  // Until the layout arrives, show what is read or why it failed.
+  if (!layoutHost) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <LoadingCard
-          view={{ state: 'loading', title: 'Loading layout' }}
-          className="w-full max-w-sm"
-        />
-      </div>
-    )
-  }
-
-  if (layoutHost === undefined) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center">
-        Failed to load layout
-      </div>
+      <ViewerStatus
+        {...(layoutStatus ?? { state: 'waiting', what: 'the layout' })}
+      />
     )
   }
 

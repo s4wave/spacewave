@@ -2,10 +2,14 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import {
+  resourceStatus,
+  ViewerStatus,
+  type ViewerStatusProps,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { ViewerRailGlyph, ViewerSide } from '@s4wave/web/object/ViewerSide.js'
 import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { useCallback } from 'react'
@@ -90,6 +94,16 @@ export function DeviceViewer({
     />
   ) : null
 
+  // Until the device arrives, show what is read or why it failed; a stream
+  // that ends without a device offers to read it again.
+  const status: ViewerStatusProps | null = state
+    ? null
+    : (resourceStatus('the device', stateResource) ?? {
+        state: 'failed',
+        message: 'The Device returned no details.',
+        retry: stateResource.retry,
+      })
+
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
       <ViewerBar
@@ -119,17 +133,7 @@ export function DeviceViewer({
           <span className="min-w-0">{statusError}</span>
         </div>
       ) : null}
-      {stateResource.loading && !state && (
-        <div className="p-viewer-pad">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading device',
-              detail: 'Reading the device state stream.',
-            }}
-          />
-        </div>
-      )}
+      {status ? <ViewerStatus {...status} /> : null}
       {state && (
         <ViewerSide
           label="Device"
