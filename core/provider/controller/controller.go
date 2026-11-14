@@ -107,7 +107,7 @@ func (c *ProviderController) GetProvider(ctx context.Context) (provider.Provider
 	return c.providerCtr.WaitValue(ctx, nil)
 }
 
-// GetProviderInfo returns the provider information
+// GetProviderInfo returns the provider information.
 func (c *ProviderController) GetProviderInfo() *provider.ProviderInfo {
 	return c.providerInfo.CloneVT()
 }
@@ -259,6 +259,12 @@ func (c *ProviderController) HandleDirective(ctx context.Context, di directive.I
 	case session.MountSession:
 		if ref := dir.MountSessionRef(); ref.GetProviderResourceRef().GetProviderId() == c.providerInfo.GetProviderId() {
 			return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (session.MountSessionValue, func(), error) {
+				// Refuse an account whose delete started before opening it,
+				// which would recreate its volume.
+				if err := session.CheckMountable(ctx, c.bus, ref); err != nil {
+					return nil, nil, err
+				}
+
 				// Resolve the provider before opening its requested session resource.
 				prov, err := c.GetProvider(ctx)
 				if err != nil {

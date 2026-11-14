@@ -33,7 +33,6 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -1146,17 +1145,9 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 	providerAccountID := provRef.GetProviderAccountId()
 
 	// Determine the volume and session object store for the provider type.
-	var vol volume.Volume
-	var objectStoreID string
-	switch acc := r.session.GetProviderAccount().(type) {
-	case *provider_local.ProviderAccount:
-		vol = acc.GetVolume()
-		objectStoreID = provider_local.SessionObjectStoreID(providerID, providerAccountID)
-	case *provider_spacewave.ProviderAccount:
-		vol = acc.GetVolume()
-		objectStoreID = provider_spacewave.SessionObjectStoreID(providerAccountID)
-	default:
-		return nil, errors.New("unsupported provider account type for delete")
+	vol, objectStoreID, err := accountVolume(r.session.GetProviderAccount(), providerID, providerAccountID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Delete the account's sessions and then its volume.

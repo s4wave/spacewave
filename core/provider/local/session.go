@@ -496,6 +496,12 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// Take the object store from the mounted handle.
 	objStore := objStoreHandle.GetObjectStore()
 
+	// Refuse while the account's delete is unfinished: the session's key may
+	// be gone, and this would write a new one in its place.
+	if err := refuseDeleting(ctx, objStore); err != nil {
+		return err
+	}
+
 	// Derive storage key from volume peer key.
 	volPeer, err := t.a.vol.GetPeer(ctx, true)
 	if err != nil {
@@ -829,6 +835,12 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 
 	// Take the object store from the mounted handle.
 	objStore := objStoreHandle.GetObjectStore()
+
+	// Refuse while the account's delete is unfinished: the session's key may
+	// be gone, and this would write a new one in its place.
+	if err := refuseDeleting(ctx, objStore); err != nil {
+		return err
+	}
 
 	// Derive entity private key from credential.
 	entityPrivKey, err := resolveEntityPrivKey(providerAccountID, cred)

@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
 import type { WatchSessionsResponse } from '@s4wave/sdk/root/root.pb.js'
 import type { Root } from '@s4wave/sdk/root/root.js'
-import type {
-  SessionListEntry,
-  SessionMetadata,
+import {
+  SessionListState,
+  type SessionListEntry,
+  type SessionMetadata,
 } from '../../core/session/session.pb.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -19,8 +20,40 @@ const EMPTY_SESSIONS: Resource<WatchSessionsResponse> = {
   retry: () => {},
 }
 
-// useSessionList returns the list of configured sessions, updating live.
+// isSessionOpenable reports whether a session list entry opens. Only an
+// ACTIVE entry does: a DELETING or UNLINKING entry belongs to an account whose
+// delete has started, and the next startup finishes it.
+export function isSessionOpenable(entry: SessionListEntry): boolean {
+  return (entry.state ?? SessionListState.ACTIVE) === SessionListState.ACTIVE
+}
+
+// useSessionList returns the sessions that open, updating live. Every caller
+// that routes to or opens a session reads this list.
 export function useSessionList(): Resource<WatchSessionsResponse> {
+  const resource = useAllSessionList()
+  const value = resource.value
+  const openable = useMemo(
+    () =>
+      value
+        ? {
+            ...value,
+            sessions: (value.sessions ?? []).filter(isSessionOpenable),
+          }
+        : value,
+    [value],
+  )
+  // The filter keeps value null exactly when the resource's is, so the
+  // resource stays in the state it was in.
+  return useMemo(
+    () => ({ ...resource, value: openable }) as Resource<WatchSessionsResponse>,
+    [resource, openable],
+  )
+}
+
+// useAllSessionList returns every listed session, including those of an
+// account whose delete has started, updating live. Only a view that shows
+// such sessions without opening them reads it.
+export function useAllSessionList(): Resource<WatchSessionsResponse> {
   const environment = useAppEnvironment()
   const isStatic = useIsStaticMode()
   const rootResource = useRootResource()
@@ -32,7 +65,7 @@ export function useSessionList(): Resource<WatchSessionsResponse> {
   useEffect(() => {
     if (isStatic) return
     if (resource.loading) return
-    const hasSessions = (resource.value?.sessions?.length ?? 0) > 0
+    const hasSessions = (resource.value?.sessions ?? []).some(isSessionOpenable)
     if (hasSessions) {
       environment.storage.setItem('spacewave-has-session', '1')
       return

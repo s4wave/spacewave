@@ -20,6 +20,7 @@ import (
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
+	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	resource_worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
 	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -30,7 +31,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "resource/root"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -221,6 +222,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	releases = append(releases, nodeTypeBridgeRel)
 	defer releaseAll()
+
+	// Finish the account deletes a stop left part way, beside the background
+	// plugins, whose mounts of those accounts fail until the delete is done.
+	go func() {
+		if err := resource_session.ResumeAccountDeletes(ctx, le, b); err != nil && ctx.Err() == nil {
+			le.WithError(err).Warn("failed to resume account deletes")
+		}
+	}()
 
 	// Run confirmed background plugins until the controller stops. A failure
 	// stops only the background plugins, not the resource root.

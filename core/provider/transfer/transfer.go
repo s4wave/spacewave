@@ -356,7 +356,15 @@ func (t *Transfer) sourceEmpty(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "list the source's spaces before its delete")
 	}
-	for _, entry := range soList.GetSharedObjects() {
+	return ListsOnlyPrivate(soList)
+}
+
+// ListsOnlyPrivate fails when list holds a Space other than an
+// account-private one. A transfer's source delete runs it, before its start
+// and again when a resume finishes it, so the volume delete loses no Space the
+// run did not move.
+func ListsOnlyPrivate(list *sobject.SharedObjectList) error {
+	for _, entry := range list.GetSharedObjects() {
 		if !entry.GetMeta().GetAccountPrivate() {
 			return errors.Errorf("the source still lists space %s, which the run did not move", entry.GetRef().GetProviderResourceRef().GetId())
 		}

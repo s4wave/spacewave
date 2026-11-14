@@ -8,6 +8,42 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
+ * SessionListState is the state of a session list entry.
+ *
+ * @generated from enum session.SessionListState
+ */
+export enum SessionListState {
+  /**
+   * SESSION_LIST_STATE_ACTIVE is a session that opens.
+   */
+  ACTIVE = 0,
+
+  /**
+   * SESSION_LIST_STATE_DELETING is a session of an account whose delete
+   * started and has not removed the account's volume. It never opens; the
+   * next mount of it or the next startup finishes the delete.
+   */
+  DELETING = 1,
+
+  /**
+   * SESSION_LIST_STATE_UNLINKING is a session of an account whose volume
+   * delete started. It never opens; what remains is the volume delete, the
+   * cloud sessions' links to its index, and the entry itself, which goes
+   * last.
+   */
+  UNLINKING = 2,
+}
+
+export const SessionListState_Enum = /* @__PURE__ */ createEnumType(
+  'session.SessionListState',
+  [
+    [0, 'SESSION_LIST_STATE_ACTIVE'],
+    [1, 'SESSION_LIST_STATE_DELETING'],
+    [2, 'SESSION_LIST_STATE_UNLINKING'],
+  ],
+)
+
+/**
  * SessionType identifies the type of session.
  *
  * @generated from enum session.SessionType
@@ -142,6 +178,10 @@ export interface SessionListEntry {
    * SessionRef is the reference to the session.
    */
   sessionRef?: SessionRef
+  /**
+   * State is the session's state in the list.
+   */
+  state?: SessionListState
 }
 
 export const SessionListEntry: MessageType<SessionListEntry> =
@@ -150,6 +190,7 @@ export const SessionListEntry: MessageType<SessionListEntry> =
     () => [
       [1, 'session_index', 13],
       [2, 'session_ref', 11, 0, SessionRef.codec],
+      [3, 'state', 14, 0, SessionListState_Enum],
     ],
   )
 
