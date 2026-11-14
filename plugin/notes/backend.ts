@@ -82,11 +82,8 @@ import { DocsResourceServiceDefinition } from './sdk/docs_srpc.pb.js'
 import { NotebookResource } from './notebook-resource.js'
 import { BlogResource } from './blog-resource.js'
 import { DocsResource } from './docs-resource.js'
-import { createBlogClientSide } from './blog-seed.js'
-import {
-  createDocsClientSide,
-  createNotebookClientSide,
-} from './content-seed.js'
+import { seedBlog } from './blog-seed.js'
+import { seedDocs, seedNotebook } from './content-seed.js'
 import {
   INIT_NOTEBOOK_OP_ID,
   NOTEBOOK_OBJECT_KEY,
@@ -277,17 +274,39 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
       return this.savedViews.handler.ApplyWorldOp(request, abortSignal, context)
     }
 
+    // A refused op is a rejection carrying its code, which the World reports
+    // to the caller after discarding everything the op wrote.
+    try {
+      return await this.applyNotesWorldOp(
+        opTypeId,
+        request,
+        abortSignal,
+        context,
+      )
+    } catch (err) {
+      if (!(err instanceof WorldOperationRejection)) throw err
+      return { rejectionCode: err.code, rejectionMessage: err.message }
+    }
+  }
+
+  // applyNotesWorldOp applies one of the notes plugin's own World ops.
+  private applyNotesWorldOp(
+    opTypeId: string,
+    request: ApplyWorldOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyWorldOpResponse> {
     switch (opTypeId) {
       case INIT_NOTEBOOK_OP_ID:
-        return this.applyInitNotebook(request, context)
+        return this.applyInitNotebook(request, abortSignal, context)
       case NOTEBOOK_EDIT_OP_ID:
         return this.applyNotebookEdit(request, abortSignal, context)
       case CREATE_BLOG_OP_ID:
-        return this.applyCreateBlog(request, context)
+        return this.applyCreateBlog(request, abortSignal, context)
       case CREATE_DOCS_OP_ID:
-        return this.applyCreateDocs(request, context)
+        return this.applyCreateDocs(request, abortSignal, context)
       default:
-        throw new Error('unhandled world op: ' + opTypeId)
+        return Promise.reject(new Error('unhandled world op: ' + opTypeId))
     }
   }
 
@@ -311,6 +330,7 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
   // with sample notes and a Notebook object reading it.
   private async applyInitNotebook(
     request: ApplyWorldOpRequest,
+    signal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const engineId = request.attachedWorldStateResourceId ?? 0
@@ -329,12 +349,13 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
-      await createNotebookClientSide(
+      await seedNotebook(
         ws,
         notebookKey,
         unixfsKey,
         op.name || 'Notes',
         op.timestamp ?? new Date(),
+        signal,
       )
       return {}
     } finally {
@@ -343,8 +364,7 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     }
   }
 
-  // applyNotebookEdit handles the notebook-edit operation. A refused edit is a
-  // rejection carrying its code, which the World reports to the caller.
+  // applyNotebookEdit handles the notebook-edit operation.
   private async applyNotebookEdit(
     request: ApplyWorldOpRequest,
     signal: AbortSignal,
@@ -360,9 +380,6 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     try {
       await applyNotebookEdit(ws, op, signal)
       return {}
-    } catch (err) {
-      if (!(err instanceof WorldOperationRejection)) throw err
-      return { rejectionCode: err.code, rejectionMessage: err.message }
     } finally {
       ws.release()
       wsRef.release()
@@ -374,6 +391,7 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
   // initial post file.
   private async applyCreateBlog(
     request: ApplyWorldOpRequest,
+    signal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const engineId = request.attachedWorldStateResourceId ?? 0
@@ -392,13 +410,14 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     const ws = new WorldStateResource(wsRef)
     try {
       const blogName = op.name || 'Blog'
-      await createBlogClientSide(
+      await seedBlog(
         ws,
         blogKey,
         blogName,
         op.description ?? '',
         op.authorRegistryPath ?? '',
         op.timestamp ?? new Date(),
+        signal,
       )
 
       return {}
@@ -412,6 +431,7 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
   // an index page and a Documentation object reading it.
   private async applyCreateDocs(
     request: ApplyWorldOpRequest,
+    signal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const engineId = request.attachedWorldStateResourceId ?? 0
@@ -431,12 +451,13 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
-      await createDocsClientSide(
+      await seedDocs(
         ws,
         docsKey,
         op.name || 'Documentation',
         op.description ?? '',
         op.timestamp ?? new Date(),
+        signal,
       )
       return {}
     } finally {
@@ -456,6 +477,12 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
   // SeedQuickstart creates the quickstart's content with the plugin's own
   // create op, sent as a one-op World batch. The host applies it under its
   // writer and plugin op deadline, so no transaction is held across calls.
+  // The op keeps a whole earlier seed, found by its primary object having its
+  // type, so seeding a Space again, as Retry does after a later quickstart
+  // step failed, completes without a second copy or an overwrite. Any other
+  // object at a seed key rejects the op; see applySeed.
+  // The batch carries no Space settings ops; the caller writes the index
+  // after this returns.
   async SeedQuickstart(
     request: SeedQuickstartRequest,
     _abortSignal: AbortSignal,

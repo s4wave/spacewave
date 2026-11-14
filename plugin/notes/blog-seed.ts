@@ -1,25 +1,7 @@
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { Blog } from './proto/blog.pb.js'
 import { Notebook } from './proto/notebook.pb.js'
-import { createObjectWithBlockData } from './object-block.js'
-import { uploadSeedTree } from './unixfs-seed.js'
-
-async function runBlogSeedStep<T>(
-  label: string,
-  cb: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await cb()
-  } catch (err) {
-    throw new Error(
-      label + ': ' + (err instanceof Error ? err.message : String(err)),
-      { cause: err },
-    )
-  }
-}
+import { applySeed, seedTypedObject, seedUnixfsRoot } from './seed-steps.js'
 
 export function buildSeedBlogPost(blogName: string, date: string): string {
   return (
@@ -46,38 +28,6 @@ export function buildSeedBlogPost(blogName: string, date: string): string {
   )
 }
 
-export async function ensureBlogCompanionNotebook(
-  worldState: IWorldState,
-  blogObjectKey: string,
-  unixfsObjectKey: string,
-  blogName: string,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  const notebookKey = blogObjectKey + '-notebook'
-  const existing = await worldState.getObject(notebookKey, abortSignal)
-  if (existing) {
-    existing.release()
-    return
-  }
-
-  const notebook: Notebook = {
-    name: blogName + ' Notes',
-    sources: [{ name: 'Posts', ref: unixfsObjectKey + '/-/' }],
-  }
-  await runBlogSeedStep('create companion notebook object', async () => {
-    await createObjectWithBlockData(
-      worldState,
-      notebookKey,
-      Notebook.toBinary(notebook),
-      abortSignal,
-    )
-  })
-
-  await runBlogSeedStep('set companion notebook type', async () => {
-    await setObjectType(worldState, notebookKey, 'notes/notebook', abortSignal)
-  })
-}
-
 export function buildBlogUnixfsObjectKey(blogObjectKey: string): string {
   if (blogObjectKey.startsWith('blog/')) {
     return blogObjectKey.replace(/^blog\//, 'fs/blog/')
@@ -85,7 +35,9 @@ export function buildBlogUnixfsObjectKey(blogObjectKey: string): string {
   return blogObjectKey + '-fs'
 }
 
-export async function createBlogClientSide(
+// seedBlog writes a blog, the UnixFS root of its first post, and the
+// companion notebook that edits its posts, as applySeed decides.
+export async function seedBlog(
   worldState: IWorldState,
   blogObjectKey: string,
   blogName: string,
@@ -95,60 +47,44 @@ export async function createBlogClientSide(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const unixfsKey = buildBlogUnixfsObjectKey(blogObjectKey)
-
-  await runBlogSeedStep('initialize blog unixfs root', async () => {
-    await worldState.applyWorldOp(
-      INIT_UNIXFS_OP_ID,
-      InitUnixFSOp.toBinary({
-        objectKey: unixfsKey,
-        timestamp,
-      }),
-      '',
-      abortSignal,
-    )
-  })
-  await runBlogSeedStep('seed initial blog tree', async () => {
-    await uploadSeedTree(
-      worldState,
-      unixfsKey,
-      [
-        {
-          path: 'hello-world.md',
-          content: buildSeedBlogPost(
-            blogName,
-            timestamp.toISOString().slice(0, 10),
-          ),
-        },
-      ],
-      undefined,
-      abortSignal,
-    )
-  })
-
-  const blogData = Blog.toBinary({
-    name: blogName,
-    description,
-    sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
-    authorRegistryPath,
-  })
-  // eslint-disable-next-line react-doctor/async-parallel
-  await runBlogSeedStep('create blog object', async () => {
-    await createObjectWithBlockData(
-      worldState,
-      blogObjectKey,
-      blogData,
-      abortSignal,
-    )
-  })
-
-  await runBlogSeedStep('set blog type', async () => {
-    await setObjectType(worldState, blogObjectKey, 'notes/blog', abortSignal)
-  })
-  await ensureBlogCompanionNotebook(
+  await applySeed(
     worldState,
-    blogObjectKey,
-    unixfsKey,
-    blogName,
+    seedTypedObject(
+      'create blog object',
+      blogObjectKey,
+      Blog.toBinary({
+        name: blogName,
+        description,
+        sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
+        authorRegistryPath,
+      }),
+      'notes/blog',
+    ),
+    [
+      seedUnixfsRoot(
+        'seed blog unixfs root',
+        unixfsKey,
+        [
+          {
+            path: 'hello-world.md',
+            content: buildSeedBlogPost(
+              blogName,
+              timestamp.toISOString().slice(0, 10),
+            ),
+          },
+        ],
+        timestamp,
+      ),
+      seedTypedObject(
+        'create companion notebook object',
+        blogObjectKey + '-notebook',
+        Notebook.toBinary({
+          name: blogName + ' Notes',
+          sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
+        }),
+        'notes/notebook',
+      ),
+    ],
     abortSignal,
   )
 }

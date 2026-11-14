@@ -34,6 +34,10 @@ const h = vi.hoisted(() => ({
   nextResourceId: 1,
   executeWorldBatch: vi.fn(),
   engineRelease: vi.fn(),
+  // world maps each object key in the seed test's Space to its type, '' when
+  // untyped; seedWrites lists every seed write in the order it was made.
+  world: new Map<string, string>(),
+  seedWrites: [] as string[],
   rootRef: undefined as unknown as TestRef,
   scopeRef: undefined as unknown as TestRef,
 }))
@@ -240,16 +244,76 @@ vi.mock('@s4wave/sdk/world/engine.js', () => ({
   },
 }))
 
+// The seed writes act on h.world the way the World does: a create or a UnixFS
+// init on a key that exists fails, and a UnixFS init sets the UnixFS type.
+function createSeedObject(key: string, kind: string, typeId = '') {
+  if (h.world.has(key)) throw new Error('object already exists: ' + key)
+  h.world.set(key, typeId)
+  h.seedWrites.push(kind + ' ' + key)
+}
+
+vi.mock('@s4wave/sdk/world/world-state.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@s4wave/sdk/world/world-state.js')
+  >()),
+  WorldStateResource: class {
+    constructor(_ref: unknown) {}
+    getObject(key: string) {
+      return Promise.resolve(h.world.has(key) ? { release: vi.fn() } : null)
+    }
+    applyWorldOp(_opTypeId: string, opData: Uint8Array) {
+      const key = InitUnixFSOp.fromBinary(opData).objectKey ?? ''
+      createSeedObject(key, 'init', 'unixfs/fs-node')
+      return Promise.resolve()
+    }
+    release() {}
+  },
+}))
+
+vi.mock('./object-block.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./object-block.js')>()),
+  createObjectWithBlockData: vi.fn((_ws: unknown, key: string) => {
+    createSeedObject(key, 'create')
+    return Promise.resolve()
+  }),
+}))
+
+vi.mock('./unixfs-seed.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./unixfs-seed.js')>()),
+  uploadSeedTree: vi.fn((_ws: unknown, key: string) => {
+    h.seedWrites.push('upload ' + key)
+    return Promise.resolve()
+  }),
+}))
+
+vi.mock('@s4wave/sdk/world/types/types.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@s4wave/sdk/world/types/types.js')
+  >()),
+  getObjectType: vi.fn((_ws: unknown, key: string) =>
+    Promise.resolve(h.world.get(key) ?? ''),
+  ),
+  setObjectType: vi.fn((_ws: unknown, key: string, typeId: string) => {
+    h.world.set(key, typeId)
+    h.seedWrites.push('type ' + key)
+    return Promise.resolve()
+  }),
+}))
+
 import main from './backend.js'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { WorldErrorCode } from '../../sdk/world/world.pb.js'
 import {
   PluginOpTimeoutError,
   WorldBatchRefusal,
+  WorldOperationRejection,
 } from '../../sdk/world/errors.js'
 import { InitNotebookOp } from './proto/notebook.pb.js'
 import { Hash } from '../../net/hash/hash.pb.js'
 import { base58Encode } from '../../net/peer/base58.js'
 import { pinnedOperationID } from '../../sdk/sync/instance.js'
+import { WorldOpHandlerServiceDefinition } from '@s4wave/sdk/worldop/registry/registry_srpc.pb.js'
+import { SEED_KEY_TAKEN_CODE } from './seed-steps.js'
 
 const manifestHash = { hash: new Uint8Array([1]) }
 const manifestRoot = base58Encode(Hash.toBinary(manifestHash))
@@ -780,6 +844,147 @@ describe('notes quickstart seed', () => {
     expect(refusal).toBeInstanceOf(WorldBatchRefusal)
     expect((refusal as WorldBatchRefusal).failedIndex).toBe(0)
     expect(h.engineRelease).toHaveBeenCalledTimes(2)
+  })
+
+  it('seeds again over its own earlier seed, writing each object once, and rejects a key it cannot keep', async () => {
+    const handler = await startSeedHandler()
+    const created = h.createdHandlers.find(
+      (c) => c.definition === WorldOpHandlerServiceDefinition,
+    )
+    const opHandler = created?.handler as {
+      ApplyWorldOp(
+        request: Record<string, unknown>,
+        abortSignal: AbortSignal,
+        context: unknown,
+      ): Promise<{ rejectionCode?: string; rejectionMessage?: string }>
+    }
+    // The host applies the batch's one op through the plugin's op handler
+    // and writes nothing when it fails or is rejected.
+    h.executeWorldBatch.mockImplementation(
+      async (
+        mutations: Array<{ mutation: { value: Record<string, unknown> } }>,
+      ) => {
+        const before = new Map(h.world)
+        const restore = () => {
+          h.world.clear()
+          for (const [key, typeId] of before) h.world.set(key, typeId)
+        }
+        const op = mutations[0]?.mutation.value ?? {}
+        const signal = new AbortController().signal
+        let resp: { rejectionCode?: string; rejectionMessage?: string }
+        try {
+          resp = await opHandler.ApplyWorldOp(
+            {
+              operationTypeId: op.opTypeId,
+              opData: op.opData,
+              attachedWorldStateResourceId: 1,
+            },
+            signal,
+            { signal },
+          )
+        } catch (err) {
+          restore()
+          throw err
+        }
+        if (resp.rejectionCode) {
+          restore()
+          return { ...resp, failedIndex: 0 }
+        }
+        return { seqno: 1n }
+      },
+    )
+
+    for (const [id, indexPath, typeId, writes] of [
+      [
+        'notebook',
+        'notebook',
+        'notes/notebook',
+        ['init files', 'upload files', 'create notebook', 'type notebook'],
+      ],
+      [
+        'docs',
+        'documentation',
+        'notes/docs',
+        [
+          'init documentation-fs',
+          'upload documentation-fs',
+          'create documentation',
+          'type documentation',
+        ],
+      ],
+      [
+        'blog',
+        'blog/site',
+        'notes/blog',
+        [
+          'init fs/blog/site',
+          'upload fs/blog/site',
+          'create blog/site-notebook',
+          'type blog/site-notebook',
+          'create blog/site',
+          'type blog/site',
+        ],
+      ],
+    ] as const) {
+      h.world.clear()
+      h.seedWrites.length = 0
+      const seeded = await seed(handler, id)
+      expect(h.seedWrites).toEqual(writes)
+
+      // The client's index write after the seed failed, so the Space has no
+      // index and Retry runs the seed again over its own committed objects.
+      await expect(seed(handler, id)).resolves.toEqual(seeded)
+      expect(h.seedWrites).toEqual(writes)
+      expect(seeded.indexPath).toBe(indexPath)
+      expect(h.world.get(indexPath)).toBe(typeId)
+    }
+
+    // A seed keeps objects only when its primary object has its type. A
+    // primary of another type or none, a kept primary missing a companion,
+    // or a free primary whose companion key is taken, even by an object of
+    // the right type such as a deleted notebook's files, rejects the whole
+    // op before it writes anything, and the Space keeps only what it had.
+    for (const [key, foundType, message] of [
+      [
+        'notebook',
+        'notes/docs',
+        'The object notebook already exists as a notes/docs, so a notes/notebook cannot be created there. Rename or delete that object, then try again.',
+      ],
+      [
+        'notebook',
+        '',
+        'The object notebook already exists with no type, so a notes/notebook cannot be created there. Rename or delete that object, then try again.',
+      ],
+      [
+        'notebook',
+        'notes/notebook',
+        'The notes/notebook notebook already exists, but its unixfs/fs-node files is missing. Rename or delete notebook, then try again.',
+      ],
+      [
+        'files',
+        'notes/notebook',
+        'The object files was left by an earlier object, so the new notes/notebook notebook cannot use it. Delete or rename files, then try again.',
+      ],
+      [
+        'files',
+        'unixfs/fs-node',
+        'The object files was left by an earlier object, so the new notes/notebook notebook cannot use it. Delete or rename files, then try again.',
+      ],
+    ]) {
+      h.world.clear()
+      h.seedWrites.length = 0
+      h.world.set(key, foundType)
+      const rejection = await seed(handler, 'notebook').catch(
+        (err: unknown) => err,
+      )
+      expect(rejection).toBeInstanceOf(WorldOperationRejection)
+      expect((rejection as WorldOperationRejection).code).toBe(
+        SEED_KEY_TAKEN_CODE,
+      )
+      expect((rejection as WorldOperationRejection).message).toBe(message)
+      expect([...h.world]).toEqual([[key, foundType]])
+      expect(h.seedWrites).toEqual([])
+    }
   })
 
   it('refuses an unknown quickstart before touching the engine', async () => {

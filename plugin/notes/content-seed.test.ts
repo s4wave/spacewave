@@ -22,8 +22,8 @@ vi.mock('./unixfs-seed.js', () => ({
 
 import {
   buildNotebookUnixfsObjectKey,
-  createDocsClientSide,
-  createNotebookClientSide,
+  seedDocs,
+  seedNotebook,
 } from './content-seed.js'
 
 describe('content-seed', () => {
@@ -40,10 +40,11 @@ describe('content-seed', () => {
 
     const worldState = {
       applyWorldOp: vi.fn().mockResolvedValue(undefined),
+      getObject: vi.fn().mockResolvedValue(null),
     }
 
     const timestamp = new Date('2026-04-20T00:00:00Z')
-    await createNotebookClientSide(
+    await seedNotebook(
       worldState as never,
       'project-notes',
       'project-notes-fs',
@@ -96,10 +97,11 @@ describe('content-seed', () => {
 
     const worldState = {
       applyWorldOp: vi.fn().mockResolvedValue(undefined),
+      getObject: vi.fn().mockResolvedValue(null),
     }
 
     const timestamp = new Date('2026-04-20T00:00:00Z')
-    await createDocsClientSide(
+    await seedDocs(
       worldState as never,
       'docs/reference',
       'Documentation',

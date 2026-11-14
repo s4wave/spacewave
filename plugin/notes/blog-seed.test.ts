@@ -20,9 +20,9 @@ vi.mock('./unixfs-seed.js', () => ({
   uploadSeedTree: h.mockUploadSeedTree,
 }))
 
-import { createBlogClientSide } from './blog-seed.js'
+import { seedBlog } from './blog-seed.js'
 
-describe('createBlogClientSide', () => {
+describe('seedBlog', () => {
   it('seeds the initial blog post via tree upload', async () => {
     h.mockCreateObjectWithBlockData.mockResolvedValue(undefined)
     h.mockSetObjectType.mockResolvedValue(undefined)
@@ -34,14 +34,7 @@ describe('createBlogClientSide', () => {
     }
 
     const timestamp = new Date('2026-04-19T00:00:00Z')
-    await createBlogClientSide(
-      worldState as never,
-      'blog/site',
-      'Blog',
-      '',
-      '',
-      timestamp,
-    )
+    await seedBlog(worldState as never, 'blog/site', 'Blog', '', '', timestamp)
 
     expect(worldState.applyWorldOp).toHaveBeenCalledWith(
       INIT_UNIXFS_OP_ID,

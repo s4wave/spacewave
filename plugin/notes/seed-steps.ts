@@ -1,0 +1,163 @@
+import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
+import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
+import { getObjectType, setObjectType } from '@s4wave/sdk/world/types/types.js'
+import { FSNodeTypeID } from '@go/github.com/s4wave/spacewave/db/unixfs/block/fstree_typeid.pb.js'
+import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
+import { createObjectWithBlockData } from './object-block.js'
+import { uploadSeedTree, type SeedFile } from './unixfs-seed.js'
+
+// SEED_KEY_TAKEN_CODE rejects a seed that finds a key it would write already
+// holding an object it cannot keep.
+export const SEED_KEY_TAKEN_CODE = 'notes/seed/key-taken'
+
+// SeedObject is one object a seed op writes: its key, the type it gives the
+// object, and the step that writes it.
+export interface SeedObject {
+  key: string
+  typeId: string
+  label: string
+  write(worldState: IWorldState, abortSignal?: AbortSignal): Promise<void>
+}
+
+// applySeed writes a seed made of a primary object, such as a notebook, and
+// the companions it reads, such as its UnixFS root. It decides once, from the
+// primary, before writing anything:
+//
+//   - primary present with its type: the seed ran before, so every companion
+//     must be present with its type, and all are kept as they are;
+//   - primary absent: every companion key must be free, so a new primary never
+//     adopts an object left by an earlier one, such as the files of a deleted
+//     notebook;
+//   - primary present with another type, or with none: rejection.
+//
+// A rejection names the key and the next step, and the World discards the
+// op, so the seed never reports an object it did not make. The primary and
+// its companions are written in one World op, after every check, so a primary
+// with its type is the whole result of an earlier seed.
+export async function applySeed(
+  worldState: IWorldState,
+  primary: SeedObject,
+  companions: SeedObject[],
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const [primaryType, ...companionTypes] = await Promise.all(
+    [primary, ...companions].map((object) =>
+      readObjectType(worldState, object.key, abortSignal),
+    ),
+  )
+  if (primaryType === primary.typeId) {
+    const i = companionTypes.findIndex(
+      (found, i) => found !== companions[i].typeId,
+    )
+    if (i === -1) return
+    const found = companionTypes[i]
+    throw keyTaken(
+      `The ${primary.typeId} ${primary.key} already exists, but its ` +
+        `${companions[i].typeId} ${companions[i].key} ` +
+        (found === null ? 'is missing' : describeFound(found)) +
+        `. Rename or delete ${primary.key}, then try again.`,
+    )
+  }
+  if (primaryType !== null) {
+    throw keyTaken(
+      `The object ${primary.key} already exists ${describeFound(primaryType)}` +
+        `, so a ${primary.typeId} cannot be created there. ` +
+        'Rename or delete that object, then try again.',
+    )
+  }
+  const taken = companionTypes.findIndex((found) => found !== null)
+  if (taken !== -1) {
+    const key = companions[taken].key
+    throw keyTaken(
+      `The object ${key} was left by an earlier object, so the new ` +
+        `${primary.typeId} ${primary.key} cannot use it. ` +
+        `Delete or rename ${key}, then try again.`,
+    )
+  }
+  for (const object of [...companions, primary]) {
+    // eslint-disable-next-line react-doctor/async-await-in-loop -- the writes share one World transaction and run in order.
+    await runSeedStep(object.label, () => object.write(worldState, abortSignal))
+  }
+}
+
+// seedUnixfsRoot is the seed step that creates the UnixFS root at key
+// holding files.
+export function seedUnixfsRoot(
+  label: string,
+  key: string,
+  files: SeedFile[],
+  timestamp: Date,
+): SeedObject {
+  return {
+    key,
+    typeId: FSNodeTypeID,
+    label,
+    async write(worldState, abortSignal) {
+      await worldState.applyWorldOp(
+        INIT_UNIXFS_OP_ID,
+        InitUnixFSOp.toBinary({ objectKey: key, timestamp }),
+        '',
+        abortSignal,
+      )
+      await uploadSeedTree(worldState, key, files, undefined, abortSignal)
+    },
+  }
+}
+
+// seedTypedObject is the seed step that creates the object at key with data
+// as its root block and typeId as its type.
+export function seedTypedObject(
+  label: string,
+  key: string,
+  data: Uint8Array,
+  typeId: string,
+): SeedObject {
+  return {
+    key,
+    typeId,
+    label,
+    async write(worldState, abortSignal) {
+      await createObjectWithBlockData(worldState, key, data, abortSignal)
+      await setObjectType(worldState, key, typeId, abortSignal)
+    },
+  }
+}
+
+// readObjectType returns the type of the object at key, '' for an object with
+// no type, or null when the key is free.
+async function readObjectType(
+  worldState: IWorldState,
+  key: string,
+  abortSignal?: AbortSignal,
+): Promise<string | null> {
+  const object = await worldState.getObject(key, abortSignal)
+  if (!object) return null
+  object.release()
+  return getObjectType(worldState, key, abortSignal)
+}
+
+// describeFound words the type found at a key for a rejection.
+function describeFound(found: string): string {
+  return found ? `as a ${found}` : 'with no type'
+}
+
+function keyTaken(message: string): WorldOperationRejection {
+  return new WorldOperationRejection(SEED_KEY_TAKEN_CODE, message)
+}
+
+// runSeedStep runs one seed step, naming the step in its error and keeping
+// the original error as the cause.
+async function runSeedStep(
+  label: string,
+  cb: () => Promise<void>,
+): Promise<void> {
+  try {
+    await cb()
+  } catch (err) {
+    throw new Error(
+      label + ': ' + (err instanceof Error ? err.message : String(err)),
+      { cause: err },
+    )
+  }
+}

@@ -1,11 +1,7 @@
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { Notebook } from './proto/notebook.pb.js'
 import { Documentation } from './proto/docs.pb.js'
-import { createObjectWithBlockData } from './object-block.js'
-import { uploadSeedTree } from './unixfs-seed.js'
+import { applySeed, seedTypedObject, seedUnixfsRoot } from './seed-steps.js'
 
 export const NOTEBOOK_WELCOME_MARKDOWN =
   '# Welcome\n\nStart capturing notes in this Spacewave notebook.\n'
@@ -16,43 +12,15 @@ export const NOTEBOOK_GETTING_STARTED_MARKDOWN =
 export const DOCS_INDEX_MARKDOWN =
   '# Documentation\n\nStart documenting this project here.\n'
 
-function runContentSeedStep<T>(
-  label: string,
-  cb: () => Promise<T>,
-): Promise<T> {
-  return cb().catch((err) => {
-    throw new Error(
-      label + ': ' + (err instanceof Error ? err.message : String(err)),
-    )
-  })
-}
-
 export function buildNotebookUnixfsObjectKey(
   notebookObjectKey: string,
 ): string {
   return notebookObjectKey + '-fs'
 }
 
-async function initNotesUnixfs(
-  worldState: IWorldState,
-  unixfsObjectKey: string,
-  timestamp: Date,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  await runContentSeedStep('initialize notes unixfs root', async () => {
-    await worldState.applyWorldOp(
-      INIT_UNIXFS_OP_ID,
-      InitUnixFSOp.toBinary({
-        objectKey: unixfsObjectKey,
-        timestamp,
-      }),
-      '',
-      abortSignal,
-    )
-  })
-}
-
-export async function createNotebookClientSide(
+// seedNotebook writes a notebook and the UnixFS root of sample notes it
+// reads, as applySeed decides.
+export async function seedNotebook(
   worldState: IWorldState,
   notebookObjectKey: string,
   unixfsObjectKey: string,
@@ -60,47 +28,38 @@ export async function createNotebookClientSide(
   timestamp: Date,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  // eslint-disable-next-line react-doctor/async-parallel
-  await initNotesUnixfs(worldState, unixfsObjectKey, timestamp, abortSignal)
-  await runContentSeedStep('seed initial notebook tree', async () => {
-    await uploadSeedTree(
-      worldState,
-      unixfsObjectKey,
-      [
-        { path: 'welcome.md', content: NOTEBOOK_WELCOME_MARKDOWN },
-        {
-          path: 'getting-started.md',
-          content: NOTEBOOK_GETTING_STARTED_MARKDOWN,
-        },
-      ],
-      undefined,
-      abortSignal,
-    )
-  })
-
-  await runContentSeedStep('create notebook object', async () => {
-    await createObjectWithBlockData(
-      worldState,
+  await applySeed(
+    worldState,
+    seedTypedObject(
+      'create notebook object',
       notebookObjectKey,
       Notebook.toBinary({
         name: notebookName,
         sources: [{ name: 'My Notes', ref: unixfsObjectKey + '/-/' }],
       }),
-      abortSignal,
-    )
-  })
-
-  await runContentSeedStep('set notebook type', async () => {
-    await setObjectType(
-      worldState,
-      notebookObjectKey,
       'notes/notebook',
-      abortSignal,
-    )
-  })
+    ),
+    [
+      seedUnixfsRoot(
+        'seed notes unixfs root',
+        unixfsObjectKey,
+        [
+          { path: 'welcome.md', content: NOTEBOOK_WELCOME_MARKDOWN },
+          {
+            path: 'getting-started.md',
+            content: NOTEBOOK_GETTING_STARTED_MARKDOWN,
+          },
+        ],
+        timestamp,
+      ),
+    ],
+    abortSignal,
+  )
 }
 
-export async function createDocsClientSide(
+// seedDocs writes a Documentation object and the UnixFS root of its index
+// page, as applySeed decides.
+export async function seedDocs(
   worldState: IWorldState,
   docsObjectKey: string,
   docsName: string,
@@ -109,21 +68,10 @@ export async function createDocsClientSide(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const unixfsObjectKey = docsObjectKey + '-fs'
-  // eslint-disable-next-line react-doctor/async-parallel
-  await initNotesUnixfs(worldState, unixfsObjectKey, timestamp, abortSignal)
-  await runContentSeedStep('seed initial docs tree', async () => {
-    await uploadSeedTree(
-      worldState,
-      unixfsObjectKey,
-      [{ path: 'index.md', content: DOCS_INDEX_MARKDOWN }],
-      undefined,
-      abortSignal,
-    )
-  })
-
-  await runContentSeedStep('create docs object', async () => {
-    await createObjectWithBlockData(
-      worldState,
+  await applySeed(
+    worldState,
+    seedTypedObject(
+      'create docs object',
       docsObjectKey,
       Documentation.toBinary({
         name: docsName,
@@ -131,11 +79,16 @@ export async function createDocsClientSide(
         sources: [{ name: 'Pages', ref: unixfsObjectKey + '/-/' }],
         createdAt: timestamp,
       }),
-      abortSignal,
-    )
-  })
-
-  await runContentSeedStep('set docs type', async () => {
-    await setObjectType(worldState, docsObjectKey, 'notes/docs', abortSignal)
-  })
+      'notes/docs',
+    ),
+    [
+      seedUnixfsRoot(
+        'seed docs unixfs root',
+        unixfsObjectKey,
+        [{ path: 'index.md', content: DOCS_INDEX_MARKDOWN }],
+        timestamp,
+      ),
+    ],
+    abortSignal,
+  )
 }
