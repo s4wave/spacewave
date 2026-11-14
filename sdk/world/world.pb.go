@@ -120,6 +120,11 @@ const (
 	// WORLD_ERROR_CODE_OBJECT_NOT_FOUND indicates that the World holds no object
 	// at the requested key.
 	WorldErrorCode_WORLD_ERROR_CODE_OBJECT_NOT_FOUND WorldErrorCode = 3
+	// WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT indicates that the plugin handling the
+	// operation did not answer within its deadline, and the operation's
+	// transaction was discarded: nothing it wrote was kept. A timeout where that
+	// is not certain returns as an error instead.
+	WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT WorldErrorCode = 4
 )
 
 // Enum value maps for WorldErrorCode.
@@ -129,12 +134,14 @@ var (
 		1: "WORLD_ERROR_CODE_UNHANDLED_OP",
 		2: "WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED",
 		3: "WORLD_ERROR_CODE_OBJECT_NOT_FOUND",
+		4: "WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT",
 	}
 	WorldErrorCode_value = map[string]int32{
 		"WORLD_ERROR_CODE_UNSPECIFIED":                0,
 		"WORLD_ERROR_CODE_UNHANDLED_OP":               1,
 		"WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED": 2,
 		"WORLD_ERROR_CODE_OBJECT_NOT_FOUND":           3,
+		"WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT":          4,
 	}
 )
 

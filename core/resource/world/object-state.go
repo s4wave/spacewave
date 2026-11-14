@@ -136,13 +136,21 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 		}
 	}
 
-	// Apply the operation to the object and map rejections.
+	// Apply the operation to the object and map rejections, and a plugin
+	// timeout when the discarded transaction kept nothing.
 	rev, sysErr, err := r.obj.ApplyObjectOp(ctx, op, opSender)
 	if err != nil {
 		var rejection *world.OperationRejection
 		if errors.As(err, &rejection) {
 			return &s4wave_world.ApplyObjectOpResponse{
 				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
+			}, nil
+		}
+
+		var timeout *world.PluginOpTimeoutError
+		if errors.As(err, &timeout) && world.AppliesAtomically(r.obj) {
+			return &s4wave_world.ApplyObjectOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT,
 			}, nil
 		}
 

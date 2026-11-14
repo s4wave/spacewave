@@ -1043,13 +1043,21 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 		}
 	}
 
-	// Apply the World operation and encode any domain rejection.
+	// Apply the World operation and encode a domain rejection, or a plugin
+	// timeout when the discarded transaction kept nothing.
 	seqno, sysErr, err := r.ws.ApplyWorldOp(ctx, op, opSender)
 	if err != nil {
 		var rejection *world.OperationRejection
 		if errors.As(err, &rejection) {
 			return &s4wave_world.ApplyWorldOpResponse{
 				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
+			}, nil
+		}
+
+		var timeout *world.PluginOpTimeoutError
+		if errors.As(err, &timeout) && world.AppliesAtomically(r.ws) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT,
 			}, nil
 		}
 

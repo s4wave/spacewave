@@ -192,9 +192,17 @@ func (e *engineWorldStateObject) ApplyObjectOp(
 	op Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
+	// Prepare the operation before the transaction takes the writer.
+	release, err := PrepareOp(ctx, op)
+	if err != nil {
+		return 0, true, err
+	}
+	defer release()
+
+	// Apply it to the object in a transaction of its own.
 	var outRev uint64
 	var outSysErr bool
-	err := e.e.performOp(ctx, true, func(tx Tx) error {
+	err = e.e.performOp(ctx, true, func(tx Tx) error {
 		obj, berr := MustGetObject(ctx, tx, e.key)
 		defer ReleaseObjectState(obj)
 		if berr == nil {

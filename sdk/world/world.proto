@@ -841,6 +841,11 @@ enum WorldErrorCode {
   // WORLD_ERROR_CODE_OBJECT_NOT_FOUND indicates that the World holds no object
   // at the requested key.
   WORLD_ERROR_CODE_OBJECT_NOT_FOUND = 3;
+  // WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT indicates that the plugin handling the
+  // operation did not answer within its deadline, and the operation's
+  // transaction was discarded: nothing it wrote was kept. A timeout where that
+  // is not certain returns as an error instead.
+  WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT = 4;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.

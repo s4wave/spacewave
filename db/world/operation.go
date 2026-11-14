@@ -60,6 +60,32 @@ func ValidateOp(op Operation) error {
 	return nil
 }
 
+// PreparedOperation is an Operation that acquires what its apply needs before
+// the write transaction opens, such as a connection to the plugin that handles
+// it. An engine World state calls PrepareApply before it takes the engine's
+// writer, so a slow acquisition costs the caller time while other writers
+// proceed. The operation keeps what it acquired until release, and applies
+// without it when it was not prepared, as in a replay or inside a transaction
+// the caller holds open.
+type PreparedOperation interface {
+	Operation
+
+	// PrepareApply acquires what applying the operation needs. ctx bounds the
+	// acquisition and what it acquired: it must stay live until release. Call
+	// release once every apply of the operation returned.
+	PrepareApply(ctx context.Context) (release func(), err error)
+}
+
+// PrepareOp prepares op when it implements PreparedOperation, and returns its
+// release, which does nothing for an op that does not.
+func PrepareOp(ctx context.Context, op Operation) (func(), error) {
+	p, ok := op.(PreparedOperation)
+	if !ok {
+		return func() {}, nil
+	}
+	return p.PrepareApply(ctx)
+}
+
 // ApplyWorldObjectOp applies op to an object handle. It returns false,
 // ErrUnhandledOp when op is not an ObjectOperation.
 func ApplyWorldObjectOp(

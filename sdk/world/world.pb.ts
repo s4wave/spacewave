@@ -111,6 +111,14 @@ export enum WorldErrorCode {
    * at the requested key.
    */
   OBJECT_NOT_FOUND = 3,
+
+  /**
+   * WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT indicates that the plugin handling the
+   * operation did not answer within its deadline, and the operation's
+   * transaction was discarded: nothing it wrote was kept. A timeout where that
+   * is not certain returns as an error instead.
+   */
+  PLUGIN_OP_TIMEOUT = 4,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -120,6 +128,7 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [1, 'WORLD_ERROR_CODE_UNHANDLED_OP'],
     [2, 'WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED'],
     [3, 'WORLD_ERROR_CODE_OBJECT_NOT_FOUND'],
+    [4, 'WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT'],
   ],
 )
 
