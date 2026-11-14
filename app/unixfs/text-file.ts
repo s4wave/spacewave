@@ -184,18 +184,14 @@ function stale(state: TextFileState, content: TextContent): boolean {
   return !!refused && sameVersion(refused, content.version)
 }
 
-// land takes a read that is not stale. A whole read of the bytes the draft
-// started from, its text and line endings, changes nothing the draft holds,
-// so the draft moves onto it; a preview's text is not the file's, so it never
-// moves a draft. A save in flight keeps the version it expected, so a refusal
-// names that version.
+// land takes a read that is not stale. A whole read of the text the draft
+// started from changes nothing the draft holds, so the draft moves onto it and
+// takes the read's line endings, which the draft's LF text does not carry; a
+// preview's text is not the file's, so it never moves a draft. A save in
+// flight keeps the version it expected, so a refusal names that version.
 function land(state: TextFileState, content: TextContent): TextFileState {
   const { draft } = state
-  const from = draft?.from
-  const same =
-    !content.preview &&
-    content.text === from?.text &&
-    content.crlf === from.crlf
+  const same = !content.preview && content.text === draft?.from.text
   if (draft && !draft.saving && same) {
     const moved = { ...draft, from: content, refused: false }
     return { ...state, seen: content, draft: moved }

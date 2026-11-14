@@ -223,6 +223,42 @@ describe('reduceTextFile', () => {
     expect(view.state === 'editing' && view.changed).toBeNull()
     expect(state.draft?.from).toBe(same)
   })
+
+  it('moves a draft onto the same text in other line endings', () => {
+    // Another writer rewrites the draft's base with CRLF line endings.
+    const crlf = { ...read('a\nb\n', 4), crlf: true }
+    const state = replay(
+      { type: 'read', content: read('a\nb\n', 1) },
+      { type: 'edit' },
+      { type: 'type', text: 'a\nbX\n' },
+      { type: 'read', content: crlf },
+    )
+
+    // It is no change; a plain Save expects their version in their endings.
+    const view = viewOf(state)
+    expect(view.state === 'editing' && view.changed).toBeNull()
+    expect(state.draft?.from).toBe(crlf)
+  })
+
+  it('moves the next draft onto the read back of a save that lost its line breaks', () => {
+    // A CRLF file is edited down to one line and saved; its bytes hold no
+    // line break, so the read back decodes without CRLF.
+    const after = read('ab', 3)
+    const state = replay(
+      { type: 'read', content: { ...read('a\nb\n', 1), crlf: true } },
+      { type: 'edit' },
+      { type: 'type', text: 'ab' },
+      { type: 'save', over: false },
+      { type: 'saved', text: 'ab', crlf: true },
+      { type: 'edit' },
+      { type: 'back-read', content: after },
+    )
+
+    // The draft moves onto the saved version, so plain Save expects it.
+    expect(state.draft?.from).toBe(after)
+    const view = viewOf(state)
+    expect(view.state === 'editing' && view.changed).toBeNull()
+  })
 })
 
 describe('decodeText', () => {

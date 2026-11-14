@@ -9,10 +9,11 @@
 \* watches the file, so another writer's commit shows at such a read or when
 \* the store refuses a Save. A read is whole, or a preview: cut at the read
 \* limit, decoded with replacements, or with line endings the editor cannot
-\* write back; a preview's text is not the file's. A whole read's text is its
-\* bytes, byte order mark and line endings included. A failed
-\* read drops what it read, so with no draft the failure takes the body and
-\* Retry reads again.
+\* write back; a preview's text is not the file's. A whole read's text keeps
+\* its byte order mark and holds its lines in LF; a draft that moves onto a
+\* read takes that read's line endings, so two versions that differ only in
+\* line endings hold the same text. A failed read drops what it read, so with
+\* no draft the failure takes the body and Retry reads again.
 \*
 \* Edit opens a draft from the text shown, only on a file the person may write
 \* and that was read whole as UTF-8 text. The draft belongs to the viewer: a

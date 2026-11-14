@@ -233,11 +233,11 @@ export function UnixFSTextFileViewer({
     }
     dispatch({ type: 'save', over })
 
-    // Write the draft in the file's line endings, and remember its text as a
-    // read of those bytes decodes it, so the read back compares equal.
-    const crlf = draft.from.crlf
-    const data = encodeText(draft.text, crlf)
-    const text = decodeText(data, false).text
+    // Write the draft in the file's line endings, LF for a file that had no
+    // line break, and remember the save as a read of those bytes decodes it,
+    // so the read back compares equal.
+    const data = encodeText(draft.text, draft.from.crlf)
+    const { text, crlf } = decodeText(data, false)
     let result: TreeUploadResult
     try {
       const mode = handle.getInfo().mode ?? 0o644
