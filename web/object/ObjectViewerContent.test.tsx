@@ -160,9 +160,9 @@ describe('ObjectViewerContent', () => {
     expect(screen.getByText("Can't open this object yet")).toBeDefined()
     expect(screen.getByText('About this object')).toBeDefined()
     expect(screen.getByText('Object key')).toBeDefined()
-    expect(screen.getByText('gizmo/bootstrap/llm-session')).toBeDefined()
+    expect(screen.getByTitle('gizmo/bootstrap/llm-session')).toBeDefined()
     expect(screen.getByText('Object type')).toBeDefined()
-    expect(screen.getByText('gizmo/missing')).toBeDefined()
+    expect(screen.getByTitle('gizmo/missing')).toBeDefined()
     expect(screen.getByText(/gizmo\.custom\.viewer/)).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open raw object' }))

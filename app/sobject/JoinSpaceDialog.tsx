@@ -27,7 +27,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import {
   Dialog,
   DialogContent,
@@ -397,7 +397,11 @@ function JoinServerField({
           )}
         />
       </div>
-      {peerId && <CopyableField label="This Session" value={peerId} />}
+      {peerId && (
+        <FactList>
+          <FactRow label="This Session" value={peerId} />
+        </FactList>
+      )}
     </div>
   )
 }

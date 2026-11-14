@@ -1,7 +1,7 @@
 import { LuMessageCircle } from 'react-icons/lu'
 
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { ChatMessage } from '@s4wave/sdk/chat/chat.pb.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
@@ -24,26 +24,26 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
       <ViewerBar icon={<LuMessageCircle />} title="Message" />
       <div className="flex-1 overflow-auto px-4 py-3">
         <InfoCard>
-          <div className="space-y-2">
+          <FactList>
             {message?.senderPeerId && (
-              <CopyableField
-                label="Sender Peer ID"
-                value={message.senderPeerId}
-              />
-            )}
-            {textContent && (
-              <CopyableField label="Content" value={textContent} />
+              <FactRow label="Sender Peer ID" value={message.senderPeerId} />
             )}
             {message?.createdAt && (
-              <CopyableField
+              <FactRow
+                kind="text"
                 label="Created At"
                 value={message.createdAt.toISOString()}
               />
             )}
             {message?.replyToKey && (
-              <CopyableField label="Reply To Key" value={message.replyToKey} />
+              <FactRow label="Reply To Key" value={message.replyToKey} />
             )}
-          </div>
+          </FactList>
+          {textContent && (
+            <p className="text-foreground mt-3 text-sm break-words whitespace-pre-wrap">
+              {textContent}
+            </p>
+          )}
         </InfoCard>
       </div>
     </div>

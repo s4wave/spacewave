@@ -81,6 +81,6 @@ describe('ForgeExecutionViewer', () => {
     expect(
       screen.getAllByText('2026-04-17T12:00:00.000Z').length,
     ).toBeGreaterThan(0)
-    expect(screen.getByText('12D3KooWExec')).toBeTruthy()
+    expect(screen.getByTitle('12D3KooWExec')).toBeTruthy()
   })
 })

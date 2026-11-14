@@ -163,16 +163,19 @@ describe('SharedObjectDetails', () => {
       renderWithContext(<SharedObjectDetails />)
       expect(screen.getByText('Untitled')).toBeDefined()
       expect(screen.getByText(/counter/)).toBeDefined()
-      expect(screen.getByText('test-object-id')).toBeDefined()
-      expect(screen.getByText('test-blockstore-id')).toBeDefined()
-      expect(screen.getByText('test-peer-id')).toBeDefined()
+      expect(screen.getByTitle('test-object-id')).toBeDefined()
+      expect(screen.getByTitle('test-blockstore-id')).toBeDefined()
+      expect(screen.getByTitle('test-peer-id')).toBeDefined()
     })
 
     it.each(['test-object-id', 'test-blockstore-id', 'test-peer-id'])(
       'copies %s to the clipboard when clicked',
       (id) => {
         renderWithContext(<SharedObjectDetails />)
-        const field = screen.getByText(id).closest('button')
+        const field = screen
+          .getByTitle(id)
+          .closest('[data-fact]')
+          ?.querySelector('button')
         expect(field).not.toBeNull()
         fireEvent.click(field!)
         expect(mockClipboard.writeText).toHaveBeenCalledWith(id)
@@ -196,7 +199,7 @@ describe('SharedObjectDetails', () => {
       const emptyObj = createMockSharedObject(emptyMeta)
       renderWithContext(<SharedObjectDetails />, emptyObj)
       expect(screen.getByText(/unknown/)).toBeDefined()
-      const unknownFields = screen.getAllByText('Unknown')
+      const unknownFields = screen.getAllByTitle('Unknown')
       expect(unknownFields.length).toBeGreaterThanOrEqual(3)
     })
 
@@ -380,7 +383,7 @@ describe('SharedObjectDetails', () => {
       expect(screen.getByText('Untitled')).toBeDefined()
       expect(screen.getByText('Export Data')).toBeDefined()
       expect(screen.getByText('Delete Object')).toBeDefined()
-      expect(screen.getByText('test-object-id')).toBeDefined()
+      expect(screen.getByTitle('test-object-id')).toBeDefined()
     })
 
     it('collapses lower-value content in a compact (narrow) container', () => {

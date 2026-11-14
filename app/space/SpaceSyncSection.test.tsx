@@ -221,9 +221,9 @@ describe('SpaceSyncSection', () => {
       sequencerPeerId: otherPeer,
     })
 
-    expect(screen.queryByText(otherPeer)).toBeNull()
+    expect(screen.queryByTitle(otherPeer)).toBeNull()
     fireEvent.click(screen.getByText('Show technical details'))
-    expect(screen.getByText(otherPeer)).toBeDefined()
+    expect(screen.getByTitle(otherPeer)).toBeDefined()
   })
 
   it('lists each synced device with its connection state', () => {
@@ -249,9 +249,9 @@ describe('SpaceSyncSection', () => {
     expect(within(rows[1]).getByText('Unknown device')).toBeDefined()
     expect(within(rows[1]).getByText(/^Disconnected since /)).toBeDefined()
     expect(within(rows[1]).getByText('stream reset')).toBeDefined()
-    expect(screen.queryByText(lostPeer)).toBeNull()
+    expect(screen.queryByTitle(lostPeer)).toBeNull()
     fireEvent.click(screen.getByText('Show technical details'))
-    expect(screen.getByText(lostPeer)).toBeDefined()
+    expect(screen.getByTitle(lostPeer)).toBeDefined()
   })
 
   it('says when no other device has synced', () => {

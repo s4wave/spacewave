@@ -5,7 +5,7 @@ import { RxCube } from 'react-icons/rx'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -106,15 +106,15 @@ export function ObjectViewerDetails({
                 </div>
 
                 <InfoCard>
-                  <div className="space-y-3">
-                    <CopyableField label="Object key" value={objectKey} />
+                  <FactList>
+                    <FactRow label="Object key" value={objectKey} />
                     {missingComponentID && (
-                      <CopyableField
+                      <FactRow
                         label="Missing Component ID"
                         value={missingComponentID}
                       />
                     )}
-                  </div>
+                  </FactList>
                 </InfoCard>
               </section>
 
@@ -124,12 +124,10 @@ export function ObjectViewerDetails({
                 open={technicalDetailsOpen}
                 onOpenChange={setTechnicalDetailsOpen}
               >
-                <div className="space-y-2">
-                  <CopyableField label="Type ID" value={typeID} />
-                  {rootRef && (
-                    <CopyableField label="Root Ref" value={rootRef} />
-                  )}
-                </div>
+                <FactList>
+                  <FactRow label="Type ID" value={typeID} />
+                  {rootRef && <FactRow label="Root Ref" value={rootRef} />}
+                </FactList>
               </CollapsibleSection>
             </div>
 

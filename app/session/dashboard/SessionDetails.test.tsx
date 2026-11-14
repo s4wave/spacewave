@@ -348,10 +348,7 @@ describe('SessionDetails', () => {
       expect(screen.getByText('Cloud account')).toBeDefined()
       expect(screen.queryByText('er-id-123456')).toBeNull()
 
-      const peerIdAffordance = screen
-        .getByText('test-p…d-123456')
-        .closest('span[title]')
-      expect(peerIdAffordance?.getAttribute('title')).toBe(
+      expect(screen.getByTitle(mockSessionInfo.peerId).textContent).toBe(
         mockSessionInfo.peerId,
       )
 

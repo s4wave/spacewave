@@ -173,7 +173,7 @@ describe('ForgeClusterViewer', () => {
     await user.click(screen.getByRole('tab', { name: 'Settings' }))
     expect(screen.getByText('Cluster identity')).toBeTruthy()
     expect(screen.getByText('Object Key')).toBeTruthy()
-    expect(screen.getByText('forge/cluster/main')).toBeTruthy()
+    expect(screen.getByTitle('forge/cluster/main')).toBeTruthy()
   })
 
   it('shows snapshot failures before empty states and retries from each data tab', async () => {

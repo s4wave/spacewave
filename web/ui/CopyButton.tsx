@@ -110,11 +110,14 @@ export function CopyButton({
             : ''}
       </span>
       {status === 'copied' ? (
-        <LuCheck className={cn(iconCls, 'text-emerald-500')} />
+        <LuCheck aria-hidden className={cn(iconCls, 'text-emerald-500')} />
       ) : status === 'error' ? (
-        <LuTriangleAlert className={cn(iconCls, 'text-destructive')} />
+        <LuTriangleAlert
+          aria-hidden
+          className={cn(iconCls, 'text-destructive')}
+        />
       ) : (
-        <LuCopy className={iconCls} />
+        <LuCopy aria-hidden className={iconCls} />
       )}
     </button>
   )

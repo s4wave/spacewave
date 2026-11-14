@@ -23,7 +23,7 @@ import { SessionContext, SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useStateAtom } from '@s4wave/web/state/index.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
   Dialog,
@@ -342,7 +342,11 @@ function TechnicalDetails({
               ? 'No sequencer is appointed. Each operation becomes stable once every device has acknowledged it.'
               : 'The sequencer signs a position for each operation. Operations with a position are stable.'}
           </p>
-          {peerId && <CopyableField label="Sequencer peer ID" value={peerId} />}
+          {peerId && (
+            <FactList>
+              <FactRow label="Sequencer peer ID" value={peerId} />
+            </FactList>
+          )}
         </div>
       )}
     </>

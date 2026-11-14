@@ -25,7 +25,7 @@ import { PRED_TASK_TO_PASS } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 
@@ -129,19 +129,22 @@ export function ForgeTaskViewer({
         content: (
           <div className="space-y-3">
             <InfoCard>
-              <div className="space-y-2">
-                {task?.name && <CopyableField label="Name" value={task.name} />}
+              <FactList>
+                {task?.name && (
+                  <FactRow kind="text" label="Name" value={task.name} />
+                )}
                 {task?.peerId && (
-                  <CopyableField label="Assigned To" value={task.peerId} />
+                  <FactRow label="Assigned To" value={task.peerId} />
                 )}
                 {task?.timestamp && (
-                  <CopyableField
+                  <FactRow
+                    kind="text"
                     label="Created"
                     value={task.timestamp.toISOString()}
                   />
                 )}
-                <CopyableField label="Object Key" value={objectKey} />
-              </div>
+                <FactRow label="Object Key" value={objectKey} />
+              </FactList>
             </InfoCard>
             <FigureStrip
               figures={[

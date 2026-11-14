@@ -1,0 +1,51 @@
+---
+title: "Fact row: the value by width, and copy"
+---
+stateDiagram-v2
+  direction LR
+  state "At the same time" as all {
+    state "Value" as r0 {
+      s0: whole
+      s1: label over value, whole
+      s2: label over value, head#8230;tail
+      s3: head#8230;tail
+      s4: label over value, head#8230;tail end
+      s5: head#8230;tail end
+      [*] --> s0
+      s0 --> s1: the pane is resized
+      s0 --> s2: the pane is resized
+      s0 --> s3: the pane is resized or another writer changes the value
+      s1 --> s0: the pane is resized
+      s1 --> s2: another writer changes the value
+      s1 --> s4: another writer changes the value
+      s0 --> s5: another writer changes the value or the pane is resized
+      s0 --> s4: the pane is resized
+      s2 --> s0: the pane is resized
+      s2 --> s1: another writer changes the value
+      s2 --> s3: the pane is resized
+      s2 --> s4: another writer changes the value
+      s3 --> s0: the pane is resized or another writer changes the value
+      s3 --> s2: the pane is resized
+      s3 --> s5: another writer changes the value
+      s4 --> s1: another writer changes the value
+      s4 --> s0: the pane is resized
+      s4 --> s2: another writer changes the value
+      s4 --> s5: the pane is resized
+      s5 --> s0: another writer changes the value or the pane is resized
+      s5 --> s3: another writer changes the value
+      s5 --> s4: the pane is resized
+    }
+    --
+    state "Copy" as r1 {
+      s6: Copy
+      s7: Copy failed
+      s8: Copied
+      [*] --> s6
+      s6 --> s7: presses Copy#59; the clipboard refuses
+      s6 --> s8: presses Copy
+      s7 --> s6: two seconds pass
+      s7 --> s8: presses Copy
+      s8 --> s7: presses Copy#59; the clipboard refuses
+      s8 --> s6: two seconds pass
+    }
+  }

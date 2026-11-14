@@ -4,6 +4,7 @@ import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
+import { FactListDebug } from '@s4wave/web/debug/FactListDebug.js'
 import { FileListDebug } from '@s4wave/web/debug/FileListDebug.js'
 import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
 import { HDRDebug } from '@s4wave/web/debug/HDRDebug.js'
@@ -102,6 +103,12 @@ const debugRouteEntries = [
     description: 'Open the file list in one state; add /selected, /empty...',
     element: <FileListDebug />,
   },
+  {
+    path: '/debug/ui/facts',
+    title: 'Facts',
+    description: 'Open fact rows in one state; add /text, /two-fact.',
+    element: <FactListDebug />,
+  },
 ]
 
 // DebugRoutes contains routes for debug/development tools.
@@ -117,6 +124,9 @@ export const DebugRoutes = (
     ))}
     <Route path="/debug/ui/file-list/:state">
       <FileListDebug />
+    </Route>
+    <Route path="/debug/ui/facts/:state">
+      <FactListDebug />
     </Route>
   </>
 )

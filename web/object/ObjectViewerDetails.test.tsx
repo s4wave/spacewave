@@ -49,7 +49,7 @@ describe('ObjectViewerDetails', () => {
     vi.clearAllMocks()
   })
 
-  it('copies the object key with the shared click-to-copy field', () => {
+  it('copies the object key with the fact row copy press', () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
@@ -65,7 +65,7 @@ describe('ObjectViewerDetails', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Click to copy' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Object key' }))
     expect(writeText).toHaveBeenCalledWith('gizmo/worklist/1')
   })
 
@@ -82,7 +82,7 @@ describe('ObjectViewerDetails', () => {
     )
 
     expect(screen.getByText('Missing Component ID')).toBeDefined()
-    expect(screen.getByText('gizmo.missing.viewer')).toBeDefined()
+    expect(screen.getByTitle('gizmo.missing.viewer')).toBeDefined()
     expect(screen.getByText('ID: spacewave.debug.viewer')).toBeDefined()
   })
 

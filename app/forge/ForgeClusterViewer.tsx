@@ -34,7 +34,7 @@ import {
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -178,14 +178,14 @@ export function ForgeClusterViewer({
           <div className="space-y-3">
             {(cluster?.name || cluster?.peerId) && (
               <InfoCard title="Cluster identity">
-                <div className="space-y-2">
+                <FactList>
                   {cluster.name && (
-                    <CopyableField label="Name" value={cluster.name} />
+                    <FactRow kind="text" label="Name" value={cluster.name} />
                   )}
                   {cluster.peerId && (
-                    <CopyableField label="Peer ID" value={cluster.peerId} />
+                    <FactRow label="Peer ID" value={cluster.peerId} />
                   )}
-                </div>
+                </FactList>
               </InfoCard>
             )}
             <FigureStrip
@@ -397,13 +397,16 @@ export function ForgeClusterViewer({
               <p className="text-foreground-alt/60 text-xs leading-relaxed">
                 The object key identifies this Cluster in the Space graph.
               </p>
-              {cluster?.name && (
-                <CopyableField label="Name" value={cluster.name} />
-              )}
-              <CopyableField label="Object Key" value={objectKey} />
-              {cluster?.peerId ? (
-                <CopyableField label="Peer ID" value={cluster.peerId} />
-              ) : (
+              <FactList>
+                {cluster?.name && (
+                  <FactRow kind="text" label="Name" value={cluster.name} />
+                )}
+                <FactRow label="Object Key" value={objectKey} />
+                {cluster?.peerId && (
+                  <FactRow label="Peer ID" value={cluster.peerId} />
+                )}
+              </FactList>
+              {!cluster?.peerId && (
                 <p className="text-foreground-alt/60 text-xs leading-relaxed">
                   No peer ID is assigned. Workers can join this Cluster without
                   a Cluster peer identity.

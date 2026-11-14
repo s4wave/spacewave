@@ -7,19 +7,12 @@ import {
   DashboardButton,
   type DashboardButtonProps,
 } from '@s4wave/web/ui/DashboardButton.js'
+import { MiddleEllipsis } from '@s4wave/web/ui/MiddleEllipsis.js'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
-
-// formatMiddleEllipsis shortens value to its head and tail around an ellipsis.
-function formatMiddleEllipsis(value: string): string {
-  const head = 6
-  const tail = 8
-  if (value.length <= head + tail + 1) return value
-  return `${value.slice(0, head)}…${value.slice(-tail)}`
-}
 
 interface HeaderActionProps extends DashboardButtonProps {
   tooltip: string
@@ -140,15 +133,12 @@ export function SessionDetailsHeader({
   )
 }
 
-// PeerIdBadge shows the shortened peer id with a copy button on header hover,
-// and always on a touch screen, which has no hover.
+// PeerIdBadge shows the peer id, shortened in its middle, with a copy button
+// on header hover, and always on a touch screen, which has no hover.
 function PeerIdBadge({ peerId }: { peerId: string }): ReactNode {
   return (
-    <span
-      className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-xs font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex [@media(pointer:coarse)]:opacity-100"
-      title={peerId}
-    >
-      <span className="truncate">{formatMiddleEllipsis(peerId)}</span>
+    <span className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-xs font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex [@media(pointer:coarse)]:opacity-100">
+      <MiddleEllipsis value={peerId} />
       <CopyButton
         text={peerId}
         label="Copy session ID"

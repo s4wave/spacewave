@@ -746,6 +746,16 @@ menu press on a touch screen:
 | Fact rows | < 13rem | The label sits over its value |
 | Table | 16, 22, 28, 40rem | Further columns appear in the order the reader needs them; a state column is a glyph until 22rem |
 
+`FactList` is the container `facts`, and each `FactRow` in it is one line of
+label, value and copy press. A fact never wraps. An identifier, such as a hash,
+key, peer ID, path or URL, is a `MiddleEllipsis`: it shortens in its middle to
+fit, as in `12D3KooWQx7Hc4…N2mXq9` or `github.com…/spacewave`, keeping at least
+four head characters and its last path segment or six characters, and always
+drawing an ellipsis where it cuts. A URL shows without its scheme; its title
+and copy keep the whole value. Plain text ends in an ellipsis. A placeholder
+for a missing value, such as `Unknown` or `None`, is a plain text fact with no
+copy press, never a mono identifier.
+
 ### Focused Pages
 
 Use focused centered pages for route-level account, billing, setup, or recovery

@@ -3,7 +3,7 @@ import type { IconType } from 'react-icons'
 import { LuFolderTree, LuPackage, LuTag, LuTerminal } from 'react-icons/lu'
 
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { Manifest } from '@go/github.com/s4wave/spacewave/bldr/manifest/manifest.pb.js'
 import type { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 
@@ -13,13 +13,13 @@ import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 export const ManifestTypeID = 'bldr/manifest'
 
-// formatBlockRefHash formats a BlockRef hash as a truncated hex string.
+// formatBlockRefHash formats a BlockRef hash as its whole hex string, which
+// the fact row shortens for display and copies whole; a missing hash formats
+// as empty.
 function formatBlockRefHash(ref: BlockRef | undefined): string {
   const hash = ref?.hash?.hash
   if (!hash?.length) return ''
-  const hex = Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('')
-  if (hex.length <= 16) return hex
-  return hex.slice(0, 8) + '...' + hex.slice(-8)
+  return Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 // manifestHeaderMeta summarizes the platform and revision for the header.
@@ -69,26 +69,33 @@ interface ManifestMetaFieldsProps {
   meta: Manifest['meta']
 }
 
-/** ManifestMetaFields lists the copyable identity fields of a manifest. */
+/**
+ * ManifestMetaFields lists the identity facts of a manifest, with its
+ * description as prose below them.
+ */
 function ManifestMetaFields({ meta }: ManifestMetaFieldsProps) {
   return (
-    <div className="space-y-2">
-      {meta?.manifestId && (
-        <CopyableField label="Manifest ID" value={meta.manifestId} />
-      )}
-      {meta?.buildType && (
-        <CopyableField label="Build Type" value={meta.buildType} />
-      )}
-      {meta?.platformId && (
-        <CopyableField label="Platform" value={meta.platformId} />
-      )}
-      {meta?.rev !== undefined && (
-        <CopyableField label="Rev" value={String(meta.rev)} />
-      )}
+    <>
+      <FactList>
+        {meta?.manifestId && (
+          <FactRow label="Manifest ID" value={meta.manifestId} />
+        )}
+        {meta?.buildType && (
+          <FactRow kind="text" label="Build Type" value={meta.buildType} />
+        )}
+        {meta?.platformId && (
+          <FactRow label="Platform" value={meta.platformId} />
+        )}
+        {meta?.rev !== undefined && (
+          <FactRow kind="text" label="Rev" value={String(meta.rev)} />
+        )}
+      </FactList>
       {meta?.description && (
-        <CopyableField label="Description" value={meta.description} />
+        <p className="text-foreground mt-3 text-sm break-words whitespace-pre-wrap">
+          {meta.description}
+        </p>
       )}
-    </div>
+    </>
   )
 }
 
@@ -97,9 +104,11 @@ export function ManifestViewer({
   objectInfo: _objectInfo,
   objectState,
 }: ObjectViewerComponentProps) {
+  // Read the manifest block and its metadata.
   const manifest = useForgeBlockData(objectState, ManifestTypeID, Manifest)
   const meta = manifest?.meta
 
+  // Format the storage refs once per ref.
   const distHash = useMemo(
     () => formatBlockRefHash(manifest?.distFsRef),
     [manifest?.distFsRef],
@@ -109,6 +118,7 @@ export function ManifestViewer({
     [manifest?.assetsFsRef],
   )
 
+  // Decide which sections have content.
   const headerMeta = manifestHeaderMeta(meta)
   const hasMeta = hasManifestMeta(meta)
   const hasEntrypoint = !!manifest?.entrypoint
@@ -134,19 +144,17 @@ export function ManifestViewer({
           )}
           {manifest?.entrypoint && (
             <ManifestSection icon={LuTerminal} title="Entrypoint">
-              <CopyableField label="Path" value={manifest.entrypoint} />
+              <FactRow label="Path" value={manifest.entrypoint} />
             </ManifestSection>
           )}
           {hasStorage && (
             <ManifestSection icon={LuFolderTree} title="Storage">
-              <div className="space-y-2">
-                {distHash && (
-                  <CopyableField label="Dist FS Ref" value={distHash} />
-                )}
+              <FactList>
+                {distHash && <FactRow label="Dist FS Ref" value={distHash} />}
                 {assetsHash && (
-                  <CopyableField label="Assets FS Ref" value={assetsHash} />
+                  <FactRow label="Assets FS Ref" value={assetsHash} />
                 )}
-              </div>
+              </FactList>
             </ManifestSection>
           )}
           {hasMeta && (

@@ -21,7 +21,7 @@ import { PRED_PASS_TO_EXECUTION } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetPanels } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 
@@ -76,22 +76,24 @@ export function ForgePassViewer({
         content: (
           <div className="space-y-3">
             <InfoCard>
-              <div className="space-y-2">
+              <FactList>
                 {pass?.peerId && (
-                  <CopyableField label="Peer ID" value={pass.peerId} />
+                  <FactRow label="Peer ID" value={pass.peerId} />
                 )}
                 {pass?.timestamp && (
-                  <CopyableField
+                  <FactRow
+                    kind="text"
                     label="Created"
                     value={pass.timestamp.toISOString()}
                   />
                 )}
-                <CopyableField
+                <FactRow
+                  kind="text"
                   label="Pass Nonce"
                   value={pass?.passNonce?.toString() ?? '0'}
                 />
-                <CopyableField label="Object Key" value={objectKey} />
-              </div>
+                <FactRow label="Object Key" value={objectKey} />
+              </FactList>
             </InfoCard>
             <FigureStrip
               figures={[

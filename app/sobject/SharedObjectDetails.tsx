@@ -20,7 +20,7 @@ import { useContainerDensity } from '@s4wave/web/hooks/useContainerDensity.js'
 import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
@@ -260,12 +260,12 @@ function SharedObjectIdentifiersSection({
       {...section}
     >
       <InfoCard compact={section.compact}>
-        <div className="space-y-2">
-          <CopyableField label="Object ID" value={sharedObjectId} />
-          <CopyableField label="Block Store" value={blockStoreId} />
-          <CopyableField label="Peer ID" value={peerId} />
+        <FactList>
+          <FactRow label="Object ID" value={sharedObjectId} />
+          <FactRow label="Block Store" value={blockStoreId} />
+          <FactRow label="Peer ID" value={peerId} />
           {orgInfoSection}
-        </div>
+        </FactList>
       </InfoCard>
     </CollapsibleSection>
   )

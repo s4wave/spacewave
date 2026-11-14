@@ -4,7 +4,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/persist.js'
 
 export interface IdentifiersSectionProps {
@@ -40,11 +40,11 @@ export function IdentifiersSection({
       open={sectionOpen}
       onOpenChange={handleOpenChange}
     >
-      <div className="space-y-2">
-        <CopyableField label="Session ID" value={sessionId} />
-        <CopyableField label="Peer ID" value={peerId} />
-        <CopyableField label="Account ID" value={accountId} />
-      </div>
+      <FactList>
+        <FactRow label="Session ID" value={sessionId} />
+        <FactRow label="Peer ID" value={peerId} />
+        <FactRow label="Account ID" value={accountId} />
+      </FactList>
     </CollapsibleSection>
   )
 }

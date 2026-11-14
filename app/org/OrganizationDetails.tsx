@@ -38,7 +38,7 @@ import {
 } from '@s4wave/web/contexts/contexts.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -1034,9 +1034,9 @@ export function OrganizationDetails({
             {...sectionProps('identifiers')}
           >
             <InfoCard>
-              <div className="space-y-2">
-                <CopyableField label="Organization ID" value={orgId} />
-              </div>
+              <FactList>
+                <FactRow label="Organization ID" value={orgId} />
+              </FactList>
             </InfoCard>
           </CollapsibleSection>
 

@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { LuBug, LuCircleAlert } from 'react-icons/lu'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { getObjectType } from '@s4wave/sdk/world/types/types.js'
 
@@ -19,9 +19,11 @@ export function DebugObjectViewer({
   worldState,
   objectState,
 }: ObjectViewerComponentProps) {
+  // Read the key and the type the route hints at.
   const objectKey = getObjectKey(objectInfo)
   const hintTypeID = getTypeID(objectInfo)
 
+  // Resolve the stored type, which wins over the hint.
   const resolveTypeID = useCallback(
     async (world: WorldStateValue, signal: AbortSignal) => {
       if (!world || !objectKey) return ''
@@ -30,12 +32,14 @@ export function DebugObjectViewer({
     [objectKey],
   )
 
+  // Watch the resolved type in the world state.
   const resolvedTypeIDResource = useResource(worldState, resolveTypeID, [
     objectKey,
   ])
   const resolvedTypeID = resolvedTypeIDResource.value
   const resolving = resolvedTypeIDResource.loading
 
+  // Show the resolved type, or the hint until it resolves.
   const effectiveTypeID = resolvedTypeID ?? hintTypeID
   const untyped = !resolving && !effectiveTypeID
 
@@ -77,28 +81,31 @@ export function DebugObjectViewer({
             </div>
 
             <InfoCard>
-              <div className="space-y-2">
-                <CopyableField
-                  label="Object Key"
-                  value={objectKey || '(none)'}
-                />
-                <CopyableField
-                  label="Type ID (resolved)"
-                  value={
-                    resolving
-                      ? 'Resolving...'
-                      : effectiveTypeID
-                        ? effectiveTypeID
-                        : '(untyped)'
-                  }
-                />
-                {hintTypeID && hintTypeID !== resolvedTypeID ? (
-                  <CopyableField
-                    label="Type ID (route hint)"
-                    value={hintTypeID}
+              <FactList>
+                {objectKey ? (
+                  <FactRow label="Object Key" value={objectKey} />
+                ) : (
+                  <FactRow
+                    kind="text"
+                    label="Object Key"
+                    value="None"
+                    control={null}
                   />
+                )}
+                {!resolving && effectiveTypeID ? (
+                  <FactRow label="Type ID (resolved)" value={effectiveTypeID} />
+                ) : (
+                  <FactRow
+                    kind="text"
+                    label="Type ID (resolved)"
+                    value={resolving ? 'Resolving...' : 'Untyped'}
+                    control={null}
+                  />
+                )}
+                {hintTypeID && hintTypeID !== resolvedTypeID ? (
+                  <FactRow label="Type ID (route hint)" value={hintTypeID} />
                 ) : null}
-              </div>
+              </FactList>
             </InfoCard>
           </section>
 

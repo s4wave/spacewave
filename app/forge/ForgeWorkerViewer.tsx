@@ -22,7 +22,7 @@ import { PRED_CLUSTER_TO_WORKER } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { useForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 
 export const ForgeWorkerTypeID = 'forge/worker'
@@ -130,12 +130,12 @@ export function ForgeWorkerViewer({
         content: (
           <div className="space-y-3">
             <InfoCard>
-              <div className="space-y-2">
+              <FactList>
                 {worker?.name && (
-                  <CopyableField label="Name" value={worker.name} />
+                  <FactRow kind="text" label="Name" value={worker.name} />
                 )}
-                <CopyableField label="Object Key" value={objectKey} />
-              </div>
+                <FactRow label="Object Key" value={objectKey} />
+              </FactList>
             </InfoCard>
             <FigureStrip
               figures={[
@@ -163,15 +163,11 @@ export function ForgeWorkerViewer({
                 </div>
               )}
               {!snapshotLoading && peerIds.length > 0 && (
-                <div className="space-y-2">
+                <FactList>
                   {peerIds.map((peerId) => (
-                    <CopyableField
-                      key={peerId}
-                      label="Peer ID"
-                      value={peerId}
-                    />
+                    <FactRow key={peerId} label="Peer ID" value={peerId} />
                   ))}
-                </div>
+                </FactList>
               )}
               {binding && (
                 <div className="text-foreground-alt/50 mt-3 text-xs">

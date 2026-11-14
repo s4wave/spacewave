@@ -1,7 +1,7 @@
 import type { SOSyncPeer } from '@s4wave/core/sobject/sobject.pb.js'
 import type { SpaceSharingState } from '@s4wave/sdk/space/space.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 
 import { deviceName } from './device-name.js'
 
@@ -44,7 +44,9 @@ export function SyncPeerList({
                 <p className="text-warning break-words">{peer.error}</p>
               )}
               {showDetails && peer.peerId && (
-                <CopyableField label="Peer ID" value={peer.peerId} />
+                <FactList>
+                  <FactRow label="Peer ID" value={peer.peerId} />
+                </FactList>
               )}
             </li>
           ))}

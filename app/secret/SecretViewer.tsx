@@ -10,7 +10,7 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
@@ -58,24 +58,59 @@ function SecretMetadataCard({
 }) {
   return (
     <InfoCard title="Metadata">
-      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Metadata
+      <FactList>
+        <FactRow
+          kind="text"
           label="Name"
           value={secret?.displayName || 'Unnamed secret'}
+          control={null}
         />
-        <Metadata label="Kind" value={secret?.kind || 'Unspecified'} mono />
-        <Metadata label="Object key" value={objectKey || 'Unknown'} mono />
+        {secret?.kind ? (
+          <FactRow label="Kind" value={secret.kind} control={null} />
+        ) : (
+          <FactRow
+            kind="text"
+            label="Kind"
+            value="Unspecified"
+            control={null}
+          />
+        )}
+        {objectKey ? (
+          <FactRow label="Object key" value={objectKey} />
+        ) : (
+          <FactRow
+            kind="text"
+            label="Object key"
+            value="Unknown"
+            control={null}
+          />
+        )}
         {secret?.nestedSharedObjectId ? (
-          <CopyableField
+          <FactRow
             label="Nested SharedObject ID"
             value={secret.nestedSharedObjectId}
           />
         ) : (
-          <Metadata label="Nested SharedObject ID" value="Unavailable" />
+          <FactRow
+            kind="text"
+            label="Nested SharedObject ID"
+            value="Unavailable"
+            control={null}
+          />
         )}
-        <Metadata label="Created" value={formatTimestamp(secret?.createdAt)} />
-        <Metadata label="Updated" value={formatTimestamp(secret?.updatedAt)} />
-      </div>
+        <FactRow
+          kind="text"
+          label="Created"
+          value={formatTimestamp(secret?.createdAt)}
+          control={null}
+        />
+        <FactRow
+          kind="text"
+          label="Updated"
+          value={formatTimestamp(secret?.updatedAt)}
+          control={null}
+        />
+      </FactList>
     </InfoCard>
   )
 }
@@ -206,6 +241,7 @@ export function SecretViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
+  // Open the secret's typed handle by its key.
   const objectKey = getObjectKey(objectInfo)
   const handle = useAccessTypedHandle(
     worldState,

@@ -4,7 +4,7 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -122,10 +122,10 @@ function MissingViewerCard({
           </p>
         </div>
         <InfoCard title="About this object">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <CopyableField label="Object key" value={objectKey} />
-            <CopyableField label="Object type" value={typeID} />
-          </div>
+          <FactList>
+            <FactRow label="Object key" value={objectKey} />
+            <FactRow label="Object type" value={typeID} />
+          </FactList>
           {missingComponentID && missingComponentID !== typeID ? (
             <p className="text-foreground-alt/60 mt-3 text-xs leading-relaxed">
               Requested viewer unavailable:{' '}

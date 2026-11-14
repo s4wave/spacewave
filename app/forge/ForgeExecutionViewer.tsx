@@ -14,7 +14,7 @@ import {
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 
 export const ForgeExecutionTypeID = 'forge/execution'
@@ -159,21 +159,19 @@ export function ForgeExecutionViewer({
         content: (
           <div className="space-y-3">
             <InfoCard>
-              <div className="space-y-2">
+              <FactList>
                 {execution?.peerId && (
-                  <CopyableField
-                    label="Worker Peer ID"
-                    value={execution.peerId}
-                  />
+                  <FactRow label="Worker Peer ID" value={execution.peerId} />
                 )}
                 {execution?.timestamp && (
-                  <CopyableField
+                  <FactRow
+                    kind="text"
                     label="Created"
                     value={execution.timestamp.toISOString()}
                   />
                 )}
-                <CopyableField label="Object Key" value={objectKey} />
-              </div>
+                <FactRow label="Object Key" value={objectKey} />
+              </FactList>
             </InfoCard>
             <InfoCard title="Runtime">
               <div className="flex items-center justify-between gap-3">

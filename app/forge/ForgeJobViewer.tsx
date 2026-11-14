@@ -27,7 +27,7 @@ import { PRED_JOB_TO_TASK } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { FactList, FactRow } from '@s4wave/web/ui/FactList.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -257,15 +257,16 @@ export function ForgeJobViewer({
         content: (
           <div className="space-y-3">
             <InfoCard>
-              <div className="space-y-2">
-                <CopyableField label="Object Key" value={objectKey} />
+              <FactList>
+                <FactRow label="Object Key" value={objectKey} />
                 {job?.timestamp && (
-                  <CopyableField
+                  <FactRow
+                    kind="text"
                     label="Created"
                     value={job.timestamp.toISOString()}
                   />
                 )}
-              </div>
+              </FactList>
             </InfoCard>
             <InfoCard
               icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}

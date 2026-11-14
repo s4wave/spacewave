@@ -33,7 +33,7 @@ const mockSharedObject = {
 // SpaceDetailsSurface fills the viewport and applies the bg-background-primary
 // token so the screenshot captures the Space details panel over its real
 // backdrop. The panel renders fully: real CollapsibleSection, InfoCard,
-// CopyableField, and SpaceMembersPanel off the provided context resources.
+// FactRow, and SpaceMembersPanel off the provided context resources.
 function SpaceDetailsSurface() {
   return (
     <div
