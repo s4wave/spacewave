@@ -35,15 +35,17 @@ import {
   SSHTextCredentialContentType,
 } from '@s4wave/sdk/secret/secret.js'
 import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
-import { CreateSshHostOp } from '@s4wave/sdk/sshhost/sshhost.pb.js'
+import { CreateSshHostOp, SshHost } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
 import { WorldErrorCode } from '@s4wave/sdk/world/world.pb.js'
 import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
 import {
   CreateTerminalOp,
+  Terminal,
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
+import type { Quad } from '@go/github.com/s4wave/spacewave/db/block/quad/quad.pb.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 import { Device } from '@s4wave/sdk/device/device.pb.js'
 import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
@@ -79,15 +81,37 @@ const h = vi.hoisted(() => ({
   ],
   // devicePeers maps each Device key to the peer ID its body records.
   devicePeers: {} as Record<string, string>,
+  // quads and bodies are what committed batches linked and created.
+  quads: [] as Quad[],
+  bodies: {} as Record<string, Uint8Array>,
 }))
 
 // batchThroughSpies applies a Finish batch through the hoisted spies, in
-// order, and lands it through commit.
+// order, and lands it through commit. An SSH Host or terminal it creates, and
+// a quad it sets, become readable only once the commit lands.
 async function batchThroughSpies(mutations: WorldMutation[]) {
+  const quads: Quad[] = []
+  const bodies: Record<string, Uint8Array> = {}
   for (const [failedIndex, m] of mutations.entries()) {
     if (m.mutation?.case === 'op') {
       const op = m.mutation.value
       await h.applyWorldOp(op.opTypeId, op.opData, op.opSender)
+      if (op.opTypeId === CREATE_SSH_HOST_OP_ID && op.opData) {
+        const host = CreateSshHostOp.fromBinary(op.opData)
+        bodies[host.objectKey ?? ''] = SshHost.toBinary({
+          label: host.label,
+          endpoint: host.endpoint,
+          credentials: host.credentials,
+        })
+      }
+      if (op.opTypeId === CREATE_TERMINAL_OP_ID && op.opData) {
+        const terminal = CreateTerminalOp.fromBinary(op.opData)
+        bodies[terminal.objectKey ?? ''] = Terminal.toBinary({
+          sshHostObjectKey: terminal.sshHostObjectKey,
+        })
+      }
+    } else if (m.mutation?.case === 'setGraphQuad') {
+      quads.push(m.mutation.value.quad ?? {})
     } else if (m.mutation?.case === 'deleteObject') {
       const { deleted } = await h.deleteObject(m.mutation.value.objectKey)
       if (!deleted) {
@@ -96,7 +120,37 @@ async function batchThroughSpies(mutations: WorldMutation[]) {
     }
   }
   await h.commit()
+  h.quads.push(...quads)
+  Object.assign(h.bodies, bodies)
   return { seqno: 1n }
+}
+
+// linkedWorld answers quad lookups and body reads from what batches landed,
+// and Device bodies from devicePeers.
+const linkedWorld = {
+  lookupGraphQuads: (subject?: string, predicate?: string) =>
+    Promise.resolve({
+      quads: h.quads.filter(
+        (q) =>
+          (!subject || q.subject === subject) &&
+          (!predicate || q.predicate === predicate),
+      ),
+    }),
+  getObjectBodies: (keys: string[]) =>
+    Promise.resolve(
+      keys.map((objectKey) => {
+        const body = h.bodies[objectKey]
+        if (body) return { objectKey, exists: true, body }
+        const peerId = h.devicePeers[objectKey]
+        return peerId === undefined
+          ? { objectKey, exists: false }
+          : {
+              objectKey,
+              exists: true,
+              body: Device.toBinary({ peerId, label: objectKey }),
+            }
+      }),
+    ),
 }
 
 vi.mock('../wizard/useWizardState.js', () => ({
@@ -119,19 +173,7 @@ vi.mock('../wizard/useWizardState.js', () => ({
       ...keysWorld(() => h.worldObjects.map((obj) => obj.objectKey)),
       applyWorldOp: h.applyWorldOp,
       deleteObject: h.deleteObject,
-      getObjectBodies: (keys: string[]) =>
-        Promise.resolve(
-          keys.map((objectKey) => {
-            const peerId = h.devicePeers[objectKey]
-            return peerId === undefined
-              ? { objectKey, exists: false }
-              : {
-                  objectKey,
-                  exists: true,
-                  body: Device.toBinary({ peerId, label: objectKey }),
-                }
-          }),
-        ),
+      ...linkedWorld,
       getEngine: () => ({ executeWorldBatch: batchThroughSpies }),
     },
     spaceSettings: {
@@ -208,14 +250,23 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
 vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
   const { typedObjectsWorld, useFakeWorldQuery } =
     await import('@s4wave/web/test/world-query.js')
-  const world = typedObjectsWorld(() => h.worldObjects)
+  // The World is built on first use: this factory runs before the module's
+  // own constants are initialized.
+  let world: ReturnType<typeof typedObjectsWorld> | undefined
+  const getWorld = () =>
+    (world ??= {
+      ...typedObjectsWorld(() => h.worldObjects),
+      ...linkedWorld,
+    } as Partial<ReturnType<typeof typedObjectsWorld>> as ReturnType<
+      typeof typedObjectsWorld
+    >)
   return {
     useWorldQuery: <T,>(
       _world: unknown,
       query: WorldQuery<T>,
       deps: DependencyList,
     ) => {
-      const read = useFakeWorldQuery(world, query, deps)
+      const read = useFakeWorldQuery(getWorld(), query, deps)
       if (!h.computersError) return read
       return {
         value: null,
@@ -269,13 +320,13 @@ function expectIndexMovedBeforeDelete(indexPath: string) {
   expect(sender).toBe('12D3KooWSession')
 
   // The index write lands before the wizard is deleted, and both commit
-  // together.
+  // together in the last batch.
   expect(h.deleteObject.mock.calls[0]?.[0]).toBe('wizard/device-setup')
   expect(h.applyWorldOp.mock.invocationCallOrder[at]).toBeLessThan(
     h.deleteObject.mock.invocationCallOrder[0] ?? 0,
   )
   expect(h.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
-    h.commit.mock.invocationCallOrder[0] ?? 0,
+    h.commit.mock.invocationCallOrder.at(-1) ?? 0,
   )
 }
 
@@ -300,6 +351,8 @@ describe('AddDeviceWizardViewer', () => {
     h.sessionInfoLoading = false
     h.spaceSettingsIndexPath = 'wizard/device-setup'
     h.devicePeers = { 'devices/build-host': buildHostPeer }
+    h.quads = []
+    h.bodies = {}
     h.worldObjects = [
       { objectKey: 'computers', objectType: ComputersDashboardTypeID },
       { objectKey: 'devices/build-host', objectType: 'spacewave/device' },
@@ -725,14 +778,11 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       target: { value: 'raw-secret-value' },
     })
 
-    // The host and terminal land, then the wizard removal fails, and the
-    // notice names what was added.
-    h.commit.mockRejectedValueOnce(new Error('commit failed'))
+    // The host and terminal land, then the wizard removal fails.
+    failWizardRemoval()
     fireEvent.click(await enabledButton(/open terminal/i))
     expect(
-      await screen.findByText(
-        'Could not finish: commit failed. Added so far: SSH Host build-host-1, secret build-host-ssh-password-1, terminal build-host-terminal-1. Retry reuses them unless you change the form.',
-      ),
+      await screen.findByText('Could not finish: commit failed'),
     ).toBeTruthy()
     expect(h.navigateToObjects).not.toHaveBeenCalled()
 
@@ -760,7 +810,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     })
 
     // The first host lands, then the wizard removal fails.
-    h.commit.mockRejectedValueOnce(new Error('commit failed'))
+    failWizardRemoval()
     fireEvent.click(await enabledButton(/open terminal/i))
     expect(
       await screen.findByText(/^Could not finish: commit failed/),
@@ -776,6 +826,41 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       'other.example.com',
     ])
     expect(h.createSecret).toHaveBeenCalledTimes(2)
+  })
+
+  it('reuses the SSH Host and terminal it made before a reload, without asking for credentials', async () => {
+    // The host and terminal land, then the wizard removal fails.
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'raw-secret-value' },
+    })
+    failWizardRemoval()
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText('Could not finish: commit failed'),
+    ).toBeTruthy()
+
+    // A reload drops everything in memory; the wizard's links name the
+    // host, so the step says so in place of the credential fields.
+    cleanup()
+    renderViewer()
+    expect(await screen.findByText('SSH Host already added')).toBeTruthy()
+    expect(screen.queryByPlaceholderText('SSH password')).toBeNull()
+
+    // Finish opens the terminal made before and creates nothing again.
+    fireEvent.click(await enabledButton(/open terminal/i))
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith([
+        'build-host-terminal-1',
+      ]),
+    )
+    const count = (id: string) =>
+      h.applyWorldOp.mock.calls.filter(([opId]) => opId === id).length
+    expect(h.createSecret).toHaveBeenCalledTimes(1)
+    expect(sshHostEndpoints()).toEqual(['build.example.com'])
+    expect(count(CREATE_TERMINAL_OP_ID)).toBe(1)
   })
 
   it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
@@ -1078,6 +1163,15 @@ function viewer() {
       }}
     />
   )
+}
+
+// failWizardRemoval lets the SSH Host and terminal batches commit and fails
+// the next commit, the wizard removal.
+function failWizardRemoval() {
+  h.commit
+    .mockResolvedValueOnce(undefined)
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new Error('commit failed'))
 }
 
 // sshConfigData is an SSH Host wizard's config for the host given.

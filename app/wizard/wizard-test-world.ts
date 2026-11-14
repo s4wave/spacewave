@@ -52,7 +52,8 @@ function applyCreate(
 // WizardTestWorld is a Space World held in memory for wizard Finish tests.
 // A batch stages a copy of the state and publishes it only when every
 // mutation applied, as the World engine does. calls lists each call in order:
-// 'batch', then each op id or 'delete', then 'commit' when the batch lands.
+// 'batch', then each op id, 'link' or 'delete', then 'commit' when the batch
+// lands.
 // opData and senders hold each op's data and sender by op id, last write
 // wins. failOn names the one call that throws: an op id, 'delete' or
 // 'commit'. timeoutOn names an op id the World answers as a plugin timeout,
@@ -117,6 +118,16 @@ export function wizardTestWorld(
         const expected = op.expectedIndexPath
         if (expected === undefined || expected === staged.indexPath) {
           staged.indexPath = op.indexPath ?? ''
+        }
+        return
+      }
+      case 'setGraphQuad': {
+        // Like the World, a quad naming a missing object is refused.
+        fail('link')
+        const { subject = '', obj = '' } = m.mutation.value.quad ?? {}
+        const named = [subject, obj].map((iri) => iri.slice(1, -1))
+        if (!named.every((key) => staged.objects.has(key))) {
+          return WorldErrorCode.OBJECT_NOT_FOUND
         }
         return
       }

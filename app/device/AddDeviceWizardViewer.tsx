@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useCallback, useId, useMemo, useState, type ReactNode } from 'react'
 import {
   LuCircleCheck,
   LuClipboardCheck,
@@ -53,6 +46,7 @@ import {
   CreateSshHostOp,
   type SshHost,
   type SshHostCredentialRefs,
+  type SshHostEndpoint,
   type SshHostKeyPin,
 } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
@@ -63,8 +57,9 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
 import {
+  applyWizardMutations,
   useWizardFinish,
-  type WizardFinishState,
+  WizardInputError,
 } from '../wizard/wizard-finish.js'
 import type { UseWizardStateResult } from '../wizard/useWizardState.js'
 import { WizardShell } from '../wizard/WizardShell.js'
@@ -72,6 +67,13 @@ import { WizardField } from '../wizard/WizardField.js'
 import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
+import {
+  findSshHostMade,
+  PRED_WIZARD_SSH_HOST,
+  PRED_WIZARD_SSH_TERMINAL,
+  readSshHostsMade,
+  type SshHostMade,
+} from './ssh-host-made.js'
 import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 
 const DEFAULT_SSH_PORT = 22
@@ -81,6 +83,7 @@ const INSTALL_AGENT_UNAVAILABLE =
   'Install Agent is unavailable until secure bootstrap is configured.'
 
 const noKeys: string[] = []
+const noSshHostsMade: SshHostMade[] = []
 
 type AddDeviceWizardMode = 'spacelink' | 'ssh'
 type SshAuthMode = 'password' | 'private-key'
@@ -95,84 +98,6 @@ interface SshHostWizardConfig {
   hostKeyAlgorithm?: string
   hostKeyFingerprint?: string
   hostKeyPublicKey?: string
-}
-
-// SshAddAttempt records the steps of an SSH Host Finish that have written,
-// so Retry skips them: the host with its secrets, then the terminal, whose
-// key is empty when the host has none. input is the person's input the
-// steps were made from; an attempt made from other input is not reused.
-interface SshAddAttempt {
-  input: string
-  host?: { host: SshHost; hostObjectKey: string }
-  terminalObjectKey?: string
-}
-
-// sshAttemptInput is the input an SSH Host attempt is made from: the label,
-// the host settings and the credentials. It stays in memory only.
-function sshAttemptInput(
-  label: string,
-  config: SshHostWizardConfig,
-  draft: SshCredentialDraft,
-): string {
-  return JSON.stringify([label, config, draft])
-}
-
-// useSshAddAttempt holds the SSH Host attempt for the person's current input.
-// begin returns the attempt made from that input, or starts a new one; an
-// edit after a failure starts a new one and leaves what the old one added,
-// since those objects may already be named elsewhere, such as the host by its
-// terminal. end clears a finished attempt, and finishState adds what a failed
-// attempt left in the Space to the failed notice.
-function useSshAddAttempt(state: WizardFinishState) {
-  // The attempt changes inside a press; what it left shows on a failure.
-  const ref = useRef<SshAddAttempt>({ input: '' })
-  const [leftBehind, setLeftBehind] = useState('')
-
-  // A press reuses the attempt only for the same input.
-  const begin = useCallback((input: string) => {
-    setLeftBehind('')
-    if (ref.current.input !== input) ref.current = { input }
-    return ref.current
-  }, [])
-  const end = useCallback(
-    (attempt: SshAddAttempt, result: WizardFinishState | undefined) => {
-      if (result?.status === 'done') ref.current = { input: '' }
-      setLeftBehind(
-        result?.status === 'failed' ? describeSshAttempt(attempt) : '',
-      )
-    },
-    [],
-  )
-
-  // Only a failure names what was left behind.
-  const finishState = useMemo<WizardFinishState>(
-    () =>
-      state.status === 'failed' && leftBehind
-        ? { ...state, error: `${state.error}. ${leftBehind}` }
-        : state,
-    [leftBehind, state],
-  )
-  return useMemo(() => ({ begin, end, finishState }), [begin, end, finishState])
-}
-
-// describeSshAttempt names the objects an attempt added, for the failed
-// notice, or returns '' when it added none.
-function describeSshAttempt(attempt: SshAddAttempt): string {
-  // An attempt that failed before the host added nothing.
-  if (!attempt.host) return ''
-
-  // List the host, its secrets, then the terminal.
-  const { host, hostObjectKey } = attempt.host
-  const keys = [
-    `SSH Host ${hostObjectKey}`,
-    ...Object.values(host.credentials ?? {})
-      .filter((key): key is string => typeof key === 'string' && !!key)
-      .map((key) => `secret ${key}`),
-  ]
-  if (attempt.terminalObjectKey) {
-    keys.push(`terminal ${attempt.terminalObjectKey}`)
-  }
-  return `Added so far: ${keys.join(', ')}. Retry reuses them unless you change the form.`
 }
 
 interface SshCredentialDraft {
@@ -195,6 +120,43 @@ interface AddDeviceWizardConfig {
 }
 
 export { AddDeviceWizardTypeID } from './add-device-wizard.js'
+
+// deviceCommands builds the shell commands the wizard shows for pairing a
+// device named name into the shared object, and for completing it.
+function deviceCommands(
+  name: string,
+  sharedObjectId: string,
+  completion: string,
+) {
+  return {
+    setupCommand: buildSetupCommand(name, sharedObjectId),
+    installSetupCommand: buildInstallSetupCommand(name, sharedObjectId),
+    completeCommand: completion
+      ? `spacewave device complete --completion ${quoteShellArg(completion)}`
+      : 'spacewave device complete --completion <completion>',
+  }
+}
+
+// useSshHostMade watches the SSH Hosts the wizard already created through its
+// links and returns the one for this label and endpoint, so a press after a
+// failed Finish, a reload or in another tab reuses it.
+function useSshHostMade(
+  spaceWorldResource: Parameters<typeof useWorldQuery>[0],
+  wizardKey: string,
+  label: string,
+  sshConfig: SshHostWizardConfig,
+): SshHostMade | undefined {
+  const madeResource = useWorldQuery(
+    spaceWorldResource,
+    (world, signal) => readSshHostsMade(world, wizardKey, signal),
+    [wizardKey],
+  )
+  const made = resourceContent(madeResource) ?? noSshHostsMade
+  return useMemo(
+    () => findSshHostMade(made, label, sshEndpoint(sshConfig)),
+    [made, label, sshConfig],
+  )
+}
 
 // useAddDeviceWizardController owns wizard persistence, approval, and SSH
 // object creation.
@@ -243,17 +205,11 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     const raw = config.preview?.agentPeerId
     return raw ? base58Encode(base64ToBytes(raw)) : ''
   }, [config.preview?.agentPeerId])
-  const setupCommand = buildSetupCommand(
+  const { setupCommand, installSetupCommand, completeCommand } = deviceCommands(
     ws.localName || 'Device',
     sharedObjectId,
+    completion,
   )
-  const installSetupCommand = buildInstallSetupCommand(
-    ws.localName || 'Device',
-    sharedObjectId,
-  )
-  const completeCommand = completion
-    ? `spacewave device complete --completion ${quoteShellArg(completion)}`
-    : 'spacewave device complete --completion <completion>'
   const computersResource = useWorldQuery(
     spaceWorldResource,
     async (world, signal) => {
@@ -272,6 +228,14 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   // Finish moves the Space index off the wizard before deleting it, so it
   // waits until the World has said which Computers dashboard takes its place.
   const computersKnown = computers !== null
+
+  const sshLabel = (ws.localName || state?.name || 'SSH Host').trim()
+  const sshHostMade = useSshHostMade(
+    spaceWorldResource,
+    ws.objectKey,
+    sshLabel,
+    sshConfig,
+  )
 
   // Save a config edit locally and on the wizard object.
   const handleConfigUpdate = useCallback(
@@ -384,71 +348,76 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     ws,
   ])
 
-  // createSshHost writes the credential secrets and the SSH Host object.
-  const createSshHost = useCallback(async () => {
-    if (!state) throw new Error('Wizard state is not ready')
-    if (!space) throw new Error('Space resource is not ready')
-    const readerPublicKeyPem =
-      sessionInfo?.cryptoInfo?.publicKeyPem?.trim() ?? ''
-    if (!readerPublicKeyPem) {
-      throw new Error('Session public key is not available')
-    }
+  // createSshHost writes the credential secrets, then the SSH Host object
+  // with the wizard's link to it in one list.
+  const createSshHost = useCallback(
+    async (label: string, endpoint: SshHostEndpoint) => {
+      if (!space) throw new Error('Space resource is not ready')
+      const readerPublicKeyPem =
+        sessionInfo?.cryptoInfo?.publicKeyPem?.trim() ?? ''
+      if (!readerPublicKeyPem) {
+        throw new Error('Session public key is not available')
+      }
 
-    const label = (ws.localName || state.name || 'SSH Host').trim()
-    const timestamp = new Date()
-    const [hostObjectKey, credentials] = await Promise.all([
-      buildObjectKey(ws.spaceWorld, 'ssh-host/', label),
-      createSshCredentialSecrets({
-        space,
-        label,
-        config: sshConfig,
-        draft: sshCredentialDraft,
-        world: ws.spaceWorld,
-        readerPublicKeyPem,
-      }),
-    ])
-    const hostKeyPins = buildSshHostKeyPins(
-      sshConfig,
-      ws.sessionPeerId,
-      timestamp,
-    )
-    const endpoint = {
-      host: sshConfig.host?.trim(),
-      port: normalizeSshPort(sshConfig.port),
-      username: sshConfig.username?.trim(),
-    }
-    const host: SshHost = {
-      label,
-      endpoint,
-      credentials,
-      hostKeyPins,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    }
-    await ws.spaceWorld.applyWorldOp(
-      CREATE_SSH_HOST_OP_ID,
-      CreateSshHostOp.toBinary({
-        objectKey: hostObjectKey,
+      const timestamp = new Date()
+      const [hostObjectKey, credentials] = await Promise.all([
+        buildObjectKey(ws.spaceWorld, 'ssh-host/', label),
+        createSshCredentialSecrets({
+          space,
+          label,
+          config: sshConfig,
+          draft: sshCredentialDraft,
+          world: ws.spaceWorld,
+          readerPublicKeyPem,
+        }),
+      ])
+      const hostKeyPins = buildSshHostKeyPins(
+        sshConfig,
+        ws.sessionPeerId,
+        timestamp,
+      )
+      const host: SshHost = {
         label,
         endpoint,
         credentials,
         hostKeyPins,
-        timestamp,
-      }),
-      ws.sessionPeerId,
-    )
-    return { host, hostObjectKey }
-  }, [
-    sessionInfo?.cryptoInfo?.publicKeyPem,
-    space,
-    sshConfig,
-    sshCredentialDraft,
-    state,
-    ws,
-  ])
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+      await applyWizardMutations(ws.spaceWorld, ws.sessionPeerId, [
+        {
+          kind: 'op',
+          opId: CREATE_SSH_HOST_OP_ID,
+          opData: CreateSshHostOp.toBinary({
+            objectKey: hostObjectKey,
+            label,
+            endpoint,
+            credentials,
+            hostKeyPins,
+            timestamp,
+          }),
+        },
+        {
+          kind: 'link',
+          subjectKey: ws.objectKey,
+          predicate: PRED_WIZARD_SSH_HOST,
+          objectKey: hostObjectKey,
+        },
+      ])
+      return { host, hostObjectKey }
+    },
+    [
+      sessionInfo?.cryptoInfo?.publicKeyPem,
+      space,
+      sshConfig,
+      sshCredentialDraft,
+      ws,
+    ],
+  )
 
-  // createSshHostTerminal creates the terminal that opens the host, when the
-  // host has one, and returns its key or an empty key.
+  // createSshHostTerminal creates the terminal that opens the host, with the
+  // wizard's link to it in one list, and returns its key, or an empty key
+  // when the host has no terminal.
   const createSshHostTerminal = useCallback(
     async (host: SshHost, hostObjectKey: string) => {
       const terminal = await buildCreateSshHostTerminalOpData({
@@ -457,51 +426,52 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         world: ws.spaceWorld,
       })
       if (!terminal) return ''
-      await ws.spaceWorld.applyWorldOp(
-        CREATE_TERMINAL_OP_ID,
-        terminal.opData,
-        ws.sessionPeerId,
-      )
+      await applyWizardMutations(ws.spaceWorld, ws.sessionPeerId, [
+        { kind: 'op', opId: CREATE_TERMINAL_OP_ID, opData: terminal.opData },
+        {
+          kind: 'link',
+          subjectKey: ws.objectKey,
+          predicate: PRED_WIZARD_SSH_TERMINAL,
+          objectKey: terminal.objectKey,
+        },
+      ])
       return terminal.objectKey
     },
     [ws],
   )
 
   // Adding an SSH Host writes its credential secrets and host, then reads the
-  // World to build the terminal, so it cannot be one list. The attempt keeps
-  // each finished step in memory so Retry carries on from the step that
-  // failed instead of adding a second host; the wizard's own removal is then
-  // one list. A reload drops the attempt, so a host made before a reload
-  // stays and a later Finish adds another.
-  const sshAttempt = useSshAddAttempt(finish.state)
+  // World to build the terminal, so it cannot be one list. Each create
+  // commits with the wizard's link to what it made, so a press reads the
+  // links first and carries on from the step that has not landed, whether
+  // after a failed Finish, a reload or in another tab. A host the person
+  // entered differently is new, and the one made before stays.
   const handleCreateSshHost = useCallback(async () => {
     if (!state || !computersKnown) return
-    const error = getSshCreateError(sshConfig, sshCredentialDraft)
-    if (error) {
-      setOperationError(error)
-      toast.error(error)
-      return
-    }
-
     setOperationError('')
-    const label = (ws.localName || state.name || 'SSH Host').trim()
-    const attempt = sshAttempt.begin(
-      sshAttemptInput(label, sshConfig, sshCredentialDraft),
-    )
-    const result = await finish.finish(
+    await finish.finish(
       async () => {
-        attempt.host ??= await createSshHost()
-        const { host, hostObjectKey } = attempt.host
-        attempt.terminalObjectKey ??= await createSshHostTerminal(
-          host,
-          hostObjectKey,
+        const endpoint = sshEndpoint(sshConfig)
+        const made = findSshHostMade(
+          await readSshHostsMade(ws.spaceWorld, ws.objectKey),
+          sshLabel,
+          endpoint,
         )
+        if (!made) {
+          const error = getSshCreateError(sshConfig, sshCredentialDraft)
+          if (error) throw new WizardInputError(error)
+        }
+        const { host, hostObjectKey } =
+          made ?? (await createSshHost(sshLabel, endpoint))
+        const terminalObjectKey =
+          made?.terminalObjectKey ||
+          (await createSshHostTerminal(host, hostObjectKey))
         // The host and terminal exist before the list, so they open even
         // when the wizard is already gone.
         return {
           creates: [],
           target: {
-            openKey: attempt.terminalObjectKey || hostObjectKey,
+            openKey: terminalObjectKey || hostObjectKey,
             indexPath: dashboardKey,
           },
           targetMade: true,
@@ -512,16 +482,15 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         ws.navigateToObjects([target.openKey])
       },
     )
-    sshAttempt.end(attempt, result)
   }, [
     computersKnown,
     createSshHost,
     createSshHostTerminal,
     dashboardKey,
     finish,
-    sshAttempt,
     sshConfig,
     sshCredentialDraft,
+    sshLabel,
     state,
     ws,
   ])
@@ -556,7 +525,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     config,
     currentStep,
     deviceKeys,
-    finish: sshAttempt.finishState,
+    finish: finish.state,
     handleCancel,
     handleConfigUpdate,
     handleFinalize,
@@ -582,6 +551,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     sshAuthMode,
     sshConfig,
     sshCredentialDraft,
+    sshHostMade,
     sshSetupMode,
     state,
     supportsDeviceApproval,
@@ -625,6 +595,7 @@ function AddDeviceWizardSteps({
     sshAuthMode,
     sshConfig,
     sshCredentialDraft,
+    sshHostMade,
     sshSetupMode,
     supportsDeviceApproval,
     ticket,
@@ -690,6 +661,7 @@ function AddDeviceWizardSteps({
               <SshHostSetupForm
                 config={sshConfig}
                 credentialDraft={sshCredentialDraft}
+                made={sshHostMade}
                 authMode={sshAuthMode}
                 setupMode={sshSetupMode}
                 onConfigChange={handleSshConfigChange}
@@ -847,6 +819,7 @@ function AddDeviceWizardContent({
     setOperationError,
     sshConfig,
     sshCredentialDraft,
+    sshHostMade,
     state,
     ws,
   } = controller
@@ -889,7 +862,7 @@ function AddDeviceWizardContent({
         computersKnown &&
         (mode === 'ssh'
           ? !isSshInstallMode &&
-            !getSshCreateError(sshConfig, sshCredentialDraft)
+            (!!sshHostMade || !getSshCreateError(sshConfig, sshCredentialDraft))
           : !!completion)
       }
       onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
@@ -962,9 +935,13 @@ function fieldError(message: string): ReactNode {
   return <span className="text-destructive text-xs">{message}</span>
 }
 
+// SshHostSetupForm edits the SSH Host to add. When the label and endpoint
+// match a host this wizard already created, its credentials are already
+// stored, so a note naming the host replaces the credential fields.
 function SshHostSetupForm({
   config,
   credentialDraft,
+  made,
   authMode,
   setupMode,
   onConfigChange,
@@ -972,6 +949,7 @@ function SshHostSetupForm({
 }: {
   config: SshHostWizardConfig
   credentialDraft: SshCredentialDraft
+  made?: SshHostMade
   authMode: SshAuthMode
   setupMode: SshSetupMode
   onConfigChange: (patch: Partial<SshHostWizardConfig>) => void
@@ -980,16 +958,37 @@ function SshHostSetupForm({
   return (
     <section className="space-y-3">
       <SshEndpointCard config={config} onConfigChange={onConfigChange} />
-      <SshCredentialCard
-        authMode={authMode}
-        credentialDraft={credentialDraft}
-        onConfigChange={onConfigChange}
-        onCredentialChange={onCredentialChange}
-      />
+      {made ? (
+        <SshHostMadeCard made={made} />
+      ) : (
+        <SshCredentialCard
+          authMode={authMode}
+          credentialDraft={credentialDraft}
+          onConfigChange={onConfigChange}
+          onCredentialChange={onCredentialChange}
+        />
+      )}
       <SshHostKeyTrustCard config={config} onConfigChange={onConfigChange} />
       <SshSetupModeCard setupMode={setupMode} onConfigChange={onConfigChange} />
       <SshReviewCard config={config} authMode={authMode} />
     </section>
+  )
+}
+
+// SshHostMadeCard says this wizard already added the SSH Host on the form,
+// and that Finish opens it rather than adding another.
+function SshHostMadeCard({ made }: { made: SshHostMade }) {
+  return (
+    <div className={sshCardClassName} role="status">
+      <div className="text-foreground flex items-center gap-2 text-xs font-medium">
+        <LuCircleCheck className="size-3.5" />
+        SSH Host already added
+      </div>
+      <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+        {made.host.label || made.hostObjectKey} was added with its credentials.
+        Finish opens it. Change the host, port or user to add a different one.
+      </p>
+    </div>
   )
 }
 
@@ -1723,6 +1722,15 @@ function isSshPublicKeyAlgorithm(value: string): boolean {
     value.startsWith('sk-ssh-') ||
     value.startsWith('sk-ecdsa-')
   )
+}
+
+// sshEndpoint is the endpoint an SSH Host is created with from the form.
+function sshEndpoint(config: SshHostWizardConfig): SshHostEndpoint {
+  return {
+    host: config.host?.trim(),
+    port: normalizeSshPort(config.port),
+    username: config.username?.trim(),
+  }
 }
 
 function normalizeSshPort(port: number | undefined): number {
