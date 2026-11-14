@@ -56,7 +56,7 @@ func newConnectorHarness(ctx context.Context, t *testing.T) *connectorHarness {
 		t.Fatalf("CreateSecret: %v", err)
 	}
 	_, sessionPub, sessionPeerID := makePeer(t)
-	if _, err := s4wave_secret.AddSecretParticipant(
+	if _, _, err := s4wave_secret.AddSecretParticipant(
 		ctx,
 		tb.Bus,
 		secret,

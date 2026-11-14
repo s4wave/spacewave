@@ -122,7 +122,7 @@ func (a *ProviderAccount) enrollSOSession(ctx context.Context, soID string, so *
 		if err != nil {
 			return err
 		}
-		if _, err := sobject.AddSOParticipant(ctx, so.soHost, soID, so.localPriv, so.localPid.String(), session.String(), pub, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
+		if _, _, _, err := sobject.AddSOParticipant(ctx, so.soHost, soID, so.localPriv, so.localPid.String(), session.String(), pub, sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
 			return err
 		}
 	}

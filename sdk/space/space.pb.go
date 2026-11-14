@@ -1256,9 +1256,14 @@ func (x *AddSecretParticipantRequest) GetParticipantRole() sobject.SOParticipant
 	return sobject.SOParticipantRole(0)
 }
 
-// AddSecretParticipantResponse confirms the grant.
+// AddSecretParticipantResponse reports what the grant did.
 type AddSecretParticipantResponse struct {
 	unknownFields []byte
+	// Outcome says whether the call added the peer, raised its role, or found
+	// it already holding the role asked for or a higher one.
+	Outcome sobject.SOParticipantAddOutcome `protobuf:"varint,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// ParticipantRole is the role the peer holds after the call.
+	ParticipantRole sobject.SOParticipantRole `protobuf:"varint,2,opt,name=participant_role,json=participantRole,proto3" json:"participantRole,omitempty"`
 }
 
 func (x *AddSecretParticipantResponse) Reset() {
@@ -1266,6 +1271,20 @@ func (x *AddSecretParticipantResponse) Reset() {
 }
 
 func (*AddSecretParticipantResponse) ProtoMessage() {}
+
+func (x *AddSecretParticipantResponse) GetOutcome() sobject.SOParticipantAddOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return sobject.SOParticipantAddOutcome(0)
+}
+
+func (x *AddSecretParticipantResponse) GetParticipantRole() sobject.SOParticipantRole {
+	if x != nil {
+		return x.ParticipantRole
+	}
+	return sobject.SOParticipantRole(0)
+}
 
 // ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
 type ReadSecretPayloadRequest struct {
@@ -2621,6 +2640,8 @@ func (m *AddSecretParticipantResponse) CloneVT() *AddSecretParticipantResponse {
 		return (*AddSecretParticipantResponse)(nil)
 	}
 	r := new(AddSecretParticipantResponse)
+	r.Outcome = m.Outcome
+	r.ParticipantRole = m.ParticipantRole
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3897,6 +3918,12 @@ func (this *AddSecretParticipantResponse) EqualVT(that *AddSecretParticipantResp
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Outcome != that.Outcome {
+		return false
+	}
+	if this.ParticipantRole != that.ParticipantRole {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6553,6 +6580,17 @@ func (x *AddSecretParticipantResponse) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
+	if x.ParticipantRole != 0 || s.HasField("participantRole") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("participantRole")
+		x.ParticipantRole.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6567,7 +6605,16 @@ func (x *AddSecretParticipantResponse) UnmarshalProtoJSON(s *json.UnmarshalState
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		case "participant_role", "participantRole":
+			s.AddField("participant_role")
+			x.ParticipantRole.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -9604,6 +9651,16 @@ func (m *AddSecretParticipantResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ParticipantRole != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ParticipantRole))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -11379,6 +11436,8 @@ func (m *AddSecretParticipantResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ParticipantRole)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12502,7 +12561,15 @@ func (x *AddSecretParticipantRequest) String() string {
 
 func (x *AddSecretParticipantResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "AddSecretParticipantResponse")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AddSecretParticipantResponse")
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantAddOutcome(x.Outcome))
+	}
+	if x.ParticipantRole != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "participant_role")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantRole(x.ParticipantRole))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -15183,6 +15250,28 @@ func (m *AddSecretParticipantResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: AddSecretParticipantResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = sobject.SOParticipantAddOutcome(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParticipantRole", wireType)
+			}
+			m.ParticipantRole = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ParticipantRole = sobject.SOParticipantRole(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

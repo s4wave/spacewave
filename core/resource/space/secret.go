@@ -94,7 +94,7 @@ func (r *SpaceResource) CreateSecret(
 		return nil, err
 	}
 	if readerPeerID != "" {
-		if _, err := s4wave_secret.AddSecretParticipant(
+		if _, _, err := s4wave_secret.AddSecretParticipant(
 			ctx,
 			r.b,
 			secret,
@@ -224,20 +224,17 @@ func (r *SpaceResource) AddSecretParticipant(ctx context.Context, req *s4wave_sp
 		return nil, err
 	}
 
-	// Grant the peer on the Secret's nested SharedObject. A peer that is
-	// already a participant keeps its role, so report it instead of success.
+	// Grant the peer on the Secret's nested SharedObject, raising a lower
+	// role; the response reports the outcome and the role the peer holds.
 	bound, err := r.bindSecret(ctx, secret)
 	if err != nil {
 		return nil, err
 	}
-	grant, err := s4wave_secret.AddSecretParticipant(ctx, r.b, bound, peerID.String(), pub, role, "")
+	outcome, held, err := s4wave_secret.AddSecretParticipant(ctx, r.b, bound, peerID.String(), pub, role, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "grant peer")
 	}
-	if grant == nil {
-		return nil, errors.New("peer is already a Secret participant; its role is unchanged")
-	}
-	return &s4wave_space.AddSecretParticipantResponse{}, nil
+	return &s4wave_space.AddSecretParticipantResponse{Outcome: outcome, ParticipantRole: held}, nil
 }
 
 // bindSecret returns secret with its nested ref in the account that holds the

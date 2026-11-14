@@ -54,6 +54,13 @@ class SOParticipantRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SOParticipantRole_WRITER: _ClassVar[SOParticipantRole]
     SOParticipantRole_OWNER: _ClassVar[SOParticipantRole]
 
+class SOParticipantAddOutcome(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SOParticipantAddOutcome_UNKNOWN: _ClassVar[SOParticipantAddOutcome]
+    SOParticipantAddOutcome_ADDED: _ClassVar[SOParticipantAddOutcome]
+    SOParticipantAddOutcome_RAISED: _ClassVar[SOParticipantAddOutcome]
+    SOParticipantAddOutcome_UNCHANGED: _ClassVar[SOParticipantAddOutcome]
+
 class SOControl(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     SO_CONTROL_OWNER: _ClassVar[SOControl]
@@ -122,6 +129,10 @@ SOParticipantRole_UNKNOWN: SOParticipantRole
 SOParticipantRole_READER: SOParticipantRole
 SOParticipantRole_WRITER: SOParticipantRole
 SOParticipantRole_OWNER: SOParticipantRole
+SOParticipantAddOutcome_UNKNOWN: SOParticipantAddOutcome
+SOParticipantAddOutcome_ADDED: SOParticipantAddOutcome
+SOParticipantAddOutcome_RAISED: SOParticipantAddOutcome
+SOParticipantAddOutcome_UNCHANGED: SOParticipantAddOutcome
 SO_CONTROL_OWNER: SOControl
 SO_CONTROL_GROUP: SOControl
 SO_CONFIG_CHANGE_TYPE_UNKNOWN: SOConfigChangeType

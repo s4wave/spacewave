@@ -9,6 +9,7 @@ import { Validation } from '../../bldr/project/validate/validate.pb.js'
 import { SpaceSettings } from '../../core/space/world/world.pb.js'
 import type {
   SOConfigChangeType,
+  SOParticipantAddOutcome,
   SOParticipantRole,
 } from '../../core/sobject/sobject.pb.js'
 import {
@@ -16,6 +17,7 @@ import {
   SOConfigChangeType_Enum,
   SOInvite,
   SOJoinRequest,
+  SOParticipantAddOutcome_Enum,
   SOParticipantConfig,
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
@@ -991,16 +993,29 @@ export const AddSecretParticipantRequest: MessageType<AddSecretParticipantReques
   )
 
 /**
- * AddSecretParticipantResponse confirms the grant.
+ * AddSecretParticipantResponse reports what the grant did.
  *
  * @generated from message s4wave.space.AddSecretParticipantResponse
  */
-export interface AddSecretParticipantResponse {}
+export interface AddSecretParticipantResponse {
+  /**
+   * Outcome says whether the call added the peer, raised its role, or found
+   * it already holding the role asked for or a higher one.
+   */
+  outcome?: SOParticipantAddOutcome
+  /**
+   * ParticipantRole is the role the peer holds after the call.
+   */
+  participantRole?: SOParticipantRole
+}
 
 export const AddSecretParticipantResponse: MessageType<AddSecretParticipantResponse> =
   /* @__PURE__ */ createMessageType<AddSecretParticipantResponse>(
     's4wave.space.AddSecretParticipantResponse',
-    () => [],
+    () => [
+      [1, 'outcome', 14, 0, SOParticipantAddOutcome_Enum],
+      [2, 'participant_role', 14, 0, SOParticipantRole_Enum],
+    ],
   )
 
 /**

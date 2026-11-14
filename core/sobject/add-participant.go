@@ -10,22 +10,21 @@ import (
 
 // AddSOParticipant adds a target peer as a participant on a single shared
 // object and grants it every key epoch the local peer holds, so it can replay
-// operations written before a rotation.
+// operations written before a rotation. A peer that is already a participant
+// at a lower role is raised to role; one that holds role or a higher one is
+// left unchanged and nothing is written. A role is never lowered.
 //
-// Reads the current SOState, checks for duplicate participant, builds a signed
-// SOConfigChange adding the participant, and applies it atomically with the
-// grants encrypted to the target's public key.
+// It returns the target's grant for the current key epoch when it added the
+// peer, else nil; the outcome; and the role the peer holds after the call.
+// Under group control localPriv, a voter, agrees to the addition or raise and
+// it returns ErrAwaitingGroup; a writer of an entity without a voter gets one
+// vote, and the voters hand a new peer the key once the group decides.
 //
-// Returns the target's grant for the current key epoch, or nil if the
-// participant already existed (no-op). Under group control localPriv, a
-// voter, agrees to the addition and it returns ErrAwaitingGroup; a writer of
-// an entity without a voter joins with one vote, and the voters hand it the
-// key once the group decides.
-//
-// localPriv must be the private key of an OWNER in the current config.
-// localPeerIDStr is the base58 peer ID corresponding to localPriv. username is
-// the provider username of entityID, or empty when entityID is empty. A
-// concurrent local change of the config does not fail the addition.
+// localPriv must be the private key of an OWNER in the current config, which
+// the host checks when it verifies the change. localPeerIDStr is the base58
+// peer ID corresponding to localPriv. username is the provider username of
+// entityID, or empty when entityID is empty. A concurrent local change of the
+// config does not fail the addition.
 func AddSOParticipant(
 	ctx context.Context,
 	host *SOHost,
@@ -37,10 +36,18 @@ func AddSOParticipant(
 	role SOParticipantRole,
 	entityID string,
 	username string,
-) (*SOGrant, error) {
-	return retryConfigChange(ctx, host, func() (*SOGrant, error) {
+) (*SOGrant, SOParticipantAddOutcome, SOParticipantRole, error) {
+	res, err := retryConfigChange(ctx, host, func() (soParticipantAdd, error) {
 		return addSOParticipant(ctx, host, soID, localPriv, localPeerIDStr, targetPeerIDStr, targetPub, role, entityID, username)
 	})
+	return res.grant, res.outcome, res.held, err
+}
+
+// soParticipantAdd is the result of one AddSOParticipant attempt.
+type soParticipantAdd struct {
+	grant   *SOGrant
+	outcome SOParticipantAddOutcome
+	held    SOParticipantRole
 }
 
 // addSOParticipant makes one attempt at AddSOParticipant from the config the
@@ -56,27 +63,29 @@ func addSOParticipant(
 	role SOParticipantRole,
 	entityID string,
 	username string,
-) (*SOGrant, error) {
+) (soParticipantAdd, error) {
 	// Reject roles a participant add may not grant.
 	if err := ValidateSOParticipantRole(role, false); err != nil {
-		return nil, err
+		return soParticipantAdd{}, err
 	}
 
 	// Read the current config from the host state.
 	state, err := host.GetHostState(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "get current SO state")
+		return soParticipantAdd{}, errors.Wrap(err, "get current SO state")
 	}
 	currentCfg := state.GetConfig()
 	if currentCfg == nil {
 		currentCfg = &SharedObjectConfig{}
 	}
 
-	// Skip a peer that is already a participant.
-	for _, p := range currentCfg.GetParticipants() {
-		if p.GetPeerId() == targetPeerIDStr {
-			return nil, nil
-		}
+	// Leave a participant at role or above, and raise one below it.
+	held := currentCfg.GetParticipantRole(targetPeerIDStr)
+	if held >= role {
+		return soParticipantAdd{outcome: SOParticipantAddOutcome_SOParticipantAddOutcome_UNCHANGED, held: held}, nil
+	}
+	if held != SOParticipantRole_SOParticipantRole_UNKNOWN {
+		return raiseSOParticipant(ctx, host, state, localPriv, targetPeerIDStr, role)
 	}
 
 	// Add the participant, with a vote under group control when its entity
@@ -129,9 +138,40 @@ func addSOParticipant(
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return soParticipantAdd{}, err
 	}
-	return grant, nil
+	return soParticipantAdd{grant: grant, outcome: SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED, held: role}, nil
+}
+
+// raiseSOParticipant raises the role of targetPeerIDStr, a participant below
+// role, to role. Its grants stay as they are: every participant reads the key.
+func raiseSOParticipant(
+	ctx context.Context,
+	host *SOHost,
+	state *SOState,
+	localPriv crypto.PrivKey,
+	targetPeerIDStr string,
+	role SOParticipantRole,
+) (soParticipantAdd, error) {
+	// Raise the role, giving a new writer a vote under group control when its
+	// entity has none.
+	nextCfg := state.GetConfig().CloneVT()
+	for _, p := range nextCfg.GetParticipants() {
+		if p.GetPeerId() != targetPeerIDStr {
+			continue
+		}
+		p.Role = role
+		if nextCfg.IsGroupControl() && CanWriteOps(role) && p.GetVotingWeight() == 0 && !entityVotes(nextCfg, p.GetEntityId()) {
+			p.VotingWeight = 1
+		}
+	}
+
+	// Sign and apply the change; the host rejects a signer that is not an owner.
+	err := ChangeSOConfig(ctx, host, state, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT, localPriv, nil, nil)
+	if err != nil {
+		return soParticipantAdd{}, err
+	}
+	return soParticipantAdd{outcome: SOParticipantAddOutcome_SOParticipantAddOutcome_RAISED, held: role}, nil
 }
 
 // entityVotes reports whether a participant of entityID votes under cfg. A

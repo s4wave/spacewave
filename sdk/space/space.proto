@@ -440,8 +440,13 @@ message AddSecretParticipantRequest {
   .sobject.SOParticipantRole participant_role = 3;
 }
 
-// AddSecretParticipantResponse confirms the grant.
+// AddSecretParticipantResponse reports what the grant did.
 message AddSecretParticipantResponse {
+  // Outcome says whether the call added the peer, raised its role, or found
+  // it already holding the role asked for or a higher one.
+  .sobject.SOParticipantAddOutcome outcome = 1;
+  // ParticipantRole is the role the peer holds after the call.
+  .sobject.SOParticipantRole participant_role = 2;
 }
 
 // ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.

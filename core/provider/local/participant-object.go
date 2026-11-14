@@ -68,7 +68,7 @@ func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *P
 	if err != nil {
 		return nil, err
 	}
-	role := participantRole(state.GetConfig(), session.String())
+	role := state.GetConfig().GetParticipantRole(session.String())
 	if !sobject.CanReadState(role) {
 		return nil, errors.New("calling Session is not a reader of the object")
 	}
@@ -76,7 +76,7 @@ func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *P
 	// Add the storage identity at the Session's role. It writes for the
 	// Session, which never builds on the checkpointer's edits, so the Session
 	// leaves the trimming roster.
-	if participantRole(state.GetConfig(), storage.String()) == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
+	if state.GetConfig().GetParticipantRole(storage.String()) == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
 		owner, err := a.vol.GetPeer(ctx, true)
 		if err != nil {
 			return nil, err
@@ -85,7 +85,7 @@ func (a *ProviderAccount) FetchParticipantObject(ctx context.Context, request *P
 		if err != nil {
 			return nil, err
 		}
-		if _, err := sobject.AddSOParticipant(ctx, local.soHost, id, key, owner.GetPeerID().String(), storage.String(), storagePub, role, "", ""); err != nil {
+		if _, _, _, err := sobject.AddSOParticipant(ctx, local.soHost, id, key, owner.GetPeerID().String(), storage.String(), storagePub, role, "", ""); err != nil {
 			return nil, errors.Wrap(err, "add storage identity")
 		}
 		if _, err := sobject.DropFromSORoster(ctx, local.soHost, []string{session.String()}, key); err != nil {
@@ -298,16 +298,6 @@ func verifyParticipantObjectOrigin(id string, object *pairing.SharedObject, writ
 		}
 	}
 	return errors.New("object was not created by a writer of the enclosing object")
-}
-
-// participantRole returns the role of peerID in cfg, or UNKNOWN when absent.
-func participantRole(cfg *sobject.SharedObjectConfig, peerID string) sobject.SOParticipantRole {
-	for _, participant := range cfg.GetParticipants() {
-		if participant.GetPeerId() == peerID {
-			return participant.GetRole()
-		}
-	}
-	return sobject.SOParticipantRole_SOParticipantRole_UNKNOWN
 }
 
 // _ is a type assertion.

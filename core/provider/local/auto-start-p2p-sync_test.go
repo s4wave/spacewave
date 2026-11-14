@@ -119,7 +119,7 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	}
 	defer releaseObject()
 	host := object.(sobject.InviteHost)
-	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), remotePeerID, remoteSess.GetPrivKey().GetPublic(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
+	if _, _, _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), remotePeerID, remoteSess.GetPrivKey().GetPublic(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "", ""); err != nil {
 		t.Fatalf("AddSOParticipant: %v", err)
 	}
 
@@ -220,7 +220,7 @@ func TestAutoStartP2PSyncIfNeededRetainsParticipants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), participantID.String(), participant, sobject.SOParticipantRole_SOParticipantRole_WRITER, "", ""); err != nil {
+	if _, _, _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), object.GetSharedObjectID(), host.GetPrivKey(), object.GetPeerID().String(), participantID.String(), participant, sobject.SOParticipantRole_SOParticipantRole_WRITER, "", ""); err != nil {
 		t.Fatalf("AddSOParticipant: %v", err)
 	}
 

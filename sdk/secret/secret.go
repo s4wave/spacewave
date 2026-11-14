@@ -243,7 +243,10 @@ func ReadSSHCredentialPayload(ctx context.Context, b bus.Bus, secret *Secret, ex
 	return bytes.Clone(payload.GetValue()), nil
 }
 
-// AddSecretParticipant grants nested SharedObject access to a peer.
+// AddSecretParticipant grants nested SharedObject access to a peer. A peer
+// that already participates at a lower role is raised to role, and one at role
+// or above is left unchanged. It returns the outcome and the role the peer
+// holds after the call.
 func AddSecretParticipant(
 	ctx context.Context,
 	b bus.Bus,
@@ -252,17 +255,17 @@ func AddSecretParticipant(
 	targetPub crypto.PubKey,
 	role sobject.SOParticipantRole,
 	entityID string,
-) (*sobject.SOGrant, error) {
+) (sobject.SOParticipantAddOutcome, sobject.SOParticipantRole, error) {
 	// Mount the Secret's nested SharedObject as an invite host.
 	so, soRef, err := mountSecretInviteHost(ctx, b, secret)
 	if err != nil {
-		return nil, err
+		return sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_UNKNOWN, 0, err
 	}
 	defer soRef()
 
 	// Add the peer under the local key. A nested Secret records no username.
 	ih := so.(sobject.InviteHost)
-	return sobject.AddSOParticipant(
+	_, outcome, held, err := sobject.AddSOParticipant(
 		ctx,
 		ih.GetSOHost(),
 		so.GetSharedObjectID(),
@@ -274,6 +277,7 @@ func AddSecretParticipant(
 		entityID,
 		"",
 	)
+	return outcome, held, err
 }
 
 // RemoveSecretParticipant revokes nested SharedObject access from a peer.

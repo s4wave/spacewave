@@ -2179,10 +2179,12 @@ message EnrollSpaceMemberRequest {
 message EnrollSpaceMemberResult {
   // PeerId is the session peer ID (base58).
   string peer_id = 1;
-  // Enrolled is true if the peer was successfully enrolled.
-  bool enrolled = 2;
-  // AlreadyParticipant is true if the peer was already a participant (no-op).
-  bool already_participant = 3;
+  // Outcome says whether the call added the peer, raised its role, or found
+  // it already holding the role asked for or a higher one. It is UNKNOWN when
+  // the enrollment failed and error is set.
+  sobject.SOParticipantAddOutcome outcome = 2;
+  // ParticipantRole is the role the peer holds after the call.
+  sobject.SOParticipantRole participant_role = 3;
   // Error is set if enrollment failed for this peer.
   string error = 4;
 }

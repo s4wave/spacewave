@@ -11,6 +11,10 @@ import {
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
+import {
+  SOParticipantAddOutcome,
+  SOParticipantRole,
+} from '@s4wave/core/sobject/sobject.pb.js'
 
 import { AddUserDialog } from './AddUserDialog.js'
 
@@ -155,6 +159,27 @@ describe('AddUserDialog', () => {
 
     expect(screen.getByText('casey')).toBeDefined()
     expect(screen.queryByText('alice')).toBeNull()
+  })
+
+  it('reports a member raised from reader to writer', async () => {
+    vi.mocked(mockSession.spacewave.enrollSpaceMember).mockResolvedValue({
+      results: [
+        {
+          peerId: 'peer-casey',
+          outcome: SOParticipantAddOutcome.SOParticipantAddOutcome_RAISED,
+          participantRole: SOParticipantRole.SOParticipantRole_WRITER,
+        },
+      ],
+    })
+    renderDialog()
+
+    const row = screen.getByText('casey').closest('button')
+    if (!row) throw new Error('casey row is not a button')
+    fireEvent.click(row)
+
+    await waitFor(() => {
+      expect(screen.getByText('casey is now a writer')).toBeDefined()
+    })
   })
 
   it('offers exact username invite without search discovery', () => {

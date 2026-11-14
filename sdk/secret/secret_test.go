@@ -178,7 +178,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	// Grant one peer read access and leave another ungranted.
 	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
 	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
-	if _, err := s4wave_secret.AddSecretParticipant(
+	if _, _, err := s4wave_secret.AddSecretParticipant(
 		ctx,
 		tb.Bus,
 		secret,
@@ -299,7 +299,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 	// Grant one peer read access and retain another as an unauthorized caller.
 	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
 	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
-	if _, err := s4wave_secret.AddSecretParticipant(
+	if _, _, err := s4wave_secret.AddSecretParticipant(
 		ctx,
 		tb.Bus,
 		secret,

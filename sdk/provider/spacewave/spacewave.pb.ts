@@ -13,10 +13,14 @@ import {
 } from '../../../core/session/session.pb.js'
 import type { ProviderAccountStatus } from '../../../core/provider/provider.pb.js'
 import { ProviderAccountStatus_Enum } from '../../../core/provider/provider.pb.js'
-import type { SOParticipantRole } from '../../../core/sobject/sobject.pb.js'
+import type {
+  SOParticipantAddOutcome,
+  SOParticipantRole,
+} from '../../../core/sobject/sobject.pb.js'
 import {
   SharedObjectHealth,
   SOInviteMessage,
+  SOParticipantAddOutcome_Enum,
   SOParticipantRole_Enum,
 } from '../../../core/sobject/sobject.pb.js'
 
@@ -6185,13 +6189,15 @@ export interface EnrollSpaceMemberResult {
    */
   peerId?: string
   /**
-   * Enrolled is true if the peer was successfully enrolled.
+   * Outcome says whether the call added the peer, raised its role, or found
+   * it already holding the role asked for or a higher one. It is UNKNOWN when
+   * the enrollment failed and error is set.
    */
-  enrolled?: boolean
+  outcome?: SOParticipantAddOutcome
   /**
-   * AlreadyParticipant is true if the peer was already a participant (no-op).
+   * ParticipantRole is the role the peer holds after the call.
    */
-  alreadyParticipant?: boolean
+  participantRole?: SOParticipantRole
   /**
    * Error is set if enrollment failed for this peer.
    */
@@ -6203,8 +6209,8 @@ export const EnrollSpaceMemberResult: MessageType<EnrollSpaceMemberResult> =
     's4wave.provider.spacewave.EnrollSpaceMemberResult',
     () => [
       [1, 'peer_id', 9],
-      [2, 'enrolled', 8],
-      [3, 'already_participant', 8],
+      [2, 'outcome', 14, 0, SOParticipantAddOutcome_Enum],
+      [3, 'participant_role', 14, 0, SOParticipantRole_Enum],
       [4, 'error', 9],
     ],
   )

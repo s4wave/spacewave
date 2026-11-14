@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/url"
-	"slices"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -2206,16 +2205,16 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 			continue
 		}
 
-		// Add the peer at the requested role or its higher existing role.
-		participantRole := max(role, existingRoles[peerID])
-		grant, err := swSO.AddParticipant(ctx, peerID, targetPub, participantRole, accountID, member.GetEntityId())
-		if err != nil {
+		// Add the peer, raising a lower existing role and keeping a higher one.
+		held := existingRoles[peerID]
+		participantRole := max(role, held)
+		if _, err := swSO.AddParticipant(ctx, peerID, targetPub, participantRole, accountID, member.GetEntityId()); err != nil {
 			result.Error = err.Error()
 			results = append(results, result)
 			continue
 		}
-		result.AlreadyParticipant = grant == nil
-		result.Enrolled = grant != nil
+		result.Outcome = sobject.ParticipantAddOutcome(held, role)
+		result.ParticipantRole = participantRole
 		results = append(results, result)
 	}
 	return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{Results: results}, nil
@@ -2255,13 +2254,17 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 	if errors.Is(err, sobject.ErrAwaitingGroup) {
 		return &s4wave_provider_spacewave.RemoveSpaceMemberResponse{AwaitingGroup: true}, nil
 	}
+	removedSet := make(map[string]struct{}, len(removed))
+	for _, peerID := range removed {
+		removedSet[peerID] = struct{}{}
+	}
 	results := make([]*s4wave_provider_spacewave.RemoveSpaceMemberResult, 0, len(peerIDs))
 	for _, peerID := range peerIDs {
 		result := &s4wave_provider_spacewave.RemoveSpaceMemberResult{PeerId: peerID}
 		if err != nil {
 			result.Error = err.Error()
 		} else {
-			result.Removed = slices.Contains(removed, peerID)
+			_, result.Removed = removedSet[peerID]
 			result.NotParticipant = !result.Removed
 		}
 		results = append(results, result)
