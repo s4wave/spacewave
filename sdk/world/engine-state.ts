@@ -77,14 +77,20 @@ async function applyMutation(
 }
 
 // applyObjectMutation applies one object mutation and returns the object's
-// revision after it.
+// revision after it. An applied reply without the revision, as from a host
+// that predates batch results, throws rather than report revision zero, which
+// a caller waiting on the revision would take as already reached.
 async function applyObjectMutation(
   state: EngineWorldState,
   mutation: WorldMutation['mutation'],
   abortSignal: AbortSignal | undefined,
 ): Promise<{ rev: bigint }> {
   const response = await applyMutation(state, mutation, abortSignal)
-  return { rev: response.results?.[0]?.rev ?? 0n }
+  const rev = response.results?.[0]?.rev
+  if (rev === undefined) {
+    throw new Error('ExecuteWorldBatch reply carries no object revision')
+  }
+  return { rev }
 }
 
 // EngineWorldState implements IWorldState on top of an Engine. Each write is

@@ -104,6 +104,22 @@ describe('EngineWorldState writes', () => {
     ).rejects.toBeInstanceOf(PluginUnavailableError)
   })
 
+  it('throws when an applied object write carries no revision', async () => {
+    const { engine } = fakeEngine(
+      { seqno: 1n },
+      { seqno: 2n },
+      { seqno: 3n, results: [] },
+      { seqno: 4n, results: [{}] },
+    )
+    const ws = new EngineWorldState(engine, true)
+    const obj = await ws.createObject('a', {})
+    await expect(obj.incrementRev()).rejects.toThrow()
+    await expect(obj.setRootRef({})).rejects.toThrow()
+    await expect(
+      obj.applyObjectOp('op', new Uint8Array(), 'peer'),
+    ).rejects.toThrow()
+  })
+
   it('refuses writes on a read-only state without a round trip', async () => {
     const { engine, executeWorldBatch } = fakeEngine()
     const ws = new EngineWorldState(engine, false)
