@@ -302,6 +302,25 @@ func (p *Provider) buildProviderAccountTracker(accountID string) (keyed.Routine,
 	return tracker.executeProviderAccountTracker, tracker
 }
 
+// accountVolumeConfig returns the storage volume config of the account.
+func accountVolumeConfig(accountID string) *storage_volume.Config {
+	volumeID := StorageVolumeID(accountID)
+	return &storage_volume.Config{
+		StorageId:       "default",
+		StorageVolumeId: volumeID,
+		VolumeConfig: &volume_controller.Config{
+			VolumeIdAlias: []string{volumeID},
+		},
+	}
+}
+
+// DeleteAccountVolume removes the account's volume without opening it, so it
+// never creates one; a volume already gone is no error. The volume must not
+// be open. A resumed account delete removes the volume through it.
+func (p *Provider) DeleteAccountVolume(ctx context.Context, accountID string) error {
+	return storage_volume.DeleteVolume(ctx, p.b, accountVolumeConfig(accountID))
+}
+
 // executeProviderAccountTracker executes the provider account tracker routine.
 func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Context) error {
 	// Bound the account's routines to this tracker run.
@@ -310,18 +329,10 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	le := t.p.le.WithField("account-id", t.accountID)
 
 	// Mount the storage volume for this account.
-	storageVolumeID := StorageVolumeID(t.accountID)
-	volumeID := storageVolumeID
 	volCtrl, _, volCtrlRef, err := loader.WaitExecControllerRunningTyped[volume.Controller](
 		ctx,
 		t.p.b,
-		resolver.NewLoadControllerWithConfig(&storage_volume.Config{
-			StorageId:       "default",
-			StorageVolumeId: storageVolumeID,
-			VolumeConfig: &volume_controller.Config{
-				VolumeIdAlias: []string{volumeID},
-			},
-		}),
+		resolver.NewLoadControllerWithConfig(accountVolumeConfig(t.accountID)),
 		ctxCancel,
 	)
 	if err != nil {

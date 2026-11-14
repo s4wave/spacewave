@@ -421,6 +421,8 @@ func (a *ProviderAccount) writeEnrolledSO(
 	install := localSO.soHost.InstallInviteSnapshot
 	if listed != nil {
 		install = localSO.soHost.MergeInviteSnapshot
+	} else if err := a.refuseFenced(); err != nil {
+		return "", err
 	} else if err := a.finishPendingReleaseLocked(ctx, soID); err != nil {
 		return "", err
 	}

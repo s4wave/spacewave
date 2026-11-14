@@ -2,6 +2,9 @@ package provider_spacewave
 
 import "strings"
 
+// ProviderID is the default ID for the spacewave provider.
+const ProviderID = "spacewave"
+
 // ProviderIDPrefix is the prefix for spacewave provider resource IDs.
 const ProviderIDPrefix = "p/spacewave/"
 

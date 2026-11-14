@@ -29,6 +29,10 @@ type SessionController interface {
 	// the new index. A stale reference to index to, such as a cloud session's
 	// link to a local session deleted before, then names the moved session.
 	MoveSession(ctx context.Context, from, to uint32) (*SessionListEntry, error)
+	// SetSessionState sets the state of each listed entry whose ref is in
+	// refs, in one write, and for any state but active waits for the entries'
+	// tracked lifetimes to stop. An entry keeps its index and metadata.
+	SetSessionState(ctx context.Context, refs []*SessionRef, state SessionListState) error
 	// GetSessionMetadata returns the metadata for a session by index.
 	// Returns nil, nil if not found.
 	GetSessionMetadata(ctx context.Context, idx uint32) (*SessionMetadata, error)

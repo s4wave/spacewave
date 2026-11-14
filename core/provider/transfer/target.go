@@ -65,6 +65,10 @@ type TransferTarget interface {
 	// from the source origin names. For a Space the source holds itself,
 	// origin's SourceHead is the head of the source's current World.
 	ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error)
+	// WaitAuthor waits until the target's copy of the shared Space holds
+	// peerID's operations through nonce. It returns false when the target no
+	// longer lists the Space, and ctx's error when ctx ends first.
+	WaitAuthor(ctx context.Context, sharedObjectID, peerID string, nonce uint64) (bool, error)
 	// AddSharedObject lists a Space the target does not list, arriving from
 	// the source origin names, and returns what the target then holds. It
 	// returns sobject.ErrSharedObjectExists, writing nothing, when the target

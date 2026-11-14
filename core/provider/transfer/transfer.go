@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider"
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -22,7 +24,9 @@ type Transfer struct {
 	source         TransferSource
 	target         TransferTarget
 	cleanup        CleanupSource
+	deleteSource   func(ctx context.Context, keep func(context.Context) error) error
 	checkpoint     CheckpointStore
+	sessions       [2]*provider.ProviderResourceRef
 	owner          crypto.PrivKey
 	filterSpaceIDs []string
 	copyIdentity   func(ctx context.Context) error
@@ -52,7 +56,9 @@ func NewTransfer(
 		source:         source,
 		target:         target,
 		cleanup:        opts.Cleanup,
+		deleteSource:   opts.DeleteSource,
 		checkpoint:     opts.Checkpoint,
+		sessions:       [2]*provider.ProviderResourceRef{opts.SourceSession, opts.TargetSession},
 		owner:          owner,
 		filterSpaceIDs: opts.FilterSpaceIDs,
 		copyIdentity:   opts.CopyIdentity,
@@ -131,11 +137,19 @@ const (
 	reasonTargetChanged = "the Space changed on the target during the transfer"
 	reasonNoOrigin      = "the cloud account holds an earlier copy of this Space or a different one, and cannot tell which yet; both copies stay as they are"
 	reasonSourceMoving  = "the Space kept changing on the source during cleanup"
+	reasonTargetLost    = "the target no longer holds the Space as it was moved"
+	reasonOpsNotSent    = "operations not sent: the target has not received this account's latest changes to the shared Space"
 )
 
 // maxCleanupMoves bounds how often cleanup moves a Space again that changed
 // on the source after it was moved.
 const maxCleanupMoves = 3
+
+// sendTimeout bounds how long cleanup waits for the target to receive the
+// source's operations on a shared Space, the same bound the account delete
+// that follows sets on its own stage. A variable only so a test can shorten
+// it.
+var sendTimeout = 2 * time.Minute
 
 // Execute runs the transfer operation.
 //
@@ -247,7 +261,7 @@ func (t *Transfer) Execute(ctx context.Context) error {
 
 	// Phase: cleanup source (MERGE and MIGRATE modes). Every Space the source
 	// held, other than account-private ones, has reached the target and the
-	// target holds the identity that signs them, so deleting the volume loses
+	// target holds the identity that signs them, so deleting the account loses
 	// only what the person chose to leave: account-private objects.
 	if deletesSource {
 		t.setPhase(TransferPhase_TransferPhase_CLEANUP)
@@ -262,8 +276,10 @@ func (t *Transfer) Execute(ctx context.Context) error {
 				return t.finish(ctx, TransferPhase_TransferPhase_NOT_MOVED)
 			}
 		}
-		if err := t.cleanup.DeleteVolume(ctx); err != nil {
-			t.le.WithError(err).Warn("failed to delete source volume")
+		if t.deleteSource != nil {
+			if err := t.deleteSource(ctx, t.sourceEmpty); err != nil {
+				return t.fail(errors.Wrap(err, "delete source account"))
+			}
 		}
 	}
 
@@ -289,6 +305,13 @@ func (t *Transfer) finish(ctx context.Context, phase TransferPhase) error {
 // delete. A Space whose source moved on since it was moved is moved again,
 // at most maxCleanupMoves times. It returns a reason when the Space must stay
 // on the source.
+//
+// The delete also requires the target to hold the Space as moved, which it
+// reads after the head check: the Space written at that head, or the shared
+// Space's membership. A target deleted or changed since the move keeps the
+// Space on the source; no lock elsewhere is trusted for that. A shared Space
+// also needs every operation the source wrote in it on the target's copy,
+// since the source's copy may hold the only one: see sharedSent.
 //
 // A write to the source between the head check and the delete is lost with
 // the source; the source has no delete conditioned on its head yet.
@@ -321,10 +344,109 @@ func (t *Transfer) cleanupSpace(ctx context.Context, idx int, entry *sobject.Sha
 			t.setSpacePhase(idx, TransferPhase_TransferPhase_COMPLETE)
 		}
 	}
+	held, err := t.targetHolds(ctx, le, entry, head)
+	if err != nil {
+		return "", err
+	}
+	if !held {
+		return reasonTargetLost, nil
+	}
+	if entry.GetSource() == "shared" {
+		sent, err := t.sharedSent(ctx, le, soID)
+		if err != nil {
+			return "", err
+		}
+		if !sent {
+			return reasonOpsNotSent, nil
+		}
+	}
 	if err := t.cleanup.DeleteSharedObject(ctx, soID); err != nil {
 		le.WithError(err).Warn("failed to delete source SO")
 	}
 	return "", nil
+}
+
+// sharedSent reports whether the target's copy of the shared Space soID
+// holds every operation the source stores in it: the target's view of the
+// source peer's chain reaches the source's head. It first asks the source to
+// send what the target lacks and waits at most sendTimeout for the target to
+// receive it. A source that wrote nothing in the Space needs no read.
+//
+// Invariant: the source deletes its copy of a shared Space only when that
+// copy holds no operation the target lacks. Other members may hold the
+// operations too, but the source cannot prove it, so it keeps them.
+func (t *Transfer) sharedSent(ctx context.Context, le *logrus.Entry, soID string) (bool, error) {
+	// Read the source's chain in the Space.
+	peerID, nonce, err := t.cleanup.AuthorHead(ctx, soID)
+	if err != nil {
+		return false, errors.Wrap(err, "read the source's operations")
+	}
+	if nonce == 0 {
+		return true, nil
+	}
+
+	// Send what the target lacks and wait for it to arrive.
+	if !t.cleanup.SendSharedObject(soID) {
+		le.Debug("no sync of the shared space is running to send its operations")
+	}
+	wctx, cancel := context.WithTimeout(ctx, sendTimeout)
+	defer cancel()
+	held, err := t.target.WaitAuthor(wctx, soID, peerID, nonce)
+	if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
+		held, err = false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, "read the target's copy of the source's operations")
+	}
+	if !held {
+		le.WithField("nonce", nonce).Warn("target lacks the source's operations on the shared space")
+	}
+	return held, nil
+}
+
+// sourceEmpty fails while the source lists a Space other than an
+// account-private one. Cleanup deleted every Space the run moved, so such a
+// Space was created or joined during the run, or its delete failed; deleting
+// the volume would lose it.
+func (t *Transfer) sourceEmpty(ctx context.Context) error {
+	soList, err := t.source.GetSharedObjectList(ctx)
+	if err != nil {
+		return errors.Wrap(err, "list the source's spaces before its delete")
+	}
+	return ListsOnlyPrivate(soList)
+}
+
+// ListsOnlyPrivate fails when list holds a Space other than an
+// account-private one. A transfer's source delete runs it, before its start
+// and again when a resume finishes it, so the volume delete loses no Space the
+// run did not move.
+func ListsOnlyPrivate(list *sobject.SharedObjectList) error {
+	for _, entry := range list.GetSharedObjects() {
+		if !entry.GetMeta().GetAccountPrivate() {
+			return errors.Errorf("the source still lists space %s, which the run did not move", entry.GetRef().GetProviderResourceRef().GetId())
+		}
+	}
+	return nil
+}
+
+// targetHolds reports whether the target holds the Space of entry as the
+// run moved it: a shared Space as a member, any other at the source World
+// head names.
+func (t *Transfer) targetHolds(ctx context.Context, le *logrus.Entry, entry *sobject.SharedObjectListEntry, head []byte) (bool, error) {
+	// Ask the target about the Space at the head the run moved.
+	soID := entry.GetRef().GetProviderResourceRef().GetId()
+	at := t.source.GetOrigin().CloneVT()
+	at.SourceHead = head
+	tgt, err := t.target.ReadSharedObject(ctx, le, soID, at)
+	if err != nil {
+		return false, errors.Wrap(err, "read the target's space before cleanup")
+	}
+
+	// A shared Space needs the membership, any other the World at head.
+	if entry.GetSource() == "shared" {
+		return tgt.Holds == TargetHoldsShared, nil
+	}
+	return tgt.Holds == TargetHoldsWritten && bytes.Equal(tgt.Head, head), nil
 }
 
 // sourceHead returns the head of the source's Space at soRef.
@@ -527,8 +649,10 @@ func (t *Transfer) saveCheckpoint(ctx context.Context) {
 		return
 	}
 	err := t.checkpoint.SaveCheckpoint(ctx, &TransferCheckpoint{
-		State:    t.GetState(),
-		SpaceIds: slices.Clone(t.filterSpaceIDs),
+		State:         t.GetState(),
+		SpaceIds:      slices.Clone(t.filterSpaceIDs),
+		SourceSession: t.sessions[0].CloneVT(),
+		TargetSession: t.sessions[1].CloneVT(),
 	})
 	if err != nil {
 		t.le.WithError(err).Warn("failed to save checkpoint")

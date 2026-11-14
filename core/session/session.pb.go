@@ -15,6 +15,51 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 )
 
+// SessionListState is the state of a session list entry.
+type SessionListState int32
+
+const (
+	// SESSION_LIST_STATE_ACTIVE is a session that opens.
+	SessionListState_SESSION_LIST_STATE_ACTIVE SessionListState = 0
+	// SESSION_LIST_STATE_DELETING is a session of an account whose delete
+	// started and has not removed the account's volume. It never opens; the
+	// next mount of it or the next startup finishes the delete.
+	SessionListState_SESSION_LIST_STATE_DELETING SessionListState = 1
+	// SESSION_LIST_STATE_UNLINKING is a session of an account whose volume
+	// delete started. It never opens; what remains is the volume delete, the
+	// cloud sessions' links to its index, and the entry itself, which goes
+	// last.
+	SessionListState_SESSION_LIST_STATE_UNLINKING SessionListState = 2
+)
+
+// Enum value maps for SessionListState.
+var (
+	SessionListState_name = map[int32]string{
+		0: "SESSION_LIST_STATE_ACTIVE",
+		1: "SESSION_LIST_STATE_DELETING",
+		2: "SESSION_LIST_STATE_UNLINKING",
+	}
+	SessionListState_value = map[string]int32{
+		"SESSION_LIST_STATE_ACTIVE":    0,
+		"SESSION_LIST_STATE_DELETING":  1,
+		"SESSION_LIST_STATE_UNLINKING": 2,
+	}
+)
+
+func (x SessionListState) Enum() *SessionListState {
+	p := new(SessionListState)
+	*p = x
+	return p
+}
+
+func (x SessionListState) String() string {
+	name, valid := SessionListState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SessionType identifies the type of session.
 type SessionType int32
 
@@ -171,6 +216,8 @@ type SessionListEntry struct {
 	SessionIndex uint32 `protobuf:"varint,1,opt,name=session_index,json=sessionIndex,proto3" json:"sessionIndex,omitempty"`
 	// SessionRef is the reference to the session.
 	SessionRef *SessionRef `protobuf:"bytes,2,opt,name=session_ref,json=sessionRef,proto3" json:"sessionRef,omitempty"`
+	// State is the session's state in the list.
+	State SessionListState `protobuf:"varint,3,opt,name=state,proto3" json:"state,omitempty"`
 }
 
 func (x *SessionListEntry) Reset() {
@@ -191,6 +238,13 @@ func (x *SessionListEntry) GetSessionRef() *SessionRef {
 		return x.SessionRef
 	}
 	return nil
+}
+
+func (x *SessionListEntry) GetState() SessionListState {
+	if x != nil {
+		return x.State
+	}
+	return SessionListState_SESSION_LIST_STATE_ACTIVE
 }
 
 // SessionMetadata contains display and pre-mount lock information for a session.
@@ -466,6 +520,7 @@ func (m *SessionListEntry) CloneVT() *SessionListEntry {
 	}
 	r := new(SessionListEntry)
 	r.SessionIndex = m.SessionIndex
+	r.State = m.State
 	r.SessionRef = protobuf_go_lite.CloneVTValue(m.SessionRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -615,6 +670,9 @@ func (this *SessionListEntry) EqualVT(that *SessionListEntry) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.SessionRef, that.SessionRef) {
+		return false
+	}
+	if this.State != that.State {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -791,6 +849,46 @@ func (this *EntityCredential_PemPrivateKey) EqualVT(thatIface isEntityCredential
 		return false
 	}
 	return true
+}
+
+// MarshalProtoJSON marshals the SessionListState to JSON.
+func (x SessionListState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SessionListState_name)
+}
+
+// MarshalText marshals the SessionListState to text.
+func (x SessionListState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SessionListState_name)), nil
+}
+
+// MarshalJSON marshals the SessionListState to JSON.
+func (x SessionListState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SessionListState from JSON.
+func (x *SessionListState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SessionListState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SessionListState enum: %v", err)
+		return
+	}
+	*x = SessionListState(v)
+}
+
+// UnmarshalText unmarshals the SessionListState from text.
+func (x *SessionListState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SessionListState_value)
+	if err != nil {
+		return err
+	}
+	*x = SessionListState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SessionListState from JSON.
+func (x *SessionListState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the SessionType to JSON.
@@ -977,6 +1075,11 @@ func (x *SessionListEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sessionRef")
 		x.SessionRef.MarshalProtoJSON(s.WithField("sessionRef"))
 	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1004,6 +1107,9 @@ func (x *SessionListEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.SessionRef = &SessionRef{}
 			x.SessionRef.UnmarshalProtoJSON(s.WithField("session_ref", true))
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1399,6 +1505,11 @@ func (m *SessionListEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.SessionRef != nil {
 		size, err := m.SessionRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1697,6 +1808,7 @@ func (m *SessionListEntry) SizeVT() (n int) {
 		l = m.SessionRef.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1784,6 +1896,10 @@ func (m *EntityCredential_PemPrivateKey) SizeVT() (n int) {
 	return n
 }
 
+func (x SessionListState) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x SessionType) MarshalProtoText() string {
 	return x.String()
 }
@@ -1820,6 +1936,10 @@ func (x *SessionListEntry) MarshalProtoText() string {
 	if x.SessionRef != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SessionRef)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, SessionListState(x.State))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2054,6 +2174,17 @@ func (m *SessionListEntry) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = SessionListState(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

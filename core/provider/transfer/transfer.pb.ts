@@ -6,6 +6,7 @@ import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { SharedObjectMeta } from '../../sobject/sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ProviderResourceRef } from '../provider.pb.js'
 
 /**
  * TransferMode defines the type of transfer operation.
@@ -215,6 +216,16 @@ export interface TransferCheckpoint {
    * Space.
    */
   spaceIds?: string[]
+  /**
+   * SourceSession names the source session the run was started with. Session
+   * indexes are reused, so a resume runs only while its indexes still name
+   * this session and TargetSession.
+   */
+  sourceSession?: ProviderResourceRef
+  /**
+   * TargetSession names the target session the run was started with.
+   */
+  targetSession?: ProviderResourceRef
 }
 
 export const TransferCheckpoint: MessageType<TransferCheckpoint> =
@@ -223,6 +234,8 @@ export const TransferCheckpoint: MessageType<TransferCheckpoint> =
     () => [
       [1, 'state', 11, 0, TransferState.codec],
       [2, 'space_ids', 9, 1],
+      [3, 'source_session', 11, 0, ProviderResourceRef.codec],
+      [4, 'target_session', 11, 0, ProviderResourceRef.codec],
     ],
   )
 

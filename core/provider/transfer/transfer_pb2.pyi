@@ -1,3 +1,4 @@
+from core.provider import provider_pb2 as _provider_pb2
 from core.sobject import sobject_pb2 as _sobject_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -71,12 +72,16 @@ class TransferState(_message.Message):
     def __init__(self, mode: _Optional[_Union[TransferMode, str]] = ..., phase: _Optional[_Union[TransferPhase, str]] = ..., source_session_index: _Optional[int] = ..., target_session_index: _Optional[int] = ..., spaces: _Optional[_Iterable[_Union[SpaceTransferState, _Mapping]]] = ..., error_message: _Optional[str] = ...) -> None: ...
 
 class TransferCheckpoint(_message.Message):
-    __slots__ = ("state", "space_ids")
+    __slots__ = ("state", "space_ids", "source_session", "target_session")
     STATE_FIELD_NUMBER: _ClassVar[int]
     SPACE_IDS_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_SESSION_FIELD_NUMBER: _ClassVar[int]
+    TARGET_SESSION_FIELD_NUMBER: _ClassVar[int]
     state: TransferState
     space_ids: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, state: _Optional[_Union[TransferState, _Mapping]] = ..., space_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+    source_session: _provider_pb2.ProviderResourceRef
+    target_session: _provider_pb2.ProviderResourceRef
+    def __init__(self, state: _Optional[_Union[TransferState, _Mapping]] = ..., space_ids: _Optional[_Iterable[str]] = ..., source_session: _Optional[_Union[_provider_pb2.ProviderResourceRef, _Mapping]] = ..., target_session: _Optional[_Union[_provider_pb2.ProviderResourceRef, _Mapping]] = ...) -> None: ...
 
 class TransferOrigin(_message.Message):
     __slots__ = ("source_provider_id", "source_account_id", "source_head")

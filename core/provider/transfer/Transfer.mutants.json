@@ -160,14 +160,50 @@
     "expect": "NoEditOverwritten"
   },
   {
-    "name": "a run that leaves a Space not moved deletes the source session",
+    "name": "a run that leaves a Space not moved deletes the source sessions",
     "config": "Transfer-tgt-local-src-local-shared-none.cfg",
     "replace": [
       [
-        "DeleteSession ==\n  /\\ pc = \"session\"\n",
-        "DeleteSession ==\n  /\\ pc \\in {\"session\", \"notmoved\"}\n"
+        "DeleteSession(x) ==\n  /\\ pc = \"cleanup\" /\\ entries \\cap src = {} /\\ x \\in sessions\n",
+        "DeleteSession(x) ==\n  /\\ ((pc = \"cleanup\" /\\ entries \\cap src = {}) \\/ pc = \"notmoved\") /\\ x \\in sessions\n"
       ]
     ],
     "expect": "NotMovedKeepsSource"
+  },
+  {
+    "name": "the volume is deleted while a session still lists it",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [
+      [
+        "  /\\ pc = \"cleanup\" /\\ entries \\cap src = {} /\\ sessions = {}\n",
+        "  /\\ pc = \"cleanup\" /\\ entries \\cap src = {}\n"
+      ]
+    ],
+    "expect": "MigrateKeepsKey"
+  },
+  {
+    "name": "cleanup deletes only one session before the volume",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [
+      [
+        "  /\\ pc = \"cleanup\" /\\ entries \\cap src = {} /\\ sessions = {}\n",
+        "  /\\ pc = \"cleanup\" /\\ entries \\cap src = {} /\\ Cardinality(sessions) < Cardinality(Sessions)\n"
+      ]
+    ],
+    "expect": "MigrateKeepsKey"
+  },
+  {
+    "name": "cleanup deletes a Space the target no longer holds",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [
+      ["ELSE origin[s] = Written(ver[s])", "ELSE origin[s].h = ver[s]"]
+    ],
+    "expect": "CleanupAtHead"
+  },
+  {
+    "name": "the volume delete does not list the source again",
+    "config": "Transfer-tgt-local-src-local-shared-none.cfg",
+    "replace": [["  /\\ src = {}\n", ""]],
+    "expect": "NewSpaceKept"
   }
 ]

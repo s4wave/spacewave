@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -83,9 +84,38 @@ func (s *LocalTransferSource) DeleteSharedObject(ctx context.Context, soID strin
 	return s.account.DeleteSharedObject(ctx, soID)
 }
 
-// DeleteVolume deletes the source account's storage volume.
-func (s *LocalTransferSource) DeleteVolume(ctx context.Context) error {
-	return s.account.GetVolume().Delete()
+// AuthorHead returns the account's volume peer, which signs every operation
+// the account writes, and the nonce of its latest operation on the Space soID
+// that the account stores, 0 when it stores none.
+func (s *LocalTransferSource) AuthorHead(ctx context.Context, soID string) (string, uint64, error) {
+	// Name the peer the account signs as.
+	p, err := s.account.GetVolume().GetPeer(ctx, true)
+	if err != nil {
+		return "", 0, err
+	}
+	peerID := p.GetPeerID().String()
+
+	// Find its chain in the stored state.
+	stored, err := s.account.ReadStoredSharedObject(ctx, soID)
+	if err != nil || stored.State == nil {
+		return peerID, 0, err
+	}
+	state := &sobject.SOState{}
+	if err := state.UnmarshalVT(stored.State); err != nil {
+		return "", 0, errors.Wrap(err, "read the stored state")
+	}
+	set, err := state.OperationSet(soID)
+	if err != nil {
+		return "", 0, err
+	}
+	nonce, _ := set.AuthorHead(peerID)
+	return peerID, nonce, nil
+}
+
+// SendSharedObject restarts the account's sync of the Space soID with its
+// other members, which sends them the operations they lack.
+func (s *LocalTransferSource) SendSharedObject(soID string) bool {
+	return s.account.RetrySharedObjectSync(soID)
 }
 
 // _ is a type assertion
