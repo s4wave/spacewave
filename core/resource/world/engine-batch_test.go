@@ -169,8 +169,8 @@ type batchTestHooks struct {
 }
 
 // batchTestOp is a World op whose payload names what it does: "reject"
-// rejects, "timeout" fails as a plugin timeout, and "create:<key>" creates
-// the object key.
+// rejects, "timeout" fails as a plugin timeout, "unavailable" fails to load
+// its plugin, and "create:<key>" creates the object key.
 type batchTestOp struct {
 	// action is the decoded payload.
 	action string
@@ -190,8 +190,12 @@ func (o *batchTestOp) UnmarshalVT(data []byte) error {
 // TypeID returns batchTestOpID.
 func (o *batchTestOp) TypeID() string { return batchTestOpID }
 
-// PrepareApply waits on the hooks' gate when one is set.
+// PrepareApply fails as an unavailable plugin for "unavailable" and
+// otherwise waits on the hooks' gate when one is set.
 func (o *batchTestOp) PrepareApply(ctx context.Context) (func(), error) {
+	if o.action == "unavailable" {
+		return nil, &world.PluginUnavailableError{PluginID: "test", OperationTypeID: batchTestOpID, Err: context.DeadlineExceeded}
+	}
 	if o.h.gate == nil {
 		return func() {}, nil
 	}
@@ -225,8 +229,8 @@ func (o *batchTestOp) ApplyWorldOp(ctx context.Context, le *logrus.Entry, ws wor
 // _ is a type assertion.
 var _ world.PreparedOperation = (*batchTestOp)(nil)
 
-// TestExecuteWorldBatchOps checks op entries: a rejection or a plugin timeout
-// discards the batch and names its index and code, an op is applied as the
+// TestExecuteWorldBatchOps checks op entries: a rejection, a plugin timeout
+// or an unavailable plugin discards the batch and names its index and code, an op is applied as the
 // sender ExecuteWorldOp binds, and a plugin load before the transaction holds
 // no writer and ends with the caller's context error.
 func TestExecuteWorldBatchOps(t *testing.T) {
@@ -295,6 +299,20 @@ func TestExecuteWorldBatchOps(t *testing.T) {
 	}
 	if exists("timed-out") || exists("timed-out-op") {
 		t.Fatal("timed out batch kept a write")
+	}
+
+	// An unavailable plugin refuses the batch with code 5 before any op is
+	// applied.
+	hooks.senders = nil
+	resp, err = batch(ctx, create("unreached"), op("create:unreached-op"), op("unavailable"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetFailedIndex() != 2 || resp.GetErrorCode() != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE {
+		t.Fatalf("unavailable batch: %v", resp)
+	}
+	if exists("unreached") || exists("unreached-op") || len(hooks.senders) != 0 {
+		t.Fatal("unavailable batch applied an op")
 	}
 
 	// A batch op is applied as the sender ExecuteWorldOp binds: the mount's.

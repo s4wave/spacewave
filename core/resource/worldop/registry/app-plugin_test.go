@@ -189,6 +189,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		// Install and replace the actual native TypeScript worker while its logical
 		// reference remains open. An invalid third viewer must preserve revision two.
 		installed = append([]*manifest.ManifestRef{ref}, installed...)
+		loadStart := time.Now()
 		next, release := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", installed...)
 		installationReleases = append(installationReleases, release)
 		defer release()
@@ -217,6 +218,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		if err != nil || running == nil {
 			t.Fatalf("native candidate did not become ready: %v", err)
 		}
+		t.Logf("plugin load: revision %d ready after %v", version+1, time.Since(loadStart))
 		if registeredTypes.LookupRegistration("sync/app/test/colors", "space/first") == nil {
 			t.Fatal("ready plugin has no admitted ObjectType")
 		}
@@ -241,12 +243,15 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Reopen the persisted plugin choices and wait for recovery.
+	// Reopen the persisted plugin choices and wait for recovery: a cold load
+	// of a stopped worker from its stored manifest.
+	reopenStart := time.Now()
 	reopened, releaseReopened := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", installed...)
 	defer releaseReopened()
 	if _, err := reopened.GetRunningPluginCtr().WaitValue(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("plugin load: cold reopen ready after %v", time.Since(reopenStart))
 
 	// Verify the reopened viewer points to the last working revision.
 	list, err := registeredViewers.ListViewers(ctx, &viewer.ListViewersRequest{Surface: viewer.ViewerSurface_VIEWER_SURFACE_WEB, InstanceKey: "space/first"})

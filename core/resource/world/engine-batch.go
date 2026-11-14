@@ -29,8 +29,8 @@ type batchOp struct {
 // Every op entry is resolved and prepared before the transaction takes the
 // engine's writer, so a cold plugin load costs this caller time while other
 // writers proceed, and ends with the caller's context error. An op the mount
-// cannot resolve refuses the batch before any transaction opens, whatever
-// entries precede it. Because a refused batch discards its transaction, a
+// cannot resolve, or whose plugin load fails or passes its deadline, refuses
+// the batch before any transaction opens, whatever entries precede it. Because a refused batch discards its transaction, a
 // plugin that times out inside it is reported as
 // WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT: nothing was written.
 func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_world.ExecuteWorldBatchRequest) (*s4wave_world.ExecuteWorldBatchResponse, error) {
@@ -74,9 +74,9 @@ func (r *EngineResource) ExecuteWorldBatch(ctx context.Context, req *s4wave_worl
 
 // prepareBatchOps resolves, decodes and prepares the op entries of mutations
 // in order, outside any transaction. ops is indexed like mutations and holds
-// nil for entries that are not ops. The first op the mount cannot resolve
-// stops the walk and is returned as the refusal at its index, and the batch
-// then opens no transaction. release frees every prepared op and must be
+// nil for entries that are not ops. The first op the mount cannot resolve, or
+// whose plugin is unavailable, stops the walk and is returned as the refusal
+// at its index, and the batch then opens no transaction. release frees every prepared op and must be
 // called once the transaction has ended.
 func (r *EngineResource) prepareBatchOps(
 	ctx context.Context,
@@ -110,6 +110,13 @@ func (r *EngineResource) prepareBatchOps(
 			}, release, nil
 		}
 		rel, err := world.PrepareOp(ctx, op)
+		var unavailable *world.PluginUnavailableError
+		if errors.As(err, &unavailable) {
+			return ops, &s4wave_world.ExecuteWorldBatchResponse{
+				FailedIndex: uint32(i),
+				ErrorCode:   s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE,
+			}, release, nil
+		}
 		if err != nil {
 			return nil, nil, release, errors.Wrapf(err, "mutations[%d]", i)
 		}

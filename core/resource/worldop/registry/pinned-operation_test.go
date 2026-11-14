@@ -127,7 +127,7 @@ func TestPinnedOperationReplay(t *testing.T) {
 	}
 
 	// Build a bridge operation pinned to the missing executable hash.
-	missing := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID)
+	missing := newBridgeOperation(le, tb.Bus, &registry.WorldOpRegistration{PluginId: "test-plugin"}, id, tb.EngineID, pluginLoadDeadline)
 	missing.manifestRoot = missingHash.MarshalString()
 	missing.handlerID = "colors/like"
 

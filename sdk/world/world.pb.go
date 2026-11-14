@@ -125,6 +125,11 @@ const (
 	// transaction was discarded: nothing it wrote was kept. A timeout where that
 	// is not certain returns as an error instead.
 	WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT WorldErrorCode = 4
+	// WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE indicates that the plugin handling the
+	// operation could not be reached: its load failed or did not finish within
+	// its deadline. The operation was never sent to apply and no transaction was
+	// opened, so nothing was written and the operation is safe to resend.
+	WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE WorldErrorCode = 5
 )
 
 // Enum value maps for WorldErrorCode.
@@ -135,6 +140,7 @@ var (
 		2: "WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED",
 		3: "WORLD_ERROR_CODE_OBJECT_NOT_FOUND",
 		4: "WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT",
+		5: "WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE",
 	}
 	WorldErrorCode_value = map[string]int32{
 		"WORLD_ERROR_CODE_UNSPECIFIED":                0,
@@ -142,6 +148,7 @@ var (
 		"WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED": 2,
 		"WORLD_ERROR_CODE_OBJECT_NOT_FOUND":           3,
 		"WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT":          4,
+		"WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE":         5,
 	}
 )
 

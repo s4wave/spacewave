@@ -330,6 +330,13 @@ async function acceptAppOperation(
         'The application did not finish in time; nothing was changed',
       )
     }
+    // The host could not reach the application and never sent the request.
+    if (response.errorCode === WorldErrorCode.PLUGIN_UNAVAILABLE) {
+      throw new SyncError(
+        'UNAVAILABLE',
+        'The application could not be reached; nothing was changed',
+      )
+    }
     if (response.rejectionCode) {
       throw new SyncError(
         response.rejectionCode as SyncErrorCode,

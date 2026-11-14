@@ -790,6 +790,11 @@ enum WorldErrorCode {
   // transaction was discarded: nothing it wrote was kept. A timeout where that
   // is not certain returns as an error instead.
   WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT = 4;
+  // WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE indicates that the plugin handling the
+  // operation could not be reached: its load failed or did not finish within
+  // its deadline. The operation was never sent to apply and no transaction was
+  // opened, so nothing was written and the operation is safe to resend.
+  WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE = 5;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
