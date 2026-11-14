@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>frame sandbox probe</title>
+  </head>
+  <body>
+    <script>
+      // The parent embeds an opaque sandboxed srcdoc frame, hands it one
+      // MessagePort, and stores the frame's report on window.__probe.
+      const params = new URLSearchParams(location.search)
+      const otherOrigin = params.get('other')
+
+      // frameMain runs inside the frame. It is serialized into the srcdoc, so
+      // it must not close over anything from the parent.
+      function frameMain(otherOrigin) {
+        const results = {}
+        const errName = (err) =>
+          (err && (err.name || err.constructor?.name)) || String(err)
+
+        // record runs one check and stores "works" or the error's name.
+        async function record(name, fn) {
+          try {
+            const detail = await fn()
+            results[name] = detail === undefined ? 'works' : 'works: ' + detail
+          } catch (err) {
+            results[name] = 'error: ' + errName(err)
+          }
+        }
+
+        // withTimeout fails a check that never settles.
+        const withTimeout = (p, ms) =>
+          Promise.race([
+            p,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('timeout')), ms),
+            ),
+          ])
+
+        // moduleURL makes a blob: URL for a module body.
+        const moduleURL = (src) =>
+          URL.createObjectURL(new Blob([src], { type: 'text/javascript' }))
+
+        // loadImage resolves when url loads as an image, rejects otherwise.
+        const loadImage = (url) =>
+          withTimeout(
+            new Promise((resolve, reject) => {
+              const img = new Image()
+              img.onload = () => resolve()
+              img.onerror = () => reject(new Error('blocked'))
+              img.src = url
+            }),
+            5000,
+          )
+
+        async function run(port) {
+          await record('origin', () => self.origin)
+          await record('crossOriginIsolated', () =>
+            String(self.crossOriginIsolated),
+          )
+
+          // The import map goes first: no module may load before it.
+          await record('importMapBlob', async () => {
+            const dep = moduleURL('export const v = 7')
+            const map = document.createElement('script')
+            map.type = 'importmap'
+            map.textContent = JSON.stringify({ imports: { 'probe-dep': dep } })
+            document.head.appendChild(map)
+            const user = moduleURL(
+              "import { v } from 'probe-dep'; export const w = v * 6",
+            )
+            const mod = await withTimeout(import(user), 5000)
+            if (mod.w !== 42) throw new Error('wrong value ' + mod.w)
+          })
+          await record('importBlob', async () => {
+            const mod = await withTimeout(
+              import(moduleURL('export const v = 42')),
+              5000,
+            )
+            if (mod.v !== 42) throw new Error('wrong value ' + mod.v)
+          })
+          for (const type of ['classic', 'module']) {
+            await record(
+              type === 'module' ? 'moduleWorkerBlob' : 'workerBlob',
+              () =>
+                withTimeout(
+                  new Promise((resolve, reject) => {
+                    const w = new Worker(
+                      moduleURL('postMessage(typeof WebAssembly)'),
+                      { type },
+                    )
+                    w.onmessage = (ev) => {
+                      w.terminate()
+                      resolve(ev.data)
+                    }
+                    w.onerror = (ev) => {
+                      ev.preventDefault()
+                      reject(new Error(ev.message || 'worker error'))
+                    }
+                  }),
+                  5000,
+                ),
+            )
+          }
+          await record('wasmInstantiate', async () => {
+            const bytes = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0])
+            await WebAssembly.instantiate(bytes)
+          })
+          await record('portTransfer', async () => {
+            const ch = new MessageChannel()
+            port.postMessage({ kind: 'port' }, [ch.port2])
+          })
+
+          // Each of these must fail: the frame must not reach the app
+          // origin's storage or the parent's objects.
+          await record('localStorage', () => String(localStorage.length))
+          await record('sessionStorage', () => String(sessionStorage.length))
+          await record('indexedDB', () =>
+            withTimeout(
+              new Promise((resolve, reject) => {
+                const req = indexedDB.open('probe')
+                req.onsuccess = () => {
+                  req.result.close()
+                  resolve()
+                }
+                req.onerror = () => reject(req.error)
+              }),
+              5000,
+            ),
+          )
+          await record('opfsGetDirectory', async () => {
+            await withTimeout(navigator.storage.getDirectory(), 5000)
+          })
+          await record('cacheStorage', async () => {
+            await withTimeout(caches.keys(), 5000)
+          })
+          await record('serviceWorkerRegister', async () => {
+            await withTimeout(navigator.serviceWorker.register('/sw.js'), 5000)
+          })
+          await record('documentCookie', () => JSON.stringify(document.cookie))
+          await record('parentDocument', () => parent.document.title)
+          await record('fetchParentOrigin', async () => {
+            const res = await withTimeout(fetch(parent.origin + '/'), 5000)
+            return String(res.status)
+          })
+
+          // The embedder policy: if the frame inherited require-corp, an
+          // image from another origin without CORP is blocked and one with
+          // CORP cross-origin loads.
+          await record('imageNoCORP', () =>
+            loadImage(otherOrigin + '/img?corp=none'),
+          )
+          await record('imageCORPCrossOrigin', () =>
+            loadImage(otherOrigin + '/img?corp=cross-origin'),
+          )
+
+          port.postMessage({ kind: 'results', results })
+        }
+
+        addEventListener('message', (ev) => {
+          if (ev.data === 'probe-port' && ev.ports[0]) run(ev.ports[0])
+        })
+      }
+
+      const frameSrc =
+        '<!doctype html><html><head></head><body><script>(' +
+        frameMain.toString() +
+        ')(' +
+        JSON.stringify(otherOrigin) +
+        ')</scr' +
+        'ipt></body></html>'
+
+      const iframe = document.createElement('iframe')
+      iframe.setAttribute('sandbox', 'allow-scripts')
+      iframe.srcdoc = frameSrc
+      const ch = new MessageChannel()
+      const report = { parentCrossOriginIsolated: String(crossOriginIsolated) }
+      ch.port1.onmessage = (ev) => {
+        if (ev.data.kind === 'port') report.portTransferReceived = 'works'
+        if (ev.data.kind === 'results') {
+          Object.assign(report, ev.data.results)
+          window.__probe = report
+        }
+      }
+      iframe.onload = () => {
+        iframe.contentWindow.postMessage('probe-port', '*', [ch.port2])
+      }
+      document.body.appendChild(iframe)
+    </script>
+  </body>
+</html>
