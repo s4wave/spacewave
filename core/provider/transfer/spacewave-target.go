@@ -9,6 +9,7 @@ import (
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -284,6 +285,7 @@ func (t *SpacewaveTransferTarget) create(ctx context.Context, le *logrus.Entry, 
 
 	// Create the Space with them.
 	return t.account.GetSessionClient().CreateSharedObjectWithState(ctx, sharedObjectID, &api.CreateWithStateRequest{
+		DisplayName:     space.SharedObjectName(meta),
 		ObjectType:      meta.GetBodyType(),
 		OwnerType:       "account",
 		OwnerId:         t.accountID,

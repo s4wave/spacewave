@@ -358,7 +358,7 @@ func TestUpdateSharedObjectMetadataSeedsCache(t *testing.T) {
 	if list == nil || len(list.GetSharedObjects()) != 1 {
 		t.Fatalf("expected one cached shared object, got %#v", list)
 	}
-	if got := getSharedObjectDisplayName(list.GetSharedObjects()[0].GetMeta()); got != "Renamed Space" {
+	if got := space.SharedObjectName(list.GetSharedObjects()[0].GetMeta()); got != "Renamed Space" {
 		t.Fatalf("unexpected patched list display name: %q", got)
 	}
 	if updateHits.Load() != 1 {

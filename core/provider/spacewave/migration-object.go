@@ -12,6 +12,7 @@ import (
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/db/block"
 )
 
@@ -73,8 +74,8 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	// Name the World and payloads a Space's state reads, which keeps its
 	// state.
 	var roots []*block.BlockRef
-	space := entry.GetMeta().GetBodyType() == "space"
-	if space {
+	isSpace := entry.GetMeta().GetBodyType() == "space"
+	if isSpace {
 		roots, err = provider_migration.Roots(ctx, a.le, source.SpaceBus(), a.p.sfs, object, entry.GetRef(), state)
 		if err != nil {
 			return err
@@ -112,7 +113,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	}
 
 	// Name the resource and create it with its state.
-	displayName := getSharedObjectDisplayName(entry.GetMeta())
+	displayName := space.SharedObjectName(entry.GetMeta())
 	if displayName == "" && entry.GetMeta().GetBodyType() == "space" {
 		displayName = "Untitled Space"
 	}
@@ -135,7 +136,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 
 	// Copy the World and payloads of a Space, then post its checkpoint again,
 	// which the cloud takes as a repeat once the copy is durable.
-	if space {
+	if isSpace {
 		store, release, err := a.MountBlockStore(ctx, NewBlockStoreRef(a.GetProviderID(), a.accountID, id), nil)
 		if err != nil {
 			return err
