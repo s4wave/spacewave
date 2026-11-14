@@ -421,7 +421,9 @@ describe('useUploadManager', () => {
     })
 
     it('fails the rows it decides, and Retry reads it again', async () => {
-      const folder = fakeFolder({ 'a.txt': 1, A: 'dir' }, [], [], 1)
+      const folder = fakeFolder({ 'a.txt': 1, A: 'dir' }, [], [], {
+        lists: [1],
+      })
       const { result } = renderHook(() => useUploadManager())
       dropTree(result.current, folder, ['a.txt', 'A/b.txt'])
       const status = (path: string) =>
@@ -430,7 +432,7 @@ describe('useUploadManager', () => {
         expect([status('a.txt'), status('A'), status('A/b.txt')]).toEqual([
           'error',
           'error',
-          'checking',
+          'waiting',
         ])
       })
       expect(folder.sent()).toEqual([])
@@ -447,6 +449,87 @@ describe('useUploadManager', () => {
       })
       expect(folder.sent()).toEqual([])
     })
+  })
+
+  describe('a failed folder row', () => {
+    // folderStatus returns the statuses of the dropped folder A and its file.
+    const statuses = (result: { current: UploadManager }) =>
+      ['A', 'A/a.txt'].map(
+        (path) =>
+          result.current.items.find(
+            (item) => item.name === path.split('/').at(-1),
+          )?.status,
+      )
+    const retryA = (result: { current: UploadManager }) =>
+      act(() => {
+        result.current.retryUpload(
+          result.current.items.find((item) => item.name === 'A')!.id,
+        )
+      })
+
+    it('retries its check and opens what waits in it', async () => {
+      const folder = fakeFolder({}, [], [], { lists: [1] })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['A/a.txt'])
+      await waitFor(() => {
+        expect(statuses(result)).toEqual(['error', 'waiting'])
+      })
+
+      retryA(result)
+      await done(result)
+      expect(folder.sent()).toEqual([
+        ['A', { kind: 'directory' }],
+        ['A/a.txt', { kind: 'missing' }],
+      ])
+    })
+
+    it('retries its Keep both pick and opens what waits in it', async () => {
+      const folder = fakeFolder({ A: 'dir' }, [], [], { lists: [2] })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['A/a.txt'])
+      await asked(result, 'A')
+      press(result, 'keep')
+      await waitFor(() => {
+        expect(statuses(result)).toEqual(['error', 'waiting'])
+      })
+
+      retryA(result)
+      await done(result)
+      expect(folder.sent()).toEqual([
+        ['A (2)', { kind: 'directory' }],
+        ['A (2)/a.txt', { kind: 'missing' }],
+      ])
+    })
+
+    it('retries its send', async () => {
+      const folder = fakeFolder({}, [], [], { sends: [1] })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['A/a.txt'])
+      await waitFor(() => {
+        expect(statuses(result)[0]).toBe('error')
+      })
+
+      retryA(result)
+      await done(result)
+      expect(folder.sent()).toContainEqual(['A', { kind: 'directory' }])
+    })
+  })
+
+  it('answers a question once, however fast the presses', async () => {
+    const folder = fakeFolder({ 'a.txt': 1 })
+    const { result } = renderHook(() => useUploadManager())
+    drop(result.current, folder, ['a.txt'])
+    await asked(result, 'a.txt')
+
+    const id = result.current.question!.item.id
+    act(() => {
+      result.current.answer(id, 'skip', false)
+      result.current.answer(id, 'replace', false)
+    })
+    await waitFor(() => {
+      expect(result.current.items[0]?.status).toBe('skipped')
+    })
+    expect(folder.sent()).toEqual([])
   })
 
   describe('a dropped folder whose name the folder already holds', () => {
@@ -583,8 +666,8 @@ describe('useUploadManager', () => {
 // like the store: it refuses a file expectation the path does not meet with
 // the version it holds, and merges a folder into a folder. Each later write in
 // writes lands, as another writer's, just before the next file commit. Its
-// listing omits the names in unlisted, and its first failing listings reject;
-// a listing whose signal ends rejects. clone hands out handles to the same
+// listing omits the names in unlisted. The listings and commits counted in
+// faults (from 1) reject, and a listing whose signal ends rejects. clone hands out handles to the same
 // folder; a released handle refuses every call.
 type Holds = Record<string, number | 'dir' | 'link'>
 
@@ -592,7 +675,7 @@ function fakeFolder(
   start: Holds,
   writes: Holds[] = [],
   unlisted: string[] = [],
-  failing = 0,
+  faults: { lists?: number[]; sends?: number[] } = {},
 ) {
   const disk: Holds = { ...start }
   const calls: [string, TreeUploadExpect | { kind: 'directory' }][] = []
@@ -614,7 +697,7 @@ function fakeFolder(
   const list = (dir: string, signal?: AbortSignal) =>
     read(() => {
       if (signal?.aborted) throw new Error('aborted')
-      if (failing > 0 && failing--) throw new Error('stream closed')
+      if (faults.lists?.includes(listed)) throw new Error('stream closed')
       return Object.entries(disk)
         .filter(([path]) => {
           const cut = path.lastIndexOf('/')
@@ -627,9 +710,11 @@ function fakeFolder(
           isSymlink: at === 'link',
         }))
     })
+  let commits = 0
   const commit = async ([
     entry,
   ]: TreeUploadEntry[]): Promise<TreeUploadResult> => {
+    if (faults.sends?.includes(++commits)) throw new Error('stream closed')
     const written: TreeUploadResult = {
       kind: 'written',
       bytesWritten: 1n,

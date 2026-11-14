@@ -187,6 +187,8 @@ function uploadStatusLabel(item: UploadItem): string {
       return 'Queued'
     case 'done':
       return 'Complete'
+    case 'waiting':
+      return 'Waiting for its folder'
     case 'checking':
       return 'Checking the folder'
     case 'asking':
@@ -299,7 +301,7 @@ function UploadItemRow({
             {uploadStatusLabel(item)}
           </span>
         </div>
-        {item.status === 'error' && item.kind === 'file' && (
+        {item.status === 'error' && (
           <button
             type="button"
             className="text-brand hover:text-brand-highlight w-fit text-xs font-medium transition-colors"

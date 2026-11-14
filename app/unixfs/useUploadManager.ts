@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DirEntry } from '@s4wave/sdk/unixfs/handle.pb.js'
 import type {
   FSHandle,
@@ -24,12 +17,14 @@ import {
 // folder, cloned at addFiles time, so the manager can outlive the folder view
 // that started it (see SessionUploadManagerContext).
 
-// UploadStatus represents the state of a single upload item. checking lists
-// the destination, or waits on the answer for the dropped folder the item is
-// in, before any byte is sent; asking waits for the person to answer the
-// item's conflict; skipped is an item the person chose not to send; error is
-// a failed listing or send, which Retry runs again.
+// UploadStatus represents the state of a single upload item. waiting is an
+// item inside a dropped folder that has not opened it yet, such as one that
+// asks or failed; checking lists the item's folder before any byte is sent;
+// asking waits for the person to answer the item's conflict; skipped is an
+// item the person chose not to send; error is a failed listing or send, which
+// Retry runs again.
 export type UploadStatus =
+  | 'waiting'
   | 'checking'
   | 'queued'
   | 'uploading'
@@ -359,11 +354,32 @@ function release(group: UploadGroup, claims: Claims) {
 export function useUploadManager(): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
-  // itemsRef holds the committed items for answer and retryUpload.
+  // itemsRef holds the manager's current items, with patchesRef the changes
+  // not yet applied to them; items is the last list published to render.
+  // Every press decides from these, never from a rendered list, so a second
+  // press on a settled item finds it settled.
   const itemsRef = useRef(items)
-  useLayoutEffect(() => {
-    itemsRef.current = items
-  }, [items])
+  const patchesRef = useRef(new Map<string, Partial<UploadItem>>())
+
+  // publish makes next the current items and renders it.
+  const publish = useCallback((next: UploadItem[]) => {
+    itemsRef.current = next
+    setItems(next)
+  }, [])
+
+  // flush applies the waiting patches in one pass over the list.
+  const flush = useCallback(() => {
+    const patches = patchesRef.current
+    if (patches.size === 0) return
+    const batch = new Map(patches)
+    patches.clear()
+    publish(
+      itemsRef.current.map((current) => {
+        const next = batch.get(current.id)
+        return next ? { ...current, ...next } : current
+      }),
+    )
+  }, [publish])
 
   const nextIdRef = useRef(0)
   const nextGroupIdRef = useRef(0)
@@ -411,10 +427,11 @@ export function useUploadManager(): UploadManager {
     if (!items.every(finished)) return
 
     const timer = setTimeout(() => {
-      setItems((prev) => prev.filter((item) => item.status === 'error'))
+      flush()
+      publish(itemsRef.current.filter((item) => item.status === 'error'))
     }, 3000)
     return () => clearTimeout(timer)
-  }, [items])
+  }, [items, flush, publish])
 
   // Release each drop's handle once none of its items can send or retry: an
   // item done, skipped or removed from the list never sends again.
@@ -448,24 +465,15 @@ export function useUploadManager(): UploadManager {
 
   // update merges patch into the item id. Patches made in one task apply
   // together in one pass over the list, so opening a folder of n items costs
-  // one pass rather than n.
-  const patchesRef = useRef(new Map<string, Partial<UploadItem>>())
-  const update = useCallback((id: string, patch: Partial<UploadItem>) => {
-    const patches = patchesRef.current
-    if (patches.size === 0) {
-      queueMicrotask(() => {
-        const batch = new Map(patches)
-        patches.clear()
-        setItems((cur) =>
-          cur.map((current) => {
-            const next = batch.get(current.id)
-            return next ? { ...current, ...next } : current
-          }),
-        )
-      })
-    }
-    patches.set(id, { ...patches.get(id), ...patch })
-  }, [])
+  // one pass rather than n; a press flushes them first.
+  const update = useCallback(
+    (id: string, patch: Partial<UploadItem>) => {
+      const patches = patchesRef.current
+      if (patches.size === 0) queueMicrotask(flush)
+      patches.set(id, { ...patches.get(id), ...patch })
+    },
+    [flush],
+  )
 
   // flow holds the steps an item takes from its drop to its commit. They call
   // each other, since a refusal asks or sends again, and depend only on the
@@ -650,6 +658,7 @@ export function useUploadManager(): UploadManager {
     // sent as missing and a taken one asks.
     const place = async (item: UploadItem, fresh = false) => {
       const [parent, name] = splitPath(item.path)
+      update(item.id, { status: 'checking', error: undefined })
       const entries = await listed(item, parent, 'check', fresh)
       if (!entries) return
       const entry = entries.get(name)
@@ -689,6 +698,7 @@ export function useUploadManager(): UploadManager {
       fresh = false,
     ) => {
       const [parent, name] = splitPath(folder.path)
+      update(folder.id, { status: 'checking', error: undefined })
       const entries = await listed(folder, parent, 'check', fresh)
       if (!entries) return
       const entry = entries.get(name)
@@ -782,7 +792,6 @@ export function useUploadManager(): UploadManager {
     const resume = async (item: UploadItem) => {
       if (item.step === 'send') return send(item, item.expect)
       if (item.step === 'keep') return keep(item, true)
-      update(item.id, { status: 'checking', error: undefined })
       if (item.kind === 'file') return place(item, true)
       return enter(item, splitPath(item.path)[0] !== '', true)
     }
@@ -825,20 +834,27 @@ export function useUploadManager(): UploadManager {
         expect: missing,
         kept: null,
         conflict: null,
-        status: 'checking' as const,
       }
-      const fileItems: UploadItem[] = files.map((file) => ({
-        ...base,
-        id: `upload-${++nextIdRef.current}`,
-        kind: 'file',
-        file,
-        name: file.name,
-        path:
+      // An item at the top of the drop is checked at once; one inside a
+      // dropped folder waits until the folder opens.
+      const statusOf = (path: string): UploadStatus =>
+        path.includes('/') ? 'waiting' : 'checking'
+      const fileItems: UploadItem[] = files.map((file) => {
+        const path =
           (file as File & { webkitRelativePath?: string }).webkitRelativePath ||
-          file.name,
-        totalSize: file.size,
-        abortController: new AbortController(),
-      }))
+          file.name
+        return {
+          ...base,
+          id: `upload-${++nextIdRef.current}`,
+          kind: 'file',
+          file,
+          name: file.name,
+          path,
+          status: statusOf(path),
+          totalSize: file.size,
+          abortController: new AbortController(),
+        }
+      })
       // Every folder of the drop gets an item to ask about, even when only
       // the files inside it were picked.
       const folders = new Set<string>()
@@ -855,6 +871,7 @@ export function useUploadManager(): UploadManager {
         file: null,
         name: directory.split('/').at(-1) ?? directory,
         path: directory,
+        status: statusOf(directory),
         totalSize: 0,
         abortController: new AbortController(),
       }))
@@ -897,8 +914,7 @@ export function useUploadManager(): UploadManager {
         group.claimed.push([key, name])
       }
 
-      itemsRef.current = [...itemsRef.current, ...newItems]
-      setItems((prev) => [...prev, ...newItems])
+      publish([...itemsRef.current, ...newItems])
       const fileCount = files.length || (directories?.length ?? 0)
       setLastEvent({
         id: ++eventSeqRef.current,
@@ -911,11 +927,15 @@ export function useUploadManager(): UploadManager {
         for (const item of newItems) fail(item.id, err)
       })
     },
-    [check, fail],
+    [check, fail, publish],
   )
 
+  // answer applies only to items asking in the manager's current state; the
+  // first step of every answer leaves asking at once, so a second press on
+  // the same question finds nothing to answer.
   const answer = useCallback(
     (id: string, choice: UploadAnswer, all: boolean) => {
+      flush()
       const cur = itemsRef.current
       const target = cur.find(
         (item) => item.id === id && item.status === 'asking',
@@ -925,26 +945,31 @@ export function useUploadManager(): UploadManager {
       for (const item of answered) {
         void settle(item, choice).catch((err: unknown) => fail(item.id, err))
       }
+      flush()
     },
-    [fail, settle],
+    [fail, settle, flush],
   )
 
   const retryUpload = useCallback(
     (id: string) => {
+      flush()
       const item = itemsRef.current.find(
         (current) => current.id === id && current.status === 'error',
       )
       if (item) retry(item)
+      flush()
     },
-    [retry],
+    [retry, flush],
   )
 
   // cancelUpload stops the item and, for a folder, everything dropped inside
   // it, whatever state each is in, and takes them off the list.
-  const cancelUpload = useCallback((id: string) => {
-    setItems((prev) => {
+  const cancelUpload = useCallback(
+    (id: string) => {
+      flush()
+      const prev = itemsRef.current
       const item = prev.find((current) => current.id === id)
-      if (!item) return prev
+      if (!item) return
       const gone = (current: UploadItem) =>
         current === item || (item.kind === 'directory' && within(current, item))
       for (const current of prev) {
@@ -952,24 +977,25 @@ export function useUploadManager(): UploadManager {
           current.abortController.abort()
         }
       }
-      return prev.filter((current) => !gone(current))
-    })
-  }, [])
+      publish(prev.filter((current) => !gone(current)))
+    },
+    [flush, publish],
+  )
 
   const cancelAll = useCallback(() => {
-    setItems((prev) => {
-      for (const item of prev) item.abortController.abort()
-      return []
-    })
-  }, [])
+    flush()
+    for (const item of itemsRef.current) item.abortController.abort()
+    publish([])
+  }, [flush, publish])
 
   const clearDone = useCallback(() => {
-    setItems((prev) =>
-      prev.filter(
+    flush()
+    publish(
+      itemsRef.current.filter(
         (item) => item.status !== 'done' && item.status !== 'skipped',
       ),
     )
-  }, [])
+  }, [flush, publish])
 
   return useMemo(
     () => ({

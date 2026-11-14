@@ -87,7 +87,6 @@ describe('UploadProgressBottomBar', () => {
           status: 'uploading',
           abortController: new AbortController(),
           ...uploadFields,
-          ...uploadFields,
         },
         {
           id: 'upload-2',
@@ -100,7 +99,6 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 0,
           status: 'done',
           abortController: new AbortController(),
-          ...uploadFields,
           ...uploadFields,
         },
         {
@@ -115,7 +113,6 @@ describe('UploadProgressBottomBar', () => {
           status: 'error',
           error: 'Network failed',
           abortController: new AbortController(),
-          ...uploadFields,
           ...uploadFields,
         },
       ],
@@ -158,7 +155,6 @@ describe('UploadProgressBottomBar', () => {
           status: 'done',
           abortController: new AbortController(),
           ...uploadFields,
-          ...uploadFields,
         },
         {
           id: 'upload-2',
@@ -171,7 +167,6 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 50,
           status: 'done',
           abortController: new AbortController(),
-          ...uploadFields,
           ...uploadFields,
         },
       ],
@@ -208,7 +203,6 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 50,
           status: 'uploading',
           abortController: new AbortController(),
-          ...uploadFields,
           ...uploadFields,
         },
       ],
@@ -276,6 +270,47 @@ describe('UploadProgressBottomBar', () => {
     expect(screen.getByText('2 files added to this folder.')).toBeTruthy()
   })
 
+  it('offers Retry on a failed folder, and names what its files wait for', () => {
+    const folder: UploadItem = {
+      ...uploadingItem(),
+      id: 'upload-folder',
+      kind: 'directory',
+      name: 'photos',
+      path: 'photos',
+      totalSize: 0,
+      bytesWritten: 0,
+      status: 'error',
+      error: 'Could not list the folder: stream closed',
+      step: 'check',
+    }
+    const inside: UploadItem = {
+      ...uploadingItem(),
+      id: 'upload-inside',
+      name: 'a.jpg',
+      path: 'photos/a.jpg',
+      bytesWritten: 0,
+      status: 'waiting',
+    }
+    const retryUpload = vi.fn()
+    const uploadManager = buildUploadManager({
+      items: [folder, inside],
+      retryUpload,
+    })
+
+    render(
+      <BottomBarRoot openMenu="upload-progress" setOpenMenu={() => {}}>
+        <UploadProgressBottomBar uploadManager={uploadManager} />
+        <ViewerFrame>
+          <div>Browser</div>
+        </ViewerFrame>
+      </BottomBarRoot>,
+    )
+
+    expect(screen.getByText('Waiting for its folder')).toBeTruthy()
+    fireEvent.click(screen.getByText('Retry'))
+    expect(retryUpload).toHaveBeenCalledWith('upload-folder')
+  })
+
   it('replaces a quota error chain with actionable storage guidance', () => {
     const uploadManager = buildUploadManager({
       items: [
@@ -292,7 +327,6 @@ describe('UploadProgressBottomBar', () => {
           error:
             'Server error: build segment: browser storage quota exceeded (usage 100 bytes, quota 150 bytes, available 50 bytes, write 100 bytes): QuotaExceededError',
           abortController: new AbortController(),
-          ...uploadFields,
           ...uploadFields,
         },
       ],
