@@ -1,6 +1,7 @@
 package provider_transfer
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
@@ -65,20 +66,108 @@ func (t *LocalTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.Sh
 	return bs, rel, nil
 }
 
-// AddSharedObject adds a shared object entry to the target's SO list.
-func (t *LocalTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta) error {
-	soID := ref.GetProviderResourceRef().GetId()
-	_, err := t.account.CreateSharedObject(ctx, soID, meta, "", "")
-	if errors.Is(err, sobject.ErrSharedObjectExists) {
-		return nil
+// ReadSharedObject reads what the account stores under sharedObjectID. A
+// written Space whose state hash no longer matches is replayed, and still
+// counts as written when its World is the one the transfer copied, read at
+// the same stored state before and after the replay.
+func (t *LocalTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error) {
+	// Read the listing, origin and state together.
+	stored, err := t.account.ReadStoredSharedObject(ctx, sharedObjectID)
+	if err != nil {
+		return nil, err
 	}
-	return err
+	switch {
+	case stored.Entry == nil:
+		return &TargetSpace{Holds: TargetHoldsNothing, Expect: stored}, nil
+	case stored.Entry.GetSource() == "shared":
+		return &TargetSpace{Holds: TargetHoldsShared, Expect: stored}, nil
+	}
+
+	// Only a transfer from this source counts.
+	src := &TransferOrigin{}
+	if stored.Origin == nil || src.UnmarshalVT(stored.Origin.GetSource()) != nil || !sameSource(src, origin) {
+		return &TargetSpace{Holds: TargetHoldsOther, Expect: stored}, nil
+	}
+	if stored.Origin.GetArriving() {
+		return &TargetSpace{Holds: TargetHoldsArriving, Expect: stored}, nil
+	}
+	written := &TargetSpace{Holds: TargetHoldsWritten, Head: src.GetSourceHead(), Expect: stored}
+	if stored.Unchanged() {
+		return written, nil
+	}
+
+	// The state changed: it still counts as written while its World is the
+	// one copied and the state stays put across the replay.
+	head, err := t.replayHead(ctx, le, stored.Entry.GetRef())
+	if err != nil {
+		return nil, err
+	}
+	again, err := t.account.ReadStoredSharedObject(ctx, sharedObjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !bytes.Equal(head, src.GetSourceHead()) || again.Entry.GetGeneration() != stored.Entry.GetGeneration() || !bytes.Equal(again.State, stored.State) {
+		return &TargetSpace{Holds: TargetHoldsOther, Expect: stored}, nil
+	}
+	return written, nil
 }
 
-// WriteSharedObjectState replaces the state and config history of a shared
-// object the target lists.
-func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte) error {
-	return t.account.ReplaceSharedObjectState(ctx, le, sharedObjectID, owner, stateData)
+// replayHead returns the SHA-256 of the World the target's Space at ref
+// replays.
+func (t *LocalTransferTarget) replayHead(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) ([]byte, error) {
+	world, release, err := replaySharedObject(ctx, le, t.b, t.account.GetStepFactorySet(), t.account, ref)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return worldHead(world)
+}
+
+// AddSharedObject lists the Space arriving from origin and reads what the
+// account then holds.
+func (t *LocalTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, origin *TransferOrigin) (*TargetSpace, error) {
+	// List the Space with its origin.
+	soID := ref.GetProviderResourceRef().GetId()
+	src, err := origin.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	if err := t.account.CreateArrivingSharedObject(ctx, soID, meta, src); err != nil {
+		return nil, err
+	}
+
+	// Read the arriving Space back for the write's compare-and-set.
+	stored, err := t.account.ReadStoredSharedObject(ctx, soID)
+	if err != nil {
+		return nil, err
+	}
+	return &TargetSpace{Holds: TargetHoldsArriving, Expect: stored}, nil
+}
+
+// WriteSharedObjectState replaces the state and config history of the Space
+// and records origin as its source, in one transaction that requires the
+// generation and state expect read.
+func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *logrus.Entry, sharedObjectID string, owner crypto.PrivKey, stateData []byte, origin *TransferOrigin, expect *TargetSpace) error {
+	// Write only over a listed Space this target read.
+	stored, ok := expect.GetExpect().(*provider_local.StoredSharedObject)
+	if !ok || stored.Entry == nil {
+		return ErrTargetChanged
+	}
+
+	// Replace the state the read saw, recording origin as its source.
+	src, err := origin.MarshalVT()
+	if err != nil {
+		return err
+	}
+	err = t.account.ReplaceSharedObjectState(ctx, le, sharedObjectID, owner, stateData, &provider_local.ReplaceOrigin{
+		Generation: stored.Entry.GetGeneration(),
+		State:      stored.State,
+		Source:     src,
+	})
+	if errors.Is(err, provider_local.ErrStateChanged) || errors.Is(err, sobject.ErrSharedObjectNotFound) {
+		return ErrTargetChanged
+	}
+	return err
 }
 
 // _ is a type assertion

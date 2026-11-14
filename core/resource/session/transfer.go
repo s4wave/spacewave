@@ -247,8 +247,11 @@ func (r *SessionResource) StartTransfer(
 			return err
 		}
 
-		// After merge or migrate, clean up linked-cloud ref and delete the source session.
-		if mode == provider_transfer.TransferMode_TransferMode_MERGE || mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
+		// After a merge or migrate that moved every Space and deleted the
+		// source, clean up the linked-cloud ref and delete the source session.
+		// A run that left Spaces not moved keeps the source and its session.
+		complete := xfer.GetState().GetPhase() == provider_transfer.TransferPhase_TransferPhase_COMPLETE
+		if complete && (mode == provider_transfer.TransferMode_TransferMode_MERGE || mode == provider_transfer.TransferMode_TransferMode_MIGRATE) {
 			sessCtrl, sessCtrlRef, lerr := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 			if lerr != nil {
 				return xfer.Fail(errors.Wrap(lerr, "lookup session controller for cleanup"))
@@ -321,9 +324,10 @@ func (r *SessionResource) WatchTransferProgress(
 			prev = state
 		}
 
-		// If transfer is complete or failed, send final state and return.
+		// If transfer has ended, send final state and return.
 		phase := state.GetPhase()
 		if phase == provider_transfer.TransferPhase_TransferPhase_COMPLETE ||
+			phase == provider_transfer.TransferPhase_TransferPhase_NOT_MOVED ||
 			phase == provider_transfer.TransferPhase_TransferPhase_FAILED {
 			return nil
 		}
@@ -385,6 +389,7 @@ func (r *SessionResource) GetTransferStatus(
 		state := xfer.GetState()
 		phase := state.GetPhase()
 		if phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE &&
+			phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED &&
 			phase != provider_transfer.TransferPhase_TransferPhase_FAILED {
 			return &s4wave_session.GetTransferStatusResponse{
 				Active: true,

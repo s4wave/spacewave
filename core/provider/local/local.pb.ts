@@ -190,3 +190,47 @@ export const AccountReplicaCopyState: MessageType<AccountReplicaCopyState> =
       [6, 'error', 9],
     ],
   )
+
+/**
+ * SharedObjectOrigin records, beside a shared object, that a caller listed it
+ * to fill its state from elsewhere, such as a transfer, and what that caller
+ * knows of its source. It is stored at SobjectOriginKey.
+ *
+ * @generated from message provider.local.SharedObjectOrigin
+ */
+export interface SharedObjectOrigin {
+  /**
+   * Generation is the list entry generation of the object the origin was
+   * written for. An origin naming another generation belongs to an earlier
+   * lifetime of the id and counts as no origin.
+   */
+  generation?: string
+  /**
+   * Arriving is set from the listing until the caller writes the object's
+   * state. The account refuses to mount an arriving object, so nothing
+   * writes to it before the caller does.
+   */
+  arriving?: boolean
+  /**
+   * StateHash is the SHA-256 of the host state the caller's write stored,
+   * empty while the object is arriving. A stored state with this hash is
+   * unchanged since that write.
+   */
+  stateHash?: Uint8Array
+  /**
+   * Source is the caller's record of where the state came from, opaque to
+   * the account.
+   */
+  source?: Uint8Array
+}
+
+export const SharedObjectOrigin: MessageType<SharedObjectOrigin> =
+  /* @__PURE__ */ createMessageType<SharedObjectOrigin>(
+    'provider.local.SharedObjectOrigin',
+    () => [
+      [1, 'generation', 9],
+      [2, 'arriving', 8],
+      [3, 'state_hash', 12],
+      [4, 'source', 12],
+    ],
+  )

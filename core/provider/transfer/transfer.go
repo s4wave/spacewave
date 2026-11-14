@@ -1,8 +1,8 @@
 package provider_transfer
 
 import (
+	"bytes"
 	"context"
-	"maps"
 	"slices"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -106,6 +106,15 @@ func (t *Transfer) setSpacePhase(idx int, phase TransferPhase) {
 	})
 }
 
+// setSpaceNotMoved marks a space not moved for reason and broadcasts.
+func (t *Transfer) setSpaceNotMoved(idx int, reason string) {
+	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		t.state.Spaces[idx].Phase = TransferPhase_TransferPhase_NOT_MOVED
+		t.state.Spaces[idx].NotMovedReason = reason
+		broadcast()
+	})
+}
+
 // setSpaceBlocksCopied updates the blocks copied count for a space.
 func (t *Transfer) setSpaceBlocksCopied(idx int, count uint64) {
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -114,11 +123,40 @@ func (t *Transfer) setSpaceBlocksCopied(idx int, count uint64) {
 	})
 }
 
+// Not-moved reasons a transfer gives for a Space it leaves where it is.
+const (
+	reasonShared        = "shared Space; invite the target account"
+	reasonSharedCloud   = "shared Space on a cloud account; moving it is not supported yet"
+	reasonTargetHolds   = "the target holds a different version of this Space: created there, moved from another account, or changed since it was moved"
+	reasonTargetChanged = "the Space changed on the target during the transfer"
+	reasonSourceMoving  = "the Space kept changing on the source during cleanup"
+)
+
+// maxCleanupMoves bounds how often cleanup moves a Space again that changed
+// on the source after it was moved.
+const maxCleanupMoves = 3
+
 // Execute runs the transfer operation.
-// If a checkpoint from the same transfer exists, skips the spaces it completed.
+//
+// The target is the only record of progress. Every run asks the target what
+// it holds under each selected Space's id and acts on that alone
+// (Transfer.tla checks the table):
+//
+//	Target holds                                Action
+//	nothing                                     add, copy, hold, check, write
+//	arriving from this source                   copy, hold, check, write
+//	written from this source at its head        nothing; moved
+//	written from this source, source moved on   copy, hold, check, write
+//	the same shared Space, local source         nothing; moved
+//	anything else                               not moved, with a reason
+//
+// Each write is a compare-and-set on the target state the run read, so an
+// edit on the target between the read and the write leaves the Space not
+// moved rather than overwritten. A run that leaves any Space not moved
+// finishes with phase NOT_MOVED and cleans nothing up.
 func (t *Transfer) Execute(ctx context.Context) error {
-	// Resume after the spaces a previous run completed.
-	done := t.loadCompletedSpaces(ctx)
+	// Record the run so the wizard resumes it after a restart.
+	t.saveCheckpoint(ctx)
 
 	// Phase: scanning
 	t.setPhase(TransferPhase_TransferPhase_SCANNING)
@@ -158,18 +196,10 @@ func (t *Transfer) Execute(ctx context.Context) error {
 	t.le.WithField("count", len(entries)).Info("found shared objects to transfer")
 
 	// Initialize per-space state.
-	spaceIDs := make([]string, len(entries))
 	spaces := make([]*SpaceTransferState, len(entries))
 	for i, entry := range entries {
-		soID := entry.GetRef().GetProviderResourceRef().GetId()
-		spaceIDs[i] = soID
-		phase := TransferPhase_TransferPhase_IDLE
-		if _, ok := done[soID]; ok {
-			phase = TransferPhase_TransferPhase_COMPLETE
-		}
 		spaces[i] = &SpaceTransferState{
-			SharedObjectId: soID,
-			Phase:          phase,
+			SharedObjectId: entry.GetRef().GetProviderResourceRef().GetId(),
 			Meta:           entry.GetMeta().CloneVT(),
 		}
 	}
@@ -179,25 +209,31 @@ func (t *Transfer) Execute(ctx context.Context) error {
 	})
 
 	// Phase: copying. Move each Space whole before the next, so a run that
-	// stops leaves each Space checkpointed or for a retry to move again.
+	// stops leaves each Space for the next run to find on the target.
 	t.setPhase(TransferPhase_TransferPhase_COPYING_BLOCKS)
+	heads := make([][]byte, len(entries))
+	notMoved := 0
 	for i, entry := range entries {
-		if _, ok := done[spaceIDs[i]]; ok {
-			continue
-		}
 		if err := ctx.Err(); err != nil {
 			return t.fail(err)
 		}
-		soID := spaceIDs[i]
-		if err := t.moveSpace(ctx, i, entry); err != nil {
-			return t.fail(errors.Wrapf(err, "transfer space %s", soID))
+		head, reason, err := t.moveSpace(ctx, i, entry)
+		if err != nil {
+			return t.fail(errors.Wrapf(err, "transfer space %s", spaces[i].GetSharedObjectId()))
 		}
-
-		// Save checkpoint after each completed space.
+		if reason != "" {
+			t.setSpaceNotMoved(i, reason)
+			notMoved++
+			continue
+		}
+		heads[i] = head
 		t.setSpacePhase(i, TransferPhase_TransferPhase_COMPLETE)
-		done[soID] = struct{}{}
-		t.saveCheckpoint(ctx, done)
-		t.le.WithField("so-id", soID).Debug("space transfer complete")
+	}
+
+	// Clean up nothing when any Space stayed where it was.
+	if notMoved != 0 {
+		t.le.WithField("not-moved", notMoved).Warn("transfer finished with spaces not moved")
+		return t.finish(ctx, TransferPhase_TransferPhase_NOT_MOVED)
 	}
 
 	// Give the target the identity its Spaces are signed with while the source
@@ -215,35 +251,94 @@ func (t *Transfer) Execute(ctx context.Context) error {
 	if deletesSource {
 		t.setPhase(TransferPhase_TransferPhase_CLEANUP)
 		t.le.Info("cleaning up source after transfer")
-
-		for _, entry := range entries {
-			soID := entry.GetRef().GetProviderResourceRef().GetId()
-			if err := t.cleanup.DeleteSharedObject(ctx, soID); err != nil {
-				t.le.WithError(err).WithField("so-id", soID).Warn("failed to delete source SO")
+		for i, entry := range entries {
+			reason, err := t.cleanupSpace(ctx, i, entry, heads[i])
+			if err != nil {
+				return t.fail(errors.Wrapf(err, "clean up space %s", spaces[i].GetSharedObjectId()))
+			}
+			if reason != "" {
+				t.setSpaceNotMoved(i, reason)
+				return t.finish(ctx, TransferPhase_TransferPhase_NOT_MOVED)
 			}
 		}
-
 		if err := t.cleanup.DeleteVolume(ctx); err != nil {
 			t.le.WithError(err).Warn("failed to delete source volume")
 		}
 	}
 
-	// Clean up checkpoint on success. A failed delete leaves a stale complete
-	// checkpoint that the next Execute resumes from as already-done, so log it.
+	// Report completion.
+	t.le.Info("transfer complete")
+	return t.finish(ctx, TransferPhase_TransferPhase_COMPLETE)
+}
+
+// finish ends a run that reached its last phase: the wizard has nothing left
+// to resume.
+func (t *Transfer) finish(ctx context.Context, phase TransferPhase) error {
 	if t.checkpoint != nil {
 		if err := t.checkpoint.DeleteCheckpoint(ctx); err != nil {
-			t.le.WithError(err).Warn("failed to delete completed transfer checkpoint")
+			t.le.WithError(err).Warn("failed to delete finished transfer checkpoint")
 		}
 	}
-
-	// Report completion.
-	t.setPhase(TransferPhase_TransferPhase_COMPLETE)
-	t.le.Info("transfer complete")
+	t.setPhase(phase)
 	return nil
 }
 
-// moveSpace copies the World a Space's source replays to the target, holds
-// it there, and starts the target's lineage at it.
+// cleanupSpace deletes the Space at idx from the source once the target
+// holds it at the source's current head, which it checks just before the
+// delete. A Space whose source moved on since it was moved is moved again,
+// at most maxCleanupMoves times. It returns a reason when the Space must stay
+// on the source.
+//
+// A write to the source between the head check and the delete is lost with
+// the source; the source has no delete conditioned on its head yet.
+func (t *Transfer) cleanupSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry, head []byte) (string, error) {
+	// Name the Space for the checks and the log.
+	soRef := entry.GetRef()
+	soID := soRef.GetProviderResourceRef().GetId()
+	le := t.le.WithField("so-id", soID)
+
+	// A shared Space the target is a member of has no head of its own here:
+	// the source's delete leaves it to its other members.
+	if entry.GetSource() != "shared" {
+		for moves := 0; ; moves++ {
+			now, err := t.sourceHead(ctx, le, soRef)
+			if err != nil {
+				return "", err
+			}
+			if bytes.Equal(now, head) {
+				break
+			}
+			if moves == maxCleanupMoves {
+				return reasonSourceMoving, nil
+			}
+			le.Info("space changed on the source after it was moved, moving it again")
+			var reason string
+			head, reason, err = t.moveSpace(ctx, idx, entry)
+			if err != nil || reason != "" {
+				return reason, err
+			}
+			t.setSpacePhase(idx, TransferPhase_TransferPhase_COMPLETE)
+		}
+	}
+	if err := t.cleanup.DeleteSharedObject(ctx, soID); err != nil {
+		le.WithError(err).Warn("failed to delete source SO")
+	}
+	return "", nil
+}
+
+// sourceHead returns the head of the source's Space at soRef.
+func (t *Transfer) sourceHead(ctx context.Context, le *logrus.Entry, soRef *sobject.SharedObjectRef) ([]byte, error) {
+	world, release, err := t.source.ReplaySharedObject(ctx, le, soRef)
+	if err != nil {
+		return nil, errors.Wrap(err, "replay")
+	}
+	defer release()
+	return worldHead(world)
+}
+
+// moveSpace decides what to do with one Space from what the target holds
+// under its id, as Execute's table says, and does it. It returns the source
+// head the target holds when the Space is moved, or the reason it is not.
 //
 // Invariants, which the target's collector relies on to free nothing the
 // moved Space needs (Transfer.tla checks them as StateHeld):
@@ -251,18 +346,17 @@ func (t *Transfer) Execute(ctx context.Context) error {
 //  1. The copy's stage holds every copied block from its first put until
 //     the import root holds the World's roots: the stage is released only by
 //     the deferred release, after the hold is written and checked.
-//  2. The hold is written after AddSharedObject, because adding an id the
+//  2. The copy and the hold follow AddSharedObject, because adding an id the
 //     target does not list releases every root of its bucket, as a create of
-//     an abandoned id does. A retry finds the id listed, so the add releases
+//     an abandoned id does. A later run finds the id listed, so it adds
 //     nothing and the hold appends to what an earlier run held.
 //  3. The stage is checked after the hold: a run that stalled past the
 //     stage's lease and the collector's grace may have lost the copy, and
 //     the Space then fails before its state is written, so a retry copies
 //     again.
 //  4. The state is written only after the check, so the target never names
-//     a World it does not hold. A Space is checkpointed only after its state
-//     is written, and the source is cleaned up only after every Space is
-//     checkpointed.
+//     a World it does not hold, and only while the target holds the state
+//     the run read (Transfer.tla: NoEditOverwritten).
 //  5. The hold releases nothing. A retained root the target's Adapter never
 //     takes from the import root stays held until the Space is deleted.
 //
@@ -273,73 +367,121 @@ func (t *Transfer) Execute(ctx context.Context) error {
 // nothing a fence reports; a trashed pack stays readable, and a pass retires
 // it only after packfile.TrashAge, rescuing first the blocks that are live
 // again.
-func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry) error {
-	// Name the Space for the target and the log.
+func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.SharedObjectListEntry) ([]byte, string, error) {
+	// Name the Space and its source.
 	soRef := entry.GetRef()
 	soID := soRef.GetProviderResourceRef().GetId()
 	le := t.le.WithField("so-id", soID)
+	origin := t.source.GetOrigin()
 
-	// Replay the World and copy it to the target under a stage.
+	// Read what the target holds.
+	tgt, err := t.target.ReadSharedObject(ctx, le, soID, origin)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "read the target's space")
+	}
+
+	// A shared Space moves only as membership: the target account must be a
+	// member already, and only a source whose delete leaves the Space to its
+	// other members may count it moved.
+	if entry.GetSource() == "shared" {
+		switch {
+		case tgt.Holds == TargetHoldsNothing:
+			return nil, reasonShared, nil
+		case tgt.Holds != TargetHoldsShared:
+			return nil, reasonTargetHolds, nil
+		case !t.source.LeavesSharedObjects():
+			return nil, reasonSharedCloud, nil
+		}
+		return nil, "", nil
+	}
+	if tgt.Holds == TargetHoldsShared || tgt.Holds == TargetHoldsOther {
+		return nil, reasonTargetHolds, nil
+	}
+
+	// Replay the World.
 	t.setSpacePhase(idx, TransferPhase_TransferPhase_COPYING_BLOCKS)
-	le.Debug("replaying and copying space")
+	world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "replay")
+	}
+	defer releaseWorld()
+
+	// Name the World by its head, and skip a Space the target holds at it.
+	data, err := world.MarshalVT()
+	if err != nil {
+		return nil, "", err
+	}
+	head := encodedWorldHead(data)
+	if tgt.Holds == TargetHoldsWritten && bytes.Equal(tgt.Head, head) {
+		le.Debug("target holds the space at the source's head, skipping")
+		return head, "", nil
+	}
+
+	// List a Space the target does not list. A listing that appears since the
+	// read is someone else's.
+	if tgt.Holds == TargetHoldsNothing {
+		tgt, err = t.target.AddSharedObject(ctx, soRef, entry.GetMeta(), origin)
+		if errors.Is(err, sobject.ErrSharedObjectExists) {
+			return nil, reasonTargetHolds, nil
+		}
+		if err != nil {
+			return nil, "", errors.Wrap(err, "add SO to target list")
+		}
+	}
+
+	// Copy the World to the target under a stage.
+	le.Debug("copying space")
 	dst, releaseDst, err := t.target.GetBlockStore(ctx, soRef)
 	if err != nil {
-		return errors.Wrap(err, "mount target block store")
+		return nil, "", errors.Wrap(err, "mount target block store")
 	}
 	defer releaseDst()
-	world, roots, stage, err := t.copyWorld(ctx, le, idx, soRef, dst)
+	roots, stage, err := t.copyWorld(ctx, idx, soRef, world, dst)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	if stage != nil {
 		defer stage.Release()
 	}
 
-	// Add the Space to the target, then hold its World there and check the
-	// stage held the copy until then.
+	// Hold the World on the target and check the stage held the copy until
+	// then.
 	t.setSpacePhase(idx, TransferPhase_TransferPhase_COPYING_SO)
-	if err := t.target.AddSharedObject(ctx, soRef, entry.GetMeta()); err != nil {
-		return errors.Wrap(err, "add SO to target list")
-	}
 	if stage != nil {
 		if err := space_world.HoldImport(ctx, dst, roots...); err != nil {
-			return errors.Wrap(err, "hold copied World")
+			return nil, "", errors.Wrap(err, "hold copied World")
 		}
 		if err := stage.CheckHeld(ctx, roots...); err != nil {
-			return errors.Wrap(err, "check copied World")
+			return nil, "", errors.Wrap(err, "check copied World")
 		}
 	}
 
-	// Start the target lineage at the replayed World.
-	if err := t.target.WriteSharedObjectState(ctx, le, soID, t.owner, world); err != nil {
-		return errors.Wrap(err, "write target SO state")
+	// Start the target lineage at the replayed World, if the target still
+	// holds what the run read.
+	written := origin.CloneVT()
+	written.SourceHead = head
+	err = t.target.WriteSharedObjectState(ctx, le, soID, t.owner, data, written, tgt)
+	if errors.Is(err, ErrTargetChanged) {
+		return nil, reasonTargetChanged, nil
 	}
-	return nil
+	if err != nil {
+		return nil, "", errors.Wrap(err, "write target SO state")
+	}
+	return head, "", nil
 }
 
-// copyWorld replays the World of the Space at soRef on the source and copies
-// every block it reaches into dst, publishing the count. It returns the
-// encoded World, its roots and the copy's stage, nil on a store that holds no
-// roots. The replay holds the World on the source until the copy ends.
+// copyWorld copies every block the replayed World reaches into dst,
+// publishing the count. It returns the World's roots and the copy's stage,
+// nil on a store that holds no roots or a World with none. The caller holds
+// the replay until the copy ends.
 func (t *Transfer) copyWorld(
 	ctx context.Context,
-	le *logrus.Entry,
 	idx int,
 	soRef *sobject.SharedObjectRef,
+	world *space_world.InnerState,
 	dst block.StoreOps,
-) ([]byte, []*block.BlockRef, *block.StageCopy, error) {
-	// Replay the World.
-	world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
-	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "replay")
-	}
-	defer releaseWorld()
-
-	// Encode the World and list the roots its state names.
-	data, err := world.MarshalVT()
-	if err != nil {
-		return nil, nil, nil, err
-	}
+) ([]*block.BlockRef, *block.StageCopy, error) {
+	// List the roots the World's state names.
 	var roots []*block.BlockRef
 	if root := world.GetHeadRef().GetRootRef(); !root.GetEmpty() {
 		roots = append(roots, root)
@@ -350,13 +492,13 @@ func (t *Transfer) copyWorld(
 		}
 	}
 	if len(roots) == 0 {
-		return data, nil, nil, nil
+		return nil, nil, nil
 	}
 
 	// Copy the World's graphs.
 	src, releaseSrc, err := t.source.GetBlockStore(ctx, soRef)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "mount source block store")
+		return nil, nil, errors.Wrap(err, "mount source block store")
 	}
 	defer releaseSrc()
 	var copied uint64
@@ -365,64 +507,22 @@ func (t *Transfer) copyWorld(
 		t.setSpaceBlocksCopied(idx, copied)
 	})
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "copy blocks")
+		return nil, nil, errors.Wrap(err, "copy blocks")
 	}
-	return data, roots, stage, nil
+	return roots, stage, nil
 }
 
-// loadCompletedSpaces returns the IDs of spaces a previous run of this same
-// transfer completed. A checkpoint from a transfer with a different mode or
-// session pair is ignored: its spaces were not copied to this target.
-func (t *Transfer) loadCompletedSpaces(ctx context.Context) map[string]struct{} {
-	// Start with no completed spaces when checkpointing is disabled.
-	done := make(map[string]struct{})
-	if t.checkpoint == nil {
-		return done
-	}
-
-	// Load saved progress, falling back to a fresh transfer after read errors.
-	cp, err := t.checkpoint.LoadCheckpoint(ctx)
-	if err != nil {
-		t.le.WithError(err).Warn("failed to load checkpoint, starting fresh")
-		return done
-	}
-
-	// Ignore a checkpoint that has no transfer state.
-	cpState := cp.GetState()
-	if cpState == nil {
-		return done
-	}
-
-	// Ignore checkpoint state from a different transfer.
-	if cpState.GetMode() != t.state.GetMode() ||
-		cpState.GetSourceSessionIndex() != t.state.GetSourceSessionIndex() ||
-		cpState.GetTargetSessionIndex() != t.state.GetTargetSessionIndex() {
-		t.le.Warn("ignoring checkpoint from a different transfer")
-		return done
-	}
-
-	// Mark checkpointed spaces complete and return their IDs.
-	ids := cp.GetSpaceIds()
-	n := min(int(cp.GetCurrentSpaceIndex()), len(ids))
-	for _, id := range ids[:n] {
-		done[id] = struct{}{}
-	}
-	t.le.WithField("resume-count", len(done)).Info("resuming from checkpoint")
-	return done
-}
-
-// saveCheckpoint persists the completed space IDs if a checkpoint store is set.
-func (t *Transfer) saveCheckpoint(ctx context.Context, done map[string]struct{}) {
+// saveCheckpoint records the run's mode, sessions and selection for the
+// wizard, if a checkpoint store is set. A failed save only loses the resume.
+func (t *Transfer) saveCheckpoint(ctx context.Context) {
 	if t.checkpoint == nil {
 		return
 	}
-	spaceIDs := slices.Sorted(maps.Keys(done))
-	cp := &TransferCheckpoint{
-		State:             t.GetState(),
-		SpaceIds:          spaceIDs,
-		CurrentSpaceIndex: uint32(len(spaceIDs)), //nolint:gosec // bounded by the source shared object list length.
-	}
-	if err := t.checkpoint.SaveCheckpoint(ctx, cp); err != nil {
+	err := t.checkpoint.SaveCheckpoint(ctx, &TransferCheckpoint{
+		State:    t.GetState(),
+		SpaceIds: slices.Clone(t.filterSpaceIDs),
+	})
+	if err != nil {
 		t.le.WithError(err).Warn("failed to save checkpoint")
 	}
 }

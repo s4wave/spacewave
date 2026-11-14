@@ -258,6 +258,62 @@ func (x *AccountReplicaCopyState) GetError() string {
 	return ""
 }
 
+// SharedObjectOrigin records, beside a shared object, that a caller listed it
+// to fill its state from elsewhere, such as a transfer, and what that caller
+// knows of its source. It is stored at SobjectOriginKey.
+type SharedObjectOrigin struct {
+	unknownFields []byte
+	// Generation is the list entry generation of the object the origin was
+	// written for. An origin naming another generation belongs to an earlier
+	// lifetime of the id and counts as no origin.
+	Generation string `protobuf:"bytes,1,opt,name=generation,proto3" json:"generation,omitempty"`
+	// Arriving is set from the listing until the caller writes the object's
+	// state. The account refuses to mount an arriving object, so nothing
+	// writes to it before the caller does.
+	Arriving bool `protobuf:"varint,2,opt,name=arriving,proto3" json:"arriving,omitempty"`
+	// StateHash is the SHA-256 of the host state the caller's write stored,
+	// empty while the object is arriving. A stored state with this hash is
+	// unchanged since that write.
+	StateHash []byte `protobuf:"bytes,3,opt,name=state_hash,json=stateHash,proto3" json:"stateHash,omitempty"`
+	// Source is the caller's record of where the state came from, opaque to
+	// the account.
+	Source []byte `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+}
+
+func (x *SharedObjectOrigin) Reset() {
+	*x = SharedObjectOrigin{}
+}
+
+func (*SharedObjectOrigin) ProtoMessage() {}
+
+func (x *SharedObjectOrigin) GetGeneration() string {
+	if x != nil {
+		return x.Generation
+	}
+	return ""
+}
+
+func (x *SharedObjectOrigin) GetArriving() bool {
+	if x != nil {
+		return x.Arriving
+	}
+	return false
+}
+
+func (x *SharedObjectOrigin) GetStateHash() []byte {
+	if x != nil {
+		return x.StateHash
+	}
+	return nil
+}
+
+func (x *SharedObjectOrigin) GetSource() []byte {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
 func (m *AccountReplicaObjectRequest) CloneVT() *AccountReplicaObjectRequest {
 	if m == nil {
 		return (*AccountReplicaObjectRequest)(nil)
@@ -349,6 +405,25 @@ func (m *AccountReplicaCopyState) CloneVT() *AccountReplicaCopyState {
 }
 
 func (m *AccountReplicaCopyState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SharedObjectOrigin) CloneVT() *SharedObjectOrigin {
+	if m == nil {
+		return (*SharedObjectOrigin)(nil)
+	}
+	r := new(SharedObjectOrigin)
+	r.Generation = m.Generation
+	r.Arriving = m.Arriving
+	r.StateHash = protobuf_go_lite.CloneBytes(m.StateHash)
+	r.Source = protobuf_go_lite.CloneBytes(m.Source)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SharedObjectOrigin) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -488,6 +563,35 @@ func (this *AccountReplicaCopyState) EqualVT(that *AccountReplicaCopyState) bool
 
 func (this *AccountReplicaCopyState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AccountReplicaCopyState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SharedObjectOrigin) EqualVT(that *SharedObjectOrigin) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	if this.Arriving != that.Arriving {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.StateHash, that.StateHash) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Source, that.Source) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SharedObjectOrigin) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SharedObjectOrigin)
 	if !ok {
 		return false
 	}
@@ -828,6 +932,72 @@ func (x *AccountReplicaCopyState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SharedObjectOrigin message to JSON.
+func (x *SharedObjectOrigin) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Generation != "" || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteString(x.Generation)
+	}
+	if x.Arriving || s.HasField("arriving") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("arriving")
+		s.WriteBool(x.Arriving)
+	}
+	if len(x.StateHash) > 0 || s.HasField("stateHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stateHash")
+		s.WriteBytes(x.StateHash)
+	}
+	if len(x.Source) > 0 || s.HasField("source") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("source")
+		s.WriteBytes(x.Source)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SharedObjectOrigin to JSON.
+func (x *SharedObjectOrigin) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SharedObjectOrigin message from JSON.
+func (x *SharedObjectOrigin) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadString()
+		case "arriving":
+			s.AddField("arriving")
+			x.Arriving = s.ReadBool()
+		case "state_hash", "stateHash":
+			s.AddField("state_hash")
+			x.StateHash = s.ReadBytes()
+		case "source":
+			s.AddField("source")
+			x.Source = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SharedObjectOrigin from JSON.
+func (x *SharedObjectOrigin) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *AccountReplicaObjectRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1095,6 +1265,58 @@ func (m *AccountReplicaCopyState) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
+func (m *SharedObjectOrigin) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SharedObjectOrigin) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SharedObjectOrigin) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Source) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Source)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.StateHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.StateHash)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Arriving {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Arriving)
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Generation) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Generation)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AccountReplicaObjectRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1166,6 +1388,20 @@ func (m *AccountReplicaCopyState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Bytes)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Complete)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SharedObjectOrigin) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Generation)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Arriving)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.StateHash)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Source)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1297,6 +1533,32 @@ func (x *AccountReplicaCopyState) MarshalProtoText() string {
 }
 
 func (x *AccountReplicaCopyState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SharedObjectOrigin) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SharedObjectOrigin")
+	if x.Generation != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteString(&sb, x.Generation)
+	}
+	if x.Arriving != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "arriving")
+		protobuf_go_lite.TextWriteBool(&sb, x.Arriving)
+	}
+	if len(x.StateHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.StateHash)
+	}
+	if len(x.Source) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Source)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SharedObjectOrigin) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1690,6 +1952,85 @@ func (m *AccountReplicaCopyState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SharedObjectOrigin) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SharedObjectOrigin: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SharedObjectOrigin: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Generation = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Arriving", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Arriving = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StateHash", wireType)
+			}
+			m.StateHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.StateHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			m.Source, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Source, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

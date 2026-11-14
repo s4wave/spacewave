@@ -667,6 +667,8 @@ function phaseLabel(phase: TransferPhase): string {
       return 'Cleaning up'
     case TransferPhase.TransferPhase_COMPLETE:
       return 'Complete'
+    case TransferPhase.TransferPhase_NOT_MOVED:
+      return 'Not moved'
     case TransferPhase.TransferPhase_FAILED:
       return 'Failed'
     default:
@@ -685,6 +687,7 @@ function ProgressStep({
         spaces?: {
           sharedObjectId?: string
           phase?: TransferPhase
+          notMovedReason?: string
           blocksCopied?: bigint
           meta?: { bodyType?: string; bodyMeta?: Uint8Array }
         }[]
@@ -697,28 +700,37 @@ function ProgressStep({
   const phase = transferState?.phase ?? TransferPhase.TransferPhase_IDLE
   const spaceStates = transferState?.spaces ?? []
   // The transfer moves Spaces in order, so the current one is the first
-  // that has not completed.
+  // that has neither moved nor been left where it is.
   const current = spaceStates.findIndex(
-    (sp) => sp.phase !== TransferPhase.TransferPhase_COMPLETE,
+    (sp) =>
+      sp.phase !== TransferPhase.TransferPhase_COMPLETE &&
+      sp.phase !== TransferPhase.TransferPhase_NOT_MOVED,
   )
+  const notMoved = spaceStates.filter(
+    (sp) => sp.phase === TransferPhase.TransferPhase_NOT_MOVED,
+  ).length
+  const ended =
+    phase === TransferPhase.TransferPhase_COMPLETE ||
+    phase === TransferPhase.TransferPhase_NOT_MOVED ||
+    phase === TransferPhase.TransferPhase_FAILED
   const copying =
     phase === TransferPhase.TransferPhase_COPYING_BLOCKS && current >= 0
 
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
-        {phase !== TransferPhase.TransferPhase_COMPLETE &&
-          phase !== TransferPhase.TransferPhase_FAILED && (
-            <Spinner variant="brand" />
-          )}
+        {!ended && <Spinner variant="brand" />}
         {phase === TransferPhase.TransferPhase_COMPLETE && (
           <LuCheck className="text-brand size-4" />
         )}
-        {phase === TransferPhase.TransferPhase_FAILED && (
+        {(phase === TransferPhase.TransferPhase_FAILED ||
+          phase === TransferPhase.TransferPhase_NOT_MOVED) && (
           <LuX className="text-destructive size-4" />
         )}
         <p className="text-foreground text-sm font-medium">
-          {phaseLabel(phase)}
+          {phase === TransferPhase.TransferPhase_NOT_MOVED
+            ? `Finished, ${notMoved} not moved`
+            : phaseLabel(phase)}
         </p>
         {copying && (
           <p className="text-foreground-alt text-xs">
@@ -744,6 +756,11 @@ function ProgressStep({
                     {phaseLabel(spPhase)}
                   </p>
                 </div>
+                {sp.notMovedReason && (
+                  <p className="text-foreground-alt mt-1 text-xs">
+                    {sp.notMovedReason}
+                  </p>
+                )}
               </div>
             )
           })}

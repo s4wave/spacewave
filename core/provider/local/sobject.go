@@ -22,8 +22,12 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/sirupsen/logrus"
 )
+
+// ErrStateChanged is returned by ReplaceSharedObjectState when the object's
+// listed generation or stored state is not the one the caller read: someone
+// wrote, deleted or created it again since.
+var ErrStateChanged = errors.New("shared object state changed")
 
 // SharedObject implements the sobject interface attached to sobjectTracker.
 type SharedObject struct {
@@ -477,13 +481,14 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	}
 
 	// Load the stored state. An unlisted object with none was deleted or never
-	// created: refuse the mount until every waiter lets go, rather than retry.
+	// created, and an arriving one waits for its transfer: refuse the mount
+	// until every waiter lets go, or the transfer's write restarts it.
 	// awaitingState is set before the read, so a writer that stores state
 	// after the read finds it set and restarts this routine.
 	objStore := objStoreHandle.GetObjectStore()
 	t.awaitingState.Store(true)
 	if err := t.loadSharedObjectState(ctx, objStore, sharedObjectID); err != nil {
-		if !errors.Is(err, sobject.ErrSharedObjectNotFound) {
+		if !errors.Is(err, sobject.ErrSharedObjectNotFound) && !errors.Is(err, sobject.ErrSharedObjectArriving) {
 			return err
 		}
 		if testHookStateRefused != nil {
@@ -572,10 +577,12 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 }
 
 // createSharedObjectLocked creates a new sobject with the given details and a
-// new generation, and returns its list entry. An id an enrollment is writing
-// fails with errSOEnrolling, and one with keys under its prefix fails with
-// errStaleSOKeys; see withClearedSOKeys. Assumes p.mtx is locked.
-func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id string, meta *sobject.SharedObjectMeta) (*sobject.SharedObjectListEntry, error) {
+// new generation, and returns its list entry. Each step runs in the
+// transaction that lists the object, after its genesis state is written,
+// with the new list entry. An id an enrollment is writing fails with errSOEnrolling, and one with keys
+// under its prefix fails with errStaleSOKeys; see withClearedSOKeys. Assumes
+// p.mtx is locked.
+func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id string, meta *sobject.SharedObjectMeta, extra ...func(context.Context, kvtx.Tx, *sobject.SharedObjectListEntry) error) (*sobject.SharedObjectListEntry, error) {
 	// Derive the SharedObject and block-store references from account identity.
 	providerID := a.t.accountInfo.GetProviderId()
 	providerAccountID := a.t.accountInfo.GetProviderAccountId()
@@ -636,6 +643,11 @@ func (a *ProviderAccount) createSharedObjectLocked(ctx context.Context, id strin
 		}
 		steps = append(steps, refuseStaleSOKeys(id), writeGenesis)
 	}
+	for _, step := range extra {
+		steps = append(steps, func(ctx context.Context, tx kvtx.Tx) error {
+			return step(ctx, tx, entry)
+		})
+	}
 	if err := a.writeSharedObjectList(ctx, sharedObjectList, steps...); err != nil {
 		return nil, err
 	}
@@ -677,6 +689,12 @@ func insertListEntry(list *sobject.SharedObjectList, entry *sobject.SharedObject
 
 // CreateSharedObject creates a new sobject with the given details.
 func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, _, _ string) (*sobject.SharedObjectRef, error) {
+	return a.createSharedObject(ctx, id, meta)
+}
+
+// createSharedObject creates the sobject id, running each step in the
+// transaction that lists it, and publishes it to the account catalog.
+func (a *ProviderAccount) createSharedObject(ctx context.Context, id string, meta *sobject.SharedObjectMeta, steps ...func(context.Context, kvtx.Tx, *sobject.SharedObjectListEntry) error) (*sobject.SharedObjectRef, error) {
 	// Clear the state an earlier lifetime abandoned, a bounded batch per hold
 	// of the lock, then serialize local storage creation with the account's
 	// other mutations.
@@ -688,7 +706,7 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 			return err
 		}
 		defer relMtx()
-		entry, err = a.createSharedObjectLocked(ctx, id, meta)
+		entry, err = a.createSharedObjectLocked(ctx, id, meta, steps...)
 		return err
 	})
 	if err != nil {
@@ -801,6 +819,11 @@ func (t *sobjectTracker) loadSharedObjectState(ctx context.Context, objStore obj
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Refuse an object a transfer is still filling.
+			if err := refuseArriving(ctx, tx, sharedObjectID); err != nil {
+				return err
+			}
+
 			// Read the stored state; with none, read whether it is listed.
 			data, ok, err := tx.Get(ctx, key)
 			if err != nil {
@@ -883,49 +906,6 @@ func (a *ProviderAccount) writeGenesisSOState(ctx context.Context, id string) er
 		return err
 	}
 	a.reviveRefusedSharedObject(id)
-	return nil
-}
-
-// ReplaceSharedObjectState replaces the stored state and config history of
-// the listed shared object id with a genesis owned by owner that carries
-// stateData, then restarts its tracker so every mount reads the new state. It
-// checks the listing in the write transaction: an unlisted id returns
-// ErrSharedObjectNotFound and writes nothing, so a write that races a delete
-// leaves no state that no delete can reach.
-func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte) error {
-	// Build the genesis before the transaction.
-	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, owner, stateData)
-	if err != nil {
-		return err
-	}
-	data, err := state.MarshalVT()
-	if err != nil {
-		return err
-	}
-
-	// Replace the state of the listed object.
-	if err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		// Write only an object the account lists.
-		listed, err := storedListsSharedObject(ctx, tx, id)
-		if err != nil {
-			return err
-		}
-		if !listed {
-			return sobject.ErrSharedObjectNotFound
-		}
-
-		// The genesis starts a new lineage, so drop the old history checkpoint.
-		if err := tx.Delete(ctx, SOConfigHistoryCheckpointKey(id)); err != nil {
-			return err
-		}
-		if err := WriteSOConfigHistory(ctx, tx, id, genesis.GetConfig(), state.GetConfig(), []*sobject.SOConfigChange{genesis}); err != nil {
-			return err
-		}
-		return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
-	}); err != nil {
-		return err
-	}
-	a.restartSharedObject(id, nil)
 	return nil
 }
 

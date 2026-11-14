@@ -84,6 +84,13 @@ export enum TransferPhase {
    * TransferPhase_FAILED indicates the transfer encountered an unrecoverable error.
    */
   TransferPhase_FAILED = 6,
+
+  /**
+   * TransferPhase_NOT_MOVED marks a Space the transfer left where it is, for
+   * the reason its state gives, and a transfer that finished with at least
+   * one such Space. Such a transfer cleans up nothing.
+   */
+  TransferPhase_NOT_MOVED = 7,
 }
 
 export const TransferPhase_Enum = /* @__PURE__ */ createEnumType(
@@ -96,6 +103,7 @@ export const TransferPhase_Enum = /* @__PURE__ */ createEnumType(
     [4, 'TransferPhase_CLEANUP'],
     [5, 'TransferPhase_COMPLETE'],
     [6, 'TransferPhase_FAILED'],
+    [7, 'TransferPhase_NOT_MOVED'],
   ],
 )
 
@@ -126,6 +134,10 @@ export interface SpaceTransferState {
    * Meta is the shared object metadata from the source.
    */
   meta?: SharedObjectMeta
+  /**
+   * NotMovedReason says why the Space was not moved, if phase is NOT_MOVED.
+   */
+  notMovedReason?: string
 }
 
 export const SpaceTransferState: MessageType<SpaceTransferState> =
@@ -137,6 +149,7 @@ export const SpaceTransferState: MessageType<SpaceTransferState> =
       [3, 'blocks_copied', 4],
       [5, 'error_message', 9],
       [6, 'meta', 11, 0, SharedObjectMeta.codec],
+      [7, 'not_moved_reason', 9],
     ],
   )
 
@@ -186,23 +199,22 @@ export const TransferState: MessageType<TransferState> =
   )
 
 /**
- * TransferCheckpoint persists transfer progress for resumability.
+ * TransferCheckpoint records a transfer the person started, on its source,
+ * so the wizard resumes it after a restart. It records no progress: on every
+ * run the target's TransferOrigin of each Space decides what the run does.
  *
  * @generated from message provider.transfer.TransferCheckpoint
  */
 export interface TransferCheckpoint {
   /**
-   * State is the current transfer state snapshot.
+   * State is the transfer state when the run started.
    */
   state?: TransferState
   /**
-   * SpaceIds is the ordered list of space IDs to transfer.
+   * SpaceIds is the selection the run was started with, empty for every
+   * Space.
    */
   spaceIds?: string[]
-  /**
-   * CurrentSpaceIndex is the index into space_ids currently being processed.
-   */
-  currentSpaceIndex?: number
 }
 
 export const TransferCheckpoint: MessageType<TransferCheckpoint> =
@@ -211,6 +223,40 @@ export const TransferCheckpoint: MessageType<TransferCheckpoint> =
     () => [
       [1, 'state', 11, 0, TransferState.codec],
       [2, 'space_ids', 9, 1],
-      [3, 'current_space_index', 13],
+    ],
+  )
+
+/**
+ * TransferOrigin records, on the target, the source a transfer moved a Space
+ * from and the World it copied. The target stores it with the Space when the
+ * transfer lists it and replaces it when the transfer writes the Space's
+ * state, so a later transfer can tell a Space it moved, unchanged since, from
+ * any other Space the target holds.
+ *
+ * @generated from message provider.transfer.TransferOrigin
+ */
+export interface TransferOrigin {
+  /**
+   * SourceProviderId is the provider of the source account.
+   */
+  sourceProviderId?: string
+  /**
+   * SourceAccountId is the provider account the Space was moved from.
+   */
+  sourceAccountId?: string
+  /**
+   * SourceHead is the SHA-256 of the encoded World the source replayed for
+   * the copy, empty until the transfer writes the Space's state.
+   */
+  sourceHead?: Uint8Array
+}
+
+export const TransferOrigin: MessageType<TransferOrigin> =
+  /* @__PURE__ */ createMessageType<TransferOrigin>(
+    'provider.transfer.TransferOrigin',
+    () => [
+      [1, 'source_provider_id', 9],
+      [2, 'source_account_id', 9],
+      [3, 'source_head', 12],
     ],
   )
