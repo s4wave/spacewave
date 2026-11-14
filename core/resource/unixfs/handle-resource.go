@@ -641,24 +641,11 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 	}
 	defer releaseHandle()
 
-	// Stream directory entries with the metadata available from each child.
+	// Stream directory entries with the info each child's node carries. An
+	// entry whose node cannot be read goes without its info.
 	err = handle.ReaddirAll(ctx, skip, func(ent unixfs.FSCursorDirent) error {
 		entry := dirEntryFromCursor(ent)
-
-		// Try to get additional info (size, mtime, mode)
-		childHandle, lookupErr := handle.Lookup(ctx, ent.GetName())
-		if lookupErr == nil && childHandle != nil {
-			defer childHandle.Release()
-
-			if info, infoErr := childHandle.GetFileInfo(ctx); infoErr == nil {
-				if info.Size() >= 0 {
-					entry.Size = uint64(info.Size()) //nolint:gosec // file-info sizes are non-negative at this boundary.
-				}
-				entry.ModTime = info.ModTime().Unix()
-				entry.Mode = uint32(info.Mode())
-			}
-		}
-
+		_ = readEntryInfo(ctx, handle, entry)
 		return strm.Send(&s4wave_unixfs.HandleReaddirResponse{
 			Entry: entry,
 		})
@@ -936,10 +923,43 @@ func dirEntryFromCursor(ent unixfs.FSCursorDirent) *s4wave_unixfs.DirEntry {
 	}
 }
 
-// nodeRefOps is implemented by cursor ops that expose the node's block reference.
-type nodeRefOps interface {
+// readEntryInfo sets the size, modification time and mode of entry from the
+// node of its child of handle, reading that one node.
+func readEntryInfo(ctx context.Context, handle *unixfs.FSHandle, entry *s4wave_unixfs.DirEntry) error {
+	// Read the child's node.
+	child, err := handle.Lookup(ctx, entry.GetName())
+	if err != nil {
+		return err
+	}
+	defer child.Release()
+	info, err := child.GetFileInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Copy its info into the entry.
+	if info.Size() >= 0 {
+		entry.Size = uint64(info.Size()) //nolint:gosec // file-info sizes are non-negative at this boundary.
+	}
+	entry.ModTime = info.ModTime().Unix()
+	entry.Mode = uint32(info.Mode())
+	return nil
+}
+
+// nodeRefer is implemented by cursor ops and directory entries that expose the
+// block reference of their node.
+type nodeRefer interface {
 	// GetNodeRef returns the block reference of the node, or nil if unknown.
 	GetNodeRef() *block.BlockRef
+}
+
+// watchDirent is one entry of a watched directory.
+type watchDirent struct {
+	// DirEntry is the entry's name and type, and, once read, its node info.
+	*s4wave_unixfs.DirEntry
+	// ref is the block reference of the entry's node, or nil when the directory
+	// does not expose one.
+	ref *block.BlockRef
 }
 
 // readWatchEntries reads the directory's block reference and, unless it equals
@@ -949,59 +969,141 @@ func readWatchEntries(
 	ctx context.Context,
 	handle *unixfs.FSHandle,
 	prevRef *block.BlockRef,
-) (entries []*s4wave_unixfs.DirEntry, ref *block.BlockRef, changed bool, err error) {
+) (entries []watchDirent, ref *block.BlockRef, changed bool, err error) {
 	err = handle.AccessOps(ctx, func(_ unixfs.FSCursor, ops unixfs.FSCursorOps) error {
 		// Skip the listing while the directory subtree is unchanged.
 		entries, ref, changed = nil, nil, true
-		if refOps, ok := ops.(nodeRefOps); ok {
-			ref = refOps.GetNodeRef()
+		if refer, ok := ops.(nodeRefer); ok {
+			ref = refer.GetNodeRef()
 		}
 		if !ref.GetEmpty() && ref.EqualsRef(prevRef) {
 			changed = false
 			return nil
 		}
 
-		// Read every entry of the changed directory.
+		// Read every entry of the changed directory, copying the node
+		// reference out of the directory node.
 		return ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
-			entries = append(entries, dirEntryFromCursor(ent))
+			wd := watchDirent{DirEntry: dirEntryFromCursor(ent)}
+			if refer, ok := ent.(nodeRefer); ok {
+				wd.ref = refer.GetNodeRef().Clone()
+			}
+			entries = append(entries, wd)
 			return nil
 		})
 	})
 	return entries, ref, changed, err
 }
 
-// WatchReaddir watches directory entries and streams the full listing on each change.
+// WatchReaddir watches directory entries. The first response holds the whole
+// listing, and each later one the entries a change added or changed and the
+// names it removed.
 //
 // An object-backed watch keeps one cursor, which applies each World object
 // revision in place, and lists the directory only when its block reference
-// changes.
+// changes. Each entry carries the info of its node, which the watch reads again
+// only when the entry's node reference changes.
 func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirRequest, strm s4wave_unixfs.SRPCFSHandleResourceService_WatchReaddirStream) error {
-	var prev *s4wave_unixfs.HandleWatchReaddirResponse
-	var prevRef *block.BlockRef
-	var next *s4wave_unixfs.HandleWatchReaddirResponse
+	// Read the listing after each change and send what changed.
+	ctx := strm.Context()
+	var w readdirWatch
 	return r.watchChanges(
-		strm.Context(),
+		ctx,
 		func(handle *unixfs.FSHandle) error {
-			// List the directory only when its block reference changed.
-			entries, ref, changed, err := readWatchEntries(strm.Context(), handle, prevRef)
-			if err != nil {
-				return err
-			}
-			prevRef, next = ref, nil
-			if changed {
-				next = &s4wave_unixfs.HandleWatchReaddirResponse{Entries: entries}
-			}
-			return nil
+			_, err := w.read(ctx, handle)
+			return err
 		},
 		func() error {
-			// Emit the directory listing only when its entries change.
-			if next == nil || (prev != nil && next.EqualVT(prev)) {
+			resp, ok := w.diff()
+			if !ok {
 				return nil
 			}
-			prev = next
-			return strm.Send(next)
+			return strm.Send(resp)
 		},
 	)
+}
+
+// readdirWatch is the listing one WatchReaddir stream has read and sent.
+type readdirWatch struct {
+	// dirRef is the block reference of the directory node last listed.
+	dirRef *block.BlockRef
+	// entries are the entries last listed, with their node info, in directory
+	// order.
+	entries []watchDirent
+	// listed is set when a read listed the directory since the last diff.
+	listed bool
+	// sent are the entries last sent, by name, or nil before the first
+	// response.
+	sent map[string]*s4wave_unixfs.DirEntry
+}
+
+// read lists the directory at handle unless its node is unchanged, and returns
+// how many entry nodes it read. An entry keeps the info last read while its
+// node reference is unchanged, so only a new or changed entry costs a node
+// read. A failed read leaves w unchanged.
+func (w *readdirWatch) read(ctx context.Context, handle *unixfs.FSHandle) (int, error) {
+	// List the directory only when its block reference changed.
+	entries, ref, changed, err := readWatchEntries(ctx, handle, w.dirRef)
+	if err != nil || !changed {
+		return 0, err
+	}
+
+	// Index the previous entries by name.
+	prev := make(map[string]watchDirent, len(w.entries))
+	for _, ent := range w.entries {
+		prev[ent.GetName()] = ent
+	}
+
+	// Reuse each unchanged entry and read the node of every other one.
+	var reads int
+	for i, ent := range entries {
+		if old, ok := prev[ent.GetName()]; ok && !ent.ref.GetEmpty() && ent.ref.EqualsRef(old.ref) {
+			entries[i] = old
+			continue
+		}
+		reads++
+		if err := readEntryInfo(ctx, handle, ent.DirEntry); err != nil {
+			if errors.Is(err, unixfs_errors.ErrReleased) || ctx.Err() != nil {
+				return reads, err
+			}
+			// Send the entry without its info, and read it again next time.
+			entries[i].ref = nil
+		}
+	}
+	w.dirRef, w.entries, w.listed = ref, entries, true
+	return reads, nil
+}
+
+// diff returns the response that carries the receiver from the entries last
+// sent to the entries last listed, and false when there is nothing to send.
+func (w *readdirWatch) diff() (*s4wave_unixfs.HandleWatchReaddirResponse, bool) {
+	// Only a new listing can hold a change.
+	if !w.listed {
+		return nil, false
+	}
+	w.listed = false
+
+	// Send each entry that is new or differs from the one sent.
+	first := w.sent == nil
+	resp := &s4wave_unixfs.HandleWatchReaddirResponse{}
+	sent := make(map[string]*s4wave_unixfs.DirEntry, len(w.entries))
+	for _, ent := range w.entries {
+		name := ent.GetName()
+		sent[name] = ent.DirEntry
+		if old, ok := w.sent[name]; !ok || (old != ent.DirEntry && !old.EqualVT(ent.DirEntry)) {
+			resp.Entries = append(resp.Entries, ent.DirEntry)
+		}
+	}
+
+	// Remove each name the listing no longer holds.
+	for name := range w.sent {
+		if _, ok := sent[name]; !ok {
+			resp.Removed = append(resp.Removed, name)
+		}
+	}
+	slices.Sort(resp.Removed)
+	w.sent = sent
+	return resp, first || len(resp.Entries) != 0 || len(resp.Removed) != 0
 }
 
 // watchChanges calls read with an independent handle on the resource's

@@ -986,21 +986,31 @@ export const HandleWatchReaddirRequest: MessageType<HandleWatchReaddirRequest> =
   )
 
 /**
- * HandleWatchReaddirResponse is the response for WatchReaddir.
+ * HandleWatchReaddirResponse is one change to a watched directory listing.
+ * The first response holds the whole listing, and each later one the entries
+ * a change added or changed and the names it removed.
  *
  * @generated from message s4wave.unixfs.HandleWatchReaddirResponse
  */
 export interface HandleWatchReaddirResponse {
   /**
-   * Entries is the full directory listing.
+   * Entries are the entries added or changed, in directory order, each with its
+   * size, modification time and mode.
    */
   entries?: DirEntry[]
+  /**
+   * Removed are the names of the entries removed, in name order.
+   */
+  removed?: string[]
 }
 
 export const HandleWatchReaddirResponse: MessageType<HandleWatchReaddirResponse> =
   /* @__PURE__ */ createMessageType<HandleWatchReaddirResponse>(
     's4wave.unixfs.HandleWatchReaddirResponse',
-    () => [[1, 'entries', 11, 1, DirEntry.codec]],
+    () => [
+      [1, 'entries', 11, 1, DirEntry.codec],
+      [2, 'removed', 9, 1],
+    ],
   )
 
 /**

@@ -422,6 +422,9 @@ func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
 	if !slices.Equal(extractEntryNames(initial.GetEntries()), []string{"file.txt"}) {
 		t.Fatalf("unexpected initial entries: %v", extractEntryNames(initial.GetEntries()))
 	}
+	if ent := initial.GetEntries()[0]; ent.GetSize() != 5 || ent.GetModTime() == 0 || ent.GetMode() == 0 {
+		t.Fatalf("initial entry lacks its node info: %v", ent)
+	}
 
 	// Verify a local notification with unchanged entries emits no duplicate listing.
 	dedupCtx, cancelDedup := context.WithCancel(ctx)
@@ -455,13 +458,13 @@ func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Require the source directory watch to emit an empty listing after the move.
+	// Require the source directory watch to remove the moved entry.
 	updated, err := srcWatch.Recv()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(updated.GetEntries()) != 0 {
-		t.Fatalf("expected src watch to become empty after sibling rename, got %v", extractEntryNames(updated.GetEntries()))
+	if len(updated.GetEntries()) != 0 || !slices.Equal(updated.GetRemoved(), []string{"file.txt"}) {
+		t.Fatalf("expected src watch to remove file.txt, got entries %v removed %v", extractEntryNames(updated.GetEntries()), updated.GetRemoved())
 	}
 
 	// Require a write through another World cursor to reach the watch.
@@ -469,13 +472,82 @@ func TestFSHandleResourceWatchReaddirSeesSiblingRename(t *testing.T) {
 	if err := billy_util.WriteFile(bfs, "src/new.txt", []byte("hi"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	updated, err = srcWatch.Recv()
-	if err != nil {
+	// The write creates the file, then fills it, so its size arrives with the
+	// last change.
+	for {
+		updated, err = srcWatch.Recv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(extractEntryNames(updated.GetEntries()), []string{"new.txt"}) || len(updated.GetRemoved()) != 0 {
+			t.Fatalf("unexpected change after external write: entries %v removed %v", extractEntryNames(updated.GetEntries()), updated.GetRemoved())
+		}
+		if ent := updated.GetEntries()[0]; ent.GetSize() == 2 && ent.GetModTime() != 0 {
+			break
+		}
+	}
+
+	// Fill a directory of 1,000 files.
+	const bigCount = 1000
+	if err := bfs.MkdirAll("big", 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(extractEntryNames(updated.GetEntries()), []string{"new.txt"}) {
-		t.Fatalf("unexpected entries after external write: %v", extractEntryNames(updated.GetEntries()))
+	for i := range bigCount {
+		if err := billy_util.WriteFile(bfs, fmt.Sprintf("big/f%04d", i), []byte("0123456789"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
+
+	// readBig lists the directory at the current World state.
+	var w readdirWatch
+	readBig := func() int {
+		root, _, err := rootResource.newObjectFSHandle(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer root.Release()
+		big, err := root.Lookup(ctx, "big")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer big.Release()
+		reads, err := w.read(ctx, big)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return reads
+	}
+
+	// The first listing reads each entry's node once and sends them all.
+	firstReads := readBig()
+	if firstReads != bigCount {
+		t.Fatalf("first listing read %d nodes, want %d", firstReads, bigCount)
+	}
+	full, ok := w.diff()
+	if !ok || len(full.GetEntries()) != bigCount || full.GetEntries()[0].GetSize() != 10 {
+		t.Fatalf("first listing sent %d entries", len(full.GetEntries()))
+	}
+
+	// A change to one file reads only that file's node and sends only it.
+	if err := billy_util.WriteFile(bfs, "big/f0500", []byte("01234567890123456789"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changeReads := readBig()
+	if changeReads != 1 {
+		t.Fatalf("change read %d nodes, want 1", changeReads)
+	}
+	change, ok := w.diff()
+	if !ok || len(change.GetEntries()) != 1 || change.GetEntries()[0].GetName() != "f0500" || change.GetEntries()[0].GetSize() != 20 {
+		t.Fatalf("unexpected change: %v", change)
+	}
+
+	// Compare with the full listing of names and types each change sent before.
+	bare := &s4wave_unixfs.HandleWatchReaddirResponse{}
+	for _, ent := range full.GetEntries() {
+		bare.Entries = append(bare.Entries, &s4wave_unixfs.DirEntry{Name: ent.GetName(), IsDir: ent.GetIsDir()})
+	}
+	t.Logf("%d entries: first listing %d node reads, %d bytes; one change %d node reads, %d bytes; bare full listing %d bytes",
+		bigCount, firstReads, full.SizeVT(), changeReads, change.SizeVT(), bare.SizeVT())
 }
 
 func recvWatchReaddir(

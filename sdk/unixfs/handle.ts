@@ -18,6 +18,7 @@ import type {
   HandleUploadFileRequest,
   HandleUploadTreeRequest,
 } from './handle.pb.js'
+import { applyReaddirChange } from './listing.js'
 import {
   joinUnixFSDisplayPath,
   normalizeUnixFSLookupPath,
@@ -163,8 +164,10 @@ export interface IFSHandle {
   // readdirAll reads all directory entries into an array.
   readdirAll(skip?: bigint, abortSignal?: AbortSignal): Promise<DirEntry[]>
 
-  // watchReaddir watches directory entries as an async iterable.
-  // Each yielded value is the complete current directory listing.
+  // watchReaddir watches directory entries as an async iterable. Each yielded
+  // value is the complete current listing in directory order, each entry with
+  // its size, modification time and mode; an entry a change left alone keeps
+  // its object.
   watchReaddir(abortSignal?: AbortSignal): AsyncIterable<DirEntry[]>
 
   // watchFiles watches the files below this directory whose names end in one
@@ -464,14 +467,17 @@ export class FSHandle extends Resource implements IFSHandle {
     return entries
   }
 
-  // watchReaddir watches directory entries as an async iterable.
-  // Each yielded value is the complete current directory listing.
+  // watchReaddir watches directory entries as an async iterable. Each yielded
+  // value is the complete current listing in directory order, built from the
+  // stream's whole first listing and the changes after it.
   public async *watchReaddir(
     abortSignal?: AbortSignal,
   ): AsyncIterable<DirEntry[]> {
     const stream = this.service.WatchReaddir({}, abortSignal)
+    let listing: DirEntry[] = []
     for await (const resp of stream as AsyncIterable<HandleWatchReaddirResponse>) {
-      yield resp.entries ?? []
+      listing = applyReaddirChange(listing, resp)
+      yield listing
     }
   }
 
