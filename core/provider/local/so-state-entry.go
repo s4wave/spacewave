@@ -40,20 +40,9 @@ func newSOStateEntry(key []byte) *soStateEntry {
 
 // execute loads the committed state of sharedObjectID from objStore and holds
 // the entry until ctx ends.
-func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore, sharedObjectID string) error {
-	// Read the state through the store transaction boundary.
-	var data []byte
-	var found bool
-	err := kvtx.RunTransaction(ctx, false,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return objStore.NewTransaction(ctx, false)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			var err error
-			data, found, err = tx.Get(ctx, e.key)
-			return err
-		},
-	)
+func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns, sharedObjectID string) error {
+	// Load the stored state after the open writes of this object.
+	data, found, err := e.load(ctx, objStore, runs)
 	if err != nil {
 		return err
 	}
@@ -76,6 +65,38 @@ func (e *soStateEntry) execute(ctx context.Context, objStore object.ObjectStore,
 	e.stateProm.SetResult(val, nil)
 	<-ctx.Done()
 	return nil
+}
+
+// load reads the stored state. With runs set, it first takes runs.Writes
+// alone and releases it at once, so it waits for the state writes of this
+// object past their mount check, including those of the mount run before it,
+// and for no other writer. A restart can start the load while such a write
+// has yet to commit; the load then reads that write rather than the state
+// under it. A write of the old run that takes the gate later finds its mount
+// ended and writes nothing, and the new run's writes wait for this load. The
+// read holds no lock, so it orders after no write transaction.
+func (e *soStateEntry) load(ctx context.Context, objStore object.ObjectStore, runs *SOStateRuns) (data []byte, found bool, err error) {
+	// Wait for the writes of this object past their mount check.
+	if runs != nil {
+		release, err := runs.Writes.Lock(ctx, true)
+		if err != nil {
+			return nil, false, err
+		}
+		release()
+	}
+
+	// Read the state through the store transaction boundary.
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			data, found, err = tx.Get(ctx, e.key)
+			return err
+		},
+	)
+	return data, found, err
 }
 
 // commit publishes state, written to storage as data. The caller holds

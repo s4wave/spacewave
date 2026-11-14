@@ -218,12 +218,12 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 	ref := createTestSharedObject(ctx, t, a, "replaced")
 	so, rel := mountTestSharedObject(ctx, t, a, ref)
 	defer rel()
-	read := func() *ReplaceOrigin {
+	read := func() ReplaceOrigin {
 		stored, err := a.ReadStoredSharedObject(ctx, "replaced")
 		if err != nil {
 			t.Fatal(err)
 		}
-		return &ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
+		return ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
 	}
 	stale := read()
 	writeTestStateData(ctx, t, so, []byte("fake-acked"))
@@ -240,15 +240,16 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 	// restarts the mount.
 	var hookErr error
 	var ranHook bool
-	testHookReplaceCommitted = func(id string) {
+	testHookReplaceCommitted = func(id string) error {
 		if id != "replaced" {
-			return
+			return nil
 		}
 		ranHook = true
 		if so.ctx.Err() != nil {
 			t.Error("the mount ended before the replace restarted it")
 		}
 		hookErr = tryWriteTestStateData(ctx, so, []byte("fake-resurrected"))
+		return nil
 	}
 	t.Cleanup(func() { testHookReplaceCommitted = nil })
 	if err := a.ReplaceSharedObjectState(ctx, a.le, "replaced", owner, []byte("fake-moved"), read()); err != nil {
@@ -280,6 +281,195 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 	if got := readTestStateData(ctx, t, next.(*SharedObject)); !bytes.Equal(got, []byte("fake-moved")) {
 		t.Fatalf("the replaced object reads %q", got)
 	}
+}
+
+// TestMountReloadsAfterAmbiguousCommit fails a mounted write's commit, and
+// then a replace's, after each stored its state, and checks that the mount
+// reloads by itself: the failed caller gets the commit error once, a new
+// mount shows the stored state, and writes go on.
+func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	errAmbiguous := errors.New("fake ambiguous commit")
+	ref := createTestSharedObject(ctx, t, a, "ambiguous")
+	so, rel := mountTestSharedObject(ctx, t, a, ref)
+	defer rel()
+	writeTestStateData(ctx, t, so, []byte("fake-a"))
+
+	// A mounted write stores its state, then its commit fails.
+	var once sync.Once
+	testHookStateCommitted = func(id string) error {
+		var err error
+		once.Do(func() { err = errAmbiguous })
+		return err
+	}
+	t.Cleanup(func() { testHookStateCommitted = nil })
+	if err := tryWriteTestStateData(ctx, so, []byte("fake-b")); !errors.Is(err, errAmbiguous) {
+		t.Fatalf("the ambiguous write returned %v", err)
+	}
+	expectTestMountEnded(ctx, t, so)
+	next, relNext := mountTestSharedObject(ctx, t, a, ref)
+	defer relNext()
+	waitTestStateData(ctx, t, next, []byte("fake-b"))
+	writeTestStateData(ctx, t, next, []byte("fake-c"))
+
+	// A replace stores its state, then its commit fails.
+	peer, err := a.vol.GetPeer(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner, err := peer.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testHookReplaceCommitted = func(string) error { return errAmbiguous }
+	t.Cleanup(func() { testHookReplaceCommitted = nil })
+	stored, err := a.ReadStoredSharedObject(ctx, "ambiguous")
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
+	if err := a.ReplaceSharedObjectState(ctx, a.le, "ambiguous", owner, []byte("fake-moved"), origin); !errors.Is(err, errAmbiguous) {
+		t.Fatalf("the ambiguous replace returned %v", err)
+	}
+	expectTestMountEnded(ctx, t, next)
+	moved, relMoved := mountTestSharedObject(ctx, t, a, ref)
+	defer relMoved()
+	waitTestStateData(ctx, t, moved, []byte("fake-moved"))
+	writeTestStateData(ctx, t, moved, []byte("fake-d"))
+}
+
+// TestMountReloadsOnceAfterStoreChange changes the stored state behind a
+// mount and checks that the next write fails with ErrStateChanged once and
+// reloads the mount, and that the same stored state does not reload it again.
+func TestMountReloadsOnceAfterStoreChange(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	ref := createTestSharedObject(ctx, t, a, "behind")
+	so, rel := mountTestSharedObject(ctx, t, a, ref)
+	defer rel()
+	writeTestStateData(ctx, t, so, []byte("fake-a"))
+	first, err := a.ReadStoredSharedObject(ctx, "behind")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestStateData(ctx, t, so, []byte("fake-b"))
+
+	// Store the earlier state behind the mount, and count the runs after it.
+	key := SobjectObjectStoreHostStateKey("behind")
+	err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, key, first.State)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mtx sync.Mutex
+	var runs int
+	testHookRunStarting = func(id string) {
+		if id == "behind" {
+			mtx.Lock()
+			runs++
+			mtx.Unlock()
+		}
+	}
+	t.Cleanup(func() { testHookRunStarting = nil })
+
+	// The next write fails once and the mount reloads the stored state.
+	if err := tryWriteTestStateData(ctx, so, []byte("fake-c")); !errors.Is(err, ErrStateChanged) {
+		t.Fatalf("a write behind a store change returned %v", err)
+	}
+	expectTestMountEnded(ctx, t, so)
+	next, relNext := mountTestSharedObject(ctx, t, a, ref)
+	defer relNext()
+	waitTestStateData(ctx, t, next, []byte("fake-a"))
+
+	// The same stored state does not restart the mount again.
+	so.tkr.reload(first.State)
+	if next.ctx.Err() != nil {
+		t.Fatal("a second reload for the same stored state restarted the mount")
+	}
+	mtx.Lock()
+	n := runs
+	mtx.Unlock()
+	if n != 1 {
+		t.Fatalf("the store change started %d runs, want 1", n)
+	}
+	writeTestStateData(ctx, t, next, []byte("fake-c"))
+}
+
+// TestRestartLoadWaitsForOldWriter holds a write of a mount inside its
+// transaction, past its mount check, restarts the mount, and lets the write
+// commit once the new run starts. The new run's load waits for the write, so
+// the new mount shows it without any further write.
+//
+// The hooks order the write's check, the restart and the new run's start;
+// whether the new run's load has begun when the write is let go is not
+// observable, so the test cannot force the load ahead of the commit.
+func TestRestartLoadWaitsForOldWriter(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	_, _, a, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	ref := createTestSharedObject(ctx, t, a, "handoff")
+	so, rel := mountTestSharedObject(ctx, t, a, ref)
+	defer rel()
+	writeTestStateData(ctx, t, so, []byte("fake-a"))
+
+	// Hold the next write past its mount check.
+	reached, resume := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	testHookStateWriting = func(id string) {
+		if id != "handoff" {
+			return
+		}
+		once.Do(func() {
+			close(reached)
+			<-resume
+		})
+	}
+	t.Cleanup(func() { testHookStateWriting = nil })
+	writeErr := make(chan error, 1)
+	go func() {
+		writeErr <- tryWriteTestStateData(ctx, so, []byte("fake-late"))
+	}()
+	select {
+	case <-reached:
+	case <-ctx.Done():
+		t.Fatal("the write did not reach its transaction")
+	}
+
+	// Restart the mount and let the write commit once the new run starts.
+	started := make(chan struct{})
+	var startOnce sync.Once
+	testHookRunStarting = func(id string) {
+		if id == "handoff" {
+			startOnce.Do(func() { close(started) })
+		}
+	}
+	t.Cleanup(func() { testHookRunStarting = nil })
+	a.restartSharedObject("handoff", nil)
+	select {
+	case <-started:
+	case <-time.After(10 * time.Second):
+		close(resume)
+		t.Fatal("the new run did not start while the old run's write was open")
+	}
+	close(resume)
+	if err := <-writeErr; err != nil {
+		t.Fatalf("the held write returned %v", err)
+	}
+
+	// The new mount shows the held write and takes the next one.
+	next, relNext := mountTestSharedObject(ctx, t, a, ref)
+	defer relNext()
+	if got := readTestStateData(ctx, t, next); !bytes.Equal(got, []byte("fake-late")) {
+		t.Fatalf("the restarted mount reads %q, want the held write", got)
+	}
+	writeTestStateData(ctx, t, next, []byte("fake-b"))
 }
 
 // TestRefusedMountRevivesOnCreate holds a mount between reading that its
@@ -432,9 +622,7 @@ func TestRestartChainKeepsNewestMount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.ReplaceSharedObjectState(ctx, a.le, "chain", owner, []byte("fake-transfer"), nil); err != nil {
-		t.Fatal(err)
-	}
+	replaceTestState(ctx, t, a, "chain", owner, []byte("fake-transfer"))
 	actx, acancel := context.WithTimeout(ctx, 10*time.Second)
 	defer acancel()
 	third, err := tkr.res.await(actx)
@@ -892,7 +1080,7 @@ func TestStateWritesRefuseUnownedIds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = a.ReplaceSharedObjectState(ctx, a.le, "unlisted", owner, []byte("fake-world"), nil)
+	err = a.ReplaceSharedObjectState(ctx, a.le, "unlisted", owner, []byte("fake-world"), ReplaceOrigin{})
 	if !errors.Is(err, sobject.ErrSharedObjectNotFound) {
 		t.Fatalf("a transfer write to an unlisted id returned %v", err)
 	}
@@ -1156,6 +1344,32 @@ func createTestSharedObject(ctx context.Context, t *testing.T, a *ProviderAccoun
 	return ref
 }
 
+// replaceTestState replaces the state of id with data over the state it
+// stores now, as a transfer that read it would.
+func replaceTestState(ctx context.Context, t *testing.T, a *ProviderAccount, id string, owner crypto.PrivKey, data []byte) {
+	t.Helper()
+	stored, err := a.ReadStoredSharedObject(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
+	if err := a.ReplaceSharedObjectState(ctx, a.le, id, owner, data, origin); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// expectTestMountEnded waits until the mount of so ends.
+func expectTestMountEnded(ctx context.Context, t *testing.T, so *SharedObject) {
+	t.Helper()
+	select {
+	case <-so.ctx.Done():
+	case <-time.After(10 * time.Second):
+		t.Fatal("the mount did not reload")
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+}
+
 // mountTestSharedObject mounts ref and returns the local handle.
 func mountTestSharedObject(ctx context.Context, t *testing.T, a *ProviderAccount, ref *sobject.SharedObjectRef) (*SharedObject, func()) {
 	t.Helper()
@@ -1362,11 +1576,11 @@ func TestArrivingObjectMountsOnceWritten(t *testing.T) {
 	if err != nil || !stored.Origin.GetArriving() {
 		t.Fatalf("read arriving object: %v %v", stored, err)
 	}
-	stale := &ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: []byte("another state"), Source: []byte("source")}
+	stale := ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: []byte("another state"), Source: []byte("source")}
 	if err := a.ReplaceSharedObjectState(ctx, a.le, "arriving", owner, []byte("moved"), stale); !errors.Is(err, ErrStateChanged) {
 		t.Fatalf("a write expecting another state returned %v", err)
 	}
-	expect := &ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
+	expect := ReplaceOrigin{Generation: stored.Entry.GetGeneration(), State: stored.State, Source: []byte("source")}
 	if err := a.ReplaceSharedObjectState(ctx, a.le, "arriving", owner, []byte("moved"), expect); err != nil {
 		t.Fatal(err)
 	}

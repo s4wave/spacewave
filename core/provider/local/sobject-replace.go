@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -27,11 +28,10 @@ type ReplaceOrigin struct {
 // stateData, then restarts its tracker so every mount reads the new state. It
 // checks the listing in the write transaction: an unlisted id returns
 // ErrSharedObjectNotFound and writes nothing, so a write that races a delete
-// leaves no state that no delete can reach. With origin set, the write also
-// requires the listed generation and the stored state to equal the ones
-// origin names, else returns ErrStateChanged and writes nothing, and stores
-// a written SharedObjectOrigin with the new state's hash in the same
-// transaction.
+// leaves no state that no delete can reach. The write also requires the
+// listed generation and the stored state to equal the ones origin names, else
+// returns ErrStateChanged and writes nothing, and stores a written
+// SharedObjectOrigin with the new state's hash in the same transaction.
 //
 // Invariants:
 //   - No writer mounted on the target commits over or under a replace. Write
@@ -43,13 +43,15 @@ type ReplaceOrigin struct {
 //     commit until the restart below ends the mount, and the restarted
 //     mount loads the new state.
 //   - A replace never commits over a state newer than the one its caller
-//     read. With origin set, a mounted write acknowledged before the replace
-//     changed the stored bytes, so the replace returns ErrStateChanged and
-//     writes nothing; the caller reads again and decides. Without origin, as
-//     in the tests, the replace overwrites whatever is stored.
+//     read. A mounted write acknowledged before the replace changed the
+//     stored bytes, so the replace returns ErrStateChanged and writes
+//     nothing; the caller reads again and decides.
+//   - Every mount reads the stored state after the replace returns, even
+//     when the commit returned an error after storing it: any failure but a
+//     refusal restarts the mount too.
 //   - Keys a mount writes outside the host state, its local state stores
 //     and join requests, are not part of the replace and are kept.
-func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte, origin *ReplaceOrigin) error {
+func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logrus.Entry, id string, owner crypto.PrivKey, stateData []byte, origin ReplaceOrigin) error {
 	// Build the genesis before the transaction.
 	state, genesis, err := sobject.BuildGenesisSOState(le, a.t.p.sfs, id, owner, stateData)
 	if err != nil {
@@ -62,7 +64,7 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 	stateHash := sha256.Sum256(data)
 
 	// Replace the state of the listed object.
-	if err := a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+	err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
 		// Write only an object the account lists.
 		listed, err := storedListsSharedObject(ctx, tx, id)
 		if err != nil {
@@ -74,26 +76,24 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 
 		// Write only the generation and state the caller read, and record
 		// the write as the object's origin.
-		if origin != nil {
-			entry, _, err := readListedOrigin(ctx, tx, id)
-			if err != nil {
-				return err
-			}
-			stored, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
-			if err != nil {
-				return err
-			}
-			if entry.GetGeneration() != origin.Generation || found != (origin.State != nil) || !bytes.Equal(stored, origin.State) {
-				return ErrStateChanged
-			}
-			err = writeSharedObjectOrigin(ctx, tx, id, &SharedObjectOrigin{
-				Generation: origin.Generation,
-				StateHash:  stateHash[:],
-				Source:     origin.Source,
-			})
-			if err != nil {
-				return err
-			}
+		entry, _, err := readListedOrigin(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		stored, found, err := tx.Get(ctx, SobjectObjectStoreHostStateKey(id))
+		if err != nil {
+			return err
+		}
+		if entry.GetGeneration() != origin.Generation || found != (origin.State != nil) || !bytes.Equal(stored, origin.State) {
+			return ErrStateChanged
+		}
+		err = writeSharedObjectOrigin(ctx, tx, id, &SharedObjectOrigin{
+			Generation: origin.Generation,
+			StateHash:  stateHash[:],
+			Source:     origin.Source,
+		})
+		if err != nil {
+			return err
 		}
 
 		// The genesis starts a new lineage, so drop the old history checkpoint.
@@ -104,12 +104,17 @@ func (a *ProviderAccount) ReplaceSharedObjectState(ctx context.Context, le *logr
 			return err
 		}
 		return tx.Set(ctx, SobjectObjectStoreHostStateKey(id), data)
-	}); err != nil {
+	})
+	if errors.Is(err, ErrStateChanged) || errors.Is(err, sobject.ErrSharedObjectNotFound) {
 		return err
 	}
-	if testHookReplaceCommitted != nil {
-		testHookReplaceCommitted(id)
+	if err == nil && testHookReplaceCommitted != nil {
+		err = testHookReplaceCommitted(id)
 	}
+
+	// Restart the mount whether the commit succeeded or failed: a commit
+	// error can follow a stored write, and the restarted mount reads
+	// whatever storage holds.
 	a.restartSharedObject(id, nil)
-	return nil
+	return err
 }

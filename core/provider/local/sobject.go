@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"crypto/sha256"
 	"slices"
 	"strings"
 	"sync"
@@ -27,8 +28,9 @@ import (
 // ErrStateChanged is returned by ReplaceSharedObjectState when the object's
 // listed generation or stored state is not the one the caller read: someone
 // wrote, deleted or created it again since. A mounted state write returns it
-// when the stored state is not the one the mount holds: a replace committed
-// since.
+// when the stored state is not the one the mount holds, such as after a
+// replace committed, and the mount then reloads the stored state; the caller
+// reads again and decides.
 var ErrStateChanged = errors.New("shared object state changed")
 
 // SharedObject implements the sobject interface attached to sobjectTracker.
@@ -237,11 +239,38 @@ type sobjectTracker struct {
 	// until the read finds it, and stays set while the routine refuses the
 	// mount for lack of state; reviveRefusedSharedObject restarts it while set.
 	awaitingState atomic.Bool
+	// runs joins the state funcs of this tracker's mount runs.
+	runs SOStateRuns
+	// reloadMtx guards reloadedFor.
+	reloadMtx sync.Mutex
+	// reloadedFor is the hash of the stored state the last reload restarted
+	// the tracker for, so a mount restarts at most once per stored state.
+	reloadedFor [sha256.Size]byte
 	// peerStateBcast guards peerStates.
 	peerStateBcast broadcast.Broadcast
 	// peerStates maps each sync peer to the digest of the last state it
 	// advertised as held. Entries are peer claims, used only to delay work.
 	peerStates map[string][]byte
+}
+
+// reload restarts the tracker so its mount loads stored, the state storage
+// holds in place of the one the mount loaded or last wrote. It restarts once
+// per stored state: a mount that finds the same stored bytes again after
+// reloading for them is left as it is, so a store that disagrees with the
+// mount's own load cannot restart it in a loop.
+func (t *sobjectTracker) reload(stored []byte) {
+	// Skip a reload for the state the last one loaded.
+	sum := sha256.Sum256(stored)
+	t.reloadMtx.Lock()
+	again := t.reloadedFor == sum
+	t.reloadedFor = sum
+	t.reloadMtx.Unlock()
+	if again {
+		return
+	}
+	t.a.restartSharedObject(t.id, func(cur *sobjectTracker) bool {
+		return cur == t
+	})
 }
 
 // recordPeerState records the digest of a state a sync peer advertised.
@@ -263,6 +292,7 @@ func (a *ProviderAccount) buildSharedObjectTracker(sobjectID string) (keyed.Rout
 		ref: promise.NewPromise[*sobject.SharedObjectRef](),
 		res: newSobjectResult(),
 	}
+	tracker.runs.Reload = tracker.reload
 	return tracker.executeSharedObjectTracker, tracker
 }
 
@@ -507,7 +537,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 
 	// Share the accepted-state watch and lock with the local persistence owner.
 	// State writes share the account volume, which reports their durability.
-	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID)
+	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID, &t.runs)
 	vol := t.a.vol
 	syncFuncs.WaitDurable = func(ctx context.Context) error {
 		return volume.WaitDurable(ctx, vol)
