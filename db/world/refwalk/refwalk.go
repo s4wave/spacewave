@@ -97,6 +97,13 @@ func (w *Walker) Untyped() map[string]Untyped {
 	return out
 }
 
+// Visited reports whether a walk reached ref, whether or not it was stored or
+// decoded.
+func (w *Walker) Visited(ref *block.BlockRef) bool {
+	_, ok := w.visited[ref.MarshalString()]
+	return ok
+}
+
 // Transformer returns the transformer of conf, built once per config.
 func (w *Walker) Transformer(conf *block_transform.Config) (block.Transformer, error) {
 	// Reuse a transformer built for the same config.
