@@ -210,6 +210,28 @@ message SOControlBatch {
 message PostCheckpointRequest {
   // Checkpoint is the owner-signed checkpoint that follows the held one.
   .sobject.SOCheckpoint checkpoint = 1;
+  // ExpectedWrittenHead, when set, makes the post a transfer's re-sync: the
+  // server takes the checkpoint only when the object is unchanged since the
+  // transfer's last write, which it reports as 409 otherwise, and stores
+  // TransferOrigin with the new written head in the same transaction. It
+  // needs the manage_config verb. Read it from GetTransferOriginResponse.
+  bytes expected_written_head = 2;
+  // TransferOrigin is the transfer's record of the source, opaque to the
+  // server. Set only with ExpectedWrittenHead.
+  bytes transfer_origin = 3;
+}
+
+// GetTransferOriginResponse is the response body for
+// GET /sobject/:id/transfer-origin, served to the object's managers.
+message GetTransferOriginResponse {
+  // TransferOrigin is the origin the last transfer write stored, or empty
+  // when no transfer wrote the object.
+  bytes transfer_origin = 1;
+  // WrittenHead is the object's head after that write.
+  bytes written_head = 2;
+  // Unchanged reports that the object's head is still WrittenHead: no
+  // writer changed the object since the transfer wrote it.
+  bool unchanged = 3;
 }
 
 // SessionMessage is the multiplexed WebSocket envelope sent from
@@ -2747,4 +2769,8 @@ message CreateWithStateRequest {
   // When present, ConfigState is its final config and CheckpointState may be
   // later than genesis. The authenticated account must own that config.
   bytes config_history = 8;
+  // TransferOrigin is a transfer's record of where the state came from,
+  // opaque to the server. The server stores it with the object's head after
+  // the create, and serves both on GET /sobject/:id/transfer-origin.
+  bytes transfer_origin = 9;
 }

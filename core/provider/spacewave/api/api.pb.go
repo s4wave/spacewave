@@ -1040,6 +1040,15 @@ type PostCheckpointRequest struct {
 	unknownFields []byte
 	// Checkpoint is the owner-signed checkpoint that follows the held one.
 	Checkpoint *sobject.SOCheckpoint `protobuf:"bytes,1,opt,name=checkpoint,proto3" json:"checkpoint,omitempty"`
+	// ExpectedWrittenHead, when set, makes the post a transfer's re-sync: the
+	// server takes the checkpoint only when the object is unchanged since the
+	// transfer's last write, which it reports as 409 otherwise, and stores
+	// TransferOrigin with the new written head in the same transaction. It
+	// needs the manage_config verb. Read it from GetTransferOriginResponse.
+	ExpectedWrittenHead []byte `protobuf:"bytes,2,opt,name=expected_written_head,json=expectedWrittenHead,proto3" json:"expectedWrittenHead,omitempty"`
+	// TransferOrigin is the transfer's record of the source, opaque to the
+	// server. Set only with ExpectedWrittenHead.
+	TransferOrigin []byte `protobuf:"bytes,3,opt,name=transfer_origin,json=transferOrigin,proto3" json:"transferOrigin,omitempty"`
 }
 
 func (x *PostCheckpointRequest) Reset() {
@@ -1053,6 +1062,61 @@ func (x *PostCheckpointRequest) GetCheckpoint() *sobject.SOCheckpoint {
 		return x.Checkpoint
 	}
 	return nil
+}
+
+func (x *PostCheckpointRequest) GetExpectedWrittenHead() []byte {
+	if x != nil {
+		return x.ExpectedWrittenHead
+	}
+	return nil
+}
+
+func (x *PostCheckpointRequest) GetTransferOrigin() []byte {
+	if x != nil {
+		return x.TransferOrigin
+	}
+	return nil
+}
+
+// GetTransferOriginResponse is the response body for
+// GET /sobject/:id/transfer-origin, served to the object's managers.
+type GetTransferOriginResponse struct {
+	unknownFields []byte
+	// TransferOrigin is the origin the last transfer write stored, or empty
+	// when no transfer wrote the object.
+	TransferOrigin []byte `protobuf:"bytes,1,opt,name=transfer_origin,json=transferOrigin,proto3" json:"transferOrigin,omitempty"`
+	// WrittenHead is the object's head after that write.
+	WrittenHead []byte `protobuf:"bytes,2,opt,name=written_head,json=writtenHead,proto3" json:"writtenHead,omitempty"`
+	// Unchanged reports that the object's head is still WrittenHead: no
+	// writer changed the object since the transfer wrote it.
+	Unchanged bool `protobuf:"varint,3,opt,name=unchanged,proto3" json:"unchanged,omitempty"`
+}
+
+func (x *GetTransferOriginResponse) Reset() {
+	*x = GetTransferOriginResponse{}
+}
+
+func (*GetTransferOriginResponse) ProtoMessage() {}
+
+func (x *GetTransferOriginResponse) GetTransferOrigin() []byte {
+	if x != nil {
+		return x.TransferOrigin
+	}
+	return nil
+}
+
+func (x *GetTransferOriginResponse) GetWrittenHead() []byte {
+	if x != nil {
+		return x.WrittenHead
+	}
+	return nil
+}
+
+func (x *GetTransferOriginResponse) GetUnchanged() bool {
+	if x != nil {
+		return x.Unchanged
+	}
+	return false
 }
 
 // SessionMessage is the multiplexed WebSocket envelope sent from
@@ -9859,6 +9923,10 @@ type CreateWithStateRequest struct {
 	// When present, ConfigState is its final config and CheckpointState may be
 	// later than genesis. The authenticated account must own that config.
 	ConfigHistory []byte `protobuf:"bytes,8,opt,name=config_history,json=configHistory,proto3" json:"configHistory,omitempty"`
+	// TransferOrigin is a transfer's record of where the state came from,
+	// opaque to the server. The server stores it with the object's head after
+	// the create, and serves both on GET /sobject/:id/transfer-origin.
+	TransferOrigin []byte `protobuf:"bytes,9,opt,name=transfer_origin,json=transferOrigin,proto3" json:"transferOrigin,omitempty"`
 }
 
 func (x *CreateWithStateRequest) Reset() {
@@ -9919,6 +9987,13 @@ func (x *CreateWithStateRequest) GetCheckpointState() []byte {
 func (x *CreateWithStateRequest) GetConfigHistory() []byte {
 	if x != nil {
 		return x.ConfigHistory
+	}
+	return nil
+}
+
+func (x *CreateWithStateRequest) GetTransferOrigin() []byte {
+	if x != nil {
+		return x.TransferOrigin
 	}
 	return nil
 }
@@ -10293,6 +10368,8 @@ func (m *PostCheckpointRequest) CloneVT() *PostCheckpointRequest {
 	}
 	r := new(PostCheckpointRequest)
 	r.Checkpoint = protobuf_go_lite.CloneVTValue(m.Checkpoint)
+	r.ExpectedWrittenHead = protobuf_go_lite.CloneBytes(m.ExpectedWrittenHead)
+	r.TransferOrigin = protobuf_go_lite.CloneBytes(m.TransferOrigin)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -10300,6 +10377,24 @@ func (m *PostCheckpointRequest) CloneVT() *PostCheckpointRequest {
 }
 
 func (m *PostCheckpointRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetTransferOriginResponse) CloneVT() *GetTransferOriginResponse {
+	if m == nil {
+		return (*GetTransferOriginResponse)(nil)
+	}
+	r := new(GetTransferOriginResponse)
+	r.Unchanged = m.Unchanged
+	r.TransferOrigin = protobuf_go_lite.CloneBytes(m.TransferOrigin)
+	r.WrittenHead = protobuf_go_lite.CloneBytes(m.WrittenHead)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetTransferOriginResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -14913,6 +15008,7 @@ func (m *CreateWithStateRequest) CloneVT() *CreateWithStateRequest {
 	r.ConfigState = protobuf_go_lite.CloneBytes(m.ConfigState)
 	r.CheckpointState = protobuf_go_lite.CloneBytes(m.CheckpointState)
 	r.ConfigHistory = protobuf_go_lite.CloneBytes(m.ConfigHistory)
+	r.TransferOrigin = protobuf_go_lite.CloneBytes(m.TransferOrigin)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -15457,11 +15553,43 @@ func (this *PostCheckpointRequest) EqualVT(that *PostCheckpointRequest) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Checkpoint, that.Checkpoint) {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytes(this.ExpectedWrittenHead, that.ExpectedWrittenHead) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.TransferOrigin, that.TransferOrigin) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *PostCheckpointRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PostCheckpointRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetTransferOriginResponse) EqualVT(that *GetTransferOriginResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.TransferOrigin, that.TransferOrigin) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.WrittenHead, that.WrittenHead) {
+		return false
+	}
+	if this.Unchanged != that.Unchanged {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetTransferOriginResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetTransferOriginResponse)
 	if !ok {
 		return false
 	}
@@ -21950,6 +22078,9 @@ func (this *CreateWithStateRequest) EqualVT(that *CreateWithStateRequest) bool {
 	if !protobuf_go_lite.EqualBytes(this.ConfigHistory, that.ConfigHistory) {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytes(this.TransferOrigin, that.TransferOrigin) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -23366,6 +23497,16 @@ func (x *PostCheckpointRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("checkpoint")
 		x.Checkpoint.MarshalProtoJSON(s.WithField("checkpoint"))
 	}
+	if len(x.ExpectedWrittenHead) > 0 || s.HasField("expectedWrittenHead") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedWrittenHead")
+		s.WriteBytes(x.ExpectedWrittenHead)
+	}
+	if len(x.TransferOrigin) > 0 || s.HasField("transferOrigin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transferOrigin")
+		s.WriteBytes(x.TransferOrigin)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -23390,12 +23531,76 @@ func (x *PostCheckpointRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Checkpoint = &sobject.SOCheckpoint{}
 			x.Checkpoint.UnmarshalProtoJSON(s.WithField("checkpoint", true))
+		case "expected_written_head", "expectedWrittenHead":
+			s.AddField("expected_written_head")
+			x.ExpectedWrittenHead = s.ReadBytes()
+		case "transfer_origin", "transferOrigin":
+			s.AddField("transfer_origin")
+			x.TransferOrigin = s.ReadBytes()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the PostCheckpointRequest from JSON.
 func (x *PostCheckpointRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetTransferOriginResponse message to JSON.
+func (x *GetTransferOriginResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.TransferOrigin) > 0 || s.HasField("transferOrigin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transferOrigin")
+		s.WriteBytes(x.TransferOrigin)
+	}
+	if len(x.WrittenHead) > 0 || s.HasField("writtenHead") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writtenHead")
+		s.WriteBytes(x.WrittenHead)
+	}
+	if x.Unchanged || s.HasField("unchanged") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unchanged")
+		s.WriteBool(x.Unchanged)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetTransferOriginResponse to JSON.
+func (x *GetTransferOriginResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetTransferOriginResponse message from JSON.
+func (x *GetTransferOriginResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "transfer_origin", "transferOrigin":
+			s.AddField("transfer_origin")
+			x.TransferOrigin = s.ReadBytes()
+		case "written_head", "writtenHead":
+			s.AddField("written_head")
+			x.WrittenHead = s.ReadBytes()
+		case "unchanged":
+			s.AddField("unchanged")
+			x.Unchanged = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetTransferOriginResponse from JSON.
+func (x *GetTransferOriginResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -37530,6 +37735,11 @@ func (x *CreateWithStateRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("configHistory")
 		s.WriteBytes(x.ConfigHistory)
 	}
+	if len(x.TransferOrigin) > 0 || s.HasField("transferOrigin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transferOrigin")
+		s.WriteBytes(x.TransferOrigin)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -37571,6 +37781,9 @@ func (x *CreateWithStateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "config_history", "configHistory":
 			s.AddField("config_history")
 			x.ConfigHistory = s.ReadBytes()
+		case "transfer_origin", "transferOrigin":
+			s.AddField("transfer_origin")
+			x.TransferOrigin = s.ReadBytes()
 		}
 	})
 }
@@ -38580,6 +38793,16 @@ func (m *PostCheckpointRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.TransferOrigin) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.TransferOrigin)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ExpectedWrittenHead) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ExpectedWrittenHead)
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.Checkpoint != nil {
 		size, err := m.Checkpoint.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -38587,6 +38810,53 @@ func (m *PostCheckpointRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		}
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetTransferOriginResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetTransferOriginResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetTransferOriginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Unchanged {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Unchanged)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.WrittenHead) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.WrittenHead)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.TransferOrigin) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.TransferOrigin)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -50505,6 +50775,11 @@ func (m *CreateWithStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.TransferOrigin) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.TransferOrigin)
+		i--
+		dAtA[i] = 0x4a
+	}
 	if len(m.ConfigHistory) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigHistory)
 		i--
@@ -50873,6 +51148,21 @@ func (m *PostCheckpointRequest) SizeVT() (n int) {
 		l = m.Checkpoint.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ExpectedWrittenHead)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TransferOrigin)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetTransferOriginResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TransferOrigin)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.WrittenHead)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Unchanged)
 	n += len(m.unknownFields)
 	return n
 }
@@ -54561,6 +54851,7 @@ func (m *CreateWithStateRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigState)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CheckpointState)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigHistory)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TransferOrigin)
 	n += len(m.unknownFields)
 	return n
 }
@@ -55048,10 +55339,40 @@ func (x *PostCheckpointRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Checkpoint)
 	}
+	if len(x.ExpectedWrittenHead) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_written_head")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ExpectedWrittenHead)
+	}
+	if len(x.TransferOrigin) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transfer_origin")
+		protobuf_go_lite.TextWriteBytes(&sb, x.TransferOrigin)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *PostCheckpointRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetTransferOriginResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetTransferOriginResponse")
+	if len(x.TransferOrigin) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transfer_origin")
+		protobuf_go_lite.TextWriteBytes(&sb, x.TransferOrigin)
+	}
+	if len(x.WrittenHead) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "written_head")
+		protobuf_go_lite.TextWriteBytes(&sb, x.WrittenHead)
+	}
+	if x.Unchanged != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unchanged")
+		protobuf_go_lite.TextWriteBool(&sb, x.Unchanged)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetTransferOriginResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -60369,6 +60690,10 @@ func (x *CreateWithStateRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_history")
 		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigHistory)
 	}
+	if len(x.TransferOrigin) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transfer_origin")
+		protobuf_go_lite.TextWriteBytes(&sb, x.TransferOrigin)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -61766,6 +62091,91 @@ func (m *PostCheckpointRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedWrittenHead", wireType)
+			}
+			m.ExpectedWrittenHead, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ExpectedWrittenHead, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransferOrigin", wireType)
+			}
+			m.TransferOrigin, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.TransferOrigin, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetTransferOriginResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetTransferOriginResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetTransferOriginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransferOrigin", wireType)
+			}
+			m.TransferOrigin, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.TransferOrigin, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WrittenHead", wireType)
+			}
+			m.WrittenHead, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.WrittenHead, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unchanged", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Unchanged = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -78975,6 +79385,14 @@ func (m *CreateWithStateRequest) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigHistory", wireType)
 			}
 			m.ConfigHistory, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigHistory, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransferOrigin", wireType)
+			}
+			m.TransferOrigin, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.TransferOrigin, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

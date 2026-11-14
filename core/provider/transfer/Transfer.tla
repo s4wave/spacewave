@@ -38,11 +38,12 @@
 \* checks each Space again just before deleting it; a Space whose source moved
 \* since its copy is moved again first.
 \*
-\* A cloud target stores no origin. It reads a listed Space with no config as
-\* arriving, and a configured one as moved only when its World is the
-\* source's current World; it never writes a configured Space, so a Space it
-\* holds from an earlier run is left not moved once the source moves on
-\* (CloudLimit).
+\* A cloud target stores the origin with each Space a transfer writes. A row
+\* an older client or cloud wrote has none: the cloud reads such a row with
+\* no config as arriving, and a configured one as moved only when its World
+\* is the source's current World; it never writes over a configured row with
+\* no origin, so one from an earlier run is left not moved once the source
+\* moves on (CloudLimit).
 \*
 \* The person may write to the source at any time except during cleanup, and
 \* may write to, delete or create a Space on the target at any time, or change
@@ -152,14 +153,17 @@ Init ==
   /\ shared \in {S \in SUBSET Spaces : ("a" \in S) \in SharedA /\ ("b" \in S) \in SharedB}
   /\ cloudSrc \in SrcCloud
   /\ alive = shared
-  /\ tc \in [Spaces -> {None, Other, Member}]
+  /\ cloudTgt \in TgtCloud
+  \* A cloud target may hold a Space an older client wrote from the source's
+  \* current head with no origin, which the person did not change.
+  /\ tc \in {f \in [Spaces -> {None, Other, Member, Src(0)}] :
+               \A s \in Spaces : f[s] = Src(0) => cloudTgt /\ s \notin shared}
   /\ blocks = {s \in Spaces : Listed(s)}
   /\ held = blocks
   /\ origin = [s \in Spaces |-> NoOrigin]
   /\ lost = FALSE
-  /\ touched = [s \in Spaces |-> Listed(s)]
+  /\ touched = [s \in Spaces |-> Listed(s) /\ tc[s] # Src(0)]
   /\ touches = 0
-  /\ cloudTgt \in TgtCloud
   /\ unjust = FALSE
   /\ runs = 0
   /\ src = Spaces
@@ -199,26 +203,25 @@ Begin(s) ==
   /\ cur' = s /\ step' = "decide"
   /\ UNCHANGED <<mode, picked, pc, entries, expect, cv, moved, notMoved, staged, target, source, runs, faults>>
 
-\* A local target reads the origin it stores; a cloud target stores none and
-\* reads the Space's config and World alone. An arriving Space holds the empty
-\* genesis.
-Arriving(t, o) == t = Empty /\ (cloudTgt \/ o = Added)
+\* The target reads the origin it stores; a cloud row with no origin is read
+\* by its config and World alone. An arriving Space holds the empty genesis.
+Arriving(t, o) == t = Empty /\ (o = Added \/ (cloudTgt /\ o = NoOrigin))
 \* The target holds the source's current World, whatever else changed, so no
 \* write follows.
 AtSourceHead(t, o) == (cloudTgt \/ o.ph = "written") /\ t.k = "src" /\ t.v = ver[cur] /\ t.e = 0
-\* A local target holds a state this source wrote and nothing changed since,
-\* so a write replaces only the World the transfer wrote.
-Rewritable(t, o) == ~cloudTgt /\ o.ph = "written" /\ t = Src(o.h)
-\* CloudLimit is a limit of the cloud target, not a choice. It stores no
-\* origin, so it cannot tell an earlier copy this source wrote from a Space
-\* someone else wrote, and leaves both alone. A retry after a fault, or a
-\* second Merge or Mirror, whose source moved on since the cloud copy was
+\* The target holds a state this source wrote and nothing changed since, so a
+\* write replaces only the World the transfer wrote. The cloud tells this by
+\* the head it stored with the origin, which any change moves.
+Rewritable(t, o) == o.ph = "written" /\ t = Src(o.h)
+\* CloudLimit is a limit of cloud rows stored with no origin, by a client or
+\* cloud from before origins, not a choice. Such a row cannot tell an earlier
+\* copy this source wrote from a Space someone else wrote, so the transfer
+\* leaves both alone. A run whose source moved on since that copy was
 \* written therefore leaves the Space not moved although the person changed
 \* nothing. No data is lost: the cloud keeps its older copy, and the source
 \* keeps the Space, since a run with a Space not moved cleans up nothing.
-\* NotMovedJustified accepts this case and no other; delete CloudLimit and
-\* the cloud case of Decide when the cloud target stores the origin.
-CloudLimit(s) == cloudTgt /\ tc[s].k = "src" /\ tc[s].v < ver[s]
+\* NotMovedJustified accepts this case and no other.
+CloudLimit(s) == cloudTgt /\ origin[s] = NoOrigin /\ tc[s].k = "src" /\ tc[s].v < ver[s]
 
 \* Decide the Space from its target state, its origin and the source head.
 \* Listing an id the target does not list releases every root of its bucket.
@@ -247,7 +250,7 @@ Decide ==
                /\ moved' = moved \cup {cur}
                /\ cur' = "none" /\ step' = "none"
                /\ UNCHANGED <<tc, origin, held, expect, notMoved, unjust>>
-          [] cloudTgt ->
+          [] cloudTgt /\ o = NoOrigin ->
                /\ notMoved' = notMoved \cup {cur}
                /\ unjust' = (unjust \/ ~(touched[cur] \/ CloudLimit(cur)))
                /\ cur' = "none" /\ step' = "none"
@@ -329,10 +332,13 @@ CopyKey ==
   /\ pc' = "cleanup"
   /\ UNCHANGED <<mode, picked, entries, cur, step, expect, cv, moved, notMoved, staged, target, src, ver, delOk, vol, session, runs, faults, shared, cloudSrc, alive, keyLost>>
 
-\* The target holds the Space as written from its current source head, or is
+\* The target holds the Space as written from its current source head, or a
+\* cloud row with no origin holds the source's current World, or the target is
 \* a member of the shared object a local source holds.
 AtHead(s) ==
-  IF s \in shared THEN tc[s] = Member /\ ~cloudSrc ELSE origin[s] = Written(ver[s])
+  IF s \in shared THEN tc[s] = Member /\ ~cloudSrc
+  ELSE \/ origin[s] = Written(ver[s])
+       \/ cloudTgt /\ origin[s] = NoOrigin /\ tc[s].k = "src" /\ tc[s].v = ver[s] /\ tc[s].e = 0
 
 \* Cleanup checks each Space just before deleting it from the source.
 DeleteSpace(s) ==
