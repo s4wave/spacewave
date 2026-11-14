@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -135,26 +136,30 @@ func (c *StageCopy) Flush(ctx context.Context) error {
 }
 
 // CheckHeld returns nil when the stage still holds the whole graph under
-// root: root has a completion proof, and the open stage holds it in the same
-// transaction. Call it after the root that names root lands and before
-// Release. A process that stalled past the stage's lease and the grace period
-// may have had the graph freed while nothing wrote through the stage. The
-// collector deletes a block's proof before it releases the block's children
-// (the netting's release in db/block/gc/netting.go) and with the block when it
-// frees it (freeBlock in db/block/gc/collector.go), so a graph that lost any
-// block has lost its proof, the check fails with ErrStageReleased, and the
-// caller copies again.
-func (c *StageCopy) CheckHeld(ctx context.Context, root *BlockRef) error {
-	// Hold the root again under its proof, which fails on a lost stage.
-	if c.writes == nil || root.GetEmpty() {
+// each of roots: each has a completion proof, and the open stage holds it in
+// the same transaction. Call it after the root that names roots lands and
+// before Release. A process that stalled past the stage's lease and the grace
+// period may have had the graph freed while nothing wrote through the stage.
+// The collector deletes a block's proof before it releases the block's
+// children (the netting's release in db/block/gc/netting.go) and with the
+// block when it frees it (freeBlock in db/block/gc/collector.go), so a graph
+// that lost any block has lost its proof, the check fails with
+// ErrStageReleased, and the caller copies again.
+func (c *StageCopy) CheckHeld(ctx context.Context, roots ...*BlockRef) error {
+	// Hold the roots again under their proofs, which fails on a lost stage.
+	if c.writes == nil {
 		return nil
 	}
-	held, err := HoldCompleteRoots(ctx, c.staged, []*BlockRef{root})
+	roots = slices.DeleteFunc(slices.Clone(roots), (*BlockRef).GetEmpty)
+	if len(roots) == 0 {
+		return nil
+	}
+	held, err := HoldCompleteRoots(ctx, c.staged, roots)
 	if err != nil {
 		return err
 	}
-	if !held[0] {
-		return errors.Wrap(ErrStageReleased, "copied graph lost its completion proof")
+	if i := slices.Index(held, false); i >= 0 {
+		return errors.Wrapf(ErrStageReleased, "copied graph %s lost its completion proof", roots[i].MarshalString())
 	}
 	return nil
 }

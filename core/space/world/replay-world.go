@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,66 +79,22 @@ func replayOnce(
 	return a, release, nil
 }
 
-// CheckpointWorld replays the operation set of state as the Space World engine
-// engineID, and returns state advanced to the checkpoint over every held
-// operation, signed as the owner of privKey, whose World is the replayed one,
-// with the World. The returned state holds no operations, so a whole-state copy
-// such as a transfer carries only the blocks of that World. The World's pages
-// stay held until release.
-func CheckpointWorld(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
-	sfs *block_transform.StepFactorySet,
-	so sobject.SharedObject,
-	engineID string,
-	opTypes OpTypes,
-	privKey crypto.PrivKey,
-	state *sobject.SOState,
-) (*sobject.SOState, *InnerState, func(), error) {
-	// Replay the state as its owner.
-	soID := so.GetSharedObjectID()
-	snap := sobject.NewSOStateParticipantHandle(le, sfs, soID, state, privKey, so.GetPeerID())
-	if host, ok := so.(sobject.InviteHost); ok {
-		soHost := host.GetSOHost()
-		snap = snap.WithConfigHistory(soHost.ReadConfigEntry).WithOperationVerifier(soHost.GetOperationVerifier()).WithGrantKeyring(soHost.GetGrantKeyring())
-	}
-	replayed, release, err := ReplayWorld(ctx, le, b, sfs, so, engineID, opTypes, snap)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	held := false
-	defer func() {
-		if !held {
-			release()
-		}
-	}()
+// ErrUnresolvedOp is returned by ImportRoots when the type of an operation
+// above the checkpoint does not resolve, such as a plugin's before the plugin
+// registers, so its payloads cannot all be named.
+var ErrUnresolvedOp = errors.New("an operation's type does not resolve")
 
-	// Encrypt the World with the current key and sign the checkpoint.
-	data, err := replayed.MarshalVT()
-	if err != nil {
-		return nil, nil, nil, err
+// ImportRoots returns the roots a replay of snap reads, so a copy of them lets
+// another device replay the state without this one: the World its checkpoint
+// carries, if any, then the payloads of the operations above it, resolving
+// operation types with lookupOp. It fails with ErrUnresolvedOp rather than
+// leave out a payload.
+func ImportRoots(ctx context.Context, snap sobject.SharedObjectStateSnapshot, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
+	roots, unresolved, err := snapRoots(ctx, snap, lookupOp)
+	if err == nil && unresolved {
+		err = ErrUnresolvedOp
 	}
-	xfrm, err := snap.GetTransformer(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	dataEnc, err := xfrm.EncodeBlock(data)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	checkpoint, err := state.BuildNextCheckpoint(soID, privKey, dataEnc)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Adopt it, which drops every covered operation.
-	next := state.CloneVT()
-	if err := next.AdoptCheckpoint(soID, checkpoint); err != nil {
-		return nil, nil, nil, err
-	}
-	held = true
-	return next, replayed, release, nil
+	return roots, err
 }
 
 // PublishedGraph returns one root reaching every block a replay of snap reads:
@@ -149,44 +104,55 @@ func CheckpointWorld(
 // the World root and entry is nil. An operation this participant cannot decode
 // or its config does not authorize applies nothing and has no payload.
 func PublishedGraph(ctx context.Context, snap sobject.SharedObjectStateSnapshot, lookupOp world.LookupOp) (*block.PutBatchEntry, *block.BlockRef, error) {
-	// Decode the checkpoint's World.
-	checkpoint, err := snap.GetCheckpoint(ctx)
+	// Name the roots, then return the only one or a block naming them all.
+	roots, _, err := snapRoots(ctx, snap, lookupOp)
 	if err != nil {
 		return nil, nil, err
 	}
-	head := &InnerState{}
-	if err := head.UnmarshalVT(checkpoint.GetStateData()); err != nil {
-		return nil, nil, errors.Wrap(err, "checkpoint World state")
-	}
-	worldRoot := head.GetHeadRef().GetRootRef()
-
-	// Collect the payload roots of the operations above it.
-	set, err := snap.GetOperationSet(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	var payloads []*block.BlockRef
-	for _, h := range set.Order() {
-		refs, _, err := opPayloads(ctx, snap, set, h, lookupOp)
-		if err != nil {
-			return nil, nil, err
-		}
-		payloads = append(payloads, refs...)
-	}
-	if len(payloads) == 0 {
-		return nil, worldRoot, nil
-	}
-
-	// Reference the World and the payloads from one block.
-	roots := payloads
-	if !worldRoot.GetEmpty() {
-		roots = append([]*block.BlockRef{worldRoot}, payloads...)
+	switch len(roots) {
+	case 0:
+		return nil, nil, nil
+	case 1:
+		return nil, roots[0], nil
 	}
 	entry, err := refsEntry(&HeldRoots{Roots: roots}, roots)
 	if err != nil {
 		return nil, nil, err
 	}
 	return entry, entry.Ref, nil
+}
+
+// snapRoots returns the World of the checkpoint of snap, if any, then the
+// payload roots of the operations above it. unresolved reports an operation
+// whose type lookupOp did not resolve, whose payloads roots holds only in part.
+func snapRoots(ctx context.Context, snap sobject.SharedObjectStateSnapshot, lookupOp world.LookupOp) (roots []*block.BlockRef, unresolved bool, err error) {
+	// Decode the checkpoint's World.
+	checkpoint, err := snap.GetCheckpoint(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	head := &InnerState{}
+	if err := head.UnmarshalVT(checkpoint.GetStateData()); err != nil {
+		return nil, false, errors.Wrap(err, "checkpoint World state")
+	}
+	if worldRoot := head.GetHeadRef().GetRootRef(); !worldRoot.GetEmpty() {
+		roots = append(roots, worldRoot)
+	}
+
+	// Collect the payload roots of the operations above it.
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	for _, h := range set.Order() {
+		refs, known, err := opPayloads(ctx, snap, set, h, lookupOp)
+		if err != nil {
+			return nil, false, err
+		}
+		roots = append(roots, refs...)
+		unresolved = unresolved || !known
+	}
+	return roots, unresolved, nil
 }
 
 // opPayloads returns the payload roots of operation h of set, read from snap,

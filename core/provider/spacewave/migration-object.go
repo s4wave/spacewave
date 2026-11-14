@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"path"
 	"slices"
 
@@ -10,8 +11,17 @@ import (
 	provider_migration "github.com/s4wave/spacewave/core/provider/migration"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
-	space_world "github.com/s4wave/spacewave/core/space/world"
+	"github.com/s4wave/spacewave/db/block"
 )
+
+// ErrMigrationTargetExists is returned by ImportMigrationObject when the cloud
+// refuses to create the migrated object because it already holds it under
+// another config, as when the source's config changed after an interrupted
+// import. The cloud's copy then lacks that change, so the import fails and the
+// Session stays on the source. A repeat under an unchanged config is complete:
+// the cloud keeps its state, then takes the checkpoint and operations posted
+// after the copy.
+var ErrMigrationTargetExists = errors.New("cloud already holds the migrated object")
 
 // ImportMigrationObject preserves the resource ID, signed history, and accepted
 // state. Cloud resources retain their existing store; local resources are copied
@@ -53,15 +63,15 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		}
 	}
 
-	// Checkpoint a Space so the destination needs only the blocks of its World.
-	var world *space_world.InnerState
-	if entry.GetMeta().GetBodyType() == "space" {
-		var releaseWorld func()
-		state, world, releaseWorld, err = provider_migration.Checkpoint(ctx, a.le, a.p.b, a.p.sfs, entry.GetRef(), object, state)
+	// Name the World and payloads a Space's state reads, which keeps its
+	// state.
+	var roots []*block.BlockRef
+	space := entry.GetMeta().GetBodyType() == "space"
+	if space {
+		roots, err = provider_migration.Roots(ctx, a.le, a.p.sfs, object, state)
 		if err != nil {
 			return err
 		}
-		defer releaseWorld()
 	}
 
 	// Encode the latest config change with its key epoch, invites, and
@@ -109,11 +119,16 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		return err
 	}
 	if _, err := client.doPostBinary(ctx, path.Join("/api/sobject", id, "create-with-state"), body, nil, SeedReasonMutation); err != nil {
+		var ce *cloudError
+		if errors.As(err, &ce) && ce.StatusCode == http.StatusConflict {
+			return errors.Wrap(ErrMigrationTargetExists, err.Error())
+		}
 		return err
 	}
 
-	// Copy the World of a Space.
-	if world != nil {
+	// Copy the World and payloads of a Space, then post its checkpoint again,
+	// which the cloud takes as a repeat once the copy is durable.
+	if space {
 		store, release, err := a.MountBlockStore(ctx, NewBlockStoreRef(a.GetProviderID(), a.accountID, id), nil)
 		if err != nil {
 			return err
@@ -121,10 +136,13 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 		defer release()
 		// The cloud store holds no roots and keeps every block it stores,
 		// so the copy returns no stage.
-		if _, err := provider_migration.CopyWorld(ctx, object, world, store); err != nil {
+		if _, err := provider_migration.CopyRoots(ctx, object, roots, store); err != nil {
 			return err
 		}
 		if err := store.(*BlockStore).ForceSync(ctx); err != nil {
+			return err
+		}
+		if err := client.PostCheckpoint(ctx, id, state.GetCheckpoint()); err != nil {
 			return err
 		}
 	}

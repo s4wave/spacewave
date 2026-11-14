@@ -93,7 +93,8 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 		t.Fatalf("interrupted copy lost source data: found=%v err=%v", found, err)
 	}
 
-	// Retry the merge and check the copied data on the target.
+	// The source moves on with another write, then the retry merges it.
+	laterLeaf, laterPayload := seedProviderReplicaPayload(ctx, t, source, source, ref, "written after the interrupted copy\n")
 	if _, err := source.MergePairingAccount(ctx, sourceSession, interrupted, targetSession.GetSessionRef()); err != nil {
 		t.Fatalf("retry: %v", err)
 	}
@@ -106,6 +107,10 @@ func TestAccountMergeInterruptedCopy(t *testing.T) {
 	data, found, err = copied.GetBlockStore().(*BlockStore).store.GetBlock(ctx, leaf)
 	if err != nil || !found || !bytes.Equal(data, payload) {
 		t.Fatalf("retry did not retain destination data: found=%v err=%v", found, err)
+	}
+	data, found, err = copied.GetBlockStore().(*BlockStore).store.GetBlock(ctx, laterLeaf)
+	if err != nil || !found || !bytes.Equal(data, laterPayload) {
+		t.Fatalf("retry did not copy the write made after the interruption: found=%v err=%v", found, err)
 	}
 
 	// Check that the retry kept the listed generation and the catalog names it.
