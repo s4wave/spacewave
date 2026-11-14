@@ -686,7 +686,6 @@ function ProgressStep({
           sharedObjectId?: string
           phase?: TransferPhase
           blocksCopied?: bigint
-          blocksTotal?: bigint
           meta?: { bodyType?: string; bodyMeta?: Uint8Array }
         }[]
         errorMessage?: string
@@ -721,8 +720,6 @@ function ProgressStep({
           {spaceStates.map((sp) => {
             const spPhase = sp.phase ?? TransferPhase.TransferPhase_IDLE
             const copied = Number(sp.blocksCopied ?? 0n)
-            const total = Number(sp.blocksTotal ?? 0n)
-            const pct = total > 0 ? Math.round((copied / total) * 100) : 0
 
             return (
               <div
@@ -735,13 +732,10 @@ function ProgressStep({
                     {phaseLabel(spPhase)}
                   </p>
                 </div>
-                {total > 0 && (
-                  <div className="bg-foreground/10 mt-1.5 h-1 overflow-hidden rounded-full">
-                    <div
-                      className="bg-brand progress-width transition-width h-full rounded-full"
-                      style={{ '--progress-width': `${pct}%` }}
-                    />
-                  </div>
+                {spPhase === TransferPhase.TransferPhase_COPYING_BLOCKS && (
+                  <p className="text-foreground-alt mt-1 text-xs">
+                    {copied} blocks copied
+                  </p>
                 )}
               </div>
             )

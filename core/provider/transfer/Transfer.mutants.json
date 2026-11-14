@@ -1,0 +1,40 @@
+[
+  {
+    "name": "the import root never holds the copied World",
+    "replace": [
+      [
+        "  /\\ held' = held \\cup {cur}\n  /\\ step' = \"check\"",
+        "  /\\ held' = held\n  /\\ step' = \"check\""
+      ]
+    ],
+    "expect": "StateHeld"
+  },
+  {
+    "name": "the hold runs before the add, whose release drops it",
+    "replace": [
+      [
+        "  /\\ step' = \"add\"\n",
+        "  /\\ step' = \"hold\"\n"
+      ],
+      [
+        "  /\\ step' = \"hold\"\n  /\\ UNCHANGED <<mode, picked, pc, entries, cur, staged, blocks, tstate",
+        "  /\\ step' = \"check\"\n  /\\ UNCHANGED <<mode, picked, pc, entries, cur, staged, blocks, tstate"
+      ],
+      [
+        "  /\\ held' = held \\cup {cur}\n  /\\ step' = \"check\"",
+        "  /\\ held' = held \\cup {cur}\n  /\\ step' = \"add\""
+      ]
+    ],
+    "expect": "StateHeld"
+  },
+  {
+    "name": "the state is written without checking the stage",
+    "replace": [
+      [
+        "  /\\ IF cur \\in blocks\n",
+        "  /\\ IF TRUE\n"
+      ]
+    ],
+    "expect": "StateHeld"
+  }
+]

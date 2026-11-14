@@ -122,10 +122,9 @@ type SpaceTransferState struct {
 	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
 	// Phase is the current transfer phase for this space.
 	Phase TransferPhase `protobuf:"varint,2,opt,name=phase,proto3" json:"phase,omitempty"`
-	// BlocksCopied is the number of blocks copied so far.
+	// BlocksCopied is the number of blocks of the Space's World copied so far.
+	// The copy walks the World's graph, so no total is known before it ends.
 	BlocksCopied uint64 `protobuf:"varint,3,opt,name=blocks_copied,json=blocksCopied,proto3" json:"blocksCopied,omitempty"`
-	// BlocksTotal is the total number of blocks to copy (0 if not yet scanned).
-	BlocksTotal uint64 `protobuf:"varint,4,opt,name=blocks_total,json=blocksTotal,proto3" json:"blocksTotal,omitempty"`
 	// ErrorMessage contains the error if phase is FAILED.
 	ErrorMessage string `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
 	// Meta is the shared object metadata from the source.
@@ -155,13 +154,6 @@ func (x *SpaceTransferState) GetPhase() TransferPhase {
 func (x *SpaceTransferState) GetBlocksCopied() uint64 {
 	if x != nil {
 		return x.BlocksCopied
-	}
-	return 0
-}
-
-func (x *SpaceTransferState) GetBlocksTotal() uint64 {
-	if x != nil {
-		return x.BlocksTotal
 	}
 	return 0
 }
@@ -291,7 +283,6 @@ func (m *SpaceTransferState) CloneVT() *SpaceTransferState {
 	r.SharedObjectId = m.SharedObjectId
 	r.Phase = m.Phase
 	r.BlocksCopied = m.BlocksCopied
-	r.BlocksTotal = m.BlocksTotal
 	r.ErrorMessage = m.ErrorMessage
 	r.Meta = protobuf_go_lite.CloneVTValue(m.Meta)
 	if len(m.unknownFields) > 0 {
@@ -356,9 +347,6 @@ func (this *SpaceTransferState) EqualVT(that *SpaceTransferState) bool {
 		return false
 	}
 	if this.BlocksCopied != that.BlocksCopied {
-		return false
-	}
-	if this.BlocksTotal != that.BlocksTotal {
 		return false
 	}
 	if this.ErrorMessage != that.ErrorMessage {
@@ -542,11 +530,6 @@ func (x *SpaceTransferState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("blocksCopied")
 		s.WriteUint64(x.BlocksCopied)
 	}
-	if x.BlocksTotal != 0 || s.HasField("blocksTotal") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("blocksTotal")
-		s.WriteUint64(x.BlocksTotal)
-	}
 	if x.ErrorMessage != "" || s.HasField("errorMessage") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("errorMessage")
@@ -583,9 +566,6 @@ func (x *SpaceTransferState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "blocks_copied", "blocksCopied":
 			s.AddField("blocks_copied")
 			x.BlocksCopied = s.ReadUint64()
-		case "blocks_total", "blocksTotal":
-			s.AddField("blocks_total")
-			x.BlocksTotal = s.ReadUint64()
 		case "error_message", "errorMessage":
 			s.AddField("error_message")
 			x.ErrorMessage = s.ReadString()
@@ -818,11 +798,6 @@ func (m *SpaceTransferState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x2a
 	}
-	if m.BlocksTotal != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlocksTotal))
-		i--
-		dAtA[i] = 0x20
-	}
 	if m.BlocksCopied != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlocksCopied))
 		i--
@@ -973,7 +948,6 @@ func (m *SpaceTransferState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Phase)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.BlocksCopied)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.BlocksTotal)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
 	if m.Meta != nil {
 		l = m.Meta.SizeVT()
@@ -1040,10 +1014,6 @@ func (x *SpaceTransferState) MarshalProtoText() string {
 	if x.BlocksCopied != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "blocks_copied")
 		protobuf_go_lite.TextWriteUint(&sb, x.BlocksCopied)
-	}
-	if x.BlocksTotal != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "blocks_total")
-		protobuf_go_lite.TextWriteUint(&sb, x.BlocksTotal)
 	}
 	if x.ErrorMessage != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
@@ -1175,15 +1145,6 @@ func (m *SpaceTransferState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.BlocksCopied = 0
 			m.BlocksCopied, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlocksTotal", wireType)
-			}
-			m.BlocksTotal = 0
-			m.BlocksTotal, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

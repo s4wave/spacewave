@@ -1366,7 +1366,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/transfer": {
-      "hash": "03c61d4fe8572de99642e96c26a40a740d2589f99f9f14d0eca1ece9d467e054",
+      "hash": "f5d5f49a4f0a6615e4c8ddb22fc0dc8c2fdbb6754a05a2679cc29da196bd0496",
       "generatedFiles": [
         "core/provider/transfer/transfer.pb.go",
         "core/provider/transfer/transfer.pb.ts"

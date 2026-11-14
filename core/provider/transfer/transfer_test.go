@@ -1,22 +1,28 @@
 package provider_transfer_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/object"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -38,10 +44,6 @@ func (s *orderTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *so
 
 func (s *orderTestSource) GetBlockStore(context.Context, *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
 	return nil, func() {}, nil
-}
-
-func (s *orderTestSource) GetBlockRefs(context.Context, *sobject.SharedObjectRef) ([]*block.BlockRef, error) {
-	return nil, nil
 }
 
 type orderTestTarget struct {
@@ -259,7 +261,7 @@ func TestTransferAddsTargetSharedObjectBeforeWritingState(t *testing.T) {
 	}
 }
 
-// storeTestSource serves one block from a store that holds it without refs.
+// storeTestSource replays a World whose root is ref, served from store.
 type storeTestSource struct {
 	orderTestSource
 	store block.StoreOps
@@ -270,8 +272,8 @@ func (s *storeTestSource) GetBlockStore(context.Context, *sobject.SharedObjectRe
 	return s.store, func() {}, nil
 }
 
-func (s *storeTestSource) GetBlockRefs(context.Context, *sobject.SharedObjectRef) ([]*block.BlockRef, error) {
-	return []*block.BlockRef{s.ref}, nil
+func (s *storeTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*space_world.InnerState, func(), error) {
+	return &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: s.ref}}, func() {}, nil
 }
 
 // storeTestTarget writes blocks to store.
@@ -363,8 +365,8 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write three test blocks, each held by a root of the store, so the
-	// transfer finds them as it finds a Space's blocks.
+	// Write three test blocks, each held by a root of the store, and replay a
+	// World whose head is the first and which retains the other two.
 	testData := [][]byte{
 		[]byte("block-data-one"),
 		[]byte("block-data-two"),
@@ -373,6 +375,7 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 	var blockRefs []string
 	var entries []*block.PutBatchEntry
 	var roots []block.NamedRoot
+	world := &space_world.InnerState{}
 	for i, data := range testData {
 		ref, err := block.BuildBlockRef(data, nil)
 		if err != nil {
@@ -382,6 +385,11 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true})
 		roots = append(roots, block.NamedRoot{Name: fmt.Sprintf("test/%d", i), Ref: ref})
 		blockRefs = append(blockRefs, ref.MarshalString())
+		if i == 0 {
+			world.HeadRef = &bucket.ObjectRef{RootRef: ref}
+		} else {
+			world.RetainedRoots = append(world.RetainedRoots, &space_world.RetainedRoot{Name: fmt.Sprintf("test/%d", i), RootRef: ref})
+		}
 	}
 	if err := srcBS.SetRoots(ctx, entries, roots); err != nil {
 		srcBSRel()
@@ -391,7 +399,7 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 
 	// Build source and target.
 	le := logrus.NewEntry(logrus.StandardLogger())
-	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
+	src := &worldTestSource{LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus), world: world}
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 
 	// Run the transfer.
@@ -736,4 +744,139 @@ func mustParseBlockRef(t *testing.T, s string) *block.BlockRef {
 		t.Fatal(err)
 	}
 	return ref
+}
+
+// worldTestSource is a local source whose Spaces replay world.
+type worldTestSource struct {
+	*provider_transfer.LocalTransferSource
+	world *space_world.InnerState
+}
+
+func (s *worldTestSource) ReplaySharedObject(context.Context, *logrus.Entry, *sobject.SharedObjectRef) (*space_world.InnerState, func(), error) {
+	return s.world.CloneVT(), func() {}, nil
+}
+
+// collectingTarget is a local target that collects its account's Volume
+// before each Space is added, while the copy's stage alone holds the World.
+type collectingTarget struct {
+	*provider_transfer.LocalTransferTarget
+	t   *testing.T
+	acc *provider_local.ProviderAccount
+}
+
+func (c *collectingTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta) error {
+	collectVolume(ctx, c.t, c.acc)
+	return c.LocalTransferTarget.AddSharedObject(ctx, ref, meta)
+}
+
+// collectVolume runs two full collections of the account's Volume, so a
+// record journaled before the first is past a 1ns grace by the second.
+func collectVolume(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount) {
+	t.Helper()
+	collector, ok := acc.GetVolume().(volume.Collector)
+	if !ok {
+		t.Fatal("account volume does not collect")
+	}
+	for range 2 {
+		for {
+			res, err := collector.Collect(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !res.More {
+				break
+			}
+		}
+	}
+}
+
+// TestLocalTransferHoldsWorldPastGrace checks, on a target Volume that frees
+// at once, that a transferred Space keeps its World through a collection
+// between the copy and the hold, and through collections after the transfer
+// while nobody mounts the Space.
+func TestLocalTransferHoldsWorldPastGrace(t *testing.T) {
+	// Start a testbed whose Volumes free unheld blocks at once.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	storeConf := &store_kvtx.Config{CollectorFrees: true, CollectorGraceDur: "1ns"}
+	tb, err := testbed.Default(ctx, testbed.WithStorages(storage_inmem.NewInmemStorageWithStoreConfig("default", storeConf)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	defer provRel()
+	srcAcc, srcAccountID, srcRel := createAccount(ctx, t, prov)
+	defer srcRel()
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	defer tgtRel()
+
+	// Store a World of a root and a leaf on the source, held by a root.
+	soRef := createTestSpace(ctx, t, srcAcc, "held-space")
+	srcBS, srcBSRel, err := srcAcc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, srcAccountID, soRef.GetBlockStoreId()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte("the transferred World's leaf")
+	leaf, _, err := srcBS.PutBlock(ctx, payload, &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		srcBSRel()
+		t.Fatal(err)
+	}
+	root, _, err := block.PutBlock(ctx, srcBS, &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{ExamplePtr: leaf}})
+	if err != nil {
+		srcBSRel()
+		t.Fatal(err)
+	}
+	if err := srcBS.SetRoots(ctx, nil, []block.NamedRoot{{Name: "test/world", Ref: root}}); err != nil {
+		srcBSRel()
+		t.Fatal(err)
+	}
+	srcBSRel()
+
+	// Transfer the Space, collecting the target after the copy.
+	le := logrus.NewEntry(logrus.StandardLogger())
+	src := &worldTestSource{
+		LocalTransferSource: provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus),
+		world:               &space_world.InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}},
+	}
+	tgt := &collectingTarget{
+		LocalTransferTarget: provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus),
+		t:                   t,
+		acc:                 tgtAcc,
+	}
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MIRROR, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{FilterSpaceIDs: []string{"held-space"}})
+	if err := xfer.Execute(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Without mounting the Space, store a block nothing holds beside its
+	// World, and collect.
+	tgtBS, tgtBSRel, err := tgtAcc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, tgtAccountID, soRef.GetBlockStoreId()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tgtBSRel()
+	unheld, _, err := tgtBS.PutBlock(ctx, []byte("unheld beside the transferred World"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	collectVolume(ctx, t, tgtAcc)
+
+	// The unheld block is freed, the World reads, and the import root holds it.
+	if _, found, err := tgtBS.GetBlock(ctx, unheld); err != nil || found {
+		t.Fatalf("collection kept a block nothing holds: found=%v err=%v", found, err)
+	}
+	if _, found, err := tgtBS.GetBlock(ctx, root); err != nil || !found {
+		t.Fatalf("collection freed the transferred World's root: found=%v err=%v", found, err)
+	}
+	data, found, err := tgtBS.GetBlock(ctx, leaf)
+	if err != nil || !found || !bytes.Equal(data, payload) {
+		t.Fatalf("collection freed the transferred World's leaf: found=%v err=%v", found, err)
+	}
+	held, err := tgtBS.GetRoot(ctx, space_world.RootImport)
+	if err != nil || held.GetEmpty() {
+		t.Fatalf("import root after the transfer = %v, %v; want it to hold the World", held, err)
+	}
 }

@@ -70,13 +70,5 @@ func (s *SpacewaveTransferSource) GetBlockStore(ctx context.Context, ref *sobjec
 	return bs, rel, nil
 }
 
-// GetBlockRefs returns all block refs tracked for a shared object's block store.
-// Enumerates blocks by pulling the packfile manifest from the cloud and scanning
-// each packfile's index entries.
-func (s *SpacewaveTransferSource) GetBlockRefs(ctx context.Context, ref *sobject.SharedObjectRef) ([]*block.BlockRef, error) {
-	bstoreID := ref.GetBlockStoreId()
-	return s.account.EnumerateBlockRefs(ctx, bstoreID)
-}
-
 // _ is a type assertion
 var _ TransferSource = (*SpacewaveTransferSource)(nil)
