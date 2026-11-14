@@ -72,6 +72,10 @@ type Provider struct {
 	// loses the stored key; the seed here keeps the session identity stable
 	// for the provider lifetime.
 	seedKeys map[string][]byte
+
+	// fences holds the shared object fences of the provider's accounts; see
+	// ProviderAccount.FenceSharedObjects.
+	fences sobjectFences
 }
 
 // providerBackoff is the default backoff for provider services.

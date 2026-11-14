@@ -257,11 +257,20 @@ func (r *SessionResource) StartTransfer(
 		},
 	)
 
+	// Fence a local source's Space creates and joins until the run exits, so
+	// its Space list stays the one the run moves. A create that passed before
+	// the fence is caught by the second listing before the source delete.
+	unfence := func() {}
+	if src, ok := cleanup.(*provider_transfer.LocalTransferSource); ok {
+		unfence = src.GetAccount().FenceSharedObjects()
+	}
+
 	// Run the transfer on a routine owned by this resource.
 	var rc *routine.RoutineContainer
 	rc = routine.NewRoutineContainerWithLogger(
 		le.WithField("routine", "transfer"),
 		routine.WithExitCb(func(_ error) {
+			unfence()
 			r.transferMgr.mtx.Lock()
 			if r.transferMgr.rc == rc {
 				r.transferMgr.running = false
@@ -289,6 +298,7 @@ func (r *SessionResource) StartTransfer(
 		select {
 		case <-ctx.Done():
 			rc.ClearContext()
+			unfence()
 			return nil, ctx.Err()
 		case <-ch:
 		}
