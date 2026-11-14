@@ -287,7 +287,10 @@ func TestReplaceSharedObjectRacingHandleWrite(t *testing.T) {
 // then a replace's, after each stored its state, and checks that each reads
 // as committed: the write returns nil and the same mount writes on, and the
 // replace returns nil and a new mount shows it. A commit error that finds
-// another writer's state stored instead returns the error and reloads.
+// another writer's state stored instead returns ErrStateWriteUnknown and
+// reloads. A commit error whose settle read fails, or finds a successor of
+// the committed write, returns ErrStateWriteUnknown and reloads a state that
+// holds the operation once.
 func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -331,7 +334,7 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 		}
 		return errAmbiguous
 	}
-	if err := tryWriteTestStateData(ctx, so, []byte("fake-lost")); !errors.Is(err, errAmbiguous) {
+	if err := tryWriteTestStateData(ctx, so, []byte("fake-lost")); !errors.Is(err, errAmbiguous) || !errors.Is(err, sobject.ErrStateWriteUnknown) {
 		t.Fatalf("the overwritten write returned %v", err)
 	}
 	testHookStateCommitted = nil
@@ -365,6 +368,84 @@ func TestMountReloadsAfterAmbiguousCommit(t *testing.T) {
 	defer relMoved()
 	waitTestStateData(ctx, t, moved, []byte("fake-moved"))
 	writeTestStateData(ctx, t, moved, []byte("fake-e"))
+
+	// An operation's write stores its state, then its commit fails and
+	// storage cannot be read to settle it: the outcome is unknown, and the
+	// mount reloads a state holding the operation exactly once.
+	author := moved.GetPeerID().String()
+	before := testAuthorNonce(ctx, t, moved, author)
+	var commitOnce, settleOnce sync.Once
+	testHookStateCommitted = func(string) error {
+		var err error
+		commitOnce.Do(func() { err = errAmbiguous })
+		return err
+	}
+	testHookStateSettling = func(string) error {
+		var err error
+		settleOnce.Do(func() { err = errors.New("fake settle read failure") })
+		return err
+	}
+	t.Cleanup(func() { testHookStateSettling = nil })
+	if _, err := moved.QueueOperation(ctx, []byte("op-unknown")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
+		t.Fatalf("the unsettled operation returned %v", err)
+	}
+	testHookStateCommitted, testHookStateSettling = nil, nil
+	expectTestMountEnded(ctx, t, moved)
+	reloaded, relReloaded := mountTestSharedObject(ctx, t, a, ref)
+	defer relReloaded()
+	if got := testAuthorNonce(ctx, t, reloaded, author); got != before+1 {
+		t.Fatalf("the reloaded state holds the author at nonce %d, want %d", got, before+1)
+	}
+
+	// An operation's write stores its state, then its commit fails and
+	// another writer stores a successor built on it before the settle read:
+	// the outcome is unknown, and the reloaded state holds the operation
+	// once. The successor is the committed bytes with an unknown field
+	// appended, which decodes to the same state.
+	before = testAuthorNonce(ctx, t, reloaded, author)
+	commitOnce = sync.Once{}
+	testHookStateCommitted = func(string) error {
+		var err error
+		commitOnce.Do(func() {
+			err = a.runSoObjectStoreTx(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+				data, _, err := tx.Get(ctx, key)
+				if err != nil {
+					return err
+				}
+				return tx.Set(ctx, key, append(bytes.Clone(data), 0x98, 0x06, 0x01))
+			})
+			if err == nil {
+				err = errAmbiguous
+			}
+		})
+		return err
+	}
+	if _, err := reloaded.QueueOperation(ctx, []byte("op-successor")); !errors.Is(err, sobject.ErrStateWriteUnknown) {
+		t.Fatalf("the operation under a successor returned %v", err)
+	}
+	testHookStateCommitted = nil
+	expectTestMountEnded(ctx, t, reloaded)
+	last, relLast := mountTestSharedObject(ctx, t, a, ref)
+	defer relLast()
+	if got := testAuthorNonce(ctx, t, last, author); got != before+1 {
+		t.Fatalf("the state after the successor holds the author at nonce %d, want %d", got, before+1)
+	}
+}
+
+// testAuthorNonce returns the nonce of author's newest operation in so's
+// state.
+func testAuthorNonce(ctx context.Context, t *testing.T, so *SharedObject, author string) uint64 {
+	t.Helper()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonce, _ := set.AuthorHead(author)
+	return nonce
 }
 
 // TestMountReloadsAfterStoreChange changes the stored state behind a mount

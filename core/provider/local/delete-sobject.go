@@ -63,6 +63,9 @@ var (
 	// error it returns is the write's, as from a commit that stored the
 	// state and then failed.
 	testHookStateCommitted func(id string) error
+	// testHookStateSettling runs before a failed state write reads storage
+	// to settle whether it committed; an error it returns is the read's.
+	testHookStateSettling func(id string) error
 	// testHookStateRefused runs after a mount finds no state it may use,
 	// before it publishes the refusal.
 	testHookStateRefused func(id string)

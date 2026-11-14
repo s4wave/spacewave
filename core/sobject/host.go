@@ -3,7 +3,6 @@ package sobject
 import (
 	"bytes"
 	"context"
-	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/refcount"
@@ -477,15 +476,19 @@ func (s *SOHost) mergeInvitation(held, candidate *SOState, lineage []*SOConfigCh
 	if err := next.mergeSnapshot(s.sharedObjectID, candidate); err != nil {
 		return nil, err
 	}
+
+	// Replace held invites by ID and append new ones.
+	byID := make(map[string]int, len(next.Invites))
+	for i, invite := range next.Invites {
+		byID[invite.GetInviteId()] = i
+	}
 	for _, invite := range candidate.Clone().GetInvites() {
-		idx := slices.IndexFunc(next.Invites, func(existing *SOInvite) bool {
-			return existing.GetInviteId() == invite.GetInviteId()
-		})
-		if idx == -1 {
-			next.Invites = append(next.Invites, invite)
-		} else {
+		if idx, ok := byID[invite.GetInviteId()]; ok {
 			next.Invites[idx] = invite
+			continue
 		}
+		byID[invite.GetInviteId()] = len(next.Invites)
+		next.Invites = append(next.Invites, invite)
 	}
 
 	// Check the merged state.
@@ -562,7 +565,9 @@ func retryConfigChange[T any](ctx context.Context, host *SOHost, change func() (
 // AddLocalOperation signs opData as the owner of privKey and adds it to the
 // operation set, encoded with the key of the epoch the operation names. It
 // returns the operation's local ID and nonce once the state holding it is
-// written. Empty opData writes an acknowledgment.
+// written. Empty opData writes an acknowledgment. A write whose outcome
+// cannot be settled returns ErrStateWriteUnknown: the state may hold the
+// operation, so a caller looks for it before adding it again.
 func (s *SOHost) AddLocalOperation(
 	ctx context.Context,
 	le *logrus.Entry,

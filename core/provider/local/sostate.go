@@ -24,11 +24,12 @@ type SOStateRuns struct {
 	// inside its write transaction, until the transaction ends. Each load
 	// takes it alone and releases it at once, as a barrier.
 	Writes csync.RWMutex
-	// Reload restarts the mount so it loads the stored state, when set. It
-	// is called when storage holds other bytes than the mount loaded or last
-	// wrote: after a write fails its compare, or after a failure that may
-	// have committed finds neither the write nor the state under it. The
-	// mount cannot write again until it reloads.
+	// Reload restarts the mount so it loads the stored state; it is
+	// required. It is called when storage holds other bytes than the mount
+	// loaded or last wrote, or may: after a write fails its compare, after a
+	// failure that may have committed finds neither the write nor the state
+	// under it, and when such a failure's outcome cannot be read. The mount cannot write
+	// again until it reloads.
 	Reload func()
 }
 
@@ -87,20 +88,36 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return err
 	}
 
-	// committed settles a write of data that failed with err: it reports
-	// whether the write committed anyway, and reloads the mount when storage
-	// holds another writer's state. A refusal stored nothing. A failed
-	// compare read another writer's state as stored. Any other failure may
-	// have committed, so read what storage holds now: data means the write
-	// committed, and the state under it means it did not. The caller holds
-	// ent.writeMtx.
-	committed := func(ent *soStateEntry, data, stored []byte, err error) bool {
-		if rctx.Err() != nil || errors.Is(err, sobject.ErrSharedObjectNotFound) {
-			return false
+	// settle settles a write of data that failed with err, and returns nil
+	// when it committed anyway, err when it did not, or ErrStateWriteUnknown
+	// when storage cannot show which. ended reports that the transaction
+	// body finished, so the failure came at or after the commit; any earlier
+	// failure stored nothing. A failed compare read another writer's state
+	// as stored. A failure at the commit may have stored the write, so read
+	// what storage holds now: data means the write committed, and the state
+	// under it or none means it did not. Any other state may follow this
+	// write, so its outcome is unknown. The mount reloads whenever storage
+	// holds, or may hold, another state than the one it last wrote. The
+	// caller holds ent.writeMtx.
+	settle := func(sharedObjectID string, ent *soStateEntry, data []byte, ended bool, err error) error {
+		// A failure before the commit stored nothing.
+		if errors.Is(err, ErrStateChanged) {
+			runs.Reload()
+			return err
 		}
-		if !errors.Is(err, ErrStateChanged) {
-			var found bool
-			rerr := kvtx.RunTransaction(rctx, false,
+		if !ended {
+			return err
+		}
+
+		// Read what storage holds, unless the mount has ended.
+		var stored []byte
+		var found bool
+		rerr := rctx.Err()
+		if rerr == nil && testHookStateSettling != nil {
+			rerr = testHookStateSettling(sharedObjectID)
+		}
+		if rerr == nil {
+			rerr = kvtx.RunTransaction(rctx, false,
 				func(ctx context.Context) (kvtx.Tx, error) {
 					return objStore.NewTransaction(ctx, false)
 				},
@@ -110,20 +127,23 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 					return err
 				},
 			)
-			if rerr != nil || !found {
-				return false
-			}
-			if bytes.Equal(stored, data) {
-				return true
-			}
-			if bytes.Equal(stored, ent.data) {
-				return false
-			}
 		}
-		if runs.Reload != nil {
+
+		// Settle from what it holds.
+		switch {
+		case rerr != nil:
 			runs.Reload()
+			return errors.Join(sobject.ErrStateWriteUnknown, err)
+		case found && bytes.Equal(stored, data):
+			return nil
+		case !found || bytes.Equal(stored, ent.data):
+			return err
+		default:
+			// Another state may be a successor another mount wrote over
+			// this one after it committed, so the outcome is unknown.
+			runs.Reload()
+			return errors.Join(sobject.ErrStateWriteUnknown, err)
 		}
-		return false
 	}
 
 	// Bind the watched state of the entry to the caller's reference lifetime.
@@ -174,8 +194,10 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				// gate is never held while waiting for the writer.
 				var relWrites func()
 
-				// Retain signed changes and state under the same commit boundary.
-				var stored []byte
+				// Retain signed changes and state under the same commit
+				// boundary. ended marks an attempt whose body finished, so
+				// only its commit can have failed.
+				var ended bool
 				err = kvtx.RunTransaction(ctx, true,
 					func(ctx context.Context) (kvtx.Tx, error) {
 						if relWrites != nil {
@@ -186,6 +208,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 					},
 					func(ctx context.Context, tx kvtx.Tx) error {
 						// Hold off a restarted run's load until this transaction ends.
+						ended = false
 						rel, err := runs.Writes.Lock(ctx, false)
 						if err != nil {
 							return err
@@ -203,8 +226,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if testHookStateWriting != nil {
 							testHookStateWriting(sharedObjectID)
 						}
-						var found bool
-						stored, found, err = tx.Get(ctx, ent.key)
+						stored, found, err := tx.Get(ctx, ent.key)
 						if err != nil {
 							return err
 						}
@@ -241,7 +263,11 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						if err := writeReadCheckpoint(ctx, tx, sharedObjectID, localPeer, initialState, state); err != nil {
 							return err
 						}
-						return tx.Set(ctx, ent.key, data)
+						if err := tx.Set(ctx, ent.key, data); err != nil {
+							return err
+						}
+						ended = true
+						return nil
 					},
 				)
 				if relWrites != nil {
@@ -250,8 +276,10 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				if err == nil && testHookStateCommitted != nil {
 					err = testHookStateCommitted(sharedObjectID)
 				}
-				if err != nil && !committed(ent, data, stored, err) {
-					return err
+				if err != nil {
+					if err := settle(sharedObjectID, ent, data, ended, err); err != nil {
+						return err
+					}
 				}
 
 				// Make the committed snapshot visible only after the write commits.

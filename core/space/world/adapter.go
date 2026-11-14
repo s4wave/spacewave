@@ -1265,8 +1265,14 @@ func (a *Adapter) place(adm *spaceAdmission, pos spacePosition, ranAgain bool) {
 // already refused before QueueOperation returned, which it could not find by
 // data a refused operation does not carry.
 func (a *Adapter) queued(adm *spaceAdmission, localID string, err error) {
-	// End a failure or an acknowledgment.
+	// End a failure or an acknowledgment. A write whose outcome is unknown
+	// may hold the operation, so it ends as durability unknown, like one
+	// in flight at unmount: the next open replays it if the SharedObject
+	// holds it, and the writer does not rebase and send it again.
 	switch {
+	case errors.Is(err, sobject.ErrStateWriteUnknown):
+		a.fail(adm, errors.Wrap(world.ErrDurabilityUnknown, err.Error()))
+		return
 	case err != nil:
 		a.fail(adm, err)
 		return
