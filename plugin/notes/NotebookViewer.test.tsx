@@ -490,6 +490,64 @@ describe('NotebookViewer', () => {
     })
   })
 
+  it('keeps an Add with no reported outcome open as failed, claiming nothing', async () => {
+    const notebook = fakeNotebook([])
+    watchSources([])
+    notebook.addSource.mockResolvedValueOnce(NotebookEditOutcome.UNKNOWN)
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'Docs' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: 'key/-/docs' },
+    })
+    const addButtons = screen.getAllByRole('button', { name: 'Add source' })
+    fireEvent.click(addButtons[addButtons.length - 1])
+
+    expect(
+      await screen.findByText(
+        'Could not add the source: the notes plugin did not say whether it was saved; check the sources before trying again',
+      ),
+    ).toBeDefined()
+    expect(
+      (screen.getByLabelText('Source ref') as HTMLInputElement).value,
+    ).toBe('key/-/docs')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDefined()
+  })
+
+  it('keeps a timed out Add open as not applied and resends it', async () => {
+    const notebook = fakeNotebook([])
+    watchSources([])
+    notebook.addSource.mockResolvedValueOnce(NotebookEditOutcome.TIMED_OUT)
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
+    fireEvent.change(screen.getByLabelText('Source name'), {
+      target: { value: 'Docs' },
+    })
+    fireEvent.change(screen.getByLabelText('Source ref'), {
+      target: { value: 'key/-/docs' },
+    })
+    const addButtons = screen.getAllByRole('button', { name: 'Add source' })
+    fireEvent.click(addButtons[addButtons.length - 1])
+
+    expect(
+      await screen.findByText(
+        'Could not add the source: the notes plugin did not finish in time, so nothing was changed',
+      ),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => {
+      expect(notebook.stored).toEqual([{ name: 'Docs', ref: 'key/-/docs' }])
+    })
+    expect(notebook.addSource).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Source ref')).toBeNull()
+    })
+  })
+
   it('shows a failed Reorder by the list and resends the same order', async () => {
     const notebook = fakeNotebook([A, B])
     watchSources([A, B])

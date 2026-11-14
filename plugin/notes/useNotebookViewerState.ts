@@ -31,6 +31,11 @@ export type SourceEditState =
   | { status: 'not-applied'; edit: SourceEdit; cause: NotAppliedOutcome }
   | { status: 'failed'; edit: SourceEdit; error: string }
 
+// UNKNOWN_OUTCOME_ERROR describes an edit whose outcome the notes plugin did
+// not report, which may or may not have been written.
+const UNKNOWN_OUTCOME_ERROR =
+  'the notes plugin did not say whether it was saved; check the sources before trying again'
+
 // NotAppliedOutcome is an edit outcome that wrote nothing and may be resent.
 export type NotAppliedOutcome =
   | NotebookEditOutcome.TIMED_OUT
@@ -206,7 +211,12 @@ export function useNotebookViewerState({
         dispatchSourceEdit({ type: 'failed', error })
         return 'failed'
       }
+      // Only APPLIED is a success. An unset or unknown outcome says nothing
+      // about whether the edit was written, so it fails without a claim.
       switch (outcome) {
+        case NotebookEditOutcome.APPLIED:
+          dispatchSourceEdit({ type: 'applied' })
+          return 'idle'
         case NotebookEditOutcome.CHANGED:
           dispatchSourceEdit({ type: 'changed' })
           return 'changed'
@@ -214,9 +224,14 @@ export function useNotebookViewerState({
         case NotebookEditOutcome.PLUGIN_UNAVAILABLE:
           dispatchSourceEdit({ type: 'not-applied', cause: outcome })
           return 'not-applied'
+        case NotebookEditOutcome.UNKNOWN:
+          break
+        default:
+          // A new outcome fails to compile here until it is handled above.
+          outcome satisfies never
       }
-      dispatchSourceEdit({ type: 'applied' })
-      return 'idle'
+      dispatchSourceEdit({ type: 'failed', error: UNKNOWN_OUTCOME_ERROR })
+      return 'failed'
     },
     [notebookHandle, dispatchSourceEdit],
   )
