@@ -128,17 +128,28 @@ func (o *StoreManifestOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// link any LinkObjectKeys
+	// Link each LinkObjectKey, noting the links this op adds. A graph quad
+	// does not revise the objects it names, so a scheduler watching its host
+	// object would otherwise miss a link to an already stored manifest.
+	linked := make(map[string]bool, len(o.GetLinkObjectKeys()))
 	for _, objKey := range o.GetLinkObjectKeys() {
 		quad := NewManifestQuad(objKey, o.GetObjectKey(), o.GetManifestRef().GetMeta().GetManifestId())
+		quads, err := ws.LookupGraphQuads(ctx, quad, 1)
+		if err != nil {
+			return false, err
+		}
+		if len(quads) != 0 {
+			continue
+		}
 		if err := ws.SetGraphQuad(ctx, quad); err != nil {
 			return false, err
 		}
+		linked[objKey] = true
 	}
 
-	// increment version of the linked objects if the manifest changed
-	if changed {
-		for _, objKey := range o.GetLinkObjectKeys() {
+	// Revise each linked object once if the manifest changed or its link is new.
+	for _, objKey := range o.GetLinkObjectKeys() {
+		if changed || linked[objKey] {
 			// get the object with objKey
 			obj, err := world.MustGetObject(ctx, ws, objKey)
 			if err != nil {
