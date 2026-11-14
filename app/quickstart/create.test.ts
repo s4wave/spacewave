@@ -4,24 +4,21 @@ import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 import { TypePred, buildTypeObjectKey } from '@s4wave/sdk/world/types/types.js'
 import { keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import {
+  ADD_SPACE_PLUGINS_OP_ID,
   SET_SPACE_INDEX_PATH_OP_ID,
-  SET_SPACE_SETTINGS_OP_ID,
 } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import type { WorldMutation } from '@s4wave/sdk/world/world.pb.js'
-import {
-  SPACE_SETTINGS_BLOCK_TYPE,
-  SPACE_SETTINGS_OBJECT_KEY,
-} from '@s4wave/core/space/world/world.js'
+import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
 import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
   INIT_UNIXFS_OP_ID,
   UNIXFS_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import {
+  AddSpacePluginsOp,
   InitCanvasDemoOp,
   InitUnixFSOp,
   SetSpaceIndexPathOp,
-  SetSpaceSettingsOp,
 } from '@s4wave/core/space/world/ops/ops.pb.js'
 import {
   CANVAS_DEMO_OBJECT_KEY,
@@ -314,44 +311,25 @@ function loadedSpaceContents(...pluginIds: string[]) {
   }
 }
 
-// getSettingsIndexPath returns the index path the last settings write set,
-// whether it wrote the whole settings or only the index path.
+// getSettingsIndexPath returns the index path the last index path op set.
 function getSettingsIndexPath(applyWorldOp: ReturnType<typeof vi.fn>) {
   const call = applyWorldOp.mock.calls
-    .filter(
-      (call) =>
-        call[0] === SET_SPACE_SETTINGS_OP_ID ||
-        call[0] === SET_SPACE_INDEX_PATH_OP_ID,
-    )
-    .at(-1)
-  if (call?.[0] === SET_SPACE_INDEX_PATH_OP_ID) {
-    return SetSpaceIndexPathOp.fromBinary(call[1] as Uint8Array).indexPath ?? ''
-  }
-  return getLastSettings(applyWorldOp).indexPath ?? ''
-}
-
-function getLastSettings(applyWorldOp: ReturnType<typeof vi.fn>) {
-  const call = applyWorldOp.mock.calls
-    .filter((call) => call[0] === SET_SPACE_SETTINGS_OP_ID)
+    .filter((call) => call[0] === SET_SPACE_INDEX_PATH_OP_ID)
     .at(-1)
   if (!call) {
-    throw new Error('expected settings op call')
+    throw new Error('expected index path op call')
   }
-  const settings = SetSpaceSettingsOp.fromBinary(call[1] as Uint8Array).settings
-  if (!settings) {
-    throw new Error('expected settings')
-  }
-  return settings
+  return SetSpaceIndexPathOp.fromBinary(call[1] as Uint8Array).indexPath ?? ''
 }
 
-function getSettingsCalls(applyWorldOp: ReturnType<typeof vi.fn>) {
-  const calls: SetSpaceSettingsOp[] = []
-  for (const call of applyWorldOp.mock.calls) {
-    if (call[0] === SET_SPACE_SETTINGS_OP_ID) {
-      calls.push(SetSpaceSettingsOp.fromBinary(call[1] as Uint8Array))
-    }
-  }
-  return calls
+// getAddedPluginIds returns the plugin ids each add plugins op sent, in order.
+function getAddedPluginIds(applyWorldOp: ReturnType<typeof vi.fn>) {
+  return applyWorldOp.mock.calls
+    .filter((call) => call[0] === ADD_SPACE_PLUGINS_OP_ID)
+    .map(
+      (call) =>
+        AddSpacePluginsOp.fromBinary(call[1] as Uint8Array).pluginIds ?? [],
+    )
 }
 
 function notesQuickstartSetup(
@@ -630,11 +608,9 @@ describe('quickstart create', () => {
     )
     expect(getSettingsIndexPath(applyWorldOp)).toBe('gizmo/operator-home')
     expect(getSettingsIndexPath(applyWorldOp)).not.toBe('gizmo/org-chart')
-    const settingsCall = applyWorldOp.mock.calls.find(
-      (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
-    )
-    const settings = SetSpaceSettingsOp.fromBinary(settingsCall?.[1]).settings
-    expect(settings?.pluginIds).toEqual(['gizmo-core', 'gizmo-web'])
+    expect(getAddedPluginIds(applyWorldOp)).toEqual([
+      ['gizmo-core', 'gizmo-web'],
+    ])
   })
 
   it('waits for the Notes plugin quickstart before executing public Notes launchers', async () => {
@@ -1398,7 +1374,7 @@ to try first.
     // dynamic quickstart seeds content, so the first settings write must
     // precede the ExecuteQuickstart call.
     const installSettingsIndex = applyWorldOp.mock.calls.findIndex(
-      (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
+      (call) => call[0] === ADD_SPACE_PLUGINS_OP_ID,
     )
     expect(installSettingsIndex).toBeGreaterThanOrEqual(0)
     expect(
@@ -1411,7 +1387,7 @@ to try first.
       { quickstartId: 'sql', spaceResourceId: 73 },
       abortSignal,
     )
-    expect(getLastSettings(applyWorldOp).pluginIds).toEqual(['spacewave-sql'])
+    expect(getAddedPluginIds(applyWorldOp).at(-1)).toEqual(['spacewave-sql'])
     expect(getSettingsIndexPath(applyWorldOp)).toBe('sql/db')
   })
 
@@ -1539,14 +1515,20 @@ to try first.
       undefined,
     )
     expect(getSettingsIndexPath(applyWorldOp)).toBe('sql/db')
-    expect(getLastSettings(applyWorldOp).pluginIds).toEqual(['spacewave-sql'])
+    expect(getAddedPluginIds(applyWorldOp).at(-1)).toEqual(['spacewave-sql'])
   })
 
   it('indexes every quickstart to the object it creates or seeds', async () => {
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
       await populateSpace('space', { spaceWorld: world } as never)
-      expect(getSettingsIndexPath(applyWorldOp)).toBe('')
+      // The plain Space only ensures its settings exist; it sets no index.
+      expect(getAddedPluginIds(applyWorldOp)).toEqual([[]])
+      expect(
+        applyWorldOp.mock.calls.some(
+          (call) => call[0] === SET_SPACE_INDEX_PATH_OP_ID,
+        ),
+      ).toBe(false)
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
@@ -1572,7 +1554,7 @@ to try first.
       mockNotesQuickstart('notebook', 'notebook')
       await populateSpace('notebook', notesQuickstartSetup(world, 101) as never)
       expect(getSettingsIndexPath(applyWorldOp)).toBe('notebook')
-      expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
+      expect(getAddedPluginIds(applyWorldOp).at(-1)).toEqual([
         'spacewave-notes',
       ])
       expect(quickstartRegistryMocks.ListQuickstarts).toHaveBeenCalledWith(
@@ -1583,9 +1565,7 @@ to try first.
         { quickstartId: 'notebook', spaceResourceId: 101 },
         undefined,
       )
-      const settings = getSettingsCalls(applyWorldOp).map((op) => op.settings)
-      expect(settings[0]?.pluginIds).toEqual(['spacewave-notes'])
-      expect(settings[1]?.indexPath).toBe('notebook')
+      expect(getAddedPluginIds(applyWorldOp)[0]).toEqual(['spacewave-notes'])
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
@@ -1617,7 +1597,7 @@ to try first.
         InitChatDemoOp.fromBinary(chatCall?.[1] as Uint8Array).channelObjectKey,
       ).toBe(CHAT_DEMO_CHANNEL_KEY)
       const settingsIndex = applyWorldOp.mock.calls.findIndex(
-        (call) => call[0] === SET_SPACE_SETTINGS_OP_ID,
+        (call) => call[0] === SET_SPACE_INDEX_PATH_OP_ID,
       )
       const chatIndex = applyWorldOp.mock.calls.findIndex(
         (call) => call[0] === INIT_CHAT_DEMO_OP_ID,
@@ -1647,7 +1627,7 @@ to try first.
       mockNotesQuickstart('docs', 'documentation')
       await populateSpace('docs', notesQuickstartSetup(world, 102) as never)
       expect(getSettingsIndexPath(applyWorldOp)).toBe('documentation')
-      expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
+      expect(getAddedPluginIds(applyWorldOp).at(-1)).toEqual([
         'spacewave-notes',
       ])
       expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
@@ -1660,7 +1640,7 @@ to try first.
       mockNotesQuickstart('blog', 'blog/site')
       await populateSpace('blog', notesQuickstartSetup(world, 103) as never)
       expect(getSettingsIndexPath(applyWorldOp)).toBe('blog/site')
-      expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
+      expect(getAddedPluginIds(applyWorldOp).at(-1)).toEqual([
         'spacewave-notes',
       ])
       expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
@@ -1689,131 +1669,23 @@ to try first.
     }
   })
 
-  it('overwrites an existing unreadable settings object instead of failing setup', async () => {
-    const unmarshal = vi.fn(() =>
-      Promise.reject(new Error('object must be a block')),
-    )
-    const release = vi.fn()
-    const markDirty = vi.fn().mockResolvedValue(undefined)
-    const setBlock = vi.fn((_arg: { data: Uint8Array }) =>
-      Promise.resolve(undefined),
-    )
-    const write = vi.fn().mockResolvedValue({ rootRef: {} })
-    const existingCursorRelease = vi.fn()
-    const blockCursorRelease = vi.fn()
-    const txRelease = vi.fn()
-    const getObject = vi.fn(() =>
-      Promise.resolve({
-        accessWorldState: vi
-          .fn()
-          .mockResolvedValueOnce({
-            unmarshal,
-            release,
-            [Symbol.dispose]: release,
-          })
-          .mockResolvedValueOnce({
-            buildTransaction: vi.fn(() =>
-              Promise.resolve({
-                transaction: {
-                  write,
-                  release: txRelease,
-                },
-                cursor: {
-                  markDirty,
-                  setBlock,
-                  release: blockCursorRelease,
-                },
-              }),
-            ),
-            getRef: vi.fn().mockResolvedValue({ ref: {} }),
-            release: existingCursorRelease,
-            [Symbol.dispose]: existingCursorRelease,
-          }),
-        setRootRef: vi.fn().mockResolvedValue(undefined),
-        release,
-        [Symbol.dispose]: release,
-      }),
-    )
-    const spaceWorld = {
-      applyWorldOp: vi.fn<ApplyWorldOp>().mockResolvedValue({
-        seqno: 1n,
-        sysErr: false,
-      }),
-      getObject,
-      lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
-      createObject: vi.fn().mockResolvedValue({}),
-      setGraphQuad: vi.fn().mockResolvedValue(undefined),
-    }
+  it('leaves the settings merge to the World without reading settings', async () => {
+    const { world, applyWorldOp, executeWorldBatch } = buildQuickstartWorld()
 
-    await createSpaceSettingsObject(spaceWorld as never, undefined, 'blog', [
+    await createSpaceSettingsObject(world as never, undefined, 'blog', [
       'spacewave-app',
     ])
 
-    expect(getObject).toHaveBeenCalledWith('settings', undefined)
-    expect(unmarshal).toHaveBeenCalledWith(
-      { blockType: SPACE_SETTINGS_BLOCK_TYPE },
-      undefined,
-    )
-    expect(markDirty).not.toHaveBeenCalled()
-    expect(write).not.toHaveBeenCalled()
-    const settingsCall = spaceWorld.applyWorldOp.mock.calls[0]
-    if (!settingsCall) {
-      throw new Error('expected settings op call')
-    }
-    expect(settingsCall[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const op = SetSpaceSettingsOp.fromBinary(settingsCall[1])
-    const settings = op.settings
-    if (!settings) {
-      throw new Error('expected settings')
-    }
-    expect(op.objectKey).toBe('settings')
-    expect(op.overwrite).toBe(true)
-    expect(settings.indexPath).toBe('blog')
-    expect(settings.pluginIds).toEqual(['spacewave-app'])
-  })
-
-  it('does not re-persist invalid plugin ids from existing settings', async () => {
-    const invalidPluginId = '\b\x02\x1aBbinary-plugin-id'
-    const unmarshal = vi.fn(() =>
-      Promise.resolve({
-        found: true,
-        data: SpaceSettings.toBinary({
-          indexPath: 'old-index',
-          pluginIds: [invalidPluginId, 'spacewave-app'],
-        }),
-      }),
-    )
-    const release = vi.fn()
-    const getObject = vi.fn(() =>
-      Promise.resolve({
-        accessWorldState: vi.fn().mockResolvedValue({
-          unmarshal,
-          release,
-          [Symbol.dispose]: release,
-        }),
-        release,
-        [Symbol.dispose]: release,
-      }),
-    )
-    const spaceWorld = {
-      applyWorldOp: vi.fn<ApplyWorldOp>().mockResolvedValue({
-        seqno: 1n,
-        sysErr: false,
-      }),
-      getObject,
-    }
-
-    await createSpaceSettingsObject(spaceWorld as never, undefined, undefined, [
-      'spacewave-notes',
+    // One batch adds the plugin and sets the index path; the World merges
+    // both into the stored settings, so the client reads nothing first.
+    expect(world.getObject).not.toHaveBeenCalled()
+    expect(executeWorldBatch).toHaveBeenCalledTimes(1)
+    expect(applyWorldOp.mock.calls.map((call) => call[0])).toEqual([
+      ADD_SPACE_PLUGINS_OP_ID,
+      SET_SPACE_INDEX_PATH_OP_ID,
     ])
-
-    const settingsCall = spaceWorld.applyWorldOp.mock.calls[0]
-    if (!settingsCall) {
-      throw new Error('expected settings op call')
-    }
-    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
-    expect(settings?.indexPath).toBe('old-index')
-    expect(settings?.pluginIds).toEqual(['spacewave-app', 'spacewave-notes'])
+    expect(getAddedPluginIds(applyWorldOp)).toEqual([['spacewave-app']])
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('blog')
   })
 
   it('rejects invalid plugin ids returned by dynamic quickstarts', async () => {
@@ -1845,6 +1717,10 @@ to try first.
     const setGraphQuad = vi.fn().mockResolvedValue(undefined)
     const deleteGraphQuad = vi.fn().mockResolvedValue(undefined)
     const spaceWorld = {
+      getEngine: vi.fn(() => ({
+        executeWorldBatch: batchThrough(applyWorldOp),
+        getEngineInfo,
+      })),
       applyWorldOp,
       getObject,
       lookupGraphQuads,
@@ -1874,7 +1750,7 @@ to try first.
       undefined,
     )
 
-    expect(applyWorldOp).toHaveBeenCalledTimes(2)
+    expect(applyWorldOp).toHaveBeenCalledTimes(3)
     const wizardCall = applyWorldOp.mock.calls[0]
     if (!wizardCall) {
       throw new Error('expected wizard op call')
@@ -1896,17 +1772,8 @@ to try first.
     expect(config.imageObjectKey).toBe('vm-image/default')
     expect(config.cdnSourceObjectKey).toBe(expectedConfig.cdnSourceObjectKey)
 
-    const settingsCall = applyWorldOp.mock.calls[1]
-    if (!settingsCall) {
-      throw new Error('expected settings op call')
-    }
-    expect(settingsCall[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
-    if (!settings) {
-      throw new Error('expected settings')
-    }
-    expect(settings.indexPath).toBe(wizardOp.objectKey)
-    expect(settings.pluginIds).toEqual(['spacewave-v86'])
+    expect(getAddedPluginIds(applyWorldOp)).toEqual([['spacewave-v86']])
+    expect(getSettingsIndexPath(applyWorldOp)).toBe(wizardOp.objectKey)
   })
 
   it('seeds the Device quickstart with Computers and the Add Device wizard', async () => {
@@ -1946,16 +1813,8 @@ to try first.
     expect(wizardOp.targetKeyPrefix).toBe(AddDeviceWizardTargetKeyPrefix)
     expect(wizardOp.name).toBe(AddDeviceDefaultName)
 
-    const settingsCall = applyWorldOp.mock.calls[2]
-    if (!settingsCall) {
-      throw new Error('expected settings op call')
-    }
-    expect(settingsCall[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
-    if (!settings) {
-      throw new Error('expected settings')
-    }
-    expect(settings.indexPath).toBe('computers')
+    expect(applyWorldOp.mock.calls[2]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
+    expect(getSettingsIndexPath(applyWorldOp)).toBe('computers')
   })
 
   it('seeds the git quickstart as a persistent create/clone wizard', async () => {
@@ -1969,6 +1828,10 @@ to try first.
       sysErr: false,
     })
     const spaceWorld = {
+      getEngine: vi.fn(() => ({
+        executeWorldBatch: batchThrough(applyWorldOp),
+        getEngineInfo,
+      })),
       applyWorldOp,
       getObject: vi.fn().mockResolvedValue(null),
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
@@ -2013,15 +1876,7 @@ to try first.
     expect(op.targetKeyPrefix).toBe('git/repo/')
     expect(op.name).toBe('Repository')
 
-    const settingsCall = applyWorldOp.mock.calls[1]
-    if (!settingsCall) {
-      throw new Error('expected settings op call')
-    }
-    expect(settingsCall[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const settings = SetSpaceSettingsOp.fromBinary(settingsCall[1]).settings
-    if (!settings) {
-      throw new Error('expected settings')
-    }
-    expect(settings.indexPath).toBe(op.objectKey)
+    expect(applyWorldOp.mock.calls[1]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
+    expect(getSettingsIndexPath(applyWorldOp)).toBe(op.objectKey)
   })
 })

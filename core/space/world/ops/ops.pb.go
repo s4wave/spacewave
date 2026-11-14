@@ -135,6 +135,37 @@ func (x *SetSpaceIndexPathOp) GetExpectedIndexPath() string {
 	return ""
 }
 
+// AddSpacePluginsOp adds plugin manifest IDs to the Space settings while
+// preserving every other setting and every plugin already listed.
+type AddSpacePluginsOp struct {
+	unknownFields []byte
+	// PluginIds are the plugin manifest IDs to add, in order.
+	// IDs already listed keep their position.
+	PluginIds []string `protobuf:"bytes,1,rep,name=plugin_ids,json=pluginIds,proto3" json:"pluginIds,omitempty"`
+	// Timestamp is the modification time.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+}
+
+func (x *AddSpacePluginsOp) Reset() {
+	*x = AddSpacePluginsOp{}
+}
+
+func (*AddSpacePluginsOp) ProtoMessage() {}
+
+func (x *AddSpacePluginsOp) GetPluginIds() []string {
+	if x != nil {
+		return x.PluginIds
+	}
+	return nil
+}
+
+func (x *AddSpacePluginsOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
 // InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
 type InitUnixFSOp struct {
 	unknownFields []byte
@@ -456,6 +487,23 @@ func (m *SetSpaceIndexPathOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *AddSpacePluginsOp) CloneVT() *AddSpacePluginsOp {
+	if m == nil {
+		return (*AddSpacePluginsOp)(nil)
+	}
+	r := new(AddSpacePluginsOp)
+	r.PluginIds = protobuf_go_lite.CloneSlice(m.PluginIds)
+	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AddSpacePluginsOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *InitUnixFSOp) CloneVT() *InitUnixFSOp {
 	if m == nil {
 		return (*InitUnixFSOp)(nil)
@@ -681,6 +729,29 @@ func (this *SetSpaceIndexPathOp) EqualVT(that *SetSpaceIndexPathOp) bool {
 
 func (this *SetSpaceIndexPathOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetSpaceIndexPathOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AddSpacePluginsOp) EqualVT(that *AddSpacePluginsOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.PluginIds, that.PluginIds) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AddSpacePluginsOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AddSpacePluginsOp)
 	if !ok {
 		return false
 	}
@@ -1086,6 +1157,64 @@ func (x *SetSpaceIndexPathOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SetSpaceIndexPathOp from JSON.
 func (x *SetSpaceIndexPathOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AddSpacePluginsOp message to JSON.
+func (x *AddSpacePluginsOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.PluginIds) > 0 || s.HasField("pluginIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginIds")
+		s.WriteStringArray(x.PluginIds)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AddSpacePluginsOp to JSON.
+func (x *AddSpacePluginsOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AddSpacePluginsOp message from JSON.
+func (x *AddSpacePluginsOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_ids", "pluginIds":
+			s.AddField("plugin_ids")
+			if s.ReadNil() {
+				x.PluginIds = nil
+				return
+			}
+			x.PluginIds = s.ReadStringArray()
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AddSpacePluginsOp from JSON.
+func (x *AddSpacePluginsOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1736,6 +1865,55 @@ func (m *SetSpaceIndexPathOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AddSpacePluginsOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AddSpacePluginsOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AddSpacePluginsOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PluginIds) > 0 {
+		for iNdEx := len(m.PluginIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *InitUnixFSOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2204,6 +2382,21 @@ func (m *SetSpaceIndexPathOp) SizeVT() (n int) {
 	return n
 }
 
+func (m *AddSpacePluginsOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.PluginIds)
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *InitUnixFSOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2396,6 +2589,28 @@ func (x *SetSpaceIndexPathOp) MarshalProtoText() string {
 }
 
 func (x *SetSpaceIndexPathOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AddSpacePluginsOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AddSpacePluginsOp")
+	if len(x.PluginIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "plugin_ids")
+		for i, v := range x.PluginIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Timestamp != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AddSpacePluginsOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2785,6 +3000,74 @@ func (m *SetSpaceIndexPathOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ExpectedIndexPath = &v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AddSpacePluginsOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AddSpacePluginsOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AddSpacePluginsOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginIds = append(m.PluginIds, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -77,16 +77,13 @@ func InstallSpacePlugin(
 		}
 	}
 
-	// Leave an unchanged installation untouched.
-	installed := slices.Contains(settings.PluginIds, pluginID)
-	if installed && slices.Equal(keys, next) {
+	// Record the plugin, leaving an unchanged installation untouched.
+	added := addSpacePluginIDs(settings, pluginID)
+	if !added && slices.Equal(keys, next) {
 		return false, nil
 	}
 
-	// Record the plugin and move the pinned artifact to the front.
-	if !installed {
-		settings.PluginIds = append(settings.PluginIds, pluginID)
-	}
+	// Move the pinned artifact to the front.
 	if manifestKey != "" {
 		if settings.PluginInstallations == nil {
 			settings.PluginInstallations = make(map[string]*space_world.SpacePluginInstallation)

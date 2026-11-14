@@ -45,6 +45,18 @@ message SetSpaceIndexPathOp {
   optional string expected_index_path = 3;
 }
 
+// AddSpacePluginsOp adds plugin manifest IDs to the Space settings while
+// preserving every other setting and every plugin already listed.
+message AddSpacePluginsOp {
+  option (typeid.id) = "space/world/add-plugins";
+
+  // PluginIds are the plugin manifest IDs to add, in order.
+  // IDs already listed keep their position.
+  repeated string plugin_ids = 1;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 2;
+}
+
 // InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
 message InitUnixFSOp {
   option (typeid.id) = "space/world/init-unixfs";

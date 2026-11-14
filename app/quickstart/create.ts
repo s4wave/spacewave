@@ -24,14 +24,14 @@ import {
 } from '@s4wave/core/space/world/world.js'
 import { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 import {
+  AddSpacePluginsOp,
   InitUnixFSOp,
   InitObjectLayoutOp,
   SetSpaceIndexPathOp,
-  SetSpaceSettingsOp,
 } from '@s4wave/core/space/world/ops/ops.pb.js'
 import {
+  ADD_SPACE_PLUGINS_OP_ID,
   SET_SPACE_INDEX_PATH_OP_ID,
-  SET_SPACE_SETTINGS_OP_ID,
 } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { throwBatchError } from '@s4wave/sdk/world/errors.js'
 import {
@@ -822,42 +822,29 @@ export function buildQuickstartSpaceRoutePath(
 }
 
 // readSpaceSettings reads the Space's SpaceSettings, or undefined when the
-// object is missing or its block does not decode. Invalid plugin IDs are
-// dropped, since a corrupted block can decode arbitrary bytes into them.
+// object is missing or its block does not decode. It informs a decision only;
+// settings writes merge on the World under its writer and never read here.
 async function readSpaceSettings(
   spaceWorld: IWorldState,
   abortSignal?: AbortSignal,
-  timing?: QuickstartSetupTiming,
-  phasePrefix = 'read-space-settings',
 ): Promise<SpaceSettings | undefined> {
-  const existing = await timeQuickstartPhase(
-    timing,
-    phasePrefix + '-get-object',
-    () => spaceWorld.getObject(SPACE_SETTINGS_OBJECT_KEY, abortSignal),
+  const existing = await spaceWorld.getObject(
+    SPACE_SETTINGS_OBJECT_KEY,
+    abortSignal,
   )
   if (!existing) {
     return undefined
   }
   try {
-    return await timeQuickstartPhase(
-      timing,
-      phasePrefix + '-read-existing',
-      async () => {
-        using cursor = await existing.accessWorldState(undefined, abortSignal)
-        const blockResp = await cursor.unmarshal(
-          { blockType: SPACE_SETTINGS_BLOCK_TYPE },
-          abortSignal,
-        )
-        if (!blockResp.found || !blockResp.data?.length) {
-          return undefined
-        }
-        const settings = SpaceSettings.fromBinary(blockResp.data)
-        return {
-          ...settings,
-          pluginIds: (settings.pluginIds ?? []).filter(isValidSpacePluginId),
-        }
-      },
+    using cursor = await existing.accessWorldState(undefined, abortSignal)
+    const blockResp = await cursor.unmarshal(
+      { blockType: SPACE_SETTINGS_BLOCK_TYPE },
+      abortSignal,
     )
+    if (!blockResp.found || !blockResp.data?.length) {
+      return undefined
+    }
+    return SpaceSettings.fromBinary(blockResp.data)
   } catch {
     return undefined
   } finally {
@@ -893,43 +880,37 @@ async function hasSeedObject(
   return !!existing
 }
 
-// createSpaceSettingsObject creates the SpaceSettings object in the world.
+// createSpaceSettingsObject creates the Space settings when they are missing,
+// adds pluginIds to them and, when indexPath is given, sets the index path.
+// The World merges each change into the stored settings under its writer, so
+// a plugin or setting another writer stored is never dropped.
 export async function createSpaceSettingsObject(
-  spaceWorld: IWorldState,
+  spaceWorld: QuickstartWorld,
   abortSignal?: AbortSignal,
   indexPath?: string,
   pluginIds?: string[],
   timing?: QuickstartSetupTiming,
   phasePrefix = 'create-space-settings',
 ): Promise<void> {
-  const op = await spaceSettingsOp(
+  await applyQuickstartOps(
     spaceWorld,
+    spaceSettingsOps(indexPath, pluginIds),
     abortSignal,
-    indexPath,
-    pluginIds,
     timing,
     phasePrefix,
   )
-  await applyQuickstartOps(spaceWorld, [op], abortSignal, timing, phasePrefix)
 }
 
-// spaceSettingsOp builds the op that writes the Space settings with indexPath
-// and pluginIds merged over the existing settings, so a seed can apply it in
-// one batch with the ops that create what the index names.
-async function spaceSettingsOp(
-  spaceWorld: IWorldState,
-  abortSignal?: AbortSignal,
+// spaceSettingsOps builds the ops that add pluginIds to the Space settings and,
+// when indexPath is given, set the index path, so a seed can apply them in one
+// batch with the ops that create what the index names. The index path op
+// comes last, since the index marks a seed applied, and it creates missing
+// settings too, so the plugins op is sent only when it adds plugins or nothing
+// else would create the settings.
+function spaceSettingsOps(
   indexPath?: string,
   pluginIds?: string[],
-  timing?: QuickstartSetupTiming,
-  phasePrefix = 'create-space-settings',
-): Promise<QuickstartOp> {
-  const existingSettings = await readSpaceSettings(
-    spaceWorld,
-    abortSignal,
-    timing,
-    phasePrefix,
-  )
+): QuickstartOp[] {
   const requestedPluginIds = pluginIds ?? []
   const invalidPluginId = requestedPluginIds.find(
     (pluginId) => !isValidSpacePluginId(pluginId),
@@ -939,30 +920,20 @@ async function spaceSettingsOp(
       `quickstart returned invalid plugin id with length ${invalidPluginId.length}`,
     )
   }
-  const settings: SpaceSettings = {
-    indexPath: indexPath ?? existingSettings?.indexPath ?? '',
-    pluginIds: Array.from(
-      new Set([...(existingSettings?.pluginIds ?? []), ...requestedPluginIds]),
-    ),
+  const ops: QuickstartOp[] = []
+  if (requestedPluginIds.length || indexPath === undefined) {
+    ops.push({
+      opTypeId: ADD_SPACE_PLUGINS_OP_ID,
+      opData: AddSpacePluginsOp.toBinary({
+        pluginIds: requestedPluginIds,
+        timestamp: new Date(),
+      }),
+    })
   }
-  return {
-    opTypeId: SET_SPACE_SETTINGS_OP_ID,
-    opData: SetSpaceSettingsOp.toBinary({
-      objectKey: SPACE_SETTINGS_OBJECT_KEY,
-      settings,
-      overwrite: true,
-      timestamp: new Date(),
-    }),
+  if (indexPath !== undefined) {
+    ops.push(indexPathMutation(indexPath))
   }
-}
-
-export async function ensureSpacePlugins(
-  spaceWorld: IWorldState,
-  pluginIds: string[],
-  indexPath?: string,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  await createSpaceSettingsObject(spaceWorld, abortSignal, indexPath, pluginIds)
+  return ops
 }
 
 // getSpaceInstanceKey returns the Space world engine id, which is the instance
@@ -1030,11 +1001,11 @@ export async function executeDynamicQuickstart(
   )
   const pluginIds = resp.pluginIds ?? []
   if (resp.indexPath || pluginIds.length) {
-    await ensureSpacePlugins(
+    await createSpaceSettingsObject(
       setup.spaceWorld,
-      pluginIds,
-      resp.indexPath || undefined,
       abortSignal,
+      resp.indexPath || undefined,
+      pluginIds,
     )
   }
 }
@@ -1381,12 +1352,9 @@ async function prepareSqlQuickstart(
   setup: QuickstartSetup,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  await ensureSpacePlugins(
-    setup.spaceWorld,
-    [SQL_PLUGIN_ID],
-    undefined,
-    abortSignal,
-  )
+  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, undefined, [
+    SQL_PLUGIN_ID,
+  ])
   const instanceKey = await getSpaceInstanceKey(setup, abortSignal)
 
   // Once the plugin is installed, its quickstart and object-type registrations
@@ -1423,12 +1391,9 @@ async function prepareNotesQuickstart(
   quickstartId: NotesQuickstartId,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  await ensureSpacePlugins(
-    setup.spaceWorld,
-    [NOTES_PLUGIN_ID],
-    undefined,
-    abortSignal,
-  )
+  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, undefined, [
+    NOTES_PLUGIN_ID,
+  ])
   await waitForQuickstartRegistration(
     root,
     await getSpaceInstanceKey(setup, abortSignal),
@@ -1506,27 +1471,24 @@ function indexPathMutation(indexPath: string): QuickstartOp {
   }
 }
 
-// applyQuickstartOps applies a seed's World ops. A World with a live Engine
-// takes them as one batch, so they land together or not at all and the writer
-// is held only inside the call.
+// QuickstartWorld is a Space World whose Engine applies quickstart batches.
+type QuickstartWorld = {
+  getEngine(): Pick<Engine, 'executeWorldBatch'>
+}
+
+// applyQuickstartOps applies a seed's World ops in order as one batch, so they
+// land together or not at all, each sees the one before, and the writer is
+// held only inside the call.
 async function applyQuickstartOps(
-  spaceWorld: IWorldState,
+  spaceWorld: QuickstartWorld,
   ops: QuickstartOp[],
   abortSignal: AbortSignal | undefined,
   timing: QuickstartSetupTiming | undefined,
   phasePrefix: string,
 ): Promise<void> {
-  const engine = spaceWorld.getEngine?.()
-  await timeQuickstartPhase(timing, phasePrefix + '-apply-op', async () => {
-    if (engine) {
-      await applyQuickstartBatch(engine, ops, abortSignal)
-      return
-    }
-    for (const op of ops) {
-      // eslint-disable-next-line react-doctor/async-await-in-loop -- a World without an Engine applies the ops in order.
-      await spaceWorld.applyWorldOp(op.opTypeId, op.opData, '', abortSignal)
-    }
-  })
+  await timeQuickstartPhase(timing, phasePrefix + '-apply-op', () =>
+    applyQuickstartBatch(spaceWorld.getEngine(), ops, abortSignal),
+  )
 }
 
 // initGitQuickstart seeds a persistent git/repo wizard and indexes the Space to it.
@@ -1655,7 +1617,7 @@ async function initDeviceQuickstart(
 // the Space at indexPath as one batch. The index marks the seed applied, so
 // the seed lands whole or not at all and repeating it after a failure is safe.
 async function applyIndexedSeed(
-  spaceWorld: IWorldState,
+  spaceWorld: QuickstartWorld,
   ops: QuickstartOp[],
   indexPath: string,
   pluginIds: string[] | undefined,
@@ -1663,17 +1625,9 @@ async function applyIndexedSeed(
   timing?: QuickstartSetupTiming,
   phasePrefix = 'seed',
 ): Promise<void> {
-  const settingsOp = await spaceSettingsOp(
-    spaceWorld,
-    abortSignal,
-    indexPath,
-    pluginIds,
-    timing,
-    phasePrefix + '-settings',
-  )
   await applyQuickstartOps(
     spaceWorld,
-    [...ops, settingsOp],
+    [...ops, ...spaceSettingsOps(indexPath, pluginIds)],
     abortSignal,
     timing,
     phasePrefix,

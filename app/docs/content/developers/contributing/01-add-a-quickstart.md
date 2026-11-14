@@ -46,9 +46,9 @@ core plugin, and `notebook` for content from another plugin.
    release each resource you acquire the way its API expects. For plugin
    content, install the plugin and wait for its Quickstart or ObjectType to
    register before you call it. The Notes and SQL cases show both steps.
-4. Save the index path with `createSpaceSettingsObject`, or with
-   `ensureSpacePlugins` when you also install required plugins. Both keep any
-   settings the new content does not replace. Point the index at an object the
+4. Save the index path, and any required plugin IDs, with
+   `createSpaceSettingsObject`. It keeps any settings the new content does not
+   replace. Point the index at an object the
    Quickstart actually created. A plugin Quickstart can return its index path
    and plugin IDs through `executeDynamicQuickstart`.
 5. Extend the tests described below. If the option is visible in releases,

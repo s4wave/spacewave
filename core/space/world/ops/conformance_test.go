@@ -28,6 +28,7 @@ func TestSpaceOpsConform(t *testing.T) {
 	cases := map[string]world_opcheck.Case{
 		"set-space-settings": {Op: space_world_ops.NewSetSpaceSettingsOp("", &space_world.SpaceSettings{IndexPath: "files"}, true, ts)},
 		"set-index-path":     {Op: &space_world_ops.SetSpaceIndexPathOp{IndexPath: "files", Timestamp: timestamppb.New(ts)}},
+		"add-plugins":        {Op: &space_world_ops.AddSpacePluginsOp{PluginIds: []string{"notes"}, Timestamp: timestamppb.New(ts)}},
 		"init-unixfs":        {Op: space_world_ops.NewInitUnixFSOp("files", ts)},
 		"init-object-layout": {Op: space_world_ops.NewInitObjectLayoutOp("layout/a", ts)},
 		"init-canvas":        {Op: space_world_ops.NewCanvasInitOp("canvas/a", ts)},

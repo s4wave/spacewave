@@ -4,6 +4,7 @@
 import {
   SetSpaceSettingsOp,
   SetSpaceIndexPathOp,
+  AddSpacePluginsOp,
   InitUnixFSOp,
   InitObjectLayoutOp,
   InitCanvasDemoOp,
@@ -20,6 +21,9 @@ export const SetSpaceSettingsOpTypeID = 'space/world/set-settings'
 
 // SetSpaceIndexPathOpTypeID is the type ID of SetSpaceIndexPathOp.
 export const SetSpaceIndexPathOpTypeID = 'space/world/set-index-path'
+
+// AddSpacePluginsOpTypeID is the type ID of AddSpacePluginsOp.
+export const AddSpacePluginsOpTypeID = 'space/world/add-plugins'
 
 // InitUnixFSOpTypeID is the type ID of InitUnixFSOp.
 export const InitUnixFSOpTypeID = 'space/world/init-unixfs'
@@ -52,6 +56,7 @@ export const CanvasRemoveEdgeOpTypeID = 'space/world/canvas-remove-edge'
 export const OpsTypes = [
   { id: SetSpaceSettingsOpTypeID, message: SetSpaceSettingsOp },
   { id: SetSpaceIndexPathOpTypeID, message: SetSpaceIndexPathOp },
+  { id: AddSpacePluginsOpTypeID, message: AddSpacePluginsOp },
   { id: InitUnixFSOpTypeID, message: InitUnixFSOp },
   { id: InitObjectLayoutOpTypeID, message: InitObjectLayoutOp },
   { id: InitCanvasDemoOpTypeID, message: InitCanvasDemoOp },

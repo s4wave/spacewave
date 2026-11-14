@@ -23,6 +23,14 @@ func (*SetSpaceIndexPathOp) TypeID() string {
 	return SetSpaceIndexPathOpTypeID
 }
 
+// AddSpacePluginsOpTypeID is the type ID of AddSpacePluginsOp.
+const AddSpacePluginsOpTypeID = "space/world/add-plugins"
+
+// TypeID returns the type ID of AddSpacePluginsOp.
+func (*AddSpacePluginsOp) TypeID() string {
+	return AddSpacePluginsOpTypeID
+}
+
 // InitUnixFSOpTypeID is the type ID of InitUnixFSOp.
 const InitUnixFSOpTypeID = "space/world/init-unixfs"
 
@@ -99,6 +107,7 @@ func (*CanvasRemoveEdgeOp) TypeID() string {
 var OpsTypes = []typeid.Type{
 	{ID: SetSpaceSettingsOpTypeID, New: func() any { return new(SetSpaceSettingsOp) }},
 	{ID: SetSpaceIndexPathOpTypeID, New: func() any { return new(SetSpaceIndexPathOp) }},
+	{ID: AddSpacePluginsOpTypeID, New: func() any { return new(AddSpacePluginsOp) }},
 	{ID: InitUnixFSOpTypeID, New: func() any { return new(InitUnixFSOp) }},
 	{ID: InitObjectLayoutOpTypeID, New: func() any { return new(InitObjectLayoutOp) }},
 	{ID: InitCanvasDemoOpTypeID, New: func() any { return new(InitCanvasDemoOp) }},

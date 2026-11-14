@@ -101,6 +101,33 @@ export const SetSpaceIndexPathOp: MessageType<SetSpaceIndexPathOp> =
   )
 
 /**
+ * AddSpacePluginsOp adds plugin manifest IDs to the Space settings while
+ * preserving every other setting and every plugin already listed.
+ *
+ * @generated from message space.world.ops.AddSpacePluginsOp
+ */
+export interface AddSpacePluginsOp {
+  /**
+   * PluginIds are the plugin manifest IDs to add, in order.
+   * IDs already listed keep their position.
+   */
+  pluginIds?: string[]
+  /**
+   * Timestamp is the modification time.
+   */
+  timestamp?: Date
+}
+
+export const AddSpacePluginsOp: MessageType<AddSpacePluginsOp> =
+  /* @__PURE__ */ createMessageType<AddSpacePluginsOp>(
+    'space.world.ops.AddSpacePluginsOp',
+    () => [
+      [1, 'plugin_ids', 9, 1],
+      [2, 'timestamp', 11, 0, Timestamp.codec],
+    ],
+  )
+
+/**
  * InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
  *
  * @generated from message space.world.ops.InitUnixFSOp
