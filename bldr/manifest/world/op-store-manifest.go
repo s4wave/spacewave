@@ -200,5 +200,10 @@ func (o *StoreManifestOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{o.GetManifestRef().GetManifestRef().GetRootRef()}
 }
 
+// PayloadRefsVersion identifies what GetPayloadRefs names.
+func (o *StoreManifestOp) PayloadRefsVersion() uint32 {
+	return 1
+}
+
 // _ is a type assertion
 var _ world.PayloadOperation = (*StoreManifestOp)(nil)

@@ -53,7 +53,6 @@ func FsWriteAt(
 }
 
 // NewFsWriteAtOp constructs a new FsWriteAtOp block.
-// repoRef, worktreeArgs can be empty
 func NewFsWriteAtOp(
 	objKey string,
 	fsType FSType,
@@ -153,6 +152,11 @@ func (o *FsWriteAtOp) ApplyWorldObjectOp(
 // GetPayloadRefs returns the written data blob.
 func (o *FsWriteAtOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{o.GetBlobRef()}
+}
+
+// PayloadRefsVersion identifies what GetPayloadRefs names.
+func (o *FsWriteAtOp) PayloadRefsVersion() uint32 {
+	return 1
 }
 
 // _ is a type assertion

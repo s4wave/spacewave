@@ -158,5 +158,10 @@ func (o *FsMknodWithContentOp) GetPayloadRefs() []*block.BlockRef {
 	return []*block.BlockRef{o.GetBlobRef()}
 }
 
+// PayloadRefsVersion identifies what GetPayloadRefs names.
+func (o *FsMknodWithContentOp) PayloadRefsVersion() uint32 {
+	return 1
+}
+
 // _ is a type assertion
 var _ world.PayloadOperation = (*FsMknodWithContentOp)(nil)

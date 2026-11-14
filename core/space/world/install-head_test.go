@@ -1339,7 +1339,7 @@ func putPayloads(ctx context.Context, t *testing.T, store block.StoreOps, prefix
 func holdOrder(a *Adapter, w *block.BlockRef, refs []*block.BlockRef, unresolved bool) {
 	st := &payloadState{world: w, ops: make(map[string]opHold, len(refs)), keys: make(map[string]int, len(refs)), unresolved: unresolved}
 	for i, ref := range refs {
-		op := newOpHold([]*block.BlockRef{ref})
+		op := newOpHold([]*block.BlockRef{ref}, nil)
 		st.ops[strconv.Itoa(i)] = op
 		st.keys[op.keys[0]]++
 	}

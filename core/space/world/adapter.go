@@ -84,6 +84,11 @@ type Adapter struct {
 	opts AdapterOptions
 	// lookupOp resolves World operations: the built-in types, then the bus.
 	lookupOp world.LookupOp
+	// payloadVersionsMtx guards payloadVersions: the driver goroutine and
+	// the writers' Admit both read it.
+	payloadVersionsMtx sync.Mutex
+	// payloadVersions caches OpTypes.payloadVersion by operation type.
+	payloadVersions map[string]uint32
 	// bucketID is the SharedObject block store's bucket.
 	bucketID string
 	// decoded is the decoded block cache every World cursor shares.
@@ -253,6 +258,7 @@ func NewAdapter(le *logrus.Entry, so sobject.SharedObject, opts AdapterOptions) 
 		checkpointWorlds: rootSet{name: RootCheckpoint},
 		imported:         rootSet{name: RootImport},
 		payloads:         rootSet{name: RootReplayPayloads},
+		payloadVersions:  make(map[string]uint32),
 	}
 	a.lookupOp = a.buildLookupOp()
 	a.replay = &spaceReplay{a: a}
@@ -789,7 +795,7 @@ func (a *Adapter) Apply(ctx context.Context, index int, op *sobject.OrderedOpera
 		state := prev.CloneVT()
 		state.HeadRef.RootRef = c.Root.Clone()
 		state.HeadRef.BucketId = ""
-		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads}
+		adopt = &spacePosition{state: state, seqno: c.Seqno, payloads: adm.payloads, handlers: adm.handlers}
 	}
 
 	// Compute the position, waiting at an operation whose type a plugin the
@@ -1127,15 +1133,15 @@ func (a *Adapter) missAbove(ctx context.Context) error {
 
 // newAdmission returns the admission of op, with candidate when a local
 // writer built a World for it.
-func (a *Adapter) newAdmission(candidate world.Candidate, op []byte, payloads []*block.BlockRef) *spaceAdmission {
-	return &spaceAdmission{a: a, candidate: candidate, op: op, payloads: payloads, done: make(chan struct{})}
+func (a *Adapter) newAdmission(candidate world.Candidate, op []byte, payloads []*block.BlockRef, handlers *PayloadHandlers) *spaceAdmission {
+	return &spaceAdmission{a: a, candidate: candidate, op: op, payloads: payloads, handlers: handlers, done: make(chan struct{})}
 }
 
 // enqueue admits the encoded operation op, which builds no World of its own,
 // after this device's admitted operations and queues it. A nil op is an
 // acknowledgment.
 func (a *Adapter) enqueue(op []byte) *spaceAdmission {
-	adm := a.newAdmission(world.Candidate{}, op, nil)
+	adm := a.newAdmission(world.Candidate{}, op, nil, nil)
 	a.admit(adm)
 	a.queue.push(adm)
 	return adm

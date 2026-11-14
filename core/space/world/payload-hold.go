@@ -45,6 +45,17 @@ import (
 //  5. Only resetPayloads, on the driver goroutine, removes a root from the
 //     payload set, and every other change appends. So the roots the set held
 //     when resetPayloads read them stay its first roots until it moves it.
+//  6. After any mount, the payload hold contains every root the currently
+//     registered handlers name for every operation above the checkpoint.
+//     Saved roots are reused only when that is proven: each saved outcome
+//     records the PayloadRefsVersion of the handler of every operation type
+//     of its transaction (PayloadHandlers), and loadCursor keeps its roots as
+//     known only when every one equals the version OpTypes.Lookup reports
+//     now. Only Lookup's types may name payload roots (LookupOn rejects a
+//     payload operation from the bus), so every other type's version is zero
+//     and needs no bus lookup. When unsure, Hold resolves the operation again,
+//     and replay adopts its saved position only with the payloads Hold
+//     resolved, so the next cursor records them too.
 //
 // Cost: Hold decodes each operation once, when an order first holds it, and
 // appends only the payloads it has not held, as one delta block of the root's
@@ -83,15 +94,18 @@ type opHold struct {
 	refs []*block.BlockRef
 	// keys are the key of each of refs.
 	keys []string
+	// handlers identifies the handlers that named refs.
+	handlers *PayloadHandlers
 }
 
-// newOpHold returns the hold of refs, encoding each key once.
-func newOpHold(refs []*block.BlockRef) opHold {
+// newOpHold returns the hold of refs, which handlers named, encoding each key
+// once.
+func newOpHold(refs []*block.BlockRef, handlers *PayloadHandlers) opHold {
 	keys := make([]string, len(refs))
 	for i, ref := range refs {
 		keys[i] = ref.MarshalString()
 	}
-	return opHold{refs: refs, keys: keys}
+	return opHold{refs: refs, keys: keys, handlers: handlers}
 }
 
 // Hold holds the payloads of every operation of ev above its checkpoint,
@@ -119,10 +133,11 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 	}
 
 	// Read the payloads of the operations the last order did not hold. The
-	// first Hold of a run takes them from the saved cursor where it recorded
-	// them, so a remount resolves only what the cursor lacks.
+	// first Hold of a run takes them from the saved cursor where their
+	// handlers name the same roots (invariant 6), so a remount resolves only
+	// what the cursor lacks.
 	prev := a.stateHold
-	var saved map[string][]*block.BlockRef
+	var saved map[string]opHold
 	if prev == nil {
 		prev = &payloadState{keys: make(map[string]int)}
 		saved = a.replay.savedPayloads()
@@ -136,20 +151,20 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 			next.ops[key] = op
 			continue
 		}
-		refs, known := saved[key]
+		op, known := saved[key]
 		var err error
 		if !known {
-			refs, known, err = opPayloads(ctx, ev.Snapshot, ev.Set, h, a.lookupOp)
+			op, known, err = a.resolveOpHold(ctx, ev.Snapshot, ev.Set, h)
 		}
 		if err != nil && ctx.Err() != nil {
 			return context.Cause(ctx)
 		}
-		extra = append(extra, refs...)
+		extra = append(extra, op.refs...)
 		if err != nil || !known {
 			unresolved++
 			continue
 		}
-		next.ops[key] = newOpHold(refs)
+		next.ops[key] = op
 		added = append(added, key)
 	}
 
@@ -183,19 +198,133 @@ func (a *Adapter) Hold(ctx context.Context, ev *sobject.OrderEvent) error {
 	return nil
 }
 
+// resolveOpHold reads the payloads of operation h of set from snap, as
+// opPayloads does, with the handlers that name them. known is false when the
+// operation's type, or its handler's version, does not resolve yet, and the
+// hold then has only the roots read without them. err is a failure to read
+// snap.
+func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte) (opHold, bool, error) {
+	// An operation that runs no transaction names no payloads.
+	tx, _, err := replayedTx(ctx, snap, set, h)
+	if err != nil || tx == nil {
+		return opHold{handlers: &PayloadHandlers{}}, err == nil, err
+	}
+
+	// Read the roots the transaction names and the handlers that name them.
+	refs, err := tx.PayloadRefs(ctx, a.lookupOp)
+	if err != nil {
+		return opHold{refs: refs}, false, nil
+	}
+	handlers, err := a.payloadHandlers(ctx, tx)
+	if err != nil {
+		return opHold{refs: refs}, false, nil
+	}
+	return newOpHold(refs, handlers), true, nil
+}
+
 // txPayloads returns the payload roots of tx, the transaction of the
-// operation h: the roots Hold read for h, or, for an operation Hold did not
-// resolve or a transient replay, the roots read from tx. Hold reads every
-// operation of the order before the driver applies it, so a replay resolves
-// each operation's type once to run it and not again for its payloads. The
-// driver goroutine calls it.
-func (a *Adapter) txPayloads(ctx context.Context, h []byte, tx *world_block_tx.Tx) ([]*block.BlockRef, error) {
+// operation h, and the handlers that named them: those Hold read for h, or,
+// for an operation Hold did not resolve or a transient replay, those read
+// from tx. Hold reads every operation of the order before the driver applies
+// it, so a replay resolves each operation's type once to run it and not again
+// for its payloads. The driver goroutine calls it.
+func (a *Adapter) txPayloads(ctx context.Context, h []byte, tx *world_block_tx.Tx) ([]*block.BlockRef, *PayloadHandlers, error) {
+	// Take what Hold read for the operation.
 	if a.stateHold != nil {
 		if op, ok := a.stateHold.ops[string(h)]; ok {
-			return op.refs, nil
+			return op.refs, op.handlers, nil
 		}
 	}
-	return tx.PayloadRefs(ctx, a.lookupOp)
+
+	// Otherwise read the roots and handlers from tx.
+	refs, err := tx.PayloadRefs(ctx, a.lookupOp)
+	if err != nil {
+		return nil, nil, err
+	}
+	handlers, err := a.payloadHandlers(ctx, tx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return refs, handlers, nil
+}
+
+// payloadHandlers returns the handlers of the operation types of tx, each
+// once and sorted by type, with the version each names payload roots under
+// now (payloadVersion).
+func (a *Adapter) payloadHandlers(ctx context.Context, tx *world_block_tx.Tx) (*PayloadHandlers, error) {
+	// Collect the operation types.
+	var types []string
+	txOpTypes(tx, func(opTypeID string) {
+		types = append(types, opTypeID)
+	})
+	slices.Sort(types)
+	types = slices.Compact(types)
+
+	// Record each with its version.
+	out := &PayloadHandlers{Handlers: make([]*PayloadHandler, len(types))}
+	for i, opTypeID := range types {
+		version, err := a.payloadVersion(ctx, opTypeID)
+		if err != nil {
+			return nil, err
+		}
+		out.Handlers[i] = &PayloadHandler{OpTypeId: opTypeID, Version: version}
+	}
+	return out, nil
+}
+
+// handlersCurrent reports whether every handler h records names payload roots
+// under the version it has now, so the payloads h covers are what the
+// operation names now. An unset h, such as one a cursor saved before handlers
+// were recorded, is unknown and reports false.
+func (a *Adapter) handlersCurrent(ctx context.Context, h *PayloadHandlers) bool {
+	if h == nil {
+		return false
+	}
+	for _, handler := range h.GetHandlers() {
+		version, err := a.payloadVersion(ctx, handler.GetOpTypeId())
+		if err != nil || version != handler.GetVersion() {
+			return false
+		}
+	}
+	return true
+}
+
+// payloadVersion returns OpTypes.payloadVersion for opTypeID, cached for the
+// Adapter's life, since a type's handler in Lookup does not change while the
+// process runs.
+func (a *Adapter) payloadVersion(ctx context.Context, opTypeID string) (uint32, error) {
+	// Return the cached version.
+	a.payloadVersionsMtx.Lock()
+	version, ok := a.payloadVersions[opTypeID]
+	a.payloadVersionsMtx.Unlock()
+	if ok {
+		return version, nil
+	}
+
+	// Resolve and cache it.
+	version, err := a.opts.OpTypes.payloadVersion(ctx, opTypeID)
+	if err != nil {
+		return 0, err
+	}
+	a.payloadVersionsMtx.Lock()
+	a.payloadVersions[opTypeID] = version
+	a.payloadVersionsMtx.Unlock()
+	return version, nil
+}
+
+// txOpTypes calls fn with the type of each operation tx applies, in a batch
+// too, without decoding any operation.
+func txOpTypes(tx *world_block_tx.Tx, fn func(opTypeID string)) {
+	switch tx.GetTxType() {
+	case world_block_tx.TxType_TxType_APPLY_WORLD_OP:
+		fn(tx.GetTxApplyWorldOp().GetOperationTypeId())
+	case world_block_tx.TxType_TxType_APPLY_OBJECT_OP:
+		fn(tx.GetTxApplyObjectOp().GetOperationTypeId())
+	case world_block_tx.TxType_TxType_BATCH:
+		for _, btx := range tx.GetTxBatch().GetTxs() {
+			txOpTypes(btx, fn)
+		}
+	}
 }
 
 // noteUnresolved marks next unresolved, with n operations unresolved, and
@@ -237,7 +366,7 @@ func (a *Adapter) resetPayloads(ctx context.Context, kept bool) error {
 	base, snap := a.held[RootReplayBase], a.payloads.roots
 	unlock()
 	positions := a.replay.payloads()
-	posKeys := newOpHold(positions).keys
+	posKeys := newOpHold(positions, nil).keys
 	pending := a.pendingPayloads()
 
 	// Plan the drop once the order resolved and its World is held.

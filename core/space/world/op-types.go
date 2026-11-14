@@ -23,17 +23,57 @@ type OpTypes struct {
 	Declared func(ctx context.Context, ws world.WorldState, opTypeID string) ([]string, error)
 }
 
+// ErrBusPayloadOperation is returned when a handler on the bus resolves an
+// operation type to a world.PayloadOperation. Only OpTypes.Lookup may name
+// payload roots, so the payload hold knows every type's PayloadRefsVersion
+// without asking the bus (payloadVersion).
+var ErrBusPayloadOperation = errors.New("a bus operation handler names payload roots")
+
+// payloadVersion returns the PayloadRefsVersion of the operation Lookup
+// resolves for opTypeID, or zero when Lookup resolves none or one that names
+// no payload roots of its own. Every other type names only the object roots of
+// its transaction, since LookupOn rejects a payload operation from the bus.
+func (t OpTypes) payloadVersion(ctx context.Context, opTypeID string) (uint32, error) {
+	// Resolve the type in the static table alone.
+	if t.Lookup == nil {
+		return 0, nil
+	}
+	op, err := t.Lookup(ctx, opTypeID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Read the version of a payload operation.
+	if pop, ok := op.(world.PayloadOperation); ok {
+		return pop.PayloadRefsVersion(), nil
+	}
+	return 0, nil
+}
+
+// objectRootsOnly returns lookup rejecting a world.PayloadOperation with
+// ErrBusPayloadOperation.
+func objectRootsOnly(lookup world.LookupOp) world.LookupOp {
+	return func(ctx context.Context, opTypeID string) (world.Operation, error) {
+		op, err := lookup(ctx, opTypeID)
+		if _, ok := op.(world.PayloadOperation); ok && err == nil {
+			return nil, errors.Wrap(ErrBusPayloadOperation, opTypeID)
+		}
+		return op, err
+	}
+}
+
 // LookupOn returns the lookup a Space's Adapter applies operations with: Lookup
 // first, then the handlers registered on b for the World engine engineID,
-// such as a running plugin's. A nil b resolves with Lookup alone. A type
-// neither resolves resolves to nothing.
+// such as a running plugin's, which may not name payload roots
+// (ErrBusPayloadOperation). A nil b resolves with Lookup alone. A type neither
+// resolves resolves to nothing.
 func (t OpTypes) LookupOn(b bus.Bus, le *logrus.Entry, engineID string) world.LookupOp {
 	var lookups world.LookupOpSlice
 	if t.Lookup != nil {
 		lookups = append(lookups, t.Lookup)
 	}
 	if b != nil {
-		lookups = append(lookups, world.BuildLookupWorldOpFunc(b, le, engineID))
+		lookups = append(lookups, objectRootsOnly(world.BuildLookupWorldOpFunc(b, le, engineID)))
 	}
 	return lookups.LookupOp
 }
@@ -51,7 +91,7 @@ func (t OpTypes) HeldLookupOn(b bus.Bus, le *logrus.Entry, engineID string) (wor
 	if b != nil {
 		var held world.LookupOp
 		held, release = world.BuildHeldLookupWorldOpFunc(b, le, engineID)
-		lookups = append(lookups, held)
+		lookups = append(lookups, objectRootsOnly(held))
 	}
 	return lookups.LookupOp, release
 }

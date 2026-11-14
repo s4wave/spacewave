@@ -37,6 +37,7 @@ import (
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
+	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -158,7 +159,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		space_http_export.NewFactory(child),
 		session_controller.NewFactory(child),
 		space_sobject.NewFactory(child),
-		space_world.NewFactory(child, space_world.OpTypes{}),
+		space_world.NewFactory(child, space_world_engine.OpTypes),
 		space_world_optypes.NewFactory(child),
 		space_world_blocktype.NewFactory(child),
 		plugin_space.NewFactory(child, plugin_space.WithManifestSource(c.GetBus())),
@@ -331,11 +332,18 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 // appWorldController exposes only the World capability selected by the caller.
 type appWorldController struct{ engine world.Engine }
 
+// GetControllerInfo returns the controller info.
 func (c *appWorldController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo("app/world", Version, "app backing World")
 }
+
+// Execute does nothing; the controller only resolves directives.
 func (c *appWorldController) Execute(context.Context) error { return nil }
-func (c *appWorldController) Close() error                  { return nil }
+
+// Close releases nothing.
+func (c *appWorldController) Close() error { return nil }
+
+// HandleDirective resolves the lookup of the app backing World engine.
 func (c *appWorldController) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	if lookup, ok := di.GetDirective().(world.LookupWorldEngine); ok && lookup.LookupWorldEngineID() == AppBackingEngineID {
 		return directive.R(directive.NewValueResolver([]world.Engine{c.engine}), nil)

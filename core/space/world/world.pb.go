@@ -835,6 +835,10 @@ type ReplayCursorOutcome struct {
 	RetainedRoots *RetainedRootSet `protobuf:"bytes,7,opt,name=retained_roots,json=retainedRoots,proto3" json:"retainedRoots,omitempty"`
 	// Seqno is the World seqno after the operation.
 	Seqno uint64 `protobuf:"varint,8,opt,name=seqno,proto3" json:"seqno,omitempty"`
+	// PayloadHandlers identifies the handlers that named Payloads. A remount
+	// reuses Payloads only when every handler still names the same roots, and
+	// resolves the operation again when this is unset.
+	PayloadHandlers *PayloadHandlers `protobuf:"bytes,9,opt,name=payload_handlers,json=payloadHandlers,proto3" json:"payloadHandlers,omitempty"`
 }
 
 func (x *ReplayCursorOutcome) Reset() {
@@ -881,6 +885,66 @@ func (x *ReplayCursorOutcome) GetRetainedRoots() *RetainedRootSet {
 func (x *ReplayCursorOutcome) GetSeqno() uint64 {
 	if x != nil {
 		return x.Seqno
+	}
+	return 0
+}
+
+func (x *ReplayCursorOutcome) GetPayloadHandlers() *PayloadHandlers {
+	if x != nil {
+		return x.PayloadHandlers
+	}
+	return nil
+}
+
+// PayloadHandlers identifies the handlers that named an operation's payload
+// roots.
+type PayloadHandlers struct {
+	unknownFields []byte
+	// Handlers are the operation types of the operation's transaction, each
+	// once and sorted by type.
+	Handlers []*PayloadHandler `protobuf:"bytes,1,rep,name=handlers,proto3" json:"handlers,omitempty"`
+}
+
+func (x *PayloadHandlers) Reset() {
+	*x = PayloadHandlers{}
+}
+
+func (*PayloadHandlers) ProtoMessage() {}
+
+func (x *PayloadHandlers) GetHandlers() []*PayloadHandler {
+	if x != nil {
+		return x.Handlers
+	}
+	return nil
+}
+
+// PayloadHandler is the handler of one operation type, as far as the payload
+// roots it names.
+type PayloadHandler struct {
+	unknownFields []byte
+	// OpTypeId is the operation type.
+	OpTypeId string `protobuf:"bytes,1,opt,name=op_type_id,json=opTypeId,proto3" json:"opTypeId,omitempty"`
+	// Version is the PayloadRefsVersion of the type's handler, or zero for a
+	// type that names no payload roots of its own.
+	Version uint32 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *PayloadHandler) Reset() {
+	*x = PayloadHandler{}
+}
+
+func (*PayloadHandler) ProtoMessage() {}
+
+func (x *PayloadHandler) GetOpTypeId() string {
+	if x != nil {
+		return x.OpTypeId
+	}
+	return ""
+}
+
+func (x *PayloadHandler) GetVersion() uint32 {
+	if x != nil {
+		return x.Version
 	}
 	return 0
 }
@@ -1403,6 +1467,7 @@ func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
 	r.World = protobuf_go_lite.CloneVTValue(m.World)
 	r.Payloads = protobuf_go_lite.CloneVTSlice(m.Payloads)
 	r.RetainedRoots = protobuf_go_lite.CloneVTValue(m.RetainedRoots)
+	r.PayloadHandlers = protobuf_go_lite.CloneVTValue(m.PayloadHandlers)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1410,6 +1475,39 @@ func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
 }
 
 func (m *ReplayCursorOutcome) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PayloadHandlers) CloneVT() *PayloadHandlers {
+	if m == nil {
+		return (*PayloadHandlers)(nil)
+	}
+	r := new(PayloadHandlers)
+	r.Handlers = protobuf_go_lite.CloneVTSlice(m.Handlers)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PayloadHandlers) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PayloadHandler) CloneVT() *PayloadHandler {
+	if m == nil {
+		return (*PayloadHandler)(nil)
+	}
+	r := new(PayloadHandler)
+	r.OpTypeId = m.OpTypeId
+	r.Version = m.Version
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PayloadHandler) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2062,11 +2160,57 @@ func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
 	if this.Seqno != that.Seqno {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.PayloadHandlers, that.PayloadHandlers) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ReplayCursorOutcome) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReplayCursorOutcome)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PayloadHandlers) EqualVT(that *PayloadHandlers) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Handlers, that.Handlers, func() *PayloadHandler { return &PayloadHandler{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PayloadHandlers) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PayloadHandlers)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PayloadHandler) EqualVT(that *PayloadHandler) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OpTypeId != that.OpTypeId {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PayloadHandler) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PayloadHandler)
 	if !ok {
 		return false
 	}
@@ -3614,6 +3758,11 @@ func (x *ReplayCursorOutcome) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("seqno")
 		s.WriteUint64(x.Seqno)
 	}
+	if x.PayloadHandlers != nil || s.HasField("payloadHandlers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloadHandlers")
+		x.PayloadHandlers.MarshalProtoJSON(s.WithField("payloadHandlers"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3672,12 +3821,132 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "seqno":
 			s.AddField("seqno")
 			x.Seqno = s.ReadUint64()
+		case "payload_handlers", "payloadHandlers":
+			if s.ReadNil() {
+				x.PayloadHandlers = nil
+				return
+			}
+			x.PayloadHandlers = &PayloadHandlers{}
+			x.PayloadHandlers.UnmarshalProtoJSON(s.WithField("payload_handlers", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ReplayCursorOutcome from JSON.
 func (x *ReplayCursorOutcome) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PayloadHandlers message to JSON.
+func (x *PayloadHandlers) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Handlers) > 0 || s.HasField("handlers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("handlers")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Handlers {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("handlers"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PayloadHandlers to JSON.
+func (x *PayloadHandlers) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PayloadHandlers message from JSON.
+func (x *PayloadHandlers) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "handlers":
+			s.AddField("handlers")
+			if s.ReadNil() {
+				x.Handlers = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Handlers = append(x.Handlers, nil)
+					return
+				}
+				v := &PayloadHandler{}
+				v.UnmarshalProtoJSON(s.WithField("handlers", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Handlers = append(x.Handlers, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PayloadHandlers from JSON.
+func (x *PayloadHandlers) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PayloadHandler message to JSON.
+func (x *PayloadHandler) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OpTypeId != "" || s.HasField("opTypeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opTypeId")
+		s.WriteString(x.OpTypeId)
+	}
+	if x.Version != 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteUint32(x.Version)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PayloadHandler to JSON.
+func (x *PayloadHandler) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PayloadHandler message from JSON.
+func (x *PayloadHandler) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "op_type_id", "opTypeId":
+			s.AddField("op_type_id")
+			x.OpTypeId = s.ReadString()
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PayloadHandler from JSON.
+func (x *PayloadHandler) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4976,6 +5245,16 @@ func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.PayloadHandlers != nil {
+		size, err := m.PayloadHandlers.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.Seqno != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
 		i--
@@ -5020,6 +5299,92 @@ func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Hash) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PayloadHandlers) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PayloadHandlers) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PayloadHandlers) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Handlers) > 0 {
+		for iNdEx := len(m.Handlers) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Handlers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PayloadHandler) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PayloadHandler) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PayloadHandler) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Version != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.OpTypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OpTypeId)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5534,6 +5899,36 @@ func (m *ReplayCursorOutcome) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
+	if m.PayloadHandlers != nil {
+		l = m.PayloadHandlers.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PayloadHandlers) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Handlers {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PayloadHandler) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OpTypeId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Version)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6133,10 +6528,54 @@ func (x *ReplayCursorOutcome) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
 		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
 	}
+	if x.PayloadHandlers != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload_handlers")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.PayloadHandlers)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ReplayCursorOutcome) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PayloadHandlers) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PayloadHandlers")
+	if len(x.Handlers) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "handlers")
+		for i, v := range x.Handlers {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &PayloadHandler{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PayloadHandlers) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PayloadHandler) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PayloadHandler")
+	if x.OpTypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.OpTypeId)
+	}
+	if x.Version != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteUint(&sb, x.Version)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PayloadHandler) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -7844,6 +8283,139 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Seqno = 0
 			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PayloadHandlers", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.PayloadHandlers == nil {
+				m.PayloadHandlers = &PayloadHandlers{}
+			}
+			if err := m.PayloadHandlers.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PayloadHandlers) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PayloadHandlers: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PayloadHandlers: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Handlers", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Handlers = append(m.Handlers, &PayloadHandler{})
+			if err := m.Handlers[len(m.Handlers)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PayloadHandler) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PayloadHandler: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PayloadHandler: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpTypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OpTypeId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			m.Version, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

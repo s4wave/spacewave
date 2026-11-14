@@ -14,8 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NewGitInitOp constructs a new GitInitOp block.
-// repoRef, worktreeArgs, ts can be empty
+// NewGitInitOp constructs a new GitInitOp block. repoRef, worktreeArgs and ts
+// can be empty.
 func NewGitInitOp(
 	objKey string,
 	repoRef *bucket.ObjectRef,
@@ -136,6 +136,11 @@ func (o *GitInitOp) GetPayloadRefs() []*block.BlockRef {
 		return nil
 	}
 	return []*block.BlockRef{root}
+}
+
+// PayloadRefsVersion identifies what GetPayloadRefs names.
+func (o *GitInitOp) PayloadRefsVersion() uint32 {
+	return 1
 }
 
 // _ is a type assertion

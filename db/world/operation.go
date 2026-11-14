@@ -85,6 +85,11 @@ type PayloadOperation interface {
 
 	// GetPayloadRefs returns the roots of the operation's payload.
 	GetPayloadRefs() []*block.BlockRef
+	// PayloadRefsVersion identifies what GetPayloadRefs names for the
+	// operation type. Saved payload roots are reused only under the same
+	// version; change what GetPayloadRefs names and the golden test makes you
+	// bump it. It is never zero.
+	PayloadRefsVersion() uint32
 }
 
 // LookupOp looks up an operation type for a op type id.

@@ -36,6 +36,8 @@ type spaceAdmission struct {
 	op []byte
 	// payloads are the operation's payload roots, held before it is queued.
 	payloads []*block.BlockRef
+	// handlers identifies the handlers that named payloads.
+	handlers *PayloadHandlers
 	// done closes once state is admissionDecided.
 	done chan struct{}
 

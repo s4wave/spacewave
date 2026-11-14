@@ -263,6 +263,28 @@ message ReplayCursorOutcome {
   RetainedRootSet retained_roots = 7;
   // Seqno is the World seqno after the operation.
   uint64 seqno = 8;
+  // PayloadHandlers identifies the handlers that named Payloads. A remount
+  // reuses Payloads only when every handler still names the same roots, and
+  // resolves the operation again when this is unset.
+  PayloadHandlers payload_handlers = 9;
+}
+
+// PayloadHandlers identifies the handlers that named an operation's payload
+// roots.
+message PayloadHandlers {
+  // Handlers are the operation types of the operation's transaction, each
+  // once and sorted by type.
+  repeated PayloadHandler handlers = 1;
+}
+
+// PayloadHandler is the handler of one operation type, as far as the payload
+// roots it names.
+message PayloadHandler {
+  // OpTypeId is the operation type.
+  string op_type_id = 1;
+  // Version is the PayloadRefsVersion of the type's handler, or zero for a
+  // type that names no payload roots of its own.
+  uint32 version = 2;
 }
 
 // BackfillState is the outcome of the last finished backfill copy on this
