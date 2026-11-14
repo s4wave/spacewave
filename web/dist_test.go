@@ -58,6 +58,10 @@ func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
 	}
 }
 
+// TestDistSourcesAreClosed checks that every local import of an embedded
+// source resolves to an embedded source. .githooks/check-dist-closure.ts
+// mirrors it over the go:embed patterns, so the commit hook catches a missing
+// embed line without a Go build; change both together.
 func TestDistSourcesAreClosed(t *testing.T) {
 	importPattern, err := regexp.Compile(`(?m)(?:\bfrom\s*|\bimport\s*(?:\(\s*)?|@import\s*)["']([^"']+)["']`)
 	if err != nil {
