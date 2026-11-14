@@ -211,12 +211,28 @@ func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Rea
 }
 
 // ExpectFile makes Commit refuse the whole batch with a *FileConflictError
-// unless the file at parentPath/name has the node reference version, or, with
-// version nil, unless the path holds nothing. Commit checks every expectation
-// in its transaction against the root it publishes onto, before merging any
-// entry, so a write committed first through any writer is never replaced
-// unseen.
+// unless the file at parentPath/name has the node reference version. Commit
+// checks every expectation in its transaction against the root it publishes
+// onto, before merging any entry, so a write committed first through any
+// writer is never replaced unseen.
 func (b *BatchFSWriter) ExpectFile(parentPath []string, name string, version *block.BlockRef) error {
+	if version.GetEmpty() {
+		return errors.New("expected file version is empty")
+	}
+	return b.expect(parentPath, name, version)
+}
+
+// ExpectMissing makes Commit refuse the whole batch with a *FileConflictError
+// unless parentPath/name holds nothing: no file, directory or symlink. A batch
+// that adds a directory under this expectation never merges into one another
+// writer created first. Commit checks it as it checks ExpectFile.
+func (b *BatchFSWriter) ExpectMissing(parentPath []string, name string) error {
+	return b.expect(parentPath, name, nil)
+}
+
+// expect records that parentPath/name must hold the file with version, or
+// nothing when version is nil, when Commit applies the batch.
+func (b *BatchFSWriter) expect(parentPath []string, name string, version *block.BlockRef) error {
 	if err := b.checkOpen(); err != nil {
 		return err
 	}

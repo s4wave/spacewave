@@ -33,10 +33,15 @@ interface FSHandleMeta {
 }
 
 // TreeUploadDirectory is one explicit directory in a tree upload.
+// expectMissing creates the directory only when the path holds nothing at
+// commit; otherwise the upload ends in a conflict naming the path and nothing
+// is committed. Unset, an existing directory is reused and the entries under
+// it merge into it.
 export interface TreeUploadDirectory {
   kind: 'directory'
   path: string
   mode?: number
+  expectMissing?: boolean
 }
 
 // TreeUploadExpect states what a tree upload file may replace. missing
@@ -67,10 +72,10 @@ export interface TreeUploadFile {
 // TreeUploadEntry is one tree upload entry.
 export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
 
-// TreeUploadResult is the outcome of a tree upload. conflict means a file's
-// expectation failed and nothing was committed; path is relative to the
-// upload handle and version is the file's current version, absent when the
-// path holds no file. versions holds the new version of each file whose
+// TreeUploadResult is the outcome of a tree upload. conflict means an
+// entry's expectation failed and nothing was committed; path is relative to
+// the upload handle and version is the file's current version, absent when
+// the path holds no file. versions holds the new version of each file whose
 // entry set wantVersion, in entry order.
 export type TreeUploadResult =
   | {
@@ -648,6 +653,7 @@ export class FSHandle extends Resource implements IFSHandle {
               value: {
                 path: entry.path,
                 mode: entry.mode ?? 0o755,
+                expectMissing: entry.expectMissing ?? false,
               },
             },
           }
