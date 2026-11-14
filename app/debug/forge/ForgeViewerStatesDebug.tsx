@@ -1,10 +1,11 @@
 import { LuActivity, LuListTodo, LuPlay } from 'react-icons/lu'
 
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {
+  forgeBlockStatus,
   ForgeViewerShell,
   type ForgeViewerTab,
 } from '@s4wave/web/forge/ForgeViewerShell.js'
-import type { ViewerStatusProps } from '@s4wave/web/object/ViewerStatus.js'
 import { useParams } from '@s4wave/web/router/router.js'
 import { FactRow } from '@s4wave/web/ui/FactList.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
@@ -15,15 +16,17 @@ import { ExecutionLog } from '@s4wave/app/forge/ForgeExecutionViewer.js'
 // noop stands in for a Retry press.
 const noop = () => {}
 
-// statuses are what a Forge viewer shows while its entity block cannot.
-const statuses: Record<string, ViewerStatusProps> = {
-  waiting: { state: 'waiting', what: 'the task' },
+// blocks are a task block in each read state that hides the tabs; the
+// viewer's own forgeBlockStatus turns each into what the shell shows.
+const blocks: Record<string, Resource<unknown>> = {
+  waiting: { value: null, loading: true, error: null, retry: noop },
   failed: {
-    state: 'failed',
-    message: 'Could not read the task: block not found',
+    value: null,
+    loading: false,
+    error: new Error('block not found'),
     retry: noop,
   },
-  empty: { state: 'empty', message: 'No data is stored for the task yet.' },
+  empty: { value: null, loading: false, error: null, retry: noop },
 }
 
 // taskStateLabels name the task states the fixture shows.
@@ -128,7 +131,8 @@ export function ForgeViewerStatesDebug() {
   }
 
   // A task in a block state, or readable with its tabs.
-  const status = statuses[state] ?? null
+  const block = blocks[state]
+  const status = block ? forgeBlockStatus('the task', block) : null
   return (
     <div className="viewer-pane h-full w-full">
       <ForgeViewerShell

@@ -114,7 +114,7 @@ export function ExecutionLog({
       aria-label="Execution log"
       tabIndex={0}
       onScroll={onScroll}
-      className="bg-background-dark ps-viewer-pad pe-viewer-pad @pane-roomy:ps-viewer-pad-roomy @pane-roomy:pe-viewer-pad-roomy min-h-0 flex-1 overflow-y-auto py-2"
+      className="bg-background-dark viewer-inset-x min-h-0 flex-1 overflow-y-auto py-2"
     >
       {entries.map((entry, index) => (
         <div
@@ -234,7 +234,7 @@ export function ForgeExecutionViewer({
       status={forgeBlockStatus('the execution', block)}
       headerStatus={
         execution?.waitingPluginId && (
-          <div className="border-foreground/8 text-foreground border-b px-4 py-2 text-xs">
+          <div className="border-foreground/8 text-foreground viewer-inset-x border-b py-2 text-xs">
             Waiting for plugin {execution.waitingPluginId} to load
           </div>
         )
