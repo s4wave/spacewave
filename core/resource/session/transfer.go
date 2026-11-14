@@ -159,6 +159,15 @@ func (r *SessionResource) StartTransfer(
 		return nil, errors.New("target session not found")
 	}
 
+	// Refuse two sessions of one account: the account is both ends, so a
+	// Merge or Migrate would delete the target with the source.
+	srcProv := srcEntry.GetSessionRef().GetProviderResourceRef()
+	tgtProv := tgtEntry.GetSessionRef().GetProviderResourceRef()
+	if srcProv.GetProviderId() == tgtProv.GetProviderId() &&
+		srcProv.GetProviderAccountId() == tgtProv.GetProviderAccountId() {
+		return nil, errors.New("source and target sessions belong to the same account")
+	}
+
 	// Build source and target transfer adapters.
 	source, cleanup, err := buildTransferSource(ctx, r.b, srcEntry)
 	if err != nil {

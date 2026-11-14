@@ -5,9 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/util/ulid"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
+	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/db/volume"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
@@ -520,4 +522,70 @@ func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
 	if len(inv.GetSpaces()) != 1 {
 		t.Fatalf("expected 1 space on target, got %d", len(inv.GetSpaces()))
 	}
+}
+
+// TestTransferRefusesSameAccount starts a Merge, Migrate and Mirror between two
+// sessions of one account that holds no Space, and checks that each is refused
+// and the account stays whole: a Merge or Migrate there would delete the
+// target with the source.
+func TestTransferRefusesSameAccount(t *testing.T) {
+	// Create an account with two sessions and a session of another account.
+	ctx := context.Background()
+	env := setupTestEnv(ctx, t)
+	srcRef, srcIdx := env.createSession(ctx, t)
+	srcAcc := env.accessAccount(ctx, t, srcRef)
+	secondRef := srcRef.CloneVT()
+	secondRef.GetProviderResourceRef().Id = ulid.NewULID()
+	second, err := env.sessCtrl.RegisterSession(ctx, secondRef, &session.SessionMetadata{
+		ProviderDisplayName: "Local",
+		ProviderId:          "local",
+		ProviderAccountId:   secondRef.GetProviderResourceRef().GetProviderAccountId(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherRef, _ := env.createSession(ctx, t)
+	_ = env.accessAccount(ctx, t, otherRef)
+	resource := env.buildSessionResource(ctx, t, otherRef)
+
+	// Every mode is refused.
+	for _, mode := range []provider_transfer.TransferMode{
+		provider_transfer.TransferMode_TransferMode_MERGE,
+		provider_transfer.TransferMode_TransferMode_MIGRATE,
+		provider_transfer.TransferMode_TransferMode_MIRROR,
+	} {
+		_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
+			SourceSessionIndex: srcIdx,
+			TargetSessionIndex: second.GetSessionIndex(),
+			Mode:               mode,
+		})
+		if err == nil || !strings.Contains(err.Error(), "same account") {
+			t.Fatalf("%s between sessions of one account: expected a refusal, got %v", mode, err)
+		}
+	}
+
+	// Both sessions stay listed.
+	for _, idx := range []uint32{srcIdx, second.GetSessionIndex()} {
+		entry, err := env.sessCtrl.GetSessionByIdx(ctx, idx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if entry == nil {
+			t.Fatalf("session %d of the account is no longer listed", idx)
+		}
+	}
+
+	// The account volume still mounts its session object store.
+	provRef := srcRef.GetProviderResourceRef()
+	objectStoreID := provider_local.SessionObjectStoreID(provRef.GetProviderId(), provRef.GetProviderAccountId())
+	handle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, env.tb.Bus, false, objectStoreID, srcAcc.GetVolume().GetID(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer diRef.Release()
+	otx, err := handle.GetObjectStore().NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otx.Discard()
 }
