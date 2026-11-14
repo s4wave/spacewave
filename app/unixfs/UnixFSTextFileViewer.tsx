@@ -25,7 +25,9 @@ import {
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 
 import {
+  decodeText,
   deriveTextFileView,
+  encodeText,
   initialTextFileState,
   reduceTextFile,
   type TextContent,
@@ -81,20 +83,9 @@ export async function readTextContent(
   // Read one byte past the limit to know whether the file is whole.
   const max = unixFSHandleTextContentMaxBytes
   const result = await handle.readAt(0n, BigInt(max + 1), signal)
-  const data = result.eof ? result.data : result.data.subarray(0, max)
-  const version = result.version
-  if (!result.eof || result.data.length > max) {
-    return { text: new TextDecoder().decode(data), preview: 'large', version }
-  }
-
-  // A whole file that fails a strict decode is shown with replacements.
-  try {
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(data)
-    return { text, preview: null, version }
-  } catch {
-    const text = new TextDecoder().decode(data)
-    return { text, preview: 'encoding', version }
-  }
+  const cut = !result.eof || result.data.length > max
+  const data = cut ? result.data.subarray(0, max) : result.data
+  return { ...decodeText(data, cut), version: result.version }
 }
 
 /**
@@ -126,12 +117,12 @@ async function readFresh(
 async function writeText(
   root: FSHandle,
   path: string,
-  text: string,
+  data: Uint8Array<ArrayBuffer>,
   mode: number,
   expect: TreeUploadExpect,
   signal: AbortSignal,
 ): Promise<TreeUploadResult> {
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const blob = new Blob([data], { type: 'text/plain;charset=utf-8' })
   const upload = (expect: TreeUploadExpect) =>
     root.uploadTree(
       [
@@ -157,6 +148,7 @@ async function writeText(
 const previewNote: Record<TextPreview, string> = {
   large: 'This preview is too large to edit here.',
   encoding: 'This file is not UTF-8 text, so it cannot be edited here.',
+  endings: 'This file mixes line endings, so it cannot be edited here.',
 }
 
 /** TextFilePresses draws the viewer's presses inside another component's bar. */
@@ -241,12 +233,15 @@ export function UnixFSTextFileViewer({
     }
     dispatch({ type: 'save', over })
 
-    // Write the text as UTF-8 stores it, so the read back compares equal.
-    const text = new TextDecoder().decode(new TextEncoder().encode(draft.text))
+    // Write the draft in the file's line endings, and remember its text as a
+    // read of those bytes decodes it, so the read back compares equal.
+    const crlf = draft.from.crlf
+    const data = encodeText(draft.text, crlf)
+    const text = decodeText(data, false).text
     let result: TreeUploadResult
     try {
       const mode = handle.getInfo().mode ?? 0o644
-      result = await writeText(root, path, text, mode, expect, signal)
+      result = await writeText(root, path, data, mode, expect, signal)
     } catch (cause) {
       if (!signal.aborted) {
         dispatch({ type: 'save-failed', error: errorText(cause) })
@@ -258,7 +253,7 @@ export function UnixFSTextFileViewer({
     // A landed save shows its text and reads its version back; a refused one
     // offers Save over theirs and reads their version back.
     if (result.kind === 'written') {
-      dispatch({ type: 'saved', text })
+      dispatch({ type: 'saved', text, crlf })
     } else {
       dispatch({ type: 'refused' })
     }

@@ -18,6 +18,7 @@ const noop = () => {}
 
 const notes: TextContent = {
   preview: null,
+  crlf: false,
   version: new Uint8Array([1]),
   text: Array.from(
     { length: 40 },
@@ -27,6 +28,7 @@ const notes: TextContent = {
 }
 const theirs: TextContent = {
   preview: null,
+  crlf: false,
   version: new Uint8Array([2]),
   text: notes.text.replace('ridge 1 ', 'the first ridge '),
 }
@@ -100,10 +102,15 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
-      { type: 'saved', text: mine },
+      { type: 'saved', text: mine, crlf: false },
       {
         type: 'back-read',
-        content: { text: mine, preview: null, version: new Uint8Array([3]) },
+        content: {
+          text: mine,
+          crlf: false,
+          preview: null,
+          version: new Uint8Array([3]),
+        },
       },
     ],
   },
@@ -113,7 +120,7 @@ const fixtures: Record<string, Fixture> = {
       edit,
       type,
       { type: 'save', over: false },
-      { type: 'saved', text: mine },
+      { type: 'saved', text: mine, crlf: false },
     ],
   },
   refused: {

@@ -8,7 +8,9 @@
 \* again by Retry or a new file handle; it is waiting, failed or shown. Nothing
 \* watches the file, so another writer's commit shows at such a read or when
 \* the store refuses a Save. A read is whole, or a preview: cut at the read
-\* limit or decoded with replacements, whose text is not the file's. A failed
+\* limit, decoded with replacements, or with line endings the editor cannot
+\* write back; a preview's text is not the file's. A whole read's text is its
+\* bytes, byte order mark and line endings included. A failed
 \* read drops what it read, so with no draft the failure takes the body and
 \* Retry reads again.
 \*

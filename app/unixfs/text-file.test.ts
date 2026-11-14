@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  decodeText,
   deriveTextFileView,
+  encodeText,
   initialTextFileState,
   reduceTextFile,
   type TextContent,
@@ -11,7 +13,7 @@ import {
 
 // read is a whole text read at version v.
 function read(text: string, v: number): TextContent {
-  return { text, preview: null, version: new Uint8Array([v]) }
+  return { text, crlf: false, preview: null, version: new Uint8Array([v]) }
 }
 
 const original = read('original', 1)
@@ -107,7 +109,7 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine' },
+      { type: 'saved', text: 'mine', crlf: false },
       { type: 'back-read', content: after },
     )
 
@@ -123,7 +125,7 @@ describe('reduceTextFile', () => {
     const saved = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine' },
+      { type: 'saved', text: 'mine', crlf: false },
       { type: 'read', content: original },
     )
 
@@ -149,7 +151,7 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine' },
+      { type: 'saved', text: 'mine', crlf: false },
       { type: 'back-read', content: original },
     )
 
@@ -164,7 +166,7 @@ describe('reduceTextFile', () => {
     const state = replay(
       ...drafted,
       { type: 'save', over: false },
-      { type: 'saved', text: 'mine' },
+      { type: 'saved', text: 'mine', crlf: false },
       { type: 'edit' },
       { type: 'type', text: 'more' },
       { type: 'read', content: theirs },
@@ -220,5 +222,51 @@ describe('reduceTextFile', () => {
     const view = viewOf(state)
     expect(view.state === 'editing' && view.changed).toBeNull()
     expect(state.draft?.from).toBe(same)
+  })
+})
+
+describe('decodeText', () => {
+  const bytes = (text: string) => new TextEncoder().encode(text)
+
+  it('keeps a byte order mark through a save', () => {
+    const file = bytes('\uFEFFnotes\n')
+    const form = decodeText(file, false)
+    expect(form).toEqual({ text: '\uFEFFnotes\n', crlf: false, preview: null })
+    expect(encodeText(form.text + 'more\n', form.crlf)).toEqual(
+      bytes('\uFEFFnotes\nmore\n'),
+    )
+  })
+
+  it('writes an edit of CRLF lines back with CRLF', () => {
+    // The editor holds LF lines; the save writes CRLF again.
+    const form = decodeText(bytes('one\r\ntwo\r\n'), false)
+    expect(form).toEqual({ text: 'one\ntwo\n', crlf: true, preview: null })
+    expect(encodeText(form.text.replace('two', 'TWO'), form.crlf)).toEqual(
+      bytes('one\r\nTWO\r\n'),
+    )
+  })
+
+  it('saves an unedited file byte for byte', () => {
+    const files = [
+      '',
+      'no final newline',
+      'lf\nlines\n',
+      '\uFEFFmark\r\ncrlf\r\nno final newline',
+      '\r\n\r\n',
+      'wide \u{1F680} text\n',
+      '\uFEFF\uFEFFtwo marks\n',
+    ]
+    for (const file of files) {
+      const form = decodeText(bytes(file), false)
+      expect(form.preview).toBeNull()
+      expect(encodeText(form.text, form.crlf)).toEqual(bytes(file))
+    }
+  })
+
+  it('opens no draft of a file with mixed line endings', () => {
+    // The editor would write every line back in one form.
+    for (const file of ['a\r\nb\n', 'a\rb', 'a\nb\r\n']) {
+      expect(decodeText(bytes(file), false).preview).toBe('endings')
+    }
   })
 })

@@ -3,10 +3,16 @@
 
 /** TextContent is one read of a text file. */
 export interface TextContent {
+  // text is the file as the editor holds it: a byte order mark stays as
+  // U+FEFF, and lines end in LF whatever the file uses.
   text: string
+  // crlf is set when every line of the file ends in CRLF; a save writes them
+  // back so.
+  crlf: boolean
   // preview says why the read is not the whole file as text: cut at the read
-  // limit, or not valid UTF-8 and decoded with replacements. A preview is
-  // never edited, and its text never stands in for the file's contents.
+  // limit, not valid UTF-8 and decoded with replacements, or line endings the
+  // editor cannot write back. A preview is never edited, and its text never
+  // stands in for the file's contents.
   preview: TextPreview | null
   // version is the file version the read saw. A plain Save expects it, so the
   // store refuses the write when another writer saved since.
@@ -14,8 +20,46 @@ export interface TextContent {
 }
 
 /** TextPreview is why a read cannot be edited. */
-export type TextPreview = 'large' | 'encoding'
+export type TextPreview = 'large' | 'encoding' | 'endings'
 
+// decoder keeps a byte order mark in the text, so it saves back.
+const decoder = new TextDecoder('utf-8', { ignoreBOM: true })
+const strictDecoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+
+/** TextForm is a file's text as the editor holds it. */
+export type TextForm = Omit<TextContent, 'version'>
+
+/**
+ * decodeText decodes a file's bytes, or its first bytes when cut, into the
+ * form the editor holds. encodeText of a whole, editable result returns the
+ * same bytes.
+ */
+export function decodeText(data: Uint8Array, cut: boolean): TextForm {
+  if (cut) return { text: decoder.decode(data), crlf: false, preview: 'large' }
+  let text: string
+  try {
+    text = strictDecoder.decode(data)
+  } catch {
+    return { text: decoder.decode(data), crlf: false, preview: 'encoding' }
+  }
+
+  // The editor ends every line in LF, so only a file whose lines all end in
+  // LF, or all in CRLF, saves back unchanged; any other CR makes a preview.
+  if (!text.includes('\r')) return { text, crlf: false, preview: null }
+  const lf = text.replaceAll('\r\n', '\n')
+  if (lf.includes('\r') || lf.replaceAll('\n', '\r\n') !== text) {
+    return { text, crlf: false, preview: 'endings' }
+  }
+  return { text: lf, crlf: true, preview: null }
+}
+
+/** encodeText returns the bytes a file of the editor's text holds. */
+export function encodeText(
+  text: string,
+  crlf: boolean,
+): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(crlf ? text.replaceAll('\n', '\r\n') : text)
+}
 /**
  * SavedText is a save that landed before any read showed its version. The
  * upload result carries no version, so the viewer shows the text it wrote and
@@ -24,6 +68,7 @@ export type TextPreview = 'large' | 'encoding'
  */
 export interface SavedText {
   text: string
+  crlf: boolean
   preview: null
   version: null
   // replaced lists the versions the viewer knew before the save.
@@ -112,7 +157,7 @@ export type TextFileEvent =
   | { type: 'edit' }
   | { type: 'type'; text: string }
   | { type: 'save'; over: boolean }
-  | { type: 'saved'; text: string }
+  | { type: 'saved'; text: string; crlf: boolean }
   | { type: 'save-failed'; error: string }
   | { type: 'refused' }
   | { type: 'back-reading' }
@@ -139,14 +184,19 @@ function stale(state: TextFileState, content: TextContent): boolean {
   return !!refused && sameVersion(refused, content.version)
 }
 
-// land takes a read that is not stale. A whole read with the text the draft
-// started from changes nothing the draft holds, so the draft moves onto it; a
-// preview's text is not the file's, so it never moves a draft. A save in
-// flight keeps the version it expected, so a refusal names that version.
+// land takes a read that is not stale. A whole read of the bytes the draft
+// started from, its text and line endings, changes nothing the draft holds,
+// so the draft moves onto it; a preview's text is not the file's, so it never
+// moves a draft. A save in flight keeps the version it expected, so a refusal
+// names that version.
 function land(state: TextFileState, content: TextContent): TextFileState {
   const { draft } = state
-  const whole = !content.preview
-  if (draft && !draft.saving && whole && content.text === draft.from.text) {
+  const from = draft?.from
+  const same =
+    !content.preview &&
+    content.text === from?.text &&
+    content.crlf === from.crlf
+  if (draft && !draft.saving && same) {
     const moved = { ...draft, from: content, refused: false }
     return { ...state, seen: content, draft: moved }
   }
@@ -203,6 +253,7 @@ export function reduceTextFile(
       const replaced = [...versionsOf(state.seen), ...versionsOf(draft.from)]
       const seen: SavedText = {
         text: event.text,
+        crlf: event.crlf,
         preview: null,
         version: null,
         replaced,

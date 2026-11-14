@@ -56,6 +56,12 @@ function diskHolds(text: string | Error) {
   handles.disk = text
 }
 
+// uploadedText returns the bytes an upload call sent for its one file.
+async function uploadedBytes(upload: ReturnType<typeof vi.fn>, call: number) {
+  const entries = upload.mock.calls[call][0] as { stream: ReadableStream }[]
+  return new Uint8Array(await new Response(entries[0].stream).arrayBuffer())
+}
+
 // written is the result of an upload the store committed.
 const written = {
   kind: 'written',
@@ -410,5 +416,40 @@ describe('UnixFS text editing', () => {
       'This file is not UTF-8 text, so it cannot be edited here.',
     )
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+  })
+
+  it('saves an edit to a CRLF file with a byte order mark as only that edit', async () => {
+    // A file with a byte order mark and CRLF lines, edited by one line.
+    const file = '\uFEFFfirst\r\nsecond\r\n'
+    const saved = file + 'third\r\n'
+    readsText(file)
+    diskHolds(saved)
+    const upload = vi.fn().mockResolvedValue(written)
+    render(
+      <UnixFSTextFileViewer
+        rootHandle={rootResource(upload)}
+        path="/notes.txt"
+      />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    const box = screen.getByRole('textbox', { name: 'File contents' })
+    typeInto((box as HTMLTextAreaElement).value + 'third\n')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // The upload keeps the mark and the CRLF lines, and the read back of
+    // those bytes is taken as the save's version.
+    await waitFor(() => expect(upload).toHaveBeenCalledTimes(1))
+    expect(await uploadedBytes(upload, 0)).toEqual(
+      new TextEncoder().encode(saved),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    typeInto('\uFEFFfirst\n')
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', { name: 'Save' })
+          .getAttribute('aria-disabled'),
+      ).toBeNull(),
+    )
   })
 })
