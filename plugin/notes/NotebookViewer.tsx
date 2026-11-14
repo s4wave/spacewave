@@ -18,10 +18,9 @@ import NotebookSidebar from './NotebookSidebar.js'
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 import {
+  sourceEditProblem,
   useNotebookViewerState,
   type RemoveTarget,
-  type SourceEdit,
-  type SourceEditState,
 } from './useNotebookViewerState.js'
 import NotebookSavedViews from './NotebookSavedViews.js'
 
@@ -279,13 +278,13 @@ function SourceEditDialogs({
     handleRemoveSourceOpenChange,
     handleConfirmRemoveSource,
   } = viewerState
-  const removeError = editError(sourceEdit, 'remove')
+  const removeError = sourceEditProblem(sourceEdit, 'remove')
   return (
     <>
       <SourceInputDialog
         open={addSourceOpen}
         sending={editSending}
-        error={editError(sourceEdit, 'add')}
+        error={sourceEditProblem(sourceEdit, 'add')}
         onOpenChange={handleAddSourceOpenChange}
         onConfirm={(source) => void handleConfirmAddSource(source)}
       />
@@ -304,13 +303,6 @@ function SourceEditDialogs({
       />
     </>
   )
-}
-
-// editError returns what failed in an edit of kind, if it failed.
-function editError(state: SourceEditState, kind: SourceEdit['kind']) {
-  return state.status === 'failed' && state.edit.kind === kind
-    ? state.error
-    : undefined
 }
 
 // sourceLabel names a source in a sentence the way the sidebar shows it.

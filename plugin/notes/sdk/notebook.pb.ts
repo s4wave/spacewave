@@ -8,8 +8,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
 
 /**
- * NotebookEditOutcome is what became of a Notebook edit that carried the
- * sources its caller saw.
+ * NotebookEditOutcome is what became of a Notebook source edit.
  *
  * @generated from enum notes.NotebookEditOutcome
  */
@@ -30,6 +29,20 @@ export enum NotebookEditOutcome {
    * resending.
    */
   CHANGED = 2,
+
+  /**
+   * NOTEBOOK_EDIT_OUTCOME_TIMED_OUT means the plugin did not finish the edit in
+   * time and the host discarded its transaction, so nothing was written and
+   * sending the same edit again is safe.
+   */
+  TIMED_OUT = 3,
+
+  /**
+   * NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE means the host could not reach the
+   * plugin that applies the edit, so nothing was sent to apply and sending the
+   * same edit again is safe.
+   */
+  PLUGIN_UNAVAILABLE = 4,
 }
 
 export const NotebookEditOutcome_Enum = /* @__PURE__ */ createEnumType(
@@ -38,6 +51,8 @@ export const NotebookEditOutcome_Enum = /* @__PURE__ */ createEnumType(
     [0, 'NOTEBOOK_EDIT_OUTCOME_UNKNOWN'],
     [1, 'NOTEBOOK_EDIT_OUTCOME_APPLIED'],
     [2, 'NOTEBOOK_EDIT_OUTCOME_CHANGED'],
+    [3, 'NOTEBOOK_EDIT_OUTCOME_TIMED_OUT'],
+    [4, 'NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE'],
   ],
 )
 
@@ -95,12 +110,17 @@ export const AddSourceRequest: MessageType<AddSourceRequest> =
  *
  * @generated from message notes.AddSourceResponse
  */
-export interface AddSourceResponse {}
+export interface AddSourceResponse {
+  /**
+   * Outcome is what became of the edit; an add never reports changed.
+   */
+  outcome?: NotebookEditOutcome
+}
 
 export const AddSourceResponse: MessageType<AddSourceResponse> =
   /* @__PURE__ */ createMessageType<AddSourceResponse>(
     'notes.AddSourceResponse',
-    () => [],
+    () => [[1, 'outcome', 14, 0, NotebookEditOutcome_Enum]],
   )
 
 /**

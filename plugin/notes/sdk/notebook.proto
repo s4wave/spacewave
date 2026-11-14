@@ -33,10 +33,12 @@ message AddSourceRequest {
 }
 
 // AddSourceResponse is the response for AddSource.
-message AddSourceResponse {}
+message AddSourceResponse {
+  // Outcome is what became of the edit; an add never reports changed.
+  NotebookEditOutcome outcome = 1;
+}
 
-// NotebookEditOutcome is what became of a Notebook edit that carried the
-// sources its caller saw.
+// NotebookEditOutcome is what became of a Notebook source edit.
 enum NotebookEditOutcome {
   // NOTEBOOK_EDIT_OUTCOME_UNKNOWN is the unset outcome.
   NOTEBOOK_EDIT_OUTCOME_UNKNOWN = 0;
@@ -46,6 +48,14 @@ enum NotebookEditOutcome {
   // the caller saw, so nothing was written; the caller refreshes instead of
   // resending.
   NOTEBOOK_EDIT_OUTCOME_CHANGED = 2;
+  // NOTEBOOK_EDIT_OUTCOME_TIMED_OUT means the plugin did not finish the edit in
+  // time and the host discarded its transaction, so nothing was written and
+  // sending the same edit again is safe.
+  NOTEBOOK_EDIT_OUTCOME_TIMED_OUT = 3;
+  // NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE means the host could not reach the
+  // plugin that applies the edit, so nothing was sent to apply and sending the
+  // same edit again is safe.
+  NOTEBOOK_EDIT_OUTCOME_PLUGIN_UNAVAILABLE = 4;
 }
 
 // RemoveSourceRequest is the request for RemoveSource.

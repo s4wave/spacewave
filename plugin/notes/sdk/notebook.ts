@@ -20,7 +20,10 @@ export interface INotebookHandle {
   watchNotebook(abortSignal?: AbortSignal): AsyncIterable<Notebook>
 
   // addSource adds a source to the notebook.
-  addSource(source: NotebookSource, abortSignal?: AbortSignal): Promise<void>
+  addSource(
+    source: NotebookSource,
+    abortSignal?: AbortSignal,
+  ): Promise<NotebookEditOutcome>
 
   // removeSource removes the source at index while it is still source.
   removeSource(
@@ -76,8 +79,9 @@ export class NotebookHandle extends Resource implements INotebookHandle {
   public async addSource(
     source: NotebookSource,
     abortSignal?: AbortSignal,
-  ): Promise<void> {
-    await this.service.AddSource({ source }, abortSignal)
+  ): Promise<NotebookEditOutcome> {
+    const resp = await this.service.AddSource({ source }, abortSignal)
+    return resp.outcome ?? 0
   }
 
   // removeSource removes the source at index while it is still source.

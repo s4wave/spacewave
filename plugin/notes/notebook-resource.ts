@@ -2,7 +2,10 @@ import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import type { MessageStream } from 'starpc'
 
 import { Engine } from '@s4wave/sdk/world/engine.js'
-import { throwOperationError } from '@s4wave/sdk/world/errors.js'
+import {
+  PluginOpTimeoutError,
+  throwOperationError,
+} from '@s4wave/sdk/world/errors.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import { watchObjectQuery } from '@s4wave/sdk/sync/object-query.js'
 import type { AppRevision } from '@s4wave/sdk/sync/instance.js'
@@ -84,6 +87,8 @@ class NotebookResource implements NotebookResourceService {
    * which reads, checks and writes the Notebook under the World writer. An
    * edit made against sources the Notebook no longer holds comes back as the
    * changed outcome; the caller refreshes from its watch and does not resend.
+   * An edit the host discarded without writing comes back as the timed out
+   * outcome, which the caller may resend.
    */
   private async editNotebook(
     edit: NotebookEditOp['edit'],
@@ -103,7 +108,14 @@ class NotebookResource implements NotebookResourceService {
     if (response.rejectionCode === NOTEBOOK_CONFLICT_CODE) {
       return NotebookEditOutcome.CHANGED
     }
-    throwOperationError(response)
+    try {
+      throwOperationError(response)
+    } catch (err) {
+      if (err instanceof PluginOpTimeoutError) {
+        return NotebookEditOutcome.TIMED_OUT
+      }
+      throw err
+    }
     if (response.sysErr) {
       throw new Error('the notebook edit could not be confirmed')
     }
@@ -124,11 +136,11 @@ class NotebookResource implements NotebookResourceService {
     request: AddSourceRequest,
     abortSignal?: AbortSignal,
   ): Promise<AddSourceResponse> {
-    await this.editNotebook(
+    const outcome = await this.editNotebook(
       { case: 'add', value: { source: request.source } },
       abortSignal,
     )
-    return {}
+    return { outcome }
   }
 
   /** RemoveSource removes the source at an index while it is the one the caller saw. */
