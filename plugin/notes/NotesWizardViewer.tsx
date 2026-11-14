@@ -1,7 +1,5 @@
 import { useCallback } from 'react'
 
-import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
@@ -10,13 +8,15 @@ import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
 import {
   useWizardFinish,
   WizardInputError,
+  type WizardMutation,
 } from '@s4wave/app/wizard/wizard-finish.js'
-import { createBlogClientSide } from './blog-seed.js'
-import {
-  buildNotebookUnixfsObjectKey,
-  createDocsClientSide,
-  createNotebookClientSide,
-} from './content-seed.js'
+import { buildNotebookUnixfsObjectKey } from './content-seed.js'
+import { CREATE_BLOG_OP_ID } from './proto/create-blog.js'
+import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
+import { INIT_NOTEBOOK_OP_ID } from './proto/init-notebook.js'
+import { CreateBlogOp } from './proto/blog.pb.js'
+import { CreateDocumentationOp } from './proto/docs.pb.js'
+import { InitNotebookOp } from './proto/notebook.pb.js'
 import { WizardLoading } from '@s4wave/app/wizard/WizardLoading.js'
 
 export const NotesNotebookWizardTypeID = 'wizard/notes/notebook'
@@ -31,23 +31,36 @@ const displayNames: Record<NotesTargetTypeId, string> = {
   'notes/blog': 'Blog',
 }
 
-// notesSeeders writes each notes type's object and seed content to a World.
-const notesSeeders: Record<
+// notesCreateOps is the World op that creates each notes type's object and
+// its seed content. The notes plugin applies it inside the Finish batch.
+const notesCreateOps: Record<
   NotesTargetTypeId,
-  (world: IWorldState, key: string, name: string, at: Date) => Promise<void>
+  (key: string, name: string, at: Date) => WizardMutation
 > = {
-  'notes/notebook': (world, key, name, at) =>
-    createNotebookClientSide(
-      world,
-      key,
-      buildNotebookUnixfsObjectKey(key),
+  'notes/notebook': (key, name, at) => ({
+    kind: 'op',
+    opId: INIT_NOTEBOOK_OP_ID,
+    opData: InitNotebookOp.toBinary({
+      notebookObjectKey: key,
+      unixfsObjectKey: buildNotebookUnixfsObjectKey(key),
       name,
-      at,
-    ),
-  'notes/docs': (world, key, name, at) =>
-    createDocsClientSide(world, key, name, '', at),
-  'notes/blog': (world, key, name, at) =>
-    createBlogClientSide(world, key, name, '', '', at),
+      timestamp: at,
+    }),
+  }),
+  'notes/docs': (key, name, at) => ({
+    kind: 'op',
+    opId: CREATE_DOCS_OP_ID,
+    opData: CreateDocumentationOp.toBinary({
+      objectKey: key,
+      name,
+      timestamp: at,
+    }),
+  }),
+  'notes/blog': (key, name, at) => ({
+    kind: 'op',
+    opId: CREATE_BLOG_OP_ID,
+    opData: CreateBlogOp.toBinary({ objectKey: key, name, timestamp: at }),
+  }),
 }
 
 function isNotesTargetTypeId(value: string): value is NotesTargetTypeId {
@@ -87,17 +100,8 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
           state.targetKeyPrefix ?? '',
           name,
         )
-        const seed = notesSeeders[targetTypeId]
-        const timestamp = new Date()
         return {
-          // The seeders write a UnixFS tree and read back what they wrote, so
-          // they run as one writer on the transaction rather than as ops.
-          creates: [
-            {
-              kind: 'write',
-              run: (world) => seed(world, targetKey, name, timestamp),
-            },
-          ],
+          creates: [notesCreateOps[targetTypeId](targetKey, name, new Date())],
           target: { openKey: targetKey, indexPath: targetKey, name },
         }
       },

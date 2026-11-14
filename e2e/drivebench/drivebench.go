@@ -28,44 +28,71 @@ import (
 // bench has no Resource SDK client, so ResourceConnection remains zero; an
 // opt-in startup trace may populate Trace.
 type Run struct {
-	Timestamp          string          `json:"timestamp"`
-	Compiler           string          `json:"compiler"`
-	BuildMode          string          `json:"buildMode"`
-	RuntimeState       string          `json:"runtimeState"`
-	Cell               string          `json:"cell"`
-	Milestones         Milestones      `json:"milestones"`
-	Browser            Browser         `json:"browser"`
-	ServedBundle       *Bundle         `json:"servedBundle,omitempty"`
-	ResourceConnection ResourceConn    `json:"resourceConnection"`
-	Trace              *Trace          `json:"trace,omitempty"`
-	OperationShape     *OperationShape `json:"operationShape,omitempty"`
-	BrowserProfile     *BrowserProfile `json:"browserProfile,omitempty"`
+	// Timestamp is when the run was recorded.
+	Timestamp string `json:"timestamp"`
+	// Compiler names the toolchain that built the runtime.
+	Compiler string `json:"compiler"`
+	// BuildMode names the bundled or unbundled build.
+	BuildMode string `json:"buildMode"`
+	// RuntimeState is the state the run started from, such as cold or warm.
+	RuntimeState string `json:"runtimeState"`
+	// Cell names the bench cell, its runtime state and build mode.
+	Cell string `json:"cell"`
+	// Milestones holds the wall-clock boot milestones.
+	Milestones Milestones `json:"milestones"`
+	// Browser holds the browser-observed quickstart timing.
+	Browser Browser `json:"browser"`
+	// ServedBundle is the served code payload, set only by the bundled bench.
+	ServedBundle *Bundle `json:"servedBundle,omitempty"`
+	// ResourceConnection is the Resource SDK connection timing.
+	ResourceConnection ResourceConn `json:"resourceConnection"`
+	// Trace summarizes the runtime trace, when one was captured.
+	Trace *Trace `json:"trace,omitempty"`
+	// OperationShape summarizes storage operations from the trace, when captured.
+	OperationShape *OperationShape `json:"operationShape,omitempty"`
+	// BrowserProfile records the browser JS profile, when attempted.
+	BrowserProfile *BrowserProfile `json:"browserProfile,omitempty"`
 }
 
 // Milestones records wall-clock milliseconds from navigation start to each boot
 // milestone. ContentReadyMs is the moment getting-started.md is present in the
 // file browser, which is also when the first file row renders.
 type Milestones struct {
-	LiveAppMs       int64 `json:"liveAppMs"`
+	// LiveAppMs is when the app became live.
+	LiveAppMs int64 `json:"liveAppMs"`
+	// RouteAcceptedMs is when the app accepted the Drive route.
 	RouteAcceptedMs int64 `json:"routeAcceptedMs"`
+	// UnixfsVisibleMs is when the Drive file system became visible.
 	UnixfsVisibleMs int64 `json:"unixfsVisibleMs"`
-	ContentReadyMs  int64 `json:"contentReadyMs"`
+	// ContentReadyMs is when getting-started.md appeared in the file browser.
+	ContentReadyMs int64 `json:"contentReadyMs"`
 }
 
 // Browser carries the browser-side quickstart timing reported by the Drive
 // viewer, independent of the Go-side wall clock.
 type Browser struct {
-	ContentReadyMs            int     `json:"contentReadyMs"`
-	QuickstartState           string  `json:"quickstartState"`
-	QuickstartProgressReadyMs *int    `json:"quickstartProgressReadyMs,omitempty"`
-	QuickstartContentReadyMs  *int    `json:"quickstartContentReadyMs,omitempty"`
-	QuickstartFinishedMs      *int    `json:"quickstartFinishedMs,omitempty"`
-	QuickstartPhases          []Phase `json:"quickstartPhases,omitempty"`
-	DriveSeedResourceCalls    int     `json:"driveSeedResourceCalls,omitempty"`
-	DriveSeedStartedMs        *int    `json:"driveSeedStartedMs,omitempty"`
-	DriveSeedFinishedMs       *int    `json:"driveSeedFinishedMs,omitempty"`
-	DriveSeedElapsedMs        *int    `json:"driveSeedElapsedMs,omitempty"`
+	// ContentReadyMs is when the Drive viewer reported content ready.
+	ContentReadyMs int `json:"contentReadyMs"`
+	// QuickstartState is the last quickstart state the page published.
+	QuickstartState string `json:"quickstartState"`
+	// QuickstartProgressReadyMs is when quickstart progress became ready.
+	QuickstartProgressReadyMs *int `json:"quickstartProgressReadyMs,omitempty"`
+	// QuickstartContentReadyMs is when the quickstart content became ready.
+	QuickstartContentReadyMs *int `json:"quickstartContentReadyMs,omitempty"`
+	// QuickstartFinishedMs is when the quickstart finished.
+	QuickstartFinishedMs *int `json:"quickstartFinishedMs,omitempty"`
+	// QuickstartPhases lists each quickstart phase the page timed.
+	QuickstartPhases []Phase `json:"quickstartPhases,omitempty"`
+	// DriveSeedResourceCalls counts the Resource calls the Drive seed phases made.
+	DriveSeedResourceCalls int `json:"driveSeedResourceCalls,omitempty"`
+	// DriveSeedStartedMs is when the first Drive seed phase started.
+	DriveSeedStartedMs *int `json:"driveSeedStartedMs,omitempty"`
+	// DriveSeedFinishedMs is when the last Drive seed phase finished.
+	DriveSeedFinishedMs *int `json:"driveSeedFinishedMs,omitempty"`
+	// DriveSeedElapsedMs is the Drive seed window from first start to last finish.
+	DriveSeedElapsedMs *int `json:"driveSeedElapsedMs,omitempty"`
 
+	// StartupMarks lists the startup-boundary marks on the page timeline.
 	StartupMarks []StartupMark `json:"startupMarks,omitempty"`
 }
 
@@ -73,11 +100,16 @@ type Browser struct {
 // performance.now timebase, matching the quickstart timing object published by
 // the app while the bench is running.
 type Phase struct {
-	Name       string `json:"name"`
-	StartedMs  int    `json:"startedMs"`
-	FinishedMs *int   `json:"finishedMs,omitempty"`
-	ElapsedMs  *int   `json:"elapsedMs,omitempty"`
-	Error      string `json:"error,omitempty"`
+	// Name is the phase name.
+	Name string `json:"name"`
+	// StartedMs is when the phase started.
+	StartedMs int `json:"startedMs"`
+	// FinishedMs is when the phase finished, if it did.
+	FinishedMs *int `json:"finishedMs,omitempty"`
+	// ElapsedMs is the phase duration, if it finished.
+	ElapsedMs *int `json:"elapsedMs,omitempty"`
+	// Error is the error the phase ended with, if any.
+	Error string `json:"error,omitempty"`
 }
 
 // StartupMark is one startup-boundary mark observed on the page performance
@@ -87,13 +119,20 @@ type Phase struct {
 // pre-quickstart startup gap is attributed by reading the interval between
 // adjacent marks: the gap belongs to whichever mark transition spans it.
 type StartupMark struct {
-	Label    string         `json:"label"`
-	Sequence int            `json:"sequence,omitempty"`
-	StartMs  int            `json:"startMs"`
-	Phase    string         `json:"phase,omitempty"`
-	Mode     string         `json:"mode,omitempty"`
-	Source   string         `json:"source,omitempty"`
-	Detail   map[string]any `json:"detail,omitempty"`
+	// Label is the mark name without its prefix.
+	Label string `json:"label"`
+	// Sequence is the boundary order markStartupBoundary assigned.
+	Sequence int `json:"sequence,omitempty"`
+	// StartMs is the mark time from navigation start.
+	StartMs int `json:"startMs"`
+	// Phase is the startup phase the boundary belongs to.
+	Phase string `json:"phase,omitempty"`
+	// Mode is the boot mode the boundary recorded.
+	Mode string `json:"mode,omitempty"`
+	// Source names what emitted the boundary.
+	Source string `json:"source,omitempty"`
+	// Detail is the full detail stored on the mark.
+	Detail map[string]any `json:"detail,omitempty"`
 }
 
 // StartupMarksScript reads the page startup-mark timeline into a JSON-able
@@ -125,86 +164,128 @@ const StartupMarksScript = `() => {
 // all-JavaScript, so WasmBytes is zero for GoScript and non-zero only for the
 // TinyGo/Go-WASM builds.
 type Bundle struct {
+	// TotalBytes is the JavaScript and WASM module bytes.
 	TotalBytes int64 `json:"totalBytes"`
-	WasmBytes  int64 `json:"wasmBytes"`
-	FileCount  int   `json:"fileCount"`
+	// WasmBytes is the WASM share of TotalBytes.
+	WasmBytes int64 `json:"wasmBytes"`
+	// FileCount is the number of module files.
+	FileCount int `json:"fileCount"`
 }
 
 // ResourceConn summarizes the Resource SDK connection timing for the session.
 // The bundled production bench leaves it zero because it has no SDK client.
 type ResourceConn struct {
-	DurationMs     int64 `json:"durationMs"`
-	Attempts       int   `json:"attempts"`
-	StartupReloads int   `json:"startupReloads"`
+	// DurationMs is how long the SDK connection took.
+	DurationMs int64 `json:"durationMs"`
+	// Attempts counts the connection attempts.
+	Attempts int `json:"attempts"`
+	// StartupReloads counts the page reloads during startup.
+	StartupReloads int `json:"startupReloads"`
 }
 
 // Trace summarizes the captured runtime trace and the paths of the raw trace
 // plus its tracetool extraction.
 type Trace struct {
-	Bytes            int    `json:"bytes"`
+	// Bytes is the size of the raw runtime trace.
+	Bytes int `json:"bytes"`
+	// RuntimeTracePath is the path of the raw runtime trace.
 	RuntimeTracePath string `json:"runtimeTracePath"`
-	TracetoolPath    string `json:"tracetoolPath,omitempty"`
-	UserTasks        int    `json:"userTasks,omitempty"`
-	UserRegions      int    `json:"userRegions,omitempty"`
-	UserLogs         int    `json:"userLogs,omitempty"`
-	Tasks            []Task `json:"tasks,omitempty"`
+	// TracetoolPath is the path of the tracetool extraction.
+	TracetoolPath string `json:"tracetoolPath,omitempty"`
+	// UserTasks counts the Go user tasks in the trace.
+	UserTasks int `json:"userTasks,omitempty"`
+	// UserRegions counts the Go user regions in the trace.
+	UserRegions int `json:"userRegions,omitempty"`
+	// UserLogs counts the Go user log events in the trace.
+	UserLogs int `json:"userLogs,omitempty"`
+	// Tasks summarizes the user tasks by type.
+	Tasks []Task `json:"tasks,omitempty"`
 }
 
 // Task is an aggregate runtime-trace task summary keyed by Go user task type.
 type Task struct {
-	Type    string `json:"type"`
-	Count   int    `json:"count"`
-	TotalUs int64  `json:"totalUs"`
-	MaxUs   int64  `json:"maxUs"`
+	// Type is the Go user task type.
+	Type string `json:"type"`
+	// Count is the number of tasks of the type.
+	Count int `json:"count"`
+	// TotalUs is their total duration in microseconds.
+	TotalUs int64 `json:"totalUs"`
+	// MaxUs is the longest one in microseconds.
+	MaxUs int64 `json:"maxUs"`
 }
 
 // OperationShape is the compact per-run storage/frontier summary derived from
 // runtime trace tasks and numeric trace-log payloads. Raw runtime.trace remains
 // the replay source; this projection is the comparison surface for plan ranking.
 type OperationShape struct {
+	// Operations lists the operation summaries.
 	Operations []OperationSummary `json:"operations,omitempty"`
 }
 
 // OperationSummary groups task timing and recovered numeric log payloads under a
 // stable operation name, such as block-write or space-replay.
 type OperationSummary struct {
-	Name     string           `json:"name"`
-	Count    int              `json:"count,omitempty"`
-	TotalUs  int64            `json:"totalUs,omitempty"`
-	MaxUs    int64            `json:"maxUs,omitempty"`
-	LogCount int              `json:"logCount,omitempty"`
-	Fields   []OperationField `json:"fields,omitempty"`
+	// Name is the operation name.
+	Name string `json:"name"`
+	// Count is the number of tasks of the operation.
+	Count int `json:"count,omitempty"`
+	// TotalUs is their total duration in microseconds.
+	TotalUs int64 `json:"totalUs,omitempty"`
+	// MaxUs is the longest one in microseconds.
+	MaxUs int64 `json:"maxUs,omitempty"`
+	// LogCount counts the trace logs recovered for the operation.
+	LogCount int `json:"logCount,omitempty"`
+	// Fields summarizes the numeric fields of those logs.
+	Fields []OperationField `json:"fields,omitempty"`
 }
 
 // OperationField summarizes one numeric field recovered from trace logs.
 type OperationField struct {
-	Name    string `json:"name"`
-	Samples int    `json:"samples"`
-	Sum     int64  `json:"sum"`
-	Max     int64  `json:"max"`
-	Last    int64  `json:"last"`
+	// Name is the field name.
+	Name string `json:"name"`
+	// Samples counts the logs carrying the field.
+	Samples int `json:"samples"`
+	// Sum is the total of its values.
+	Sum int64 `json:"sum"`
+	// Max is its largest value.
+	Max int64 `json:"max"`
+	// Last is its last value.
+	Last int64 `json:"last"`
 }
 
 // BrowserProfile records the optional same-window browser JS CPU/profile
 // artifact. It is present only when the harness attempted the profile gate.
 type BrowserProfile struct {
-	Captured      bool            `json:"captured"`
-	ProfilePath   string          `json:"profilePath,omitempty"`
-	SummaryPath   string          `json:"summaryPath,omitempty"`
-	CaptureWindow string          `json:"captureWindow,omitempty"`
-	StartedAt     string          `json:"startedAt,omitempty"`
-	StoppedAt     string          `json:"stoppedAt,omitempty"`
-	Bytes         int             `json:"bytes,omitempty"`
-	SkippedReason string          `json:"skippedReason,omitempty"`
-	Buckets       []ProfileBucket `json:"buckets,omitempty"`
+	// Captured reports whether a profile was captured.
+	Captured bool `json:"captured"`
+	// ProfilePath is the path of the raw profile.
+	ProfilePath string `json:"profilePath,omitempty"`
+	// SummaryPath is the path of the profile summary.
+	SummaryPath string `json:"summaryPath,omitempty"`
+	// CaptureWindow names the window the profile covers.
+	CaptureWindow string `json:"captureWindow,omitempty"`
+	// StartedAt is when the capture started.
+	StartedAt string `json:"startedAt,omitempty"`
+	// StoppedAt is when the capture stopped.
+	StoppedAt string `json:"stoppedAt,omitempty"`
+	// Bytes is the size of the raw profile.
+	Bytes int `json:"bytes,omitempty"`
+	// SkippedReason says why the capture was skipped, if it was.
+	SkippedReason string `json:"skippedReason,omitempty"`
+	// Buckets lists the heaviest source and function buckets.
+	Buckets []ProfileBucket `json:"buckets,omitempty"`
 }
 
 // ProfileBucket is one source/function bucket from the browser JS CPU profile.
 type ProfileBucket struct {
-	Name    string `json:"name"`
-	Count   int    `json:"count,omitempty"`
-	SelfUs  int64  `json:"selfUs,omitempty"`
-	TotalUs int64  `json:"totalUs,omitempty"`
+	// Name is the source or function the bucket covers.
+	Name string `json:"name"`
+	// Count is the number of samples in the bucket.
+	Count int `json:"count,omitempty"`
+	// SelfUs is the time spent in the bucket itself, in microseconds.
+	SelfUs int64 `json:"selfUs,omitempty"`
+	// TotalUs is the time including callees, in microseconds.
+	TotalUs int64 `json:"totalUs,omitempty"`
 }
 
 // BrowserFromQuickstartTiming builds the browser timing artifact from the
@@ -231,8 +312,8 @@ func BrowserFromQuickstartTiming(contentReadyMs int, raw map[string]any) Browser
 
 // CountDriveSeedResourceCalls counts the timed Resource SDK calls that the
 // Drive quickstart seed issues after populate-space begins and before content is
-// ready. Wrapper phases such as populate-space and init-drive-unixfs are omitted
-// because their leaf transaction phases carry the actual RPC calls.
+// ready. The populate-space wrapper is omitted because its leaf phases carry
+// the actual RPC calls.
 func CountDriveSeedResourceCalls(phases []Phase) int {
 	count := 0
 	for _, phase := range phases {
@@ -639,17 +720,9 @@ func setOptionalIntJSONField(arena *fastjson.Arena, obj *fastjson.Value, key str
 }
 
 var driveSeedResourcePhaseNames = []string{
-	"init-drive-unixfs-new-transaction",
-	"init-drive-unixfs-apply-op",
-	"init-drive-unixfs-commit",
-	"init-drive-unixfs-discard",
+	"init-drive-batch",
 	"write-drive-starter-guide-access",
 	"write-drive-starter-guide-upload",
-	"create-drive-settings-get-object",
-	"create-drive-settings-new-transaction",
-	"create-drive-settings-apply-op",
-	"create-drive-settings-commit",
-	"create-drive-settings-discard",
 }
 
 // ParseStartupMarks parses the page startup-mark timeline captured with
@@ -736,8 +809,7 @@ func setDriveSeedWindow(browser *Browser) {
 	var finish *int
 	for _, phase := range browser.QuickstartPhases {
 		if !strings.HasPrefix(phase.Name, "init-drive-") &&
-			!strings.HasPrefix(phase.Name, "write-drive-starter-guide-") &&
-			!strings.HasPrefix(phase.Name, "create-drive-settings") {
+			!strings.HasPrefix(phase.Name, "write-drive-starter-guide-") {
 			continue
 		}
 		started := phase.StartedMs

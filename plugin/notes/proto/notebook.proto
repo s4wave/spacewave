@@ -28,6 +28,8 @@ message InitNotebookOp {
   string unixfs_object_key = 2;
   // Timestamp is the creation timestamp.
   google.protobuf.Timestamp timestamp = 3;
+  // Name is the notebook's display name; empty names it Notes.
+  string name = 4;
 }
 
 // NotebookEditOp changes one Notebook's source list in a single World

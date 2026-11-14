@@ -28,6 +28,10 @@ type SRPCEngineResourceServiceClient interface {
 	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
 	// The authenticated Resource sender overrides the payload sender.
 	ExecuteWorldOp(ctx context.Context, in *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error)
+	// ExecuteWorldBatch applies a list of writes in one write transaction and
+	// commits it, or writes nothing when any mutation is refused or fails. The
+	// writer is held only inside the call, never across client round trips.
+	ExecuteWorldBatch(ctx context.Context, in *ExecuteWorldBatchRequest) (*ExecuteWorldBatchResponse, error)
 
 	Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error)
 	// SyncThrough returns once every commit with a seqno at or below the
@@ -144,6 +148,15 @@ func (c *srpcEngineResourceServiceClient) NewTransaction(ctx context.Context, in
 func (c *srpcEngineResourceServiceClient) ExecuteWorldOp(ctx context.Context, in *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error) {
 	out := new(ApplyWorldOpResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ExecuteWorldOp", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcEngineResourceServiceClient) ExecuteWorldBatch(ctx context.Context, in *ExecuteWorldBatchRequest) (*ExecuteWorldBatchResponse, error) {
+	out := new(ExecuteWorldBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ExecuteWorldBatch", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +283,10 @@ type SRPCEngineResourceServiceServer interface {
 	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
 	// The authenticated Resource sender overrides the payload sender.
 	ExecuteWorldOp(context.Context, *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error)
+	// ExecuteWorldBatch applies a list of writes in one write transaction and
+	// commits it, or writes nothing when any mutation is refused or fails. The
+	// writer is held only inside the call, never across client round trips.
+	ExecuteWorldBatch(context.Context, *ExecuteWorldBatchRequest) (*ExecuteWorldBatchResponse, error)
 
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
 	// SyncThrough returns once every commit with a seqno at or below the
@@ -328,6 +345,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"SetRetainedRoot",
 		"NewTransaction",
 		"ExecuteWorldOp",
+		"ExecuteWorldBatch",
 		"Sync",
 		"SyncThrough",
 		"GetSeqno",
@@ -361,6 +379,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_NewTransaction(d.impl, strm)
 	case "ExecuteWorldOp":
 		return true, d.InvokeMethod_ExecuteWorldOp(d.impl, strm)
+	case "ExecuteWorldBatch":
+		return true, d.InvokeMethod_ExecuteWorldBatch(d.impl, strm)
 	case "Sync":
 		return true, d.InvokeMethod_Sync(d.impl, strm)
 	case "SyncThrough":
@@ -447,6 +467,18 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_ExecuteWorldOp(impl SRPCEng
 		return err
 	}
 	out, err := impl.ExecuteWorldOp(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_ExecuteWorldBatch(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(ExecuteWorldBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ExecuteWorldBatch(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -618,6 +650,14 @@ type SRPCEngineResourceService_ExecuteWorldOpStream interface {
 }
 
 type srpcEngineResourceService_ExecuteWorldOpStream struct {
+	srpc.Stream
+}
+
+type SRPCEngineResourceService_ExecuteWorldBatchStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_ExecuteWorldBatchStream struct {
 	srpc.Stream
 }
 
@@ -2152,8 +2192,6 @@ type SRPCTxResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
-	// CommitMutations applies ordered mutations and atomically commits the transaction.
-	CommitMutations(ctx context.Context, in *CommitMutationsRequest) (*CommitMutationsResponse, error)
 	// Commit atomically publishes the retained transaction.
 	Commit(ctx context.Context, in *CommitRequest) (*CommitResponse, error)
 	// Discard releases the retained transaction without publication.
@@ -2178,15 +2216,6 @@ func NewSRPCTxResourceServiceClientWithServiceID(cc srpc.Client, serviceID strin
 
 func (c *srpcTxResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcTxResourceServiceClient) CommitMutations(ctx context.Context, in *CommitMutationsRequest) (*CommitMutationsResponse, error) {
-	out := new(CommitMutationsResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "CommitMutations", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *srpcTxResourceServiceClient) Commit(ctx context.Context, in *CommitRequest) (*CommitResponse, error) {
 	out := new(CommitResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Commit", in, out)
@@ -2206,8 +2235,6 @@ func (c *srpcTxResourceServiceClient) Discard(ctx context.Context, in *DiscardRe
 }
 
 type SRPCTxResourceServiceServer interface {
-	// CommitMutations applies ordered mutations and atomically commits the transaction.
-	CommitMutations(context.Context, *CommitMutationsRequest) (*CommitMutationsResponse, error)
 	// Commit atomically publishes the retained transaction.
 	Commit(context.Context, *CommitRequest) (*CommitResponse, error)
 	// Discard releases the retained transaction without publication.
@@ -2240,7 +2267,6 @@ func (d *SRPCTxResourceServiceHandler) GetServiceID() string { return d.serviceI
 
 func (SRPCTxResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
-		"CommitMutations",
 		"Commit",
 		"Discard",
 	}
@@ -2255,8 +2281,6 @@ func (d *SRPCTxResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
-	case "CommitMutations":
-		return true, d.InvokeMethod_CommitMutations(d.impl, strm)
 	case "Commit":
 		return true, d.InvokeMethod_Commit(d.impl, strm)
 	case "Discard":
@@ -2264,18 +2288,6 @@ func (d *SRPCTxResourceServiceHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
-}
-
-func (SRPCTxResourceServiceHandler) InvokeMethod_CommitMutations(impl SRPCTxResourceServiceServer, strm srpc.Stream) error {
-	req := new(CommitMutationsRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.CommitMutations(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
 }
 
 func (SRPCTxResourceServiceHandler) InvokeMethod_Commit(impl SRPCTxResourceServiceServer, strm srpc.Stream) error {
@@ -2300,14 +2312,6 @@ func (SRPCTxResourceServiceHandler) InvokeMethod_Discard(impl SRPCTxResourceServ
 		return err
 	}
 	return strm.MsgSend(out)
-}
-
-type SRPCTxResourceService_CommitMutationsStream interface {
-	srpc.Stream
-}
-
-type srpcTxResourceService_CommitMutationsStream struct {
-	srpc.Stream
 }
 
 type SRPCTxResourceService_CommitStream interface {

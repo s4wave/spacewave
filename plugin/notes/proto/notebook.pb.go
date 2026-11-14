@@ -82,6 +82,8 @@ type InitNotebookOp struct {
 	UnixfsObjectKey string `protobuf:"bytes,2,opt,name=unixfs_object_key,json=unixfsObjectKey,proto3" json:"unixfsObjectKey,omitempty"`
 	// Timestamp is the creation timestamp.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Name is the notebook's display name; empty names it Notes.
+	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 }
 
 func (x *InitNotebookOp) Reset() {
@@ -109,6 +111,13 @@ func (x *InitNotebookOp) GetTimestamp() *timestamppb.Timestamp {
 		return x.Timestamp
 	}
 	return nil
+}
+
+func (x *InitNotebookOp) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
 // NotebookEditOp changes one Notebook's source list in a single World
@@ -315,6 +324,7 @@ func (m *InitNotebookOp) CloneVT() *InitNotebookOp {
 	r := new(InitNotebookOp)
 	r.NotebookObjectKey = m.NotebookObjectKey
 	r.UnixfsObjectKey = m.UnixfsObjectKey
+	r.Name = m.Name
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -493,6 +503,9 @@ func (this *InitNotebookOp) EqualVT(that *InitNotebookOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if this.Name != that.Name {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -799,6 +812,11 @@ func (x *InitNotebookOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -829,6 +847,9 @@ func (x *InitNotebookOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
 		}
 	})
 }
@@ -1218,6 +1239,11 @@ func (m *InitNotebookOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1536,6 +1562,7 @@ func (m *InitNotebookOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1701,6 +1728,10 @@ func (x *InitNotebookOp) MarshalProtoText() string {
 	if x.Timestamp != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1992,6 +2023,16 @@ func (m *InitNotebookOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

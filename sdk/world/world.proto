@@ -24,6 +24,11 @@ service EngineResourceService {
   // The authenticated Resource sender overrides the payload sender.
   rpc ExecuteWorldOp(ApplyWorldOpRequest) returns (ApplyWorldOpResponse);
 
+  // ExecuteWorldBatch applies a list of writes in one write transaction and
+  // commits it, or writes nothing when any mutation is refused or fails. The
+  // writer is held only inside the call, never across client round trips.
+  rpc ExecuteWorldBatch(ExecuteWorldBatchRequest) returns (ExecuteWorldBatchResponse);
+
   rpc Sync(SyncRequest) returns (SyncResponse);
 
   // SyncThrough returns once every commit with a seqno at or below the
@@ -338,72 +343,11 @@ service WatchWorldStateResourceService {
 
 // TxResourceService controls one retained World transaction.
 service TxResourceService {
-  // CommitMutations applies ordered mutations and atomically commits the transaction.
-  rpc CommitMutations(CommitMutationsRequest) returns (CommitMutationsResponse);
-
   // Commit atomically publishes the retained transaction.
   rpc Commit(CommitRequest) returns (CommitResponse);
 
   // Discard releases the retained transaction without publication.
   rpc Discard(DiscardRequest) returns (DiscardResponse);
-}
-
-// CommitMutationsRequest is the request type for CommitMutations.
-message CommitMutationsRequest {
-  // Mutations are applied in request order before the transaction commits.
-  repeated TransactionMutation mutations = 1;
-}
-
-// TransactionMutation applies one World mutation.
-message TransactionMutation {
-  oneof mutation {
-    // CreateObject creates one object with its initial root.
-    CreateObjectRequest create_object = 1;
-    // SetObjectRoot replaces one existing object's root.
-    SetObjectRootMutation set_object_root = 2;
-    // SetGraphQuad writes one graph quad.
-    SetGraphQuadRequest set_graph_quad = 3;
-  }
-}
-
-// SetObjectRootMutation replaces an object's root by its exact key.
-message SetObjectRootMutation {
-  // ObjectKey identifies the exact object inside this transaction.
-  string object_key = 1;
-  // RootRef is the replacement immutable object root.
-  .bucket.ObjectRef root_ref = 2;
-}
-
-// TransactionMutationResult returns the value from one transaction mutation.
-message TransactionMutationResult {
-  oneof result {
-    // CreateObject reports the created object.
-    CreateObjectMutationResult create_object = 1;
-    // SetObjectRoot reports the updated object revision.
-    SetObjectRootMutationResult set_object_root = 2;
-    // SetGraphQuad reports the graph mutation result.
-    SetGraphQuadResponse set_graph_quad = 3;
-  }
-}
-
-// CreateObjectMutationResult returns the created object's key.
-message CreateObjectMutationResult {
-  // ObjectKey identifies the created object.
-  string object_key = 1;
-  // Rev is the created object's committed revision.
-  uint64 rev = 2;
-}
-
-// SetObjectRootMutationResult returns the object's new revision.
-message SetObjectRootMutationResult {
-  // Rev is the object's revision after the root replacement.
-  uint64 rev = 1;
-}
-
-// CommitMutationsResponse is the response type for CommitMutations.
-message CommitMutationsResponse {
-  // Results correspond one-for-one with the ordered request mutations.
-  repeated TransactionMutationResult results = 1;
 }
 
 // CommitRequest is the request type for Commit.
@@ -859,6 +803,56 @@ message ApplyWorldOpResponse {
   // RejectionCode is a stable application-defined rejection code.
   string rejection_code = 4;
   // RejectionMessage is the safe explanation of a rejected operation.
+  string rejection_message = 5;
+}
+
+// WorldMutation is one write in an ExecuteWorldBatch list.
+message WorldMutation {
+  oneof mutation {
+    // Op applies a World operation; the authenticated Resource sender
+    // overrides op_sender, as in ExecuteWorldOp.
+    ApplyWorldOpRequest op = 1;
+    // CreateObject creates an object; an object already at the key fails the
+    // call.
+    CreateObjectRequest create_object = 2;
+    // SetGraphQuad adds or updates a graph quad.
+    SetGraphQuadRequest set_graph_quad = 3;
+    // DeleteObject deletes an object that must exist: an absent object refuses
+    // the batch with WORLD_ERROR_CODE_OBJECT_NOT_FOUND.
+    DeleteObjectRequest delete_object = 4;
+    // SetObjectType sets an object's one type, creating the type's object
+    // when it is absent and removing any other type the object had.
+    SetObjectTypeMutation set_object_type = 5;
+  }
+}
+
+// SetObjectTypeMutation sets the type of an object in a World batch.
+message SetObjectTypeMutation {
+  // ObjectKey is the object to type.
+  string object_key = 1;
+  // TypeId is the type to give it.
+  string type_id = 2;
+}
+
+// ExecuteWorldBatchRequest is the request type for ExecuteWorldBatch.
+message ExecuteWorldBatchRequest {
+  // Mutations apply in order in one write transaction.
+  repeated WorldMutation mutations = 1;
+}
+
+// ExecuteWorldBatchResponse is the response type for ExecuteWorldBatch.
+// A refused batch wrote nothing, and names the mutation that refused it with
+// error_code or rejection_code; an applied batch carries neither.
+message ExecuteWorldBatchResponse {
+  // Seqno is the World sequence number after an applied batch.
+  uint64 seqno = 1;
+  // FailedIndex is the index of the mutation that refused a refused batch.
+  uint32 failed_index = 2;
+  // ErrorCode identifies a built-in World refusal.
+  WorldErrorCode error_code = 3;
+  // RejectionCode is the stable application-defined code of a rejected op.
+  string rejection_code = 4;
+  // RejectionMessage is the safe explanation of a rejected op.
   string rejection_message = 5;
 }
 

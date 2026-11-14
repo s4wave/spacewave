@@ -66,12 +66,7 @@ import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
 import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
-import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import {
-  INIT_UNIXFS_OP_ID,
-  UNIXFS_OBJECT_KEY,
-} from '@s4wave/core/space/world/ops/init-unixfs.js'
-import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 import {
@@ -89,26 +84,17 @@ import { createBlogClientSide } from './blog-seed.js'
 import {
   createDocsClientSide,
   createNotebookClientSide,
-  DOCS_INDEX_MARKDOWN,
-  NOTEBOOK_GETTING_STARTED_MARKDOWN,
-  NOTEBOOK_WELCOME_MARKDOWN,
 } from './content-seed.js'
-import { createObjectWithBlockData } from './object-block.js'
 import {
   INIT_NOTEBOOK_OP_ID,
   NOTEBOOK_OBJECT_KEY,
 } from './proto/init-notebook.js'
 import { BLOG_OBJECT_KEY, CREATE_BLOG_OP_ID } from './proto/create-blog.js'
 import { CREATE_DOCS_OP_ID } from './proto/create-docs.js'
-import {
-  InitNotebookOp,
-  Notebook,
-  NotebookEditOp,
-} from './proto/notebook.pb.js'
+import { InitNotebookOp, NotebookEditOp } from './proto/notebook.pb.js'
 import { applyNotebookEdit, NOTEBOOK_EDIT_OP_ID } from './notebook-edit.js'
 import { CreateBlogOp } from './proto/blog.pb.js'
-import { CreateDocumentationOp, Documentation } from './proto/docs.pb.js'
-import { uploadSeedTree } from './unixfs-seed.js'
+import { CreateDocumentationOp } from './proto/docs.pb.js'
 import { notebookViews } from './saved-views.js'
 
 type SavedViewOperations = ReturnType<
@@ -319,8 +305,8 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     return Promise.resolve({})
   }
 
-  // applyInitNotebook handles the init-notebook operation.
-  // Creates a UnixFS object with sample files and a Notebook world object.
+  // applyInitNotebook handles the init-notebook operation: a UnixFS object
+  // with sample notes and a Notebook object reading it.
   private async applyInitNotebook(
     request: ApplyWorldOpRequest,
     context: ServerContext,
@@ -338,49 +324,16 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
       throw new Error('notebookObjectKey and unixfsObjectKey are required')
     }
 
-    // Get the WorldState from the attached resource.
     const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
-      // 1. Init UnixFS object via world op.
-      const fsInitOp: InitUnixFSOp = {
-        objectKey: unixfsKey,
-        timestamp: op.timestamp,
-      }
-      await ws.applyWorldOp(
-        INIT_UNIXFS_OP_ID,
-        InitUnixFSOp.toBinary(fsInitOp),
-        '',
-      )
-
-      // 2. Create sample note files via batch tree upload.
-      await uploadSeedTree(
-        ws,
-        unixfsKey,
-        [
-          { path: 'welcome.md', content: NOTEBOOK_WELCOME_MARKDOWN },
-          {
-            path: 'getting-started.md',
-            content: NOTEBOOK_GETTING_STARTED_MARKDOWN,
-          },
-        ],
-        undefined,
-      )
-
-      // 3. Create Notebook world object with block data.
-      const notebook: Notebook = {
-        name: 'Notes',
-        sources: [{ name: 'My Notes', ref: unixfsKey + '/-/' }],
-      }
-      await createObjectWithBlockData(
+      await createNotebookClientSide(
         ws,
         notebookKey,
-        Notebook.toBinary(notebook),
+        unixfsKey,
+        op.name || 'Notes',
+        op.timestamp ?? new Date(),
       )
-
-      // 4. Set the object type graph quad.
-      await setObjectType(ws, notebookKey, 'notes/notebook')
-
       return {}
     } finally {
       ws.release()
@@ -453,8 +406,8 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
     }
   }
 
-  // applyCreateDocs handles the create-docs operation.
-  // Creates a Documentation world object with inline source, a UnixFS object
+  // applyCreateDocs handles the create-docs operation: a UnixFS object with
+  // an index page and a Documentation object reading it.
   private async applyCreateDocs(
     request: ApplyWorldOpRequest,
     context: ServerContext,
@@ -473,48 +426,16 @@ class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
       throw new Error('objectKey is required')
     }
 
-    // Derive the UnixFS key from the docs key.
-    const unixfsKey = docsKey + '-fs'
-
     const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
-      // 1. Init UnixFS object via world op.
-      const fsInitOp: InitUnixFSOp = {
-        objectKey: unixfsKey,
-        timestamp: op.timestamp,
-      }
-      await ws.applyWorldOp(
-        INIT_UNIXFS_OP_ID,
-        InitUnixFSOp.toBinary(fsInitOp),
-        '',
-      )
-
-      // 2. Create the initial docs tree via batch upload.
-      await uploadSeedTree(
-        ws,
-        unixfsKey,
-        [{ path: 'index.md', content: DOCS_INDEX_MARKDOWN }],
-        undefined,
-      )
-
-      // 3. Create Documentation world object with block data.
-      const docsName = op.name || 'Documentation'
-      const documentation: Documentation = {
-        name: docsName,
-        description: op.description,
-        sources: [{ name: 'Pages', ref: unixfsKey + '/-/' }],
-        createdAt: op.timestamp,
-      }
-      await createObjectWithBlockData(
+      await createDocsClientSide(
         ws,
         docsKey,
-        Documentation.toBinary(documentation),
+        op.name || 'Documentation',
+        op.description ?? '',
+        op.timestamp ?? new Date(),
       )
-
-      // 4. Set the docs object type graph quad.
-      await setObjectType(ws, docsKey, 'notes/docs')
-
       return {}
     } finally {
       ws.release()

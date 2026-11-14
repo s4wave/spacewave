@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   PluginOpTimeoutError,
+  throwBatchError,
   throwOperationError,
   WorldOperationRejection,
 } from './errors.js'
@@ -43,5 +44,16 @@ describe('throwOperationError', () => {
 
   it('accepts a successful response', () => {
     expect(() => throwOperationError({})).not.toThrow()
+  })
+})
+
+describe('throwBatchError', () => {
+  it('restores a plugin op timeout that wrote nothing', () => {
+    expect(() =>
+      throwBatchError({
+        failedIndex: 2,
+        errorCode: WorldErrorCode.PLUGIN_OP_TIMEOUT,
+      }),
+    ).toThrow(PluginOpTimeoutError)
   })
 })

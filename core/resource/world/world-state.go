@@ -1006,32 +1006,42 @@ func (r *WorldStateResource) DeleteGraphObject(ctx context.Context, req *s4wave_
 
 // ApplyWorldOp applies a batch operation at the world level.
 func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
-	// Report an unavailable World operation resolver.
+	op, opSender, refused, err := r.resolveWorldOp(ctx, req)
+	if err != nil || refused != nil {
+		return refused, err
+	}
+	return applyResolvedWorldOp(ctx, r.ws, op, opSender, world.AppliesAtomically(r.ws))
+}
+
+// resolveWorldOp resolves and decodes the operation req names and binds its
+// sender to the authenticated mount when one is bound. It returns a refusal
+// for an operation type the mount cannot resolve.
+func (r *WorldStateResource) resolveWorldOp(
+	ctx context.Context,
+	req *s4wave_world.ApplyWorldOpRequest,
+) (world.Operation, peer.ID, *s4wave_world.ApplyWorldOpResponse, error) {
+	unhandled := &s4wave_world.ApplyWorldOpResponse{
+		ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+	}
 	if r.lookupOp == nil {
-		return &s4wave_world.ApplyWorldOpResponse{
-			ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
-		}, nil
+		return nil, "", unhandled, nil
 	}
 
 	// Resolve the requested World operation and report unsupported types.
-	opTypeID := req.GetOpTypeId()
-	op, err := r.lookupOp(ctx, opTypeID)
+	op, err := r.lookupOp(ctx, req.GetOpTypeId())
 	if err == nil && op == nil {
 		err = world.ErrUnhandledOp
 	}
 	if err != nil {
 		if errors.Is(err, world.ErrUnhandledOp) {
-			return &s4wave_world.ApplyWorldOpResponse{
-				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
-			}, nil
+			return nil, "", unhandled, nil
 		}
-		return nil, err
+		return nil, "", nil, err
 	}
 
 	// Decode the World operation payload before execution.
-	err = op.UnmarshalVT(req.GetOpData())
-	if err != nil {
-		return nil, err
+	if err := op.UnmarshalVT(req.GetOpData()); err != nil {
+		return nil, "", nil, err
 	}
 
 	// Bind the operation sender to the authenticated mount when available.
@@ -1039,13 +1049,24 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 	if !r.sessionPeerIDBound {
 		opSender, err = req.ParsePeerID()
 		if err != nil {
-			return nil, err
+			return nil, "", nil, err
 		}
 	}
+	return op, opSender, nil, nil
+}
 
-	// Apply the World operation and encode a domain rejection, or a plugin
-	// timeout when the discarded transaction kept nothing.
-	seqno, sysErr, err := r.ws.ApplyWorldOp(ctx, op, opSender)
+// applyResolvedWorldOp applies op to ws and encodes a domain rejection or an
+// unhandled operation as a response. A plugin timeout is encoded only when
+// atomic reports that the failed operation's transaction is discarded, so the
+// code means nothing was written; otherwise it returns as an error.
+func applyResolvedWorldOp(
+	ctx context.Context,
+	ws world.WorldState,
+	op world.Operation,
+	opSender peer.ID,
+	atomic bool,
+) (*s4wave_world.ApplyWorldOpResponse, error) {
+	seqno, sysErr, err := ws.ApplyWorldOp(ctx, op, opSender)
 	if err != nil {
 		var rejection *world.OperationRejection
 		if errors.As(err, &rejection) {
@@ -1055,7 +1076,7 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 		}
 
 		var timeout *world.PluginOpTimeoutError
-		if errors.As(err, &timeout) && world.AppliesAtomically(r.ws) {
+		if errors.As(err, &timeout) && atomic {
 			return &s4wave_world.ApplyWorldOpResponse{
 				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT,
 			}, nil

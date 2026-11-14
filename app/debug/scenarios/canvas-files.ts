@@ -8,7 +8,7 @@ import { NodeType } from '@s4wave/sdk/canvas/canvas.pb.js'
 import { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { MknodType } from '@s4wave/sdk/unixfs/handle.pb.js'
 import { accessObject } from '@s4wave/sdk/world/utils.js'
-import { setObjectType } from '@s4wave/sdk/world/types/types.js'
+import { throwBatchError } from '@s4wave/sdk/world/errors.js'
 import {
   createSingleRowObjectLayout,
   ObjectLayoutTypeID,
@@ -163,24 +163,25 @@ async function seedCanvasFiles(
     },
     signal,
   )
-  // oxlint-disable-next-line react-doctor/server-sequential-independent-await -- Finish block storage before holding the World writer.
-  using transaction = await world.getEngine().newTransaction(true, signal)
-  try {
-    using _object = await transaction.createObject(
-      'reference-workspace',
-      objectRef,
-      signal,
-    )
-    await setObjectType(
-      transaction,
-      'reference-workspace',
-      ObjectLayoutTypeID,
-      signal,
-    )
-    await transaction.commit(signal)
-  } finally {
-    await transaction.discard()
-  }
+  // Publish the layout object and its type together, after its blocks are stored.
+  const resp = await world.getEngine().executeWorldBatch([
+    {
+      mutation: {
+        case: 'createObject',
+        value: { objectKey: 'reference-workspace', rootRef: objectRef },
+      },
+    },
+    {
+      mutation: {
+        case: 'setObjectType',
+        value: {
+          objectKey: 'reference-workspace',
+          typeId: ObjectLayoutTypeID,
+        },
+      },
+    },
+  ])
+  throwBatchError(resp)
   const spaceId = setup.spaceResp.sharedObjectRef?.providerResourceRef?.id
   if (!spaceId || !setup.sessionIndex)
     throw new Error('Scenario setup did not return a Session and Space')
