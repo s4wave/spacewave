@@ -63,9 +63,11 @@ import {
 import { createAppPluginOperations } from '@s4wave/sdk/sync/plugin-operations.js'
 import type { AppRevision } from '@s4wave/sdk/sync/instance.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
-import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
-import { WorldOperationRejection } from '@s4wave/sdk/world/errors.js'
+import {
+  throwBatchError,
+  WorldOperationRejection,
+} from '@s4wave/sdk/world/errors.js'
 import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
@@ -451,20 +453,9 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
     this.pluginId = pluginId
   }
 
-  private async runQuickstartStep<T>(
-    label: string,
-    cb: () => Promise<T>,
-  ): Promise<T> {
-    try {
-      return await cb()
-    } catch (err) {
-      throw new Error(
-        label + ': ' + (err instanceof Error ? err.message : String(err)),
-        { cause: err },
-      )
-    }
-  }
-
+  // SeedQuickstart creates the quickstart's content with the plugin's own
+  // create op, sent as a one-op World batch. The host applies it under its
+  // writer and plugin op deadline, so no transaction is held across calls.
   async SeedQuickstart(
     request: SeedQuickstartRequest,
     _abortSignal: AbortSignal,
@@ -474,63 +465,75 @@ class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
     if (!engineId) {
       throw new Error('attachedEngineResourceId is required')
     }
+    const seed = buildQuickstartSeed(request.quickstartId ?? '', new Date())
     const engineRef = getResourceCall(context).getAttachedRef(engineId)
     const engine = new Engine(engineRef)
-    const worldState = new EngineWorldState(engine, true)
     try {
-      switch (request.quickstartId ?? '') {
-        case 'notebook':
-          await this.runQuickstartStep('seed notebook quickstart', async () => {
-            await createNotebookClientSide(
-              worldState,
-              NOTEBOOK_OBJECT_KEY,
-              UNIXFS_OBJECT_KEY,
-              'Notes',
-              new Date(),
-              context.signal,
-            )
-          })
-          return {
-            indexPath: NOTEBOOK_OBJECT_KEY,
-            pluginIds: [this.pluginId],
-          }
-        case 'docs':
-          await this.runQuickstartStep('seed docs quickstart', async () => {
-            await createDocsClientSide(
-              worldState,
-              DOCS_QUICKSTART_OBJECT_KEY,
-              'Documentation',
-              '',
-              new Date(),
-              context.signal,
-            )
-          })
-          return {
-            indexPath: DOCS_QUICKSTART_OBJECT_KEY,
-            pluginIds: [this.pluginId],
-          }
-        case 'blog':
-          await this.runQuickstartStep('seed blog quickstart', async () => {
-            await createBlogClientSide(
-              worldState,
-              BLOG_OBJECT_KEY,
-              'Blog',
-              '',
-              '',
-              new Date(),
-              context.signal,
-            )
-          })
-          return {
-            indexPath: BLOG_OBJECT_KEY,
-            pluginIds: [this.pluginId],
-          }
-        default:
-          throw new Error('unhandled notes quickstart: ' + request.quickstartId)
-      }
+      throwBatchError(
+        await engine.executeWorldBatch(
+          [{ mutation: { case: 'op', value: seed.op } }],
+          context.signal,
+        ),
+      )
+      return { indexPath: seed.indexPath, pluginIds: [this.pluginId] }
     } finally {
       engine.release()
     }
+  }
+}
+
+// QuickstartSeed is the create op that seeds one Notes quickstart and the
+// object the Space indexes to afterwards.
+interface QuickstartSeed {
+  op: { opTypeId: string; opData: Uint8Array }
+  indexPath: string
+}
+
+// buildQuickstartSeed returns the seed for quickstartId.
+function buildQuickstartSeed(
+  quickstartId: string,
+  timestamp: Date,
+): QuickstartSeed {
+  switch (quickstartId) {
+    case 'notebook':
+      return {
+        op: {
+          opTypeId: INIT_NOTEBOOK_OP_ID,
+          opData: InitNotebookOp.toBinary({
+            notebookObjectKey: NOTEBOOK_OBJECT_KEY,
+            unixfsObjectKey: UNIXFS_OBJECT_KEY,
+            name: 'Notes',
+            timestamp,
+          }),
+        },
+        indexPath: NOTEBOOK_OBJECT_KEY,
+      }
+    case 'docs':
+      return {
+        op: {
+          opTypeId: CREATE_DOCS_OP_ID,
+          opData: CreateDocumentationOp.toBinary({
+            objectKey: DOCS_QUICKSTART_OBJECT_KEY,
+            name: 'Documentation',
+            timestamp,
+          }),
+        },
+        indexPath: DOCS_QUICKSTART_OBJECT_KEY,
+      }
+    case 'blog':
+      return {
+        op: {
+          opTypeId: CREATE_BLOG_OP_ID,
+          opData: CreateBlogOp.toBinary({
+            objectKey: BLOG_OBJECT_KEY,
+            name: 'Blog',
+            timestamp,
+          }),
+        },
+        indexPath: BLOG_OBJECT_KEY,
+      }
+    default:
+      throw new Error('unhandled notes quickstart: ' + quickstartId)
   }
 }
 
