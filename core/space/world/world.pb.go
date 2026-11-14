@@ -903,6 +903,10 @@ type PayloadHandlers struct {
 	// Handlers are the operation types of the operation's transaction, each
 	// once and sorted by type.
 	Handlers []*PayloadHandler `protobuf:"bytes,1,rep,name=handlers,proto3" json:"handlers,omitempty"`
+	// TxVersion is the PayloadRefsVersion of the transaction rules that named
+	// the transaction's own roots. Zero, as in handlers saved before it was
+	// recorded, is never current.
+	TxVersion uint32 `protobuf:"varint,2,opt,name=tx_version,json=txVersion,proto3" json:"txVersion,omitempty"`
 }
 
 func (x *PayloadHandlers) Reset() {
@@ -916,6 +920,13 @@ func (x *PayloadHandlers) GetHandlers() []*PayloadHandler {
 		return x.Handlers
 	}
 	return nil
+}
+
+func (x *PayloadHandlers) GetTxVersion() uint32 {
+	if x != nil {
+		return x.TxVersion
+	}
+	return 0
 }
 
 // PayloadHandler is the handler of one operation type, as far as the payload
@@ -1483,6 +1494,7 @@ func (m *PayloadHandlers) CloneVT() *PayloadHandlers {
 		return (*PayloadHandlers)(nil)
 	}
 	r := new(PayloadHandlers)
+	r.TxVersion = m.TxVersion
 	r.Handlers = protobuf_go_lite.CloneVTSlice(m.Handlers)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -2181,6 +2193,9 @@ func (this *PayloadHandlers) EqualVT(that *PayloadHandlers) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Handlers, that.Handlers, func() *PayloadHandler { return &PayloadHandler{} }) {
+		return false
+	}
+	if this.TxVersion != that.TxVersion {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3856,6 +3871,11 @@ func (x *PayloadHandlers) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.TxVersion != 0 || s.HasField("txVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txVersion")
+		s.WriteUint32(x.TxVersion)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3891,6 +3911,9 @@ func (x *PayloadHandlers) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Handlers = append(x.Handlers, v)
 			})
+		case "tx_version", "txVersion":
+			s.AddField("tx_version")
+			x.TxVersion = s.ReadUint32()
 		}
 	})
 }
@@ -5334,6 +5357,11 @@ func (m *PayloadHandlers) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TxVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TxVersion))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Handlers) > 0 {
 		for iNdEx := len(m.Handlers) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Handlers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -5917,6 +5945,7 @@ func (m *PayloadHandlers) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.TxVersion)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6553,6 +6582,10 @@ func (x *PayloadHandlers) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.TxVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.TxVersion)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -8357,6 +8390,15 @@ func (m *PayloadHandlers) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxVersion", wireType)
+			}
+			m.TxVersion = 0
+			m.TxVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

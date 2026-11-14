@@ -48,10 +48,11 @@ import (
 //  6. After any mount, the payload hold contains every root the currently
 //     registered handlers name for every operation above the checkpoint.
 //     Saved roots are reused only when that is proven: each saved outcome
-//     records the PayloadRefsVersion of the handler of every operation type
-//     of its transaction (PayloadHandlers), and loadCursor keeps its roots as
-//     known only when every one equals the version OpTypes.Lookup reports
-//     now. Only Lookup's types may name payload roots (LookupOn rejects a
+//     records the PayloadRefsVersion of the transaction rules and of the
+//     handler of every operation type of its transaction (PayloadHandlers),
+//     and loadCursor keeps its roots as known only when the first equals
+//     world_block_tx.PayloadRefsVersion and every other the version
+//     OpTypes.Lookup reports now. Only Lookup's types may name payload roots (LookupOn rejects a
 //     payload operation from the bus), so every other type's version is zero
 //     and needs no bus lookup. When unsure, Hold resolves the operation again,
 //     and replay adopts its saved position only with the payloads Hold
@@ -207,7 +208,7 @@ func (a *Adapter) resolveOpHold(ctx context.Context, snap sobject.SharedObjectSt
 	// An operation that runs no transaction names no payloads.
 	tx, _, err := replayedTx(ctx, snap, set, h)
 	if err != nil || tx == nil {
-		return opHold{handlers: &PayloadHandlers{}}, err == nil, err
+		return opHold{handlers: newPayloadHandlers(nil)}, err == nil, err
 	}
 
 	// Read the roots the transaction names and the handlers that name them.
@@ -261,23 +262,31 @@ func (a *Adapter) payloadHandlers(ctx context.Context, tx *world_block_tx.Tx) (*
 	types = slices.Compact(types)
 
 	// Record each with its version.
-	out := &PayloadHandlers{Handlers: make([]*PayloadHandler, len(types))}
+	handlers := make([]*PayloadHandler, len(types))
 	for i, opTypeID := range types {
 		version, err := a.payloadVersion(ctx, opTypeID)
 		if err != nil {
 			return nil, err
 		}
-		out.Handlers[i] = &PayloadHandler{OpTypeId: opTypeID, Version: version}
+		handlers[i] = &PayloadHandler{OpTypeId: opTypeID, Version: version}
 	}
-	return out, nil
+	return newPayloadHandlers(handlers), nil
 }
 
-// handlersCurrent reports whether every handler h records names payload roots
-// under the version it has now, so the payloads h covers are what the
-// operation names now. An unset h, such as one a cursor saved before handlers
-// were recorded, is unknown and reports false.
+// newPayloadHandlers returns the handlers that name an operation's payload
+// roots now: the operation type handlers given, sorted by type, and the
+// transaction rules under their current version.
+func newPayloadHandlers(handlers []*PayloadHandler) *PayloadHandlers {
+	return &PayloadHandlers{Handlers: handlers, TxVersion: world_block_tx.PayloadRefsVersion}
+}
+
+// handlersCurrent reports whether the transaction rules and every handler h
+// records name payload roots under the version they have now, so the payloads
+// h covers are what the operation names now. An h without the transaction
+// version, such as one a cursor saved before it was recorded, is unknown and
+// reports false.
 func (a *Adapter) handlersCurrent(ctx context.Context, h *PayloadHandlers) bool {
-	if h == nil {
+	if h.GetTxVersion() != world_block_tx.PayloadRefsVersion {
 		return false
 	}
 	for _, handler := range h.GetHandlers() {

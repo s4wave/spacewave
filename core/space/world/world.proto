@@ -275,6 +275,10 @@ message PayloadHandlers {
   // Handlers are the operation types of the operation's transaction, each
   // once and sorted by type.
   repeated PayloadHandler handlers = 1;
+  // TxVersion is the PayloadRefsVersion of the transaction rules that named
+  // the transaction's own roots. Zero, as in handlers saved before it was
+  // recorded, is never current.
+  uint32 tx_version = 2;
 }
 
 // PayloadHandler is the handler of one operation type, as far as the payload

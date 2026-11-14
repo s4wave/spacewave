@@ -115,6 +115,16 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
+// PayloadRefsVersion versions the rules by which PayloadRefs names the roots
+// of the transaction itself: the object root a create or set writes, the
+// SetRoots an applied operation records, the roots of each batched
+// transaction, and none for every other type. An operation's own roots are
+// versioned by its PayloadOperation.PayloadRefsVersion. A saved replay cursor
+// reuses the roots it recorded only under the same version, so bump it, and
+// record the new names in the golden test, whenever these rules name a
+// different set of roots.
+const PayloadRefsVersion uint32 = 1
+
 // PayloadRefs returns the roots replay holds while the transaction is above
 // the checkpoint, resolving operation types with lookupOp: the object root a
 // create or set writes, the roots an applied operation set (its SetRoots),
