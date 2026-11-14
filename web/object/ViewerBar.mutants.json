@@ -18,5 +18,15 @@
       ]
     ],
     "expect": "MenuMatchesPane"
+  },
+  {
+    "name": "More lists every hidden press, gone ones too",
+    "replace": [
+      [
+        "  /\\ menu' = \"open\" /\\ listed' = Folded(width) /\\ noted' = NoteFolded(width)",
+        "  /\\ menu' = \"open\" /\\ listed' = HiddenIn(present, width) /\\ noted' = NoteFolded(width)"
+      ]
+    ],
+    "expect": "GoneNeverListed"
   }
 ]

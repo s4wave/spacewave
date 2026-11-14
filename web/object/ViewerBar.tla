@@ -19,14 +19,23 @@
 \* its press left the bar, focus goes to the first shown press, or the bar.
 \* A press that folds or leaves while it holds focus, with More closed, is left
 \* to the browser and modeled as focus going away.
+\*
+\* A narrow press, such as Pages beside a side column, shows only below 42rem,
+\* where the column it opens is gone. From 42rem it is not folded but gone:
+\* More never lists it, as Details' narrow press never folds into More. The
+\* xs press is the narrow one here; a press that is not narrow behaves at
+\* 42rem as at 28rem. ViewerBarChoice.tla holds the bar's choice.
 
 People == {"person"}
 Presses == {"a", "b", "c"}
+\* The narrow presses, shown only below 42rem.
+Narrow == {"a"}
 
 \* The pane's width band: cramped is under 20rem, narrow 20rem to 28rem, wide
-\* 28rem and up. A bar mounted outside any pane matches no variant, which
-\* folds the same presses as cramped.
-Widths == {"cramped", "narrow", "wide"}
+\* 28rem to 42rem, full 42rem and up. A bar mounted outside any pane matches
+\* no variant, which folds the same presses as cramped.
+Widths == {"cramped", "narrow", "wide", "full"}
+Wide(w) == w \in {"wide", "full"}
 
 Buttons == Presses \cup {"more", "dismiss"}
 
@@ -45,23 +54,28 @@ VARIABLES
   focus      \* where keyboard focus is
 vars == <<width, fold, present, described, menu, listed, noted, focus>>
 
-FoldedIn(s, w) ==
+\* The narrow presses gone at width w; gone is neither in the bar nor folded.
+Gone(w) == IF w = "full" THEN Narrow ELSE {}
+\* The presses of s the pane hides at width w, folded or gone.
+HiddenIn(s, w) ==
   {a \in s :
     \/ fold[a] = "menu"
-    \/ fold[a] = "md" /\ w # "wide"
-    \/ fold[a] = "xs" /\ w = "cramped"}
+    \/ fold[a] = "md" /\ ~Wide(w)
+    \/ fold[a] = "xs" /\ w = "cramped"
+    \/ a \in Gone(w)}
+FoldedIn(s, w) == HiddenIn(s, w) \ Gone(w)
 Folded(w) == FoldedIn(present, w)
-Inline(w) == present \ Folded(w)
-NoteFolded(w) == described /\ w # "wide"
+Inline(w) == present \ HiddenIn(present, w)
+NoteFolded(w) == described /\ ~Wide(w)
 FoldsIn(s, w) == FoldedIn(s, w) # {} \/ NoteFolded(w)
 Folds(w) == FoldsIn(present, w)
 
 \* Where focus goes when More closes with its press gone.
 Fallback(s, w) ==
-  IF s \ FoldedIn(s, w) # {} THEN CHOOSE a \in s \ FoldedIn(s, w) : TRUE ELSE "bar"
+  IF s \ HiddenIn(s, w) # {} THEN CHOOSE a \in s \ HiddenIn(s, w) : TRUE ELSE "bar"
 \* Focus after a closed-bar change: kept while its button is still shown.
 Kept(s, w) ==
-  IF focus \in Buttons /\ focus \notin (s \ FoldedIn(s, w)) \cup (IF FoldsIn(s, w) THEN {"more"} ELSE {})
+  IF focus \in Buttons /\ focus \notin (s \ HiddenIn(s, w)) \cup (IF FoldsIn(s, w) THEN {"more"} ELSE {})
   THEN "away"
   ELSE focus
 
@@ -142,15 +156,16 @@ S == INSTANCE Surface WITH Actions <- Buttons, Next <- Hint
 EveryShownActionWorks == S!EveryShownActionWorks
 NobodyIsStuck == S!NobodyIsStuck
 
-\* Every press is in the bar or one More press away, at every width.
+\* Every press is in the bar or one More press away, at every width, except a
+\* narrow press from 42rem, where the side column it opens shows instead.
 EveryPressReachable ==
   menu = "closed" =>
-    \A a \in present :
+    \A a \in present \ Gone(width) :
       a \in Shown("person") \/ ("more" \in Shown("person") /\ a \in Folded(width))
 \* The description is in the bar or one More press away.
 DescriptionReachable ==
   menu = "closed" /\ described =>
-    width = "wide" \/ "more" \in Shown("person")
+    Wide(width) \/ "more" \in Shown("person")
 \* More is never open empty.
 MenuNeverEmpty == menu = "open" => listed # {} \/ noted
 \* An open More lists exactly what the pane folds now.
@@ -159,7 +174,12 @@ MenuMatchesPane ==
 \* A closed More holds no stale list; it reads the folded presses on each open.
 ClosedMenuListsNothing == menu = "closed" => listed = {} /\ ~noted
 \* A wider pane folds no press that a narrower one shows.
-WiderShowsMore == Folded("wide") \subseteq Folded("narrow") /\ Folded("narrow") \subseteq Folded("cramped")
+WiderShowsMore ==
+  /\ Folded("full") \subseteq Folded("wide")
+  /\ Folded("wide") \subseteq Folded("narrow")
+  /\ Folded("narrow") \subseteq Folded("cramped")
+\* More never lists a narrow press the pane removed.
+GoneNeverListed == listed \cap Gone(width) = {}
 \* Focus sits on a shown button, the open menu, the bar, or away; never on a
 \* press or More the bar hides.
 FocusShown ==

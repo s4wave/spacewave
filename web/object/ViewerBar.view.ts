@@ -10,19 +10,24 @@ type Bar = {
 
 export const title = 'Object viewer: the one-line bar'
 
-const order = ['cramped', 'narrow', 'wide']
+const order = ['cramped', 'narrow', 'wide', 'full']
+
+// wide is the 28rem band and up; full, from 42rem, removes the narrow press.
+const wide = (v: Bar) => v.width === 'wide' || v.width === 'full'
+const gone = (v: Bar, a: string) => v.width === 'full' && a === 'a'
 
 const folded = (v: Bar) =>
   v.present.filter(
     (a) =>
-      v.fold[a] === 'menu' ||
-      (v.fold[a] === 'md' && v.width !== 'wide') ||
-      (v.fold[a] === 'xs' && v.width === 'cramped'),
+      !gone(v, a) &&
+      (v.fold[a] === 'menu' ||
+        (v.fold[a] === 'md' && !wide(v)) ||
+        (v.fold[a] === 'xs' && v.width === 'cramped')),
   ).length
 
 export const state = (v: Bar) => {
   if (v.menu === 'open') return 'More open'
-  const n = v.present.length
+  const n = v.present.filter((a) => !gone(v, a)).length
   const f = folded(v)
   if (n === 0) return 'Only the title'
   if (f === 0) return 'Every press in the bar'
