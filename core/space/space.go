@@ -70,6 +70,19 @@ func NewSharedObjectMeta(spaceName string) (*sobject.SharedObjectMeta, error) {
 	}, nil
 }
 
+// SharedObjectName returns the Space name meta carries, or "" when meta is
+// not a Space's or its body meta does not decode.
+func SharedObjectName(meta *sobject.SharedObjectMeta) string {
+	if meta.GetBodyType() != SpaceBodyType {
+		return ""
+	}
+	spaceMeta := &SpaceSoMeta{}
+	if err := spaceMeta.UnmarshalVT(meta.GetBodyMeta()); err != nil {
+		return ""
+	}
+	return spaceMeta.GetName()
+}
+
 // FixupSpaceName fixes up a space name by trimming spaces and
 // collapsing consecutive spaces into single spaces.
 func FixupSpaceName(name string) string {

@@ -83,7 +83,7 @@ func TestMergeInviteSnapshotKeepsHeldOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	foreign, foreignGenesis, err := sobject.BuildGenesisSOState(le, testStepFactorySet(), testSharedObjectID, other, nil)
+	foreign, foreignGenesis, err := sobject.BuildGenesisSOState(le, testStepFactorySet(), testSharedObjectID, other, "", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

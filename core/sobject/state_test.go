@@ -19,7 +19,7 @@ func TestBuildGenesisSOState(t *testing.T) {
 	// Build a genesis holding initial state data.
 	peers := createMockPeers(t, 1)
 	owner := mustPrivKeys(t, peers)[0]
-	state, genesis, err := BuildGenesisSOState(nil, testStepFactorySet(), mockSharedObjectID, owner, []byte("initial"))
+	state, genesis, err := BuildGenesisSOState(nil, testStepFactorySet(), mockSharedObjectID, owner, "", "", []byte("initial"))
 	if err != nil {
 		t.Fatal(err)
 	}

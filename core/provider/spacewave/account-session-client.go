@@ -34,6 +34,22 @@ func (a *ProviderAccount) sessionClientSnapshot() (*SessionClient, string) {
 	return cli, sessionID
 }
 
+// GetSpaceOwner returns what a new Space's genesis names as its owner: the
+// account's ready session key, which the cloud holds as a session of the
+// account, the account ID and the account's username.
+func (a *ProviderAccount) GetSpaceOwner(ctx context.Context) (crypto.PrivKey, string, string, error) {
+	// Wait for the ready session key and read the username.
+	_, priv, _, err := a.getReadySessionClient(ctx)
+	if err != nil {
+		return nil, "", "", err
+	}
+	username, err := a.getUsername(ctx)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return priv, a.accountID, username, nil
+}
+
 // getReadySessionClient returns a signing-capable session client for this
 // account. If the cached session client is missing its private key, it falls
 // back to any mounted unlocked session and repairs the cached client.

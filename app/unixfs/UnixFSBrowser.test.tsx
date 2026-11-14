@@ -972,6 +972,7 @@ describe('UnixFSBrowser drag gating', () => {
           expect.objectContaining({ name: 'hello.txt' }),
         ]),
         [],
+        expect.any(String),
       )
     })
   })
@@ -992,6 +993,7 @@ describe('UnixFSBrowser drag gating', () => {
         expect.anything(),
         expect.any(Array),
         ['nested', 'nested/empty'],
+        expect.any(String),
       )
     })
   })

@@ -238,7 +238,7 @@ func newTestSessionPresentationSharedObject(
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), "so-settings", priv, data)
+	state, _, err := sobject.BuildGenesisSOState(logrus.NewEntry(logrus.New()), testStepFactorySet(), "so-settings", priv, "", "", data)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -33,12 +33,11 @@ const (
 	// TargetHoldsOther means anything else: a Space created on the target,
 	// moved from another source, or changed since a transfer wrote it.
 	TargetHoldsOther
-	// TargetHoldsNoOrigin means a target that stores no origin, such as a
-	// cloud account, holds a configured Space whose World is not the source's
-	// current one. It cannot tell an earlier copy this source wrote from any
-	// other Space, so the transfer writes nothing over it. Transfer.tla names
-	// the case CloudLimit; it goes away when the cloud target stores the
-	// origin.
+	// TargetHoldsNoOrigin means the cloud holds a configured Space stored
+	// with no origin, by a client or cloud from before origins, whose World
+	// is not the source's current one. It cannot tell an earlier copy this
+	// source wrote from any other Space, so the transfer writes nothing over
+	// it. Transfer.tla names the case CloudLimit.
 	TargetHoldsNoOrigin
 )
 
@@ -72,7 +71,8 @@ type TransferTarget interface {
 	// The ref should already have the target's provider resource ref.
 	AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta, origin *TransferOrigin) (*TargetSpace, error)
 	// WriteSharedObjectState replaces the state of a Space with a new lineage
-	// owned solely by owner whose checkpoint holds stateData, and records
+	// owned solely by owner, or on a cloud target by the account's own
+	// session, whose checkpoint holds stateData, and records
 	// origin, whose head names that World, in the same write. It writes only
 	// while the target holds the state expect read, and otherwise returns
 	// ErrTargetChanged, writing nothing.
