@@ -55,6 +55,10 @@ import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import { ComputersDashboardTypeID } from './computers.js'
 import { deriveSshHostKeys } from './ssh-host-keys.js'
 import { PRED_WIZARD_SSH_HOST } from './ssh-host-made.js'
+import type {
+  UseWizardStateOptions,
+  WizardCancelContext,
+} from '../wizard/useWizardState.js'
 
 const h = vi.hoisted(() => ({
   computersError: null as Error | null,
@@ -73,6 +77,7 @@ const h = vi.hoisted(() => ({
   approveSpaceLink: vi.fn(),
   createSecret: vi.fn(),
   writeSecretPayload: vi.fn().mockResolvedValue({}),
+  deleteSecret: vi.fn(),
   // secrets holds the keys of the Secrets created so far.
   secrets: new Set<string>(),
   toastSuccess: vi.fn(),
@@ -91,6 +96,10 @@ const h = vi.hoisted(() => ({
   // quads and bodies are what committed batches linked and created.
   quads: [] as Quad[],
   bodies: {} as Record<string, Uint8Array>,
+  // wizardOptions and spaceWorld are what the viewer last gave and got from
+  // the wizard hook.
+  wizardOptions: undefined as UseWizardStateOptions | undefined,
+  spaceWorld: undefined as WizardCancelContext['spaceWorld'] | undefined,
 }))
 
 // createSecret refuses a key that holds a Secret, as the Space does.
@@ -101,6 +110,13 @@ h.createSecret.mockImplementation((req: { objectKey?: string }) => {
   }
   h.secrets.add(key)
   return Promise.resolve({ secret: {} })
+})
+
+// deleteSecret removes a Secret, and does nothing for a key that holds none,
+// as the Space does.
+h.deleteSecret.mockImplementation((req: { objectKey?: string }) => {
+  h.secrets.delete(req.objectKey ?? '')
+  return Promise.resolve({})
 })
 
 // batchThroughSpies applies a Finish batch through the hoisted spies, in
@@ -181,7 +197,21 @@ const linkedWorld = {
 }
 
 vi.mock('../wizard/useWizardState.js', () => ({
-  useWizardState: () => ({
+  useWizardState: (
+    _props: unknown,
+    _configTypeId: unknown,
+    options?: UseWizardStateOptions,
+  ) => {
+    h.wizardOptions = options
+    const ws = wizardStateResult()
+    h.spaceWorld = ws.spaceWorld as unknown as WizardCancelContext['spaceWorld']
+    return ws
+  },
+}))
+
+// wizardStateResult is the wizard hook's result for the hoisted state.
+function wizardStateResult() {
+  return {
     objectKey: 'wizard/device-setup',
     state: {
       step: h.currentStep,
@@ -223,8 +253,8 @@ vi.mock('../wizard/useWizardState.js', () => ({
     handleBack: vi.fn(),
     cancel: { status: 'idle' },
     handleCancel: h.handleCancel,
-  }),
-}))
+  }
+}
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
   useResourceValue: (resource: { value?: unknown }) => resource.value,
@@ -246,6 +276,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
       value: {
         createSecret: h.createSecret,
         writeSecretPayload: h.writeSecretPayload,
+        deleteSecret: h.deleteSecret,
       },
     }),
   },
@@ -974,6 +1005,83 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     expect(Object.keys(h.bodies).sort()).toEqual([keys.host, terminalKey])
   })
 
+  it('deletes the Secret a failed Finish created when the wizard is cancelled', async () => {
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'fake-password' },
+    })
+
+    // The Secret lands, then the host create fails.
+    h.commit.mockRejectedValueOnce(new Error('host create failed'))
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText(/^Could not finish: host create failed/),
+    ).toBeTruthy()
+    const keys = await sshKeys()
+    expect([...h.secrets]).toEqual([keys.password])
+
+    // Cancel deletes it, since no host names it.
+    await cancelWithRecordedConfig()
+    expect(h.deleteSecret).toHaveBeenCalledWith({ objectKey: keys.password })
+    expect(h.secrets.size).toBe(0)
+  })
+
+  it('keeps the Secret an SSH Host the wizard made names when the wizard is cancelled', async () => {
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'fake-password' },
+    })
+
+    // The host and terminal land, then the wizard removal fails.
+    failWizardRemoval()
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText('Could not finish: commit failed'),
+    ).toBeTruthy()
+
+    // Cancel leaves the host's Secret in place.
+    await cancelWithRecordedConfig()
+    const keys = await sshKeys()
+    expect(h.deleteSecret).not.toHaveBeenCalledWith({
+      objectKey: keys.password,
+    })
+    expect([...h.secrets]).toEqual([keys.password])
+  })
+
+  it('ends clean when a Finish fails after recording its Secret keys and before creating them', async () => {
+    h.currentStep = 1
+    h.configData = sshConfigData('build.example.com')
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'fake-password' },
+    })
+
+    // The keys are recorded, then the Secret create fails.
+    h.createSecret.mockRejectedValueOnce(new Error('secret create failed'))
+    fireEvent.click(await enabledButton(/open terminal/i))
+    expect(
+      await screen.findByText(/^Could not finish: secret create failed/),
+    ).toBeTruthy()
+    expect(h.updateState.mock.invocationCallOrder[0]).toBeLessThan(
+      h.createSecret.mock.invocationCallOrder[0] ?? 0,
+    )
+
+    // Cancel deletes every recorded key; none holds a Secret.
+    await cancelWithRecordedConfig()
+    const keys = await sshKeys()
+    expect(h.deleteSecret.mock.calls.map(([req]) => req)).toEqual([
+      { objectKey: keys.password },
+      { objectKey: keys.privateKey },
+      { objectKey: keys.passphrase },
+    ])
+    expect(h.secrets.size).toBe(0)
+    expect(Object.keys(h.bodies)).toEqual([])
+  })
+
   it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
     h.currentStep = 1
     h.configData = new TextEncoder().encode(
@@ -1259,6 +1367,23 @@ async function enabledButton(name: RegExp): Promise<HTMLElement> {
   const button = screen.getByRole('button', { name })
   await waitFor(() => expect(button).toHaveProperty('disabled', false))
   return button
+}
+
+// cancelWithRecordedConfig runs the step the viewer adds to the wizard's
+// Cancel, with the config the last Finish press recorded, as the wizard hook
+// runs it before deleting the wizard.
+async function cancelWithRecordedConfig() {
+  const configData = h.updateState.mock.calls
+    .map(([update]) => (update as { configData?: Uint8Array }).configData)
+    .filter((data) => data !== undefined)
+    .at(-1)
+  const spaceWorld = h.spaceWorld
+  if (!configData || !spaceWorld) throw new Error('expected recorded config')
+  await h.wizardOptions?.beforeCancel?.({
+    objectKey: 'wizard/device-setup',
+    spaceWorld,
+    configData,
+  })
 }
 
 function renderViewer() {

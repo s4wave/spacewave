@@ -68,11 +68,29 @@ export interface UseWizardStateResult {
 // objectExists projects a present wizard object to true.
 const objectExists = () => Promise.resolve(true)
 
+// WizardCancelContext is the wizard a Cancel removes, as its type's own
+// cancel step sees it.
+export interface WizardCancelContext {
+  objectKey: string
+  spaceWorld: UseWizardStateResult['spaceWorld']
+  // configData is the config the wizard shows, a local edit included.
+  configData?: Uint8Array
+}
+
+// UseWizardStateOptions adds a wizard type's own steps to the shared logic.
+export interface UseWizardStateOptions {
+  // beforeCancel removes what this wizard type made that the wizard delete
+  // does not, and runs before it. A rejection ends Cancel in its failed state
+  // with the wizard kept, so a retry runs it again.
+  beforeCancel?: (wizard: WizardCancelContext) => Promise<void>
+}
+
 // useWizardState encapsulates the shared wizard resource access, local name
 // sync, cancel, back, and config-data-change logic used by all wizard viewers.
 export function useWizardState(
   { objectInfo, worldState }: ObjectViewerComponentProps,
   configTypeId: string | undefined,
+  { beforeCancel }: UseWizardStateOptions = {},
 ): UseWizardStateResult {
   const objectKey = getObjectKey(objectInfo)
   const { spaceState, spaceWorld, navigateToObjects, navigateToRoot } =
@@ -163,6 +181,7 @@ export function useWizardState(
     async (indexPath = '') => {
       setCancel({ status: 'cancelling' })
       try {
+        await beforeCancel?.({ objectKey, spaceWorld, configData })
         await cancelWizard({ objectKey, spaceWorld, sessionPeerId }, indexPath)
       } catch (err) {
         if (err instanceof WizardGoneError) {
@@ -181,7 +200,9 @@ export function useWizardState(
       navigateToRoot()
     },
     [
+      beforeCancel,
       closeShellTab,
+      configData,
       navigateToRoot,
       objectKey,
       sessionPeerId,
