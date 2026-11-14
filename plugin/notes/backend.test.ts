@@ -32,6 +32,8 @@ const h = vi.hoisted(() => ({
   quickstartRegistrationFailureId: undefined as string | undefined,
   viewerRegistrationFailure: undefined as Error | undefined,
   nextResourceId: 1,
+  executeWorldBatch: vi.fn(),
+  engineRelease: vi.fn(),
   rootRef: undefined as unknown as TestRef,
   scopeRef: undefined as unknown as TestRef,
 }))
@@ -230,7 +232,21 @@ vi.mock(
   }),
 )
 
+vi.mock('@s4wave/sdk/world/engine.js', () => ({
+  Engine: class {
+    constructor(_ref: unknown) {}
+    executeWorldBatch = h.executeWorldBatch
+    release = h.engineRelease
+  },
+}))
+
 import main from './backend.js'
+import { WorldErrorCode } from '../../sdk/world/world.pb.js'
+import {
+  PluginOpTimeoutError,
+  WorldBatchRefusal,
+} from '../../sdk/world/errors.js'
+import { InitNotebookOp } from './proto/notebook.pb.js'
 import { Hash } from '../../net/hash/hash.pb.js'
 import { base58Encode } from '../../net/peer/base58.js'
 import { pinnedOperationID } from '../../sdk/sync/instance.js'
@@ -673,5 +689,105 @@ describe('notes backend registration', () => {
     expect(h.quickstartRegistrations).toHaveLength(0)
     expect(h.wizardRegistrations).toHaveLength(0)
     expect(h.viewerRegistrations).toHaveLength(0)
+  })
+})
+
+describe('notes quickstart seed', () => {
+  type SeedHandler = {
+    SeedQuickstart(
+      request: { quickstartId: string; attachedEngineResourceId: number },
+      abortSignal: AbortSignal,
+      context: unknown,
+    ): Promise<{ indexPath?: string; pluginIds?: string[] }>
+  }
+
+  async function startSeedHandler(): Promise<SeedHandler> {
+    h.createdHandlers.length = 0
+    h.rootRef = buildRef()
+    h.scopeRef = buildRef()
+    await startMain(
+      buildApi('spacewave-notes') as never,
+      new AbortController().signal,
+    )
+    const created = h.createdHandlers.find(
+      (c) =>
+        typeof (c.handler as Partial<SeedHandler>).SeedQuickstart ===
+        'function',
+    )
+    if (!created) throw new Error('expected the quickstart handler')
+    return created.handler as SeedHandler
+  }
+
+  function seed(handler: SeedHandler, quickstartId: string) {
+    return handler.SeedQuickstart(
+      { quickstartId, attachedEngineResourceId: 7 },
+      new AbortController().signal,
+      { signal: new AbortController().signal },
+    )
+  }
+
+  beforeEach(() => {
+    h.executeWorldBatch.mockReset()
+    h.engineRelease.mockReset()
+  })
+
+  it('seeds each quickstart with its create op as one batch', async () => {
+    h.executeWorldBatch.mockResolvedValue({ seqno: 1n })
+    const handler = await startSeedHandler()
+
+    const ops = new Map<string, Uint8Array>()
+    for (const [id, opTypeId, indexPath] of [
+      ['notebook', 'notes/notebook/init', 'notebook'],
+      ['docs', 'notes/docs/create', 'documentation'],
+      ['blog', 'notes/blog/create', 'blog/site'],
+    ]) {
+      h.executeWorldBatch.mockClear()
+      await expect(seed(handler, id)).resolves.toEqual({
+        indexPath,
+        pluginIds: ['spacewave-notes'],
+      })
+      expect(h.executeWorldBatch).toHaveBeenCalledTimes(1)
+      const [mutations] = h.executeWorldBatch.mock.calls[0] ?? []
+      expect(mutations).toHaveLength(1)
+      expect(mutations[0].mutation.case).toBe('op')
+      expect(mutations[0].mutation.value.opTypeId).toBe(opTypeId)
+      ops.set(id, mutations[0].mutation.value.opData)
+    }
+    const notebookOp = InitNotebookOp.fromBinary(
+      ops.get('notebook') ?? new Uint8Array(),
+    )
+    expect(notebookOp.notebookObjectKey).toBe('notebook')
+    expect(notebookOp.unixfsObjectKey).toBe('files')
+    expect(h.engineRelease).toHaveBeenCalledTimes(3)
+  })
+
+  it('reports a plugin op timeout and a batch refusal typed', async () => {
+    const handler = await startSeedHandler()
+
+    h.executeWorldBatch.mockResolvedValueOnce({
+      errorCode: WorldErrorCode.PLUGIN_OP_TIMEOUT,
+      failedIndex: 0,
+    })
+    await expect(seed(handler, 'notebook')).rejects.toBeInstanceOf(
+      PluginOpTimeoutError,
+    )
+
+    h.executeWorldBatch.mockResolvedValueOnce({
+      errorCode: WorldErrorCode.OBJECT_NOT_FOUND,
+      failedIndex: 0,
+    })
+    const refusal = await seed(handler, 'blog').catch((err: unknown) => err)
+    expect(refusal).toBeInstanceOf(WorldBatchRefusal)
+    expect((refusal as WorldBatchRefusal).failedIndex).toBe(0)
+    expect(h.engineRelease).toHaveBeenCalledTimes(2)
+  })
+
+  it('refuses an unknown quickstart before touching the engine', async () => {
+    const handler = await startSeedHandler()
+
+    await expect(seed(handler, 'gallery')).rejects.toThrow(
+      'unhandled notes quickstart: gallery',
+    )
+    expect(h.executeWorldBatch).not.toHaveBeenCalled()
   })
 })

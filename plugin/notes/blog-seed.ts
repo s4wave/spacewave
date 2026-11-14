@@ -1,5 +1,4 @@
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
 import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { INIT_UNIXFS_OP_ID } from '@s4wave/core/space/world/ops/init-unixfs.js'
@@ -19,35 +18,6 @@ async function runBlogSeedStep<T>(
       label + ': ' + (err instanceof Error ? err.message : String(err)),
       { cause: err },
     )
-  }
-}
-
-async function withWritableBlogState<T>(
-  worldState: IWorldState,
-  abortSignal: AbortSignal | undefined,
-  cb: (writeState: IWorldState) => Promise<T>,
-): Promise<T> {
-  if (!(worldState instanceof EngineWorldState)) {
-    return cb(worldState)
-  }
-
-  const engine = worldState.getEngine()
-  let committed = false
-  const tx = await runBlogSeedStep('open blog seed transaction', async () => {
-    return await engine.newTransaction(true, abortSignal)
-  })
-  try {
-    const result = await cb(tx)
-    await runBlogSeedStep('commit blog seed transaction', async () => {
-      await tx.commit(abortSignal)
-    })
-    committed = true
-    return result
-  } finally {
-    if (!committed) {
-      await tx.discard(abortSignal).catch(() => {})
-    }
-    tx.release()
   }
 }
 
@@ -124,63 +94,61 @@ export async function createBlogClientSide(
   timestamp: Date,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  await withWritableBlogState(worldState, abortSignal, async (writeState) => {
-    const unixfsKey = buildBlogUnixfsObjectKey(blogObjectKey)
+  const unixfsKey = buildBlogUnixfsObjectKey(blogObjectKey)
 
-    await runBlogSeedStep('initialize blog unixfs root', async () => {
-      await writeState.applyWorldOp(
-        INIT_UNIXFS_OP_ID,
-        InitUnixFSOp.toBinary({
-          objectKey: unixfsKey,
-          timestamp,
-        }),
-        '',
-        abortSignal,
-      )
-    })
-    await runBlogSeedStep('seed initial blog tree', async () => {
-      await uploadSeedTree(
-        writeState,
-        unixfsKey,
-        [
-          {
-            path: 'hello-world.md',
-            content: buildSeedBlogPost(
-              blogName,
-              timestamp.toISOString().slice(0, 10),
-            ),
-          },
-        ],
-        undefined,
-        abortSignal,
-      )
-    })
-
-    const blogData = Blog.toBinary({
-      name: blogName,
-      description,
-      sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
-      authorRegistryPath,
-    })
-    // eslint-disable-next-line react-doctor/async-parallel
-    await runBlogSeedStep('create blog object', async () => {
-      await createObjectWithBlockData(
-        writeState,
-        blogObjectKey,
-        blogData,
-        abortSignal,
-      )
-    })
-
-    await runBlogSeedStep('set blog type', async () => {
-      await setObjectType(writeState, blogObjectKey, 'notes/blog', abortSignal)
-    })
-    await ensureBlogCompanionNotebook(
-      writeState,
-      blogObjectKey,
-      unixfsKey,
-      blogName,
+  await runBlogSeedStep('initialize blog unixfs root', async () => {
+    await worldState.applyWorldOp(
+      INIT_UNIXFS_OP_ID,
+      InitUnixFSOp.toBinary({
+        objectKey: unixfsKey,
+        timestamp,
+      }),
+      '',
       abortSignal,
     )
   })
+  await runBlogSeedStep('seed initial blog tree', async () => {
+    await uploadSeedTree(
+      worldState,
+      unixfsKey,
+      [
+        {
+          path: 'hello-world.md',
+          content: buildSeedBlogPost(
+            blogName,
+            timestamp.toISOString().slice(0, 10),
+          ),
+        },
+      ],
+      undefined,
+      abortSignal,
+    )
+  })
+
+  const blogData = Blog.toBinary({
+    name: blogName,
+    description,
+    sources: [{ name: 'Posts', ref: unixfsKey + '/-/' }],
+    authorRegistryPath,
+  })
+  // eslint-disable-next-line react-doctor/async-parallel
+  await runBlogSeedStep('create blog object', async () => {
+    await createObjectWithBlockData(
+      worldState,
+      blogObjectKey,
+      blogData,
+      abortSignal,
+    )
+  })
+
+  await runBlogSeedStep('set blog type', async () => {
+    await setObjectType(worldState, blogObjectKey, 'notes/blog', abortSignal)
+  })
+  await ensureBlogCompanionNotebook(
+    worldState,
+    blogObjectKey,
+    unixfsKey,
+    blogName,
+    abortSignal,
+  )
 }
