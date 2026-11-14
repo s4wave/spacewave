@@ -38,8 +38,14 @@
 \* checks each Space again just before deleting it; a Space whose source moved
 \* since its copy is moved again first.
 \*
+\* A cloud target stores no origin. It reads a listed Space with no config as
+\* arriving, and a configured one as moved only when its World is the
+\* source's current World; it never writes a configured Space.
+\*
 \* The person may write to the source at any time except during cleanup, and
-\* may write to, delete or create a Space on the target at any time. The code
+\* may write to, delete or create a Space on the target at any time, or change
+\* its membership, such as a grant to a second device or an invite, which
+\* leaves its World alone. A write over a changed membership would drop it. The code
 \* checks the source head just before each delete, so a source write between
 \* that check and the delete is the one window the model leaves out.
 \*
@@ -57,7 +63,8 @@ Modes == {"merge", "migrate", "mirror"}
 MaxRuns == 1
 \* MaxEdits bounds the writes to each source Space.
 MaxEdits == 1
-\* MaxTouches bounds the person's writes, deletes and creates on the target.
+\* MaxTouches bounds the person's writes, deletes, creates and membership
+\* changes on the target.
 MaxTouches == 2
 \* MaxFaults bounds the crashes, failures and stage lapses in one behavior, so
 \* the model is finite and a transfer that stops faulting can finish.
@@ -65,13 +72,13 @@ MaxFaults == 1
 
 \* A target state: none (not listed), the empty genesis a transfer lists, a
 \* state written from source version v and edited e times since, or a state
-\* the transfer did not write.
-None == [k |-> "none", v |-> 0, e |-> 0]
-Empty == [k |-> "empty", v |-> 0, e |-> 0]
-Src(v) == [k |-> "src", v |-> v, e |-> 0]
-Other == [k |-> "other", v |-> 0, e |-> 0]
+\* the transfer did not write; c counts the membership changes since.
+None == [k |-> "none", v |-> 0, e |-> 0, c |-> 0]
+Empty == [k |-> "empty", v |-> 0, e |-> 0, c |-> 0]
+Src(v) == [k |-> "src", v |-> v, e |-> 0, c |-> 0]
+Other == [k |-> "other", v |-> 0, e |-> 0, c |-> 0]
 \* The target is a member of the same shared object as the source.
-Member == [k |-> "member", v |-> 0, e |-> 0]
+Member == [k |-> "member", v |-> 0, e |-> 0, c |-> 0]
 \* An origin: none, ADDED, or WRITTEN at source head h.
 NoOrigin == [ph |-> "none", h |-> 0]
 Added == [ph |-> "added", h |-> 0]
@@ -97,8 +104,10 @@ VARIABLES
   ver,      \* each source Space's head, raised by a source write
   delOk,    \* each deleted source Space was on the target from its head
   lost,     \* a write replaced an edited or foreign target state
-  touched,  \* the Spaces the person wrote, deleted or created on the target
+  touched,  \* the Spaces the person wrote, deleted, created or changed on the target
   touches,
+  cloudTgt, \* the target is a cloud account, which stores no origin
+  unjust,   \* a run left a Space not moved that the person did not change
   runs,
   vol,      \* the source volume exists
   session,  \* the source session exists
@@ -109,7 +118,7 @@ VARIABLES
   alive,    \* the shared objects a second member still reads
   keyLost   \* a Migrate deleted the source volume before the target held its key
 run == <<pc, entries, cur, step, expect, cv, moved, notMoved, staged>>
-target == <<blocks, held, tc, origin, lost, touched, touches>>
+target == <<blocks, held, tc, origin, lost, touched, touches, cloudTgt, unjust>>
 source == <<src, ver, delOk, vol, session, key, shared, cloudSrc, alive, keyLost>>
 vars == <<mode, picked, run, target, source, runs, faults>>
 
@@ -140,6 +149,8 @@ Init ==
   /\ lost = FALSE
   /\ touched = [s \in Spaces |-> Listed(s)]
   /\ touches = 0
+  /\ cloudTgt \in BOOLEAN
+  /\ unjust = FALSE
   /\ runs = 0
   /\ src = Spaces
   /\ ver = [s \in Spaces |-> 0]
@@ -178,8 +189,21 @@ Begin(s) ==
   /\ cur' = s /\ step' = "decide"
   /\ UNCHANGED <<mode, picked, pc, entries, expect, cv, moved, notMoved, staged, target, source, runs, faults>>
 
+\* A local target reads the origin it stores; a cloud target stores none and
+\* reads the Space's config and World alone. An arriving Space holds the empty
+\* genesis.
+Arriving(t, o) == t = Empty /\ (cloudTgt \/ o = Added)
+\* The target holds the source's current World, whatever else changed, so no
+\* write follows.
+AtSourceHead(t, o) == (cloudTgt \/ o.ph = "written") /\ t.k = "src" /\ t.v = ver[cur] /\ t.e = 0
+\* A local target holds a state this source wrote and nothing changed since,
+\* so a write replaces only the World the transfer wrote.
+Rewritable(t, o) == ~cloudTgt /\ o.ph = "written" /\ t = Src(o.h)
+
 \* Decide the Space from its target state, its origin and the source head.
 \* Listing an id the target does not list releases every root of its bucket.
+\* A Space left not moved that the person did not change, or no longer
+\* listed, is unjust.
 Decide ==
   /\ pc = "spaces" /\ step = "decide"
   /\ LET t == tc[cur]
@@ -189,28 +213,29 @@ Decide ==
                     THEN moved' = moved \cup {cur} /\ UNCHANGED notMoved
                     ELSE notMoved' = notMoved \cup {cur} /\ UNCHANGED moved
                /\ cur' = "none" /\ step' = "none"
-               /\ UNCHANGED <<tc, origin, held, expect>>
+               /\ UNCHANGED <<tc, origin, held, expect, unjust>>
           [] ~Listed(cur) ->
                /\ tc' = [tc EXCEPT ![cur] = Empty]
                /\ origin' = [origin EXCEPT ![cur] = Added]
                /\ held' = held \ {cur}
                /\ expect' = Empty /\ step' = "copy"
-               /\ UNCHANGED <<cur, moved, notMoved>>
-          [] o = Added /\ t = Empty ->
+               /\ UNCHANGED <<cur, moved, notMoved, unjust>>
+          [] Arriving(t, o) ->
                /\ expect' = t /\ step' = "copy"
-               /\ UNCHANGED <<tc, origin, held, cur, moved, notMoved>>
-          [] o.ph = "written" /\ o.h = ver[cur] ->
+               /\ UNCHANGED <<tc, origin, held, cur, moved, notMoved, unjust>>
+          [] AtSourceHead(t, o) ->
                /\ moved' = moved \cup {cur}
                /\ cur' = "none" /\ step' = "none"
-               /\ UNCHANGED <<tc, origin, held, expect, notMoved>>
-          [] o.ph = "written" /\ t = Src(o.h) ->
+               /\ UNCHANGED <<tc, origin, held, expect, notMoved, unjust>>
+          [] Rewritable(t, o) ->
                /\ expect' = t /\ step' = "copy"
-               /\ UNCHANGED <<tc, origin, held, cur, moved, notMoved>>
+               /\ UNCHANGED <<tc, origin, held, cur, moved, notMoved, unjust>>
           [] OTHER ->
                /\ notMoved' = notMoved \cup {cur}
+               /\ unjust' = (unjust \/ ~(touched[cur] /\ Listed(cur)))
                /\ cur' = "none" /\ step' = "none"
                /\ UNCHANGED <<tc, origin, held, expect, moved>>
-  /\ UNCHANGED <<mode, picked, pc, entries, cv, staged, blocks, lost, touched, touches, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, pc, entries, cv, staged, blocks, lost, touched, touches, cloudTgt, source, runs, faults>>
 
 \* Copy the Space's World at the source head under a new stage, which holds it
 \* from its put.
@@ -220,14 +245,14 @@ Copy ==
   /\ staged' = {cur}
   /\ cv' = ver[cur]
   /\ step' = "hold"
-  /\ UNCHANGED <<mode, picked, pc, entries, cur, expect, moved, notMoved, held, tc, origin, lost, touched, touches, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, pc, entries, cur, expect, moved, notMoved, held, tc, origin, lost, touched, touches, cloudTgt, unjust, source, runs, faults>>
 
 \* Hold the World under the import root.
 Hold ==
   /\ pc = "spaces" /\ step = "hold"
   /\ held' = held \cup {cur}
   /\ step' = "check"
-  /\ UNCHANGED <<mode, picked, pc, entries, cur, expect, cv, moved, notMoved, staged, blocks, tc, origin, lost, touched, touches, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, pc, entries, cur, expect, cv, moved, notMoved, staged, blocks, tc, origin, lost, touched, touches, cloudTgt, unjust, source, runs, faults>>
 
 \* Check the stage still held the whole copy until the hold; a lapsed stage
 \* may have lost it, and the run fails so a retry copies again.
@@ -244,7 +269,7 @@ Check ==
 Write ==
   /\ pc = "spaces" /\ step = "write"
   /\ IF tc[cur] = expect
-       THEN /\ lost' = (lost \/ tc[cur].e > 0 \/ tc[cur].k = "other")
+       THEN /\ lost' = (lost \/ tc[cur].e > 0 \/ tc[cur].c > 0 \/ tc[cur].k = "other")
             /\ tc' = [tc EXCEPT ![cur] = Src(cv)]
             /\ origin' = [origin EXCEPT ![cur] = Written(cv)]
             /\ moved' = moved \cup {cur}
@@ -252,7 +277,7 @@ Write ==
        ELSE /\ notMoved' = notMoved \cup {cur}
             /\ UNCHANGED <<lost, tc, origin, moved>>
   /\ step' = "release"
-  /\ UNCHANGED <<mode, picked, pc, entries, cur, expect, cv, staged, blocks, held, touched, touches, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, pc, entries, cur, expect, cv, staged, blocks, held, touched, touches, cloudTgt, unjust, source, runs, faults>>
 
 \* Release the stage.
 Release ==
@@ -337,7 +362,7 @@ Lapse ==
 Free(s) ==
   /\ s \in blocks \ (staged \cup held)
   /\ blocks' = blocks \ {s}
-  /\ UNCHANGED <<mode, picked, run, held, tc, origin, lost, touched, touches, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, run, held, tc, origin, lost, touched, touches, cloudTgt, unjust, source, runs, faults>>
 
 \* The person writes to a source Space, except during cleanup.
 SourceWrite(s) ==
@@ -355,7 +380,15 @@ TargetWrite(s) ==
                                  [] OTHER -> [Other EXCEPT !.e = 1]]
   /\ held' = held \cup {s} /\ blocks' = blocks \cup {s}
   /\ touched' = [touched EXCEPT ![s] = TRUE] /\ touches' = touches + 1
-  /\ UNCHANGED <<mode, picked, run, origin, lost, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, run, origin, lost, cloudTgt, unjust, source, runs, faults>>
+
+\* The person changes the membership of a Space the target lists and holds as
+\* its own, leaving its World alone.
+TargetConfig(s) ==
+  /\ tc[s].k \in {"src", "other"} /\ touches < MaxTouches
+  /\ tc' = [tc EXCEPT ![s].c = @ + 1]
+  /\ touched' = [touched EXCEPT ![s] = TRUE] /\ touches' = touches + 1
+  /\ UNCHANGED <<mode, picked, run, blocks, held, origin, lost, cloudTgt, unjust, source, runs, faults>>
 
 \* The person deletes a Space on the target, its origin with it.
 TargetDelete(s) ==
@@ -364,7 +397,7 @@ TargetDelete(s) ==
   /\ origin' = [origin EXCEPT ![s] = NoOrigin]
   /\ held' = held \ {s}
   /\ touched' = [touched EXCEPT ![s] = TRUE] /\ touches' = touches + 1
-  /\ UNCHANGED <<mode, picked, run, blocks, lost, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, run, blocks, lost, cloudTgt, unjust, source, runs, faults>>
 
 \* The person creates a Space on the target with an id the target does not
 \* list.
@@ -373,7 +406,7 @@ TargetCreate(s) ==
   /\ tc' = [tc EXCEPT ![s] = Other]
   /\ held' = held \cup {s} /\ blocks' = blocks \cup {s}
   /\ touched' = [touched EXCEPT ![s] = TRUE] /\ touches' = touches + 1
-  /\ UNCHANGED <<mode, picked, run, origin, lost, source, runs, faults>>
+  /\ UNCHANGED <<mode, picked, run, origin, lost, cloudTgt, unjust, source, runs, faults>>
 
 \* After a run ends, the person starts another from the same source to the
 \* same target, with any mode and pick.
@@ -402,6 +435,7 @@ Next ==
   \/ Progress \/ Fault \/ Lapse \/ Done \/ NewRun
   \/ \E s \in Spaces :
        Free(s) \/ SourceWrite(s) \/ TargetWrite(s) \/ TargetDelete(s) \/ TargetCreate(s)
+       \/ TargetConfig(s)
 Spec == Init /\ [][Next]_vars /\ WF_vars(Progress)
 
 \* No write replaces a target state the person edited or the transfer did not
@@ -412,17 +446,19 @@ NoEditOverwritten == ~lost
 CleanupAtHead == \A s \in Spaces \ src : delOk[s]
 \* An arriving Space holds the empty genesis until the transfer writes it.
 ArrivingUntouched == \A s \in Spaces : origin[s] = Added => tc[s] = Empty
-\* A Space is left not moved only when the person wrote, deleted or created it
-\* on the target, or it is a shared object the transfer must not copy, never
-\* for a reason the transfer could resolve itself.
-NotMovedJustified == \A s \in notMoved : touched[s] \/ s \in shared
+\* A Space is left not moved only when the target lists a version the person
+\* changed there, or it is a shared object the transfer must not copy, never
+\* for a reason the transfer could resolve itself. The excuse is judged when
+\* the run leaves the Space; a Space the person deleted is moved again.
+NotMovedJustified == ~unjust /\ \A s \in notMoved : touched[s] \/ s \in shared
 \* A second member of a shared object the source holds keeps reading it.
 MembersKeepShared == alive = shared
 \* No Space the source holds as a member is ever written on the target.
-SharedNotCopied == \A s \in shared : tc[s].k # "src" 
-\* A run that ends with a Space not moved keeps that Space and the source
-\* volume. Cleanup may already have deleted Spaces it checked at their head.
-NotMovedKeepsSource == pc = "notmoved" => notMoved \subseteq src /\ vol
+SharedNotCopied == \A s \in shared : tc[s].k # "src"
+\* A run that ends with a Space not moved keeps that Space, the source volume
+\* and the source session. Cleanup may already have deleted Spaces it checked
+\* at their head.
+NotMovedKeepsSource == pc \in Ends /\ notMoved # {} => notMoved \subseteq src /\ vol /\ session
 \* The target never stores a written state whose World nothing holds or it
 \* lost.
 StateHeld == \A s \in Spaces : tc[s].k = "src" => s \in held /\ s \in blocks

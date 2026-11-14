@@ -22,9 +22,10 @@ const (
 	// TargetHoldsArriving means a transfer from this source listed the Space
 	// and has not written its state. The target lets nothing else write it.
 	TargetHoldsArriving
-	// TargetHoldsWritten means a transfer from this source wrote the Space
-	// and nothing changed it since. TargetSpace.Head names the source World
-	// that write copied.
+	// TargetHoldsWritten means the target holds the source World
+	// TargetSpace.Head names. When that is not the source's current World, a
+	// transfer from this source wrote it and nothing changed the Space since,
+	// so a write over it loses nothing.
 	TargetHoldsWritten
 	// TargetHoldsShared means the target lists the id as a Space shared with
 	// its account.
@@ -54,7 +55,8 @@ type TransferTarget interface {
 	// Creates the block store if it does not exist.
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
 	// ReadSharedObject returns what the target holds under the id of a Space
-	// from the source origin names.
+	// from the source origin names. For a Space the source holds itself,
+	// origin's SourceHead is the head of the source's current World.
 	ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error)
 	// AddSharedObject lists a Space the target does not list, arriving from
 	// the source origin names, and returns what the target then holds. It

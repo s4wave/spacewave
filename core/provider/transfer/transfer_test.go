@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +16,9 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_engine "github.com/s4wave/spacewave/core/space/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
@@ -29,6 +32,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -846,7 +850,6 @@ func collectVolume(ctx context.Context, t *testing.T, acc *provider_local.Provid
 
 // putTestWorld stores a World of a root and a leaf holding payload in the
 // block store of the Space soRef on acc, held by a root, and returns the root
-// and the leaf.
 func putTestWorld(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, providerID, accountID string, soRef *sobject.SharedObjectRef, payload []byte) (*block.BlockRef, *block.BlockRef) {
 	t.Helper()
 	bs, rel, err := acc.MountBlockStore(ctx, provider_local.NewBlockStoreRef(providerID, accountID, soRef.GetBlockStoreId()), nil)
@@ -1310,4 +1313,218 @@ func TestLocalMergeKeepsEditOfMovedSpace(t *testing.T) {
 	if !found {
 		t.Fatal("the run deleted the source Space")
 	}
+}
+
+// TestLocalMirrorKeepsTargetInvite checks that a Mirror leaves a Space not
+// moved, and its target state unchanged, once the target added an invite.
+func TestLocalMirrorKeepsTargetInvite(t *testing.T) {
+	testLocalMirrorKeepsMembership(t, func(ctx context.Context, t *testing.T, _ *provider_local.ProviderAccount, store object.ObjectStore) {
+		// Add an invite to the stored state, leaving its World alone.
+		state := &sobject.SOState{}
+		if err := state.UnmarshalVT(targetSpaceState(ctx, t, store, "space-a", nil)); err != nil {
+			t.Fatal(err)
+		}
+		state.Invites = append(state.Invites, &sobject.SOInvite{InviteId: "invite-1", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER})
+		data, err := state.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		targetSpaceState(ctx, t, store, "space-a", data)
+	})
+}
+
+// TestLocalMirrorKeepsTargetGrant checks the same for a grant to a second
+// device, the config change account member enrollment makes, which advances
+// the config chain.
+func TestLocalMirrorKeepsTargetGrant(t *testing.T) {
+	testLocalMirrorKeepsMembership(t, func(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, store object.ObjectStore) {
+		// Find the target's Space and mount it.
+		list, err := provider_transfer.NewLocalTransferSource(acc, nil).GetSharedObjectList(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ref *sobject.SharedObjectRef
+		for _, entry := range list.GetSharedObjects() {
+			if entry.GetRef().GetProviderResourceRef().GetId() == "space-a" {
+				ref = entry.GetRef()
+			}
+		}
+		if ref == nil {
+			t.Fatal("the target does not list space-a")
+		}
+		so, release, err := acc.MountSharedObject(ctx, ref, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+
+		// Grant a second device as an owner, as enrollment does, and wait
+		// until the grant is stored.
+		device, err := peer.NewPeer(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		host := so.(sobject.InviteHost)
+		_, outcome, _, err := sobject.AddSOParticipant(ctx, host.GetSOHost(), so.GetSharedObjectID(), host.GetPrivKey(), so.GetPeerID().String(), device.GetPeerID().String(), device.GetPubKey(), sobject.SOParticipantRole_SOParticipantRole_OWNER, "", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if outcome != sobject.SOParticipantAddOutcome_SOParticipantAddOutcome_ADDED {
+			t.Fatalf("grant outcome = %s; want ADDED", outcome)
+		}
+		if err := host.GetSOHost().WaitDurable(ctx); err != nil {
+			t.Fatal(err)
+		}
+
+		// The grant advanced the stored config chain.
+		state := &sobject.SOState{}
+		if err := state.UnmarshalVT(targetSpaceState(ctx, t, store, "space-a", nil)); err != nil {
+			t.Fatal(err)
+		}
+		if state.GetConfig().GetConfigChainSeqno() == 0 {
+			t.Fatal("the grant left the config chain at seqno 0")
+		}
+	})
+}
+
+// testLocalMirrorKeepsMembership mirrors a Space twice, checking that the
+// second run takes the newer World, applies change to the target's Space,
+// then mirrors a newer source World and checks that the run ends not moved
+// with the target's state byte for byte unchanged, rather than restarting the
+// Space at a new genesis.
+func testLocalMirrorKeepsMembership(t *testing.T, change func(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, store object.ObjectStore)) {
+	// Start a source with one Space and a target.
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	defer provRel()
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
+	defer srcRel()
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	defer tgtRel()
+	soRef := createTestSpace(ctx, t, srcAcc, "space-a")
+	tgtStore, tgtStoreRel, err := buildTestObjectStore(ctx, tb, tgtAcc, providerID, tgtAccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tgtStoreRel()
+	le := logrus.NewEntry(logrus.StandardLogger())
+	src := provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)
+	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
+	mirror := func(leaf string) provider_transfer.TransferPhase {
+		t.Helper()
+		writeSourceObject(ctx, t, tb, srcAcc, soRef, leaf)
+		xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MIRROR, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, nil)
+		if err := xfer.Execute(ctx); err != nil {
+			t.Fatal(err)
+		}
+		return xfer.GetState().GetPhase()
+	}
+
+	// The first Mirror writes the Space; the second takes the newer World.
+	if phase := mirror("first leaf"); phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE {
+		t.Fatalf("first mirror = %s; want COMPLETE", phase)
+	}
+	first := targetSpaceState(ctx, t, tgtStore, "space-a", nil)
+	if phase := mirror("second leaf"); phase != provider_transfer.TransferPhase_TransferPhase_COMPLETE {
+		t.Fatalf("second mirror = %s; want COMPLETE", phase)
+	}
+	if bytes.Equal(targetSpaceState(ctx, t, tgtStore, "space-a", nil), first) {
+		t.Fatal("the second mirror left the older World on the target")
+	}
+
+	// The target changes the Space's membership, leaving its World alone.
+	change(ctx, t, tgtAcc, tgtStore)
+	changed := targetSpaceState(ctx, t, tgtStore, "space-a", nil)
+
+	// The next Mirror leaves the Space not moved and keeps the change.
+	if phase := mirror("third leaf"); phase != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED {
+		t.Fatalf("mirror after the change = %s; want NOT_MOVED", phase)
+	}
+	if !bytes.Equal(targetSpaceState(ctx, t, tgtStore, "space-a", nil), changed) {
+		t.Fatal("the mirror replaced a Space whose membership changed on the target")
+	}
+}
+
+// writeSourceObject creates the World object key in the Space soRef through
+// the Space's own World engine, then retires the engine and waits until the
+// Space's operation order holds the write, so a transfer that replays the
+// Space reads the new World and nothing else writes it meanwhile.
+func writeSourceObject(ctx context.Context, t *testing.T, tb *testbed.Testbed, acc *provider_local.ProviderAccount, soRef *sobject.SharedObjectRef, key string) {
+	// Count the Space's operations before the write.
+	t.Helper()
+	so, relSO, err := acc.MountSharedObject(ctx, soRef, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relSO()
+	n := sourceOpCount(ctx, t, so)
+
+	// Start the Space's World engine and create the object.
+	engineID := space.SpaceEngineId(soRef)
+	busEngine, engRef, err := world.StartEngine(ctx, tb.Bus, space_world.NewConfig(engineID, soRef), space_world.NewFactory(tb.Bus, space_world_engine.OpTypes))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := world.ExecTransaction(ctx, busEngine, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(obj)
+		return err
+	}); err != nil {
+		engRef.Release()
+		t.Fatal(err)
+	}
+
+	// Retire the engine, so the next start runs a new one.
+	var served *space_world.Engine
+	if err := world.AccessEngine(ctx, busEngine, func(_ context.Context, eng world.Engine) error {
+		served = eng.(*space_world.Engine)
+		return nil
+	}); err != nil {
+		engRef.Release()
+		t.Fatal(err)
+	}
+	engRef.Release()
+	if _, err := served.WaitSeqno(ctx, math.MaxUint64); !world.IsSuperseded(err) {
+		t.Fatalf("waiting for the released engine to retire: %v", err)
+	}
+
+	// Wait for the write to reach the operation order.
+	ctr, relState, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relState()
+	if _, err := ctr.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		if snap == nil {
+			return false, nil
+		}
+		set, err := snap.GetOperationSet(ctx)
+		if err != nil {
+			return false, err
+		}
+		return len(set.Order()) > n, nil
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// sourceOpCount returns the number of operations in so's order now.
+func sourceOpCount(ctx context.Context, t *testing.T, so sobject.SharedObject) int {
+	// Read the current order.
+	t.Helper()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return len(set.Order())
 }

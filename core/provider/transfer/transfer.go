@@ -374,16 +374,14 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 	le := t.le.WithField("so-id", soID)
 	origin := t.source.GetOrigin()
 
-	// Read what the target holds.
-	tgt, err := t.target.ReadSharedObject(ctx, le, soID, origin)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "read the target's space")
-	}
-
 	// A shared Space moves only as membership: the target account must be a
 	// member already, and only a source whose delete leaves the Space to its
 	// other members may count it moved.
 	if entry.GetSource() == "shared" {
+		tgt, err := t.target.ReadSharedObject(ctx, le, soID, origin)
+		if err != nil {
+			return nil, "", errors.Wrap(err, "read the target's space")
+		}
 		switch {
 		case tgt.Holds == TargetHoldsNothing:
 			return nil, reasonShared, nil
@@ -394,11 +392,8 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 		}
 		return nil, "", nil
 	}
-	if tgt.Holds == TargetHoldsShared || tgt.Holds == TargetHoldsOther {
-		return nil, reasonTargetHolds, nil
-	}
 
-	// Replay the World.
+	// Replay the World and name it by its head.
 	t.setSpacePhase(idx, TransferPhase_TransferPhase_COPYING_BLOCKS)
 	world, releaseWorld, err := t.source.ReplaySharedObject(ctx, le, soRef)
 	if err != nil {
@@ -406,12 +401,23 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 	}
 	defer releaseWorld()
 
-	// Name the World by its head, and skip a Space the target holds at it.
+	// Name the World by its head, and ask the target about that head.
 	data, err := world.MarshalVT()
 	if err != nil {
 		return nil, "", err
 	}
 	head := encodedWorldHead(data)
+	at := origin.CloneVT()
+	at.SourceHead = head
+
+	// Read what the target holds, and skip a Space it holds at the head.
+	tgt, err := t.target.ReadSharedObject(ctx, le, soID, at)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "read the target's space")
+	}
+	if tgt.Holds == TargetHoldsShared || tgt.Holds == TargetHoldsOther {
+		return nil, reasonTargetHolds, nil
+	}
 	if tgt.Holds == TargetHoldsWritten && bytes.Equal(tgt.Head, head) {
 		le.Debug("target holds the space at the source's head, skipping")
 		return head, "", nil
@@ -458,9 +464,7 @@ func (t *Transfer) moveSpace(ctx context.Context, idx int, entry *sobject.Shared
 
 	// Start the target lineage at the replayed World, if the target still
 	// holds what the run read.
-	written := origin.CloneVT()
-	written.SourceHead = head
-	err = t.target.WriteSharedObjectState(ctx, le, soID, t.owner, data, written, tgt)
+	err = t.target.WriteSharedObjectState(ctx, le, soID, t.owner, data, at, tgt)
 	if errors.Is(err, ErrTargetChanged) {
 		return nil, reasonTargetChanged, nil
 	}
