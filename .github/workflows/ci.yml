@@ -42,6 +42,7 @@ jobs:
       members: ${{ steps.select.outputs.members }}
       alpha: ${{ steps.select.outputs.alpha }}
       db: ${{ steps.select.outputs.db }}
+      specs: ${{ steps.select.outputs.specs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,56 +86,20 @@ jobs:
             ;;
           esac
 
-  # Each model checks on one core. A model that takes minutes gets its own
-  # job, named in the models job's skip list, so no job nears its timeout;
-  # every other config, including a new one, checks in the models job. A model
-  # that needs longer than 25 minutes sets its own timeout, and one that needs
-  # hours checks with the runner's four cores. Journal.cfg, which composes
-  # every rule with concurrent writers, reaches 17.5 million states in 4.8
-  # hours on one core.
+  # specs checks the TLA+ models Select lists, each on one core unless its
+  # entry sets workers: every model on a full run, and on a delta run those
+  # whose config, spec or spec modules changed; see scripts/ci-affected.ts. A
+  # delta run that lists none skips the job, and the CI hourly workflow's full
+  # dispatch checks every model.
   specs:
     name: TLA+ specs (${{ matrix.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.specs != '{"include":[]}' }}
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.timeout || 25 }}
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: models
-            skip: >-
-              db/block/gc/Journal.cfg
-              db/block/gc/Journal-adopt.cfg
-              db/block/gc/Journal-adopt-cut.cfg
-              db/block/gc/Journal-hole.cfg
-              db/block/gc/Journal-lease.cfg
-              db/block/gc/Journal-stage.cfg
-              db/block/gc/Journal-fill-staged.cfg
-              db/block/gc/Journal-fill-writers.cfg
-              db/block/gc/Journal-writers-staged.cfg
-          - name: Journal
-            config: db/block/gc/Journal.cfg
-            workers: 4
-            timeout: 240
-          - name: Journal-adopt
-            config: db/block/gc/Journal-adopt.cfg
-          - name: Journal-adopt-cut
-            config: db/block/gc/Journal-adopt-cut.cfg
-          - name: Journal-hole
-            config: db/block/gc/Journal-hole.cfg
-          - name: Journal-lease
-            config: db/block/gc/Journal-lease.cfg
-            timeout: 45
-          - name: Journal-stage
-            config: db/block/gc/Journal-stage.cfg
-            timeout: 60
-          - name: Journal-fill-staged
-            config: db/block/gc/Journal-fill-staged.cfg
-            timeout: 60
-          - name: Journal-fill-writers
-            config: db/block/gc/Journal-fill-writers.cfg
-            timeout: 60
-          - name: Journal-writers-staged
-            config: db/block/gc/Journal-writers-staged.cfg
+      matrix: ${{ fromJSON(needs.affected.outputs.specs) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -145,22 +110,14 @@ jobs:
 
       - name: Check specs
         env:
-          CONFIG: ${{ matrix.config }}
-          SKIP: ${{ matrix.skip }}
-          WORKERS: ${{ matrix.workers || 1 }}
+          CONFIGS: ${{ matrix.configs }}
+          WORKERS: ${{ matrix.workers }}
           # tla-ts keeps the whole state space in the Node heap; Journal.cfg
           # needs about 8 GB of the runner's 16.
           NODE_OPTIONS: --max-old-space-size=12288
         run: |
-          if [ -n "$CONFIG" ]; then
-            set -- "$CONFIG"
-          else
-            excludes=()
-            for cfg in $SKIP; do excludes+=(":!:$cfg"); done
-            mapfile -t configs < <(git ls-files '*.cfg' ':!:**/testdata/**' "${excludes[@]}")
-            set -- "${configs[@]}"
-          fi
-          bun run check:tla -workers "$WORKERS" "$@"
+          read -ra configs <<<"$CONFIGS"
+          bun run check:tla -workers "$WORKERS" "${configs[@]}"
 
   member-ci:
     name: CI (${{ matrix.name }})
