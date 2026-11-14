@@ -215,6 +215,24 @@ func (r *SessionResource) StartTransfer(
 		}
 	}
 
+	// Merge and Migrate delete a local source account once every Space moved,
+	// its sessions before its volume.
+	var deleteSource func(context.Context) error
+	if src, ok := cleanup.(*provider_transfer.LocalTransferSource); ok {
+		provRef := srcEntry.GetSessionRef().GetProviderResourceRef()
+		provID, accountID := provRef.GetProviderId(), provRef.GetProviderAccountId()
+		objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
+		vol := src.GetAccount().GetVolume()
+		deleteSource = func(ctx context.Context) error {
+			sessCtrl, sessCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
+			if err != nil {
+				return errors.Wrap(err, "lookup session controller")
+			}
+			defer sessCtrlRef.Release()
+			return deleteProviderAccount(ctx, le, r.b, sessCtrl, provID, accountID, objectStoreID, vol)
+		}
+	}
+
 	// Build the transfer from the source, target, and checkpoint store.
 	xfer := provider_transfer.NewTransfer(
 		le,
@@ -226,22 +244,12 @@ func (r *SessionResource) StartTransfer(
 		tgtIdx,
 		&provider_transfer.TransferOptions{
 			Cleanup:        cleanup,
+			DeleteSource:   deleteSource,
 			Checkpoint:     checkpoint,
 			FilterSpaceIDs: req.GetSpaceIds(),
 			CopyIdentity:   copyIdentity,
 		},
 	)
-
-	// Read the linked-cloud account ID before the transfer starts, because the
-	// cleanup phase will delete the source volume (making the ObjectStore
-	// inaccessible).
-	var srcLinkedCloudAccountID string
-	if mode == provider_transfer.TransferMode_TransferMode_MERGE || mode == provider_transfer.TransferMode_TransferMode_MIGRATE {
-		srcLinkedCloudAccountID, err = readLinkedCloudAccountID(ctx, r.b, srcEntry, source)
-		if err != nil {
-			return nil, errors.Wrap(err, "read linked-cloud account id")
-		}
-	}
 
 	// Run the transfer on a routine owned by this resource.
 	var rc *routine.RoutineContainer
@@ -256,32 +264,8 @@ func (r *SessionResource) StartTransfer(
 		}),
 	)
 	rc.SetRoutine(func(ctx context.Context) error {
-		// Execute the transfer and log a failure.
-		err := xfer.Execute(ctx)
-		if err != nil {
-			return err
-		}
-
-		// After a merge or migrate that moved every Space and deleted the
-		// source, clean up the linked-cloud ref and delete the source session.
-		// A run that left Spaces not moved keeps the source and its session.
-		complete := xfer.GetState().GetPhase() == provider_transfer.TransferPhase_TransferPhase_COMPLETE
-		if complete && (mode == provider_transfer.TransferMode_TransferMode_MERGE || mode == provider_transfer.TransferMode_TransferMode_MIGRATE) {
-			sessCtrl, sessCtrlRef, lerr := session.ExLookupSessionController(ctx, r.b, "", false, nil)
-			if lerr != nil {
-				return xfer.Fail(errors.Wrap(lerr, "lookup session controller for cleanup"))
-			}
-			defer sessCtrlRef.Release()
-			if srcLinkedCloudAccountID != "" {
-				if lerr := cleanupLinkedCloudRef(ctx, le, r.b, sessCtrl, srcLinkedCloudAccountID); lerr != nil {
-					return xfer.Fail(errors.Wrap(lerr, "cleanup linked-cloud ref"))
-				}
-			}
-			if lerr := sessCtrl.DeleteSession(ctx, srcEntry.GetSessionRef()); lerr != nil {
-				return xfer.Fail(errors.Wrap(lerr, "delete source session"))
-			}
-		}
-		return nil
+		// Execute the transfer; a failure is in its state.
+		return xfer.Execute(ctx)
 	})
 
 	// Publish the running transfer and wait for its routine to exit.
@@ -581,100 +565,4 @@ func getTransferTargetVolume(target provider_transfer.TransferTarget) volume.Vol
 		return t.GetAccount().GetVolume()
 	}
 	return nil
-}
-
-// readLinkedCloudAccountID reads the linked-cloud account ID from a local
-// session's ObjectStore. Returns empty string if the session is not local or
-// has no cloud link. Uses the transfer source's volume ID to avoid the raw
-// StorageVolumeID which may not match the proxy volume on the plugin bus.
-func readLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.SessionListEntry, source provider_transfer.TransferSource) (string, error) {
-	// Read a linked-cloud account only from a local session.
-	provRef := entry.GetSessionRef().GetProviderResourceRef()
-	provID := provRef.GetProviderId()
-	if provID != provider_local.ProviderID {
-		return "", nil
-	}
-
-	// Require a local transfer source.
-	localSrc, ok := source.(*provider_transfer.LocalTransferSource)
-	if !ok {
-		return "", nil
-	}
-
-	// Locate the local session object store.
-	accountID := provRef.GetProviderAccountId()
-	sessionID := provRef.GetId()
-	objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
-	volID := localSrc.GetAccount().GetVolume().GetID()
-
-	// Open that object store.
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, b, false, objectStoreID, volID, nil)
-	if err != nil {
-		return "", errors.Wrap(err, "mount session object store")
-	}
-	defer diRef.Release()
-
-	// Open a read transaction on the object store.
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, false)
-	if err != nil {
-		return "", errors.Wrap(err, "new read transaction")
-	}
-	defer otx.Discard()
-
-	// Return the linked-cloud account ID, or empty when none is stored.
-	key := provider_local.LinkedCloudKey(sessionID)
-	data, found, err := otx.Get(ctx, key)
-	if err != nil {
-		return "", errors.Wrap(err, "read linked-cloud key")
-	}
-	if !found {
-		return "", nil
-	}
-	return string(data), nil
-}
-
-// cleanupLinkedCloudRef removes the cloud-side linked-local reference for a
-// source session being merged or migrated away. The cloudAccountID must be
-// read before the transfer starts (since the source volume is deleted during
-// the cleanup phase).
-func cleanupLinkedCloudRef(ctx context.Context, le *logrus.Entry, b bus.Bus, sessCtrl session.SessionController, cloudAccountID string) error {
-	// Log the linked-cloud cleanup.
-	le.Info("cleaning up linked-cloud reference")
-
-	// List sessions on the controller.
-	sessions, err := sessCtrl.ListSessions(ctx)
-	if err != nil {
-		return errors.Wrap(err, "list sessions")
-	}
-
-	// Clear the linked-cloud key on each matching local session.
-	for _, entry := range sessions {
-		provRef := entry.GetSessionRef().GetProviderResourceRef()
-		if provRef.GetProviderId() != "spacewave" {
-			continue
-		}
-		if provRef.GetProviderAccountId() != cloudAccountID {
-			continue
-		}
-
-		// Access the spacewave account and delete the linked-local reference.
-		swAcc, swAccRef, aerr := provider.ExAccessProviderAccount(ctx, b, "spacewave", cloudAccountID, false, nil)
-		if aerr != nil {
-			return errors.Wrap(aerr, "access spacewave account")
-		}
-		defer swAccRef.Release()
-
-		cloudSessionID := provRef.GetId()
-		swAccTyped, ok := swAcc.(*provider_spacewave.ProviderAccount)
-		if !ok {
-			return errors.New("spacewave account is not the expected type")
-		}
-		if derr := swAccTyped.DeleteLinkedLocalSession(ctx, cloudSessionID); derr != nil {
-			return errors.Wrap(derr, "delete linked-local reference")
-		}
-		le.Info("cleaned up linked-local reference on cloud side")
-		return nil
-	}
-
-	return errors.New("no spacewave session found for linked cloud account")
 }

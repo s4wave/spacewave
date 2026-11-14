@@ -674,7 +674,7 @@ func TestLocalMergeLeavesSpaceCreatedOnTarget(t *testing.T) {
 
 // TestLocalMergeCleanup verifies that Merge and Migrate keep the source when
 // they cannot move all of it, and that a Merge that moves every Space deletes
-// the source SOs and volume.
+// the source SOs. The account delete that follows is the session package's.
 func TestLocalMergeCleanup(t *testing.T) {
 	// Start a testbed with a local provider.
 	ctx := context.Background()

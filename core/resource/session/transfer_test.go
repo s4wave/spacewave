@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/util/ulid"
+	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
@@ -339,189 +340,145 @@ func TestMirror(t *testing.T) {
 	}
 }
 
-// TestReadLinkedCloudAccountID verifies that readLinkedCloudAccountID detects
-// a linked-cloud key on a local session.
-func TestReadLinkedCloudAccountID(t *testing.T) {
-	// Start a test environment.
+// TestMergeDeletesEverySourceSession runs a Merge from a source account that
+// two sessions name, started from one of them, and checks that neither stays
+// listed: a session left over a deleted volume would reopen it empty under a
+// fresh key.
+func TestMergeDeletesEverySourceSession(t *testing.T) {
+	// Create a source account with one Space and a second session on it.
 	ctx := context.Background()
 	env := setupTestEnv(ctx, t)
-
-	// Create a local session and open its account.
-	sessRef, sessIdx := env.createSession(ctx, t)
-	acc := env.accessAccount(ctx, t, sessRef)
-
-	// Write a linked-cloud key to the session's ObjectStore.
-	provRef := sessRef.GetProviderResourceRef()
-	provID := provRef.GetProviderId()
-	accountID := provRef.GetProviderAccountId()
-	sessionID := provRef.GetId()
-	objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
-	volID := acc.GetVolume().GetID()
-
-	// Open the session object store.
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, env.tb.Bus, false, objectStoreID, volID, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer diRef.Release()
-
-	// Store a linked-cloud account ID.
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cloudAccountID := "cloud-account-12345"
-	if err := otx.Set(ctx, []byte(sessionID+"/linked-cloud"), []byte(cloudAccountID)); err != nil {
-		otx.Discard()
-		t.Fatal(err)
-	}
-	if err := otx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// Look up the session entry.
-	entry, err := env.sessCtrl.GetSessionByIdx(ctx, sessIdx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify readLinkedCloudAccountID detects the cloud link.
-	src := provider_transfer.NewLocalTransferSource(acc, env.tb.Bus)
-	got, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, entry, src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != cloudAccountID {
-		t.Fatalf("expected cloud account ID %q, got %q", cloudAccountID, got)
-	}
-
-	// Verify a session without the key returns empty.
-	otherRef, otherIdx := env.createSession(ctx, t)
-	otherAcc := env.accessAccount(ctx, t, otherRef)
-	otherEntry, err := env.sessCtrl.GetSessionByIdx(ctx, otherIdx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	otherSrc := provider_transfer.NewLocalTransferSource(otherAcc, env.tb.Bus)
-
-	// Read the other session, which has no linked-cloud key.
-	got2, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, otherEntry, otherSrc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got2 != "" {
-		t.Fatalf("expected empty cloud account ID for unlinked session, got %q", got2)
-	}
-}
-
-// TestMergeLinkedSessionReportsCleanupFailure verifies that merging a local
-// session with a linked-cloud key returns the cleanup failure through transfer
-// state when the linked cloud session is unavailable.
-func TestMergeLinkedSessionReportsCleanupFailure(t *testing.T) {
-	// Start a test environment.
-	ctx := context.Background()
-	env := setupTestEnv(ctx, t)
-
-	// Create a source session with one Space.
 	srcRef, srcIdx := env.createSession(ctx, t)
 	srcAcc := env.accessAccount(ctx, t, srcRef)
-	env.createSpaceOnAccount(ctx, t, srcAcc, "LinkedSpace")
-
-	// Write a linked-cloud key to the source session's ObjectStore.
-	provRef := srcRef.GetProviderResourceRef()
-	provID := provRef.GetProviderId()
-	accountID := provRef.GetProviderAccountId()
-	sessionID := provRef.GetId()
-	objectStoreID := provider_local.SessionObjectStoreID(provID, accountID)
-	volID := srcAcc.GetVolume().GetID()
-
-	// Store a linked-cloud account ID on the source session.
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, env.tb.Bus, false, objectStoreID, volID, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
-	if err != nil {
-		diRef.Release()
-		t.Fatal(err)
-	}
-	if err := otx.Set(ctx, []byte(sessionID+"/linked-cloud"), []byte("cloud-account-xyz")); err != nil {
-		otx.Discard()
-		diRef.Release()
-		t.Fatal(err)
-	}
-	if err := otx.Commit(ctx); err != nil {
-		diRef.Release()
-		t.Fatal(err)
-	}
-	diRef.Release()
-
-	// Verify the linked-cloud key is present before merge.
-	entry, err := env.sessCtrl.GetSessionByIdx(ctx, srcIdx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	srcSource := provider_transfer.NewLocalTransferSource(srcAcc, env.tb.Bus)
-	cloudAccID, err := resource_session.ReadLinkedCloudAccountID(ctx, env.tb.Bus, entry, srcSource)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cloudAccID != "cloud-account-xyz" {
-		t.Fatalf("expected linked cloud account before merge, got %q", cloudAccID)
-	}
-
-	// Create target and run merge.
-	tgtRef, tgtIdx := env.createSession(ctx, t)
-	_ = env.accessAccount(ctx, t, tgtRef)
-	resource := env.buildSessionResource(ctx, t, tgtRef)
-
-	// Start the merge transfer.
-	_, err = resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
-		SourceSessionIndex: srcIdx,
-		TargetSessionIndex: tgtIdx,
-		Mode:               provider_transfer.TransferMode_TransferMode_MERGE,
+	env.createSpaceOnAccount(ctx, t, srcAcc, "TwoSessionSpace")
+	secondRef := srcRef.CloneVT()
+	secondRef.GetProviderResourceRef().Id = ulid.NewULID()
+	second, err := env.sessCtrl.RegisterSession(ctx, secondRef, &session.SessionMetadata{
+		ProviderDisplayName: "Local",
+		ProviderId:          "local",
+		ProviderAccountId:   secondRef.GetProviderResourceRef().GetProviderAccountId(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Wait for transfer goroutine to complete (includes post-transfer cleanup).
-	if err := resource.WaitTransferDone(ctx); err != nil {
+	// Merge into a target, started from the source session itself, whose
+	// delete stops the session the transfer runs under.
+	tgtRef, tgtIdx := env.createSession(ctx, t)
+	_ = env.accessAccount(ctx, t, tgtRef)
+	resource := env.buildSessionResource(ctx, t, srcRef)
+	state := runTransfer(ctx, t, resource, srcIdx, tgtIdx, provider_transfer.TransferMode_TransferMode_MERGE)
+	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_COMPLETE {
+		t.Fatalf("expected COMPLETE, got %s: %s", state.GetPhase(), state.GetErrorMessage())
+	}
+
+	// Neither session of the source account stays listed.
+	for _, idx := range []uint32{srcIdx, second.GetSessionIndex()} {
+		entry, err := env.sessCtrl.GetSessionByIdx(ctx, idx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if entry != nil {
+			t.Fatalf("source session %d still listed after the Merge", idx)
+		}
+	}
+}
+
+// TestMergeLinkedSessionCompletesWhenUnlinkFails merges a local session
+// linked to a cloud account that no loaded provider serves, and checks that
+// the run completes with the source gone: the unlink follows the volume
+// delete, so its failure is only logged.
+func TestMergeLinkedSessionCompletesWhenUnlinkFails(t *testing.T) {
+	// Create a source session with one Space, linked to a cloud account.
+	ctx := context.Background()
+	env := setupTestEnv(ctx, t)
+	srcRef, srcIdx := env.createSession(ctx, t)
+	srcAcc := env.accessAccount(ctx, t, srcRef)
+	env.createSpaceOnAccount(ctx, t, srcAcc, "LinkedSpace")
+	provRef := srcRef.GetProviderResourceRef()
+	objectStoreID := provider_local.SessionObjectStoreID(provRef.GetProviderId(), provRef.GetProviderAccountId())
+	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, env.tb.Bus, false, objectStoreID, srcAcc.GetVolume().GetID(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
+	if err != nil {
+		diRef.Release()
+		t.Fatal(err)
+	}
+	if err := otx.Set(ctx, provider_local.LinkedCloudKey(provRef.GetId()), []byte("cloud-account-xyz")); err != nil {
+		otx.Discard()
+		diRef.Release()
+		t.Fatal(err)
+	}
+	err = otx.Commit(ctx)
+	diRef.Release()
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify cleanup failure is reported through transfer state.
-	xfer := resource.GetActiveTransfer()
-	if xfer == nil {
-		t.Fatal("expected active transfer")
-	}
-	state := xfer.GetState()
-	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_FAILED {
-		t.Fatalf("expected FAILED phase, got %s", state.GetPhase())
-	}
-	if !strings.Contains(state.GetErrorMessage(), "cleanup linked-cloud ref") {
-		t.Fatalf("expected cleanup failure, got %q", state.GetErrorMessage())
+	// List a cloud session for that account, which no provider can load.
+	cloudRef := &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
+		Id:                "cloud-session",
+		ProviderId:        "spacewave",
+		ProviderAccountId: "cloud-account-xyz",
+	}}
+	if _, err := env.sessCtrl.RegisterSession(ctx, cloudRef, &session.SessionMetadata{ProviderId: "spacewave"}); err != nil {
+		t.Fatal(err)
 	}
 
-	// Verify source session was not deleted after cleanup failed.
+	// Merge into a target.
+	tgtRef, tgtIdx := env.createSession(ctx, t)
+	_ = env.accessAccount(ctx, t, tgtRef)
+	resource := env.buildSessionResource(ctx, t, tgtRef)
+	state := runTransfer(ctx, t, resource, srcIdx, tgtIdx, provider_transfer.TransferMode_TransferMode_MERGE)
+	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_COMPLETE {
+		t.Fatalf("expected COMPLETE, got %s: %s", state.GetPhase(), state.GetErrorMessage())
+	}
+
+	// The source session is gone and the target holds the Space.
 	srcEntry, err := env.sessCtrl.GetSessionByIdx(ctx, srcIdx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if srcEntry == nil {
-		t.Fatal("source session should remain when cleanup fails")
+	if srcEntry != nil {
+		t.Fatal("source session still listed after the Merge")
 	}
-
-	// Verify target has the space.
-	inv, err := resource.GetTransferInventory(ctx, &s4wave_session.GetTransferInventoryRequest{
-		SessionIndex: tgtIdx,
-	})
+	inv, err := resource.GetTransferInventory(ctx, &s4wave_session.GetTransferInventoryRequest{SessionIndex: tgtIdx})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(inv.GetSpaces()) != 1 {
 		t.Fatalf("expected 1 space on target, got %d", len(inv.GetSpaces()))
 	}
+}
+
+// runTransfer starts a transfer on resource and returns its state once its
+// routine, including the source account delete, has exited.
+func runTransfer(
+	ctx context.Context,
+	t *testing.T,
+	resource *resource_session.SessionResource,
+	srcIdx, tgtIdx uint32,
+	mode provider_transfer.TransferMode,
+) *provider_transfer.TransferState {
+	t.Helper()
+	_, err := resource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
+		SourceSessionIndex: srcIdx,
+		TargetSessionIndex: tgtIdx,
+		Mode:               mode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := resource.WaitTransferDone(ctx); err != nil {
+		t.Fatal(err)
+	}
+	xfer := resource.GetActiveTransfer()
+	if xfer == nil {
+		t.Fatal("expected active transfer")
+	}
+	return xfer.GetState()
 }
 
 // TestTransferRefusesSameAccount starts a Merge, Migrate and Mirror between two

@@ -33,13 +33,12 @@ type TransferSource interface {
 	GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error)
 }
 
-// CleanupSource handles post-merge cleanup of the source account.
-// This is separate from TransferSource to keep the read interface minimal.
+// CleanupSource deletes moved Spaces from the source account in Merge and
+// Migrate. This is separate from TransferSource to keep the read interface
+// minimal.
 type CleanupSource interface {
 	// DeleteSharedObject deletes a shared object from the source account.
 	DeleteSharedObject(ctx context.Context, soID string) error
-	// DeleteVolume deletes the source account's storage volume.
-	DeleteVolume(ctx context.Context) error
 }
 
 // replaySharedObject mounts the Space of ref on provider and replays its World.

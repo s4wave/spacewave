@@ -33,7 +33,6 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
-	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
@@ -1138,23 +1137,18 @@ func (r *SessionResource) LockSession(ctx context.Context, req *s4wave_session.L
 	return &s4wave_session.LockSessionResponse{}, nil
 }
 
-// DeleteAccount deletes the entire account associated with this session.
-// Cleans all session keys, deletes the volume backing store, and removes all
-// sessions from the list.
+// DeleteAccount deletes the entire account associated with this session: every
+// session of the account, then its volume, then the cloud side's links to it.
 func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session.DeleteAccountRequest) (*s4wave_session.DeleteAccountResponse, error) {
 	// Resolve the provider identity used to scope account cleanup.
-	sessRef := r.session.GetSessionRef()
-	provRef := sessRef.GetProviderResourceRef()
+	provRef := r.session.GetSessionRef().GetProviderResourceRef()
 	providerID := provRef.GetProviderId()
 	providerAccountID := provRef.GetProviderAccountId()
 
-	// Look up the provider account to get the volume.
-	providerAcc := r.session.GetProviderAccount()
-
-	// Determine the volume and object store ID based on provider type.
+	// Determine the volume and session object store for the provider type.
 	var vol volume.Volume
 	var objectStoreID string
-	switch acc := providerAcc.(type) {
+	switch acc := r.session.GetProviderAccount().(type) {
 	case *provider_local.ProviderAccount:
 		vol = acc.GetVolume()
 		objectStoreID = provider_local.SessionObjectStoreID(providerID, providerAccountID)
@@ -1165,145 +1159,15 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 		return nil, errors.New("unsupported provider account type for delete")
 	}
 
-	// Look up all sessions for this provider account.
+	// Delete the account's sessions and then its volume.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup session controller")
 	}
 	defer sessionCtrlRef.Release()
-
-	// Read the provider account's sessions before removing their data.
-	allSessions, err := sessionCtrl.ListSessions(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "list sessions")
+	if err := deleteProviderAccount(ctx, r.le, r.b, sessionCtrl, providerID, providerAccountID, objectStoreID, vol); err != nil {
+		return nil, err
 	}
-
-	// Filter sessions belonging to this provider account.
-	var accountSessions []*session.SessionListEntry
-	for _, entry := range allSessions {
-		ref := entry.GetSessionRef().GetProviderResourceRef()
-		if ref.GetProviderId() == providerID && ref.GetProviderAccountId() == providerAccountID {
-			accountSessions = append(accountSessions, entry)
-		}
-	}
-
-	// Build ObjectStore handle for session keys.
-	objStoreHandle, _, osRef, err := volume.ExBuildObjectStoreAPI(ctx, r.b, false, objectStoreID, vol.GetID(), nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "build object store for session cleanup")
-	}
-	osReleased := false
-	defer func() {
-		if !osReleased {
-			osRef.Release()
-		}
-	}()
-
-	// Use the opened ObjectStore to inspect linked-session records.
-	objStore := objStoreHandle.GetObjectStore()
-
-	// Collect linked-cloud account IDs before deleting keys.
-	var linkedCloudAccountIDs []string
-	if providerID == "local" {
-		var attemptLinkedCloudAccountIDs []string
-		err := kvtx.RunTransaction(ctx, false,
-			func(ctx context.Context) (kvtx.Tx, error) {
-				return objStore.NewTransaction(ctx, false)
-			},
-			func(ctx context.Context, tx kvtx.Tx) error {
-				attemptLinkedCloudAccountIDs = nil
-				for _, entry := range accountSessions {
-					sid := entry.GetSessionRef().GetProviderResourceRef().GetId()
-					key := provider_local.LinkedCloudKey(sid)
-					data, found, err := tx.Get(ctx, key)
-					if err != nil {
-						return err
-					}
-					if found && len(data) > 0 {
-						attemptLinkedCloudAccountIDs = append(
-							attemptLinkedCloudAccountIDs,
-							string(data),
-						)
-					}
-				}
-				return nil
-			},
-		)
-		if err == nil {
-			linkedCloudAccountIDs = attemptLinkedCloudAccountIDs
-		}
-	}
-
-	// Clean all session keys in the ObjectStore.
-	for _, entry := range accountSessions {
-		sid := entry.GetSessionRef().GetProviderResourceRef().GetId()
-		prefix := []byte(sid + "/")
-		if err := kvtx.RunTransaction(ctx, true,
-			func(ctx context.Context) (kvtx.Tx, error) {
-				return objStore.NewTransaction(ctx, true)
-			},
-			func(ctx context.Context, tx kvtx.Tx) error {
-				return tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
-					return tx.Delete(ctx, key)
-				})
-			},
-		); err != nil {
-			return nil, errors.Wrap(err, "scan and delete session keys")
-		}
-	}
-
-	// Release the ObjectStore handle before session teardown.
-	osRef.Release()
-	osReleased = true
-
-	// Remove all session list entries for this account first. This
-	// triggers background goroutine shutdown and releases their IDB
-	// connections, which is required before vol.Delete() can proceed
-	// (IndexedDB deleteDatabase blocks while connections remain open).
-	for _, entry := range accountSessions {
-		if err := sessionCtrl.DeleteSession(ctx, entry.GetSessionRef()); err != nil {
-			r.le.WithError(err).Warn("failed to delete session from list")
-		}
-	}
-
-	// Delete the volume backing store (close + remove file/database).
-	if err := vol.Delete(); err != nil {
-		r.le.WithError(err).Warn("failed to delete volume backing store")
-	}
-
-	// Best-effort unlink: clean cloud-side linked-local keys.
-	for _, cloudAccountID := range linkedCloudAccountIDs {
-		// Find the cloud session matching this cloud account ID.
-		for _, entry := range allSessions {
-			ref := entry.GetSessionRef().GetProviderResourceRef()
-			if ref.GetProviderId() != "spacewave" || ref.GetProviderAccountId() != cloudAccountID {
-				continue
-			}
-
-			// Look up the spacewave provider via the bus.
-			swProv, swProvRef, aerr := provider.ExLookupProvider(ctx, r.b, "spacewave", false, nil)
-			if aerr != nil {
-				r.le.WithError(aerr).Warn("failed to lookup spacewave provider for unlink")
-				break
-			}
-			swAcc, relSw, aerr := swProv.AccessProviderAccount(ctx, cloudAccountID, nil)
-			if aerr != nil {
-				swProvRef.Release()
-				r.le.WithError(aerr).Warn("failed to access cloud account for unlink")
-				break
-			}
-			if swPA, ok := swAcc.(*provider_spacewave.ProviderAccount); ok {
-				sid := ref.GetId()
-				if uerr := swPA.DeleteLinkedLocalSession(ctx, sid); uerr != nil {
-					r.le.WithError(uerr).Warn("failed to unlink cloud-side linked-local key")
-				}
-			}
-			relSw()
-			swProvRef.Release()
-			break
-		}
-	}
-
 	return &s4wave_session.DeleteAccountResponse{}, nil
 }
 
