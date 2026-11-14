@@ -274,7 +274,7 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 	}
 }
 
-func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *testing.T) {
+func TestSQLHandlerSeedSQLQuickstartFinishesPartialSeedAndKeepsEdits(t *testing.T) {
 	// Start the World testbed for SQL quickstart seeding.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
@@ -283,13 +283,21 @@ func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *te
 	}
 	defer tb.Release()
 
-	// Seed the SQL database and example query through the handler.
+	// Leave the database object an earlier run created before it failed,
+	// with an empty root and no type.
+	created, err := tb.WorldState.CreateObject(ctx, sqlQuickstartDBKey, nil)
+	world.ReleaseObjectState(created)
+	if err != nil {
+		t.Fatalf("create partial %s: %v", sqlQuickstartDBKey, err)
+	}
+
+	// Seed again: the run finishes the half-written database and the query.
 	handler := &SQLHandler{
 		le: logrus.NewEntry(logrus.New()),
 		b:  tb.Bus,
 	}
 	if err := handler.seedSQLQuickstart(ctx, tb.WorldState); err != nil {
-		t.Fatalf("seedSQLQuickstart: %v", err)
+		t.Fatalf("seedSQLQuickstart after partial run: %v", err)
 	}
 
 	// Check the seeded database object type.
@@ -331,6 +339,35 @@ func TestSQLHandlerSeedSQLQuickstartCreatesReadableDatabaseAndExampleQuery(t *te
 	}
 	if got := query.GetTargetDbObjectKey(); got != sqlQuickstartDBKey {
 		t.Fatalf("%s target db = %q, want %q", sqlQuickstartQueryKey, got, sqlQuickstartDBKey)
+	}
+	rootTx.Discard()
+
+	// A person edits a sample row, then the seed runs again whole.
+	editTx := openQuickstartSQLTx(t, ctx, store, true, "/quickstart")
+	editOps, err := editTx.GetSqlOps(ctx)
+	if err != nil {
+		t.Fatalf("GetSqlOps: %v", err)
+	}
+	if _, err := editOps.ExecContext(ctx, "UPDATE people SET role = 'director' WHERE id = 1", nil); err != nil {
+		t.Fatalf("edit quickstart.people: %v", err)
+	}
+	if err := editTx.Commit(ctx); err != nil {
+		t.Fatalf("commit edit: %v", err)
+	}
+	if err := handler.seedSQLQuickstart(ctx, tb.WorldState); err != nil {
+		t.Fatalf("seedSQLQuickstart after complete run: %v", err)
+	}
+
+	// The rerun kept the edit and wrote no second set of sample rows.
+	rerunTx := openQuickstartSQLTx(t, ctx, store, false, "")
+	defer rerunTx.Discard()
+	row = queryQuickstartSingleRow(t, ctx, rerunTx, "SELECT role FROM quickstart.people WHERE id = 1", []string{"role"})
+	if row[0] != "director" {
+		t.Fatalf("quickstart.people id=1 role after rerun = %v, want [director]", row)
+	}
+	count := queryQuickstartSingleRow(t, ctx, rerunTx, "SELECT CAST(COUNT(*) AS CHAR) AS n FROM quickstart.people", []string{"n"})
+	if count[0] != "2" {
+		t.Fatalf("quickstart.people rows after rerun = %v, want [2]", count)
 	}
 }
 
