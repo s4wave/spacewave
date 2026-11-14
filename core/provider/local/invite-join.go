@@ -275,7 +275,7 @@ func (a *ProviderAccount) mountInvitedSO(
 	if soID == "" {
 		return errors.New("invite result has no shared object ID")
 	}
-	_, err := a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, result.SharedObjectState, result.ConfigLineage)
+	_, err := a.mountEnrolledSO(ctx, soID, &sobject.SharedObjectMeta{BodyType: "space"}, "shared", nil, result.SharedObjectState, result.ConfigLineage, nil)
 	return err
 }
 
@@ -312,6 +312,7 @@ func (a *ProviderAccount) mountEnrolledSO(
 	generation *string,
 	state *sobject.SOState,
 	lineage []*sobject.SOConfigChange,
+	hold func(context.Context) error,
 ) (string, error) {
 	// Name the object in this account.
 	providerID := a.t.accountInfo.GetProviderId()
@@ -343,6 +344,16 @@ func (a *ProviderAccount) mountEnrolledSO(
 	// install below goes through the mount.
 	if err := a.writeGenesisSOState(ctx, soID); err != nil {
 		return "", errors.Wrap(err, "store placeholder shared object state")
+	}
+
+	// Write the caller's holds in the object's bucket before its listing. A
+	// delete releases a bucket's roots only after it unlists the id, so
+	// nothing releases them while the id stays unlisted, and a delete that
+	// runs between the hold and the listing fails the listing check below.
+	if hold != nil {
+		if err := hold(ctx); err != nil {
+			return "", err
+		}
 	}
 	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {

@@ -1290,9 +1290,22 @@ func setupProviderAndSessionInternal(ctx context.Context, t *testing.T, configur
 	*Session,
 	func(),
 ) {
+	t.Helper()
+	return setupProviderAndSessionOn(ctx, t, nil, configure...)
+}
+
+// setupProviderAndSessionOn is setupProviderAndSessionInternal on a testbed
+// built with tbOpts.
+func setupProviderAndSessionOn(ctx context.Context, t *testing.T, tbOpts []testbed.Option, configure ...func(*Provider)) (
+	*testbed.Testbed,
+	*core_session.SessionRef,
+	*ProviderAccount,
+	*Session,
+	func(),
+) {
 	// Start the testbed.
 	t.Helper()
-	tb, err := testbed.Default(ctx)
+	tb, err := testbed.Default(ctx, tbOpts...)
 	if err != nil {
 		t.Fatal(err)
 	}

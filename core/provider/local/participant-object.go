@@ -149,7 +149,7 @@ func (a *ProviderAccount) EnrollParticipantObject(ctx context.Context, id string
 		}
 
 		// Install the checkpoint like an invite join, then sync it.
-		if _, err := a.mountEnrolledSO(ctx, id, meta, "shared", nil, object.GetState(), object.GetConfigLineage()); err != nil {
+		if _, err := a.mountEnrolledSO(ctx, id, meta, "shared", nil, object.GetState(), object.GetConfigLineage(), nil); err != nil {
 			return nil, err
 		}
 		a.RetrySharedObjectSync(id)

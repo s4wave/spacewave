@@ -1550,6 +1550,9 @@ func TestLivenessAdversarial(t *testing.T) {
 			if _, err := v.PrepareStagedBlockBatch(ctx, stage, tr.entries("T")); err != nil {
 				t.Fatal(err)
 			}
+			if err := v.MarkRootsComplete(ctx, []*block.BlockRef{tr["T"].Ref}); err != nil {
+				t.Fatal(err)
+			}
 			clk.Add(rootLease + time.Second)
 			if _, err := v.collector.Collect(ctx); err != nil {
 				t.Fatal(err)
@@ -1561,6 +1564,12 @@ func TestLivenessAdversarial(t *testing.T) {
 				}
 			}
 			requireStored(t, v, tr, false, "T")
+
+			// The check a stage copy makes before its release, with no write
+			// through the stage since, finds T's proof gone and holds nothing.
+			if held, err := v.HoldStageCompleteRoots(ctx, stage, []*block.BlockRef{tr["T"].Ref}); err == nil && held[0] {
+				t.Fatal("the stage check held a graph the collector freed")
+			}
 			if renew {
 				if _, err := v.renewRoots(ctx); err != nil {
 					t.Fatal(err)

@@ -134,6 +134,31 @@ func (c *StageCopy) Flush(ctx context.Context) error {
 	return nil
 }
 
+// CheckHeld returns nil when the stage still holds the whole graph under
+// root: root has a completion proof, and the open stage holds it in the same
+// transaction. Call it after the root that names root lands and before
+// Release. A process that stalled past the stage's lease and the grace period
+// may have had the graph freed while nothing wrote through the stage. The
+// collector deletes a block's proof before it releases the block's children
+// (the netting's release in db/block/gc/netting.go) and with the block when it
+// frees it (freeBlock in db/block/gc/collector.go), so a graph that lost any
+// block has lost its proof, the check fails with ErrStageReleased, and the
+// caller copies again.
+func (c *StageCopy) CheckHeld(ctx context.Context, root *BlockRef) error {
+	// Hold the root again under its proof, which fails on a lost stage.
+	if c.writes == nil || root.GetEmpty() {
+		return nil
+	}
+	held, err := HoldCompleteRoots(ctx, c.staged, []*BlockRef{root})
+	if err != nil {
+		return err
+	}
+	if !held[0] {
+		return errors.Wrap(ErrStageReleased, "copied graph lost its completion proof")
+	}
+	return nil
+}
+
 // Release ends the stage. Every block it held that no root, parent or pin
 // reaches is then unheld.
 func (c *StageCopy) Release() {

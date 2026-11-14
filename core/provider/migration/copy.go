@@ -36,18 +36,55 @@ func Checkpoint(
 
 // CopyWorld copies every reachable block of world from object into
 // destination and fences the destination. A cache inventory cannot establish
-// completeness. Existing content-addressed blocks make retries safe after any
+// completeness, and content-addressed blocks make a retry safe after any
 // interrupted write.
-func CopyWorld(ctx context.Context, object sobject.SharedObject, world *space_world.InnerState, destination block.StoreOps) error {
-	// Copy the reachable block graph into the destination store.
-	head := world.GetHeadRef()
-	if head != nil && !head.GetRootRef().GetEmpty() {
-		if err := block.CopyGraph(ctx, object.GetBlockStore(), destination, head.GetRootRef(), nil); err != nil {
-			return err
+//
+// On a store that holds roots the copy runs under a stage, which holds each
+// copied block from its first put, and CopyWorld returns it. The caller keeps
+// it open until a root holds the World, through
+// space_world.HoldImport, then checks it with CheckHeld and releases
+// it. A copy that stops early, or a process that dies, leaves only the
+// stage's lease, which lapses, and a retry copies again.
+//
+// A store that holds no roots, such as a cloud block store, keeps every block
+// it stores. CopyWorld copies every block into it, trusting no presence check,
+// and returns nil.
+func CopyWorld(ctx context.Context, object sobject.SharedObject, world *space_world.InnerState, destination block.StoreOps) (*block.StageCopy, error) {
+	// Copy every block into a store that holds no roots.
+	root := world.GetHeadRef().GetRootRef()
+	if !block.HoldsRoots(destination) {
+		if !root.GetEmpty() {
+			if err := block.CopyGraph(ctx, object.GetBlockStore(), destination, root, nil); err != nil {
+				return nil, err
+			}
 		}
+		return nil, syncDurable(ctx, destination)
 	}
 
-	// Sync the destination and require its durable-storage confirmation.
+	// Copy the reachable block graph into the destination under a stage.
+	c, err := block.OpenStageCopy(ctx, destination, false)
+	if err != nil {
+		return nil, err
+	}
+	if !root.GetEmpty() {
+		err = c.Copy(ctx, object.GetBlockStore(), root, block.GraphCopyOptions{})
+	}
+	if err == nil {
+		err = c.Flush(ctx)
+	}
+	if err == nil {
+		err = syncDurable(ctx, destination)
+	}
+	if err != nil {
+		c.Release()
+		return nil, err
+	}
+	return c, nil
+}
+
+// syncDurable syncs destination and requires its durable-storage
+// confirmation.
+func syncDurable(ctx context.Context, destination block.StoreOps) error {
 	fenced, err := destination.Sync(ctx)
 	if err == nil && !fenced {
 		err = errors.New("destination block store did not confirm durable storage")

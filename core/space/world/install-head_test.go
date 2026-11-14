@@ -683,6 +683,7 @@ func newVolumeAdapter(t *testing.T, maxPending int, grace time.Duration) (*Adapt
 		pages:            block.NewPendingStore(bkt, maxPending),
 		held:             make(map[string]*block.BlockRef),
 		checkpointWorlds: rootSet{name: RootCheckpoint},
+		imported:         rootSet{name: RootImport},
 		cursorWorlds:     rootSet{name: RootReplayCursor},
 		pendingWorlds:    rootSet{name: RootPending},
 		payloads:         rootSet{name: RootReplayPayloads},
@@ -955,4 +956,354 @@ func openedNow() chan struct{} {
 	opened := make(chan struct{})
 	close(opened)
 	return opened
+}
+
+// TestTrimKeepsWorldHeldOutside checks, on a Volume that frees at once, that
+// a trim whose adapter read the import root before another writer appended a
+// World to it, as a migration's HoldImport does, reads the roots again and
+// completes, and that the appended World and its page stay held through the
+// trim and a collection while the World the checkpoint history held is
+// released.
+func TestTrimKeepsWorldHeldOutside(t *testing.T) {
+	// Open an adapter on an in-memory Volume that frees at once.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	store := a.so.GetBlockStore()
+	put := func(store block.StoreOps, name string, children ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		data := []byte("outside " + name)
+		for _, c := range children {
+			data = append(data, c.MarshalString()...)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: children, RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+
+	// The adapter holds an earlier World in its checkpoint history.
+	earlier := put(a.pages, "earlier World")
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = a.addRoot(ctx, &a.checkpointWorlds, earlier)
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Another writer stores a World with a page under a stage, appends it to
+	// the history, then ends the stage, and a collection runs.
+	staged, endStage, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := put(staged, "migrated page")
+	migrated := put(staged, "migrated World", page)
+	if err := HoldImport(ctx, store, migrated); err != nil {
+		endStage()
+		t.Fatal(err)
+	}
+	endStage()
+	collect()
+
+	// A checkpoint installs at a new base. The adapter's import root is
+	// stale, so its first move fails, and the trim reads again and
+	// completes.
+	base := put(a.pages, "base World")
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+	trimCtx, cancelTrim := context.WithCancel(ctx)
+	defer cancelTrim()
+	trimmed := make(chan error, 1)
+	go func() {
+		err := a.trimInBackground(trimCtx)
+		if err == nil {
+			a.waitBackground()
+		}
+		trimmed <- err
+	}()
+	select {
+	case err := <-trimmed:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(10 * time.Second):
+		cancelTrim()
+		t.Fatal("the trim did not complete within 10s: it retries a move from the history it read before the append")
+	}
+	if !refEqual(a.held[RootReplayBase], base) {
+		t.Fatalf("replay base after the trim = %v, want the base World", a.held[RootReplayBase])
+	}
+	if !a.imported.holds(migrated) || a.checkpointWorlds.holds(earlier) {
+		t.Fatalf("import root %v and checkpoint history %v after the trim, want the migrated World imported and the history empty", a.imported.roots, a.checkpointWorlds.roots)
+	}
+
+	// The migrated World and its page survive a collection.
+	collect()
+	for _, ref := range []*block.BlockRef{migrated, page} {
+		if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
+			t.Fatalf("collection freed the migrated World's block %v: %v, %v", ref, found, err)
+		}
+	}
+}
+
+// TestTrimKeepsImportGatheredBefore checks, on a Volume that frees at once,
+// that a trim gathered after the Adapter read a World another writer holds
+// under the import root, as a migration's is when the Space opens before its
+// first install, keeps that World when it lands after the writer's stage
+// ended, and that the trim that moves the replay base onto the World releases
+// it from the import root with the World still held.
+func TestTrimKeepsImportGatheredBefore(t *testing.T) {
+	// Open an adapter on an in-memory Volume that frees at once.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	store := a.so.GetBlockStore()
+	put := func(store block.StoreOps, name string, children ...*block.BlockRef) *block.BlockRef {
+		t.Helper()
+		data := []byte("import " + name)
+		for _, c := range children {
+			data = append(data, c.MarshalString()...)
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: children, RefsKnown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	requireHeld := func(step string, refs ...*block.BlockRef) {
+		t.Helper()
+		collect()
+		for _, ref := range refs {
+			if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
+				t.Fatalf("%s: collection freed the imported World's block %v: %v, %v", step, ref, found, err)
+			}
+		}
+	}
+
+	// Another writer stores a World with a page under a stage and holds it
+	// under the import root, and the Adapter opens and reads it.
+	staged, endStage, err := block.OpenStage(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := put(staged, "migrated page")
+	migrated := put(staged, "migrated World", page)
+	if err := HoldImport(ctx, store, migrated); err != nil {
+		t.Fatal(err)
+	}
+	release, err := a.rootMtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = a.readHeldRoots(ctx, heldRootNames)
+	if err == nil {
+		err = a.readRootSets(ctx)
+	}
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The install of the placeholder checkpoint gathers its trim, the
+	// writer's stage ends, and the trim lands: the World stays held.
+	placeholder := put(a.pages, "placeholder World")
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: placeholder}}}
+	plan, err := a.gatherTrim(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	endStage()
+	if err := runTrimLocked(ctx, a, plan); err != nil {
+		t.Fatal(err)
+	}
+	requireHeld("after the placeholder's trim", migrated, page)
+	if !a.imported.holds(migrated) {
+		t.Fatalf("import root after the placeholder's trim = %v, want the migrated World", a.imported.roots)
+	}
+
+	// The install of the migrated checkpoint moves the base onto the World
+	// and releases it from the import root in the same move.
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: migrated}}}
+	plan, err = a.gatherTrim(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runTrimLocked(ctx, a, plan); err != nil {
+		t.Fatal(err)
+	}
+	if !refEqual(a.held[RootReplayBase], migrated) || len(a.imported.roots) != 0 {
+		t.Fatalf("replay base %v and import root %v after the install, want the base on the migrated World and the import root empty", a.held[RootReplayBase], a.imported.roots)
+	}
+	requireHeld("after the migrated install", migrated, page)
+}
+
+// runTrimLocked runs plan as the trim turn does.
+func runTrimLocked(ctx context.Context, a *Adapter, plan *trimPlan) error {
+	release, err := a.trimMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	return a.runTrim(ctx, plan)
+}
+
+// TestStaleAdapterTrimFails checks that a trim of a stale Adapter, whose
+// replay base another Adapter on the same bucket moved, fails and moves no
+// root, rather than reread the base and move it back.
+func TestStaleAdapterTrimFails(t *testing.T) {
+	// Open two Adapters on one bucket that frees at once.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	b := &Adapter{
+		le:               a.le,
+		so:               a.so,
+		opened:           openedNow(),
+		pages:            block.NewPendingStore(a.so.GetBlockStore().(*bucketStore).StoreOps, 1<<20),
+		held:             make(map[string]*block.BlockRef),
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
+		payloads:         rootSet{name: RootReplayPayloads},
+	}
+	put := func(store block.StoreOps, name string) *block.BlockRef {
+		t.Helper()
+		ref, _, err := store.PutBlock(ctx, []byte("stale "+name), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	trim := func(a *Adapter, base *block.BlockRef) error {
+		t.Helper()
+		a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: base}}}
+		plan, err := a.gatherTrim(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a.runTrim(ctx, plan)
+	}
+
+	// A installs Y, and B reads it.
+	y := put(a.pages, "Y")
+	if err := trim(a, y); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.readHeldRoots(ctx, heldRootNames); err != nil {
+		t.Fatal(err)
+	}
+
+	// A moves on to X. B, still at Y, installs Z: its move fails and
+	// moves nothing.
+	x := put(a.pages, "X")
+	if err := trim(a, x); err != nil {
+		t.Fatal(err)
+	}
+	z := put(b.pages, "Z")
+	if err := trim(b, z); !errors.Is(err, block.ErrRootMoved) {
+		t.Fatalf("stale trim = %v, want ErrRootMoved", err)
+	}
+	base, err := a.pages.GetRoot(ctx, RootReplayBase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !refEqual(base, x) {
+		t.Fatalf("replay base after the stale trim = %v, want X", base)
+	}
+	collect()
+	if _, found, err := a.pages.GetBlock(ctx, x); err != nil || !found {
+		t.Fatalf("collection freed the base A holds: %v, %v", found, err)
+	}
+}
+
+// TestStaleAdapterHistoryRewriteFails checks that a trim whose checkpoint
+// history a stale Adapter rewrote, dropping a World the trim's base names,
+// fails with ErrRootMoved and moves no root, rather than read the rewritten
+// history and move the base onto a World nothing holds. Only an append that
+// keeps the held block in its Prev chain lets the trim read again.
+func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
+	// Open two Adapters on one bucket that frees at once.
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	b := &Adapter{
+		le:               a.le,
+		so:               a.so,
+		opened:           openedNow(),
+		pages:            block.NewPendingStore(a.so.GetBlockStore().(*bucketStore).StoreOps, 1<<20),
+		held:             make(map[string]*block.BlockRef),
+		checkpointWorlds: rootSet{name: RootCheckpoint},
+		cursorWorlds:     rootSet{name: RootReplayCursor},
+		pendingWorlds:    rootSet{name: RootPending},
+		payloads:         rootSet{name: RootReplayPayloads},
+	}
+	put := func(name string) *block.BlockRef {
+		t.Helper()
+		ref, _, err := a.pages.PutBlock(ctx, []byte("rewrite "+name), &block.PutOpts{RefsKnown: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref
+	}
+	locked := func(a *Adapter, fn func() error) {
+		t.Helper()
+		release, err := a.rootMtx.Lock(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = fn()
+		release()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A holds the checkpoint World Wc in its history, and B reads it.
+	wc := put("Wc")
+	locked(a, func() error { return a.addRoot(ctx, &a.checkpointWorlds, wc) })
+	locked(b, func() error {
+		if err := b.readHeldRoots(ctx, heldRootNames); err != nil {
+			return err
+		}
+		return b.readRootSet(ctx, &b.checkpointWorlds)
+	})
+
+	// B rewrites the history alone, dropping Wc, as a stale trim does.
+	other := put("other")
+	locked(b, func() error {
+		return b.setRootSets(ctx, []*rootSet{&b.checkpointWorlds}, [][]*block.BlockRef{{other}}, nil)
+	})
+	before := map[string]*block.BlockRef{}
+	for _, name := range []string{RootReplayBase, RootCheckpoint} {
+		ref, err := a.pages.GetRoot(ctx, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		before[name] = ref
+	}
+
+	// A's trim onto Wc fails and moves nothing.
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: wc}}}
+	plan, err := a.gatherTrim(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.runTrim(ctx, plan); !errors.Is(err, block.ErrRootMoved) {
+		t.Fatalf("trim after a history rewrite = %v, want ErrRootMoved", err)
+	}
+	for name, want := range before {
+		ref, err := a.pages.GetRoot(ctx, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !refEqual(ref, want) {
+			t.Fatalf("%s after the failed trim = %v, want %v", name, ref, want)
+		}
+	}
 }

@@ -48,7 +48,7 @@ func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairi
 
 	// Mount the enrolled object with its config lineage.
 	generation := entry.GetGeneration()
-	_, err := a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), &generation, object.GetState(), object.GetConfigLineage())
+	_, err := a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), &generation, object.GetState(), object.GetConfigLineage(), nil)
 	return err
 }
 
