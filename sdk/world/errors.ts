@@ -49,6 +49,30 @@ export class PluginOpTimeoutError extends Error {
   }
 }
 
+// PluginUnavailableError reports that the plugin handling an operation could
+// not be reached: its load failed or did not finish in time. The host never
+// sent the operation or opened a transaction, so nothing was written and
+// sending it again is safe.
+const pluginUnavailableBrand = Symbol.for('spacewave.PluginUnavailableError')
+
+export class PluginUnavailableError extends Error {
+  override readonly name = 'PluginUnavailableError'
+  readonly [pluginUnavailableBrand] = true
+
+  // Client and plugin builds recognize the same public error across bundles.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      pluginUnavailableBrand in value &&
+      value[pluginUnavailableBrand] === true
+    )
+  }
+
+  constructor() {
+    super('the plugin could not be reached, so nothing was changed')
+  }
+}
+
 // OperationResponse is the error part of a World or object operation response.
 export interface OperationResponse {
   errorCode?: WorldErrorCode
@@ -68,6 +92,8 @@ export function throwOperationError(response: OperationResponse): void {
     throw new Error('remote world operation unhandled')
   if (response.errorCode === WorldErrorCode.PLUGIN_OP_TIMEOUT)
     throw new PluginOpTimeoutError()
+  if (response.errorCode === WorldErrorCode.PLUGIN_UNAVAILABLE)
+    throw new PluginUnavailableError()
 }
 
 // WorldBatchRefusal refuses a World batch with a built-in code, such as an
@@ -92,11 +118,14 @@ export interface BatchResponse extends OperationResponse {
 
 // throwBatchError throws the refusal a batch response carries: an op's
 // rejection as WorldOperationRejection, a plugin timeout as
-// PluginOpTimeoutError, and another built-in code as WorldBatchRefusal.
+// PluginOpTimeoutError, an unavailable plugin as PluginUnavailableError, and
+// another built-in code as WorldBatchRefusal.
 export function throwBatchError(response: BatchResponse): void {
   if (response.rejectionCode) throwOperationError(response)
   if (response.errorCode === WorldErrorCode.PLUGIN_OP_TIMEOUT)
     throw new PluginOpTimeoutError()
+  if (response.errorCode === WorldErrorCode.PLUGIN_UNAVAILABLE)
+    throw new PluginUnavailableError()
   if (response.errorCode)
     throw new WorldBatchRefusal(response.failedIndex ?? 0, response.errorCode)
 }

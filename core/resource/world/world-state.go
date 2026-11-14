@@ -1056,10 +1056,12 @@ func (r *WorldStateResource) resolveWorldOp(
 	return op, opSender, nil, nil
 }
 
-// applyResolvedWorldOp applies op to ws and encodes a domain rejection or an
-// unhandled operation as a response. A plugin timeout is encoded only when
-// atomic reports that the failed operation's transaction is discarded, so the
-// code means nothing was written; otherwise it returns as an error.
+// applyResolvedWorldOp applies op to ws and encodes a domain rejection, an
+// unavailable plugin or an unhandled operation as a response. An unavailable
+// plugin was never sent the operation, so nothing was written. A plugin
+// timeout is encoded only when atomic reports that the failed operation's
+// transaction is discarded, so the code means nothing was written; otherwise
+// it returns as an error.
 func applyResolvedWorldOp(
 	ctx context.Context,
 	ws world.WorldState,
@@ -1073,6 +1075,13 @@ func applyResolvedWorldOp(
 		if errors.As(err, &rejection) {
 			return &s4wave_world.ApplyWorldOpResponse{
 				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
+			}, nil
+		}
+
+		var unavailable *world.PluginUnavailableError
+		if errors.As(err, &unavailable) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE,
 			}, nil
 		}
 

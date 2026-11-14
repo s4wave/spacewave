@@ -2,7 +2,6 @@ package resource_worldop_registry
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -346,27 +345,26 @@ func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
 	}
 	defer rel()
 
-	// Apply the operation through the engine while its plugin loads.
-	op, err := lookupPluginOp(ctx, t, tb, le)(ctx, "test/plugin-op")
-	if err != nil {
-		t.Fatalf("lookup op: %v", err)
-	}
-	if err := op.UnmarshalVT([]byte("op-data")); err != nil {
-		t.Fatalf("UnmarshalVT: %v", err)
-	}
+	// Apply the operation through the World resource over the engine while
+	// its plugin loads, under a short load deadline.
+	const loadDeadline = 2 * time.Second
 	ws := world.NewEngineWorldState(tb.Engine, true)
-	applyCtx, cancelApply := context.WithCancel(ctx)
-	defer cancelApply()
-	applied := make(chan error, 1)
+	lookup := lookupPluginOp(ctx, t, tb, le, WithPluginLoadDeadline(loadDeadline))
+	res := resource_world.NewWorldStateResource(le, tb.Bus, ws, lookup, resource_world.WithSessionPeerID(tb.Volume.GetPeerID()))
+	applied := make(chan *s4wave_world.ApplyWorldOpResponse, 1)
+	start := time.Now()
 	go func() {
-		_, _, err := ws.ApplyWorldOp(applyCtx, op, tb.Volume.GetPeerID())
-		applied <- err
+		resp, err := res.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{OpTypeId: "test/plugin-op", OpData: []byte("op-data")})
+		if err != nil {
+			t.Errorf("ApplyWorldOp: %v", err)
+		}
+		applied <- resp
 	}()
 	<-loading
 
-	// A second writer proceeds at once: the load holds no writer, so the
-	// second writer waits on no plugin deadline.
-	writeCtx, cancel := context.WithTimeout(ctx, pluginOpDeadline/2)
+	// A second writer proceeds while the load still hangs: the load holds no
+	// writer.
+	writeCtx, cancel := context.WithTimeout(ctx, loadDeadline/2)
 	defer cancel()
 	obj, err := ws.CreateObject(writeCtx, "test/second-writer", nil)
 	world.ReleaseObjectState(obj)
@@ -374,17 +372,26 @@ func TestWorldOpRegistryBridgeControllerColdLoadHoldsNoWriter(t *testing.T) {
 		t.Fatalf("second writer: %v", err)
 	}
 	assertWorldObjectExists(t, ctx, tb.Engine, "test/second-writer")
+	select {
+	case <-applied:
+		t.Fatal("ApplyWorldOp returned before its plugin load deadline")
+	default:
+	}
 
-	// The operation waits on the load until its caller gives up.
-	cancelApply()
-	if err := <-applied; !errors.Is(err, context.Canceled) {
-		t.Fatalf("ApplyWorldOp error = %v, want context.Canceled", err)
+	// The load deadline ends the operation with the unavailable code: it was
+	// never sent, so nothing was written.
+	resp := <-applied
+	if code := resp.GetErrorCode(); code != s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE {
+		t.Fatalf("ApplyWorldOp error code = %v, want WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE", code)
+	}
+	if elapsed := time.Since(start); elapsed > 2*loadDeadline {
+		t.Fatalf("ApplyWorldOp returned after %v, want about %v", elapsed, loadDeadline)
 	}
 }
 
 // lookupPluginOp registers test/plugin-op for test-plugin, attaches the
 // registry bridge to the bus of tb, and returns the lookup it resolves.
-func lookupPluginOp(ctx context.Context, t *testing.T, tb *world_testbed.Testbed, le *logrus.Entry) world.LookupOp {
+func lookupPluginOp(ctx context.Context, t *testing.T, tb *world_testbed.Testbed, le *logrus.Entry, opts ...BridgeOption) world.LookupOp {
 	t.Helper()
 	registry := NewWorldOpRegistryResource(nil)
 	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
@@ -392,7 +399,7 @@ func lookupPluginOp(ctx context.Context, t *testing.T, tb *world_testbed.Testbed
 		RegistrationId:  1,
 		PluginId:        "test-plugin",
 	}
-	rel, err := tb.Bus.AddController(ctx, NewWorldOpRegistryBridgeController(le, tb.Bus, registry), nil)
+	rel, err := tb.Bus.AddController(ctx, NewWorldOpRegistryBridgeController(le, tb.Bus, registry, opts...), nil)
 	if err != nil {
 		t.Fatalf("AddController bridge: %v", err)
 	}

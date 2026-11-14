@@ -30,10 +30,17 @@ import (
 // what a working handler needs and short enough that a stall ends.
 //
 // An operation applied through an engine World state connects to its plugin
-// before the writer, in PrepareApply, under the caller's context alone. One
+// before the writer, in PrepareApply, under pluginLoadDeadline instead. One
 // that was not prepared, in a replay or inside a caller's transaction,
 // connects under this deadline too, so a cold load that hangs ends with it.
 const pluginOpDeadline = 10 * time.Second
+
+// pluginLoadDeadline bounds the plugin load PrepareApply waits on before the
+// writer. A cold load fetches and starts the plugin's executable, which can
+// legitimately outlast pluginOpDeadline; it holds no writer, so only the
+// caller waits. A load that has not finished by then reports the plugin
+// unavailable rather than leaving the caller waiting on a load that hangs.
+const pluginLoadDeadline = 30 * time.Second
 
 // bridgeControllerID is the controller ID.
 const bridgeControllerID = "resource/worldop-registry-bridge"
@@ -47,6 +54,20 @@ type WorldOpRegistryBridgeController struct {
 	le       *logrus.Entry
 	b        bus.Bus
 	registry *WorldOpRegistryResource
+	// loadDeadline bounds each operation's plugin load in PrepareApply.
+	loadDeadline time.Duration
+}
+
+// BridgeOption configures a WorldOpRegistryBridgeController.
+type BridgeOption func(*WorldOpRegistryBridgeController)
+
+// WithPluginLoadDeadline sets how long PrepareApply waits for an operation's
+// plugin to load before it reports the plugin unavailable. The default is
+// pluginLoadDeadline.
+func WithPluginLoadDeadline(d time.Duration) BridgeOption {
+	return func(c *WorldOpRegistryBridgeController) {
+		c.loadDeadline = d
+	}
 }
 
 // NewWorldOpRegistryBridgeController creates a new WorldOpRegistryBridgeController.
@@ -54,12 +75,18 @@ func NewWorldOpRegistryBridgeController(
 	le *logrus.Entry,
 	b bus.Bus,
 	registry *WorldOpRegistryResource,
+	opts ...BridgeOption,
 ) *WorldOpRegistryBridgeController {
-	return &WorldOpRegistryBridgeController{
-		le:       le,
-		b:        b,
-		registry: registry,
+	c := &WorldOpRegistryBridgeController{
+		le:           le,
+		b:            b,
+		registry:     registry,
+		loadDeadline: pluginLoadDeadline,
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // GetControllerInfo returns controller info.
@@ -90,7 +117,7 @@ func (c *WorldOpRegistryBridgeController) HandleDirective(ctx context.Context, d
 	if pinned {
 		reg := &s4wave_worldop_registry.WorldOpRegistration{PluginId: pluginID, OperationTypeId: handlerID}
 		lookupOp := func(ctx context.Context, operationTypeID string) (world.Operation, error) {
-			op := newBridgeOperation(c.le, c.b, reg, operationTypeID, engineID)
+			op := newBridgeOperation(c.le, c.b, reg, operationTypeID, engineID, c.loadDeadline)
 			op.manifestRoot = manifestRoot
 			op.handlerID = handlerID
 			return op, nil
@@ -133,7 +160,7 @@ func (c *WorldOpRegistryBridgeController) watchRegistration(
 			}
 			regID, instanceKey = reg.GetRegistrationId(), nextInstanceKey
 			if reg != nil {
-				valID, _ = handler.AddValue(newRegisteredLookupOp(c.le, c.b, reg, instanceKey, engineID))
+				valID, _ = handler.AddValue(newRegisteredLookupOp(c.le, c.b, reg, instanceKey, engineID, c.loadDeadline))
 			}
 		}
 		handler.MarkIdle(true)
@@ -153,9 +180,10 @@ func newRegisteredLookupOp(
 	b bus.Bus,
 	reg *s4wave_worldop_registry.WorldOpRegistration,
 	instanceKey, engineID string,
+	loadDeadline time.Duration,
 ) world.LookupWorldOpValue {
 	return func(ctx context.Context, operationTypeID string) (world.Operation, error) {
-		op := newBridgeOperation(le, b, reg, operationTypeID, engineID)
+		op := newBridgeOperation(le, b, reg, operationTypeID, engineID, loadDeadline)
 		op.instanceKey = instanceKey
 		return op, nil
 	}
@@ -180,6 +208,8 @@ type bridgeOperation struct {
 	// manifestRoot pins the executable; empty uses a registered native/legacy handler.
 	manifestRoot string
 	opData       []byte
+	// loadDeadline bounds the plugin load in PrepareApply.
+	loadDeadline time.Duration
 	// prepared is the plugin connection PrepareApply made, until its release.
 	prepared *s4wave_plugin.PluginResources
 }
@@ -191,14 +221,16 @@ func newBridgeOperation(
 	reg *s4wave_worldop_registry.WorldOpRegistration,
 	opTypeID string,
 	engineID string,
+	loadDeadline time.Duration,
 ) *bridgeOperation {
 	return &bridgeOperation{
-		le:        le,
-		b:         b,
-		reg:       reg,
-		engineID:  engineID,
-		opTypeID:  opTypeID,
-		handlerID: opTypeID,
+		le:           le,
+		b:            b,
+		reg:          reg,
+		engineID:     engineID,
+		opTypeID:     opTypeID,
+		handlerID:    opTypeID,
+		loadDeadline: loadDeadline,
 	}
 }
 
@@ -380,17 +412,46 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 }
 
 // PrepareApply connects to the plugin before the engine takes its writer, so a
-// cold plugin load costs the caller time while other writers proceed. ctx
-// bounds the load, and the connection lives on ctx until release.
+// cold plugin load costs the caller time while other writers proceed. The load
+// must finish within loadDeadline, and the connection lives on ctx until
+// release. A load that fails or misses the deadline, while ctx is live, returns
+// a world.PluginUnavailableError: no transaction is open yet, so nothing was
+// sent to apply. A rejection from the load, such as a pinned executable that
+// does not exist, returns as is, since a retry would meet it again.
 func (o *bridgeOperation) PrepareApply(ctx context.Context) (func(), error) {
-	resources, err := o.connectPlugin(ctx)
+	// Connect on a context the deadline cancels only while the load runs.
+	loadCtx, cancel := context.WithCancelCause(ctx)
+	errLoadDeadline := errors.Errorf("load did not finish within %v", o.loadDeadline)
+	deadline := time.AfterFunc(o.loadDeadline, func() { cancel(errLoadDeadline) })
+	resources, err := o.connectPlugin(loadCtx)
+	if !deadline.Stop() && err == nil {
+		// The deadline fired as the load finished and ended its context.
+		resources.Release()
+		err = errLoadDeadline
+	}
 	if err != nil {
-		return nil, err
+		// The deadline decides first: a pinned load turns any failure into a
+		// rejection, including the one the deadline caused.
+		timedOut := errors.Is(context.Cause(loadCtx), errLoadDeadline)
+		cancel(nil)
+		var rejection *world.OperationRejection
+		switch {
+		case timedOut:
+			err = errLoadDeadline
+		case ctx.Err() != nil || errors.As(err, &rejection):
+			return nil, err
+		}
+		return nil, &world.PluginUnavailableError{
+			PluginID:        o.reg.GetPluginId(),
+			OperationTypeID: o.opTypeID,
+			Err:             err,
+		}
 	}
 	o.prepared = resources
 	return func() {
 		o.prepared = nil
 		resources.Release()
+		cancel(nil)
 	}, nil
 }
 

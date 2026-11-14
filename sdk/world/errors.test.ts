@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   PluginOpTimeoutError,
+  PluginUnavailableError,
   throwBatchError,
   throwOperationError,
   WorldOperationRejection,
@@ -42,6 +43,14 @@ describe('throwOperationError', () => {
     ).toThrow(PluginOpTimeoutError)
   })
 
+  it('restores an unavailable plugin that was sent nothing', () => {
+    expect(() =>
+      throwOperationError({
+        errorCode: WorldErrorCode.PLUGIN_UNAVAILABLE,
+      }),
+    ).toThrow(PluginUnavailableError)
+  })
+
   it('accepts a successful response', () => {
     expect(() => throwOperationError({})).not.toThrow()
   })
@@ -55,5 +64,14 @@ describe('throwBatchError', () => {
         errorCode: WorldErrorCode.PLUGIN_OP_TIMEOUT,
       }),
     ).toThrow(PluginOpTimeoutError)
+  })
+
+  it('restores an unavailable plugin that was sent nothing', () => {
+    expect(() =>
+      throwBatchError({
+        failedIndex: 1,
+        errorCode: WorldErrorCode.PLUGIN_UNAVAILABLE,
+      }),
+    ).toThrow(PluginUnavailableError)
   })
 })

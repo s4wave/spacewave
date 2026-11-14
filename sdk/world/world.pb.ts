@@ -119,6 +119,14 @@ export enum WorldErrorCode {
    * is not certain returns as an error instead.
    */
   PLUGIN_OP_TIMEOUT = 4,
+
+  /**
+   * WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE indicates that the plugin handling the
+   * operation could not be reached: its load failed or did not finish within
+   * its deadline. The operation was never sent to apply and no transaction was
+   * opened, so nothing was written and the operation is safe to resend.
+   */
+  PLUGIN_UNAVAILABLE = 5,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -129,6 +137,7 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
     [2, 'WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED'],
     [3, 'WORLD_ERROR_CODE_OBJECT_NOT_FOUND'],
     [4, 'WORLD_ERROR_CODE_PLUGIN_OP_TIMEOUT'],
+    [5, 'WORLD_ERROR_CODE_PLUGIN_UNAVAILABLE'],
   ],
 )
 
