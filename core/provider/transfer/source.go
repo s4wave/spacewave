@@ -39,6 +39,45 @@ type TransferSource interface {
 type CleanupSource interface {
 	// DeleteSharedObject deletes a shared object from the source account.
 	DeleteSharedObject(ctx context.Context, soID string) error
+	// AuthorHead returns the peer the source signs its operations on the
+	// Space soID as, and the nonce of the latest one its copy of the Space
+	// stores, 0 when it wrote none.
+	AuthorHead(ctx context.Context, soID string) (string, uint64, error)
+	// SendSharedObject asks the source to send its operations on the Space
+	// soID to the other members now. It reports whether a sync ran to ask.
+	SendSharedObject(soID string) bool
+}
+
+// waitAuthor waits until provider's copy of the Space at ref holds peerID's
+// operations through nonce, watching the mounted Space's state. It returns
+// ctx's error when ctx ends first.
+func waitAuthor(ctx context.Context, provider sobject.SharedObjectProvider, ref *sobject.SharedObjectRef, peerID string, nonce uint64) (bool, error) {
+	// Mount the Space and watch its state.
+	so, relSO, err := provider.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		return false, errors.Wrap(err, "mount shared object")
+	}
+	defer relSO()
+	snapCtr, relSnap, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer relSnap()
+
+	// Wait for a state that holds the author's chain through nonce.
+	_, err = snapCtr.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		// Read the author's head from the state, once one is loaded.
+		if snap == nil {
+			return false, nil
+		}
+		set, err := snap.GetOperationSet(ctx)
+		if err != nil {
+			return false, err
+		}
+		held, _ := set.AuthorHead(peerID)
+		return held >= nonce, nil
+	}, nil)
+	return err == nil, err
 }
 
 // replaySharedObject mounts the Space of ref on provider and replays its World.

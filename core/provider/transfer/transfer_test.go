@@ -78,6 +78,10 @@ func (t *orderTestTarget) ReadSharedObject(context.Context, *logrus.Entry, strin
 	return &provider_transfer.TargetSpace{Holds: t.holds}, nil
 }
 
+func (t *orderTestTarget) WaitAuthor(context.Context, string, string, uint64) (bool, error) {
+	return false, nil
+}
+
 func (t *orderTestTarget) AddSharedObject(_ context.Context, ref *sobject.SharedObjectRef, _ *sobject.SharedObjectMeta, _ *provider_transfer.TransferOrigin) (*provider_transfer.TargetSpace, error) {
 	t.calls = append(t.calls, "add:"+ref.GetProviderResourceRef().GetId())
 	return &provider_transfer.TargetSpace{Holds: provider_transfer.TargetHoldsArriving}, nil
@@ -1616,5 +1620,90 @@ func TestLocalMergeKeepsSpaceCreatedOnSource(t *testing.T) {
 	}
 	if !listsSpace(t, src, "new-space") {
 		t.Fatal("the run deleted the Space created during it")
+	}
+}
+
+// sharedTestSource lists every Space of a local source as shared.
+type sharedTestSource struct {
+	*provider_transfer.LocalTransferSource
+}
+
+func (s *sharedTestSource) GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error) {
+	list, err := s.LocalTransferSource.GetSharedObjectList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range list.GetSharedObjects() {
+		if !entry.GetMeta().GetAccountPrivate() {
+			entry.Source = "shared"
+		}
+	}
+	return list, nil
+}
+
+// sharedTestTarget reads every Space as shared with the target account.
+type sharedTestTarget struct {
+	*provider_transfer.LocalTransferTarget
+}
+
+func (t *sharedTestTarget) ReadSharedObject(context.Context, *logrus.Entry, string, *provider_transfer.TransferOrigin) (*provider_transfer.TargetSpace, error) {
+	return &provider_transfer.TargetSpace{Holds: provider_transfer.TargetHoldsShared}, nil
+}
+
+// TestLocalMergeKeepsSharedSpaceWithUnsentOps checks that a Merge keeps a
+// shared Space, and the operation in it, on the source while the target's
+// copy lacks an operation the source wrote: the source's copy may hold the
+// only one.
+func TestLocalMergeKeepsSharedSpaceWithUnsentOps(t *testing.T) {
+	// Start a source and a target that each hold a copy of the Space.
+	ctx := context.Background()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	providerID := "local"
+	prov, provRel := setupLocalProvider(ctx, t, tb, providerID)
+	defer provRel()
+	srcAcc, _, srcRel := createAccount(ctx, t, prov)
+	defer srcRel()
+	tgtAcc, tgtAccountID, tgtRel := createAccount(ctx, t, prov)
+	defer tgtRel()
+	soRef := createTestSpace(ctx, t, srcAcc, "space-s")
+	createTestSpace(ctx, t, tgtAcc, "space-s")
+
+	// The source writes an operation the target never receives.
+	so, soRel, err := srcAcc.MountSharedObject(ctx, soRef, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := so.QueueOperation(ctx, []byte("unsent")); err != nil {
+		t.Fatal(err)
+	}
+	soRel()
+	src := &sharedTestSource{provider_transfer.NewLocalTransferSource(srcAcc, tb.Bus)}
+	_, wrote, err := src.AuthorHead(ctx, "space-s")
+	if err != nil || wrote == 0 {
+		t.Fatalf("source chain = %d, %v; want the written operation", wrote, err)
+	}
+
+	// The Merge waits for the target to receive it, then keeps the Space.
+	defer provider_transfer.SetSendTimeout(time.Second)()
+	tgt := &sharedTestTarget{provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)}
+	le := logrus.NewEntry(logrus.StandardLogger())
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, ownerKey(ctx, t, tgtAcc), 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
+	if err := xfer.Execute(ctx); err != nil {
+		t.Fatal(err)
+	}
+	state := xfer.GetState()
+	spaces := state.GetSpaces()
+	if state.GetPhase() != provider_transfer.TransferPhase_TransferPhase_NOT_MOVED || len(spaces) != 1 || !strings.HasPrefix(spaces[0].GetNotMovedReason(), "operations not sent") {
+		t.Fatalf("transfer = %s %v; want the Space not moved, operations not sent", state.GetPhase(), spaces)
+	}
+
+	// The source still lists the Space and stores the operation.
+	_, kept, err := src.AuthorHead(ctx, "space-s")
+	if err != nil || kept != wrote {
+		t.Fatalf("source chain after the Merge = %d, %v; want %d", kept, err, wrote)
 	}
 }

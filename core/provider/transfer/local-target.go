@@ -133,6 +133,16 @@ func membershipChanged(state []byte) bool {
 	return st.GetConfig().GetConfigChainSeqno() != 0 || len(st.GetInvites()) != 0
 }
 
+// WaitAuthor waits until the account's copy of the shared Space holds
+// peerID's operations through nonce, watching the mounted Space's state.
+func (t *LocalTransferTarget) WaitAuthor(ctx context.Context, sharedObjectID, peerID string, nonce uint64) (bool, error) {
+	stored, err := t.account.ReadStoredSharedObject(ctx, sharedObjectID)
+	if err != nil || stored.Entry == nil {
+		return false, err
+	}
+	return waitAuthor(ctx, t.account, stored.Entry.GetRef(), peerID, nonce)
+}
+
 // replayHead returns the SHA-256 of the World the target's Space at ref
 // replays.
 func (t *LocalTransferTarget) replayHead(ctx context.Context, le *logrus.Entry, ref *sobject.SharedObjectRef) ([]byte, error) {
