@@ -17,8 +17,6 @@ import { LuServer, LuTerminal, LuTriangleAlert } from 'react-icons/lu'
 
 import {
   type Device,
-  type DeviceCapability,
-  DeviceCapabilityState,
   DeviceAvailabilityState,
   DeviceSetupState,
   DeviceUpdateState,
@@ -26,6 +24,7 @@ import {
 import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 
+import { DeviceCapabilityTable } from './DeviceCapabilityTable.js'
 import {
   buildCreateTerminalOpData,
   findOpenableTerminalCapability,
@@ -147,7 +146,12 @@ export function DeviceViewer({
             ) : null
           }
         >
-          <DeviceCapabilities capabilities={capabilities} />
+          <DeviceCapabilityTable
+            capabilities={capabilities}
+            onOpenTerminal={
+              terminalCapability ? () => void handleOpenTerminal() : undefined
+            }
+          />
         </ViewerSide>
       )}
     </div>
@@ -209,48 +213,6 @@ function DeviceFacts({
   )
 }
 
-// DeviceCapabilities lists a device's capabilities as viewer rows: the name,
-// its detail while room remains, and its state.
-function DeviceCapabilities({
-  capabilities,
-}: {
-  capabilities: DeviceCapability[]
-}) {
-  return (
-    <>
-      <div className="h-viewer-row text-foreground-alt flex shrink-0 items-center gap-2 px-2 text-xs font-medium select-none">
-        Capabilities
-        <span className="text-foreground-alt/70 font-normal">
-          {capabilities.length}
-        </span>
-      </div>
-      {capabilities.length === 0 ? (
-        <div className="text-foreground-alt px-2 text-xs">
-          No capabilities declared
-        </div>
-      ) : (
-        capabilities.map((capability) => (
-          <div
-            key={capability.id}
-            className="h-viewer-row flex shrink-0 items-center gap-2 px-2 text-xs"
-            title={capability.detail || undefined}
-          >
-            <span className="text-foreground max-w-1/2 min-w-0 shrink-0 truncate">
-              {capability.label || capability.id}
-            </span>
-            <span className="text-foreground-alt min-w-0 flex-1 truncate">
-              {capability.detail}
-            </span>
-            <span className="text-foreground-alt shrink-0">
-              {formatCapabilityState(capability.state)}
-            </span>
-          </div>
-        ))
-      )}
-    </>
-  )
-}
-
 function formatSetupState(state?: DeviceSetupState): string {
   switch (state) {
     case DeviceSetupState.WAITING_FOR_COMPLETION:
@@ -291,25 +253,6 @@ function formatLiveness(state?: DeviceAvailabilityState): string {
       return 'Online'
     case DeviceAvailabilityState.OFFLINE:
       return 'Offline'
-    default:
-      return 'Unknown'
-  }
-}
-
-function formatCapabilityState(state?: DeviceCapabilityState): string {
-  switch (state) {
-    case DeviceCapabilityState.DECLARED:
-      return 'Declared'
-    case DeviceCapabilityState.DISABLED:
-      return 'Disabled'
-    case DeviceCapabilityState.GRANT_BLOCKED:
-      return 'Grant blocked'
-    case DeviceCapabilityState.AVAILABLE:
-      return 'Available'
-    case DeviceCapabilityState.ACTIVE:
-      return 'Active'
-    case DeviceCapabilityState.REJECTED:
-      return 'Rejected'
     default:
       return 'Unknown'
   }

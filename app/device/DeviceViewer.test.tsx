@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import {
   DeviceAvailabilityState,
@@ -208,6 +208,54 @@ describe('DeviceViewer', () => {
     expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
   })
 
+  it('opens the terminal from its capability row and only selects others', async () => {
+    // The device can open a terminal and also lists files.
+    currentState = {
+      peerId: '12D3KooWDevice',
+      label: 'Build Host',
+      setupState: DeviceSetupState.DEVICE_SESSION_READY,
+      capabilities: [
+        {
+          id: 'filesystem',
+          kind: 'filesystem',
+          label: 'Files',
+          state: DeviceCapabilityState.AVAILABLE,
+        },
+        {
+          id: 'terminal',
+          kind: 'terminal',
+          label: 'Terminal',
+          state: DeviceCapabilityState.AVAILABLE,
+        },
+      ],
+    }
+    renderDevice()
+
+    // Opening the Files row selects it and opens nothing.
+    const files = screen.getByText('Files').closest('[role="row"]')!
+    fireEvent.click(files)
+    fireEvent.doubleClick(files)
+    expect(files.getAttribute('aria-selected')).toBe('true')
+
+    // Let an open's awaited op build settle before checking nothing ran.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(h.applyWorldOp).not.toHaveBeenCalled()
+
+    // Opening the Terminal row runs Open Terminal.
+    const terminal = screen
+      .getAllByText('Terminal')
+      .map((el) => el.closest('[role="row"]'))
+      .find((row) => row != null)!
+    fireEvent.click(terminal)
+    fireEvent.doubleClick(terminal)
+    await vi.waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith([
+        'build-host-terminal-1',
+      ]),
+    )
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+  })
+
   it('does not expose Terminal action for disabled terminal capability', () => {
     currentState = {
       peerId: '12D3KooWDevice',
@@ -271,3 +319,26 @@ describe('DeviceViewer', () => {
     expect(h.streamRetry).toHaveBeenCalledTimes(1)
   })
 })
+
+// renderDevice renders the viewer on the build host Device object.
+function renderDevice() {
+  return render(
+    <DeviceViewer
+      objectInfo={{
+        info: {
+          case: 'worldObjectInfo',
+          value: {
+            objectKey: 'devices/build-host',
+            objectType: 'spacewave/device',
+          },
+        },
+      }}
+      worldState={{
+        value: null,
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      }}
+    />,
+  )
+}

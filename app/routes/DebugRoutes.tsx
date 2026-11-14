@@ -1,6 +1,7 @@
 import { Route } from '@s4wave/web/router/router.js'
 import { GitSideDebug } from '@s4wave/app/debug/git/GitSideDebug.js'
 import { TerminalViewerDebug } from '@s4wave/app/debug/terminal/TerminalViewerDebug.js'
+import { DeviceCapabilityDebug } from '@s4wave/app/debug/device/DeviceCapabilityDebug.js'
 import { AccountRowsDebug } from '@s4wave/app/debug/account-rows/AccountRowsDebug.js'
 import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { PromViewerDebug } from '@s4wave/app/debug/prom/PromViewerDebug.js'
@@ -141,6 +142,12 @@ const debugRouteEntries = [
     element: <TerminalViewerDebug />,
   },
   {
+    path: '/debug/ui/device-capabilities',
+    title: 'Device capabilities',
+    description: 'Open the capability table; add /empty.',
+    element: <DeviceCapabilityDebug />,
+  },
+  {
     path: '/debug/ui/viewer-status',
     title: 'Viewer status',
     description: 'Open a viewer waiting, failed or empty; add /failed, /empty.',
@@ -188,6 +195,9 @@ export const DebugRoutes = (
     </Route>
     <Route path="/debug/ui/terminal/:state">
       <TerminalViewerDebug />
+    </Route>
+    <Route path="/debug/ui/device-capabilities/:state">
+      <DeviceCapabilityDebug />
     </Route>
     <Route path="/debug/ui/viewer-status/:state">
       <ViewerStatusDebug />
