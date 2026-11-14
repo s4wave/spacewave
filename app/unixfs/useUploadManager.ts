@@ -27,7 +27,8 @@ import {
 // UploadStatus represents the state of a single upload item. checking lists
 // the destination, or waits on the answer for the dropped folder the item is
 // in, before any byte is sent; asking waits for the person to answer the
-// item's conflict; skipped is an item the person chose not to send.
+// item's conflict; skipped is an item the person chose not to send; error is
+// a failed listing or send, which Retry runs again.
 export type UploadStatus =
   | 'checking'
   | 'queued'
@@ -54,6 +55,12 @@ export interface UploadConflict {
 // item under the first free "name (n).ext"; skip leaves the name alone.
 export type UploadAnswer = 'replace' | 'merge' | 'keep' | 'skip'
 
+// UploadStep is the step an item last ran, which Retry runs again after it
+// failed: check lists the item's folder and asks or sends, keep lists it and
+// picks a free name, and send commits with what the item expects. A failed
+// listing never leads to a send.
+export type UploadStep = 'check' | 'keep' | 'send'
+
 // UploadQuestion is the conflict on screen: the first asking item of the
 // oldest drop with one, and the other items of that drop still asking.
 export interface UploadQuestion {
@@ -76,6 +83,8 @@ export interface UploadItem {
   abortController: AbortController
   // place is the display path of the folder the drop targets.
   place: string
+  // step is the step Retry runs again.
+  step: UploadStep
   // expect is what the item's last send expected, which Retry sends again.
   expect: TreeUploadExpect
   // kept is set after a Keep both answer: the dropped path, and the number
@@ -151,13 +160,6 @@ function splitPath(path: string): [string, string] {
   return cut < 0 ? ['', path] : [path.slice(0, cut), path.slice(cut + 1)]
 }
 
-// topOf returns the top-level dropped folder a path is inside, or null for a
-// path at the top of the drop.
-function topOf(path: string): string | null {
-  const cut = path.indexOf('/')
-  return cut < 0 ? null : path.slice(0, cut)
-}
-
 // within reports whether item is inside the dropped folder.
 function within(item: UploadItem, folder: UploadItem): boolean {
   return (
@@ -172,25 +174,20 @@ function holderOf(entry: DirEntry): UploadHolder {
   return 'file'
 }
 
-// listFolder returns the entries of the folder at path below handle by name,
-// or none when it cannot be listed, such as a folder the drop will create.
-// The store's check at commit stays the authority, so a missed entry only
-// moves its question after the send.
+// listFolder returns the entries of the folder at path below handle by name.
+// It rejects when the folder cannot be listed; an empty listing would send
+// into names it never saw.
 async function listFolder(
   handle: FSHandle,
   path: string,
   signal: AbortSignal,
 ): Promise<Map<string, DirEntry>> {
+  if (!path) return byName(await handle.readdirAll(undefined, signal))
+  const { handle: folder } = await handle.lookupPath(path, signal)
   try {
-    if (!path) return byName(await handle.readdirAll(undefined, signal))
-    const { handle: folder } = await handle.lookupPath(path, signal)
-    try {
-      return byName(await folder.readdirAll(undefined, signal))
-    } finally {
-      folder.release()
-    }
-  } catch {
-    return new Map()
+    return byName(await folder.readdirAll(undefined, signal))
+  } finally {
+    folder.release()
   }
 }
 
@@ -289,14 +286,24 @@ function questionOf(items: UploadItem[]): UploadQuestion | null {
 const missing: TreeUploadExpect = { kind: 'missing' }
 
 // UploadGroup is what the manager holds for one drop: the handle it was
-// dropped on, its clone of it, and each folder's listing, read once and
-// reused by every question of the drop.
+// dropped on, its clone of it, each folder's listing, read once and reused by
+// every question of the drop, and the tree of its items.
 interface UploadGroup {
   source: FSHandle
   held: Promise<FSHandle>
   // broken is set once held rejects; Retry then takes a new clone.
   broken: boolean
+  // abort ends the drop's shared listings when the drop ends; no one item's
+  // cancel ends a read its siblings wait on.
+  abort: AbortController
+  // listings holds each folder's listing read, by path below the drop's
+  // folder. A failed read leaves it, so the next one reads again.
   listings: Map<string, Promise<Map<string, DirEntry>>>
+  // children lists the items dropped directly inside each dropped folder,
+  // by the folder's item id, and the top of the drop under ''. A folder's
+  // items keep their names when Keep both renames it, so a walk builds each
+  // path from its parent's.
+  children: Map<string, UploadItem[]>
   // place is the display path of the drop's folder, which keys its claims.
   place: string
   // claimed lists the claims the drop holds, as folder key and name.
@@ -329,8 +336,9 @@ function folderKey(group: UploadGroup, parent: string): string {
   return parent ? `${group.place}/${parent}` : group.place
 }
 
-// release drops group's handle and its claims.
+// release ends group's reads and drops its handle and its claims.
 function release(group: UploadGroup, claims: Claims) {
+  group.abort.abort()
   void group.held.then((handle) => handle.release()).catch(() => {})
   for (const [key, name] of group.claimed) {
     const names = claims.get(key)
@@ -438,13 +446,25 @@ export function useUploadManager(): UploadManager {
     }
   }, [])
 
-  // update merges patch into the item id.
+  // update merges patch into the item id. Patches made in one task apply
+  // together in one pass over the list, so opening a folder of n items costs
+  // one pass rather than n.
+  const patchesRef = useRef(new Map<string, Partial<UploadItem>>())
   const update = useCallback((id: string, patch: Partial<UploadItem>) => {
-    setItems((cur) =>
-      cur.map((current) =>
-        current.id === id ? { ...current, ...patch } : current,
-      ),
-    )
+    const patches = patchesRef.current
+    if (patches.size === 0) {
+      queueMicrotask(() => {
+        const batch = new Map(patches)
+        patches.clear()
+        setItems((cur) =>
+          cur.map((current) => {
+            const next = batch.get(current.id)
+            return next ? { ...current, ...next } : current
+          }),
+        )
+      })
+    }
+    patches.set(id, { ...patches.get(id), ...patch })
   }, [])
 
   // flow holds the steps an item takes from its drop to its commit. They call
@@ -470,26 +490,73 @@ export function useUploadManager(): UploadManager {
       return group.held
     }
 
-    // listing returns the drop's listing of parent, read once per drop; a
-    // fresh listing reads it again.
-    const listing = async (
+    // listing returns the drop's listing of parent, read once per drop under
+    // the drop's signal; a fresh listing reads it again. A failed read leaves
+    // the cache, so the next asker reads again.
+    const listing = (
       item: UploadItem,
       parent: string,
-      fresh = false,
+      fresh: boolean,
     ): Promise<Map<string, DirEntry>> => {
       const group = groups.get(item.groupId)
-      if (!group) return new Map()
+      if (!group) return Promise.reject(new Error('Upload was cancelled'))
       let listed = fresh ? undefined : group.listings.get(parent)
       if (!listed) {
         // Cache the promise before any await, so the drop's other items
         // reuse this read rather than start their own.
-        const signal = item.abortController.signal
-        listed = group.held.then((handle) =>
+        const signal = group.abort.signal
+        const read = group.held.then((handle) =>
           reads(() => listFolder(handle, parent, signal)),
         )
-        group.listings.set(parent, listed)
+        group.listings.set(parent, read)
+        read.catch(() => {
+          if (group.listings.get(parent) === read) {
+            group.listings.delete(parent)
+          }
+        })
+        listed = read
       }
       return listed
+    }
+
+    // listed returns the listing of the item's parent, or null after failing
+    // the item at step, which Retry runs again.
+    const listed = async (
+      item: UploadItem,
+      parent: string,
+      step: UploadStep,
+      fresh = false,
+    ): Promise<Map<string, DirEntry> | null> => {
+      try {
+        return await listing(item, parent, fresh)
+      } catch (err) {
+        if (!item.abortController.signal.aborted) {
+          const why = err instanceof Error ? err.message : String(err)
+          update(item.id, {
+            status: 'error',
+            error: `Could not list the folder: ${why}`,
+            step,
+          })
+        }
+        return null
+      }
+    }
+
+    // childrenOf returns the items dropped directly inside the folder.
+    const childrenOf = (folder: UploadItem): UploadItem[] =>
+      groups.get(folder.groupId)?.children.get(folder.id) ?? []
+
+    // below returns every item dropped inside the folder.
+    const below = (folder: UploadItem): UploadItem[] => {
+      const found: UploadItem[] = []
+      const walk = (at: UploadItem) => {
+        for (const child of childrenOf(at)) {
+          found.push(child)
+          walk(child)
+        }
+      }
+      walk(folder)
+      return found
     }
 
     // claim records that the item's drop sends name into parent.
@@ -537,6 +604,7 @@ export function useUploadManager(): UploadManager {
       if (item.abortController.signal.aborted) return
       update(id, {
         status: 'queued',
+        step: 'send',
         path: item.path,
         name: item.name,
         expect,
@@ -580,9 +648,11 @@ export function useUploadManager(): UploadManager {
 
     // place checks one file against its folder's listing: a free name is
     // sent as missing and a taken one asks.
-    const place = async (item: UploadItem) => {
+    const place = async (item: UploadItem, fresh = false) => {
       const [parent, name] = splitPath(item.path)
-      const entry = (await listing(item, parent)).get(name)
+      const entries = await listed(item, parent, 'check', fresh)
+      if (!entries) return
+      const entry = entries.get(name)
       if (!entry) {
         await send(item, missing)
         return
@@ -590,33 +660,20 @@ export function useUploadManager(): UploadManager {
       ask(item, await conflictOf(item, entry))
     }
 
-    // inside returns the drop's items waiting inside the dropped folder.
-    const inside = (folder: UploadItem): UploadItem[] =>
-      itemsRef.current.filter(
-        (item) => item.status === 'checking' && within(item, folder),
-      )
-
     // open sends a dropped folder, then what was dropped directly inside it
-    // and, through each subfolder, below. Into a new folder each item is
-    // sent as missing, and the store refuses a file another writer placed
-    // first; into a folder that held the name, each is placed against its
-    // folder's listing.
-    const open = async (
-      folder: UploadItem,
-      into: UploadItem[],
-      fresh: boolean,
-    ) => {
+    // and, through each subfolder, below; each item's path is its name in
+    // the folder's path. Into a new folder each item is sent as missing, and
+    // the store refuses a file another writer placed first; into a folder
+    // that held the name, each is placed against its folder's listing.
+    const open = async (folder: UploadItem, fresh: boolean) => {
       await send(folder, missing)
-      const direct = into.filter(
-        (item) => splitPath(item.path)[0] === folder.path,
-      )
       await Promise.all(
-        direct.map((item) => {
+        childrenOf(folder).map((child) => {
+          const item = { ...child, path: `${folder.path}/${child.name}` }
           if (item.kind === 'file') {
             return fresh ? send(item, missing) : place(item)
           }
-          const below = into.filter((child) => within(child, item))
-          return fresh ? open(item, below, true) : enter(item, below, true)
+          return fresh ? open(item, true) : enter(item, true)
         }),
       )
     }
@@ -624,21 +681,23 @@ export function useUploadManager(): UploadManager {
     // enter checks a dropped folder against its parent's listing: a free
     // name opens as new; a folder of its name opens into it when the drop
     // already merged its parent, and otherwise asks; a file or link of its
-    // name asks. What was dropped inside an asking folder waits on the
-    // answer.
+    // name asks. What was dropped inside an asking or failed folder waits
+    // on it.
     const enter = async (
       folder: UploadItem,
-      into: UploadItem[],
       merged: boolean,
+      fresh = false,
     ) => {
       const [parent, name] = splitPath(folder.path)
-      const entry = (await listing(folder, parent)).get(name)
+      const entries = await listed(folder, parent, 'check', fresh)
+      if (!entries) return
+      const entry = entries.get(name)
       if (!entry) {
-        await open(folder, into, true)
+        await open(folder, true)
         return
       }
       if (merged && entry.isDir) {
-        await open(folder, into, false)
+        await open(folder, false)
         return
       }
       ask(folder, await conflictOf(folder, entry))
@@ -654,26 +713,17 @@ export function useUploadManager(): UploadManager {
       const signal = item.abortController.signal
       const from = item.kept?.from ?? item.path
       const [parent, original] = splitPath(from)
-      update(item.id, { status: 'checking', conflict: null })
-      const into = item.kind === 'directory' ? inside(item) : []
+      update(item.id, { status: 'checking', conflict: null, error: undefined })
       const directory = item.kind === 'directory'
-      const listed = await listing(item, parent, fresh || directory)
-      if (signal.aborted) return
-      const taken = new Set([...listed.keys(), ...claimed(item, parent)])
+      const entries = await listed(item, parent, 'keep', fresh || directory)
+      if (!entries || signal.aborted) return
+      const taken = new Set([...entries.keys(), ...claimed(item, parent)])
       const [name, n] = freeName(original, taken, item.kept?.next)
       claim(item, parent, name)
       const path = parent ? `${parent}/${name}` : name
       const kept = { ...item, name, path, kept: { from, next: n + 1 } }
-      if (item.kind === 'file') {
-        await send(kept, missing)
-        return
-      }
-      const moved = into.map((child) => {
-        const childPath = path + child.path.slice(item.path.length)
-        update(child.id, { path: childPath })
-        return { ...child, path: childPath }
-      })
-      await open(kept, moved, true)
+      if (directory) await open(kept, true)
+      else await send(kept, missing)
     }
 
     // refused handles the store's refusal of a file's send: Keep both takes
@@ -693,53 +743,24 @@ export function useUploadManager(): UploadManager {
         await send(item, missing)
         return
       }
-      const [parent, name] = splitPath(item.path)
-      const entry = (await listing(item, parent, true)).get(name)
-      if (!entry) {
-        await send(item, missing)
-        return
-      }
-      ask(item, await conflictOf(item, entry))
+      await place(item, true)
     }
 
     // check places a drop's top-level items against the destination's
     // listing. A top-level folder whose name is free opens at once; a taken
     // one asks, and what was dropped inside it waits on the answer.
-    const check = async (dropped: UploadItem[]) => {
-      const tops = dropped.filter((item) => topOf(item.path) === null)
+    const check = async (group: UploadGroup) => {
       await Promise.all(
-        tops.map((item) =>
-          item.kind === 'file'
-            ? place(item)
-            : enter(
-                item,
-                dropped.filter((child) => within(child, item)),
-                false,
-              ),
+        (group.children.get('') ?? []).map((item) =>
+          item.kind === 'file' ? place(item) : enter(item, false),
         ),
       )
     }
 
-    // recheck checks the drop's failed items again with a new clone of its
-    // handle, after the last clone failed before any of them could send.
-    const recheck = (group: UploadGroup, groupId: string) => {
-      hold(group)
-      const failed = itemsRef.current
-        .filter((item) => item.groupId === groupId && item.status === 'error')
-        .map((item) => ({ ...item, status: 'checking' as const }))
-      for (const item of failed) {
-        update(item.id, { status: 'checking', error: undefined })
-      }
-      void check(failed).catch((err: unknown) => {
-        for (const item of failed) fail(item.id, err)
-      })
-    }
-
     // settle applies one answer to an asking item.
     const settle = async (item: UploadItem, choice: UploadAnswer) => {
-      const into = item.kind === 'directory' ? inside(item) : []
       if (choice === 'skip') {
-        for (const one of [item, ...into]) {
+        for (const one of [item, ...below(item)]) {
           update(one.id, { status: 'skipped', conflict: null })
         }
         return
@@ -749,22 +770,39 @@ export function useUploadManager(): UploadManager {
         return
       }
       if (choice === 'merge') {
-        await open(item, into, false)
+        await open(item, false)
         return
       }
       const version = item.conflict?.version
       await send(item, version ? { kind: 'version', version } : missing)
     }
 
-    // retry sends a failed item again with what it last expected, or checks
-    // its drop again when the drop's clone of its handle failed.
+    // resume runs a failed item's step again, reading any listing again. A
+    // folder below the top of the drop is only ever checked inside a merge.
+    const resume = async (item: UploadItem) => {
+      if (item.step === 'send') return send(item, item.expect)
+      if (item.step === 'keep') return keep(item, true)
+      update(item.id, { status: 'checking', error: undefined })
+      if (item.kind === 'file') return place(item, true)
+      return enter(item, splitPath(item.path)[0] !== '', true)
+    }
+
+    // retry runs a failed item's step again; when the drop's clone of its
+    // handle failed, it takes a new clone and runs every failed item of the
+    // drop again.
     const retry = (item: UploadItem) => {
       const group = groups.get(item.groupId)
+      let failed = [item]
       if (group?.broken) {
-        recheck(group, item.groupId)
-        return
+        hold(group)
+        failed = itemsRef.current.filter(
+          (current) =>
+            current.groupId === item.groupId && current.status === 'error',
+        )
       }
-      void send(item, item.expect)
+      for (const one of failed) {
+        void resume(one).catch((err: unknown) => fail(one.id, err))
+      }
     }
 
     return { check, settle, retry, fail }
@@ -783,6 +821,7 @@ export function useUploadManager(): UploadManager {
         groupId,
         bytesWritten: 0,
         place: place ?? '',
+        step: 'check' as const,
         expect: missing,
         kept: null,
         conflict: null,
@@ -824,11 +863,24 @@ export function useUploadManager(): UploadManager {
 
       // The drop holds its own handle on the destination until its last
       // item ends; the browsing handle goes when the person navigates.
+      // The drop's tree indexes each item under its folder's item, read
+      // once per drop.
+      const byPath = new Map(newItems.map((item) => [item.path, item]))
+      const children = new Map<string, UploadItem[]>()
+      for (const item of newItems) {
+        const parent = splitPath(item.path)[0]
+        const key = parent ? (byPath.get(parent)?.id ?? '') : ''
+        let list = children.get(key)
+        if (!list) children.set(key, (list = []))
+        list.push(item)
+      }
       const group: UploadGroup = {
         source: handle,
         held: Promise.resolve(handle),
         broken: false,
+        abort: new AbortController(),
         listings: new Map(),
+        children,
         place: place ?? '',
         claimed: [],
         seen: false,
@@ -855,7 +907,7 @@ export function useUploadManager(): UploadManager {
         errorCount: 0,
       })
 
-      void check(newItems).catch((err: unknown) => {
+      void check(group).catch((err: unknown) => {
         for (const item of newItems) fail(item.id, err)
       })
     },

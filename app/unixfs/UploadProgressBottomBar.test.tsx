@@ -11,6 +11,7 @@ import { UploadProgressBottomBar } from './UploadProgressBottomBar.js'
 const uploadFields = {
   place: '/docs',
   expect: { kind: 'missing' } as const,
+  step: 'send' as const,
   kept: null,
   conflict: null,
 }

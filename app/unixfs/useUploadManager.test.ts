@@ -295,7 +295,9 @@ describe('useUploadManager', () => {
       await asked(result, 'x.txt')
 
       press(result, 'skip')
-      expect(result.current.items[0]?.status).toBe('skipped')
+      await waitFor(() => {
+        expect(result.current.items[0]?.status).toBe('skipped')
+      })
       expect(result.current.question).toBeNull()
       expect(folder.sent()).toEqual([])
     })
@@ -404,6 +406,49 @@ describe('useUploadManager', () => {
     ])
   })
 
+  describe('a listing that fails', () => {
+    it('is not cached when the row that asked for it is cancelled', async () => {
+      const folder = fakeFolder({ A: 'dir', 'A/a.txt': 1 })
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['x.txt', 'A/b.txt'])
+      const x = result.current.items.find((item) => item.path === 'x.txt')!
+      act(() => {
+        result.current.cancelUpload(x.id)
+      })
+
+      await asked(result, 'A')
+      expect(folder.sent()).toEqual([])
+    })
+
+    it('fails the rows it decides, and Retry reads it again', async () => {
+      const folder = fakeFolder({ 'a.txt': 1, A: 'dir' }, [], [], 1)
+      const { result } = renderHook(() => useUploadManager())
+      dropTree(result.current, folder, ['a.txt', 'A/b.txt'])
+      const status = (path: string) =>
+        result.current.items.find((item) => item.path === path)?.status
+      await waitFor(() => {
+        expect([status('a.txt'), status('A'), status('A/b.txt')]).toEqual([
+          'error',
+          'error',
+          'checking',
+        ])
+      })
+      expect(folder.sent()).toEqual([])
+
+      for (const path of ['a.txt', 'A']) {
+        act(() => {
+          result.current.retryUpload(
+            result.current.items.find((item) => item.path === path)!.id,
+          )
+        })
+      }
+      await waitFor(() => {
+        expect([status('a.txt'), status('A')]).toEqual(['asking', 'asking'])
+      })
+      expect(folder.sent()).toEqual([])
+    })
+  })
+
   describe('a dropped folder whose name the folder already holds', () => {
     it('asks once, and merges its files asking as files do', async () => {
       const folder = fakeFolder({ photos: 'dir', 'photos/a.jpg': 1 })
@@ -446,9 +491,11 @@ describe('useUploadManager', () => {
       await asked(result, 'photos')
 
       press(result, 'skip')
-      expect(
-        result.current.items.every((item) => item.status === 'skipped'),
-      ).toBe(true)
+      await waitFor(() => {
+        expect(
+          result.current.items.every((item) => item.status === 'skipped'),
+        ).toBe(true)
+      })
       expect(folder.sent()).toEqual([])
     })
 
@@ -536,7 +583,8 @@ describe('useUploadManager', () => {
 // like the store: it refuses a file expectation the path does not meet with
 // the version it holds, and merges a folder into a folder. Each later write in
 // writes lands, as another writer's, just before the next file commit. Its
-// listing omits the names in unlisted. clone hands out handles to the same
+// listing omits the names in unlisted, and its first failing listings reject;
+// a listing whose signal ends rejects. clone hands out handles to the same
 // folder; a released handle refuses every call.
 type Holds = Record<string, number | 'dir' | 'link'>
 
@@ -544,6 +592,7 @@ function fakeFolder(
   start: Holds,
   writes: Holds[] = [],
   unlisted: string[] = [],
+  failing = 0,
 ) {
   const disk: Holds = { ...start }
   const calls: [string, TreeUploadExpect | { kind: 'directory' }][] = []
@@ -562,9 +611,11 @@ function fakeFolder(
     reading--
     return run()
   }
-  const list = (dir: string) =>
-    read(() =>
-      Object.entries(disk)
+  const list = (dir: string, signal?: AbortSignal) =>
+    read(() => {
+      if (signal?.aborted) throw new Error('aborted')
+      if (failing > 0 && failing--) throw new Error('stream closed')
+      return Object.entries(disk)
         .filter(([path]) => {
           const cut = path.lastIndexOf('/')
           const parent = cut < 0 ? '' : path.slice(0, cut)
@@ -574,8 +625,8 @@ function fakeFolder(
           name: path.slice(path.lastIndexOf('/') + 1),
           isDir: at === 'dir',
           isSymlink: at === 'link',
-        })),
-    )
+        }))
+    })
   const commit = async ([
     entry,
   ]: TreeUploadEntry[]): Promise<TreeUploadResult> => {
@@ -623,15 +674,15 @@ function fakeFolder(
     held++
     return {
       uploadTree: live(commit),
-      readdirAll: live(() => {
+      readdirAll: live((_: unknown, signal?: AbortSignal) => {
         listed++
-        return list('')
+        return list('', signal)
       }),
       lookupPath: live(async (path: string) => ({
         handle: {
-          readdirAll: () => {
+          readdirAll: (_: unknown, signal?: AbortSignal) => {
             listed++
-            return list(path)
+            return list(path, signal)
           },
           readAt: () =>
             read(() => ({ version: versionOf(path) ?? new Uint8Array() })),
@@ -655,10 +706,12 @@ function fakeFolder(
   }
 }
 
-// plain returns a handle whose only work is uploadTree; its clones share it.
+// plain returns a handle on an empty folder whose only work is uploadTree;
+// its clones share it.
 function plain(uploadTree: FSHandle['uploadTree']): FSHandle {
   const handle = {
     uploadTree,
+    readdirAll: async () => [],
     clone: async () => handle,
     release: () => {},
   } as unknown as FSHandle
