@@ -17,6 +17,7 @@ function buildFile(name: string, content: string, relativePath?: string): File {
 describe('useUploadManager', () => {
   it('enqueues each selected entry as an independent tree upload', async () => {
     const uploadTree = vi.fn<FSHandle['uploadTree']>().mockResolvedValue({
+      kind: 'written',
       bytesWritten: 8n,
       filesWritten: 1n,
       directoriesWritten: 0n,
@@ -96,6 +97,7 @@ describe('useUploadManager', () => {
 
   it('emits a completed event when all uploads finish', async () => {
     const uploadTree = vi.fn<FSHandle['uploadTree']>().mockResolvedValue({
+      kind: 'written',
       bytesWritten: 8n,
       filesWritten: 2n,
       directoriesWritten: 0n,
@@ -128,6 +130,7 @@ describe('useUploadManager', () => {
           return Promise.reject(new Error('broken file'))
         }
         return Promise.resolve({
+          kind: 'written',
           bytesWritten: 2n,
           filesWritten: 1n,
           directoriesWritten: 0n,
@@ -158,6 +161,7 @@ describe('useUploadManager', () => {
 
   it('uploads directory-only selections independently', async () => {
     const uploadTree = vi.fn<FSHandle['uploadTree']>().mockResolvedValue({
+      kind: 'written',
       bytesWritten: 0n,
       filesWritten: 0n,
       directoriesWritten: 1n,

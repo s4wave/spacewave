@@ -69,9 +69,14 @@ function resetUploadTreeMock(sent: HandleUploadTreeRequest[]): void {
         sent.push(request)
       }
       return {
-        bytesWritten: 10n,
-        filesWritten: 1n,
-        directoriesWritten: 1n,
+        result: {
+          case: 'written',
+          value: {
+            bytesWritten: 10n,
+            filesWritten: 1n,
+            directoriesWritten: 1n,
+          },
+        },
       }
     },
   )
@@ -285,6 +290,7 @@ describe('FSHandle uploadTree', () => {
         {
           kind: 'file',
           path: 'nested/large.bin',
+          expect: { kind: 'version', version: new Uint8Array([7]) },
           totalSize: 10n,
           stream: chunkStream([
             new Uint8Array([1, 2, 3]),
@@ -298,6 +304,7 @@ describe('FSHandle uploadTree', () => {
     )
 
     expect(response).toEqual({
+      kind: 'written',
       bytesWritten: 10n,
       filesWritten: 1n,
       directoriesWritten: 1n,
@@ -323,6 +330,7 @@ describe('FSHandle uploadTree', () => {
         path: 'nested/large.bin',
         totalSize: 10n,
         mode: 0,
+        expect: { case: 'version', value: new Uint8Array([7]) },
       },
     })
     expect(dataMessageFrames(sent).map((frame) => Array.from(frame))).toEqual([
@@ -348,6 +356,7 @@ describe('FSHandle uploadTree', () => {
         {
           kind: 'file',
           path: 'large.bin',
+          expect: { kind: 'missing' },
           totalSize: BigInt(source.byteLength),
           stream: chunkStream([source]),
           onProgress: (bytes) => fileProgress.push(bytes),

@@ -33,6 +33,7 @@ function recordingHandle(resolveUpload: boolean): {
     if (signal) signals.push(signal)
     return resolveUpload
       ? Promise.resolve({
+          kind: 'written',
           bytesWritten: 0n,
           filesWritten: 1n,
           directoriesWritten: 0n,

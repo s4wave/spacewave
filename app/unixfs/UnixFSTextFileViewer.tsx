@@ -201,6 +201,7 @@ export function UnixFSTextFileViewer({
           {
             kind: 'file',
             path: normalizeUnixFSLookupPath(path),
+            expect: { kind: 'overwrite' },
             totalSize: BigInt(blob.size),
             stream: blob.stream(),
             mode: handle.getInfo().mode ?? 0o644,

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -26,7 +27,7 @@ type uploadTreeFile struct {
 type uploadTreeState struct {
 	b    *unixfs_world.BatchFSWriter
 	dirs map[string]struct{}
-	resp s4wave_unixfs.HandleUploadTreeResponse
+	resp s4wave_unixfs.HandleUploadTreeWritten
 	// ordered is set when any message asked for an ordered commit.
 	ordered bool
 }
@@ -107,6 +108,10 @@ func (r *FSHandleResource) UploadTree(
 		commitCtx = world.WithOrderedCommit(ctx)
 	}
 	if err := state.b.Commit(commitCtx); err != nil {
+		var conflict *unixfs_world.FileConflictError
+		if errors.As(err, &conflict) {
+			return r.uploadTreeConflict(conflict)
+		}
 		return nil, err
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
@@ -122,7 +127,56 @@ func (r *FSHandleResource) UploadTree(
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
 	recordUploadMetric(ctx, UploadMetric{Stage: "broadcast"})
 	committed = true
-	return &state.resp, nil
+	return &s4wave_unixfs.HandleUploadTreeResponse{
+		Result: &s4wave_unixfs.HandleUploadTreeResponse_Written{Written: &state.resp},
+	}, nil
+}
+
+// uploadTreeConflict answers an UploadTree whose commit found a file other
+// than the one a file start expected, naming the path relative to this handle.
+func (r *FSHandleResource) uploadTreeConflict(conflict *unixfs_world.FileConflictError) (*s4wave_unixfs.HandleUploadTreeResponse, error) {
+	var version []byte
+	if conflict.Version != nil {
+		var err error
+		if version, err = conflict.Version.MarshalVT(); err != nil {
+			return nil, err
+		}
+	}
+	return &s4wave_unixfs.HandleUploadTreeResponse{
+		Result: &s4wave_unixfs.HandleUploadTreeResponse_Conflict{Conflict: &s4wave_unixfs.HandleUploadTreeConflict{
+			Path:    strings.Join(conflict.Path[len(r.path):], "/"),
+			Version: version,
+		}},
+	}, nil
+}
+
+// expectUploadTreeFile records what a file start requires its path to hold
+// when the batch commits: the version it names, nothing when it names neither
+// a version nor overwrite, and anything when it asks to overwrite.
+func expectUploadTreeFile(
+	b *unixfs_world.BatchFSWriter,
+	parentPath []string,
+	name string,
+	start *s4wave_unixfs.HandleUploadTreeFileStart,
+) error {
+	switch expect := start.GetExpect().(type) {
+	case *s4wave_unixfs.HandleUploadTreeFileStart_Overwrite:
+		if !expect.Overwrite {
+			return errors.New("file overwrite must be true when set")
+		}
+		return nil
+	case *s4wave_unixfs.HandleUploadTreeFileStart_Version:
+		version := &block.BlockRef{}
+		if err := version.UnmarshalVT(expect.Version); err != nil {
+			return errors.Wrap(err, "file version")
+		}
+		if err := version.Validate(false); err != nil {
+			return errors.Wrap(err, "file version")
+		}
+		return b.ExpectFile(parentPath, name, version)
+	default:
+		return b.ExpectFile(parentPath, name, nil)
+	}
 }
 
 // handleUploadTreeMessage handles one UploadTree stream message.
@@ -172,6 +226,9 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 
 		parentPath := slices.Concat(r.path, parts[:len(parts)-1])
 		if err := r.ensureUploadTreeParents(ctx, state, parts[:len(parts)-1]); err != nil {
+			return err
+		}
+		if err := expectUploadTreeFile(state.b, parentPath, parts[len(parts)-1], fileStart); err != nil {
 			return err
 		}
 		rdr := &uploadTreeFile{
@@ -279,6 +336,8 @@ func parseUploadTreePath(path string) ([]string, error) {
 	return out, nil
 }
 
+// Read reads the current file's bytes from the upload stream, returning
+// io.EOF at the end of the file's data frames.
 func (f *uploadTreeFile) Read(p []byte) (int, error) {
 	// Return immediately when the caller has no room for upload bytes.
 	if len(p) == 0 {

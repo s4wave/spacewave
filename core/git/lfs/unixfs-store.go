@@ -68,6 +68,7 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 				Path:      ObjectPath(oid),
 				TotalSize: size,
 				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
 			},
 		},
 		OrderedCommit: true,
@@ -96,11 +97,12 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 	if err != nil {
 		return err
 	}
-	if resp.GetFilesWritten() != 1 || resp.GetBytesWritten() != size {
+	written := resp.GetWritten()
+	if written.GetFilesWritten() != 1 || written.GetBytesWritten() != size {
 		return errors.Errorf(
 			"upload wrote %d files and %d bytes, want 1 file and %d bytes",
-			resp.GetFilesWritten(),
-			resp.GetBytesWritten(),
+			written.GetFilesWritten(),
+			written.GetBytesWritten(),
 			size,
 		)
 	}

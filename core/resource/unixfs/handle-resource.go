@@ -501,19 +501,27 @@ func (r *FSHandleResource) ReadStream(
 
 	// A length <= 0 reads to the end of the file. Send encodes each frame
 	// before returning, so one buffer serves every frame.
+	// The first frame is sent even when empty, to carry the version.
 	bounded := length > 0
 	buf := make([]byte, fsHandleMaxReadSize)
-	for !bounded || length > 0 {
+	for first := true; first || !bounded || length > 0; first = false {
 		frame := buf
 		if bounded && length < int64(len(frame)) {
 			frame = frame[:length]
 		}
-		n, readErr := handle.ReadAt(ctx, offset, frame)
+		var n int64
+		var version []byte
+		var readErr error
+		if first {
+			n, version, readErr = readAtVersion(ctx, handle, offset, frame)
+		} else {
+			n, readErr = handle.ReadAt(ctx, offset, frame)
+		}
 		if readErr != nil && readErr != io.EOF {
 			return readErr
 		}
-		if n > 0 {
-			if err := strm.Send(&s4wave_unixfs.HandleReadStreamResponse{Data: frame[:n]}); err != nil {
+		if n > 0 || first {
+			if err := strm.Send(&s4wave_unixfs.HandleReadStreamResponse{Data: frame[:n], Version: version}); err != nil {
 				return err
 			}
 			offset += n
@@ -524,6 +532,33 @@ func (r *FSHandleResource) ReadStream(
 		}
 	}
 	return nil
+}
+
+// readAtVersion reads like FSHandle.ReadAt and returns, from the same access,
+// the marshaled block reference of the file node the data came from, or nil
+// when the node has none yet.
+func readAtVersion(ctx context.Context, handle *unixfs.FSHandle, offset int64, data []byte) (n int64, version []byte, err error) {
+	err = handle.AccessOps(ctx, func(_ unixfs.FSCursor, ops unixfs.FSCursorOps) error {
+		// Refuse a handle that is not a file, as ReadAt does.
+		if !ops.GetIsFile() {
+			return unixfs_errors.ErrNotFile
+		}
+
+		// Take the version from the node this access reads.
+		version = nil
+		if refer, ok := ops.(nodeRefer); ok && !refer.GetNodeRef().GetEmpty() {
+			var merr error
+			if version, merr = refer.GetNodeRef().MarshalVT(); merr != nil {
+				return merr
+			}
+		}
+
+		// Read the data from the same node.
+		var rerr error
+		n, rerr = ops.ReadAt(ctx, offset, data)
+		return rerr
+	})
+	return n, version, err
 }
 
 // WriteAt writes bytes at the given offset.

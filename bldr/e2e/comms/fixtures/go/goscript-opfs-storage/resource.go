@@ -154,7 +154,12 @@ to try first.
 	}
 	if err := upload.Send(&s4wave_unixfs.HandleUploadTreeRequest{
 		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
-			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{Path: "paired-file.md", TotalSize: int64(len(data)), Mode: 0o644},
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      "paired-file.md",
+				TotalSize: int64(len(data)),
+				Mode:      0o644,
+				Expect:    &s4wave_unixfs.HandleUploadTreeFileStart_Overwrite{Overwrite: true},
+			},
 		},
 	}); err != nil {
 		return err
@@ -168,7 +173,8 @@ to try first.
 	if err != nil {
 		return err
 	}
-	if response.GetBytesWritten() != int64(len(data)) || response.GetFilesWritten() != 1 || response.GetDirectoriesWritten() != 0 {
+	written := response.GetWritten()
+	if written.GetBytesWritten() != int64(len(data)) || written.GetFilesWritten() != 1 || written.GetDirectoriesWritten() != 0 {
 		return errors.New("streamed pairing upload counters differ from its single file")
 	}
 	return nil

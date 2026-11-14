@@ -153,6 +153,13 @@ message HandleReadStreamRequest {
 message HandleReadStreamResponse {
   // Data is the next bytes of the file.
   bytes data = 1;
+  // Version identifies the file's node as of the first response's data, and
+  // is set only there. It is the marshaled block reference of the node, which
+  // every write to the file changes. Pass it back as an UploadTree file's
+  // expected version to replace only that version. Data in later responses may
+  // come from a newer version, so a write expecting this one is refused rather
+  // than overwriting it.
+  bytes version = 2;
 }
 
 // HandleWriteAtRequest is the request for WriteAt.
@@ -340,6 +347,16 @@ message HandleUploadTreeFileStart {
   int64 total_size = 2;
   // Mode is the file permissions.
   uint32 mode = 3;
+  // Expect is what the path must hold when the upload commits, checked in
+  // the commit's transaction against the root it applies to. With neither
+  // set, the path must hold nothing: the file is created only if missing.
+  oneof expect {
+    // Version replaces only the file whose node has this version, as read
+    // from ReadStream.
+    bytes version = 4;
+    // Overwrite replaces whatever the path holds.
+    bool overwrite = 5;
+  }
 }
 
 // HandleUploadTreeRequest is one UploadTree stream message.
@@ -360,12 +377,34 @@ message HandleUploadTreeRequest {
 
 // HandleUploadTreeResponse is the response for UploadTree.
 message HandleUploadTreeResponse {
+  reserved 1, 2, 3;
+  // Result is how the upload ended.
+  oneof result {
+    // Written is set when the upload committed.
+    HandleUploadTreeWritten written = 4;
+    // Conflict is set when a file's expectation failed: nothing committed.
+    HandleUploadTreeConflict conflict = 5;
+  }
+}
+
+// HandleUploadTreeWritten counts what a committed UploadTree applied.
+message HandleUploadTreeWritten {
   // BytesWritten is the total file payload bytes written.
   int64 bytes_written = 1;
   // FilesWritten is the number of file entries applied.
   int64 files_written = 2;
   // DirectoriesWritten is the number of explicit directory entries applied.
   int64 directories_written = 3;
+}
+
+// HandleUploadTreeConflict names the first file whose path did not hold what
+// the upload expected.
+message HandleUploadTreeConflict {
+  // Path is the file's slash-separated path relative to the handle.
+  string path = 1;
+  // Version is the version of the file the path holds now, empty when the
+  // path holds no file.
+  bytes version = 2;
 }
 
 // HandleWatchReaddirRequest is the request for WatchReaddir.
