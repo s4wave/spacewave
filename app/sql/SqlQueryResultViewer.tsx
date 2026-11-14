@@ -5,9 +5,9 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { Button } from '@s4wave/web/ui/button.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
   SqlQueryResult,
@@ -59,41 +59,37 @@ export function SqlQueryResultViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuTableProperties
-          className="text-foreground-alt size-3.5"
-          aria-hidden
-        />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Query Result
-        </span>
-        {grid?.rowCount != null ? (
-          <span className="text-foreground-alt/50 text-xs">
-            {grid.rowCount.toString()} rows
-          </span>
-        ) : null}
-        <div className="flex-1" />
-        {container && grid?.sourceQueryObjectKey ? (
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => navigate(grid.sourceQueryObjectKey)}
-          >
-            <LuExternalLink className="size-3" />
-            Query
-          </Button>
-        ) : null}
-        {container && grid?.targetDbObjectKey ? (
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => navigate(grid.targetDbObjectKey)}
-          >
-            <LuExternalLink className="size-3" />
-            Database
-          </Button>
-        ) : null}
-      </div>
+      <ViewerBar
+        icon={<LuTableProperties />}
+        title="Query Result"
+        description={
+          grid?.rowCount != null
+            ? `${grid.rowCount.toString()} rows`
+            : undefined
+        }
+        actions={[
+          ...(container && grid?.sourceQueryObjectKey
+            ? [
+                {
+                  id: 'query',
+                  label: 'Query',
+                  icon: <LuExternalLink />,
+                  onClick: () => navigate(grid.sourceQueryObjectKey),
+                },
+              ]
+            : []),
+          ...(container && grid?.targetDbObjectKey
+            ? [
+                {
+                  id: 'database',
+                  label: 'Database',
+                  icon: <LuExternalLink />,
+                  onClick: () => navigate(grid.targetDbObjectKey),
+                },
+              ]
+            : []),
+        ]}
+      />
 
       <div className="min-h-0 flex-1">
         {gridResource.loading && grid == null ? (

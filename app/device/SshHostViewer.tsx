@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import {
   LuCircleAlert,
   LuCircleCheck,
-  LuHardDrive,
   LuServer,
   LuShield,
   LuTerminal,
@@ -22,11 +21,11 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 
@@ -128,25 +127,22 @@ export function SshHostViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <LuServer className="size-4 shrink-0" />
-          {state?.label || 'SSH Host'}
-        </span>
-        <div className="flex shrink-0 items-center gap-2">
-          {state && (
-            <DashboardButton
-              icon={<LuTerminal className="size-3.5" />}
-              onClick={() => void handleOpenTerminal()}
-            >
-              Open Terminal
-            </DashboardButton>
-          )}
-          <DashboardButton icon={<LuHardDrive className="size-3.5" />} disabled>
-            Install Agent
-          </DashboardButton>
-        </div>
-      </div>
+      <ViewerBar
+        icon={<LuServer />}
+        title={state?.label || 'SSH Host'}
+        actions={
+          state
+            ? [
+                {
+                  id: 'terminal',
+                  label: 'Open Terminal',
+                  icon: <LuTerminal />,
+                  onClick: () => void handleOpenTerminal(),
+                },
+              ]
+            : []
+        }
+      />
       <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
         {stateResource.loading && !state && (
           <LoadingCard

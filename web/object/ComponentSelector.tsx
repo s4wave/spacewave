@@ -19,7 +19,6 @@ interface CategoryGroup {
 
 interface ComponentSelectorProps {
   open: boolean
-  placement?: 'above' | 'below'
   onOpenChange: (open: boolean) => void
   components: ObjectViewerComponent[]
   selectedComponent?: ObjectViewerComponent
@@ -55,7 +54,6 @@ function groupComponents(components: ObjectViewerComponent[]): CategoryGroup[] {
  */
 export function ComponentSelector({
   open,
-  placement = 'above',
   onOpenChange,
   components,
   selectedComponent,
@@ -74,11 +72,7 @@ export function ComponentSelector({
           {children}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side={placement === 'below' ? 'bottom' : 'top'}
-        align={placement === 'below' ? 'start' : 'end'}
-        className="min-w-50"
-      >
+      <DropdownMenuContent side="top" align="end" className="min-w-50">
         <DropdownMenuLabel>Available Components</DropdownMenuLabel>
         {groups.map((group, index) => (
           <React.Fragment key={group.category ?? 'ungrouped'}>

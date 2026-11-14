@@ -5,9 +5,9 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/kv.js'
 
@@ -149,21 +149,19 @@ export function KvStoreViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
-          <LuDatabase className="text-foreground-alt size-3.5" aria-hidden />
-          Key/Value Store
-          <span className="text-foreground-alt/50 text-xs">
-            {rows.length} {rows.length === 1 ? 'key' : 'keys'}
-          </span>
-        </div>
-        <DashboardButton
-          icon={<LuPlus className="size-3.5" />}
-          onClick={handleStartCreate}
-        >
-          New Key
-        </DashboardButton>
-      </div>
+      <ViewerBar
+        icon={<LuDatabase />}
+        title="Key/Value Store"
+        description={`${rows.length} ${rows.length === 1 ? 'key' : 'keys'}`}
+        actions={[
+          {
+            id: 'new-key',
+            label: 'New Key',
+            icon: <LuPlus />,
+            onClick: handleStartCreate,
+          },
+        ]}
+      />
 
       {keysResource.error ? (
         <div className="p-4">

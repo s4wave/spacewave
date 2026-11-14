@@ -40,12 +40,15 @@
 /* Pane variants read the viewer slot, the size container named pane that the
    viewer-pane utility makes, on both axes: a viewer sits in a grid cell the
    person resizes, so it lays out by that cell and never by the window.
-   DESIGN.md "Viewer Pane" gives what each threshold changes. */
+   DESIGN.md "Viewer Pane" gives what each threshold changes. Tailwind emits
+   variants in the order they are registered, so a later one wins a tie: keep
+   this list in the order of DESIGN.md's threshold table. They read only the
+   pane, so none matches inside a portal such as a menu, popover or sheet. */
 @custom-variant @pane-xs (@container pane (width >= 20rem));
 @custom-variant @pane-md (@container pane (width >= 28rem));
+@custom-variant @pane-roomy (@container pane (width >= 28rem) and (height >= 20rem));
 @custom-variant @pane-xl (@container pane (width >= 36rem));
 @custom-variant @pane-2xl (@container pane (width >= 42rem));
-@custom-variant @pane-roomy (@container pane (width >= 28rem) and (height >= 20rem));
 @custom-variant @pane-low (@container pane (height < 12rem));
 @custom-variant @pane-cramped (@container pane (width < 20rem) or (height < 12rem));
 
@@ -1261,7 +1264,8 @@
 }
 
 /* viewer-pane makes a viewer's slot the size container named pane, whose
-   inline and block size the @pane-* variants and cqw units read. Size
+   inline and block size the @pane-* variants read, and cqw units where no
+   nearer container sits between. Size
    containment ignores the slot's content, so the slot's parent must give it a
    definite height, or the pane collapses to nothing. */
 @utility viewer-pane {
@@ -1774,6 +1778,9 @@
   --text-header: 0.8125rem;
   --text-header--line-height: 1.4;
   --text-header--font-weight: 600;
+  --text-viewer-title: 0.8125rem;
+  --text-viewer-title--line-height: 1.3;
+  --text-viewer-title--font-weight: 600;
 
   /* Border Radius */
   --radius-editor: 6px;
@@ -1820,11 +1827,14 @@
   /* Viewer pane: the sizes every viewer shares at every pane size, so a larger
      pane shows more rows and columns, never larger type or rows. The bar
      matches the shell header. Side column and outline widths resolve cqw
-     against the pane. DESIGN.md "Viewer Pane" gives each one's use. */
+     against the nearest size or inline-size container above the element:
+     the pane only when no other container sits between, and the small
+     viewport in a portal. DESIGN.md "Viewer Pane" gives each one's use. */
   --spacing-viewer-bar: var(--spacing-shell-header);
   --spacing-viewer-press: 24px;
   --spacing-viewer-pad: 8px;
   --spacing-viewer-pad-roomy: 12px;
+  --spacing-viewer-title: 4rem;
   --spacing-viewer-row: 24px;
   --spacing-viewer-fact-row: 28px;
   --spacing-viewer-fact-label: 4.5rem;

@@ -16,11 +16,11 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { FigureStrip } from '@s4wave/web/ui/FigureStrip.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { DeviceHandle, DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { DeviceAvailabilityState } from '@s4wave/sdk/device/device.pb.js'
 import { SshHostHandle, SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
@@ -144,21 +144,23 @@ export function ComputersDashboardViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
-          <LuMonitor className="size-4 shrink-0" />
-          Computers
-        </span>
-        {canAddDevice && (
-          <DashboardButton
-            icon={<LuPlus className="size-3.5" />}
-            onClick={() => void handleAddDevice()}
-            disabled={opening}
-          >
-            {opening ? 'Opening Add Device…' : 'Add Device'}
-          </DashboardButton>
-        )}
-      </div>
+      <ViewerBar
+        icon={<LuMonitor />}
+        title="Computers"
+        actions={
+          canAddDevice
+            ? [
+                {
+                  id: 'add-device',
+                  label: opening ? 'Opening Add Device…' : 'Add Device',
+                  icon: <LuPlus />,
+                  onClick: () => void handleAddDevice(),
+                  disabled: opening,
+                },
+              ]
+            : []
+        }
+      />
       <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
           {openingError && (

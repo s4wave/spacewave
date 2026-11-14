@@ -13,10 +13,10 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
 
 import { SqlDatabase, SqlDbTypeID } from '@s4wave/sdk/sql/sql.js'
@@ -80,22 +80,24 @@ export function SqlDbViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight select-none">
-          <LuDatabase className="text-foreground-alt size-3.5" aria-hidden />
-          SQL Database
-          <span className="text-foreground-alt/50 text-xs">
-            {schemas.length} {schemas.length === 1 ? 'schema' : 'schemas'}
-          </span>
-        </div>
-        <DashboardButton
-          icon={<LuPlus className="size-3.5" />}
-          onClick={() => void handleOpenQueryEditor()}
-          disabled={!container || creating}
-        >
-          Query Editor
-        </DashboardButton>
-      </div>
+      <ViewerBar
+        icon={<LuDatabase />}
+        title="SQL Database"
+        description={`${schemas.length} ${schemas.length === 1 ? 'schema' : 'schemas'}`}
+        actions={
+          container
+            ? [
+                {
+                  id: 'query-editor',
+                  label: creating ? 'Opening Query Editor…' : 'Query Editor',
+                  icon: <LuPlus />,
+                  onClick: () => void handleOpenQueryEditor(),
+                  disabled: creating,
+                },
+              ]
+            : []
+        }
+      />
 
       {createError ? (
         <div className="px-4 pt-3">

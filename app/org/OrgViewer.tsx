@@ -4,6 +4,7 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { useCallback } from 'react'
 
 import { OrgHandle, OrganizationTypeID } from '@s4wave/sdk/org/org.js'
@@ -36,11 +37,7 @@ export function OrgViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Organization
-        </span>
-      </div>
+      <ViewerBar title="Organization" />
       <div className="flex-1 p-4">
         {stateResource.loading && !state && (
           <LoadingCard

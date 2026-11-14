@@ -19,6 +19,7 @@ import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
   SqlWorkbench,
@@ -152,17 +153,15 @@ export function SqlWorkbenchViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuLayoutGrid className="text-foreground-alt size-3.5" aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          SQL Workbench
-        </span>
-        {targetDbKey ? (
-          <span className="text-foreground-alt/50 truncate font-mono text-xs">
-            {targetDbKey}
-          </span>
-        ) : null}
-      </div>
+      <ViewerBar
+        icon={<LuLayoutGrid />}
+        title="SQL Workbench"
+        description={
+          targetDbKey ? (
+            <span className="font-mono">{targetDbKey}</span>
+          ) : undefined
+        }
+      />
 
       {mutationError ? (
         <div className="px-4 pt-2">

@@ -9,6 +9,7 @@ import type { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 export const ManifestTypeID = 'bldr/manifest'
 
@@ -54,10 +55,10 @@ function ManifestSection({
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+        <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
           <Icon className="size-3.5" />
           {title}
-        </h2>
+        </h3>
       </div>
       <InfoCard>{children}</InfoCard>
     </section>
@@ -116,17 +117,11 @@ export function ManifestViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuPackage className="size-4" />
-          <span className="tracking-tight">Manifest</span>
-          {headerMeta && (
-            <span className="text-foreground-alt/50 font-normal">
-              {headerMeta}
-            </span>
-          )}
-        </div>
-      </div>
+      <ViewerBar
+        icon={<LuPackage />}
+        title="Manifest"
+        description={headerMeta || undefined}
+      />
       <div className="flex-1 overflow-auto px-4 py-3">
         <div className="space-y-3">
           {isEmpty && (

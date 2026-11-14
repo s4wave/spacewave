@@ -20,6 +20,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import type { SqlValue } from '@go/github.com/s4wave/spacewave/db/sql/sql.pb.js'
 import { SqlDbTypeID } from '@s4wave/sdk/sql/sql.js'
@@ -138,12 +139,7 @@ export function SqlQueryViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuFileText className="text-foreground-alt size-3.5" aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          SQL Query
-        </span>
-      </div>
+      <ViewerBar icon={<LuFileText />} title="SQL Query" />
       <div className="min-h-0 flex-1 overflow-auto p-4">
         <SqlQueryBody
           objectKey={objectKey}

@@ -158,8 +158,8 @@ spacing:
   viewer-press: 24px
   viewer-pad: 8px
   viewer-pad-roomy: 12px
+  viewer-title: 4rem
   viewer-row: 24px
-  viewer-row-coarse: 44px
   viewer-fact-row: 28px
   viewer-rail: 32px
 
@@ -637,7 +637,9 @@ Rules:
   page-scale title.
 - Do not show empty placeholder sections above sections with real content.
 
-An object viewer's own bar is not a panel header; it follows Viewer Pane.
+The 36px header is for real panels only (`PanelHeader` in
+`web/ui/PanelHeader.tsx`). An object viewer's own bar is `ViewerBar`; it
+follows Viewer Pane.
 
 ### Viewer Pane
 
@@ -665,6 +667,7 @@ larger type or taller rows. Every size below is a `--spacing-viewer-*` token in
 | `viewer-press` | 24px | Each press in the bar |
 | `viewer-pad` | 8px | Bar and body inset, so the title and first column share an edge |
 | `viewer-pad-roomy` | 12px | The same inset from `@pane-roomy` |
+| `viewer-title` | 4rem | Least width the bar's title keeps, about 8 characters |
 | `viewer-row` | 24px, 44px coarse | List and table rows; a coarse pointer raises it |
 | `viewer-fact-row` | 28px | A one-fact row in the body; a side column or dock packs facts in `viewer-row` |
 | `viewer-fact-label` | 4.5rem | A fact's label; also in a side column or dock |
@@ -676,13 +679,48 @@ larger type or taller rows. Every size below is a `--spacing-viewer-*` token in
 | `viewer-table` | 48rem | Widest a table runs; less when its columns are short |
 | `viewer-chat` | 40rem | Chat transcript and composer column |
 
-The bar is one `viewer-bar` line at every size: icon, title in
-`{typography.viewer-title}`, state, one muted line of what the object is, then
-the views or pager, the presses, Details and More. A two-fact row adds one muted
-line under its value, so one-fact rows share one height and two-fact rows
-another.
+`viewer-side` and `viewer-outline` resolve `cqw` against the nearest size or
+inline-size container above the element, which is the pane only when no other
+container sits between; a viewer that adds its own `@container` wrapper sizes
+its side column outside that wrapper. In a portal (a menu, popover or sheet)
+`cqw` falls back to the small viewport and no `@pane-*` variant matches, so
+portaled content takes fixed widths, as the bar's More menu does.
 
-The pane thresholds, each an `@pane-*` variant in `web/style/app.css`:
+The bar is one `viewer-bar` line at every size, drawn by `ViewerBar` in
+`web/object/ViewerBar.tsx`: icon, title in `text-viewer-title` (13px, 600),
+state, one muted line of what the object is, then the views or pager, the
+presses, Details and More. A coarse pointer raises the bar to 44px and each
+press to a 44px target. The title truncates last and keeps `viewer-title` of
+width. The muted line gives way first: below `@pane-md` it leaves the bar and
+More shows it above the folded presses. Labeled presses show their labels
+from `@pane-md` and are icons below it, named by their tooltip. Each press
+names where it folds into More: `xs` below `@pane-xs`, `md` below `@pane-md`,
+or `menu` always. The variants alone hide a folded press, so nothing flashes
+and no script measures the pane; More shows exactly while something is folded,
+lists what the pane hides when it opens and on each resize while open, and
+closes when a wider pane folds nothing. Outside a pane every press folds into
+More, so each stays reachable. The frame's bottom bar carries the viewer
+selector, so the bar never repeats it.
+
+The fold points keep the title's floor only within a budget: below `@pane-xs`
+the bar holds only More; from `@pane-xs` at most three icon presses sit in the
+bar, and a fourth folds at `md`; from `@pane-md` the labeled presses together
+stay under 16rem, and a press that would pass it folds at `md` or `menu`. A
+disabled press is one whose action is running, and its label says so, such as
+"Opening Add Device…"; a press that cannot work in the object's state is left
+out of the bar, so More never lists a dead end alone.
+
+The bar's title is an `h2`, wherever the viewer mounts: a viewer can sit in a
+grid beside others, so each bar names one section of a page whose `h1` belongs
+to the shell or the page around it. Headings in a viewer's body start at `h3`.
+The session shell draws no `h1` yet, so `surface lint` reports a skipped level
+there until it names the Space. An alarm's title takes `tone="alert"` and draws in the destructive
+color while the alarm fires. The bar's states are in
+`web/object/ViewerBar.tla`. A two-fact row adds one muted line under its
+value, so one-fact rows share one height and two-fact rows another.
+
+The pane thresholds, each an `@pane-*` variant in `web/style/app.css`. Tailwind
+emits them in this order, so where two match, the lower row wins:
 
 | Variant | Pane | Changes |
 |---|---|---|

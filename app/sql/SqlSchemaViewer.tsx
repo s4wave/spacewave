@@ -10,6 +10,7 @@ import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { createWorldObject } from '@s4wave/sdk/world/utils.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
 
@@ -99,23 +100,11 @@ export function SqlSchemaViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuTable className="text-foreground-alt size-3.5" aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          SQL Schema
-        </span>
-        {schemaName ? (
-          <span className="text-foreground-alt/50 truncate font-mono text-xs">
-            {schemaName}
-          </span>
-        ) : null}
-        {schema ? (
-          <span className="text-foreground-alt/50 text-xs">
-            {schema.tables.length}{' '}
-            {schema.tables.length === 1 ? 'table' : 'tables'}
-          </span>
-        ) : null}
-      </div>
+      <ViewerBar
+        icon={<LuTable />}
+        title="SQL Schema"
+        description={schemaLine(schemaName, schema?.tables.length)}
+      />
 
       {openError ? (
         <div className="px-4 pt-3">
@@ -232,4 +221,12 @@ function TableRow({
 
 function quote(identifier: string): string {
   return `\`${identifier.replaceAll('`', '``')}\``
+}
+
+// schemaLine is the bar's muted line: the schema's name and its table count.
+function schemaLine(name: string | undefined, tables: number | undefined) {
+  const parts = [name]
+  if (tables !== undefined)
+    parts.push(`${tables} ${tables === 1 ? 'table' : 'tables'}`)
+  return parts.filter(Boolean).join(', ') || undefined
 }

@@ -1,7 +1,5 @@
-import { useState, type ComponentPropsWithRef, type ReactNode } from 'react'
+import type { ComponentPropsWithRef, ReactNode } from 'react'
 import { cn } from '../style/utils.js'
-import { useObjectViewer } from '@s4wave/web/object/ObjectViewerContext.js'
-import { ComponentSelector } from '@s4wave/web/object/ComponentSelector.js'
 
 export type PanelHeaderVariant =
   | 'default'
@@ -22,7 +20,10 @@ const variantStyles: Record<PanelHeaderVariant, string> = {
   compact: 'bg-panel-header gap-1.5',
 }
 
-/** PanelHeader renders a panel header with an optional object viewer selector. */
+/**
+ * PanelHeader renders the header row of a panel. An object viewer's own bar is
+ * ViewerBar, not a panel header.
+ */
 export function PanelHeader({
   children,
   className,
@@ -31,72 +32,18 @@ export function PanelHeader({
   variant = 'default',
   ...props
 }: PanelHeaderProps) {
-  const [selectorOpen, setSelectorOpen] = useState(false)
-  const viewer = useObjectViewer()
-  const showSelector = viewer && viewer.visibleComponents.length > 1
-  const showStaticName = viewer && viewer.visibleComponents.length === 1
-
   return (
     <div
       {...props}
       data-drag-handle=""
       className={cn(
         'panel-header-height text-ui border-ui-outline flex shrink-0 items-center gap-2 border-b px-2',
-        showSelector && '[@media(pointer:coarse)]:min-h-11',
         variantStyles[variant],
         className,
       )}
       style={{ '--panel-header-height': `${height}px` }}
     >
-      {showSelector && viewer.selectedComponent && (
-        <ComponentSelector
-          open={selectorOpen}
-          placement="below"
-          onOpenChange={setSelectorOpen}
-          components={viewer.visibleComponents}
-          selectedComponent={viewer.selectedComponent}
-          onSelectComponent={viewer.onSelectComponent}
-        >
-          <div className="text-muted-foreground cursor-pointer truncate text-xs">
-            {viewer.selectedComponent.name}
-          </div>
-        </ComponentSelector>
-      )}
-      {showStaticName && viewer.visibleComponents[0] && (
-        <div className="text-muted-foreground truncate text-xs">
-          {viewer.visibleComponents[0].name}
-        </div>
-      )}
       {children}
     </div>
-  )
-}
-
-interface PanelHeaderButtonProps {
-  children: ReactNode
-  onClick?: () => void
-  className?: string
-  title?: string
-}
-
-// PanelHeaderButton renders a consistent icon button for panel headers.
-export function PanelHeaderButton({
-  children,
-  onClick,
-  className,
-  title,
-}: PanelHeaderButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className={cn(
-        'hover:bg-pulldown-hover focus-ring flex items-center justify-center rounded p-0.5 transition-colors',
-        className,
-      )}
-    >
-      {children}
-    </button>
   )
 }

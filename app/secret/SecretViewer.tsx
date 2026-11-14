@@ -13,6 +13,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 export { SecretTypeID }
 
@@ -223,12 +224,7 @@ export function SecretViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuKeyRound className="text-foreground-alt size-4" aria-hidden="true" />
-        <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-          {title || 'Secret'}
-        </span>
-      </div>
+      <ViewerBar icon={<LuKeyRound />} title={title || 'Secret'} />
       <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
         <SecretBody
           error={stateResource.error}

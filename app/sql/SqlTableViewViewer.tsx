@@ -8,9 +8,9 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
-import { Button } from '@s4wave/web/ui/button.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
   SqlTableView,
@@ -73,27 +73,24 @@ export function SqlTableViewViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuListFilter className="text-foreground-alt size-3.5" aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          Table View
-        </span>
-        {view?.targetTableName ? (
-          <span className="text-foreground-alt/50 truncate font-mono text-xs">
-            {view.targetTableName}
-          </span>
-        ) : null}
-        <div className="flex-1" />
-        <Button
-          variant="ghost"
-          onClick={rowsResource.retry}
-          disabled={rowsResource.loading}
-          size="xs"
-        >
-          <LuRefreshCw className="size-3" />
-          Refresh
-        </Button>
-      </div>
+      <ViewerBar
+        icon={<LuListFilter />}
+        title="Table View"
+        description={
+          view?.targetTableName ? (
+            <span className="font-mono">{view.targetTableName}</span>
+          ) : undefined
+        }
+        actions={[
+          {
+            id: 'refresh',
+            label: rowsResource.loading ? 'Refreshing…' : 'Refresh',
+            icon: <LuRefreshCw />,
+            onClick: rowsResource.retry,
+            disabled: rowsResource.loading,
+          },
+        ]}
+      />
 
       {view ? <TableViewFilterBar view={view} /> : null}
 

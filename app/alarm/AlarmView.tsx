@@ -3,6 +3,7 @@ import { LuSiren } from 'react-icons/lu'
 import type { Alarm, AlarmOption } from '@s4wave/sdk/alarm/alarm.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import { alarmStatus, holdText, type AlarmTone } from './alarm-view.js'
 
@@ -33,26 +34,20 @@ export function AlarmView({
   const status = alarmStatus(alarm, nowMs, who)
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuSiren
-          className={cn(
-            'size-3.5',
-            status.tone === 'alert'
-              ? 'text-destructive'
-              : 'text-foreground-alt',
-          )}
-          aria-hidden
-        />
-        <span
-          className={cn(
-            'text-sm font-semibold tracking-tight',
-            status.tone === 'alert' ? 'text-destructive' : 'text-foreground',
-          )}
-        >
-          {alarm.title || 'Alarm'}
-        </span>
-        <AlarmBadge word={status.word} tone={status.tone} />
-      </header>
+      <ViewerBar
+        icon={
+          <LuSiren
+            className={
+              status.tone === 'alert'
+                ? 'text-destructive'
+                : 'text-foreground-alt'
+            }
+          />
+        }
+        title={alarm.title || 'Alarm'}
+        tone={status.tone === 'alert' ? 'alert' : undefined}
+        state={<AlarmBadge word={status.word} tone={status.tone} />}
+      />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
         <div className="space-y-1">

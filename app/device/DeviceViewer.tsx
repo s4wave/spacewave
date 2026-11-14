@@ -3,9 +3,9 @@ import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 import { useCallback } from 'react'
 import { LuTerminal } from 'react-icons/lu'
 
@@ -74,19 +74,21 @@ export function DeviceViewer({
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground text-sm font-semibold select-none">
-          Device
-        </span>
-        {terminalCapability && (
-          <DashboardButton
-            icon={<LuTerminal className="size-3.5" />}
-            onClick={() => void handleOpenTerminal()}
-          >
-            Open Terminal
-          </DashboardButton>
-        )}
-      </div>
+      <ViewerBar
+        title="Device"
+        actions={
+          terminalCapability
+            ? [
+                {
+                  id: 'terminal',
+                  label: 'Open Terminal',
+                  icon: <LuTerminal />,
+                  onClick: () => void handleOpenTerminal(),
+                },
+              ]
+            : []
+        }
+      />
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {stateResource.loading && !state && (
           <LoadingCard

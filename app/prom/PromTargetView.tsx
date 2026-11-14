@@ -4,6 +4,7 @@ import { LuActivity } from 'react-icons/lu'
 import type { TargetInfo, TargetStatus } from '@s4wave/sdk/prom/prom.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 import {
   formatAgo,
@@ -55,13 +56,11 @@ export function PromTargetView({
   const retentionMs = Number(info?.meta?.retentionMs ?? 0n) || 15 * 86_400_000
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
-      <header className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-4">
-        <LuActivity className="text-foreground-alt size-3.5" aria-hidden />
-        <span className="text-foreground text-sm font-semibold tracking-tight">
-          {targetName(objectKey)}
-        </span>
-        <StateBadge state={state} />
-      </header>
+      <ViewerBar
+        icon={<LuActivity />}
+        title={targetName(objectKey)}
+        state={<StateBadge state={state} />}
+      />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
         <p className="text-foreground text-sm">

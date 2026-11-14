@@ -6,6 +6,7 @@ import { ChatMessage } from '@s4wave/sdk/chat/chat.pb.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
+import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
 
 export const ChatMessageTypeID = 'spacewave-chat/message'
 
@@ -20,12 +21,7 @@ export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuMessageCircle className="size-4" />
-          <span className="tracking-tight">Message</span>
-        </div>
-      </div>
+      <ViewerBar icon={<LuMessageCircle />} title="Message" />
       <div className="flex-1 overflow-auto px-4 py-3">
         <InfoCard>
           <div className="space-y-2">
