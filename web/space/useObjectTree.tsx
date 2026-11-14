@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { LuEllipsis } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'

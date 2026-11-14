@@ -7,3 +7,8 @@ export * from './createResourceContext.js'
 export * from './ResourceDevToolsContext.js'
 export * from './SharedResources.js'
 export * from './useSharedResource.js'
+export {
+  resourceContent,
+  resourceOf,
+  resourceReady,
+} from './resourceTransitionState.js'

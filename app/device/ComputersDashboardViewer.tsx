@@ -9,7 +9,7 @@ import { LuMonitor, LuPlus } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'

@@ -21,7 +21,7 @@ import { ObjectViewerLoadingState } from '@s4wave/web/object/ObjectViewerLoading
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { getQuickstartInitialObjectHandoff } from '@s4wave/app/quickstart/session-handoff.js'
 import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 
 // The outer route's viewer subpath is world/-/<inner-key>/-/<viewer-path>.
 const nestedRoutePrefix = 'world/-/'

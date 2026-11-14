@@ -592,6 +592,11 @@ describe('useResource', () => {
     expect(renders.every((r) => r === '2:::true')).toBe(true)
     expect(view('data-error')).toBe('')
     expect(view('data-loading')).toBe('true')
+
+    // A failure under the new dependencies keeps nothing from the old ones.
+    await update(() => errors[2](new Error('second failed')))
+    expect(view('data-error')).toBe('second failed')
+    expect(view('data-last')).toBe('')
   })
 
   it('recovers from a failure on Retry', async () => {
@@ -605,12 +610,14 @@ describe('useResource', () => {
     expect(view('data-last')).toBe('value-1')
     expect(view('data-error')).toBe('read failed')
 
-    // Retry loads again with no value, then the new value settles.
+    // Retry reads again quietly: the failure stays over the kept value, never
+    // blanking it, until the new value settles.
     await click()
     expect(factory).toHaveBeenCalledTimes(3)
-    expect(view('data-loading')).toBe('true')
+    expect(view('data-loading')).toBe('false')
     expect(view('data-value')).toBe('')
-    expect(view('data-error')).toBe('')
+    expect(view('data-last')).toBe('value-1')
+    expect(view('data-error')).toBe('read failed')
     await update(() => results[2]('value-2'))
     expect(view('data-value')).toBe('value-2')
     expect(view('data-last')).toBe('')
@@ -1097,5 +1104,25 @@ describe('useResource', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('resourceOf', () => {
+  it('reports a value beside an error as failed with no value', () => {
+    const retry = () => {}
+    const r = resourceOf({
+      value: 'stale',
+      last: 'kept',
+      loading: true,
+      error: new Error('read failed'),
+      retry,
+    })
+    expect(r).toEqual({
+      value: null,
+      last: 'kept',
+      loading: false,
+      error: new Error('read failed'),
+      retry,
+    })
   })
 })

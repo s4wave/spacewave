@@ -2,10 +2,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { PromDashboardViewer } from './PromDashboardViewer.js'
+import { formatClock } from './prom-view.js'
 
 // reads holds the Dashboard and targets streams the viewer follows, in the
 // order it opens them.
@@ -87,14 +88,21 @@ describe('PromDashboardViewer', () => {
 
   it('keeps the read records under a later targets failure, claiming nothing empty', () => {
     // Both records arrived, then the targets stream failed past its backoff.
+    // The kept target last scraped at scrapedMs.
+    const scrapedMs = Date.UTC(2026, 10, 14, 11, 30)
     reads.dash = resource({ panels: [] })
     reads.targets = resource(
       null,
       new Error('targets stream closed'),
       false,
-      new Map(),
+      new Map([
+        ['target/forge', { status: { lastScrapeMs: BigInt(scrapedMs) } }],
+      ]),
     )
     renderViewer()
+
+    // The kept target is drawn: its last scrape dates the Dashboard.
+    expect(screen.getByText(`Updated ${formatClock(scrapedMs)}`)).toBeDefined()
 
     // The failure is a notice with Retry; the empty states stay unclaimed.
     expect(

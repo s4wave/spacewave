@@ -324,4 +324,46 @@ describe('useSharedResource', () => {
     expect(otherSeen.at(-1)?.id).toBe(11)
     expect(mount).toHaveBeenCalledTimes(2)
   })
+
+  it('keeps its lease and value while the parent reloads its live value', async () => {
+    // A Root whose Session mounts once.
+    const client = new FakeClient() as unknown as ResourceClient
+    const handle = new FakeHandle(1)
+    const ready: Resource<FakeHandle> = {
+      value: handle,
+      loading: false,
+      error: null,
+      retry: () => {},
+    }
+    const mount = vi.fn(() => Promise.resolve(new FakeHandle(10)))
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    reactRoot = createRoot(container)
+    const seen: (FakeHandle | null)[] = []
+    const render = (root: Resource<FakeHandle>) =>
+      act(() =>
+        reactRoot?.render(
+          React.createElement(
+            ResourcesProvider,
+            { client },
+            React.createElement(SessionProbe, { root, index: 1, mount, seen }),
+          ),
+        ),
+      )
+    render(ready)
+    await act(flush)
+    const session = seen.at(-1)
+    expect(session?.id).toBe(10)
+
+    // The Root reloads over the same value: the Session stays drawn and held.
+    seen.length = 0
+    render({ ...ready, loading: true })
+    await act(flush)
+    expect(seen.every((s) => s === session)).toBe(true)
+    render(ready)
+    await act(flush)
+    expect(seen.at(-1)).toBe(session)
+    expect(session?.released).toBe(false)
+    expect(mount).toHaveBeenCalledTimes(1)
+  })
 })

@@ -10,7 +10,7 @@ import {
 } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import {
   SpaceLinkCallback,
   SpaceLinkCompletionMode,

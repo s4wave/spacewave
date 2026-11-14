@@ -1,6 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'

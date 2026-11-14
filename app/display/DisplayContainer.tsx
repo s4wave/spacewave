@@ -27,7 +27,7 @@ import {
 } from '@s4wave/sdk/session/session.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import {
   SessionContext,

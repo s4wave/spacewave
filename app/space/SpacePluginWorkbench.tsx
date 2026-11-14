@@ -1,6 +1,6 @@
 import { lazy, useId, useMemo, useState } from 'react'
 
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import type { BuildSpacePluginRequest } from '@s4wave/sdk/space/space.pb.js'
 import {
   SpaceContext,

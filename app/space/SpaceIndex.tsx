@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { LuBox } from 'react-icons/lu'
 
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import {
   parseObjectUri,
   SUBPATH_DELIMITER,

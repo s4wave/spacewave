@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   watchObjectQuery,

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'

@@ -24,7 +24,7 @@ import {
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { StateNamespaceProvider } from '@s4wave/web/state/index.js'
 import {
   parseObjectUri,

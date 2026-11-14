@@ -14,7 +14,7 @@ import {
 import { useResourcesContext } from './ResourcesContext.js'
 import { useResourceDevToolsContext } from './ResourceDevToolsContext.js'
 import type { RegisterCleanup, Resource } from './useResource.js'
-import { resourceOf, resourceReady } from './resourceTransitionState.js'
+import { isReleasedHandle, resourceOf } from './resourceTransitionState.js'
 
 // detachedShared serves components rendered outside a ResourcesProvider,
 // such as isolated tests. It has no client, so it does not follow releases.
@@ -64,10 +64,13 @@ export function useSharedResource<P extends SharedParent, T>(
   ) => Promise<T | null>,
   options?: UseSharedResourceOptions<T>,
 ): Resource<T> {
-  // Key the entry under a ready parent; a released parent has no key yet.
+  // Key the entry under a live parent value: a reloading parent keeps its key,
+  // so the lease survives the reload; a released or failed parent has none.
+  // The key gates a lease on a mount the parent's value names, not a start
+  // after the parent settles, so it does not wait for resourceReady.
   const shared = useSharedResources()
-  const parentValue = resourceReady(parent) ? parent.value : null
-  const parentReleased = parent.value?.released ?? false
+  const parentReleased = isReleasedHandle(parent.value)
+  const parentValue = parentReleased ? null : parent.value
   const key =
     parentValue && name !== null ? sharedResourceKey(parentValue, name) : null
   const generation = options?.generation ?? ''

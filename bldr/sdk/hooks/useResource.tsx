@@ -447,11 +447,21 @@ export function useResource<T>(
     parsed.options?.onError?.(error)
   })
 
+  // Retry reads again. A failure that kept a last value stays failed over it
+  // until the new read settles, so a Retry press never blanks what the person
+  // was reading; otherwise the value moves to last and the read shows loading.
+  // quietRef holds that choice until the run it starts settles.
+  const kept = state.error !== null && lastOf(state) !== null
+  const quietRef = useRef(false)
   const retry = useCallback(() => {
     parent.failedRetries.forEach((r) => r())
-    restart(key)
+    if (kept) {
+      quietRef.current = true
+    } else {
+      restart(key)
+    }
     setRetryCount((c) => c + 1)
-  }, [parent.failedRetries, restart, key])
+  }, [parent.failedRetries, restart, key, kept])
 
   const releasedResourceRetryReasons = useMemo(
     () => getReleasedResourceRetryReasons(parsed.options),
@@ -569,7 +579,12 @@ export function useResource<T>(
       settleEmpty(transitionVersion, key)
       return
     }
-    const started = startAfter(parsed.parents, transitionVersion, key)
+    const started = startAfter(
+      parsed.parents,
+      transitionVersion,
+      key,
+      quietRef.current,
+    )
     if (!started) {
       return
     }
@@ -618,6 +633,7 @@ export function useResource<T>(
       } finally {
         if (activeRunRef.current === run) {
           activeRunRef.current = null
+          quietRef.current = false
         }
       }
     }

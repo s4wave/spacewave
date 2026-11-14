@@ -11,7 +11,7 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 import { formatV86ImageLabel, readV86Image } from '@s4wave/app/vm/v86-images.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { SetV86StateOp, VmState, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'

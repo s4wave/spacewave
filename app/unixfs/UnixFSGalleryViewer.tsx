@@ -7,7 +7,7 @@ import { LuDownload, LuExternalLink, LuImage } from 'react-icons/lu'
 import { PhotoSlider } from 'react-photo-view'
 import { List, type RowComponentProps } from 'react-window'
 
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { usePath } from '@s4wave/web/router/router.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'

@@ -6,7 +6,7 @@ import {
   useResourceValue,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { PromQuery, TargetTypeID } from '@s4wave/sdk/prom/prom.js'
 import { PanelKind, PanelUnit, type Panel } from '@s4wave/sdk/prom/prom.pb.js'

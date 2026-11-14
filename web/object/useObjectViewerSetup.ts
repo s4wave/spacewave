@@ -4,7 +4,7 @@ import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { getObjectType } from '@s4wave/sdk/world/types/types.js'

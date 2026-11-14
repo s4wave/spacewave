@@ -15,8 +15,9 @@
 \* A reconnecting stream that fails after a value reopens after a backoff,
 \* loading over its value. Once the backoff reaches its cap it reports failed
 \* over the value as last, with Retry, and keeps reopening quietly; a value
-\* returns it to ready. Retry reopens at once, staying failed over a kept
-\* last. A value that holds a handle the hook released never becomes last.
+\* returns it to ready. Retry in either hook reads again at once, staying
+\* failed over a kept last. A value that holds a handle the hook released
+\* never becomes last.
 
 EXTENDS Naturals
 
@@ -189,7 +190,7 @@ Reopen ==
   /\ UNCHANGED <<parent, val, valRel, keepable, last, lastRel, fails>>
   /\ Fixed
 
-\* Retry reopens at once, staying failed over a kept last.
+\* Retry in either hook reads again at once, staying failed over a kept last.
 Retry ==
   /\ parent = "ready" /\ status = "failed"
   /\ Begin(LastOf # 0)

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { ViewerStage } from '@s4wave/web/object/ViewerFloat.js'
 import {

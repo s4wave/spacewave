@@ -12,7 +12,7 @@ import type {
   Resource,
   ResourceFields,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { resourceOf } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 
 import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatusContext.js'
 

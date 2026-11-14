@@ -1,8 +1,5 @@
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import {
-  resourceContent,
-  resourceOf,
-} from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent, resourceOf } from '@aptre/bldr-sdk/hooks/index.js'
 import { useParams } from '@s4wave/web/router/router.js'
 
 import { Canvas } from '@s4wave/app/canvas/Canvas.js'

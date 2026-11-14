@@ -2,7 +2,7 @@ import { useCallback, useMemo, useReducer } from 'react'
 import { LuChartLine, LuPlus } from 'react-icons/lu'
 
 import { isDesktop } from '@aptre/bldr'
-import { resourceContent } from '@aptre/bldr-sdk/hooks/resourceTransitionState.js'
+import { resourceContent } from '@aptre/bldr-sdk/hooks/index.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   DashboardTypeID,
