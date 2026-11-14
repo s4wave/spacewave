@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
@@ -81,6 +82,11 @@ type BatchFSWriter struct {
 	pending map[string]*pendingDir
 	// expects are the files Commit checks before it merges anything.
 	expects []fileExpect
+	// wants are the full paths of the files Versions reports, in WantVersion
+	// order.
+	wants [][]string
+	// root is the object root Commit published, set when it succeeds.
+	root *bucket.ObjectRef
 
 	// stage owns the blob blocks the buffer drains before Commit publishes
 	// them, opened with storage and released by Commit or Release.
@@ -224,6 +230,55 @@ func (b *BatchFSWriter) ExpectFile(parentPath []string, name string, version *bl
 	return nil
 }
 
+// WantVersion makes Versions report the version the file at parentPath/name
+// has in the root Commit publishes. The batch must write that file.
+func (b *BatchFSWriter) WantVersion(parentPath []string, name string) error {
+	if err := b.checkOpen(); err != nil {
+		return err
+	}
+	if name == "" {
+		return unixfs_errors.ErrEmptyPath
+	}
+	b.wants = append(b.wants, append(slices.Clone(parentPath), name))
+	return nil
+}
+
+// Versions returns, after Commit succeeded, the version of each file
+// WantVersion named, in that order. It reads them from the root the commit
+// published, which no later writer changes, so each is the version that
+// commit gave its file whatever committed since.
+func (b *BatchFSWriter) Versions(ctx context.Context) ([]FileVersion, error) {
+	// Require a published root, and skip the read when nothing was asked.
+	if len(b.wants) == 0 {
+		return nil, nil
+	}
+	if b.root == nil {
+		return nil, errors.New("batch writer has not committed")
+	}
+
+	// Read the versions from the published root.
+	obj, exists, err := b.ws.GetObject(ctx, b.objKey)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, unixfs_errors.ErrNotExist
+	}
+	var out []FileVersion
+	err = obj.AccessWorldState(ctx, b.root, func(bls *bucket_lookup.Cursor) error {
+		// Open the published filesystem tree read-only and look up each path.
+		_, bcs := bls.BuildTransaction(nil)
+		root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
+		if err != nil {
+			return err
+		}
+		out, err = readFileVersions(root, b.wants)
+		return err
+	})
+	return out, err
+}
+
 // AddDir records an explicit directory entry under parentPath. The sync
 // driver (or equivalent caller) is responsible for providing an AddDir for
 // every parent referenced by AddFile / AddSymlink that does not already
@@ -354,7 +409,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 	}
 
 	// Merge the buffered entries into the World object in one transaction.
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+	published, _, err := world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 		// Stage the blobs on every attempt: a replay runs on a new transaction.
 		if blobs != nil && len(blobs.Entries) != 0 {
 			btx := bcs.GetTransaction()
@@ -391,6 +446,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 
 	// Record successful publication of the pending filesystem entries.
 	if err == nil {
+		b.root = published
 		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
 			Stage:          "commit-complete",
 			PendingDirs:    pendingDirs,

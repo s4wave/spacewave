@@ -345,7 +345,9 @@ message HandleUploadTreeFileStart {
   string path = 1;
   // TotalSize is the total file size in bytes.
   int64 total_size = 2;
-  // Mode is the file permissions.
+  // Mode is the permissions of a file the upload creates, zero for the
+  // default. A file the path already holds keeps its stored mode, so an
+  // upload never undoes another writer's chmod.
   uint32 mode = 3;
   // Expect is what the path must hold when the upload commits, checked in
   // the commit's transaction against the root it applies to. With neither
@@ -357,6 +359,10 @@ message HandleUploadTreeFileStart {
     // Overwrite replaces whatever the path holds.
     bool overwrite = 5;
   }
+  // WantVersion asks the written result to carry the file's version in the
+  // root the upload committed, so the writer can expect it on its next
+  // upload without reading the file back.
+  bool want_version = 6;
 }
 
 // HandleUploadTreeRequest is one UploadTree stream message.
@@ -395,6 +401,17 @@ message HandleUploadTreeWritten {
   int64 files_written = 2;
   // DirectoriesWritten is the number of explicit directory entries applied.
   int64 directories_written = 3;
+  // Versions are the versions of the files whose start set want_version, in
+  // stream order, taken from the root the upload committed.
+  repeated HandleUploadTreeFileVersion versions = 4;
+}
+
+// HandleUploadTreeFileVersion is one written file's version.
+message HandleUploadTreeFileVersion {
+  // Path is the file's slash-separated path relative to the handle.
+  string path = 1;
+  // Version is the file's version as ReadStream reports it.
+  bytes version = 2;
 }
 
 // HandleUploadTreeConflict names the first file whose path did not hold what

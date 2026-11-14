@@ -1048,7 +1048,9 @@ type HandleUploadTreeFileStart struct {
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	// TotalSize is the total file size in bytes.
 	TotalSize int64 `protobuf:"varint,2,opt,name=total_size,json=totalSize,proto3" json:"totalSize,omitempty"`
-	// Mode is the file permissions.
+	// Mode is the permissions of a file the upload creates, zero for the
+	// default. A file the path already holds keeps its stored mode, so an
+	// upload never undoes another writer's chmod.
 	Mode uint32 `protobuf:"varint,3,opt,name=mode,proto3" json:"mode,omitempty"`
 	// Expect is what the path must hold when the upload commits, checked in
 	// the commit's transaction against the root it applies to. With neither
@@ -1058,6 +1060,10 @@ type HandleUploadTreeFileStart struct {
 	//	*HandleUploadTreeFileStart_Version
 	//	*HandleUploadTreeFileStart_Overwrite
 	Expect isHandleUploadTreeFileStart_Expect `protobuf_oneof:"expect"`
+	// WantVersion asks the written result to carry the file's version in the
+	// root the upload committed, so the writer can expect it on its next
+	// upload without reading the file back.
+	WantVersion bool `protobuf:"varint,6,opt,name=want_version,json=wantVersion,proto3" json:"wantVersion,omitempty"`
 }
 
 func (x *HandleUploadTreeFileStart) Reset() {
@@ -1104,6 +1110,13 @@ func (x *HandleUploadTreeFileStart) GetVersion() []byte {
 func (x *HandleUploadTreeFileStart) GetOverwrite() bool {
 	if x, ok := x.GetExpect().(*HandleUploadTreeFileStart_Overwrite); ok {
 		return x.Overwrite
+	}
+	return false
+}
+
+func (x *HandleUploadTreeFileStart) GetWantVersion() bool {
+	if x != nil {
+		return x.WantVersion
 	}
 	return false
 }
@@ -1272,6 +1285,9 @@ type HandleUploadTreeWritten struct {
 	FilesWritten int64 `protobuf:"varint,2,opt,name=files_written,json=filesWritten,proto3" json:"filesWritten,omitempty"`
 	// DirectoriesWritten is the number of explicit directory entries applied.
 	DirectoriesWritten int64 `protobuf:"varint,3,opt,name=directories_written,json=directoriesWritten,proto3" json:"directoriesWritten,omitempty"`
+	// Versions are the versions of the files whose start set want_version, in
+	// stream order, taken from the root the upload committed.
+	Versions []*HandleUploadTreeFileVersion `protobuf:"bytes,4,rep,name=versions,proto3" json:"versions,omitempty"`
 }
 
 func (x *HandleUploadTreeWritten) Reset() {
@@ -1299,6 +1315,42 @@ func (x *HandleUploadTreeWritten) GetDirectoriesWritten() int64 {
 		return x.DirectoriesWritten
 	}
 	return 0
+}
+
+func (x *HandleUploadTreeWritten) GetVersions() []*HandleUploadTreeFileVersion {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+// HandleUploadTreeFileVersion is one written file's version.
+type HandleUploadTreeFileVersion struct {
+	unknownFields []byte
+	// Path is the file's slash-separated path relative to the handle.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Version is the file's version as ReadStream reports it.
+	Version []byte `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *HandleUploadTreeFileVersion) Reset() {
+	*x = HandleUploadTreeFileVersion{}
+}
+
+func (*HandleUploadTreeFileVersion) ProtoMessage() {}
+
+func (x *HandleUploadTreeFileVersion) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *HandleUploadTreeFileVersion) GetVersion() []byte {
+	if x != nil {
+		return x.Version
+	}
+	return nil
 }
 
 // HandleUploadTreeConflict names the first file whose path did not hold what
@@ -2123,6 +2175,7 @@ func (m *HandleUploadTreeFileStart) CloneVT() *HandleUploadTreeFileStart {
 	r.Path = m.Path
 	r.TotalSize = m.TotalSize
 	r.Mode = m.Mode
+	r.WantVersion = m.WantVersion
 	if m.Expect != nil {
 		r.Expect = m.Expect.(interface {
 			CloneOneofVT() isHandleUploadTreeFileStart_Expect
@@ -2278,6 +2331,7 @@ func (m *HandleUploadTreeWritten) CloneVT() *HandleUploadTreeWritten {
 	r.BytesWritten = m.BytesWritten
 	r.FilesWritten = m.FilesWritten
 	r.DirectoriesWritten = m.DirectoriesWritten
+	r.Versions = protobuf_go_lite.CloneVTSlice(m.Versions)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2285,6 +2339,23 @@ func (m *HandleUploadTreeWritten) CloneVT() *HandleUploadTreeWritten {
 }
 
 func (m *HandleUploadTreeWritten) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *HandleUploadTreeFileVersion) CloneVT() *HandleUploadTreeFileVersion {
+	if m == nil {
+		return (*HandleUploadTreeFileVersion)(nil)
+	}
+	r := new(HandleUploadTreeFileVersion)
+	r.Path = m.Path
+	r.Version = protobuf_go_lite.CloneBytes(m.Version)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *HandleUploadTreeFileVersion) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3257,6 +3328,9 @@ func (this *HandleUploadTreeFileStart) EqualVT(that *HandleUploadTreeFileStart) 
 	if this.Mode != that.Mode {
 		return false
 	}
+	if this.WantVersion != that.WantVersion {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3463,11 +3537,37 @@ func (this *HandleUploadTreeWritten) EqualVT(that *HandleUploadTreeWritten) bool
 	if this.DirectoriesWritten != that.DirectoriesWritten {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Versions, that.Versions, func() *HandleUploadTreeFileVersion { return &HandleUploadTreeFileVersion{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *HandleUploadTreeWritten) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*HandleUploadTreeWritten)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *HandleUploadTreeFileVersion) EqualVT(that *HandleUploadTreeFileVersion) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Version, that.Version) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *HandleUploadTreeFileVersion) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*HandleUploadTreeFileVersion)
 	if !ok {
 		return false
 	}
@@ -5484,6 +5584,11 @@ func (x *HandleUploadTreeFileStart) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteBool(ov.Overwrite)
 		}
 	}
+	if x.WantVersion || s.HasField("wantVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("wantVersion")
+		s.WriteBool(x.WantVersion)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5520,6 +5625,9 @@ func (x *HandleUploadTreeFileStart) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			ov := &HandleUploadTreeFileStart_Overwrite{}
 			x.Expect = ov
 			ov.Overwrite = s.ReadBool()
+		case "want_version", "wantVersion":
+			s.AddField("want_version")
+			x.WantVersion = s.ReadBool()
 		}
 	})
 }
@@ -5697,6 +5805,17 @@ func (x *HandleUploadTreeWritten) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("directoriesWritten")
 		s.WriteInt64(x.DirectoriesWritten)
 	}
+	if len(x.Versions) > 0 || s.HasField("versions") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("versions")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Versions {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("versions"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5723,12 +5842,80 @@ func (x *HandleUploadTreeWritten) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "directories_written", "directoriesWritten":
 			s.AddField("directories_written")
 			x.DirectoriesWritten = s.ReadInt64()
+		case "versions":
+			s.AddField("versions")
+			if s.ReadNil() {
+				x.Versions = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Versions = append(x.Versions, nil)
+					return
+				}
+				v := &HandleUploadTreeFileVersion{}
+				v.UnmarshalProtoJSON(s.WithField("versions", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Versions = append(x.Versions, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the HandleUploadTreeWritten from JSON.
 func (x *HandleUploadTreeWritten) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the HandleUploadTreeFileVersion message to JSON.
+func (x *HandleUploadTreeFileVersion) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	if len(x.Version) > 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteBytes(x.Version)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the HandleUploadTreeFileVersion to JSON.
+func (x *HandleUploadTreeFileVersion) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the HandleUploadTreeFileVersion message from JSON.
+func (x *HandleUploadTreeFileVersion) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the HandleUploadTreeFileVersion from JSON.
+func (x *HandleUploadTreeFileVersion) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -7665,6 +7852,11 @@ func (m *HandleUploadTreeFileStart) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		}
 		i -= size
 	}
+	if m.WantVersion {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.WantVersion)
+		i--
+		dAtA[i] = 0x30
+	}
 	if m.Mode != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Mode))
 		i--
@@ -7934,6 +8126,18 @@ func (m *HandleUploadTreeWritten) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Versions) > 0 {
+		for iNdEx := len(m.Versions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Versions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if m.DirectoriesWritten != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DirectoriesWritten))
 		i--
@@ -7948,6 +8152,48 @@ func (m *HandleUploadTreeWritten) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BytesWritten))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *HandleUploadTreeFileVersion) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HandleUploadTreeFileVersion) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *HandleUploadTreeFileVersion) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Version) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Version)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Path) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Path)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -8665,6 +8911,7 @@ func (m *HandleUploadTreeFileStart) SizeVT() (n int) {
 	if vtmsg, ok := m.Expect.(interface{ SizeVT() int }); ok {
 		n += vtmsg.SizeVT()
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.WantVersion)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8795,6 +9042,22 @@ func (m *HandleUploadTreeWritten) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.BytesWritten)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.FilesWritten)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.DirectoriesWritten)
+	for _, e := range m.Versions {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *HandleUploadTreeFileVersion) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Version)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9541,6 +9804,10 @@ func (x *HandleUploadTreeFileStart) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "overwrite")
 		protobuf_go_lite.TextWriteBool(&sb, body.Overwrite)
 	}
+	if x.WantVersion != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "want_version")
+		protobuf_go_lite.TextWriteBool(&sb, x.WantVersion)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -9622,10 +9889,40 @@ func (x *HandleUploadTreeWritten) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "directories_written")
 		protobuf_go_lite.TextWriteInt(&sb, x.DirectoriesWritten)
 	}
+	if len(x.Versions) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "versions")
+		for i, v := range x.Versions {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &HandleUploadTreeFileVersion{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *HandleUploadTreeWritten) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *HandleUploadTreeFileVersion) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "HandleUploadTreeFileVersion")
+	if x.Path != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "path")
+		protobuf_go_lite.TextWriteString(&sb, x.Path)
+	}
+	if len(x.Version) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Version)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *HandleUploadTreeFileVersion) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -12116,6 +12413,16 @@ func (m *HandleUploadTreeFileStart) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v)
 			m.Expect = &HandleUploadTreeFileStart_Overwrite{Overwrite: b}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WantVersion", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WantVersion = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -12369,6 +12676,80 @@ func (m *HandleUploadTreeWritten) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DirectoriesWritten = 0
 			m.DirectoriesWritten, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Versions", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Versions = append(m.Versions, &HandleUploadTreeFileVersion{})
+			if err := m.Versions[len(m.Versions)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *HandleUploadTreeFileVersion) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HandleUploadTreeFileVersion: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HandleUploadTreeFileVersion: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Path = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Version, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

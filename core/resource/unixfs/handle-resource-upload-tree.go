@@ -127,6 +127,23 @@ func (r *FSHandleResource) UploadTree(
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
 	recordUploadMetric(ctx, UploadMetric{Stage: "broadcast"})
 	committed = true
+
+	// Report the versions the commit gave the files that asked for them. An
+	// error here follows a commit the watchers already saw.
+	versions, err := state.b.Versions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range versions {
+		version, err := v.Version.MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+		state.resp.Versions = append(state.resp.Versions, &s4wave_unixfs.HandleUploadTreeFileVersion{
+			Path:    strings.Join(v.Path[len(r.path):], "/"),
+			Version: version,
+		})
+	}
 	return &s4wave_unixfs.HandleUploadTreeResponse{
 		Result: &s4wave_unixfs.HandleUploadTreeResponse_Written{Written: &state.resp},
 	}, nil
@@ -256,6 +273,11 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 				fileStart.GetTotalSize()-rdr.remaining,
 				fileStart.GetTotalSize(),
 			)
+		}
+		if fileStart.GetWantVersion() {
+			if err := state.b.WantVersion(parentPath, parts[len(parts)-1]); err != nil {
+				return err
+			}
 		}
 		state.resp.FilesWritten++
 		return nil

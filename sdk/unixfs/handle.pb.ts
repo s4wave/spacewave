@@ -906,9 +906,17 @@ export interface HandleUploadTreeFileStart {
    */
   totalSize?: bigint
   /**
-   * Mode is the file permissions.
+   * Mode is the permissions of a file the upload creates, zero for the
+   * default. A file the path already holds keeps its stored mode, so an
+   * upload never undoes another writer's chmod.
    */
   mode?: number
+  /**
+   * WantVersion asks the written result to carry the file's version in the
+   * root the upload committed, so the writer can expect it on its next
+   * upload without reading the file back.
+   */
+  wantVersion?: boolean
   /**
    * Expect is what the path must hold when the upload commits, checked in
    * the commit's transaction against the root it applies to. With neither
@@ -931,6 +939,7 @@ export const HandleUploadTreeFileStart: MessageType<HandleUploadTreeFileStart> =
       [3, 'mode', 13],
       [4, 'version', 12, 0, 0, 'expect'],
       [5, 'overwrite', 8, 0, 0, 'expect'],
+      [6, 'want_version', 8],
     ],
   )
 
@@ -1011,6 +1020,11 @@ export interface HandleUploadTreeWritten {
    * DirectoriesWritten is the number of explicit directory entries applied.
    */
   directoriesWritten?: bigint
+  /**
+   * Versions are the versions of the files whose start set want_version, in
+   * stream order, taken from the root the upload committed.
+   */
+  versions?: HandleUploadTreeFileVersion[]
 }
 
 export const HandleUploadTreeWritten: MessageType<HandleUploadTreeWritten> =
@@ -1020,6 +1034,32 @@ export const HandleUploadTreeWritten: MessageType<HandleUploadTreeWritten> =
       [1, 'bytes_written', 3],
       [2, 'files_written', 3],
       [3, 'directories_written', 3],
+      [4, 'versions', 11, 1, HandleUploadTreeFileVersion.codec],
+    ],
+  )
+
+/**
+ * HandleUploadTreeFileVersion is one written file's version.
+ *
+ * @generated from message s4wave.unixfs.HandleUploadTreeFileVersion
+ */
+export interface HandleUploadTreeFileVersion {
+  /**
+   * Path is the file's slash-separated path relative to the handle.
+   */
+  path?: string
+  /**
+   * Version is the file's version as ReadStream reports it.
+   */
+  version?: Uint8Array
+}
+
+export const HandleUploadTreeFileVersion: MessageType<HandleUploadTreeFileVersion> =
+  /* @__PURE__ */ createMessageType<HandleUploadTreeFileVersion>(
+    's4wave.unixfs.HandleUploadTreeFileVersion',
+    () => [
+      [1, 'path', 9],
+      [2, 'version', 12],
     ],
   )
 
