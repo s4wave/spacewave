@@ -8,6 +8,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class SessionListState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SESSION_LIST_STATE_ACTIVE: _ClassVar[SessionListState]
+    SESSION_LIST_STATE_DELETING: _ClassVar[SessionListState]
+    SESSION_LIST_STATE_UNLINKING: _ClassVar[SessionListState]
+
 class SessionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     SESSION_TYPE_UNKNOWN: _ClassVar[SessionType]
@@ -26,6 +32,9 @@ class SessionRecoveryState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SESSION_RECOVERY_STATE_UNKNOWN: _ClassVar[SessionRecoveryState]
     SESSION_RECOVERY_STATE_AVAILABLE: _ClassVar[SessionRecoveryState]
     SESSION_RECOVERY_STATE_UNAVAILABLE: _ClassVar[SessionRecoveryState]
+SESSION_LIST_STATE_ACTIVE: SessionListState
+SESSION_LIST_STATE_DELETING: SessionListState
+SESSION_LIST_STATE_UNLINKING: SessionListState
 SESSION_TYPE_UNKNOWN: SessionType
 SESSION_TYPE_USER: SessionType
 SESSION_TYPE_APP: SessionType
@@ -44,12 +53,14 @@ class SessionRef(_message.Message):
     def __init__(self, provider_resource_ref: _Optional[_Union[_provider_pb2.ProviderResourceRef, _Mapping]] = ...) -> None: ...
 
 class SessionListEntry(_message.Message):
-    __slots__ = ("session_index", "session_ref")
+    __slots__ = ("session_index", "session_ref", "state")
     SESSION_INDEX_FIELD_NUMBER: _ClassVar[int]
     SESSION_REF_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
     session_index: int
     session_ref: SessionRef
-    def __init__(self, session_index: _Optional[int] = ..., session_ref: _Optional[_Union[SessionRef, _Mapping]] = ...) -> None: ...
+    state: SessionListState
+    def __init__(self, session_index: _Optional[int] = ..., session_ref: _Optional[_Union[SessionRef, _Mapping]] = ..., state: _Optional[_Union[SessionListState, str]] = ...) -> None: ...
 
 class SessionMetadata(_message.Message):
     __slots__ = ("display_name", "provider_display_name", "provider_account_id", "lock_mode", "created_at", "cloud_account_id", "cloud_entity_id", "provider_id", "recovery_state", "direct_p2p_disabled", "background_plugins")

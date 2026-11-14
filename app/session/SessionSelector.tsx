@@ -16,7 +16,10 @@ import { useSpaceRootAliases } from '@s4wave/app/hooks/useSpaceRootAliases.js'
 import { useSpaceRootRuntime } from '@s4wave/app/hooks/useSpaceRootRuntime.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import { useSessionAccountStatuses } from '@s4wave/app/hooks/useSessionAccountStatuses.js'
-import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
+import {
+  isSessionOpenable,
+  useAllSessionList,
+} from '@s4wave/app/hooks/useSessionList.js'
 import { useSelectAccount } from '@s4wave/app/hooks/useSelectAccount.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
@@ -44,7 +47,7 @@ import { useDisplayNameEditor } from './DisplayNameEditor.js'
 
 // SessionSelector displays a full-page session picker for users with multiple sessions.
 export function SessionSelector() {
-  const resource = useSessionList()
+  const resource = useAllSessionList()
   const rootAliases = useSpaceRootAliases()
   const addRootAlias = useAddSpaceRootAlias()
   const accountStatuses = useSessionAccountStatuses()
@@ -122,13 +125,20 @@ export function SessionSelector() {
 
         {sessions.length > 0 && (
           <div className="w-full max-w-md space-y-2">
-            {sessions.map((session) => (
-              <SessionCard
-                key={session.sessionIndex}
-                session={session}
-                accountStatus={accountStatuses.get(session.sessionIndex ?? 0)}
-              />
-            ))}
+            {sessions.map((session) =>
+              isSessionOpenable(session) ? (
+                <SessionCard
+                  key={session.sessionIndex}
+                  session={session}
+                  accountStatus={accountStatuses.get(session.sessionIndex ?? 0)}
+                />
+              ) : (
+                <DeletingSessionCard
+                  key={session.sessionIndex}
+                  session={session}
+                />
+              ),
+            )}
           </div>
         )}
 
@@ -495,5 +505,30 @@ function SessionCard(props: {
       editor={editor}
       onSelect={handleSelect}
     />
+  )
+}
+
+// DeletingSessionCard renders a session of an account whose delete has
+// started. It offers no open: the next startup finishes the delete and the
+// row goes.
+function DeletingSessionCard(props: { session: SessionListEntry }) {
+  const sessionIndex = props.session.sessionIndex ?? 0
+  const meta = useSessionMetadata(props.session.sessionIndex ?? null)
+  return (
+    <div
+      data-testid="session-card-deleting"
+      data-session-index={sessionIndex || ''}
+      className="border-foreground/10 flex items-center gap-3 rounded-lg border px-4 py-3 opacity-60"
+    >
+      <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-lg">
+        <LuUser aria-hidden className="size-4" />
+      </div>
+      <span className="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
+        {accountTitle(meta, sessionIndex)}
+      </span>
+      <span className="bg-foreground/6 text-foreground-alt/75 micro-ten rounded-full px-1.5 py-0.5 font-medium">
+        Deleting
+      </span>
+    </div>
   )
 }

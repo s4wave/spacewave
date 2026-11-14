@@ -2,6 +2,8 @@ package storage_inmem
 
 import (
 	"context"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -82,6 +84,17 @@ func (s *InmemStorage) DeleteVolume(id string) error {
 	delete(s.volumes, id)
 	s.mtx.Unlock()
 	return nil
+}
+
+// ListVolumes returns the ids of the volumes the storage holds, sorted. A
+// volume is held from its first open until DeleteVolume removes it.
+func (s *InmemStorage) ListVolumes() []string {
+	// Copy the ids under the lock, then sort the copy.
+	s.mtx.Lock()
+	ids := slices.Collect(maps.Keys(s.volumes))
+	s.mtx.Unlock()
+	slices.Sort(ids)
+	return ids
 }
 
 // openVolume leases the store for the volume id, creating it when absent and

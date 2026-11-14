@@ -97,7 +97,9 @@ func (f *VolumeFactory) GetVersion() controller.Version {
 }
 
 // openVolume finds the InmemStorage named by conf and opens the volume over
-// its leased store. Closing the volume ends the lease.
+// its leased store. Closing the volume ends the lease; deleting it ends the
+// lease and drops its data from the storage, as a disk volume removes its
+// file.
 func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (volume.Volume, error) {
 	// Resolve the storage reference named by the volume config.
 	storages, _, ref, err := storage.ExLookupStorage(ctx, f.b, conf.GetStorageId(), true)
@@ -140,6 +142,9 @@ func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (vol
 		func() error {
 			release()
 			return nil
+		},
+		func() error {
+			return st.DeleteVolume(conf.GetStorageVolumeId())
 		},
 	)
 	if err != nil {
