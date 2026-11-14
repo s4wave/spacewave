@@ -507,6 +507,11 @@ function SelectStep({
   onTargetChange: (idx: number) => void
   onModeChange: (mode: TransferMode) => void
 }) {
+  // Migrate copies the source keypair over the target's, which would lock a
+  // cloud account's stored session, so it is offered only for local targets.
+  const cloudTarget =
+    sessionOptions.find((s) => s.index === targetIdx)?.providerId !== 'local' &&
+    targetIdx != null
   return (
     <>
       <div>
@@ -539,7 +544,15 @@ function SelectStep({
                   <RadioOption
                     key={`tgt-${s.index}`}
                     selected={targetIdx === s.index}
-                    onSelect={() => onTargetChange(s.index)}
+                    onSelect={() => {
+                      onTargetChange(s.index)
+                      if (
+                        s.providerId !== 'local' &&
+                        mode === TransferMode.TransferMode_MIGRATE
+                      ) {
+                        onModeChange(TransferMode.TransferMode_MERGE)
+                      }
+                    }}
                     label={s.label}
                     description={
                       s.providerId === 'local'
@@ -565,13 +578,15 @@ function SelectStep({
             label="Merge"
             description="Move all spaces to the target and delete the source session"
           />
-          <RadioOption
-            selected={mode === TransferMode.TransferMode_MIGRATE}
-            onSelect={() => onModeChange(TransferMode.TransferMode_MIGRATE)}
-            icon={<LuMoveRight className="size-4" />}
-            label="Migrate"
-            description="Move all spaces to a different provider and transfer the keypair"
-          />
+          {!cloudTarget && (
+            <RadioOption
+              selected={mode === TransferMode.TransferMode_MIGRATE}
+              onSelect={() => onModeChange(TransferMode.TransferMode_MIGRATE)}
+              icon={<LuMoveRight className="size-4" />}
+              label="Migrate"
+              description="Move all spaces to a different provider and transfer the keypair"
+            />
+          )}
           <RadioOption
             selected={mode === TransferMode.TransferMode_MIRROR}
             onSelect={() => onModeChange(TransferMode.TransferMode_MIRROR)}
