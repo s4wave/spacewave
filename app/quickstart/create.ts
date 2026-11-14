@@ -706,7 +706,7 @@ export async function createQuickstartSetup(
     )
 
     // Reuse the account's existing space for this quickstart; creating again
-    // would duplicate it and rerun the seed pipeline over user content.
+    // would duplicate it. A reused Space is ready only if its seed applied.
     const spaceName = getQuickstartSpaceName(quickstartId)
     reportQuickstartProgress(
       progress,
@@ -751,11 +751,15 @@ export async function createQuickstartSetup(
       ...setup,
     }
 
-    if (sharedObjectRef) {
-      // The reused space already holds its seeded content.
-      markQuickstartProgressReady(timing)
-    } else {
-      // Populate the space with quickstart-specific content.
+    // A quickstart Space is absent, created but not seeded, or seeded. A
+    // created Space whose seed failed part way is seeded again: each seed
+    // skips the steps that landed, so repeating it is safe.
+    const seeded =
+      !!sharedObjectRef &&
+      (await timeQuickstartPhase(timing, 'check-space-seeded', () =>
+        isQuickstartSpaceSeeded(quickstartId, result.spaceWorld, abortSignal),
+      ))
+    if (!seeded) {
       reportQuickstartProgress(
         progress,
         'content',
@@ -765,7 +769,7 @@ export async function createQuickstartSetup(
         populateSpace(quickstartId, result, abortSignal, timing),
       )
       if (quickstartId === 'drive') {
-        // Only a newly seeded Drive has a known index; reused Spaces keep theirs.
+        // Only a just seeded Drive has a known index; seeded Spaces keep theirs.
         result.initialObjectRoute = {
           objectKey: UNIXFS_OBJECT_KEY,
           objectType: UnixFSTypeID,
@@ -817,6 +821,78 @@ export function buildQuickstartSpaceRoutePath(
   return basePath.replace(/\/+$/, '') + SUBPATH_DELIMITER + objectKey
 }
 
+// readSpaceSettings reads the Space's SpaceSettings, or undefined when the
+// object is missing or its block does not decode. Invalid plugin IDs are
+// dropped, since a corrupted block can decode arbitrary bytes into them.
+async function readSpaceSettings(
+  spaceWorld: IWorldState,
+  abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
+  phasePrefix = 'read-space-settings',
+): Promise<SpaceSettings | undefined> {
+  const existing = await timeQuickstartPhase(
+    timing,
+    phasePrefix + '-get-object',
+    () => spaceWorld.getObject(SPACE_SETTINGS_OBJECT_KEY, abortSignal),
+  )
+  if (!existing) {
+    return undefined
+  }
+  try {
+    return await timeQuickstartPhase(
+      timing,
+      phasePrefix + '-read-existing',
+      async () => {
+        using cursor = await existing.accessWorldState(undefined, abortSignal)
+        const blockResp = await cursor.unmarshal(
+          { blockType: SPACE_SETTINGS_BLOCK_TYPE },
+          abortSignal,
+        )
+        if (!blockResp.found || !blockResp.data?.length) {
+          return undefined
+        }
+        const settings = SpaceSettings.fromBinary(blockResp.data)
+        return {
+          ...settings,
+          pluginIds: (settings.pluginIds ?? []).filter(isValidSpacePluginId),
+        }
+      },
+    )
+  } catch {
+    return undefined
+  } finally {
+    existing.release()
+  }
+}
+
+// isQuickstartSpaceSeeded reports whether a quickstart Space holds its applied
+// seed. Every seed but the bare Space's sets the Space index as its last World
+// write, so a Space without an index was created but not seeded; the bare
+// Space's seed is the settings object alone.
+async function isQuickstartSpaceSeeded(
+  quickstartId: QuickstartSpaceCreateId,
+  spaceWorld: IWorldState,
+  abortSignal?: AbortSignal,
+): Promise<boolean> {
+  const settings = await readSpaceSettings(spaceWorld, abortSignal)
+  if (!settings) {
+    return false
+  }
+  return quickstartId === 'space' || !!settings.indexPath
+}
+
+// hasSeedObject reports whether a seed step's object already exists, so a
+// seed repeated after a failure skips the steps that landed.
+async function hasSeedObject(
+  spaceWorld: IWorldState,
+  objectKey: string,
+  abortSignal?: AbortSignal,
+): Promise<boolean> {
+  const existing = await spaceWorld.getObject(objectKey, abortSignal)
+  existing?.release()
+  return !!existing
+}
+
 // createSpaceSettingsObject creates the SpaceSettings object in the world.
 export async function createSpaceSettingsObject(
   spaceWorld: IWorldState,
@@ -826,79 +902,57 @@ export async function createSpaceSettingsObject(
   timing?: QuickstartSetupTiming,
   phasePrefix = 'create-space-settings',
 ): Promise<void> {
-  let existingSettings: SpaceSettings | undefined
-  const existing = await timeQuickstartPhase(
+  const op = await spaceSettingsOp(
+    spaceWorld,
+    abortSignal,
+    indexPath,
+    pluginIds,
     timing,
-    phasePrefix + '-get-object',
-    () => spaceWorld.getObject(SPACE_SETTINGS_OBJECT_KEY, abortSignal),
+    phasePrefix,
   )
-  try {
-    if (existing) {
-      try {
-        existingSettings = await timeQuickstartPhase(
-          timing,
-          phasePrefix + '-read-existing',
-          async () => {
-            using cursor = await existing.accessWorldState(
-              undefined,
-              abortSignal,
-            )
-            const blockResp = await cursor.unmarshal(
-              { blockType: SPACE_SETTINGS_BLOCK_TYPE },
-              abortSignal,
-            )
-            if (blockResp.found && blockResp.data?.length) {
-              const settings = SpaceSettings.fromBinary(blockResp.data)
-              return {
-                ...settings,
-                // A corrupted settings block can decode arbitrary bytes into
-                // pluginIds; never re-persist invalid manifest IDs.
-                pluginIds: (settings.pluginIds ?? []).filter(
-                  isValidSpacePluginId,
-                ),
-              }
-            }
-            return undefined
-          },
-        )
-      } catch {
-        existingSettings = undefined
-      }
-    }
+  await applyQuickstartOps(spaceWorld, [op], abortSignal, timing, phasePrefix)
+}
 
-    const requestedPluginIds = pluginIds ?? []
-    const invalidPluginId = requestedPluginIds.find(
-      (pluginId) => !isValidSpacePluginId(pluginId),
+// spaceSettingsOp builds the op that writes the Space settings with indexPath
+// and pluginIds merged over the existing settings, so a seed can apply it in
+// one batch with the ops that create what the index names.
+async function spaceSettingsOp(
+  spaceWorld: IWorldState,
+  abortSignal?: AbortSignal,
+  indexPath?: string,
+  pluginIds?: string[],
+  timing?: QuickstartSetupTiming,
+  phasePrefix = 'create-space-settings',
+): Promise<QuickstartOp> {
+  const existingSettings = await readSpaceSettings(
+    spaceWorld,
+    abortSignal,
+    timing,
+    phasePrefix,
+  )
+  const requestedPluginIds = pluginIds ?? []
+  const invalidPluginId = requestedPluginIds.find(
+    (pluginId) => !isValidSpacePluginId(pluginId),
+  )
+  if (invalidPluginId !== undefined) {
+    throw new Error(
+      `quickstart returned invalid plugin id with length ${invalidPluginId.length}`,
     )
-    if (invalidPluginId !== undefined) {
-      throw new Error(
-        `quickstart returned invalid plugin id with length ${invalidPluginId.length}`,
-      )
-    }
-    const mergedPluginIds = Array.from(
+  }
+  const settings: SpaceSettings = {
+    indexPath: indexPath ?? existingSettings?.indexPath ?? '',
+    pluginIds: Array.from(
       new Set([...(existingSettings?.pluginIds ?? []), ...requestedPluginIds]),
-    )
-    const settings: SpaceSettings = {
-      indexPath: indexPath ?? existingSettings?.indexPath ?? '',
-      pluginIds: mergedPluginIds,
-    }
-    await applyQuickstartWorldOp(
-      spaceWorld,
-      {
-        opTypeId: SET_SPACE_SETTINGS_OP_ID,
-        opData: SetSpaceSettingsOp.toBinary({
-          objectKey: SPACE_SETTINGS_OBJECT_KEY,
-          settings,
-          overwrite: true,
-          timestamp: new Date(),
-        }),
-      },
-      abortSignal,
-      timing,
-      phasePrefix,
-    )
-  } finally {
-    existing?.release()
+    ),
+  }
+  return {
+    opTypeId: SET_SPACE_SETTINGS_OP_ID,
+    opData: SetSpaceSettingsOp.toBinary({
+      objectKey: SPACE_SETTINGS_OBJECT_KEY,
+      settings,
+      overwrite: true,
+      timestamp: new Date(),
+    }),
   }
 }
 
@@ -1220,12 +1274,16 @@ async function initKvQuickstart(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  await createEmptyTypedObject(
-    spaceWorld,
-    KV_QUICKSTART_STORE_KEY,
-    KvStoreTypeID,
-    abortSignal,
-  )
+  if (
+    !(await hasSeedObject(spaceWorld, KV_QUICKSTART_STORE_KEY, abortSignal))
+  ) {
+    await createEmptyTypedObject(
+      spaceWorld,
+      KV_QUICKSTART_STORE_KEY,
+      KvStoreTypeID,
+      abortSignal,
+    )
+  }
   const store = await openQuickstartHandle(
     spaceWorld,
     KV_QUICKSTART_STORE_KEY,
@@ -1411,22 +1469,26 @@ function indexPathMutation(indexPath: string): QuickstartOp {
   }
 }
 
-// applyQuickstartWorldOp applies one World op. A World with a live Engine
-// takes it as a one-op batch, so the writer is held only inside the call.
-async function applyQuickstartWorldOp(
+// applyQuickstartOps applies a seed's World ops. A World with a live Engine
+// takes them as one batch, so they land together or not at all and the writer
+// is held only inside the call.
+async function applyQuickstartOps(
   spaceWorld: IWorldState,
-  op: QuickstartOp,
+  ops: QuickstartOp[],
   abortSignal: AbortSignal | undefined,
   timing: QuickstartSetupTiming | undefined,
   phasePrefix: string,
 ): Promise<void> {
   const engine = spaceWorld.getEngine?.()
   await timeQuickstartPhase(timing, phasePrefix + '-apply-op', async () => {
-    if (!engine) {
-      await spaceWorld.applyWorldOp(op.opTypeId, op.opData, '', abortSignal)
+    if (engine) {
+      await applyQuickstartBatch(engine, ops, abortSignal)
       return
     }
-    await applyQuickstartBatch(engine, [op], abortSignal)
+    for (const op of ops) {
+      // eslint-disable-next-line react-doctor/async-await-in-loop -- a World without an Engine applies the ops in order.
+      await spaceWorld.applyWorldOp(op.opTypeId, op.opData, '', abortSignal)
+    }
   })
 }
 
@@ -1437,22 +1499,25 @@ async function initGitQuickstart(
 ): Promise<void> {
   const now = new Date()
   const wizardKey = wizardObjectKey('Repository ' + now.getTime().toString(36))
-  const op: CreateWizardObjectOp = {
-    objectKey: wizardKey,
-    wizardTypeId: 'wizard/git/repo',
-    targetTypeId: 'git/repo',
-    targetKeyPrefix: 'git/repo/',
-    name: 'Repository',
-    timestamp: now,
-  }
-  const opData = CreateWizardObjectOp.toBinary(op)
-  await setup.spaceWorld.applyWorldOp(
-    CREATE_WIZARD_OBJECT_OP_ID,
-    opData,
-    '',
+  await applyIndexedSeed(
+    setup.spaceWorld,
+    [
+      {
+        opTypeId: CREATE_WIZARD_OBJECT_OP_ID,
+        opData: CreateWizardObjectOp.toBinary({
+          objectKey: wizardKey,
+          wizardTypeId: 'wizard/git/repo',
+          targetTypeId: 'git/repo',
+          targetKeyPrefix: 'git/repo/',
+          name: 'Repository',
+          timestamp: now,
+        }),
+      },
+    ],
+    wizardKey,
+    undefined,
     abortSignal,
   )
-  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, wizardKey)
 }
 
 // initChatQuickstart creates a chat channel in the space.
@@ -1460,16 +1525,20 @@ async function initChatQuickstart(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const op: InitChatDemoOp = {
-    channelObjectKey: CHAT_DEMO_CHANNEL_KEY,
-    timestamp: new Date(),
-  }
-  const opData = InitChatDemoOp.toBinary(op)
-  await spaceWorld.applyWorldOp(INIT_CHAT_DEMO_OP_ID, opData, '', abortSignal)
-  await createSpaceSettingsObject(
+  await applyIndexedSeed(
     spaceWorld,
-    abortSignal,
+    [
+      {
+        opTypeId: INIT_CHAT_DEMO_OP_ID,
+        opData: InitChatDemoOp.toBinary({
+          channelObjectKey: CHAT_DEMO_CHANNEL_KEY,
+          timestamp: new Date(),
+        }),
+      },
+    ],
     CHAT_DEMO_CHANNEL_KEY,
+    undefined,
+    abortSignal,
   )
 }
 
@@ -1481,26 +1550,31 @@ async function initV86Quickstart(
   const now = new Date()
   const wizardKey = buildV86QuickstartWizardKey(now)
   const config = buildV86QuickstartWizardConfig()
-  await setup.spaceWorld.applyWorldOp(
-    CREATE_WIZARD_OBJECT_OP_ID,
-    CreateWizardObjectOp.toBinary({
-      objectKey: wizardKey,
-      wizardTypeId: V86_WIZARD_TYPE_ID,
-      targetTypeId: VmV86TypeID,
-      targetKeyPrefix: V86_WIZARD_TARGET_KEY_PREFIX,
-      name: 'VM',
-      timestamp: now,
-      initialStep: 1,
-      initialConfigData: V86WizardConfig.toBinary(config),
-    }),
-    '',
+  await applyIndexedSeed(
+    setup.spaceWorld,
+    [
+      {
+        opTypeId: CREATE_WIZARD_OBJECT_OP_ID,
+        opData: CreateWizardObjectOp.toBinary({
+          objectKey: wizardKey,
+          wizardTypeId: V86_WIZARD_TYPE_ID,
+          targetTypeId: VmV86TypeID,
+          targetKeyPrefix: V86_WIZARD_TARGET_KEY_PREFIX,
+          name: 'VM',
+          timestamp: now,
+          initialStep: 1,
+          initialConfigData: V86WizardConfig.toBinary(config),
+        }),
+      },
+    ],
+    wizardKey,
+    [V86_PLUGIN_ID],
     abortSignal,
   )
-  await createSpaceSettingsObject(setup.spaceWorld, abortSignal, wizardKey, [
-    V86_PLUGIN_ID,
-  ])
 }
 
+// initDeviceQuickstart creates the Computers dashboard and an Add Device
+// wizard, and indexes the Space to the dashboard.
 async function initDeviceQuickstart(
   setup: QuickstartSetup,
   abortSignal?: AbortSignal,
@@ -1508,45 +1582,64 @@ async function initDeviceQuickstart(
 ): Promise<void> {
   const now = new Date()
   const wizardKey = wizardObjectKey('Add Device ' + now.getTime().toString(36))
-  // eslint-disable-next-line react-doctor/async-parallel -- quickstart world ops stay ordered so routing observes the dashboard before the wizard.
-  await applyQuickstartWorldOp(
+  // The dashboard precedes the wizard so routing observes it first.
+  await applyIndexedSeed(
     setup.spaceWorld,
-    {
-      opTypeId: CREATE_COMPUTERS_DASHBOARD_OP_ID,
-      opData: CreateComputersDashboardOp.toBinary({
-        objectKey: DEVICE_QUICKSTART_DASHBOARD_KEY,
-        name: 'Computers',
-        timestamp: now,
-      }),
-    },
-    abortSignal,
-    timing,
-    'create-device-dashboard',
-  )
-  await applyQuickstartWorldOp(
-    setup.spaceWorld,
-    {
-      opTypeId: CREATE_WIZARD_OBJECT_OP_ID,
-      opData: CreateWizardObjectOp.toBinary({
-        objectKey: wizardKey,
-        wizardTypeId: AddDeviceWizardTypeID,
-        targetTypeId: DeviceTypeID,
-        targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
-        name: AddDeviceDefaultName,
-        timestamp: now,
-      }),
-    },
-    abortSignal,
-    timing,
-    'create-device-wizard',
-  )
-  await createSpaceSettingsObject(
-    setup.spaceWorld,
-    abortSignal,
+    [
+      {
+        opTypeId: CREATE_COMPUTERS_DASHBOARD_OP_ID,
+        opData: CreateComputersDashboardOp.toBinary({
+          objectKey: DEVICE_QUICKSTART_DASHBOARD_KEY,
+          name: 'Computers',
+          timestamp: now,
+        }),
+      },
+      {
+        opTypeId: CREATE_WIZARD_OBJECT_OP_ID,
+        opData: CreateWizardObjectOp.toBinary({
+          objectKey: wizardKey,
+          wizardTypeId: AddDeviceWizardTypeID,
+          targetTypeId: DeviceTypeID,
+          targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
+          name: AddDeviceDefaultName,
+          timestamp: now,
+        }),
+      },
+    ],
     DEVICE_QUICKSTART_DASHBOARD_KEY,
     undefined,
+    abortSignal,
     timing,
-    'create-device-settings',
+    'create-device',
+  )
+}
+
+// applyIndexedSeed applies a seed's ops and the settings write that indexes
+// the Space at indexPath as one batch. The index marks the seed applied, so
+// the seed lands whole or not at all and repeating it after a failure is safe.
+async function applyIndexedSeed(
+  spaceWorld: IWorldState,
+  ops: QuickstartOp[],
+  indexPath: string,
+  pluginIds: string[] | undefined,
+  abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
+  phasePrefix = 'seed',
+): Promise<void> {
+  const settingsOp = await spaceSettingsOp(
+    spaceWorld,
+    abortSignal,
+    indexPath,
+    pluginIds,
+    timing,
+    phasePrefix + '-settings',
+  )
+  await applyQuickstartOps(
+    spaceWorld,
+    [...ops, settingsOp],
+    abortSignal,
+    timing,
+    phasePrefix,
   )
 }
 
@@ -1558,26 +1651,27 @@ async function initForgeQuickstart(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const layoutKey = 'forge'
+  if (!(await hasSeedObject(setup.spaceWorld, layoutKey, abortSignal))) {
+    // Get the session peer ID for worker registration.
+    const sessionInfo = await setup.session.getSessionInfo(abortSignal)
+    const sessionPeerId = sessionInfo.peerId ?? ''
 
-  // Get the session peer ID for worker registration.
-  const sessionInfo = await setup.session.getSessionInfo(abortSignal)
-  const sessionPeerId = sessionInfo.peerId ?? ''
-
-  const op: InitForgeQuickstartOp = {
-    layoutKey,
-    dashboardKey: 'dashboard',
-    clusterKey: 'cluster',
-    clusterName: 'default',
-    workerKey: 'session-worker',
-    sessionPeerId,
-    timestamp: new Date(),
+    const op: InitForgeQuickstartOp = {
+      layoutKey,
+      dashboardKey: 'dashboard',
+      clusterKey: 'cluster',
+      clusterName: 'default',
+      workerKey: 'session-worker',
+      sessionPeerId,
+      timestamp: new Date(),
+    }
+    const opData = InitForgeQuickstartOp.toBinary(op)
+    await setup.spaceWorld.applyWorldOp(
+      INIT_FORGE_QUICKSTART_OP_ID,
+      opData,
+      sessionPeerId,
+      abortSignal,
+    )
   }
-  const opData = InitForgeQuickstartOp.toBinary(op)
-  await setup.spaceWorld.applyWorldOp(
-    INIT_FORGE_QUICKSTART_OP_ID,
-    opData,
-    sessionPeerId,
-    abortSignal,
-  )
   await createSpaceSettingsObject(setup.spaceWorld, abortSignal, layoutKey)
 }
