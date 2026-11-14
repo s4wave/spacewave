@@ -1,0 +1,42 @@
+[
+  {
+    "name": "a handle failure drops the canvas it held",
+    "replace": [
+      [
+        "  /\\ watch' = \"none\"\n  /\\ UNCHANGED <<kept, nodes, pending, action>>",
+        "  /\\ watch' = \"none\"\n  /\\ kept' = FALSE\n  /\\ UNCHANGED <<nodes, pending, action>>"
+      ]
+    ],
+    "expect": "PendingDrawn"
+  },
+  {
+    "name": "the notice and the body both draw a failure",
+    "replace": [
+      [
+        "  CASE Body # \"stage\" -> \"none\"\n    [] Reported # \"none\" -> \"failed\"",
+        "  CASE Reported # \"none\" -> \"failed\"\n    [] Body # \"stage\" -> \"none\""
+      ]
+    ],
+    "expect": "EachFailureDrawnOnce"
+  },
+  {
+    "name": "an edit shows before a canvas arrives",
+    "replace": [
+      [
+        "    \\cup (IF Body = \"stage\" THEN {\"edit\"} ELSE {})",
+        "    \\cup (IF Body # \"failed\" THEN {\"edit\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "Retry of the watch shows while the handle has failed",
+    "replace": [
+      [
+        "    \\cup (IF Reported = \"watch\" THEN {\"retryWatch\"} ELSE {})",
+        "    \\cup (IF watch = \"failed\" \\/ handle = \"failed\" THEN {\"retryWatch\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  }
+]

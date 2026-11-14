@@ -17,6 +17,11 @@ import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
+import { ViewerStage } from '@s4wave/web/object/ViewerFloat.js'
+import {
+  ViewerStatus,
+  resourceStatus,
+} from '@s4wave/web/object/ViewerStatus.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { getObjectTypeLabel } from '@s4wave/web/space/object-tree.js'
 import { useUnixFSRootHandle } from '@s4wave/web/hooks/useUnixFSHandle.js'
@@ -56,6 +61,14 @@ import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
 export { CanvasTypeID }
 
 const graphLinkLookupLimit = 100
+
+// canvasWatchOptions reopens the state watch after a failure and keeps the
+// last canvas while it backs off.
+const canvasWatchOptions = { reconnect: true }
+
+// sendFailedMessage is the notice for an edit the canvas did not accept.
+const sendFailedMessage =
+  'Could not save the last change to this canvas, so it was undone.'
 
 function isAbortError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
@@ -238,11 +251,15 @@ export function CanvasViewer({
     CanvasHandle,
   )
 
-  // Watch canvas state via streaming RPC.
+  // Watch canvas state via streaming RPC. The watch reports the handle's
+  // failure as its own, with the handle's Retry, so the viewer reads one
+  // failure from it. It reconnects after a failure, keeping the canvas drawn
+  // while it backs off. CanvasViewer.tla holds these states.
   const canvasStateResource = useStreamingResource(
     canvasResource,
     (handle, signal) => handle.watchState(signal),
     [],
+    canvasWatchOptions,
   )
 
   const canvasStateData = useMemo(
@@ -328,11 +345,7 @@ export function CanvasViewer({
   } = useCanvasMutationQueue(
     canvasStateData,
     canvasResource.value ? sendMutation : null,
-    () => {
-      setGraphLinkActionError(
-        'Canvas graph-link update failed. The optimistic change was rolled back.',
-      )
-    },
+    () => setGraphLinkActionError(sendFailedMessage),
   )
 
   // Query ephemeral edges for selected world_object nodes.
@@ -557,11 +570,22 @@ export function CanvasViewer({
     [objectKey, worldState, handleViewPathChange],
   )
 
+  // Each edit clears the notice of an earlier failed one: the person has
+  // moved on, and a new failure draws its own.
   const callbacks: CanvasCallbacks = useMemo(
     () => ({
-      onNodesChange: enqueueNodesChange,
-      onNodesRemove: enqueueNodesRemove,
-      onEdgesChange: enqueueEdgesAdd,
+      onNodesChange: (nodes) => {
+        setGraphLinkActionError(null)
+        enqueueNodesChange(nodes)
+      },
+      onNodesRemove: (ids) => {
+        setGraphLinkActionError(null)
+        enqueueNodesRemove(ids)
+      },
+      onEdgesChange: (edges) => {
+        setGraphLinkActionError(null)
+        enqueueEdgesAdd(edges)
+      },
       onNodeSelect: handleNodeSelect,
       onPinObject: handlePinObject,
       onFocusObject: handleFocusObject,
@@ -582,34 +606,53 @@ export function CanvasViewer({
     ],
   )
 
-  if (canvasResource.loading || !canvasStateData) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center">
-        Loading canvas…
-      </div>
-    )
+  // Until a canvas arrives, its wait or its failure takes the body.
+  if (!canvasStateData) {
+    const status = resourceStatus('the canvas', canvasStateResource)
+    if (status?.state === 'failed') return <ViewerStatus {...status} />
+    return <ViewerStatus state="waiting" what="the canvas" rows={0} />
   }
 
+  // Once one arrived the stage keeps it, with the edits the person made: a
+  // failed read is a notice above it, and a reconnecting watch a line.
+  const readError = canvasStateResource.error
+  const empty = effectiveState.nodes.size === 0
   return (
-    <div className="relative h-full w-full">
+    <div className="flex h-full w-full flex-col">
+      {readError ? (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the canvas: ${readError.message}`}
+          retry={canvasStateResource.retry}
+        />
+      ) : canvasStateResource.loading ? (
+        <ViewerStatus state="waiting" what="the canvas again" rows={0} />
+      ) : null}
       {graphLinkActionError && (
-        <div className="border-destructive/20 bg-background-card/90 text-destructive pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-md border px-3 py-2 text-xs shadow-lg backdrop-blur-sm">
-          {graphLinkActionError}
-        </div>
+        <ViewerStatus state="failed" message={graphLinkActionError} />
       )}
-      <Canvas
-        state={effectiveState}
-        ephemeralEdges={ephemeralEdges.length > 0 ? ephemeralEdges : undefined}
-        callbacks={callbacks}
-        pendingMutations={pending}
-        objectSubItems={spaceContainer ? objectSubItems : undefined}
-        imageObjectKey={
-          unixfsRoot.value ? (unixfsObjectKey ?? undefined) : undefined
-        }
-        imageSubItems={unixfsRoot.value ? imageSubItems : undefined}
-        focusNodeId={focusNodeId}
-        className="h-full w-full"
-      />
+      <ViewerStage media="still">
+        {empty && (
+          <p className="text-foreground-alt pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 text-center text-xs">
+            Empty canvas. Pick a tool on the left to add an object.
+          </p>
+        )}
+        <Canvas
+          state={effectiveState}
+          ephemeralEdges={
+            ephemeralEdges.length > 0 ? ephemeralEdges : undefined
+          }
+          callbacks={callbacks}
+          pendingMutations={pending}
+          objectSubItems={spaceContainer ? objectSubItems : undefined}
+          imageObjectKey={
+            unixfsRoot.value ? (unixfsObjectKey ?? undefined) : undefined
+          }
+          imageSubItems={unixfsRoot.value ? imageSubItems : undefined}
+          focusNodeId={focusNodeId}
+          className="h-full w-full"
+        />
+      </ViewerStage>
     </div>
   )
 }
