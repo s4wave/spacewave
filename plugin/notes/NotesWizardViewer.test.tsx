@@ -91,7 +91,18 @@ vi.mock('./blog-seed.js', () => ({
   createBlogClientSide: h.createBlogClientSide,
 }))
 
+// deleteWizard is spied on, passing through, to check each Finish hands it
+// the wizard and the object that replaces it in the Space index.
+vi.mock('@s4wave/app/wizard/wizard-space-index.js', async (importOriginal) => {
+  const mod =
+    await importOriginal<
+      typeof import('@s4wave/app/wizard/wizard-space-index.js')
+    >()
+  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
+})
+
 import { NotesWizardViewer } from './NotesWizardViewer.js'
+import { deleteWizard } from '@s4wave/app/wizard/wizard-space-index.js'
 
 describe('NotesWizardViewer', () => {
   beforeEach(() => {
@@ -142,6 +153,10 @@ describe('NotesWizardViewer', () => {
     )
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/notes/test')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['notebook-1'])
+    expect(deleteWizard).toHaveBeenCalledWith(
+      expect.objectContaining({ objectKey: 'wizard/notes/test' }),
+      'notebook-1',
+    )
     expect(h.toastSuccess).toHaveBeenCalledWith('Created Notebook')
   })
 

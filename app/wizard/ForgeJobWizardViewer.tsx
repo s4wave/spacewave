@@ -8,6 +8,7 @@ import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
+import { deleteWizard } from './wizard-space-index.js'
 import { WizardShell } from './WizardShell.js'
 
 export const ForgeJobWizardTypeID = 'wizard/forge/job'
@@ -57,7 +58,7 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
         opData,
         ws.sessionPeerId,
       )
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, jobKey)
       toast.success(`Created ${ws.localName}`)
       ws.navigateToObjects([jobKey])
     } catch (err) {

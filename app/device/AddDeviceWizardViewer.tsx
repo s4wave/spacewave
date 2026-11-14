@@ -28,7 +28,6 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import {
   SecretKindSSHPassword,
@@ -52,9 +51,9 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 
-import { applySpaceIndexPath } from '../space/space-settings.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
+import { deleteWizard } from '../wizard/wizard-space-index.js'
 import type { UseWizardStateResult } from '../wizard/useWizardState.js'
 import { WizardShell } from '../wizard/WizardShell.js'
 import { WizardField } from '../wizard/WizardField.js'
@@ -173,6 +172,11 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const deviceKeys = computers?.devices ?? noKeys
   const dashboardKey = computers?.dashboards[0] ?? ''
 
+  // Finish moves the Space index off the wizard before deleting it, so it
+  // waits until the World has said which Computers dashboard takes its place.
+  const computersKnown = computers !== null
+
+  // Save a config edit locally and on the wizard object.
   const handleConfigUpdate = useCallback(
     async (next: AddDeviceWizardConfig, step?: number) => {
       ws.handleConfigDataChange(encodeConfig(next))
@@ -243,14 +247,11 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   }, [mode, ws])
 
   const handleFinishSpaceLink = useCallback(async () => {
-    if (!state || ws.creating) return
+    if (!state || !computersKnown || ws.creating) return
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      if (dashboardKey) {
-        await replaceSpaceIndexIfWizardIsCurrent(ws, dashboardKey)
-      }
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, dashboardKey)
       const deviceKey = deviceKeys[0] ?? ''
       const openKey = deviceKey || dashboardKey
       if (openKey) ws.navigateToObjects([openKey])
@@ -261,7 +262,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     } finally {
       ws.setCreating(false)
     }
-  }, [dashboardKey, deviceKeys, state, ws])
+  }, [computersKnown, dashboardKey, deviceKeys, state, ws])
 
   const createSshHostTerminalObjects = useCallback(
     async (terminalCommand?: string) => {
@@ -346,7 +347,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   )
 
   const handleCreateSshHost = useCallback(async () => {
-    if (!state || ws.creating) return
+    if (!state || !computersKnown || ws.creating) return
     const error = getSshCreateError(sshConfig, sshCredentialDraft)
     if (error) {
       setOperationError(error)
@@ -359,10 +360,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     try {
       const { hostObjectKey, terminalObjectKey } =
         await createSshHostTerminalObjects()
-      if (dashboardKey) {
-        await replaceSpaceIndexIfWizardIsCurrent(ws, dashboardKey)
-      }
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, dashboardKey)
       toast.success('SSH Host added')
       ws.navigateToObjects([terminalObjectKey || hostObjectKey])
     } catch {
@@ -373,6 +371,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       ws.setCreating(false)
     }
   }, [
+    computersKnown,
     createSshHostTerminalObjects,
     dashboardKey,
     sshConfig,
@@ -394,15 +393,23 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     void handleFinishSpaceLink()
   }, [handleCreateSshHost, handleFinishSpaceLink, isSshInstallMode, mode])
 
-  const handleCancel = useCallback(() => {
-    void ws.handleCancel()
-  }, [ws])
+  // Cancel stays available while the computers read is unknown: it then clears
+  // a Space index that names the wizard instead of waiting for the dashboard,
+  // since an empty index opens the object list and never names a deleted object.
+  const handleCancel = useCallback(async () => {
+    try {
+      await ws.handleCancel(dashboardKey)
+    } catch {
+      setOperationError('Device setup could not be deleted. Try again.')
+    }
+  }, [dashboardKey, ws])
 
   return {
     approvalError,
     busy,
     completeCommand,
     completion,
+    computersKnown,
     computersResource,
     config,
     currentStep,
@@ -453,7 +460,6 @@ function AddDeviceWizardSteps({
     approvalError,
     busy,
     completeCommand,
-    computersResource,
     config,
     currentStep,
     deviceKeys,
@@ -569,13 +575,6 @@ function AddDeviceWizardSteps({
             command={completeCommand}
             icon={<LuTerminal className="size-3.5" />}
           />
-          {computersResource.error && (
-            <ViewerStatus
-              state="failed"
-              message={`Could not read the Device objects: ${computersResource.error.message}`}
-              retry={computersResource.retry}
-            />
-          )}
           {deviceKeys.length > 0 && (
             <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
               <div className="text-foreground text-xs font-medium">
@@ -597,6 +596,7 @@ function AddDeviceWizardSteps({
           )}
         </section>
       )}
+      <ComputersReadStatus controller={controller} />
       {(operationError || isOpeningStep) && (
         <div
           className={cn(
@@ -655,6 +655,33 @@ function wizardCopy(
   }
 }
 
+// ComputersReadStatus tells the finishing step what Finish waits on: the read
+// of the Space's Devices and Computers dashboard, or its failure with Retry.
+// It shows only on the finishing step, and nothing once the read is known.
+function ComputersReadStatus({
+  controller,
+}: {
+  controller: AddDeviceWizardController
+}) {
+  const { computersResource: resource, currentStep, mode } = controller
+  if (currentStep !== (mode === 'ssh' ? 1 : 2)) return null
+  if (resource.error) {
+    return (
+      <ViewerStatus
+        state="failed"
+        message={`Could not read the Space's computers: ${resource.error.message}`}
+        retry={resource.retry}
+      />
+    )
+  }
+  if (resource.value === null) {
+    return (
+      <ViewerStatus state="waiting" what="the Space's computers" rows={0} />
+    )
+  }
+  return null
+}
+
 // AddDeviceWizardContent selects the loading state and configures the shared
 // wizard shell.
 function AddDeviceWizardContent({
@@ -664,6 +691,7 @@ function AddDeviceWizardContent({
 }) {
   const {
     completion,
+    computersKnown,
     currentStep,
     handleCancel,
     handleFinalize,
@@ -719,10 +747,11 @@ function AddDeviceWizardContent({
       creatingLabel={copy.creatingLabel}
       onFinalize={handleFinalize}
       canFinalize={
-        mode === 'ssh'
+        computersKnown &&
+        (mode === 'ssh'
           ? !isSshInstallMode &&
             !getSshCreateError(sshConfig, sshCredentialDraft)
-          : !!completion
+          : !!completion)
       }
       onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
       nextBusyLabel={copy.nextBusyLabel}
@@ -1393,21 +1422,6 @@ function isUnimplementedRpcError(error: unknown): boolean {
     typeof error.rpcError === 'string' &&
     /\bunimplemented\b|\bmethod not implemented\b/i.test(error.rpcError)
   )
-}
-
-async function replaceSpaceIndexIfWizardIsCurrent(
-  ws: UseWizardStateResult,
-  dashboardKey: string,
-) {
-  if (
-    parseObjectUri(ws.spaceSettings?.indexPath ?? '').objectKey !== ws.objectKey
-  ) {
-    return
-  }
-  await applySpaceIndexPath(ws.spaceWorld, dashboardKey, {
-    sender: ws.sessionPeerId,
-    expectedIndexPath: ws.spaceSettings?.indexPath ?? '',
-  })
 }
 
 async function createSshCredentialSecrets({

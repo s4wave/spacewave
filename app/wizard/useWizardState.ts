@@ -14,6 +14,8 @@ import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import type { WizardState } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 
+import { deleteWizard } from './wizard-space-index.js'
+
 // UseWizardStateResult is the return type of useWizardState.
 export interface UseWizardStateResult {
   objectKey: string
@@ -34,7 +36,9 @@ export interface UseWizardStateResult {
   handleConfigDataChange: (data: Uint8Array) => void
   handleUpdateName: (name: string) => void
   handleBack: () => Promise<void>
-  handleCancel: () => Promise<void>
+  // handleCancel deletes the wizard. A Space index that names the wizard moves
+  // to indexPath first, or is cleared when indexPath is omitted.
+  handleCancel: (indexPath?: string) => Promise<void>
 }
 
 // useWizardState encapsulates the shared wizard resource access, local name
@@ -124,9 +128,16 @@ export function useWizardState(
     if (step > 0) void handle.updateState({ step: step - 1 })
   }, [persistDraftState, wizardResource, state])
 
-  const handleCancel = useCallback(async () => {
-    await spaceWorld.deleteObject(objectKey)
-  }, [spaceWorld, objectKey])
+  const spaceSettings = spaceState.settings
+  const handleCancel = useCallback(
+    async (indexPath = '') => {
+      await deleteWizard(
+        { objectKey, spaceWorld, spaceSettings, sessionPeerId },
+        indexPath,
+      )
+    },
+    [objectKey, sessionPeerId, spaceSettings, spaceWorld],
+  )
 
   return {
     objectKey,
@@ -136,7 +147,7 @@ export function useWizardState(
     setCreating,
     sessionPeerId,
     spaceWorld,
-    spaceSettings: spaceState.settings,
+    spaceSettings,
     navigateToObjects,
     wizardResource,
     configEditor,

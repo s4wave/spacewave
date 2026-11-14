@@ -12,7 +12,15 @@ import {
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
 
+// deleteWizard is spied on, passing through, to check each Finish hands it
+// the wizard and the object that replaces it in the Space index.
+vi.mock('./wizard-space-index.js', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
+  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
+})
+
 import { GitRepoWizardViewer } from './GitRepoWizardViewer.js'
+import { deleteWizard } from './wizard-space-index.js'
 
 const h = vi.hoisted(() => ({
   isDesktop: false,
@@ -275,6 +283,10 @@ describe('GitRepoWizardViewer', () => {
 
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1'])
+    expect(deleteWizard).toHaveBeenCalledWith(
+      expect.objectContaining({ objectKey: 'wizard/git/repo/test' }),
+      'cli-1',
+    )
   })
 
   it('does not promote a created repo when the wizard is not the indexed surface', async () => {

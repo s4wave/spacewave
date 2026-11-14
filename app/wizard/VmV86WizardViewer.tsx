@@ -380,6 +380,7 @@ interface UseV86FinalizeArgs {
   localName: string
   sessionPeerId: string
   objectKey: string
+  spaceIndexPath: string
   cdnImage: V86Image | undefined
   persistDraftState: () => Promise<void>
   startCreation: (request: VmCreationRequest) => void
@@ -396,6 +397,7 @@ function useV86Finalize({
   localName,
   sessionPeerId,
   objectKey,
+  spaceIndexPath,
   cdnImage,
   persistDraftState,
   startCreation,
@@ -431,6 +433,7 @@ function useV86Finalize({
           vmName: localName,
           sessionPeerId,
           wizardObjectKey: objectKey,
+          spaceIndexPath,
           root,
           cdnImage,
           spaceWorld,
@@ -450,6 +453,7 @@ function useV86Finalize({
     root,
     cdnImage,
     objectKey,
+    spaceIndexPath,
     spaceWorld,
     persistDraftState,
     startCreation,
@@ -554,6 +558,7 @@ export function VmV86WizardViewer({
     objectKey,
     persistDraftState,
     sessionPeerId,
+    spaceSettings,
     state,
     wizardResource,
   } = useWizardState({ objectInfo, worldState }, undefined)
@@ -590,6 +595,7 @@ export function VmV86WizardViewer({
     localName,
     sessionPeerId,
     objectKey,
+    spaceIndexPath: spaceSettings?.indexPath ?? '',
     cdnImage,
     persistDraftState,
     startCreation,

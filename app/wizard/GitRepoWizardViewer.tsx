@@ -7,15 +7,14 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
-import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import {
   GitCloneProgressState,
   type GitCloneProgress,
 } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
-import { applySpaceIndexPath } from '../space/space-settings.js'
 import { useWizardState } from './useWizardState.js'
+import { deleteWizard } from './wizard-space-index.js'
 import { WizardShell } from './WizardShell.js'
 
 export const GitRepoWizardTypeID = 'wizard/git/repo'
@@ -116,8 +115,7 @@ function useGitRepoFinalize(
         opData,
         ws.sessionPeerId,
       )
-      await replaceSpaceIndexIfWizardIsCurrent(ws, repoKey)
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, repoKey)
       toast.success(`Created ${ws.localName}`)
       ws.navigateToObjects([repoKey])
     } catch (err) {
@@ -244,21 +242,6 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       )}
     </WizardShell>
   )
-}
-
-async function replaceSpaceIndexIfWizardIsCurrent(
-  ws: WizardState,
-  objectKey: string,
-) {
-  if (
-    parseObjectUri(ws.spaceSettings?.indexPath ?? '').objectKey !== ws.objectKey
-  ) {
-    return
-  }
-  await applySpaceIndexPath(ws.spaceWorld, objectKey, {
-    sender: ws.sessionPeerId,
-    expectedIndexPath: ws.spaceSettings?.indexPath ?? '',
-  })
 }
 
 function GitCloneProgressStep({

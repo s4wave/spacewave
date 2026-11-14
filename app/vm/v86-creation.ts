@@ -25,6 +25,7 @@ import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 import { buildObjectKey } from '../space/create-op-builders.js'
+import { deleteWizard } from '../wizard/wizard-space-index.js'
 import {
   DEFAULT_V86_MEMORY_MB,
   DEFAULT_V86_VGA_MEMORY_MB,
@@ -61,6 +62,8 @@ export interface VmCreationRequest {
   networking: boolean
   sessionPeerId: string
   wizardObjectKey: string
+  // spaceIndexPath is the Space index the wizard read when Finish started.
+  spaceIndexPath: string
   root?: Root
 }
 
@@ -150,6 +153,7 @@ export interface BuildVmCreationRequestArgs {
   vmName: string
   sessionPeerId: string
   wizardObjectKey: string
+  spaceIndexPath: string
   root: Root | null | undefined
   cdnImage: V86Image | undefined
   spaceWorld: IWorldState
@@ -162,6 +166,7 @@ export async function buildVmCreationRequest({
   vmName,
   sessionPeerId,
   wizardObjectKey,
+  spaceIndexPath,
   root,
   cdnImage,
   spaceWorld,
@@ -184,6 +189,7 @@ export async function buildVmCreationRequest({
     networking: cfg.networking ?? false,
     sessionPeerId,
     wizardObjectKey,
+    spaceIndexPath,
     root: root ?? undefined,
   }
 }
@@ -239,7 +245,8 @@ async function linkCdnV86Image(
 }
 
 // runVmCreation links the CDN image when requested, creates the VM, and
-// deletes the wizard, yielding each stage as it starts.
+// deletes the wizard, moving a Space index that names the wizard to the VM
+// first. It yields each stage as it starts.
 export async function* runVmCreation(
   world: EngineWorldState,
   request: VmCreationRequest,
@@ -271,6 +278,15 @@ export async function* runVmCreation(
     request.sessionPeerId,
     signal,
   )
-  await world.deleteObject(request.wizardObjectKey, signal)
+  await deleteWizard(
+    {
+      spaceWorld: world,
+      objectKey: request.wizardObjectKey,
+      sessionPeerId: request.sessionPeerId,
+      spaceSettings: { indexPath: request.spaceIndexPath },
+    },
+    request.vmKey,
+    signal,
+  )
   yield { stage: 'ready' }
 }

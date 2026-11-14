@@ -5,7 +5,15 @@ import userEvent from '@testing-library/user-event'
 
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { keysWorld } from '@s4wave/web/test/world-query.js'
+// deleteWizard is spied on, passing through, to check each Finish hands it
+// the wizard and the object that replaces it in the Space index.
+vi.mock('./wizard-space-index.js', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
+  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
+})
+
 import { ForgeTaskWizardViewer } from './ForgeTaskWizardViewer.js'
+import { deleteWizard } from './wizard-space-index.js'
 
 const h = vi.hoisted(() => ({
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
@@ -106,6 +114,10 @@ describe('ForgeTaskWizardViewer', () => {
     expect(decoded.name).toBe('Compile Task')
     expect(decoded.jobKey).toBe('forge/job/main')
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/forge/task/test')
+    expect(deleteWizard).toHaveBeenCalledWith(
+      expect.objectContaining({ objectKey: 'wizard/forge/task/test' }),
+      decoded.taskKey,
+    )
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.taskKey])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created task Compile Task')
   })

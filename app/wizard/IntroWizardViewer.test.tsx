@@ -8,7 +8,15 @@ import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
+// deleteWizard is spied on, passing through, to check each Finish hands it
+// the wizard and the object that replaces it in the Space index.
+vi.mock('./wizard-space-index.js', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
+  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
+})
+
 import { IntroWizardViewer } from './IntroWizardViewer.js'
+import { deleteWizard } from './wizard-space-index.js'
 import { driveIntroConfig } from './intro.js'
 
 const h = vi.hoisted(() => ({
@@ -132,6 +140,10 @@ describe('IntroWizardViewer', () => {
 
     expectAppliedIndexPath('files')
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/welcome-1')
+    expect(deleteWizard).toHaveBeenCalledWith(
+      expect.objectContaining({ objectKey: 'wizard/welcome-1' }),
+      'files',
+    )
     expect(h.navigateToObjects).toHaveBeenCalledWith(['files'])
   })
 

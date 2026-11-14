@@ -18,6 +18,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
+import { deleteWizard } from '@s4wave/app/wizard/wizard-space-index.js'
 import { WizardField } from '@s4wave/app/wizard/WizardField.js'
 import { WizardFieldFrame } from '@s4wave/app/wizard/WizardFieldFrame.js'
 import { wizardInputClassName } from '@s4wave/app/wizard/wizard-field-styles.js'
@@ -107,7 +108,7 @@ export default function WasiVmWizard(props: ObjectViewerComponentProps) {
         CreateWasiVmOp.toBinary(op),
         ws.sessionPeerId,
       )
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, objectKey)
       toast.success(`Created ${name}`)
       ws.navigateToObjects([objectKey])
     } catch (err) {

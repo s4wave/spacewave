@@ -6,6 +6,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { buildObjectKey } from '@s4wave/app/space/create-op-builders.js'
 import { WizardShell } from '@s4wave/app/wizard/WizardShell.js'
 import { useWizardState } from '@s4wave/app/wizard/useWizardState.js'
+import { deleteWizard } from '@s4wave/app/wizard/wizard-space-index.js'
 import { createBlogClientSide } from './blog-seed.js'
 import {
   buildNotebookUnixfsObjectKey,
@@ -85,7 +86,7 @@ export function NotesWizardViewer(props: ObjectViewerComponentProps) {
           new Date(),
         )
       }
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, targetKey)
       toast.success(`Created ${name}`)
       ws.navigateToObjects([targetKey])
     } catch (err) {

@@ -3,11 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useWizardState } from './useWizardState.js'
 
 const h = vi.hoisted(() => ({
   updateState: vi.fn().mockResolvedValue({}),
+  applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
+  deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
 }))
 
 let currentConfigData = new Uint8Array()
@@ -123,6 +127,31 @@ describe('useWizardState', () => {
       name: 'Renamed Repo',
     })
   })
+
+  it('moves an index naming the wizard before Cancel deletes it', async () => {
+    // The Space index names this wizard, so Cancel repoints it first.
+    const user = userEvent.setup()
+    renderHarness()
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
+
+    // The wizard is deleted after one index write.
+    await waitFor(() => expect(h.deleteObject).toHaveBeenCalled())
+    expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
+
+    // The write names the replacement and guards on the wizard's path.
+    const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
+    if (!(opData instanceof Uint8Array)) throw new Error('expected op bytes')
+    const op = SetSpaceIndexPathOp.fromBinary(opData)
+    expect(op.indexPath).toBe('git/repo/next')
+    expect(op.expectedIndexPath).toBe('wizard/git/repo/test')
+
+    // The index write lands before the delete.
+    expect(h.applyWorldOp.mock.invocationCallOrder[0]).toBeLessThan(
+      h.deleteObject.mock.invocationCallOrder[0] ?? 0,
+    )
+  })
 })
 
 function renderHarness() {
@@ -130,17 +159,24 @@ function renderHarness() {
 }
 
 function HarnessTree() {
+  const spaceWorld = {
+    applyWorldOp: h.applyWorldOp,
+    deleteObject: h.deleteObject,
+  }
   return (
     <SpaceContainerContext.Provider
       spaceId="space-1"
-      spaceState={{ ready: true }}
+      spaceState={{
+        ready: true,
+        settings: { indexPath: 'wizard/git/repo/test' },
+      }}
       spaceWorldResource={{
-        value: { deleteObject: vi.fn() } as never,
+        value: spaceWorld as never,
         loading: false,
         error: null,
         retry: vi.fn(),
       }}
-      spaceWorld={{ deleteObject: vi.fn() } as never}
+      spaceWorld={spaceWorld as never}
       navigateToRoot={vi.fn()}
       navigateToObjects={vi.fn()}
       buildObjectUrls={vi.fn()}
@@ -182,6 +218,12 @@ function Harness() {
       {ws.configEditor.element}
       <button type="button" onClick={() => void ws.persistDraftState()}>
         Persist
+      </button>
+      <button
+        type="button"
+        onClick={() => void ws.handleCancel('git/repo/next')}
+      >
+        Cancel
       </button>
     </>
   )

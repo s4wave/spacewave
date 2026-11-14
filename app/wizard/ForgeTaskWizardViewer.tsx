@@ -8,6 +8,7 @@ import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
+import { deleteWizard } from './wizard-space-index.js'
 import { WizardShell } from './WizardShell.js'
 
 export const ForgeTaskWizardTypeID = 'wizard/forge/task'
@@ -58,7 +59,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
         opData,
         ws.sessionPeerId,
       )
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, taskKey)
       toast.success(`Created task ${ws.localName}`)
       ws.navigateToObjects([taskKey])
     } catch (err) {

@@ -16,6 +16,7 @@ import { normalizeObjectWizards } from '../space/object-wizards.js'
 import { useObjectWizards } from '../space/useObjectWizards.js'
 
 import { useWizardState } from './useWizardState.js'
+import { deleteWizard } from './wizard-space-index.js'
 import { WizardShell } from './WizardShell.js'
 
 export const WizardTypePrefix = 'wizard/'
@@ -120,7 +121,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
         opData,
         ws.sessionPeerId,
       )
-      await ws.spaceWorld.deleteObject(ws.objectKey)
+      await deleteWizard(ws, targetKey)
       toast.success(`Created ${name}`)
       ws.navigateToObjects([targetKey])
     } catch (err) {

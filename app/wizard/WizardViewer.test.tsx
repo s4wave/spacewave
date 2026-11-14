@@ -100,7 +100,15 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
   },
 }))
 
+// deleteWizard is spied on, passing through, to check each Finish hands it
+// the wizard and the object that replaces it in the Space index.
+vi.mock('./wizard-space-index.js', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./wizard-space-index.js')>()
+  return { ...mod, deleteWizard: vi.fn(mod.deleteWizard) }
+})
+
 import { WizardViewer } from './WizardViewer.js'
+import { deleteWizard } from './wizard-space-index.js'
 
 describe('WizardViewer', () => {
   const mockSpace = {}
@@ -232,6 +240,10 @@ describe('WizardViewer', () => {
     expect(decoded.objectKey).toBe('demo-canvas-1')
     expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+    expect(deleteWizard).toHaveBeenCalledWith(
+      expect.objectContaining({ objectKey: 'wizard/test-canvas' }),
+      decoded.objectKey,
+    )
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Created Demo Canvas')
   })
 

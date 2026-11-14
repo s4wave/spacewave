@@ -47,8 +47,11 @@ import { keysWorld } from '@s4wave/web/test/world-query.js'
 import { ComputersDashboardTypeID } from './computers.js'
 
 const h = vi.hoisted(() => ({
+  computersError: null as Error | null,
+  computersRetry: vi.fn(),
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+  handleCancel: vi.fn().mockResolvedValue(undefined),
   navigateToObjects: vi.fn(),
   navigate: vi.fn(),
   updateState: vi.fn().mockResolvedValue(undefined),
@@ -101,7 +104,7 @@ vi.mock('../wizard/useWizardState.js', () => ({
     handleConfigDataChange: h.handleConfigDataChange,
     handleUpdateName: vi.fn(),
     handleBack: vi.fn(),
-    handleCancel: vi.fn(),
+    handleCancel: h.handleCancel,
   }),
 }))
 
@@ -168,7 +171,17 @@ vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
       _world: unknown,
       query: WorldQuery<T>,
       deps: DependencyList,
-    ) => useFakeWorldQuery(world, query, deps),
+    ) => {
+      const read = useFakeWorldQuery(world, query, deps)
+      if (!h.computersError) return read
+      return {
+        value: null,
+        loading: false,
+        error: h.computersError,
+        last: null,
+        retry: h.computersRetry,
+      }
+    },
   }
 })
 
@@ -180,6 +193,29 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 }))
 
 import { AddDeviceWizardViewer } from './AddDeviceWizardViewer.js'
+
+// expectIndexMovedBeforeDelete asserts that Finish moved the Space index off
+// the wizard to indexPath, as the session, before it deleted the wizard.
+function expectIndexMovedBeforeDelete(indexPath: string) {
+  const at = h.applyWorldOp.mock.calls.findIndex(
+    ([opId]) => opId === SET_SPACE_INDEX_PATH_OP_ID,
+  )
+  if (at < 0) throw new Error('expected a Space index op')
+  const [, opData, sender] = h.applyWorldOp.mock.calls[at] as [
+    string,
+    unknown,
+    string,
+  ]
+  if (!(opData instanceof Uint8Array)) throw new Error('expected op bytes')
+  expect(SetSpaceIndexPathOp.fromBinary(opData).indexPath).toBe(indexPath)
+  expect(sender).toBe('12D3KooWSession')
+
+  // The index write lands before the wizard is deleted.
+  expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
+  expect(h.applyWorldOp.mock.invocationCallOrder[at]).toBeLessThan(
+    h.deleteObject.mock.invocationCallOrder[0] ?? 0,
+  )
+}
 
 function installSetupCommand(): string {
   return `tmp=$(mktemp) || exit; trap 'rm -f "$tmp"' 0 HUP INT TERM; curl -fsSL --output "$tmp" https://raw.githubusercontent.com/s4wave/spacewave/master/scripts/spacewave.sh || exit; sh "$tmp" device setup --label 'Build Host' --target-hint space-1`
@@ -195,6 +231,7 @@ describe('AddDeviceWizardViewer', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    h.computersError = null
     h.currentStep = 1
     h.configData = undefined
     h.providerId = 'spacewave'
@@ -434,20 +471,37 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     fireEvent.click(screen.getByRole('button', { name: /open device/i }))
 
     await waitFor(() => expect(h.deleteObject).toHaveBeenCalled())
-    expect(h.applyWorldOp).toHaveBeenCalledWith(
-      SET_SPACE_INDEX_PATH_OP_ID,
-      expect.any(Uint8Array),
-      '12D3KooWSession',
-    )
-    const settingsOpData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
-    if (!(settingsOpData instanceof Uint8Array)) {
-      throw new Error('expected settings op bytes')
-    }
-    const settingsOp = SetSpaceIndexPathOp.fromBinary(settingsOpData)
-    expect(settingsOp.indexPath).toBe('computers')
-
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
+    expectIndexMovedBeforeDelete('computers')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host'])
+  })
+
+  it('holds Finish while the computers read failed, so the index never names a deleted wizard', () => {
+    h.currentStep = 2
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({ completion: 'completion' }),
+    )
+    h.computersError = new Error('world closed')
+    renderViewer()
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      "Could not read the Space's computers: world closed",
+    )
+    const finish = screen.getByRole('button', { name: /open device/i })
+    expect((finish as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(finish)
+    expect(h.deleteObject).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(h.computersRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancels with a cleared index while the computers read failed', async () => {
+    // The computers read failed, so no dashboard is known.
+    h.computersError = new Error('world closed')
+    renderViewer()
+
+    // Cancel stays available and asks the hook to clear the index.
+    fireEvent.click(screen.getByRole('button', { name: 'Delete wizard' }))
+    await waitFor(() => expect(h.handleCancel).toHaveBeenCalledWith(''))
   })
 
   it('creates an SSH-only Host without unavailable-install or runtime review copy', async () => {
@@ -473,9 +527,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
       'build.example.com',
     )
     expect(screen.getByPlaceholderText('SSH password')).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: /add ssh host and open terminal/i }),
-    ).toHaveProperty('disabled', false)
+    await enabledButton(/add ssh host and open terminal/i)
     expect(screen.queryByText('Runtime')).toBeNull()
     expect(screen.queryByText('Native SSH connector required')).toBeNull()
     expect(
@@ -487,7 +539,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     fireEvent.change(screen.getByPlaceholderText('SSH password'), {
       target: { value: 'raw-secret-value' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    fireEvent.click(await enabledButton(/open terminal/i))
 
     await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
     expect(h.createSecret).toHaveBeenCalledWith({
@@ -541,7 +593,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
         ([opId]) => typeof opId === 'string' && opId.includes('/device'),
       ),
     ).toBe(false)
-    expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
+    expectIndexMovedBeforeDelete('computers')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
   })
 
@@ -567,7 +619,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
         'Leave blank if the host accepts an empty password or requires no authentication.',
       ),
     ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    fireEvent.click(await enabledButton(/open terminal/i))
 
     await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
     expect(h.createSecret).toHaveBeenCalledWith(
@@ -608,9 +660,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
         target: { value: privateKey },
       },
     )
-    const openButton = screen.getByRole('button', { name: /open terminal/i })
-    expect(openButton).toHaveProperty('disabled', false)
-    fireEvent.click(openButton)
+    fireEvent.click(await enabledButton(/open terminal/i))
 
     await waitFor(() => expect(h.createSecret).toHaveBeenCalledTimes(1))
     expect(h.createSecret).toHaveBeenCalledWith({
@@ -664,7 +714,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     fireEvent.change(screen.getByPlaceholderText('SSH password'), {
       target: { value: 'raw-secret-value' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    fireEvent.click(await enabledButton(/open terminal/i))
 
     await waitFor(() =>
       expect(h.applyWorldOp).toHaveBeenCalledWith(
@@ -716,7 +766,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     fireEvent.change(screen.getByPlaceholderText('SSH password'), {
       target: { value: 'raw-secret-value' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    fireEvent.click(await enabledButton(/open terminal/i))
 
     await waitFor(() =>
       expect(h.applyWorldOp).toHaveBeenCalledWith(
@@ -823,6 +873,13 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     },
   )
 })
+
+// enabledButton waits for Finish to enable, which follows the computers read.
+async function enabledButton(name: RegExp): Promise<HTMLElement> {
+  const button = screen.getByRole('button', { name })
+  await waitFor(() => expect(button).toHaveProperty('disabled', false))
+  return button
+}
 
 function renderViewer() {
   render(
