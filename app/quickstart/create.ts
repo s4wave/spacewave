@@ -884,14 +884,15 @@ export async function createSpaceSettingsObject(
     }
     await applyQuickstartWorldOp(
       spaceWorld,
-      SET_SPACE_SETTINGS_OP_ID,
-      SetSpaceSettingsOp.toBinary({
-        objectKey: SPACE_SETTINGS_OBJECT_KEY,
-        settings,
-        overwrite: true,
-        timestamp: new Date(),
-      }),
-      '',
+      {
+        opTypeId: SET_SPACE_SETTINGS_OP_ID,
+        opData: SetSpaceSettingsOp.toBinary({
+          objectKey: SPACE_SETTINGS_OBJECT_KEY,
+          settings,
+          overwrite: true,
+          timestamp: new Date(),
+        }),
+      },
       abortSignal,
       timing,
       phasePrefix,
@@ -1124,7 +1125,7 @@ export async function populateSpace(
       // Publish the Canvas, reference filesystem, and initial route together.
       await timeQuickstartPhase(timing, 'init-canvas-batch', () =>
         applyQuickstartBatch(
-          setup.spaceWorld,
+          setup.spaceWorld.getEngine(),
           [
             initUnixFSMutation(),
             {
@@ -1362,7 +1363,7 @@ export async function createDrive(
   // Publish the filesystem and its index together before opening file storage.
   await timeQuickstartPhase(timing, 'init-drive-batch', () =>
     applyQuickstartBatch(
-      spaceWorld,
+      spaceWorld.getEngine(),
       [initUnixFSMutation(), indexPathMutation(UNIXFS_OBJECT_KEY)],
       abortSignal,
     ),
@@ -1379,11 +1380,11 @@ interface QuickstartOp {
 // applyQuickstartBatch applies a quickstart's ops as one World batch, so they
 // land together or not at all and hold the World's writer only for the call.
 async function applyQuickstartBatch(
-  spaceWorld: EngineWorldState,
+  engine: Pick<Engine, 'executeWorldBatch'>,
   ops: QuickstartOp[],
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const response = await spaceWorld.getEngine().executeWorldBatch(
+  const response = await engine.executeWorldBatch(
     ops.map((value) => ({ mutation: { case: 'op', value } })),
     abortSignal,
   )
@@ -1410,57 +1411,23 @@ function indexPathMutation(indexPath: string): QuickstartOp {
   }
 }
 
+// applyQuickstartWorldOp applies one World op. A World with a live Engine
+// takes it as a one-op batch, so the writer is held only inside the call.
 async function applyQuickstartWorldOp(
   spaceWorld: IWorldState,
-  opTypeId: string,
-  opData: Uint8Array,
-  sender: string,
+  op: QuickstartOp,
   abortSignal: AbortSignal | undefined,
   timing: QuickstartSetupTiming | undefined,
   phasePrefix: string,
 ): Promise<void> {
-  type TimedWorldTx = {
-    applyWorldOp(
-      opTypeId: string,
-      opData: Uint8Array,
-      sender: string,
-      abortSignal?: AbortSignal,
-    ): Promise<unknown>
-    commit(abortSignal?: AbortSignal): Promise<void>
-    discard(abortSignal?: AbortSignal): Promise<void>
-  }
-  type TimedWorldEngine = {
-    newTransaction(
-      write: boolean,
-      abortSignal?: AbortSignal,
-    ): Promise<TimedWorldTx>
-  }
-
-  const getEngine = (spaceWorld as { getEngine?: () => TimedWorldEngine })
-    .getEngine
-  if (!timing || typeof getEngine !== 'function') {
-    await spaceWorld.applyWorldOp(opTypeId, opData, sender, abortSignal)
-    return
-  }
-  const engine = getEngine.call(spaceWorld)
-
-  const tx = await timeQuickstartPhase(
-    timing,
-    phasePrefix + '-new-transaction',
-    () => engine.newTransaction(true, abortSignal),
-  )
-  try {
-    await timeQuickstartPhase(timing, phasePrefix + '-apply-op', () =>
-      tx.applyWorldOp(opTypeId, opData, sender, abortSignal),
-    )
-    await timeQuickstartPhase(timing, phasePrefix + '-commit', () =>
-      tx.commit(abortSignal),
-    )
-  } finally {
-    await timeQuickstartPhase(timing, phasePrefix + '-discard', () =>
-      tx.discard(abortSignal).catch(() => undefined),
-    )
-  }
+  const engine = spaceWorld.getEngine?.()
+  await timeQuickstartPhase(timing, phasePrefix + '-apply-op', async () => {
+    if (!engine) {
+      await spaceWorld.applyWorldOp(op.opTypeId, op.opData, '', abortSignal)
+      return
+    }
+    await applyQuickstartBatch(engine, [op], abortSignal)
+  })
 }
 
 // initGitQuickstart seeds a persistent git/repo wizard and indexes the Space to it.
@@ -1544,29 +1511,31 @@ async function initDeviceQuickstart(
   // eslint-disable-next-line react-doctor/async-parallel -- quickstart world ops stay ordered so routing observes the dashboard before the wizard.
   await applyQuickstartWorldOp(
     setup.spaceWorld,
-    CREATE_COMPUTERS_DASHBOARD_OP_ID,
-    CreateComputersDashboardOp.toBinary({
-      objectKey: DEVICE_QUICKSTART_DASHBOARD_KEY,
-      name: 'Computers',
-      timestamp: now,
-    }),
-    '',
+    {
+      opTypeId: CREATE_COMPUTERS_DASHBOARD_OP_ID,
+      opData: CreateComputersDashboardOp.toBinary({
+        objectKey: DEVICE_QUICKSTART_DASHBOARD_KEY,
+        name: 'Computers',
+        timestamp: now,
+      }),
+    },
     abortSignal,
     timing,
     'create-device-dashboard',
   )
   await applyQuickstartWorldOp(
     setup.spaceWorld,
-    CREATE_WIZARD_OBJECT_OP_ID,
-    CreateWizardObjectOp.toBinary({
-      objectKey: wizardKey,
-      wizardTypeId: AddDeviceWizardTypeID,
-      targetTypeId: DeviceTypeID,
-      targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
-      name: AddDeviceDefaultName,
-      timestamp: now,
-    }),
-    '',
+    {
+      opTypeId: CREATE_WIZARD_OBJECT_OP_ID,
+      opData: CreateWizardObjectOp.toBinary({
+        objectKey: wizardKey,
+        wizardTypeId: AddDeviceWizardTypeID,
+        targetTypeId: DeviceTypeID,
+        targetKeyPrefix: AddDeviceWizardTargetKeyPrefix,
+        name: AddDeviceDefaultName,
+        timestamp: now,
+      }),
+    },
     abortSignal,
     timing,
     'create-device-wizard',

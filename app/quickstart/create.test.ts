@@ -209,17 +209,10 @@ function buildQuickstartWorld(
   )
   const getObject = vi.fn().mockResolvedValue(null)
   const createRef = vi.fn((resourceId: number) => ({ resourceId, client: {} }))
-  const newTransaction = vi.fn().mockResolvedValue({
-    applyWorldOp,
-    getObject,
-    commit: vi.fn().mockResolvedValue(undefined),
-    discard: vi.fn().mockResolvedValue(undefined),
-  })
   const executeWorldBatch = batchThrough(applyWorldOp)
   return {
     world: {
       getEngine: vi.fn(() => ({
-        newTransaction,
         executeWorldBatch,
         getEngineInfo,
       })),
@@ -249,6 +242,7 @@ function buildQuickstartWorld(
       })),
     },
     applyWorldOp,
+    executeWorldBatch,
     createRef,
     accessTypedObject,
     blockCursorSetBlock,
@@ -1768,7 +1762,7 @@ to try first.
   })
 
   it('seeds the Device quickstart with Computers and the Add Device wizard', async () => {
-    const { world, applyWorldOp } = buildQuickstartWorld()
+    const { world, applyWorldOp, executeWorldBatch } = buildQuickstartWorld()
 
     await populateSpace(
       'device',
@@ -1778,6 +1772,11 @@ to try first.
       undefined,
     )
 
+    // Each op goes as its own one-op batch; no client transaction is opened.
+    expect(executeWorldBatch).toHaveBeenCalledTimes(3)
+    for (const [mutations] of executeWorldBatch.mock.calls) {
+      expect(mutations).toHaveLength(1)
+    }
     expect(applyWorldOp).toHaveBeenCalledTimes(3)
     const dashboardCall = applyWorldOp.mock.calls[0]
     if (!dashboardCall) {

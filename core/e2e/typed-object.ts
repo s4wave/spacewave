@@ -8,6 +8,7 @@ import {
 } from '@s4wave/core/space/world/ops/init-object-layout.js'
 import { InitObjectLayoutOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { createQuickstartSetupFromSession } from '@s4wave/app/quickstart/create.js'
+import { throwBatchError } from '@s4wave/sdk/world/errors.js'
 import { LayoutHostClient } from '@s4wave/sdk/layout/layout_srpc.pb.js'
 
 // testTypedObject tests the typed object system with ObjectLayout.
@@ -50,26 +51,27 @@ export async function testTypedObject(
   const engine = await setup.space.accessWorld(abortSignal)
   stack.defer(() => engine[Symbol.dispose]())
 
-  // Create a write transaction
-  using tx = await engine.newTransaction(true, abortSignal)
-
-  // Create the ObjectLayout demo object using the world op
+  // Create the ObjectLayout demo object in one World batch.
   const op = InitObjectLayoutOp.create({
     objectKey: OBJECT_LAYOUT_OBJECT_KEY,
     timestamp: new Date(),
   })
-  const { sysErr } = await tx.applyWorldOp(
-    INIT_OBJECT_LAYOUT_OP_ID,
-    InitObjectLayoutOp.toBinary(op),
-    '',
-    abortSignal,
+  throwBatchError(
+    await engine.executeWorldBatch(
+      [
+        {
+          mutation: {
+            case: 'op',
+            value: {
+              opTypeId: INIT_OBJECT_LAYOUT_OP_ID,
+              opData: InitObjectLayoutOp.toBinary(op),
+            },
+          },
+        },
+      ],
+      abortSignal,
+    ),
   )
-  if (sysErr) {
-    throw new Error('applyWorldOp returned system error')
-  }
-
-  // Commit the transaction
-  await tx.commit(abortSignal)
 
   // Test 1: Access typed object via Tx (WorldStateResource)
   console.log('testing accessTypedObject via Tx (WorldStateResource)...')
