@@ -990,14 +990,18 @@ export async function executeDynamicQuickstart(
   quickstartId: string,
   setup: QuickstartSetup,
   abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
 ): Promise<void> {
   const registry = new QuickstartRegistryResourceServiceClient(root.client)
-  const resp = await registry.ExecuteQuickstart(
-    {
-      quickstartId,
-      spaceResourceId: setup.space.id,
-    },
-    abortSignal,
+  // The plugin seeds the Space inside this call, so the phase is its wall time.
+  const resp = await timeQuickstartPhase(timing, 'execute-quickstart', () =>
+    registry.ExecuteQuickstart(
+      {
+        quickstartId,
+        spaceResourceId: setup.space.id,
+      },
+      abortSignal,
+    ),
   )
   const pluginIds = resp.pluginIds ?? []
   if (resp.indexPath || pluginIds.length) {
@@ -1006,6 +1010,7 @@ export async function executeDynamicQuickstart(
       abortSignal,
       resp.indexPath || undefined,
       pluginIds,
+      timing,
     )
   }
 }
@@ -1170,7 +1175,7 @@ export async function populateSpace(
       await initGitQuickstart(setup, abortSignal)
       break
     case 'notebook':
-      await initNotesQuickstart(setup, quickstartId, abortSignal)
+      await initNotesQuickstart(setup, quickstartId, abortSignal, timing)
       break
     case 'canvas':
       // Publish the Canvas, reference filesystem, and initial route together.
@@ -1208,13 +1213,14 @@ export async function populateSpace(
         quickstartId,
         setup,
         abortSignal,
+        timing,
       )
       break
     case 'docs':
-      await initNotesQuickstart(setup, quickstartId, abortSignal)
+      await initNotesQuickstart(setup, quickstartId, abortSignal, timing)
       break
     case 'blog':
-      await initNotesQuickstart(setup, quickstartId, abortSignal)
+      await initNotesQuickstart(setup, quickstartId, abortSignal, timing)
       break
     case 'v86':
       await initV86Quickstart(setup, abortSignal)
@@ -1336,6 +1342,7 @@ async function initNotesQuickstart(
   setup: QuickstartSetup,
   quickstartId: QuickstartSpaceCreateId,
   abortSignal?: AbortSignal,
+  timing?: QuickstartSetupTiming,
 ): Promise<void> {
   if (!isNotesQuickstartId(quickstartId)) {
     throw new Error('Unknown notes quickstart ID: ' + quickstartId)
@@ -1344,7 +1351,13 @@ async function initNotesQuickstart(
     throw new Error('Root resource is required for Notes quickstart seeding')
   }
   await prepareNotesQuickstart(setup.root, setup, quickstartId, abortSignal)
-  await executeDynamicQuickstart(setup.root, quickstartId, setup, abortSignal)
+  await executeDynamicQuickstart(
+    setup.root,
+    quickstartId,
+    setup,
+    abortSignal,
+    timing,
+  )
 }
 
 async function prepareSqlQuickstart(
