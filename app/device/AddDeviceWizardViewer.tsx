@@ -60,7 +60,10 @@ import {
   useWizardFinish,
   WizardInputError,
 } from '../wizard/wizard-finish.js'
-import type { UseWizardStateResult } from '../wizard/useWizardState.js'
+import type {
+  UseWizardStateResult,
+  WizardCancelContext,
+} from '../wizard/useWizardState.js'
 import { WizardShell } from '../wizard/WizardShell.js'
 import { WizardField } from '../wizard/WizardField.js'
 import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
@@ -70,6 +73,7 @@ import {
   deriveSshHostKeys,
   objectExists,
   putKeyedSecret,
+  sshHostSecretKeys,
   type SshHostKeys,
 } from './ssh-host-keys.js'
 import {
@@ -122,6 +126,9 @@ interface AddDeviceWizardConfig {
     expiresAt?: string
   }
   ssh?: SshHostWizardConfig
+  // secretObjectKeys are the credential Secret keys a Finish press recorded
+  // before creating them, so Cancel can delete the ones no SSH Host names.
+  secretObjectKeys?: string[]
 }
 
 export { AddDeviceWizardTypeID } from './add-device-wizard.js'
@@ -166,10 +173,14 @@ function useSshHostMade(
 // useAddDeviceWizardController owns wizard persistence, approval, and SSH
 // object creation.
 function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
-  const ws = useWizardState(props, undefined)
+  const space = useResourceValue(SpaceContext.useContext())
+  const beforeCancel = useCallback(
+    (wizard: WizardCancelContext) => deleteUnnamedSshSecrets(space, wizard),
+    [space],
+  )
+  const ws = useWizardState(props, undefined, { beforeCancel })
   const { state } = ws
   const currentStep = state?.step ?? 0
-  const space = useResourceValue(SpaceContext.useContext())
   const session = useResourceValue(SessionContext.useContext()) as
     | Session
     | undefined
@@ -391,6 +402,25 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         keys = await deriveSshHostKeys(ws.objectKey, label, endpoint, round)
       }
 
+      // Record the Secret keys before creating them, so a Cancel after a
+      // press that fails part way deletes the Secrets no host names.
+      const recorded = config.secretObjectKeys ?? []
+      const recordedSet = new Set(recorded)
+      const added = sshHostSecretKeys(keys).filter(
+        (key) => !recordedSet.has(key),
+      )
+      if (added.length) {
+        const handle = ws.wizardResource.value
+        if (!handle)
+          throw new Error('Device setup is still loading. Try again.')
+        const configData = encodeConfig({
+          ...config,
+          secretObjectKeys: [...recorded, ...added],
+        })
+        ws.handleConfigDataChange(configData)
+        await handle.updateState({ configData })
+      }
+
       const timestamp = new Date()
       const credentials = await createSshCredentialSecrets({
         space,
@@ -444,6 +474,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       return { host, hostObjectKey: keys.host, terminalObjectKey: '' }
     },
     [
+      config,
       readSshHostMade,
       sessionInfo?.cryptoInfo?.publicKeyPem,
       space,
@@ -1763,6 +1794,33 @@ function parsePortInput(value: string): number | undefined {
   const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed)) return undefined
   return parsed
+}
+
+// deleteUnnamedSshSecrets deletes each credential Secret a Finish press
+// recorded on the wizard that no SSH Host the wizard made names. Deleting a
+// recorded key whose Secret was never created does nothing.
+async function deleteUnnamedSshSecrets(
+  space: Space | null | undefined,
+  { objectKey, spaceWorld, configData }: WizardCancelContext,
+) {
+  const recorded = decodeConfig(configData).secretObjectKeys ?? []
+  if (!recorded.length) return
+  if (!space) throw new Error('Space resource is not ready')
+  const named = new Set(
+    (await readSshHostsMade(spaceWorld, objectKey)).flatMap(({ host }) => {
+      const c = host.credentials
+      return [
+        c?.passwordSecretObjectKey,
+        c?.privateKeySecretObjectKey,
+        c?.passphraseSecretObjectKey,
+      ]
+    }),
+  )
+  await Promise.all(
+    recorded
+      .filter((key) => !named.has(key))
+      .map((key) => space.deleteSecret({ objectKey: key })),
+  )
 }
 
 function decodeConfig(data: Uint8Array | undefined): AddDeviceWizardConfig {

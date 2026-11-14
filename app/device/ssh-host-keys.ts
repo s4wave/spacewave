@@ -101,3 +101,8 @@ export async function objectExists(
   using obj = await world.getObject(key)
   return !!obj
 }
+
+// sshHostSecretKeys lists the Secret keys of one set of SSH Host keys.
+export function sshHostSecretKeys(keys: SshHostKeys): string[] {
+  return [keys.password, keys.privateKey, keys.passphrase]
+}
