@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { ForgeViewerShell } from './ForgeViewerShell.js'
 
 describe('ForgeViewerShell', () => {
-  it('renders global header actions separately from selection actions', async () => {
+  it('renders viewer bar actions separately from selection actions', async () => {
     const user = userEvent.setup()
     const createJob = vi.fn()
     const startWorker = vi.fn()
@@ -28,14 +28,17 @@ describe('ForgeViewerShell', () => {
             content: <div>Activity content</div>,
           },
         ]}
-        headerActions={[{ label: 'Create Job', onClick: createJob }]}
+        headerActions={[{ id: 'job', label: 'Create Job', onClick: createJob }]}
         actions={[{ label: 'Start Worker', onClick: startWorker }]}
       />,
     )
 
-    const header = screen.getByTestId('forge-viewer-header-actions')
+    const header = screen.getByRole('banner')
     const actionBar = screen.getByTestId('forge-viewer-action-bar')
     expect(header.textContent).toContain('Create Job')
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Forge Dashboard' }),
+    ).toBeTruthy()
     expect(actionBar.textContent).toContain('Start Worker')
     expect(header.textContent).not.toContain('Start Worker')
     expect(actionBar.textContent).not.toContain('Create Job')

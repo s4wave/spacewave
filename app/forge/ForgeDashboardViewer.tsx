@@ -21,6 +21,7 @@ import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
+import type { ViewerBarAction } from '@s4wave/web/object/ViewerBar.js'
 import { useObjectName } from '@s4wave/web/object/ObjectViewerContext.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
 import { useForgeLinkedEntities } from '@s4wave/web/forge/useForgeLinkedEntities.js'
@@ -243,12 +244,13 @@ export function ForgeDashboardViewer({
     }
   }, [clusterEntities, openWizard])
   const headerActions = useMemo(() => {
-    const nextActions = []
+    const nextActions: ViewerBarAction[] = []
     if (canCreateJob) {
       nextActions.push({
+        id: 'job',
         label: openingAction === 'job' ? 'Opening Job…' : 'Create Job',
         icon: <LuBriefcase className="size-3.5" />,
-        variant: 'primary' as const,
+        variant: 'primary',
         disabled: openingAction !== null,
         onClick: () => {
           void handleCreateJob()
@@ -257,6 +259,7 @@ export function ForgeDashboardViewer({
     }
     if (canCreateCluster) {
       nextActions.push({
+        id: 'cluster',
         label:
           openingAction === 'cluster' ? 'Opening Cluster…' : 'Create Cluster',
         icon: <LuServer className="size-3.5" />,

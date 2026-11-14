@@ -3,21 +3,31 @@ title: "Object viewer: the one-line bar"
 ---
 stateDiagram-v2
   s0: Title and More
-  s1: Every press in the bar
-  s2: Some presses, then More
-  s3: More open
+  s1: Some presses, then More
+  s2: Every press in the bar
+  s3: Only the title
+  s4: More open
   [*] --> s0
   [*] --> s1
   [*] --> s2
-  s0 --> s1: pane widens
-  s0 --> s3: presses More
-  s1 --> s0: pane narrows
-  s0 --> s2: pane widens
-  s2 --> s0: pane narrows
-  s2 --> s3: presses More
-  s2 --> s1: pane widens
-  s1 --> s2: pane narrows
-  s1 --> s3: presses More
-  s3 --> s0: Escape or click away or picks a press
-  s3 --> s1: pane widens or Escape or click away
-  s3 --> s2: Escape or click away or picks a press
+  [*] --> s3
+  s0 --> s1: pane widens or presses change
+  s0 --> s3: presses change
+  s0 --> s4: presses More
+  s1 --> s0: pane narrows or presses change
+  s1 --> s2: presses change or pane widens
+  s1 --> s3: presses change
+  s1 --> s4: presses More
+  s0 --> s2: pane widens or presses change
+  s2 --> s1: presses change or pane narrows
+  s2 --> s0: pane narrows or presses change
+  s2 --> s3: presses change
+  s3 --> s0: presses change
+  s3 --> s1: presses change
+  s3 --> s2: presses change
+  s2 --> s4: presses More
+  s3 --> s4: presses More
+  s4 --> s3: presses change or pane widens or Escape or click away
+  s4 --> s0: Escape or click away or picks a press
+  s4 --> s2: pane widens or presses change or Escape or click away
+  s4 --> s1: Escape or click away or picks a press

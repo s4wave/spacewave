@@ -33,8 +33,9 @@ export interface ViewerBarAction {
   label: string
   icon?: ReactNode
   onClick: () => void
-  // disabled marks a press whose action is running, and its label says so. A
-  // press that cannot work in the object's state is left out, not disabled.
+  // disabled marks a press whose action is running, and its label says so. The
+  // press stays focusable and ignores presses, so focus stays on it. A press
+  // that cannot work in the object's state is left out, not disabled.
   disabled?: boolean
   variant?: 'default' | 'primary' | 'destructive'
   // iconOnly draws the press as its icon alone at every width. Otherwise a
@@ -74,7 +75,7 @@ const pressTone: Record<NonNullable<ViewerBarAction['variant']>, string> = {
 }
 
 const pressClass =
-  'focus-ring h-viewer-press shrink-0 items-center justify-center gap-1 rounded px-2 text-xs whitespace-nowrap select-none transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-3.5 pointer-coarse:min-h-11'
+  'focus-ring h-viewer-press shrink-0 items-center justify-center gap-1 rounded px-2 text-xs whitespace-nowrap select-none transition-colors aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-3.5 pointer-coarse:min-h-11'
 
 const iconPressClass = 'w-viewer-press px-0 pointer-coarse:min-w-11'
 
@@ -108,18 +109,29 @@ function isHidden(el: Element | null | undefined): boolean {
   return !el || el.getClientRects().length === 0
 }
 
+// focusBar moves focus to the bar's first shown press, or to the bar itself
+// when it shows none, so focus never falls to the page.
+function focusBar(header: HTMLElement | null) {
+  if (!header) return
+  const presses = Array.from(header.querySelectorAll('button'))
+  const first = presses.find((el) => !isHidden(el))
+  ;(first ?? header).focus()
+}
+
 /**
  * ViewerBar is the one-line bar over an object viewer: the object's icon,
  * title, state and a muted line of what it is, then its presses and More. It
  * is one viewer-bar line at every pane size. As the pane narrows the muted
  * line leaves below 28rem and labeled presses become icons, then each press
  * folds into More at its fold point. The title keeps viewer-title of width.
+ * A running press stays in place, disabled but focusable.
  *
  * The @pane-* variants decide which presses sit in the bar, so the bar must
  * render inside the viewer slot's pane container; outside one every press
  * folds into More. More reads what the pane hides when it opens and again on
- * each resize while open, so the bar and the menu never disagree, and it
- * closes when the pane widens past its last fold. ViewerBar.tla checks that
+ * each resize or change of the presses while open, so the bar and the menu
+ * never disagree. It closes when nothing is folded and sends focus to the
+ * first shown press, or the bar. ViewerBar.tla checks that
  * every press is in the bar or one More press away at every width.
  */
 export function ViewerBar({
@@ -146,8 +158,9 @@ export function ViewerBar({
   return (
     <header
       ref={headerRef}
+      tabIndex={-1}
       className={cn(
-        'border-foreground/8 h-viewer-bar ps-viewer-pad @pane-roomy:ps-viewer-pad-roomy flex shrink-0 items-center gap-2 border-b pe-1 pointer-coarse:h-11',
+        'focus-ring border-foreground/8 h-viewer-bar ps-viewer-pad @pane-roomy:ps-viewer-pad-roomy flex shrink-0 items-center gap-2 border-b pe-1 pointer-coarse:h-11',
         className,
       )}
     >
@@ -231,8 +244,8 @@ function ViewerBarPress({
     <button
       ref={pressRef}
       type="button"
-      onClick={action.onClick}
-      disabled={action.disabled}
+      onClick={action.disabled ? undefined : action.onClick}
+      aria-disabled={action.disabled || undefined}
       aria-label={named ? action.label : undefined}
       title={named ? action.label : undefined}
       className={cn(
@@ -252,8 +265,9 @@ function ViewerBarPress({
 }
 
 // ViewerBarMore is the bar's More press and menu. While open it rereads what
-// the pane folds on each resize of the bar, and closes once its own press
-// leaves the bar or nothing is folded.
+// the pane folds on each resize of the bar and each change of the presses, and
+// closes once its own press leaves the bar or nothing is folded. Closing with
+// its press gone sends focus to the bar instead of the page.
 function ViewerBarMore({
   className,
   headerRef,
@@ -276,14 +290,26 @@ function ViewerBarMore({
     const next = readFolded()
     return next.ids.length > 0 || next.note ? next : null
   }
-  const onResize = useEffectEvent(() => setListed(read()))
+  const onReread = useEffectEvent(() => setListed(read()))
 
+  // While open, reread when the bar resizes, and when a press joins, leaves,
+  // or changes its fold class. The menu renders in a portal, so its own
+  // updates do not touch the bar.
   useEffect(() => {
     const header = headerRef.current
     if (!open || !header) return
-    const observer = new ResizeObserver(() => onResize())
-    observer.observe(header)
-    return () => observer.disconnect()
+    const resize = new ResizeObserver(() => onReread())
+    resize.observe(header)
+    const mutation = new MutationObserver(() => onReread())
+    mutation.observe(header, {
+      childList: true,
+      subtree: true,
+      attributeFilter: ['class'],
+    })
+    return () => {
+      resize.disconnect()
+      mutation.disconnect()
+    }
   }, [open, headerRef])
 
   const byId = new Map(actions.map((a) => [a.id, a]))
@@ -310,7 +336,16 @@ function ViewerBarMore({
           <LuEllipsis aria-hidden />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" variant="compact" className="max-w-72">
+      <DropdownMenuContent
+        align="end"
+        variant="compact"
+        className="max-w-72"
+        onCloseAutoFocus={(e) => {
+          if (!isHidden(moreRef.current)) return
+          e.preventDefault()
+          focusBar(headerRef.current)
+        }}
+      >
         {listed?.note ? (
           <DropdownMenuLabel>{description}</DropdownMenuLabel>
         ) : null}

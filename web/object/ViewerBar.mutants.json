@@ -1,0 +1,22 @@
+[
+  {
+    "name": "More closes with its press gone and returns focus to it",
+    "replace": [
+      [
+        "            /\\ focus' = Fallback(s, w)",
+        "            /\\ focus' = \"more\""
+      ]
+    ],
+    "expect": "FocusShown"
+  },
+  {
+    "name": "an open More keeps its list when the presses change",
+    "replace": [
+      [
+        "       THEN /\\ listed' = FoldedIn(s, w) /\\ noted' = NoteFolded(w)",
+        "       THEN /\\ listed' = listed /\\ noted' = NoteFolded(w)"
+      ]
+    ],
+    "expect": "MenuMatchesPane"
+  }
+]

@@ -8,6 +8,7 @@ import { getObjectType } from '@s4wave/sdk/world/types/types.js'
 
 import type { ObjectViewerComponentProps } from './object.js'
 import { getObjectKey, getTypeID } from './object.js'
+import { ViewerBar } from './ViewerBar.js'
 
 type WorldStateValue = ObjectViewerComponentProps['worldState']['value']
 
@@ -44,13 +45,8 @@ export function DebugObjectViewer({
   const untyped = !resolving && !effectiveTypeID
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <LuBug className="size-4" />
-          <span className="tracking-tight">Debug Viewer</span>
-        </div>
-      </div>
+    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+      <ViewerBar icon={<LuBug />} title="Debug Viewer" />
 
       <div className="flex-1 overflow-auto px-4 py-3">
         <div className="mx-auto max-w-3xl space-y-3">
@@ -74,10 +70,10 @@ export function DebugObjectViewer({
 
           <section>
             <div className="mb-2 flex items-center gap-1.5">
-              <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+              <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
                 <LuBug className="size-3.5" />
                 Object Info
-              </h2>
+              </h3>
             </div>
 
             <InfoCard>
@@ -111,9 +107,9 @@ export function DebugObjectViewer({
 
           <section>
             <div className="mb-2 flex items-center gap-1.5">
-              <h2 className="text-foreground text-xs font-medium select-none">
+              <h3 className="text-foreground text-xs font-medium select-none">
                 Object State
-              </h2>
+              </h3>
             </div>
 
             <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">

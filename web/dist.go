@@ -47,7 +47,7 @@ import "embed"
 //go:embed object/LayoutObjectViewer.tsx object/ObjectLink.tsx object/ObjectViewer.tsx
 //go:embed object/ObjectViewerContent.tsx object/ObjectViewerContext.tsx object/ObjectViewerDetails.tsx
 //go:embed object/ObjectViewerLoadingState.tsx object/ObjectViewerNotFoundState.tsx object/TabContent.tsx
-//go:embed object/TabContext.tsx object/ViewerStatusShell.tsx object/layout-object-app-drag.ts
+//go:embed object/TabContext.tsx object/ViewerBar.tsx object/ViewerStatusShell.tsx object/layout-object-app-drag.ts
 //go:embed object/object-viewer-space-actions.ts object/object.pb.ts object/object.ts object/useObjectViewer.tsx
 //go:embed object/useObjectViewerSetup.ts platform/detect-platform.ts router/HashRouter.tsx
 //go:embed router/HistoryRouter.tsx router/NavigatePath.tsx router/Redirect.tsx router/app-path.ts

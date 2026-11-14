@@ -9,12 +9,12 @@ it('keeps Forge navigation and actions reachable through touch rotation', async 
   const coarse = matchMedia('(pointer: coarse)').matches
   const openTask = vi.fn()
   await render(
-    <div className="h-dvh w-full">
+    <div className="viewer-pane h-dvh w-full">
       <ForgeViewerShell
         icon={<span>F</span>}
         title="Job"
         stateKey="touch-job"
-        headerActions={[{ label: 'Create Job', onClick: vi.fn() }]}
+        headerActions={[{ id: 'job', label: 'Create Job', onClick: vi.fn() }]}
         actions={[{ label: 'Start Worker', onClick: vi.fn() }]}
         tabs={[
           { id: 'overview', label: 'Overview', content: 'Overview' },
