@@ -80,7 +80,7 @@ func (a *Adapter) saveCursor(ctx context.Context) error {
 
 	// Hold the payloads, then encode the positions.
 	r := a.replay
-	if err := a.resetPayloads(ctx); err != nil {
+	if err := a.resetPayloads(ctx, false); err != nil {
 		return err
 	}
 	root, data, err := a.encodeCursor()

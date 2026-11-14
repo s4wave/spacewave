@@ -18,7 +18,8 @@ import (
 // hold, and moving the root onto the newest World alone would leave those
 // pages held by nothing. A trim releases a World once no position or candidate
 // the adapter still keeps is that World. The replay payloads root holds the
-// payloads of the operations above the checkpoint and of the queued ones.
+// payloads of the operations the Space's state holds above its checkpoint,
+// applied or not, and of the queued ones (see payload-hold.go).
 //
 // Invariants, which the Volume's collector relies on to free nothing live:
 //
@@ -49,6 +50,9 @@ type rootSet struct {
 	// links is the number of blocks in the Prev chain the named root holds.
 	// Guarded by the adapter's rootMtx.
 	links int
+	// keys holds the key of each of roots, so a membership check costs the
+	// same however many roots the set holds. Guarded by the adapter's rootMtx.
+	keys map[string]struct{}
 }
 
 // maxRootLinks bounds the Prev chain appendRoots grows. Releasing a chain
@@ -60,7 +64,18 @@ const maxRootLinks = 16
 
 // holds reports whether the set holds root. The caller holds rootMtx.
 func (h *rootSet) holds(root *block.BlockRef) bool {
-	return slices.ContainsFunc(h.roots, root.EqualsRef)
+	_, ok := h.keys[root.MarshalString()]
+	return ok
+}
+
+// set records roots, held through a chain of links blocks, as the roots h
+// holds. The caller holds rootMtx.
+func (h *rootSet) set(roots []*block.BlockRef, links int) {
+	h.roots, h.links = roots, links
+	h.keys = make(map[string]struct{}, len(roots))
+	for _, root := range roots {
+		h.keys[root.MarshalString()] = struct{}{}
+	}
 }
 
 // releases reports whether the set holds a root keep does not report. The
@@ -119,7 +134,7 @@ func (a *Adapter) setRootSets(ctx context.Context, hs []*rootSet, next [][]*bloc
 	}
 	for i, h := range hs {
 		if !slices.EqualFunc(next[i], h.roots, refEqual) {
-			h.roots, h.links = next[i], min(len(next[i]), 1)
+			h.set(next[i], min(len(next[i]), 1))
 		}
 	}
 	return nil
@@ -161,6 +176,12 @@ func (a *Adapter) appendRoots(ctx context.Context, h *rootSet, extra []*block.Bl
 		return err
 	}
 	h.roots, h.links = slices.Concat(h.roots, extra), h.links+1
+	if h.keys == nil {
+		h.keys = make(map[string]struct{}, len(extra))
+	}
+	for _, root := range extra {
+		h.keys[root.MarshalString()] = struct{}{}
+	}
 	return nil
 }
 
@@ -183,10 +204,11 @@ func (a *Adapter) readRootSet(ctx context.Context, h *rootSet) error {
 	}
 
 	// List the roots oldest first.
-	h.roots, h.links = nil, len(chain)
-	for _, roots := range slices.Backward(chain) {
-		h.roots = append(h.roots, roots...)
+	var roots []*block.BlockRef
+	for _, blk := range slices.Backward(chain) {
+		roots = append(roots, blk...)
 	}
+	h.set(roots, len(chain))
 	return nil
 }
 

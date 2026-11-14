@@ -199,6 +199,9 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	ctx := t.Context()
 	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
 	a.replay = &spaceReplay{a: a, base: &InnerState{}}
+	// The state it follows holds no operations above the checkpoint the base
+	// holds, so a reset holds only the admissions' payloads.
+	a.stateHold = &payloadState{}
 
 	// put keeps a payload page naming children in a's pages, as a writer
 	// keeps its pages.
@@ -278,7 +281,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- a.resetPayloads(ctx) }()
+	go func() { done <- a.resetPayloads(ctx, false) }()
 	time.Sleep(50 * time.Millisecond)
 	adm := admit(a, first)
 	if err := a.setRootSets(ctx, []*rootSet{&a.payloads}, [][]*block.BlockRef{{first}}, nil); err != nil {
@@ -295,7 +298,7 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 	// Once it is decided, a reset releases the name, and the collection
 	// frees the payload, so the checks below see a collector that frees.
 	decide(adm)
-	if err := a.resetPayloads(ctx); err != nil {
+	if err := a.resetPayloads(ctx, false); err != nil {
 		t.Fatal(err)
 	}
 	expect(a, "reset after the decision", nil)
@@ -324,14 +327,14 @@ func TestResetPayloadsSeesAdmissions(t *testing.T) {
 		t.Fatalf("payloads stored beside an admission = %v, want %v", stored(a), want)
 	}
 	decide(other)
-	if err := a.resetPayloads(ctx); err != nil {
+	if err := a.resetPayloads(ctx, false); err != nil {
 		t.Fatal(err)
 	}
 	expect(a, "reset back to the earlier set", []*block.BlockRef{second, third}, second, third, shared)
 
 	// A reset that gathers the same payloads moves nothing.
 	held := a.held[RootReplayPayloads]
-	if err := a.resetPayloads(ctx); err != nil {
+	if err := a.resetPayloads(ctx, false); err != nil {
 		t.Fatal(err)
 	}
 	if !refEqual(a.held[RootReplayPayloads], held) {
@@ -1306,4 +1309,248 @@ func TestStaleAdapterHistoryRewriteFails(t *testing.T) {
 			t.Fatalf("%s after the failed trim = %v, want %v", name, ref, want)
 		}
 	}
+}
+
+// putPayloads stores n blocks named by prefix and returns their refs.
+func putPayloads(ctx context.Context, t *testing.T, store block.StoreOps, prefix string, n int) []*block.BlockRef {
+	t.Helper()
+	refs := make([]*block.BlockRef, 0, n)
+	var batch []*block.PutBatchEntry
+	for i := range n {
+		data := []byte(prefix + strconv.Itoa(i))
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+		batch = append(batch, &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true})
+		if len(batch) == 1024 || i == n-1 {
+			if _, err := store.PutBlockBatch(ctx, batch); err != nil {
+				t.Fatal(err)
+			}
+			batch = batch[:0]
+		}
+	}
+	return refs
+}
+
+// holdOrder records an order whose resolved operations each name one of refs
+// as the last order Hold saw, on the checkpoint World w.
+func holdOrder(a *Adapter, w *block.BlockRef, refs []*block.BlockRef, unresolved bool) {
+	st := &payloadState{world: w, ops: make(map[string]opHold, len(refs)), keys: make(map[string]int, len(refs)), unresolved: unresolved}
+	for i, ref := range refs {
+		op := newOpHold([]*block.BlockRef{ref})
+		st.ops[strconv.Itoa(i)] = op
+		st.keys[op.keys[0]]++
+	}
+	a.stateHold = st
+}
+
+// TestResetPayloadsKeepsUnresolved checks, on a Volume that frees at once,
+// that a cursor save at a held checkpoint World drops no payload while an
+// operation of the order is unresolved, as after a restart before a plugin
+// registers, since the payload may be that operation's; and that it drops the
+// payloads no operation names once every operation resolved.
+func TestResetPayloadsKeepsUnresolved(t *testing.T) {
+	// Hold a named payload and one only an unresolved operation names.
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	store := a.so.GetBlockStore()
+	refs := putPayloads(ctx, t, store, "payload ", 2)
+	named, unnamed := refs[0], refs[1]
+	if err := a.addPayloads(ctx, refs); err != nil {
+		t.Fatal(err)
+	}
+	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
+	requireRead := func(step string, ref *block.BlockRef, want bool) {
+		t.Helper()
+		if _, found, err := store.GetBlock(ctx, ref); err != nil || found != want {
+			t.Fatalf("%s: block %s found %v, %v, want found %v", step, ref.MarshalString(), found, err, want)
+		}
+	}
+
+	// A save while an operation is unresolved keeps both.
+	holdOrder(a, w, []*block.BlockRef{named}, true)
+	if err := a.resetPayloads(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	collect()
+	requireRead("unresolved", named, true)
+	requireRead("unresolved", unnamed, true)
+
+	// Once it resolved naming nothing more, the save drops the other.
+	holdOrder(a, w, []*block.BlockRef{named}, false)
+	if err := a.resetPayloads(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	if !a.payloads.holds(named) || a.payloads.holds(unnamed) {
+		t.Fatalf("payload set %v after the resolved save, want only the named payload", a.payloads.roots)
+	}
+	collect()
+	requireRead("resolved", named, true)
+	requireRead("resolved", unnamed, false)
+}
+
+// TestResetPayloadsKeepsAdmittedPayload checks, on a Volume that frees at
+// once, that a cursor save that drops payloads keeps one a pending admission
+// held before the save read the set.
+func TestResetPayloadsKeepsAdmittedPayload(t *testing.T) {
+	ctx := t.Context()
+	f := newAdmittedPayloads(t)
+	f.admit(f.admitted)
+	f.save(ctx, t)
+	f.check(ctx, t, f.admitted)
+}
+
+// TestResetPayloadsKeepsPayloadAdmittedAfterPlan checks, on a Volume that
+// frees at once, that a cursor save keeps a held payload an admission names
+// between the save's plan to drop it and its move, which appends nothing
+// since the set already holds it.
+func TestResetPayloadsKeepsPayloadAdmittedAfterPlan(t *testing.T) {
+	ctx := t.Context()
+	f := newAdmittedPayloads(t)
+	f.a.resetPlanned = func() {
+		f.a.resetPlanned = nil
+		f.admit(f.admitted)
+		if err := f.a.addPayloads(ctx, []*block.BlockRef{f.admitted}); err != nil {
+			t.Error(err)
+		}
+	}
+	f.save(ctx, t)
+	if f.a.resetPlanned != nil {
+		t.Fatal("the save planned no drop")
+	}
+	f.check(ctx, t, f.admitted)
+}
+
+// admittedPayloads is an adapter on a Volume that frees at once, holding
+// three payloads at a held checkpoint World: one the order names, one an
+// admission may name, and one nothing names, which a save drops.
+type admittedPayloads struct {
+	// a is the adapter.
+	a *Adapter
+	// collect collects the Volume.
+	collect func()
+	// world is the checkpoint World the base holds.
+	world *block.BlockRef
+	// named, admitted and unnamed are the payloads.
+	named, admitted, unnamed *block.BlockRef
+}
+
+// newAdmittedPayloads holds the three payloads.
+func newAdmittedPayloads(t *testing.T) *admittedPayloads {
+	ctx := t.Context()
+	a, collect := newVolumeAdapter(t, 1<<20, time.Nanosecond)
+	refs := putPayloads(ctx, t, a.so.GetBlockStore(), "payload ", 3)
+	if err := a.addPayloads(ctx, refs); err != nil {
+		t.Fatal(err)
+	}
+	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
+	return &admittedPayloads{a: a, collect: collect, world: w, named: refs[0], admitted: refs[1], unnamed: refs[2]}
+}
+
+// admit records a pending admission of payloads, as Admit does before it
+// holds them.
+func (f *admittedPayloads) admit(payloads ...*block.BlockRef) {
+	adm := &spaceAdmission{state: admissionQueued, payloads: payloads, done: make(chan struct{})}
+	f.a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		f.a.pending = append(f.a.pending, adm)
+	})
+}
+
+// save runs a cursor save at the World of an order naming only the named
+// payload, then collects.
+func (f *admittedPayloads) save(ctx context.Context, t *testing.T) {
+	t.Helper()
+	holdOrder(f.a, f.world, []*block.BlockRef{f.named}, false)
+	if err := f.a.resetPayloads(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	f.collect()
+}
+
+// check requires the named payload and each of kept held and readable, and
+// the unnamed payload freed.
+func (f *admittedPayloads) check(ctx context.Context, t *testing.T, kept ...*block.BlockRef) {
+	t.Helper()
+	store := f.a.so.GetBlockStore()
+	for _, ref := range append([]*block.BlockRef{f.named}, kept...) {
+		if !f.a.payloads.holds(ref) {
+			t.Fatalf("payload set %v dropped %s", f.a.payloads.roots, ref.MarshalString())
+		}
+		if _, found, err := store.GetBlock(ctx, ref); err != nil || !found {
+			t.Fatalf("collection freed held payload %s: %v, %v", ref.MarshalString(), found, err)
+		}
+	}
+	if f.a.payloads.holds(f.unnamed) {
+		t.Fatalf("payload set %v kept the payload nothing names", f.a.payloads.roots)
+	}
+	if _, found, err := store.GetBlock(ctx, f.unnamed); err != nil || found {
+		t.Fatalf("collection kept the payload nothing names: %v, %v", found, err)
+	}
+}
+
+// TestResetPayloadsLockTime times cursor saves that drop payloads at the
+// state's operation bound, MaxOperations operations each naming a payload,
+// and the longest a local writer waits for rootMtx meanwhile.
+func TestResetPayloadsLockTime(t *testing.T) {
+	t.Run("keep all, drop half", func(t *testing.T) { timeResetPayloads(t, sobject.MaxOperations, sobject.MaxOperations/2) })
+	t.Run("keep 64, drop the rest", func(t *testing.T) { timeResetPayloads(t, 64, sobject.MaxOperations) })
+}
+
+// timeResetPayloads times a cursor save at a held World whose order names n
+// held payloads, dropping drop more, and the longest rootMtx wait meanwhile.
+func timeResetPayloads(t *testing.T, n, drop int) {
+	// Hold the order's payloads and the ones no operation names.
+	ctx := t.Context()
+	a, _ := newVolumeAdapter(t, 1<<20, time.Hour)
+	store := a.so.GetBlockStore()
+	named := putPayloads(ctx, t, store, "named ", n)
+	dropped := putPayloads(ctx, t, store, "dropped ", drop)
+	for chunk := range slices.Chunk(slices.Concat(named, dropped), 4096) {
+		if err := a.addPayloads(ctx, chunk); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w := putPayloads(ctx, t, a.pages, "World ", 1)[0]
+	a.replay = &spaceReplay{a: a, base: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: w}}}
+	holdOrder(a, w, named, false)
+
+	// Wait for rootMtx in a loop while the save runs, as a writer would.
+	done := make(chan struct{})
+	waited := make(chan time.Duration, 1)
+	go func() {
+		var longest time.Duration
+		for {
+			select {
+			case <-done:
+				waited <- longest
+				return
+			default:
+			}
+			start := time.Now()
+			unlock, err := a.rootMtx.Lock(ctx)
+			if err != nil {
+				waited <- longest
+				return
+			}
+			longest = max(longest, time.Since(start))
+			unlock()
+			time.Sleep(50 * time.Microsecond)
+		}
+	}()
+	start := time.Now()
+	err := a.resetPayloads(ctx, true)
+	total := time.Since(start)
+	close(done)
+	longest := <-waited
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(a.payloads.roots) != n {
+		t.Fatalf("payload set holds %d roots after the save, want %d", len(a.payloads.roots), n)
+	}
+	t.Logf("save of %d held payloads dropping %d: %v, longest rootMtx wait %v", n+drop, drop, total, longest)
 }

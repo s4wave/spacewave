@@ -87,6 +87,11 @@ func (b *testBody) Apply(_ context.Context, index int, op *OrderedOperation) (st
 	return reason, nil
 }
 
+// Hold holds nothing: the test body's states are in memory.
+func (b *testBody) Hold(context.Context, *OrderEvent) error {
+	return nil
+}
+
 // Install resets the state to the checkpoint's, keeping the later states
 // when the state after covered equals it.
 func (b *testBody) Install(_ context.Context, checkpoint *SOCheckpointInner, covered int) (bool, error) {

@@ -167,21 +167,9 @@ func PublishedGraph(ctx context.Context, snap sobject.SharedObjectStateSnapshot,
 	}
 	var payloads []*block.BlockRef
 	for _, h := range set.Order() {
-		inner := set.Get(h)
-		if inner.IsAcknowledgment() || set.Equivocated(h) {
-			continue
-		}
-		_, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
+		refs, _, err := opPayloads(ctx, snap, set, h, lookupOp)
 		if err != nil {
 			return nil, nil, err
-		}
-		op := &WorldOp{}
-		if reason != "" || op.UnmarshalVT(opData) != nil || op.GetApplyTxOp().GetTx() == nil {
-			continue
-		}
-		refs, err := op.GetApplyTxOp().GetTx().PayloadRefs(ctx, lookupOp)
-		if err != nil {
-			continue
 		}
 		payloads = append(payloads, refs...)
 	}
@@ -199,4 +187,31 @@ func PublishedGraph(ctx context.Context, snap sobject.SharedObjectStateSnapshot,
 		return nil, nil, err
 	}
 	return entry, entry.Ref, nil
+}
+
+// opPayloads returns the payload roots of operation h of set, read from snap,
+// resolving operation types with lookupOp. An acknowledgment, an equivocated
+// operation, one its config does not authorize, and one that does not decode
+// apply nothing and have none. known is false when only some payloads could be
+// read yet: lookupOp failed for the operation's type, which a plugin may
+// register later, and refs holds the roots read without it, the object roots
+// the operation set. err is a failure to read snap.
+func opPayloads(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet, h []byte, lookupOp world.LookupOp) (refs []*block.BlockRef, known bool, err error) {
+	// Skip the operations that apply nothing.
+	inner := set.Get(h)
+	if inner.IsAcknowledgment() || set.Equivocated(h) {
+		return nil, true, nil
+	}
+	_, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
+	if err != nil {
+		return nil, false, err
+	}
+	op := &WorldOp{}
+	if reason != "" || op.UnmarshalVT(opData) != nil || op.GetApplyTxOp().GetTx() == nil {
+		return nil, true, nil
+	}
+
+	// Read the roots the transaction names.
+	refs, err = op.GetApplyTxOp().GetTx().PayloadRefs(ctx, lookupOp)
+	return refs, err == nil, nil
 }
