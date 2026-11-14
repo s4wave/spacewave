@@ -343,6 +343,40 @@ func (c *SessionClient) PostCheckpoint(ctx context.Context, soID string, checkpo
 	return errors.Wrap(err, "post checkpoint")
 }
 
+// CreateSharedObjectWithState creates a shared object with its initial state
+// in one request. The cloud answers 409 when it holds the id with other state.
+func (c *SessionClient) CreateSharedObjectWithState(ctx context.Context, soID string, req *api.CreateWithStateRequest) error {
+	var resp api.CreateSObjectResponse
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "create-with-state"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "create shared object with state")
+}
+
+// GetTransferOrigin reads the transfer origin the cloud stores with a shared
+// object and whether the object is unchanged since that transfer wrote it.
+// Only the object's managers read it.
+func (c *SessionClient) GetTransferOrigin(ctx context.Context, soID string) (*api.GetTransferOriginResponse, error) {
+	// Fetch and decode the stored origin.
+	data, err := c.doGetBinary(ctx, path.Join("/api/sobject", soID, "transfer-origin"), SeedReasonColdSeed)
+	if err != nil {
+		return nil, errors.Wrap(err, "get transfer origin")
+	}
+	resp := &api.GetTransferOriginResponse{}
+	if err := resp.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "get transfer origin")
+	}
+	return resp, nil
+}
+
+// PostTransferCheckpoint posts a transfer's checkpoint over the object it
+// wrote, storing origin with it. The cloud takes it only while the object's
+// written head is still expected, and otherwise answers 409.
+func (c *SessionClient) PostTransferCheckpoint(ctx context.Context, soID string, checkpoint *sobject.SOCheckpoint, expected, origin []byte) error {
+	var resp api.SubmitCheckpointResponse
+	req := &api.PostCheckpointRequest{Checkpoint: checkpoint, ExpectedWrittenHead: expected, TransferOrigin: origin}
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "checkpoint"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post transfer checkpoint")
+}
+
 // PostClientErrorReport submits a best-effort diagnostic report for a client-side failure.
 func (c *SessionClient) PostClientErrorReport(
 	ctx context.Context,
