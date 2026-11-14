@@ -19,6 +19,8 @@ interface UseCanvasCommandsParams {
   onToolChange?: (tool: CanvasTool) => void
   onCancelDrag?: () => void
   onSetFocus: (focus: SelectionFocus) => void
+  // readOnly withdraws every command that writes the canvas.
+  readOnly: boolean
   onAddText?: () => void
   onAddObject?: (objectKey: string) => void
   addObjectSubItems?: SubItemsCallback
@@ -41,6 +43,8 @@ interface CanvasCommandContext {
   onToolChange?: (tool: CanvasTool) => void
   onCancelDrag?: () => void
   onSetFocus: (focus: SelectionFocus) => void
+  // readOnly withdraws every command that writes the canvas.
+  readOnly: boolean
   onAddText?: () => void
   onAddObject?: (objectKey: string) => void
   addObjectSubItems?: SubItemsCallback
@@ -60,6 +64,9 @@ interface CanvasCommandSpec {
   menuOrder?: number
   combo?: string
   active: (ctx: CanvasCommandContext) => boolean
+  // writes marks a command that changes the canvas; a read-only canvas
+  // neither binds nor offers it.
+  writes?: boolean
   enabled?: (ctx: CanvasCommandContext) => boolean
   hasSubItems?: boolean
   subItems?: (ctx: CanvasCommandContext) => SubItemsCallback | undefined
@@ -101,6 +108,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.paste',
+    writes: true,
     label: 'Paste',
     menuPath: 'Edit/Paste',
     combo: 'CmdOrCtrl+V',
@@ -111,6 +119,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.undo',
+    writes: true,
     label: 'Undo',
     menuPath: 'Edit/Undo',
     combo: 'CmdOrCtrl+Z',
@@ -121,6 +130,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.redo',
+    writes: true,
     label: 'Redo',
     menuPath: 'Edit/Redo',
     combo: 'CmdOrCtrl+Shift+Z',
@@ -150,6 +160,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.delete',
+    writes: true,
     label: 'Delete Selected',
     menuPath: 'Edit/Delete',
     combo: 'Delete',
@@ -160,6 +171,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.delete-backspace',
+    writes: true,
     label: 'Delete Selected',
     combo: 'Backspace',
     active: borderActive,
@@ -167,6 +179,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.bring-to-front',
+    writes: true,
     label: 'Bring to Front',
     menuPath: 'Edit/Bring to Front',
     menuGroup: 50,
@@ -176,6 +189,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.send-to-back',
+    writes: true,
     label: 'Send to Back',
     menuPath: 'Edit/Send to Back',
     menuGroup: 50,
@@ -224,6 +238,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.organize-nodes',
+    writes: true,
     label: 'Organize Nodes',
     menuPath: 'View/Organize Nodes',
     menuGroup: 10,
@@ -244,6 +259,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   // Arrow key movement.
   {
     commandId: 'canvas.move-up',
+    writes: true,
     label: 'Move Up',
     combo: 'ArrowUp',
     active: borderActive,
@@ -251,6 +267,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-down',
+    writes: true,
     label: 'Move Down',
     combo: 'ArrowDown',
     active: borderActive,
@@ -258,6 +275,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-left',
+    writes: true,
     label: 'Move Left',
     combo: 'ArrowLeft',
     active: borderActive,
@@ -265,6 +283,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-right',
+    writes: true,
     label: 'Move Right',
     combo: 'ArrowRight',
     active: borderActive,
@@ -272,6 +291,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-up-fast',
+    writes: true,
     label: 'Move Up Fast',
     combo: 'Shift+ArrowUp',
     active: borderActive,
@@ -279,6 +299,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-down-fast',
+    writes: true,
     label: 'Move Down Fast',
     combo: 'Shift+ArrowDown',
     active: borderActive,
@@ -286,6 +307,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-left-fast',
+    writes: true,
     label: 'Move Left Fast',
     combo: 'Shift+ArrowLeft',
     active: borderActive,
@@ -293,6 +315,7 @@ const CANVAS_COMMANDS: CanvasCommandSpec[] = [
   },
   {
     commandId: 'canvas.move-right-fast',
+    writes: true,
     label: 'Move Right Fast',
     combo: 'Shift+ArrowRight',
     active: borderActive,
@@ -387,6 +410,7 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     onToolChange,
     onCancelDrag,
     onSetFocus,
+    readOnly,
     onAddText,
     onAddObject,
     addObjectSubItems,
@@ -409,6 +433,7 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     onToolChange,
     onCancelDrag,
     onSetFocus,
+    readOnly,
     onAddText,
     onAddObject,
     addObjectSubItems,
@@ -436,7 +461,7 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
             },
           ]
         : undefined,
-      active: spec.active(ctx),
+      active: spec.active(ctx) && !(spec.writes && ctx.readOnly),
       enabled: spec.enabled?.(ctx),
       hasSubItems: spec.hasSubItems,
       subItems: spec.subItems?.(ctx),

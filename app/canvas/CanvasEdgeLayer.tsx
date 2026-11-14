@@ -14,6 +14,8 @@ interface CanvasEdgeLayerProps {
   ephemeralEdges?: EphemeralEdge[]
   nodes: Map<string, CanvasNodeData>
   callbacks: CanvasCallbacks
+  // readOnly offers focus only: no pin, hide or delete.
+  readOnly?: boolean
 }
 
 // getNodeCenter returns the center coordinates of a node.
@@ -47,6 +49,7 @@ export function CanvasEdgeLayer({
   ephemeralEdges,
   nodes,
   callbacks,
+  readOnly = false,
 }: CanvasEdgeLayerProps) {
   const manualEdges = useMemo(() => {
     const result: Array<{
@@ -234,15 +237,24 @@ export function CanvasEdgeLayer({
             <GraphLinkPill
               edge={edge.edge}
               loaded={edge.hasTarget}
-              onPrimary={() => {
-                if (edge.hasTarget && edge.edge.targetNodeId) {
-                  handleFocus(edge.edge.linkedObjectKey, edge.edge.targetNodeId)
-                  return
-                }
-                handlePin(edge.edge.linkedObjectKey, edge.actionX, edge.actionY)
-              }}
-              onHide={() => handleHide(edge.edge)}
-              onDelete={() => handleDelete(edge.edge)}
+              onPrimary={
+                edge.hasTarget && edge.edge.targetNodeId
+                  ? () =>
+                      handleFocus(
+                        edge.edge.linkedObjectKey,
+                        edge.edge.targetNodeId ?? '',
+                      )
+                  : readOnly
+                    ? undefined
+                    : () =>
+                        handlePin(
+                          edge.edge.linkedObjectKey,
+                          edge.actionX,
+                          edge.actionY,
+                        )
+              }
+              onHide={readOnly ? undefined : () => handleHide(edge.edge)}
+              onDelete={readOnly ? undefined : () => handleDelete(edge.edge)}
             />
           </foreignObject>
         </g>

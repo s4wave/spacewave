@@ -4,6 +4,7 @@ import {
   render,
   screen,
   cleanup,
+  act,
   fireEvent,
   waitFor,
 } from '@testing-library/react'
@@ -23,6 +24,33 @@ vi.mock('./CanvasContextMenu.js', () => ({
       />
     ) : null,
 }))
+
+// commands holds the latest registration of each canvas command, so a test
+// can press a key the way the command system dispatches it.
+const { commands } = vi.hoisted(() => ({
+  commands: new Map<string, Record<string, unknown>>(),
+}))
+
+vi.mock('@s4wave/web/command/useCommand.js', () => ({
+  useCommand: (opts: Record<string, unknown>) => {
+    commands.set(opts.commandId as string, opts)
+  },
+}))
+
+vi.mock('@s4wave/web/contexts/TabActiveContext.js', () => ({
+  useIsTabActive: () => true,
+}))
+
+// pressKey runs every active command bound to combo.
+function pressKey(combo: string) {
+  for (const cmd of commands.values()) {
+    const bindings = cmd.defaultBindings as
+      | Array<{ binding: { value: { combo: string } } }>
+      | undefined
+    if (!cmd.active || bindings?.[0]?.binding.value.combo !== combo) continue
+    act(() => (cmd.handler as (args: Record<string, string>) => void)({}))
+  }
+}
 
 import { Canvas } from './Canvas.js'
 import type {
@@ -76,6 +104,39 @@ function makeCallbacks(
 describe('Canvas', () => {
   afterEach(() => {
     cleanup()
+    commands.clear()
+  })
+
+  it('a delete key press removes the selection only when editable', async () => {
+    const node = makeNode({ id: 'kept' })
+    for (const readOnly of [true, false]) {
+      const onNodesRemove = vi.fn()
+      const onNodeSelect = vi.fn<(nodeIds: Set<string>) => void>()
+      render(
+        <Canvas
+          state={makeState([node])}
+          callbacks={makeCallbacks({ onNodesRemove, onNodeSelect })}
+          focusNodeId="kept"
+          readOnly={readOnly}
+        />,
+      )
+      await waitFor(() =>
+        expect(onNodeSelect.mock.calls.at(-1)?.[0].has('kept')).toBe(true),
+      )
+
+      pressKey('Delete')
+      pressKey('Backspace')
+
+      // Read-only: nothing sent and the node stays selected. Editable, the
+      // same keys remove it.
+      expect(onNodesRemove.mock.calls.length > 0).toBe(!readOnly)
+      if (readOnly) {
+        expect(onNodeSelect.mock.calls.at(-1)?.[0].has('kept')).toBe(true)
+      }
+      expect(screen.getByText('Hello world')).toBeDefined()
+      cleanup()
+      commands.clear()
+    }
   })
 
   it('renders without crashing with empty state', () => {

@@ -7,7 +7,9 @@ import type { EphemeralEdge } from './types.js'
 interface GraphLinkPillProps {
   edge: EphemeralEdge
   loaded: boolean
-  onPrimary: () => void
+  // onPrimary focuses or loads the linked object; absent, the pill only
+  // names the link.
+  onPrimary?: () => void
   onHide?: () => void
   onDelete?: () => void
 }
@@ -51,15 +53,23 @@ export function GraphLinkPill({
   onHide,
   onDelete,
 }: GraphLinkPillProps) {
+  const hide = edge.hideable && onHide
+  const remove = edge.userRemovable && onDelete
   return (
     <div className="flex h-6.5 max-w-64 items-center">
       <button
         type="button"
         className={cn(
-          'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 min-w-0 items-center gap-1 rounded-l-md border border-r-0 px-1.5 py-0.5 micro-text shadow-lg backdrop-blur-sm transition-colors',
+          'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 min-w-0 items-center gap-1 rounded-l-md border px-1.5 py-0.5 micro-text shadow-lg backdrop-blur-sm transition-colors',
+          hide || remove ? 'border-r-0' : 'rounded-r-md',
         )}
         onClick={onPrimary}
-        title={`${loaded ? 'Focus' : 'Load'} ${edge.linkedObjectLabel}`}
+        disabled={!onPrimary}
+        title={
+          onPrimary
+            ? `${loaded ? 'Focus' : 'Load'} ${edge.linkedObjectLabel}`
+            : edge.linkedObjectLabel
+        }
       >
         <span className="text-brand/60 font-medium">{edge.predicate}</span>
         <span className="text-foreground-alt/30">/</span>
@@ -72,21 +82,23 @@ export function GraphLinkPill({
           </span>
         )}
         <GraphLinkBadges edge={edge} />
-        <span className="ml-auto flex items-center gap-1">
-          {loaded ? (
-            <LuLocateFixed className="size-3" />
-          ) : (
-            <LuPlus className="size-3" />
-          )}
-          {loaded ? 'Focus' : 'Load'}
-        </span>
+        {onPrimary && (
+          <span className="ml-auto flex items-center gap-1">
+            {loaded ? (
+              <LuLocateFixed className="size-3" />
+            ) : (
+              <LuPlus className="size-3" />
+            )}
+            {loaded ? 'Focus' : 'Load'}
+          </span>
+        )}
       </button>
-      {edge.hideable && onHide && (
+      {hide && (
         <button
           type="button"
           className={cn(
             'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 items-center border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors',
-            edge.userRemovable && onDelete ? 'border-r-0' : 'rounded-r-md',
+            remove ? 'border-r-0' : 'rounded-r-md',
           )}
           onClick={onHide}
           title={`Hide ${edge.predicate} link`}
@@ -94,7 +106,7 @@ export function GraphLinkPill({
           <LuEyeOff className="size-3" />
         </button>
       )}
-      {edge.userRemovable && onDelete && (
+      {remove && (
         <button
           type="button"
           className="bg-background-card/50 text-destructive border-foreground/10 hover:border-destructive/20 hover:bg-destructive/10 flex h-6.5 items-center rounded-r-md border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors"

@@ -405,4 +405,23 @@ describe('CanvasEdgeLayer', () => {
     const textEl = document.querySelector('text')
     expect(textEl).toBeFalsy()
   })
+
+  it('offers no pin, hide or delete on a read-only canvas', () => {
+    const nodes = new Map([
+      ['a', makeNode({ id: 'a', width: 100, height: 100 })],
+    ])
+    render(
+      <CanvasEdgeLayer
+        edges={[]}
+        ephemeralEdges={[makeEphemeralEdge({ stubX: 400, stubY: 200 })]}
+        nodes={nodes}
+        callbacks={makeCallbacks()}
+        readOnly
+      />,
+    )
+
+    expect(document.querySelector('button[title^="Load"]')).toBeNull()
+    expect(document.querySelector('button[title*="Hide"]')).toBeNull()
+    expect(document.querySelector('button[title*="Delete"]')).toBeNull()
+  })
 })

@@ -54,6 +54,7 @@ describe('useCanvasCommands', () => {
         onToolChange: vi.fn(),
         onCancelDrag: vi.fn(),
         onSetFocus: vi.fn(),
+        readOnly: false,
         onAddText: vi.fn(),
         onAddObject,
         addObjectSubItems: subItems,

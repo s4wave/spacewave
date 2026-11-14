@@ -924,6 +924,7 @@ export function Canvas({
     onToolChange,
     onCancelDrag: cancelDrag,
     onSetFocus: selection.setFocus,
+    readOnly,
     onAddText: readOnly ? undefined : handleCommandAddText,
     onAddObject: readOnly ? undefined : addObjectAt,
     addObjectSubItems: readOnly ? undefined : objectSubItems,
@@ -1030,6 +1031,7 @@ export function Canvas({
             ephemeralEdges={ephemeralEdges}
             nodes={effectiveNodes}
             callbacks={callbacks}
+            readOnly={readOnly}
           />
           {nodeEntries.map(([id, node]) => (
             <CanvasNode
