@@ -67,9 +67,11 @@ func (t *LocalTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.Sh
 }
 
 // ReadSharedObject reads what the account stores under sharedObjectID. A
-// written Space whose state hash no longer matches is replayed, and still
-// counts as written when its World is the one the transfer copied, read at
-// the same stored state before and after the replay.
+// written Space whose state hash no longer matches is replayed. It counts as
+// written when its World is the source's current one, since no write follows;
+// or when its World is the one the transfer copied, no config change or
+// invite was added since, and the stored state stays put across the replay,
+// since a write then replaces only that World.
 func (t *LocalTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.Entry, sharedObjectID string, origin *TransferOrigin) (*TargetSpace, error) {
 	// Read the listing, origin and state together.
 	stored, err := t.account.ReadStoredSharedObject(ctx, sharedObjectID)
@@ -96,20 +98,39 @@ func (t *LocalTransferTarget) ReadSharedObject(ctx context.Context, le *logrus.E
 		return written, nil
 	}
 
-	// The state changed: it still counts as written while its World is the
-	// one copied and the state stays put across the replay.
+	// The state changed. A target holding the source's current World needs
+	// no write, whatever else changed.
 	head, err := t.replayHead(ctx, le, stored.Entry.GetRef())
 	if err != nil {
 		return nil, err
 	}
+	if len(origin.GetSourceHead()) != 0 && bytes.Equal(head, origin.GetSourceHead()) {
+		return &TargetSpace{Holds: TargetHoldsWritten, Head: head, Expect: stored}, nil
+	}
+
+	// A write replaces the whole state, so it may follow only while the World
+	// is the one copied, the membership is the write's, and the state stays
+	// put across the replay.
 	again, err := t.account.ReadStoredSharedObject(ctx, sharedObjectID)
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(head, src.GetSourceHead()) || again.Entry.GetGeneration() != stored.Entry.GetGeneration() || !bytes.Equal(again.State, stored.State) {
+	if !bytes.Equal(head, src.GetSourceHead()) || membershipChanged(stored.State) || again.Entry.GetGeneration() != stored.Entry.GetGeneration() || !bytes.Equal(again.State, stored.State) {
 		return &TargetSpace{Holds: TargetHoldsOther, Expect: stored}, nil
 	}
 	return written, nil
+}
+
+// membershipChanged reports whether a stored state has a config change or
+// an invite the transfer's write did not make. The write starts a lineage at
+// its genesis config, which no change has followed, with no invites; a write
+// over a later state would drop the participants and invites added since.
+func membershipChanged(state []byte) bool {
+	st := &sobject.SOState{}
+	if err := st.UnmarshalVT(state); err != nil {
+		return true
+	}
+	return st.GetConfig().GetConfigChainSeqno() != 0 || len(st.GetInvites()) != 0
 }
 
 // replayHead returns the SHA-256 of the World the target's Space at ref
