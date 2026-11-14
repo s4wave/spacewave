@@ -672,19 +672,20 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
     )
   }
 
-  // Open the kept entry under the failure's notice when its read failed.
-  const viewer = (
-    <DisplayViewer controller={controller} spaceState={spaceState} />
-  )
-  if (!objectEntryResource.error) return viewer
+  // Open the entry below a fixed notice slot, so a failure starting or
+  // clearing never remounts the viewer.
   return (
     <div className="flex h-full w-full flex-col">
-      <ViewerStatus
-        state="failed"
-        message={`Could not read the object: ${objectEntryResource.error.message}`}
-        retry={objectEntryResource.retry}
-      />
-      <div className="min-h-0 flex-1">{viewer}</div>
+      {objectEntryResource.error && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the object: ${objectEntryResource.error.message}`}
+          retry={objectEntryResource.retry}
+        />
+      )}
+      <div className="min-h-0 flex-1">
+        <DisplayViewer controller={controller} spaceState={spaceState} />
+      </div>
     </div>
   )
 }

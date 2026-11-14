@@ -244,33 +244,33 @@ export function SpaceObjectContainer() {
     return <ObjectViewerLoadingState />
   }
 
-  // Show the selected Space object.
-  const viewer = (
-    <ObjectViewer
-      objectInfo={objectInfo}
-      worldState={spaceWorldResource}
-      spaceContents={spaceContentsResource}
-      path={routerPath}
-      exportUrl={exportUrl}
-      onNavigate={handleViewerNavigate}
-      onBreadcrumbClick={navigateToRoot}
-      stateNamespace={['objectViewer', objectKey ?? 'none']}
-    />
-  )
-  if (!metadata.error) {
-    return viewer
-  }
-
-  // A failed type read shows its notice, above the viewer only when a type
-  // is still known; with none it opens no viewer that would guess one.
+  // Show the selected Space object below a fixed notice slot, so a failure
+  // starting or clearing never remounts the viewer. A failed type read opens
+  // the viewer only when a type is still known, so none is guessed.
+  const failure = metadata.error
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <ViewerStatus
-        state="failed"
-        message={`Could not read the object: ${metadata.error.message}`}
-        retry={metadata.retry}
-      />
-      {objectType && <div className="min-h-0 flex-1">{viewer}</div>}
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col">
+      {failure && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the object: ${failure.message}`}
+          retry={metadata.retry}
+        />
+      )}
+      <div className="min-h-0 flex-1">
+        {(!failure || objectType) && (
+          <ObjectViewer
+            objectInfo={objectInfo}
+            worldState={spaceWorldResource}
+            spaceContents={spaceContentsResource}
+            path={routerPath}
+            exportUrl={exportUrl}
+            onNavigate={handleViewerNavigate}
+            onBreadcrumbClick={navigateToRoot}
+            stateNamespace={['objectViewer', objectKey ?? 'none']}
+          />
+        )}
+      </div>
     </div>
   )
 }

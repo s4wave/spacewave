@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SpaceObjectContainer } from './SpaceObjectContainer.js'
@@ -30,6 +30,8 @@ const h = vi.hoisted(() => ({
   navigateToSubPath: vi.fn(),
   getQuickstartInitialObjectHandoff: vi.fn(),
   worldObjectType: '',
+  metadataError: null as Error | null,
+  viewerMounts: 0,
   spaceContext: {
     spaceId: 'space/git',
     objectKey: 'repo/demo',
@@ -52,12 +54,18 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => h.navigate,
 }))
 
-vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
-  ObjectViewer: (props: CapturedObjectViewerProps) => {
-    h.objectViewer(props)
-    return <div data-testid="object-viewer" />
-  },
-}))
+vi.mock('@s4wave/web/object/ObjectViewer.js', async () => {
+  const { useEffect } = await import('react')
+  return {
+    ObjectViewer: (props: CapturedObjectViewerProps) => {
+      h.objectViewer(props)
+      useEffect(() => {
+        h.viewerMounts++
+      }, [])
+      return <div data-testid="object-viewer" />
+    },
+  }
+})
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   SpaceContentsContext: {
@@ -77,12 +85,19 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
 }))
 
 vi.mock('@s4wave/web/hooks/useObjectMetadata.js', () => ({
-  useObjectMetadata: () => ({
-    value: h.worldObjectType ? { typeId: h.worldObjectType } : null,
-    loading: false,
-    error: null,
-    retry: vi.fn(),
-  }),
+  useObjectMetadata: () => {
+    const entry = h.worldObjectType ? { typeId: h.worldObjectType } : null
+    if (h.metadataError) {
+      return {
+        value: null,
+        loading: false,
+        error: h.metadataError,
+        last: entry,
+        retry: vi.fn(),
+      }
+    }
+    return { value: entry, loading: false, error: null, retry: vi.fn() }
+  },
 }))
 
 vi.mock('@s4wave/app/quickstart/session-handoff.js', () => ({
@@ -97,6 +112,8 @@ describe('SpaceObjectContainer', () => {
     h.navigateToSubPath.mockClear()
     h.getQuickstartInitialObjectHandoff.mockReset()
     h.worldObjectType = ''
+    h.metadataError = null
+    h.viewerMounts = 0
     h.spaceContext = {
       spaceId: 'space/git',
       objectKey: 'repo/demo',
@@ -116,6 +133,24 @@ describe('SpaceObjectContainer', () => {
     expect(props?.objectInfo?.info?.value?.objectType).toBeUndefined()
     expect(props?.path).toBe('/')
     expect(props?.stateNamespace).toEqual(['objectViewer', 'repo/demo'])
+  })
+
+  it('keeps the viewer mounted while a type read fails and recovers', () => {
+    h.worldObjectType = 'git/repo'
+    const { container, rerender } = render(<SpaceObjectContainer />)
+    const view = within(container)
+
+    h.metadataError = new Error('world closed')
+    rerender(<SpaceObjectContainer />)
+    expect(view.getByRole('alert').textContent).toContain(
+      'Could not read the object: world closed',
+    )
+    expect(view.getByTestId('object-viewer')).toBeDefined()
+
+    h.metadataError = null
+    rerender(<SpaceObjectContainer />)
+    expect(view.queryByRole('alert')).toBeNull()
+    expect(h.viewerMounts).toBe(1)
   })
 
   it('passes the World object type to the viewer', () => {

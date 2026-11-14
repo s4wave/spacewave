@@ -86,14 +86,12 @@ export function SpacePluginWorkbench({
   const selectedResource = useObjectMetadata(spaceWorldResource, objectKey)
   const selectedType = resourceContent(selectedResource)?.typeId
 
-  // A failed read of the preview objects shows its notice over what it kept.
-  const previewStatus = resourceStatus(
-    'the preview objects',
-    objectKeysResource,
-    selectedResource,
-  )
-  const previewFailure =
-    previewStatus?.state === 'failed' ? previewStatus : null
+  // A failed read shows its notice over what it kept, naming what failed:
+  // the preview object list, or the selected object's type.
+  const previewFailure = [
+    resourceStatus('the preview objects', objectKeysResource),
+    resourceStatus(`the type of ${objectKey}`, selectedResource),
+  ].find((status) => status?.state === 'failed')
 
   // Preview through the chosen frontend module, or the first one.
   const entrypoints = frontend.value?.session.entrypoints ?? []

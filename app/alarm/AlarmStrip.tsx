@@ -36,19 +36,20 @@ export function AlarmStrip({
   const alarms = resourceContent(alarmsResource)
   const nowMs = useClock(clockPeriodMs)
 
-  // Draw the chips, under the failure's notice when the read failed.
-  const chips = alarms?.length ? (
-    <AlarmChips alarms={alarms} nowMs={nowMs} onOpen={onOpen} />
-  ) : null
-  if (!alarmsResource.error) return chips
+  // Draw the chips below a fixed notice slot, so a failure starting or
+  // clearing never remounts them.
   return (
     <>
-      <ViewerStatus
-        state="failed"
-        message={`Could not read the Alarms: ${alarmsResource.error.message}`}
-        retry={alarmsResource.retry}
-      />
-      {chips}
+      {alarmsResource.error && (
+        <ViewerStatus
+          state="failed"
+          message={`Could not read the Alarms: ${alarmsResource.error.message}`}
+          retry={alarmsResource.retry}
+        />
+      )}
+      {alarms?.length ? (
+        <AlarmChips alarms={alarms} nowMs={nowMs} onOpen={onOpen} />
+      ) : null}
     </>
   )
 }
