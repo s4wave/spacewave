@@ -22,6 +22,7 @@ type Transfer struct {
 	source         TransferSource
 	target         TransferTarget
 	cleanup        CleanupSource
+	deleteSource   func(ctx context.Context) error
 	checkpoint     CheckpointStore
 	owner          crypto.PrivKey
 	filterSpaceIDs []string
@@ -52,6 +53,7 @@ func NewTransfer(
 		source:         source,
 		target:         target,
 		cleanup:        opts.Cleanup,
+		deleteSource:   opts.DeleteSource,
 		checkpoint:     opts.Checkpoint,
 		owner:          owner,
 		filterSpaceIDs: opts.FilterSpaceIDs,
@@ -247,7 +249,7 @@ func (t *Transfer) Execute(ctx context.Context) error {
 
 	// Phase: cleanup source (MERGE and MIGRATE modes). Every Space the source
 	// held, other than account-private ones, has reached the target and the
-	// target holds the identity that signs them, so deleting the volume loses
+	// target holds the identity that signs them, so deleting the account loses
 	// only what the person chose to leave: account-private objects.
 	if deletesSource {
 		t.setPhase(TransferPhase_TransferPhase_CLEANUP)
@@ -262,8 +264,10 @@ func (t *Transfer) Execute(ctx context.Context) error {
 				return t.finish(ctx, TransferPhase_TransferPhase_NOT_MOVED)
 			}
 		}
-		if err := t.cleanup.DeleteVolume(ctx); err != nil {
-			t.le.WithError(err).Warn("failed to delete source volume")
+		if t.deleteSource != nil {
+			if err := t.deleteSource(ctx); err != nil {
+				return t.fail(errors.Wrap(err, "delete source account"))
+			}
 		}
 	}
 

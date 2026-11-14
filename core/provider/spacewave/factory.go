@@ -48,17 +48,20 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the logger and the typed config.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Parse the optional peer id constraint.
 	peerIDConstraint, err := cc.ParsePeerID()
 	if err != nil {
 		return nil, err
 	}
 
+	// Default the provider id when the config leaves it empty.
 	providerID := cc.GetProviderId()
 	if providerID == "" {
-		providerID = "spacewave"
+		providerID = ProviderID
 	}
 
 	return provider_controller.NewProviderController(

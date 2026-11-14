@@ -83,11 +83,6 @@ func (s *LocalTransferSource) DeleteSharedObject(ctx context.Context, soID strin
 	return s.account.DeleteSharedObject(ctx, soID)
 }
 
-// DeleteVolume deletes the source account's storage volume.
-func (s *LocalTransferSource) DeleteVolume(ctx context.Context) error {
-	return s.account.GetVolume().Delete()
-}
-
 // _ is a type assertion
 var (
 	_ TransferSource = (*LocalTransferSource)(nil)

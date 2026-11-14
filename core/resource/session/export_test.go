@@ -1,20 +1,9 @@
 package resource_session
 
-import (
-	"context"
-
-	"github.com/aperturerobotics/controllerbus/bus"
-	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
-	"github.com/s4wave/spacewave/core/session"
-)
-
-// ReadLinkedCloudAccountID exports readLinkedCloudAccountID for testing.
-func ReadLinkedCloudAccountID(ctx context.Context, b bus.Bus, entry *session.SessionListEntry, source provider_transfer.TransferSource) (string, error) {
-	return readLinkedCloudAccountID(ctx, b, entry, source)
-}
+import "context"
 
 // WaitTransferDone waits for the transfer goroutine to finish completely
-// (including post-transfer cleanup like session deletion).
+// (including the source account delete of a Merge or Migrate).
 func (r *SessionResource) WaitTransferDone(ctx context.Context) error {
 	// Wait for the transfer routine to exit, ignoring cancellation after it has stopped.
 	r.transferMgr.mtx.Lock()
