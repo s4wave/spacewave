@@ -181,9 +181,23 @@ func (h *SQLHandler) SeedQuickstart(
 	}, nil
 }
 
+// seedSQLQuickstart seeds the quickstart database and example query, each step
+// skipped when its result is present, so a run repeated after an earlier run
+// committed some or all of them finishes the seed without writing anything
+// twice or replacing what a person changed since.
+//
+// Each step's result appears in one write: the database object, its root (the
+// schema and rows go in with one SetRootRef), each type edge, and the query
+// object with its body. A database object with an empty root is half written
+// and gets seeded; one with a root is complete and is kept as it is.
 func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState) error {
-	// Create the SQL database object in the quickstart WorldState.
-	{
+	// Create the SQL database object unless an earlier run created it.
+	dbObject, dbExists, err := ws.GetObject(ctx, sqlQuickstartDBKey)
+	world.ReleaseObjectState(dbObject)
+	if err != nil {
+		return errors.Wrap(err, "look up SQL database object")
+	}
+	if !dbExists {
 		createdObject, err := ws.CreateObject(ctx, sqlQuickstartDBKey, nil)
 		world.ReleaseObjectState(createdObject)
 		if err != nil {
@@ -199,22 +213,29 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 		return errors.Wrap(err, "set SQL database object type")
 	}
 
-	// Create the example query against the quickstart database.
-	query := &s4wave_sql_query.Query{
-		SqlText:           "SELECT name, role FROM quickstart.people WHERE id = ?",
-		DialectHint:       "mysql",
-		TargetDbObjectKey: sqlQuickstartDBKey,
-		Parameters: []*s4wave_sql.SqlValue{{
-			Value: &s4wave_sql.SqlValue_IntValue{IntValue: 1},
-		}},
-	}
-	createdObject2, _, err := world.CreateWorldObject(ctx, ws, sqlQuickstartQueryKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(query, true)
-		return nil
-	})
-	world.ReleaseObjectState(createdObject2)
+	// Create the example query unless an earlier run created it.
+	queryObject, queryExists, err := ws.GetObject(ctx, sqlQuickstartQueryKey)
+	world.ReleaseObjectState(queryObject)
 	if err != nil {
-		return errors.Wrap(err, "create SQL query object")
+		return errors.Wrap(err, "look up SQL query object")
+	}
+	if !queryExists {
+		query := &s4wave_sql_query.Query{
+			SqlText:           "SELECT name, role FROM quickstart.people WHERE id = ?",
+			DialectHint:       "mysql",
+			TargetDbObjectKey: sqlQuickstartDBKey,
+			Parameters: []*s4wave_sql.SqlValue{{
+				Value: &s4wave_sql.SqlValue_IntValue{IntValue: 1},
+			}},
+		}
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, sqlQuickstartQueryKey, func(bcs *block.Cursor) error {
+			bcs.SetBlock(query, true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return errors.Wrap(err, "create SQL query object")
+		}
 	}
 
 	// Assign the SQL query object type to the example query.
@@ -225,7 +246,7 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 }
 
 // seedSQLDatabase creates the quickstart schema and its sample rows in the SQL
-// database object.
+// database object when its root is empty, and keeps a root already set.
 func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) error {
 	// Open the SQL database object for quickstart seeding.
 	obj, err := world.MustGetObject(ctx, ws, sqlQuickstartDBKey)
@@ -238,6 +259,9 @@ func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) e
 	rootRef, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return errors.Wrap(err, "read SQL database root")
+	}
+	if !rootRef.GetEmpty() {
+		return nil
 	}
 	stage, err := ws.StageWorldState(ctx)
 	if err != nil {
