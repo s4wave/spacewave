@@ -366,6 +366,41 @@ describe('WizardViewer', () => {
     expect(screen.getByRole('button', { name: /create/i })).toBeTruthy()
   })
 
+  it('shows the gone screen, not a failure, when a Cancel finds the wizard gone', async () => {
+    // Another tab finished first; this tab's watch has not caught up.
+    const user = userEvent.setup()
+    mocks.t.state.objects.delete('wizard/test-canvas')
+    renderViewer()
+
+    await user.click(screen.getByRole('button', { name: /delete wizard/i }))
+
+    expect(await screen.findByText('Wizard deleted')).toBeTruthy()
+    expect(screen.queryByText(/Could not delete the wizard/)).toBeNull()
+    expect(mocks.t.calls).not.toContain('commit')
+    expect(mocks.closeShellTab).not.toHaveBeenCalled()
+  })
+
+  it("hides Delete wizard while this view's Finish runs", async () => {
+    const user = userEvent.setup()
+    let finishCommit = () => {}
+    mocks.t.commitGate = new Promise((resolve) => {
+      finishCommit = resolve
+    })
+    renderViewer()
+    expect(screen.getByRole('button', { name: /delete wizard/i })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /create/i }))
+    await waitFor(() => {
+      expect(mocks.t.calls).toContain('delete')
+    })
+    expect(screen.queryByRole('button', { name: /delete wizard/i })).toBeNull()
+
+    finishCommit()
+    await waitFor(() => {
+      expect(mocks.navigateToObjects).toHaveBeenCalledWith(['demo-canvas-1'])
+    })
+  })
+
   it('shows a deleted state with a close-tab action once the watched object is gone', async () => {
     const user = userEvent.setup()
     watchedObject = { value: null, loading: false, error: null }

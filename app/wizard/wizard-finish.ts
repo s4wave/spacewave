@@ -16,12 +16,12 @@ export interface WizardRef {
 
 // WizardMutation is one write a wizard's Finish or Cancel applies. op applies
 // a World operation as the session peer; delete removes an object, and fails
-// the whole list when the object is gone and mustExist is set. write runs a
+// the whole list with WizardGoneError when the object is gone. write runs a
 // writer that needs a World to call, for seeders that read back what they
 // wrote; it is the one entry that is not plain data.
 export type WizardMutation =
   | { kind: 'op'; opId: string; opData: Uint8Array }
-  | { kind: 'delete'; objectKey: string; mustExist: boolean }
+  | { kind: 'delete'; objectKey: string }
   | { kind: 'write'; run: (world: IWorldState) => Promise<void> }
 
 // applyWizardMutations applies the list in one write transaction and commits
@@ -70,7 +70,7 @@ async function applyWizardMutation(
       return
     case 'delete': {
       const { deleted } = await tx.deleteObject(m.objectKey, signal)
-      if (!deleted && m.mustExist) throw new WizardGoneError()
+      if (!deleted) throw new WizardGoneError()
       return
     }
     case 'write':
@@ -79,9 +79,9 @@ async function applyWizardMutation(
   }
 }
 
-// WizardGoneError refuses a Finish because the wizard is already gone:
-// another tab finished or cancelled it. Nothing was written, and Retry can
-// never succeed, so the Finish control shows the gone state.
+// WizardGoneError refuses a Finish or a Cancel because the wizard is already
+// gone: another tab finished or cancelled it. Nothing was written, and a new
+// press can never succeed, so the control shows the gone state.
 export class WizardGoneError extends Error {
   constructor() {
     super('This wizard no longer exists')
@@ -105,14 +105,11 @@ export class WizardInputError extends Error {
 // wizard's key, so the World decides inside the transaction: it moves an
 // index that names the wizard and leaves any other index, without error. No
 // client read of the index is involved, so a settings watch that has not
-// loaded or lags cannot leave the index naming a deleted wizard. A Finish
-// that creates sets mustExist, so a wizard another tab finished or cancelled
-// refuses the whole list rather than creating a second object.
-export function wizardRemoval(
-  wizard: WizardRef,
-  indexPath: string,
-  mustExist: boolean,
-): WizardMutation[] {
+// loaded or lags cannot leave the index naming a deleted wizard. The delete
+// expects the wizard, so a wizard another tab finished or cancelled refuses
+// the whole list rather than creating a second object or reporting a second
+// ending, even for a Finish that creates nothing.
+function wizardRemoval(wizard: WizardRef, indexPath: string): WizardMutation[] {
   return [
     {
       kind: 'op',
@@ -123,16 +120,19 @@ export function wizardRemoval(
         timestamp: new Date(),
       }),
     },
-    { kind: 'delete', objectKey: wizard.objectKey, mustExist },
+    { kind: 'delete', objectKey: wizard.objectKey },
   ]
 }
 
 // WizardFinishPlan is a prepared Finish: the writes that create the target,
 // and the target itself. Everything the writes need is read before the plan
-// is built.
+// is built. targetMade says the target exists apart from the list, such as a
+// device paired before Finish: a list refused because the wizard is gone
+// then still ends done and opens the target, since the target is real.
 export interface WizardFinishPlan {
   creates: WizardMutation[]
   target: WizardFinishTarget
+  targetMade?: boolean
 }
 
 // WizardFinishTarget is what a Finish made: the object to open, the path a
@@ -147,8 +147,8 @@ export interface WizardFinishTarget {
 // move and the wizard delete. The wizard exists until the list commits and
 // its target exists only once it has, so a failure leaves the wizard, the
 // index and the person's draft as they were, and Retry runs it all again.
-// A Finish that creates nothing, such as an introduction, succeeds when the
-// wizard is already gone, since a second press duplicates nothing.
+// Every Finish, including one that creates nothing, refuses with
+// WizardGoneError once the wizard is gone.
 export async function finishWizard(
   wizard: WizardRef,
   plan: WizardFinishPlan,
@@ -157,21 +157,15 @@ export async function finishWizard(
   await applyWizardMutations(
     wizard.spaceWorld,
     wizard.sessionPeerId,
-    [
-      ...plan.creates,
-      ...wizardRemoval(
-        wizard,
-        plan.target.indexPath,
-        plan.creates.length !== 0,
-      ),
-    ],
+    [...plan.creates, ...wizardRemoval(wizard, plan.target.indexPath)],
     signal,
   )
 }
 
 // cancelWizard removes a wizard without creating anything: a Space index
-// that names it moves to indexPath, or is cleared. A wizard already deleted
-// elsewhere counts as cancelled.
+// that names it moves to indexPath, or is cleared. A wizard already gone,
+// because another tab finished or cancelled it, refuses with
+// WizardGoneError, so a Cancel never succeeds beside a Finish.
 export async function cancelWizard(
   wizard: WizardRef,
   indexPath: string,
@@ -180,7 +174,7 @@ export async function cancelWizard(
   await applyWizardMutations(
     wizard.spaceWorld,
     wizard.sessionPeerId,
-    wizardRemoval(wizard, indexPath, false),
+    wizardRemoval(wizard, indexPath),
     signal,
   )
 }
@@ -293,13 +287,20 @@ export function useWizardFinish(
       if (runningRef.current) return undefined
       runningRef.current = true
       dispatch({ type: 'start' })
-      try {
-        const plan = await prepare()
-        await finishWizard(wizard, plan)
+      let plan: WizardFinishPlan | undefined
+      const done = (target: WizardFinishTarget): WizardFinishState => {
         dispatch({ type: 'finish' })
-        if (mountedRef.current) onDone(plan.target)
+        if (mountedRef.current) onDone(target)
         return { status: 'done' }
+      }
+      try {
+        plan = await prepare()
+        await finishWizard(wizard, plan)
+        return done(plan.target)
       } catch (err) {
+        if (err instanceof WizardGoneError && plan?.targetMade) {
+          return done(plan.target)
+        }
         const next = refusedFinishState(err)
         dispatch({ type: 'refuse', state: next })
         return next

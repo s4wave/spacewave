@@ -493,6 +493,26 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host'])
   })
 
+  it('opens the paired Device when its Finish is refused because the wizard is gone', async () => {
+    // Another tab cancelled the wizard after this tab paired the device.
+    h.deleteObject.mockResolvedValueOnce({ deleted: false })
+    h.currentStep = 2
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({ completion: 'completion' }),
+    )
+    renderViewer()
+
+    expect(await screen.findByText('Device Objects')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /open device/i }))
+
+    // The list wrote nothing, yet the device is real, so it opens.
+    await waitFor(() =>
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host']),
+    )
+    expect(h.commit).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Could not finish/)).toBeNull()
+  })
+
   it('holds Finish while the computers read failed, so the index never names a deleted wizard', () => {
     h.currentStep = 2
     h.configData = new TextEncoder().encode(

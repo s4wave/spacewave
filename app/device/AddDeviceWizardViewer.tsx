@@ -345,12 +345,15 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     await finish.finish(
       async () => {
         await ws.persistDraftState()
+        // The device was paired before Finish, so it opens even when the
+        // wizard is already gone.
         return {
           creates: [],
           target: {
             openKey: deviceKeys[0] || dashboardKey,
             indexPath: dashboardKey,
           },
+          targetMade: true,
         }
       },
       (target) => {
@@ -471,12 +474,15 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
           host,
           hostObjectKey,
         )
+        // The host and terminal exist before the list, so they open even
+        // when the wizard is already gone.
         return {
           creates: [],
           target: {
             openKey: attempt.terminalObjectKey || hostObjectKey,
             indexPath: dashboardKey,
           },
+          targetMade: true,
         }
       },
       (target) => {

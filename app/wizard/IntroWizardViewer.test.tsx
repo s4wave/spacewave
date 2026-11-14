@@ -127,7 +127,7 @@ describe('IntroWizardViewer', () => {
     await expectFinished()
   })
 
-  it('counts a wizard another tab already finished as finished', async () => {
+  it('shows the gone screen when another tab already removed the wizard', async () => {
     const user = userEvent.setup()
     h.spaceSettingsIndexPath = 'files'
     h.t = wizardTestWorld(['files'], 'files')
@@ -136,8 +136,13 @@ describe('IntroWizardViewer', () => {
 
     await advanceToFinish(user)
 
-    await expectFinished()
+    // The list did nothing, so this tab neither reports done nor opens.
+    expect(
+      await screen.findByText('This wizard no longer exists.'),
+    ).toBeTruthy()
+    expect(h.navigateToObjects).not.toHaveBeenCalled()
     expect(h.toastError).not.toHaveBeenCalled()
+    expect(h.t.calls).not.toContain('commit')
   })
 
   it('keeps the user on the wizard and surfaces real delete failures', async () => {

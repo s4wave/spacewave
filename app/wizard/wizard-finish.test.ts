@@ -132,11 +132,31 @@ describe('cancelWizard', () => {
     expect(t.state).toEqual({ objects: new Set(), indexPath: '', creates: [] })
   })
 
-  it('counts a wizard already deleted as cancelled', async () => {
-    const t = wizardTestWorld([], '')
+  it('refuses an Intro Finish after a Cancel removed the wizard', async () => {
+    // Tab A cancels: the index naming the wizard is cleared, the wizard goes.
+    const t = wizardTestWorld(['wizard/one'], 'wizard/one')
     await cancelWizard(wizardIn(t), '')
+    expect(t.state.indexPath).toBe('')
 
-    expect(t.calls).toContain('commit')
+    // Tab B's Intro Finish creates nothing and is refused, not reported done.
+    const intro = { creates: [], target: { openKey: 'obj/x', indexPath: 'x' } }
+    await expect(finishWizard(wizardIn(t), intro)).rejects.toThrow(
+      WizardGoneError,
+    )
+    expect(t.state.indexPath).toBe('')
+  })
+
+  it('refuses a Cancel after a Finish removed the wizard', async () => {
+    // Another tab's Finish landed first: its object exists, the wizard is
+    // gone, and the index names the object.
+    const t = wizardTestWorld(['obj/other'], 'obj/other')
+    await expect(cancelWizard(wizardIn(t), '')).rejects.toThrow(WizardGoneError)
+
+    // Nothing committed, so Cancel cannot report success beside Finish.
+    expect(t.calls).not.toContain('commit')
+    expect(t.calls).toContain('discard')
+    expect(t.state.indexPath).toBe('obj/other')
+    expect(t.state.objects.has('obj/other')).toBe(true)
   })
 })
 
@@ -156,6 +176,26 @@ describe('useWizardFinish', () => {
       message: 'Enter a name',
     })
     expect(t.calls).toEqual([])
+  })
+
+  it('shows gone for a refused Finish, but done for a target made before it', async () => {
+    const t = wizardTestWorld(['obj/other'], 'obj/other')
+    const intro = { creates: [], target: { openKey: 'obj/x', indexPath: 'x' } }
+    const { result } = renderHook(() => useWizardFinish(wizardIn(t)))
+
+    const onDone = vi.fn()
+    await act(() => result.current.finish(() => Promise.resolve(intro), onDone))
+    expect(result.current.state).toEqual({ status: 'gone' })
+    expect(onDone).not.toHaveBeenCalled()
+
+    // A paired device exists apart from the list, so it opens.
+    const paired = { ...intro, targetMade: true }
+    await act(() =>
+      result.current.finish(() => Promise.resolve(paired), onDone),
+    )
+    expect(result.current.state).toEqual({ status: 'done' })
+    expect(onDone).toHaveBeenCalledWith(intro.target)
+    expect(t.calls).not.toContain('commit')
   })
 
   it('commits but does not navigate once the wizard unmounted', async () => {

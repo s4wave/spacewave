@@ -16,15 +16,18 @@ import type { WizardState } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
 
 import { useShellTabsIfPresent, useTabId } from '../ShellTabContext.js'
-import { cancelWizard } from './wizard-finish.js'
+import { cancelWizard, WizardGoneError } from './wizard-finish.js'
 
-// WizardCancelState is the Cancel control's state. cancelling deletes the
-// wizard; cancelled means the delete landed and the view is leaving; failed
-// keeps the wizard and says why, and a new press tries again.
+// WizardCancelState is the Cancel control's state, from WizardCancel.tla.
+// cancelling deletes the wizard; cancelled means this press deleted it and
+// the view is leaving; gone means another writer removed the wizard first,
+// so the view shows the gone screen; failed keeps the wizard and says why,
+// and a new press tries again.
 export type WizardCancelState =
   | { status: 'idle' }
   | { status: 'cancelling' }
   | { status: 'cancelled' }
+  | { status: 'gone' }
   | { status: 'failed'; error: string }
 
 // UseWizardStateResult is the return type of useWizardState.
@@ -33,7 +36,8 @@ export interface UseWizardStateResult {
   state: WizardState | undefined
   // wizardGone is true once a settled watch on the wizard object finds it
   // removed, by this view's own Finish or by another writer, but not by this
-  // view's own Cancel, which leaves the view itself.
+  // view's own Cancel, which leaves the view itself; or once a Cancel was
+  // refused because another writer removed it first.
   wizardGone: boolean
   localName: string
   sessionPeerId: string
@@ -56,7 +60,8 @@ export interface UseWizardStateResult {
   // omitted. Once the delete commits it leaves the view as a Finish does: it
   // closes the shell tab, or opens the Space root when there is no tab, and
   // the unmount releases the wizard resource and stops its work. It never
-  // rejects: a failed delete ends in cancel's failed state.
+  // rejects: a wizard another writer removed first ends in cancel's gone
+  // state, and any other failure in its failed state.
   handleCancel: (indexPath?: string) => Promise<void>
 }
 
@@ -160,6 +165,10 @@ export function useWizardState(
       try {
         await cancelWizard({ objectKey, spaceWorld, sessionPeerId }, indexPath)
       } catch (err) {
+        if (err instanceof WizardGoneError) {
+          setCancel({ status: 'gone' })
+          return
+        }
         const error = err instanceof Error ? err.message : String(err)
         setCancel({ status: 'failed', error })
         return
@@ -187,7 +196,11 @@ export function useWizardState(
   const cancelling =
     cancel.status === 'cancelling' || cancel.status === 'cancelled'
   const wizardGone =
-    !cancelling && !watched.loading && !watched.error && watched.value === null
+    cancel.status === 'gone' ||
+    (!cancelling &&
+      !watched.loading &&
+      !watched.error &&
+      watched.value === null)
 
   return {
     objectKey,
