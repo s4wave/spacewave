@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"path"
 	"slices"
@@ -1564,7 +1565,7 @@ func uploadTreeFileExpect(
 ) *s4wave_unixfs.HandleUploadTreeResponse {
 	// Open an upload stream and send the file metadata.
 	t.Helper()
-	start.Path, start.TotalSize, start.Mode = name, int64(len(data)), 0o644
+	start.Path, start.TotalSize = name, int64(len(data))
 	strm, err := rootSvc.UploadTree(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1878,23 +1879,44 @@ func TestFSHandleResourceUploadTreeRefusesStaleVersion(t *testing.T) {
 		t.Fatal("conflict version does not match the current file version")
 	}
 
-	// A save at the current version succeeds.
+	// A save at the current version succeeds and reports the version it
+	// wrote, which a later read returns.
 	resp = uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("merged text"),
 		&s4wave_unixfs.HandleUploadTreeFileStart{
-			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: currentVersion},
+			Expect:      &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: currentVersion},
+			WantVersion: true,
 		})
 	assertUploadTreeCounters(t, resp, int64(len("merged text")), 1, 0)
+	written := resp.GetWritten().GetVersions()
+	if len(written) != 1 || written[0].GetPath() != "doc.txt" || len(written[0].GetVersion()) == 0 {
+		t.Fatalf("written versions = %v, want one for doc.txt", written)
+	}
+	savedVersion := written[0].GetVersion()
 	checkSvc, releaseCheck = openFileService(t, ctx, resClient, rootSvc, "doc.txt")
-	data, _ = readFileVersion(t, ctx, checkSvc)
+	data, readBack := readFileVersion(t, ctx, checkSvc)
 	releaseCheck()
 	if string(data) != "merged text" {
 		t.Fatalf("after current-version save = %q", data)
+	}
+	if !slices.Equal(readBack, savedVersion) {
+		t.Fatal("the written version differs from the version a later read returns")
+	}
+
+	// The written version is accepted as the next save's expectation, with
+	// no read between.
+	resp = uploadTreeFileExpect(t, ctx, rootSvc, "doc.txt", []byte("next text"),
+		&s4wave_unixfs.HandleUploadTreeFileStart{
+			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: savedVersion},
+		})
+	assertUploadTreeCounters(t, resp, int64(len("next text")), 1, 0)
+	if len(resp.GetWritten().GetVersions()) != 0 {
+		t.Fatal("a save that asked for no version reported one")
 	}
 }
 
 func TestFSHandleResourceUploadTreeMissingRefusesExisting(t *testing.T) {
 	// Start the filesystem resource testbed for create-only uploads.
-	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	ctx, resClient, _, rootRes, cleanup := setupFSHandleResourceClient(t)
 	defer cleanup()
 	rootRef := resClient.AccessRootResource()
 	defer rootRef.Release()
@@ -1914,8 +1936,40 @@ func TestFSHandleResourceUploadTreeMissingRefusesExisting(t *testing.T) {
 		t.Fatalf("create over existing file result = %v, want conflict with version", resp.GetResult())
 	}
 	checkSvc, releaseCheck := openFileService(t, ctx, resClient, rootSvc, "src/file.txt")
-	defer releaseCheck()
-	if data, _ := readFileVersion(t, ctx, checkSvc); string(data) != "hello" {
+	data, _ := readFileVersion(t, ctx, checkSvc)
+	releaseCheck()
+	if string(data) != "hello" {
 		t.Fatalf("existing file = %q after refused create", data)
+	}
+
+	// Another writer changes the file's mode.
+	if err := rootRes.mutate(func() error {
+		file, _, err := rootRes.handle.LookupPath(ctx, "src/file.txt")
+		if err != nil {
+			return err
+		}
+		defer file.Release()
+		return file.SetPermissions(ctx, 0o600, time.Now())
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// A save at the file's version with no mode keeps the changed mode.
+	checkSvc, releaseCheck = openFileService(t, ctx, resClient, rootSvc, "src/file.txt")
+	_, version := readFileVersion(t, ctx, checkSvc)
+	releaseCheck()
+	resp = uploadTreeFileExpect(t, ctx, rootSvc, "src/file.txt", []byte("saved"),
+		&s4wave_unixfs.HandleUploadTreeFileStart{
+			Expect: &s4wave_unixfs.HandleUploadTreeFileStart_Version{Version: version},
+		})
+	assertUploadTreeCounters(t, resp, int64(len("saved")), 1, 0)
+	checkSvc, releaseCheck = openFileService(t, ctx, resClient, rootSvc, "src/file.txt")
+	defer releaseCheck()
+	info, err := checkSvc.GetFileInfo(ctx, &s4wave_unixfs.HandleGetFileInfoRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if perm := fs.FileMode(info.GetInfo().GetMode()).Perm(); perm != 0o600 {
+		t.Fatalf("mode after a save without one = %v, want the other writer's 0600", perm)
 	}
 }

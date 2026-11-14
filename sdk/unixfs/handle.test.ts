@@ -308,6 +308,7 @@ describe('FSHandle uploadTree', () => {
       bytesWritten: 10n,
       filesWritten: 1n,
       directoriesWritten: 1n,
+      versions: [],
     })
     expect(uploadTreeMock).toHaveBeenCalledTimes(1)
     expect(sent.map((request) => request.body?.case)).toEqual([
@@ -331,6 +332,7 @@ describe('FSHandle uploadTree', () => {
         totalSize: 10n,
         mode: 0,
         expect: { case: 'version', value: new Uint8Array([7]) },
+        wantVersion: false,
       },
     })
     expect(dataMessageFrames(sent).map((frame) => Array.from(frame))).toEqual([

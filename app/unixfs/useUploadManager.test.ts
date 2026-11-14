@@ -21,6 +21,7 @@ describe('useUploadManager', () => {
       bytesWritten: 8n,
       filesWritten: 1n,
       directoriesWritten: 0n,
+      versions: [],
     })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
@@ -101,6 +102,7 @@ describe('useUploadManager', () => {
       bytesWritten: 8n,
       filesWritten: 2n,
       directoriesWritten: 0n,
+      versions: [],
     })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
@@ -134,6 +136,7 @@ describe('useUploadManager', () => {
           bytesWritten: 2n,
           filesWritten: 1n,
           directoriesWritten: 0n,
+          versions: [],
         })
       })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
@@ -165,6 +168,7 @@ describe('useUploadManager', () => {
       bytesWritten: 0n,
       filesWritten: 0n,
       directoriesWritten: 1n,
+      versions: [],
     })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 

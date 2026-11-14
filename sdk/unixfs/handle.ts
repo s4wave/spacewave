@@ -55,7 +55,12 @@ export interface TreeUploadFile {
   expect: TreeUploadExpect
   totalSize: bigint
   stream: ReadableStream<Uint8Array>
+  // mode is the permissions of a file the upload creates. A file the path
+  // already holds keeps its stored mode.
   mode?: number
+  // wantVersion asks the written result to carry the file's new version, so
+  // a writer can expect it on its next upload without reading the file back.
+  wantVersion?: boolean
   onProgress?: (bytesWritten: bigint) => void
 }
 
@@ -65,15 +70,24 @@ export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
 // TreeUploadResult is the outcome of a tree upload. conflict means a file's
 // expectation failed and nothing was committed; path is relative to the
 // upload handle and version is the file's current version, absent when the
-// path holds no file.
+// path holds no file. versions holds the new version of each file whose
+// entry set wantVersion, in entry order.
 export type TreeUploadResult =
   | {
       kind: 'written'
       bytesWritten: bigint
       filesWritten: bigint
       directoriesWritten: bigint
+      versions: TreeUploadVersion[]
     }
   | { kind: 'conflict'; path: string; version?: Uint8Array }
+
+// TreeUploadVersion is the version a tree upload gave one file; path is
+// relative to the upload handle.
+export interface TreeUploadVersion {
+  path: string
+  version: Uint8Array
+}
 
 // uploadExpect maps a tree upload expectation to its wire form.
 function uploadExpect(
@@ -648,6 +662,7 @@ export class FSHandle extends Resource implements IFSHandle {
               totalSize: entry.totalSize,
               mode: entry.mode ?? 0,
               expect: uploadExpect(entry.expect),
+              wantVersion: entry.wantVersion ?? false,
             },
           },
         }
@@ -684,6 +699,10 @@ export class FSHandle extends Resource implements IFSHandle {
       bytesWritten: result.value.bytesWritten ?? 0n,
       filesWritten: result.value.filesWritten ?? 0n,
       directoriesWritten: result.value.directoriesWritten ?? 0n,
+      versions: (result.value.versions ?? []).map((v) => ({
+        path: v.path ?? '',
+        version: v.version ?? new Uint8Array(),
+      })),
     }
   }
 

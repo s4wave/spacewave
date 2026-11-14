@@ -4394,7 +4394,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/unixfs": {
-      "hash": "77f1db1500989e52925632a6c8c29c97b167b57b8db49cebe38615124c127ea6",
+      "hash": "1f02ccffde53322cbb99795730cfaef6f745352bfbc273f2371502888dd278b1",
       "generatedFiles": [
         "sdk/unixfs/handle.pb.go",
         "sdk/unixfs/handle.pb.ts",

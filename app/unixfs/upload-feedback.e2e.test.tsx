@@ -37,6 +37,7 @@ function recordingHandle(resolveUpload: boolean): {
           bytesWritten: 0n,
           filesWritten: 1n,
           directoriesWritten: 0n,
+          versions: [],
         })
       : pending.promise
   }

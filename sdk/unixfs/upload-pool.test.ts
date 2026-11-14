@@ -48,6 +48,7 @@ function deferredHandle(
         bytesWritten: entry.kind === 'file' ? entry.totalSize : 0n,
         filesWritten: entry.kind === 'file' ? 1n : 0n,
         directoriesWritten: entry.kind === 'directory' ? 1n : 0n,
+        versions: [],
       }
     }),
   }
