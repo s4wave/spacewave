@@ -1194,11 +1194,16 @@ func (x *HandleWatchReaddirRequest) Reset() {
 
 func (*HandleWatchReaddirRequest) ProtoMessage() {}
 
-// HandleWatchReaddirResponse is the response for WatchReaddir.
+// HandleWatchReaddirResponse is one change to a watched directory listing.
+// The first response holds the whole listing, and each later one the entries
+// a change added or changed and the names it removed.
 type HandleWatchReaddirResponse struct {
 	unknownFields []byte
-	// Entries is the full directory listing.
+	// Entries are the entries added or changed, in directory order, each with its
+	// size, modification time and mode.
 	Entries []*DirEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Removed are the names of the entries removed, in name order.
+	Removed []string `protobuf:"bytes,2,rep,name=removed,proto3" json:"removed,omitempty"`
 }
 
 func (x *HandleWatchReaddirResponse) Reset() {
@@ -1210,6 +1215,13 @@ func (*HandleWatchReaddirResponse) ProtoMessage() {}
 func (x *HandleWatchReaddirResponse) GetEntries() []*DirEntry {
 	if x != nil {
 		return x.Entries
+	}
+	return nil
+}
+
+func (x *HandleWatchReaddirResponse) GetRemoved() []string {
+	if x != nil {
+		return x.Removed
 	}
 	return nil
 }
@@ -2070,6 +2082,7 @@ func (m *HandleWatchReaddirResponse) CloneVT() *HandleWatchReaddirResponse {
 	}
 	r := new(HandleWatchReaddirResponse)
 	r.Entries = protobuf_go_lite.CloneVTSlice(m.Entries)
+	r.Removed = protobuf_go_lite.CloneSlice(m.Removed)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3129,6 +3142,9 @@ func (this *HandleWatchReaddirResponse) EqualVT(that *HandleWatchReaddirResponse
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Entries, that.Entries, func() *DirEntry { return &DirEntry{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Removed, that.Removed) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5292,6 +5308,11 @@ func (x *HandleWatchReaddirResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.Removed) > 0 || s.HasField("removed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("removed")
+		s.WriteStringArray(x.Removed)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -5327,6 +5348,13 @@ func (x *HandleWatchReaddirResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 				}
 				x.Entries = append(x.Entries, v)
 			})
+		case "removed":
+			s.AddField("removed")
+			if s.ReadNil() {
+				x.Removed = nil
+				return
+			}
+			x.Removed = s.ReadStringArray()
 		}
 	})
 }
@@ -7333,6 +7361,13 @@ func (m *HandleWatchReaddirResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Removed) > 0 {
+		for iNdEx := len(m.Removed) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Removed[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
 	if len(m.Entries) > 0 {
 		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Entries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -8023,6 +8058,7 @@ func (m *HandleWatchReaddirResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringSlice(1, m.Removed)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8804,6 +8840,14 @@ func (x *HandleWatchReaddirResponse) MarshalProtoText() string {
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Removed) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "removed")
+		for i, v := range x.Removed {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -11486,6 +11530,16 @@ func (m *HandleWatchReaddirResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Removed", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Removed = append(m.Removed, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

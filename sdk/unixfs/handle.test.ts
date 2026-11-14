@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Client as SRPCClient } from 'starpc'
 import { FSHandle } from './handle.js'
+import { applyReaddirChange } from './listing.js'
 import type {
   HandleLookupPathRequest,
   HandleLookupRequest,
@@ -371,5 +372,29 @@ describe('FSHandle uploadTree', () => {
       BigInt(source.byteLength),
     ])
     expect(totalProgress).toEqual(fileProgress)
+  })
+})
+
+describe('applyReaddirChange', () => {
+  it('removes, replaces and merges entries in name order', () => {
+    const first = applyReaddirChange([], {
+      entries: [{ name: 'a' }, { name: 'c', size: 1n }, { name: 'e' }],
+    })
+    const kept = first[0]
+    const next = applyReaddirChange(first, {
+      entries: [{ name: 'b' }, { name: 'c', size: 2n }, { name: 'f' }],
+      removed: ['e'],
+    })
+    expect(next.map((e) => e.name)).toEqual(['a', 'b', 'c', 'f'])
+    expect(next[0]).toBe(kept)
+    expect(next[2].size).toBe(2n)
+  })
+
+  it('orders names by code point as the directory does', () => {
+    const astral = '\u{1F600}'
+    const next = applyReaddirChange([{ name: '\uFF00' }], {
+      entries: [{ name: astral }],
+    })
+    expect(next.map((e) => e.name)).toEqual(['\uFF00', astral])
   })
 })

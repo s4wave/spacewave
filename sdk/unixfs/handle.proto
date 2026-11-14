@@ -371,10 +371,15 @@ message HandleUploadTreeResponse {
 // HandleWatchReaddirRequest is the request for WatchReaddir.
 message HandleWatchReaddirRequest {}
 
-// HandleWatchReaddirResponse is the response for WatchReaddir.
+// HandleWatchReaddirResponse is one change to a watched directory listing.
+// The first response holds the whole listing, and each later one the entries
+// a change added or changed and the names it removed.
 message HandleWatchReaddirResponse {
-  // Entries is the full directory listing.
+  // Entries are the entries added or changed, in directory order, each with its
+  // size, modification time and mode.
   repeated DirEntry entries = 1;
+  // Removed are the names of the entries removed, in name order.
+  repeated string removed = 2;
 }
 
 // HandleWatchFilesRequest is the request for WatchFiles.
