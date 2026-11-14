@@ -76,10 +76,11 @@ export function useUnixFSBrowserDrag({
           sourceParentHandle,
           selection.files,
           selection.directories,
+          displayPath,
         )
       }
     },
-    [setDragging, sourceParentHandle, uploadManager],
+    [displayPath, setDragging, sourceParentHandle, uploadManager],
   )
 
   const getAcceptedPathMove = useCallback(

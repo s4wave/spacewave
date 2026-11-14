@@ -1,0 +1,62 @@
+[
+  {
+    "name": "the drop sends a taken name before asking",
+    "replace": [
+      [
+        "  IF disk[n] = \"none\" THEN <<\"sending\", \"missing\", \"none\">>",
+        "  IF TRUE THEN <<\"sending\", \"missing\", \"none\">>"
+      ]
+    ],
+    "expect": "AskBeforeSending"
+  },
+  {
+    "name": "Replace overwrites whatever the name holds",
+    "replace": [
+      [
+        "  \\/ expect[n] \\in Files /\\ disk[n] = expect[n]",
+        "  \\/ expect[n] \\in Files"
+      ]
+    ],
+    "expect": "NoReplaceWithoutAnswer"
+  },
+  {
+    "name": "Replace expects the live version, not the one shown",
+    "replace": [
+      [
+        "                 IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN shown[n]",
+        "                 IF n \\notin ns THEN expect[n]\n                 ELSE IF a = \"replace\" THEN (IF disk[n] \\in Files THEN disk[n] ELSE shown[n])"
+      ]
+    ],
+    "expect": "NoReplaceWithoutAnswer"
+  },
+  {
+    "name": "a name a folder took is dropped without asking",
+    "replace": [
+      [
+        "       THEN /\\ item' = [item EXCEPT ![n] = \"asking\"]",
+        "       THEN /\\ item' = [item EXCEPT ![n] = IF disk[n] \\in Files THEN \"asking\" ELSE \"skipped\"]"
+      ]
+    ],
+    "expect": "NothingDiscarded"
+  },
+  {
+    "name": "Replace shows over a folder",
+    "replace": [
+      [
+        "    \\cup (IF Asked /\\ Versioned(Current) THEN {\"replace\"} ELSE {})",
+        "    \\cup (IF Asked THEN {\"replace\"} ELSE {})"
+      ]
+    ],
+    "expect": "EveryShownActionWorks"
+  },
+  {
+    "name": "a refused Replace whose file is gone is dropped",
+    "replace": [
+      [
+        "       ELSE /\\ expect' = [expect EXCEPT ![n] = \"missing\"]\n            /\\ UNCHANGED <<item, shown>>",
+        "       ELSE /\\ expect' = [expect EXCEPT ![n] = \"none\"]\n            /\\ item' = [item EXCEPT ![n] = \"skipped\"]\n            /\\ UNCHANGED shown"
+      ]
+    ],
+    "expect": "NothingDiscarded"
+  }
+]

@@ -1,11 +1,18 @@
-import type { IFSHandle, TreeUploadEntry } from './handle.js'
+import type { IFSHandle, TreeUploadEntry, TreeUploadResult } from './handle.js'
 
 // TreeUploadTaskCallbacks projects one entry's lifecycle to an upload consumer.
+// onConflict receives a refusal of the entry's expectation, which committed
+// nothing; with no onConflict a refusal reaches onError.
 export interface TreeUploadTaskCallbacks {
   onStart?: () => void
   onComplete?: () => void
+  onConflict?: (conflict: TreeUploadConflict) => void
   onError?: (err: unknown) => void
 }
+
+// TreeUploadConflict is a refused tree upload: the path and its current file
+// version, absent when the path holds no file.
+export type TreeUploadConflict = Extract<TreeUploadResult, { kind: 'conflict' }>
 
 interface TreeUploadTask {
   handle: Pick<IFSHandle, 'uploadTree'>
@@ -56,10 +63,13 @@ export class TreeUploadPool {
         undefined,
         task.signal,
       )
-      if (result.kind === 'conflict') {
+      if (result.kind === 'conflict' && !task.callbacks.onConflict) {
         throw new Error(`${result.path} was changed by another writer`)
       }
-      if (!task.signal?.aborted) task.callbacks.onComplete?.()
+      if (!task.signal?.aborted) {
+        if (result.kind === 'written') task.callbacks.onComplete?.()
+        else task.callbacks.onConflict?.(result)
+      }
     } catch (err) {
       if (!task.signal?.aborted) task.callbacks.onError?.(err)
     }

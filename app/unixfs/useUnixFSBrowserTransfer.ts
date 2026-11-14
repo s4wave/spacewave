@@ -61,11 +61,16 @@ export function useUnixFSBrowserTransfer({
       const files = e.target.files
       if (!files || files.length === 0) return
       if (pathHandle.value) {
-        uploadManager?.addFiles(pathHandle.value, Array.from(files))
+        uploadManager?.addFiles(
+          pathHandle.value,
+          Array.from(files),
+          undefined,
+          displayPath,
+        )
       }
       e.target.value = ''
     },
-    [uploadManager, pathHandle.value],
+    [uploadManager, pathHandle.value, displayPath],
   )
 
   return {

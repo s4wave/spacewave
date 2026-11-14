@@ -4,8 +4,18 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
+import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { UploadItem, UploadManager } from './useUploadManager.js'
 import { UploadProgressBottomBar } from './UploadProgressBottomBar.js'
+
+// uploadFields are the fields of an item that sends no file.
+const uploadFields = {
+  handle: {} as FSHandle,
+  place: '/docs',
+  expect: { kind: 'missing' } as const,
+  kept: null,
+  conflict: null,
+}
 
 function buildUploadManager(
   overrides: Partial<UploadManager> = {},
@@ -14,7 +24,10 @@ function buildUploadManager(
     items: [],
     activeCount: 0,
     lastEvent: null,
+    question: null,
     addFiles: vi.fn(),
+    answer: vi.fn(),
+    retryUpload: vi.fn(),
     cancelUpload: vi.fn(),
     cancelAll: vi.fn(),
     clearDone: vi.fn(),
@@ -34,6 +47,7 @@ function uploadingItem(): UploadItem {
     bytesWritten: 40,
     status: 'uploading',
     abortController: new AbortController(),
+    ...uploadFields,
   }
 }
 
@@ -49,6 +63,7 @@ function doneItem(id: string, name: string): UploadItem {
     bytesWritten: 100,
     status: 'done',
     abortController: new AbortController(),
+    ...uploadFields,
   }
 }
 
@@ -72,6 +87,8 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 40,
           status: 'uploading',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
         {
           id: 'upload-2',
@@ -84,6 +101,8 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 0,
           status: 'done',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
         {
           id: 'upload-3',
@@ -97,6 +116,8 @@ describe('UploadProgressBottomBar', () => {
           status: 'error',
           error: 'Network failed',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
       ],
     })
@@ -137,6 +158,8 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 100,
           status: 'done',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
         {
           id: 'upload-2',
@@ -149,6 +172,8 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 50,
           status: 'done',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
       ],
     })
@@ -184,6 +209,8 @@ describe('UploadProgressBottomBar', () => {
           bytesWritten: 50,
           status: 'uploading',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
       ],
     })
@@ -266,6 +293,8 @@ describe('UploadProgressBottomBar', () => {
           error:
             'Server error: build segment: browser storage quota exceeded (usage 100 bytes, quota 150 bytes, available 50 bytes, write 100 bytes): QuotaExceededError',
           abortController: new AbortController(),
+          ...uploadFields,
+          ...uploadFields,
         },
       ],
     })

@@ -103,7 +103,7 @@ function UploadProgressOverlay({
             </button>
           )}
           {uploadManager.items.some(
-            (i) => i.status === 'queued' || i.status === 'uploading',
+            (i) => i.status !== 'done' && i.status !== 'skipped',
           ) && (
             <button
               type="button"
@@ -156,6 +156,7 @@ function UploadProgressOverlay({
             key={item.id}
             item={item}
             onCancel={uploadManager.cancelUpload}
+            onRetry={uploadManager.retryUpload}
             onOpenStorageHealth={onOpenStorageHealth}
           />
         ))}
@@ -186,6 +187,12 @@ function uploadStatusLabel(item: UploadItem): string {
       return 'Queued'
     case 'done':
       return 'Complete'
+    case 'checking':
+      return 'Checking the folder'
+    case 'asking':
+      return 'Waiting for your answer'
+    case 'skipped':
+      return 'Skipped'
     default:
       return formatUploadError(item.error) ?? 'Failed'
   }
@@ -206,7 +213,7 @@ function UploadItemAction({
   if (item.status === 'done') {
     return <LuCheck className="size-4 text-green-500" />
   }
-  const dismissing = item.status === 'error'
+  const dismissing = item.status === 'error' || item.status === 'skipped'
   return (
     <button
       type="button"
@@ -252,10 +259,12 @@ function UploadItemProgress({ item }: { item: UploadItem }) {
 function UploadItemRow({
   item,
   onCancel,
+  onRetry,
   onOpenStorageHealth,
 }: {
   item: UploadItem
   onCancel: (id: string) => void
+  onRetry: (id: string) => void
   onOpenStorageHealth?: () => void
 }) {
   const quotaError = isStorageQuotaError(item.error)
@@ -282,13 +291,23 @@ function UploadItemRow({
               'text-xs',
               item.status === 'done' && 'text-green-500',
               item.status === 'error' && 'text-destructive',
-              (item.status === 'queued' || item.status === 'uploading') &&
+              item.status !== 'done' &&
+                item.status !== 'error' &&
                 'text-foreground-alt',
             )}
           >
             {uploadStatusLabel(item)}
           </span>
         </div>
+        {item.status === 'error' && item.kind === 'file' && (
+          <button
+            type="button"
+            className="text-brand hover:text-brand-highlight w-fit text-xs font-medium transition-colors"
+            onClick={() => onRetry(item.id)}
+          >
+            Retry
+          </button>
+        )}
         {quotaError && onOpenStorageHealth && (
           <button
             type="button"

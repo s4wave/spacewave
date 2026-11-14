@@ -8,6 +8,7 @@ import {
 
 import { useUploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
 import type { UploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
+import { UploadConflictDialog } from '@s4wave/app/unixfs/UploadConflictDialog.js'
 import { UploadProgressBottomBar } from '@s4wave/app/unixfs/UploadProgressBottomBar.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 
@@ -18,7 +19,7 @@ import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 const SessionUploadManagerContext = createContext<UploadManager | null>(null)
 
 // SessionUploadManagerProvider holds the UploadManager for a session, above the
-// object viewers that start uploads. Uploads and their feedback survive
+// object viewers that start uploads, and asks its conflicts there. Uploads and their feedback survive
 // navigating between objects or finishing a wizard because this provider
 // outlives any single viewer; in-flight uploads are aborted only on session
 // teardown, when this provider unmounts.
@@ -38,6 +39,7 @@ export function SessionUploadManagerProvider({
   return (
     <SessionUploadManagerContext.Provider value={manager}>
       {children}
+      <UploadConflictDialog uploadManager={manager} />
     </SessionUploadManagerContext.Provider>
   )
 }
