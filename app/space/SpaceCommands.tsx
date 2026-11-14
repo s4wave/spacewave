@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import {
   SharedObjectContext,
@@ -144,6 +144,21 @@ export function SpaceCommands({
     [experimentalCreatorsEnabled, listWizards],
   )
 
+  // failureToasts holds the ids of this world's create failure toasts. Their
+  // Try again acts on spaceWorld, so they are dismissed when the world is
+  // released or replaced, and when the commands unmount with their Space.
+  const failureToasts = useRef(new Set<string>())
+  const liveWorld = useRef<IWorldState | null>(null)
+  useEffect(() => {
+    const ids = failureToasts.current
+    liveWorld.current = spaceWorld
+    return () => {
+      liveWorld.current = null
+      for (const id of ids) toast.dismiss(id)
+      ids.clear()
+    }
+  }, [spaceWorld])
+
   const handleCloseSpace = useCallback(() => {
     navigateSession({ path: '' })
   }, [navigateSession])
@@ -244,20 +259,34 @@ export function SpaceCommands({
 
   // createObject runs one create command. The key and op are built once, so
   // Try again repeats the same create instead of choosing a new key. A failed
-  // create shows a toast that stays until dismissed or retried; a refusal
-  // shows the op's own explanation.
+  // create shows one toast, replaced by each later failure, that stays until
+  // dismissed, retried or its world is released; a refusal shows the op's
+  // own explanation.
   const createObject = useCallback(
     (typeId: string) => {
       let name = ''
       let plan: CreatePlan | null = null
       let sent = false
+      let toastId: string | undefined
 
+      // A create that settles after its world was released shows nothing and
+      // navigates nowhere: the person has left that Space.
+      const released = () => liveWorld.current !== spaceWorld
       const done = (created: CreatePlan) => {
+        if (released()) return
+        if (toastId) {
+          toast.dismiss(toastId)
+          failureToasts.current.delete(toastId)
+        }
         if (!created.persistent) toast.success(`Created ${created.name}`)
         navigateToObjects([created.objectKey])
       }
       const fail = (err: unknown, retry: boolean) => {
+        if (released()) return
+        toastId ??= `create-object:${plan?.objectKey ?? crypto.randomUUID()}`
+        failureToasts.current.add(toastId)
         toast.error(`Could not create ${name || 'the object'}`, {
+          id: toastId,
           description:
             err instanceof WorldOperationRejection
               ? err.message

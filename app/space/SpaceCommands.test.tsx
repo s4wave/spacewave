@@ -52,7 +52,7 @@ const h = vi.hoisted(() => ({
   navigateToObjects: vi.fn((_objectKeys: string[]) => undefined),
   openCommand: vi.fn((_commandId: string) => undefined),
   navigate: vi.fn((_opts: unknown) => undefined),
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: { error: vi.fn(), success: vi.fn(), dismiss: vi.fn() },
   wizards: [] as unknown[],
   listWizards: vi.fn((_signal?: AbortSignal) =>
     Promise.resolve(h.wizards as never),
@@ -464,6 +464,7 @@ describe('SpaceCommands', () => {
     return h.toast.error.mock.calls[n] as unknown as [
       string,
       {
+        id?: string
         description: string
         duration?: number
         action?: { label: string; onClick: () => void }
@@ -540,6 +541,70 @@ describe('SpaceCommands', () => {
       else expect(h.toast.success).not.toHaveBeenCalled()
     },
   )
+
+  it('keeps one toast per create across failed retries', async () => {
+    const refusal = new WorldOperationRejection(
+      'space/layout/exists',
+      'A layout with this name already exists.',
+    )
+    h.applyWorldOp.mockRejectedValueOnce(refusal).mockRejectedValueOnce(refusal)
+    renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    failedCreateToast()[1].action?.onClick()
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(2)
+    })
+
+    expect(failedCreateToast(0)[1].id).toBe('create-object:layout-1')
+    expect(failedCreateToast(1)[1].id).toBe('create-object:layout-1')
+    expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
+  })
+
+  it('dismisses a failed create toast when its Space closes', async () => {
+    h.applyWorldOp.mockRejectedValueOnce(new Error('offline'))
+    const view = renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledTimes(1)
+    })
+    const id = failedCreateToast()[1].id
+    expect(h.toast.dismiss).not.toHaveBeenCalled()
+
+    view.unmount()
+    expect(h.toast.dismiss).toHaveBeenCalledWith(id)
+  })
+
+  it('shows no failure toast for a create that fails after its Space closed', async () => {
+    let reject: (err: Error) => void = () => undefined
+    h.applyWorldOp.mockImplementationOnce(
+      () =>
+        new Promise<ApplyWorldOpResult>((_resolve, rejectOp) => {
+          reject = rejectOp
+        }),
+    )
+    const view = renderCommands()
+
+    getCreateObjectCommandHandlers().handler({
+      subItemId: 'alpha/object-layout',
+    })
+    await waitFor(() => {
+      expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
+    })
+    view.unmount()
+    reject(new Error('world released'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(h.toast.error).not.toHaveBeenCalled()
+  })
 
   it('does not retry a create whose key another object took', async () => {
     const objects: TypedObject[] = []
