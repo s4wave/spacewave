@@ -151,30 +151,29 @@ describe('KvStoreViewer', () => {
     fakeStore = new FakeKvStore({ alpha: 'hi', beta: 'longer-value' })
     renderViewer()
 
-    await waitFor(() => expect(screen.getByText('alpha')).toBeTruthy())
-    expect(screen.getByText('beta')).toBeTruthy()
+    await waitFor(() => expect(screen.getByTitle('alpha')).toBeTruthy())
+    expect(screen.getByTitle('beta')).toBeTruthy()
     expect(screen.getByText('2 B')).toBeTruthy()
     expect(screen.getByText('12 B')).toBeTruthy()
     expect(screen.getByText('2 keys')).toBeTruthy()
   })
 
-  it('filters by prefix and toggles sort direction', async () => {
+  it('filters by prefix and sorts by the key header', async () => {
     fakeStore = new FakeKvStore({ apple: 'a', apricot: 'b', banana: 'c' })
     const user = userEvent.setup()
     renderViewer()
 
-    await waitFor(() => expect(screen.getByText('apple')).toBeTruthy())
+    await waitFor(() => expect(screen.getByTitle('apple')).toBeTruthy())
 
     await user.type(screen.getByLabelText('Filter by key prefix'), 'ap')
-    expect(screen.queryByText('banana')).toBeNull()
-    expect(screen.getByText('apple')).toBeTruthy()
-    expect(screen.getByText('apricot')).toBeTruthy()
+    expect(screen.queryByTitle('banana')).toBeNull()
+    expect(screen.getByTitle('apple')).toBeTruthy()
+    expect(screen.getByTitle('apricot')).toBeTruthy()
 
-    const options = () =>
-      screen.getAllByRole('option').map((el) => el.textContent)
-    expect(options()[0]).toContain('apple')
-    await user.click(screen.getByLabelText('Sort keys descending'))
-    expect(options()[0]).toContain('apricot')
+    const keyRows = () => screen.getAllByRole('row').map((el) => el.textContent)
+    expect(keyRows()[0]).toContain('apple')
+    await user.click(screen.getByRole('button', { name: 'Key' }))
+    expect(keyRows()[0]).toContain('apricot')
   })
 
   it('shows the selected value with the detail pane and auto-detected mode', async () => {
@@ -182,8 +181,8 @@ describe('KvStoreViewer', () => {
     const user = userEvent.setup()
     renderViewer()
 
-    await waitFor(() => expect(screen.getByText('doc')).toBeTruthy())
-    await user.click(screen.getByRole('option'))
+    await waitFor(() => expect(screen.getByTitle('doc')).toBeTruthy())
+    await user.click(screen.getByRole('row'))
 
     const editor = await screen.findByLabelText('Key value')
     await waitFor(() =>
@@ -210,9 +209,7 @@ describe('KvStoreViewer', () => {
     await waitFor(() => expect(fakeStore.setCalls).toBe(1))
     await waitFor(() =>
       expect(
-        screen
-          .getAllByText('fresh')
-          .some((el) => el.closest('[role="option"]')),
+        screen.getAllByTitle('fresh').some((el) => el.closest('[role="row"]')),
       ).toBe(true),
     )
   })
@@ -222,8 +219,8 @@ describe('KvStoreViewer', () => {
     const user = userEvent.setup()
     renderViewer()
 
-    await waitFor(() => expect(screen.getByText('name')).toBeTruthy())
-    await user.click(screen.getByRole('option'))
+    await waitFor(() => expect(screen.getByTitle('name')).toBeTruthy())
+    await user.click(screen.getByRole('row'))
 
     const editor = await screen.findByLabelText('Key value')
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty(
@@ -245,8 +242,8 @@ describe('KvStoreViewer', () => {
     const user = userEvent.setup()
     renderViewer()
 
-    await waitFor(() => expect(screen.getByText('gone')).toBeTruthy())
-    await user.click(screen.getByRole('option'))
+    await waitFor(() => expect(screen.getByTitle('gone')).toBeTruthy())
+    await user.click(screen.getByRole('row'))
     await screen.findByLabelText('Key value')
 
     await user.click(screen.getByRole('button', { name: 'Delete' }))
@@ -256,14 +253,34 @@ describe('KvStoreViewer', () => {
     await waitFor(() => expect(fakeStore.deleteCalls).toBe(1))
   })
 
+  it('closes the create form when a key is selected, through its delete', async () => {
+    fakeStore = new FakeKvStore({ gone: 'x' })
+    const user = userEvent.setup()
+    renderViewer()
+
+    await waitFor(() => expect(screen.getByTitle('gone')).toBeTruthy())
+    await user.click(screen.getByRole('button', { name: 'New Key' }))
+    expect(screen.getByLabelText('New key')).toBeTruthy()
+
+    await user.click(screen.getByRole('row'))
+    await screen.findByLabelText('Key value')
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() =>
+      expect(screen.getByText('Select a key to view its value.')).toBeTruthy(),
+    )
+    expect(screen.queryByLabelText('New key')).toBeNull()
+  })
+
   it('surfaces an inline error when a write transaction fails', async () => {
     fakeStore = new FakeKvStore({ name: 'old' })
     fakeStore.failNextWrite = true
     const user = userEvent.setup()
     renderViewer()
 
-    await waitFor(() => expect(screen.getByText('name')).toBeTruthy())
-    await user.click(screen.getByRole('option'))
+    await waitFor(() => expect(screen.getByTitle('name')).toBeTruthy())
+    await user.click(screen.getByRole('row'))
     const editor = await screen.findByLabelText('Key value')
     await user.clear(editor)
     await user.type(editor, 'new')
@@ -273,13 +290,23 @@ describe('KvStoreViewer', () => {
       expect(screen.getByText('Save failed: transaction failed')).toBeTruthy(),
     )
     expect(fakeStore.setCalls).toBe(0)
+
+    // Selecting the key again mounts a fresh editor, so the error leaves.
+    await user.keyboard('{Control>}')
+    await user.click(screen.getByRole('row'))
+    await user.keyboard('{/Control}')
+    await user.click(screen.getByRole('row'))
+    await screen.findByLabelText('Key value')
+    expect(screen.queryByText('Save failed: transaction failed')).toBeNull()
   })
 
   it('shows a retryable error state when the key list fails to load', async () => {
+    // A store whose key scan fails.
     fakeStore = new FakeKvStore({})
     vi.spyOn(fakeStore, 'scanKeys').mockRejectedValue(new Error('boom'))
     renderViewer()
 
+    // The failed read shows its error with a retry.
     await waitFor(() =>
       expect(screen.getByText('Could not read the keys: boom')).toBeTruthy(),
     )

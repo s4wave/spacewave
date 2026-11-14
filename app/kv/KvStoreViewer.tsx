@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useReducer, useState } from 'react'
 import { LuDatabase, LuPlus } from 'react-icons/lu'
 
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -7,6 +7,11 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { ViewerStatus } from '@s4wave/web/object/ViewerStatus.js'
 import { ViewerBar } from '@s4wave/web/object/ViewerBar.js'
+import {
+  type ListStateHandle,
+  type ListUpdate,
+  useListState,
+} from '@s4wave/web/ui/list'
 
 import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/kv.js'
 
@@ -15,17 +20,36 @@ import { KvKeyDetail } from './KvKeyDetail.js'
 import { KvKeyList } from './KvKeyList.js'
 import { KvKeyListToolbar } from './KvKeyListToolbar.js'
 import { bytesToText } from './kv-encoding.js'
-import type { KvKeyRow, KvSortDirection } from './kv-viewer.js'
+import type { KvKeyRow } from './kv-viewer.js'
 
 export { KvStoreTypeID }
 
-// KvStoreViewer is the full kv/store viewer: a watch-driven key list with byte
-// lengths, a prefix filter and sort toggle, a value detail pane with display
-// toggles, and create/update/delete flows with optimistic rollback.
+// MutationError is a failed write and the key it was for; null for a create.
+interface MutationError {
+  key: string | null
+  message: string
+}
+
+// PaneEvent moves the right pane: create opens the create form; select is any
+// change to the list's selection; close is Cancel.
+type PaneEvent = 'create' | 'select' | 'close'
+
+// creatingAfter is whether the right pane shows the create form after event.
+// The form opens on an empty selection, and any selection change closes it, so
+// it never waits behind a selected key to return when the selection empties.
+// A draft in the form is dropped when a key is selected.
+function creatingAfter(_: boolean, event: PaneEvent): boolean {
+  return event === 'create'
+}
+
+// KvStoreViewer is the full kv/store viewer: a watch-driven table of keys with
+// byte lengths, a prefix filter, a value detail pane with display toggles, and
+// create/update/delete flows with optimistic rollback.
 export function KvStoreViewer({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
+  // Open the store's typed handle.
   const objectKey = getObjectKey(objectInfo)
   const handle = useAccessTypedHandle(
     worldState,
@@ -34,6 +58,7 @@ export function KvStoreViewer({
     KvStoreTypeID,
   )
 
+  // Read every key with its value's size.
   const keysResource = useResource(
     handle,
     async (kv, signal) => {
@@ -47,12 +72,55 @@ export function KvStoreViewer({
     [],
   )
 
+  // The prefix filter, the create form, and the last failed write.
   const [prefix, setPrefix] = useState('')
-  const [sortDirection, setSortDirection] = useState<KvSortDirection>('asc')
-  const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [mutationError, setMutationError] = useState<string | null>(null)
+  const [creating, paneEvent] = useReducer(creatingAfter, false)
+  const [mutationError, setMutationError] = useState<MutationError | null>(null)
 
+  // The key list's selection and sort; the detail shows the one selected key.
+  const listState = useListState(null, 'kvKeys', {
+    sortKey: 'key',
+    sortDirection: 'asc',
+  })
+  const [list, updateList] = listState
+  const selectedKey =
+    list.selectedIds?.length === 1 ? list.selectedIds[0] : null
+
+  // updateSelection is the list update every change goes through, the table's
+  // and the viewer's own. A change to the selection closes the create form and
+  // drops the last write error, since the editor it belonged to is gone. The
+  // list's update runs its function before it returns.
+  const updateSelection = useCallback<ListUpdate>(
+    (update) => {
+      // Apply the change, noting whether it replaced the selection.
+      let changed = false
+      updateList((state) => {
+        const next = update(state)
+        changed = next.selectedIds !== state.selectedIds
+        return next
+      })
+      if (!changed) return
+      paneEvent('select')
+      setMutationError(null)
+    },
+    [updateList],
+  )
+  const tableState = useMemo<ListStateHandle>(
+    () => [list, updateSelection],
+    [list, updateSelection],
+  )
+
+  // select makes key the one selected row, or clears the selection.
+  const select = useCallback(
+    (key: string | null) =>
+      updateSelection((state) => ({
+        ...state,
+        selectedIds: key === null ? [] : [key],
+      })),
+    [updateSelection],
+  )
+
+  // rows are the keys read, none until the first read arrives.
   const rows = useMemo(() => keysResource.value ?? [], [keysResource.value])
 
   // arrived is true once a read of the keys has succeeded; New Key shows only
@@ -60,43 +128,45 @@ export function KvStoreViewer({
   const arrived =
     !keysResource.error && !(keysResource.loading && rows.length === 0)
 
-  const visibleRows = useMemo(() => {
-    const filtered = prefix
-      ? rows.filter((row) => row.label.startsWith(prefix))
-      : rows
-    const sorted = filtered.toSorted((a, b) =>
-      a.label < b.label ? -1 : a.label > b.label ? 1 : 0,
-    )
-    return sortDirection === 'asc' ? sorted : sorted.toReversed()
-  }, [rows, prefix, sortDirection])
+  // The keys the prefix leaves, as table rows; the table sorts them.
+  const visibleRows = useMemo(
+    () =>
+      rows
+        .filter((row) => row.label.startsWith(prefix))
+        .map((row) => ({ id: row.label, data: row })),
+    [rows, prefix],
+  )
 
+  // selectedRow is the one selected key while the prefix leaves it.
   const selectedRow = useMemo(
-    () => visibleRows.find((row) => row.label === selectedKey) ?? null,
+    () => visibleRows.find((row) => row.id === selectedKey)?.data ?? null,
     [visibleRows, selectedKey],
   )
 
-  const toggleSortDirection = useCallback(() => {
-    setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
-  }, [])
+  // The write error the pane shows: the selected key's, or the create's when
+  // no key is selected.
+  const errorKey = selectedRow?.label ?? null
+  const shownError =
+    mutationError?.key === errorKey ? mutationError.message : null
 
-  const handleSelectKey = useCallback((row: KvKeyRow) => {
-    setSelectedKey(row.label)
-    setCreating(false)
-    setMutationError(null)
-  }, [])
-
+  // handleStartCreate clears the selection and opens the create form.
   const handleStartCreate = useCallback(() => {
-    setCreating(true)
-    setSelectedKey(null)
+    select(null)
     setMutationError(null)
-  }, [])
+    paneEvent('create')
+  }, [select])
 
-  // runMutation applies a write then reloads the key list so the watched list
-  // reconciles. A failure surfaces inline and returns false; the reload rolls
-  // back any optimistic list state that did not actually persist. It never
-  // throws, so callers finalize selection only on success.
+  // runMutation applies a write for key, null for a create, then reloads the
+  // key list so the watched list reconciles. A failure surfaces inline beside
+  // that key and returns false; the reload rolls back any optimistic list
+  // state that did not actually persist. It never throws, so callers finalize
+  // selection only on success.
   const runMutation = useCallback(
-    async (mutate: (kv: KvStore) => Promise<void>): Promise<boolean> => {
+    async (
+      key: string | null,
+      mutate: (kv: KvStore) => Promise<void>,
+    ): Promise<boolean> => {
+      // Run the write, keeping its failure for the pane.
       const kv = handle.value
       if (!kv) return false
       setMutationError(null)
@@ -105,7 +175,8 @@ export function KvStoreViewer({
         await mutate(kv)
         ok = true
       } catch (err) {
-        setMutationError(err instanceof Error ? err.message : String(err))
+        const message = err instanceof Error ? err.message : String(err)
+        setMutationError({ key, message })
       }
       keysResource.retry()
       return ok
@@ -113,25 +184,26 @@ export function KvStoreViewer({
     [handle.value, keysResource],
   )
 
+  // handleCreate writes a new key and selects it, which closes the form.
   const handleCreate = useCallback(
     async (key: Uint8Array, value: Uint8Array) => {
-      const ok = await runMutation((kv) =>
+      const ok = await runMutation(null, (kv) =>
         kv.withTransaction(true, async (tx) => {
           await tx.set(key, value)
         }),
       )
       if (!ok) return
-      setCreating(false)
-      setSelectedKey(bytesToText(key))
+      select(bytesToText(key))
     },
-    [runMutation],
+    [runMutation, select],
   )
 
+  // handleSave writes the selected key's new value.
   const handleSave = useCallback(
     async (value: Uint8Array) => {
       const row = selectedRow
       if (!row) return
-      await runMutation((kv) =>
+      await runMutation(row.label, (kv) =>
         kv.withTransaction(true, async (tx) => {
           await tx.set(row.key, value)
         }),
@@ -140,16 +212,18 @@ export function KvStoreViewer({
     [runMutation, selectedRow],
   )
 
+  // handleDelete deletes the selected key and, once it is gone, clears the
+  // selection.
   const handleDelete = useCallback(async () => {
     const row = selectedRow
     if (!row) return
-    const ok = await runMutation((kv) =>
+    const ok = await runMutation(row.label, (kv) =>
       kv.withTransaction(true, async (tx) => {
         await tx.delete(row.key)
       }),
     )
-    if (ok) setSelectedKey(null)
-  }, [runMutation, selectedRow])
+    if (ok) select(null)
+  }, [runMutation, select, selectedRow])
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -173,12 +247,7 @@ export function KvStoreViewer({
 
       <div className="flex min-h-0 flex-1">
         <div className="border-foreground/8 flex w-1/3 min-w-48 flex-col border-r">
-          <KvKeyListToolbar
-            prefix={prefix}
-            onPrefixChange={setPrefix}
-            sortDirection={sortDirection}
-            onToggleSortDirection={toggleSortDirection}
-          />
+          <KvKeyListToolbar prefix={prefix} onPrefixChange={setPrefix} />
           {keysResource.error ? (
             <div className="min-h-0 flex-1">
               <ViewerStatus
@@ -194,30 +263,29 @@ export function KvStoreViewer({
           ) : (
             <KvKeyList
               rows={visibleRows}
-              selectedKey={selectedKey}
-              onSelectKey={handleSelectKey}
+              state={tableState}
               filtered={prefix.length > 0}
             />
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          {creating ? (
-            <div className="overflow-auto p-3">
-              <KvCreateKeyForm
-                onCreate={handleCreate}
-                onCancel={() => setCreating(false)}
-                mutationError={mutationError}
-              />
-            </div>
-          ) : selectedRow ? (
+          {selectedRow ? (
             <KvKeyDetail
               handle={handle}
               row={selectedRow}
               onSave={handleSave}
               onDelete={handleDelete}
-              mutationError={mutationError}
+              mutationError={shownError}
             />
+          ) : creating ? (
+            <div className="overflow-auto p-3">
+              <KvCreateKeyForm
+                onCreate={handleCreate}
+                onCancel={() => paneEvent('close')}
+                mutationError={shownError}
+              />
+            </div>
           ) : (
             <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
               Select a key to view its value.

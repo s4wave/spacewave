@@ -1,25 +1,17 @@
 import { useCallback } from 'react'
-import { LuArrowDownAZ, LuArrowUpAZ } from 'react-icons/lu'
 
 import { Input } from '@s4wave/web/ui/input.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
-
-import type { KvSortDirection } from './kv-viewer.js'
 
 interface KvKeyListToolbarProps {
   prefix: string
   onPrefixChange: (prefix: string) => void
-  sortDirection: KvSortDirection
-  onToggleSortDirection: () => void
 }
 
-// KvKeyListToolbar renders the prefix filter input and sort direction toggle
-// for the key list. Both controls drive the watched list reactively.
+// KvKeyListToolbar renders the prefix filter for the key list, which narrows
+// the watched list as the person types.
 export function KvKeyListToolbar({
   prefix,
   onPrefixChange,
-  sortDirection,
-  onToggleSortDirection,
 }: KvKeyListToolbarProps) {
   const handlePrefixChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,22 +29,6 @@ export function KvKeyListToolbar({
         aria-label="Filter by key prefix"
         variant="toolbar"
         className="flex-1"
-      />
-      <DashboardButton
-        icon={
-          sortDirection === 'asc' ? (
-            <LuArrowDownAZ className="size-3.5" />
-          ) : (
-            <LuArrowUpAZ className="size-3.5" />
-          )
-        }
-        onClick={onToggleSortDirection}
-        aria-label={
-          sortDirection === 'asc'
-            ? 'Sort keys descending'
-            : 'Sort keys ascending'
-        }
-        title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
       />
     </div>
   )
