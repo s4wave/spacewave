@@ -2,11 +2,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import { describe, it, expect, vi } from 'vitest'
 import { FSHandle, FsInode } from './fs-handle.js'
-import type {
-  FSCursor,
-  FSCursorChangeCb,
-  FSCursorOps,
-} from './fs-cursor.js'
+import type { FSCursor, FSCursorChangeCb, FSCursorOps } from './fs-cursor.js'
 
 // MockFSCursorOps implements FSCursorOps backed by in-memory state.
 class MockFSCursorOps implements FSCursorOps {

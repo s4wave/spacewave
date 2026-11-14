@@ -11,7 +11,13 @@ const root = resolve(dir, '../..')
 
 const goos = (await $`go env GOOS`.text()).trim()
 const goarch = (await $`go env GOARCH`.text()).trim()
-const src = join(root, '.bldr/build/desktop', goos, goarch, 'spacewave/entrypoint')
+const src = join(
+  root,
+  '.bldr/build/desktop',
+  goos,
+  goarch,
+  'spacewave/entrypoint',
+)
 
 const entries = await readdir(src)
 for (const name of entries) {

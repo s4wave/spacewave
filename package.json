@@ -129,7 +129,7 @@
     "test:go:e2e:trace": "cross-env RUN_TRACE_E2E=1 go test -timeout=30m -v ./core/trace/service -run 'TestTraceServiceDiscovery|TestTraceServiceAllPlugins'",
     "test:go:goscript": "go test -tags goscript ./net/crypto/tls && go test ./bldr/util/gocompiler ./bldr/plugin/compiler/go && cross-env GOMEMLIMIT=12GiB go tool github.com/s4wave/goscript/cmd/goscript test --dir . --timeout 10m -p 1 --tags skip_e2e,purego,goscript ./core/resource/root/controller ./core/resource/listener ./core/session/controller ./core/provider/local ./core/provider/spacewave ./core/space/sobject ./core/space/world ./core/space/world/optypes ./core/plugin/space ./core/space/http/download ./core/space/http/export ./core/space/world/blocktype ./bldr/manifest ./net/link/solicit github.com/s4wave/spacewave/db/object/peer",
     "format": "bun run format:js && bun run format:go && bun run format:config",
-    "format:js": "oxfmt './{app,web,core,sdk,net}/**/*.{ts,tsx,js,html,css,scss}' && bun run format:config",
+    "format:js": "oxfmt './{app,auth,cmd,core,db,e2e,forge,gs,identity,net,packages,plugin,scripts,sdk,web}/**/*.{ts,tsx,js,html,css,scss}' && bun run format:config",
     "format:go": "bun run go:aptre -- format && cross-env \"GOFLAGS=-mod=mod -tags=purego\" go fix -embedlit=false ./...",
     "format:config": "oxfmt '*.json' '.github/**/*.json' '.github/**/*.yml' '.oxfmtrc.json' '.golangci.yml' 'tsconfig.json' 'tsconfig.net.json'",
     "vitecheck": "vite build --outDir vite-check",

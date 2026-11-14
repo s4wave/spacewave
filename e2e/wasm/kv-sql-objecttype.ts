@@ -293,11 +293,7 @@ async function prepareWorkbenchPins(signal: AbortSignal) {
     )
     try {
       if (workbenchCreated) {
-        await workbench.initialize(
-          SQL_DB_KEY,
-          'Browser SQL Workbench',
-          signal,
-        )
+        await workbench.initialize(SQL_DB_KEY, 'Browser SQL Workbench', signal)
       }
       await workbench.addPin(SQL_SEED_QUERY_KEY, signal)
       await workbench.addPin(SQL_SECOND_QUERY_KEY, signal)

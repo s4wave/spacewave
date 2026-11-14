@@ -75,12 +75,10 @@ test(
             .string()
             .parse(await context.previous.collection('retired').get('label'))
           for (const entry of await old.scan()) {
-            await context
-              .collection('colors')
-              .put(entry.key, {
-                name: label,
-                likes: z.number().parse(entry.value),
-              })
+            await context.collection('colors').put(entry.key, {
+              name: label,
+              likes: z.number().parse(entry.value),
+            })
           }
         },
       },

@@ -128,7 +128,10 @@ export async function uploadSeedTree(
   directories?: string[],
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const access = await worldState.accessTypedObject(unixfsObjectKey, abortSignal)
+  const access = await worldState.accessTypedObject(
+    unixfsObjectKey,
+    abortSignal,
+  )
   if (!access.resourceId) {
     throw new Error('failed to access unixfs root')
   }

@@ -248,9 +248,8 @@ function normalizeReactDoctorReport(
   for (const diagnostic of diagnostics) {
     if (diagnostic.filePath) affectedFiles.add(diagnostic.filePath)
   }
-  const projects =
-    report.projects ?
-      report.projects.map((project) => {
+  const projects = report.projects
+    ? report.projects.map((project) => {
         if (!Array.isArray(project.diagnostics)) return project
         return {
           ...project,
@@ -290,7 +289,8 @@ export function buildReactDiagnosticRunReport(input: {
         ? null
         : `React Doctor exited with code ${input.processResult.code}`)
   const reactDoctorOk = input.reactDoctor?.ok ?? false
-  const ok = input.processResult.code === 0 && !input.parseError && reactDoctorOk
+  const ok =
+    input.processResult.code === 0 && !input.parseError && reactDoctorOk
   const reactDoctor = normalizeReactDoctorReport(input.reactDoctor)
 
   return {
@@ -364,11 +364,7 @@ function formatTopDiagnosticGroups(
     const severityA = getDiagnosticSeverity(diagnosticsA[0])
     const severityB = getDiagnosticSeverity(diagnosticsB[0])
     const severityDelta =
-      severityA === severityB
-        ? 0
-        : severityA === 'error'
-          ? -1
-          : 1
+      severityA === severityB ? 0 : severityA === 'error' ? -1 : 1
     if (severityDelta !== 0) return severityDelta
     return diagnosticsB.length - diagnosticsA.length
   })

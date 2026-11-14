@@ -3,7 +3,8 @@ import { parseNote, reassembleNote, stripWikiLinks } from './frontmatter.js'
 
 describe('parseNote', () => {
   it('parses frontmatter and body', () => {
-    const content = '---\ntags: [alpha, beta]\nstatus: in-progress\n---\n\n# My Note\n\nBody text.'
+    const content =
+      '---\ntags: [alpha, beta]\nstatus: in-progress\n---\n\n# My Note\n\nBody text.'
     const result = parseNote(content)
 
     expect(result.frontmatter.tags).toEqual(['alpha', 'beta'])
