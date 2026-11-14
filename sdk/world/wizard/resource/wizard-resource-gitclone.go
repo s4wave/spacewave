@@ -11,6 +11,7 @@ import (
 	s4wave_git "github.com/s4wave/spacewave/core/git"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	wizard "github.com/s4wave/spacewave/sdk/world/wizard"
@@ -34,6 +35,10 @@ func (r *WizardResource) failGitClone(objectKey, message string, err error) {
 	})
 }
 
+// runGitClone clones the requested repository into a stage, then publishes it
+// and retires the wizard in one transaction, reporting each outcome as clone
+// progress. A refusal, such as a gone wizard or a taken key, fails the clone
+// with a message naming the cause and leaves the World unchanged.
 func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCloneRequest) {
 	// Decode and validate the requested repository clone.
 	op := &s4wave_git.CreateGitRepoWizardOp{}
@@ -85,7 +90,8 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 
 	// Publish the staged clone and retire the wizard together.
 	if err := r.publishGitClone(ctx, req.GetObjectKey(), repoRef, ts, sender); err != nil {
-		r.failGitClone(req.GetObjectKey(), "Repository was cloned, but publish failed.", err)
+		message, detail := gitClonePublishFailure(err)
+		r.failGitClone(req.GetObjectKey(), message, detail)
 		return
 	}
 
@@ -97,9 +103,27 @@ func (r *WizardResource) runGitClone(ctx context.Context, req *wizard.StartGitCl
 	})
 }
 
+// gitClonePublishFailure returns the clone failure message and detail for a
+// publish error. A refusal carries its whole cause in the message.
+func gitClonePublishFailure(err error) (string, error) {
+	var taken *GitRepoKeyTakenError
+	switch {
+	case errors.Is(err, ErrWizardGone):
+		return "This wizard was already finished or deleted elsewhere.", nil
+	case errors.As(err, &taken):
+		return "A repository already exists at " + taken.Key + ". Clone again to use a new name.", nil
+	default:
+		return "Repository was cloned, but publish failed.", err
+	}
+}
+
 // publishGitClone creates the repository object at objectKey from the staged
 // clone at repoRef, points the Space index at it while the index names this
 // wizard, and deletes the wizard, all in one World transaction.
+//
+// Returns ErrWizardGone, before the repository is created, when the wizard was finished or
+// deleted elsewhere, and a GitRepoKeyTakenError when another object holds
+// objectKey or a key under it.
 //
 // Invariant: the repository object, the index change and the wizard deletion
 // commit together or not at all. A failure leaves no repository object and
@@ -124,9 +148,23 @@ func (r *WizardResource) publishGitClone(
 	}
 	defer wtx.Discard()
 
-	// Create the repository object over the staged clone.
+	// Delete the wizard that the repository replaces, refusing when it is
+	// already gone: its clone has nothing left to replace.
+	found, err := wtx.DeleteObject(ctx, r.objKey)
+	if err != nil {
+		return errors.Wrap(err, "delete wizard")
+	}
+	if !found {
+		return ErrWizardGone
+	}
+
+	// Create the repository object over the staged clone, refusing a key
+	// another object took after the clone chose it.
 	initOp := git_world.NewGitInitOp(objectKey, repoRef, true, nil, ts)
 	if _, _, err := wtx.ApplyWorldOp(ctx, initOp, sender); err != nil {
+		if errors.Is(err, world.ErrObjectExists) {
+			return &GitRepoKeyTakenError{Key: objectKey}
+		}
 		return err
 	}
 
@@ -135,11 +173,7 @@ func (r *WizardResource) publishGitClone(
 		return errors.Wrap(err, "update space index")
 	}
 
-	// Delete the wizard that the repository replaces.
-	if _, err := wtx.DeleteObject(ctx, r.objKey); err != nil {
-		return errors.Wrap(err, "delete wizard")
-	}
-
+	// Commit the repository, the index change and the deletion together.
 	return wtx.Commit(ctx)
 }
 

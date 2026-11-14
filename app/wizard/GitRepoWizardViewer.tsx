@@ -175,6 +175,15 @@ function useGitCloneProgress(ws: WizardState) {
   }
 }
 
+/**
+ * gitRepoFinalizeStep returns the step that shows Create or Clone: the name
+ * step, or the progress step while it shows a failed clone, so Clone sits
+ * beside the failure.
+ */
+function gitRepoFinalizeStep(failed: boolean, step: number): number {
+  return failed && step === 2 ? 2 : 1
+}
+
 /** cloneUrlErrorFor returns the browser-only error for a clone URL, or an empty string. */
 function cloneUrlErrorFor(isClone: boolean, url: string): string {
   return isClone && !isDesktop && isGithubCloneUrl(url)
@@ -184,6 +193,8 @@ function cloneUrlErrorFor(isClone: boolean, url: string): string {
 
 // GitRepoWizardViewer is a custom wizard viewer for creating Git repositories.
 // Step 0: config editor (mode toggle + clone options). Step 1: repository name.
+// Step 2: clone progress; a failed or refused clone shows Clone beside its
+// message, and Clone again picks a free key and starts over.
 export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
   const ws = useWizardState(props, 'git/repo')
   const { state, configEditor } = ws
@@ -247,7 +258,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
       canFinalize={(!isClone || !!cloneOpts?.url?.trim()) && !cloning}
       onNext={() => void handleNext()}
       canNext={!cloneUrlError}
-      finalizeStep={1}
+      finalizeStep={gitRepoFinalizeStep(failed, currentStep)}
     >
       {currentStep === 0 && (
         <>
